@@ -1041,3 +1041,166 @@ def test_the_stretched_column_is_chosen_by_name_and_not_by_index(qapp):
     from openchem.ui.panels.docking_panel import _AFFINITY_COLUMN, _POSE_COLUMNS
 
     assert _AFFINITY_COLUMN in _POSE_COLUMNS
+
+
+# --- the panel fits the dock it opens in ------------------------------------
+
+
+def _widest_value_fits(spin) -> tuple[int, int]:
+    """(line-edit width, width the widest permitted value needs).
+
+    Asked of the LINE EDIT, which is where the text is painted -- not of the
+    spin box, whose width includes buttons and frame. A first check allowed
+    30 px for those and concluded a 90 px spin was fine; the real chrome is
+    52 px on this platform, so it would have clipped "-1000.00".
+    """
+    from PySide6.QtGui import QFontMetrics
+    from PySide6.QtWidgets import QLineEdit
+
+    edit = spin.findChild(QLineEdit)
+    metrics = QFontMetrics(edit.font())
+    return edit.width(), metrics.horizontalAdvance(spin.text())
+
+
+def test_a_coordinate_spin_always_fits_the_widest_value_its_range_permits(qapp):
+    """The narrow half, and the one that rules out a pixel constant.
+
+    A fixed cap measures beautifully on one machine and clips the NUMBER under
+    a larger UI font -- strictly worse than clipping a label, because a
+    half-shown coordinate is a wrong coordinate. Both sides of this assertion
+    come from the widget's own font, so it holds wherever it runs: under
+    `offscreen`, whose font is more than twice as wide, the derived width grows
+    with it.
+    """
+    panel, _engine, _service = _make_panel()
+    panel.show()
+
+    for spin in (panel._center_x, panel._center_y, panel._center_z):
+        spin.setValue(spin.minimum())
+    for spin in (panel._size_x, panel._size_y, panel._size_z):
+        spin.setValue(spin.maximum())
+    panel.resize(panel.minimumSizeHint().width(), 900)
+    qapp.processEvents()
+
+    too_narrow = [
+        (spin.text(), *_widest_value_fits(spin))
+        for spin in (
+            panel._center_x, panel._center_y, panel._center_z,
+            panel._size_x, panel._size_y, panel._size_z,
+        )
+        if _widest_value_fits(spin)[0] < _widest_value_fits(spin)[1]
+    ]
+
+    assert not too_narrow, f"a coordinate would be shown clipped: {too_narrow}"
+
+
+def test_the_spin_width_is_derived_from_the_range_and_not_a_constant(qapp):
+    """A constant answers the same for every range; this must not.
+
+    The box centre spans -1000..1000 and the box size 1..200, so "-1000.00" is
+    wider than "200.00" and the two controls are entitled to different widths.
+    A flat cap -- which is what this shipped as for one commit -- returns one
+    number for both and is caught here.
+    """
+    from openchem.ui.panels.docking_panel import coordinate_spin_width
+
+    panel, _engine, _service = _make_panel()
+
+    assert coordinate_spin_width(panel._center_x) > coordinate_spin_width(panel._size_x)
+
+
+def test_narrowing_the_coordinate_spins_really_shrinks_the_panel(qapp):
+    """The behavioural half, phrased so it does not depend on the font.
+
+    "The panel's minimum is at most 420" is a claim about the platform's font:
+    measured at REAL fonts it is 406 against a dock that opens at 420, and
+    under `offscreen` -- whose font is far wider -- no arrangement of this
+    panel fits 420 and none should be asked to.
+
+    ASSERTED ON THE BOX GROUP, NOT THE PANEL, and the first version of this
+    test asserted the panel and failed under `offscreen`: there the panel's
+    minimum is 706 with the cap and without it, because a different group is
+    binding at that font. The group the cap acts on shrinks on BOTH -- 405 to
+    384 at real fonts, 522 to 510 under `offscreen` -- which is the honest
+    scope of the claim.
+    """
+    from PySide6.QtWidgets import QGroupBox
+
+    panel, _engine, _service = _make_panel()
+    panel.show()
+    panel.resize(420, 900)
+    qapp.processEvents()
+    group = next(
+        g for g in panel.findChildren(QGroupBox) if g.title().startswith("Search box")
+    )
+    fitted = group.minimumSizeHint().width()
+
+    for spin in (
+        panel._center_x, panel._center_y, panel._center_z,
+        panel._size_x, panel._size_y, panel._size_z,
+    ):
+        spin.setMaximumWidth(16777215)
+    panel.resize(420, 900)
+    qapp.processEvents()
+
+    assert fitted < group.minimumSizeHint().width()
+
+
+def test_the_short_form_labels_are_the_other_half_of_the_fit(qapp):
+    """Narrowing the spins alone does not reach the dock's width.
+
+    Measured at real fonts: the spins take the panel from 466 to 427 and the
+    labels take it the rest of the way to 406, against a dock that opens at
+    420. So "Center:" rather than "Center (x, y, z):" is load-bearing, not
+    tidying -- and a mutation restoring the long form survived every other
+    guard in this file on BOTH font platforms until this one existed.
+
+    Asserted on the box GROUP for the reason the spin guard is: the panel's own
+    minimum is bound by a different group under `offscreen`.
+    """
+    from PySide6.QtWidgets import QFormLayout, QGroupBox, QLabel
+
+    panel, _engine, _service = _make_panel()
+    panel.show()
+    panel.resize(420, 900)
+    qapp.processEvents()
+    group = next(
+        g for g in panel.findChildren(QGroupBox) if g.title().startswith("Search box")
+    )
+    fitted = group.minimumSizeHint().width()
+
+    form = group.layout()
+    assert isinstance(form, QFormLayout), "setup: the box group is a QFormLayout"
+    for row, text in ((0, "Center (x, y, z):"), (1, "Size (x, y, z):")):
+        item = form.itemAt(row, QFormLayout.ItemRole.LabelRole)
+        assert item is not None and isinstance(item.widget(), QLabel), "setup: a real label"
+        item.widget().setText(text)
+    panel.resize(420, 900)
+    qapp.processEvents()
+
+    assert fitted < group.minimumSizeHint().width()
+
+
+def test_the_fix_costs_the_panel_no_height(qapp):
+    """`flow_row` was the other candidate and this is why it was refused.
+
+    Wrapping the coordinate rows would split an x, y, z triple across lines and
+    add ~42 px to a panel whose 3D sibling was once 63 px tall. Narrowing the
+    spins reaches the same width with the rows intact, so the height must not
+    move -- measured 610 px before and after at real fonts.
+    """
+    panel, _engine, _service = _make_panel()
+    panel.show()
+    panel.resize(420, 900)
+    qapp.processEvents()
+    fitted = panel.minimumSizeHint().height()
+
+    for spin in (
+        panel._center_x, panel._center_y, panel._center_z,
+        panel._size_x, panel._size_y, panel._size_z,
+    ):
+        spin.setMaximumWidth(16777215)
+    panel.resize(420, 900)
+    qapp.processEvents()
+
+    assert fitted == panel.minimumSizeHint().height()

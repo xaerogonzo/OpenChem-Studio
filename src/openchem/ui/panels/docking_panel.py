@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QRect, Signal
+from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -14,6 +15,8 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QSpinBox,
+    QStyle,
+    QStyleOptionSpinBox,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -38,6 +41,66 @@ from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 logger = logging.getLogger("openchem.ui")
 
 _POSE_COLUMNS = ("Pose", "Binding Affinity (kcal/mol)", "RMSD l.b.", "RMSD u.b.")
+
+def coordinate_spin_width(spin: QDoubleSpinBox) -> int:
+    """Wide enough for the widest value the spin's RANGE permits, and no wider.
+
+    **THE PANEL DID NOT FIT THE DOCK IT OPENS IN.** Its minimum was 466 px
+    against a dock that opens at `main_window._INITIAL_RIGHT_DOCK_WIDTH` = 420,
+    so ~26 px of every widget sat past the right edge behind the scroll area:
+    the Dock button rendered as "Doc", "RMSD u.b." as "RMSI", and the replicate
+    spread label was cut mid-word on every line. Pre-existing -- an artifact
+    taken before that label existed shows the box status clipped identically as
+    `box 16x18x16 A (size cl`.
+
+    The cause is the six coordinate spins. Qt sizes a `QDoubleSpinBox` to the
+    widest value its RANGE permits and then adds slack, so these ask 109 px for
+    a number that in practice reads "-58.78". Three of them plus a form label
+    column is a 444 px group in a 420 px dock.
+
+    **DERIVED FROM THE FONT AND THE STYLE, NEVER A PIXEL CONSTANT**, and the
+    first version of this was a flat 100 px that measured beautifully and was
+    wrong in kind. Under a larger UI font that cap gives the line edit 80 px
+    for a value needing 96 -- so it would clip the NUMBER, which is strictly
+    worse than clipping a label. Measured both ways:
+
+        platform    text   chrome   Qt's hint   this
+        windows       44       52         109     96 + a digit
+        offscreen     96       20         132    116 + a digit
+
+    The chrome comes from the style's own `SC_SpinBoxEditField` rather than an
+    allowance: a first attempt guessed 30 px for the buttons and frame, which
+    is why 90 px looked fine and clipped. Asked of the LINE EDIT -- where the
+    text is painted -- it is 52 on this platform and 20 on the other.
+
+    One digit of margin, also font-derived, because the exact fit leaves a
+    rounding error nowhere to go. **NO TEST DISTINGUISHES IT**, and that is
+    recorded rather than papered over: without the margin the line edit comes
+    out exactly as wide as the text, which still satisfies the fits-the-value
+    guard. Asserting a specific slack would only restate this line.
+
+    **`flow_row` IS NOT THE CURE**, for the reason this file already records
+    about the strip-checkbox row: it wraps, so an `x, y, z` triple would split
+    across lines -- worse to read than the clip -- and it would cost ~42 px of
+    height in a panel whose 3D sibling was once 63 px tall.
+    """
+    metrics = QFontMetrics(spin.font())
+    widest = max(
+        metrics.horizontalAdvance(spin.textFromValue(spin.minimum())),
+        metrics.horizontalAdvance(spin.textFromValue(spin.maximum())),
+    )
+    option = QStyleOptionSpinBox()
+    spin.initStyleOption(option)
+    hint = spin.sizeHint()
+    option.rect = QRect(0, 0, hint.width(), hint.height())
+    field = spin.style().subControlRect(
+        QStyle.ComplexControl.CC_SpinBox,
+        option,
+        QStyle.SubControl.SC_SpinBoxEditField,
+        spin,
+    )
+    return widest + (hint.width() - field.width()) + metrics.horizontalAdvance("0")
+
 
 #: The pose column that takes whatever width the other three do not need.
 #:
@@ -728,8 +791,12 @@ class DockingPanel(QWidget):
         size_row.addWidget(self._size_x)
         size_row.addWidget(self._size_y)
         size_row.addWidget(self._size_z)
-        box_form.addRow("Center (x, y, z):", center_row)
-        box_form.addRow("Size (x, y, z):", size_row)
+        # "Center:" rather than "Center (x, y, z):", which cost 39 px of the
+        # 46 the panel had to save. The ordering is not lost: the two controls
+        # carry `docking.box_centre` and `docking.box_size`, and the status
+        # line under the group prints "centre (2.0, 15.9, -58.8)" in full.
+        box_form.addRow("Center:", center_row)
+        box_form.addRow("Size:", size_row)
 
         # "Preparation", not "Receptor preparation": the pH governs the LIGAND
         # too now, and a heading naming only the receptor would say the panel
@@ -793,6 +860,9 @@ class DockingPanel(QWidget):
         spin = QDoubleSpinBox(self)
         spin.setRange(minimum, maximum)
         spin.setValue(value)
+        # Capped rather than left at Qt's own hint, which adds slack on top of
+        # the widest value the RANGE permits. See `coordinate_spin_width`.
+        spin.setMaximumWidth(coordinate_spin_width(spin))
         return spin
 
     def set_project(self, project: ProjectModel | None) -> None:

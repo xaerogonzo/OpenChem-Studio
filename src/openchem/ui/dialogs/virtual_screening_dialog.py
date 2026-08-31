@@ -50,6 +50,12 @@ from openchem.services.screening_service import (
 
 logger = logging.getLogger("openchem.ui")
 
+#: The screening table's columns, in order.
+#:
+#: THE RESIZE MODES ARE DERIVED FROM THIS RATHER THAN LISTED, because a
+#: column added without one inherits Qt's default width and clips its own
+#: header -- which is the defect this table already carries a comment
+#: about fixing once ("est score (kcal/mo").
 _RESULT_COLUMNS = (
     "Rank",
     "Ligand",

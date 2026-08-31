@@ -4329,32 +4329,89 @@ no "protocol seed" clause, because nothing was pinned. And `dock_panel` logged
 a screenshot cannot distinguish from an empty label -- the reason the drive
 step logs the flag beside taking the shot.
 
-**AND THE MAGNIFIED SHOT FOUND A PRE-EXISTING CLIP THIS BRANCH DOES NOT FIX.**
-At the dock's 420 px default the Docking panel is 466 px wide, so roughly 26 px
-of every widget sits past the right edge behind a scrollbar: the **Dock button
-reads "Doc"**, "RMSD u.b." reads "RMSI", and each of the new label's four lines
-is cut mid-word.
+### AND THE MAGNIFIED SHOT FOUND A PRE-EXISTING CLIP: THE PANEL DID NOT FIT
 
-**IT PREDATES EVERYTHING HERE**, checked rather than assumed: the artifact from
+At the dock's 420 px default the Docking panel was 466 px wide, so roughly
+26 px of every widget sat past the right edge behind the scroll area: the
+**Dock button read "Doc"**, "RMSD u.b." read "RMSI", and each of the new
+label's lines was cut mid-word.
+
+**IT PREDATED EVERYTHING HERE**, checked rather than assumed: the artifact from
 this branch's own earlier `docking_search_controls` run, taken before the panel
 gained anything, shows the box status clipped identically as
-`box 16x18x16 A (size cl`. The panel's minimum width is 466 px before AND after
-the replicate work -- measured both ways.
+`box 16x18x16 A (size cl`. The panel's minimum was 466 px before AND after the
+replicate work. It was also an accepted compromise -- this file's own
+`initial_right_dock_width` entry lists Docking at 466 and chose 420 anyway.
 
-**IT IS ALSO AN ACCEPTED COMPROMISE RATHER THAN AN OVERSIGHT.** This file's own
-`initial_right_dock_width` entry lists Docking at 466 and chose 420 anyway,
-which is the dock scrolling by design.
+What changed its status is that the cost changed shape: clipping 26 px off a
+spin box is invisible; clipping it off four lines of prose makes the sentence
+unreadable, and clipping it off a BUTTON leaves "Doc".
 
-What makes it worth recording now is that the cost has changed shape: clipping
-26 px off a spin box is invisible, and clipping it off four lines of prose
-makes the sentence unreadable. **`flow_row` is NOT the cure here**, measured:
-the group's 444 px minimum is three 109 px coordinate spins plus a ~105 px
-form-label column, so wrapping would split an `x, y, z` triple across lines --
-worse for a coordinate than the clip -- and cost ~42 px of height in a panel
-that is already tight. The candidate that does work is narrowing the six
-coordinate spins (109 px for "15.92" is generous), which would take the panel
-under 420 with no wrap and no height cost. Not done here: it is a panel-layout
-decision that wants its own before/after at 420 AND at the 280 minimum.
+**THE CAUSE IS THAT QT SIZES A SPIN BOX TO ITS RANGE.** A `QDoubleSpinBox`
+asks for the widest value its range permits plus slack, so the six coordinate
+spins each wanted 109 px for a number that in practice reads "-58.78". Three
+of them plus a form label column is a 444 px group in a 420 px dock.
+
+    baseline                             466   clipped
+    shorter form labels alone            427   still clipped
+    both                                 406   fits, 14 px to spare
+
+**`flow_row` IS NOT THE CURE, measured twice over.** It wraps, so an `x, y, z`
+triple would split across lines -- worse to read than the clip -- and it costs
+height in a panel whose 3D sibling was once 63 px tall. The shipped fix costs
+**zero** height: 610 px minimum before and after, asserted.
+
+**AND MY FIRST FIX WAS A PIXEL CONSTANT THAT MEASURED BEAUTIFULLY AND WAS WRONG
+IN KIND.** A flat 100 px cap took the panel to 400 and looked perfect. Under a
+larger UI font it gives the line edit 80 px for a value needing 96, so it would
+clip the NUMBER -- strictly worse than clipping a label, because a half-shown
+coordinate is a wrong coordinate. `coordinate_spin_width` derives the width
+from the font and the STYLE instead:
+
+    platform    text   chrome   Qt's hint   derived
+    windows       44       52         109    96 + a digit
+    offscreen     96       20         132   116 + a digit
+
+**THE CHROME IS ASKED OF THE STYLE, NOT ALLOWED FOR.** A first check budgeted
+30 px for the buttons and frame and concluded 90 px was fine. Asked of the LINE
+EDIT -- where the text is painted -- it is 52 px here and 20 px under
+`offscreen`, so 90 px would have clipped "-1000.00" while every arithmetic
+check said it fit. **Ask the widget, do not budget for it.**
+
+#### THE MUTATION PASS HAD TO RUN ON BOTH FONT PLATFORMS, AND THAT IS THE POINT
+
+Six arms, run under `windows` AND `offscreen`:
+
+    W1  no cap at all                     caught on both
+    W2  a flat 100 px cap                 SURVIVED on windows, caught on offscreen
+    W3  the chrome guessed at 30 px       caught on both
+    W4  the digit of margin dropped       SURVIVED on both -- admitted equivalent
+    W5  the width ignores the range       caught on both
+    W6  the long form labels come back    caught on both, after a guard was added
+
+**W2 IS THE WHOLE ARGUMENT.** The defect a fixed cap introduces is invisible at
+the font it was fitted to and only appears at another -- which is the failure
+this file records as "a geometry claim about real fixed text is a claim about
+the font", arriving as a mutation that a single-platform pass would have
+scored SURVIVED and shrugged at.
+
+**W6 WAS A REAL GAP.** Restoring the long labels takes the panel 406 -> 427,
+back above the dock, and nothing caught it: the spin guard covers the spins and
+the fits-the-value guard covers the text. A guard on the box GROUP's width
+closes it.
+
+**W4 IS AN ADMITTED EQUIVALENT.** Without the digit of margin the line edit
+comes out exactly as wide as the text, which still satisfies `>=`. It is
+defensive slack against rounding, no test distinguishes it, and the docstring
+says so rather than a guard restating the line.
+
+**AND THE GUARDS ARE FONT-INDEPENDENT BECAUSE THEY HAD TO BE.** "The panel's
+minimum is at most 420" cannot be asserted: under `offscreen` it is 706 with
+the fix and without it, because a different group binds at that font. What is
+assertable everywhere is that the widest permitted value fits its line edit,
+that the width differs between the two ranges (a constant cannot), and that the
+box GROUP shrinks. The first draft asserted the PANEL and failed under
+`offscreen` against correct code.
 
 ### `search_options` NEVER REACHES A SCREEN, AND THAT IS STILL TRUE
 
