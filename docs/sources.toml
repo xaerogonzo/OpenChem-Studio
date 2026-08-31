@@ -3388,23 +3388,36 @@ identifier = "https://github.com/ccsb-scripps/AutoDock-Vina"
 status = "shipped"
 license = "Apache-2.0"
 package_manifest = "src/openchem/services/tool_download_service.py"
-verification = "citation"
-verified_date = 2026-08-17
+verification = "citation_and_claim"
+verified_date = 2026-08-31
+local = "D:/Xaero Stuff/Documents/Sci Downloads/eberhardt2021.pdf"
 note = """
 Licence and both citations read from the project's own repository, which
 asks for the 1.2.0 paper (doi 10.1021/acs.jcim.1c00203) and the original
 (doi 10.1002/jcc.21334) together.
 
-Optional and separately installed. THE SHIPPED PROVIDER PASSES `seed=None`,
-so Vina runs with a random seed and two runs of the same receptor already
-differ -- any A/B on a receptor change is measuring the search wandering
-until the seed is pinned, and pinning alone is not enough without measuring
-the same-receptor spread as a control.
+Optional and separately installed.
 
-This entry stays `citation` rather than `citation_and_claim`: it records
-the SOFTWARE, and no number here comes from it. The scoring-function error
-the pose table quotes belongs to the original paper and is verified
-separately at [source:trott_olson2010].
+**UPGRADED FROM `citation` ON 2026-08-31, because the 1.2.0 paper this entry
+had been ASKING FOR was obtained and read.** Its first page confirms the
+authors, title and DOI recorded above, and its abstract is what pins the
+software line this project targets: "AutoDock Vina 1.2.0 supports the
+AutoDock4.2 scoring function, simultaneous docking of multiple ligands, and
+a batch mode... we implemented Python bindings". That matters here because
+this project selects between the Python binding and the executable at run
+time, and because a recorded seed does not identify a run across a change in
+the implementation underneath it -- which is why `engine_version` travels on
+every stored `DockingResultModel` beside the seed.
+
+**THE `seed=None` WARNING THIS NOTE USED TO CARRY IS FIXED.** The provider
+now CHOOSES a seed when the caller pins none, passes it explicitly, and
+records it, so a run can be repeated afterwards rather than only in advance.
+That reproduces a run under the same engine, version and settings; it is not
+a claim of determinism across versions, backends or thread counts. The
+warning is kept in this form because the measurement discipline it describes
+is unchanged: an A/B still needs the same-seed repeatability and the
+different-seed spread measured separately, and neither is a "noise floor" on
+its own.
 """
 
 [[source]]
@@ -3844,4 +3857,281 @@ a check that cannot run is worse than a stated limit.
 Read these with `pymupdf` (`uv pip install --system pymupdf`, then `fitz`);
 there is no PDF text extractor in the project venv and `pdftoppm` is not
 installed, so `Read` on a PDF fails.
+"""
+
+[[source]]
+key = "agarwal2022"
+kind = "literature"
+citation = "R. Agarwal & J. C. Smith, 'Speed vs accuracy: Effect on ligand pose accuracy of varying box size and exhaustiveness in AutoDock Vina', Mol. Inf. 2022, doi 10.1002/minf.202200188."
+identifier_type = "doi"
+identifier = "10.1002/minf.202200188"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/docking_providers.py",
+    "docs/SCIENTIFIC_LIMITATIONS.md",
+]
+verification = "citation_and_claim"
+verified_date = 2026-08-31
+local = "D:/Xaero Stuff/Documents/Sci Downloads/agarwal2022.pdf"
+note = """
+**WHY `DEFAULT_EXHAUSTIVENESS` IS 25 AND NOT A ROUNDER NUMBER.** Read from
+the paper rather than summarised, because the number it justifies is a
+shipped default:
+
+    "The results show that the default exhaustiveness value of 8 performs
+     well overall for most box sizes."
+    "The docking power was slightly improved with an exhaustiveness of 25,
+     but the mRMSD changes little with values higher than 25."
+    "...this study recommends Autodock Vina users to choose an
+     exhaustiveness value of 8 with, if the computational resources are
+     available, a value of 25 also being an option."
+
+So 25 is the paper's resources-available recommendation and the point its
+median-RMSD curve converges. **32 was this branch's first choice and was
+revised on reading the source** -- it sits past that convergence point, so
+it could not honestly have been described as more accurate. It stays
+selectable.
+
+**NOT A CLAIM OF OPTIMALITY FOR THIS APPLICATION.** The study measured its
+own benchmark set with cubic boxes of 15-30 A, not this project's receptor
+family. What it supports is "a documented engineering choice", which is what
+the constant's own comment and the control's tooltip say.
+
+It also couples the two parameters -- it recommends increasing exhaustiveness
+with box size -- which is why the exhaustiveness default and the
+ligand-extent warning in `binding_site` are documented together.
+
+**THIS COPY IS AN ACCEPTED ARTICLE, NOT THE VERSION OF RECORD**, and says so
+on its own first page: "may be different to this Accepted Article as a result
+of editing". Recorded rather than glossed.
+"""
+
+[[source]]
+key = "su2019"
+kind = "literature"
+citation = "M. Su, Q. Yang, Y. Du, G. Feng, Z. Liu, Y. Li & R. Wang, 'Comparative Assessment of Scoring Functions: The CASF-2016 Update', J. Chem. Inf. Model. 2019, 59(2), 895-913."
+identifier_type = "doi"
+identifier = "10.1021/acs.jcim.8b00545"
+status = "shipped"
+used_by = [
+    "docs/SCIENTIFIC_LIMITATIONS.md",
+]
+verification = "citation_and_claim"
+verified_date = 2026-08-31
+local = "D:/Xaero Stuff/Documents/Sci Downloads/su2018.pdf"
+note = """
+**THE SOURCE FOR "GOOD POSES, WEAK RANKING", which is what this application
+now tells the user about Vina.** CASF-2016 evaluates four separate abilities
+-- scoring, ranking, docking and screening power -- rather than one number,
+and places Vina strong at one and weak at another. Verbatim:
+
+    "some not-so-good scoring functions in the scoring/ranking power tests
+     exhibit good performance in the docking power test, such as AutoDock
+     Vina, GlideScore-SP, and GlideScore-XP."
+    "AutoDock Vina and delta-VinaRF20 even produce success rates close to
+     90%."   [docking power]
+
+Ranking power is the average Spearman correlation over 57 target clusters.
+The practical consequence, and the reason this is cited in the limitations
+document: a small spread in Vina scores across close congeners is a RANKING
+question, and this is the published statement that Vina is not strong there.
+
+Note the filename says 2018 (the online year) and the issue is 2019 -- the
+same online-versus-issue split as [source:trott_olson2010], and not a
+discrepancy.
+"""
+
+[[source]]
+key = "quiroga2016"
+kind = "literature"
+citation = "R. Quiroga & M. A. Villarreal, 'Vinardo: A Scoring Function Based on Autodock Vina Improves Scoring, Docking, and Virtual Screening', PLoS ONE 2016, 11(5), e0155183."
+identifier_type = "doi"
+identifier = "10.1371/journal.pone.0155183"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/docking_providers.py",
+]
+verification = "citation_and_claim"
+verified_date = 2026-08-31
+local = "D:/Xaero Stuff/Documents/Sci Downloads/quiroga2016.pdf"
+note = """
+Backs Vinardo being OFFERED, never a claim that it is better here. The
+paper's own sentence is unambiguous and is also exactly as far as it goes:
+
+    "Vinardo outperforms Vina in all tests performed, for all datasets
+     analyzed."
+
+That is a statement about the authors' datasets. Whether it helps on any
+particular receptor is a measurement, and the tooltip says so rather than
+repeating the claim as though it transferred.
+
+**IT ESTABLISHES THE SCORING FUNCTION, NOT THAT OUR ADAPTER WIRED IT UP.**
+A result LABELLED Vinardo that silently ran plain Vina is indistinguishable
+from the real thing in any table, so the guard asserts the requested function
+reaches the engine invocation rather than only the stored result.
+
+Vinardo and Vina scores are NOT on a common scale and must never share a
+ranking, which is why the scoring function travels on every stored result.
+"""
+
+[[source]]
+key = "feinstein2015"
+kind = "literature"
+citation = "W. P. Feinstein & M. Brylinski, 'Calculating an optimal box size for ligand docking and virtual screening against experimental and predicted binding pockets', J. Cheminform. 2015, 7, 18."
+identifier_type = "doi"
+identifier = "10.1186/s13321-015-0067-5"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/binding_site.py",
+]
+verification = "citation_and_claim"
+verified_date = 2026-08-31
+local = "D:/Xaero Stuff/Documents/Sci Downloads/feinstein2015.pdf"
+note = """
+**THE PRINCIPLE BEHIND THE LIGAND-EXTENT WARNING, AND EXPLICITLY NOT ITS
+PREDICATE.** What the paper establishes, verbatim:
+
+    "we found a correlation between the size of the optimal search space and
+     the radius of gyration of a docking ligand"
+    "the optimal box size is calculated directly from the Rg of a docking
+     ligand, thus it can be obtained for an arbitrary compound"
+
+That is what says box sizing must follow the DOCKED ligand rather than only
+the reference ligand the box was derived from. It does NOT define
+`ligand_extent_exceeds_box`, which compares maximum extent against the box's
+shortest side -- a different, directly checkable condition on the box that
+exists right now. Citing this as the source of that threshold would borrow
+the paper's authority for a rule it never states, which this project already
+records as a trap ("a citation-level entry does not authorize an
+implementation merely because its title matches").
+
+The exact Rg multiplier is deliberately NOT transcribed here: this copy is a
+Provisional PDF whose text layer mangles its own abstract, and nothing in
+this project uses the number.
+
+**THIS COPY IS A PROVISIONAL PDF** -- "corresponds to the article as it
+appeared upon acceptance" -- recorded rather than presented as final.
+"""
+
+[[source]]
+key = "zhuang2022"
+kind = "literature"
+citation = "Y. Zhuang, Y. Wang, B. He, ... M.-W. Wang, X. Xie & H. E. Xu, 'Molecular recognition of morphine and fentanyl by the human mu-opioid receptor', Cell 2022, 185, 4361-4375."
+identifier_type = "doi"
+identifier = "10.1016/j.cell.2022.09.041"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/receptor_library.py",
+    "docs/SCIENTIFIC_LIMITATIONS.md",
+]
+verification = "citation_and_claim"
+verified_date = 2026-08-31
+local = "D:/Xaero Stuff/Documents/Sci Downloads/Molecular-recognition-of-morphine-and-fentanyl-by-the-human-opioid-receptor.pdf"
+note = """
+Primary provenance for **8EF5**, the fentanyl-bound human mu-opioid receptor
+in this project's receptor catalogue. The paper's own text lists 8EF5, 8EF6,
+8EFB, 8EFL and 8EFO.
+
+**THE ANCHOR INTERACTION, READ RATHER THAN RECALLED**, verbatim:
+
+    "Both the amine groups in the piperidine ring of fentanyl and in the
+     morphinan group of morphine form salt bridges with the carboxylate
+     group of D149(3.32)."
+
+That is the interaction a ligand prepared at neutral pH cannot make, because
+its amine reaches Vina typed as an ACCEPTOR rather than a donor.
+
+**AND IT CORRECTED A NUMBER THIS PROJECT WAS ABOUT TO WRITE FROM MEMORY.**
+The residue was assumed to be Asp147, which is correct for the MOUSE
+receptor and wrong here. Read out of the deposited files:
+
+    5C1M   ASP 147   chain A   mouse
+    4DKL   ASP 147   chain A   mouse
+    8EF5   ASP 149   chain R   human
+
+Same residue by Ballesteros-Weinstein number (3.32); different sequence
+number AND different chain. Any code or test naming this residue must derive
+it from the structure -- this project already has a chain-qualified
+residue-key bug class on record, and 8EF5's chain R is a good adversarial
+case for it.
+"""
+
+[[source]]
+key = "tenbrink2009"
+kind = "literature"
+citation = "T. ten Brink & T. E. Exner, 'Influence of Protonation, Tautomeric, and Stereoisomeric States on Protein-Ligand Docking Results', J. Chem. Inf. Model. 2009, 49(6), 1535-1546."
+identifier_type = "doi"
+identifier = "10.1021/ci800420z"
+status = "shipped"
+used_by = [
+    "tests/test_ligand_preparation.py",
+    "docs/SCIENTIFIC_LIMITATIONS.md",
+]
+verification = "citation_and_claim"
+verified_date = 2026-08-31
+local = "D:/Xaero Stuff/Documents/Sci Downloads/tenbrink2009.pdf"
+note = """
+Supporting evidence that the ligand's prepared state reaches the result at
+all. The paper describes itself, verbatim:
+
+    "In this work, we present a systematical investigation of the influence
+     of ligand protonation states, stereoisomers, and tautomers on results
+     obtained with the two protein-ligand docking [programs]..."
+
+**SUPPORTING, NOT LOAD-BEARING.** The ligand-preparation fix is accepted on
+chemical correctness -- the ligand is represented at the declared pH or it is
+not -- so it ships whether or not any benchmark moves. This source says the
+question matters in general; it is not the reason the fix is right.
+
+It is also why stereochemistry is guarded alongside protonation in
+`tests/test_ligand_preparation.py`: this paper treats stereoisomeric state as
+one of the same family of docking-input variables, and a PDBQT conversion can
+preserve coordinates while losing a stereochemical assignment.
+"""
+
+[[source]]
+key = "agboola2026"
+kind = "literature"
+citation = "O. E. Agboola, S. S. Agboola, T. C. Aribigbola, A. B. Shaleye, O. S. Adedeji, Z. A. Ayinla & I. O. Omotuyi, 'Ranking metrics conceal pose errors in blind docking with AutoDock Vina, a cross-target benchmark', Results in Engineering 2026, doi 10.1016/j.rineng.2026.112651."
+identifier_type = "doi"
+identifier = "10.1016/j.rineng.2026.112651"
+status = "shipped"
+used_by = [
+    "docs/SCIENTIFIC_LIMITATIONS.md",
+]
+verification = "citation_and_claim"
+verified_date = 2026-08-31
+local = "D:/Xaero Stuff/Documents/Sci Downloads/1-s2.0-S2590123026036674-main.pdf"
+note = """
+Secondary corroboration that ranking and pose correctness are separate
+acceptance dimensions -- the same split [source:su2019] establishes, measured
+a different way. Eleven targets, 30 actives and roughly 240 property-matched
+decoys each, docked twice under identical settings:
+
+    ranking      ROC-AUC 0.69 site-directed -> 0.62 blind
+    placement    96% -> 48% of actives within 8 A of the site
+    correlation  Pearson r = -0.03 between the two
+
+    "good blind-docking ranking told us nothing about pose correctness"
+
+**ITS SITE-DIRECTED ARM IS THIS APPLICATION'S REGIME AND PLACES 96%
+CORRECTLY.** Every box here is derived from a co-crystallised ligand, so this
+paper is reassuring about the setup and is a warning about BLIND docking,
+which this application does not do. It must not be cited as evidence that
+poses produced here are suspect.
+
+**ITS EXHAUSTIVENESS RESULT IS WHY SEARCH EFFORT IS NOT A CURE FOR A BAD
+BOX.** Misplaced actives re-docked at an exhaustiveness of sixteen, twice
+Vina's default, left "six of eight gross misplacements unresolved", with a
+control target taken to thirty-two.
+
+**KEPT EXPLICITLY SECONDARY: this copy is a Journal Pre-proof**, not the
+Version of Record.
+
+**AND IT IS THE REASON THIS FILE'S OWN VERIFICATION RULE EXISTS.** Two
+attempts to retrieve this DOI returned unrelated papers from the same journal
+(10.1016/j.rineng.2026.110745, subway-station digital twins, and
+10.1016/j.rineng.2025.104139, construction governance), and it was concluded
+from those two failures that the citation was fabricated. It was not. Two
+failed downloads are evidence about the downloads, not about the paper.
 """

@@ -447,6 +447,87 @@ class BoxPlacement:
         )
 
 
+def max_heavy_atom_extent(mol) -> float | None:
+    """The largest distance between any two heavy atoms of a 3D conformer, in
+    Angstrom, or None when the molecule carries no conformer.
+
+    Heavy atoms only: hydrogens add roughly a bond length at each end and
+    Vina's rigid PDBQT merges the nonpolar ones anyway, so counting them would
+    inflate the number against a box that does not care about them.
+
+    Separated from the predicate below because it needs RDKit and a real
+    conformer, where the predicate is arithmetic over two numbers and can be
+    tested on constructed values -- the same two-level split `ui/visual_check`
+    uses, for the same reason: a predicate that reaches for a toolkit becomes a
+    test about the machine.
+    """
+    if mol is None or mol.GetNumConformers() == 0:
+        return None
+    conformer = mol.GetConformer()
+    positions = [
+        conformer.GetAtomPosition(atom.GetIdx())
+        for atom in mol.GetAtoms()
+        if atom.GetAtomicNum() > 1
+    ]
+    if len(positions) < 2:
+        return 0.0
+    return max(
+        ((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2) ** 0.5
+        for i, a in enumerate(positions)
+        for b in positions[i + 1 :]
+    )
+
+
+def ligand_extent_exceeds_box(max_extent_a: float | None, box: DockingBox) -> bool:
+    """Whether the ligand is longer than the box's SHORTEST side.
+
+    **This is a conservative warning, not a fit test, and the difference is
+    the whole reason for the wording.** A ligand longer than the shortest side
+    can still dock -- it simply cannot lie along that axis, so whole
+    orientations are excluded from the search. Actual fit is
+    orientation-dependent and this predicate deliberately does not attempt it;
+    calling it "does not fit" would claim more than the arithmetic supports.
+
+    The PRINCIPLE is sourced: [source:feinstein2015] relates the optimal search
+    space to the docked ligand's radius of gyration and shows sizing must
+    follow the DOCKED ligand rather than only the reference one. The
+    predicate is ours -- that paper defines an Rg-based optimum, not this
+    comparison -- and saying otherwise would borrow its authority for a rule it
+    never states.
+
+    **THE CASE THAT PROMPTED THIS DOES NOT TRIP IT, and that is the finding
+    rather than a disappointment.** The first measurement counted ALL atoms
+    including hydrogens and put fentanyl at 16.1 A against a 16.00 A shortest
+    side -- over, and apparently the explanation for a disappointing run. Vina's
+    ligand PDBQT MERGES nonpolar hydrogens into their heavy atom, so that
+    number described a molecule Vina never receives. Re-measured on the atoms
+    actually written to the PDBQT, lowest-energy conformer, 5C1M's BU-72 box:
+
+        atoms Vina receives        extent    vs 16.00 A shortest side
+        BU-72 (the reference)   34  12.39 A  inside
+        fentanyl                26  14.13 A  inside
+        butyryl fentanyl        27  13.73 A  inside
+
+    So that box was adequate for all three and the reported poses are not
+    explained by it. `max_heavy_atom_extent` is used as the measure because it
+    agrees with the PDBQT extent to 0.03 A on this set while needing no
+    conversion -- the polar hydrogens that survive sit within a bond length of
+    a heavy atom they cannot extend past.
+
+    The guard stays because the failure mode is real -- a box is user-editable,
+    and [source:feinstein2015] measures pose accuracy degrading when the search
+    space is too small for the ligand -- but it is a guard against a box
+    somebody makes too small, NOT the diagnosis of the run that motivated it.
+
+    Nothing is resized. A box that quietly grew would change what was docked
+    without saying so, which is the failure this whole module exists to make
+    visible.
+    """
+    if max_extent_a is None:
+        return False
+    return max_extent_a > min(box.size)
+
+
 def describe_box_placement(
     structure_text: str,
     source_format: str,

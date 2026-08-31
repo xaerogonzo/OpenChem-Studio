@@ -3724,6 +3724,245 @@ asserting an intention is worse than silence: it is believed, and then
 quoted* -- quoted, this time, out of this very document.
 
 
+## THE RECEPTOR WAS PREPARED AT pH 7.4 AND THE LIGAND AT NEUTRAL
+
+Reported as three fentanyl analogues docking into 5C1M "better than in the
+past, but still a lot to be desired", with affinities of **-8.88 / -8.79 /
+-8.75** -- 0.13 kcal/mol across three different molecules.
+
+`_convert_receptor_to_pdbqt` is ~300 lines and calls
+`mol.OBMol.AddHydrogens(False, True, ph)`. `_convert_ligand_to_pdbqt` was six
+lines and called `mol.addh()`. **The receptor was moved off that call and the
+ligand never was** -- and the receptor's own comment at the fix site says so
+outright: *"replaces the old bare mol.addh() (which pybel's own wrapper calls
+with correctForPH=False)"*.
+
+**IT IS A TYPING DEFECT, NOT A CHARGE ONE, AND THE DIFFERENCE IS THE WHOLE
+MECHANISM.** Measured through the real PDBQT writer on all three ligands:
+
+    addh()             charge  0   {A:12, C:10, N:1, NA:1, OA:1}
+    AddHydrogens 7.4   charge +1   {A:12, C:10, N:2, HD:1, OA:1}
+
+`NA` is a hydrogen-bond ACCEPTOR and the receptor's anchor carboxylate is an
+acceptor too, so the intended donor contribution is absent from Vina's
+directional hydrogen-bond term. **Vina has no Coulomb term**, so this is not
+an electrostatics claim -- and equally not a claim that formal charge is
+irrelevant, since the charge is what puts the hydrogen there in the first
+place.
+
+**A TEST ALREADY NAMED THE ASYMMETRY AND CALLED IT INCIDENTAL.**
+`test_docking_providers.py` carried *"the ligand-prep path's own addh() call
+(with all defaults) is expected too and isn't what's under test"*. It was
+seen, written down, and read as a detail of somebody else's test.
+
+### OPEN BABEL IS THE RUNTIME PATH AND OUR OWN PROTONATION IS THE CROSS-CHECK
+
+`pka_providers.dominant_microspecies` is validated 16/16 against literature
+charge states and carries the tertiary-amide correction, so it looks like the
+obvious implementation. It **returns a mol built from SMILES and therefore has
+no conformer**, and adopting it would discard the 3D geometry
+`canonical_conformer` deliberately selects. A second runtime protonation
+implementation is also the drift failure this file records four times over
+(`is_stripped_residue`, `filter_altlocs`, `is_symmetry_generated`,
+`normalise_element_symbols`).
+
+    ours vs Open Babel        16/16 agree
+    Open Babel vs literature  16/16
+
+**THE LITERATURE IS THE REFERENCE AND NEITHER IMPLEMENTATION IS THE ORACLE.**
+Calling ours the oracle would let two implementations agree while sharing an
+assumption and have that read as validation -- and the runtime path is now the
+one that is NOT ours, which is exactly why the fixture must be the published
+state.
+
+Open Babel gets all four tertiary amides right, which is what makes it usable
+here: Dimorphite-DL's amine rule has no exclusion for an adjacent carbonyl,
+which is the class this project fixed one branch ago.
+
+### AN INFERENCE ABOUT `BABEL_DATADIR` THAT MEASURING KILLED
+
+`phmodel.txt` is absent from `BABEL_DATADIR` and present in `bin/data`, the
+directory this file documents as unreachable on Windows -- which looked like
+it would make the RECEPTOR's pH control a silent no-op too, a far larger
+finding. **It does not.** Open Babel resolves the pH model regardless, and
+`correctForPH=True` behaves identically with the data dir broken and repaired.
+Recorded so nobody re-derives it.
+
+## THE ANCHOR RESIDUE IS NUMBERED DIFFERENTLY IN THE TWO STRUCTURES
+
+Found while verifying a claim written from memory, and it would have been a
+silent trap. [source:zhuang2022] states the interaction as **D149(3.32)**;
+this project's own note said Asp147. Read out of the deposited files:
+
+    5C1M   ASP 147   chain A   mouse mu-OR
+    4DKL   ASP 147   chain A   mouse mu-OR
+    8EF5   ASP 149   chain R   human mu-OR
+
+Same residue by Ballesteros-Weinstein number; **different sequence number AND
+different chain.** "Asp147" was right for the receptor reported and wrong for
+the benchmark receptor -- right by luck, which is the worst way to be right.
+No residue identity is hardcoded anywhere in this work, and 8EF5's chain R
+makes it a good adversarial case for the chain-qualified residue keys this
+file already records a bug class for.
+
+## THE BOX WAS NOT THE PROBLEM, AND THE FIRST MEASUREMENT SAID IT WAS
+
+The plan for this work recorded a third defect: the box is sized from the
+CRYSTAL ligand, and fentanyl at 16.1 A exceeded its 16.00 A shortest side.
+That number counted **every hydrogen**. Vina's ligand PDBQT MERGES nonpolar
+hydrogens into their heavy atom, so it described a molecule Vina never
+receives. Re-measured on the atoms actually written to the file:
+
+    atoms Vina receives        extent    vs 16.00 A shortest side
+    BU-72 (the reference)   34  12.39 A  inside
+    fentanyl                26  14.13 A  inside
+    butyryl fentanyl        27  13.73 A  inside
+
+**So the reported box was adequate for all three and explains nothing.** The
+warning still ships, because a user-editable box CAN be too small and
+[source:feinstein2015] measures accuracy degrading when it is -- but it is a
+guard against a box somebody makes too small, not the diagnosis of the run
+that motivated it. `tests/test_ligand_extent_warning.py` asserts the negative
+case by name, so nobody later tunes the threshold until it fires on the
+complaint.
+
+**A warning tuned until it fires on the case somebody complained about is not
+evidence about that case.**
+
+## THE STORED RESULT WAS A PLAUSIBLE-LOOKING LIE
+
+`DockingResultModel` already had `scoring_function`, `exhaustiveness`, `seed`,
+`engine` and `engine_version` -- and `_DockingTask` filled three of them with
+LITERALS:
+
+    scoring_function="vina",  exhaustiveness=8,  seed=None,
+
+True only by coincidence. They described the defaults that file happened to
+hold, and `exhaustiveness=8` was a second copy of `DEFAULT_EXHAUSTIVENESS`
+that would have gone silently stale the moment the default moved -- which this
+branch then moved, to 25. **A stored result naming settings it did not use is
+worse than one naming none**, because nothing distinguishes it from a
+measurement. The provider records what it actually ran, mirroring the
+`_last_resolved_engine` cache that was already there for the engine.
+
+**AND `seed=None` REACHED VINA AS ITS OWN "PICK RANDOMLY"**, so no run was
+reproducible even in principle. A seed is chosen when the caller pins none,
+passed explicitly, and stored -- so a run can be repeated AFTER the fact
+rather than only when somebody thought to pin it in advance. That reproduces a
+run under the same engine, version and settings; it is not determinism across
+versions or thread counts, and the wording says so.
+
+## CASF-2016 SPLITS THE ANSWER, AND IT IS THE ANSWER TO THE REPORT
+
+The most useful sentence in nine papers read for this branch, from
+[source:su2019]:
+
+> "some not-so-good scoring functions in the scoring/ranking power tests
+> exhibit good performance in the docking power test, such as **AutoDock
+> Vina**, GlideScore-SP, and GlideScore-XP."
+
+CASF-2016 scores four separate abilities and puts Vina strong at **docking
+power** (right pose, success "close to 90%") and weak at **ranking power**.
+[source:agboola2026] reaches the same split another way: across eleven
+targets, ranking barely moved between a site-directed and a blind box
+(ROC-AUC 0.69 -> 0.62) while placement collapsed (96% -> 48%), and the two
+were **uncorrelated (r = -0.03)**.
+
+    the POSE      docking power, where Vina is strong -- and where a
+                  mis-typed anchor nitrogen wastes that strength
+    the RANKING   ranking power, where Vina is documented as not-so-good
+
+**So the honest thing to tell a user is that the poses should improve and the
+three analogues will probably still not rank.** 0.13 kcal/mol across close
+congeners is this scoring function behaving as published, not a finding about
+those molecules. That is now in `SCIENTIFIC_LIMITATIONS.md` rather than left
+for somebody to infer.
+
+**AND MORE SEARCH EFFORT IS NOT THE CURE.** [source:agboola2026] re-docked
+misplaced actives at twice the default exhaustiveness and left *"six of eight
+gross misplacements unresolved"*.
+
+## EXHAUSTIVENESS 25, AND THE NUMBER WAS REVISED ON READING THE SOURCE
+
+32 was chosen first, on the reasoning that accuracy matters more than the ~20
+seconds it costs. [source:agarwal2022] then measured 1/8/25/50/75/100 and
+says, in its own words, that 8 *"performs well overall"*, that mRMSD *"changes
+little with values higher than 25"*, and recommends 8 *"with, if the
+computational resources are available, a value of 25 also being an option"*.
+
+32 sits past the convergence point, so it could not have been described as
+more accurate -- only as more expensive. **The default is the paper's
+resources-available value and the docs say it is a documented engineering
+choice rather than an optimum**, because that study measured its own benchmark
+set and not this receptor family. 8, 16 and 32 stay selectable.
+
+## `flow_row` IS NOT A FREE SUBSTITUTION FOR A TWO-CHILD `QHBoxLayout`
+
+The **fifteenth** entry in this file's running count of defects found only by
+driving the app and magnifying the shot, and the first where the defect was
+one I had just introduced by applying one of this file's own rules.
+
+The Docking panel's strip-checkbox row was a `QHBoxLayout`. It was swapped for
+`flow_row` on the recorded rule that *"a horizontal layout's minimum width is
+the SUM of its children"* -- which is true, and was the wrong call here.
+Measured at the dock's 420 px default:
+
+    QHBoxLayout   row 17 px   group hint  85   group min width 828
+    flow_row      row 38 px   group hint 106   group min width 654
+
+The two checkboxes need **372 px**, so the flow row WRAPS at that width and
+reserves two lines for content that draws on one -- a visible dead band under
+the checkboxes, which on screen pushed *Poses / Configure Vina / Dock* down.
+`flow_row` is behaving correctly: `heightForWidth` is 38 below 420 px and 17
+at or above it. It is the RIGHT answer for a row of fourteen controls and the
+wrong one for a row of two.
+
+**AND THE WIDTH IT BOUGHT BACK NEVER MATTERED**:
+`tests/test_right_dock_width.py` passes on both arms, because the panel
+minimum was never near the binding constraint. So the change cost 21 px of
+visible space and bought nothing measurable.
+
+**NOTHING IN THE SUITE COULD SEE IT.** 141 tests across the panel, the width
+guard and the tooltip coverage pass identically either way -- the group's
+height is not asserted anywhere, and there is no reason it should be. The
+magnified screenshot is what showed it, and re-shooting after the revert is
+what confirmed it.
+
+The rule this leaves: **`flow_row` is a cure for a row whose children cannot
+fit, not a prophylactic.** Reach for it when a row is wide, and measure the
+group's height when you do.
+
+## A REVIEW'S CITATION DID NOT RESOLVE TWICE, AND I CALLED IT FABRICATED
+
+`10.1016/j.rineng.2026.112651` was offered as a bonus source. Two attempts to
+retrieve it returned unrelated papers from the same journal --
+`...2026.110745` (subway-station digital twins) and `...2025.104139`
+(construction governance), neither mentioning Vina, docking or RMSD once --
+and I concluded the citation did not exist. **The third attempt is the paper,
+at exactly the DOI given.**
+
+**Two failed downloads are evidence about the downloads, not about the
+paper.** Same "a pattern in a handful of samples is not a law" mistake this
+file records at n=7 and n=10, made again at n=2, and made while writing a
+section about verifying citations.
+
+The eight other new sources were each verified from their own first page, and
+three are pre-publication copies recorded as such: `agarwal2022` is an
+Accepted Article, `feinstein2015` a Provisional PDF, `agboola2026` a Journal
+Pre-proof. All three say so on their own first page.
+
+## `Read` CANNOT OPEN A PDF HERE, AND THE THROWAWAY VENV IS THE ANSWER
+
+Recorded again because it cost a turn: `pdftoppm` is not installed, so the
+`Read` tool refuses a PDF outright. `uv venv` in the scratchpad plus
+`uv pip install pymupdf` -- never the project venv -- reads them, and can
+render pages to PNG for the tables whose text layer is damaged.
+
+**AND THE HEREDOC ATE A BACKSLASH AGAIN.** Replacing a string containing
+`\n\n` through a quoted `<<'PY'` heredoc silently failed to match; this file
+already records the same trap writing `"\\n"`. Use a real editing tool when the
+content contains escapes.
+
 ## Running the tests
 
 ```bash
@@ -3733,7 +3972,53 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6474 passed, 16 skipped`
+A clean run is **6-21 minutes**, ending at `6536 passed, 16 skipped`
+(measured 2026-08-31, **16m45**, on
+`ligand-protonation-and-search-controls` -- the ligand prepared at neutral pH
+while the receptor was prepared at 7.4, the search controls, and the box
+warning whose motivating case turned out not to trip it.
+
+**+62 collected and 0 REMOVED** against master at `d261da8`, diffed both
+directions with `comm` in a detached worktree, with the `PYTHONPATH` override
+asserted before the count was believed (`import openchem` reported the
+WORKTREE's `src`):
+
+    master     d261da8   COLLECTS 6490
+    this one             COLLECTS 6552   = 6490 + 62
+    the run                       6536 passed + 16 skipped = 6552
+
+    35  test_ligand_preparation.py       written
+    15  test_ligand_extent_warning.py    written
+     7  test_sources_are_current.py      parametrised cases of the EXISTING
+                                         schema guard, one per new source
+     5  test_docking_providers.py        the wiring guards
+
+**THE CITED FIGURE IS THE SECOND RUN, AND THE FIRST ONE'S FAILURES WERE
+MINE.** Recorded rather than quietly re-run:
+
+    run 1   4 failed, 6532 passed   tests/test_structure_summary.py
+    run 2   6536 passed, 16 skipped, 16m45      <- the cited figure
+
+All four were `_convert_receptor_to_pdbqt() missing 1 required positional
+argument: 'ph'` -- that file calls the method DIRECTLY, and the targeted set
+run before the suite did not include it. **A targeted set is chosen from
+where you think you changed something**, which this file already records; the
+signature change was three files away from where the tests were looking.
+
+`ph` was left REQUIRED rather than given a default, deliberately. A default
+is exactly how a future caller silently gets 7.4 instead of the declared pH,
+which is the defect this branch exists to fix -- so the four call sites moved
+instead.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored --
+as do `^FAILED` and `^ERROR`. The skips are the deterministic 16. The two
+`DeprecationWarning`s are the same pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+16m45 sits mid-band; the 6-21 range stands.)
+
+Before it: `6474 passed, 16 skipped`
 (measured 2026-08-31, **19m53**, on
 `charge-is-protonated-and-a-refusal-is-not-a-fault` -- the non-deterministic
 protonation, the species the inspector never named, and the refusals that

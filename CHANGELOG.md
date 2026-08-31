@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The ligand was prepared at neutral pH while the receptor was prepared
+  at 7.4.** Ligand preparation called a bare `mol.addh()` -- Open Babel's
+  hydrogen addition with pH correction *off* -- while the receptor path had
+  been moved off that same call and the ligand path was left behind. The
+  consequence is not cosmetic: a basic amine reached Vina typed `NA`, a
+  hydrogen-bond **acceptor**, where the pH 7.4 ammonium is `N` plus an `HD`
+  polar hydrogen, a **donor**. Measured on three anilidopiperidines, every
+  one went from net charge 0 with an acceptor nitrogen to +1 with a donor.
+  The pH control governs both now, and is labelled and documented as doing
+  so.
+- **A docking result recorded settings it had not used.** Scoring function,
+  exhaustiveness and seed were written as the fixed literals `"vina"`, `8`
+  and `None`, describing the defaults the code happened to hold rather than
+  the run -- and one of them was a second copy of a default this release
+  moves. They are read back from the run itself now.
+
+### Added
+
+- **Exhaustiveness, scoring function and random seed are settable**, in a
+  new *Search* group in the Docking panel. All three were previously fixed
+  in code.
+- **Vinardo** is offered beside Vina as a scoring function. Its scores are
+  on a different scale from Vina's and must never share a ranking, so the
+  function used is shown and stored with every result.
+- **A warning when the ligand is longer than the search box's shortest
+  side**, which excludes whole orientations from the search. Reported,
+  never silently resized -- a box that quietly grew would change what was
+  docked without saying so.
+- **The seed is chosen and recorded rather than left to Vina**, so a run can
+  be repeated afterwards rather than only when someone thought to pin it in
+  advance. Under the same Vina version and settings; the engine version is
+  stored beside it for that reason.
+
+### Changed
+
+- **The default exhaustiveness is 25, up from 8.** A published study of
+  1, 8, 25, 50, 75 and 100 found Vina's default of 8 "performs well
+  overall" and that median pose error "changes little with values higher
+  than 25", recommending 8 with 25 as the resources-available option. 25 is
+  that value -- a documented choice, not one shown to be best for these
+  receptors. 8, 16 and 32 remain selectable.
+- **The docking limitations now say what Vina is and is not good at.**
+  Published benchmarks place it strong at finding the right pose and weak at
+  ranking affinities, so a set of close analogues scoring within a few
+  tenths of a kcal/mol is expected behaviour rather than a result about
+  those molecules.
+
 ### Added
 
 - **The periodic table answers nuclear questions.** Tabs for *Facts*,

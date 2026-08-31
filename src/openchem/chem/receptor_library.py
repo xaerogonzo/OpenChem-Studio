@@ -109,6 +109,10 @@ RECEPTOR_LIBRARY: tuple[ReceptorEntry, ...] = (
         caveat="Nanobody-stabilised active state.",
     ),
     ReceptorEntry(
+        # [source:zhuang2022] is this deposit's own paper. Note the receptor
+        # is chain R and its anchor aspartate is D149; the mouse structures
+        # above (4DKL, 5C1M) number the same residue 147 on chain A, so
+        # anything naming it must read it from the structure.
         pdb_id="8EF5", target="mu-opioid receptor", family="Opioid",
         ligand_code="7V7", ligand_name="fentanyl",
         resolution_angstrom=3.30, method="Electron microscopy", state="active",

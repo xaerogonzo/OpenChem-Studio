@@ -24,6 +24,7 @@ import logging
 
 from openchem.chem.calculation_input import canonical_conformer
 from openchem.app.settings import Settings
+from openchem.chem.docking_providers import DEFAULT_EXHAUSTIVENESS
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.docking import DockingBox
 from openchem.domain.project import ProjectModel
@@ -170,13 +171,59 @@ _CONTROL_HELP = {
     ),
     "protonation_ph": HelpTooltip(
         text=(
-            "The pH the receptor is protonated at before docking. Range 0 to 14, "
-            "default 7.4.\n\n"
-            "It decides which side chains carry a hydrogen, which decides which "
-            "can donate a hydrogen bond -- so it reaches the score rather than "
-            "only the picture."
+            "The pH BOTH the receptor and the ligand are prepared at. Range 0 "
+            "to 14, default 7.4.\n\n"
+            "It decides which groups carry a hydrogen, which decides which can "
+            "DONATE a hydrogen bond -- so it reaches the score rather than only "
+            "the picture. A basic amine prepared as neutral is typed as an "
+            "acceptor rather than a donor, which is the opposite of what it "
+            "does in the pocket.\n\n"
+            "One value because the two are in the same solution. It is a "
+            "declared preparation pH, not a claim that a single number fixes "
+            "every protonation state: buried residues and histidine tautomers "
+            "are beyond what any one pH determines."
         ),
         tier=3, help_id="docking.protonation_ph", topic="docking",
+        help_anchor="docking",
+    ),
+    "exhaustiveness": HelpTooltip(
+        text=(
+            "How hard Vina searches: the number of independent runs, each "
+            "starting from a random ligand conformation. Default 25.\n\n"
+            "Higher costs proportionally more time. Vina's own default is 8; a "
+            "published study of 1, 8, 25, 50, 75 and 100 found 8 performs well "
+            "and that median pose error changes little above 25, so 25 is this "
+            "application's documented choice rather than a claimed optimum.\n\n"
+            "It does not rescue a search box the ligand does not fit in -- more "
+            "sampling of the wrong space is still the wrong space."
+        ),
+        tier=3, help_id="docking.exhaustiveness", topic="docking",
+        help_anchor="docking",
+    ),
+    "scoring_function": HelpTooltip(
+        text=(
+            "Which of Vina's scoring functions ranks the poses. Default Vina.\n\n"
+            "Vinardo is a re-parameterised alternative its authors report as "
+            "better at predicting poses. Its scores are NOT on the same scale "
+            "as Vina's, so numbers from the two must never be compared or put "
+            "in one ranking; the function used is recorded with every result."
+        ),
+        tier=3, help_id="docking.scoring_function", topic="docking",
+        help_anchor="docking",
+    ),
+    "random_seed": HelpTooltip(
+        text=(
+            "The random seed for Vina's search. 'Random' picks a fresh one for "
+            "each run.\n\n"
+            "Vina's search is stochastic, so two runs of identical inputs give "
+            "slightly different answers. The seed used is always recorded with "
+            "the result, so any run can be repeated afterwards even when it was "
+            "not pinned in advance. Pin one to compare two settings without the "
+            "search itself moving between them.\n\n"
+            "This reproduces a run under the same Vina version and settings; it "
+            "is not a guarantee of identical output across versions or machines."
+        ),
+        tier=3, help_id="docking.random_seed", topic="docking",
         help_anchor="docking",
     ),
     "strip_waters": HelpTooltip(
@@ -412,6 +459,32 @@ class DockingPanel(QWidget):
         self._num_poses_spin.setValue(9)
         apply_help_tooltip(self._num_poses_spin, _CONTROL_HELP["num_poses"])
 
+        # 8 is Vina's own default and 25 the shipped one; both are offered so
+        # a run can be compared against either. The values are read back from
+        # the item DATA rather than parsed out of the label, so translating or
+        # reformatting the text cannot change what is sent.
+        self._exhaustiveness_combo = QComboBox(self)
+        for value in (8, 16, 25, 32):
+            self._exhaustiveness_combo.addItem(str(value), value)
+        self._exhaustiveness_combo.setCurrentIndex(
+            self._exhaustiveness_combo.findData(DEFAULT_EXHAUSTIVENESS)
+        )
+        apply_help_tooltip(self._exhaustiveness_combo, _CONTROL_HELP["exhaustiveness"])
+
+        self._scoring_combo = QComboBox(self)
+        self._scoring_combo.addItem("Vina", "vina")
+        self._scoring_combo.addItem("Vinardo", "vinardo")
+        apply_help_tooltip(self._scoring_combo, _CONTROL_HELP["scoring_function"])
+
+        # 0 reads as "Random" through setSpecialValueText, which is Qt's own
+        # idiom for an out-of-band value -- rather than a second checkbox whose
+        # state could disagree with the number beside it.
+        self._seed_spin = QSpinBox(self)
+        self._seed_spin.setRange(0, 2**31 - 1)
+        self._seed_spin.setValue(0)
+        self._seed_spin.setSpecialValueText("Random")
+        apply_help_tooltip(self._seed_spin, _CONTROL_HELP["random_seed"])
+
         self._ph_spin = QDoubleSpinBox(self)
         self._ph_spin.setRange(0.0, 14.0)
         self._ph_spin.setSingleStep(0.1)
@@ -485,13 +558,36 @@ class DockingPanel(QWidget):
         box_form.addRow("Center (x, y, z):", center_row)
         box_form.addRow("Size (x, y, z):", size_row)
 
-        prep_group = QGroupBox("Receptor preparation", self)
+        # "Preparation", not "Receptor preparation": the pH governs the LIGAND
+        # too now, and a heading naming only the receptor would say the panel
+        # does something narrower than it does.
+        prep_group = QGroupBox("Preparation", self)
         prep_form = QFormLayout(prep_group)
-        prep_form.addRow("Protonation pH:", self._ph_spin)
+        prep_form.addRow("pH (ligand + receptor):", self._ph_spin)
+        # DELIBERATELY a QHBoxLayout, having tried the alternative. `flow_row`
+        # is this project's cure for a horizontal row whose minimum width is
+        # the SUM of its children, and it was substituted here on that rule
+        # alone -- then measured, at the dock's 420 px default:
+        #
+        #     QHBoxLayout   row 17 px   group hint  85   group min width 828
+        #     flow_row      row 38 px   group hint 106   group min width 654
+        #
+        # The two checkboxes need 372 px, so the flow row WRAPS at this width
+        # and costs 21 px of visible dead space under them. The width it buys
+        # back never mattered: `test_right_dock_width.py` passes either way,
+        # because two checkboxes are not the many-children case that rule is
+        # about. Reverted on the screenshot, which is the only thing that
+        # showed the cost.
         strip_row = QHBoxLayout()
         strip_row.addWidget(self._strip_waters_check)
         strip_row.addWidget(self._strip_cofactors_check)
         prep_form.addRow("", strip_row)
+
+        search_group = QGroupBox("Search", self)
+        search_form = QFormLayout(search_group)
+        search_form.addRow("Exhaustiveness:", self._exhaustiveness_combo)
+        search_form.addRow("Scoring function:", self._scoring_combo)
+        search_form.addRow("Seed:", self._seed_spin)
 
         run_row = QHBoxLayout()
         run_row.addWidget(QLabel("Poses:"))
@@ -504,6 +600,7 @@ class DockingPanel(QWidget):
         layout.addWidget(box_group)
         layout.addWidget(self._box_status_label)
         layout.addWidget(prep_group)
+        layout.addWidget(search_group)
         layout.addLayout(run_row)
         layout.addWidget(self._status_label)
         layout.addWidget(self._table)
@@ -624,6 +721,25 @@ class DockingPanel(QWidget):
             return None
         receptor_uuid = self._receptor_combo.currentData()
         return self._project.find_macromolecule(receptor_uuid) if receptor_uuid else None
+
+    def displayed_search_options(self) -> dict[str, object]:
+        """The search settings as the three controls currently read them.
+
+        The ONE accessor, for the reason `displayed_box` is: reading these
+        anywhere else is how the panel would start displaying one thing and
+        docking another.
+
+        A seed of 0 is the spinbox's special "Random" value and is sent as
+        `None`, which the provider turns into a CHOSEN seed rather than
+        leaving to Vina -- so an unpinned run is still reproducible after the
+        fact.
+        """
+        seed = self._seed_spin.value()
+        return {
+            "exhaustiveness": self._exhaustiveness_combo.currentData(),
+            "scoring_function": self._scoring_combo.currentData(),
+            "seed": None if seed == 0 else seed,
+        }
 
     def displayed_box(self) -> DockingBox:
         """The box as the six spinboxes currently read it.
@@ -838,6 +954,10 @@ class DockingPanel(QWidget):
         best = canonical_conformer(ligand)
         ligand_molblock = best.molblock if best is not None else ligand.molblock
         ligand_mol = self._chemistry_engine.mol_from_molblock(ligand_molblock)
+        # After the mol exists, because the warning is about the DOCKED
+        # ligand's own geometry -- the box report above knows only the
+        # receptor.
+        self._report_ligand_extent(ligand_mol, box)
 
         self._pending_ligand_uuid = ligand_uuid
         self._pending_receptor_uuid = receptor_uuid
@@ -867,6 +987,7 @@ class DockingPanel(QWidget):
                 "build_assembly": self._build_assembly,
                 "strip_ligand_codes": _box_defining_ligand_codes(receptor),
             },
+            search_options=self.displayed_search_options(),
         )
 
     def _report_box_placement(self, receptor, box: DockingBox) -> None:
@@ -892,6 +1013,36 @@ class DockingPanel(QWidget):
             logger.exception("Could not judge box placement for %s", receptor.display_name)
             return
         self._box_status_label.setText(placement.describe())
+
+    def _report_ligand_extent(self, ligand_mol, box: DockingBox) -> None:
+        """Append a warning when the LIGAND is longer than the box's shortest
+        side, on the same warn-never-block terms as the placement above.
+
+        The box is derived from whatever ligand the crystallographer put in the
+        receptor, and a docked ligand is routinely larger. Vina confines the
+        ligand to the box, so whole orientations are then excluded from the
+        search -- silently, because the run completes and returns poses.
+
+        Reported, never resized. And worded as EXTENT rather than fit: a ligand
+        longer than the shortest side can still dock, it just cannot lie along
+        that axis.
+        """
+        from openchem.chem.binding_site import ligand_extent_exceeds_box, max_heavy_atom_extent
+
+        try:
+            extent = max_heavy_atom_extent(ligand_mol)
+            if not ligand_extent_exceeds_box(extent, box):
+                return
+        except Exception:  # noqa: BLE001 - a diagnostic must never stop a run
+            logger.exception("Could not measure the ligand's extent")
+            return
+        existing = self._box_status_label.text()
+        warning = (
+            f"Ligand extent {extent:.1f} A exceeds the shortest box dimension "
+            f"({min(box.size):.1f} A), so some orientations cannot be searched. "
+            "Widen the box if the pose looks constrained."
+        )
+        self._box_status_label.setText(f"{existing} {warning}" if existing else warning)
 
     def _is_pending(self, ligand_molecule_uuid: str, receptor_macromolecule_uuid: str) -> bool:
         return (

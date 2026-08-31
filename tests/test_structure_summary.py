@@ -249,7 +249,7 @@ def test_the_docking_receptor_and_the_analysis_agree_on_the_same_chains():
 
     from openbabel import pybel
 
-    from openchem.chem.docking_providers import VinaDockingProvider
+    from openchem.chem.docking_providers import DEFAULT_PREPARATION_PH, VinaDockingProvider
 
     structure = _two_chain_structure()
     options = {"strip_waters": True, "keep_chains": ["A"]}
@@ -258,7 +258,7 @@ def test_the_docking_receptor_and_the_analysis_agree_on_the_same_chains():
     with tempfile.TemporaryDirectory() as scratch:
         out = pathlib.Path(scratch) / "receptor.pdbqt"
         VinaDockingProvider()._convert_receptor_to_pdbqt(
-            pybel, structure, "pdb", out, options
+            pybel, structure, "pdb", out, options, DEFAULT_PREPARATION_PH
         )
         docked = out.read_text()
 
@@ -283,17 +283,17 @@ def _prepared_receptor(structure: str, options: dict, scratch) -> "object":
 
     from openbabel import pybel
 
-    from openchem.chem.docking_providers import VinaDockingProvider
+    from openchem.chem.docking_providers import DEFAULT_PREPARATION_PH, VinaDockingProvider
 
     out = pathlib.Path(scratch) / "receptor.pdbqt"
     VinaDockingProvider()._convert_receptor_to_pdbqt(
-        pybel, structure, "pdb", out, options
+        pybel, structure, "pdb", out, options, DEFAULT_PREPARATION_PH
     )
     return out
 
 
 def test_a_box_containing_receptor_atoms_is_allowed(tmp_path):
-    from openchem.chem.docking_providers import VinaDockingProvider
+    from openchem.chem.docking_providers import DEFAULT_PREPARATION_PH, VinaDockingProvider
 
     prepared = _prepared_receptor(_two_chain_structure(), {"strip_waters": True}, tmp_path)
 
@@ -308,7 +308,11 @@ def test_a_box_with_no_receptor_in_it_is_refused(tmp_path):
     has to refuse rather than warn."""
     import pytest
 
-    from openchem.chem.docking_providers import DockingProviderError, VinaDockingProvider
+    from openchem.chem.docking_providers import (
+        DEFAULT_PREPARATION_PH,
+        DockingProviderError,
+        VinaDockingProvider,
+    )
 
     prepared = _prepared_receptor(_two_chain_structure(), {"strip_waters": True}, tmp_path)
 
@@ -327,7 +331,11 @@ def test_excluding_the_chain_the_box_sits_on_is_caught(tmp_path):
     """
     import pytest
 
-    from openchem.chem.docking_providers import DockingProviderError, VinaDockingProvider
+    from openchem.chem.docking_providers import (
+        DEFAULT_PREPARATION_PH,
+        DockingProviderError,
+        VinaDockingProvider,
+    )
 
     structure = _two_chain_structure()
     # Chain B sits at y = 5; a box there is fine while B is included...
@@ -365,7 +373,7 @@ def test_an_atom_open_babel_cannot_type_is_dropped_before_docking(tmp_path):
 
     from openbabel import openbabel as ob, pybel
 
-    from openchem.chem.docking_providers import VinaDockingProvider
+    from openchem.chem.docking_providers import DEFAULT_PREPARATION_PH, VinaDockingProvider
 
     structure = _two_chain_structure()
     provider = VinaDockingProvider()
