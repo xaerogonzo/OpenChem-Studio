@@ -238,6 +238,10 @@ def compute_oxygen_balance(
             molecule_uuid=molecule_uuid,
             cache_state=CacheState.FAILED,
             error=refusal_text(result),
+            # Reached only under `if not result.applicable`, so this is a
+            # limit of the method by construction: Kamlet-Jacobs needs a
+            # MEASURED loading density, and no structure can supply one.
+            inapplicable=True,
             provenance=provenance,
         )
 
@@ -618,6 +622,10 @@ def compute_detonation(
             molecule_uuid=molecule_uuid,
             cache_state=CacheState.FAILED,
             error=detonation_refusal_text(result),
+            # Reached only under `if not result.applicable`, so this is a
+            # limit of the method by construction: Kamlet-Jacobs needs a
+            # MEASURED loading density, and no structure can supply one.
+            inapplicable=True,
             provenance=provenance,
         )
 

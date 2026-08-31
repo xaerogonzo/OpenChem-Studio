@@ -1,0 +1,49 @@
+[
+  {
+    "do": "smiles",
+    "smiles": "CC(C)C(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1",
+    "name": "isobutyrylfentanyl"
+  },
+  {
+    "do": "select",
+    "molecule": -1
+  },
+  {
+    "do": "panel",
+    "id": "Properties"
+  },
+  {
+    "do": "inspect",
+    "id": "gasteiger_charge_at_ph",
+    "after_ms": 6000
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/charge-inspector.png",
+    "widget": "inspector",
+    "after_ms": 2000
+  },
+  {
+    "do": "expand",
+    "section": "energetic",
+    "after_ms": 1500
+  },
+  {
+    "do": "calculator",
+    "id": "detonation",
+    "after_ms": 6000
+  },
+  {
+    "do": "scroll",
+    "to": "bottom",
+    "after_ms": 1500
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/refusals.png",
+    "after_ms": 2000
+  },
+  {
+    "do": "quit"
+  }
+]

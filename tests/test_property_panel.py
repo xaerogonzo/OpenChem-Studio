@@ -1507,6 +1507,7 @@ def test_the_status_glyphs_really_render(qapp):
 
     from openchem.ui.panels.property_panel import (
         _FAILURE_GLYPH,
+        _INAPPLICABLE_GLYPH,
         _SUCCESS_GLYPH,
         _WARNING_GLYPH,
     )
@@ -1539,6 +1540,7 @@ def test_the_status_glyphs_really_render(qapp):
         ("failure", _FAILURE_GLYPH),
         ("warning", _WARNING_GLYPH),
         ("success", _SUCCESS_GLYPH),
+        ("inapplicable", _INAPPLICABLE_GLYPH),
     ):
         drawn = pixels(glyph)
         assert drawn != blank, (
@@ -1815,3 +1817,96 @@ def test_a_wide_row_keeps_the_whole_reason_while_a_value_cell_takes_the_summary(
     assert wide.text() != summary
     # ...and the one-line cell takes the short form.
     assert _unelided_text(cell) == summary
+
+
+# --- a refusal is not a fault ------------------------------------------------
+#
+# Joback has no group for a ring tertiary amine and Kamlet-Jacobs needs a
+# measured loading density: both are correct, permanent statements about a
+# METHOD, and both used to be painted with the same red ballot X as a
+# crash. Reported as "some calculator failures"; neither was one.
+
+
+def test_an_inapplicable_result_is_not_dressed_as_a_fault():
+    from openchem.ui.panels.property_panel import (
+        _FAILURE_GLYPH,
+        _FAILURE_STYLE,
+        _failure_appearance,
+    )
+
+    class _R:
+        inapplicable = True
+
+    glyph, style = _failure_appearance(_R())
+    assert glyph != _FAILURE_GLYPH
+    assert style != _FAILURE_STYLE
+
+
+def test_a_genuine_fault_IS_still_dressed_as_one():
+    """THE LOAD-BEARING HALF. "Nothing is ever red" satisfies the guard
+    above and silently deletes error reporting -- so the complement is
+    asserted rather than assumed.
+
+    `NoConformerError` is the boundary case and it is deliberately a
+    FAULT: "generate a conformer first" names an action the user can take,
+    which is exactly what an inapplicable method cannot offer.
+    """
+    from openchem.ui.panels.property_panel import (
+        _FAILURE_GLYPH,
+        _FAILURE_STYLE,
+        _failure_appearance,
+    )
+
+    class _R:
+        inapplicable = False
+
+    assert _failure_appearance(_R()) == (_FAILURE_GLYPH, _FAILURE_STYLE)
+    # A producer that declares nothing at all gets today's behaviour.
+    assert _failure_appearance(object()) == (_FAILURE_GLYPH, _FAILURE_STYLE)
+
+
+def test_the_distinction_is_read_from_the_declaration_not_the_message():
+    """Asserted on the SOURCE, because no shipped message discriminates the
+    two implementations: sniffing `error` for "no group for" would pass
+    every behavioural test here and rot the first time somebody reworded a
+    refusal."""
+    from pathlib import Path
+
+    body = (
+        Path(__file__).parent.parent
+        / "src" / "openchem" / "ui" / "panels" / "property_panel.py"
+    ).read_text(encoding="utf-8")
+    fn = body[body.index("def _failure_appearance") :]
+    fn = fn[: fn.index("\n\n\n")]
+    assert 'getattr(result, "inapplicable", False)' in fn
+    for sniff in ("error", "message", "no group", "startswith", "lower()"):
+        assert sniff not in fn.split('"""')[-1], (
+            f"_failure_appearance inspects {sniff!r} -- the distinction must "
+            "come from the producer's declaration, not the prose"
+        )
+
+
+def test_the_inapplicable_glyph_is_stripped_on_the_way_out():
+    from openchem.ui.panels.property_panel import _INAPPLICABLE_GLYPH, _without_glyphs
+
+    assert _without_glyphs(_INAPPLICABLE_GLYPH + "Joback has no group") == (
+        "Joback has no group"
+    )
+
+
+def test_every_status_glyph_survives_a_windows_console_after_stripping():
+    """cp1252 alone is measurably too weak -- an em dash passes it and still
+    renders as `?` on a real console -- so all three codepages are checked."""
+    from openchem.ui.panels.property_panel import (
+        _FAILURE_GLYPH,
+        _INAPPLICABLE_GLYPH,
+        _SUCCESS_GLYPH,
+        _WARNING_GLYPH,
+        _without_glyphs,
+    )
+
+    for glyph in (_FAILURE_GLYPH, _WARNING_GLYPH, _SUCCESS_GLYPH, _INAPPLICABLE_GLYPH):
+        stripped = _without_glyphs(glyph + "Refused, and here is why.")
+        assert stripped.isascii(), f"{glyph!r} left non-ASCII behind: {stripped!r}"
+        for codepage in ("cp1252", "cp437", "cp850"):
+            stripped.encode(codepage)

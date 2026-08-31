@@ -561,6 +561,12 @@ def compute_joback(
             molecule_uuid=molecule_uuid,
             cache_state=CacheState.FAILED,
             error=refusal_text(f),
+            # A LIMIT OF THE METHOD, NOT A FAULT. Every `JobackRefusal` is
+            # a correct statement about what the 1987 table covers -- it
+            # has no ring tertiary amine group and stops at divalent
+            # sulfur -- so there is nothing here for a user to fix and it
+            # must not be painted like a crash.
+            inapplicable=True,
             provenance=provenance,
         )
 

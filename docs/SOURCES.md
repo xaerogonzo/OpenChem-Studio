@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 20b591b4e10a97e31471e70adfdb083edeaddd74dd629f91066ddec686db014a -->
+<!-- SOURCE SHA256: 5ea14170028f0de6afcc3a4927b4c8e3532301cfa890ac7e53c89ed111105521 -->
 
 # Sources
 
@@ -117,7 +117,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`ertl2000`](#ertl2000) | literature | shipped | citation |
 | [`ertl2008`](#ertl2008) | literature | shipped | citation |
 | [`ertl2009`](#ertl2009) | literature | shipped | citation |
-| [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation |
+| [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation + claim |
 | [`gasteiger1985`](#gasteiger1985) | literature | **not shipped** | citation |
 | [`glasser1995`](#glasser1995) | literature | shipped | citation |
 | [`guo2006`](#guo2006) | literature | reference only | citation + claim |
@@ -1376,10 +1376,32 @@ the claim.
 | --- | --- |
 | Identifier | [10.1016/0040-4020(80)80168-2](https://doi.org/10.1016/0040-4020(80)80168-2) |
 | Status | shipped |
-| Verification | citation |
-| Verified | 2026-08-25 |
+| Verification | citation + claim |
+| Verified | 2026-08-31 |
 | Local copy | `gasteiger1980.pdf` (not checked) |
 | Used by | `src/openchem/chem/electronic_properties.py`, `src/openchem/chem/dipole.py`, `src/openchem/chem/descriptor_providers.py` |
+
+CHECKED AGAINST THE PAPER'S OWN TABLE 3, which is the upgrade from
+`citation`. That table prints PEOE charges on carbon in millielectrons for
+17 compounds and 22 values; `tests/test_gasteiger_charges.py` holds all 22.
+RDKit's implementation reproduces them:
+
+    mean -1.9 me    MAE 2.1 me    max |diff| 8.6 me
+
+The paper prints whole millielectrons, so +-0.5 me is rounding before
+anything else. The three largest deviations (H2CO, *CH3CF3, CH3*CHO) are
+pi-containing or heavily fluorinated -- where the abstract itself scopes
+the method to "sigma-bonded and nonconjugated pi-systems".
+
+THAT AGREEMENT WAS NOT ASSUMED. A library's implementation is not always
+the paper's -- RDKit's own SA and NP scores document divergences from Ertl
+in their headers -- so both outcomes were written down first: disagreement
+would have been recorded as a finding with numbers and this entry left at
+`citation`.
+
+TABLE 3 WAS READ FROM A 320 dpi RENDER. This scan's text layer is badly
+damaged; it gives the paper's own page range as "3219 to 3288" where ten
+pages from 3219 is 3228, which is what `citation` above says.
 
 PEOE, reached through RDKit's rdPartialCharges.ComputeGasteigerCharges. It
 backs `gasteiger_charge_at_ph`, the dipole calculator's charge model and

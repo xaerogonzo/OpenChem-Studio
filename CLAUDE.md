@@ -3733,7 +3733,41 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6407 passed, 16 skipped`
+A clean run is **6-21 minutes**, ending at `6474 passed, 16 skipped`
+(measured 2026-08-31, **19m53**, on
+`charge-is-protonated-and-a-refusal-is-not-a-fault` -- the non-deterministic
+protonation, the species the inspector never named, and the refusals that
+looked like faults.
+
+**+66 collected and 0 REMOVED** against the branch point `531ec09`, diffed
+both directions with `comm` in a detached worktree, with the `PYTHONPATH`
+override asserted before the count was believed:
+
+    531ec09              COLLECTS 6424
+    this one             COLLECTS 6490   = 6424 + 66
+    the run                       6474 passed + 16 skipped = 6490
+
+    30  test_gasteiger_charges.py        written -- 22 of them are Table 3
+    29  test_protonation_microspecies.py written -- 16 are the charge-state
+                                         corpus
+     5  test_property_panel.py           refusal-vs-fault, and the fourth
+                                         glyph joining the shipped oracle
+     2  test_calculator_inspector_dialog.py
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored --
+as do `^FAILED` and `^ERROR`. The skips are the deterministic 16. The two
+`DeprecationWarning`s are the same pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**CLEAN ON ITS FIRST RUN**, and 19m53 sits near the top of the band without
+moving it; the 6-21 range already covers it.
+
+**THIS BRANCH IS STACKED ON AN UNPUSHED ONE.** It was cut from `531ec09`,
+which is `remembered-directories-and-the-displayed-chain` -- so the +66 is
+against that branch and not against master.
+
+Before it: `6407 passed, 16 skipped`
 (measured 2026-08-30, **19m37**, on
 `remembered-directories-and-the-displayed-chain` -- the remembered file-dialog
 directories and the docked-pose/receptor chain mismatch.
@@ -11910,6 +11944,198 @@ nobody checked.
 is mostly empty below its text, so `to: bottom` photographs blank space
 with the text above the viewport. Find the band first -- count dark rows
 per scanline across a few positions -- then crop to it.
+
+## `variants[0]` WAS NOT A RANKING, AND THE ORDER CAME FROM THE HASH SEED
+
+Reported as "I wanna check the accuracy of our charge calculators because
+that doesn't seem right to me". The instinct was right and the cause was
+upstream of every charge model.
+
+`protonate_at_ph` took `variants[0]` from Dimorphite-DL. **That list is an
+ENUMERATION of microspecies; it does not rank them**, and its order comes
+from a set iteration -- so it inherited `PYTHONHASHSEED`. Measured on an
+isobutyrylfentanyl at pH 7.4, eight separate processes:
+
+    net charge  +1  +0  +1  +0  +1  +0  +2  +0
+
+Within ONE process twelve calls agreed, and `PYTHONHASHSEED=0` was stable
+across processes while varying seeds were not. **So a scientific answer
+was a function of the process's hash seed**, which is why it was invisible
+to a suite that runs in one process.
+
+**IT REACHED SIX PRODUCTION CONSUMERS**, and the worst was not the charge
+panel: `logd_from_microspecies` moved **1.68 to 4.38 on one molecule**
+across runs -- a factor of 500 in partition coefficient. Also `ph_curves`
+(twice), `electronic_properties`, `calculator_options` and the charge/ESP
+surfaces.
+
+`precision=0.0` fixes that half: it collapses Dimorphite's window to the
+pKa itself, so one state comes back. Six processes, identical. The
+selection is ALSO sorted rather than taken in arrival order -- belt to
+those braces, and the only form of the property a test can actually put,
+since within one process the order never varies. A fake returning the same
+states in three different orders must give one answer.
+
+### DETERMINISM IS NOT CORRECTNESS, AND THE SECOND HALF IS A WHOLE CLASS
+
+Dimorphite's `Amines_primary_secondary_tertiary` site is `[C:1]-[NX3+0:2]`
+with pKa 8.16 and **no exclusion for an adjacent carbonyl**, while its
+`*Amide` rule is `[C:1](=[O:2])-[N:3]-[H]` and REQUIRES an N-H. So a
+TERTIARY amide matches nothing amide-specific, falls through to the plain
+amine rule, and is protonated at pH 7.4 because 7.4 < 8.16.
+
+Measured over sixteen drug-like molecules with literature charge states,
+five were wrong before the fix and **every one was that class**:
+
+    DMF, DEET, N,N-dimethylacetamide, N-methylpyrrolidone   0 -> +1
+    fentanyl, isobutyrylfentanyl                           +1 -> +2
+
+Acetanilide and lidocaine are right BECAUSE THEY HAVE AN N-H, which is the
+tell that identifies the class rather than the molecule. After the fix,
+16/16.
+
+`_deprotonate_delocalised_nitrogen` is the correction and it is
+deliberately narrow: it **only ever removes a proton Dimorphite added** to
+an amide, thioamide or sulfonamide nitrogen, never adds one, and it
+reports the atoms it touched. Overriding a library's chemistry is a claim,
+and that is the narrowest form of it. `corrected_atoms` is empty for 11 of
+the 16, which is what says the rule is not a blanket.
+
+**THE ORIGINAL SCREENSHOT HAD THE RIGHT TOTAL FROM THE WRONG MOLECULE.**
+The panel read "Net calculated charge: 1.00 e", which is correct for this
+compound at pH 7.4 -- and the species charged was the ANILIDIUM, with the
+basic piperidine left neutral, so every per-atom value was wrong while the
+sum was right by luck. A number that is right for the wrong reason is the
+hardest kind to notice, and only reading the SMILES of the species showed
+it.
+
+**AND `pkasolver` IS DELIBERATELY NOT IN THIS PATH.** Gating the
+correction on an optional sidecar would make every protonation refuse on a
+machine that has not configured one -- worse than the bug -- so the class
+fix is structural and dependency-free.
+
+## A CORRECT NUMBER THAT READS AS A WRONG ONE
+
+The same report, and the other half of it. The Properties panel said
+"Total charge 0" for the drawn structure while the Calculator Inspector
+said "Net calculated charge: 1.00 e" for the pH 7.4 microspecies, with
+**nothing on screen relating the two**.
+
+The producer had anticipated exactly this, in a comment -- *"taking it
+from `mol` would report the drawn structure's net charge beside values
+computed for a different ionization state"* -- and that reasoning lived
+only in the source. Two things were missing on screen:
+
+- **the calculator's own name.** `result.name` is "Partial Charge
+  (Gasteiger) at pH 7.4 incl. H" and carries the pH AND the hydrogen mode;
+  the dialog rendered neither, and its title carries only the molecule.
+  (`result.name` IS shown at `calculator_inspector_dialog.py:381` -- that
+  is the pH-curve dialog, a different class.)
+- **which species was charged.** Declared by the PRODUCER, because the
+  view cannot work it out and must not try: reading
+  `total - formal_charge(drawn)` and concluding "so it was protonated" is
+  a mechanism invented from a residual, which `_balance_text`'s own
+  comment already refuses.
+
+`summary_note` was the existing hook and was **reachable only when there
+was NO total**, so a result with a headline could not explain anything
+about it. One ordering change makes it render alongside one.
+
+**SILENT WHEN NOTHING CHANGED.** A molecule with no ionizable centre is
+charged exactly as drawn, and a line saying so on every neutral result is
+noise given a voice.
+
+### A `findChildren` GUARD PASSED WITH THE WIDGET REMOVED FROM THE LAYOUT
+
+The mutation that deletes `layout.addWidget(name_label)` SURVIVED, because
+a QLabel constructed with the dialog as parent is a child whether or not
+anything ever laid it out. Walking the LAYOUT is the question that matters
+-- and the walk has to descend into a child WIDGET's own layout as well as
+into nested layouts, because this dialog puts its content inside a
+`_CalculatorResultView` and a layouts-only walk found nothing at all. Same
+shape as the recorded scroll-area guard that asked
+`boxes_scroll.widget() is boxes`.
+
+## A REFUSAL IS NOT A FAULT, AND THE STYLE'S OWN COMMENT SAID SO
+
+Reported as "some calculator failures, possible ones for the newer
+calculators". **Neither was a failure.** Joback's 1987 table has `>NH`
+(ring) and `>N-` (nonring) and **no ring tertiary amine**, which is what
+the molecule has; Kamlet-Jacobs needs a measured loading density no
+structure can supply. Both refusals are generated on purpose and both name
+their own reason.
+
+They rendered with the same red glyph as a crash, because
+`_FAILURE_STYLE`'s comment read *"red: it did not work, **or it is
+invalid**"* -- the style admitting in its own comment that it meant two
+different things -- and nothing in `domain/` carried the distinction.
+
+`inapplicable` is a plain optional bool on `ScientificResult` and
+`DescriptorValue`, following `error_summary`'s precedent exactly: a
+producer that declines to declare one is completely unmoved. **DECLARED,
+NEVER SNIFFED** -- `if "no group for" in error` as application logic is
+what `joback.refusal_text` exists to prevent, and it would rot the first
+time somebody reworded a sentence.
+
+    FAULT         something broke, or the input is invalid, and the user
+                  may be able to act. Red.
+    INAPPLICABLE  the METHOD does not cover this molecule. Correct,
+                  permanent, nothing to fix. Neutral.
+
+**`NoConformerError` IS A FAULT IN THIS VOCABULARY**, deliberately:
+"generate a conformer first" names an action, which is exactly what an
+inapplicable method cannot offer. It is the sharpest boundary case and has
+its own test.
+
+**THE GLYPH WAS VERIFIED THROUGH THE PROJECT'S OWN ORACLE, NOT A NEW
+PROBE.** A throwaway probe of mine reported every candidate identical to
+tofu AND to blank -- including the control and the three shipped glyphs --
+i.e. it was broken, not the platform, since
+`test_the_status_glyphs_really_render` passes under `offscreen`. Adding
+U+25CB to that shipped test's own parametrisation is the measurement;
+writing a second probe was how the wrong answer was nearly believed.
+
+## GASTEIGER'S OWN TABLE 3 IS AN ORACLE, AND IT AGREES
+
+`gasteiger1980` sat at `verification = "citation"` for the life of the
+project -- the reference was right and **no number this application
+produces had ever been checked against the paper**. The only Gasteiger
+assertion in 6,400 tests was a relative ordering of two atoms.
+
+Table 3 (p3224) prints PEOE charges on carbon in millielectrons for 17
+compounds and 22 values. Measured against RDKit:
+
+    n = 22    mean -1.9 me    MAE 2.1 me    max |diff| 8.6 me
+
+The paper prints whole millielectrons, so 0.5 me is rounding before
+anything else. The three largest deviations -- H2CO 8.6, CH3CF3 7.2,
+CH3CHO 6.6 -- are pi-containing or heavily fluorinated, where the abstract
+itself scopes the method to "sigma-bonded and nonconjugated pi-systems".
+Upgraded to `citation_and_claim`.
+
+**BOTH OUTCOMES WERE WRITTEN DOWN BEFORE MEASURING**, because a library's
+implementation is not always the paper's -- RDKit's own SA and NP scores
+document divergences from Ertl in their headers. Disagreement would have
+been recorded as a finding with numbers and the entry left at `citation`.
+Deciding the verdict after seeing the number is the failure mode.
+
+**THE TEXT LAYER IS NOT THE TABLE, FOR THE FOURTH TIME.** This scan gives
+the paper's own page range as "3219 to 3288" where ten pages from 3219 is
+3228 -- an OCR digit error in the first line read. Table 3 was transcribed
+from a 320 dpi render. The paper states its own count in prose ("these
+were 17 compounds and 22 values"), which is a free acceptance test on the
+transcription and is asserted.
+
+### AND THE `#:` RATCHET FIRED AGAIN, THE SAME WAY
+
+`pka_providers.py` had never used the convention, so documenting
+`_OVERPROTONATED_N` conscripted the whole file and three constants fell
+into the undocumented set. Unlike `APP_NAME`, all three already HAD
+explanatory comments in plain `#` form, so they were promoted to `#:`
+rather than recorded as debt -- the documentation existed, it was just not
+in the form the guard reads. Second instance in two sessions of "one `#:`
+conscripts a file"; it is a property of the per-file scope rule rather
+than a surprise.
 
 ## Verification standard
 

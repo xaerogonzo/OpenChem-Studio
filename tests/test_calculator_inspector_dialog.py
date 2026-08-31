@@ -583,3 +583,88 @@ def test_add_to_project_is_hidden_when_no_handler_was_given(qapp):
     )
 
     assert not _button(dialog, "Add to Project").isVisible()
+
+
+# --- what am I looking at ----------------------------------------------------
+#
+# Reported as "I'm suspicious of what it generated for a charge": the
+# inspector said "Net calculated charge: 1.00 e" while the Properties panel
+# said "Total charge 0" for the same neutral molecule. Both were right --
+# the charge calculator computes on the pH 7.4 microspecies, which for a
+# basic amine is a +1 cation -- and nothing on screen related the two.
+
+
+def _laid_out_labels(dialog) -> list[str]:
+    """Label text reachable from the dialog's own LAYOUT.
+
+    `findChildren` was the first version of this and it is the wrong
+    question: a QLabel constructed with the dialog as parent is a child
+    whether or not anything ever added it to a layout, so removing
+    `layout.addWidget(name_label)` left the guard green -- measured, that
+    mutation survived. Walking the layout asks whether the user can see
+    it.
+    """
+    found: list[str] = []
+
+    def walk(item):
+        if item is None:
+            return
+        widget = item.widget()
+        if isinstance(widget, QLabel):
+            found.append(widget.text())
+        # Descend into a child WIDGET's own layout as well as into a nested
+        # layout: this dialog puts its content inside a
+        # `_CalculatorResultView`, so a walk that only followed layouts
+        # found nothing at all.
+        for child_layout in (item.layout(), widget.layout() if widget else None):
+            if child_layout is not None:
+                for i in range(child_layout.count()):
+                    walk(child_layout.itemAt(i))
+
+    layout = dialog.layout()
+    for i in range(layout.count()):
+        walk(layout.itemAt(i))
+    return found
+
+
+def test_the_dialog_names_the_calculator_it_is_showing(qapp):
+    """`result.name` carries the parameters that change the answer --
+    "Partial Charge (Gasteiger) at pH 7.4 incl. H" states the pH AND the
+    hydrogen mode. The dialog showed neither, and the window title carries
+    only the molecule."""
+    engine = ChemistryEngine()
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    result = _dataset({0: -0.2, 1: 0.3})
+
+    dialog = CalculatorInspectorDialog(engine, molecule, result, conformer_molblock=None)
+
+    assert any(t == "Test Calculator" for t in _laid_out_labels(dialog)), (
+        "the dialog does not say which calculator produced this"
+    )
+
+
+def test_a_producer_note_is_shown_ALONGSIDE_a_total(qapp):
+    """`summary_note` used to be reachable only when there was NO total, so
+    a result with a headline could not explain anything about it. The
+    charge calculator is exactly that case: it has a total, and the
+    interesting fact is which SPECIES the total belongs to."""
+    engine = ChemistryEngine()
+    molecule = MoleculeModel(display_name="Ethanol")
+    engine.set_structure_from_smiles(molecule, "CCO")
+    result = _dataset(
+        {0: -0.2, 1: 0.3},
+        units="e",
+        parameters={
+            "total": declare_total(1.0, "Net calculated charge", units="e"),
+            "summary": "Computed on the dominant microspecies at pH 7.4.",
+        },
+    )
+
+    dialog = CalculatorInspectorDialog(engine, molecule, result, conformer_molblock=None)
+    texts = _laid_out_labels(dialog)
+
+    assert any("Net calculated charge" in t for t in texts), "the total vanished"
+    assert any("dominant microspecies" in t for t in texts), (
+        "the producer's own sentence is still gated behind having no total"
+    )

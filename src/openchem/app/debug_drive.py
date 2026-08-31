@@ -822,6 +822,56 @@ class _Driver(QObject):
             ),
         )
 
+    def _do_inspect(self, step: dict[str, Any]) -> None:
+        """Open the Calculator Inspector on a per-atom calculator's result.
+
+        `{"do": "inspect", "id": "gasteiger_charge_at_ph"}`, then
+        `{"do": "shot", "widget": "inspector"}`.
+
+        **`show()`, NEVER `exec()`.** The panel's own `_open_inspector`
+        ends in `exec()`, which spins an event loop inside the handler --
+        the next step is never scheduled and an unattended run stalls on a
+        window with nobody to close it. Same trap `lewis` documents.
+
+        WHAT THIS DOES AND DOES NOT DRIVE, stated because it matters:
+        it builds the real dialog from a real computed result, so what is
+        photographed is the dialog as a user sees it. It does NOT go
+        through the panel's reveal-and-click path, which is unchanged and
+        covered by `tests/test_property_panel.py`.
+        """
+        from openchem.ui.dialogs.calculator_inspector_dialog import (
+            CalculatorInspectorDialog,
+        )
+        from openchem.chem.calculation_input import canonical_conformer
+
+        window = self._window
+        panel = window._property_panel
+        calculator_id = str(step["id"])
+        definition = window._services.calculator_registry.get(calculator_id)
+        if definition is None:
+            logger.error("OPENCHEM_DRIVE: no calculator %r", calculator_id)
+            return
+        molecule = window._session.project.find_molecule(panel._selected_molecule_uuid)
+        if molecule is None:
+            logger.error("OPENCHEM_DRIVE: no molecule selected for %r", calculator_id)
+            return
+        parameters = {p.name: p.default for p in definition.parameters}
+        parameters.update(step.get("parameters") or {})
+        mol = window._services.chemistry_engine.mol_from_model(molecule)
+        result = definition.execution.compute(mol, molecule.uuid, parameters)
+        best = canonical_conformer(molecule)
+        self._inspector = CalculatorInspectorDialog(
+            window._services.chemistry_engine,
+            molecule,
+            result,
+            best.molblock if best is not None else None,
+            window,
+        )
+        self._inspector.show()
+        logger.warning(
+            "OPENCHEM_DRIVE: inspect %s -> %r", calculator_id, getattr(result, "name", "")
+        )
+
     def _do_shot(self, step: dict[str, Any]) -> None:
         """Save a picture of the window from inside Qt.
 
@@ -856,6 +906,11 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no dialog open; run {'do': 'dialog', ...}")
                 return
             target = self._dialog
+        elif step.get("widget") == "inspector":
+            if getattr(self, "_inspector", None) is None:
+                logger.error("OPENCHEM_DRIVE: no inspector open; run {'do': 'inspect', ...}")
+                return
+            target = self._inspector
         elif step.get("widget") == "spatial":
             if getattr(self, "_spatial", None) is None:
                 logger.error("OPENCHEM_DRIVE: no spatial dialog open; run {'do': 'spatial'}")

@@ -1055,6 +1055,31 @@ class RDKitDescriptorProvider(DescriptorProvider):
 # about the registry."
 
 
+def _microspecies_note(drawn: Chem.Mol, species, ph: float) -> str:
+    """One sentence naming the species the charges belong to, or "".
+
+    SILENT WHEN NOTHING CHANGED, deliberately. A molecule with no
+    ionizable centre is charged exactly as drawn, and a line saying so on
+    every neutral result is noise given a voice -- the same tolerance
+    discipline `_balance_text` applies to a balance of 1e-16.
+    """
+    drawn_charge = Chem.GetFormalCharge(drawn)
+    if species.formal_charge == drawn_charge:
+        return ""
+    note = (
+        f"Computed on the dominant microspecies at pH {ph:g}, which carries "
+        f"a net charge of {species.formal_charge:+d} -- the structure as "
+        f"drawn is {drawn_charge:+d}."
+    )
+    if species.corrected_atoms:
+        note += (
+            " An amide-like nitrogen reported as protonated was corrected:"
+            " its lone pair is delocalised into the adjacent carbonyl, so"
+            " it is not a base at this pH."
+        )
+    return note
+
+
 def compute_gasteiger_charge_at_ph(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any]
 ) -> PerAtomDataset:
@@ -1065,11 +1090,12 @@ def compute_gasteiger_charge_at_ph(
     whatever protonation state the molecule happened to be drawn in.
     """
     _places = decimals(parameters)
-    from openchem.chem.pka_providers import protonate_at_ph
+    from openchem.chem.pka_providers import dominant_microspecies
 
     ph = parameters.get("pH", 7.4)
     include_hydrogens = bool(parameters.get("include_hydrogens", False))
-    protonated = protonate_at_ph(mol, ph)
+    species = dominant_microspecies(mol, ph)
+    protonated = species.mol
     charges = compute_gasteiger_charges(protonated, include_hydrogens=include_hydrogens)
     suffix = " incl. H" if include_hydrogens else ""
     return PerAtomDataset(
@@ -1087,6 +1113,17 @@ def compute_gasteiger_charge_at_ph(
                 "include_hydrogens": include_hydrogens,
                 "decimal_places": _places,
                 ATOM_BASIS: HEAVY_ATOMS,
+                # THE PRODUCER SAYS WHICH SPECIES IT CHARGED, because the
+                # view cannot work it out and must not try. Reading
+                # `total - formal_charge(drawn)` and concluding "so it was
+                # protonated" is a mechanism invented from a residual,
+                # which is the mistake `_balance_text` already refuses.
+                #
+                # Reported as a fact rather than as prose about a fact: a
+                # neutral molecule whose charges are computed on a +1 cation
+                # is the whole reason "Net calculated charge: 1.00 e" sat
+                # beside a panel reading "Total charge 0" and read as a bug.
+                "summary": _microspecies_note(mol, species, ph),
                 # From the PROTONATED molecule, which is the one whose
                 # charges these are -- taking it from `mol` would report the
                 # drawn structure's net charge beside values computed for a
