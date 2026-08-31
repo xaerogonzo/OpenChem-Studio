@@ -335,7 +335,15 @@ class _Driver(QObject):
     def _do_dock_run(self, step: dict[str, Any]) -> None:
         """Press the Docking panel's Dock button, for real.
 
-        `{"do": "dock_run", "after_ms": 240000}`
+        `{"do": "dock_run", "after_ms": 300000, "replicates": 3}`
+
+        `replicates` SETS THE SPIN BOX and then presses Dock, rather than
+        passing a count to the handler. The panel reads the control through
+        `displayed_replicates()`, so driving the control is what checks that
+        wiring -- handing the number to `request_docking` directly would prove
+        the service loops and say nothing about whether the box reaches it.
+        Omit it and the panel's own default (1) runs, which is what almost
+        every user gets.
 
         THE BUTTON, NOT `_on_dock_clicked` -- the same reason `jobs_cancel`
         presses a real row's button. The handler reads the panel's current
@@ -357,6 +365,14 @@ class _Driver(QObject):
         if panel is None:
             logger.error("OPENCHEM_DRIVE: no docking panel on this window")
             return
+        replicates = step.get("replicates")
+        if replicates is not None:
+            panel._replicates_spin.setValue(int(replicates))
+            logger.warning(
+                "OPENCHEM_DRIVE: dock_run -- replicates set to %d (panel reads %d)",
+                int(replicates),
+                panel.displayed_replicates(),
+            )
         button = panel._dock_button
         if not button.isEnabled():
             logger.error(
@@ -398,6 +414,17 @@ class _Driver(QObject):
         )
         logger.warning("OPENCHEM_DRIVE: dock_panel[%s] box_status=%r",
                        step.get("tag", ""), panel._box_status_label.text())
+        # THE SPREAD LABEL CARRIES A FLAG NO SCREENSHOT CAN, which is why it
+        # is logged beside a `shot` rather than instead of one: `hidden` is
+        # what tells "no result yet" from "a result with nothing to say", and
+        # an empty label and a hidden one photograph identically.
+        logger.warning(
+            "OPENCHEM_DRIVE: dock_panel[%s] replicates=%d spread_hidden=%s spread=%r",
+            step.get("tag", ""),
+            panel.displayed_replicates(),
+            panel._spread_label.isHidden(),
+            panel._spread_label.text(),
+        )
         # The search settings CARRY WHAT NO SCREENSHOT CAN: a seed of 0 reads
         # "Random" on screen and must leave the panel as None, and the
         # exhaustiveness shown is only interesting if it is also what is sent.

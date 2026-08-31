@@ -614,10 +614,11 @@ copies of one protein.
 
 ### Ranking affinities — the gap is measured, and three routes are open
 
-**None of this is started.** It is written down because the 2026-08-31
-docking work turned "the docking has a lot to be desired" into a specific,
-sourced statement about *which* ability is weak, and the three routes differ
-by two orders of magnitude in cost.
+**Route 1 is SHIPPED. Routes 2 and 3 are not started**, and route 3 is
+explicitly gated on route 1 existing. All three are written down because the
+2026-08-31 docking work turned "the docking has a lot to be desired" into a
+specific, sourced statement about *which* ability is weak, and they differ by
+two orders of magnitude in cost.
 
 **THE GAP, MEASURED RATHER THAN ASSERTED.** CASF-2016 evaluates four
 separate abilities and puts Vina on opposite sides of two of them
@@ -641,12 +642,69 @@ modest correlation coefficients around 0.6"*. Three analogues differing by
 one CH2 are below what any of these methods resolves. Route 1 is the only
 one that helps with *that* case; routes 2 and 3 help with wider series.
 
-#### 1. Report an interval, not a number — cheapest, and it fixes the harm
+#### 1. Report an interval, not a number — SHIPPED
 
-The pose table shows `-8.88` as though it were a measurement. It is one draw
-from a distribution whose width is now known. Running N seeds and reporting
-a mean with its spread would have said immediately that the three reported
-compounds overlap.
+**THE HEADING KEEPS ITS ORIGINAL WORDING AND THE SHIPPED NAME DIFFERS.** What
+is computed is the sample RANGE of the runs performed, and every user-facing
+string says "range" — "interval" invites the confidence-interval reading the
+feature exists to prevent, so the domain type is `AffinityRange` in
+`domain/affinity_range.py`. This heading is left as it was written, as the
+record of what was asked for.
+
+The pose table showed `-8.88` as though it were a measurement. It is one draw
+from a distribution whose width is now known.
+
+**What shipped**
+
+    Docking panel      a Replicates control (1..25, default 1) and a label
+                       reading "Score range over 3 runs: -8.85 to -8.73
+                       (median -8.79). Poses are from the median run
+                       (seed 1990277, protocol seed 4712)."
+    the run itself     `_DockingTask` loops N times; the poses kept are the
+                       MEDIAN replicate's, and every run's seed and best
+                       affinity are stored
+    virtual screening  the same control, and a DOMINANCE RANK where ligands
+                       whose ranges overlap share a rank
+    the refusal        `compare()` returns SEPARATED / NOT_SEPARATED /
+                       NOT_ASSESSED, and NOT_ASSESSED is what a
+                       single-replicate screen gets for every pair
+
+**Three answers this design reached and then had to reverse**, recorded
+because each reads as reasonable and will be re-proposed:
+
+- **"Mean ± spread" is the wrong summary, and this document asked for it.**
+  The sentence above originally read "running N seeds and reporting a mean
+  with its spread". A per-replicate best is a minimum over Vina's own internal
+  runs *and* over the poses of each — skewed and extreme-value-shaped — so a
+  mean with a standard deviation invites a Gaussian reading of a min
+  statistic. It ships as **range + median + n**. The rank-based refusal is
+  unaffected because it is distribution-free, which is why it is the rule.
+- **The representative replicate is the MEDIAN, not the best.** Best-of-N is a
+  max selection, so the headline affinity would drift more negative purely as
+  the replicate count rose — the reported number becoming a function of how
+  many times it was run, which is this feature's own harm reintroduced in the
+  first number a reader sees.
+- **The p-value is two-sided, so the minimum useful count is 4, not 3.**
+  `1/comb(2n,n)` is the one-sided rate and holds only when the direction is
+  fixed in advance; the panel reports an ordering in either direction. At 3
+  runs each the real rate is 0.100, not 0.050.
+
+**The default is 1, and the harm is still fixed at zero runtime cost.**
+Anything higher would multiply every existing user's wall clock and every
+screening budget with no announcement. At N = 1 the fix is behavioural: the
+panel prints "1 run (seed …) — no spread measured" instead of a bare `-8.88`,
+and a screening table stops numbering an ordering it cannot support.
+
+**Acceptance was met, and the acceptance criterion is worth re-reading**: the
+spread is measured and never assumed, and the shipped gate takes two replicate
+COUNTS and nothing else — so there is no threshold in kcal/mol for anyone to
+tune. `test_no_kcal_literal_lives_in_the_module` fails if one appears under
+any name, and `test_the_decision_is_invariant_under_positive_scaling` fails
+behaviourally if one is smuggled in as arithmetic.
+
+`benchmarks/docking/seed_spread.py` characterises the rule against real Vina
+and states in its own docstring that it must NOT be read as supplying a
+threshold.
 
     cost         N x runtime; 5 seeds at exhaustiveness 25 is ~2 minutes
     dependency   none -- the seed is already settable and recorded

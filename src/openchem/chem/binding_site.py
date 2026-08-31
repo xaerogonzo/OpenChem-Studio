@@ -37,9 +37,12 @@ All seven land in the same pocket in every arm. **The run-to-run scatter
 is about 0.03 A**, which is what makes 4EY7 readable: 0.69 -> 0.37 is
 twenty times the noise, and 4EY7 is one of the entries whose box moved to
 a more buried copy. Everything else is unchanged or better by a margin
-too small to claim. The seed is NOT pinned here -- `VinaDockingProvider`
-passes `seed=None`, as the shipped app does -- so this measures the app's
-real behaviour and the noise floor is measured rather than removed.
+too small to claim. The seed is NOT pinned here, as an unpinned run in
+the app is not, so this measures the app's real behaviour and the noise
+floor is measured rather than removed. (That used to read "`VinaDockingProvider`
+passes `seed=None`", which has the mechanism backwards -- the provider
+receives a seed and, handed None, chooses one itself and reports it back.
+The measurement is unaffected.)
 
 A2A is worth naming rather than averaging away: ZM241385 is long and
 roughly linear, and a pose flipped end-for-end in the same pocket

@@ -134,8 +134,73 @@ seed moves the reported affinity of *one* molecule by 0.06 kcal/mol
 (−8.79 / −8.79 / −8.73, three seeds). Three *different* fentanyl analogues
 reported to us spanned 0.13 kcal/mol. So the difference between those
 molecules was roughly twice the search's own scatter on a single one — which
-is not a margin any ordering should rest on. Pin the seed before comparing
-two ligands at all, or the comparison includes the search wandering.
+is not a margin any ordering should rest on.
+
+**Pinning the seed is NOT enough, and this document said it was.** The
+sentence here used to end "Pin the seed before comparing two ligands at all,
+or the comparison includes the search wandering." That was the best advice
+available when it was written and it is now incomplete in a way that matters:
+a shared pinned seed makes a comparison *reproducible*, not *supported*. It is
+still one paired draw from a distribution, and repeating it gives the same
+answer rather than a better one. Left standing beside the replicate feature it
+would tell a reader that pinning is sufficient.
+
+**What the application does instead: it measures the spread and refuses to
+order two ligands whose ranges overlap.** The Docking panel's *Replicates*
+control runs N independent searches — seeds derived per ligand, so no two
+ligands share one — and reports the range, the median and the count. Virtual
+screening does the same and shows a *dominance rank*, where ligands whose
+ranges overlap share a rank.
+
+**IT LICENSES EXACTLY ONE DIRECTION.** This is the whole of what a replicate
+range supports:
+
+    ranges OVERLAP        "indistinguishable by this method"      SUPPORTED
+    ranges are DISJOINT   "A binds better than B"             NOT SUPPORTED
+
+A separation says the *scoring function* told two ligands apart by more than
+its own run-to-run scatter. It does not say the separation is real, and the
+ceiling above is why: even the top-ranked functions reach only "around 0.6"
+correlation ([source:su2019]), and an independent 800-complex evaluation puts
+Vina at 0.498 ± 0.026 ([source:nguyen2020]). **A range reported as a two-sided
+error bar would be strictly worse than the bare number it replaced**, because
+a bare number at least claims no precision.
+
+**The refusal is a permutation test, not a fitted constant.** "Every replicate
+of A beats every replicate of B" is the extreme outcome (U = 0) of the
+Mann–Whitney rank-sum test ([source:mann1947]). Under the null that both
+ligands share a distribution, all n_a + n_b values are exchangeable, so each of
+the `(n_a + n_b)! / n_a! n_b!` orderings is equally likely — the paper's own
+p. 51 — and exactly one puts all of A below all of B, with one more the other
+way. The procedure reports a separation in *either* direction, so the rate is
+two-sided:
+
+    n runs each   1-sided       what is shipped
+    3             0.050         0.100    does NOT reach 0.05
+    4             0.014         0.029    the smallest that does
+
+**So the smallest useful replicate count is 4 each, not 3**, and nothing in
+the application tabulates that: the gate is `2/comb(n_a+n_b, n_a)` computed per
+pair, which behaves non-obviously at unequal counts (2 runs against 8 clears
+0.05 at 0.044, while 2 against 5 does not at 0.095).
+
+**A PER-PAIR RATE DOES NOT CONTROL A TABLE.** A shared rank in a virtual
+screen is a statement about *that pair* at the stated level. It is not a claim
+that the whole table is correctly ordered — a 50-ligand screen makes 1225
+comparisons, and at 0.029 each you would expect roughly 35 falsely-ordered
+pairs. No p-value is printed per row for exactly that reason; it justifies the
+minimum count and belongs here rather than in a cell.
+
+**A WIDTH GROWS WITH THE NUMBER OF RUNS**, in expectation, so a wider range is
+not a noisier molecule and two widths measured over different counts are not
+comparable. The count is displayed everywhere the range is.
+
+**AND THE RANGE IS REPRODUCIBILITY, NOT ACCURACY.** It describes how far the
+search wandered on this ligand, in this box, at these settings. It is not an
+uncertainty on the binding affinity: a molecule whose ten runs agree exactly
+has a width of zero and is no better predicted for it. The two quantities are
+unrelated, and conflating them is the reading this whole feature exists to
+prevent.
 
 **The ligand is prepared at the declared pH, and that reaches the score.**
 The Preparation pH governs the ligand as well as the receptor. It decides
