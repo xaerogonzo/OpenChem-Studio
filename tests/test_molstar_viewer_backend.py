@@ -491,3 +491,301 @@ def test_the_colouring_and_the_diagnostic_share_one_builder():
         "residueClause"
     )
     assert "residueClause(" in body
+
+
+# --- the viewer must show the coordinates docking uses -----------------------
+#
+# Mol*'s default preset builds BIOLOGICAL ASSEMBLY 1, which is a different
+# set of atoms from the deposited file this application hands to Vina.
+# `showDepositedCoordinates()` in viewer.html exists to correct that, and
+# until now NOTHING here tested it -- `deposited`, `assembly` and
+# `structure-from-model` all matched zero lines in this file.
+#
+# Reported on 6WGT (5-HT2A): a tryptamine docked into chain B's orthosteric
+# pocket, drawn against chain A, ~43 A away, looking "way outside the
+# receptor". The box was measurably correct -- 0.0 A from the 7LD site,
+# holding 217 receptor atoms.
+
+#: TWO CHAINS AND AN ASSEMBLY THAT NAMES ONLY ONE, which is 6WGT's shape in
+#: miniature: `REMARK 350` builds assembly 1 from chain A alone, so the
+#: deposited file and the default preset disagree about what is on screen.
+#: Chain B sits ~40 A away, as 6WGT's three copies do.
+_TWO_CHAIN_PDB = """HEADER    TEST
+REMARK 350 BIOMOLECULE: 1
+REMARK 350 APPLY THE FOLLOWING TO CHAINS: A
+REMARK 350   BIOMT1   1  1.000000  0.000000  0.000000        0.00000
+REMARK 350   BIOMT2   1  0.000000  1.000000  0.000000        0.00000
+REMARK 350   BIOMT3   1  0.000000  0.000000  1.000000        0.00000
+ATOM      1  N   ALA A   1      11.104  13.207   2.845  1.00 20.00           N
+ATOM      2  CA  ALA A   1      11.999  12.040   2.945  1.00 20.00           C
+ATOM      3  C   ALA A   1      13.398  12.442   2.508  1.00 20.00           C
+ATOM      4  O   ALA A   1      13.598  13.601   2.128  1.00 20.00           O
+ATOM      5  CB  ALA A   1      11.482  10.895   2.076  1.00 20.00           C
+ATOM      6  N   ALA B   1      51.104  53.207  42.845  1.00 20.00           N
+ATOM      7  CA  ALA B   1      51.999  52.040  42.945  1.00 20.00           C
+ATOM      8  C   ALA B   1      53.398  52.442  42.508  1.00 20.00           C
+ATOM      9  O   ALA B   1      53.598  53.601  42.128  1.00 20.00           O
+ATOM     10  CB  ALA B   1      51.482  50.895  42.076  1.00 20.00           C
+END
+"""
+
+
+def _structure_transforms(qapp, backend) -> list[dict]:
+    """Every committed `structure-from-model` transform, from the page.
+
+    JSON over the bridge because `runJavaScript` on this Qt build returns
+    PRIMITIVES ONLY -- an array comes back as `''`, indistinguishable from a
+    script that returned nothing, which is already recorded in CLAUDE.md as
+    having cost a whole probe run.
+    """
+    result: dict[str, object] = {}
+    backend._page.runJavaScript(
+        "window.openchemMolstarViewer.structureTransforms();",
+        lambda value: result.__setitem__("value", value),
+    )
+    _wait_until(qapp, lambda: "value" in result, timeout_seconds=5)
+    raw = result.get("value")
+    return json.loads(raw) if raw else []
+
+
+def _transform_names(transforms: list[dict]) -> list[str]:
+    return sorted(
+        (t.get("type") or {}).get("name", "<none>") for t in transforms
+    )
+
+
+def test_the_fixture_can_actually_show_the_difference(qapp):
+    """THE DEGENERACY CHECK, and the two guards below are worthless without it.
+
+    If Mol* does not build an assembly from this fixture's `REMARK 350` --
+    because the annotation is minimal, or because its PDB reader ignores it
+    -- then the default preset and the deposited coordinates AGREE, both
+    guards below pass for free, and the file reads as three-way coverage of
+    a bug it cannot see. That is the "a fixture is degenerate or not with
+    respect to a specific mutation" failure this project records repeatedly.
+
+    `load_additional_structure` is the untouched default preset: it is the
+    one path that never calls `showDepositedCoordinates`. So whatever it
+    reports here is what Mol* does when nobody corrects it.
+
+    A FAILURE HERE IS ABOUT THE FIXTURE, NOT THE APPLICATION. If this says
+    'model', this PDB cannot reproduce the reported defect and the guards
+    below need a real multi-copy deposit instead.
+    """
+    backend = MolStarViewerBackend()
+    assert _wait_until(qapp, lambda: backend._viewer_ready)
+
+    backend.load_additional_structure(_TWO_CHAIN_PDB, "pdb", "receptor")
+    assert _wait_until(qapp, lambda: _structure_count(qapp, backend) == 1)
+
+    transforms = _structure_transforms(qapp, backend)
+    assert transforms, "the probe found no structure-from-model cell at all"
+    assert _transform_names(transforms) == ["assembly"], (
+        f"this fixture cannot demonstrate the defect: Mol*'s untouched "
+        f"default preset already reports {_transform_names(transforms)} "
+        f"rather than ['assembly'], so 'deposited' and 'assembly 1' are the "
+        f"same picture here and the guards below prove nothing"
+    )
+
+
+def test_a_receptor_loaded_alone_is_shown_as_deposited(qapp):
+    """The control, and the case the original fix was verified against.
+
+    Loading a receptor by itself is the ONE path that was checked when
+    `showDepositedCoordinates` was written, which is why the defect below
+    survived it.
+    """
+    backend = MolStarViewerBackend()
+    assert _wait_until(qapp, lambda: backend._viewer_ready)
+
+    backend.load_macromolecule(_TWO_CHAIN_PDB, "pdb")
+    assert _wait_until(qapp, lambda: _structure_count(qapp, backend) == 1)
+
+    assert _wait_until(
+        qapp,
+        lambda: _transform_names(_structure_transforms(qapp, backend)) == ["model"],
+    ), (
+        f"a receptor loaded alone should be retargeted to deposited "
+        f"coordinates, got "
+        f"{_transform_names(_structure_transforms(qapp, backend))}"
+    )
+
+
+def test_the_docking_sequence_leaves_the_receptor_on_deposited_coordinates(qapp):
+    """THE REGRESSION THIS FILE WAS MISSING, and it is expected to FAIL first.
+
+    `_on_docking_result_ready` loads the receptor and then, in the same
+    breath, the best pose:
+
+        load_macromolecule(receptor)      -> loadStructure
+        load_additional_structure(pose)   -> loadAdditionalStructure
+
+    `loadStructure` does all its work inside `plugin.clear().then(...)` and
+    returns immediately; `loadAdditionalStructure` has no such wrapper and
+    runs synchronously. So the second load can interleave into the middle of
+    the first, and `showDepositedCoordinates` -- which keeps the LAST
+    matching cell -- can retarget the POSE while leaving the RECEPTOR on
+    assembly 1. Retargeting a single-ligand structure is a no-op, so nothing
+    anywhere reports a problem and the receptor is drawn ~43 A from its own
+    search box.
+
+    THE SETUP IS ASSERTED FIRST, deliberately. A failure because the page
+    never loaded looks identical to one that caught the defect, and this
+    project has repeatedly shipped guards that were green while testing
+    nothing.
+
+    The second structure is another PDB rather than a molblock: what matters
+    is that a SECOND `structure-from-model` cell exists during the first
+    load's promise chain, and `_MINIMAL_PDB` is already proven to parse here
+    -- a molblock that failed to load would fail this test for a reason
+    having nothing to do with the defect.
+    """
+    backend = MolStarViewerBackend()
+    assert _wait_until(qapp, lambda: backend._viewer_ready)
+
+    backend.load_macromolecule(_TWO_CHAIN_PDB, "pdb")
+    backend.load_additional_structure(_MINIMAL_PDB, "pdb", "docked ligand")
+
+    # Setup: both structures really did load. Without this, a page that
+    # dropped one would report a single clean 'model' and pass.
+    assert _wait_until(qapp, lambda: _structure_count(qapp, backend) == 2), (
+        f"expected the receptor and the pose to both be loaded, got "
+        f"{_structure_count(qapp, backend)} structure(s) -- the pose may "
+        f"have been wiped by loadStructure's plugin.clear()"
+    )
+
+    transforms = _structure_transforms(qapp, backend)
+    assert len(transforms) == 2, (
+        f"expected one structure-from-model transform per structure, got "
+        f"{transforms}"
+    )
+
+    names = _transform_names(transforms)
+    assert "assembly" not in names, (
+        f"a structure was left on a biological assembly after the docking "
+        f"sequence: transforms are {names} (full state: {transforms}). The "
+        f"receptor is being drawn as assembly 1 while the search box and the "
+        f"pose are in deposited coordinates -- on 6WGT that is ~43 A apart, "
+        f"which is the reported 'docked outside the receptor'."
+    )
+
+
+def _viewer_source() -> str:
+    from pathlib import Path
+
+    return (
+        Path(__file__).parent.parent
+        / "src"
+        / "openchem"
+        / "resources"
+        / "molstar"
+        / "viewer.html"
+    ).read_text(encoding="utf-8")
+
+
+# --- the three rules below are asserted on the SOURCE, and here is why ------
+#
+# MEASURED, by mutation, after the ordering fix landed: reverting
+# `showDepositedCoordinates` to last-match-wins, making it retarget EVERY
+# structure, and deleting the pose's generation check are all EQUIVALENT
+# MUTATIONS through the public API -- each one leaves the full 25-test file
+# green.
+#
+# They are equivalent for one reason, and it is worth knowing before anybody
+# "simplifies" this page: `loadStructure` calls `plugin.clear()`, and the
+# loads are serialized, so at the moment `showDepositedCoordinates` runs the
+# scene contains NOTHING BUT the structure that load just created. There is
+# no reachable state in which picking the last cell, picking every cell, and
+# picking the one we loaded give different answers. The queue removed the
+# condition the other two rules defend against.
+#
+# So the honest position is: ONE change is load-bearing today -- queueing the
+# additional structure, which `test_the_docking_sequence_...` above catches
+# and nothing else does. The rest is defence in depth, and it is kept rather
+# than deleted because each rule becomes load-bearing again the moment
+# `loadStructure` stops clearing, or a load path that does not go through the
+# queue is added. Both are ordinary future edits.
+#
+# Asserting the SHAPE is what this project does with a rule whose failure is
+# unreachable -- "an unreachable branch is a question about where to assert,
+# not automatically dead code". These are deliberately not dressed up as
+# behavioural coverage they do not have.
+
+
+def test_showDepositedCoordinates_retargets_only_the_refs_it_is_given():
+    """It must not go looking for structures of its own.
+
+    The version that shipped walked every `structure-from-model` cell and
+    kept the LAST, which is how a docked pose came to be retargeted while
+    the receptor was left on assembly 1. "Some cell got retargeted" is true
+    under both the right rule and the wrong one, which is exactly why that
+    form cannot be guarded behaviourally.
+    """
+    page = _viewer_source()
+    body = page[page.index("function showDepositedCoordinates") :]
+    body = body[: body.index("\n      var SEARCH_BOX_COLOR")]
+
+    assert "function showDepositedCoordinates(refs)" in body, (
+        "showDepositedCoordinates no longer takes the refs it is to "
+        "retarget, so it is choosing its own targets again"
+    )
+    assert "state.data.cells" not in body, (
+        "showDepositedCoordinates walks the state tree itself instead of "
+        "retargeting what its caller loaded"
+    )
+
+
+def test_the_receptor_load_claims_only_the_structures_it_created():
+    """Ownership is a DIFF over the state tree, not a guess.
+
+    `loadStructureFromData`'s return shape is not relied on: this project's
+    standing rule is that a Mol* API is probed against the vendored bundle
+    rather than assumed, and that rule was earned on this very call, whose
+    `structure` option is accepted and silently ignored.
+    """
+    page = _viewer_source()
+    body = page[page.index("loadStructure: function") :]
+    body = body[: body.index("loadAdditionalStructure: function")]
+
+    assert "var before = structureFromModelRefs();" in body, (
+        "the load no longer snapshots the structures present beforehand, so "
+        "it cannot tell which structure it created"
+    )
+    assert "before.indexOf(ref) === -1" in body, (
+        "the load hands showDepositedCoordinates every structure rather "
+        "than the ones it added"
+    )
+
+
+def test_an_additional_structure_is_bound_to_the_load_that_owns_it():
+    """The generation is read at REQUEST time, and that is the whole point.
+
+    Reading it when the step RUNS would always find the newest receptor and
+    the binding would say nothing -- a pose would attach to whatever was
+    current by then, which is the bug this rule exists to prevent.
+    """
+    page = _viewer_source()
+    body = page[page.index("loadAdditionalStructure: function") :]
+    body = body[: body.index("clear: function")]
+
+    assert "var generation = loadGeneration;" in body, (
+        "the pose no longer records which receptor load it belongs to"
+    )
+    assert "queueLoad(" in body, (
+        "the pose is not queued behind the receptor load -- this is the one "
+        "rule here with behavioural coverage, and it is the reported defect"
+    )
+    # Capturing the generation and never comparing it is a variable nothing
+    # reads: measured, deleting this line alone leaves every other guard in
+    # this file green.
+    assert "if (generation !== loadGeneration) { return; }" in body, (
+        "the pose records which receptor it belongs to and then draws "
+        "itself regardless -- a pose against a receptor it was never "
+        "docked into looks entirely plausible and is the wrong answer"
+    )
+    generation_capture = body.index("var generation = loadGeneration;")
+    assert body.index("queueLoad(") > generation_capture, (
+        "the generation is captured inside the queued step rather than when "
+        "the pose was requested, so the binding names the newest receptor "
+        "instead of the one this pose was computed for"
+    )

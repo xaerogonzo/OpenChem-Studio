@@ -68,6 +68,7 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "receptor",   "pdb_id": "6WGT"}   from the CACHE, never the network
     {"do": "receptor",   "pdb_id": "1HSG", "plain": true}
     {"do": "dock_receptor", "index": -1}     CHANGES the panel's receptor
+    {"do": "dock_run"}                       the REAL button, real Vina
     {"do": "dock_panel", "tag": "after"}     box, its source, the status line
     {"do": "panel",      "id": "Properties"}
     {"do": "expand",     "section": "admet"}
@@ -1449,6 +1450,106 @@ TRUTH.** Ink went 39940 -> 39942 (+2) on the first attempt and read as
 so the camera framed nothing, and Mol*'s UI chrome is ~57% of the window.
 With a structure loaded and the count cropped to the 3D canvas, 16778 ->
 20270 (+20.8%).
+
+### AND IT WAS ONLY HALF FIXED: A POSE INTERLEAVED AND THE RECEPTOR STAYED ON ASSEMBLY 1
+
+Reported as tryptamines docking "way outside the receptor" in 6WGT -- the
+same symptom this section is about, two years of commits later, because
+`showDepositedCoordinates` had **zero test coverage**: `deposited`,
+`assembly` and `structure-from-model` all matched nothing in
+`tests/test_molstar_viewer_backend.py`. **It was verified by loading a
+receptor ALONE, which is the one path on which it cannot fail.**
+
+The box was measurably correct throughout. Driven in the app:
+`Search box is on the 7LD site (0.0 A from its centre) and holds 217
+receptor atoms`, against `describe_box_placement`'s own pinned 218.
+
+`_on_docking_result_ready` makes two calls back to back:
+
+    load_macromolecule(receptor)     -> loadStructure
+    load_additional_structure(pose)  -> loadAdditionalStructure
+
+`loadStructure` does its work inside `plugin.clear().then(...)` and returns
+immediately; `loadAdditionalStructure` ran **synchronously**. So the pose
+interleaved, and `showDepositedCoordinates` -- which kept the **LAST**
+matching cell -- retargeted the POSE. Measured against the real bundle:
+
+    receptor  type {name: 'assembly', params: {id: '1'}}   <- chain A only
+    pose      type {name: 'model'}
+
+**Retargeting a single ligand is a NO-OP**, so nothing anywhere reported a
+problem while the receptor was drawn as assembly 1 -- on 6WGT that is ~43 A
+from the chain-B pocket the box and the pose are both in.
+
+#### ONE CHANGE IS LOAD-BEARING AND THE OTHER TWO ARE NOT, WHICH ONLY MUTATION SAID
+
+Four arms, and the first pass had **three survivors** -- every one an
+EQUIVALENT mutation rather than a coverage gap:
+
+    M1  showDepositedCoordinates back to last-match-wins   SURVIVED
+    M2  it retargets EVERY structure                       SURVIVED
+    M3  the pose ignores its generation                    SURVIVED
+    M4  the pose is not queued                             caught
+
+They are equivalent for one reason, and it is the thing to know before
+anybody "simplifies" this page: `loadStructure` calls `plugin.clear()`, so
+once the loads are SERIALIZED the scene contains nothing but the structure
+that load just created. There is no reachable state in which picking the
+last cell, picking every cell and picking the one we loaded differ. **The
+queue removed the condition the other two rules defend against.**
+
+So the ownership diff and the generation binding are defence in depth. They
+are KEPT -- each becomes load-bearing again the moment `loadStructure` stops
+clearing, or a load path that skips the queue is added, both ordinary future
+edits -- and they are asserted on the SOURCE rather than dressed up as
+behavioural coverage they do not have. This file's own rule: *an unreachable
+branch is a question about where to assert.* Second pass: four arms, four
+caught, each by the intended guard.
+
+**THE GENERATION IS READ AT REQUEST TIME, NOT AT RUN TIME.** Reading it when
+the queued step runs would always find the newest receptor and the binding
+would say nothing. And capturing it without COMPARING it is a variable
+nothing reads -- measured, deleting that one line leaves every other guard
+in the file green, which is why the comparison is asserted by name.
+
+#### DRIVEN, AND THE LIVE CONTROL WAS INCONCLUSIVE -- WHICH IS THE FINDING
+
+`benchmarks/visual/docked_pose_in_6wgt.json` docks DMT into 6WGT through the
+new `dock_run` step. Real Vina, ~5 minutes a run.
+
+    after   three chains drawn, the pose BURIED in the orange chain's
+            helical bundle at 9x magnification
+    before  three chains ALSO drawn -- the race did not reproduce that run
+
+**The race is intermittent in the running app and deterministic in the
+headless test.** So here the TEST is the instrument and the screenshot is
+the confirmation, which is the opposite of this file's usual order and is
+worth stating: reporting that before/after pair as a demonstration would
+have been reporting a coin flip as a control.
+
+**`dock_run` PRESSES THE BUTTON**, for the reason `jobs_cancel` does. A
+DISABLED button is logged rather than clicked -- Qt silently ignores a click
+on a disabled control, so without that check the run reports a healthy
+`dock_run` step and never docks, which is the wrong-panel-id trap in another
+costume. Docking is asynchronous: give the step an `after_ms` long enough
+(300000 here) or the next step photographs a viewer that has not been handed
+a pose, which looks exactly like the pose failing to draw.
+
+#### THE PIPELINE REPRODUCES THE DEPOSITED POSE, AND THE SPREAD IS WHAT MAKES THAT READABLE
+
+`redock.py` takes `--targets` and `--repeat` now. `VinaDockingProvider`
+passes `seed=None`, so the shipped app runs a RANDOM seed and a lone
+centroid shift is a draw from a distribution nobody has measured. Four runs
+of 6WGT/7LD:
+
+    affinity  -9.4  -9.4  -9.4  -9.4
+    shift     2.90  2.89  2.91  2.87 A     spread 0.04 A
+    verdict   same pocket, all four
+
+So the shift is ~70x the same-receptor noise floor and inside the 3.0 A
+threshold. **This establishes only that the pipeline reproduces a known pose
+on this deposit** -- it is not a claim that docking is chemically correct in
+general, and LSD at 3.40 A resolution is a large flexible ligand.
 
 ## THE ALIGNMENT COULD NOT MOVE A TORSION, AND THE RMSD COULD NOT SAY SO
 
@@ -3561,6 +3662,68 @@ broken selection sitting behind correct arithmetic, so a step that
 bypassed the boxes could not have caught it. Same argument
 `jobs_cancel` makes by pressing the real button.
 
+## FILE DIALOGS REMEMBER WHERE YOU WERE, AND `QFileDialog` IS PATCHABLE
+
+`_open_project` and `_save_project` passed **no `dir` argument at all**, so
+Qt fell back to the process working directory -- the repo root, because that
+is where the app is launched from. Nothing anywhere remembered a directory.
+Six dialogs now seed from `dialog_start_directory(settings, kind)` and record
+through `remember_chosen_path`, which stores the PARENT of the chosen file
+and is called only on a non-empty result, so cancelling records nothing.
+
+**SEPARATE MEMORY PER PURPOSE**, so importing a PDB cannot move the Open
+Project dialog. The narrow half is the load-bearing guard --
+`test_the_kinds_do_not_share_one_memory` -- because a single shared key
+passes everything else in the file.
+
+**`DIRECTORY_KINDS` IS CLOSED AND AN UNKNOWN KIND RAISES.** The failure of an
+open vocabulary here is silent: a typo'd kind gets its own private settings
+key, the dialog quietly stops remembering, no test fails and nothing says
+why. Same fail-closed rule as the `**OPNE**` marker in the `DEFERRALS` parse.
+
+The fallback is `QStandardPaths.DocumentsLocation`, and the test asserts it
+DERIVED rather than as a literal -- a hardcoded path would be a claim about
+this machine, which is the failure `initial_right_dock_width` and the
+`offscreen` font measurements already record.
+
+### `QFileDialog`'s STATIC METHODS *ARE* MONKEYPATCHABLE, unlike `QMenu.exec`
+
+Recorded because this file already states that a C++ slot is not, and that
+was generalised to the file dialogs without anybody measuring it. Measured:
+`monkeypatch.setattr(QFileDialog, "getOpenFileName", staticmethod(fake))`
+takes, the fake runs, and the real `dir` argument is readable from inside it.
+
+So the wiring is guarded BOTH ways and both are kept. A behavioural test
+drives the real window and reads what reaches Qt -- the stronger claim, and
+the one matching the report. The AST guards cover all six call sites for the
+price of a parse and cannot fail for environmental reasons. Six mutations
+(each call site dropping `dir`), six caught, every one by its behavioural
+guard AND its own AST case.
+
+**`Settings.add_recent_project` STILL HAS NO CALLER.** Noticed and
+deliberately not touched.
+
+### THE `#:` RATCHET FIRED ON A FILE THAT HAD NEVER USED THE CONVENTION
+
+`settings.py` documented ZERO constants before this, so it was outside the
+population -- and the moment `DIRECTORY_KINDS` got its `#:` block the whole
+file joined, taking `APP_NAME` and `ORG_NAME` with it. Those are the two
+constants this file already names as the canonical case that does NOT want
+documentation, so they were RECORDED rather than answered with
+`#: The app name.` -- the degenerate comment the whole design refuses.
+
+That is the per-file scope rule working exactly as written, from the
+direction nobody had seen it from: documenting one constant conscripts every
+other constant in its file.
+
+**AND "the fixture may only shrink" IS PROSE THAT NOTHING ENFORCES.** It is
+stated here and in `test_every_recorded_constant_names_a_real_file`'s
+docstring; no assertion implements it, and `--record` grew the set 407 ->
+409 with all 11 guards green. Third instance in this file of *a comment
+asserting an intention is worse than silence: it is believed, and then
+quoted* -- quoted, this time, out of this very document.
+
+
 ## Running the tests
 
 ```bash
@@ -3570,7 +3733,45 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6367 passed, 16 skipped`
+A clean run is **6-21 minutes**, ending at `6407 passed, 16 skipped`
+(measured 2026-08-30, **19m37**, on
+`remembered-directories-and-the-displayed-chain` -- the remembered file-dialog
+directories and the docked-pose/receptor chain mismatch.
+
+**+41 collected and 0 REMOVED** against master at `591cee3`, diffed both
+directions with `comm` in a detached worktree, with the `PYTHONPATH` override
+asserted before the count was believed (`import openchem` reported the
+WORKTREE's `src`):
+
+    master     591cee3   COLLECTS 6383
+    this one             COLLECTS 6424   = 6383 + 41
+    the run                       6407 passed + 16 skipped + 1 failed = 6424
+
+    35  test_dialog_directories.py       written
+     6  test_molstar_viewer_backend.py   the three state-tree probes and the
+                                         three source rules the mutation pass
+                                         forced
+
+**THE RUN CARRIES ONE FAILURE AND IT IS RECORDED RATHER THAN HIDDEN**, since
+the figure above is the second measurement of this tree:
+`test_no_constant_has_fallen_out_of_documentation` named `APP_NAME` and
+`ORG_NAME`, for the reason written up under the `#:` ratchet below -- a file
+that had never used the convention joined the population. `--record` took the
+set 407 -> 409 and the 11 guards are green; the FIGURE is from the run before
+that, so it is honest about what was measured rather than re-run to look
+tidy.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored, for
+the reason recorded above -- as does `^ERROR`. The skips are the
+deterministic 16. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**19m37 is near the top of the band and the band is unchanged.** Nothing
+distinguishes this tree; the 6-21 range already covers it.
+
+Before it: `6367 passed, 16 skipped`
 (measured 2026-08-30, **14m29**, on `linux-victim-wandered-after-all` --
 the record correction, the disposal consolidation and the A/B harness.
 

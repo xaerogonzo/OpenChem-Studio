@@ -332,6 +332,45 @@ class _Driver(QObject):
         combo.setCurrentIndex(index)
         logger.warning("OPENCHEM_DRIVE: dock_receptor -> %r", combo.currentText())
 
+    def _do_dock_run(self, step: dict[str, Any]) -> None:
+        """Press the Docking panel's Dock button, for real.
+
+        `{"do": "dock_run", "after_ms": 240000}`
+
+        THE BUTTON, NOT `_on_dock_clicked` -- the same reason `jobs_cancel`
+        presses a real row's button. The handler reads the panel's current
+        selection and enabled state, so calling it directly proves the
+        handler works and says nothing about whether the control is wired,
+        which is the half a screenshot is being taken to check.
+
+        Docking is ASYNCHRONOUS and runs a real Vina. Give the step an
+        `after_ms` long enough for the result to come back, or the next step
+        photographs a viewer that has not been handed a pose yet -- which
+        looks exactly like the pose failing to draw.
+
+        A DISABLED BUTTON IS LOGGED RATHER THAN CLICKED. Qt silently ignores
+        a click on a disabled control, so without this the run would report
+        a healthy `dock_run` step and simply never dock -- the wrong-panel-id
+        trap in another costume.
+        """
+        panel = getattr(self._window, "_docking_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: no docking panel on this window")
+            return
+        button = panel._dock_button
+        if not button.isEnabled():
+            logger.error(
+                "OPENCHEM_DRIVE: dock_run -- the Dock button is DISABLED "
+                "(receptor=%r, no docking started)",
+                panel._receptor_combo.currentText(),
+            )
+            return
+        logger.warning(
+            "OPENCHEM_DRIVE: dock_run -> pressing Dock (receptor=%r)",
+            panel._receptor_combo.currentText(),
+        )
+        button.click()
+
     def _do_dock_panel(self, step: dict[str, Any]) -> None:
         """Report what the Docking panel's search box currently says.
 
