@@ -612,6 +612,124 @@ share and the five bugs that motivated it — the most serious being Open
 Babel's silent unit-cell expansion, which handed Vina eight overlapping
 copies of one protein.
 
+### Ranking affinities — the gap is measured, and three routes are open
+
+**None of this is started.** It is written down because the 2026-08-31
+docking work turned "the docking has a lot to be desired" into a specific,
+sourced statement about *which* ability is weak, and the three routes differ
+by two orders of magnitude in cost.
+
+**THE GAP, MEASURED RATHER THAN ASSERTED.** CASF-2016 evaluates four
+separate abilities and puts Vina on opposite sides of two of them
+([source:su2019]): strong at **docking power** (right pose, success "close
+to 90%") and among the *"not-so-good scoring functions in the
+scoring/ranking power tests"*. Measured locally on 5C1M at exhaustiveness
+25, which is the same finding arriving as a number:
+
+    one molecule, three seeds       -8.79 / -8.79 / -8.73   spread 0.06
+    three different analogues       -8.88 / -8.79 / -8.75   spread 0.13
+
+The difference between three different molecules was about **twice** what
+one molecule shows against nothing but a seed change. Nothing about pose
+quality touches that — it is the scoring function, which is why
+[source:agboola2026] found doubling exhaustiveness left *"six of eight gross
+misplacements unresolved"* and why more search effort is not on this list.
+
+**AND THE CEILING IS LOW EVEN IF ALL OF THIS IS BUILT.** [source:su2019]:
+*"even the top-ranked scoring functions (except for ΔVinaRF20) produce only
+modest correlation coefficients around 0.6"*. Three analogues differing by
+one CH2 are below what any of these methods resolves. Route 1 is the only
+one that helps with *that* case; routes 2 and 3 help with wider series.
+
+#### 1. Report an interval, not a number — cheapest, and it fixes the harm
+
+The pose table shows `-8.88` as though it were a measurement. It is one draw
+from a distribution whose width is now known. Running N seeds and reporting
+a mean with its spread would have said immediately that the three reported
+compounds overlap.
+
+    cost         N x runtime; 5 seeds at exhaustiveness 25 is ~2 minutes
+    dependency   none -- the seed is already settable and recorded
+    risk         low; it changes presentation, not chemistry
+
+**Acceptance: the reported spread must be MEASURED, never assumed.** A
+hardcoded "±0.06" would be this project's own recorded failure — a constant
+fitted to one molecule on one receptor, presented as a property of the
+method. It must come from the runs actually performed, and the count must be
+visible, because a spread over 3 seeds and over 30 says different things.
+
+The natural shape is the refusal work's: when the spread across two ligands
+overlaps, the panel should decline to imply an ordering rather than printing
+one and hoping the user reads the caveat.
+
+#### 2. Rescore the pose with a different function — real gain, real caveats
+
+Docking power is already good, so the pose is worth keeping; what needs
+replacing is the number attached to it. A rescoring provider slots in after
+the search, consuming the PDBQT that already exists.
+
+**X-Score is the candidate to start with**, not the benchmark leader.
+CASF-2016's leader is **ΔVinaRF20**, a random-forest correction on top of
+Vina — and the paper flags its own problem: it was *"calibrated on over 3300
+protein−ligand complexes selected from the PDBbind"*, the authors
+*"speculate that this overlap contributes to [its] outstanding
+performance"*, and its results *"should be interpreted with care"*. That is
+a training/test leakage warning from the benchmark's own authors, and this
+project has already been bitten once by exactly that class (ESOL inside
+AqSolDB). X-Score also beats Vina at ranking, is not an ML model, and raises
+no such question.
+
+    cost         a provider plus an external binary, in the shape
+                 `DockingProvider` and `VinaEngine` already have
+    dependency   external, user-installed, same treatment as Vina and ORCA
+    risk         moderate -- a second score on a different scale, which is
+                 the "one name, two quantities" trap this project has
+                 recorded four times. It must be labelled and stored, never
+                 mixed into one ranking.
+
+**Acceptance: its own benchmark, and the leakage question asked first.**
+Rank correlation against measured affinities on a set whose overlap with the
+rescorer's training data has been checked — not assumed absent. The
+redocking harness is the model: a number nobody can reproduce is not
+evidence, and `benchmarks/docking/` already has the shape.
+
+#### 3. Relative binding free energy — the correct tool, and the expensive one
+
+For a congeneric series — same scaffold, one substituent differing — the
+method designed for the question is relative binding free energy (FEP or
+thermodynamic integration), not docking. It is what would actually rank
+three fentanyl analogues.
+
+    cost         hours of GPU per ligand PAIR, plus setup that is itself
+                 a skill: parameterisation, solvation, equilibration,
+                 lambda scheduling, convergence checking
+    dependency   OpenMM, which this project has already measured as
+                 installable -- 8.5.2 publishes cp313 Windows wheels, no
+                 compiler and no conda (recorded in the missing-residue
+                 spike)
+    risk         high, and mostly of the silent kind: an unconverged
+                 FEP returns a confident number
+
+**Acceptance is the hard part and is why this is third.** A wrong FEP looks
+exactly like a right one, so it needs convergence diagnostics reported
+rather than a bare ΔΔG, and a published congeneric series reproduced before
+any answer of ours is believed. **Do not start this before route 1 exists**:
+without a measured spread there is nothing to judge whether an FEP number is
+an improvement on the docking score it replaces.
+
+#### What is deliberately NOT on this list
+
+- **More exhaustiveness.** Measured: it is the scoring function, not the
+  sampling. [source:agarwal2022] finds convergence at 25 and
+  [source:agboola2026] finds doubling it does not rescue misplacement.
+- **Consensus scoring.** CASF-2016 reports limited gains, and averaging
+  functions on different scales is the "one name, two quantities" trap
+  wearing a statistical hat.
+- **A general ML affinity predictor trained on PDBbind.** The
+  similarity-bias literature is damning and CASF-2016's own reference list
+  cites two papers on it. This project's rule — ask leakage of every model —
+  applies before any such thing is fitted, not after.
+
 ### Visualization
 
 Per-atom colouring on 2D and 3D from one shared `ColorScale`; molecular
