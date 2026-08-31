@@ -3815,6 +3815,28 @@ correctness: the ligand is represented at the declared pH or it is not. A
 null result was pre-registered as still shipping, which is what stops a
 correct fix being reverted later because a benchmark did not move.
 
+### REPEATABILITY AND VARIABILITY ARE TWO QUESTIONS, AND THE SECOND ANSWERS THE REPORT
+
+Measured on 5C1M, exhaustiveness 25, fentanyl, through the real engine:
+
+    same pinned seed, 3 runs   -8.76 every time, pose sha c186c02b329bea05
+                               BYTE-IDENTICAL -- so a pinned seed reproduces
+    three different seeds      -8.79 / -8.79 / -8.73, three DIFFERENT pose
+                               hashes
+
+Collapsing these into one "noise floor" is what this file's own docking rule
+warns against, and here they answer different questions. The first says the
+recorded seed is worth recording. The second is the sharper one:
+
+**THE SEARCH'S OWN SCATTER ON ONE MOLECULE IS ~0.06 kcal/mol, AND THE THREE
+REPORTED ANALOGUES SPANNED 0.13.** So the difference between three different
+molecules was about twice the difference the same molecule shows against
+nothing but a seed change. That is the [source:su2019] ranking-power claim
+arriving as a local measurement rather than a citation, and it is the honest
+answer to "the docking has a lot to be desired": **those three were never
+going to rank.** n=3 seeds, so it is an order-of-magnitude statement rather
+than a variance estimate.
+
 ### AN INFERENCE ABOUT `BABEL_DATADIR` THAT MEASURING KILLED
 
 `phmodel.txt` is absent from `BABEL_DATADIR` and present in `bin/data`, the

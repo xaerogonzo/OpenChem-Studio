@@ -129,6 +129,14 @@ scoring function, not a finding about those molecules — and no amount of
 extra search effort changes it, because it is the scoring function rather
 than the sampling. Do not present such a spread to anyone as a ranking.
 
+**Measured here, on 5C1M at exhaustiveness 25:** changing only the random
+seed moves the reported affinity of *one* molecule by 0.06 kcal/mol
+(−8.79 / −8.79 / −8.73, three seeds). Three *different* fentanyl analogues
+reported to us spanned 0.13 kcal/mol. So the difference between those
+molecules was roughly twice the search's own scatter on a single one — which
+is not a margin any ordering should rest on. Pin the seed before comparing
+two ligands at all, or the comparison includes the search wandering.
+
 **The ligand is prepared at the declared pH, and that reaches the score.**
 The Preparation pH governs the ligand as well as the receptor. It decides
 which groups carry a hydrogen and therefore which can *donate* a hydrogen
