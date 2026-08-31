@@ -3779,6 +3779,42 @@ Open Babel gets all four tertiary amides right, which is what makes it usable
 here: Dimorphite-DL's amine rule has no exclusion for an adjacent carbonyl,
 which is the class this project fixed one branch ago.
 
+### THE A/B SAYS YES, AND IT IS A SMALL YES
+
+`benchmarks/docking/ligand_ph_ab.py`, exhaustiveness 25, five pinned seeds
+per target, real Vina 1.2.7:
+
+    target   pH 7.4 (fix)      neutral (defect)   delta
+    8EF5     3.06 - 3.13 A     3.18 - 3.25 A      -0.12 +- 0.02 A
+    5C1M     0.40 - 0.43 A     0.51 - 0.53 A      -0.11 +- 0.01 A
+
+**10 of 10 paired runs improve**, on two receptors. The effect is about
+0.12 A against a seed-to-seed spread within either arm of 0.07 A, so **it is
+the SIGN that carries this and not the size.**
+
+**COMPARING THE BRANCH AGAINST MASTER WOULD HAVE MEASURED TWO THINGS**, which
+is why this is not a cross-commit A/B: master also has exhaustiveness 8, and
+it cannot pin a seed at all -- `seed=None` is Vina's own "pick randomly" --
+so a same-seed comparison across commits is impossible to construct. Both arms
+run in THIS tree instead, and the receptor PDBQT is built ONCE and reused, so
+it is byte-identical between arms rather than merely equivalent.
+
+**THE SETUP IS ASSERTED BEFORE THE DOCKING RUNS.** The script prints
+`fix has HD: True   neutral has NA: True` per target, because two arms that
+turned out to prepare the ligand identically would produce a perfect null
+result and look like evidence.
+
+**IT DOES NOT RESCUE 8EF5**, which stays above 3 A in both arms -- and 8EF5
+is a **3.30 A cryo-EM** structure, so its reference ligand position carries
+real uncertainty of its own. 5C1M is the better-resolved reference at 2.07 A
+and lands at 0.42 A. A 4 A shift against a 3.3 A EM ligand and a 4 A shift
+against a 2.0 A X-ray ligand are not the same claim.
+
+**AND THE FIX NEVER DEPENDED ON THIS.** Its acceptance criterion is chemical
+correctness: the ligand is represented at the declared pH or it is not. A
+null result was pre-registered as still shipping, which is what stops a
+correct fix being reverted later because a benchmark did not move.
+
 ### AN INFERENCE ABOUT `BABEL_DATADIR` THAT MEASURING KILLED
 
 `phmodel.txt` is absent from `BABEL_DATADIR` and present in `bin/data`, the
