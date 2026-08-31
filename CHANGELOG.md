@@ -50,6 +50,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The pH-dependent protonation state was chosen by the process hash
+  seed.** `protonate_at_ph` took the first entry of Dimorphite-DL's
+  output, which *enumerates* microspecies rather than ranking them and
+  orders them by a set iteration. Measured on one molecule at pH 7.4,
+  eight separate processes returned net charges of **0, +1 and +2**, and
+  logD ranged **1.68 to 4.38** — a factor of 500 in partition
+  coefficient. It reached six calculators: logD, the pH curves,
+  electronic properties, the charge and ESP surfaces, and the shared
+  "molecule at this pH" helper. The dominant state is now requested
+  explicitly and the selection is sorted, so the answer cannot depend on
+  arrival order.
+- **Every tertiary amide was protonated at pH 7.4.** Dimorphite-DL's
+  amine rule matches any nitrogen bonded to an aliphatic carbon (pKa
+  8.16) with no exclusion for an adjacent carbonyl, while its amide rule
+  requires an N–H — so a tertiary amide matched neither. Measured over
+  sixteen drug-like molecules with literature charge states, five were
+  wrong and every one was that class: DMF, DEET, N,N-dimethylacetamide,
+  N-methylpyrrolidone and fentanyl. That one protonation is now removed
+  and the atoms are reported; nothing else the library does is changed.
+- **A correct refusal looked like a crash.** *Detonation
+  (Kamlet–Jacobs)* and *Thermophysical (Joback)* both refuse for correct,
+  permanent reasons — Joback's table has no ring tertiary amine group,
+  and Kamlet–Jacobs needs a measured loading density no structure can
+  supply — and both rendered with the same red ✕ as a genuine failure.
+  A producer now declares whether a failure is a fault or a limit of the
+  method, and the two are styled differently. "Needs a 3D conformer"
+  stays a fault, because it names something the user can do.
+- **The Calculator Inspector did not say what it was showing.** It
+  rendered neither the calculator's name nor the fact that a charge
+  calculation had protonated the molecule, so "Net calculated charge:
+  1.00 e" sat beside a Properties panel reading "Total charge 0" for the
+  same neutral structure with nothing relating the two. Both are shown
+  now, and the species is declared by the producer rather than inferred
+  from the numbers.
 - **The orbital diagram silently dropped electrons.** It packed rows
   against the widget's height and stopped when it ran out, so polonium's
   panel ended at `5s` — **22 of its 84 electrons undrawn** — while the

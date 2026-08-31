@@ -3492,6 +3492,24 @@ fallback and rejected: it puts propranolol at 5.65 against a real 9.42, off
 by 3.8. That whole design existed only because a probe passed `None` for an
 interpreter path and so reported pkasolver as 'not installed' on a machine
 where it plainly was.
+
+ITS TITLE SAYS 'ENUMERATING', AND THAT IS THE WHOLE TRAP. `protonate_smiles`
+returns the microspecies it considers plausible; it does NOT rank them, and
+the order comes from a set iteration. This project took `variants[0]` and so
+inherited PYTHONHASHSEED -- one molecule gave net charge 0, +1 and +2 across
+eight processes, and logD ranged 1.68 to 4.38. `precision=0.0` asks for the
+dominant state instead of the enumeration, and the selection is sorted so it
+can never depend on arrival order again.
+
+AND ONE LIMITATION IS CORRECTED RATHER THAN INHERITED. Its
+`Amines_primary_secondary_tertiary` site is `[C:1]-[NX3+0:2]` at pKa 8.16
+with no exclusion for an adjacent carbonyl, while its `*Amide` rule requires
+an N-H -- so a TERTIARY amide matches nothing amide-specific and is
+protonated at pH 7.4. Measured over sixteen drug-like molecules with
+literature charge states, five were wrong and every one was that class (DMF,
+DEET, N,N-dimethylacetamide, N-methylpyrrolidone, fentanyl). Acetanilide and
+lidocaine are right because they HAVE an N-H. `chem/pka_providers.py` removes
+that one protonation and reports the atoms it touched; it never adds one.
 """
 
 
