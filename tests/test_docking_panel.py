@@ -956,3 +956,88 @@ def test_undoing_a_dock_takes_the_spread_label_with_the_poses(qapp):
     assert panel._spread_label.text() == ""
     assert panel._table.rowCount() == 0
 
+
+
+# --- the pose table's own headers -------------------------------------------
+
+
+def _header_shortfalls(panel):
+    """Every pose column whose section is narrower than its own header text.
+
+    BOTH SIDES COME FROM THE HEADER'S OWN `QFontMetrics`, so this is not a
+    claim about a font: it asks whether the section fits the string Qt is about
+    to paint into it, in whatever font this platform supplies. `offscreen`'s
+    default is more than twice as wide as the one a user sees, and a pinned
+    pixel width here would be a statement about the test platform.
+
+    The margin is asked of the STYLE rather than typed, for the same reason.
+    """
+    from PySide6.QtGui import QFontMetrics
+    from PySide6.QtWidgets import QStyle
+
+    header = panel._table.horizontalHeader()
+    metrics = QFontMetrics(header.font())
+    margin = 2 * header.style().pixelMetric(QStyle.PixelMetric.PM_HeaderMargin)
+    from openchem.ui.panels.docking_panel import _POSE_COLUMNS
+
+    return [
+        (name, header.sectionSize(column), metrics.horizontalAdvance(name) + margin)
+        for column, name in enumerate(_POSE_COLUMNS)
+        if header.sectionSize(column) < metrics.horizontalAdvance(name) + margin
+    ]
+
+
+def test_no_pose_table_header_is_clipped(qapp):
+    """Every column header fits the section it is painted into.
+
+    Stretch on all four divided the table's 440 px into four equal 110 px
+    sections while "Binding Affinity (kcal/mol)" needs 141, so it rendered
+    clipped at BOTH ends as "ling Affinity (kcal/r" -- the identical defect
+    `virtual_screening_dialog.py:109-119` records fixing in its own table.
+
+    Found by grabbing the panel with real fonts and magnifying 3x. Nothing in
+    the suite could see it: no test asserted a section width, and there is no
+    ellipsis to detect because a header overflows rather than eliding.
+    """
+    panel, _engine, _service = _make_panel()
+    panel.show()
+    panel.resize(panel.minimumSizeHint().width(), 900)
+    qapp.processEvents()
+
+    assert _header_shortfalls(panel) == []
+
+
+def test_three_pose_columns_can_never_clip_whatever_the_font(qapp):
+    """The narrow half, and it is the load-bearing one.
+
+    "Nothing clips at this width" is satisfied by four hand-tuned pixel widths
+    that happen to fit THIS font, and would clip on a machine with a wider one.
+    `ResizeToContents` sizes a section to the wider of its header and its
+    cells, so those three cannot clip at any font or DPI -- which is a stronger
+    statement than any measurement, and the reason only the affinity column
+    takes the remainder.
+    """
+    from PySide6.QtWidgets import QHeaderView
+
+    from openchem.ui.panels.docking_panel import _AFFINITY_COLUMN, _POSE_COLUMNS
+
+    panel, _engine, _service = _make_panel()
+    header = panel._table.horizontalHeader()
+
+    modes = {
+        name: header.sectionResizeMode(column)
+        for column, name in enumerate(_POSE_COLUMNS)
+    }
+    assert modes.pop(_AFFINITY_COLUMN) == QHeaderView.ResizeMode.Stretch
+    assert set(modes.values()) == {QHeaderView.ResizeMode.ResizeToContents}
+
+
+def test_the_stretched_column_is_chosen_by_name_and_not_by_index(qapp):
+    """Reordering `_POSE_COLUMNS` must not silently stretch a different one.
+
+    An index would still be a valid column, so nothing would look wrong until
+    somebody magnified the header again.
+    """
+    from openchem.ui.panels.docking_panel import _AFFINITY_COLUMN, _POSE_COLUMNS
+
+    assert _AFFINITY_COLUMN in _POSE_COLUMNS

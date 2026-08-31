@@ -39,6 +39,13 @@ logger = logging.getLogger("openchem.ui")
 
 _POSE_COLUMNS = ("Pose", "Binding Affinity (kcal/mol)", "RMSD l.b.", "RMSD u.b.")
 
+#: The pose column that takes whatever width the other three do not need.
+#:
+#: NAMED RATHER THAN INDEXED, so reordering `_POSE_COLUMNS` cannot silently
+#: stretch a different column -- an index would still be a valid column and
+#: nothing would look wrong until somebody magnified the header.
+_AFFINITY_COLUMN = "Binding Affinity (kcal/mol)"
+
 #: What each column MEANS, which the headers alone do not say -- reported
 #: as confusing by a user who read the RMSD columns as accuracy against an
 #: experimental structure. They are not: both are measured against pose 1.
@@ -673,7 +680,33 @@ class DockingPanel(QWidget):
                 apply_help_tooltip(
                     item, replace(_POSE_COLUMN_HELP[name], text=_POSE_COLUMN_TOOLTIPS[name])
                 )
-        self._table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # THE AFFINITY COLUMN TAKES THE SLACK; THE OTHER THREE SIZE TO THEIR
+        # OWN TEXT. Stretch on all four divided the table's 440 px into four
+        # equal 110 px sections, and "Binding Affinity (kcal/mol)" needs 141 --
+        # so it rendered clipped at BOTH ends as "ling Affinity (kcal/r", which
+        # is the identical defect `virtual_screening_dialog.py` records fixing
+        # in its own table ("est score (kcal/mo").
+        #
+        # `ResizeToContents` sizes a section to the WIDER of its header and its
+        # cells, so those three cannot clip at any font or DPI -- the property
+        # a hand-tuned pixel width would not have. Measured at 440 px:
+        #
+        #     Stretch on all four   [110, 110, 110, 110]   affinity CLIPPED
+        #     this                  [ 34, 278,  62,  66]   nothing clipped
+        #
+        # The affinity column is the one that takes the remainder because it is
+        # the quantity a reader is here for. Letting the LAST column take it
+        # instead -- `setStretchLastSection` -- gives RMSD u.b. 190 px for a
+        # five-character number while leaving affinity at 154, five pixels off
+        # clipping again.
+        header = self._table.horizontalHeader()
+        for column, name in enumerate(_POSE_COLUMNS):
+            header.setSectionResizeMode(
+                column,
+                QHeaderView.ResizeMode.Stretch
+                if name == _AFFINITY_COLUMN
+                else QHeaderView.ResizeMode.ResizeToContents,
+            )
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
         receptor_row = QHBoxLayout()
