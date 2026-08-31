@@ -52,12 +52,18 @@ TARGETS = ["1HSG", "4DKL", "3EML", "2RH1", "8ZYO", "1ERE", "4EY7", "8EF5", "5C1M
 
 # `--targets 6WGT --repeat 3` is how a SINGLE number here is made readable.
 #
-# `VinaDockingProvider` passes `seed=None`, so the shipped app runs Vina with
-# a RANDOM seed and two runs of the same receptor already differ. A lone
-# centroid shift is therefore a draw from a distribution nobody has measured,
-# and reading it as a verdict is this project's recorded "a docking A/B needs
-# its own noise floor" mistake. Repeating the SAME receptor gives the spread
-# to read the shift against.
+# This script pins no seed, so every run draws a fresh one and two runs of the
+# same receptor already differ. A lone centroid shift is therefore one draw
+# from a distribution, and reading it as a verdict is this project's recorded
+# "a docking A/B needs its own noise floor" mistake. Repeating the SAME
+# receptor gives the spread to read the shift against.
+#
+# The old wording here -- "`VinaDockingProvider` passes `seed=None`" -- was
+# wrong twice over. The provider RECEIVES a seed and, handed None, chooses one
+# itself and reports it back, so an unpinned run has been reproducible after
+# the fact since the seed-recording work. And the docking panel now offers a
+# replicate count that MEASURES the spread this comment describes, so
+# "a distribution nobody has measured" no longer holds either.
 _parser = argparse.ArgumentParser(description=__doc__)
 _parser.add_argument("--targets", nargs="+", default=None,
                      help="PDB ids to redock (default: the seven-target spread)")

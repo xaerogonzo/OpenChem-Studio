@@ -602,3 +602,357 @@ def test_the_derive_buttons_live_tooltip_still_carries_its_contract(qapp):
     # ... and the live half really is there, or the composition is vacuous.
     panel._describe_derivable_ligands(("7LD", "NAG"))
     assert "7LD" in panel._derive_button.toolTip()
+
+
+# --- the replicate control and the spread label -----------------------------
+
+
+def _replicate_set(*affinities, protocol_seed=4712, representative=0, seeds=None):
+    from openchem.domain.docking import DockingReplicate, DockingReplicateSet
+
+    seeds = seeds if seeds is not None else [1000 + i for i in range(len(affinities))]
+    return DockingReplicateSet(
+        protocol_seed=protocol_seed,
+        representative_index=representative,
+        replicates=[
+            DockingReplicate(seed=seed, best_affinity_kcal_mol=value)
+            for seed, value in zip(seeds, affinities, strict=True)
+        ],
+    )
+
+
+def _result_with(replicates, affinities=(-8.79,)):
+    from openchem.domain.common import Provenance
+    from openchem.domain.docking import DockingBox, DockingPoseModel, DockingResultModel
+
+    return DockingResultModel(
+        ligand_molecule_uuid="lig-1",
+        receptor_macromolecule_uuid="rec-1",
+        box=DockingBox(center=(0.0, 0.0, 0.0), size=(10.0, 10.0, 10.0)),
+        poses=[
+            DockingPoseModel(
+                pose_molblock="pose",
+                binding_affinity_kcal_mol=value,
+                rmsd_lb=0.0,
+                rmsd_ub=0.0,
+            )
+            for value in affinities
+        ],
+        provenance=Provenance(created_by="core", method="vina", parameters={}),
+        engine="vina",
+        engine_version="1.2.7",
+        scoring_function="vina",
+        exhaustiveness=25,
+        seed=1000,
+        replicates=replicates,
+    )
+
+
+# --- the control ------------------------------------------------------------
+
+
+def test_the_replicate_count_defaults_to_one(qapp):
+    """The default is what almost every user will run, and it is the reason
+    every pre-existing docking test passes unedited.
+
+    Anything above 1 would multiply every existing user's docking wall clock
+    with no announcement, and multiply every virtual-screening budget.
+    """
+    from openchem.services.docking_service import DEFAULT_REPLICATES
+
+    panel, _engine, _service = _make_panel()
+
+    assert panel._replicates_spin.value() == 1
+    assert panel._replicates_spin.value() == DEFAULT_REPLICATES
+    assert panel._replicates_spin.minimum() == 1
+    assert panel._replicates_spin.maximum() == 25
+
+
+def test_the_panel_sends_the_replicate_count_it_displays(qapp):
+    """One accessor, so the panel cannot display one count and dock another."""
+    panel, engine, service = _make_panel()
+    panel.set_project(_project_with([_receptor()], _dockable_ligand(engine)))
+    panel._receptor_combo.setCurrentIndex(0)
+    panel._ligand_combo.setCurrentIndex(0)
+    panel._replicates_spin.setValue(5)
+
+    panel._on_dock_clicked()
+
+    assert panel.displayed_replicates() == 5
+    assert service.requests[-1]["replicates"] == 5
+
+
+def test_the_replicate_count_is_not_a_search_option(qapp):
+    """A SIBLING OF `num_poses`, and the mutation is putting it in the dict.
+
+    `search_options` goes straight to the provider, which never sees more than
+    one run at a time -- a replicate count there would name something it cannot
+    act on. It is also asserted as an exact dict by
+    `tests/test_ligand_extent_warning.py`, which this placement leaves valid
+    unedited; that guard would go red the moment the key moved.
+    """
+    panel, engine, service = _make_panel()
+    panel.set_project(_project_with([_receptor()], _dockable_ligand(engine)))
+    panel._receptor_combo.setCurrentIndex(0)
+    panel._ligand_combo.setCurrentIndex(0)
+    panel._replicates_spin.setValue(3)
+
+    panel._on_dock_clicked()
+
+    assert "replicates" not in service.requests[-1]["search_options"]
+
+
+def test_replicates_is_offered_above_seed_because_it_changes_what_seed_means(qapp):
+    """Order, asserted on the FORM rather than on the construction order.
+
+    A pinned seed is the root of a derived set of per-run seeds rather than the
+    number Vina receives, so a reader who meets Seed first forms the older
+    meaning and has no reason to revisit it. Only the laid-out row order says
+    which they meet first.
+    """
+    from PySide6.QtWidgets import QFormLayout
+
+    panel, _engine, _service = _make_panel()
+    form = panel._replicates_spin.parent().layout()
+    assert isinstance(form, QFormLayout), "setup: the Search group is a QFormLayout"
+
+    rows = {}
+    for row in range(form.rowCount()):
+        field = form.itemAt(row, QFormLayout.ItemRole.FieldRole)
+        if field is not None:
+            rows[field.widget()] = row
+
+    assert rows[panel._replicates_spin] < rows[panel._seed_spin]
+
+
+# --- the three states -------------------------------------------------------
+
+
+def test_a_result_that_predates_replicates_says_so(qapp):
+    """State one of three. `None` is not a synonym for one run.
+
+    Rendering it as "1 run" would make every pre-existing project file assert a
+    replicate structure nobody chose -- the reason `from_dict` synthesises
+    nothing.
+    """
+    from openchem.ui.panels.docking_panel import describe_replicate_spread
+
+    text = describe_replicate_spread(None)
+
+    assert "not recorded" in text
+    assert "1 run" not in text
+
+
+def test_a_single_run_says_no_spread_was_measured(qapp):
+    """State two, and the whole behavioural fix at the default count.
+
+    The panel stops printing a bare -8.79 as though it were a measurement. It
+    reports one run and says outright that nothing about the spread is known.
+    """
+    from openchem.ui.panels.docking_panel import describe_replicate_spread
+
+    text = describe_replicate_spread(_replicate_set(-8.79, seeds=[358255849]))
+
+    assert "1 run" in text
+    assert "no spread measured" in text
+    assert "358255849" in text
+    assert "4712" in text, "the pinned root, which is NOT the seed the run used"
+
+
+def test_a_replicate_set_reports_its_range_median_and_count(qapp):
+    """State three. All of range, median and COUNT, because the range grows
+    with n in expectation -- so a width with no count beside it invites two
+    widths measured at different counts being compared.
+    """
+    from openchem.ui.panels.docking_panel import describe_replicate_spread
+
+    text = describe_replicate_spread(
+        _replicate_set(-8.85, -8.79, -8.73, representative=1)
+    )
+
+    assert "3 runs" in text
+    assert "-8.85" in text and "-8.73" in text
+    assert "median -8.79" in text
+
+
+def test_a_zero_width_range_is_a_measurement_and_not_an_absence(qapp):
+    """Five runs that genuinely agree measured a width of zero. One run
+    measured nothing at all. They must not read the same.
+
+    This is `n/a is not 0` in reverse, and it is why `AffinityRange.width` is
+    None at n = 1 rather than 0.0.
+    """
+    from openchem.ui.panels.docking_panel import describe_replicate_spread
+
+    agreeing = describe_replicate_spread(_replicate_set(*([-8.79] * 5)))
+    single = describe_replicate_spread(_replicate_set(-8.79))
+
+    assert "5 runs" in agreeing
+    assert "no spread measured" not in agreeing
+    assert "no spread measured" in single
+
+
+# --- what the text may and may not say --------------------------------------
+
+
+def test_the_label_names_the_median_run_and_never_the_best(qapp):
+    """A UI-string guard, DISTINCT from the numerical one in the service.
+
+    The label and the selection rule can drift apart silently -- the plan for
+    this feature did exactly that, specifying a median representative in one
+    paragraph and a "best-scoring" label in another. A reader told the poses
+    are the best of five would read the headline affinity as a best-of-N, which
+    is the statistic this whole feature exists to stop reporting.
+    """
+    from openchem.ui.panels.docking_panel import describe_replicate_spread
+
+    text = describe_replicate_spread(_replicate_set(-8.85, -8.79, -8.73, representative=1))
+
+    assert "median run" in text
+    assert "best" not in text.lower()
+
+
+def test_the_label_never_renders_an_error_bar_or_calls_itself_an_interval(qapp):
+    """The one-directional reading, guarded as a clean word ban.
+
+    "+/-" is the unambiguous error-bar glyph and "confidence interval" /
+    "prediction interval" are the two readings this feature exists to prevent.
+
+    THE TEXT AVOIDS THOSE WORDS ENTIRELY RATHER THAN DENYING THEM, which is a
+    deliberate departure from the plan's own draft wording ("It is not a
+    confidence interval, a prediction interval, or a binding-affinity
+    uncertainty"). A denial teaches the reader the exact frame it is trying to
+    prevent, and it makes any guard on the rendered string unable to tell a
+    denial from a claim -- so the ban below could not have been written at all.
+    """
+    from openchem.ui.panels.docking_panel import describe_replicate_spread
+
+    for replicates in (None, _replicate_set(-8.79), _replicate_set(-8.85, -8.79, -8.73)):
+        text = describe_replicate_spread(replicates).lower()
+        assert "±" not in text
+        assert "+/-" not in text
+        assert "interval" not in text
+        assert "confidence" not in text
+
+
+def test_the_label_carries_its_interpretation_limit_on_screen(qapp):
+    """ON SCREEN, not only in the tooltip.
+
+    This project has twice recorded a meaning that lived only in a hover and
+    was therefore absent from every screenshot -- the isotope table's
+    spin/parity marks, and `Fact.limitations`, which reaches a row tooltip and
+    nothing else. A range printed beside two affinities reads as an error bar
+    unless something on the same surface says it is not one.
+    """
+    from openchem.ui.panels.docking_panel import _SPREAD_LIMIT_NOTE, describe_replicate_spread
+
+    text = describe_replicate_spread(_replicate_set(-8.85, -8.79, -8.73))
+
+    assert _SPREAD_LIMIT_NOTE in text
+
+
+def test_no_control_contract_still_claims_the_seed_cannot_be_pinned(qapp):
+    """Two contracts on one screen used to contradict each other about one
+    fact: `run` said "this application does not pin its seed" while
+    `random_seed`, a row above it, said "Pin one to compare two settings".
+
+    A CHANGE DETECTOR for a recorded contradiction, and it generalises a
+    little: any future contract making the same claim fails it too.
+    """
+    from openchem.ui.panels.docking_panel import _CONTROL_HELP
+
+    offenders = [
+        name for name, contract in _CONTROL_HELP.items()
+        if "does not pin" in contract.text
+    ]
+
+    assert offenders == []
+
+
+# --- rendering, and the two ways it used to be lost -------------------------
+
+
+def test_the_spread_label_is_hidden_until_there_is_a_result(qapp):
+    """Hidden rather than blank: an empty word-wrapped QLabel still claims a
+    line of font height, and this panel is height-constrained enough that its
+    3D sibling was once 63 px tall.
+
+    `isHidden`, not `isVisible` -- every child of an unshown widget reports
+    `isVisible() == False`, so that assertion would pass against a label that
+    is permanently shown.
+    """
+    panel, _engine, _service = _make_panel()
+
+    assert panel._spread_label.isHidden()
+    assert panel._spread_label.text() == ""
+
+
+def test_showing_a_result_shows_the_spread(qapp):
+    panel, _engine, _service = _make_panel()
+
+    panel._show_result(_result_with(_replicate_set(-8.85, -8.79, -8.73)))
+
+    assert not panel._spread_label.isHidden()
+    assert "3 runs" in panel._spread_label.text()
+
+
+def test_a_job_state_arriving_after_the_result_does_not_wipe_the_spread(qapp):
+    """The defect `_box_status_label` already exists to prevent, one label on.
+
+    `_status_label` carries job state and is rewritten on every
+    `DockingJobStateChanged` -- and COMPLETED arrives after
+    `DockingResultReady`, so a spread written there would be wiped microseconds
+    after appearing. Asserted through the real event, not by calling the
+    handler.
+    """
+    from openchem.domain.common import CacheState
+    from openchem.events.events import DockingJobStateChanged
+
+    panel, _engine, _service = _make_panel()
+    panel._pending_ligand_uuid = "lig-1"
+    panel._pending_receptor_uuid = "rec-1"
+    panel._show_result(_result_with(_replicate_set(-8.85, -8.79, -8.73)))
+    assert "3 runs" in panel._spread_label.text(), "setup: the spread was shown"
+
+    panel._on_job_state_changed(
+        DockingJobStateChanged(
+            ligand_molecule_uuid="lig-1",
+            receptor_macromolecule_uuid="rec-1",
+            state=CacheState.COMPLETED,
+        )
+    )
+
+    assert "3 runs" in panel._spread_label.text()
+    assert "completed" in panel._status_label.text()
+
+
+def test_undoing_a_dock_takes_the_spread_label_with_the_poses(qapp):
+    """Symmetric with the table, and for the same reason.
+
+    Undoing a dock removed the result and left the poses on screen -- binding
+    affinities, to two decimal places, for a run the project no longer
+    contains. A spread label left behind is the same defect with a count and a
+    seed attached.
+    """
+    panel, engine, _service = _make_panel()
+    receptor = _receptor()
+    ligand = _dockable_ligand(engine)
+    project = _project_with([receptor], ligand)
+    panel.set_project(project)
+    panel._receptor_combo.setCurrentIndex(0)
+    panel._ligand_combo.setCurrentIndex(0)
+
+    result = _result_with(_replicate_set(-8.85, -8.79, -8.73))
+    result.ligand_molecule_uuid = ligand.uuid
+    result.receptor_macromolecule_uuid = receptor.uuid
+    project.docking_results.append(result)
+    panel.sync_with_project(project)
+    assert not panel._spread_label.isHidden(), "setup: the spread really was shown"
+
+    project.docking_results.clear()
+    panel.sync_with_project(project)
+
+    assert panel._spread_label.isHidden()
+    assert panel._spread_label.text() == ""
+    assert panel._table.rowCount() == 0
+
