@@ -7,7 +7,11 @@ from unittest.mock import patch
 import pytest
 from rdkit import Chem
 
-from openchem.chem.docking_providers import DockingProviderError, VinaDockingProvider
+from openchem.chem.docking_providers import (
+    DEFAULT_EXHAUSTIVENESS,
+    DockingProviderError,
+    VinaDockingProvider,
+)
 from openchem.chem.vina_engine import VinaEngine
 from openchem.domain.docking import DockingBox
 from openchem.services.progress import ProgressHandle
@@ -75,7 +79,17 @@ class FakeVinaEngine(VinaEngine):
     def version(self) -> str:
         return "1.0.0-fake"
 
-    def dock(self, receptor_pdbqt, ligand_pdbqt, box, num_poses, exhaustiveness, seed, progress):
+    def dock(
+        self,
+        receptor_pdbqt,
+        ligand_pdbqt,
+        box,
+        num_poses,
+        exhaustiveness,
+        seed,
+        progress,
+        scoring_function="vina",
+    ):
         # A real engine would have written receptor_pdbqt/ligand_pdbqt (by
         # the time dock() is called, VinaDockingProvider has already
         # created them) -- assert that here as a sanity check, and capture
@@ -90,7 +104,15 @@ class FakeVinaEngine(VinaEngine):
                 "ligand_pdbqt": ligand_pdbqt,
                 "box": box,
                 "num_poses": num_poses,
+                "exhaustiveness": exhaustiveness,
+                "seed": seed,
+                "scoring_function": scoring_function,
                 "receptor_pdbqt_text": Path(receptor_pdbqt).read_text(encoding="utf-8"),
+                # Captured here for the same reason as the receptor's: the
+                # provider's scratch directory is deleted the moment this
+                # returns, so a test that reads the file afterwards reads
+                # nothing.
+                "ligand_pdbqt_text": Path(ligand_pdbqt).read_text(encoding="utf-8"),
             }
         )
         if self._raise_error:
@@ -474,9 +496,10 @@ def test_receptor_prep_ph_is_passed_to_add_hydrogens():
     calls = []
     original = ob.OBMol.AddHydrogens
 
-    # Matches OBMol::AddHydrogens' real C++ defaults -- the ligand-prep
-    # path (_convert_ligand_to_pdbqt) also calls this, via pybel's own
-    # addh() wrapper, with no arguments at all.
+    # Matches OBMol::AddHydrogens' real C++ defaults. The ligand-prep path
+    # (_convert_ligand_to_pdbqt) reaches this too and USED to arrive via
+    # pybel's addh() wrapper with no arguments at all, which is the defect
+    # test_both_preparation_paths_receive_the_same_declared_ph now pins.
     def spy(self, polaronly=False, correct_for_ph=False, ph=7.4):
         calls.append((polaronly, correct_for_ph, ph))
         return original(self, polaronly, correct_for_ph, ph)
@@ -787,3 +810,122 @@ def test_symmetry_copies_never_reach_the_receptor_vina_is_handed():
             (13.598, 13.601, 2.128),
         ]
     ), "the surviving atoms are not the deposited ones"
+
+
+def test_both_preparation_paths_receive_the_same_declared_ph():
+    """One declared pH reaches the receptor AND the ligand, asserted at the
+    PROVIDER boundary rather than in the UI.
+
+    The panel showing a single control proves nothing about what is passed
+    downstream -- a future refactor could leave one spinbox on screen and hand
+    the two conversions different numbers, and every widget-level assertion
+    would still pass. This watches the call Open Babel actually receives.
+
+    Two pH-correct calls, same value, is the invariant. The ligand path used to
+    contribute none of them.
+    """
+    from openbabel import openbabel as ob
+
+    engine = FakeVinaEngine()
+    provider = VinaDockingProvider(engine=engine)
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
+
+    calls = []
+    original = ob.OBMol.AddHydrogens
+
+    def spy(self, polaronly=False, correct_for_ph=False, ph=7.4):
+        calls.append((polaronly, correct_for_ph, ph))
+        return original(self, polaronly, correct_for_ph, ph)
+
+    with patch.object(ob.OBMol, "AddHydrogens", spy):
+        provider.dock(
+            RECEPTOR_PDB, "pdb", Chem.MolFromSmiles("CCN"), box, 9, ProgressHandle(),
+            receptor_prep_options={"ph": 6.25},
+        )
+
+    ph_corrected = [call for call in calls if call[1] is True]
+    assert len(ph_corrected) == 2, f"expected receptor AND ligand, got {ph_corrected}"
+    assert {call[2] for call in ph_corrected} == {6.25}, ph_corrected
+
+
+def test_the_recorded_settings_are_what_actually_ran():
+    """The stored result reports the run, not this file's own constants.
+
+    These fields used to be the literals `"vina"`, `8` and `None`, written at
+    the call site. They were true only by coincidence -- they described the
+    defaults the service happened to believe in, and would have gone silently
+    stale the moment a default moved. A stored result naming settings it did
+    not use is worse than one naming none, because nothing distinguishes it
+    from a measurement.
+    """
+    from openchem.services.docking_service import _recorded_settings
+
+    engine = FakeVinaEngine()
+    provider = VinaDockingProvider(engine=engine)
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
+    provider.dock(
+        RECEPTOR_PDB, "pdb", Chem.MolFromSmiles("CCN"), box, 9, ProgressHandle(),
+        receptor_prep_options={"ph": 6.25},
+        search_options={"exhaustiveness": 17, "seed": 4242, "scoring_function": "vinardo"},
+    )
+    recorded = _recorded_settings(provider, {"ph": 6.25})
+
+    assert recorded["exhaustiveness"] == 17
+    assert recorded["seed"] == 4242
+    assert recorded["scoring_function"] == "vinardo"
+    assert recorded["ligand_prep_params"] == {"ph": 6.25}
+    # And they describe the ENGINE INVOCATION, not merely the request.
+    assert engine.dock_calls[-1]["exhaustiveness"] == 17
+    assert engine.dock_calls[-1]["seed"] == 4242
+    assert engine.dock_calls[-1]["scoring_function"] == "vinardo"
+
+
+def test_a_seed_is_chosen_and_recorded_when_the_caller_pins_none():
+    """`seed=None` used to reach Vina as its own "pick randomly", so a run
+    could not be reproduced even in principle and nothing recorded what was
+    used. A seed is chosen here instead and travels to both the engine and the
+    result.
+
+    This records the seed so a run can be reproduced under the SAME engine,
+    version and settings. It is not a claim of determinism across Vina
+    versions, backends or thread counts.
+    """
+    engine = FakeVinaEngine()
+    provider = VinaDockingProvider(engine=engine)
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
+    provider.dock(
+        RECEPTOR_PDB, "pdb", Chem.MolFromSmiles("CCN"), box, 9, ProgressHandle(),
+    )
+    seed = provider._last_run_settings["seed"]
+    assert isinstance(seed, int) and seed > 0
+    assert engine.dock_calls[-1]["seed"] == seed
+
+
+def test_the_default_exhaustiveness_reaches_the_engine():
+    """The default is honoured rather than restated downstream -- which is how
+    the old hardcoded `exhaustiveness=8` in the service came to disagree with
+    the constant it was copied from."""
+    engine = FakeVinaEngine()
+    provider = VinaDockingProvider(engine=engine)
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
+    provider.dock(RECEPTOR_PDB, "pdb", Chem.MolFromSmiles("CCN"), box, 9, ProgressHandle())
+    assert engine.dock_calls[-1]["exhaustiveness"] == DEFAULT_EXHAUSTIVENESS
+
+
+def test_an_unknown_scoring_function_is_refused_before_the_engine_runs():
+    """Fail closed, and name the setting.
+
+    An unrecognised name would otherwise reach Vina's command line and be
+    rejected there, surfacing as a non-zero exit status that names neither the
+    setting nor where it came from -- the same shape as the untyped atom that
+    made Vina reject a whole receptor.
+    """
+    engine = FakeVinaEngine()
+    provider = VinaDockingProvider(engine=engine)
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20, 20, 20))
+    with pytest.raises(DockingProviderError, match="scoring function"):
+        provider.dock(
+            RECEPTOR_PDB, "pdb", Chem.MolFromSmiles("CCN"), box, 9, ProgressHandle(),
+            search_options={"scoring_function": "not-a-real-function"},
+        )
+    assert engine.dock_calls == [], "the engine must not have been invoked"

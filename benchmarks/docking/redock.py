@@ -36,7 +36,19 @@ PREP = {"strip_waters": True, "strip_cofactors": True}
 # A spread: two GPCRs, an enzyme with a textbook answer, a nuclear
 # receptor, and the hERG channel whose astemizole is the compound this
 # project's ADMET model is benchmarked on.
-TARGETS = ["1HSG", "4DKL", "3EML", "2RH1", "8ZYO", "1ERE", "4EY7"]
+#
+# 8EF5 and 5C1M are the mu-opioid pair added for the ligand-protonation
+# work. 8EF5 is the one that earns its place on evidence rather than
+# variety: it is fentanyl co-crystallised with the receptor, so it is an
+# EXPERIMENTAL REFERENCE STRUCTURE for a ligand whose basic amine is exactly
+# what a neutral-pH preparation gets wrong. It is not universal ground
+# truth -- redocking against it also benchmarks one crystallographic state
+# and one preparation protocol.
+#
+# Their anchor aspartate is numbered differently (8EF5 D149 chain R, 5C1M
+# D147 chain A -- human against mouse), which is why nothing here names a
+# residue: the box comes from the deposited ligand's own coordinates.
+TARGETS = ["1HSG", "4DKL", "3EML", "2RH1", "8ZYO", "1ERE", "4EY7", "8EF5", "5C1M"]
 
 # `--targets 6WGT --repeat 3` is how a SINGLE number here is made readable.
 #

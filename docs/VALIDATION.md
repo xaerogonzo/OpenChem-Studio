@@ -387,6 +387,42 @@ exception.
 
 ---
 
+## Ligand protonation in docking — a small, consistent improvement
+
+**Method.** The ligand used to be prepared with pH correction off while the
+receptor was prepared at 7.4, which left a basic amine typed `NA` (a
+hydrogen-bond acceptor) instead of `N` + `HD` (a donor).
+[`benchmarks/docking/ligand_ph_ab.py`](../benchmarks/docking/ligand_ph_ab.py)
+measures what that cost, holding everything but the ligand's protonation
+identical — the receptor PDBQT is built once and reused by both arms, with
+the same box, the same exhaustiveness and the same pinned seeds.
+
+| target | pH 7.4 (fix) | neutral (defect) | delta |
+| --- | --- | --- | --- |
+| 8EF5 — fentanyl, 3.30 Å cryo-EM | 3.06–3.13 Å | 3.18–3.25 Å | **−0.12 ± 0.02 Å** |
+| 5C1M — BU-72, 2.07 Å X-ray | 0.40–0.43 Å | 0.51–0.53 Å | **−0.11 ± 0.01 Å** |
+
+Centroid displacement from the crystal ligand, five seeds each.
+
+**Ten of ten paired runs improve, and the effect is small** — about 0.12 Å
+against a seed-to-seed spread within either arm of 0.07 Å. The sign carries
+this result, not the magnitude.
+
+**It does not rescue 8EF5**, which stays above 3 Å in both arms. That entry
+is a 3.30 Å cryo-EM structure, so the reference ligand position carries real
+uncertainty of its own; 5C1M at 2.07 Å is the better-resolved reference and
+lands at 0.42 Å.
+
+**Both outcomes were written down before measuring**, and a null result was
+pre-registered as still shipping the fix: the acceptance criterion is
+chemical correctness — the ligand is represented at the declared pH or it is
+not — not a benchmark movement. Recording that is what stops a correct fix
+being reverted later because a number did not move.
+
+→ [`tests/test_ligand_preparation.py`](../tests/test_ligand_preparation.py)
+
+---
+
 ## Partial charges — the paper's own Table 3, and a species chosen by the hash seed
 
 **Method.** Gasteiger & Marsili's Table 3 ([source:gasteiger1980], p3224)

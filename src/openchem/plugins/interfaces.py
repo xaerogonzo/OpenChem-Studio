@@ -244,6 +244,7 @@ class DockingProvider(ABC):
         num_poses: int,
         progress: ProgressHandle,
         receptor_prep_options: dict[str, Any] | None = None,
+        search_options: dict[str, Any] | None = None,
     ) -> list[DockingPoseModel]:
         """Dock `ligand_mol` against a receptor (raw structure text, same
         shape as `MacromoleculeModel.structure_text`/`.source_format`)
@@ -256,7 +257,22 @@ class DockingProvider(ABC):
         `receptor_prep_options` (all optional, provider-defined keys —
         `VinaDockingProvider` recognizes `ph: float`, `strip_waters: bool`,
         `strip_cofactors: bool`) controls receptor preparation. `None`
-        means "use the provider's own defaults," same as an empty dict."""
+        means "use the provider's own defaults," same as an empty dict.
+
+        **`ph` describes the SOLUTION and so governs the ligand as well as
+        the receptor**, despite this parameter's name. The name is kept
+        because it is published plugin API and renaming it would break every
+        existing implementation; the wart is recorded rather than fixed. The
+        claim is only that both preparation paths receive the same DECLARED
+        pH -- not that one scalar determines every protonation state.
+
+        `search_options` (optional, provider-defined; `VinaDockingProvider`
+        recognizes `exhaustiveness: int`, `seed: int | None`,
+        `scoring_function: str`) controls the search rather than the
+        chemistry. A provider that does not accept this argument is called
+        without it -- `DockingService` asks `inspect.signature` rather than
+        passing it and catching `TypeError`, which would also swallow a real
+        one raised from inside the provider."""
 
 
 class QuantumEngineProvider(ABC):

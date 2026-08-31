@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 from typing import Any
 
@@ -22,6 +23,57 @@ logger = logging.getLogger("openchem.chemistry")
 
 DEFAULT_NUM_POSES = 9
 _JOB_KIND = "docking"
+
+
+def _provider_accepts(provider: DockingProvider, name: str) -> bool:
+    """Whether `provider.dock` takes a keyword argument named `name`.
+
+    ASKED, not attempted. Passing the argument and catching `TypeError`
+    would also swallow a `TypeError` raised from INSIDE a provider that does
+    accept it, turning a real bug into "this provider is old". Same shape as
+    `ConformerProvider.generate_conformer_batch(options)`, which reached the
+    identical problem first.
+    """
+    try:
+        parameters = inspect.signature(provider.dock).parameters
+    except (TypeError, ValueError):
+        # A C-implemented or otherwise unintrospectable callable. Assume the
+        # older contract, which is the one that cannot fail.
+        return False
+    if name in parameters:
+        return True
+    return any(p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters.values())
+
+
+def _recorded_settings(
+    provider: DockingProvider, receptor_prep_options: dict[str, Any]
+) -> dict[str, Any]:
+    """The protocol fields for `DockingResultModel`, read back from whatever
+    actually ran.
+
+    A run is reproducible only under the SAME engine, version and settings --
+    a recorded seed does not pin a result across a Vina upgrade or a different
+    backend, which is why the version travels with it. This does not claim
+    determinism.
+
+    `getattr` throughout, deliberately: a third-party `DockingProvider` need
+    not expose any of this, and the honest record for one that does not is
+    "unknown" rather than this file's own defaults wearing the provider's
+    name.
+    """
+    settings = dict(getattr(provider, "_last_run_settings", {}) or {})
+    return {
+        "engine": getattr(provider, "engine_id", provider.provider_id),
+        "engine_version": (
+            provider.engine_version() if hasattr(provider, "engine_version") else "unknown"
+        ),
+        "scoring_function": settings.get("scoring_function", "unknown"),
+        "exhaustiveness": int(settings.get("exhaustiveness", 0)),
+        "seed": settings.get("seed"),
+        "receptor_prep_params": dict(receptor_prep_options),
+        "ligand_prep_params": dict(settings.get("ligand_prep_params", {})),
+    }
+
 
 
 class AssemblyRefused(RuntimeError):
@@ -69,6 +121,7 @@ class _DockingTask(QRunnable):
         job_manager: JobManager,
         receptor_prep_options: dict[str, Any],
         progress: ProgressHandle,
+        search_options: dict[str, Any] | None = None,
     ) -> None:
         super().__init__()
         self._provider = provider
@@ -82,6 +135,7 @@ class _DockingTask(QRunnable):
         self._event_bus = event_bus
         self._job_manager = job_manager
         self._receptor_prep_options = receptor_prep_options
+        self._search_options = dict(search_options or {})
         # Constructed by DockingService BEFORE this task is scheduled (see
         # request_docking) so its cancel() can be registered with
         # JobManager as this job's cancel_callback ahead of time -- not
@@ -136,6 +190,7 @@ class _DockingTask(QRunnable):
                 self._num_poses,
                 progress,
                 self._receptor_prep_options,
+                **self._search_options_kwarg(),
             )
         except Exception as exc:  # noqa: BLE001 - report failure, never crash the pool
             logger.exception("Docking failed for ligand %s", self._ligand_molecule_uuid)
@@ -164,14 +219,13 @@ class _DockingTask(QRunnable):
                 method=self._provider.provider_id,
                 parameters={"num_poses": self._num_poses, **self._assembly_provenance},
             ),
-            engine=getattr(self._provider, "engine_id", self._provider.provider_id),
-            engine_version=(
-                self._provider.engine_version() if hasattr(self._provider, "engine_version") else "unknown"
-            ),
-            scoring_function="vina",
-            exhaustiveness=8,
-            seed=None,
-            receptor_prep_params=dict(self._receptor_prep_options),
+            # Read back from the provider rather than restated here. These
+            # used to be the literals `"vina"`, `8` and `None`, which were true
+            # only by coincidence: they described the defaults this file
+            # happened to believe in, not the run. A stored result that names
+            # settings it did not use is worse than one that names none, since
+            # nothing distinguishes it from a measurement.
+            **_recorded_settings(self._provider, self._receptor_prep_options),
         )
         self._event_bus.publish(DockingResultReady(result=result))
         self._event_bus.publish(
@@ -232,6 +286,24 @@ class _DockingTask(QRunnable):
         }
         for warning in result.warnings:
             logger.warning("Assembly %s: %s", assembly_id, warning)
+
+
+    def _search_options_kwarg(self) -> dict[str, Any]:
+        """`{"search_options": ...}` when the provider takes it, `{}` otherwise.
+
+        A `DockingProvider` written against the earlier signature keeps
+        working, and its result records `scoring_function="unknown"` with
+        exhaustiveness 0 rather than this file guessing on its behalf.
+        """
+        if not self._search_options:
+            return {}
+        if not _provider_accepts(self._provider, "search_options"):
+            logger.info(
+                "Provider %s does not accept search_options; the run uses its own defaults.",
+                getattr(self._provider, "provider_id", type(self._provider).__name__),
+            )
+            return {}
+        return {"search_options": self._search_options}
 
     def _annotate_poses_with_interactions(self, poses: list[DockingPoseModel]) -> None:
         """Populates each pose's `metadata` with H-bond/clash data (see
@@ -317,6 +389,7 @@ class DockingService:
         num_poses: int = DEFAULT_NUM_POSES,
         provider_id: str = "vina",
         receptor_prep_options: dict[str, Any] | None = None,
+        search_options: dict[str, Any] | None = None,
     ) -> None:
         provider = self._providers.get(provider_id)
         if provider is None:
@@ -370,5 +443,6 @@ class DockingService:
                 self._job_manager,
                 receptor_prep_options or {},
                 progress,
+                search_options,
             )
         )

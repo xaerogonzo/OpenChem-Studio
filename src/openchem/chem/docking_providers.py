@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import tempfile
 from pathlib import Path
 from typing import Any, Callable
@@ -20,8 +21,42 @@ from openchem.services.progress import ProgressHandle
 
 logger = logging.getLogger("openchem.chemistry")
 
-DEFAULT_EXHAUSTIVENESS = 8
-DEFAULT_RECEPTOR_PH = 7.4
+#: Vina's search effort -- the number of independent runs, each starting from
+#: a random ligand conformation. 25 is the highest value at which
+#: [source:agarwal2022] reports meaningful improvement before diminishing
+#: returns: that study measured 1/8/25/50/75/100 and found the default of 8
+#: "performs well overall", that "the mRMSD changes little with values higher
+#: than 25", and recommended 8 "with, if the computational resources are
+#: available, a value of 25 also being an option". This is that
+#: resources-available value and NOT a claim of optimality -- the study
+#: measured its own benchmark set, not this application's receptors.
+DEFAULT_EXHAUSTIVENESS = 25
+
+#: The declared pH of the solution both the receptor AND the ligand are
+#: prepared at. One number because they are in the same solution; the claim is
+#: only that both preparation paths receive the same DECLARED pH, never that a
+#: single scalar determines every protonation state (histidine tautomers,
+#: buried residues and shifted pKas are all beyond it).
+#:
+#: It was `DEFAULT_RECEPTOR_PH` while only the receptor honoured it. The ligand
+#: path silently used Open Babel's default hydrogen addition instead, which
+#: left a basic amine typed `NA` -- a hydrogen-bond ACCEPTOR -- where it should
+#: be `N` + `HD`, a donor.
+DEFAULT_PREPARATION_PH = 7.4
+
+#: Vina 1.2.x ships more than one scoring function and they are NOT on a
+#: common scale, so a stored result has to say which produced its
+#: affinities. "vina" is the one every existing result was computed with.
+#: Vinardo ([source:quiroga2016]) is the alternative offered beside it; its
+#: authors report it outperforming Vina on THEIR datasets, which is a reason
+#: to offer it and not a claim about any particular receptor.
+DEFAULT_SCORING_FUNCTION = "vina"
+
+#: The scoring functions this provider will ask an engine for. Closed, and
+#: checked before the engine is invoked: an unrecognised name would reach
+#: Vina's command line and be rejected there, naming neither the setting
+#: nor where it came from.
+SUPPORTED_SCORING_FUNCTIONS = ("vina", "vinardo")
 
 
 def _raise_if_cancelled(progress: ProgressHandle) -> None:
@@ -117,6 +152,9 @@ class VinaDockingProvider(DockingProvider):
         # unlikely in practice, for them to disagree if settings changed
         # between calls within the same job.
         self._last_resolved_engine: VinaEngine | None = None
+        # What the most recent dock() actually used. Read by DockingService
+        # via getattr, the same defensive shape as engine_id.
+        self._last_run_settings: dict[str, Any] = {}
 
     def _resolve_engine(self) -> VinaEngine | None:
         if self._fixed_engine is not None:
@@ -147,6 +185,7 @@ class VinaDockingProvider(DockingProvider):
         num_poses: int,
         progress: ProgressHandle,
         receptor_prep_options: dict[str, Any] | None = None,
+        search_options: dict[str, Any] | None = None,
     ) -> list[DockingPoseModel]:
         engine = self._resolve_engine()
         self._last_resolved_engine = engine
@@ -158,6 +197,38 @@ class VinaDockingProvider(DockingProvider):
             )
 
         from openbabel import pybel
+
+        prep_options = receptor_prep_options or {}
+        search = search_options or {}
+        # ONE declared pH, resolved once and handed to BOTH preparation paths.
+        # Reading it twice would be two chances to disagree, which is the whole
+        # defect this method is being changed to fix.
+        ph = float(prep_options.get("ph", DEFAULT_PREPARATION_PH))
+        exhaustiveness = int(search.get("exhaustiveness", DEFAULT_EXHAUSTIVENESS))
+        scoring_function = str(search.get("scoring_function") or DEFAULT_SCORING_FUNCTION)
+        if scoring_function not in SUPPORTED_SCORING_FUNCTIONS:
+            raise DockingProviderError(
+                f"Unknown scoring function {scoring_function!r}. "
+                f"Supported: {', '.join(SUPPORTED_SCORING_FUNCTIONS)}."
+            )
+        # A seed is CHOSEN when the caller has not pinned one, rather than left
+        # to Vina. `seed=None` reaches PythonVinaEngine as `seed=0`, which is
+        # Vina's own "pick randomly", so the run could not be reproduced even
+        # in principle -- nothing anywhere recorded what was used.
+        seed = search.get("seed")
+        seed = random.randrange(1, 2**31 - 1) if seed is None else int(seed)
+
+        # What ACTUALLY ran, for the service to record. Mirrors
+        # `_last_resolved_engine` above: the alternative is the caller writing
+        # its own constants into the stored result, which is what it used to do
+        # -- `exhaustiveness=8` and `seed=None` as literals, true only by
+        # coincidence and silently wrong the moment a default moves.
+        self._last_run_settings = {
+            "exhaustiveness": exhaustiveness,
+            "seed": seed,
+            "scoring_function": scoring_function,
+            "ligand_prep_params": {"ph": ph},
+        }
 
         with tempfile.TemporaryDirectory() as scratch_dir:
             scratch = Path(scratch_dir)
@@ -177,7 +248,8 @@ class VinaDockingProvider(DockingProvider):
                 receptor_structure_text,
                 receptor_source_format,
                 receptor_pdbqt,
-                receptor_prep_options or {},
+                prep_options,
+                ph,
             )
 
             _raise_if_cancelled(progress)
@@ -185,16 +257,17 @@ class VinaDockingProvider(DockingProvider):
 
             _raise_if_cancelled(progress)
             progress.report(0.15, "Preparing ligand")
-            self._convert_ligand_to_pdbqt(pybel, ligand_mol, ligand_pdbqt)
+            self._convert_ligand_to_pdbqt(pybel, ligand_mol, ligand_pdbqt, ph)
 
             output_text = engine.dock(
                 receptor_pdbqt=receptor_pdbqt,
                 ligand_pdbqt=ligand_pdbqt,
                 box=box,
                 num_poses=num_poses,
-                exhaustiveness=DEFAULT_EXHAUSTIVENESS,
-                seed=None,
+                exhaustiveness=exhaustiveness,
+                seed=seed,
                 progress=progress,
+                scoring_function=scoring_function,
             )
 
         _raise_if_cancelled(progress)
@@ -209,6 +282,7 @@ class VinaDockingProvider(DockingProvider):
         source_format: str,
         out_path: Path,
         prep_options: dict[str, Any],
+        ph: float,
     ) -> None:
         try:
             structure_text = filter_altlocs(structure_text, source_format)
@@ -230,7 +304,9 @@ class VinaDockingProvider(DockingProvider):
             # correctForPH=False) -- confirmed live that OBMol.AddHydrogens
             # takes (polaronly, correctForPH, pH) positionally; pybel's
             # high-level addh() exposes none of these.
-            ph = float(prep_options.get("ph", DEFAULT_RECEPTOR_PH))
+            # `ph` is passed in, not re-read from prep_options: dock() resolves
+            # it once so the ligand and receptor paths cannot be handed
+            # different values.
             mol.OBMol.AddHydrogens(False, True, ph)
             # `opt={"r": None}` is Open Babel's rigid-receptor flag (the
             # `-xr` CLI equivalent) -- without it, `write("pdbqt", ...)`
@@ -526,11 +602,43 @@ class VinaDockingProvider(DockingProvider):
         for atom in atoms_to_delete:
             obmol.DeleteAtom(atom)
 
-    def _convert_ligand_to_pdbqt(self, pybel, ligand_mol: Chem.Mol, out_path: Path) -> None:
+    def _convert_ligand_to_pdbqt(
+        self, pybel, ligand_mol: Chem.Mol, out_path: Path, ph: float
+    ) -> None:
+        """Write the ligand as a PDBQT, protonated at the DECLARED preparation
+        pH -- the same one `_convert_receptor_to_pdbqt` uses.
+
+        **This used to call a bare `mol.addh()`**, which is pybel's wrapper for
+        `AddHydrogens(polaronly=False, correctForPH=False, pH=7.4)` -- i.e. the
+        pH argument is present and ignored. The receptor path was moved off
+        that call and this one was not, and the asymmetry is not cosmetic:
+        Open Babel types a neutral tertiary amine's nitrogen `NA`, a
+        hydrogen-bond ACCEPTOR, where the pH 7.4 ammonium is `N` plus an `HD`
+        polar hydrogen, a DONOR. Measured on three anilidopiperidines:
+
+            addh()               charge 0   {A:12, C:10, N:1, NA:1, OA:1}
+            AddHydrogens 7.4     charge +1  {A:12, C:10, N:2, HD:1, OA:1}
+
+        The consequence is narrow and worth stating exactly: the `NA` typing
+        removes that amine's intended DONOR contribution from Vina's
+        directional hydrogen-bond term. It is not an electrostatics claim --
+        Vina's function has no Coulomb term -- and not a claim that formal
+        charge is irrelevant, since the charge is what puts the hydrogen there
+        in the first place.
+
+        Open Babel is the runtime implementation rather than this project's own
+        `pka_providers.dominant_microspecies`, which returns a mol built from
+        SMILES and so carries NO CONFORMER -- adopting it here would discard
+        the 3D geometry `canonical_conformer` deliberately selected. That
+        function is kept as an independent cross-check in the tests instead,
+        with the published charge states as the reference for both.
+        """
         try:
             molblock = Chem.MolToMolBlock(ligand_mol)
             mol = pybel.readstring("mol", molblock)
-            mol.addh()
+            # (polaronly, correctForPH, pH), positionally -- pybel's high-level
+            # addh() exposes none of these. Same call as the receptor path.
+            mol.OBMol.AddHydrogens(False, True, ph)
             mol.write("pdbqt", str(out_path), overwrite=True)
         except Exception as exc:  # noqa: BLE001
             raise DockingProviderError(f"Failed to prepare ligand: {exc}") from exc

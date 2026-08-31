@@ -89,9 +89,18 @@ class VinaEngine(ABC):
         exhaustiveness: int,
         seed: int | None,
         progress: ProgressHandle,
+        scoring_function: str = "vina",
     ) -> str:
         """Returns Vina's own output-PDBQT text (pass to
-        `parse_vina_output_pdbqt`), reporting phase-labeled progress."""
+        `parse_vina_output_pdbqt`), reporting phase-labeled progress.
+
+        `scoring_function` selects among the models Vina 1.2.x ships. It
+        defaults to "vina" so an engine written against the earlier signature
+        keeps its behaviour, and it must reach the real invocation rather than
+        only the stored result -- a silently ignored value produces affinities
+        LABELLED with a function that never ran, which no table can tell from
+        the real thing.
+        """
 
 
 class PythonVinaEngine(VinaEngine):
@@ -131,11 +140,12 @@ class PythonVinaEngine(VinaEngine):
         exhaustiveness: int,
         seed: int | None,
         progress: ProgressHandle,
+        scoring_function: str = "vina",
     ) -> str:
         import vina
 
         progress.report(0.1, "Preparing receptor")
-        v = vina.Vina(sf_name="vina", seed=seed if seed is not None else 0, verbosity=0)
+        v = vina.Vina(sf_name=scoring_function, seed=seed if seed is not None else 0, verbosity=0)
         v.set_receptor(str(receptor_pdbqt))
         progress.report(0.3, "Preparing ligand")
         v.set_ligand_from_file(str(ligand_pdbqt))
@@ -190,6 +200,7 @@ class ExecutableVinaEngine(VinaEngine):
         exhaustiveness: int,
         seed: int | None,
         progress: ProgressHandle,
+        scoring_function: str = "vina",
     ) -> str:
         if not self.is_available():
             raise RuntimeError("No Vina executable configured or found on PATH.")
@@ -224,6 +235,10 @@ class ExecutableVinaEngine(VinaEngine):
             ]
             if seed is not None:
                 args += ["--seed", str(seed)]
+            # Emitted only when it differs from Vina's own default, so the
+            # command line for an ordinary run is byte-identical to before.
+            if scoring_function and scoring_function != "vina":
+                args += ["--scoring", scoring_function]
 
             progress.report(0.3, "Preparing ligand")
             progress.report(0.5, "Docking")

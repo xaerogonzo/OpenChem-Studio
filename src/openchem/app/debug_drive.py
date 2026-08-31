@@ -398,6 +398,17 @@ class _Driver(QObject):
         )
         logger.warning("OPENCHEM_DRIVE: dock_panel[%s] box_status=%r",
                        step.get("tag", ""), panel._box_status_label.text())
+        # The search settings CARRY WHAT NO SCREENSHOT CAN: a seed of 0 reads
+        # "Random" on screen and must leave the panel as None, and the
+        # exhaustiveness shown is only interesting if it is also what is sent.
+        # Same argument as `jobs_report` logging QTimer.isActive().
+        logger.warning(
+            "OPENCHEM_DRIVE: dock_panel[%s] ph=%.2f search=%r seed_shows=%r",
+            step.get("tag", ""),
+            panel._ph_spin.value(),
+            panel.displayed_search_options(),
+            panel._seed_spin.text(),
+        )
 
     def _do_select(self, step: dict[str, Any]) -> None:
         """Select a molecule by index (-1 is the most recent) or by name."""

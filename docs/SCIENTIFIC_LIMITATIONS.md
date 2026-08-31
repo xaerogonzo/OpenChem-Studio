@@ -111,10 +111,66 @@ otherwise. The measured 0.16–0.71 Å centroid displacements (plus one
 the right *pocket* for ligands that came out of that pocket. They say
 nothing about a novel ligand's real affinity.
 
-**Vina is run with a random seed**, as it ships. Two runs of the same
-receptor and ligand differ — measured at about 0.03 Å of centroid
-scatter on the redocking set. Do not read a difference smaller than that
-as a difference.
+**Good poses, weak ranking — and they are separate abilities.** This is the
+single most useful thing to know about the tool, and it is measured rather
+than asserted. CASF-2016 ([source:su2019]) evaluates scoring functions on
+four *distinct* abilities and places Vina on opposite sides of two of them:
+strong at **docking power** (finding the right pose — success rates "close
+to 90%") and among the "not-so-good scoring functions in the scoring/ranking
+power tests". A second study reaches the same split from another direction
+([source:agboola2026]): across eleven targets, ranking barely degraded
+between a site-directed and a whole-protein box (ROC-AUC 0.69 → 0.62) while
+correct placement collapsed (96% → 48%), and the two were **uncorrelated**
+(Pearson r = −0.03).
+
+So: **trust the pose more than the ordering.** A set of close analogues
+scoring within a few tenths of a kcal/mol is the expected behaviour of this
+scoring function, not a finding about those molecules — and no amount of
+extra search effort changes it, because it is the scoring function rather
+than the sampling. Do not present such a spread to anyone as a ranking.
+
+**Measured here, on 5C1M at exhaustiveness 25:** changing only the random
+seed moves the reported affinity of *one* molecule by 0.06 kcal/mol
+(−8.79 / −8.79 / −8.73, three seeds). Three *different* fentanyl analogues
+reported to us spanned 0.13 kcal/mol. So the difference between those
+molecules was roughly twice the search's own scatter on a single one — which
+is not a margin any ordering should rest on. Pin the seed before comparing
+two ligands at all, or the comparison includes the search wandering.
+
+**The ligand is prepared at the declared pH, and that reaches the score.**
+The Preparation pH governs the ligand as well as the receptor. It decides
+which groups carry a hydrogen and therefore which can *donate* a hydrogen
+bond, and a basic amine prepared as neutral reaches Vina typed as an
+*acceptor* — the opposite of what it does in a pocket. This is not a
+cosmetic distinction: [source:zhuang2022] shows fentanyl's piperidine amine
+salt-bridging to the receptor's anchor aspartate, which is precisely the
+interaction a neutral preparation cannot make. Ligand protonation, tautomer
+and stereoisomer state are all known to move docking results
+([source:tenbrink2009]).
+
+One value is used for both because they are in the same solution. It is a
+**declared preparation pH**, not a claim that a single number fixes every
+protonation state — buried residues and histidine tautomers are beyond what
+any one pH determines.
+
+**Vina's search is stochastic, and the seed is now recorded.** Two runs of
+the same receptor and ligand still differ — measured at about 0.03 Å of
+centroid scatter on the redocking set — so do not read a difference smaller
+than that as a difference. What changed is that the seed used is stored with
+every result, so a run can be repeated *after the fact* rather than only
+when someone thought to pin it in advance. That reproduces a run under the
+same Vina version and settings; it is not a guarantee of identical output
+across versions or machines, which is why the engine version is stored
+beside it.
+
+**Search effort is a documented choice, not an optimum.** The default
+exhaustiveness is 25. Vina's own default is 8, and a study of 1/8/25/50/75/100
+found 8 "performs well overall" with median pose error changing "little with
+values higher than 25" ([source:agarwal2022]) — so 25 is that study's
+resources-available recommendation rather than a value this project has
+shown to be best for these receptors. Raising it does **not** rescue a
+search box the ligand does not fit in: in [source:agboola2026], doubling
+exhaustiveness left six of eight gross misplacements unresolved.
 
 **Receptor preparation changes results, and it is not automatic.** Which
 chains you keep, whether symmetry-generated copies are present, which
