@@ -5,6 +5,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+from openchem.domain.affinity_range import AffinityRange
 from openchem.domain.common import Provenance
 
 
@@ -62,6 +63,107 @@ class DockingPoseModel:
 
 
 @dataclass(slots=True)
+class DockingReplicate:
+    """One search of a replicate set: the seed it ran under, and the best
+    affinity it found.
+
+    `best_affinity_kcal_mol` is None when this replicate FAILED, and `error`
+    says why. A failed replicate keeps its row rather than being dropped: a set
+    where 1 of 5 runs failed is a normal outcome, and silently omitting it
+    would make the set look like a clean 4 and overstate what was attempted.
+    Same shape as `ScreeningEntry`, which keeps a failed ligand's row for the
+    same reason.
+
+    `seed` is None when the provider does not accept `search_options` at all --
+    it then runs on its own defaults and the seed we derived was never sent, so
+    recording it would name a setting the run did not use.
+    """
+
+    seed: int | None
+    best_affinity_kcal_mol: float | None
+    error: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "seed": self.seed,
+            "best_affinity_kcal_mol": self.best_affinity_kcal_mol,
+            "error": self.error,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> DockingReplicate:
+        return cls(
+            seed=data.get("seed"),
+            best_affinity_kcal_mol=data.get("best_affinity_kcal_mol"),
+            error=data.get("error"),
+        )
+
+
+@dataclass(slots=True)
+class DockingReplicateSet:
+    """Every run of one docking request, and which of them the stored poses
+    came from.
+
+    TWO SEED CONCEPTS, NAMED SEPARATELY, because one field cannot be both:
+
+        protocol_seed 4712              what the user pinned
+          └─ derived per (protocol_seed, ligand_uuid)
+               ├─ replicates[0].seed  881423     the actual Vina seeds
+               ├─ replicates[1].seed  1990277
+               └─ replicates[2].seed  47122019
+        representative_index 1          so DockingResultModel.seed == 1990277
+
+    `protocol_seed` is None when the user pinned nothing -- the provider then
+    chooses each seed itself and every one is still recorded, so the run is
+    reproducible after the fact. Fabricating a root the user never chose would
+    make an unpinned run look pinned.
+
+    DERIVED PER LIGAND, which is a statistical requirement rather than a
+    convenience: the separation rule in `domain/affinity_range.py` is an exact
+    rank-sum calculation and needs the two ligands' replicate sets to be
+    independent. Sharing one seed set across two ligands would make the values
+    arrive as correlated pairs and void it.
+    """
+
+    protocol_seed: int | None
+    representative_index: int
+    replicates: list[DockingReplicate] = field(default_factory=list)
+
+    @property
+    def successes(self) -> list[DockingReplicate]:
+        return [r for r in self.replicates if r.best_affinity_kcal_mol is not None]
+
+    def affinity_range(self) -> AffinityRange | None:
+        """The spread over the runs that SUCCEEDED, or None if none did.
+
+        None rather than an empty range, for the reason `AffinityRange` refuses
+        to be constructed empty: "every replicate failed" and "not measured"
+        must stay distinguishable.
+        """
+        values = tuple(
+            r.best_affinity_kcal_mol
+            for r in self.replicates
+            if r.best_affinity_kcal_mol is not None
+        )
+        return AffinityRange(values) if values else None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "protocol_seed": self.protocol_seed,
+            "representative_index": self.representative_index,
+            "replicates": [r.to_dict() for r in self.replicates],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> DockingReplicateSet:
+        return cls(
+            protocol_seed=data.get("protocol_seed"),
+            representative_index=int(data.get("representative_index", 0)),
+            replicates=[DockingReplicate.from_dict(r) for r in data.get("replicates", [])],
+        )
+
+
+@dataclass(slots=True)
 class DockingResultModel:
     """A (ligand, receptor) docking run's poses plus everything needed to
     actually reproduce it — not just the poses themselves. A `MoleculeModel`
@@ -81,6 +183,11 @@ class DockingResultModel:
     seed: int | None
     receptor_prep_params: dict[str, Any] = field(default_factory=dict)
     ligand_prep_params: dict[str, Any] = field(default_factory=dict)
+    #: Every run behind this result, or None when the count was never
+    #: recorded -- which is every result saved before replicates existed.
+    #:
+    #: NONE IS A THIRD STATE AND NOT A SYNONYM FOR ONE RUN. See `from_dict`.
+    replicates: DockingReplicateSet | None = None
     uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: float = field(default_factory=time.time)
 
@@ -99,6 +206,10 @@ class DockingResultModel:
             "seed": self.seed,
             "receptor_prep_params": self.receptor_prep_params,
             "ligand_prep_params": self.ligand_prep_params,
+            # EMITTED EXPLICITLY AS null WHEN ABSENT, so that re-saving a
+            # project written before replicates existed does not quietly give
+            # its results a replicate count on the way through.
+            "replicates": self.replicates.to_dict() if self.replicates else None,
             "timestamp": self.timestamp,
         }
 
@@ -118,5 +229,23 @@ class DockingResultModel:
             seed=data.get("seed"),
             receptor_prep_params=dict(data.get("receptor_prep_params", {})),
             ligand_prep_params=dict(data.get("ligand_prep_params", {})),
+            # AN OLD PROJECT FILE GETS None, NEVER A SYNTHESISED ONE-RUN SET.
+            #
+            # The tempting alternative is to manufacture
+            # `[DockingReplicate(seed=data["seed"], best=min(poses))]`, and it
+            # is wrong three ways. It would make this application the author of
+            # a count nobody measured -- while the whole point of showing the
+            # count is that n=1 and n=30 say different things. It would make a
+            # synthesised single run byte-indistinguishable from a deliberate
+            # one, so "why does this old result show no spread" becomes
+            # unanswerable. And computing the best affinity here would be a
+            # SECOND implementation of it, beside the provider's and the
+            # screening service's -- the drift class `is_stripped_residue` and
+            # `filter_altlocs` each exist to close.
+            replicates=(
+                DockingReplicateSet.from_dict(data["replicates"])
+                if data.get("replicates")
+                else None
+            ),
             timestamp=data.get("timestamp", 0.0),
         )
