@@ -4477,15 +4477,26 @@ code and holds far more state than an unshown one. So a dormant leak became a
 live one. `conftest.dispose` per file, the same recipe
 `test_screening_service.py` and `test_batch_panel.py` take.
 
-**THE LOCAL A/B COULD NOT CONFIRM IT, AND THAT IS RECORDED RATHER THAN
-GLOSSED.** Running the census over the six files that matter -- the panel, the
-screening pair, the docking service, `test_ir_view_widget.py` (the file already
-recorded as leaking nine widgets) and the victim itself -- gives **LATE = 0
-with the disposal AND without it**. The subset does not reproduce the
-condition; it needs the full suite's ordering and the collector's timing, which
-is the same reason the original leak measurement had to be a full run. So the
-disposal is shipped because the RULE says so, and whether it moves the CI
-`late` count is a question only CI can answer.
+**THE LOCAL A/B COULD NOT CONFIRM IT, AND CI DID.** Running the census over
+the six files that matter -- the panel, the screening pair, the docking
+service, `test_ir_view_widget.py` (the file already recorded as leaking nine
+widgets) and the victim itself -- gives **LATE = 0 with the disposal AND
+without it**. The subset does not reproduce the condition; it needs the full
+suite's ordering and the collector's timing, which is the same reason the
+original leak measurement had to be a full run.
+
+So the disposal shipped because the RULE says so, with the CI reading as the
+experiment. **It answered: `late` went 1 -> 0 on the next run**, against 1 on
+both runs of the previous SHA and 0 on master throughout. n=1 on the after
+side, but the before side is 2 for 2 and master is consistent, so the reading
+is real.
+
+**AND THE CRASH SURVIVED IT**, at 58% in the same file, on a third distinct
+test of that file -- with `0 late destruction(s)`. Which is exactly what master
+already implied: a late destruction is not necessary for this crash, and
+removing one does not touch it. That is worth having as a measurement rather
+than an inference, because "we fixed a leak and the crash is still there" is a
+much stronger statement than "we fixed a leak".
 
 **A LATE DESTRUCTION IS NOT KNOWN TO CAUSE THIS CRASH.** Master crashes with
 `late = 0`, so it is plainly not necessary. Fixing it is hygiene the project
