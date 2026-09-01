@@ -4429,6 +4429,82 @@ another costume, and fixing it properly means the screening dialog growing
 exhaustiveness, scoring and seed controls, which is a decision about whether a
 screen should be configurable.
 
+## MASTER CRASHES IN THE SAME TWO TESTS, AND THAT IS THE ATTRIBUTION
+
+PR #65's first CI run reported `completed/success` at every level the REST API
+exposes and had crashed. The annotation is the only thing that says so:
+
+    Reached [58%]. CENSUS: died in tests/test_nmr_view_dialog.py::
+    test_dialog_without_a_conformer_still_shows_the_spectrum after 3903
+    test(s); 1 late destruction(s) during the run.
+
+**RE-RUN ON THE SAME SHA IT CRASHED AGAIN** -- 58%, same file, the ADJACENT
+test, after 3901 tests. Two for two.
+
+**AND MASTER DOES THE SAME THING, ON COMMITS THAT PREDATE THE BRANCH.** This is
+what settles attribution, and it took one loop over `git log` plus the
+annotations API:
+
+    tree              test                                          late
+    master 7bcde4ce   ..._without_a_conformer_still_shows_...        0
+    master d261da8d   test_dialog_shows_the_signal_list              0
+    PR #65            ..._without_a_conformer_still_shows_...        1
+    PR #65 re-run     test_dialog_shows_the_signal_list              1
+
+The same two tests, alternating, at 57-58%, on a tree with no docking work in
+it. Two crashes in two runs is unremarkable against this file's own measured
+fixed-tree rate of 0.54 -- p = 0.25 for 2-of-2 -- and the branch touches
+nothing NMR, nothing Qt-lifetime and nothing in `conftest.py`. What it does do
+is add ~60 tests, which shifts collection order, which is the documented
+mechanism that MOVES the victim rather than creating one.
+
+**SURVEY THE BASE BEFORE BLAMING THE BRANCH.** Six master commits' annotations
+cost about a minute and turned "my branch crashes CI" into "this is the thing
+CLAUDE.md has a section about". Without it the obvious move is to go hunting
+through a diff that cannot contain the cause.
+
+### THE ONE NEW DATUM IS `late`, AND IT IS MINE
+
+Every one of the ten previously recorded observations reports `0 late
+destruction(s)`. Both of this branch's report **1**, and master reports 0 on
+the same instrument. That is a real difference, whatever it means for the
+crash.
+
+It has an obvious candidate: `tests/test_docking_panel.py` had **no disposal at
+all** for any of its 26 panels, and this branch added five guards that
+additionally `show()` theirs -- and a shown widget runs far more of its own
+code and holds far more state than an unshown one. So a dormant leak became a
+live one. `conftest.dispose` per file, the same recipe
+`test_screening_service.py` and `test_batch_panel.py` take.
+
+**THE LOCAL A/B COULD NOT CONFIRM IT, AND THAT IS RECORDED RATHER THAN
+GLOSSED.** Running the census over the six files that matter -- the panel, the
+screening pair, the docking service, `test_ir_view_widget.py` (the file already
+recorded as leaking nine widgets) and the victim itself -- gives **LATE = 0
+with the disposal AND without it**. The subset does not reproduce the
+condition; it needs the full suite's ordering and the collector's timing, which
+is the same reason the original leak measurement had to be a full run. So the
+disposal is shipped because the RULE says so, and whether it moves the CI
+`late` count is a question only CI can answer.
+
+**A LATE DESTRUCTION IS NOT KNOWN TO CAUSE THIS CRASH.** Master crashes with
+`late = 0`, so it is plainly not necessary. Fixing it is hygiene the project
+already requires, not a fix for the crash, and saying otherwise would be this
+file's own "a residual explained by inference" mistake.
+
+### WHAT THE BLOCKING GATE SAID
+
+`suite + gating benchmarks` passed with **all sixteen steps SUCCESS**,
+including the three that a red suite silently takes with it:
+
+    SUCCESS  Run the test suite
+    SUCCESS  Naming benchmark (must stay 181/181)
+    SUCCESS  Regulatory benchmark
+    SUCCESS  Validate regulatory rulesets
+
+Read the STEP LIST, not the conclusion -- and note the Linux job's
+`completed/success` beside it, which is the whole reason that rule exists.
+
 ## Running the tests
 
 ```bash

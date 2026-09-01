@@ -15,6 +15,8 @@ from openchem.events.events import MoleculeSelected
 from openchem.services.docking_service import DockingService
 from openchem.ui.panels.docking_panel import DockingPanel
 
+import conftest
+
 
 class _RecordingDockingService(DockingService):
     """Stands in for the real DockingService -- captures request_docking's
@@ -30,12 +32,46 @@ class _RecordingDockingService(DockingService):
         self.requests.append(kwargs)
 
 
+#: Every panel this file builds, destroyed at the end of its test.
+#:
+#: **THIS FILE LEAKED ALL 26 OF THEM**, and the census on the Linux job is what
+#: said so: this branch's runs reported "1 late destruction" where master's
+#: reported 0. A late destruction is a widget built in one test and destroyed
+#: inside a LATER one, from Python's collector rather than at a boundary --
+#: which is the shape this project's access-violation family has.
+#:
+#: Five of the guards added here `show()` their panel, and a shown widget runs
+#: far more of its own code and holds far more state than an unshown one, so
+#: what was a dormant leak became a live one.
+#:
+#: `conftest.dispose` is THE implementation -- the same one
+#: `test_screening_service.py` and `test_batch_panel.py` take, per file and per
+#: widget. It is emphatically NOT `dispose_app_widgets`, the autouse fixture
+#: that DISCOVERED its own subjects and was reverted for crashing the suite 8
+#: of 8 runs.
+_BUILT: list = []
+
+
+@pytest.fixture(autouse=True)
+def _dispose_panels():
+    """Destroyed deterministically rather than left to the collector.
+
+    Autouse over the FIXTURE, not over the widgets: it serves only what
+    `_make_panel` explicitly hands over, which is what keeps it on the safe
+    side of the line `conftest.dispose` draws.
+    """
+    yield
+    while _BUILT:
+        conftest.dispose(_BUILT.pop())
+
+
 def _make_panel():
     bus = EventBus()
     engine = ChemistryEngine()
     settings = Settings(bus)
     docking_service = _RecordingDockingService(bus)
     panel = DockingPanel(docking_service, engine, settings, bus)
+    _BUILT.append(panel)
     return panel, engine, docking_service
 
 
