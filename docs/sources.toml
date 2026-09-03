@@ -4135,3 +4135,89 @@ attempts to retrieve this DOI returned unrelated papers from the same journal
 from those two failures that the citation was fabricated. It was not. Two
 failed downloads are evidence about the downloads, not about the paper.
 """
+
+[[source]]
+key = "mann1947"
+kind = "literature"
+citation = "H. B. Mann & D. R. Whitney, 'On a Test of Whether one of Two Random Variables is Stochastically Larger than the Other', Ohio State University, The Annals of Mathematical Statistics, pp. 50-60."
+identifier_type = "bibliographic"
+identifier = "Ann. Math. Statist., pp. 50-60 (Mann & Whitney)"
+status = "shipped"
+used_by = [
+    "src/openchem/domain/affinity_range.py",
+]
+verification = "citation_and_claim"
+verified_date = 2026-08-31
+local = "D:/Xaero Stuff/Documents/Sci Downloads/mann1947.pdf"
+note = """
+**THE TEST THE REPLICATE REFUSAL RULE IMPLEMENTS, NAMED RATHER THAN
+REINVENTED.** `domain/affinity_range.py` orders two ligands only when their
+observed affinity ranges separate completely, which is the extreme outcome
+U = 0 of this paper's rank-sum test. Inventing a name for a known test costs a
+reviewer the ability to check it.
+
+**THE COMBINATORIAL CLAIM WAS READ OFF THE PAGE, not recalled.** Section 4, on
+the paper's own p. 51:
+
+    "Under the null hypothesis each of the (m + n)!/m!n! sequences of n 0's
+     and m 1's is equally likely."
+
+That is exactly `comb(n_a + n_b, n_a)`, and it is the whole derivation the
+shipped `separation_p_value` rests on: of those equally likely arrangements,
+one puts all of A below all of B and one more puts all of B below all of A, so
+a procedure that reports a separation in EITHER direction has rate
+2/comb(n_a+n_b, n_a). The earlier one-sided reading of this, 1/comb(2n, n),
+would have licensed orderings at n = 3 while claiming 0.05.
+
+**THE SCAN HAS NO USABLE TEXT LAYER AND WAS READ AS RENDERED PAGES**, which is
+this project's standing rule for a scanned source. `pdftotext` returns only the
+JSTOR cover boilerplate for the whole file.
+
+**WHAT IS NOT RECORDED, BECAUSE THE PAGES DO NOT PRINT IT.** No volume, no
+issue and no year appears anywhere in this scan -- the article's own first page
+carries the title, the two authors, "Ohio State University" and the page number
+50, and the JSTOR footer names the journal. A search of the whole extracted
+text for "1947" and for "Vol" returns nothing. Volume 18 (1947) is what the
+filename and the general record say, and it was NOT verified here, so it is
+absent from the citation rather than stated as read. There is no DOI: the paper
+predates them.
+"""
+
+[[source]]
+key = "nguyen2020"
+kind = "literature"
+citation = "N. T. Nguyen, T. H. Nguyen, T. N. H. Pham, N. T. Huy, M. V. Bay, M. Q. Pham, P. C. Nam, V. V. Vu & S. T. Ngo, 'Autodock Vina Adopts More Accurate Binding Poses but Autodock4 Forms Better Binding Affinity', J. Chem. Inf. Model. 2020, 60, 204-211."
+identifier_type = "doi"
+identifier = "10.1021/acs.jcim.9b00778"
+status = "shipped"
+used_by = [
+    "src/openchem/domain/affinity_range.py",
+]
+verification = "citation_and_claim"
+verified_date = 2026-08-31
+local = "D:/Xaero Stuff/Documents/Sci Downloads/nguyen2019.pdf"
+note = """
+**AN INDEPENDENT CORROBORATION OF THE RANKING CEILING, ON A DIFFERENT
+BENCHMARK FROM [source:su2019].** Over 800 protein-ligand complexes with both
+a PDB structure and an experimental affinity, this reports Vina at a
+correlation coefficient of
+
+    R_Vina(long) = 0.498 +/- 0.026
+
+which sits beside CASF-2016's "around 0.6" ranking figure without sharing its
+data. `domain/affinity_range.py` cites both, because the module's whole reason
+for existing is that a separation between two Vina scores is evidence about the
+SEARCH separating them and not about the affinities being different.
+
+The figure was read out of the paper rather than from its abstract: the string
+"0.498" occurs twice in the extracted text, both times as R_Vina for the long
+docking option.
+
+**THE FILENAME SAYS 2019 AND THE CITATION SAYS 2020, AND THE CITATION WINS.**
+Received 13 September 2019, published online 30 December 2019, and the paper's
+own "Cite This" line reads `J. Chem. Inf. Model. 2020, 60, 204-211`. The
+registry key is therefore `nguyen2020` while the local file is `nguyen2019.pdf`
+-- the same online-versus-issue split [source:su2019] already records, and not
+a discrepancy. The DOI was read from the file rather than reconstructed.
+"""
+

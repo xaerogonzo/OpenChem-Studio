@@ -4021,6 +4021,501 @@ render pages to PNG for the tables whose text layer is damaged.
 already records the same trap writing `"\\n"`. Use a real editing tool when the
 content contains escapes.
 
+## A SCORE IS ONE DRAW, AND THE PANEL PRINTED IT TO TWO DECIMAL PLACES
+
+Reported as three fentanyl analogues docking into 5C1M at **-8.88 / -8.79 /
+-8.75**. Nothing on screen said those three numbers were one draw each from a
+distribution nobody had measured.
+
+`domain/affinity_range.py` is the answer: a dock can now run N searches, and
+what is reported is the RANGE of the runs performed, the median, and N.
+
+**IT LICENSES EXACTLY ONE DIRECTION, and that is the whole design:**
+
+    ranges OVERLAP        "indistinguishable by this method"      SUPPORTED
+    ranges are DISJOINT   "A binds better than B"             NOT SUPPORTED
+
+A separation says the SCORING FUNCTION told two ligands apart by more than its
+own run-to-run scatter. It does not say the separation is real -- CASF-2016
+puts even top-ranked functions at "around 0.6" ([source:su2019]) and an
+independent 800-complex evaluation puts Vina at **0.498 +/- 0.026**
+([source:nguyen2020]). **A range shipped as a two-sided error bar would be
+strictly worse than the bare number it replaced**, because a bare number at
+least claims no precision.
+
+### THE p-VALUE IS TWO-SIDED, AND THE FIRST STATEMENT OF IT WAS WRONG
+
+Complete separation is the extreme outcome (U = 0) of the Mann-Whitney
+rank-sum test [source:mann1947]. Its own p. 51 supplies the derivation --
+"each of the (m + n)!/m!n! sequences of n 0's and m 1's is equally likely" --
+so of those equally likely orderings, one puts all of A below all of B and one
+more puts all of B below all of A.
+
+The first draft wrote `1/C(2n,n)` and concluded the minimum useful count is 3.
+That is the ONE-SIDED rate and holds only when the direction is fixed before
+the data is seen. The panel reports an ordering in EITHER direction:
+
+    n     one-sided (WRONG)     what ships
+    3     0.050                 0.100    does NOT reach 0.05
+    4     0.014                 0.029    the smallest that does
+
+**So the minimum is 4 runs each, not 3**, and it is DERIVED from alpha rather
+than typed -- `MIN_REPLICATES_FOR_SEPARATION = min(n for n in count(1) if
+separation_p_value(n, n) <= ALPHA)`. Shipping the original claim would have
+licensed orderings at a one-in-ten false rate under documentation saying one
+in twenty, which is worse than no rule because the number would be believed.
+
+**COMPUTE, NEVER TABULATE.** Unequal counts are the ordinary case -- a failed
+replicate, a legacy result -- and `2/comb(n_a+n_b, n_a)` behaves
+non-obviously: **2 runs against 5 refuses at 0.095 while 2 against 8 allows at
+0.044**. Any "minimum 4 each" shortcut gets both wrong.
+
+**AND A PER-PAIR RATE DOES NOT CONTROL A TABLE.** A 50-ligand screen has 1225
+pairs; at 0.029 each you expect ~35 falsely-ordered pairs. No p-value is
+printed per row -- it justifies the minimum count and lives in the docs.
+
+### THE MEASUREMENT: 80 REAL VINA RUNS, AND THE COUNT DECIDES
+
+`benchmarks/docking/seed_spread.py`, exhaustiveness 25, four receptors x two
+deposited ligands x ten pinned seeds, ~26 minutes.
+
+**THE WIDTH GREW IN 8 OF 8 LIGANDS AND SHRANK IN NONE:**
+
+    ligand                    n=3     n=5    n=10
+    5C1M  BU72               0.00    0.00    0.02
+    5C1M  fentanyl           0.04    0.04    0.04
+    6WGT  LSD                0.01    0.02    0.03
+    6WGT  ergotamine         0.04    0.04    0.08
+    2RH1  carazolol          0.01    0.03    0.05
+    2RH1  BI-167107          0.04    0.05    0.06
+    3PBL  eticlopride        0.04    0.04    0.05
+    3PBL  nemonapride        0.14    0.14    0.18
+
+The MEDIAN moved by at most 0.01 over the same range, which is the other half
+of why the representative is the median: it is stable in n where the width and
+the minimum are not.
+
+**A FITTED NOISE FLOOR WOULD HAVE TO BE WRONG SOMEWHERE.** At n = 10 the
+widths span 0.02 to 0.18 -- a factor of NINE across eight ligands of one
+method on four receptors. The no-fitted-constant rule, measured rather than
+argued.
+
+**THE COUNT DECIDES AND NOT THE SIZE, shown on real output.** BU72 and
+fentanyl in 5C1M are **3.70 kcal/mol apart, ~90x the wider of their widths**,
+and at 3 runs each the shipped `compare()` still returns NOT_ASSESSED. All
+four pairs flip to SEPARATED at exactly n = 5 -- the first count above the
+derived minimum of 4. Nothing about the gap enters that decision.
+
+**2RH1 IS THE ROW THAT EXPLAINS THE ONE-DIRECTIONAL RULE.** Carazolol and
+BI-167107 are **0.08 kcal/mol apart** with widths of 0.05 and 0.06, and the
+method calls them SEPARATED. True about the search, and meaningless about the
+chemistry: 0.08 is far below what a ~0.6-correlation scoring function
+resolves. A reader taking "separated" as chemical evidence has made the exact
+error the panel's wording exists to prevent.
+
+**AND THE MOTIVATING FIGURE WAS AN UNDERESTIMATE.** Fentanyl's own width in
+5C1M is 0.04 over ten runs against the reported analogues' 0.13 spread -- so
+those three were about THREE times the single-molecule width, not the
+"roughly twice" recorded from a three-seed sample. The sample-size effect,
+appearing in the figure that motivated the work.
+
+**PREP IS NOT WORTH CACHING and flexibility is what costs.** Receptor prep is
+0.2-1.0 s paid ONCE; a search is 6.1-37.8 s paid per run, so prep is under 2%
+of a ten-replicate sweep. Ergotamine (43 heavy atoms) takes 37.8 s per run
+against LSD's 6.1 s **on the same receptor**.
+
+### THE RECEPTOR PDBQT IS NOT REPRODUCIBLE, AND THE SCORE IS
+
+Found because the benchmark prints the receptor's sha256 as a setup assertion
+and two runs of identical inputs printed different ones. Measured, three
+preparations of 5C1M in ONE process:
+
+    three different sha256, all at 302,980 bytes
+    80 of 3794 lines differ, and EVERY one is an added polar HYDROGEN
+    on a rotatable group (Arg guanidinium and friends)
+
+Open Babel places those at a rotamer it does not fix. Heavy atoms are
+identical. **The scores were unaffected** -- the same two ligands at the same
+three seeds gave byte-identical affinities across two separately-prepared
+receptors -- so this is a hidden non-deterministic step between the recorded
+settings and the search that has not been observed to move an answer. n=6, so
+that is an observation and not a guarantee.
+
+**IT MEANS A PRINTED sha IS EVIDENCE ABOUT ONE RUN, NOT A REPRODUCIBILITY
+FINGERPRINT**, which is now written into the benchmark beside the number it
+qualifies.
+
+### TWO SEED CONCEPTS, AND A PINNED SEED NO LONGER REACHES VINA
+
+    protocol_seed 4712              what the user typed
+      +- derived per (protocol_seed, ligand_uuid)
+           +- replicate[0].seed  881423     the actual Vina seeds
+           +- replicate[1].seed  1990277
+    representative_index 1          so DockingResultModel.seed == 1990277
+
+**DERIVED PER LIGAND IS A STATISTICAL REQUIREMENT, NOT A CONVENIENCE.** The
+rank-sum calculation needs two INDEPENDENT samples; deriving from the protocol
+seed alone would hand every ligand in a screen the same seed set, so their
+values would arrive as correlated pairs and the exact calculation would be
+void -- while every number on screen still looked fine. No numerical test
+notices that.
+
+That is also what disqualifies the friendly-looking variant where replicate 0
+keeps the protocol seed verbatim: every ligand would then share seed 4712 as
+its first run. The cost is stated rather than discovered -- **pinning 4712 no
+longer makes Vina run at 4712**, so a result recorded before this cannot be
+reproduced by re-typing its number, and `DockingResultModel.seed` keeps its
+old meaning (the seed of the run that produced the STORED poses).
+
+**SHA-256, NEVER `hash()`, AND NEVER A TUPLE SEED.** `hash()` of a str is
+randomised per process, so the obvious derivation would have made a
+"reproducible" protocol depend on PYTHONHASHSEED -- this project shipped
+exactly that once, in `protonate_at_ph`. And `random.Random((seed, uuid))`
+raises: `random.seed` takes only None/int/float/str/bytes/bytearray. The
+shipped sequence is also PREFIX-STABLE -- seed i never depends on `count` --
+so raising 3 replicates to 5 keeps the first three runs.
+
+### THE REPRESENTATIVE IS THE MEDIAN, AND BEST-OF-N IS DISQUALIFIED
+
+Best-of-N is a MAX SELECTION, so the headline affinity drifts more negative
+purely as the replicate count rises -- the reported number becoming a function
+of how many times it was run, which is this feature's own harm reintroduced in
+the first number a reader sees. The median also makes the pose table's row 1
+equal BY CONSTRUCTION to the reported centre.
+
+The fixture that guards it is `-10.0 / -9.0 / -8.0 / -1.0`, chosen because
+FIRST, BEST and LAST each select a DIFFERENT replicate on it -- index 0, 0 and
+3 against the median's 2 -- so one assertion rules out all three. An
+even-length list whose middles tie would not.
+
+### THREE STATES, NOT TWO, AND THE THIRD IS THE DEFAULT
+
+    replicates is None   "not recorded -- this result predates replicate runs"
+    n == 1               "1 run (seed 358255849, protocol seed 4712) --
+                          no spread measured"
+    n >= 2               "Score range over 3 runs: -8.85 to -8.73 (median
+                          -8.79). Poses are from the median run (...)."
+
+`DEFAULT_REPLICATES = 1`, so at the default the fix is BEHAVIOURAL and costs
+no runtime: the number stops presenting itself as a measurement. A width of
+0.0 from five agreeing runs is a MEASUREMENT and must stay distinguishable
+from all three, which is why `AffinityRange.width` is None at n = 1 rather
+than 0.0.
+
+**AND `from_dict` SYNTHESISES NOTHING for a legacy result.** A one-element
+record and a genuine single-replicate run are different claims about how the
+run was performed.
+
+### THE PROGRESS MAPPING WAS DESIGNED AGAINST A CHANNEL THAT DOES NOT EXIST
+
+The plan specified that replicate i map its 0..1 into `[i/n, (i+1)/n]`. There
+is nothing to map it into: `_on_progress` has never read `fraction`, and
+`JobHandle`'s own docstring says it reuses the free-text message "rather than
+a second, parallel progress-reporting channel". Computing a mapped fraction
+would be a number nothing consumes.
+
+**The MESSAGE names the run** -- "Run 2 of 3: Preparing receptor" -- which
+buys what the mapping was for: a three-minute job stops LOOKING like it reset
+three times. At N == 1 the text is unchanged, and that narrow half is the
+load-bearing guard: "always prefix the run" satisfies the N > 1 test and ships
+"Run 1 of 1:" to every user who never asked for replicates.
+
+### RANKING IS A DOMINANCE RANK, NOT A TIE-GROUPING
+
+    rank(x) = 1 + |{ y : y is separated-below x }|
+
+**"Not separated" is NOT an equivalence relation**, which is what kills the
+obvious implementation. With A = [-9.0, -8.5], B = [-8.6, -7.0] and
+C = [-7.2, -6.0], A overlaps B and B overlaps C while **A and C are
+disjoint** -- a transitive closure renders 1, 1, 1 and destroys a separation
+the data supports. The dominance rank renders 1, 1, 2.
+
+"Separated-below" IS a strict partial order (an interval order, hence
+transitive), so counting dominators is well defined. The guard asserts its own
+setup -- that A and C really are disjoint -- because otherwise it renders
+1, 1, 1 and passes against the closure it exists to rule out.
+
+**AT ONE REPLICATE THE TABLE REFUSES TO RANK, VISIBLY.** Every pair is
+NOT_ASSESSED so every row reads 1, which is correct and looks exactly like a
+broken rank column -- so a note says why and names the minimum count.
+
+### AND QT'S ROW INDEX CONTRADICTED THE RANK COLUMN
+
+Found by grabbing the screening dialog and reading the shot, with every guard
+in the file green. The results table is SORTED BY SCORE, so the vertical
+header's 1, 2, 3, 4 reads as a strict ranking -- and it sat immediately left
+of a Rank column reading 1, 1, 1 above a note saying the ranking could not be
+assessed. **The refusal was defeated by the widget beside it**, and a reader
+would believe the numbers over the prose. Hidden.
+
+**NOT the same as the Docking panel's pose table**, where the row index merely
+DUPLICATES a "Pose" column -- poses really are strictly ordered by score
+within one run, so that one is redundant rather than wrong. The distinction is
+in both comments, because the obvious sweep would hide both.
+
+### THE POSE TABLE'S AFFINITY HEADER WAS CLIPPED AT BOTH ENDS
+
+The **sixteenth** entry in this file's running count of defects found only by
+driving the app and magnifying the shot, and it was pre-existing. Every column
+was `ResizeMode.Stretch`, so the table's 440 px divided into four 110 px
+sections while "Binding Affinity (kcal/mol)" needs 141 -- and a header
+OVERFLOWS rather than eliding, so it rendered:
+
+    ling Affinity (kcal/r
+
+Identical to what `virtual_screening_dialog.py:109-119` already records fixing
+in its own table ("est score (kcal/mo"). Measured at 440 px:
+
+    Stretch on all four        [110, 110, 110, 110]   affinity CLIPPED
+    stretch the LAST section   [ 34, 154,  62, 190]   190 px for a
+                                                      five-character number
+    this                       [ 34, 278,  62,  66]   nothing clipped
+
+`ResizeToContents` sizes a section to the WIDER of its header and its cells,
+so those three cannot clip at ANY font or DPI -- a stronger statement than a
+measurement, and why only the affinity column takes the remainder. **Proven to
+say no on BOTH font platforms**: reverting fails the guard under `offscreen`
+AND under `windows`.
+
+### THE LIMIT NOTE NAMES NEITHER "CONFIDENCE" NOR "INTERVAL"
+
+The plan's draft wording denied both by name -- "It is not a confidence
+interval, a prediction interval, or a binding-affinity uncertainty". A denial
+teaches the reader the exact frame the sentence exists to prevent, AND it
+makes any guard on the rendered string unable to tell a denial from a claim.
+Saying what the number IS leaves a clean word ban, which is what ships:
+
+    That range is how much these runs disagreed with each other -- not an
+    uncertainty on the affinity. A gap between two ligands means the search
+    separated them, not that they bind differently.
+
+**ON SCREEN, NOT ONLY IN THE TOOLTIP**, because this project has twice
+recorded a meaning that lived only in a hover and was absent from every
+screenshot -- the isotope table's spin/parity marks, and `Fact.limitations`.
+
+### NOT ONE SMILES IS TYPED IN THE BENCHMARK
+
+Every ligand is DEPOSITED, fetched by chemical-component code: each receptor's
+own ligand plus the ligand of a sibling entry in the same family, so both are
+real ligands of the receptor being docked. This project has already recorded a
+benchmark whose story changed when two from-memory SMILES were replaced by the
+corpus's own.
+
+**ALL FOUR TARGETS ARE GPCRs, AND THAT IS A LIMIT RATHER THAN A CHOICE.** The
+family-sibling rule is what removes typed SMILES, and the receptor library's
+only multi-deposit families are GPCRs -- there is no second
+acetylcholinesterase or HIV-protease entry to take a second ligand from. So
+none of this says how the spread behaves on a soluble enzyme with a buried
+pocket.
+
+### DRIVEN AGAINST REAL VINA, AND THE MEDIAN IS THE REPORTED NUMBER
+
+`benchmarks/visual/docking_replicates.json` docks fentanyl into 5C1M at
+**3 replicates**, unpinned, through the real button. Five minutes unattended.
+What the panel rendered:
+
+    Score range over 3 runs: -8.91 to -8.86 (median -8.88). Poses are from
+    the median run (seed 1649537115). That range is how much these runs
+    disagreed with each other -- not an uncertainty on the affinity. ...
+
+**THE MEDIAN IS -8.88, WHICH IS THE NUMBER THE WHOLE FEATURE WAS REPORTED
+FROM** -- now with a width of 0.05 and a count beside it. The pose table's row
+1 reads -8.88 too, equal by construction.
+
+The unpinned branch is verified live by what is ABSENT: "seed 1649537115" with
+no "protocol seed" clause, because nothing was pinned. And `dock_panel` logged
+`replicates=1 spread_hidden=True spread=''` before the run against
+`replicates=3 spread_hidden=False` after, which is the hidden/shown transition
+a screenshot cannot distinguish from an empty label -- the reason the drive
+step logs the flag beside taking the shot.
+
+### AND THE MAGNIFIED SHOT FOUND A PRE-EXISTING CLIP: THE PANEL DID NOT FIT
+
+At the dock's 420 px default the Docking panel was 466 px wide, so roughly
+26 px of every widget sat past the right edge behind the scroll area: the
+**Dock button read "Doc"**, "RMSD u.b." read "RMSI", and each of the new
+label's lines was cut mid-word.
+
+**IT PREDATED EVERYTHING HERE**, checked rather than assumed: the artifact from
+this branch's own earlier `docking_search_controls` run, taken before the panel
+gained anything, shows the box status clipped identically as
+`box 16x18x16 A (size cl`. The panel's minimum was 466 px before AND after the
+replicate work. It was also an accepted compromise -- this file's own
+`initial_right_dock_width` entry lists Docking at 466 and chose 420 anyway.
+
+What changed its status is that the cost changed shape: clipping 26 px off a
+spin box is invisible; clipping it off four lines of prose makes the sentence
+unreadable, and clipping it off a BUTTON leaves "Doc".
+
+**THE CAUSE IS THAT QT SIZES A SPIN BOX TO ITS RANGE.** A `QDoubleSpinBox`
+asks for the widest value its range permits plus slack, so the six coordinate
+spins each wanted 109 px for a number that in practice reads "-58.78". Three
+of them plus a form label column is a 444 px group in a 420 px dock.
+
+    baseline                             466   clipped
+    shorter form labels alone            427   still clipped
+    both                                 406   fits, 14 px to spare
+
+**`flow_row` IS NOT THE CURE, measured twice over.** It wraps, so an `x, y, z`
+triple would split across lines -- worse to read than the clip -- and it costs
+height in a panel whose 3D sibling was once 63 px tall. The shipped fix costs
+**zero** height: 610 px minimum before and after, asserted.
+
+**AND MY FIRST FIX WAS A PIXEL CONSTANT THAT MEASURED BEAUTIFULLY AND WAS WRONG
+IN KIND.** A flat 100 px cap took the panel to 400 and looked perfect. Under a
+larger UI font it gives the line edit 80 px for a value needing 96, so it would
+clip the NUMBER -- strictly worse than clipping a label, because a half-shown
+coordinate is a wrong coordinate. `coordinate_spin_width` derives the width
+from the font and the STYLE instead:
+
+    platform    text   chrome   Qt's hint   derived
+    windows       44       52         109    96 + a digit
+    offscreen     96       20         132   116 + a digit
+
+**THE CHROME IS ASKED OF THE STYLE, NOT ALLOWED FOR.** A first check budgeted
+30 px for the buttons and frame and concluded 90 px was fine. Asked of the LINE
+EDIT -- where the text is painted -- it is 52 px here and 20 px under
+`offscreen`, so 90 px would have clipped "-1000.00" while every arithmetic
+check said it fit. **Ask the widget, do not budget for it.**
+
+#### THE MUTATION PASS HAD TO RUN ON BOTH FONT PLATFORMS, AND THAT IS THE POINT
+
+Six arms, run under `windows` AND `offscreen`:
+
+    W1  no cap at all                     caught on both
+    W2  a flat 100 px cap                 SURVIVED on windows, caught on offscreen
+    W3  the chrome guessed at 30 px       caught on both
+    W4  the digit of margin dropped       SURVIVED on both -- admitted equivalent
+    W5  the width ignores the range       caught on both
+    W6  the long form labels come back    caught on both, after a guard was added
+
+**W2 IS THE WHOLE ARGUMENT.** The defect a fixed cap introduces is invisible at
+the font it was fitted to and only appears at another -- which is the failure
+this file records as "a geometry claim about real fixed text is a claim about
+the font", arriving as a mutation that a single-platform pass would have
+scored SURVIVED and shrugged at.
+
+**W6 WAS A REAL GAP.** Restoring the long labels takes the panel 406 -> 427,
+back above the dock, and nothing caught it: the spin guard covers the spins and
+the fits-the-value guard covers the text. A guard on the box GROUP's width
+closes it.
+
+**W4 IS AN ADMITTED EQUIVALENT.** Without the digit of margin the line edit
+comes out exactly as wide as the text, which still satisfies `>=`. It is
+defensive slack against rounding, no test distinguishes it, and the docstring
+says so rather than a guard restating the line.
+
+**AND THE GUARDS ARE FONT-INDEPENDENT BECAUSE THEY HAD TO BE.** "The panel's
+minimum is at most 420" cannot be asserted: under `offscreen` it is 706 with
+the fix and without it, because a different group binds at that font. What is
+assertable everywhere is that the widest permitted value fits its line edit,
+that the width differs between the two ranges (a constant cannot), and that the
+box GROUP shrinks. The first draft asserted the PANEL and failed under
+`offscreen` against correct code.
+
+### `search_options` NEVER REACHES A SCREEN, AND THAT IS STILL TRUE
+
+`ScreeningService.request_screen` takes no `search_options` and passes none to
+`request_docking`, so a screen runs at the provider's own defaults while the
+Docking panel sends its three. Latent rather than live, because they coincide
+today at 25 / vina / random seed -- the same shape as
+`BatchRequest.molecule_uuids`.
+
+**The plan claimed replicates could not be threaded through without fixing
+it. That is false**: `replicates` is a `request_docking` parameter, a sibling
+of `num_poses`, and threads exactly as `num_poses` already does. So it was NOT
+fixed -- adding a parameter no caller can fill is the unread-field defect in
+another costume, and fixing it properly means the screening dialog growing
+exhaustiveness, scoring and seed controls, which is a decision about whether a
+screen should be configurable.
+
+## MASTER CRASHES IN THE SAME TWO TESTS, AND THAT IS THE ATTRIBUTION
+
+PR #65's first CI run reported `completed/success` at every level the REST API
+exposes and had crashed. The annotation is the only thing that says so:
+
+    Reached [58%]. CENSUS: died in tests/test_nmr_view_dialog.py::
+    test_dialog_without_a_conformer_still_shows_the_spectrum after 3903
+    test(s); 1 late destruction(s) during the run.
+
+**RE-RUN ON THE SAME SHA IT CRASHED AGAIN** -- 58%, same file, the ADJACENT
+test, after 3901 tests. Two for two.
+
+**AND MASTER DOES THE SAME THING, ON COMMITS THAT PREDATE THE BRANCH.** This is
+what settles attribution, and it took one loop over `git log` plus the
+annotations API:
+
+    tree              test                                          late
+    master 7bcde4ce   ..._without_a_conformer_still_shows_...        0
+    master d261da8d   test_dialog_shows_the_signal_list              0
+    PR #65            ..._without_a_conformer_still_shows_...        1
+    PR #65 re-run     test_dialog_shows_the_signal_list              1
+
+The same two tests, alternating, at 57-58%, on a tree with no docking work in
+it. Two crashes in two runs is unremarkable against this file's own measured
+fixed-tree rate of 0.54 -- p = 0.25 for 2-of-2 -- and the branch touches
+nothing NMR, nothing Qt-lifetime and nothing in `conftest.py`. What it does do
+is add ~60 tests, which shifts collection order, which is the documented
+mechanism that MOVES the victim rather than creating one.
+
+**SURVEY THE BASE BEFORE BLAMING THE BRANCH.** Six master commits' annotations
+cost about a minute and turned "my branch crashes CI" into "this is the thing
+CLAUDE.md has a section about". Without it the obvious move is to go hunting
+through a diff that cannot contain the cause.
+
+### THE ONE NEW DATUM IS `late`, AND IT IS MINE
+
+Every one of the ten previously recorded observations reports `0 late
+destruction(s)`. Both of this branch's report **1**, and master reports 0 on
+the same instrument. That is a real difference, whatever it means for the
+crash.
+
+It has an obvious candidate: `tests/test_docking_panel.py` had **no disposal at
+all** for any of its 26 panels, and this branch added five guards that
+additionally `show()` theirs -- and a shown widget runs far more of its own
+code and holds far more state than an unshown one. So a dormant leak became a
+live one. `conftest.dispose` per file, the same recipe
+`test_screening_service.py` and `test_batch_panel.py` take.
+
+**THE LOCAL A/B COULD NOT CONFIRM IT, AND CI DID.** Running the census over
+the six files that matter -- the panel, the screening pair, the docking
+service, `test_ir_view_widget.py` (the file already recorded as leaking nine
+widgets) and the victim itself -- gives **LATE = 0 with the disposal AND
+without it**. The subset does not reproduce the condition; it needs the full
+suite's ordering and the collector's timing, which is the same reason the
+original leak measurement had to be a full run.
+
+So the disposal shipped because the RULE says so, with the CI reading as the
+experiment. **It answered: `late` went 1 -> 0 on the next run**, against 1 on
+both runs of the previous SHA and 0 on master throughout. n=1 on the after
+side, but the before side is 2 for 2 and master is consistent, so the reading
+is real.
+
+**AND THE CRASH SURVIVED IT**, at 58% in the same file, on a third distinct
+test of that file -- with `0 late destruction(s)`. Which is exactly what master
+already implied: a late destruction is not necessary for this crash, and
+removing one does not touch it. That is worth having as a measurement rather
+than an inference, because "we fixed a leak and the crash is still there" is a
+much stronger statement than "we fixed a leak".
+
+**A LATE DESTRUCTION IS NOT KNOWN TO CAUSE THIS CRASH.** Master crashes with
+`late = 0`, so it is plainly not necessary. Fixing it is hygiene the project
+already requires, not a fix for the crash, and saying otherwise would be this
+file's own "a residual explained by inference" mistake.
+
+### WHAT THE BLOCKING GATE SAID
+
+`suite + gating benchmarks` passed with **all sixteen steps SUCCESS**,
+including the three that a red suite silently takes with it:
+
+    SUCCESS  Run the test suite
+    SUCCESS  Naming benchmark (must stay 181/181)
+    SUCCESS  Regulatory benchmark
+    SUCCESS  Validate regulatory rulesets
+
+Read the STEP LIST, not the conclusion -- and note the Linux job's
+`completed/success` beside it, which is the whole reason that rule exists.
+
 ## Running the tests
 
 ```bash

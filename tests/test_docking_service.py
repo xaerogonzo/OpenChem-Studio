@@ -457,3 +457,486 @@ def test_a_default_run_says_it_did_not_use_an_assembly(qapp):
     task.run()
 
     assert results[0].provenance.parameters["assembly_requested"] is False
+
+
+# --- replicates -------------------------------------------------------------
+#
+# Every guard here runs `_DockingTask.run()` DIRECTLY rather than through the
+# thread pool. The loop, the seed derivation and the representative choice are
+# all synchronous, so scheduling them would buy nothing but a `_drain` and a
+# timeout -- and this project's own record is that a pumped event loop is where
+# its crashes land.
+
+
+class _ReplicateProvider(DockingProvider):
+    """Records the seed of every call and returns a scripted affinity per run.
+
+    It MIRRORS the real provider on the one behaviour the service reads back:
+    `VinaDockingProvider` chooses a seed itself when the caller pinned none and
+    reports it through `_last_run_settings`. A fake that reported nothing would
+    make every unpinned replicate record `seed=None` and hide the difference
+    between "the provider chose one" and "the provider was never asked".
+    """
+
+    provider_id = "replicate"
+    engine_id = "replicate-engine"
+
+    def __init__(self, affinities, fail_on=None, cancel_after=None) -> None:
+        self._affinities = list(affinities)
+        self._fail_on = fail_on
+        self._cancel_after = cancel_after
+        self.seeds: list[int | None] = []
+        self.calls = 0
+        self._last_run_settings: dict = {}
+
+    def engine_version(self) -> str:
+        return "1.0"
+
+    def dock(
+        self,
+        receptor_structure_text,
+        receptor_source_format,
+        ligand_mol,
+        box,
+        num_poses,
+        progress,
+        receptor_prep_options=None,
+        search_options=None,
+    ):
+        index = self.calls
+        self.calls += 1
+        options = search_options or {}
+        seed = options.get("seed")
+        if seed is None:
+            seed = 700000 + index
+        self.seeds.append(seed)
+        self._last_run_settings = {
+            "exhaustiveness": int(options.get("exhaustiveness", 25)),
+            "seed": seed,
+            "scoring_function": options.get("scoring_function", "vina"),
+            "ligand_prep_params": {},
+        }
+        progress.report(0.5, "Docking")
+        if self._fail_on is not None and index == self._fail_on:
+            raise RuntimeError(f"run {index} blew up")
+        if self._cancel_after is not None and index == self._cancel_after:
+            progress.cancel()
+        affinity = self._affinities[index]
+        if affinity is None:
+            return []
+        return [
+            DockingPoseModel(
+                pose_molblock=f"pose from run {index}",
+                binding_affinity_kcal_mol=affinity,
+                rmsd_lb=0.0,
+                rmsd_ub=0.0,
+            )
+        ]
+
+
+def _replicate_task(provider, *, replicates, search_options=None, ligand_uuid="lig-1"):
+    from openchem.domain.docking import DockingBox as _DockingBox
+    from openchem.services.docking_service import _DockingTask
+    from openchem.services.progress import ProgressHandle
+
+    bus = EventBus()
+    events: list = []
+    produced: list = []
+    bus.subscribe(DockingJobStateChanged, events.append)
+    bus.subscribe(DockingResultReady, lambda e: produced.append(e.result))
+    task = _DockingTask(
+        provider=provider,
+        ligand_molecule_uuid=ligand_uuid,
+        ligand_mol=Chem.MolFromSmiles("CCO"),
+        receptor_macromolecule_uuid="rec-1",
+        receptor_structure_text="ATOM ...",
+        receptor_source_format="pdb",
+        box=_DockingBox(center=(0.0, 0.0, 0.0), size=(10.0, 10.0, 10.0)),
+        num_poses=9,
+        event_bus=bus,
+        job_manager=JobManager(),
+        receptor_prep_options={},
+        progress=ProgressHandle(),
+        search_options=search_options,
+        replicates=replicates,
+    )
+    return task, events, produced
+
+
+# --- the seeds --------------------------------------------------------------
+
+
+def test_three_replicates_run_three_searches_with_three_distinct_seeds():
+    """The loop's whole point, and the mutation is reusing one seed.
+
+    Three runs at one seed would return three identical affinities, so the
+    spread would read as 0.00 over 3 runs -- a measurement of nothing,
+    presented in the same words as a molecule that genuinely reproduces.
+    """
+    provider = _ReplicateProvider([-8.9, -8.8, -8.7])
+    task, _events, produced = _replicate_task(
+        provider, replicates=3, search_options={"seed": 4712}
+    )
+    task.run()
+
+    assert provider.calls == 3
+    assert len(set(provider.seeds)) == 3
+    assert len(produced) == 1
+    assert len(produced[0].replicates.replicates) == 3
+
+
+def test_a_pinned_protocol_seed_is_not_itself_sent_to_the_engine():
+    """The cost of the hierarchy, asserted so nobody discovers it.
+
+    Pinning 4712 no longer makes Vina run at 4712 -- it makes it run at seeds
+    DERIVED from 4712, one per replicate. What is preserved is the property
+    that matters: the same protocol seed regenerates the same set for this
+    ligand. What is lost is that an older result cannot be reproduced by
+    re-typing its recorded number, which is why `protocol_seed` and `seed` are
+    two fields rather than one.
+    """
+    provider = _ReplicateProvider([-8.9])
+    task, _events, produced = _replicate_task(
+        provider, replicates=1, search_options={"seed": 4712}
+    )
+    task.run()
+
+    assert provider.seeds == [358255849]
+    assert 4712 not in provider.seeds
+    assert produced[0].replicates.protocol_seed == 4712
+    assert produced[0].seed == 358255849
+
+
+def test_a_pinned_seed_reproduces_the_whole_replicate_set():
+    """Every run, not just the first.
+
+    The mutation is seeding replicate 0 and letting the rest fall to the
+    provider's own randomness, which reproduces the headline number often
+    enough to look right while the SPREAD -- the thing being measured -- is
+    different every time.
+    """
+    first = _ReplicateProvider([-8.9, -8.8, -8.7])
+    second = _ReplicateProvider([-8.9, -8.8, -8.7])
+    for provider in (first, second):
+        task, _events, _produced = _replicate_task(
+            provider, replicates=3, search_options={"seed": 4712}
+        )
+        task.run()
+
+    assert first.seeds == second.seeds
+    assert len(set(first.seeds)) == 3
+
+
+def test_two_ligands_never_share_a_replicate_seed():
+    """The statistical precondition, and no numerical test would notice it.
+
+    `domain/affinity_range.py`'s separation rule is an exact rank-sum
+    calculation over two INDEPENDENT samples. Deriving replicate seeds from the
+    protocol seed alone would hand every ligand in a screen the same set, so
+    their values would arrive as correlated pairs and the exact calculation
+    would be void -- while every affinity, every range and every verdict on
+    screen still looked entirely reasonable.
+    """
+    from openchem.services.docking_service import replicate_seeds
+
+    a = replicate_seeds(4712, "ligand-a", 5)
+    b = replicate_seeds(4712, "ligand-b", 5)
+
+    assert set(a).isdisjoint(b)
+    assert len(set(a)) == 5
+
+
+def test_the_replicate_seed_sequence_is_prefix_stable():
+    """Raising the count keeps the runs already performed.
+
+    Seed i depends on i and never on `count`, so a 5-replicate set is the
+    3-replicate set plus two more rather than a different experiment. That is
+    what lets nested counts be read off one sample -- the benchmark's whole
+    n = 3/5/10 design -- and it is not free: drawing from a shared random
+    stream sized to `count` would satisfy every other guard here and break it.
+    """
+    from openchem.services.docking_service import replicate_seeds
+
+    assert replicate_seeds(4712, "lig-a", 5)[:3] == replicate_seeds(4712, "lig-a", 3)
+
+
+def test_the_seed_derivation_never_calls_the_builtin_hash():
+    """A source guard, because this project has already shipped this bug.
+
+    `hash()` of a str is randomised per process, so a protocol advertised as
+    reproducible would silently have depended on PYTHONHASHSEED --
+    `protonate_at_ph` made a scientific answer a function of it, and eight
+    processes gave three different charges. A behavioural test cannot see this
+    from inside one process, which is exactly why the check is lexical.
+
+    It is an AST walk and not a text search: `hashlib` contains the word.
+    """
+    import ast
+    from pathlib import Path
+
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "openchem"
+        / "services"
+        / "docking_service.py"
+    ).read_text(encoding="utf-8")
+    offenders = [
+        node
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "hash"
+    ]
+
+    assert offenders == []
+
+
+# --- what the set records ---------------------------------------------------
+
+
+def test_a_single_run_still_records_a_one_element_replicate_set():
+    """Three states, and this is the middle one.
+
+    `None` means the count was never recorded, which is every result saved
+    before replicates existed. A one-element set means somebody ran this once
+    and we know it. Collapsing them would make the panel unable to tell "no
+    spread was measured" from "we have no idea how this was run".
+    """
+    provider = _ReplicateProvider([-8.9])
+    task, _events, produced = _replicate_task(provider, replicates=1)
+    task.run()
+
+    assert produced[0].replicates is not None
+    assert len(produced[0].replicates.replicates) == 1
+    assert produced[0].replicates.affinity_range().width is None
+
+
+def test_an_unpinned_run_has_no_protocol_seed_and_still_records_every_seed():
+    """Fabricating a root the user never chose would make an unpinned run look
+    pinned. The individual seeds are still recorded, so the set is reproducible
+    after the fact even though it was not reproducible in advance.
+    """
+    provider = _ReplicateProvider([-8.9, -8.8])
+    task, _events, produced = _replicate_task(provider, replicates=2)
+    task.run()
+
+    replicate_set = produced[0].replicates
+    assert replicate_set.protocol_seed is None
+    assert all(r.seed is not None for r in replicate_set.replicates)
+
+
+def test_a_provider_that_cannot_take_search_options_records_no_seed():
+    """The honest record for a run whose seed was never sent anywhere.
+
+    `FakeDockingProvider` predates `search_options`, so the derived seed is not
+    passed and the provider reports nothing back. Recording the derived number
+    would name a setting the run did not use -- the exact defect that made
+    `scoring_function="vina"` and `exhaustiveness=8` literals here once.
+    """
+    provider = FakeDockingProvider()
+    task, _events, produced = _replicate_task(
+        provider, replicates=2, search_options={"seed": 4712}
+    )
+    task.run()
+
+    assert [r.seed for r in produced[0].replicates.replicates] == [None, None]
+
+
+# --- which run the poses come from ------------------------------------------
+
+
+def test_the_representative_is_the_median_replicate():
+    """End to end, on the fixture that discriminates first, best and last.
+
+    The service half is separate from `median_replicate_index`'s own guard
+    because two things can drift: the rule, and whether the poses actually kept
+    are the ones the rule chose. Testing the helper is not testing the wiring.
+    """
+    provider = _ReplicateProvider([-10.0, -9.0, -8.0, -1.0])
+    task, _events, produced = _replicate_task(
+        provider, replicates=4, search_options={"seed": 4712}
+    )
+    task.run()
+
+    result = produced[0]
+    assert result.replicates.representative_index == 2
+    assert result.poses[0].pose_molblock == "pose from run 2"
+    assert result.poses[0].binding_affinity_kcal_mol == -8.0
+    # The stored seed is the seed of the run behind the stored poses -- read
+    # from the representative's snapshot and not from the provider, which by
+    # now is holding run 3's.
+    assert result.seed == provider.seeds[2]
+    assert result.seed != provider.seeds[-1]
+
+
+def test_the_reported_centre_does_not_improve_with_more_replicates():
+    """The behavioural half of refusing best-of-N.
+
+    Both fixtures are centred on -8.0 and the wider one reaches further in both
+    directions, so the MEDIAN is unmoved while the MINIMUM drops by 3 kcal/mol.
+    A best-scoring representative would report -9.0 at n = 3 and -12.0 at n = 9
+    for the same molecule -- an affinity that is a function of the replicate
+    count, which is what this whole feature exists to stop.
+    """
+    narrow = _ReplicateProvider([-9.0, -8.0, -7.0])
+    wide = _ReplicateProvider([-12.0, -10.0, -9.0, -8.5, -8.0, -7.5, -7.0, -6.0, -4.0])
+
+    centres = []
+    lows = []
+    for provider, count in ((narrow, 3), (wide, 9)):
+        task, _events, produced = _replicate_task(
+            provider, replicates=count, search_options={"seed": 4712}
+        )
+        task.run()
+        spread = produced[0].replicates.affinity_range()
+        centres.append(spread.median)
+        lows.append(spread.low)
+
+    assert centres == [-8.0, -8.0]
+    assert lows == [-9.0, -12.0]
+
+
+def test_the_pose_table_row_one_equals_the_reported_centre():
+    """By construction, so the panel never prints two numbers for one thing.
+
+    The representative IS the median run, so its best pose IS the median of the
+    per-replicate bests. A best-scoring or first-run representative breaks this
+    silently: the table and the spread label would disagree with nothing on
+    screen able to say which was right.
+    """
+    provider = _ReplicateProvider([-10.0, -9.0, -8.0, -1.0])
+    task, _events, produced = _replicate_task(
+        provider, replicates=4, search_options={"seed": 4712}
+    )
+    task.run()
+
+    result = produced[0]
+    assert result.poses[0].binding_affinity_kcal_mol == result.replicates.affinity_range().median
+
+
+# --- failure, cancellation and cost -----------------------------------------
+
+
+def test_a_failed_replicate_fails_the_whole_run():
+    """No partial set, and the mutation is publishing the runs that worked.
+
+    A spread over "the 3 of 5 that finished" is a spread over a SELECTED
+    subset, and the selection is not random: a replicate that crashed may well
+    be one whose search went somewhere unusual, so dropping it biases the very
+    quantity the set exists to measure. The failure names the run, because the
+    exception alone cannot say which of five broke.
+    """
+    provider = _ReplicateProvider([-8.9, -8.8, -8.7], fail_on=1)
+    task, events, produced = _replicate_task(
+        provider, replicates=3, search_options={"seed": 4712}
+    )
+    task.run()
+
+    assert produced == []
+    assert events[-1].state == CacheState.FAILED
+    assert "Run 2 of 3" in events[-1].message
+    assert provider.calls == 2
+
+
+def test_a_single_run_failure_message_is_unchanged():
+    """The default path renders exactly as it did before replicates existed.
+
+    "Run 1 of 1 failed" is noise, and a message that changed at N = 1 would be
+    a behavioural change shipped to every user who never asked for replicates.
+    """
+    provider = _ReplicateProvider([-8.9], fail_on=0)
+    task, events, _produced = _replicate_task(provider, replicates=1)
+    task.run()
+
+    assert events[-1].state == CacheState.FAILED
+    assert events[-1].message == "run 0 blew up"
+
+
+def test_a_cancel_between_replicates_publishes_FAILED():
+    """A partial set is not the run the user asked for.
+
+    The provider cancels at the end of its first call, so the loop's check
+    fires before the second. The mutation is carrying on: it would publish a
+    one-run set labelled as one of three, with a width of None where the user
+    asked for a spread.
+    """
+    provider = _ReplicateProvider([-8.9, -8.8, -8.7], cancel_after=0)
+    task, events, produced = _replicate_task(
+        provider, replicates=3, search_options={"seed": 4712}
+    )
+    task.run()
+
+    assert provider.calls == 1
+    assert produced == []
+    assert events[-1].state == CacheState.FAILED
+    assert "cancelled" in events[-1].message.lower()
+
+
+def test_interaction_analysis_runs_once_not_per_replicate():
+    """It annotates the poses that get DISPLAYED, and only one set is kept.
+
+    Running it per replicate would cost N receptor parses to enrich pose sets
+    nobody ever sees. Counted on `receptor_atoms_from_structure`, which is the
+    expensive half and is called exactly once per annotation pass.
+    """
+    import openchem.services.docking_service as service_module
+
+    calls = []
+    original = service_module.receptor_atoms_from_structure
+    service_module.receptor_atoms_from_structure = lambda *a, **k: calls.append(1) or []
+    try:
+        provider = _ReplicateProvider([-8.9, -8.8, -8.7, -8.6])
+        task, _events, produced = _replicate_task(
+            provider, replicates=4, search_options={"seed": 4712}
+        )
+        task.run()
+    finally:
+        service_module.receptor_atoms_from_structure = original
+
+    assert provider.calls == 4
+    assert len(calls) == 1
+    assert len(produced) == 1
+
+
+# --- progress ---------------------------------------------------------------
+
+
+def test_progress_names_the_replicate_rather_than_appearing_to_restart():
+    """The message is the only progress channel this application has.
+
+    `JobHandle`'s own docstring says it reuses the free-text string "rather
+    than a second, parallel progress-reporting channel", and `_on_progress` has
+    never read `fraction` -- so the design's "map 0..1 into [i/n, (i+1)/n]"
+    would have computed a number nothing consumes. Naming the run buys what the
+    mapping was for: a long job stops LOOKING like it reset to the first phase
+    N times.
+    """
+    provider = _ReplicateProvider([-8.9, -8.8, -8.7])
+    task, events, _produced = _replicate_task(
+        provider, replicates=3, search_options={"seed": 4712}
+    )
+    task.run()
+
+    messages = [e.message for e in events if e.message]
+    assert messages == [
+        "Run 1 of 3: Docking",
+        "Run 2 of 3: Docking",
+        "Run 3 of 3: Docking",
+    ]
+
+
+def test_a_single_run_reports_progress_exactly_as_it_did_before_replicates():
+    """The narrow half, and it is the load-bearing one.
+
+    "Always prefix the run" satisfies the guard above and ships "Run 1 of 1:"
+    to every user who never asked for replicates -- a visible change to the
+    default path, in a branch whose whole compatibility claim is that N = 1
+    renders as it always did.
+    """
+    provider = _ReplicateProvider([-8.9])
+    task, events, _produced = _replicate_task(provider, replicates=1)
+    task.run()
+
+    assert [e.message for e in events if e.message] == ["Docking"]
+

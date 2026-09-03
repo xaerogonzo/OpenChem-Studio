@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QRect, Signal
+from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -14,6 +15,8 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QSpinBox,
+    QStyle,
+    QStyleOptionSpinBox,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -30,7 +33,7 @@ from openchem.domain.docking import DockingBox
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
 from openchem.events.events import DockingJobStateChanged, DockingResultReady, MoleculeSelected
-from openchem.services.docking_service import DockingService
+from openchem.services.docking_service import DEFAULT_REPLICATES, DockingService
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 from openchem.ui.molecule_combo import repopulate, select
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
@@ -38,6 +41,73 @@ from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 logger = logging.getLogger("openchem.ui")
 
 _POSE_COLUMNS = ("Pose", "Binding Affinity (kcal/mol)", "RMSD l.b.", "RMSD u.b.")
+
+def coordinate_spin_width(spin: QDoubleSpinBox) -> int:
+    """Wide enough for the widest value the spin's RANGE permits, and no wider.
+
+    **THE PANEL DID NOT FIT THE DOCK IT OPENS IN.** Its minimum was 466 px
+    against a dock that opens at `main_window._INITIAL_RIGHT_DOCK_WIDTH` = 420,
+    so ~26 px of every widget sat past the right edge behind the scroll area:
+    the Dock button rendered as "Doc", "RMSD u.b." as "RMSI", and the replicate
+    spread label was cut mid-word on every line. Pre-existing -- an artifact
+    taken before that label existed shows the box status clipped identically as
+    `box 16x18x16 A (size cl`.
+
+    The cause is the six coordinate spins. Qt sizes a `QDoubleSpinBox` to the
+    widest value its RANGE permits and then adds slack, so these ask 109 px for
+    a number that in practice reads "-58.78". Three of them plus a form label
+    column is a 444 px group in a 420 px dock.
+
+    **DERIVED FROM THE FONT AND THE STYLE, NEVER A PIXEL CONSTANT**, and the
+    first version of this was a flat 100 px that measured beautifully and was
+    wrong in kind. Under a larger UI font that cap gives the line edit 80 px
+    for a value needing 96 -- so it would clip the NUMBER, which is strictly
+    worse than clipping a label. Measured both ways:
+
+        platform    text   chrome   Qt's hint   this
+        windows       44       52         109     96 + a digit
+        offscreen     96       20         132    116 + a digit
+
+    The chrome comes from the style's own `SC_SpinBoxEditField` rather than an
+    allowance: a first attempt guessed 30 px for the buttons and frame, which
+    is why 90 px looked fine and clipped. Asked of the LINE EDIT -- where the
+    text is painted -- it is 52 on this platform and 20 on the other.
+
+    One digit of margin, also font-derived, because the exact fit leaves a
+    rounding error nowhere to go. **NO TEST DISTINGUISHES IT**, and that is
+    recorded rather than papered over: without the margin the line edit comes
+    out exactly as wide as the text, which still satisfies the fits-the-value
+    guard. Asserting a specific slack would only restate this line.
+
+    **`flow_row` IS NOT THE CURE**, for the reason this file already records
+    about the strip-checkbox row: it wraps, so an `x, y, z` triple would split
+    across lines -- worse to read than the clip -- and it would cost ~42 px of
+    height in a panel whose 3D sibling was once 63 px tall.
+    """
+    metrics = QFontMetrics(spin.font())
+    widest = max(
+        metrics.horizontalAdvance(spin.textFromValue(spin.minimum())),
+        metrics.horizontalAdvance(spin.textFromValue(spin.maximum())),
+    )
+    option = QStyleOptionSpinBox()
+    spin.initStyleOption(option)
+    hint = spin.sizeHint()
+    option.rect = QRect(0, 0, hint.width(), hint.height())
+    field = spin.style().subControlRect(
+        QStyle.ComplexControl.CC_SpinBox,
+        option,
+        QStyle.SubControl.SC_SpinBoxEditField,
+        spin,
+    )
+    return widest + (hint.width() - field.width()) + metrics.horizontalAdvance("0")
+
+
+#: The pose column that takes whatever width the other three do not need.
+#:
+#: NAMED RATHER THAN INDEXED, so reordering `_POSE_COLUMNS` cannot silently
+#: stretch a different column -- an index would still be a valid column and
+#: nothing would look wrong until somebody magnified the header.
+_AFFINITY_COLUMN = "Binding Affinity (kcal/mol)"
 
 #: What each column MEANS, which the headers alone do not say -- reported
 #: as confusing by a user who read the RMSD columns as accuracy against an
@@ -169,6 +239,42 @@ _CONTROL_HELP = {
         ),
         tier=2, help_id="docking.num_poses", topic="docking", help_anchor="docking",
     ),
+    "replicates": HelpTooltip(
+        text=(
+            "How many independent Vina searches to run for this ligand. Range 1 "
+            "to 25, default 1.\n\n"
+            "Vina's search is stochastic, so a single run is one draw. Running N "
+            "of them measures how far the score moves when nothing but the seed "
+            "changes, and the panel then reports that range rather than one "
+            "number that looks like a measurement.\n\n"
+            "It multiplies the wall clock by N. And below 4 runs each, no "
+            "ordering between two ligands can be supported however far apart "
+            "their scores look: with 3 runs each, two sets of scores separate "
+            "completely by chance one time in ten."
+        ),
+        tier=2, help_id="docking.replicates", topic="docking",
+        help_anchor="docking", source_key="mann1947",
+    ),
+    "affinity_spread": HelpTooltip(
+        text=(
+            "The lowest and highest Vina score across this result's replicate "
+            "runs, in kcal/mol, with the median and the number of runs.\n\n"
+            "It is the SAMPLE RANGE of the runs performed -- how reproducible "
+            "the search is for this ligand, in this box, at these settings. It "
+            "is not an uncertainty on the binding affinity, and it neither "
+            "widens nor narrows with how well the score predicts reality.\n\n"
+            "It licenses one direction only. Two ligands whose ranges OVERLAP "
+            "are indistinguishable by this method. Two whose ranges are "
+            "disjoint were separated by the SCORING FUNCTION -- which CASF-2016 "
+            "places at a ranking correlation of around 0.6 even for its best "
+            "performers -- so a separation is not evidence that the two "
+            "molecules bind differently.\n\n"
+            "The range GROWS with the number of runs, in expectation, so two "
+            "ranges measured over different counts are not comparable."
+        ),
+        tier=3, help_id="docking.affinity_spread", topic="docking",
+        help_anchor="limits-docking", source_key="su2019",
+    ),
     "protonation_ph": HelpTooltip(
         text=(
             "The pH BOTH the receptor and the ligand are prepared at. Range 0 "
@@ -262,9 +368,11 @@ _CONTROL_HELP = {
         text=(
             "Prepares the receptor and the ligand and runs AutoDock Vina inside "
             "the search box above.\n\n"
-            "The search is STOCHASTIC and this application does not pin its "
-            "seed, so two runs of the same input give slightly different poses "
-            "and scores. A difference smaller than that spread is not a result."
+            "The search is STOCHASTIC. Two runs of the same input give "
+            "slightly different poses and scores, and a difference smaller than "
+            "that spread is not a result.\n\n"
+            "Seed pins one run so it can be repeated; Replicates MEASURES the "
+            "spread instead of leaving it to be guessed at."
         ),
         tier=3, help_id="docking.run", topic="docking", help_anchor="limits-docking",
     ),
@@ -326,6 +434,88 @@ _LIMITATION_NOTE = (
     "result (see ARCHITECTURE.md). Treat results as a starting point, not "
     "production-grade docking prep."
 )
+
+
+#: The one conclusion a reader must not draw from a replicate range.
+#:
+#: ON SCREEN, NOT ONLY IN THE TOOLTIP. This project has twice recorded a
+#: meaning that lived only in a hover and was therefore absent from every
+#: screenshot -- the isotope table's spin/parity marks, and `Fact.limitations`,
+#: which reaches a row tooltip and nothing else. A range printed beside two
+#: affinities reads as an error bar unless something on the same surface says
+#: it is not one.
+#:
+#: IT NAMES NEITHER "CONFIDENCE" NOR "INTERVAL", deliberately, where the plan
+#: for this feature listed both in a denial. Saying "this is not a confidence
+#: interval" teaches a reader the exact frame the sentence exists to prevent,
+#: and it makes any guard on the rendered string unable to tell a denial from a
+#: claim. Saying what the number IS, plus the one direction it licenses, is
+#: shorter and leaves the guard a clean word ban.
+_SPREAD_LIMIT_NOTE = (
+    "That range is how much these runs disagreed with each other -- not an "
+    "uncertainty on the affinity. A gap between two ligands means the search "
+    "separated them, not that they bind differently."
+)
+
+
+def _representative_seed_phrase(replicates) -> str:
+    """" (seed 1990277, protocol seed 4712)", or "" when neither is known.
+
+    BOTH, WHEN BOTH EXIST, because they differ and the difference is the whole
+    seed hierarchy this branch introduced: what the user pinned is not what
+    Vina ran. Printing only the pinned number would tell a reader the run used
+    4712; printing only the derived one would leave them unable to reproduce
+    it.
+    """
+    rows = replicates.replicates
+    index = replicates.representative_index
+    seed = rows[index].seed if 0 <= index < len(rows) else None
+    parts = []
+    if seed is not None:
+        parts.append(f"seed {seed}")
+    if replicates.protocol_seed is not None:
+        parts.append(f"protocol seed {replicates.protocol_seed}")
+    return f" ({', '.join(parts)})" if parts else ""
+
+
+def describe_replicate_spread(replicates) -> str:
+    """What the panel says under the pose table about how this result was run.
+
+    THREE STATES, NOT TWO, and each renders differently -- `n/a is not 0` with
+    a third case:
+
+        replicates is None   the count was never recorded, which is every
+                             result saved before replicate runs existed
+        n == 1               one run, no spread MEASURED -- which is the
+                             default path, and the whole behavioural fix at
+                             N = 1: the number stops presenting itself as a
+                             measurement
+        n >= 2               the measured range, its median, and the count
+
+    A width of 0.0 from five runs that genuinely agree is a MEASUREMENT and
+    stays distinguishable from all three, which is why `AffinityRange.width`
+    is None at n = 1 rather than 0.0.
+
+    A pure function over the domain type, so the three states are testable
+    without building a panel -- and so the wording cannot drift between the
+    live render and `sync_with_project`'s.
+    """
+    if replicates is None:
+        return (
+            "Replicates were not recorded for this result, which is every "
+            "result saved before replicate runs existed."
+        )
+    spread = replicates.affinity_range()
+    if spread is None:
+        return "No run of this set produced a score."
+    seeds = _representative_seed_phrase(replicates)
+    if spread.n < 2:
+        return f"1 run{seeds} — no spread measured."
+    return (
+        f"Score range over {spread.n} runs: {spread.low:.2f} to "
+        f"{spread.high:.2f} (median {spread.median:.2f}). Poses are from the "
+        f"median run{seeds}. {_SPREAD_LIMIT_NOTE}"
+    )
 
 
 def _box_defining_ligand_codes(receptor) -> list[str]:
@@ -476,6 +666,16 @@ class DockingPanel(QWidget):
         self._scoring_combo.addItem("Vinardo", "vinardo")
         apply_help_tooltip(self._scoring_combo, _CONTROL_HELP["scoring_function"])
 
+        # 1..25, default 1. ONE, because anything above it would multiply
+        # every existing user's docking wall clock with no announcement -- and
+        # because at 1 the panel's whole render is byte-identical to what it
+        # was before replicates existed, so a surprise here is this feature's
+        # fault rather than a re-baselining.
+        self._replicates_spin = QSpinBox(self)
+        self._replicates_spin.setRange(1, 25)
+        self._replicates_spin.setValue(DEFAULT_REPLICATES)
+        apply_help_tooltip(self._replicates_spin, _CONTROL_HELP["replicates"])
+
         # 0 reads as "Random" through setSpecialValueText, which is Qt's own
         # idiom for an out-of-band value -- rather than a second checkbox whose
         # state could disagree with the number beside it.
@@ -515,6 +715,16 @@ class DockingPanel(QWidget):
         #: the message survived the click and found that it did not.
         self._box_status_label = QLabel("", self)
         self._box_status_label.setWordWrap(True)
+        #: How this result was run, under the pose table. ITS OWN LABEL and
+        #: not `_status_label`, for the reason `_box_status_label` above is
+        #: separate: that one carries job state and is rewritten on every
+        #: `DockingJobStateChanged`, so a spread put there is wiped by the
+        #: "completed" that arrives after the result.
+        self._spread_label = QLabel("", self)
+        self._spread_label.setWordWrap(True)
+        apply_help_tooltip(self._spread_label, _CONTROL_HELP["affinity_spread"])
+        self._spread_label.setVisible(False)
+
         self._limitation_label = QLabel(_LIMITATION_NOTE, self)
         self._limitation_label.setWordWrap(True)
 
@@ -533,7 +743,33 @@ class DockingPanel(QWidget):
                 apply_help_tooltip(
                     item, replace(_POSE_COLUMN_HELP[name], text=_POSE_COLUMN_TOOLTIPS[name])
                 )
-        self._table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # THE AFFINITY COLUMN TAKES THE SLACK; THE OTHER THREE SIZE TO THEIR
+        # OWN TEXT. Stretch on all four divided the table's 440 px into four
+        # equal 110 px sections, and "Binding Affinity (kcal/mol)" needs 141 --
+        # so it rendered clipped at BOTH ends as "ling Affinity (kcal/r", which
+        # is the identical defect `virtual_screening_dialog.py` records fixing
+        # in its own table ("est score (kcal/mo").
+        #
+        # `ResizeToContents` sizes a section to the WIDER of its header and its
+        # cells, so those three cannot clip at any font or DPI -- the property
+        # a hand-tuned pixel width would not have. Measured at 440 px:
+        #
+        #     Stretch on all four   [110, 110, 110, 110]   affinity CLIPPED
+        #     this                  [ 34, 278,  62,  66]   nothing clipped
+        #
+        # The affinity column is the one that takes the remainder because it is
+        # the quantity a reader is here for. Letting the LAST column take it
+        # instead -- `setStretchLastSection` -- gives RMSD u.b. 190 px for a
+        # five-character number while leaving affinity at 154, five pixels off
+        # clipping again.
+        header = self._table.horizontalHeader()
+        for column, name in enumerate(_POSE_COLUMNS):
+            header.setSectionResizeMode(
+                column,
+                QHeaderView.ResizeMode.Stretch
+                if name == _AFFINITY_COLUMN
+                else QHeaderView.ResizeMode.ResizeToContents,
+            )
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
         receptor_row = QHBoxLayout()
@@ -555,8 +791,12 @@ class DockingPanel(QWidget):
         size_row.addWidget(self._size_x)
         size_row.addWidget(self._size_y)
         size_row.addWidget(self._size_z)
-        box_form.addRow("Center (x, y, z):", center_row)
-        box_form.addRow("Size (x, y, z):", size_row)
+        # "Center:" rather than "Center (x, y, z):", which cost 39 px of the
+        # 46 the panel had to save. The ordering is not lost: the two controls
+        # carry `docking.box_centre` and `docking.box_size`, and the status
+        # line under the group prints "centre (2.0, 15.9, -58.8)" in full.
+        box_form.addRow("Center:", center_row)
+        box_form.addRow("Size:", size_row)
 
         # "Preparation", not "Receptor preparation": the pH governs the LIGAND
         # too now, and a heading naming only the receptor would say the panel
@@ -587,6 +827,11 @@ class DockingPanel(QWidget):
         search_form = QFormLayout(search_group)
         search_form.addRow("Exhaustiveness:", self._exhaustiveness_combo)
         search_form.addRow("Scoring function:", self._scoring_combo)
+        # DIRECTLY ABOVE SEED, because it changes what Seed means: a pinned
+        # seed is the root of a DERIVED set of per-run seeds rather than the
+        # number Vina receives. A reader who meets Seed first forms the older
+        # meaning and has no reason to revisit it.
+        search_form.addRow("Replicates:", self._replicates_spin)
         search_form.addRow("Seed:", self._seed_spin)
 
         run_row = QHBoxLayout()
@@ -603,6 +848,7 @@ class DockingPanel(QWidget):
         layout.addWidget(search_group)
         layout.addLayout(run_row)
         layout.addWidget(self._status_label)
+        layout.addWidget(self._spread_label)
         layout.addWidget(self._table)
         layout.addWidget(self._limitation_label)
 
@@ -614,6 +860,9 @@ class DockingPanel(QWidget):
         spin = QDoubleSpinBox(self)
         spin.setRange(minimum, maximum)
         spin.setValue(value)
+        # Capped rather than left at Qt's own hint, which adds slack on top of
+        # the widest value the RANGE permits. See `coordinate_spin_width`.
+        spin.setMaximumWidth(coordinate_spin_width(spin))
         return spin
 
     def set_project(self, project: ProjectModel | None) -> None:
@@ -740,6 +989,22 @@ class DockingPanel(QWidget):
             "scoring_function": self._scoring_combo.currentData(),
             "seed": None if seed == 0 else seed,
         }
+
+    def displayed_replicates(self) -> int:
+        """How many searches the next run performs.
+
+        A SIBLING OF `num_poses` AND DELIBERATELY NOT A `search_options` KEY.
+        `search_options` is the dict handed straight to the provider, and a
+        provider never sees more than one run at a time -- a replicate count in
+        it would name something it cannot act on. It is also asserted as an
+        exact dict by `tests/test_ligand_extent_warning.py`, which this
+        placement leaves valid unedited.
+
+        Its own accessor rather than a bare `.value()` at the call site, for
+        the reason `displayed_search_options` is: one place reads the control,
+        so the panel cannot start displaying one count and docking another.
+        """
+        return self._replicates_spin.value()
 
     def displayed_box(self) -> DockingBox:
         """The box as the six spinboxes currently read it.
@@ -988,6 +1253,7 @@ class DockingPanel(QWidget):
                 "strip_ligand_codes": _box_defining_ligand_codes(receptor),
             },
             search_options=self.displayed_search_options(),
+            replicates=self.displayed_replicates(),
         )
 
     def _report_box_placement(self, receptor, box: DockingBox) -> None:
@@ -1074,6 +1340,11 @@ class DockingPanel(QWidget):
         """
         self._table.setRowCount(0)
         self._displayed_result_uuid = None
+        # Cleared HERE and not only in `_show_result`, so undoing a dock takes
+        # the spread label with the poses. Leaving it would state a measured
+        # range for a run the project no longer contains -- the same defect
+        # this method exists to fix for the table.
+        self._set_spread_text("")
         result = self._latest_result_for_selection(project)
         if result is not None:
             self._show_result(result)
@@ -1093,8 +1364,20 @@ class DockingPanel(QWidget):
         # made, not the first one ever made.
         return max(matching, key=lambda r: r.timestamp) if matching else None
 
+    def _set_spread_text(self, text: str) -> None:
+        """Show the label only when it has something to say.
+
+        An empty word-wrapped QLabel still claims a line of font height, and
+        this panel is height-constrained enough that its 3D sibling was once
+        63 px tall. Hidden rather than blank, so the default path costs the
+        table nothing.
+        """
+        self._spread_label.setText(text)
+        self._spread_label.setVisible(bool(text))
+
     def _show_result(self, result) -> None:
         self._displayed_result_uuid = result.uuid
+        self._set_spread_text(describe_replicate_spread(result.replicates))
         self._table.setRowCount(len(result.poses))
         for row, pose in enumerate(result.poses):
             values = (

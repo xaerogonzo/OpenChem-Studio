@@ -15,6 +15,8 @@ from openchem.events.events import MoleculeSelected
 from openchem.services.docking_service import DockingService
 from openchem.ui.panels.docking_panel import DockingPanel
 
+import conftest
+
 
 class _RecordingDockingService(DockingService):
     """Stands in for the real DockingService -- captures request_docking's
@@ -30,12 +32,46 @@ class _RecordingDockingService(DockingService):
         self.requests.append(kwargs)
 
 
+#: Every panel this file builds, destroyed at the end of its test.
+#:
+#: **THIS FILE LEAKED ALL 26 OF THEM**, and the census on the Linux job is what
+#: said so: this branch's runs reported "1 late destruction" where master's
+#: reported 0. A late destruction is a widget built in one test and destroyed
+#: inside a LATER one, from Python's collector rather than at a boundary --
+#: which is the shape this project's access-violation family has.
+#:
+#: Five of the guards added here `show()` their panel, and a shown widget runs
+#: far more of its own code and holds far more state than an unshown one, so
+#: what was a dormant leak became a live one.
+#:
+#: `conftest.dispose` is THE implementation -- the same one
+#: `test_screening_service.py` and `test_batch_panel.py` take, per file and per
+#: widget. It is emphatically NOT `dispose_app_widgets`, the autouse fixture
+#: that DISCOVERED its own subjects and was reverted for crashing the suite 8
+#: of 8 runs.
+_BUILT: list = []
+
+
+@pytest.fixture(autouse=True)
+def _dispose_panels():
+    """Destroyed deterministically rather than left to the collector.
+
+    Autouse over the FIXTURE, not over the widgets: it serves only what
+    `_make_panel` explicitly hands over, which is what keeps it on the safe
+    side of the line `conftest.dispose` draws.
+    """
+    yield
+    while _BUILT:
+        conftest.dispose(_BUILT.pop())
+
+
 def _make_panel():
     bus = EventBus()
     engine = ChemistryEngine()
     settings = Settings(bus)
     docking_service = _RecordingDockingService(bus)
     panel = DockingPanel(docking_service, engine, settings, bus)
+    _BUILT.append(panel)
     return panel, engine, docking_service
 
 
@@ -602,3 +638,605 @@ def test_the_derive_buttons_live_tooltip_still_carries_its_contract(qapp):
     # ... and the live half really is there, or the composition is vacuous.
     panel._describe_derivable_ligands(("7LD", "NAG"))
     assert "7LD" in panel._derive_button.toolTip()
+
+
+# --- the replicate control and the spread label -----------------------------
+
+
+def _replicate_set(*affinities, protocol_seed=4712, representative=0, seeds=None):
+    from openchem.domain.docking import DockingReplicate, DockingReplicateSet
+
+    seeds = seeds if seeds is not None else [1000 + i for i in range(len(affinities))]
+    return DockingReplicateSet(
+        protocol_seed=protocol_seed,
+        representative_index=representative,
+        replicates=[
+            DockingReplicate(seed=seed, best_affinity_kcal_mol=value)
+            for seed, value in zip(seeds, affinities, strict=True)
+        ],
+    )
+
+
+def _result_with(replicates, affinities=(-8.79,)):
+    from openchem.domain.common import Provenance
+    from openchem.domain.docking import DockingBox, DockingPoseModel, DockingResultModel
+
+    return DockingResultModel(
+        ligand_molecule_uuid="lig-1",
+        receptor_macromolecule_uuid="rec-1",
+        box=DockingBox(center=(0.0, 0.0, 0.0), size=(10.0, 10.0, 10.0)),
+        poses=[
+            DockingPoseModel(
+                pose_molblock="pose",
+                binding_affinity_kcal_mol=value,
+                rmsd_lb=0.0,
+                rmsd_ub=0.0,
+            )
+            for value in affinities
+        ],
+        provenance=Provenance(created_by="core", method="vina", parameters={}),
+        engine="vina",
+        engine_version="1.2.7",
+        scoring_function="vina",
+        exhaustiveness=25,
+        seed=1000,
+        replicates=replicates,
+    )
+
+
+# --- the control ------------------------------------------------------------
+
+
+def test_the_replicate_count_defaults_to_one(qapp):
+    """The default is what almost every user will run, and it is the reason
+    every pre-existing docking test passes unedited.
+
+    Anything above 1 would multiply every existing user's docking wall clock
+    with no announcement, and multiply every virtual-screening budget.
+    """
+    from openchem.services.docking_service import DEFAULT_REPLICATES
+
+    panel, _engine, _service = _make_panel()
+
+    assert panel._replicates_spin.value() == 1
+    assert panel._replicates_spin.value() == DEFAULT_REPLICATES
+    assert panel._replicates_spin.minimum() == 1
+    assert panel._replicates_spin.maximum() == 25
+
+
+def test_the_panel_sends_the_replicate_count_it_displays(qapp):
+    """One accessor, so the panel cannot display one count and dock another."""
+    panel, engine, service = _make_panel()
+    panel.set_project(_project_with([_receptor()], _dockable_ligand(engine)))
+    panel._receptor_combo.setCurrentIndex(0)
+    panel._ligand_combo.setCurrentIndex(0)
+    panel._replicates_spin.setValue(5)
+
+    panel._on_dock_clicked()
+
+    assert panel.displayed_replicates() == 5
+    assert service.requests[-1]["replicates"] == 5
+
+
+def test_the_replicate_count_is_not_a_search_option(qapp):
+    """A SIBLING OF `num_poses`, and the mutation is putting it in the dict.
+
+    `search_options` goes straight to the provider, which never sees more than
+    one run at a time -- a replicate count there would name something it cannot
+    act on. It is also asserted as an exact dict by
+    `tests/test_ligand_extent_warning.py`, which this placement leaves valid
+    unedited; that guard would go red the moment the key moved.
+    """
+    panel, engine, service = _make_panel()
+    panel.set_project(_project_with([_receptor()], _dockable_ligand(engine)))
+    panel._receptor_combo.setCurrentIndex(0)
+    panel._ligand_combo.setCurrentIndex(0)
+    panel._replicates_spin.setValue(3)
+
+    panel._on_dock_clicked()
+
+    assert "replicates" not in service.requests[-1]["search_options"]
+
+
+def test_replicates_is_offered_above_seed_because_it_changes_what_seed_means(qapp):
+    """Order, asserted on the FORM rather than on the construction order.
+
+    A pinned seed is the root of a derived set of per-run seeds rather than the
+    number Vina receives, so a reader who meets Seed first forms the older
+    meaning and has no reason to revisit it. Only the laid-out row order says
+    which they meet first.
+    """
+    from PySide6.QtWidgets import QFormLayout
+
+    panel, _engine, _service = _make_panel()
+    form = panel._replicates_spin.parent().layout()
+    assert isinstance(form, QFormLayout), "setup: the Search group is a QFormLayout"
+
+    rows = {}
+    for row in range(form.rowCount()):
+        field = form.itemAt(row, QFormLayout.ItemRole.FieldRole)
+        if field is not None:
+            rows[field.widget()] = row
+
+    assert rows[panel._replicates_spin] < rows[panel._seed_spin]
+
+
+# --- the three states -------------------------------------------------------
+
+
+def test_a_result_that_predates_replicates_says_so(qapp):
+    """State one of three. `None` is not a synonym for one run.
+
+    Rendering it as "1 run" would make every pre-existing project file assert a
+    replicate structure nobody chose -- the reason `from_dict` synthesises
+    nothing.
+    """
+    from openchem.ui.panels.docking_panel import describe_replicate_spread
+
+    text = describe_replicate_spread(None)
+
+    assert "not recorded" in text
+    assert "1 run" not in text
+
+
+def test_a_single_run_says_no_spread_was_measured(qapp):
+    """State two, and the whole behavioural fix at the default count.
+
+    The panel stops printing a bare -8.79 as though it were a measurement. It
+    reports one run and says outright that nothing about the spread is known.
+    """
+    from openchem.ui.panels.docking_panel import describe_replicate_spread
+
+    text = describe_replicate_spread(_replicate_set(-8.79, seeds=[358255849]))
+
+    assert "1 run" in text
+    assert "no spread measured" in text
+    assert "358255849" in text
+    assert "4712" in text, "the pinned root, which is NOT the seed the run used"
+
+
+def test_a_replicate_set_reports_its_range_median_and_count(qapp):
+    """State three. All of range, median and COUNT, because the range grows
+    with n in expectation -- so a width with no count beside it invites two
+    widths measured at different counts being compared.
+    """
+    from openchem.ui.panels.docking_panel import describe_replicate_spread
+
+    text = describe_replicate_spread(
+        _replicate_set(-8.85, -8.79, -8.73, representative=1)
+    )
+
+    assert "3 runs" in text
+    assert "-8.85" in text and "-8.73" in text
+    assert "median -8.79" in text
+
+
+def test_a_zero_width_range_is_a_measurement_and_not_an_absence(qapp):
+    """Five runs that genuinely agree measured a width of zero. One run
+    measured nothing at all. They must not read the same.
+
+    This is `n/a is not 0` in reverse, and it is why `AffinityRange.width` is
+    None at n = 1 rather than 0.0.
+    """
+    from openchem.ui.panels.docking_panel import describe_replicate_spread
+
+    agreeing = describe_replicate_spread(_replicate_set(*([-8.79] * 5)))
+    single = describe_replicate_spread(_replicate_set(-8.79))
+
+    assert "5 runs" in agreeing
+    assert "no spread measured" not in agreeing
+    assert "no spread measured" in single
+
+
+# --- what the text may and may not say --------------------------------------
+
+
+def test_the_label_names_the_median_run_and_never_the_best(qapp):
+    """A UI-string guard, DISTINCT from the numerical one in the service.
+
+    The label and the selection rule can drift apart silently -- the plan for
+    this feature did exactly that, specifying a median representative in one
+    paragraph and a "best-scoring" label in another. A reader told the poses
+    are the best of five would read the headline affinity as a best-of-N, which
+    is the statistic this whole feature exists to stop reporting.
+    """
+    from openchem.ui.panels.docking_panel import describe_replicate_spread
+
+    text = describe_replicate_spread(_replicate_set(-8.85, -8.79, -8.73, representative=1))
+
+    assert "median run" in text
+    assert "best" not in text.lower()
+
+
+def test_the_label_never_renders_an_error_bar_or_calls_itself_an_interval(qapp):
+    """The one-directional reading, guarded as a clean word ban.
+
+    "+/-" is the unambiguous error-bar glyph and "confidence interval" /
+    "prediction interval" are the two readings this feature exists to prevent.
+
+    THE TEXT AVOIDS THOSE WORDS ENTIRELY RATHER THAN DENYING THEM, which is a
+    deliberate departure from the plan's own draft wording ("It is not a
+    confidence interval, a prediction interval, or a binding-affinity
+    uncertainty"). A denial teaches the reader the exact frame it is trying to
+    prevent, and it makes any guard on the rendered string unable to tell a
+    denial from a claim -- so the ban below could not have been written at all.
+    """
+    from openchem.ui.panels.docking_panel import describe_replicate_spread
+
+    for replicates in (None, _replicate_set(-8.79), _replicate_set(-8.85, -8.79, -8.73)):
+        text = describe_replicate_spread(replicates).lower()
+        assert "±" not in text
+        assert "+/-" not in text
+        assert "interval" not in text
+        assert "confidence" not in text
+
+
+def test_the_label_carries_its_interpretation_limit_on_screen(qapp):
+    """ON SCREEN, not only in the tooltip.
+
+    This project has twice recorded a meaning that lived only in a hover and
+    was therefore absent from every screenshot -- the isotope table's
+    spin/parity marks, and `Fact.limitations`, which reaches a row tooltip and
+    nothing else. A range printed beside two affinities reads as an error bar
+    unless something on the same surface says it is not one.
+    """
+    from openchem.ui.panels.docking_panel import _SPREAD_LIMIT_NOTE, describe_replicate_spread
+
+    text = describe_replicate_spread(_replicate_set(-8.85, -8.79, -8.73))
+
+    assert _SPREAD_LIMIT_NOTE in text
+
+
+def test_no_control_contract_still_claims_the_seed_cannot_be_pinned(qapp):
+    """Two contracts on one screen used to contradict each other about one
+    fact: `run` said "this application does not pin its seed" while
+    `random_seed`, a row above it, said "Pin one to compare two settings".
+
+    A CHANGE DETECTOR for a recorded contradiction, and it generalises a
+    little: any future contract making the same claim fails it too.
+    """
+    from openchem.ui.panels.docking_panel import _CONTROL_HELP
+
+    offenders = [
+        name for name, contract in _CONTROL_HELP.items()
+        if "does not pin" in contract.text
+    ]
+
+    assert offenders == []
+
+
+# --- rendering, and the two ways it used to be lost -------------------------
+
+
+def test_the_spread_label_is_hidden_until_there_is_a_result(qapp):
+    """Hidden rather than blank: an empty word-wrapped QLabel still claims a
+    line of font height, and this panel is height-constrained enough that its
+    3D sibling was once 63 px tall.
+
+    `isHidden`, not `isVisible` -- every child of an unshown widget reports
+    `isVisible() == False`, so that assertion would pass against a label that
+    is permanently shown.
+    """
+    panel, _engine, _service = _make_panel()
+
+    assert panel._spread_label.isHidden()
+    assert panel._spread_label.text() == ""
+
+
+def test_showing_a_result_shows_the_spread(qapp):
+    panel, _engine, _service = _make_panel()
+
+    panel._show_result(_result_with(_replicate_set(-8.85, -8.79, -8.73)))
+
+    assert not panel._spread_label.isHidden()
+    assert "3 runs" in panel._spread_label.text()
+
+
+def test_a_job_state_arriving_after_the_result_does_not_wipe_the_spread(qapp):
+    """The defect `_box_status_label` already exists to prevent, one label on.
+
+    `_status_label` carries job state and is rewritten on every
+    `DockingJobStateChanged` -- and COMPLETED arrives after
+    `DockingResultReady`, so a spread written there would be wiped microseconds
+    after appearing. Asserted through the real event, not by calling the
+    handler.
+    """
+    from openchem.domain.common import CacheState
+    from openchem.events.events import DockingJobStateChanged
+
+    panel, _engine, _service = _make_panel()
+    panel._pending_ligand_uuid = "lig-1"
+    panel._pending_receptor_uuid = "rec-1"
+    panel._show_result(_result_with(_replicate_set(-8.85, -8.79, -8.73)))
+    assert "3 runs" in panel._spread_label.text(), "setup: the spread was shown"
+
+    panel._on_job_state_changed(
+        DockingJobStateChanged(
+            ligand_molecule_uuid="lig-1",
+            receptor_macromolecule_uuid="rec-1",
+            state=CacheState.COMPLETED,
+        )
+    )
+
+    assert "3 runs" in panel._spread_label.text()
+    assert "completed" in panel._status_label.text()
+
+
+def test_undoing_a_dock_takes_the_spread_label_with_the_poses(qapp):
+    """Symmetric with the table, and for the same reason.
+
+    Undoing a dock removed the result and left the poses on screen -- binding
+    affinities, to two decimal places, for a run the project no longer
+    contains. A spread label left behind is the same defect with a count and a
+    seed attached.
+    """
+    panel, engine, _service = _make_panel()
+    receptor = _receptor()
+    ligand = _dockable_ligand(engine)
+    project = _project_with([receptor], ligand)
+    panel.set_project(project)
+    panel._receptor_combo.setCurrentIndex(0)
+    panel._ligand_combo.setCurrentIndex(0)
+
+    result = _result_with(_replicate_set(-8.85, -8.79, -8.73))
+    result.ligand_molecule_uuid = ligand.uuid
+    result.receptor_macromolecule_uuid = receptor.uuid
+    project.docking_results.append(result)
+    panel.sync_with_project(project)
+    assert not panel._spread_label.isHidden(), "setup: the spread really was shown"
+
+    project.docking_results.clear()
+    panel.sync_with_project(project)
+
+    assert panel._spread_label.isHidden()
+    assert panel._spread_label.text() == ""
+    assert panel._table.rowCount() == 0
+
+
+
+# --- the pose table's own headers -------------------------------------------
+
+
+def _header_shortfalls(panel):
+    """Every pose column whose section is narrower than its own header text.
+
+    BOTH SIDES COME FROM THE HEADER'S OWN `QFontMetrics`, so this is not a
+    claim about a font: it asks whether the section fits the string Qt is about
+    to paint into it, in whatever font this platform supplies. `offscreen`'s
+    default is more than twice as wide as the one a user sees, and a pinned
+    pixel width here would be a statement about the test platform.
+
+    The margin is asked of the STYLE rather than typed, for the same reason.
+    """
+    from PySide6.QtGui import QFontMetrics
+    from PySide6.QtWidgets import QStyle
+
+    header = panel._table.horizontalHeader()
+    metrics = QFontMetrics(header.font())
+    margin = 2 * header.style().pixelMetric(QStyle.PixelMetric.PM_HeaderMargin)
+    from openchem.ui.panels.docking_panel import _POSE_COLUMNS
+
+    return [
+        (name, header.sectionSize(column), metrics.horizontalAdvance(name) + margin)
+        for column, name in enumerate(_POSE_COLUMNS)
+        if header.sectionSize(column) < metrics.horizontalAdvance(name) + margin
+    ]
+
+
+def test_no_pose_table_header_is_clipped(qapp):
+    """Every column header fits the section it is painted into.
+
+    Stretch on all four divided the table's 440 px into four equal 110 px
+    sections while "Binding Affinity (kcal/mol)" needs 141, so it rendered
+    clipped at BOTH ends as "ling Affinity (kcal/r" -- the identical defect
+    `virtual_screening_dialog.py:109-119` records fixing in its own table.
+
+    Found by grabbing the panel with real fonts and magnifying 3x. Nothing in
+    the suite could see it: no test asserted a section width, and there is no
+    ellipsis to detect because a header overflows rather than eliding.
+    """
+    panel, _engine, _service = _make_panel()
+    panel.show()
+    panel.resize(panel.minimumSizeHint().width(), 900)
+    qapp.processEvents()
+
+    assert _header_shortfalls(panel) == []
+
+
+def test_three_pose_columns_can_never_clip_whatever_the_font(qapp):
+    """The narrow half, and it is the load-bearing one.
+
+    "Nothing clips at this width" is satisfied by four hand-tuned pixel widths
+    that happen to fit THIS font, and would clip on a machine with a wider one.
+    `ResizeToContents` sizes a section to the wider of its header and its
+    cells, so those three cannot clip at any font or DPI -- which is a stronger
+    statement than any measurement, and the reason only the affinity column
+    takes the remainder.
+    """
+    from PySide6.QtWidgets import QHeaderView
+
+    from openchem.ui.panels.docking_panel import _AFFINITY_COLUMN, _POSE_COLUMNS
+
+    panel, _engine, _service = _make_panel()
+    header = panel._table.horizontalHeader()
+
+    modes = {
+        name: header.sectionResizeMode(column)
+        for column, name in enumerate(_POSE_COLUMNS)
+    }
+    assert modes.pop(_AFFINITY_COLUMN) == QHeaderView.ResizeMode.Stretch
+    assert set(modes.values()) == {QHeaderView.ResizeMode.ResizeToContents}
+
+
+def test_the_stretched_column_is_chosen_by_name_and_not_by_index(qapp):
+    """Reordering `_POSE_COLUMNS` must not silently stretch a different one.
+
+    An index would still be a valid column, so nothing would look wrong until
+    somebody magnified the header again.
+    """
+    from openchem.ui.panels.docking_panel import _AFFINITY_COLUMN, _POSE_COLUMNS
+
+    assert _AFFINITY_COLUMN in _POSE_COLUMNS
+
+
+# --- the panel fits the dock it opens in ------------------------------------
+
+
+def _widest_value_fits(spin) -> tuple[int, int]:
+    """(line-edit width, width the widest permitted value needs).
+
+    Asked of the LINE EDIT, which is where the text is painted -- not of the
+    spin box, whose width includes buttons and frame. A first check allowed
+    30 px for those and concluded a 90 px spin was fine; the real chrome is
+    52 px on this platform, so it would have clipped "-1000.00".
+    """
+    from PySide6.QtGui import QFontMetrics
+    from PySide6.QtWidgets import QLineEdit
+
+    edit = spin.findChild(QLineEdit)
+    metrics = QFontMetrics(edit.font())
+    return edit.width(), metrics.horizontalAdvance(spin.text())
+
+
+def test_a_coordinate_spin_always_fits_the_widest_value_its_range_permits(qapp):
+    """The narrow half, and the one that rules out a pixel constant.
+
+    A fixed cap measures beautifully on one machine and clips the NUMBER under
+    a larger UI font -- strictly worse than clipping a label, because a
+    half-shown coordinate is a wrong coordinate. Both sides of this assertion
+    come from the widget's own font, so it holds wherever it runs: under
+    `offscreen`, whose font is more than twice as wide, the derived width grows
+    with it.
+    """
+    panel, _engine, _service = _make_panel()
+    panel.show()
+
+    for spin in (panel._center_x, panel._center_y, panel._center_z):
+        spin.setValue(spin.minimum())
+    for spin in (panel._size_x, panel._size_y, panel._size_z):
+        spin.setValue(spin.maximum())
+    panel.resize(panel.minimumSizeHint().width(), 900)
+    qapp.processEvents()
+
+    too_narrow = [
+        (spin.text(), *_widest_value_fits(spin))
+        for spin in (
+            panel._center_x, panel._center_y, panel._center_z,
+            panel._size_x, panel._size_y, panel._size_z,
+        )
+        if _widest_value_fits(spin)[0] < _widest_value_fits(spin)[1]
+    ]
+
+    assert not too_narrow, f"a coordinate would be shown clipped: {too_narrow}"
+
+
+def test_the_spin_width_is_derived_from_the_range_and_not_a_constant(qapp):
+    """A constant answers the same for every range; this must not.
+
+    The box centre spans -1000..1000 and the box size 1..200, so "-1000.00" is
+    wider than "200.00" and the two controls are entitled to different widths.
+    A flat cap -- which is what this shipped as for one commit -- returns one
+    number for both and is caught here.
+    """
+    from openchem.ui.panels.docking_panel import coordinate_spin_width
+
+    panel, _engine, _service = _make_panel()
+
+    assert coordinate_spin_width(panel._center_x) > coordinate_spin_width(panel._size_x)
+
+
+def test_narrowing_the_coordinate_spins_really_shrinks_the_panel(qapp):
+    """The behavioural half, phrased so it does not depend on the font.
+
+    "The panel's minimum is at most 420" is a claim about the platform's font:
+    measured at REAL fonts it is 406 against a dock that opens at 420, and
+    under `offscreen` -- whose font is far wider -- no arrangement of this
+    panel fits 420 and none should be asked to.
+
+    ASSERTED ON THE BOX GROUP, NOT THE PANEL, and the first version of this
+    test asserted the panel and failed under `offscreen`: there the panel's
+    minimum is 706 with the cap and without it, because a different group is
+    binding at that font. The group the cap acts on shrinks on BOTH -- 405 to
+    384 at real fonts, 522 to 510 under `offscreen` -- which is the honest
+    scope of the claim.
+    """
+    from PySide6.QtWidgets import QGroupBox
+
+    panel, _engine, _service = _make_panel()
+    panel.show()
+    panel.resize(420, 900)
+    qapp.processEvents()
+    group = next(
+        g for g in panel.findChildren(QGroupBox) if g.title().startswith("Search box")
+    )
+    fitted = group.minimumSizeHint().width()
+
+    for spin in (
+        panel._center_x, panel._center_y, panel._center_z,
+        panel._size_x, panel._size_y, panel._size_z,
+    ):
+        spin.setMaximumWidth(16777215)
+    panel.resize(420, 900)
+    qapp.processEvents()
+
+    assert fitted < group.minimumSizeHint().width()
+
+
+def test_the_short_form_labels_are_the_other_half_of_the_fit(qapp):
+    """Narrowing the spins alone does not reach the dock's width.
+
+    Measured at real fonts: the spins take the panel from 466 to 427 and the
+    labels take it the rest of the way to 406, against a dock that opens at
+    420. So "Center:" rather than "Center (x, y, z):" is load-bearing, not
+    tidying -- and a mutation restoring the long form survived every other
+    guard in this file on BOTH font platforms until this one existed.
+
+    Asserted on the box GROUP for the reason the spin guard is: the panel's own
+    minimum is bound by a different group under `offscreen`.
+    """
+    from PySide6.QtWidgets import QFormLayout, QGroupBox, QLabel
+
+    panel, _engine, _service = _make_panel()
+    panel.show()
+    panel.resize(420, 900)
+    qapp.processEvents()
+    group = next(
+        g for g in panel.findChildren(QGroupBox) if g.title().startswith("Search box")
+    )
+    fitted = group.minimumSizeHint().width()
+
+    form = group.layout()
+    assert isinstance(form, QFormLayout), "setup: the box group is a QFormLayout"
+    for row, text in ((0, "Center (x, y, z):"), (1, "Size (x, y, z):")):
+        item = form.itemAt(row, QFormLayout.ItemRole.LabelRole)
+        assert item is not None and isinstance(item.widget(), QLabel), "setup: a real label"
+        item.widget().setText(text)
+    panel.resize(420, 900)
+    qapp.processEvents()
+
+    assert fitted < group.minimumSizeHint().width()
+
+
+def test_the_fix_costs_the_panel_no_height(qapp):
+    """`flow_row` was the other candidate and this is why it was refused.
+
+    Wrapping the coordinate rows would split an x, y, z triple across lines and
+    add ~42 px to a panel whose 3D sibling was once 63 px tall. Narrowing the
+    spins reaches the same width with the rows intact, so the height must not
+    move -- measured 610 px before and after at real fonts.
+    """
+    panel, _engine, _service = _make_panel()
+    panel.show()
+    panel.resize(420, 900)
+    qapp.processEvents()
+    fitted = panel.minimumSizeHint().height()
+
+    for spin in (
+        panel._center_x, panel._center_y, panel._center_z,
+        panel._size_x, panel._size_y, panel._size_z,
+    ):
+        spin.setMaximumWidth(16777215)
+    panel.resize(420, 900)
+    qapp.processEvents()
+
+    assert fitted == panel.minimumSizeHint().height()

@@ -1056,10 +1056,16 @@ document may cite a file or a test that does not exist.
   two catalytic Asp25 come out 5.36 A apart in a clean 2-fold once built,
   which is a check on the build as well as the docking.
 
-  **The seed has to be pinned for any of that to mean anything** --
-  `VinaDockingProvider` passes `seed=None`, so the shipped app runs a
-  random seed and the same receptor already differs run to run. The
-  unpinned spread above is what makes the pinned numbers readable.
+  **The seed has to be pinned for any of that to mean anything** -- an
+  unpinned run draws a fresh seed, so the same receptor already differs
+  run to run. The unpinned spread above is what makes the pinned numbers
+  readable.
+
+  (The wording here used to be "`VinaDockingProvider` passes `seed=None`",
+  which had the mechanism backwards: the provider RECEIVES a seed and,
+  handed None, chooses one itself and reports it back. The conclusion was
+  right and is unchanged. Since the replicate work the scatter can also be
+  MEASURED rather than only pinned around -- see route 1 in ROADMAP.md.)
 
   **mmCIF builds too**, and it removed the 0.001 exactly as predicted.
   `_build_mmcif` shares `_resolve_placements` with the PDB path, so the
