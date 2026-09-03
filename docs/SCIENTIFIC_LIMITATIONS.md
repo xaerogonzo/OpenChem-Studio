@@ -152,6 +152,39 @@ ligands share one — and reports the range, the median and the count. Virtual
 screening does the same and shows a *dominance rank*, where ligands whose
 ranges overlap share a rank.
 
+### The rescore column is a second opinion, not a better answer
+
+The Docking panel's *Rescore with* control scores every pose a second time
+with a different function after the search — Vinardo by default, because
+[source:quiroga2016]'s authors report it outperforming Vina on THEIR
+datasets. The pose is unchanged and so is the affinity beside it.
+
+**THE TWO NUMBERS ARE NOT ON A COMMON SCALE AND MUST NEVER BE COMPARED,
+SUBTRACTED OR AVERAGED.** Measured on one fentanyl pose in 5C1M, Vina reports
+-8.79 and Vinardo -5.41 for the same atoms in the same place. That is not one
+function saying the ligand binds worse: [source:quiroga2016]'s Table 4 shows
+Vina's long-range Gaussian term alone supplying 58% of its binding energy and
+Vinardo not having that term at all.
+
+**EVEN RESCORING WITH VINA DOES NOT REPRODUCE THE AFFINITY, except for the
+top pose.** A docking run computes one shared unbound reference for every
+pose it reports; a rescore uses each pose's own. Measured across five poses
+of one run, the difference reaches 0.41 kcal/mol and follows
+`(U − intra_i)/D` to a worst residual of 0.005.
+
+**NOTHING RE-RANKS ON IT**, and that is a statement about evidence rather
+than caution. Whether Vinardo ranks better on any particular receptor is
+unmeasured here, and the two functions genuinely disagree: driven on 5C1M,
+Vina's best pose was the worst of the first three by Vinardo. The poses stay
+ordered by the docking affinity, the replicate range is computed from the
+docking affinity, and the dominance rank sees only the docking affinity.
+
+A benchmark is the next step and it is two benchmarks, because CASF-2016's
+ranking test scores the benchmark's own poses rather than generated ones.
+Both arms carry a training-overlap question: Vinardo's parameters were
+selected on 122 of the 195 PDBbind Core 2013 structures, and Vina was trained
+on PDBbind 2007.
+
 **IT LICENSES EXACTLY ONE DIRECTION.** This is the whole of what a replicate
 range supports:
 

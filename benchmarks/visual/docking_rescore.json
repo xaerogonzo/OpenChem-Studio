@@ -1,0 +1,16 @@
+[
+  {"do": "receptor", "pdb_id": "5C1M", "after_ms": 1500},
+  {"do": "smiles", "smiles": "CCC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1", "name": "Fentanyl", "after_ms": 500},
+  {"do": "select", "molecule": -1, "after_ms": 300},
+  {"do": "conformers", "after_ms": 12000},
+  {"do": "panel", "id": "Docking", "after_ms": 800},
+  {"do": "dock_receptor", "index": -1, "after_ms": 1200},
+  {"do": "dock_panel", "tag": "before"},
+  {"do": "dock_run", "after_ms": 300000},
+  {"do": "dock_panel", "tag": "no-rescore"},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/docking_rescore_off.png", "after_ms": 800},
+  {"do": "dock_run", "rescore": "vinardo", "after_ms": 300000},
+  {"do": "dock_panel", "tag": "vinardo"},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/docking_rescore_vinardo.png", "after_ms": 800},
+  {"do": "quit"}
+]

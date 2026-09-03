@@ -177,3 +177,115 @@ def test_select_vina_engine_returns_none_when_neither_available():
         with patch("shutil.which", return_value=None):
             engine = select_vina_engine()
     assert engine is None
+
+
+# --- score_pose: the argv is the thing ---------------------------------------
+
+_SCORE_ONLY_STDOUT = (
+    "Computing Vinardo grid ... done.\n"
+    "Estimated Free Energy of Binding   : -5.468 (kcal/mol) [=(1)+(2)+(3)-(4)]\n"
+    "(1) Final Intermolecular Energy    : -7.386 (kcal/mol)\n"
+)
+
+
+def _score_engine(tmp_path):
+    exe_path = tmp_path / "vina.exe"
+    exe_path.write_text("")
+    return ExecutableVinaEngine(executable_path=str(exe_path)), exe_path
+
+
+def _score_argv(tmp_path, scoring_function, refine=False):
+    engine, exe_path = _score_engine(tmp_path)
+    box = DockingBox(center=(1.0, 2.0, 3.0), size=(16.0, 16.0, 16.0))
+    with patch(
+        "subprocess.run",
+        return_value=MagicMock(returncode=0, stdout=_SCORE_ONLY_STDOUT, stderr=""),
+    ) as mock_run:
+        value = engine.score_pose(
+            tmp_path / "receptor.pdbqt", tmp_path / "pose.pdbqt", box,
+            scoring_function, refine=refine,
+        )
+    return mock_run.call_args[0][0], value
+
+
+def test_the_requested_scoring_function_reaches_the_COMMAND_LINE(tmp_path):
+    """**THIS GUARD EXISTS BECAUSE ITS ABSENCE SURVIVED A MUTATION.**
+
+    `tests/test_rescoring.py` already asserts the function reaches "the
+    engine" -- through a SPY engine, which is the rescorer's wiring and not
+    this one's. Deleting `--scoring` from the argv here left that test
+    green, and the result is a score LABELLED Vinardo that ran plain Vina,
+    which `docs/SOURCES.md`'s quiroga2016 entry names as indistinguishable
+    from the real thing in any table. Testing a helper is not testing the
+    wiring.
+    """
+    args, _ = _score_argv(tmp_path, "vinardo")
+    assert "--scoring" in args
+    assert args[args.index("--scoring") + 1] == "vinardo"
+
+
+def test_vina_is_left_off_the_command_line_because_it_is_vinas_own_default(tmp_path):
+    """The narrow half. "Always emit --scoring" satisfies the guard above and
+    changes the argv of every ordinary run; the shipped rule matches `dock`'s,
+    which omits it at the default."""
+    args, _ = _score_argv(tmp_path, "vina")
+    assert "--scoring" not in args
+
+
+def test_score_only_and_local_only_are_the_two_protocols_on_the_argv(tmp_path):
+    as_docked, _ = _score_argv(tmp_path, "vinardo", refine=False)
+    assert "--score_only" in as_docked and "--local_only" not in as_docked
+
+    refined, _ = _score_argv(tmp_path, "vinardo", refine=True)
+    assert "--local_only" in refined and "--score_only" not in refined
+
+
+def test_no_output_file_is_ever_requested_for_a_scored_pose(tmp_path):
+    """`--local_only` will write one, and its REMARK carries the INPUT
+    pose's number rather than the requested function's. Not asking for it is
+    what keeps the wrong parser unreachable."""
+    for refine in (False, True):
+        args, _ = _score_argv(tmp_path, "vinardo", refine=refine)
+        assert "--out" not in args
+
+
+def test_the_box_reaches_the_command_line(tmp_path):
+    """--score_only scores a ligand where it already is and refuses one
+    outside the box, so the box is not optional decoration here."""
+    args, _ = _score_argv(tmp_path, "vinardo")
+    for flag in ("--center_x", "--center_y", "--center_z", "--size_x", "--size_y", "--size_z"):
+        assert flag in args
+
+
+def test_the_score_comes_back_parsed_from_stdout(tmp_path):
+    _, value = _score_argv(tmp_path, "vinardo")
+    assert value == pytest.approx(-5.468)
+
+
+def test_a_failing_vina_reports_its_own_message_not_an_exit_status(tmp_path):
+    """`check=True` would raise a CalledProcessError naming only the exit
+    status and the argv, which is how "PDBQT parsing error: Unexpected
+    multi-MODEL tag" reads as "rescoring failed" with nothing to act on --
+    measured, that message cost a debugging round until it was surfaced."""
+    engine, _ = _score_engine(tmp_path)
+    box = DockingBox(center=(1.0, 2.0, 3.0), size=(16.0, 16.0, 16.0))
+    with patch(
+        "subprocess.run",
+        return_value=MagicMock(
+            returncode=1, stdout="", stderr="PDBQT parsing error: Unexpected multi-MODEL tag found."
+        ),
+    ):
+        with pytest.raises(RuntimeError, match="multi-MODEL"):
+            engine.score_pose(
+                tmp_path / "r.pdbqt", tmp_path / "p.pdbqt", box, "vinardo"
+            )
+
+
+def test_score_pose_without_an_executable_refuses(tmp_path):
+    engine = ExecutableVinaEngine(executable_path=None)
+    box = DockingBox(center=(1.0, 2.0, 3.0), size=(16.0, 16.0, 16.0))
+    with patch("shutil.which", return_value=None):
+        with pytest.raises(RuntimeError, match="No Vina executable"):
+            ExecutableVinaEngine(executable_path=None).score_pose(
+                tmp_path / "r.pdbqt", tmp_path / "p.pdbqt", box, "vinardo"
+            )

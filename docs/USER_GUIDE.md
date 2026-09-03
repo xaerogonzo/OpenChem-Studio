@@ -924,6 +924,27 @@ In the **Docking** panel:
      allows symmetry-equivalent atoms, so l.b. ≤ u.b. always. A large value
      means a geometrically different pose from pose 1 — it says nothing
      about whether either is correct.
+5. **Optionally, rescore.** *Rescore with* scores every pose a second time
+   with a different function after the search, and is **off by default**.
+   Vina is documented as strong at finding the right pose and weaker at
+   ranking one ligand against another ([source:su2019]), so this replaces
+   the number and keeps the geometry.
+
+   **The two columns are on different scales and must never be compared,
+   subtracted or averaged.** On one fentanyl pose Vina reports −8.79 and
+   Vinardo −5.41 — for the same atoms in the same place, because the
+   functions weight their terms differently rather than because one binds
+   better. The panel prints that warning under the table rather than
+   leaving it in a tooltip.
+
+   Two things that surprise people: choosing **Vina** here does *not*
+   reproduce the affinity column for any pose but the first, because a
+   docking run uses one shared unbound reference for all its poses while a
+   rescore uses each pose's own; and **nothing re-ranks on the second
+   column**. The poses stay ordered by the affinity, because whether
+   Vinardo ranks better on your receptor is not something this application
+   has measured. Driven on 5C1M the two disagreed outright — Vina's best
+   pose was the worst of the first three by Vinardo.
 
 Prep options (alternate-location filtering, symmetry-copy removal, hydrogen
 addition) are shared between the receptor Vina receives and the receptor the

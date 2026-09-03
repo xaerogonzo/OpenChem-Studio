@@ -10,7 +10,7 @@ from rdkit import Chem
 from openchem.domain.atom_report import AtomFact
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.descriptor import DescriptorValue
-from openchem.domain.docking import DockingBox, DockingPoseModel
+from openchem.domain.docking import DockingBox, DockingPoseModel, PoseScore
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.scientific_result import (
     AlertResult,
@@ -273,6 +273,87 @@ class DockingProvider(ABC):
         without it -- `DockingService` asks `inspect.signature` rather than
         passing it and catching `TypeError`, which would also swallow a real
         one raised from inside the provider."""
+
+
+@dataclass(frozen=True, slots=True)
+class RescoreRequest:
+    """What a `PoseRescorer` is given: the prepared artifacts the search
+    itself used, AND the originals they were built from.
+
+    Both, deliberately. `receptor_pdbqt`/`pose_pdbqt_paths` are the exact
+    files Vina scored, which is the whole reason rescoring runs inside the
+    docking provider rather than later over a stored result — receptor
+    PDBQT preparation is not reproducible, so rebuilding it would score a
+    receptor that is not the one docked. But a PDBQT is an AutoDock format,
+    and a rescorer from another family (DSX wants PDB + Mol2) needs the
+    structure text and the pose molblocks to build its own inputs. A
+    request carrying only the prepared files would make this interface a
+    Vina-shaped hole wearing an abstract name.
+
+    The paths live in the docking provider's own scratch directory and are
+    valid only for the duration of the `rescore` call.
+    """
+
+    receptor_pdbqt: Path
+    pose_pdbqt_paths: tuple[Path, ...]
+    box: DockingBox
+    receptor_structure_text: str
+    receptor_source_format: str
+    receptor_prep_options: dict[str, Any]
+    pose_molblocks: tuple[str, ...]
+
+
+class PoseRescorer(ABC):
+    """Attaches a SECOND, differently-labelled score to poses already
+    found — a different axis again from `DockingProvider` (which algorithm
+    searches) and `chem.vina_engine.VinaEngine` (how one engine is run).
+
+    The separation is the point. [source:su2019] measures four distinct
+    abilities and puts AutoDock Vina strong at *docking power* while naming
+    it among the *"not-so-good scoring functions in the scoring/ranking
+    power tests"*, so the pose is worth keeping and the number attached to
+    it is what a second opinion is for.
+
+    **A rescorer's number never joins the docking affinity in a ranking.**
+    They are not on a common scale — Vina and Vinardo differ by 3.3
+    kcal/mol on one fentanyl pose in 5C1M — and averaging or comparing them
+    is the "one name, two quantities" trap this codebase has recorded four
+    times. `AffinityRange`, `compare()` and `dominance_rank` see only the
+    docking affinity, and a guard holds that.
+
+    A rescorer that cannot run reports it (`is_available`) or raises, and
+    either becomes a visible state on the pose rather than a missing
+    column: "not requested" and "requested and broken" must stay
+    distinguishable, which is this codebase's own *n/a is not 0* rule.
+    """
+
+    rescorer_id: str
+    #: What the number IS — the name that appears beside it in the UI and
+    #: travels on every stored `PoseScore`. Never "score".
+    score_function: str
+    units: str = "kcal/mol"
+
+    @abstractmethod
+    def is_available(self) -> bool:
+        """Whether this rescorer can run at all right now. Resolved fresh
+        rather than cached, for the reason `VinaDockingProvider` re-resolves
+        its engine on every call: a user can configure a tool mid-session."""
+
+    @abstractmethod
+    def rescore(self, request: RescoreRequest, protocol: str) -> list[PoseScore]:
+        """One `PoseScore` per pose in `request`, in the same order.
+
+        `protocol` is one of `domain.docking.RESCORE_PROTOCOLS`. An
+        implementation that cannot honour the requested protocol must say
+        so in the returned `PoseScore` rather than silently substituting
+        the other one — the protocol travels on the stored result and a
+        substituted one makes it a lie.
+
+        Returning a `PoseScore` with `value=None` is the normal way to
+        report a per-pose failure. Raising is for "this rescorer cannot
+        run at all", and the caller turns that into the same visible state
+        for every pose.
+        """
 
 
 class QuantumEngineProvider(ABC):

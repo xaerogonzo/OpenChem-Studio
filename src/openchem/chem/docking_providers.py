@@ -14,9 +14,15 @@ from openchem.chem.pose_analysis import (
     is_stripped_residue,
     normalise_element_symbols,
 )
+from openchem.chem.rescoring import VinaPoseRescorer
 from openchem.chem.vina_engine import VinaEngine, parse_vina_output_pdbqt, select_vina_engine
-from openchem.domain.docking import DockingBox, DockingPoseModel
-from openchem.plugins.interfaces import DockingProvider
+from openchem.domain.docking import (
+    AS_DOCKED,
+    POSE_SCORE_KEY,
+    DockingBox,
+    DockingPoseModel,
+)
+from openchem.plugins.interfaces import DockingProvider, RescoreRequest
 from openchem.services.progress import ProgressHandle
 
 logger = logging.getLogger("openchem.chemistry")
@@ -229,6 +235,13 @@ class VinaDockingProvider(DockingProvider):
             "scoring_function": scoring_function,
             "ligand_prep_params": {"ph": ph},
         }
+        # The rescore is NOT recorded here. `_last_run_settings` becomes
+        # `DockingResultModel`'s own top-level fields, which describe the
+        # SEARCH; a second scoring function belongs to the poses it scored
+        # and travels on each `PoseScore`. Putting it here would put a
+        # rescore's function next to the search's `scoring_function` in one
+        # flat record, which is the one confusion this whole feature exists
+        # to prevent.
 
         with tempfile.TemporaryDirectory() as scratch_dir:
             scratch = Path(scratch_dir)
@@ -270,10 +283,108 @@ class VinaDockingProvider(DockingProvider):
                 scoring_function=scoring_function,
             )
 
-        _raise_if_cancelled(progress)
-        progress.report(0.95, "Finalizing")
-        raw_poses = parse_vina_output_pdbqt(output_text)
-        return [self._raw_pose_to_model(pybel, raw) for raw in raw_poses]
+            _raise_if_cancelled(progress)
+            progress.report(0.95, "Finalizing")
+            raw_poses = parse_vina_output_pdbqt(output_text)
+            poses = [self._raw_pose_to_model(pybel, raw) for raw in raw_poses]
+
+            # INSIDE the scratch block, deliberately -- see `_attach_rescores`.
+            self._attach_rescores(
+                poses,
+                raw_poses,
+                scratch,
+                receptor_pdbqt,
+                box,
+                receptor_structure_text,
+                receptor_source_format,
+                prep_options,
+                search,
+            )
+
+        return poses
+
+    def _attach_rescores(
+        self,
+        poses: list[DockingPoseModel],
+        raw_poses: list[Any],
+        scratch: Path,
+        receptor_pdbqt: Path,
+        box: DockingBox,
+        receptor_structure_text: str,
+        receptor_source_format: str,
+        prep_options: dict[str, Any],
+        search: dict[str, Any],
+    ) -> None:
+        """Attach a SECOND score to each pose, when one was requested.
+
+        **THIS RUNS INSIDE `dock`'s SCRATCH BLOCK, AND THAT IS THE WHOLE
+        DESIGN.** A rescore has to see the receptor the search actually
+        used. Receptor PDBQT preparation is not reproducible here -- three
+        preparations of 5C1M give three sha256s, 80 of 3794 lines
+        differing, every one an added polar hydrogen on a rotatable group
+        -- so a later pass over a stored result would rebuild a receptor
+        that is *nearly* the one docked and score against that instead.
+        The difference has not been observed to move a score, which is an
+        observation at n=6 and not a guarantee; reusing the file removes
+        the question rather than bounding it. The pose PDBQT is already in
+        hand too, as `RawPose.pdbqt_text`, before `_raw_pose_to_model`
+        converts it and drops it.
+
+        **An enhancement, never the critical path.** Same contract as
+        `DockingService._annotate_poses_with_interactions`: a failure here
+        leaves the docking result exactly as it would have been. The
+        difference is that a failure is RECORDED rather than silent --
+        "not requested" and "requested and broken" must stay
+        distinguishable, so this writes a `PoseScore` carrying the reason
+        instead of leaving the key absent.
+        """
+        function = search.get("rescore_with")
+        if not function:
+            return
+        protocol = str(search.get("rescore_protocol") or AS_DOCKED)
+
+        try:
+            rescorer = VinaPoseRescorer(
+                score_function=str(function),
+                executable_path_resolver=self._executable_path_resolver,
+                engine=self._fixed_engine,
+            )
+        except ValueError:
+            logger.exception("Refusing an unknown rescoring function %r", function)
+            return
+
+        pose_paths: list[Path] = []
+        for index, raw in enumerate(raw_poses):
+            path = scratch / f"pose_{index}.pdbqt"
+            # **BARE, with NO MODEL/ENDMDL wrapper.** `_raw_pose_to_model`
+            # puts one back before handing the text to Open Babel, and Vina
+            # refuses precisely that:
+            #
+            #     PDBQT parsing error: Unexpected multi-MODEL tag found in
+            #     flex residue or ligand PDBQT file.
+            #
+            # So the two consumers of one pose want opposite things, and
+            # the wrapper is added where pybel needs it and nowhere else.
+            # The hash below is of what Vina was actually handed.
+            path.write_text(raw.pdbqt_text, encoding="utf-8")
+            pose_paths.append(path)
+
+        request = RescoreRequest(
+            receptor_pdbqt=receptor_pdbqt,
+            pose_pdbqt_paths=tuple(pose_paths),
+            box=box,
+            receptor_structure_text=receptor_structure_text,
+            receptor_source_format=receptor_source_format,
+            receptor_prep_options=dict(prep_options),
+            pose_molblocks=tuple(pose.pose_molblock for pose in poses),
+        )
+        try:
+            scores = rescorer.rescore(request, protocol)
+        except Exception:  # noqa: BLE001 - must never fail a docking job
+            logger.exception("Rescoring failed for the whole pose set")
+            return
+        for pose, score in zip(poses, scores):
+            pose.metadata[POSE_SCORE_KEY] = score.to_dict()
 
     def _convert_receptor_to_pdbqt(
         self,

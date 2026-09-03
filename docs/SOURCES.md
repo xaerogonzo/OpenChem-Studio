@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: b9e5af265962a1ce2dc8b03d65c5b66c2d38e37a299533ba0e310eb3bb3a5a3a -->
+<!-- SOURCE SHA256: 6b9ca6204f7cfb6a045b55e4b6a894c13f8ea2eb0da6beecdca18a080e0a20a1 -->
 
 # Sources
 
@@ -96,6 +96,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`avdeef2007`](#avdeef2007) | literature | shipped | citation + claim |
 | [`avdeef2020`](#avdeef2020) | literature | shipped | citation + claim |
 | [`baell2010`](#baell2010) | literature | shipped | citation |
+| [`ballester2010`](#ballester2010) | literature | **not shipped** | citation |
 | [`bertz1981`](#bertz1981) | literature | shipped | citation |
 | [`bickerton2012`](#bickerton2012) | literature | shipped | citation |
 | [`bird1985`](#bird1985) | literature | shipped | citation |
@@ -143,6 +144,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`kendall2008`](#kendall2008) | literature | shipped | citation |
 | [`ketcher`](#ketcher) | software | shipped | citation |
 | [`klapotke2017`](#klapotke2017) | literature | shipped | citation + claim |
+| [`koes2013`](#koes2013) | literature | **not shipped** | citation |
 | [`kruszewski1972`](#kruszewski1972) | literature | shipped | citation |
 | [`krygowski1993`](#krygowski1993) | literature | shipped | citation + claim |
 | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
@@ -156,11 +158,13 @@ next run of `tools/build_lewis_parameters.py`.
 | [`marsili1980`](#marsili1980) | literature | shipped | citation + claim |
 | [`mayer1975`](#mayer1975) | literature | reference only | citation |
 | [`mayo1990`](#mayo1990) | literature | shipped | citation + claim |
+| [`mcnutt2021`](#mcnutt2021) | literature | **not shipped** | citation |
 | [`miller1979`](#miller1979) | literature | shipped | citation + claim |
 | [`miller1990`](#miller1990) | literature | shipped | citation + claim |
 | [`miller_polarizability`](#miller_polarizability) | reference_table | reference only | citation |
 | [`molstar`](#molstar) | software | shipped | citation |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
+| [`neudert2011`](#neudert2011) | literature | **not shipped** | citation |
 | [`nguyen2020`](#nguyen2020) | literature | shipped | citation + claim |
 | [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | citation |
 | [`npscorer2015`](#npscorer2015) | software | shipped | citation |
@@ -2579,9 +2583,9 @@ discrepancy.
 | Identifier | [10.1371/journal.pone.0155183](https://doi.org/10.1371/journal.pone.0155183) |
 | Status | shipped |
 | Verification | citation + claim |
-| Verified | 2026-08-31 |
+| Verified | 2026-09-03 |
 | Local copy | `D:/Xaero Stuff/Documents/Sci Downloads/quiroga2016.pdf` (not checked) |
-| Used by | `src/openchem/chem/docking_providers.py` |
+| Used by | `src/openchem/chem/docking_providers.py`, `src/openchem/chem/rescoring.py`, `src/openchem/ui/panels/docking_panel.py` |
 
 Backs Vinardo being OFFERED, never a claim that it is better here. The
 paper's own sentence is unambiguous and is also exactly as far as it goes:
@@ -2600,6 +2604,41 @@ reaches the engine invocation rather than only the stored result.
 
 Vinardo and Vina scores are NOT on a common scale and must never share a
 ranking, which is why the scoring function travels on every stored result.
+
+**READ THROUGH ITS METHODS ON 2026-09-03, for the rescoring work, and four
+things in it change what may be claimed.**
+
+*Its scoring and ranking evaluation is SCORE-ONLY on the benchmark's own
+poses, not on generated ones.* Section 2.3: "Dk_scoring, Vina and Vinardo
+were run in the 'score-only' mode of Smina, where no docking is performed...
+The poses analyzed are the same poses generated and used in Li et al." So a
+CASF-style comparison and a rescore of our own poses are two different
+experiments, and only the first may carry the CASF name.
+
+*Its parameters were selected on the CASF-2013 core set.* Section 3.1: "The
+selected dataset was the PDBBIND 2013 dataset (195 structures)... only
+retaining ligands with 7 or less rotatable bonds, which makes up a total of
+122 structures." Any benchmark of Vinardo against CASF-2016 therefore has a
+NAMED, computable overlap to check rather than a hypothetical one.
+
+*And so was Vina's, differently.* The same page: "Vina was trained on the
+PDBBIND 2007 dataset." Both arms of a Vina-versus-Vinardo comparison have a
+training-overlap question; reporting it as clean-baseline-versus-
+contaminated-challenger would be its own distortion.
+
+*The paper's implementation is smina, not Vina.* Section 2.2. Vina 1.2 added
+`--scoring vinardo` later, so "our Vinardo is that Vinardo" is a check, and
+it was made: Table 1's published weights (w1 -0.045, w2 0.000, w3 0.800,
+w4 -0.035, w5 -0.600) match Vina 1.2.7's own `--weight_vinardo_*` defaults
+exactly, and Vina exposes no vinardo gauss2 weight at all, consistent with
+the paper's removal of that term. The atomic radii (Table 3: C 2.0, C_A 1.9,
+N 1.7, O 1.6) are NOT exposed by the CLI and remain unverified from outside;
+smina is the independent cross-check when it lands.
+
+**AND IT IS WHY X-SCORE IS NOT AN INDEPENDENT SECOND OPINION.** Section 1:
+"Vina uses an empirical scoring function which is inspired by the X-score
+function". The roadmap named X-Score as the rescoring candidate partly for
+being non-ML; this paper is what says it is also Vina's own ancestor.
 
 ### feinstein2015
 
@@ -2845,6 +2884,146 @@ own "Cite This" line reads `J. Chem. Inf. Model. 2020, 60, 204-211`. The
 registry key is therefore `nguyen2020` while the local file is `nguyen2019.pdf`
 -- the same online-versus-issue split [source:su2019] already records, and not
 a discrepancy. The DOI was read from the file rather than reconstructed.
+
+### koes2013
+
+<a id="koes2013"></a>
+
+> D. R. Koes, M. P. Baumgartner & C. J. Camacho, 'Lessons Learned in Empirical Scoring with smina from the CSAR 2011 Benchmarking Exercise', J. Chem. Inf. Model. 2013, 53(8), 1893-1904.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ci300604z](https://doi.org/10.1021/ci300604z) |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-09-03 |
+| Local copy | `D:/Xaero Stuff/Documents/Sci Downloads/koes2013.pdf` (not checked) |
+
+**Why it is not shipped.** **REGISTERED AHEAD OF THE ENGINE IT DESCRIBES.** smina is the planned second
+docking engine AND second rescorer, and this is its methodology paper. Read
+from its own first page: the authors, title, journal, volume, pages and DOI
+above are the paper's own, and its abstract describes "smina, a version of
+AutoDock Vina specially optimized to support high-throughput scoring and
+user-specified custom scoring functions".
+
+That sentence is why smina is the arm that would test whether `PoseRescorer`
+is a real abstraction: it is both an engine and a rescorer, so one binary
+exercises both seams.
+
+It is also where `dkoes_scoring` comes from -- [source:quiroga2016] describes
+it as selected by forward selection with weights fitted by linear regression
+against the CSAR 2012 set, and compares Vinardo against it.
+
+`assessed_not_shipped`: nothing in `src/` uses smina yet. Promote to `shipped`
+with a `used_by` when an engine lands, and note that smina is Linux-first and
+ships no official Windows binary -- obtainability on this platform is a spike,
+not an assumption.
+
+### neudert2011
+
+<a id="neudert2011"></a>
+
+> G. Neudert & G. Klebe, 'DSX: A Knowledge-Based Scoring Function for the Assessment of Protein-Ligand Complexes', J. Chem. Inf. Model. 2011, 51(10), 2731-2745.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ci200274q](https://doi.org/10.1021/ci200274q) |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-09-03 |
+| Local copy | `D:/Xaero Stuff/Documents/Sci Downloads/neudert2011.pdf` (not checked) |
+
+**Why it is not shipped.** **A CANDIDATE THAT DISPLACED THE ROADMAP'S NAMED ONE.** `docs/ROADMAP.md`
+named X-Score as the rescoring candidate; this paper is the better fit and
+the reasons are all read off first pages rather than reasoned about.
+
+DSX is KNOWLEDGE-BASED -- "distance-dependent pair potentials, novel torsion
+angle potentials, and newly defined solvent accessible surface-dependent
+potentials" -- so it is a genuinely different family from Vina, where X-Score
+is Vina's own ancestor ([source:quiroga2016] section 1: "Vina uses an
+empirical scoring function which is inspired by the X-score function").
+
+Its abstract states both a ranking claim and its availability: "DSX features
+superior performance with respect to docking- and ranking power and runtime
+requirements", and "The program is freely available to the scientific
+community and can be downloaded from our Web site www.agklebe.de". X-Score by
+contrast is distributed behind a licence agreement, a registration and a
+server login, with a public release tested on "UNIX and LINUX" only.
+
+**THE AVAILABILITY IS A 2011 STATEMENT AND NOT A 2026 MEASUREMENT.** Whether
+agklebe.de still serves it is a spike, exactly as smina's Windows build is.
+
+Its introduction is also a clean statement of the decomposition this project
+relies on, attributing it to Cheng et al.: docking power, ranking power and
+scoring power are different abilities, and "high ranking power is rather
+useless without high docking power".
+
+`assessed_not_shipped`: nothing in `src/` uses DSX.
+
+### mcnutt2021
+
+<a id="mcnutt2021"></a>
+
+> A. T. McNutt, P. Francoeur, R. Aggarwal, T. Masuda, R. Meli, M. Ragoza, J. Sunseri & D. R. Koes, 'GNINA 1.0: molecular docking with deep learning', J. Cheminform. 2021, 13, 43.
+
+| | |
+| --- | --- |
+| Identifier | [10.1186/s13321-021-00522-2](https://doi.org/10.1186/s13321-021-00522-2) |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-09-03 |
+| Licence | CC BY 4.0 |
+| Local copy | `D:/Xaero Stuff/Documents/Sci Downloads/mcnutt2021.pdf` (not checked) |
+
+**Why it is not shipped.** **RECORDED WITH ITS OWN SCOPE, SO NOBODY LATER CITES IT AS A RANKING FIX.**
+GNINA rescores poses with an ensemble of convolutional neural networks, which
+makes it an obvious future `PoseRescorer` -- and the numbers its abstract
+reports are DOCKING POWER, not ranking or scoring power:
+
+    "Gnina, utilizing a CNN scoring function to rescore the output poses,
+     outperforms AutoDock Vina scoring on redocking and cross-docking tasks
+     when the binding pocket is defined (Top1 increases from 58% to 73% and
+     from 27% to 37%, respectively)"
+
+Top1 is the fraction of targets whose best-scored pose is within 2 A of the
+crystal pose. This project's measured gap is RANKING, where [source:su2019]
+puts Vina weak and where nothing above says GNINA helps.
+
+It is also an ML model, so this project's own rule applies before any number
+of ours is believed: ask the leakage question first, of the CNN's training
+set against whatever it is evaluated on.
+
+`assessed_not_shipped`. It is CC BY 4.0 and open access, and the software is
+CUDA/Linux-oriented, which is a heavier dependency story than Vinardo's zero.
+
+### ballester2010
+
+<a id="ballester2010"></a>
+
+> P. J. Ballester & J. B. O. Mitchell, 'A machine learning approach to predicting protein-ligand binding affinity with applications to molecular docking', Bioinformatics 2010, 26(9), 1169-1175.
+
+| | |
+| --- | --- |
+| Identifier | [10.1093/bioinformatics/btq112](https://doi.org/10.1093/bioinformatics/btq112) |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-09-03 |
+| Local copy | `D:/Xaero Stuff/Documents/Sci Downloads/ballester2010.pdf` (not checked) |
+
+**Why it is not shipped.** RF-Score, a random-forest scoring function, recorded as a future rescoring
+candidate from a third family (neither empirical nor knowledge-based).
+
+**ITS OWN ABSTRACT NAMES THE LEAKAGE QUESTION.** "RF-Score is compared with
+the state of the art on the demanding PDBbind benchmark", and PDBbind is
+where CASF's core sets come from -- so evaluating RF-Score against CASF-2016
+has a training-overlap question at least as sharp as Vinardo's, which
+[source:quiroga2016] puts at 122 of the 195 PDBbind Core 2013 structures.
+
+This project has been bitten by exactly this class once already (Delaney's
+ESOL set sitting inside AqSolDB), so the rule is that the overlap is CHECKED
+by identifier and reported before any score is quoted, never assumed absent.
+
+`assessed_not_shipped`: nothing in `src/` uses RF-Score.
 
 ## Datasets
 

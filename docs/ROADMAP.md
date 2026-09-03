@@ -720,13 +720,87 @@ The natural shape is the refusal work's: when the spread across two ligands
 overlaps, the panel should decline to imply an ordering rather than printing
 one and hoping the user reads the caveat.
 
-#### 2. Rescore the pose with a different function — real gain, real caveats
+#### 2. Rescore the pose with a different function — THE AXIS IS SHIPPED
 
 Docking power is already good, so the pose is worth keeping; what needs
 replacing is the number attached to it. A rescoring provider slots in after
 the search, consuming the PDBQT that already exists.
 
-**X-Score is the candidate to start with**, not the benchmark leader.
+**What shipped**
+
+    domain           `PoseScore` — function, protocol, value, units, engine,
+                     and the sha256 of BOTH files it scored
+    the interface    `PoseRescorer` + `RescoreRequest` in
+                     `plugins/interfaces.py`, carrying the ORIGINALS beside
+                     the prepared PDBQTs so a non-AutoDock rescorer is not
+                     locked out
+    the first one    `chem/rescoring.py`'s `VinaPoseRescorer` — Vinardo (or
+                     Vina) through `--score_only`, needing NO new install
+    the UI           a "Rescore with:" combo defaulting to Off, a column
+                     hidden until one is requested, and the scale warning
+                     printed under the table rather than left in a tooltip
+
+**Vinardo first rather than X-Score, and that was a de-risking choice**: the
+Vina 1.2.7 binary already installed supports `--score_only`, `--local_only`
+and `--scoring vinardo`, so the whole axis could be built and proved before
+anything had to be registered for or compiled.
+
+**FOUR THINGS MEASURED WHILE BUILDING IT**, each of which would have shipped
+a wrong number:
+
+- **`--local_only`'s output PDBQT lies about which function ran.** Its
+  `REMARK VINA RESULT` is a passthrough of the INPUT pose's value — measured
+  identical (-8.758) under two functions whose stdout answers were 3.2
+  kcal/mol apart. Both modes are read from stdout; see
+  `chem/vina_engine.py`'s `parse_vina_score_output`.
+- **Vina refuses a `MODEL`-wrapped single-pose ligand**, which is exactly the
+  wrapper `_raw_pose_to_model` adds for Open Babel. Two consumers of one
+  pose, opposite requirements.
+- **Rescoring with `vina` reproduces the dock's affinity for the TOP POSE
+  ONLY.** A docking run uses one shared unbound reference for every pose it
+  reports (measured -0.861, spread 0.013 over five poses, equal to pose 0's
+  own internal energy) while `--score_only` uses each pose's own. The
+  difference is `(U − intra_i)/D`, reproduced to a worst residual of 0.005
+  kcal/mol. So even the SAME function is not on the same reference — a third
+  reason the two columns must not be compared.
+- **Vina's built-in vinardo IS the published one.** Table 1's weights
+  (-0.045, 0.000, 0.800, -0.035, -0.600) match `--weight_vinardo_*` exactly.
+  The radii are not exposed by the CLI and stay unverified from outside.
+
+**Still not measured, and the column says so:** whether Vinardo ranks better.
+Driven live on 5C1M, the two functions disagreed about which pose was best —
+Vina's top pose rescored worst of the first three. Nothing re-ranks on it.
+
+**The benchmark is the next step, and it is TWO benchmarks.** CASF-2016's
+scoring/ranking tests run on the benchmark's OWN poses ([source:quiroga2016]
+§2.3 confirms Vinardo was evaluated that way, in smina's score-only mode), so
+a strict CASF reproduction and a rescore of our generated poses are different
+experiments whose numbers must never be compared. Both need the leakage
+question answered first, of BOTH arms: Vinardo's parameters were selected on
+122 of the 195 PDBbind Core 2013 structures and Vina was trained on PDBbind
+2007.
+
+**CORRECTION, 2026-09-03: X-Score IS NO LONGER THE CANDIDATE, and the
+paragraph below is kept because its reasoning about ΔVinaRF20 still
+stands.** Two facts found while shipping the axis moved it. First,
+[source:quiroga2016] §1: *"Vina uses an empirical scoring function which is
+inspired by the X-score function"* — so X-Score is Vina's own ancestor and a
+weaker independent second opinion than assumed here. Second, obtainability:
+its public release is v1.2, ANSI C++ "tested on UNIX and LINUX", behind a
+licence agreement, a registration and a server login.
+
+**[source:neudert2011]'s DSX replaces it**: knowledge-based rather than
+Vina-derived, its abstract reports *"superior performance with respect to
+docking- and ranking power"*, and it states it is *"freely available to the
+scientific community"*. Whether agklebe.de still serves it in 2026 is a
+spike, not a claim. [source:koes2013]'s smina lands before either, being both
+an engine and a rescorer and therefore the arm that tests whether
+`PoseRescorer` is an abstraction; [source:mcnutt2021] (GNINA) and
+[source:ballester2010] (RF-Score) are registered as later candidates, the
+first with the note that its published gain is docking power rather than
+ranking.
+
+**X-Score was the candidate to start with**, not the benchmark leader.
 CASF-2016's leader is **ΔVinaRF20**, a random-forest correction on top of
 Vina — and the paper flags its own problem: it was *"calibrated on over 3300
 protein−ligand complexes selected from the PDBbind"*, the authors
