@@ -102,3 +102,5 @@ artifacts/
 # runs, so a tracked copy conflicts on every branch switch. It was committed
 # by accident in 0da570c.
 .pyscope/
+benchmarks/free_energy/cache/
+benchmarks/free_energy/results/
