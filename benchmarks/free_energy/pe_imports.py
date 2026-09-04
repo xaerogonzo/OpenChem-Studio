@@ -11,8 +11,10 @@ problem -- so every fix for it is a guess, and the guesses are expensive.
 A DLL's own import table says exactly what it needs. Reading it is about
 sixty lines of struct unpacking and no new dependency.
 
-**IT EARNED ITS PLACE IMMEDIATELY.** conda-forge's win-64 `pytorch` 2.10.0
-would not import in the environment this benchmark's Windows half runs in,
+**IT EARNED ITS PLACE IMMEDIATELY.** The win-64 `pytorch` 2.10.0 that
+resolves into this benchmark's Windows environment -- from Anaconda's
+`defaults`, not conda-forge, which took a second look to establish --
+would not import,
 and the recorded diagnosis was that PyTorch's extension does not work on
 Windows -- a platform incompatibility, and a wall. It is not. `torch_cpu.dll`
 has 26 imports, 25 of them resolvable and exactly one absent:
