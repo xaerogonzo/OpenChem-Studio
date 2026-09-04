@@ -1016,10 +1016,17 @@ def _header_shortfalls(panel):
     margin = 2 * header.style().pixelMetric(QStyle.PixelMetric.PM_HeaderMargin)
     from openchem.ui.panels.docking_panel import _POSE_COLUMNS
 
+    # A HIDDEN column is skipped, and the exclusion keys on Qt's own live
+    # `isColumnHidden` rather than on a column NAME. A hidden section has
+    # width 0 and paints nothing, so it cannot clip -- but naming the
+    # rescore column here would exempt it forever, including once it is
+    # shown. `test_a_shown_rescore_header_is_still_checked` asserts this
+    # narrowing did not create a blind spot.
     return [
         (name, header.sectionSize(column), metrics.horizontalAdvance(name) + margin)
         for column, name in enumerate(_POSE_COLUMNS)
-        if header.sectionSize(column) < metrics.horizontalAdvance(name) + margin
+        if not panel._table.isColumnHidden(column)
+        and header.sectionSize(column) < metrics.horizontalAdvance(name) + margin
     ]
 
 
@@ -1240,3 +1247,149 @@ def test_the_fix_costs_the_panel_no_height(qapp):
     qapp.processEvents()
 
     assert fitted == panel.minimumSizeHint().height()
+
+
+# --- the rescore column -----------------------------------------------------
+
+
+def _rescored(result, *, function="vinardo", values=(-5.47,), failed=False):
+    """Attach a PoseScore to each pose of `result`, as the provider does."""
+    from openchem.domain.docking import AS_DOCKED, POSE_SCORE_KEY, PoseScore
+
+    for pose, value in zip(result.poses, values, strict=False):
+        score = PoseScore(
+            function=function,
+            protocol=AS_DOCKED,
+            value=None if failed else value,
+            engine="vina-executable",
+            engine_version="1.2.7",
+            error="The ligand is outside the grid box." if failed else None,
+            error_summary="Rescore failed" if failed else None,
+        )
+        pose.metadata[POSE_SCORE_KEY] = score.to_dict()
+    return result
+
+
+def _rescore_column(panel):
+    from openchem.ui.panels.docking_panel import _POSE_COLUMNS, _RESCORE_COLUMN
+
+    return _POSE_COLUMNS.index(_RESCORE_COLUMN)
+
+
+def test_the_rescore_column_is_hidden_until_one_is_requested(qapp):
+    """NOT REQUESTED is a real state and its rendering is "no column".
+
+    An empty fifth column is not a neutral default either: `ResizeToContents`
+    gives it its header's width, which is what took the affinity header past
+    clipping when this was first added.
+    """
+    panel, _engine, _service = _make_panel()
+    assert panel._table.isColumnHidden(_rescore_column(panel))
+
+    panel._show_result(_result_with(_replicate_set(-8.79)))
+    assert panel._table.isColumnHidden(_rescore_column(panel))
+
+
+def test_a_requested_rescore_shows_a_column_naming_its_function(qapp):
+    panel, _engine, _service = _make_panel()
+    panel._show_result(_rescored(_result_with(_replicate_set(-8.79))))
+
+    column = _rescore_column(panel)
+    assert not panel._table.isColumnHidden(column)
+    assert panel._table.item(0, column).text() == "-5.47"
+
+
+def test_the_header_says_the_scale_is_separate_rather_than_only_the_tooltip(qapp):
+    """**ON SCREEN, NOT IN HOVER.** A reader who sees -8.79 beside -5.47 will
+    conclude the second says it binds worse; they are 3.3 kcal/mol apart for
+    the same atoms in the same place because the functions weight their terms
+    differently. This project has twice recorded a meaning that lived only in
+    a tooltip being absent from every screenshot.
+    """
+    panel, _engine, _service = _make_panel()
+    panel._show_result(_rescored(_result_with(_replicate_set(-8.79))))
+
+    header = panel._table.horizontalHeaderItem(_rescore_column(panel)).text()
+    # THE FUNCTION NAME ALONE, and the brevity is measured rather than a
+    # preference. With " (kcal/mol)" on it the header was 110 px at the real
+    # font and the five columns totalled 426 against a 367 px viewport, so
+    # the table overflowed by 59 px and grew a horizontal scrollbar -- which
+    # the magnified shot showed as a header reading "Vinard". At 51 px the
+    # total is 367 against 379 and nothing scrolls. The units are in the note
+    # below the table and in the column's own tooltip.
+    assert header == "Vinardo"
+    # The SENTENCE is under the table, where there is room for one.
+    # `isHidden`, NOT `isVisible`: a child of a window nobody showed reports
+    # isVisible() False whatever its own flag says, which this project has
+    # recorded twice.
+    assert not panel._rescore_label.isHidden()
+    note = panel._rescore_label.text().lower()
+    assert "separate scale" in note
+    assert "must not be compared" in note
+
+
+def test_a_failed_rescore_still_shows_its_column_and_says_why(qapp):
+    """"Not requested" and "requested and broken" must stay distinguishable.
+    A missing column collapses them, which is this codebase's *n/a is not 0*
+    rule."""
+    panel, _engine, _service = _make_panel()
+    panel._show_result(_rescored(_result_with(_replicate_set(-8.79)), failed=True))
+
+    column = _rescore_column(panel)
+    assert not panel._table.isColumnHidden(column)
+    item = panel._table.item(0, column)
+    assert item.text() == "Rescore failed"
+    assert "outside the grid box" in item.toolTip()
+
+
+def test_the_rescore_never_reorders_the_poses(qapp):
+    """The table is ordered by the DOCKING affinity, and a rescore that
+    disagreed with it must not move anything. Here the rescore's order is
+    deliberately the reverse."""
+    panel, _engine, _service = _make_panel()
+    result = _result_with(_replicate_set(-8.79), affinities=(-8.79, -8.50, -8.10))
+    _rescored(result, values=(-4.10, -5.00, -6.30))
+    panel._show_result(result)
+
+    affinities = [panel._table.item(row, 1).text() for row in range(3)]
+    assert affinities == ["-8.79", "-8.50", "-8.10"]
+    rescores = [panel._table.item(row, _rescore_column(panel)).text() for row in range(3)]
+    assert rescores == ["-4.10", "-5.00", "-6.30"]
+
+
+def test_off_sends_no_rescore_key_at_all(qapp):
+    """The dict a run with no rescore sends is byte-identical to the one it
+    sent before this control existed, so an opt-in feature does not
+    re-baseline every other user's request."""
+    panel, _engine, _service = _make_panel()
+    assert "rescore_with" not in panel.displayed_search_options()
+
+
+def test_choosing_a_function_puts_it_in_the_search_options(qapp):
+    panel, _engine, _service = _make_panel()
+    panel._rescore_combo.setCurrentIndex(panel._rescore_combo.findData("vinardo"))
+    assert panel.displayed_search_options()["rescore_with"] == "vinardo"
+
+
+def test_a_shown_rescore_header_is_still_checked(qapp):
+    """The narrow half of the clipping guard's hidden-column exclusion.
+
+    That exclusion keys on Qt's live `isColumnHidden`, not on a column name --
+    so once the column IS shown it is held to the same standard as the other
+    four. Without this, skipping hidden columns would have exempted it
+    permanently and nobody would notice.
+    """
+    from openchem.ui.panels.docking_panel import _POSE_COLUMNS, _RESCORE_COLUMN
+
+    panel, _engine, _service = _make_panel()
+    panel.show()
+    panel._show_result(_rescored(_result_with(_replicate_set(-8.79))))
+    panel.resize(panel.minimumSizeHint().width(), 900)
+    qapp.processEvents()
+
+    checked = {name for name, _, _ in _header_shortfalls(panel)}
+    assert not panel._table.isColumnHidden(_POSE_COLUMNS.index(_RESCORE_COLUMN))
+    # It is in the population now: nothing is clipped, but the column is
+    # being measured rather than skipped.
+    assert _header_shortfalls(panel) == []
+    assert checked == set()

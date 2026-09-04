@@ -4516,6 +4516,220 @@ including the three that a red suite silently takes with it:
 Read the STEP LIST, not the conclusion -- and note the Linux job's
 `completed/success` beside it, which is the whole reason that rule exists.
 
+## A SECOND SCORE ON A POSE, AND THREE WAYS TO SHIP A WRONG NUMBER
+
+Route 2 of the roadmap's ranking work: the pose is worth keeping and the
+number attached to it is what a second opinion is for. `chem/rescoring.py`
+attaches one, and every difficult thing in it is about making sure the
+second number cannot be mistaken for a better version of the first.
+
+**IT NEEDED NO NEW INSTALL, WHICH IS WHY IT WENT FIRST.** The roadmap named
+X-Score; the Vina binary already configured here supports `--score_only`,
+`--local_only` and `--scoring vinardo`, so the whole axis could be built and
+proved before anything had to be registered for or compiled. X-Score is now
+displaced entirely -- see the roadmap correction.
+
+### `--local_only`'s OUTPUT FILE CARRIES THE INPUT POSE'S NUMBER
+
+The plan for this work said `--local_only` "writes an out-PDBQT and so
+reuses `parse_vina_output_pdbqt`". Following that would have shipped **a
+Vina number labelled Vinardo** -- the exact defect
+`docs/SOURCES.md`'s quiroga2016 entry warns about, arriving through a door
+nobody was watching. Measured on one fentanyl pose in 5C1M:
+
+    mode                              stdout    out-PDBQT REMARK
+    --score_only --scoring vina       -8.757    (writes no file)
+    --score_only --scoring vinardo    -5.405    (writes no file)
+    --local_only --scoring vina       -8.717    -8.758
+    --local_only --scoring vinardo    -5.477    -8.758
+
+**Identical REMARKs for two functions whose real answers are 3.2 kcal/mol
+apart**, both equal to the input pose's own -8.758. So both modes are read
+from STDOUT, and `ExecutableVinaEngine.score_pose` never asks for `--out` at
+all -- which is what makes the wrong parser unreachable rather than merely
+unused.
+
+### VINA REFUSES THE WRAPPER OPEN BABEL NEEDS
+
+`_raw_pose_to_model` wraps a pose in `MODEL 1 ... ENDMDL` before handing it
+to pybel. Vina rejects precisely that:
+
+    PDBQT parsing error: Unexpected multi-MODEL tag found in flex residue
+    or ligand PDBQT file.
+
+Two consumers of one pose, opposite requirements, and the failure is silent
+in the direction that matters: every pose reports "rescore failed" while the
+docking result looks perfect.
+
+**THE MESSAGE IS ONLY THERE BECAUSE `check=True` WAS REMOVED.** Vina writes
+its complaint to STDERR and says nothing useful on stdout, so
+`CalledProcessError` names only the exit status and the argv -- which is how
+this read as "Rescore failed" with nothing to act on. Surfacing stderr named
+the cause on the next run.
+
+### RESCORING WITH VINA REPRODUCES THE DOCK FOR THE TOP POSE ONLY
+
+The obvious acceptance test is "rescore with the function that produced the
+pose and you get the pose's own affinity back". It holds for pose 0 (0.000)
+and fails for pose 1 by **0.414**, which is far too large to be coordinate
+rounding.
+
+**MY FIRST EXPLANATION WAS REFUTED BY ITS OWN ARITHMETIC.** "The dock uses
+pose 0's intra as a shared unbound reference, so diff_i = intra_i - intra_0"
+predicted -0.561 where the real difference was +0.414 -- wrong sign AND
+magnitude. The mechanism was right and the arithmetic omitted Vina's
+torsional divisor. Vina reports
+
+    affinity = (inter + intra - unbound) / (1 + w_rot * N_rot)
+
+and `--score_only` sets `unbound = intra` (verified: it reports them equal on
+every pose), so score_only collapses to `inter / D`. That makes D recoverable
+from the output rather than assumed: `inter/total` is **1.3507** on all five
+poses, giving `w_rot * N_rot = 0.3507` and, at Vina's own `w_rot = 0.05846`,
+**N_rot = 6.00** -- which RDKit independently gives as fentanyl's rotatable
+bond count. Two routes agreeing.
+
+Solving for the dock's shared U gives **-0.861 with a spread of 0.013 across
+five poses**, equal to pose 0's own internal energy to four decimals. So
+
+    diff_i = (U - intra_i) / D
+
+which matches on all five poses, worst residual **0.005 kcal/mol**.
+
+**THIS IS A THIRD REASON THE TWO COLUMNS MUST NOT BE COMPARED**, on top of
+the scale difference and the protocol: even the SAME function is not on the
+same reference.
+
+### THE PUBLISHED WEIGHTS MATCH, AND THE RADII CANNOT BE CHECKED
+
+[source:quiroga2016] implemented Vinardo in **smina**, not Vina; Vina 1.2
+added `--scoring vinardo` later. So "our Vinardo is that Vinardo" is a check
+rather than an assumption. Table 1's weights are `w1 -0.045, w2 0.000,
+w3 0.800, w4 -0.035, w5 -0.600` and Vina 1.2.7's `--weight_vinardo_*`
+defaults are the same five, with no vinardo gauss2 weight exposed at all --
+consistent with the paper's removal of that term. **The atomic radii
+(Table 3: C 2.0, C_A 1.9, N 1.7, O 1.6) are NOT exposed by the CLI** and stay
+unverified from outside; smina is the independent cross-check when it lands.
+
+### FOUR STATES, AND THE MIDDLE TWO COLLAPSE INTO A MISSING COLUMN
+
+A review caught this and it is this codebase's own *n/a is not 0* rule:
+
+    not requested   no PoseScore, no column
+    succeeded       a value, plus both input hashes
+    unavailable     value None, `inapplicable` -- the backend cannot
+                    score-only. Correct, permanent, neutral rather than red.
+    failed          value None, a reason -- a FAULT
+
+Rendering "requested and broken" as a missing column makes it
+indistinguishable from "nobody asked", so a failed rescore still shows its
+column and prints its reason through `domain.common.describe_failure`.
+
+### THE HASHES SAY WHAT WAS SCORED, AND THEY ARE NOT A REPRODUCIBILITY CLAIM
+
+The rescore runs INSIDE `VinaDockingProvider.dock`, against the receptor
+PDBQT the search itself used -- because receptor preparation is not
+reproducible here, so a later pass over a stored result would rebuild a
+*nearly* identical receptor and score against that instead. Nothing else on
+a `PoseScore` would reveal a future edit that regenerated it, so the sha256
+of the receptor and of the pose travel with the number.
+
+**They were confirmed to differ across runs immediately.** Three docking
+calls of identical inputs produced three different receptor hashes
+(`dd73ede9`, `0d16850b`, `2980c3c0`) while the pose hashes were identical --
+the recorded non-determinism, made visible for the first time.
+
+### THE COLUMN FITS, AND THE MAGNIFIED SHOT IS WHY IT DOES
+
+Two width defects, both found by driving the app rather than by any test.
+
+**THE AFFINITY COLUMN CANNOT KEEP `Stretch` ONCE THERE IS A FIFTH COLUMN.**
+Stretch hands it the slack, which is right for four columns and exactly wrong
+for five: measured, it fell to 98 px against the 328 its own header needs,
+then to 170 with a shorter fifth header. No header text is short enough to
+fix that, because the squeeze is the stretch column absorbing every other
+column's growth. All five are `ResizeToContents` when the fifth is shown, so
+none can clip at any font.
+
+**AND THE HEADER LOST ITS UNITS AFTER THE SHOT SHOWED "Vinard".** At
+"Vinardo (kcal/mol)" the five columns total 426 px against a 367 px viewport,
+so the table overflowed and grew a horizontal scrollbar. At "Vinardo" the
+total is **367 against 379** and nothing scrolls. Measured under
+`QT_QPA_PLATFORM=windows`, because `offscreen`'s font is more than twice as
+wide and a width conclusion drawn under it is a claim about the test
+platform.
+
+**The scale warning went into a label under the table**, not the header --
+the panel already puts the replicate-spread note there for the same reason,
+and a sentence has room where a column header does not.
+
+### DRIVEN, AND THE TWO FUNCTIONS DISAGREED ABOUT THE BEST POSE
+
+`benchmarks/visual/docking_rescore.json`, real Vina, ~10 minutes. Nine poses
+of fentanyl in 5C1M:
+
+    pose      0       1       2       3       4
+    Vina   -8.894  -8.872  -8.798  -8.670  -8.623
+    Vinardo -4.914  -5.835  -5.912  -5.094  -5.940
+
+**Vina's best pose is the worst of the first three by Vinardo, and its fifth
+rescores best.** That is the never-share-a-ranking rule demonstrated rather
+than argued, and it is why nothing re-ranks on the second column.
+
+The drive step logs `rescore_hidden`, the header, `note_hidden` and the
+stored `PoseScore` beside the shot, because two of the four states
+photograph identically -- "not requested" and "requested, and every pose
+failed" are both a table with no numbers in that column.
+
+### NINE MUTATIONS, AND THE SURVIVOR WAS THE ONE THAT MATTERED
+
+M4 -- `score_pose` dropping `--scoring` from the command line, so a result
+labelled Vinardo runs plain Vina -- **SURVIVED**. The guard for it used a
+SPY ENGINE, which tests the rescorer's wiring and never
+`ExecutableVinaEngine`'s argv. *Testing a helper is not testing the wiring*,
+for the fourth time in this file. `tests/test_vina_engine.py` now asserts the
+real argv, and the narrow half with it: `--scoring` is OMITTED for plain
+vina, because emitting it always would satisfy the guard and change every
+ordinary run's command line.
+
+### THE `#:` RATCHET CAUGHT THE EXACT DEFECT IT WAS BUILT FOR, ON ME
+
+The full suite came back `1 failed`:
+
+    src/openchem/ui/panels/docking_panel.py::_LIMITATION_NOTE
+
+`_rescore_note()` had been inserted BETWEEN `_LIMITATION_NOTE` and the `#:`
+block documenting it, so the doc comment now documented a function and the
+constant had none. That is `ENTHALPY_NOT_SUPPLIED` verbatim -- the defect
+`tools/constant_docs.py` exists for -- committed by somebody who had read
+that entry the same day.
+
+**The ratchet's own design note is what makes it able to catch this**: the
+precise signature is not detectable, because a documented constant followed
+by an undocumented one is also what two ordinary constants look like. What
+is detectable is the constant's ARRIVAL in the undocumented set, which is a
+recorded baseline rather than a pattern match. The fix is to move the
+function below the constant; nothing about the guard needed changing.
+
+**AND I MISREAD MY OWN CHECK BEFORE READING THE SUMMARY LINE.** A
+`grep -cE "^FAILED"` printed nothing and was read as zero, and the run was
+briefly reported as clean. The count is what caught it: 6690 passed + 16
+skipped is 6706 against 6707 collected, and one test was unaccounted for.
+This file's own rule is to check that a summary line EXISTS and to reconcile
+the counts -- an absence of output from a grep is not an absence of
+failures, which is the same lesson one level in from `grep FAILED` on a
+crashed log.
+
+### AND THE HEREDOC ATE A BACKSLASH TWICE IN ONE SESSION
+
+This file records the trap twice already and it was hit twice more here, both
+times replacing a string containing `\n` through a quoted `<<'PY'` heredoc:
+once the search text silently failed to match (reported as an
+`AssertionError` on the count), once the replacement's `\\n` became real
+newlines and split string literals across lines, making the file
+unparseable. **Reach for a real editing tool when the content contains
+escapes** -- the rule is already written down and was still not followed.
+
 ## Running the tests
 
 ```bash
@@ -4525,7 +4739,46 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6536 passed, 16 skipped`
+A clean run is **6-21 minutes**, ending at `6691 passed, 16 skipped`
+(measured 2026-09-03, **18m06**, on `rescoring-axis` -- a second, differently
+labelled score attached to a pose the search already found.
+
+**+58 collected and 0 REMOVED** against master at `363ca54`, diffed both
+directions with `comm` in a detached worktree, with the `PYTHONPATH` override
+asserted before the count was believed (`import openchem` reported the
+WORKTREE's `src`):
+
+    master     363ca54   COLLECTS 6649
+    this one             COLLECTS 6707   = 6649 + 58
+    the run                       6691 passed + 16 skipped = 6707
+
+    28  test_rescoring.py               written
+     8  test_vina_engine.py             the score_pose argv, both halves
+     8  test_docking_providers.py       the wiring, and what must not change
+     8  test_docking_panel.py           the column's four states
+     4  test_sources_are_current.py     parametrised cases of the EXISTING
+                                        schema guard, one per new source
+     2  test_calculator_reachability.py the new module's declaration
+
+**THE CITED FIGURE IS THE SECOND RUN, AND THE FIRST ONE'S FAILURE WAS MINE.**
+Recorded rather than quietly re-run:
+
+    run 1   1 failed, 6690 passed   test_constant_docs.py
+    run 2   6691 passed, 16 skipped, 18m06      <- the cited figure
+
+The failure was the `#:` ratchet catching `_LIMITATION_NOTE` orphaned from
+its own doc comment -- see the entry above, which is the defect that guard
+exists for, committed the same day its write-up was read.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored --
+as do `^FAILED` and `^ERROR`. The skips are the deterministic 16. The two
+`DeprecationWarning`s are the same pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+18m06 sits in the upper half of the band; the 6-21 range stands.)
+
+Before it: `6536 passed, 16 skipped`
 (measured 2026-08-31, **16m45**, on
 `ligand-protonation-and-search-controls` -- the ligand prepared at neutral pH
 while the receptor was prepared at 7.4, the search controls, and the box

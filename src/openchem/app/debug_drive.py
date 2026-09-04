@@ -373,6 +373,28 @@ class _Driver(QObject):
                 int(replicates),
                 panel.displayed_replicates(),
             )
+        # SETS THE COMBO, for the same reason `replicates` sets the spin box:
+        # the panel reads it through `displayed_search_options()`, so driving
+        # the control is what checks that wiring. Handing "vinardo" to the
+        # provider directly would prove the rescorer runs and say nothing
+        # about whether the combo reaches it.
+        rescore = step.get("rescore")
+        if rescore is not None:
+            index = panel._rescore_combo.findData(rescore)
+            if index < 0:
+                logger.error(
+                    "OPENCHEM_DRIVE: dock_run -- no rescore option %r; the run "
+                    "will use whatever the combo already shows",
+                    rescore,
+                )
+            else:
+                panel._rescore_combo.setCurrentIndex(index)
+            logger.warning(
+                "OPENCHEM_DRIVE: dock_run -- rescore set to %r (panel sends %r)",
+                rescore,
+                panel.displayed_search_options().get("rescore_with"),
+            )
+
         button = panel._dock_button
         if not button.isEnabled():
             logger.error(
@@ -425,6 +447,43 @@ class _Driver(QObject):
             panel._spread_label.isHidden(),
             panel._spread_label.text(),
         )
+        # THE RESCORE COLUMN, FOR THE SAME REASON AS THE SPREAD LABEL. Four
+        # states have to stay distinguishable and a screenshot separates only
+        # two of them: "not requested" and "requested, and every pose failed"
+        # both photograph as a table with no numbers in that column, while
+        # "hidden" and "shown but empty" are indistinguishable outright. The
+        # stored PoseScore is what tells them apart.
+        from openchem.domain.docking import pose_score_of
+        from openchem.ui.panels.docking_panel import _POSE_COLUMNS, _RESCORE_COLUMN
+
+        column = _POSE_COLUMNS.index(_RESCORE_COLUMN)
+        header = panel._table.horizontalHeaderItem(column)
+        logger.warning(
+            "OPENCHEM_DRIVE: dock_panel[%s] rescore_hidden=%s header=%r note_hidden=%s "
+            "cells=%r",
+            step.get("tag", ""),
+            panel._table.isColumnHidden(column),
+            header.text() if header is not None else None,
+            panel._rescore_label.isHidden(),
+            [
+                panel._table.item(row, column).text()
+                if panel._table.item(row, column) is not None
+                else None
+                for row in range(panel._table.rowCount())
+            ],
+        )
+        result = getattr(panel, "_displayed_result", None)
+        if result is not None:
+            for index, pose in enumerate(result.poses):
+                score = pose_score_of(pose)
+                logger.warning(
+                    "OPENCHEM_DRIVE: dock_panel[%s] pose %d affinity=%s rescore=%s",
+                    step.get("tag", ""), index, pose.binding_affinity_kcal_mol,
+                    None if score is None else
+                    f"{score.function}/{score.protocol}={score.value}"
+                    f" inapplicable={score.inapplicable} err={score.error_summary!r}",
+                )
+
         # The search settings CARRY WHAT NO SCREENSHOT CAN: a seed of 0 reads
         # "Random" on screen and must leave the panel as None, and the
         # exhaustiveness shown is only interesting if it is also what is sent.

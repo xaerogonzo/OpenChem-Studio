@@ -13,7 +13,7 @@ from openchem.chem.docking_providers import (
     VinaDockingProvider,
 )
 from openchem.chem.vina_engine import VinaEngine
-from openchem.domain.docking import DockingBox
+from openchem.domain.docking import DockingBox, pose_score_of
 from openchem.services.progress import ProgressHandle
 
 #: Where the fixture receptor below actually sits. Every box in this file
@@ -929,3 +929,164 @@ def test_an_unknown_scoring_function_is_refused_before_the_engine_runs():
             search_options={"scoring_function": "not-a-real-function"},
         )
     assert engine.dock_calls == [], "the engine must not have been invoked"
+
+
+# --- rescoring: what it must NOT change -------------------------------------
+
+
+class _ScoringFakeEngine(FakeVinaEngine):
+    """A `FakeVinaEngine` that can also score a placed pose, recording what
+    it was asked for."""
+
+    def __init__(self, output: str = FAKE_OUTPUT, value: float = -3.21) -> None:
+        super().__init__(output)
+        self.score_calls: list[dict] = []
+        self.docked_receptor_bytes: bytes = b""
+        self._value = value
+
+    def dock(self, *args, **kwargs):
+        # Read DURING the call. Everything lives in `dock`'s own
+        # TemporaryDirectory, so a Path recorded here is dangling by the
+        # time a test asserts on it.
+        result = super().dock(*args, **kwargs)
+        self.docked_receptor_bytes = self.dock_calls[-1]["receptor_pdbqt"].read_bytes()
+        return result
+
+    def score_pose(self, receptor_pdbqt, pose_pdbqt, box, scoring_function, refine=False):
+        self.score_calls.append(
+            {
+                "receptor_bytes": receptor_pdbqt.read_bytes(),
+                "pose_text": pose_pdbqt.read_text(encoding="utf-8"),
+                "scoring_function": scoring_function,
+                "refine": refine,
+            }
+        )
+        return self._value
+
+
+def _dock(engine, search_options=None):
+    provider = VinaDockingProvider(engine=engine)
+    mol = Chem.MolFromSmiles("CCO")
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20.0, 20.0, 20.0))
+    return provider.dock(
+        RECEPTOR_PDB, "pdb", mol, box, 9, ProgressHandle(), None, search_options
+    )
+
+
+def test_a_rescore_changes_nothing_about_the_docking_result():
+    """**THE OPPOSITE-DIRECTION GUARD.** The other invariant says a rescore
+    must not alter the affinity; this one says it must not alter ANYTHING.
+
+    Compared through `to_dict` with the rescore key removed, so it covers
+    every field of every pose rather than the one somebody thought to check
+    -- and it is what would catch a future "optimisation" that decided to
+    use the better of the two scores somewhere downstream.
+    """
+    from openchem.domain.docking import POSE_SCORE_KEY
+
+    plain = _dock(_ScoringFakeEngine())
+    rescored = _dock(_ScoringFakeEngine(), {"rescore_with": "vinardo"})
+
+    stripped = []
+    for pose in rescored:
+        data = pose.to_dict()
+        assert POSE_SCORE_KEY in data["metadata"]
+        data["metadata"] = {
+            k: v for k, v in data["metadata"].items() if k != POSE_SCORE_KEY
+        }
+        stripped.append(data)
+
+    assert stripped == [pose.to_dict() for pose in plain]
+
+
+def test_no_rescore_is_requested_by_default():
+    """Off unless asked for. A second Vina call per pose is not something to
+    start doing to every existing user without their asking."""
+    engine = _ScoringFakeEngine()
+    poses = _dock(engine)
+    assert engine.score_calls == []
+    assert all(pose_score_of(pose) is None for pose in poses)
+
+
+def test_a_requested_rescore_reaches_the_engine_and_lands_on_the_pose():
+    engine = _ScoringFakeEngine()
+    poses = _dock(engine, {"rescore_with": "vinardo"})
+
+    assert [call["scoring_function"] for call in engine.score_calls] == ["vinardo"]
+    score = pose_score_of(poses[0])
+    assert score is not None and score.value == -3.21
+    assert score.function == "vinardo"
+
+
+def test_the_rescore_sees_the_receptor_the_SEARCH_used():
+    """The whole reason this runs inside `dock` rather than later over a
+    stored result. Receptor PDBQT preparation is not reproducible, so a
+    rebuilt receptor would be a different one -- measured live, two dock
+    calls of identical inputs produce receptors with different sha256s.
+
+    Asserted by BYTES rather than by path: a path proves only that some
+    file was handed over.
+    """
+    engine = _ScoringFakeEngine()
+    _dock(engine, {"rescore_with": "vinardo"})
+    assert engine.docked_receptor_bytes
+    assert engine.docked_receptor_bytes == engine.score_calls[0]["receptor_bytes"]
+
+
+def test_the_pose_handed_to_the_rescorer_carries_no_MODEL_wrapper():
+    """Vina refuses one outright:
+
+        PDBQT parsing error: Unexpected multi-MODEL tag found in flex
+        residue or ligand PDBQT file.
+
+    while `_raw_pose_to_model` adds exactly that wrapper before handing the
+    same pose to Open Babel. Two consumers, opposite requirements, and the
+    failure is silent in the direction that matters -- every pose reports
+    "rescore failed" and the docking result looks perfect.
+    """
+    engine = _ScoringFakeEngine()
+    _dock(engine, {"rescore_with": "vinardo"})
+    pose_text = engine.score_calls[0]["pose_text"]
+    assert "MODEL" not in pose_text
+    assert "ENDMDL" not in pose_text
+    assert "ATOM" in pose_text or "HETATM" in pose_text
+
+
+def test_a_rescore_that_raises_leaves_the_docking_result_intact():
+    """An enhancement, never the critical path -- the same contract
+    `_annotate_poses_with_interactions` has."""
+
+    class _Exploding(_ScoringFakeEngine):
+        def score_pose(self, *args, **kwargs):
+            raise RuntimeError("boom")
+
+    poses = _dock(_Exploding(), {"rescore_with": "vinardo"})
+    assert poses[0].binding_affinity_kcal_mol == -5.2
+    score = pose_score_of(poses[0])
+    assert score is not None and score.value is None
+    assert "boom" in score.error
+
+
+def test_an_unknown_rescore_function_is_refused_without_failing_the_dock():
+    engine = _ScoringFakeEngine()
+    poses = _dock(engine, {"rescore_with": "not-a-function"})
+    assert engine.score_calls == []
+    assert poses[0].binding_affinity_kcal_mol == -5.2
+    assert pose_score_of(poses[0]) is None
+
+
+def test_the_rescore_is_absent_from_the_recorded_search_settings():
+    """`_last_run_settings` becomes `DockingResultModel`'s own top-level
+    fields, which describe the SEARCH. A rescore's function sitting beside
+    the search's `scoring_function` in one flat record is the exact
+    confusion this feature exists to prevent."""
+    engine = _ScoringFakeEngine()
+    provider = VinaDockingProvider(engine=engine)
+    mol = Chem.MolFromSmiles("CCO")
+    box = DockingBox(center=_RECEPTOR_CENTER, size=(20.0, 20.0, 20.0))
+    provider.dock(
+        RECEPTOR_PDB, "pdb", mol, box, 9, ProgressHandle(), None,
+        {"rescore_with": "vinardo", "scoring_function": "vina"},
+    )
+    assert provider._last_run_settings["scoring_function"] == "vina"
+    assert "rescore_with" not in provider._last_run_settings

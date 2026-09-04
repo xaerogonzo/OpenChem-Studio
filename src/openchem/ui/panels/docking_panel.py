@@ -29,7 +29,8 @@ from openchem.chem.calculation_input import canonical_conformer
 from openchem.app.settings import Settings
 from openchem.chem.docking_providers import DEFAULT_EXHAUSTIVENESS
 from openchem.chem.engine import ChemistryEngine
-from openchem.domain.docking import DockingBox
+from openchem.domain.common import describe_failure
+from openchem.domain.docking import DockingBox, pose_score_of
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
 from openchem.events.events import DockingJobStateChanged, DockingResultReady, MoleculeSelected
@@ -40,7 +41,19 @@ from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 logger = logging.getLogger("openchem.ui")
 
-_POSE_COLUMNS = ("Pose", "Binding Affinity (kcal/mol)", "RMSD l.b.", "RMSD u.b.")
+_POSE_COLUMNS = (
+    "Pose",
+    "Binding Affinity (kcal/mol)",
+    "RMSD l.b.",
+    "RMSD u.b.",
+    "Rescore",
+)
+
+#: The rescore column, named rather than indexed for the reason
+#: `_AFFINITY_COLUMN` is. It is HIDDEN unless a rescore was requested, and
+#: its header text is replaced at populate time with the function that
+#: produced the number plus "(separate scale)".
+_RESCORE_COLUMN = "Rescore"
 
 def coordinate_spin_width(spin: QDoubleSpinBox) -> int:
     """Wide enough for the widest value the spin's RANGE permits, and no wider.
@@ -153,6 +166,16 @@ _POSE_COLUMN_HELP = {
     "RMSD u.b.": HelpTooltip(
         text="", tier=3, help_id="docking.rmsd_upper_bound", topic="docking",
         help_anchor="docking",
+    ),
+    "Rescore": HelpTooltip(
+        text="",
+        tier=3,
+        help_id="docking.rescore",
+        topic="docking",
+        help_anchor="docking",
+        # Vinardo is the function offered, and the paper is what says it is
+        # a real alternative rather than a re-scaling of Vina.
+        source_key="quiroga2016",
     ),
 }
 
@@ -317,6 +340,29 @@ _CONTROL_HELP = {
         tier=3, help_id="docking.scoring_function", topic="docking",
         help_anchor="docking",
     ),
+    "rescore_with": HelpTooltip(
+        text=(
+            "Score every pose a SECOND time with a different function, after "
+            "the search. Off by default, and it costs one extra Vina call per "
+            "pose.\n\n"
+            "The pose is not changed and neither is the affinity beside it: "
+            "AutoDock Vina is documented as strong at finding the right pose "
+            "and weaker at ranking one ligand against another, so this "
+            "replaces the number and keeps the geometry.\n\n"
+            "The two numbers are on DIFFERENT SCALES and must never be "
+            "compared, averaged or put in one ranking. On one fentanyl pose "
+            "Vina reports -8.78 and Vinardo -5.47 for the same atoms in the "
+            "same place. Even choosing Vina here does not reproduce the "
+            "affinity for any pose but the first, because a docking run uses "
+            "one shared unbound reference for all its poses and a rescore "
+            "uses each pose's own.\n\n"
+            "Whether Vinardo ranks better on your receptor is not something "
+            "this application has measured; it is offered, not recommended."
+        ),
+        tier=3, help_id="docking.rescore_with", topic="docking",
+        help_anchor="docking",
+        source_key="quiroga2016",
+    ),
     "random_seed": HelpTooltip(
         text=(
             "The random seed for Vina's search. 'Random' picks a fresh one for "
@@ -401,6 +447,19 @@ _POSE_COLUMN_TOOLTIPS = {
         "A large value means this pose is geometrically different from pose 1. It does "
         "not establish whether either pose is correct."
     ),
+    "Rescore": (
+        "The same pose scored again by a DIFFERENT function, after the search.\n\n"
+        "It is NOT on the affinity column's scale and the two must never be "
+        "compared, subtracted or averaged. Vinardo and Vina differ by about 3 "
+        "kcal/mol on the same atoms in the same place, because they weight "
+        "their terms differently rather than because one binds better.\n\n"
+        "Rescoring with Vina itself does not reproduce the affinity either, "
+        "except for pose 1: a docking run uses one shared unbound reference "
+        "for every pose it reports, while a rescore uses each pose's own.\n\n"
+        "The poses are still ordered by the docking affinity. Nothing here "
+        "re-ranks them, because whether this function ranks better on this "
+        "receptor has not been measured."
+    ),
     "RMSD u.b.": (
         "Root-mean-square deviation in Angstrom RELATIVE TO POSE 1 of this run -- not "
         "to any experimental structure. Pose 1 is therefore always 0.000.\n\n"
@@ -434,6 +493,28 @@ _LIMITATION_NOTE = (
     "result (see ARCHITECTURE.md). Treat results as a starting point, not "
     "production-grade docking prep."
 )
+
+
+def _rescore_note(function: str) -> str:
+    """The sentence under the table when a rescore column is shown.
+
+    **ON SCREEN, NOT ONLY IN THE TOOLTIP** -- the same reason the replicate
+    spread's note is a label rather than hover text, and the same failure
+    this project has twice recorded (the isotope table's spin/parity marks,
+    `Fact.limitations`): a meaning that lives only in a hover is absent from
+    every screenshot.
+
+    It sits here rather than in the column header because the header has no
+    room. The affinity column takes the table's remainder, so every pixel a
+    fifth header claims comes off the number a reader is here for.
+    """
+    return (
+        f"{function.title()} scored these poses again after the search. It is a "
+        f"SEPARATE SCALE from the affinity column — the two must not be compared, "
+        f"subtracted or averaged, and the poses are still ordered by the affinity. "
+        f"Whether {function.title()} ranks better on this receptor has not been "
+        f"measured here."
+    )
 
 
 #: The one conclusion a reader must not draw from a replicate range.
@@ -569,6 +650,7 @@ class DockingPanel(QWidget):
         #: Which docking result the pose table is showing, so an undo
         #: that removes it can be told apart from a redo that restores it.
         self._displayed_result_uuid: str | None = None
+        self._displayed_result = None
 
         self._receptor_combo = QComboBox(self)
         apply_help_tooltip(self._receptor_combo, _CONTROL_HELP["receptor"])
@@ -666,6 +748,22 @@ class DockingPanel(QWidget):
         self._scoring_combo.addItem("Vinardo", "vinardo")
         apply_help_tooltip(self._scoring_combo, _CONTROL_HELP["scoring_function"])
 
+        # "Off" FIRST AND DEFAULT. A rescore costs one extra Vina call per
+        # pose, and more importantly it puts a second number on screen whose
+        # usefulness on any given receptor is unmeasured -- so it is opt-in,
+        # and at Off the panel renders exactly as it did before this existed.
+        #
+        # A combo rather than a checkbox: there are two functions to choose
+        # between, and "Off" as a first item makes not-requested an explicit
+        # state rather than something inferred from a cleared box. It costs
+        # no width -- "Rescore with:" is shorter than "Scoring function:",
+        # which already sizes this form's label column.
+        self._rescore_combo = QComboBox(self)
+        self._rescore_combo.addItem("Off", "")
+        self._rescore_combo.addItem("Vinardo", "vinardo")
+        self._rescore_combo.addItem("Vina", "vina")
+        apply_help_tooltip(self._rescore_combo, _CONTROL_HELP["rescore_with"])
+
         # 1..25, default 1. ONE, because anything above it would multiply
         # every existing user's docking wall clock with no announcement -- and
         # because at 1 the panel's whole render is byte-identical to what it
@@ -725,6 +823,13 @@ class DockingPanel(QWidget):
         apply_help_tooltip(self._spread_label, _CONTROL_HELP["affinity_spread"])
         self._spread_label.setVisible(False)
 
+        # Hidden until a rescore column is shown, exactly as the spread
+        # label is hidden until replicates are measured.
+        self._rescore_label = QLabel("", self)
+        self._rescore_label.setWordWrap(True)
+        apply_help_tooltip(self._rescore_label, _CONTROL_HELP["rescore_with"])
+        self._rescore_label.setVisible(False)
+
         self._limitation_label = QLabel(_LIMITATION_NOTE, self)
         self._limitation_label.setWordWrap(True)
 
@@ -770,6 +875,13 @@ class DockingPanel(QWidget):
                 if name == _AFFINITY_COLUMN
                 else QHeaderView.ResizeMode.ResizeToContents,
             )
+        # HIDDEN FROM CONSTRUCTION, because "no rescore was requested" is the
+        # starting state and an empty fifth column is not a neutral default:
+        # `ResizeToContents` gives it its header's width, which took the
+        # affinity column 10 px past clipping and reddened
+        # `test_no_pose_table_header_is_clipped` the moment it was added.
+        # `_apply_rescore_column` is the only thing that shows it.
+        self._table.setColumnHidden(_POSE_COLUMNS.index(_RESCORE_COLUMN), True)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
         receptor_row = QHBoxLayout()
@@ -827,6 +939,7 @@ class DockingPanel(QWidget):
         search_form = QFormLayout(search_group)
         search_form.addRow("Exhaustiveness:", self._exhaustiveness_combo)
         search_form.addRow("Scoring function:", self._scoring_combo)
+        search_form.addRow("Rescore with:", self._rescore_combo)
         # DIRECTLY ABOVE SEED, because it changes what Seed means: a pinned
         # seed is the root of a DERIVED set of per-run seeds rather than the
         # number Vina receives. A reader who meets Seed first forms the older
@@ -849,6 +962,7 @@ class DockingPanel(QWidget):
         layout.addLayout(run_row)
         layout.addWidget(self._status_label)
         layout.addWidget(self._spread_label)
+        layout.addWidget(self._rescore_label)
         layout.addWidget(self._table)
         layout.addWidget(self._limitation_label)
 
@@ -984,11 +1098,21 @@ class DockingPanel(QWidget):
         fact.
         """
         seed = self._seed_spin.value()
-        return {
+        options = {
             "exhaustiveness": self._exhaustiveness_combo.currentData(),
             "scoring_function": self._scoring_combo.currentData(),
             "seed": None if seed == 0 else seed,
         }
+        # ABSENT rather than empty when Off, so a run that asked for no
+        # rescore sends the byte-identical dict it sent before this control
+        # existed. `tests/test_ligand_extent_warning.py` asserts this as an
+        # exact dict, and that assertion stays valid unedited -- which is
+        # the point: an opt-in feature must not re-baseline everyone else's
+        # request.
+        rescore = self._rescore_combo.currentData()
+        if rescore:
+            options["rescore_with"] = rescore
+        return options
 
     def displayed_replicates(self) -> int:
         """How many searches the next run performs.
@@ -1340,6 +1464,12 @@ class DockingPanel(QWidget):
         """
         self._table.setRowCount(0)
         self._displayed_result_uuid = None
+        self._displayed_result = None
+        # The rescore column and its note go with the poses, for the same
+        # reason the spread label does: a column headed "Vinardo" over an
+        # empty table states that a rescore was performed for a run the
+        # project no longer contains.
+        self._apply_rescore_column([])
         # Cleared HERE and not only in `_show_result`, so undoing a dock takes
         # the spread label with the poses. Leaving it would state a measured
         # range for a run the project no longer contains -- the same defect
@@ -1377,8 +1507,15 @@ class DockingPanel(QWidget):
 
     def _show_result(self, result) -> None:
         self._displayed_result_uuid = result.uuid
+        # Kept so a diagnostic can read the STORED PoseScore rather than the
+        # table's rendered strings: `inapplicable`, the protocol and the two
+        # hashes never reach a cell, and they are what tell the four rescore
+        # states apart. The project owns this object either way.
+        self._displayed_result = result
         self._set_spread_text(describe_replicate_spread(result.replicates))
         self._table.setRowCount(len(result.poses))
+        scores = [pose_score_of(pose) for pose in result.poses]
+        self._apply_rescore_column(scores)
         for row, pose in enumerate(result.poses):
             values = (
                 str(row + 1),
@@ -1388,6 +1525,82 @@ class DockingPanel(QWidget):
             )
             for col, value in enumerate(values):
                 self._table.setItem(row, col, QTableWidgetItem(value))
+            self._set_rescore_cell(row, scores[row])
+
+    def _apply_rescore_column(self, scores: list) -> None:
+        """Show or hide the rescore column, and name it after the function.
+
+        **THE HEADER CARRIES THE WARNING, NOT THE TOOLTIP.** A reader who
+        sees `-8.78` beside `-5.47` will conclude the second says the
+        ligand binds worse, and they are simply not on one scale -- 3.3
+        kcal/mol apart for the same atoms in the same place. This project
+        has twice recorded a meaning that lived only in hover text being
+        absent from every screenshot (the isotope spin marks,
+        `Fact.limitations`), so "(separate scale)" is printed.
+
+        Hidden when NOTHING was requested, and shown whenever anything was
+        -- including when every pose failed. "Not requested" and "requested
+        and broken" are different answers and a missing column collapses
+        them, which is this codebase's own *n/a is not 0* rule.
+        """
+        present = [score for score in scores if score is not None]
+        column = _POSE_COLUMNS.index(_RESCORE_COLUMN)
+        self._table.setColumnHidden(column, not present)
+        self._rescore_label.setVisible(bool(present))
+
+        # **THE AFFINITY COLUMN STOPS TAKING THE REMAINDER ONCE THERE IS A
+        # FIFTH.** Stretch is right for four columns -- it hands affinity the
+        # slack so it cannot clip -- and becomes the opposite once a fifth
+        # column claims width: measured, affinity fell to 98 px against the
+        # 328 its own header needs, then to 170 with a shorter fifth header.
+        # No header text is short enough to fix that, because the squeeze is
+        # the stretch column absorbing every other column's growth.
+        #
+        # `ResizeToContents` sizes a section to the WIDER of its header and
+        # its cells, so with it on all five NOTHING can clip at any font or
+        # DPI -- the same property `test_three_pose_columns_can_never_clip_
+        # whatever_the_font` already pins for the other three. The table
+        # scrolls horizontally instead when it must, which is a visible and
+        # recoverable state where a clipped header is neither.
+        header = self._table.horizontalHeader()
+        header.setSectionResizeMode(
+            _POSE_COLUMNS.index(_AFFINITY_COLUMN),
+            QHeaderView.ResizeMode.ResizeToContents
+            if present
+            else QHeaderView.ResizeMode.Stretch,
+        )
+        if not present:
+            return
+        function = present[0].function
+        item = self._table.horizontalHeaderItem(column)
+        if item is not None:
+            # setText only. The help contract lives in the item's DATA and
+            # is left untouched, so the column stays documented -- the
+            # failure `docking.derive_box_from_ligand` records, where a
+            # recomputed live string replaced a contract and the coverage
+            # guard went on reporting the control documented.
+            #
+            # COMPACT, and the scale warning goes in the label below rather
+            # than in here. "Vinardo (separate scale)" is ~150 px, and the
+            # affinity column takes the table's remainder -- so a long fifth
+            # header squeezed it to 98 px against the 328 its own text needs
+            # and reddened `test_no_pose_table_header_is_clipped`. The note
+            # under the table has room for a whole sentence, which is more
+            # than a header could carry anyway.
+            item.setText(function.title())
+        self._rescore_label.setText(_rescore_note(function))
+
+    def _set_rescore_cell(self, row: int, score) -> None:
+        if score is None:
+            return
+        column = _POSE_COLUMNS.index(_RESCORE_COLUMN)
+        if score.succeeded:
+            item = QTableWidgetItem(f"{score.value:.2f}")
+        else:
+            cell, hover = describe_failure(score.error, score.error_summary)
+            item = QTableWidgetItem(cell)
+            item.setToolTip(hover)
+        self._table.setItem(row, column, item)
 
     def _on_result_ready(self, event: DockingResultReady) -> None:
         result = event.result

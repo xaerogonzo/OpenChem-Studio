@@ -29,12 +29,159 @@ class DockingBox:
         return cls(center=(center[0], center[1], center[2]), size=(size[0], size[1], size[2]))
 
 
+#: Scored where the search left it. The number describes the pose the
+#: viewer draws, so it answers "what does this other function make of the
+#: pose we found".
+AS_DOCKED = "as_docked"
+
+#: Locally minimised UNDER the rescoring function, then scored. A different
+#: experiment, and named as one: it answers "what does this other function
+#: make of the pose it would have preferred", and the pose it scores is not
+#: the pose on screen. Measured on fentanyl in 5C1M, the refinement moves
+#: the ligand 0.079 A under Vina and 0.130 A under Vinardo -- small, but
+#: non-zero and function-dependent, so the two protocols are not
+#: interchangeable readings of one quantity.
+#:
+#: NOT called "the standard rescoring protocol", which is what this was
+#: first written as, from memory. [source:quiroga2016] measures Vinardo's
+#: scoring and ranking in smina's "score-only" mode; it uses minimisation
+#: for something else entirely -- as a PREDICTOR of docking ability while
+#: selecting the function (its Fig 1B).
+REFINE_THEN_SCORE = "refine_then_score"
+
+#: Closed, and an unrecognised value RAISES rather than being stored. The
+#: failure of an open vocabulary here is silent: a typo'd protocol would be
+#: persisted into a project file, read back, and rendered beside a number
+#: whose meaning nobody could recover. Same fail-closed rule as
+#: `settings.DIRECTORY_KINDS`.
+RESCORE_PROTOCOLS = (AS_DOCKED, REFINE_THEN_SCORE)
+
+#: The single `DockingPoseModel.metadata` key a rescore writes under.
+#: `metadata` is already an open dict that round-trips through `to_dict`
+#: verbatim, so a `PoseScore` needs no schema change and an older project
+#: file simply has no such key -- which is exactly the NOT_REQUESTED state.
+POSE_SCORE_KEY = "rescore"
+
+
+@dataclass(slots=True)
+class PoseScore:
+    """A SECOND number attached to a pose by a different scoring function.
+
+    **It is never on the affinity's scale and must never share a ranking
+    with it.** Measured on one fentanyl pose in 5C1M, Vina scores it -8.79
+    and Vinardo -5.41 -- a 3.3 kcal/mol gap for the same atoms in the same
+    place, because the two functions weight their terms quite differently
+    ([source:quiroga2016] Table 4: Vina's long-range Gauss2 alone supplies
+    58% of its binding energy and Vinardo does not have that term at all).
+    A reader who sees the two side by side and concludes one ligand binds
+    better has made the error this whole type exists to prevent, which is
+    why the column header carries the warning rather than the tooltip.
+
+    **THE TWO HASHES SAY WHAT WAS SCORED.** The reason rescoring runs
+    inside `VinaDockingProvider.dock` rather than as a later pass over a
+    stored result is that it must score the receptor the search itself
+    used -- receptor PDBQT preparation is not reproducible here (three
+    preparations of one structure give three sha256s, differing only in
+    added polar hydrogens on rotatable groups). Nothing else in this type
+    would reveal a future edit that regenerated it, so the hashes are
+    recorded. They identify the INPUTS to this number; they are explicitly
+    NOT a claim that re-running the pipeline reproduces them.
+
+    Four states, and the middle two must not collapse into "no column":
+
+        not requested   no PoseScore at all
+        succeeded       `value` is a number
+        unavailable     `value` is None and `inapplicable` -- the engine
+                        cannot score-only. Correct, permanent, neutral.
+        failed          `value` is None and not `inapplicable` -- a FAULT,
+                        with a reason the user may be able to act on.
+
+    `error`/`error_summary` are the pair `domain.common.describe_failure`
+    already renders, reused rather than paralleled.
+    """
+
+    function: str
+    protocol: str
+    value: float | None = None
+    units: str = "kcal/mol"
+    engine: str = ""
+    engine_version: str = ""
+    receptor_pdbqt_sha256: str = ""
+    pose_pdbqt_sha256: str = ""
+    inapplicable: bool = False
+    error: str | None = None
+    error_summary: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.protocol not in RESCORE_PROTOCOLS:
+            raise ValueError(
+                f"Unknown rescore protocol {self.protocol!r}; "
+                f"expected one of {', '.join(RESCORE_PROTOCOLS)}."
+            )
+        if not self.function:
+            raise ValueError("A PoseScore must name the function that produced it.")
+
+    @property
+    def succeeded(self) -> bool:
+        return self.value is not None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "function": self.function,
+            "protocol": self.protocol,
+            "value": self.value,
+            "units": self.units,
+            "engine": self.engine,
+            "engine_version": self.engine_version,
+            "receptor_pdbqt_sha256": self.receptor_pdbqt_sha256,
+            "pose_pdbqt_sha256": self.pose_pdbqt_sha256,
+            "inapplicable": self.inapplicable,
+            "error": self.error,
+            "error_summary": self.error_summary,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> PoseScore:
+        return cls(
+            function=data["function"],
+            protocol=data["protocol"],
+            value=data.get("value"),
+            units=data.get("units", "kcal/mol"),
+            engine=data.get("engine", ""),
+            engine_version=data.get("engine_version", ""),
+            receptor_pdbqt_sha256=data.get("receptor_pdbqt_sha256", ""),
+            pose_pdbqt_sha256=data.get("pose_pdbqt_sha256", ""),
+            inapplicable=bool(data.get("inapplicable", False)),
+            error=data.get("error"),
+            error_summary=data.get("error_summary"),
+        )
+
+
+def pose_score_of(pose: DockingPoseModel) -> PoseScore | None:
+    """The `PoseScore` on a pose, or None when no rescore was requested.
+
+    A malformed stored value is treated as absent rather than raised on: a
+    project file that somebody hand-edited must not make a docking result
+    unopenable, and the docking affinity beside it is unaffected either
+    way.
+    """
+    raw = pose.metadata.get(POSE_SCORE_KEY)
+    if not isinstance(raw, dict):
+        return None
+    try:
+        return PoseScore.from_dict(raw)
+    except (KeyError, ValueError):
+        return None
+
+
 @dataclass(slots=True)
 class DockingPoseModel:
     """One docked pose. `metadata` is an open escape hatch for future
     per-pose interaction data (H-bonds, clashes, pharmacophore contacts)
     that Vina/Open Babel don't produce natively today — not computed here,
     just given a home so it doesn't need another schema change later.
+
+    A rescore (`PoseScore`) lands there too, under `POSE_SCORE_KEY`.
     """
 
     pose_molblock: str
