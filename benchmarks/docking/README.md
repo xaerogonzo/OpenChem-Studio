@@ -254,3 +254,90 @@ Ames is also the cleanest of the three endpoints on the size confound:
 | hERG | +0.82 | +0.75 |
 | CYP | +0.24 | +0.54 |
 | **Ames** | **−0.14** | **+0.32** |
+
+## `rescore_power.py` — what does the rescore column actually do?
+
+The Route 2 companion to `redock.py`. Two arms, and the most important
+thing about it is what it does **not** measure.
+
+```bash
+uv run --no-sync python benchmarks/docking/rescore_power.py --exhaustiveness 25
+```
+
+### Ranking power is NOT measured, and that is a data finding
+
+Route 2's acceptance criterion is rank correlation against **measured
+affinities**. Measured 2026-09-03, every route to such a set is closed from
+this machine — the PDBbind hosts, the old plain-`wget` CASF-2016 tarball URL
+that published evaluations still use, Binding MOAD (whose domain now serves a
+commercial antibody catalogue), and Zenodo/figshare, which carry only other
+people's preprocessed derivatives. RCSB's own `rcsb_binding_affinity` exists
+but is sparse and assay-heterogeneous: **zero** records for 1HSG, 3EML and
+2RH1, and **104** for 4EY7 spanning Kd 8 nM to IC50 7120 nM for one ligand.
+
+A 4000-fold spread across assays is not a ranking oracle. The gap stays open
+in `docs/ROADMAP.md` rather than this script carrying a proxy for it.
+
+### What it does measure: docking power, with free ground truth
+
+Every catalogued receptor is deposited *with* its ligand, so the crystal pose
+costs nothing. That is CASF's docking-power protocol — score a set of
+generated poses, ask whether the best-scored one is right — run through the
+shipped `rescore_with` path, so it measures what a user actually gets.
+
+Measured at exhaustiveness 25, seed 4712, 9 poses, rescoring with Vinardo:
+
+    PDB   lig   poses  best possible  vina picks  rescore picks    rho
+    1HSG  MK1       9         0.44 A      0.44 A         0.44 A   0.12
+    4DKL  BF0       9         0.72 A      1.17 A         0.94 A   0.90
+    3EML  ZMA       9         2.50 A      3.77 A         4.22 A   0.07
+    2RH1  CAU       9         0.37 A      0.37 A         0.37 A   0.92
+    1ERE  EST       4         0.31 A      0.48 A         0.48 A   1.00
+    4EY7  E20       9         0.46 A      0.46 A         0.46 A   0.83
+    8EF5  7V7       9         0.52 A      4.45 A         4.31 A   0.82
+    5C1M  VF1       2         0.43 A      0.43 A         0.43 A   1.00
+
+    vina      6/8 within 3.0 A   mean displacement 1.45 A
+    rescore   6/8 within 3.0 A   mean displacement 1.46 A
+    ceiling   8/8
+
+**A NULL RESULT, AND IT SHIPS.** [source:quiroga2016] reports Vinardo
+improving docking on the authors' datasets; on these eight receptors it
+changes nothing detectable — 6/8 either way, means 1.45 against 1.46 Å. That
+is not evidence the two are equivalent, and the script says so: eight targets
+cannot separate functions differing by less than about one target.
+
+**THE CEILING ROW IS WHERE THE INFORMATION IS.** The search found a pose
+within 3 Å on **8 of 8**, so both of the misses are *scoring* failures rather
+than search failures — 3EML's search reached 2.50 Å while the scores picked
+3.77 and 4.22, and 8EF5's reached 0.52 Å while both picked ~4.4. Without that
+column a bad row is unattributable, which is exactly the distinction CASF's
+own decomposition exists to draw. (8EF5 is a 3.30 Å cryo-EM structure, so its
+reference ligand position carries real uncertainty of its own.)
+
+### The reordering arm needs no oracle
+
+Spearman between the two orderings of the *same* poses: mean **+0.71**, range
+**+0.07 to +1.00**, none negative. On 3EML and 1HSG the two functions order
+the poses almost independently. That is the measurement the shipped UI's
+refusal to re-rank rests on — it says the orderings differ, and deliberately
+says nothing about which is better.
+
+### Leakage: `TRAINING_PROVENANCE_UNRESOLVED`
+
+Three-valued rather than clean/contaminated. [source:quiroga2016] §3.1 names
+Vinardo's selection set exactly — 122 of the 195 PDBbind Core 2013 structures
+— and Vina was trained on PDBbind 2007. Both are checkable in principle by
+intersecting PDB codes, and neither list is obtainable from here for the same
+reason CASF-2016 is not. So the overlap is **unknown, not absent**.
+
+### Caveats that are not optional
+
+- **Centroid displacement, not symmetry-corrected RMSD.** There is no atom
+  correspondence to the deposited ligand here, so this is coarser than CASF's
+  2 Å RMSD criterion and its numbers are not comparable to a published
+  docking-power figure.
+- **Self-docking.** Each ligand is redocked into its own co-crystal
+  structure, which is the easy case; cross-docking is harder and not covered.
+- **Pose counts vary.** Vina merges similar modes, so 5C1M returned 2 poses
+  and 1ERE 4. A rho over two points is not a measurement.

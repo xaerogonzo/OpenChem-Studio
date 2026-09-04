@@ -771,14 +771,55 @@ a wrong number:
 Driven live on 5C1M, the two functions disagreed about which pose was best —
 Vina's top pose rescored worst of the first three. Nothing re-ranks on it.
 
-**The benchmark is the next step, and it is TWO benchmarks.** CASF-2016's
-scoring/ranking tests run on the benchmark's OWN poses ([source:quiroga2016]
-§2.3 confirms Vinardo was evaluated that way, in smina's score-only mode), so
-a strict CASF reproduction and a rescore of our generated poses are different
-experiments whose numbers must never be compared. Both need the leakage
-question answered first, of BOTH arms: Vinardo's parameters were selected on
-122 of the 195 PDBbind Core 2013 structures and Vina was trained on PDBbind
-2007.
+**THE BENCHMARK IS BUILT, AND RANKING POWER IS STILL OPEN — ON DATA, NOT ON
+EFFORT.** `benchmarks/docking/rescore_power.py`.
+
+Route 2's acceptance criterion needs measured affinities. Measured
+2026-09-03, every route to a set carrying them is closed from here: the
+PDBbind hosts do not connect or 403, including the plain-`wget` CASF-2016
+tarball URL that published evaluations still use; PDBbind+ is a JavaScript
+app behind an account; Binding MOAD's domain now serves a commercial antibody
+catalogue; Zenodo and figshare carry only other people's preprocessed
+derivatives. RCSB's own `rcsb_binding_affinity` is present but sparse and
+assay-heterogeneous — zero records for 1HSG, 3EML and 2RH1, and 104 for 4EY7
+spanning Kd 8 nM to IC50 7120 nM for ONE ligand. **A 4000-fold spread across
+assays is not a ranking oracle.**
+
+So the split that shipped is not the 2A/2B this section first planned. What
+IS measurable needs no external data at all, because every catalogued
+receptor is deposited with its own ligand:
+
+    MEASURED      docking power -- CASF's own protocol, crystal pose as truth
+    MEASURED      how much the rescore REORDERS the same poses, no oracle
+    NOT MEASURED  ranking power -- one ligand against another
+
+**And the docking-power arm is a NULL RESULT, which ships.**
+[source:quiroga2016] reports Vinardo improving docking on the authors' data;
+across eight receptors it changes nothing detectable here — 6/8 within 3 Å
+either way, mean displacement 1.45 against 1.46 Å. Eight targets cannot
+separate functions differing by less than about one target, so that is "no
+difference visible at this n", not equivalence.
+
+**The ceiling row is where the information is:** the search found a pose
+within 3 Å on 8 of 8, so both misses are SCORING failures rather than search
+failures. 3EML's search reached 2.50 Å while the two scores picked 3.77 and
+4.22; 8EF5's reached 0.52 Å while both picked ~4.4.
+
+The reordering arm is what the shipped UI's refusal rests on: Spearman
+between the two orderings of the same poses is mean +0.71, range +0.07 to
++1.00. On 3EML and 1HSG they order the poses almost independently.
+
+Leakage is recorded as `TRAINING_PROVENANCE_UNRESOLVED`, three-valued rather
+than clean/contaminated: [source:quiroga2016] §3.1 names Vinardo's selection
+set (122 of the 195 PDBbind Core 2013 structures) and Vina was trained on
+PDBbind 2007, and neither list is obtainable from here for the same reason
+CASF-2016 is not. The overlap is unknown, not absent.
+
+**What would reopen ranking power**, in preference order: a CASF-2016 copy
+obtained through a PDBbind+ account; or a curated affinity set assembled from
+BindingDB/ChEMBL for targets already in the library, which is its own branch
+with its own curation decisions and its own leakage analysis, and whose
+numbers would not be comparable to any published table.
 
 **CORRECTION, 2026-09-03: X-Score IS NO LONGER THE CANDIDATE, and the
 paragraph below is kept because its reasoning about ΔVinaRF20 still

@@ -179,11 +179,32 @@ Vina's best pose was the worst of the first three by Vinardo. The poses stay
 ordered by the docking affinity, the replicate range is computed from the
 docking affinity, and the dominance rank sees only the docking affinity.
 
-A benchmark is the next step and it is two benchmarks, because CASF-2016's
-ranking test scores the benchmark's own poses rather than generated ones.
-Both arms carry a training-overlap question: Vinardo's parameters were
-selected on 122 of the 195 PDBbind Core 2013 structures, and Vina was trained
-on PDBbind 2007.
+**IT HAS NOW BEEN BENCHMARKED FOR POSE SELECTION, AND THE ANSWER IS NO
+DIFFERENCE.** `benchmarks/docking/rescore_power.py` docks each of eight
+catalogued receptors' own deposited ligand and asks which pose each function
+ranks first, with the crystal pose as truth. Vina and Vinardo both put the
+top-scored pose within 3 Å on 6 of 8, mean displacement 1.45 against 1.46 Å.
+Eight targets cannot separate functions differing by less than about one
+target, so read that as "no difference visible at this n" rather than as
+equivalence.
+
+The search found a pose within 3 Å on **8 of 8**, so both misses are scoring
+failures rather than search failures — which is the distinction that makes
+the result interpretable at all.
+
+**RANKING POWER REMAINS UNMEASURED, and it is a data problem rather than an
+unfinished one.** It needs measured affinities, and every route to a set
+carrying them is closed from this machine: the PDBbind hosts, the CASF-2016
+tarball URL published evaluations use, Binding MOAD (whose domain now serves
+a commercial antibody catalogue), and Zenodo/figshare, which carry only
+preprocessed derivatives. RCSB's own affinity annotations are sparse and
+assay-heterogeneous — 104 records for 4EY7 spanning Kd 8 nM to IC50 7120 nM
+for one ligand. A 4000-fold spread across assays is not an oracle.
+
+The training-overlap question therefore stands unresolved rather than
+answered: Vinardo's parameters were selected on 122 of the 195 PDBbind Core
+2013 structures and Vina was trained on PDBbind 2007, and neither list is
+obtainable here. **Unknown, not absent.**
 
 **IT LICENSES EXACTLY ONE DIRECTION.** This is the whole of what a replicate
 range supports:
