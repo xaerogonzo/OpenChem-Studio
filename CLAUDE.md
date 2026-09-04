@@ -13860,6 +13860,50 @@ reading:
   fitted to real molecules will flag a lone atom, and that is the check
   failing, not the value.
 
+#### AND THE SECOND INSTANCE COST A WHOLE BENCHMARK, not one descriptor
+
+`openmmforcefields`'s `GAFFTemplateGenerator(molecules=...)` picks **the
+newest GAFF it can find**, which in the free-energy environment is
+`gaff-2.2.20`. FreeSolv's reference column is labelled *"Mobley group
+calculated value (GAFF)"* in the database's own header and dates from 2017.
+So `benchmarks/free_energy/` spent its whole life comparing **GAFF2 answers
+against a GAFF1 reference**, and nothing in the stored result said which
+force field had run.
+
+Ammonia is where the two part company hardest, because GAFF2 gives it an
+atom type of its own -- `n9`, described in `gaff2.dat` as literally "NH3":
+
+    gaff-1.81    N sigma 0.32500 nm   epsilon 0.71128 kJ/mol   (n3)
+    gaff-2.2.20  N sigma 0.40447 nm   epsilon 0.03975 kJ/mol   (n9)
+
+    ammonia, 40 iterations, nothing else varied
+      gaff-2.2.20   -0.672        gaff-1.81   -4.127
+      FreeSolv reference -4.02    experiment  -4.29
+
+**IT EXPLAINS EVERY ROW, WHICH IS WHAT MAKES IT THE CAUSE RATHER THAN A
+CANDIDATE.** GAFF2 deepens the aliphatic hydrogen well by 32.5%, so methane
+and ethane come out MORE soluble than the reference -- and ethane's shift is
+1.41x methane's against a 6:4 hydrogen ratio. It makes methanol's oxygen 56%
+shallower, so that row moves the OTHER way. Hydrogen sulfide's two changes
+oppose each other and it barely moves. A hypothesis that explains the one
+row it was invented for is worth little; this one predicts the sign of all
+five from the parameters alone.
+
+**THREE HYPOTHESES WERE REFUTED BEFORE THIS, AND ONE OF THEM WAS TESTED ON
+THE MOLECULE LEAST ABLE TO SHOW IT.** "The electrostatic lambda schedule is
+too coarse" was measured on METHANE, whose largest partial charge is 0.108 e
+against ammonia's 1.010 -- so that arm could not have detected a coarse
+ELECTROSTATIC schedule however it came out. Same lesson as the assembly
+corpus blind to a transposed matrix, and as the two degenerate published
+formulations: **a fixture is degenerate or not with respect to a specific
+defect.**
+
+The rule this leaves is the one the entry above already states, one level
+up: a library default is a CHOICE somebody made, and when the thing being
+reproduced was computed with a different one, the default is not a detail.
+**Pin it, and record it in the result** -- `hydration.py` does both now, and
+the recording is what would have caught this on day one.
+
 ### Bound the grid, not the resolution
 
 A projection measured at a fixed 60 samples/A cost **4.27 s** for a 92-atom

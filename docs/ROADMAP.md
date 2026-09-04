@@ -614,11 +614,25 @@ copies of one protein.
 
 ### Ranking affinities — the gap is measured, and three routes are open
 
-**Route 1 is SHIPPED. Routes 2 and 3 are not started**, and route 3 is
-explicitly gated on route 1 existing. All three are written down because the
-2026-08-31 docking work turned "the docking has a lot to be desired" into a
-specific, sourced statement about *which* ability is weak, and they differ by
-two orders of magnitude in cost.
+**Route 1 is SHIPPED, route 2's AXIS is shipped, and route 3 has been
+spiked but ships nothing.** Route 3 was gated on route 1 existing and no
+longer is. All three are written down because the 2026-08-31 docking work
+turned "the docking has a lot to be desired" into a specific, sourced
+statement about *which* ability is weak, and they differ by two orders of
+magnitude in cost.
+
+    1  an interval, not a number    SHIPPED
+    2  rescore with a second
+       function                     the AXIS is shipped; the ranking-power
+                                    benchmark is unmeasurable here, see below
+    3  relative binding free
+       energy                       SPIKED. `git diff src/` is empty for all
+                                    of it. The pipeline runs on both
+                                    platforms and its acceptance test
+                                    reproduces the reference under WSL;
+                                    Windows runs a DIFFERENT force field and
+                                    so cannot be checked against that column
+                                    at all
 
 **THE GAP, MEASURED RATHER THAN ASSERTED.** CASF-2016 evaluates four
 separate abilities and puts Vina on opposite sides of two of them
@@ -889,6 +903,23 @@ rather than a bare ΔΔG, and a published congeneric series reproduced before
 any answer of ours is believed. **Do not start this before route 1 exists**:
 without a measured spread there is nothing to judge whether an FEP number is
 an improvement on the docking score it replaces.
+
+**SPIKED, AND THE PREDICTION ABOVE WAS EXACTLY RIGHT -- FOR THE WRONG
+REASON.** `benchmarks/free_energy/` builds hydration free energies with
+OpenMM and openmmtools and checks them against FreeSolv's published column.
+Its first run failed that check on 3 of 5 compounds while **every leg
+reported itself converged**, which is the "a wrong FEP looks exactly like a
+right one" risk arriving on schedule. The cause was not convergence at all:
+the run used the newest installed GAFF while the reference column is GAFF1,
+and nothing in the stored result recorded which. So the diagnostics were
+correct and the comparison was not, and no amount of convergence checking
+could have found it -- only the external oracle did. Pinned and recorded
+now, the acceptance test reproduces.
+
+Measured feasibility, since the estimate above was a guess: **251 ns/day**
+on Windows OpenCL and 266 on WSL CUDA for a 27k-atom system, putting an
+RBFE pair at 5-12 hours and confirming the cost line. `git diff src/` is
+empty for the whole spike.
 
 #### What is deliberately NOT on this list
 

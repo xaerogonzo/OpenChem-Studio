@@ -53,6 +53,30 @@ from pathlib import Path
 ELECTROSTATIC_STATES = 5
 STERIC_STATES = 11
 
+#: The GAFF version, and it is deliberately NOT the newest installed one.
+#:
+#: **`GAFFTemplateGenerator` DEFAULTS TO THE NEWEST GAFF IT CAN FIND**, which
+#: in this environment is `gaff-2.2.20`, while FreeSolv's reference column is
+#: labelled "Mobley group calculated value (GAFF)" in the database's own
+#: header and dates from 2017. Those are two different force fields, and the
+#: benchmark was comparing one against the other without either side saying
+#: so.
+#:
+#: Ammonia is where they part company hardest. GAFF2 gives it an atom type of
+#: its own -- `n9`, described in `gaff2.dat` as literally "NH3" -- and the
+#: Lennard-Jones parameters bear no resemblance to the `n3` GAFF1 assigns:
+#:
+#:     gaff-1.81    N sigma 0.32500 nm   epsilon 0.71128 kJ/mol   (n3)
+#:     gaff-2.2.20  N sigma 0.40447 nm   epsilon 0.03975 kJ/mol   (n9)
+#:
+#: A core that is 24% wider with a twentieth of the well depth is a much less
+#: well hydrated ammonia, which is the direction and roughly the size of the
+#: 2.8 kcal/mol the benchmark could not explain.
+#:
+#: Raising this to a GAFF2 is legitimate science and INVALIDATES the FreeSolv
+#: comparison, which is exactly why the version travels with every result.
+GAFF_VERSION = "gaff-1.81"
+
 #: Per-state sampling. Deliberately small by default so the pipeline can be
 #: proved in minutes; `--iterations` raises it, and the convergence
 #: diagnostics are what say whether a given setting was enough rather than a
@@ -185,7 +209,8 @@ def silence_citations() -> None:
 
 
 def run_leg(molecule, solvated: bool, iterations: int, platform_name: str, scratch: Path,
-            n_elec: int = ELECTROSTATIC_STATES, n_steric: int = STERIC_STATES):
+            n_elec: int = ELECTROSTATIC_STATES, n_steric: int = STERIC_STATES,
+            gaff_version: str = GAFF_VERSION):
     """One leg of the cycle. Returns (dG_kcal, sigma_kcal, diagnostics)."""
     import openmm
     import openmm.app as app
@@ -193,7 +218,7 @@ def run_leg(molecule, solvated: bool, iterations: int, platform_name: str, scrat
     from openmmforcefields.generators import GAFFTemplateGenerator
     from openmmtools import alchemy, mcmc, multistate, states
 
-    generator = GAFFTemplateGenerator(molecules=molecule)
+    generator = GAFFTemplateGenerator(molecules=molecule, forcefield=gaff_version)
     forcefield = app.ForceField("amber/tip3p_standard.xml")
     forcefield.registerTemplateGenerator(generator.generator)
 
@@ -293,10 +318,18 @@ def run_leg(molecule, solvated: bool, iterations: int, platform_name: str, scrat
     sigma = delta_f_err[0, -1] * kt_kcal
 
     diagnostics = diagnose(analyzer, kt_kcal)
+    # WHICH BLOCK the free energy came from. The schedule switches
+    # electrostatics off first and sterics second, so state `n_elec - 1`
+    # is the boundary between them -- and a total alone cannot say which
+    # half is wrong. Ammonia's whole discrepancy lives in one of these
+    # two numbers and the reported sum could not distinguish them.
     diagnostics.update(
         seconds=elapsed,
         n_states=len(thermo_states),
         atoms=alchemical_system.getNumParticles(),
+        gaff_version=gaff_version,
+        dg_electrostatic=float(delta_f[0, n_elec - 1] * kt_kcal),
+        dg_steric=float(delta_f[n_elec - 1, -1] * kt_kcal),
     )
     halves = half_estimates(reporter, kt_kcal, analyzer.n_iterations)
     if halves is not None:
@@ -313,7 +346,10 @@ def run_leg(molecule, solvated: bool, iterations: int, platform_name: str, scrat
     return dg, sigma, diagnostics
 
 
-def _one_molecule(smiles: str, label: str, iterations: int, platform_name: str) -> dict:
+def _one_molecule(smiles: str, label: str, iterations: int, platform_name: str,
+                  n_elec: int = ELECTROSTATIC_STATES,
+                  n_steric: int = STERIC_STATES,
+                  gaff_version: str = GAFF_VERSION) -> dict:
     """Run both legs for one solute and return the answer plus diagnostics."""
     from openff.toolkit import Molecule
 
@@ -326,7 +362,9 @@ def _one_molecule(smiles: str, label: str, iterations: int, platform_name: str) 
         legs = {}
         for solvated in (False, True):
             name = "solvated" if solvated else "vacuum"
-            legs[name] = run_leg(molecule, solvated, iterations, platform_name, scratch)
+            legs[name] = run_leg(molecule, solvated, iterations, platform_name,
+                                 scratch, n_elec=n_elec, n_steric=n_steric,
+                                 gaff_version=gaff_version)
 
     dg_vac, s_vac, d_vac = legs["vacuum"]
     dg_solv, s_solv, d_solv = legs["solvated"]
@@ -339,13 +377,86 @@ def _one_molecule(smiles: str, label: str, iterations: int, platform_name: str) 
         "hydration": dg_vac - dg_solv,
         "sigma": math.sqrt(s_vac**2 + s_solv**2),
         "legs": legs,
+        "n_elec": n_elec,
+        "n_steric": n_steric,
+        "gaff_version": gaff_version,
         "converged": not inconsistent,
         "inconsistent": inconsistent,
         "seconds": d_vac["seconds"] + d_solv["seconds"],
     }
 
 
-def validate(count: int, iterations: int, platform_name: str) -> int:
+def _plain(value):
+    """A JSON-safe copy of one diagnostic value.
+
+    **`numpy.bool_` IS NOT A `bool`, AND IT COST A RUN.** `self_consistent`
+    is `drift <= allowed` over numpy floats, so it is a numpy scalar, and
+    `json.dumps` refuses it -- which killed a three-replicate arm eleven
+    minutes in, after the harness change that added the field had been smoke
+    tested and passed. The smoke test used three iterations, and
+    `half_estimates` returns None below a handful, so the field that breaks
+    serialisation was never populated in the test that was supposed to
+    cover it. A fixture is degenerate or not with respect to a specific
+    defect, and a three-iteration run is degenerate with respect to every
+    diagnostic that needs two halves.
+
+    `numpy.float64` subclasses `float` and would have survived; `numpy.bool_`
+    deliberately does not subclass `bool`, so the one type that fails is the
+    one that looks most like a plain Python value.
+    """
+    if value is None or isinstance(value, (str, bool, int, float)):
+        return value
+    item = getattr(value, "item", None)
+    return item() if callable(item) else value
+
+
+def summarise(result: dict, smiles: str, iterations: int) -> dict:
+    """The JSON-safe record of one run, PER-LEG DIAGNOSTICS INCLUDED.
+
+    The first version of this dropped the diagnostics, and that mattered far
+    more than it looked. `min_nearest_neighbour_overlap` is the one number
+    that separates "the lambda schedule is too coarse" from "the sampling is
+    too short", and the forked-replicate path -- the only path that produces
+    INDEPENDENT measurements, and therefore the only one whose numbers can
+    settle anything -- was throwing it away. Every arm run against that
+    harness could report which value it got and not why.
+    """
+    legs = {}
+    for name, (dg, sigma, diagnostics) in result["legs"].items():
+        legs[name] = {
+            "dg_kcal_mol": _plain(dg),
+            "sigma_kcal_mol": _plain(sigma),
+            "min_nearest_neighbour_overlap":
+                _plain(diagnostics.get("min_nearest_neighbour_overlap")),
+            "statistical_inefficiency":
+                _plain(diagnostics.get("statistical_inefficiency")),
+            "effective_samples": _plain(diagnostics.get("effective_samples")),
+            "self_consistent": _plain(diagnostics.get("self_consistent")),
+            "drift": _plain(diagnostics.get("drift")),
+            "allowed_drift": _plain(diagnostics.get("allowed_drift")),
+            "n_states": _plain(diagnostics.get("n_states")),
+            "seconds": _plain(diagnostics.get("seconds")),
+            "dg_electrostatic": _plain(diagnostics.get("dg_electrostatic")),
+            "dg_steric": _plain(diagnostics.get("dg_steric")),
+        }
+    return {
+        "label": result["label"],
+        "smiles": smiles,
+        "iterations": iterations,
+        "n_elec": result.get("n_elec"),
+        "n_steric": result.get("n_steric"),
+        "gaff_version": result.get("gaff_version"),
+        "hydration_kcal_mol": _plain(result["hydration"]),
+        "sigma_kcal_mol": _plain(result["sigma"]),
+        "converged": bool(result["converged"]),
+        "seconds": _plain(result["seconds"]),
+        "legs": legs,
+    }
+
+
+def validate(count: int, iterations: int, platform_name: str,
+             out_path: Path | None = None,
+             gaff_version: str = GAFF_VERSION) -> int:
     """Reproduce FreeSolv's own GAFF column on the smallest compounds.
 
     **THE GAFF COLUMN IS THE TARGET, NOT EXPERIMENT.** Agreeing with
@@ -359,19 +470,42 @@ def validate(count: int, iterations: int, platform_name: str) -> int:
 
     compounds = freesolv.easy_subset(freesolv.load(), count)
     print(f"\nreproducing FreeSolv's GAFF/AM1-BCC column on {len(compounds)} compounds, "
-          f"{iterations} iterations each\n")
+          f"{iterations} iterations each")
+    print(f"force field: {gaff_version}   (the reference column is labelled "
+          f"\"GAFF\" in the database's own header)\n")
     header = (f"{'compound':<18}{'ours':>18}{'GAFF':>9}{'diff':>8}"
-              f"{'sigma':>7}{'exp':>8}  verdict")
+              f"{'sigma':>7}{'exp':>8}{'ovl':>7}  verdict")
     print(header)
     print("-" * len(header))
 
     rows = []
     for compound in compounds:
         try:
-            result = _one_molecule(compound.smiles, compound.name, iterations, platform_name)
+            # ONE PROCESS PER COMPOUND. Running the whole table in a single
+            # process is the arrangement measured to correlate replicates of
+            # the SAME molecule by 3.4x, through openmmtools' global
+            # `ContextCache`. Whether it also couples DIFFERENT molecules in
+            # sequence was never established -- and a table carrying one
+            # known correlation defect and one unmeasured one is not worth
+            # defending. Forking costs an interpreter start per compound
+            # against a run of twelve minutes.
+            record = _run_in_subprocess(compound.smiles, compound.name,
+                                        iterations, platform_name,
+                                        gaff_version=gaff_version)
         except Exception as exc:  # noqa: BLE001 - one failure must not lose the rest
             print(f"{compound.name[:17]:<18} failed: {str(exc)[:50]}")
             continue
+        _append_record(out_path, dict(
+            record,
+            gaff_kcal_mol=compound.calculated_kcal_mol,
+            experimental_kcal_mol=compound.experimental_kcal_mol,
+        ))
+        result = {
+            "hydration": record["hydration_kcal_mol"],
+            "sigma": record["sigma_kcal_mol"],
+            "converged": record["converged"],
+            "legs": record["legs"],
+        }
         diff = result["hydration"] - compound.calculated_kcal_mol
         # Combined uncertainty of OURS and THEIRS. Theirs is about 0.01-0.03,
         # so in practice ours dominates -- but including it is what makes the
@@ -381,9 +515,19 @@ def validate(count: int, iterations: int, platform_name: str) -> int:
         agrees = abs(diff) <= _z_for(ALPHA) * combined
         verdict = ("agrees" if agrees else "DISAGREES") if result["converged"] else "not converged"
         rows.append((compound, result, diff, combined, agrees))
+        # The SOLVATED leg's worst adjacent-state overlap. Taking the minimum
+        # over BOTH legs was the obvious form and is VACUOUS: a small neutral
+        # solute has no intramolecular nonbonded pairs, so every vacuum state
+        # is identical, its overlap is exactly 1/n_states, and the column
+        # printed 0.067 for all five compounds whatever the solvated leg was
+        # doing. A column that always prints a constant is a check that
+        # cannot fail.
+        solvated = result["legs"].get("solvated", {})
+        worst = solvated.get("min_nearest_neighbour_overlap")
         print(f"{compound.name[:17]:<18}{result['hydration']:>10.3f} +/-{result['sigma']:>5.3f}"
               f"{compound.calculated_kcal_mol:>9.2f}{diff:>8.3f}{combined:>7.3f}"
-              f"{compound.experimental_kcal_mol:>8.2f}  {verdict}")
+              f"{compound.experimental_kcal_mol:>8.2f}"
+              f"{'    n/a' if worst is None else format(worst, '>7.3f')}  {verdict}")
 
     if not rows:
         print("\nNothing completed.")
@@ -408,7 +552,10 @@ def validate(count: int, iterations: int, platform_name: str) -> int:
 
 
 def repeat(smiles: str, label: str, count: int, iterations: int,
-           platform_name: str, out_path: Path | None) -> int:
+           platform_name: str, out_path: Path | None,
+           n_elec: int = ELECTROSTATIC_STATES,
+           n_steric: int = STERIC_STATES,
+           gaff_version: str = GAFF_VERSION) -> int:
     """Run ONE molecule N times at fixed settings, and ask whether the
     stated uncertainties are honest.
 
@@ -432,7 +579,9 @@ def repeat(smiles: str, label: str, count: int, iterations: int,
     """
     estimates: list[tuple[float, float]] = []
     for index in range(count):
-        result = _run_in_subprocess(smiles, label, iterations, platform_name)
+        result = _run_in_subprocess(smiles, label, iterations, platform_name,
+                                    n_elec=n_elec, n_steric=n_steric,
+                                    gaff_version=gaff_version)
         estimates.append((result["hydration_kcal_mol"], result["sigma_kcal_mol"]))
         record = dict(result, run=index + 1)
         _append_record(out_path, record)
@@ -473,7 +622,10 @@ def repeat(smiles: str, label: str, count: int, iterations: int,
     return 0
 
 
-def _run_in_subprocess(smiles: str, label: str, iterations: int, platform_name: str) -> dict:
+def _run_in_subprocess(smiles: str, label: str, iterations: int, platform_name: str,
+                       n_elec: int = ELECTROSTATIC_STATES,
+                       n_steric: int = STERIC_STATES,
+                       gaff_version: str = GAFF_VERSION) -> dict:
     """One replicate, in a FRESH PROCESS.
 
     **MEASURED, AND THE OBVIOUS IMPLEMENTATION IS WRONG BY 3.4x.** This
@@ -505,6 +657,8 @@ def _run_in_subprocess(smiles: str, label: str, iterations: int, platform_name: 
         done = subprocess.run(
             [sys.executable, str(Path(__file__).resolve()), "--smiles", smiles,
              "--name", label, "--iterations", str(iterations),
+             "--elec-states", str(n_elec), "--steric-states", str(n_steric),
+             "--gaff", gaff_version,
              "--platform", platform_name, "--emit-json", str(result_path)],
             capture_output=True, text=True,
         )
@@ -547,6 +701,20 @@ def main() -> int:
                         help="reproduce FreeSolv's GAFF column on N small compounds")
     parser.add_argument("--name", default="")
     parser.add_argument("--iterations", type=int, default=DEFAULT_ITERATIONS)
+    parser.add_argument("--elec-states", type=int, default=ELECTROSTATIC_STATES,
+                        help="electrostatic lambda windows (default %(default)s). "
+                             "Exposed because the schedule's coarseness was only "
+                             "ever tested on METHANE, whose largest partial charge "
+                             "is 0.108 e against ammonia's 1.010 -- so that arm "
+                             "could not have detected a coarse ELECTROSTATIC "
+                             "schedule whatever it returned.")
+    parser.add_argument("--steric-states", type=int, default=STERIC_STATES,
+                        help="steric lambda windows (default %(default)s)")
+    parser.add_argument("--gaff", default=GAFF_VERSION,
+                        help="GAFF version (default %(default)s). The newest "
+                             "installed one is what the generator picks on its "
+                             "own, and it is NOT what FreeSolv's column was "
+                             "computed with.")
     parser.add_argument("--platform", default=None,
                         help="OpenMM platform; the fastest available if omitted")
     args = parser.parse_args()
@@ -573,16 +741,13 @@ def main() -> int:
         import json
 
         result = _one_molecule(args.smiles, args.name or args.smiles,
-                               args.iterations, platform_name)
-        Path(args.emit_json).write_text(json.dumps({
-            "label": result["label"],
-            "smiles": args.smiles,
-            "iterations": args.iterations,
-            "hydration_kcal_mol": result["hydration"],
-            "sigma_kcal_mol": result["sigma"],
-            "converged": result["converged"],
-            "seconds": result["seconds"],
-        }), encoding="utf-8")
+                               args.iterations, platform_name,
+                               n_elec=args.elec_states,
+                               n_steric=args.steric_states,
+                               gaff_version=args.gaff)
+        Path(args.emit_json).write_text(
+            json.dumps(summarise(result, args.smiles, args.iterations)),
+            encoding="utf-8")
         return 0
 
     if args.repeat:
@@ -590,16 +755,19 @@ def main() -> int:
             parser.error("--repeat needs --smiles")
         print(f"solute: {args.name or args.smiles}   {args.smiles}", flush=True)
         return repeat(args.smiles, args.name or args.smiles, args.repeat,
-                      args.iterations, platform_name, out_path)
+                      args.iterations, platform_name, out_path,
+                      n_elec=args.elec_states, n_steric=args.steric_states,
+                      gaff_version=args.gaff)
     if args.freesolv:
-        return validate(args.freesolv, args.iterations, platform_name)
+        return validate(args.freesolv, args.iterations, platform_name, out_path,
+                        gaff_version=args.gaff)
     if not args.smiles:
         parser.error("give --smiles or --freesolv N")
 
     print(f"solute: {args.name or args.smiles}   {args.smiles}")
-    print(f"schedule: {ELECTROSTATIC_STATES} electrostatic + {STERIC_STATES - 1} steric "
-          f"= {len(build_states())} states, {args.iterations} iterations x "
-          f"{STEPS_PER_ITERATION} steps\n")
+    print(f"schedule: {args.elec_states} electrostatic + {args.steric_states - 1} "
+          f"steric = {len(build_states(args.elec_states, args.steric_states))} "
+          f"states, {args.iterations} iterations x {STEPS_PER_ITERATION} steps\n")
 
     molecule = Molecule.from_smiles(args.smiles)
     molecule.generate_conformers(n_conformers=1)
@@ -611,7 +779,10 @@ def main() -> int:
         for solvated in (False, True):
             label = "solvated" if solvated else "vacuum"
             dg, sigma, diag = run_leg(molecule, solvated, args.iterations,
-                                      platform_name, scratch)
+                                      platform_name, scratch,
+                                      n_elec=args.elec_states,
+                                      n_steric=args.steric_states,
+                                      gaff_version=args.gaff)
             results[label] = (dg, sigma, diag)
             print(f"  {label:<9} dG(decouple) = {dg:8.3f} +/- {sigma:.3f} kcal/mol"
                   f"   [{diag['atoms']} atoms, {diag['seconds']:.0f} s]")
