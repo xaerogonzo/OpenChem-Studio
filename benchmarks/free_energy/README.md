@@ -82,10 +82,33 @@ It reported one missing name before the fix and none after, so it can say
 no as well as yes.
 
 That is LLVM's OpenMP runtime under the name MSVC-built binaries link it by.
-conda-forge's win-64 `pytorch` 2.10.0 imports it and **declares no OpenMP
-dependency at all** -- neither `pytorch` nor `libtorch` lists one -- so
-nothing installs it and the solve looks clean. An upstream packaging bug,
-worth reporting there.
+**AND IT IS NOT conda-forge's PACKAGE, WHICH THIS FILE SAID FOR A WHILE.**
+That was asserted because the environment recipe says `-c conda-forge` and
+never checked against what the solver did. Read out of `conda-meta`, the
+build is
+
+    pytorch  2.10.0  gpu_cuda130_py311h12d642b_203
+    channel  https://repo.anaconda.com/pkgs/main/win-64
+
+so `pytorch` and `libtorch` come from **Anaconda's `defaults`**, and they are
+4 of the 227 packages in that environment that do. The error would have been
+invisible until somebody filed a bug against the wrong maintainers, which is
+exactly how it was caught. Same failure as this project's citation audit:
+every one of those six errors was in the field nothing could check.
+
+Neither package declares **any** OpenMP dependency -- not `pytorch`, not
+`libtorch` -- so nothing installs the runtime and the solve looks clean. And
+no candidate provider ships that name:
+
+    intel-openmp   (defaults)      libiomp5md.dll, libiompstubs5md.dll, ...
+    llvm-openmp    (conda-forge)   libomp.dll, libiomp5md.dll
+
+**The build is a `nomkl`/openblas variant**, which matters: a pure-defaults
+solve pulls `_openmp_mutex 52_intel` and `intel-openmp` through MKL, and this
+environment has `nomkl` from conda-forge's openblas instead, so no OpenMP
+runtime arrives at all. Whether the current defaults build (2.13.0, MKL) links
+the same name was **not tested** -- it needs a 367 MB `libtorch` download --
+so the scope of the upstream defect is one build and one variant.
 
 The fix is two steps and 334 KB:
 
@@ -211,9 +234,10 @@ conda create -y -n openchem-fep -c conda-forge python=3.11 \
 ```
 
 **The Windows environment is not usable as created**, and that is the whole
-point of the entry above: conda-forge's win-64 `pytorch` links
-`libomp140.x86_64.dll` and declares no OpenMP dependency, so the solve
-succeeds and the import does not. One copy finishes the job:
+point of the entry above: the win-64 `pytorch` that resolves here comes
+from **Anaconda's defaults**, links `libomp140.x86_64.dll`, and declares no
+OpenMP dependency, so the solve succeeds and the import does not. One copy
+finishes the job:
 
 ```bash
 copy "%CONDA_PREFIX%\Library\bin\libomp.dll" ^

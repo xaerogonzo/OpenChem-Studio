@@ -13862,6 +13862,21 @@ reading:
 
 #### AND THE SECOND INSTANCE COST A WHOLE BENCHMARK, not one descriptor
 
+**AND A SECOND CHANNEL DEFAULT, IN THE SAME SESSION AND WORSE.** That
+session's write-up said the Windows `libomp140.x86_64.dll` defect was in
+**conda-forge's** pytorch. It is not: read out of `conda-meta`, `pytorch`
+and `libtorch` come from `https://repo.anaconda.com/pkgs/main/win-64`, and
+they are 4 of the 227 packages in that environment that do. The claim was
+made because the environment RECIPE says `-c conda-forge` and never checked
+what the solver did -- a field nobody could check, believed and then written
+down, which is this file's own most-repeated failure. **It was caught only
+because filing the bug forced a verification**, one command short of
+reporting it to the wrong maintainers.
+
+The rule: a package's CHANNEL is a fact about the solve, not about the
+command that started it. `conda-meta/<pkg>.json` carries `channel` and `url`
+and is the only thing that answers it.
+
 `openmmforcefields`'s `GAFFTemplateGenerator(molecules=...)` picks **the
 newest GAFF it can find**, which in the free-energy environment is
 `gaff-2.2.20`. FreeSolv's reference column is labelled *"Mobley group
