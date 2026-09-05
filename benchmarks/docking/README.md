@@ -264,7 +264,27 @@ thing about it is what it does **not** measure.
 uv run --no-sync python benchmarks/docking/rescore_power.py --exhaustiveness 25
 ```
 
-### Ranking power is NOT measured, and that is a data finding
+### Ranking power is NOT measured HERE — and it is measurable now, next door
+
+**SUPERSEDED IN ITS CONCLUSION, KEPT FOR ITS EVIDENCE.** Everything the
+section below says about PDBbind, CASF-2016, Binding MOAD and
+`rcsb_binding_affinity` is still true and still worth having: those routes are
+closed and re-checking them is wasted time.
+
+What was wrong was the inference drawn from it — that ranking power is
+therefore unmeasurable here. `docs/ROADMAP.md` named the reopener in the same
+breath ("a curated affinity set assembled from BindingDB/ChEMBL for targets
+already in the library"), and **ChEMBL is reachable with no account**:
+ChEMBL_37, 24.5M activities, and 21 of the 23 catalogued receptors sampled
+reach a target carrying `=`-relation Ki values with a pChEMBL.
+
+The decisive difference is that ChEMBL carries `assay_chembl_id`, so a series
+can be confined to **one assay** — which is exactly what
+`rcsb_binding_affinity` could not do, and exactly why its 4000-fold spread
+made it useless. See `chembl_corpus.py` and the Within-Assay Docking Ranking
+Benchmark below.
+
+### The closed routes, as measured 2026-09-03
 
 Route 2's acceptance criterion is rank correlation against **measured
 affinities**. Measured 2026-09-03, every route to such a set is closed from
@@ -341,3 +361,166 @@ reason CASF-2016 is not. So the overlap is **unknown, not absent**.
   structure, which is the easy case; cross-docking is harder and not covered.
 - **Pose counts vary.** Vina merges similar modes, so 5C1M returned 2 poses
   and 1ERE 4. A rho over two points is not a measurement.
+
+## The Within-Assay Docking Ranking Benchmark — route 2's acceptance
+
+`chembl_corpus.py` → `rank_power.py` → `rank_report.py`. Three stages, each
+leaving standalone evidence, and only the middle one costs Vina time.
+
+```bash
+uv run --no-sync python benchmarks/docking/chembl_corpus.py
+uv run --no-sync python benchmarks/docking/chembl_corpus.py --presence
+uv run --no-sync python benchmarks/docking/rank_power.py --all
+uv run --no-sync python benchmarks/docking/rank_report.py
+```
+
+**IT IS NOT CASF, AND THE NAME IS LOAD-BEARING.** CASF-2016 decouples scoring
+from docking over 285 complexes and 57 targets. This ranks compounds measured
+in ONE assay against poses this application generated. Its rho is not
+[source:su2019]'s pooled ~0.6 or [source:nguyen2020]'s 0.498 ± 0.026 — a
+different quantity on a harder question, which `rank_report.py` prints rather
+than trusting a reader to remember.
+
+### What the corpus is
+
+Measured 2026-09-05 against ChEMBL_37: **1586 single-assay series** over eight
+catalogued receptors, **795 of them size-decoupled**, from 41,073 activities.
+
+| target | family | activities | series |
+| --- | --- | --- | --- |
+| 3HS4 | carbonic anhydrase II | 11,050 | 408 |
+| 3PBL | dopamine D3 | 8,253 | 286 |
+| 3EML | adenosine A2A | 6,575 | 275 |
+| 6WGT | 5-HT2A | 6,323 | 224 |
+| 5TGZ | cannabinoid CB1 | 3,955 | 181 |
+| 5I6X | serotonin transporter | 3,394 | 135 |
+| 2RH1 | β2-adrenergic | 796 | 38 |
+| 5C1M | μ-opioid (**mouse**) | 727 | 39 |
+
+Eight targets across eight families, because eight from one family would
+measure one pocket eight times. 5C1M earns its place on evidence: it is the
+receptor the original ranking complaint was reported against.
+
+### One assay is the whole point
+
+`rcsb_binding_affinity` failed as an oracle because it mixes assays — 104
+records for one 4EY7 ligand spanning Kd 8 nM to IC50 7120 nM. ChEMBL carries
+`assay_chembl_id`, so a series can be confined to one assay, one endpoint and
+one laboratory, and an ordering within it is a real ordering.
+
+**Series size is DERIVED, not typed.** Under the null that the docking order is
+unrelated to the measured one, all n! orderings are equally likely and two are
+perfect — one per direction, since the benchmark does not fix the direction in
+advance. So the two-sided rate of the extreme outcome is 2/n!, and the minimum
+is the smallest n clearing `SEPARATION_ALPHA`: **n = 5**, where n = 4 gives
+0.083. The alpha is imported from `domain/affinity_range.py` so the corpus and
+the shipped separation rule cannot drift apart.
+
+**The potency span is reported and never used to admit.** A minimum span would
+be a constant somebody fitted. The only gate is that at least two potencies
+differ, which is definedness — Spearman is undefined otherwise.
+
+### The join is pinned; SIFTS is the verifier
+
+A UniProt accession is not a construct. **Four of the eight deposits carry a
+second accession for their crystallisation fusion** — T4 lysozyme (P00720) in
+3PBL, 2RH1 and 3EML, cytochrome b562 (P0ABE7) in 6WGT, flavodoxin (P00323) in
+5TGZ — and each has ChEMBL targets of its own, so "take the accession with the
+most activities" can return a chaperone's affinity data as the receptor's.
+
+So `JOIN` is a table with a reason per row, and `verify_join` **fails on
+disagreement** rather than resolving anything. Three cases that otherwise fail
+by returning silence rather than an error:
+
+- **5C1M is mouse.** P42866 is mouse μ-opioid and so is CHEMBL2858, which
+  carries 727 Ki values of its own — so the exact-organism rule is what the
+  data supports, not a principle imposed on it. No ortholog fallback is
+  implemented rather than written and left unreachable.
+- **4M48 is *Drosophila*.** Q7K4Y6 reaches no ChEMBL target at all.
+- **COX-2 has 27 Ki values**, because that endpoint is measured as IC50. A
+  Ki-only rule silently refuses an enzyme class.
+
+### The receptor preparation differs from every other benchmark here
+
+    {"strip_waters": True, "strip_cofactors": False,
+     "strip_ligand_codes": (entry.ligand_code,)}
+
+`redock.py`, `rescore_power.py` and `seed_spread.py` all pass
+`strip_cofactors: True`, which `is_stripped_residue` resolves to "delete every
+non-standard residue" — taking **carbonic anhydrase II's catalytic zinc**, the
+binding determinant for the sulfonamide series that is 3HS4's entire reason for
+being here. Both halves are asserted before any search, because a blocked
+pocket or a stripped cofactor compresses every score toward a constant and
+still yields a plausible correlation.
+
+**A PDBQT IS NOT A PDB**, and reading it as one made the metal check return 0
+on a receptor whose zinc was present: the element is not at columns 77–78, the
+AutoDock type is the last token. Measured on 3HS4, the distinct trailing tokens
+across the file are exactly `A C HD N NA OA S Zn`.
+
+### The receptor is prepared once per series
+
+Receptor preparation is **not reproducible** — three preparations of 5C1M gave
+three sha256s, 80 of 3794 lines differing on polar-hydrogen rotamers. Harmless
+for one ligand; ruinous across a series, where two ligands would be scored
+against two different receptor files in exactly the dimension being measured.
+
+### Seeds are derived per ligand
+
+`domain/affinity_range.py` makes it a precondition: two ligands sharing a
+replicate seed make their values arrive as correlated pairs. Derived by
+SHA-256, never `hash()`, which is randomised per process — this project shipped
+that bug once already, in `protonate_at_ph`.
+
+### Six replicates, and the split is fixed in advance
+
+`_stats.REPLICATE_HALVES` is `((0,1,2), (3,4,5))`. Six rather than five so the
+halves are **even**: two aggregates over different counts are not comparable.
+Six also clears the derived minimum of four.
+
+**`rho(half A, half B)` is SEARCH REPEATABILITY, not a noise ceiling.** It says
+how consistently the search orders the same ligands under this protocol; it
+does not bound the attainable correlation with experiment. The oracle's own
+reproducibility is unmeasurable here — ChEMBL carries no per-row uncertainty —
+so the docking's is measured and the oracle's is not.
+
+### Baselines, computed free at corpus-build time
+
+`rho(heavy_atoms, pChEMBL)`, MW, cLogP, TPSA, plus `rho(-vina, heavy_atoms)`
+and the random floor `1/sqrt(n-1)`. This project has shipped an endpoint that
+turned out to be molecular size (r = +0.98); a docking score that ranks no
+better than heavy-atom count is not ranking.
+
+**A series whose potency already tracks size cannot discriminate**, so the
+control is present and can never fire there. `is_size_decoupled` selects the
+ones where it can — and `None` counts as decoupled rather than as missing:
+`5C1M_CHEMBL758126` is six compounds identical in heavy atoms, MW, cLogP *and*
+TPSA across a 1.99-log potency span, an isomer series where only geometry can
+be the answer.
+
+### The selection is frozen before any docking
+
+Sixteen series, 221 ligands, 1326 searches at six replicates — roughly 2 to 14
+hours. Chosen by a declared rule: size-decoupled, 5 ≤ n ≤ 14, the two largest
+per target, ties by id. **Sorted by ligand count and not by potency span**: a
+wide span is easier to rank, so selecting on it would flatter every number that
+follows, where the count selects for statistical power.
+
+This is a **curated benchmark, not a random sample**, and the manifest says so.
+
+### The leakage bound, worded narrowly
+
+Every PDBbind entry is a co-crystallised complex, so a compound that is **no
+PDB chemical component** cannot be in Vina's training set or Vinardo's
+selection set. That is a sufficient exclusion under exact-InChIKey identity —
+a **minimal** bound, not a leakage-free claim, since protonation, tautomer,
+salt and stereo representation all break exact identity, and similarity leakage
+is not addressed at all. One-way: absence is sufficient, **presence implies
+nothing**, because a compound can be in the PDB bound to a protein PDBbind
+never included.
+
+**RCSB answers a zero-hit search with HTTP 204 and an empty body**, so
+`json.loads` raises and a blanket except reads "not in the PDB" as a failure —
+folding absence and inability together and biasing the split optimistic. Hence
+three values, and three fixtures: a hit, a real absence, and a fault. A
+two-fixture test is satisfied by both of the mutations it exists to catch.
