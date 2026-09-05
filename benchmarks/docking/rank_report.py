@@ -177,8 +177,20 @@ def series_row(series: dict, runs: list[dict], presence: dict) -> dict | None:
     for name in BASELINES:
         row[f"rho_{name}"] = spearman([by_id[m][name] for m in order], potency)
     if presence:
-        verdicts = [presence.get(by_id[m]["inchikey"], {}).get("verdict") for m in order]
-        row["presence"] = {v: verdicts.count(v) for v in set(verdicts) if v}
+        # **NOT_LOOKED_UP IS ITS OWN VERDICT**, and folding it into the others
+        # was this function's bug. A compound with no cache entry has not been
+        # checked; reporting that as "no exact match" is the absence-versus-
+        # inability confusion `pdb_presence.py` refuses one layer down, arriving
+        # in the layer that summarises it. It bit immediately: the presence
+        # cache was resolved for the v1 selection, v2 selects different
+        # compounds, and 125 of 194 had no entry -- so the report announced
+        # that nothing in the corpus was in the PDB, on evidence it did not
+        # have.
+        verdicts = [
+            presence.get(by_id[m]["inchikey"], {}).get("verdict") or "NOT_LOOKED_UP"
+            for m in order
+        ]
+        row["presence"] = {v: verdicts.count(v) for v in set(verdicts)}
         clean = [i for i, v in enumerate(verdicts) if v == "ABSENT"]
         row["rho_vina_absent_only"] = (
             spearman([vina[i] for i in clean], [potency[i] for i in clean])
@@ -336,10 +348,17 @@ def main() -> int:
             values = [r["rho_vina_absent_only"] for r in absent]
             print(f"  median rho over ABSENT-only subsets {sorted(values)[len(values) // 2]:+.3f} "
                   f"({len(absent)} series)")
-        if not buckets.get("PRESENT"):
-            print("  The split could not discriminate: no compound in this corpus")
-            print("  has an exact PDB chemical-component match, so the two arms")
-            print("  are the same numbers and prove nothing about leakage.")
+        unchecked = buckets.get("NOT_LOOKED_UP", 0)
+        if unchecked:
+            print(f"  {unchecked} compound(s) were never looked up, so the arms below")
+            print("  are NOT a leakage split -- run chembl_corpus.py --presence-only.")
+            print("  'Not checked' is not 'not in the PDB', and reporting the")
+            print("  second on evidence for the first is what this line prevents.")
+        elif not buckets.get("PRESENT"):
+            print("  The split could not discriminate: every compound was checked")
+            print("  and NONE has an exact PDB chemical-component match, so the two")
+            print("  arms are the same numbers. That is a statement about leakage")
+            print("  being minimal, not about the split being informative.")
         print("  ABSENT is a SUFFICIENT exclusion from PDBbind under exact-InChIKey")
         print("  identity -- a MINIMAL bound, not a leakage-free claim. PRESENT")
         print("  implies nothing: a compound can be in the PDB bound to a protein")

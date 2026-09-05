@@ -795,7 +795,26 @@ def main() -> int:
         help="resolve the PDB chemical-component leakage bound for every "
         "compound in the built corpus, and cache it",
     )
+    parser.add_argument(
+        "--presence-only",
+        action="store_true",
+        help="resolve the leakage bound from the CACHED corpus, fetching nothing "
+        "and rewriting no manifest",
+    )
     args = parser.parse_args()
+
+    if args.presence_only:
+        # **REBUILDING WOULD BE THE WRONG MOVE HERE**, and not only because it
+        # is slow: `main` re-fetches and rewrites the manifest, so running it
+        # while Stage 1 is mid-flight can re-freeze the selection underneath a
+        # measurement already in progress. This path reads what is on disk.
+        manifest = json.loads((DATA / "manifest.json").read_text(encoding="utf-8"))
+        selected = [
+            json.loads((DATA / "series" / f"{sid}.json").read_text(encoding="utf-8"))
+            for sid in manifest.get("docking_selection", [])
+        ]
+        _resolve_presence(selected)
+        return 0
 
     wanted = {t.upper() for t in args.targets} if args.targets else None
     rows = [row for row in JOIN if wanted is None or row.pdb_id in wanted]
