@@ -745,15 +745,21 @@ def main() -> int:
     )
 
     if args.presence:
-        _resolve_presence(all_series)
+        _resolve_presence([s for s in all_series if s["series_id"] in set(selection)])
     return 0
 
 
 def _resolve_presence(all_series: list[dict]) -> None:
-    """Resolve and cache the leakage bound for every compound in the corpus.
+    """Resolve and cache the leakage bound for the compounds that get DOCKED.
 
-    Cached per InChIKey and shared across series, because the same compound
-    appears in several assays and the answer does not depend on which.
+    **THE FROZEN SELECTION, NOT THE WHOLE CORPUS.** The corpus holds ~1600
+    series and of order 20,000 distinct compounds; one HTTP call each is hours
+    of RCSB traffic for rows no report will ever mention, since
+    `rank_report.py` reports the selection alone. Extending the selection later
+    resolves only what it adds, because the cache is keyed per compound.
+
+    Cached per InChIKey and shared across series -- the same compound appears
+    in several assays and the answer does not depend on which.
     """
     from pdb_presence import PdbPresence, lookup
 
