@@ -280,7 +280,7 @@ class VirtualScreeningDialog(QDialog):
         return [molecule for molecule in self._project.molecules if molecule.molblock]
 
     def _start(self) -> None:
-        from openchem.chem.binding_site import box_from_ligand
+        from openchem.chem.binding_site import box_defining_ligand_codes, box_from_ligand
 
         if self._project is None:
             return
@@ -309,6 +309,30 @@ class VirtualScreeningDialog(QDialog):
             receptor,
             site.box,
             num_poses=self._poses.value(),
+            # THE BOX-DEFINING LIGAND HAS TO GO, and until this landed it did
+            # not: the dialog passed NO prep options, so `strip_ligand_codes`
+            # defaulted to empty and every screen against a catalogued
+            # receptor docked into a pocket the crystal ligand was still
+            # occupying. The measurement is in
+            # `pose_analysis.is_stripped_residue`, and so is the reason it
+            # matters most HERE -- the damage is not a constant offset, so a
+            # small ligand fitting the leftover space is penalised less than
+            # a large one that does not, and the RANKING can invert. A
+            # ranking is the entire output of this dialog.
+            #
+            # ONE KEY, NOT THE PANEL'S SIX, AND THAT IS DELIBERATE. The other
+            # five have provider defaults that COINCIDE with the panel's
+            # control defaults -- checked, not assumed: ph 7.4 against
+            # `DEFAULT_PREPARATION_PH`, strip_waters True, strip_cofactors
+            # False, keep_chains empty, build_assembly off. So a screen and a
+            # dock now prepare the identical receptor, and this dialog does
+            # not acquire five settings it offers no way to change.
+            #
+            # The helper is the panel's own, so the two surfaces cannot answer
+            # differently for one receptor.
+            receptor_prep_options={
+                "strip_ligand_codes": box_defining_ligand_codes(receptor),
+            },
             replicates=self._replicates.value(),
         )
 

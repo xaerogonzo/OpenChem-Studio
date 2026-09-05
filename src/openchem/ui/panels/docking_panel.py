@@ -599,23 +599,14 @@ def describe_replicate_spread(replicates) -> str:
     )
 
 
-def _box_defining_ligand_codes(receptor) -> list[str]:
-    """The co-crystallised ligand that defined this receptor's search box.
-
-    A catalogue import records it in `MacromoleculeModel.metadata`
-    (`receptor_library_service.entry_metadata`), and the box is derived
-    from its coordinates. Leaving it in the pocket it defined means docking
-    into an occupied site: measured against real Vina on 1HSG, indinavir
-    redocked into its own structure scored -5.34 kcal/mol with the ligand
-    present and -9.75 with it removed, and the occupied run was SLOWER.
-
-    Returns empty for a receptor the user imported themselves -- there is
-    no catalogue entry, so nothing here knows which residue defined the
-    box, and guessing would delete part of somebody's receptor.
-    """
-    metadata = getattr(receptor, "metadata", None) or {}
-    code = str(metadata.get("ligand_code", "") or "").strip()
-    return [code] if code else []
+# `box_defining_ligand_codes` used to live here, private. It moved to
+# `chem/binding_site.py` because it turned out to have TWO callers and one of
+# them was missing it: `VirtualScreeningDialog` sent no `receptor_prep_options`
+# at all, so every virtual screen against a catalogued receptor docked into a
+# pocket the crystal ligand was still sitting in. Copying it into the dialog
+# would have been the drift this project has already paid for four times, so
+# there is one implementation and both callers import it -- deferred, like
+# every other `binding_site` import in this file.
 
 
 class DockingPanel(QWidget):
@@ -1348,6 +1339,8 @@ class DockingPanel(QWidget):
         # receptor.
         self._report_ligand_extent(ligand_mol, box)
 
+        from openchem.chem.binding_site import box_defining_ligand_codes
+
         self._pending_ligand_uuid = ligand_uuid
         self._pending_receptor_uuid = receptor_uuid
         self._dock_button.setEnabled(False)
@@ -1374,7 +1367,7 @@ class DockingPanel(QWidget):
                 # assembly ONCE from this and hands the identical text
                 # to both the docking and the interaction analysis.
                 "build_assembly": self._build_assembly,
-                "strip_ligand_codes": _box_defining_ligand_codes(receptor),
+                "strip_ligand_codes": box_defining_ligand_codes(receptor),
             },
             search_options=self.displayed_search_options(),
             replicates=self.displayed_replicates(),

@@ -85,6 +85,8 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "report",     "tag": "after"}      conformers, undo depth, SMILES
     {"do": "jobs_report", "tag": "running"}   rows AND whether it is POLLING
     {"do": "jobs_cancel", "row": 0}           the real button in a real row
+    {"do": "screen_run",  "receptor": 0}      the REAL Run button, and the
+                                              PREP DICT the service got
     {"do": "wait"} {"do": "quit"}
 
 **`jobs_report` CARRIES A FLAG NO SCREENSHOT CAN**, which is why it exists
@@ -4429,6 +4431,86 @@ another costume, and fixing it properly means the screening dialog growing
 exhaustiveness, scoring and seed controls, which is a decision about whether a
 screen should be configurable.
 
+### AND THE SAME OMISSION HAD A LIVE HALF: THE SCREEN DOCKED INTO AN OCCUPIED POCKET
+
+The entry above says `search_options` never reaches a screen and calls it
+LATENT, because the three settings coincide with the provider's defaults.
+`receptor_prep_options` never reached a screen either -- **and one of ITS
+keys does not coincide with anything.**
+
+`VirtualScreeningDialog._start` passed no prep dict at all, so
+`strip_ligand_codes` defaulted to `()` and the co-crystallised ligand whose
+coordinates DEFINED the search box was left sitting in it. The other five
+keys really do coincide -- checked, not assumed: `ph` 7.4 against
+`DEFAULT_PREPARATION_PH`, `strip_waters` True, `strip_cofactors` False,
+`keep_chains` empty, `build_assembly` off. Only the sixth was a live defect,
+and it is the one with no default that could be right.
+
+**THE DIALOG ALREADY KNEW WHICH RESIDUE WAS IN THE WAY.** `_start` reads
+`receptor.metadata["ligand_code"]` on the line above to place the box, and
+then did not pass it to preparation. So the information was in hand and
+dropped between two adjacent statements.
+
+**AND THE PREDICATE'S OWN DOCSTRING NAMED THE VICTIM.**
+`pose_analysis.is_stripped_residue` carries the measurement -- indinavir
+redocked into its own 1HSG, **-5.34 against -9.78 kcal/mol**, and the
+occupied run SLOWER -- and ends: *"a small ligand fitting the leftover space
+is penalised less than a large one that does not, so the RANKING can invert
+-- and a ranking is the entire output of a virtual screen."* Virtual
+screening was the one caller that omitted it. Fourth instance in this file of
+a comment describing a harm that the code path it names actually has.
+
+**TWO NUMBERS FOR ONE MEASUREMENT, and neither was corrected here.**
+`is_stripped_residue` says `-9.78`; the helper's docstring in
+`docking_panel.py` said `-9.75`. The moved docstring now cites the predicate
+rather than restating the figures, so there is one record instead of two that
+disagree -- but WHICH digit is right is not established and is not guessed at.
+
+**THE FIX IS ONE IMPLEMENTATION, NOT A SECOND COPY.**
+`_box_defining_ligand_codes` was module-private in `docking_panel.py`; it is
+`chem/binding_site.box_defining_ligand_codes` now and both UI callers import
+it. Copying it into the dialog would have been the drift already paid for
+four times (`is_stripped_residue`, `filter_altlocs`, `is_symmetry_generated`,
+`normalise_element_symbols`).
+
+**THE NARROW HALF IS UNREACHABLE THROUGH THIS DIALOG, and that is written
+into the guard rather than left as a gap.** "An imported receptor strips
+nothing" is the obvious companion test and it cannot be reached here: `_start`
+needs `ligand_code` to derive the box at all, so a receptor without one is
+refused several lines earlier. A test written that way asserts on an empty
+call list and passes whatever the prep dict says. The reachable property is
+that the dialog REFUSES; the narrow half lives on the predicate in
+`tests/test_binding_site.py`. An unreachable branch is a question about where
+to assert.
+
+**THREE MUTATIONS, THREE CAUGHT, and the third is the entry worth reading.**
+Reverting the prep dict fails the screening guard; a "guess a ligand" rule in
+the helper fails three predicate guards; and **giving the dialog its own
+BEHAVIOURALLY IDENTICAL copy** fails only
+`test_the_screen_and_the_panel_ask_THE_SAME_FUNCTION`, which is a SOURCE
+check for exactly that reason -- two correct copies agree on every input, and
+only their existence differs.
+
+**DRIVEN, AND THE PREP DICT IS A FLAG NO SCREENSHOT CARRIES.** A screen with
+the crystal ligand still in the pocket renders identically to one without:
+same table, same progress bar, scores 4 kcal/mol out. So `screen_run` presses
+the real Run button and logs what the REAL `ScreeningService` received. On
+1HSG, one ligand:
+
+    screen_run receptor='HIV-1 protease (1HSG)' queued=1 poses=9
+    replicates=1 prep={'strip_ligand_codes': ['MK1']}
+    box=(11.634, 22.47, 5.8585)
+
+`MK1` is indinavir. Before this, that dict was empty.
+
+**AND `binding_site.py:167` CARRIES AN EM DASH IN A USER-FACING REFUSAL**,
+found by the fixture for this work and NOT fixed here. `"No residue {code!r}
+in this structure — it may be..."` reaches the screening dialog's status label
+and the log; this file's own rule is that an em dash passes a cp1252
+assertion and still renders as a replacement character on a real console, and
+it did in the pytest capture. Recorded rather than swept, because a
+non-ASCII sweep over every user-facing string is its own change.
+
 ## MASTER CRASHES IN THE SAME TWO TESTS, AND THAT IS THE ATTRIBUTION
 
 PR #65's first CI run reported `completed/success` at every level the REST API
@@ -4739,7 +4821,58 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-21 minutes**, ending at `6691 passed, 16 skipped`
+A clean run is **6-22 minutes**, ending at `6697 passed, 16 skipped`
+(measured 2026-09-05, **21m46**, on `the-screen-docked-into-an-occupied-pocket`
+-- the virtual screen that left the co-crystallised ligand in the pocket its
+own box was derived from.
+
+**THE BAND WENT 6-21 TO 6-22 ON THIS RUN, AND THE 46 SECONDS ARE
+UNEXPLAINED.** Nothing ran alongside it -- the collect-only counts and the
+driven app run both finished before it started, which this file's own rule
+demands of a figure intended for citation -- and the tree is SIX tests larger
+than the 18m06 entry below, which cannot cost three and a half minutes. It is
+widened so a reader whose run takes 22 minutes does not conclude the suite has
+hung, and recorded as the outlier it is rather than as a new normal. That is
+now the seventh consecutive entry to say the band is a range with no
+predictive value inside it; do not narrow it back on one fast run either.
+
+**+7 collected and 1 REMOVED**, diffed both directions with `comm` rather than
+subtracted:
+
+    master        17e012c   COLLECTS 6707
+    this one                COLLECTS 6713   = 6707 + 7 - 1
+    the run                          6697 passed + 16 skipped = 6713
+
+**THE ONE REMOVAL IS A MOVE WITH A NAMED SUCCESSOR**, which is the whole
+reason to diff rather than subtract. The panel's own imported-receptor guard
+became `tests/test_binding_site.py::test_an_imported_receptor_has_nothing_stripped`
+when the helper it tests moved out of the panel -- the assertion is unchanged
+and it now sits with the function rather than with one of its two callers.
+
+**AND WRITING THIS ENTRY TRIPPED THE DOCS GUARD, which is the trap this file
+already records from the other side.** The first draft named the DELETED test
+beside its successor, to show the rename; `test_every_test_a_doc_names_still_exists`
+failed on it immediately. A doc may not cite a test the same branch removed,
+even to say that it was removed -- cite the successor and describe the
+ancestor in prose. The dead name survives in
+`tests/test_binding_site.py`'s own comment, where it is a comment rather than
+a citation.
+
+    4  test_binding_site.py             the helper's four-case contract
+    3  test_virtual_screening_dialog.py the screen's strip, the refusal that
+                                        makes the narrow half unreachable
+                                        there, and the same-function guard
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored, for
+the reason recorded above -- as do `^FAILED` and `^ERROR`. The skips are the
+deterministic 16. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**CLEAN ON ITS FIRST RUN.**)
+
+Before it: `6691 passed, 16 skipped`
 (measured 2026-09-03, **18m06**, on `rescoring-axis` -- a second, differently
 labelled score attached to a pose the search already found.
 
