@@ -536,7 +536,46 @@ MAX_LIGANDS_FOR_DOCKING = 14
 SERIES_PER_TARGET = 2
 
 
-def select_for_docking(all_series: list[dict], baselines: dict[str, dict]) -> list[str]:
+def series_box_fit(series: dict, box) -> dict[str, Any]:
+    """How many of a series' ligands are longer than the box's shortest side.
+
+    **COMPUTED BEFORE ANY DOCKING**, from the ligand's own embedded geometry
+    and the box the catalogue derives -- which is what makes it admissible as
+    a SELECTION criterion rather than a post-hoc filter. No score is involved
+    and none has been seen.
+
+    Also returns the largest rotatable-bond count, because that is what drives
+    Vina's cost and the two are correlated but not the same quantity.
+    """
+    from rdkit import Chem
+    from rdkit.Chem import AllChem, Descriptors
+
+    from openchem.chem.binding_site import ligand_extent_exceeds_box, max_heavy_atom_extent
+
+    over, extents, torsions, failed = 0, [], [], 0
+    for ligand in series["ligands"]:
+        mol = Chem.AddHs(Chem.MolFromSmiles(ligand["canonical_smiles"]))
+        if AllChem.EmbedMolecule(mol, randomSeed=0xC0FFEE) != 0:
+            failed += 1
+            continue
+        AllChem.MMFFOptimizeMolecule(mol)
+        extent = max_heavy_atom_extent(mol)
+        extents.append(extent)
+        torsions.append(Descriptors.NumRotatableBonds(mol))
+        if ligand_extent_exceeds_box(extent, box):
+            over += 1
+    return {
+        "ligands_over_box": over,
+        "ligands_would_not_embed": failed,
+        "max_extent_a": max(extents) if extents else None,
+        "max_rotatable_bonds": max(torsions) if torsions else None,
+        "box_shortest_side_a": min(box.size),
+    }
+
+
+def select_for_docking(
+    all_series: list[dict], baselines: dict[str, dict], boxes: dict[str, Any]
+) -> tuple[list[str], dict[str, dict]]:
     """Which series Stage 1 docks, decided ONCE and written into the manifest.
 
     The corpus holds ~1600 series and docking them all is not affordable, so a
@@ -550,16 +589,52 @@ def select_for_docking(all_series: list[dict], baselines: dict[str, dict]) -> li
         1  size-decoupled only, so the baseline control CAN fire
         2  n between the derived minimum and MAX_LIGANDS_FOR_DOCKING, so no
            series is subsetted and none is unaffordable
-        3  per target, the SERIES_PER_TARGET with the most ligands
-        4  ties broken by series_id, so the choice is deterministic
+        3  EVERY ligand fits the box -- see below
+        4  per target, the SERIES_PER_TARGET with the most ligands
+        5  ties broken by series_id, so the choice is deterministic
 
     **SORTED BY LIGAND COUNT, NOT BY POTENCY SPAN**, and that is the one
     judgement here worth arguing about. A wide span is easier to rank, so
     selecting on it would flatter every number that follows; the ligand count
     selects for statistical POWER instead, which is a property of the test
     rather than of how favourable its answer will be.
+
+    ## Rule 3 was ADDED after a first selection was frozen, and why that is not
+    ## peeking
+
+    The first frozen selection required only rules 1, 2, 4 and 5, and Stage 1
+    was started on it. Its timings said the cost model was wrong by a factor of
+    thirty -- 243 s mean per search against the 7 s measured on the smoke test,
+    projecting 80 hours rather than 2.6.
+
+    The cause was not the receptor. `5C1M_CHEMBL759051` and
+    `5C1M_CHEMBL2209608` share a target, a box and a protocol and differ
+    NINETEEN-FOLD in cost, at 31 against 7 maximum rotatable bonds. Vina's
+    search time climbs steeply with torsions, and the expensive series was also
+    the one whose ligands do not fit: 14 of 14 exceeded the box, where the
+    cheap one had 4 of 13.
+
+    So the two problems coincide and only one of them is about money. **A
+    ligand longer than the box's shortest side has whole orientations excluded
+    from the search**, which is a monotone-in-size artefact -- exactly what the
+    baselines exist to catch -- so a series where every ligand overflows
+    produces a ranking OF ARTEFACTS. Every box here clamps to `MINIMUM_SIZE`,
+    16 A, against ligand extents reaching 32.4 A.
+
+    The amendment is admissible because `series_box_fit` reads only the
+    ligand's geometry and the catalogue's box: **no docking score exists for
+    any of it, and none had been looked at.** Same discipline as
+    `benchmarks/free_energy/AMMONIA.md`, which amended a preregistration
+    openly before any outcome existed. Recording it here rather than quietly
+    re-freezing is the point -- a selection rule that changed after a run
+    started is exactly the thing a reader needs told.
+
+    A target with NO fully-fitting candidate is EXCLUDED and named, rather than
+    represented by its least-bad series: a partially-artefact series in the
+    headline is what this rule exists to remove.
     """
     chosen: list[str] = []
+    examined: dict[str, dict] = {}
     for row in JOIN:
         candidates = [
             series
@@ -569,8 +644,38 @@ def select_for_docking(all_series: list[dict], baselines: dict[str, dict]) -> li
             and is_size_decoupled(baselines[series["series_id"]]["heavy_atoms"])
         ]
         candidates.sort(key=lambda s: (-s["n_ligands"], s["series_id"]))
-        chosen += [series["series_id"] for series in candidates[:SERIES_PER_TARGET]]
-    return chosen
+        taken = 0
+        for series in candidates:
+            if taken >= SERIES_PER_TARGET:
+                break
+            fit = series_box_fit(series, boxes[row.pdb_id])
+            examined[series["series_id"]] = fit
+            if fit["ligands_over_box"] == 0 and not fit["ligands_would_not_embed"]:
+                chosen.append(series["series_id"])
+                taken += 1
+    return chosen, examined
+
+
+def _boxes_for(rows) -> dict[str, Any]:
+    """One search box per target, from the catalogue's own ligand.
+
+    Cache-only. A corpus build that depends on RCSB being up is not a corpus
+    build, and Stage 1 needs these structures locally anyway.
+    """
+    from openchem.chem.binding_site import box_from_ligand
+    from openchem.services.receptor_library_service import cached_structure
+
+    boxes: dict[str, Any] = {}
+    for row in rows:
+        cached = cached_structure(row.pdb_id)
+        if cached is None:
+            raise SystemExit(
+                f"{row.pdb_id} is not in the receptor cache, and the box fit cannot "
+                "be judged without it. Populate it through File > Receptor Library."
+            )
+        entry = find(row.pdb_id)
+        boxes[row.pdb_id] = box_from_ligand(cached[0], cached[1], entry.ligand_code).box
+    return boxes
 
 
 def write_corpus(
@@ -578,6 +683,7 @@ def write_corpus(
     funnels: dict[str, dict],
     endpoint: str,
     selection: list[str] | None = None,
+    box_fit: dict[str, dict] | None = None,
 ) -> Path:
     """Series to `data/series/<id>.json`, plus the frozen manifest.
 
@@ -614,13 +720,33 @@ def write_corpus(
         ),
         "curated_not_random": True,
         "docking_selection_rule": (
-            f"size-decoupled series with {MIN_SERIES} <= n <= "
-            f"{MAX_LIGANDS_FOR_DOCKING}; per target the {SERIES_PER_TARGET} with "
-            "the most ligands, ties by series_id. Sorted by LIGAND COUNT and "
-            "not by potency span: a wide span is easier to rank, so selecting "
-            "on it would flatter the result, where the count selects for "
-            "statistical power."
+            f"v2: size-decoupled series with {MIN_SERIES} <= n <= "
+            f"{MAX_LIGANDS_FOR_DOCKING} in which EVERY ligand fits the box; per "
+            f"target the {SERIES_PER_TARGET} with the most ligands, ties by "
+            "series_id. Sorted by LIGAND COUNT and not by potency span: a wide "
+            "span is easier to rank, so selecting on it would flatter the "
+            "result, where the count selects for statistical power. A target "
+            "with no fully-fitting candidate is excluded and named rather than "
+            "represented by its least-bad series."
         ),
+        "docking_selection_rule_amendment": (
+            "The box-fit requirement was ADDED after v1 was frozen and Stage 1 "
+            "had started. v1's timings said the cost model was wrong by 30x "
+            "(243 s mean per search against 7 s on the smoke test, projecting 80 "
+            "hours), and the cause was the ligands rather than the receptor: "
+            "5C1M_CHEMBL759051 and 5C1M_CHEMBL2209608 share a target, a box and "
+            "a protocol and differ 19-fold in cost at 31 against 7 maximum "
+            "rotatable bonds. The expensive series was also the one whose "
+            "ligands do not fit -- 14 of 14 over the box against 4 of 13 -- and "
+            "a ligand longer than the box's shortest side has whole orientations "
+            "excluded, which is the monotone-in-size artefact the baselines "
+            "exist to catch. Admissible as an amendment because box fit is "
+            "computed from ligand geometry and the catalogue box alone: no "
+            "docking score exists for it and none had been looked at."
+        ),
+        #: What the walk examined and why each candidate was taken or rejected,
+        #: so the selection is auditable without re-running it.
+        "box_fit": box_fit or {},
         #: FROZEN BEFORE ANY DOCKING. `rank_power.py` docks these and nothing
         #: else, and `rank_report.py` reports against this list -- so a series
         #: cannot be added or dropped after a rho has been seen.
@@ -717,9 +843,19 @@ def main() -> int:
         print("  would be uninterpretable. Widen the corpus before spending")
         print("  Vina time.")
 
-    selection = select_for_docking(all_series, baselines)
-    path = write_corpus(all_series, funnels, args.endpoint, selection)
+    print("\nBOX FIT, also before any Vina runs. A ligand longer than the box's")
+    print("shortest side has whole orientations excluded from the search, so a")
+    print("series of them ranks artefacts -- and costs up to 19x more to run.")
+    boxes = _boxes_for(rows)
+    selection, examined = select_for_docking(all_series, baselines, boxes)
+    path = write_corpus(all_series, funnels, args.endpoint, selection, examined)
     print(f"\nwrote {len(all_series)} series and {path}")
+
+    rejected = [sid for sid, fit in examined.items() if fit["ligands_over_box"]]
+    print(f"  examined {len(examined)} candidate series, rejected {len(rejected)} on box fit")
+    missing = [row.pdb_id for row in rows if not any(s.startswith(row.pdb_id) for s in selection)]
+    if missing:
+        print(f"  TARGETS WITH NO FULLY-FITTING SERIES, excluded and named: {missing}")
 
     print("\nFROZEN DOCKING SELECTION -- Stage 1 docks these and nothing else")
     by_id = {series["series_id"]: series for series in all_series}

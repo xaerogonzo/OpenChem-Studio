@@ -500,13 +500,47 @@ be the answer.
 
 ### The selection is frozen before any docking
 
-Sixteen series, 221 ligands, 1326 searches at six replicates — roughly 2 to 14
-hours. Chosen by a declared rule: size-decoupled, 5 ≤ n ≤ 14, the two largest
-per target, ties by id. **Sorted by ligand count and not by potency span**: a
-wide span is easier to rank, so selecting on it would flatter every number that
-follows, where the count selects for statistical power.
+**Fifteen series, 194 ligands, 1164 searches** at six replicates, over all
+eight targets. Chosen by a declared rule: size-decoupled, 5 ≤ n ≤ 14, **every
+ligand fits the box**, the largest two per target, ties by id. **Sorted by
+ligand count and not by potency span**: a wide span is easier to rank, so
+selecting on it would flatter every number that follows, where the count
+selects for statistical power.
 
 This is a **curated benchmark, not a random sample**, and the manifest says so.
+
+#### The fit requirement was added after v1 was frozen, and that is recorded
+
+v1 required only size-decoupling and the size band, and Stage 1 was started on
+it. Its own timings said the cost model was wrong by thirty-fold — **243 s mean
+per search against the 7 s measured on the smoke test**, projecting 80 hours
+rather than 2.6.
+
+The cause was the ligands, not the receptor, and the comparison is controlled:
+`5C1M_CHEMBL759051` and `5C1M_CHEMBL2209608` share a target, a box and a
+protocol and differ **nineteen-fold in cost** — 379 s against 20 s — at 31
+against 7 maximum rotatable bonds. The expensive series was also the one whose
+ligands do not fit: 14 of 14 over the box, against 4 of 13.
+
+So two problems coincide and only one is about money. **A ligand longer than
+the box's shortest side has whole orientations excluded from the search**,
+which is the monotone-in-size artefact the baselines exist to catch, so a
+series where every ligand overflows ranks artefacts. Every box here clamps to
+`MINIMUM_SIZE`, 16 Å, against ligand extents reaching 32.4 Å.
+
+**The amendment is admissible because box fit is computed from ligand geometry
+and the catalogue box alone** — no docking score exists for it, and none had
+been looked at. Same discipline as `benchmarks/free_energy/AMMONIA.md`, which
+amended a preregistration openly before any outcome existed. The manifest
+carries the amendment and its reasoning in `docking_selection_rule_amendment`;
+quietly re-freezing would have been the wrong move.
+
+**32 of 47 candidate series examined were rejected on box fit** — so two thirds
+of otherwise-eligible single-assay series contain a ligand the catalogue's own
+box cannot hold. The survivors span 9.4–15.6 Å against 16.0–16.8 Å boxes, with
+4–8 rotatable bonds. A target with no fully-fitting candidate is excluded and
+named rather than represented by its least-bad series; 2RH1 yielded one series
+rather than two.
 
 ### The leakage bound, worded narrowly
 
