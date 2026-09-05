@@ -558,3 +558,56 @@ never included.
 folding absence and inability together and biasing the split optimistic. Hence
 three values, and three fixtures: a hit, a real absence, and a fault. A
 two-fixture test is satisfied by both of the mutations it exists to catch.
+
+**And the layer that SUMMARISES it made exactly that mistake.**
+`rank_report.py` read a compound with no cache entry as one that had been
+checked and found absent, and announced *"no compound in this corpus has an
+exact PDB chemical-component match"* on 125 of 194 compounds it had never
+looked up — the cache having been built for the v1 selection. `NOT_LOOKED_UP`
+is its own counted verdict now. Being careful one layer down does not make the
+layer above careful.
+
+### The result: 1164 searches, 5.03 hours, and it is a NULL
+
+Measured 2026-09-05. Fifteen series, 194 ligands, six replicates,
+exhaustiveness 25, mean 15.6 s per search.
+
+| | |
+| --- | --- |
+| median ρ(−vina, pChEMBL) | **+0.245**, 95% series bootstrap **[−0.030, +0.398]** |
+| series with ρ > 0 | 11/15, sign test **p = 0.118** two-sided |
+| median ρ(Vinardo) − ρ(Vina) | **+0.047**, 95% **[−0.099, +0.117]** |
+| series where Vinardo ranks higher | 9/15 |
+| series beating every trivial baseline | **3/15** |
+| search repeatability | **+0.98 to +1.00 on all fifteen**, 0–3 pairs swapped of 36–91 |
+| leakage | 190 ABSENT, 4 PRESENT, 0 UNRESOLVED; ABSENT-only median ρ **+0.245**, unchanged |
+
+**THIS IS THE CLEANEST NEGATIVE THE DESIGN ALLOWS, and it is N5 from the
+roadmap's own list.** The search is very nearly deterministic in its ordering —
+repeatability +0.98 to +1.00, with at most three ligand pairs out of 91
+swapping between independent replicate halves — and the score still does not
+order these compounds against measured potency in a way distinguishable from
+chance at this n. So the disagreement is **not sampling**. It is the scoring
+function, which is what [source:su2019] says and what is now measured here
+rather than cited.
+
+**Vinardo does not detectably improve on Vina** (N2): the delta's interval
+spans zero, and 9 of 15 is what a coin gives. The two disagree strongly on
+individual series — `3HS4_CHEMBL1246741` goes −0.09 → −0.58 and
+`5I6X_CHEMBL839605` +0.00 → −0.48, while `3HS4_CHEMBL3876600` goes +0.40 →
++0.54 — so the axis buys ordering diversity, not accuracy.
+
+**Only 3 of 15 series beat every trivial physicochemical baseline**, so on
+twelve of them a descriptor orders the compounds at least as well as docking
+does. That is close to N1, the outcome the roadmap calls the most valuable.
+
+**WHAT THIS DOES NOT SAY.** The interval is wide and the sign test is not
+significant, so this is "no ranking ability detectable at this n", not "docking
+cannot rank". One series reaches ρ = +0.75 (`5I6X_CHEMBL808864`). Fifteen
+series of 9–14 congeneric compounds is a small experiment, and the oracle's own
+reproducibility is unmeasurable here because ChEMBL carries no per-row
+uncertainty — so ρ is bounded above by a quantity nobody can measure, while the
+docking's own repeatability is measured and is essentially 1.
+
+The corpus holds 1586 series; fifteen were docked. Widening it is the obvious
+next measurement and needs no new machinery.

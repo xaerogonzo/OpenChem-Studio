@@ -220,6 +220,25 @@ def bootstrap_interval(values: list[float]) -> tuple[float, float] | None:
     return medians[int(0.025 * BOOTSTRAP)], medians[int(0.975 * BOOTSTRAP)]
 
 
+def _sign_test(positive: int, total: int) -> float:
+    """Two-sided exact binomial p for `positive` of `total` at p = 0.5.
+
+    A DISTRIBUTION-FREE COMPANION to the median, because the median of fifteen
+    noisy per-series correlations is exactly the statistic that looks
+    convincing without being: it says nothing about how many series carry the
+    sign, and a handful of large positives can hold it up while most series
+    sit at zero.
+
+    Exact rather than normal-approximated, at these counts.
+    """
+    from math import comb
+
+    if total == 0:
+        return 1.0
+    tail = sum(comb(total, k) for k in range(positive, total + 1)) / 2**total
+    return min(1.0, 2 * tail)
+
+
 def _fmt(value: float | None, width: int = 6) -> str:
     return " " * (width - 3) + "n/a" if value is None else f"{value:+{width}.2f}"
 
@@ -314,7 +333,19 @@ def main() -> int:
 
     print(f"\nAGGREGATE over {len(rows)} complete series")
     if vina:
-        print(f"  median rho(-vina, pChEMBL)          {sorted(vina)[len(vina) // 2]:+.3f}  (n = {len(vina)})")
+        # THE HEADLINE GETS AN INTERVAL TOO. The first version gave one to the
+        # Vinardo delta and not to the number a reader looks at first, which
+        # invites the median being read as a point estimate of a real effect.
+        # Same series-level bootstrap, and a sign test beside it because the
+        # median of 15 noisy series is exactly the statistic that looks
+        # convincing without being.
+        interval = bootstrap_interval(vina)
+        span = f"  95% series bootstrap [{interval[0]:+.3f}, {interval[1]:+.3f}]" if interval else ""
+        print(f"  median rho(-vina, pChEMBL)          {sorted(vina)[len(vina) // 2]:+.3f}{span}")
+        positive = sum(1 for v in vina if v > 0)
+        negative = sum(1 for v in vina if v < 0)
+        print(f"  series with rho > 0                 {positive}/{positive + negative}"
+              f"  (sign test p = {_sign_test(positive, positive + negative):.3f}, two-sided)")
     if deltas:
         median_delta = sorted(deltas)[len(deltas) // 2]
         interval = bootstrap_interval(deltas)

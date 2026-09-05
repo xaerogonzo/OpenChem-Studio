@@ -785,6 +785,42 @@ a wrong number:
 Driven live on 5C1M, the two functions disagreed about which pose was best —
 Vina's top pose rescored worst of the first three. Nothing re-ranks on it.
 
+**RANKING POWER IS MEASURED NOW, AND THE ANSWER IS A NULL.** The section below
+survives as the record of what was closed and why; its conclusion — that this
+is unmeasurable here — was overturned on 2026-09-05 by the route the paragraph
+after it names. **ChEMBL is reachable with no account**, and it carries
+`assay_chembl_id`, which is the one thing `rcsb_binding_affinity` lacked: a
+series confined to a single assay is a real ordering where a 4000-fold
+cross-assay spread is not.
+
+`benchmarks/docking/chembl_corpus.py` builds it — 1586 single-assay series
+over eight catalogued receptors from 41,073 activities — and
+`rank_power.py` / `rank_report.py` measure it. Fifteen series, 194 ligands,
+1164 real Vina searches, 5.03 hours:
+
+    median rho(-vina, pChEMBL)     +0.245   95% series bootstrap [-0.030, +0.398]
+    series with rho > 0            11/15    sign test p = 0.118, two-sided
+    median rho(Vinardo) - rho(Vina) +0.047  95% [-0.099, +0.117]
+    beating every trivial baseline  3/15
+    SEARCH REPEATABILITY           +0.98 to +1.00 on all fifteen
+
+**The repeatability row is where the information is.** The search orders these
+ligands almost identically across independent replicate halves — at most three
+pairs of 91 swapping — so the disagreement with measured potency is **not
+sampling**. It is the scoring function, which is [source:su2019]'s finding
+arriving as a local measurement instead of a citation. That is N5 on this
+section's own list of nulls: reproducible search, and the score still does not
+order.
+
+Vinardo does not detectably improve on it (N2). Only 3 of 15 series beat every
+trivial physicochemical baseline, which is close to N1 — the outcome this
+section calls the most valuable, because it closes a route on evidence.
+
+**Stated as narrowly as the data allows**: the interval is wide and the sign
+test is not significant, so this is *no ranking ability detectable at this n*,
+not *docking cannot rank*. One series reaches +0.75. The corpus holds 1586
+series and fifteen were docked; widening it needs no new machinery.
+
 **THE BENCHMARK IS BUILT, AND RANKING POWER IS STILL OPEN — ON DATA, NOT ON
 EFFORT.** `benchmarks/docking/rescore_power.py`.
 
