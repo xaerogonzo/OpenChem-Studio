@@ -567,6 +567,28 @@ looked up — the cache having been built for the v1 selection. `NOT_LOOKED_UP`
 is its own counted verdict now. Being careful one layer down does not make the
 layer above careful.
 
+#### THE PRE-COMMITMENT FOR CLOSING IT, RECORDED BEFORE THE LOOKUP RAN
+
+442 of the 638 compound-series entries were never looked up, so the three
+verdicts **are not a split** and `rank_report.py` refuses to present them as
+one. Closing that costs one cached HTTP call per InChIKey and no Vina time.
+
+**The ABSENT-only median will be reported whatever it says.** It is currently
+unchanged against the full set on the 191 entries that were checked, and 442
+more can move it. This is written here, in a committed file, rather than in
+`data/manifest.json` — which is gitignored, so a pre-commitment recorded there
+is not a record of anything.
+
+The reason is this benchmark's own worst methodological moment, one section
+down: an interim p-value crossed 0.05 and came back, because the report was run
+three times while the data accumulated. **A number decided after seeing it is
+not a result**, and the leakage arm is the one remaining place in this
+benchmark where that mistake is still available.
+
+Nothing about the corpus, the selection or the docking changes — the lookup
+reads the cached corpus and rewrites no manifest, deliberately, so it cannot
+re-freeze a selection underneath a measurement.
+
 ### The result: 3828 searches, 14.5 hours, and it is a NULL
 
 **The full record, with the per-series table for all 56 series, is
