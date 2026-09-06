@@ -162,17 +162,28 @@ per-row uncertainty, so rho is bounded above by a quantity nobody can measure,
 while the docking's own repeatability *is* measured and is essentially 1. That
 asymmetry is in `docs/SCIENTIFIC_LIMITATIONS.md`.
 
-**The leakage bound is incomplete and the report says so in those words.**
+**The leakage bound is CLOSED, and the null survives it.** Every compound in
+the corpus has now been looked up; `NOT_LOOKED_UP` is empty, so the arms are a
+real split rather than something `rank_report.py` refuses to present as one.
 
-    ABSENT          191
-    PRESENT           5
-    NOT_LOOKED_UP   442
+    ABSENT      624 compound-series entries   (613 distinct compounds)
+    PRESENT      14                           ( 11 distinct compounds)
+    UNRESOLVED    0
 
-442 compound-series entries were never looked up against the PDB, so **the
-arms are not a split** — `rank_report.py` refuses to present them as one
-rather than printing two numbers that look like a comparison. On the 191 that
-were checked, the ABSENT-only median is unchanged. Closing it costs one cached
-HTTP call per InChIKey and no Vina time: `chembl_corpus.py --presence-only`.
+    median rho, ABSENT-only subsets   +0.073   (56 series)
+    median rho, full set              +0.082
+
+**The pre-committed number is the first of those two, and it was committed
+before the lookup ran** (`benchmarks/docking/README.md`, commit `e91372a`).
+Dropping every compound that could conceivably have been in PDBbind moves the
+median by **−0.009**, in the direction of a slightly weaker correlation. So
+the null is not an artefact of training-set contamination — which is the one
+thing this arm can settle, and it settles it against the more convenient
+answer.
+
+**98% of the corpus is ABSENT**, which is what makes the split lopsided rather
+than balanced: 11 distinct compounds are PRESENT, far too few to compute a
+PRESENT-only median worth reading, and none is reported.
 
 **Direction, stated because it is one-way.** ABSENT is a *sufficient*
 exclusion from PDBbind under exact-InChIKey identity — a **minimal** bound,
@@ -372,13 +383,31 @@ being inadequate; that is now measured as inadequate rather than assumed, and
 **the same corpus is what a free-energy method would have to beat**. The
 benchmark outlives the null it produced.
 
-Open, in cost order:
+**The presence lookup is DONE** — it was the cheapest item on this list and
+is the section above.
 
-- **the presence lookup**, 442 entries, no Vina time
-- **more series** — 1586 exist and 56 were docked; needs no new machinery and
-  would cost proportionally. Legitimate precisely because *this* endpoint is
-  on the record
-- **more targets** — eight is family spread, not data volume, and seven of the
-  eight are GPCRs or a single enzyme
-- **smina**, both engine and rescorer ([source:koes2013]), now a measurable
-  question rather than an unevaluable option
+Open, in cost order, and the range is **four orders of magnitude**, so this
+list is priced rather than merely ordered:
+
+| | cost | what it buys |
+| --- | --- | --- |
+| **smina** ([source:koes2013]) | a spike, then ~free | the only candidate that is BOTH engine and rescorer, so it is the arm that tests whether `PoseRescorer` is a real abstraction or a Vina-shaped hole |
+| **more targets** | curation, not compute | eight is family spread, not data volume, and seven of the eight are GPCRs or a single enzyme |
+| **more series** | ~14.5 h per 56 | 1586 exist and 56 were docked; needs no new machinery and costs proportionally. All 1586 is ≈ **17 days** continuous |
+| **RBFE, one series** | **2.3–5.5 GPU-days** | one ΔΔG ladder over one series, against a measured docking baseline |
+| **RBFE, this corpus** | **121–291 GPU-days** | refused on cost — see `docs/ROADMAP.md` |
+
+**smina is nearly free in the harness and nobody had noticed.**
+`rank_power.py`'s `run_series` already takes `(provider, engine, rescorer)` as
+parameters, so a second engine slots in at the constructor site, and
+`_rescore_best` already goes through the shipped `PoseRescorer` interface with
+a comment anticipating a rescorer from another family. The unknown is entirely
+whether smina builds and runs on Windows, which is a spike and not a claim.
+
+**More targets buys more than more series does.** Widening series adds
+statistical power to a question already answered at p = 0.350; widening
+targets is the only item here that addresses the stated narrowness of the
+claim, since the corpus is six GPCRs, one carbonic anhydrase and one
+transporter. `JOIN` in `chembl_corpus.py` is eight pinned rows each carrying a
+written reason and a SIFTS/ChEMBL verifier, so adding one is curation plus
+verification rather than compute.
