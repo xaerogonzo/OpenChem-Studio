@@ -264,7 +264,27 @@ thing about it is what it does **not** measure.
 uv run --no-sync python benchmarks/docking/rescore_power.py --exhaustiveness 25
 ```
 
-### Ranking power is NOT measured, and that is a data finding
+### Ranking power is NOT measured HERE — and it is measurable now, next door
+
+**SUPERSEDED IN ITS CONCLUSION, KEPT FOR ITS EVIDENCE.** Everything the
+section below says about PDBbind, CASF-2016, Binding MOAD and
+`rcsb_binding_affinity` is still true and still worth having: those routes are
+closed and re-checking them is wasted time.
+
+What was wrong was the inference drawn from it — that ranking power is
+therefore unmeasurable here. `docs/ROADMAP.md` named the reopener in the same
+breath ("a curated affinity set assembled from BindingDB/ChEMBL for targets
+already in the library"), and **ChEMBL is reachable with no account**:
+ChEMBL_37, 24.5M activities, and 21 of the 23 catalogued receptors sampled
+reach a target carrying `=`-relation Ki values with a pChEMBL.
+
+The decisive difference is that ChEMBL carries `assay_chembl_id`, so a series
+can be confined to **one assay** — which is exactly what
+`rcsb_binding_affinity` could not do, and exactly why its 4000-fold spread
+made it useless. See `chembl_corpus.py` and the Within-Assay Docking Ranking
+Benchmark below.
+
+### The closed routes, as measured 2026-09-03
 
 Route 2's acceptance criterion is rank correlation against **measured
 affinities**. Measured 2026-09-03, every route to such a set is closed from
@@ -341,3 +361,306 @@ reason CASF-2016 is not. So the overlap is **unknown, not absent**.
   structure, which is the easy case; cross-docking is harder and not covered.
 - **Pose counts vary.** Vina merges similar modes, so 5C1M returned 2 poses
   and 1ERE 4. A rho over two points is not a measurement.
+
+## The Within-Assay Docking Ranking Benchmark — route 2's acceptance
+
+`chembl_corpus.py` → `rank_power.py` → `rank_report.py`. Three stages, each
+leaving standalone evidence, and only the middle one costs Vina time.
+
+```bash
+uv run --no-sync python benchmarks/docking/chembl_corpus.py
+uv run --no-sync python benchmarks/docking/chembl_corpus.py --presence
+uv run --no-sync python benchmarks/docking/rank_power.py --all
+uv run --no-sync python benchmarks/docking/rank_report.py
+```
+
+**IT IS NOT CASF, AND THE NAME IS LOAD-BEARING.** CASF-2016 decouples scoring
+from docking over 285 complexes and 57 targets. This ranks compounds measured
+in ONE assay against poses this application generated. Its rho is not
+[source:su2019]'s pooled ~0.6 or [source:nguyen2020]'s 0.498 ± 0.026 — a
+different quantity on a harder question, which `rank_report.py` prints rather
+than trusting a reader to remember.
+
+### What the corpus is
+
+Measured 2026-09-05 against ChEMBL_37: **1586 single-assay series** over eight
+catalogued receptors, **795 of them size-decoupled**, from 41,073 activities.
+
+| target | family | activities | series |
+| --- | --- | --- | --- |
+| 3HS4 | carbonic anhydrase II | 11,050 | 408 |
+| 3PBL | dopamine D3 | 8,253 | 286 |
+| 3EML | adenosine A2A | 6,575 | 275 |
+| 6WGT | 5-HT2A | 6,323 | 224 |
+| 5TGZ | cannabinoid CB1 | 3,955 | 181 |
+| 5I6X | serotonin transporter | 3,394 | 135 |
+| 2RH1 | β2-adrenergic | 796 | 38 |
+| 5C1M | μ-opioid (**mouse**) | 727 | 39 |
+
+Eight targets across eight families, because eight from one family would
+measure one pocket eight times. 5C1M earns its place on evidence: it is the
+receptor the original ranking complaint was reported against.
+
+### One assay is the whole point
+
+`rcsb_binding_affinity` failed as an oracle because it mixes assays — 104
+records for one 4EY7 ligand spanning Kd 8 nM to IC50 7120 nM. ChEMBL carries
+`assay_chembl_id`, so a series can be confined to one assay, one endpoint and
+one laboratory, and an ordering within it is a real ordering.
+
+**Series size is DERIVED, not typed.** Under the null that the docking order is
+unrelated to the measured one, all n! orderings are equally likely and two are
+perfect — one per direction, since the benchmark does not fix the direction in
+advance. So the two-sided rate of the extreme outcome is 2/n!, and the minimum
+is the smallest n clearing `SEPARATION_ALPHA`: **n = 5**, where n = 4 gives
+0.083. The alpha is imported from `domain/affinity_range.py` so the corpus and
+the shipped separation rule cannot drift apart.
+
+**The potency span is reported and never used to admit.** A minimum span would
+be a constant somebody fitted. The only gate is that at least two potencies
+differ, which is definedness — Spearman is undefined otherwise.
+
+### The join is pinned; SIFTS is the verifier
+
+A UniProt accession is not a construct. **Four of the eight deposits carry a
+second accession for their crystallisation fusion** — T4 lysozyme (P00720) in
+3PBL, 2RH1 and 3EML, cytochrome b562 (P0ABE7) in 6WGT, flavodoxin (P00323) in
+5TGZ — and each has ChEMBL targets of its own, so "take the accession with the
+most activities" can return a chaperone's affinity data as the receptor's.
+
+So `JOIN` is a table with a reason per row, and `verify_join` **fails on
+disagreement** rather than resolving anything. Three cases that otherwise fail
+by returning silence rather than an error:
+
+- **5C1M is mouse.** P42866 is mouse μ-opioid and so is CHEMBL2858, which
+  carries 727 Ki values of its own — so the exact-organism rule is what the
+  data supports, not a principle imposed on it. No ortholog fallback is
+  implemented rather than written and left unreachable.
+- **4M48 is *Drosophila*.** Q7K4Y6 reaches no ChEMBL target at all.
+- **COX-2 has 27 Ki values**, because that endpoint is measured as IC50. A
+  Ki-only rule silently refuses an enzyme class.
+
+### The receptor preparation differs from every other benchmark here
+
+    {"strip_waters": True, "strip_cofactors": False,
+     "strip_ligand_codes": (entry.ligand_code,)}
+
+`redock.py`, `rescore_power.py` and `seed_spread.py` all pass
+`strip_cofactors: True`, which `is_stripped_residue` resolves to "delete every
+non-standard residue" — taking **carbonic anhydrase II's catalytic zinc**, the
+binding determinant for the sulfonamide series that is 3HS4's entire reason for
+being here. Both halves are asserted before any search, because a blocked
+pocket or a stripped cofactor compresses every score toward a constant and
+still yields a plausible correlation.
+
+**A PDBQT IS NOT A PDB**, and reading it as one made the metal check return 0
+on a receptor whose zinc was present: the element is not at columns 77–78, the
+AutoDock type is the last token. Measured on 3HS4, the distinct trailing tokens
+across the file are exactly `A C HD N NA OA S Zn`.
+
+### The receptor is prepared once per series
+
+Receptor preparation is **not reproducible** — three preparations of 5C1M gave
+three sha256s, 80 of 3794 lines differing on polar-hydrogen rotamers. Harmless
+for one ligand; ruinous across a series, where two ligands would be scored
+against two different receptor files in exactly the dimension being measured.
+
+### Seeds are derived per ligand
+
+`domain/affinity_range.py` makes it a precondition: two ligands sharing a
+replicate seed make their values arrive as correlated pairs. Derived by
+SHA-256, never `hash()`, which is randomised per process — this project shipped
+that bug once already, in `protonate_at_ph`.
+
+### Six replicates, and the split is fixed in advance
+
+`_stats.REPLICATE_HALVES` is `((0,1,2), (3,4,5))`. Six rather than five so the
+halves are **even**: two aggregates over different counts are not comparable.
+Six also clears the derived minimum of four.
+
+**`rho(half A, half B)` is SEARCH REPEATABILITY, not a noise ceiling.** It says
+how consistently the search orders the same ligands under this protocol; it
+does not bound the attainable correlation with experiment. The oracle's own
+reproducibility is unmeasurable here — ChEMBL carries no per-row uncertainty —
+so the docking's is measured and the oracle's is not.
+
+### Baselines, computed free at corpus-build time
+
+`rho(heavy_atoms, pChEMBL)`, MW, cLogP, TPSA, plus `rho(-vina, heavy_atoms)`
+and the random floor `1/sqrt(n-1)`. This project has shipped an endpoint that
+turned out to be molecular size (r = +0.98); a docking score that ranks no
+better than heavy-atom count is not ranking.
+
+**A series whose potency already tracks size cannot discriminate**, so the
+control is present and can never fire there. `is_size_decoupled` selects the
+ones where it can — and `None` counts as decoupled rather than as missing:
+`5C1M_CHEMBL758126` is six compounds identical in heavy atoms, MW, cLogP *and*
+TPSA across a 1.99-log potency span, an isomer series where only geometry can
+be the answer.
+
+### The selection is frozen before any docking
+
+**Fifteen series, 194 ligands, 1164 searches** at six replicates, over all
+eight targets. Chosen by a declared rule: size-decoupled, 5 ≤ n ≤ 14, **every
+ligand fits the box**, the largest two per target, ties by id. **Sorted by
+ligand count and not by potency span**: a wide span is easier to rank, so
+selecting on it would flatter every number that follows, where the count
+selects for statistical power.
+
+This is a **curated benchmark, not a random sample**, and the manifest says so.
+
+#### The fit requirement was added after v1 was frozen, and that is recorded
+
+v1 required only size-decoupling and the size band, and Stage 1 was started on
+it. Its own timings said the cost model was wrong by thirty-fold — **243 s mean
+per search against the 7 s measured on the smoke test**, projecting 80 hours
+rather than 2.6.
+
+The cause was the ligands, not the receptor, and the comparison is controlled:
+`5C1M_CHEMBL759051` and `5C1M_CHEMBL2209608` share a target, a box and a
+protocol and differ **nineteen-fold in cost** — 379 s against 20 s — at 31
+against 7 maximum rotatable bonds. The expensive series was also the one whose
+ligands do not fit: 14 of 14 over the box, against 4 of 13.
+
+So two problems coincide and only one is about money. **A ligand longer than
+the box's shortest side has whole orientations excluded from the search**,
+which is the monotone-in-size artefact the baselines exist to catch, so a
+series where every ligand overflows ranks artefacts. Every box here clamps to
+`MINIMUM_SIZE`, 16 Å, against ligand extents reaching 32.4 Å.
+
+**The amendment is admissible because box fit is computed from ligand geometry
+and the catalogue box alone** — no docking score exists for it, and none had
+been looked at. Same discipline as `benchmarks/free_energy/AMMONIA.md`, which
+amended a preregistration openly before any outcome existed. The manifest
+carries the amendment and its reasoning in `docking_selection_rule_amendment`;
+quietly re-freezing would have been the wrong move.
+
+**32 of 47 candidate series examined were rejected on box fit** — so two thirds
+of otherwise-eligible single-assay series contain a ligand the catalogue's own
+box cannot hold. The survivors span 9.4–15.6 Å against 16.0–16.8 Å boxes, with
+4–8 rotatable bonds. A target with no fully-fitting candidate is excluded and
+named rather than represented by its least-bad series; 2RH1 yielded one series
+rather than two.
+
+### The leakage bound, worded narrowly
+
+Every PDBbind entry is a co-crystallised complex, so a compound that is **no
+PDB chemical component** cannot be in Vina's training set or Vinardo's
+selection set. That is a sufficient exclusion under exact-InChIKey identity —
+a **minimal** bound, not a leakage-free claim, since protonation, tautomer,
+salt and stereo representation all break exact identity, and similarity leakage
+is not addressed at all. One-way: absence is sufficient, **presence implies
+nothing**, because a compound can be in the PDB bound to a protein PDBbind
+never included.
+
+**RCSB answers a zero-hit search with HTTP 204 and an empty body**, so
+`json.loads` raises and a blanket except reads "not in the PDB" as a failure —
+folding absence and inability together and biasing the split optimistic. Hence
+three values, and three fixtures: a hit, a real absence, and a fault. A
+two-fixture test is satisfied by both of the mutations it exists to catch.
+
+**And the layer that SUMMARISES it made exactly that mistake.**
+`rank_report.py` read a compound with no cache entry as one that had been
+checked and found absent, and announced *"no compound in this corpus has an
+exact PDB chemical-component match"* on 125 of 194 compounds it had never
+looked up — the cache having been built for the v1 selection. `NOT_LOOKED_UP`
+is its own counted verdict now. Being careful one layer down does not make the
+layer above careful.
+
+### The result: 3828 searches, 14.5 hours, and it is a NULL
+
+**The full record, with the per-series table for all 56 series, is
+`docs/DOCKING_RANKING_BENCHMARK.md`.** The raw JSONL is gitignored, so that
+table is the only committed form of the run.
+
+Measured 2026-09-05/06 over the frozen 56-series selection. 624 distinct
+ligands, six replicates each, exhaustiveness 25, mean 13.7 s per search.
+
+| | |
+| --- | --- |
+| median ρ(−vina, pChEMBL) | **+0.082**, 95% series bootstrap **[−0.030, +0.245]** |
+| series with ρ > 0 | 32/56, sign test **p = 0.350** two-sided |
+| median ρ(Vinardo) − ρ(Vina) | **+0.000**, 95% **[−0.104, +0.082]** |
+| series where Vinardo ranks higher | 27/56 |
+| series beating every trivial baseline | **9/56** |
+| series with ρ above **twice** its own random floor | **1/56** |
+| search repeatability | median **+0.990**, 55/56 ≥ +0.95 |
+| ligand pairs reordered between replicate halves | **60 of 3462 (1.7%)** |
+| leakage | 191 ABSENT, 5 PRESENT, 442 NOT_LOOKED_UP |
+
+**THIS IS N5 FROM THE ROADMAP'S OWN LIST — THE CLEANEST NEGATIVE THE DESIGN
+ALLOWS.** The search is very nearly deterministic in its ordering: a median
+repeatability of +0.990, and **1.7% of ligand pairs swap** between independent
+replicate halves. So the disagreement with measured potency is **not sampling
+noise**, and no amount of extra exhaustiveness addresses it. It is the scoring
+function — which is what [source:su2019] says about ranking power, now measured
+here on this application's own poses rather than cited.
+
+**Vinardo does not improve on Vina** (N2). The delta's median is exactly
++0.000 and 27 of 56 is what a coin gives. The two disagree strongly on
+individual series — `3HS4_CHEMBL2045715` +0.33 → +0.70, `5I6X_CHEMBL5042437`
+−0.07 → −0.75 — so the second column buys ordering *diversity*, not accuracy.
+That is the measured version of the rescoring axis's own no-re-ranking rule.
+
+**Only 9 of 56 series beat every trivial physicochemical baseline**, so on 47
+of them heavy-atom count, molecular weight or cLogP orders the compounds at
+least as well as docking does. That is N1, the outcome the roadmap calls the
+most valuable, at 84%.
+
+#### THE P-VALUE MOVED WITH EVERY LOOK, AND THAT IS THE METHODOLOGICAL FINDING
+
+Recorded because the interim numbers were nearly written up as a result:
+
+    15 series (first frozen selection)   11/15   p = 0.118
+    28 series (widening in flight)       19/28   p = 0.087
+    37 series (widening in flight)       25/37   p = 0.047   <-- crossed 0.05
+    56 series (PRE-COMMITTED ENDPOINT)   32/56   p = 0.350
+
+**A p-value inspected repeatedly as data accumulates is not a p-value.** At 37
+series this benchmark said "significant" on a dataset whose completed form says
+nothing of the kind. Nothing in the arithmetic was wrong at any step; the
+inspection schedule was. `rank_report.py` prints a PARTIAL banner whenever the
+complete count is short of the frozen selection, because the script cannot know
+who is running it or for the how-many-th time, and the interim value that
+happens to sit across a conventional threshold is exactly the one that gets
+quoted.
+
+#### THE FIRST FIFTEEN AGAINST THE OTHER FORTY-ONE, AND WHY THEY ARE NOT COMPARABLE
+
+    first selection      median rho +0.245  (n = 15)  95% [-0.030, +0.398]
+                         ligands/series 13, span 2.26, floor SD 0.289
+    added by widening    median rho +0.006  (n = 41)  95% [-0.071, +0.200]
+                         ligands/series 12, span 1.95, floor SD 0.302
+
+The selection walk takes the largest series first, so **the added series are
+smaller and lower-span by construction** — noisier instruments with a higher
+random floor. A lower median among them is partly an artefact of that, not
+necessarily a weaker effect, and the two groups are **not exchangeable**. The
+split is printed anyway, with that caveat attached, because it is the only way
+to see whether widening changed the answer or merely sharpened it.
+
+**It changed it.** The first fifteen sat at +0.245 with an interval that
+*almost* excluded zero; the full set sits at +0.082 with one that comfortably
+includes it. Widening a corpus after seeing a marginal result is the right
+response to a marginal result, and this is what it is for.
+
+#### WHAT THIS DOES NOT SAY
+
+Not "docking cannot rank". One series reaches ρ = +0.79
+(`5I6X_CHEMBL1645847`) and another +0.75 (`5I6X_CHEMBL808864`); 22 of 56 exceed
+their own random floor in absolute value, which is about what 56 draws from a
+null would give. The claim is **no ranking ability detectable across
+within-assay congeneric series at this n**, on eight targets, with Vina at
+exhaustiveness 25.
+
+The oracle's own reproducibility is unmeasurable here — ChEMBL carries no
+per-row uncertainty — so ρ is bounded above by a quantity nobody can measure,
+while the docking's own repeatability is measured and is essentially 1. That
+asymmetry is in `docs/SCIENTIFIC_LIMITATIONS.md`.
+
+**442 of 638 compound-series entries were never looked up** against the PDB, so
+the leakage arms are not a split. Run `chembl_corpus.py --presence-only` to
+close that; it costs one cached HTTP call per InChIKey and no Vina time. On the
+191 that were checked, the ABSENT-only median is unchanged.
+
+The corpus holds 1586 series; 56 were docked, which is 3.5%.

@@ -785,8 +785,68 @@ a wrong number:
 Driven live on 5C1M, the two functions disagreed about which pose was best —
 Vina's top pose rescored worst of the first three. Nothing re-ranks on it.
 
-**THE BENCHMARK IS BUILT, AND RANKING POWER IS STILL OPEN — ON DATA, NOT ON
-EFFORT.** `benchmarks/docking/rescore_power.py`.
+**RANKING POWER IS MEASURED NOW, AND THE ANSWER IS A NULL.** The section below
+survives as the record of what was closed and why; its conclusion — that this
+is unmeasurable here — was overturned on 2026-09-05 by the route the paragraph
+after it names. **ChEMBL is reachable with no account**, and it carries
+`assay_chembl_id`, which is the one thing `rcsb_binding_affinity` lacked: a
+series confined to a single assay is a real ordering where a 4000-fold
+cross-assay spread is not.
+
+**The full record is `docs/DOCKING_RANKING_BENCHMARK.md`**, including the
+per-series table for all 56 series; the raw JSONL is gitignored.
+
+`benchmarks/docking/chembl_corpus.py` builds it — 1586 single-assay series
+over eight catalogued receptors from 41,073 activities — and
+`rank_power.py` / `rank_report.py` measure it. **Fifty-six series, 624
+ligands, 3828 real Vina searches, 14.5 hours of search time**:
+
+    median rho(-vina, pChEMBL)      +0.082   95% series bootstrap [-0.030, +0.245]
+    series with rho > 0             32/56    sign test p = 0.350, two-sided
+    median rho(Vinardo) - rho(Vina) +0.000   95% [-0.104, +0.082]
+    beating every trivial baseline   9/56
+    above TWICE its own random floor 1/56
+    SEARCH REPEATABILITY            median +0.990, 55/56 at or above +0.95
+                                    60 of 3462 ligand pairs swapped (1.7%)
+
+**The repeatability row is where the information is.** The search orders these
+ligands almost identically across independent replicate halves — 1.7% of pairs
+swap — so the disagreement with measured potency is **not sampling**, and more
+exhaustiveness cannot address it. It is the scoring function, which is
+[source:su2019]'s finding arriving as a local measurement instead of a
+citation. That is **N5** on this section's own list of nulls: reproducible
+search, and the score still does not order.
+
+Vinardo does not improve on it — the delta's median is exactly +0.000 and 27 of
+56 is a coin (**N2**). And **47 of 56 series are ordered at least as well by a
+trivial physicochemical descriptor as by docking**, which is **N1**, the
+outcome this section calls the most valuable, at 84%.
+
+**THE INTERIM P-VALUES CROSSED 0.05 AND CAME BACK.** 15 series p = 0.118, 28
+series 0.087, 37 series **0.047**, 56 series **0.350**. A p-value inspected
+repeatedly as data accumulates is not a p-value; the pre-committed endpoint was
+the whole frozen selection and that is the row above. `rank_report.py` prints a
+PARTIAL banner short of it.
+
+**Stated as narrowly as the data allows**: this is *no ranking ability
+detectable across within-assay congeneric series at this n*, on eight targets,
+with Vina at exhaustiveness 25 — not *docking cannot rank*. Two series reach
++0.75 and +0.79. The oracle's own reproducibility is unmeasurable, since ChEMBL
+carries no per-row uncertainty, so rho is bounded above by a quantity nobody
+can measure while the docking's own repeatability is measured and is
+essentially 1.
+
+**WHAT THIS CLOSES FOR ROUTE 3.** RBFE was to be justified by docking's ranking
+being inadequate. It is now measured as inadequate rather than assumed to be,
+and the same corpus is the acceptance oracle a free-energy method would have to
+beat — the benchmark outlives the null it produced.
+
+**THE HISTORICAL RECORD BELOW IS SUPERSEDED AND KEPT.** It says ranking power
+is unmeasurable here, which was true of every route it surveyed and false of
+the one it did not — ChEMBL's `assay_chembl_id`. Kept rather than deleted
+because the WAY it was wrong is the durable part: it enumerated the closed
+doors carefully and read that as a closed question.
+`benchmarks/docking/rescore_power.py`.
 
 Route 2's acceptance criterion needs measured affinities. Measured
 2026-09-03, every route to a set carrying them is closed from here: the

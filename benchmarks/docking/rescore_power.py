@@ -61,6 +61,7 @@ import math
 from enum import Enum
 
 from _config import vina_executable
+from _stats import spearman
 from openchem.chem.binding_site import box_from_ligand
 from openchem.chem.docking_providers import VinaDockingProvider
 from openchem.chem.receptor_library import find
@@ -169,55 +170,11 @@ def pose_centroid(molblock: str) -> tuple[float, float, float] | None:
     return centroid(heavy) if heavy else None
 
 
-def spearman(a: list[float], b: list[float]) -> float | None:
-    """Rank correlation, written out rather than imported: scipy is not a
-    dependency of this project and adding one for a benchmark would be a
-    dependency nobody reviewed.
-
-    **VERIFIED BEFORE ITS NUMBERS WERE WRITTEN DOWN**, because a hand-rolled
-    statistic with a tie-handling bug produces plausible figures and this
-    one's output goes straight into a README:
-
-        [1,2,3,4,5] vs [10,20,30,40,50]   +1.0
-        [1,2,3,4,5] vs [50,40,30,20,10]   -1.0
-        [1,2,3]     vs [7,7,7]            None -- zero variance, not 0.0
-        [1,2,3,4,5] vs [2,1,4,3,5]        +0.8, by 1 - 6*sum(d^2)/(n(n^2-1))
-                                          with d = [-1,+1,-1,+1,0]
-        [1,2,3,4]   vs [1,2,2,4]          +0.948683..., midranks 1/2.5/2.5/4
-
-    The fourth case is worth keeping for a reason that is about the CHECKER
-    rather than the code: it was first written with an expected 0.6, pulled
-    from memory, and the function was briefly suspected before the identity
-    was worked through by hand. An expectation invented to test a function
-    is not an oracle.
-
-    Zero variance returns None rather than 0.0 -- "the ranks do not vary" is
-    not "the ranks are uncorrelated", and a benchmark that averaged the
-    second into a mean would be reporting a value it never measured.
-    """
-    n = len(a)
-    if n < 2:
-        return None
-
-    def ranks(values: list[float]) -> list[float]:
-        order = sorted(range(n), key=lambda i: values[i])
-        out = [0.0] * n
-        i = 0
-        while i < n:
-            j = i
-            while j + 1 < n and values[order[j + 1]] == values[order[i]]:
-                j += 1
-            shared = (i + j) / 2 + 1
-            for k in range(i, j + 1):
-                out[order[k]] = shared
-            i = j + 1
-        return out
-
-    ra, rb = ranks(a), ranks(b)
-    mean_a, mean_b = sum(ra) / n, sum(rb) / n
-    num = sum((x - mean_a) * (y - mean_b) for x, y in zip(ra, rb))
-    den = math.sqrt(sum((x - mean_a) ** 2 for x in ra) * sum((y - mean_b) ** 2 for y in rb))
-    return None if den == 0 else num / den
+# `spearman` MOVED to `_stats.py` when the ranking benchmark needed the same
+# function. Two implementations of one statistic is how two benchmarks come to
+# disagree about a number, and this one is already verified against five
+# hand-worked cases -- including one where the author's remembered expectation
+# was the thing that was wrong. Its verification docstring travelled with it.
 
 
 def main() -> int:
