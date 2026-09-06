@@ -362,6 +362,39 @@ def ligand_codes_in(structure_text: str, source_format: str) -> list[str]:
     return sorted(counts, key=lambda code: (-counts[code], code))
 
 
+def box_defining_ligand_codes(receptor) -> list[str]:
+    """The co-crystallised ligand that defined this receptor's search box.
+
+    A catalogue import records it in `MacromoleculeModel.metadata`
+    (`receptor_library_service.entry_metadata`), and `box_from_ligand` above
+    derives the box from its coordinates. Leaving that ligand in the pocket
+    it defined means docking into an OCCUPIED site --
+    `pose_analysis.is_stripped_residue` carries the measurement on real Vina
+    against real 1HSG, and states the failure mode that matters here: the
+    damage is not a constant offset, so the RANKING can invert.
+
+    Returns empty for a receptor the user imported themselves -- there is
+    no catalogue entry, so nothing here knows which residue defined the
+    box, and guessing would delete part of somebody's receptor.
+
+    **IT LIVES HERE BECAUSE IT HAS TWO CALLERS AND ONE OF THEM WAS MISSING
+    IT.** This was module-private in `ui/panels/docking_panel.py` while
+    `VirtualScreeningDialog` passed no `receptor_prep_options` at all, so
+    every virtual screen against a catalogued receptor docked into a pocket
+    the crystal ligand was still sitting in. A second copy in the dialog
+    would have been the drift this project has already paid for four times
+    (`is_stripped_residue`, `filter_altlocs`, `is_symmetry_generated`,
+    `normalise_element_symbols`), so there is one implementation and both UI
+    callers import it.
+
+    Duck-typed on purpose: it reads `metadata` off whatever it is handed, so
+    `chem/` does not import a `domain` model to ask one question of a dict.
+    """
+    metadata = getattr(receptor, "metadata", None) or {}
+    code = str(metadata.get("ligand_code", "") or "").strip()
+    return [code] if code else []
+
+
 #: Beyond this, a box centre is reported as being somewhere other than the
 #: reference site. Derived rather than chosen: `MINIMUM_SIZE` is 16 A, so
 #: half of it is the furthest a centre can move while the box still covers

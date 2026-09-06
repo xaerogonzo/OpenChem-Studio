@@ -554,3 +554,70 @@ def test_the_tolerance_cannot_exceed_the_smallest_box_a_site_can_get():
     when it no longer contains it.
     """
     assert REFERENCE_SITE_TOLERANCE <= MINIMUM_SIZE / 2.0
+
+
+# -- which residue defined the box, and must therefore be removed ----------
+#
+# `box_defining_ligand_codes` lived in `ui/panels/docking_panel.py` as a
+# private helper until the virtual screening dialog turned out to need it
+# too. `test_a_user_imported_receptor_has_nothing_stripped` there is the
+# ancestor of `test_an_imported_receptor_has_nothing_stripped` below; the
+# four cases together are the contract that helper now owes both callers.
+
+
+def test_a_catalogued_receptor_strips_the_code_that_defined_its_box():
+    """The whole point of `ligand_code` being in the metadata.
+
+    A catalogue import records it so preparation can clear the pocket
+    without the user having to know which residue defined the site. See
+    `pose_analysis.is_stripped_residue` for what leaving it there costs.
+    """
+    from openchem.chem.binding_site import box_defining_ligand_codes
+    from openchem.domain.macromolecule import MacromoleculeModel
+
+    catalogue = MacromoleculeModel(metadata={"ligand_code": "MK1"})
+    assert box_defining_ligand_codes(catalogue) == ["MK1"]
+
+
+def test_an_imported_receptor_has_nothing_stripped():
+    """THE LOAD-BEARING HALF, and the one a broad rule would break.
+
+    No catalogue entry means nothing here knows which residue defined the
+    box. A tempting "strip the largest hetero residue" rule satisfies the
+    case above and, on somebody's own PDB, deletes part of their receptor --
+    so the answer to "which ligand defined this box" has to be *nothing*
+    rather than a guess.
+    """
+    from openchem.chem.binding_site import box_defining_ligand_codes
+    from openchem.domain.macromolecule import MacromoleculeModel
+
+    assert box_defining_ligand_codes(MacromoleculeModel()) == []
+
+
+def test_a_blank_ligand_code_is_not_a_ligand_code():
+    """A metadata key present and empty is the same claim as absent.
+
+    Kept separate from the case above because they arrive by different
+    routes: no metadata at all is an imported structure, while a blank
+    string is a catalogue field that failed to populate. Forwarding `""`
+    as a code to strip would ask preparation to delete a residue named
+    nothing.
+    """
+    from openchem.chem.binding_site import box_defining_ligand_codes
+    from openchem.domain.macromolecule import MacromoleculeModel
+
+    assert box_defining_ligand_codes(MacromoleculeModel(metadata={"ligand_code": " "})) == []
+    assert box_defining_ligand_codes(MacromoleculeModel(metadata={"ligand_code": ""})) == []
+
+
+def test_it_reads_metadata_off_anything_and_never_imports_a_domain_model():
+    """Duck-typed on purpose, so `chem/` does not import `domain` to ask
+    one question of a dict -- and so a caller holding some other receptor
+    carrier is not locked out."""
+    from openchem.chem.binding_site import box_defining_ligand_codes
+
+    class _NotAModel:
+        metadata = {"ligand_code": "7LD"}
+
+    assert box_defining_ligand_codes(_NotAModel()) == ["7LD"]
+    assert box_defining_ligand_codes(object()) == []

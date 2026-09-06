@@ -57,6 +57,7 @@ The script is a JSON list of steps, run in order:
       {"do": "ensemble_visible", "row": 1, "on": false},
       {"do": "overlay_colour",   "mode": "element"},
       {"do": "visual_check",     "surface": "properties", "tag": "at-minimum"},
+      {"do": "screen_run",       "receptor": 0},
       {"do": "quit"}
     ]
 
@@ -1111,6 +1112,60 @@ class _Driver(QObject):
             self._lewis.diagram.status.value,
             self._lewis.status_text(),
         )
+
+    def _do_screen_run(self, step: dict[str, Any]) -> None:
+        """Press the real Run button on the open screening dialog, then dump
+        what the REAL service was handed.
+
+        `{"do": "dialog", "name": "VirtualScreeningDialog"}` then
+        `{"do": "screen_run", "receptor": 0}`
+
+        **THE PREP DICT IS THE HALF NO SCREENSHOT CAN CARRY**, which is why
+        this exists beside a `shot` rather than instead of one. A screen that
+        leaves the co-crystallised ligand sitting in the pocket it defined
+        looks exactly like a screen that removes it -- same table, same
+        progress bar, scores 4 kcal/mol out and a ranking that can invert.
+        `is_stripped_residue` measured that; nothing on screen shows it.
+
+        Read off `ScreeningService`'s own attributes AFTER the button press,
+        so it is what the service received rather than what the dialog
+        believes it sent. Those are set synchronously by `request_screen`, so
+        no wait is needed for this line even though the docking that follows
+        takes minutes.
+
+        **THE BUTTON, not `_start`.** A disabled Run button is logged rather
+        than clicked, for the reason `dock_run` gives: Qt silently ignores a
+        click on a disabled control, so without that check the run reports a
+        healthy step and screens nothing.
+        """
+        dialog = self._dialog
+        if dialog is None or not hasattr(dialog, "_run"):
+            logger.error(
+                "OPENCHEM_DRIVE: screen_run -- no screening dialog is open; "
+                "run {'do': 'dialog', 'name': 'VirtualScreeningDialog'} first"
+            )
+            return
+        index = step.get("receptor")
+        if index is not None and dialog._receptor.count():
+            dialog._receptor.setCurrentIndex(int(index) % dialog._receptor.count())
+        receptor_name = dialog._receptor.currentText()
+        if not dialog._run.isEnabled():
+            logger.error("OPENCHEM_DRIVE: screen_run -- the Run button is DISABLED; not clicked")
+            return
+        dialog._run.click()
+
+        service = self._window._services.screening_service
+        logger.warning(
+            "OPENCHEM_DRIVE: screen_run receptor=%r queued=%d poses=%s replicates=%s "
+            "prep=%r box=%s",
+            receptor_name,
+            service._total,
+            service._num_poses,
+            service._replicates,
+            service._prep_options,
+            None if service._box is None else service._box.center,
+        )
+        logger.warning("OPENCHEM_DRIVE: screen_run status=%r", dialog._status.text())
 
     def _do_jobs_report(self, step: dict[str, Any]) -> None:
         """Dump what the Jobs panel SHOWS, plus whether it is still polling.
