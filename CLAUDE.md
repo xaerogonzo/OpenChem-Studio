@@ -4730,6 +4730,105 @@ newlines and split string literals across lines, making the file
 unparseable. **Reach for a real editing tool when the content contains
 escapes** -- the rule is already written down and was still not followed.
 
+## A P-VALUE LOOKED AT REPEATEDLY IS NOT A P-VALUE, AND MINE CROSSED 0.05 AND CAME BACK
+
+The Within-Assay Docking Ranking Benchmark's sign test, as its 56-series
+frozen selection accumulated. Every row is the same statistic on the same
+protocol, computed correctly, on more data:
+
+    15 series (the first frozen selection)   11/15   p = 0.118
+    28 series (widening in flight)           19/28   p = 0.087
+    37 series (widening in flight)           25/37   p = 0.047   <-- crossed
+    56 series (the PRE-COMMITTED ENDPOINT)   32/56   p = 0.350
+
+**At 37 series this benchmark said "significant" about a dataset whose
+completed form says nothing of the kind**, and it said so because I ran the
+report three times while the run was in flight to answer "how is it going".
+Nothing in the arithmetic was wrong at any step. The INSPECTION SCHEDULE was.
+
+**THE FIX IS IN THE SCRIPT, NOT IN A RESOLUTION TO BE CAREFUL.**
+`rank_report.py` compares its complete-series count against the frozen
+selection in the manifest and prints a PARTIAL banner whenever it is short:
+the script cannot know who is running it or for the how-many-th time, and the
+interim value that happens to sit across a conventional threshold is exactly
+the one that gets quoted. A note in a docstring is read once; a banner is
+printed every time.
+
+### AND THE GROUP SPLIT MOVED THE SAME WAY, WHICH IS WHY THE CAVEAT SHIPPED
+
+The report splits the first fifteen from the forty-one that widening added.
+That split ALSO drifted, in the other direction:
+
+    added-by-widening median rho, at 13 added   +0.073
+    added-by-widening median rho, at 22 added   +0.182
+    added-by-widening median rho, at 41 added   +0.006
+
+So a mid-run reading would have supported "widening shows the effect is
+weaker", then "the two groups are converging", then the opposite again. The
+groups are **not exchangeable** and the report says so: the selection walk
+takes the largest series first, so the added ones are smaller and lower-span
+by construction — noisier instruments with a higher random floor (0.289
+against 0.302). A lower median among them is partly an artefact of that.
+
+**Both halves are printed anyway.** Suppressing the split would hide whether
+widening changed the answer or merely sharpened it. Here it changed it:
++0.245 with an interval that almost excluded zero became +0.082 with one
+that comfortably includes it.
+
+## REPRODUCIBLE SEARCH PLUS NO CORRELATION IS THE STRONGEST NULL AVAILABLE
+
+3828 real Vina searches, 624 ligands, 56 single-assay ChEMBL series, 14.5
+hours. The headline is a null, and the row that makes it worth anything is
+not the headline:
+
+    median rho(-vina, pChEMBL)   +0.082   95% bootstrap [-0.030, +0.245]
+    SEARCH REPEATABILITY         median +0.990, 55/56 at or above +0.95
+                                 60 of 3462 ligand pairs swapped (1.7%)
+
+**Without the repeatability row this is "docking did not correlate", which is
+consistent with the search being too noisy to have tried.** With it, the
+search orders these ligands almost identically across independent replicate
+halves, so the disagreement is **not sampling** and no amount of extra
+exhaustiveness addresses it. That is the difference between a result and a
+shrug, and it is only measurable because route 1 shipped replicates first.
+
+**47 of 56 series are ordered at least as well by a trivial physicochemical
+descriptor as by docking.** This project has already shipped an endpoint that
+turned out to be molecular size at r = +0.98, which is why the baselines are
+computed at CORPUS BUILD time, free, before any Vina runs — a benchmark whose
+sanity floor costs 14 hours is a benchmark nobody checks the floor of.
+
+### AN INTERIM READING OF A NUMBER I WAS ABOUT TO REPORT
+
+Recorded because the failure mode is social rather than technical. Each of
+the three interim reports was produced in answer to "how is it going" — a
+reasonable question with a reasonable answer, which is a progress figure.
+What makes it dangerous is that the progress figure and the RESULT are the
+same number here, so answering the first publishes the second.
+
+The rule: **when a run's own statistic is what says whether it is going
+well, report the completion count and refuse the statistic.** Records, hours,
+series done. Not rho.
+
+## WIDENING A CORPUS AFTER A MARGINAL RESULT IS CORRECT, AND MUST BE PRE-COMMITTED
+
+The first frozen selection returned +0.245 with a 95% interval of
+[-0.030, +0.398] — a hair from excluding zero, which is the shape most likely
+to be written up as "suggestive". The response was to widen the corpus from
+15 series to 56 and re-run, at 3.5x the compute.
+
+**That is a legitimate move and a p-hacking move, and the ONLY thing that
+separates them is what is committed before the data arrives.** The manifest
+carries a `widening_note` recording the pre-commitment: report the full set
+whatever it says, with the first fifteen beside it and the exchangeability
+caveat attached. Without that, "we added data and the effect went away" is
+indistinguishable from having stopped at whichever n looked best.
+
+**The corpus holds 1586 series and 56 were docked.** Widening further needs
+no new machinery and would cost proportionally; that is a real option and not
+a way to reach a different answer, precisely because this endpoint is now on
+the record.
+
 ## Running the tests
 
 ```bash

@@ -795,34 +795,55 @@ cross-assay spread is not.
 
 `benchmarks/docking/chembl_corpus.py` builds it — 1586 single-assay series
 over eight catalogued receptors from 41,073 activities — and
-`rank_power.py` / `rank_report.py` measure it. Fifteen series, 194 ligands,
-1164 real Vina searches, 5.03 hours:
+`rank_power.py` / `rank_report.py` measure it. **Fifty-six series, 624
+ligands, 3828 real Vina searches, 14.5 hours of search time**:
 
-    median rho(-vina, pChEMBL)     +0.245   95% series bootstrap [-0.030, +0.398]
-    series with rho > 0            11/15    sign test p = 0.118, two-sided
-    median rho(Vinardo) - rho(Vina) +0.047  95% [-0.099, +0.117]
-    beating every trivial baseline  3/15
-    SEARCH REPEATABILITY           +0.98 to +1.00 on all fifteen
+    median rho(-vina, pChEMBL)      +0.082   95% series bootstrap [-0.030, +0.245]
+    series with rho > 0             32/56    sign test p = 0.350, two-sided
+    median rho(Vinardo) - rho(Vina) +0.000   95% [-0.104, +0.082]
+    beating every trivial baseline   9/56
+    above TWICE its own random floor 1/56
+    SEARCH REPEATABILITY            median +0.990, 55/56 at or above +0.95
+                                    60 of 3462 ligand pairs swapped (1.7%)
 
 **The repeatability row is where the information is.** The search orders these
-ligands almost identically across independent replicate halves — at most three
-pairs of 91 swapping — so the disagreement with measured potency is **not
-sampling**. It is the scoring function, which is [source:su2019]'s finding
-arriving as a local measurement instead of a citation. That is N5 on this
-section's own list of nulls: reproducible search, and the score still does not
-order.
+ligands almost identically across independent replicate halves — 1.7% of pairs
+swap — so the disagreement with measured potency is **not sampling**, and more
+exhaustiveness cannot address it. It is the scoring function, which is
+[source:su2019]'s finding arriving as a local measurement instead of a
+citation. That is **N5** on this section's own list of nulls: reproducible
+search, and the score still does not order.
 
-Vinardo does not detectably improve on it (N2). Only 3 of 15 series beat every
-trivial physicochemical baseline, which is close to N1 — the outcome this
-section calls the most valuable, because it closes a route on evidence.
+Vinardo does not improve on it — the delta's median is exactly +0.000 and 27 of
+56 is a coin (**N2**). And **47 of 56 series are ordered at least as well by a
+trivial physicochemical descriptor as by docking**, which is **N1**, the
+outcome this section calls the most valuable, at 84%.
 
-**Stated as narrowly as the data allows**: the interval is wide and the sign
-test is not significant, so this is *no ranking ability detectable at this n*,
-not *docking cannot rank*. One series reaches +0.75. The corpus holds 1586
-series and fifteen were docked; widening it needs no new machinery.
+**THE INTERIM P-VALUES CROSSED 0.05 AND CAME BACK.** 15 series p = 0.118, 28
+series 0.087, 37 series **0.047**, 56 series **0.350**. A p-value inspected
+repeatedly as data accumulates is not a p-value; the pre-committed endpoint was
+the whole frozen selection and that is the row above. `rank_report.py` prints a
+PARTIAL banner short of it.
 
-**THE BENCHMARK IS BUILT, AND RANKING POWER IS STILL OPEN — ON DATA, NOT ON
-EFFORT.** `benchmarks/docking/rescore_power.py`.
+**Stated as narrowly as the data allows**: this is *no ranking ability
+detectable across within-assay congeneric series at this n*, on eight targets,
+with Vina at exhaustiveness 25 — not *docking cannot rank*. Two series reach
++0.75 and +0.79. The oracle's own reproducibility is unmeasurable, since ChEMBL
+carries no per-row uncertainty, so rho is bounded above by a quantity nobody
+can measure while the docking's own repeatability is measured and is
+essentially 1.
+
+**WHAT THIS CLOSES FOR ROUTE 3.** RBFE was to be justified by docking's ranking
+being inadequate. It is now measured as inadequate rather than assumed to be,
+and the same corpus is the acceptance oracle a free-energy method would have to
+beat — the benchmark outlives the null it produced.
+
+**THE HISTORICAL RECORD BELOW IS SUPERSEDED AND KEPT.** It says ranking power
+is unmeasurable here, which was true of every route it surveyed and false of
+the one it did not — ChEMBL's `assay_chembl_id`. Kept rather than deleted
+because the WAY it was wrong is the durable part: it enumerated the closed
+doors carefully and read that as a closed question.
+`benchmarks/docking/rescore_power.py`.
 
 Route 2's acceptance criterion needs measured affinities. Measured
 2026-09-03, every route to a set carrying them is closed from here: the

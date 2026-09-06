@@ -567,47 +567,96 @@ looked up — the cache having been built for the v1 selection. `NOT_LOOKED_UP`
 is its own counted verdict now. Being careful one layer down does not make the
 layer above careful.
 
-### The result: 1164 searches, 5.03 hours, and it is a NULL
+### The result: 3828 searches, 14.5 hours, and it is a NULL
 
-Measured 2026-09-05. Fifteen series, 194 ligands, six replicates,
-exhaustiveness 25, mean 15.6 s per search.
+Measured 2026-09-05/06 over the frozen 56-series selection. 624 distinct
+ligands, six replicates each, exhaustiveness 25, mean 13.7 s per search.
 
 | | |
 | --- | --- |
-| median ρ(−vina, pChEMBL) | **+0.245**, 95% series bootstrap **[−0.030, +0.398]** |
-| series with ρ > 0 | 11/15, sign test **p = 0.118** two-sided |
-| median ρ(Vinardo) − ρ(Vina) | **+0.047**, 95% **[−0.099, +0.117]** |
-| series where Vinardo ranks higher | 9/15 |
-| series beating every trivial baseline | **3/15** |
-| search repeatability | **+0.98 to +1.00 on all fifteen**, 0–3 pairs swapped of 36–91 |
-| leakage | 190 ABSENT, 4 PRESENT, 0 UNRESOLVED; ABSENT-only median ρ **+0.245**, unchanged |
+| median ρ(−vina, pChEMBL) | **+0.082**, 95% series bootstrap **[−0.030, +0.245]** |
+| series with ρ > 0 | 32/56, sign test **p = 0.350** two-sided |
+| median ρ(Vinardo) − ρ(Vina) | **+0.000**, 95% **[−0.104, +0.082]** |
+| series where Vinardo ranks higher | 27/56 |
+| series beating every trivial baseline | **9/56** |
+| series with ρ above **twice** its own random floor | **1/56** |
+| search repeatability | median **+0.990**, 55/56 ≥ +0.95 |
+| ligand pairs reordered between replicate halves | **60 of 3462 (1.7%)** |
+| leakage | 191 ABSENT, 5 PRESENT, 442 NOT_LOOKED_UP |
 
-**THIS IS THE CLEANEST NEGATIVE THE DESIGN ALLOWS, and it is N5 from the
-roadmap's own list.** The search is very nearly deterministic in its ordering —
-repeatability +0.98 to +1.00, with at most three ligand pairs out of 91
-swapping between independent replicate halves — and the score still does not
-order these compounds against measured potency in a way distinguishable from
-chance at this n. So the disagreement is **not sampling**. It is the scoring
-function, which is what [source:su2019] says and what is now measured here
-rather than cited.
+**THIS IS N5 FROM THE ROADMAP'S OWN LIST — THE CLEANEST NEGATIVE THE DESIGN
+ALLOWS.** The search is very nearly deterministic in its ordering: a median
+repeatability of +0.990, and **1.7% of ligand pairs swap** between independent
+replicate halves. So the disagreement with measured potency is **not sampling
+noise**, and no amount of extra exhaustiveness addresses it. It is the scoring
+function — which is what [source:su2019] says about ranking power, now measured
+here on this application's own poses rather than cited.
 
-**Vinardo does not detectably improve on Vina** (N2): the delta's interval
-spans zero, and 9 of 15 is what a coin gives. The two disagree strongly on
-individual series — `3HS4_CHEMBL1246741` goes −0.09 → −0.58 and
-`5I6X_CHEMBL839605` +0.00 → −0.48, while `3HS4_CHEMBL3876600` goes +0.40 →
-+0.54 — so the axis buys ordering diversity, not accuracy.
+**Vinardo does not improve on Vina** (N2). The delta's median is exactly
++0.000 and 27 of 56 is what a coin gives. The two disagree strongly on
+individual series — `3HS4_CHEMBL2045715` +0.33 → +0.70, `5I6X_CHEMBL5042437`
+−0.07 → −0.75 — so the second column buys ordering *diversity*, not accuracy.
+That is the measured version of the rescoring axis's own no-re-ranking rule.
 
-**Only 3 of 15 series beat every trivial physicochemical baseline**, so on
-twelve of them a descriptor orders the compounds at least as well as docking
-does. That is close to N1, the outcome the roadmap calls the most valuable.
+**Only 9 of 56 series beat every trivial physicochemical baseline**, so on 47
+of them heavy-atom count, molecular weight or cLogP orders the compounds at
+least as well as docking does. That is N1, the outcome the roadmap calls the
+most valuable, at 84%.
 
-**WHAT THIS DOES NOT SAY.** The interval is wide and the sign test is not
-significant, so this is "no ranking ability detectable at this n", not "docking
-cannot rank". One series reaches ρ = +0.75 (`5I6X_CHEMBL808864`). Fifteen
-series of 9–14 congeneric compounds is a small experiment, and the oracle's own
-reproducibility is unmeasurable here because ChEMBL carries no per-row
-uncertainty — so ρ is bounded above by a quantity nobody can measure, while the
-docking's own repeatability is measured and is essentially 1.
+#### THE P-VALUE MOVED WITH EVERY LOOK, AND THAT IS THE METHODOLOGICAL FINDING
 
-The corpus holds 1586 series; fifteen were docked. Widening it is the obvious
-next measurement and needs no new machinery.
+Recorded because the interim numbers were nearly written up as a result:
+
+    15 series (first frozen selection)   11/15   p = 0.118
+    28 series (widening in flight)       19/28   p = 0.087
+    37 series (widening in flight)       25/37   p = 0.047   <-- crossed 0.05
+    56 series (PRE-COMMITTED ENDPOINT)   32/56   p = 0.350
+
+**A p-value inspected repeatedly as data accumulates is not a p-value.** At 37
+series this benchmark said "significant" on a dataset whose completed form says
+nothing of the kind. Nothing in the arithmetic was wrong at any step; the
+inspection schedule was. `rank_report.py` prints a PARTIAL banner whenever the
+complete count is short of the frozen selection, because the script cannot know
+who is running it or for the how-many-th time, and the interim value that
+happens to sit across a conventional threshold is exactly the one that gets
+quoted.
+
+#### THE FIRST FIFTEEN AGAINST THE OTHER FORTY-ONE, AND WHY THEY ARE NOT COMPARABLE
+
+    first selection      median rho +0.245  (n = 15)  95% [-0.030, +0.398]
+                         ligands/series 13, span 2.26, floor SD 0.289
+    added by widening    median rho +0.006  (n = 41)  95% [-0.071, +0.200]
+                         ligands/series 12, span 1.95, floor SD 0.302
+
+The selection walk takes the largest series first, so **the added series are
+smaller and lower-span by construction** — noisier instruments with a higher
+random floor. A lower median among them is partly an artefact of that, not
+necessarily a weaker effect, and the two groups are **not exchangeable**. The
+split is printed anyway, with that caveat attached, because it is the only way
+to see whether widening changed the answer or merely sharpened it.
+
+**It changed it.** The first fifteen sat at +0.245 with an interval that
+*almost* excluded zero; the full set sits at +0.082 with one that comfortably
+includes it. Widening a corpus after seeing a marginal result is the right
+response to a marginal result, and this is what it is for.
+
+#### WHAT THIS DOES NOT SAY
+
+Not "docking cannot rank". One series reaches ρ = +0.79
+(`5I6X_CHEMBL1645847`) and another +0.75 (`5I6X_CHEMBL808864`); 22 of 56 exceed
+their own random floor in absolute value, which is about what 56 draws from a
+null would give. The claim is **no ranking ability detectable across
+within-assay congeneric series at this n**, on eight targets, with Vina at
+exhaustiveness 25.
+
+The oracle's own reproducibility is unmeasurable here — ChEMBL carries no
+per-row uncertainty — so ρ is bounded above by a quantity nobody can measure,
+while the docking's own repeatability is measured and is essentially 1. That
+asymmetry is in `docs/SCIENTIFIC_LIMITATIONS.md`.
+
+**442 of 638 compound-series entries were never looked up** against the PDB, so
+the leakage arms are not a split. Run `chembl_corpus.py --presence-only` to
+close that; it costs one cached HTTP call per InChIKey and no Vina time. On the
+191 that were checked, the ABSENT-only median is unchanged.
+
+The corpus holds 1586 series; 56 were docked, which is 3.5%.
