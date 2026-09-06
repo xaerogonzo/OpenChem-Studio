@@ -220,6 +220,41 @@ def bootstrap_interval(values: list[float]) -> tuple[float, float] | None:
     return medians[int(0.025 * BOOTSTRAP)], medians[int(0.975 * BOOTSTRAP)]
 
 
+def _report_first_selection(rows: list[dict], manifest: dict) -> None:
+    """The original fifteen, beside the widened set.
+
+    **THE PRE-COMMITMENT MADE GOOD.** `SERIES_PER_TARGET` was raised from 2 to
+    8 after the first result's interval spanned zero, which is legitimate only
+    as ADDING SAMPLES -- and the way a reader checks that it was not a re-roll
+    is to see both numbers. If the widened median sits far from the original,
+    that is worth knowing and possibly worth distrusting; if it sits near it,
+    the widening did what widening is supposed to do.
+
+    Prints nothing when the manifest records no earlier selection, so a corpus
+    built fresh does not grow a section about a history it does not have.
+    """
+    first = set(manifest.get("first_frozen_selection") or [])
+    if not first:
+        return
+    subset = [r for r in rows if r["series_id"] in first]
+    added = [r for r in rows if r["series_id"] not in first]
+    if not subset or not added:
+        return
+
+    print(f"\n  THE FIRST FIFTEEN, AND WHAT WIDENING ADDED")
+    print("  The selection was widened AFTER the first result, whose interval")
+    print("  spanned zero. Both are shown because that is the only way to see")
+    print("  whether adding data changed the answer or merely sharpened it.")
+    for label, group in (("first selection", subset), ("added by widening", added)):
+        values = [r["rho_vina"] for r in group if r["rho_vina"] is not None]
+        if not values:
+            continue
+        interval = bootstrap_interval(values)
+        span = f"  95% [{interval[0]:+.3f}, {interval[1]:+.3f}]" if interval else ""
+        print(f"    {label:20s} median rho {sorted(values)[len(values) // 2]:+.3f}  "
+              f"(n = {len(values)}){span}")
+
+
 def _sign_test(positive: int, total: int) -> float:
     """Two-sided exact binomial p for `positive` of `total` at p = 0.5.
 
@@ -353,6 +388,8 @@ def main() -> int:
         print(f"  median rho(Vinardo) - rho(Vina)     {median_delta:+.3f}{span}")
         print(f"  series where Vinardo ranks higher   {sum(1 for d in deltas if d > 0)}/{len(deltas)}")
     print(f"  series beating every trivial baseline {len(beat_baseline)}/{len(rows)}")
+
+    _report_first_selection(rows, manifest)
     if not beat_baseline:
         print("    NONE. On this corpus the docking score does not order these")
         print("    compounds better than a physicochemical descriptor does, which")

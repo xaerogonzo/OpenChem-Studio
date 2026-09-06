@@ -533,7 +533,50 @@ def is_size_decoupled(heavy_atom_rho: float | None) -> bool:
 MAX_LIGANDS_FOR_DOCKING = 14
 
 #: How many series per target reach Stage 1.
-SERIES_PER_TARGET = 2
+#:
+#: **RAISED FROM 2 TO 8 AFTER THE FIRST RESULT, AND THAT IS ADDING SAMPLES
+#: RATHER THAN RE-SELECTING.** The distinction is the whole reason a selection
+#: is frozen at all:
+#:
+#:     ILLEGITIMATE   dropping series whose rho came out badly, or adding
+#:                    series chosen because they look favourable
+#:     LEGITIMATE     raising n by the SAME deterministic rule, keeping every
+#:                    series already measured
+#:
+#: This is the second, and the property is structural rather than promised:
+#: `select_for_docking` sorts by `(-n_ligands, series_id)` and walks in order,
+#: so eight per target yields a STRICT SUPERSET of the two. No series already
+#: docked can leave the set, and nothing in the rule reads a rho, so the
+#: widened selection cannot be steered by an outcome.
+#: `test_widening_the_selection_keeps_every_series_it_already_had` asserts the
+#: superset directly, because "it is deterministic so it must be a superset" is
+#: the kind of reasoning that is true until somebody changes the sort key.
+#:
+#: The motive is admitted rather than hidden: the first measurement's headline
+#: interval was [-0.030, +0.398] over fifteen series, which spans zero, and
+#: every downstream decision rests on whether +0.245 is real. Widening because
+#: a result was inconclusive is only safe in this direction -- more data can
+#: sharpen an estimate, never select one -- and the pre-commitment is to report
+#: the FULL set whatever it says, with the original fifteen shown beside it so
+#: "did adding data change the answer" stays checkable rather than asserted.
+SERIES_PER_TARGET = 8
+
+#: The fifteen series measured in the first run.
+#:
+#: A RECORD, NOT A RULE. Nothing selects on it; `rank_report.py` reports the
+#: full set and this subset side by side, which is what makes the widening
+#: auditable. Frozen here rather than recomputed, because recomputing it from
+#: today's rule would defeat the point of comparing two rules.
+FIRST_FROZEN_SELECTION = (
+    "2RH1_CHEMBL4187604",
+    "3EML_CHEMBL3878179", "3EML_CHEMBL4379761",
+    "3HS4_CHEMBL1246741", "3HS4_CHEMBL3876600",
+    "3PBL_CHEMBL1225697", "3PBL_CHEMBL3239710",
+    "5C1M_CHEMBL1274304", "5C1M_CHEMBL3385150",
+    "5I6X_CHEMBL808864", "5I6X_CHEMBL839605",
+    "5TGZ_CHEMBL1041035", "5TGZ_CHEMBL4186781",
+    "6WGT_CHEMBL616895", "6WGT_CHEMBL854094",
+)
 
 
 def series_box_fit(series: dict, box) -> dict[str, Any]:
@@ -747,6 +790,19 @@ def write_corpus(
         #: What the walk examined and why each candidate was taken or rejected,
         #: so the selection is auditable without re-running it.
         "box_fit": box_fit or {},
+        #: The fifteen series measured before the selection was widened, and
+        #: the reason it was widened. Kept so a reader can check whether adding
+        #: data changed the answer rather than taking that on trust.
+        "first_frozen_selection": list(FIRST_FROZEN_SELECTION),
+        "widening_note": (
+            f"SERIES_PER_TARGET was raised from 2 to {SERIES_PER_TARGET} after the "
+            "first result, whose headline interval [-0.030, +0.398] over fifteen "
+            "series spanned zero. This ADDS SAMPLES rather than re-selecting: the "
+            "walk sorts by (-n_ligands, series_id), so the widened set is a strict "
+            "superset of the first and no measured series can leave it, and no "
+            "part of the rule reads a correlation. The pre-commitment is to report "
+            "the full set whatever it says, with the first fifteen beside it."
+        ),
         #: FROZEN BEFORE ANY DOCKING. `rank_power.py` docks these and nothing
         #: else, and `rank_report.py` reports against this list -- so a series
         #: cannot be added or dropped after a rho has been seen.

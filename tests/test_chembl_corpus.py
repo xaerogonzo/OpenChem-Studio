@@ -353,3 +353,69 @@ def test_the_fusion_partners_are_never_the_pinned_accession(corpus):
     known_fusions = {"P00720", "P0ABE7", "P00323"}
     for row in corpus.JOIN:
         assert row.uniprot not in known_fusions
+
+
+# -- widening the selection ------------------------------------------------
+
+
+def test_widening_the_selection_keeps_every_series_it_already_had(corpus, monkeypatch):
+    """ADDING SAMPLES, NOT RE-SELECTING -- asserted rather than reasoned.
+
+    `SERIES_PER_TARGET` was raised from 2 to 8 after the first result came out
+    inconclusive. That is only legitimate if the widened set is a strict
+    SUPERSET: a rule that could drop an already-measured series would let an
+    inconvenient rho leave the table, which is the thing freezing a selection
+    exists to prevent.
+
+    The property holds because the walk sorts deterministically and takes a
+    prefix -- which is true until somebody changes the sort key, so it is
+    checked here instead of trusted.
+    """
+    series = [
+        {
+            "series_id": f"T_{i:02d}",
+            "pdb_id": corpus.JOIN[0].pdb_id,
+            "n_ligands": 14 - (i % 5),
+            "ligands": [],
+        }
+        for i in range(12)
+    ]
+    baselines = {s["series_id"]: {"heavy_atoms": 0.0} for s in series}
+    boxes = {corpus.JOIN[0].pdb_id: object()}
+    monkeypatch.setattr(
+        corpus, "series_box_fit",
+        lambda s, box: {"ligands_over_box": 0, "ligands_would_not_embed": 0,
+                        "max_extent_a": 1.0, "max_rotatable_bonds": 1,
+                        "box_shortest_side_a": 16.0},
+    )
+
+    monkeypatch.setattr(corpus, "SERIES_PER_TARGET", 2)
+    narrow, _ = corpus.select_for_docking(series, baselines, boxes)
+    monkeypatch.setattr(corpus, "SERIES_PER_TARGET", 8)
+    wide, _ = corpus.select_for_docking(series, baselines, boxes)
+
+    assert len(wide) > len(narrow), "widening did not add anything"
+    assert set(narrow) <= set(wide), (
+        f"widening DROPPED {sorted(set(narrow) - set(wide))} -- the selection is "
+        "being re-rolled rather than extended, so an already-measured series "
+        "could leave the table"
+    )
+    assert wide[: len(narrow)] == narrow, (
+        "the widened set does not begin with the narrow one, so the order is not "
+        "a stable prefix and 'superset' is holding by luck"
+    )
+
+
+def test_the_recorded_first_selection_is_a_record_and_not_a_rule(corpus):
+    """Nothing may SELECT on `FIRST_FROZEN_SELECTION`.
+
+    It exists so the report can show the original fifteen beside the widened
+    set. If the selection logic ever read it, the two would stop being
+    independent and 'did adding data change the answer' would be unanswerable.
+    """
+    import ast
+    import inspect
+
+    tree = ast.parse(inspect.getsource(corpus.select_for_docking))
+    names = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)}
+    assert "FIRST_FROZEN_SELECTION" not in names
