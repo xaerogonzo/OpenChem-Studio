@@ -245,14 +245,39 @@ def _report_first_selection(rows: list[dict], manifest: dict) -> None:
     print("  The selection was widened AFTER the first result, whose interval")
     print("  spanned zero. Both are shown because that is the only way to see")
     print("  whether adding data changed the answer or merely sharpened it.")
+    def med(values):
+        return sorted(values)[len(values) // 2]
+
     for label, group in (("first selection", subset), ("added by widening", added)):
         values = [r["rho_vina"] for r in group if r["rho_vina"] is not None]
         if not values:
             continue
         interval = bootstrap_interval(values)
         span = f"  95% [{interval[0]:+.3f}, {interval[1]:+.3f}]" if interval else ""
-        print(f"    {label:20s} median rho {sorted(values)[len(values) // 2]:+.3f}  "
-              f"(n = {len(values)}){span}")
+        print(f"    {label:20s} median rho {med(values):+.3f}  (n = {len(values)}){span}")
+        print(f"    {'':20s} ligands/series {med([r['n'] for r in group]):.0f}, "
+              f"span {med([r['span'] for r in group]):.2f}, "
+              f"floor SD {med([r['random_floor_sd'] for r in group]):.3f}")
+
+    # **THE TWO GROUPS ARE NOT COMPARABLE INSTRUMENTS**, and a reader comparing
+    # their medians without this line would draw the wrong conclusion.
+    #
+    # `select_for_docking` sorts by `-n_ligands`, so widening necessarily adds
+    # SMALLER series -- fewer ligands, narrower potency spans, and therefore a
+    # larger random-floor SD. A noisier estimator has its median pulled toward
+    # zero whatever the truth is, so a lower median among the added series is
+    # partly, and possibly wholly, an artefact of the widening rule rather than
+    # evidence that the effect is weaker.
+    #
+    # Printed rather than left in a docstring, because this comparison exists
+    # precisely to be read by somebody checking whether the widening was
+    # honest, and handing them a misleading pair would defeat it.
+    floors = [med([r["random_floor_sd"] for r in g]) for g in (subset, added)]
+    if floors[1] > floors[0]:
+        print("    The added series are SMALLER by construction -- the walk takes the")
+        print("    largest first -- so they are noisier instruments with a higher")
+        print("    random floor. A lower median among them is partly an artefact of")
+        print("    that, not necessarily a weaker effect. The two are not exchangeable.")
 
 
 def _sign_test(positive: int, total: int) -> float:
