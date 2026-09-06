@@ -569,6 +569,10 @@ layer above careful.
 
 ### The result: 3828 searches, 14.5 hours, and it is a NULL
 
+**The full record, with the per-series table for all 56 series, is
+`docs/DOCKING_RANKING_BENCHMARK.md`.** The raw JSONL is gitignored, so that
+table is the only committed form of the run.
+
 Measured 2026-09-05/06 over the frozen 56-series selection. 624 distinct
 ligands, six replicates each, exhaustiveness 25, mean 13.7 s per search.
 

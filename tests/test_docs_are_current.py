@@ -63,6 +63,7 @@ DOCS = [
     "docs/ROADMAP.md",
     "docs/VALIDATION.md",
     "docs/DREIDING_ASSESSMENT.md",
+    "docs/DOCKING_RANKING_BENCHMARK.md",
     "docs/SELF_HOSTED_RUNNER.md",
     "docs/SOLVENT_SOLUBILITY_ASSESSMENT.md",
     # GENERATED from docs/sources.toml. It is checked here anyway, and that

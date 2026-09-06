@@ -793,6 +793,9 @@ after it names. **ChEMBL is reachable with no account**, and it carries
 series confined to a single assay is a real ordering where a 4000-fold
 cross-assay spread is not.
 
+**The full record is `docs/DOCKING_RANKING_BENCHMARK.md`**, including the
+per-series table for all 56 series; the raw JSONL is gitignored.
+
 `benchmarks/docking/chembl_corpus.py` builds it — 1586 single-assay series
 over eight catalogued receptors from 41,073 activities — and
 `rank_power.py` / `rank_report.py` measure it. **Fifty-six series, 624

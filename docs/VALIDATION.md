@@ -218,6 +218,49 @@ differently. If a result matters, note which format you loaded.
 
 ---
 
+## Docking — ranking within one assay, and it is a null
+
+**The full record is `docs/DOCKING_RANKING_BENCHMARK.md`**, including the
+per-series table for all 56 series. The raw JSONL is gitignored, so that table
+is the only committed form of a 14.5-hour run.
+
+Measured 2026-09-05/06. **3828 real Vina searches**, 624 ligands, 56
+single-assay ChEMBL_37 series over eight catalogued receptors, six replicates
+each at exhaustiveness 25.
+
+| | |
+| --- | --- |
+| median rho(-vina, pChEMBL) | **+0.082**, 95% series bootstrap **[-0.030, +0.245]** |
+| series with rho > 0 | 32/56, sign test p = 0.350 |
+| median rho(Vinardo) - rho(Vina) | **+0.000**, 95% [-0.104, +0.082] |
+| series beating every trivial baseline | **9/56** |
+| search repeatability | median **+0.990**, 55/56 at or above +0.95 |
+| ligand pairs reordered between replicate halves | **60 of 3462 (1.7%)** |
+
+**The repeatability row is what makes this a result rather than a shrug.** The
+search orders these ligands almost identically across independent replicate
+halves, so the disagreement with measured potency is **not sampling noise** and
+more exhaustiveness cannot address it. It is the scoring function — which is
+[source:su2019]'s ranking-power finding arriving as a local measurement rather
+than a citation.
+
+**47 of 56 series are ordered at least as well by heavy-atom count, molecular
+weight, cLogP or TPSA as by docking.**
+
+**Not comparable to CASF.** [source:su2019]'s ~0.6 and [source:nguyen2020]'s
+0.498 are pooled cross-target quantities on a different question.
+
+**Stated as narrowly as the data allows:** no ranking ability detectable across
+within-assay congeneric series at this n — not "docking cannot rank". Two
+series reach rho = +0.79 and +0.75. The oracle's own reproducibility is
+unmeasurable, since ChEMBL carries no per-row uncertainty.
+
+**The interim p-values crossed 0.05 and came back** — 0.118 at 15 series, 0.087
+at 28, 0.047 at 37, 0.350 at 56. The pre-committed endpoint was the whole
+frozen selection; `rank_report.py` prints a PARTIAL banner short of it.
+
+---
+
 ## Solubility — a bias that only stratification showed, replicated on a second set
 
 **Superseded figures:** anything citing 67 scored or a −0.52 base bias
