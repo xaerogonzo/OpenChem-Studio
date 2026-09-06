@@ -38,6 +38,10 @@ from openchem.services.docking_service import DEFAULT_REPLICATES, DockingService
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 from openchem.ui.molecule_combo import repopulate, select
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
+from openchem.ui.widgets.search_options import (
+    CONTROL_HELP as SEARCH_CONTROL_HELP,
+    SearchOptionsControls,
+)
 
 logger = logging.getLogger("openchem.ui")
 
@@ -313,69 +317,6 @@ _CONTROL_HELP = {
             "are beyond what any one pH determines."
         ),
         tier=3, help_id="docking.protonation_ph", topic="docking",
-        help_anchor="docking",
-    ),
-    "exhaustiveness": HelpTooltip(
-        text=(
-            "How hard Vina searches: the number of independent runs, each "
-            "starting from a random ligand conformation. Default 25.\n\n"
-            "Higher costs proportionally more time. Vina's own default is 8; a "
-            "published study of 1, 8, 25, 50, 75 and 100 found 8 performs well "
-            "and that median pose error changes little above 25, so 25 is this "
-            "application's documented choice rather than a claimed optimum.\n\n"
-            "It does not rescue a search box the ligand does not fit in -- more "
-            "sampling of the wrong space is still the wrong space."
-        ),
-        tier=3, help_id="docking.exhaustiveness", topic="docking",
-        help_anchor="docking",
-    ),
-    "scoring_function": HelpTooltip(
-        text=(
-            "Which of Vina's scoring functions ranks the poses. Default Vina.\n\n"
-            "Vinardo is a re-parameterised alternative its authors report as "
-            "better at predicting poses. Its scores are NOT on the same scale "
-            "as Vina's, so numbers from the two must never be compared or put "
-            "in one ranking; the function used is recorded with every result."
-        ),
-        tier=3, help_id="docking.scoring_function", topic="docking",
-        help_anchor="docking",
-    ),
-    "rescore_with": HelpTooltip(
-        text=(
-            "Score every pose a SECOND time with a different function, after "
-            "the search. Off by default, and it costs one extra Vina call per "
-            "pose.\n\n"
-            "The pose is not changed and neither is the affinity beside it: "
-            "AutoDock Vina is documented as strong at finding the right pose "
-            "and weaker at ranking one ligand against another, so this "
-            "replaces the number and keeps the geometry.\n\n"
-            "The two numbers are on DIFFERENT SCALES and must never be "
-            "compared, averaged or put in one ranking. On one fentanyl pose "
-            "Vina reports -8.78 and Vinardo -5.47 for the same atoms in the "
-            "same place. Even choosing Vina here does not reproduce the "
-            "affinity for any pose but the first, because a docking run uses "
-            "one shared unbound reference for all its poses and a rescore "
-            "uses each pose's own.\n\n"
-            "Whether Vinardo ranks better on your receptor is not something "
-            "this application has measured; it is offered, not recommended."
-        ),
-        tier=3, help_id="docking.rescore_with", topic="docking",
-        help_anchor="docking",
-        source_key="quiroga2016",
-    ),
-    "random_seed": HelpTooltip(
-        text=(
-            "The random seed for Vina's search. 'Random' picks a fresh one for "
-            "each run.\n\n"
-            "Vina's search is stochastic, so two runs of identical inputs give "
-            "slightly different answers. The seed used is always recorded with "
-            "the result, so any run can be repeated afterwards even when it was "
-            "not pinned in advance. Pin one to compare two settings without the "
-            "search itself moving between them.\n\n"
-            "This reproduces a run under the same Vina version and settings; it "
-            "is not a guarantee of identical output across versions or machines."
-        ),
-        tier=3, help_id="docking.random_seed", topic="docking",
         help_anchor="docking",
     ),
     "strip_waters": HelpTooltip(
@@ -722,38 +663,16 @@ class DockingPanel(QWidget):
         self._num_poses_spin.setValue(9)
         apply_help_tooltip(self._num_poses_spin, _CONTROL_HELP["num_poses"])
 
-        # 8 is Vina's own default and 25 the shipped one; both are offered so
-        # a run can be compared against either. The values are read back from
-        # the item DATA rather than parsed out of the label, so translating or
-        # reformatting the text cannot change what is sent.
-        self._exhaustiveness_combo = QComboBox(self)
-        for value in (8, 16, 25, 32):
-            self._exhaustiveness_combo.addItem(str(value), value)
-        self._exhaustiveness_combo.setCurrentIndex(
-            self._exhaustiveness_combo.findData(DEFAULT_EXHAUSTIVENESS)
-        )
-        apply_help_tooltip(self._exhaustiveness_combo, _CONTROL_HELP["exhaustiveness"])
-
-        self._scoring_combo = QComboBox(self)
-        self._scoring_combo.addItem("Vina", "vina")
-        self._scoring_combo.addItem("Vinardo", "vinardo")
-        apply_help_tooltip(self._scoring_combo, _CONTROL_HELP["scoring_function"])
-
-        # "Off" FIRST AND DEFAULT. A rescore costs one extra Vina call per
-        # pose, and more importantly it puts a second number on screen whose
-        # usefulness on any given receptor is unmeasured -- so it is opt-in,
-        # and at Off the panel renders exactly as it did before this existed.
-        #
-        # A combo rather than a checkbox: there are two functions to choose
-        # between, and "Off" as a first item makes not-requested an explicit
-        # state rather than something inferred from a cleared box. It costs
-        # no width -- "Rescore with:" is shorter than "Scoring function:",
-        # which already sizes this form's label column.
-        self._rescore_combo = QComboBox(self)
-        self._rescore_combo.addItem("Off", "")
-        self._rescore_combo.addItem("Vinardo", "vinardo")
-        self._rescore_combo.addItem("Vina", "vina")
-        apply_help_tooltip(self._rescore_combo, _CONTROL_HELP["rescore_with"])
+        # THE FOUR SEARCH CONTROLS ARE SHARED WITH THE SCREENING DIALOG.
+        # They were built here as four literals until that dialog needed
+        # them too; a second copy would have shredded four help_ids into
+        # eight, which is the one-concept-one-id rule's own forbidden
+        # mutation. `ui/widgets/search_options.py` carries the reasoning.
+        self._search_controls = SearchOptionsControls(self)
+        self._exhaustiveness_combo = self._search_controls.exhaustiveness
+        self._scoring_combo = self._search_controls.scoring_function
+        self._rescore_combo = self._search_controls.rescore_with
+        self._seed_spin = self._search_controls.seed
 
         # 1..25, default 1. ONE, because anything above it would multiply
         # every existing user's docking wall clock with no announcement -- and
@@ -764,15 +683,6 @@ class DockingPanel(QWidget):
         self._replicates_spin.setRange(1, 25)
         self._replicates_spin.setValue(DEFAULT_REPLICATES)
         apply_help_tooltip(self._replicates_spin, _CONTROL_HELP["replicates"])
-
-        # 0 reads as "Random" through setSpecialValueText, which is Qt's own
-        # idiom for an out-of-band value -- rather than a second checkbox whose
-        # state could disagree with the number beside it.
-        self._seed_spin = QSpinBox(self)
-        self._seed_spin.setRange(0, 2**31 - 1)
-        self._seed_spin.setValue(0)
-        self._seed_spin.setSpecialValueText("Random")
-        apply_help_tooltip(self._seed_spin, _CONTROL_HELP["random_seed"])
 
         self._ph_spin = QDoubleSpinBox(self)
         self._ph_spin.setRange(0.0, 14.0)
@@ -818,7 +728,11 @@ class DockingPanel(QWidget):
         # label is hidden until replicates are measured.
         self._rescore_label = QLabel("", self)
         self._rescore_label.setWordWrap(True)
-        apply_help_tooltip(self._rescore_label, _CONTROL_HELP["rescore_with"])
+        # THE SHARED CONTRACT, not a copy. This label and the combo are
+        # two renderings of ONE concept -- what a second score means and
+        # why it must not be compared with the first -- so they carry one
+        # help_id and `instance_path` tells the renderings apart.
+        apply_help_tooltip(self._rescore_label, SEARCH_CONTROL_HELP["rescore_with"])
         self._rescore_label.setVisible(False)
 
         self._limitation_label = QLabel(_LIMITATION_NOTE, self)
@@ -1077,33 +991,15 @@ class DockingPanel(QWidget):
         return self._project.find_macromolecule(receptor_uuid) if receptor_uuid else None
 
     def displayed_search_options(self) -> dict[str, object]:
-        """The search settings as the three controls currently read them.
+        """The search settings as the four controls currently read them.
 
-        The ONE accessor, for the reason `displayed_box` is: reading these
-        anywhere else is how the panel would start displaying one thing and
-        docking another.
-
-        A seed of 0 is the spinbox's special "Random" value and is sent as
-        `None`, which the provider turns into a CHOSEN seed rather than
-        leaving to Vina -- so an unpinned run is still reproducible after the
-        fact.
+        Delegates to the shared control object, which is the ONE thing
+        entitled to read those widgets. Kept as a method on the panel
+        because it is this panel's public surface -- the drive step and
+        several tests call it -- and because a caller should not have to
+        know which widgets the panel happens to own.
         """
-        seed = self._seed_spin.value()
-        options = {
-            "exhaustiveness": self._exhaustiveness_combo.currentData(),
-            "scoring_function": self._scoring_combo.currentData(),
-            "seed": None if seed == 0 else seed,
-        }
-        # ABSENT rather than empty when Off, so a run that asked for no
-        # rescore sends the byte-identical dict it sent before this control
-        # existed. `tests/test_ligand_extent_warning.py` asserts this as an
-        # exact dict, and that assertion stays valid unedited -- which is
-        # the point: an opt-in feature must not re-baseline everyone else's
-        # request.
-        rescore = self._rescore_combo.currentData()
-        if rescore:
-            options["rescore_with"] = rescore
-        return options
+        return self._search_controls.options()
 
     def displayed_replicates(self) -> int:
         """How many searches the next run performs.

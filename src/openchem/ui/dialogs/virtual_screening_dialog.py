@@ -47,6 +47,7 @@ from openchem.services.screening_service import (
     dominance_ranks,
     ranking_is_assessed,
 )
+from openchem.ui.widgets.search_options import SearchOptionsControls
 
 logger = logging.getLogger("openchem.ui")
 
@@ -159,6 +160,23 @@ class VirtualScreeningDialog(QDialog):
         self._replicates.setValue(DEFAULT_REPLICATES)
         self._replicates.valueChanged.connect(self._on_replicates_changed)
         form.addRow("Replicates per ligand", self._replicates)
+
+        # THE SAME FOUR CONTROLS THE DOCKING PANEL OFFERS, from the same
+        # object. Until this landed a screen ran at whatever the provider
+        # defaulted to and could not pin a seed -- so the one operation this
+        # application offers for RANKING was the one that was not
+        # reproducible, while a single dock was.
+        #
+        # The order is the panel's, and for the panel's reason: Replicates
+        # sits directly above Seed because it changes what Seed MEANS -- a
+        # pinned seed is the root of a DERIVED set of per-run seeds rather
+        # than the number Vina receives. Here Replicates is above the whole
+        # group, which preserves that adjacency.
+        self._search = SearchOptionsControls(self)
+        form.addRow("Exhaustiveness", self._search.exhaustiveness)
+        form.addRow("Scoring function", self._search.scoring_function)
+        form.addRow("Rescore with", self._search.rescore_with)
+        form.addRow("Seed", self._search.seed)
         layout.addLayout(form)
 
         self._ligand_note = QLabel("", self)
@@ -309,6 +327,12 @@ class VirtualScreeningDialog(QDialog):
             receptor,
             site.box,
             num_poses=self._poses.value(),
+            # ONE ACCESSOR, and it is the shared object's. Reading the four
+            # widgets here is how a dialog starts displaying one thing and
+            # docking another -- and the panel's own accessor exists for
+            # exactly that reason, so a second reader here would be the
+            # defect reintroduced one surface across.
+            search_options=self._search.options(),
             # THE BOX-DEFINING LIGAND HAS TO GO, and until this landed it did
             # not: the dialog passed NO prep options, so `strip_ligand_codes`
             # defaulted to empty and every screen against a catalogued

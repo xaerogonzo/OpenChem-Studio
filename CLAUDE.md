@@ -4415,7 +4415,13 @@ that the width differs between the two ranges (a constant cannot), and that the
 box GROUP shrinks. The first draft asserted the PANEL and failed under
 `offscreen` against correct code.
 
-### `search_options` NEVER REACHES A SCREEN, AND THAT IS STILL TRUE
+### `search_options` NEVER REACHES A SCREEN -- **FIXED, see below**
+
+**SUPERSEDED.** `request_screen` takes and forwards it now, and the
+dialog grew the four controls. Kept because its closing sentence names
+the decision correctly and the reasoning stands; see "A SCREEN COULD NOT
+BE PINNED EVEN IN PRINCIPLE" for what it cost and why LATENT understated
+it.
 
 `ScreeningService.request_screen` takes no `search_options` and passes none to
 `request_docking`, so a screen runs at the provider's own defaults while the
@@ -4910,6 +4916,146 @@ indistinguishable from having stopped at whichever n looked best.
 no new machinery and would cost proportionally; that is a real option and not
 a way to reach a different answer, precisely because this endpoint is now on
 the record.
+## A SCREEN COULD NOT BE PINNED EVEN IN PRINCIPLE, WHILE A SINGLE DOCK COULD
+
+The entry `search_options` NEVER REACHES A SCREEN called it LATENT, because
+the three settings coincided with the provider's defaults. That reading was
+right about the VALUES and wrong about what the omission cost:
+
+    a single dock    can pin a seed, and the seed is recorded either way
+    a screen         could not pin one, ever
+
+So the one operation this application offers for RANKING was the one that was
+not reproducible, and the entry's own closing line -- "fixing it properly
+means the screening dialog growing exhaustiveness, scoring and seed controls,
+which is a decision about whether a screen should be configurable" -- named
+the decision. **With route 2's ranking benchmark measured, the answer is
+yes**: a screen is the feature users run to rank, and a ranking nobody can
+reproduce is a ranking nobody can check.
+
+`ScreeningService.request_screen` takes `search_options` and passes it to
+`request_docking` unchanged. One line, and it is the whole defect.
+
+### THE HELP CONTRACT IS WHY THE CONTROLS ARE SHARED, NOT DRY
+
+`ui/widgets/search_options.py` owns the four controls and both surfaces build
+one. The drift argument is the ordinary one and is NOT the deciding one:
+
+**`help_id` NAMES A DEFINITION, NOT AN INSTANCE.** "Exhaustiveness" means
+exactly the same thing in a panel and in a dialog, so it is ONE id with two
+renderings that `instance_path` tells apart. Writing the dialog its own four
+contracts would be four concepts shredded into eight ids -- which is the
+mutation `test_one_concept_is_not_split_across_many_help_ids` exists to
+refuse, shipped on purpose. A second copy of the WIDGETS forces a second copy
+of the CONTRACTS, so the two questions are one question.
+
+The drift half is real too, and would have been silent AND meaningful: a
+dialog offering exhaustiveness 10/20/50 against the panel's 8/16/25/32, or
+reading a seed of 0 as zero rather than as "Random", produces perfectly
+plausible runs that are not the runs the other surface would have produced.
+
+**IT OWNS THE WIDGETS AND NOT THE LAYOUT**, which is what let the panel keep
+its own row ordering: Replicates sits directly above Seed there because it
+changes what Seed MEANS -- a pinned seed is the root of a DERIVED set of
+per-run seeds rather than the number Vina receives. A shared GROUP BOX would
+have forced one ordering on both.
+
+**AND `rescore_with` HAS A SECOND LEGITIMATE RENDERING.** The panel attaches
+that same contract to a LABEL under the pose table, not only to the combo --
+one concept, two renderings, which is the rule working rather than an
+exception to it. Moving the contract into the shared module and leaving a
+copy behind would have split it; the label imports it.
+
+### THE PROTOCOL RECORDS WHAT WAS ASKED AND WHAT RAN, AND THEY ARE DIFFERENT FIELDS
+
+`ScreeningProtocol` is carried on every `ScreeningProgress`, once per screen
+rather than once per ligand -- the same asymmetry the module docstring
+already draws around the receptor, and the thing that makes a screen's
+ranking mean anything.
+
+    requested_exhaustiveness    None means NOT ASKED
+    exhaustiveness              what the run really used, from the RESULT
+
+**NOTHING IS DEFAULTED TO A LITERAL, and this project has already paid for
+the alternative.** `_DockingTask` once filled `scoring_function="vina"`,
+`exhaustiveness=8` and `seed=None` with literals true only by coincidence,
+and the recorded lesson is that *a stored result naming settings it did not
+use is worse than one naming none* -- nothing distinguishes it from a
+measurement. So the request records silence as silence, and `resolved_against`
+fills the performed values from the provider's own answer.
+
+`resolved` is a flag no screenshot can carry: a protocol showing the
+requested settings and one showing what actually ran render identically until
+a result lands. The drive step logs it beside the shot for that reason.
+
+**AND `""` IS NOT `None` FOR THE RESCORE.** An explicit "Off" is a decision
+somebody made; `None` is a screen that predates the control. Collapsing them
+loses the difference, and it is the `n/a is not 0` rule in a new place.
+
+### THE MUTATION THAT SURVIVED: TESTING THE SERVICE IS NOT TESTING THE DIALOG
+
+Ten arms. Nine caught first time, and the survivor is the entry worth
+reading:
+
+    M5  the dialog assembles its own dict instead of calling
+        `self._search.options()`                              SURVIVED
+
+It passed the SENTINEL -- one screen request carrying a distinct value for
+every option, asserting `request_docking` receives exactly those -- because
+that test drives the SERVICE. The dialog's own wiring was covered by nothing,
+which is *testing a helper is not testing the wiring* for the fifth time in
+this file.
+
+The guard written from it sets the four controls to distinct non-default
+values, presses the real Run button, and reads what the service was handed.
+**Its narrow half is load-bearing**: "send everything the controls hold"
+satisfies that and is also satisfied by a dialog that reads one widget and
+hardcodes the other three, so the UNTOUCHED case is asserted too -- and that
+is the one every user who never opens the controls actually runs.
+
+Second pass: ten arms, ten caught.
+
+**AND `"vinardo"` AS A LITERAL IS GUARDED FROM BOTH SIDES.** The combos are
+built from `SUPPORTED_SCORING_FUNCTIONS` and `SUPPORTED_RESCORE_FUNCTIONS`,
+so a function the UI offers is one the provider accepts by construction. That
+guard alone is satisfied by a file that ALSO carries an
+`if rescore_with == "vinardo":` fossil elsewhere, which is what the plan
+named -- so a second guard walks every `ui/` file for the id used as a branch
+rather than as prose.
+
+### AND MY OWN FIXTURE HIT THE TEMPORARY-PARENT TRAP
+
+`SearchOptionsControls(QComboBox())` reads correctly and does not work: the
+parent is a temporary, Qt destroys it and every child with it, and the next
+line raises `Internal C++ object already deleted`. Identical to this file's
+recorded `bar.actions()` case, met in a test fixture rather than in
+production -- which is where it is cheap.
+
+### DRIVEN, AND THE SHOT WAS MAGNIFIED
+
+`benchmarks/visual/screening_search_controls.json`. The `screen_run` step
+takes the four settings now and drives the WIDGETS rather than the service,
+for the reason M5 established; a value matching no item is LOGGED rather than
+ignored, because a silently-unset combo photographs identically to a
+correctly-set one.
+
+    search={'exhaustiveness': 32, 'scoring_function': 'vinardo',
+            'seed': 4712, 'rescore_with': 'vina'}
+    protocol_resolved=False   requested_exhaustiveness=32
+    prep={'strip_ligand_codes': ['MK1']}
+
+At 2x nothing is clipped, no caption overlaps its value, and Seed reads 4712
+ON SCREEN -- so the control is genuinely bound rather than merely present.
+`protocol_resolved=False` two seconds in is correct: no result had landed.
+
+**FOUR NEW ROWS IN A DIALOG THAT HAD FIVE IS WORTH MEASURING**, because the
+periodic table's own history is one tab's comfortable floor becoming the
+whole dialog's and its action row ending up 105 px below the screen -- and a
+`QDialog` has no maximise button and no size grip by default, so a minimum
+larger than the screen cannot be rescued by resizing. Measured under
+`QT_QPA_PLATFORM=windows`: **593 x 450**, against 728 of usable height on the
+smallest screen this product supports. The guard asserts HEIGHT ONLY, because
+a width bound would be a claim about the font.
 
 ## Running the tests
 
@@ -4920,7 +5066,52 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-22 minutes**, ending at `6697 passed, 16 skipped`
+A clean run is **6-22 minutes**, ending at `6750 passed, 16 skipped`
+(measured 2026-09-06, **17m18**, on `a-screen-you-can-configure-and-reproduce`
+AT ITS MERGE OF MASTER -- the screen that could not pin a seed, on top of the
+ranking benchmark that landed as #72.
+
+**MEASURED ON THE MERGE, and the branch's own earlier figure was thrown away
+for the reason this section keeps recording.** That run was clean and
+reconciled exactly -- `6714 passed, 16 skipped, 18m34` against 6730 collected,
++17 and 0 removed against the branch point `1e1deae` -- and it described a
+tree that no longer existed, because #72 merged while the branch was open. The
+figure above is the merged tree; the discarded one is recorded rather than
+quietly re-run.
+
+**+17 collected and 0 REMOVED** against master at `baa9e61`, diffed both
+directions with `comm` in a detached worktree, with the `PYTHONPATH` override
+asserted before the count was believed (`import openchem` reported the
+WORKTREE's `src`):
+
+    master     baa9e61   COLLECTS 6749
+    this one             COLLECTS 6766   = 6749 + 17
+    the run                       6750 passed + 16 skipped = 6766
+
+**17 ITEMS AND 17 FUNCTIONS**, all in the new `test_screening_is_configurable.py`
+and none parametrised, so for once the two deltas are the same number. The
+help-contract guards gain nothing despite four new controls, which is the
+shared-widget design working as intended: the contracts moved rather than being
+copied, so the four ids each acquired a second RENDERING rather than a second
+id.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored -- as
+do `^FAILED` and `^ERROR`. The skips are the deterministic 16. The two
+`DeprecationWarning`s are the same pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**AND THE MERGE ITSELF COST A CONFLICT THAT COMMITTING FIRST WOULD HAVE
+AVOIDED.** The branch had no commits when master was merged into it, so the
+sequence was `git stash` -- fast-forward -- `git stash pop`, and the pop
+conflicted on CLAUDE.md because #72 and this branch both append before
+`## Running the tests`. Nothing was lost (git keeps the stash, and the conflict
+was purely additive), but a branch with no commits has nothing for a merge to
+merge against. **Commit before merging master in.**
+
+17m18 sits mid-band; the 6-22 range stands, and this run does not move it.)
+
+Before it: `6697 passed, 16 skipped`
 (measured 2026-09-05, **21m46**, on `the-screen-docked-into-an-occupied-pocket`
 -- the virtual screen that left the co-crystallised ligand in the pocket its
 own box was derived from.

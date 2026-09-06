@@ -28,7 +28,7 @@ ligand.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from openchem.chem.engine import ChemistryEngine
@@ -39,7 +39,7 @@ from openchem.domain.affinity_range import (
     separation_p_value,
 )
 from openchem.domain.common import CacheState
-from openchem.domain.docking import DockingBox, DockingReplicate
+from openchem.domain.docking import DockingBox, DockingReplicate, DockingResultModel
 from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import Event, EventBus
@@ -112,6 +112,81 @@ class ScreeningEntry:
         return AffinityRange((self.best_affinity_kcal_mol,))
 
 
+@dataclass(frozen=True, kw_only=True)
+class ScreeningProtocol:
+    """How a screen was run, resolved -- so it can be run again.
+
+    A screen docks N ligands under ONE protocol, which is what makes its
+    ranking mean anything, so this is recorded once for the screen rather
+    than once per ligand. Same asymmetry the module docstring already draws
+    around the receptor.
+
+    **NOTHING HERE IS DEFAULTED TO A LITERAL, AND THAT IS THE WHOLE POINT.**
+    `_DockingTask` once filled `scoring_function="vina"`, `exhaustiveness=8`
+    and `seed=None` with literals that were true only by coincidence, and
+    this project's own note on it is that a stored result naming settings it
+    did not use is WORSE than one naming none -- nothing distinguishes it
+    from a measurement. So:
+
+        requested_*   what the caller asked for. None means "not asked",
+                      not "asked for the default".
+        engine, engine_version, scoring_function, exhaustiveness
+                      RESOLVED FROM THE FIRST RESULT, because only the
+                      provider knows which Vina backend answered, what
+                      version it is, and what it fell back to when the
+                      caller specified nothing.
+
+    `protocol_seed` is the seed the caller PINNED, and is deliberately not
+    the seed Vina received: seeds are derived per (protocol_seed, ligand)
+    so that two ligands' replicate values are independent samples. The
+    per-run seeds live on each entry's replicates, where they belong.
+    """
+
+    receptor_macromolecule_uuid: str = ""
+    receptor_display_name: str = ""
+    num_poses: int = DEFAULT_NUM_POSES
+    replicates: int = DEFAULT_REPLICATES
+    #: What the caller asked for. None means the caller specified nothing.
+    requested_exhaustiveness: int | None = None
+    requested_scoring_function: str | None = None
+    #: "" is a real value here -- the caller explicitly chose no rescore --
+    #: and None means the caller never mentioned it.
+    rescore_with: str | None = None
+    protocol_seed: int | None = None
+    receptor_prep_options: dict[str, Any] = field(default_factory=dict)
+    #: Filled in from the first completed result, empty until one lands.
+    engine: str = ""
+    engine_version: str = ""
+    scoring_function: str = ""
+    exhaustiveness: int | None = None
+
+    @property
+    def resolved(self) -> bool:
+        """True once a result has told us what actually ran.
+
+        A caller rendering this before then must say so rather than print
+        the requested values as though they were the performed ones.
+        """
+        return bool(self.engine)
+
+    def resolved_against(self, result: "DockingResultModel") -> "ScreeningProtocol":
+        """This protocol with the run's own answers filled in.
+
+        Called on every result and not only the first, so it is idempotent
+        by construction: a screen runs one protocol, so the second result
+        writes the same values the first did. If it ever did not, the
+        replacement is the honest record of what the LAST run did rather
+        than a stale claim from the first.
+        """
+        return replace(
+            self,
+            engine=result.engine,
+            engine_version=result.engine_version,
+            scoring_function=result.scoring_function,
+            exhaustiveness=result.exhaustiveness,
+        )
+
+
 @dataclass(frozen=True)
 class ScreeningProgress(Event):
     """How far a screen has got, and every result so far, best first."""
@@ -123,6 +198,10 @@ class ScreeningProgress(Event):
     message: str = ""
     entries: list[ScreeningEntry] = field(default_factory=list)
     error: str | None = None
+    #: How the screen was run. None only for a progress event constructed
+    #: without one -- the service always sets it, so a caller seeing None
+    #: is looking at a fixture rather than a screen.
+    protocol: ScreeningProtocol | None = None
 
 
 class ScreeningService:
@@ -147,6 +226,8 @@ class ScreeningService:
         self._num_poses = DEFAULT_NUM_POSES
         self._replicates = DEFAULT_REPLICATES
         self._prep_options: dict[str, Any] = {}
+        self._search_options: dict[str, Any] = {}
+        self._protocol: ScreeningProtocol | None = None
         self._total = 0
         self._current_uuid: str | None = None
         self._cancelled = False
@@ -163,8 +244,17 @@ class ScreeningService:
         box: DockingBox,
         num_poses: int = DEFAULT_NUM_POSES,
         receptor_prep_options: dict[str, Any] | None = None,
+        search_options: dict[str, Any] | None = None,
         replicates: int = DEFAULT_REPLICATES,
     ) -> None:
+        """Dock every ligand into one receptor, in order.
+
+        `search_options` reaches `request_docking` unchanged. Until it
+        existed a screen ran at whatever the provider defaulted to and
+        **could not be pinned even in principle**, while a single dock
+        could -- so a screen was the one operation this application offers
+        for RANKING and the one that could not be reproduced.
+        """
         if not ligands:
             self._reject("No ligands selected to screen.")
             return
@@ -181,6 +271,21 @@ class ScreeningService:
         self._num_poses = num_poses
         self._replicates = max(1, int(replicates))
         self._prep_options = dict(receptor_prep_options or {})
+        self._search_options = dict(search_options or {})
+        # BUILT FROM WHAT WAS ASKED, never from the provider's defaults --
+        # see ScreeningProtocol. `.get` returns None for a key the caller
+        # omitted, which is exactly the distinction the record needs.
+        self._protocol = ScreeningProtocol(
+            receptor_macromolecule_uuid=receptor.uuid,
+            receptor_display_name=receptor.display_name,
+            num_poses=num_poses,
+            replicates=self._replicates,
+            requested_exhaustiveness=self._search_options.get("exhaustiveness"),
+            requested_scoring_function=self._search_options.get("scoring_function"),
+            rescore_with=self._search_options.get("rescore_with"),
+            protocol_seed=self._search_options.get("seed"),
+            receptor_prep_options=dict(self._prep_options),
+        )
         self._total = len(ligands)
         self._cancelled = False
         self._publish(CacheState.QUEUED, f"{self._total} ligands against {receptor.display_name}")
@@ -234,6 +339,12 @@ class ScreeningService:
             box=self._box,
             num_poses=self._num_poses,
             receptor_prep_options=self._prep_options,
+            # THE WHOLE POINT OF THIS BRANCH. Without this line the dialog's
+            # exhaustiveness, scoring function, seed and rescore are computed,
+            # displayed, recorded in the protocol -- and discarded here, which
+            # is `BatchRequest.molecule_uuids` in another costume: a field
+            # written by every caller and read by nothing.
+            search_options=self._search_options,
             # N MULTIPLIES THE WHOLE SCREEN -- 50 ligands x 5 replicates is 250
             # Vina runs -- which is why the dialog defaults it to 1 and states
             # the product before the run rather than after it.
@@ -250,6 +361,11 @@ class ScreeningService:
         # Taking the minimum over all replicates here would rank ligands by a
         # best-of-N, which drifts more negative as the replicate count rises.
         replicates = event.result.replicates
+        # RESOLVED FROM THE RUN, not assumed. Only the provider knows which
+        # Vina backend answered, its version, and what it used when the
+        # caller specified nothing.
+        if self._protocol is not None:
+            self._protocol = self._protocol.resolved_against(event.result)
         self._record(
             event.result.ligand_molecule_uuid,
             self._name_of(event.result.ligand_molecule_uuid),
@@ -332,6 +448,11 @@ class ScreeningService:
                 receptor_macromolecule_uuid=self._receptor.uuid if self._receptor else "",
                 message=message,
                 entries=rank(self._entries),
+                # EVERY progress event, not only the terminal one. A screen
+                # that is cancelled or fails halfway still ran the ligands it
+                # ran under a protocol, and a reader looking at a partial
+                # table needs to know which one.
+                protocol=self._protocol,
             )
         )
 

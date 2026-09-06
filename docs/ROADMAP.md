@@ -356,6 +356,21 @@ time — handing it N at once would start N Vina processes — and ranks them.
 The queue advances on the terminal job-state event rather than on the
 result, so a ligand Vina refuses does not wedge it.
 
+It is **configurable and reproducible** as of 2026-09-06: exhaustiveness,
+scoring function, rescore and seed reach the search through
+`request_screen(search_options=...)`, from the same
+`ui/widgets/search_options.py` controls the Docking panel builds. Before
+that a screen ran at whatever the provider defaulted to and could not pin a
+seed even in principle -- so the one operation this application offers for
+RANKING was the one that was not reproducible, while a single dock was.
+
+Every screen carries a `ScreeningProtocol` recording how it ran, and it
+keeps **what was asked** apart from **what the run used**: a requested value
+of None means nothing was asked, never that the default was asked for. The
+performed engine, version, scoring function and exhaustiveness are filled in
+from the provider's own answer, because a stored result naming settings it
+did not use is worse than one naming none.
+
 ### Calculators
 
 Around 40 registry-executed calculators, all discoverable through

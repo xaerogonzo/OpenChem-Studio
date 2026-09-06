@@ -57,7 +57,9 @@ The script is a JSON list of steps, run in order:
       {"do": "ensemble_visible", "row": 1, "on": false},
       {"do": "overlay_colour",   "mode": "element"},
       {"do": "visual_check",     "surface": "properties", "tag": "at-minimum"},
-      {"do": "screen_run",       "receptor": 0},
+      {"do": "screen_run",       "receptor": 0}   the REAL Run button
+      {"do": "screen_run",       "receptor": 0, "exhaustiveness": 32,
+                                 "scoring_function": "vinardo", "seed": 4712},
       {"do": "quit"}
     ]
 
@@ -1149,6 +1151,32 @@ class _Driver(QObject):
         if index is not None and dialog._receptor.count():
             dialog._receptor.setCurrentIndex(int(index) % dialog._receptor.count())
         receptor_name = dialog._receptor.currentText()
+        # THE FOUR SEARCH CONTROLS, driven through the widgets rather than
+        # around them. Setting `service._search_options` directly would prove
+        # the service works and say nothing about whether the dialog reads
+        # its own combos -- which is the exact defect a mutation found here,
+        # surviving every test until a guard drove the real controls.
+        #
+        # A value that matches nothing is LOGGED rather than ignored, because
+        # a silently-unset combo photographs identically to a correctly-set
+        # one and the run would report a healthy step against the defaults.
+        for key, widget in (
+            ("exhaustiveness", dialog._search.exhaustiveness),
+            ("scoring_function", dialog._search.scoring_function),
+            ("rescore_with", dialog._search.rescore_with),
+        ):
+            if key not in step:
+                continue
+            found = widget.findData(step[key])
+            if found < 0:
+                logger.error(
+                    "OPENCHEM_DRIVE: screen_run -- %s=%r matches no item; leaving it alone",
+                    key, step[key],
+                )
+                continue
+            widget.setCurrentIndex(found)
+        if "seed" in step:
+            dialog._search.seed.setValue(int(step["seed"]))
         if not dialog._run.isEnabled():
             logger.error("OPENCHEM_DRIVE: screen_run -- the Run button is DISABLED; not clicked")
             return
@@ -1164,6 +1192,22 @@ class _Driver(QObject):
             service._replicates,
             service._prep_options,
             None if service._box is None else service._box.center,
+        )
+        # WHAT THE SERVICE RECEIVED, not what the dialog believes it sent --
+        # the same distinction the prep dict above is read for. And the
+        # PROTOCOL beside it, because `resolved` is a flag no screenshot can
+        # carry: a protocol showing the requested settings and one showing
+        # what actually ran render identically until a result lands.
+        protocol = service._protocol
+        logger.warning(
+            "OPENCHEM_DRIVE: screen_run search=%r protocol_resolved=%s "
+            "requested_exhaustiveness=%r requested_scoring=%r rescore=%r seed=%r",
+            service._search_options,
+            None if protocol is None else protocol.resolved,
+            None if protocol is None else protocol.requested_exhaustiveness,
+            None if protocol is None else protocol.requested_scoring_function,
+            None if protocol is None else protocol.rescore_with,
+            None if protocol is None else protocol.protocol_seed,
         )
         logger.warning("OPENCHEM_DRIVE: screen_run status=%r", dialog._status.text())
 
