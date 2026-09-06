@@ -391,7 +391,25 @@ def main() -> int:
         )
     ]
 
+    frozen = len(manifest.get("docking_selection") or [])
+    partial = frozen and len(rows) < frozen
     print(f"\nAGGREGATE over {len(rows)} complete series")
+    if partial:
+        # **A p-VALUE LOOKED AT REPEATEDLY IS NOT A p-VALUE**, and this script
+        # is cheap to re-run, so it WILL be looked at repeatedly -- that is what
+        # it is for while Stage 1 grinds. Interim inspection inflates the false
+        # positive rate, and nothing here corrects for it; the pre-committed
+        # endpoint is the whole frozen selection.
+        #
+        # Printed by the report rather than remembered by a reader, because the
+        # report cannot tell who is reading it or how many times they have run
+        # it -- and a number that crosses 0.05 at series 37 of 56 is exactly the
+        # one somebody quotes.
+        print(f"  *** PARTIAL: {len(rows)} of {frozen} frozen series. These are INTERIM")
+        print("  *** numbers. The sign test and the intervals are NOT corrected for")
+        print("  *** repeated inspection, and this script is cheap enough to have been")
+        print("  *** run many times. The pre-committed endpoint is the full selection;")
+        print("  *** a p that crosses 0.05 here has not crossed anything.")
     if vina:
         # THE HEADLINE GETS AN INTERVAL TOO. The first version gave one to the
         # Vinardo delta and not to the number a reader looks at first, which
