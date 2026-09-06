@@ -1,0 +1,10 @@
+[
+  {"do": "receptor", "pdb_id": "1HSG", "after_ms": 2500},
+  {"do": "smiles", "smiles": "CC(C)(C)NC(=O)C1CN(Cc2cccnc2)CCN1", "name": "Indinavir fragment", "after_ms": 600},
+  {"do": "select", "molecule": -1, "after_ms": 400},
+  {"do": "dialog", "name": "VirtualScreeningDialog", "after_ms": 1500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/screening_search_controls_before.png", "widget": "dialog", "after_ms": 800},
+  {"do": "screen_run", "receptor": 0, "exhaustiveness": 32, "scoring_function": "vinardo", "rescore_with": "vina", "seed": 4712, "after_ms": 2000},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/screening_search_controls.png", "widget": "dialog", "after_ms": 1000},
+  {"do": "quit"}
+]
