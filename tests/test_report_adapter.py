@@ -7,12 +7,16 @@ built-in fifteen have moved.
 
 from __future__ import annotations
 
+import ast
+from pathlib import Path
+
 from openchem.chem.report_adapter import (
     category_for,
     facts_from_alert,
     is_catalog,
     report_fields,
     report_from_alert,
+    report_from_fields,
 )
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.report import FactCategory
@@ -246,3 +250,103 @@ def test_a_catalog_is_told_apart_from_a_report_by_its_declared_severity():
     Counted when severity was introduced: 5 of 25 alert_ids are catalogs."""
     assert is_catalog(_alert(alert_id="pains", severity=Severity.WARNING))
     assert not is_catalog(_alert(alert_id="elemental_analysis"))
+
+
+_SRC = Path(__file__).resolve().parent.parent / "src" / "openchem"
+
+
+def test_report_from_fields_wraps_report_fields_into_a_result():
+    report = report_from_fields(
+        alert_id="dipole_moment",
+        name="Dipole Moment",
+        molecule_uuid="m1",
+        matched=["Magnitude: 1.85 D"],
+        category="electronic",
+    )
+
+    assert report.report_id == "dipole_moment"
+    assert report.name == "Dipole Moment"
+    assert report.molecule_uuid == "m1"
+    assert len(report.facts) == 1
+    assert report.facts[0].value == "1.85"
+    assert report.facts[0].units == "D"
+
+
+def test_nothing_keeps_a_private_copy_of_the_shared_wrapper():
+    """It had thirteen byte-identical copies, and that is what this refuses.
+
+    Every one was `def _report(**fields) -> ReportResult` returning
+    `ReportResult(**report_fields(**fields))`, under a module-private name,
+    with an identical eleven-line docstring -- `ast_isomorphic` at
+    similarity 1.0, 83 body tokens, in `huckel`, `lewis`, `lewis_adduct`,
+    `electronic_properties`, `elemental_analysis`, `mpo_scores`,
+    `bbb_stereo`, `interaction_analysis`, `dipole`, `surface_analysis`,
+    `naming_providers`, `steric` and `topology_analysis`.
+
+    Thirteen copies of a docstring is thirteen places for one contract to
+    be described differently after the next edit, which is the drift this
+    project has already paid for four times over (`is_stripped_residue`,
+    `filter_altlocs`, `is_symmetry_generated`, `normalise_element_symbols`).
+
+    Asked of the SOURCE rather than of behaviour, because thirteen correct
+    copies agree on every input -- only their existence differs, so no
+    behavioural test can see them. Same reason
+    `test_the_screen_and_the_panel_ask_THE_SAME_FUNCTION` is a source check.
+    """
+    offenders = []
+    for path in sorted(_SRC.rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            body = [n for n in node.body if not _is_docstring(n)]
+            if len(body) != 1 or not isinstance(body[0], ast.Return):
+                continue
+            call = body[0].value
+            if not isinstance(call, ast.Call) or not isinstance(call.func, ast.Name):
+                continue
+            if call.func.id != "ReportResult":
+                continue
+            inner = [
+                kw.value.func.id
+                for kw in call.keywords
+                if kw.arg is None
+                and isinstance(kw.value, ast.Call)
+                and isinstance(kw.value.func, ast.Name)
+            ]
+            if "report_fields" in inner and path.name != "report_adapter.py":
+                offenders.append(f"{path.relative_to(_SRC)}::{node.name}")
+
+    assert not offenders, (
+        "these re-implement report_adapter.report_from_fields: " + ", ".join(offenders)
+    )
+
+
+def _is_docstring(node: ast.stmt) -> bool:
+    return isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(
+        node.value.value, str
+    )
+
+
+def test_the_shared_wrapper_still_documents_its_contract():
+    """The docstring is the contract, and moving code is how one gets lost.
+
+    Deliberately NOT byte-equality against a pinned string: this project
+    has a recorded pattern of guards that pin exact prose being weakened or
+    deleted the first time somebody improves the wording, and the floor
+    here is "the contract survived", not "nobody may edit the sentence".
+    The validator owns the shape; a reviewer owns the meaning -- the same
+    line `help_tooltip.py` draws.
+
+    The three claims that must survive any rewording are that the keyword
+    names are unchanged, that `report_fields` does the translation, and
+    that a calculator wanting units/evidence/limitations builds `Fact`s
+    directly instead.
+    """
+    doc = report_from_fields.__doc__
+    assert doc is not None and doc.strip()
+    assert "report_fields" in doc
+    assert "keyword" in doc.lower()
+    assert "Fact" in doc
+    for keyword in ("alert_id", "name", "matched", "category"):
+        assert keyword in doc, f"the docstring stopped naming the {keyword} keyword"

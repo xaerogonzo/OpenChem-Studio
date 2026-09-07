@@ -50,7 +50,7 @@ from openchem.domain.common import (
     declare_total,
 )
 from openchem.domain.report import ReportResult
-from openchem.chem.report_adapter import report_fields
+from openchem.chem.report_adapter import report_from_fields
 from openchem.domain.scientific_result import PerAtomDataset
 
 # Two electrons per filled orbital.
@@ -188,7 +188,7 @@ def compute_huckel_analysis(
     override = parameters.get("pi_electrons", 0)
     result = solve_huckel(target, pi_electrons=int(override) or None)
     if result is None:
-        return _report(
+        return report_from_fields(
             alert_id="huckel_analysis",
             name="Huckel Analysis",
             molecule_uuid=molecule_uuid,
@@ -218,7 +218,7 @@ def compute_huckel_analysis(
     if _heteroatoms_present(target, result.atom_indices):
         lines.append(_HETEROATOM_CAVEAT)
 
-    return _report(
+    return report_from_fields(
         alert_id="huckel_analysis",
         name="Huckel Analysis",
         molecule_uuid=molecule_uuid,
@@ -287,18 +287,3 @@ def compute_pi_electron_density(
             },
         ),
     )
-
-
-def _report(**fields) -> ReportResult:
-    """One `AlertResult(...)` call site, as a `ReportResult`.
-
-    The keyword names are unchanged -- `alert_id`, `name`, `matched`,
-    `category` -- so the call sites above read as they always did and the
-    diff stays small. `report_fields` does the translation and turns each
-    line into a `Fact`; see `chem/report_adapter.py` for what a string can
-    and cannot carry.
-
-    A calculator that wants real units, evidence or limitations on a fact
-    builds `Fact`s directly instead, as `geometry_analysis` now does.
-    """
-    return ReportResult(**report_fields(**fields))

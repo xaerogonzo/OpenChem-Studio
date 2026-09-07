@@ -196,6 +196,36 @@ def report_fields(
     }
 
 
+def report_from_fields(**fields) -> ReportResult:
+    """One `AlertResult(...)` call site, as a `ReportResult`.
+
+    The keyword names are unchanged -- `alert_id`, `name`, `matched`,
+    `category` -- so a migrated call site reads as it always did and the
+    diff stays small. `report_fields` does the translation and turns each
+    line into a `Fact`; this module's header says what a string can and
+    cannot carry.
+
+    A calculator that wants real units, evidence or limitations on a fact
+    builds `Fact`s directly instead, as `geometry_analysis` now does.
+
+    **IT LIVES HERE BECAUSE IT HAD BEEN COPIED INTO THIRTEEN MODULES.**
+    Every copy was byte-identical -- this three-line body and this
+    docstring, 83 tokens, `ast_isomorphic` at similarity 1.0 -- under the
+    module-private name `_report`. A docstring duplicated thirteen times
+    is thirteen places for the contract above to be described differently
+    after the next edit, which is the drift this project has already paid
+    for four times over (`is_stripped_residue`, `filter_altlocs`,
+    `is_symmetry_generated`, `normalise_element_symbols`). It belongs
+    beside `report_fields`, which it is a one-line wrapper over.
+
+    The name is `report_from_fields` rather than `_report` because the
+    leading underscore was a true statement while there were thirteen
+    module-private copies and a false one for a shared function; it
+    parallels `report_from_alert` directly.
+    """
+    return ReportResult(**report_fields(**fields))
+
+
 def is_catalog(alert: AlertResult) -> bool:
     """Whether this result is a genuine alert catalog.
 

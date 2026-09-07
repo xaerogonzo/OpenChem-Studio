@@ -57,7 +57,7 @@ from rdkit.Chem import Descriptors, rdMolDescriptors
 from openchem.chem.calculator_options import atom_basis_of, decimals
 from openchem.domain.common import ATOM_BASIS, TOTAL, Provenance, declare_total, decline_total
 from openchem.domain.report import ReportResult
-from openchem.chem.report_adapter import report_fields
+from openchem.chem.report_adapter import report_from_fields
 from openchem.domain.scientific_result import PerAtomDataset
 
 
@@ -253,7 +253,7 @@ def compute_topology_analysis(
         f"Chiral center count: {stereo['chiral_center_count']}",
         f"Rotatable bond count: {rdMolDescriptors.CalcNumRotatableBonds(mol)}",
     ]
-    return _report(
+    return report_from_fields(
         alert_id="topology_analysis",
         name="Topology Analysis",
         molecule_uuid=molecule_uuid,
@@ -334,18 +334,3 @@ def compute_distance_degree_dataset(
             },
         ),
     )
-
-
-def _report(**fields) -> ReportResult:
-    """One `AlertResult(...)` call site, as a `ReportResult`.
-
-    The keyword names are unchanged -- `alert_id`, `name`, `matched`,
-    `category` -- so the call sites above read as they always did and the
-    diff stays small. `report_fields` does the translation and turns each
-    line into a `Fact`; see `chem/report_adapter.py` for what a string can
-    and cannot carry.
-
-    A calculator that wants real units, evidence or limitations on a fact
-    builds `Fact`s directly instead, as `geometry_analysis` now does.
-    """
-    return ReportResult(**report_fields(**fields))
