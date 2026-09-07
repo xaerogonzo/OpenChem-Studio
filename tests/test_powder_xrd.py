@@ -635,3 +635,23 @@ def test_the_five_gaussian_pairs_are_in_the_papers_own_order():
     species = json.loads(SCATTERING_TABLE.read_text(encoding="utf-8"))["species"]
     unsorted = sum(1 for row in species.values() if row["b"] != sorted(row["b"]))
     assert unsorted > 200, f"only {unsorted} of {len(species)} rows are unsorted"
+
+
+def test_a_reported_line_carries_its_intensity_and_stays_short():
+    """The intensity reaches the row, and the row stays one line's worth.
+
+    The length half is a PROXY and says so: row height here is
+    height-for-width, which derives from the full string rather than from
+    what is painted, so the real bound is in pixels at a font this suite
+    cannot speak for. What is assertable everywhere is the string, and the
+    measured breaking point on the real desktop was between 42 and 49
+    characters -- 49 took each row from 54 px to 70 px and pushed the
+    twelfth line out of a dialog sized for twelve. 44 keeps the shipped
+    form with headroom and still fails the full-length wording that broke
+    it.
+    """
+    lines = [f for f in _report().facts if f.label.strip().startswith("(")]
+    assert lines
+    for fact in lines:
+        assert "I = " in fact.display_value
+        assert len(fact.display_value) <= 44, fact.display_value

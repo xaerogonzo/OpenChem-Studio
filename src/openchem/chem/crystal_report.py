@@ -190,8 +190,27 @@ def _powder_facts(crystal: Crystal) -> list[Fact]:
                 FactCategory.STRUCTURE,
                 f"  {reflection.label}",
                 round(reflection.two_theta, 4),
+                # **`mult` RATHER THAN `multiplicity`, AND THE ABBREVIATION
+                # IS LOAD-BEARING.** Found by driving the app and comparing
+                # two shots: adding the intensity to the full-length string
+                # took each row from 54 px to 70 px and pushed the twelfth
+                # line off a 900 px dialog -- for text that visibly fits on
+                # one line with two thirds of the width to spare, so it is
+                # not wrapping at the DISPLAYED width. It is the
+                # height-for-width family this project already records
+                # twice: `_ElidingLabel` derives its hints from `full_text`,
+                # so a longer full string buys a taller row whatever is
+                # painted. Measured:
+                #
+                #     multiplicity N                    38 chars   54 px
+                #     multiplicity N, I = 100.0         49 chars   70 px
+                #     mult N, I = 100.0                 42 chars   54 px
+                #
+                # `POWDER_LINES_IN_REPORT` is 12 and the dialog is sized to
+                # show 12, so this is the difference between the cap being
+                # honoured on screen and being one row short of it.
                 f"{reflection.two_theta:.3f} deg, d = {reflection.d_spacing:.4f} A, "
-                f"multiplicity {reflection.multiplicity}, "
+                f"mult {reflection.multiplicity}, "
                 f"I = {reflection.relative_intensity:.1f}",
                 units="degrees 2theta",
                 evidence=(
