@@ -391,7 +391,7 @@ list is priced rather than merely ordered:
 
 | | cost | what it buys |
 | --- | --- | --- |
-| **smina** ([source:koes2013]) | a spike, then ~free | the only candidate that is BOTH engine and rescorer, so it is the arm that tests whether `PoseRescorer` is a real abstraction or a Vina-shaped hole |
+| **smina** ([source:koes2013]) | obtainable; then a pose-retaining re-dock | the only candidate that is BOTH engine and rescorer, so it is the arm that tests whether `PoseRescorer` is a real abstraction or a Vina-shaped hole. **It is NOT an independent second opinion** -- it is Vina-derived, and DSX, which was, is unobtainable (both spikes run 2026-09-07; see `docs/ROADMAP.md`) |
 | **more targets** | curation, not compute | eight is family spread, not data volume, and seven of the eight are GPCRs or a single enzyme |
 | **more series** | ~14.5 h per 56 | 1586 exist and 56 were docked; needs no new machinery and costs proportionally. All 1586 is ≈ **17 days** continuous |
 | **RBFE, one series** | **2.3–5.5 GPU-days** | one ΔΔG ladder over one series, against a measured docking baseline |

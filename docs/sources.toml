@@ -4285,10 +4285,31 @@ It is also where `dkoes_scoring` comes from -- [source:quiroga2016] describes
 it as selected by forward selection with weights fitted by linear regression
 against the CSAR 2012 set, and compares Vinardo against it.
 
+**THE SPIKE IS RUN, AND SMINA IS OBTAINABLE ON WINDOWS.** Measured 2026-09-07
+against the conda-forge API rather than reasoned about:
+
+    conda-forge/smina   latest 2020.12.10
+    platforms           linux-64, linux-aarch64, linux-ppc64le,
+                        osx-64, osx-arm64, WIN-64
+    win-64 artifacts    3, newest smina-2020.12.10-he0c23c2_2.conda
+                        0.4 MB, REBUILT 2025-07-15
+
+**The upstream VERSION is pinned at 2020.12.10 and the FEEDSTOCK is live** --
+build 2 was rebuilt in July 2025, five years after the release it packages. So
+"unmaintained upstream" and "unobtainable" are different claims and only the
+first is true. The sentence this replaces read "smina is Linux-first and ships
+no official Windows binary"; that is still true of the SourceForge
+distribution, whose `smina.static` is a Linux static build, and it is not true
+of the platform as a whole.
+
+**AN ARTIFACT EXISTING IS NOT A BINARY THAT RUNS**, which is the next thing to
+measure and is deliberately not claimed here. This project already records
+that a conda-forge PyTorch needed a missing MSVC-named OpenMP DLL before it
+would import at all, and that a package's CHANNEL is a fact about the solve
+rather than about the command that started it.
+
 `assessed_not_shipped`: nothing in `src/` uses smina yet. Promote to `shipped`
-with a `used_by` when an engine lands, and note that smina is Linux-first and
-ships no official Windows binary -- obtainability on this platform is a spike,
-not an assumption.
+with a `used_by` when an engine lands.
 """
 
 [[source]]
@@ -4319,8 +4340,34 @@ community and can be downloaded from our Web site www.agklebe.de". X-Score by
 contrast is distributed behind a licence agreement, a registration and a
 server login, with a public release tested on "UNIX and LINUX" only.
 
-**THE AVAILABILITY IS A 2011 STATEMENT AND NOT A 2026 MEASUREMENT.** Whether
-agklebe.de still serves it is a spike, exactly as smina's Windows build is.
+**THE AVAILABILITY IS A 2011 STATEMENT AND NOT A 2026 MEASUREMENT. THE SPIKE
+IS RUN, AND THE ANSWER IS NO.** Measured 2026-09-07:
+
+    www.agklebe.de              302 -> agklebe.pharmazie.uni-marburg.de
+    that homepage               200, 17 KB, still the Klebe group, and it
+                                still LINKS to a Download-Bereich, a
+                                Registrieren/Login area and DSX-Online
+    /download/                  404
+    /register/                  404
+    /login                      404
+    /drugscore  (DSX-Online)    404
+
+**The group's site is alive and its navigation is a stale template**: every
+endpoint it advertises for obtaining DSX is gone. Nor is it mirrored --
+conda-forge has no `dsx`, `drugscorex` or `drugscore` package (404 on all
+three) and a GitHub repository search returns **zero** results.
+
+**THE IRONY IS WORTH RECORDING, because it is the same barrier twice.** DSX
+displaced X-Score in this project's own reasoning partly on obtainability --
+X-Score being "behind a licence agreement, a registration and a server login".
+The Klebe site now advertises exactly a registration and a login, and behind
+them serves 404s. The displacement was correct on the SCIENTIFIC argument,
+which stands: DSX is knowledge-based and X-Score is Vina's ancestor.
+
+So the 2011 sentence quoted above is a citation-level fact about the paper and
+**must not be read as a 2026 statement about availability**. That distinction
+is the whole reason this registry separates `citation` from
+`citation_and_claim`.
 
 Its introduction is also a clean statement of the decomposition this project
 relies on, attributing it to Cheng et al.: docking power, ranking power and
