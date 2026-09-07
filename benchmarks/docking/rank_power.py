@@ -108,6 +108,39 @@ RESCORE_WITH = "vinardo"
 #: See the module docstring. Different from every other benchmark here.
 PREP = {"strip_waters": True, "strip_cofactors": False}
 
+
+def console_safe(text: str) -> str:
+    """Make THIRD-PARTY text printable on whatever console this is.
+
+    **A RUN DIED AT 85% BECAUSE OF ONE GREEK ALPHA.** ChEMBL's assay
+    description for `1ERE_CHEMBL5732098` says "estrogen receptor alpha" with
+    the LETTER, and `sys.stdout.encoding` here is cp1252, which cannot encode
+    U+03B1 -- so `print` raised `UnicodeEncodeError` and took an eight-hour
+    run with it, after every search it had already done was safely on disk.
+
+    **THE TRIGGER IS WHERE THE CHARACTER FALLS, NOT WHETHER IT IS THERE.**
+    The description is truncated to 90 characters before printing, so
+    `2V5Z_CHEMBL5730690` -- whose mu sits past that -- completed normally in
+    the same run. Measured over the built corpus: 58 of 1810 series carry a
+    non-ASCII assay description, 2 of them in the frozen 77, and the
+    characters are `mu deg alpha beta minus times (R) lambda` plus a U+FFFD,
+    which is ChEMBL's own mojibake arriving intact.
+
+    **IT ASKS THE STREAM RATHER THAN ASSUMING ASCII.** `CLAUDE.md` records
+    that cp1252 is the wrong codepage to assert against -- a real console is
+    often cp437 or cp850, which are STRICTER, and an em dash passes a cp1252
+    check while still rendering as a replacement character. Encoding through
+    `sys.stdout.encoding` is that lesson applied: it degrades to whatever
+    THIS stream can carry, and to more on a UTF-8 one.
+
+    **THE STORED DATA IS UNTOUCHED, DELIBERATELY.** Only what is PRINTED is
+    made safe. The JSONL keeps ChEMBL's own bytes, because an assay
+    description is evidence about the measurement and mangling it to suit a
+    terminal would be editing the record to fit its display.
+    """
+    encoding = getattr(sys.stdout, "encoding", None) or "ascii"
+    return text.encode(encoding, errors="replace").decode(encoding, errors="replace")
+
 #: Fixed, so the derived per-ligand seeds are reproducible from the record.
 PROTOCOL_SEED = 4712
 
@@ -330,7 +363,10 @@ def run_series(series_id: str, provider, engine, rescorer, exhaustiveness: int, 
             f"  receptor sha {digest}  prep {prep_seconds:.1f}s  metals {metals}  "
             f"box {tuple(round(v, 2) for v in site.box.center)}"
         )
-        print(f"  assay {series['assay_chembl_id']}: {series['assay_description'][:90]}")
+        print(
+            f"  assay {series['assay_chembl_id']}: "
+            f"{console_safe(series['assay_description'][:90])}"
+        )
 
         seeds_used: list[int] = []
         for ligand in series["ligands"]:
