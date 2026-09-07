@@ -1984,12 +1984,62 @@ What remains untested: **modulated and incommensurate structures**, which
 this model has no vocabulary for at all, and **CIFs whose coordinates are
 Cartesian rather than fractional**, which are refused by name.
 
-### The calculated powder pattern gives POSITIONS and no intensities
+### The calculated powder pattern gives positions AND intensities now
 
-**File → Import Crystal Structure** now reports where a powder X-ray
-diffraction pattern's peaks would fall: an (hkl) list with an interplanar
-spacing, a Bragg angle and a multiplicity. It reports **no peak heights
-at all**, and that is a refusal rather than an omission.
+**File → Import Crystal Structure** reports where a powder X-ray
+diffraction pattern's peaks fall — an (hkl) list with an interplanar
+spacing, a Bragg angle and a multiplicity — and, since 2026-09-07, a
+**relative intensity** beside each one.
+
+**This section used to say the intensities were refused, and the refusal
+is lifted. The paragraphs below it are kept, because the measurement in
+them is real and only the conclusion drawn from it was wrong.**
+
+The refusal rested on a scan 29.7% numerically corrupted, and on only 6 of
+11 parameters per row having an oracle. Both facts still hold. What did not
+hold is what was concluded from them: that the five `b` values were
+unverifiable. **They were unverifiable by HAND, from that scan.** The
+registry entry named its own unblocking condition — "a machine-readable
+copy of this table" — and nobody had checked whether one existed. One does,
+and with a candidate table in hand the paper itself becomes the oracle for
+all eleven parameters rather than six.
+
+| | |
+|---|---|
+| values found verbatim in the copy we hold | 1280 of 2321 (55.1%) |
+| against that scan's own ceiling | ~70% |
+| species, and cctbx reports the same independently | 211 |
+
+**The acceptance test is a closed form, not a reference table.** For rock
+salt the structure factor collapses to `16(f_Na + f_Cl)²` for all-even
+`hkl` and `16(f_Na − f_Cl)²` for all-odd, and the computed `|F(hkl)|²`
+matches both to nine significant figures. That is sharp because three
+things must be right together — the scattering factors, the symmetry
+expansion that puts four of each ion in the cell, and the phase sum — and
+any one of them wrong still yields a plausible-looking pattern.
+
+**What the intensities still omit is stated on every pattern.** There is
+**no Debye–Waller factor**, because `chem/cif.py` parses no atomic
+displacement parameters at all — so there is nothing to apply, and
+defaulting `B` to zero would turn missing experimental information into
+the assumption that the atoms are motionless. That assumption grows with
+angle, which makes it least visible exactly where a reader would check
+it. Measured against published NaCl intensities, this project's residual
+is concentrated at high angle, which is that term. Treat the column as an
+upper bound there rather than a prediction of peak height.
+
+**And the scale is over the reported lines.** Normalising over every
+family in range would make the number independent of the list length,
+which is the nicer property and costs a structure factor per reflection:
+measured at 60°, 2934 reflections over 476 atoms is 1.59 s and 918 over
+1488 atoms is 2.40 s, against a crystal report already taking 3.6–10.6 s
+on those same structures. So a truncated pattern is normalised within its
+own window, and two patterns cut at different lengths are **not on one
+scale**.
+
+---
+
+**THE PARAGRAPHS BELOW ARE SUPERSEDED AND ARE KEPT.**
 
 **The two halves rest on different kinds of evidence, which is why one
 ships and the other does not.**
@@ -2047,8 +2097,20 @@ worse than none.
 - **The reported list is capped and says so.** A large organic cell with
   Mo radiation has tens of thousands of reflection families out to 60°;
   the report lists the twelve lowest-angle ones and states how many it
-  did not list. Lowest-angle is the only honest ordering available
-  without intensities.
+  did not list. **It is still ordered by ANGLE rather than by intensity**,
+  now that there is something to rank by: ranking by intensity would
+  silently change which reflections a truncated pattern contains for every
+  caller already passing a cap, and a powder pattern is read along its
+  angle axis, so the low-angle window is the one a reader expects to be
+  complete.
+- **An ion whose charge the table does not carry falls back to the neutral
+  atom**, and the pattern says which. The paper tabulates 211 species,
+  short of every oxidation state a CIF can declare; the difference is a
+  few electrons at low angle and almost nothing past `s ≈ 0.5 Å⁻¹`, so
+  refusing the whole pattern over a charge would lose far more than it
+  protects. A species absent from the table **entirely** is a different
+  case and does refuse the intensities, naming the element — a pattern
+  computed while skipping an atom is a pattern of the other atoms.
 
 ## Where this is enforced
 
