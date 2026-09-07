@@ -640,9 +640,10 @@ below rather than left as an adjective.
     1  an interval, not a number    SHIPPED
     2  rescore with a second
        function                     the AXIS is SHIPPED, and ranking power is
-                                    MEASURED: a NULL over 56 within-assay
-                                    ChEMBL series, 3828 real Vina searches.
-                                    Vinardo's median delta is exactly +0.000
+                                    MEASURED: a NULL over 77 within-assay
+                                    ChEMBL series on TWELVE targets, 4998 real
+                                    Vina searches. Vinardo's median delta is
+                                    exactly +0.000
     3  relative binding free
        energy                       SPIKED, and its GATE IS NOW SATISFIED --
                                     route 1 exists and the 56-series corpus is
@@ -819,17 +820,33 @@ cross-assay spread is not.
 per-series table for all 56 series; the raw JSONL is gitignored.
 
 `benchmarks/docking/chembl_corpus.py` builds it — 1586 single-assay series
-over eight catalogued receptors from 41,073 activities — and
-`rank_power.py` / `rank_report.py` measure it. **Fifty-six series, 624
-ligands, 3828 real Vina searches, 14.5 hours of search time**:
+over twelve catalogued receptors — and `rank_power.py` /
+`rank_report.py` measure it. **Seventy-seven series, 833 ligands, 4998 real
+Vina searches, 18.8 hours of search time**:
 
-    median rho(-vina, pChEMBL)      +0.082   95% series bootstrap [-0.030, +0.245]
-    series with rho > 0             32/56    sign test p = 0.350, two-sided
-    median rho(Vinardo) - rho(Vina) +0.000   95% [-0.104, +0.082]
-    beating every trivial baseline   9/56
-    above TWICE its own random floor 1/56
-    SEARCH REPEATABILITY            median +0.990, 55/56 at or above +0.95
-                                    60 of 3462 ligand pairs swapped (1.7%)
+    median rho(-vina, pChEMBL)      +0.046   95% series bootstrap [-0.027, +0.122]
+    series with rho > 0             43/77    sign test p = 0.362, two-sided
+    median rho(Vinardo) - rho(Vina) +0.000   95% [-0.053, +0.073]
+    beating every trivial baseline  13/77
+    above TWICE its own random floor 1/77
+    SEARCH REPEATABILITY            median +1.000, 75/77 at or above +0.95
+                                    77 of 4346 ligand pairs swapped (1.8%)
+
+**WIDENED BY TARGET on 2026-09-07, and it did not change the answer.** The
+first endpoint was 56 series on eight receptors, five of them aminergic GPCRs
+sharing an orthosteric site; four distinct folds were added (MAO-B, estrogen
+receptor alpha, acetylcholinesterase, sigma-1) and the median moved +0.082 ->
++0.046. The frozen 56 survive unchanged as a nested control.
+
+**THE HYPOTHESIS THAT MOTIVATED THE WIDENING IS REFUTED, AND BACKWARDS.** It
+existed to separate "docking cannot rank" from "docking cannot rank in
+shallow aminergic GPCR pockets". Aminergic GPCRs: 32 series, median +0.205.
+Everything else: 45 series, median -0.010 -- on groups matched for median
+ligand count, span and random floor. The aminergic pockets are where the
+method does relatively BEST. **That split is post hoc**, since the
+pre-registered quantity was the aggregate, so it is a hypothesis for a future
+test rather than a result of this one -- but it does remove pocket family as
+an explanation for the null.
 
 **The repeatability row is where the information is.** The search orders these
 ligands almost identically across independent replicate halves — 1.7% of pairs
@@ -839,20 +856,23 @@ exhaustiveness cannot address it. It is the scoring function, which is
 citation. That is **N5** on this section's own list of nulls: reproducible
 search, and the score still does not order.
 
-Vinardo does not improve on it — the delta's median is exactly +0.000 and 27 of
-56 is a coin (**N2**). And **47 of 56 series are ordered at least as well by a
+Vinardo does not improve on it — the delta's median is exactly +0.000 and 38 of
+77 is a coin (**N2**). And **64 of 77 series are ordered at least as well by a
 trivial physicochemical descriptor as by docking**, which is **N1**, the
-outcome this section calls the most valuable, at 84%.
+outcome this section calls the most valuable, at 83%.
 
 **THE INTERIM P-VALUES CROSSED 0.05 AND CAME BACK.** 15 series p = 0.118, 28
-series 0.087, 37 series **0.047**, 56 series **0.350**. A p-value inspected
-repeatedly as data accumulates is not a p-value; the pre-committed endpoint was
-the whole frozen selection and that is the row above. `rank_report.py` prints a
+series 0.087, 37 series **0.047**, 56 series **0.350**, 77 series **0.362**. A p-value
+inspected repeatedly as data accumulates is not a p-value; the pre-committed
+endpoint was the whole frozen selection and that is the row above. The
+widening to twelve targets was itself pre-committed before the corpus was
+rebuilt, in `benchmarks/docking/README.md`. `rank_report.py` prints a
 PARTIAL banner short of it.
 
 **Stated as narrowly as the data allows**: this is *no ranking ability
-detectable across within-assay congeneric series at this n*, on eight targets,
-with Vina at exhaustiveness 25 — not *docking cannot rank*. Two series reach
+detectable across within-assay congeneric series at this n*, on **twelve
+targets spanning six structural classes**, with Vina at exhaustiveness 25 —
+not *docking cannot rank*. Two series reach
 +0.75 and +0.79. The oracle's own reproducibility is unmeasurable, since ChEMBL
 carries no per-row uncertainty, so rho is bounded above by a quantity nobody
 can measure while the docking's own repeatability is measured and is

@@ -613,7 +613,46 @@ compounds are PRESENT -- far too few for a PRESENT-only median to mean
 anything, so none is printed. And the bound is unchanged in KIND by being
 complete: exact-InChIKey identity, one-way, minimal.
 
-### The result: 3828 searches, 14.5 hours, and it is a NULL
+### WIDENED BY TARGET: 4998 searches, 18.8 hours, and it is still a NULL
+
+The 56-series endpoint was dominated by one pocket family -- five of eight
+targets aminergic GPCRs sharing an orthosteric site -- so four structurally
+distinct folds were added on 2026-09-07: MAO-B (flavoenzyme), estrogen
+receptor alpha (nuclear receptor), acetylcholinesterase (serine hydrolase)
+and sigma-1 (ER chaperone). 21 series, 1170 searches, 4.2 h.
+
+    median rho(-vina, pChEMBL)   +0.046   95% [-0.027, +0.122]
+    series with rho > 0          43/77    sign test p = 0.362
+    median rho(Vinardo - Vina)   +0.000   95% [-0.053, +0.073]
+    leakage  810 ABSENT, 23 PRESENT, 0 UNRESOLVED
+             ABSENT-only median rho +0.046, identical to the full set
+
+**Widening did not change the answer; it slightly weakened it** (+0.082 ->
++0.046), on 37% more series and 50% more receptors. Every one of the frozen
+56 survives unchanged -- `widening_diff.json` records `REMOVED 0` and zero
+content drift.
+
+**AND IT ANSWERED THE OPPOSITE WAY FROM THE HYPOTHESIS THAT MOTIVATED IT.**
+The widening existed to separate "docking cannot rank" from "docking cannot
+rank in shallow aminergic GPCR pockets". The second is refuted:
+
+    aminergic GPCR only               32 series   median +0.205   21/32
+    everything NOT an aminergic GPCR  45 series   median -0.010   21/45
+
+The aminergic GPCRs are where this method does relatively BEST, and the four
+added folds are flat. The obvious confound does not explain it -- both groups
+have a median of 12 ligands, a median span of 1.94/1.95 and a median random
+floor of 0.302, so it is not series size, potency span or floor.
+
+**IT IS POST HOC AND IS NOT A RESULT OF THIS RUN.** The pre-registered
+quantity was the aggregate; this split compares groups chosen after the data
+was seen. It is a hypothesis for a future pre-registered test. ER alpha rests
+on 3 series and acetylcholinesterase on 2, so nothing here may be rendered as
+`0/4 new targets showed ranking`.
+
+`docs/DOCKING_RANKING_BENCHMARK.md` carries the per-target table.
+
+### The first endpoint: 3828 searches, 14.5 hours, and it is a NULL
 
 **The full record, with the per-series table for all 56 series, is
 `docs/DOCKING_RANKING_BENCHMARK.md`.** The raw JSONL is gitignored, so that
@@ -696,17 +735,19 @@ Not "docking cannot rank". One series reaches ρ = +0.79
 (`5I6X_CHEMBL1645847`) and another +0.75 (`5I6X_CHEMBL808864`); 22 of 56 exceed
 their own random floor in absolute value, which is about what 56 draws from a
 null would give. The claim is **no ranking ability detectable across
-within-assay congeneric series at this n**, on eight targets, with Vina at
-exhaustiveness 25.
+within-assay congeneric series at this n**, on **twelve targets spanning six
+structural classes**, with Vina at exhaustiveness 25.
 
 The oracle's own reproducibility is unmeasurable here — ChEMBL carries no
 per-row uncertainty — so ρ is bounded above by a quantity nobody can measure,
 while the docking's own repeatability is measured and is essentially 1. That
 asymmetry is in `docs/SCIENTIFIC_LIMITATIONS.md`.
 
-**The leakage bound is closed and the null survives it**: 624 ABSENT, 14
-PRESENT, 0 unresolved, with an ABSENT-only median ρ of **+0.073** against the
-full set's +0.082. Dropping every compound that could conceivably have been in
+**The leakage bound is closed and the null survives it**, and it was re-closed
+after the widening: **810 ABSENT, 23 PRESENT, 0 unresolved**, with an
+ABSENT-only median ρ of **+0.046** -- identical to the full set's +0.046. (At
+the 56-series endpoint it was 624 / 14 / 0, ABSENT-only +0.073 against
++0.082.) Dropping every compound that could conceivably have been in
 PDBbind makes the correlation slightly *worse*, so the null is not an artefact
 of training-set contamination. It stays a **minimal** bound under exact-InChIKey
 identity, and says nothing about similarity leakage.

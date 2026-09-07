@@ -5255,6 +5255,49 @@ chaperone, 3301 -- the richest pool in the corpus)**. All four already
 curated in `receptor_library.py` with validated boxes, so no receptor
 curation happened at all.
 
+### THE RESULT: THE NULL HOLDS, AND THE HYPOTHESIS THAT MOTIVATED IT IS BACKWARDS
+
+4998 searches, 833 ligands, 77 series, 12 receptors, 18.8 hours.
+
+    median rho(-vina, pChEMBL)   +0.046   95% [-0.027, +0.122]
+    series with rho > 0          43/77    sign test p = 0.362
+    median rho(Vinardo - Vina)   +0.000   95% [-0.053, +0.073]
+    leakage  810 ABSENT, 23 PRESENT, 0 UNRESOLVED
+             ABSENT-only median +0.046, IDENTICAL to the full set
+
+Widening did not change the answer; it slightly WEAKENED it (+0.082 ->
++0.046), on 37% more series and 50% more receptors. Reported as
+pre-committed, whatever it said.
+
+**AND THE QUESTION CAME BACK THE OTHER WAY ROUND.** The widening existed to
+separate "docking cannot rank" from "docking cannot rank in shallow aminergic
+GPCR pockets":
+
+    aminergic GPCR only               32 series   median +0.205   21/32
+    everything NOT an aminergic GPCR  45 series   median -0.010   21/45
+
+**The aminergic GPCRs are where this method does relatively BEST**, and the
+four added folds -- flavoenzyme, nuclear receptor, serine hydrolase, ER
+chaperone -- are flat. So pocket family is removed as an explanation for the
+null, in the direction nobody predicted.
+
+**THE OBVIOUS CONFOUND WAS CHECKED BEFORE THE SPLIT WAS PRINTED**, because
+the added series are smaller by construction and a group difference could
+have been an instrument difference:
+
+    group              n   med ligands   med span   med floor
+    aminergic GPCR    32            12       1.94      0.302
+    everything else   45            12       1.95      0.302
+
+Identical on all three.
+
+**IT IS STILL POST HOC AND IS NOT A RESULT OF THIS RUN.** The pre-registered
+quantity was the aggregate; this compares groups chosen after the data was
+seen, across twelve targets where something will look extreme by chance. It
+is a hypothesis for a future pre-registered test. ER alpha rests on 3 series
+and acetylcholinesterase on 2, so nothing may be rendered as `0/4 new targets
+showed ranking`.
+
 ### AND THE CANDIDATE SET WAS FROZEN ON DATA, WITH THE RESERVE ORDER
 
 Screening on Ki availability is selecting on the DATA, never on an outcome --

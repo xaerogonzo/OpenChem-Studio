@@ -192,24 +192,37 @@ The search found a pose within 3 Å on **8 of 8**, so both misses are scoring
 failures rather than search failures — which is the distinction that makes
 the result interpretable at all.
 
-**RANKING POWER IS MEASURED, AND THE ANSWER IS A NULL.** 56 within-assay
-ChEMBL series, 624 ligands, 3828 real Vina searches, 14.5 hours. The median
-ρ(−score, pChEMBL) is **+0.082** with a 95% series bootstrap of
-**[−0.030, +0.245]**; 32 of 56 series are positive, a two-sided sign test at
-**p = 0.350**. Rescoring with Vinardo moves the median by exactly **+0.000**.
-And **47 of 56 series are ordered at least as well by a trivial
+**RANKING POWER IS MEASURED, AND THE ANSWER IS A NULL.** 77 within-assay
+ChEMBL series, 833 ligands, 4998 real Vina searches, 18.8 hours. The median
+ρ(−score, pChEMBL) is **+0.046** with a 95% series bootstrap of
+**[−0.027, +0.122]**; 43 of 77 series are positive, a two-sided sign test at
+**p = 0.362**. Rescoring with Vinardo moves the median by exactly **+0.000**.
+And **64 of 77 series are ordered at least as well by a trivial
 physicochemical descriptor** — heavy-atom count, molecular weight, cLogP or
 TPSA — as by docking. The full record is
 [DOCKING_RANKING_BENCHMARK.md](DOCKING_RANKING_BENCHMARK.md).
 
 **Stated as narrowly as the data allows: no ranking ability detectable across
-within-assay congeneric series at this n, on eight targets, with Vina at
-exhaustiveness 25.** That is not "docking cannot rank" — two series reach
-ρ = +0.79 and +0.75.
+within-assay congeneric series at this n, on twelve targets spanning six
+structural classes, with Vina at exhaustiveness 25.** That is not "docking
+cannot rank" — two series reach ρ = +0.79 and +0.75.
+
+**THE CLASS SPREAD IS WHAT THAT SENTENCE BOUGHT, and it refuted the
+hypothesis it was built to test.** The first endpoint was eight targets, five
+of them aminergic GPCRs sharing an orthosteric site, so the null could have
+been a property of shallow aminergic pockets rather than of docking. Four
+distinct folds were added — flavoenzyme, nuclear receptor, serine hydrolase,
+ER chaperone — and the answer went the other way: the aminergic GPCRs are
+where the method does *relatively best* (32 series, median +0.205) and
+everything else is flat (45 series, median −0.010), on groups matched for
+median ligand count, potency span and random floor. **That split is post hoc
+and is not a result of that run** — the pre-registered quantity was the
+aggregate — but it does rule out pocket family as the explanation for the
+null.
 
 **THE REPEATABILITY COLUMN IS WHAT MAKES IT A FINDING RATHER THAN A SHRUG.**
 Across independent replicate halves the search orders the same ligands with a
-median ρ of **+0.990**, and only **60 of 3462 ligand pairs (1.7%)** swap. So
+median ρ of **+1.000**, and only **77 of 4346 ligand pairs (1.8%)** swap. So
 the disagreement with measured potency is **not sampling noise**, and no
 amount of extra exhaustiveness addresses it. It is the scoring function.
 Without that column the headline would be "docking did not correlate", which
