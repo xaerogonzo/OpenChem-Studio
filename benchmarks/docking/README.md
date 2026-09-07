@@ -787,6 +787,25 @@ Opening an IC50 stratum is a separate decision needing its own
 pre-registration, and taking it now, for two targets, after seeing that the
 Ki stratum excludes them, would be choosing a rule to admit a case.
 
+### Watching it run, without asking anybody
+
+```bash
+uv run --no-sync python benchmarks/docking/progress.py
+```
+
+Read-only, safe at any time, and it answers **"is it alive"** separately from
+**"how far along"** -- because those are different questions and conflating
+them is how a dead run gets reported as a slow one. A completion count looks
+identical either way; only the mtime of the newest write tells them apart, so
+a run idle past `STALL_AFTER_S` is reported as **STALLED** rather than as
+progress. `--watch` reprints every minute.
+
+**IT PRINTS NO RHO, DELIBERATELY.** The rule three sections up -- report the
+completion count, never the rho -- is unenforceable if the progress tool
+prints the answer, because then "how is it going" and "what is the result"
+are the same question. That is precisely how this benchmark's p-value came to
+be looked at three times mid-run.
+
 ### What is reported, and what must never be said
 
 The widened set is reported **whatever it says**, with three populations
