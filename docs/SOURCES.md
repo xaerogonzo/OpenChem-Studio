@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 9a4e924c3635f6d956826bb21968eb1f808feed2b14ea420b4001c3ff2b0671a -->
+<!-- SOURCE SHA256: ce244d08c6e39479ff8e0d5f4aa4a5c230ed536c71f3a7e26c0cfd4ef5404d1b -->
 
 # Sources
 
@@ -197,7 +197,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
 | [`tsei`](#tsei) | reference_table | reference only | citation |
 | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | citation + claim |
-| [`waasmaier1995`](#waasmaier1995) | literature | **not shipped** | citation |
+| [`waasmaier1995`](#waasmaier1995) | literature | shipped | citation + claim |
 | [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
 | [`wildman1999`](#wildman1999) | literature | shipped | citation |
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
@@ -213,49 +213,12 @@ next run of `tools/build_lewis_parameters.py`.
 
 | | |
 | --- | --- |
-| Identifier | Acta Cryst. (1995) A51, 416-431 |
-| Status | **not shipped** |
-| Verification | citation |
-| Verified | 2026-08-27 |
+| Identifier | [10.1107/S0108767394013292](https://doi.org/10.1107/S0108767394013292) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-09-07 |
 | Local copy | `waasmaier1995.pdf` (not checked) |
-
-**Why it is not shipped.** THE PARAMETER SOURCE A POWDER PATTERN'S INTENSITIES WOULD NEED, AND THE
-REFUSAL IS A MEASUREMENT RATHER THAN AN ESTIMATE OF EFFORT.
-
-`chem/powder_xrd.py` ships peak POSITIONS and no intensities. |F(hkl)|^2
-needs a tabulated atomic scattering factor per species, f0(sin(theta)/
-lambda), and this paper is the standard parameterisation: five Gaussians,
-eleven parameters per atom or ion, valid over sin(theta)/lambda 0.0 to
-6.0 A^-1.
-
-The copy held locally is a scan whose text layer is damaged. Measured
-over the four pages of its Table 1:
-
-    numeric tokens on the table pages     2267
-    visibly corrupted                      673   (29.7%)
-
-...and 70.3% "clean" is an UPPER bound on correctness, because a token
-can be well formed and still wrong. Element labels are corrupted too --
-the calcium row extracts as `Cs`, which would silently put caesium's
-factors on calcium.
-
-THE DECIDING POINT IS THAT ONLY 6 OF THE 11 PARAMETERS CAN BE CHECKED.
-A neutral atom's scattering factor at zero angle is its electron count,
-so sum(a_i) + c = Z is a per-row oracle over a1..a5 and c. The five b
-values have no such check: a wrong b is wrong at every non-zero angle
-and exactly right at theta = 0, which is the one place the checksum
-looks. Transcribing a table where nearly a third of the numbers are
-visibly damaged and 5 in every 11 are unverifiable would produce
-plausible intensities of unknown correctness.
-
-WHAT WOULD LIFT IT: a machine-readable copy of this table, or the
-tabulated values of International Tables for Crystallography Vol. C that
-it was fitted to.
-
-The citation is read off the paper's own header line ("Acta Cryst.
-(1995). A51,416-431") on page 1, which is NOT where the file begins --
-that page opens with the tail of the preceding article's references. No
-DOI is printed anywhere in the file, so none is recorded.
+| Used by | `src/openchem/chem/data/atomic_scattering_factors.json`, `src/openchem/chem/powder_xrd.py`, `tools/build_scattering_factors.py` |
 
 ### coppens2006
 

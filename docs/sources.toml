@@ -56,13 +56,64 @@ schema_version = 1
 key = "waasmaier1995"
 kind = "literature"
 citation = "D. Waasmaier & A. Kirfel, 'New Analytical Scattering-Factor Functions for Free Atoms and Ions', Acta Crystallographica A51, 1995, pp. 416-431."
-identifier_type = "bibliographic"
-identifier = "Acta Cryst. (1995) A51, 416-431"
-status = "assessed_not_shipped"
+identifier_type = "doi"
+identifier = "10.1107/S0108767394013292"
+status = "shipped"
+used_by = [
+    "src/openchem/chem/data/atomic_scattering_factors.json",
+    "src/openchem/chem/powder_xrd.py",
+    "tools/build_scattering_factors.py",
+]
 local = "waasmaier1995.pdf"
-verification = "citation"
-verified_date = 2026-08-27
+verification = "citation_and_claim"
+verified_date = 2026-09-07
 reason = """
+THE REFUSAL IS LIFTED, AND WHAT LIFTED IT WAS A SPIKE RATHER THAN AN
+IMPLEMENTATION. The entry below named its own unblocking condition -- "a
+machine-readable copy of this table" -- and nobody had checked whether one
+existed. One does.
+
+    xraydb 4.5.8, MIT       ships waasmaier_kirfel.dat; its f0 docstring
+                            cites this paper by volume and page
+    cctbx, independent      the same table, its origin documented as
+                            ftp://wrzx02.rz.uni-wuerzburg.de/pub/local/
+                            Crystallography/sfac.dat, "picked up Jul 4,
+                            1995. File verified Sep 12, 2001"
+    row count               211 species. cctbx reports 211 independently,
+                            so two implementations agree on the table's
+                            SHAPE and not merely on its numbers
+    THE PAPER WE HOLD       1280 of 2321 values appear VERBATIM in this
+                            scan's own text layer -- 55.1%, against the
+                            ~70% ceiling its corruption allows
+
+MIT is compatible with this project's GPL-3.0-or-later.
+
+**THE B VALUES WERE NEVER UNVERIFIABLE IN PRINCIPLE, WHICH IS THE PART
+WORTH KEEPING.** The account below is right that sum(a_i) + c = Z checks
+only 6 of 11 parameters -- but it concluded from that that the other five
+had no oracle, when what they had no oracle for was HAND TRANSCRIPTION
+from a corrupted scan. Given a candidate table, the paper itself is the
+oracle: every value can be looked for in its own Table 1. So the proxy
+checks designed to substitute for a parameter oracle are demoted to
+characterisations, and the parameter oracle is the source.
+
+**AND ASSUMING `b >= 0` FLAGGED 13 CORRECT ROWS.** Carbon's own row here
+reads `-4.241070 -0.000294` with c = 4.297983, and nitrogen's c is
+-11.804902: a large negative Gaussian against a large constant, which is
+an artefact of an unconstrained five-Gaussian least squares and not
+corruption. Measured over the paper's full stated range, all 211 species
+decay monotonically and none goes negative, so the shipped invariants are
+on f0 itself rather than on the shape of its parameters.
+
+**THE DOI IS RECORDED NOW AND WAS VERIFIED BEFORE IT WAS.** The account
+below says none is printed in the file, which is still true. Crossref
+resolves 10.1107/S0108767394013292 to this exact paper -- both authors,
+Acta Cryst. A51(3), 416-431, 1995 -- so it is checked rather than
+remembered.
+
+THE PARAGRAPHS BELOW ARE SUPERSEDED AND ARE KEPT, because the measurement
+in them is real and only the conclusion drawn from it was wrong.
+
 THE PARAMETER SOURCE A POWDER PATTERN'S INTENSITIES WOULD NEED, AND THE
 REFUSAL IS A MEASUREMENT RATHER THAN AN ESTIMATE OF EFFORT.
 

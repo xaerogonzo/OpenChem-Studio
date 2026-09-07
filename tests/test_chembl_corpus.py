@@ -406,6 +406,69 @@ def test_widening_the_selection_keeps_every_series_it_already_had(corpus, monkey
     )
 
 
+def test_adding_a_TARGET_cannot_touch_another_targets_selection(corpus, monkeypatch):
+    """Widening by TARGET is a superset for a stronger reason than widening
+    by `SERIES_PER_TARGET`, and the difference is worth asserting.
+
+    Raising the per-target cap is a superset because the walk sorts
+    deterministically and takes a prefix -- true until somebody changes the
+    sort key, which is why the test above exists. Adding a JOIN ROW is a
+    superset because `select_for_docking` loops `for row in JOIN` and
+    filters each row's candidates on `series["pdb_id"] == row.pdb_id`, so a
+    new row's body **cannot reach another row's candidate list at all**. No
+    sort order has to hold for that.
+
+    It is checked rather than trusted because the guarantee lives in one
+    `==` inside a comprehension: a future edit that widened the filter --
+    to a UniProt accession, say, so two deposits of one protein pooled
+    their series -- would silently make the frozen set re-rollable, and
+    every other guard here would still pass.
+    """
+    first, second = corpus.JOIN[0].pdb_id, corpus.JOIN[1].pdb_id
+    series = [
+        {
+            "series_id": f"{pdb}_{i:02d}",
+            "pdb_id": pdb,
+            "n_ligands": 14 - (i % 5),
+            "ligands": [],
+        }
+        for pdb in (first, second)
+        for i in range(12)
+    ]
+    baselines = {s["series_id"]: {"heavy_atoms": 0.0} for s in series}
+    boxes = {first: object(), second: object()}
+    monkeypatch.setattr(
+        corpus, "series_box_fit",
+        lambda s, box: {"ligands_over_box": 0, "ligands_would_not_embed": 0,
+                        "max_extent_a": 1.0, "max_rotatable_bonds": 1,
+                        "box_shortest_side_a": 16.0},
+    )
+
+    # Both arms are built from the ORIGINAL table before either is applied:
+    # reading `corpus.JOIN` again after the first `setattr` reads the patched
+    # one, which is how the second arm quietly became a copy of the first.
+    pinned = list(corpus.JOIN)
+    one_target = [row for row in pinned if row.pdb_id == first]
+    two_targets = [row for row in pinned if row.pdb_id in (first, second)]
+    assert len(two_targets) == 2, "the fixture needs two DISTINCT pinned targets"
+
+    monkeypatch.setattr(corpus, "JOIN", one_target)
+    before, _ = corpus.select_for_docking(series, baselines, boxes)
+    monkeypatch.setattr(corpus, "JOIN", two_targets)
+    after, _ = corpus.select_for_docking(series, baselines, boxes)
+
+    assert before, "the one-target arm selected nothing, so this proves nothing"
+    assert set(before) <= set(after), (
+        f"adding a target DROPPED {sorted(set(before) - set(after))} -- a new "
+        "JOIN row reached another target's candidates, so the frozen selection "
+        "is re-rollable by adding a target"
+    )
+    # The first target's chosen series must be IDENTICAL, not merely present:
+    # a reordering within one target would still satisfy the subset check
+    # while changing which series a truncated run reaches first.
+    assert [s for s in after if s.startswith(first)] == before
+
+
 def test_the_recorded_first_selection_is_a_record_and_not_a_rule(corpus):
     """Nothing may SELECT on `FIRST_FROZEN_SELECTION`.
 

@@ -5057,6 +5057,254 @@ larger than the screen cannot be rescued by resizing. Measured under
 smallest screen this product supports. The guard asserts HEIGHT ONLY, because
 a width bound would be a claim about the font.
 
+## A REFUSAL THAT NAMED ITS OWN UNBLOCKING CONDITION, UNCHECKED FOR TEN DAYS
+
+`docs/sources.toml` recorded Waasmaier & Kirfel 1995 as `assessed_not_shipped`
+and its reason ended: *"WHAT WOULD LIFT IT: a machine-readable copy of this
+table."* **Nobody had checked whether one existed.** One does, it is MIT, and
+the whole intensity half of `chem/powder_xrd.py` shipped in an afternoon.
+
+**THE BLOCKER WAS MISDIAGNOSED, AND THE MISDIAGNOSIS IS THE DURABLE PART.**
+The recorded reason was that only 6 of 11 parameters per row have an oracle --
+`sum(a_i) + c = Z` checks `a1..a5` and `c`, while a wrong `b` is wrong at every
+non-zero angle and *exactly right at theta = 0*, which is the one place that
+checksum looks. Every word of that is true. What was concluded from it is not:
+that the five `b` values were unverifiable. **They were unverifiable BY HAND,
+from a scan 29.7% corrupted.** Given a candidate table, the paper itself is the
+oracle for all eleven -- every value can be looked for in its own Table 1.
+
+    values found VERBATIM in the copy we hold   1280 of 2321   (55.1%)
+    against that scan's own ceiling             ~70%
+    species, and cctbx reports 211 independently   211
+
+Fifth instance in this file of a deferral whose REASONS rotted while its
+verdict looked settled -- and the first where the entry had already written
+down what would lift it.
+
+### THE PROVENANCE CHAIN, AND WHY THREE COPIES CAN BE ONE SOURCE
+
+A review named praxes, ASE and Demeter as carrying the table. **If all three
+trace to DABAX that is ONE source wearing three coats, not three agreeing
+routes** -- the "a pattern in a handful of samples is not a law" lesson in a
+new place. What shipped instead has two genuinely separate chains:
+
+    xraydb 4.5.8, MIT       waasmaier_kirfel.dat; its f0 docstring cites the
+                            paper by volume and page
+    cctbx, independent      the same table, origin documented as the authors'
+                            own ftp://wrzx02.rz.uni-wuerzburg.de/... sfac.dat,
+                            "picked up Jul 4, 1995. File verified Sep 12, 2001"
+
+**Both report 211 species**, which is agreement on the table's SHAPE rather
+than only on its numbers. MIT and MPL-2.0 are both compatible with this
+project's GPL-3.0-or-later, which was checked rather than assumed.
+
+**AND THE DOI WAS VERIFIED BEFORE IT WAS RECORDED.** The registry entry said
+none is printed in the file, which is still true. Crossref resolves
+`10.1107/S0108767394013292` to this exact paper -- both authors, Acta Cryst.
+A51(3) 416-431, 1995 -- so it is checked rather than remembered, which is this
+file's own most-repeated failure avoided for once.
+
+### THE ACCEPTANCE IS A CLOSED FORM, NOT A REFERENCE TABLE
+
+For rock salt the structure factor collapses to two cases every text prints:
+all-even `hkl` put Na and Cl in phase and give `4(f_Na + f_Cl)`, all-odd put
+them out of phase and give `4(f_Na - f_Cl)`. Measured through the shipped path:
+
+    (1 1 1) odd    computed |F|^2 = 324.6    16(f_Na - f_Cl)^2 = 324.6
+    (2 0 0) even   computed |F|^2 = 7292.5   16(f_Na + f_Cl)^2 = 7292.5
+
+**Sharp because three things must be right TOGETHER** -- the scattering
+factors, the symmetry expansion that puts four of each ion in the cell, and
+the phase sum. Any one wrong still produces a plausible-looking pattern, which
+is why `test_the_structure_factor_sums_the_WHOLE_CELL_not_the_asymmetric_unit`
+asserts the atom count is 8 against a CIF listing 2: summing the asymmetric
+unit gives peaks in the right PLACES with intensities wrong by an
+hkl-dependent factor, and nothing downstream can see that.
+
+`test_the_odd_reflection_is_weak_and_the_even_one_is_strong` is separate on
+purpose: a sign error swapping the two cases would satisfy the parametrised
+check on every line it was applied to, being self-consistent about the wrong
+pairing.
+
+### TWO ASSUMPTIONS THE DATA REFUTED, AND ONE COST A WRONG VERDICT
+
+**`b >= 0` IS NOT AN INVARIANT, AND ASSUMING IT FLAGGED 13 CORRECT ROWS.**
+Carbon's own row, read out of the paper we hold:
+
+    C RHF 2.657506 14.780758 1.078079 0.776775 1.490909 42.086843
+          -4.241070 -0.000294 0.713791 0.239535 4.297983
+
+-- a large NEGATIVE a paired with a tiny negative b against a large positive
+c; nitrogen's c is -11.804902. Artefacts of an unconstrained five-Gaussian
+least squares, not corruption. So the shipped invariants are on **f0 itself**
+rather than on the shape of its parameters: over the paper's full stated range
+all 211 species decay monotonically and none goes negative. Only Be2+ touches
+-0.0004, which is a two-electron ion's fit straddling its own zero asymptote,
+and it is NAMED in `NEGATIVE_F0_FLOOR` rather than absorbed by a loose bound.
+
+**AND `s` VERSUS `s^2` IS A SEVERAL-ELECTRON ERROR.** gemmi's `calculate_sf`
+takes `stol2`; the first cross-check passed `s`, and californium came out
+**21.2 electrons** out. Corrected, the worst disagreement between the
+five-Gaussian and four-Gaussian fits is **0.125** electrons. That accident is
+what established the check discriminates at all -- a corrupted exponent moves
+f0 by electrons, a genuine fit-to-fit difference by hundredths.
+
+**BOTH PRE-DECLARED TOLERANCES FAILED AS WRITTEN, AND WERE NOT RETRO-FITTED.**
+Declared before looking: max abs < 0.10 and RMSE < 0.03 against the
+International Tables fit, and checksum < 0.02. Measured: 6 of 98 over the
+first (worst iodine 0.125), 34 of 98 over the second (worst francium 0.044),
+19 of 211 over the third (worst osmium 0.038, none over 0.05). Every offender
+is a heavy element, which is precisely where Waasmaier & Kirfel argue the
+four-Gaussian fit is inadequate -- so the disagreement is the expected result
+and the TOLERANCES were mis-calibrated guesses about fit-to-fit spread. They
+are reported as failed rather than widened, and the acceptance rests on the
+paper instead.
+
+### THE FIVE (a, b) PAIRS MUST NOT BE SORTED
+
+Table 1 does not print ascending exponents -- **208 of 211 rows are
+non-monotonic** -- and some elements carry near-equal `b` values, so a tidy-up
+sorting by `b` re-pairs each `a` with another `a`'s exponent while every row
+still looks well formed. `test_the_five_gaussian_pairs_are_in_the_papers_own_order`
+asserts it on the shipped file rather than trusting the comment.
+
+### DEBYE-WALLER IS A NAMED REFUSAL, NOT `B = 0`
+
+`chem/cif.py` parses no atomic displacement parameters at all -- `Site` carries
+no `U_iso`, `B_iso` or `U_ij` -- so there is nothing to apply. **The input is
+never read, which is a stronger statement than "it may be absent".** Defaulting
+to zero would turn missing experimental information into the assumption that
+the atoms are motionless, and that assumption GROWS WITH ANGLE, so it is least
+visible exactly where a reader would check it.
+
+Measured against published NaCl relative intensities, this project's residual
+is concentrated at high angle -- 222, 400 and 420 all read high -- which is
+that term, arriving as confirmation rather than as a surprise.
+
+**AND `intensity_refusal()` KEPT ITS NAME WHILE CHANGING ITS ANSWER.** It
+returns `""` now and a reason only for a species the paper does not tabulate
+at all. Its contract is unchanged -- a consumer may not render a pattern
+without saying why a column is missing -- and four guards were flipped
+deliberately, including one that asserted the reflection has no intensity
+attribute at all.
+
+### THE SCALE IS OVER THE REPORTED LINES, AND THAT IS A DEFINITION
+
+Normalising over every family in range is the nicer property and costs a
+structure factor per reflection. Measured at 60 degrees: 2934 reflections over
+476 atoms is **1.59 s**, and 918 over 1488 atoms is **2.40 s** -- against a
+crystal report this file already records at 3.6-10.6 s on those same fixtures.
+So a truncated pattern is normalised within its own window and the limitation
+says so; **two patterns cut at different lengths are not on one scale.**
+
+The cap also still orders by ANGLE rather than intensity, now that there is
+something to rank by. Ranking by intensity would silently change WHICH
+reflections a truncated pattern contains for every caller already passing a
+cap, and a powder pattern is read along its angle axis.
+
+## THE RANKING CORPUS WIDENED OFF THE GPCRs, AND THE ENDPOINT EXCLUDED TWO CLASSES
+
+The 56-series null is dominated by one pocket family: five of eight targets are
+aminergic GPCRs sharing an orthosteric site, and **seven of eight sit at
+`SERIES_PER_TARGET = 8`**, so more SERIES re-measure the same eight pockets.
+Nothing separated "docking cannot rank" from "docking cannot rank in shallow
+aminergic GPCR pockets".
+
+**ADDING A TARGET IS A SUPERSET BY CONSTRUCTION, WHICH IS STRONGER THAN THE
+WIDENING THAT MODULE ALREADY DEFENDS.** `select_for_docking` loops
+`for row in JOIN` and filters each row's candidates on
+`series["pdb_id"] == row.pdb_id`, so a new row's body cannot reach another
+row's candidate list. Audited rather than argued -- `widening_diff.json`
+records it, and the retained 56 were checked by CONTENT as well as by identity:
+
+    release ChEMBL_37 -> ChEMBL_37     schema 1 -> 1     targets 8 -> 12
+    selection 56 -> 77   added 21   REMOVED 0
+    retained series with changed ligands or pChEMBL: 0
+
+**THE COST IS DERIVED FROM THE REBUILT MANIFEST, NOT FROM AN AVERAGE.** The
+frozen run's "68 searches per series" is a mean over series spanning 5-14
+ligands at 6 replicates -- 30 to 84 searches -- so multiplying it by a series
+count is an average dressed as a prediction. The real figure is
+`sum(n_ligands) * REPLICATES` = **195 x 6 = 1170 searches, 1.9 to 12.3 hours**.
+
+### TWO ENZYME CLASSES ARE EXCLUDED BY THE ENDPOINT, NOT BY CHOICE
+
+`PRIMARY_ENDPOINT` is Ki, and screening candidates BEFORE freezing them found
+that two obvious ones cannot form even one series of `MIN_SERIES` = 5:
+
+    1HSG  HIV-1 protease   SIFTS gives P03367, the Gag-Pol polyprotein, whose
+                           ChEMBL target carries Ki = 4      (IC50 = 77)
+    5KIR  COX-2            Ki = 27                           (IC50 = 6116)
+
+So the aspartic-protease and eicosanoid-enzyme classes are absent. The module's
+own header already recorded the COX-2 case ("a Ki-only rule silently refuses an
+enzyme class"); **the protease case is new and sharper, because 1HSG is the
+textbook docking system** and its SIFTS accession is the polyprotein rather
+than the mature protease.
+
+**THEY ARE NOT SWITCHED TO IC50 TO RESCUE THEM.** An IC50 series is admissible
+and reported SEPARATELY -- within one assay an IC50 ordering is valid while a
+Ki and an IC50 are not one quantity -- but opening that stratum now, for two
+targets, after seeing that Ki excludes them, would be choosing a rule to admit
+a case.
+
+What shipped instead is four classes with the data to support them: MAO-B
+(flavoenzyme, Ki 686), estrogen receptor alpha (nuclear receptor, 702),
+acetylcholinesterase (serine hydrolase, 665) and **sigma-1 (ER membrane
+chaperone, 3301 -- the richest pool in the corpus)**. All four already
+curated in `receptor_library.py` with validated boxes, so no receptor
+curation happened at all.
+
+### THE RESULT: THE NULL HOLDS, AND THE HYPOTHESIS THAT MOTIVATED IT IS BACKWARDS
+
+4998 searches, 833 ligands, 77 series, 12 receptors, 18.8 hours.
+
+    median rho(-vina, pChEMBL)   +0.046   95% [-0.027, +0.122]
+    series with rho > 0          43/77    sign test p = 0.362
+    median rho(Vinardo - Vina)   +0.000   95% [-0.053, +0.073]
+    leakage  810 ABSENT, 23 PRESENT, 0 UNRESOLVED
+             ABSENT-only median +0.046, IDENTICAL to the full set
+
+Widening did not change the answer; it slightly WEAKENED it (+0.082 ->
++0.046), on 37% more series and 50% more receptors. Reported as
+pre-committed, whatever it said.
+
+**AND THE QUESTION CAME BACK THE OTHER WAY ROUND.** The widening existed to
+separate "docking cannot rank" from "docking cannot rank in shallow aminergic
+GPCR pockets":
+
+    aminergic GPCR only               32 series   median +0.205   21/32
+    everything NOT an aminergic GPCR  45 series   median -0.010   21/45
+
+**The aminergic GPCRs are where this method does relatively BEST**, and the
+four added folds -- flavoenzyme, nuclear receptor, serine hydrolase, ER
+chaperone -- are flat. So pocket family is removed as an explanation for the
+null, in the direction nobody predicted.
+
+**THE OBVIOUS CONFOUND WAS CHECKED BEFORE THE SPLIT WAS PRINTED**, because
+the added series are smaller by construction and a group difference could
+have been an instrument difference:
+
+    group              n   med ligands   med span   med floor
+    aminergic GPCR    32            12       1.94      0.302
+    everything else   45            12       1.95      0.302
+
+Identical on all three.
+
+**IT IS STILL POST HOC AND IS NOT A RESULT OF THIS RUN.** The pre-registered
+quantity was the aggregate; this compares groups chosen after the data was
+seen, across twelve targets where something will look extreme by chance. It
+is a hypothesis for a future pre-registered test. ER alpha rests on 3 series
+and acetylcholinesterase on 2, so nothing may be rendered as `0/4 new targets
+showed ranking`.
+
+### AND THE CANDIDATE SET WAS FROZEN ON DATA, WITH THE RESERVE ORDER
+
+Screening on Ki availability is selecting on the DATA, never on an outcome --
+no docking score, no rho and no ordering existed at any point. The reserve
+order is frozen in the README beside it, because "a reserve takes its place"
+is otherwise outcome-dependent once more than one candidate could fill a gap.
+
 ## Running the tests
 
 ```bash
@@ -5066,7 +5314,55 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-22 minutes**, ending at `6750 passed, 16 skipped`
+A clean run is **6-22 minutes**, ending at `6814 passed, 16 skipped`
+(measured 2026-09-07, **15m11**, on `widen-the-ranking-corpus` -- the powder
+intensities and the ranking corpus widened off the aminergic GPCRs.
+
+**+67 collected and 3 REMOVED**, diffed both directions with `comm` in a
+detached worktree, with the `PYTHONPATH` override asserted before the count was
+believed (`import openchem` reported the WORKTREE's `src`):
+
+    master     add0024   COLLECTS 6766
+    this one             COLLECTS 6830   = 6766 + 67 - 3
+    the run                       6814 passed + 16 skipped = 6830
+
+**ALL THREE REMOVALS ARE THE INTENSITY REFUSAL'S OWN GUARDS, FLIPPED ON
+PURPOSE**, which is the whole reason to diff rather than subtract. Each
+asserted the refusal this branch lifts and each has a named successor:
+
+    test_the_pattern_carries_no_intensity_at_all
+      -> test_the_rock_salt_structure_factor_matches_its_closed_form
+    test_every_pattern_says_why_it_has_no_intensities
+      -> test_every_pattern_says_that_no_debye_waller_factor_is_applied
+    test_every_reported_line_carries_the_intensity_refusal
+      -> test_every_reported_line_carries_the_debye_waller_refusal
+
+The first of those asserted the reflection has no intensity ATTRIBUTE at all,
+so it could not be weakened -- only replaced by its opposite.
+
+    55  test_rank_power_console.py       written -- 52 are 13 characters
+                                         against 4 codepages
+    10  test_powder_xrd.py               the rock-salt oracle, the cell
+                                         expansion, s-versus-s^2, the
+                                         missing-species refusal, the table
+                                         invariants and the row-length proxy
+     1  test_sources_are_current.py      a parametrised case of the EXISTING
+                                         schema guard, for the new data table
+     1  test_chembl_corpus.py            the target-superset guard
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored, since
+pytest's progress dots share the line -- as do `^FAILED` and `^ERROR`. The skips
+are the deterministic 16. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**CLEAN ON ITS FIRST RUN, and it is the first figure here taken with the
+machine genuinely idle** -- the 4998-search docking run had finished, which
+matters because this file has already thrown away one figure for being
+concurrent with other work. 15m11 sits mid-band; the 6-22 range stands.)
+
+Before it: `6750 passed, 16 skipped`
 (measured 2026-09-06, **17m18**, on `a-screen-you-can-configure-and-reproduce`
 AT ITS MERGE OF MASTER -- the screen that could not pin a seed, on top of the
 ranking benchmark that landed as #72.

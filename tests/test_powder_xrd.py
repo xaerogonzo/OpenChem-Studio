@@ -21,9 +21,12 @@ import pytest
 
 from openchem.chem.cif import read_cif
 from openchem.chem.powder_xrd import (
+    _cell_contents,
     calculate_pattern,
+    debye_waller_refusal,
     equivalent_reflections,
     intensity_refusal,
+    scattering_factor,
     is_systematically_absent,
 )
 from openchem.chem.space_groups import resolve
@@ -297,22 +300,112 @@ def test_the_wavelength_tag_stops_being_reported_as_unhandled():
 # --- what is deliberately absent --------------------------------------------
 
 
-def test_the_pattern_carries_no_intensity_at_all():
-    """The refusal is structural, not a column of zeros.
+def test_the_rock_salt_structure_factor_matches_its_closed_form():
+    """THE ACCEPTANCE ORACLE, and it is arithmetic a reader can redo.
 
-    A zero intensity would read as "this reflection is extinguished",
-    which is a claim about the structure. Absent is the honest shape.
+    For rock salt the structure factor collapses to two cases, and every
+    text prints them: all-even hkl put Na and Cl IN phase and give
+    4(f_Na + f_Cl), all-odd put them OUT of phase and give 4(f_Na - f_Cl).
+    So |F|^2 is 16(f_Na +/- f_Cl)^2, computed here from the scattering
+    factors alone -- no reference table and no second implementation.
+
+    Sharp because three separate things have to be right together: the
+    scattering factors, the symmetry expansion that puts four of each ion
+    in the cell, and the phase sum. Any one of them wrong still produces a
+    plausible-looking pattern.
+    """
+    crystal = _halite()
+    pattern = calculate_pattern(crystal, wavelength=CU_KA1, max_two_theta=90.0)
+    by_hkl = {r.hkl: r for r in pattern.reflections}
+
+    for hkl in ((1, 1, 1), (2, 0, 0), (2, 2, 0), (3, 1, 1)):
+        reflection = by_hkl[hkl]
+        s = 1.0 / (2.0 * reflection.d_spacing)
+        f_na = scattering_factor("Na", s)
+        f_cl = scattering_factor("Cl", s)
+        in_phase = all(index % 2 == 0 for index in hkl)
+        expected = 16.0 * (f_na + f_cl if in_phase else f_na - f_cl) ** 2
+        assert reflection.structure_factor_squared == pytest.approx(expected, rel=1e-9)
+
+
+def test_the_odd_reflection_is_weak_and_the_even_one_is_strong():
+    """The chemistry that closed form encodes, asserted separately.
+
+    Without this, a sign error swapping the two cases would still satisfy
+    the parametrised check above on every line it was applied to -- it
+    would simply be self-consistent about the wrong pairing. (2 0 0) is the
+    strongest line of a rock-salt pattern and (1 1 1) a weak one, which is
+    what a reader would notice on the screen.
+    """
+    pattern = calculate_pattern(_halite(), wavelength=CU_KA1, max_two_theta=90.0)
+    by_hkl = {r.hkl: r for r in pattern.reflections}
+    assert by_hkl[(2, 0, 0)].relative_intensity == pytest.approx(100.0)
+    assert by_hkl[(1, 1, 1)].relative_intensity < 15.0
+    assert by_hkl[(3, 1, 1)].relative_intensity < by_hkl[(1, 1, 1)].relative_intensity
+
+
+def test_the_structure_factor_sums_the_WHOLE_CELL_not_the_asymmetric_unit():
+    """Halite's CIF lists two sites and its cell holds eight atoms.
+
+    A structure factor over the asymmetric unit alone gives peaks in the
+    right PLACES with intensities wrong by an hkl-dependent factor, which
+    is the shape of error nothing downstream can see. Asserting the atom
+    count is what stops the oracle above passing vacuously.
+    """
+    crystal = _halite()
+    assert len(crystal.sites) == 2
+    atoms, missing, substituted = _cell_contents(crystal)
+    assert len(atoms) == 8
+    assert [element for element, *_ in atoms].count("Na") == 4
+    assert not missing and not substituted
+
+
+def test_the_scattering_factor_takes_s_and_not_s_squared():
+    """The convention that is a several-electron error, not a small one.
+
+    f0(0) is the electron count by definition, so carbon reads 6 at s = 0
+    under EITHER convention -- which is exactly why that check alone cannot
+    tell them apart, and why the discriminating assertion is at non-zero s.
+    Measured while validating the table: handing s where s^2 was wanted put
+    californium 21.2 electrons out, against the 0.04 that separates two
+    genuinely different published fits.
+    """
+    assert scattering_factor("C", 0.0) == pytest.approx(6.0, abs=0.01)
+    assert scattering_factor("C", 0.5) == pytest.approx(
+        scattering_factor("C", 0.25 ** 0.5), rel=1e-12
+    )
+    assert abs(scattering_factor("C", 0.5) - scattering_factor("C", 0.25)) > 1.0
+
+
+def test_every_pattern_says_that_no_debye_waller_factor_is_applied():
+    """The refusal that REPLACED the intensity refusal, and a different
+    claim: the intensities exist, and they omit a term.
+
+    `chem/cif.py` does not parse displacement parameters at all, so there
+    is nothing to apply -- and defaulting B to zero would turn missing
+    experimental information into the assumption that the atoms are
+    motionless, which grows with angle and is therefore least visible
+    exactly where a reader would check it.
     """
     pattern = calculate_pattern(_halite(), wavelength=CU_KA1)
-    reflection = pattern.reflections[0]
-    for forbidden in ("intensity", "i_rel", "relative_intensity", "structure_factor"):
-        assert not hasattr(reflection, forbidden)
+    assert pattern.intensity_refusal == ""
+    assert pattern.debye_waller_refusal == debye_waller_refusal()
+    assert pattern.debye_waller_refusal in pattern.limitations
+    assert "" not in pattern.limitations
 
 
-def test_every_pattern_says_why_it_has_no_intensities():
-    pattern = calculate_pattern(_halite(), wavelength=CU_KA1)
-    assert pattern.intensity_refusal == intensity_refusal()
-    assert "Waasmaier" in pattern.intensity_refusal
+def test_a_species_the_table_does_not_carry_refuses_the_intensities():
+    """The narrow case the refusal survives for.
+
+    An intensity computed while skipping an atom is a pattern of the OTHER
+    atoms -- a different structure rather than an approximate answer -- so
+    positions ship, the column does not, and the element is named.
+    """
+    crystal = read_cif(HALITE_CIF.replace("Cl Cl", "Xx Xx"))
+    pattern = calculate_pattern(crystal, wavelength=CU_KA1)
+    assert pattern.reflection_count > 0
+    assert all(r.relative_intensity == 0.0 for r in pattern.reflections)
+    assert "Xx" in pattern.intensity_refusal
     assert pattern.intensity_refusal in pattern.limitations
 
 
@@ -375,7 +468,7 @@ def test_a_wavelength_too_long_to_diffract_gives_no_reflections_rather_than_rais
     reserved for a wavelength that was never supplied."""
     pattern = calculate_pattern(_halite(), wavelength=20.0, max_two_theta=90.0)
     assert pattern.reflection_count == 0
-    assert pattern.intensity_refusal
+    assert pattern.debye_waller_refusal
 
 
 def test_it_runs_on_every_shipped_cif_fixture():
@@ -440,13 +533,19 @@ def test_the_individual_lines_stay_ADVANCED_so_they_do_not_bury_the_cell():
     assert all(f.detail is Detail.ADVANCED for f in lines)
 
 
-def test_every_reported_line_carries_the_intensity_refusal():
+def test_every_reported_line_carries_the_debye_waller_refusal():
     """A reader looking at one row must not have to find the summary to
-    learn that no height is claimed."""
+    learn which term its height omits.
+
+    This replaces a guard requiring every row to carry the INTENSITY
+    refusal, which was right while there were no intensities. The contract
+    is unchanged -- a row states its own caveat -- and only the caveat
+    moved.
+    """
     lines = [f for f in _report().facts if f.label.strip().startswith("(")]
     assert lines
     for fact in lines:
-        assert any("Waasmaier" in note for note in fact.limitations)
+        assert any("Debye-Waller" in note for note in fact.limitations)
 
 
 def test_a_structure_with_no_wavelength_says_so_rather_than_going_quiet():
@@ -496,3 +595,63 @@ def test_a_negative_index_is_written_so_it_reads_as_one_index():
         h=1, k=0, l=-2, d_spacing=5.0, two_theta=10.0, multiplicity=2
     )
     assert reflection.label == "(1 0 -2)"
+
+
+def test_the_shipped_scattering_table_passes_its_own_invariants():
+    """Runs `tools/build_scattering_factors.py`'s check inside the suite.
+
+    That tool is the one place the table's invariants live, and nothing
+    else ran it -- a build tool whose check is only ever invoked by hand is
+    a check that stops being run. It needs nothing external, unlike the
+    regenerate half, which is why this half can live here at all.
+    """
+    import importlib.util
+    import json
+    import pathlib
+
+    root = pathlib.Path(__file__).resolve().parent.parent
+    spec = importlib.util.spec_from_file_location(
+        "build_scattering_factors", root / "tools" / "build_scattering_factors.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    payload = json.loads(module.TABLE.read_text(encoding="utf-8"))
+    assert module.check(payload) == []
+
+
+def test_the_five_gaussian_pairs_are_in_the_papers_own_order():
+    """Sorting by b would re-pair each a with another a's exponent.
+
+    Table 1 does not print ascending exponents and some elements carry
+    near-equal ones, so a "tidy up" that sorted them would leave every row
+    still looking well formed while changing what the row means. Asserted
+    on the shipped file rather than trusted to a comment.
+    """
+    import json
+
+    from openchem.chem.powder_xrd import SCATTERING_TABLE
+
+    species = json.loads(SCATTERING_TABLE.read_text(encoding="utf-8"))["species"]
+    unsorted = sum(1 for row in species.values() if row["b"] != sorted(row["b"]))
+    assert unsorted > 200, f"only {unsorted} of {len(species)} rows are unsorted"
+
+
+def test_a_reported_line_carries_its_intensity_and_stays_short():
+    """The intensity reaches the row, and the row stays one line's worth.
+
+    The length half is a PROXY and says so: row height here is
+    height-for-width, which derives from the full string rather than from
+    what is painted, so the real bound is in pixels at a font this suite
+    cannot speak for. What is assertable everywhere is the string, and the
+    measured breaking point on the real desktop was between 42 and 49
+    characters -- 49 took each row from 54 px to 70 px and pushed the
+    twelfth line out of a dialog sized for twelve. 44 keeps the shipped
+    form with headroom and still fails the full-length wording that broke
+    it.
+    """
+    lines = [f for f in _report().facts if f.label.strip().startswith("(")]
+    assert lines
+    for fact in lines:
+        assert "I = " in fact.display_value
+        assert len(fact.display_value) <= 44, fact.display_value

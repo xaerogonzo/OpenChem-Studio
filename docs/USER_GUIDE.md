@@ -2233,12 +2233,19 @@ report to see them, and choose *Everything* in the depth box for the full
 line list — the summary row is always visible, the individual lines are
 marked advanced so they do not bury the cell and the density.
 
-It reports **where the peaks fall and not how tall they are**, which is a
-deliberate refusal rather than an unfinished feature — see
-`SCIENTIFIC_LIMITATIONS.md` for the measurement behind it. In short:
-positions are lattice geometry you can check by hand, while intensities
-need a table of atomic scattering factors that could not be transcribed
-reliably from the copy available.
+Each line also carries a **relative intensity**, on a scale where the
+strongest line *among those listed* is 100. There is no absolute scale,
+because that needs the experiment's incident flux, sample volume and
+detector response — none of which is a property of a structure.
+
+**Two things the heights do not include, and both matter when comparing
+against a measured diffractogram.** There is no **Debye–Waller factor**:
+this reader does not parse atomic displacement parameters, so there is
+nothing to apply, and a real pattern's high-angle peaks fall below these
+— increasingly so with angle and with temperature. And because the list
+is capped, the scale is set within the lines shown, so **two patterns cut
+at different lengths are not on the same scale**. See
+`SCIENTIFIC_LIMITATIONS.md`.
 
 **The wavelength comes from the file.** A pattern needs one, and no
 property of a structure supplies it, so the report uses the CIF's own

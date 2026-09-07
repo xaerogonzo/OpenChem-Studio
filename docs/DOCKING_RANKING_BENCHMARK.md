@@ -1,15 +1,25 @@
 # The Within-Assay Docking Ranking Benchmark
 
 **A dated record of one measurement, not a live claim.** Measured
-2026-09-05/06 against ChEMBL_37 with AutoDock Vina 1.2.7 at exhaustiveness
+2026-09-05/07 against ChEMBL_37 with AutoDock Vina 1.2.7 at exhaustiveness
 25. The raw per-replicate JSONL under `benchmarks/docking/results/` is
-gitignored, so **the per-series table below is the only committed form of a
-14.5-hour run** and must not be regenerated from a later corpus without
+gitignored, so **the per-series table below is the only committed form of an
+18.8-hour run** and must not be regenerated from a later corpus without
 saying so.
 
-    3828 real Vina searches   624 ligands   56 single-assay series
-    8 receptors               6 replicates each
-    14.5 h of search time     mean 13.7 s, median 11.9 s, max 67.3 s
+    4998 real Vina searches   833 ligands   77 single-assay series
+    12 receptors              6 replicates each
+    18.8 h of search time     mean 13.5 s, median 11.3 s, max 67.3 s
+
+**WIDENED BY TARGET ON 2026-09-07, and the frozen 56 are a nested control
+rather than history.** The first endpoint was 56 series on 8 receptors, five
+of them aminergic GPCRs sharing an orthosteric site. Four structurally
+distinct folds were added -- flavoenzyme, nuclear receptor, serine hydrolase
+and ER chaperone -- costing 1170 searches and 4.2 h. Every one of the
+original 56 survives unchanged: `benchmarks/docking/widening_diff.json`
+records `REMOVED 0` and zero content drift, and a new JOIN row cannot reach
+another row's candidates, so the superset holds by construction rather than
+by promise.
 
 ## What it measures, and what it is not
 
@@ -29,16 +39,97 @@ different experiment.
 
 ## The headline: it is a null
 
-| | |
-| --- | --- |
-| median rho(-vina, pChEMBL) | **+0.082**, 95% series bootstrap **[-0.030, +0.245]** |
-| series with rho > 0 | 32/56, sign test **p = 0.350** two-sided |
-| median rho(Vinardo) - rho(Vina) | **+0.000**, 95% **[-0.104, +0.082]** |
-| series where Vinardo ranks higher | 27/56 |
-| series beating every trivial baseline | **9/56** |
-| series with rho above **twice** its own random floor | **1/56** |
-| series with abs(rho) above its own random floor | 22/56 |
-| range of rho across series | -0.60 to +0.79 |
+| | 77 series (current) | 56 series (first endpoint) |
+| --- | --- | --- |
+| median rho(-vina, pChEMBL) | **+0.046**, 95% **[-0.027, +0.122]** | +0.082, 95% [-0.030, +0.245] |
+| series with rho > 0 | 43/77, **p = 0.362** two-sided | 32/56, p = 0.350 |
+| median rho(Vinardo) - rho(Vina) | **+0.000**, 95% [-0.053, +0.073] | +0.000, 95% [-0.104, +0.082] |
+| series where Vinardo ranks higher | 38/77 | 27/56 |
+| series beating every trivial baseline | **13/77** | 9/56 |
+| series with rho above **twice** its own random floor | **1/77** | 1/56 |
+| series with abs(rho) above its own random floor | 29/77 | 22/56 |
+| range of rho across series | -0.93 to +0.79 | -0.60 to +0.79 |
+
+**Widening did not change the answer; it slightly weakened it.** The interval
+still spans zero and the sign test is still far from significance, on 37% more
+series and 50% more receptors.
+
+## THE QUESTION THE WIDENING ASKED, AND IT ANSWERED THE OPPOSITE WAY
+
+The corpus was widened to separate **"docking cannot rank"** from **"docking
+cannot rank in shallow aminergic GPCR pockets"**. The second is refuted, and
+not in the direction expected:
+
+| group | n | median rho | rho > 0 |
+| --- | ---: | ---: | ---: |
+| aminergic GPCR only | 32 | **+0.205** | 21/32 |
+| everything NOT an aminergic GPCR | 45 | **-0.010** | 21/45 |
+
+The aminergic GPCRs are where this method does *relatively best*. The four
+added folds are flat.
+
+**AND THE OBVIOUS CONFOUND DOES NOT EXPLAIN IT**, which is the only reason
+the split is worth printing at all -- the added series are smaller by
+construction, so a group difference could be an instrument difference:
+
+    group              n   med ligands   med span   med floor
+    aminergic GPCR    32            12       1.94      0.302
+    everything else   45            12       1.95      0.302
+
+Identical on all three. So it is not series size, potency span or random
+floor.
+
+**IT IS STILL POST HOC AND MUST NOT BE READ AS A RESULT OF THIS RUN.** The
+pre-registered quantity was the aggregate; this split compares groups chosen
+after the data was seen, over twelve targets where some will look extreme by
+chance. It is a hypothesis for a future pre-registered test. Two of the new
+targets are also thin -- ER alpha rests on **3** series and
+acetylcholinesterase on **2** -- so their medians carry almost nothing, and
+nothing here may be rendered as `0/4 new targets showed ranking`.
+
+## Per target, and per structural class
+
+Series are nested in targets, nested in class. This is a **class
+diversification experiment, not twelve independent observations.**
+
+| PDB | class | n | median rho | rho > 0 |
+| --- | --- | ---: | ---: | ---: |
+| 5C1M | aminergic GPCR (mu-opioid) | 7 | +0.270 | 6/7 |
+| 6WGT | aminergic GPCR (5-HT2A) | 8 | -0.100 | 3/8 |
+| 3PBL | aminergic GPCR (D3) | 8 | +0.280 | 6/8 |
+| 2RH1 | aminergic GPCR (beta2) | 1 | +0.250 | 1/1 |
+| 5TGZ | aminergic GPCR (CB1) | 8 | +0.210 | 5/8 |
+| 3EML | other GPCR (adenosine A2A) | 8 | -0.035 | 2/8 |
+| 5I6X | transporter (SERT) | 8 | -0.035 | 3/8 |
+| 3HS4 | metalloenzyme (carbonic anhydrase II) | 8 | +0.205 | 5/8 |
+| 2V5Z | **NEW** flavoenzyme (MAO-B) | 8 | +0.035 | 4/8 |
+| 1ERE | **NEW** nuclear receptor (ER alpha) | 3 | -0.260 | 0/3 |
+| 4EY7 | **NEW** serine hydrolase (AChE) | 2 | -0.045 | 1/2 |
+| 5HK1 | **NEW** chaperone (sigma-1) | 8 | +0.035 | 6/8 |
+
+    the FROZEN eight targets   56 series   median +0.075   31/56
+    the NEW four               21 series   median +0.010   11/21
+
+## TWO ENZYME CLASSES ARE ABSENT BECAUSE OF THE ENDPOINT
+
+`PRIMARY_ENDPOINT` is Ki, and screening candidates **before** freezing them
+found two obvious ones cannot form even one series of `MIN_SERIES` = 5:
+
+    1HSG  HIV-1 protease   SIFTS gives P03367, the Gag-Pol polyprotein,
+                           whose ChEMBL target carries Ki = 4   (IC50 = 77)
+    5KIR  COX-2            Ki = 27                              (IC50 = 6116)
+
+So the aspartic-protease and eicosanoid-enzyme classes are missing **because
+of the endpoint stratum, not because they were not wanted**. The corpus
+builder's own header already recorded the COX-2 case; the protease case is
+sharper, because 1HSG is the textbook docking system and SIFTS maps it to the
+polyprotein rather than the mature enzyme.
+
+**They were NOT switched to IC50 to rescue them.** An IC50 series is
+admissible and reported separately -- within one assay an IC50 ordering is
+valid while a Ki and an IC50 are not one quantity -- but opening that stratum
+now, for two targets, after seeing that Ki excludes them, would be choosing a
+rule to admit a case.
 
 **N5, N2 and N1 all land** — three of the five nulls `docs/ROADMAP.md`
 pre-registered as shipping outcomes.
@@ -73,7 +164,7 @@ bounded by assay noise, chemical space and model misspecification.
 +1.000 over 12 well-spread ligands means "noise did not reorder twelve spread
 compounds", not "the search is noiseless".
 
-## 47 of 56 series are ordered at least as well by a descriptor
+## 64 of 77 series are ordered at least as well by a descriptor
 
 Only **9 of 56** beat every trivial physicochemical baseline — heavy-atom
 count, molecular weight, cLogP and TPSA, on the drop-for-drop identical ligand
@@ -152,10 +243,11 @@ marginal result is for.
 
 **Not "docking cannot rank".** Two series reach rho = +0.79
 (`5I6X_CHEMBL1645847`) and +0.75 (`5I6X_CHEMBL808864`), and 22 of 56 exceed
-their own random floor in absolute value — about what 56 draws from a null
-would give. The claim is **no ranking ability detectable across within-assay
-congeneric series at this n**, on eight targets, with Vina at exhaustiveness
-25, rescored by Vinardo.
+their own random floor in absolute value — 29 of 77 now, about what that
+many draws from a null would give. The claim is **no ranking ability
+detectable across within-assay congeneric series at this n**, on **twelve
+targets spanning six structural classes**, with Vina at exhaustiveness 25,
+rescored by Vinardo.
 
 **The oracle's own reproducibility is unmeasurable here.** ChEMBL carries no
 per-row uncertainty, so rho is bounded above by a quantity nobody can measure,
@@ -170,8 +262,9 @@ real split rather than something `rank_report.py` refuses to present as one.
     PRESENT      14                           ( 11 distinct compounds)
     UNRESOLVED    0
 
-    median rho, ABSENT-only subsets   +0.073   (56 series)
-    median rho, full set              +0.082
+    ABSENT 810   PRESENT 23   UNRESOLVED 0
+    median rho, ABSENT-only subsets   +0.046   (77 series)
+    median rho, full set              +0.046
 
 **The pre-committed number is the first of those two, and it was committed
 before the lookup ran** (`benchmarks/docking/README.md`, commit `e91372a`).
@@ -192,7 +285,7 @@ component splits all break exact identity. PRESENT implies nothing: a compound
 can be in the PDB bound to a protein PDBbind never included. Protein and
 ligand *similarity* leakage are not addressed at all.
 
-## The corpus, and the eight targets
+## The corpus, and the twelve targets
 
 1586 single-assay series over eight catalogued receptors from 41,073
 activities, of which 795 are size-decoupled. **56 were docked — 3.5%.**
@@ -274,7 +367,7 @@ SHA-256. Two ligands sharing a replicate seed make the values arrive as
 correlated pairs and void route 1's exact calculation; the runner asserts the
 seed multiset within a series has no duplicate.
 
-## The 56 series
+## The 77 series
 
 `ρ Vina` and `ρ Vinardo` are ρ(−score, pChEMBL) — higher is better. `eff` is
 the count of **distinct** potencies, so a ρ over 14 ligands tied at four
@@ -284,12 +377,24 @@ halves. `heavy`, `MW` and `cLogP` are three of the four trivial baselines —
 TPSA is the fourth and is not shown, so **do not recompute "beats every
 baseline" from this table**; `rank_report.py` owns that judgement and a second
 implementation of it disagreed with the shipped one the first time it was
-written. `set` says whether a series was in the first frozen fifteen or added
-by widening.
+written. `set` says whether a series was in the first frozen fifteen (`1st`), added
+by the per-target widening (`wide`), or added by the 2026-09-07 TARGET
+widening (`new`).
 
 | series | target | n | eff | span | ρ Vina | ρ Vinardo | repeat | swaps | floor | heavy | MW | cLogP | set |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | :-: |
+| `1ERE_CHEMBL3998977` | 1ERE Homo. 2017 | 7 | 7 | 0.73 | **-0.93** | -0.89 | +0.960 | 1/21 | +0.41 | +0.20 | +0.31 | +0.52 | new |
+| `1ERE_CHEMBL5732098` | 1ERE Homo. 2017 | 11 | 11 | 1.82 | **-0.09** | +0.09 | +1.000 | 0/55 | +0.32 | -0.29 | -0.05 | -0.35 | new |
+| `1ERE_CHEMBL897773` | 1ERE Homo. 2007 | 6 | 6 | 2.32 | **-0.26** | -0.03 | +1.000 | 0/15 | +0.45 | +0.12 | +0.32 | +0.67 | new |
 | `2RH1_CHEMBL4187604` | 2RH1 Homo. 2018 | 12 | 11 | 2.26 | **+0.25** | +0.41 | +1.000 | 0/66 | +0.30 | +0.24 | +0.25 | +0.43 | 1st |
+| `2V5Z_CHEMBL1252258` | 2V5Z Homo. 2010 | 11 | 11 | 3.40 | **-0.03** | +0.12 | +1.000 | 0/55 | +0.32 | -0.14 | +0.19 | +0.24 | new |
+| `2V5Z_CHEMBL1816572` | 2V5Z Homo. 2011 | 9 | 8 | 2.55 | **+0.36** | +0.41 | +1.000 | 0/36 | +0.35 | +0.26 | +0.09 | -0.08 | new |
+| `2V5Z_CHEMBL3996824` | 2V5Z Homo. 2017 | 5 | 5 | 1.32 | **-0.80** | -0.80 | +1.000 | 0/10 | +0.50 | +0.00 | +0.21 | +0.21 | new |
+| `2V5Z_CHEMBL4183458` | 2V5Z Homo. 2018 | 5 | 5 | 2.24 | **+0.10** | +0.20 | +1.000 | 0/10 | +0.50 | +0.22 | +0.60 | -0.20 | new |
+| `2V5Z_CHEMBL4354288` | 2V5Z Homo. 2019 | 10 | 9 | 0.97 | **+0.12** | +0.55 | +1.000 | 0/45 | +0.33 | +0.17 | +0.06 | +0.27 | new |
+| `2V5Z_CHEMBL4385039` | 2V5Z Homo. 2019 | 13 | 13 | 3.46 | **-0.24** | -0.12 | +0.960 | 4/78 | +0.29 | +0.03 | +0.07 | -0.11 | new |
+| `2V5Z_CHEMBL5730690` | 2V5Z Homo. 2017 | 8 | 2 | 1.04 | **+0.41** | +0.41 | +1.000 | 0/28 | +0.38 | +0.17 | +0.00 | +0.17 | new |
+| `2V5Z_CHEMBL828820` | 2V5Z Homo. 2005 | 10 | 8 | 2.01 | **-0.24** | -0.07 | +0.960 | 2/45 | +0.33 | -0.25 | -0.30 | +0.37 | new |
 | `3EML_CHEMBL1117497` | 3EML Homo. 2010 | 12 | 10 | 1.64 | **-0.02** | -0.15 | +0.990 | 1/66 | +0.30 | -0.10 | -0.05 | +0.09 | wide |
 | `3EML_CHEMBL1120796` | 3EML Homo. 2010 | 12 | 12 | 1.71 | **+0.31** | +0.26 | +1.000 | 0/66 | +0.30 | +0.06 | -0.03 | +0.34 | wide |
 | `3EML_CHEMBL2422901` | 3EML Homo. 2013 | 12 | 12 | 3.74 | **-0.01** | -0.09 | +1.000 | 0/66 | +0.30 | +0.04 | +0.05 | -0.07 | wide |
@@ -314,6 +419,8 @@ by widening.
 | `3PBL_CHEMBL861437` | 3PBL Homo. 2006 | 12 | 12 | 2.99 | **+0.31** | +0.27 | +0.990 | 2/66 | +0.30 | -0.08 | +0.12 | +0.37 | wide |
 | `3PBL_CHEMBL872893` | 3PBL Homo. 2002 | 13 | 13 | 4.16 | **+0.34** | +0.24 | +0.990 | 1/78 | +0.29 | +0.28 | +0.14 | +0.12 | wide |
 | `3PBL_CHEMBL879553` | 3PBL Homo. 2000 | 10 | 9 | 3.39 | **-0.09** | -0.02 | +1.000 | 0/45 | +0.33 | -0.06 | -0.09 | -0.10 | wide |
+| `4EY7_CHEMBL1227597` | 4EY7 Homo. 2010 | 7 | 7 | 0.51 | **-0.39** | -0.71 | +1.000 | 0/21 | +0.41 | -0.29 | -0.14 | +0.00 | new |
+| `4EY7_CHEMBL3887379` | 4EY7 Homo. 2015 | 5 | 5 | 1.87 | **+0.30** | +0.30 | +1.000 | 0/10 | +0.50 | +0.15 | +0.15 | +0.67 | new |
 | `5C1M_CHEMBL1274304` | 5C1M Mus. 2010 | 9 | 8 | 2.42 | **+0.27** | +0.38 | +0.980 | 1/36 | +0.35 | -0.21 | -0.25 | -0.53 | 1st |
 | `5C1M_CHEMBL3385150` | 5C1M Mus. 2014 | 11 | 10 | 1.11 | **+0.38** | +0.24 | +1.000 | 0/55 | +0.32 | -0.14 | -0.10 | -0.63 | 1st |
 | `5C1M_CHEMBL4035921` | 5C1M Mus. 2017 | 6 | 6 | 1.14 | **+0.09** | +0.37 | +1.000 | 0/15 | +0.45 | -0.23 | -0.37 | -0.14 | wide |
@@ -321,6 +428,14 @@ by widening.
 | `5C1M_CHEMBL757171` | 5C1M Mus. 1989 | 8 | 8 | 3.98 | **+0.43** | +0.57 | +0.980 | 1/28 | +0.38 | +0.20 | +0.12 | +0.21 | wide |
 | `5C1M_CHEMBL758126` | 5C1M Mus. 1995 | 6 | 6 | 1.99 | **+0.20** | +0.09 | +0.990 | 0/15 | +0.45 | n/a | n/a | n/a | wide |
 | `5C1M_CHEMBL759359` | 5C1M Mus. 1997 | 5 | 5 | 0.97 | **+0.60** | -0.20 | +1.000 | 0/10 | +0.50 | +0.10 | +0.10 | +0.10 | wide |
+| `5HK1_CHEMBL4369944` | 5HK1 Homo. 2019 | 8 | 8 | 1.03 | **+0.40** | +0.26 | +1.000 | 0/28 | +0.38 | -0.16 | +0.00 | -0.21 | new |
+| `5HK1_CHEMBL4622425` | 5HK1 Homo. 2020 | 8 | 8 | 1.71 | **-0.02** | -0.48 | +1.000 | 0/28 | +0.38 | +0.08 | +0.12 | -0.24 | new |
+| `5HK1_CHEMBL6088796` | 5HK1 Homo. 2025 | 12 | 12 | 2.70 | **+0.05** | -0.26 | +0.990 | 1/66 | +0.30 | +0.09 | +0.17 | +0.32 | new |
+| `5HK1_CHEMBL803932` | 5HK1 Homo. 1993 | 13 | 13 | 3.38 | **+0.02** | -0.02 | +1.000 | 0/78 | +0.29 | +0.19 | +0.08 | -0.09 | new |
+| `5HK1_CHEMBL805786` | 5HK1 Homo. 1998 | 12 | 12 | 1.87 | **+0.43** | +0.24 | +0.990 | 1/66 | +0.30 | +0.03 | +0.01 | -0.00 | new |
+| `5HK1_CHEMBL848647` | 5HK1 Homo. 1993 | 13 | 12 | 1.12 | **+0.01** | +0.04 | +0.910 | 7/78 | +0.29 | +0.27 | +0.21 | +0.18 | new |
+| `5HK1_CHEMBL872703` | 5HK1 Homo. 1995 | 10 | 9 | 2.12 | **-0.55** | -0.54 | +0.990 | 1/45 | +0.33 | -0.23 | -0.64 | -0.30 | new |
+| `5HK1_CHEMBL880938` | 5HK1 Homo. 1995 | 12 | 12 | 2.77 | **+0.07** | +0.06 | +1.000 | 0/66 | +0.30 | +0.29 | +0.55 | +0.23 | new |
 | `5I6X_CHEMBL1041759` | 5I6X Homo. 2009 | 12 | 11 | 0.87 | **-0.23** | -0.07 | +0.990 | 1/66 | +0.30 | -0.00 | +0.19 | +0.18 | wide |
 | `5I6X_CHEMBL1645847` | 5I6X Homo. 2011 | 7 | 7 | 1.54 | **+0.79** | -0.18 | +0.960 | 1/21 | +0.41 | -0.13 | +0.14 | +0.14 | wide |
 | `5I6X_CHEMBL3871875` | 5I6X Homo. 2017 | 7 | 7 | 3.40 | **+0.11** | -0.11 | +1.000 | 0/21 | +0.41 | -0.26 | -0.14 | -0.57 | wide |

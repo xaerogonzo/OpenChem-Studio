@@ -613,7 +613,46 @@ compounds are PRESENT -- far too few for a PRESENT-only median to mean
 anything, so none is printed. And the bound is unchanged in KIND by being
 complete: exact-InChIKey identity, one-way, minimal.
 
-### The result: 3828 searches, 14.5 hours, and it is a NULL
+### WIDENED BY TARGET: 4998 searches, 18.8 hours, and it is still a NULL
+
+The 56-series endpoint was dominated by one pocket family -- five of eight
+targets aminergic GPCRs sharing an orthosteric site -- so four structurally
+distinct folds were added on 2026-09-07: MAO-B (flavoenzyme), estrogen
+receptor alpha (nuclear receptor), acetylcholinesterase (serine hydrolase)
+and sigma-1 (ER chaperone). 21 series, 1170 searches, 4.2 h.
+
+    median rho(-vina, pChEMBL)   +0.046   95% [-0.027, +0.122]
+    series with rho > 0          43/77    sign test p = 0.362
+    median rho(Vinardo - Vina)   +0.000   95% [-0.053, +0.073]
+    leakage  810 ABSENT, 23 PRESENT, 0 UNRESOLVED
+             ABSENT-only median rho +0.046, identical to the full set
+
+**Widening did not change the answer; it slightly weakened it** (+0.082 ->
++0.046), on 37% more series and 50% more receptors. Every one of the frozen
+56 survives unchanged -- `widening_diff.json` records `REMOVED 0` and zero
+content drift.
+
+**AND IT ANSWERED THE OPPOSITE WAY FROM THE HYPOTHESIS THAT MOTIVATED IT.**
+The widening existed to separate "docking cannot rank" from "docking cannot
+rank in shallow aminergic GPCR pockets". The second is refuted:
+
+    aminergic GPCR only               32 series   median +0.205   21/32
+    everything NOT an aminergic GPCR  45 series   median -0.010   21/45
+
+The aminergic GPCRs are where this method does relatively BEST, and the four
+added folds are flat. The obvious confound does not explain it -- both groups
+have a median of 12 ligands, a median span of 1.94/1.95 and a median random
+floor of 0.302, so it is not series size, potency span or floor.
+
+**IT IS POST HOC AND IS NOT A RESULT OF THIS RUN.** The pre-registered
+quantity was the aggregate; this split compares groups chosen after the data
+was seen. It is a hypothesis for a future pre-registered test. ER alpha rests
+on 3 series and acetylcholinesterase on 2, so nothing here may be rendered as
+`0/4 new targets showed ranking`.
+
+`docs/DOCKING_RANKING_BENCHMARK.md` carries the per-target table.
+
+### The first endpoint: 3828 searches, 14.5 hours, and it is a NULL
 
 **The full record, with the per-series table for all 56 series, is
 `docs/DOCKING_RANKING_BENCHMARK.md`.** The raw JSONL is gitignored, so that
@@ -696,19 +735,141 @@ Not "docking cannot rank". One series reaches ρ = +0.79
 (`5I6X_CHEMBL1645847`) and another +0.75 (`5I6X_CHEMBL808864`); 22 of 56 exceed
 their own random floor in absolute value, which is about what 56 draws from a
 null would give. The claim is **no ranking ability detectable across
-within-assay congeneric series at this n**, on eight targets, with Vina at
-exhaustiveness 25.
+within-assay congeneric series at this n**, on **twelve targets spanning six
+structural classes**, with Vina at exhaustiveness 25.
 
 The oracle's own reproducibility is unmeasurable here — ChEMBL carries no
 per-row uncertainty — so ρ is bounded above by a quantity nobody can measure,
 while the docking's own repeatability is measured and is essentially 1. That
 asymmetry is in `docs/SCIENTIFIC_LIMITATIONS.md`.
 
-**The leakage bound is closed and the null survives it**: 624 ABSENT, 14
-PRESENT, 0 unresolved, with an ABSENT-only median ρ of **+0.073** against the
-full set's +0.082. Dropping every compound that could conceivably have been in
+**The leakage bound is closed and the null survives it**, and it was re-closed
+after the widening: **810 ABSENT, 23 PRESENT, 0 unresolved**, with an
+ABSENT-only median ρ of **+0.046** -- identical to the full set's +0.046. (At
+the 56-series endpoint it was 624 / 14 / 0, ABSENT-only +0.073 against
++0.082.) Dropping every compound that could conceivably have been in
 PDBbind makes the correlation slightly *worse*, so the null is not an artefact
 of training-set contamination. It stays a **minimal** bound under exact-InChIKey
 identity, and says nothing about similarity leakage.
 
 The corpus holds 1586 series; 56 were docked, which is 3.5%.
+
+---
+
+## WIDENING BY TARGET — the pre-commitment, recorded before Gate A ran
+
+The 56-series null is dominated by one pocket family: five of its eight
+targets are aminergic GPCRs sharing an orthosteric site, and
+`SERIES_PER_TARGET` is 8 with seven targets already at that cap. So more
+*series* re-measure the same eight pockets. Nothing yet separates **"docking
+cannot rank"** from **"docking cannot rank in shallow aminergic GPCR
+pockets"**, and that is the question this widening asks.
+
+This section is committed **before the corpus was rebuilt**, for the reason
+the leakage arm above was: this benchmark's own p-value crossed 0.05 and came
+back when it was looked at three times mid-run.
+
+### Why widening by TARGET cannot be steered by an outcome
+
+Stronger than the `SERIES_PER_TARGET` 2 -> 8 widening this file already
+defends. `select_for_docking` loops `for row in JOIN` and filters each row's
+candidates on `series["pdb_id"] == row.pdb_id`, so **a new row's body cannot
+reach another row's candidate list**. The frozen 56 are a superset by
+construction rather than by a promise about sort order, and no rule anywhere
+in that function reads a rho.
+
+Asserted rather than reasoned about, by stable series identity plus a content
+check, and emitted as `widening_diff.json` so the nested design is
+mechanically auditable:
+
+    added targets | added series | unchanged series | removed series == EMPTY
+
+### The candidates were frozen on POCKET CLASS and Ki AVAILABILITY
+
+Both are properties of the data, not of any result: no docking score, no rho
+and no ordering existed at any point in the screen below. Every candidate is
+**already curated in `chem/receptor_library.py` with a validated box**, so no
+receptor curation happens here either.
+
+    PDB    class                        ChEMBL         Ki     status
+    2V5Z   flavoenzyme (MAO-B)          CHEMBL2039    686     candidate
+    1ERE   nuclear receptor (ER alpha)  CHEMBL206     702     candidate
+    4EY7   serine hydrolase (AChE)      CHEMBL220     665     candidate
+    5HK1   ER chaperone (sigma-1)       CHEMBL287    3301     candidate
+    6X3T   pentameric channel (GABA-A)  CHEMBL1962    298     reserve 1
+    4PE5   ionotropic channel (NMDA)    CHEMBL311     393     reserve 2
+
+**Reserve order is frozen here**, because "a reserve takes its place" is
+otherwise outcome-dependent. A candidate yielding zero series is dropped and
+the next reserve in that order is taken, once. If fewer than two survive,
+the widening stops and says so -- one extra pocket cannot address the
+narrowness this exists to address.
+
+### TWO CLASSES ARE EXCLUDED BY THE ENDPOINT, AND THAT IS A FINDING
+
+`PRIMARY_ENDPOINT` is Ki. Screened before freezing, two obvious enzyme
+candidates cannot form even one series of `MIN_SERIES`:
+
+    1HSG   HIV-1 protease   SIFTS gives P03367, the Gag-Pol polyprotein,
+                            whose ChEMBL target CHEMBL3638326 carries
+                            Ki = 4     (IC50 = 77)
+    5KIR   COX-2            Ki = 27    (IC50 = 6116)
+
+So the aspartic-protease and eicosanoid-enzyme classes are absent from this
+widening **because of the endpoint stratum, not because they were not
+wanted**. This module's own header already recorded the COX-2 case ("a Ki-only
+rule silently refuses an enzyme class"); the protease case is new and is the
+sharper one, because 1HSG is the textbook docking system.
+
+**THEY ARE NOT SWITCHED TO IC50 TO RESCUE THEM.** An IC50 series is
+admissible and is reported SEPARATELY -- never pooled, because within one
+assay an IC50 ordering is valid while a Ki and an IC50 are not one quantity.
+Opening an IC50 stratum is a separate decision needing its own
+pre-registration, and taking it now, for two targets, after seeing that the
+Ki stratum excludes them, would be choosing a rule to admit a case.
+
+### Watching it run, without asking anybody
+
+```bash
+uv run --no-sync python benchmarks/docking/progress.py
+```
+
+Read-only, safe at any time, and it answers **"is it alive"** separately from
+**"how far along"** -- because those are different questions and conflating
+them is how a dead run gets reported as a slow one. A completion count looks
+identical either way; only the mtime of the newest write tells them apart, so
+a run idle past `STALL_AFTER_S` is reported as **STALLED** rather than as
+progress. `--watch` reprints every minute.
+
+**IT PRINTS NO RHO, DELIBERATELY.** The rule three sections up -- report the
+completion count, never the rho -- is unenforceable if the progress tool
+prints the answer, because then "how is it going" and "what is the result"
+are the same question. That is precisely how this benchmark's p-value came to
+be looked at three times mid-run.
+
+### What is reported, and what must never be said
+
+The widened set is reported **whatever it says**, with three populations
+visible rather than one aggregate:
+
+    the frozen 56      the CONTROL population, still shown
+    the new subset     the non-GPCR classes
+    the combined set   nested, NOT independent, and the report says so
+
+Series are nested in targets, nested in pocket class. **This is a
+target-class diversification experiment, not four independent
+observations**, so results are reported at series level (rho per series, the
+existing statistic), at target level (a distribution, never a Bernoulli
+trial), and as class coverage. Nothing here may be rendered as
+`0/4 targets showed ranking`.
+
+The statistical procedure is unchanged: series bootstrap and the two-sided
+sign test, with no per-row p-values, because a per-pair rate does not
+control a table. `MIN_SERIES`, `MAX_LIGANDS_FOR_DOCKING`, `is_size_decoupled`
+and the box-fit rule are used exactly as the frozen 56 used them. **No
+target-specific relaxation of a selection rule is permitted.** The one thing
+allowed to differ per target is receptor preparation, and each difference is
+declared with its evidence.
+
+And the rule this file already carries stands: while the run is in flight,
+**report the completion count, never the rho.**

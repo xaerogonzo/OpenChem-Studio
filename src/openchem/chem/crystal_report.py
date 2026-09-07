@@ -120,7 +120,7 @@ def _powder_facts(crystal: Crystal) -> list[Fact]:
     of the structure supplies it; a reader seeing no powder rows would
     otherwise conclude the structure has no pattern.
     """
-    from openchem.chem.powder_xrd import calculate_pattern, intensity_refusal
+    from openchem.chem.powder_xrd import calculate_pattern, debye_waller_refusal
 
     try:
         pattern = calculate_pattern(
@@ -152,7 +152,8 @@ def _powder_facts(crystal: Crystal) -> list[Fact]:
         ]
 
     listed = ", ".join(
-        f"{r.label} {r.two_theta:.2f} deg" for r in pattern.reflections[:4]
+        f"{r.label} {r.two_theta:.2f} deg I={r.relative_intensity:.0f}"
+        for r in pattern.reflections[:4]
     )
     summary = f"{pattern.total_reflections} reflections to "
     summary += f"{POWDER_MAX_TWO_THETA:.0f} deg at {pattern.wavelength:.5f} A; {listed}"
@@ -189,14 +190,34 @@ def _powder_facts(crystal: Crystal) -> list[Fact]:
                 FactCategory.STRUCTURE,
                 f"  {reflection.label}",
                 round(reflection.two_theta, 4),
+                # **`mult` RATHER THAN `multiplicity`, AND THE ABBREVIATION
+                # IS LOAD-BEARING.** Found by driving the app and comparing
+                # two shots: adding the intensity to the full-length string
+                # took each row from 54 px to 70 px and pushed the twelfth
+                # line off a 900 px dialog -- for text that visibly fits on
+                # one line with two thirds of the width to spare, so it is
+                # not wrapping at the DISPLAYED width. It is the
+                # height-for-width family this project already records
+                # twice: `_ElidingLabel` derives its hints from `full_text`,
+                # so a longer full string buys a taller row whatever is
+                # painted. Measured:
+                #
+                #     multiplicity N                    38 chars   54 px
+                #     multiplicity N, I = 100.0         49 chars   70 px
+                #     mult N, I = 100.0                 42 chars   54 px
+                #
+                # `POWDER_LINES_IN_REPORT` is 12 and the dialog is sized to
+                # show 12, so this is the difference between the cap being
+                # honoured on screen and being one row short of it.
                 f"{reflection.two_theta:.3f} deg, d = {reflection.d_spacing:.4f} A, "
-                f"multiplicity {reflection.multiplicity}",
+                f"mult {reflection.multiplicity}, "
+                f"I = {reflection.relative_intensity:.1f}",
                 units="degrees 2theta",
                 evidence=(
                     "The multiplicity counts symmetry-equivalent planes plus the "
                     "Friedel pair, which a powder superimposes into one line.",
                 ),
-                limitations=(intensity_refusal(),),
+                limitations=(debye_waller_refusal(),),
                 detail=Detail.ADVANCED,
             )
         )

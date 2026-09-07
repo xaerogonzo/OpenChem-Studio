@@ -1,0 +1,46 @@
+{
+ "frozen_release": "ChEMBL_37",
+ "widened_release": "ChEMBL_37",
+ "schema_version": 1,
+ "added_targets": [
+  "1ERE",
+  "2V5Z",
+  "4EY7",
+  "5HK1"
+ ],
+ "added_series": {
+  "1ERE": [
+   "1ERE_CHEMBL3998977",
+   "1ERE_CHEMBL5732098",
+   "1ERE_CHEMBL897773"
+  ],
+  "2V5Z": [
+   "2V5Z_CHEMBL1252258",
+   "2V5Z_CHEMBL1816572",
+   "2V5Z_CHEMBL3996824",
+   "2V5Z_CHEMBL4183458",
+   "2V5Z_CHEMBL4354288",
+   "2V5Z_CHEMBL4385039",
+   "2V5Z_CHEMBL5730690",
+   "2V5Z_CHEMBL828820"
+  ],
+  "4EY7": [
+   "4EY7_CHEMBL1227597",
+   "4EY7_CHEMBL3887379"
+  ],
+  "5HK1": [
+   "5HK1_CHEMBL4369944",
+   "5HK1_CHEMBL4622425",
+   "5HK1_CHEMBL6088796",
+   "5HK1_CHEMBL803932",
+   "5HK1_CHEMBL805786",
+   "5HK1_CHEMBL848647",
+   "5HK1_CHEMBL872703",
+   "5HK1_CHEMBL880938"
+  ]
+ },
+ "added_series_count": 21,
+ "unchanged_series_count": 56,
+ "removed_series": [],
+ "content_drift_in_retained_series": []
+}

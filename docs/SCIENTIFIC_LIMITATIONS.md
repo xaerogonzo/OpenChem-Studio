@@ -192,24 +192,37 @@ The search found a pose within 3 Å on **8 of 8**, so both misses are scoring
 failures rather than search failures — which is the distinction that makes
 the result interpretable at all.
 
-**RANKING POWER IS MEASURED, AND THE ANSWER IS A NULL.** 56 within-assay
-ChEMBL series, 624 ligands, 3828 real Vina searches, 14.5 hours. The median
-ρ(−score, pChEMBL) is **+0.082** with a 95% series bootstrap of
-**[−0.030, +0.245]**; 32 of 56 series are positive, a two-sided sign test at
-**p = 0.350**. Rescoring with Vinardo moves the median by exactly **+0.000**.
-And **47 of 56 series are ordered at least as well by a trivial
+**RANKING POWER IS MEASURED, AND THE ANSWER IS A NULL.** 77 within-assay
+ChEMBL series, 833 ligands, 4998 real Vina searches, 18.8 hours. The median
+ρ(−score, pChEMBL) is **+0.046** with a 95% series bootstrap of
+**[−0.027, +0.122]**; 43 of 77 series are positive, a two-sided sign test at
+**p = 0.362**. Rescoring with Vinardo moves the median by exactly **+0.000**.
+And **64 of 77 series are ordered at least as well by a trivial
 physicochemical descriptor** — heavy-atom count, molecular weight, cLogP or
 TPSA — as by docking. The full record is
 [DOCKING_RANKING_BENCHMARK.md](DOCKING_RANKING_BENCHMARK.md).
 
 **Stated as narrowly as the data allows: no ranking ability detectable across
-within-assay congeneric series at this n, on eight targets, with Vina at
-exhaustiveness 25.** That is not "docking cannot rank" — two series reach
-ρ = +0.79 and +0.75.
+within-assay congeneric series at this n, on twelve targets spanning six
+structural classes, with Vina at exhaustiveness 25.** That is not "docking
+cannot rank" — two series reach ρ = +0.79 and +0.75.
+
+**THE CLASS SPREAD IS WHAT THAT SENTENCE BOUGHT, and it refuted the
+hypothesis it was built to test.** The first endpoint was eight targets, five
+of them aminergic GPCRs sharing an orthosteric site, so the null could have
+been a property of shallow aminergic pockets rather than of docking. Four
+distinct folds were added — flavoenzyme, nuclear receptor, serine hydrolase,
+ER chaperone — and the answer went the other way: the aminergic GPCRs are
+where the method does *relatively best* (32 series, median +0.205) and
+everything else is flat (45 series, median −0.010), on groups matched for
+median ligand count, potency span and random floor. **That split is post hoc
+and is not a result of that run** — the pre-registered quantity was the
+aggregate — but it does rule out pocket family as the explanation for the
+null.
 
 **THE REPEATABILITY COLUMN IS WHAT MAKES IT A FINDING RATHER THAN A SHRUG.**
 Across independent replicate halves the search orders the same ligands with a
-median ρ of **+0.990**, and only **60 of 3462 ligand pairs (1.7%)** swap. So
+median ρ of **+1.000**, and only **77 of 4346 ligand pairs (1.8%)** swap. So
 the disagreement with measured potency is **not sampling noise**, and no
 amount of extra exhaustiveness addresses it. It is the scoring function.
 Without that column the headline would be "docking did not correlate", which
@@ -1984,12 +1997,62 @@ What remains untested: **modulated and incommensurate structures**, which
 this model has no vocabulary for at all, and **CIFs whose coordinates are
 Cartesian rather than fractional**, which are refused by name.
 
-### The calculated powder pattern gives POSITIONS and no intensities
+### The calculated powder pattern gives positions AND intensities now
 
-**File → Import Crystal Structure** now reports where a powder X-ray
-diffraction pattern's peaks would fall: an (hkl) list with an interplanar
-spacing, a Bragg angle and a multiplicity. It reports **no peak heights
-at all**, and that is a refusal rather than an omission.
+**File → Import Crystal Structure** reports where a powder X-ray
+diffraction pattern's peaks fall — an (hkl) list with an interplanar
+spacing, a Bragg angle and a multiplicity — and, since 2026-09-07, a
+**relative intensity** beside each one.
+
+**This section used to say the intensities were refused, and the refusal
+is lifted. The paragraphs below it are kept, because the measurement in
+them is real and only the conclusion drawn from it was wrong.**
+
+The refusal rested on a scan 29.7% numerically corrupted, and on only 6 of
+11 parameters per row having an oracle. Both facts still hold. What did not
+hold is what was concluded from them: that the five `b` values were
+unverifiable. **They were unverifiable by HAND, from that scan.** The
+registry entry named its own unblocking condition — "a machine-readable
+copy of this table" — and nobody had checked whether one existed. One does,
+and with a candidate table in hand the paper itself becomes the oracle for
+all eleven parameters rather than six.
+
+| | |
+|---|---|
+| values found verbatim in the copy we hold | 1280 of 2321 (55.1%) |
+| against that scan's own ceiling | ~70% |
+| species, and cctbx reports the same independently | 211 |
+
+**The acceptance test is a closed form, not a reference table.** For rock
+salt the structure factor collapses to `16(f_Na + f_Cl)²` for all-even
+`hkl` and `16(f_Na − f_Cl)²` for all-odd, and the computed `|F(hkl)|²`
+matches both to nine significant figures. That is sharp because three
+things must be right together — the scattering factors, the symmetry
+expansion that puts four of each ion in the cell, and the phase sum — and
+any one of them wrong still yields a plausible-looking pattern.
+
+**What the intensities still omit is stated on every pattern.** There is
+**no Debye–Waller factor**, because `chem/cif.py` parses no atomic
+displacement parameters at all — so there is nothing to apply, and
+defaulting `B` to zero would turn missing experimental information into
+the assumption that the atoms are motionless. That assumption grows with
+angle, which makes it least visible exactly where a reader would check
+it. Measured against published NaCl intensities, this project's residual
+is concentrated at high angle, which is that term. Treat the column as an
+upper bound there rather than a prediction of peak height.
+
+**And the scale is over the reported lines.** Normalising over every
+family in range would make the number independent of the list length,
+which is the nicer property and costs a structure factor per reflection:
+measured at 60°, 2934 reflections over 476 atoms is 1.59 s and 918 over
+1488 atoms is 2.40 s, against a crystal report already taking 3.6–10.6 s
+on those same structures. So a truncated pattern is normalised within its
+own window, and two patterns cut at different lengths are **not on one
+scale**.
+
+---
+
+**THE PARAGRAPHS BELOW ARE SUPERSEDED AND ARE KEPT.**
 
 **The two halves rest on different kinds of evidence, which is why one
 ships and the other does not.**
@@ -2047,8 +2110,20 @@ worse than none.
 - **The reported list is capped and says so.** A large organic cell with
   Mo radiation has tens of thousands of reflection families out to 60°;
   the report lists the twelve lowest-angle ones and states how many it
-  did not list. Lowest-angle is the only honest ordering available
-  without intensities.
+  did not list. **It is still ordered by ANGLE rather than by intensity**,
+  now that there is something to rank by: ranking by intensity would
+  silently change which reflections a truncated pattern contains for every
+  caller already passing a cap, and a powder pattern is read along its
+  angle axis, so the low-angle window is the one a reader expects to be
+  complete.
+- **An ion whose charge the table does not carry falls back to the neutral
+  atom**, and the pattern says which. The paper tabulates 211 species,
+  short of every oxidation state a CIF can declare; the difference is a
+  few electrons at low angle and almost nothing past `s ≈ 0.5 Å⁻¹`, so
+  refusing the whole pattern over a charge would lose far more than it
+  protects. A species absent from the table **entirely** is a different
+  case and does refuse the intensities, naming the element — a pattern
+  computed while skipping an atom is a pattern of the other atoms.
 
 ## Where this is enforced
 
