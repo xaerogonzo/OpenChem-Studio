@@ -934,16 +934,39 @@ weaker independent second opinion than assumed here. Second, obtainability:
 its public release is v1.2, ANSI C++ "tested on UNIX and LINUX", behind a
 licence agreement, a registration and a server login.
 
-**[source:neudert2011]'s DSX replaces it**: knowledge-based rather than
-Vina-derived, its abstract reports *"superior performance with respect to
-docking- and ranking power"*, and it states it is *"freely available to the
-scientific community"*. Whether agklebe.de still serves it in 2026 is a
-spike, not a claim. [source:koes2013]'s smina lands before either, being both
-an engine and a rescorer and therefore the arm that tests whether
-`PoseRescorer` is an abstraction; [source:mcnutt2021] (GNINA) and
-[source:ballester2010] (RF-Score) are registered as later candidates, the
-first with the note that its published gain is docking power rather than
-ranking.
+**[source:neudert2011]'s DSX replaced it** on the science: knowledge-based
+rather than Vina-derived, with an abstract reporting *"superior performance
+with respect to docking- and ranking power"* and a statement that it is
+*"freely available to the scientific community"*.
+
+**BOTH OBTAINABILITY SPIKES ARE RUN NOW, 2026-09-07, AND THEY SPLIT.**
+
+    smina   OBTAINABLE on Windows. conda-forge ships win-64, three
+            artifacts, the newest REBUILT 2025-07-15 -- so the version is
+            pinned at 2020.12.10 and the feedstock is live. That an
+            artifact exists is not yet that a binary runs
+    DSX     NOT OBTAINABLE. www.agklebe.de redirects to a live Klebe group
+            page that still LINKS to a download area, a registration/login
+            and DSX-Online -- and /download/, /register/, /login and
+            /drugscore are ALL 404. No conda-forge package under three
+            plausible names; zero GitHub repositories
+
+**THE SPLIT IS AWKWARD, AND SAYING SO IS THE POINT.** DSX was the better
+SCIENTIFIC candidate and is the unobtainable one; smina is obtainable and is
+**Vina-derived**, so it cannot be the independent second opinion this axis
+needs. Its default scoring *is* Vina's, and `dkoes_scoring` is a linear
+regression fitted against CSAR 2012. Vinardo already failed to improve ranking
+and Vinardo is Vina-family; adding a third Vina-family function tests the
+`PoseRescorer` ABSTRACTION -- which is worth something, smina being both engine
+and rescorer -- and does not retest the FAMILY question.
+
+**So the rescoring axis has no obtainable independent second opinion today.**
+That is a finding, not a gap to be filled by lowering the standard.
+[source:mcnutt2021] (GNINA) and [source:ballester2010] (RF-Score) remain
+registered as later candidates: the first's published gain is docking power
+rather than ranking, which is the wrong ability for the question that is left,
+and the second is an ML model trained on PDBbind, so the leakage rule applies
+before it is fitted rather than after.
 
 **X-Score was the candidate to start with**, not the benchmark leader.
 CASF-2016's leader is **ΔVinaRF20**, a random-forest correction on top of
