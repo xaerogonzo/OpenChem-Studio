@@ -192,19 +192,72 @@ The search found a pose within 3 Å on **8 of 8**, so both misses are scoring
 failures rather than search failures — which is the distinction that makes
 the result interpretable at all.
 
-**RANKING POWER REMAINS UNMEASURED, and it is a data problem rather than an
-unfinished one.** It needs measured affinities, and every route to a set
-carrying them is closed from this machine: the PDBbind hosts, the CASF-2016
-tarball URL published evaluations use, Binding MOAD (whose domain now serves
-a commercial antibody catalogue), and Zenodo/figshare, which carry only
-preprocessed derivatives. RCSB's own affinity annotations are sparse and
-assay-heterogeneous — 104 records for 4EY7 spanning Kd 8 nM to IC50 7120 nM
-for one ligand. A 4000-fold spread across assays is not an oracle.
+**RANKING POWER IS MEASURED, AND THE ANSWER IS A NULL.** 56 within-assay
+ChEMBL series, 624 ligands, 3828 real Vina searches, 14.5 hours. The median
+ρ(−score, pChEMBL) is **+0.082** with a 95% series bootstrap of
+**[−0.030, +0.245]**; 32 of 56 series are positive, a two-sided sign test at
+**p = 0.350**. Rescoring with Vinardo moves the median by exactly **+0.000**.
+And **47 of 56 series are ordered at least as well by a trivial
+physicochemical descriptor** — heavy-atom count, molecular weight, cLogP or
+TPSA — as by docking. The full record is
+[DOCKING_RANKING_BENCHMARK.md](DOCKING_RANKING_BENCHMARK.md).
 
-The training-overlap question therefore stands unresolved rather than
-answered: Vinardo's parameters were selected on 122 of the 195 PDBbind Core
-2013 structures and Vina was trained on PDBbind 2007, and neither list is
-obtainable here. **Unknown, not absent.**
+**Stated as narrowly as the data allows: no ranking ability detectable across
+within-assay congeneric series at this n, on eight targets, with Vina at
+exhaustiveness 25.** That is not "docking cannot rank" — two series reach
+ρ = +0.79 and +0.75.
+
+**THE REPEATABILITY COLUMN IS WHAT MAKES IT A FINDING RATHER THAN A SHRUG.**
+Across independent replicate halves the search orders the same ligands with a
+median ρ of **+0.990**, and only **60 of 3462 ligand pairs (1.7%)** swap. So
+the disagreement with measured potency is **not sampling noise**, and no
+amount of extra exhaustiveness addresses it. It is the scoring function.
+Without that column the headline would be "docking did not correlate", which
+is equally consistent with the search being too noisy to have tried.
+
+**AND THE CEILING ON ρ HERE IS UNMEASURABLE, WHICH THE DOCKING'S IS NOT.**
+ChEMBL carries no per-row uncertainty, so ρ is bounded above by a quantity
+nobody can measure — while the docking's own repeatability *is* measured and
+is essentially 1. Do not read a low ρ as attributing all of the gap to the
+scoring function; read it as the gap not being sampling.
+
+**THE PARAGRAPH BELOW IS SUPERSEDED AND IS KEPT.** Until 2026-09-05 this
+section read *"RANKING POWER REMAINS UNMEASURED, and it is a data problem
+rather than an unfinished one"*. That was true of every route it surveyed and
+false of the one it did not: **ChEMBL's `assay_chembl_id`**, which confines a
+series to a single assay and a single laboratory. The way it was wrong is the
+durable part — it enumerated the closed doors carefully and read that as a
+closed question.
+
+> It needs measured affinities, and every route to a set carrying them is
+> closed from this machine: the PDBbind hosts, the CASF-2016 tarball URL
+> published evaluations use, Binding MOAD (whose domain now serves a
+> commercial antibody catalogue), and Zenodo/figshare, which carry only
+> preprocessed derivatives. RCSB's own affinity annotations are sparse and
+> assay-heterogeneous — 104 records for 4EY7 spanning Kd 8 nM to IC50 7120 nM
+> for one ligand. A 4000-fold spread across assays is not an oracle.
+
+Every one of those remains closed. What changed is that none of them was
+needed.
+
+**THE TRAINING-OVERLAP QUESTION HAS A NUMBER NOW, AND IT IS STILL NOT AN
+ANSWER.** Vinardo's parameters were selected on 122 of the 195 PDBbind Core
+2013 structures and Vina was trained on PDBbind 2007, and neither code list is
+obtainable here — so the overlap remains **unknown, not absent**.
+
+What *is* measured is a bound from the other direction. Every PDBbind entry is
+a co-crystallised complex, so a compound that is no PDB chemical component
+cannot have been in either training set. Over the ranking corpus: **613 of 624
+distinct compounds are ABSENT, 11 are PRESENT, none unresolved**, and the
+median ρ over ABSENT-only subsets is **+0.073** against the full set's +0.082.
+
+So the null does not depend on contaminated compounds — removing every one
+that could conceivably have been in PDBbind makes the correlation slightly
+*worse*. **Read that narrowly**: it is a sufficient exclusion under
+exact-InChIKey identity, which protonation, tautomer, salt, stereo and
+component splits all break, and it says nothing about *similarity* leakage in
+either the ligand or the protein. PRESENT implies nothing at all, since a
+compound can be in the PDB bound to a protein PDBbind never included.
 
 **IT LICENSES EXACTLY ONE DIRECTION.** This is the whole of what a replicate
 range supports:

@@ -629,25 +629,32 @@ copies of one protein.
 
 ### Ranking affinities — the gap is measured, and three routes are open
 
-**Route 1 is SHIPPED, route 2's AXIS is shipped, and route 3 has been
-spiked but ships nothing.** Route 3 was gated on route 1 existing and no
-longer is. All three are written down because the 2026-08-31 docking work
-turned "the docking has a lot to be desired" into a specific, sourced
-statement about *which* ability is weak, and they differ by two orders of
-magnitude in cost.
+**Route 1 is SHIPPED, route 2's axis is shipped AND ITS RANKING POWER IS NOW
+MEASURED, and route 3 has been spiked but ships nothing.** All three are
+written down because the 2026-08-31 docking work turned "the docking has a lot
+to be desired" into a specific, sourced statement about *which* ability is
+weak, and they differ by **four** orders of magnitude in cost -- minutes for
+route 1 against months of GPU for route 3 at corpus scale, which is priced
+below rather than left as an adjective.
 
     1  an interval, not a number    SHIPPED
     2  rescore with a second
-       function                     the AXIS is shipped; the ranking-power
-                                    benchmark is unmeasurable here, see below
+       function                     the AXIS is SHIPPED, and ranking power is
+                                    MEASURED: a NULL over 56 within-assay
+                                    ChEMBL series, 3828 real Vina searches.
+                                    Vinardo's median delta is exactly +0.000
     3  relative binding free
-       energy                       SPIKED. `git diff src/` is empty for all
-                                    of it. The pipeline runs on both
-                                    platforms and its acceptance test
-                                    reproduces the reference under WSL;
-                                    Windows runs a DIFFERENT force field and
-                                    so cannot be checked against that column
-                                    at all
+       energy                       SPIKED, and its GATE IS NOW SATISFIED --
+                                    route 1 exists and the 56-series corpus is
+                                    the oracle it was missing. It still ships
+                                    nothing, and what stops it is now a COST
+                                    NUMBER rather than a missing prerequisite.
+                                    `git diff src/` is empty for all of it
+
+**WHAT THE NULL DID TO THIS LIST.** It closed route 2's open question, it
+handed route 3 the acceptance oracle it was waiting for, and it moved "more
+exhaustiveness" from a citation refusal to a local measurement. It did not
+make any route cheaper. The three sections below are written in that order.
 
 **THE GAP, MEASURED RATHER THAN ASSERTED.** CASF-2016 evaluates four
 separate abilities and puts Vina on opposite sides of two of them
@@ -904,11 +911,19 @@ set (122 of the 195 PDBbind Core 2013 structures) and Vina was trained on
 PDBbind 2007, and neither list is obtainable from here for the same reason
 CASF-2016 is not. The overlap is unknown, not absent.
 
-**What would reopen ranking power**, in preference order: a CASF-2016 copy
-obtained through a PDBbind+ account; or a curated affinity set assembled from
+**THE "WHAT WOULD REOPEN RANKING POWER" LIST THAT STOOD HERE IS DELETED, and
+what it said is why.** It named two options in preference order: a CASF-2016
+copy through a PDBbind+ account, or *"a curated affinity set assembled from
 BindingDB/ChEMBL for targets already in the library, which is its own branch
-with its own curation decisions and its own leakage analysis, and whose
-numbers would not be comparable to any published table.
+with its own curation decisions and its own leakage analysis, and whose numbers
+would not be comparable to any published table."*
+
+**The second option is exactly what shipped**, down to the branch, the curation
+decisions, the leakage analysis and the not-comparable-to-CASF warning the
+report now prints itself. It was written as the fallback and it was the answer.
+The list is deleted rather than kept because, unlike the survey around it, it
+is a live *instruction* — a reader reaching it today would be told to go and do
+a thing that is already done.
 
 **CORRECTION, 2026-09-03: X-Score IS NO LONGER THE CANDIDATE, and the
 paragraph below is kept because its reasoning about ΔVinaRF20 still
@@ -975,9 +990,45 @@ three fentanyl analogues.
 **Acceptance is the hard part and is why this is third.** A wrong FEP looks
 exactly like a right one, so it needs convergence diagnostics reported
 rather than a bare ΔΔG, and a published congeneric series reproduced before
-any answer of ours is believed. **Do not start this before route 1 exists**:
-without a measured spread there is nothing to judge whether an FEP number is
-an improvement on the docking score it replaces.
+any answer of ours is believed.
+
+**THE GATE IS SATISFIED, AND IT IS NOT WHAT STOPS THIS ANY MORE.** This
+paragraph read *"Do not start this before route 1 exists: without a measured
+spread there is nothing to judge whether an FEP number is an improvement on the
+docking score it replaces."* Route 1 shipped, and the 56-series benchmark went
+further than the gate asked — it is not merely a spread but a **measured
+inadequacy on a named corpus**, so a free-energy method now has something
+specific to beat rather than a bar to clear in the abstract.
+
+**WHAT STOPS IT IS A COST NUMBER, AND HERE IT IS.** Priced from the committed
+per-series table (56 series, n = 5..14, median 12) against this section's own
+5–12 GPU-hours per ligand pair:
+
+    design                        edges   GPU-hours    continuous
+    whole corpus, spanning path     582   2910- 6984   121-291 days
+    whole corpus, cycle closure     962   4810-11544   200-481 days
+    ONE median series (n = 12)       11     55-  132   2.3-5.5 days
+    one smallest series (n = 5)       4     20-   48   ~1-2 days
+
+**So route 3 at corpus scale is refused on cost, and route 3 on ONE SERIES is a
+long weekend.** Those are not the same project at two sizes. The corpus-scale
+version would be the comparison that settles whether free energy beats docking
+here; the single-series version is one ΔΔG ladder, which is a demonstration
+that the pipeline produces a defensible number on a case whose docking answer
+is already measured. Only the second is reachable, and it should be written up
+as the second rather than presented as a small first.
+
+**And the corpus tells you which series NOT to pick.** `5I6X_CHEMBL1645847`
+(ρ = +0.79) and `5I6X_CHEMBL808864` (+0.75) are the two docking already orders
+well, so beating them proves least; the informative pick is a series with a
+strong *negative* ρ and a wide potency span, where docking is confidently
+wrong and there is real signal to recover.
+
+**A single-series RBFE needs its own pre-registration before it starts** —
+which series, which edges, convergence reported rather than a bare ΔΔG, and a
+published congeneric series reproduced first. This benchmark has already
+recorded what happens without one: an interim p-value that crossed 0.05 and
+came back.
 
 **SPIKED, AND THE PREDICTION ABOVE WAS EXACTLY RIGHT -- FOR THE WRONG
 REASON.** `benchmarks/free_energy/` builds hydration free energies with
@@ -998,16 +1049,45 @@ empty for the whole spike.
 
 #### What is deliberately NOT on this list
 
-- **More exhaustiveness.** Measured: it is the scoring function, not the
-  sampling. [source:agarwal2022] finds convergence at 25 and
-  [source:agboola2026] finds doubling it does not rescue misplacement.
-- **Consensus scoring.** CASF-2016 reports limited gains, and averaging
-  functions on different scales is the "one name, two quantities" trap
-  wearing a statistical hat.
-- **A general ML affinity predictor trained on PDBbind.** The
-  similarity-bias literature is damning and CASF-2016's own reference list
-  cites two papers on it. This project's rule — ask leakage of every model —
-  applies before any such thing is fitted, not after.
+**Each of the three is refused on a LOCAL measurement now, where two of them
+used to be refused on a citation.** That is the substantive change the null
+made to this list: the arguments are the same and the evidence behind them is
+this application's own.
+
+- **More exhaustiveness.** **Refused on local evidence.** Across independent
+  replicate halves the search orders the same ligands at a median ρ of
+  **+0.990**, with only **60 of 3462 ligand pairs (1.7%)** swapping. A search
+  that is very nearly deterministic in its ordering cannot be made to order
+  better by running it harder — the disagreement with measured potency is not
+  sampling, so it is the scoring function. [source:agarwal2022]'s convergence
+  at 25 and [source:agboola2026]'s finding that doubling leaves *"six of eight
+  gross misplacements unresolved"* are now corroboration rather than the
+  argument.
+- **Consensus scoring.** **Refused on local evidence.** Vinardo's median
+  Δρ against Vina is exactly **+0.000** (95% [−0.104, +0.082]) while
+  individual series swing by ±0.4 — `3HS4_CHEMBL2045715` goes +0.33 → +0.70
+  and `5I6X_CHEMBL5042437` −0.07 → −0.75. So the second column buys ordering
+  *diversity* and not accuracy, and averaging the two would be averaging a
+  coin. CASF-2016's limited-gains finding stands behind that, and the "one
+  name, two quantities" trap — recorded four times in this project — stands in
+  front of it.
+- **A general ML affinity predictor trained on PDBbind.** Unchanged, and the
+  leakage rule that governs it is now demonstrated rather than asserted: this
+  corpus's own bound was closed at zero compute cost and the null survived it
+  (613 of 624 compounds ABSENT, ABSENT-only median +0.073 against +0.082).
+  **Ask leakage of every model** — before it is fitted, not after. The
+  similarity-bias literature is damning, CASF-2016's own reference list cites
+  two papers on it, and CASF-2016's leader ΔVinaRF20 carries the warning from
+  its own authors.
+
+**AND ONE THING IS NEWLY NOT-REFUSED.** `smina` ([source:koes2013]) was an
+unevaluable option and is now a measurable question, because the harness to
+measure it exists: `rank_power.py`'s `run_series` already takes
+`(provider, engine, rescorer)`, and `_rescore_best` already goes through the
+shipped `PoseRescorer`. It is the only candidate that is both an engine and a
+rescorer, so it is the arm that tests whether `PoseRescorer` is a real
+abstraction or a Vina-shaped hole. What is unknown is whether it builds and
+runs on Windows — a spike, not a claim.
 
 ### Visualization
 

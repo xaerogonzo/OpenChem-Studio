@@ -567,6 +567,52 @@ looked up — the cache having been built for the v1 selection. `NOT_LOOKED_UP`
 is its own counted verdict now. Being careful one layer down does not make the
 layer above careful.
 
+#### THE PRE-COMMITMENT FOR CLOSING IT, RECORDED BEFORE THE LOOKUP RAN
+
+*As of this commit:* 442 of the 638 compound-series entries had never been
+looked up, so the three verdicts **were not a split** and `rank_report.py`
+refused to present them as one. Closing that costs one cached HTTP call per
+InChIKey and no Vina time. (The section immediately below is the result.)
+
+**The ABSENT-only median will be reported whatever it says.** It is currently
+unchanged against the full set on the 191 entries that were checked, and 442
+more can move it. This is written here, in a committed file, rather than in
+`data/manifest.json` — which is gitignored, so a pre-commitment recorded there
+is not a record of anything.
+
+The reason is this benchmark's own worst methodological moment, one section
+down: an interim p-value crossed 0.05 and came back, because the report was run
+three times while the data accumulated. **A number decided after seeing it is
+not a result**, and the leakage arm is the one remaining place in this
+benchmark where that mistake is still available.
+
+Nothing about the corpus, the selection or the docking changes — the lookup
+reads the cached corpus and rewrites no manifest, deliberately, so it cannot
+re-freeze a selection underneath a measurement.
+
+#### AND IT IS CLOSED: the null survives its own leakage control
+
+Run after the pre-commitment above was committed. Every compound is now looked
+up, so `NOT_LOOKED_UP` is empty and the arms are a real split:
+
+    ABSENT      624 compound-series entries   (613 distinct compounds)
+    PRESENT      14                           ( 11 distinct compounds)
+    UNRESOLVED    0
+
+    median rho, ABSENT-only   +0.073      the pre-committed number
+    median rho, full set      +0.082
+
+Dropping every compound that could conceivably have been in PDBbind moves the
+median by **-0.009**, toward a slightly *weaker* correlation. **The null is
+therefore not an artefact of training-set contamination**, which is the one
+thing this arm can settle and the direction it settles it in is the less
+convenient one.
+
+**98% ABSENT makes the split lopsided, not balanced.** Eleven distinct
+compounds are PRESENT -- far too few for a PRESENT-only median to mean
+anything, so none is printed. And the bound is unchanged in KIND by being
+complete: exact-InChIKey identity, one-way, minimal.
+
 ### The result: 3828 searches, 14.5 hours, and it is a NULL
 
 **The full record, with the per-series table for all 56 series, is
@@ -586,7 +632,7 @@ ligands, six replicates each, exhaustiveness 25, mean 13.7 s per search.
 | series with ρ above **twice** its own random floor | **1/56** |
 | search repeatability | median **+0.990**, 55/56 ≥ +0.95 |
 | ligand pairs reordered between replicate halves | **60 of 3462 (1.7%)** |
-| leakage | 191 ABSENT, 5 PRESENT, 442 NOT_LOOKED_UP |
+| leakage | **624 ABSENT, 14 PRESENT, 0 UNRESOLVED**; ABSENT-only median ρ **+0.073** against +0.082 full |
 
 **THIS IS N5 FROM THE ROADMAP'S OWN LIST — THE CLEANEST NEGATIVE THE DESIGN
 ALLOWS.** The search is very nearly deterministic in its ordering: a median
@@ -658,9 +704,11 @@ per-row uncertainty — so ρ is bounded above by a quantity nobody can measure,
 while the docking's own repeatability is measured and is essentially 1. That
 asymmetry is in `docs/SCIENTIFIC_LIMITATIONS.md`.
 
-**442 of 638 compound-series entries were never looked up** against the PDB, so
-the leakage arms are not a split. Run `chembl_corpus.py --presence-only` to
-close that; it costs one cached HTTP call per InChIKey and no Vina time. On the
-191 that were checked, the ABSENT-only median is unchanged.
+**The leakage bound is closed and the null survives it**: 624 ABSENT, 14
+PRESENT, 0 unresolved, with an ABSENT-only median ρ of **+0.073** against the
+full set's +0.082. Dropping every compound that could conceivably have been in
+PDBbind makes the correlation slightly *worse*, so the null is not an artefact
+of training-set contamination. It stays a **minimal** bound under exact-InChIKey
+identity, and says nothing about similarity leakage.
 
 The corpus holds 1586 series; 56 were docked, which is 3.5%.
