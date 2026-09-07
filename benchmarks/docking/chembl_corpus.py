@@ -227,6 +227,46 @@ JOIN = (
             "a SCORING failure rather than a search failure, which makes it "
             "worth having where scoring is the subject.",
     ),
+    # --- Added by the target widening; see README.md's pre-commitment -----
+    #
+    # Four NON-GPCR classes, to separate "docking cannot rank" from "docking
+    # cannot rank in shallow aminergic GPCR pockets". Every one is already in
+    # `receptor_library.py` with a validated box, and every field below came
+    # from SIFTS and ChEMBL. Each has ONE SIFTS accession -- no crystallisation
+    # fusion to filter, unlike four of the eight above.
+    JoinRow(
+        pdb_id="2V5Z", uniprot="P27338", chembl_target_id="CHEMBL2039",
+        organism="Homo sapiens", organism_match="exact",
+        why="FLAVOENZYME, and an oxidoreductase rather than a receptor at all. "
+            "686 Ki values. The library's caveat records its FAD as 'adjacent "
+            "to the inhibitor site', which is what the prep table below has to "
+            "answer -- adjacent is not the same claim as inside.",
+    ),
+    JoinRow(
+        pdb_id="1ERE", uniprot="P03372", chembl_target_id="CHEMBL206",
+        organism="Homo sapiens", organism_match="exact",
+        why="NUCLEAR RECEPTOR, and the sharpest architectural contrast in the "
+            "corpus: a fully enclosed pocket, where a GPCR orthosteric site is "
+            "open to the extracellular side. 702 Ki values. Ligand-binding "
+            "domain only, at 3.10 A the lowest resolution here.",
+    ),
+    JoinRow(
+        pdb_id="4EY7", uniprot="P22303", chembl_target_id="CHEMBL220",
+        organism="Homo sapiens", organism_match="exact",
+        why="SERINE HYDROLASE, and the deep-gorge case. 665 Ki values. The "
+            "library warns 'a larger box than usual is warranted', which makes "
+            "it the likeliest of the four to fail selection rule 3 -- that is "
+            "the rule working, and the drop would be reported rather than "
+            "routed around by widening its box.",
+    ),
+    JoinRow(
+        pdb_id="5HK1", uniprot="Q99720", chembl_target_id="CHEMBL287",
+        organism="Homo sapiens", organism_match="exact",
+        why="ER MEMBRANE CHAPERONE -- not a GPCR, not an enzyme and not a "
+            "nuclear receptor, so it is a fourth fold rather than a second "
+            "example of a third. 3301 Ki values, the richest pool in the whole "
+            "corpus, against 2RH1's 796 at the other end.",
+    ),
 )
 
 

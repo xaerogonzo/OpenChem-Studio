@@ -120,7 +120,7 @@ def _powder_facts(crystal: Crystal) -> list[Fact]:
     of the structure supplies it; a reader seeing no powder rows would
     otherwise conclude the structure has no pattern.
     """
-    from openchem.chem.powder_xrd import calculate_pattern, intensity_refusal
+    from openchem.chem.powder_xrd import calculate_pattern, debye_waller_refusal
 
     try:
         pattern = calculate_pattern(
@@ -152,7 +152,8 @@ def _powder_facts(crystal: Crystal) -> list[Fact]:
         ]
 
     listed = ", ".join(
-        f"{r.label} {r.two_theta:.2f} deg" for r in pattern.reflections[:4]
+        f"{r.label} {r.two_theta:.2f} deg I={r.relative_intensity:.0f}"
+        for r in pattern.reflections[:4]
     )
     summary = f"{pattern.total_reflections} reflections to "
     summary += f"{POWDER_MAX_TWO_THETA:.0f} deg at {pattern.wavelength:.5f} A; {listed}"
@@ -190,13 +191,14 @@ def _powder_facts(crystal: Crystal) -> list[Fact]:
                 f"  {reflection.label}",
                 round(reflection.two_theta, 4),
                 f"{reflection.two_theta:.3f} deg, d = {reflection.d_spacing:.4f} A, "
-                f"multiplicity {reflection.multiplicity}",
+                f"multiplicity {reflection.multiplicity}, "
+                f"I = {reflection.relative_intensity:.1f}",
                 units="degrees 2theta",
                 evidence=(
                     "The multiplicity counts symmetry-equivalent planes plus the "
                     "Friedel pair, which a powder superimposes into one line.",
                 ),
-                limitations=(intensity_refusal(),),
+                limitations=(debye_waller_refusal(),),
                 detail=Detail.ADVANCED,
             )
         )
