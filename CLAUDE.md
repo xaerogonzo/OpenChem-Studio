@@ -5314,7 +5314,55 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-22 minutes**, ending at `6750 passed, 16 skipped`
+A clean run is **6-22 minutes**, ending at `6814 passed, 16 skipped`
+(measured 2026-09-07, **15m11**, on `widen-the-ranking-corpus` -- the powder
+intensities and the ranking corpus widened off the aminergic GPCRs.
+
+**+67 collected and 3 REMOVED**, diffed both directions with `comm` in a
+detached worktree, with the `PYTHONPATH` override asserted before the count was
+believed (`import openchem` reported the WORKTREE's `src`):
+
+    master     add0024   COLLECTS 6766
+    this one             COLLECTS 6830   = 6766 + 67 - 3
+    the run                       6814 passed + 16 skipped = 6830
+
+**ALL THREE REMOVALS ARE THE INTENSITY REFUSAL'S OWN GUARDS, FLIPPED ON
+PURPOSE**, which is the whole reason to diff rather than subtract. Each
+asserted the refusal this branch lifts and each has a named successor:
+
+    test_the_pattern_carries_no_intensity_at_all
+      -> test_the_rock_salt_structure_factor_matches_its_closed_form
+    test_every_pattern_says_why_it_has_no_intensities
+      -> test_every_pattern_says_that_no_debye_waller_factor_is_applied
+    test_every_reported_line_carries_the_intensity_refusal
+      -> test_every_reported_line_carries_the_debye_waller_refusal
+
+The first of those asserted the reflection has no intensity ATTRIBUTE at all,
+so it could not be weakened -- only replaced by its opposite.
+
+    55  test_rank_power_console.py       written -- 52 are 13 characters
+                                         against 4 codepages
+    10  test_powder_xrd.py               the rock-salt oracle, the cell
+                                         expansion, s-versus-s^2, the
+                                         missing-species refusal, the table
+                                         invariants and the row-length proxy
+     1  test_sources_are_current.py      a parametrised case of the EXISTING
+                                         schema guard, for the new data table
+     1  test_chembl_corpus.py            the target-superset guard
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored, since
+pytest's progress dots share the line -- as do `^FAILED` and `^ERROR`. The skips
+are the deterministic 16. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**CLEAN ON ITS FIRST RUN, and it is the first figure here taken with the
+machine genuinely idle** -- the 4998-search docking run had finished, which
+matters because this file has already thrown away one figure for being
+concurrent with other work. 15m11 sits mid-band; the 6-22 range stands.)
+
+Before it: `6750 passed, 16 skipped`
 (measured 2026-09-06, **17m18**, on `a-screen-you-can-configure-and-reproduce`
 AT ITS MERGE OF MASTER -- the screen that could not pin a seed, on top of the
 ranking benchmark that landed as #72.
