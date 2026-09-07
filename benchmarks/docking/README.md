@@ -712,3 +712,104 @@ of training-set contamination. It stays a **minimal** bound under exact-InChIKey
 identity, and says nothing about similarity leakage.
 
 The corpus holds 1586 series; 56 were docked, which is 3.5%.
+
+---
+
+## WIDENING BY TARGET — the pre-commitment, recorded before Gate A ran
+
+The 56-series null is dominated by one pocket family: five of its eight
+targets are aminergic GPCRs sharing an orthosteric site, and
+`SERIES_PER_TARGET` is 8 with seven targets already at that cap. So more
+*series* re-measure the same eight pockets. Nothing yet separates **"docking
+cannot rank"** from **"docking cannot rank in shallow aminergic GPCR
+pockets"**, and that is the question this widening asks.
+
+This section is committed **before the corpus was rebuilt**, for the reason
+the leakage arm above was: this benchmark's own p-value crossed 0.05 and came
+back when it was looked at three times mid-run.
+
+### Why widening by TARGET cannot be steered by an outcome
+
+Stronger than the `SERIES_PER_TARGET` 2 -> 8 widening this file already
+defends. `select_for_docking` loops `for row in JOIN` and filters each row's
+candidates on `series["pdb_id"] == row.pdb_id`, so **a new row's body cannot
+reach another row's candidate list**. The frozen 56 are a superset by
+construction rather than by a promise about sort order, and no rule anywhere
+in that function reads a rho.
+
+Asserted rather than reasoned about, by stable series identity plus a content
+check, and emitted as `widening_diff.json` so the nested design is
+mechanically auditable:
+
+    added targets | added series | unchanged series | removed series == EMPTY
+
+### The candidates were frozen on POCKET CLASS and Ki AVAILABILITY
+
+Both are properties of the data, not of any result: no docking score, no rho
+and no ordering existed at any point in the screen below. Every candidate is
+**already curated in `chem/receptor_library.py` with a validated box**, so no
+receptor curation happens here either.
+
+    PDB    class                        ChEMBL         Ki     status
+    2V5Z   flavoenzyme (MAO-B)          CHEMBL2039    686     candidate
+    1ERE   nuclear receptor (ER alpha)  CHEMBL206     702     candidate
+    4EY7   serine hydrolase (AChE)      CHEMBL220     665     candidate
+    5HK1   ER chaperone (sigma-1)       CHEMBL287    3301     candidate
+    6X3T   pentameric channel (GABA-A)  CHEMBL1962    298     reserve 1
+    4PE5   ionotropic channel (NMDA)    CHEMBL311     393     reserve 2
+
+**Reserve order is frozen here**, because "a reserve takes its place" is
+otherwise outcome-dependent. A candidate yielding zero series is dropped and
+the next reserve in that order is taken, once. If fewer than two survive,
+the widening stops and says so -- one extra pocket cannot address the
+narrowness this exists to address.
+
+### TWO CLASSES ARE EXCLUDED BY THE ENDPOINT, AND THAT IS A FINDING
+
+`PRIMARY_ENDPOINT` is Ki. Screened before freezing, two obvious enzyme
+candidates cannot form even one series of `MIN_SERIES`:
+
+    1HSG   HIV-1 protease   SIFTS gives P03367, the Gag-Pol polyprotein,
+                            whose ChEMBL target CHEMBL3638326 carries
+                            Ki = 4     (IC50 = 77)
+    5KIR   COX-2            Ki = 27    (IC50 = 6116)
+
+So the aspartic-protease and eicosanoid-enzyme classes are absent from this
+widening **because of the endpoint stratum, not because they were not
+wanted**. This module's own header already recorded the COX-2 case ("a Ki-only
+rule silently refuses an enzyme class"); the protease case is new and is the
+sharper one, because 1HSG is the textbook docking system.
+
+**THEY ARE NOT SWITCHED TO IC50 TO RESCUE THEM.** An IC50 series is
+admissible and is reported SEPARATELY -- never pooled, because within one
+assay an IC50 ordering is valid while a Ki and an IC50 are not one quantity.
+Opening an IC50 stratum is a separate decision needing its own
+pre-registration, and taking it now, for two targets, after seeing that the
+Ki stratum excludes them, would be choosing a rule to admit a case.
+
+### What is reported, and what must never be said
+
+The widened set is reported **whatever it says**, with three populations
+visible rather than one aggregate:
+
+    the frozen 56      the CONTROL population, still shown
+    the new subset     the non-GPCR classes
+    the combined set   nested, NOT independent, and the report says so
+
+Series are nested in targets, nested in pocket class. **This is a
+target-class diversification experiment, not four independent
+observations**, so results are reported at series level (rho per series, the
+existing statistic), at target level (a distribution, never a Bernoulli
+trial), and as class coverage. Nothing here may be rendered as
+`0/4 targets showed ranking`.
+
+The statistical procedure is unchanged: series bootstrap and the two-sided
+sign test, with no per-row p-values, because a per-pair rate does not
+control a table. `MIN_SERIES`, `MAX_LIGANDS_FOR_DOCKING`, `is_size_decoupled`
+and the box-fit rule are used exactly as the frozen 56 used them. **No
+target-specific relaxation of a selection rule is permitted.** The one thing
+allowed to differ per target is receptor preparation, and each difference is
+declared with its evidence.
+
+And the rule this file already carries stands: while the run is in flight,
+**report the completion count, never the rho.**
