@@ -60,9 +60,6 @@ def find_matches(mol: Chem.Mol, smarts: str) -> list[tuple[int, ...]]:
     return [tuple(match) for match in mol.GetSubstructMatches(pattern)]
 
 
-def matched_atoms(mol: Chem.Mol, smarts: str) -> set[int]:
-    return {index for match in find_matches(mol, smarts) for index in match}
-
 
 def compute_substructure_search(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None

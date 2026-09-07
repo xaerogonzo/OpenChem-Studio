@@ -15,7 +15,12 @@ from __future__ import annotations
 import pytest
 from rdkit import Chem
 
-from openchem.chem.organometallic_adapter import _as_ionic_sandwich, metallocene
+from openchem.chem.organometallic_adapter import (
+    _as_ionic_sandwich,
+    is_carbonyl_ligand,
+    is_cyclopentadienide,
+    metallocene,
+)
 
 IONIC_FERROCENE = "[cH-]1cccc1.[cH-]1cccc1.[Fe+2]"
 BONDED_FERROCENE = "C1=CC=C[CH]1[Fe]C1[CH]=CC=C1"
@@ -124,3 +129,45 @@ def test_a_drawing_that_will_not_sanitise_returns_None_rather_than_raising():
     """Fails soft, like everything else in this adapter: a namer that
     cannot classify something must not take a calculator down."""
     assert metallocene(None) is None
+
+
+# --- the two ligand predicates ---------------------------------------------
+#
+# **FAILING SOFT IS WHAT MAKES THESE NEED A TEST, not what makes them safe.**
+# Each is a named boundary onto a PRIVATE function of the vendored namer --
+# `_is_cyclopentadienide_anion_fragment` and `_is_co_fragment` -- and each
+# wraps the call in `except Exception: return False`. So the day the vendor
+# renames one, the `AttributeError` is swallowed and the predicate answers
+# False for every input, for ever, silently. Neither had a caller or a test
+# when this was written, so nothing anywhere would have noticed.
+
+
+def test_a_cp_ring_is_recognised_and_is_not_mistaken_for_a_carbonyl():
+    mol = _mol(IONIC_FERROCENE)
+    ring = metallocene(mol).rings[0].atom_indices
+
+    assert is_cyclopentadienide(mol, ring)
+    assert not is_carbonyl_ligand(mol, ring)
+
+
+def test_a_co_ligand_is_recognised_and_is_not_mistaken_for_a_cp_ring():
+    """Nickel tetracarbonyl: a real metal carbonyl rather than a bare CO,
+    so the fragment is tested where it actually occurs."""
+    mol = _mol("[Ni]([C-]#[O+])([C-]#[O+])([C-]#[O+])[C-]#[O+]")
+    carbonyl = (1, 2)
+
+    assert {mol.GetAtomWithIdx(i).GetSymbol() for i in carbonyl} == {"C", "O"}
+    assert is_carbonyl_ligand(mol, carbonyl)
+    assert not is_cyclopentadienide(mol, carbonyl)
+
+
+def test_both_predicates_answer_False_rather_than_raising_on_nonsense():
+    """The soft-failure path, asserted so it stays deliberate. It is also
+    the path that would hide a vendor rename, which is why the two tests
+    above pin the POSITIVE answers rather than only this one."""
+    mol = _mol(IONIC_FERROCENE)
+
+    assert not is_cyclopentadienide(mol, (999,))
+    assert not is_carbonyl_ligand(mol, (999,))
+    assert not is_cyclopentadienide(None, (0, 1))
+    assert not is_carbonyl_ligand(None, (0, 1))
