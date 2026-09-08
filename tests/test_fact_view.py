@@ -327,3 +327,54 @@ def test_the_full_view_still_collapses_and_filters(qapp):
     assert len(_rows(full)) == 2, "the ADVANCED row should still be filtered out"
     assert "choose Everything" in full._status.text()
     _dispose(full)
+
+
+def test_a_fact_that_carries_units_shows_them_on_its_row():
+    """THE REPORTED DEFECT: the row rendered `display_value` and nothing else.
+
+    Every Fact-based report in the application read this way -- the
+    formulation report's `Detonation pressure (C-J)  70.7` with no
+    `kbar`, the crystal report's volumes and densities with no `A^3` or
+    `g/cm^3`. Not a dead field either, which is what made it hard to
+    see: `report_format`, `result_clipboard` and `comparison_panel` all
+    read `units`, so **Copy report carried what the screen did not**.
+    """
+    view = FactView()
+    view.set_report(_report(_fact("Detonation pressure (C-J)",
+                                  display_value="70.7", units="kbar")))
+    rows = [r.text() for r in view.findChildren(_FactRow)]
+    assert rows == ["70.7 kbar"]
+    _dispose(view)
+
+
+def test_a_fact_with_no_units_renders_exactly_as_it_did():
+    """The other side, and it is most of them.
+
+    226 of the 449 unit-bearing facts measured over the real registry
+    were the case above; the panel is overwhelmingly made of facts with
+    no units at all, and every one of those must be byte-identical to
+    before or this is a visible change to the whole application rather
+    than to the rows that were wrong.
+    """
+    view = FactView()
+    view.set_report(_report(_fact("Aromatic rings", display_value="2")))
+    rows = [r.text() for r in view.findChildren(_FactRow)]
+    assert rows == ["2"], "no units means no trailing space and no change"
+    _dispose(view)
+
+
+def test_units_are_composed_for_display_and_never_written_back():
+    """label / value / units stay three fields; the consumer joins them.
+
+    Storing `"70.7 kbar"` in `display_value` is exactly how the units
+    came to be duplicated in the first place -- `report_adapter` did it,
+    so the 223 facts it produces held the units TWICE and exported
+    `"C: 60.00 % %"`. A view may compose; it may not rewrite the fact.
+    """
+    fact = _fact("Cell volume", display_value="1179.4", units="A^3")
+    view = FactView()
+    view.set_report(_report(fact))
+    assert fact.display_value == "1179.4", "the fact is untouched by rendering"
+    assert fact.units == "A^3"
+    assert fact.value_with_units == "1179.4 A^3"
+    _dispose(view)

@@ -95,7 +95,10 @@ def card_data_from_report(report, *, name: str = "", formula: str = "") -> Subst
 
     Takes the report loosely rather than by type: this module must not
     import the chem layer, and everything needed is `label` and
-    `display_value` off each fact.
+    `value_with_units` off each fact. The classification and the formula
+    read `display_value` directly instead -- both are strings rather than
+    measurements, so composing units they cannot have would only risk a
+    trailing space.
 
     `name` and `formula` are passed IN rather than read out, because they
     come from somewhere else entirely -- the namer and the descriptor
@@ -111,7 +114,7 @@ def card_data_from_report(report, *, name: str = "", formula: str = "") -> Subst
 
     wanted = _ROWS_BY_KIND.get(classification.lower(), _DEFAULT_ROWS)
     rows = tuple(
-        (label, facts[label].display_value) for label in wanted if label in facts
+        (label, facts[label].value_with_units) for label in wanted if label in facts
     )
     # The plain formula, NOT the formula unit. They are different facts and
     # the subtitle showing the same string as the row under it was a live

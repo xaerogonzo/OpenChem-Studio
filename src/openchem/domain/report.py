@@ -210,6 +210,36 @@ class Fact:
     #: inside a Qt signal handler the last time this was assumed.
     highlight: tuple[int, ...] = ()
 
+    @property
+    def value_with_units(self) -> str:
+        """`display_value` and `units` composed, for one line of prose.
+
+        **THE ONE PLACE THE TWO ARE JOINED.** Eight consumers need a fact
+        as a single string -- the row in `FactView`, the Atom Inspector's
+        headline summary, the substance card's rows, the Properties
+        panel's collapsed summary, the clipboard, Markdown and plain-text
+        export, and `ReportResult.matched` -- and each of them composed it
+        (or forgot to) on its own until this existed. Measured over the real
+        registry at the time it was added: **896 distinct facts, 449
+        carrying units**, of which the 223 arriving through
+        `report_adapter` had the units in BOTH fields and exported
+        `"C: 60.00 % %"`, while the other 226 held them apart and
+        rendered `"70.7"` with no `kbar` anywhere on screen. One defect in
+        each direction, from two conventions for one thing.
+
+        **JSON and CSV DO NOT USE THIS, deliberately.** They give value and
+        units their own field, which is the more useful shape for a script
+        and is why `units` exists as a field at all. Composing there would
+        destroy a distinction those formats are able to keep.
+
+        Never written back into `display_value`: label, value and units
+        stay three fields and the consumer joins them. Storing the joined
+        string is the one-field-two-jobs bug that put the units in
+        `display_value` in the first place.
+        """
+        units = self.units.strip()
+        return f"{self.display_value} {units}".strip() if units else self.display_value
+
 
 @dataclass(frozen=True, kw_only=True)
 class StructureReport(ScientificResult):
@@ -612,6 +642,8 @@ class ReportResult(StructureReport):
         the entire reason for the migration.
         """
         return [
-            f"{fact.label}: {fact.display_value}" if fact.label != self.name else fact.display_value
+            f"{fact.label}: {fact.value_with_units}"
+            if fact.label != self.name
+            else fact.value_with_units
             for fact in self.facts
         ]

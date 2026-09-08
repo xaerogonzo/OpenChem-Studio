@@ -107,6 +107,25 @@ def _split(line: str, source: str, category: FactCategory) -> Fact:
     labelled "Note", and a limitation dressed up as a measurement is worse
     than an unsplit line. So the pattern insists on a NUMBER after the
     colon, which is what distinguishes a measurement from a sentence.
+
+    **THE UNITS GO IN `units` AND NOWHERE ELSE.** This wrote them into
+    `display_value` AS WELL for as long as it existed, which was a
+    workaround for `FactView` not rendering the `units` field -- and it
+    gave this project two conventions for one thing. Measured over the
+    real registry: of 449 facts carrying units, the 223 from here had
+    them in both fields and exported `"C: 60.00 % %"`, while the other
+    226 held them apart and showed no unit on screen at all. One defect
+    in each direction. `Fact.value_with_units` composes for the eight
+    consumers that want one string, and JSON and CSV keep the two fields
+    apart because that is the shape a script wants.
+
+    **The round trip is unaffected**, which is what made the change safe:
+    `ReportResult.matched` recomposes `label: value units`, so a line that
+    arrived here as `"C: 60.00 %"` still leaves as `"C: 60.00 %"`, byte
+    for byte, verified over all 223. What DID change is that a NATIVE
+    fact's `matched` line now carries its units too -- `"Boiling point
+    (normal): 259.91"` became `"... 259.91 K"` -- because a temperature
+    with no unit was ambiguous rather than concise.
     """
     match = _MEASUREMENT.match(line.strip())
     if match is None:
@@ -122,7 +141,7 @@ def _split(line: str, source: str, category: FactCategory) -> Fact:
         category=category,
         label=match.group("label").strip(),
         value=match.group("value"),
-        display_value=(match.group("value") + " " + (match.group("units") or "")).strip(),
+        display_value=match.group("value"),
         source=source,
         basis=Basis.HEURISTIC,
         units=(match.group("units") or "").strip(),

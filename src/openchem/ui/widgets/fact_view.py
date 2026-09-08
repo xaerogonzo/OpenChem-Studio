@@ -468,7 +468,7 @@ class FactView(QWidget):
         self._status.setText(self._status_text(report, shown, needle, hidden_by_depth))
 
     def _add_row(self, section: CollapsibleSection, fact: Fact) -> None:
-        value = _FactRow(fact.display_value, section.content)
+        value = _FactRow(fact.value_with_units, section.content)
         value.setProperty(_FACT_PROPERTY, fact)
         value.setToolTip(
             "\n".join(

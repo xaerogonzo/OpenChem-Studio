@@ -769,6 +769,9 @@ def _summary_line(report) -> str:
     """
     if not isinstance(report, MoleculeReport):
         return ""
-    by_label = {fact.label: fact.display_value for fact in report.facts}
+    # `value_with_units`, because "Molecular weight: 180.16" left the
+    # headline row guessing at g/mol -- the same defect the fact rows
+    # below it had, one widget up.
+    by_label = {fact.label: fact.value_with_units for fact in report.facts}
     parts = [f"{label}: {by_label[label]}" for label in _SUMMARY_LABELS if label in by_label]
     return "   ".join(parts)

@@ -212,7 +212,16 @@ def _powder_facts(crystal: Crystal) -> list[Fact]:
                 f"{reflection.two_theta:.3f} deg, d = {reflection.d_spacing:.4f} A, "
                 f"mult {reflection.multiplicity}, "
                 f"I = {reflection.relative_intensity:.1f}",
-                units="degrees 2theta",
+                # **NO `units`, BECAUSE THIS ROW IS A SENTENCE RATHER THAN
+                # A VALUE.** `Fact.units` belongs to `value`, and a consumer
+                # composing it onto `display_value` is only sound when that
+                # is a bare rendering of the same number -- which every
+                # other unit-bearing fact in the application is. This one
+                # carries four quantities with their units inline, so
+                # declaring "degrees 2theta" made the row read
+                # "1.934 deg, d = 21.0517 A, mult 2, I = 0.4 degrees
+                # 2theta". The angle is still in `value`, where a chart or
+                # a comparison reads it.
                 evidence=(
                     "The multiplicity counts symmetry-equivalent planes plus the "
                     "Friedel pair, which a powder superimposes into one line.",

@@ -100,8 +100,7 @@ def _ph_curve_to_text(result: PhCurveResult) -> str:
     """
     lines = [result.name]
     for fact in result.facts:
-        units = f" {fact.units}" if fact.units else ""
-        lines.append(f"{fact.label}: {fact.display_value}{units}")
+        lines.append(f"{fact.label}: {fact.value_with_units}")
     if result.facts:
         lines.append("")
     names = list(result.series)
