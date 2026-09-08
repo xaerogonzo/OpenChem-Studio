@@ -759,3 +759,84 @@ def test_an_underspecified_edge_is_not_called_unfollowable():
     assert reasons == {"B": decay.UNDERSPECIFIED_MODE}
     assert decay.UNDERSPECIFIED_MODE != decay.UNFOLLOWABLE_MODE
     assert decay.UNDERSPECIFIED_MODE not in tree.leaves().values()
+
+
+# --- the two accessors nothing was calling ---------------------------------
+
+
+def test_states_of_returns_every_state_and_not_just_the_ground_one():
+    """**THE DOCSTRING WAS STALE AND SAID THE OPPOSITE.**
+
+    It promised "the table holds only ground states today, so this returns
+    at most one", which was true when written and false once the isomers
+    landed. `states_of(43, 99)` returns TWO. Nothing called this function,
+    so nothing had ever contradicted the sentence.
+
+    Technetium is the case that discriminates: Tc-99m is the isomer every
+    reference names, and its ground state sits directly beneath it. An
+    isotope with no isomer cannot tell the corrected behaviour from the
+    documented one.
+    """
+    states = N.states_of(43, 99)
+
+    assert len(states) == 2, "the shipped table carries Tc-99m beside Tc-99"
+    assert [n.state_index for n in states] == [0, 1], "ground state first"
+    assert all(n.z == 43 and n.a == 99 for n in states)
+
+
+def test_states_of_returns_one_for_a_genuinely_single_state_isotope():
+    """The narrow half, and the fixture took two attempts.
+
+    "Return everything for this z and a" is satisfied by a function that
+    returns every nuclide of the ELEMENT, which the test above cannot see
+    -- it would still get Tc-99 first and Tc-99m second. Beryllium is what
+    discriminates it: Be-9 is one state where the element carries 18 rows.
+
+    **CARBON-12 WAS THE FIRST FIXTURE AND IT IS NOT SINGLE-STATE.** It
+    returns two: the ground state and `state_index 8`, label `i` -- an
+    ISOBARIC ANALOGUE STATE, which this table ships rather than filters
+    (it is why the periodic table's carbon tab shows 20 rows and not 16).
+    So "has no isomer" and "has one state" are different questions, and
+    the obvious fixture answers the wrong one.
+    """
+    states = N.states_of(4, 9)
+
+    assert len(states) == 1
+    assert (states[0].z, states[0].a, states[0].state_index) == (4, 9, 0)
+
+
+def test_states_of_answers_empty_rather_than_raising_for_a_nuclide_that_is_not_there():
+    assert N.states_of(6, 2) == ()
+    assert N.states_of(999, 1) == ()
+
+
+def test_the_attribution_is_reachable_from_the_shipped_package():
+    """THE ACCESSOR was unguarded, not the data -- and this work had that
+    backwards until a mutation said so.
+
+    `test_nuclide_table.py::test_the_attribution_claims_no_more_than_the_evidence_supports`
+    has asserted the DOI, the licence and the citation request in the DATA
+    for as long as the table has shipped, and it is the stronger test. What
+    nothing covered is `attribution()`, which had no caller and no test --
+    so a refactor could have removed the only programmatic way to READ that
+    credit with every guard still green.
+
+    Two different failures, and the data test cannot see the second. This
+    one therefore asserts almost nothing about the TEXT: restating the
+    other test's assertions here would be two guards for one claim, which
+    is the fault this branch exists to remove.
+    """
+    credit = N.attribution()
+
+    assert credit.strip(), "the accessor still reaches a credit"
+    assert credit == _shipped_attribution(), "and it is the string the data carries"
+
+
+def _shipped_attribution() -> str:
+    import json
+    from pathlib import Path
+
+    table = json.loads(
+        Path("src/openchem/chem/data/nuclides.json").read_text(encoding="utf-8")
+    )
+    return table["_about"]["attribution"]

@@ -253,9 +253,15 @@ def nuclide_at(key: NuclideKey) -> Nuclide | None:
 def states_of(z: int, a: int) -> tuple[Nuclide, ...]:
     """Every state of one isotope, ground state first.
 
-    **The table holds only ground states today**, so this returns at most
-    one -- which is the correct answer rather than a placeholder, and is
-    what makes the state-aware code above testable before the data lands.
+    **THIS DOCSTRING USED TO SAY THE TABLE HELD ONLY GROUND STATES, AND
+    THAT WAS TRUE WHEN IT WAS WRITTEN.** It promised the function "returns
+    at most one ... before the data lands". The data landed: the shipped
+    table carries 2,127 isomers beside 3,557 ground states, so
+    `states_of(43, 99)` returns TWO -- Tc-99 and Tc-99m.
+
+    The correction is recorded rather than the sentence quietly deleted,
+    because a comment asserting a state of the world is believed and then
+    quoted, and this file's own history is the argument for saying so.
     """
     found = [
         n for n in _by_element().get(_symbol_by_z().get(z, ""), ()) if n.a == a

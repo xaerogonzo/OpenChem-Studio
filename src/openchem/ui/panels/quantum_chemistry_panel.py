@@ -6,7 +6,6 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QFormLayout,
-    QHBoxLayout,
     QHeaderView,
     QLabel,
     QMessageBox,
@@ -50,6 +49,7 @@ from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 from openchem.ui.molecule_combo import repopulate, select
 from openchem.ui.widgets.empty_state import empty_state, empty_state_text, is_empty_state
+from openchem.ui.widgets.flow_layout import flow_row
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.esp_compare_widget import EspCompareWidget
 from openchem.ui.widgets.ir_view_widget import IrViewWidget
@@ -499,7 +499,32 @@ class QuantumChemistryPanel(QWidget):
         parent: QWidget | None = None,
         qm_surface_service=None,
     ) -> None:
+        """Built in five steps, in the order they must happen.
+
+        Split from a single 334-line constructor -- the longest of the
+        four. Each step's lines are verbatim at the indent they already
+        had, so every comment still sits against what it explains: why
+        solvent is not a separate parameter threaded through the service,
+        why Boltzmann averaging is opt-in, and why the 1D view's
+        `QWebEngineView` is built lazily.
+
+        **THE ORDER IS THE CONTRACT.** Controls exist before the tabs that
+        hold them and the form that lays them out, and the events are
+        subscribed last so no handler can fire against a half-built panel.
+        Checked before cutting: no local is assigned in one step and read
+        in another, so this is a move rather than a behaviour change.
+        """
         super().__init__(parent)
+        self._init_state(
+            quantum_chemistry_service, chemistry_engine, settings, qm_surface_service
+        )
+        self._build_controls()
+        self._build_tabs()
+        self._build_form_and_layout()
+        self._subscribe_to_events(event_bus)
+
+    def _init_state(self, quantum_chemistry_service: QuantumChemistryService, chemistry_engine: ChemistryEngine, settings: Settings, qm_surface_service) -> None:
+        """The services and the state fields, before any widget exists."""
         self._quantum_chemistry_service = quantum_chemistry_service
         self._chemistry_engine = chemistry_engine
         self._settings = settings
@@ -524,6 +549,8 @@ class QuantumChemistryPanel(QWidget):
         #: THIS structure, not the one that was sent.
         self._optimized_conformer_molblock: str = ""
 
+    def _build_controls(self) -> None:
+        """Every control above the tabs, in the order it is laid out."""
         self._molecule_combo = QComboBox(self)
         apply_help_tooltip(self._molecule_combo, _HELP["molecule"])
         self._molecule_combo.currentIndexChanged.connect(self._on_molecule_changed)
@@ -614,6 +641,10 @@ class QuantumChemistryPanel(QWidget):
         self._spectrum_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._spectrum_table.setVisible(False)
 
+    def _build_tabs(self) -> None:
+        """The tab widget: 1D signals, IR, surfaces, hybrid, the three
+        correlation tabs and the log.
+        """
         # NMR tabs: the Phase 23c 1D signal view first, then the Phase 22 2D
         # correlation tabs (HSQC/HMBC/COSY) -- one table + scatter plot per
         # correlation type, built from connectivity alone
@@ -777,6 +808,12 @@ class QuantumChemistryPanel(QWidget):
         # things are.
         self._correlation_tabs.addTab(self._output_log, "Log")
 
+    def _build_form_and_layout(self) -> None:
+        """The run form and the vertical layout under it.
+
+        `form` is built HERE rather than in its own step because it
+        is a local read by `layout.addLayout(form)`.
+        """
         form = QFormLayout()
         form.addRow("Molecule:", self._molecule_combo)
         form.addRow("Calculation:", self._calc_type_combo)
@@ -786,12 +823,27 @@ class QuantumChemistryPanel(QWidget):
         form.addRow("Solvent (CPCM):", self._solvent_combo)
         form.addRow("", self._boltzmann_check)
 
-        run_row = QHBoxLayout()
-        run_row.addWidget(self._configure_button)
-        run_row.addWidget(self._calibrate_button)
-        run_row.addWidget(self._scaling_button)
-        run_row.addWidget(self._run_button)
-        run_row.addWidget(self._cancel_button)
+        # **FIVE BUTTONS, AND A `QHBoxLayout`'s MINIMUM IS THEIR SUM.**
+        # Measured under `offscreen`: 218 + 350 + 434 + 80 + 86 = 1168 px of
+        # buttons, giving the row a minimum of 1192 -- the widest single
+        # thing in the panel, and more than the whole panel is ever given.
+        # The dock opens at 420, so the row was CLIPPED at the panel edge
+        # and "Calibrate Scaling (11 standards)..." rendered as
+        # "Calibrate Scaling (11 s". `FlowLayout.minimumSize` reports the
+        # widest SINGLE child instead and wraps the rest onto another line.
+        #
+        # **THIS IS THE CASE `flow_row` IS FOR, and the distinction matters
+        # because the opposite mistake is also on record**: the Docking
+        # panel's two-checkbox strip was swapped to a `flow_row` on this
+        # rule alone and cost 21 px of dead band for a row that fitted on
+        # one line. A flow row is a cure for a row whose children cannot
+        # fit, not a prophylactic. These five cannot fit.
+        run_row = flow_row(self)
+        run_row.layout().addWidget(self._configure_button)
+        run_row.layout().addWidget(self._calibrate_button)
+        run_row.layout().addWidget(self._scaling_button)
+        run_row.layout().addWidget(self._run_button)
+        run_row.layout().addWidget(self._cancel_button)
 
         # THE RESULTS COME FIRST, AND THE LOG IS COLLAPSED UNDERNEATH.
         #
@@ -808,7 +860,7 @@ class QuantumChemistryPanel(QWidget):
 
         layout = QVBoxLayout(self)
         layout.addLayout(form)
-        layout.addLayout(run_row)
+        layout.addWidget(run_row)
         layout.addWidget(self._status_label)
         layout.addWidget(self._results_label)
         layout.addWidget(self._spectrum_note_label)
@@ -817,6 +869,8 @@ class QuantumChemistryPanel(QWidget):
 
         self._reset_empty_states()
 
+    def _subscribe_to_events(self, event_bus: EventBus) -> None:
+        """The seven events this panel listens for."""
         event_bus.subscribe(QuantumChemistryJobStateChanged, self._on_job_state_changed)
         event_bus.subscribe(QuantumChemistryResultReady, self._on_result_ready)
         event_bus.subscribe(SpectrumComputed, self._on_spectrum_computed)

@@ -9,7 +9,6 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import platformdirs
 from PySide6.QtCore import QObject, QProcess
 from rdkit import Chem
 

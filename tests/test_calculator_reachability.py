@@ -73,6 +73,7 @@ from __future__ import annotations
 import ast
 import importlib
 import re
+from collections import Counter
 from functools import lru_cache
 from pathlib import Path
 
@@ -867,3 +868,118 @@ def test_a_builder_named_only_in_a_docstring_is_not_called():
     )
     assert "build_crystal_report" not in collector.called
     assert "build_thing_report" not in collector.called
+
+
+# --- the SYMBOL level, which the module walk above cannot see ---------------
+#
+# **THE MODULE WALK LET SEVEN HELPERS THROUGH.** Every direction above asks
+# about a MODULE -- is it imported, does it declare a provider, is that
+# provider reachable -- so an ordinary module-level function with no caller
+# is invisible to all three as long as its file is imported by something.
+# `chem/substructure.matched_atoms`, `chem/nuclides.states_of`,
+# `help.is_frozen`, `ui/dialogs/inventory.dialog_names`,
+# `organometallic_adapter.is_cyclopentadienide` / `is_carbonyl_ligand` and
+# `openchem.hello` were all reachable from `openchem.main` and callable by
+# nothing.
+
+_OTHER_ROOTS = ("src", "tests", "tools", "plugins", "benchmarks", "examples")
+
+
+@lru_cache(maxsize=1)
+def _identifier_counts() -> dict[str, int]:
+    """Every identifier in first-party Python, with how often it occurs."""
+    counts: Counter[str] = Counter()
+    root = _SRC.parent.parent  # the repository root: <root>/src/openchem
+    for area in _OTHER_ROOTS:
+        directory = root / area
+        if not directory.is_dir():
+            continue
+        for path in directory.rglob("*.py"):
+            if "vendor" in path.parts or "resources" in path.parts:
+                continue
+            counts.update(
+                re.findall(r"[A-Za-z_][A-Za-z0-9_]*", path.read_text(encoding="utf-8", errors="replace"))
+            )
+    return dict(counts)
+
+
+def test_no_module_level_function_is_referenced_only_by_its_own_def():
+    """A helper nobody can reach, caught at the symbol level.
+
+    **DELIBERATELY TEXTUAL, AND THEREFORE FAIL-OPEN.** It counts every
+    occurrence of the name anywhere in first-party Python -- a call, an
+    import, a string, a word in a docstring. One occurrence means the
+    `def` line and nothing else, which no amount of prose or dynamic
+    dispatch can produce a false positive from. The cost is real misses,
+    and both are measured rather than supposed: against the tree this
+    guard was written from it flags FIVE of the seven helpers above and
+    misses `substructure.matched_atoms` (whose name collides with a
+    dataclass field in `chem/alignment.py`) and `openchem.hello` (whose
+    name appears in unrelated test content).
+
+    An AST version would catch those two and would need the eight
+    false-positive classes `benchmarks/code_health/audit_093105a.json`
+    records -- Qt signal-to-slot, Qt overrides, functions called from
+    JavaScript by name, functions passed as values in tuple literals,
+    module-level const initializers and comprehensions, string-keyed
+    dispatch, attribute-only module aliases. That is a guard with a
+    backlog; this is a guard with none, and it goes red the day somebody
+    adds a distinctively-named helper nobody wired up.
+
+    **NO `REACHED_BY` EXEMPTION, and that is measured too.** The two
+    `script_path` modules reference their own entry points textually, so
+    they pass without one. An exemption exempting nothing today is the
+    speculative generality this branch has just finished deleting; add it
+    when a case needs it.
+    """
+    counts = _identifier_counts()
+    offenders: list[str] = []
+    checked = 0
+
+    for path in sorted(_SRC.rglob("*.py")):
+        parts = path.relative_to(_SRC).parts
+        if "vendor" in parts or "resources" in parts:
+            continue
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        for node in tree.body:  # module level only: a method is not this
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            checked += 1
+            name = node.name
+            if name.startswith("__") and name.endswith("__"):
+                continue
+            if counts.get(name, 0) <= 1:
+                offenders.append(f"{path.relative_to(_SRC).as_posix()}::{name}")
+
+    print(f"checked {checked} module-level functions")
+    assert checked >= 1000, (
+        "the walk collapsed -- a guard that examines nothing passes silently, "
+        f"and this one examined {checked}"
+    )
+    assert not offenders, (
+        "these module-level functions are named nowhere but their own def, so "
+        "nothing can reach them -- delete them, or give each the smallest "
+        f"legitimate caller or test: {offenders}"
+    )
+
+
+def test_the_symbol_walk_can_see_a_helper_nobody_calls():
+    """The control. `offenders` being empty must mean the tree is clean
+    rather than that the predicate never fires -- this project has shipped
+    a guard printing `checked 0` and passing, and the threshold above is
+    only half the answer to it."""
+    counts = {"used_helper": 4, "orphan_helper": 1}
+    module = ast.parse(
+        "def used_helper():\n    pass\n\ndef orphan_helper():\n    pass\n"
+    )
+
+    flagged = [
+        node.name
+        for node in module.body
+        if isinstance(node, ast.FunctionDef) and counts.get(node.name, 0) <= 1
+    ]
+
+    assert flagged == ["orphan_helper"]

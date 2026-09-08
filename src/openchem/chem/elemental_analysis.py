@@ -28,7 +28,7 @@ from openchem.chem.calculator_options import (
 )
 from openchem.domain.common import Provenance
 from openchem.domain.report import ReportResult
-from openchem.chem.report_adapter import report_fields
+from openchem.chem.report_adapter import report_from_fields
 
 
 def molecular_formula(mol: Chem.Mol) -> str:
@@ -116,7 +116,7 @@ def compute_elemental_analysis(
     )
     lines.extend(microspecies_note(parameters))
 
-    return _report(
+    return report_from_fields(
         alert_id="elemental_analysis",
         name="Elemental Analysis",
         molecule_uuid=molecule_uuid,
@@ -124,18 +124,3 @@ def compute_elemental_analysis(
         category="identity",
         provenance=Provenance(created_by="core", method="rdkit"),
     )
-
-
-def _report(**fields) -> ReportResult:
-    """One `AlertResult(...)` call site, as a `ReportResult`.
-
-    The keyword names are unchanged -- `alert_id`, `name`, `matched`,
-    `category` -- so the call sites above read as they always did and the
-    diff stays small. `report_fields` does the translation and turns each
-    line into a `Fact`; see `chem/report_adapter.py` for what a string can
-    and cannot carry.
-
-    A calculator that wants real units, evidence or limitations on a fact
-    builds `Fact`s directly instead, as `geometry_analysis` now does.
-    """
-    return ReportResult(**report_fields(**fields))

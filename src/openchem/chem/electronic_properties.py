@@ -58,7 +58,7 @@ from openchem.domain.common import (
     decline_total,
 )
 from openchem.domain.report import ReportResult
-from openchem.chem.report_adapter import report_fields
+from openchem.chem.report_adapter import report_from_fields
 from openchem.domain.scientific_result import PerAtomDataset
 
 # Jensen et al. (2002) atomic polarizabilities, cubic angstroms.
@@ -341,7 +341,7 @@ def compute_polarizability(
         total, failure, basis, assignment = _miller_polarizability(target, method)
 
     if total is None:
-        return _report(
+        return report_from_fields(
             alert_id="polarizability",
             name="Polarizability",
             molecule_uuid=molecule_uuid,
@@ -361,7 +361,7 @@ def compute_polarizability(
             + ", ".join(f"{symbol} x{count}" for symbol, count in sorted(assignment.items()))
         )
     lines.append(basis)
-    return _report(
+    return report_from_fields(
         alert_id="polarizability",
         name="Polarizability",
         molecule_uuid=molecule_uuid,
@@ -586,18 +586,3 @@ def compute_orbital_electronegativity(
             },
         ),
     )
-
-
-def _report(**fields) -> ReportResult:
-    """One `AlertResult(...)` call site, as a `ReportResult`.
-
-    The keyword names are unchanged -- `alert_id`, `name`, `matched`,
-    `category` -- so the call sites above read as they always did and the
-    diff stays small. `report_fields` does the translation and turns each
-    line into a `Fact`; see `chem/report_adapter.py` for what a string can
-    and cannot carry.
-
-    A calculator that wants real units, evidence or limitations on a fact
-    builds `Fact`s directly instead, as `geometry_analysis` now does.
-    """
-    return ReportResult(**report_fields(**fields))

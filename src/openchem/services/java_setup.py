@@ -33,7 +33,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-import platformdirs
 from openchem import paths as app_paths
 from openchem.net import open_url
 

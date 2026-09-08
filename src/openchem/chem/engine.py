@@ -12,7 +12,6 @@ from rdkit.Geometry import Point3D
 from openchem.chem.camera_orientation import camera_to_model_transform, rotate
 from openchem.chem.stereochemistry import (
     StereoChange,
-    StereochemistryConflict,
     compare_stereochemistry,
 )
 

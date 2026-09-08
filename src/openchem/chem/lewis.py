@@ -41,7 +41,7 @@ from openchem.domain.lewis import (
     LewisStrength,
 )
 from openchem.domain.report import ReportResult
-from openchem.chem.report_adapter import report_fields
+from openchem.chem.report_adapter import report_from_fields
 from openchem.domain.structure_issue import Basis
 
 METHOD = "Lewis site analysis (structural rules)"
@@ -684,7 +684,7 @@ def compute_lewis_sites(
     provenance = Provenance(created_by="core", method="lewis_sites")
 
     if analysis.refused:
-        return _report(
+        return report_from_fields(
             alert_id="lewis_sites",
             name="Lewis Sites",
             molecule_uuid=molecule_uuid,
@@ -715,7 +715,7 @@ def compute_lewis_sites(
     lines.extend(f"Assumption: {text}" for text in analysis.assumptions)
     lines.extend(f"Limitation: {text}" for text in analysis.limitations)
 
-    return _report(
+    return report_from_fields(
         alert_id="lewis_sites",
         name="Lewis Sites",
         molecule_uuid=molecule_uuid,
@@ -779,18 +779,3 @@ def _limitations(sites: list[LewisSite]) -> tuple[str, ...]:
             "the way the motif usually does."
         )
     return tuple(limitations)
-
-
-def _report(**fields) -> ReportResult:
-    """One `AlertResult(...)` call site, as a `ReportResult`.
-
-    The keyword names are unchanged -- `alert_id`, `name`, `matched`,
-    `category` -- so the call sites above read as they always did and the
-    diff stays small. `report_fields` does the translation and turns each
-    line into a `Fact`; see `chem/report_adapter.py` for what a string can
-    and cannot carry.
-
-    A calculator that wants real units, evidence or limitations on a fact
-    builds `Fact`s directly instead, as `geometry_analysis` now does.
-    """
-    return ReportResult(**report_fields(**fields))

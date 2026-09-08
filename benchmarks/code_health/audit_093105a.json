@@ -1,0 +1,224 @@
+{
+  "_about": {
+    "what": "A recorded tokensave code-health audit, with the analyzer's measured false-positive classes beside the raw numbers.",
+    "why": "A later audit reporting a large move in any of these figures must be answerable as 'the code changed' or 'the resolver changed'. Without a baseline recording the analyzer version AND its blind spots on this tree, that question is not decidable and costs days.",
+    "read_this_first": "Three of the twelve tools returned numbers that do not describe this codebase. They are recorded with their measured cause so nobody re-derives it. See 'calibration'."
+  },
+
+  "run": {
+    "commit": "093105a",
+    "branch": "master",
+    "date": "2026-09-07",
+    "tokensave_version": "7.11.0",
+    "working_tree": "clean",
+    "index_freshness": "last_sync_at 1788819815 against last_updated 1788819610 -- synced after the last write"
+  },
+
+  "graph": {
+    "files": 803,
+    "nodes": 27565,
+    "edges": 43612,
+    "total_source_bytes": 15265372,
+    "files_by_language": {
+      "Python": 691,
+      "Other": 96,
+      "TOML": 7,
+      "JavaScript": 4,
+      "PowerShell": 3,
+      "Batch": 2
+    }
+  },
+
+  "health": {
+    "quality_signal": 7013,
+    "dimensions": {
+      "acyclicity": 0.4093,
+      "depth": 1.0,
+      "equality": 0.4374,
+      "redundancy": 0.9545,
+      "modularity": 0.9923,
+      "coverage_discipline": 1.0
+    },
+    "gini_per_file_complexity": 0.5626,
+    "note": "quality_signal is the geometric mean of the dimensions x 10000. acyclicity is an artifact (see calibration.import_misresolution), so the headline understates. Over the remaining five dimensions the geometric mean is about 0.86.",
+    "note_redundancy": "0.9545 derives from dead_count/total_fns, and dead_count is inflated by the false-positive classes below, so the true figure is higher than reported."
+  },
+
+  "raw_headlines": {
+    "complexity_top_score": {
+      "symbol": "append",
+      "file": "benchmarks/docking/rank_power.py",
+      "line": 311,
+      "fan_in": 1509,
+      "trustworthy": false
+    },
+    "god_class_top": {
+      "symbol": "MainWindow",
+      "file": "src/openchem/app/main_window.py",
+      "line": 303,
+      "methods": 126,
+      "trustworthy": true
+    },
+    "circular_cycle_count": { "value": 1, "cycle_size_files": 350, "trustworthy": false },
+    "imports_cycle_count": { "value": 1, "depths_tested": [1, 2, 3], "trustworthy": false },
+    "coupling_fan_in_top": {
+      "file": "benchmarks/docking/rank_power.py",
+      "coupled_files": 359,
+      "trustworthy": false
+    },
+    "coupling_fan_out_top": {
+      "file": "src/openchem/app/main_window.py",
+      "coupled_files": 88,
+      "trustworthy": true
+    },
+    "redundancy_candidates_scanned": { "value": 2364, "trustworthy": true },
+    "dead_code_count": {
+      "value": 468,
+      "scope": "src/openchem, include_public, excluding resources+vendor",
+      "trustworthy": "partially -- see calibration.dead_code_false_positives"
+    },
+    "unused_import_count": { "value": 42, "trustworthy": true },
+    "hotspots_count": { "value": 9, "trustworthy": false },
+    "recursion_cycle_count": { "value": 20, "all_self_recursive": true, "trustworthy": true },
+    "unsafe_patterns_match_count": {
+      "value": 0,
+      "trustworthy": false,
+      "why": "the tool searches Rust constructs"
+    }
+  },
+
+  "calibration": {
+    "bare_name_call_resolution": {
+      "verdict": "hotspots and coupling(fan_in) carry no signal on this tree; coupling(fan_out) is unaffected",
+      "mechanism": "A call to an unqualified common name binds to whichever project symbol shares that name, so stdlib and Qt method calls across the whole repository accrue to one small accessor.",
+      "evidence": [
+        { "symbol": "append", "file": "benchmarks/docking/rank_power.py", "line": 311, "reported": 1509, "really": "list.append" },
+        { "symbol": "text", "file": "src/openchem/ui/dialogs/external_tool_tabs.py", "line": 188, "reported": 713, "really": "QWidget.text()" },
+        { "symbol": "values", "file": "src/openchem/domain/batch.py", "line": 228, "reported": 453, "really": "dict.values()" },
+        { "symbol": "name", "file": "src/openchem/chem/nuclides.py", "line": 164, "reported": 442, "really": "any .name accessor" },
+        { "symbol": "connect", "file": "src/openchem/chem/nmr_database.py", "line": 232, "reported": 374, "really": "Signal.connect()" },
+        { "symbol": "a", "file": "src/openchem/chem/decay_svg.py", "line": 168, "reported": 273, "really": "every local named a" },
+        { "symbol": "n", "file": "src/openchem/domain/affinity_range.py", "line": 160, "reported": 205, "really": "every local named n" }
+      ],
+      "why_fan_out_survives": "fan_out counts what a file references rather than what references it, so a name collision cannot inflate it."
+    },
+
+    "import_misresolution": {
+      "verdict": "circular and imports cannot plan a decomposition here; the acyclicity sub-score of 0.4093 is not a measurement of this codebase",
+      "mechanism": "A bare module import can resolve to a project file sharing a path segment, creating a back-edge that does not exist. Those false edges stitch every file into one strongly connected component.",
+      "evidence": {
+        "file": "benchmarks/assembly/fetch.py",
+        "line": 26,
+        "statement": "import urllib.request",
+        "resolved_file": "src/openchem/services/spatial_overlay_service.py",
+        "reading": "a stdlib import bound to a project file"
+      },
+      "corroboration": "The reported cycle requires src/ to import back from tests/, which it does not. The same single cycle is reported at import-group depth 1, 2 and 3."
+    },
+
+    "unsafe_patterns_is_rust_shaped": {
+      "verdict": "match_count 0 means 'not applicable', never 'clean'",
+      "searches_for": ["unwrap", "expect", "panic!", "todo!", "unimplemented!", "unsafe block"],
+      "python_equivalent_run_instead": {
+        "scope": "src/openchem excluding vendor/",
+        "bare_except": 0,
+        "eval_or_exec": 0,
+        "eval_exec_matches_that_are_docstring_prose": 10,
+        "subprocess_shell_true": 0,
+        "pickle": 0,
+        "todo_fixme_xxx": 1,
+        "assert_in_production": 4,
+        "except_Exception": 155,
+        "reading": "clean. The 4 asserts vanish under python -O. The 155 broad handlers are consistent with the project's degrade-and-report policy; this audit did NOT assess handler quality (logs / reports / rethrows / returns a sentinel / swallows silently), which is a separate investigation."
+      }
+    },
+
+    "dead_code_false_positives": {
+      "verdict": "of 468 reported, the method half is dominated by Qt wiring and is not a backlog",
+      "method": "grep over src/ tests/ tools/ plugins/ benchmarks/ examples/ for each name, excluding its own definition line",
+      "classes": [
+        {
+          "class": "qt_signal_to_slot",
+          "example": "src/openchem/ui/dialogs/external_tools_dialog.py:326",
+          "shape": "button.clicked.connect(self._on_remove_button_clicked)",
+          "on_the_documented_caveat_list": "yes, as the Tkinter command=self._x analogue"
+        },
+        {
+          "class": "qt_virtual_override",
+          "example": "src/openchem/ui/widgets/ph_curve_widget.py:136",
+          "shape": "paintEvent -- called by the framework, never by name",
+          "on_the_documented_caveat_list": "no"
+        },
+        {
+          "class": "called_from_javascript_by_name",
+          "example": "src/openchem/ui/widgets/ketcher_editor_backend.py:89",
+          "shape": "bondSelected -- the vendored bundle calls it by this exact name",
+          "on_the_documented_caveat_list": "no"
+        },
+        {
+          "class": "function_as_a_value_in_a_tuple_literal",
+          "example": "src/openchem/chem/structure_clipboard.py:67-71",
+          "shape": "for reader, name in ((_from_molblock, 'molfile'), ...)",
+          "on_the_documented_caveat_list": "NO -- new class, found by this audit"
+        },
+        {
+          "class": "module_level_const_initializer",
+          "example": "src/openchem/chem/solubility.py:174",
+          "shape": "SOLVENTS = _build_solvents()",
+          "on_the_documented_caveat_list": "no -- v7.9.0 claims to have closed this class; it did not close this instance"
+        },
+        {
+          "class": "module_level_comprehension",
+          "example": "src/openchem/ui/visualization.py:68",
+          "shape": "_hex_to_rgb_fraction(color) for _stop, color in _DIVERGING_PALETTE",
+          "on_the_documented_caveat_list": "no"
+        },
+        {
+          "class": "string_keyed_dispatch",
+          "example": "src/openchem/chem/joback.py:499",
+          "shape": "a table row naming the function as a string",
+          "on_the_documented_caveat_list": "no"
+        },
+        {
+          "class": "attribute_only_via_module_alias",
+          "example": "src/openchem/ui/dialogs/external_tool_catalog.py:375",
+          "shape": "tools.responds_as_vina passed as a value",
+          "on_the_documented_caveat_list": "yes"
+        }
+      ],
+      "grep_confirmed_genuinely_unreferenced_at_this_commit": [
+        "src/openchem/chem/organometallic_adapter.py:253 is_cyclopentadienide",
+        "src/openchem/chem/organometallic_adapter.py:262 is_carbonyl_ligand",
+        "src/openchem/chem/nuclides.py:253 states_of",
+        "src/openchem/chem/nuclides.py:271 attribution",
+        "src/openchem/chem/substructure.py:63 matched_atoms",
+        "src/openchem/ui/dialogs/inventory.py:270 dialog_names",
+        "src/openchem/help.py:285 is_frozen",
+        "src/openchem/__init__.py:1 hello"
+      ]
+    },
+
+    "unused_imports_came_out_clean": {
+      "verdict": "no false positive found; the attribute-only class did NOT fire here",
+      "control": "platformdirs is imported in 8 files and attribute-accessed in only src/openchem/paths.py. The report names the other 6 and correctly OMITS paths.py, which is the discriminating case."
+    }
+  },
+
+  "how_to_reproduce": {
+    "tools": [
+      "tokensave_health()",
+      "tokensave_complexity(limit=25)",
+      "tokensave_god_class(limit=20)",
+      "tokensave_circular()",
+      "tokensave_imports(depth=1|2|3)",
+      "tokensave_coupling(direction=fan_in|fan_out, limit=15)",
+      "tokensave_redundancy(path=src/openchem, max_pairs=30, min_lines=10)",
+      "tokensave_dead_code(path=src/openchem, include_public=true, path_exclude=[resources,vendor])",
+      "tokensave_unused_imports(path=src/openchem, path_exclude=[resources,vendor])",
+      "tokensave_hotspots(limit=15, path_include=[src/openchem], path_exclude=[resources,vendor])",
+      "tokensave_recursion(limit=20)",
+      "tokensave_unsafe_patterns(path=src/openchem, exclude_tests=true)"
+    ],
+    "note": "Exclude resources/ and vendor/ from anything scoped to our own code: the vendored Ketcher bundle is a single 35 MB JavaScript file and dominates every unscoped ranking."
+  }
+}

@@ -1246,6 +1246,38 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
     def _build_menus(self) -> None:
+        """The menu bar, one builder per menu.
+
+        Split from a single 362-line method. The boundaries are the seven
+        `menuBar().addMenu(...)` calls and nothing else moved: each
+        section's lines are verbatim, at the indent they already had, so
+        every comment explaining WHY an action is wired the way it is --
+        why the crystal importer is its own entry rather than an extension
+        of the molecule importer, why Paste Structure is not Ctrl+V, why a
+        handler is wrapped in a lambda because `triggered` emits `checked`
+        -- still sits against the action it explains.
+
+        **BUILDING STAYS IN THE WINDOW, deliberately.** `app/menu_help.py`
+        already records the split this project made: the window's job is to
+        BUILD the menus, and what an entry MEANS is a separate statement
+        living in that module. These are seven private methods rather than
+        seven modules so that division is unchanged; the 362 lines were the
+        problem, not where they lived.
+
+        Checked before splitting: no local assigned in one section is read
+        in another, so the cut needs no parameter and no attribute and is a
+        move rather than a behaviour change.
+        """
+        self._build_file_menu()
+        self._build_edit_menu()
+        self._build_structure_menu()
+        self._build_view_menu()
+        self._build_tools_menu()
+        self._build_plugins_menu()
+        self._build_help_menu()
+
+    def _build_file_menu(self) -> None:
+        """The File menu."""
         file_menu = self.menuBar().addMenu("&File")
         self._document(file_menu.addAction("New Project", self._new_project), "new_project")
         self._document(
@@ -1299,6 +1331,9 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
         self._document(file_menu.addAction("Exit", self.close), "exit")
 
+
+    def _build_edit_menu(self) -> None:
+        """The Edit menu."""
         edit_menu = self.menuBar().addMenu("&Edit")
         undo_action = self._undo_stack.createUndoAction(self, "Undo")
         undo_action.setShortcut("Ctrl+Z")
@@ -1363,6 +1398,9 @@ class MainWindow(QMainWindow):
         # already flows back through EditorBackend.edited ->
         # EditStructureCommand -> the undo stack, so no separate command is
         # needed and Ctrl+Z works on all of them.
+
+    def _build_structure_menu(self) -> None:
+        """The Structure menu."""
         self._structure_menu = self.menuBar().addMenu("&Structure")
         for label, test_id, help_key in (
             ("Aromatize", "Aromatize button", "aromatize"),
@@ -1443,6 +1481,9 @@ class MainWindow(QMainWindow):
             "check_structure_indigo",
         )
 
+
+    def _build_view_menu(self) -> None:
+        """The View menu."""
         self._view_menu = self.menuBar().addMenu("&View")
         for dock in self.findChildren(QDockWidget):
             # ONE contract across every dock: "show or hide this panel" is
@@ -1515,6 +1556,9 @@ class MainWindow(QMainWindow):
         structure_display_menu.addAction(oxidation_action)
         self._oxidation_states_action = oxidation_action
 
+
+    def _build_tools_menu(self) -> None:
+        """The Tools menu."""
         tools_menu = self.menuBar().addMenu("&Tools")
         self._document(
             tools_menu.addAction("Periodic Table...", self._show_periodic_table),
@@ -1555,6 +1599,9 @@ class MainWindow(QMainWindow):
             "external_tools",
         )
 
+
+    def _build_plugins_menu(self) -> None:
+        """The Plugins menu."""
         self._plugins_menu = self.menuBar().addMenu("&Plugins")
         self._document(
             self._plugins_menu.addAction("Reload Plugins", self._reload_plugins),
@@ -1578,6 +1625,9 @@ class MainWindow(QMainWindow):
         # Plugin-contributed menu entries (via context.menus.register(...))
         # are appended directly to this menu, below the separator above.
 
+
+    def _build_help_menu(self) -> None:
+        """The Help menu."""
         help_menu = self.menuBar().addMenu("&Help")
         # F1 is the conventional key, and it opens help for whichever panel
         # is in front rather than a table of contents -- the question being

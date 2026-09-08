@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import logging
 import re
-import sys
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -280,7 +279,3 @@ def reload() -> None:
     """
     _document_lines.cache_clear()
     topics.cache_clear()
-
-
-def is_frozen() -> bool:
-    return bool(getattr(sys, "frozen", False))

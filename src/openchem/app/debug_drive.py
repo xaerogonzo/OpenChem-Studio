@@ -2326,6 +2326,7 @@ class _Driver(QObject):
         from openchem.ui.dialogs.inventory import (
             DialogContext,
             DialogUnavailable,
+            dialog_names,
             iter_dialog_fixtures,
         )
 
@@ -2342,7 +2343,7 @@ class _Driver(QObject):
             logger.error(
                 "OPENCHEM_DRIVE: no dialog %r (have %s)",
                 wanted,
-                [f.name for f in iter_dialog_fixtures()],
+                dialog_names(),
             )
             return
 

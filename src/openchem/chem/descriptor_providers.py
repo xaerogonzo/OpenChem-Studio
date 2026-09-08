@@ -128,12 +128,10 @@ from openchem.domain.common import (
     ATOM_BASIS,
     EXPLICIT_H,
     HEAVY_ATOMS,
-    PI_SYSTEM,
     TOTAL,
     CacheState,
     Provenance,
     declare_total,
-    decline_total,
 )
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.scientific_result import AlertResult, PerAtomDataset
