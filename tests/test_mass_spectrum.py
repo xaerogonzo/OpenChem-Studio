@@ -24,6 +24,7 @@ from rdkit.Chem import Descriptors
 from openchem.chem.mass_spectrum import (
     DEFAULT_PRUNE_THRESHOLD,
     ELECTRON_MASS_DA,
+    _convolve,
     base_peak_shift,
     element_counts,
     isotope_envelope,
@@ -492,3 +493,113 @@ def test_a_base_peak_tie_resolves_to_the_lowest_mass():
 
 def test_the_base_peak_is_the_tallest_when_there_is_no_tie():
     assert base_peak_shift({0: (100.0, 0.1), 2: (102.0, 0.9)}) == 2
+
+
+# --- the fold does not explode ------------------------------------------
+#
+# **NOT ONE OF THE 65 TESTS ABOVE COULD SEE THIS**, and the reason is the
+# recorded one: a fixture is degenerate or not with respect to a specific
+# defect. Every oracle here is a two- or three-atom expansion or a
+# 15-atom acid, and the first implementation kept every isotopologue as a
+# separate branch -- so the entry count was `k^n` in the ATOM count and
+# only a drug-sized molecule could show it. Aspirin's 21 atoms built 10.6
+# million branches in 4 seconds; ibuprofen's 33 reach 19 billion and
+# never finish. All of them were then averaged away by the collapse.
+#
+# It was found by the full suite, where two `test_batch_service.py` tests
+# ran real calculators over aspirin/caffeine/ibuprofen and blew their
+# 120-second `waitForDone`. That file now runs in 4.5 seconds.
+
+
+def _drug_sized_counts() -> dict[str, int]:
+    """Ibuprofen, C13H18O2 -- 33 atoms with hydrogens.
+
+    The composition that could not be computed at all before the fold
+    merged as it went, so a guard built on anything smaller is asserting
+    against a case the defect could survive.
+    """
+    counts = _counts("CC(C)Cc1ccc(cc1)C(C)C(=O)O")
+    assert sum(counts.values()) == 33, "the fixture must stay drug-sized"
+    return counts
+
+
+def test_the_fold_carries_one_merged_bin_per_shift():
+    """**THE GUARD FOR THE EXPONENTIAL FOLD.**
+
+    A wall-clock bound is what this project forbids -- a timing assertion
+    is a claim about the machine, and this file already records two
+    guards that had to be rewritten for exactly that. So the property
+    asserted has to be a STRUCTURAL one that the exponential form cannot
+    satisfy however fast the machine is.
+    """
+    # **THE CHEAP COMPOSITION FIRST, AND THE ORDER IS LOAD-BEARING.**
+    # Reverting the fold to list-append does not make the drug-sized case
+    # FAIL, it makes it never return -- 19 billion branches is a hang or
+    # an out-of-memory kill, and neither is a test result anybody can
+    # read. Water folds to 12 branches under the exponential form, so the
+    # shape assertion below lands in microseconds either way and the
+    # mutation is caught before the expensive half runs.
+    accumulated = {0: (0.0, 1.0)}
+    for symbol, count in sorted(_counts("O").items()):
+        accumulated = _convolve(accumulated, isotopes_of(symbol), count, 1)
+
+    # **THE VALUES, NEVER `len(accumulated)`.** The exponential form keyed
+    # on nominal shift as well, so its dict was exactly this long -- what
+    # reached millions was what each key POINTED AT. A length assertion
+    # would pass against the defect it is written for.
+    #
+    # Unpacking is the discriminator and needs no `isinstance` on a
+    # container: a bin holding a list of branches cannot become two
+    # floats, whatever its length. This is the half that catches a
+    # revert to list-append.
+    for shift, carried in accumulated.items():
+        mass, probability = carried
+        assert isinstance(mass, float), f"shift {shift} carries {carried!r}"
+        assert isinstance(probability, float), f"shift {shift} carries {carried!r}"
+
+    # **AND ONLY NOW THE DRUG-SIZED ONE**, which is the statement the
+    # shape assertion cannot make: this composition can be folded AT ALL.
+    # Under the exponential form it cannot, at any speed.
+    drug = {0: (0.0, 1.0)}
+    for symbol, count in sorted(_drug_sized_counts().items()):
+        drug = _convolve(drug, isotopes_of(symbol), count, 1)
+
+    # The answer really is small, which is the "not exponential"
+    # statement rather than the discriminating one -- C13H18O2 can reach
+    # 13*(13-12) + 18*(2-1) + 2*(18-16) = 35 shifts above the lightest
+    # branch, so 36 bins is every one of them. Derived rather than
+    # measured, so it cannot drift into a record of whatever the fold
+    # happened to produce.
+    assert len(drug) <= 36
+    assert drug[min(drug)][1] > 0.0, "the lightest branch carries the monoisotopic peak"
+
+
+def test_the_merged_fold_still_reproduces_the_marvin_envelope():
+    """The CONTROL, and it is why the guard above is safe to tighten.
+
+    Merging during the fold is exact rather than approximate, so the
+    reported envelope must be byte-identical to the one this file's own
+    Marvin fixture pins. If a future speed-up ever starts pruning inside
+    the fold, this is what says so.
+    """
+    spectrum = isotope_envelope(_counts("OC(=O)c1cccc(Br)c1Br"), DEFAULT_ION)
+    assert spectrum.neutral_exact_mass == pytest.approx(277.857804, abs=1e-6)
+    intensities = [round(peak.intensity, 2) for peak in spectrum.peaks[:6]]
+    assert intensities == [0.51, 0.04, 1.00, 0.08, 0.49, 0.04]
+
+
+def test_a_zero_probability_branch_is_dropped_rather_than_dividing_by_zero():
+    """**CONSTRUCTED, BECAUSE NO REAL COMPOSITION CAN REACH IT**, which is
+    the same answer this file already gives for the base-peak tie.
+
+    `isotopes_of` filters to `abundance > 0`, so every weight the engine
+    can produce is positive and a mutation deleting the guard leaves all
+    67 tests green -- measured. It is carried over verbatim from the
+    collapse this fold replaced, and it is still right: a branch of zero
+    probability is not a branch, and the alternative is a
+    ZeroDivisionError on the mean.
+    """
+    weightless = ((1, 1.007825, 1.0), (2, 2.014102, 0.0))
+    folded = _convolve({0: (0.0, 1.0)}, weightless, 1, 1)
+    assert list(folded) == [0], "the zero-abundance branch must not survive"
+    assert folded[0] == (pytest.approx(1.007825), pytest.approx(1.0))

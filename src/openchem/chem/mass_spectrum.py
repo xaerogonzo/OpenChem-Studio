@@ -178,45 +178,69 @@ def _distribution_for(symbol: str, isotope: int | None):
     return found
 
 
-def _convolve(accumulated: dict, distribution, count: int, sign: int) -> dict:
+def _convolve(
+    accumulated: dict[int, tuple[float, float]],
+    distribution,
+    count: int,
+    sign: int,
+) -> dict[int, tuple[float, float]]:
     """Fold one element's distribution into the running envelope `count`
     times, keyed by nominal mass-number shift from the lightest branch.
 
     `sign` is -1 for atoms being REMOVED, which is what lets `[M-H]-` go
     through the identical path as every adduct rather than needing a
     branch of its own.
+
+    **THE ACCUMULATOR IS `{shift: (probability-weighted mean exact mass,
+    probability)}`, MERGED AS IT GOES.** Isotopologues sharing a nominal
+    shift are combined, which is what makes the result a NOMINAL
+    envelope. Their individual exact masses are lost by design, and
+    recovering them is the fine-structure extension on the roadmap --
+    278.943 being 81Br rather than 13C + 79Br is a question this
+    deliberately cannot answer yet, and [source:ipsen2014] is the route
+    to answering it.
+
+    **MERGING HERE RATHER THAN AT THE END IS EXACT, NOT AN
+    APPROXIMATION**, because a probability-weighted mean is linear.
+    Folding an isotope `(M, f)` into a merged bin gives
+    `(mu + M, P * f)`, and two such bins landing on one shift merge to
+    `[P1 f1 (mu1 + M1) + P2 f2 (mu2 + M2)] / (P1 f1 + P2 f2)` -- which is
+    algebraically what collapsing every individual isotopologue at the
+    end produces. Nothing is lost and no threshold is involved, so the
+    summary values in `isotope_envelope` still come off the FULL
+    distribution.
+
+    **AND KEEPING THE ISOTOPOLOGUES SEPARATE WAS EXPONENTIAL, WHICH IS
+    WHY THIS IS WRITTEN DOWN.** The first version appended each branch to
+    a list per shift and collapsed once at the end, so the entry count
+    was `k^n` in the atom count: aspirin's 21 atoms are 2^9 * 2^8 * 3^4 =
+    10.6 million entries and took 4 seconds, and ibuprofen's 33 reach
+    19 BILLION and never finish. Every one of them was then averaged away
+    by the collapse. Measured, and it is what took two batch tests past
+    their 120-second timeout with a green targeted run.
     """
     lightest = min(mass_number for mass_number, _mass, _fraction in distribution)
     for _ in range(count):
-        folded: dict[int, list[tuple[float, float]]] = defaultdict(list)
-        for shift, entries in accumulated.items():
-            for mass, probability in entries:
-                for mass_number, exact_mass, fraction in distribution:
-                    folded[shift + sign * (mass_number - lightest)].append(
-                        (mass + sign * exact_mass, probability * fraction)
-                    )
-        accumulated = dict(folded)
+        # Moments rather than means while folding, so the division
+        # happens once per bin rather than once per branch.
+        folded: dict[int, list[float]] = {}
+        for shift, (mass, probability) in accumulated.items():
+            for mass_number, exact_mass, fraction in distribution:
+                key = shift + sign * (mass_number - lightest)
+                weight = probability * fraction
+                moment = (mass + sign * exact_mass) * weight
+                entry = folded.get(key)
+                if entry is None:
+                    folded[key] = [moment, weight]
+                else:
+                    entry[0] += moment
+                    entry[1] += weight
+        accumulated = {
+            shift: (moment / weight, weight)
+            for shift, (moment, weight) in folded.items()
+            if weight > 0.0
+        }
     return accumulated
-
-
-def _collapse(accumulated: dict) -> dict[int, tuple[float, float]]:
-    """`{nominal_shift: (probability-weighted mean exact mass, probability)}`.
-
-    Isotopologues sharing a nominal shift are combined, which is what
-    makes the result a NOMINAL envelope. Their individual exact masses are
-    lost here by design, and recovering them is the fine-structure
-    extension on the roadmap -- 278.943 being 81Br rather than 13C + 79Br
-    is a question this deliberately cannot answer yet, and
-    [source:ipsen2014] is the route to answering it.
-    """
-    collapsed: dict[int, tuple[float, float]] = {}
-    for shift, entries in accumulated.items():
-        probability = sum(p for _mass, p in entries)
-        if probability <= 0.0:
-            continue
-        mean_mass = sum(mass * p for mass, p in entries) / probability
-        collapsed[shift] = (mean_mass, probability)
-    return collapsed
 
 
 def base_peak_shift(collapsed: dict[int, tuple[float, float]]) -> int:
@@ -269,11 +293,10 @@ def isotope_envelope(
     charge = ion.charge
     magnitude = abs(charge)
 
-    accumulated: dict[int, list[tuple[float, float]]] = {0: [(0.0, 1.0)]}
+    accumulated: dict[int, tuple[float, float]] = {0: (0.0, 1.0)}
     for symbol, count in sorted(counts.items()):
         accumulated = _convolve(accumulated, _distribution_for(symbol, None), count, 1)
-    neutral = _collapse(accumulated)
-    neutral_exact_mass = neutral[min(neutral)][0] if neutral else 0.0
+    neutral_exact_mass = accumulated[min(accumulated)][0] if accumulated else 0.0
 
     for change in ion.composition.changes:
         distribution = _distribution_for(change.symbol, change.isotope)
@@ -284,7 +307,7 @@ def isotope_envelope(
             1 if change.count > 0 else -1,
         )
 
-    collapsed = _collapse(accumulated)
+    collapsed = accumulated
     if not collapsed:
         raise ValueError("nothing to compute a spectrum from")
 
