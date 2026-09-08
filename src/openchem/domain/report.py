@@ -175,6 +175,22 @@ class Fact:
     #: Set when the value is a number, so a consumer can format or compare
     #: without re-parsing `display_value`.
     units: str = ""
+    #: WHICH OPENCHEM REPORT this fact arrived in -- a `report_id`, so
+    #: `elemental_analysis` rather than "Elemental Analysis".
+    #:
+    #: **A SECOND, INDEPENDENT DIMENSION OF PROVENANCE, AND NOT A RENAME
+    #: OF `source`.** They answer different questions: `source` is
+    #: the scientific or producer-declared origin of the VALUE -- "RDKit",
+    #: "LewisAnalysis" -- while this is which calculator run it came back
+    #: in. A fact can honestly be sourced "RDKit" and originate in
+    #: Elemental Analysis, and collapsing the two would destroy real
+    #: provenance in order to record different provenance.
+    #:
+    #: Stamped by `merge_reports` rather than by producers, because a fact
+    #: cannot know which of several reports it will be merged into.
+    #: Defaulted to empty, so every existing producer is untouched and an
+    #: unmerged report's facts carry nothing new.
+    origin: str = ""
     #: How specialist this is. Defaults to STANDARD, so every existing
     #: producer keeps its current behaviour and only facts that really are
     #: specialist have to say so.

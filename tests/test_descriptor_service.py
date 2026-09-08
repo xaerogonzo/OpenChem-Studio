@@ -13,9 +13,15 @@ from openchem.domain.calculator import (
 from openchem.domain.common import CacheState
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
+from openchem.domain.report import ReportResult
 from openchem.domain.scientific_result import AlertResult, PerAtomDataset
 from openchem.events.base import EventBus
-from openchem.events.events import AlertComputed, DescriptorComputed, PerAtomDataComputed
+from openchem.events.events import (
+    AlertComputed,
+    DescriptorComputed,
+    PerAtomDataComputed,
+    ReportComputed,
+)
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.descriptor_service import DescriptorService
 
@@ -455,3 +461,72 @@ def test_an_unusable_conformer_falls_back_instead_of_failing_every_descriptor(qa
     # no 3D geometry, and `GEOMETRY` means prefer, not require. They say
     # "needs a conformer", which is the honest answer.
     assert states["radius_of_gyration"] == CacheState.FAILED
+
+
+def test_a_published_report_records_which_structure_it_describes(qapp):
+    """**THE WIRING, NOT THE HELPER.** `_with_structure_version` is tested
+    on its own in `test_merged_results.py`, and a helper nothing calls is a
+    helper -- mutating the call out of `_run` left every one of those tests
+    green. This drives a real calculator through the real service and reads
+    the version off the event that comes out.
+
+    `StructureReport.structure_version` has existed since the report types
+    were written and was 0 on EVERY calculator result, because
+    `report_from_fields` never set it.
+    """
+    bus = EventBus()
+    engine = ChemistryEngine()
+    registry = CalculatorRegistry()
+
+    def compute(mol, molecule_uuid, params):
+        return ReportResult(
+            molecule_uuid=molecule_uuid, report_id="versioned", name="Versioned"
+        )
+
+    registry.register(_definition("versioned", compute))
+    service = DescriptorService(
+        bus, engine, calculator_registry=registry, structure_version_of=lambda _uuid: 5
+    )
+
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CCO")
+
+    reports = []
+    bus.subscribe(ReportComputed, lambda e: reports.append(e.report))
+    service.run_calculator(
+        model, CalculationRequest(calculator_id="versioned", molecule_uuid=model.uuid)
+    )
+    _drain(qapp)
+
+    assert len(reports) == 1
+    assert reports[0].structure_version == 5
+
+
+def test_a_service_with_no_version_counter_still_publishes_its_report(qapp):
+    """A fixture without a checker is the ordinary case in this suite, and
+    recording where a result came from must never be able to lose it."""
+    bus = EventBus()
+    engine = ChemistryEngine()
+    registry = CalculatorRegistry()
+    registry.register(
+        _definition(
+            "unversioned",
+            lambda mol, uuid, params: ReportResult(
+                molecule_uuid=uuid, report_id="unversioned", name="Unversioned"
+            ),
+        )
+    )
+    service = DescriptorService(bus, engine, calculator_registry=registry)
+
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CCO")
+
+    reports = []
+    bus.subscribe(ReportComputed, lambda e: reports.append(e.report))
+    service.run_calculator(
+        model, CalculationRequest(calculator_id="unversioned", molecule_uuid=model.uuid)
+    )
+    _drain(qapp)
+
+    assert len(reports) == 1
+    assert reports[0].structure_version == 0
