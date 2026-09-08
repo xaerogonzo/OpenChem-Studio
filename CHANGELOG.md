@@ -7,7 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Mass spectrometry, as a capability rather than a feature.** Elemental
+  Analysis draws the molecular ion's natural-abundance isotope envelope
+  beside its percentages -- the picture MarvinSketch's own window shows --
+  and a new **Mass Spectrum** calculator carries the ionisation modes: eight
+  ions from a closed vocabulary, unit or exact resolution, and a minimum
+  reported intensity. Both call ONE engine, so the envelope cannot differ
+  between them.
+
+  An ion's identity is a **composition plus a charge**, never a scalar mass
+  delta. A scalar expresses `[M+H]+` and `[M+Na]+` and cannot express
+  `[M+Cl]-`: an adduct with its own isotopes contributes its own envelope and
+  a number has nowhere to put it. `[M+2H]2+` is in the first vocabulary for a
+  related reason -- nominal binning divides the isotope shift by the charge, so
+  an implementation that adds the shift straight to m/z works at every
+  singly-charged fixture and silently mis-draws every ESI spectrum.
+
+  The caption says CALCULATED and never "theoretical spectrum". `SpectrumBasis`
+  is measured / calculated / predicted, declared by the producer and reaching
+  the screen, so a future predicted fragmentation spectrum cannot render as
+  this one does. EI fragmentation, MS/MS, fine structure and GC retention
+  indices are on the roadmap behind explicit acceptance gates, and nothing here
+  implements any of them.
+
+- **A producer-declared chart channel on `ReportResult`.** A calculator may
+  declare a chart the way it can already declare a 3D annotation: a closed set
+  of kinds, a structural validator that fails closed, and a renderer that
+  refuses a malformed annotation rather than repairing it. The view derives
+  nothing -- a report whose facts contain `"C: 55.34%"` and no declared chart
+  renders no chart.
+
+- **One results window per molecule, modeless and live.** "Details..." used to
+  open one calculator's report, so running a second calculator replaced the
+  first window with the second and the search box built for a hundred facts was
+  being handed four. Every existing button now arrives at one window holding
+  everything computed for that structure, focused on the report whose button was
+  pressed. Results for an earlier revision of the structure are marked stale and
+  kept, never silently served and never silently blanked.
+
 ### Fixed
+
+- **The isotope fold was exponential in the atom count**, so Elemental Analysis
+  could not answer for most drug-sized molecules: aspirin took 4.1 seconds and
+  ibuprofen never returned. Every isotopologue was kept as its own branch and
+  merged only at the end, making the entry count `k^n` in the ATOM count --
+  10.6 million branches for aspirin, 19 billion for ibuprofen -- and all of them
+  were then averaged away. Merging inside the fold is exact rather than an
+  approximation, because a probability-weighted mean is linear, so the reported
+  distribution is unchanged and the rendered chart is byte-identical. Aspirin
+  now takes 0.2 ms.
+
+- **`MassPeak.mz` documented a fine structure the engine does not resolve.** At
+  exact resolution it carries the probability-weighted mean exact m/z of its
+  nominal bin, not one isotopologue's: M+1 of a CHNO molecule is 13C, 17O and
+  2H at three different exact masses reported as one peak. The contract says so
+  now, and telling them apart is the roadmap's fine-structure entry.
 
 - **The ligand was prepared at neutral pH while the receptor was prepared
   at 7.4.** Ligand preparation called a bare `mol.addh()` -- Open Babel's

@@ -565,7 +565,7 @@ follow directly:
 knowing about.** It used to be refused here because it appeared only in
 the source's *predicted* coefficient set, which its own authors say should
 not be taken "as gospel". A *measured* set was later read from a second
-paper, so it ships — and the 118 solvents still listed predicted-only are
+paper, so it ships — and the 117 solvents still listed predicted-only are
 refused on exactly the original grounds, with the reason named rather
 than the solvent silently missing.
 

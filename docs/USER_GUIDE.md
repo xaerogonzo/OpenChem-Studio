@@ -660,6 +660,22 @@ qualify rather than three rows below it. Press **Details…** beside any of them
 for the full report: every value, its source and basis, the evidence behind it,
 and Copy/Export in Markdown, plain text, JSON or CSV.
 
+**Details… opens one window per molecule, not one per calculator.** It holds
+everything computed for that structure, opened on the calculator whose button
+you pressed; run a second calculator and its values arrive in the window that
+is already open. The **Showing:** box narrows to one producer or back to all of
+them, and the search box matches a producing calculator as well as a value, so
+"lewis" finds everything Lewis Sites said. It is not modal — you can leave it
+open and keep working, which is the whole point of a window that accumulates.
+
+A result computed for an earlier version of the structure is **marked stale and
+kept** — in that box, in the heading and in a line above the values. Re-run the
+calculator to refresh it. A stale answer and a missing one are different things,
+and silently serving one looks exactly like silently discarding it.
+
+A *shape*-valued result is the exception and still opens on its own 3D model,
+as described under **Some results draw themselves on a 3D model** above.
+
 The **Regulatory Screen** now says what it did *not* check. A molecule with no
 matches lists every domain for which no ruleset is loaded, because "no matches"
 without its scope is the silence that reads as reassurance.
@@ -697,7 +713,7 @@ arrived together. It reads as a slow dialog and is not one.
 | Aromaticity | HOMA per ring, from Krygowski's reference bond lengths: 1 is a ring whose bonds all sit at the optimal length, 0 is the reference Kekulé structure, and there is no lower bound — a saturated or bond-alternating ring goes negative. Also Bird's index, which converts each bond length to a Gordy bond order and measures how UNIFORM those orders are rather than how close the lengths are to one ideal — reported as I5 or I6 because the paper says values for different ring sizes are not comparable. Both need a 3D conformer and refuse a drawing, because a 2D layout gives every bond about the same length whatever its order |
 | Thermophysical | Joback group contributions: normal boiling and freezing points, the three critical constants, enthalpy and Gibbs energy of formation, ideal-gas heat capacity, enthalpies of vaporization and fusion, and liquid viscosity — refused with the atom named when a structure carries a group the method has no contribution for |
 | Solubility | ESOL solubility, the Low/Moderate/High category, solubility at a chosen pH, the pH–solubility curve, a BCS high-solubility screening estimate, solubility in 91 non-aqueous solvents, and Gutmann donor and acceptor numbers for the chosen solvent where they were measured. Also the three Hansen partial solubility parameters and their Hildebrand total by Stefanis-Panayiotou group contribution, which says which of the paper's two parameter sets produced each value |
-| Identity | formula, exact mass, elemental composition, InChI/InChIKey |
+| Identity | formula, exact mass, nominal mass, elemental composition, InChI/InChIKey, and the molecular ion's isotope pattern drawn beside the percentages. A separate **Mass Spectrum** calculator carries the ionisation modes — eight ions from `[M]+•` to `[M+Cl]⁻`, unit or exact resolution, and a minimum intensity |
 | Naming | IUPAC name with its source and exactness label |
 | Charge | Gasteiger partial charges, and charges at a chosen pH |
 | Lipophilicity | logP per-atom contributions, and pH-dependent logD with its curve |
