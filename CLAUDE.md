@@ -5569,6 +5569,128 @@ ACS SUBMISSION-year code where its own citation line reads 2023. The
 paper decides, never the DOI and never the filename -- the citation
 audit's rule, where all six errors were in the field nothing could check.
 
+## THE ISOTOPE FOLD WAS EXPONENTIAL IN THE ATOM COUNT
+
+`compute_elemental_analysis` could not answer for ibuprofen, or for most
+of drug space, and it shipped that way behind a fully green branch.
+Measured through the shipped path:
+
+    aspirin      C9H8O4    21 atoms    4097 ms
+    ibuprofen    C13H18O2  33 atoms    never returns
+
+**EVERY ISOTOPOLOGUE WAS KEPT AS ITS OWN BRANCH AND THEN AVERAGED AWAY.**
+`_convolve` appended each one to a list per nominal shift and `_collapse`
+merged them once at the end, so the entry count was `k^n` in the ATOM
+count rather than in the element count -- aspirin is 2^9 * 2^8 * 3^4 =
+10.6 million branches, ibuprofen 19 BILLION. Nothing downstream ever read
+one: `_collapse` ran unconditionally, and even the exact-resolution path
+reports its probability-weighted MEAN.
+
+**MERGING INSIDE THE FOLD IS EXACT, NOT AN APPROXIMATION**, which is what
+makes this a repair rather than a speed-for-accuracy trade. A
+probability-weighted mean is linear, so folding `(M, f)` into a merged
+bin gives `(mu + M, P*f)`, and two such bins landing on one shift merge
+to `[P1 f1 (mu1+M1) + P2 f2 (mu2+M2)] / (P1 f1 + P2 f2)` -- algebraically
+what collapsing every individual branch at the end produces. The full
+distribution is bit-identical, so `monoisotopic_mz`, `average_mz` and
+`base_peak_mz` still come off it and the pruning contract is untouched.
+
+    aspirin   4097 ms -> 0.2 ms      ibuprofen   never -> 0.3 ms
+    tests/test_batch_service.py   >300 s and timing out -> 4.51 s
+    ms_elemental_analysis.png     BYTE-IDENTICAL, sha 2f7829d6
+
+The byte-identical screenshot is the acceptance test worth having: the
+engine was rewritten underneath the picture and the picture did not move
+a pixel.
+
+### THE UNIT TESTS AND THE DRIVEN CHECK WERE BOTH DEGENERATE
+
+Neither instrument this branch built could see it, for one reason. Every
+oracle in `tests/test_mass_spectrum.py` is a two- or three-atom binomial
+expansion or the 15-atom acid from the reported screenshot -- and
+`benchmarks/visual/mass_spectrum_and_merged_details.json` drives that
+SAME acid, which folds 73,728 branches and is fast either way.
+
+**IT TOOK THE FULL SUITE, AND IT DID NOT ANNOUNCE ITSELF AS A MASS
+SPECTRUM.** Two `test_batch_service.py` tests run real calculators over
+aspirin/caffeine/ibuprofen and blew their 120-second `waitForDone`, which
+surfaced as `state is not COMPLETED` and a missing nitrogen column. That
+file's own docstring already says why it exists -- "the thing worth
+testing is that 50 registered calculators survive being invoked in one
+pass, which is precisely what a mock cannot tell you" -- and this is the
+second defect it has caught by that route.
+
+A fixture is degenerate or not with respect to a specific defect, which
+this file records at the assembly corpus, the two published formulations
+and the panel captions. This is the first time the DRIVE SCRIPT was
+degenerate as well, and the cause is worth naming: a drive script is
+written from the reported case, so it inherits whatever that case cannot
+show.
+
+### THE GUARD'S ORDER IS LOAD-BEARING, BECAUSE THE REVERT HANGS
+
+Reverting the fold does not make the drug-sized case FAIL -- it makes it
+never return, and a hang or an out-of-memory kill is not a readable test
+result. So the shape assertion runs on WATER first, where the exponential
+form folds 12 branches in microseconds, and the drug-sized fold follows
+it. Measured: the revert is caught in 2.28 s.
+
+**THE ASSERTION IS ON THE VALUES AND NEVER ON `len(accumulated)`.** The
+exponential form keyed on nominal shift too, so its dict was exactly as
+long -- what reached millions was what each key POINTED AT. A length
+assertion passes against the defect it is written for. Unpacking a bin
+into two floats is the discriminator and needs no `isinstance` on a
+container: a list of branches cannot become two floats whatever its
+length.
+
+The zero-weight drop SURVIVED at first, and is not a coverage gap:
+`isotopes_of` filters to `abundance > 0`, so no real composition can
+reach it. Asserted on a constructed distribution, which is the answer
+this same file already gives for the base-peak tie. Five arms, five
+caught.
+
+## "EXACT" WAS THE ARITHMETIC AND THE CONTRACT SAID FINE STRUCTURE
+
+`MassPeak.mz` documented that at exact resolution it carries "the
+isotopologue's own m/z". It does not and never has: isotopologues sharing
+a mass-number shift are merged, so M+1 of a CHNO molecule is 13C, 17O and
+2H at three different exact masses and ONE peak is reported for all of
+them. Telling them apart is precisely the fine-structure extension the
+roadmap gates.
+
+**NOTHING COULD SEE IT BECAUSE EVERY OTHER ASSERTION IS AT UNIT
+RESOLUTION**, where the bin's mean is rounded away. The guard's oracle is
+the three +1 deltas read from the shipped abundance table without the
+convolution -- the reported value must lie strictly between the smallest
+and the largest and equal none of them -- and the fixture asserts the
+three deltas really do differ, so it cannot pass vacuously. Two arms, two
+caught: exact resolution falling back to the nominal bin, and a bin
+reporting its lightest contributor rather than its mean.
+
+It was found by documenting a constant, which is the part worth keeping:
+the `#:` ratchet named `EXACT_RESOLUTION`, writing its line meant saying
+what the value MEANS, and saying that out loud is what exposed the
+sentence one module away that said something else.
+
+### THE 13-GUARD SWEEP MISSES THE `#:` RATCHET TOO
+
+This file already records that `rg -l "ast.parse" tests/` does not include
+`test_docs_are_current.py`, and that reading it as though it did put a red
+commit on master. **`tests/test_constant_docs.py` is not in that set
+either** -- it delegates the parsing to `tools/constant_docs.py`, so it
+carries no `ast.parse` of its own. Both have to be named:
+
+```bash
+uv run --no-sync python -m pytest -q $(rg -l "ast.parse" tests/ | tr '\n' ' ') \
+    tests/test_docs_are_current.py tests/test_constant_docs.py
+```
+
+Measured on this branch: a sweep reporting `1006 passed` had run neither,
+and the full suite then failed on the ratchet. The population a text
+search finds is the population that MENTIONS the technique, never the
+population that USES it -- the same lesson as grepping for a phrase
+counting the source rather than the outcome, one layer along.
+
 ## Running the tests
 
 ```bash
