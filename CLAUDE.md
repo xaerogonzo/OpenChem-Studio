@@ -5700,7 +5700,76 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-22 minutes**, ending at `6814 passed, 16 skipped`
+A clean run is **6-22 minutes**, ending at `7035 passed, 16 skipped`
+(measured 2026-09-08, **16m25**, on `mass-spectrometry-and-a-chart-channel`
+-- the isotope envelope, the producer-declared chart channel and one
+merged results window per molecule.
+
+**+209 collected and 0 REMOVED** against master at `4d24951`, diffed both
+directions with `comm` in a detached worktree, with the `PYTHONPATH`
+override asserted before the count was believed (`import openchem`
+reported the WORKTREE's `src`):
+
+    master     4d24951   COLLECTS 6842
+    this one             COLLECTS 7051   = 6842 + 209
+    the run                       7035 passed + 16 skipped = 7051
+
+    44  test_mass_spectrum.py            the binomial and trinomial
+                                         oracles, the Marvin fixture, the
+                                         ion identity, the exponential
+                                         fold and the exact-resolution
+                                         semantics
+    29  test_stick_chart_widget.py       written
+    25  test_mass_spectrum_calculators.py  the two callers, one engine
+    20  test_merged_results.py           written
+    19  test_chart_annotations.py        the validator, failing closed,
+                                         AND its does-not-judge complement
+    15  test_merged_results_dialog.py    the window, focus and staleness
+    14  test_fact_view_charts.py         charts never derived from facts
+    12  test_sources_are_current.py      parametrised cases of the
+                                         EXISTING schema guard, one per
+                                         new registry entry
+    12  test_plot_axis.py                the extracted axis mechanics
+     9  test_property_panel_results_window.py
+     5  test_batch_result_store.py       merged_results beside merged_report
+     2  test_layering.py                 domain may not import Qt, both arms
+     2  test_descriptor_service.py       the structure_version stamp
+     1  test_calculator_reachability.py  the new module's declaration
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored,
+since pytest's progress dots share the line -- as do `^FAILED`, `^ERROR`
+and a whole-line-anchored count of `F`/`E` progress characters. The skips
+are the deterministic 16. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**THIS FIGURE IS THE THIRD RUN, AND THE FIRST TWO ARE THE REASON THIS
+SECTION EXISTS.** Recorded rather than quietly re-run:
+
+    run 1   KILLED at 8% by a session teardown -- and its 646 progress
+            characters carried TWO `F`s, which is what found the
+            exponential isotope fold. A partial log is not an empty one.
+    run 2   1 failed, 7033 passed   the `#:` ratchet, on EXACT_RESOLUTION
+    run 3   7035 passed, 16 skipped, 16m25      <- the cited figure
+
+Run 1 is the entry worth reading. It never reached a summary line, so
+every ordinary check reports nothing -- but mapping the `F` positions
+back onto `--collect-only` order named
+`tests/test_batch_service.py::test_a_run_fills_a_cell_for_every_molecule_and_property`
+and its neighbour, which is how a calculator that could not answer for
+ibuprofen was found. **A crashed or killed run is not a run with no
+information in it**, and the progress line is the instrument:
+
+    grep -oE "^[.sFEx]+ *(\[ *[0-9]+%\])?$" /tmp/suite.log
+
+Run 2's failure is written up above under the `#:` ratchet, and it is
+the second time this branch met a guard the 13-file `rg "ast.parse"`
+sweep does not run.
+
+16m25 sits mid-band; the 6-22 range stands.)
+
+Before it: `6814 passed, 16 skipped`
 (measured 2026-09-07, **15m11**, on `widen-the-ranking-corpus` -- the powder
 intensities and the ranking corpus widened off the aminergic GPCRs.
 
