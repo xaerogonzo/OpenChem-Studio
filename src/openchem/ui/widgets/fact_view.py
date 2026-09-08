@@ -64,6 +64,7 @@ from openchem.ui.widgets.collapsible_section import (
     WrappedLabel,
 )
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
+from openchem.ui.widgets.stick_chart_widget import StickChartWidget
 
 COPY_FORMATS = ("Markdown", "Plain text", "JSON", "CSV")
 
@@ -172,10 +173,28 @@ class FactView(QWidget):
     #: "Compare with..." was chosen on this report.
     compare_requested = Signal(object)
 
-    def __init__(self, parent: QWidget | None = None, show_controls: bool = True) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        show_controls: bool = True,
+        show_charts: bool = True,
+    ) -> None:
         super().__init__(parent)
         self._report = None
         self._sections: dict[str, CollapsibleSection] = {}
+        #: **THE CHART SECTIONS LIVE APART FROM `_sections` ON PURPOSE.**
+        #: `_render` runs `_clear_sections` on every search keystroke, so a
+        #: chart built in there would be destroyed and rebuilt per
+        #: character -- losing its expanded state, and rebuilding a painted
+        #: widget for a filter that does not apply to it. A chart is not a
+        #: fact: `find()` searches facts, and hiding a picture because its
+        #: producer's LABEL did not match the needle would be filtering on
+        #: something the reader cannot see.
+        self._chart_sections: list[CollapsibleSection] = []
+        #: A surface with its own visualisation opts out --
+        #: `CalculatorInspectorDialog` already draws the result it is
+        #: showing, and a second copy above the facts is not a second view.
+        self._show_charts = show_charts
         #: **WITHOUT THE CONTROLS, NOTHING MAY HIDE BEHIND THEM.** The depth
         #: filter and the collapsed headings are both things a reader
         #: undoes with a control; hide the controls and each becomes a dead
@@ -281,6 +300,10 @@ class FactView(QWidget):
         self._title.setText(title)
         self._summary.setText(summary)
         self._summary.setVisible(bool(summary))
+        # BEFORE `_render`, which inserts the category sections at the end
+        # of the container -- so the charts sit above the facts, which is
+        # where a picture of the result belongs.
+        self._rebuild_charts()
         self._render()
 
     def report(self):
@@ -291,6 +314,7 @@ class FactView(QWidget):
         self._title.setText(title)
         self._summary.setVisible(False)
         self._clear_sections()
+        self._clear_charts()
         self._status.setText(status)
 
     def set_status(self, text: str) -> None:
@@ -321,6 +345,68 @@ class FactView(QWidget):
         return labels
 
     # --- rendering -----------------------------------------------------------
+
+    def _clear_charts(self) -> None:
+        for section in self._chart_sections:
+            section.setParent(None)
+            section.deleteLater()
+        self._chart_sections.clear()
+
+    def _rebuild_charts(self) -> None:
+        """One collapsible section per declared chart, above the facts.
+
+        **INSIDE THE SCROLL AREA, NOT ABOVE IT.** A fixed-height chart in
+        the layout above `self._area` -- which is a `QScrollArea` with
+        `setWidgetResizable(True)` -- is the height-for-width fight this
+        project has now lost three times, and the Atom Inspector renders
+        this widget in a 280 px dock. Inside the area it cannot arise: the
+        chart is one more thing to scroll past.
+
+        **READ WITH `getattr`, BECAUSE NOT EVERY REPORT HAS THE FIELD.**
+        `charts` is on `ReportResult`; `StructureReport`, `AtomReport` and
+        `BondReport` have no such attribute, and `report.charts` would
+        raise in the Atom Inspector. The file already reads `highlight` and
+        `detail` off a fact the same way, for the same reason.
+
+        **NOTHING HERE DERIVES A CHART FROM THE FACTS.** An empty tuple is
+        the producer's statement that this result has no picture -- and
+        elemental analysis emits "C: 55.34%" as facts, so a view that
+        parsed those into bars would have invented a picture the producer
+        never claimed. A picture reads as a result.
+        """
+        self._clear_charts()
+        if not self._show_charts or self._report is None:
+            return
+        charts = getattr(self._report, "charts", ()) or ()
+        for index, chart in enumerate(charts):
+            # The FIRST one open, the rest folded. `set_report`'s own
+            # docstring records why a small report is not a smaller version
+            # of a large one: a result whose whole point is its picture must
+            # not open on a heading where the picture should be. Several
+            # charts at once is the batch case, and five expanded plots is a
+            # wall of the same kind.
+            section = CollapsibleSection(
+                chart.title or f"Chart {index + 1}", index == 0, self._container
+            )
+            widget = StickChartWidget(chart, section.content)
+            # `add_calculator_widget` puts it full-width above the form
+            # rows rather than into the label/field grid -- a plot has no
+            # caption column, and a form row would give it half the width.
+            section.add_calculator_widget(widget)
+            self._container_layout.insertWidget(index, section)
+            self._chart_sections.append(section)
+
+    def chart_widgets(self) -> list[StickChartWidget]:
+        """The charts currently on screen, read back off the sections.
+
+        Derived from the widgets rather than from the report, so a test
+        cannot pass against charts that never reached the display -- the
+        same reason `visible_fact_labels` reads the rows.
+        """
+        widgets: list[StickChartWidget] = []
+        for section in self._chart_sections:
+            widgets.extend(section.content.findChildren(StickChartWidget))
+        return widgets
 
     def _clear_sections(self) -> None:
         for section in self._sections.values():
@@ -470,7 +556,7 @@ class FactView(QWidget):
         dialog = QDialog(self)
         dialog.setWindowTitle(self._title.text() or "Report")
         dialog.resize(520, 640)
-        view = FactView(dialog)
+        view = FactView(dialog, show_charts=self._show_charts)
         view.set_report(self._report, self._title.text(), self._summary.text())
         view.link_activated.connect(self.link_activated)
         view.compare_requested.connect(self.compare_requested)
