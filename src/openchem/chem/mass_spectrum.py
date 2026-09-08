@@ -41,7 +41,14 @@ mass defect is composition-dependent, and a multiply charged ion decouples
 isotope mass-number shifts from m/z spacing entirely (a +1 shift moves a
 2+ ion by 0.5).
 
-**WHAT PRUNING TOUCHES, stated once:**
+**WHAT PRUNING TOUCHES, stated once** -- and the trade it makes is the
+one [source:snider2007] names: polynomial methods "rely on pruning to
+reduce the complexity", the strategies "use a threshold to eliminate
+permutations whose contribution falls below some preset value", and that
+"creates errors in the isotopic distribution profile". Which is why the
+threshold is declared rather than hidden, why the summary values are
+computed before it applies, and why zero is called unpruned rather than
+exact:
 
     full theoretical distribution -> derived summary values
                                   -> optional pruning for reported peaks
@@ -51,6 +58,18 @@ distribution and never move with the threshold. At `threshold = 0` the
 result is the UNPRUNED THEORETICAL distribution -- still not "exact",
 since it remains subject to floating-point arithmetic and to a finite
 isotope table.
+
+**AND A THEORETICAL DISTRIBUTION IS NOT AN OBSERVED ONE.**
+[source:claesen2023] is the modern account of the gap: ion sampling,
+ion-ion interactions, detector response and centroiding all move a
+measured distribution away from the computed one. `SpectrumBasis` carries
+that architecturally and `CALCULATED_CAPTION` says it in words.
+
+The algorithm here is the naive convolution, which is what
+[source:dittwald2014] describes scaling quadratically and improves on,
+and [source:alves2014] is the survey of what an adjustable-accuracy
+alternative costs. Neither supplies a number used here; both are where a
+future version starts rather than re-deriving the ground.
 """
 
 from __future__ import annotations
@@ -187,7 +206,8 @@ def _collapse(accumulated: dict) -> dict[int, tuple[float, float]]:
     makes the result a NOMINAL envelope. Their individual exact masses are
     lost here by design, and recovering them is the fine-structure
     extension on the roadmap -- 278.943 being 81Br rather than 13C + 79Br
-    is a question this deliberately cannot answer yet.
+    is a question this deliberately cannot answer yet, and
+    [source:ipsen2014] is the route to answering it.
     """
     collapsed: dict[int, tuple[float, float]] = {}
     for shift, entries in accumulated.items():
@@ -330,3 +350,175 @@ def _mz(neutral_mass: float, charge: int) -> float:
     keep in agreement.
     """
     return (neutral_mass - charge * ELECTRON_MASS_DA) / abs(charge)
+
+
+#: What the caption says a calculated envelope IS, and what it is not.
+#:
+#: **"CALCULATED" AND NOT "THEORETICAL SPECTRUM".** A theoretical isotope
+#: distribution is not what an instrument records: ion sampling, ion-ion
+#: interactions, detector response, centroiding and apodisation all move a
+#: measured spectrum away from it. `SpectrumBasis` is the architectural
+#: protection and this is the wording half -- a picture that calls itself
+#: a spectrum invites the reader to compare it with one.
+#:
+#: One string, used by both callers, so the two cannot drift into saying
+#: different things about the same arithmetic.
+CALCULATED_CAPTION = (
+    "CALCULATED -- natural-abundance isotope distribution for {ion}, not a "
+    "measured spectrum. A theoretical distribution differs from what an "
+    "instrument records: ion sampling, detector response and centroiding "
+    "all move a real spectrum. No fragmentation is modelled."
+)
+
+
+def spectrum_chart(spectrum: MassSpectrum, title: str = "Isotope pattern"):
+    """`spectrum` as a declared chart annotation.
+
+    **THE PRODUCER'S DECLARATION, BUILT IN ONE PLACE.** Elemental Analysis
+    and the Mass Spectrum calculator both show this picture, and two
+    builders would be two captions to keep in step -- which is the drift
+    this repository has paid for four times.
+
+    `x_descending=False`: m/z runs LOW MASS TO THE LEFT, the opposite of
+    NMR and IR. Declared here rather than guessed by the renderer, because
+    a mirrored spectrum does not look broken, it looks like a different
+    compound.
+    """
+    from openchem.domain.report import Stick, StickChartAnnotation
+
+    return StickChartAnnotation(
+        sticks=tuple(
+            Stick(peak.mz, peak.intensity, peak.label)
+            for peak in spectrum.peaks
+            if peak.intensity >= DISPLAY_THRESHOLD
+        ),
+        x_label="m/z",
+        y_label="Relative abundance",
+        x_descending=False,
+        y_units="",
+        title=f"{title} {spectrum.ion.label}",
+        caption=CALCULATED_CAPTION.format(ion=spectrum.ion.label),
+    )
+
+
+#: The resolutions a reader can ask for, as the settings dialog spells
+#: them. A CLOSED pair: "exact" and "unit" are the two things the engine
+#: computes, and a free-text field here would be a third answer nobody
+#: implements.
+UNIT_RESOLUTION = "Unit (nominal mass)"
+EXACT_RESOLUTION = "Exact mass"
+
+#: Percent. What a peak must reach to be reported at all -- a stick below
+#: this is a pixel on a plot rather than a line anybody reads. Expressed
+#: as a percentage because that is how a chemist states it, and converted
+#: once at the point of use.
+DEFAULT_MINIMUM_PERCENT = 0.5
+
+
+def compute_mass_spectrum(mol, molecule_uuid: str, parameters=None):
+    """The "mass_spectrometry" category's calculator.
+
+    **THE MODES LIVE HERE AND NOT ON ELEMENTAL ANALYSIS.** That calculator
+    is about composition and draws the molecular ion's envelope beside its
+    percentages, the way Marvin's own window does; a `[M+Na]+` selector on
+    it would be an ionisation control on a composition readout. Both call
+    ONE engine, so the two can never disagree about the same ion.
+
+    **CHARGE COMES FROM THE CHOSEN ION, NEVER FROM A SEPARATE CONTROL.**
+    A charge spinbox beside a short list of hard-coded species is how
+    `[M+2H]2+` comes to mean "charge 2, and the composition of something
+    else".
+    """
+    from rdkit import Chem
+
+    from openchem.chem.calculator_options import apply_microspecies, microspecies_note
+    from openchem.domain.common import CacheState, Provenance
+    from openchem.chem.report_adapter import report_from_fields
+    from openchem.domain.mass_spectrum import DEFAULT_ION, ion_by_label
+
+    parameters = parameters or {}
+    label = str(parameters.get("ion") or DEFAULT_ION.label)
+    ion = ion_by_label(label) or DEFAULT_ION
+    unit_resolution = str(
+        parameters.get("resolution") or UNIT_RESOLUTION
+    ) != EXACT_RESOLUTION
+    minimum = float(parameters.get("minimum_percent", DEFAULT_MINIMUM_PERCENT)) / 100.0
+
+    provenance = Provenance(
+        created_by="core",
+        method="isotope convolution",
+        parameters={
+            "ion": ion.label,
+            "charge": ion.charge,
+            # WHICH TABLE THIS CAME FROM AND WHICH RELEASE OF IT. The
+            # abundances are RDKit's, so the answer depends on its
+            # version: "RDKit says it" is not immutable across releases.
+            "isotope_data": "rdkit",
+            "rdkit_version": _rdkit_version(),
+            "prune_threshold": DEFAULT_PRUNE_THRESHOLD,
+            "unit_resolution": unit_resolution,
+        },
+    )
+
+    def failed(error: str):
+        return report_from_fields(
+            alert_id="mass_spectrum",
+            name="Mass Spectrum",
+            molecule_uuid=molecule_uuid,
+            matched=[],
+            category="mass_spectrometry",
+            cache_state=CacheState.FAILED,
+            error=error,
+            provenance=provenance,
+        )
+
+    with_hydrogens = Chem.AddHs(apply_microspecies(mol, parameters))
+    try:
+        spectrum = isotope_envelope(
+            element_counts(with_hydrogens), ion, unit_resolution=unit_resolution
+        )
+    except ValueError as exc:
+        return failed(str(exc))
+
+    lines = [
+        f"Ion: {ion.label} (charge {ion.charge:+d})",
+        f"Neutral exact mass: {spectrum.neutral_exact_mass:.6f}",
+        f"Monoisotopic m/z: {spectrum.monoisotopic_mz:.6f}",
+        f"Average m/z: {spectrum.average_mz:.4f}",
+        f"Base peak m/z: {spectrum.base_peak_mz:.4f}",
+    ]
+    reported = [peak for peak in spectrum.peaks if peak.intensity >= minimum]
+    lines.append(f"Peaks reported: {len(reported)}")
+    for peak in reported:
+        lines.append(f"  {peak.label}: m/z {peak.mz:.4f}, {peak.intensity * 100:.2f}%")
+    lines.extend(microspecies_note(parameters))
+    lines.append(
+        "Calculated from natural isotope abundances. NOT a measured spectrum, "
+        "and no fragmentation is modelled -- every line here is the molecular "
+        "ion's own isotope distribution."
+    )
+
+    return report_from_fields(
+        alert_id="mass_spectrum",
+        name="Mass Spectrum",
+        molecule_uuid=molecule_uuid,
+        matched=lines,
+        category="mass_spectrometry",
+        provenance=provenance,
+        charts=(spectrum_chart(spectrum, title="Mass spectrum"),),
+    )
+
+
+def _rdkit_version() -> str:
+    """RDKit's version, or "" if it cannot be asked.
+
+    Recorded in provenance because the abundances are RDKit's: a result
+    computed under one release is not guaranteed identical under the next,
+    and a stored spectrum that cannot say which table it used cannot be
+    reproduced."""
+    try:
+        import rdkit
+
+        return str(rdkit.__version__)
+    except Exception:  # noqa: BLE001 - never lose a result over its metadata
+        return ""

@@ -391,6 +391,10 @@ class MainWindow(QMainWindow):
             services.chemistry_engine,
             self,
             on_add_structure=self._add_generated_structure,
+            # The SAME counter DescriptorService stamps every result with,
+            # so the merged results window's "stale" marks compare like
+            # with like rather than two notions of a version.
+            structure_version_of=services.structure_check_service.current_version,
         )
         self._console_panel = ConsolePanel(self)
         self._docking_panel = DockingPanel(

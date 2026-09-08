@@ -1132,6 +1132,129 @@ rescorer, so it is the arm that tests whether `PoseRescorer` is a real
 abstraction or a Vina-shaped hole. What is unknown is whether it builds and
 runs on Windows — a spike, not a claim.
 
+### Mass spectrometry
+
+**Shipped: the isotope envelope, deterministically.** `chem/mass_spectrum.py`
+convolves an ion's composition against RDKit's own natural-abundance table.
+Two callers, one engine: Elemental Analysis draws the molecular ion's
+envelope beside its percentages — the picture MarvinSketch's own window
+shows, reproduced to every digit it prints for 2,3-dibromobenzoic acid — and
+a **Mass Spectrum** calculator carries the ionisation modes.
+
+**The ion is a COMPOSITION, not a mass delta**, and that decides everything
+downstream. A scalar expresses `[M+H]+` and cannot express `[M+Cl]-`:
+chlorine is 3:1, so a chloride adduct brings its own envelope. Protonation
+adds a proton and so is `1H` by definition; a potassium adduct is potassium
+and carries its own 6.7% `41K` satellite whatever the molecule is. Eight
+ions ship, `[M+2H]2+` among them, and **charge comes from the chosen ion
+rather than a control of its own**.
+
+Three things stated rather than assumed. Nominal binning divides the isotope
+shift by the CHARGE — a +1 shift moves a 1+ ion by 1.0 m/z and a 2+ ion by
+0.5 — and never rounds the exact m/z, because mass defect is
+composition-dependent. Pruning touches the reported peaks and nothing else,
+so no summary mass moves with a display threshold; at threshold 0 the result
+is the *unpruned theoretical* distribution, which is still not "exact"
+([source:snider2007] states the trade in the same terms). And a theoretical
+distribution is not an observed one: ion sampling, detector response and
+centroiding all move a measurement ([source:claesen2023]), which is why
+`SpectrumBasis` distinguishes MEASURED / CALCULATED / PREDICTED and why the
+chart says CALCULATED on its face.
+
+Method context for the algorithm itself: [source:dittwald2014] and
+[source:alves2014]. Neither supplies a number used here.
+
+#### EI fragmentation — the gate, and why it is not open
+
+A real EI spectrum is mostly fragments, and predicting them is a model
+rather than arithmetic. It ships as `SpectrumBasis.PREDICTED`, visually
+distinct from a calculated envelope, and only after:
+
+- a documented cleavage model, named and sourceable rather than assembled
+  from plausible bond-breaking rules;
+- its source data;
+- a validation corpus, with held-out evaluation on **untrained** compounds;
+- stated limitations.
+
+The literature spine: CFM-EI (`10.1021/acs.analchem.6b01622`) as the
+directly applicable forward-prediction method; an excited-state molecular
+dynamics treatment (`10.1021/acs.jcim.2c00597`), which is the argument that
+EI is a real physical model and not bond-cutting; and a rapid subset-based
+predictor (`10.1021/acs.analchem.2c02093`). Each is read before it is
+registered, per `docs/sources.toml`'s own rule.
+
+**Nothing about the current model solves this.** The engine can carry the
+peaks; `MassPeak.label` is a string and a string is not a fragment
+hierarchy.
+
+#### MS/MS — a future extension point, not a near miss
+
+Tandem spectra need concepts this model does not represent: a precursor ion,
+a fragment-to-precursor relationship, isolation and activation conditions,
+and a collision energy. References for when it is attempted: CFM-ID
+(`10.1093/nar/gku436`), CFM-ID 4.0 (`10.1021/acs.analchem.1c01465`),
+MetFrag relaunched (`10.1186/s13321-016-0115-9`) as an architectural
+contrast rather than an EI justification, and a benchmark on untrained
+tandem spectra (`10.1021/acs.jcim.2c00936`) — which aligns exactly with this
+project's rule that plausible output is not validation.
+
+#### Fine structure — what a peak cannot currently say
+
+Isotopologues sharing a mass-number shift are collapsed into one nominal
+bin, so a peak knows its shift and not its composition: whether 278.943 is
+`81Br` or `13C + 79Br` is a question the current engine deliberately cannot
+answer. Retaining isotopologue identity per peak is the extension;
+[source:ipsen2014] is the route.
+
+#### GC retention indices — a separate calculation
+
+Not folded into the MS engine because both happen to use molecular
+descriptors. A Kovats retention index is a predictive model, not element
+masses, and it needs a sourced parameter table or model, a training/test
+split, and a stated error against measured RI.
+
+### Charts on calculator results
+
+`ReportResult.charts` is a producer-declared presentation channel built to
+the `spatial` precedent: a closed set of kinds, a validator that checks
+STRUCTURE and fails closed, and a renderer that refuses a malformed
+annotation rather than repairing it. `FactView` draws them above the facts,
+inside its scroll area, so every surface that renders a report gets them.
+
+**Generic, and deliberately not mass-spectral.** The validator accepts m/z
+of 1e6, intensities that sum to anything, sticks out of order and negative
+heights — the moment it refuses one of those it has become a mass-spectrum
+validator, and the diagrams below are not spectra. A chart is never derived
+from the facts: elemental analysis emits "C: 55.34%" as facts, and a view
+that parsed those into bars would have invented a picture the producer never
+claimed.
+
+Waiting on that channel:
+
+- **Lewis-site diagrams** — donor and acceptor sites drawn on the 2D
+  depiction. `chem/engine.render_2d_svg` already takes per-atom colours and
+  labels, and `chem/lewis_svg.py` already renders a full Lewis structure, so
+  this is a producer declaring what it found rather than new machinery.
+- **Electron-flow arrows and synthesis routes**, into
+  `plugins/reaction_prediction`. An arrow claims a mechanism, so it needs a
+  mechanism model — the same gate as EI fragmentation, for the same reason.
+
+### Ready to build, with no science gate
+
+Deterministic, small, and deselected from the branch above rather than
+blocked by anything:
+
+- **The Lewis adduct partner-picker.** `compute_lewis_adduct` takes its
+  partner as typed SMILES; it should offer the molecules already open in the
+  project. And the role control ("this molecule is the acid") could be
+  worked out instead — reporting BOTH orientations when the evidence does
+  not choose, which is the same refusal `_hsab_line` already makes rather
+  than inventing a ranking.
+- **Per-molecule selection in Batch.** `BatchRequest.molecule_uuids` is
+  already the authority on scope and is always handed every molecule in the
+  project (`batch_panel.py`), so a three-molecule project cannot run two.
+- **A Batch / Compare organisation pass.**
+
 ### Visualization
 
 Per-atom colouring on 2D and 3D from one shared `ColorScale`; molecular

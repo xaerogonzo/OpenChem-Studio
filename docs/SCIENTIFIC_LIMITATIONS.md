@@ -2131,3 +2131,41 @@ Most of these limits are also written into the module that implements the
 method, next to the code they constrain. Where a limitation was discovered
 by measurement rather than assumed, the measurement is recorded with it —
 see [VALIDATION.md](VALIDATION.md) for the numbers.
+
+## Calculated isotope envelopes are not measured spectra
+
+The Mass Spectrum calculator and the chart on Elemental Analysis compute an
+ion's natural-abundance isotope distribution. That is exact arithmetic over
+a tabulated set of abundances, and it is **not** what an instrument records.
+
+**What moves a real spectrum away from it:** ion sampling, ion-ion
+interactions, detector response, centroiding and related processing
+([source:claesen2023]). Peak intensities in a measured spectrum also depend
+on the ionisation method, the source conditions and the analyser, none of
+which is modelled here.
+
+**No fragmentation is modelled at all.** Every line these calculators report
+is the molecular ion's own isotope distribution. A real electron-ionisation
+spectrum is mostly fragment ions, and the molecular ion may be weak or
+absent entirely — so a calculated envelope is not a library-searchable
+spectrum and must not be compared with one as though it were. Predicting
+fragmentation needs a documented model and a validation corpus; the gate for
+it is in `docs/ROADMAP.md`.
+
+**The abundances are RDKit's**, so a result depends on that library's
+version, which is recorded in the result's provenance. Standard atomic
+weights and isotope abundance tables are revised by IUPAC independently, so
+the average mass computed here differs slightly from `Descriptors.MolWt` --
+about 0.003 on a dibromo compound. Neither is wrong; they come from
+different tables.
+
+**The pruning threshold is declared**, and a spectrum computed with one is
+an approximation of the reported peak list only. Every summary mass --
+monoisotopic, average, base peak -- is computed before pruning, so none of
+them moves when the threshold does. At threshold 0 the envelope is
+unpruned, which is still not "exact": floating-point arithmetic and a finite
+isotope table both bound it.
+
+**A nominal-resolution spectrum cannot resolve fine structure.**
+Isotopologues sharing a mass-number shift are combined, so a peak cannot say
+whether it is `81Br` or `13C + 79Br`.

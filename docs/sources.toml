@@ -53,6 +53,173 @@ schema_version = 1
 # =============================================================================
 
 [[source]]
+key = "dittwald2014"
+kind = "literature"
+citation = "P. Dittwald & D. Valkenborg, 'BRAIN 2.0: Time and Memory Complexity Improvements in the Algorithm for Calculating the Isotope Distribution', J. Am. Soc. Mass Spectrom. (2014)."
+identifier_type = "doi"
+identifier = "10.1007/s13361-013-0796-5"
+status = "reference_only"
+used_by = [
+    "src/openchem/chem/mass_spectrum.py",
+]
+local = "dittwald2014.pdf"
+verification = "citation"
+verified_date = 2026-09-08
+reason = """
+METHOD CONTEXT FOR THE ISOTOPE ENGINE, AND NOT ITS ORACLE. `citation`
+rather than `citation_and_claim` deliberately: no number this project
+ships comes from this paper. The envelope is convolved from RDKit's own
+abundance table and checked against binomial expansions of that same
+table, so the acceptance oracles are arithmetic rather than a value read
+off a page.
+
+What it IS here for is the lineage of the aggregated-distribution
+approach and the complexity question behind it -- this is the algorithm
+that improves on the classic polynomial method's time and memory cost.
+The engine here does the naive convolution with a pruning threshold,
+which is fine at the sizes a drawn molecule reaches and is exactly what
+this paper's abstract describes scaling quadratically. If a future
+version needs to compute a protein's envelope, this is where to start
+rather than re-deriving it.
+
+Every field above is off the PDF's own first page. The journal line reads
+2014 while the DOI carries 2013, which is the ordinary online-first split.
+"""
+
+
+[[source]]
+key = "alves2014"
+kind = "literature"
+citation = "G. Alves, A. Y. Ogurtsov & Y.-K. Yu, 'Molecular Isotopic Distribution Analysis (MIDAs) with Adjustable Mass Accuracy', J. Am. Soc. Mass Spectrom. (2014) 25, pp. 57-70."
+identifier_type = "doi"
+identifier = "10.1007/s13361-013-0733-7"
+status = "reference_only"
+used_by = [
+    "src/openchem/chem/mass_spectrum.py",
+]
+local = "alves2013.pdf"
+verification = "citation"
+verified_date = 2026-09-08
+reason = """
+**THE KEY SAYS 2014 AND THE FILE SAYS 2013, AND THE PAPER DECIDES.** The
+local filename is `alves2013.pdf`; the journal line on its own first page
+reads "J. Am. Soc. Mass Spectrom. (2014) 25:57Y70", and the DOI carries
+2013 because it was published online in November 2013. The ordinary
+online-first split -- recorded here rather than left for somebody to
+"correct" the key back to the filename, and exactly why this project's
+rule is that the citation comes off the paper and never off the locator.
+
+METHOD CONTEXT, NOT AN ORACLE, for the reason `dittwald2014` gives. Its
+relevance is the ADJUSTABLE ACCURACY axis: it implements both a
+polynomial and a Fourier-transform algorithm with a tunable accuracy, and
+benchmarks eight other packages on coarse- and fine-grained
+distributions. This engine has one accuracy knob -- the pruning threshold
+-- and if that ever stops being enough, this paper is the survey of what
+the alternatives cost.
+"""
+
+
+[[source]]
+key = "snider2007"
+kind = "literature"
+citation = "R. K. Snider, 'Efficient Calculation of Exact Mass Isotopic Distributions', J. Am. Soc. Mass Spectrom. 2007, 18, pp. 1511-1515."
+identifier_type = "doi"
+identifier = "10.1016/j.jasms.2007.05.016"
+status = "reference_only"
+used_by = [
+    "src/openchem/chem/mass_spectrum.py",
+]
+local = "snider2007.pdf"
+verification = "citation"
+verified_date = 2026-09-08
+reason = """
+**THE PAPER THAT DESCRIBES THE TRADE THIS ENGINE MAKES.** Its
+introduction states the pruning problem in the terms this module's
+docstring had to reach independently: polynomial methods "rely on pruning
+to reduce the complexity", the strategies "use a threshold to eliminate
+permutations whose contribution falls below some preset value", and this
+"creates errors in the isotopic distribution profile since a significant
+number of terms are eliminated".
+
+That is why `prune_threshold` is a declared parameter recorded in
+provenance, why the summary values are computed BEFORE pruning, and why
+`threshold = 0` is called the unpruned theoretical distribution rather
+than "exact". The paper is the reason to keep those three rules rather
+than the source of any number here.
+
+It also names the fine-structure problem: the number of exact masses
+grows exponentially with molecular size, so isoDalton keeps only the most
+probable. This engine collapses isotopologues into nominal bins instead
+and therefore CANNOT say whether a peak is 81Br or 13C + 79Br -- see the
+roadmap's fine-structure entry, where this paper and `ipsen2014` are the
+references.
+"""
+
+
+[[source]]
+key = "ipsen2014"
+kind = "literature"
+citation = "A. Ipsen, 'Efficient Calculation of Exact Fine Structure Isotope Patterns via the Multidimensional Fourier Transform', Anal. Chem. 2014, 86, pp. 5316-5322."
+identifier_type = "doi"
+identifier = "10.1021/ac500108n"
+status = "reference_only"
+used_by = [
+    "docs/ROADMAP.md",
+]
+local = "ipsen2014.pdf"
+verification = "citation"
+verified_date = 2026-09-08
+reason = """
+A ROADMAP REFERENCE, FOR SOMETHING THIS PROJECT DOES NOT DO. The engine
+here computes a NOMINAL envelope: isotopologues sharing a mass-number
+shift are collapsed into one bin, so a peak knows its shift and not its
+composition. This paper is about the opposite -- calculating the exact
+sets of masses and abundances that constitute the fine isotope pattern,
+which is what a peak would need to answer "am I 81Br or 13C + 79Br".
+
+Recorded now rather than when that work starts, because the roadmap entry
+naming the gap is written now and a gap with no route out of it reads as
+an oversight rather than a decision.
+"""
+
+
+[[source]]
+key = "claesen2023"
+kind = "literature"
+citation = "J. Claesen, A. Rockwood, M. Gorshkov & D. Valkenborg, 'The isotope distribution: A rose with thorns', Mass Spectrometry Reviews (2023)."
+identifier_type = "doi"
+identifier = "10.1002/mas.21820"
+status = "reference_only"
+used_by = [
+    "src/openchem/chem/mass_spectrum.py",
+    "docs/SCIENTIFIC_LIMITATIONS.md",
+]
+local = "Mass Spectrometry Reviews - 2023 - Claesen - The isotope distribution A rose with thorns.pdf"
+verification = "citation"
+verified_date = 2026-09-08
+reason = """
+**THE SOURCE FOR THE CAPTION'S SECOND SENTENCE.** A calculated envelope
+is not what an instrument records, and this review is the modern account
+of why: ion sampling, ion-ion interactions, detector response,
+centroiding and related processing all move a measured distribution away
+from the theoretical one. That distinction is what `SpectrumBasis` exists
+to carry and what the chart's caption says in words -- so this is the one
+of the five whose content reaches a user-facing string.
+
+**THE YEAR IS RECORDED AS THE PDF STATES IT, WHICH IS NOT THE ONLY YEAR
+THIS PAPER HAS.** Its own first page reads "Received: 2 June 2022 |
+Revised: 3 October 2022 | Accepted: 21 October 2022" and its copyright
+line reads "(c) 2023 The Authors. Mass Spectrometry Reviews published by
+John Wiley"; the version of record has since been assigned to a 2025
+issue. A recommendation that reached this project cited it as 2025. The
+copy we hold says 2023 and that is what is recorded, with the ambiguity
+written down rather than resolved from memory.
+
+METHOD CONTEXT, like the other four: no number here comes from it.
+"""
+
+
+[[source]]
 key = "waasmaier1995"
 kind = "literature"
 citation = "D. Waasmaier & A. Kirfel, 'New Analytical Scattering-Factor Functions for Free Atoms and Ions', Acta Crystallographica A51, 1995, pp. 416-431."
