@@ -441,7 +441,10 @@ class _PhCurveResultView(QWidget):
             molecule_uuid=result.molecule_uuid,
             facts=tuple(result.facts),
         )
-        view = FactView(self, show_controls=False)
+        # Charts off as well as controls: this dialog is ALREADY showing the
+        # result's own visualisation an inch above, and a second plot of the
+        # same numbers is not a second view of them.
+        view = FactView(self, show_controls=False, show_charts=False)
         view.set_report(report)
         return view
 

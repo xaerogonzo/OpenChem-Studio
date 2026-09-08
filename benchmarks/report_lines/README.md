@@ -1,7 +1,7 @@
 # Report-line parser sweep
 
 The evidence base for changing either string parser. It exists because
-those two parsers judge free-text lines written across 59 calculators,
+those two parsers judge free-text lines written across 60 calculators,
 so "which lines does this change affect" is not answerable by reading
 the producers — and reading them is how a regression ships.
 
@@ -12,10 +12,17 @@ uv run --no-sync python benchmarks/report_lines/sweep.py --candidate '[-+]?\d+(?
 ```
 
 Roughly two minutes — it embeds ten molecules and runs every in-process
-calculator over each. Current population: **484 distinct lines**, of
-which `chem/report_adapter._MEASUREMENT` refuses 76 and
-`chem/result_reduction.parse_reported_numbers` accepts 56 as numeric
+calculator over each. Current population: **576 distinct lines**, of
+which `chem/report_adapter._MEASUREMENT` refuses 106 and
+`chem/result_reduction.parse_reported_numbers` accepts 65 as numeric
 batch columns.
+
+Re-measured together rather than part-updated: the calculator count and
+these three figures describe ONE tree, and bumping the first while
+leaving the rest would make them describe a tree that no longer exists.
+The previous reading was 484 / 76 / 56, taken before the Mass Spectrum
+calculator existed -- stated without its own calculator count, because a
+number in that shape reads to the docs guard as a claim about today.
 
 ## The two parsers are not interchangeable
 

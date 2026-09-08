@@ -18,7 +18,7 @@ from openchem.domain.calculator import DRAWING, CalculationRequest
 from openchem.domain.common import CacheState
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
-from openchem.domain.report import ReportResult
+from openchem.domain.report import ReportResult, StructureReport
 from openchem.domain.scientific_result import (
     AlertResult,
     PerAtomDataset,
@@ -168,6 +168,39 @@ def _with_geometry_provenance(
         return result
 
 
+def _with_structure_version(result, structure_version_of):
+    """`result` stamped with the structure revision it describes.
+
+    **REPORT-LEVEL, NEVER PER FACT.** A fact belongs to a report and a
+    report belongs to one revision of one molecule; making every fact
+    independently responsible for molecule-version state would be dozens
+    of copies of one number, all of which have to agree.
+
+    Only a `StructureReport` has the field -- a per-atom dataset, a
+    spectrum and a pH curve do not -- so anything else is returned
+    untouched rather than grown a field it has no meaning for.
+
+    A calculator that set the version ITSELF is left alone: it knows what
+    it computed, and this only knows what the checker's counter said when
+    the result came back. Same precedence `_with_geometry_provenance`
+    uses, and for the same reason.
+
+    Never lose a result over its metadata -- if the counter cannot be
+    consulted, the result comes back exactly as the calculator made it.
+    """
+    if structure_version_of is None or not isinstance(result, StructureReport):
+        return result
+    if result.structure_version:
+        return result
+    try:
+        return replace(
+            result, structure_version=int(structure_version_of(result.molecule_uuid))
+        )
+    except Exception:  # noqa: BLE001 - never lose a result over its metadata
+        logger.exception("Could not record the structure version for %s", result.molecule_uuid)
+        return result
+
+
 class _CalculationTask(QRunnable):
     """Runs one registered calculator's `compute` off the GUI thread --
     Phase 18's on-demand path, separate from `_DescriptorComputeTask`'s
@@ -183,6 +216,7 @@ class _CalculationTask(QRunnable):
         model: MoleculeModel,
         request: CalculationRequest,
         event_bus: EventBus,
+        structure_version_of=None,
     ) -> None:
         super().__init__()
         self._registry = registry
@@ -190,6 +224,7 @@ class _CalculationTask(QRunnable):
         self._model = model
         self._request = request
         self._event_bus = event_bus
+        self._structure_version_of = structure_version_of
 
     def run(self) -> None:
         """Compute, publish, and ALWAYS say when the run is over.
@@ -240,6 +275,17 @@ class _CalculationTask(QRunnable):
             result = _with_geometry_provenance(
                 result, self._model, definition.calculation_input, self._request.parameters
             )
+            # WHICH STRUCTURE this describes, recorded on the way out for
+            # the same reason the geometry is: a calculator is handed a
+            # molecule and has no idea which revision of it that was.
+            #
+            # `StructureReport.structure_version` has existed since the
+            # report types were written -- "what makes a cached report safe
+            # to reuse" -- and was 0 on EVERY calculator result, because
+            # `report_from_fields` never set it. The field was there; the
+            # plumbing was not. Stamped HERE, once, rather than in each of
+            # the sixty calculators or in each panel that displays one.
+            result = _with_structure_version(result, self._structure_version_of)
         except Exception as exc:  # noqa: BLE001 - a bad calculator must not kill the pool
             logger.exception("Calculator %s failed", self._request.calculator_id)
             self._publish_failed(str(exc))
@@ -305,11 +351,18 @@ class DescriptorService:
         engine: ChemistryEngine,
         providers: list[DescriptorProvider] | None = None,
         calculator_registry: CalculatorRegistry | None = None,
+        structure_version_of=None,
     ) -> None:
         self._event_bus = event_bus
         self._engine = engine
         self._providers = providers if providers is not None else [RDKitDescriptorProvider()]
         self._calculator_registry = calculator_registry or CalculatorRegistry()
+        #: `StructureCheckService.current_version`, or None in a fixture
+        #: that has no checker. A CALLABLE rather than the service itself:
+        #: this needs one number about one molecule, and taking the whole
+        #: service would make every test that builds a DescriptorService
+        #: build a checker too.
+        self._structure_version_of = structure_version_of
         self._pool = QThreadPool.globalInstance()
 
     def run_calculator(self, model: MoleculeModel, request: CalculationRequest) -> None:
@@ -320,7 +373,12 @@ class DescriptorService:
         type. Named to avoid colliding with
         `QuantumChemistryService.request_calculation`, an unrelated
         existing ORCA-specific method."""
-        self._pool.start(_CalculationTask(self._calculator_registry, self._engine, model, request, self._event_bus))
+        self._pool.start(
+            _CalculationTask(
+                self._calculator_registry, self._engine, model, request,
+                self._event_bus, self._structure_version_of,
+            )
+        )
 
     def register_provider(self, provider: DescriptorProvider) -> None:
         """Register a plugin-supplied descriptor provider. Its descriptors

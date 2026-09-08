@@ -5305,6 +5305,392 @@ no docking score, no rho and no ordering existed at any point. The reserve
 order is frozen in the README beside it, because "a reserve takes its place"
 is otherwise outcome-dependent once more than one candidate could fill a gap.
 
+## A CHART IS DECLARED, AND THE MERGE KEEPS WHAT EACH PRODUCER DECLARED
+
+Reported as two things and they turned out to be one architecture:
+Elemental Analysis "should have a mass spectrometry simulator... I like
+visual charts a lot", and `Details...` shows ONE calculator so its filter
+box is useless -- "run Substance & Bonding, then Lewis Sites, and the
+second window replaces the first."
+
+`ReportResult.charts` is a second producer-declared presentation channel
+built to the `spatial` precedent: a closed set of kinds, a STRUCTURAL
+validator that fails closed, a renderer that refuses a malformed
+annotation rather than repairing it.
+
+**THE TEST THE WHOLE CHANNEL EXISTS TO MAKE POSSIBLE** is
+`test_a_chart_is_never_derived_from_the_facts`: a report whose facts
+contain `"C: 55.34%"` and `charts == ()` renders NO chart. What would
+breach `FactView`'s "IT KNOWS NO CHEMISTRY" contract is named and
+forbidden -- choosing a chart kind from `report_id`, deriving sticks from
+facts, or inferring axis direction from a units string.
+
+**`valid_chart_annotation` MUST NOT JUDGE THE CHEMISTRY**, and its
+complement is asserted: an m/z of 1e6, intensities not summing to 100 and
+sticks out of order must all be ACCEPTED. Same line
+`valid_total_declaration` draws. It accepts a negative y deliberately, so
+a future difference chart is not refused by a rule fitted to spectra, and
+it never reads `units` -- a units string is prose.
+
+**COLOUR IS NOT IN THE CONTRACT.** The widget reuses the Okabe-Ito
+palette as implementation precedent; a palette in a scientific chart's
+DECLARATION would be the producer specifying how it looks rather than
+what it means.
+
+### THE MERGE KEEPS THE REPORTS WHOLE, and that is not what batch does
+
+`BatchResultStore.merged_report` folds facts into one anonymous
+`ReportResult` and **silently drops `spatial`**. That proves fact-folding
+works; it is not evidence one anonymous report can carry several
+producers' charts, provenance and stale state.
+
+    MergedResults.reports   arrival order, identity intact
+    MergedResults.facts     flattened, each stamped with its origin
+    charts / spatial / provenance / staleness   READ OFF `reports`,
+                                                never copied
+
+One representation, so they cannot drift. `_AllResults` is a VIEW over it
+that duck-types what `FactView` consumes -- building a real
+`ReportResult` there would flatten several producers into one
+`report_id` and one `structure_version`, which is precisely what the
+container exists to avoid.
+
+**`Fact.origin` IS ADDED AND `Fact.source` IS UNTOUCHED.** `source` is
+the scientific source ("RDKit"); `origin` is the OpenChem report that
+produced the fact. A merge overwriting `source` destroys real provenance
+in order to record different provenance, and
+`test_a_facts_source_and_its_origin_stay_independent` holds both on one
+fact. `origin` is a `report_id` and the CONTAINER resolves the name --
+`FactView` never prettifies an opaque id.
+
+**AND THE SEARCH BOX GOT THE FEATURE FOR FREE.** `find()` matches
+`origin`, so "show me everything Lewis Sites said" is a question the box
+can now answer -- which is the complaint's own half about the filter
+being useless, answered by the merge rather than by a new control.
+
+### STALENESS: the field already existed and was 0 on every report
+
+`StructureReport.structure_version` has been there since the batch work
+and `report_from_fields` never set it -- measured, 0 on every calculator
+report. Stamped in ONE place on the path every result takes, and the
+merge derives stale from it.
+
+**REPORTED, NEVER DISCARDED.** Silently serving a stale result and
+silently blanking it are the two ways this goes wrong and they look
+identical from outside. The window marks it in the focus box, in the
+title and in a sentence above the facts.
+
+### `exec()` MAKES THE FEATURE UNREACHABLE, which is the sharpest constraint
+
+The old Details dialog was modal, so with it **you could never run the
+second calculator whose results this exists to accumulate.** Modeless,
+keyed by molecule UUID rather than object identity (a rebuilt model must
+not open a second window for one molecule), and live -- the second
+calculator's facts land in the OPEN window.
+
+## THE ION IS A COMPOSITION, AND POTASSIUM IS WHY
+
+`chem/mass_spectrum.py` reproduces the reported screenshot exactly --
+C7H4Br2O2 at 278/280/282 in 1:2:1, exact mass 277.857804 against Marvin's
+277.857805.
+
+A scalar `delta_mass` expresses `[M+H]+` and `[M+Na]+` and **cannot
+express `[M+Cl]-`**: an adduct with its own isotopes contributes its own
+envelope and a number has nowhere to put it. The invariant is
+
+    ion composition -> exact atomic mass delta -> electron correction -> m/z
+
+never `hardcoded delta_mass -> m/z`.
+
+**`AtomDelta.isotope` IS None FOR NATURAL ABUNDANCE AND A MASS NUMBER FOR
+A SPECIFIC NUCLIDE**, and sodium could not have established that rule:
+`[M+Na]+` is monoisotopic, so both readings agree. **`[M+K]+` is 6.7%
+41K** and `[M+Cl]-` is 3:1, so the distinction is general rather than a
+special case for chloride. Protonation adds 1H BY DEFINITION and must not
+acquire a deuterium shoulder.
+
+**NOT `0`-AS-SENTINEL**: 0 is a plausible typo for a mass number and
+would read as one.
+
+**IDENTITY IS `composition + charge`; THE LABEL IS DISPLAY TEXT.** On a
+frozen dataclass every field participates in `__eq__`/`__hash__` by
+default, which would make two spellings of one ion two ions.
+`field(compare=False)`, tested both ways round.
+
+### NOMINAL BINNING DIVIDES BY |CHARGE|, and 1+ cannot see it
+
+The path is integer arithmetic in isotope space and only the last step
+touches m/z:
+
+    isotope composition -> integer nominal shift -> exact m/z -> nominal m/z
+
+**NEVER by rounding the final exact m/z**, because mass defect is
+composition-dependent. And a +1 mass-number shift moves a 1+ ion by 1.0
+m/z and a **2+ ion by 0.5** -- so an implementation that adds
+`nominal_shift` straight to m/z works at every singly-charged fixture and
+silently mis-draws every ESI spectrum. `[M+2H]2+` is in the first
+vocabulary rather than merely representable for exactly that reason:
+shipping the charge model with no multiply-charged member leaves that
+path untravelled.
+
+**AND THERE IS NO FREE CHARGE CONTROL ANYWHERE.** Charge comes from the
+chosen ion. A spinbox accepting arbitrary values beside a handful of
+hardcoded compositions is the ion model degrading back into labels plus
+masses.
+
+### PRUNING TOUCHES THE REPORTED PEAK LIST ONLY
+
+    full theoretical distribution -> derived summary values
+                                  -> optional pruning for reported peaks
+
+So `monoisotopic_mz`, `average_mz` and `base_peak_mz` come off the full
+distribution and never move with the threshold; a test asserts
+`average_mz` is identical at threshold 0 and at the default. **At
+threshold 0 the result is the UNPRUNED THEORETICAL distribution, not
+"exact"** -- it is still subject to floating point and to RDKit's finite
+table, whose VERSION is therefore recorded in provenance.
+
+**`base_peak_mz` IS NOT `peaks[i].mz`, and a test asserted it was.**
+Summary masses are exact and unit-resolution peaks are nominal, so
+78.9178 against 79.0 is the two conventions meeting, not a defect. Ties
+go to the lowest m/z, extracted as `base_peak_shift` so the rule is
+testable rather than "whichever the sort happened to put first".
+
+### THE ENGINE WAS RIGHT AND MY TEST WAS WRONG
+
+A fixture assumed consecutive isotope shifts. **Bromine is 79/81**, so
+Br2 lands on shifts 0/2/4 and there is nothing at M+1 from the halogens
+at all -- which the reported screenshot's 278/280/282 says outright.
+Reading the oracle off the picture that motivated the work would have
+caught it before the test was written.
+
+The acceptance oracles are **binomial and trinomial expansions of the
+shipped abundance table**, computed independently of the convolution --
+never remembered ratios, and never the screenshot, which is a visual
+target and not a source.
+
+### THE CAPTION IS THE ARCHITECTURE'S OTHER HALF
+
+`SpectrumBasis` is MEASURED / CALCULATED / PREDICTED, declared by the
+producer and reaching the screen -- three values, because a predicted
+fragmentation spectrum and a calculated envelope must not render alike.
+The caption says CALCULATED and never "theoretical spectrum", because a
+theoretical distribution is not the observed one: ion sampling, detector
+response and centroiding all move a real spectrum. The enum is the
+architectural protection and the wording has to be equally disciplined.
+
+## SIX DEFECTS THE DRIVEN APP FOUND WITH 1006 TESTS GREEN
+
+The seventeenth entry in this file's running count, and the first one is
+in the feature's own logic rather than on screen.
+
+**A FALSE STALE MARK, FROM THE FIRST MOMENT.** The run reported
+`stale=['functional_groups']` before anything was edited. Alert-derived
+reports go through `report_from_alert`, which never sets
+`structure_version`, so they arrive at 0 against a molecule at 1 -- the
+merge's central claim, quietly false for one producer. Re-driven:
+`stale=[]` before the edit and exactly the three explicit calculators
+stale after.
+
+**AND `jobs_report`'s LESSON APPLIES TO THE `results` STEP.** A window
+showing one calculator's facts and one focused on ONE OF SIX photograph
+identically, and a stale badge is a few pixels of text -- so the step
+LOGS reports, facts, charts, focus and the stale list beside taking the
+shot. It goes through the panel's own opener rather than constructing a
+`MergedResultsDialog`, for the reason `jobs_cancel` presses the button:
+building the dialog proves it renders and says nothing about which
+reports the panel hands it.
+
+Four were on screen and the fifth was caused by fixing the first:
+
+    a caption cut mid-sentence     a FIXED two-line reservation, so the
+                                   sentence saying CALCULATED was the one
+                                   being halved
+    a title painted twice          section header and in-plot, colliding
+                                   with the M+2 label
+    a "max 1" readout              saying nothing about a base-peak-
+                                   normalised chart
+    the plot collapsed             the caption, now rendering in full,
+                                   wrapped to three lines and took a flat
+                                   160 px minimum with it
+
+**THE MEASUREMENT AND THE ALLOCATION HAD TO BE SEPARATED.** Capping
+inside `_caption_height` made the two chase each other -- the hint set a
+height, the height capped the caption, the smaller caption changed the
+hint. `_caption_height` measures, `_room_for_caption` caps, and the cap
+lives in `_plot_rect` alone so painting and hit-testing cannot disagree
+about where the axis is. **Still no `heightForWidth`**, which fighting
+`setWidgetResizable(True)` is a defect this project has paid for three
+times.
+
+### AN UNREACHABLE BRANCH IS A QUESTION ABOUT WHERE TO ASSERT, AGAIN
+
+Four mutation arms on the caption sizing. `max(base, FLOOR + caption)` --
+the collapsed plot, restored -- **SURVIVED all 25 tests**, and it is not
+a coverage gap: `super().minimumSizeHint()` on a painted widget with no
+children is near zero, so it is indistinguishable from the correct form
+for every value the widget can produce. It would reinstate the defect the
+day this gains a child or a layout.
+
+`minimum_height(base, caption)` is that arithmetic, pure, asserted over a
+table including a base of 300 where the two forms differ by the whole
+caption. Second pass: four arms, four caught -- including the one
+restoring the fixed two-line reservation, which now fails two tests
+instead of none.
+
+### `isVisible()` IS FALSE FOR EVERY CHILD OF AN UNSHOWN WINDOW
+
+Paid for again, in the empty-state guard. The obvious assertion passed
+against a panel rendering an EMPTY REPORT -- which is the distinction
+that test exists for, since "nothing has been computed" and "everything
+ran and had nothing to say" are different statements. `isHidden()` reads
+the explicit flag and is the one to use.
+
+## A GUARD RED FOR A REAL REASON: a category holding one calculator
+
+`test_no_category_holds_a_single_calculator` refused a `mass_spectrometry`
+section, and it was right -- this panel was measured at 26 sections
+holding 49 buttons, eleven of them holding exactly one. Mass Spectrum
+went into `identity` on the MERITS rather than by elimination: it sits
+beside Elemental Analysis, shares its engine, and answers the same
+question about what a structure is and what it weighs. That deleted a
+section, a label and a category-count change from the diff.
+
+**AND SEVEN BARE DOIs IN `docs/ROADMAP.md` WERE THE OTHER RED GUARD.**
+The DOI backstop treats a DOI cited anywhere in the tree with no registry
+row as a citation that bypassed the registry, which is what the EI and
+MS/MS gates were. All seven are `reference_only` / `citation`: nothing
+here implements EI fragmentation and the entries must never read as
+though something did.
+
+**TWO YEARS WERE WRONG AS HANDED OVER**, and both came off the paper:
+`alves2013.pdf` is 2014, and the subset-based EI paper's `2c` DOI is an
+ACS SUBMISSION-year code where its own citation line reads 2023. The
+paper decides, never the DOI and never the filename -- the citation
+audit's rule, where all six errors were in the field nothing could check.
+
+## THE ISOTOPE FOLD WAS EXPONENTIAL IN THE ATOM COUNT
+
+`compute_elemental_analysis` could not answer for ibuprofen, or for most
+of drug space, and it shipped that way behind a fully green branch.
+Measured through the shipped path:
+
+    aspirin      C9H8O4    21 atoms    4097 ms
+    ibuprofen    C13H18O2  33 atoms    never returns
+
+**EVERY ISOTOPOLOGUE WAS KEPT AS ITS OWN BRANCH AND THEN AVERAGED AWAY.**
+`_convolve` appended each one to a list per nominal shift and `_collapse`
+merged them once at the end, so the entry count was `k^n` in the ATOM
+count rather than in the element count -- aspirin is 2^9 * 2^8 * 3^4 =
+10.6 million branches, ibuprofen 19 BILLION. Nothing downstream ever read
+one: `_collapse` ran unconditionally, and even the exact-resolution path
+reports its probability-weighted MEAN.
+
+**MERGING INSIDE THE FOLD IS EXACT, NOT AN APPROXIMATION**, which is what
+makes this a repair rather than a speed-for-accuracy trade. A
+probability-weighted mean is linear, so folding `(M, f)` into a merged
+bin gives `(mu + M, P*f)`, and two such bins landing on one shift merge
+to `[P1 f1 (mu1+M1) + P2 f2 (mu2+M2)] / (P1 f1 + P2 f2)` -- algebraically
+what collapsing every individual branch at the end produces. The full
+distribution is bit-identical, so `monoisotopic_mz`, `average_mz` and
+`base_peak_mz` still come off it and the pruning contract is untouched.
+
+    aspirin   4097 ms -> 0.2 ms      ibuprofen   never -> 0.3 ms
+    tests/test_batch_service.py   >300 s and timing out -> 4.51 s
+    ms_elemental_analysis.png     BYTE-IDENTICAL, sha 2f7829d6
+
+The byte-identical screenshot is the acceptance test worth having: the
+engine was rewritten underneath the picture and the picture did not move
+a pixel.
+
+### THE UNIT TESTS AND THE DRIVEN CHECK WERE BOTH DEGENERATE
+
+Neither instrument this branch built could see it, for one reason. Every
+oracle in `tests/test_mass_spectrum.py` is a two- or three-atom binomial
+expansion or the 15-atom acid from the reported screenshot -- and
+`benchmarks/visual/mass_spectrum_and_merged_details.json` drives that
+SAME acid, which folds 73,728 branches and is fast either way.
+
+**IT TOOK THE FULL SUITE, AND IT DID NOT ANNOUNCE ITSELF AS A MASS
+SPECTRUM.** Two `test_batch_service.py` tests run real calculators over
+aspirin/caffeine/ibuprofen and blew their 120-second `waitForDone`, which
+surfaced as `state is not COMPLETED` and a missing nitrogen column. That
+file's own docstring already says why it exists -- "the thing worth
+testing is that 50 registered calculators survive being invoked in one
+pass, which is precisely what a mock cannot tell you" -- and this is the
+second defect it has caught by that route.
+
+A fixture is degenerate or not with respect to a specific defect, which
+this file records at the assembly corpus, the two published formulations
+and the panel captions. This is the first time the DRIVE SCRIPT was
+degenerate as well, and the cause is worth naming: a drive script is
+written from the reported case, so it inherits whatever that case cannot
+show.
+
+### THE GUARD'S ORDER IS LOAD-BEARING, BECAUSE THE REVERT HANGS
+
+Reverting the fold does not make the drug-sized case FAIL -- it makes it
+never return, and a hang or an out-of-memory kill is not a readable test
+result. So the shape assertion runs on WATER first, where the exponential
+form folds 12 branches in microseconds, and the drug-sized fold follows
+it. Measured: the revert is caught in 2.28 s.
+
+**THE ASSERTION IS ON THE VALUES AND NEVER ON `len(accumulated)`.** The
+exponential form keyed on nominal shift too, so its dict was exactly as
+long -- what reached millions was what each key POINTED AT. A length
+assertion passes against the defect it is written for. Unpacking a bin
+into two floats is the discriminator and needs no `isinstance` on a
+container: a list of branches cannot become two floats whatever its
+length.
+
+The zero-weight drop SURVIVED at first, and is not a coverage gap:
+`isotopes_of` filters to `abundance > 0`, so no real composition can
+reach it. Asserted on a constructed distribution, which is the answer
+this same file already gives for the base-peak tie. Five arms, five
+caught.
+
+## "EXACT" WAS THE ARITHMETIC AND THE CONTRACT SAID FINE STRUCTURE
+
+`MassPeak.mz` documented that at exact resolution it carries "the
+isotopologue's own m/z". It does not and never has: isotopologues sharing
+a mass-number shift are merged, so M+1 of a CHNO molecule is 13C, 17O and
+2H at three different exact masses and ONE peak is reported for all of
+them. Telling them apart is precisely the fine-structure extension the
+roadmap gates.
+
+**NOTHING COULD SEE IT BECAUSE EVERY OTHER ASSERTION IS AT UNIT
+RESOLUTION**, where the bin's mean is rounded away. The guard's oracle is
+the three +1 deltas read from the shipped abundance table without the
+convolution -- the reported value must lie strictly between the smallest
+and the largest and equal none of them -- and the fixture asserts the
+three deltas really do differ, so it cannot pass vacuously. Two arms, two
+caught: exact resolution falling back to the nominal bin, and a bin
+reporting its lightest contributor rather than its mean.
+
+It was found by documenting a constant, which is the part worth keeping:
+the `#:` ratchet named `EXACT_RESOLUTION`, writing its line meant saying
+what the value MEANS, and saying that out loud is what exposed the
+sentence one module away that said something else.
+
+### THE 13-GUARD SWEEP MISSES THE `#:` RATCHET TOO
+
+This file already records that `rg -l "ast.parse" tests/` does not include
+`test_docs_are_current.py`, and that reading it as though it did put a red
+commit on master. **`tests/test_constant_docs.py` is not in that set
+either** -- it delegates the parsing to `tools/constant_docs.py`, so it
+carries no `ast.parse` of its own. Both have to be named:
+
+```bash
+uv run --no-sync python -m pytest -q $(rg -l "ast.parse" tests/ | tr '\n' ' ') \
+    tests/test_docs_are_current.py tests/test_constant_docs.py
+```
+
+Measured on this branch: a sweep reporting `1006 passed` had run neither,
+and the full suite then failed on the ratchet. The population a text
+search finds is the population that MENTIONS the technique, never the
+population that USES it -- the same lesson as grepping for a phrase
+counting the source rather than the outcome, one layer along.
+
 ## Running the tests
 
 ```bash
@@ -5314,7 +5700,76 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-22 minutes**, ending at `6814 passed, 16 skipped`
+A clean run is **6-22 minutes**, ending at `7035 passed, 16 skipped`
+(measured 2026-09-08, **16m25**, on `mass-spectrometry-and-a-chart-channel`
+-- the isotope envelope, the producer-declared chart channel and one
+merged results window per molecule.
+
+**+209 collected and 0 REMOVED** against master at `4d24951`, diffed both
+directions with `comm` in a detached worktree, with the `PYTHONPATH`
+override asserted before the count was believed (`import openchem`
+reported the WORKTREE's `src`):
+
+    master     4d24951   COLLECTS 6842
+    this one             COLLECTS 7051   = 6842 + 209
+    the run                       7035 passed + 16 skipped = 7051
+
+    44  test_mass_spectrum.py            the binomial and trinomial
+                                         oracles, the Marvin fixture, the
+                                         ion identity, the exponential
+                                         fold and the exact-resolution
+                                         semantics
+    29  test_stick_chart_widget.py       written
+    25  test_mass_spectrum_calculators.py  the two callers, one engine
+    20  test_merged_results.py           written
+    19  test_chart_annotations.py        the validator, failing closed,
+                                         AND its does-not-judge complement
+    15  test_merged_results_dialog.py    the window, focus and staleness
+    14  test_fact_view_charts.py         charts never derived from facts
+    12  test_sources_are_current.py      parametrised cases of the
+                                         EXISTING schema guard, one per
+                                         new registry entry
+    12  test_plot_axis.py                the extracted axis mechanics
+     9  test_property_panel_results_window.py
+     5  test_batch_result_store.py       merged_results beside merged_report
+     2  test_layering.py                 domain may not import Qt, both arms
+     2  test_descriptor_service.py       the structure_version stamp
+     1  test_calculator_reachability.py  the new module's declaration
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored,
+since pytest's progress dots share the line -- as do `^FAILED`, `^ERROR`
+and a whole-line-anchored count of `F`/`E` progress characters. The skips
+are the deterministic 16. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**THIS FIGURE IS THE THIRD RUN, AND THE FIRST TWO ARE THE REASON THIS
+SECTION EXISTS.** Recorded rather than quietly re-run:
+
+    run 1   KILLED at 8% by a session teardown -- and its 646 progress
+            characters carried TWO `F`s, which is what found the
+            exponential isotope fold. A partial log is not an empty one.
+    run 2   1 failed, 7033 passed   the `#:` ratchet, on EXACT_RESOLUTION
+    run 3   7035 passed, 16 skipped, 16m25      <- the cited figure
+
+Run 1 is the entry worth reading. It never reached a summary line, so
+every ordinary check reports nothing -- but mapping the `F` positions
+back onto `--collect-only` order named
+`tests/test_batch_service.py::test_a_run_fills_a_cell_for_every_molecule_and_property`
+and its neighbour, which is how a calculator that could not answer for
+ibuprofen was found. **A crashed or killed run is not a run with no
+information in it**, and the progress line is the instrument:
+
+    grep -oE "^[.sFEx]+ *(\[ *[0-9]+%\])?$" /tmp/suite.log
+
+Run 2's failure is written up above under the `#:` ratchet, and it is
+the second time this branch met a guard the 13-file `rg "ast.parse"`
+sweep does not run.
+
+16m25 sits mid-band; the 6-22 range stands.)
+
+Before it: `6814 passed, 16 skipped`
 (measured 2026-09-07, **15m11**, on `widen-the-ranking-corpus` -- the powder
 intensities and the ranking corpus widened off the aminergic GPCRs.
 

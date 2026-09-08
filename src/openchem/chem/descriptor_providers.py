@@ -23,6 +23,12 @@ from rdkit.Chem import (
 from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
 
 from openchem.chem.elemental_analysis import compute_elemental_analysis
+from openchem.chem.mass_spectrum import (
+    DEFAULT_MINIMUM_PERCENT,
+    EXACT_RESOLUTION,
+    UNIT_RESOLUTION,
+    compute_mass_spectrum,
+)
 from openchem.chem.geometry_analysis import compute_geometry_analysis
 from openchem.chem.interaction_analysis import compute_interaction_analysis
 from openchem.chem.markush import DEFAULT_MAX_STRUCTURES as MARKUSH_DEFAULT_MAX
@@ -118,6 +124,7 @@ from openchem.chem.topology_analysis import (
     compute_eccentricity_dataset,
     compute_topology_analysis,
 )
+from openchem.domain.mass_spectrum import DEFAULT_ION, SUPPORTED_IONS
 from openchem.domain.calculator import (
     GEOMETRY,
     CalculatorDefinition,
@@ -1665,6 +1672,59 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         tags=["identity", "composition", "mass"],
         parameters=[
             decimal_places_parameter(),
+            *microspecies_parameters(),
+        ],
+    ),
+    CalculatorDefinition(
+        calculator_id="mass_spectrum",
+        display_name="Mass Spectrum",
+        # **IDENTITY, NOT A SECTION OF ITS OWN.** A category holding one
+        # calculator is the shape this panel was measured in and moved
+        # away from -- 26 sections held 49 buttons and eleven of them held
+        # exactly one. And it belongs here on the merits rather than by
+        # elimination: it sits directly beside Elemental Analysis, shares
+        # its engine, and answers the same question about what a structure
+        # is and what it weighs.
+        category="identity",
+        description=(
+            "The isotope envelope of a chosen ion, calculated from natural "
+            "abundances: m/z and relative intensity per peak, with the "
+            "monoisotopic, average and base-peak masses. Deterministic "
+            "arithmetic, not a measurement -- no fragmentation is modelled, so "
+            "every line is the molecular ion's own isotope distribution. "
+            "Elemental Analysis draws the same envelope for the molecular ion; "
+            "this is where the ionisation modes live."
+        ),
+        execution=RegistryExecution(compute=compute_mass_spectrum),
+        tags=["mass", "spectrometry", "isotopes", "adduct"],
+        parameters=[
+            CalculatorParameter(
+                name="ion",
+                label="Ion",
+                kind="choice",
+                default=DEFAULT_ION.label,
+                # **THE CLOSED VOCABULARY IS THE ONLY WAY TO CHOOSE ONE**,
+                # and the charge rides on the ion rather than on a control
+                # of its own -- a charge spinbox beside a short species
+                # list is how [M+2H]2+ comes to mean "charge 2, and the
+                # composition of something else".
+                choices=[ion.label for ion in SUPPORTED_IONS],
+            ),
+            CalculatorParameter(
+                name="resolution",
+                label="Resolution",
+                kind="choice",
+                default=UNIT_RESOLUTION,
+                choices=[UNIT_RESOLUTION, EXACT_RESOLUTION],
+            ),
+            CalculatorParameter(
+                name="minimum_percent",
+                label="Minimum relative intensity (%)",
+                kind="float",
+                default=DEFAULT_MINIMUM_PERCENT,
+                minimum=0.0,
+                maximum=100.0,
+            ),
             *microspecies_parameters(),
         ],
     ),

@@ -279,10 +279,20 @@ def build_service_container() -> ServiceContainer:
     # through the same service the Docking panel uses, so a screen and a
     # one-off docking share one single-flight guard instead of racing.
     docking_service = DockingService(event_bus, settings, job_manager=job_manager)
+    # Named for the same reason `docking_service` is: DescriptorService
+    # below needs THIS instance's version counter, so that every calculator
+    # result records which revision of the structure it describes. A second
+    # checker would count a different molecule's edits.
+    structure_check_service = StructureCheckService(event_bus)
     return ServiceContainer(
         event_bus=event_bus,
         chemistry_engine=engine,
-        descriptor_service=DescriptorService(event_bus, engine, calculator_registry=calculator_registry),
+        descriptor_service=DescriptorService(
+            event_bus,
+            engine,
+            calculator_registry=calculator_registry,
+            structure_version_of=structure_check_service.current_version,
+        ),
         import_service=ImportService(engine),
         export_service=ExportService(engine),
         project_service=ProjectService(event_bus),
@@ -311,7 +321,7 @@ def build_service_container() -> ServiceContainer:
         # to prevent. It subscribes to MoleculeChanged itself, so its
         # version counter is right from construction rather than from
         # whenever a panel first asks.
-        structure_check_service=StructureCheckService(event_bus),
+        structure_check_service=structure_check_service,
         # Empty until a plugin registers. Constructed here rather than
         # lazily so `PluginContext` always has something to hand a
         # registrar, exactly like every other provider service.

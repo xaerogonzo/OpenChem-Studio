@@ -194,3 +194,98 @@ def test_a_cell_is_a_scalar_unless_its_producer_says_otherwise():
 @pytest.mark.parametrize("kind", sorted(CELL_KINDS))
 def test_every_declared_kind_is_a_real_member(kind: str):
     assert BatchCell(kind=kind).kind in CELL_KINDS
+
+
+# --- the other producer-owned channels ----------------------------------
+
+
+def _charted_report(molecule: str, report_id: str, title: str) -> ReportResult:
+    from openchem.domain.report import Stick, StickChartAnnotation
+
+    return ReportResult(
+        report_id=report_id,
+        name=report_id,
+        molecule_uuid=molecule,
+        facts=(_fact("A value", 1.0),),
+        charts=(
+            StickChartAnnotation(
+                sticks=(Stick(1.0, 1.0),),
+                x_label="m/z",
+                y_label="Relative abundance",
+                x_descending=False,
+                title=title,
+            ),
+        ),
+    )
+
+
+def test_the_merged_report_carries_every_contributing_results_charts():
+    """**A BATCH RUN SHOULD SHOW A MOLECULE'S SPECTRUM WHEN YOU OPEN IT.**
+    Charts are carried where `spatial` is not, and deliberately: a chart
+    costs a `QPainter` and a spatial annotation costs a Chromium process,
+    so a view can draw every chart it is handed and cannot open six 3D
+    models.
+    """
+    store = BatchResultStore()
+    store.put(
+        ResultKey(molecule_uuid="m1", calculator_id="elemental", structure_version=1),
+        _charted_report("m1", "elemental", "Isotope pattern"),
+    )
+    store.put(
+        ResultKey(molecule_uuid="m1", calculator_id="lewis", structure_version=1),
+        _charted_report("m1", "lewis", "Sites"),
+    )
+    report = store.merged_report("m1", 1)
+    assert [chart.title for chart in report.charts] == ["Isotope pattern", "Sites"]
+
+
+def test_merging_never_rewrites_a_producers_chart():
+    """Prefixing a title with its calculator's name would be domain code
+    editing a producer's declaration -- the thing the whole channel
+    forbids. The obligation lands on producers instead: a chart title has
+    to be self-describing, exactly as `ArrowAnnotation.label` must be."""
+    store = BatchResultStore()
+    original = _charted_report("m1", "elemental", "Isotope pattern")
+    store.put(
+        ResultKey(molecule_uuid="m1", calculator_id="elemental", structure_version=1),
+        original,
+    )
+    assert store.merged_report("m1", 1).charts[0] is original.charts[0]
+
+
+def test_a_result_with_no_facts_contributes_no_charts():
+    """The "only results that ARE reports contribute" rule applies to
+    charts too -- otherwise a factless result smuggles a picture in through
+    a door the facts are refused at."""
+    store = BatchResultStore()
+    store.put(
+        ResultKey(molecule_uuid="m1", calculator_id="elemental", structure_version=1),
+        _charted_report("m1", "elemental", "Isotope pattern"),
+    )
+    factless = ReportResult(
+        report_id="empty",
+        name="empty",
+        molecule_uuid="m1",
+        facts=(),
+        charts=_charted_report("m1", "x", "Orphan").charts,
+    )
+    store.put(
+        ResultKey(molecule_uuid="m1", calculator_id="empty", structure_version=1), factless
+    )
+    assert [c.title for c in store.merged_report("m1", 1).charts] == ["Isotope pattern"]
+
+
+def test_merged_results_keeps_each_report_whole():
+    """The richer return: `merged_report` flattens into one `ReportResult`,
+    which has one report_id, one provenance and one structure_version, so
+    it cannot say which calculator a chart came from or which one is
+    stale."""
+    store = _store(version=1)
+    merged = store.merged_results("m1", 1)
+    assert {report.report_id for report in merged.reports} == {"topology", "logp"}
+    assert merged.name_for("topology") == "topology"
+    assert {fact.origin for fact in merged.facts} == {"topology", "logp"}
+
+
+def test_merged_results_says_nothing_computed_the_same_way_merged_report_does():
+    assert BatchResultStore().merged_results("m1", 1) is None

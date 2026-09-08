@@ -15,6 +15,7 @@ as a bug.
 
 from __future__ import annotations
 
+import logging
 from collections import Counter
 from typing import Any
 
@@ -28,7 +29,15 @@ from openchem.chem.calculator_options import (
 )
 from openchem.domain.common import Provenance
 from openchem.domain.report import ReportResult
+from openchem.chem.mass_spectrum import (
+    element_counts,
+    isotope_envelope,
+    spectrum_chart,
+)
 from openchem.chem.report_adapter import report_from_fields
+from openchem.domain.mass_spectrum import DEFAULT_ION
+
+logger = logging.getLogger("openchem.chem")
 
 
 def molecular_formula(mol: Chem.Mol) -> str:
@@ -116,6 +125,31 @@ def compute_elemental_analysis(
     )
     lines.extend(microspecies_note(parameters))
 
+    # **THE PICTURE MARVIN DRAWS BESIDE THESE NUMBERS.** The molecular
+    # ion's natural-abundance envelope: the same window this module's
+    # docstring already validates the composition against shows one, and
+    # the arithmetic for it is the composition restated per isotope.
+    #
+    # NO IONISATION PARAMETERS HERE, DELIBERATELY. This calculator is
+    # about composition; a `[M+Na]+` selector belongs on the Mass Spectrum
+    # calculator, which is where the modes live. Both call ONE engine, so
+    # the envelope cannot differ between them.
+    chart = None
+    nominal = None
+    try:
+        spectrum = isotope_envelope(element_counts(mol_with_h), DEFAULT_ION)
+        nominal = round(spectrum.monoisotopic_mz)
+        chart = spectrum_chart(spectrum)
+    except ValueError as exc:
+        # An element with no natural isotope has no envelope, and that is
+        # a fact about the molecule rather than a failure of this
+        # calculator -- the composition above is still correct and still
+        # worth reporting.
+        logger.info("No isotope pattern for %s: %s", plain, exc)
+
+    if nominal is not None:
+        lines.insert(3, f"Nominal mass: {nominal}")
+
     return report_from_fields(
         alert_id="elemental_analysis",
         name="Elemental Analysis",
@@ -123,4 +157,5 @@ def compute_elemental_analysis(
         matched=lines,
         category="identity",
         provenance=Provenance(created_by="core", method="rdkit"),
+        charts=(chart,) if chart is not None else (),
     )

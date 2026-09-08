@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import logging
 import os
 from collections.abc import Callable
@@ -1556,8 +1558,20 @@ class PropertyPanel(QWidget):
         chemistry_engine: ChemistryEngine,
         parent: QWidget | None = None,
         on_add_structure: Callable[[str, str], None] | None = None,
+        structure_version_of=None,
     ) -> None:
         super().__init__(parent)
+        #: `StructureCheckService.current_version`, or None in a fixture
+        #: with no checker. A CALLABLE rather than the service, for the
+        #: reason `DescriptorService` takes one: this needs a single number
+        #: about a single molecule, and taking the whole service would make
+        #: every test that builds this panel build a checker too.
+        #:
+        #: It must be the SAME counter every calculator result is stamped
+        #: from, or "stale" becomes two independent notions of a version
+        #: disagreeing with each other rather than a statement about the
+        #: structure having moved.
+        self._structure_version_of = structure_version_of
         self._calculator_registry = calculator_registry
         self._descriptor_service = descriptor_service
         self._chemistry_engine = chemistry_engine
@@ -1590,6 +1604,15 @@ class PropertyPanel(QWidget):
         #: whatsoever, which is exactly what "I can hit run on several
         #: things and nothing noticeable happens" was describing.
         self._result_labels: dict[str, QLabel] = {}
+        #: The merged results window for the selected molecule, or None.
+        #:
+        #: **ONE PER MOLECULE UUID, NOT PER REPORT AND NOT PER OBJECT.**
+        #: Keyed on the stable project identity, so a rebuilt model does
+        #: not open a second window for the same molecule -- and modeless,
+        #: because `exec()` blocks this panel and you could then never run
+        #: the second calculator whose results the window exists to
+        #: accumulate.
+        self._results_window = None
         #: Fact-based reports, kept so "Details..." can open one after the
         #: fact. Plain data keyed by string -- never a dict keyed by a
         #: QWidget, which hashes on a C++ pointer Qt frees with the parent.
@@ -1740,6 +1763,12 @@ class PropertyPanel(QWidget):
         self._alert_labels.clear()
         self._result_labels.clear()
         self._reports.clear()
+        # The window describes ONE molecule and is keyed on its uuid, so a
+        # window left open here would be showing the previous molecule's
+        # results under the new molecule's name.
+        if self._results_window is not None:
+            self._results_window.close()
+            self._results_window = None
         self._report_labels.clear()
         self._row_sections.clear()
         for section in self._sections.values():
@@ -2169,7 +2198,26 @@ class PropertyPanel(QWidget):
         # reconstructed from its strings. Held so "Details..." works for
         # it exactly as it does for a migrated one.
         if not _is_catalog(alert):
-            self._reports[alert.alert_id] = report_from_alert(alert)
+            # **STAMPED HERE, BECAUSE AN `AlertResult` HAS NO VERSION FIELD
+            # TO CARRY ONE.** `_CalculationTask` stamps a `ReportResult` on
+            # the way out of a calculation; an alert is not one, and the
+            # report is reconstructed from its strings at THIS point. Left
+            # unstamped it defaults to 0 and reads as stale the moment the
+            # structure is on any version above that -- which is exactly
+            # what driving the app showed: `Functional Groups` wore a stale
+            # badge alone, from the first molecule, forever.
+            #
+            # ARRIVAL TIME rather than compute time, which is the honest
+            # limitation: an edit landing mid-run would make this look
+            # current. It is close enough on this path because the alert
+            # batch is the always-eager perception that re-runs on every
+            # structure change, so an alert arriving now was computed for
+            # the structure now.
+            self._reports[alert.alert_id] = replace(
+                report_from_alert(alert),
+                structure_version=self._current_structure_version(),
+            )
+            self._refresh_results_window()
 
     def _on_molecule_changed(self, event: MoleculeChanged) -> None:
         """Re-perceive when the STRUCTURE changes, not only when the
@@ -2308,6 +2356,11 @@ class PropertyPanel(QWidget):
         # the early returns this replaced meant a FAILED report scrolled
         # nowhere and read as nothing having happened.
         self._reveal(report.report_id, section, label.parentWidget())
+        # AND INTO THE OPEN WINDOW, if there is one. The window is the
+        # accumulation surface, so a calculator run while it is open has
+        # to land in it -- otherwise "run another one and watch it appear"
+        # is exactly the thing that does not work.
+        self._refresh_results_window()
 
     def _report_row(self, section, report_id: str, name: str):
         """The label for one report, created once and reused.
@@ -2416,10 +2469,20 @@ class PropertyPanel(QWidget):
             _dump_height_budget(self)
 
     def _on_details_clicked(self, _checked: bool = False) -> None:
+        """Open the merged results window, focused on this report.
+
+        **THE SAME SURFACE, FOCUSED, NOT A SECOND ONE.** Every
+        "Details..." button in this panel now arrives at one window per
+        molecule holding everything computed for it, opened on the report
+        whose button was pressed. That is what makes `FactView`'s search
+        and depth filter worth having: they were built for a hundred facts
+        and were being handed one calculator's four.
+        """
         button = self.sender()
         if button is None:
             return
-        report = self._reports.get(button.property(_REPORT_ID_PROPERTY))
+        report_id = button.property(_REPORT_ID_PROPERTY)
+        report = self._reports.get(report_id)
         if report is None:
             return
         # A producer that declared spatial annotations gets its result on
@@ -2436,14 +2499,81 @@ class PropertyPanel(QWidget):
                 spatial_dialog = SpatialResultDialog(report, best.molblock, self)
                 spatial_dialog.exec()
                 return
-        dialog = QDialog(self)
-        dialog.setWindowTitle(report.name)
-        dialog.resize(520, 620)
-        view = FactView(dialog)
-        view.set_report(report, report.name)
-        layout = QVBoxLayout(dialog)
-        layout.addWidget(view)
-        dialog.exec()
+        self._open_results_window(focus=str(report_id))
+
+    def _open_results_window(self, focus: str = "") -> None:
+        """Show (or raise) this molecule's results window.
+
+        Raised rather than rebuilt when one is already open: two windows
+        for one molecule is how a reader ends up comparing a result with
+        itself, and the second would not be the one receiving updates.
+        """
+        from openchem.ui.dialogs.merged_results_dialog import MergedResultsDialog
+
+        uuid = self._selected_molecule_uuid
+        if uuid is None:
+            return
+        window = self._results_window
+        if window is None or window.molecule_uuid() != uuid:
+            if window is not None:
+                window.close()
+            window = MergedResultsDialog(uuid, self._selected_molecule_name(), self)
+            # DeleteOnClose, and the handle dropped with it: a closed
+            # window that kept receiving updates would be a write into a
+            # deleted widget, which is the ordinary Qt lifetime bug this
+            # repository has paid for four times in its lambda form.
+            window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+            window.destroyed.connect(self._on_results_window_destroyed)
+            self._results_window = window
+        self._refresh_results_window()
+        if focus:
+            window.set_focus(focus)
+        window.show()
+        window.raise_()
+        window.activateWindow()
+
+    def _on_results_window_destroyed(self) -> None:
+        """Drop the handle when Qt destroys the window.
+
+        Connected to `destroyed` rather than to `finished`, because the
+        window can go away by the X button, by Escape, or by its parent
+        being torn down -- and `closeEvent` alone misses Escape entirely,
+        which this project has measured.
+        """
+        self._results_window = None
+
+    def _refresh_results_window(self) -> None:
+        """Push the currently-held reports into the open window.
+
+        Called whenever a result lands for the selected molecule, so a
+        calculator run while the window is open appears in it rather than
+        waiting for a reopen. That is the whole point of the window being
+        modeless.
+        """
+        window = self._results_window
+        if window is None or window.molecule_uuid() != self._selected_molecule_uuid:
+            return
+        window.set_reports(
+            list(self._reports.values()), self._current_structure_version()
+        )
+
+    def _current_structure_version(self) -> int:
+        """The revision the selected molecule is on, or 0 with no checker.
+
+        Reads the SAME counter every calculator result is stamped from, so
+        "stale" here means the structure has moved since the result was
+        computed rather than two independent notions of a version
+        disagreeing.
+        """
+        version_of = self._structure_version_of
+        uuid = self._selected_molecule_uuid
+        if version_of is None or uuid is None:
+            return 0
+        try:
+            return int(version_of(uuid))
+        except Exception:  # noqa: BLE001 - a version is never worth a crash
+            logger.exception("Could not read the structure version for %s", uuid)
+            return 0
 
     def _on_per_atom_data_computed(self, event: PerAtomDataComputed) -> None:
         dataset = event.dataset

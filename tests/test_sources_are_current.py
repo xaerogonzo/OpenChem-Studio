@@ -1070,6 +1070,13 @@ _PROVENANCE_DEBT = frozenset({
     "src/openchem/chem/boltzmann.py",
     "src/openchem/chem/bond_report.py",
     "src/openchem/chem/comparison.py",
+    # IMPLEMENTS NO METHOD. It folds several reports into one
+    # container and stamps each fact with the report it came from --
+    # provenance plumbing rather than chemistry, so there is no source
+    # that could back it. It is here for the same reason
+    # `comparison.py` and `report_adapter.py` are: the walk finds it
+    # because it touches results, not because it computes one.
+    "src/openchem/domain/merged_results.py",
     "src/openchem/chem/crystal_report.py",
     "src/openchem/chem/elemental_analysis.py",
     "src/openchem/chem/geometry_analysis.py",

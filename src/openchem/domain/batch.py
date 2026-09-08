@@ -416,30 +416,49 @@ class BatchResultStore:
         """
         from openchem.domain.report import ReportResult
 
-        facts: list = []
-        limitations: list[str] = []
-        assumptions: list[str] = []
-        for result in self.for_molecule(molecule_uuid, structure_version).values():
-            got = getattr(result, "facts", None)
-            if not got:
-                continue
-            facts.extend(got)
-            limitations.extend(getattr(result, "limitations", ()) or ())
-            assumptions.extend(getattr(result, "assumptions", ()) or ())
-        if not facts:
+        merged = self.merged_results(molecule_uuid, structure_version)
+        if merged is None:
             return None
         return ReportResult(
             report_id=f"batch:{molecule_uuid}",
             name="Batch results",
             molecule_uuid=molecule_uuid,
             structure_version=structure_version or 0,
-            facts=tuple(facts),
+            facts=merged.facts,
             # De-duplicated in order: several calculators legitimately
             # carry the same caveat, and printing it five times buries the
             # four that differ.
-            limitations=tuple(dict.fromkeys(limitations)),
-            assumptions=tuple(dict.fromkeys(assumptions)),
+            limitations=merged.limitations(),
+            assumptions=merged.assumptions(),
+            # Carried, where `spatial` is not. A chart costs a `QPainter`
+            # and a spatial annotation costs a Chromium process, so a view
+            # can draw every chart it is handed and cannot open six 3D
+            # models -- `MergedResults.spatial()` is how a view offers
+            # those one at a time, with their owners attached.
+            charts=tuple(chart for _report_id, chart in merged.charts()),
         )
+
+    def merged_results(self, molecule_uuid: str, structure_version: int | None = None):
+        """The same results, WITH each report kept whole.
+
+        **THE RICHER RETURN, AND THE ONE TO REACH FOR.** `merged_report`
+        above flattens into a single `ReportResult`, which has one
+        `report_id`, one `provenance` and one `structure_version` -- so it
+        cannot say which calculator a chart came from, which one is stale,
+        or which one owns a 3D annotation. It is kept because `FactView`
+        consumes a report and a large number of assertions read one.
+
+        Returns None when the molecule has no facts at all, for the same
+        reason `merged_report` does: a caller must render that as "not
+        computed yet" rather than as an empty report.
+        """
+        from openchem.domain.merged_results import merge_reports
+
+        merged = merge_reports(
+            self.for_molecule(molecule_uuid, structure_version).values(),
+            structure_version=structure_version or 0,
+        )
+        return merged if merged.facts else None
 
     def non_scalar_results(self, molecule_uuid: str, structure_version: int | None = None) -> dict[str, object]:
         """The retained results a report cannot show -- per-atom datasets,
