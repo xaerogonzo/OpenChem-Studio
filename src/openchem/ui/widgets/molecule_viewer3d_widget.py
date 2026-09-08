@@ -293,7 +293,36 @@ class MoleculeViewer3DWidget(QWidget):
         parent: QWidget | None = None,
         spatial_overlay_service=None,
     ) -> None:
+        """Built in five steps, in the order they must happen.
+
+        Split from a single 201-line constructor. Each step's lines are
+        verbatim at the indent they already had, so every comment still
+        sits against what it explains -- why this row wraps rather than
+        being a `QHBoxLayout` (it set the whole window's minimum width to
+        1877-2055 px against a 1920 px screen), and why the view takes
+        stretch 1 (without it a `QLabel` claimed half the pane and the
+        viewer was half the size it should be).
+
+        **THE ORDER IS THE CONTRACT.** Controls are built before the layout
+        that adds them, and the events are subscribed last so no handler
+        can fire against a half-built widget. Checked before cutting: no
+        local is assigned in one step and read in another, so this is a
+        move rather than a behaviour change.
+        """
         super().__init__(parent)
+        self._init_state(conformer_service, measurement_service, spatial_overlay_service)
+        self._init_backend(backend)
+        self._build_controls()
+        self._build_layout()
+        self._subscribe_to_events(event_bus)
+
+    def _init_state(
+        self,
+        conformer_service: ConformerService,
+        measurement_service: MeasurementService,
+        spatial_overlay_service,
+    ) -> None:
+        """The services and the state fields, before any widget exists."""
         self._conformer_service = conformer_service
         self._measurement_service = measurement_service
         #: Recomputes shape-valued results for the conformer on screen.
@@ -336,12 +365,16 @@ class MoleculeViewer3DWidget(QWidget):
         #: list because ticking is idempotent and order means nothing.
         self._superimposed: set[int] = set()
 
+    def _init_backend(self, backend: ViewerBackend | None) -> None:
+        """The viewer backend and the four signals it reports through."""
         self._backend: ViewerBackend = backend or Mol3DViewerBackend(self)
         self._backend.atoms_selected.connect(self._on_atoms_selected)
         self._backend.grid_cell_clicked.connect(self._on_grid_cell_clicked)
         self._backend.grid_cell_toggled.connect(self._on_grid_cell_toggled)
         self._backend.grid_failed.connect(self._on_grid_failed)
 
+    def _build_controls(self) -> None:
+        """Every control in the toolbar row, in the order it is laid out."""
         self._style_combo = QComboBox(self)
         self._style_combo.addItems(["stick", "ballstick", "sphere", "line"])
         self._style_combo.currentTextChanged.connect(self._backend.set_style)
@@ -421,6 +454,14 @@ class MoleculeViewer3DWidget(QWidget):
         # of work keeps finding.
         self._details_button.setEnabled(False)
 
+    def _build_layout(self) -> None:
+        """The wrapping toolbar row and the vertical layout under it.
+
+        The toolbar is built HERE rather than in its own step because
+        `toolbar` is a local read by `layout.addWidget(toolbar, 0)`:
+        cutting between them would need a parameter or an attribute and
+        stop being a move.
+        """
         # **THIS ROW WRAPS, AND THE WHOLE WINDOW DEPENDED ON IT.** As a
         # `QHBoxLayout` these fourteen controls made this widget's minimum
         # width the SUM of them -- measured, 1252 px of controls plus
@@ -478,6 +519,8 @@ class MoleculeViewer3DWidget(QWidget):
         layout.addWidget(self._backend.widget(), 1)
         layout.addWidget(self._measurement_label, 0)
 
+    def _subscribe_to_events(self, event_bus: EventBus) -> None:
+        """The four events this widget listens for."""
         event_bus.subscribe(ConformersChanged, self._on_conformers_changed)
         event_bus.subscribe(ConformerJobStateChanged, self._on_job_state_changed)
         # The overlay learns which results carry geometry from the same
