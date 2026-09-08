@@ -10,7 +10,6 @@ from typing import Callable
 from urllib.error import URLError
 from openchem.net import open_url
 
-import platformdirs
 
 from openchem.chem.vina_engine import select_vina_engine
 from openchem import paths as app_paths

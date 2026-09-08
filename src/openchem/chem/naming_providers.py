@@ -43,7 +43,6 @@ from enum import Enum
 import json
 import logging
 import os
-import shutil
 import urllib.error
 import urllib.parse
 from contextlib import contextmanager

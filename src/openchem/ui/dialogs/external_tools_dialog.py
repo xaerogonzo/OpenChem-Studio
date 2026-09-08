@@ -4,13 +4,11 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFileDialog,
-    QFormLayout,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -26,11 +24,7 @@ from PySide6.QtWidgets import (
 from openchem.app.settings import Settings
 from openchem.plugins.async_task import run_async
 from openchem.services.tool_download_service import (
-    ORCA_DOCS_PAGE,
-    ORCA_DOWNLOAD_PAGE,
     VinaReleaseAsset,
-    describe_orca_platform_hint,
-    describe_vina_status,
     download_vina_asset,
     fetch_latest_vina_release,
 )
@@ -39,7 +33,6 @@ from openchem.ui.dialogs.external_tool_tabs import (
     InterpreterSidecarTab,
     ManagedAssetTab,
     ManagedExecutableTab,
-    PathRow,
     ToolTab,
     progress_reporter,
     run_async,

@@ -28,7 +28,7 @@ from rdkit.Chem import AllChem
 from rdkit.Chem.EnumerateStereoisomers import EnumerateStereoisomers, StereoEnumerationOptions
 from rdkit.Chem.MolStandardize import rdMolStandardize
 
-from openchem.domain.common import CacheState, Provenance
+from openchem.domain.common import Provenance
 from openchem.domain.scientific_result import StructureEntry, StructureSetResult
 
 # Marvin offers "major contributors" versus everything. These two flag sets

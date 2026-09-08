@@ -24,9 +24,8 @@ what `tests/test_layering.py` requires of anything under `ui/`.
 
 from __future__ import annotations
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
     QDialog,
     QFileDialog,
@@ -35,7 +34,6 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
-    QScrollArea,
     QVBoxLayout,
     QWidget,
 )

@@ -38,10 +38,8 @@ from openchem.chem.nuclides import NuclideKey
 from openchem.chem.decay import (
     DecayTree,
     OFF_TABLE,
-    STABLE,
     UNFOLLOWABLE_MODE,
     format_branching,
-    format_mode,
     mode_family,
 )
 from openchem.chem.lewis_svg import BASELINE_SHIFT

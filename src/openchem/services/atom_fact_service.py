@@ -20,7 +20,7 @@ this class only answers "who else has something to say".
 
 from __future__ import annotations
 
-from openchem.plugins.interfaces import AtomFactProvider, FactProvider
+from openchem.plugins.interfaces import AtomFactProvider
 
 
 class FactService:

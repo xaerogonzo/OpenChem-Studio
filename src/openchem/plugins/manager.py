@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 
-import platformdirs
 from PySide6.QtCore import QFileSystemWatcher, QTimer
 
 from openchem.app.settings import Settings

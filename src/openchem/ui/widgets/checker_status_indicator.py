@@ -15,7 +15,7 @@ from __future__ import annotations
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QLabel
 
-from openchem.domain.structure_issue import CheckerResult, Severity
+from openchem.domain.structure_issue import CheckerResult
 
 #: state -> (symbol, colour, tooltip stem). Okabe-Ito vermillion and blue
 #: rather than pure red/green, which is this project's existing palette

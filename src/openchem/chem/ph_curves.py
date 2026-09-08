@@ -32,7 +32,6 @@ from rdkit.Chem import Crippen, Lipinski
 from openchem.chem.calculator_options import ph_grid_from
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import (
-    AlertResult,
     PhCurveResult,
     StructureEntry,
     StructureSetResult,

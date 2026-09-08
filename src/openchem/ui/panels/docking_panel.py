@@ -27,7 +27,6 @@ import logging
 
 from openchem.chem.calculation_input import canonical_conformer
 from openchem.app.settings import Settings
-from openchem.chem.docking_providers import DEFAULT_EXHAUSTIVENESS
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.common import describe_failure
 from openchem.domain.docking import DockingBox, pose_score_of

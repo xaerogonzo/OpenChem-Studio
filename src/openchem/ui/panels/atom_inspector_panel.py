@@ -36,9 +36,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
-    QLineEdit,
     QPushButton,
-    QScrollArea,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -50,14 +48,9 @@ from openchem.chem.bond_report import bond_label, build_bond_report
 from openchem.chem.molecule_report import build_molecule_report
 from openchem.chem.engine import ChemistryEngine
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
-from openchem.domain.bond_report import BondReport
 from openchem.domain.molecule_report import MoleculeReport
 from openchem.domain.atom_report import (
-    CATEGORY_LABELS,
-    DEFAULT_EXPANDED,
-    AtomFact,
     AtomReport,
-    FactLink,
 )
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
