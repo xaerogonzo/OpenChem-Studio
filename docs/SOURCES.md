@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: fceb19a89d2487af35ff503870649c5a4672a0806ce62662f662ac38dad3da8e -->
+<!-- SOURCE SHA256: 75d19a20862c61b7342222b03b9d8ebbd90a65d3ad403ae5ec3af61fab8b9490 -->
 
 # Sources
 
@@ -90,6 +90,8 @@ next run of `tools/build_lewis_parameters.py`.
 | [`adoptium_temurin`](#adoptium_temurin) | software | shipped | citation |
 | [`agarwal2022`](#agarwal2022) | literature | shipped | citation + claim |
 | [`agboola2026`](#agboola2026) | literature | shipped | citation + claim |
+| [`allen2014`](#allen2014) | literature | reference only | citation |
+| [`allen2016`](#allen2016) | literature | reference only | citation |
 | [`allred1961`](#allred1961) | reference_table | shipped | citation |
 | [`alves2014`](#alves2014) | literature | reference only | citation |
 | [`aqsoldb`](#aqsoldb) | dataset | shipped | citation |
@@ -105,6 +107,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`bradley2014`](#bradley2014) | dataset | shipped | citation + claim |
 | [`bradley2015`](#bradley2015) | literature | shipped | citation + claim |
 | [`bravetti2023`](#bravetti2023) | literature | shipped | citation |
+| [`bremer2022`](#bremer2022) | literature | reference only | citation |
 | [`brenk2008`](#brenk2008) | literature | shipped | citation |
 | [`brown2006`](#brown2006) | literature | **not shipped** | citation |
 | [`cao2004`](#cao2004) | literature | shipped | citation + claim |
@@ -188,6 +191,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`rcsb_pdb`](#rcsb_pdb) | dataset | shipped | citation |
 | [`rdkit`](#rdkit) | software | shipped | citation |
 | [`rdkit_bertz`](#rdkit_bertz) | software | shipped | citation + claim |
+| [`ruttkies2016`](#ruttkies2016) | literature | reference only | citation |
 | [`schott1989`](#schott1989) | literature | shipped | citation + claim |
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
 | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
@@ -203,12 +207,243 @@ next run of `tools/build_lewis_parameters.py`.
 | [`tsei`](#tsei) | reference_table | reference only | citation |
 | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | citation + claim |
 | [`waasmaier1995`](#waasmaier1995) | literature | shipped | citation + claim |
+| [`wang2021`](#wang2021) | literature | reference only | citation |
+| [`wang2022`](#wang2022) | literature | reference only | citation |
 | [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
 | [`wildman1999`](#wildman1999) | literature | shipped | citation |
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
+| [`zhu2023`](#zhu2023) | literature | reference only | citation |
 | [`zhuang2022`](#zhuang2022) | literature | shipped | citation + claim |
 
 ## Primary literature
+
+### allen2016
+
+<a id="allen2016"></a>
+
+> F. Allen, A. Pon, R. Greiner & D. S. Wishart, 'Computational prediction of electron ionization mass spectra to assist in GC-MS compound identification', Anal. Chem. (2016).
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.analchem.6b01622](https://doi.org/10.1021/acs.analchem.6b01622) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-08 |
+| Local copy | `allen2016.pdf` (not checked) |
+| Used by | `docs/ROADMAP.md` |
+
+**Why it is reference only.** CFM-EI: THE METHOD AN EI GATE WOULD BE MEASURED AGAINST. It is the
+directly applicable thing -- forward prediction of electron-ionization
+spectra from a structure, which is exactly what this application does not
+do and says it does not do.
+
+The copy held is the "Just Accepted Manuscript" version, which its own
+first page states is peer-reviewed and not the version of record. Recorded
+rather than glossed, for the reason three other pre-publication copies in
+this registry are.
+
+**A ROADMAP REFERENCE, AND NOTHING HERE IMPLEMENTS IT.** `status` is
+`reference_only` and `verification` is `citation`: the entry says the
+reference is right, not that any number in this application came from it.
+Registered because `docs/ROADMAP.md` names the paper as part of a gate's
+evidence requirement, and this project's DOI backstop treats a DOI cited
+in the tree with no registry row as a citation that bypassed the registry.
+
+Every field is off the PDF's own first page.
+
+### wang2022
+
+<a id="wang2022"></a>
+
+> S. Wang, T. Kind, P. L. Bremer, D. J. Tantillo & O. Fiehn, 'Beyond the Ground State: Predicting Electron Ionization Mass Spectra Using Excited-State Molecular Dynamics', J. Chem. Inf. Model. 2022, 62, pp. 4403-4410.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jcim.2c00597](https://doi.org/10.1021/acs.jcim.2c00597) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-08 |
+| Local copy | `wang2022.pdf` (not checked) |
+| Used by | `docs/ROADMAP.md` |
+
+**Why it is reference only.** **THE ARGUMENT THAT EI PREDICTION IS PHYSICS AND NOT BOND-CUTTING**, which
+is why the roadmap gate is written the way it is. This predicts 70 eV
+spectra with excited-state molecular dynamics, deciding the contribution of
+electronic states from ionization cross sections -- and reports that the
+excited-state corrections recover fragmentation reactions BOTH ground-state
+methods missed entirely.
+
+A plausible set of cleavage rules would produce a plausible spectrum and
+would not be this. Anybody tempted to ship the quick version should read
+the paragraph about true-positive ion counts first.
+
+**A ROADMAP REFERENCE, AND NOTHING HERE IMPLEMENTS IT.** `status` is
+`reference_only` and `verification` is `citation`: the entry says the
+reference is right, not that any number in this application came from it.
+Registered because `docs/ROADMAP.md` names the paper as part of a gate's
+evidence requirement, and this project's DOI backstop treats a DOI cited
+in the tree with no registry row as a citation that bypassed the registry.
+
+Every field is off the PDF's own first page.
+
+### zhu2023
+
+<a id="zhu2023"></a>
+
+> R. L. Zhu & E. Jonas, 'Rapid Approximate Subset-Based Spectra Prediction for Electron Ionization-Mass Spectrometry', Anal. Chem. 2023, 95, pp. 2653-2663.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.analchem.2c02093](https://doi.org/10.1021/acs.analchem.2c02093) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-08 |
+| Local copy | `Rapid-Approximate-Subset-Based-Spectra-Prediction-for-Electron-Ionization-Mass-Spectrometry.pdf` (not checked) |
+| Used by | `docs/ROADMAP.md` |
+
+**Why it is reference only.** **THE KEY SAYS 2023 AND A RECOMMENDATION SAID 2022.** Its DOI carries `2c`,
+which is an ACS submission-year code and not a publication year; the paper's
+own citation line reads "Anal. Chem. 2023, 95, 2653-2663". The second such
+correction in this batch -- `alves2014` is the other -- and the same lesson
+each time: the paper decides, never the DOI and never the filename.
+
+Substance: a third EI forward-prediction approach (RASSP), combining
+substructure enumeration with deep learning and evaluated against the NIST
+2017 library. Useful to the gate as the benchmark vocabulary -- weighted
+Stein dot product and top-10 database lookup recall are the numbers an EI
+predictor here would have to report.
+
+**A ROADMAP REFERENCE, AND NOTHING HERE IMPLEMENTS IT.** `status` is
+`reference_only` and `verification` is `citation`: the entry says the
+reference is right, not that any number in this application came from it.
+Registered because `docs/ROADMAP.md` names the paper as part of a gate's
+evidence requirement, and this project's DOI backstop treats a DOI cited
+in the tree with no registry row as a citation that bypassed the registry.
+
+Every field is off the PDF's own first page.
+
+### allen2014
+
+<a id="allen2014"></a>
+
+> F. Allen, A. Pon, M. Wilson, R. Greiner & D. Wishart, 'CFM-ID: a web server for annotation, spectrum prediction and metabolite identification from tandem mass spectra', Nucleic Acids Research, 2014, Vol. 42, Web Server issue, pp. W94-W99.
+
+| | |
+| --- | --- |
+| Identifier | [10.1093/nar/gku436](https://doi.org/10.1093/nar/gku436) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-08 |
+| Local copy | `allen2014.pdf` (not checked) |
+| Used by | `docs/ROADMAP.md` |
+
+**Why it is reference only.** COMPETITIVE FRAGMENTATION MODELING, for the MS/MS gate rather than the EI
+one. Its three tasks -- annotate the peaks of a known structure, predict a
+spectrum, rank candidates for an observed one -- are the shape a tandem
+feature would take, and none of them is reachable from the isotope
+arithmetic this application ships.
+
+**A ROADMAP REFERENCE, AND NOTHING HERE IMPLEMENTS IT.** `status` is
+`reference_only` and `verification` is `citation`: the entry says the
+reference is right, not that any number in this application came from it.
+Registered because `docs/ROADMAP.md` names the paper as part of a gate's
+evidence requirement, and this project's DOI backstop treats a DOI cited
+in the tree with no registry row as a citation that bypassed the registry.
+
+Every field is off the PDF's own first page.
+
+### wang2021
+
+<a id="wang2021"></a>
+
+> F. Wang, J. Liigand, S. Tian, D. Arndt, R. Greiner & D. S. Wishart, 'CFM-ID 4.0: More Accurate ESI-MS/MS Spectral Prediction and Compound Identification', Anal. Chem. 2021, 93, pp. 11692-11700.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.analchem.1c01465](https://doi.org/10.1021/acs.analchem.1c01465) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-08 |
+| Local copy | `wang2021.pdf` (not checked) |
+| Used by | `docs/ROADMAP.md` |
+
+**Why it is reference only.** The current CFM-ID, and the one an MS/MS gate would actually be held
+against. Worth having beside `allen2014` rather than instead of it: the
+2014 paper is the method's statement and this is where it stands now.
+
+**A ROADMAP REFERENCE, AND NOTHING HERE IMPLEMENTS IT.** `status` is
+`reference_only` and `verification` is `citation`: the entry says the
+reference is right, not that any number in this application came from it.
+Registered because `docs/ROADMAP.md` names the paper as part of a gate's
+evidence requirement, and this project's DOI backstop treats a DOI cited
+in the tree with no registry row as a citation that bypassed the registry.
+
+Every field is off the PDF's own first page.
+
+### ruttkies2016
+
+<a id="ruttkies2016"></a>
+
+> C. Ruttkies, E. L. Schymanski, S. Wolf, J. Hollender & S. Neumann, 'MetFrag relaunched: incorporating strategies beyond in silico fragmentation', J. Cheminform. (2016) 8:3.
+
+| | |
+| --- | --- |
+| Identifier | [10.1186/s13321-016-0115-9](https://doi.org/10.1186/s13321-016-0115-9) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-08 |
+| Local copy | `ruttkies2016.pdf` (not checked) |
+| Used by | `docs/ROADMAP.md` |
+
+**Why it is reference only.** **AN ARCHITECTURAL CONTRAST, NOT AN EI JUSTIFICATION.** MetFrag does in
+silico fragmentation and then combines it with everything else available --
+reference and patent information, suspect lists, retention times -- which is
+a different design from predicting a spectrum and comparing it. Recorded
+under the MS/MS gate for that contrast; citing it as evidence that an EI
+simulator is buildable would be reading it as something it is not.
+
+**A ROADMAP REFERENCE, AND NOTHING HERE IMPLEMENTS IT.** `status` is
+`reference_only` and `verification` is `citation`: the entry says the
+reference is right, not that any number in this application came from it.
+Registered because `docs/ROADMAP.md` names the paper as part of a gate's
+evidence requirement, and this project's DOI backstop treats a DOI cited
+in the tree with no registry row as a citation that bypassed the registry.
+
+Every field is off the PDF's own first page.
+
+### bremer2022
+
+<a id="bremer2022"></a>
+
+> P. L. Bremer, A. Vaniya, T. Kind, S. Wang & O. Fiehn, 'How Well Can We Predict Mass Spectra from Structures? Benchmarking Competitive Fragmentation Modeling for Metabolite Identification on Untrained Tandem Mass Spectra', J. Chem. Inf. Model. 2022, 62, pp. 4049-4056.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jcim.2c00936](https://doi.org/10.1021/acs.jcim.2c00936) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-08 |
+| Local copy | `bremer2022.pdf` (not checked) |
+| Used by | `docs/ROADMAP.md` |
+
+**Why it is reference only.** **THE PAPER THE GATE'S WORDING COMES FROM.** Its title asks the question --
+how well can we predict mass spectra from structures -- and its subject is
+evaluation on UNTRAINED spectra, which is precisely the difference between
+a validated predictor and one that reproduces what it was fitted to.
+
+That is why the EI and MS/MS gates in `docs/ROADMAP.md` demand held-out
+evaluation on untrained compounds rather than a validation corpus alone. It
+aligns exactly with this project's standing rule that plausible output is
+not validation.
+
+**A ROADMAP REFERENCE, AND NOTHING HERE IMPLEMENTS IT.** `status` is
+`reference_only` and `verification` is `citation`: the entry says the
+reference is right, not that any number in this application came from it.
+Registered because `docs/ROADMAP.md` names the paper as part of a gate's
+evidence requirement, and this project's DOI backstop treats a DOI cited
+in the tree with no registry row as a citation that bypassed the registry.
+
+Every field is off the PDF's own first page.
 
 ### dittwald2014
 

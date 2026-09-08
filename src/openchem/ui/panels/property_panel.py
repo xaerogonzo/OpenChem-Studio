@@ -70,10 +70,6 @@ from openchem.ui.widgets.fact_view import FactView
 _CATEGORY_ORDER = [
     "physicochemical",
     "identity",
-    # Directly after Identity, because a mass spectrum answers an
-    # identity question -- what is this, and what does it weigh -- and
-    # Elemental Analysis draws the same envelope one section above.
-    "mass_spectrometry",
     "naming",
     "charge",
     "lipophilicity",
@@ -176,7 +172,6 @@ _CATEGORY_LABELS = {
     # sweep: the guide had to describe a heading that was a formatting
     # accident rather than a name anybody chose.
     "nmr": "NMR",
-    "mass_spectrometry": "Mass Spectrometry",
     # These two hold no buttons at all -- both are ServiceExecution, run
     # from their own panels, and the section exists only to carry the
     # hint that says so. They were relying on `category.title()` giving

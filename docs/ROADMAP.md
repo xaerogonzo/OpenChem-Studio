@@ -1176,11 +1176,11 @@ distinct from a calculated envelope, and only after:
 - a validation corpus, with held-out evaluation on **untrained** compounds;
 - stated limitations.
 
-The literature spine: CFM-EI (`10.1021/acs.analchem.6b01622`) as the
+The literature spine: CFM-EI [source:allen2016] as the
 directly applicable forward-prediction method; an excited-state molecular
-dynamics treatment (`10.1021/acs.jcim.2c00597`), which is the argument that
+dynamics treatment [source:wang2022], which is the argument that
 EI is a real physical model and not bond-cutting; and a rapid subset-based
-predictor (`10.1021/acs.analchem.2c02093`). Each is read before it is
+predictor [source:zhu2023]. Each is read before it is
 registered, per `docs/sources.toml`'s own rule.
 
 **Nothing about the current model solves this.** The engine can carry the
@@ -1192,10 +1192,10 @@ hierarchy.
 Tandem spectra need concepts this model does not represent: a precursor ion,
 a fragment-to-precursor relationship, isolation and activation conditions,
 and a collision energy. References for when it is attempted: CFM-ID
-(`10.1093/nar/gku436`), CFM-ID 4.0 (`10.1021/acs.analchem.1c01465`),
-MetFrag relaunched (`10.1186/s13321-016-0115-9`) as an architectural
+[source:allen2014], CFM-ID 4.0 [source:wang2021],
+MetFrag relaunched [source:ruttkies2016] as an architectural
 contrast rather than an EI justification, and a benchmark on untrained
-tandem spectra (`10.1021/acs.jcim.2c00936`) — which aligns exactly with this
+tandem spectra [source:bremer2022] — which aligns exactly with this
 project's rule that plausible output is not validation.
 
 #### Fine structure — what a peak cannot currently say

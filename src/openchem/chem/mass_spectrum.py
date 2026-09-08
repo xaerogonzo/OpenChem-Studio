@@ -466,7 +466,7 @@ def compute_mass_spectrum(mol, molecule_uuid: str, parameters=None):
             name="Mass Spectrum",
             molecule_uuid=molecule_uuid,
             matched=[],
-            category="mass_spectrometry",
+            category="identity",
             cache_state=CacheState.FAILED,
             error=error,
             provenance=provenance,
@@ -503,7 +503,7 @@ def compute_mass_spectrum(mol, molecule_uuid: str, parameters=None):
         name="Mass Spectrum",
         molecule_uuid=molecule_uuid,
         matched=lines,
-        category="mass_spectrometry",
+        category="identity",
         provenance=provenance,
         charts=(spectrum_chart(spectrum, title="Mass spectrum"),),
     )

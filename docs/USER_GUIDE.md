@@ -617,7 +617,7 @@ the thing that needs the room.
 ## Properties
 
 The Properties panel is where most calculation happens. It has **23
-collapsible categories** covering **59 registered calculators**;
+collapsible categories** covering **60 registered calculators**;
 Physicochemical and Identity are open by default.
 
 Scalar descriptors compute eagerly — the whole batch finishes in well under

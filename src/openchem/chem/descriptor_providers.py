@@ -1678,7 +1678,14 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     CalculatorDefinition(
         calculator_id="mass_spectrum",
         display_name="Mass Spectrum",
-        category="mass_spectrometry",
+        # **IDENTITY, NOT A SECTION OF ITS OWN.** A category holding one
+        # calculator is the shape this panel was measured in and moved
+        # away from -- 26 sections held 49 buttons and eleven of them held
+        # exactly one. And it belongs here on the merits rather than by
+        # elimination: it sits directly beside Elemental Analysis, shares
+        # its engine, and answers the same question about what a structure
+        # is and what it weighs.
+        category="identity",
         description=(
             "The isotope envelope of a chosen ion, calculated from natural "
             "abundances: m/z and relative intensity per peak, with the "

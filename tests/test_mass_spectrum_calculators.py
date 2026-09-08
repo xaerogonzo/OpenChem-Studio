@@ -215,11 +215,22 @@ def test_the_calculator_is_registered_where_a_user_can_press_it():
     assert "mass_spectrum" in ids
 
 
-def test_the_new_section_has_a_name_rather_than_a_formatting_accident():
-    """Without a label the panel falls back to `category.title()`, which
-    once rendered the NMR section as "Nmr" and put a formatting accident
-    into the user guide."""
-    from openchem.ui.panels.property_panel import _CATEGORY_LABELS, _CATEGORY_ORDER
+def test_it_opens_no_section_of_its_own():
+    """**A CATEGORY HOLDING ONE CALCULATOR IS THE SHAPE THIS PANEL MOVED
+    AWAY FROM** -- 26 sections held 49 buttons and eleven of them held
+    exactly one, which `docs/NAVIGATION_AUDIT.md` counted and
+    `test_no_category_holds_a_single_calculator` now forbids.
 
-    assert _CATEGORY_LABELS["mass_spectrometry"] == "Mass Spectrometry"
-    assert "mass_spectrometry" in _CATEGORY_ORDER
+    It sits in Identity on the merits rather than by elimination: directly
+    beside Elemental Analysis, sharing its engine, answering the same
+    question about what a structure is and what it weighs.
+    """
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
+
+    definition = next(
+        d for d in CALCULATOR_DEFINITIONS if d.calculator_id == "mass_spectrum"
+    )
+    assert definition.category == "identity"
+    siblings = [d for d in CALCULATOR_DEFINITIONS if d.category == "identity"]
+    assert len(siblings) > 1, "it shares its section rather than opening one"
+    assert any(d.calculator_id == "elemental_analysis" for d in siblings)

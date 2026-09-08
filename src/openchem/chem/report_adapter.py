@@ -43,7 +43,6 @@ _CATEGORY_BY_NAME: dict[str, FactCategory] = {
     "quantum": FactCategory.QUANTUM,
     "lewis": FactCategory.ELECTRONIC,
     "nmr": FactCategory.SPECTROSCOPY,
-    "mass_spectrometry": FactCategory.SPECTROSCOPY,
     "topology": FactCategory.TOPOLOGY,
     "geometry": FactCategory.GEOMETRY,
     "surface": FactCategory.GEOMETRY,
