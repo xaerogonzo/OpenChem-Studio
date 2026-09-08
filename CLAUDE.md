@@ -5305,6 +5305,270 @@ no docking score, no rho and no ordering existed at any point. The reserve
 order is frozen in the README beside it, because "a reserve takes its place"
 is otherwise outcome-dependent once more than one candidate could fill a gap.
 
+## A CHART IS DECLARED, AND THE MERGE KEEPS WHAT EACH PRODUCER DECLARED
+
+Reported as two things and they turned out to be one architecture:
+Elemental Analysis "should have a mass spectrometry simulator... I like
+visual charts a lot", and `Details...` shows ONE calculator so its filter
+box is useless -- "run Substance & Bonding, then Lewis Sites, and the
+second window replaces the first."
+
+`ReportResult.charts` is a second producer-declared presentation channel
+built to the `spatial` precedent: a closed set of kinds, a STRUCTURAL
+validator that fails closed, a renderer that refuses a malformed
+annotation rather than repairing it.
+
+**THE TEST THE WHOLE CHANNEL EXISTS TO MAKE POSSIBLE** is
+`test_a_chart_is_never_derived_from_the_facts`: a report whose facts
+contain `"C: 55.34%"` and `charts == ()` renders NO chart. What would
+breach `FactView`'s "IT KNOWS NO CHEMISTRY" contract is named and
+forbidden -- choosing a chart kind from `report_id`, deriving sticks from
+facts, or inferring axis direction from a units string.
+
+**`valid_chart_annotation` MUST NOT JUDGE THE CHEMISTRY**, and its
+complement is asserted: an m/z of 1e6, intensities not summing to 100 and
+sticks out of order must all be ACCEPTED. Same line
+`valid_total_declaration` draws. It accepts a negative y deliberately, so
+a future difference chart is not refused by a rule fitted to spectra, and
+it never reads `units` -- a units string is prose.
+
+**COLOUR IS NOT IN THE CONTRACT.** The widget reuses the Okabe-Ito
+palette as implementation precedent; a palette in a scientific chart's
+DECLARATION would be the producer specifying how it looks rather than
+what it means.
+
+### THE MERGE KEEPS THE REPORTS WHOLE, and that is not what batch does
+
+`BatchResultStore.merged_report` folds facts into one anonymous
+`ReportResult` and **silently drops `spatial`**. That proves fact-folding
+works; it is not evidence one anonymous report can carry several
+producers' charts, provenance and stale state.
+
+    MergedResults.reports   arrival order, identity intact
+    MergedResults.facts     flattened, each stamped with its origin
+    charts / spatial / provenance / staleness   READ OFF `reports`,
+                                                never copied
+
+One representation, so they cannot drift. `_AllResults` is a VIEW over it
+that duck-types what `FactView` consumes -- building a real
+`ReportResult` there would flatten several producers into one
+`report_id` and one `structure_version`, which is precisely what the
+container exists to avoid.
+
+**`Fact.origin` IS ADDED AND `Fact.source` IS UNTOUCHED.** `source` is
+the scientific source ("RDKit"); `origin` is the OpenChem report that
+produced the fact. A merge overwriting `source` destroys real provenance
+in order to record different provenance, and
+`test_a_facts_source_and_its_origin_stay_independent` holds both on one
+fact. `origin` is a `report_id` and the CONTAINER resolves the name --
+`FactView` never prettifies an opaque id.
+
+**AND THE SEARCH BOX GOT THE FEATURE FOR FREE.** `find()` matches
+`origin`, so "show me everything Lewis Sites said" is a question the box
+can now answer -- which is the complaint's own half about the filter
+being useless, answered by the merge rather than by a new control.
+
+### STALENESS: the field already existed and was 0 on every report
+
+`StructureReport.structure_version` has been there since the batch work
+and `report_from_fields` never set it -- measured, 0 on every calculator
+report. Stamped in ONE place on the path every result takes, and the
+merge derives stale from it.
+
+**REPORTED, NEVER DISCARDED.** Silently serving a stale result and
+silently blanking it are the two ways this goes wrong and they look
+identical from outside. The window marks it in the focus box, in the
+title and in a sentence above the facts.
+
+### `exec()` MAKES THE FEATURE UNREACHABLE, which is the sharpest constraint
+
+The old Details dialog was modal, so with it **you could never run the
+second calculator whose results this exists to accumulate.** Modeless,
+keyed by molecule UUID rather than object identity (a rebuilt model must
+not open a second window for one molecule), and live -- the second
+calculator's facts land in the OPEN window.
+
+## THE ION IS A COMPOSITION, AND POTASSIUM IS WHY
+
+`chem/mass_spectrum.py` reproduces the reported screenshot exactly --
+C7H4Br2O2 at 278/280/282 in 1:2:1, exact mass 277.857804 against Marvin's
+277.857805.
+
+A scalar `delta_mass` expresses `[M+H]+` and `[M+Na]+` and **cannot
+express `[M+Cl]-`**: an adduct with its own isotopes contributes its own
+envelope and a number has nowhere to put it. The invariant is
+
+    ion composition -> exact atomic mass delta -> electron correction -> m/z
+
+never `hardcoded delta_mass -> m/z`.
+
+**`AtomDelta.isotope` IS None FOR NATURAL ABUNDANCE AND A MASS NUMBER FOR
+A SPECIFIC NUCLIDE**, and sodium could not have established that rule:
+`[M+Na]+` is monoisotopic, so both readings agree. **`[M+K]+` is 6.7%
+41K** and `[M+Cl]-` is 3:1, so the distinction is general rather than a
+special case for chloride. Protonation adds 1H BY DEFINITION and must not
+acquire a deuterium shoulder.
+
+**NOT `0`-AS-SENTINEL**: 0 is a plausible typo for a mass number and
+would read as one.
+
+**IDENTITY IS `composition + charge`; THE LABEL IS DISPLAY TEXT.** On a
+frozen dataclass every field participates in `__eq__`/`__hash__` by
+default, which would make two spellings of one ion two ions.
+`field(compare=False)`, tested both ways round.
+
+### NOMINAL BINNING DIVIDES BY |CHARGE|, and 1+ cannot see it
+
+The path is integer arithmetic in isotope space and only the last step
+touches m/z:
+
+    isotope composition -> integer nominal shift -> exact m/z -> nominal m/z
+
+**NEVER by rounding the final exact m/z**, because mass defect is
+composition-dependent. And a +1 mass-number shift moves a 1+ ion by 1.0
+m/z and a **2+ ion by 0.5** -- so an implementation that adds
+`nominal_shift` straight to m/z works at every singly-charged fixture and
+silently mis-draws every ESI spectrum. `[M+2H]2+` is in the first
+vocabulary rather than merely representable for exactly that reason:
+shipping the charge model with no multiply-charged member leaves that
+path untravelled.
+
+**AND THERE IS NO FREE CHARGE CONTROL ANYWHERE.** Charge comes from the
+chosen ion. A spinbox accepting arbitrary values beside a handful of
+hardcoded compositions is the ion model degrading back into labels plus
+masses.
+
+### PRUNING TOUCHES THE REPORTED PEAK LIST ONLY
+
+    full theoretical distribution -> derived summary values
+                                  -> optional pruning for reported peaks
+
+So `monoisotopic_mz`, `average_mz` and `base_peak_mz` come off the full
+distribution and never move with the threshold; a test asserts
+`average_mz` is identical at threshold 0 and at the default. **At
+threshold 0 the result is the UNPRUNED THEORETICAL distribution, not
+"exact"** -- it is still subject to floating point and to RDKit's finite
+table, whose VERSION is therefore recorded in provenance.
+
+**`base_peak_mz` IS NOT `peaks[i].mz`, and a test asserted it was.**
+Summary masses are exact and unit-resolution peaks are nominal, so
+78.9178 against 79.0 is the two conventions meeting, not a defect. Ties
+go to the lowest m/z, extracted as `base_peak_shift` so the rule is
+testable rather than "whichever the sort happened to put first".
+
+### THE ENGINE WAS RIGHT AND MY TEST WAS WRONG
+
+A fixture assumed consecutive isotope shifts. **Bromine is 79/81**, so
+Br2 lands on shifts 0/2/4 and there is nothing at M+1 from the halogens
+at all -- which the reported screenshot's 278/280/282 says outright.
+Reading the oracle off the picture that motivated the work would have
+caught it before the test was written.
+
+The acceptance oracles are **binomial and trinomial expansions of the
+shipped abundance table**, computed independently of the convolution --
+never remembered ratios, and never the screenshot, which is a visual
+target and not a source.
+
+### THE CAPTION IS THE ARCHITECTURE'S OTHER HALF
+
+`SpectrumBasis` is MEASURED / CALCULATED / PREDICTED, declared by the
+producer and reaching the screen -- three values, because a predicted
+fragmentation spectrum and a calculated envelope must not render alike.
+The caption says CALCULATED and never "theoretical spectrum", because a
+theoretical distribution is not the observed one: ion sampling, detector
+response and centroiding all move a real spectrum. The enum is the
+architectural protection and the wording has to be equally disciplined.
+
+## SIX DEFECTS THE DRIVEN APP FOUND WITH 1006 TESTS GREEN
+
+The seventeenth entry in this file's running count, and the first one is
+in the feature's own logic rather than on screen.
+
+**A FALSE STALE MARK, FROM THE FIRST MOMENT.** The run reported
+`stale=['functional_groups']` before anything was edited. Alert-derived
+reports go through `report_from_alert`, which never sets
+`structure_version`, so they arrive at 0 against a molecule at 1 -- the
+merge's central claim, quietly false for one producer. Re-driven:
+`stale=[]` before the edit and exactly the three explicit calculators
+stale after.
+
+**AND `jobs_report`'s LESSON APPLIES TO THE `results` STEP.** A window
+showing one calculator's facts and one focused on ONE OF SIX photograph
+identically, and a stale badge is a few pixels of text -- so the step
+LOGS reports, facts, charts, focus and the stale list beside taking the
+shot. It goes through the panel's own opener rather than constructing a
+`MergedResultsDialog`, for the reason `jobs_cancel` presses the button:
+building the dialog proves it renders and says nothing about which
+reports the panel hands it.
+
+Four were on screen and the fifth was caused by fixing the first:
+
+    a caption cut mid-sentence     a FIXED two-line reservation, so the
+                                   sentence saying CALCULATED was the one
+                                   being halved
+    a title painted twice          section header and in-plot, colliding
+                                   with the M+2 label
+    a "max 1" readout              saying nothing about a base-peak-
+                                   normalised chart
+    the plot collapsed             the caption, now rendering in full,
+                                   wrapped to three lines and took a flat
+                                   160 px minimum with it
+
+**THE MEASUREMENT AND THE ALLOCATION HAD TO BE SEPARATED.** Capping
+inside `_caption_height` made the two chase each other -- the hint set a
+height, the height capped the caption, the smaller caption changed the
+hint. `_caption_height` measures, `_room_for_caption` caps, and the cap
+lives in `_plot_rect` alone so painting and hit-testing cannot disagree
+about where the axis is. **Still no `heightForWidth`**, which fighting
+`setWidgetResizable(True)` is a defect this project has paid for three
+times.
+
+### AN UNREACHABLE BRANCH IS A QUESTION ABOUT WHERE TO ASSERT, AGAIN
+
+Four mutation arms on the caption sizing. `max(base, FLOOR + caption)` --
+the collapsed plot, restored -- **SURVIVED all 25 tests**, and it is not
+a coverage gap: `super().minimumSizeHint()` on a painted widget with no
+children is near zero, so it is indistinguishable from the correct form
+for every value the widget can produce. It would reinstate the defect the
+day this gains a child or a layout.
+
+`minimum_height(base, caption)` is that arithmetic, pure, asserted over a
+table including a base of 300 where the two forms differ by the whole
+caption. Second pass: four arms, four caught -- including the one
+restoring the fixed two-line reservation, which now fails two tests
+instead of none.
+
+### `isVisible()` IS FALSE FOR EVERY CHILD OF AN UNSHOWN WINDOW
+
+Paid for again, in the empty-state guard. The obvious assertion passed
+against a panel rendering an EMPTY REPORT -- which is the distinction
+that test exists for, since "nothing has been computed" and "everything
+ran and had nothing to say" are different statements. `isHidden()` reads
+the explicit flag and is the one to use.
+
+## A GUARD RED FOR A REAL REASON: a category holding one calculator
+
+`test_no_category_holds_a_single_calculator` refused a `mass_spectrometry`
+section, and it was right -- this panel was measured at 26 sections
+holding 49 buttons, eleven of them holding exactly one. Mass Spectrum
+went into `identity` on the MERITS rather than by elimination: it sits
+beside Elemental Analysis, shares its engine, and answers the same
+question about what a structure is and what it weighs. That deleted a
+section, a label and a category-count change from the diff.
+
+**AND SEVEN BARE DOIs IN `docs/ROADMAP.md` WERE THE OTHER RED GUARD.**
+The DOI backstop treats a DOI cited anywhere in the tree with no registry
+row as a citation that bypassed the registry, which is what the EI and
+MS/MS gates were. All seven are `reference_only` / `citation`: nothing
+here implements EI fragmentation and the entries must never read as
+though something did.
+
+**TWO YEARS WERE WRONG AS HANDED OVER**, and both came off the paper:
+`alves2013.pdf` is 2014, and the subset-based EI paper's `2c` DOI is an
+ACS SUBMISSION-year code where its own citation line reads 2023. The
+paper decides, never the DOI and never the filename -- the citation
+audit's rule, where all six errors were in the field nothing could check.
+
 ## Running the tests
 
 ```bash
