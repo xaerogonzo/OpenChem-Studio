@@ -281,6 +281,21 @@ class BatchPanel(QWidget):
         structure_check_service=None,
         settings=None,
     ) -> None:
+        """Built in three steps under one layout.
+
+        Split from a single 167-line constructor. The layout is created
+        HERE and passed, because `layout` is read by every step -- it spans
+        112 of the original 167 lines, which makes this the constructor
+        with the widest local live range of the four and the one a naive
+        cut would break. Passing it is still a move: same object, same
+        order.
+
+        The two building steps are the panel's own halves -- what to run
+        above, what came back below -- rather than arbitrary chunks. The
+        state fields stay inline: a helper for them would take EIGHT
+        parameters, which is a parameter-shuffling exercise rather than a
+        clarification.
+        """
         super().__init__(parent)
         self._batch_service = batch_service
         self._registry = calculator_registry
@@ -316,6 +331,14 @@ class BatchPanel(QWidget):
         self._on_screen = on_screen
 
         layout = QVBoxLayout(self)
+        self._build_selection(layout)
+        self._build_results(layout)
+        self._finalise(event_bus)
+
+    def _build_selection(self, layout: QVBoxLayout) -> None:
+        """What to run: the scope line, the filter, the property tree and
+        the two control rows above the results.
+        """
         self._scope_label = QLabel("No project open.")
         layout.addWidget(self._scope_label)
 
@@ -375,6 +398,10 @@ class BatchPanel(QWidget):
         button_row.layout().addWidget(self._select_none_button)
         layout.addWidget(button_row)
 
+    def _build_results(self, layout: QVBoxLayout) -> None:
+        """What came back: progress, status, the results table and the
+        export row.
+        """
         self._progress = QProgressBar(self)
         self._progress.setVisible(False)
         layout.addWidget(self._progress)
@@ -429,6 +456,12 @@ class BatchPanel(QWidget):
         export_row.layout().addWidget(self._screen_button)
         layout.addWidget(export_row)
 
+    def _finalise(self, event_bus: EventBus) -> None:
+        """Subscribe, populate the tree, and restore the saved selection.
+
+        Last on purpose: `_populate_tree` and `_restore_selection`
+        both read controls the steps above create.
+        """
         event_bus.subscribe(BatchProgress, self._on_progress)
         self._populate_tree()
         self._make_groups_checkable()

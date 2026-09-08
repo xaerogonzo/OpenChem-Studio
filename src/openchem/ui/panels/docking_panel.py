@@ -570,6 +570,24 @@ class DockingPanel(QWidget):
         event_bus: EventBus,
         parent: QWidget | None = None,
     ) -> None:
+        """Built in three steps, after the fields the panel starts with.
+
+        Split from a single 311-line constructor. Each step's lines are
+        verbatim at the indent they already had, so every comment still
+        sits against what it explains -- why the strip row is a
+        `QHBoxLayout` and NOT a `flow_row` (measured: the flow row wraps at
+        the dock's 420 px default and reserves a second line for two
+        checkboxes that draw on one), and why each coordinate spin box
+        derives its width from the font and the style rather than a
+        constant.
+
+        **THE ORDER IS THE CONTRACT.** Controls exist before the group
+        boxes that hold them, and the events are subscribed last so no
+        handler can fire against a half-built panel. Checked before
+        cutting: no local is assigned in one step and read in another, so
+        this is a move rather than a behaviour change -- `receptor_row` is
+        why the boundary sits at 791 and not where the group boxes begin.
+        """
         super().__init__(parent)
         self._docking_service = docking_service
         self._chemistry_engine = chemistry_engine
@@ -582,7 +600,12 @@ class DockingPanel(QWidget):
         #: that removes it can be told apart from a redo that restores it.
         self._displayed_result_uuid: str | None = None
         self._displayed_result = None
+        self._build_controls()
+        self._build_groups_and_layout()
+        self._subscribe_to_events(event_bus)
 
+    def _build_controls(self) -> None:
+        """Every control the panel offers, before any group holds one."""
         self._receptor_combo = QComboBox(self)
         apply_help_tooltip(self._receptor_combo, _CONTROL_HELP["receptor"])
         # Parsing a receptor is not free (Open Babel reads the whole file),
@@ -788,6 +811,14 @@ class DockingPanel(QWidget):
         self._table.setColumnHidden(_POSE_COLUMNS.index(_RESCORE_COLUMN), True)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
+    def _build_groups_and_layout(self) -> None:
+        """The three group boxes and the vertical layout under them.
+
+        `receptor_row` is built HERE rather than with the controls
+        because it is a local read by `selection_form.addRow`:
+        cutting between them would need a parameter and stop
+        being a move.
+        """
         receptor_row = QHBoxLayout()
         receptor_row.addWidget(self._receptor_combo, 1)
         receptor_row.addWidget(self._contents_button)
@@ -870,6 +901,8 @@ class DockingPanel(QWidget):
         layout.addWidget(self._table)
         layout.addWidget(self._limitation_label)
 
+    def _subscribe_to_events(self, event_bus: EventBus) -> None:
+        """The three events this panel listens for."""
         event_bus.subscribe(DockingJobStateChanged, self._on_job_state_changed)
         event_bus.subscribe(DockingResultReady, self._on_result_ready)
         event_bus.subscribe(MoleculeSelected, self._on_molecule_selected)
