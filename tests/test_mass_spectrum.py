@@ -603,3 +603,47 @@ def test_a_zero_probability_branch_is_dropped_rather_than_dividing_by_zero():
     folded = _convolve({0: (0.0, 1.0)}, weightless, 1, 1)
     assert list(folded) == [0], "the zero-abundance branch must not survive"
     assert folded[0] == (pytest.approx(1.007825), pytest.approx(1.0))
+
+
+# --- what "exact" resolution actually reports ---------------------------
+
+
+def test_an_exact_peak_is_the_bins_MEAN_and_never_one_isotopologue():
+    """**THE CONTRACT SAID "the isotopologue's own m/z" AND WAS WRONG.**
+
+    Isotopologues sharing a mass-number shift are merged, so M+1 of a
+    CHNO molecule is 13C, 17O and 2H at three different exact masses and
+    ONE peak is reported for all of them. The oracle here is those three
+    deltas taken straight from the shipped abundance table, computed
+    without the convolution -- the reported value has to lie strictly
+    between the smallest and the largest and equal none of them.
+
+    Nothing else in this file could see it: every other assertion is at
+    unit resolution, where the bin's mean is rounded away.
+    """
+    heavy = {}
+    for symbol, light in (("C", 12), ("O", 16), ("H", 1)):
+        masses = {n: m for n, m, _f in isotopes_of(symbol)}
+        heavy[symbol] = masses[light + 1] - masses[light]
+
+    deltas = sorted(heavy.values())
+    assert len(set(deltas)) == 3, (
+        "the fixture needs three DIFFERENT +1 deltas or the bin has "
+        f"nothing to average: {heavy}"
+    )
+
+    counts = _counts("OC(=O)c1cccc(Br)c1Br")
+    exact = isotope_envelope(counts, DEFAULT_ION, unit_resolution=False)
+    monoisotopic = exact.peaks[0].mz
+    shift_one = next(peak for peak in exact.peaks if peak.nominal_shift == 1)
+    observed = shift_one.mz - monoisotopic
+
+    assert deltas[0] < observed < deltas[-1], (
+        f"M+1 reported {observed}, outside the {deltas[0]}..{deltas[-1]} "
+        "span its own contributors define"
+    )
+    for symbol, delta in heavy.items():
+        assert observed != pytest.approx(delta, abs=1e-9), (
+            f"M+1 landed exactly on the {symbol} isotopologue, so the bin "
+            "is not being averaged"
+        )

@@ -161,8 +161,16 @@ class MassPeak:
     #: **THE PLOT AND EXPORT X COORDINATE, AND WHICH QUANTITY IT IS
     #: DEPENDS ON THE SPECTRUM'S RESOLUTION:**
     #:
-    #:     exact       the isotopologue's own m/z
+    #:     exact       the probability-weighted mean exact m/z of this
+    #:                 nominal bin
     #:     unit        nominal monoisotopic m/z + nominal_shift / |charge|
+    #:
+    #: **"EXACT" IS THE ARITHMETIC, NOT A RESOLVED FINE STRUCTURE**, and
+    #: this line said "the isotopologue's own m/z" until it was measured.
+    #: Isotopologues sharing a mass-number shift are merged -- M+1 of a
+    #: CHNO molecule is 13C, 17O and 2H at three different exact masses,
+    #: and one peak is reported for all of them. Telling them apart is
+    #: the roadmap extension `chem/mass_spectrum._convolve` names.
     #:
     #: At unit resolution exact-mass information is absent BY DESIGN
     #: rather than lost by accident, and `MassSpectrum.unit_resolution`

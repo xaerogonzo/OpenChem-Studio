@@ -429,6 +429,13 @@ def spectrum_chart(spectrum: MassSpectrum, title: str = "Isotope pattern"):
 #: computes, and a free-text field here would be a third answer nobody
 #: implements.
 UNIT_RESOLUTION = "Unit (nominal mass)"
+#: The other half of that pair, and it needs its own line because the
+#: block above documents the CHOICE while this documents the VALUE: at
+#: this resolution a peak carries the probability-weighted mean exact m/z
+#: of its nominal bin, never one isotopologue's. Recovering the
+#: individual masses is the fine-structure extension `_convolve`'s
+#: docstring names, so "exact" here means exact-mass ARITHMETIC rather
+#: than a resolved fine structure.
 EXACT_RESOLUTION = "Exact mass"
 
 #: Percent. What a peak must reach to be reported at all -- a stick below
