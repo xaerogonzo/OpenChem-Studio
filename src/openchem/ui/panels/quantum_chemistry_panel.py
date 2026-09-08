@@ -6,7 +6,6 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QFormLayout,
-    QHBoxLayout,
     QHeaderView,
     QLabel,
     QMessageBox,
@@ -50,6 +49,7 @@ from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
 from openchem.ui.molecule_combo import repopulate, select
 from openchem.ui.widgets.empty_state import empty_state, empty_state_text, is_empty_state
+from openchem.ui.widgets.flow_layout import flow_row
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.esp_compare_widget import EspCompareWidget
 from openchem.ui.widgets.ir_view_widget import IrViewWidget
@@ -823,12 +823,27 @@ class QuantumChemistryPanel(QWidget):
         form.addRow("Solvent (CPCM):", self._solvent_combo)
         form.addRow("", self._boltzmann_check)
 
-        run_row = QHBoxLayout()
-        run_row.addWidget(self._configure_button)
-        run_row.addWidget(self._calibrate_button)
-        run_row.addWidget(self._scaling_button)
-        run_row.addWidget(self._run_button)
-        run_row.addWidget(self._cancel_button)
+        # **FIVE BUTTONS, AND A `QHBoxLayout`'s MINIMUM IS THEIR SUM.**
+        # Measured under `offscreen`: 218 + 350 + 434 + 80 + 86 = 1168 px of
+        # buttons, giving the row a minimum of 1192 -- the widest single
+        # thing in the panel, and more than the whole panel is ever given.
+        # The dock opens at 420, so the row was CLIPPED at the panel edge
+        # and "Calibrate Scaling (11 standards)..." rendered as
+        # "Calibrate Scaling (11 s". `FlowLayout.minimumSize` reports the
+        # widest SINGLE child instead and wraps the rest onto another line.
+        #
+        # **THIS IS THE CASE `flow_row` IS FOR, and the distinction matters
+        # because the opposite mistake is also on record**: the Docking
+        # panel's two-checkbox strip was swapped to a `flow_row` on this
+        # rule alone and cost 21 px of dead band for a row that fitted on
+        # one line. A flow row is a cure for a row whose children cannot
+        # fit, not a prophylactic. These five cannot fit.
+        run_row = flow_row(self)
+        run_row.layout().addWidget(self._configure_button)
+        run_row.layout().addWidget(self._calibrate_button)
+        run_row.layout().addWidget(self._scaling_button)
+        run_row.layout().addWidget(self._run_button)
+        run_row.layout().addWidget(self._cancel_button)
 
         # THE RESULTS COME FIRST, AND THE LOG IS COLLAPSED UNDERNEATH.
         #
@@ -845,7 +860,7 @@ class QuantumChemistryPanel(QWidget):
 
         layout = QVBoxLayout(self)
         layout.addLayout(form)
-        layout.addLayout(run_row)
+        layout.addWidget(run_row)
         layout.addWidget(self._status_label)
         layout.addWidget(self._results_label)
         layout.addWidget(self._spectrum_note_label)
