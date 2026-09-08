@@ -388,6 +388,131 @@ def valid_spatial_annotation(annotation: Any) -> bool:
     return False
 
 
+@dataclass(frozen=True)
+class Stick:
+    """One line of a stick chart: where it stands, how tall, what it is.
+
+    `label` is what a renderer may print beside a stick that has room for
+    one -- an isotopologue, a fragment formula. Empty means the position
+    and the height are the whole statement.
+
+    **THE LABEL RIDES ON THE STICK RATHER THAN IN A PARALLEL LIST**, so
+    "labels aligned with points" is true by construction and there is no
+    off-by-one for a validator to catch.
+    """
+
+    x: float
+    y: float
+    label: str = ""
+
+
+@dataclass(frozen=True)
+class StickChartAnnotation:
+    """A line spectrum the calculation produced: positions and heights.
+
+    **THE AXIS DIRECTION IS THE PRODUCER'S, NEVER THE RENDERER'S GUESS.**
+    NMR runs high shift to the left and m/z runs low mass to the left, and
+    a renderer that picked by sniffing `x_units` would mirror one of them
+    silently -- which does not look broken, it looks like a different
+    compound. `IrSpectrumWidget` records the same convention as a measured
+    choice rather than a stylistic one.
+
+    **`y` IS THE QUANTITY THAT WAS COMPUTED, IN `y_units`.** Its magnitude
+    is never pixels: a renderer maps the tallest stick to the plot height
+    and prints the real maximum with its units. Renormalising is the
+    PRODUCER'S call and `y_units` says which convention it used; a
+    renderer that renormalises invents a calibrated axis.
+
+    `caption` is the producer's own sentence under the plot -- where a
+    mass spectrum says it is a CALCULATED natural-abundance distribution
+    rather than something an instrument measured. Presentation-neutral
+    here: this class knows nothing about spectra, and a Lewis-site or
+    reaction diagram will use the same field for its own statement.
+
+    Sticks are NOT required to arrive sorted, and producer order is
+    preserved -- a hit test resolves first-match-wins, the rule both
+    existing spectrum widgets already use for two peaks sharing an x.
+    """
+
+    sticks: tuple[Stick, ...]
+    #: Axis name WITHOUT units, with the units beside it -- the
+    #: `Fact.value` / `Fact.units` split, composed for display.
+    x_label: str
+    y_label: str
+    #: True when high x belongs on the LEFT (chemical shift, wavenumber).
+    #: Required rather than defaulted: one keyword at each call site buys
+    #: out the whole class of silently-mirrored spectra.
+    x_descending: bool
+    x_units: str = ""
+    y_units: str = ""
+    title: str = ""
+    caption: str = ""
+
+
+#: The union of chart kinds. One member today; `spatial` shipped as three
+#: and the second costs a `|`. Every consumer dispatches by `isinstance`
+#: from the first line, so a second kind is additive rather than a rewrite
+#: of everything that reads a bare type alias.
+ChartAnnotation = StickChartAnnotation
+
+
+def _valid_stick(stick: Any) -> bool:
+    return isinstance(stick, Stick) and all(
+        isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+        for v in (stick.x, stick.y)
+    )
+
+
+def valid_chart_annotation(annotation: Any) -> bool:
+    """Whether `annotation` is WELL-FORMED. Structural only, failing closed.
+
+    `valid_spatial_annotation`'s split, applied to a chart: the sticks are
+    finite, there is at least one of them, both axes are named, and the
+    direction flag is a real bool.
+
+    **AT LEAST ONE STICK, because `charts == ()` is already how a producer
+    says it has no chart.** An annotation holding nothing is a claim
+    followed by silence -- the same contradiction `any(v != 0.0 ...)`
+    refuses for a zero dipole vector.
+
+    **BOTH AXIS LABELS MUST BE NON-EMPTY.** Numbers on an unlabelled axis
+    read as a measurement in units the reader supplies themselves.
+    Checking the string is PRESENT is structural; checking that it names a
+    real unit is not, and is not done.
+
+    **NEGATIVE HEIGHTS ARE ACCEPTED, DELIBERATELY.** Requiring `y >= 0`
+    reads as structural for a stick chart and is a judgment about the
+    chemistry: this application already computes signed per-atom
+    quantities -- Crippen LogP contributions run either way -- and a
+    difference spectrum is the obvious second case. A bound written from
+    the common case is the `half_angle_deg < 180` mistake, which refused a
+    real Tolman measurement. A mass spectrum's own non-negativity is held
+    by the mass-spectrum tests, where it is a claim about mass spectra.
+
+    It does NOT check that m/z values are reachable isotopologues, that
+    intensities sum to anything, that a base peak sits at 100, or that any
+    range is physically plausible -- those are chemistry claims and the
+    producer's own tests hold them. It does not require sorted sticks.
+
+    A consumer that receives an annotation failing this must REFUSE to
+    draw it (with a log line), never sort, clamp or normalise it into
+    shape: a picture built from repaired nonsense reads as a result. And
+    nothing may ever DERIVE a chart from numbers found lying in the facts.
+    """
+    if isinstance(annotation, StickChartAnnotation):
+        return (
+            isinstance(annotation.sticks, tuple)
+            and bool(annotation.sticks)
+            and all(_valid_stick(stick) for stick in annotation.sticks)
+            and isinstance(annotation.x_descending, bool)
+            and isinstance(annotation.x_label, str)
+            and bool(annotation.x_label.strip())
+            and isinstance(annotation.y_label, str)
+            and bool(annotation.y_label.strip())
+        )
+    return False
+
+
 @dataclass(frozen=True, kw_only=True)
 class ReportResult(StructureReport):
     """A CALCULATOR's output, as facts rather than a list of strings.
@@ -435,6 +560,21 @@ class ReportResult(StructureReport):
     #:
     #: Defaulted, so every existing constructor and plugin keeps working.
     spatial: tuple[SpatialAnnotation, ...] = ()
+    #: 2D charts the CALCULATION produced -- an isotope envelope, a site
+    #: diagram -- drawable without a conformer.
+    #:
+    #: **ANALYTICAL DATA ONLY, NEVER DECORATION, AND NEVER DERIVED FROM
+    #: THE FACTS.** `charts == ()` is the producer's statement that this
+    #: result has no chart, which is true of most of them. Elemental
+    #: analysis already emits "C: 55.34%" as facts, and a consumer that
+    #: parsed those into bars would have invented a picture the producer
+    #: never claimed -- a picture reads as a result. Declared by the
+    #: producer, validated by `valid_chart_annotation`, rendered by the
+    #: UI; the same contract `spatial` above carries, for the case where
+    #: there is no 3D geometry to draw on.
+    #:
+    #: Defaulted, so every existing constructor and plugin keeps working.
+    charts: tuple[ChartAnnotation, ...] = ()
 
     @property
     def matched(self) -> list[str]:
