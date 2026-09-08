@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import logging
 import os
 from collections.abc import Callable
@@ -2196,7 +2198,25 @@ class PropertyPanel(QWidget):
         # reconstructed from its strings. Held so "Details..." works for
         # it exactly as it does for a migrated one.
         if not _is_catalog(alert):
-            self._reports[alert.alert_id] = report_from_alert(alert)
+            # **STAMPED HERE, BECAUSE AN `AlertResult` HAS NO VERSION FIELD
+            # TO CARRY ONE.** `_CalculationTask` stamps a `ReportResult` on
+            # the way out of a calculation; an alert is not one, and the
+            # report is reconstructed from its strings at THIS point. Left
+            # unstamped it defaults to 0 and reads as stale the moment the
+            # structure is on any version above that -- which is exactly
+            # what driving the app showed: `Functional Groups` wore a stale
+            # badge alone, from the first molecule, forever.
+            #
+            # ARRIVAL TIME rather than compute time, which is the honest
+            # limitation: an edit landing mid-run would make this look
+            # current. It is close enough on this path because the alert
+            # batch is the always-eager perception that re-runs on every
+            # structure change, so an alert arriving now was computed for
+            # the structure now.
+            self._reports[alert.alert_id] = replace(
+                report_from_alert(alert),
+                structure_version=self._current_structure_version(),
+            )
             self._refresh_results_window()
 
     def _on_molecule_changed(self, event: MoleculeChanged) -> None:

@@ -210,3 +210,42 @@ def test_the_window_is_modeless_so_the_panel_stays_usable(panel):
     window = widget._results_window
     assert not window.isModal()
     window.close()
+
+
+def test_an_alert_derived_report_is_not_born_stale(panel):
+    """**FOUND BY DRIVING THE APP, WITH EVERY TEST GREEN.**
+    `_CalculationTask` stamps a `ReportResult` on the way out of a
+    calculation -- but an `AlertResult` is not one, has no version field to
+    carry, and is reconstructed into a report by the panel at arrival. Left
+    unstamped it defaults to 0 and reads as stale the moment the structure
+    is on any version above that.
+
+    On screen that was `Functional Groups` wearing a stale badge alone,
+    from the first molecule, forever -- while every registry calculator
+    beside it read current. Every test in this suite passed throughout,
+    because they all construct reports with an explicit version.
+    """
+    from openchem.domain.scientific_result import AlertResult
+    from openchem.events.events import AlertComputed
+
+    widget, bus, molecule, _project, versions = panel
+    versions.version = 4
+    bus.publish(
+        AlertComputed(
+            alert=AlertResult(
+                alert_id="functional_groups",
+                name="Functional Groups",
+                molecule_uuid=molecule.uuid,
+                matched=["Carboxylic acid: 1"],
+                category="substructure",
+            )
+        )
+    )
+    QCoreApplication.processEvents()
+
+    widget._open_results_window()
+    window = widget._results_window
+    assert window.merged().stale_report_ids() == (), (
+        "a report that has just arrived describes the structure it arrived for"
+    )
+    window.close()

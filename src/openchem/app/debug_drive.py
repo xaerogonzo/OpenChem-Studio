@@ -991,6 +991,11 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no Lewis dialog open; run {'do': 'lewis'}")
                 return
             target = self._lewis
+        elif step.get("widget") == "results":
+            if getattr(self, "_results", None) is None:
+                logger.error("OPENCHEM_DRIVE: no results window open; run {'do': 'results'}")
+                return
+            target = self._results
         elif step.get("widget") == "details":
             if getattr(self, "_details", None) is None:
                 logger.error("OPENCHEM_DRIVE: no details dialog open; run {'do': 'details'}")
@@ -1396,6 +1401,54 @@ class _Driver(QObject):
         )
         self._spatial = SpatialResultDialog(report, best.molblock, window)
         self._spatial.show()
+
+    def _do_results(self, step: dict[str, Any]) -> None:
+        """Open the merged results window, optionally focused on one report.
+
+        `{"do": "results", "focus": "elemental_analysis"}`, then
+        `{"do": "shot", "widget": "results"}`.
+
+        **IT GOES THROUGH THE PANEL'S OWN OPENER, NOT THE DIALOG'S
+        CONSTRUCTOR.** Building a `MergedResultsDialog` here would prove
+        the dialog renders and say nothing about the thing that changed:
+        which reports the panel hands it, which version it compares them
+        against, and whether the window is the one that later results
+        land in. That is the `jobs_cancel` rule -- press the control, not
+        the handler behind it.
+
+        It LOGS what the window is showing, because two of this feature's
+        states photograph identically. A window with one calculator's
+        facts and a window focused on one calculator OUT OF SIX look the
+        same in a screenshot, and a stale badge is a few pixels of text.
+        """
+        panel = self._window._property_panel
+        panel._open_results_window(focus=str(step.get("focus") or ""))
+        window = panel._results_window
+        if window is None:
+            logger.error("OPENCHEM_DRIVE: no results window opened -- is a molecule selected?")
+            return
+        self._results = window
+        merged = window.merged()
+        logger.warning(
+            "OPENCHEM_DRIVE: results tag=%s reports=%d facts=%d charts=%d "
+            "focus=%r stale=%s version=%s",
+            step.get("tag", ""),
+            len(merged.reports),
+            len(merged.facts),
+            len(merged.charts()),
+            window.focus(),
+            list(merged.stale_report_ids()),
+            merged.structure_version,
+        )
+        for report in merged.reports:
+            logger.warning(
+                "OPENCHEM_DRIVE:   %s (%s) facts=%d charts=%d%s",
+                merged.name_for(report.report_id),
+                report.report_id,
+                len(report.facts),
+                len(getattr(report, "charts", ()) or ()),
+                " STALE" if merged.is_stale(report) else "",
+            )
 
     def _do_details(self, step: dict[str, Any]) -> None:
         """Open the conformer generation details dialog.

@@ -1,0 +1,23 @@
+[
+  {"do": "smiles", "smiles": "OC(=O)c1cccc(Br)c1Br", "name": "2,3-Dibromobenzoic acid", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 500},
+  {"do": "panel", "id": "Properties", "after_ms": 500},
+
+  {"do": "calculator", "id": "elemental_analysis", "after_ms": 2500},
+  {"do": "results", "focus": "elemental_analysis", "tag": "one-calculator", "after_ms": 1200},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/ms_elemental_analysis.png", "widget": "results", "after_ms": 500},
+
+  {"do": "calculator", "id": "mass_spectrum", "parameters": {"ion": "[M+Na]+"}, "after_ms": 2500},
+  {"do": "calculator", "id": "lewis_sites", "after_ms": 2500},
+  {"do": "results", "tag": "three-calculators", "after_ms": 1200},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/ms_merged_details.png", "widget": "results", "after_ms": 500},
+
+  {"do": "results", "focus": "mass_spectrum", "tag": "focused-on-ms", "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/ms_focused_sodium.png", "widget": "results", "after_ms": 500},
+
+  {"do": "erase", "element": "Br", "after_ms": 2500},
+  {"do": "results", "tag": "after-an-edit", "after_ms": 1200},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/ms_stale_after_edit.png", "widget": "results", "after_ms": 500},
+
+  {"do": "quit"}
+]

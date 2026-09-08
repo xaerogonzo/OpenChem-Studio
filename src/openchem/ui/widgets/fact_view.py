@@ -388,7 +388,11 @@ class FactView(QWidget):
             section = CollapsibleSection(
                 chart.title or f"Chart {index + 1}", index == 0, self._container
             )
-            widget = StickChartWidget(chart, section.content)
+            # `show_title=False`: the section header above IS the
+            # chart's title, and painting it again put the same words
+            # twice on screen with the second copy landing on the
+            # tallest stick's label.
+            widget = StickChartWidget(chart, section.content, show_title=False)
             # `add_calculator_widget` puts it full-width above the form
             # rows rather than into the label/field grid -- a plot has no
             # caption column, and a form row would give it half the width.

@@ -12,11 +12,12 @@ from __future__ import annotations
 import math
 
 import pytest
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QPainter
 
 from openchem.domain.report import Stick, StickChartAnnotation
 from openchem.ui.widgets.plot_axis import LABEL_HEIGHT
-from openchem.ui.widgets.stick_chart_widget import StickChartWidget, axis_caption
+from openchem.ui.widgets.stick_chart_widget import StickChartWidget, minimum_height, axis_caption
 from tests.conftest import ink, painted
 
 
@@ -287,3 +288,160 @@ def test_the_label_clearance_keeps_a_short_sticks_label_off_the_axis(qapp):
     assert "tall" in texts
     assert "tiny" not in texts
     assert LABEL_HEIGHT > 0
+
+
+# --- three defects only a magnified screenshot found ---------------------
+
+
+def test_a_long_caption_is_not_cut_off_mid_sentence(qapp):
+    """**RESERVED TWO LINES, NEEDED THREE.** The shipped mass-spectrum
+    caption rendered as "...what an instrument records: ion" -- the
+    sentence saying a picture is CALCULATED, truncated. Every test was
+    green, because nothing asserts where a wrapped string ends.
+
+    The reservation is measured against the real width now, so the guard
+    is that the room given covers the room needed.
+    """
+    caption = (
+        "CALCULATED -- natural-abundance isotope distribution for [M]+., not a "
+        "measured spectrum. A theoretical distribution differs from what an "
+        "instrument records: ion sampling, detector response and centroiding "
+        "all move a real spectrum. No fragmentation is modelled."
+    )
+    widget = StickChartWidget(_annotation(_TWO_STICKS, caption=caption))
+    widget.resize(560, 400)
+    metrics = widget.fontMetrics()
+    from PySide6.QtCore import QRectF as _QRectF
+
+    from openchem.ui.widgets.plot_axis import MARGIN
+
+    needed = metrics.boundingRect(
+        _QRectF(0, 0, max(widget.width() - MARGIN, 1.0), 10_000).toRect(),
+        int(Qt.TextFlag.TextWordWrap),
+        caption,
+    ).height()
+    assert needed > 2 * metrics.height(), "asserts its own setup: it really does wrap past two lines"
+    assert widget._caption_height() >= needed
+
+
+def test_a_caption_never_squeezes_the_plot_away(qapp):
+    """The other side of measuring it: a very long caption must not take
+    the whole widget, or the chart it qualifies is gone."""
+    widget = StickChartWidget(_annotation(_TWO_STICKS, caption="word " * 400))
+    widget.resize(400, 300)
+    # The MEASUREMENT is honest about how much it wants; what it is GIVEN
+    # is capped, which is the difference that keeps the plot on screen.
+    assert widget._caption_height() > widget.height()
+    assert widget._room_for_caption() < widget.height()
+    assert widget._plot_rect().height() > 1.0
+
+
+def test_a_host_that_already_shows_the_title_can_turn_it_off(qapp):
+    """Inside a `FactView` the section header IS the title, so painting it
+    again put the same words twice on screen -- with the in-plot copy
+    landing on the tallest stick's label."""
+    annotation = _annotation(_TWO_STICKS, title="Isotope pattern [M]+.")
+    texts: list[str] = []
+    original = QPainter.drawText
+
+    def recording(self, *args):
+        texts.append(str(args[-1]))
+        return original(self, *args)
+
+    QPainter.drawText = recording
+    try:
+        painted(StickChartWidget(annotation, show_title=False))
+    finally:
+        QPainter.drawText = original
+    assert "Isotope pattern [M]+." not in texts
+
+    texts.clear()
+    QPainter.drawText = recording
+    try:
+        painted(StickChartWidget(annotation, show_title=True))
+    finally:
+        QPainter.drawText = original
+    assert "Isotope pattern [M]+." in texts, "the narrow half: it still draws one when asked"
+
+
+def test_a_normalised_chart_does_not_print_max_1(qapp):
+    """**"max 1" IS NOT A READOUT.** A base-peak-normalised chart has a
+    maximum of exactly 1 by definition, so the number told the reader
+    nothing while taking the space the axis name wanted."""
+    texts: list[str] = []
+    original = QPainter.drawText
+
+    def recording(self, *args):
+        texts.append(str(args[-1]))
+        return original(self, *args)
+
+    QPainter.drawText = recording
+    try:
+        painted(StickChartWidget(_annotation([Stick(100.0, 1.0), Stick(120.0, 0.5)])))
+    finally:
+        QPainter.drawText = original
+    assert not any(text.startswith("max ") for text in texts)
+    assert "Relative abundance" in texts, "the axis is still named"
+
+
+def test_the_plot_keeps_its_room_when_a_caption_is_added(qapp):
+    """**THE FIFTH DEFECT, AND IT WAS CAUSED BY FIXING THE FOURTH.** Once
+    the caption rendered in full it wrapped to three lines, and with a flat
+    160 px minimum the section handed over exactly that -- so the caption
+    took most of it and the sticks collapsed onto the axis. Every test
+    stayed green, because none of them asserts that a plot has room to be
+    a plot.
+
+    Same shape as `WrappedLabel`, which exists in this codebase because a
+    wrapped `QLabel` reports a one-line minimum however much text it holds.
+    """
+    caption = (
+        "CALCULATED -- natural-abundance isotope distribution for [M]+., not a "
+        "measured spectrum. A theoretical distribution differs from what an "
+        "instrument records: ion sampling, detector response and centroiding "
+        "all move a real spectrum. No fragmentation is modelled."
+    )
+    plain = StickChartWidget(_annotation(_TWO_STICKS))
+    captioned = StickChartWidget(_annotation(_TWO_STICKS, caption=caption))
+    # WIDTH FIRST: the caption's height depends on it, so asking for the
+    # hint at the constructor's default width measures a different wrap.
+    for widget in (plain, captioned):
+        widget.resize(560, 200)
+        widget.resize(560, widget.minimumSizeHint().height())
+
+    assert captioned.minimumSizeHint().height() > plain.minimumSizeHint().height(), (
+        "the caption is asked for on TOP of the plot, not taken out of it"
+    )
+    # At its own stated minimum the plot has exactly the room it would
+    # have had with no caption at all.
+    assert captioned._plot_rect().height() == plain._plot_rect().height()
+
+
+def test_a_captioned_chart_at_its_minimum_still_draws_its_sticks(qapp):
+    """The symptom the shot showed: sticks flattened onto the axis. Held
+    the axes fixed, so the difference can only be the content."""
+    caption = "CALCULATED -- natural-abundance isotope distribution. " * 3
+    widget = StickChartWidget(_annotation(_THREE_STICKS, caption=caption))
+    height = widget.minimumSizeHint().height()
+    two = StickChartWidget(_annotation(_TWO_STICKS, caption=caption))
+    assert ink(widget, 560, height) > ink(two, 560, height)
+
+
+@pytest.mark.parametrize(
+    ("base", "caption", "expected"),
+    [
+        # No caption: the floor, and a base under it does not shrink it.
+        (0.0, 0.0, 160.0),
+        (300.0, 0.0, 300.0),
+        # The caption is asked for ON TOP, at both ends of the base range.
+        (0.0, 48.0, 208.0),
+        # **THE ROW THE FUNCTION EXISTS FOR.** `max(base, FLOOR + caption)`
+        # gives 300 here and takes the caption out of a plot that had the
+        # room -- which is the collapsed-plot defect, and is unreachable
+        # through the widget because a painted widget's own
+        # `minimumSizeHint` is near zero.
+        (300.0, 48.0, 348.0),
+    ],
+)
+def test_the_caption_is_added_to_the_plots_floor_and_never_absorbed(base, caption, expected):
+    assert minimum_height(base, caption) == expected
