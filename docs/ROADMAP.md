@@ -1221,6 +1221,22 @@ STRUCTURE and fails closed, and a renderer that refuses a malformed
 annotation rather than repairing it. `FactView` draws them above the facts,
 inside its scroll area, so every surface that renders a report gets them.
 
+**THREE KINDS NOW, and the field's name is broader than it reads.**
+`StickChartAnnotation` (a line spectrum), `LineChartAnnotation` (a
+quantity sampled across a range) and `DepictionAnnotation` (a picture
+drawn ON the structure). The third is not a chart, so `charts` means
+*producer-declared presentation annotations*; the shipped field keeps its
+name because renaming one is churn, and `visualizations` is the migration
+if it is ever wanted. Dispatch is by `isinstance` in one factory, so a
+fourth kind costs a `|` on the union and an entry there.
+
+**A KIND WITH NO WIDGET GETS A VISIBLE DIAGNOSTIC.** Refusing with only a
+log line leaves an empty section, which is indistinguishable from
+`charts == ()` -- the producer saying it has no picture. Those are
+opposite facts, and the two failures are reported differently: a
+malformed annotation is refused by the widget it reaches, while a valid
+kind this build cannot draw says so on screen.
+
 **Generic, and deliberately not mass-spectral.** The validator accepts m/z
 of 1e6, intensities that sum to anything, sticks out of order and negative
 heights — the moment it refuses one of those it has become a mass-spectrum
@@ -1229,12 +1245,27 @@ from the facts: elemental analysis emits "C: 55.34%" as facts, and a view
 that parsed those into bars would have invented a picture the producer never
 claimed.
 
-Waiting on that channel:
+**Lewis-site diagrams SHIPPED**, and the estimate above was right for a
+reason worth keeping: it was a producer declaring what it found rather
+than new machinery. `compute_lewis_sites` emits a `DepictionAnnotation`
+colouring donor, acceptor and ambiphilic sites onto the 2D depiction —
+ambiphilic in its own colour, because an atom that donates and accepts is
+one fact rather than two.
 
-- **Lewis-site diagrams** — donor and acceptor sites drawn on the 2D
-  depiction. `chem/engine.render_2d_svg` already takes per-atom colours and
-  labels, and `chem/lewis_svg.py` already renders a full Lewis structure, so
-  this is a producer declaring what it found rather than new machinery.
+What it did need was the render context. An annotation carries atom
+indices and no geometry, so `FactView.set_structure_resolver` is how a
+host that has a project supplies the molecule; a host without one draws a
+sentence saying so rather than an empty frame.
+
+And `VisualizationLayer` MOVED to `domain/` rather than being copied: it
+had been "atom index → colour and label, renderer-independent" since
+Phase 11 and is what the 3D viewer already consumes, so a second per-atom
+map would have been the drift this project has paid for five times.
+`ui/visualization.py` re-exports it, so none of the twenty-two modules
+naming it changed.
+
+Still waiting on that channel:
+
 - **Electron-flow arrows and synthesis routes**, into
   `plugins/reaction_prediction`. An arrow claims a mechanism, so it needs a
   mechanism model — the same gate as EI fragmentation, for the same reason.

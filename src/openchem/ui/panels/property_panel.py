@@ -2342,8 +2342,14 @@ class PropertyPanel(QWidget):
             # had -- captioned with a raw id and stripped of units -- one
             # surface along, and surfaced by the first calculator to report
             # eleven quantities in eight different units.
+            #
+            # It composed them HERE until `Fact.value_with_units` existed,
+            # and doing so DOUBLED them for the 223 facts that arrive
+            # through `report_adapter` -- which held the units in both
+            # fields, so this exported "C: 60.00 % %". Six consumers each
+            # composing (or forgetting to) is what that property replaced.
             label.setText("\n".join(
-                f"{f.label}: {f.display_value}" + (f" {f.units}" if f.units else "")
+                f"{f.label}: {f.value_with_units}"
                 for f in report.facts
             ))
             label.setStyleSheet(_INFORMATION_STYLE)

@@ -1,14 +1,32 @@
-"""Where a powder pattern's peaks fall, and why their heights are refused.
+"""Where a powder pattern's peaks fall, and how tall they are.
 
 A calculated powder X-ray diffraction pattern for a periodic structure:
 the (hkl) reflections a cell and its symmetry allow, each with an
-interplanar spacing, a Bragg angle and a multiplicity.
+interplanar spacing, a Bragg angle, a multiplicity and a relative
+intensity.
 
-## POSITIONS ARE SHIPPED. INTENSITIES ARE REFUSED, AND THE REASON IS MEASURED
+## BOTH HALVES SHIP NOW, AND THE REFUSAL BELOW IS KEPT AS HISTORY
 
-This is deliberately half of what a powder-pattern calculator usually
-does, and the split is not arbitrary -- the two halves rest on different
-kinds of evidence:
+**THIS HEADER SAID "INTENSITIES ARE REFUSED" FOR THREE COMMITS AFTER THEY
+SHIPPED.** `5c00ace` lifted the refusal and left the file arguing against
+itself: the section below said nothing here computes a structure factor
+while `structure_factor_squared` sat 400 lines down, and
+`intensity_refusal()`'s own docstring said the unconditional refusal was
+retired. Corrected rather than deleted, because the REASONING is the
+durable part and because a stale doc comment is this project's most
+repeated defect -- it is believed, and then quoted.
+
+What is true now: `SCATTERING_TABLE` holds Waasmaier & Kirfel's
+parameters for 211 species, built by `tools/build_scattering_factors.py`
+from two independent machine-readable chains rather than from the damaged
+scan the refusal was written about. `intensity_refusal()` still returns a
+reason, but only for a structure containing a species the paper does not
+tabulate at all -- the narrow case, not the general one.
+
+## THE REFUSAL AS IT STOOD, AND WHY IT WAS RIGHT AT THE TIME
+
+The two halves rest on different kinds of evidence, which is why they
+could be shipped separately at all:
 
     positions    lattice geometry and Bragg's law. Nothing is fitted,
                  nothing is tabulated, and the answer is checkable by
@@ -45,18 +63,19 @@ table where nearly a third of the numbers are visibly damaged and 5 of
 every 11 are unverifiable would produce plausible intensities of unknown
 correctness, which is worse than none.
 
-So `intensity_refusal()` says this in one place, `PowderPattern` carries
-it, and nothing here computes a structure factor. A machine-readable
-Waasmaier-Kirfel table, or the tabulated values of *International Tables
-for Crystallography* Vol. C that it was fitted to, is what would lift it.
+**AND THE ENTRY NAMED ITS OWN UNBLOCKING CONDITION: "a machine-readable
+copy of this table".** Nobody checked whether one existed for ten days.
+One does, it is MIT-licensed, and the whole intensity half then shipped
+in an afternoon -- which is why a deferral's REASONS are worth re-reading
+rather than its verdict.
 
-## WHAT A CALCULATED ZERO WOULD MEAN, IF THERE WERE ONE
+## WHAT A CALCULATED ZERO MEANS
 
-Stated now, because it is the trap the intensity half would arrive with:
-a reflection is listed here when the LATTICE and its symmetry allow it.
-A systematic absence computed below is a statement about the space
-group, not a prediction that an experiment sees nothing -- and a peak
-listed here with no intensity is not a claim about how strong it is.
+A reflection is listed here when the LATTICE and its symmetry allow it. A
+systematic absence computed below is a statement about the space group,
+not a prediction that an experiment sees nothing -- and a listed line
+with a small intensity is a real prediction rather than a rounding of one
+to zero, which is why `NEGLIGIBLE_INTENSITY` drops nothing.
 
 ## KINEMATIC, AND IDEALISED
 
@@ -250,9 +269,18 @@ class PowderReflection:
     #: is a property of the STRUCTURE, while the intensity additionally
     #: carries how a powder diffractometer samples it.
     structure_factor_squared: float = 0.0
-    #: On a scale where the strongest line in this pattern is
-    #: `FULL_SCALE`. Relative because the absolute scale is an experiment's
-    #: property, not a structure's.
+    #: On a scale where the strongest REPORTED line is `FULL_SCALE`.
+    #: Relative because the absolute scale is an experiment's property,
+    #: not a structure's.
+    #:
+    #: **"REPORTED" RATHER THAN "IN THIS PATTERN", AND THE DIFFERENCE IS
+    #: A SCIENTIFIC ONE.** `calculate_pattern` truncates to
+    #: `max_reflections` BEFORE it normalises, so on a truncated pattern
+    #: `FULL_SCALE` marks the strongest line in the reported window and
+    #: not the strongest line in range -- and two patterns cut at
+    #: different lengths are then not on one scale. Ask
+    #: `PowderPattern.intensity_scale_covers_the_whole_range` rather than
+    #: assuming; a consumer must never have to read a caption to find out.
     relative_intensity: float = 0.0
 
     @property
@@ -307,6 +335,25 @@ class PowderPattern:
         """How many families are in range and NOT listed."""
         return max(0, self.total_reflections - len(self.reflections))
 
+    @property
+    def intensity_scale_covers_the_whole_range(self) -> bool:
+        """Is `FULL_SCALE` the strongest line IN RANGE, or only reported?
+
+        **DOMAIN METADATA RATHER THAN A SENTENCE IN A CAPTION**, because a
+        future comparison or export needs this and must not have to parse
+        prose to get it. Derived rather than stored, for the reason
+        `ReportResult.matched` is: the answer is already contained in
+        `truncated_by`, and a second copy is a second thing to fall out of
+        step.
+
+        `calculate_pattern` truncates and then normalises over what it
+        kept, so a truncated pattern's `FULL_SCALE` marks the strongest
+        line in its own window. Two patterns cut at different lengths are
+        not comparable line-for-line, and this is how a consumer finds
+        that out.
+        """
+        return self.truncated_by == 0
+
 
 def intensity_refusal(missing: tuple[str, ...] = ()) -> str:
     """Why this pattern carries no intensities, in ONE place.
@@ -342,8 +389,40 @@ def intensity_refusal(missing: tuple[str, ...] = ()) -> str:
     )
 
 
+def intensity_scale_note(truncated_by: int = 0, reported: int = 0) -> str:
+    """What `FULL_SCALE` marks, in ONE place.
+
+    The facts state this and so does the chart drawn from them, which is
+    two renderings of one claim -- so it is written once, for the reason
+    `debye_waller_refusal()` and `predicted_only_reason()` are: two copies
+    of a caveat drift into disagreeing about what was caveated.
+
+    `truncated_by` is what makes the second sentence appear. A pattern
+    reported in full is normalised over every line in range and the
+    warning does not apply to it; attaching it anyway would be a caption
+    describing a result other than the one under it.
+    """
+    note = (
+        "Intensities are RELATIVE, on a scale where the strongest line AMONG "
+        f"THOSE REPORTED is {FULL_SCALE:g}. An absolute scale needs the "
+        "experiment's incident flux, sample volume and detector response, "
+        "none of which is a property of a structure."
+    )
+    if truncated_by > 0:
+        note += (
+            f" This list is CUT: the tallest line is the tallest of the "
+            f"{reported} shown rather than of the {reported + truncated_by} in "
+            f"range, so this scale is not comparable with a pattern cut at "
+            "another length."
+        )
+    return note
+
+
 def _limitations(
-    missing: tuple[str, ...] = (), substitutions: tuple[str, ...] = ()
+    missing: tuple[str, ...] = (),
+    substitutions: tuple[str, ...] = (),
+    truncated_by: int = 0,
+    reported: int = 0,
 ) -> tuple[str, ...]:
     substitution_note = (
         (
@@ -363,12 +442,7 @@ def _limitations(
         intensity_refusal(missing),
         debye_waller_refusal(),
         *substitution_note,
-        "Intensities are RELATIVE, on a scale where the strongest line AMONG "
-        f"THOSE REPORTED is {FULL_SCALE:g}. An absolute scale needs the "
-        "experiment's incident flux, sample volume and detector response, none "
-        "of which is a property of a structure -- and where the list is "
-        "truncated the scale is set within that window, so two patterns cut at "
-        "different lengths are not on one scale.",
+        intensity_scale_note(truncated_by, reported),
         "A CALCULATED pattern from an idealised cell: no preferred "
         "orientation, no strain, no instrument broadening and no peak shape. "
         "Reflections are lines at angles, not profiles.",
@@ -673,5 +747,105 @@ def calculate_pattern(
         intensity_refusal=intensity_refusal(missing),
         debye_waller_refusal=debye_waller_refusal(),
         neutral_substitutions=substituted,
-        limitations=_limitations(missing, substituted),
+        limitations=_limitations(
+            missing, substituted, truncated_by=total - len(kept), reported=len(kept)
+        ),
+    )
+
+
+def chart_caption(pattern: PowderPattern) -> str:
+    """The caption under the CHART -- short, and not the full limitations.
+
+    **THE CELL FORM OF A REASON, NOT THE REASON.** `describe_failure`
+    already splits a failure into what fits a table cell and what belongs
+    in the full explanation, and a chart caption is the same shape: the
+    plot has room for two or three lines and the report's `limitations`
+    hold every caveat in full.
+
+    Found by driving the app. Joining the two full notes gave a
+    seven-line caption that the widget cut at "This list is CUT: the
+    tallest" -- the truncation warning, truncated, which is the least
+    useful sentence in the application to lose the end of. The widget now
+    marks such a cut visibly rather than clipping in silence, and that
+    made the caption honest without making it readable; this is what
+    makes it readable.
+
+    Both claims survive, because they fail differently and a reader needs
+    to tell them apart: the heights are optimistic, and the scale is
+    local to a cut list. The pointer at the end is what stops the short
+    form reading as the whole story.
+    """
+    notes = []
+    if pattern.debye_waller_refusal:
+        notes.append(
+            "Calculated and kinematic, with NO Debye-Waller factor: "
+            "high-angle intensities are upper bounds."
+        )
+    if pattern.intensity_scale_covers_the_whole_range:
+        notes.append(f"Heights are relative to the strongest line, {FULL_SCALE:g}.")
+    else:
+        notes.append(
+            f"Heights are relative to the strongest of the "
+            f"{len(pattern.reflections)} lines SHOWN, not of the "
+            f"{pattern.total_reflections} in range."
+        )
+    notes.append("The report's limitations carry these in full.")
+    return " ".join(notes)
+
+
+def pattern_chart(pattern: PowderPattern, title: str = "Powder pattern"):
+    """`pattern` as a declared chart annotation, or None if it has no heights.
+
+    **A PROJECTION OF THE RESULT, NEVER A SECOND IMPLEMENTATION.** It
+    reads `pattern.reflections` exactly as `calculate_pattern` produced
+    them and rederives nothing -- no structure factors, no multiplicities,
+    no Lorentz-polarization, no renormalising. `reduce_result`'s module
+    docstring already makes this the rule for the batch channel and it is
+    the same rule here: a presentation builder that recomputes is a second
+    place for the science to be wrong, and the two would disagree
+    silently.
+
+    **NONE WHEN THERE ARE NO INTENSITIES**, rather than a row of
+    zero-height sticks. A pattern whose `intensity_refusal` is set has
+    real POSITIONS and no heights, and drawing it as a flat line at zero
+    claims every reflection is absent -- which is the opposite of what the
+    positions say. The facts carry those angles; a chart is not the shape
+    for them. Same instinct as `charts == ()` being how a producer says it
+    has no chart.
+
+    `x_descending=False`: 2theta runs LOW ANGLE TO THE LEFT, the
+    convention every powder pattern is printed in. Declared at the call
+    site rather than inferred from `x_units`, because a mirrored
+    diffractogram does not look broken -- it looks like a different
+    structure.
+
+    `Stick.label` carries `(hkl)` for a renderer with room to print one.
+    **The indices stay STRUCTURED on `PowderReflection`**; a future
+    interaction that selects a reflection reads them there rather than
+    parsing this string back apart.
+    """
+    from openchem.domain.report import Stick, StickChartAnnotation
+
+    if pattern.intensity_refusal or not pattern.reflections:
+        return None
+
+    # TWO INDEPENDENT LIMITATIONS, and they must stay separable because
+    # they fail differently: one says the heights are systematically
+    # optimistic and the other says some lines are missing entirely. A
+    # reader has to be able to tell whether they are looking at all the
+    # peaks with approximate heights, or some of the peaks, or both.
+    caption = chart_caption(pattern)
+
+    return StickChartAnnotation(
+        sticks=tuple(
+            Stick(reflection.two_theta, reflection.relative_intensity, reflection.label)
+            for reflection in pattern.reflections
+        ),
+        x_label="2theta",
+        x_units="degrees",
+        y_label="Relative intensity",
+        y_units="",
+        x_descending=False,
+        title=f"{title} ({pattern.wavelength:.5f} A)",
+        caption=caption,
     )

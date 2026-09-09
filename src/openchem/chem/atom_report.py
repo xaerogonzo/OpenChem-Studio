@@ -139,7 +139,12 @@ def collect_element(mol: Any, index: int, _context: dict) -> list[AtomFact]:
     if element.covalent_radius is not None:
         facts.append(
             _fact(FactCategory.ELEMENT, "Covalent radius", element.covalent_radius,
-                  "element_reference", display=f"{element.covalent_radius:.2f} A", units="A")
+                  # The unit goes in `units` and nowhere else -- this had it
+                  # in BOTH, so composing the two rendered "0.76 A A". The
+                  # same defect `report_adapter` carried for 223 facts, in a
+                  # hand-written producer, found by walking every report
+                  # builder rather than only the registry.
+                  "element_reference", display=f"{element.covalent_radius:.2f}", units="A")
         )
     return facts
 

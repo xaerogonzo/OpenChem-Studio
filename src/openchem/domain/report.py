@@ -18,12 +18,14 @@ from __future__ import annotations
 
 import dataclasses
 import math
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
 from openchem.domain.common import ScientificResult
 from openchem.domain.structure_issue import Basis
+from openchem.domain.visualization import VisualizationLayer
 
 
 class FactCategory(str, Enum):
@@ -209,6 +211,36 @@ class Fact:
     #: viewer, and an out-of-range index raised `RuntimeError: Range Error`
     #: inside a Qt signal handler the last time this was assumed.
     highlight: tuple[int, ...] = ()
+
+    @property
+    def value_with_units(self) -> str:
+        """`display_value` and `units` composed, for one line of prose.
+
+        **THE ONE PLACE THE TWO ARE JOINED.** Eight consumers need a fact
+        as a single string -- the row in `FactView`, the Atom Inspector's
+        headline summary, the substance card's rows, the Properties
+        panel's collapsed summary, the clipboard, Markdown and plain-text
+        export, and `ReportResult.matched` -- and each of them composed it
+        (or forgot to) on its own until this existed. Measured over the real
+        registry at the time it was added: **896 distinct facts, 449
+        carrying units**, of which the 223 arriving through
+        `report_adapter` had the units in BOTH fields and exported
+        `"C: 60.00 % %"`, while the other 226 held them apart and
+        rendered `"70.7"` with no `kbar` anywhere on screen. One defect in
+        each direction, from two conventions for one thing.
+
+        **JSON and CSV DO NOT USE THIS, deliberately.** They give value and
+        units their own field, which is the more useful shape for a script
+        and is why `units` exists as a field at all. Composing there would
+        destroy a distinction those formats are able to keep.
+
+        Never written back into `display_value`: label, value and units
+        stay three fields and the consumer joins them. Storing the joined
+        string is the one-field-two-jobs bug that put the units in
+        `display_value` in the first place.
+        """
+        units = self.units.strip()
+        return f"{self.display_value} {units}".strip() if units else self.display_value
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -465,17 +497,155 @@ class StickChartAnnotation:
     caption: str = ""
 
 
-#: The union of chart kinds. One member today; `spatial` shipped as three
-#: and the second costs a `|`. Every consumer dispatches by `isinstance`
-#: from the first line, so a second kind is additive rather than a rewrite
-#: of everything that reads a bare type alias.
-ChartAnnotation = StickChartAnnotation
+@dataclass(frozen=True)
+class LineSeries:
+    """One curve of a line chart: its points and its name in the legend.
+
+    **THE POINTS RIDE WITH THE NAME**, so "labels aligned with series" is
+    true by construction -- the same reason `Stick` carries its own label
+    rather than sitting beside a parallel list.
+
+    A series does NOT carry its own axis direction or units. Those are
+    properties of the CHART: two curves drawn on one pair of axes are in
+    one coordinate system, and a renderer reconciling them per series
+    would silently redraw one of them.
+    """
+
+    points: tuple[tuple[float, float], ...]
+    name: str = ""
+
+
+@dataclass(frozen=True)
+class LineChartAnnotation:
+    """A continuous curve the calculation produced: several series on one pair
+    of axes.
+
+    The second chart kind, and the sibling of `StickChartAnnotation`
+    rather than a replacement: sticks are discrete events at a position
+    (an isotopologue, a reflection) and a line is a quantity sampled
+    across a range (a fraction against pH, an absorbance against
+    wavelength). Drawing one as the other misstates what was computed.
+
+    **THE AXIS FIELDS ARE THE STICK KIND'S, FOR THE SAME REASONS.**
+    `x_descending` is required rather than defaulted, because a mirrored
+    plot does not look broken -- it looks like a different result -- and
+    `y` is the quantity that was computed in `y_units`, never pixels.
+
+    **`x_descending` IS A COORDINATE TRANSFORM, NOT A DATA OPERATION.**
+    False means numerical x increases left to right and True means it
+    decreases; a renderer maps points through it and must never reverse
+    or reorder them. What the producer handed over is what a hit test and
+    a readout see.
+    """
+
+    series: tuple[LineSeries, ...]
+    #: Axis name WITHOUT units, with the units beside it -- the
+    #: `Fact.value` / `Fact.units` split, composed for display.
+    x_label: str
+    y_label: str
+    #: True when high x belongs on the LEFT. Required, per the stick
+    #: kind's own note: one keyword per call site buys out the whole class
+    #: of silently-mirrored plots.
+    x_descending: bool
+    x_units: str = ""
+    y_units: str = ""
+    title: str = ""
+    caption: str = ""
+    #: Pin an end of the y axis, or None to derive it from the data.
+    #:
+    #: **AN AXIS DECLARATION, NOT A CHEMISTRY ONE**, which is what makes
+    #: it belong on a generic annotation beside `x_descending`. A quantity
+    #: with real bounds -- a microspecies distribution is 0-100% -- gets
+    #: an axis at those bounds; everything else gets a padded fit. Found
+    #: by rendering one and looking at it: a distribution that cannot
+    #: leave 0-100 was drawn on an axis running -8% to 108%, which reads
+    #: as headroom the quantity does not have.
+    #:
+    #: Only the end that is pinned is pinned: a curve bounded below at
+    #: zero and unbounded above sets `y_min` alone and the top still fits
+    #: the data.
+    y_min: float | None = None
+    y_max: float | None = None
+
+
+#: The union of chart kinds. TWO members; `spatial` shipped as three and
+#: each additional one costs a `|`. Every consumer dispatches by
+#: `isinstance` from the first line, so a third is additive rather than a
+@dataclass(frozen=True)
+class DepictionAnnotation:
+    """A picture drawn ON the structure rather than on a pair of axes.
+
+    The third chart kind, and the one that is not a chart -- Lewis donor
+    and acceptor sites coloured onto the 2D depiction, a per-atom
+    contribution shown where the atoms are. `ReportResult.charts` means
+    *producer-declared presentation annotations* and has since this
+    arrived; the field keeps its name because renaming a shipped one is
+    churn, and `visualizations` is the migration if anybody ever wants it.
+
+    **IT WRAPS `VisualizationLayer` RATHER THAN RESTATING IT.** That type
+    has been "atom index -> colour and label, renderer-independent" since
+    Phase 11 and is what the 3D viewer already consumes, so a per-atom map
+    of its own here would be a second representation of one idea -- the
+    drift this repository has paid for five times. What this adds is only
+    the presentation framing the channel needs, exactly as
+    `StickChartAnnotation` adds axes and a caption around bare `Stick`s.
+
+    **IT CARRIES NO GEOMETRY, NO MOLECULE AND NO TOOLKIT OBJECT**, and
+    that is the contract rather than an omission:
+
+        annotation      WHAT to draw -- atom indices and their styling
+        report          WHICH molecule -- `StructureReport.molecule_uuid`
+        render context  the geometry, resolved and supplied by the UI
+
+    Which is how `spatial` already works: an `ArrowAnnotation` is in the
+    molecule's frame and the viewer holds the molecule. Nothing here may
+    grow atom coordinates, bond geometry, a conformer or a 2D layout; a
+    renderer needing one asks a rendering service for it.
+    """
+
+    layer: VisualizationLayer
+    title: str = ""
+    caption: str = ""
+
+
+#: The union of chart kinds. THREE members; `spatial` shipped as three and
+#: each additional one costs a `|`. Every consumer dispatches by
+#: `isinstance` from the first line, so a fourth is additive rather than a
+#: rewrite of everything that reads a bare type alias.
+ChartAnnotation = StickChartAnnotation | LineChartAnnotation | DepictionAnnotation
+
+
+def _finite(*values: Any) -> bool:
+    """Real numbers, and `bool` is not one.
+
+    `isinstance(True, int)` is True in Python, so a producer handing over
+    a flag where a coordinate belongs would otherwise pass every numeric
+    check and plot at 1.0.
+    """
+    return all(
+        isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+        for v in values
+    )
 
 
 def _valid_stick(stick: Any) -> bool:
-    return isinstance(stick, Stick) and all(
-        isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
-        for v in (stick.x, stick.y)
+    return isinstance(stick, Stick) and _finite(stick.x, stick.y)
+
+
+def _valid_series(series: Any) -> bool:
+    """A series is well formed: a named tuple of finite (x, y) pairs.
+
+    Says nothing about ORDER, SPACING or EMPTINESS -- those are the rules
+    `valid_chart_annotation`'s line branch decides, and they are decided
+    there so the reasoning sits with the refusals it explains.
+    """
+    return (
+        isinstance(series, LineSeries)
+        and isinstance(series.points, tuple)
+        and all(
+            isinstance(point, tuple) and len(point) == 2 and _finite(*point)
+            for point in series.points
+        )
     )
 
 
@@ -526,7 +696,170 @@ def valid_chart_annotation(annotation: Any) -> bool:
             and isinstance(annotation.y_label, str)
             and bool(annotation.y_label.strip())
         )
+    if isinstance(annotation, DepictionAnnotation):
+        return _valid_depiction(annotation)
+    if isinstance(annotation, LineChartAnnotation):
+        if not _valid_axes(annotation):
+            return False
+        if not isinstance(annotation.series, tuple) or not annotation.series:
+            return False
+        if not all(_valid_series(series) for series in annotation.series):
+            return False
+        return _line_series_rules_hold(annotation)
     return False
+
+
+#: A hex colour, the one representation a declared depiction may use.
+#: ONE spelling throughout rather than accepting `"#f00"`, an RGB tuple and
+#: a CSS name in different places: `VisualizationLayer.atom_colors` has
+#: always been "resolved hex", `ColorScale.color_for` emits exactly this,
+#: and `render_2d_svg` and the 3D viewer both parse it. A second accepted
+#: form would be a second parser in every consumer.
+_HEX_COLOUR = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+
+def _valid_depiction(annotation: DepictionAnnotation) -> bool:
+    """Whether a declared depiction is WELL-FORMED. Structural only.
+
+    Checks what can be checked WITHOUT the molecule, which is the line the
+    ownership model draws: this has atom indices and no structure, so it
+    can say an index is not a non-negative integer and cannot say whether
+    the molecule has one. That second question belongs to the render
+    context, which resolves `molecule_uuid` and already refuses an
+    out-of-range index -- `render_2d_svg`'s own `drawable()` guard exists
+    because calculators legitimately hold data keyed to `AddHs(mol)` while
+    the depiction is the editor's molblock.
+
+    **A MALFORMED COLOUR IS REFUSED**, and that is not fussiness. Colour
+    is producer-owned so a renderer cannot invent a legend -- but "any
+    string is a colour" would let a malformed declaration through to be
+    dropped silently by whichever painter received it, which is the
+    failing-open this channel exists to prevent.
+
+    It does NOT judge the chemistry: which atoms are donors, whether two
+    colours are distinguishable, whether a label is informative. A
+    reviewer owns the meaning.
+    """
+    layer = annotation.layer
+    if not isinstance(layer, VisualizationLayer):
+        return False
+    if not isinstance(layer.atom_colors, dict) or not layer.atom_colors:
+        return False
+    for index, colour in layer.atom_colors.items():
+        if not isinstance(index, int) or isinstance(index, bool) or index < 0:
+            return False
+        if not isinstance(colour, str) or not _HEX_COLOUR.match(colour):
+            return False
+    labels = layer.atom_labels
+    if labels is not None:
+        if not isinstance(labels, dict):
+            return False
+        for index, text in labels.items():
+            if not isinstance(index, int) or isinstance(index, bool) or index < 0:
+                return False
+            if not isinstance(text, str):
+                return False
+    return True
+
+
+def _valid_axes(annotation: Any) -> bool:
+    """The axis declaration both kinds share, and neither may skip.
+
+    Split out when the line kind arrived so the two branches cannot drift
+    apart on what an axis IS -- the rule this repository has paid for
+    whenever one concept had two implementations.
+    """
+    return (
+        isinstance(annotation.x_descending, bool)
+        and isinstance(annotation.x_label, str)
+        and bool(annotation.x_label.strip())
+        and isinstance(annotation.y_label, str)
+        and bool(annotation.y_label.strip())
+    )
+
+
+def _line_series_rules_hold(annotation: LineChartAnnotation) -> bool:
+    """Whether a well-formed line chart's SERIES are acceptable.
+
+    Reached only once every series is structurally sound: real
+    `LineSeries` objects holding finite `(x, y)` pairs, at least one
+    series, and both axes named. What is left is judgment, and the line
+    this project holds is that **the validator owns the SHAPE and a
+    reviewer owns the MEANING** -- `valid_chart_annotation` above accepts
+    an m/z of 1e6 and negative heights, and says why it DECLINED each
+    refusal. The same, here.
+
+    ## REFUSED: A SERIES WHOSE x IS NOT MONOTONIC
+
+    **A BREAK FROM `StickChartAnnotation`, AND THE GEOMETRY IS WHY.**
+    That kind explicitly does not require sorting and preserves producer
+    order, which costs nothing: sticks are drawn independently at their
+    own positions, so order affects only which of two sticks sharing an x
+    a hit test resolves to. A line is a POLYLINE -- consecutive points
+    are joined -- so **order is not metadata about the picture, it IS the
+    picture.** Scrambled x draws a zigzag that no reading of the data
+    supports, and it is far likelier a producer building its points from
+    an unordered mapping than a deliberate path.
+
+    NON-DECREASING **OR** NON-INCREASING, never strict. Two values at one
+    x is a real thing to have -- two measurements at one pH, a step in a
+    titration -- and the direction is per series so a producer may hand
+    over a curve running either way.
+
+    **A PARAMETRIC PATH IS A DIFFERENT KIND, NOT A LOOSER RULE HERE.** A
+    hysteresis loop or a phase portrait revisits x, and the honest home
+    for one is its own annotation whose contract says the ORDER is the
+    data. Weakening this to admit it would leave the ordinary case --
+    a quantity sampled across a range -- with no check at all.
+
+    ## REFUSED: A SERIES WITH NO POINTS
+
+    `sticks` requires at least one member because `charts == ()` is
+    already how a producer says it has no chart, and a named series
+    holding nothing is the same contradiction one level down: a legend
+    entry with no curve under it reads as "this quantity is zero here"
+    rather than "this was not computed". A producer with nothing to say
+    for a series omits the series.
+
+    ## DECLINED: REQUIRING THE SERIES TO SHARE AN x GRID
+
+    The five pH calculators do share `ph_grid`, so a rule fitted to them
+    would pass today and refuse the first legitimate overlay -- a
+    computed curve against a measured one, sampled where the instrument
+    sampled. That is the `half_angle_deg < 180` mistake, which refused a
+    real Tolman measurement because the common case looked like the only
+    case.
+
+    ## DECLINED: ANY RULE ABOUT WHAT THE NUMBERS MEAN
+
+    No range check, no monotonic y, no requirement that fractions sum to
+    one or that a probability lies in [0, 1]. Those are chemistry claims
+    and the producers' own tests hold them.
+
+    ## NaN IS NOT A GAP, and that is recorded rather than merely enforced
+
+    `_finite` already refuses non-finite coordinates upstream. Stated
+    here because the next reader to want a DISCONTINUOUS curve will find
+    the validator refusing NaN with no supported way to express one, and
+    the tempting repair is to weaken the check. It needs its own
+    representation instead -- a series per segment is the cheap answer
+    and needs nothing new.
+
+    A consumer receiving an annotation this refuses must REFUSE TO DRAW
+    it, never sort, clamp or trim it into shape. In particular the
+    renderer may not quietly sort a scrambled series: that would move the
+    refusal into a repair and put a picture built from repaired nonsense
+    on the screen.
+    """
+    for series in annotation.series:
+        if not series.points:
+            return False
+        xs = [x for x, _y in series.points]
+        non_decreasing = all(a <= b for a, b in zip(xs, xs[1:]))
+        non_increasing = all(a >= b for a, b in zip(xs, xs[1:]))
+        if not (non_decreasing or non_increasing):
+            return False
+    return True
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -612,6 +945,8 @@ class ReportResult(StructureReport):
         the entire reason for the migration.
         """
         return [
-            f"{fact.label}: {fact.display_value}" if fact.label != self.name else fact.display_value
+            f"{fact.label}: {fact.value_with_units}"
+            if fact.label != self.name
+            else fact.value_with_units
             for fact in self.facts
         ]

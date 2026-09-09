@@ -983,3 +983,93 @@ def test_the_textbook_excess_molar_refraction_relation_does_not_work_here():
 
     assert textbook_e("CCCCCC") > 0.5   # hexane, whose true E is 0.000
     assert textbook_e("O") > 0.2        # water, likewise 0.000
+
+
+def test_the_report_declares_its_ph_curve_as_a_chart():
+    """SHIPPED IS NOT REACHABLE, and a chart kind with no producer is
+    machinery nobody can see.
+
+    The `solubility_curve` calculator draws this curve in its own dialog;
+    the `solubility` REPORT declaring it is what puts the picture in
+    every surface that renders a report -- the Properties panel, the
+    merged-results window, a batch detail. Two different registrations,
+    so nothing is duplicated.
+    """
+    from openchem.domain.report import valid_chart_annotation
+
+    # Caffeine has no ionizable centre, so its curve is flat and needs no
+    # pKa predictor -- which makes it the one molecule whose chart can be
+    # asserted without an optional sidecar configured.
+    result = compute_solubility(Chem.MolFromSmiles("Cn1cnc2c1c(=O)n(C)c(=O)n2C"), "m1", {})
+    assert len(result.charts) == 1
+    chart = result.charts[0]
+    assert valid_chart_annotation(chart)
+    assert chart.x_label == "pH"
+    assert chart.x_descending is False, "pH increases left to right"
+    assert len(chart.series) == 1
+
+
+def test_the_chart_and_the_curve_calculator_draw_THE_SAME_numbers():
+    """One profile builder, so the two surfaces cannot disagree.
+
+    A fact and a picture disagreeing is worse than either being wrong
+    alone -- which this module already records paying for, when the facts
+    said "limited at +3.0 logS" while the chart climbed to 1.8e8 mg/mL
+    because one call site had not been given the resolved limit.
+    """
+    mol = Chem.MolFromSmiles("Cn1cnc2c1c(=O)n(C)c(=O)n2C")
+    chart = compute_solubility(mol, "m1", {}).charts[0]
+    curve = compute_solubility_curve(mol, "m1", {})
+
+    drawn = chart.series[0].points
+    expected = tuple(zip(curve.ph_values, next(iter(curve.series.values()))))
+    assert drawn == expected
+
+
+def test_no_curve_is_drawn_where_pH_does_not_apply():
+    """The report says pH is an aqueous concept; it must not also draw a
+    picture contradicting that.
+
+    **ASSERTED ON THE PREDICATE, because the end-to-end route cannot
+    reach it.** `compute_solubility` returns early for a non-aqueous
+    solvent and for a refused analysis, so a report built through either
+    has `charts == ()` whatever `solubility_chart` decides -- measured as
+    a mutation, where dropping BOTH guards left the whole file green. An
+    unreachable branch is a question about where to assert, not dead
+    code: the guards defend the day another caller reaches the builder
+    with an analysis these paths would have turned away.
+    """
+    from openchem.chem.solubility import analyse_solubility, solubility_chart
+
+    mol = Chem.MolFromSmiles("Cn1cnc2c1c(=O)n(C)c(=O)n2C")
+    water = analyse_solubility(mol, {}, None, None)
+    assert water.solvent.is_water and not water.refusal, "the control really is drawable"
+    assert solubility_chart(water, {}) is not None
+
+    ethanol = analyse_solubility(mol, {"solvent": "ethanol"}, None, None)
+    assert not ethanol.solvent.is_water, "the fixture really is non-aqueous"
+    assert solubility_chart(ethanol, {}) is None
+
+    refused = analyse_solubility(Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O"), {}, None, None)
+    assert refused.refusal, "the fixture really was refused"
+    assert solubility_chart(refused, {}) is None
+
+    # ...and the report agrees, through the route a user takes.
+    assert compute_solubility(mol, "m1", {"solvent": "ethanol"}).charts == ()
+
+
+def test_no_curve_is_drawn_when_the_analysis_was_refused():
+    """A refused analysis has no numbers, so it has no picture either.
+
+    Aspirin without a configured pKa predictor is the case: the curve
+    needs numeric pKa values and says so, and a chart drawn anyway would
+    be a picture of the neutral species presented as the answer.
+    """
+    result = compute_solubility(Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O"), "m1", {})
+    assert result.charts == (), "no pKa set, no curve"
+    # AND no facts either -- a refused analysis returns the refusal rather
+    # than a partial report, so this is not "the picture went missing from
+    # an otherwise complete answer". Asserted because the first draft of
+    # this test assumed the opposite and was wrong about the shape.
+    assert result.facts == ()
+    assert result.error, "and it says why"

@@ -64,6 +64,7 @@ from openchem.ui.widgets.collapsible_section import (
     WrappedLabel,
 )
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
+from openchem.ui.widgets.chart_widgets import CHART_WIDGET_TYPES, chart_widget_for
 from openchem.ui.widgets.stick_chart_widget import StickChartWidget
 
 COPY_FORMATS = ("Markdown", "Plain text", "JSON", "CSV")
@@ -181,6 +182,9 @@ class FactView(QWidget):
     ) -> None:
         super().__init__(parent)
         self._report = None
+        #: How to resolve `molecule_uuid` to a molblock, set by a host that
+        #: has a project. None until one does; see `set_structure_resolver`.
+        self._structure_resolver = None
         self._sections: dict[str, CollapsibleSection] = {}
         #: **THE CHART SECTIONS LIVE APART FROM `_sections` ON PURPOSE.**
         #: `_render` runs `_clear_sections` on every search keystroke, so a
@@ -388,11 +392,13 @@ class FactView(QWidget):
             section = CollapsibleSection(
                 chart.title or f"Chart {index + 1}", index == 0, self._container
             )
-            # `show_title=False`: the section header above IS the
-            # chart's title, and painting it again put the same words
-            # twice on screen with the second copy landing on the
-            # tallest stick's label.
-            widget = StickChartWidget(chart, section.content, show_title=False)
+            # DISPATCH BY TYPE, in one place. A second kind cost a `|` on
+            # the union and an entry in the factory; a `chart.kind ==`
+            # string ladder here would be a weaker vocabulary beside the
+            # types the domain already has, and its typos fail open.
+            widget = chart_widget_for(
+                chart, section.content, molblock=self._molblock_for_report()
+            )
             # `add_calculator_widget` puts it full-width above the form
             # rows rather than into the label/field grid -- a plot has no
             # caption column, and a form row would give it half the width.
@@ -400,16 +406,57 @@ class FactView(QWidget):
             self._container_layout.insertWidget(index, section)
             self._chart_sections.append(section)
 
-    def chart_widgets(self) -> list[StickChartWidget]:
+    def set_structure_resolver(self, resolver) -> None:
+        """Supply how to turn a `molecule_uuid` into a molblock, or None.
+
+        **THE RENDER CONTEXT, INJECTED.** A declared depiction carries
+        atom indices and no geometry -- deliberately, since an annotation
+        holding an RDKit molecule would put a toolkit object in `domain/`
+        and give the report a second copy of the structure. So the host
+        that already has the project supplies the resolution, and a host
+        that has no project supplies nothing.
+
+        A view with no resolver still renders every other chart kind: a
+        plot on axes needs no structure. Only the depiction says it cannot
+        draw, which is a different fact from having nothing to draw.
+        """
+        self._structure_resolver = resolver
+        self._rebuild_charts()
+
+    def _molblock_for_report(self) -> str:
+        resolver = getattr(self, "_structure_resolver", None)
+        uuid = getattr(self._report, "molecule_uuid", "") if self._report else ""
+        if resolver is None or not uuid:
+            return ""
+        try:
+            return resolver(uuid) or ""
+        except Exception:
+            # A host whose resolver raises gets the "no structure" message
+            # rather than a traceback out of a paint path -- and the chart
+            # section still appears, so the declaration stays visible.
+            return ""
+
+    def chart_widgets(self) -> list[QWidget]:
         """The charts currently on screen, read back off the sections.
 
         Derived from the widgets rather than from the report, so a test
         cannot pass against charts that never reached the display -- the
         same reason `visible_fact_labels` reads the rows.
+
+        **EVERY KIND THE FACTORY CAN PRODUCE, not one class.** Filtering
+        on `StickChartWidget` was right while that was the only kind and
+        became a silent undercount the moment a second arrived: a line
+        chart, or the label saying a kind cannot be drawn, would simply
+        not appear -- so a guard reading this would report "no chart" for
+        a chart that is plainly on screen.
+
+        The types come from `CHART_WIDGET_TYPES` beside the factory, so
+        the two cannot disagree about what a chart widget is.
         """
-        widgets: list[StickChartWidget] = []
+        widgets: list[QWidget] = []
         for section in self._chart_sections:
-            widgets.extend(section.content.findChildren(StickChartWidget))
+            for kind in CHART_WIDGET_TYPES:
+                widgets.extend(section.content.findChildren(kind))
         return widgets
 
     def _clear_sections(self) -> None:
@@ -468,7 +515,7 @@ class FactView(QWidget):
         self._status.setText(self._status_text(report, shown, needle, hidden_by_depth))
 
     def _add_row(self, section: CollapsibleSection, fact: Fact) -> None:
-        value = _FactRow(fact.display_value, section.content)
+        value = _FactRow(fact.value_with_units, section.content)
         value.setProperty(_FACT_PROPERTY, fact)
         value.setToolTip(
             "\n".join(

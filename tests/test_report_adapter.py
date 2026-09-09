@@ -45,8 +45,9 @@ def test_a_measurement_line_becomes_a_labelled_fact_with_units():
 
     assert len(facts) == 1
     assert facts[0].label == "Max radius (from centroid)"
-    assert facts[0].display_value == "2.35 A"
+    assert facts[0].display_value == "2.35", "the value alone -- units are their own field"
     assert facts[0].units == "A"
+    assert facts[0].value_with_units == "2.35 A"
 
 
 def test_a_line_with_no_units_still_splits():
@@ -76,7 +77,8 @@ def test_a_negative_or_exponent_value_still_reads_as_a_measurement():
         "Total pi energy: -8.0000 beta",
         "Exact mass: 4.3005814e1",
     ]))
-    assert facts[0].display_value == "-8.0000 beta"
+    assert facts[0].display_value == "-8.0000"
+    assert facts[0].value_with_units == "-8.0000 beta"
     assert facts[1].label == "Exact mass"
 
 
@@ -100,7 +102,8 @@ def test_an_explicitly_signed_value_reads_the_same_either_way():
     ], category="charge"))
 
     assert [fact.label for fact in facts] == ["Dipole X", "Dipole Y", "Dipole Z"]
-    assert [fact.display_value for fact in facts] == [
+    assert [fact.display_value for fact in facts] == ["-1.18", "0.00", "+0.16"]
+    assert [fact.value_with_units for fact in facts] == [
         "-1.18 Debye", "0.00 Debye", "+0.16 Debye",
     ]
     assert {fact.units for fact in facts} == {"Debye"}
@@ -149,7 +152,12 @@ def test_a_value_list_is_labelled_without_becoming_a_number():
     column rather than a numeric one claiming a ten-orbital spectrum is
     2.0. Tightening the pattern to a bare number was measured and breaks
     both halves -- it yields 2.0 AND inserts a stray space before the
-    comma. `display_value` here must reconstruct the tail exactly.
+    comma. `value_with_units` here must reconstruct the tail exactly --
+    the claim is unchanged and the FIELD moved, because the tail lands in
+    `units` now and the composition is what puts it back together. On a
+    line like this one "units" is plainly not a unit; the regex has always
+    named the tail that, and what matters is that the rendered string is
+    the line the producer wrote.
     """
     from openchem.chem.result_reduction import _as_float
 
@@ -157,7 +165,7 @@ def test_a_value_list_is_labelled_without_becoming_a_number():
     fact = facts_from_alert(_alert(matched=[line], category="quantum"))[0]
 
     assert fact.label == "Orbital energies (beta)"
-    assert fact.display_value == "+2.00, +1.00, +1.00, -1.00, -1.00, -2.00"
+    assert fact.value_with_units == "+2.00, +1.00, +1.00, -1.00, -1.00, -2.00"
     assert _as_float(fact.value) is None, "a list must not reduce to a number"
 
 
@@ -178,7 +186,11 @@ def test_a_unit_attached_with_no_space_still_splits():
 
     assert [fact.label for fact in facts] == ["C", "Percent buried volume"]
     assert [fact.units for fact in facts] == ["%", "%"]
-    assert [fact.display_value for fact in facts] == ["23.79 %", "13.30 %"]
+    assert [fact.display_value for fact in facts] == ["23.79", "13.30"]
+    assert [fact.value_with_units for fact in facts] == ["23.79 %", "13.30 %"], (
+        "the no-space form is normalised to one space by the composition, "
+        "which is what `matched` has always emitted for these lines"
+    )
 
 
 def test_report_fields_splits_a_signed_line_the_same_way():
@@ -198,7 +210,8 @@ def test_report_fields_splits_a_signed_line_the_same_way():
     )
 
     assert [fact.label for fact in fields["facts"]] == ["Dipole Z"]
-    assert fields["facts"][0].display_value == "+0.16 Debye"
+    assert fields["facts"][0].display_value == "+0.16"
+    assert fields["facts"][0].value_with_units == "+0.16 Debye"
 
 
 def test_every_fact_says_it_is_heuristic():
@@ -350,3 +363,92 @@ def test_the_shared_wrapper_still_documents_its_contract():
     assert "Fact" in doc
     for keyword in ("alert_id", "name", "matched", "category"):
         assert keyword in doc, f"the docstring stopped naming the {keyword} keyword"
+
+
+def test_an_adapted_fact_never_holds_its_units_twice():
+    """The defect this convention change removes, asserted at the source.
+
+    `_split` wrote the units into `display_value` AS WELL as `units`, as
+    a workaround for `FactView` not rendering the `units` field. Every
+    consumer that composed the two therefore printed them twice, and two
+    shipped exports did: the Properties panel's collapsed summary and
+    the clipboard both emitted `"C: 60.00 % %"`.
+
+    Measured over the real registry when this landed: **223 of the 449
+    unit-bearing facts came through here and ALL 223 duplicated** -- not
+    a subset, all of them, because the composition was unconditional.
+    """
+    facts = facts_from_alert(_alert(matched=[
+        "C: 60.00 %",
+        "ASA (solvent accessible): 219.12 A^2",
+        "Percent buried volume: 13.30%",
+    ]))
+    for fact in facts:
+        assert fact.units, "the fixture is pointless if nothing carries units"
+        assert not fact.display_value.strip().endswith(fact.units.strip()), (
+            f"{fact.label!r} holds its units in both fields: "
+            f"display_value={fact.display_value!r} units={fact.units!r}"
+        )
+        assert fact.value_with_units.count(fact.units.strip()) == 1
+
+
+def test_the_composition_reproduces_the_line_the_producer_wrote():
+    """`ReportResult.matched` recomposes, and that contract is unchanged.
+
+    This is what made the convention change safe rather than a break of
+    a plugin-API surface. A line arriving as `"Dipole Z: +0.16 Debye"`
+    still leaves as `"Dipole Z: +0.16 Debye"`; verified across the whole
+    swept population, 223 adapted facts, byte for byte.
+
+    The ONE normalisation is spacing: `"C: 23.79%"` recomposes as
+    `"C: 23.79 %"`, because `units` holds `%` and the join inserts a
+    space. That is not new -- the old `display_value` was built by the
+    same join and emitted the same string.
+    """
+    for line in ("Dipole Z: +0.16 Debye", "Max radius (from centroid): 2.35 A"):
+        fact = facts_from_alert(_alert(matched=[line]))[0]
+        assert f"{fact.label}: {fact.value_with_units}" == line
+
+    spaced = facts_from_alert(_alert(matched=["C: 23.79%"]))[0]
+    assert f"{spaced.label}: {spaced.value_with_units}" == "C: 23.79 %"
+
+
+def test_matched_carries_units_for_a_native_fact_and_is_unchanged_for_an_adapted_one():
+    """`ReportResult.matched`, both populations, in one guard.
+
+    The two arms pull in opposite directions and a rule satisfying only
+    one of them is wrong:
+
+        ADAPTED  the line must come back byte for byte. `matched` is in
+                 the plugin API and a large number of assertions read it;
+                 recomposing something else would be a silent break.
+        NATIVE   the line must GAIN its units. These held value and unit
+                 apart, so `matched` emitted "Boiling point (normal):
+                 259.91" -- a temperature with no unit, which is
+                 ambiguous rather than concise.
+
+    Measured over the real registry when this landed: 223 adapted lines
+    identical, 226 native lines gaining a unit.
+
+    Mutating `matched` back to bare `display_value` passes every other
+    test in this file, in `test_fact_view.py` and in
+    `test_result_presentation.py` -- it survived a four-arm pass and this
+    guard is what was written from the survivor.
+    """
+    import dataclasses
+
+    from openchem.domain.report import Fact, FactCategory, ReportResult
+    from openchem.domain.structure_issue import Basis
+
+    adapted = ReportResult(**report_fields(
+        alert_id="dipole_moment", name="Dipole Moment", molecule_uuid="m1",
+        matched=["Dipole Z: +0.16 Debye"], category="charge",
+    ))
+    assert adapted.matched == ["Dipole Z: +0.16 Debye"]
+
+    native = dataclasses.replace(adapted, facts=(Fact(
+        category=FactCategory.STRUCTURE, label="Boiling point (normal)",
+        value=259.91, display_value="259.91", source="Joback",
+        basis=Basis.HEURISTIC, units="K",
+    ),))
+    assert native.matched == ["Boiling point (normal): 259.91 K"]

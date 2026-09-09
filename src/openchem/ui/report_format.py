@@ -132,7 +132,8 @@ def format_report(report, fmt: str) -> str:
             lines.append("| --- | --- | --- | --- |")
             for fact in facts:
                 lines.append(
-                    f"| {fact.label} | {fact.display_value} | {fact.source} | {fact.basis.value} |"
+                    f"| {fact.label} | {fact.value_with_units} "
+                    f"| {fact.source} | {fact.basis.value} |"
                 )
             lines.append("")
         for text in report.limitations:
@@ -143,7 +144,7 @@ def format_report(report, fmt: str) -> str:
     for category, facts in grouped.items():
         lines.append(f"{CATEGORY_LABELS[category]}:")
         for fact in facts:
-            lines.append(f"  {fact.label}: {fact.display_value}  [{fact.basis.value}]")
+            lines.append(f"  {fact.label}: {fact.value_with_units}  [{fact.basis.value}]")
         lines.append("")
     for text in report.limitations:
         lines.append(f"Limitation: {text}")

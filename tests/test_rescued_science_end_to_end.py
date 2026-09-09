@@ -165,9 +165,16 @@ def test_the_registry_reaches_gutmann_through_the_lewis_report():
     "The shape also has room for what is coming -- donor and acceptor
     numbers"."""
     result = _run("lewis_sites", "CS(C)=O")
-    labels = {f.label: f.display_value for f in result.facts if "Gutmann" in f.label}
-    assert labels["Gutmann donor number (DN)"] == "29.8 kcal/mol"
-    assert labels["Gutmann acceptor number (AN)"] == "19.3"
+    facts = {f.label: f for f in result.facts if "Gutmann" in f.label}
+
+    # A MIXED PAIR, which is why this reads `value_with_units` rather than
+    # `display_value`: a donor number is in kcal/mol and an acceptor number
+    # is dimensionless, so one arm proves the units are composed and the
+    # other proves an empty `units` adds no trailing space.
+    assert facts["Gutmann donor number (DN)"].display_value == "29.8"
+    assert facts["Gutmann donor number (DN)"].units == "kcal/mol"
+    assert facts["Gutmann donor number (DN)"].value_with_units == "29.8 kcal/mol"
+    assert facts["Gutmann acceptor number (AN)"].value_with_units == "19.3"
 
 
 def test_a_molecule_that_is_not_a_table_solvent_gets_no_donicity():

@@ -10,12 +10,15 @@ from __future__ import annotations
 
 import ast
 import math
+import typing
 from pathlib import Path
 
 import pytest
 
 from openchem.chem.report_adapter import report_from_fields
 from openchem.domain.report import (
+    LineChartAnnotation,
+    LineSeries,
     ReportResult,
     Stick,
     StickChartAnnotation,
@@ -150,3 +153,171 @@ def test_report_from_fields_carries_charts_through():
     )
     assert report.charts == (annotation,)
     assert report.facts, "the facts still arrive as well"
+
+
+# --- the second kind: a continuous curve -------------------------------------
+
+
+def _line(series_points, **overrides):
+    fields = {
+        "series": tuple(
+            LineSeries(points=points, name=name)
+            for name, points in series_points
+        ),
+        "x_label": "pH",
+        "y_label": "Fraction",
+        "x_descending": False,
+    }
+    fields.update(overrides)
+    return LineChartAnnotation(**fields)
+
+
+_CURVE = (("HA", ((0.0, 1.0), (7.0, 0.5), (14.0, 0.0))),)
+
+
+def test_a_well_formed_curve_is_accepted():
+    assert valid_chart_annotation(_line(_CURVE))
+
+
+def test_the_union_holds_both_kinds_and_dispatch_is_by_isinstance():
+    """A third kind must cost a `|` and nothing else.
+
+    `spatial` shipped as three from the start; this channel shipped as
+    one and the note on `ChartAnnotation` promised the second would be
+    additive. Asserted so a later consumer written around a bare
+    `StickChartAnnotation` is caught here rather than by a chart that
+    silently fails to draw.
+    """
+    from openchem.domain.report import ChartAnnotation
+
+    from openchem.domain.report import DepictionAnnotation
+
+    assert StickChartAnnotation in typing.get_args(ChartAnnotation)
+    assert LineChartAnnotation in typing.get_args(ChartAnnotation)
+    assert DepictionAnnotation in typing.get_args(ChartAnnotation)
+
+
+@pytest.mark.parametrize(
+    "points",
+    [
+        ((0.0, 1.0), (7.0, 0.5), (14.0, 0.0)),
+        ((14.0, 0.0), (7.0, 0.5), (0.0, 1.0)),
+        ((0.0, 1.0), (7.0, 0.5), (7.0, 0.4), (14.0, 0.0)),
+    ],
+    ids=["ascending", "descending", "duplicate-x"],
+)
+def test_a_monotonic_series_is_accepted_in_either_direction(points):
+    """NON-DECREASING or NON-INCREASING, never strict.
+
+    Two values at one x is a real thing to have -- two measurements at
+    one pH, a step in a titration -- and a producer may hand over a curve
+    running either way, so requiring strict increase would refuse both.
+    """
+    assert valid_chart_annotation(_line((("s", points),)))
+
+
+def test_a_scrambled_series_is_REFUSED_where_a_scrambled_stick_list_is_not():
+    """The one deliberate break from the sibling kind, and the geometry is why.
+
+    Sticks are drawn independently at their own positions, so order
+    affects only which of two sharing an x a hit test resolves to -- and
+    `StickChartAnnotation` preserves producer order for exactly that
+    reason. A line is a POLYLINE: consecutive points are joined, so order
+    is not metadata about the picture, it IS the picture.
+
+    Asserted as a PAIR so the difference is visible in one place. The
+    same x values, one kind accepting and the other refusing.
+    """
+    scrambled = ((0.0, 1.0), (14.0, 0.0), (7.0, 0.5))
+    assert not valid_chart_annotation(_line((("s", scrambled),)))
+
+    assert valid_chart_annotation(
+        StickChartAnnotation(
+            sticks=tuple(Stick(x, y) for x, y in scrambled),
+            x_label="m/z",
+            y_label="Relative abundance",
+            x_descending=False,
+        )
+    ), "the stick kind is unmoved -- it never required order and still does not"
+
+
+def test_a_named_series_holding_nothing_is_refused():
+    """A legend entry with no curve under it reads as "this is zero here".
+
+    `sticks` requires at least one member because `charts == ()` is
+    already how a producer says it has no chart; a series is the same
+    contradiction one level down. A producer with nothing to say for a
+    series omits the series.
+    """
+    assert not valid_chart_annotation(_line((("HA", ()),)))
+    assert not valid_chart_annotation(_line((("HA", ((0.0, 1.0),)), ("A-", ()))))
+
+
+def test_series_are_NOT_required_to_share_an_x_grid():
+    """The refusal this DECLINES, and the reason it was tempting.
+
+    The five pH calculators all sample `ph_grid`, so a shared-grid rule
+    would pass on every producer that exists today and refuse the first
+    legitimate overlay -- a computed curve against a measured one,
+    sampled where the instrument sampled. A bound written from the common
+    case is the `half_angle_deg < 180` mistake, which refused a real
+    Tolman measurement.
+    """
+    assert valid_chart_annotation(
+        _line((
+            ("computed", ((0.0, 1.0), (1.0, 0.5), (2.0, 0.2))),
+            ("measured", ((0.3, 0.9), (1.7, 0.3))),
+        ))
+    )
+
+
+def test_a_structurally_fine_curve_that_says_nothing_useful_is_ACCEPTED():
+    """The load-bearing half, and the reason this file exists.
+
+    A validator that only ever refuses grows into a domain validator one
+    plausible bound at a time. None of this is checked: that fractions
+    lie in [0, 1], that they sum to one, that pH is between 0 and 14,
+    that y is monotonic, or that the curve resembles a titration. They
+    are chemistry claims and the producers' own tests hold them.
+    """
+    assert valid_chart_annotation(
+        _line((("nonsense", ((-500.0, 1e9), (0.0, -1e9), (500.0, 0.0))),)),
+        )
+
+
+def test_nan_is_refused_and_is_not_a_way_to_write_a_gap():
+    """Recorded as well as enforced.
+
+    The next reader wanting a discontinuous curve will find the validator
+    refusing NaN with no supported way to express one, and the tempting
+    repair is to weaken the check. A series per segment is the cheap
+    answer and needs nothing new.
+    """
+    assert not valid_chart_annotation(_line((("s", ((0.0, 1.0), (1.0, math.nan))),)))
+    assert not valid_chart_annotation(_line((("s", ((0.0, 1.0), (math.inf, 0.5))),)))
+
+    segments = _line((("s (0-1)", ((0.0, 1.0), (1.0, 0.5))),
+                      ("s (2-3)", ((2.0, 0.4), (3.0, 0.1)))))
+    assert valid_chart_annotation(segments), "two segments express the gap"
+
+
+def test_a_boolean_is_not_a_coordinate():
+    """`isinstance(True, int)` is True in Python.
+
+    A producer handing over a flag where a coordinate belongs would
+    otherwise pass every numeric check and plot at 1.0 -- a picture built
+    from a type error, which reads as a result.
+    """
+    assert not valid_chart_annotation(_line((("s", ((0.0, 1.0), (True, 0.5))),)))
+
+
+def test_the_axis_rules_are_the_SAME_for_both_kinds():
+    """One concept, one implementation.
+
+    Both branches ask `_valid_axes`, so the two cannot drift apart on
+    what an axis IS -- the drift this repository has paid for whenever
+    one concept had two implementations.
+    """
+    assert not valid_chart_annotation(_line(_CURVE, x_label="  "))
+    assert not valid_chart_annotation(_line(_CURVE, y_label=""))
+    assert not valid_chart_annotation(_line(_CURVE, x_descending="yes"))

@@ -1609,18 +1609,93 @@ def compute_solubility(
         )
     )
 
+    # THE REPORT DECLARES THE CURVE, so every surface that renders a
+    # report draws it -- the Properties panel, the merged-results window,
+    # a batch detail. The `solubility_curve` calculator is a DIFFERENT
+    # registration with its own dialog, so this duplicates nothing.
+    chart = solubility_chart(analysis, parameters)
     return ReportResult(
         report_id="solubility",
         name="Solubility",
         category="solubility",
         molecule_uuid=molecule_uuid,
         facts=tuple(facts),
+        charts=() if chart is None else (chart,),
         assumptions=_method_chain(
             analysis.estimate, analysis.resolution, analysis.solvent, analysis.ionization,
             analysis.molecular_weight,
         ),
         limitations=tuple(limitations),
         provenance=provenance,
+    )
+
+
+def solubility_profile(
+    analysis, parameters: dict | None = None
+) -> tuple[list[float], dict[str, list[float]]]:
+    """The pH grid and the solubility series on it, in ONE place.
+
+    Two things draw this curve now -- the `solubility_curve` calculator's
+    own `PhCurveResult` and the `solubility` report's declared chart --
+    and two builders would be two chances for the picture in one surface
+    to disagree with the picture in the other.
+
+    **THE CURVE HONOURS THE SAME BOUND THE FACTS DESCRIBE**, which is the
+    reason `limit.log_units` is threaded in rather than defaulted. Caught
+    by rendering it: the facts said "limited at +3.0 logS" while the
+    chart climbed to 1.8e8 mg/mL, because one call site had not been
+    given the resolved limit. A fact and a picture disagreeing is worse
+    than either being wrong alone.
+    """
+    parameters = parameters or {}
+    unit = str(parameters.get("unit", LOG_S))
+    if unit not in DISPLAY_UNITS:
+        unit = LOG_S
+    grid = ph_grid_from(parameters)
+    values = profile(
+        analysis.baseline_logs,
+        grid,
+        analysis.pkas,
+        analysis.is_acid,
+        analysis.limit.log_units,
+    )
+    label = f"Solubility ({unit_symbol(unit)})"
+    return grid, {label: [in_unit(v, unit, analysis.molecular_weight) for v in values]}
+
+
+def solubility_chart(analysis, parameters: dict | None = None):
+    """The solubility profile as a declared chart, or None.
+
+    **NONE OUTSIDE WATER, AND NONE WITHOUT A BASELINE.** pH is an aqueous
+    concept, so there is no curve to draw in ethanol -- the report says so
+    in words and must not also draw a picture contradicting it. A refused
+    analysis has no numbers at all.
+
+    `x_descending=False`: pH increases left to right. NMR's descending
+    convention is specific to chemical shift and would be actively wrong
+    for a titration curve.
+    """
+    from openchem.domain.report import LineChartAnnotation, LineSeries
+
+    if analysis.refusal or analysis.baseline_logs is None or not analysis.solvent.is_water:
+        return None
+    grid, series = solubility_profile(analysis, parameters)
+    if not grid or not series:
+        return None
+    return LineChartAnnotation(
+        series=tuple(
+            LineSeries(points=tuple(zip(grid, values)), name=name)
+            for name, values in series.items()
+        ),
+        x_label="pH",
+        y_label=next(iter(series)),
+        x_descending=False,
+        title="Solubility vs pH",
+        caption=(
+            "Calculated from the intrinsic value and the pKa set, bounded by the "
+            "salt limit the facts describe. The report's limitations carry the model "
+            "and its caveats in full."
+        ),
     )
 
 
@@ -1673,19 +1748,8 @@ def compute_solubility_curve(
     if unit not in DISPLAY_UNITS:
         unit = LOG_S
     ph = float(parameters.get("pH", DEFAULT_PH))
-    grid = ph_grid_from(parameters)
-    mw = analysis.molecular_weight
     limit = analysis.limit
-
-    # The DRAWN curve must honour the same bound the facts describe.
-    # Caught by rendering it: the facts said "limited at +3.0 logS" while
-    # the chart climbed to 1.8e8 mg/mL, because this call was the one site
-    # the resolved limit had not been threaded into. A fact and a picture
-    # disagreeing is worse than either being wrong alone.
-    logs_values = profile(
-        analysis.baseline_logs, grid, analysis.pkas, analysis.is_acid, limit.log_units
-    )
-    series = {f"Solubility ({unit_symbol(unit)})": [in_unit(v, unit, mw) for v in logs_values]}
+    grid, series = solubility_profile(analysis, parameters)
 
     facts = _baseline_facts(analysis, unit)
     facts += _gutmann_facts(analysis.solvent.key)
