@@ -688,6 +688,202 @@
    "expect": [
     "dea-ii-11"
    ]
+  },
+  {
+   "name": "acetaldehyde",
+   "smiles": "CC=O",
+   "expect": [
+    "osha-z1-1"
+   ]
+  },
+  {
+   "name": "acetic acid",
+   "smiles": "CC(O)=O",
+   "expect": [
+    "osha-z1-2"
+   ]
+  },
+  {
+   "name": "acetic anhydride",
+   "smiles": "CC(=O)OC(C)=O",
+   "expect": [
+    "osha-z1-3"
+   ]
+  },
+  {
+   "name": "acetone",
+   "smiles": "CC(C)=O",
+   "expect": [
+    "osha-z1-4"
+   ]
+  },
+  {
+   "name": "acetonitrile",
+   "smiles": "CC#N",
+   "expect": [
+    "osha-z1-5"
+   ]
+  },
+  {
+   "name": "ammonia",
+   "smiles": "N",
+   "expect": [
+    "osha-z1-22"
+   ]
+  },
+  {
+   "name": "barium sulfate",
+   "smiles": "[Ba+2].[O-]S([O-])(=O)=O",
+   "expect": [
+    "osha-z1-36"
+   ]
+  },
+  {
+   "name": "calcium carbonate",
+   "smiles": "[Ca+2].[O-]C([O-])=O",
+   "expect": [
+    "osha-z1-67"
+   ]
+  },
+  {
+   "name": "carbon dioxide",
+   "smiles": "O=C=O",
+   "expect": [
+    "osha-z1-75"
+   ]
+  },
+  {
+   "name": "carbon monoxide",
+   "smiles": "[C-]#[O+]",
+   "expect": [
+    "osha-z1-77"
+   ]
+  },
+  {
+   "name": "chloroform",
+   "smiles": "ClC(Cl)Cl",
+   "expect": [
+    "osha-z1-97"
+   ]
+  },
+  {
+   "name": "cyclohexane",
+   "smiles": "C1CCCCC1",
+   "expect": [
+    "osha-z1-122"
+   ]
+  },
+  {
+   "name": "diethyl ether",
+   "smiles": "CCOCC",
+   "expect": [
+    "osha-z1-204"
+   ]
+  },
+  {
+   "name": "ethanol",
+   "smiles": "CCO",
+   "expect": [
+    "osha-z1-197"
+   ]
+  },
+  {
+   "name": "ethyl acetate",
+   "smiles": "CCOC(C)=O",
+   "expect": [
+    "osha-z1-195"
+   ]
+  },
+  {
+   "name": "formic acid",
+   "smiles": "OC=O",
+   "expect": [
+    "osha-z1-224"
+   ]
+  },
+  {
+   "name": "furfural",
+   "smiles": "O=Cc1ccco1",
+   "expect": [
+    "osha-z1-225"
+   ]
+  },
+  {
+   "name": "hexane",
+   "smiles": "CCCCCC",
+   "expect": [
+    "osha-z1-240"
+   ]
+  },
+  {
+   "name": "hydrogen chloride",
+   "smiles": "Cl",
+   "expect": [
+    "osha-z1-246"
+   ]
+  },
+  {
+   "name": "hydrogen peroxide",
+   "smiles": "OO",
+   "expect": [
+    "osha-z1-249"
+   ]
+  },
+  {
+   "name": "isopropyl alcohol",
+   "smiles": "CC(C)O",
+   "expect": [
+    "osha-z1-261"
+   ]
+  },
+  {
+   "name": "methanol",
+   "smiles": "CO",
+   "expect": [
+    "osha-z1-292"
+   ]
+  },
+  {
+   "name": "methyl acetate",
+   "smiles": "COC(C)=O",
+   "expect": [
+    "osha-z1-287"
+   ]
+  },
+  {
+   "name": "n-butyl alcohol",
+   "smiles": "CCCCO",
+   "expect": [
+    "osha-z1-58"
+   ]
+  },
+  {
+   "name": "naphthalene",
+   "smiles": "c1ccc2ccccc2c1",
+   "expect": [
+    "osha-z1-326"
+   ]
+  },
+  {
+   "name": "nitrobenzene",
+   "smiles": "[O-][N+](=O)c1ccccc1",
+   "expect": [
+    "osha-z1-336"
+   ]
+  },
+  {
+   "name": "phenol",
+   "smiles": "Oc1ccccc1",
+   "expect": [
+    "osha-z1-370"
+   ]
+  },
+  {
+   "name": "pyridine",
+   "smiles": "c1ccncc1",
+   "expect": [
+    "osha-z1-402"
+   ]
   }
  ],
  "negatives": [
@@ -1037,14 +1233,19 @@
    "name": "a 2019 A.13 phosphonamidic fluoride, the day before the additions",
    "smiles": "CCN(CC)C(=NP(=O)(C)F)C",
    "as_of": "2020-06-06",
-   "expect": ["cwc-2-b-4"],
+   "expect": [
+    "cwc-2-b-4"
+   ],
    "why": "NOT an empty expectation, and that is the point of this row. A.13 is withheld while B.4 -- dated 1997, in another ruleset, matching the same structure -- still applies. A filter that worked per RULESET, or globally, would empty this row and pass a naive before/after test."
   },
   {
    "name": "a 2019 A.13 phosphonamidic fluoride, the day they entered force",
    "smiles": "CCN(CC)C(=NP(=O)(C)F)C",
    "as_of": "2020-06-07",
-   "expect": ["cwc-1-a-13", "cwc-2-b-4"],
+   "expect": [
+    "cwc-1-a-13",
+    "cwc-2-b-4"
+   ],
    "why": "Inclusive at the start: a rule applies ON the day it takes effect. Moving the comparison to a strict `<` fails here and nowhere else in this corpus."
   },
   {
@@ -1057,19 +1258,26 @@
    "name": "a 2019 A.14 phosphoramidofluoridate, the day they entered force",
    "smiles": "CCN(CC)C(=NP(=O)(OC)F)C",
    "as_of": "2020-06-07",
-   "expect": ["cwc-1-a-14"]
+   "expect": [
+    "cwc-1-a-14"
+   ]
   },
   {
    "name": "the 2019 A.15 chemical, the day before",
    "smiles": "CCN(CC)C(=NP(=O)(C)F)N(CC)CC",
    "as_of": "2020-06-06",
-   "expect": ["cwc-2-b-4"]
+   "expect": [
+    "cwc-2-b-4"
+   ]
   },
   {
    "name": "the 2019 A.15 chemical, the day they entered force",
    "smiles": "CCN(CC)C(=NP(=O)(C)F)N(CC)CC",
    "as_of": "2020-06-07",
-   "expect": ["cwc-1-a-15", "cwc-2-b-4"]
+   "expect": [
+    "cwc-1-a-15",
+    "cwc-2-b-4"
+   ]
   },
   {
    "name": "a 2019 A.16 quaternary carbamate, the day before",
@@ -1081,7 +1289,9 @@
    "name": "a 2019 A.16 quaternary carbamate, the day they entered force",
    "smiles": "CN(C)C(=O)OC1=C(N=CC=C1)C[N+](C)(C)CCCCCCCCCC[N+](C)(C)CCO.[Br-].[Br-]",
    "as_of": "2020-06-07",
-   "expect": ["cwc-1-a-16"]
+   "expect": [
+    "cwc-1-a-16"
+   ]
   },
   {
    "name": "sarin, the day before the Convention entered force",
@@ -1094,14 +1304,19 @@
    "name": "sarin, the day the Convention entered force",
    "smiles": "CC(C)OP(C)(=O)F",
    "as_of": "1997-04-29",
-   "expect": ["cwc-1-a-1", "cwc-2-b-4"],
+   "expect": [
+    "cwc-1-a-1",
+    "cwc-2-b-4"
+   ],
    "why": "And the four 2019 additions are still withheld on this date, 23 years out -- the two date levels resolving independently in one screen."
   },
   {
    "name": "acetone, long before any of this",
    "smiles": "CC(C)=O",
    "as_of": "1900-01-01",
-   "expect": ["dea-ii-2"],
+   "expect": [
+    "dea-ii-2"
+   ],
    "why": "THE GUARD ON THE DEFAULT THAT COULD HAVE GONE THE OTHER WAY. An undated rule is NOT date-filtered, and 47 of the 91 shipped rules are undated -- the whole DEA list records no dates at all. Treating an absent date as 'never applicable' instead would empty half the screen while looking exactly like a substance that is not listed. Note what this row does NOT assert: that acetone was a listed precursor in 1900. It asserts that this screen's date told it nothing either way, which is what the coverage note for that ruleset says in as many words."
   }
  ]

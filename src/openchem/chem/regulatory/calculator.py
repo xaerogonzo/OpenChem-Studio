@@ -47,7 +47,14 @@ from openchem.chem.regulatory.engine import (
     parse_effective_date,
 )
 from openchem.chem.regulatory.loader import load_all
-from openchem.chem.regulatory.types import Jurisdiction, MatchType, ScreeningReport
+from openchem.chem.regulatory.types import (
+    Jurisdiction,
+    LimitPrecision,
+    LimitType,
+    MatchType,
+    QuantitativeLimit,
+    ScreeningReport,
+)
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.report import Detail, Fact, FactCategory, ReportResult
 from openchem.domain.structure_issue import Basis
@@ -65,6 +72,29 @@ JURISDICTION_CHOICES: dict[str, str] = {
     "Japan": Jurisdiction.JAPAN.value,
     "China": Jurisdiction.CHINA.value,
     "India": Jurisdiction.INDIA.value,
+}
+
+#: How each limit type reads on a line a person has to act on.
+#:
+#: **THE LABEL IS PART OF THE NUMBER, NOT DECORATION.** `Benzene 10` and
+#: `Benzene 10 ppm, 8-hour TWA` are different statements and a reader
+#: cannot recover the second from the first -- an 8-hour average and a
+#: value that must never be exceeded are opposite claims about the same
+#: quantity. This project has already shipped the failure once, when
+#: `Fact.units` was populated, read by three exporters and never rendered
+#: in the row, so `Copy report` carried units the screen did not.
+#:
+#: HAND-WRITTEN, and a GUARD rather than a derivation is what keeps it
+#: complete: `test_every_limit_type_has_a_label` compares this against the
+#: enum. Deriving a label from a member's name would produce "twa 8h",
+#: which is the id wearing a space -- the restate-the-label degeneracy the
+#: help-contract layer refuses one floor up.
+_LIMIT_TYPE_LABELS: dict[LimitType, str] = {
+    LimitType.TWA_8H: "8-hour TWA",
+    LimitType.STEL: "short-term exposure limit",
+    LimitType.CEILING: "ceiling, not to be exceeded at any time",
+    LimitType.PEAK: "acceptable maximum peak",
+    LimitType.OTHER: "limit type not classified",
 }
 
 _engine: RegulatoryEngine | None = None
@@ -363,6 +393,41 @@ def _line_fact(line: str) -> Fact:
     )
 
 
+def _limit_lines(limit: QuantitativeLimit) -> list[str]:
+    """One printed exposure limit, with everything needed to read it.
+
+    **THE SOURCE'S OWN NUMBER IS THE DISPLAYED VALUE.** `source.value` is
+    the characters the regulation prints, `(C)` and all, so what a reader
+    compares against 29 CFR 1910.1000 is the regulation's own string
+    rather than something reconstructed from it. Nothing here converts a
+    unit: `QuantitativeLimit` refuses a normalized value without a stated
+    method, and none of the shipped limits carries one.
+
+    THREE THINGS TRAVEL WITH THE NUMBER, and the line is worse without
+    any of them:
+
+      the unit        `10` alone is not a limit
+      the type        an 8-hour average and a never-exceed ceiling are
+                      opposite claims, and the value looks identical
+      the precision   Table Z-1's footnote (b) makes the SAME COLUMN
+                      exact alone and approximate beside a ppm entry, so
+                      a mg/m3 number silently means two different things
+
+    The qualifier gets its OWN line rather than being folded into this
+    one: it is the source's footnote verbatim -- "May be absorbed through
+    the skin" and longer -- and appending prose of unknown length to a
+    number is how a value ends up unreadable beside its own caption.
+    """
+    label = _LIMIT_TYPE_LABELS[limit.limit_type]
+    value = " ".join(part for part in (limit.source.value, limit.source.unit) if part)
+    if limit.precision is LimitPrecision.APPROXIMATE:
+        label = f"{label}, approximate"
+    lines = [f"    exposure limit: {value} ({label})"]
+    if limit.source.qualifier:
+        lines.append(f"        {limit.source.qualifier}")
+    return lines
+
+
 def _finding_lines(report: ScreeningReport) -> list[str]:
     """One line per finding, carrying enough to act on without a drill-down."""
     lines: list[str] = []
@@ -390,6 +455,12 @@ def _finding_lines(report: ScreeningReport) -> list[str]:
             lines.append(
                 f"    also used legitimately for: {', '.join(rule.legitimate_uses)}"
             )
+        # BEFORE the limitations, deliberately: the limit is the finding
+        # and the limitations qualify it, so a reader scanning down hits
+        # the number before the caveats about it.
+        for limit in rule.quantitative_limits:
+            lines.extend(_limit_lines(limit))
+
         for limitation in rule.interpretation.limitations:
             lines.append(f"    limitation: {limitation}")
     return lines

@@ -1434,19 +1434,21 @@ decisions the moment they are turned into a pattern. Confidence is capped
 mechanically by whether the quote is present, so a rule cannot claim to be
 verified against a statute nobody pasted.
 
-Ships all three CWC schedules and the US DEA listed chemicals — 91 rules
-over 96 entries, the five unencoded ones named below. Every other domain —
-controlled substances, export controls, transport, occupational,
-environmental and the rest — registers EMPTY and says so in the coverage
-report, because an absent domain is invisible and reads as "nothing
-applies". **Ten of the twelve domains are still empty.** Adding one is a
-JSON file and a build run, not a code change — **for an IDENTITY or
-STRUCTURAL-FAMILY domain, which is every one shipped so far.** The
-qualification is not pedantry: a QUANTITATIVE domain such as occupational
-exposure carries limits, units, averaging periods and footnotes that
-`Rule` has nowhere to put, so it needs a model extension before any JSON
-is worth writing. That is the next branch, and it is the counter-example
-this sentence had been missing.
+Ships all three CWC schedules, the US DEA listed chemicals and OSHA's
+Table Z-1 permissible exposure limits. Every other domain — controlled
+substances, export controls, transport, environmental and the rest —
+registers EMPTY and says so in the coverage report, because an absent
+domain is invisible and reads as "nothing applies". **Nine of the twelve
+domains are still empty.** Adding one is a JSON file and a build run, not
+a code change — **for an IDENTITY or STRUCTURAL-FAMILY domain.** The
+qualification is not pedantry, and occupational exposure is the measured
+counter-example: a QUANTITATIVE domain carries limits, units, averaging
+periods and footnotes that `Rule` had nowhere to put, so it needed a model
+extension before any JSON was worth writing. That extension is two value
+objects (`SourceLimitFact`, `QuantitativeLimit`), two enums, a
+`SourceSnapshot`, and one additive field — and the four rulesets that
+predate it load byte-identically, which is the compatibility boundary that
+had to be guarded rather than assumed.
 
 | ruleset | domain | entries | encoded | shape |
 |---|---|---|---|---|
@@ -1454,9 +1456,20 @@ this sentence had been missing.
 | CWC Schedule 2 | chemical weapons | 14 | 14 | eight identities, six generic families, three exemptions |
 | CWC Schedule 3 | chemical weapons | 17 | 16 | identities and precursors, all industrial chemicals |
 | 21 CFR 1310.02 | drug precursors | 49 | 47 | identities, two salts by expression |
+| 29 CFR 1910.1000 Table Z-1 | occupational exposure | 390 | 236 | identities by NAME, each carrying its printed limit |
 
 **An identity comes from the CAS the statute prints, never from the
-chemical's name.** Measured over Schedule 2 and 3's 27 named chemicals:
+chemical's name — AND TABLE Z-1 IS THE REGULATION THAT SAYS OTHERWISE.**
+Its footnote (c) reads "The CAS number is for information only.
+Enforcement is based on the substance name", and 176 of its 610 rows print
+no CAS at all, so an identity anchored on the CAS there would rest on
+something the regulation itself calls informational and would drop a
+quarter of the table. Neither rule is wrong: the CWC Annex treats the CAS
+as part of the listing and Z-1 prints one as a convenience. **The rule is
+to anchor on whatever the regulation treats as the identifier, and to let
+the regulation say which that is.** The measurement below is the CWC case.
+
+Measured over Schedule 2 and 3's 27 named chemicals:
 the statute's CAS resolved for all 27, a name resolver agreed with it for
 26, and asking only "does the name resolve" would have shipped two wrong
 structures — sulfur monochloride (both resolvers give a one-chlorine

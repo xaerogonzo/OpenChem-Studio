@@ -6139,6 +6139,250 @@ only "is the subject a tabulated acid?" gives the RIGHT answer whenever
 the partner is a tabulated base, so it survives that fixture too. What
 tells them apart is a tabulated acid against a partner in NEITHER table.
 
+## A LIMIT IS A NUMBER PLUS WHAT IT IS A LIMIT ON, AND FOUR WAYS THAT GOES WRONG
+
+Stage 6 of the regulatory work: the first QUANTITATIVE domain, OSHA's
+Table Z-1 permissible exposure limits under 29 CFR 1910.1000. The model is
+`SourceLimitFact` (what the regulation printed) beside `QuantitativeLimit`
+(our reading of it) -- `Rule`'s existing `LegalSource`/`MachineInterpretation`
+split one level down, as two TYPES rather than five `source_*` prefixes and
+a comment, so a reader can tell a transcription from a reading without
+reading a page of prose.
+
+**AND IT IS A REGULATION, NOT A STATUTE.** This project's own
+*"an identity comes from the CAS the statute prints"* rule was written
+about the CWC Annex, an actual treaty text. Table Z-1's footnote (c) says
+the opposite in its own words -- *"The CAS number is for information only.
+Enforcement is based on the substance name"* -- and 176 of its 610 rows
+print no CAS at all, so an identity anchored there would rest on something
+the regulation calls informational and drop a quarter of the table. Both
+rules are right for their own regulation. **The rule is to anchor on
+whatever the regulation treats as the identifier, and to let the regulation
+say which that is.**
+
+### `LimitPrecision` HAS THREE VALUES BECAUSE ONE COLUMN CARRIES TWO STATUSES
+
+Footnote (b): a mg/m3 entry *"is exact"* standing alone and *"is
+approximate"* when a ppm entry accompanies it. So two mg/m3 numbers,
+printed identically, are different claims and nothing about a cell reveals
+which. Measured over the shipped table: 197 exact, 234 approximate, 234 ppm
+entries UNSTATED -- because footnote (b) says nothing about ppm, and a
+two-valued flag would force a guess on every source that is silent, which
+is how an unstated precision becomes a claimed one.
+
+### THE FOUR ROW CLASSES, AND 110 ROWS THAT BECOME NO RULE
+
+    500 substances     390 HAS_LIMIT
+                         1 NO_LIMIT_PRINTED   respirable crystalline silica
+                        87 CROSS_REFERENCE    "; see 1910.1028"
+                        22 ELSEWHERE          the value is `(2)` or `(3)`
+
+**610 ROWS AND 500 SUBSTANCES ARE BOTH RIGHT**, and the gap read as a
+contradiction for an hour: 110 rows are INDENTED SUB-ROWS belonging to the
+substance above, so 610 = 500 + 110. The extractor groups a sub-row under
+its parent and carries its label as the limit's qualifier.
+
+**A ROW THAT DEFERS TO TABLE Z-2 IS NOT A ROW WITH NO LIMIT.** Encoding
+toluene or carbon disulfide with no limit would say OSHA sets none, which
+is the opposite of what the table says. They are counted and omitted, and
+the ruleset's own limitations say so.
+
+### THE COUNT IN THE PROSE WAS TYPED, AND IT WAS WRONG
+
+`known_limitations` said *"26 rows of Z-1 point at them"*. The table has 22
+rows deferring to Z-2/Z-3 and 87 cross-references. **Nothing could catch
+it, because no guard reads prose** -- and it was a number inside SHIPPED
+DATA, which is this file's most-repeated failure arriving in a new place.
+
+`row_census` is the fix: the four counts as structured data, with every
+number in the sentences DERIVED from it. The guard that compares the two
+is deliberately weak -- it can only catch them drifting -- and that is the
+point: **the strong version is that there is one source for the number, not
+two.**
+
+It lives in the SOURCE artefact and reaches the generated ruleset as prose,
+because `known_limitations` already flows loader -> `Ruleset` -> the screen.
+Carrying the census itself through would mean a field on `Ruleset` and a
+migration for four rulesets that have no census, which is a model change
+this branch did not need in order to stop the sentence lying.
+
+### TWO PROVENANCE HASHES, ANSWERING DIFFERENT QUESTIONS
+
+`provenance.source_document_sha256` hashes the source JSON in this
+repository, so it says whether OUR BUILD INPUT changed. That was enough
+while every source JSON was hand-transcribed. **The OSHA one is itself
+generated**, from a committed eCFR XML, so that field pointed at an
+intermediate and the chain back to the regulation stopped one link short.
+
+`SourceSnapshot` is the missing link -- document, sha256, retrieval date
+and a STATUS STRING, because retrieved today, current as of retrieval,
+official but historical and superseded are four states and a bool loses the
+one that matters. `None` for the four rulesets that predate it: an empty
+snapshot claims a retrieval that never happened, so the loader refuses a
+partial one rather than filling the gaps.
+
+#### AND `core.autocrlf` WOULD HAVE BROKEN IT ON CI
+
+`git add` printed *"LF will be replaced by CRLF the next time Git touches
+it"*. The snapshot carries **4763 bare LFs**, so a fresh Windows clone
+would hash 176334 CRLF-expanded bytes to a different digest than Linux CI,
+and the guard tying the shipped numbers to the regulation would go red on
+one platform for a reason with nothing to do with the regulation. This
+repository had **no `.gitattributes` at all**.
+
+**NORMALISING THE HASH INSTEAD WOULD BE WRONG HERE, and the distinction is
+worth keeping.** `build_regulatory_rulesets.py` DOES hash newline-normalised
+text, correctly -- it asks whether a GENERATED artefact is current, and a
+line ending is not a content edit. The snapshot is not ours. Its digest
+answers *"is this the document we read"*, so it has to be the document's own
+bytes, and the fix is to stop git translating them.
+
+**THE GUARD ASSERTS `.gitattributes`, NOT THE WORKING TREE**, because the
+working tree is right on the machine that wrote the file and wrong on the
+next clone -- which is exactly why this is easy to miss.
+
+### WRITING 24 SMILES BY HAND FOUND TWO WRONG STRUCTURES
+
+The corpus check this project already believes in, applied to a new
+ruleset: write a SMILES for a well-known substance INDEPENDENTLY, and ask
+whether it matches the rule OPSIN derived from the printed name. 17 of 24
+agreed -- including *Methyl alcohol* and *Ethyl ether*, which is the two
+routes agreeing on the regulation's older names. The disagreements were not
+noise.
+
+**AN ALIAS IN PARENTHESES BECOMES A TWO-COMPONENT MIXTURE.** Table Z-1
+prints `Chloroform (Trichloromethane)`; OPSIN reads the whole string as two
+components and returns `ClC(Cl)Cl.C(Cl)(Cl)Cl`, whose InChIKey is not
+chloroform's. So the rule shipped as a `verified` identity **that could
+never match a drawn chloroform** -- a screen that says nothing, which is the
+silence-read-as-reassurance this engine exists to prevent. Same for
+`Ethyl alcohol (Ethanol)`.
+
+**AN ELEMENT NAME GIVES OPSIN AN ATOM.** `Chlorine` resolves to `[Cl]`
+where the air contaminant with a 1 ppm ceiling is Cl2. Measured, every
+diatomic element does it: F, Cl, Br, I.
+
+    fragments all the SAME substance   collapse to one -- an alias names
+                                       the compound it is an alias for
+    fragments DIFFER                   leave alone; for a SALT the
+                                       multi-component structure IS the
+                                       identity
+    a lone atom of a diatomic element  REFUSE, and count it
+
+**REFUSED RATHER THAN CORRECTED.** Writing Cl2 by hand would be a typed
+structure standing in for a resolution, which is the one thing the build
+exists to prevent. The row becomes a counted unresolved entry a reader can
+see instead of a rule that can never fire.
+
+#### AND MY OWN REFUSAL WAS OVER-BROAD, WHICH ONLY COUNTING SHOWED
+
+The first version of the mixture rule refused ANY multi-component answer as
+a misparse. It read as a tidy safety check and **dropped 18 rules** --
+calcium carbonate, barium sulfate, ammonium sulfamate -- because for a salt
+`[Ca+2].[O-]C([O-])=O` is OPSIN working correctly.
+
+**236 fell to 216, and every test stayed green.** That is the
+green-suite-and-a-smaller-universe failure in miniature, and nothing but
+comparing the rule count either side of the change could see it. The guard
+written from it asserts the survivors BY NAME rather than by a threshold
+that would read as stronger than it is -- the same shape as
+`test_the_composite_rule_does_not_swallow_the_line_edits`.
+
+Final: **232 of 390 resolved**, and `resolved + unresolved == total_entries`
+is asserted, because this project has already shipped a build that
+double-counted an unresolved entry.
+
+### A FACT THE TABLE PRINTS, FILED WHERE NOTHING RENDERS IT
+
+95 substances carry a SKIN DESIGNATION -- the table's own column saying the
+substance is absorbed through the skin. The extractor put it in the rule's
+`assumptions`, and **`MachineInterpretation.assumptions` has no reader on
+the regulatory path at all**: measured, `.assumptions` is rendered only by
+the Lewis and interactions reports, while `limitations` reaches every
+finding line.
+
+So it was a source fact the application never showed. It belongs in
+`limitations` on the merits too -- the table PRINTS it, so it is not
+something we assumed, and what it says is that the airborne number does not
+cover that route, which is a limit on how the PEL may be read.
+
+### THE NUMBER REACHES THE SCREEN WITH ITS MEANING ATTACHED
+
+`Benzene 10` is dangerous in a way `Benzene 10 ppm (8-hour TWA)` is not, and
+a reader cannot recover the difference. This project has shipped that
+failure once already -- `Fact.units` was populated, read by three exporters
+and never rendered in the row, so *Copy report* carried units the screen did
+not -- so the guards assert the RENDERED LINE and not the JSON.
+
+Three things travel with the number and the line is worse without any:
+the unit, the limit type, and the precision. The qualifier gets its OWN line
+rather than being folded in, because it is a footnote of unknown length and
+appending prose to a number is how a value ends up unreadable beside its own
+caption.
+
+**`_LIMIT_TYPE_LABELS` IS HAND-WRITTEN AND GUARDED, NOT DERIVED.** Deriving
+a label from the enum member's name gives "twa 8h", which is the id wearing
+a space -- the restate-the-label degeneracy the help-contract layer refuses
+one floor up. Its first doc comment claimed it WAS derived, which is a
+comment asserting an intention it does not have.
+
+### THE PRIME, AND WHICH OF THREE NAME FIELDS MAY BE TRANSLITERATED
+
+Table Z-1 prints `4,4'-Thiobis (6-tert, Butyl-m-cresol)` with U+2032 PRIME.
+Three fields carry that name and they do not get the same treatment:
+
+    display_name   OURS. Rendered onto finding lines that reach Qt, logs
+                   and console streams -> transliterated
+    names          OURS. Handed to OPSIN, which writes it to a temp file
+                   in the console encoding -> transliterated
+    legal.quote    THE REGULATION'S. Verbatim, always.
+
+**The `names` half was a defect with a misleading symptom.** The raw prime
+failed with `UnicodeEncodeError`, and that string went into the coverage as
+the row's unresolved REASON -- telling a reader the substance could not be
+read when what happened is that our temp file could not be written.
+Transliterated it fails with `NamingError` instead, because
+*"6-tert, Butyl"* is not valid nomenclature: **the same outcome with an
+honest reason.** The name was deliberately NOT rewritten into
+`4,4'-thiobis(6-tert-butyl-m-cresol)`, which does resolve -- that would be
+guessing a structure by editing the regulation's own name.
+
+`_ascii_display` FAILS CLOSED on an unmapped character rather than dropping
+it: a silently mangled substance name is a wrong identity that looks like a
+right one.
+
+### AN EMPTY LIST IS NOT THE SAME AS SILENCE, IN A GENERATED FILE
+
+The build first emitted `"quantitative_limits": []` for every rule, which
+rewrote all 91 rules shipped before the field existed -- **190 changed lines
+carrying no information, and four moved ruleset hashes**. The loader reads
+an absent key as an empty tuple, so an emitted `[]` says exactly what
+silence says. The writer mirrors that contract now, and the four
+pre-existing rulesets come back byte-identical.
+
+**IT WAS NOT EVIDENCE OF STALENESS, WHICH IS WHAT IT LOOKED LIKE.**
+Categorising every changed line took one command and settled it; the
+alternative reading -- that the shipped rulesets had been stale for weeks --
+would have sent somebody a long way in the wrong direction.
+
+### THE BENCHMARK-CORPUS GUARD BECAME A RATCHET, WITH ITS REASON STATED
+
+The corpus guard was a blanket assertion over all 91 rules, and Table Z-1
+contributed 232 identity rules at once. A blanket rule would have forbidden
+landing them at all.
+
+It splits into
+`test_every_rule_outside_table_z1_is_exercised_by_the_benchmark_corpus` --
+**full strength for every ruleset that predates Z-1** -- and
+`test_the_table_z1_rules_awaiting_a_positive_case_only_shrink`, a recorded
+count of the Z-1 rules still owing one, which may only SHRINK -- the `tooltip_migration_debt.json` shape at a scale that does not
+warrant its own fixture file. **Nobody is expected to empty it quickly**,
+and the reason is the interesting part: a positive case here is a SMILES
+written INDEPENDENTLY of the resolver. Deriving one from the rule's own
+InChIKey would exercise the matcher against the number it came from and
+prove nothing about the name resolution -- which is precisely the check that
+found the two wrong structures above.
+
 ## Running the tests
 
 ```bash
