@@ -4695,6 +4695,34 @@ word "constancy" in a heading. **The cheap discriminator was one more run on
 the same SHA**, which this file already names as the discriminator and which
 cost forty-five minutes of runner time and no thought at all.
 
+##### AND THE FIFTH RUN MOVED THE VICTIM, ON AN IDENTICAL COLLECTED SET
+
+The clean run above refutes the constancy claim; this one buries it, and it
+is the sharper of the two because nothing about the input changed:
+
+    18628a0   crashed   4192   test_dialog_shows_the_signal_list
+    18628a0   crashed   4192   test_dialog_shows_the_signal_list   re-run
+    cf4f533   crashed   4192   test_dialog_shows_the_signal_list
+    cf4f533   CLEAN                                                re-run
+    502ecd3   crashed   4193   test_dialog_loads_a_conformer_into_the_3d_pane
+
+`git diff --name-only cf4f533 502ecd3` is **CLAUDE.md and nothing else**, so
+those two trees collect the same tests in the same order, byte for byte --
+and the victim still moved to the adjacent test one position along. **4 of 5
+crashed, two distinct tests, both inside `test_nmr_view_dialog.py`.**
+
+That is the recorded shape restored exactly: *the victim moves WITHIN the
+file*. Three identical observations looked like a deterministic tree and
+were three draws that happened to agree, which the fourth and fifth runs
+each falsified by a different route -- one by crashing not at all, one by
+crashing somewhere else on an input that did not change.
+
+**THE POSITION MEASUREMENT IS UNAFFECTED AND IS STILL THE USEFUL PART.**
+4196 on master and 4196 here is a statement about the collected lists, so no
+number of runs can move it; it is what says the branch did not shift this
+victim, and it stays true whichever test the crash lands on.
+
+
 ### THE ONE NEW DATUM IS `late`, AND IT IS MINE
 
 Every one of the ten previously recorded observations reports `0 late
