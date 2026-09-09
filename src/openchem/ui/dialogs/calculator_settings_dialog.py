@@ -71,8 +71,23 @@ class CalculatorSettingsDialog(QDialog):
             return widget
         if parameter.kind == "choice":
             widget = QComboBox(self)
-            widget.addItems(parameter.choices or [])
-            widget.setCurrentText(str(parameter.default))
+            # `addItem(label, userData=code)` when labels are declared, so
+            # `parameters()` can read the CODE back off `currentData()`.
+            # With none declared the item carries no data, `currentData()`
+            # is None, and the displayed text is the stored value exactly
+            # as before -- which is what keeps every existing caller and
+            # every retained result's key unmoved.
+            labels = parameter.choice_labels
+            for index, choice in enumerate(parameter.choices or []):
+                if labels is None:
+                    widget.addItem(choice)
+                else:
+                    widget.addItem(labels[index], choice)
+            if labels is None:
+                widget.setCurrentText(str(parameter.default))
+            else:
+                position = widget.findData(parameter.default)
+                widget.setCurrentIndex(position if position >= 0 else 0)
             return widget
         if parameter.kind == "bool":
             widget = QCheckBox(self)
@@ -97,7 +112,15 @@ class CalculatorSettingsDialog(QDialog):
             if isinstance(widget, (QDoubleSpinBox, QSpinBox)):
                 values[parameter.name] = widget.value()
             elif isinstance(widget, QComboBox):
-                values[parameter.name] = widget.currentText()
+                # THE CODE WHERE ONE EXISTS, the displayed text otherwise.
+                # What this returns is hashed into `parameters_key` and so
+                # into every retained result's identity, which is why a
+                # calculator declaring `choice_labels` must not store its
+                # prose: rewording a label would orphan the cache.
+                data = widget.currentData()
+                values[parameter.name] = (
+                    widget.currentText() if data is None else data
+                )
             elif isinstance(widget, QCheckBox):
                 values[parameter.name] = widget.isChecked()
             elif isinstance(widget, QLineEdit):

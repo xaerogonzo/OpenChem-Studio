@@ -128,3 +128,127 @@ def test_parameters_with_multiple_kinds():
     dialog = CalculatorSettingsDialog(definition)
 
     assert dialog.parameters() == {"pH": 7.0, "count": 3, "mode": "X", "flag": False}
+
+
+# --- choices are codes; labels are prose --------------------------------
+
+
+def _definition(parameter):
+    from openchem.domain.calculator import CalculatorDefinition, RegistryExecution
+
+    return CalculatorDefinition(
+        calculator_id="probe",
+        display_name="Probe",
+        category="probe",
+        description="A synthetic definition, so no shipped calculator is the fixture.",
+        execution=RegistryExecution(compute=lambda *a, **k: None),
+        parameters=[parameter],
+    )
+
+
+def test_a_choice_parameter_stores_its_code_not_its_label():
+    """The stored value is hashed into `parameters_key`.
+
+    `CalculatorSettingsDialog.parameters()` read `currentText()`, so a
+    `"choice"` parameter put its ENGLISH LABEL into every retained result's
+    identity -- and rewording that label silently orphaned every result
+    computed under the old wording.
+    """
+    from openchem.domain.calculator import CalculatorParameter
+
+    dialog = CalculatorSettingsDialog(
+        _definition(
+            CalculatorParameter(
+                name="role",
+                label="Role",
+                kind="choice",
+                default="acid",
+                choices=["auto", "acid", "base"],
+                choice_labels=[
+                    "Work it out from the structures",
+                    "This molecule is the acid",
+                    "This molecule is the base",
+                ],
+            )
+        )
+    )
+    widget = dialog._widgets["role"]
+
+    assert widget.currentText() == "This molecule is the acid", "the prose is shown"
+    assert dialog.parameters() == {"role": "acid"}, "the code is stored"
+
+
+def test_a_choice_parameter_without_labels_still_stores_its_text():
+    """THE NARROW HALF, and the load-bearing one.
+
+    Twenty-three of the twenty-four shipped `"choice"` parameters declare
+    no labels, and their stored values are part of results already
+    retained. "Always store the code" would change all of them at once;
+    with `choice_labels` absent the displayed text must remain the stored
+    value, byte for byte.
+    """
+    from openchem.domain.calculator import CalculatorParameter
+
+    dialog = CalculatorSettingsDialog(
+        _definition(
+            CalculatorParameter(
+                name="mode",
+                label="Mode",
+                kind="choice",
+                default="Fast",
+                choices=["Fast", "Accurate"],
+            )
+        )
+    )
+
+    assert dialog._widgets["mode"].currentText() == "Fast"
+    assert dialog.parameters() == {"mode": "Fast"}
+
+
+def test_mismatched_labels_are_refused_at_construction_not_at_click():
+    """A combo box silently showing fewer entries than it stores is the
+    fail-open version of this. Refused where it is written."""
+    import pytest
+
+    from openchem.domain.calculator import CalculatorParameter
+
+    with pytest.raises(ValueError, match="matched positionally"):
+        CalculatorParameter(
+            name="role", label="Role", kind="choice", default="acid",
+            choices=["auto", "acid", "base"], choice_labels=["Auto"],
+        )
+
+    with pytest.raises(ValueError, match="without choices"):
+        CalculatorParameter(
+            name="role", label="Role", kind="choice", default="acid",
+            choice_labels=["Auto"],
+        )
+
+
+def test_an_unknown_parameter_kind_is_refused_at_registration():
+    """`_build_widget` matches no branch for an unknown kind and returns
+    nothing, so the control is silently absent from the dialog. A typo
+    should be a failing import instead."""
+    import pytest
+
+    from openchem.domain.calculator import CalculatorParameter
+
+    with pytest.raises(ValueError, match="unknown parameter kind"):
+        CalculatorParameter(name="x", label="X", kind="slider", default=1)
+
+
+def test_every_shipped_parameter_declares_a_known_kind(qapp):
+    """The population, so a new calculator cannot introduce a sixth kind
+    without the dialog learning to build it."""
+    from openchem.bootstrap import build_service_container
+    from openchem.domain.calculator import PARAMETER_KINDS
+
+    registry = build_service_container().calculator_registry
+    kinds = {
+        parameter.kind
+        for category in registry.categories()
+        for definition in registry.by_category(category)
+        for parameter in definition.parameters
+    }
+    assert kinds, "no shipped calculator declares a parameter, so this proves nothing"
+    assert kinds <= PARAMETER_KINDS
