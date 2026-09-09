@@ -4664,6 +4664,37 @@ the same shape as the disposal experiment and costs the same kind of runner
 time. Recorded so the next person starts from the position measurement rather
 than from a diff.
 
+#### AND THE FOURTH RUN WAS CLEAN, WHICH REFUTES THE CONSTANCY ABOVE
+
+Kept with its correction beside it rather than edited away, because the WAY
+it was got wrong is this file's own most-repeated failure and I committed it
+knowing that:
+
+    18628a0   crashed   57%, after 4192 tests
+    18628a0   crashed   57%, after 4192 tests    re-run, SAME SHA
+    cf4f533   crashed   57%, after 4192 tests
+    cf4f533   CLEAN                              re-run, SAME SHA
+
+**A SAME-SHA PAIR THAT DISAGREES IS THE WHOLE ARGUMENT**, exactly as it was
+for `0da570c`/`4267fdc` one section up. So this tree is NOT deterministic and
+the victim's constancy was three samples of a coin flip -- 3 of 4 now, against
+master's 0 of 2, which Fisher exact puts at p = 0.21. Even less remarkable
+than when it was written.
+
+**WHAT SURVIVES IS THE POSITION MEASUREMENT**, which is a fact about the
+collected lists rather than about any run: 4196 on both trees, unmoved. And
+what survives of the constancy is only the weaker statement that WHEN this
+tree crashes it has so far crashed at the same place -- which is three
+observations of a process that also produces clean runs, and is not a
+property anybody should build on.
+
+**FOURTH INSTANCE HERE OF TIGHTENING A CLAIM PAST WHAT THE DATA CARRIES**,
+after n=7, n=10 and n=2. The hedging was right and insufficient: the entry
+said LEAD, named the base rate and computed the p-value, and still put the
+word "constancy" in a heading. **The cheap discriminator was one more run on
+the same SHA**, which this file already names as the discriminator and which
+cost forty-five minutes of runner time and no thought at all.
+
 ### THE ONE NEW DATUM IS `late`, AND IT IS MINE
 
 Every one of the ten previously recorded observations reports `0 late
