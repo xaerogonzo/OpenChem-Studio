@@ -5691,6 +5691,243 @@ search finds is the population that MENTIONS the technique, never the
 population that USES it -- the same lesson as grepping for a phrase
 counting the source rather than the outcome, one layer along.
 
+## A UNIT IN BOTH FIELDS AND A UNIT IN NEITHER, AND THEY PARTITIONED PERFECTLY
+
+Reported as the Properties panel showing `Detonation pressure (C-J) 70.7`
+with no `kbar`. `FactView` rendered `display_value` alone, and the field
+was not dead -- `report_format`, `result_clipboard` and `comparison_panel`
+all read `units` -- so **Copy report carried what the screen did not**.
+
+Fixing it found the opposite defect at the same time. Measured over the
+real registry: **896 distinct facts, 449 carrying units**, and the two
+populations do not overlap at all.
+
+    223 from `report_adapter`   the unit in BOTH fields, already
+                                exporting "C: 60.00 % %"
+    226 native                  the unit in neither place a reader
+                                could see
+
+`Fact.value_with_units` is the one place they are joined, for the EIGHT
+consumers that want a fact as one string. **JSON and CSV do not use it**,
+deliberately: they give value and units their own field, which is the
+shape a script wants and the reason `units` exists at all.
+
+**THE ROUND TRIP IS UNCHANGED, which is what made this safe on a
+plugin-API surface.** `ReportResult.matched` recomposes `label: value
+units`, so all 223 adapted lines leave byte-identical -- verified by
+dumping every matched line before and after rather than by reasoning.
+What DID change is that a NATIVE fact's line now carries its units:
+`"Boiling point (normal): 259.91"` became `"... 259.91 K"`, because a
+temperature with no unit was ambiguous rather than concise. 226 lines
+out, 224 in (two pairs deduplicated once they gained units).
+
+### THE FIRST PROBE MEASURED A POPULATION THAT COULD NOT CONTAIN THE BUG
+
+Sweeping `CALCULATOR_DEFINITIONS` reported **zero** composition failures
+and read exactly like a clean result. `chem/crystal_report.py` is not a
+registered calculator -- it reaches the user through the crystal path and
+`chem/powder_xrd.py` declares no `USER_FACING_PROVIDER` at all -- so the
+sweep never ran it. Walking every report BUILDER instead:
+
+    atom_report      1   "0.76 A" beside units="A", hand-written
+    crystal_report  72   a four-quantity SENTENCE claiming "degrees
+                         2theta", so the composition appended a unit to
+                         the wrong number
+
+**`Fact.units` BELONGS TO `value`, NOT TO `display_value`**, which its own
+`#:` comment says ("set when the value is a number, so a consumer can
+format or compare without re-parsing `display_value`"). Composing is
+sound only while `display_value` is a bare rendering of the same number.
+
+`tests/test_fact_units_convention.py` holds that in two halves, and the
+second is load-bearing: once the powder lines were fixed **no shipped
+fact reached the sentence rule**, so deleting it left the population walk
+green. The walk proves the producers comply; a constructed-case arm
+proves the rule can still say no.
+
+## THE POWDER PATTERN REACHED THE CHART CHANNEL, AND TWO COMMENTS WERE LYING
+
+`PowderPattern` has carried intensities since `5c00ace` and
+`crystal_report` emitted no charts at all. `pattern_chart` is a
+PROJECTION -- it reads `reflections` exactly as `calculate_pattern`
+produced them and rederives nothing, because a presentation builder that
+recomputes is a second place for the science to be wrong.
+
+**THE SCALE BASIS IS DOMAIN METADATA NOW.** `calculate_pattern` truncates
+BEFORE it normalises, so on a cut pattern `FULL_SCALE` marks the
+strongest line in the reported window rather than in range -- and two
+patterns cut at different lengths are not on one scale. That was
+recoverable only by reading prose; `intensity_scale_covers_the_whole_range`
+answers it without English.
+
+### DRIVEN AND MAGNIFIED, AND BOTH DEFECTS WERE A COMMENT AGAINST ITS CODE
+
+Every test green, and a 3x crop showed two. Both in `StickChartWidget`,
+both latent until powder data reached them -- a mass spectrum's peaks are
+far apart and its caption is one sentence.
+
+    _LABEL_CLEARANCE  said the text must not overlap "the axis OR ITS
+                      NEIGHBOURS" and that "a label sitting on the wrong
+                      stick is worse than no label", while the only gate
+                      was a HEIGHT test. Twelve lines clustered at low
+                      angle overprinted three (hkl) indices into
+                      "(0 1 {1 -1)1 0)".
+    _MAXIMUM_CAPTION  said a long caption "is elided, which is visibly
+    _FRACTION         different from being silently clipped", while
+                      `drawText` into a fixed rect clipped with no marker
+                      at all. The caption ended on "This list is CUT: the
+                      tallest" -- **the truncation warning, truncated.**
+
+Labels are placed TALLEST FIRST and a colliding one is dropped, so the
+survivor is the peak a reader is looking for rather than whichever came
+first. The half-width is MEASURED: the fixed 45 px box it replaced was
+generous for `M+2` and far too narrow for `(0 1 -2)`, so a collision rule
+built on it would have been a claim about the font.
+
+**MARKING THE CUT MADE IT HONEST WITHOUT MAKING IT READABLE**, which is
+the half worth remembering. The fix that mattered was on the PRODUCER
+side: `chart_caption` is the CELL form -- two claims and a pointer -- and
+the full caveats stay on the report's `limitations`. `describe_failure`'s
+split, applied to a caption.
+
+### AND THE MODULE DOCSTRING HAD BEEN FALSE FOR THREE COMMITS
+
+`powder_xrd.py` still opened "why their heights are refused" and
+"## POSITIONS ARE SHIPPED. INTENSITIES ARE REFUSED" while
+`structure_factor_squared` sat 400 lines below it and `intensity_refusal()`
+said the unconditional refusal was retired. Corrected with the reasoning
+kept, because the refusal was right when written -- and because its own
+stated unblocking condition ("a machine-readable copy of this table")
+went unchecked for ten days.
+
+## A SECOND CHART KIND, AND ONE RENDERER FOR CURVES
+
+`LineChartAnnotation` carries several `LineSeries` on one pair of axes.
+Adding the kind and moving `PhCurveWidget` onto it were ONE task: that
+widget already did multi-series drawing, a legend, gridlines, a zero line
+and a hover readout, and its only coupling to pH was its argument type.
+
+**NO pH CONCEPT REACHED THE GENERIC ANNOTATION.** No `show_pKa`, no
+buffer highlight, no chemistry-specific readout. The one thing that moved
+is `y_min`/`y_max`, which is an AXIS declaration beside `x_descending` --
+a quantity with real bounds gets an axis at those bounds, as true of a
+quantum yield as of a microspecies fraction.
+
+### THE ONE DELIBERATE BREAK FROM THE SIBLING KIND
+
+`valid_chart_annotation` REFUSES a series whose x is not monotonic, where
+`StickChartAnnotation` explicitly requires no order and preserves the
+producer's. The geometry is why: sticks are drawn independently at their
+own positions, so order only decides which of two sharing an x a hit test
+resolves to. **A line is a POLYLINE -- order is not metadata about the
+picture, it IS the picture.**
+
+NON-DECREASING **or** NON-INCREASING, never strict, because two values at
+one x is a real thing to have. A parametric path (a hysteresis loop)
+is a different kind, not a looser rule here.
+
+**IT DECLINES A SHARED-x-GRID RULE AND SAYS WHY.** The five pH
+calculators all sample `ph_grid`, so a rule fitted to them would pass on
+every producer that exists today and refuse the first computed-against-
+measured overlay -- the `half_angle_deg < 180` mistake, which refused a
+real Tolman measurement because the common case looked like the only one.
+
+### THE PLAN'S NAMED PRODUCER HAD NO ROUTE, AND ANOTHER DID
+
+"The five pH calculators declare their curve" cannot happen:
+`PhCurveResult` is its own `ScientificResult` and never becomes a
+`ReportResult` outside `_build_facts_view`, which turns charts OFF
+because the dialog already shows the curve an inch above. Wiring it there
+would draw the same numbers twice.
+
+`compute_solubility` returns a real `ReportResult` from the same analysis
+its curve calculator uses, so that is the producer -- through ONE
+`solubility_profile` builder, since a fact and a picture disagreeing is
+worse than either being wrong alone, which that module already records
+paying for.
+
+## A DEPICTION, FROM THE LAYER TYPE THAT ALREADY EXISTED
+
+The roadmap's Lewis-site diagrams, and the finding is how little was
+needed. `render_2d_svg` has taken per-atom colours and labels since Phase
+18; `VisualizationLayer` has been "atom index -> colour and label,
+renderer-independent" since Phase 11. **What was missing was a producer
+saying WHICH atoms.**
+
+So `VisualizationLayer` MOVED to `domain/visualization.py` rather than
+being copied. A `DepictionAnnotation` with its own per-atom map would
+have been a second representation of one idea, and the 3D viewer and a
+declared 2D depiction now describe the same thing. The move was possible
+because every one of those types is a frozen dataclass of primitives:
+the new module imports no toolkit and no GUI, and `ui/visualization.py`
+re-exports all of it so the **twenty-two** modules naming them are
+untouched. The BUILDERS stay behind -- they need `chem.scalar_field`.
+
+The same argument was made once before in that very file:
+`CATEGORICAL_SCALE` moved to `domain/common.py` when `chem/` needed it,
+because the marker "was never a UI concept". Neither is a layer.
+
+### THE RENDER CONTEXT IS INJECTED, AND THE ANNOTATION CARRIES NO GEOMETRY
+
+    annotation      WHAT to draw -- atom indices and their styling
+    report          WHICH molecule -- StructureReport.molecule_uuid
+    render context  the geometry, resolved and supplied by the UI
+
+`FactView.set_structure_resolver` is that context. A widget reaching for
+a project to find a molblock would be a view that knows where structures
+live; a host with no project supplies nothing and the depiction SAYS SO
+rather than drawing an empty frame.
+
+The validator checks what it can without the molecule -- index types,
+duplicates, one canonical hex colour -- and deliberately cannot ask
+whether the molecule HAS atom 99. `render_2d_svg`'s own `drawable()`
+guard already answers that, and exists because calculators legitimately
+hold data keyed to `AddHs(mol)` while the depiction is the editor's
+molblock.
+
+### AND THE SHOT FOUND A DEFECT INTRODUCED MINUTES EARLIER
+
+The Lewis diagram drew two blue atoms and **nothing on screen said blue
+meant donor**: the caption was declared and dropped. For a depiction the
+caption IS the legend, so it was the one thing a reader needed -- and
+both other chart widgets had painted theirs from the start. This file's
+own rule, a meaning that lives only in a tooltip being absent from every
+screenshot, with the meaning not reaching even a tooltip.
+
+The layering guard caught the second: the drive step imported RDKit into
+`app/`, which `test_layer_never_imports_chemistry_engines_directly`
+forbids. It goes through `chemistry_engine` now, as `_do_smiles` does,
+and the driven output is identical either way.
+
+### FIFTY-ONE MUTATIONS, FIFTY-ONE CAUGHT, AND SIX NEEDED A GUARD WRITTEN
+
+Across the four stages. The survivors are the entry worth reading,
+because five of the six were MY tests rather than untested code:
+
+    matched drops units again          nothing asserted the contract at all
+    the crystal report declares no     seven guards on the BUILDER, none on
+    chart                              the wiring -- "testing a helper is
+                                       not testing the wiring", again
+    the label collision rule           written from the survivor
+    a chart outside water              BOTH "no chart" tests asserted
+                                       `charts == ()` on results that take
+                                       an early return BEFORE the chart is
+                                       built, so dropping both guards left
+                                       the file green
+    the union loses a kind             the union test never named the third
+    "no structure" logged as a FAULT   the early return LOOKED equivalent
+                                       because the exception path shows the
+                                       same words -- and would log a
+                                       warning on every render of a view
+                                       with no resolver, which is how a log
+                                       stops being read
+
+**"A CHART OUTSIDE WATER" IS THE ONE TO REMEMBER.** It is the degenerate
+fixture in miniature: a test can assert the right thing about the wrong
+code path and never fail. Asserted on the predicate instead, with its own
+setup checked -- an unreachable branch is a question about where to
+assert.
+
 ## Running the tests
 
 ```bash
@@ -5700,7 +5937,52 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-22 minutes**, ending at `7035 passed, 16 skipped`
+A clean run is **6-22 minutes**, ending at `7116 passed, 16 skipped`
+(measured 2026-09-08, **20m01**, on `widen-the-presentation-channel` --
+`Fact.units` reaching the row, and the chart channel going from one kind
+to three.
+
+**+81 collected and 0 REMOVED**, diffed both directions with `comm` in a
+detached worktree, with the `PYTHONPATH` override asserted before the
+count was believed (`import openchem` reported the WORKTREE's `src`):
+
+    master     17c475c   COLLECTS 7051
+    this one             COLLECTS 7132   = 7051 + 81
+    the run                       7116 passed + 16 skipped = 7132
+
+    24  test_depiction_annotations.py   the third kind, the layer move,
+                                        and the render-context boundary
+    12  test_line_chart_widget.py       the generic curve renderer and
+                                        the pH adapter's golden check
+    12  test_chart_annotations.py       the line kind's validator, and
+                                        the refusals it DECLINES
+     9  test_powder_xrd.py              the projection, the two
+                                        limitations, the scale basis
+     5  test_stick_chart_widget.py      label collision, visible elision
+     5  test_chart_widget_factory.py    dispatch by type, both failure
+                                        modes told apart
+     4  test_solubility.py              the curve's real producer
+     4  test_fact_units_convention.py   ALL SIX report builders, because
+                                        the registry sweep could not
+                                        reach the offender
+     3  test_report_adapter.py          the duplication, the round trip
+     3  test_fact_view.py               the row itself
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored,
+since pytest's progress dots share the line -- as do `^FAILED`, `^ERROR`
+and a whole-line-anchored count of `F`/`E` progress characters. The skips
+are the deterministic 16. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**CLEAN ON ITS FIRST RUN**, and 20m01 sits near the top of the band
+without moving it; the 6-22 range already covers it. An earlier run of
+this branch at stage three came in at 16m58 on a tree 24 tests smaller,
+which is the same unexplained variance this section has now recorded six
+times -- do not read either end as predictive.)
+
+Before it: `7035 passed, 16 skipped`
 (measured 2026-09-08, **16m25**, on `mass-spectrometry-and-a-chart-channel`
 -- the isotope envelope, the producer-declared chart channel and one
 merged results window per molecule.
