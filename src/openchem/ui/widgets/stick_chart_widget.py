@@ -76,6 +76,17 @@ _MINIMUM_CAPTION_LINES = 2
 #: elided, which is visibly different from being silently clipped.
 _MAXIMUM_CAPTION_FRACTION = 0.4
 
+#: Clear space either side of a stick's label, in pixels, so two that
+#: survive the collision test still read as two.
+_LABEL_GAP = 3.0
+
+#: What a caption that does not fit ends with. A marker rather than
+#: silence, because a sentence stopping mid-word reads as a bug in the
+#: producer rather than as a widget running out of room -- and the first
+#: caption long enough to hit this was a TRUNCATION warning, which ended
+#: at "This list is CUT: the tallest".
+_CAPTION_ELISION = "[...]"
+
 #: How far apart a single stick's axis is opened out, so a one-peak chart
 #: is not a zero-width axis. In m/z this is about one isotope spacing,
 #: which keeps such a chart looking like a spectrum rather than one bar.
@@ -346,6 +357,7 @@ class StickChartWidget(QWidget):
 
         available = rect.height() - LABEL_HEIGHT
         painter.setPen(QPen(_STICK_COLOR))
+        placed: list[tuple[float, float, str]] = []
         for stick in annotation.sticks:
             x = to_widget_x(stick.x, rect, (low, high), annotation.x_descending)
             height = available * (stick.y / scale)
@@ -353,25 +365,48 @@ class StickChartWidget(QWidget):
                 QPointF(x, rect.bottom() - height), QPointF(x, rect.bottom())
             )
             if stick.label and abs(height) > LABEL_HEIGHT * _LABEL_CLEARANCE:
-                painter.drawText(
-                    QRectF(x - 45, rect.bottom() - height - LABEL_HEIGHT, 90, LABEL_HEIGHT),
-                    Qt.AlignmentFlag.AlignCenter,
-                    stick.label,
-                )
+                placed.append((abs(height), x, stick.label))
+
+        # **TALLEST FIRST, AND A LABEL THAT WOULD COLLIDE IS DROPPED.**
+        # `_LABEL_CLEARANCE`'s own comment has always said the text must
+        # not overlap "the axis OR ITS NEIGHBOURS" and that a label
+        # sitting on the wrong stick is worse than no label -- and only
+        # the axis half was implemented. A mass spectrum never showed it
+        # because isotope peaks are far apart; twelve powder lines
+        # clustered at low angle overprinted three (hkl) indices into
+        # "(0 1 {1 -1)1 0)", found by driving the app and cropping 3x.
+        #
+        # Height order rather than x order is what makes the survivor the
+        # right one: the strongest line is the one a reader is looking
+        # for, so a weak neighbour yields to it rather than to whichever
+        # happened to come first.
+        occupied: list[tuple[float, float]] = []
+        for _height, x, text in sorted(placed, key=lambda item: -item[0]):
+            half = _label_half_width(painter, text)
+            if any(x - half < right and left < x + half for left, right in occupied):
+                continue
+            occupied.append((x - half, x + half))
+            painter.drawText(
+                QRectF(x - half, rect.bottom() - _height - LABEL_HEIGHT,
+                       half * 2.0, LABEL_HEIGHT),
+                Qt.AlignmentFlag.AlignCenter,
+                text,
+            )
 
         if annotation.caption:
             painter.setPen(QPen(_CAPTION_COLOR))
+            box = QRectF(
+                MARGIN / 2,
+                rect.bottom() + MARGIN * 0.75,
+                max(self.width() - MARGIN, 1.0),
+                max(float(self.height()) - rect.bottom() - MARGIN * 0.75, 1.0),
+            )
             painter.drawText(
-                QRectF(
-                    MARGIN / 2,
-                    rect.bottom() + MARGIN * 0.75,
-                    max(self.width() - MARGIN, 1.0),
-                    max(float(self.height()) - rect.bottom() - MARGIN * 0.75, 1.0),
-                ),
+                box,
                 int(Qt.AlignmentFlag.AlignHCenter)
                 | int(Qt.AlignmentFlag.AlignTop)
                 | int(Qt.TextFlag.TextWordWrap),
-                annotation.caption,
+                caption_for(painter, annotation.caption, box),
             )
 
 
@@ -379,3 +414,47 @@ def axis_caption(label: str, units: str) -> str:
     """`"m/z"`, or `"Relative abundance (%)"` -- the `Fact.value`/`Fact.units`
     split, composed for display in the one place that displays it."""
     return f"{label} ({units})" if units else label
+
+
+def _label_half_width(painter: QPainter, text: str) -> float:
+    """Half the room `text` needs, with a gap so neighbours do not touch.
+
+    MEASURED rather than the fixed 45 px half-box this replaced. That
+    constant was wide enough for `M+2` and far too narrow for `(0 1 -2)`,
+    so a collision test built on it would have been a claim about the
+    font rather than about the labels -- the mistake this project already
+    records for a caption cap fitted at one DPI.
+    """
+    return painter.fontMetrics().horizontalAdvance(text) / 2.0 + _LABEL_GAP
+
+
+def caption_for(painter: QPainter, caption: str, box: QRectF) -> str:
+    """`caption`, elided with a marker if it cannot fit `box`.
+
+    **THE COMMENT ON `_MAXIMUM_CAPTION_FRACTION` PROMISED THIS AND THE
+    CODE DID NOT DO IT.** It said a caption past the cap "is elided, which
+    is visibly different from being silently clipped", while `drawText`
+    into a fixed rectangle clips with no marker at all. Found by driving
+    the app: a powder chart's caption ended mid-sentence on the words
+    "This list is CUT: the tallest" -- the truncation warning, truncated.
+
+    A caption is the producer's own sentence and this must not choose
+    which half survives, so it keeps the FRONT and marks the cut. The
+    whole text is still on the report's `limitations`, which is where a
+    reader who needs all of it should be sent -- the same split
+    `describe_failure` makes between a cell and its full reason.
+    """
+    metrics = painter.fontMetrics()
+    flags = int(Qt.TextFlag.TextWordWrap)
+    needed = metrics.boundingRect(box.toRect(), flags, caption)
+    if needed.height() <= box.height():
+        return caption
+
+    words = caption.split()
+    fitted = ""
+    for count in range(len(words), 0, -1):
+        candidate = " ".join(words[:count]) + " " + _CAPTION_ELISION
+        if metrics.boundingRect(box.toRect(), flags, candidate).height() <= box.height():
+            fitted = candidate
+            break
+    return fitted or _CAPTION_ELISION

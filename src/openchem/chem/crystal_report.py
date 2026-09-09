@@ -111,8 +111,15 @@ POWDER_LINES_IN_REPORT = 12
 POWDER_MAX_TWO_THETA = 60.0
 
 
-def _powder_facts(crystal: Crystal) -> list[Fact]:
-    """The first powder lines, or why there are none.
+def _powder_facts(crystal: Crystal) -> tuple[list[Fact], object | None]:
+    """The first powder lines and the pattern they came from.
+
+    **RETURNS THE PATTERN SO THE CHART IS A PROJECTION OF THE SAME ONE.**
+    The declared chart draws exactly these reflections, and calling
+    `calculate_pattern` a second time to build it would cost 0.17-1.17 s
+    on the shipped fixtures AND give the report two patterns that could
+    differ -- which is the drift this repository has paid for five times.
+    None when there is nothing to draw.
 
     **A STRUCTURE WITH NO STATED WAVELENGTH GETS A ROW SAYING SO**, never
     a silently absent section. `calculate_pattern` refuses without one
@@ -137,7 +144,7 @@ def _powder_facts(crystal: Crystal) -> list[Fact]:
                 f"not calculated -- {exc}",
                 detail=Detail.ADVANCED,
             )
-        ]
+        ], None
 
     if not pattern.reflections:
         return [
@@ -149,7 +156,7 @@ def _powder_facts(crystal: Crystal) -> list[Fact]:
                 f"{pattern.wavelength:.5f} A",
                 detail=Detail.ADVANCED,
             )
-        ]
+        ], None
 
     listed = ", ".join(
         f"{r.label} {r.two_theta:.2f} deg I={r.relative_intensity:.0f}"
@@ -230,7 +237,7 @@ def _powder_facts(crystal: Crystal) -> list[Fact]:
                 detail=Detail.ADVANCED,
             )
         )
-    return facts
+    return facts, pattern
 
 
 def build_crystal_report(crystal: Crystal, *, report_id: str = "crystal") -> ReportResult:
@@ -504,7 +511,13 @@ def build_crystal_report(crystal: Crystal, *, report_id: str = "crystal") -> Rep
             )
         )
 
-    facts.extend(_powder_facts(crystal))
+    from openchem.chem.powder_xrd import pattern_chart
+
+    powder_facts, pattern = _powder_facts(crystal)
+    facts.extend(powder_facts)
+    charts = () if pattern is None else tuple(
+        chart for chart in (pattern_chart(pattern),) if chart is not None
+    )
 
     return ReportResult(
         molecule_uuid="",
@@ -512,6 +525,7 @@ def build_crystal_report(crystal: Crystal, *, report_id: str = "crystal") -> Rep
         name="Crystal Structure",
         category="structure",
         facts=tuple(facts),
+        charts=charts,
         limitations=(
             "This is a periodic solid, not a molecule. It has no molecular weight, "
             "no bonds and no logP, and the molecular calculators are not applicable "

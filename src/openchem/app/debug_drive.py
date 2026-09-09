@@ -2356,6 +2356,60 @@ class _Driver(QObject):
             dialog.measured_text()[:80] or "(no measured values)",
         )
 
+    def _do_crystal_report(self, step: dict[str, Any]) -> None:
+        """Open a CIF's crystal report, for a screenshot of its chart.
+
+        `{"do": "crystal_report", "path": "tests/fixtures/cif/1504676.cif"}`,
+        then `{"do": "shot", "path": "...", "widget": "dialog"}`.
+
+        **IT GOES THROUGH `MainWindow.crystal_report_dialog`**, which
+        already returns the dialog UNSHOWN precisely so a run can drive
+        and photograph it. Building a `FactView` here instead would prove
+        the widget renders and say nothing about whether the window a
+        user opens carries the chart -- and "the report declares no
+        chart" survived seven guards on the builder before a test asked
+        the report itself.
+
+        **IT LOGS WHAT THE REPORT DECLARED**, because three states of
+        this feature photograph identically once the chart section is
+        scrolled past: no chart declared, a chart declared and refused by
+        the validator, and a chart drawn. `charts=0` and a log line
+        naming the caption are the halves no crop can carry.
+        """
+        from openchem.chem.cif import read_cif
+        from openchem.chem.crystal_report import build_crystal_report
+        from openchem.domain.report import valid_chart_annotation
+
+        self._dialog = None
+        path = Path(str(step["path"]))
+        if not path.is_absolute():
+            path = Path.cwd() / path
+        if not path.is_file():
+            logger.error("OPENCHEM_DRIVE: no CIF at %s", path)
+            return
+        report = build_crystal_report(read_cif(path.read_text(encoding="utf-8")))
+        charts = tuple(getattr(report, "charts", ()) or ())
+        logger.warning(
+            "OPENCHEM_DRIVE: crystal_report tag=%s file=%s facts=%d charts=%d",
+            step.get("tag", ""),
+            path.name,
+            len(report.facts),
+            len(charts),
+        )
+        for chart in charts:
+            logger.warning(
+                "OPENCHEM_DRIVE:   chart valid=%s sticks=%d x=%r desc=%s title=%r",
+                valid_chart_annotation(chart),
+                len(chart.sticks),
+                f"{chart.x_label} {chart.x_units}".strip(),
+                chart.x_descending,
+                chart.title,
+            )
+            logger.warning("OPENCHEM_DRIVE:   caption %s", chart.caption)
+        dialog = self._window.crystal_report_dialog(report, path.name)
+        dialog.show()
+        self._dialog = dialog
+
     def _do_dialog(self, step: dict[str, Any]) -> None:
         """Open any dialog by name, for a screenshot.
 

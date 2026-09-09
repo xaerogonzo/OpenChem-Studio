@@ -445,3 +445,130 @@ def test_a_captioned_chart_at_its_minimum_still_draws_its_sticks(qapp):
 )
 def test_the_caption_is_added_to_the_plots_floor_and_never_absorbed(base, caption, expected):
     assert minimum_height(base, caption) == expected
+
+
+def _drawn_texts(widget, **paint) -> list[str]:
+    """Every string this widget painted, in paint order."""
+    texts: list[str] = []
+    original = QPainter.drawText
+
+    def recording(self, *args):
+        texts.append(str(args[-1]))
+        return original(self, *args)
+
+    QPainter.drawText = recording
+    try:
+        painted(widget, **paint)
+    finally:
+        QPainter.drawText = original
+    return texts
+
+
+def test_two_labels_that_would_collide_become_one():
+    """`_LABEL_CLEARANCE`'s comment promised this and only half of it ran.
+
+    It has always said the text must not overlap "the axis OR ITS
+    NEIGHBOURS" and that "a label sitting on the wrong stick is worse
+    than no label" -- while the only gate was a HEIGHT test. Nothing
+    looked sideways, and the label box was a fixed 90 px centred on each
+    stick.
+
+    A mass spectrum never showed it because isotope peaks are far apart.
+    Twelve powder lines clustered at low angle overprinted three (hkl)
+    indices into "(0 1 {1 -1)1 0)", found by driving the app and cropping
+    the shot 3x with the whole suite green.
+    """
+    crowded = _annotation([
+        Stick(100.0, 1.00, "(0 0 1)"),
+        Stick(100.4, 0.90, "(1 -1 0)"),
+        Stick(100.8, 0.85, "(0 1 1)"),
+        Stick(140.0, 0.95, "(0 1 -2)"),
+    ])
+    drawn = _drawn_texts(StickChartWidget(crowded, show_title=False), width=400, height=300)
+
+    assert "(0 0 1)" in drawn, "the tallest of the crowd keeps its label"
+    assert "(0 1 -2)" in drawn, "and a well-separated stick is untouched"
+    assert "(1 -1 0)" not in drawn
+    assert "(0 1 1)" not in drawn
+
+
+def test_the_label_that_survives_a_collision_is_the_TALLER_one():
+    """Height order rather than x order, and the distinction is the point.
+
+    First-wins by position would keep whichever stick happened to come
+    first, which for a powder pattern is the lowest angle and not the
+    strongest line. The label a reader is looking for belongs to the peak
+    they can see.
+    """
+    quiet_first = _annotation([
+        Stick(100.0, 0.30, "weak"),
+        Stick(100.4, 1.00, "strong"),
+        Stick(140.0, 0.50, "far"),
+    ])
+    drawn = _drawn_texts(StickChartWidget(quiet_first, show_title=False), width=400, height=300)
+    assert "strong" in drawn
+    assert "weak" not in drawn
+
+
+def test_labels_are_spaced_by_MEASUREMENT_not_by_a_fixed_box():
+    """A fixed half-width is a claim about the font.
+
+    The 90 px box this replaced was generous for `M+2` and far too narrow
+    for `(0 1 -2)`, so a collision rule built on it would have been right
+    at one DPI and wrong at another -- the mistake this project already
+    records for a caption cap fitted to one platform. A LONG label must
+    therefore push its neighbour out where a short one does not, at the
+    same separation.
+    """
+    # SAME positions in both, so the only thing that can decide the
+    # outcome is how wide the text is. ~29 px apart at this size: a
+    # one-character label needs about 14 and a thirteen-character one
+    # about 96, so the separation sits between them by construction.
+    short = _annotation([Stick(100.0, 1.0, "a"), Stick(104.0, 0.9, "b"), Stick(140.0, 0.5, "z")])
+    long = _annotation([
+        Stick(100.0, 1.0, "(0 1 -2) long"),
+        Stick(104.0, 0.9, "(1 -1 0) long"),
+        Stick(140.0, 0.5, "z"),
+    ])
+    short_drawn = _drawn_texts(StickChartWidget(short, show_title=False), width=400, height=300)
+    long_drawn = _drawn_texts(StickChartWidget(long, show_title=False), width=400, height=300)
+
+    assert "a" in short_drawn and "b" in short_drawn, "short labels both fit"
+    assert "(0 1 -2) long" in long_drawn
+    assert "(1 -1 0) long" not in long_drawn, "the long pair does not"
+
+
+def test_a_caption_that_does_not_fit_is_MARKED_rather_than_clipped():
+    """`_MAXIMUM_CAPTION_FRACTION` promised elision and `drawText` clipped.
+
+    Its comment says a caption past the cap "is elided, which is visibly
+    different from being silently clipped", while painting into a fixed
+    rectangle drops whatever does not fit with no marker at all. Found by
+    driving the app: a powder caption ended mid-sentence on the words
+    "This list is CUT: the tallest" -- the truncation warning, truncated.
+
+    A sentence stopping mid-word reads as a producer bug; a marker reads
+    as a widget out of room, which is what it is.
+    """
+    from openchem.ui.widgets.stick_chart_widget import _CAPTION_ELISION
+
+    wordy = _annotation(_TWO_STICKS, caption=" ".join(["caveat"] * 200))
+    drawn = _drawn_texts(StickChartWidget(wordy, show_title=False), width=300, height=260)
+    caption = next(text for text in drawn if text.startswith("caveat"))
+    assert caption.endswith(_CAPTION_ELISION)
+    assert len(caption) < len(wordy.caption)
+
+
+def test_a_caption_that_fits_is_painted_whole():
+    """The control, and it is the one that keeps the rule narrow.
+
+    "Always elide" satisfies the guard above and would put `[...]` on
+    every chart in the application, including the one-sentence mass
+    spectrum caption this widget was written for.
+    """
+    from openchem.ui.widgets.stick_chart_widget import _CAPTION_ELISION
+
+    short = _annotation(_TWO_STICKS, caption="A calculated distribution.")
+    drawn = _drawn_texts(StickChartWidget(short, show_title=False), width=400, height=400)
+    assert "A calculated distribution." in drawn
+    assert not any(_CAPTION_ELISION in text for text in drawn)

@@ -1,0 +1,9 @@
+[
+  {"do": "crystal_report", "path": "tests/fixtures/cif/1504676.cif", "tag": "truncated", "after_ms": 1500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/powder_chart_truncated.png", "widget": "dialog", "after_ms": 500},
+
+  {"do": "crystal_report", "path": "tests/fixtures/cif/1569411.cif", "tag": "cu-radiation", "after_ms": 1500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/powder_chart_cu_radiation.png", "widget": "dialog", "after_ms": 500},
+
+  {"do": "quit"}
+]

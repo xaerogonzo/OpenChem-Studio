@@ -15,12 +15,14 @@ equal `Lattice.volume`.
 
 from __future__ import annotations
 
+import dataclasses
 import math
 
 import pytest
 
 from openchem.chem.cif import read_cif
 from openchem.chem.powder_xrd import (
+    FULL_SCALE,
     _cell_contents,
     calculate_pattern,
     debye_waller_refusal,
@@ -30,7 +32,13 @@ from openchem.chem.powder_xrd import (
     is_systematically_absent,
 )
 from openchem.chem.space_groups import resolve
+from openchem.chem.crystal_report import (
+    POWDER_LINES_IN_REPORT,
+    POWDER_MAX_TWO_THETA,
+    build_crystal_report,
+)
 from openchem.domain.crystal import Lattice
+from openchem.domain.report import valid_chart_annotation
 
 #: Halite, a = 5.6402 A, Fm-3m. The acceptance case: a rock-salt pattern
 #: is the one every text prints, and its lines are checkable by hand.
@@ -655,3 +663,214 @@ def test_a_reported_line_carries_its_intensity_and_stays_short():
     for fact in lines:
         assert "I = " in fact.display_value
         assert len(fact.display_value) <= 44, fact.display_value
+
+
+# --- the declared chart -----------------------------------------------------
+
+
+def _halite_pattern(**kwargs):
+    text = HALITE_CIF.replace(
+        "_cell_length_a 5.6402",
+        "_diffrn_radiation_wavelength 1.54056\n_cell_length_a 5.6402",
+    )
+    return calculate_pattern(read_cif(text), **kwargs)
+
+
+def test_the_chart_is_a_projection_and_recomputes_nothing():
+    """**A PRESENTATION BUILDER IS NOT A SECOND IMPLEMENTATION.**
+
+    Every stick must come from a reflection the pattern already holds, at
+    the same angle and the same height. A builder that rederived structure
+    factors, multiplicities or the Lorentz-polarization factor would be a
+    second place for the science to be wrong, and the two copies would
+    disagree silently -- the drift `reduce_result` calls a PRESENTATION
+    PROJECTION in its own module docstring for exactly this reason.
+
+    Checked as an EQUALITY against the source rather than as a
+    plausibility bound, because a recomputation would land very close and
+    a tolerance would accept it.
+    """
+    from openchem.chem.powder_xrd import pattern_chart
+
+    pattern = _halite_pattern(max_two_theta=90.0)
+    chart = pattern_chart(pattern)
+
+    assert [(s.x, s.y, s.label) for s in chart.sticks] == [
+        (r.two_theta, r.relative_intensity, r.label) for r in pattern.reflections
+    ]
+
+
+def test_building_the_chart_cannot_change_the_pattern():
+    """The other direction: a projection may not mutate its source.
+
+    `PowderPattern` is frozen, so this cannot fail today -- and it is
+    asserted anyway because the guard above only says the two AGREE, and
+    they would also agree if the builder had rewritten the pattern to
+    match itself.
+    """
+    from openchem.chem.powder_xrd import pattern_chart
+
+    pattern = _halite_pattern(max_two_theta=90.0)
+    before = [(r.two_theta, r.relative_intensity, r.hkl) for r in pattern.reflections]
+    pattern_chart(pattern)
+    after = [(r.two_theta, r.relative_intensity, r.hkl) for r in pattern.reflections]
+    assert before == after
+
+
+def test_two_theta_runs_low_angle_to_the_left():
+    """A mirrored diffractogram does not look broken.
+
+    It looks like a different structure, which is why `x_descending` is a
+    REQUIRED field on the annotation rather than something a renderer
+    infers from `x_units`. NMR and IR run the other way and share this
+    channel.
+    """
+    from openchem.chem.powder_xrd import pattern_chart
+
+    chart = pattern_chart(_halite_pattern(max_two_theta=90.0))
+    assert chart.x_descending is False
+    assert chart.x_units == "degrees"
+    assert [s.x for s in chart.sticks] == sorted(s.x for s in chart.sticks), (
+        "the sticks are handed over in angle order and the renderer does not sort"
+    )
+
+
+def test_a_pattern_with_no_intensities_declares_no_chart():
+    """POSITIONS WITHOUT HEIGHTS ARE NOT A STICK CHART.
+
+    Drawing them would put every stick at zero, which claims each
+    reflection is ABSENT -- the opposite of what the positions say, and
+    the `n/a is not 0` rule in a picture. The facts still carry the
+    angles; `charts == ()` is how a producer says it has no chart.
+    """
+    from openchem.chem.powder_xrd import PowderPattern, pattern_chart
+
+    pattern = _halite_pattern(max_two_theta=90.0)
+    refused = dataclasses.replace(
+        pattern, intensity_refusal=intensity_refusal(("Xx",))
+    )
+    assert refused.reflections, "the fixture must still HAVE positions to refuse"
+    assert pattern_chart(refused) is None
+    assert pattern_chart(dataclasses.replace(pattern, reflections=())) is None
+
+
+def test_the_two_limitations_stay_separable_and_each_applies_only_when_it_does():
+    """They fail differently and a reader must be able to tell them apart.
+
+        Debye-Waller  the heights are systematically optimistic, and the
+                      error GROWS WITH ANGLE
+        truncation    some lines are missing entirely, and the tallest
+                      one shown is not the tallest in range
+
+    A generic banner carrying both on every chart would describe results
+    it is not under. The full-range arm is the one that catches that.
+    """
+    from openchem.chem.powder_xrd import pattern_chart
+
+    cut = _halite_pattern(max_two_theta=90.0, max_reflections=3)
+    whole = _halite_pattern(max_two_theta=90.0)
+    assert cut.truncated_by > 0, "the fixture must really be truncated"
+    assert whole.truncated_by == 0, "and its control must really not be"
+
+    # THE CHART'S CAPTION IS THE CELL FORM -- both claims, short enough
+    # to render. Joining the two full notes gave a seven-line caption the
+    # widget cut at "This list is CUT: the tallest": the truncation
+    # warning, truncated.
+    assert "Debye-Waller" in pattern_chart(cut).caption
+    assert "Debye-Waller" in pattern_chart(whole).caption
+    assert "SHOWN" in pattern_chart(cut).caption
+    assert "SHOWN" not in pattern_chart(whole).caption
+
+    # ...and the FULL sentences are still on the report's limitations,
+    # which is where the caption points a reader who needs them.
+    assert any("Debye-Waller" in line for line in cut.limitations)
+    assert any("not comparable" in line for line in cut.limitations)
+    assert not any("not comparable" in line for line in whole.limitations)
+
+
+def test_the_scale_basis_is_domain_metadata_rather_than_prose():
+    """A future consumer must not have to parse a caption to find out.
+
+    `FULL_SCALE` marks the strongest REPORTED line, and
+    `calculate_pattern` truncates before it normalises -- so on a cut
+    pattern it is not the strongest line in range, and two patterns cut
+    at different lengths are not on one scale. That is a scientific fact
+    about the numbers and it is answerable without reading English.
+    """
+    assert _halite_pattern(max_two_theta=90.0).intensity_scale_covers_the_whole_range
+    cut = _halite_pattern(max_two_theta=90.0, max_reflections=3)
+    assert not cut.intensity_scale_covers_the_whole_range
+    assert max(r.relative_intensity for r in cut.reflections) == FULL_SCALE, (
+        "the cut pattern still normalises to 100 -- within its own window, "
+        "which is exactly why the flag is needed"
+    )
+
+
+def test_the_scale_sentence_has_one_author():
+    """The full sentence has ONE author, and the chart quotes a shorter one.
+
+    `describe_failure`'s split, applied to a caption: the plot has room
+    for two or three lines and the report's `limitations` hold every
+    caveat in full. Both are generated -- `intensity_scale_note` for the
+    long form and `chart_caption` for the short -- so neither is a string
+    typed at a call site that could drift from the other.
+    """
+    from openchem.chem.powder_xrd import intensity_scale_note
+
+    cut = _halite_pattern(max_two_theta=90.0, max_reflections=3)
+    shared = intensity_scale_note(cut.truncated_by, len(cut.reflections))
+    assert shared in cut.limitations, (
+        "the limitations must quote the shared sentence rather than a "
+        "second wording of it"
+    )
+
+
+def test_the_crystal_report_actually_declares_the_chart():
+    """**TESTING A HELPER IS NOT TESTING THE WIRING**, for the fifth time.
+
+    `pattern_chart` had seven guards and the report had none, so deleting
+    `charts=charts` from `build_crystal_report` passed every one of them
+    -- the same shape as the four correct, sourced, guarded modules PR
+    #41 shipped that nothing could reach.
+
+    Asserts the report's own chart is the pattern's, not merely that a
+    chart exists: a report that built its own from the facts would
+    satisfy a bare `assert report.charts` and would be the one thing this
+    channel forbids outright.
+    """
+    from openchem.chem.powder_xrd import pattern_chart
+
+    report = _report()
+    assert len(report.charts) == 1
+    chart = report.charts[0]
+    assert valid_chart_annotation(chart)
+
+    text = HALITE_CIF.replace(
+        "_cell_length_a 5.6402",
+        "_diffrn_radiation_wavelength 1.54056\n_cell_length_a 5.6402",
+    )
+    expected = pattern_chart(
+        calculate_pattern(
+            read_cif(text),
+            max_two_theta=POWDER_MAX_TWO_THETA,
+            max_reflections=POWDER_LINES_IN_REPORT,
+        )
+    )
+    assert [(s.x, s.y, s.label) for s in chart.sticks] == [
+        (s.x, s.y, s.label) for s in expected.sticks
+    ]
+
+
+def test_a_structure_with_no_wavelength_declares_no_chart_rather_than_an_empty_one():
+    """The refusal path reaches the channel too.
+
+    `_powder_facts` already answers a missing wavelength with a row
+    saying so; the chart must be ABSENT rather than present and empty,
+    because `valid_chart_annotation` refuses a chart with no sticks and a
+    refused annotation is a log line the reader never sees.
+    """
+    report = build_crystal_report(read_cif(HALITE_CIF))
+    assert report.charts == ()
+    assert any("Powder pattern" in f.label for f in report.facts), (
+        "the facts must still say why, or the pattern is silently absent"
+    )
