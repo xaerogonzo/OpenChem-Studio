@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 from PySide6.QtCore import Qt, QThreadPool
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QDialog
 
 from openchem.bootstrap import build_service_container
 from openchem.domain.molecule import MoleculeModel
@@ -1457,3 +1457,209 @@ def test_the_lazy_details_path_ignores_the_molecule_scope(panel, project, monkey
     panel._show_details(unticked.uuid)
 
     assert seen["request"].molecule_uuids == [unticked.uuid]
+
+
+# --- per-calculator parameters -------------------------------------------
+
+
+def _spy_on_compute(panel, monkeypatch):
+    """Record what each calculator was handed, and still compute it.
+
+    Watching the REGISTRY rather than the request, because the request is
+    one dict for the whole run and the thing worth asserting is that two
+    calculators do not receive each other's settings.
+    """
+    seen: dict[str, list] = {}
+    original = panel._registry.compute
+
+    def record(calculator_id, mol, molecule_uuid, parameters):
+        seen.setdefault(calculator_id, []).append(dict(parameters))
+        return original(calculator_id, mol, molecule_uuid, parameters)
+
+    monkeypatch.setattr(panel._registry, "compute", record)
+    return seen
+
+
+def _configure(panel, calculator_id, values, monkeypatch):
+    """Set one calculator's settings THROUGH THE PANEL'S OWN ROUTE.
+
+    Writing `panel._calculator_parameters[id] = values` would test the
+    dict; this drives `_open_calculator_settings`, which is what a
+    double-click and the context menu both reach.
+    """
+    from openchem.ui.dialogs import calculator_settings_dialog as module
+
+    class _Accepting:
+        def __init__(self, definition, parent=None):
+            self._definition = definition
+
+        def exec(self):
+            return QDialog.DialogCode.Accepted
+
+        def parameters(self):
+            resolved = {p.name: p.default for p in self._definition.parameters}
+            resolved.update(values)
+            return resolved
+
+    monkeypatch.setattr(module, "CalculatorSettingsDialog", _Accepting)
+    monkeypatch.setattr(
+        "openchem.ui.panels.batch_panel.CalculatorSettingsDialog", _Accepting
+    )
+    panel._open_calculator_settings(calculator_id)
+
+
+def test_two_calculators_do_not_receive_each_others_settings(panel, monkeypatch):
+    """THE ISOLATION SENTINEL.
+
+    `BatchRequest.parameters` is keyed by calculator id, so this shape is
+    representable -- but a panel that resolved one settings dictionary and
+    handed it to everything would produce perfectly ordinary-looking
+    results, and a shared dictionary accidentally reused is the plausible
+    failure here.
+    """
+    _configure(panel, "topology_analysis", {"decimal_places": 1}, monkeypatch)
+    _configure(panel, "elemental_analysis", {"decimal_places": 7}, monkeypatch)
+
+    seen = _spy_on_compute(panel, monkeypatch)
+    _run(panel, ["topology_analysis", "elemental_analysis"])
+
+    assert seen["topology_analysis"][0]["decimal_places"] == 1
+    assert seen["elemental_analysis"][0]["decimal_places"] == 7
+
+
+def test_an_untouched_calculator_still_runs_on_the_registrys_defaults(panel, monkeypatch):
+    """THE FALLBACK, which every existing batch run relies on.
+
+    The panel passes through ONLY what somebody configured. A calculator
+    nobody opened is ABSENT from the mapping, and `batch_service` builds
+    its defaults -- so this asserts both that the defaults still arrive and
+    that the panel did not construct them, which would be a second
+    implementation of the same thing.
+    """
+    seen = _spy_on_compute(panel, monkeypatch)
+    _run(panel, ["topology_analysis"])
+
+    definition = panel._registry.get("topology_analysis")
+    expected = {p.name: p.default for p in definition.parameters}
+    assert seen["topology_analysis"][0] == expected
+    assert panel.calculator_parameters() == {}, (
+        "the panel invented a parameter dict for a calculator nobody "
+        "configured, duplicating batch_service's default construction"
+    )
+
+
+def test_the_settings_are_frozen_when_the_run_starts(panel, monkeypatch):
+    """Changing a calculator's settings mid-run affects the NEXT run.
+
+    Same rule as the molecule scope, and for the same reason: a batch runs
+    on a `QRunnable`, so the settings dialog is reachable while it is in
+    flight, and a request holding the panel's LIVE dict would compute some
+    molecules under one configuration and the rest under another.
+
+    **THROUGH `_run`, NOT THROUGH `calculator_parameters()`.** The first
+    version of this guard mutated the panel's dict and asserted on the
+    method's return value -- which tests that the method copies, and says
+    nothing about whether `_run` calls it. Mutating `_run` to hand over the
+    live dict SURVIVED that version and is caught by this one. Testing a
+    helper is not testing the wiring.
+    """
+    _configure(panel, "topology_analysis", {"decimal_places": 1}, monkeypatch)
+    seen = _spy_on_the_request(panel, monkeypatch)
+
+    _run(panel, ["topology_analysis"])
+    panel._calculator_parameters["topology_analysis"]["decimal_places"] = 6
+
+    assert seen["request"].parameters["topology_analysis"]["decimal_places"] == 1
+
+
+def test_the_lazy_details_path_uses_the_same_settings_as_the_table(
+    panel, project, monkeypatch
+):
+    """A details view and the table beside it must be one calculation.
+
+    Computed on the registry's defaults while the table used somebody's
+    chosen parameters, they would be two different calculations reported
+    under one name.
+    """
+    _configure(panel, "topology_analysis", {"decimal_places": 1}, monkeypatch)
+    panel.check("topology_analysis")
+
+    seen = _spy_on_the_request(panel, monkeypatch)
+    panel._show_details(project.molecules[0].uuid)
+
+    assert seen["request"].parameters["topology_analysis"]["decimal_places"] == 1
+
+
+def test_a_calculator_needing_a_typed_value_can_now_be_batched(panel, monkeypatch):
+    """The defect this step exists for, end to end.
+
+    `compute_lewis_adduct`'s own docstring claims an adduct prediction can
+    be a batch column. It could not: the panel sent no parameters, so
+    `partner_smiles` fell back to its empty default and every row failed
+    with "Enter the partner molecule as SMILES in this calculator's
+    settings."
+
+    THE SETUP IS ASSERTED FIRST -- unconfigured, it must still fail, or
+    this guard would pass against a calculator that never needed settings.
+    """
+    unconfigured = _spy_on_compute(panel, monkeypatch)
+    _run(panel, ["lewis_adduct"])
+    assert unconfigured["lewis_adduct"][0]["partner_smiles"] == "", (
+        "lewis_adduct no longer defaults to an empty partner, so this "
+        "guard cannot see the defect it was written for"
+    )
+    _configure(panel, "lewis_adduct", {"partner_smiles": "N"}, monkeypatch)
+    configured = _spy_on_compute(panel, monkeypatch)
+    _run(panel, ["lewis_adduct"])
+
+    assert configured["lewis_adduct"][0]["partner_smiles"] == "N"
+
+
+def test_no_column_is_wider_than_the_viewport_it_is_shown_in(panel, monkeypatch):
+    """Sizing to contents alone puts a HEADER off screen.
+
+    A header is CENTRED in its section, so a column sized to a
+    200-character cell centres its title half a column in and the column
+    reads as though it had no header. Measured in the running app once
+    Lewis Adduct started returning a limitation line: 710 px against a
+    416 px viewport.
+
+    **THROUGH `_render_table`, NOT BY CALLING THE CAP.** The first version
+    of this guard invoked `_cap_column_widths()` itself, so removing the
+    call site SURVIVED it -- testing a helper is not testing the wiring,
+    which this project records five times and which happened twice while
+    writing this branch.
+
+    THE SETUP IS ASSERTED, against the cell's own font metrics rather than
+    against a width the cap has already touched: without content genuinely
+    wider than the viewport this guard is a tautology.
+    """
+    _configure(panel, "lewis_adduct", {"partner_smiles": "N"}, monkeypatch)
+    _run(panel, ["lewis_adduct"])
+
+    header = panel._results.horizontalHeader()
+    viewport = panel._results.viewport().width()
+    metrics = panel._results.fontMetrics()
+    widest = max(
+        metrics.horizontalAdvance(panel._results.item(row, column).text())
+        for row in range(panel._results.rowCount())
+        for column in range(panel._results.columnCount())
+        if panel._results.item(row, column) is not None
+    )
+    assert widest > viewport, (
+        f"the widest cell is {widest} px in a {viewport} px viewport, so no "
+        "column can exceed it and this guard cannot see a missing cap"
+    )
+
+    metrics = header.fontMetrics()
+    for index in range(panel._results.columnCount()):
+        item = panel._results.horizontalHeaderItem(index)
+        floor = metrics.horizontalAdvance(item.text()) if item is not None else 0
+        assert header.sectionSize(index) <= max(viewport, floor), (
+            f"column {index} is {header.sectionSize(index)} px in a "
+            f"{viewport} px viewport, so its centred header is off screen"
+        )
+        assert header.sectionSize(index) >= floor, (
+            f"capping squeezed column {index} back under its own header, "
+            "which is the clip the sizing exists to remove"
+        )

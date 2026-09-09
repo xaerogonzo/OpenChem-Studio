@@ -653,13 +653,28 @@ class _Driver(QObject):
 
         `{"do": "batch_select", "property": "topology_analysis"}`
         `{"do": "batch_select", "category": "Identity"}`
+        `{"do": "batch_select", "clear": true}`
 
         The category form goes through the GROUP'S OWN CHECK BOX rather
         than ticking each leaf, because the thing worth exercising is the
         propagation -- setting the leaves directly would drive a path the
         user never takes.
+
+        **`clear` EXISTS BECAUSE THE SELECTION OUTLIVES THE PROCESS.**
+        `BatchPanel` persists its ticked property ids under
+        `batch/selected_property_ids` and restores them on construction, so
+        one committed script's selection leaks into the next script's run
+        and a table quietly grows columns nobody asked for. Measured: a
+        scope benchmark ticking `lewis_adduct` alone came back with a
+        Substance-classification column from the benchmark before it.
+        A committed script must construct its own state; clear first.
         """
         panel = self._window._batch_panel
+        if step.get("clear"):
+            panel._clear_selection()
+            logger.warning("OPENCHEM_DRIVE: cleared the property selection")
+            if "property" not in step and "category" not in step:
+                return
         if "property" in step:
             panel.check(str(step["property"]))
             logger.warning("OPENCHEM_DRIVE: ticked %s", step["property"])
@@ -691,6 +706,46 @@ class _Driver(QObject):
             panel._filter.setText(str(step["filter"]))
         panel._select_all_visible()
         logger.warning("OPENCHEM_DRIVE: %s", panel._status.text())
+
+    def _do_batch_settings(self, step: dict[str, Any]) -> None:
+        """Configure one calculator for the next batch run.
+
+        `{"do": "batch_settings", "id": "lewis_adduct",
+          "parameters": {"partner_smiles": "N"}}`
+
+        **IT DOES NOT OPEN THE DIALOG**, and that is the one thing this
+        step does differently from a real double-click. A modal `exec()`
+        inside a handler spins its own event loop, so the next step is
+        never scheduled and an unattended run stalls on a window with
+        nobody to close it -- the trap `lewis` already documents. What it
+        DOES exercise is the panel's own store and the request that reads
+        it, which is where the defect was: the parameters never left the
+        panel at all.
+
+        The registered defaults are filled in first, so a step naming one
+        parameter does not silently blank the rest -- which is what the
+        real dialog does, since every widget reports a value.
+        """
+        panel = self._window._batch_panel
+        calculator_id = str(step.get("id", ""))
+        definition = panel._registry.get(calculator_id)
+        if definition is None:
+            logger.error("OPENCHEM_DRIVE: no calculator %r in the registry", calculator_id)
+            return
+        resolved = {p.name: p.default for p in definition.parameters}
+        unknown = set(step.get("parameters", {})) - set(resolved)
+        if unknown:
+            logger.error(
+                "OPENCHEM_DRIVE: %s has no parameter(s) %s -- have %s",
+                calculator_id,
+                sorted(unknown),
+                sorted(resolved),
+            )
+        resolved.update(step.get("parameters", {}))
+        panel._calculator_parameters[calculator_id] = resolved
+        logger.warning(
+            "OPENCHEM_DRIVE: batch settings %s = %s", calculator_id, resolved
+        )
 
     def _do_batch_molecules(self, step: dict[str, Any]) -> None:
         """Narrow which molecules Fill table will cover.

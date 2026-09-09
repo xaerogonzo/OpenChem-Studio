@@ -26,6 +26,18 @@ and the least repeatable.
 
 ## THE RULE: a committed script constructs its own state
 
+**AND THE BATCH PANEL BREAKS IT UNLESS YOU CLEAR FIRST**, which was found by
+running two of these scripts back to back. `BatchPanel` persists its ticked
+property ids under `batch/selected_property_ids` and restores them on
+construction, so a selection OUTLIVES THE PROCESS and leaks from one committed
+script into the next. Measured: a scope benchmark ticking `lewis_adduct` alone
+came back with a Substance-classification column belonging to the benchmark
+before it -- a table quietly carrying columns nobody in that script asked for.
+
+Every Batch script therefore opens with `{"do": "batch_select", "clear": true}`.
+The molecule scope needs no equivalent: it is deliberately NOT persisted, and a
+fresh project starts with everything ticked.
+
 > A committed visual benchmark may not depend on the current selection, the
 > current project, live jobs, the clock, or the network.
 
@@ -56,6 +68,7 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 | `periodic-table.json` | Periodic Table dialog, Elements and Isotopes | a dialog minimum taller than a 1366x768 screen, with its action row off the bottom |
 | `batch_and_compare_organisation.json` | Batch and Compare panels, at 420 px and in a 1100 px window | a results-table header printing `ostance classificat` -- clipped at BOTH ends, because a `QHeaderView` overflows rather than eliding |
 | `batch_molecule_scope.json` | the Batch panel's molecule scope, narrowed then emptied then restored | nothing yet -- it exists because the scope is a state NO SCREENSHOT CARRIES |
+| `batch_calculator_settings.json` | one calculator batched with and without its settings | Lewis Adduct failing on EVERY molecule in Batch, because the panel sent no parameters; and then a column so wide its centred header sat off screen |
 
 **`batch_molecule_scope.json` LOGS THE RESOLVED SCOPE BESIDE EVERY SHOT**, and
 that is the point of it rather than a convenience. A panel scoped to two

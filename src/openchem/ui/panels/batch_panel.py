@@ -28,6 +28,7 @@ from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
+    QDialog,
     QFileDialog,
     QHBoxLayout,
     QHeaderView,
@@ -61,6 +62,7 @@ from openchem.events.base import EventBus
 from openchem.services.batch_service import BatchProgress, BatchService
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.table_export_service import TableExportService
+from openchem.ui.dialogs.calculator_settings_dialog import CalculatorSettingsDialog
 from openchem.ui.widgets.collapsible_section import CollapsibleSection
 from openchem.ui.widgets.flow_layout import flow_row
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
@@ -370,6 +372,11 @@ class BatchPanel(QWidget):
         # so a panel reading only the table cannot offer a Details view or
         # an inspector, which is what Properties has offered all along.
         self._store: BatchResultStore | None = None
+        #: calculator_id -> what its settings dialog produced. ONLY the
+        #: calculators somebody configured; an absent one runs on the
+        #: registry's own defaults, which `batch_service` builds. See
+        #: `calculator_parameters`.
+        self._calculator_parameters: dict[str, dict] = {}
         self._structure_check = structure_check_service
         self._settings = settings
         self._descriptor_category_cache: dict[str, str] | None = None
@@ -478,6 +485,9 @@ class BatchPanel(QWidget):
         tree_header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         tree_header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self._tree.setMinimumHeight(160)
+        self._tree.itemDoubleClicked.connect(self._on_tree_double_clicked)
+        self._tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._tree.customContextMenuRequested.connect(self._show_property_menu)
         layout.addWidget(self._tree)
 
         # A `QHBoxLayout`'s minimum width is the SUM of its children, so each
@@ -630,6 +640,78 @@ class BatchPanel(QWidget):
                 else Qt.CheckState.Unchecked
             )
         self._molecules.blockSignals(False)
+
+    def calculator_parameters(self) -> dict[str, dict]:
+        """What each calculator's settings dialog produced, keyed by id.
+
+        **ONLY WHAT WAS EXPLICITLY SET, and the absences are the design.**
+        `BatchRequest.parameters`' own docstring says a calculator absent
+        from the mapping runs on its registered defaults, and
+        `batch_service` builds those defaults itself -- so passing through
+        the ticked-and-untouched calculators with a dict this panel
+        constructed would be a SECOND implementation of "what defaults
+        does this calculator run on", which is the drift this project has
+        paid for five times.
+
+        So the three cases collapse into one rule rather than three
+        branches:
+
+            settings opened      present here, and used
+            never opened         absent, and the service uses defaults
+            no parameters        absent, and the defaults are {}
+
+        Returned as a copy, because `_run` freezes it for one run.
+        """
+        return {
+            calculator_id: dict(parameters)
+            for calculator_id, parameters in self._calculator_parameters.items()
+        }
+
+    def _open_calculator_settings(self, calculator_id: str) -> None:
+        """The settings dialog for one ticked calculator.
+
+        Reached by double-click and by the tree's context menu -- BOTH,
+        rather than a button, because this panel's vertical budget is
+        measured and tight (see `benchmarks/visual/`), and because a
+        context menu on its own is the affordance this project already
+        records looking missing when it was there all along.
+
+        **NO MARKER ON THE PARAMETERISED LEAVES, and that was measured
+        rather than assumed**: all 69 registered calculators carry
+        parameters, so a marker would mark everything.
+        """
+        definition = self._registry.get(calculator_id)
+        if definition is None or not definition.parameters:
+            self._status.setText("That property has nothing to configure.")
+            return
+        dialog = CalculatorSettingsDialog(definition, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._calculator_parameters[calculator_id] = dialog.parameters()
+        self._status.setText(f"{definition.display_name}: settings saved for the next run.")
+
+    def _leaf_calculator_id(self, item: QTreeWidgetItem | None) -> str | None:
+        payload = item.data(0, Qt.ItemDataRole.UserRole) if item is not None else None
+        if not payload:
+            return None
+        kind, identifier = payload
+        return None if kind == "descriptor" else identifier
+
+    def _on_tree_double_clicked(self, item: QTreeWidgetItem, _column: int) -> None:
+        calculator_id = self._leaf_calculator_id(item)
+        if calculator_id is not None:
+            self._open_calculator_settings(calculator_id)
+
+    def _show_property_menu(self, position) -> None:
+        item = self._tree.itemAt(position)
+        calculator_id = self._leaf_calculator_id(item)
+        if calculator_id is None:
+            return
+        menu = QMenu(self._tree)
+        menu.addAction(
+            "Settings...", lambda: self._open_calculator_settings(calculator_id)
+        )
+        menu.exec(self._tree.viewport().mapToGlobal(position))
 
     def _molecule_items(self):
         for index in range(self._molecules.count()):
@@ -1006,6 +1088,10 @@ class BatchPanel(QWidget):
         # widening either half alone is an equivalent mutation, and only
         # deriving one from the other makes them incapable of disagreeing.
         molecules = self.selected_molecules()
+        # Frozen with the scope, for the same reason: changing a
+        # calculator's settings while this run is in flight affects the
+        # NEXT run, never the one already submitted.
+        parameters = self.calculator_parameters()
         if not molecules:
             # REFUSED, NEVER PASSED THROUGH. `batch_service` reads an empty
             # `molecule_uuids` as "everything given" -- a deliberate
@@ -1038,6 +1124,7 @@ class BatchPanel(QWidget):
             molecule_uuids=[molecule.uuid for molecule in molecules],
             descriptor_ids=descriptors,
             calculator_ids=calculators,
+            parameters=parameters,
             per_atom_aggregate=self._aggregate.currentText(),
             structure_version=self._current_structure_version(),
         )
@@ -1130,12 +1217,43 @@ class BatchPanel(QWidget):
         # 181x63 table, 32.8 ms -> 3.7 ms.
         self._results.horizontalHeader().setResizeContentsPrecision(_WIDTH_SAMPLE_ROWS)
         self._results.resizeColumnsToContents()
+        self._cap_column_widths()
         # AFTER the rebuild: `clear()` drops every hidden flag, so a
         # progress event arriving mid-run would silently un-hide
         # everything the user had put away.
         self._apply_column_visibility()
 
     # -- exports ----------------------------------------------------------
+
+    def _cap_column_widths(self) -> None:
+        """No column may be wider than the viewport it is shown in.
+
+        **SIZING TO CONTENTS ALONE PUTS A HEADER OFF SCREEN**, which is the
+        opposite of the clip it was added to fix and was found by driving
+        the app once a calculator started returning a long text cell.
+        A header is CENTRED in its section, so a column sized to a
+        200-character limitation line centres its title half a column in --
+        measured, 710 px against a 416 px viewport, with "Lewis Adduct"
+        landing just past the edge and the column reading as though it had
+        no header at all.
+
+        Capped at the viewport, never below the header's own width: the
+        cell text then elides, which is what a table does with long text,
+        while the title stays reachable by scrolling to the column. The
+        lower bound is what keeps this from undoing
+        `resizeColumnsToContents` -- a narrow viewport must not squeeze a
+        header back into the clip.
+        """
+        header = self._results.horizontalHeader()
+        limit = self._results.viewport().width()
+        if limit <= 0:
+            return
+        metrics = header.fontMetrics()
+        for index in range(self._results.columnCount()):
+            item = self._results.horizontalHeaderItem(index)
+            floor = metrics.horizontalAdvance(item.text()) if item is not None else 0
+            if header.sectionSize(index) > max(limit, floor):
+                self._results.setColumnWidth(index, max(limit, floor))
 
     def _column_category(self, column) -> str:
         """Which picker category a column belongs under.
@@ -1343,6 +1461,11 @@ class BatchPanel(QWidget):
                     molecule_uuids=[molecule_uuid],
                     descriptor_ids=descriptors,
                     calculator_ids=calculators,
+                    # THE SAME SETTINGS THE TABLE WOULD USE. A details
+                    # view computed on the registry's defaults while the
+                    # table beside it used somebody's chosen parameters
+                    # would be two different calculations under one name.
+                    parameters=self.calculator_parameters(),
                     per_atom_aggregate=self._aggregate.currentText(),
                     structure_version=self._current_structure_version(),
                 ),
