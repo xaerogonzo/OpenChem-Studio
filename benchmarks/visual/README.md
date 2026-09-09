@@ -55,6 +55,21 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 | `properties-width.json` | Properties panel, squeezed then widened | three width-clip defects; the value painted over its caption; captions latched at `...`; captions collapsed to zero width |
 | `periodic-table.json` | Periodic Table dialog, Elements and Isotopes | a dialog minimum taller than a 1366x768 screen, with its action row off the bottom |
 | `batch_and_compare_organisation.json` | Batch and Compare panels, at 420 px and in a 1100 px window | a results-table header printing `ostance classificat` -- clipped at BOTH ends, because a `QHeaderView` overflows rather than eliding |
+| `batch_molecule_scope.json` | the Batch panel's molecule scope, narrowed then emptied then restored | nothing yet -- it exists because the scope is a state NO SCREENSHOT CARRIES |
+
+**`batch_molecule_scope.json` LOGS THE RESOLVED SCOPE BESIDE EVERY SHOT**, and
+that is the point of it rather than a convenience. A panel scoped to two
+molecules and one scoped to five are the same image until the table lands, so
+the `batch_molecules` step prints what `selected_molecules()` resolved to and
+what the readout says. It also drives the real list widget rather than the
+resolver behind it, for the reason `jobs_cancel` presses the real button: a
+step that called `selected_molecules` directly would prove the resolver works
+and say nothing about whether the control is wired to it.
+
+Its middle arm is the one worth keeping: unticking everything and pressing Fill
+table must SHOW a refusal, because `batch_service` reads an empty scope as
+"everything given" and a silent fall-through there would look exactly like
+success.
 
 `properties-width.json` squeezes **and then widens** deliberately: a latched
 caption is only observable once the room comes back, so a single-width run

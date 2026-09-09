@@ -1281,9 +1281,41 @@ blocked by anything:
   worked out instead — reporting BOTH orientations when the evidence does
   not choose, which is the same refusal `_hsab_line` already makes rather
   than inventing a ranking.
-- **Per-molecule selection in Batch.** `BatchRequest.molecule_uuids` is
-  already the authority on scope and is always handed every molecule in the
-  project (`batch_panel.py`), so a three-molecule project cannot run two.
+- ~~**Per-molecule selection in Batch.**~~ **SHIPPED.** A collapsible
+  "Molecules" section above the property filter, ticked by uuid, everything
+  ticked by default — so a project nobody narrows behaves exactly as it did.
+
+  **THE PLUMBING WAS ALREADY RIGHT AND THE PANEL WAS THE OFFENDER.**
+  `batch_service.py` has carried *"THE REQUEST IS THE AUTHORITY ON SCOPE"*
+  since batch mode was rebuilt; `_run` rebuilt the project's molecule list
+  **three** times — for the cost estimate, as `molecule_uuids`, and as the
+  payload. One resolved, frozen `selected_molecules()` feeds all three now,
+  with the uuids DERIVED from that list rather than read a second time.
+
+  **AN EMPTY SCOPE IS REFUSED AT THE PANEL, and that is the whole trap.**
+  `batch_service` reads an empty `molecule_uuids` as *"everything given"* —
+  a deliberate contract with its own tests — so unticking every molecule and
+  pressing Fill table would have run the WHOLE PROJECT, a bug that looks
+  like correct behaviour. The service keeps its convention; the panel
+  refuses, mirroring "Tick at least one property first."
+
+  That contract is also what makes the CONTROL test's vacuity the crux: a
+  scope control that does nothing sends an empty list and is
+  indistinguishable by outcome from the correct default, so the guard
+  asserts the widget's own ticks as well as the request.
+
+  **"Select all" / "Clear selection" still mean PROPERTIES**, forced by a
+  help contract rather than by preference: `batch.select_all`'s declared
+  text is specific to properties and to the filter, and rewriting it under
+  the same `help_id` would be reusing an id for a different concept. The
+  molecule list has its own explicitly-named "All molecules" / "No
+  molecules" pair.
+
+  Not remembered between launches: a property id names a definition that is
+  the same in every project, while a molecule uuid belongs to one project
+  file. Five mutation arms, five caught — including the request widening
+  ALONE, which reddens exactly one test, because the service clamps the
+  payload by the request and either half alone is otherwise equivalent.
 - ~~**A Batch / Compare organisation pass.**~~ **MEASURED, and it was one
   specific defect rather than an organisation problem.** This bullet was
   bare — written before Batch was rebuilt on the Properties model, and

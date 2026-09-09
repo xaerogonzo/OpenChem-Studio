@@ -692,6 +692,59 @@ class _Driver(QObject):
         panel._select_all_visible()
         logger.warning("OPENCHEM_DRIVE: %s", panel._status.text())
 
+    def _do_batch_molecules(self, step: dict[str, Any]) -> None:
+        """Narrow which molecules Fill table will cover.
+
+        `{"do": "batch_molecules", "names": ["Aspirin", "Caffeine"]}`
+        `{"do": "batch_molecules", "all": true}`
+        `{"do": "batch_molecules", "none": true}`
+
+        **DRIVES THE REAL LIST WIDGET**, for the reason `jobs_cancel`
+        presses the real button: the scope is read back off the ticks, so
+        a step that called `selected_molecules` or set some private field
+        would prove the resolver works and say nothing about whether the
+        control is wired to it.
+
+        A name matching nothing is LOGGED rather than ignored. A silently
+        unticked molecule photographs identically to a correctly ticked
+        one, and the whole point of the scope is that it changes what runs
+        without changing what the panel looks like.
+
+        THE RESOLVED SCOPE IS LOGGED BESIDE THE SHOT, because that is the
+        half no picture carries: a panel scoped to two molecules and one
+        scoped to five are the same image until the table lands.
+        """
+        panel = self._window._batch_panel
+        panel._molecule_section.set_expanded(True)
+        if step.get("all"):
+            panel._select_all_molecules()
+        elif step.get("none"):
+            panel._clear_molecule_selection()
+        else:
+            wanted = [str(name) for name in step.get("names", [])]
+            labels = {
+                panel._molecules.item(index).text(): panel._molecules.item(index)
+                for index in range(panel._molecules.count())
+            }
+            for name, item in labels.items():
+                item.setCheckState(
+                    Qt.CheckState.Checked if name in wanted else Qt.CheckState.Unchecked
+                )
+            for name in wanted:
+                if name not in labels:
+                    logger.error(
+                        "OPENCHEM_DRIVE: no molecule %r in the scope list -- have %s",
+                        name,
+                        sorted(labels),
+                    )
+        logger.warning(
+            "OPENCHEM_DRIVE: batch scope %d of %d -- %s | label %r",
+            len(panel.selected_molecules()),
+            panel._molecules.count(),
+            [m.display_name for m in panel.selected_molecules()],
+            panel._scope_label.text(),
+        )
+
     def _do_batch_fill(self, step: dict[str, Any]) -> None:
         """Fill the whole table.
 

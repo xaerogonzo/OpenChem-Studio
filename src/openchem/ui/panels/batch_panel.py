@@ -29,9 +29,12 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
     QFileDialog,
+    QHBoxLayout,
     QHeaderView,
     QLabel,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QMenu,
     QMessageBox,
     QProgressBar,
@@ -58,6 +61,7 @@ from openchem.events.base import EventBus
 from openchem.services.batch_service import BatchProgress, BatchService
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.table_export_service import TableExportService
+from openchem.ui.widgets.collapsible_section import CollapsibleSection
 from openchem.ui.widgets.flow_layout import flow_row
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.sortable_item import SORT_ROLE, SortableItem
@@ -85,8 +89,10 @@ _HELP: dict[str, HelpTooltip] = {
     ),
     "run": HelpTooltip(
         text=(
-            "Compute every ticked property for every molecule in the "
-            "project, and fill the whole table.\n\n"
+            "Compute every ticked property for every ticked molecule, and "
+            "fill the table.\n\n"
+            "Everything starts ticked, so this covers the whole project "
+            "until you narrow it under Molecules above.\n\n"
             "**THIS IS THE BULK PATH AND IT IS DELIBERATE.** Nothing is "
             "computed until you ask: opening this panel runs nothing, and "
             "opening one molecule's details computes that molecule "
@@ -134,6 +140,54 @@ _HELP: dict[str, HelpTooltip] = {
         ),
         tier=1,
         help_id="batch.clear_selection",
+        topic="batch",
+    ),
+    # THE REVERSE OF THE FILTER'S PROMISE, IN AS MANY WORDS. `filter` above
+    # declares that it narrows the LIST and never the results, and a reader
+    # who has absorbed that will carry it straight across to the control
+    # directly below it unless this one says the opposite outright.
+    "molecule_scope": HelpTooltip(
+        text=(
+            "Choose which molecules Fill table computes.\n\n"
+            "**THIS CHANGES WHAT IS COMPUTED**, unlike the property filter "
+            "above it: an unticked molecule is not run and gets no row. "
+            "Everything starts ticked, so a project you never narrow "
+            "behaves exactly as it did before this control existed.\n\n"
+            "Not remembered between launches. A molecule is identified by "
+            "an id belonging to one project file, so a choice restored "
+            "against a different project would name nothing -- and a panel "
+            "that quietly refused to run, or quietly ran everything, is "
+            "worse than starting from all.\n\n"
+            "It scopes the bulk run only. Opening one molecule's details "
+            "still computes that molecule whether or not it is ticked."
+        ),
+        tier=2,
+        help_id="batch.molecule_scope",
+        topic="batch",
+    ),
+    # NOT the same text as `select_all`/`clear_selection`, deliberately.
+    # Byte-identical text under two ids is one concept wearing two, which
+    # `test_one_concept_is_not_split_across_many_help_ids` refuses -- and
+    # these genuinely differ, since the property pair respects the filter
+    # and this pair has no filter to respect.
+    "molecules_all": HelpTooltip(
+        text=(
+            "Tick every molecule in the project, which is where a project "
+            "starts."
+        ),
+        tier=1,
+        help_id="batch.molecule_scope_select_all",
+        topic="batch",
+    ),
+    "molecules_none": HelpTooltip(
+        text=(
+            "Untick every molecule.\n\n"
+            "Fill table refuses to run with none ticked rather than "
+            "quietly falling back to the whole project, so this is a step "
+            "towards choosing a few, not a way to run nothing."
+        ),
+        tier=1,
+        help_id="batch.molecule_scope_clear",
         topic="batch",
     ),
     "export_csv": HelpTooltip(
@@ -350,6 +404,60 @@ class BatchPanel(QWidget):
         self._scope_label = QLabel("No project open.")
         layout.addWidget(self._scope_label)
 
+        # COLLAPSED BY DEFAULT, AND THE ALTERNATIVES WERE PRICED RATHER
+        # THAN DISMISSED. A bare list here costs ~165 px of fixed height
+        # taken from the only `stretch=1` widget in the panel -- on a
+        # 700 px dock the results table drops from roughly 380 to 215, a
+        # 43% cut to the thing this panel exists to produce, paid
+        # permanently by every user including those who never narrow the
+        # scope. That is the 63-px 3D viewer this project already shipped
+        # once. A "Molecules..." dialog costs no height and hides the
+        # scope, putting the one control that changes WHAT IS COMPUTED
+        # behind a modal while the property filter, which changes nothing,
+        # sits in plain view.
+        #
+        # Collapsed, the default layout is unchanged until somebody asks --
+        # and `_scope_label` directly above is the always-visible readout,
+        # so collapsing hides the CONTROL and never the STATE.
+        #
+        # It reuses `CollapsibleSection`, so the toggle inherits
+        # `properties.section_toggle` -- one concept, however many sections
+        # exist, which is the same call the sixty batch tick boxes make.
+        # RECORDED RATHER THAN FIXED: that contract also carries
+        # `help_anchor="properties"`, so this Batch toggle points a reader
+        # at the Properties topic. Renaming a definition that has not
+        # changed meaning is what `help_id`'s own rules permit only
+        # reluctantly.
+        self._molecule_section = CollapsibleSection("Molecules", expanded=False, parent=self)
+        self._molecules = QListWidget(self)
+        # The same bound `ComparisonPanel` ships, and for the same reason:
+        # a project has a handful of molecules and the list must not grow
+        # into the table below it.
+        self._molecules.setMaximumHeight(140)
+        apply_help_tooltip(self._molecules, _HELP['molecule_scope'])
+        self._molecules.itemChanged.connect(self._on_molecule_item_changed)
+        self._molecule_section.add_calculator_widget(self._molecules)
+
+        # A plain `QHBoxLayout`, NOT `flow_row`. This project measured
+        # `flow_row` costing 21 px of dead band on a two-child row in the
+        # Docking panel, and two short buttons come nowhere near the width
+        # a dock can satisfy -- `flow_row` is a cure for a row whose
+        # children cannot fit, not a prophylactic.
+        molecule_buttons = QWidget(self)
+        molecule_row = QHBoxLayout(molecule_buttons)
+        molecule_row.setContentsMargins(0, 0, 0, 0)
+        self._molecules_all_button = QPushButton("All molecules", self)
+        self._molecules_all_button.clicked.connect(self._select_all_molecules)
+        apply_help_tooltip(self._molecules_all_button, _HELP['molecules_all'])
+        self._molecules_none_button = QPushButton("No molecules", self)
+        self._molecules_none_button.clicked.connect(self._clear_molecule_selection)
+        apply_help_tooltip(self._molecules_none_button, _HELP['molecules_none'])
+        molecule_row.addWidget(self._molecules_all_button)
+        molecule_row.addWidget(self._molecules_none_button)
+        molecule_row.addStretch(1)
+        self._molecule_section.add_calculator_widget(molecule_buttons)
+        layout.addWidget(self._molecule_section)
+
         self._filter = QLineEdit(self)
         self._filter.setPlaceholderText("Filter properties…")
         self._filter.textChanged.connect(self._apply_filter)
@@ -481,12 +589,121 @@ class BatchPanel(QWidget):
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
-        count = len(project.molecules) if project else 0
-        self._scope_label.setText(
-            f"{count} molecule{'s' if count != 1 else ''} in this project."
-            if project
-            else "No project open."
-        )
+        self._rebuild_molecule_list()
+        self._refresh_scope_label()
+
+    def _rebuild_molecule_list(self) -> None:
+        """Rebuild the scope list, keeping the ticks that still name a
+        molecule.
+
+        Rebuilt WHOLESALE rather than diffed, following
+        `ComparisonPanel._rebuild_molecule_list`: there are a handful of
+        molecules, and a diff is a second source of truth about what is on
+        screen. Ticks survive by uuid, so renaming a molecule does not
+        clear it and deleting one drops it from the scope with nothing
+        stale left behind.
+
+        **AND EVERYTHING IS TICKED WHEN NO UUID SURVIVES**, which is the
+        one line that makes the rest safe. Re-setting the same project
+        keeps a narrowing; loading a DIFFERENT project has no surviving
+        uuid and so starts fresh at "all". That makes "all" the default
+        and makes an accidental empty scope self-healing across a project
+        switch, so no "not yet narrowed" sentinel is needed -- which is
+        good, because "not yet narrowed" and "explicitly all" are
+        indistinguishable and never need distinguishing.
+        """
+        chosen = self._selected_molecule_uuids()
+        molecules = list(self._project.molecules) if self._project else []
+        survivors = chosen & {molecule.uuid for molecule in molecules}
+        # `blockSignals`, not the `_suspend_tree` guard the property tree
+        # uses: nothing here propagates, so there is no re-entry to guard
+        # against -- only a stream of `itemChanged` during the rebuild.
+        self._molecules.blockSignals(True)
+        self._molecules.clear()
+        for molecule in molecules:
+            item = QListWidgetItem(molecule.display_name, self._molecules)
+            item.setData(Qt.ItemDataRole.UserRole, molecule.uuid)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(
+                Qt.CheckState.Checked
+                if not survivors or molecule.uuid in survivors
+                else Qt.CheckState.Unchecked
+            )
+        self._molecules.blockSignals(False)
+
+    def _molecule_items(self):
+        for index in range(self._molecules.count()):
+            yield self._molecules.item(index)
+
+    def _selected_molecule_uuids(self) -> set[str]:
+        return {
+            item.data(Qt.ItemDataRole.UserRole)
+            for item in self._molecule_items()
+            if item.checkState() is Qt.CheckState.Checked
+        }
+
+    def selected_molecules(self) -> list:
+        """THE scope object: which molecules a run covers.
+
+        Derived from the widget on every call and never stored, the same
+        discipline `selected_ids()` keeps -- a stored copy is a second
+        answer to "what is ticked" that can disagree with the screen.
+
+        **PROJECT ORDER, NOT WIDGET ORDER**, so the results table's rows
+        cannot drift from the project's however the list is rebuilt.
+
+        A uuid that no longer names a molecule is an impossible state
+        rather than a silent omission: `_rebuild_molecule_list` drops it
+        on every project change, and returning a list shorter than the
+        ticks claim would be exactly the "the UI estimated two and the
+        service ran three" defect this method exists to remove.
+        """
+        if self._project is None:
+            return []
+        wanted = self._selected_molecule_uuids()
+        return [molecule for molecule in self._project.molecules if molecule.uuid in wanted]
+
+    def check_molecule(self, uuid: str, checked: bool = True) -> None:
+        """Tick one molecule by uuid -- the hook tests and drive scripts
+        use to set up a scope without simulating clicks, parallel to
+        `check()` for a property."""
+        for item in self._molecule_items():
+            if item.data(Qt.ItemDataRole.UserRole) == uuid:
+                item.setCheckState(
+                    Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
+                )
+
+    def _on_molecule_item_changed(self, _item: QListWidgetItem) -> None:
+        self._refresh_scope_label()
+
+    def _select_all_molecules(self) -> None:
+        for item in self._molecule_items():
+            item.setCheckState(Qt.CheckState.Checked)
+
+    def _clear_molecule_selection(self) -> None:
+        for item in self._molecule_items():
+            item.setCheckState(Qt.CheckState.Unchecked)
+
+    def _refresh_scope_label(self) -> None:
+        """ONE readout, and the untouched wording is unchanged on purpose.
+
+        The section title stays the bare word "Molecules" so the count is
+        stated in exactly one place and cannot drift from the list below
+        it. A project with everything ticked reads exactly as it did
+        before this control existed, which is what lets the all-selected
+        control test assert today's string.
+        """
+        if self._project is None:
+            self._scope_label.setText("No project open.")
+            return
+        total = len(self._project.molecules)
+        chosen = len(self._selected_molecule_uuids())
+        if chosen == total:
+            self._scope_label.setText(
+                f"{total} molecule{'s' if total != 1 else ''} in this project."
+            )
+        else:
+            self._scope_label.setText(f"{chosen} of {total} molecules selected.")
 
     def _populate_tree(self) -> None:
         """Build the picker from the registry and the descriptor provider.
@@ -776,7 +993,30 @@ class BatchPanel(QWidget):
         if not descriptors and not calculators:
             self._status.setText("Tick at least one property first.")
             return
-        molecules = list(self._project.molecules)
+        # ONE SCOPE OBJECT, RESOLVED ONCE AND FROZEN FOR THIS RUN. This
+        # local feeds the cost estimate, the request and the payload; none
+        # of the three re-resolves, so the panel cannot estimate two
+        # molecules while the service runs three. Ticking a molecule while
+        # the cost dialog is open, or while the run is in flight, affects
+        # the NEXT run.
+        #
+        # The uuids below are DERIVED from this list rather than read from
+        # the widget a second time, which matters because the service
+        # clamps the payload by `set(request.molecule_uuids)` -- so
+        # widening either half alone is an equivalent mutation, and only
+        # deriving one from the other makes them incapable of disagreeing.
+        molecules = self.selected_molecules()
+        if not molecules:
+            # REFUSED, NEVER PASSED THROUGH. `batch_service` reads an empty
+            # `molecule_uuids` as "everything given" -- a deliberate
+            # compatibility contract with its own tests, and one this panel
+            # must not send an empty user selection into: unticking every
+            # molecule and pressing Fill table would run the WHOLE PROJECT,
+            # which is a bug that looks like correct behaviour. The service
+            # keeps its convention; the refusal lives here, mirroring the
+            # "Tick at least one property first." directly above.
+            self._status.setText("Tick at least one molecule first.")
+            return
         total = len(molecules) * (len(descriptors) + len(calculators))
         if total > _CONFIRM_ABOVE:
             answer = QMessageBox.question(
@@ -795,7 +1035,7 @@ class BatchPanel(QWidget):
                 return
         self._filling_table = True
         request = BatchRequest(
-            molecule_uuids=[molecule.uuid for molecule in self._project.molecules],
+            molecule_uuids=[molecule.uuid for molecule in molecules],
             descriptor_ids=descriptors,
             calculator_ids=calculators,
             per_atom_aggregate=self._aggregate.currentText(),

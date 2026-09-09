@@ -1203,3 +1203,257 @@ def test_every_results_column_is_wide_enough_for_its_own_header(panel):
         "the columns stopped being user-draggable, which is what the "
         "ResizeToContents MODE costs and why the width is set once instead"
     )
+
+
+# --- the molecule scope ---------------------------------------------------
+
+
+def _spy_on_the_request(panel, monkeypatch):
+    """Record what `_run` hands the service, and still let it run.
+
+    Both arguments, because they are separately mutable and the service
+    CLAMPS one by the other: `batch_service.run` filters the molecules it
+    was handed by `set(request.molecule_uuids)`, so widening either half
+    alone changes no behaviour. A spy watching only the request is a spy
+    that cannot see half the defect.
+    """
+    seen: dict = {}
+    original = panel._batch_service.request_batch
+
+    def record(request, molecules):
+        seen["request"] = request
+        seen["molecules"] = list(molecules)
+        return original(request, molecules)
+
+    monkeypatch.setattr(panel._batch_service, "request_batch", record)
+    return seen
+
+
+def test_a_run_covers_only_the_ticked_molecules(panel, project, monkeypatch):
+    """THE SENTINEL. Four arms, because the four are separately mutable.
+
+    `batch_panel._run` used to rebuild the project's molecule list three
+    times -- once for the cost estimate, once as `molecule_uuids`, once as
+    the payload -- so a three-molecule project could not run two.
+    """
+    from PySide6.QtWidgets import QMessageBox
+
+    seen = _spy_on_the_request(panel, monkeypatch)
+    first, second, third = project.molecules[0], project.molecules[1], project.molecules[2]
+    for molecule in project.molecules:
+        panel.check_molecule(molecule.uuid, molecule in (first, third))
+
+    # The cost dialog is forced open so its TEXT can be read: an estimate
+    # nobody asserts is an estimate that can quietly describe a different
+    # scope from the one that runs.
+    asked: dict = {}
+
+    def capture(_parent, _title, text, *args, **kwargs):
+        asked["text"] = text
+        return QMessageBox.StandardButton.Ok
+
+    monkeypatch.setattr("openchem.ui.panels.batch_panel._CONFIRM_ABOVE", 0)
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(capture))
+
+    _run(panel, ["mol_wt"])
+
+    assert seen["request"].molecule_uuids == [first.uuid, third.uuid]
+    assert [m.uuid for m in seen["molecules"]] == [first.uuid, third.uuid]
+    assert panel.table().row_uuids == [first.uuid, third.uuid]
+    assert not any(key.molecule_uuid == second.uuid for key in panel._store.results)
+    assert "2 molecules" in asked["text"]
+
+
+def test_the_default_scope_is_every_molecule_and_the_request_is_unchanged(
+    panel, project, monkeypatch
+):
+    """THE CONTROL, and its vacuity is the crux of the whole feature.
+
+    `batch_service` reads an EMPTY `molecule_uuids` as "everything given".
+    So a completely broken selection -- one that ticks nothing and sends an
+    empty list -- is INDISTINGUISHABLE BY OUTCOME from the correct default,
+    and an assertion on the request alone would pass against a scope
+    control that does nothing at all.
+
+    The widget is therefore asserted too. The pair is what tells "wired,
+    and defaults to all" apart from "does nothing" and from "broken, and
+    the service is covering for it". It is also why `_run` refuses an empty
+    scope: the refusal removes the collision rather than describing it.
+    """
+    seen = _spy_on_the_request(panel, monkeypatch)
+
+    _run(panel, ["mol_wt"])
+
+    expected = [molecule.uuid for molecule in project.molecules]
+    assert seen["request"].molecule_uuids == expected
+    assert [m.uuid for m in seen["molecules"]] == expected
+    assert panel._molecules.count() == len(project.molecules)
+    assert all(
+        panel._molecules.item(index).checkState() is Qt.CheckState.Checked
+        for index in range(panel._molecules.count())
+    )
+    assert panel._scope_label.text() == f"{len(project.molecules)} molecules in this project."
+
+
+def test_an_empty_molecule_scope_refuses_rather_than_running_everything(
+    panel, project, monkeypatch
+):
+    """The compatibility trap, closed at the UI and not in the service.
+
+    `batch_service.py`'s "an empty list still means everything given" is a
+    deliberate contract with its own tests and other callers. Untick every
+    molecule and the panel must REFUSE, not send an empty list that the
+    service would helpfully expand back to the whole project.
+    """
+    seen = _spy_on_the_request(panel, monkeypatch)
+    panel._clear_molecule_selection()
+
+    _run(panel, ["mol_wt"])
+
+    assert "molecule" in panel._status.text().lower()
+    assert seen == {}, "the run reached the service with an empty scope"
+
+
+def test_the_molecule_ticks_survive_a_rebuild_by_uuid_not_by_row(panel, project):
+    """A rename must keep a tick and a deletion must drop one.
+
+    Ticks keyed on a ROW would follow the position rather than the
+    molecule, so deleting the first entry would silently re-point every
+    later tick at its neighbour.
+    """
+    kept, doomed = project.molecules[0], project.molecules[1]
+    for molecule in project.molecules:
+        panel.check_molecule(molecule.uuid, molecule in (kept, doomed))
+
+    kept.display_name = "renamed after being ticked"
+    project.molecules.remove(doomed)
+    panel.set_project(project)
+
+    assert panel._selected_molecule_uuids() == {kept.uuid}
+    assert [m.uuid for m in panel.selected_molecules()] == [kept.uuid]
+    labels = [
+        panel._molecules.item(index).text() for index in range(panel._molecules.count())
+    ]
+    assert "renamed after being ticked" in labels
+
+
+def test_a_different_project_starts_with_every_molecule_ticked(panel, services):
+    """No surviving uuid means start fresh at ALL.
+
+    That one rule is what makes "all" the default AND makes an accidental
+    empty scope self-healing across a project switch, so no "not yet
+    narrowed" sentinel is needed.
+    """
+    panel._clear_molecule_selection()
+    other = ProjectModel(name="another")
+    for name, smiles in _DRUGS[:2]:
+        molecule = MoleculeModel(display_name=name)
+        services.chemistry_engine.set_structure_from_smiles(molecule, smiles)
+        other.molecules.append(molecule)
+
+    panel.set_project(other)
+
+    assert len(panel.selected_molecules()) == len(other.molecules)
+
+
+def test_filtering_the_properties_does_not_change_the_molecule_scope(panel, project):
+    """The two narrowings are orthogonal, in both directions.
+
+    Stated both ways because the property tree's shared tri-state
+    machinery is exactly where cross-population state leaks, and because
+    "implement the filter by rebuilding the list with everything visible
+    ticked" is a plausible thing for somebody to write.
+    """
+    first = project.molecules[0]
+    for molecule in project.molecules:
+        panel.check_molecule(molecule.uuid, molecule is first)
+    panel.check("mol_wt")
+
+    panel._filter.setText("logp")
+    panel._filter.setText("")
+
+    assert panel._selected_molecule_uuids() == {first.uuid}
+
+    panel._clear_molecule_selection()
+    panel._select_all_molecules()
+
+    assert panel.selected_ids() == (["mol_wt"], [])
+
+
+def test_select_all_still_means_properties(panel, project):
+    """The ambiguity, asserted rather than left to a naming convention.
+
+    `batch.select_all`'s own contract declares it ticks "every property
+    currently shown in the list" and respects the filter. Broadening those
+    two buttons to mean both populations would make that declared text
+    false, and rewriting it under the same `help_id` is reusing an id for a
+    different concept -- which is what `help_id` forbids outright.
+    """
+    panel._clear_molecule_selection()
+
+    panel._select_all_visible()
+
+    assert panel.selected_ids() != ([], [])
+    assert panel._selected_molecule_uuids() == set()
+
+    panel._select_all_molecules()
+    panel._clear_selection()
+
+    assert panel.selected_ids() == ([], [])
+    assert len(panel._selected_molecule_uuids()) == len(project.molecules)
+
+
+def test_the_scope_section_starts_collapsed_and_costs_the_results_table_nothing(panel):
+    """Collapsed by default, so the layout is unchanged until asked.
+
+    THE SETUP IS ASSERTED: expanding must move the section's height hint by
+    a real amount, or "it starts collapsed" is a claim about a section with
+    nothing in it.
+
+    **THE SECTION'S OWN HINT, NEVER THE PANEL'S.** The panel here was never
+    shown, so its layout does not propagate a child's change and its
+    `sizeHint` is 607 px collapsed and 607 px expanded -- the first draft
+    of this guard asserted on that and failed against correct code, which
+    is this project's recorded "a widget that was never shown runs almost
+    none of its own code" one event along. Measured on the section itself:
+    19 px collapsed, 193 px expanded.
+
+    `isHidden`, not `isVisible`, for the same reason: every child of an
+    unshown window reports `isVisible() == False` whatever its own state.
+    """
+    section = panel._molecule_section
+    assert not section.is_expanded()
+    assert section.content.isHidden()
+    collapsed = section.sizeHint().height()
+
+    section.set_expanded(True)
+    expanded = section.sizeHint().height()
+
+    assert not section.content.isHidden()
+    assert expanded - collapsed > 100, (
+        f"expanding the scope section moved its height hint by only "
+        f"{expanded - collapsed} px ({collapsed} -> {expanded}), so the "
+        "collapsed assertion proves nothing"
+    )
+    assert collapsed < 40, (
+        f"the collapsed section costs {collapsed} px, which is no longer "
+        "the negligible cost that justified putting the control here"
+    )
+
+
+def test_the_lazy_details_path_ignores_the_molecule_scope(panel, project, monkeypatch):
+    """The scope governs the BULK path only.
+
+    A details view is reached from a row an earlier, wider run produced, so
+    scoping it would make a visible row un-openable. "Helpfully" applying
+    the scope there is the obvious next edit, which is why it is asserted.
+    """
+    unticked = project.molecules[-1]
+    panel._clear_molecule_selection()
+    panel.check_molecule(project.molecules[0].uuid)
+    panel.check("mol_wt")
+
+    seen = _spy_on_the_request(panel, monkeypatch)
+    panel._show_details(unticked.uuid)
+
+    assert seen["request"].molecule_uuids == [unticked.uuid]
