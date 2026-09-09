@@ -6392,7 +6392,73 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-22 minutes**, ending at `7156 passed, 16 skipped`
+A clean run is **6-26 minutes**, ending at `7215 passed, 16 skipped`
+(measured 2026-09-09, **25m32**, on `stage-6-quantitative-limits` -- the
+quantitative regulatory model, and OSHA Table Z-1 on top of it.
+
+**THE BAND WENT 6-22 TO 6-26 ON THIS RUN, AND THE FOUR MINUTES ARE
+UNEXPLAINED.** The entry below is 19m32 on a tree 59 tests smaller, and 59
+tests that run in under two seconds cannot cost six minutes. Nothing ran
+alongside it -- the collected-count diff and the worktree were both taken
+after the summary line landed, which this file's own rule demands of a
+figure intended for citation. Widened so a reader whose run takes 25
+minutes does not conclude the suite has hung, and recorded as the outlier
+it is rather than as a new normal. That is now the eighth consecutive entry
+to say the band is a range with no predictive value inside it.
+
+**+60 collected and 1 REMOVED**, diffed both directions with `comm` in a
+detached worktree, with the `PYTHONPATH` override asserted before the count
+was believed (`import openchem` reported the WORKTREE's `src`):
+
+    master     fdf6829   COLLECTS 7172
+    this one             COLLECTS 7231   = 7172 + 60 - 1
+    the run                       7215 passed + 16 skipped = 7231
+
+**AND THE FIRST BASELINE I COLLECTED WAS THE WRONG COMMIT.** `0dd7c1a` is
+the merge this branch's own predecessor was measured against, and it is one
+merge stale -- it collects 7132, so reading it would have reported +99
+against a real +60. `git merge-base origin/master HEAD` is `fdf6829`, which
+IS `origin/master` exactly, so nothing landed while this branch was open.
+**Derive the baseline with `merge-base`, never from the entry above** -- the
+same drift this section already records at 4, 5, 10 and 11 tests, caught one
+step earlier because the two numbers were four commits apart rather than
+four tests.
+
+    40  test_osha_table_z1.py           the snapshot chain, the two
+                                        provenance hashes, the row census,
+                                        the four row classes, the two
+                                        footnotes, and the two resolution
+                                        rules with their narrow halves
+    15  test_quantitative_limits.py     the model, the closed vocabularies,
+                                        the three-valued precision, and the
+                                        four rulesets that predate the field
+     4  test_regulatory_rulesets.py     the corpus guard's split, plus the
+                                        control guards' new positive half
+     1  test_sources_are_current.py     a parametrised case of the EXISTING
+                                        schema guard, for the new registry
+                                        entry
+
+**THE ONE REMOVAL IS THE CORPUS GUARD SPLITTING, WITH TWO NAMED
+SUCCESSORS**, which is the whole reason to diff rather than subtract. A
+blanket "every shipped rule is exercised by the benchmark corpus" would have
+forbidden landing 232 Table Z-1 identity rules at all, so it became
+`test_every_rule_outside_table_z1_is_exercised_by_the_benchmark_corpus` --
+full strength for every ruleset that predates Z-1 -- beside
+`test_the_table_z1_rules_awaiting_a_positive_case_only_shrink`, a ratchet.
+The assertion is unchanged for the population it always covered; what is new
+is that the population is named.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored,
+since pytest's progress dots share the line -- as do `^FAILED`, `^ERROR`
+and a whole-line-anchored count of `F`/`E` progress characters. The skips
+are the deterministic 16. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**CLEAN ON ITS FIRST RUN.**)
+
+Before it: `7156 passed, 16 skipped`
 (measured 2026-09-09, **19m32**, on `stage-5-the-no-gate-trio` -- the three
 items the roadmap called ready to build with no science gate, plus the two
 defects planning found on the way.
