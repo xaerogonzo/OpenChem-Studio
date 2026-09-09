@@ -190,8 +190,11 @@ def test_the_union_holds_both_kinds_and_dispatch_is_by_isinstance():
     """
     from openchem.domain.report import ChartAnnotation
 
+    from openchem.domain.report import DepictionAnnotation
+
     assert StickChartAnnotation in typing.get_args(ChartAnnotation)
     assert LineChartAnnotation in typing.get_args(ChartAnnotation)
+    assert DepictionAnnotation in typing.get_args(ChartAnnotation)
 
 
 @pytest.mark.parametrize(

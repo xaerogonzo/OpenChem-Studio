@@ -25,6 +25,8 @@ guessed at.
 
 from __future__ import annotations
 
+import dataclasses
+
 from dataclasses import replace
 from typing import Any
 
@@ -715,13 +717,80 @@ def compute_lewis_sites(
     lines.extend(f"Assumption: {text}" for text in analysis.assumptions)
     lines.extend(f"Limitation: {text}" for text in analysis.limitations)
 
-    return report_from_fields(
+    report = report_from_fields(
         alert_id="lewis_sites",
         name="Lewis Sites",
         molecule_uuid=molecule_uuid,
         matched=lines,
         category="lewis",
         provenance=provenance,
+    )
+    depiction = lewis_site_depiction(analysis)
+    if depiction is not None:
+        report = dataclasses.replace(report, charts=(depiction,))
+    return report
+
+
+#: Which colour says which role, and the three are chosen to be told apart
+#: rather than to form a ramp -- a role is a CATEGORY, so interpolating
+#: between donor and acceptor would be meaningless.
+#:
+#: Taken from the Okabe-Ito palette `ui/visualization.py` already uses for
+#: categorical per-atom data, for the reason recorded there: it is designed
+#: for distinguishability under the common colour-vision deficiencies,
+#: rather than picked by eye. Grey is deliberately absent -- it reads as
+#: "no data" against the uncoloured atoms these sit beside.
+LEWIS_ROLE_COLOURS: dict[str, str] = {
+    "donor": "#0072b2",       # blue
+    "acceptor": "#d55e00",    # vermillion
+    "ambiphilic": "#009e73",  # green
+}
+
+
+def lewis_site_depiction(analysis):
+    """The donor and acceptor sites, declared for drawing on the structure.
+
+    The roadmap's "Lewis-site diagrams", and it needed no new machinery:
+    `render_2d_svg` has taken per-atom colours and labels since Phase 18,
+    and `VisualizationLayer` has been the shape for them since Phase 11.
+    What was missing was a producer saying WHICH atoms -- so this is a
+    declaration, not a renderer.
+
+    **AMBIPHILIC GETS ITS OWN COLOUR RATHER THAN BOTH OTHERS.** An atom
+    that donates and accepts is one fact, not two, and `analyse` already
+    reports it as its own role for exactly that reason -- water is the
+    textbook case, its oxygen donating a lone pair while its O-H accepts.
+    Painting it twice would mean the last write wins, silently.
+
+    None when there is nothing to show, because `charts == ()` is how a
+    producer says it has no picture and an empty layer is a claim followed
+    by silence.
+    """
+    from openchem.domain.report import DepictionAnnotation
+    from openchem.domain.visualization import VisualizationLayer
+
+    colours: dict[int, str] = {}
+    labels: dict[int, str] = {}
+    for site in analysis.sites:
+        colour = LEWIS_ROLE_COLOURS.get(site.role.value)
+        if colour is None:
+            continue
+        colours[site.atom_index] = colour
+        labels[site.atom_index] = site.role.value
+    if not colours:
+        return None
+    return DepictionAnnotation(
+        layer=VisualizationLayer(
+            name="Lewis sites",
+            atom_colors=colours,
+            atom_labels=labels,
+        ),
+        title="Lewis sites",
+        caption=(
+            "Donor blue, acceptor vermillion, ambiphilic green. Perceived "
+            "from the structure -- the report's facts carry the rule that "
+            "found each one, and its assumptions and limitations in full."
+        ),
     )
 
 

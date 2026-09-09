@@ -18,12 +18,14 @@ from __future__ import annotations
 
 import dataclasses
 import math
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
 from openchem.domain.common import ScientificResult
 from openchem.domain.structure_issue import Basis
+from openchem.domain.visualization import VisualizationLayer
 
 
 class FactCategory(str, Enum):
@@ -569,8 +571,48 @@ class LineChartAnnotation:
 #: The union of chart kinds. TWO members; `spatial` shipped as three and
 #: each additional one costs a `|`. Every consumer dispatches by
 #: `isinstance` from the first line, so a third is additive rather than a
+@dataclass(frozen=True)
+class DepictionAnnotation:
+    """A picture drawn ON the structure rather than on a pair of axes.
+
+    The third chart kind, and the one that is not a chart -- Lewis donor
+    and acceptor sites coloured onto the 2D depiction, a per-atom
+    contribution shown where the atoms are. `ReportResult.charts` means
+    *producer-declared presentation annotations* and has since this
+    arrived; the field keeps its name because renaming a shipped one is
+    churn, and `visualizations` is the migration if anybody ever wants it.
+
+    **IT WRAPS `VisualizationLayer` RATHER THAN RESTATING IT.** That type
+    has been "atom index -> colour and label, renderer-independent" since
+    Phase 11 and is what the 3D viewer already consumes, so a per-atom map
+    of its own here would be a second representation of one idea -- the
+    drift this repository has paid for five times. What this adds is only
+    the presentation framing the channel needs, exactly as
+    `StickChartAnnotation` adds axes and a caption around bare `Stick`s.
+
+    **IT CARRIES NO GEOMETRY, NO MOLECULE AND NO TOOLKIT OBJECT**, and
+    that is the contract rather than an omission:
+
+        annotation      WHAT to draw -- atom indices and their styling
+        report          WHICH molecule -- `StructureReport.molecule_uuid`
+        render context  the geometry, resolved and supplied by the UI
+
+    Which is how `spatial` already works: an `ArrowAnnotation` is in the
+    molecule's frame and the viewer holds the molecule. Nothing here may
+    grow atom coordinates, bond geometry, a conformer or a 2D layout; a
+    renderer needing one asks a rendering service for it.
+    """
+
+    layer: VisualizationLayer
+    title: str = ""
+    caption: str = ""
+
+
+#: The union of chart kinds. THREE members; `spatial` shipped as three and
+#: each additional one costs a `|`. Every consumer dispatches by
+#: `isinstance` from the first line, so a fourth is additive rather than a
 #: rewrite of everything that reads a bare type alias.
-ChartAnnotation = StickChartAnnotation | LineChartAnnotation
+ChartAnnotation = StickChartAnnotation | LineChartAnnotation | DepictionAnnotation
 
 
 def _finite(*values: Any) -> bool:
@@ -654,6 +696,8 @@ def valid_chart_annotation(annotation: Any) -> bool:
             and isinstance(annotation.y_label, str)
             and bool(annotation.y_label.strip())
         )
+    if isinstance(annotation, DepictionAnnotation):
+        return _valid_depiction(annotation)
     if isinstance(annotation, LineChartAnnotation):
         if not _valid_axes(annotation):
             return False
@@ -663,6 +707,59 @@ def valid_chart_annotation(annotation: Any) -> bool:
             return False
         return _line_series_rules_hold(annotation)
     return False
+
+
+#: A hex colour, the one representation a declared depiction may use.
+#: ONE spelling throughout rather than accepting `"#f00"`, an RGB tuple and
+#: a CSS name in different places: `VisualizationLayer.atom_colors` has
+#: always been "resolved hex", `ColorScale.color_for` emits exactly this,
+#: and `render_2d_svg` and the 3D viewer both parse it. A second accepted
+#: form would be a second parser in every consumer.
+_HEX_COLOUR = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+
+def _valid_depiction(annotation: DepictionAnnotation) -> bool:
+    """Whether a declared depiction is WELL-FORMED. Structural only.
+
+    Checks what can be checked WITHOUT the molecule, which is the line the
+    ownership model draws: this has atom indices and no structure, so it
+    can say an index is not a non-negative integer and cannot say whether
+    the molecule has one. That second question belongs to the render
+    context, which resolves `molecule_uuid` and already refuses an
+    out-of-range index -- `render_2d_svg`'s own `drawable()` guard exists
+    because calculators legitimately hold data keyed to `AddHs(mol)` while
+    the depiction is the editor's molblock.
+
+    **A MALFORMED COLOUR IS REFUSED**, and that is not fussiness. Colour
+    is producer-owned so a renderer cannot invent a legend -- but "any
+    string is a colour" would let a malformed declaration through to be
+    dropped silently by whichever painter received it, which is the
+    failing-open this channel exists to prevent.
+
+    It does NOT judge the chemistry: which atoms are donors, whether two
+    colours are distinguishable, whether a label is informative. A
+    reviewer owns the meaning.
+    """
+    layer = annotation.layer
+    if not isinstance(layer, VisualizationLayer):
+        return False
+    if not isinstance(layer.atom_colors, dict) or not layer.atom_colors:
+        return False
+    for index, colour in layer.atom_colors.items():
+        if not isinstance(index, int) or isinstance(index, bool) or index < 0:
+            return False
+        if not isinstance(colour, str) or not _HEX_COLOUR.match(colour):
+            return False
+    labels = layer.atom_labels
+    if labels is not None:
+        if not isinstance(labels, dict):
+            return False
+        for index, text in labels.items():
+            if not isinstance(index, int) or isinstance(index, bool) or index < 0:
+                return False
+            if not isinstance(text, str):
+                return False
+    return True
 
 
 def _valid_axes(annotation: Any) -> bool:

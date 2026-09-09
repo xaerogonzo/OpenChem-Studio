@@ -30,7 +30,12 @@ import logging
 
 from PySide6.QtWidgets import QLabel, QWidget
 
-from openchem.domain.report import LineChartAnnotation, StickChartAnnotation
+from openchem.domain.report import (
+    DepictionAnnotation,
+    LineChartAnnotation,
+    StickChartAnnotation,
+)
+from openchem.ui.widgets.depiction_widget import DepictionWidget
 from openchem.ui.widgets.line_chart_widget import LineChartWidget
 from openchem.ui.widgets.stick_chart_widget import StickChartWidget
 
@@ -67,17 +72,28 @@ class _UnrenderableChartLabel(QLabel):
 CHART_WIDGET_TYPES: tuple[type[QWidget], ...] = (
     StickChartWidget,
     LineChartWidget,
+    DepictionWidget,
     _UnrenderableChartLabel,
 )
 
 
-def chart_widget_for(annotation, parent: QWidget | None = None) -> QWidget:
+def chart_widget_for(
+    annotation, parent: QWidget | None = None, molblock: str = ""
+) -> QWidget:
     """The widget that draws `annotation`, or a label saying none does.
 
     Always returns something, so a caller never has to decide what an
     absent widget means -- which is how "no chart declared" and "chart
     declared and unrenderable" became the same empty box.
+
+    `molblock` is the RENDER CONTEXT, and only a depiction uses it. A
+    chart on axes needs no structure; a picture drawn ON one does, and
+    the annotation deliberately carries no geometry. A caller that cannot
+    resolve the molecule passes nothing and the depiction says so rather
+    than drawing an empty frame.
     """
+    if isinstance(annotation, DepictionAnnotation):
+        return DepictionWidget(annotation, parent, molblock=molblock)
     if isinstance(annotation, StickChartAnnotation):
         # `show_title=False`: the section header above IS the chart's
         # title, and painting it again put the same words twice on screen

@@ -1,0 +1,9 @@
+[
+  {"do": "depiction", "calculator": "lewis_sites", "smiles": "CS(C)=O", "tag": "dmso-two-donors", "after_ms": 1500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/lewis_depiction_dmso.png", "widget": "dialog", "after_ms": 500},
+
+  {"do": "depiction", "calculator": "lewis_sites", "smiles": "OCCN", "tag": "aminoethanol-mixed-roles", "after_ms": 1500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/lewis_depiction_aminoethanol.png", "widget": "dialog", "after_ms": 500},
+
+  {"do": "quit"}
+]

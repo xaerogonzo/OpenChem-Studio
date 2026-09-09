@@ -81,7 +81,7 @@ from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QObject, Qt, QTimer
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QWidget
 
 logger = logging.getLogger("openchem.ui")
 
@@ -2354,6 +2354,88 @@ class _Driver(QObject):
             " ".join(spec),
             dialog.verdict_text(),
             dialog.measured_text()[:80] or "(no measured values)",
+        )
+
+    def _do_depiction(self, step: dict[str, Any]) -> None:
+        """Open a declared DEPICTION in a FactView, with a structure to draw on.
+
+        `{"do": "depiction", "calculator": "lewis_sites", "smiles": "CS(C)=O"}`,
+        then `{"do": "shot", "widget": "dialog"}`.
+
+        **IT SUPPLIES THE RENDER CONTEXT THE WAY A HOST DOES**, through
+        `FactView.set_structure_resolver`, rather than handing the widget
+        a molblock directly. The annotation carries atom indices and no
+        geometry on purpose, so the thing worth photographing is whether
+        the resolution actually happens -- a view with no resolver draws a
+        sentence, which is correct and is NOT the picture.
+
+        It LOGS what was declared and whether a picture resulted, because
+        the three states photograph identically at a glance: nothing
+        declared, declared with no structure to draw on, and drawn.
+        """
+        from openchem.domain.molecule import MoleculeModel
+        from openchem.domain.report import valid_chart_annotation
+        from openchem.ui.widgets.depiction_widget import DepictionWidget
+        from openchem.ui.widgets.fact_view import FactView
+
+        self._dialog = None
+        registry = self._window._services.calculator_registry
+        wanted = str(step.get("calculator", ""))
+        definition = registry.get(wanted)
+        compute = getattr(getattr(definition, "execution", None), "compute", None)
+        if compute is None:
+            logger.error("OPENCHEM_DRIVE: no in-process calculator %r", wanted)
+            return
+
+        # THROUGH THE ENGINE, never `import rdkit` -- `app/` and `ui/` may
+        # not import a chemistry toolkit directly, which
+        # `tests/test_layering.py` holds and which caught the first draft
+        # of this step. `_do_smiles` goes the same way.
+        engine = self._window._services.chemistry_engine
+        molecule = MoleculeModel(display_name=str(step.get("smiles", "")))
+        try:
+            engine.set_structure_from_smiles(molecule, str(step.get("smiles", "")))
+        except Exception as exc:
+            logger.error("OPENCHEM_DRIVE: could not build %r: %s", step.get("smiles"), exc)
+            return
+        molblock = molecule.molblock
+        mol = engine.mol_from_molblock(molblock)
+        report = compute(mol, "drive-uuid", dict(step.get("parameters") or {}))
+
+        charts = tuple(getattr(report, "charts", ()) or ())
+        logger.warning(
+            "OPENCHEM_DRIVE: depiction tag=%s calculator=%s facts=%d charts=%d",
+            step.get("tag", ""),
+            wanted,
+            len(report.facts),
+            len(charts),
+        )
+        for chart in charts:
+            layer = getattr(chart, "layer", None)
+            logger.warning(
+                "OPENCHEM_DRIVE:   chart %s valid=%s atoms=%s labels=%s",
+                type(chart).__name__,
+                valid_chart_annotation(chart),
+                None if layer is None else layer.atom_colors,
+                None if layer is None else layer.atom_labels,
+            )
+
+        dialog = QDialog(self._window)
+        dialog.setWindowTitle(f"{report.name} - declared depiction")
+        dialog.resize(520, 640)
+        view = FactView(dialog)
+        view.set_structure_resolver(lambda _uuid: molblock)
+        view.set_report(report, title=report.name)
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(view)
+        dialog.show()
+        self._dialog = dialog
+
+        drawn = [w for w in view.chart_widgets() if isinstance(w, DepictionWidget)]
+        logger.warning(
+            "OPENCHEM_DRIVE:   rendered depiction widgets=%d drawing=%s",
+            len(drawn),
+            [w.is_drawing() for w in drawn],
         )
 
     def _do_crystal_report(self, step: dict[str, Any]) -> None:
