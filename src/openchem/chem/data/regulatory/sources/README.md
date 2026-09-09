@@ -69,6 +69,84 @@ whether the CAS appeared among PubChem's synonyms, and
 exactly 8, which is the tell. Resolving the CAS itself and comparing
 structures has no cap in it.
 
+## AND OSHA TABLE Z-1 SAYS THE OPPOSITE, IN ITS OWN FOOTNOTE
+
+The rule above is measured and it is REGULATION-SPECIFIC, which was not
+apparent until a regulation contradicted it. 29 CFR 1910.1000 Table Z-1
+footnote (c), verbatim:
+
+> The CAS number is for information only. **Enforcement is based on the
+> substance name.** For an entry covering more than one metal compound,
+> measured as the metal, the CAS number for the metal is given—not CAS
+> numbers for the individual compounds.
+
+So for this table the CAS is explicitly demoted, and **176 of its 610 rows
+print no CAS at all**. An identity anchored on the CAS here would be
+anchored on something the regulation itself calls informational, and would
+silently drop a quarter of the table.
+
+**Neither rule is wrong.** The CWC Annex prints a CAS beside every named
+chemical and treats it as part of the listing; Table Z-1 prints one as a
+convenience and says so. **The rule is: anchor on what the regulation
+treats as the identifier, and let the regulation say which that is.** Both
+are recorded on the rule, so a reader can see which route an entry took.
+
+## WHAT TABLE Z-1 ACTUALLY PROVIDES
+
+Read from the official eCFR XML
+(`/api/versioner/v1/full/{date}/title-29.xml?part=1910&section=1910.1000`,
+which requires an `Accept-Encoding` permitting compression or answers 406),
+**not** from OSHA's annotated PEL pages, which present NIOSH, Cal/OSHA and
+ACGIH values alongside the statutory ones.
+
+**FIVE COLUMNS, AND NO AVERAGING-PERIOD COLUMN:**
+
+    Substance | CAS No. (c) | ppm (a) 1 | mg/m3 (b) 1 | Skin designation
+
+610 data rows and 14 footnote rows. The averaging period is NOT a column:
+footnote 1 carries it for the whole table --
+
+> The PELs are 8-hour TWAs unless otherwise noted; a **(C)** designation
+> denotes a ceiling limit.
+
+-- and the `(C)` lives INSIDE the value, as `(C)10`, not as a separate
+field and not as a bare `C` prefix.
+
+**THE VALUE COLUMN HAS FOUR FORMS, AND THEY ARE DIFFERENT STATEMENTS:**
+
+| form | rows | means |
+| --- | --- | --- |
+| a bare number | most | an 8-hour TWA |
+| `(C)n` | 28 | a ceiling |
+| `(2)` / `(3)` | 26 | the limit is in Table Z-2 / Z-3, not here |
+| `1 ppm/5 ppm STEL` | 1 | butadiene: a TWA and a STEL in one cell |
+
+**THE mg/m³ VALUE'S EXACTNESS DEPENDS ON WHETHER ppm IS PRESENT**, which
+nothing about the column's own contents reveals. Footnote (b):
+
+> Milligrams of substance per cubic meter of air. When entry is in this
+> column only, the value is **exact**; when listed with a ppm entry, it is
+> **approximate**.
+
+Measured: **223 exact, 234 approximate.** A model that carried the number
+without that flag would present half of them as more precise than the
+regulation claims.
+
+**ROW CLASSES**, which is why "a row with no limit" must not be a refusal:
+
+    458   carry at least one limit
+     91   cross-references and aliases -- "; see 1910.1028",
+          "see Ethanolamine." -- with no limit of their own
+     61   no PEL printed
+
+**Skin designation** is one value, `X`, on 95 rows.
+
+**THE CONVERSION CONDITIONS ARE IN THE SOURCE**, footnote (a): "Parts of
+vapor or gas per million parts of contaminated air by volume at 25 °C and
+760 torr." That documents the assumptions a ppm ↔ mg/m³ conversion would
+need; it does not supply the molar mass such a conversion also needs, which
+is why a normalized value is refused rather than computed.
+
 ## Adding a regulation
 
 1. Add or edit a `*.json` here, with `legal.citation_url` pointing at the
