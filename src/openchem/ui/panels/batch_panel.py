@@ -254,6 +254,14 @@ _UUID_ROLE = Qt.ItemDataRole.UserRole + 2
 #: four molecules.
 _CONFIRM_ABOVE = 200
 
+#: How many rows Qt may measure when sizing a results column to its
+#: contents. Qt's own default is 1000, which makes column sizing grow with
+#: the project for no gain: a cell here is a formatted number or a short
+#: label, so twenty of them already establish the width, and the HEADER --
+#: the thing that was being clipped -- is measured regardless of this.
+#: Measured at 181 molecules x 63 columns: 32.8 ms unbounded, 3.7 ms here.
+_WIDTH_SAMPLE_ROWS = 20
+
 #: Sentinel on the menu's reset entry, so it cannot collide with a real
 #: category name however the registry grows.
 _SHOW_ALL = object()
@@ -860,6 +868,28 @@ class BatchPanel(QWidget):
             if header is not None:
                 header.setToolTip(_column_tooltip(column))
         self._results.setSortingEnabled(True)
+        # A HEADER OVERFLOWS RATHER THAN ELIDING, so a column left at Qt's
+        # default section width prints its title with BOTH ENDS CUT --
+        # measured in the running app at the dock's 420 px default,
+        # "Substance classification" rendering as `ostance classificat`.
+        # Centre alignment is why it loses both ends rather than one.
+        #
+        # `resizeColumnsToContents()` ONCE, rather than the
+        # `ResizeToContents` MODE that reads as the tidier fix, for two
+        # reasons. The mode makes every section non-draggable, and this
+        # table's columns are `Interactive` on purpose. And the mode is not
+        # free -- it defers the same measurement to paint time, so a probe
+        # timing the `setSectionResizeMode` call reports 0.0 ms and has
+        # measured nothing. Timed here instead: 32.8 ms one-shot at
+        # 181 molecules x 63 columns, the largest table this project's own
+        # corpus produces, against a batch run measured in seconds.
+        #
+        # The precision bound is what keeps that from growing with the
+        # project: Qt considers up to 1000 rows per column by default, and
+        # 20 formatted numbers already establish a column's width. Same
+        # 181x63 table, 32.8 ms -> 3.7 ms.
+        self._results.horizontalHeader().setResizeContentsPrecision(_WIDTH_SAMPLE_ROWS)
+        self._results.resizeColumnsToContents()
         # AFTER the rebuild: `clear()` drops every hidden flag, so a
         # progress event arriving mid-run would silently un-hide
         # everything the user had put away.

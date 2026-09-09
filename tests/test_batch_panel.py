@@ -1148,3 +1148,58 @@ def test_a_columns_category_comes_from_the_same_registry_the_picker_uses(panel):
     definition = panel._registry.get(column.source_id)
     if definition is not None:
         assert panel._column_category(column) == _title(definition.category)
+
+
+def test_every_results_column_is_wide_enough_for_its_own_header(panel):
+    """A `QHeaderView` OVERFLOWS its section; it does not elide.
+
+    So a column left at Qt's default section width prints its title with
+    BOTH ENDS CUT, and centre alignment is why it loses both rather than
+    one. Measured in the running app at the dock's 420 px default:
+    "Substance classification" rendered as `ostance classificat`, with
+    every test in this file green and `visual_check` reporting 0 findings
+    -- a header is painted by the VIEW, so the geometric oracle's walk
+    over child widgets cannot reach it and never could.
+
+    THE SETUP IS ASSERTED FIRST, because a table whose every header
+    already fits inside Qt's default section proves nothing about column
+    sizing at all. That is the same reason the pool-id guard asserts its
+    own pool really is sparse.
+
+    Font-independent by construction: both sides are measured with the
+    header's OWN font, so this holds under `offscreen` -- whose default
+    font this project records as more than twice as wide -- and under
+    `windows` alike.
+    """
+    from PySide6.QtGui import QFontMetrics
+    from PySide6.QtWidgets import QHeaderView
+
+    _run(panel, ["substance_analysis"])
+    header = panel._results.horizontalHeader()
+    metrics = QFontMetrics(header.font())
+
+    headers = [
+        panel._results.horizontalHeaderItem(index).text()
+        for index in range(panel._results.columnCount())
+    ]
+    assert any(
+        metrics.horizontalAdvance(text) > header.defaultSectionSize() for text in headers
+    ), (
+        f"no header in {headers} is wider than Qt's default section "
+        f"({header.defaultSectionSize()} px), so this guard cannot see a "
+        "column that fails to size itself"
+    )
+
+    for index, text in enumerate(headers):
+        if panel._results.isColumnHidden(index):
+            continue
+        assert header.sectionSize(index) >= metrics.horizontalAdvance(text), (
+            f"column {index} ({text!r}) is {header.sectionSize(index)} px "
+            f"against {metrics.horizontalAdvance(text)} px of header text -- "
+            "it will render clipped at both ends"
+        )
+
+    assert header.sectionResizeMode(0) is QHeaderView.ResizeMode.Interactive, (
+        "the columns stopped being user-draggable, which is what the "
+        "ResizeToContents MODE costs and why the width is set once instead"
+    )

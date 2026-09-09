@@ -1,0 +1,34 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 900},
+  {"do": "smiles", "smiles": "CN1C=NC2=C1C(=O)N(C)C(=O)N2C", "name": "Caffeine", "after_ms": 900},
+  {"do": "smiles", "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)O", "name": "Ibuprofen", "after_ms": 900},
+  {"do": "select", "molecule": -1, "after_ms": 500},
+
+  {"do": "panel", "id": "Batch", "after_ms": 900},
+  {"do": "geometry", "label": "batch/default", "after_ms": 300},
+  {"do": "visual_check", "surface": "batch", "tag": "batch-at-420", "after_ms": 300},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/organisation_batch_420.png", "after_ms": 400},
+
+  {"do": "batch_select", "category": "Identity", "after_ms": 600},
+  {"do": "batch_fill", "after_ms": 12000},
+  {"do": "visual_check", "surface": "batch", "tag": "batch-filled", "after_ms": 400},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/organisation_batch_filled.png", "after_ms": 400},
+
+  {"do": "visual_check", "surface": "batch", "tag": "batch-CONTROL", "tolerance": -1000, "after_ms": 300},
+
+  {"do": "panel", "id": "Compare", "after_ms": 900},
+  {"do": "geometry", "label": "compare/default", "after_ms": 300},
+  {"do": "visual_check", "surface": "compare", "tag": "compare-at-420", "after_ms": 300},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/organisation_compare_420.png", "after_ms": 400},
+  {"do": "visual_check", "surface": "compare", "tag": "compare-CONTROL", "tolerance": -1000, "after_ms": 300},
+
+  {"do": "resize", "width": 1100, "after_ms": 900},
+  {"do": "geometry", "label": "compare/narrow-window", "after_ms": 300},
+  {"do": "visual_check", "surface": "compare", "tag": "compare-narrow", "after_ms": 300},
+  {"do": "panel", "id": "Batch", "after_ms": 700},
+  {"do": "geometry", "label": "batch/narrow-window", "after_ms": 300},
+  {"do": "visual_check", "surface": "batch", "tag": "batch-narrow", "after_ms": 300},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/organisation_batch_narrow.png", "after_ms": 400},
+
+  {"do": "quit"}
+]

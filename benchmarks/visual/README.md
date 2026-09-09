@@ -54,10 +54,21 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 | --- | --- | --- |
 | `properties-width.json` | Properties panel, squeezed then widened | three width-clip defects; the value painted over its caption; captions latched at `...`; captions collapsed to zero width |
 | `periodic-table.json` | Periodic Table dialog, Elements and Isotopes | a dialog minimum taller than a 1366x768 screen, with its action row off the bottom |
+| `batch_and_compare_organisation.json` | Batch and Compare panels, at 420 px and in a 1100 px window | a results-table header printing `ostance classificat` -- clipped at BOTH ends, because a `QHeaderView` overflows rather than eliding |
 
 `properties-width.json` squeezes **and then widens** deliberately: a latched
 caption is only observable once the room comes back, so a single-width run
 cannot see it.
+
+**`batch_and_compare_organisation.json` IS THE SCRIPT THAT SHOWS WHAT THIS
+ORACLE CANNOT DO, and it is kept partly for that.** It found a real,
+user-visible clip that `visual_check` reported **0 findings** on, at both
+widths, on both runs. A header is painted by the VIEW; `painted_items` walks
+CHILD WIDGETS. The same reach limit shows in the population itself -- 12-13
+painted items on Batch and 5 on Compare against 40 on Properties -- so a clean
+result on an item-view-shaped panel is a far weaker statement than the same
+result on a form-shaped one. The defect has a guard of its own kind in
+`tests/test_batch_panel.py`, measured against the header's own font metrics.
 
 ## Reading the result
 

@@ -1861,9 +1861,11 @@ class _Driver(QObject):
         widget against itself would report nothing forever, which is the
         failure mode `horizontalScrollBar().maximum() == 0` already has.
 
-        Surfaces: `properties` (the panel, against its scroll viewport),
-        `window`, and any dialog `shot` can already reach -- `dialog`,
-        `lewis`, `periodic`, `details`, `spatial`, `popout`.
+        Surfaces: `properties`, `batch` and `compare` (each panel, against
+        its scroll viewport -- see `_enclosing_scroll_area` for why the
+        three do not find that viewport the same way), `window`, and any
+        dialog `shot` can already reach -- `dialog`, `lewis`, `periodic`,
+        `details`, `spatial`, `popout`.
 
         **A SURFACE WITH NO SINGLE SCROLL AREA IS JUDGED AGAINST ITS OWN
         RECTANGLE, WHICH MAKES THE OVERFLOW TERM NEARLY VACUOUS THERE** --
@@ -1872,6 +1874,7 @@ class _Driver(QObject):
         discovered: on such a surface the useful predicates are the other
         three, and a clean overflow result is close to a tautology.
         """
+        from PySide6.QtCore import QPoint, QRect
         from PySide6.QtWidgets import QScrollArea
 
         from openchem.ui import visual_check
@@ -1882,11 +1885,31 @@ class _Driver(QObject):
         if root is None:
             return
 
+        # THE SCROLL AREA IS SOMETIMES INSIDE THE SURFACE AND SOMETIMES
+        # AROUND IT, and the difference decides whether the overflow term
+        # measures anything at all. `PropertyPanel` builds its own
+        # (`property_panel.py` does `panel.findChild(QScrollArea)`), so the
+        # viewport is a DESCENDANT. `BatchPanel` and `ComparisonPanel` are
+        # handed to `MainWindow._wrap_scrollable`, so their viewport is an
+        # ANCESTOR -- and a downward-only search finds none, leaves `bounds`
+        # at None, and judges the panel against its own rectangle, which is
+        # the near-tautology this step's docstring already warns about.
         bounds = None
         areas = root.findChildren(QScrollArea)
         if len(areas) == 1:
             root = areas[0].viewport()
             bounds = root.rect()
+        else:
+            enclosing = self._enclosing_scroll_area(root)
+            if enclosing is not None:
+                # Mapped INTO the surface's own coordinates rather than
+                # taken as `viewport.rect()`: the walk reports item
+                # geometry in `space` coordinates, and with the panel
+                # scrolled down by N its origin sits at -N in the
+                # viewport, so an unmapped rect would judge every row
+                # against a window N pixels off.
+                viewport = enclosing.viewport()
+                bounds = QRect(root.mapFrom(viewport, QPoint(0, 0)), viewport.size())
 
         # `"tolerance": -1000` is how a run CONFIRMS THE ORACLE CAN STILL SAY
         # NO. Every surface in this application is clean today, and Qt clamps
@@ -1912,6 +1935,25 @@ class _Driver(QObject):
         for finding in findings:
             logger.warning("OPENCHEM_DRIVE:     %s", finding.describe())
 
+    @staticmethod
+    def _enclosing_scroll_area(widget):
+        """The `QScrollArea` this widget is the scrolled CONTENT of, if any.
+
+        Deliberately not "the nearest scroll-area ancestor": a panel holding
+        a `QTableWidget` sits under that table's own viewport for some
+        descendants, and answering with it would judge the panel against a
+        window belonging to one of its children. `area.widget() is widget`
+        is the question that means "this area scrolls THIS surface".
+        """
+        from PySide6.QtWidgets import QScrollArea
+
+        parent = widget.parentWidget()
+        while parent is not None:
+            if isinstance(parent, QScrollArea) and parent.widget() is widget:
+                return parent
+            parent = parent.parentWidget()
+        return None
+
     def _surface(self, name: str):
         """Resolve a surface name to a widget, or log why it could not be.
 
@@ -1922,6 +1964,10 @@ class _Driver(QObject):
         """
         if name == "properties":
             return self._window._property_panel
+        if name == "batch":
+            return self._window._batch_panel
+        if name == "compare":
+            return self._window._comparison_panel
         if name == "window":
             return self._window
         attr = {
