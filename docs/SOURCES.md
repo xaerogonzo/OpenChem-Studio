@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 7c74b2e38fecfedfd418db1fc81060822e730804a5620ca27473ecc38359e2c1 -->
+<!-- SOURCE SHA256: dc7f207c1b3a4c1784124dd0fa5033ae0e471259508ec1d8edf6bced8203ee76 -->
 
 # Sources
 
@@ -181,6 +181,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`openbabel`](#openbabel) | software | shipped | citation |
 | [`opsin`](#opsin) | software | shipped | citation |
 | [`orca`](#orca) | software | shipped | citation |
+| [`osha_1910_1000`](#osha_1910_1000) | legal | shipped | citation + claim |
 | [`parr_pearson1983`](#parr_pearson1983) | literature | shipped | citation |
 | [`pdg2024`](#pdg2024) | literature | shipped | citation + claim |
 | [`pearson1963`](#pearson1963) | literature | reference only | citation |
@@ -4076,6 +4077,47 @@ The whole DEA list is UNDATED at both rule and ruleset level -- 47 of the
 load-bearing: treating an absent date as 'never applicable' would silently
 empty a majority of the screen while looking exactly like a substance that
 is not listed.
+
+### osha_1910_1000
+
+<a id="osha_1910_1000"></a>
+
+> United States Code of Federal Regulations, Title 29, Part 1910, Section 1910.1000, Table Z-1 (Limits for Air Contaminants). Text as served by the Electronic Code of Federal Regulations.
+
+| | |
+| --- | --- |
+| Identifier | 29 CFR 1910.1000 |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-09-09 |
+| Used by | `src/openchem/chem/data/regulatory/sources/osha_table_z1.json`, `tools/extract_osha_z1.py` |
+
+A REGULATION, NOT A STATUTE -- a rule made under the OSH Act. This project's
+'an identity comes from the CAS the statute prints' note was written about
+the CWC Annex, an actual treaty text, and does not carry over: footnote (c)
+of this table says the CAS 'is for information only. Enforcement is based on
+the substance name.'
+
+THE SNAPSHOT IS COMMITTED AND HASHED. `sources/osha_1910_1000.xml` is the
+eCFR XML the numbers were read from, and its sha256 travels in the ruleset's
+provenance -- so a later rebuild can say *same snapshot, different code*
+rather than *different snapshot*, which a retrieval date alone cannot.
+
+READ FROM THE REGULATION AND NOT THE ANNOTATED PAGE. OSHA publishes
+annotated PEL tables carrying NIOSH, Cal/OSHA and ACGIH values beside the
+statutory ones; a row taken from there would look identical in the artefact
+and would not be law. None of those three names occurs anywhere in the
+committed XML, which is asserted rather than assumed.
+
+`citation_and_claim` because the reading was checked against the table's own
+footnotes rather than only its title: footnote 1 makes an unmarked value an
+8-hour TWA and a (C) value a ceiling, and footnote (b) makes a mg/m3 entry
+exact alone and approximate beside a ppm entry -- the second is why
+`LimitPrecision` has three values rather than a bool.
+
+THE eCFR ENDPOINT REFUSES AN UNCOMPRESSED REQUEST. It answers HTTP 406
+unless the client permits compression; its own error message says so, which
+is the only reason that was cheap to find.
 
 ## Standards
 

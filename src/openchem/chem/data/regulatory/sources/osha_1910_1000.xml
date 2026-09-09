@@ -1,0 +1,4763 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<DIV8 N="1910.1000" TYPE="SECTION" hierarchy_metadata="{&quot;path&quot;:&quot;/on/_SUBSTITUTE_DATE_/title-29/section-1910.1000&quot;,&quot;citation&quot;:&quot;29 CFR 1910.1000&quot;}">
+<HEAD>§ 1910.1000 Air contaminants.</HEAD>
+<P>An employee's exposure to any substance listed in Tables Z-1, Z-2, or Z-3 of this section shall be limited in accordance with the requirements of the following paragraphs of this section.</P>
+<P>(a) <I>Table Z-1</I>—(1) <I>Substances with limits preceded by “C”—Ceiling Values.</I> An employee's exposure to any substance in Table Z-1, the exposure limit of which is preceded by a “C”, shall at no time exceed the exposure limit given for that substance. If instantaneous monitoring is not feasible, then the ceiling shall be assessed as a 15-minute time weighted average exposure which shall not be exceeded at any time during the working day.</P>
+<P>(2) <I>Other substances—8-hour Time Weighted Averages.</I> An employee's exposure to any substance in Table Z-1, the exposure limit of which is not preceded by a “C”, shall not exceed the 8-hour Time Weighted Average given for that substance in any 8-hour work shift of a 40-hour work week.</P>
+<P>(b) <I>Table Z-2.</I> An employee's exposure to any substance listed in Table Z-2 shall not exceed the exposure limits specified as follows:</P>
+<P>(1) <I>8-hour time weighted averages.</I> An employee's exposure to any substance listed in Table Z-2, in any 8-hour work shift of a 40-hour work week, shall not exceed the 8-hour time weighted average limit given for that substance in Table Z-2.</P>
+<P>(2) <I>Acceptable ceiling concentrations.</I> An employee's exposure to a substance listed in Table Z-2 shall not exceed at any time during an 8-hour shift the acceptable ceiling concentration limit given for the substance in the table, except for a time period, and up to a concentration not exceeding the maximum duration and concentration allowed in the column under “acceptable maximum peak above the acceptable ceiling concentration for an 8-hour shift.”</P>
+<P>(3) <I>Example.</I> During an 8-hour work shift, an employee may be exposed to a concentration of Substance A (with a 10 ppm TWA, 25 ppm ceiling and 50 ppm peak) above 25 ppm (but never above 50 ppm) only for a maximum period of 10 minutes. Such exposure must be compensated by exposures to concentrations less than 10 ppm so that the cumulative exposure for the entire 8-hour work shift does not exceed a weighted average of 10 ppm.</P>
+<P>(c) <I>Table Z-3.</I> An employee's exposure to any substance listed in Table Z-3, in any 8-hour work shift of a 40-hour work week, shall not exceed the 8-hour time weighted average limit given for that substance in the table.</P>
+<P>(d) <I>Computation formulae.</I> The computation formula which shall apply to employee exposure to more than one substance for which 8-hour time weighted averages are listed in subpart Z of 29 CFR part 1910 in order to determine whether an employee is exposed over the regulatory limit is as follows:</P>
+<P>(1)(i) The cumulative exposure for an 8-hour work shift shall be computed as follows:</P>
+<FP-2>E = (C<E T="52">a</E> T<E T="52">a</E> + C<E T="52">b</E> T<E T="52">b</E> + . . .C<E T="52">n</E> T<E T="52">n</E>) ÷ 8
+</FP-2>
+<EXTRACT>
+<FP>Where:
+</FP>
+<FP-2>E is the equivalent exposure for the working shift.
+</FP-2>
+<FP-2>C is the concentration during any period of time T where the concentration remains constant.
+</FP-2>
+<FP-2>T is the duration in hours of the exposure at the concentration C.
+</FP-2>
+<FP>The value of E shall not exceed the 8-hour time weighted average specified in subpart Z of 29 CFR part 1910 for the substance involved.</FP></EXTRACT>
+<P>(ii) To illustrate the formula prescribed in paragraph (d)(1)(i) of this section, assume that Substance A has an 8-hour time weighted average limit of 100 ppm noted in Table Z-1. Assume that an employee is subject to the following exposure:</P>
+<EXTRACT>
+<FP-1>Two hours exposure at 150 ppm
+</FP-1>
+<FP-2>Two hours exposure at 75 ppm
+</FP-2>
+<FP-2>Four hours exposure at 50 ppm
+</FP-2>
+<P>Substituting this information in the formula, we have</P></EXTRACT>
+<FP-2>(2 × 150 + 2 × 75 + 4 × 50) ÷ 8 = 81.25 ppm
+</FP-2>
+<EXTRACT>
+<P>Since 81.25 ppm is less than 100 ppm, the 8-hour time weighted average limit, the exposure is acceptable.</P></EXTRACT>
+<P>(2)(i) In case of a mixture of air contaminants an employer shall compute the equivalent exposure as follows:</P>
+<FP-2>E<E T="52">m</E> = (C<E T="52">1</E> ÷ L<E T="52">1</E> + C<E T="52">2</E> ÷ L<E T="52">2</E>) + . . .(C<E T="52">n</E> ÷ L<E T="52">n</E>)
+</FP-2>
+<EXTRACT>
+<FP>Where:
+</FP>
+<FP-2>E<E T="52">m</E> is the equivalent exposure for the mixture.
+</FP-2>
+<FP-2>C is the concentration of a particular contaminant.
+</FP-2>
+<FP-2>L is the exposure limit for that substance specified in subpart Z of 29 CFR part 1910.
+</FP-2>
+<FP>The value of E<E T="52">m</E> shall not exceed unity (1).</FP></EXTRACT>
+<P>(ii) To illustrate the formula prescribed in paragraph (d)(2)(i) of this section, consider the following exposures:</P>
+<DIV width="100%"><DIV class="gpotbl_div">
+<TABLE border="1" cellpadding="1" cellspacing="1" class="gpo_table" frame="void" width="100%">
+<THEAD>
+<TR>
+<TH class="center border-top-single border-bottom-single border-right-single">Substance</TH>
+<TH class="center border-top-single border-bottom-single border-right-single">Actual concentration of 8-hour exposure (ppm)</TH>
+<TH class="center border-top-single border-bottom-single">8-hour TWA PEL (ppm)</TH>
+</TR>
+</THEAD>
+<TBODY>
+<TR>
+<TD class="left border-right-single">B</TD>
+<TD class="right border-right-single">500</TD>
+<TD class="right">1,000</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">C</TD>
+<TD class="right border-right-single">45</TD>
+<TD class="right">200</TD>
+</TR>
+<TR>
+<TD class="left border-bottom-single border-right-single">D</TD>
+<TD class="right border-bottom-single border-right-single">40</TD>
+<TD class="right border-bottom-single">200</TD>
+</TR>
+</TBODY>
+</TABLE>
+</DIV></DIV>
+<EXTRACT>
+<P>Substituting in the formula, we have:</P>
+<FP-2>E<E T="52">m</E> = 500 ÷ 1,000 + 45 ÷ 200 + 40 ÷ 200
+</FP-2>
+<FP-2>E<E T="52">m</E> = 0.500 + 0.225 + 0.200
+</FP-2>
+<FP-2>E<E T="52">m</E> = 0.925
+</FP-2>
+<FP>Since E<E T="52">m</E> is less than unity (1), the exposure combination is within acceptable limits.</FP></EXTRACT>
+<P>(e) To achieve compliance with paragraphs (a) through (d) of this section, administrative or engineering controls must first be determined and implemented whenever feasible. When such controls are not feasible to achieve full compliance, protective equipment or any other protective measures shall be used to keep the exposure of employees to air contaminants within the limits prescribed in this section. Any equipment and/or technical measures used for this purpose must be approved for each particular use by a competent industrial hygienist or other technically qualified person. Whenever respirators are used, their use shall comply with 1910.134.</P>
+<DIV width="100%"><DIV class="gpotbl_div">
+<TABLE border="1" cellpadding="1" cellspacing="1" class="gpo_table" frame="void" width="100%">
+<CAPTION><P class="title">Table Z-1—Limits for Air Contaminants</P></CAPTION>
+<THEAD>
+<TR>
+<TH class="center border-top-single border-bottom-single border-right-single">Substance</TH>
+<TH class="center border-top-single border-bottom-single border-right-single">CAS No. (c)</TH>
+<TH class="center border-top-single border-bottom-single border-right-single">ppm (a) <sup>1</sup></TH>
+<TH class="center border-top-single border-bottom-single border-right-single">mg/m<sup>3</sup> (b) <sup>1</sup></TH>
+<TH class="center border-top-single border-bottom-single">Skin designation</TH>
+</TR>
+</THEAD>
+<TBODY>
+<TR>
+<TD class="left border-right-single">Acetaldehyde</TD>
+<TD class="right border-right-single">75-07-0</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="right border-right-single">360</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Acetic acid</TD>
+<TD class="right border-right-single">64-19-7</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Acetic anhydride</TD>
+<TD class="right border-right-single">108-24-7</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">20</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Acetone</TD>
+<TD class="right border-right-single">67-64-1</TD>
+<TD class="right border-right-single">1000</TD>
+<TD class="right border-right-single">2400</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Acetonitrile</TD>
+<TD class="right border-right-single">75-05-8</TD>
+<TD class="right border-right-single">40</TD>
+<TD class="right border-right-single">70</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2-Acetylaminofluorine; see 1910.1014</TD>
+<TD class="right border-right-single">53-96-3</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Acetylene dichloride; see 1,2-Dichloroethylene.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Acetylene tetrabromide</TD>
+<TD class="right border-right-single">79-27-6</TD>
+<TD class="right border-right-single">1</TD>
+<TD class="right border-right-single">14</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Acrolein</TD>
+<TD class="right border-right-single">107-02-8</TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="right border-right-single">0.25</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Acrylamide</TD>
+<TD class="right border-right-single">79-06-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.3</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Acrylonitrile; see 1910.1045</TD>
+<TD class="right border-right-single">107-13-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Aldrin</TD>
+<TD class="right border-right-single">309-00-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.25</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Allyl alcohol</TD>
+<TD class="right border-right-single">107-18-6</TD>
+<TD class="right border-right-single">2</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Allyl chloride</TD>
+<TD class="right border-right-single">107-05-1</TD>
+<TD class="right border-right-single">1</TD>
+<TD class="right border-right-single">3</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Allyl glycidyl ether (AGE)</TD>
+<TD class="right border-right-single">106-92-3</TD>
+<TD class="right border-right-single">(C)10</TD>
+<TD class="right border-right-single">(C)45</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Allyl propyl disulfide</TD>
+<TD class="right border-right-single">2179-59-1</TD>
+<TD class="right border-right-single">2</TD>
+<TD class="right border-right-single">12</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">alpha-Alumina</TD>
+<TD class="right border-right-single">1344-28-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Aluminum, metal (as Al)</TD>
+<TD class="right border-right-single">7429-90-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">4-Aminodiphenyl; see 1910.1011</TD>
+<TD class="right border-right-single">92-67-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2-Aminoethanol; see Ethanolamine.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2-Aminopyridine</TD>
+<TD class="right border-right-single">504-29-0</TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="right border-right-single">2</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ammonia</TD>
+<TD class="right border-right-single">7664-41-7</TD>
+<TD class="right border-right-single">50</TD>
+<TD class="right border-right-single">35</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ammonium sulfamate</TD>
+<TD class="right border-right-single">7773-06-0</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">n-Amyl acetate</TD>
+<TD class="right border-right-single">628-63-7</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">525</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">sec-Amyl acetate</TD>
+<TD class="right border-right-single">626-38-0</TD>
+<TD class="right border-right-single">125</TD>
+<TD class="right border-right-single">650</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Aniline and homologs</TD>
+<TD class="right border-right-single">62-53-3</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">19</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Anisidine (o-, p-isomers)</TD>
+<TD class="right border-right-single">29191-52-4</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Antimony and compounds (as Sb)</TD>
+<TD class="right border-right-single">7440-36-0</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">ANTU (alpha Naphthylthiourea)</TD>
+<TD class="right border-right-single">86-88-4</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.3</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Arsenic, inorganic compounds (as As); see 1910.1018</TD>
+<TD class="right border-right-single">7440-38-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Arsenic, organic compounds (as As)</TD>
+<TD class="right border-right-single">7440-38-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Arsine</TD>
+<TD class="right border-right-single">7784-42-1</TD>
+<TD class="right border-right-single">0.05</TD>
+<TD class="right border-right-single">0.2</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Asbestos; see 1910.1001</TD>
+<TD class="right border-right-single">(<sup>4</sup>)</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Azinphos-methyl</TD>
+<TD class="right border-right-single">86-50-0</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.2</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Barium, soluble compounds (as Ba)</TD>
+<TD class="right border-right-single">7440-39-3</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Barium sulfate</TD>
+<TD class="right border-right-single">7727-43-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Benomyl</TD>
+<TD class="right border-right-single">17804-35-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Benzene; see 1910.1028</TD>
+<TD class="right border-right-single">71-43-2
+</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">See Table Z-2 for the limits applicable in the operations or sectors excluded in 1910.1028 <sup>d</sup>
+</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Benzidine; see 1910.1010</TD>
+<TD class="right border-right-single">92-87-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">p-Benzoquinone; see Quinone.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Benzo(a)pyrene; see Coal tar pitch volatiles.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Benzoyl peroxide</TD>
+<TD class="right border-right-single">94-36-0</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Benzyl chloride</TD>
+<TD class="right border-right-single">100-44-7</TD>
+<TD class="right border-right-single">1</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Beryllium and beryllium compounds (as Be); see 1926.1124 <sup>8</sup></TD>
+<TD class="right border-right-single">7440-41-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Biphenyl; see Diphenyl.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Bismuth telluride, Undoped</TD>
+<TD class="right border-right-single">1304-82-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Boron oxide</TD>
+<TD class="right border-right-single">1303-86-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Boron trifluoride</TD>
+<TD class="right border-right-single">7637-07-2</TD>
+<TD class="right border-right-single">(C)1</TD>
+<TD class="right border-right-single">(C)3</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Bromine</TD>
+<TD class="right border-right-single">7726-95-6</TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="right border-right-single">0.7</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Bromoform</TD>
+<TD class="right border-right-single">75-25-2</TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Butadiene (1,3-Butadiene); See 29 CFR 1910.1051; 29 CFR 1910.19(l)</TD>
+<TD class="right border-right-single">106-99-0</TD>
+<TD class="right border-right-single">1 ppm/5 ppm STEL</TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Butanethiol; see Butyl mercaptan.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2-Butanone (Methyl ethyl ketone)</TD>
+<TD class="right border-right-single">78-93-3</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="right border-right-single">590</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2-Butoxyethanol</TD>
+<TD class="right border-right-single">111-76-2</TD>
+<TD class="right border-right-single">50</TD>
+<TD class="right border-right-single">240</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">n-Butyl-acetate</TD>
+<TD class="right border-right-single">123-86-4</TD>
+<TD class="right border-right-single">150</TD>
+<TD class="right border-right-single">710</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">sec-Butyl acetate</TD>
+<TD class="right border-right-single">105-46-4</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="right border-right-single">950</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">tert-Butyl acetate</TD>
+<TD class="right border-right-single">540-88-5</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="right border-right-single">950</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">n-Butyl alcohol</TD>
+<TD class="right border-right-single">71-36-3</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">300</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">sec-Butyl alcohol</TD>
+<TD class="right border-right-single">78-92-2</TD>
+<TD class="right border-right-single">150</TD>
+<TD class="right border-right-single">450</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">tert-Butyl alcohol</TD>
+<TD class="right border-right-single">75-65-0</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">300</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Butylamine</TD>
+<TD class="right border-right-single">109-73-9</TD>
+<TD class="right border-right-single">(C)5</TD>
+<TD class="right border-right-single">(C)15</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">tert-Butyl chromate (as CrO<sub>3</sub>); see 1910.1026 <sup>6</sup></TD>
+<TD class="right border-right-single">1189-85-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">n-Butyl glycidyl ether (BGE)</TD>
+<TD class="right border-right-single">2426-08-6</TD>
+<TD class="right border-right-single">50</TD>
+<TD class="right border-right-single">270</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Butyl mercaptan</TD>
+<TD class="right border-right-single">109-79-5</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="right border-right-single">35</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">p-tert-Butyltoluene</TD>
+<TD class="right border-right-single">98-51-1</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="right border-right-single">60</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Cadmium (as Cd); see 1910.1027</TD>
+<TD class="right border-right-single">7440-43-9</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Calcium carbonate</TD>
+<TD class="right border-right-single">1317-65-3</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Calcium hydroxide</TD>
+<TD class="right border-right-single">1305-62-0</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Calcium oxide</TD>
+<TD class="right border-right-single">1305-78-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Calcium silicate</TD>
+<TD class="right border-right-single">1344-95-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Calcium sulfate</TD>
+<TD class="right border-right-single">7778-18-9</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Camphor, synthetic</TD>
+<TD class="right border-right-single">76-22-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">2</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Carbaryl (Sevin)</TD>
+<TD class="right border-right-single">63-25-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Carbon black</TD>
+<TD class="right border-right-single">1333-86-4</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">3.5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Carbon dioxide</TD>
+<TD class="right border-right-single">124-38-9</TD>
+<TD class="right border-right-single">5000</TD>
+<TD class="right border-right-single">9000</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Carbon disulfide</TD>
+<TD class="right border-right-single">75-15-0</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>2</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Carbon monoxide</TD>
+<TD class="right border-right-single">630-08-0</TD>
+<TD class="right border-right-single">50</TD>
+<TD class="right border-right-single">55</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Carbon tetrachloride</TD>
+<TD class="right border-right-single">56-23-5</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>2</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Cellulose</TD>
+<TD class="right border-right-single">9004-34-6</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chlordane</TD>
+<TD class="right border-right-single">57-74-9</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chlorinated camphene</TD>
+<TD class="right border-right-single">8001-35-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chlorinated diphenyl oxide</TD>
+<TD class="right border-right-single">55720-99-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chlorine</TD>
+<TD class="right border-right-single">7782-50-5</TD>
+<TD class="right border-right-single">(C)1</TD>
+<TD class="right border-right-single">(C)3</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chlorine dioxide</TD>
+<TD class="right border-right-single">10049-04-4</TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="right border-right-single">0.3</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chlorine trifluoride</TD>
+<TD class="right border-right-single">7790-91-2</TD>
+<TD class="right border-right-single">(C)0.1</TD>
+<TD class="right border-right-single">(C)0.4</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chloroacetaldehyde</TD>
+<TD class="right border-right-single">107-20-0</TD>
+<TD class="right border-right-single">(C)1</TD>
+<TD class="right border-right-single">(C)3</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">a-Chloroacetophenone (Phenacyl chloride)</TD>
+<TD class="right border-right-single">532-27-4</TD>
+<TD class="right border-right-single">0.05</TD>
+<TD class="right border-right-single">0.3</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chlorobenzene</TD>
+<TD class="right border-right-single">108-90-7</TD>
+<TD class="right border-right-single">75</TD>
+<TD class="right border-right-single">350</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">o-Chlorobenzylidene malononitrile</TD>
+<TD class="right border-right-single">2698-41-1</TD>
+<TD class="right border-right-single">0.05</TD>
+<TD class="right border-right-single">0.4</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chlorobromomethane</TD>
+<TD class="right border-right-single">74-97-5</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="right border-right-single">1050</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2-Chloro-1,3-butadiene; see beta-Chloroprene.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chlorodiphenyl (42% Chlorine) (PCB)</TD>
+<TD class="right border-right-single">53469-21-9</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chlorodiphenyl (54% Chlorine) (PCB)</TD>
+<TD class="right border-right-single">11097-69-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1-Chloro-2,3-epoxypropane; see Epichlorohydrin.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2-Chloroethanol; see Ethylene chlorohydrin.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chloroethylene; see Vinyl chloride.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chloroform (Trichloromethane)</TD>
+<TD class="right border-right-single">67-66-3</TD>
+<TD class="right border-right-single">(C)50</TD>
+<TD class="right border-right-single">(C)240</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">bis(Chloromethyl) ether; see 1910.1008</TD>
+<TD class="right border-right-single">542-88-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chloromethyl methyl ether; see 1910.1006</TD>
+<TD class="right border-right-single">107-30-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1-Chloro-1-nitropropane</TD>
+<TD class="right border-right-single">600-25-9</TD>
+<TD class="right border-right-single">20</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chloropicrin</TD>
+<TD class="right border-right-single">76-06-2</TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="right border-right-single">0.7</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">beta-Chloroprene</TD>
+<TD class="right border-right-single">126-99-8</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="right border-right-single">90</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2-Chloro-6-(trichloromethyl) pyridine</TD>
+<TD class="right border-right-single">1929-82-4</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chromium (II) compounds.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">(as Cr)</TD>
+<TD class="right border-right-single">7440-47-3</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chromium (III) compounds.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">(as Cr)</TD>
+<TD class="right border-right-single">7440-47-3</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chromium (VI) compounds; See 1910.1026 <sup>5</sup> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chromium metal and insol. salts (as Cr)</TD>
+<TD class="right border-right-single">7440-47-3</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chrysene; see Coal tar pitch volatiles.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Clopidol</TD>
+<TD class="right border-right-single">2971-90-6</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Coal dust (less than 5% SiO<sub>2</sub>), respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>3</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Coal dust (greater than or equal to 5% SiO<sub>2</sub>), respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>3</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Coal tar pitch volatiles (benzene soluble fraction), anthracene, BaP, phenanthrene, acridine, chrysene, pyrene</TD>
+<TD class="right border-right-single">65966-93-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.2</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Cobalt metal, dust, and fume (as Co)</TD>
+<TD class="right border-right-single">7440-48-4</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Coke oven emissions; see 1910.1029.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Copper</TD>
+<TD class="right border-right-single">7440-50-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Fume (as Cu)</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Dusts and mists (as Cu)</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Cotton dust <sup>e</sup>; see 1910.1043</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Crag herbicide (Sesone)</TD>
+<TD class="right border-right-single">136-78-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Cresol, all isomers</TD>
+<TD class="right border-right-single">1319-77-3</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">22</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Crotonaldehyde</TD>
+<TD class="right border-right-single">123-73-9;<br></br>4170-30-3</TD>
+<TD class="right border-right-single">2</TD>
+<TD class="right border-right-single">6</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Cumene</TD>
+<TD class="right border-right-single">98-82-8</TD>
+<TD class="right border-right-single">50</TD>
+<TD class="right border-right-single">245</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Cyanides (as CN)</TD>
+<TD class="right border-right-single">(<sup>4</sup>)</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Cyclohexane</TD>
+<TD class="right border-right-single">110-82-7</TD>
+<TD class="right border-right-single">300</TD>
+<TD class="right border-right-single">1050</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Cyclohexanol</TD>
+<TD class="right border-right-single">108-93-0</TD>
+<TD class="right border-right-single">50</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Cyclohexanone</TD>
+<TD class="right border-right-single">108-94-1</TD>
+<TD class="right border-right-single">50</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Cyclohexene</TD>
+<TD class="right border-right-single">110-83-8</TD>
+<TD class="right border-right-single">300</TD>
+<TD class="right border-right-single">1015</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Cyclopentadiene</TD>
+<TD class="right border-right-single">542-92-7</TD>
+<TD class="right border-right-single">75</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2,4-D (Dichlorophenoxyacetic acid)</TD>
+<TD class="right border-right-single">94-75-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">10</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Decaborane</TD>
+<TD class="right border-right-single">17702-41-9</TD>
+<TD class="right border-right-single">0.05</TD>
+<TD class="right border-right-single">0.3</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Demeton (Systox)</TD>
+<TD class="right border-right-single">8065-48-3</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Diacetone alcohol (4-Hydroxy-4-methyl-2-pentanone)</TD>
+<TD class="right border-right-single">123-42-2</TD>
+<TD class="right border-right-single">50</TD>
+<TD class="right border-right-single">240</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,2-Diaminoethane; see Ethylenediamine.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Diazomethane</TD>
+<TD class="right border-right-single">334-88-3</TD>
+<TD class="right border-right-single">0.2</TD>
+<TD class="right border-right-single">0.4</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Diborane</TD>
+<TD class="right border-right-single">19287-45-7</TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,2-Dibromo-3-chloropropane (DBCP); see 1910.1044</TD>
+<TD class="right border-right-single">96-12-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,2-Dibromoethane; see Ethylene dibromide.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dibutyl phosphate</TD>
+<TD class="right border-right-single">107-66-4</TD>
+<TD class="right border-right-single">1</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dibutyl phthalate</TD>
+<TD class="right border-right-single">84-74-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">o-Dichlorobenzene</TD>
+<TD class="right border-right-single">95-50-1</TD>
+<TD class="right border-right-single">(C)50</TD>
+<TD class="right border-right-single">(C)300</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">p-Dichlorobenzene</TD>
+<TD class="right border-right-single">106-46-7</TD>
+<TD class="right border-right-single">75</TD>
+<TD class="right border-right-single">450</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">3,′-Dichlorobenzidine; see 1910.1007</TD>
+<TD class="right border-right-single">91-94-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dichlorodifluoromethane</TD>
+<TD class="right border-right-single">75-71-8</TD>
+<TD class="right border-right-single">1000</TD>
+<TD class="right border-right-single">4950</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,3-Dichloro-5,5-dimethyl hydantoin</TD>
+<TD class="right border-right-single">118-52-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.2</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dichlorodiphenyltrichloroethane (DDT)</TD>
+<TD class="right border-right-single">50-29-3</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,1-Dichloroethane</TD>
+<TD class="right border-right-single">75-34-3</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">400</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,2-Dichloroethane; see Ethylene dichloride.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,2-Dichloroethylene</TD>
+<TD class="right border-right-single">540-59-0</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="right border-right-single">790</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dichloroethyl ether</TD>
+<TD class="right border-right-single">111-44-4</TD>
+<TD class="right border-right-single">(C)15</TD>
+<TD class="right border-right-single">(C)90</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dichloromethane; see Methylene chloride.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dichloromonofluoromethane</TD>
+<TD class="right border-right-single">75-43-4</TD>
+<TD class="right border-right-single">1000</TD>
+<TD class="right border-right-single">4200</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,1-Dichloro-1-nitroethane</TD>
+<TD class="right border-right-single">594-72-9</TD>
+<TD class="right border-right-single">(C)10</TD>
+<TD class="right border-right-single">(C)60</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,2-Dichloropropane; see Propylene dichloride.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dichlorotetrafluoroethane</TD>
+<TD class="right border-right-single">76-14-2</TD>
+<TD class="right border-right-single">1000</TD>
+<TD class="right border-right-single">7000</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dichlorvos (DDVP)</TD>
+<TD class="right border-right-single">62-73-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dicyclopentadienyl iron</TD>
+<TD class="right border-right-single">102-54-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dieldrin</TD>
+<TD class="right border-right-single">60-57-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.25</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Diethylamine</TD>
+<TD class="right border-right-single">109-89-7</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="right border-right-single">75</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2-Diethylaminoethanol</TD>
+<TD class="right border-right-single">100-37-8</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="right border-right-single">50</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Diethyl ether; see Ethyl ether.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Difluorodibromomethane</TD>
+<TD class="right border-right-single">75-61-6</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">860</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Diglycidyl ether (DGE)</TD>
+<TD class="right border-right-single">2238-07-5</TD>
+<TD class="right border-right-single">(C)0.5</TD>
+<TD class="right border-right-single">(C)2.8</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dihydroxybenzene; see Hydroquinone.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Diisobutyl ketone</TD>
+<TD class="right border-right-single">108-83-8</TD>
+<TD class="right border-right-single">50</TD>
+<TD class="right border-right-single">290</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Diisopropylamine</TD>
+<TD class="right border-right-single">108-18-9</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">20</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">4-Dimethylaminoazobenzene; see 1910.1015</TD>
+<TD class="right border-right-single">60-11-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dimethoxymethane; see Methylal.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dimethyl acetamide</TD>
+<TD class="right border-right-single">127-19-5</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="right border-right-single">35</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dimethylamine</TD>
+<TD class="right border-right-single">124-40-3</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="right border-right-single">18</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dimethylaminobenzene; see Xylidine</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dimethylaniline (N,N-Dimethylaniline)</TD>
+<TD class="right border-right-single">121-69-7</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dimethylbenzene; see Xylene.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dimethyl-1,2-dibromo-2,2-dichloroethyl phosphate</TD>
+<TD class="right border-right-single">300-76-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">3</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dimethylformamide</TD>
+<TD class="right border-right-single">68-12-2</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="right border-right-single">30</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2,6-Dimethyl-4-heptanone; see Diisobutyl ketone.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,1-Dimethylhydrazine</TD>
+<TD class="right border-right-single">57-14-7</TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dimethylphthalate</TD>
+<TD class="right border-right-single">131-11-3</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dimethyl sulfate</TD>
+<TD class="right border-right-single">77-78-1</TD>
+<TD class="right border-right-single">1</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dinitrobenzene (all isomers)</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">(ortho)</TD>
+<TD class="right border-right-single">528-29-0</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">(meta)</TD>
+<TD class="right border-right-single">99-65-0</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">(para)</TD>
+<TD class="right border-right-single">100-25-4</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dinitro-o-cresol</TD>
+<TD class="right border-right-single">534-52-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.2</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dinitrotoluene</TD>
+<TD class="right border-right-single">25321-14-6</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1.5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dioxane (Diethylene dioxide)</TD>
+<TD class="right border-right-single">123-91-1</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">360</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Diphenyl (Biphenyl)</TD>
+<TD class="right border-right-single">92-52-4</TD>
+<TD class="right border-right-single">0.2</TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Diphenylmethane diisocyanate; see Methylene bisphenyl isocyanate.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Dipropylene glycol methyl ether</TD>
+<TD class="right border-right-single">34590-94-8</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">600</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Di-sec octyl phthalate (Di-(2-ethylhexyl) phthalate)</TD>
+<TD class="right border-right-single">117-81-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Emery</TD>
+<TD class="right border-right-single">12415-34-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Endrin</TD>
+<TD class="right border-right-single">72-20-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Epichlorohydrin</TD>
+<TD class="right border-right-single">106-89-8</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">19</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">EPN</TD>
+<TD class="right border-right-single">2104-64-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,2-Epoxypropane; see Propylene oxide.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2,3-Epoxy-1-propanol; see Glycidol.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethanethiol; see Ethyl mercaptan.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethanolamine</TD>
+<TD class="right border-right-single">141-43-5</TD>
+<TD class="right border-right-single">3</TD>
+<TD class="right border-right-single">6</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2-Ethoxyethanol (Cellosolve)</TD>
+<TD class="right border-right-single">110-80-5</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="right border-right-single">740</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2-Ethoxyethyl acetate (Cellosolve acetate)</TD>
+<TD class="right border-right-single">111-15-9</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">540</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethyl acetate</TD>
+<TD class="right border-right-single">141-78-6</TD>
+<TD class="right border-right-single">400</TD>
+<TD class="right border-right-single">1400</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethyl acrylate</TD>
+<TD class="right border-right-single">140-88-5</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethyl alcohol (Ethanol)</TD>
+<TD class="right border-right-single">64-17-5</TD>
+<TD class="right border-right-single">1000</TD>
+<TD class="right border-right-single">1900</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethylamine</TD>
+<TD class="right border-right-single">75-04-7</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="right border-right-single">18</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethyl amyl ketone (5-Methyl-3-heptanone)</TD>
+<TD class="right border-right-single">541-85-5</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="right border-right-single">130</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethyl benzene</TD>
+<TD class="right border-right-single">100-41-4</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">435</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethyl bromide</TD>
+<TD class="right border-right-single">74-96-4</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="right border-right-single">890</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethyl butyl ketone (3-Heptanone)</TD>
+<TD class="right border-right-single">106-35-4</TD>
+<TD class="right border-right-single">50</TD>
+<TD class="right border-right-single">230</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethyl chloride</TD>
+<TD class="right border-right-single">75-00-3</TD>
+<TD class="right border-right-single">1000</TD>
+<TD class="right border-right-single">2600</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethyl ether</TD>
+<TD class="right border-right-single">60-29-7</TD>
+<TD class="right border-right-single">400</TD>
+<TD class="right border-right-single">1200</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethyl formate</TD>
+<TD class="right border-right-single">109-94-4</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">300</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethyl mercaptan</TD>
+<TD class="right border-right-single">75-08-1</TD>
+<TD class="right border-right-single">(C)10</TD>
+<TD class="right border-right-single">(C)25</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethyl silicate</TD>
+<TD class="right border-right-single">78-10-4</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">850</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethylene chlorohydrin</TD>
+<TD class="right border-right-single">107-07-3</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">16</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethylenediamine</TD>
+<TD class="right border-right-single">107-15-3</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethylene dibromide</TD>
+<TD class="right border-right-single">106-93-4</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>2</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethylene dichloride (1,2-Dichloroethane)</TD>
+<TD class="right border-right-single">107-06-2</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>2</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethylene glycol dinitrate</TD>
+<TD class="right border-right-single">628-96-6</TD>
+<TD class="right border-right-single">(C)0.2</TD>
+<TD class="right border-right-single">(C)1</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethylene glycol methyl acetate; see Methyl cellosolve acetate.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethyleneimine; see 1910.1012</TD>
+<TD class="right border-right-single">151-56-4</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethylene oxide; see 1910.1047</TD>
+<TD class="right border-right-single">75-21-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethylidene chloride; see 1,1-Dichloroethane.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">N-Ethylmorpholine</TD>
+<TD class="right border-right-single">100-74-3</TD>
+<TD class="right border-right-single">20</TD>
+<TD class="right border-right-single">94</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ferbam</TD>
+<TD class="right border-right-single">14484-64-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ferrovanadium dust</TD>
+<TD class="right border-right-single">12604-58-9</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Fluorides (as F)</TD>
+<TD class="right border-right-single">(<sup>4</sup>)</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">2.5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Fluorine</TD>
+<TD class="right border-right-single">7782-41-4</TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="right border-right-single">0.2</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Fluorotrichloromethane (Trichlorofluoromethane)</TD>
+<TD class="right border-right-single">75-69-4</TD>
+<TD class="right border-right-single">1000</TD>
+<TD class="right border-right-single">5600</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Formaldehyde; see 1910.1048</TD>
+<TD class="right border-right-single">50-00-0</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Formic acid</TD>
+<TD class="right border-right-single">64-18-6</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">9</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Furfural</TD>
+<TD class="right border-right-single">98-01-1</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">20</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Furfuryl alcohol</TD>
+<TD class="right border-right-single">98-00-0</TD>
+<TD class="right border-right-single">50</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Grain dust (oat, wheat, barley)</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">10</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Glycerin (mist)</TD>
+<TD class="right border-right-single">56-81-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Glycidol</TD>
+<TD class="right border-right-single">556-52-5</TD>
+<TD class="right border-right-single">50</TD>
+<TD class="right border-right-single">150</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Glycol monoethyl ether; see 2-Ethoxyethanol.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Graphite, natural, respirable dust</TD>
+<TD class="right border-right-single">7782-42-5</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>3</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Graphite, synthetic</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Guthion; see Azinphos methyl.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Gypsum</TD>
+<TD class="right border-right-single">13397-24-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Hafnium</TD>
+<TD class="right border-right-single">7440-58-6</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Heptachlor</TD>
+<TD class="right border-right-single">76-44-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Heptane (n-Heptane)</TD>
+<TD class="right border-right-single">142-82-5</TD>
+<TD class="right border-right-single">500</TD>
+<TD class="right border-right-single">2000</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Hexachloroethane</TD>
+<TD class="right border-right-single">67-72-1</TD>
+<TD class="right border-right-single">1</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Hexachloronaphthalene</TD>
+<TD class="right border-right-single">1335-87-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.2</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">n-Hexane</TD>
+<TD class="right border-right-single">110-54-3</TD>
+<TD class="right border-right-single">500</TD>
+<TD class="right border-right-single">1800</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2-Hexanone (Methyl n-butyl ketone)</TD>
+<TD class="right border-right-single">591-78-6</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">410</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Hexone (Methyl isobutyl ketone)</TD>
+<TD class="right border-right-single">108-10-1</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">410</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">sec-Hexyl acetate</TD>
+<TD class="right border-right-single">108-84-9</TD>
+<TD class="right border-right-single">50</TD>
+<TD class="right border-right-single">300</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Hydrazine</TD>
+<TD class="right border-right-single">302-01-2</TD>
+<TD class="right border-right-single">1</TD>
+<TD class="right border-right-single">1.3</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Hydrogen bromide</TD>
+<TD class="right border-right-single">10035-10-6</TD>
+<TD class="right border-right-single">3</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Hydrogen chloride</TD>
+<TD class="right border-right-single">7647-01-0</TD>
+<TD class="right border-right-single">(C)5</TD>
+<TD class="right border-right-single">(C)7</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Hydrogen cyanide</TD>
+<TD class="right border-right-single">74-90-8</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="right border-right-single">11</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Hydrogen fluoride (as F)</TD>
+<TD class="right border-right-single">7664-39-3</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>2</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Hydrogen peroxide</TD>
+<TD class="right border-right-single">7722-84-1</TD>
+<TD class="right border-right-single">1</TD>
+<TD class="right border-right-single">1.4</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Hydrogen selenide (as Se)</TD>
+<TD class="right border-right-single">7783-07-5</TD>
+<TD class="right border-right-single">0.05</TD>
+<TD class="right border-right-single">0.2</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Hydrogen sulfide</TD>
+<TD class="right border-right-single">7783-06-4</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>2</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Hydroquinone</TD>
+<TD class="right border-right-single">123-31-9</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">2</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Iodine</TD>
+<TD class="right border-right-single">7553-56-2</TD>
+<TD class="right border-right-single">(C)0.1</TD>
+<TD class="right border-right-single">(C)1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Iron oxide fume</TD>
+<TD class="right border-right-single">1309-37-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">10</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Isoamyl acetate</TD>
+<TD class="right border-right-single">123-92-2</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">525</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Isoamyl alcohol (primary and secondary)</TD>
+<TD class="right border-right-single">123-51-3</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">360</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Isobutyl acetate</TD>
+<TD class="right border-right-single">110-19-0</TD>
+<TD class="right border-right-single">150</TD>
+<TD class="right border-right-single">700</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Isobutyl alcohol</TD>
+<TD class="right border-right-single">78-83-1</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">300</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Isophorone</TD>
+<TD class="right border-right-single">78-59-1</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="right border-right-single">140</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Isopropyl acetate</TD>
+<TD class="right border-right-single">108-21-4</TD>
+<TD class="right border-right-single">250</TD>
+<TD class="right border-right-single">950</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Isopropyl alcohol</TD>
+<TD class="right border-right-single">67-63-0</TD>
+<TD class="right border-right-single">400</TD>
+<TD class="right border-right-single">980</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Isopropylamine</TD>
+<TD class="right border-right-single">75-31-0</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">12</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Isopropyl ether</TD>
+<TD class="right border-right-single">108-20-3</TD>
+<TD class="right border-right-single">500</TD>
+<TD class="right border-right-single">2100</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Isopropyl glycidyl ether (IGE)</TD>
+<TD class="right border-right-single">4016-14-2</TD>
+<TD class="right border-right-single">50</TD>
+<TD class="right border-right-single">240</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Kaolin</TD>
+<TD class="right border-right-single">1332-58-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ketene</TD>
+<TD class="right border-right-single">463-51-4</TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="right border-right-single">0.9</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Lead, inorganic (as Pb); see 1910.1025</TD>
+<TD class="right border-right-single">7439-92-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Limestone</TD>
+<TD class="right border-right-single">1317-65-3</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Lindane</TD>
+<TD class="right border-right-single">58-89-9</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Lithium hydride</TD>
+<TD class="right border-right-single">7580-67-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.025</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">L.P.G. (Liquefied petroleum gas)</TD>
+<TD class="right border-right-single">68476-85-7</TD>
+<TD class="right border-right-single">1000</TD>
+<TD class="right border-right-single">1800</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Magnesite</TD>
+<TD class="right border-right-single">546-93-0</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Magnesium oxide fume</TD>
+<TD class="right border-right-single">1309-48-4</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total particulate</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Malathion</TD>
+<TD class="right border-right-single">121-75-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Maleic anhydride</TD>
+<TD class="right border-right-single">108-31-6</TD>
+<TD class="right border-right-single">0.25</TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Manganese compounds (as Mn)</TD>
+<TD class="right border-right-single">7439-96-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">(C)5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Manganese fume (as Mn)</TD>
+<TD class="right border-right-single">7439-96-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">(C)5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Marble</TD>
+<TD class="right border-right-single">1317-65-3</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Mercury (aryl and inorganic) (as Hg)</TD>
+<TD class="right border-right-single">7439-97-6</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>2</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Mercury (organo) alkyl compounds (as Hg)</TD>
+<TD class="right border-right-single">7439-97-6</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>2</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Mercury (vapor) (as Hg)</TD>
+<TD class="right border-right-single">7439-97-6</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>2</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Mesityl oxide</TD>
+<TD class="right border-right-single">141-79-7</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methanethiol; see Methyl mercaptan.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methoxychlor</TD>
+<TD class="right border-right-single">72-43-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2-Methoxyethanol (Methyl cellosolve)</TD>
+<TD class="right border-right-single">109-86-4</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="right border-right-single">80</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2-Methoxyethyl acetate (Methyl cellosolve acetate)</TD>
+<TD class="right border-right-single">110-49-6</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="right border-right-single">120</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl acetate</TD>
+<TD class="right border-right-single">79-20-9</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="right border-right-single">610</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl acetylene (Propyne)</TD>
+<TD class="right border-right-single">74-99-7</TD>
+<TD class="right border-right-single">1000</TD>
+<TD class="right border-right-single">1650</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl acetylene-propadiene mixture (MAPP)</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">1000</TD>
+<TD class="right border-right-single">1800</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl acrylate</TD>
+<TD class="right border-right-single">96-33-3</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="right border-right-single">35</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methylal (Dimethoxy-methane)</TD>
+<TD class="right border-right-single">109-87-5</TD>
+<TD class="right border-right-single">1000</TD>
+<TD class="right border-right-single">3100</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl alcohol</TD>
+<TD class="right border-right-single">67-56-1</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="right border-right-single">260</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methylamine</TD>
+<TD class="right border-right-single">74-89-5</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="right border-right-single">12</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl amyl alcohol; see Methyl isobutyl carbinol.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl n-amyl ketone</TD>
+<TD class="right border-right-single">110-43-0</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">465</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl bromide</TD>
+<TD class="right border-right-single">74-83-9</TD>
+<TD class="right border-right-single">(C)20</TD>
+<TD class="right border-right-single">(C)80</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl butyl ketone; see 2-Hexanone.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl cellosolve; see 2-Methoxyethanol.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl cellosolve acetate; see 2-Methoxyethyl acetate.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl chloride</TD>
+<TD class="right border-right-single">74-87-3</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>2</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl chloroform (1,1,1-Trichloroethane)</TD>
+<TD class="right border-right-single">71-55-6</TD>
+<TD class="right border-right-single">350</TD>
+<TD class="right border-right-single">1900</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methylcyclohexane</TD>
+<TD class="right border-right-single">108-87-2</TD>
+<TD class="right border-right-single">500</TD>
+<TD class="right border-right-single">2000</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methylcyclohexanol</TD>
+<TD class="right border-right-single">25639-42-3</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">470</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">o-Methylcyclohexanone</TD>
+<TD class="right border-right-single">583-60-8</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">460</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methylene chloride</TD>
+<TD class="right border-right-single">75-09-2</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>2</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl ethyl ketone (MEK); see 2-Butanone.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl formate</TD>
+<TD class="right border-right-single">107-31-3</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">250</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl hydrazine (Monomethyl hydrazine)</TD>
+<TD class="right border-right-single">60-34-4</TD>
+<TD class="right border-right-single">(C)0.2</TD>
+<TD class="right border-right-single">(C)0.35</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl iodide</TD>
+<TD class="right border-right-single">74-88-4</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">28</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl isoamyl ketone</TD>
+<TD class="right border-right-single">110-12-3</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">475</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl isobutyl carbinol</TD>
+<TD class="right border-right-single">108-11-2</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl isobutyl ketone; see Hexone.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl isocyanate</TD>
+<TD class="right border-right-single">624-83-9</TD>
+<TD class="right border-right-single">0.02</TD>
+<TD class="right border-right-single">0.05</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl mercaptan</TD>
+<TD class="right border-right-single">74-93-1</TD>
+<TD class="right border-right-single">(C)10</TD>
+<TD class="right border-right-single">(C)20</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl methacrylate</TD>
+<TD class="right border-right-single">80-62-6</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">410</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl propyl ketone; see 2-Pentanone.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">alpha-Methyl styrene</TD>
+<TD class="right border-right-single">98-83-9</TD>
+<TD class="right border-right-single">(C)100</TD>
+<TD class="right border-right-single">(C)480</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methylene bisphenyl isocyanate (MDI)</TD>
+<TD class="right border-right-single">101-68-8</TD>
+<TD class="right border-right-single">(C)0.02</TD>
+<TD class="right border-right-single">(C)0.2</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Mica; see Silicates.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Molybdenum (as Mo)</TD>
+<TD class="right border-right-single">7439-98-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Soluble compounds</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single"> Insoluble compounds.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-3"> Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Monomethyl aniline</TD>
+<TD class="right border-right-single">100-61-8</TD>
+<TD class="right border-right-single">2</TD>
+<TD class="right border-right-single">9</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Monomethyl hydrazine; see Methyl hydrazine.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Morpholine</TD>
+<TD class="right border-right-single">110-91-8</TD>
+<TD class="right border-right-single">20</TD>
+<TD class="right border-right-single">70</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Naphtha (Coal tar)</TD>
+<TD class="right border-right-single">8030-30-6</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">400</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Naphthalene</TD>
+<TD class="right border-right-single">91-20-3</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="right border-right-single">50</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">alpha-Naphthylamine; see 1910.1004</TD>
+<TD class="right border-right-single">134-32-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">beta-Naphthylamine; see 1910.1009</TD>
+<TD class="right border-right-single">91-59-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Nickel carbonyl (as Ni)</TD>
+<TD class="right border-right-single">13463-39-3</TD>
+<TD class="right border-right-single">0.001</TD>
+<TD class="right border-right-single">0.007</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Nickel, metal and insoluble compounds (as Ni)</TD>
+<TD class="right border-right-single">7440-02-0</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Nickel, soluble compounds (as Ni)</TD>
+<TD class="right border-right-single">7440-02-0</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Nicotine</TD>
+<TD class="right border-right-single">54-11-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Nitric acid</TD>
+<TD class="right border-right-single">7697-37-2</TD>
+<TD class="right border-right-single">2</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Nitric oxide</TD>
+<TD class="right border-right-single">10102-43-9</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="right border-right-single">30</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">p-Nitroaniline</TD>
+<TD class="right border-right-single">100-01-6</TD>
+<TD class="right border-right-single">1</TD>
+<TD class="right border-right-single">6</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Nitrobenzene</TD>
+<TD class="right border-right-single">98-95-3</TD>
+<TD class="right border-right-single">1</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">p-Nitrochlorobenzene</TD>
+<TD class="right border-right-single">100-00-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">4-Nitrodiphenyl; see 1910.1003</TD>
+<TD class="right border-right-single">92-93-3</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Nitroethane</TD>
+<TD class="right border-right-single">79-24-3</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">310</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Nitrogen dioxide</TD>
+<TD class="right border-right-single">10102-44-0</TD>
+<TD class="right border-right-single">(C)5</TD>
+<TD class="right border-right-single">(C)9</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Nitrogen trifluoride</TD>
+<TD class="right border-right-single">7783-54-2</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="right border-right-single">29</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Nitroglycerin</TD>
+<TD class="right border-right-single">55-63-0</TD>
+<TD class="right border-right-single">(C)0.2</TD>
+<TD class="right border-right-single">(C)2</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Nitromethane</TD>
+<TD class="right border-right-single">75-52-5</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">250</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1-Nitropropane</TD>
+<TD class="right border-right-single">108-03-2</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="right border-right-single">90</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2-Nitropropane</TD>
+<TD class="right border-right-single">79-46-9</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="right border-right-single">90</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">N-Nitrosodimethylamine; see 1910.1016.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Nitrotoluene (all isomers)</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">30</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">o-isomer</TD>
+<TD class="right border-right-single">88-72-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">m-isomer</TD>
+<TD class="right border-right-single">99-08-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">p-isomer</TD>
+<TD class="right border-right-single">99-99-0</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Nitrotrichloromethane; see Chloropicrin.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Octachloronaphthalene</TD>
+<TD class="right border-right-single">2234-13-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Octane</TD>
+<TD class="right border-right-single">111-65-9</TD>
+<TD class="right border-right-single">500</TD>
+<TD class="right border-right-single">2350</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Oil mist, mineral</TD>
+<TD class="right border-right-single">8012-95-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Osmium tetroxide (as Os)</TD>
+<TD class="right border-right-single">20816-12-0</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.002</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Oxalic acid</TD>
+<TD class="right border-right-single">144-62-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Oxygen difluoride</TD>
+<TD class="right border-right-single">7783-41-7</TD>
+<TD class="right border-right-single">0.05</TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ozone</TD>
+<TD class="right border-right-single">10028-15-6</TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="right border-right-single">0.2</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Paraquat, respirable dust</TD>
+<TD class="right border-right-single">4685-14-7;<br></br>1910-42-5;<br></br>2074-50-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Parathion</TD>
+<TD class="right border-right-single">56-38-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Particulates not otherwise regulated (PNOR) <sup>f</sup>.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">PCB; see Chlorodiphenyl (42% and 54% chlorine).</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Pentaborane</TD>
+<TD class="right border-right-single">19624-22-7</TD>
+<TD class="right border-right-single">0.005</TD>
+<TD class="right border-right-single">0.01</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Pentachloronaphthalene</TD>
+<TD class="right border-right-single">1321-64-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Pentachlorophenol</TD>
+<TD class="right border-right-single">87-86-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Pentaerythritol</TD>
+<TD class="right border-right-single">115-77-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Pentane</TD>
+<TD class="right border-right-single">109-66-0</TD>
+<TD class="right border-right-single">1000</TD>
+<TD class="right border-right-single">2950</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2-Pentanone (Methyl propyl ketone)</TD>
+<TD class="right border-right-single">107-87-9</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="right border-right-single">700</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Perchloroethylene (Tetrachloroethylene)</TD>
+<TD class="right border-right-single">127-18-4</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>2</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Perchloromethyl mercaptan</TD>
+<TD class="right border-right-single">594-42-3</TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="right border-right-single">0.8</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Perchloryl fluoride</TD>
+<TD class="right border-right-single">7616-94-6</TD>
+<TD class="right border-right-single">3</TD>
+<TD class="right border-right-single">13.5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Petroleum distillates (Naphtha) (Rubber Solvent)</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">500</TD>
+<TD class="right border-right-single">2000</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Phenol</TD>
+<TD class="right border-right-single">108-95-2</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">19</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">p-Phenylene diamine</TD>
+<TD class="right border-right-single">106-50-3</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Phenyl ether, vapor</TD>
+<TD class="right border-right-single">101-84-8</TD>
+<TD class="right border-right-single">1</TD>
+<TD class="right border-right-single">7</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Phenyl ether-biphenyl mixture, vapor</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">1</TD>
+<TD class="right border-right-single">7</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Phenylethylene; see Styrene.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Phenyl glycidyl ether (PGE)</TD>
+<TD class="right border-right-single">122-60-1</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="right border-right-single">60</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Phenylhydrazine</TD>
+<TD class="right border-right-single">100-63-0</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">22</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Phosdrin (Mevinphos)</TD>
+<TD class="right border-right-single">7786-34-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Phosgene (Carbonyl chloride)</TD>
+<TD class="right border-right-single">75-44-5</TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="right border-right-single">0.4</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Phosphine</TD>
+<TD class="right border-right-single">7803-51-2</TD>
+<TD class="right border-right-single">0.3</TD>
+<TD class="right border-right-single">0.4</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Phosphoric acid</TD>
+<TD class="right border-right-single">7664-38-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Phosphorus (yellow)</TD>
+<TD class="right border-right-single">7723-14-0</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Phosphorus pentachloride</TD>
+<TD class="right border-right-single">10026-13-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Phosphorus pentasulfide</TD>
+<TD class="right border-right-single">1314-80-3</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Phosphorus trichloride</TD>
+<TD class="right border-right-single">7719-12-2</TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="right border-right-single">3</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Phthalic anhydride</TD>
+<TD class="right border-right-single">85-44-9</TD>
+<TD class="right border-right-single">2</TD>
+<TD class="right border-right-single">12</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Picloram</TD>
+<TD class="right border-right-single">1918-02-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Picric acid</TD>
+<TD class="right border-right-single">88-89-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Pindone (2-Pivalyl-1,3-indandione)</TD>
+<TD class="right border-right-single">83-26-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Plaster of Paris</TD>
+<TD class="right border-right-single">26499-65-0</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Platinum (as Pt)</TD>
+<TD class="right border-right-single">7440-06-4</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Metal</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Soluble salts</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.002</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Portland cement</TD>
+<TD class="right border-right-single">65997-15-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Propane</TD>
+<TD class="right border-right-single">74-98-6</TD>
+<TD class="right border-right-single">1000</TD>
+<TD class="right border-right-single">1800</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">beta-Propriolactone; see 1910.1013</TD>
+<TD class="right border-right-single">57-57-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">n-Propyl acetate</TD>
+<TD class="right border-right-single">109-60-4</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="right border-right-single">840</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">n-Propyl alcohol</TD>
+<TD class="right border-right-single">71-23-8</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="right border-right-single">500</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">n-Propyl nitrate</TD>
+<TD class="right border-right-single">627-13-4</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="right border-right-single">110</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Propylene dichloride</TD>
+<TD class="right border-right-single">78-87-5</TD>
+<TD class="right border-right-single">75</TD>
+<TD class="right border-right-single">350</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Propylene imine</TD>
+<TD class="right border-right-single">75-55-8</TD>
+<TD class="right border-right-single">2</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Propylene oxide</TD>
+<TD class="right border-right-single">75-56-9</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">240</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Propyne; see Methyl acetylene.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Pyrethrum</TD>
+<TD class="right border-right-single">8003-34-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Pyridine</TD>
+<TD class="right border-right-single">110-86-1</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Quinone</TD>
+<TD class="right border-right-single">106-51-4</TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="right border-right-single">0.4</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">RDX; see Cyclonite.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Rhodium (as Rh), metal fume and insoluble compounds</TD>
+<TD class="right border-right-single">7440-16-6</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Rhodium (as Rh), soluble compounds</TD>
+<TD class="right border-right-single">7440-16-6</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.001</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ronnel</TD>
+<TD class="right border-right-single">299-84-3</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Rotenone</TD>
+<TD class="right border-right-single">83-79-4</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Rouge</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Selenium compounds (as Se)</TD>
+<TD class="right border-right-single">7782-49-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.2</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Selenium hexafluoride (as Se)</TD>
+<TD class="right border-right-single">7783-79-1</TD>
+<TD class="right border-right-single">0.05</TD>
+<TD class="right border-right-single">0.4</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Silica, amorphous, precipitated and gel</TD>
+<TD class="right border-right-single">112926-00-8</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>3</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Silica, amorphous, diatomaceous earth, containing less than 1% crystalline silica</TD>
+<TD class="right border-right-single">61790-53-2</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>3</sup>)
+</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Silica, crystalline, respirable dust</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Cristobalite; see 1910.1053 <sup>7</sup></TD>
+<TD class="right border-right-single">14464-46-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Quartz; see 1910.1053 <sup>7</sup></TD>
+<TD class="right border-right-single">14808-60-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Tripoli (as quartz); see 1910.1053 <sup>7</sup></TD>
+<TD class="right border-right-single">1317-95-9</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Tridymite; see 1910.1053 <sup>7</sup></TD>
+<TD class="right border-right-single">15468-32-3
+</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Silica, fused, respirable dust</TD>
+<TD class="right border-right-single">60676-86-0</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>3</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Silicates (less than 1% crystalline silica)</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Mica (respirable dust)</TD>
+<TD class="right border-right-single">12001-26-2</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>3</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Soapstone, total dust</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>3</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Soapstone, respirable dust</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>3</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Talc (containing asbestos); use asbestos limit; see 29 CFR 1910.1001</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>3</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Talc (containing no asbestos), respirable dust</TD>
+<TD class="right border-right-single">14807-96-6</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>3</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single"> Tremolite, asbestiform; see 1910.1001.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Silicon</TD>
+<TD class="right border-right-single">7440-21-3</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Silicon carbide</TD>
+<TD class="right border-right-single">409-21-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Silver, metal and soluble compounds (as Ag)</TD>
+<TD class="right border-right-single">7440-22-4</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.01</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Soapstone; see Silicates.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Sodium fluoroacetate</TD>
+<TD class="right border-right-single">62-74-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.05</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Sodium hydroxide</TD>
+<TD class="right border-right-single">1310-73-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">2</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Starch</TD>
+<TD class="right border-right-single">9005-25-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Stibine</TD>
+<TD class="right border-right-single">7803-52-3</TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Stoddard solvent</TD>
+<TD class="right border-right-single">8052-41-3</TD>
+<TD class="right border-right-single">500</TD>
+<TD class="right border-right-single">2900</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Strychnine</TD>
+<TD class="right border-right-single">57-24-9</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Styrene</TD>
+<TD class="right border-right-single">100-42-5</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>2</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Sucrose</TD>
+<TD class="right border-right-single">57-50-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Sulfur dioxide</TD>
+<TD class="right border-right-single">7446-09-5</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">13</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Sulfur hexafluoride</TD>
+<TD class="right border-right-single">2551-62-4</TD>
+<TD class="right border-right-single">1000</TD>
+<TD class="right border-right-single">6000</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Sulfuric acid</TD>
+<TD class="right border-right-single">7664-93-9</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Sulfur monochloride</TD>
+<TD class="right border-right-single">10025-67-9</TD>
+<TD class="right border-right-single">1</TD>
+<TD class="right border-right-single">6</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Sulfur pentafluoride</TD>
+<TD class="right border-right-single">5714-22-7</TD>
+<TD class="right border-right-single">0.025</TD>
+<TD class="right border-right-single">0.25</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Sulfuryl fluoride</TD>
+<TD class="right border-right-single">2699-79-8</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">20</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Systox; see Demeton.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2,4,5-T (2,4,5-trichlorophenoxyacetic acid)</TD>
+<TD class="right border-right-single">93-76-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">10</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Talc; see Silicates.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Tantalum, metal and oxide dust</TD>
+<TD class="right border-right-single">7440-25-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">TEDP (Sulfotep)</TD>
+<TD class="right border-right-single">3689-24-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.2</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Tellurium and compounds (as Te)</TD>
+<TD class="right border-right-single">13494-80-9</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Tellurium hexafluoride (as Te)</TD>
+<TD class="right border-right-single">7783-80-4</TD>
+<TD class="right border-right-single">0.02</TD>
+<TD class="right border-right-single">0.2</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Temephos</TD>
+<TD class="right border-right-single">3383-96-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">TEPP (Tetraethyl pyrophosphate)</TD>
+<TD class="right border-right-single">107-49-3</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.05</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Terphenyls</TD>
+<TD class="right border-right-single">26140-60-3</TD>
+<TD class="right border-right-single">(C)1</TD>
+<TD class="right border-right-single">(C)9</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,1,1,2-Tetrachloro-2,2-difluoroethane</TD>
+<TD class="right border-right-single">76-11-9</TD>
+<TD class="right border-right-single">500</TD>
+<TD class="right border-right-single">4170</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,1,2,2-Tetrachloro-1,2-difluoroethane</TD>
+<TD class="right border-right-single">76-12-0</TD>
+<TD class="right border-right-single">500</TD>
+<TD class="right border-right-single">4170</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,1,2,2-Tetrachloroethane</TD>
+<TD class="right border-right-single">79-34-5</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">35</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Tetrachloroethylene; see Perchloroethylene.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Tetrachloromethane; see Carbon tetrachloride.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Tetrachloronaphthalene</TD>
+<TD class="right border-right-single">1335-88-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">2</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Tetraethyl lead (as Pb)</TD>
+<TD class="right border-right-single">78-00-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.075</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Tetrahydrofuran</TD>
+<TD class="right border-right-single">109-99-9</TD>
+<TD class="right border-right-single">200</TD>
+<TD class="right border-right-single">590</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Tetramethyl lead (as Pb)</TD>
+<TD class="right border-right-single">75-74-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.075</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Tetramethyl succinonitrile</TD>
+<TD class="right border-right-single">3333-52-6</TD>
+<TD class="right border-right-single">0.5</TD>
+<TD class="right border-right-single">3</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Tetranitromethane</TD>
+<TD class="right border-right-single">509-14-8</TD>
+<TD class="right border-right-single">1</TD>
+<TD class="right border-right-single">8</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Tetryl (2,4,6-Trinitrophenylmethylnitramine)</TD>
+<TD class="right border-right-single">479-45-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1.5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Thallium, soluble compounds (as Tl)</TD>
+<TD class="right border-right-single">7440-28-0</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">4,4′-Thiobis (6-tert, Butyl-m-cresol)</TD>
+<TD class="right border-right-single">96-69-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Thiram</TD>
+<TD class="right border-right-single">137-26-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Tin, inorganic compounds (except oxides) (as Sn)</TD>
+<TD class="right border-right-single">7440-31-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">2</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Tin, organic compounds (as Sn)</TD>
+<TD class="right border-right-single">7440-31-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Titanium dioxide</TD>
+<TD class="right border-right-single">13463-67-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Toluene</TD>
+<TD class="right border-right-single">108-88-3</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>2</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Toluene-2,4-diisocyanate (TDI)</TD>
+<TD class="right border-right-single">584-84-9</TD>
+<TD class="right border-right-single">(C)0.02</TD>
+<TD class="right border-right-single">(C)0.14</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">o-Toluidine</TD>
+<TD class="right border-right-single">95-53-4</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">22</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Toxaphene; see Chlorinated camphene.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Tremolite; see Silicates.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Tributyl phosphate</TD>
+<TD class="right border-right-single">126-73-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,1,1-Trichloroethane; see Methyl chloroform.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,1,2-Trichloroethane</TD>
+<TD class="right border-right-single">79-00-5</TD>
+<TD class="right border-right-single">10</TD>
+<TD class="right border-right-single">45</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Trichloroethylene</TD>
+<TD class="right border-right-single">79-01-6</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single">(<sup>2</sup>)</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Trichloromethane; see Chloroform.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Trichloronaphthalene</TD>
+<TD class="right border-right-single">1321-65-9</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,2,3-Trichloropropane</TD>
+<TD class="right border-right-single">96-18-4</TD>
+<TD class="right border-right-single">50</TD>
+<TD class="right border-right-single">300</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">1,1,2-Trichloro-1,2,2-trifluoroethane</TD>
+<TD class="right border-right-single">76-13-1</TD>
+<TD class="right border-right-single">1000</TD>
+<TD class="right border-right-single">7600</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Triethylamine</TD>
+<TD class="right border-right-single">121-44-8</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Trifluorobromomethane</TD>
+<TD class="right border-right-single">75-63-8</TD>
+<TD class="right border-right-single">1000</TD>
+<TD class="right border-right-single">6100</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2,4,6-Trinitrophenol; see Picric acid.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2,4,6-Trinitrophenylmethylnitramine; see Tetryl.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2,4,6-Trinitrotoluene (TNT)</TD>
+<TD class="right border-right-single">118-96-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1.5</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Triorthocresyl phosphate</TD>
+<TD class="right border-right-single">78-30-8</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Triphenyl phosphate</TD>
+<TD class="right border-right-single">115-86-6</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">3</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Turpentine</TD>
+<TD class="right border-right-single">8006-64-2</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">560</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Uranium (as U)</TD>
+<TD class="right border-right-single">7440-61-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Soluble compounds</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.05</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Insoluble compounds</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.25</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Vanadium</TD>
+<TD class="right border-right-single">1314-62-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable dust (as V<sub>2</sub> O<sub>5</sub>)</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">(C)0.5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Fume (as V<sub>2</sub> O<sub>5</sub>)</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">(C)0.1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Vegetable oil mist</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Vinyl benzene; see Styrene.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Vinyl chloride; see 1910.1017</TD>
+<TD class="right border-right-single">75-01-4</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Vinyl cyanide; see Acrylonitrile.</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Vinyl toluene</TD>
+<TD class="right border-right-single">25013-15-4</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">480</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Warfarin</TD>
+<TD class="right border-right-single">81-81-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">0.1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Xylenes (o-, m-, p-isomers)</TD>
+<TD class="right border-right-single">1330-20-7</TD>
+<TD class="right border-right-single">100</TD>
+<TD class="right border-right-single">435</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Xylidine</TD>
+<TD class="right border-right-single">1300-73-8</TD>
+<TD class="right border-right-single">5</TD>
+<TD class="right border-right-single">25</TD>
+<TD class="left">X</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Yttrium</TD>
+<TD class="right border-right-single">7440-65-5</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Zinc chloride fume</TD>
+<TD class="right border-right-single">7646-85-7</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">1</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Zinc oxide fume</TD>
+<TD class="right border-right-single">1314-13-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Zinc oxide</TD>
+<TD class="right border-right-single">1314-13-2</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Zinc stearate</TD>
+<TD class="right border-right-single">557-05-1</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Total dust</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">15</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Respirable fraction</TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right border-right-single">5</TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-bottom-single border-right-single">Zirconium compounds (as Zr)</TD>
+<TD class="right border-bottom-single border-right-single">7440-67-7</TD>
+<TD class="right border-bottom-single border-right-single"></TD>
+<TD class="right border-bottom-single border-right-single">5
+</TD>
+<TD class="left border-bottom-single"></TD>
+</TR>
+</TBODY>
+<TFOOT><TR><TD colspan="5"><sup>1</sup> The PELs are 8-hour TWAs unless otherwise noted; a (C) designation denotes a ceiling limit. They are to be determined from breathing-zone air samples.
+</TD></TR><TR><TD colspan="5">(a) Parts of vapor or gas per million parts of contaminated air by volume at 25 °C and 760 torr.
+</TD></TR><TR><TD colspan="5">(b) Milligrams of substance per cubic meter of air. When entry is in this column only, the value is exact; when listed with a ppm entry, it is approximate.
+</TD></TR><TR><TD colspan="5">(c) The CAS number is for information only. Enforcement is based on the substance name. For an entry covering more than one metal compound, measured as the metal, the CAS number for the metal is given—not CAS numbers for the individual compounds.
+</TD></TR><TR><TD colspan="5">(d) The final benzene standard in 1910.1028 applies to all occupational exposures to benzene except in some circumstances the distribution and sale of fuels, sealed containers and pipelines, coke production, oil and gas drilling and production, natural gas processing, and the percentage exclusion for liquid mixtures; for the excepted subsegments, the benzene limits in Table Z-2 apply. See 1910.1028 for specific circumstances.
+</TD></TR><TR><TD colspan="5">(e) This 8-hour TWA applies to respirable dust as measured by a vertical elutriator cotton dust sampler or equivalent instrument. The time-weighted average applies to the cottom waste processing operations of waste recycling (sorting, blending, cleaning and willowing) and garnetting. See also 1910.1043 for cotton dust limits applicable to other sectors.
+</TD></TR><TR><TD colspan="5">(f) All inert or nuisance dusts, whether mineral, inorganic, or organic, not listed specifically by substance name are covered by the Particulates Not Otherwise Regulated (PNOR) limit which is the same as the inert or nuisance dust limit of Table Z-3.
+</TD></TR><TR><TD colspan="5"><sup>2</sup> See Table Z-2.
+</TD></TR><TR><TD colspan="5"><sup>3</sup> See Table Z-3.
+</TD></TR><TR><TD colspan="5"><sup>4</sup> Varies with compound.
+</TD></TR><TR><TD colspan="5"><sup>5</sup> See Table Z-2 for the exposure limit for any operations or sectors where the exposure limit in § 1910.1026 is stayed or is otherwise not in effect.
+</TD></TR><TR><TD colspan="5"><sup>6</sup> If the exposure limit in § 1910.1026 is stayed or is otherwise not in effect, the exposure limit is a ceiling of 0.1 mg/m<sup>3</sup>.
+</TD></TR><TR><TD colspan="5"><sup>7</sup> See Table Z-3 for the exposure limit for any operations or sectors where the exposure limit in § 1910.1053 is stayed or is otherwise not in effect.
+</TD></TR><TR><TD colspan="5"><sup>8</sup> <E T="03">See</E> Table Z-2 for the exposure limits for any operations or sectors where the exposure limits in § 1910.1024 are stayed or otherwise not in effect.</TD></TR></TFOOT></TABLE>
+</DIV></DIV>
+<DIV width="100%"><DIV class="gpotbl_div">
+<TABLE border="1" cellpadding="1" cellspacing="1" class="gpo_table" frame="void" width="100%">
+<CAPTION><P class="title">Table Z-2</P></CAPTION>
+<THEAD>
+<TR>
+<TH rowspan="2" class="center border-top-single border-bottom-single border-right-single">Substance</TH>
+<TH rowspan="2" class="center border-top-single border-bottom-single border-right-single">8-hour time weighted average</TH>
+<TH rowspan="2" class="center border-top-single border-bottom-single border-right-single">Acceptable ceiling concentration</TH>
+<TH colspan="2" class="center border-top-single border-bottom-single">Acceptable maximum peak above the acceptable ceiling concentration for an 8-hr shift</TH>
+</TR>
+<TR>
+<TH class="center border-bottom-single border-right-single">Concentration</TH>
+<TH class="center border-bottom-single">Maximum duration</TH>
+</TR>
+</THEAD>
+<TBODY>
+<TR>
+<TD class="left border-right-single">Benzene <sup>a</sup> (Z37.40-1969)</TD>
+<TD class="left border-right-single">10 ppm</TD>
+<TD class="left border-right-single">25 ppm</TD>
+<TD class="left border-right-single">50 ppm</TD>
+<TD class="left">10 minutes.</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Beryllium and beryllium compounds (Z37.29-1970) <sup>d</sup></TD>
+<TD class="left border-right-single">2 µg/m<sup>3</sup></TD>
+<TD class="left border-right-single">5 µg/m<sup>3</sup></TD>
+<TD class="left border-right-single">25 µg/m<sup>3</sup></TD>
+<TD class="left">30 minutes.</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Cadmium fume <sup>b</sup> (Z37.5-1970)</TD>
+<TD class="left border-right-single">0.1 mg/m<sup>3</sup></TD>
+<TD class="left border-right-single">0.3 mg/m<sup>3</sup></TD>
+<TD class="left border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Cadmium dust <sup>b</sup> (Z37.5-1970)</TD>
+<TD class="left border-right-single">0.2 mg/m<sup>3</sup></TD>
+<TD class="left border-right-single">0.6 mg/m<sup>3</sup></TD>
+<TD class="left border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Carbon disulfide (Z37.3-1968)</TD>
+<TD class="left border-right-single">20 ppm</TD>
+<TD class="left border-right-single">30 ppm</TD>
+<TD class="left border-right-single">100 ppm</TD>
+<TD class="left">30 minutes.</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Carbon tetrachloride (Z37.17-1967)</TD>
+<TD class="left border-right-single">10 ppm</TD>
+<TD class="left border-right-single">25 ppm</TD>
+<TD class="left border-right-single">200 ppm</TD>
+<TD class="left">5 min. in any 4 hrs.</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Chromic acid and chromates (Z37.7-1971) (as CrO<sub>3</sub>)<sup>c</sup></TD>
+<TD class="left border-right-single"> </TD>
+<TD class="left border-right-single">1 mg/10m<sup>3</sup> </TD>
+<TD class="left border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethylene dibromide (Z37.31-1970)</TD>
+<TD class="left border-right-single">20 ppm</TD>
+<TD class="left border-right-single">30 ppm</TD>
+<TD class="left border-right-single">50 ppm</TD>
+<TD class="left">5 minutes.</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Ethylene dichloride (Z37.21-1969)</TD>
+<TD class="left border-right-single">50 ppm</TD>
+<TD class="left border-right-single">100 ppm</TD>
+<TD class="left border-right-single">200 ppm</TD>
+<TD class="left">5 min. in any 3 hrs.</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Fluoride as dust (Z37.28-1969)</TD>
+<TD class="left border-right-single">2.5 mg/m<sup>3</sup></TD>
+<TD class="left border-right-single"></TD>
+<TD class="left border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Formaldehyde; see 1910.1048</TD>
+<TD class="left border-right-single"></TD>
+<TD class="left border-right-single"></TD>
+<TD class="left border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Hydrogen fluoride (Z37.28-1969)</TD>
+<TD class="left border-right-single">3 ppm</TD>
+<TD class="left border-right-single"></TD>
+<TD class="left border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Hydrogen sulfide (Z37.2-1966)</TD>
+<TD class="left border-right-single"></TD>
+<TD class="left border-right-single">20 ppm</TD>
+<TD class="left border-right-single">50 ppm</TD>
+<TD class="left">10 mins. once, only if no other meas. exp. occurs.</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Mercury (Z37.8-1971)</TD>
+<TD class="left border-right-single"></TD>
+<TD class="left border-right-single">1 mg/10m<sup>3</sup></TD>
+<TD class="left border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methyl chloride (Z37.18-1969)</TD>
+<TD class="left border-right-single">100 ppm</TD>
+<TD class="left border-right-single">200 ppm</TD>
+<TD class="left border-right-single">300 ppm</TD>
+<TD class="left">5 mins. in any 3 hrs.</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Methylene Chloride: See § 1919.52.</TD>
+<TD class="left border-right-single"></TD>
+<TD class="left border-right-single"></TD>
+<TD class="left border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Organo (alkyl) mercury (Z37.30-1969)</TD>
+<TD class="left border-right-single">0.01 mg/m<sup>3</sup></TD>
+<TD class="left border-right-single">0.04 mg/m<sup>3</sup></TD>
+<TD class="left border-right-single"></TD>
+<TD class="left"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Styrene (Z37.15-1969)</TD>
+<TD class="left border-right-single">100 ppm</TD>
+<TD class="left border-right-single">200 ppm</TD>
+<TD class="left border-right-single">600 ppm</TD>
+<TD class="left">5 mins. in any 3 hrs.</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Tetrachloroethylene (Z37.22-1967)</TD>
+<TD class="left border-right-single">100 ppm</TD>
+<TD class="left border-right-single">200 ppm</TD>
+<TD class="left border-right-single">300 ppm</TD>
+<TD class="left">5 mins. in any 3 hrs.</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Toluene (Z37.12-1967)</TD>
+<TD class="left border-right-single">200 ppm</TD>
+<TD class="left border-right-single">300 ppm</TD>
+<TD class="left border-right-single">500 ppm</TD>
+<TD class="left">10 minutes.</TD>
+</TR>
+<TR>
+<TD class="left border-bottom-single border-right-single">Trichloroethylene (Z37.19-1967)</TD>
+<TD class="left border-bottom-single border-right-single">100 ppm</TD>
+<TD class="left border-bottom-single border-right-single">200 ppm</TD>
+<TD class="left border-bottom-single border-right-single">300 ppm</TD>
+<TD class="left border-bottom-single">5 mins. in any 2 hrs.
+</TD>
+</TR>
+</TBODY>
+<TFOOT><TR><TD colspan="5"><sup>a</sup> This standard applies to the industry segments exempt from the 1 ppm 8-hour TWA and 5 ppm STEL of the benzene standard at 1910.1028.
+</TD></TR><TR><TD colspan="5"><sup>b</sup> This standard applies to any operations or sectors for which the Cadmium standard, 1910.1027, is stayed or otherwise not in effect.
+</TD></TR><TR><TD colspan="5"><sup>c</sup> This standard applies to any operations or sectors for which the exposure limit in the Chromium (VI) standard, § 1910.1026, is stayed or is otherwise not in effect.
+</TD></TR><TR><TD colspan="5"><sup>d</sup> This standard applies to any operations or sectors for which the exposure limits in the beryllium standard, § 1910.1024, are stayed or is otherwise not in effect.</TD></TR></TFOOT></TABLE>
+</DIV></DIV>
+<DIV width="100%"><DIV class="gpotbl_div">
+<TABLE border="1" cellpadding="1" cellspacing="1" class="gpo_table" frame="void" width="100%">
+<CAPTION><P class="title">Table Z-3—Mineral Dusts</P></CAPTION>
+<THEAD>
+<TR>
+<TH class="center border-top-single border-bottom-single border-right-single">Substance</TH>
+<TH class="center border-top-single border-bottom-single border-right-single">mppcf <sup>a</sup></TH>
+<TH class="center border-top-single border-bottom-single">mg/m<sup>3</sup></TH>
+</TR>
+</THEAD>
+<TBODY>
+<TR>
+<TD class="left border-right-single">Silica:</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-1">Crystalline</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-2">Quartz (Respirable) <sup>f</sup></TD>
+<TD class="right border-bottom-single border-right-single">250<sup>b</sup></TD>
+<TD class="right border-bottom-single">10 mg/m<sup>3</sup> <sup>e</sup></TD>
+</TR>
+<TR>
+<TD class="left border-right-single"></TD>
+<TD class="right border-right-single">% SiO<sub>2</sub> + 5</TD>
+<TD class="right">% SiO<sub>2</sub> + 2</TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-1">Cristobalite: Use <sup>1</sup>⁄<sub>2</sub> the value calculated from the count or mass formulae for quartz <sup>f</sup></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-1">Tridymite: Use <sup>1</sup>⁄<sub>2</sub> the value calculated from the formulae for quartz <sup>f</sup></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Amorphous, including natural diatomaceous earth</TD>
+<TD class="right border-right-single">20</TD>
+<TD class="right border-bottom-single">80 mg/m<sup>3</sup></TD>
+</TR>
+<TR>
+<TD class="left border-right-single"> </TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right">%SiO<sub>2</sub></TD>
+</TR>
+<TR>
+<TD class="left border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Silicates (less than 1% crystalline silica):</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-1">Mica</TD>
+<TD class="right border-right-single">20</TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-1">Soapstone</TD>
+<TD class="right border-right-single">20</TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-1">Talc (not containing asbestos)</TD>
+<TD class="right border-right-single">20 <sup>c</sup></TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-1">Talc (containing asbestos) Use asbestos limit</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-1">Tremolite, asbestiform (see 29 CFR 1910.1001)</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-1">Portland cement</TD>
+<TD class="right border-right-single">50
+</TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Graphite (Natural)</TD>
+<TD class="right border-right-single">15
+</TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Coal Dust:</TD>
+<TD class="right border-right-single"></TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-1">Respirable fraction less than 5% SiO<sub>2</sub></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right">2.4 mg/m <sup>3</sup> <sup>e</sup></TD>
+</TR>
+<TR>
+<TD class="left border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single"> </TD>
+<TD class="right border-right-single"> </TD>
+<TD class="right">10 mg/m <sup>3</sup> <sup>e</sup></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-1">Respirable fraction greater than 5% SiO<sub>2</sub></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right">_____<br></br>%SiO<sub>2</sub> + 2</TD>
+</TR>
+<TR>
+<TD class="left border-right-single"> </TD>
+<TD class="right border-right-single"></TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single">Inert or Nuisance Dust: <sup>d</sup></TD>
+<TD class="right border-right-single"></TD>
+<TD class="right"></TD>
+</TR>
+<TR>
+<TD class="left border-right-single primary-indent-hanging-1">Respirable fraction</TD>
+<TD class="right border-right-single">15</TD>
+<TD class="right">5 mg/m <sup>3</sup></TD>
+</TR>
+<TR>
+<TD class="left border-bottom-single border-right-single primary-indent-hanging-1">Total dust</TD>
+<TD class="right border-bottom-single border-right-single">50</TD>
+<TD class="right border-bottom-single">15 mg/m <sup>3</sup>
+</TD>
+</TR>
+</TBODY>
+<TFOOT><TR><TD colspan="3">Note—Conversion factors - mppcf × 35.3 = million particles per cubic meter = particles per c.c.
+</TD></TR><TR><TD colspan="3"><sup>a</sup> Millions of particles per cubic foot of air, based on impinger samples counted by light-field techniques.
+</TD></TR><TR><TD colspan="3"><sup>b</sup> The percentage of crystalline silica in the formula is the amount determined from airborne samples, except in those instances in which other methods have been shown to be applicable.
+</TD></TR><TR><TD colspan="3"><sup>c</sup> Containing less than 1% quartz; if 1% quartz or more, use quartz limit.
+</TD></TR><TR><TD colspan="3"><sup>d</sup> All inert or nuisance dusts, whether mineral, inorganic, or organic, not listed specifically by substance name are covered by this limit, which is the same as the Particulates Not Otherwise Regulated (PNOR) limit in Table Z-1.
+</TD></TR><TR><TD colspan="3"><sup>e</sup> Both concentration and percent quartz for the application of this limit are to be determined from the fraction passing a size-selector with the following characteristics:</TD></TR></TFOOT></TABLE>
+</DIV></DIV>
+<DIV width="100%"><DIV class="gpotbl_div">
+<TABLE border="1" cellpadding="1" cellspacing="1" class="gpo_table" frame="void" width="100%">
+<THEAD>
+<TR>
+<TH class="center border-top-single border-bottom-single border-right-single">Aerodynamic diameter (unit density sphere)</TH>
+<TH class="center border-top-single border-bottom-single">Percent passing selector</TH>
+</TR>
+</THEAD>
+<TBODY>
+<TR>
+<TD class="left border-right-single">2</TD>
+<TD class="right">90</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">2.5</TD>
+<TD class="right">75</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">3.5</TD>
+<TD class="right">50</TD>
+</TR>
+<TR>
+<TD class="left border-right-single">5.0</TD>
+<TD class="right">25</TD>
+</TR>
+<TR>
+<TD class="left border-bottom-single border-right-single">10</TD>
+<TD class="right border-bottom-single">0
+</TD>
+</TR>
+</TBODY>
+<TFOOT><TR><TD colspan="2">The measurements under this note refer to the use of an AEC (now NRC) instrument. The respirable fraction of coal dust is determined with an MRE; the figure corresponding to that of 2.4 mg/m<sup>3</sup> in the table for coal dust is 4.5 mg/m<sup>3K</sup>.
+</TD></TR><TR><TD colspan="2"><sup>f</sup> This standard applies to any operations or sectors for which the respirable crystalline silica standard, 1910.1053, is stayed or is otherwise not in effect.</TD></TR></TFOOT></TABLE>
+</DIV></DIV>
+<CITA TYPE="N">[58 FR 35340, June 30, 1993; 58 FR 40191, July 27, 1993, as amended at 61 FR 56831, Nov. 4, 1996; 62 FR 1600, Jan. 10, 1997; 62 FR 42018, Aug. 4, 1997; 71 FR 10373, Feb. 28, 2006; 71 FR 16673, Apr. 3, 2006; 71 FR 36008, June 23, 2006; 81 FR 16861, Mar. 25, 2016; 81 FR 31167, May 18, 2016; 81 FR 60272, Sept. 1, 2016; 82 FR 2735, Jan. 9, 2017]
+</CITA>
+</DIV8>

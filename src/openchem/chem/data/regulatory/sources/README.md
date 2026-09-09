@@ -97,7 +97,20 @@ Read from the official eCFR XML
 (`/api/versioner/v1/full/{date}/title-29.xml?part=1910&section=1910.1000`,
 which requires an `Accept-Encoding` permitting compression or answers 406),
 **not** from OSHA's annotated PEL pages, which present NIOSH, Cal/OSHA and
-ACGIH values alongside the statutory ones.
+ACGIH values alongside the statutory ones. The regulation is
+[source:osha_1910_1000], and the retrieved XML is committed beside this
+file with its sha256 in the ruleset's provenance -- so a later rebuild can
+say *same snapshot, different code* rather than *different snapshot*,
+which a retrieval date alone cannot.
+
+**610 ROWS AND 500 SUBSTANCES ARE BOTH RIGHT, and the gap is the whole
+shape of the table.** 110 of those rows are INDENTED SUB-ROWS belonging to
+the substance above them -- "Total dust", "Respirable fraction" -- so
+610 = 500 + 110, and the 176 no-CAS figure above counts every row while a
+substance count would give 80. The extractor groups a sub-row under its
+parent and carries its label as the limit's qualifier, which is why it
+reports 500 where a raw row count reports 610. Stated because the two
+numbers sit four paragraphs apart and read as a contradiction.
 
 **FIVE COLUMNS, AND NO AVERAGING-PERIOD COLUMN:**
 
