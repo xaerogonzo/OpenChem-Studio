@@ -2971,6 +2971,36 @@ succeeding, and a cancelled run is a watch that finished normally. Read the
 step list. This is the same lesson as `grep FAILED` on a crashed suite log,
 one layer out: an absence of failure is not the presence of a result.
 
+### `jq` IS NOT INSTALLED HERE, AND A WATCH BUILT ON IT IS SILENT FOR AN HOUR
+
+A background watch on PR #81's checks emitted **nothing in sixty minutes**
+while both checks had already finished. Nothing was wrong with CI and
+nothing was wrong with the polling interval:
+
+    gh pr checks 81 --json name,bucket | jq -r '...'
+    bash: jq: command not found        -> the variable is EMPTY, every poll
+
+So the "have all checks settled" test compared two empty strings, was never
+true, and the loop ran to its timeout. **A watch that cannot fail is not a
+watch**, which is this file's own `grep FAILED` lesson and its
+`gh run watch --exit-status` lesson arriving a third time: an absence of
+output is not an absence of events.
+
+**`gh` HAS ITS OWN `--jq` AND IT NEEDS NO BINARY.** That is the form to use,
+because it cannot be missing on a machine that has `gh` at all:
+
+```bash
+gh run view RUN_ID --json jobs --jq '.jobs[] | "\(.name): \(.conclusion)"'
+```
+
+The plain-text form is better still for a settlement test, since it needs no
+JSON at all: `gh pr checks N` prints one row per check with its verdict and
+exits non-zero while any are pending.
+
+**AND THE GENERAL RULE, which this file states for monitors and then broke:**
+before arming a watch, ask what it prints if the thing it watches has already
+happened. If the answer is "nothing", it cannot tell that from "not yet".
+
 ### `QT_QPA_PLATFORM` IS NOT A WebGL CHECK, and that is what reddened it
 
 Four viewer tests failed on CI for environmental reasons, and the gate
