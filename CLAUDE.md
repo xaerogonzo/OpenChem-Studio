@@ -2971,6 +2971,40 @@ succeeding, and a cancelled run is a watch that finished normally. Read the
 step list. This is the same lesson as `grep FAILED` on a crashed suite log,
 one layer out: an absence of failure is not the presence of a result.
 
+### A RERUN COUNTS AS AN IN-FLIGHT RUN, AND IT CANCELLED THE PUSH THAT FOLLOWED
+
+The rule two sections up -- *do not push while a run is in flight unless you
+mean to void it* -- was read the same afternoon and tripped anyway, because
+a **`gh run rerun` is an in-flight run in the concurrency group** and nothing
+about issuing one feels like starting a run.
+
+    gh run rerun 34329400199 --job <linux>   ref refs/pull/81/merge
+    git push  ->  run 34336690771            ref refs/pull/81/merge  SAME
+    cancel-in-progress: true                 the two collide
+
+**AND THE CANCELLATION LANDED IN TEARDOWN, AFTER EVERY STEP HAD PASSED.**
+This is the sharpest form of "read the step list, not the conclusion" yet
+recorded, because for once the conclusion is pessimistic rather than
+optimistic:
+
+    suite + gating benchmarks -> CANCELLED
+      success  Run the test suite
+      success  Naming benchmark (must stay 181/181)
+      success  Regulatory benchmark
+      success  Validate regulatory rulesets
+      success  Complete job
+      skipped  Post Install uv          <- the only casualty
+
+**`gh pr checks` RENDERS THAT AS `fail`** and the PR goes `UNSTABLE`, so a
+run whose every gate passed reads as a blocked merge. The previous entry
+records the opposite reading -- a cancelled run looking like "somebody tidied
+up" -- and both come from the same place: **the run conclusion is not a
+statement about whether the work ran.**
+
+The cure is a re-run on the same SHA, which costs wall clock and nothing
+else. The habit is to treat `gh run rerun` as a push for concurrency
+purposes, because to that config it is one.
+
 ### `jq` IS NOT INSTALLED HERE, AND A WATCH BUILT ON IT IS SILENT FOR AN HOUR
 
 A background watch on PR #81's checks emitted **nothing in sixty minutes**
@@ -4580,6 +4614,55 @@ mechanism that MOVES the victim rather than creating one.
 cost about a minute and turned "my branch crashes CI" into "this is the thing
 CLAUDE.md has a section about". Without it the obvious move is to go hunting
 through a diff that cannot contain the cause.
+
+### THE VICTIM'S COLLECTED POSITION IS IDENTICAL ON MASTER, AND THE BRANCH DID NOT MOVE IT
+
+Three Linux runs of `stage-6-quantitative-limits`, two of them on trees whose
+collected sets are byte-identical (a docs-only push), all three:
+
+    Reached [57%]. died in tests/test_nmr_view_dialog.py::
+    test_dialog_shows_the_signal_list after 4192 test(s); 0 late destruction(s)
+
+Same file, same test, same count, three times.
+
+**THE ATTRIBUTION IS SETTLED BY ONE `grep`, AND IT POINTS THE OPPOSITE WAY
+FROM THE DOCUMENTED MECHANISM.** The standing reading of this class is that
+added tests shift collection order and MOVE the victim. Measured on the
+`--collect-only` lists either side:
+
+    victim's position, master fdf6829   4196
+    victim's position, this branch      4196     IDENTICAL
+
+Every test this branch adds -- `test_osha_*`, `test_quantitative_*`,
+`test_regulatory_*`, `test_sources_*` -- sorts AFTER `test_nmr_*`, so nothing
+before position 4196 moved at all. **The branch cannot have shifted this
+victim**, which is a stronger statement than "the branch touches nothing NMR"
+and takes one command rather than a diff review.
+
+**AND THAT LEAVES A REAL PUZZLE RATHER THAN A CLEAN ANSWER.** Master's two
+most recent Linux runs are CLEAN at the same position, and this branch is 3
+for 3 at it. So:
+
+    master        0 of 2 crashed
+    this branch   3 of 3 crashed, at an IDENTICAL position
+
+**NEITHER SIDE IS SIGNIFICANT AND BOTH ARE ORDINARY.** Against this file's own
+measured fixed-tree rate of 0.54, three crashes in three is p = 0.157 and two
+cleans in two is p = 0.21. Fisher exact on the pair is p = 0.10. **The counts
+say nothing.**
+
+What is anomalous is the CONSTANCY, and only against the recorded history:
+the 50-leg disposal experiment measured 27 crashes across FIVE files on a
+fixed tree, so a victim that does not wander is new. That experiment was on
+`1c8c71f`, many commits ago, so this may simply be what the class looks like
+today rather than a property of this branch.
+
+**IT IS A LEAD, IN THIS FILE'S OWN VOCABULARY, AND NOT A FINDING.** n = 3
+against n = 2, no preregistered experiment, and a base rate that swallows
+both. What would settle it is legs on master at the current tree, which is
+the same shape as the disposal experiment and costs the same kind of runner
+time. Recorded so the next person starts from the position measurement rather
+than from a diff.
 
 ### THE ONE NEW DATUM IS `late`, AND IT IS MINE
 
