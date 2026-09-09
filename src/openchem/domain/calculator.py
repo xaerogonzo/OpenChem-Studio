@@ -38,21 +38,79 @@ class ServiceExecution:
 CalculatorExecution = RegistryExecution | ServiceExecution
 
 
+#: Every kind a `CalculatorParameter` may declare, and the ONLY list of
+#: them. `CalculatorSettingsDialog._build_widget` dispatches on it and the
+#: dialog's coverage guard derives its expected set from it, so a seventh
+#: kind cannot be added to the widget factory and quietly miss the guard.
+#: Closed, and refused at REGISTRATION rather than at click: an unknown
+#: kind otherwise reaches `_build_widget`, matches no branch, and produces
+#: a settings dialog silently missing one of its controls.
+#:
+#: `"smiles"` is named after what the VALUE is rather than after the
+#: widget. `"molecule_choice"` would lie -- the stored value is never a
+#: molecule uuid, because a uuid makes a result unreplayable in another
+#: project -- and naming it for the value is what lets the same kind serve
+#: a free-text SMARTS field later.
+PARAMETER_KINDS = frozenset({"float", "int", "choice", "bool", "text", "smiles"})
+
+
 @dataclass(frozen=True, kw_only=True)
 class CalculatorParameter:
     """One configurable input a calculator's settings dialog should show —
     the generic `CalculatorSettingsDialog` builds one Qt widget per
-    parameter from `kind` (`"float"`/`"int"`/`"choice"`/`"bool"`/`"text"`) rather
-    than every calculator hand-building its own dialog.
+    parameter from `kind` (see `PARAMETER_KINDS`) rather than every
+    calculator hand-building its own dialog.
+
+    **`choices` IS THE STORED VALUE VOCABULARY; `choice_labels` IS WHAT
+    THE USER READS.** That split is newer than most callers and the roles
+    are easy to reverse, so it is stated here rather than left to be
+    inferred:
+
+        choices        stable codes, and what lands in
+                       `CalculationRequest.parameters`
+        choice_labels  the prose shown in the combo box, positionally
+                       matched to `choices`
+        absent labels  legacy behaviour -- the displayed text IS the
+                       stored value, unchanged for every existing caller
+
+    **THE REASON IT EXISTS IS THAT THE STORED VALUE IS PART OF A RESULT'S
+    IDENTITY.** `CalculatorSettingsDialog.parameters()` read
+    `QComboBox.currentText()`, and `batch_service` hashes what it gets into
+    `parameters_key` -- so a `"choice"` parameter stored its ENGLISH LABEL
+    in every retained result's key, and rewording a label silently orphaned
+    every result computed under the old wording. Do not depend on UI text
+    as a cache or provenance identifier again.
     """
 
     name: str  # key this value is stored under in CalculationRequest.parameters
     label: str  # shown next to the widget in the settings dialog
-    kind: str  # "float" | "int" | "choice" | "bool" | "text"
+    kind: str  # one of PARAMETER_KINDS
     default: Any
     minimum: float | None = None
     maximum: float | None = None
     choices: list[str] | None = None
+    #: Display text per entry of `choices`, positionally. None keeps the
+    #: legacy behaviour where the choice IS its own label.
+    choice_labels: list[str] | None = None
+
+    def __post_init__(self) -> None:
+        # AT CONSTRUCTION, so a mismatch is a failing import rather than a
+        # combo box that silently shows fewer entries than it stores --
+        # the same fail-closed rule the `**OPNE**` marker parse follows.
+        if self.kind not in PARAMETER_KINDS:
+            raise ValueError(
+                f"{self.name}: unknown parameter kind {self.kind!r}; "
+                f"expected one of {sorted(PARAMETER_KINDS)}"
+            )
+        if self.choice_labels is None:
+            return
+        if self.choices is None:
+            raise ValueError(f"{self.name}: choice_labels without choices")
+        if len(self.choice_labels) != len(self.choices):
+            raise ValueError(
+                f"{self.name}: {len(self.choice_labels)} choice_labels for "
+                f"{len(self.choices)} choices -- they are matched positionally"
+            )
 
 
 #: The kinds of structure a calculator can be asked about. A small,

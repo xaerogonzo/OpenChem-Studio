@@ -28,10 +28,14 @@ from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
+    QDialog,
     QFileDialog,
+    QHBoxLayout,
     QHeaderView,
     QLabel,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QMenu,
     QMessageBox,
     QProgressBar,
@@ -58,6 +62,8 @@ from openchem.events.base import EventBus
 from openchem.services.batch_service import BatchProgress, BatchService
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.table_export_service import TableExportService
+from openchem.ui.dialogs.calculator_settings_dialog import CalculatorSettingsDialog
+from openchem.ui.widgets.collapsible_section import CollapsibleSection
 from openchem.ui.widgets.flow_layout import flow_row
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.sortable_item import SORT_ROLE, SortableItem
@@ -85,8 +91,10 @@ _HELP: dict[str, HelpTooltip] = {
     ),
     "run": HelpTooltip(
         text=(
-            "Compute every ticked property for every molecule in the "
-            "project, and fill the whole table.\n\n"
+            "Compute every ticked property for every ticked molecule, and "
+            "fill the table.\n\n"
+            "Everything starts ticked, so this covers the whole project "
+            "until you narrow it under Molecules above.\n\n"
             "**THIS IS THE BULK PATH AND IT IS DELIBERATE.** Nothing is "
             "computed until you ask: opening this panel runs nothing, and "
             "opening one molecule's details computes that molecule "
@@ -134,6 +142,54 @@ _HELP: dict[str, HelpTooltip] = {
         ),
         tier=1,
         help_id="batch.clear_selection",
+        topic="batch",
+    ),
+    # THE REVERSE OF THE FILTER'S PROMISE, IN AS MANY WORDS. `filter` above
+    # declares that it narrows the LIST and never the results, and a reader
+    # who has absorbed that will carry it straight across to the control
+    # directly below it unless this one says the opposite outright.
+    "molecule_scope": HelpTooltip(
+        text=(
+            "Choose which molecules Fill table computes.\n\n"
+            "**THIS CHANGES WHAT IS COMPUTED**, unlike the property filter "
+            "above it: an unticked molecule is not run and gets no row. "
+            "Everything starts ticked, so a project you never narrow "
+            "behaves exactly as it did before this control existed.\n\n"
+            "Not remembered between launches. A molecule is identified by "
+            "an id belonging to one project file, so a choice restored "
+            "against a different project would name nothing -- and a panel "
+            "that quietly refused to run, or quietly ran everything, is "
+            "worse than starting from all.\n\n"
+            "It scopes the bulk run only. Opening one molecule's details "
+            "still computes that molecule whether or not it is ticked."
+        ),
+        tier=2,
+        help_id="batch.molecule_scope",
+        topic="batch",
+    ),
+    # NOT the same text as `select_all`/`clear_selection`, deliberately.
+    # Byte-identical text under two ids is one concept wearing two, which
+    # `test_one_concept_is_not_split_across_many_help_ids` refuses -- and
+    # these genuinely differ, since the property pair respects the filter
+    # and this pair has no filter to respect.
+    "molecules_all": HelpTooltip(
+        text=(
+            "Tick every molecule in the project, which is where a project "
+            "starts."
+        ),
+        tier=1,
+        help_id="batch.molecule_scope_select_all",
+        topic="batch",
+    ),
+    "molecules_none": HelpTooltip(
+        text=(
+            "Untick every molecule.\n\n"
+            "Fill table refuses to run with none ticked rather than "
+            "quietly falling back to the whole project, so this is a step "
+            "towards choosing a few, not a way to run nothing."
+        ),
+        tier=1,
+        help_id="batch.molecule_scope_clear",
         topic="batch",
     ),
     "export_csv": HelpTooltip(
@@ -254,6 +310,14 @@ _UUID_ROLE = Qt.ItemDataRole.UserRole + 2
 #: four molecules.
 _CONFIRM_ABOVE = 200
 
+#: How many rows Qt may measure when sizing a results column to its
+#: contents. Qt's own default is 1000, which makes column sizing grow with
+#: the project for no gain: a cell here is a formatted number or a short
+#: label, so twenty of them already establish the width, and the HEADER --
+#: the thing that was being clipped -- is measured regardless of this.
+#: Measured at 181 molecules x 63 columns: 32.8 ms unbounded, 3.7 ms here.
+_WIDTH_SAMPLE_ROWS = 20
+
 #: Sentinel on the menu's reset entry, so it cannot collide with a real
 #: category name however the registry grows.
 _SHOW_ALL = object()
@@ -308,6 +372,11 @@ class BatchPanel(QWidget):
         # so a panel reading only the table cannot offer a Details view or
         # an inspector, which is what Properties has offered all along.
         self._store: BatchResultStore | None = None
+        #: calculator_id -> what its settings dialog produced. ONLY the
+        #: calculators somebody configured; an absent one runs on the
+        #: registry's own defaults, which `batch_service` builds. See
+        #: `calculator_parameters`.
+        self._calculator_parameters: dict[str, dict] = {}
         self._structure_check = structure_check_service
         self._settings = settings
         self._descriptor_category_cache: dict[str, str] | None = None
@@ -342,6 +411,60 @@ class BatchPanel(QWidget):
         self._scope_label = QLabel("No project open.")
         layout.addWidget(self._scope_label)
 
+        # COLLAPSED BY DEFAULT, AND THE ALTERNATIVES WERE PRICED RATHER
+        # THAN DISMISSED. A bare list here costs ~165 px of fixed height
+        # taken from the only `stretch=1` widget in the panel -- on a
+        # 700 px dock the results table drops from roughly 380 to 215, a
+        # 43% cut to the thing this panel exists to produce, paid
+        # permanently by every user including those who never narrow the
+        # scope. That is the 63-px 3D viewer this project already shipped
+        # once. A "Molecules..." dialog costs no height and hides the
+        # scope, putting the one control that changes WHAT IS COMPUTED
+        # behind a modal while the property filter, which changes nothing,
+        # sits in plain view.
+        #
+        # Collapsed, the default layout is unchanged until somebody asks --
+        # and `_scope_label` directly above is the always-visible readout,
+        # so collapsing hides the CONTROL and never the STATE.
+        #
+        # It reuses `CollapsibleSection`, so the toggle inherits
+        # `properties.section_toggle` -- one concept, however many sections
+        # exist, which is the same call the sixty batch tick boxes make.
+        # RECORDED RATHER THAN FIXED: that contract also carries
+        # `help_anchor="properties"`, so this Batch toggle points a reader
+        # at the Properties topic. Renaming a definition that has not
+        # changed meaning is what `help_id`'s own rules permit only
+        # reluctantly.
+        self._molecule_section = CollapsibleSection("Molecules", expanded=False, parent=self)
+        self._molecules = QListWidget(self)
+        # The same bound `ComparisonPanel` ships, and for the same reason:
+        # a project has a handful of molecules and the list must not grow
+        # into the table below it.
+        self._molecules.setMaximumHeight(140)
+        apply_help_tooltip(self._molecules, _HELP['molecule_scope'])
+        self._molecules.itemChanged.connect(self._on_molecule_item_changed)
+        self._molecule_section.add_calculator_widget(self._molecules)
+
+        # A plain `QHBoxLayout`, NOT `flow_row`. This project measured
+        # `flow_row` costing 21 px of dead band on a two-child row in the
+        # Docking panel, and two short buttons come nowhere near the width
+        # a dock can satisfy -- `flow_row` is a cure for a row whose
+        # children cannot fit, not a prophylactic.
+        molecule_buttons = QWidget(self)
+        molecule_row = QHBoxLayout(molecule_buttons)
+        molecule_row.setContentsMargins(0, 0, 0, 0)
+        self._molecules_all_button = QPushButton("All molecules", self)
+        self._molecules_all_button.clicked.connect(self._select_all_molecules)
+        apply_help_tooltip(self._molecules_all_button, _HELP['molecules_all'])
+        self._molecules_none_button = QPushButton("No molecules", self)
+        self._molecules_none_button.clicked.connect(self._clear_molecule_selection)
+        apply_help_tooltip(self._molecules_none_button, _HELP['molecules_none'])
+        molecule_row.addWidget(self._molecules_all_button)
+        molecule_row.addWidget(self._molecules_none_button)
+        molecule_row.addStretch(1)
+        self._molecule_section.add_calculator_widget(molecule_buttons)
+        layout.addWidget(self._molecule_section)
+
         self._filter = QLineEdit(self)
         self._filter.setPlaceholderText("Filter properties…")
         self._filter.textChanged.connect(self._apply_filter)
@@ -362,6 +485,9 @@ class BatchPanel(QWidget):
         tree_header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         tree_header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self._tree.setMinimumHeight(160)
+        self._tree.itemDoubleClicked.connect(self._on_tree_double_clicked)
+        self._tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._tree.customContextMenuRequested.connect(self._show_property_menu)
         layout.addWidget(self._tree)
 
         # A `QHBoxLayout`'s minimum width is the SUM of its children, so each
@@ -473,12 +599,193 @@ class BatchPanel(QWidget):
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
-        count = len(project.molecules) if project else 0
-        self._scope_label.setText(
-            f"{count} molecule{'s' if count != 1 else ''} in this project."
-            if project
-            else "No project open."
+        self._rebuild_molecule_list()
+        self._refresh_scope_label()
+
+    def _rebuild_molecule_list(self) -> None:
+        """Rebuild the scope list, keeping the ticks that still name a
+        molecule.
+
+        Rebuilt WHOLESALE rather than diffed, following
+        `ComparisonPanel._rebuild_molecule_list`: there are a handful of
+        molecules, and a diff is a second source of truth about what is on
+        screen. Ticks survive by uuid, so renaming a molecule does not
+        clear it and deleting one drops it from the scope with nothing
+        stale left behind.
+
+        **AND EVERYTHING IS TICKED WHEN NO UUID SURVIVES**, which is the
+        one line that makes the rest safe. Re-setting the same project
+        keeps a narrowing; loading a DIFFERENT project has no surviving
+        uuid and so starts fresh at "all". That makes "all" the default
+        and makes an accidental empty scope self-healing across a project
+        switch, so no "not yet narrowed" sentinel is needed -- which is
+        good, because "not yet narrowed" and "explicitly all" are
+        indistinguishable and never need distinguishing.
+        """
+        chosen = self._selected_molecule_uuids()
+        molecules = list(self._project.molecules) if self._project else []
+        survivors = chosen & {molecule.uuid for molecule in molecules}
+        # `blockSignals`, not the `_suspend_tree` guard the property tree
+        # uses: nothing here propagates, so there is no re-entry to guard
+        # against -- only a stream of `itemChanged` during the rebuild.
+        self._molecules.blockSignals(True)
+        self._molecules.clear()
+        for molecule in molecules:
+            item = QListWidgetItem(molecule.display_name, self._molecules)
+            item.setData(Qt.ItemDataRole.UserRole, molecule.uuid)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(
+                Qt.CheckState.Checked
+                if not survivors or molecule.uuid in survivors
+                else Qt.CheckState.Unchecked
+            )
+        self._molecules.blockSignals(False)
+
+    def calculator_parameters(self) -> dict[str, dict]:
+        """What each calculator's settings dialog produced, keyed by id.
+
+        **ONLY WHAT WAS EXPLICITLY SET, and the absences are the design.**
+        `BatchRequest.parameters`' own docstring says a calculator absent
+        from the mapping runs on its registered defaults, and
+        `batch_service` builds those defaults itself -- so passing through
+        the ticked-and-untouched calculators with a dict this panel
+        constructed would be a SECOND implementation of "what defaults
+        does this calculator run on", which is the drift this project has
+        paid for five times.
+
+        So the three cases collapse into one rule rather than three
+        branches:
+
+            settings opened      present here, and used
+            never opened         absent, and the service uses defaults
+            no parameters        absent, and the defaults are {}
+
+        Returned as a copy, because `_run` freezes it for one run.
+        """
+        return {
+            calculator_id: dict(parameters)
+            for calculator_id, parameters in self._calculator_parameters.items()
+        }
+
+    def _open_calculator_settings(self, calculator_id: str) -> None:
+        """The settings dialog for one ticked calculator.
+
+        Reached by double-click and by the tree's context menu -- BOTH,
+        rather than a button, because this panel's vertical budget is
+        measured and tight (see `benchmarks/visual/`), and because a
+        context menu on its own is the affordance this project already
+        records looking missing when it was there all along.
+
+        **NO MARKER ON THE PARAMETERISED LEAVES, and that was measured
+        rather than assumed**: all 69 registered calculators carry
+        parameters, so a marker would mark everything.
+        """
+        definition = self._registry.get(calculator_id)
+        if definition is None or not definition.parameters:
+            self._status.setText("That property has nothing to configure.")
+            return
+        dialog = CalculatorSettingsDialog(definition, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._calculator_parameters[calculator_id] = dialog.parameters()
+        self._status.setText(f"{definition.display_name}: settings saved for the next run.")
+
+    def _leaf_calculator_id(self, item: QTreeWidgetItem | None) -> str | None:
+        payload = item.data(0, Qt.ItemDataRole.UserRole) if item is not None else None
+        if not payload:
+            return None
+        kind, identifier = payload
+        return None if kind == "descriptor" else identifier
+
+    def _on_tree_double_clicked(self, item: QTreeWidgetItem, _column: int) -> None:
+        calculator_id = self._leaf_calculator_id(item)
+        if calculator_id is not None:
+            self._open_calculator_settings(calculator_id)
+
+    def _show_property_menu(self, position) -> None:
+        item = self._tree.itemAt(position)
+        calculator_id = self._leaf_calculator_id(item)
+        if calculator_id is None:
+            return
+        menu = QMenu(self._tree)
+        menu.addAction(
+            "Settings...", lambda: self._open_calculator_settings(calculator_id)
         )
+        menu.exec(self._tree.viewport().mapToGlobal(position))
+
+    def _molecule_items(self):
+        for index in range(self._molecules.count()):
+            yield self._molecules.item(index)
+
+    def _selected_molecule_uuids(self) -> set[str]:
+        return {
+            item.data(Qt.ItemDataRole.UserRole)
+            for item in self._molecule_items()
+            if item.checkState() is Qt.CheckState.Checked
+        }
+
+    def selected_molecules(self) -> list:
+        """THE scope object: which molecules a run covers.
+
+        Derived from the widget on every call and never stored, the same
+        discipline `selected_ids()` keeps -- a stored copy is a second
+        answer to "what is ticked" that can disagree with the screen.
+
+        **PROJECT ORDER, NOT WIDGET ORDER**, so the results table's rows
+        cannot drift from the project's however the list is rebuilt.
+
+        A uuid that no longer names a molecule is an impossible state
+        rather than a silent omission: `_rebuild_molecule_list` drops it
+        on every project change, and returning a list shorter than the
+        ticks claim would be exactly the "the UI estimated two and the
+        service ran three" defect this method exists to remove.
+        """
+        if self._project is None:
+            return []
+        wanted = self._selected_molecule_uuids()
+        return [molecule for molecule in self._project.molecules if molecule.uuid in wanted]
+
+    def check_molecule(self, uuid: str, checked: bool = True) -> None:
+        """Tick one molecule by uuid -- the hook tests and drive scripts
+        use to set up a scope without simulating clicks, parallel to
+        `check()` for a property."""
+        for item in self._molecule_items():
+            if item.data(Qt.ItemDataRole.UserRole) == uuid:
+                item.setCheckState(
+                    Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
+                )
+
+    def _on_molecule_item_changed(self, _item: QListWidgetItem) -> None:
+        self._refresh_scope_label()
+
+    def _select_all_molecules(self) -> None:
+        for item in self._molecule_items():
+            item.setCheckState(Qt.CheckState.Checked)
+
+    def _clear_molecule_selection(self) -> None:
+        for item in self._molecule_items():
+            item.setCheckState(Qt.CheckState.Unchecked)
+
+    def _refresh_scope_label(self) -> None:
+        """ONE readout, and the untouched wording is unchanged on purpose.
+
+        The section title stays the bare word "Molecules" so the count is
+        stated in exactly one place and cannot drift from the list below
+        it. A project with everything ticked reads exactly as it did
+        before this control existed, which is what lets the all-selected
+        control test assert today's string.
+        """
+        if self._project is None:
+            self._scope_label.setText("No project open.")
+            return
+        total = len(self._project.molecules)
+        chosen = len(self._selected_molecule_uuids())
+        if chosen == total:
+            self._scope_label.setText(
+                f"{total} molecule{'s' if total != 1 else ''} in this project."
+            )
+        else:
+            self._scope_label.setText(f"{chosen} of {total} molecules selected.")
 
     def _populate_tree(self) -> None:
         """Build the picker from the registry and the descriptor provider.
@@ -768,7 +1075,34 @@ class BatchPanel(QWidget):
         if not descriptors and not calculators:
             self._status.setText("Tick at least one property first.")
             return
-        molecules = list(self._project.molecules)
+        # ONE SCOPE OBJECT, RESOLVED ONCE AND FROZEN FOR THIS RUN. This
+        # local feeds the cost estimate, the request and the payload; none
+        # of the three re-resolves, so the panel cannot estimate two
+        # molecules while the service runs three. Ticking a molecule while
+        # the cost dialog is open, or while the run is in flight, affects
+        # the NEXT run.
+        #
+        # The uuids below are DERIVED from this list rather than read from
+        # the widget a second time, which matters because the service
+        # clamps the payload by `set(request.molecule_uuids)` -- so
+        # widening either half alone is an equivalent mutation, and only
+        # deriving one from the other makes them incapable of disagreeing.
+        molecules = self.selected_molecules()
+        # Frozen with the scope, for the same reason: changing a
+        # calculator's settings while this run is in flight affects the
+        # NEXT run, never the one already submitted.
+        parameters = self.calculator_parameters()
+        if not molecules:
+            # REFUSED, NEVER PASSED THROUGH. `batch_service` reads an empty
+            # `molecule_uuids` as "everything given" -- a deliberate
+            # compatibility contract with its own tests, and one this panel
+            # must not send an empty user selection into: unticking every
+            # molecule and pressing Fill table would run the WHOLE PROJECT,
+            # which is a bug that looks like correct behaviour. The service
+            # keeps its convention; the refusal lives here, mirroring the
+            # "Tick at least one property first." directly above.
+            self._status.setText("Tick at least one molecule first.")
+            return
         total = len(molecules) * (len(descriptors) + len(calculators))
         if total > _CONFIRM_ABOVE:
             answer = QMessageBox.question(
@@ -787,9 +1121,10 @@ class BatchPanel(QWidget):
                 return
         self._filling_table = True
         request = BatchRequest(
-            molecule_uuids=[molecule.uuid for molecule in self._project.molecules],
+            molecule_uuids=[molecule.uuid for molecule in molecules],
             descriptor_ids=descriptors,
             calculator_ids=calculators,
+            parameters=parameters,
             per_atom_aggregate=self._aggregate.currentText(),
             structure_version=self._current_structure_version(),
         )
@@ -860,12 +1195,65 @@ class BatchPanel(QWidget):
             if header is not None:
                 header.setToolTip(_column_tooltip(column))
         self._results.setSortingEnabled(True)
+        # A HEADER OVERFLOWS RATHER THAN ELIDING, so a column left at Qt's
+        # default section width prints its title with BOTH ENDS CUT --
+        # measured in the running app at the dock's 420 px default,
+        # "Substance classification" rendering as `ostance classificat`.
+        # Centre alignment is why it loses both ends rather than one.
+        #
+        # `resizeColumnsToContents()` ONCE, rather than the
+        # `ResizeToContents` MODE that reads as the tidier fix, for two
+        # reasons. The mode makes every section non-draggable, and this
+        # table's columns are `Interactive` on purpose. And the mode is not
+        # free -- it defers the same measurement to paint time, so a probe
+        # timing the `setSectionResizeMode` call reports 0.0 ms and has
+        # measured nothing. Timed here instead: 32.8 ms one-shot at
+        # 181 molecules x 63 columns, the largest table this project's own
+        # corpus produces, against a batch run measured in seconds.
+        #
+        # The precision bound is what keeps that from growing with the
+        # project: Qt considers up to 1000 rows per column by default, and
+        # 20 formatted numbers already establish a column's width. Same
+        # 181x63 table, 32.8 ms -> 3.7 ms.
+        self._results.horizontalHeader().setResizeContentsPrecision(_WIDTH_SAMPLE_ROWS)
+        self._results.resizeColumnsToContents()
+        self._cap_column_widths()
         # AFTER the rebuild: `clear()` drops every hidden flag, so a
         # progress event arriving mid-run would silently un-hide
         # everything the user had put away.
         self._apply_column_visibility()
 
     # -- exports ----------------------------------------------------------
+
+    def _cap_column_widths(self) -> None:
+        """No column may be wider than the viewport it is shown in.
+
+        **SIZING TO CONTENTS ALONE PUTS A HEADER OFF SCREEN**, which is the
+        opposite of the clip it was added to fix and was found by driving
+        the app once a calculator started returning a long text cell.
+        A header is CENTRED in its section, so a column sized to a
+        200-character limitation line centres its title half a column in --
+        measured, 710 px against a 416 px viewport, with "Lewis Adduct"
+        landing just past the edge and the column reading as though it had
+        no header at all.
+
+        Capped at the viewport, never below the header's own width: the
+        cell text then elides, which is what a table does with long text,
+        while the title stays reachable by scrolling to the column. The
+        lower bound is what keeps this from undoing
+        `resizeColumnsToContents` -- a narrow viewport must not squeeze a
+        header back into the clip.
+        """
+        header = self._results.horizontalHeader()
+        limit = self._results.viewport().width()
+        if limit <= 0:
+            return
+        metrics = header.fontMetrics()
+        for index in range(self._results.columnCount()):
+            item = self._results.horizontalHeaderItem(index)
+            floor = metrics.horizontalAdvance(item.text()) if item is not None else 0
+            if header.sectionSize(index) > max(limit, floor):
+                self._results.setColumnWidth(index, max(limit, floor))
 
     def _column_category(self, column) -> str:
         """Which picker category a column belongs under.
@@ -1073,6 +1461,11 @@ class BatchPanel(QWidget):
                     molecule_uuids=[molecule_uuid],
                     descriptor_ids=descriptors,
                     calculator_ids=calculators,
+                    # THE SAME SETTINGS THE TABLE WOULD USE. A details
+                    # view computed on the registry's defaults while the
+                    # table beside it used somebody's chosen parameters
+                    # would be two different calculations under one name.
+                    parameters=self.calculator_parameters(),
                     per_atom_aggregate=self._aggregate.currentText(),
                     structure_version=self._current_structure_version(),
                 ),

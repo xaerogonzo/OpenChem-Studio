@@ -160,6 +160,65 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
             raise DialogUnavailable("no calculator is registered")
         return CalculatorSettingsDialog(registry.by_category(categories[0])[0])
 
+    def calculator_settings_all_kinds(_context: DialogContext):
+        """Every parameter kind at once, from a SYNTHETIC definition.
+
+        **THE FIXTURE ABOVE IS SKIPPED BY THE HELP-CONTRACT GUARD, and has
+        been for as long as it has existed.** It calls `_require(context,
+        "services")`, while `test_dialog_help_contracts` walks with a bare
+        `DialogContext()` -- so it raises `DialogUnavailable` and every one
+        of the settings dialog's parameter widgets goes unguarded. Found
+        while adding a sixth kind, which would have shipped unguarded
+        exactly as the five before it did.
+
+        Synthetic rather than "the first registered calculator", so the
+        coverage does not depend on which calculator happens to sort first
+        and cannot quietly shrink when a registration changes. The two
+        molecules are SMILES LITERALS -- data, not chemistry -- so this
+        module's own "it knows no chemistry" rule is intact.
+        """
+        from openchem.domain.calculator import (
+            PARAMETER_KINDS,
+            CalculatorDefinition,
+            CalculatorParameter,
+            RegistryExecution,
+        )
+        from openchem.ui.dialogs.calculator_settings_dialog import (
+            CalculatorSettingsDialog,
+            MoleculeChoice,
+        )
+
+        extras = {
+            "float": {"minimum": 0.0, "maximum": 1.0},
+            "int": {"minimum": 0, "maximum": 10},
+            "choice": {"choices": ["a", "b"], "choice_labels": ["A", "B"]},
+        }
+        defaults = {"float": 0.5, "int": 1, "bool": True, "choice": "a"}
+        definition = CalculatorDefinition(
+            calculator_id="every_parameter_kind",
+            display_name="Every parameter kind",
+            category="probe",
+            description="A synthetic definition covering every parameter kind.",
+            execution=RegistryExecution(compute=lambda *a, **k: None),
+            parameters=[
+                CalculatorParameter(
+                    name=kind,
+                    label=kind.title(),
+                    kind=kind,
+                    default=defaults.get(kind, ""),
+                    **extras.get(kind, {}),
+                )
+                # DERIVED FROM THE VOCABULARY, never a hand-kept list: a
+                # seventh kind is then walked without anybody remembering
+                # to add it here.
+                for kind in sorted(PARAMETER_KINDS)
+            ],
+        )
+        return CalculatorSettingsDialog(
+            definition,
+            molecules=[MoleculeChoice("Ammonia", "N"), MoleculeChoice("Water", "O")],
+        )
+
     def lewis(context: DialogContext):
         from openchem.ui.dialogs.lewis_diagram_dialog import LewisDiagramDialog
 
@@ -252,6 +311,11 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
     yield DialogFixture("ExternalToolsDialog", external_tools, needs="settings")
     yield DialogFixture("StructureLookupDialog", structure_lookup, needs="a molecule")
     yield DialogFixture("CalculatorSettingsDialog", calculator_settings, needs="the registry")
+    yield DialogFixture(
+        "CalculatorSettingsDialogAllKinds",
+        calculator_settings_all_kinds,
+        needs="nothing -- it is synthetic, so the guard actually walks it",
+    )
     yield DialogFixture("LewisDiagramDialog", lewis, needs="a molecule")
     yield DialogFixture("VirtualScreeningDialog", virtual_screening, needs="a project")
     yield DialogFixture("ConformerDetailsDialog", conformer_details, needs="a conformer")

@@ -653,13 +653,28 @@ class _Driver(QObject):
 
         `{"do": "batch_select", "property": "topology_analysis"}`
         `{"do": "batch_select", "category": "Identity"}`
+        `{"do": "batch_select", "clear": true}`
 
         The category form goes through the GROUP'S OWN CHECK BOX rather
         than ticking each leaf, because the thing worth exercising is the
         propagation -- setting the leaves directly would drive a path the
         user never takes.
+
+        **`clear` EXISTS BECAUSE THE SELECTION OUTLIVES THE PROCESS.**
+        `BatchPanel` persists its ticked property ids under
+        `batch/selected_property_ids` and restores them on construction, so
+        one committed script's selection leaks into the next script's run
+        and a table quietly grows columns nobody asked for. Measured: a
+        scope benchmark ticking `lewis_adduct` alone came back with a
+        Substance-classification column from the benchmark before it.
+        A committed script must construct its own state; clear first.
         """
         panel = self._window._batch_panel
+        if step.get("clear"):
+            panel._clear_selection()
+            logger.warning("OPENCHEM_DRIVE: cleared the property selection")
+            if "property" not in step and "category" not in step:
+                return
         if "property" in step:
             panel.check(str(step["property"]))
             logger.warning("OPENCHEM_DRIVE: ticked %s", step["property"])
@@ -691,6 +706,99 @@ class _Driver(QObject):
             panel._filter.setText(str(step["filter"]))
         panel._select_all_visible()
         logger.warning("OPENCHEM_DRIVE: %s", panel._status.text())
+
+    def _do_batch_settings(self, step: dict[str, Any]) -> None:
+        """Configure one calculator for the next batch run.
+
+        `{"do": "batch_settings", "id": "lewis_adduct",
+          "parameters": {"partner_smiles": "N"}}`
+
+        **IT DOES NOT OPEN THE DIALOG**, and that is the one thing this
+        step does differently from a real double-click. A modal `exec()`
+        inside a handler spins its own event loop, so the next step is
+        never scheduled and an unattended run stalls on a window with
+        nobody to close it -- the trap `lewis` already documents. What it
+        DOES exercise is the panel's own store and the request that reads
+        it, which is where the defect was: the parameters never left the
+        panel at all.
+
+        The registered defaults are filled in first, so a step naming one
+        parameter does not silently blank the rest -- which is what the
+        real dialog does, since every widget reports a value.
+        """
+        panel = self._window._batch_panel
+        calculator_id = str(step.get("id", ""))
+        definition = panel._registry.get(calculator_id)
+        if definition is None:
+            logger.error("OPENCHEM_DRIVE: no calculator %r in the registry", calculator_id)
+            return
+        resolved = {p.name: p.default for p in definition.parameters}
+        unknown = set(step.get("parameters", {})) - set(resolved)
+        if unknown:
+            logger.error(
+                "OPENCHEM_DRIVE: %s has no parameter(s) %s -- have %s",
+                calculator_id,
+                sorted(unknown),
+                sorted(resolved),
+            )
+        resolved.update(step.get("parameters", {}))
+        panel._calculator_parameters[calculator_id] = resolved
+        logger.warning(
+            "OPENCHEM_DRIVE: batch settings %s = %s", calculator_id, resolved
+        )
+
+    def _do_batch_molecules(self, step: dict[str, Any]) -> None:
+        """Narrow which molecules Fill table will cover.
+
+        `{"do": "batch_molecules", "names": ["Aspirin", "Caffeine"]}`
+        `{"do": "batch_molecules", "all": true}`
+        `{"do": "batch_molecules", "none": true}`
+
+        **DRIVES THE REAL LIST WIDGET**, for the reason `jobs_cancel`
+        presses the real button: the scope is read back off the ticks, so
+        a step that called `selected_molecules` or set some private field
+        would prove the resolver works and say nothing about whether the
+        control is wired to it.
+
+        A name matching nothing is LOGGED rather than ignored. A silently
+        unticked molecule photographs identically to a correctly ticked
+        one, and the whole point of the scope is that it changes what runs
+        without changing what the panel looks like.
+
+        THE RESOLVED SCOPE IS LOGGED BESIDE THE SHOT, because that is the
+        half no picture carries: a panel scoped to two molecules and one
+        scoped to five are the same image until the table lands.
+        """
+        panel = self._window._batch_panel
+        panel._molecule_section.set_expanded(True)
+        if step.get("all"):
+            panel._select_all_molecules()
+        elif step.get("none"):
+            panel._clear_molecule_selection()
+        else:
+            wanted = [str(name) for name in step.get("names", [])]
+            labels = {
+                panel._molecules.item(index).text(): panel._molecules.item(index)
+                for index in range(panel._molecules.count())
+            }
+            for name, item in labels.items():
+                item.setCheckState(
+                    Qt.CheckState.Checked if name in wanted else Qt.CheckState.Unchecked
+                )
+            for name in wanted:
+                if name not in labels:
+                    logger.error(
+                        "OPENCHEM_DRIVE: no molecule %r in the scope list -- have %s",
+                        name,
+                        sorted(labels),
+                    )
+        logger.warning(
+            "OPENCHEM_DRIVE: batch scope %d of %d -- %s | label %r",
+            len(panel.selected_molecules()),
+            panel._molecules.count(),
+            [m.display_name for m in panel.selected_molecules()],
+            panel._scope_label.text(),
+        )
 
     def _do_batch_fill(self, step: dict[str, Any]) -> None:
         """Fill the whole table.
@@ -1861,9 +1969,11 @@ class _Driver(QObject):
         widget against itself would report nothing forever, which is the
         failure mode `horizontalScrollBar().maximum() == 0` already has.
 
-        Surfaces: `properties` (the panel, against its scroll viewport),
-        `window`, and any dialog `shot` can already reach -- `dialog`,
-        `lewis`, `periodic`, `details`, `spatial`, `popout`.
+        Surfaces: `properties`, `batch` and `compare` (each panel, against
+        its scroll viewport -- see `_enclosing_scroll_area` for why the
+        three do not find that viewport the same way), `window`, and any
+        dialog `shot` can already reach -- `dialog`, `lewis`, `periodic`,
+        `details`, `spatial`, `popout`.
 
         **A SURFACE WITH NO SINGLE SCROLL AREA IS JUDGED AGAINST ITS OWN
         RECTANGLE, WHICH MAKES THE OVERFLOW TERM NEARLY VACUOUS THERE** --
@@ -1872,6 +1982,7 @@ class _Driver(QObject):
         discovered: on such a surface the useful predicates are the other
         three, and a clean overflow result is close to a tautology.
         """
+        from PySide6.QtCore import QPoint, QRect
         from PySide6.QtWidgets import QScrollArea
 
         from openchem.ui import visual_check
@@ -1882,11 +1993,31 @@ class _Driver(QObject):
         if root is None:
             return
 
+        # THE SCROLL AREA IS SOMETIMES INSIDE THE SURFACE AND SOMETIMES
+        # AROUND IT, and the difference decides whether the overflow term
+        # measures anything at all. `PropertyPanel` builds its own
+        # (`property_panel.py` does `panel.findChild(QScrollArea)`), so the
+        # viewport is a DESCENDANT. `BatchPanel` and `ComparisonPanel` are
+        # handed to `MainWindow._wrap_scrollable`, so their viewport is an
+        # ANCESTOR -- and a downward-only search finds none, leaves `bounds`
+        # at None, and judges the panel against its own rectangle, which is
+        # the near-tautology this step's docstring already warns about.
         bounds = None
         areas = root.findChildren(QScrollArea)
         if len(areas) == 1:
             root = areas[0].viewport()
             bounds = root.rect()
+        else:
+            enclosing = self._enclosing_scroll_area(root)
+            if enclosing is not None:
+                # Mapped INTO the surface's own coordinates rather than
+                # taken as `viewport.rect()`: the walk reports item
+                # geometry in `space` coordinates, and with the panel
+                # scrolled down by N its origin sits at -N in the
+                # viewport, so an unmapped rect would judge every row
+                # against a window N pixels off.
+                viewport = enclosing.viewport()
+                bounds = QRect(root.mapFrom(viewport, QPoint(0, 0)), viewport.size())
 
         # `"tolerance": -1000` is how a run CONFIRMS THE ORACLE CAN STILL SAY
         # NO. Every surface in this application is clean today, and Qt clamps
@@ -1912,6 +2043,25 @@ class _Driver(QObject):
         for finding in findings:
             logger.warning("OPENCHEM_DRIVE:     %s", finding.describe())
 
+    @staticmethod
+    def _enclosing_scroll_area(widget):
+        """The `QScrollArea` this widget is the scrolled CONTENT of, if any.
+
+        Deliberately not "the nearest scroll-area ancestor": a panel holding
+        a `QTableWidget` sits under that table's own viewport for some
+        descendants, and answering with it would judge the panel against a
+        window belonging to one of its children. `area.widget() is widget`
+        is the question that means "this area scrolls THIS surface".
+        """
+        from PySide6.QtWidgets import QScrollArea
+
+        parent = widget.parentWidget()
+        while parent is not None:
+            if isinstance(parent, QScrollArea) and parent.widget() is widget:
+                return parent
+            parent = parent.parentWidget()
+        return None
+
     def _surface(self, name: str):
         """Resolve a surface name to a widget, or log why it could not be.
 
@@ -1922,6 +2072,10 @@ class _Driver(QObject):
         """
         if name == "properties":
             return self._window._property_panel
+        if name == "batch":
+            return self._window._batch_panel
+        if name == "compare":
+            return self._window._comparison_panel
         if name == "window":
             return self._window
         attr = {

@@ -1275,16 +1275,98 @@ Still waiting on that channel:
 Deterministic, small, and deselected from the branch above rather than
 blocked by anything:
 
-- **The Lewis adduct partner-picker.** `compute_lewis_adduct` takes its
-  partner as typed SMILES; it should offer the molecules already open in the
-  project. And the role control ("this molecule is the acid") could be
-  worked out instead — reporting BOTH orientations when the evidence does
-  not choose, which is the same refusal `_hsab_line` already makes rather
-  than inventing a ranking.
-- **Per-molecule selection in Batch.** `BatchRequest.molecule_uuids` is
-  already the authority on scope and is always handed every molecule in the
-  project (`batch_panel.py`), so a three-molecule project cannot run two.
-- **A Batch / Compare organisation pass.**
+- ~~**The Lewis adduct partner-picker.**~~ **SHIPPED, both halves.** The
+  settings dialog offers the project's own molecules through a `"smiles"`
+  parameter kind, and `resolve_roles` works the orientation out.
+
+  **IT ADDS NO NEW CHEMISTRY**: rule 1 is the Drago table's own published
+  acid/base pairings, rule 2 is the `analyse` site check `predict` already
+  makes, and there is deliberately no rule 3 — a tie is not broken on
+  hardness, because `_hsab_line`'s own docstring records that a single
+  point on the η axis gets BH₃/BF₃ against CO backwards.
+
+  **It is structural ADMISSIBILITY, never an acid/base assignment.**
+  Surviving `analyse` says the acid has somewhere to accept and the base
+  something to donate — a precondition, not a thermodynamic determination,
+  and every user-facing string says *orientation*.
+
+  When both ways round are admissible — **the common case**, since
+  ambiphilic sites make any pair of ordinary organics work either way —
+  both orientations are reported and neither is ranked, which is the
+  refusal `_hsab_line` already makes. When neither works, both specific
+  reasons survive rather than collapsing to "partner invalid".
+
+  Provenance carries three axes, not one role: what was **requested**,
+  which **orientation** was used, and **how** it was decided. Five states
+  come out pairwise distinct, and the fifth is why — `auto → acid` and an
+  explicit `acid` produce the same orientation and must still be tellable
+  apart.
+- ~~**Per-molecule selection in Batch.**~~ **SHIPPED.** A collapsible
+  "Molecules" section above the property filter, ticked by uuid, everything
+  ticked by default — so a project nobody narrows behaves exactly as it did.
+
+  **THE PLUMBING WAS ALREADY RIGHT AND THE PANEL WAS THE OFFENDER.**
+  `batch_service.py` has carried *"THE REQUEST IS THE AUTHORITY ON SCOPE"*
+  since batch mode was rebuilt; `_run` rebuilt the project's molecule list
+  **three** times — for the cost estimate, as `molecule_uuids`, and as the
+  payload. One resolved, frozen `selected_molecules()` feeds all three now,
+  with the uuids DERIVED from that list rather than read a second time.
+
+  **AN EMPTY SCOPE IS REFUSED AT THE PANEL, and that is the whole trap.**
+  `batch_service` reads an empty `molecule_uuids` as *"everything given"* —
+  a deliberate contract with its own tests — so unticking every molecule and
+  pressing Fill table would have run the WHOLE PROJECT, a bug that looks
+  like correct behaviour. The service keeps its convention; the panel
+  refuses, mirroring "Tick at least one property first."
+
+  That contract is also what makes the CONTROL test's vacuity the crux: a
+  scope control that does nothing sends an empty list and is
+  indistinguishable by outcome from the correct default, so the guard
+  asserts the widget's own ticks as well as the request.
+
+  **"Select all" / "Clear selection" still mean PROPERTIES**, forced by a
+  help contract rather than by preference: `batch.select_all`'s declared
+  text is specific to properties and to the filter, and rewriting it under
+  the same `help_id` would be reusing an id for a different concept. The
+  molecule list has its own explicitly-named "All molecules" / "No
+  molecules" pair.
+
+  Not remembered between launches: a property id names a definition that is
+  the same in every project, while a molecule uuid belongs to one project
+  file. Five mutation arms, five caught — including the request widening
+  ALONE, which reddens exactly one test, because the service clamps the
+  payload by the request and either half alone is otherwise equivalent.
+- ~~**A Batch / Compare organisation pass.**~~ **MEASURED, and it was one
+  specific defect rather than an organisation problem.** This bullet was
+  bare — written before Batch was rebuilt on the Properties model, and
+  naming no observation. `benchmarks/visual/batch_and_compare_organisation.json`
+  drives both panels; what it found is below.
+
+  **The width work holds.** At the dock's 420 px default, Batch reports
+  `minHint=109` and Compare `minHint=128` against the 280 px floor, with
+  `viewport=416` against `content minHint=159` — so neither panel forces a
+  width no dock can satisfy, and the horizontal scrollbar this file records
+  on the Batch panel is gone. Squeezing the window to 1100 px changes
+  nothing. `visual_check` reports **0 findings** on both surfaces, at the
+  default width and squeezed.
+
+  **THE ONE DEFECT WAS A CLIPPED COLUMN HEADER, AND THE ORACLE COULD NOT
+  SEE IT.** `_render_table` never sized its columns, so each stayed at Qt's
+  default section width — and **a `QHeaderView` OVERFLOWS rather than
+  eliding**, with centre alignment costing both ends: "Substance
+  classification" rendered as `ostance classificat`. Every test in
+  `tests/test_batch_panel.py` was green and `visual_check` reported nothing,
+  because a header is painted by the VIEW and the geometric oracle walks
+  CHILD WIDGETS. Fixed by sizing the columns once per rebuild, and guarded
+  by `test_every_results_column_is_wide_enough_for_its_own_header`, which
+  measures each section against its own header's font metrics and asserts
+  its own setup first.
+
+  **The honest limit this exposed**: `visual_check` reaches 12–13 painted
+  items on Batch and 5 on Compare, against 40 on Properties. Both panels are
+  mostly item views, whose contents are not child widgets — so a clean
+  result there is a much weaker statement than the same result on a
+  form-shaped panel, and this defect class needs a guard of its own kind.
 
 ### Visualization
 
@@ -1358,7 +1440,13 @@ controlled substances, export controls, transport, occupational,
 environmental and the rest — registers EMPTY and says so in the coverage
 report, because an absent domain is invisible and reads as "nothing
 applies". **Ten of the twelve domains are still empty.** Adding one is a
-JSON file and a build run, not a code change.
+JSON file and a build run, not a code change — **for an IDENTITY or
+STRUCTURAL-FAMILY domain, which is every one shipped so far.** The
+qualification is not pedantry: a QUANTITATIVE domain such as occupational
+exposure carries limits, units, averaging periods and footnotes that
+`Rule` has nowhere to put, so it needs a model extension before any JSON
+is worth writing. That is the next branch, and it is the counter-example
+this sentence had been missing.
 
 | ruleset | domain | entries | encoded | shape |
 |---|---|---|---|---|

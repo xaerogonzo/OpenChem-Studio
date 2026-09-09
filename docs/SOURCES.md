@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 75d19a20862c61b7342222b03b9d8ebbd90a65d3ad403ae5ec3af61fab8b9490 -->
+<!-- SOURCE SHA256: 7c74b2e38fecfedfd418db1fc81060822e730804a5620ca27473ecc38359e2c1 -->
 
 # Sources
 
@@ -134,6 +134,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`gutmann1976`](#gutmann1976) | literature | shipped | citation + claim |
 | [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | citation |
 | [`hall1981`](#hall1981) | literature | shipped | citation |
+| [`hancock1996`](#hancock1996) | literature | reference only | citation |
 | [`hlb`](#hlb) | reference_table | reference only | citation |
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
@@ -182,6 +183,8 @@ next run of `tools/build_lewis_parameters.py`.
 | [`orca`](#orca) | software | shipped | citation |
 | [`parr_pearson1983`](#parr_pearson1983) | literature | shipped | citation |
 | [`pdg2024`](#pdg2024) | literature | shipped | citation + claim |
+| [`pearson1963`](#pearson1963) | literature | reference only | citation |
+| [`pearson1968`](#pearson1968) | literature | reference only | citation |
 | [`pearson1988`](#pearson1988) | literature | shipped | citation + claim |
 | [`pkasolver`](#pkasolver) | software | shipped | citation |
 | [`platts1999`](#platts1999) | literature | **not shipped** | citation + claim |
@@ -3435,6 +3438,92 @@ ESOL set sitting inside AqSolDB), so the rule is that the overlap is CHECKED
 by identifier and reported before any score is quoted, never assumed absent.
 
 `assessed_not_shipped`: nothing in `src/` uses RF-Score.
+
+### pearson1963
+
+<a id="pearson1963"></a>
+
+> R. G. Pearson, 'Hard and Soft Acids and Bases', J. Am. Chem. Soc. 1963, 85(22), 3533-3539.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00905a001](https://doi.org/10.1021/ja00905a001) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-09 |
+| Local copy | `pearson1963.pdf` (not checked) |
+| Used by | `src/openchem/chem/lewis_adduct.py` |
+
+**Why it is reference only.** THE PAPER HSAB COMES FROM, cited for the vocabulary and NOT as backing for
+any number this project computes. `_hsab_line` reports an absolute hardness
+difference and says in its own docstring that a single point on the eta axis
+gets BH3/BF3 against CO backwards; nothing here licenses more than that.
+
+**IT IS EMPHATICALLY NOT VALIDATION FOR AN AUTOMATIC ACID/BASE ASSIGNMENT.**
+`resolve_roles` decides an ORIENTATION from structural admissibility and from
+the Drago table's own published pairings, and describes itself that way. If
+an assignment algorithm is ever built it needs its own validation corpus,
+not a citation promoted to `citation_and_claim`.
+
+Title, author and volume/issue/date read off p1.
+
+### pearson1968
+
+<a id="pearson1968"></a>
+
+> R. G. Pearson, 'Hard and soft acids and bases, HSAB, part 1: Fundamental principles', J. Chem. Educ. 1968, 45(9), 581.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ed045p581](https://doi.org/10.1021/ed045p581) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-09 |
+| Local copy | `pearson1968.pdf` (not checked) |
+| Used by | `src/openchem/chem/lewis_adduct.py` |
+
+**Why it is reference only.** The tutorial statement of the same principles as [source:pearson1963], kept
+separate because it is the one a reader is most likely to be sent to. Same
+scope: vocabulary, not a number.
+
+Title, author and affiliation read off p1.
+
+### hancock1996
+
+<a id="hancock1996"></a>
+
+> R. D. Hancock & A. E. Martell, 'Hard and Soft Acid-Base Behavior in Aqueous Solution: Steric Effects Make Some Metal Ions Hard; A Quantitative Scale of Hardness-Softness for Acids and Bases', J. Chem. Educ. 1996, 73(7), 654.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ed073p654](https://doi.org/10.1021/ed073p654) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-09 |
+| Local copy | `hancock1996.pdf` (not checked) |
+| Used by | `src/openchem/chem/lewis_adduct.py` |
+
+**Why it is reference only.** **ATTRIBUTION CORRECTED: HANCOCK & MARTELL, NOT PEARSON.** A review offered
+this paper as Pearson's. It is not, and the correction is kept here rather
+than quietly applied because the wrong attribution is the plausible one --
+the subject is HSAB and Pearson is the name attached to that.
+
+No text layer on any page; the citation was read at 350 dpi.
+
+**WHAT IT SUPPORTS, PRECISELY.** Its central claim is that HSAB behaviour is
+MEDIUM-DEPENDENT -- gas-phase stability ordering makes every metal ion look
+hard and aqueous reverses it -- so `_hsab_line` must not present a
+medium-free classification. That, and nothing about orientation selection.
+
+Its eq (1) is `-dH = E_A E_B + C_A C_B`, the Drago relation this project
+already ships as `lewis_parameters.json`; see [source:vogel_drago1996],
+which is where those numbers were verified.
+
+**AND IT IS THE STRONGEST ARGUMENT AGAINST PROMOTING ANY OF THE THREE.** Its
+own opening states that HSAB "has remained qualitative and largely intuitive"
+and that attempts at a general hardness-softness measure "have so far not
+been successful". A citation saying the field is qualitative cannot back a
+quantitative claim.
 
 ## Datasets
 

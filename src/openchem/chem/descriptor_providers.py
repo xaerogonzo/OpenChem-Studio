@@ -68,7 +68,13 @@ from openchem.chem.hansen import compute_hansen
 from openchem.chem.joback import compute_joback
 from openchem.chem.huckel import compute_huckel_analysis, compute_pi_electron_density
 from openchem.chem.lewis import compute_lewis_sites
-from openchem.chem.lewis_adduct import ROLE_ACID, ROLE_BASE, compute_lewis_adduct
+from openchem.chem.lewis_adduct import (
+    ROLE_ACID,
+    ROLE_AUTO,
+    ROLE_BASE,
+    ROLE_LABELS,
+    compute_lewis_adduct,
+)
 from openchem.chem.markush import compute_markush_enumeration
 from openchem.chem.molecular_dynamics import DEFAULT_FRAME_INTERVAL as MD_DEFAULT_FRAME_INTERVAL
 from openchem.chem.molecular_dynamics import DEFAULT_STEP_FS as MD_DEFAULT_STEP_FS
@@ -2421,16 +2427,28 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         parameters=[
             CalculatorParameter(
                 name="partner_smiles",
-                label="Partner molecule (SMILES)",
-                kind="text",
+                label="Partner molecule",
+                # `"smiles"` names what the VALUE is, not the widget: the
+                # dialog offers the project's own molecules where it has
+                # them and a text box otherwise, and either way what is
+                # stored is SMILES.
+                kind="smiles",
                 default="",
             ),
             CalculatorParameter(
                 name="role",
                 label="Role of this molecule",
                 kind="choice",
-                default=ROLE_ACID,
-                choices=[ROLE_ACID, ROLE_BASE],
+                # CODES, with the prose in `choice_labels`. The stored
+                # value is hashed into every retained result's identity,
+                # so rewording a label must not orphan the cache.
+                default=ROLE_AUTO,
+                choices=[ROLE_AUTO, ROLE_ACID, ROLE_BASE],
+                choice_labels=[
+                    ROLE_LABELS[ROLE_AUTO],
+                    ROLE_LABELS[ROLE_ACID],
+                    ROLE_LABELS[ROLE_BASE],
+                ],
             ),
         ],
     ),

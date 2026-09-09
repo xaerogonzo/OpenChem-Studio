@@ -583,7 +583,11 @@ def test_clicking_open_on_a_parameterized_calculator_uses_the_settings_dialog(qa
     registry.register(definition)
 
     class _FakeSettingsDialog:
-        def __init__(self, definition, parent=None):
+        def __init__(self, definition, parent=None, *, molecules=()):
+            # `molecules` is keyword-only with an empty default on the
+            # real dialog, so a fake that refuses it is a fake that has
+            # stopped matching the thing it stands in for.
+            self.molecules = list(molecules)
             pass
 
         def exec(self):
@@ -617,7 +621,11 @@ def test_cancelling_the_settings_dialog_does_not_run_the_calculator(qapp, monkey
     registry.register(definition)
 
     class _FakeCancelledDialog:
-        def __init__(self, definition, parent=None):
+        def __init__(self, definition, parent=None, *, molecules=()):
+            # `molecules` is keyword-only with an empty default on the
+            # real dialog, so a fake that refuses it is a fake that has
+            # stopped matching the thing it stands in for.
+            self.molecules = list(molecules)
             pass
 
         def exec(self):

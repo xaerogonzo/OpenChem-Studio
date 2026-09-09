@@ -23,10 +23,21 @@ from rdkit import Chem
 from openchem.chem.lewis import analyse, pi_donor_atoms
 from openchem.chem.lewis_adduct import (
     ROLE_ACID,
+    ROLE_AUTO,
     ROLE_BASE,
+    ROLE_LABELS,
     compute_lewis_adduct,
     parameter_table,
     predict,
+)
+from openchem.domain.common import CacheState
+from openchem.domain.lewis import (
+    BASIS_DRAGO_TABLE,
+    BASIS_SITE_ADMISSIBILITY,
+    BASIS_USER,
+    ORIENTATION_SUBJECT_IS_ACID,
+    ORIENTATION_SUBJECT_IS_BASE,
+    ORIENTATION_UNRESOLVED,
 )
 from openchem.domain.structure_issue import Basis
 
@@ -326,13 +337,24 @@ def test_the_calculator_takes_the_partner_as_typed_smiles():
 
 def test_the_role_choice_swaps_which_molecule_is_the_acid():
     """Same pair, entered from either side, must give the same answer --
-    otherwise the setting is a trap rather than a convenience."""
+    otherwise the setting is a trap rather than a convenience.
+
+    The report now opens with a `Role:` line saying HOW the orientation was
+    decided, so the acid line is the second: iodine entered as the subject
+    resolves from the Drago table, and triethylamine entered as the subject
+    with an explicit `base` is told the user set it. Both must reach the
+    SAME orientation.
+    """
     as_acid = compute_lewis_adduct(mol_for(IODINE), "u", {"partner_smiles": "CCN(CC)CC"})
     as_base = compute_lewis_adduct(
         mol_for("CCN(CC)CC"), "u", {"partner_smiles": IODINE, "role": ROLE_BASE}
     )
-    assert as_acid.matched[0] == as_base.matched[0] == "Acid: II"
-    assert as_acid.matched[2] == as_base.matched[2]
+    assert as_acid.matched[1] == as_base.matched[1] == "Acid: II"
+    assert as_acid.matched[3] == as_base.matched[3]
+    assert as_acid.matched[0] != as_base.matched[0], (
+        "one was worked out and the other was set by hand; a reader must be "
+        "able to tell those apart"
+    )
 
 
 def test_the_calculator_says_what_to_do_when_no_partner_was_given():
@@ -361,7 +383,16 @@ def test_the_calculator_is_registered():
     definition = next(d for d in CALCULATOR_DEFINITIONS if d.calculator_id == "lewis_adduct")
     assert definition.category == "lewis"
     assert {p.name for p in definition.parameters} == {"partner_smiles", "role"}
-    assert definition.parameters[1].choices == [ROLE_ACID, ROLE_BASE]
+    # CODES, with the prose in `choice_labels` -- the stored value is
+    # hashed into every retained result's identity, so it must not be the
+    # English on the screen.
+    assert definition.parameters[1].choices == [ROLE_AUTO, ROLE_ACID, ROLE_BASE]
+    assert definition.parameters[1].choice_labels == [
+        ROLE_LABELS[ROLE_AUTO],
+        ROLE_LABELS[ROLE_ACID],
+        ROLE_LABELS[ROLE_BASE],
+    ]
+    assert definition.parameters[0].kind == "smiles"
 
 
 def test_a_metal_gets_the_coordination_rule_and_not_also_the_shell_rule():
@@ -745,3 +776,280 @@ def test_the_two_lewis_scales_really_are_different():
     entries would go unnoticed.
     """
     assert (0.5, 2.0) != (1.0, 1.0)
+
+
+# --- working the orientation out --------------------------------------------
+
+#: tert-butanol is a tabulated ACID and methylamine a tabulated BASE, and
+#: BOTH are structurally admissible EITHER way round. That second half is
+#: what makes the pair non-degenerate for the Drago rule: with a pair the
+#: sites alone could decide, deleting Rule 1 would change nothing and the
+#: guard would prove nothing.
+_TABULATED_ACID = "CC(C)(C)O"
+_TABULATED_BASE = "CN"
+
+
+def test_the_drago_table_decides_when_only_one_way_round_is_tabulated():
+    from openchem.chem.lewis_adduct import _can_be_acid, _can_be_base, resolve_roles
+
+    subject, partner = mol_for(_TABULATED_ACID), mol_for(_TABULATED_BASE)
+    # THE SETUP, asserted: both molecules are admissible in BOTH roles, so
+    # the site rule cannot decide this pair and only the table can.
+    for mol in (subject, partner):
+        assert _can_be_acid(mol)[0] and _can_be_base(mol)[0]
+
+    resolution = resolve_roles(subject, partner)
+
+    assert resolution.orientation == ORIENTATION_SUBJECT_IS_ACID
+    assert resolution.basis == BASIS_DRAGO_TABLE
+
+
+def test_the_table_stays_silent_when_BOTH_ways_round_are_tabulated(monkeypatch):
+    """A rule that merely asked "is either molecule in the table?" would
+    pick one.
+
+    Unreachable with the shipped data -- measured, the table has 24
+    acid-only and 33 base-only entries and ZERO in both -- so the table is
+    replaced rather than a fixture hunted for. An unreachable branch is a
+    question about where to assert.
+    """
+    from openchem.chem import lewis_adduct
+
+    both = {"acids": {"CO": {}, "N": {}}, "bases": {"CO": {}, "N": {}}, "citation": ""}
+    monkeypatch.setattr(lewis_adduct, "parameter_table", lambda: both)
+
+    resolution = lewis_adduct.resolve_roles(mol_for("CO"), mol_for("N"))
+
+    assert resolution.basis != BASIS_DRAGO_TABLE, (
+        "the table named both molecules in both roles and still chose one"
+    )
+
+
+def test_the_sites_decide_when_the_table_says_nothing(monkeypatch):
+    """Rule 1 provably cannot fire: the table is emptied."""
+    from openchem.chem import lewis_adduct
+
+    monkeypatch.setattr(
+        lewis_adduct,
+        "parameter_table",
+        lambda: {"acids": {}, "bases": {}, "citation": ""},
+    )
+
+    resolution = lewis_adduct.resolve_roles(mol_for("B"), mol_for("N"))
+
+    assert resolution.orientation == ORIENTATION_SUBJECT_IS_ACID
+    assert resolution.basis == BASIS_SITE_ADMISSIBILITY
+
+
+def test_two_ambiphilic_molecules_are_reported_BOTH_WAYS_rather_than_ranked():
+    """The common case, not an edge one.
+
+    `analyse` classifies alcohols, amines and lone-pair-bearing halogens
+    as AMBIPHILIC, and `donors()`/`acceptors()` both include those -- so
+    any pair of ordinary organic molecules survives both ways round. Water
+    and water is the textbook example, and inventing a preference between
+    them is the refusal `_hsab_line` already makes.
+    """
+    from openchem.chem.lewis_adduct import resolve_roles
+
+    resolution = resolve_roles(mol_for("O"), mol_for("O"))
+
+    assert resolution.orientation == ORIENTATION_UNRESOLVED
+    assert resolution.basis == ""
+    assert [attempt.admissible for attempt in resolution.attempts] == [True, True], (
+        "both orientations must be recorded as attempted, not just the verdict"
+    )
+
+    report = compute_lewis_adduct(mol_for("O"), "u", {"partner_smiles": "O"})
+    text = "\n".join(report.matched)
+    assert "not determined" in text
+    assert text.count("Acid: O") == 2, "both orientations must be reported"
+    # NAMED, not separated by blank lines. Every one of these becomes a ROW
+    # in `FactView`, and an empty string renders as a label with no value
+    # beside it -- a fact whose value is missing, which is the one thing a
+    # report must not say by accident. Found by driving the app and reading
+    # the shot, with every test in this file green.
+    assert "" not in report.matched, "a blank line renders as an empty row"
+    assert "Orientation 1" in text and "Orientation 2" in text
+
+
+def test_a_pair_that_can_form_no_adduct_keeps_BOTH_refusal_reasons():
+    """"Nothing can accept" and "nothing can donate" are different
+    statements, and a generic "partner invalid" throws away the one a
+    reader needs. Methane and ethane can do neither."""
+    from openchem.chem.lewis_adduct import resolve_roles
+
+    resolution = resolve_roles(mol_for("C"), mol_for("CC"))
+
+    assert resolution.orientation == ORIENTATION_UNRESOLVED
+    assert not any(attempt.admissible for attempt in resolution.attempts)
+    reasons = [attempt.reason for attempt in resolution.attempts]
+    assert len(reasons) == 2 and all(reasons), "both attempts must carry a reason"
+    assert reasons[0] != reasons[1], "the two reasons name different molecules"
+
+    report = compute_lewis_adduct(mol_for("C"), "u", {"partner_smiles": "CC"})
+    assert report.cache_state is CacheState.FAILED
+    assert report.provenance.parameters["attempt_reasons"] == reasons
+
+
+def test_a_refused_pair_is_refused_ONCE():
+    """The resolver must not emit its own refusal beside `predict`'s.
+
+    Both `predict` calls can fail, and formatting the same condition twice
+    would report one problem as two.
+    """
+    report = compute_lewis_adduct(mol_for("C"), "u", {"partner_smiles": "CC"})
+
+    assert report.matched == []
+    assert report.error.count("Nothing in the acid can accept") <= 1
+
+
+def test_an_explicit_role_overrides_an_auto_resolution_that_would_disagree():
+    """VACUOUS unless the pair resolves the OTHER way on its own, so the
+    automatic answer is asserted first."""
+    from openchem.chem.lewis_adduct import resolve_roles
+
+    subject, partner = mol_for(_TABULATED_ACID), mol_for(_TABULATED_BASE)
+    assert resolve_roles(subject, partner).orientation == ORIENTATION_SUBJECT_IS_ACID
+
+    forced = resolve_roles(subject, partner, ROLE_BASE)
+
+    assert forced.orientation == ORIENTATION_SUBJECT_IS_BASE
+    assert forced.basis == BASIS_USER
+
+
+def test_the_five_role_states_are_pairwise_distinguishable_in_the_provenance():
+    """Five, not four: `auto -> acid` and an explicit `acid` produce the
+    SAME orientation and must still be tellable apart, which is exactly
+    the "two identical-looking results" this record exists to prevent.
+
+    HOW the decision was made and WHAT it was are separate fields.
+    """
+    def note(subject, partner, role):
+        report = compute_lewis_adduct(
+            mol_for(subject), "u", {"partner_smiles": partner, "role": role}
+        )
+        parameters = report.provenance.parameters
+        return (
+            parameters["role_requested"],
+            parameters["orientation"],
+            parameters["orientation_basis"],
+        )
+
+    states = {
+        note(_TABULATED_ACID, _TABULATED_BASE, ROLE_AUTO),
+        note("B", "N", ROLE_AUTO),
+        note("O", "O", ROLE_AUTO),
+        note(_TABULATED_ACID, _TABULATED_BASE, ROLE_ACID),
+        note(_TABULATED_ACID, _TABULATED_BASE, ROLE_BASE),
+    }
+
+    assert len(states) == 5, f"two states serialise alike: {sorted(states)}"
+
+
+def test_an_auto_resolution_and_an_explicit_one_do_not_read_the_same():
+    auto = compute_lewis_adduct(
+        mol_for(_TABULATED_ACID), "u", {"partner_smiles": _TABULATED_BASE}
+    )
+    forced = compute_lewis_adduct(
+        mol_for(_TABULATED_ACID),
+        "u",
+        {"partner_smiles": _TABULATED_BASE, "role": ROLE_ACID},
+    )
+
+    assert auto.matched[0] != forced.matched[0]
+    assert auto.matched[1:] == forced.matched[1:], (
+        "the same orientation must otherwise produce the same report"
+    )
+
+
+def test_a_legacy_prose_role_still_means_what_it_meant_and_a_typo_does_not():
+    """The parameter used to store PROSE. One strict mapping, never fuzzy:
+    guessing here silently swaps which molecule is the acid."""
+    from openchem.chem.lewis_adduct import _role_code
+
+    assert _role_code("This molecule is the acid") == ROLE_ACID
+    assert _role_code("This molecule is the base") == ROLE_BASE
+    assert _role_code(ROLE_AUTO) == ROLE_AUTO
+
+    with pytest.raises(ValueError):
+        _role_code("this molecule is the acid")
+
+    refused = compute_lewis_adduct(
+        mol_for(IODINE), "u", {"partner_smiles": "N", "role": "whatever"}
+    )
+    assert refused.cache_state is CacheState.FAILED
+
+
+def test_the_resolver_never_breaks_a_tie_with_hardness():
+    """RULE 3 DOES NOT EXIST, asserted on the source.
+
+    `_hsab_line`'s own docstring records that a single point on the eta
+    axis gets BH3/BF3 against CO backwards, so a hardness tie-break would
+    be the application choosing where the chemistry does not -- and the
+    ambiphilic pairs it would silently resolve are the COMMON case, so
+    nothing downstream would look wrong.
+
+    THE DOCSTRING IS EXCLUDED, and that is not a detail: the first version
+    of this guard scanned the raw source and failed on the very paragraph
+    that EXPLAINS the rule. Grepping for a phrase counts the source, not
+    the outcome -- a mistake this project has recorded four times, made a
+    fifth here.
+    """
+    import ast
+    import inspect
+    import textwrap
+
+    from openchem.chem import lewis_adduct
+
+    tree = ast.parse(textwrap.dedent(inspect.getsource(lewis_adduct.resolve_roles)))
+    function = tree.body[0]
+    body = function.body[1:] if ast.get_docstring(function) else function.body
+
+    names = {
+        node.id for statement in body for node in ast.walk(statement)
+        if isinstance(node, ast.Name)
+    } | {
+        node.attr for statement in body for node in ast.walk(statement)
+        if isinstance(node, ast.Attribute)
+    }
+    banned = {"_hsab_line", "_frontier_gap_line", "hardness", "electronegativity"}
+    assert not names & banned, (
+        f"resolve_roles reads {sorted(names & banned)} -- a tie broken on any "
+        "of them is a ranking this module refuses to invent"
+    )
+    # THE SETUP: the body really was scanned. Without this an AST walk
+    # that quietly returned nothing would satisfy the assertion above
+    # forever, which is the empty-population failure this project records.
+    assert "parameter_table" in names, (
+        f"resolve_roles' body scanned to {sorted(names)}, which does not "
+        "include the table lookup it certainly makes -- the walk found "
+        "nothing and the check above is vacuous"
+    )
+
+
+def test_the_table_stays_silent_when_ONE_molecule_is_untabulated():
+    """A rule reading "is the subject a tabulated acid?" gets this wrong.
+
+    The table lists tert-butanol as an acid and does not list ethanol at
+    all, so there is no tabulated acid/base PAIRING here and the table has
+    nothing to say -- the sites must get their turn, and with both
+    molecules ambiphilic the honest answer is unresolved.
+
+    THE DISCRIMINATING CASE, found because the obvious fixture could not
+    see the mutation: with a tabulated acid AND a tabulated base, a rule
+    that checks only the acid side reaches the same answer as the correct
+    one, so it survives.
+    """
+    from openchem.chem.lewis_adduct import parameter_table, resolve_roles
+
+    table = parameter_table()
+    assert "CC(C)(C)O" in table["acids"], "the setup needs a tabulated acid"
+    assert "CCO" not in table["acids"] and "CCO" not in table["bases"], (
+        "the setup needs a partner in NEITHER table"
+    )
+
+    resolution = resolve_roles(mol_for("CC(C)(C)O"), mol_for("CCO"))
+
+    assert resolution.basis != BASIS_DRAGO_TABLE
+    assert resolution.orientation == ORIENTATION_UNRESOLVED

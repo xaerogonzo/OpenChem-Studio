@@ -1,0 +1,105 @@
+[
+  {
+    "do": "smiles",
+    "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+    "name": "Aspirin",
+    "after_ms": 900
+  },
+  {
+    "do": "smiles",
+    "smiles": "CN1C=NC2=C1C(=O)N(C)C(=O)N2C",
+    "name": "Caffeine",
+    "after_ms": 900
+  },
+  {
+    "do": "smiles",
+    "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)O",
+    "name": "Ibuprofen",
+    "after_ms": 900
+  },
+  {
+    "do": "select",
+    "molecule": -1,
+    "after_ms": 500
+  },
+  {
+    "do": "panel",
+    "id": "Batch",
+    "after_ms": 900
+  },
+  {
+    "do": "batch_select",
+    "clear": true,
+    "after_ms": 300
+  },
+  {
+    "do": "batch_select",
+    "category": "Identity",
+    "after_ms": 600
+  },
+  {
+    "do": "batch_molecules",
+    "names": [
+      "Aspirin",
+      "Ibuprofen"
+    ],
+    "after_ms": 600
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/scope_narrowed.png",
+    "after_ms": 400
+  },
+  {
+    "do": "batch_fill",
+    "after_ms": 12000
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/scope_narrowed_filled.png",
+    "after_ms": 400
+  },
+  {
+    "do": "visual_check",
+    "surface": "batch",
+    "tag": "scope-narrowed",
+    "after_ms": 300
+  },
+  {
+    "do": "batch_molecules",
+    "none": true,
+    "after_ms": 500
+  },
+  {
+    "do": "batch_fill",
+    "after_ms": 3000
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/scope_refused.png",
+    "after_ms": 400
+  },
+  {
+    "do": "batch_molecules",
+    "all": true,
+    "after_ms": 500
+  },
+  {
+    "do": "batch_fill",
+    "after_ms": 15000
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/scope_all.png",
+    "after_ms": 400
+  },
+  {
+    "do": "visual_check",
+    "surface": "batch",
+    "tag": "scope-all",
+    "after_ms": 300
+  },
+  {
+    "do": "quit"
+  }
+]

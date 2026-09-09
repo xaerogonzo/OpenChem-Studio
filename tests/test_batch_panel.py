@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 from PySide6.QtCore import Qt, QThreadPool
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QDialog
 
 from openchem.bootstrap import build_service_container
 from openchem.domain.molecule import MoleculeModel
@@ -1148,3 +1148,518 @@ def test_a_columns_category_comes_from_the_same_registry_the_picker_uses(panel):
     definition = panel._registry.get(column.source_id)
     if definition is not None:
         assert panel._column_category(column) == _title(definition.category)
+
+
+def test_every_results_column_is_wide_enough_for_its_own_header(panel):
+    """A `QHeaderView` OVERFLOWS its section; it does not elide.
+
+    So a column left at Qt's default section width prints its title with
+    BOTH ENDS CUT, and centre alignment is why it loses both rather than
+    one. Measured in the running app at the dock's 420 px default:
+    "Substance classification" rendered as `ostance classificat`, with
+    every test in this file green and `visual_check` reporting 0 findings
+    -- a header is painted by the VIEW, so the geometric oracle's walk
+    over child widgets cannot reach it and never could.
+
+    THE SETUP IS ASSERTED FIRST, because a table whose every header
+    already fits inside Qt's default section proves nothing about column
+    sizing at all. That is the same reason the pool-id guard asserts its
+    own pool really is sparse.
+
+    Font-independent by construction: both sides are measured with the
+    header's OWN font, so this holds under `offscreen` -- whose default
+    font this project records as more than twice as wide -- and under
+    `windows` alike.
+    """
+    from PySide6.QtGui import QFontMetrics
+    from PySide6.QtWidgets import QHeaderView
+
+    _run(panel, ["substance_analysis"])
+    header = panel._results.horizontalHeader()
+    metrics = QFontMetrics(header.font())
+
+    headers = [
+        panel._results.horizontalHeaderItem(index).text()
+        for index in range(panel._results.columnCount())
+    ]
+    assert any(
+        metrics.horizontalAdvance(text) > header.defaultSectionSize() for text in headers
+    ), (
+        f"no header in {headers} is wider than Qt's default section "
+        f"({header.defaultSectionSize()} px), so this guard cannot see a "
+        "column that fails to size itself"
+    )
+
+    for index, text in enumerate(headers):
+        if panel._results.isColumnHidden(index):
+            continue
+        assert header.sectionSize(index) >= metrics.horizontalAdvance(text), (
+            f"column {index} ({text!r}) is {header.sectionSize(index)} px "
+            f"against {metrics.horizontalAdvance(text)} px of header text -- "
+            "it will render clipped at both ends"
+        )
+
+    assert header.sectionResizeMode(0) is QHeaderView.ResizeMode.Interactive, (
+        "the columns stopped being user-draggable, which is what the "
+        "ResizeToContents MODE costs and why the width is set once instead"
+    )
+
+
+# --- the molecule scope ---------------------------------------------------
+
+
+def _spy_on_the_request(panel, monkeypatch):
+    """Record what `_run` hands the service, and still let it run.
+
+    Both arguments, because they are separately mutable and the service
+    CLAMPS one by the other: `batch_service.run` filters the molecules it
+    was handed by `set(request.molecule_uuids)`, so widening either half
+    alone changes no behaviour. A spy watching only the request is a spy
+    that cannot see half the defect.
+    """
+    seen: dict = {}
+    original = panel._batch_service.request_batch
+
+    def record(request, molecules):
+        seen["request"] = request
+        seen["molecules"] = list(molecules)
+        return original(request, molecules)
+
+    monkeypatch.setattr(panel._batch_service, "request_batch", record)
+    return seen
+
+
+def test_a_run_covers_only_the_ticked_molecules(panel, project, monkeypatch):
+    """THE SENTINEL. Four arms, because the four are separately mutable.
+
+    `batch_panel._run` used to rebuild the project's molecule list three
+    times -- once for the cost estimate, once as `molecule_uuids`, once as
+    the payload -- so a three-molecule project could not run two.
+    """
+    from PySide6.QtWidgets import QMessageBox
+
+    seen = _spy_on_the_request(panel, monkeypatch)
+    first, second, third = project.molecules[0], project.molecules[1], project.molecules[2]
+    for molecule in project.molecules:
+        panel.check_molecule(molecule.uuid, molecule in (first, third))
+
+    # The cost dialog is forced open so its TEXT can be read: an estimate
+    # nobody asserts is an estimate that can quietly describe a different
+    # scope from the one that runs.
+    asked: dict = {}
+
+    def capture(_parent, _title, text, *args, **kwargs):
+        asked["text"] = text
+        return QMessageBox.StandardButton.Ok
+
+    monkeypatch.setattr("openchem.ui.panels.batch_panel._CONFIRM_ABOVE", 0)
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(capture))
+
+    _run(panel, ["mol_wt"])
+
+    assert seen["request"].molecule_uuids == [first.uuid, third.uuid]
+    assert [m.uuid for m in seen["molecules"]] == [first.uuid, third.uuid]
+    assert panel.table().row_uuids == [first.uuid, third.uuid]
+    assert not any(key.molecule_uuid == second.uuid for key in panel._store.results)
+    assert "2 molecules" in asked["text"]
+
+
+def test_the_default_scope_is_every_molecule_and_the_request_is_unchanged(
+    panel, project, monkeypatch
+):
+    """THE CONTROL, and its vacuity is the crux of the whole feature.
+
+    `batch_service` reads an EMPTY `molecule_uuids` as "everything given".
+    So a completely broken selection -- one that ticks nothing and sends an
+    empty list -- is INDISTINGUISHABLE BY OUTCOME from the correct default,
+    and an assertion on the request alone would pass against a scope
+    control that does nothing at all.
+
+    The widget is therefore asserted too. The pair is what tells "wired,
+    and defaults to all" apart from "does nothing" and from "broken, and
+    the service is covering for it". It is also why `_run` refuses an empty
+    scope: the refusal removes the collision rather than describing it.
+    """
+    seen = _spy_on_the_request(panel, monkeypatch)
+
+    _run(panel, ["mol_wt"])
+
+    expected = [molecule.uuid for molecule in project.molecules]
+    assert seen["request"].molecule_uuids == expected
+    assert [m.uuid for m in seen["molecules"]] == expected
+    assert panel._molecules.count() == len(project.molecules)
+    assert all(
+        panel._molecules.item(index).checkState() is Qt.CheckState.Checked
+        for index in range(panel._molecules.count())
+    )
+    assert panel._scope_label.text() == f"{len(project.molecules)} molecules in this project."
+
+
+def test_an_empty_molecule_scope_refuses_rather_than_running_everything(
+    panel, project, monkeypatch
+):
+    """The compatibility trap, closed at the UI and not in the service.
+
+    `batch_service.py`'s "an empty list still means everything given" is a
+    deliberate contract with its own tests and other callers. Untick every
+    molecule and the panel must REFUSE, not send an empty list that the
+    service would helpfully expand back to the whole project.
+    """
+    seen = _spy_on_the_request(panel, monkeypatch)
+    panel._clear_molecule_selection()
+
+    _run(panel, ["mol_wt"])
+
+    assert "molecule" in panel._status.text().lower()
+    assert seen == {}, "the run reached the service with an empty scope"
+
+
+def test_the_molecule_ticks_survive_a_rebuild_by_uuid_not_by_row(panel, project):
+    """A rename must keep a tick and a deletion must drop one.
+
+    Ticks keyed on a ROW would follow the position rather than the
+    molecule, so deleting the first entry would silently re-point every
+    later tick at its neighbour.
+    """
+    kept, doomed = project.molecules[0], project.molecules[1]
+    for molecule in project.molecules:
+        panel.check_molecule(molecule.uuid, molecule in (kept, doomed))
+
+    kept.display_name = "renamed after being ticked"
+    project.molecules.remove(doomed)
+    panel.set_project(project)
+
+    assert panel._selected_molecule_uuids() == {kept.uuid}
+    assert [m.uuid for m in panel.selected_molecules()] == [kept.uuid]
+    labels = [
+        panel._molecules.item(index).text() for index in range(panel._molecules.count())
+    ]
+    assert "renamed after being ticked" in labels
+
+
+def test_a_different_project_starts_with_every_molecule_ticked(panel, services):
+    """No surviving uuid means start fresh at ALL.
+
+    That one rule is what makes "all" the default AND makes an accidental
+    empty scope self-healing across a project switch, so no "not yet
+    narrowed" sentinel is needed.
+    """
+    panel._clear_molecule_selection()
+    other = ProjectModel(name="another")
+    for name, smiles in _DRUGS[:2]:
+        molecule = MoleculeModel(display_name=name)
+        services.chemistry_engine.set_structure_from_smiles(molecule, smiles)
+        other.molecules.append(molecule)
+
+    panel.set_project(other)
+
+    assert len(panel.selected_molecules()) == len(other.molecules)
+
+
+def test_filtering_the_properties_does_not_change_the_molecule_scope(panel, project):
+    """The two narrowings are orthogonal, in both directions.
+
+    Stated both ways because the property tree's shared tri-state
+    machinery is exactly where cross-population state leaks, and because
+    "implement the filter by rebuilding the list with everything visible
+    ticked" is a plausible thing for somebody to write.
+    """
+    first = project.molecules[0]
+    for molecule in project.molecules:
+        panel.check_molecule(molecule.uuid, molecule is first)
+    panel.check("mol_wt")
+
+    panel._filter.setText("logp")
+    panel._filter.setText("")
+
+    assert panel._selected_molecule_uuids() == {first.uuid}
+
+    panel._clear_molecule_selection()
+    panel._select_all_molecules()
+
+    assert panel.selected_ids() == (["mol_wt"], [])
+
+
+def test_select_all_still_means_properties(panel, project):
+    """The ambiguity, asserted rather than left to a naming convention.
+
+    `batch.select_all`'s own contract declares it ticks "every property
+    currently shown in the list" and respects the filter. Broadening those
+    two buttons to mean both populations would make that declared text
+    false, and rewriting it under the same `help_id` is reusing an id for a
+    different concept -- which is what `help_id` forbids outright.
+    """
+    panel._clear_molecule_selection()
+
+    panel._select_all_visible()
+
+    assert panel.selected_ids() != ([], [])
+    assert panel._selected_molecule_uuids() == set()
+
+    panel._select_all_molecules()
+    panel._clear_selection()
+
+    assert panel.selected_ids() == ([], [])
+    assert len(panel._selected_molecule_uuids()) == len(project.molecules)
+
+
+def test_the_scope_section_starts_collapsed_and_costs_the_results_table_nothing(panel):
+    """Collapsed by default, so the layout is unchanged until asked.
+
+    THE SETUP IS ASSERTED: expanding must move the section's height hint by
+    a real amount, or "it starts collapsed" is a claim about a section with
+    nothing in it.
+
+    **THE SECTION'S OWN HINT, NEVER THE PANEL'S.** The panel here was never
+    shown, so its layout does not propagate a child's change and its
+    `sizeHint` is 607 px collapsed and 607 px expanded -- the first draft
+    of this guard asserted on that and failed against correct code, which
+    is this project's recorded "a widget that was never shown runs almost
+    none of its own code" one event along. Measured on the section itself:
+    19 px collapsed, 193 px expanded.
+
+    `isHidden`, not `isVisible`, for the same reason: every child of an
+    unshown window reports `isVisible() == False` whatever its own state.
+    """
+    section = panel._molecule_section
+    assert not section.is_expanded()
+    assert section.content.isHidden()
+    collapsed = section.sizeHint().height()
+
+    section.set_expanded(True)
+    expanded = section.sizeHint().height()
+
+    assert not section.content.isHidden()
+    assert expanded - collapsed > 100, (
+        f"expanding the scope section moved its height hint by only "
+        f"{expanded - collapsed} px ({collapsed} -> {expanded}), so the "
+        "collapsed assertion proves nothing"
+    )
+    assert collapsed < 40, (
+        f"the collapsed section costs {collapsed} px, which is no longer "
+        "the negligible cost that justified putting the control here"
+    )
+
+
+def test_the_lazy_details_path_ignores_the_molecule_scope(panel, project, monkeypatch):
+    """The scope governs the BULK path only.
+
+    A details view is reached from a row an earlier, wider run produced, so
+    scoping it would make a visible row un-openable. "Helpfully" applying
+    the scope there is the obvious next edit, which is why it is asserted.
+    """
+    unticked = project.molecules[-1]
+    panel._clear_molecule_selection()
+    panel.check_molecule(project.molecules[0].uuid)
+    panel.check("mol_wt")
+
+    seen = _spy_on_the_request(panel, monkeypatch)
+    panel._show_details(unticked.uuid)
+
+    assert seen["request"].molecule_uuids == [unticked.uuid]
+
+
+# --- per-calculator parameters -------------------------------------------
+
+
+def _spy_on_compute(panel, monkeypatch):
+    """Record what each calculator was handed, and still compute it.
+
+    Watching the REGISTRY rather than the request, because the request is
+    one dict for the whole run and the thing worth asserting is that two
+    calculators do not receive each other's settings.
+    """
+    seen: dict[str, list] = {}
+    original = panel._registry.compute
+
+    def record(calculator_id, mol, molecule_uuid, parameters):
+        seen.setdefault(calculator_id, []).append(dict(parameters))
+        return original(calculator_id, mol, molecule_uuid, parameters)
+
+    monkeypatch.setattr(panel._registry, "compute", record)
+    return seen
+
+
+def _configure(panel, calculator_id, values, monkeypatch):
+    """Set one calculator's settings THROUGH THE PANEL'S OWN ROUTE.
+
+    Writing `panel._calculator_parameters[id] = values` would test the
+    dict; this drives `_open_calculator_settings`, which is what a
+    double-click and the context menu both reach.
+    """
+    from openchem.ui.dialogs import calculator_settings_dialog as module
+
+    class _Accepting:
+        def __init__(self, definition, parent=None):
+            self._definition = definition
+
+        def exec(self):
+            return QDialog.DialogCode.Accepted
+
+        def parameters(self):
+            resolved = {p.name: p.default for p in self._definition.parameters}
+            resolved.update(values)
+            return resolved
+
+    monkeypatch.setattr(module, "CalculatorSettingsDialog", _Accepting)
+    monkeypatch.setattr(
+        "openchem.ui.panels.batch_panel.CalculatorSettingsDialog", _Accepting
+    )
+    panel._open_calculator_settings(calculator_id)
+
+
+def test_two_calculators_do_not_receive_each_others_settings(panel, monkeypatch):
+    """THE ISOLATION SENTINEL.
+
+    `BatchRequest.parameters` is keyed by calculator id, so this shape is
+    representable -- but a panel that resolved one settings dictionary and
+    handed it to everything would produce perfectly ordinary-looking
+    results, and a shared dictionary accidentally reused is the plausible
+    failure here.
+    """
+    _configure(panel, "topology_analysis", {"decimal_places": 1}, monkeypatch)
+    _configure(panel, "elemental_analysis", {"decimal_places": 7}, monkeypatch)
+
+    seen = _spy_on_compute(panel, monkeypatch)
+    _run(panel, ["topology_analysis", "elemental_analysis"])
+
+    assert seen["topology_analysis"][0]["decimal_places"] == 1
+    assert seen["elemental_analysis"][0]["decimal_places"] == 7
+
+
+def test_an_untouched_calculator_still_runs_on_the_registrys_defaults(panel, monkeypatch):
+    """THE FALLBACK, which every existing batch run relies on.
+
+    The panel passes through ONLY what somebody configured. A calculator
+    nobody opened is ABSENT from the mapping, and `batch_service` builds
+    its defaults -- so this asserts both that the defaults still arrive and
+    that the panel did not construct them, which would be a second
+    implementation of the same thing.
+    """
+    seen = _spy_on_compute(panel, monkeypatch)
+    _run(panel, ["topology_analysis"])
+
+    definition = panel._registry.get("topology_analysis")
+    expected = {p.name: p.default for p in definition.parameters}
+    assert seen["topology_analysis"][0] == expected
+    assert panel.calculator_parameters() == {}, (
+        "the panel invented a parameter dict for a calculator nobody "
+        "configured, duplicating batch_service's default construction"
+    )
+
+
+def test_the_settings_are_frozen_when_the_run_starts(panel, monkeypatch):
+    """Changing a calculator's settings mid-run affects the NEXT run.
+
+    Same rule as the molecule scope, and for the same reason: a batch runs
+    on a `QRunnable`, so the settings dialog is reachable while it is in
+    flight, and a request holding the panel's LIVE dict would compute some
+    molecules under one configuration and the rest under another.
+
+    **THROUGH `_run`, NOT THROUGH `calculator_parameters()`.** The first
+    version of this guard mutated the panel's dict and asserted on the
+    method's return value -- which tests that the method copies, and says
+    nothing about whether `_run` calls it. Mutating `_run` to hand over the
+    live dict SURVIVED that version and is caught by this one. Testing a
+    helper is not testing the wiring.
+    """
+    _configure(panel, "topology_analysis", {"decimal_places": 1}, monkeypatch)
+    seen = _spy_on_the_request(panel, monkeypatch)
+
+    _run(panel, ["topology_analysis"])
+    panel._calculator_parameters["topology_analysis"]["decimal_places"] = 6
+
+    assert seen["request"].parameters["topology_analysis"]["decimal_places"] == 1
+
+
+def test_the_lazy_details_path_uses_the_same_settings_as_the_table(
+    panel, project, monkeypatch
+):
+    """A details view and the table beside it must be one calculation.
+
+    Computed on the registry's defaults while the table used somebody's
+    chosen parameters, they would be two different calculations reported
+    under one name.
+    """
+    _configure(panel, "topology_analysis", {"decimal_places": 1}, monkeypatch)
+    panel.check("topology_analysis")
+
+    seen = _spy_on_the_request(panel, monkeypatch)
+    panel._show_details(project.molecules[0].uuid)
+
+    assert seen["request"].parameters["topology_analysis"]["decimal_places"] == 1
+
+
+def test_a_calculator_needing_a_typed_value_can_now_be_batched(panel, monkeypatch):
+    """The defect this step exists for, end to end.
+
+    `compute_lewis_adduct`'s own docstring claims an adduct prediction can
+    be a batch column. It could not: the panel sent no parameters, so
+    `partner_smiles` fell back to its empty default and every row failed
+    with "Enter the partner molecule as SMILES in this calculator's
+    settings."
+
+    THE SETUP IS ASSERTED FIRST -- unconfigured, it must still fail, or
+    this guard would pass against a calculator that never needed settings.
+    """
+    unconfigured = _spy_on_compute(panel, monkeypatch)
+    _run(panel, ["lewis_adduct"])
+    assert unconfigured["lewis_adduct"][0]["partner_smiles"] == "", (
+        "lewis_adduct no longer defaults to an empty partner, so this "
+        "guard cannot see the defect it was written for"
+    )
+    _configure(panel, "lewis_adduct", {"partner_smiles": "N"}, monkeypatch)
+    configured = _spy_on_compute(panel, monkeypatch)
+    _run(panel, ["lewis_adduct"])
+
+    assert configured["lewis_adduct"][0]["partner_smiles"] == "N"
+
+
+def test_no_column_is_wider_than_the_viewport_it_is_shown_in(panel, monkeypatch):
+    """Sizing to contents alone puts a HEADER off screen.
+
+    A header is CENTRED in its section, so a column sized to a
+    200-character cell centres its title half a column in and the column
+    reads as though it had no header. Measured in the running app once
+    Lewis Adduct started returning a limitation line: 710 px against a
+    416 px viewport.
+
+    **THROUGH `_render_table`, NOT BY CALLING THE CAP.** The first version
+    of this guard invoked `_cap_column_widths()` itself, so removing the
+    call site SURVIVED it -- testing a helper is not testing the wiring,
+    which this project records five times and which happened twice while
+    writing this branch.
+
+    THE SETUP IS ASSERTED, against the cell's own font metrics rather than
+    against a width the cap has already touched: without content genuinely
+    wider than the viewport this guard is a tautology.
+    """
+    _configure(panel, "lewis_adduct", {"partner_smiles": "N"}, monkeypatch)
+    _run(panel, ["lewis_adduct"])
+
+    header = panel._results.horizontalHeader()
+    viewport = panel._results.viewport().width()
+    metrics = panel._results.fontMetrics()
+    widest = max(
+        metrics.horizontalAdvance(panel._results.item(row, column).text())
+        for row in range(panel._results.rowCount())
+        for column in range(panel._results.columnCount())
+        if panel._results.item(row, column) is not None
+    )
+    assert widest > viewport, (
+        f"the widest cell is {widest} px in a {viewport} px viewport, so no "
+        "column can exceed it and this guard cannot see a missing cap"
+    )
+
+    metrics = header.fontMetrics()
+    for index in range(panel._results.columnCount()):
+        item = panel._results.horizontalHeaderItem(index)
+        floor = metrics.horizontalAdvance(item.text()) if item is not None else 0
+        assert header.sectionSize(index) <= max(viewport, floor), (
+            f"column {index} is {header.sectionSize(index)} px in a "
+            f"{viewport} px viewport, so its centred header is off screen"
+        )
+        assert header.sectionSize(index) >= floor, (
+            f"capping squeezed column {index} back under its own header, "
+            "which is the clip the sizing exists to remove"
+        )
