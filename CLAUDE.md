@@ -6395,6 +6395,35 @@ Categorising every changed line took one command and settled it; the
 alternative reading -- that the shipped rulesets had been stale for weeks --
 would have sent somebody a long way in the wrong direction.
 
+#### DRIVEN AND MAGNIFIED, AND THE THREE-VALUED PRECISION IS VISIBLE
+
+Ethanol through the real Properties panel, `admet` expanded, cropped 3x.
+What the screen says:
+
+    Regulatory Screen: Ethyl alcohol (Ethanol) (29 CFR 1910.1000 Table Z-1)
+      [us, identity, verified] - per US OSHA Table Z-1
+    Regulatory Screen: exposure limit: 1000 ppm (8-hour TWA)
+    Regulatory Screen: exposure limit: 1900 mg/m3 (8-hour TWA, approximate)
+    Limitation: A permissible exposure limit is an AIRBORNE CONCENTRATION
+      for an occupational setting. ...
+
+**THE TWO LINES TOGETHER ARE THE ARGUMENT FOR THREE PRECISION VALUES**, and
+no headless assertion shows it as plainly: the mg/m3 entry carries
+"approximate" because a ppm entry accompanies it, and the ppm entry carries
+NO precision word at all -- `UNSTATED` rendering as silence rather than as a
+guess, because footnote (b) says nothing about ppm. A two-valued flag would
+have had to print something on that line, and whatever it printed would have
+been invented.
+
+Nothing is clipped, nothing elides, and no value overlaps its caption at the
+420 px dock default. `mg/m3` is ASCII rather than `mg/m^3` with a superscript,
+so the line survives a cp437 console -- the rule this file already records
+costing a refusal message a wrong verdict.
+
+**THE PANEL IS 13441 px OF CONTENT IN A ~580 px VIEWPORT**, so the band had
+to be found by scrolling rather than photographed from the top. A `shot` of
+the panel at rest shows none of this.
+
 ### THE BENCHMARK-CORPUS GUARD BECAME A RATCHET, WITH ITS REASON STATED
 
 The corpus guard was a blanket assertion over all 91 rules, and Table Z-1
