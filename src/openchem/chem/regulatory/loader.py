@@ -37,6 +37,7 @@ from openchem.chem.regulatory.types import (
     RulesetCoverage,
     RulesetProvenance,
     SourceLimitFact,
+    SourceSnapshot,
 )
 
 logger = logging.getLogger("openchem.chemistry")
@@ -123,8 +124,31 @@ def ruleset_from_dict(data: dict, user_supplied: bool = False) -> Ruleset:
             opsin_version=provenance_raw.get("opsin_version", ""),
             rdkit_version=provenance_raw.get("rdkit_version", ""),
         ),
+        source_snapshot=_snapshot_from_dict(data.get("source_snapshot")),
         known_limitations=tuple(data.get("known_limitations", [])),
         user_supplied=user_supplied,
+    )
+
+
+def _snapshot_from_dict(raw: dict | None) -> SourceSnapshot | None:
+    """The retrieved document, or None where nothing was retrieved.
+
+    ABSENT AND EMPTY ARE THE SAME ANSWER HERE and both give None: a
+    snapshot whose fields are blank claims a retrieval that did not
+    happen, which is worse than saying nothing. `document` and `sha256`
+    are what make it a snapshot at all, so a partial one is refused.
+    """
+    if not isinstance(raw, dict):
+        return None
+    document = str(raw.get("document", ""))
+    digest = str(raw.get("sha256", ""))
+    if not document or not digest:
+        return None
+    return SourceSnapshot(
+        document=document,
+        sha256=digest,
+        retrieved=str(raw.get("retrieved", "")),
+        status=str(raw.get("status", "")),
     )
 
 

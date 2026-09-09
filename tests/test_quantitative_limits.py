@@ -35,27 +35,56 @@ def _fact(**overrides) -> SourceLimitFact:
     return SourceLimitFact(**values)
 
 
-def _shipped_rules() -> list[Rule]:
+#: The four rulesets that shipped BEFORE this field existed. Named rather
+#: than derived as "everything except OSHA", because the claim being made
+#: is about these four specifically -- that adding the field left them
+#: untouched -- and a rule like "every ruleset with no limits" would be
+#: satisfied by a build that had silently stripped them.
+_PREDATING_RULESETS = (
+    "cwc_schedule_1.json",
+    "cwc_schedule_2.json",
+    "cwc_schedule_3.json",
+    "dea_listed_chemicals.json",
+)
+
+
+def _predating_rules() -> list[Rule]:
     rules: list[Rule] = []
-    for path in sorted(SHIPPED_ROOT.glob("*.json")):
-        rules.extend(load_ruleset(path).rules)
+    for name in _PREDATING_RULESETS:
+        rules.extend(load_ruleset(SHIPPED_ROOT / name).rules)
     return rules
 
 
 # --- the compatibility boundary ------------------------------------------
 
 
-def test_every_shipped_rule_loads_with_no_quantitative_limits():
+def test_every_rule_that_predates_the_field_loads_with_no_limits():
     """The real compatibility boundary, asserted over the whole population.
 
     THE SETUP IS ASSERTED FIRST: an empty shipped set would satisfy the
     claim vacuously, and this project has recorded a population walk
     collapsing to zero and reading as a clean pass.
     """
-    rules = _shipped_rules()
+    rules = _predating_rules()
 
-    assert len(rules) > 80, f"only {len(rules)} shipped rules were loaded"
+    assert len(rules) > 80, f"only {len(rules)} rules were loaded"
     assert all(rule.quantitative_limits == () for rule in rules)
+
+
+def test_a_ruleset_that_uses_the_field_really_does_carry_limits():
+    """THE OTHER HALF, and without it the test above is a claim about
+    nothing.
+
+    "No shipped rule carries a limit" passes just as happily against a
+    loader that dropped the field on the floor, or a build that never
+    wrote it -- so the compatibility guard needs a live counter-example
+    in the same shipped set. This is why it is scoped to four named
+    rulesets rather than to "every rule": the fifth must disagree.
+    """
+    osha = load_ruleset(SHIPPED_ROOT / "osha_table_z1.json")
+    carrying = [rule for rule in osha.rules if rule.quantitative_limits]
+
+    assert len(carrying) > 100, f"only {len(carrying)} rules carry a limit"
 
 
 def test_a_rule_built_without_the_field_is_identical_to_one_built_with_an_empty_tuple():

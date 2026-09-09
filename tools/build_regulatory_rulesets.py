@@ -139,6 +139,13 @@ def _validate_expression(expression, rule_id: str) -> None:
         _validate_expression(child, rule_id)
 
 
+#: Elements whose standard state is a diatomic molecule, so a name that
+#: resolves to a lone atom of one has not resolved to the substance. Seven
+#: entries, from the elements themselves rather than from a heuristic about
+#: atom counts -- a lone `[Cu]` IS copper and must keep resolving.
+DIATOMIC_ELEMENTS = frozenset({"H", "N", "O", "F", "Cl", "Br", "I"})
+
+
 def _resolve_name(name: str) -> tuple[str, str]:
     """(inchikey, note) for a chemical name, via OPSIN.
 
@@ -161,6 +168,62 @@ def _resolve_name(name: str) -> tuple[str, str]:
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return "", "OPSIN structure did not parse"
+
+    # A NAME THAT RESOLVES TO A MIXTURE, and the two cases are opposite.
+    #
+    # Table Z-1 prints aliases in parentheses -- "Chloroform
+    # (Trichloromethane)", "Ethyl alcohol (Ethanol)" -- and OPSIN reads
+    # the whole string as TWO components, returning `ClC(Cl)Cl.C(Cl)(Cl)Cl`.
+    # Its InChIKey is not chloroform's, so the rule ships as a verified
+    # identity that can never match a drawn chloroform: a screen that says
+    # nothing, which is the silence-read-as-reassurance this engine exists
+    # to prevent.
+    #
+    # Where every fragment is the SAME substance the intended structure is
+    # not in doubt, so it collapses to that one fragment -- an alias names
+    # the compound it is an alias for.
+    #
+    # **FRAGMENTS THAT DIFFER ARE LEFT ALONE, and refusing them was a
+    # measured mistake.** The first version of this rule treated any
+    # multi-component answer as a misparse and refused it, which read as a
+    # tidy safety check and dropped 18 rules -- calcium carbonate, barium
+    # sulfate, ammonium sulfamate. For a SALT the multi-component structure
+    # IS the identity, and OPSIN returning `[Ca+2].[O-]C([O-])=O` is it
+    # working correctly. The failure mode of an over-broad refusal is a
+    # green suite and a smaller ruleset, which reads as tidier coverage
+    # rather than as lost rows; only counting the rules either side showed
+    # it, which is why `test_the_alias_rule_does_not_swallow_the_salts`
+    # asserts the survivors BY NAME.
+    #
+    # Stripping the parenthetical by text instead was rejected:
+    # `2-Chloro-6-(trichloromethyl) pyridine` carries one that is part of
+    # the name, and no textual rule tells the two apart.
+    fragments = Chem.GetMolFrags(mol, asMols=True, sanitizeFrags=False)
+    if len(fragments) > 1:
+        keys = {Chem.MolToInchiKey(fragment) for fragment in fragments}
+        if len(keys) == 1:
+            mol = fragments[0]
+
+    # AN ELEMENT NAME GIVES OPSIN AN ATOM, AND THE TABLE MEANS THE GAS.
+    #
+    # "Chlorine" resolves to `[Cl]`, a chlorine atom, where the air
+    # contaminant with a 1 ppm ceiling is Cl2. Measured, OPSIN answers
+    # every diatomic element this way: F, Cl, Br, I, O, N. The rule would
+    # then match a lone halogen radical and never the substance.
+    #
+    # REFUSED RATHER THAN CORRECTED. Writing Cl2 here would be a
+    # hand-typed structure standing in for a resolution, which is the one
+    # thing this script exists to prevent -- so the row becomes a counted
+    # unresolved entry that a reader can see, and the seven elements are
+    # named rather than guessed at from a property table.
+    if mol.GetNumAtoms() == 1 and not mol.GetAtomWithIdx(0).GetTotalNumHs():
+        symbol = mol.GetAtomWithIdx(0).GetSymbol()
+        if symbol in DIATOMIC_ELEMENTS:
+            return "", (
+                f"OPSIN returned a single {symbol} atom, but the element's "
+                f"standard state is {symbol}2"
+            )
+
     return Chem.MolToInchiKey(mol) or "", ""
 
 
@@ -261,7 +324,14 @@ def build_one(source_path: Path) -> tuple[dict, list[str]]:
 
         if not expression and not keys:
             notes.append(f"  {rule_id}: no expression and no resolved identity -- skipped")
-            unresolved.append(f"{rule_id}: nothing to match on")
+            # ONE ENTRY PER RULE, NOT ONE PER SYMPTOM. A rule whose only
+            # name failed to resolve already recorded WHY just above; a
+            # second "nothing to match on" beside it counts the same
+            # refusal twice, and a count that double-counts is not a
+            # count. Invisible while almost everything resolved -- the
+            # OSHA table, where 154 names do not, reported 308.
+            if not any(line.startswith(f"{rule_id}: ") for line in unresolved):
+                unresolved.append(f"{rule_id}: nothing to match on")
             continue
 
         # A rule matched by InChIKey NAMES A SUBSTANCE, and the finding
@@ -279,30 +349,48 @@ def build_one(source_path: Path) -> tuple[dict, list[str]]:
                 f"cannot be expressed as a list of keys."
             )
 
-        rules_out.append(
-            {
-                "rule_id": rule_id,
-                "display_name": entry.get("display_name", rule_id),
-                "domain": source["domain"],
-                "jurisdiction": source["jurisdiction"],
-                "match_type": entry.get("match_type", "structural_family"),
-                "description": entry.get("description", ""),
-                "legitimate_uses": entry.get("legitimate_uses", []),
-                "synonyms": entry.get("synonyms", []),
-                "legal": {
-                    "authority": legal.get("authority", ""),
-                    "instrument": legal.get("instrument", ""),
-                    "section": legal.get("section", ""),
-                    "quote": quote,
-                    "citation_url": legal.get("citation_url", source.get("citation_url", "")),
-                    "effective_date": legal.get(
-                        "effective_date", source.get("effective_date", "")
-                    ),
-                    "cited_identifiers": legal.get("cited_identifiers", {}),
-                },
-                "interpretation": interpretation,
-            }
-        )
+        rule_out = {
+            "rule_id": rule_id,
+            "display_name": entry.get("display_name", rule_id),
+            "domain": source["domain"],
+            "jurisdiction": source["jurisdiction"],
+            "match_type": entry.get("match_type", "structural_family"),
+            "description": entry.get("description", ""),
+            "legitimate_uses": entry.get("legitimate_uses", []),
+            "synonyms": entry.get("synonyms", []),
+            "legal": {
+                "authority": legal.get("authority", ""),
+                "instrument": legal.get("instrument", ""),
+                "section": legal.get("section", ""),
+                "quote": quote,
+                "citation_url": legal.get("citation_url", source.get("citation_url", "")),
+                "effective_date": legal.get(
+                    "effective_date", source.get("effective_date", "")
+                ),
+                "cited_identifiers": legal.get("cited_identifiers", {}),
+            },
+            "interpretation": interpretation,
+        }
+
+        # PASSED THROUGH VERBATIM, never derived here. A limit is a
+        # transcription plus a reading of a notation, both made by the
+        # extractor that had the regulation in front of it; re-deriving
+        # either from the name or the value at build time would be a
+        # second interpretation of the same text.
+        #
+        # AND THE KEY IS OMITTED WHEN THERE IS NOTHING TO WRITE, which is
+        # the loader's additive contract mirrored on the writing side:
+        # `_rule_from_dict` reads an absent key as an empty tuple, so an
+        # emitted `[]` says exactly what silence says. Emitting it anyway
+        # rewrote all 91 rules shipped before this field existed -- 190
+        # changed lines carrying no information, and four moved ruleset
+        # hashes -- which is a diff a reviewer has to read to learn that
+        # nothing happened.
+        limits = entry.get("quantitative_limits", [])
+        if limits:
+            rule_out["quantitative_limits"] = limits
+
+        rules_out.append(rule_out)
 
     total = len(source.get("rules", []))
     ruleset = {
@@ -316,6 +404,23 @@ def build_one(source_path: Path) -> tuple[dict, list[str]]:
         "supersedes": source.get("supersedes", ""),
         "source_citation": source.get("source_citation", ""),
         "known_limitations": source.get("known_limitations", []),
+        # CARRIED THROUGH, NEVER RECOMPUTED. `source_document_sha256` below
+        # hashes the source JSON in this repository, so it says whether OUR
+        # transcription changed; this says whether the REGULATION did. For
+        # a source JSON that is itself generated -- OSHA's is, from a
+        # committed eCFR XML -- omitting it would leave the shipped
+        # ruleset's provenance pointing at an intermediate and stop the
+        # chain back to the regulation one link short.
+        #
+        # Omitted entirely when the source declares none, so the four
+        # hand-transcribed rulesets stay byte-identical and none of them
+        # acquires an empty snapshot claiming a retrieval that never
+        # happened.
+        **(
+            {"source_snapshot": source["source_snapshot"]}
+            if source.get("source_snapshot")
+            else {}
+        ),
         "rules": rules_out,
         "coverage": {
             "total_entries": total,

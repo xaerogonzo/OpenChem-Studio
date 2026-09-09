@@ -431,6 +431,47 @@ class RulesetProvenance:
 
 
 @dataclass(frozen=True)
+class SourceSnapshot:
+    """The OFFICIAL document a ruleset was read from, and when.
+
+    **DISTINCT FROM `RulesetProvenance.source_document_sha256`, and the two
+    answer different audit questions.** That field hashes the source JSON
+    in this repository -- our own transcription -- so it says whether the
+    BUILD changed. This one hashes the regulation as it was served, so it
+    says whether the REGULATION changed. Conflating them makes "the law was
+    amended" and "we edited our copy" indistinguishable, which is exactly
+    the confusion the field exists to remove.
+
+    It matters here because the OSHA source JSON is itself generated, by
+    `tools/extract_osha_z1.py`, from a committed eCFR XML. Without this the
+    shipped ruleset's provenance would point at an intermediate and the
+    chain back to the regulation would stop one link short.
+
+    **`status` IS A STRING AND NOT A BOOL**, deliberately: retrieved today,
+    current as of retrieval, official but historical, and superseded are
+    four states, and a bool loses the one that matters -- a ruleset built
+    from a superseded revision looks exactly like a current one.
+
+    ABSENT FOR A RULESET WHOSE SOURCE IS HAND-WRITTEN. The four rulesets
+    shipped before this existed transcribe their regulation into the source
+    JSON by hand, so there is no retrieved document to hash and `None` is
+    the honest answer rather than an empty snapshot claiming one.
+    """
+
+    #: The retrieved file's name, beside the source JSON that was built
+    #: from it.
+    document: str
+    #: sha256 of that file's OWN BYTES. Not newline-normalised: the bytes
+    #: are the evidence, which is why `.gitattributes` stops git
+    #: translating them.
+    sha256: str
+    #: When it was retrieved, ISO date.
+    retrieved: str
+    #: What was true of it at that moment, in words.
+    status: str
+
+
+@dataclass(frozen=True)
 class RulesetCoverage:
     """How complete a ruleset is, as a number the UI can quote.
 
@@ -474,6 +515,11 @@ class Ruleset:
     rules: tuple[Rule, ...] = ()
     coverage: RulesetCoverage = field(default_factory=RulesetCoverage)
     provenance: RulesetProvenance = field(default_factory=RulesetProvenance)
+    #: The official document this was read from, where one was
+    #: retrieved rather than transcribed by hand. `None` for the four
+    #: rulesets that predate it -- an empty snapshot would claim a
+    #: retrieval that never happened.
+    source_snapshot: SourceSnapshot | None = None
     known_limitations: tuple[str, ...] = ()
     #: True for anything loaded from the user's data directory. Kept
     #: separate in every report: a company policy and a statute are
