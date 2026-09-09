@@ -5928,6 +5928,217 @@ code path and never fail. Asserted on the predicate instead, with its own
 setup checked -- an unreachable branch is a question about where to
 assert.
 
+
+## THREE GUARDS I WROTE MATCHED THE PROSE EXPLAINING THEIR OWN RULE
+
+This file already records the shape four times -- *grepping for a phrase
+counts the source, not the outcome* -- at `grep FAILED`, `INFRASTRUCTURE
+FAILURE`, `Fatal Python error|Windows`, and `_declared_providers`' text
+scan reading a comment that existed only to explain the absence it named.
+
+**It was sprung three more times in ONE branch, by somebody who had read
+all four.** Every instance has the same shape: a guard forbidding a thing,
+in a file whose docstring explains why that thing is forbidden.
+
+    scanned `resolve_roles` for "hardness"   matched the paragraph saying
+                                             why hardness must not break a tie
+    scanned the settings dialog for "rdkit"  matched the docstring saying why
+                                             RDKit must not be imported there
+    scanned `_do_visual_check`'s surface     (caught before it shipped)
+
+**THE TWO FIXES ARE DIFFERENT AND THE SECOND IS THE BETTER ONE.** The
+first excludes the docstring and walks the AST body -- `ast.get_docstring`
+then `function.body[1:]` -- collecting `Name` and `Attribute` nodes, with
+a setup assertion that the walk found the call the function certainly
+makes, so an AST walk that quietly returned nothing cannot satisfy it.
+
+The second was **DELETED**. `tests/test_layering.py` already forbids a
+`ui/` module importing RDKit, by AST, over the whole package. A second
+copy was redundant AND wrong, and the redundancy is what made it wrong:
+nobody writes a careful check for a rule they believe is already covered.
+**Before writing a source-scanning guard, ask whether the rule already has
+one** -- and if it does, cite it instead.
+
+## A HELP-CONTRACT FIXTURE THAT COULD NOT BE BUILT WAS SKIPPING 5 CONTROLS
+
+`ui/dialogs/inventory.py`'s `calculator_settings` calls
+`_require(context, "services")`, and `tests/test_dialog_help_contracts.py`
+walks with a bare `DialogContext()`. So it raised `DialogUnavailable`, was
+reported as unavailable rather than failing, and **every parameter widget
+the generic settings dialog builds has been unguarded for as long as that
+dialog has existed.**
+
+That is the inventory's own "a dialog that cannot be built is REPORTED,
+never skipped" rule working exactly as designed -- and the report is a
+line nobody was reading as a coverage gap. The dialog was in the
+inventory, so it looked covered.
+
+**A SYNTHETIC FIXTURE FIXES IT, and it found seven on its first run.**
+`CalculatorSettingsDialogAllKinds` builds from a definition this project
+invents rather than from "the first registered calculator", so coverage
+cannot quietly shrink when a registration changes -- and its parameter
+list is DERIVED FROM `PARAMETER_KINDS`, so a seventh kind is walked
+without anybody remembering to add it.
+
+**THE CONTRACTS ARE KEYED BY KIND, NOT BY CALCULATOR**, which is the
+sixty-tick-boxes shape again: "a numeric setting for this calculator"
+means the same thing on every one of the sixty-odd calculators that has
+one, and `instance_path` tells the renderings apart. `float` and `int`
+SHARE an id -- a number is a number, and splitting them would be one
+concept wearing two, which `test_one_concept_is_not_split_across_many_help_ids`
+refuses.
+
+**THE PLAN'S OWN PREMISE WAS HALF WRONG AND I REPEATED IT.** The previous
+branch's plan said the inventory "builds it BARE for the help-contract
+guard". The substance is right -- only a definition is passed -- and the
+guarantee is not. Carried into a new plan without checking, which is this
+file's most-repeated failure.
+
+## A `"choice"` PARAMETER STORED THE ENGLISH ON THE SCREEN, IN THE CACHE KEY
+
+`CalculatorSettingsDialog.parameters()` read `QComboBox.currentText()`,
+and `batch_service.py:334` hashes what it gets into `parameters_key`. So
+the DISPLAYED PROSE was part of every retained result's identity, and
+rewording a label silently orphaned every result computed under the old
+wording.
+
+`choices` is the stable value vocabulary now and `choice_labels` carries
+the prose. **With no labels declared the behaviour is byte-identical**,
+which is the load-bearing half: 23 of the 24 shipped `"choice"` parameters
+declare none and their stored values are already inside retained results.
+
+**THE BLAST RADIUS WAS MEASURED RATHER THAN FEARED**, and the two things
+`parameters_key` feeds are not the same thing:
+
+    BatchResultStore   IN-MEMORY. An orphaned key is a same-session
+                       recompute of a cheap calculator.
+    result_cache       ON-DISK retention for expensive QM work, whose own
+                       docstring says a result that must be recomputed to
+                       be seen again "is a rumour".
+
+Only a parameter deliberately migrated is affected -- one, in this branch,
+reaching no QM cache. The policy is that an old key MISSES and recomputes;
+**nothing is aliased**, because silent dual identity is worse than either.
+
+**AND AN UNKNOWN KIND IS REFUSED AT REGISTRATION, NOT AT CLICK.**
+`_build_widget` matches no branch for an unknown kind and returns nothing,
+so the failure is otherwise a settings dialog silently missing one of its
+controls. `PARAMETER_KINDS` is the single vocabulary -- the factory
+dispatches on it and the coverage fixture derives from it, so a new kind
+cannot be added to one and miss the other.
+
+## A HEADER OVERFLOWS; A CELL ELIDES. AND THE ORACLE SEES NEITHER
+
+The Batch results table never sized its columns, so each stayed at Qt's
+default section width -- and **a `QHeaderView` OVERFLOWS rather than
+eliding**, with centre alignment costing BOTH ends: "Substance
+classification" rendered `ostance classificat`.
+
+**`visual_check` REPORTED 0 FINDINGS, AT BOTH WIDTHS, ON BOTH RUNS**, and
+structurally always will: a header is painted by the VIEW, and
+`painted_items` walks CHILD WIDGETS. The same reach limit shows in the
+population -- 12-13 painted items on Batch and 5 on Compare against 40 on
+Properties, both being mostly item views -- so **a clean geometric result
+on an item-view-shaped panel is a far weaker statement than the same
+result on a form-shaped one.** Written into `benchmarks/visual/README.md`
+beside the script that found it.
+
+**AND THE FIX HAD AN EDGE THE SAME TECHNIQUE FOUND.** Sizing to contents
+puts a header off screen once a cell is long, because a header is CENTRED
+in its section: measured, a 200-character limitation line drove its column
+to 710 px against a 416 px viewport and "Lewis Adduct" landed past the
+edge, so the column read as though it had no header at all. Capped at the
+viewport and never below the header's own width.
+
+**`resizeColumnsToContents()` ONCE, NOT THE `ResizeToContents` MODE**, and
+the reason is a measurement trap: the mode makes every section
+non-draggable, and it is not free either -- it DEFERS the same work to
+paint time, so a probe timing `setSectionResizeMode` reports **0.0 ms and
+has measured nothing**. Timed properly, 32.8 ms one-shot at 181 molecules
+x 63 columns, bounded to 3.7 ms by `setResizeContentsPrecision(20)`.
+
+## `batch_service` READS AN EMPTY SCOPE AS "EVERYTHING GIVEN"
+
+Which is a deliberate compatibility contract with its own tests, and the
+single most dangerous fact about adding a molecule-selection control:
+unticking every molecule and pressing Fill table would run the WHOLE
+PROJECT -- a bug that looks like correct behaviour.
+
+**The UI refuses; the service keeps its convention.** And that same
+contract is what makes the CONTROL test's vacuity the crux of the feature:
+a scope control that does nothing sends an empty list and is
+**indistinguishable by outcome** from the correct default. The guard
+therefore asserts the widget's own ticks as well as the request.
+
+**THE SERVICE CLAMPS THE PAYLOAD BY THE REQUEST**, so widening either half
+alone is an equivalent mutation -- measured, the request widening ALONE
+reddens exactly one test, and only because the sentinel asserts both.
+
+## TESTING A HELPER IS NOT TESTING THE WIRING -- TWICE MORE, BOTH MINE
+
+This file records the lesson five times. Two more, both caught by mutation
+rather than by review, both in guards written the same afternoon:
+
+    the frozen-settings guard asserted on `calculator_parameters()`'s
+    RETURN VALUE, so handing `_run` the live dict survived it
+    the column-cap guard CALLED `_cap_column_widths()`, so deleting its
+    call site survived it
+
+Both now go through `_run` and `_render_table`. The tell is the same in
+both: a test that names a behaviour and then invokes the helper directly
+is testing that the helper works.
+
+## A COMMITTED DRIVE SCRIPT DID NOT CONSTRUCT ITS OWN STATE
+
+`benchmarks/visual/README.md` opens with that rule, and the Batch panel
+breaks it silently: `BatchPanel` persists its ticked property ids under
+`batch/selected_property_ids` and restores them on construction, so a
+selection **outlives the process** and leaks from one committed script
+into the next. Measured -- a scope benchmark ticking `lewis_adduct` alone
+came back carrying a Substance-classification column belonging to the
+benchmark before it.
+
+`batch_select` takes `clear` now and every Batch script opens with it. The
+molecule scope needs no equivalent, being deliberately unpersisted.
+
+## A BLANK LINE IN A REPORT IS A ROW WITH NO VALUE
+
+`FactView` renders one row per `matched` line, so `lines.append("")` --
+used as a separator between two reported orientations -- draws a label
+with nothing beside it, which reads as a fact whose value is missing. Name
+the section instead; the name is more useful than the whitespace anyway.
+
+Found by driving the app with 105 tests green, which is the eighteenth
+entry in this file's running count of that.
+
+## MEASURE THE POPULATION BEFORE DESIGNING FOR IT
+
+Two decisions in one branch were settled by a count that took a minute:
+
+    calculators carrying parameters   69 of 69, so a marker on the
+                                      parameterised leaves would mark
+                                      EVERYTHING and was not built
+    Drago table overlap               24 acid-only, 33 base-only, ZERO in
+                                      both -- so "tabulated both ways" is
+                                      unreachable with shipped data and is
+                                      asserted on a replaced table
+
+The second is this file's own "an unreachable branch is a question about
+where to assert" arriving before the branch was written rather than after.
+
+**AND A NON-DEGENERATE FIXTURE HAD TO BE SEARCHED FOR.** The obvious Drago
+pair is a tabulated acid and a tabulated base -- and it is degenerate: THF
+cannot act as an acid at all, so the SITE rule decides that pair
+identically and deleting the table rule changes nothing. tert-butanol and
+methylamine are both admissible BOTH ways, so only the table can decide
+them. Measured before the guard was believed, and the mutation confirmed
+it: with the table, resolved; without it, unresolved.
+
+A second one, for the same rule from the other side: a Drago rule reading
+only "is the subject a tabulated acid?" gives the RIGHT answer whenever
+the partner is a tabulated base, so it survives that fixture too. What
+tells them apart is a tabulated acid against a partner in NEITHER table.
+
 ## Running the tests
 
 ```bash
@@ -5937,7 +6148,50 @@ uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suit
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-22 minutes**, ending at `7116 passed, 16 skipped`
+A clean run is **6-22 minutes**, ending at `7156 passed, 16 skipped`
+(measured 2026-09-09, **19m32**, on `stage-5-the-no-gate-trio` -- the three
+items the roadmap called ready to build with no science gate, plus the two
+defects planning found on the way.
+
+**+40 collected and 0 REMOVED**, diffed both directions with `comm` in a
+detached worktree, with the `PYTHONPATH` override asserted before the count
+was believed (`import openchem` reported the WORKTREE's `src`):
+
+    master     0dd7c1a   COLLECTS 7132
+    this one             COLLECTS 7172   = 7132 + 40
+    the run                       7156 passed + 16 skipped = 7172
+
+    16  test_batch_panel.py             the molecule scope's sentinel and
+                                        its control, the lifecycle, the
+                                        per-calculator parameters, and the
+                                        two column-width guards
+    12  test_lewis_adduct.py            the two orientation rules, the
+                                        both-ways refusal, the five role
+                                        states and the no-rule-3 guard
+     9  test_calculator_settings_dialog.py  the SMILES chooser's two modes
+                                        and `choice_labels`' two halves
+     3  test_sources_are_current.py     parametrised cases of the EXISTING
+                                        schema guard, one per new source
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored,
+since pytest's progress dots share the line -- as do `^FAILED`, `^ERROR`
+and a whole-line-anchored count of `F`/`E` progress characters. The skips
+are the deterministic 16. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**AND THE FIRST ATTEMPT AT THIS FIGURE WAS KILLED AT 2%, WHICH IS THE
+REASON THE PAIR IS A PAIR.** It was launched as `nohup ... &` inside a
+backgrounded command, so the outer shell returned immediately, the harness
+reaped the group, and the log ended mid-progress-line with **no summary,
+no FAILED lines and no crash markers** -- which every naive check reads as
+a clean run. Launch it as the background command itself, not as a
+background command that backgrounds something else.
+
+19m32 sits in the upper half of the band; the 6-22 range stands.)
+
+Before it: `7116 passed, 16 skipped`
 (measured 2026-09-08, **20m01**, on `widen-the-presentation-channel` --
 `Fact.units` reaching the row, and the chart channel going from one kind
 to three.

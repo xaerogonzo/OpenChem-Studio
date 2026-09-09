@@ -1275,12 +1275,32 @@ Still waiting on that channel:
 Deterministic, small, and deselected from the branch above rather than
 blocked by anything:
 
-- **The Lewis adduct partner-picker.** `compute_lewis_adduct` takes its
-  partner as typed SMILES; it should offer the molecules already open in the
-  project. And the role control ("this molecule is the acid") could be
-  worked out instead — reporting BOTH orientations when the evidence does
-  not choose, which is the same refusal `_hsab_line` already makes rather
-  than inventing a ranking.
+- ~~**The Lewis adduct partner-picker.**~~ **SHIPPED, both halves.** The
+  settings dialog offers the project's own molecules through a `"smiles"`
+  parameter kind, and `resolve_roles` works the orientation out.
+
+  **IT ADDS NO NEW CHEMISTRY**: rule 1 is the Drago table's own published
+  acid/base pairings, rule 2 is the `analyse` site check `predict` already
+  makes, and there is deliberately no rule 3 — a tie is not broken on
+  hardness, because `_hsab_line`'s own docstring records that a single
+  point on the η axis gets BH₃/BF₃ against CO backwards.
+
+  **It is structural ADMISSIBILITY, never an acid/base assignment.**
+  Surviving `analyse` says the acid has somewhere to accept and the base
+  something to donate — a precondition, not a thermodynamic determination,
+  and every user-facing string says *orientation*.
+
+  When both ways round are admissible — **the common case**, since
+  ambiphilic sites make any pair of ordinary organics work either way —
+  both orientations are reported and neither is ranked, which is the
+  refusal `_hsab_line` already makes. When neither works, both specific
+  reasons survive rather than collapsing to "partner invalid".
+
+  Provenance carries three axes, not one role: what was **requested**,
+  which **orientation** was used, and **how** it was decided. Five states
+  come out pairwise distinct, and the fifth is why — `auto → acid` and an
+  explicit `acid` produce the same orientation and must still be tellable
+  apart.
 - ~~**Per-molecule selection in Batch.**~~ **SHIPPED.** A collapsible
   "Molecules" section above the property filter, ticked by uuid, everything
   ticked by default — so a project nobody narrows behaves exactly as it did.
@@ -1420,7 +1440,13 @@ controlled substances, export controls, transport, occupational,
 environmental and the rest — registers EMPTY and says so in the coverage
 report, because an absent domain is invisible and reads as "nothing
 applies". **Ten of the twelve domains are still empty.** Adding one is a
-JSON file and a build run, not a code change.
+JSON file and a build run, not a code change — **for an IDENTITY or
+STRUCTURAL-FAMILY domain, which is every one shipped so far.** The
+qualification is not pedantry: a QUANTITATIVE domain such as occupational
+exposure carries limits, units, averaging periods and footnotes that
+`Rule` has nowhere to put, so it needs a model extension before any JSON
+is worth writing. That is the next branch, and it is the counter-example
+this sentence had been missing.
 
 | ruleset | domain | entries | encoded | shape |
 |---|---|---|---|---|

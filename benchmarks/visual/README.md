@@ -69,6 +69,15 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 | `batch_and_compare_organisation.json` | Batch and Compare panels, at 420 px and in a 1100 px window | a results-table header printing `ostance classificat` -- clipped at BOTH ends, because a `QHeaderView` overflows rather than eliding |
 | `batch_molecule_scope.json` | the Batch panel's molecule scope, narrowed then emptied then restored | nothing yet -- it exists because the scope is a state NO SCREENSHOT CARRIES |
 | `batch_calculator_settings.json` | one calculator batched with and without its settings | Lewis Adduct failing on EVERY molecule in Batch, because the panel sent no parameters; and then a column so wide its centred header sat off screen |
+| `lewis_partner_picker.json` | the settings dialog at every parameter kind, and the three role states | a blank separator line rendering as a row with a LABEL AND NO VALUE -- a fact whose value is missing |
+
+**`lewis_partner_picker.json` PHOTOGRAPHS A DISTINCTION THE PROVENANCE ALREADY
+RECORDS**, which is the point of it: an orientation worked out from the Drago
+table, one worked out from the structures, one the user forced, and one that
+could not be decided are four different results, and if they read alike on
+screen the record is useless to the person looking at it. They read
+"from the Drago-Wayland table...", "as you set it." and "not determined from
+the structures...", with the acid and base swapping as forced.
 
 **`batch_molecule_scope.json` LOGS THE RESOLVED SCOPE BESIDE EVERY SHOT**, and
 that is the point of it rather than a convenience. A panel scoped to two
