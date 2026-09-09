@@ -26,13 +26,17 @@ from openchem.chem.regulatory.types import (
     Domain,
     Jurisdiction,
     LegalSource,
+    LimitPrecision,
+    LimitType,
     MachineInterpretation,
     MatchType,
+    QuantitativeLimit,
     Rule,
     RuleConfidence,
     Ruleset,
     RulesetCoverage,
     RulesetProvenance,
+    SourceLimitFact,
 )
 
 logger = logging.getLogger("openchem.chemistry")
@@ -124,10 +128,39 @@ def ruleset_from_dict(data: dict, user_supplied: bool = False) -> Ruleset:
     )
 
 
+def _limit_from_dict(entry: dict) -> QuantitativeLimit:
+    """One printed limit, with its reading beside it.
+
+    The source half and the interpretation half are separate objects in the
+    JSON as well as in the model, so a reader of a ruleset file can tell a
+    transcription from a reading without consulting the code.
+    """
+    source_raw = entry.get("source", {})
+    return QuantitativeLimit(
+        source=SourceLimitFact(
+            value=str(source_raw.get("value", "")),
+            unit=str(source_raw.get("unit", "")),
+            raw_notation=str(source_raw.get("raw_notation", "")),
+            qualifier=str(source_raw.get("qualifier", "")),
+        ),
+        limit_type=LimitType(entry.get("limit_type", "other")),
+        precision=LimitPrecision(entry.get("precision", "unstated")),
+        normalized_value=entry.get("normalized_value"),
+        normalized_unit=str(entry.get("normalized_unit", "")),
+        normalization_method=str(entry.get("normalization_method", "")),
+        normalization_assumptions=tuple(entry.get("normalization_assumptions", [])),
+    )
+
+
 def _rule_from_dict(entry: dict) -> Rule:
     legal_raw = entry.get("legal", {})
     interpretation_raw = entry.get("interpretation", {})
     return Rule(
+        # ADDITIVE: absent means an empty tuple, so every one of the 91
+        # rules shipped before this field existed loads exactly as it did.
+        quantitative_limits=tuple(
+            _limit_from_dict(limit) for limit in entry.get("quantitative_limits", [])
+        ),
         rule_id=entry["rule_id"],
         display_name=entry.get("display_name", entry["rule_id"]),
         domain=Domain(entry["domain"]),

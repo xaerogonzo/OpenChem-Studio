@@ -38,6 +38,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date
+import math
 from enum import Enum
 
 
@@ -170,6 +171,147 @@ class MachineInterpretation:
     interpreter_version: int = 1
 
 
+class LimitType(str, Enum):
+    """WHAT KIND of exposure limit a number is.
+
+    Not degrees of one thing. An 8-hour average and a value that must never
+    be exceeded are different claims about the same quantity, and a model
+    that flattened them into "a limit" would make every reported number
+    ambiguous -- the same reason `MatchType` refuses to collapse into
+    "matched".
+
+    **`PEAK` HAS NO TABLE Z-1 INSTANCE**, and that is said out loud rather
+    than left for somebody to discover: Z-1 carries `TWA_8H` and `CEILING`,
+    with `STEL` appearing exactly once and inside a compound string. It is
+    here because Table Z-2 prints an "acceptable maximum peak" column, so
+    the vocabulary is shaped for the family rather than for the one table
+    this project reads first.
+    """
+
+    #: The default for Table Z-1: footnote 1 says "The PELs are 8-hour TWAs
+    #: unless otherwise noted".
+    TWA_8H = "twa_8h"
+    #: Short-term exposure limit, averaged over a stated short period.
+    STEL = "stel"
+    #: Must not be exceeded at any time. Z-1 marks these `(C)`.
+    CEILING = "ceiling"
+    #: A brief excursion a source permits above its ceiling, with its own
+    #: duration and conditions. A Table Z-2 concept.
+    PEAK = "peak"
+    #: The source states a limit whose kind is none of the above. The
+    #: wording is preserved verbatim in `SourceLimitFact.qualifier`, so
+    #: this never loses information -- it only declines to classify it.
+    OTHER = "other"
+
+
+class LimitPrecision(str, Enum):
+    """How precise the source says its own number is.
+
+    **THREE VALUES, BECAUSE A SOURCE MAY SAY NOTHING.** Table Z-1's
+    footnote (b) states that a mg/m3 entry "is exact" when it stands alone
+    and "is approximate" when a ppm entry accompanies it -- so the SAME
+    COLUMN carries two epistemic statuses and nothing about a cell reveals
+    which. Measured over the shipped table: 223 exact, 234 approximate.
+
+    A two-valued version would force a guess on every source that is
+    silent, which is how an unstated precision becomes a claimed one.
+    """
+
+    EXACT = "exact"
+    APPROXIMATE = "approximate"
+    UNSTATED = "unstated"
+
+
+#: Units a normalized value may be expressed in. CLOSED, and owned by
+#: whatever conversion layer eventually exists rather than by the
+#: importers: without it `mg/m3`, `mg/m^3` and `mg per cubic meter` become
+#: three unrelated units the moment a second regulator is read.
+#:
+#: `SourceLimitFact.unit` stays VERBATIM and is not drawn from this.
+NORMALIZED_UNITS = frozenset({"ppm", "mg/m3", "fibers/cm3", "mppcf"})
+
+
+@dataclass(frozen=True)
+class SourceLimitFact:
+    """The limit AS THE REGULATION PRINTED IT.
+
+    Every field here is a transcription. Nothing is derived, converted or
+    classified -- that is `QuantitativeLimit`'s half, and the split is
+    structural rather than a comment so a reader can tell which is which
+    from the type alone.
+    """
+
+    #: Exactly the characters in the cell, `(C)` and all. Not parsed into a
+    #: number here: the string is what an auditor compares against the
+    #: regulation.
+    value: str
+    #: The column heading's unit, verbatim -- "ppm", "mg/m3".
+    unit: str
+    #: THE TOKEN THAT PRODUCED THE INTERPRETATION, kept separately from the
+    #: value and from the qualifier. If `(C)` in the cell is what makes a
+    #: limit a CEILING, the `(C)` survives independently of the enum --
+    #: otherwise an auditor can see the reading and not the thing that
+    #: justified it.
+    raw_notation: str = ""
+    #: The source's own footnote or annotation, VERBATIM, skin designations
+    #: included. Never normalised away, and never parsed in this branch: a
+    #: footnote with a semantic consequence is a future extension point,
+    #: and building a parser for one here is how a verbatim field stops
+    #: being verbatim.
+    qualifier: str = ""
+
+
+@dataclass(frozen=True)
+class QuantitativeLimit:
+    """OpenChem's reading of one printed limit.
+
+    `source` is what the regulation said; everything beside it is what we
+    made of it. `limit_type` is an interpretation however obvious it looks
+    -- "(C) means ceiling" is a reading of a notation -- and so is
+    `precision`, which applies footnote (b)'s rule to a particular row.
+
+    **NORMALIZATION IS ABSENT UNLESS A CONVERSION IS DEFINED.** ppm to
+    mg/m3 is not a unit conversion: it needs the substance's molar mass AND
+    stated temperature and pressure. Table Z-1's footnote (a) supplies the
+    conditions (25 C, 760 torr) and nothing supplies the molar mass, so a
+    converted number here would carry an invisible assumption. Absent is
+    the correct answer, and `normalization_method` exists so that a
+    normalized value can never appear without saying why it is valid.
+    """
+
+    source: SourceLimitFact
+    limit_type: LimitType
+    precision: LimitPrecision = LimitPrecision.UNSTATED
+    normalized_value: float | None = None
+    normalized_unit: str = ""
+    #: Why the conversion above is valid. A derived number without one is
+    #: the unexplained value this project has spent whole branches removing.
+    normalization_method: str = ""
+    normalization_assumptions: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.normalized_unit and self.normalized_unit not in NORMALIZED_UNITS:
+            raise ValueError(
+                f"{self.normalized_unit!r} is not a normalized unit; "
+                f"expected one of {sorted(NORMALIZED_UNITS)}"
+            )
+        if self.normalized_value is None:
+            return
+        # AT CONSTRUCTION. A NaN or an infinity that reaches a ruleset is a
+        # number every later comparison silently answers False to, and
+        # "obviously invalid, the builder will catch it" is how it gets in.
+        if not math.isfinite(self.normalized_value):
+            raise ValueError(f"{self.normalized_value!r} is not a finite limit")
+        if self.normalized_value < 0:
+            raise ValueError("a normalized exposure limit cannot be negative")
+        if not self.normalized_unit:
+            raise ValueError("a normalized value must name its unit")
+        if not self.normalization_method:
+            raise ValueError(
+                "a normalized value must record why the conversion is valid"
+            )
+
+
 @dataclass(frozen=True)
 class Rule:
     """One regulated thing: what the law says, and how we look for it."""
@@ -182,6 +324,13 @@ class Rule:
     legal: LegalSource
     interpretation: MachineInterpretation
     description: str = ""
+    #: What the regulation says the exposure limit IS, where it states
+    #: one. A TUPLE, never one optional limit: a substance can carry a
+    #: TWA *and* a ceiling, and a model assuming one substance means
+    #: one number would have to be rewritten the first time a source
+    #: prints two. Empty for every identity and structural-family rule,
+    #: which is all 91 shipped today.
+    quantitative_limits: tuple[QuantitativeLimit, ...] = ()
     #: Why a precursor is also an ordinary reagent. REQUIRED in practice
     #: for `MatchType.PRECURSOR`: reporting acetic anhydride as a heroin
     #: precursor without mentioning aspirin and cellulose acetate turns an
