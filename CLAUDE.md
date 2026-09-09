@@ -6292,6 +6292,36 @@ Final: **232 of 390 resolved**, and `resolved + unresolved == total_entries`
 is asserted, because this project has already shipped a build that
 double-counted an unresolved entry.
 
+#### FIVE ARMS, FIVE CAUGHT, AND BOTH OVER-BROAD ONES BY THE NARROW HALF ALONE
+
+The two resolution rules mutated together, each arm running the full 40 and
+each edit asserted to have landed. **The guards call `_resolve_name`
+directly rather than reading the shipped JSON**, which is what makes a
+mutation of the build tool reachable from the suite at all:
+
+    M1  the alias rule deleted            2 -- both parenthetical aliases
+    M2  the alias rule OVER-BROAD         4 -- those two PLUS both salts
+    M3  the lone-atom refusal deleted     2 -- Chlorine and Iodine
+    M4  the lone-atom refusal OVER-BROAD  1 -- Copper, and NOTHING else
+    M5  it keys on heavy-atom count       2 -- Ammonia and Hydrogen chloride
+
+**M4 IS THE ENTRY WORTH READING.** Refusing every lone atom rather than
+only the diatomic ones is caught by exactly ONE test in the file,
+`test_the_lone_atom_rule_does_not_swallow_what_it_must_not[Copper]`, and by
+nothing else -- because copper really IS a lone atom and its Z-1 row says
+"as Cu". Delete that one parametrised case and an over-broad refusal ships
+with a green suite and a smaller ruleset, which reads as tidier coverage
+rather than as lost rows. Same for M2 against the salts. **The narrow half
+is not a stylistic pairing here; it is the only thing holding either rule
+from being widened.**
+
+**AND M5 FAILED PRECISELY WHERE ITS OWN DOCSTRING SAID IT WOULD.** That
+guard names ammonia and hydrogen chloride as "the other trap -- one heavy
+atom apiece, and the rule keys on hydrogens rather than on heavy-atom count
+for exactly that reason", and dropping the hydrogen term failed those two
+and no others. A docstring predicting its own mutation's victims is the
+cheapest available evidence that the fixture is not degenerate.
+
 ### A FACT THE TABLE PRINTS, FILED WHERE NOTHING RENDERS IT
 
 95 substances carry a SKIN DESIGNATION -- the table's own column saying the
