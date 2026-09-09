@@ -218,3 +218,90 @@ class LewisAdduct(ScientificResult):
     def available(self) -> tuple[AdductEvidence, ...]:
         """Only the lines that produced a number."""
         return tuple(e for e in self.evidence if e.value is not None)
+
+
+#: What was ASKED for. Three values, because the fourth state -- neither
+#: orientation being admissible, or both -- is an OUTCOME and can only be
+#: produced by `ROLE_AUTO`. Offering it as a choice would be a control
+#: asking the application to fail on purpose.
+ROLE_AUTO = "auto"
+#: Work the orientation out from the structures.
+ROLE_ACID = "acid"
+#: The user declares the subject molecule the acid.
+ROLE_BASE = "base"
+#: The user declares the subject molecule the base.
+
+#: What the display shows for each code. The stored value is the CODE --
+#: see `CalculatorParameter.choice_labels` for why the prose must not be
+#: what lands in a result's identity.
+ROLE_LABELS = {
+    ROLE_AUTO: "Work it out from the structures",
+    ROLE_ACID: "This molecule is the acid",
+    ROLE_BASE: "This molecule is the base",
+}
+
+#: WHICH molecule took which role. Not a bare "acid"/"base": A-as-acid and
+#: B-as-acid are different orientations, and a reader should not have to
+#: infer which from the order the parameters happened to be written in.
+#: `subject` is always the molecule the calculator ran on.
+ORIENTATION_SUBJECT_IS_ACID = "subject_acid"
+#: The molecule the calculator ran on donates; the partner accepts.
+ORIENTATION_SUBJECT_IS_BASE = "subject_base"
+#: Both ways round are structurally admissible, so neither is chosen
+#: and both are reported. The COMMON case for ordinary organics.
+ORIENTATION_UNRESOLVED = "unresolved"
+
+#: HOW the orientation was decided.
+#:
+#: `site_admissibility` is spelled out rather than shortened to "sites":
+#: the short name reads as though the atom-level analysis established
+#: chemical acid/base IDENTITY, and it does not. It establishes that the
+#: acid has somewhere to accept and the base something to donate, which is
+#: a structural precondition and not a thermodynamic determination.
+#:
+#: `drago_table` likewise means "the orientation was selected from an
+#: existing table entry", never "Drago proved the chemistry".
+BASIS_DRAGO_TABLE = "drago_table"
+#: Only one way round can the acid accept and the base donate. A
+#: structural precondition, NOT a determination of chemical identity.
+BASIS_SITE_ADMISSIBILITY = "site_admissibility"
+#: The user set the role; nothing was worked out.
+BASIS_USER = "user"
+
+
+@dataclass(frozen=True)
+class OrientationAttempt:
+    """One way round, and what came of it.
+
+    Kept per attempt rather than collapsed into a verdict, because a
+    result saying only `unresolved` tells a reader the conclusion and not
+    the evidence -- and a `neither` collapsed to "partner invalid" throws
+    away two DIFFERENT reasons, which `predict` already distinguishes
+    ("Nothing in the acid can accept an electron pair..." against "The
+    base has neither a lone pair nor a pi system to donate from.").
+    """
+
+    subject_is_acid: bool
+    admissible: bool
+    reason: str = ""
+
+
+@dataclass(frozen=True)
+class RoleResolution:
+    """Which orientation was used, how that was decided, and what was tried.
+
+    `orientation` is `ORIENTATION_UNRESOLVED` when both ways round are
+    structurally admissible -- the common case, since `analyse` classifies
+    alcohols, amines and lone-pair-bearing halogens as AMBIPHILIC and
+    `LewisSites.donors()`/`.acceptors()` both include those. Water and
+    water is the textbook example.
+    """
+
+    requested: str
+    orientation: str
+    basis: str = ""
+    attempts: tuple[OrientationAttempt, ...] = ()
+
+    @property
+    def resolved(self) -> bool:
+        return self.orientation != ORIENTATION_UNRESOLVED

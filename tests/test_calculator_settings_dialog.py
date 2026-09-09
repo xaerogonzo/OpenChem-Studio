@@ -252,3 +252,108 @@ def test_every_shipped_parameter_declares_a_known_kind(qapp):
     }
     assert kinds, "no shipped calculator declares a parameter, so this proves nothing"
     assert kinds <= PARAMETER_KINDS
+
+
+# --- the SMILES chooser --------------------------------------------------
+
+
+def _smiles_definition():
+    from openchem.domain.calculator import CalculatorParameter
+
+    return _definition(
+        CalculatorParameter(
+            name="partner_smiles",
+            label="Partner molecule",
+            kind="smiles",
+            default="",
+        )
+    )
+
+
+def test_a_smiles_parameter_with_no_molecules_degrades_to_a_text_box():
+    """`ui/dialogs/inventory.py` builds this dialog from a definition
+    alone, and a project can hold molecules none of which has a usable
+    SMILES. Both take the SAME branch -- one path, not two."""
+    from PySide6.QtWidgets import QComboBox, QLineEdit
+
+    dialog = CalculatorSettingsDialog(_smiles_definition())
+    widget = dialog._widgets["partner_smiles"]
+
+    assert widget.findChildren(QLineEdit)
+    assert not widget.findChildren(QComboBox), (
+        "with nothing to choose from there is nothing to choose between"
+    )
+    assert dialog.parameters() == {"partner_smiles": ""}
+
+
+def test_a_smiles_parameter_returns_the_SMILES_and_never_the_display_name():
+    """THE TRANSPOSITION GUARD.
+
+    A picker labelled with SMILES and valued with names looks perfectly
+    fine in a screenshot, and every molecule would then fail to parse in
+    the chem layer with a message naming a string the user never typed.
+    The labels and the values are deliberately unalike here so the two
+    cannot be confused.
+    """
+    from openchem.ui.dialogs.calculator_settings_dialog import MoleculeChoice
+
+    dialog = CalculatorSettingsDialog(
+        _smiles_definition(),
+        molecules=[MoleculeChoice("Ammonia", "N"), MoleculeChoice("Water", "O")],
+    )
+
+    assert dialog._widgets["partner_smiles"]._combo.currentText() == "Ammonia"
+    assert dialog.parameters() == {"partner_smiles": "N"}
+
+
+def test_choosing_and_typing_are_two_MODES_and_the_sentinel_is_never_a_value():
+    """Precedence is a mode, not a race between two widgets.
+
+    And "Type a SMILES..." must never reach a parameter: encoded as a real
+    value it can persist into provenance through a cancellation or a path
+    bug, and would then be parsed, refused and reported as though somebody
+    had typed it.
+    """
+    from openchem.ui.dialogs.calculator_settings_dialog import MoleculeChoice
+
+    dialog = CalculatorSettingsDialog(
+        _smiles_definition(),
+        molecules=[MoleculeChoice("Ammonia", "N"), MoleculeChoice("Water", "O")],
+    )
+    widget = dialog._widgets["partner_smiles"]
+
+    widget.set_value("O")
+    assert dialog.parameters() == {"partner_smiles": "O"}
+    assert not widget._edit.isEnabled(), "the line edit is inert while choosing"
+
+    widget._combo.setCurrentIndex(widget._combo.count() - 1)
+    assert widget._edit.isEnabled(), "choosing to type must enable typing"
+    assert dialog.parameters() == {"partner_smiles": ""}, (
+        "the sentinel must not become the value"
+    )
+
+    widget._edit.setText("c1ccncc1")
+    assert dialog.parameters() == {"partner_smiles": "c1ccncc1"}
+
+    widget.set_value("N")
+    assert dialog.parameters() == {"partner_smiles": "N"}, "and back again"
+
+
+def test_the_chooser_passes_text_through_rather_than_judging_it():
+    """A "looks like SMILES" check here would be a second, worse parser --
+    and it would reject valid strings. The chem layer decides validity.
+
+    **THE IMPORT RULE IS NOT RE-ASSERTED HERE.** `tests/test_layering.py`
+    already forbids a `ui/` module importing RDKit, by AST, and a second
+    copy of that check was written in this test and DELETED: it scanned
+    the module text and matched the DOCSTRING PARAGRAPH EXPLAINING THE
+    RULE. Grepping for a phrase counts the source and not the outcome --
+    the third time that trap was sprung while writing this branch, each
+    time on a guard whose own subject appears in the prose beside it.
+    """
+    dialog = CalculatorSettingsDialog(_smiles_definition())
+    dialog._widgets["partner_smiles"]._edit.setText("not a molecule at all")
+
+    assert dialog.parameters() == {"partner_smiles": "not a molecule at all"}, (
+        "the dialog passes text through; the chem layer decides validity"
+    )

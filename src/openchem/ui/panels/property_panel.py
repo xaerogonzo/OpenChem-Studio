@@ -59,7 +59,10 @@ from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.descriptor_service import DescriptorService
 from openchem.ui.dialogs.calculator_inspector_dialog import CalculatorInspectorDialog
 from openchem.ui.dialogs.spatial_result_dialog import SpatialResultDialog
-from openchem.ui.dialogs.calculator_settings_dialog import CalculatorSettingsDialog
+from openchem.ui.dialogs.calculator_settings_dialog import (
+    CalculatorSettingsDialog,
+    MoleculeChoice,
+)
 from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
 from openchem.ui.widgets.substance_card import SubstanceCard, card_data_from_report
 from openchem.ui.widgets.collapsible_section import CollapsibleSection as _CollapsibleSection
@@ -2859,7 +2862,20 @@ class PropertyPanel(QWidget):
             return
         parameters: dict[str, object] = {}
         if definition.parameters:
-            dialog = CalculatorSettingsDialog(definition, self)
+            # THE SELECTED MOLECULE IS NOT EXCLUDED. Water plus water is a
+            # real question, and filtering a molecule out of its own
+            # project's list would be a chemistry judgement made in the UI.
+            #
+            # A molecule with no canonical SMILES -- a macromolecule, an
+            # import that would not parse -- is simply absent, so the
+            # degrade is driven by HOW MANY USABLE CHOICES EXIST rather
+            # than by whether a project was supplied.
+            choices = [
+                MoleculeChoice(other.display_name, other.canonical_smiles)
+                for other in self._project.molecules
+                if other.canonical_smiles
+            ]
+            dialog = CalculatorSettingsDialog(definition, self, molecules=choices)
             if dialog.exec() != QDialog.DialogCode.Accepted:
                 return
             parameters = dialog.parameters()

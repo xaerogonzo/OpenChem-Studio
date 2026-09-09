@@ -1,0 +1,27 @@
+[
+  {"do": "smiles", "smiles": "CC(C)(C)O", "name": "tert-Butanol", "after_ms": 900},
+  {"do": "smiles", "smiles": "CN", "name": "Methylamine", "after_ms": 900},
+  {"do": "smiles", "smiles": "O", "name": "Water", "after_ms": 900},
+  {"do": "select", "molecule": 1, "after_ms": 600},
+
+  {"do": "panel", "id": "Properties", "after_ms": 700},
+  {"do": "dialog", "name": "CalculatorSettingsDialogAllKinds", "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/picker_all_kinds.png", "widget": "dialog", "after_ms": 400},
+  {"do": "visual_check", "surface": "dialog", "tag": "settings-all-kinds", "after_ms": 300},
+
+  {"do": "calculator", "id": "lewis_adduct", "parameters": {"partner_smiles": "CN"}, "after_ms": 3000},
+  {"do": "results", "focus": "lewis_adduct", "tag": "auto-resolved", "after_ms": 1000},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/picker_auto.png", "widget": "results", "after_ms": 400},
+
+  {"do": "select", "molecule": 3, "after_ms": 600},
+  {"do": "calculator", "id": "lewis_adduct", "parameters": {"partner_smiles": "O"}, "after_ms": 3000},
+  {"do": "results", "focus": "lewis_adduct", "tag": "unresolved-both-ways", "after_ms": 1000},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/picker_unresolved.png", "widget": "results", "after_ms": 400},
+
+  {"do": "select", "molecule": 1, "after_ms": 600},
+  {"do": "calculator", "id": "lewis_adduct", "parameters": {"partner_smiles": "CN", "role": "base"}, "after_ms": 3000},
+  {"do": "results", "focus": "lewis_adduct", "tag": "explicit-base", "after_ms": 1000},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/picker_explicit.png", "widget": "results", "after_ms": 400},
+
+  {"do": "quit"}
+]

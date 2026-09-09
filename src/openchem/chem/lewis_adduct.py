@@ -36,7 +36,22 @@ from typing import Any
 
 from openchem.chem.lewis import analyse, pi_donor_atoms
 from openchem.domain.common import CacheState, Provenance
-from openchem.domain.lewis import AdductEvidence, LewisAdduct
+from openchem.domain.lewis import (
+    BASIS_DRAGO_TABLE,
+    BASIS_SITE_ADMISSIBILITY,
+    BASIS_USER,
+    ORIENTATION_SUBJECT_IS_ACID,
+    ORIENTATION_SUBJECT_IS_BASE,
+    ORIENTATION_UNRESOLVED,
+    ROLE_ACID,
+    ROLE_AUTO,
+    ROLE_BASE,
+    ROLE_LABELS,
+    AdductEvidence,
+    LewisAdduct,
+    OrientationAttempt,
+    RoleResolution,
+)
 from openchem.domain.report import ReportResult
 from openchem.chem.report_adapter import report_from_fields
 from openchem.domain.structure_issue import Basis
@@ -309,57 +324,31 @@ def predict(
     )
 
 
-ROLE_ACID = "This molecule is the acid"
-ROLE_BASE = "This molecule is the base"
 
 
-def compute_lewis_adduct(
-    mol: Any, molecule_uuid: str, parameters: dict[str, Any] | None = None
-) -> ReportResult:
-    """The "lewis" category's two-molecule calculator.
+def _role_code(raw: Any) -> str:
+    """One strict mapping from a stored role value to a code.
 
-    Takes the partner as a typed SMILES, the way `alignment_3d` takes its
-    reference structure -- so an adduct prediction can be a column in a
-    batch table rather than only a thing done in a panel.
+    The parameter used to store PROSE ("This molecule is the acid"), which
+    is what `choice_labels` exists to stop -- so a project saved before
+    that change carries the label where a code now belongs. Translated in
+    exactly one place, and NEVER fuzzily: an unrecognised value is refused
+    rather than guessed at, because guessing here silently swaps which
+    molecule is the acid.
     """
-    from rdkit import Chem
+    text = str(raw or ROLE_AUTO).strip()
+    if text in ROLE_LABELS:
+        return text
+    for code, label in ROLE_LABELS.items():
+        if text == label:
+            return code
+    raise ValueError(f"unknown role {text!r}")
 
-    parameters = parameters or {}
-    provenance = Provenance(created_by="core", method="lewis_adduct")
-    partner_smiles = str(parameters.get("partner_smiles") or "").strip()
 
-    def failed(error: str) -> ReportResult:
-        return report_from_fields(
-            alert_id="lewis_adduct",
-            name="Lewis Adduct",
-            molecule_uuid=molecule_uuid,
-            matched=[],
-            category="lewis",
-            cache_state=CacheState.FAILED,
-            error=error,
-            provenance=provenance,
-        )
-
-    if not partner_smiles:
-        return failed(
-            "Enter the partner molecule as SMILES in this calculator's settings. "
-            "An adduct needs two molecules and this one only has one."
-        )
-    partner = Chem.MolFromSmiles(partner_smiles)
-    if partner is None:
-        return failed(f"Could not parse the partner SMILES: {partner_smiles!r}")
-
-    this_is_acid = str(parameters.get("role", ROLE_ACID)) == ROLE_ACID
-    acid, base = (mol, partner) if this_is_acid else (partner, mol)
-    result = predict(
-        acid,
-        base,
-        acid_uuid=molecule_uuid if this_is_acid else "",
-        base_uuid="" if this_is_acid else molecule_uuid,
-    )
-    if result.refused:
-        return failed(result.reason)
-
+def _orientation_lines(result: LewisAdduct) -> list[str]:
+    """One renderer, used for the resolved case and for both halves of an
+    unresolved one -- so the two cannot drift into describing the same
+    evidence differently."""
     lines = [
         f"Acid: {result.acid_label}",
         f"Base: {result.base_label}",
@@ -372,6 +361,146 @@ def compute_lewis_adduct(
             lines.append(
                 f"  {item.label}: {item.value:.2f} {item.units} [{item.basis.value}] -- {item.note}"
             )
+    return lines
+
+
+def compute_lewis_adduct(
+    mol: Any, molecule_uuid: str, parameters: dict[str, Any] | None = None
+) -> ReportResult:
+    """The "lewis" category's two-molecule calculator.
+
+    Takes the partner as a SMILES -- offered from the project's own
+    molecules by the settings dialog, and typeable for anything else --
+    the way `alignment_3d` takes its reference structure. SMILES rather
+    than a molecule uuid deliberately: a uuid makes the result
+    unreplayable in another project, and the text is what keeps this
+    usable as a batch column.
+
+    **THE ROLE CAN BE WORKED OUT, AND THE RESULT SAYS HOW.** See
+    `resolve_roles`. When both ways round are structurally admissible --
+    the COMMON case, since ordinary organic molecules are ambiphilic --
+    both orientations are reported side by side and neither is ranked,
+    which is the refusal `_hsab_line` already makes rather than inventing
+    a preference.
+    """
+    from rdkit import Chem
+
+    parameters = parameters or {}
+    partner_smiles = str(parameters.get("partner_smiles") or "").strip()
+
+    def failed(error: str, note: dict[str, Any] | None = None) -> ReportResult:
+        return report_from_fields(
+            alert_id="lewis_adduct",
+            name="Lewis Adduct",
+            molecule_uuid=molecule_uuid,
+            matched=[],
+            category="lewis",
+            cache_state=CacheState.FAILED,
+            error=error,
+            provenance=Provenance(
+                created_by="core", method="lewis_adduct", parameters=note or {}
+            ),
+        )
+
+    try:
+        requested = _role_code(parameters.get("role", ROLE_AUTO))
+    except ValueError as error:
+        return failed(str(error))
+
+    if not partner_smiles:
+        return failed(
+            "Choose or enter the partner molecule in this calculator's settings. "
+            "An adduct needs two molecules and this one only has one."
+        )
+    partner = Chem.MolFromSmiles(partner_smiles)
+    if partner is None:
+        return failed(f"Could not parse the partner SMILES: {partner_smiles!r}")
+
+    resolution = resolve_roles(mol, partner, requested)
+    # WHAT WAS ASKED, WHICH ORIENTATION WAS USED, AND HOW IT WAS DECIDED --
+    # three fields, because they are three questions. `auto -> acid` and an
+    # explicit `acid` produce the SAME orientation and must still be
+    # tellable apart; collapsing them to one role reintroduces exactly the
+    # ambiguity this record exists to remove.
+    note = {
+        "role_requested": resolution.requested,
+        "orientation": resolution.orientation,
+        "orientation_basis": resolution.basis,
+    }
+    provenance = Provenance(created_by="core", method="lewis_adduct", parameters=note)
+
+    def one_way(subject_is_acid: bool) -> LewisAdduct:
+        acid, base = (mol, partner) if subject_is_acid else (partner, mol)
+        return predict(
+            acid,
+            base,
+            acid_uuid=molecule_uuid if subject_is_acid else "",
+            base_uuid="" if subject_is_acid else molecule_uuid,
+        )
+
+    if not resolution.resolved:
+        # NEITHER admissible: let `predict` produce the refusal, so exactly
+        # one place in this codebase says "these two cannot form an
+        # adduct". BOTH reasons survive -- "nothing can accept" and
+        # "nothing can donate" are different statements, and a generic
+        # "partner invalid" throws away the one a reader needs.
+        if not any(attempt.admissible for attempt in resolution.attempts):
+            reasons = [a.reason for a in resolution.attempts if a.reason]
+            refusal = one_way(True)
+            return failed(
+                refusal.reason if refusal.refused else "; ".join(reasons),
+                note | {"attempt_reasons": reasons},
+            )
+        lines = [
+            "Role: not determined from the structures. Both molecules can act "
+            "as either partner, so BOTH orientations are reported and neither "
+            "is ranked. Set the role explicitly if you know which is which.",
+        ]
+        for subject_is_acid in (True, False):
+            result = one_way(subject_is_acid)
+            # NAMED, NOT SEPARATED BY A BLANK LINE. Every line here becomes
+            # a ROW in `FactView`, so an empty string renders as a label
+            # with no value beside it -- which reads as a fact whose value
+            # is missing, the one thing a report must not do by accident.
+            # Found by driving the app and reading the shot.
+            lines.append(
+                f"Orientation {1 if subject_is_acid else 2}: this molecule as the "
+                f"{'acid' if subject_is_acid else 'base'}"
+            )
+            if result.refused:
+                lines.append(f"  This orientation was refused: {result.reason}")
+                continue
+            lines.extend(_orientation_lines(result))
+            lines.extend(f"Assumption: {text}" for text in result.assumptions)
+            lines.extend(f"Limitation: {text}" for text in result.limitations)
+        return report_from_fields(
+            alert_id="lewis_adduct",
+            name="Lewis Adduct",
+            molecule_uuid=molecule_uuid,
+            matched=lines,
+            category="lewis",
+            provenance=provenance,
+        )
+
+    subject_is_acid = resolution.orientation == ORIENTATION_SUBJECT_IS_ACID
+    result = one_way(subject_is_acid)
+    if result.refused:
+        return failed(result.reason, note)
+
+    how = {
+        BASIS_USER: "as you set it",
+        BASIS_DRAGO_TABLE: (
+            "from the Drago-Wayland table, which lists one as an acid and the "
+            "other as a base"
+        ),
+        BASIS_SITE_ADMISSIBILITY: (
+            "from the structures -- only this way round can the acid accept and "
+            "the base donate. That is structural admissibility, not a "
+            "determination of which molecule is the stronger acid"
+        ),
+    }.get(resolution.basis, resolution.basis)
+    lines = [f"Role: {how}."]
+    lines.extend(_orientation_lines(result))
     lines.extend(f"Assumption: {text}" for text in result.assumptions)
     lines.extend(f"Limitation: {text}" for text in result.limitations)
 
@@ -414,3 +543,139 @@ def _limitations(evidence: tuple[AdductEvidence, ...]) -> tuple[str, ...]:
             "forms."
         )
     return tuple(limitations)
+
+
+def _can_be_acid(mol: Any) -> tuple[bool, str]:
+    """Does this molecule have anywhere to ACCEPT an electron pair.
+
+    Through `analyse`, which `predict` already calls for its own refusal,
+    so "what counts as an acceptor" keeps ONE definition in this codebase.
+    """
+    sites = analyse(mol)
+    if sites.refused:
+        return False, sites.reason
+    if not sites.acceptors():
+        return False, (
+            "Nothing in it can accept an electron pair -- no empty valence "
+            "orbital, no low-lying pi* or sigma*, no vacant coordination site."
+        )
+    return True, ""
+
+
+def _can_be_base(mol: Any) -> tuple[bool, str]:
+    """Does this molecule have anything to DONATE.
+
+    A lone pair OR a pi system -- the split `pi_donor_atoms` exists for,
+    since a pi donor has no single donor ATOM.
+    """
+    sites = analyse(mol)
+    if sites.refused:
+        return False, sites.reason
+    if not sites.donors() and not pi_donor_atoms(mol):
+        return False, "It has neither a lone pair nor a pi system to donate from."
+    return True, ""
+
+
+def resolve_roles(subject: Any, partner: Any, requested: str = ROLE_AUTO) -> RoleResolution:
+    """Which molecule is the acid -- or a refusal to choose.
+
+    **THIS ADDS NO NEW CHEMISTRY.** Every input is evidence `predict`
+    already computes; what is new is reading it before the fact instead of
+    after. Two rules, in order, and deliberately no third.
+
+    **Rule 1 -- the Drago table.** Its entries are published assignments by
+    people who did the calorimetry, keyed on canonical SMILES exactly as
+    `_drago_line` already looks them up. If one molecule is tabulated as an
+    acid and the other as a base and the reverse is NOT also true, the
+    orientation is determined at the cost of two dict lookups. Both
+    directions tabulated means the table is silent, and Rule 2 gets its
+    turn -- a rule that merely asked "is either molecule in the table?"
+    would pick one, which is what the negative fixtures exist to refuse.
+
+    **Rule 2 -- structural admissibility.** Exactly one way round viable
+    determines it; both viable is UNRESOLVED and reports both; neither
+    viable returns unresolved and lets `predict` produce the refusal, so
+    exactly ONE place in this codebase says "these two cannot form an
+    adduct".
+
+    **RULE 3 DOES NOT EXIST, DELIBERATELY.** Do not break the tie with
+    hardness, electronegativity or acceptor count. `_hsab_line`'s own
+    docstring is the standing warning: a single point on the eta axis gets
+    the headline case backwards -- it makes BF3 look like the better CO
+    partner than BH3, which is the opposite of the chemistry this module
+    exists to report. Inventing an orientation ranking would be the
+    application choosing where the chemistry does not.
+
+    **AND IT IS STRUCTURAL ADMISSIBILITY, NEVER AN AUTOMATIC ACID/BASE
+    ASSIGNMENT.** Surviving `analyse` says the acid has somewhere to accept
+    and the base something to donate. That is a precondition, not a
+    thermodynamic determination of which molecule IS the acid, and nothing
+    here may be worded as though HSAB assigned the roles --
+    [source:hancock1996]'s own opening is why the stronger claim is not
+    available to anyone: HSAB "has remained qualitative and largely
+    intuitive".
+    """
+    if requested == ROLE_ACID:
+        return RoleResolution(
+            requested=requested,
+            orientation=ORIENTATION_SUBJECT_IS_ACID,
+            basis=BASIS_USER,
+        )
+    if requested == ROLE_BASE:
+        return RoleResolution(
+            requested=requested,
+            orientation=ORIENTATION_SUBJECT_IS_BASE,
+            basis=BASIS_USER,
+        )
+
+    table = parameter_table()
+    subject_smiles, partner_smiles = _canonical(subject), _canonical(partner)
+    subject_acid = subject_smiles in table["acids"] and partner_smiles in table["bases"]
+    partner_acid = partner_smiles in table["acids"] and subject_smiles in table["bases"]
+    if subject_acid != partner_acid:
+        return RoleResolution(
+            requested=requested,
+            orientation=(
+                ORIENTATION_SUBJECT_IS_ACID if subject_acid else ORIENTATION_SUBJECT_IS_BASE
+            ),
+            basis=BASIS_DRAGO_TABLE,
+        )
+
+    # Each orientation is attempted and its outcome KEPT, so a reader of
+    # the result can see what was evaluated rather than only what was
+    # concluded.
+    attempts = []
+    for subject_is_acid in (True, False):
+        acid, base = (subject, partner) if subject_is_acid else (partner, subject)
+        acid_ok, acid_reason = _can_be_acid(acid)
+        base_ok, base_reason = _can_be_base(base)
+        reason = ""
+        if not acid_ok:
+            reason = f"As the acid, {_canonical(acid)}: {acid_reason}"
+        elif not base_ok:
+            reason = f"As the base, {_canonical(base)}: {base_reason}"
+        attempts.append(
+            OrientationAttempt(
+                subject_is_acid=subject_is_acid,
+                admissible=acid_ok and base_ok,
+                reason=reason,
+            )
+        )
+
+    viable = [attempt for attempt in attempts if attempt.admissible]
+    if len(viable) == 1:
+        return RoleResolution(
+            requested=requested,
+            orientation=(
+                ORIENTATION_SUBJECT_IS_ACID
+                if viable[0].subject_is_acid
+                else ORIENTATION_SUBJECT_IS_BASE
+            ),
+            basis=BASIS_SITE_ADMISSIBILITY,
+            attempts=tuple(attempts),
+        )
+    return RoleResolution(
+        requested=requested,
+        orientation=ORIENTATION_UNRESOLVED,
+        attempts=tuple(attempts),
+    )

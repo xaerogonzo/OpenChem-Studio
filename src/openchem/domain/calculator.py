@@ -45,7 +45,13 @@ CalculatorExecution = RegistryExecution | ServiceExecution
 #: Closed, and refused at REGISTRATION rather than at click: an unknown
 #: kind otherwise reaches `_build_widget`, matches no branch, and produces
 #: a settings dialog silently missing one of its controls.
-PARAMETER_KINDS = frozenset({"float", "int", "choice", "bool", "text"})
+#:
+#: `"smiles"` is named after what the VALUE is rather than after the
+#: widget. `"molecule_choice"` would lie -- the stored value is never a
+#: molecule uuid, because a uuid makes a result unreplayable in another
+#: project -- and naming it for the value is what lets the same kind serve
+#: a free-text SMARTS field later.
+PARAMETER_KINDS = frozenset({"float", "int", "choice", "bool", "text", "smiles"})
 
 
 @dataclass(frozen=True, kw_only=True)
