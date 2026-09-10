@@ -625,10 +625,16 @@ class MainWindow(QMainWindow):
             self._wrap_scrollable(self._results_host),
             Qt.DockWidgetArea.RightDockWidgetArea,
         )
+        self._results_dock = results_dock
         # The panel owns the results and the reading position; the reader
         # renders them. Attached rather than constructed there, because the
-        # dock belongs to the window and the panel must work without one.
-        self._property_panel.attach_reader(self._results_view)
+        # dock belongs to the window and the panel must work without one --
+        # and the panel is handed a way to REVEAL the reader rather than a
+        # reference to the dock, because where the reader lives is this
+        # window's business and not the panel's.
+        self._property_panel.attach_reader(
+            self._results_view, reveal=self.reveal_results
+        )
 
         # THE RIGHT-HAND PANELS ARE NO LONGER TABIFIED, and the tab bar is
         # gone with them.
@@ -1161,6 +1167,39 @@ class MainWindow(QMainWindow):
         return HELP_TOPIC_BY_CENTRE_TAB.get(
             self._center_tabs.tabText(self._center_tabs.currentIndex()), "projects"
         )
+
+    def reveal_results(self) -> None:
+        """Put the results reader somewhere it can be read.
+
+        **THREE STATES, AND THE RULE NEVER OVERRIDES AN ARRANGEMENT
+        SOMEBODY HAS ALREADY MADE.**
+
+            already detached   raise that window
+            the visible panel  do nothing -- it is already on screen
+            hidden             detach it, so Properties stays put
+
+        The last row is what makes "Details..." behave as it always has:
+        the button opened a live window beside the panel, and one right-hand
+        panel is visible at a time, so revealing the DOCK would take
+        Properties off screen -- hiding the calculator buttons at the moment
+        somebody is working through them. `_show_only_right_dock`'s own
+        docstring records the same reasoning from the other side.
+
+        The middle row is the half that keeps it honest: somebody who has
+        deliberately chosen Results in the rail gets the report focused
+        where they put it, not yanked into a window.
+        """
+        if self._results_host.is_popped_out():
+            # Idempotent: this raises the existing window rather than
+            # building a second one driving the same view.
+            self._results_host.pop_out()
+            return
+        # `isHidden`, never `isVisible` -- this repository has paid twice
+        # for `isVisible()` being False for every child of a window that
+        # has not been shown, which is every window under test.
+        if not self._results_dock.isHidden():
+            return
+        self._results_host.pop_out()
 
     def _wrap_scrollable(self, widget: QWidget) -> QScrollArea:
         """Defensive floor for form-heavy panels (Docking, Quantum Chemistry):

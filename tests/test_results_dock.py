@@ -103,6 +103,22 @@ def test_the_dock_holds_the_very_reader_the_panel_feeds(window):
     assert hosts[0].content() is readers[0]
 
 
+def test_the_application_tells_the_reader_where_each_calculator_SITS(window):
+    """The half `test_the_reader_orders_by_the_registrys_own_order` cannot see.
+
+    That test proves the reader honours a registry position when it is given
+    one. Nothing there notices if the APPLICATION stops giving it: the reader
+    would fall back to ordering by display name, which is a plausible list
+    that silently disagrees with the buttons in Properties -- on the shipped
+    registry, Hansen Solubility Parameters ahead of Solubility.
+
+    The supplier moved when the reader stopped being built by the panel, so
+    this is asserted where it now happens.
+    """
+    registry = window._property_panel._calculator_registry
+    assert window._results_view._display_order_of == registry.display_order
+
+
 def test_the_dock_is_a_panel_in_the_analysis_group(window):
     """Beside Properties rather than in a group of its own: starting a
     calculation and reading one are the same task seen from two ends."""

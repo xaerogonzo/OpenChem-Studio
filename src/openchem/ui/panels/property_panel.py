@@ -1545,13 +1545,6 @@ class PropertyPanel(QWidget):
         self._result_labels: dict[str, QLabel] = {}
         #: The merged results window for the selected molecule, or None.
         #:
-        #: **ONE PER MOLECULE UUID, NOT PER REPORT AND NOT PER OBJECT.**
-        #: Keyed on the stable project identity, so a rebuilt model does
-        #: not open a second window for the same molecule -- and modeless,
-        #: because `exec()` blocks this panel and you could then never run
-        #: the second calculator whose results the window exists to
-        #: accumulate.
-        self._results_window = None
         #: A reader that is never closed, if the application built one.
         #:
         #: **THE OPPOSITE LIFETIME FROM THE WINDOW ABOVE, WHICH IS WHY IT IS
@@ -1564,6 +1557,10 @@ class PropertyPanel(QWidget):
         #: Optional, so a panel built in a test -- or in an application with
         #: no Results dock -- behaves exactly as it did before.
         self._attached_reader = None
+        #: How to put that reader in front of somebody, if the host said.
+        #: WHERE the reader lives is the window's business, so this panel is
+        #: handed a way to ask rather than a reference to a dock.
+        self._reveal_reader = None
         #: The molecule whose reading position has not been restored yet.
         #:
         #: A molecule change opens this and the first result that makes the
@@ -1762,12 +1759,6 @@ class PropertyPanel(QWidget):
         self._result_labels.clear()
         self._reports.clear()
         self._retained_results.clear()
-        # The window describes ONE molecule and is keyed on its uuid, so a
-        # window left open here would be showing the previous molecule's
-        # results under the new molecule's name.
-        if self._results_window is not None:
-            self._results_window.close()
-            self._results_window = None
         self._report_labels.clear()
         self._row_sections.clear()
         for section in self._sections.values():
@@ -2165,7 +2156,7 @@ class PropertyPanel(QWidget):
         # is what the reader's "open the whole thing" action resolves through,
         # and a summary is the only thing that reaches the reader.
         self._retained_results[result_id] = result
-        self._refresh_results_window()
+        self._refresh_reader()
         section = self._section_for(category or "other")
         label = self._result_labels.get(result_id)
         if label is None:
@@ -2252,7 +2243,7 @@ class PropertyPanel(QWidget):
                 report_from_alert(alert),
                 structure_version=self._current_structure_version(),
             )
-            self._refresh_results_window()
+            self._refresh_reader()
 
     def _on_molecule_changed(self, event: MoleculeChanged) -> None:
         """Re-perceive when the STRUCTURE changes, not only when the
@@ -2401,7 +2392,7 @@ class PropertyPanel(QWidget):
         # accumulation surface, so a calculator run while it is open has
         # to land in it -- otherwise "run another one and watch it appear"
         # is exactly the thing that does not work.
-        self._refresh_results_window()
+        self._refresh_reader()
 
     def _report_row(self, section, report_id: str, name: str):
         """The label for one report, created once and reused.
@@ -2538,7 +2529,7 @@ class PropertyPanel(QWidget):
         # The picture is not lost, it moved: the reader lists every declared
         # visualization with its type and opens this same dialog from there,
         # so a shape-valued result stops being a different-shaped window.
-        self._open_results_window(focus=str(report_id))
+        self._show_in_reader(focus=str(report_id))
 
     def open_spatial_view(self, report_id: str, annotation_index: int = 0) -> bool:
         """Draw one declared annotation on this molecule's conformer.
@@ -2575,90 +2566,39 @@ class PropertyPanel(QWidget):
         dialog.raise_()
         return True
 
-    def _open_results_window(self, focus: str = "") -> None:
-        """Show (or raise) this molecule's results window.
+    def _show_in_reader(self, focus: str = "") -> None:
+        """Show one report in the results reader, wherever that reader is.
 
-        Raised rather than rebuilt when one is already open: two windows
-        for one molecule is how a reader ends up comparing a result with
-        itself, and the second would not be the one receiving updates.
+        **THIS USED TO BUILD A SECOND READER, AND THAT IS WHAT IT STOPPED
+        DOING.** It opened a per-molecule `MergedResultsDialog` -- a whole
+        second surface with its own lifetime, keyed on the uuid and closed
+        when the selection moved. With a reader that FOLLOWS the selection
+        there is nothing left for it to do that the dock cannot, and two
+        readers showing one molecule is how somebody ends up comparing a
+        result with itself. The old method's own docstring said so about
+        two WINDOWS; it is just as true of a window and a dock.
+
+        The panel does not decide WHERE the reader appears. It asks the
+        host to reveal it -- see `MainWindow.reveal_results` for the rule --
+        because whether that means raising a window, detaching one or doing
+        nothing is a fact about the layout, which is not this panel's
+        business.
         """
-        from openchem.ui.dialogs.merged_results_dialog import MergedResultsDialog
-
-        uuid = self._selected_molecule_uuid
-        if uuid is None:
+        if self._attached_reader is None or self._selected_molecule_uuid is None:
             return
-        window = self._results_window
-        if window is None or window.molecule_uuid() != uuid:
-            if window is not None:
-                window.close()
-            window = MergedResultsDialog(
-                uuid,
-                self._selected_molecule_name(),
-                self,
-                # WHERE EACH CALCULATOR SITS, so the results list is ordered
-                # the way the sections above it are rather than by whichever
-                # run finished first. A bound method on the registry, which is
-                # the only object that knows its own registration order --
-                # this panel already renders its buttons in exactly that
-                # order, so the two surfaces now agree by construction.
-                display_order_of=self._calculator_registry.display_order,
-            )
-            # DeleteOnClose, and the handle dropped with it: a closed
-            # window that kept receiving updates would be a write into a
-            # deleted widget, which is the ordinary Qt lifetime bug this
-            # repository has paid for four times in its lambda form.
-            window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
-            window.destroyed.connect(self._on_results_window_destroyed)
-            # THE RENDER CONTEXT, and this panel is what has it: the project
-            # to look a molecule up in, and the structure version to judge a
-            # result against. Without it a declared depiction cannot draw at
-            # all -- which is why the Lewis-site diagram never appeared.
-            #
-            # A BOUND METHOD, not a lambda capturing self: PySide6 holds a
-            # plain callable strongly and this codebase has paid for that.
-            window.set_structure_resolver(self._resolve_structure_for_report)
-            # WHERE THIS MOLECULE'S READER WAS. Given to the window rather
-            # than read out of it on close, because a window that is never
-            # closed -- which is what a docked reader is -- would never write
-            # its position anywhere.
-            window.set_reader_memory(self._reader_memory)
-            # Straight through to whoever owns the dialogs. A bound
-            # SIGNAL rather than a lambda: PySide6 holds a plain
-            # callable strongly, and this panel has paid for that.
-            window.link_activated.connect(self.link_activated)
-            self._results_window = window
-        self._refresh_results_window()
+        # FED BEFORE IT IS SHOWN. Revealing first would put an empty reader
+        # on screen for a frame and then fill it, and `set_focus` below has
+        # to find the report already there or it falls back to All results.
+        self._sync_attached_reader()
+        if self._reveal_reader is not None:
+            self._reveal_reader()
         if focus:
             # An explicit destination beats a remembered one: pressing
-            # "Details..." beside a calculator is asking for THAT report, and
-            # `set_focus` records it as the new position.
-            window.set_focus(focus)
-        else:
-            # **EVERY REPORT ID, STALE ONES INCLUDED.** The memory is not told
-            # about staleness -- it restores whatever still EXISTS -- so the
-            # rule that a stale selection is kept rather than jumped away from
-            # lives in what is offered here. Filtering this to current results
-            # would silently reinstate the behaviour the rule forbids.
-            window.apply_view(
-                self._reader_memory.recall(
-                    uuid, [r.report_id for r in window.merged().reports]
-                )
-            )
-        window.show()
-        window.raise_()
-        window.activateWindow()
+            # "Details..." beside a calculator is asking for THAT report,
+            # and `set_focus` records it as the new position.
+            self._attached_reader.set_focus(focus)
 
-    def _on_results_window_destroyed(self) -> None:
-        """Drop the handle when Qt destroys the window.
-
-        Connected to `destroyed` rather than to `finished`, because the
-        window can go away by the X button, by Escape, or by its parent
-        being torn down -- and `closeEvent` alone misses Escape entirely,
-        which this project has measured.
-        """
-        self._results_window = None
-
-    def attach_reader(self, reader) -> None:
+    def attach_reader(self, reader, reveal=None) -> None:
         """Keep a persistent reader fed, for as long as this panel lives.
 
         **A DOCKED READER IS NOT A SECOND WINDOW**, and everything awkward
@@ -2673,6 +2613,10 @@ class PropertyPanel(QWidget):
         surface it is.
         """
         self._attached_reader = reader
+        # HOW to put the reader in front of somebody, not WHERE it lives.
+        # Optional for the same reason the reader is: a panel with no host
+        # around it still has to work.
+        self._reveal_reader = reveal
         # THE RENDER CONTEXT. Without it a declared depiction has nothing to
         # draw ON, which is why the Lewis-site diagram never appeared.
         reader.set_structure_resolver(self._resolve_structure_for_report)
@@ -2733,20 +2677,15 @@ class PropertyPanel(QWidget):
         if wanted.report_id or not self._reader_memory.remembered_report(uuid):
             self._reader_restore_pending = ""
 
-    def _refresh_results_window(self) -> None:
-        """Push the currently-held reports into whatever is reading them.
+    def _refresh_reader(self) -> None:
+        """Push the currently-held reports into the reader.
 
         Called whenever a result lands for the selected molecule, so a
-        calculator run while a reader is open appears in it rather than
-        waiting for a reopen. That is the whole point of the window being
-        modeless, and of the dock existing at all.
+        calculator run while the reader is on screen appears in it rather
+        than waiting for anything to be reopened. That is the whole point
+        of the reader being persistent.
         """
         self._sync_attached_reader()
-        window = self._results_window
-        if window is None or window.molecule_uuid() != self._selected_molecule_uuid:
-            return
-        entries, version = self._reader_entries()
-        window.set_reports(entries, version)
 
     def _reader_entries(self):
         """What any reader of this molecule should be showing, and at which

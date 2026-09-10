@@ -46,7 +46,7 @@ from openchem.domain.visualization_index import (
     declared_visualizations,
     kind_of_annotation,
 )
-from openchem.ui.dialogs.merged_results_dialog import MergedResultsDialog
+from openchem.ui.widgets.results_view import ResultsView
 from tests.conftest import dispose
 
 MOLECULE = "mol-1"
@@ -93,7 +93,7 @@ def _report(report_id="dipole_moment", name="Dipole Moment", charts=(), spatial=
 
 @pytest.fixture
 def window(qapp):
-    w = MergedResultsDialog(MOLECULE, "Aspirin")
+    w = ResultsView(MOLECULE)
     yield w
     dispose(w)
 
@@ -381,6 +381,8 @@ def test_details_reaches_the_READER_even_for_a_shape_valued_result(qapp):
     from PySide6.QtWidgets import QPushButton
 
     bus, panel = _panel(qapp)
+    reader = ResultsView()
+    panel.attach_reader(reader)
     try:
         bus.publish(ReportComputed(report=_report(spatial=[_arrow()])))
         row = panel._report_labels["dipole_moment"].parentWidget()
@@ -389,10 +391,14 @@ def test_details_reaches_the_READER_even_for_a_shape_valued_result(qapp):
 
         details.click()
 
-        assert panel._results_window is not None, (
+        # STRONGER than "a reader exists": the shape-valued result has to
+        # arrive FOCUSED, like every other one. The window it used to be
+        # diverted into could not be focused on anything.
+        assert reader.focus() == "dipole_moment", (
             "a shape-valued result must reach the reader like every other one"
         )
     finally:
+        dispose(reader)
         dispose(panel)
 
 

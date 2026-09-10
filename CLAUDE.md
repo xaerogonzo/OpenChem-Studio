@@ -7662,6 +7662,118 @@ nothing checks, which is exactly what an unread field collects. The eight
 tooltips are the subject, and several of the nine need a judgement about
 which topic they meant rather than a rename.
 
+## ONE READER, AND "DETAILS..." REACHES IT WHEREVER IT IS
+
+The second half of Stage 2b. The dock and the per-molecule
+`MergedResultsDialog` were two readers for one molecule, which is what
+`_open_results_window`'s own docstring warned about one level down --
+*"two windows for one molecule is how a reader ends up comparing a result
+with itself, and the second would not be the one receiving updates."*
+Just as true of a window and a dock. The dialog is retired.
+
+**THE DECIDING MEASUREMENT WAS THAT `PopOutHost` PERSISTS GEOMETRY AND NOT
+THE DETACHED STATE.** So "reveal the dock" as the answer to Details would
+cost a panel switch each way, every session, in the run-read-run loop --
+where the old button gave you a live window beside the panel. The rule
+that ships reproduces that and respects an arrangement somebody has
+already made:
+
+    already detached   raise that window
+    the visible panel  do nothing -- it is already on screen
+    hidden             detach it, so Properties stays put
+
+Driven, and both branches logged, because a docked reader and a detached
+one holding the same report photograph almost identically:
+
+    reader hidden   -> detached=True  dock_hidden=True
+    reader visible  -> detached=False dock_hidden=False
+
+`reveal_results` lives on the WINDOW and the panel is handed a callable.
+Where the reader lives is a fact about the layout; the panel's business is
+which report.
+
+### THE ANSWER BEHIND A FOLD, FOR THE SECOND TIME
+
+Found by driving, with 1581 tests green. Focusing Topology Analysis showed
+a title and a folded **`Topology (27)`** -- everything asked for, one click
+away, invisible. Identical to the formulation report's recorded defect, and
+`FactView.set_report`'s `expanded` override already existed FOR that one,
+so this is a call site rather than a mechanism.
+
+**THE RULE IS THE ONE THAT ENTRY DREW, APPLIED TO THE READER'S TWO
+MODES.** A report somebody explicitly focused opens OPEN;
+`DEFAULT_EXPANDED` stays for All results, which IS the wall it exists for
+-- every producer at once. Both halves are guarded, because "expand
+everything, always" satisfies the first and undoes the second.
+
+**AND THE PAINTED-ITEM COUNT IS WHAT CAUGHT IT.** `visual_check` reported
+**1 painted item, 0 findings** -- a clean verdict over a population of
+one, which is the vacuous pass that count exists to expose. After the fix,
+**55 painted items, 0 findings**. A findings list cannot tell "nothing
+overflowed" from "there was nothing to measure"; the population can.
+
+**THE FIXTURE HAD TO USE A CATEGORY THAT CAN FOLD.** That file's `_fact`
+builds `IDENTITY`, which is one of the two in `DEFAULT_EXPANDED`, so a
+report made from it opens expanded whatever the code does and both guards
+would have passed vacuously. They build `TOPOLOGY` facts -- the category
+the driven defect was found in.
+
+### THE MIGRATION: 5 RETIRED, EVERY ONE WITH A NAMED SUCCESSOR
+
+Diffed both directions in a detached worktree with the `PYTHONPATH`
+override asserted before the count was believed: **7549 -> 7560**, and by
+TEST NAME rather than by id, so the two file renames do not read as 54
+losses.
+
+    the two that asserted a CLOSED window disconnects itself, and that
+    reopening after a close gives a live window rather than a duplicate
+        -> the reader is never closed. What they asserted is impossible by
+           construction now rather than handled.
+
+    the two that asserted a molecule change CLOSES the window, and that a
+    second molecule gets a second one
+        -> `test_changing_molecule_carries_the_reader_across_rather_than_closing_it`
+           asserts the OPPOSITE behaviour, which IS the change.
+
+    the one that asserted the window is modeless
+        -> a widget in a dock has no modality to assert.
+
+(Named in prose rather than cited, because a doc may not cite a test the
+same branch deleted -- this file's own rule, and the guard said so on the
+first run of this entry.)
+
+**A RENAME IS NOT A REMOVAL AND A RAW ID DIFF CANNOT TELL THEM APART.**
+The raw diff says 54 removed and 65 added; by name it is 6 gone, one of
+which is itself a rename -- the ordering guard, now
+`test_the_reader_orders_by_the_registrys_own_order`. Strip the file before
+believing a removal count on a branch that renamed files.
+
+### THE ORDERING'S SUPPLIER MOVED, AND ONE GUARD DID NOT NOTICE
+
+`display_order_of` was passed by the PANEL when it built the window; the
+reader is constructed by whoever owns it now, so the WINDOW passes it. The
+existing test proves the reader honours a registry position when given
+one and would not have noticed the application ceasing to give it -- the
+reader would silently fall back to ordering by display name, which on the
+shipped registry puts Hansen Solubility Parameters ahead of Solubility.
+`test_the_application_tells_the_reader_where_each_calculator_SITS` is the
+half that moved with it.
+
+### AND MY OWN CLEANUP GREP MISSED AN IMPORT
+
+After deleting the module I grepped `debug_drive.py` for
+`_results_window|MergedResultsDialog` and reported it clean. The file also
+carried `from openchem.ui.dialogs.merged_results_dialog import
+GROUP_HEADING` -- the MODULE path, matching neither pattern -- and the
+`results` drive step died on it at the next run. **Grep for the module
+path, not for the names you happen to remember**, and the sweep that
+settles it is `rg "ui.dialogs.merged_results_dialog"` over `src/`,
+`tests/` and `tools/`.
+
+It also cost nothing to find, because the drive script exercises that step
+-- which is the argument for a committed drive script over a remembered
+one.
+
 ## Running the tests
 
 ```bash

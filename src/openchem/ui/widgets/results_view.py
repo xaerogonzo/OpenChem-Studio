@@ -747,7 +747,24 @@ class ResultsView(QWidget):
                 title += STALE_MARK
             self._sync_open_button(report)
             self._sync_visualizations(report)
-            self._view.set_report(report, title, self._summary_for(report))
+            # **A FOCUSED REPORT OPENS OPEN, AND ALL RESULTS DOES NOT.**
+            # `DEFAULT_EXPANDED` exists because "a hundred-odd facts
+            # rendered flat is a wall" -- true of every producer at once,
+            # and false of the one somebody just asked for. Focused on
+            # Topology Analysis the reader showed a name and a folded
+            # `Topology (27)`: the answer, one click away and invisible.
+            #
+            # Found by driving the app, exactly as the formulation report's
+            # identical defect was, and fixed with the override written for
+            # that one -- `set_report`'s own docstring already describes
+            # this failure, which is what makes this a call site rather
+            # than a mechanism.
+            self._view.set_report(
+                report,
+                title,
+                self._summary_for(report),
+                expanded={fact.category for fact in report.facts},
+            )
             return
         self._sync_open_button(None)
         self._sync_visualizations(None)

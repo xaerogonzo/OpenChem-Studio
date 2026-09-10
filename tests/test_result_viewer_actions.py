@@ -28,7 +28,7 @@ from openchem.domain.report import (
     FactLink,
     ReportResult,
 )
-from openchem.ui.dialogs.merged_results_dialog import MergedResultsDialog
+from openchem.ui.widgets.results_view import ResultsView
 
 # The vocabulary moved with the reader when it left the window. Imported
 # from where it lives rather than re-exported from the shell: a private
@@ -79,7 +79,7 @@ def _summary(report_id="charges", name="Partial Charge", rich_view="calculator_i
 
 @pytest.fixture
 def window(qapp):
-    w = MergedResultsDialog(MOLECULE, "Aspirin")
+    w = ResultsView(MOLECULE)
     yield w
     dispose(w)
 
@@ -191,8 +191,7 @@ def test_pressing_it_on_an_unreachable_viewer_asks_for_nothing(window):
     window.link_activated.connect(seen.append)
     window.set_reports([_summary(report_id="ir", name="IR", rich_view="ir_view")])
     window.set_focus("ir")
-    # On the VIEW: the handler went with the reader when it left the window.
-    window.results_view()._on_open_clicked()
+    window._on_open_clicked()
     assert seen == []
 
 

@@ -39,8 +39,38 @@
   },
 
   {
+    "do": "results",
+    "focus": "lewis_sites",
+    "tag": "2b-reader-HIDDEN-so-Details-detaches-it-and-Properties-stays",
+    "after_ms": 1500
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage2_details_detached.png",
+    "widget": "popout",
+    "after_ms": 500
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage2_properties_still_there.png",
+    "after_ms": 500
+  },
+
+  {
+    "do": "results",
+    "close": true,
+    "tag": "2b-returned-to-the-panel",
+    "after_ms": 1200
+  },
+  {
     "do": "panel",
     "id": "Results",
+    "after_ms": 1200
+  },
+  {
+    "do": "results",
+    "focus": "topology_analysis",
+    "tag": "2b-reader-VISIBLE-so-Details-only-focuses-it",
     "after_ms": 1200
   },
   {
@@ -69,11 +99,6 @@
     "do": "shot",
     "path": "benchmarks/visual/artifacts/stage2_results_popped_out.png",
     "widget": "popout",
-    "after_ms": 500
-  },
-  {
-    "do": "shot",
-    "path": "benchmarks/visual/artifacts/stage2_window_while_popped_out.png",
     "after_ms": 500
   },
   {

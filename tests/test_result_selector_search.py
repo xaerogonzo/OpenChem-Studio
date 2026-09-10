@@ -26,10 +26,10 @@ from openchem.domain.result_ordering import (
     matches_search,
     matching_reports,
 )
-from openchem.ui.dialogs.merged_results_dialog import (
+from openchem.ui.widgets.results_view import (
     ALL_RESULTS,
     GROUP_HEADING,
-    MergedResultsDialog,
+    ResultsView,
 )
 from tests.conftest import dispose
 
@@ -69,7 +69,7 @@ def _corpus():
 
 @pytest.fixture
 def window(qapp):
-    w = MergedResultsDialog(MOLECULE, "Aspirin")
+    w = ResultsView(MOLECULE)
     w.set_reports(_corpus())
     yield w
     dispose(w)

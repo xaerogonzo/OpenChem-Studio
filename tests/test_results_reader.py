@@ -21,13 +21,15 @@ from openchem.domain.report import (
     Stick,
     StickChartAnnotation,
 )
-from openchem.ui.dialogs.merged_results_dialog import (
+from openchem.ui.widgets.results_view import (
     ALL_RESULTS,
     EMPTY_MESSAGES,
     GROUP_HEADING,
+    ResultsView,
     STALE_MARK,
-    MergedResultsDialog,
 )
+from openchem.domain.reader_state import NO_MOLECULE
+from openchem.ui.widgets.collapsible_section import CollapsibleSection
 from tests.conftest import dispose
 
 
@@ -98,7 +100,7 @@ def _two():
 def test_two_calculators_land_in_one_window(qapp):
     """The whole point: running a second calculator used to replace the
     first window rather than adding to it."""
-    window = MergedResultsDialog("mol-1", "Butyryl Fentanyl")
+    window = ResultsView("mol-1")
     window.set_reports(_two())
     assert [f.label for f in window.merged().facts] == ["Formula", "Donor sites"]
     dispose(window)
@@ -107,7 +109,7 @@ def test_two_calculators_land_in_one_window(qapp):
 def test_the_filter_now_has_something_to_filter(qapp):
     """`FactView`'s search was built for a hundred facts and was being
     handed one calculator's four."""
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports(_two())
     view = window._view
     view.search_box().setText("donor")
@@ -118,7 +120,7 @@ def test_the_filter_now_has_something_to_filter(qapp):
 def test_the_search_also_matches_the_producing_calculator(qapp):
     """`Fact.origin` is stamped by the merge, so "show me everything the
     Lewis calculator said" is a question the box can answer."""
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports(_two())
     window._view.search_box().setText("lewis_sites")
     assert window._view.visible_fact_labels() == ["Donor sites"]
@@ -129,7 +131,7 @@ def test_the_search_also_matches_the_producing_calculator(qapp):
 
 
 def test_a_details_button_arrives_focused_on_its_own_report(qapp):
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports(_two())
     window.set_focus("lewis_sites")
     assert window.focus() == "lewis_sites"
@@ -140,7 +142,7 @@ def test_a_details_button_arrives_focused_on_its_own_report(qapp):
 def test_focusing_one_report_never_shows_anothers_chart(qapp):
     """Once several calculators contribute a chart, "the first chart" stops
     being an answer to anything."""
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports(_two())
     window.set_focus("elemental_analysis")
     titles = [w.annotation().title for w in window._view.chart_widgets()]
@@ -152,7 +154,7 @@ def test_focusing_one_report_never_shows_anothers_chart(qapp):
 
 
 def test_showing_everything_shows_every_chart(qapp):
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports(_two())
     titles = [w.annotation().title for w in window._view.chart_widgets()]
     assert titles == ["Isotope pattern", "Sites"]
@@ -160,7 +162,7 @@ def test_showing_everything_shows_every_chart(qapp):
 
 
 def test_focus_is_by_report_id_and_an_unknown_one_falls_back_to_all(qapp):
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports(_two())
     window.set_focus("no_such_calculator")
     assert window.focus() == ""
@@ -171,7 +173,7 @@ def test_focus_is_by_report_id_and_an_unknown_one_falls_back_to_all(qapp):
 def test_the_focus_control_lists_every_calculator_by_name(qapp):
     """Never a prettified id: the window asks the container, which asks the
     report."""
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports(_two())
     assert [text for text, _data in _entries(window)] == [
         ALL_RESULTS,
@@ -190,7 +192,7 @@ def test_the_list_is_grouped_by_section_and_the_headings_cannot_be_chosen(qapp):
     one, so it is DISABLED rather than merely styled -- Qt then refuses to
     make it current.
     """
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports(
         [
             _report("lewis_sites", "Lewis Sites", ["Donor"], category="lewis"),
@@ -220,7 +222,7 @@ def test_a_heading_is_never_mistaken_for_the_all_results_entry(qapp):
     REAL value there -- it is what ALL_RESULTS carries. A heading holding the
     same thing would be found first and the box would restore onto a row
     nobody can select."""
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports(_two())
     assert window._focus_box.findData("") == 0, "ALL_RESULTS is still row 0"
     assert GROUP_HEADING != ""
@@ -238,7 +240,7 @@ def test_the_selection_survives_a_result_landing_above_it(qapp):
     on a heading.
     """
     lewis = _report("lewis_sites", "Lewis Sites", ["Donor"], category="lewis")
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports([lewis])
     window.set_focus("lewis_sites")
     before = window._focus_box.currentIndex()
@@ -261,7 +263,7 @@ def test_no_heading_is_emitted_for_a_section_with_nothing_in_it(qapp):
     """The selector shows what has been COMPUTED, so its group set differs
     per molecule and per session. Somebody who has run one calculator must
     not scroll twenty headings."""
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports(
         [_report("lewis_sites", "Lewis Sites", ["Donor"], category="lewis")]
     )
@@ -287,7 +289,7 @@ def test_a_stale_report_is_marked_and_kept(qapp):
         version=2,
         category="identity",
     )
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports([old, new], structure_version=2)
     # Elemental Analysis first: `identity` precedes `lewis` in the shared
     # taxonomy, which is the order the sections above already use. Before
@@ -303,7 +305,7 @@ def test_a_stale_report_is_marked_and_kept(qapp):
 
 def test_a_focused_stale_report_says_so_above_its_facts(qapp):
     old = _report("lewis_sites", "Lewis Sites", ["Donor sites"], version=1)
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports([old], structure_version=2)
     window.set_focus("lewis_sites")
     assert "earlier version" in window._view._summary.text()
@@ -315,7 +317,7 @@ def test_the_stale_marks_update_in_an_OPEN_window(qapp):
     user experiences is editing the molecule while the window is open, and
     a merge that is only correct at construction never shows it."""
     report = _report("lewis_sites", "Lewis Sites", ["Donor sites"], version=1)
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports([report], structure_version=1)
     assert dict(map(reversed, _entries(window)))["lewis_sites"] == "Lewis Sites"
     # The structure moves under it, and the same reports are pushed again.
@@ -334,7 +336,7 @@ def test_nothing_computed_says_so_rather_than_showing_an_empty_report(qapp):
     """"Nothing has been computed" and "everything ran and had nothing to
     say" are different statements, and an empty report makes the second
     one."""
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports([])
     # **`isHidden()`, NOT `isVisible()`.** A child of a window nobody
     # showed reports `isVisible() == False` whatever its own flag says, so
@@ -348,7 +350,7 @@ def test_nothing_computed_says_so_rather_than_showing_an_empty_report(qapp):
 
 
 def test_a_result_arriving_replaces_the_empty_state(qapp):
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports([])
     window.set_reports(_two())
     assert window._empty.isHidden()
@@ -364,7 +366,7 @@ def test_a_facts_source_and_its_origin_stay_independent(qapp):
     """A fact can honestly be sourced "RDKit" and originate in Elemental
     Analysis; collapsing the two destroys real provenance to record
     different provenance."""
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports(_two())
     formula = next(f for f in window.merged().facts if f.label == "Formula")
     assert formula.source == "RDKit"
@@ -376,7 +378,7 @@ def test_spatial_annotations_keep_their_owner(qapp):
     arrow = ArrowAnnotation(
         anchor=(0.0, 0.0, 0.0), vector=(1.0, 0.0, 0.0), units="D", label="mu"
     )
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports([
         _report("dipole", "Dipole Moment", ["Dipole"], spatial=[arrow]),
         _report("lewis_sites", "Lewis Sites", ["Donor sites"]),
@@ -410,7 +412,7 @@ def _failed(report_id: str, reason: str, *, inapplicable: bool = False) -> Repor
 def test_a_failed_report_with_no_facts_is_shown_rather_than_dropped(qapp):
     """The live bug. `compute_lewis_sites` returns `matched=[]` with
     `cache_state=FAILED` on refusal, so this exact shape was invisible here."""
-    dialog = MergedResultsDialog("u")
+    dialog = ResultsView("u")
     dialog.set_reports([_failed("lewis_sites", "no assignable Lewis sites")])
     assert [r.report_id for r in dialog.merged().reports] == ["lewis_sites"]
     # And reachable in the selector, not merely in the model.
@@ -422,7 +424,7 @@ def test_a_failed_report_with_no_facts_is_shown_rather_than_dropped(qapp):
 def test_a_failed_report_says_why_rather_than_reading_as_an_empty_result(qapp):
     """Without this the fix trades one wrong statement for another: a refused
     calculator would appear as one that ran and had nothing to say."""
-    dialog = MergedResultsDialog("u")
+    dialog = ResultsView("u")
     dialog.set_reports([_failed("lewis_sites", "no assignable Lewis sites")])
     dialog.set_focus("lewis_sites")
     assert "no assignable Lewis sites" in dialog._view.summary_text()
@@ -435,7 +437,7 @@ def test_a_refusal_does_not_read_as_a_fault(qapp):
     calculators read as broken. The existing `inapplicable` field separates
     them -- this asserts the reader uses it rather than inventing a second
     vocabulary."""
-    dialog = MergedResultsDialog("u")
+    dialog = ResultsView("u")
     dialog.set_reports([_failed("joback", "no group for a ring tertiary amine", inapplicable=True)])
     dialog.set_focus("joback")
     text = dialog._view.summary_text()
@@ -447,7 +449,7 @@ def test_a_refusal_does_not_read_as_a_fault(qapp):
 def test_a_failed_and_stale_report_says_both(qapp):
     """Two facts about one result. Showing one would leave a reader to
     discover the other by surprise."""
-    dialog = MergedResultsDialog("u")
+    dialog = ResultsView("u")
     dialog.set_reports([_failed("lewis_sites", "no assignable Lewis sites")], structure_version=3)
     dialog.set_focus("lewis_sites")
     text = dialog._view.summary_text()
@@ -459,7 +461,7 @@ def test_a_failed_and_stale_report_says_both(qapp):
 def test_a_completed_report_carries_no_status_line(qapp):
     """The narrow half. A status line on every report would be noise, and
     "always explain" satisfies the three guards above while doing it."""
-    dialog = MergedResultsDialog("u")
+    dialog = ResultsView("u")
     dialog.set_reports([_report("ok", "OK", ["Mass"])])
     dialog.set_focus("ok")
     text = dialog._view.summary_text()
@@ -479,11 +481,11 @@ def test_a_reader_with_no_molecule_says_so_rather_than_nothing_computed(qapp):
     """
     from openchem.domain.reader_state import NO_MOLECULE, NOTHING_COMPUTED
 
-    nothing = MergedResultsDialog("")
+    nothing = ResultsView("")
     nothing.set_reports([])
     assert nothing._empty.text() == EMPTY_MESSAGES[NO_MOLECULE]
 
-    a_molecule = MergedResultsDialog("mol-1")
+    a_molecule = ResultsView("mol-1")
     a_molecule.set_reports([])
     assert a_molecule._empty.text() == EMPTY_MESSAGES[NOTHING_COMPUTED]
     assert EMPTY_MESSAGES[NO_MOLECULE] != EMPTY_MESSAGES[NOTHING_COMPUTED]
@@ -494,7 +496,7 @@ def test_a_reader_with_no_molecule_says_so_rather_than_nothing_computed(qapp):
 def test_a_reader_with_results_shows_them_rather_than_either_message(qapp):
     """The narrow half: "always show the empty label" satisfies the pair
     above and hides every result in the application."""
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports(_two())
     assert window._empty.isHidden()
     assert not window._view.isHidden()
@@ -505,7 +507,7 @@ def test_a_reader_with_results_shows_them_rather_than_either_message(qapp):
 
 
 def test_the_window_reports_its_own_position(qapp):
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports(_two())
     window.set_focus("lewis_sites")
     window._view.search_box().setText("donor")
@@ -525,7 +527,7 @@ def test_applying_a_position_does_not_record_it_as_a_move(qapp):
 
     memory = ReaderMemory()
     memory.remember("mol-1", ReaderView(report_id="gone", search="donor"))
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reader_memory(memory)
     window.set_reports(_two())
 
@@ -543,7 +545,7 @@ def test_a_reader_choosing_in_the_box_is_recorded(qapp):
     from openchem.domain.reader_state import ReaderMemory
 
     memory = ReaderMemory()
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reader_memory(memory)
     window.set_reports(_two())
 
@@ -555,7 +557,7 @@ def test_a_reader_choosing_in_the_box_is_recorded(qapp):
 
 def test_a_window_with_no_memory_behaves_exactly_as_before(qapp):
     """Optional, so nothing that builds one without a memory changes."""
-    window = MergedResultsDialog("mol-1")
+    window = ResultsView("mol-1")
     window.set_reports(_two())
     window.set_focus("lewis_sites")
     window._view.search_box().setText("donor")
@@ -578,10 +580,109 @@ def test_a_reader_with_no_molecule_records_no_position(qapp):
     from openchem.domain.reader_state import ReaderMemory
 
     memory = ReaderMemory()
-    window = MergedResultsDialog("")
+    window = ResultsView("")
     window.set_reader_memory(memory)
     window.set_reports([])
 
     window._view.search_box().setText("ring")
     assert len(memory) == 0, "a reader with no molecule filed a position"
     dispose(window)
+
+
+def test_the_reader_stands_up_with_no_window_and_no_molecule(qapp):
+    """What a dock needs and a dialog never did.
+
+    The reader was opened FOR a molecule, so "no molecule is selected" had
+    no route through the application at all -- `reader_state` named the
+    state and nothing could reach it. A reader that FOLLOWS the selection
+    starts there, before anything is chosen, which is why the molecule uuid
+    is defaulted rather than required.
+
+    It also fails if the initial state is ASSUMED rather than rendered: the
+    empty label is constructed holding the nothing-computed message, and
+    until this widget renders itself that is what it shows -- naming the
+    wrong problem, and sending somebody looking for a calculator to run.
+    """
+    view = ResultsView()
+    assert view.molecule_uuid() == ""
+    assert not view._empty.isHidden()
+    assert view._empty.text() == EMPTY_MESSAGES[NO_MOLECULE]
+    assert view._view.isHidden()
+    dispose(view)
+
+
+def _folded_fact(label: str) -> Fact:
+    """A fact in a category `DEFAULT_EXPANDED` does NOT hold.
+
+    The file's own `_fact` is `IDENTITY`, which is one of the two that open
+    by default -- so a report built from it cannot show a fold either way,
+    and both guards below would pass whatever the code did. TOPOLOGY is the
+    category the driven defect was found in.
+    """
+    return Fact(
+        category=FactCategory.TOPOLOGY,
+        label=label,
+        value=label,
+        display_value=label,
+        source="RDKit",
+        basis=Basis.DETERMINISTIC,
+    )
+
+
+def _folded_report(report_id: str, name: str) -> ReportResult:
+    return ReportResult(
+        molecule_uuid="mol-1",
+        report_id=report_id,
+        name=name,
+        category="topology",
+        facts=(_folded_fact(f"{name} index"),),
+    )
+
+
+def test_a_focused_report_opens_with_its_answer_visible(qapp):
+    """**THE ANSWER BEHIND A FOLD, FOR THE SECOND TIME IN THIS REPOSITORY.**
+
+    `DEFAULT_EXPANDED` is a default for a LARGE report -- its own docstring
+    says "a hundred-odd facts rendered flat is a wall" -- and the reader
+    focused on ONE producer is not that. Driven, focusing Topology Analysis
+    showed a title and a folded `Topology (27)`: everything asked for, one
+    click away, with every test green because nothing asserted a section's
+    initial state.
+
+    The complement matters as much and is asserted below: All results IS
+    the wall `DEFAULT_EXPANDED` exists for.
+    """
+    view = ResultsView("mol-1")
+    view.set_reports([_folded_report("topology", "Topology Analysis")])
+    view.set_focus("topology")
+
+    sections = view._view.findChildren(CollapsibleSection)
+    assert sections, "setup: the report must render at least one section"
+    folded = [s for s in sections if not s.is_expanded()]
+    assert not folded, (
+        f"{len(folded)} of {len(sections)} section(s) opened folded on a report "
+        "somebody explicitly focused"
+    )
+    dispose(view)
+
+
+def test_all_results_still_opens_folded_because_it_IS_the_wall(qapp):
+    """The narrow half. "Expand everything, always" satisfies the guard
+    above and undoes the reason `DEFAULT_EXPANDED` exists -- every producer
+    for the molecule at once, rendered flat."""
+    view = ResultsView("mol-1")
+    view.set_reports(
+        [
+            _folded_report("topology", "Topology Analysis"),
+            _folded_report("lewis", "Lewis Sites"),
+        ]
+    )
+    view.set_focus("")
+
+    sections = view._view.findChildren(CollapsibleSection)
+    assert sections, "setup: the merged view must render sections"
+    assert any(not s.is_expanded() for s in sections), (
+        "All results must keep the default fold -- it is the wall the "
+        "default exists for"
+    )
+    dispose(view)

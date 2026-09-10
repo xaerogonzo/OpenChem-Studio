@@ -21,7 +21,7 @@ from openchem.events.base import EventBus
 from openchem.events.events import MoleculeSelected, ReportComputed
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.services.descriptor_service import DescriptorService
-from openchem.ui.dialogs.merged_results_dialog import STALE_MARK
+from openchem.ui.widgets.results_view import STALE_MARK, ResultsView
 from openchem.ui.panels.property_panel import PropertyPanel
 from tests.conftest import dispose
 
@@ -76,8 +76,14 @@ def panel(qapp):
     engine.set_structure_from_smiles(molecule, "CCO")
     project = ProjectModel(molecules=[molecule])
     widget.set_project(project)
+    # THE PERSISTENT READER, attached as the application attaches one. The
+    # panel used to build a window on demand; it is handed a reader now, so
+    # every test below reads `widget._attached_reader`.
+    reader = ResultsView()
+    widget.attach_reader(reader)
     bus.publish(MoleculeSelected(molecule_uuid=molecule.uuid))
     yield widget, bus, molecule, project, versions
+    dispose(reader)
     dispose(widget)
 
 
@@ -92,31 +98,11 @@ def test_one_window_per_molecule_and_asking_twice_reuses_it(panel):
     only one of them would be receiving updates."""
     widget, bus, molecule, _project, _versions = panel
     _land(bus, _report("a", "A", "Formula", molecule.uuid))
-    widget._open_results_window()
-    first = widget._results_window
-    widget._open_results_window()
-    assert widget._results_window is first
+    widget._show_in_reader()
+    first = widget._attached_reader
+    widget._show_in_reader()
+    assert widget._attached_reader is first
     first.close()
-
-
-def test_a_second_molecule_gets_a_second_window(panel):
-    widget, bus, molecule, project, _versions = panel
-    _land(bus, _report("a", "A", "Formula", molecule.uuid))
-    widget._open_results_window()
-    first = widget._results_window
-    assert first.molecule_uuid() == molecule.uuid
-
-    other = MoleculeModel()
-    ChemistryEngine().set_structure_from_smiles(other, "CCC")
-    project.molecules.append(other)
-    bus.publish(MoleculeSelected(molecule_uuid=other.uuid))
-    QCoreApplication.processEvents()
-    _land(bus, _report("a", "A", "Formula", other.uuid))
-    widget._open_results_window()
-    second = widget._results_window
-    assert second is not None
-    assert second.molecule_uuid() == other.uuid
-    second.close()
 
 
 def test_a_result_arriving_updates_the_OPEN_window(panel):
@@ -125,8 +111,8 @@ def test_a_result_arriving_updates_the_OPEN_window(panel):
     while it is open, which is why it is modeless in the first place."""
     widget, bus, molecule, _project, _versions = panel
     _land(bus, _report("a", "Elemental Analysis", "Formula", molecule.uuid))
-    widget._open_results_window()
-    window = widget._results_window
+    widget._show_in_reader()
+    window = widget._attached_reader
     assert [f.label for f in window.merged().facts] == ["Formula"]
 
     _land(bus, _report("b", "Lewis Sites", "Donor sites", molecule.uuid))
@@ -137,8 +123,8 @@ def test_a_result_arriving_updates_the_OPEN_window(panel):
 def test_the_stale_marks_follow_the_structure_in_an_open_window(panel):
     widget, bus, molecule, _project, versions = panel
     _land(bus, _report("a", "Elemental Analysis", "Formula", molecule.uuid, version=0))
-    widget._open_results_window()
-    window = widget._results_window
+    widget._show_in_reader()
+    window = widget._attached_reader
     assert STALE_MARK not in window._focus_box.itemText(1)
 
     versions.version = 3
@@ -146,69 +132,6 @@ def test_the_stale_marks_follow_the_structure_in_an_open_window(panel):
     labels = [window._focus_box.itemText(i) for i in range(window._focus_box.count())]
     assert "Elemental Analysis" + STALE_MARK in labels
     assert "Lewis Sites" in labels
-    window.close()
-
-
-def test_closing_the_window_disconnects_it(panel):
-    """**A CLOSED WINDOW MUST NOT KEEP RECEIVING RESULTS.** Writing into a
-    deleted widget is the ordinary Qt lifetime bug that correctness of the
-    merge cannot catch -- and the handle has to be dropped, or the next
-    open would raise on a dead C++ object."""
-    widget, bus, molecule, _project, _versions = panel
-    _land(bus, _report("a", "A", "Formula", molecule.uuid))
-    widget._open_results_window()
-    window = widget._results_window
-    window.close()
-    QCoreApplication.sendPostedEvents(window, QEvent.Type.DeferredDelete)
-    QCoreApplication.processEvents()
-    assert widget._results_window is None
-
-    # Another result lands with no window open: nothing to write into, and
-    # nothing may raise.
-    _land(bus, _report("b", "B", "Donor sites", molecule.uuid))
-    assert widget._results_window is None
-
-
-def test_reopening_after_a_close_gives_a_live_window_and_not_a_duplicate(panel):
-    widget, bus, molecule, _project, _versions = panel
-    _land(bus, _report("a", "A", "Formula", molecule.uuid))
-    widget._open_results_window()
-    widget._results_window.close()
-    QCoreApplication.processEvents()
-
-    widget._open_results_window()
-    reopened = widget._results_window
-    assert reopened is not None
-    _land(bus, _report("b", "B", "Donor sites", molecule.uuid))
-    assert len(reopened.merged().facts) == 2
-    reopened.close()
-
-
-def test_selecting_another_molecule_closes_a_window_that_no_longer_describes_it(panel):
-    """A window left open would show the previous molecule's results under
-    the new molecule's name."""
-    widget, bus, molecule, project, _versions = panel
-    _land(bus, _report("a", "A", "Formula", molecule.uuid))
-    widget._open_results_window()
-    assert widget._results_window is not None
-
-    other = MoleculeModel()
-    ChemistryEngine().set_structure_from_smiles(other, "CCC")
-    project.molecules.append(other)
-    bus.publish(MoleculeSelected(molecule_uuid=other.uuid))
-    QCoreApplication.processEvents()
-    assert widget._results_window is None
-
-
-def test_the_window_is_modeless_so_the_panel_stays_usable(panel):
-    """The old dialog used `exec()`, which blocks -- and with the panel
-    blocked you could never run the second calculator whose results the
-    window exists to accumulate."""
-    widget, bus, molecule, _project, _versions = panel
-    _land(bus, _report("a", "A", "Formula", molecule.uuid))
-    widget._open_results_window()
-    window = widget._results_window
-    assert not window.isModal()
     window.close()
 
 
@@ -243,8 +166,8 @@ def test_an_alert_derived_report_is_not_born_stale(panel):
     )
     QCoreApplication.processEvents()
 
-    widget._open_results_window()
-    window = widget._results_window
+    widget._show_in_reader()
+    window = widget._attached_reader
     assert window.merged().stale_report_ids() == (), (
         "a report that has just arrived describes the structure it arrived for"
     )
@@ -286,14 +209,13 @@ def test_the_descriptors_reach_the_results_window_as_one_entry(panel):
     widget, bus, molecule, _project, _versions = panel
     _descriptor(bus, molecule, "mol_wt", name="Molecular Weight", units="g/mol", value=46.07)
     _descriptor(bus, molecule, "tpsa", name="TPSA", units="A^2", value=20.23)
-    widget._open_results_window()
+    widget._show_in_reader()
 
-    merged = widget._results_window.merged()
+    merged = widget._attached_reader.merged()
     ids = [r.report_id for r in merged.reports]
     assert ids.count(DESCRIPTOR_AGGREGATE_ID) == 1, f"expected one aggregate, got {ids}"
     labels = {f.label for f in merged.facts}
     assert {"Molecular Weight", "TPSA"} <= labels
-    dispose(widget._results_window)
 
 
 def test_a_failed_descriptor_keeps_its_own_state_in_the_window(panel):
@@ -311,14 +233,13 @@ def test_a_failed_descriptor_keeps_its_own_state_in_the_window(panel):
         error="Needs a real 3D conformer - generate one first",
         error_summary="Needs a 3D conformer",
     )
-    widget._open_results_window()
+    widget._show_in_reader()
 
-    aggregate = widget._results_window.merged().report_for(DESCRIPTOR_AGGREGATE_ID)
+    aggregate = widget._attached_reader.merged().report_for(DESCRIPTOR_AGGREGATE_ID)
     states = {d.descriptor_id: d.cache_state for d in aggregate.descriptors}
     assert states["mol_wt"] is CacheState.COMPLETED
     assert states["spherocity_index"] is CacheState.FAILED
     assert [d.descriptor_id for d in aggregate.failed()] == ["spherocity_index"]
-    dispose(widget._results_window)
 
 
 def test_a_running_placeholder_is_replaced_rather_than_accumulated(panel):
@@ -331,12 +252,11 @@ def test_a_running_placeholder_is_replaced_rather_than_accumulated(panel):
     widget, bus, molecule, _project, _versions = panel
     _descriptor(bus, molecule, "mol_wt", cache_state=CacheState.RUNNING)
     _descriptor(bus, molecule, "mol_wt", name="Molecular Weight", value=46.07)
-    widget._open_results_window()
+    widget._show_in_reader()
 
-    aggregate = widget._results_window.merged().report_for(DESCRIPTOR_AGGREGATE_ID)
+    aggregate = widget._attached_reader.merged().report_for(DESCRIPTOR_AGGREGATE_ID)
     assert len(aggregate.descriptors) == 1
     assert aggregate.descriptors[0].cache_state is CacheState.COMPLETED
-    dispose(widget._results_window)
 
 
 def test_switching_molecule_does_not_carry_the_descriptors_over(panel):
@@ -360,10 +280,9 @@ def test_no_aggregate_appears_before_any_descriptor_has_landed(panel):
 
     widget, bus, molecule, _project, _versions = panel
     _land(bus, _report("a", "A", "Formula", molecule.uuid))
-    widget._open_results_window()
-    ids = [r.report_id for r in widget._results_window.merged().reports]
+    widget._show_in_reader()
+    ids = [r.report_id for r in widget._attached_reader.merged().reports]
     assert DESCRIPTOR_AGGREGATE_ID not in ids
-    dispose(widget._results_window)
 
 
 def test_the_aggregate_is_shown_above_every_calculator(panel):
@@ -379,10 +298,9 @@ def test_the_aggregate_is_shown_above_every_calculator(panel):
     _descriptor(bus, molecule, "mol_wt", name="Molecular Weight", value=46.07)
     assert widget._descriptor_values, "fixture is degenerate: no descriptors landed"
     _land(bus, _report("a", "A", "Formula", molecule.uuid))
-    widget._open_results_window()
-    ids = [r.report_id for r in widget._results_window.merged().reports]
+    widget._show_in_reader()
+    ids = [r.report_id for r in widget._attached_reader.merged().reports]
     assert ids[0] == DESCRIPTOR_AGGREGATE_ID, ids
-    dispose(widget._results_window)
 
 
 # --- the ordering the panel is the only thing that can supply -------------
@@ -400,13 +318,12 @@ def _definition(calculator_id: str, display_name: str, category: str):
     )
 
 
-def test_the_results_window_orders_by_the_registrys_own_order(qapp):
+def test_the_reader_orders_by_the_registrys_own_order(qapp):
     """**THE WIRING, END TO END, AND THE FIXTURE HAS TO CONTRADICT THE
     FALLBACK.**
 
-    The panel is the only object holding the registry, so it is the only one
-    that can tell the window where a calculator sits in its section. Drop the
-    argument and the window still orders -- by name -- which is a plausible
+    Somebody has to tell the reader where a calculator sits in its section;
+    drop the argument and it still orders -- by NAME -- which is a plausible
     list that silently disagrees with the buttons above it. Measured on the
     shipped registry, that is the arrangement that puts Hansen Solubility
     Parameters ahead of Solubility.
@@ -414,6 +331,12 @@ def test_the_results_window_orders_by_the_registrys_own_order(qapp):
     So the two calculators here are registered in the order that INVERTS
     their names: nothing but the registry position can produce the expected
     list, and the `panel` fixture's empty registry could not have shown it.
+
+    **THE SUPPLIER MOVED WITH THE READER.** The panel used to pass it when
+    it built the window; the reader is constructed by whoever owns it now,
+    so the window does. That makes this a test of the ORDERING rather than
+    of who supplies it -- `tests/test_results_dock.py` holds the other half,
+    that the application really does supply it.
     """
     bus = EventBus()
     engine = ChemistryEngine()
@@ -430,6 +353,8 @@ def test_the_results_window_orders_by_the_registrys_own_order(qapp):
     molecule = MoleculeModel()
     engine.set_structure_from_smiles(molecule, "CCO")
     widget.set_project(ProjectModel(molecules=[molecule]))
+    reader = ResultsView(display_order_of=registry.display_order)
+    widget.attach_reader(reader)
     bus.publish(MoleculeSelected(molecule_uuid=molecule.uuid))
 
     assert registry.display_order("zulu") == 0
@@ -437,8 +362,8 @@ def test_the_results_window_orders_by_the_registrys_own_order(qapp):
 
     _land(bus, _report("alpha", "Alpha", "A", molecule.uuid))
     _land(bus, _report("zulu", "Zulu", "Z", molecule.uuid))
-    widget._open_results_window()
-    window = widget._results_window
+    widget._show_in_reader()
+    window = widget._attached_reader
     ids = [
         r.report_id
         for r in window.merged().reports
@@ -453,8 +378,8 @@ def test_the_results_window_orders_by_the_registrys_own_order(qapp):
 
 
 def _open(widget, focus: str = ""):
-    widget._open_results_window(focus=focus)
-    return widget._results_window
+    widget._show_in_reader(focus=focus)
+    return widget._attached_reader
 
 
 def test_reopening_restores_the_report_that_was_being_read(panel):
@@ -471,7 +396,6 @@ def test_reopening_restores_the_report_that_was_being_read(panel):
     QCoreApplication.processEvents()
 
     assert _open(widget).focus() == "b"
-    dispose(widget._results_window)
 
 
 def test_reopening_restores_the_filter_too(panel):
@@ -486,7 +410,6 @@ def test_reopening_restores_the_filter_too(panel):
 
     reopened = _open(widget)
     assert reopened._view.filter_state() == ("form", False)
-    dispose(reopened)
 
 
 def test_an_explicit_details_press_beats_the_remembered_position(panel):
@@ -503,7 +426,6 @@ def test_an_explicit_details_press_beats_the_remembered_position(panel):
     QCoreApplication.processEvents()
 
     assert _open(widget, focus="a").focus() == "a"
-    dispose(widget._results_window)
 
 
 def test_a_stale_report_is_restored_rather_than_jumped_away_from(panel):
@@ -534,7 +456,6 @@ def test_a_stale_report_is_restored_rather_than_jumped_away_from(panel):
         "guard passes against a memory that only ever restores current ones"
     )
     assert reopened.focus() == "bbb_score"
-    dispose(reopened)
 
 
 def test_a_report_that_is_gone_falls_back_and_the_filter_survives(panel):
@@ -563,7 +484,6 @@ def test_a_report_that_is_gone_falls_back_and_the_filter_survives(panel):
     )
     assert reopened.focus() == ""
     assert reopened._view.filter_state() == ("form", False)
-    dispose(reopened)
 
 
 def test_a_position_is_filed_under_the_window_s_molecule_not_the_panel_s(panel):
@@ -602,4 +522,3 @@ def test_a_new_project_starts_every_reader_fresh(panel):
 
     widget.set_project(ProjectModel(molecules=[]))
     assert len(widget._reader_memory) == 0
-    dispose(window)
