@@ -7238,6 +7238,97 @@ lesson, committed inside the guard written to catch it, and fixed by walking
 for the `params.get("...")` call instead. Third pass: eleven arms, eleven
 caught.
 
+## TWO SEARCHES, AND ONE BOX OVER BOTH CANNOT SAY WHAT IT MATCHED
+
+Stage 1e. The reader had one search -- `FactView`'s, over fact label, value,
+origin and evidence -- and no way to narrow the LIST. 1a is what made that a
+problem rather than a nicety. Measured on a full run for aspirin:
+
+    before 1a   30 entries across 17 groups
+    after 1a    60 entries across 20 groups
+    the combo   81 rows, counting the headings and "All results"
+
+**THE TWO ANSWER DIFFERENT QUESTIONS AND ARE THEREFORE TWO CONTROLS.** The
+selector search narrows WHICH result is on screen; the fact search narrows the
+VALUES inside it. One box over facts, reports, categories, providers and
+viewers at once cannot tell a reader which of those it just matched -- and a
+hit in a VALUE would silently change which producer they are reading, which is
+the plausible-looking wrongness this reader exists to remove. They carry
+separate `help_id`s for the same reason: one id would be two concepts wearing
+one, the mirror of the split
+`test_one_concept_is_not_split_across_many_help_ids` refuses.
+
+### THE EMPTY-HEADING BEHAVIOUR IS INHERITED, NOT IMPLEMENTED
+
+`grouped_reports` never emits a group with nothing in it, and its docstring
+said why before this existed: *"filtering changes the input set, and a set with
+nothing in a category produces no heading for it."* So the filter is applied to
+the INPUT and the headings follow, with no second rule here to keep in step.
+That is a design note paying for itself two stages later.
+
+**MATCHING IS A PURE FUNCTION AND THE WIDGET IS DRIVEN**, the same two-level
+split `ui/visual_check.py` uses: `matches_search` and `matching_reports` live
+in `domain/result_ordering.py` beside the grouping they feed, and are tested
+headless.
+
+**IT MATCHES THE SECTION AS WELL AS THE NAME**, which is how somebody who
+cannot remember a calculator's name looks for it. The narrow half needs its own
+fixture: an entry under "ADMET / Regulatory" called "hERG Risk Factors" is
+found by "regulatory" and by nothing in its own name, and without that case a
+name-only rule passes the obvious test.
+
+### THE FOCUSED ENTRY STAYS IN THE LIST, MATCHING OR NOT
+
+Filtering narrows what you can PICK, never what you are READING. 0i settled
+that jumping away from a reading position is the worse of the two failures, and
+`ALL_RESULTS`' own rule is that the control always names what it is currently
+doing -- a list that hid the current selection would show one report and name
+another. `always` keeps ONE entry rather than its section, which is its own
+guard.
+
+**AND IT IS REMEMBERED SEPARATELY.** `ReaderView` gains one defaulted
+`selector_search` beside `search`. Collapsing them into one field would apply a
+fact filter to a selector or the reverse on every restore, and neither string
+means anything in the other box.
+
+### THE STALE MEASUREMENT IN `grouped_reports` IS SUPERSEDED, NOT ADJUSTED
+
+It read *"30 entries across 17 groups, 11 of them holding exactly one"*, true
+when only report-shaped results reached the reader. Re-measured: **60 entries,
+20 groups, 2 singletons.** So the singleton case got RARER as coverage grew --
+1a filled the existing groups out rather than adding new ones -- and the rule
+that a group holding one entry is ordinary here is now exercised by NMR and
+Thermophysical alone. Both figures are kept, because "why are there only two
+now" is the question a reader will have.
+
+### TWELVE ARMS, TWO SURVIVORS, AND BOTH WERE MY OWN TESTS AGAIN
+
+    E4  the filter SORTS its output            SURVIVED
+    E9  typing is not recorded in the memory   SURVIVED
+
+**E4 IS THE DEGENERATE FIXTURE FOR THE FOURTH TIME THIS STAGE.** The corpus
+happened to be in alphabetical order by display name, so a mutation sorting the
+output produced a byte-identical list. The replacement input CONTRADICTS
+alphabetical order and asserts that setup, so it cannot go vacuous again.
+
+**E9 IS THE MIRROR OF A RULE ONLY HALF ASSERTED.** `apply_view` must not write
+a restore back, which has a guard; a reader TYPING must write, which had none.
+`view()` reads the widget, so every test built on it stayed green with
+`_remember` deleted from the handler -- the reader would simply have forgotten
+the box between sessions, silently. Second pass: twelve arms, twelve caught.
+
+### THE RUNNING TALLY FOR STAGE 1, BECAUSE THE SHAPE REPEATS
+
+    1a   15 arms   3 survivors
+    1d   11 arms   5 survivors
+    1e   12 arms   2 survivors
+
+**Ten survivors, and NOT ONE was an equivalent mutation** -- every one a hole
+in a test written minutes earlier. Two shapes account for eight of them: a
+fixture too degenerate to see its own subject (four), and both ends of a chain
+guarded with nothing asserting the middle (four). Worth watching for directly
+rather than relying on the mutation pass to keep finding them.
+
 ## Running the tests
 
 ```bash

@@ -682,6 +682,29 @@ declare one, no total is shown — a per-atom LogP contribution has a molecular
 LogP and a per-atom eccentricity has no molecular anything, and only the
 calculator knows which it is.
 
+**A summary opens the real thing.** Any result that arrives as a summary
+carries a button naming the viewer that owns it — *Open in Calculator
+Inspector*, *Open in NMR view* — which shows every value rather than the few
+beside the name. A result that already IS the whole thing, and the *All
+results* view, offer no such button: there is nothing more to open, and no one
+viewer owns several producers at once. If the result is no longer held —
+you changed molecule, or its results were cleared — the status bar says so
+instead of the button quietly doing nothing.
+
+**And there is a second search box, above the list.** With everything run,
+that list is 60 results across 20 sections, so the box at the top narrows
+*which* result you are reading and the box below the list narrows the *values*
+inside the one you chose. Two different questions, so two different boxes.
+
+The top one matches a result's name **and the section it sits under**, so
+typing "solubility" finds everything filed there whatever each one is called,
+and "regulatory" finds the hERG and PAINS entries that are named after
+neither. Sections left with nothing in them disappear rather than sitting
+there empty. It hides rows only — nothing is computed, discarded or re-run —
+and **the result you are currently reading always stays in the list**, even
+when it does not match what you typed, so filtering can never swap out what is
+on screen. Both boxes are remembered per molecule, separately.
+
 That box is **grouped into the same sections as the panel behind it, in the same
 order**, with **Molecular Properties** — the descriptors computed for every
 molecule, whether you asked or not — above them. A section appears only once

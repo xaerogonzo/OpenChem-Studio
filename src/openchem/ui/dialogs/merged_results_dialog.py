@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -49,7 +50,7 @@ from openchem.domain.reader_state import (
     reader_state,
 )
 from openchem.domain.report import FactLink
-from openchem.domain.result_ordering import grouped_reports
+from openchem.domain.result_ordering import grouped_reports, matching_reports
 from openchem.ui.result_summary import summary_of_merge
 from openchem.ui.widgets.fact_view import FactView
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
@@ -113,6 +114,28 @@ _OPEN_HELP = HelpTooltip(
     ),
     tier=1,
     help_id="results.open_full_result",
+    topic="facts",
+)
+
+#: What the selector search means. Deliberately NOT the same concept as
+#: `FactView`'s search box, and it carries its own `help_id` for that reason:
+#: one narrows which RESULT you are reading, the other the VALUES inside it,
+#: and giving them one id would be two concepts wearing one -- the mirror of
+#: the split `test_one_concept_is_not_split_across_many_help_ids` refuses.
+_SELECTOR_SEARCH_HELP = HelpTooltip(
+    text=(
+        "Narrow the list of results by name or section.\n\n"
+        "This filters WHICH result you are looking at. The search box below "
+        "the list filters the VALUES within the one you have chosen -- two "
+        "different questions, so they are two different boxes.\n\n"
+        "It matches a result's name and the section it sits under, so "
+        "\"solubility\" finds everything filed there whatever each one is "
+        "called. Sections with nothing left in them disappear. It hides rows: "
+        "it computes nothing, discards nothing, and re-runs nothing, and the "
+        "result you are currently reading always stays in the list."
+    ),
+    tier=1,
+    help_id="results.filter_result_list",
     topic="facts",
 )
 
@@ -223,6 +246,17 @@ class MergedResultsDialog(QDialog):
         self._focus_box.currentIndexChanged.connect(self._on_focus_changed)
         apply_help_tooltip(self._focus_box, _FOCUS_HELP)
 
+        # **THE SECOND SEARCH, AND IT IS A DIFFERENT QUESTION FROM THE FIRST.**
+        # Measured after 1a: a molecule with everything run puts 60 entries and
+        # 20 headings into that combo, 81 rows with "All results" -- a
+        # scrolling problem rather than a reading one. `FactView`'s box below
+        # narrows the VALUES inside one report and cannot narrow the list.
+        self._selector_search = QLineEdit(self)
+        self._selector_search.setPlaceholderText("Filter results by name or section")
+        self._selector_search.setClearButtonEnabled(True)
+        self._selector_search.textChanged.connect(self._on_selector_search_changed)
+        apply_help_tooltip(self._selector_search, _SELECTOR_SEARCH_HELP)
+
         focus_row = QWidget(self)
         row = QHBoxLayout(focus_row)
         row.setContentsMargins(0, 0, 0, 0)
@@ -256,6 +290,7 @@ class MergedResultsDialog(QDialog):
         self._empty.setWordWrap(True)
 
         layout = QVBoxLayout(self)
+        layout.addWidget(self._selector_search)
         layout.addWidget(focus_row)
         layout.addWidget(self._view, 1)
         layout.addWidget(self._empty, 1)
@@ -299,7 +334,12 @@ class MergedResultsDialog(QDialog):
     def view(self) -> ReaderView:
         """What this window is showing: the focused report and the filter."""
         search, everything = self._view.filter_state()
-        return ReaderView(report_id=self._focus, search=search, everything=everything)
+        return ReaderView(
+            report_id=self._focus,
+            search=search,
+            everything=everything,
+            selector_search=self._selector_search.text(),
+        )
 
     def apply_view(self, view: ReaderView) -> None:
         """Put the window where `view` says, without recording that as a move.
@@ -309,6 +349,13 @@ class MergedResultsDialog(QDialog):
         and then again through the new one.
         """
         self._view.set_filter_state(view.search, view.everything)
+        # SIGNALS BLOCKED, for the same reason `set_filter_state` blocks its
+        # own: this is a host RESTORING a position, and letting the handler
+        # fire would call `_remember` and write the restore back -- which the
+        # note below is about, and which `_apply_focus` is careful not to do.
+        blocked = self._selector_search.blockSignals(True)
+        self._selector_search.setText(view.selector_search)
+        self._selector_search.blockSignals(blocked)
         self._apply_focus(view.report_id)
         # NOT a `_remember`. A host restoring a position must not write it
         # back: with a memory whose recall FELL BACK -- the focused report is
@@ -384,7 +431,14 @@ class MergedResultsDialog(QDialog):
         blocked = self._focus_box.blockSignals(True)
         self._focus_box.clear()
         self._focus_box.addItem(ALL_RESULTS, "")
-        for group in grouped_reports(self._merged.reports, self._display_order_of):
+        # FILTERED BEFORE GROUPING, which is what makes the empty-heading
+        # behaviour free: `grouped_reports` never emits a group with nothing
+        # in it, so a search that empties a section removes its heading with
+        # no rule here. Its docstring says so, written before this existed.
+        listed = matching_reports(
+            self._merged.reports, self._selector_search.text(), always=self._focus
+        )
+        for group in grouped_reports(listed, self._display_order_of):
             self._add_group_heading(group.label)
             for report in group.entries:
                 label = self._merged.name_for(report.report_id)
@@ -423,6 +477,18 @@ class MergedResultsDialog(QDialog):
         blocked = self._focus_box.blockSignals(True)
         self._focus_box.setCurrentIndex(index)
         self._focus_box.blockSignals(blocked)
+
+    def _on_selector_search_changed(self, _text: str) -> None:
+        """Rebuild the list, and remember what was typed.
+
+        The FOCUS is untouched: filtering narrows what you can pick, never
+        what you are reading. `matching_reports` keeps the focused entry in
+        the list whether or not it matches, so the control still names what
+        it is currently doing -- a box that hid the current selection would
+        show one report and name another.
+        """
+        self._rebuild_focus_box()
+        self._remember()
 
     def _on_focus_changed(self, _index: int) -> None:
         self._focus = str(self._focus_box.currentData() or "")

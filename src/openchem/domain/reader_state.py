@@ -67,13 +67,26 @@ def reader_state(molecule_uuid: str | None, result_count: int) -> str:
 
 @dataclass(frozen=True)
 class ReaderView:
-    """One molecule's reader position: which report, and which filter."""
+    """One molecule's reader position: which report, and which filters."""
 
     #: The focused `report_id`, or "" for all of them -- the same vocabulary
     #: `MergedResultsDialog.focus()` already uses, so nothing has to translate.
     report_id: str = ""
-    #: The fact search text, verbatim.
+    #: The FACT search text, verbatim -- what to look for WITHIN the focused
+    #: report.
     search: str = ""
+    #: The SELECTOR search text, verbatim -- which result to read.
+    #:
+    #: **TWO SEARCHES, AND THEY ARE REMEMBERED SEPARATELY BECAUSE THEY ASK
+    #: DIFFERENT QUESTIONS.** `search` narrows the values inside one producer's
+    #: report; this narrows which producer is on screen. Collapsing them into
+    #: one field would make restoring a position apply a fact filter to a
+    #: selector or the reverse, and neither string means anything in the other
+    #: box.
+    #:
+    #: Defaulted, so a `ReaderView` built before this existed -- and every
+    #: caller that constructs one positionally -- is unmoved.
+    selector_search: str = ""
     #: Whether the depth filter is off.
     #:
     #: **A BOOL, NOT A `Detail`.** The control offers "Standard" and
