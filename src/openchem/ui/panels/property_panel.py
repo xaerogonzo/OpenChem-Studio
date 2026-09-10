@@ -32,6 +32,12 @@ from openchem.domain.calculator import (
     RegistryExecution,
     ServiceExecution,
 )
+from openchem.domain.calculator_taxonomy import (
+    CATEGORY_LABELS,
+    CATEGORY_ORDER,
+    category_label,
+    category_sort_key,
+)
 from openchem.domain.common import CacheState, describe_failure
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
@@ -72,142 +78,22 @@ from openchem.ui.widgets.fact_view import FactView
 
 # Preferred display order -- any category not listed here (e.g. a future
 # plugin-supplied one) is appended alphabetically after these, not dropped.
-_CATEGORY_ORDER = [
-    "physicochemical",
-    "identity",
-    "naming",
-    "charge",
-    "lipophilicity",
-    "structures",
-    "quantum",
-    "electronic",
-    "topology",
-    "geometry",
-    "surface",
-    "substructure",
-    "stereochemistry",
-    "aromaticity",
-    "medicinal_chemistry",
-    # Before pKa rather than after, because the pH-solubility curve is read
-    # THROUGH pKa and somebody arriving at "how soluble is this" should meet
-    # the answer before the machinery behind it.
-    "solubility",
-    "pka",
-    # Directly after pKa on purpose. Somebody reading "how basic is this"
-    # is standing exactly where the Bronsted answer stops being the whole
-    # answer, and carbon monoxide is the case that proves it.
-    "lewis",
-    "admet",
-    "shape",
-]
-#: **26 SECTIONS HELD 49 BUTTONS, AND ELEVEN OF THEM HELD EXACTLY ONE.**
-#: Finding a calculator meant scrolling twenty-six headings, most
-#: concealing a single item -- counted in `docs/NAVIGATION_AUDIT.md`, and
-#: the strongest single number behind "this is extremely difficult
-#: software to use".
-#:
-#: The merge is a taxonomy decision, so each one is justified where it is
-#: not obvious:
-#:
-#: - `structure` (Substance & Bonding) joined `identity`. Both answer
-#:   "what IS this", and the old pair rendered as "Structure" beside
-#:   "Structure Generators" -- two headings a page apart, one of which
-#:   was `category.title()` rather than a name anybody chose.
-#: - `logp` + `logd` became `lipophilicity`. `logd` was NOT a singleton
-#:   and is merged anyway, because logP contributions in one section and
-#:   logD in another is the split that made no sense to begin with.
-#: - `molar_refractivity` went to `electronic`, NOT to lipophilicity with
-#:   the rest of the Crippen family. Molar refractivity is molar
-#:   POLARIZABILITY by Lorentz-Lorenz, so it belongs beside the two
-#:   polarizability calculators; filing it under lipophilicity would have
-#:   put a heading on the section that was not true of its contents.
-#:
-#: **A HEADING MAY NOT CONTAIN `&`, AND MUST BE SHORT.** The section
-#: header is a `QToolButton`, which eats `&` as a mnemonic -- "Lipophilicity
-#: & Refractivity" rendered as "Lipophilicity  Refractivity", with the
-#: ampersand simply gone -- and elides when too long, which turned
-#: "Identity & Composition" into "Identity ...mposition". Both were caught
-#: by looking at the running app after a merge that every test passed.
-#: - `alignment`, `dynamics` and `interactions` joined `geometry`: a
-#:   superposition, a trajectory and a contact map are all things you can
-#:   only ask of a 3D structure.
-#: - `stereocenters` moved OUT of `geometry` to sit with
-#:   `stereo_descriptors`. A CIP label and the centre it labels belong
-#:   together, and this is the one move that gives a singleton a partner
-#:   rather than absorbing it.
-#: - `regulatory` joined `admet`. Costs nothing in the fact view: those
-#:   Facts carry `FactCategory.REGULATORY` themselves, so only the
-#:   section changed.
-#:
-#: `nmr` IS STILL A SINGLETON AND DELIBERATELY SO. `nmr_database` has no
-#: registry sibling -- the ORCA NMR jobs are ServiceExecution and live in
-#: their own panel -- and filing a spectroscopic measurement under a
-#: structural heading to flatten a count would be worse than the count.
-#: `test_no_category_holds_a_single_calculator` asserts the exception BY
-#: NAME, so a second one cannot arrive quietly.
-_CATEGORY_LABELS = {
-    # Joback's eleven properties. Not "Physicochemical", which is already
-    # the descriptor section and would put a critical volume next to a
-    # hydrogen-bond donor count.
-    "thermophysical": "Thermophysical",
-    # Oxygen balance, and the detonation properties when they land.
-    "energetic": "Energetic Materials",
-    "physicochemical": "Physicochemical",
-    "identity": "Identity",
-    "naming": "Naming",
-    "charge": "Charge",
-    "lipophilicity": "Lipophilicity",
-    "structures": "Structure Generators",
-    "quantum": "Quantum (Huckel)",
-    "electronic": "Electronic Properties",
-    "topology": "Topology",
-    "geometry": "Geometry (3D)",
-    "surface": "Surface Area",
-    "substructure": "Substructure Search",
-    "stereochemistry": "Stereochemistry",
-    "aromaticity": "Aromaticity",
-    "medicinal_chemistry": "Medicinal Chemistry",
-    "solubility": "Solubility",
-    "pka": "pKa",
-    "lewis": "Lewis Acid/Base",
-    "admet": "ADMET / Regulatory",
-    "shape": "Shape",
-    # Without these the panel falls back to `category.title()`, which
-    # rendered the NMR section as "Nmr". Found during a documentation
-    # sweep: the guide had to describe a heading that was a formatting
-    # accident rather than a name anybody chose.
-    "nmr": "NMR",
-    # These two hold no buttons at all -- both are ServiceExecution, run
-    # from their own panels, and the section exists only to carry the
-    # hint that says so. They were relying on `category.title()` giving
-    # the right answer by luck, which is the same accident as "Nmr" with
-    # a happier outcome.
-    "docking": "Docking",
-    "quantum_chemistry": "Quantum Chemistry",
-}
-def _category_label(category: str) -> str:
-    """What a section is called, in the ONE place that decides.
-
-    **THERE WERE TWO OF THESE AND THEY DISAGREED.** The heading fell back
-    to `category.replace("_", " ").title()` and the "Copy all" text fell
-    back to `category.title()`, so an unlabelled `medicinal_chemistry`
-    would show as "Medicinal Chemistry" on screen and copy as
-    "Medicinal_Chemistry" -- two names for one section, in one panel.
-
-    Latent rather than shipped: measured across all four sources that can
-    reach `_section_for` (the registry, both descriptor spec tables, a
-    calculator's result, and a provider's alerts), every category in the
-    app today HAS a chosen label, so neither fallback runs. It is unified
-    because a divergence that only appears for the next category added is
-    the kind this document is about.
-
-    The fallback stays for plugins, which may register a category nobody
-    here has named. It reads `my_tools` as "My Tools", which is right;
-    what it cannot do is acronyms, and `nmr` becoming "Nmr" is exactly
-    how this finding was noticed.
-    """
-    return _CATEGORY_LABELS.get(category) or category.replace("_", " ").title() or "Other"
-
+# The taxonomy moved to `domain/calculator_taxonomy.py`. It was private to
+# this panel while this panel was the only surface that grouped calculators;
+# the Results reader groups them too now, and a reader importing
+# `property_panel._CATEGORY_LABELS` would leave the taxonomy owned by the panel
+# that is losing its presentation role. Aliased rather than renamed at every
+# call site: the names below are what this file has always called them.
+#: Where each section sits. `domain.calculator_taxonomy.CATEGORY_ORDER`, bound
+#: to the name this file has always used.
+_CATEGORY_ORDER = CATEGORY_ORDER
+#: What each section is called. Same object as the domain's, deliberately --
+#: `test_the_panel_uses_the_domain_taxonomy_rather_than_a_copy` asserts
+#: IDENTITY, because a copied literal compares equal.
+_CATEGORY_LABELS = CATEGORY_LABELS
+#: The one function that decides a section's name, including the plugin
+#: fallback. Aliased, not reimplemented.
+_category_label = category_label
 
 _DEFAULT_EXPANDED = {"physicochemical", "identity"}
 
@@ -1966,13 +1852,10 @@ class PropertyPanel(QWidget):
         # for the first time, not on every descriptor.
         while self._sections_layout.count():
             self._sections_layout.takeAt(0)
-        ordered = sorted(
-            self._sections,
-            key=lambda cat: (
-                _CATEGORY_ORDER.index(cat) if cat in _CATEGORY_ORDER else len(_CATEGORY_ORDER),
-                cat,
-            ),
-        )
+        # `category_sort_key`, not a copy of it. This rule is now also the
+        # Results selector's, and two implementations of "where does this
+        # category sit" is exactly the drift this move exists to end.
+        ordered = sorted(self._sections, key=category_sort_key)
         for category in ordered:
             self._sections_layout.addWidget(self._sections[category])
         self._sections_layout.addStretch()
