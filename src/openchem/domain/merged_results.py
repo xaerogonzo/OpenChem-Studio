@@ -29,6 +29,7 @@ import dataclasses
 from dataclasses import dataclass
 
 from openchem.domain.report import ChartAnnotation, Fact, ReportResult, SpatialAnnotation
+from openchem.domain.result_ordering import ordered_reports
 from openchem.domain.structure_resolution import is_stale
 
 
@@ -177,7 +178,7 @@ def is_report_shaped(result: object) -> bool:
 
 
 def merge_reports(
-    reports, structure_version: int = 0
+    reports, structure_version: int = 0, display_order_of=None
 ) -> MergedResults:
     """Fold `reports` into one container, stamping each fact's origin.
 
@@ -213,6 +214,23 @@ def merge_reports(
     for not being a report -- and would have been admitted, chart and all, the
     day a producer declared one. Now it is refused for the honest reason.
 
+    **THE RESULT IS ORDERED, ALWAYS, AND NOT IN ARRIVAL ORDER.** Calculations
+    finish asynchronously and `PropertyPanel._reports` hands its values over in
+    the order they LANDED, so this used to produce a different container for
+    the same six results depending on how the runs raced -- and a seventh
+    landing while somebody read the list moved everything below it.
+    `ordered_reports` applies the declared key; `display_order_of` refines it
+    within a section and is the ONE thing a report cannot answer about itself.
+
+    Ordering without a lookup is still total and still stable -- that is why
+    the key carries a name and an id after the registry position -- so a
+    caller with no registry (the batch store) is deterministic rather than
+    merely unsorted.
+
+    **THE FACTS FOLLOW THE REPORTS.** They are emitted per report in the
+    ordered pass, so a consumer flattening them cannot see one order while a
+    consumer reading `reports` sees another.
+
     **`Fact.source` IS NEVER TOUCHED.** It is the scientific or
     producer-declared source -- "RDKit", "LewisAnalysis" -- and it answers
     a different question from "which calculator did I run". Overwriting it
@@ -222,9 +240,9 @@ def merge_reports(
     """
     kept: list[ReportResult] = []
     facts: list[Fact] = []
-    for report in reports:
-        if not is_report_shaped(report):
-            continue
+    for report in ordered_reports(
+        [report for report in reports if is_report_shaped(report)], display_order_of
+    ):
         kept.append(report)
         origin = getattr(report, "report_id", "")
         for fact in report.facts:

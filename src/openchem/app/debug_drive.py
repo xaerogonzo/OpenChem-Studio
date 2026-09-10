@@ -1134,6 +1134,24 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no detached view; run {'do': 'pop_out', ...}")
                 return
             target = self._popout
+        elif step.get("widget") == "results_list":
+            # **THE DROPPED-DOWN LIST, WHICH NO WINDOW GRAB CAN REACH.** A
+            # closed combo box paints one row, and its popup is a separate
+            # top-level window, so neither `grab()` on the dialog nor
+            # `PrintWindow` on the application captures the thing worth
+            # looking at -- the section headings, and whether bold and
+            # greyed read as unselectable rather than as broken entries.
+            #
+            # `view()` IS an ordinary widget, so grabbing it renders the
+            # rows directly. `showPopup()` first, because an unshown view
+            # has not been laid out and grabs at its default size -- the
+            # trap this file records for `repaint()` and `resize()`.
+            if getattr(self, "_results", None) is None:
+                logger.error("OPENCHEM_DRIVE: no results window open; run {'do': 'results'}")
+                return
+            box = self._results._focus_box
+            box.showPopup()
+            target = box.view()
         target.grab().save(str(path))
         logger.warning("OPENCHEM_DRIVE: wrote %s", path)
 
@@ -1557,6 +1575,47 @@ class _Driver(QObject):
                 len(getattr(report, "charts", ()) or ()),
                 " STALE" if merged.is_stale(report) else "",
             )
+        self._log_results_selector(window)
+
+    def _log_results_selector(self, window: Any) -> None:
+        """Dump the "Showing" list row by row.
+
+        **A COMBO BOX SHOWS ONE ROW WHEN IT IS CLOSED**, so a screenshot of
+        this window carries no information about the list at all -- and the
+        two things worth checking are precisely inside it: that a section
+        heading is present for every group and for no empty one, and that a
+        heading is DISABLED. The second is `jobs_report`'s rule exactly: a
+        selectable heading and an unselectable one render identically until
+        somebody arrows onto it.
+
+        Popping the list open would not help either. It is a separate
+        top-level window, so `PrintWindow` on the application does not
+        capture it.
+        """
+        from openchem.ui.dialogs.merged_results_dialog import GROUP_HEADING
+
+        box = window._focus_box
+        model = box.model()
+        rows = []
+        for index in range(box.count()):
+            heading = box.itemData(index) == GROUP_HEADING
+            enabled = True
+            item = model.item(index) if hasattr(model, "item") else None
+            if item is not None:
+                enabled = bool(item.isEnabled())
+            rows.append(
+                "[{}]{}{}".format(
+                    box.itemText(index),
+                    " HEADING" if heading else "",
+                    "" if enabled else " disabled",
+                )
+            )
+        logger.warning(
+            "OPENCHEM_DRIVE: results selector rows=%d current=%r %s",
+            box.count(),
+            box.currentText(),
+            " ".join(rows),
+        )
 
     def _do_details(self, step: dict[str, Any]) -> None:
         """Open the conformer generation details dialog.

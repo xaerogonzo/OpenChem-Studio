@@ -23,10 +23,28 @@ from openchem.domain.report import (
 )
 from openchem.ui.dialogs.merged_results_dialog import (
     ALL_RESULTS,
+    GROUP_HEADING,
     STALE_MARK,
     MergedResultsDialog,
 )
 from tests.conftest import dispose
+
+
+def _rows(window):
+    """Every row of the focus box, as (text, data).
+
+    Read as data rather than by POSITION, which is what these guards did
+    before the list gained group headings -- `itemText(1)` was the first
+    calculator and is now the first heading. Position was never the contract:
+    `_sync_focus_box` restores the selection with `findData`.
+    """
+    box = window._focus_box
+    return [(box.itemText(i), box.itemData(i)) for i in range(box.count())]
+
+
+def _entries(window):
+    """Just the selectable entries, in order."""
+    return [(text, data) for text, data in _rows(window) if data != GROUP_HEADING]
 
 
 def _fact(label: str, source: str = "RDKit") -> Fact:
@@ -50,11 +68,14 @@ def _chart(title: str) -> StickChartAnnotation:
     )
 
 
-def _report(report_id, name, labels, charts=(), spatial=(), version=0) -> ReportResult:
+def _report(
+    report_id, name, labels, charts=(), spatial=(), version=0, category="other"
+) -> ReportResult:
     return ReportResult(
         molecule_uuid="mol-1",
         report_id=report_id,
         name=name,
+        category=category,
         facts=tuple(_fact(label) for label in labels),
         charts=tuple(charts),
         spatial=tuple(spatial),
@@ -151,8 +172,100 @@ def test_the_focus_control_lists_every_calculator_by_name(qapp):
     report."""
     window = MergedResultsDialog("mol-1")
     window.set_reports(_two())
-    labels = [window._focus_box.itemText(i) for i in range(window._focus_box.count())]
-    assert labels == [ALL_RESULTS, "Elemental Analysis", "Lewis Sites"]
+    assert [text for text, _data in _entries(window)] == [
+        ALL_RESULTS,
+        "Elemental Analysis",
+        "Lewis Sites",
+    ]
+    dispose(window)
+
+
+def test_the_list_is_grouped_by_section_and_the_headings_cannot_be_chosen(qapp):
+    """**THE "Showing" LIST IS GROUPED THE WAY THE PANEL ABOVE IT IS.** It
+    was flat and arrival-ordered, which for a molecule with everything run is
+    30 entries in whatever order the calculations finished.
+
+    A heading has to be unselectable or arrowing through the list lands on
+    one, so it is DISABLED rather than merely styled -- Qt then refuses to
+    make it current.
+    """
+    window = MergedResultsDialog("mol-1")
+    window.set_reports(
+        [
+            _report("lewis_sites", "Lewis Sites", ["Donor"], category="lewis"),
+            _report(
+                "elemental_analysis",
+                "Elemental Analysis",
+                ["Formula"],
+                category="identity",
+            ),
+        ]
+    )
+    box = window._focus_box
+    headings = [
+        (i, text) for i, (text, data) in enumerate(_rows(window)) if data == GROUP_HEADING
+    ]
+    assert [text for _i, text in headings] == ["Identity", "Lewis Acid/Base"], (
+        "sections are named by the shared taxonomy, and are in its order"
+    )
+    model = box.model()
+    for index, _text in headings:
+        assert not model.item(index).isEnabled(), "a heading must not be selectable"
+    dispose(window)
+
+
+def test_a_heading_is_never_mistaken_for_the_all_results_entry(qapp):
+    """`_sync_focus_box` restores with `findData(self._focus)`, and `""` is a
+    REAL value there -- it is what ALL_RESULTS carries. A heading holding the
+    same thing would be found first and the box would restore onto a row
+    nobody can select."""
+    window = MergedResultsDialog("mol-1")
+    window.set_reports(_two())
+    assert window._focus_box.findData("") == 0, "ALL_RESULTS is still row 0"
+    assert GROUP_HEADING != ""
+    dispose(window)
+
+
+def test_the_selection_survives_a_result_landing_above_it(qapp):
+    """**A CALCULATION FINISHING MUST NOT MOVE WHAT SOMEBODY IS READING.**
+
+    The list is rebuilt from scratch on every arrival, so the selection is
+    restored by `findData` rather than by index -- and this fixture makes the
+    two disagree: the arriving result belongs to an EARLIER section, so it
+    pushes the focused entry down by two rows (its own heading and itself).
+    A restore that remembered a position would land on the wrong report, or
+    on a heading.
+    """
+    lewis = _report("lewis_sites", "Lewis Sites", ["Donor"], category="lewis")
+    window = MergedResultsDialog("mol-1")
+    window.set_reports([lewis])
+    window.set_focus("lewis_sites")
+    before = window._focus_box.currentIndex()
+
+    early = _report(
+        "elemental_analysis", "Elemental Analysis", ["Formula"], category="identity"
+    )
+    window.set_reports([lewis, early])
+
+    assert window.focus() == "lewis_sites", "the reader's choice must survive"
+    assert window._focus_box.currentData() == "lewis_sites"
+    assert window._focus_box.currentIndex() != before, (
+        "fixture is degenerate: the arrival did not move the entry, so an "
+        "index-based restore would have passed too"
+    )
+    dispose(window)
+
+
+def test_no_heading_is_emitted_for_a_section_with_nothing_in_it(qapp):
+    """The selector shows what has been COMPUTED, so its group set differs
+    per molecule and per session. Somebody who has run one calculator must
+    not scroll twenty headings."""
+    window = MergedResultsDialog("mol-1")
+    window.set_reports(
+        [_report("lewis_sites", "Lewis Sites", ["Donor"], category="lewis")]
+    )
+    headings = [text for text, data in _rows(window) if data == GROUP_HEADING]
+    assert headings == ["Lewis Acid/Base"]
     dispose(window)
 
 
@@ -163,12 +276,26 @@ def test_a_stale_report_is_marked_and_kept(qapp):
     """**REPORTED, NEVER DISCARDED.** Silently serving a stale result and
     silently blanking it are the two ways this goes wrong, and they look
     identical from outside."""
-    old = _report("lewis_sites", "Lewis Sites", ["Donor sites"], version=1)
-    new = _report("elemental_analysis", "Elemental Analysis", ["Formula"], version=2)
+    old = _report(
+        "lewis_sites", "Lewis Sites", ["Donor sites"], version=1, category="lewis"
+    )
+    new = _report(
+        "elemental_analysis",
+        "Elemental Analysis",
+        ["Formula"],
+        version=2,
+        category="identity",
+    )
     window = MergedResultsDialog("mol-1")
     window.set_reports([old, new], structure_version=2)
-    labels = [window._focus_box.itemText(i) for i in range(window._focus_box.count())]
-    assert labels == [ALL_RESULTS, "Lewis Sites" + STALE_MARK, "Elemental Analysis"]
+    # Elemental Analysis first: `identity` precedes `lewis` in the shared
+    # taxonomy, which is the order the sections above already use. Before
+    # this the list followed the order the two results arrived in.
+    assert [text for text, _data in _entries(window)] == [
+        ALL_RESULTS,
+        "Elemental Analysis",
+        "Lewis Sites" + STALE_MARK,
+    ]
     assert len(window.merged().facts) == 2, "neither is discarded"
     dispose(window)
 
@@ -189,10 +316,13 @@ def test_the_stale_marks_update_in_an_OPEN_window(qapp):
     report = _report("lewis_sites", "Lewis Sites", ["Donor sites"], version=1)
     window = MergedResultsDialog("mol-1")
     window.set_reports([report], structure_version=1)
-    assert window._focus_box.itemText(1) == "Lewis Sites"
+    assert dict(map(reversed, _entries(window)))["lewis_sites"] == "Lewis Sites"
     # The structure moves under it, and the same reports are pushed again.
     window.set_reports([report], structure_version=2)
-    assert window._focus_box.itemText(1) == "Lewis Sites" + STALE_MARK
+    assert (
+        dict(map(reversed, _entries(window)))["lewis_sites"]
+        == "Lewis Sites" + STALE_MARK
+    )
     dispose(window)
 
 

@@ -668,6 +668,14 @@ them, and the search box matches a producing calculator as well as a value, so
 "lewis" finds everything Lewis Sites said. It is not modal — you can leave it
 open and keep working, which is the whole point of a window that accumulates.
 
+That box is **grouped into the same sections as the panel behind it, in the same
+order**, with **Molecular Properties** — the descriptors computed for every
+molecule, whether you asked or not — above them. A section appears only once
+something in it has been computed, so the list is as short as your session is.
+It used to follow whichever calculation finished first, which meant the same six
+results could come back in a different order every time and a seventh landing
+while you read moved everything below it.
+
 A result computed for an earlier version of the structure is **marked stale and
 kept** — in that box, in the heading and in a line above the values. Re-run the
 calculator to refresh it. A stale answer and a missing one are different things,

@@ -107,6 +107,23 @@ result on an item-view-shaped panel is a far weaker statement than the same
 result on a form-shaped one. The defect has a guard of its own kind in
 `tests/test_batch_panel.py`, measured against the header's own font metrics.
 
+## A CLOSED COMBO BOX PAINTS ONE ROW, AND ITS LIST IS ANOTHER WINDOW
+
+`results_selector_order.json` is the case that needed a new target. The "Showing"
+list is where the section headings live, and neither `grab()` on the results
+window nor `PrintWindow` on the application reaches it: a closed combo paints
+only the current entry, and its popup is a separate top-level window.
+
+`{"do": "shot", "widget": "results_list"}` pops it and grabs `QComboBox.view()`,
+which is an ordinary widget. `showPopup()` FIRST, because an unshown view has
+never been laid out and grabs at its default size -- the same trap CLAUDE.md
+records for `repaint()` and `resize()`.
+
+**The log carries what even that shot cannot.** `{"do": "results"}` prints every
+row with `HEADING` and `disabled` beside it, because a selectable heading and an
+unselectable one render identically until somebody arrows onto one -- the
+`jobs_report` rule, applied to a list instead of a timer.
+
 ## Reading the result
 
 **The painted-item count is logged even when nothing is wrong**, and that is

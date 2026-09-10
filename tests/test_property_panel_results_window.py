@@ -364,3 +364,86 @@ def test_no_aggregate_appears_before_any_descriptor_has_landed(panel):
     ids = [r.report_id for r in widget._results_window.merged().reports]
     assert DESCRIPTOR_AGGREGATE_ID not in ids
     dispose(widget._results_window)
+
+
+def test_the_aggregate_is_shown_above_every_calculator(panel):
+    """**THE ONE ENTRY THAT IS ALWAYS THERE MUST NOT BE AT THE BOTTOM.** It
+    was appended last, so the 41 always-computed descriptors sat below every
+    calculator that happened to have run -- and its 41 descriptors span ten
+    categories, so no section is true of it either. It declares the always-on
+    band and sorts above the sections.
+    """
+    from openchem.domain.descriptor_aggregate import DESCRIPTOR_AGGREGATE_ID
+
+    widget, bus, molecule, _project, _versions = panel
+    _descriptor(bus, molecule, "mol_wt", name="Molecular Weight", value=46.07)
+    assert widget._descriptor_values, "fixture is degenerate: no descriptors landed"
+    _land(bus, _report("a", "A", "Formula", molecule.uuid))
+    widget._open_results_window()
+    ids = [r.report_id for r in widget._results_window.merged().reports]
+    assert ids[0] == DESCRIPTOR_AGGREGATE_ID, ids
+    dispose(widget._results_window)
+
+
+# --- the ordering the panel is the only thing that can supply -------------
+
+
+def _definition(calculator_id: str, display_name: str, category: str):
+    from openchem.domain.calculator import CalculatorDefinition, RegistryExecution
+
+    return CalculatorDefinition(
+        calculator_id=calculator_id,
+        display_name=display_name,
+        category=category,
+        description=f"{display_name}. Runs nothing in this fixture.",
+        execution=RegistryExecution(compute=lambda _mol, _uuid, _params: None),
+    )
+
+
+def test_the_results_window_orders_by_the_registrys_own_order(qapp):
+    """**THE WIRING, END TO END, AND THE FIXTURE HAS TO CONTRADICT THE
+    FALLBACK.**
+
+    The panel is the only object holding the registry, so it is the only one
+    that can tell the window where a calculator sits in its section. Drop the
+    argument and the window still orders -- by name -- which is a plausible
+    list that silently disagrees with the buttons above it. Measured on the
+    shipped registry, that is the arrangement that puts Hansen Solubility
+    Parameters ahead of Solubility.
+
+    So the two calculators here are registered in the order that INVERTS
+    their names: nothing but the registry position can produce the expected
+    list, and the `panel` fixture's empty registry could not have shown it.
+    """
+    bus = EventBus()
+    engine = ChemistryEngine()
+    registry = CalculatorRegistry()
+    registry.register(_definition("zulu", "Zulu", "solubility"))
+    registry.register(_definition("alpha", "Alpha", "solubility"))
+    widget = PropertyPanel(
+        bus,
+        registry,
+        DescriptorService(bus, engine, calculator_registry=registry),
+        engine,
+        structure_version_of=_Versions(),
+    )
+    molecule = MoleculeModel()
+    engine.set_structure_from_smiles(molecule, "CCO")
+    widget.set_project(ProjectModel(molecules=[molecule]))
+    bus.publish(MoleculeSelected(molecule_uuid=molecule.uuid))
+
+    assert registry.display_order("zulu") == 0
+    assert registry.display_order("alpha") == 1, "the fixture must invert the names"
+
+    _land(bus, _report("alpha", "Alpha", "A", molecule.uuid))
+    _land(bus, _report("zulu", "Zulu", "Z", molecule.uuid))
+    widget._open_results_window()
+    window = widget._results_window
+    ids = [
+        r.report_id
+        for r in window.merged().reports
+        if r.report_id in ("zulu", "alpha")
+    ]
+    assert ids == ["zulu", "alpha"], ids
+    dispose(window)
+    dispose(widget)

@@ -6614,6 +6614,157 @@ InChIKey would exercise the matcher against the number it came from and
 prove nothing about the name resolution -- which is precisely the check that
 found the two wrong structures above.
 
+## THE RESULTS LIST FOLLOWED WHICHEVER CALCULATION FINISHED FIRST
+
+`PropertyPanel._reports` is a dict keyed by `report_id`, `merge_reports` kept
+that order, and the "Showing" box was built straight from it -- so the list was
+in the order results LANDED, and calculations finish asynchronously. Two runs of
+the same six calculators could produce six different lists, and a seventh
+landing while somebody read one moved everything below it.
+
+**AND ARRIVAL ORDER IS NOT THE ORDER THE APPLICATION ALREADY USES.** Measured
+over the 30 results that reach the merged reader for aspirin, run in registry
+order: **30 of 30 sit in a different position** from the sections the Properties
+panel shows them in. The registry groups by MODULE; `CATEGORY_ORDER` groups by
+what a reader is looking for.
+
+`domain/result_ordering.py` is the key, and it is total:
+
+    display band -> category -> registry position -> display name -> report_id
+
+### THE REGISTRY POSITION IS EDITORIAL ORDER, AND DROPPING IT IS NOT FREE
+
+The tempting simplification is to drop it and sort by name inside a section --
+it needs no injected lookup and reads as tidier. Measured over the shipped
+registry, it changes **5 of the 8 multi-entry sections** and every change is a
+bad one:
+
+    solubility   Solubility, Solubility vs pH, Hansen   -> HANSEN FIRST
+    lewis        Lewis Sites, Lewis Adduct              -> inverted
+    admet        ADMET, Regulatory Screen, CNS MPO, BBB -> BBB second
+    geometry     Geometry first                         -> 3D Alignment first
+    surface      Molecular Surface Area first           -> Accessible SA first
+
+That is the same judgement `CATEGORY_ORDER` already records BETWEEN sections
+(solubility before pKa; lewis directly after it), applied within one.
+`CalculatorRegistry.display_order` does not introduce an order -- `by_category`
+returns dict values, so the panel has always rendered buttons in registration
+order. It makes the order already in use ASKABLE.
+
+**THE CATEGORY NEEDS NO LOOKUP AT ALL, WHICH IS WHY ONLY THE POSITION IS
+INJECTED.** `ReportResult` carries its own `category`, and measured over those
+same 30 results it agrees with the registered calculator's **30 times out of
+30**, with none falling back to the `"other"` default.
+
+### ONE `report_id` DECLARED TWO SECTIONS, AND GROUPING IS WHAT SHOWED IT
+
+Driving the app put **Functional Groups under "ADMET / Regulatory"**. The
+always-on alert declared `category="admet"` while the registered calculator of
+the same id declares `substructure` -- so its BUTTON sat under Substructure
+Search and its always-on RESULT ROW appeared under ADMET / Regulatory. That is
+exactly the defect `test_a_calculators_result_lands_in_its_own_section` exists
+for, and that guard walks the REGISTRY, so a producer declaring its own category
+was outside its population.
+
+Measured over every literal `(id, category)` pair in the tree: **41
+declarations, and precisely one disagreed.** A fragment count is not an ADMET
+property; the alert now says `substructure`, and
+`test_a_result_declares_the_same_section_its_calculator_does` holds the rule
+with the four genuine producer-only catalogs (PAINS, BRENK, mutagenicity, hERG)
+as its narrow half.
+
+**AND A TEST ENCODED THE DEFECT IN ITS OWN NAME.** The guard for this row was
+called "...lands in admet section" and built its OWN `AlertResult` with
+`category="admet"`, so it asserted the panel's ROUTING and could say nothing
+about where the real result goes. Its successor,
+`test_the_functional_groups_alert_lands_in_the_section_its_producer_names`, runs
+the shipped producer and reads the category off the result, so the two cannot
+drift again through it.
+
+### THE ALWAYS-ON ENTRY BELONGS TO NO SECTION, AND SAYS SO
+
+`DescriptorAggregate` holds the 41 always-computed descriptors, and those span
+**ten different calculator categories** -- medicinal chemistry 13,
+physicochemical 5, topology 5, admet 2, and six more with one apiece. No section
+is true of it, and it was being appended LAST, so the only entry always present
+sat below every calculator that happened to have run.
+
+It declares `display_band = ALWAYS_ON`, which is **read, never inferred** -- the
+rule `charts`, `spatial` and `TOTAL` already follow. An unknown band RAISES
+rather than defaulting, because a band nothing recognises would sort at whatever
+integer it happened to be and silently reorder the list, which is the failure
+the module exists to remove arriving through its own front door. Exactly one
+type in the application declares it, and the population is derived from the
+source rather than trusted to review.
+
+### A GROUP HOLDING ONE ENTRY IS ORDINARY HERE, WHICH IS THE OPPOSITE RULE
+
+`test_no_category_holds_a_single_calculator` exists because a SECTION concealing
+one button is a taxonomy failure. A group in this list holds one entry whenever
+you have run one calculator from that section -- measured on a full run for
+aspirin, **11 of 17 groups do**. Applying the panel's rule here would apply a
+rule about the taxonomy to a statement about what somebody ran.
+
+The invariant that does hold is that **no group is ever emitted empty**, and it
+is what makes a search control safe to add later without revisiting any of this:
+filtering changes the input set, and a set with nothing in a category produces
+no heading for it.
+
+**`""` AND `"other"` ARE ONE SECTION, AND HAD TO BE NORMALISED.**
+`ReportResult.category` defaults to `"other"`, `category_label` renders both as
+"Other", and `category_sort_key` orders unlisted categories by the STRING --
+which puts them at opposite ends of the tail. A plugin category sorting between
+them yields two groups both headed "Other", which reads as a rendering fault and
+is a normalisation one.
+
+### THE FIXTURE WHERE THE ID ORDER AGREED WITH THE NAME ORDER
+
+Twelve mutation arms, and **M5 -- deleting the `display_name` term -- SURVIVED**
+the first pass. Both guards for that term used entries whose report_id order
+happened to match their name order, so the key fell through to the id and gave
+the same answer. The discriminating fixture has ids that CONTRADICT the names;
+with it, M5 fails two tests. Second pass: twelve arms, twelve caught.
+
+That term is not decoration. Two plugins with ids `zz_tool` and `aa_tool` named
+"Alpha Tool" and "Zulu Tool" would otherwise render in the order of the thing
+nobody can see.
+
+### A CLOSED COMBO BOX PAINTS ONE ROW, AND ITS LIST IS ANOTHER WINDOW
+
+The section headings are the whole point of the change and **no screenshot of
+the results window contains them**: a closed combo paints the current entry, and
+its popup is a separate top-level, so `PrintWindow` on the application does not
+capture it either. `{"do": "shot", "widget": "results_list"}` calls `showPopup()`
+and grabs `QComboBox.view()`, which is an ordinary widget -- `showPopup()` FIRST,
+because an unshown view has never been laid out and grabs at its default size.
+
+**AND THE LOG CARRIES WHAT EVEN THAT CANNOT.** `{"do": "results"}` now prints
+every row with `HEADING` and `disabled` beside it, because a selectable heading
+and an unselectable one render identically until somebody arrows onto one. That
+is the `jobs_report` rule applied to a list rather than a timer -- and the
+heading is DISABLED rather than merely styled, so Qt refuses to make it current.
+
+**THE MAGNIFIED SHOT FOUND ONE MORE, AND IT WAS THE FIRST LINE A READER SEES.**
+The summary read `9 calculator(s): Molecular Properties, ...` -- naming as a
+calculator the one entry that explicitly is not one, has no `calculator_id`, is
+never offered as a runnable and never enters a cache key. Invisible until the
+ordering put it first. It says `result(s)` now.
+
+### THE HEREDOC ATE A BACKSLASH AND PUT A NUL BYTE IN THE SOURCE
+
+Third instance, sprung by somebody who had read the other two the same hour.
+`GROUP_HEADING = "\x00heading"` written through a quoted heredoc produced a real
+NUL byte, and the module failed to import with `source code string cannot
+contain null bytes`. The sentinel is an INTEGER now, which needs no escape and
+cannot collide with a `report_id` by construction -- every id is a string.
+
+**AND `read_bytes().decode()` BREAKS A MULTI-LINE REPLACEMENT THAT
+`read_text()` DOES NOT.** This working tree is CRLF (`core.autocrlf=true`), so
+a replacement string joined with `\n` matches nothing against decoded bytes;
+`read_text`/`write_text` translate both ways and round-trip the line endings
+unchanged. Reach for a real editing tool the moment the content contains an
+escape -- the rule was already written down twice.
+
 ## Running the tests
 
 ```bash

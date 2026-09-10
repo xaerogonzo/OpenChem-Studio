@@ -851,24 +851,38 @@ def test_admet_section_has_no_open_row_since_nothing_is_registered_there(qapp):
 # --- Phase 20: functional groups + hERG risk factors + extended filters -----
 
 
-def test_functional_groups_alert_lands_in_admet_section(qapp):
+def test_the_functional_groups_alert_lands_in_the_section_its_producer_names(qapp):
+    """**THE PRODUCER'S OWN ALERT, NOT A HAND-BUILT ONE.**
+
+    This used to construct its own `AlertResult` with `category="admet"` and
+    was named for that section, so it asserted the panel's routing and could
+    say nothing about where the real result goes -- which is how
+    `functional_groups` came to declare `admet` here while its registered
+    calculator declared `substructure`, putting the BUTTON in one section and
+    the always-on ROW in another.
+
+    Running the shipped producer is what closes that: the category is read
+    off the result rather than typed, so the two cannot drift again through
+    this test.
+    """
+    from rdkit import Chem
+
+    from openchem.chem.descriptor_providers import compute_fragment_group_alert
+
     panel, bus, _service = _make_panel(qapp)
     bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
 
-    bus.publish(
-        AlertComputed(
-            alert=AlertResult(
-                alert_id="functional_groups",
-                name="Functional Groups",
-                molecule_uuid="mol-1",
-                matched=["Ester (1)", "Benzene Ring (1)"],
-                provenance=Provenance(created_by="core", method="rdkit"),
-                category="admet",
-            )
-        )
+    alert = compute_fragment_group_alert(
+        Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O"), "mol-1"
     )
+    assert alert.matched, "fixture is degenerate: no groups matched"
+    bus.publish(AlertComputed(alert=alert))
 
-    assert "admet" in panel._sections
+    assert alert.category == "substructure", (
+        "a fragment count is not an ADMET property, and its calculator "
+        "already says so"
+    )
+    assert alert.category in panel._sections
     label = panel._alert_labels[("core", "functional_groups")]
     assert "Ester (1)" in label.text()
 

@@ -42,6 +42,7 @@ from openchem.domain.calculator_taxonomy import category_for
 from openchem.domain.common import CacheState, describe_failure
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.report import Basis, Fact, FactCategory
+from openchem.domain.result_ordering import ALWAYS_ON
 
 #: The reader entry's id. **NOT A `calculator_id`** -- see the module
 #: docstring. Reserved so nothing can register a calculator that collides
@@ -156,6 +157,21 @@ class DescriptorAggregate:
     `find()` -- so it passes through the same admission door as a report
     rather than a side one, and holds the originals so nothing is lost.
     """
+
+    #: **THE ONE ENTRY IN THIS APPLICATION THAT BELONGS TO NO SECTION.**
+    #: Its 41 descriptors span TEN different calculator categories
+    #: (medicinal chemistry 13, physicochemical 5, topology 5, admet 2, and
+    #: six more with one apiece), so no single section is true of it --
+    #: while every calculator result has exactly one. Declaring the band is
+    #: what keeps `result_ordering` from having to guess, and what stops the
+    #: only entry that is ALWAYS present sorting below every calculator that
+    #: happens to have run.
+    #:
+    #: A class attribute rather than a field, deliberately: it is a property
+    #: of the TYPE, not of an instance, so no aggregate can present itself as
+    #: belonging to a section -- the same reason `report_id` is a read-only
+    #: property here.
+    display_band = ALWAYS_ON
 
     molecule_uuid: str
     #: The originals, untouched. Each keeps its own `cache_state`, `error`,

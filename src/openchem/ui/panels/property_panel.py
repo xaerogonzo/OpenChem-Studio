@@ -2428,7 +2428,18 @@ class PropertyPanel(QWidget):
         if window is None or window.molecule_uuid() != uuid:
             if window is not None:
                 window.close()
-            window = MergedResultsDialog(uuid, self._selected_molecule_name(), self)
+            window = MergedResultsDialog(
+                uuid,
+                self._selected_molecule_name(),
+                self,
+                # WHERE EACH CALCULATOR SITS, so the results list is ordered
+                # the way the sections above it are rather than by whichever
+                # run finished first. A bound method on the registry, which is
+                # the only object that knows its own registration order --
+                # this panel already renders its buttons in exactly that
+                # order, so the two surfaces now agree by construction.
+                display_order_of=self._calculator_registry.display_order,
+            )
             # DeleteOnClose, and the handle dropped with it: a closed
             # window that kept receiving updates would be a write into a
             # deleted widget, which is the ordinary Qt lifetime bug this

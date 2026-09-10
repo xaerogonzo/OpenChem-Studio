@@ -40,6 +40,7 @@ from PySide6.QtWidgets import (
 
 from openchem.domain.common import CacheState, describe_failure
 from openchem.domain.merged_results import MergedResults, merge_reports
+from openchem.domain.result_ordering import grouped_reports
 from openchem.ui.widgets.fact_view import FactView
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
@@ -72,6 +73,20 @@ STALE_MARK = " (stale)"
 #: what it is currently doing.
 ALL_RESULTS = "All results"
 
+#: The data a group heading carries.
+#:
+#: **NOT an empty string, and not "no data at all".** `_sync_focus_box`
+#: restores the selection with `findData(self._focus)`, and `""` is a REAL
+#: value there -- it is what ALL_RESULTS carries -- so a heading holding it
+#: would be found first and the box would restore onto an unselectable row.
+#: An INTEGER keeps the two apart by construction: every `report_id` is a
+#: string, so no heading can ever compare equal to one, and it needs no
+#: escape sequence to write down. The first attempt used a string with a NUL
+#: in it and put a real NUL BYTE into this source file -- the shell-heredoc
+#: backslash trap this repository records twice, sprung a third time by
+#: somebody who had read both entries.
+GROUP_HEADING = -1
+
 
 class MergedResultsDialog(QDialog):
     """One molecule's accumulated results, focusable by calculator."""
@@ -81,11 +96,18 @@ class MergedResultsDialog(QDialog):
         molecule_uuid: str,
         molecule_name: str = "",
         parent: QWidget | None = None,
+        display_order_of=None,
     ) -> None:
         super().__init__(parent)
         self._molecule_uuid = molecule_uuid
         self._merged = MergedResults(reports=(), facts=())
         self._focus = ""
+        # Where each calculator sits in the registry -- the ONE ordering term
+        # a report cannot answer about itself. Injected rather than looked up
+        # here, so this window needs no registry and the ordering stays
+        # testable without one. Absent, the order is still total and still
+        # stable; it just cannot honour the editorial order WITHIN a section.
+        self._display_order_of = display_order_of
 
         self.setWindowTitle(f"Results - {molecule_name}" if molecule_name else "Results")
         self.resize(560, 680)
@@ -144,7 +166,11 @@ class MergedResultsDialog(QDialog):
         calculator's facts land in the open window rather than needing it
         reopened.
         """
-        self._merged = merge_reports(reports, structure_version=structure_version)
+        self._merged = merge_reports(
+            reports,
+            structure_version=structure_version,
+            display_order_of=self._display_order_of,
+        )
         self._rebuild_focus_box()
         self._render()
 
@@ -172,16 +198,52 @@ class MergedResultsDialog(QDialog):
     # --- rendering -----------------------------------------------------------
 
     def _rebuild_focus_box(self) -> None:
+        """Rebuild the "Showing" list: headings, then their entries.
+
+        **GROUPED THE WAY THE PROPERTIES PANEL IS**, and by the same
+        `category_label`, so one section cannot end up with two names. The
+        list was flat and arrival-ordered, which for a molecule with
+        everything run is 30 entries in whatever order the runs happened to
+        finish.
+
+        **A HEADING IS ONLY EVER EMITTED FOR A GROUP THAT HAS SOMETHING IN
+        IT** -- `grouped_reports` guarantees that, so this loop cannot leave
+        seventeen empty headings behind for somebody who has run three
+        calculators.
+        """
         blocked = self._focus_box.blockSignals(True)
         self._focus_box.clear()
         self._focus_box.addItem(ALL_RESULTS, "")
-        for report in self._merged.reports:
-            label = self._merged.name_for(report.report_id)
-            if self._merged.is_stale(report):
-                label += STALE_MARK
-            self._focus_box.addItem(label, report.report_id)
+        for group in grouped_reports(self._merged.reports, self._display_order_of):
+            self._add_group_heading(group.label)
+            for report in group.entries:
+                label = self._merged.name_for(report.report_id)
+                if self._merged.is_stale(report):
+                    label += STALE_MARK
+                self._focus_box.addItem(label, report.report_id)
         self._focus_box.blockSignals(blocked)
         self._sync_focus_box()
+
+    def _add_group_heading(self, label: str) -> None:
+        """A row that names a section and cannot be chosen.
+
+        **DISABLED, NOT MERELY STYLED.** Qt skips a disabled row for keyboard
+        navigation and refuses to make it current, so the heading cannot
+        become the focus -- which is what would otherwise happen the moment
+        somebody arrows through the list. Bold rather than indented for the
+        opposite reason: a closed combo box paints the CURRENT entry's own
+        text, so indenting the entries would show the indent in the collapsed
+        control.
+        """
+        self._focus_box.addItem(label, GROUP_HEADING)
+        model = self._focus_box.model()
+        item = model.item(self._focus_box.count() - 1) if hasattr(model, "item") else None
+        if item is None:
+            return
+        item.setEnabled(False)
+        font = item.font()
+        font.setBold(True)
+        item.setFont(font)
 
     def _sync_focus_box(self) -> None:
         index = self._focus_box.findData(self._focus)
@@ -226,7 +288,13 @@ class MergedResultsDialog(QDialog):
             )
             for report in self._merged.reports
         ]
-        return f"{len(names)} calculator(s): " + ", ".join(names)
+        # **"result(s)", NOT "calculator(s)".** The always-on descriptor
+        # aggregate is one of these entries and is explicitly NOT a
+        # calculator -- it has no `calculator_id`, is never offered as
+        # something to run, and never enters a cache key. Now that it sorts
+        # first, the old wording named it as a calculator in the very first
+        # thing a reader sees. Found by driving the app and reading the shot.
+        return f"{len(names)} result(s): " + ", ".join(names)
 
     def _summary_for(self, report) -> str:
         """What to say above a focused report's facts.

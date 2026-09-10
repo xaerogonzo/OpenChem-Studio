@@ -266,7 +266,17 @@ def test_functional_groups_on_aspirin():
     alerts = {a.alert_id: a for a in provider.compute_alerts(aspirin, "mol-1")}
     groups = alerts["functional_groups"]
 
-    assert groups.category == "admet"
+    # **DERIVED FROM THE REGISTRY, NOT TYPED.** This said `"admet"`, which was
+    # the third place pinning a divergence rather than a fact: the calculator
+    # of the same id declares `substructure`, so the BUTTON sat under
+    # Substructure Search while this always-on result appeared under ADMET /
+    # Regulatory. A literal here cannot tell a category from a disagreement;
+    # reading the registered one means this test moves with a real taxonomy
+    # decision and refuses a drift.
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
+
+    registered = {d.calculator_id: d.category for d in CALCULATOR_DEFINITIONS}
+    assert groups.category == registered["functional_groups"]
     assert any(g.startswith("Ester") for g in groups.matched)
     assert any(g.startswith("Carboxylic Acid") for g in groups.matched)
     assert any(g.startswith("Benzene Ring") for g in groups.matched)
