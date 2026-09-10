@@ -1,0 +1,19 @@
+# A RETRIEVED REGULATION IS EVIDENCE, SO ITS BYTES MUST NOT BE TRANSLATED.
+#
+# `core.autocrlf=true` is set in this repository and nothing declared an
+# exception, so a text file is stored LF and checked out CRLF on Windows.
+# For source code that is invisible. For a committed snapshot of an
+# official document it is not: `osha_1910_1000.xml` carries 4763 bare LFs
+# and its sha256 travels in the generated ruleset's provenance, so a fresh
+# Windows clone would hash 176334 CRLF-expanded bytes to a different digest
+# than Linux CI hashes -- and the guard tying the shipped numbers to the
+# committed regulation would go red on one platform for a reason with
+# nothing to do with the regulation.
+#
+# NORMALISING THE HASH INSTEAD WOULD BE WRONG HERE, and that is the
+# distinction worth keeping. `tools/build_regulatory_rulesets.py` DOES
+# hash newline-normalised text, correctly: it is checking whether a
+# GENERATED artefact is current, and a line ending is not a content edit.
+# This file is not ours. Its digest answers "is this the document we read",
+# so it has to be the document's own bytes.
+src/openchem/chem/data/regulatory/sources/*.xml -text

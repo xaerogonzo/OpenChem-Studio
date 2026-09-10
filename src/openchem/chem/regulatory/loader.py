@@ -26,13 +26,18 @@ from openchem.chem.regulatory.types import (
     Domain,
     Jurisdiction,
     LegalSource,
+    LimitPrecision,
+    LimitType,
     MachineInterpretation,
     MatchType,
+    QuantitativeLimit,
     Rule,
     RuleConfidence,
     Ruleset,
     RulesetCoverage,
     RulesetProvenance,
+    SourceLimitFact,
+    SourceSnapshot,
 )
 
 logger = logging.getLogger("openchem.chemistry")
@@ -119,8 +124,55 @@ def ruleset_from_dict(data: dict, user_supplied: bool = False) -> Ruleset:
             opsin_version=provenance_raw.get("opsin_version", ""),
             rdkit_version=provenance_raw.get("rdkit_version", ""),
         ),
+        source_snapshot=_snapshot_from_dict(data.get("source_snapshot")),
         known_limitations=tuple(data.get("known_limitations", [])),
         user_supplied=user_supplied,
+    )
+
+
+def _snapshot_from_dict(raw: dict | None) -> SourceSnapshot | None:
+    """The retrieved document, or None where nothing was retrieved.
+
+    ABSENT AND EMPTY ARE THE SAME ANSWER HERE and both give None: a
+    snapshot whose fields are blank claims a retrieval that did not
+    happen, which is worse than saying nothing. `document` and `sha256`
+    are what make it a snapshot at all, so a partial one is refused.
+    """
+    if not isinstance(raw, dict):
+        return None
+    document = str(raw.get("document", ""))
+    digest = str(raw.get("sha256", ""))
+    if not document or not digest:
+        return None
+    return SourceSnapshot(
+        document=document,
+        sha256=digest,
+        retrieved=str(raw.get("retrieved", "")),
+        status=str(raw.get("status", "")),
+    )
+
+
+def _limit_from_dict(entry: dict) -> QuantitativeLimit:
+    """One printed limit, with its reading beside it.
+
+    The source half and the interpretation half are separate objects in the
+    JSON as well as in the model, so a reader of a ruleset file can tell a
+    transcription from a reading without consulting the code.
+    """
+    source_raw = entry.get("source", {})
+    return QuantitativeLimit(
+        source=SourceLimitFact(
+            value=str(source_raw.get("value", "")),
+            unit=str(source_raw.get("unit", "")),
+            raw_notation=str(source_raw.get("raw_notation", "")),
+            qualifier=str(source_raw.get("qualifier", "")),
+        ),
+        limit_type=LimitType(entry.get("limit_type", "other")),
+        precision=LimitPrecision(entry.get("precision", "unstated")),
+        normalized_value=entry.get("normalized_value"),
+        normalized_unit=str(entry.get("normalized_unit", "")),
+        normalization_method=str(entry.get("normalization_method", "")),
+        normalization_assumptions=tuple(entry.get("normalization_assumptions", [])),
     )
 
 
@@ -128,6 +180,11 @@ def _rule_from_dict(entry: dict) -> Rule:
     legal_raw = entry.get("legal", {})
     interpretation_raw = entry.get("interpretation", {})
     return Rule(
+        # ADDITIVE: absent means an empty tuple, so every one of the 91
+        # rules shipped before this field existed loads exactly as it did.
+        quantitative_limits=tuple(
+            _limit_from_dict(limit) for limit in entry.get("quantitative_limits", [])
+        ),
         rule_id=entry["rule_id"],
         display_name=entry.get("display_name", entry["rule_id"]),
         domain=Domain(entry["domain"]),

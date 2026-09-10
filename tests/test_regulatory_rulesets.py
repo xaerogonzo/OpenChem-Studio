@@ -44,6 +44,38 @@ def _mol(smiles: str) -> Chem.Mol:
     return mol
 
 
+def _control_findings(report):
+    """Findings from the CONTROL domains -- chemical weapons and drug
+    precursors -- with occupational exposure excluded.
+
+    **THE GUARDS BELOW WERE WRITTEN WHEN "LISTED" MEANT ONE THING.** Their
+    negative controls say an ordinary solvent must match nothing, and that
+    was a check on the CWC and DEA family patterns over-reaching: a rule
+    matching every organophosphate would otherwise look perfect. Adding
+    OSHA Table Z-1 changed the premise rather than breaking the code --
+    ethanol really does carry a 1000 ppm permissible exposure limit, and a
+    screen hiding that would be wrong.
+
+    SCOPED, NOT DELETED, and the scoping is only honest because
+    `test_an_everyday_solvent_matches_an_exposure_limit_and_that_is_CORRECT`
+    asserts the other half. Without it this is a helper that quietly makes
+    failures disappear.
+    """
+    return [
+        finding
+        for finding in report.findings
+        if finding.rule.domain is not Domain.OCCUPATIONAL_EXPOSURE
+    ]
+
+
+def _control_near_misses(report):
+    return [
+        near
+        for near in report.near_misses
+        if near.rule.domain is not Domain.OCCUPATIONAL_EXPOSURE
+    ]
+
+
 @pytest.fixture(scope="module")
 def engine() -> RegulatoryEngine:
     rulesets, problems = load_all(include_user=False)
@@ -175,7 +207,7 @@ def test_the_carbon_limit_is_honoured(engine):
 def test_ordinary_chemicals_do_not_match(smiles, engine):
     """The negative controls. Without these a rule matching every
     phosphorus compound would look perfect."""
-    assert not engine.screen(_mol(smiles)).matched
+    assert not _control_findings(engine.screen(_mol(smiles)))
 
 
 def test_an_over_broad_rule_says_so_on_the_finding(engine):
@@ -300,8 +332,9 @@ def test_the_listed_sulfur_monochloride_is_Cl2S2_not_ClS(engine):
     'Sulphur monochloride' and PubChem returns HClS; the entry lists Cl2S2.
     Both halves are asserted, because the shipped key being right is only
     meaningful if the wrong structure also fails to match."""
-    assert [f.rule.rule_id for f in engine.screen(_mol("ClSSCl")).findings] == ["cwc-3-b-12"]
-    assert not engine.screen(_mol("[S]Cl")).matched
+    matched = _control_findings(engine.screen(_mol("ClSSCl")))
+    assert [f.rule.rule_id for f in matched] == ["cwc-3-b-12"]
+    assert not _control_findings(engine.screen(_mol("[S]Cl")))
 
 
 def test_a_salt_of_a_schedule_3_chemical_matches_and_that_is_declared(engine):
@@ -381,10 +414,12 @@ def test_no_everyday_substance_is_NEAR_any_shipped_rule(engine, name, smiles):
     that should have found them.
     """
     report = engine.screen(_mol(smiles))
-    assert not report.matched, f"{name} matched {[f.rule.rule_id for f in report.findings]}"
-    assert not report.near_misses, (
-        f"{name} is near {[n.rule.rule_id for n in report.near_misses]} on "
-        f"{[o.label for n in report.near_misses for o in n.outcomes if o.passed]}"
+    findings = _control_findings(report)
+    near = _control_near_misses(report)
+    assert not findings, f"{name} matched {[f.rule.rule_id for f in findings]}"
+    assert not near, (
+        f"{name} is near {[n.rule.rule_id for n in near]} on "
+        f"{[o.label for n in near for o in n.outcomes if o.passed]}"
     )
 
 
@@ -449,10 +484,60 @@ def test_an_everyday_solvent_is_reported_as_a_listed_precursor(engine):
     would be wrong. What makes it honest rather than alarming is the match
     type and the legitimate uses travelling with it."""
     for smiles, rule_id in [("CC(C)=O", "dea-ii-2"), ("Cc1ccccc1", "dea-ii-7")]:
-        findings = engine.screen(_mol(smiles)).findings
+        findings = _control_findings(engine.screen(_mol(smiles)))
         assert [f.rule.rule_id for f in findings] == [rule_id]
         assert findings[0].match_type.value == "precursor"
         assert findings[0].rule.legitimate_uses
+
+
+def test_an_everyday_solvent_matches_an_exposure_limit_and_that_is_CORRECT(engine):
+    """THE OTHER HALF OF `_control_findings`, and without it that helper is
+    a way of making failures disappear.
+
+    Six guards in this file say an ordinary solvent must match nothing.
+    They were written when every shipped ruleset was about weapons or drug
+    precursors, where a match on ethanol would mean a family pattern had
+    over-reached. Table Z-1 changes what "listed" means: ethanol carries a
+    1000 ppm permissible exposure limit, acetone 1000 ppm, and a screen
+    that hid them would be wrong.
+
+    So the scoping is a change of PREMISE, not a weakening -- and this is
+    what says so. Note what it asserts alongside: the finding arrives with
+    the number, its unit and what it is a limit ON, because "ethanol is
+    listed" without those is the alarming half of the statement without
+    the actionable half.
+    """
+    for smiles, expected in [("CCO", "1000"), ("CC(C)=O", "1000")]:
+        findings = [
+            finding
+            for finding in engine.screen(_mol(smiles)).findings
+            if finding.rule.domain is Domain.OCCUPATIONAL_EXPOSURE
+        ]
+
+        assert len(findings) == 1, smiles
+        limits = findings[0].rule.quantitative_limits
+        assert limits, f"{smiles} matched an exposure rule carrying no limit"
+        assert limits[0].source.value == expected
+        assert limits[0].source.unit == "ppm"
+        assert limits[0].limit_type.value == "twa_8h"
+
+
+def test_the_control_domains_are_still_populated(engine):
+    """The setup assertion for `_control_findings`.
+
+    If the CWC and DEA rulesets ever stopped loading, every guard that
+    helper serves would pass vacuously -- an empty list satisfies "matched
+    nothing" perfectly. Same shape as the population walks elsewhere in
+    this file that assert their own universe before asserting about it.
+    """
+    domains = {
+        rule.domain
+        for ruleset in load_all(include_user=False)[0]
+        for rule in ruleset.rules
+    }
+
+    assert Domain.OCCUPATIONAL_EXPOSURE in domains
+    assert domains - {Domain.OCCUPATIONAL_EXPOSURE}, "only exposure rules loaded"
 
 
 def test_the_two_permanganates_are_told_apart(engine):
@@ -698,7 +783,7 @@ def test_an_exempted_chemical_does_not_match(engine, name, smiles):
     """The treaty exempts these BY NAME, and each one's family pattern hits
     it -- so without the exemption every one is a false positive on a
     chemical in ordinary commerce."""
-    assert not engine.screen(_mol(smiles)).matched, name
+    assert not _control_findings(engine.screen(_mol(smiles))), name
 
 
 def test_the_exemption_does_not_excuse_a_larger_molecule_that_contains_it(engine):
@@ -759,23 +844,77 @@ def test_an_identity_rule_is_confidence_verified_not_exact():
                 assert rule.interpretation.confidence is RuleConfidence.VERIFIED, rule.rule_id
 
 
-def test_every_shipped_rule_is_exercised_by_the_benchmark_corpus():
+#: OSHA rules still owing a positive case. **A RATCHET, AND IT MAY ONLY
+#: SHRINK.** Table Z-1 contributed 234 identity rules at once, and a
+#: blanket assertion would have forbidden landing them at all -- the
+#: staged-migration shape `tooltip_migration_debt.json` used, at a scale
+#: that does not warrant its own fixture file.
+#:
+#: Unlike that migration NOBODY IS EXPECTED TO EMPTY IT quickly: a
+#: positive case here is a SMILES written independently of the resolver,
+#: which is real work per substance and is the only version worth having.
+#: Deriving one from the rule's own InChIKey would exercise the matcher
+#: against the number it came from and prove nothing about the name
+#: resolution -- which is precisely the check that found two wrong
+#: structures in this ruleset.
+_OSHA_RULES_AWAITING_A_POSITIVE_CASE = 204
+
+
+def test_every_rule_outside_table_z1_is_exercised_by_the_benchmark_corpus():
     """A rule with no positive case scores precision 1.00 in the benchmark
     while testing nothing -- the same vacuous pass its own README warns
     about for a rule that matches every organophosphate. Sixteen of the
-    twenty-two shipped rules were in that state when Schedule 3 landed."""
+    twenty-two shipped rules were in that state when Schedule 3 landed.
+
+    FULL STRENGTH FOR EVERY RULESET THAT PREDATES TABLE Z-1: all 91 of
+    those rules carry a case and must go on doing so.
+    """
+    exercised = _exercised_rule_ids()
+    shipped = {
+        rule.rule_id
+        for ruleset in load_all(include_user=False)[0]
+        for rule in ruleset.rules
+        if not rule.rule_id.startswith("osha-z1-")
+    }
+
+    assert not (shipped - exercised), "shipped rules with no positive case"
+
+
+def test_the_table_z1_rules_awaiting_a_positive_case_only_shrink():
+    """The ratchet, and the number is REPORTED even when it passes.
+
+    `<= N` alone cannot tell a real reduction from the walk collapsing to
+    zero and reading as a clean sweep -- this project has recorded a guard
+    printing `checked 0 connect() calls` while green -- so the covered
+    count is asserted too.
+    """
+    exercised = _exercised_rule_ids()
+    osha = {
+        rule.rule_id
+        for ruleset in load_all(include_user=False)[0]
+        for rule in ruleset.rules
+        if rule.rule_id.startswith("osha-z1-")
+    }
+    covered = osha & exercised
+    awaiting = osha - exercised
+
+    assert osha, "no Table Z-1 rules loaded, so this guard checks nothing"
+    assert covered, "not one Table Z-1 rule has a positive case"
+    assert len(awaiting) <= _OSHA_RULES_AWAITING_A_POSITIVE_CASE, (
+        f"{len(awaiting)} Table Z-1 rules await a positive case, up from "
+        f"{_OSHA_RULES_AWAITING_A_POSITIVE_CASE}; the recorded set may only shrink"
+    )
+
+
+def _exercised_rule_ids() -> set[str]:
     corpus = json.loads(
         (REPO / "benchmarks" / "regulatory" / "corpus.json").read_text(encoding="utf-8")
     )
-    exercised = {
+    return {
         rule_id
         for case in corpus["positives"]
         for rule_id in case.get("expect", [])
     }
-    shipped = {
-        rule.rule_id for ruleset in load_all(include_user=False)[0] for rule in ruleset.rules
-    }
-    assert not (shipped - exercised), "shipped rules with no positive case"
 
 
 # --- Screening as of a date, against the rules that actually ship --------
@@ -841,7 +980,7 @@ def test_an_undated_shipped_rule_is_not_filtered_by_as_of(engine):
     It asserts that this screen's date constrained the DEA rules not at all,
     which is what that ruleset's coverage note says in as many words.
     """
-    findings = engine.screen(_mol("CC(C)=O"), as_of=date(1900, 1, 1)).findings
+    findings = _control_findings(engine.screen(_mol("CC(C)=O"), as_of=date(1900, 1, 1)))
     assert [f.rule.rule_id for f in findings] == ["dea-ii-2"]
 
 
