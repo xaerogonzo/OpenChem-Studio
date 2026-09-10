@@ -48,6 +48,12 @@ _ROOT = Path(__file__).resolve().parent.parent
 
 DOCS = [
     "CLAUDE.md",
+    # THE LESSON LOG, and it carries almost every citation in the
+    # project -- it WAS CLAUDE.md's body, which this list already
+    # covered. Splitting it out moved 17,870 lines of file and test
+    # names out of the guard's reach without anything going red,
+    # which is this list being hand-kept.
+    "docs/LESSONS.md",
     "README.md",
     "BASIC_INSTRUCTIONS.md",
     "CONTRIBUTING.md",
@@ -1306,7 +1312,12 @@ def test_the_guide_states_the_real_number_of_calculators():
 #: is how a live claim gets excused by accident.
 CALCULATOR_COUNTS_ARE_HISTORY = {
     "CHANGELOG.md": "records what each release contained, at that release",
-    "CLAUDE.md": "a troubleshooting log whose figures are dated measurements",
+    "docs/LESSONS.md": (
+        "the same log, split out of CLAUDE.md -- every count in it is a "
+        "dated measurement of the registry as it was when that entry was "
+        "written. Part-updating one would leave the others describing a "
+        "tree that no longer exists, which reads as current"
+    ),
     "docs/NAVIGATION_AUDIT.md": "a dated audit of one moment, kept as a record",
     "docs/ROADMAP.md": "its batch paragraph is ONE measurement, dated in place",
     "docs/ARCHITECTURE.md": (
