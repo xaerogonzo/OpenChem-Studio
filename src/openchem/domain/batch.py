@@ -435,7 +435,27 @@ class BatchResultStore:
             # can draw every chart it is handed and cannot open six 3D
             # models -- `MergedResults.spatial()` is how a view offers
             # those one at a time, with their owners attached.
-            charts=tuple(chart for _report_id, chart in merged.charts()),
+            # FROM REPORTS THAT CONTRIBUTED FACTS, which is narrower than
+            # what `merge_reports` now admits and deliberately so.
+            #
+            # That gate stopped meaning "has facts" and started meaning "is a
+            # report", so a FAILED or picture-only result reaches the READER --
+            # which is right there, where it can be focused, named and asked
+            # why it is empty. This is the FLATTENING: one anonymous report,
+            # one `report_id`, one `structure_version`, no per-report focus.
+            # A chart arriving here has no owner a reader could recover, so a
+            # picture with no facts beside it would be an orphan nobody can
+            # attribute -- the case the chart gate was written for.
+            #
+            # Batch showing failed calculators is a real question and a better
+            # one, but it needs the status vocabulary rather than a chart
+            # slipping in as a side effect of an admission change.
+            charts=tuple(
+                chart
+                for report in merged.reports
+                if report.facts
+                for chart in (getattr(report, "charts", ()) or ())
+            ),
         )
 
     def merged_results(self, molecule_uuid: str, structure_version: int | None = None):

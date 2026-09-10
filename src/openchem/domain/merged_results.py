@@ -29,6 +29,8 @@ import dataclasses
 from dataclasses import dataclass
 
 from openchem.domain.report import ChartAnnotation, Fact, ReportResult, SpatialAnnotation
+from openchem.domain.result_ordering import ordered_reports
+from openchem.domain.structure_resolution import is_stale
 
 
 @dataclass(frozen=True)
@@ -85,7 +87,11 @@ class MergedResults:
         it was computed" -- and the reason every calculator result is
         stamped in ONE place rather than left at the default.
         """
-        return report.structure_version != self.structure_version
+        # `structure_resolution.is_stale`, not a repeat of the comparison.
+        # Staleness now decides whether a PICTURE is drawn as well as whether
+        # a badge is shown, and two rules meant to agree about that would be a
+        # bug nobody could see -- both answers look reasonable in isolation.
+        return is_stale(report.structure_version, self.structure_version)
 
     def stale_report_ids(self) -> tuple[str, ...]:
         return tuple(report.report_id for report in self.reports if self.is_stale(report))
@@ -147,17 +153,105 @@ class MergedResults:
         )
 
 
+#: The reader contract, as a membership test -- everything a reader entry has
+#: to answer before it can be shown, selected, ordered or exported.
+#:
+#: Structural rather than `isinstance`, deliberately, and for the reason
+#: `ResultSummaryView` exists: the merged view is a VIEW over several
+#: producers, and a summary projection of a per-atom dataset or a pH curve
+#: satisfies this surface without being a `ReportResult`. Requiring the class
+#: would force those to be fabricated as real reports, which is precisely what
+#: `MergedResults` refuses to do to its own contents.
+#:
+#: **IT WAS FOUR NAMES AND THE READER READ NINE, WHICH IS NOT A DIFFERENCE
+#: ANYBODY COULD SEE UNTIL SOMETHING FAILED IT.** `FactView._status_text`
+#: reads `limitations` directly, `MergedResults.name_for` reads `name`, and
+#: `report_format` reads `assumptions`, `molecule_uuid` and
+#: `structure_version` -- so a container admitted by the old four could pass
+#: the door and then raise in a PAINT path. `DescriptorAggregate` did exactly
+#: that: focusing "Molecular Properties" raised `AttributeError: ... has no
+#: attribute 'limitations'`, and Copy report raised on three of its four
+#: formats. It had shipped that way because nothing focused it.
+#:
+#: `charts` and `spatial` are deliberately NOT here. They are read with
+#: `getattr` throughout, because a bond report legitimately has neither and a
+#: reader with no picture is an ordinary reader.
+_READER_CONTRACT = (
+    "report_id",
+    "name",
+    "facts",
+    "by_category",
+    "find",
+    "limitations",
+    "assumptions",
+    "molecule_uuid",
+    "structure_version",
+)
+
+
+def is_report_shaped(result: object) -> bool:
+    """Whether `result` can be read by the merged results reader.
+
+    **NOT "does it have facts".** See `merge_reports` for the bug that
+    distinction fixes: a FAILED, inapplicable or picture-only report has none
+    and is exactly what a reader must show.
+    """
+    return all(hasattr(result, name) for name in _READER_CONTRACT)
+
+
 def merge_reports(
-    reports, structure_version: int = 0
+    reports, structure_version: int = 0, display_order_of=None
 ) -> MergedResults:
     """Fold `reports` into one container, stamping each fact's origin.
 
     **ONLY RESULTS THAT ARE REPORTS CONTRIBUTE**, which is the rule
     `merged_report` already applied to facts and which now applies to the
-    other channels too: a per-atom dataset, a spectrum or a structure set
-    has no facts to merge and is reached through its own inspector. Without
-    that, a factless result could smuggle a chart into a merged view
-    through a door the facts are refused at.
+    other channels too: a per-atom dataset, a spectrum or a structure set is
+    not a report and is reached through its own inspector. Without that, such
+    a result could smuggle a chart into a merged view through a door the facts
+    are refused at.
+
+    **BUT "IS A REPORT" IS NOT "HAS FACTS", AND CONFLATING THEM WAS A BUG.**
+    This gate was `if not getattr(report, "facts", None): continue`, which is
+    two rules wearing one test -- reject non-reports, AND reject reports that
+    happen to have no facts. The second is wrong the moment Results is the
+    canonical reader rather than one of two places a result appears.
+
+    A report legitimately has no facts when it FAILED, when the method does
+    not apply to this molecule, or when its whole content is a picture. Those
+    are exactly the cases a reader must show. Measured: `compute_lewis_sites`
+    returns `report_from_fields(..., matched=[], cache_state=FAILED)` on
+    refusal, so a refused Lewis Sites result reached the Properties panel and
+    reached this window not at all -- it was rendered as nothing having
+    happened.
+
+    So the gate is the READER CONTRACT instead: `report_id` to be focused by,
+    plus the `facts`/`by_category`/`find` surface a `FactView` consumes. That
+    is the same duck-type `_AllResults` implements, so a summary view of a
+    non-report result passes through the same door rather than a side one.
+
+    It still refuses the kinds it always did, and truthiness was never what
+    did that: `PhCurveResult` carries a `facts` field (empty by default) and
+    no `by_category`, so it was refused for having no facts YET rather than
+    for not being a report -- and would have been admitted, chart and all, the
+    day a producer declared one. Now it is refused for the honest reason.
+
+    **THE RESULT IS ORDERED, ALWAYS, AND NOT IN ARRIVAL ORDER.** Calculations
+    finish asynchronously and `PropertyPanel._reports` hands its values over in
+    the order they LANDED, so this used to produce a different container for
+    the same six results depending on how the runs raced -- and a seventh
+    landing while somebody read the list moved everything below it.
+    `ordered_reports` applies the declared key; `display_order_of` refines it
+    within a section and is the ONE thing a report cannot answer about itself.
+
+    Ordering without a lookup is still total and still stable -- that is why
+    the key carries a name and an id after the registry position -- so a
+    caller with no registry (the batch store) is deterministic rather than
+    merely unsorted.
+
+    **THE FACTS FOLLOW THE REPORTS.** They are emitted per report in the
+    ordered pass, so a consumer flattening them cannot see one order while a
+    consumer reading `reports` sees another.
 
     **`Fact.source` IS NEVER TOUCHED.** It is the scientific or
     producer-declared source -- "RDKit", "LewisAnalysis" -- and it answers
@@ -168,9 +262,9 @@ def merge_reports(
     """
     kept: list[ReportResult] = []
     facts: list[Fact] = []
-    for report in reports:
-        if not getattr(report, "facts", None):
-            continue
+    for report in ordered_reports(
+        [report for report in reports if is_report_shaped(report)], display_order_of
+    ):
         kept.append(report)
         origin = getattr(report, "report_id", "")
         for fact in report.facts:

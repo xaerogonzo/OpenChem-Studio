@@ -1134,6 +1134,24 @@ class _Driver(QObject):
                 logger.error("OPENCHEM_DRIVE: no detached view; run {'do': 'pop_out', ...}")
                 return
             target = self._popout
+        elif step.get("widget") == "results_list":
+            # **THE DROPPED-DOWN LIST, WHICH NO WINDOW GRAB CAN REACH.** A
+            # closed combo box paints one row, and its popup is a separate
+            # top-level window, so neither `grab()` on the dialog nor
+            # `PrintWindow` on the application captures the thing worth
+            # looking at -- the section headings, and whether bold and
+            # greyed read as unselectable rather than as broken entries.
+            #
+            # `view()` IS an ordinary widget, so grabbing it renders the
+            # rows directly. `showPopup()` first, because an unshown view
+            # has not been laid out and grabs at its default size -- the
+            # trap this file records for `repaint()` and `resize()`.
+            if getattr(self, "_results", None) is None:
+                logger.error("OPENCHEM_DRIVE: no results window open; run {'do': 'results'}")
+                return
+            box = self._results._focus_box
+            box.showPopup()
+            target = box.view()
         target.grab().save(str(path))
         logger.warning("OPENCHEM_DRIVE: wrote %s", path)
 
@@ -1530,6 +1548,16 @@ class _Driver(QObject):
         same in a screenshot, and a stale badge is a few pixels of text.
         """
         panel = self._window._property_panel
+        if step.get("close"):
+            # **THE REAL CLOSE, WITH `WA_DeleteOnClose` ON IT.** A reader's
+            # position has to survive the window being destroyed, which is
+            # the one thing a test holding a live widget cannot demonstrate
+            # by itself -- and it is the transition the memory exists for.
+            if getattr(panel, "_results_window", None) is not None:
+                panel._results_window.close()
+            self._results = None
+            logger.warning("OPENCHEM_DRIVE: results tag=%s CLOSED", step.get("tag", ""))
+            return
         panel._open_results_window(focus=str(step.get("focus") or ""))
         window = panel._results_window
         if window is None:
@@ -1557,6 +1585,81 @@ class _Driver(QObject):
                 len(getattr(report, "charts", ()) or ()),
                 " STALE" if merged.is_stale(report) else "",
             )
+        self._log_results_selector(window)
+        self._log_results_copy(window)
+
+    def _log_results_copy(self, window: Any) -> None:
+        """Try the four Copy formats on whatever is focused, and say so.
+
+        **PRESSING COPY IS THE ONLY WAY TO FIND OUT, AND NO SCREENSHOT
+        SHOWS IT.** `report_format` dispatches on type and used to fall off
+        the end into the ATOM branch, so the two reader entries that are not
+        a `ReportResult` -- the all-results view and Molecular Properties --
+        raised `AttributeError: ... has no attribute 'atom_index'` out of the
+        click path. The window looks perfectly healthy either way.
+
+        The FORMATTER rather than the button, deliberately and unlike
+        `jobs_cancel`: `_on_copy_clicked` writes to the system clipboard, and
+        a diagnostic run must not overwrite whatever Alex has in it.
+        """
+        from openchem.ui.report_format import format_report
+
+        report = window._view.report()
+        if report is None:
+            logger.warning("OPENCHEM_DRIVE: results copy -- nothing to copy")
+            return
+        outcomes = []
+        for fmt in ("Plain text", "Markdown", "JSON", "CSV"):
+            try:
+                text = format_report(report, fmt)
+                outcomes.append(f"{fmt}={len(text)}ch")
+            except Exception as error:  # noqa: BLE001 - the point is to report it
+                outcomes.append(f"{fmt}=RAISED {type(error).__name__}")
+        logger.warning(
+            "OPENCHEM_DRIVE: results copy subject=%s %s",
+            type(report).__name__,
+            " ".join(outcomes),
+        )
+
+    def _log_results_selector(self, window: Any) -> None:
+        """Dump the "Showing" list row by row.
+
+        **A COMBO BOX SHOWS ONE ROW WHEN IT IS CLOSED**, so a screenshot of
+        this window carries no information about the list at all -- and the
+        two things worth checking are precisely inside it: that a section
+        heading is present for every group and for no empty one, and that a
+        heading is DISABLED. The second is `jobs_report`'s rule exactly: a
+        selectable heading and an unselectable one render identically until
+        somebody arrows onto it.
+
+        Popping the list open would not help either. It is a separate
+        top-level window, so `PrintWindow` on the application does not
+        capture it.
+        """
+        from openchem.ui.dialogs.merged_results_dialog import GROUP_HEADING
+
+        box = window._focus_box
+        model = box.model()
+        rows = []
+        for index in range(box.count()):
+            heading = box.itemData(index) == GROUP_HEADING
+            enabled = True
+            item = model.item(index) if hasattr(model, "item") else None
+            if item is not None:
+                enabled = bool(item.isEnabled())
+            rows.append(
+                "[{}]{}{}".format(
+                    box.itemText(index),
+                    " HEADING" if heading else "",
+                    "" if enabled else " disabled",
+                )
+            )
+        logger.warning(
+            "OPENCHEM_DRIVE: results selector rows=%d current=%r %s",
+            box.count(),
+            box.currentText(),
+            " ".join(rows),
+        )
 
     def _do_details(self, step: dict[str, Any]) -> None:
         """Open the conformer generation details dialog.
@@ -2444,6 +2547,7 @@ class _Driver(QObject):
             from PySide6.QtWidgets import QToolButton
 
             from openchem.ui.widgets.collapsible_section import CollapsibleSection
+            from openchem.domain.structure_resolution import ResolvedStructure
             from openchem.ui.widgets.fact_view import FactView
 
             view = dialog.findChild(FactView)
@@ -2529,6 +2633,7 @@ class _Driver(QObject):
         """
         from openchem.domain.molecule import MoleculeModel
         from openchem.domain.report import valid_chart_annotation
+        from openchem.domain.structure_resolution import ResolvedStructure
         from openchem.ui.widgets.depiction_widget import DepictionWidget
         from openchem.ui.widgets.fact_view import FactView
 
@@ -2578,7 +2683,11 @@ class _Driver(QObject):
         dialog.setWindowTitle(f"{report.name} - declared depiction")
         dialog.resize(520, 640)
         view = FactView(dialog)
-        view.set_structure_resolver(lambda _uuid: molblock)
+        # Takes the REPORT now, not a uuid -- see `set_structure_resolver`.
+        # This harness resolves unconditionally because it is showing the
+        # depiction it was asked to show; a production host refuses a stale
+        # one, which is what `resolve_structure_for_report` is for.
+        view.set_structure_resolver(lambda _report: ResolvedStructure.of(molblock))
         view.set_report(report, title=report.name)
         layout = QVBoxLayout(dialog)
         layout.addWidget(view)

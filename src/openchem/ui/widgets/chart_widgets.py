@@ -78,7 +78,7 @@ CHART_WIDGET_TYPES: tuple[type[QWidget], ...] = (
 
 
 def chart_widget_for(
-    annotation, parent: QWidget | None = None, molblock: str = ""
+    annotation, parent: QWidget | None = None, molblock: str = "", refusal: str = ""
 ) -> QWidget:
     """The widget that draws `annotation`, or a label saying none does.
 
@@ -91,9 +91,15 @@ def chart_widget_for(
     the annotation deliberately carries no geometry. A caller that cannot
     resolve the molecule passes nothing and the depiction says so rather
     than drawing an empty frame.
+
+    `refusal` is why the caller WOULD NOT resolve one -- distinct from
+    could not. A stale result's atom indices describe the structure it was
+    computed on, so drawing it against the current molecule points at the
+    wrong atoms while looking entirely normal. Only a depiction can be wrong
+    that way: a chart on axes carries its own coordinates.
     """
     if isinstance(annotation, DepictionAnnotation):
-        return DepictionWidget(annotation, parent, molblock=molblock)
+        return DepictionWidget(annotation, parent, molblock=molblock, refusal=refusal)
     if isinstance(annotation, StickChartAnnotation):
         # `show_title=False`: the section header above IS the chart's
         # title, and painting it again put the same words twice on screen

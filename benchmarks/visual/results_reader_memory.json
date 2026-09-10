@@ -1,0 +1,22 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 800},
+  {"do": "select", "molecule": -1, "after_ms": 500},
+  {"do": "panel", "id": "Properties", "after_ms": 500},
+
+  {"do": "calculator", "id": "elemental_analysis", "after_ms": 2500},
+  {"do": "calculator", "id": "lewis_sites", "after_ms": 2500},
+
+  {"do": "results", "tag": "opened-fresh", "after_ms": 1200},
+  {"do": "results", "focus": "lewis_sites", "tag": "reader-chooses-lewis", "after_ms": 800},
+
+  {"do": "results", "close": true, "tag": "reader-closes-it", "after_ms": 1200},
+  {"do": "results", "tag": "reopened-should-restore-lewis", "after_ms": 1200},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/results_reader_memory.png", "widget": "results", "after_ms": 500},
+
+  {"do": "erase", "element": "O", "after_ms": 2500},
+  {"do": "results", "close": true, "tag": "closed-after-the-edit", "after_ms": 800},
+  {"do": "results", "tag": "stale-selection-must-be-restored", "after_ms": 1200},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/results_reader_memory_stale.png", "widget": "results", "after_ms": 500},
+
+  {"do": "quit"}
+]

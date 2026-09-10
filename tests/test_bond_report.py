@@ -170,7 +170,7 @@ def test_a_molecule_with_no_conformer_reports_no_length():
     mol = Chem.MolFromSmiles(ASPIRIN)
     report = build_bond_report(mol, 0)
     assert labelled(report, "Length") is None
-    assert report, "the rest of the report should still be there"
+    assert report.facts, "the rest of the report should still be there"
 
 
 # --- flexibility --------------------------------------------------------
@@ -264,7 +264,7 @@ def test_a_failing_provider_costs_only_its_own_facts():
 
     mol = mol_2d()
     report = build_bond_report(mol, 0, providers=[Broken()])
-    assert report, "the built-in facts must survive a broken plugin"
+    assert report.facts, "the built-in facts must survive a broken plugin"
 
 
 def test_a_provider_can_add_bond_facts():

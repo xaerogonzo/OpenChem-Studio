@@ -32,9 +32,19 @@ from openchem.domain.calculator import (
     RegistryExecution,
     ServiceExecution,
 )
+from openchem.domain.calculator_taxonomy import (
+    CATEGORY_LABELS,
+    CATEGORY_ORDER,
+    category_label,
+    category_sort_key,
+)
 from openchem.domain.common import CacheState, describe_failure
+from openchem.domain.descriptor import DescriptorValue
+from openchem.domain.descriptor_aggregate import aggregate_descriptors
 from openchem.domain.project import ProjectModel
+from openchem.domain.reader_state import ReaderMemory
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
+from openchem.domain.structure_resolution import resolve_structure_for_report
 from openchem.ui import visual_check
 from openchem.ui.visualization import declared_total, label_decimals
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
@@ -72,142 +82,22 @@ from openchem.ui.widgets.fact_view import FactView
 
 # Preferred display order -- any category not listed here (e.g. a future
 # plugin-supplied one) is appended alphabetically after these, not dropped.
-_CATEGORY_ORDER = [
-    "physicochemical",
-    "identity",
-    "naming",
-    "charge",
-    "lipophilicity",
-    "structures",
-    "quantum",
-    "electronic",
-    "topology",
-    "geometry",
-    "surface",
-    "substructure",
-    "stereochemistry",
-    "aromaticity",
-    "medicinal_chemistry",
-    # Before pKa rather than after, because the pH-solubility curve is read
-    # THROUGH pKa and somebody arriving at "how soluble is this" should meet
-    # the answer before the machinery behind it.
-    "solubility",
-    "pka",
-    # Directly after pKa on purpose. Somebody reading "how basic is this"
-    # is standing exactly where the Bronsted answer stops being the whole
-    # answer, and carbon monoxide is the case that proves it.
-    "lewis",
-    "admet",
-    "shape",
-]
-#: **26 SECTIONS HELD 49 BUTTONS, AND ELEVEN OF THEM HELD EXACTLY ONE.**
-#: Finding a calculator meant scrolling twenty-six headings, most
-#: concealing a single item -- counted in `docs/NAVIGATION_AUDIT.md`, and
-#: the strongest single number behind "this is extremely difficult
-#: software to use".
-#:
-#: The merge is a taxonomy decision, so each one is justified where it is
-#: not obvious:
-#:
-#: - `structure` (Substance & Bonding) joined `identity`. Both answer
-#:   "what IS this", and the old pair rendered as "Structure" beside
-#:   "Structure Generators" -- two headings a page apart, one of which
-#:   was `category.title()` rather than a name anybody chose.
-#: - `logp` + `logd` became `lipophilicity`. `logd` was NOT a singleton
-#:   and is merged anyway, because logP contributions in one section and
-#:   logD in another is the split that made no sense to begin with.
-#: - `molar_refractivity` went to `electronic`, NOT to lipophilicity with
-#:   the rest of the Crippen family. Molar refractivity is molar
-#:   POLARIZABILITY by Lorentz-Lorenz, so it belongs beside the two
-#:   polarizability calculators; filing it under lipophilicity would have
-#:   put a heading on the section that was not true of its contents.
-#:
-#: **A HEADING MAY NOT CONTAIN `&`, AND MUST BE SHORT.** The section
-#: header is a `QToolButton`, which eats `&` as a mnemonic -- "Lipophilicity
-#: & Refractivity" rendered as "Lipophilicity  Refractivity", with the
-#: ampersand simply gone -- and elides when too long, which turned
-#: "Identity & Composition" into "Identity ...mposition". Both were caught
-#: by looking at the running app after a merge that every test passed.
-#: - `alignment`, `dynamics` and `interactions` joined `geometry`: a
-#:   superposition, a trajectory and a contact map are all things you can
-#:   only ask of a 3D structure.
-#: - `stereocenters` moved OUT of `geometry` to sit with
-#:   `stereo_descriptors`. A CIP label and the centre it labels belong
-#:   together, and this is the one move that gives a singleton a partner
-#:   rather than absorbing it.
-#: - `regulatory` joined `admet`. Costs nothing in the fact view: those
-#:   Facts carry `FactCategory.REGULATORY` themselves, so only the
-#:   section changed.
-#:
-#: `nmr` IS STILL A SINGLETON AND DELIBERATELY SO. `nmr_database` has no
-#: registry sibling -- the ORCA NMR jobs are ServiceExecution and live in
-#: their own panel -- and filing a spectroscopic measurement under a
-#: structural heading to flatten a count would be worse than the count.
-#: `test_no_category_holds_a_single_calculator` asserts the exception BY
-#: NAME, so a second one cannot arrive quietly.
-_CATEGORY_LABELS = {
-    # Joback's eleven properties. Not "Physicochemical", which is already
-    # the descriptor section and would put a critical volume next to a
-    # hydrogen-bond donor count.
-    "thermophysical": "Thermophysical",
-    # Oxygen balance, and the detonation properties when they land.
-    "energetic": "Energetic Materials",
-    "physicochemical": "Physicochemical",
-    "identity": "Identity",
-    "naming": "Naming",
-    "charge": "Charge",
-    "lipophilicity": "Lipophilicity",
-    "structures": "Structure Generators",
-    "quantum": "Quantum (Huckel)",
-    "electronic": "Electronic Properties",
-    "topology": "Topology",
-    "geometry": "Geometry (3D)",
-    "surface": "Surface Area",
-    "substructure": "Substructure Search",
-    "stereochemistry": "Stereochemistry",
-    "aromaticity": "Aromaticity",
-    "medicinal_chemistry": "Medicinal Chemistry",
-    "solubility": "Solubility",
-    "pka": "pKa",
-    "lewis": "Lewis Acid/Base",
-    "admet": "ADMET / Regulatory",
-    "shape": "Shape",
-    # Without these the panel falls back to `category.title()`, which
-    # rendered the NMR section as "Nmr". Found during a documentation
-    # sweep: the guide had to describe a heading that was a formatting
-    # accident rather than a name anybody chose.
-    "nmr": "NMR",
-    # These two hold no buttons at all -- both are ServiceExecution, run
-    # from their own panels, and the section exists only to carry the
-    # hint that says so. They were relying on `category.title()` giving
-    # the right answer by luck, which is the same accident as "Nmr" with
-    # a happier outcome.
-    "docking": "Docking",
-    "quantum_chemistry": "Quantum Chemistry",
-}
-def _category_label(category: str) -> str:
-    """What a section is called, in the ONE place that decides.
-
-    **THERE WERE TWO OF THESE AND THEY DISAGREED.** The heading fell back
-    to `category.replace("_", " ").title()` and the "Copy all" text fell
-    back to `category.title()`, so an unlabelled `medicinal_chemistry`
-    would show as "Medicinal Chemistry" on screen and copy as
-    "Medicinal_Chemistry" -- two names for one section, in one panel.
-
-    Latent rather than shipped: measured across all four sources that can
-    reach `_section_for` (the registry, both descriptor spec tables, a
-    calculator's result, and a provider's alerts), every category in the
-    app today HAS a chosen label, so neither fallback runs. It is unified
-    because a divergence that only appears for the next category added is
-    the kind this document is about.
-
-    The fallback stays for plugins, which may register a category nobody
-    here has named. It reads `my_tools` as "My Tools", which is right;
-    what it cannot do is acronyms, and `nmr` becoming "Nmr" is exactly
-    how this finding was noticed.
-    """
-    return _CATEGORY_LABELS.get(category) or category.replace("_", " ").title() or "Other"
-
+# The taxonomy moved to `domain/calculator_taxonomy.py`. It was private to
+# this panel while this panel was the only surface that grouped calculators;
+# the Results reader groups them too now, and a reader importing
+# `property_panel._CATEGORY_LABELS` would leave the taxonomy owned by the panel
+# that is losing its presentation role. Aliased rather than renamed at every
+# call site: the names below are what this file has always called them.
+#: Where each section sits. `domain.calculator_taxonomy.CATEGORY_ORDER`, bound
+#: to the name this file has always used.
+_CATEGORY_ORDER = CATEGORY_ORDER
+#: What each section is called. Same object as the domain's, deliberately --
+#: `test_the_panel_uses_the_domain_taxonomy_rather_than_a_copy` asserts
+#: IDENTITY, because a copied literal compares equal.
+_CATEGORY_LABELS = CATEGORY_LABELS
+#: The one function that decides a section's name, including the plugin
+#: fallback. Aliased, not reimplemented.
+_category_label = category_label
 
 _DEFAULT_EXPANDED = {"physicochemical", "identity"}
 
@@ -1616,9 +1506,23 @@ class PropertyPanel(QWidget):
         #: the second calculator whose results the window exists to
         #: accumulate.
         self._results_window = None
+        #: Where each molecule's reader was left, by uuid.
+        #:
+        #: **HELD BY THE PANEL, NOT BY THE WINDOW**, because the window is
+        #: closed and rebuilt whenever the selection moves -- which is the one
+        #: thing this has to survive. A reader that silently jumps back to
+        #: "All results" every time somebody glances at another molecule is
+        #: worse than the window it replaces.
+        self._reader_memory = ReaderMemory()
         #: Fact-based reports, kept so "Details..." can open one after the
         #: fact. Plain data keyed by string -- never a dict keyed by a
         #: QWidget, which hashes on a C++ pointer Qt frees with the parent.
+        #: Every auto-descriptor that has landed for the selected molecule,
+        #: keyed by id. The results reader's "Molecular Properties" entry is
+        #: built from these -- the ORIGINALS, so each keeps its own
+        #: `cache_state`, `error` and `inapplicable` rather than the forty-one
+        #: sharing one between them.
+        self._descriptor_values: dict[str, DescriptorValue] = {}
         self._reports: dict[str, ReportResult] = {}
         self._report_labels: dict[str, QLabel] = {}
         self._sections: dict[str, _CollapsibleSection] = {}
@@ -1745,6 +1649,11 @@ class PropertyPanel(QWidget):
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
+        # A new project's molecules carry new uuids, so nothing could be READ
+        # back by mistake -- this is housekeeping rather than correctness, so a
+        # long session does not accumulate the positions of molecules nothing
+        # can reach any more.
+        self._reader_memory.clear()
 
     def _on_molecule_selected(self, event: MoleculeSelected) -> None:
         self._selected_molecule_uuid = event.molecule_uuid
@@ -1763,6 +1672,10 @@ class PropertyPanel(QWidget):
             status.setVisible(False)
         self._batch_status.setText("")
         self._value_labels.clear()
+        # The VALUES too, not only their labels. They feed the results
+        # reader's "Molecular Properties" entry, so a leftover set would put
+        # the previous molecule's descriptors under this one's name.
+        self._descriptor_values.clear()
         self._alert_labels.clear()
         self._result_labels.clear()
         self._reports.clear()
@@ -1966,13 +1879,10 @@ class PropertyPanel(QWidget):
         # for the first time, not on every descriptor.
         while self._sections_layout.count():
             self._sections_layout.takeAt(0)
-        ordered = sorted(
-            self._sections,
-            key=lambda cat: (
-                _CATEGORY_ORDER.index(cat) if cat in _CATEGORY_ORDER else len(_CATEGORY_ORDER),
-                cat,
-            ),
-        )
+        # `category_sort_key`, not a copy of it. This rule is now also the
+        # Results selector's, and two implementations of "where does this
+        # category sit" is exactly the drift this move exists to end.
+        ordered = sorted(self._sections, key=category_sort_key)
         for category in ordered:
             self._sections_layout.addWidget(self._sections[category])
         self._sections_layout.addStretch()
@@ -1981,6 +1891,12 @@ class PropertyPanel(QWidget):
         descriptor = event.descriptor
         if descriptor.molecule_uuid != self._selected_molecule_uuid:
             return
+        # RETAINED, keyed by id so the RUNNING placeholder each descriptor
+        # publishes first is replaced by its result rather than accumulating
+        # beside it. These are what the results reader's aggregate is built
+        # from -- see `domain/descriptor_aggregate.py` for why it holds the
+        # originals rather than converting them.
+        self._descriptor_values[descriptor.descriptor_id] = descriptor
         section = self._section_for(descriptor.category or "other")
         row_key = (descriptor.provider, descriptor.descriptor_id)
         label = f"{descriptor.name} ({descriptor.units})" if descriptor.units else descriptor.name
@@ -2526,17 +2442,55 @@ class PropertyPanel(QWidget):
         if window is None or window.molecule_uuid() != uuid:
             if window is not None:
                 window.close()
-            window = MergedResultsDialog(uuid, self._selected_molecule_name(), self)
+            window = MergedResultsDialog(
+                uuid,
+                self._selected_molecule_name(),
+                self,
+                # WHERE EACH CALCULATOR SITS, so the results list is ordered
+                # the way the sections above it are rather than by whichever
+                # run finished first. A bound method on the registry, which is
+                # the only object that knows its own registration order --
+                # this panel already renders its buttons in exactly that
+                # order, so the two surfaces now agree by construction.
+                display_order_of=self._calculator_registry.display_order,
+            )
             # DeleteOnClose, and the handle dropped with it: a closed
             # window that kept receiving updates would be a write into a
             # deleted widget, which is the ordinary Qt lifetime bug this
             # repository has paid for four times in its lambda form.
             window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
             window.destroyed.connect(self._on_results_window_destroyed)
+            # THE RENDER CONTEXT, and this panel is what has it: the project
+            # to look a molecule up in, and the structure version to judge a
+            # result against. Without it a declared depiction cannot draw at
+            # all -- which is why the Lewis-site diagram never appeared.
+            #
+            # A BOUND METHOD, not a lambda capturing self: PySide6 holds a
+            # plain callable strongly and this codebase has paid for that.
+            window.set_structure_resolver(self._resolve_structure_for_report)
+            # WHERE THIS MOLECULE'S READER WAS. Given to the window rather
+            # than read out of it on close, because a window that is never
+            # closed -- which is what a docked reader is -- would never write
+            # its position anywhere.
+            window.set_reader_memory(self._reader_memory)
             self._results_window = window
         self._refresh_results_window()
         if focus:
+            # An explicit destination beats a remembered one: pressing
+            # "Details..." beside a calculator is asking for THAT report, and
+            # `set_focus` records it as the new position.
             window.set_focus(focus)
+        else:
+            # **EVERY REPORT ID, STALE ONES INCLUDED.** The memory is not told
+            # about staleness -- it restores whatever still EXISTS -- so the
+            # rule that a stale selection is kept rather than jumped away from
+            # lives in what is offered here. Filtering this to current results
+            # would silently reinstate the behaviour the rule forbids.
+            window.apply_view(
+                self._reader_memory.recall(
+                    uuid, [r.report_id for r in window.merged().reports]
+                )
+            )
         window.show()
         window.raise_()
         window.activateWindow()
@@ -2562,8 +2516,40 @@ class PropertyPanel(QWidget):
         window = self._results_window
         if window is None or window.molecule_uuid() != self._selected_molecule_uuid:
             return
-        window.set_reports(
-            list(self._reports.values()), self._current_structure_version()
+        version = self._current_structure_version()
+        entries = list(self._reports.values())
+        # **THE 41 AUTO-DESCRIPTORS, AS ONE ENTRY RATHER THAN 41.** They are
+        # `DescriptorValue`s, so before this they reached the reader's fact
+        # model not at all -- the single largest thing computed for a molecule
+        # that the results window could not show.
+        #
+        # A PROJECTION, not a calculator: it is built here from what has
+        # arrived rather than run, has no `calculator_id`, and never enters a
+        # cache key.
+        if self._descriptor_values:
+            entries.append(
+                aggregate_descriptors(
+                    self._selected_molecule_uuid or "",
+                    self._descriptor_values.values(),
+                    structure_version=version,
+                )
+            )
+        window.set_reports(entries, version)
+
+    def _resolve_structure_for_report(self, report):
+        """Coordinates for a report's depiction, or why it must not be drawn.
+
+        Delegates the DECISION to `domain/structure_resolution.py` rather than
+        answering it here, because it is not a UI question: a stale result's
+        atom indices describe a structure that no longer exists, and drawing
+        them on the current one produces a picture that looks entirely normal
+        while pointing at the wrong atoms.
+
+        The tempting one-liner is `self._project.find_molecule(uuid).molblock`,
+        and it is exactly the unsafe resolver that module exists to replace.
+        """
+        return resolve_structure_for_report(
+            report, self._project, self._current_structure_version()
         )
 
     def _current_structure_version(self) -> int:
@@ -3024,6 +3010,23 @@ class PropertyPanel(QWidget):
             return
         top = row.mapTo(container, QPoint(0, 0)).y()
         self._scroll_area.verticalScrollBar().setValue(max(0, top - _REVEAL_MARGIN))
+
+    def open_result_inspector(self, result) -> bool:
+        """Open the right inspector for `result`, saying whether it could.
+
+        The public face of `_open_inspector`, added so the fact-link router
+        can follow a `calculator_inspector` link without reaching into a
+        private -- and returning a BOOL because the router's UNAVAILABLE
+        outcome needs to know. `_open_inspector` returns early and silently
+        when there is no project or no molecule, which is exactly the state
+        the reader needs told about rather than a button that does nothing.
+        """
+        if result is None or self._project is None:
+            return False
+        if self._project.find_molecule(getattr(result, "molecule_uuid", "")) is None:
+            return False
+        self._open_inspector(result)
+        return True
 
     def _open_inspector(self, result: PerAtomDataset | SpectrumResult) -> None:
         if self._project is None:

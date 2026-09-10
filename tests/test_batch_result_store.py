@@ -64,12 +64,45 @@ def _store(version: int = 1) -> BatchResultStore:
 def test_a_molecules_results_merge_into_one_report():
     """One report per molecule, not one per calculator -- which is how the
     Properties panel already presents the same calculators, and why
-    `FactView` can render it with no new code."""
+    `FactView` can render it with no new code.
+
+    **THE FACT ORDER IS THE DECLARED ONE, NOT THE ORDER RESULTS WERE PUT.**
+    It used to follow the store's insertion order, which for a real batch is
+    the order calculations happened to finish -- so this list was a statement
+    about a race. `merge_reports` orders by `result_ordering`'s key; neither
+    of these two fixtures declares a category, so the taxonomy has nothing to
+    say about them and the key falls to its name term, which is what makes
+    the answer deterministic rather than arbitrary.
+    """
     report = _store().merged_report("m1", 1)
     assert [fact.label for fact in report.facts] == [
+        "LogP",
         "Wiener index",
         "Randic index",
-        "LogP",
+    ]
+
+
+def test_the_fact_order_does_not_depend_on_which_result_landed_first():
+    """The property the order above exists for, asserted directly. Putting
+    the two results in the opposite order is exactly what an asynchronous
+    batch does from one run to the next."""
+    forwards = BatchResultStore()
+    backwards = BatchResultStore()
+    topology = (
+        ResultKey(molecule_uuid="m1", calculator_id="topology", structure_version=1),
+        _report("m1", "topology", "Wiener index", "Randic index"),
+    )
+    logp = (
+        ResultKey(molecule_uuid="m1", calculator_id="logp", structure_version=1),
+        _report("m1", "logp", "LogP"),
+    )
+    for key, value in (topology, logp):
+        forwards.put(key, value)
+    for key, value in (logp, topology):
+        backwards.put(key, value)
+
+    assert [f.label for f in forwards.merged_report("m1", 1).facts] == [
+        f.label for f in backwards.merged_report("m1", 1).facts
     ]
 
 

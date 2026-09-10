@@ -1,0 +1,86 @@
+[
+  {
+    "do": "smiles",
+    "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+    "name": "Aspirin",
+    "after_ms": 800
+  },
+  {
+    "do": "select",
+    "molecule": -1,
+    "after_ms": 500
+  },
+  {
+    "do": "panel",
+    "id": "Properties",
+    "after_ms": 500
+  },
+  {
+    "do": "calculator",
+    "id": "lewis_sites",
+    "after_ms": 2500
+  },
+  {
+    "do": "calculator",
+    "id": "topology_analysis",
+    "after_ms": 2500
+  },
+  {
+    "do": "calculator",
+    "id": "elemental_analysis",
+    "after_ms": 2500
+  },
+  {
+    "do": "calculator",
+    "id": "regulatory_screen",
+    "after_ms": 2500
+  },
+  {
+    "do": "calculator",
+    "id": "geometry_analysis",
+    "after_ms": 2500
+  },
+  {
+    "do": "calculator",
+    "id": "mass_spectrum",
+    "after_ms": 2500
+  },
+  {
+    "do": "results",
+    "tag": "six-calculators-in-reverse-taxonomy-order",
+    "after_ms": 1500
+  },
+  {
+    "do": "results",
+    "focus": "molecular_properties",
+    "tag": "focused-on-the-always-on-entry",
+    "after_ms": 800
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/results_selector_order.png",
+    "widget": "results",
+    "after_ms": 500
+  },
+  {
+    "do": "results",
+    "focus": "lewis_sites",
+    "tag": "focused",
+    "after_ms": 800
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/results_selector_focused.png",
+    "widget": "results",
+    "after_ms": 500
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/results_selector_list.png",
+    "widget": "results_list",
+    "after_ms": 800
+  },
+  {
+    "do": "quit"
+  }
+]

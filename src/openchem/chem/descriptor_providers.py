@@ -509,7 +509,21 @@ def compute_fragment_group_alert(mol: Chem.Mol, molecule_uuid: str) -> AlertResu
         molecule_uuid=molecule_uuid,
         matched=matched,
         provenance=Provenance(created_by="core", method="rdkit"),
-        category="admet",
+        # **`substructure`, MATCHING THE CALCULATOR OF THE SAME ID.** This
+        # said `admet`, so one `functional_groups` -- a fragment count, which
+        # is not an ADMET property by any reading -- was filed in two
+        # different sections depending on which producer answered: the
+        # registered calculator's BUTTON sat under Substructure Search while
+        # this always-on result's ROW appeared under ADMET / Regulatory,
+        # which is the button-in-one-section-answer-in-another defect
+        # `test_a_calculators_result_lands_in_its_own_section` exists for --
+        # and that guard walks the registry, so an alert declaring its own
+        # category was outside its population.
+        #
+        # Measured over every literal (id, category) pair in the tree: 41
+        # declarations, and this was the ONLY one disagreeing with its
+        # registered calculator.
+        category="substructure",
     )
 
 

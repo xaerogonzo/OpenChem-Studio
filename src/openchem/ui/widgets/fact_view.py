@@ -36,6 +36,8 @@ MainWindows now, and CLAUDE.md has the measurements.
 
 from __future__ import annotations
 
+import logging
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QApplication,
@@ -58,6 +60,7 @@ from openchem.domain.report import (
     Fact,
     FactLink,
 )
+from openchem.domain.structure_resolution import ResolvedStructure
 from openchem.ui.widgets.collapsible_section import (
     CollapsibleSection,
     ExplicitHeightLabel,
@@ -66,6 +69,8 @@ from openchem.ui.widgets.collapsible_section import (
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.chart_widgets import CHART_WIDGET_TYPES, chart_widget_for
 from openchem.ui.widgets.stick_chart_widget import StickChartWidget
+
+logger = logging.getLogger("openchem.ui")
 
 COPY_FORMATS = ("Markdown", "Plain text", "JSON", "CSV")
 
@@ -173,6 +178,13 @@ class FactView(QWidget):
     highlight_requested = Signal(tuple)
     #: "Compare with..." was chosen on this report.
     compare_requested = Signal(object)
+    #: The search text or the depth control moved.
+    #:
+    #: **NOT emitted by `set_report`, and not by `set_filter_state`.** Those
+    #: are a host putting the view somewhere; this is a READER moving it, and
+    #: a host that recorded its own restore would write the position it just
+    #: read back over the one it came from.
+    filter_changed = Signal()
 
     def __init__(
         self,
@@ -223,7 +235,7 @@ class FactView(QWidget):
 
         self._search = QLineEdit(self)
         self._search.setPlaceholderText("Filter facts (element, lewis, ring...)")
-        self._search.textChanged.connect(self._render)
+        self._search.textChanged.connect(self._on_filter_changed)
         apply_help_tooltip(self._search, _HELP['search'])
 
         # Category and depth are ORTHOGONAL, so they are two controls
@@ -233,7 +245,7 @@ class FactView(QWidget):
         self._detail.addItem("Standard", Detail.STANDARD.value)
         self._detail.addItem("Everything", "")
         apply_help_tooltip(self._detail, _HELP['detail'])
-        self._detail.currentIndexChanged.connect(self._render)
+        self._detail.currentIndexChanged.connect(self._on_filter_changed)
 
         self._copy_format = QComboBox(self)
         self._copy_format.addItems(COPY_FORMATS)
@@ -330,9 +342,61 @@ class FactView(QWidget):
     def title_text(self) -> str:
         return self._title.text()
 
+    def summary_text(self) -> str:
+        """The pinned line above the sections -- what `set_report`'s `summary`
+        argument put there.
+
+        **NOT `status_text`, and the two are easy to confuse.** `_status` is
+        this widget's OWN sentence about what it is showing, recomputed on
+        every render ("12 facts. 6 advanced hidden..."), so a caller cannot
+        put anything in it that survives a keystroke in the search box. The
+        summary is the HOST's sentence about the report -- staleness, a
+        refusal's reason -- and it is the one a caller sets.
+
+        Exposed because a host that writes it had no way to read it back, so
+        a guard on what the reader says about a failed result had to reach
+        into `_summary` directly.
+        """
+        return self._summary.text()
+
     def search_box(self) -> QLineEdit:
         """Exposed so a window-level shortcut can focus it."""
         return self._search
+
+    def filter_state(self) -> tuple[str, bool]:
+        """What the two filter CONTROLS hold: the search text, and whether
+        the depth filter is off.
+
+        **THE CONTROLS, NOT THE RENDERED ANSWER.** `_showing_everything`
+        also returns True in compact mode, where the controls are HIDDEN --
+        that is a rendering decision, and recording it as the reader's
+        position would save a filter nobody set and restore it into a view
+        where the controls are visible.
+
+        A bool rather than the combo's own data, because "Everything" is
+        stored as the EMPTY STRING there -- it is the absence of a depth
+        filter rather than a `Detail` member -- and an empty string means
+        "nothing recorded" everywhere a position is saved.
+        """
+        return self._search.text(), not self._detail.currentData()
+
+    def set_filter_state(self, search: str, everything: bool) -> None:
+        """Put the two controls back where they were.
+
+        One `_render` at the end rather than one per control: setting them
+        separately renders an intermediate state -- the old depth with the
+        new search -- which for a large report is visible work nobody asked
+        for.
+        """
+        blocked_search = self._search.blockSignals(True)
+        blocked_detail = self._detail.blockSignals(True)
+        self._search.setText(search)
+        index = self._detail.findData("" if everything else Detail.STANDARD.value)
+        if index >= 0:
+            self._detail.setCurrentIndex(index)
+        self._search.blockSignals(blocked_search)
+        self._detail.blockSignals(blocked_detail)
+        self._render()
 
     def visible_fact_labels(self) -> list[str]:
         """What is on screen, read back off the rows.
@@ -382,6 +446,9 @@ class FactView(QWidget):
         if not self._show_charts or self._report is None:
             return
         charts = getattr(self._report, "charts", ()) or ()
+        # ONCE, not per chart: resolving is a project lookup, and two charts
+        # on one report describe one structure by construction.
+        resolved = self._structure_for_report()
         for index, chart in enumerate(charts):
             # The FIRST one open, the rest folded. `set_report`'s own
             # docstring records why a small report is not a smaller version
@@ -397,7 +464,10 @@ class FactView(QWidget):
             # string ladder here would be a weaker vocabulary beside the
             # types the domain already has, and its typos fail open.
             widget = chart_widget_for(
-                chart, section.content, molblock=self._molblock_for_report()
+                chart,
+                section.content,
+                molblock=resolved.molblock,
+                refusal=resolved.refusal,
             )
             # `add_calculator_widget` puts it full-width above the form
             # rows rather than into the label/field grid -- a plot has no
@@ -407,7 +477,7 @@ class FactView(QWidget):
             self._chart_sections.append(section)
 
     def set_structure_resolver(self, resolver) -> None:
-        """Supply how to turn a `molecule_uuid` into a molblock, or None.
+        """Supply how to resolve a REPORT to coordinates, or None.
 
         **THE RENDER CONTEXT, INJECTED.** A declared depiction carries
         atom indices and no geometry -- deliberately, since an annotation
@@ -419,22 +489,52 @@ class FactView(QWidget):
         A view with no resolver still renders every other chart kind: a
         plot on axes needs no structure. Only the depiction says it cannot
         draw, which is a different fact from having nothing to draw.
+
+        **IT TAKES THE REPORT, NOT A `molecule_uuid`, AND THAT IS THE SAFETY
+        PROPERTY.** A uuid resolver can only answer with the CURRENT
+        structure, and a stale result's atom indices describe the one it was
+        computed on -- so `atom 7` becomes atom 7 of a different molecule and
+        the picture looks entirely normal while pointing at the wrong atoms.
+        Only the report carries the version and the geometry provenance that
+        decide whether drawing it is safe, so only the report can be asked.
+        See `domain/structure_resolution.py`.
+
+        The resolver returns a `ResolvedStructure` -- coordinates, or a reason
+        they were withheld. A bare "" could not tell those apart, and a reader
+        shown an empty frame with no reason is the failure being prevented.
         """
         self._structure_resolver = resolver
         self._rebuild_charts()
 
-    def _molblock_for_report(self) -> str:
+    def _structure_for_report(self) -> ResolvedStructure:
+        """Coordinates for this report's depiction, or why there are none.
+
+        The report is handed over whole rather than its uuid -- see
+        `set_structure_resolver` for why that is a correctness property and
+        not a convenience.
+        """
         resolver = getattr(self, "_structure_resolver", None)
-        uuid = getattr(self._report, "molecule_uuid", "") if self._report else ""
-        if resolver is None or not uuid:
-            return ""
+        # `is not None`, NOT truthiness: a factless report is a real report
+        # (a refusal, a picture-only result) and must still resolve a structure.
+        if resolver is None or self._report is None:
+            return ResolvedStructure()
         try:
-            return resolver(uuid) or ""
+            resolved = resolver(self._report)
         except Exception:
-            # A host whose resolver raises gets the "no structure" message
-            # rather than a traceback out of a paint path -- and the chart
-            # section still appears, so the declaration stays visible.
-            return ""
+            # A host whose resolver raises gets a message rather than a
+            # traceback out of a paint path -- and the chart section still
+            # appears, so the declaration stays visible.
+            logger.exception("structure resolver raised; refusing the depiction")
+            return ResolvedStructure.refused(
+                "Visualization unavailable -- this structure could not be resolved."
+            )
+        # A host that hands back a bare molblock is accepted rather than
+        # crashing the paint path, but it is NOT the contract: such a host
+        # cannot refuse, so `test_a_resolver_must_be_able_to_refuse` asserts
+        # every production one returns the value type.
+        if isinstance(resolved, str):
+            return ResolvedStructure.of(resolved)
+        return resolved or ResolvedStructure()
 
     def chart_widgets(self) -> list[QWidget]:
         """The charts currently on screen, read back off the sections.
@@ -464,6 +564,17 @@ class FactView(QWidget):
             section.setParent(None)
             section.deleteLater()
         self._sections.clear()
+
+    def _on_filter_changed(self) -> None:
+        """Re-render, and say that the filter moved.
+
+        **A SIGNAL RATHER THAN A SAVE-ON-CLOSE HOOK.** A reader's position
+        has to be recorded as it CHANGES, not when its window shuts: a
+        persistent dock never closes, so a `finished`-driven save settles
+        nothing for the surface it is being settled for.
+        """
+        self._render()
+        self.filter_changed.emit()
 
     def _showing_everything(self) -> bool:
         return self._compact or not self._detail.currentData()

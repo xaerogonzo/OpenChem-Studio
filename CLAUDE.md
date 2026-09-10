@@ -1,3 +1,5 @@
+@BASIC_INSTRUCTIONS.md
+
 # OpenChem Studio — notes for Claude
 
 ## Working in a git worktree — do this before anything else
@@ -6614,16 +6616,426 @@ InChIKey would exercise the matcher against the number it came from and
 prove nothing about the name resolution -- which is precisely the check that
 found the two wrong structures above.
 
+## THE RESULTS LIST FOLLOWED WHICHEVER CALCULATION FINISHED FIRST
+
+`PropertyPanel._reports` is a dict keyed by `report_id`, `merge_reports` kept
+that order, and the "Showing" box was built straight from it -- so the list was
+in the order results LANDED, and calculations finish asynchronously. Two runs of
+the same six calculators could produce six different lists, and a seventh
+landing while somebody read one moved everything below it.
+
+**AND ARRIVAL ORDER IS NOT THE ORDER THE APPLICATION ALREADY USES.** Measured
+over the 30 results that reach the merged reader for aspirin, run in registry
+order: **30 of 30 sit in a different position** from the sections the Properties
+panel shows them in. The registry groups by MODULE; `CATEGORY_ORDER` groups by
+what a reader is looking for.
+
+`domain/result_ordering.py` is the key, and it is total:
+
+    display band -> category -> registry position -> display name -> report_id
+
+### THE REGISTRY POSITION IS EDITORIAL ORDER, AND DROPPING IT IS NOT FREE
+
+The tempting simplification is to drop it and sort by name inside a section --
+it needs no injected lookup and reads as tidier. Measured over the shipped
+registry, it changes **5 of the 8 multi-entry sections** and every change is a
+bad one:
+
+    solubility   Solubility, Solubility vs pH, Hansen   -> HANSEN FIRST
+    lewis        Lewis Sites, Lewis Adduct              -> inverted
+    admet        ADMET, Regulatory Screen, CNS MPO, BBB -> BBB second
+    geometry     Geometry first                         -> 3D Alignment first
+    surface      Molecular Surface Area first           -> Accessible SA first
+
+That is the same judgement `CATEGORY_ORDER` already records BETWEEN sections
+(solubility before pKa; lewis directly after it), applied within one.
+`CalculatorRegistry.display_order` does not introduce an order -- `by_category`
+returns dict values, so the panel has always rendered buttons in registration
+order. It makes the order already in use ASKABLE.
+
+**THE CATEGORY NEEDS NO LOOKUP AT ALL, WHICH IS WHY ONLY THE POSITION IS
+INJECTED.** `ReportResult` carries its own `category`, and measured over those
+same 30 results it agrees with the registered calculator's **30 times out of
+30**, with none falling back to the `"other"` default.
+
+### ONE `report_id` DECLARED TWO SECTIONS, AND GROUPING IS WHAT SHOWED IT
+
+Driving the app put **Functional Groups under "ADMET / Regulatory"**. The
+always-on alert declared `category="admet"` while the registered calculator of
+the same id declares `substructure` -- so its BUTTON sat under Substructure
+Search and its always-on RESULT ROW appeared under ADMET / Regulatory. That is
+exactly the defect `test_a_calculators_result_lands_in_its_own_section` exists
+for, and that guard walks the REGISTRY, so a producer declaring its own category
+was outside its population.
+
+Measured over every literal `(id, category)` pair in the tree: **41
+declarations, and precisely one disagreed.** A fragment count is not an ADMET
+property; the alert now says `substructure`, and
+`test_a_result_declares_the_same_section_its_calculator_does` holds the rule
+with the four genuine producer-only catalogs (PAINS, BRENK, mutagenicity, hERG)
+as its narrow half.
+
+**AND A TEST ENCODED THE DEFECT IN ITS OWN NAME.** The guard for this row was
+called "...lands in admet section" and built its OWN `AlertResult` with
+`category="admet"`, so it asserted the panel's ROUTING and could say nothing
+about where the real result goes. Its successor,
+`test_the_functional_groups_alert_lands_in_the_section_its_producer_names`, runs
+the shipped producer and reads the category off the result, so the two cannot
+drift again through it.
+
+### THE ALWAYS-ON ENTRY BELONGS TO NO SECTION, AND SAYS SO
+
+`DescriptorAggregate` holds the 41 always-computed descriptors, and those span
+**ten different calculator categories** -- medicinal chemistry 13,
+physicochemical 5, topology 5, admet 2, and six more with one apiece. No section
+is true of it, and it was being appended LAST, so the only entry always present
+sat below every calculator that happened to have run.
+
+It declares `display_band = ALWAYS_ON`, which is **read, never inferred** -- the
+rule `charts`, `spatial` and `TOTAL` already follow. An unknown band RAISES
+rather than defaulting, because a band nothing recognises would sort at whatever
+integer it happened to be and silently reorder the list, which is the failure
+the module exists to remove arriving through its own front door. Exactly one
+type in the application declares it, and the population is derived from the
+source rather than trusted to review.
+
+### A GROUP HOLDING ONE ENTRY IS ORDINARY HERE, WHICH IS THE OPPOSITE RULE
+
+`test_no_category_holds_a_single_calculator` exists because a SECTION concealing
+one button is a taxonomy failure. A group in this list holds one entry whenever
+you have run one calculator from that section -- measured on a full run for
+aspirin, **11 of 17 groups do**. Applying the panel's rule here would apply a
+rule about the taxonomy to a statement about what somebody ran.
+
+The invariant that does hold is that **no group is ever emitted empty**, and it
+is what makes a search control safe to add later without revisiting any of this:
+filtering changes the input set, and a set with nothing in a category produces
+no heading for it.
+
+**`""` AND `"other"` ARE ONE SECTION, AND HAD TO BE NORMALISED.**
+`ReportResult.category` defaults to `"other"`, `category_label` renders both as
+"Other", and `category_sort_key` orders unlisted categories by the STRING --
+which puts them at opposite ends of the tail. A plugin category sorting between
+them yields two groups both headed "Other", which reads as a rendering fault and
+is a normalisation one.
+
+### THE FIXTURE WHERE THE ID ORDER AGREED WITH THE NAME ORDER
+
+Twelve mutation arms, and **M5 -- deleting the `display_name` term -- SURVIVED**
+the first pass. Both guards for that term used entries whose report_id order
+happened to match their name order, so the key fell through to the id and gave
+the same answer. The discriminating fixture has ids that CONTRADICT the names;
+with it, M5 fails two tests. Second pass: twelve arms, twelve caught.
+
+That term is not decoration. Two plugins with ids `zz_tool` and `aa_tool` named
+"Alpha Tool" and "Zulu Tool" would otherwise render in the order of the thing
+nobody can see.
+
+### A CLOSED COMBO BOX PAINTS ONE ROW, AND ITS LIST IS ANOTHER WINDOW
+
+The section headings are the whole point of the change and **no screenshot of
+the results window contains them**: a closed combo paints the current entry, and
+its popup is a separate top-level, so `PrintWindow` on the application does not
+capture it either. `{"do": "shot", "widget": "results_list"}` calls `showPopup()`
+and grabs `QComboBox.view()`, which is an ordinary widget -- `showPopup()` FIRST,
+because an unshown view has never been laid out and grabs at its default size.
+
+**AND THE LOG CARRIES WHAT EVEN THAT CANNOT.** `{"do": "results"}` now prints
+every row with `HEADING` and `disabled` beside it, because a selectable heading
+and an unselectable one render identically until somebody arrows onto one. That
+is the `jobs_report` rule applied to a list rather than a timer -- and the
+heading is DISABLED rather than merely styled, so Qt refuses to make it current.
+
+**THE MAGNIFIED SHOT FOUND ONE MORE, AND IT WAS THE FIRST LINE A READER SEES.**
+The summary read `9 calculator(s): Molecular Properties, ...` -- naming as a
+calculator the one entry that explicitly is not one, has no `calculator_id`, is
+never offered as a runnable and never enters a cache key. Invisible until the
+ordering put it first. It says `result(s)` now.
+
+### THE HEREDOC ATE A BACKSLASH AND PUT A NUL BYTE IN THE SOURCE
+
+Third instance, sprung by somebody who had read the other two the same hour.
+`GROUP_HEADING = "\x00heading"` written through a quoted heredoc produced a real
+NUL byte, and the module failed to import with `source code string cannot
+contain null bytes`. The sentinel is an INTEGER now, which needs no escape and
+cannot collide with a `report_id` by construction -- every id is a string.
+
+**AND `read_bytes().decode()` BREAKS A MULTI-LINE REPLACEMENT THAT
+`read_text()` DOES NOT.** This working tree is CRLF (`core.autocrlf=true`), so
+a replacement string joined with `\n` matches nothing against decoded bytes;
+`read_text`/`write_text` translate both ways and round-trip the line endings
+unchanged. Reach for a real editing tool the moment the content contains an
+escape -- the rule was already written down twice.
+
+## A READER'S POSITION HAD NEVER HAD TO SURVIVE ANYTHING
+
+`MergedResultsDialog` is opened for one molecule and closed when the selection
+moves, so "which report was focused" was never state anybody kept. Close it and
+reopen it and you got "All results" and an empty filter box, whatever you had
+been reading a second earlier. A reader that FOLLOWS the selection -- which is
+what a dock is -- turns that into state, and the failure mode is not neutral:
+silently jumping back to All results every time somebody glances at another
+molecule is worse than the window it replaces.
+
+`domain/reader_state.py` is the model: `ReaderMemory` (what each molecule was
+showing, by uuid) and `reader_state` (which of three empty-or-not states a
+reader is in).
+
+### THE SAVE-ON-CLOSE HOOK IS THE WRONG SHAPE, AND IT IS THE OBVIOUS ONE
+
+`finished` covers the X, `close()` and Escape alike -- `PopOutWindow` already
+relies on exactly that, and this file records why `closeEvent` alone leaks the
+Escape key. It is still wrong here: **a persistent reader never closes**, so a
+save-on-close design settles nothing for the surface the behaviour is being
+settled FOR. The position is recorded as the reader MOVES it, through a new
+`FactView.filter_changed`, and the memory is never behind.
+
+**AND THE COMPLEMENT IS LOAD-BEARING: A HOST RESTORING MUST NOT WRITE BACK.**
+`set_filter_state` and `apply_view` deliberately do NOT record. With a recall
+that FELL BACK -- the focused report is gone -- recording the restore would
+overwrite the remembered id with the empty one, so a report that came back
+later could never be restored again. Two mutations, two guards.
+
+### THE STALE RULE IS A PROPERTY OF THE INPUT, NOT A RULE TO REMEMBER
+
+A stale result is a record of what was computed, and this project refuses to
+discard one everywhere else; jumping away from a stale selection discards it in
+the one place somebody is looking. So `ReaderMemory` **is never told about
+staleness at all** -- it is handed the ids that EXIST and restores whatever is
+among them, and a stale report is one of them. That is stronger than a rule
+saying "do not filter on stale", and it moves the real risk to the call site,
+where the guard belongs: the panel must offer every report id, stale included.
+Mutating it to offer only current ones is caught by one test.
+
+**FALLING BACK KEEPS THE FILTER.** Only the report is forgotten. The search text
+is about what somebody is looking FOR, and clearing "lewis" because a report
+vanished answers a question nobody asked. The memory is per uuid, so no molecule
+inherits another's.
+
+### "EVERYTHING" IS NOT A `Detail`, AND STORING IT LIKE ONE WOULD BE AMBIGUOUS
+
+`FactView` gives the depth combo's "Everything" entry the data `""` -- it is the
+ABSENCE of a depth filter rather than a `Detail` member, which is why
+`_showing_everything` asks `not currentData()`. Mirroring that in a saved
+position would make `""` mean *showing everything* in a record where every other
+empty string means *nothing remembered*. It is a bool.
+
+**AND `filter_state()` READS THE CONTROLS, NOT THE RENDERED ANSWER.**
+`_showing_everything` is also True in compact mode, where the controls are
+HIDDEN -- recording that would save a filter nobody set and restore it into a
+view whose controls are visible.
+
+### THE PLAN'S OWN ACCEPTANCE SCENARIO CANNOT ARISE YET, AND SAYING SO IS THE POINT
+
+It reads: leave molecule A, return, find BBB Score present but STALE. Measured,
+`_on_molecule_selected` calls `self._reports.clear()`, so A's calculator results
+are GONE rather than stale and the memory can only restore the filter across a
+switch. Per-molecule result retention would fix it -- `BatchResultStore` already
+proves the pattern and its cost -- and it would desynchronise the panel's rows
+from the window until Stage 2c empties the panel, so it belongs there. The
+restore rule is written so it passes unchanged when retention lands, and the
+guard for the stale case reaches it the way that IS available today: close the
+window, move the structure, reopen.
+
+Driven end to end: reader chooses Lewis Sites, closes, reopens -> restored;
+erase an oxygen, close, reopen -> `focus='lewis_sites'`, the box reads
+"Lewis Sites (stale)", and the line above the facts says why.
+
+### THIRTEEN MUTATION ARMS, AND THE SURVIVOR WAS THE NO-MOLECULE CASE
+
+Twelve caught first time. **I13 -- the window recording under
+`self._molecule_uuid or "x"` -- SURVIVED**, and it is a real hole rather than an
+equivalent: a reader with nothing selected still has a search box somebody can
+type in, and filing that under any key means the next molecule inherits a filter
+it never had. `ReaderMemory.remember` refuses a falsy uuid and **cannot help**,
+because the failure is the window substituting a truthy one. The guard is the
+recording half of the no-molecule state, opposite the rendering half that was
+already there. Second pass: thirteen arms, thirteen caught.
+
+**`_on_molecule_selected` SETS THE PANEL'S UUID FIRST AND CLOSES THE WINDOW
+AFTER**, so anything reading the PANEL's uuid to record a position would file
+the old molecule's reading position under the new molecule's name. The window
+records under its own `molecule_uuid()`, which cannot be wrong about what it was
+showing, and a guard asserts that rather than trusting the ordering to stay put.
+
+## THE READER CONTRACT WAS FOUR NAMES AND THE READER READ NINE
+
+`is_report_shaped` admitted anything with `report_id`, `facts`, `by_category`
+and `find`. `FactView._status_text` reads `limitations` DIRECTLY,
+`MergedResults.name_for` reads `name`, and `ui/report_format.py` reads
+`assumptions`, `molecule_uuid` and `structure_version` -- so a container could
+pass the admission door and then raise in a PAINT path.
+
+`DescriptorAggregate` did exactly that. **Focusing "Molecular Properties"
+raised `AttributeError: 'DescriptorAggregate' object has no attribute
+'limitations'`**, and it had shipped that way because nothing focused it -- the
+entry existed in the selector, and the guards for it checked that it was merged
+rather than that it could be read. 0h then sorted it to the TOP of the list.
+
+The contract is now the nine names the reader really reads, and a container
+missing one is refused AT THE DOOR. Refusing an entry is visible; admitting one
+that raises two frames into a paint path is not.
+
+**`charts` AND `spatial` ARE DELIBERATELY NOT IN IT.** Both are read with
+`getattr` throughout, because a bond report legitimately has neither and a
+reader with no picture is an ordinary reader.
+
+### `format_report` DISPATCHED ON TYPE AND FELL OFF THE END INTO THE ATOM BRANCH
+
+Same shape as the `FactLink` chain, and the `ReportResult` branch's own comment
+records fixing this exact `AttributeError` once already -- for calculator
+results, when they were the new thing. Adding a branch per type is what let it
+come back. Measured over two subjects x four formats:
+
+    ReportResult          ok    ok    ok    ok
+    DescriptorAggregate   RAISED on all four   ('atom_index')
+    the all-results view  RAISED on all four   ('atom_index')
+
+**8 of 12, unhandled, out of the Copy and Export click paths** -- `FactView`
+wraps neither in a try. The dispatch asks `names_itself` (a `report_id` AND a
+`name`) instead, so every result-shaped entry is covered by one rule, and the
+default RAISES naming the type rather than dying on a field the reader has
+never heard of. `StructureReport` carries neither name, so the atom family
+cannot answer True by accident.
+
+Driven, after: `ResultSummaryView` 18721ch, `DescriptorAggregate` 2023ch,
+`ReportResult` 1758ch, all four formats each.
+
+### ONE CANONICAL READER WAS THREE IMPLEMENTATIONS, AND THEY HAD DIVERGED
+
+`by_category` and `find` each existed three times -- on `StructureReport`, on
+`DescriptorAggregate` and on the results window's private all-results view. The
+groupings agreed. **The searches did not**, and the search box is one control:
+
+    StructureReport       label, value, evidence
+    DescriptorAggregate   label, value
+    the all-results view  label, value, origin, evidence
+
+So the same box meant three different things depending on which entry was
+focused, and Molecular Properties silently searched no evidence at all.
+
+`group_facts_by_category` and `find_facts` are now one each, in
+`domain/report.py`. **Unifying on the WIDEST is what made it safe, and that is
+a measurement rather than an argument**: over the real registry, 0 of 164
+producer facts carry an `origin` -- `merge_reports` stamps its own COPIES and
+never the report's -- and the aggregate's facts carry no evidence. So the
+divergence is removed and no behaviour is.
+
+### THE VIEW IS NAMED SO NOBODY PERSISTS IT
+
+`ui/result_summary.py`'s `ResultSummaryView` replaces the private
+`_AllResults`. It satisfies both contracts a reader entry meets -- which are
+NOT the same one and are easy to confuse -- and refuses persistence
+structurally rather than by a note: no `to_dict`, no `from_dict`, not a
+`ReportResult`, no `calculator_id`. Two things would be lost by storing one:
+several producers' facts under ONE id, which `MergedResults` exists to refuse,
+and (for the single-result summaries Stage 1a adds) presentation-DERIVED facts
+attributed to a producer that never declared them.
+
+Its `report_id` is deliberately EMPTY for the merged view: giving it one would
+make the all-results view focusable as a calculator containing everybody else's
+results.
+
+### TWELVE ARMS, AND ONE OF THE TWO SURVIVORS WAS AN EQUIVALENT
+
+    J8   the aggregate gets its private label/value search back   SURVIVED
+    J10  the merged view rebuilds its facts tuple                 SURVIVED
+
+**J10 IS EQUIVALENT AND THE TEST WAS OVER-TIGHT.** `tuple(t) is t` in CPython,
+so `facts=tuple(merged.facts)` returns the same object and an identity
+assertion cannot tell the two apart. The claim worth asserting is that no FACT
+was rewritten -- a view rebuilding them with its own `source` would be
+attributing the producers' facts to itself -- so the arm became that, and is
+caught.
+
+**J8 IS A REAL GAP, AND THE FIXTURE IS WHY.** The guard exercised a report and
+a summary view and left the AGGREGATE out, so restoring its private search
+survived the whole file: the aggregate's own facts carry no evidence today,
+which is exactly why the divergence was invisible in the first place. Second
+pass: twelve arms, twelve caught, with J1 -- the shipped isinstance dispatch --
+failing ten tests.
+
+### AND THE MUTATION HARNESS LEFT A FILE MUTATED ON DISK
+
+Its edit-check was `assert old not in path.read_text()`, which is wrong for an
+INSERTION -- the old text is still there -- and it ran OUTSIDE the `try`, so
+the `finally` that restores the backup never fired. `git status` was the only
+thing that said so. Assert that the bytes CHANGED (`landed != source`), and put
+the assertion inside the try.
+
 ## Running the tests
 
 ```bash
 uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suite.log
 ```
 
+**PIPE IT TO A FILE, WHICH IS WHY THAT REDIRECT IS IN THE RECIPE.** A run sent
+through `... | grep -E "passed|failed" | tail -4` instead lost its entire
+summary when the task was backgrounded: `tail` emits nothing until the end, and
+the captured output was 22 bytes reading `[exited with code 0]`. That is not a
+figure -- this file records a CRASHED run exiting 0 with no summary line -- so
+21 minutes bought nothing and had to be spent again.
+
+**AND `rg` IS NOT `grep`: `\|` IS A LITERAL PIPE, NOT ALTERNATION.** The same
+command's `$(rg -l "FactView\|fact_view\|..." tests/)` matched NOTHING, so
+`pytest -q` ran with no paths -- the whole suite, silently, in place of the
+targeted set that was asked for. Use `-e` per alternative, and check that a
+command substitution feeding pytest is non-empty before believing what it ran.
+
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-26 minutes**, ending at `7215 passed, 16 skipped`
+A clean run is **6-26 minutes**, ending at `7442 passed, 16 skipped`
+(measured 2026-09-10 on `results-first-foundation` -- Stage 0 of the
+Properties-to-Results work, all ten items, 0a through 0j.
+
+**+112 collected and 1 REMOVED**, diffed both directions with `comm` against
+the stage's own starting point `cb61170`:
+
+    0g's tree  cb61170   COLLECTS 7347
+    this one             COLLECTS 7458   = 7347 + 112 - 1
+    the run                       7442 passed + 16 skipped = 7458
+
+    33  test_result_summary.py            the reader contract, the format
+                                          dispatch, one grouping and one
+                                          search
+    31  test_result_ordering.py           the five-term key, its stability,
+                                          the band, and the grouping
+    19  test_reader_state.py              the per-molecule memory and the
+                                          three empty states
+    11  test_merged_results_dialog.py     grouped headings, the selection
+                                          surviving an arrival, and the
+                                          no-molecule state both ways
+     9  test_property_panel_results_window.py   the wiring only the panel
+                                          can be wrong about
+     5  test_fact_view.py                 the filter as saveable state
+     2  test_calculator_sections.py       one id may not name two sections
+     1  test_property_panel.py            the successor to the removal
+     1  test_batch_result_store.py        the fact order is not a race
+
+**THE ONE REMOVAL IS A GUARD THAT ENCODED A DEFECT IN ITS OWN NAME.** It was
+called "...lands in admet section" and built its OWN `AlertResult` with
+`category="admet"`, so it asserted the panel's ROUTING and could say nothing
+about where the real result goes -- which is how one `report_id` came to
+declare two sections. Its successor,
+`test_the_functional_groups_alert_lands_in_the_section_its_producer_names`,
+runs the shipped producer and reads the category off the result.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored,
+since pytest's progress dots share the line -- as do `^FAILED` and `^ERROR`.
+The skips are the deterministic 16. The two `DeprecationWarning`s are the
+same pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**THE WALL CLOCK WAS 28m35 AND IS NOT CITABLE, SO THE BAND IS NOT WIDENED.**
+Concurrent work ran against it -- a `git add -A` and a commit, plus several
+greps -- which this file forbids for a figure it intends to compare. The
+COUNTS are deterministic and unaffected, so the tree is measured; the
+duration describes a contended machine. The 6-26 band stands on the runs
+that were taken cleanly.
+
+Before it: `7215 passed, 16 skipped`
 (measured 2026-09-09, **25m32**, on `stage-6-quantitative-limits` -- the
 quantitative regulatory model, and OSHA Table Z-1 on top of it.
 

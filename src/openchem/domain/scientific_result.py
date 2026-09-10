@@ -280,11 +280,19 @@ class PhCurveResult(ScientificResult):
     #: units, a basis, a limitation, or which atoms it is about, and it
     #: cannot be copied out as data.
     #:
-    #: Defaults empty, so every existing producer and consumer is
-    #: unchanged. Migrating those two is deliberately NOT done here --
-    #: `test_the_existing_ph_curves_carry_no_facts` pins that, so the
-    #: migration is a decision somebody takes rather than something that
-    #: drifts in.
+    #: Defaults empty, so every existing producer and consumer is unchanged.
+    #:
+    #: **BOTH OF THOSE CURVES ARE MIGRATED NOW**, which is why the paragraph
+    #: above is written in the past tense: the pI and the LogP are declared
+    #: facts, and the names are plain "Charge vs pH" and "LogD vs pH". The
+    #: deferral this field used to record is spent -- see
+    #: `tests/test_ph_curves.py`.
+    #:
+    #: The guard that pinned the deferral was VACUOUS, which is the part worth
+    #: keeping: it passed an unavailable interpreter, so both curves took the
+    #: refusal branch, which sets no facts under any implementation. It
+    #: asserted the absence on a path that has it by construction and would
+    #: have passed identically after the migration it existed to detect.
     facts: tuple[Fact, ...] = ()
 
 

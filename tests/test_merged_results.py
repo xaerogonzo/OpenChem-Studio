@@ -19,7 +19,7 @@ from openchem.domain.report import (
     Stick,
     StickChartAnnotation,
 )
-from openchem.domain.scientific_result import PerAtomDataset
+from openchem.domain.scientific_result import PerAtomDataset, PhCurveResult
 
 
 def _fact(label: str, source: str = "RDKit") -> Fact:
@@ -184,12 +184,51 @@ def test_only_results_that_are_reports_contribute():
     assert len(merged.charts()) == 1
 
 
-def test_a_report_with_no_facts_contributes_nothing_at_all():
+def test_a_report_with_no_facts_is_admitted_and_keeps_its_chart():
+    """Supersedes `test_a_report_with_no_facts_contributes_nothing_at_all`,
+    which asserted the opposite and was right for the world it was written in:
+    while `FactView` was the product, a report with nothing to say was nothing
+    to show.
+
+    It is wrong once Results is the CANONICAL reader. A report legitimately
+    has no facts when it failed, when the method does not apply to this
+    molecule, or when its entire content is a picture -- and those are exactly
+    the results a reader must not silently drop. Measured on the shipped code:
+    `compute_lewis_sites` returns `matched=[]` with `cache_state=FAILED` on
+    refusal, so a refused Lewis Sites result reached this window not at all.
+    """
     empty = _report("empty", "Empty", [], charts=[_chart("orphan")])
     merged = merge_reports([empty])
+    assert merged.reports == (empty,)
+    assert len(merged.charts()) == 1
+    assert merged
+
+
+def test_a_ph_curve_is_still_refused_even_once_it_declares_facts():
+    """The narrow half, and it is the one the old gate could not express.
+
+    `merge_reports` tested `getattr(report, "facts", None)` for truthiness,
+    which refused a `PhCurveResult` for having no facts YET rather than for
+    not being a report -- so it would have been admitted, chart and all, the
+    day a producer declared one. `PhCurveResult.facts` exists precisely so a
+    producer can (see `domain/scientific_result.py`), and that migration is
+    live work.
+
+    The reader contract refuses it for the honest reason: no `by_category`,
+    nothing to group by, no `report_id` to focus by.
+    """
+    curve = PhCurveResult(
+        curve_id="logd_vs_ph",
+        name="LogD vs pH",
+        method="henderson-hasselbalch",
+        molecule_uuid="u",
+        ph_values=[1.0, 2.0],
+        series={"logD": [1.0, 1.1]},
+        facts=(_fact("LogP"),),
+    )
+    assert curve.facts, "fixture is degenerate: it must declare facts to be a test"
+    merged = merge_reports([curve])
     assert merged.reports == ()
-    assert merged.charts() == ()
-    assert not merged
 
 
 # --- staleness -----------------------------------------------------------
@@ -314,3 +353,32 @@ def test_the_wiring_reaches_a_real_service_container(qapp):
         services.descriptor_service._structure_version_of
         == services.structure_check_service.current_version
     )
+
+
+def test_a_report_defines_no_truthiness_operator():
+    """`StructureReport.__bool__` returned `bool(self.facts)`, so a factless
+    report was FALSY and `if report:` meant "has facts" while reading as
+    "exists". Both of its reachable users meant the second.
+
+    **THIS IS A SOURCE GUARD BECAUSE THE BEHAVIOURAL ONE CANNOT EXIST.**
+    Mutated: with the two call sites corrected to `is not None`, putting
+    `__bool__` back breaks nothing at all -- it has no consumer left, so no
+    fixture can tell the two trees apart. That is an equivalent mutation
+    rather than a coverage gap, and the honest place to assert is the shape.
+
+    What it protects is the NEXT caller: `if report:` is the natural thing to
+    write, and with this operator present it silently means something else.
+    A dataclass with no `__bool__` is truthy, which is the right answer to
+    "does this report exist"; anything wanting the other question asks
+    `report.facts`, where it cannot be misread.
+    """
+    from openchem.domain.report import StructureReport
+
+    assert "__bool__" not in vars(StructureReport), (
+        "StructureReport defines __bool__ again -- see the comment where it "
+        "was removed; `if report:` then means 'has facts' while reading as "
+        "'exists', which made a refused calculator unfocusable."
+    )
+    # And the property that operator destroyed, stated directly.
+    empty = ReportResult(report_id="r", name="R", molecule_uuid="u", facts=())
+    assert bool(empty) is True, "a report with no facts is still a report"

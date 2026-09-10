@@ -64,6 +64,31 @@ class CalculatorRegistry:
     def by_category(self, category: str) -> list[CalculatorDefinition]:
         return [d for d in self._definitions.values() if d.category == category]
 
+    def display_order(self, calculator_id: str) -> int | None:
+        """Where this calculator sits among the registered ones, or None.
+
+        **REGISTRATION ORDER IS THE DISPLAY ORDER, AND IT ALREADY WAS.**
+        `by_category` above returns dict values, so it has always handed the
+        Properties panel its buttons in the order they were registered, and
+        the panel renders them in exactly that order. This does not introduce
+        an ordering -- it makes the one already in use askable, so the Results
+        reader can sort by it instead of inventing a second answer.
+
+        That order carries real editorial judgement rather than being an
+        accident of import: within a section, Solubility is registered ahead
+        of Hansen Solubility Parameters and Lewis Sites ahead of Lewis Adduct,
+        both of which alphabetical order inverts. See
+        `domain/result_ordering.py`, which measures what dropping it costs.
+
+        None for an id nothing registers -- a plugin report, or a retired id
+        read back from a saved project. That is a real answer rather than a
+        failure, and the ordering key has two further terms for exactly it.
+        """
+        for position, definition in enumerate(self._definitions.values()):
+            if definition.calculator_id == calculator_id:
+                return position
+        return None
+
     def categories(self) -> list[str]:
         """Every distinct category with at least one registered calculator
         -- lets a consumer (the Property Panel, eagerly creating a section

@@ -761,3 +761,76 @@ def test_the_readme_states_the_real_number_of_categories_too():
         f"the README says {stated.group(2)} categories and there are "
         f"{len(_every_reachable_category())}"
     )
+
+
+def test_a_result_declares_the_same_section_its_calculator_does():
+    """**ONE ID MUST NOT NAME TWO SECTIONS.**
+
+    `test_a_calculators_result_lands_in_its_own_section` above walks the
+    REGISTRY, so a result whose producer declares its own `category` --
+    every `AlertResult`, and the always-on batch in particular -- was
+    outside its population. Measured over every literal `(id, category)`
+    pair in the tree: 41 declarations, and exactly ONE disagreed with the
+    registered calculator of the same id. `functional_groups` said `admet`
+    while its calculator said `substructure`, so the BUTTON sat under
+    Substructure Search and the always-on RESULT ROW appeared under ADMET /
+    Regulatory -- one name, two headings, and nothing could see it.
+
+    It reads the SOURCE rather than running the producers because the two
+    declarations are what disagree; a run would only show whichever one
+    happened to answer.
+    """
+    import ast
+    from pathlib import Path
+
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
+
+    registered = {d.calculator_id: d.category for d in CALCULATOR_DEFINITIONS}
+    assert registered, "fixture is degenerate: no calculators registered"
+
+    src = Path(__file__).resolve().parent.parent / "src" / "openchem"
+    declared: list[tuple[str, str, str]] = []
+    for path in src.rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)):
+                continue
+            if node.func.id not in ("AlertResult", "report_fields", "report_from_fields"):
+                continue
+            keywords = {k.arg: k.value for k in node.keywords}
+            result_id = keywords.get("alert_id") or keywords.get("report_id")
+            category = keywords.get("category")
+            if not isinstance(result_id, ast.Constant):
+                continue
+            if not isinstance(category, ast.Constant):
+                continue
+            declared.append(
+                (
+                    result_id.value,
+                    category.value,
+                    f"{path.relative_to(src).as_posix()}:{node.lineno}",
+                )
+            )
+
+    assert len(declared) >= 30, f"the walk found only {len(declared)} declarations"
+
+    disagreeing = [
+        f"{result_id} declares {category!r} and its calculator declares "
+        f"{registered[result_id]!r} ({where})"
+        for result_id, category, where in declared
+        if result_id in registered and registered[result_id] != category
+    ]
+    assert not disagreeing, disagreeing
+
+
+def test_the_four_catalogs_have_no_registered_calculator_and_that_is_fine():
+    """The narrow half. The guard above only compares ids the registry
+    knows, so "no id is ever checked" would satisfy it -- these four are
+    genuinely producer-only (PAINS, BRENK, mutagenicity, hERG risk factors
+    are always-on catalogs with nothing to run) and their presence is what
+    says the comparison has a real population to be narrower than."""
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
+
+    registered = {d.calculator_id for d in CALCULATOR_DEFINITIONS}
+    catalogs = {"pains", "brenk", "mutagenicity_alerts", "herg_risk_factors"}
+    assert not (catalogs & registered), sorted(catalogs & registered)

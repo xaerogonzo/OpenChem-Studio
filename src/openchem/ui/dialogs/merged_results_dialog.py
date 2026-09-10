@@ -38,7 +38,16 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.domain.common import CacheState, describe_failure
 from openchem.domain.merged_results import MergedResults, merge_reports
+from openchem.domain.reader_state import (
+    NO_MOLECULE,
+    NOTHING_COMPUTED,
+    ReaderView,
+    reader_state,
+)
+from openchem.domain.result_ordering import grouped_reports
+from openchem.ui.result_summary import summary_of_merge
 from openchem.ui.widgets.fact_view import FactView
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
@@ -71,6 +80,39 @@ STALE_MARK = " (stale)"
 #: what it is currently doing.
 ALL_RESULTS = "All results"
 
+#: What an empty reader says, per `reader_state`.
+#:
+#: **TWO MESSAGES, BECAUSE THERE ARE TWO EMPTY STATES.** "Pick a molecule"
+#: and "nothing has been computed for this one yet" send a reader to two
+#: different places, and this window rendered only the second -- it is
+#: opened for a molecule, so the first has had no route through the
+#: application. A reader that FOLLOWS the selection has one, which is why
+#: the text exists before the dock does.
+EMPTY_MESSAGES = {
+    NO_MOLECULE: (
+        "No molecule is selected.\n\n"
+        "Choose one and everything computed for it appears here."
+    ),
+    NOTHING_COMPUTED: (
+        "Nothing has been computed for this molecule yet.\n\n"
+        "Run a calculator and its results appear here."
+    ),
+}
+
+#: The data a group heading carries.
+#:
+#: **NOT an empty string, and not "no data at all".** `_sync_focus_box`
+#: restores the selection with `findData(self._focus)`, and `""` is a REAL
+#: value there -- it is what ALL_RESULTS carries -- so a heading holding it
+#: would be found first and the box would restore onto an unselectable row.
+#: An INTEGER keeps the two apart by construction: every `report_id` is a
+#: string, so no heading can ever compare equal to one, and it needs no
+#: escape sequence to write down. The first attempt used a string with a NUL
+#: in it and put a real NUL BYTE into this source file -- the shell-heredoc
+#: backslash trap this repository records twice, sprung a third time by
+#: somebody who had read both entries.
+GROUP_HEADING = -1
+
 
 class MergedResultsDialog(QDialog):
     """One molecule's accumulated results, focusable by calculator."""
@@ -80,11 +122,21 @@ class MergedResultsDialog(QDialog):
         molecule_uuid: str,
         molecule_name: str = "",
         parent: QWidget | None = None,
+        display_order_of=None,
     ) -> None:
         super().__init__(parent)
         self._molecule_uuid = molecule_uuid
         self._merged = MergedResults(reports=(), facts=())
         self._focus = ""
+        # Where each calculator sits in the registry -- the ONE ordering term
+        # a report cannot answer about itself. Injected rather than looked up
+        # here, so this window needs no registry and the ordering stays
+        # testable without one. Absent, the order is still total and still
+        # stable; it just cannot honour the editorial order WITHIN a section.
+        self._display_order_of = display_order_of
+        # Where this molecule's reader was, if anything is keeping track.
+        # Optional, so a window built without one behaves exactly as before.
+        self._memory = None
 
         self.setWindowTitle(f"Results - {molecule_name}" if molecule_name else "Results")
         self.resize(560, 680)
@@ -100,11 +152,8 @@ class MergedResultsDialog(QDialog):
         row.addWidget(self._focus_box, 1)
 
         self._view = FactView(self)
-        self._empty = QLabel(
-            "Nothing has been computed for this molecule yet.\n\n"
-            "Run a calculator and its results appear here.",
-            self,
-        )
+        self._view.filter_changed.connect(self._remember)
+        self._empty = QLabel(EMPTY_MESSAGES[NOTHING_COMPUTED], self)
         self._empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty.setWordWrap(True)
 
@@ -115,8 +164,63 @@ class MergedResultsDialog(QDialog):
 
     # --- what it is showing --------------------------------------------------
 
+    def set_structure_resolver(self, resolver) -> None:
+        """Forward the render context to the view that draws depictions.
+
+        **NOTHING IN PRODUCTION SUPPLIED ONE UNTIL THIS EXISTED**, and the
+        consequence was not subtle: `lewis_site_depiction` builds a complete
+        `DepictionAnnotation` with role colours and a caption, and
+        `compute_lewis_sites` attaches it -- so the Lewis-site diagram was
+        fully built, tested, and could never draw. A depiction carries atom
+        indices and no geometry, so without a resolver it has nothing to draw
+        ON. The only caller was the drive harness.
+
+        The resolver takes the REPORT, and that is a safety property rather
+        than a signature detail -- see `FactView.set_structure_resolver` and
+        `domain/structure_resolution.py`.
+        """
+        self._view.set_structure_resolver(resolver)
+
     def molecule_uuid(self) -> str:
         return self._molecule_uuid
+
+    # --- where the reader is ------------------------------------------------
+
+    def set_reader_memory(self, memory) -> None:
+        """Record this reader's position, as it moves.
+
+        **RECORDED ON EVERY CHANGE, NOT SAVED ON CLOSE.** A save-on-close hook
+        would work here -- `finished` covers the X, `close()` and Escape alike,
+        which `PopOutWindow` already relies on -- and it settles nothing for
+        the surface this behaviour is being settled FOR: a persistent reader
+        never closes. So the position is written as the reader moves it, and
+        the memory is never behind.
+        """
+        self._memory = memory
+
+    def view(self) -> ReaderView:
+        """What this window is showing: the focused report and the filter."""
+        search, everything = self._view.filter_state()
+        return ReaderView(report_id=self._focus, search=search, everything=everything)
+
+    def apply_view(self, view: ReaderView) -> None:
+        """Put the window where `view` says, without recording that as a move.
+
+        The filter first, then the focus -- `set_focus` renders, so setting
+        them the other way round renders the new report through the OLD filter
+        and then again through the new one.
+        """
+        self._view.set_filter_state(view.search, view.everything)
+        self._apply_focus(view.report_id)
+        # NOT a `_remember`. A host restoring a position must not write it
+        # back: with a memory whose recall FELL BACK -- the focused report is
+        # gone -- recording the restore would overwrite the remembered id with
+        # the empty one, so a report that came back later could never be
+        # restored again.
+
+    def _remember(self) -> None:
+        if self._memory is not None:
+            self._memory.remember(self._molecule_uuid, self.view())
 
     def set_reports(self, reports, structure_version: int = 0) -> None:
         """Replace what this window shows.
@@ -126,7 +230,11 @@ class MergedResultsDialog(QDialog):
         calculator's facts land in the open window rather than needing it
         reopened.
         """
-        self._merged = merge_reports(reports, structure_version=structure_version)
+        self._merged = merge_reports(
+            reports,
+            structure_version=structure_version,
+            display_order_of=self._display_order_of,
+        )
         self._rebuild_focus_box()
         self._render()
 
@@ -144,23 +252,70 @@ class MergedResultsDialog(QDialog):
         contribute a chart or a 3D annotation, "the first one" stops being
         an answer to anything.
         """
-        self._focus = report_id if self._merged.report_for(report_id) else ""
+        self._apply_focus(report_id)
+        # A HOST ACTING FOR A READER -- pressing "Details..." beside a
+        # calculator is choosing that report, and it is where the reader
+        # should be when they come back. `apply_view` deliberately does NOT
+        # come through here; see its own note.
+        self._remember()
+
+    def _apply_focus(self, report_id: str) -> None:
+        # `is not None`. A refused calculator's report has no facts, and
+        # truthiness here made it unfocusable -- it appeared in the selector
+        # and choosing it fell back to All results, silently.
+        self._focus = report_id if self._merged.report_for(report_id) is not None else ""
         self._sync_focus_box()
         self._render()
 
     # --- rendering -----------------------------------------------------------
 
     def _rebuild_focus_box(self) -> None:
+        """Rebuild the "Showing" list: headings, then their entries.
+
+        **GROUPED THE WAY THE PROPERTIES PANEL IS**, and by the same
+        `category_label`, so one section cannot end up with two names. The
+        list was flat and arrival-ordered, which for a molecule with
+        everything run is 30 entries in whatever order the runs happened to
+        finish.
+
+        **A HEADING IS ONLY EVER EMITTED FOR A GROUP THAT HAS SOMETHING IN
+        IT** -- `grouped_reports` guarantees that, so this loop cannot leave
+        seventeen empty headings behind for somebody who has run three
+        calculators.
+        """
         blocked = self._focus_box.blockSignals(True)
         self._focus_box.clear()
         self._focus_box.addItem(ALL_RESULTS, "")
-        for report in self._merged.reports:
-            label = self._merged.name_for(report.report_id)
-            if self._merged.is_stale(report):
-                label += STALE_MARK
-            self._focus_box.addItem(label, report.report_id)
+        for group in grouped_reports(self._merged.reports, self._display_order_of):
+            self._add_group_heading(group.label)
+            for report in group.entries:
+                label = self._merged.name_for(report.report_id)
+                if self._merged.is_stale(report):
+                    label += STALE_MARK
+                self._focus_box.addItem(label, report.report_id)
         self._focus_box.blockSignals(blocked)
         self._sync_focus_box()
+
+    def _add_group_heading(self, label: str) -> None:
+        """A row that names a section and cannot be chosen.
+
+        **DISABLED, NOT MERELY STYLED.** Qt skips a disabled row for keyboard
+        navigation and refuses to make it current, so the heading cannot
+        become the focus -- which is what would otherwise happen the moment
+        somebody arrows through the list. Bold rather than indented for the
+        opposite reason: a closed combo box paints the CURRENT entry's own
+        text, so indenting the entries would show the indent in the collapsed
+        control.
+        """
+        self._focus_box.addItem(label, GROUP_HEADING)
+        model = self._focus_box.model()
+        item = model.item(self._focus_box.count() - 1) if hasattr(model, "item") else None
+        if item is None:
+            return
+        item.setEnabled(False)
+        font = item.font()
+        font.setBold(True)
+        item.setFont(font)
 
     def _sync_focus_box(self) -> None:
         index = self._focus_box.findData(self._focus)
@@ -174,12 +329,18 @@ class MergedResultsDialog(QDialog):
     def _on_focus_changed(self, _index: int) -> None:
         self._focus = str(self._focus_box.currentData() or "")
         self._render()
+        # A READER moving the control, which is the case the memory is for.
+        self._remember()
 
     def _render(self) -> None:
-        if not self._merged.reports:
+        state = reader_state(self._molecule_uuid, len(self._merged.reports))
+        if state in EMPTY_MESSAGES:
             # NOT an empty FactView. "Nothing has been computed" and
             # "everything ran and had nothing to say" are different
-            # statements, and an empty report makes the second one.
+            # statements, and an empty report makes the second one -- and
+            # "no molecule is selected" is a third, which a reader that
+            # follows the selection can be in and this window could not.
+            self._empty.setText(EMPTY_MESSAGES[state])
             self._view.setVisible(False)
             self._empty.setVisible(True)
             self._view.clear()
@@ -195,7 +356,9 @@ class MergedResultsDialog(QDialog):
             self._view.set_report(report, title, self._summary_for(report))
             return
         self._view.set_report(
-            _AllResults(self._merged), "All results", self._summary()
+            summary_of_merge(self._merged, self._molecule_uuid),
+            "All results",
+            self._summary(),
         )
 
     def _summary(self) -> str:
@@ -205,57 +368,58 @@ class MergedResultsDialog(QDialog):
             )
             for report in self._merged.reports
         ]
-        return f"{len(names)} calculator(s): " + ", ".join(names)
+        # **"result(s)", NOT "calculator(s)".** The always-on descriptor
+        # aggregate is one of these entries and is explicitly NOT a
+        # calculator -- it has no `calculator_id`, is never offered as
+        # something to run, and never enters a cache key. Now that it sorts
+        # first, the old wording named it as a calculator in the very first
+        # thing a reader sees. Found by driving the app and reading the shot.
+        return f"{len(names)} result(s): " + ", ".join(names)
 
     def _summary_for(self, report) -> str:
+        """What to say above a focused report's facts.
+
+        **A REPORT WITH NO FACTS NOW REACHES THIS WINDOW, AND "0 facts." IS
+        NOT AN EXPLANATION.** `merge_reports` used to refuse one, so a refused
+        Lewis Sites result -- `matched=[]`, `cache_state=FAILED` -- appeared
+        here as nothing at all. Admitting it is only half the fix: without a
+        reason it now appears as a calculator that ran and had nothing to say,
+        which is a different and equally wrong statement.
+
+        Status first, staleness after, and BOTH when both apply: a failed
+        result computed against an older structure is two facts about it, and
+        showing one would leave a reader to discover the other by surprise.
+        """
+        parts = [text for text in (self._status_line(report), self._stale_line(report)) if text]
+        return " ".join(parts)
+
+    def _status_line(self, report) -> str:
+        """The failure or refusal, in the reader's own words.
+
+        `describe_failure` owns which string is the short form and which is
+        the full one, so this does not re-decide it -- the HOVER form is right
+        here, because a summary line above a report has room for a sentence
+        where a 120 px table cell does not. That is the same call
+        `_present_alert` and the wide rows make.
+
+        **A REFUSAL IS NOT A FAULT**, and the existing `inapplicable` field is
+        what separates them rather than a second vocabulary invented here: the
+        method not covering this molecule is a correct, permanent answer, and
+        painting it as a crash is what made two working calculators read as
+        broken.
+        """
+        if getattr(report, "cache_state", None) is not CacheState.FAILED:
+            return ""
+        _cell, reason = describe_failure(
+            getattr(report, "error", None), getattr(report, "error_summary", None)
+        )
+        lead = "Not applicable" if getattr(report, "inapplicable", False) else "This did not run"
+        return f"{lead}: {reason}"
+
+    def _stale_line(self, report) -> str:
         return (
             "Computed for an earlier version of this structure -- re-run it "
             "to refresh."
             if self._merged.is_stale(report)
             else ""
-        )
-
-
-class _AllResults:
-    """Every merged fact and every chart, as one thing `FactView` renders.
-
-    **A VIEW OVER `MergedResults`, NOT A COPY OF IT.** `FactView`'s
-    contract is anything with `facts`, `by_category()` and `find()`, plus
-    the optional `charts`/`limitations` it reads with `getattr` -- so this
-    is that surface and nothing more. Building a real `ReportResult` here
-    instead would flatten several producers into one `report_id` and one
-    `structure_version`, which is precisely what `MergedResults` exists to
-    avoid.
-    """
-
-    def __init__(self, merged: MergedResults) -> None:
-        self._merged = merged
-        self.facts = merged.facts
-        self.charts = tuple(chart for _report_id, chart in merged.charts())
-        self.limitations = merged.limitations()
-        self.assumptions = merged.assumptions()
-
-    def by_category(self):
-        from openchem.domain.report import CATEGORY_ORDER
-
-        grouped: dict = {}
-        for fact in self.facts:
-            grouped.setdefault(fact.category, []).append(fact)
-        return {
-            category: tuple(grouped[category])
-            for category in CATEGORY_ORDER
-            if category in grouped
-        }
-
-    def find(self, text: str):
-        needle = text.strip().lower()
-        if not needle:
-            return self.facts
-        return tuple(
-            fact
-            for fact in self.facts
-            if needle in fact.label.lower()
-            or needle in fact.display_value.lower()
-            or needle in fact.origin.lower()
-            or any(needle in item.lower() for item in fact.evidence)
         )
