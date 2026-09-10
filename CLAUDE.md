@@ -7486,7 +7486,51 @@ command substitution feeding pytest is non-empty before believing what it ran.
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-26 minutes**, ending at `7442 passed, 16 skipped`
+A clean run is **6-26 minutes**, ending at `7533 passed, 16 skipped`
+(measured 2026-09-10, **22m00**, on `stage-1-every-result-reaches-results` --
+Stage 1 of the Properties-to-Results work: 1a, 1d, 1e and 1f.
+
+**+91 collected and 0 REMOVED**, diffed both directions with `comm` in a
+detached worktree, with the `PYTHONPATH` override asserted before the count was
+believed (`import openchem` reported the WORKTREE's `src`):
+
+    origin/master   fe112f1   COLLECTS 7458
+    this one                  COLLECTS 7549   = 7458 + 91
+    the run                            7533 passed + 16 skipped = 7549
+
+    35  test_result_summaries.py        1a -- the per-kind summaries, the
+                                        adapter table total over 8 kinds, and
+                                        the three claims only mutation caught
+    23  test_visualizations_section.py  1f -- the kind vocabulary, the reader's
+                                        list, and the modal diversion removed
+    17  test_result_selector_search.py  1e -- the second search, headless, plus
+                                        the window
+    14  test_result_viewer_actions.py   1d -- the result-level viewer action
+     1  test_property_panel_result_rows.py  1a's population, derived rather
+                                        than hand-written
+     1  test_fact_link_router.py        1d's walk over every surface that emits
+                                        a link
+
+**AND THE FIRST ID DUMP WAS WRONG IN A WAY THE COUNT ALONE WOULD NOT SHOW.**
+It passed `--rootdir wt-base wt-base/tests`, which changes conftest resolution:
+it collected **7244** against the plain run's 7458 in the same worktree, and
+duly reported `test_stick_chart_widget.py`, `test_spatial_overlay_widget.py`
+and five other PRE-EXISTING files as "added". A diff whose baseline is 214
+short invents additions rather than losing them, which reads as new work.
+**Dump the ids the same way the count was taken** -- `cd` into the worktree and
+run it plainly.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored, since
+pytest's progress dots share the line -- as do `^FAILED` and `^ERROR`. The
+skips are the deterministic 16. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in `test_dock_title_bar.py`
+and `test_trajectory_player.py`.
+
+**CLEAN ON ITS FIRST RUN**, with nothing else touching the tree for its
+duration. 22m00 sits inside the band and does not move it.)
+
+Before it: `7442 passed, 16 skipped`
 (measured 2026-09-10 on `results-first-foundation` -- Stage 0 of the
 Properties-to-Results work, all ten items, 0a through 0j.
 
