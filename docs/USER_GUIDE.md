@@ -705,6 +705,24 @@ and **the result you are currently reading always stays in the list**, even
 when it does not match what you typed, so filtering can never swap out what is
 on screen. Both boxes are remembered per molecule, separately.
 
+**A "Visualizations" list says what each result can show you.** A result may
+carry a chart, a 2D structure with sites marked on it, or something drawn on a
+3D model — a dipole vector, a steric cone, the principal axes — and the list
+names each one with its type. A chart or a depiction is drawn a few rows below
+and says so; a 3D overlay opens in its own window, because a 3D view does not
+belong inside a scrolling list of values.
+
+That window is no longer modal and no longer a detour. **Geometry and Dipole
+Moment used to bypass this reader entirely** — pressing *Details…* on either
+opened a separate window that blocked the rest of the application until you
+closed it, so you could not run another calculator while looking at it. Both
+now arrive in the reader like every other result, with their picture offered
+from the list.
+
+A result computed for an older version of the structure keeps its values and
+**refuses its picture**, saying which version it was computed for and why
+drawing it now would point at the wrong atoms.
+
 That box is **grouped into the same sections as the panel behind it, in the same
 order**, with **Molecular Properties** — the descriptors computed for every
 molecule, whether you asked or not — above them. A section appears only once

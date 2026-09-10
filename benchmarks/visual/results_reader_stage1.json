@@ -1,0 +1,162 @@
+[
+  {
+    "do": "smiles",
+    "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+    "name": "Aspirin",
+    "after_ms": 800
+  },
+  {
+    "do": "select",
+    "molecule": -1,
+    "after_ms": 500
+  },
+  {
+    "do": "conformers",
+    "after_ms": 6000
+  },
+  {
+    "do": "panel",
+    "id": "Properties",
+    "after_ms": 500
+  },
+
+  {
+    "do": "calculator",
+    "id": "crippen_logp_contrib",
+    "after_ms": 2500
+  },
+  {
+    "do": "calculator",
+    "id": "lewis_sites",
+    "after_ms": 2500
+  },
+  {
+    "do": "calculator",
+    "id": "solubility_curve",
+    "after_ms": 12000
+  },
+  {
+    "do": "calculator",
+    "id": "locants",
+    "after_ms": 3000
+  },
+  {
+    "do": "calculator",
+    "id": "mass_spectrum",
+    "after_ms": 2500
+  },
+  {
+    "do": "calculator",
+    "id": "dipole_moment",
+    "after_ms": 4000
+  },
+
+  {
+    "do": "results",
+    "tag": "1a-every-kind-reaches-the-reader",
+    "after_ms": 1500
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage1_all_results.png",
+    "widget": "results",
+    "after_ms": 500
+  },
+
+  {
+    "do": "results",
+    "focus": "crippen_logp_contrib",
+    "tag": "1a-a-per-atom-summary-with-its-declared-total",
+    "after_ms": 800
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage1_per_atom_summary.png",
+    "widget": "results",
+    "after_ms": 500
+  },
+
+  {
+    "do": "results",
+    "focus": "lewis_sites",
+    "tag": "1f-the-depiction-must-DRAW-and-say-it-is-a-2D-depiction",
+    "after_ms": 1200
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage1_lewis_depiction.png",
+    "widget": "results",
+    "after_ms": 500
+  },
+
+  {
+    "do": "results",
+    "focus": "dipole_moment",
+    "tag": "1f-a-3D-overlay-is-LISTED-with-an-Open-button",
+    "after_ms": 800
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage1_visualizations_section.png",
+    "widget": "results",
+    "after_ms": 500
+  },
+  {
+    "do": "results",
+    "open_visual": 0,
+    "tag": "1f-and-it-opens-MODELESSLY-from-the-reader",
+    "after_ms": 3000
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage1_spatial_from_reader.png",
+    "after_ms": 800
+  },
+
+  {
+    "do": "results",
+    "search": "solub",
+    "tag": "1e-the-selector-search-narrows-the-list",
+    "after_ms": 800
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage1_selector_search.png",
+    "widget": "results",
+    "after_ms": 500
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage1_selector_search_list.png",
+    "widget": "results_list",
+    "after_ms": 800
+  },
+  {
+    "do": "results",
+    "search": "",
+    "tag": "1e-and-clearing-it-brings-everything-back",
+    "after_ms": 800
+  },
+
+  {
+    "do": "erase",
+    "element": "O",
+    "after_ms": 2000
+  },
+  {
+    "do": "results",
+    "focus": "lewis_sites",
+    "tag": "0c-a-stale-depiction-must-REFUSE-with-its-reason-on-screen",
+    "after_ms": 1200
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage1_stale_refusal.png",
+    "widget": "results",
+    "after_ms": 500
+  },
+
+  {
+    "do": "quit"
+  }
+]

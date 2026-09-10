@@ -3280,8 +3280,25 @@ class MainWindow(QMainWindow):
                 "atom_report": self._link_to_atom_report,
                 "calculator_inspector": self._link_to_calculator_inspector,
                 "nmr_view": self._link_to_nmr_view,
+                "spatial_view": self._link_to_spatial_view,
             }
         )
+
+    def _link_to_spatial_view(self, params: dict) -> bool:
+        """One declared picture, drawn on a 3D model.
+
+        Reached from the results reader's Visualizations list rather than
+        from a result KIND -- a spatial annotation is declared by a report,
+        whose kind is already report-shaped, so there is no `rich_view` to
+        carry it. The panel answers whether it could: a report with no
+        annotation, and a molecule with no conformer, are both refusals the
+        reader is told about rather than a button that does nothing.
+        """
+        report_id = params.get("report_id")
+        if not report_id:
+            return False
+        index = params.get("annotation_index") or 0
+        return self._property_panel.open_spatial_view(str(report_id), int(index))
 
     def _link_to_periodic_table(self, params: dict) -> bool:
         self._show_periodic_table()

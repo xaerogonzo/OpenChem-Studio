@@ -89,6 +89,15 @@ NMR_VIEW = "nmr_view"
 #: panel. Named here so the registry can say a vibrational spectrum does NOT
 #: belong in the NMR view, which is the point of it having its own kind.
 IR_VIEW = "ir_view"
+#: A shape-valued result on a 3D model -- `SpatialResultDialog`.
+#:
+#: **NOT A RESULT KIND'S `rich_view`, AND THAT IS THE DISTINCTION.** Every
+#: other identifier here answers "which viewer owns THIS KIND of result"; a
+#: spatial annotation is declared by a `ReportResult`, whose kind is already
+#: report-shaped and needs no viewer. So this is reached from a declared
+#: PICTURE rather than from a kind, which is why nothing in `ADAPTERS` names
+#: it.
+SPATIAL_VIEW = "spatial_view"
 
 
 def _units_suffix(result: ScientificResult) -> str:

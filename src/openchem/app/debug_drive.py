@@ -1564,6 +1564,12 @@ class _Driver(QObject):
             logger.error("OPENCHEM_DRIVE: no results window opened -- is a molecule selected?")
             return
         self._results = window
+        # THE SELECTOR SEARCH, TYPED INTO THE REAL BOX. `setText` is what a
+        # user's keystrokes reach, and it fires the handler that rebuilds and
+        # remembers -- calling `_rebuild_focus_box` here would prove the list
+        # can be filtered and say nothing about the control being wired to it.
+        if "search" in step:
+            window._selector_search.setText(str(step.get("search") or ""))
         merged = window.merged()
         logger.warning(
             "OPENCHEM_DRIVE: results tag=%s reports=%d facts=%d charts=%d "
@@ -1586,7 +1592,90 @@ class _Driver(QObject):
                 " STALE" if merged.is_stale(report) else "",
             )
         self._log_results_selector(window)
+        self._log_results_visualizations(window)
         self._log_results_copy(window)
+        if "open_visual" in step:
+            self._press_visual_open(window, int(step.get("open_visual") or 0))
+
+    def _log_results_visualizations(self, window: Any) -> None:
+        """What the reader offers to SHOW, and what it offers to OPEN.
+
+        **THREE OF THIS FEATURE'S STATES PHOTOGRAPH IDENTICALLY**, which is
+        the `jobs_report` rule applied to a list of pictures. A result with no
+        visualizations, one whose section failed to build, and one whose rows
+        drew with no type label are all "a window with facts in it" in a
+        screenshot; and whether the result-level Open button is up is a few
+        pixels of text.
+        """
+        from PySide6.QtWidgets import QPushButton
+
+        button = window._open_button
+        logger.warning(
+            "OPENCHEM_DRIVE:   open_button visible=%s text=%r",
+            button.isVisible(),
+            button.text(),
+        )
+        section = window._visuals
+        layout = window._visuals_layout
+        rows = []
+        for index in range(1, layout.count()):
+            row = layout.itemAt(index).widget()
+            if row is None:
+                continue
+            inner = row.layout()
+            texts = [
+                inner.itemAt(i).widget().text()
+                for i in range(inner.count())
+                if inner.itemAt(i).widget() is not None
+                and hasattr(inner.itemAt(i).widget(), "text")
+            ]
+            rows.append(texts)
+        logger.warning(
+            "OPENCHEM_DRIVE:   visualizations visible=%s rows=%d openable=%d",
+            section.isVisible(),
+            len(rows),
+            len(section.findChildren(QPushButton)),
+        )
+        for texts in rows:
+            logger.warning("OPENCHEM_DRIVE:     %s", " | ".join(texts))
+
+    def _press_visual_open(self, window: Any, index: int) -> None:
+        """Press a REAL Open button in the Visualizations list.
+
+        The button, not the handler behind it -- `_on_visual_open_clicked`
+        reads which annotation it means off `sender()`, so calling it directly
+        passes `sender() is None` and proves nothing about the wiring. The
+        same argument `jobs_cancel` makes.
+
+        A DISABLED or absent button is logged rather than clicked: Qt ignores
+        a click on one silently, so without this the run reports a healthy
+        step and opens nothing, which is the wrong-panel-id trap in another
+        costume.
+        """
+        from PySide6.QtWidgets import QPushButton
+
+        buttons = window._visuals.findChildren(QPushButton)
+        if index >= len(buttons):
+            logger.error(
+                "OPENCHEM_DRIVE: open_visual=%d but only %d openable rows",
+                index, len(buttons),
+            )
+            return
+        buttons[index].click()
+        # WHETHER IT IS MODAL, which is the whole point of 1f and which no
+        # screenshot distinguishes: a modal and a modeless dialog look the
+        # same, and the modal one silently blocks everything behind it.
+        from PySide6.QtWidgets import QApplication
+
+        opened = [
+            w for w in QApplication.topLevelWidgets()
+            if type(w).__name__ == "SpatialResultDialog" and w.isVisible()
+        ]
+        logger.warning(
+            "OPENCHEM_DRIVE:   spatial dialogs open=%d modal=%s",
+            len(opened),
+            [w.isModal() for w in opened],
+        )
 
     def _log_results_copy(self, window: Any) -> None:
         """Try the four Copy formats on whatever is focused, and say so.

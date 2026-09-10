@@ -51,6 +51,7 @@ from openchem.domain.reader_state import (
 )
 from openchem.domain.report import FactLink
 from openchem.domain.result_ordering import grouped_reports, matching_reports
+from openchem.domain.visualization_index import declared_visualizations
 from openchem.ui.result_summary import summary_of_merge
 from openchem.ui.widgets.fact_view import FactView
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
@@ -96,6 +97,42 @@ _VIEWER_ACTIONS: dict[str, FactLink] = {
     ),
     "nmr_view": FactLink(target="nmr_view", label="Open in NMR view"),
 }
+
+#: Which annotation an Open button means, carried on the button itself.
+#:
+#: `setProperty` plus a bound method reading `sender()` -- the shape this
+#: codebase settled on after a self-capturing lambda leaked a widget per
+#: calculator in five files.
+_VISUAL_INDEX_PROPERTY = "openchem_visual_index"
+#: Which report that annotation belongs to.
+_VISUAL_REPORT_PROPERTY = "openchem_visual_report"
+
+#: What an Open button beside a visualization means. ONE contract however
+#: many rows are drawn -- "show this picture properly" is one concept, and a
+#: contract per row would be the sixty-tick-boxes split refused elsewhere.
+_VISUAL_OPEN_HELP = HelpTooltip(
+    text=(
+        "Draw this on a 3D model of the molecule, in its own window.\n\n"
+        "A vector, a cone or a set of axes is drawn on a conformer rather "
+        "than in a list, so it opens beside the values instead of among "
+        "them. The window shows the same facts, search and export underneath "
+        "the picture.\n\n"
+        "It draws the molecule's stored conformer, which is the frame the "
+        "annotation's coordinates are in. It computes nothing and re-runs "
+        "nothing."
+    ),
+    tier=2,
+    help_id="results.open_visualization",
+    topic="facts",
+)
+
+#: The link that opens one declared PICTURE on a 3D model.
+#:
+#: A literal target for the reason the table above carries literals: a source
+#: walk is what checks every emitted target has a handler, and a computed one
+#: shrinks that guard's universe without failing it. `params` names which
+#: report and which annotation, filled in per use with `replace`.
+_SPATIAL_ACTION = FactLink(target="spatial_view", label="Open")
 
 #: What the result-level action means. ONE contract for every viewer it
 #: can offer: "open the whole thing" means the same wherever it lands,
@@ -275,6 +312,19 @@ class MergedResultsDialog(QDialog):
         apply_help_tooltip(self._open_button, _OPEN_HELP)
         row.addWidget(self._open_button)
 
+        # **EVERY PICTURE THE FOCUSED RESULT DECLARES, AS PEERS.** They were
+        # peers in the model already -- all producer-declared annotations,
+        # validated fail-closed -- and not on screen: charts and depictions
+        # rendered inside the reader while a spatial annotation could only be
+        # seen in a separate MODAL window the reader was no part of.
+        self._visuals = QWidget(self)
+        self._visuals_layout = QVBoxLayout(self._visuals)
+        self._visuals_layout.setContentsMargins(0, 0, 0, 0)
+        self._visuals_heading = QLabel("Visualizations", self._visuals)
+        self._visuals_heading.setStyleSheet("font-weight: bold;")
+        self._visuals_layout.addWidget(self._visuals_heading)
+        self._visuals.setVisible(False)
+
         self._view = FactView(self)
         self._view.filter_changed.connect(self._remember)
         # **DEAD IN THIS WINDOW UNTIL NOW.** `FactView` builds a `>` button
@@ -292,6 +342,7 @@ class MergedResultsDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addWidget(self._selector_search)
         layout.addWidget(focus_row)
+        layout.addWidget(self._visuals)
         layout.addWidget(self._view, 1)
         layout.addWidget(self._empty, 1)
 
@@ -478,6 +529,71 @@ class MergedResultsDialog(QDialog):
         self._focus_box.setCurrentIndex(index)
         self._focus_box.blockSignals(blocked)
 
+    def _sync_visualizations(self, report) -> None:
+        """List what `report` can show, each row saying WHAT it is.
+
+        **A TYPE LABEL, BECAUSE "Open" SAYS NOTHING ABOUT WHAT ARRIVES.** A
+        stick chart of an isotope pattern, a 2D structure with sites marked
+        on it and a vector drawn on a 3D conformer are three different things
+        to look at, and they cost very different amounts to open -- a 3D
+        overlay is a QtWebEngine process, which this project has measured
+        accumulating to 116 and hanging the suite.
+
+        **A BUTTON ONLY WHERE THERE IS SOMETHING TO OPEN.** An inline picture
+        is already drawn a few rows below; giving it an Open button would
+        imply a second copy somewhere else. It is still LISTED, so the answer
+        to "what can this result show me" is in one place rather than split
+        between a list and a scroll.
+        """
+        while self._visuals_layout.count() > 1:
+            item = self._visuals_layout.takeAt(1)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
+
+        found = declared_visualizations(report) if report is not None else ()
+        self._visuals.setVisible(bool(found))
+        for visual in found:
+            self._visuals_layout.addWidget(self._visual_row(visual, report))
+
+    def _visual_row(self, visual, report) -> QWidget:
+        row = QWidget(self._visuals)
+        layout = QHBoxLayout(row)
+        layout.setContentsMargins(12, 0, 0, 0)
+        layout.addWidget(QLabel(visual.title, row), 1)
+        layout.addWidget(QLabel(f"[{visual.kind}]", row))
+        if visual.inline:
+            # Named rather than left blank: a row with nothing on the right
+            # reads as a control that failed to draw, which is the
+            # empty-state confusion this reader already had to separate once.
+            layout.addWidget(QLabel("shown below", row))
+            return row
+        button = QPushButton("Open", row)
+        button.setProperty(_VISUAL_INDEX_PROPERTY, visual.index)
+        button.setProperty(_VISUAL_REPORT_PROPERTY, str(getattr(report, "report_id", "") or ""))
+        # A BOUND METHOD reading `sender()`, never a lambda capturing self:
+        # PySide6 holds a plain callable strongly, and this codebase has paid
+        # for that in five files.
+        button.clicked.connect(self._on_visual_open_clicked)
+        apply_help_tooltip(button, _VISUAL_OPEN_HELP)
+        layout.addWidget(button)
+        return row
+
+    def _on_visual_open_clicked(self) -> None:
+        button = self.sender()
+        if button is None:
+            return
+        self.link_activated.emit(
+            replace(
+                _SPATIAL_ACTION,
+                params={
+                    "report_id": button.property(_VISUAL_REPORT_PROPERTY),
+                    "annotation_index": button.property(_VISUAL_INDEX_PROPERTY),
+                },
+            )
+        )
+
     def _on_selector_search_changed(self, _text: str) -> None:
         """Rebuild the list, and remember what was typed.
 
@@ -554,6 +670,7 @@ class MergedResultsDialog(QDialog):
             # follows the selection can be in and this window could not.
             self._empty.setText(EMPTY_MESSAGES[state])
             self._sync_open_button(None)
+            self._sync_visualizations(None)
             self._view.setVisible(False)
             self._empty.setVisible(True)
             self._view.clear()
@@ -567,9 +684,11 @@ class MergedResultsDialog(QDialog):
             if self._merged.is_stale(report):
                 title += STALE_MARK
             self._sync_open_button(report)
+            self._sync_visualizations(report)
             self._view.set_report(report, title, self._summary_for(report))
             return
         self._sync_open_button(None)
+        self._sync_visualizations(None)
         self._view.set_report(
             summary_of_merge(self._merged, self._molecule_uuid),
             "All results",

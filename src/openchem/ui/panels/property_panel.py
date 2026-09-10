@@ -2499,21 +2499,54 @@ class PropertyPanel(QWidget):
         report = self._reports.get(report_id)
         if report is None:
             return
-        # A producer that declared spatial annotations gets its result on
-        # a 3D model -- the Marvin-style popup. THE ANNOTATION DECIDES,
-        # never the presence of plausible numbers in provenance, and a
-        # conformer must exist to draw on: a FAILED dipole has no
-        # annotation, a conformer-less molecule has no canvas, and both
-        # fall through to the plain facts dialog rather than to a blank
-        # viewer.
-        if getattr(report, "spatial", ()) and self._project is not None:
-            molecule = self._project.find_molecule(report.molecule_uuid)
-            best = canonical_conformer(molecule) if molecule is not None else None
-            if best is not None and best.molblock:
-                spatial_dialog = SpatialResultDialog(report, best.molblock, self)
-                spatial_dialog.exec()
-                return
+        # **"Details..." GOES TO THE READER FOR EVERY RESULT NOW, AND IT USED
+        # NOT TO.** A report declaring spatial annotations was diverted here
+        # into `SpatialResultDialog(...).exec()` and RETURNED -- so two of the
+        # sixty results, Geometry and Dipole Moment, never reached the merged
+        # reader at all, and reached a MODAL window instead. That reinstated
+        # for those two exactly what this window's own docstring says it
+        # exists to remove: with a modal dialog you cannot run the second
+        # calculator whose results the reader accumulates.
+        #
+        # The picture is not lost, it moved: the reader lists every declared
+        # visualization with its type and opens this same dialog from there,
+        # so a shape-valued result stops being a different-shaped window.
         self._open_results_window(focus=str(report_id))
+
+    def open_spatial_view(self, report_id: str, annotation_index: int = 0) -> bool:
+        """Draw one declared annotation on this molecule's conformer.
+
+        **THE ANNOTATION DECIDES, never the presence of plausible numbers in
+        provenance**, and a conformer must exist to draw on: a FAILED dipole
+        has no annotation and a conformer-less molecule has no canvas. Both
+        answer FALSE, so the reader's request is refused VISIBLY rather than
+        by a button that does nothing -- which is the whole reason this
+        returns a bool, as `open_retained_result` does.
+
+        `annotation_index` is accepted and deliberately not used to select
+        one: `SpatialResultDialog` draws the report's whole declared set on
+        one model, which is the right picture -- a dipole and its axes are
+        one scene rather than two. It is carried so a future viewer can focus
+        one without the link vocabulary changing.
+        """
+        report = self._reports.get(report_id)
+        if report is None or self._project is None:
+            return False
+        if not getattr(report, "spatial", ()):
+            return False
+        molecule = self._project.find_molecule(getattr(report, "molecule_uuid", ""))
+        best = canonical_conformer(molecule) if molecule is not None else None
+        if best is None or not best.molblock:
+            return False
+        dialog = SpatialResultDialog(report, best.molblock, self)
+        # **`show()`, NOT `exec()`.** Modeless for the same reason the reader
+        # is: a modal picture blocks the panel that produced it, and this
+        # project's drive-script rule already records a modal `exec()`
+        # stalling an unattended run on a window with nobody to close it.
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        dialog.show()
+        dialog.raise_()
+        return True
 
     def _open_results_window(self, focus: str = "") -> None:
         """Show (or raise) this molecule's results window.

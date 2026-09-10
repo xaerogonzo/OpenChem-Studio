@@ -7329,6 +7329,141 @@ fixture too degenerate to see its own subject (four), and both ends of a chain
 guarded with nothing asserting the middle (four). Worth watching for directly
 rather than relying on the mutation pass to keep finding them.
 
+## A SHAPE-VALUED RESULT WAS A DIFFERENT-SHAPED, MODAL WINDOW
+
+Stage 1f. A chart, a 2D depiction and a 3D overlay are already peers in the
+MODEL -- all producer-declared annotations, validated fail-closed, and
+`ui/visualization.py` calls the layer type renderer-independent. What differed
+was where each ended up, and the difference was live rather than cosmetic:
+
+`_on_details_clicked` sent any report declaring `spatial` into
+`SpatialResultDialog(...).exec()` and RETURNED. So of the results reaching the
+reader, the two carrying a 3D overlay -- **Geometry and Dipole Moment** --
+never reached it from that button at all, and reached a MODAL window instead.
+That reinstated for those two exactly what `MergedResultsDialog`'s own
+docstring says it exists to remove: with a modal window you could never run
+the second calculator whose results this exists to accumulate.
+
+Measured on aspirin WITH A CONFORMER, which is the fixture the first attempt
+got wrong: 6 results carry a picture -- 2 stick charts, 1 line chart, 1
+depiction, 1 axes, 1 arrow. **Without a conformer nothing spatial can exist**,
+so the first measurement reported zero spatial annotations and would have made
+this whole item look like it had no subject.
+
+`domain/visualization_index.py` lists them as peers, each saying what KIND it
+is, and the reader opens the 3D ones with `show()` rather than `exec()`.
+
+### THE TYPE LABEL IS THE POINT, AND SO IS WHICH ONES GET A BUTTON
+
+"Open" says nothing about what arrives, and the three cost very different
+amounts: a 3D overlay is a QtWebEngine process, which this project has
+measured accumulating to 116 and hanging the suite. So a 3D overlay is
+DELIBERATELY never inline -- a fixed-height 3D view inside a `QScrollArea`
+with `setWidgetResizable(True)` is the height-for-width fight already lost
+three times here.
+
+**AN INLINE PICTURE IS LISTED AND OFFERED NO BUTTON.** It is already drawn a
+few rows below, so a button would imply a second copy; the row says "shown
+below" instead, because a row with nothing on its right reads as a control
+that failed to draw.
+
+**KIND IS DERIVED FROM THE ANNOTATION TYPE**, the same question
+`chart_widget_for` asks, so a label and its widget cannot disagree. The map is
+total over the six shipped types and a walk over `domain/report.py` asserts it
+STAYS total -- a seventh type with no entry would be a picture nobody can see,
+with nothing red.
+
+### `label` IS A VALUE ON EVERY SPATIAL PRODUCER, AND ONLY THE APP SAID SO
+
+The nineteenth entry in this file's running count of defects found by driving
+the app, and the cause is a fixture written here.
+
+The title rule was `annotation.title or annotation.label`, on the reasoning
+that charts declare `title` and spatial annotations declare `label` -- "Dipole
+moment", "Steric cone". Driven, the row came out titled **"0.89 D"**: a
+measurement sitting where a picture's name belongs. Checked across all three
+shipped producers afterwards, every one formats a NUMBER into that field:
+
+    chem/dipole.py             label=f"{magnitude:.2f} D"
+    chem/steric.py             label=f"{angle:.1f} deg"
+    chem/geometry_analysis.py  labels=one per axis
+
+It is a caption drawn ON the model, which is why the 3D view wants it and a
+list of pictures does not.
+
+**AND THE FIXTURE FOR IT HAD INVENTED THE OPPOSITE.** `_arrow()` passed
+`label="Dipole moment"` -- a name no producer writes -- so nineteen unit tests
+agreed with a rule the application disproved on its first run, and FOUR of
+them had to be corrected rather than adjusted. The fallback is the OWNER's
+name now: a spatial annotation is one report's picture, and the report is what
+names it. The fixture uses a value-shaped label so it cannot drift back.
+
+Same lesson as the assembly corpus blind to a transposed matrix, with the
+sharper edge that the fixture was not merely unrepresentative -- it asserted
+something untrue about the producers it stood in for.
+
+### FOURTEEN ARMS, THREE SURVIVORS, AND F11 WAS THE WHOLE POINT
+
+    F11  Details diverts to the modal dialog again    SURVIVED
+    F12  the spatial opener answers True with no
+         conformer                                    SURVIVED
+    F14  the inline chart heading drops its kind      SURVIVED
+
+**F11 IS THE DEFECT THIS ITEM EXISTS TO REMOVE, AND NOTHING GUARDED IT.**
+Every test written for 1f covered what the reader SHOWS; none covered how a
+reader GETS there. Its guard presses the real Details button, because
+`_on_details_clicked` reads which report it means off `sender()` -- calling it
+directly passes `sender() is None` and proves nothing about the wiring that
+changed.
+
+**F12 IS THE DEGENERATE FIXTURE IN A NEW COSTUME.** The panel had no project,
+so `open_spatial_view` refused several lines BEFORE the conformer check and
+the branch under test never executed. It needs a real project holding a drawn
+molecule that genuinely has no conformer, and the guard asserts that setup.
+
+Second pass: fourteen arms, fourteen caught.
+
+### AND THE DRIVEN CHECK CONFIRMED WHAT NO TEST COULD
+
+`benchmarks/visual/results_reader_stage1.json`, about fifty seconds
+unattended. The `results` step logs three flags no screenshot carries --
+whether the result-level Open button is up, the visualization rows with their
+kinds, and **whether the spatial dialog opened MODAL** -- because a modal and
+a modeless window photograph identically and the modal one silently blocks
+everything behind it.
+
+    reports=11 facts=108 charts=3
+    Lewis sites   | [2D depiction] | shown below
+    Dipole Moment | [3D overlay]   | Open
+    spatial dialogs open=1 modal=[False]
+
+All four the plan named are present: LogP Contribution, Lewis Sites,
+**Solubility vs pH** and IUPAC Locants. The Lewis depiction DRAWS -- donor,
+acceptor and ambiphilic sites coloured on the structure -- which is 0a's
+finding realised, since `set_structure_resolver` had zero production callers
+and it could never render.
+
+**AND THE STALE REFUSAL IS EXACTLY RIGHT, WHICH WAS NEARLY REPORTED AS A
+DEFECT.** After erasing an oxygen the reader shows `Lewis Sites (stale)`, the
+banner, and a depiction section that at first glance is blank -- so a 300 px
+crop looked like a silent refusal, which 0c forbids. The message is
+vertically centred in a tall frame and sits below that crop:
+
+    Visualization unavailable -- this result was calculated for an earlier
+    version of this structure (version 1; the molecule is now at 2). Its atom
+    numbering describes the structure at that time, so drawing it on the
+    current one would point at the wrong atoms. Re-run the calculator to see
+    the picture.
+
+Facts stay readable underneath it. **Read the whole shot, not the top of it**
+-- this file's own rule, paid for again by somebody writing it down.
+
+**`solubility_curve` NEEDED 12 SECONDS, NOT 4**, and the first run quit while
+it was still computing -- which surfaced as a worker publishing into a
+destroyed event bus (`RuntimeError: Signal source has been deleted`) AFTER the
+quit line. That is a pre-existing shutdown race and not this stage's; what it
+cost here was one of the four results the check exists to show.
+
 ## Running the tests
 
 ```bash
