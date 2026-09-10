@@ -41,6 +41,7 @@ from openchem.domain.calculator_taxonomy import (
 from openchem.domain.common import CacheState, describe_failure
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
+from openchem.domain.structure_resolution import resolve_structure_for_report
 from openchem.ui import visual_check
 from openchem.ui.visualization import declared_total, label_decimals
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
@@ -2416,6 +2417,14 @@ class PropertyPanel(QWidget):
             # repository has paid for four times in its lambda form.
             window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
             window.destroyed.connect(self._on_results_window_destroyed)
+            # THE RENDER CONTEXT, and this panel is what has it: the project
+            # to look a molecule up in, and the structure version to judge a
+            # result against. Without it a declared depiction cannot draw at
+            # all -- which is why the Lewis-site diagram never appeared.
+            #
+            # A BOUND METHOD, not a lambda capturing self: PySide6 holds a
+            # plain callable strongly and this codebase has paid for that.
+            window.set_structure_resolver(self._resolve_structure_for_report)
             self._results_window = window
         self._refresh_results_window()
         if focus:
@@ -2447,6 +2456,22 @@ class PropertyPanel(QWidget):
             return
         window.set_reports(
             list(self._reports.values()), self._current_structure_version()
+        )
+
+    def _resolve_structure_for_report(self, report):
+        """Coordinates for a report's depiction, or why it must not be drawn.
+
+        Delegates the DECISION to `domain/structure_resolution.py` rather than
+        answering it here, because it is not a UI question: a stale result's
+        atom indices describe a structure that no longer exists, and drawing
+        them on the current one produces a picture that looks entirely normal
+        while pointing at the wrong atoms.
+
+        The tempting one-liner is `self._project.find_molecule(uuid).molblock`,
+        and it is exactly the unsafe resolver that module exists to replace.
+        """
+        return resolve_structure_for_report(
+            report, self._project, self._current_structure_version()
         )
 
     def _current_structure_version(self) -> int:

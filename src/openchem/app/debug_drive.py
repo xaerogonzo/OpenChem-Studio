@@ -2444,6 +2444,7 @@ class _Driver(QObject):
             from PySide6.QtWidgets import QToolButton
 
             from openchem.ui.widgets.collapsible_section import CollapsibleSection
+            from openchem.domain.structure_resolution import ResolvedStructure
             from openchem.ui.widgets.fact_view import FactView
 
             view = dialog.findChild(FactView)
@@ -2529,6 +2530,7 @@ class _Driver(QObject):
         """
         from openchem.domain.molecule import MoleculeModel
         from openchem.domain.report import valid_chart_annotation
+        from openchem.domain.structure_resolution import ResolvedStructure
         from openchem.ui.widgets.depiction_widget import DepictionWidget
         from openchem.ui.widgets.fact_view import FactView
 
@@ -2578,7 +2580,11 @@ class _Driver(QObject):
         dialog.setWindowTitle(f"{report.name} - declared depiction")
         dialog.resize(520, 640)
         view = FactView(dialog)
-        view.set_structure_resolver(lambda _uuid: molblock)
+        # Takes the REPORT now, not a uuid -- see `set_structure_resolver`.
+        # This harness resolves unconditionally because it is showing the
+        # depiction it was asked to show; a production host refuses a stale
+        # one, which is what `resolve_structure_for_report` is for.
+        view.set_structure_resolver(lambda _report: ResolvedStructure.of(molblock))
         view.set_report(report, title=report.name)
         layout = QVBoxLayout(dialog)
         layout.addWidget(view)

@@ -50,10 +50,17 @@ class DepictionWidget(QWidget):
         annotation: DepictionAnnotation | None = None,
         parent: QWidget | None = None,
         molblock: str = "",
+        refusal: str = "",
     ) -> None:
         super().__init__(parent)
         self._annotation: DepictionAnnotation | None = None
         self._molblock = molblock
+        #: Why the host would not supply a structure. Shown INSTEAD of
+        #: `NO_STRUCTURE`, because "this result describes an earlier version
+        #: of the molecule" and "there is no molecule here" are different
+        #: statements and only one of them tells a reader what to do.
+        #: Defaults empty, so every existing caller is unmoved.
+        self._refusal = refusal
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         # **A `QSvgWidget` INSIDE A LAYOUT, and never given a message to
@@ -78,7 +85,12 @@ class DepictionWidget(QWidget):
         layout.addWidget(self._caption)
         layout.addWidget(self._message)
         self.setMinimumHeight(240)
-        if annotation is not None:
+        if refusal:
+            # BEFORE the annotation is looked at. A refusal is about the
+            # STRUCTURE, so it holds whether or not there is something to draw
+            # -- and rendering the picture first would defeat it.
+            self._show_message(refusal)
+        elif annotation is not None:
             self.set_annotation(annotation)
         else:
             self._show_message(NO_STRUCTURE)

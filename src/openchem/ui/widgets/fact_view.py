@@ -36,6 +36,8 @@ MainWindows now, and CLAUDE.md has the measurements.
 
 from __future__ import annotations
 
+import logging
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QApplication,
@@ -58,6 +60,7 @@ from openchem.domain.report import (
     Fact,
     FactLink,
 )
+from openchem.domain.structure_resolution import ResolvedStructure
 from openchem.ui.widgets.collapsible_section import (
     CollapsibleSection,
     ExplicitHeightLabel,
@@ -66,6 +69,8 @@ from openchem.ui.widgets.collapsible_section import (
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.chart_widgets import CHART_WIDGET_TYPES, chart_widget_for
 from openchem.ui.widgets.stick_chart_widget import StickChartWidget
+
+logger = logging.getLogger("openchem.ui")
 
 COPY_FORMATS = ("Markdown", "Plain text", "JSON", "CSV")
 
@@ -399,6 +404,9 @@ class FactView(QWidget):
         if not self._show_charts or self._report is None:
             return
         charts = getattr(self._report, "charts", ()) or ()
+        # ONCE, not per chart: resolving is a project lookup, and two charts
+        # on one report describe one structure by construction.
+        resolved = self._structure_for_report()
         for index, chart in enumerate(charts):
             # The FIRST one open, the rest folded. `set_report`'s own
             # docstring records why a small report is not a smaller version
@@ -414,7 +422,10 @@ class FactView(QWidget):
             # string ladder here would be a weaker vocabulary beside the
             # types the domain already has, and its typos fail open.
             widget = chart_widget_for(
-                chart, section.content, molblock=self._molblock_for_report()
+                chart,
+                section.content,
+                molblock=resolved.molblock,
+                refusal=resolved.refusal,
             )
             # `add_calculator_widget` puts it full-width above the form
             # rows rather than into the label/field grid -- a plot has no
@@ -424,7 +435,7 @@ class FactView(QWidget):
             self._chart_sections.append(section)
 
     def set_structure_resolver(self, resolver) -> None:
-        """Supply how to turn a `molecule_uuid` into a molblock, or None.
+        """Supply how to resolve a REPORT to coordinates, or None.
 
         **THE RENDER CONTEXT, INJECTED.** A declared depiction carries
         atom indices and no geometry -- deliberately, since an annotation
@@ -436,24 +447,52 @@ class FactView(QWidget):
         A view with no resolver still renders every other chart kind: a
         plot on axes needs no structure. Only the depiction says it cannot
         draw, which is a different fact from having nothing to draw.
+
+        **IT TAKES THE REPORT, NOT A `molecule_uuid`, AND THAT IS THE SAFETY
+        PROPERTY.** A uuid resolver can only answer with the CURRENT
+        structure, and a stale result's atom indices describe the one it was
+        computed on -- so `atom 7` becomes atom 7 of a different molecule and
+        the picture looks entirely normal while pointing at the wrong atoms.
+        Only the report carries the version and the geometry provenance that
+        decide whether drawing it is safe, so only the report can be asked.
+        See `domain/structure_resolution.py`.
+
+        The resolver returns a `ResolvedStructure` -- coordinates, or a reason
+        they were withheld. A bare "" could not tell those apart, and a reader
+        shown an empty frame with no reason is the failure being prevented.
         """
         self._structure_resolver = resolver
         self._rebuild_charts()
 
-    def _molblock_for_report(self) -> str:
+    def _structure_for_report(self) -> ResolvedStructure:
+        """Coordinates for this report's depiction, or why there are none.
+
+        The report is handed over whole rather than its uuid -- see
+        `set_structure_resolver` for why that is a correctness property and
+        not a convenience.
+        """
         resolver = getattr(self, "_structure_resolver", None)
         # `is not None`, NOT truthiness: a factless report is a real report
         # (a refusal, a picture-only result) and must still resolve a structure.
-        uuid = getattr(self._report, "molecule_uuid", "") if self._report is not None else ""
-        if resolver is None or not uuid:
-            return ""
+        if resolver is None or self._report is None:
+            return ResolvedStructure()
         try:
-            return resolver(uuid) or ""
+            resolved = resolver(self._report)
         except Exception:
-            # A host whose resolver raises gets the "no structure" message
-            # rather than a traceback out of a paint path -- and the chart
-            # section still appears, so the declaration stays visible.
-            return ""
+            # A host whose resolver raises gets a message rather than a
+            # traceback out of a paint path -- and the chart section still
+            # appears, so the declaration stays visible.
+            logger.exception("structure resolver raised; refusing the depiction")
+            return ResolvedStructure.refused(
+                "Visualization unavailable -- this structure could not be resolved."
+            )
+        # A host that hands back a bare molblock is accepted rather than
+        # crashing the paint path, but it is NOT the contract: such a host
+        # cannot refuse, so `test_a_resolver_must_be_able_to_refuse` asserts
+        # every production one returns the value type.
+        if isinstance(resolved, str):
+            return ResolvedStructure.of(resolved)
+        return resolved or ResolvedStructure()
 
     def chart_widgets(self) -> list[QWidget]:
         """The charts currently on screen, read back off the sections.

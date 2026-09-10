@@ -29,6 +29,7 @@ import dataclasses
 from dataclasses import dataclass
 
 from openchem.domain.report import ChartAnnotation, Fact, ReportResult, SpatialAnnotation
+from openchem.domain.structure_resolution import is_stale
 
 
 @dataclass(frozen=True)
@@ -85,7 +86,11 @@ class MergedResults:
         it was computed" -- and the reason every calculator result is
         stamped in ONE place rather than left at the default.
         """
-        return report.structure_version != self.structure_version
+        # `structure_resolution.is_stale`, not a repeat of the comparison.
+        # Staleness now decides whether a PICTURE is drawn as well as whether
+        # a badge is shown, and two rules meant to agree about that would be a
+        # bug nobody could see -- both answers look reasonable in isolation.
+        return is_stale(report.structure_version, self.structure_version)
 
     def stale_report_ids(self) -> tuple[str, ...]:
         return tuple(report.report_id for report in self.reports if self.is_stale(report))

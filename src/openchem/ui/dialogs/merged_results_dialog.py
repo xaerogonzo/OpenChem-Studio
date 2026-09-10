@@ -116,6 +116,23 @@ class MergedResultsDialog(QDialog):
 
     # --- what it is showing --------------------------------------------------
 
+    def set_structure_resolver(self, resolver) -> None:
+        """Forward the render context to the view that draws depictions.
+
+        **NOTHING IN PRODUCTION SUPPLIED ONE UNTIL THIS EXISTED**, and the
+        consequence was not subtle: `lewis_site_depiction` builds a complete
+        `DepictionAnnotation` with role colours and a caption, and
+        `compute_lewis_sites` attaches it -- so the Lewis-site diagram was
+        fully built, tested, and could never draw. A depiction carries atom
+        indices and no geometry, so without a resolver it has nothing to draw
+        ON. The only caller was the drive harness.
+
+        The resolver takes the REPORT, and that is a safety property rather
+        than a signature detail -- see `FactView.set_structure_resolver` and
+        `domain/structure_resolution.py`.
+        """
+        self._view.set_structure_resolver(resolver)
+
     def molecule_uuid(self) -> str:
         return self._molecule_uuid
 
