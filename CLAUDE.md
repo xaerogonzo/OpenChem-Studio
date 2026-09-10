@@ -6985,7 +6985,57 @@ command substitution feeding pytest is non-empty before believing what it ran.
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-26 minutes**, ending at `7215 passed, 16 skipped`
+A clean run is **6-26 minutes**, ending at `7442 passed, 16 skipped`
+(measured 2026-09-10 on `results-first-foundation` -- Stage 0 of the
+Properties-to-Results work, all ten items, 0a through 0j.
+
+**+112 collected and 1 REMOVED**, diffed both directions with `comm` against
+the stage's own starting point `cb61170`:
+
+    0g's tree  cb61170   COLLECTS 7347
+    this one             COLLECTS 7458   = 7347 + 112 - 1
+    the run                       7442 passed + 16 skipped = 7458
+
+    33  test_result_summary.py            the reader contract, the format
+                                          dispatch, one grouping and one
+                                          search
+    31  test_result_ordering.py           the five-term key, its stability,
+                                          the band, and the grouping
+    19  test_reader_state.py              the per-molecule memory and the
+                                          three empty states
+    11  test_merged_results_dialog.py     grouped headings, the selection
+                                          surviving an arrival, and the
+                                          no-molecule state both ways
+     9  test_property_panel_results_window.py   the wiring only the panel
+                                          can be wrong about
+     5  test_fact_view.py                 the filter as saveable state
+     2  test_calculator_sections.py       one id may not name two sections
+     1  test_property_panel.py            the successor to the removal
+     1  test_batch_result_store.py        the fact order is not a race
+
+**THE ONE REMOVAL IS A GUARD THAT ENCODED A DEFECT IN ITS OWN NAME.** It was
+called "...lands in admet section" and built its OWN `AlertResult` with
+`category="admet"`, so it asserted the panel's ROUTING and could say nothing
+about where the real result goes -- which is how one `report_id` came to
+declare two sections. Its successor,
+`test_the_functional_groups_alert_lands_in_the_section_its_producer_names`,
+runs the shipped producer and reads the category off the result.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored,
+since pytest's progress dots share the line -- as do `^FAILED` and `^ERROR`.
+The skips are the deterministic 16. The two `DeprecationWarning`s are the
+same pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**THE WALL CLOCK WAS 28m35 AND IS NOT CITABLE, SO THE BAND IS NOT WIDENED.**
+Concurrent work ran against it -- a `git add -A` and a commit, plus several
+greps -- which this file forbids for a figure it intends to compare. The
+COUNTS are deterministic and unaffected, so the tree is measured; the
+duration describes a contended machine. The 6-26 band stands on the runs
+that were taken cleanly.
+
+Before it: `7215 passed, 16 skipped`
 (measured 2026-09-09, **25m32**, on `stage-6-quantitative-limits` -- the
 quantitative regulatory model, and OSHA Table Z-1 on top of it.
 
