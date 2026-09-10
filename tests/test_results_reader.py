@@ -28,6 +28,8 @@ from openchem.ui.widgets.results_view import (
     ResultsView,
     STALE_MARK,
 )
+from dataclasses import replace
+
 from openchem.domain.reader_state import NO_MOLECULE
 from openchem.ui.widgets.collapsible_section import CollapsibleSection
 from tests.conftest import dispose
@@ -685,4 +687,56 @@ def test_all_results_still_opens_folded_because_it_IS_the_wall(qapp):
         "All results must keep the default fold -- it is the wall the "
         "default exists for"
     )
+    dispose(view)
+
+
+def test_a_successful_result_with_nothing_in_it_says_so(qapp):
+    """**"IT RAN AND FOUND NOTHING" AND "IT NEVER RAN" MUST NOT LOOK THE
+    SAME.** Measured while emptying the launcher: a clean catalogue reaches
+    this window with no facts, no matched lines and no limitations, so
+    focusing it showed a title and blankness -- the "0 facts. is not an
+    explanation" case reached from a second direction.
+
+    It deliberately does not say "Clean". That is a verdict, and only a
+    catalogue is entitled to give one.
+    """
+    view = ResultsView("mol-1")
+    view.set_reports([_report("clean", "Mutagenicity Alerts", [])])
+    view.set_focus("clean")
+    assert not view.merged().report_for("clean").facts, "setup: really empty"
+    assert "produced no values" in view._view._summary.text()
+    assert "Clean" not in view._view._summary.text()
+    dispose(view)
+
+
+def test_a_result_with_values_says_nothing_extra(qapp):
+    """The narrow half. A line on every report is a line nobody reads, and
+    it would sit above facts that plainly exist."""
+    view = ResultsView("mol-1")
+    view.set_reports([_report("full", "Topology Analysis", ["Wiener index"])])
+    view.set_focus("full")
+    assert "produced no values" not in view._view._summary.text()
+    dispose(view)
+
+
+def test_a_FAILED_result_says_why_rather_than_that_it_is_empty(qapp):
+    """A failure carries no values either, and it already has a status line
+    saying more. Two sentences where one is enough is how a summary stops
+    being read."""
+    from openchem.domain.common import CacheState
+
+    view = ResultsView("mol-1")
+    view.set_reports(
+        [
+            replace(
+                _report("broke", "Joback", []),
+                cache_state=CacheState.FAILED,
+                error="no group for a ring tertiary amine",
+            )
+        ]
+    )
+    view.set_focus("broke")
+    summary = view._view._summary.text()
+    assert "no group" in summary
+    assert "produced no values" not in summary
     dispose(view)

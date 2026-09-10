@@ -803,8 +803,43 @@ class ResultsView(QWidget):
         result computed against an older structure is two facts about it, and
         showing one would leave a reader to discover the other by surprise.
         """
-        parts = [text for text in (self._status_line(report), self._stale_line(report)) if text]
+        parts = [
+            text
+            for text in (
+                self._status_line(report),
+                self._empty_line(report),
+                self._stale_line(report),
+            )
+            if text
+        ]
         return " ".join(parts)
+
+    def _empty_line(self, report) -> str:
+        """Say that a SUCCESSFUL result produced nothing, rather than nothing.
+
+        **"IT RAN AND FOUND NOTHING" AND "IT NEVER RAN" MUST NOT LOOK THE
+        SAME**, and once the Properties panel stops rendering values this is
+        where that distinction has to live. Measured: a clean catalogue
+        reaches this window through `report_from_alert` with **no facts, no
+        matched lines and no limitations** -- so focusing it showed a title
+        and blankness, which is the "0 facts. is not an explanation" case
+        this method's own docstring names, reached from a second direction.
+
+        **IT DOES NOT SAY "CLEAN".** That is a verdict, and only a catalogue
+        is entitled to give one -- the rule `AlertResult.severity` was
+        introduced to keep. This says what a reader can see for themselves is
+        true of ANY successful result with nothing in it, and leaves the
+        chemistry to whoever knows it.
+
+        Nothing here fires for a failure or a refusal: those already have a
+        status line saying more, and two sentences where one is enough is how
+        a summary stops being read.
+        """
+        if self._status_line(report):
+            return ""
+        if getattr(report, "facts", ()) or getattr(report, "charts", ()):
+            return ""
+        return "This ran and produced no values."
 
     def _status_line(self, report) -> str:
         """The failure or refusal, in the reader's own words.

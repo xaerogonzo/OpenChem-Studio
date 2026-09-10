@@ -7692,6 +7692,103 @@ the painted-item count, the zero findings, the width guards and eight
 behavioural tests -- and the shot belongs to the second half of 2c, where
 emptying the panel makes the rows reachable in one frame.
 
+## EMPTYING THE LAUNCHER IS HOW YOU FIND OUT WHAT ONLY THE LAUNCHER SAID
+
+Stage 2c, second half, and the useful part is not the deletion. Removing
+the Properties panel's value rendering was attempted, measured, and used
+as an INSTRUMENT: every claim that panel was carrying alone becomes a
+failing test the moment it stops carrying it. Two of them were real gaps
+in the reader, and both are fixed here.
+
+### THE FIVE ALERT CATALOGUES REACHED THE READER NEVER
+
+`_on_alert_computed` recorded a report `if not _is_catalog(alert):`, so
+**PAINS, BRENK, mutagenicity alerts, hERG risk factors and a regulatory
+screen WITH findings never entered `_reports`** -- and `_reports` is what
+the reader is built from. Their only rendering anywhere was the red row in
+the Properties panel, which is exactly why it read as a duplication to
+avoid rather than as the only copy.
+
+**IT MEANS STAGE 1a's HEADLINE WAS NOT QUITE TRUE.** "Every result kind
+reaches the reader" was measured through `summarise`, which could always
+project an alert; the PANEL was withholding one class of them, and no
+test asked the panel. Measured on a flagged PAINS, `report_from_alert`
+gives ONE FACT PER MATCH with the severity and evidence the red line could
+not carry.
+
+Two arms, two caught, and the second is the narrow half: recording ONLY
+catalogues satisfies the new guard and loses the twenty that already
+worked.
+
+### A CLEAN CATALOGUE ARRIVED AS NOTHING AT ALL
+
+Measured: an `AlertResult` with no matches reaches the reader through
+`report_from_alert` with **no facts, no matched lines and no
+limitations**. So focusing it showed a title and blankness -- the "0
+facts. is not an explanation" case `_summary_for`'s own docstring names,
+arrived at from a second direction. The panel's green "Clean" row was the
+only thing saying it had run.
+
+`_empty_line` says it now, and **deliberately does not say "Clean"**:
+that is a verdict, and only a catalogue is entitled to give one -- the
+rule `AlertResult.severity` exists to keep. It says what a reader can
+verify for themselves is true of ANY successful result with nothing in
+it, and stays silent for a failure or a refusal, which already have a
+status line saying more.
+
+### THE SPLIT THE MEASUREMENT FOUND, AND WHAT IS LEFT
+
+Emptying all four render paths fails **53 tests**. Restoring only the
+descriptor rows leaves **27**, so the population divides cleanly:
+
+    26  the 41 always-on descriptors
+    27  calculator RESULTS -- reports, alerts and result summaries
+
+They are different questions. A result is something somebody ran and can
+read in full elsewhere; the always-on descriptors are the molecule's
+standing properties, computed eagerly, and moving them is a separate
+product decision with its own 26 tests. The result half is where the
+height is: of **16,299 px** of panel content, **one `admet` row is 11,979
+px** -- 73% -- and nothing is clipped at any width. The panel's problem is
+length, and most of the length is one calculator's output.
+
+**THE REMOVAL IS NOT COMMITTED.** What is committed is the two gaps it
+exposed, which stand on their own and are guarded on their own. The 27 are
+the checklist for finishing it, and the triage is done: twelve convert
+(the alert routing, the failure reason, the two panel-lifetime guards),
+fifteen retire against successors already verified to cover them --
+`test_result_summaries.py` for the pH curve, the structure set, the
+trajectory and the refusal; `test_descriptor_aggregate.py` for the
+cell/hover split and the units; `test_result_ordering.py` for the
+grouping.
+
+**AND ONE PRESENTATION IS GENUINELY LOST, MEASURED RATHER THAN ASSUMED.**
+The panel painted a boolean descriptor as a green **"✓ Pass"**; the
+aggregate gives `display_value="Pass"`. The WORD survives, which is the
+accessible half -- this project's own rule is that colour alone is
+invisible to a colour-blind reader -- and the glyph and colour do not.
+Worth knowing before anybody reads the change as lossless.
+
+### AND THE SPLIT TOOK TWO GUARDS WITH IT
+
+Moving the lesson log out of `CLAUDE.md` moved 17,870 lines of citations
+out of `DOCS`, which is hand-kept -- and nothing went red. Every path and
+test name in it still resolves; what did not was four dated calculator
+counts, which are history and now say so rather than being part-updated.
+
+**THE SOURCES GUARD WAS THE SHARPER ONE.** `CLAUDE.md` was in
+`SYNTAX_DOCUMENTING_FILES` because it contains a literal `[source:key]`
+while explaining the convention -- the seventh instance in this
+repository of a guard matching its own prose. The exemption was a WHOLE
+FILE, so its real citations were never swept either.
+
+Rather than move the blanket, the PLACEHOLDER is skipped: `[source:key]`
+is the syntax being shown, and every other reference is checked. The
+effect is that the log's **21 real citations were swept for the first
+time** -- they had lived their whole life inside an exempted file -- and
+all of them resolve. A narrower exemption bought coverage rather than
+costing it, which is the opposite of how these usually go.
+
 ## Running the tests
 
 ```bash

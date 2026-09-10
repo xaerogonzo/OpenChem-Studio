@@ -275,12 +275,6 @@ def _without_glyphs(text: str) -> str:
     return text
 
 
-def _is_catalog(alert) -> bool:
-    from openchem.chem.report_adapter import is_catalog
-
-    return is_catalog(alert)
-
-
 def _present_alert(alert) -> tuple[str, str, str]:
     """How one `AlertResult` should read: (text, stylesheet, tooltip).
 
@@ -2303,30 +2297,42 @@ class PropertyPanel(QWidget):
         value_label.setStyleSheet(style)
         value_label.setToolTip(tooltip)
         self._reveal(alert.alert_id, section, value_label.parentWidget())
-        # An unmigrated result is still a report; it just has to be
-        # reconstructed from its strings. Held so "Details..." works for
-        # it exactly as it does for a migrated one.
-        if not _is_catalog(alert):
-            # **STAMPED HERE, BECAUSE AN `AlertResult` HAS NO VERSION FIELD
-            # TO CARRY ONE.** `_CalculationTask` stamps a `ReportResult` on
-            # the way out of a calculation; an alert is not one, and the
-            # report is reconstructed from its strings at THIS point. Left
-            # unstamped it defaults to 0 and reads as stale the moment the
-            # structure is on any version above that -- which is exactly
-            # what driving the app showed: `Functional Groups` wore a stale
-            # badge alone, from the first molecule, forever.
-            #
-            # ARRIVAL TIME rather than compute time, which is the honest
-            # limitation: an edit landing mid-run would make this look
-            # current. It is close enough on this path because the alert
-            # batch is the always-eager perception that re-runs on every
-            # structure change, so an alert arriving now was computed for
-            # the structure now.
-            self._reports[alert.alert_id] = replace(
-                report_from_alert(alert),
-                structure_version=self._current_structure_version(),
-            )
-            self._refresh_reader()
+        # An alert is still a report; it just has to be reconstructed from
+        # its strings. Held so "Details..." works for it exactly as it does
+        # for a migrated one.
+        #
+        # **AND A CATALOGUE IS HELD TOO NOW, WHICH IT WAS NOT.** This read
+        # `if not _is_catalog(alert):`, so the five catalogues -- PAINS,
+        # BRENK, mutagenicity alerts, hERG risk factors, and a regulatory
+        # screen with findings -- never entered `_reports` and therefore
+        # never reached the RESULTS READER. Their only rendering anywhere
+        # was the red row in this panel.
+        #
+        # It also means Stage 1a's claim was not quite true: `summarise`
+        # could always project an alert, and the panel was withholding one
+        # class of them. Measured on a flagged PAINS, `report_from_alert`
+        # gives ONE FACT PER MATCH, carrying the severity and the evidence
+        # that the red line could not.
+        # **STAMPED HERE, BECAUSE AN `AlertResult` HAS NO VERSION FIELD
+        # TO CARRY ONE.** `_CalculationTask` stamps a `ReportResult` on
+        # the way out of a calculation; an alert is not one, and the
+        # report is reconstructed from its strings at THIS point. Left
+        # unstamped it defaults to 0 and reads as stale the moment the
+        # structure is on any version above that -- which is exactly
+        # what driving the app showed: `Functional Groups` wore a stale
+        # badge alone, from the first molecule, forever.
+        #
+        # ARRIVAL TIME rather than compute time, which is the honest
+        # limitation: an edit landing mid-run would make this look
+        # current. It is close enough on this path because the alert
+        # batch is the always-eager perception that re-runs on every
+        # structure change, so an alert arriving now was computed for
+        # the structure now.
+        self._reports[alert.alert_id] = replace(
+            report_from_alert(alert),
+            structure_version=self._current_structure_version(),
+        )
+        self._refresh_reader()
 
     def _on_molecule_changed(self, event: MoleculeChanged) -> None:
         """Re-perceive when the STRUCTURE changes, not only when the

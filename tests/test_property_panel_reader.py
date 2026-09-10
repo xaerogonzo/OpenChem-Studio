@@ -522,3 +522,67 @@ def test_a_new_project_starts_every_reader_fresh(panel):
 
     widget.set_project(ProjectModel(molecules=[]))
     assert len(widget._reader_memory) == 0
+
+
+def test_an_alert_CATALOGUE_reaches_the_reader_like_everything_else(panel):
+    """**THE FIVE CATALOGUES REACHED IT NEVER, AND NOTHING NOTICED.**
+
+    `_on_alert_computed` recorded a report only `if not _is_catalog(alert)`,
+    so PAINS, BRENK, mutagenicity alerts, hERG risk factors and a
+    regulatory screen WITH findings never entered `_reports` -- and
+    `_reports` is what the reader is built from. Their only rendering
+    anywhere was the red row in the Properties panel, which is exactly why
+    it looked like a duplication rather than a gap.
+
+    Stage 1a's claim that every result kind reaches the reader was
+    therefore not quite true: `summarise` could always project an alert,
+    and the panel was withholding one class of them.
+    """
+    from openchem.domain.common import Provenance
+    from openchem.domain.scientific_result import AlertResult, Severity
+    from openchem.events.events import AlertComputed
+
+    widget, bus, molecule, _project, _versions = panel
+    catalogue = AlertResult(
+        alert_id="pains",
+        name="PAINS",
+        molecule_uuid=molecule.uuid,
+        matched=["quinone_A(370)"],
+        provenance=Provenance(created_by="core", method="rdkit"),
+        category="medicinal_chemistry",
+        severity=Severity.WARNING,
+    )
+    from openchem.chem.report_adapter import is_catalog
+
+    assert is_catalog(catalogue), "setup: this must really be a catalogue"
+
+    bus.publish(AlertComputed(alert=catalogue))
+    QCoreApplication.processEvents()
+
+    report = widget._attached_reader.merged().report_for("pains")
+    assert report is not None, "a catalogue must reach the reader"
+    # ONE FACT PER MATCH, which is more than the red line could carry.
+    assert [f.display_value for f in report.facts] == ["quinone_A(370)"]
+
+
+def test_an_informational_alert_still_reaches_it_too(panel):
+    """The narrow half. "Record every alert" is the fix; a mutation that
+    recorded ONLY catalogues would satisfy the guard above and lose the
+    twenty that were working."""
+    from openchem.domain.common import Provenance
+    from openchem.domain.scientific_result import AlertResult, Severity
+    from openchem.events.events import AlertComputed
+
+    widget, bus, molecule, _project, _versions = panel
+    info = AlertResult(
+        alert_id="functional_groups",
+        name="Functional Groups",
+        molecule_uuid=molecule.uuid,
+        matched=["carboxylic acid"],
+        provenance=Provenance(created_by="core", method="rdkit"),
+        category="substructure",
+        severity=Severity.INFO,
+    )
+    bus.publish(AlertComputed(alert=info))
+    QCoreApplication.processEvents()
+    assert widget._attached_reader.merged().report_for("functional_groups") is not None
