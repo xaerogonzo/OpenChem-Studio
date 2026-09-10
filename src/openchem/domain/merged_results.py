@@ -153,18 +153,40 @@ class MergedResults:
         )
 
 
-#: The reader contract, as a membership test. A `FactView` consumes anything
-#: with `facts`, `by_category()` and `find()`; `MergedResults` additionally
-#: needs a `report_id` to focus and select by, since a report nothing can name
-#: cannot be chosen in a selector or linked to from a status chip.
+#: The reader contract, as a membership test -- everything a reader entry has
+#: to answer before it can be shown, selected, ordered or exported.
 #:
 #: Structural rather than `isinstance`, deliberately, and for the reason
-#: `_AllResults` exists: the merged view is a VIEW over several producers, and
-#: a summary projection of a per-atom dataset or a pH curve satisfies this
-#: surface without being a `ReportResult`. Requiring the class would force
-#: those to be fabricated as real reports, which is precisely what
+#: `ResultSummaryView` exists: the merged view is a VIEW over several
+#: producers, and a summary projection of a per-atom dataset or a pH curve
+#: satisfies this surface without being a `ReportResult`. Requiring the class
+#: would force those to be fabricated as real reports, which is precisely what
 #: `MergedResults` refuses to do to its own contents.
-_READER_CONTRACT = ("report_id", "facts", "by_category", "find")
+#:
+#: **IT WAS FOUR NAMES AND THE READER READ NINE, WHICH IS NOT A DIFFERENCE
+#: ANYBODY COULD SEE UNTIL SOMETHING FAILED IT.** `FactView._status_text`
+#: reads `limitations` directly, `MergedResults.name_for` reads `name`, and
+#: `report_format` reads `assumptions`, `molecule_uuid` and
+#: `structure_version` -- so a container admitted by the old four could pass
+#: the door and then raise in a PAINT path. `DescriptorAggregate` did exactly
+#: that: focusing "Molecular Properties" raised `AttributeError: ... has no
+#: attribute 'limitations'`, and Copy report raised on three of its four
+#: formats. It had shipped that way because nothing focused it.
+#:
+#: `charts` and `spatial` are deliberately NOT here. They are read with
+#: `getattr` throughout, because a bond report legitimately has neither and a
+#: reader with no picture is an ordinary reader.
+_READER_CONTRACT = (
+    "report_id",
+    "name",
+    "facts",
+    "by_category",
+    "find",
+    "limitations",
+    "assumptions",
+    "molecule_uuid",
+    "structure_version",
+)
 
 
 def is_report_shaped(result: object) -> bool:

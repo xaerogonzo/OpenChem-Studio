@@ -47,6 +47,7 @@ from openchem.domain.reader_state import (
     reader_state,
 )
 from openchem.domain.result_ordering import grouped_reports
+from openchem.ui.result_summary import summary_of_merge
 from openchem.ui.widgets.fact_view import FactView
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
@@ -355,7 +356,9 @@ class MergedResultsDialog(QDialog):
             self._view.set_report(report, title, self._summary_for(report))
             return
         self._view.set_report(
-            _AllResults(self._merged), "All results", self._summary()
+            summary_of_merge(self._merged, self._molecule_uuid),
+            "All results",
+            self._summary(),
         )
 
     def _summary(self) -> str:
@@ -419,49 +422,4 @@ class MergedResultsDialog(QDialog):
             "to refresh."
             if self._merged.is_stale(report)
             else ""
-        )
-
-
-class _AllResults:
-    """Every merged fact and every chart, as one thing `FactView` renders.
-
-    **A VIEW OVER `MergedResults`, NOT A COPY OF IT.** `FactView`'s
-    contract is anything with `facts`, `by_category()` and `find()`, plus
-    the optional `charts`/`limitations` it reads with `getattr` -- so this
-    is that surface and nothing more. Building a real `ReportResult` here
-    instead would flatten several producers into one `report_id` and one
-    `structure_version`, which is precisely what `MergedResults` exists to
-    avoid.
-    """
-
-    def __init__(self, merged: MergedResults) -> None:
-        self._merged = merged
-        self.facts = merged.facts
-        self.charts = tuple(chart for _report_id, chart in merged.charts())
-        self.limitations = merged.limitations()
-        self.assumptions = merged.assumptions()
-
-    def by_category(self):
-        from openchem.domain.report import CATEGORY_ORDER
-
-        grouped: dict = {}
-        for fact in self.facts:
-            grouped.setdefault(fact.category, []).append(fact)
-        return {
-            category: tuple(grouped[category])
-            for category in CATEGORY_ORDER
-            if category in grouped
-        }
-
-    def find(self, text: str):
-        needle = text.strip().lower()
-        if not needle:
-            return self.facts
-        return tuple(
-            fact
-            for fact in self.facts
-            if needle in fact.label.lower()
-            or needle in fact.display_value.lower()
-            or needle in fact.origin.lower()
-            or any(needle in item.lower() for item in fact.evidence)
         )

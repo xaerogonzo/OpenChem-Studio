@@ -1,3 +1,5 @@
+@BASIC_INSTRUCTIONS.md
+
 # OpenChem Studio — notes for Claude
 
 ## Working in a git worktree — do this before anything else
@@ -6856,11 +6858,129 @@ the old molecule's reading position under the new molecule's name. The window
 records under its own `molecule_uuid()`, which cannot be wrong about what it was
 showing, and a guard asserts that rather than trusting the ordering to stay put.
 
+## THE READER CONTRACT WAS FOUR NAMES AND THE READER READ NINE
+
+`is_report_shaped` admitted anything with `report_id`, `facts`, `by_category`
+and `find`. `FactView._status_text` reads `limitations` DIRECTLY,
+`MergedResults.name_for` reads `name`, and `ui/report_format.py` reads
+`assumptions`, `molecule_uuid` and `structure_version` -- so a container could
+pass the admission door and then raise in a PAINT path.
+
+`DescriptorAggregate` did exactly that. **Focusing "Molecular Properties"
+raised `AttributeError: 'DescriptorAggregate' object has no attribute
+'limitations'`**, and it had shipped that way because nothing focused it -- the
+entry existed in the selector, and the guards for it checked that it was merged
+rather than that it could be read. 0h then sorted it to the TOP of the list.
+
+The contract is now the nine names the reader really reads, and a container
+missing one is refused AT THE DOOR. Refusing an entry is visible; admitting one
+that raises two frames into a paint path is not.
+
+**`charts` AND `spatial` ARE DELIBERATELY NOT IN IT.** Both are read with
+`getattr` throughout, because a bond report legitimately has neither and a
+reader with no picture is an ordinary reader.
+
+### `format_report` DISPATCHED ON TYPE AND FELL OFF THE END INTO THE ATOM BRANCH
+
+Same shape as the `FactLink` chain, and the `ReportResult` branch's own comment
+records fixing this exact `AttributeError` once already -- for calculator
+results, when they were the new thing. Adding a branch per type is what let it
+come back. Measured over two subjects x four formats:
+
+    ReportResult          ok    ok    ok    ok
+    DescriptorAggregate   RAISED on all four   ('atom_index')
+    the all-results view  RAISED on all four   ('atom_index')
+
+**8 of 12, unhandled, out of the Copy and Export click paths** -- `FactView`
+wraps neither in a try. The dispatch asks `names_itself` (a `report_id` AND a
+`name`) instead, so every result-shaped entry is covered by one rule, and the
+default RAISES naming the type rather than dying on a field the reader has
+never heard of. `StructureReport` carries neither name, so the atom family
+cannot answer True by accident.
+
+Driven, after: `ResultSummaryView` 18721ch, `DescriptorAggregate` 2023ch,
+`ReportResult` 1758ch, all four formats each.
+
+### ONE CANONICAL READER WAS THREE IMPLEMENTATIONS, AND THEY HAD DIVERGED
+
+`by_category` and `find` each existed three times -- on `StructureReport`, on
+`DescriptorAggregate` and on the results window's private all-results view. The
+groupings agreed. **The searches did not**, and the search box is one control:
+
+    StructureReport       label, value, evidence
+    DescriptorAggregate   label, value
+    the all-results view  label, value, origin, evidence
+
+So the same box meant three different things depending on which entry was
+focused, and Molecular Properties silently searched no evidence at all.
+
+`group_facts_by_category` and `find_facts` are now one each, in
+`domain/report.py`. **Unifying on the WIDEST is what made it safe, and that is
+a measurement rather than an argument**: over the real registry, 0 of 164
+producer facts carry an `origin` -- `merge_reports` stamps its own COPIES and
+never the report's -- and the aggregate's facts carry no evidence. So the
+divergence is removed and no behaviour is.
+
+### THE VIEW IS NAMED SO NOBODY PERSISTS IT
+
+`ui/result_summary.py`'s `ResultSummaryView` replaces the private
+`_AllResults`. It satisfies both contracts a reader entry meets -- which are
+NOT the same one and are easy to confuse -- and refuses persistence
+structurally rather than by a note: no `to_dict`, no `from_dict`, not a
+`ReportResult`, no `calculator_id`. Two things would be lost by storing one:
+several producers' facts under ONE id, which `MergedResults` exists to refuse,
+and (for the single-result summaries Stage 1a adds) presentation-DERIVED facts
+attributed to a producer that never declared them.
+
+Its `report_id` is deliberately EMPTY for the merged view: giving it one would
+make the all-results view focusable as a calculator containing everybody else's
+results.
+
+### TWELVE ARMS, AND ONE OF THE TWO SURVIVORS WAS AN EQUIVALENT
+
+    J8   the aggregate gets its private label/value search back   SURVIVED
+    J10  the merged view rebuilds its facts tuple                 SURVIVED
+
+**J10 IS EQUIVALENT AND THE TEST WAS OVER-TIGHT.** `tuple(t) is t` in CPython,
+so `facts=tuple(merged.facts)` returns the same object and an identity
+assertion cannot tell the two apart. The claim worth asserting is that no FACT
+was rewritten -- a view rebuilding them with its own `source` would be
+attributing the producers' facts to itself -- so the arm became that, and is
+caught.
+
+**J8 IS A REAL GAP, AND THE FIXTURE IS WHY.** The guard exercised a report and
+a summary view and left the AGGREGATE out, so restoring its private search
+survived the whole file: the aggregate's own facts carry no evidence today,
+which is exactly why the divergence was invisible in the first place. Second
+pass: twelve arms, twelve caught, with J1 -- the shipped isinstance dispatch --
+failing ten tests.
+
+### AND THE MUTATION HARNESS LEFT A FILE MUTATED ON DISK
+
+Its edit-check was `assert old not in path.read_text()`, which is wrong for an
+INSERTION -- the old text is still there -- and it ran OUTSIDE the `try`, so
+the `finally` that restores the backup never fired. `git status` was the only
+thing that said so. Assert that the bytes CHANGED (`landed != source`), and put
+the assertion inside the try.
+
 ## Running the tests
 
 ```bash
 uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suite.log
 ```
+
+**PIPE IT TO A FILE, WHICH IS WHY THAT REDIRECT IS IN THE RECIPE.** A run sent
+through `... | grep -E "passed|failed" | tail -4` instead lost its entire
+summary when the task was backgrounded: `tail` emits nothing until the end, and
+the captured output was 22 bytes reading `[exited with code 0]`. That is not a
+figure -- this file records a CRASHED run exiting 0 with no summary line -- so
+21 minutes bought nothing and had to be spent again.
+
+**AND `rg` IS NOT `grep`: `\|` IS A LITERAL PIPE, NOT ALTERNATION.** The same
+command's `$(rg -l "FactView\|fact_view\|..." tests/)` matched NOTHING, so
+`pytest -q` ran with no paths -- the whole suite, silently, in place of the
+targeted set that was asked for. Use `-e` per alternative, and check that a
+command substitution feeding pytest is non-empty before believing what it ran.
 
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.

@@ -243,6 +243,67 @@ class Fact:
         return f"{self.display_value} {units}".strip() if units else self.display_value
 
 
+def group_facts_by_category(
+    facts: tuple[Fact, ...] | list[Fact],
+) -> dict[FactCategory, tuple[Fact, ...]]:
+    """Facts grouped for display, in `CATEGORY_ORDER`.
+
+    Categories with nothing in them are omitted rather than shown empty -- a
+    subject with no spectroscopy should not carry a Spectroscopy heading
+    saying so.
+
+    **A FUNCTION BECAUSE THERE WERE THREE COPIES OF IT.** `StructureReport`,
+    `DescriptorAggregate` and the results window's own all-results view each
+    had one, and every reader entry goes through one of the three. Three
+    implementations of "what the reader shows" is three chances to disagree
+    about it, which this repository has paid for four times -- and its
+    sibling `find_facts` HAD already diverged.
+    """
+    grouped: dict[FactCategory, list[Fact]] = {}
+    for fact in facts:
+        grouped.setdefault(fact.category, []).append(fact)
+    return {
+        category: tuple(grouped[category])
+        for category in CATEGORY_ORDER
+        if category in grouped
+    }
+
+
+def find_facts(facts: tuple[Fact, ...] | list[Fact], text: str) -> tuple[Fact, ...]:
+    """Facts matching `text`, for a search box.
+
+    Searches the label, the rendered value, the producing report and the
+    evidence, because somebody typing "aromatic" may be looking for any of
+    them and should not have to know which.
+
+    **THE THREE COPIES DID NOT AGREE, AND THE SEARCH BOX IS ONE CONTROL.**
+    Measured before this existed:
+
+        StructureReport       label, value, evidence
+        DescriptorAggregate   label, value
+        the all-results view  label, value, origin, evidence
+
+    So the same box meant three different things depending on which entry was
+    focused -- Molecular Properties silently searched no evidence at all.
+    Unifying on the widest is a no-op TODAY, which is what makes it safe:
+    measured over the real registry, 0 of 164 producer facts carry an
+    `origin` (the merge stamps its own copies, never the report's) and the
+    aggregate's facts carry no evidence. It is the divergence that is
+    removed, not a behaviour.
+    """
+    needle = text.strip().lower()
+    if not needle:
+        return tuple(facts)
+    return tuple(
+        fact
+        for fact in facts
+        if needle in fact.label.lower()
+        or needle in fact.display_value.lower()
+        or needle in fact.origin.lower()
+        or any(needle in item.lower() for item in fact.evidence)
+    )
+
+
 @dataclass(frozen=True, kw_only=True)
 class StructureReport(ScientificResult):
     """What every report shares: facts, and the version they describe.
@@ -288,20 +349,8 @@ class StructureReport(ScientificResult):
     # `report.facts`, where it cannot be misread.
 
     def by_category(self) -> dict[FactCategory, tuple[Fact, ...]]:
-        """Facts grouped for display, in `CATEGORY_ORDER`.
-
-        Categories with nothing in them are omitted rather than shown
-        empty -- a subject with no spectroscopy should not carry a
-        Spectroscopy heading saying so.
-        """
-        grouped: dict[FactCategory, list[Fact]] = {}
-        for fact in self.facts:
-            grouped.setdefault(fact.category, []).append(fact)
-        return {
-            category: tuple(grouped[category])
-            for category in CATEGORY_ORDER
-            if category in grouped
-        }
+        """Facts grouped for display, in `CATEGORY_ORDER`."""
+        return group_facts_by_category(self.facts)
 
     def facts_from(self, source: str) -> tuple[Fact, ...]:
         return tuple(fact for fact in self.facts if fact.source == source)
@@ -311,22 +360,8 @@ class StructureReport(ScientificResult):
         return dataclasses.replace(self, facts=facts)
 
     def find(self, text: str) -> tuple[Fact, ...]:
-        """Facts matching `text`, for a search box.
-
-        Searches the label, the rendered value and the evidence, because
-        somebody typing "aromatic" may be looking for a label, a value or
-        the rule that produced one, and they should not have to know which.
-        """
-        needle = text.strip().lower()
-        if not needle:
-            return self.facts
-        return tuple(
-            fact
-            for fact in self.facts
-            if needle in fact.label.lower()
-            or needle in fact.display_value.lower()
-            or any(needle in item.lower() for item in fact.evidence)
-        )
+        """Facts matching `text`, for a search box."""
+        return find_facts(self.facts, text)
 
 
 _Vector3 = tuple[float, float, float]

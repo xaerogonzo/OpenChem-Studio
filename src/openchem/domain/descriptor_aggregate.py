@@ -41,7 +41,13 @@ from dataclasses import dataclass
 from openchem.domain.calculator_taxonomy import category_for
 from openchem.domain.common import CacheState, describe_failure
 from openchem.domain.descriptor import DescriptorValue
-from openchem.domain.report import Basis, Fact, FactCategory
+from openchem.domain.report import (
+    Basis,
+    Fact,
+    FactCategory,
+    find_facts,
+    group_facts_by_category,
+)
 from openchem.domain.result_ordering import ALWAYS_ON
 
 #: The reader entry's id. **NOT A `calculator_id`** -- see the module
@@ -182,6 +188,19 @@ class DescriptorAggregate:
     #: originals and the view cannot be recomputed into disagreement.
     facts: tuple[Fact, ...] = ()
     structure_version: int = 0
+    #: **PART OF THE READER CONTRACT, AND THEY WERE MISSING.** `FactView`
+    #: reads `limitations` directly to build its status line and
+    #: `report_format` reads both to export one, so without them this
+    #: container passed the admission door and then raised in a PAINT path:
+    #: focusing "Molecular Properties" gave `AttributeError: ... has no
+    #: attribute 'limitations'`, and Copy report raised on three of its four
+    #: formats. Nothing noticed because nothing focused it.
+    #:
+    #: Empty by default rather than filled with a sentence about descriptors
+    #: in general: each one carries its OWN state and its own reason, which
+    #: is the whole point of this being a container rather than a conversion.
+    limitations: tuple[str, ...] = ()
+    assumptions: tuple[str, ...] = ()
 
     @property
     def report_id(self) -> str:
@@ -198,26 +217,16 @@ class DescriptorAggregate:
         return DESCRIPTOR_AGGREGATE_NAME
 
     def by_category(self) -> dict[FactCategory, tuple[Fact, ...]]:
-        from openchem.domain.report import CATEGORY_ORDER
-
-        grouped: dict[FactCategory, list[Fact]] = {}
-        for fact in self.facts:
-            grouped.setdefault(fact.category, []).append(fact)
-        return {
-            category: tuple(grouped[category])
-            for category in CATEGORY_ORDER
-            if category in grouped
-        }
+        return group_facts_by_category(self.facts)
 
     def find(self, text: str) -> tuple[Fact, ...]:
-        needle = text.strip().lower()
-        if not needle:
-            return self.facts
-        return tuple(
-            fact
-            for fact in self.facts
-            if needle in fact.label.lower() or needle in fact.display_value.lower()
-        )
+        """**SHARED, BECAUSE THIS ONE HAD DRIFTED.** It searched the label and
+        the value only, so the reader's one search box matched no evidence
+        while it was focused here and did while it was focused on a
+        calculator's report. Nobody could see that: the aggregate's facts
+        carry no evidence today, so the divergence was latent and would have
+        surfaced the day `fact_for` started attaching some."""
+        return find_facts(self.facts, text)
 
     def descriptor_for(self, descriptor_id: str) -> DescriptorValue | None:
         """The ORIGINAL, for a consumer that needs its state.

@@ -21,9 +21,35 @@ import csv
 import io
 import json
 
+from openchem.domain.atom_report import AtomReport
 from openchem.domain.bond_report import BondReport
 from openchem.domain.molecule_report import MoleculeReport
-from openchem.domain.report import CATEGORY_LABELS, ReportResult
+from openchem.domain.report import CATEGORY_LABELS
+
+
+def names_itself(report) -> bool:
+    """Whether this report is a RESULT: something that carries its own id
+    and display name rather than describing an atom, a bond or a molecule.
+
+    **ASKED OF THE CONTRACT, NOT OF A TYPE, AND THAT IS THE FIX.** The two
+    functions below used to test `isinstance(report, ReportResult)` and fall
+    off the end into the atom branch -- so anything result-shaped that was
+    not literally a `ReportResult` reached `report.atom_index`. Two of the
+    results reader's own entries are exactly that:
+
+        the "All results" view      a view over the merge
+        "Molecular Properties"      the always-on descriptor aggregate
+
+    Measured before this existed: **8 of 12** (two subjects x four formats)
+    raised `AttributeError: ... has no attribute 'atom_index'`, unhandled,
+    out of the Copy and Export click paths. The `ReportResult` branch's own
+    comment records fixing that same error once already, for calculator
+    results; adding a branch per new type is what let it come back.
+
+    `StructureReport` carries neither `report_id` nor `name`, so an atom,
+    bond or molecule report cannot answer True here by accident.
+    """
+    return hasattr(report, "report_id") and hasattr(report, "name")
 
 
 def report_header(report) -> str:
@@ -37,15 +63,11 @@ def report_header(report) -> str:
         return f"{name} ({report.formula})" if report.formula else name
     if isinstance(report, BondReport):
         return f"Bond {report.bond_index + 1} ({report.label})"
-    # A CALCULATOR's report -- Geometry, Topology, Regulatory and the
-    # rest. It names itself, and it has no atom index to fall through to:
-    # `property_panel` puts one of these in a FactView, so before this
-    # branch existed "Open in window" then Copy raised
-    # `AttributeError: 'ReportResult' object has no attribute
-    # 'atom_index'` on every calculator result.
-    if isinstance(report, ReportResult):
+    if names_itself(report):
         return report.name or "Result"
-    return f"Atom {report.atom_index + 1} ({report.symbol})"
+    if isinstance(report, AtomReport):
+        return f"Atom {report.atom_index + 1} ({report.symbol})"
+    raise TypeError(_unknown_subject(report))
 
 
 def _subject_fields(report) -> dict:
@@ -71,9 +93,25 @@ def _subject_fields(report) -> dict:
             "begin_atom_index": report.begin_atom_index,
             "end_atom_index": report.end_atom_index,
         }
-    if isinstance(report, ReportResult):
+    if names_itself(report):
         return {"subject": "result", "report_id": report.report_id, "name": report.name}
-    return {"subject": "atom", "atom_index": report.atom_index, "symbol": report.symbol}
+    if isinstance(report, AtomReport):
+        return {"subject": "atom", "atom_index": report.atom_index, "symbol": report.symbol}
+    raise TypeError(_unknown_subject(report))
+
+
+def _unknown_subject(report) -> str:
+    """**FAIL CLOSED, NAMING THE TYPE.** The old default was the ATOM branch,
+    so an unrecognised subject died on `report.atom_index` -- an error naming
+    a field the reader has never heard of, several frames from the dispatch
+    that could not place it. Same shape as the `FactLink` chain that fell off
+    its end, and the same cure: say what happened.
+    """
+    return (
+        f"{type(report).__name__} is not a report subject this can format. A "
+        "reader entry either describes an atom, a bond or a molecule, or names "
+        "itself with a `report_id` and a `name` -- see `names_itself`."
+    )
 
 
 def format_report(report, fmt: str) -> str:

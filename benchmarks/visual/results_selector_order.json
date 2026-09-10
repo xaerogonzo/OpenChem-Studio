@@ -51,6 +51,12 @@
     "after_ms": 1500
   },
   {
+    "do": "results",
+    "focus": "molecular_properties",
+    "tag": "focused-on-the-always-on-entry",
+    "after_ms": 800
+  },
+  {
     "do": "shot",
     "path": "benchmarks/visual/artifacts/results_selector_order.png",
     "widget": "results",

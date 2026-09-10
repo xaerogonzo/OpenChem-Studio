@@ -1586,6 +1586,40 @@ class _Driver(QObject):
                 " STALE" if merged.is_stale(report) else "",
             )
         self._log_results_selector(window)
+        self._log_results_copy(window)
+
+    def _log_results_copy(self, window: Any) -> None:
+        """Try the four Copy formats on whatever is focused, and say so.
+
+        **PRESSING COPY IS THE ONLY WAY TO FIND OUT, AND NO SCREENSHOT
+        SHOWS IT.** `report_format` dispatches on type and used to fall off
+        the end into the ATOM branch, so the two reader entries that are not
+        a `ReportResult` -- the all-results view and Molecular Properties --
+        raised `AttributeError: ... has no attribute 'atom_index'` out of the
+        click path. The window looks perfectly healthy either way.
+
+        The FORMATTER rather than the button, deliberately and unlike
+        `jobs_cancel`: `_on_copy_clicked` writes to the system clipboard, and
+        a diagnostic run must not overwrite whatever Alex has in it.
+        """
+        from openchem.ui.report_format import format_report
+
+        report = window._view.report()
+        if report is None:
+            logger.warning("OPENCHEM_DRIVE: results copy -- nothing to copy")
+            return
+        outcomes = []
+        for fmt in ("Plain text", "Markdown", "JSON", "CSV"):
+            try:
+                text = format_report(report, fmt)
+                outcomes.append(f"{fmt}={len(text)}ch")
+            except Exception as error:  # noqa: BLE001 - the point is to report it
+                outcomes.append(f"{fmt}=RAISED {type(error).__name__}")
+        logger.warning(
+            "OPENCHEM_DRIVE: results copy subject=%s %s",
+            type(report).__name__,
+            " ".join(outcomes),
+        )
 
     def _log_results_selector(self, window: Any) -> None:
         """Dump the "Showing" list row by row.
