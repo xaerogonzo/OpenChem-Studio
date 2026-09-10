@@ -1,0 +1,16665 @@
+# Lessons
+
+Moved out of [`CLAUDE.md`](../CLAUDE.md) so they are not loaded on every
+message. Nothing here was edited; the sections are verbatim and in their
+original order.
+
+## THE DRIVEN CHECK CAN ASSERT NOW, AND THREE EYE-ONLY DEFECTS BECAME TESTS
+
+This file's own running count of "found by driving the app and magnifying the
+shot" reached **fourteen**, every one with a fully green suite, against **six**
+entries where an out-of-app harness disagreed with the running application. So
+it is the most productive technique here -- and it was **the least repeatable**:
+measured before this landed, **not one drive script was committed anywhere**.
+Every live check in this project's history was written once, run once, and
+thrown away.
+
+`src/openchem/ui/visual_check.py` is what closes that. Three of the fourteen are
+pure geometry and are now assertions rather than eye-work:
+
+    a value painted on top of its caption     "Aqu36ous Solubility (..."
+    a caption latched at an ellipsis          the hints measured the ELIDED string
+    a caption collapsed to zero width         QRect(16, 2, 0, 14) vs a min of 120
+
+**THE RULE THAT SCOPES IT: the visual oracle owns geometric invariants that are
+mechanically measurable; the SCREENSHOT owns human judgment about appearance.**
+Same line `help_tooltip.py` draws when it forbids grading prose -- the validator
+owns the SHAPE, a reviewer owns the meaning. Without it this becomes computer
+vision for OpenChem.
+
+### TWO LEVELS, AND THE SECOND IS THE ONE THAT CAN GO SILENTLY VACUOUS
+
+    the predicates    pure functions over QRects and strings, tested headless
+                      on CONSTRUCTED geometry
+    the extraction    reads ACTUAL laid-out geometry and does ALL the font
+                      measurement, exercised by the drive step
+
+A predicate that called `QFontMetrics` would be a predicate whose unit test is a
+claim about the machine's fonts -- `offscreen`'s default is more than twice as
+wide, and this file already records a geometry test failing by 40 px on a panel
+measurably clean in the app. `test_no_predicate_measures_a_font` asserts that on
+the SOURCE, because a predicate could take a measurement without any fixture
+noticing.
+
+**AND THE EXTRACTION GETS A POPULATION ASSERTION**, which is the half a
+pure-predicate suite cannot cover: a walk returning nothing makes every
+predicate vacuously happy while the app clips. The drive step logs the painted-
+item count even when nothing is wrong, because "nothing overflowed" and "the
+walk found nothing to measure" read identically in an empty findings list.
+
+### THE TWO CONTRACTS THAT NEEDED PINNING, AND BOTH CAME FROM QT
+
+**`overlapping` IS NOT A RECTANGLE-COLLISION DETECTOR.** Qt composites children
+constantly, so "something overlaps something" is a pile of false positives. The
+pairing is `QFormLayout.itemAt(row, LabelRole)` against `itemAt(row, FieldRole)`
+-- **asked of Qt**, the move `_tooltip_is_qt_s_own_echo` already makes.
+
+**`latched_ellipsis` NEVER LOOKS FOR THE GLYPH.** A value may legitimately
+contain an ellipsis. `_ElidingLabel` already stores `full_text`, whose own
+comment says it "does not change when the painted string does", so the predicate
+compares painted against stored AND requires the room to have come back. The
+false positive is structurally impossible rather than merely unlikely.
+
+### EIGHT MUTATIONS, AND THE TWO SURVIVORS WERE BOTH DEGENERATE FIXTURES
+
+Every arm caught by its intended guard -- after two rounds, and the two that
+survived the first round are the entry worth reading. Neither was untested code:
+
+    M4  latched sniffs for "..." instead of comparing full_text   SURVIVED
+    M7  spanning rows are no longer excluded                      SURVIVED
+
+**M4** survived because both literal-ellipsis fixtures had
+`full_text_width = 0`, so `available >= 0 > 0` short-circuits and the mutation
+cannot change the answer. The discriminating case needs a real measured width
+AND a value containing an ellipsis that is NOT elided.
+
+**M7 LOOKED LIKE AN EQUIVALENT MUTATION AND WAS NOT.** Measured, for a row built
+with `addRow(QWidget)`:
+
+    row 1:  LabelRole = None    FieldRole = the spanning widget
+                                SpanningRole = the same widget
+
+-- so the `label_item is None` guard excludes it anyway and the explicit rule is
+redundant. **But `setWidget` can put a label AND a spanning widget on ONE row**,
+and then `LabelRole` is a real caption while `FieldRole` hands back the
+full-width widget, so without the rule the two are PAIRED. `addRow` cannot reach
+that case, which is why the first fixture could not see it. Same lesson as M4
+and as the assembly corpus blind to a transposed matrix: **a fixture is
+degenerate or not with respect to a specific mutation.**
+
+### DRIVEN, AND THE ORACLE HAD TO BE MADE TO SAY NO
+
+`benchmarks/visual/` holds the committed scripts; `artifacts/` is gitignored.
+Run on the real desktop, the Properties panel reports **40 painted items, 0
+findings** at 900 px and again at 1600 px, and the magnified shot agrees --
+captions and values cleanly separated, nothing clipped.
+
+**A CHECK THAT CANNOT FAIL IS NOT A CHECK, AND PROVING THIS ONE COULD FAIL TOOK
+THREE ATTEMPTS.** Squeezing the window to 620 px gave 0 findings; forcing the
+Periodic Table dialog to 320 px gave 0 findings across 125 painted items. Both
+because **Qt clamps every resize to the widget's own minimum**, so no script can
+squeeze a real surface into a real finding -- which is the width work of this
+file having succeeded, and simultaneously leaves "0 findings" and "the wiring is
+dead" indistinguishable. The `visual_check` step therefore takes a `tolerance`:
+
+    tolerance  2 (default)      40 painted items,  0 findings
+    tolerance  -1000            40 painted items, 46 findings, with real
+                                geometry ("right -253 px against bounds width
+                                396") and real ancestry paths
+
+That is the proof the geometry reached the predicates and the findings reached
+the log.
+
+### THE HONEST LIMIT, STATED RATHER THAN DISCOVERED LATER
+
+**A surface with no single `QScrollArea` is judged against its own rectangle,
+which makes the OVERFLOW term nearly vacuous there** -- a child is inside its
+parent by construction unless something positioned it outside. On such a surface
+the useful predicates are the other three, and a clean overflow result is close
+to a tautology. Written into `_do_visual_check`'s docstring so nobody reads a
+green `window` check as coverage.
+
+### THE PORTABLE HALF, AND THE FLOW IS NOT ONE-WAY
+
+`docs/LIVE_VERIFICATION.md` carries the failure-class-to-technique mapping, the
+traps, and a paste-ready sendoff prompt per project shape. **It standardises
+failure classes and evidence -- not APIs, not folder structure.** Measured across
+the estate:
+
+    OpenChem Studio       52 drive steps, the ONLY geometry oracle
+    Fortuna Lab           28 steps
+    TokenSave-Manager      8 steps, a dedicated TESTED capture helper
+    KicomAI / PolyShield  scene-based, and the ONLY golden-image diffing
+    LexForge              a real Qt UI, 19 files, and NO harness at all
+    four more             a GUI and NO TEST SUITE AT ALL
+
+**The four with no tests are why "do not adopt this blindly" is structural
+rather than a closing courtesy**: for them a visual oracle is the fourth rung of
+a ladder they have not started.
+
+**AND KICOMAI DERIVED THIS FILE'S OWN FIXTURE RULE INDEPENDENTLY.** Its `uishot`
+README records a first golden set that included scenes reading live data, three
+of which "drifted" an hour later because `just now` had become `11h ago`. That
+is "a committed benchmark must construct its own state" reached from the other
+side. Two projects paying the same tax separately is the argument for writing it
+down once.
+
+### A CLAIM IN THIS FILE WAS WRONG, AND I QUOTED IT BEFORE MEASURING IT
+
+The entry on `ENTHALPY_NOT_SUPPLIED`'s doc comment ends "Nothing catches that;
+it needs a reader." That was repeated into a plan as an argument that the defect
+class is unautomatable. **It is not.** Measured:
+
+    files using the `#:` convention on module constants        96
+    of those, with at least one UNDOCUMENTED constant          39
+    chem/energetics.py today                                  6/9
+
+The defect left `ENTHALPY_NOT_SUPPLIED` with no documentation at all, so a
+"constant with no `#:` in a file that uses `#:`" guard would have flipped that
+file 7/9 -> 6/9 and gone red naming it.
+
+**IT IS BUILT NOW** -- `tools/constant_docs.py` and
+`tests/test_constant_docs.py` -- and it was verified the only way worth
+trusting: the exact edit was re-created on the real file, and the guard went
+red naming `ENTHALPY_NOT_SUPPLIED`, the very constant the original orphaned.
+See "A RATCHET IS NOT A MIGRATION" below, which is where the description above
+turned out to be wrong in a way worth keeping.
+
+**The way it was got wrong is the durable part**, and this file already warns
+about it two sections above the one quoted: *"I repeated that claim here before
+checking it... A comment asserting an intention is worse than silence: it is
+believed, and then quoted."* Now instanced twice.
+
+**AND IT IS A STATIC GUARD, NOT A SCREENSHOT** -- a doc comment on the wrong
+constant never renders anywhere. Conflating the two techniques is how a guard
+comes to be built that cannot see its own subject.
+
+## A RATCHET IS NOT A MIGRATION, AND CALLING THIS ONE A MIGRATION WAS WRONG
+
+`tools/constant_docs.py` walks every module-level constant in a file that uses
+the `#:` convention and reports the ones with no doc comment;
+`tests/test_constant_docs.py` holds the recorded set against
+`tests/fixtures/constant_doc_debt.json`, which **may only shrink**.
+
+This entry exists because the description written for it one section above --
+"a staged migration with real debt, in the `tooltip_migration_debt.json`
+shape" -- is **the wrong shape**, and the difference decides whether the guard
+is useful or noise.
+
+    tooltip_migration_debt.json   248 controls, burned down to ZERO, because
+                                  every one genuinely owed the user an
+                                  explanation
+    constant_doc_debt.json        407 constants, and NOBODY IS EXPECTED TO
+                                  EMPTY IT
+
+**`_TOKEN = "x"` and `APP_NAME = "OpenChem Studio"` do not want a doc
+comment.** A guard demanding one is answered with `#: The app name.` -- the
+degenerate string the tooltip work spent a whole phase learning to refuse. So
+the invariant is not "every constant is documented". It is **that a constant
+does not FALL INTO the set**, which is exactly the orphaning.
+
+Getting that wrong would have produced a 407-item backlog somebody felt
+obliged to burn down, and 407 degenerate comments at the end of it.
+
+### THE PRECISE SIGNATURE IS NOT DETECTABLE, AND THE PROXY IS
+
+A documented constant followed by an undocumented one is also what two
+perfectly ordinary constants look like. Nothing distinguishes the orphaning
+from the normal case by SHAPE. What is detectable is the constant's ARRIVAL
+in the undocumented set, which is what the ratchet watches -- so the mechanism
+is a recorded baseline, not a pattern match.
+
+### VERIFIED BY RE-CREATING THE DEFECT ON THE REAL FILE
+
+A guard for a historical defect should be run against that defect, not against
+a fixture resembling it. Inserting one constant between the `#:` block and
+`ENTHALPY_NOT_SUPPLIED` in the real `chem/energetics.py`:
+
+    E   src/openchem/chem/energetics.py::ENTHALPY_NOT_SUPPLIED
+    E   assert not ['src/openchem/chem/energetics.py::ENTHALPY_NOT_SUPPLIED']
+    1 failed, 10 passed
+
+...and green again on restore. **The guard names the constant the original
+defect orphaned**, on the file it happened in. Eight mutations, eight caught.
+
+### PRIVATE CONSTANTS COUNT, AND EXCLUDING THEM WAS THE TEMPTING VERSION
+
+It would have halved the recorded set -- 407 to 116 across 39 files -- which
+is exactly why it is worth naming as a refused option. It would be a rule
+keyed on NAMING rather than on whether documentation is warranted, which is
+how `inapplicable_calculators` rotted into 27 wrong entries. Measured, both
+populations are mixed: `METAL_COORDINATION_CUTOFF` is public and wants
+documentation, `_Q_CARBON_DIOXIDE` is private and wants it just as much, and
+`APP_NAME` is public and does not.
+
+### THE SCOPE IS PER FILE, AND THE NARROW HALF IS LOAD-BEARING
+
+Only a file that ALREADY documents a constant is held to the convention. A
+module documenting none is making no claim. Without that rule this becomes
+"every constant in the project must be documented" -- a far larger claim than
+anybody agreed to -- so `test_a_file_that_documents_nothing_is_not_in_the_population`
+sits beside its opposite, and a mutation making every file eligible is caught
+by both.
+
+### FOUR THINGS THE WALK HAD TO GET RIGHT, ALL MEASURED FIRST
+
+    module-level TUPLE assignments        2   `CELL_W, CELL_H` in decay_svg.py
+    constants nested in try/if            0   so `tree.body` alone is enough
+    constants using a TRAILING docstring  1   Sphinx honours both forms
+    lower-case module globals           many  `logger` is not a constant
+
+Skipping tuples would have silently shrunk the population -- a green suite and
+a smaller universe, which reads as a coverage win. Ignoring the trailing
+docstring would have reported a false positive on correct code.
+
+### AND THE HARNESS ATE A BACKSLASH, WHICH COST THREE ATTEMPTS
+
+Writing `+ "\\n",` into a file through a quoted heredoc produced a real
+newline instead, splitting a string literal across two lines and making the
+module unparseable. The repair was applied three times and reported success
+three times, because **the replacement string was being collapsed to the
+search string, so `str.replace` was a no-op that `count()` could not see.**
+Reach for a real editing tool rather than a shell heredoc when the content
+contains escapes; `bash -n`-style verification catches it, guessing does not.
+
+## THE HELP CONTRACT: a tooltip is a RENDERING, not the thing itself
+
+Reported as "this suite especially needs tooltips... for a great, many
+things", after nothing in the app could say what the pose table's
+"RMSD l.b." column meant.
+
+**The invariant is "has a documented contract", not "has tooltip text".** A
+guard that checks for a non-empty string degenerates into
+`tooltip = "Options."`. The producer declares what a control MEANS and the
+validator checks the STRUCTURE of that declaration, never the prose --
+`applies_to` and `Provenance.parameters[TOTAL]` already work this way.
+
+    src/openchem/ui/widgets/help_tooltip.py       the metadata, knows no Qt
+    src/openchem/ui/widgets/tooltip_inventory.py  the ONE discovery layer
+    tests/test_tooltip_coverage.py                the guard
+    tools/list_tooltips.py                        the query surface
+
+The guard and the tool both consume `iter_documentable_controls` and
+neither walks the tree itself. Two implementations of "all interactive
+controls" would drift, which this repo has paid for four times.
+
+### The three tiers
+
+    1  plain UI action           action + result
+    2  scientific parameter      what it controls + at least ONE applicable
+                                 qualifier (unit, range, default, or
+                                 behavioural consequence)
+    3  interpretation-sensitive  definition + units/reference frame where
+                                 applicable + the interpretation limit
+
+Tier 2 requires "at least one APPLICABLE" deliberately: a method choice has
+no unit and no useful range, and demanding all four produces `Default: N/A`
+written to satisfy a rule.
+
+    BAD   "RMSD l.b. -- RMSD lower bound."
+    GOOD  "RMSD lower bound in A relative to pose 1. Symmetry-equivalent
+           atoms may be matched, so it can be smaller than the upper bound.
+           It does not measure agreement with experiment."
+
+### `help_id` names a DEFINITION, not an instance
+
+`<surface>.<concept>`, lowercase ASCII. **Never renamed because the UI
+moved, never reused for a different concept** -- reusing one turns every
+earlier reference into a statement about something else.
+
+**Uniqueness runs BOTH ways and the second direction was missing.** Sixty
+tick boxes meaning "include this calculator in a batch run" share ONE id;
+sixty calculator buttons, each its own concept, get sixty. A mutation
+renaming the tick boxes to `properties.batch_selection_<id>` -- one concept
+shredded into sixty -- **passed every guard**, because each id then had
+exactly one contract. `test_one_concept_is_not_split_across_many_help_ids`
+closes it on a structural signal: byte-identical text under two ids means
+one concept wearing two, or one of them wrong.
+
+### Three kinds of statement, one wants a source
+
+    external scientific fact      carries source_key -> docs/sources.toml
+    OpenChem behaviour            carries neither
+    interpretation warning        carries help_anchor -> openchem.help
+
+Keeping the middle row source-free is what stops the registry becoming a
+dumping ground for application semantics. Anchors resolve through
+`openchem.help`, which already owns topic discovery -- the guard, the tool
+and `tests/test_help.py` all ask it, so there is one parser rather than
+three.
+
+### Generate the contract where a registry already knows
+
+The sixty calculator buttons derive theirs from `CalculatorDefinition`:
+`description` is already the authoritative statement, so writing sixty
+tooltips beside it would be sixty chances to disagree. Same instinct as
+`sources.toml -> SOURCES.md`.
+
+### What the guard must NEVER become
+
+**No LLM grading, here or later.** Asking a model whether a tooltip
+"explains the widget" makes the oracle stochastic, and a test that can
+disagree with itself between runs is worse than none. The degenerate-string
+floor is a FLOOR, and its exclusions are deliberate: no label-overlap
+detection, no noun/verb heuristics, no word-count rules, no "must contain
+units" regexes. Every one is satisfied by nonsense like "Maximum poses.
+Higher values."
+
+`whatsThis()` counts as alternate documentation. **`accessibleDescription()`
+does NOT** -- worded that way so nobody deletes accessibility work to make
+the guard pass. So `--missing` means "no semantic help", not "no tooltip",
+and a control with good `whatsThis()` is NOT a gap to be filled.
+
+`verified` was considered and deferred: the sources registry's field tracks
+drift against EXTERNAL documents, while a flag an author sets in the same
+commit that writes the prose records nothing `git log` does not.
+
+**AND THE FLOOR IS NOW GUARDED FROM BOTH SIDES.**
+`test_no_contract_is_a_placeholder` says a contract may not be a
+degenerate string; nothing said the complement, and without it that floor
+creeps upward one `assert "A" in text` at a time until the guard is
+grading prose.
+`test_a_weak_but_well_formed_contract_is_ACCEPTED` asserts that a tier-3
+contract which is structurally impeccable and says almost nothing useful
+must PASS. Same move `test_a_plausible_lie_passes_the_validator_and_fails_the_chemistry`
+makes for `valid_total_declaration`: the validator owns the SHAPE, a
+reviewer owns the meaning. Raising the tier-3 length floor from 80 to 400
+fails that guard AND the floor guard, from opposite directions.
+
+### THE MIGRATION IS FINISHED, and its scaffolding is deleted
+
+**355 of 355 controls carry a contract. 219 distinct `help_id`s, 164 tier
+1, 138 tier 2, 53 tier 3.** `tools/list_tooltips.py --missing` answers
+"Nothing matched."
+
+The staging is kept below as the record of how, because it is the reason
+the layer could be added at all -- but both fixtures are GONE and the
+invariant is now one assertion,
+`test_every_control_carries_a_help_contract`.
+
+248 controls carried a raw `setToolTip` when the layer landed. A guard
+failing on that would have made the commit red and forbidden the
+incremental migration it exists to enable, so
+`tooltip_migration_debt.json` recorded the set and was allowed only to
+SHRINK, and `tooltip_completed_surfaces.json` was its mirror, naming the
+surfaces at zero so a finished one could not fall back into the backlog
+unseen. Neither is needed once `missing` can be a failure.
+
+**A BLANKET ASSERTION IS ONLY SAFE BECAUSE THE WALK IS OURS.** The
+`controls` fixture points both plugin directories at paths that do not
+exist, so no plugin-contributed panel is walked and a third-party panel
+cannot redden the suite. Checked from the built window rather than
+assumed; had plugins loaded, the surface list would have had to stay.
+
+**A NEW CONTROL IS NOW RED UNTIL IT IS DOCUMENTED**, deliberately. That is
+what finishing means: whatever is added next meets the standard the rest
+of the application already does.
+
+The debt fixture was keyed on the CONTROL rather than a source call site
+-- `file:line` moves under the migration and the tooltip STRING is the
+very thing being rewritten, while the control survives both. Its one weak
+point showed up at the end: an `instance_path` is a position in the widget
+tree, so wrapping a control in a new container RENAMES it, and the Batch
+aggregate combo tripped the guard when its row became a `flow_row`. That
+was resolved by migrating the control rather than re-recording the path.
+
+**"66 setToolTip call sites" was 248 CONTROLS**, and an AST estimate of 179
+interactive constructions was really 372. Neither number was ever the
+universe; only `iter_documentable_controls` is -- and the universe grew
+353 -> 355 while the migration ran, which is exactly why it is asked
+rather than remembered.
+
+### `QAction.toolTip()` NEVER RETURNS EMPTY, and the queue believed it
+
+**All 83 menu actions were counted as documented, and not one carried a
+human-written string.** With no tooltip ever set, Qt answers `toolTip()`
+with the action's own `text()` minus the `&` accelerators and the `...`, so
+"&Open Project..." reports "Open Project". `_status` tested
+`toolTip().strip()` and could not tell "nobody wrote one" from "somebody
+wrote one".
+
+Two costs, and the second is the one that mattered. It overstated the
+migration debt by 83 -- but worse, it hid 83 controls from `--missing`,
+which is **the queue this migration is worked from**. An agent burning down
+the debt would have found 83 menu actions in the "already has something"
+pile forever. And what they had was the exact degenerate case the whole
+contract layer exists to reject: a tooltip restating the label it is
+attached to.
+
+    before   145 contracts / 137 legacy /  84 missing
+    after    145 contracts /  54 legacy / 167 missing
+
+**THE RULE IS ASKED OF QT, NOT REIMPLEMENTED.** `_tooltip_is_qt_s_own_echo`
+builds a throwaway `QAction` with the same `text()` and compares, so it is
+Qt's own answer by construction and cannot drift when `qt_strippedText`
+changes. Reproducing that function here would have been a second
+implementation of somebody else's private detail, and its edge cases are
+not the obvious ones -- measured:
+
+    '&Open Project...'      ->  'Open Project'
+    'Mid...dle'             ->  'Middle'      <- stripped ANYWHERE, not just trailing
+    'A && B'                ->  'A & B'
+    'Trailing spaces   '    ->  'Trailing spaces'
+    'Zoom In\tCtrl++'       ->  'Zoom In\tCtrl++'   <- shortcut text survives
+
+A tooltip deliberately set to exactly the synthesised string reads as
+absent, which is the right answer either way: restating the label is not an
+explanation, and the degenerate-string floor already refuses it in a
+contract.
+
+**THE NARROW HALF IS WHAT NEEDED THE SEPARATE TEST.** "A `QAction` is never
+`legacy_tooltip`" satisfies the reclassification guard and is wrong -- an
+action somebody wrote a real tooltip for is exactly the debt the fixture
+exists to burn down, and dropping it would make the migration look finished
+early. `test_an_explicitly_set_action_tooltip_still_counts_as_debt` asserts
+on the predicate rather than through the window, because no action in the
+application carries an explicit tooltip today, so the end-to-end route
+cannot tell a narrow rule from a blanket one. Mutating the comparison to a
+bare `return True` is caught by that test and by nothing else.
+
+### THE MENU BAR: 71 commands, and the contracts were INVISIBLE
+
+**`QMenu.toolTipsVisible()` IS FALSE BY DEFAULT.** Measured on the real
+window right after the 71 contracts landed: all seven top-level menus
+answered False, so every one of them was documented, queryable through
+`tools/list_tooltips.py`, passing the coverage guard -- and **dead on the
+screen**. The contract layer's whole claim is that a tooltip is one
+RENDERING of a declared meaning, and a rendering that never renders does
+not honour it.
+
+`_show_tooltips_in_menus` walks the menu bar rather than setting the flag
+at each `addMenu` call: submenus are created in several places and a
+plugin can contribute one, so a rule applied at a call site is a rule the
+next author has to remember. 12 menus, 7 top-level and 5 sub.
+
+**FINDING IT MEANT HITTING THIS FILE'S OWN WRAPPER TRAP.** The first probe
+read `w.menuBar().actions()` and then asked each action for its menu --
+that list is a TEMPORARY, so every `QMenu` wrapper it handed out was dead
+by the next line (`Internal C++ object already deleted`). Hold the list.
+
+### A menu TITLE is explained by its menu
+
+`QMenu.menuAction()` is a `QAction` and lands in the same walk, so `&File`,
+`Copy Structure As`, `2D Structure Display` and `Installed Plugins` all
+arrived asking for a contract -- 12 of the 83. There is nothing honest to
+write on one, and "Opens the File menu" twelve times is exactly the
+restate-the-label degeneracy `test_no_contract_is_a_placeholder` refuses.
+Excluded on `action.menu() is not None`: derived from Qt rather than from a
+list of menu names.
+
+**BOTH HALVES ARE GUARDED, and the second is the load-bearing one.** "A
+`QAction` inside a menu needs no contract" satisfies the title guard and
+silently exempts all 71 real commands while reading as a jump in coverage.
+`test_menu_entries_are_not_exempted_along_with_their_titles` holds that
+line; the blanket mutation is caught by four tests.
+
+A `QWidgetAction` is excluded too, for a different reason: it is Qt's way
+of putting a WIDGET into a toolbar, and the one here holds the `PanelRail`,
+whose own group buttons are already walked individually.
+
+### A FINISHED SURFACE CAN REGRESS AND NOTHING NOTICED
+
+Deleting the contract from File > New Project **survived every guard in
+the file.** `missing` cannot be a failure while 83 controls still are --
+that is the staged migration working as designed -- so a completed control
+simply falls back into the backlog unseen.
+
+`tooltip_completed_surfaces.json` was the MIRROR of the debt fixture: the
+debt set could only SHRINK, that one could only GROW. It recorded the
+SURFACE rather than the control, so a new menu entry or a new control on a
+finished panel was held to the standard the rest of that surface already
+met. **Both are deleted now** -- with every surface finished, "no control
+anywhere is undocumented" says the same thing and needs no fixture. The
+account is kept because the REASON it existed is the durable part: a
+completed control falling back into the backlog is invisible for exactly
+as long as `missing` cannot be a failure.
+
+**IT FAILED ON ITS FIRST RUN AND WAS RIGHT.** It named a `QWidgetAction`
+that every earlier count had missed, because those counts filtered on
+`widget_class == "QAction"` while the guard asks by KIND. Counting a
+population by the wrong key is how a surface looks complete and is not.
+
+### One concept, one help_id -- what collapsed here
+
+    every dock's View toggle   ONE id, 13 renderings
+    the three Help topics      ONE id -- "open the manual at this topic"
+    explicit hydrogens         ONE id, TWO renderings: the SAME Ketcher
+                               action offered from Structure and from
+                               View > 2D Structure Display, under two
+                               different labels
+
+`Copy Structure As` deliberately does NOT collapse -- SMILES, InChI,
+InChIKey and a molblock have genuinely different round-trip properties, and
+choosing between them IS choosing between those properties. InChIKey is
+tier 3 for the one thing a reader must not get wrong: it is a hash, and
+nothing can reconstruct the molecule from it.
+
+### THE SUITE CAUGHT A CONTENT ERROR IN THE PROSE, NOT A LEXICAL ONE
+
+`test_nothing_tells_the_reader_to_go_to_the_3d_viewer_tab` failed on the
+`Open 3D Viewer (Miew)` contract, which read "Separate from this
+application's 3D tab, which is where conformers, measurements and
+calculated surfaces live."
+
+That is not a false positive. Pairing the 3D viewer with conformers is the
+signpost this project deliberately deleted when conformer generation moved
+to the Structure menu -- `main_window.py` records that "four separate
+messages elsewhere told people to go there for it" -- and the sentence
+would have reinstated a fifth. **A guard on PROSE caught prose that
+contradicted a design decision**, which is the one thing the tooltip
+guard's own no-LLM-grading rule cannot do for itself.
+
+Run every source-scanning guard together after writing UI strings; there
+are 13 and they cost 14 seconds, against 14 minutes for the full suite:
+
+```bash
+uv run --no-sync python -m pytest -q $(rg -l "ast.parse" tests/ | tr '\n' ' ')
+```
+
+**THAT SET DOES NOT INCLUDE THE DOCUMENTATION GUARD, and reading it as
+though it did put a red commit on master.** `test_docs_are_current.py`
+never calls `ast.parse` -- it reads markdown and asks git what the
+repository contains -- so it is not in the `rg` set, and a sweep
+reporting `287 passed` had not run it. The commit that followed cited two
+tests the same branch had deleted, and master went red on
+`test_every_test_a_doc_names_still_exists`. Anything touching CLAUDE.md
+or `docs/` has to name it:
+
+```bash
+uv run --no-sync python -m pytest -q tests/test_docs_are_current.py
+```
+
+**AND IT PASSES WHILE A DELETION IS UNSTAGED.** `_repo_files` asks
+`git ls-files`, so a file removed from the working tree but still in the
+INDEX is still tracked and still resolves. The two fixtures deleted by
+the help-contract migration were checked twice after being removed and
+passed both times; the citation only broke once `git add -A` staged the
+removal. A green docs run taken mid-change is not evidence about the tree
+you are about to commit.
+
+**AND IT FAILS ON A NEW FILE UNTIL THAT FILE IS STAGED**, which is the
+same mechanism seen from the other side and reads as a broken citation
+rather than as an unstaged one. Writing `tests/test_dialog_help_contracts.py`
+and citing it in the same edit fails `test_every_file_a_doc_cites_still_exists`
+with the path listed as missing; `git add` on the new file is the whole
+fix. Neither direction is a bug in the guard -- `git ls-files` is the
+right question and the INDEX is what answers it.
+
+### The shared chrome: 36 buttons, 3 concepts
+
+Every dock builds a `DockTitleBar`, so its help / float / close buttons
+appear **36 times across 12 docks** -- three ids, and `instance_path` tells
+the renderings apart. `_make_button` takes a `HelpTooltip` rather than a
+string now, which is what stops the next button added there from being a
+bare `setToolTip`.
+
+The Properties panel's 17 section headers collapse the same way, and the
+contract lives in `CollapsibleSection` rather than in the panel: the class
+is used elsewhere, and "show or hide this section" means the same thing
+wherever it is built.
+
+**`panel` IS A FORBIDDEN help_id SEGMENT**, so `panel.close` is rejected --
+it is in `_WIDGET_WORDS`. That is the validator working as designed even
+though "panel" is this application's own domain word for the thing; the
+ids are `workspace.panel_close` and friends, which name the concept without
+tripping a rule that exists to stop ids encoding widgets.
+
+### A CONTRACT AND A STATE-DEPENDENT RENDERING, TOGETHER
+
+"Derive from ligand" is the one control here whose useful text depends on
+the receptor: it names the ligand codes actually present, which is what
+answers "will this button do anything for me". The contract is attached
+ONCE and the tooltip is recomputed, which is exactly what "a tooltip is one
+RENDERING of a declared meaning" buys.
+
+**The failure mode is silent.** Substituting the live text for the
+contract's leaves the contract attached as a Qt property, so the coverage
+guard still reports the control documented while the user sees three-letter
+codes and nothing saying what pressing it does.
+`test_the_derive_buttons_live_tooltip_still_carries_its_contract` asserts
+the rendered string CONTAINS the contract text, in both the has-ligands and
+the no-ligands state.
+
+
+### A `QTabBar` BREAKS QT'S OWN `qt_` NAMING CONVENTION
+
+`_is_qt_internal` excludes Qt's scaffolding by the `qt_` object-name prefix
+Qt reserves for it -- derived rather than enumerated, so it cannot rot. A
+`QTabBar` honours that for itself (`qt_tabwidget_tabbar`) and **not for the
+two `QToolButton`s it builds to scroll the tabs**, which it names
+`ScrollLeftButton` and `ScrollRightButton`. The prefix rule reads the
+widget's OWN name, so it excluded the bar and admitted its children: three
+tab widgets put **six Qt scroll arrows** into the inventory as controls
+owing the user an explanation.
+
+`QTabBar` joins `QComboBox`/`QSpinBox`/`QDoubleSpinBox` in
+`_is_internal_to_a_composite`, which already means "Qt built this inside
+one of its own controls". A tab PAGE is a child of the stacked widget,
+never of the bar, so nothing of ours is reachable.
+
+**THE TEMPTING GENERALISATION WOULD HAVE DELETED 82% OF THE UNIVERSE.**
+"Anything under a `qt_`-named ancestor is Qt's own" is the
+principled-sounding version of the same fix, and it excludes **200 of 243
+widgets** -- every panel in this application lives inside a `QScrollArea`,
+whose viewport is named `qt_scrollarea_viewport`. Measured before it was
+written rather than after. **The failure mode of an over-broad exclusion is
+a GREEN suite and a smaller universe**, so it would have registered as a
+large jump in coverage rather than as a fault.
+
+The guard is therefore in two halves and the second is the load-bearing
+one: `test_a_tab_bars_scroll_buttons_are_qt_s_own` asserts the arrows are
+excluded -- asserting its own setup, so a window that stops building a
+`QTabWidget` fails loudly instead of passing vacuously -- and
+`test_the_composite_rule_does_not_swallow_the_panels` asserts the panels
+are still there.
+
+#### AND A `QLineEdit`'s CLEAR BUTTON ESCAPES THE PREFIX RULE TWICE
+
+Same hole a third time, found in the dialogs, and it is the widest yet.
+`setClearButtonEnabled(True)` makes Qt build TWO things inside the line
+edit and neither carries the `qt_` prefix `_is_qt_internal` derives its
+answer from -- measured on a bare `QLineEdit`:
+
+    the button   QToolButton, objectName ''      <- no name AT ALL
+    the action   QAction, '_q_qlineeditclearaction', parented to the
+                 QLineEdit    <- Qt's OTHER reserved prefix, `_q_`
+
+So the button escapes by having no name to match and the action escapes
+by using a different reserved prefix. The two clear buttons in this
+application are both in dialogs, which is why the window's 355 never saw
+it: the help window and the receptor library each reported **twice the
+controls they have** -- 4 where there are 2, and 3 where there is 1.
+
+**THE ACTION SIDE NEEDED THE RULE APPLIED TO A SURFACE IT NEVER WAS.**
+`_is_internal_to_a_composite` ran in the widget loop only, and the clear
+action is a child of the line edit rather than of any widget beneath it.
+It walks `parent()` rather than `parentWidget()` now so ONE
+implementation serves both -- measured over the real window, the two
+traversals exclude exactly the same set, so it is a widening in reach and
+not in effect.
+
+**MEASURED BEFORE IT WAS WRITTEN, as the QTabBar rule was.** The window
+holds 13 `QLineEdit`s and **not one has a clear button**, so its universe
+is 355 either way. Of those 13 only **2** are documentable controls at
+all -- 7 live inside a `QDoubleSpinBox`, 3 inside a `QSpinBox` and 1
+inside a `QComboBox`, all already excluded -- which is why
+`test_the_composite_rule_does_not_swallow_the_line_edits` asserts the
+survivors BY NAME (`facts.search`, `batch.property_filter`) rather than
+by a threshold that would read as stronger than it is.
+
+Five mutations, five caught, each by the intended guard:
+
+    M1  revert the QLineEdit exclusion   the clear-button guard + the
+                                         dialog blanket
+    M2  exclude the line edit ITSELF     the clear-button guard's narrow
+                                         arm + does_not_swallow
+    M3  drop the action-side check       the same pair as M1
+    M4  delete one shipped contract      the dialog blanket, ALONE
+    M5  excuse a finished dialog         the unmigrated mirror
+
+**M2 IS THE ONE WORTH READING.** It does not fail the dialog blanket at
+all, correctly -- excluding more can only make the missing count smaller.
+That is the green-suite-and-a-smaller-universe failure in miniature, and
+the reason the narrow half is the load-bearing one.
+
+### THE DIALOGS: every one a bare context can build is at zero
+
+`tests/test_dialog_help_contracts.py` is the second consumer
+`ui/dialogs/inventory.py` was written for. Until it existed the contracts
+written into a dialog were unguarded -- M4 above is exactly that, and
+nothing caught it.
+
+**SCOPED TO WHAT A BARE `DialogContext` CAN BUILD.** Six of the 17 need a
+computed result and five more need services, settings or a molecule;
+handing the guard a context rich enough for all 17 makes it a slow
+integration test that fails for reasons having nothing to do with help.
+`test_a_dialog_that_cannot_be_built_says_so` is what stops that set
+shrinking silently -- a builder must raise `DialogUnavailable` and must
+never answer None.
+
+    PeriodicTableDialog    137 of 137     ConformerOptionsDialog  6 of 6
+    HelpDialog               2 of 2       CommandPalette          1 of 1
+    ReceptorLibraryDialog    1 of 1       AboutDialog             0 controls
+
+**THE EXCEPTION LIST EXISTED FOR EXACTLY ONE COMMIT AND IS GONE.**
+`_NOT_YET_MIGRATED` held `PeriodicTableDialog` while its 137 contracts
+were written, and its mirror required an excused dialog to still HAVE
+undocumented controls -- so the day the table reached zero the guard
+failed and asked for the name to be deleted. Both are deleted; "no
+control anywhere is undocumented" says the same thing and needs nothing
+maintained. Same arc as `tooltip_migration_debt.json` one layer up, three
+days shorter.
+
+**137 WAS NEVER 137 CONCEPTS: it is 15.** 118 are element cells -- one
+concept rendered once per element, the shape
+`properties.batch_selection` already has across 51 tick boxes, and
+`test_one_concept_is_not_split_across_the_element_cells` is what refuses
+the split. Seven more belong to `ZoomableSvgView` and `AtomDiagram`
+rather than to this dialog, so documenting them documented the Lewis
+dialog's four zoom buttons at the same time.
+
+#### THE ELEMENT CELL: a contract under a tooltip rewritten 118 times
+
+`_repaint_cells` rebuilds every cell's tooltip on every recolour, so this
+is the `docking.derive_box_from_ligand` case at scale: the contract is
+attached ONCE and the live text must CARRY it rather than replace it.
+The failure is silent -- a bare `setToolTip` there leaves the contract
+attached as a Qt property, so the coverage guard goes on reporting all
+118 documented while the user reads "Hydrogen -- Nonmetal" and nothing
+saying what clicking does. Mutated: only
+`test_an_element_cells_live_tooltip_still_carries_its_contract` catches
+it, in a discrete mode AND a heat-map mode, because those build their
+live half differently.
+
+#### THE ISOTOPE COLUMNS, AND `*` MEANS THE OPPOSITE OF WHAT IT LOOKS LIKE
+
+The five isotope headers are where the tier-3 work is: every one prints
+a source-specific mark that decides how the number reads. The sharpest
+is spin/parity, and the marks are NOT guessable -- read off the shipped
+`nubase_4.mas20.txt`'s OWN format block and confirmed in the paper's
+legend (p18 of [source:nubase2020]):
+
+    *    DIRECTLY MEASURED spin        1062 states
+    #    non-experimental, from trends in neighbouring nuclei or theory
+                                        948
+    ()   weak argument, still EXPERIMENTAL
+                                       1328
+    T=   isospin, on isobaric analogue states
+                                        108
+
+So `*` is a STRENGTHENING mark where a footnote symbol usually implies
+doubt, and the parenthesis/`#` pair is deliberately the opposite way
+round from ENSDF -- NUBASE section 2.4 says so outright, because it
+separates experimental from non-experimental information where ENSDF
+parenthesises both.
+
+**THE MARKS ARE NOW IN THE NOTE UNDER THE TABLE AS WELL, and that is
+this file's own finding applied.** The half-life legend "explained no
+marks" for exactly the same reason: a meaning that lives only in a
+tooltip is absent from every screenshot. The guard derives the marks
+from what the CELLS PRINT rather than from a list, so it cannot pass
+vacuously.
+
+**DRIVEN AND MAGNIFIED, AND FOR ONCE NOTHING WAS WRONG.** The longer
+note is the one visible change here and this dialog's height was a
+reported bug six commits ago, so it was photographed rather than
+reasoned about: the note wraps to two lines, the action row and Close
+stay inside a 940x900 window, and the Isotopes page's own minimum is 113
+px against the 280 the guard allows. The `dialog` drive step takes a
+`tab` now -- half these dialogs are tabbed and a shot of the default
+page cannot show the other three. A tab name that matches nothing is
+LOGGED rather than ignored, because an unrecognised INDEX would silently
+photograph page 0, which is the wrong-panel-id trap again.
+
+**AND THE `*` COUNT RECONCILES WITH THE PAPER TO THE LAST STATE.**
+NUBASE2020 states 1062 directly measured spins, "827 ground states and
+235 isomers"; the shipped table has 1062, split 826/236. The one-state
+gap is the FREE NEUTRON -- a starred ground state (`1/2+*`) that the
+build deliberately excludes because it is a nuclide and not an element,
+which `test_the_free_neutron_is_not_here` already asserts. Counting `*`
+in the raw source gives 827, so the reconciliation is exact once the one
+deliberate exclusion is named, which is a stronger statement than a
+total that merely agrees. It is also a free check on a fixed-width
+slice: a column off by one would still yield plausible spins while
+quietly moving the flag.
+
+### The Quantum Chemistry panel: 25 help_ids, 39 renderings
+
+The first panel taken to zero. 37 missing and 9 legacy became 39
+contracts.
+
+**ONE CONCEPT, ONE `help_id`, AND THE THREE CORRELATION TABS ARE THE
+CASE.** HSQC, HMBC and COSY are built from ONE column tuple by ONE loop and
+populated by ONE method, so their five columns mean the same five things in
+each: they share five ids across fifteen renderings, with `instance_path`
+telling the renderings apart. What differs between those tabs is WHICH atom
+pairs appear, which is a property of the tab and not of its columns.
+Splitting them would have been the batch-tick-box mutation shipped on
+purpose. `_CORRELATION_COLUMN_HELP` is one tuple used three times, so there
+is nowhere for the three to drift apart. `Atom` and `Element` are likewise
+one concept each across the 1D spectrum and Hybrid tables.
+
+**THE SPECTRUM COLUMN IS NAMED `Value` BECAUSE IT HOLDS TWO DIFFERENT
+QUANTITIES**, which is the sharpest tier-3 contract in the panel.
+Uncalibrated it is a raw isotropic shielding constant; after a TMS or
+scaling calibration it is a chemical shift. The two run in OPPOSITE
+directions -- a more shielded nucleus has a LARGER shielding constant and a
+SMALLER shift -- so reading the uncalibrated column against literature
+values is wrong in a way that looks fine. The note above the table already
+said WHICH was on screen; nothing said what the difference meant.
+
+**CHARGE IS DERIVED FROM THE STRUCTURE AND MULTIPLICITY IS NOT.**
+`_on_molecule_changed` sets the charge spin from the drawn formal charge;
+the multiplicity stays at 1 whatever is selected. Two adjacent spin boxes,
+one of which tracks the molecule and one of which does not, so the
+asymmetry is written into both contracts.
+
+**A DASH IN `J (Hz)` MEANS NOT COMPUTED, NOT ZERO.** Cross peaks are
+derived from bonding connectivity, so a peak is listed whether or not a
+coupling constant exists to put beside it; only the "NMR + Spin-Spin
+Coupling" calculation produces one. **`Methods differ by` IS NOT AN
+ACCURACY MEASURE** for the same family of reason: a small spread says the
+database and the calculation landed in the same place, and both can be in
+the same place and wrong.
+
+The atom index is **0-based over the structure WITH EXPLICIT HYDROGENS**,
+not the 2D drawing's numbering -- confirmed from a real ORCA transcript in
+`tests/test_orca_engine.py` (water: O=0, H=1, H=2) rather than reasoned
+about, since this project has an index-space bug in its history.
+
+Five mutations, five caught, each by the intended guard and each arm
+running the full 12 tests:
+
+    M1  revert the QTabBar exclusion       test_a_tab_bars_scroll_buttons_are_qt_s_own
+    M2  the broad any-qt_-ancestor rule    test_the_composite_rule_does_not_swallow_the_panels
+    M3  a contract back to raw setToolTip  the debt guard, now
+                                           test_every_control_carries_a_help_contract
+    M4  two ids, byte-identical text       test_one_concept_is_not_split_across_many_help_ids
+    M5  one help_id reused                 test_one_help_id_means_exactly_one_thing
+
+**M4 REPORTED A CONFIDENT SURVIVED AND THE MUTATION WAS THE BUG.** It
+prepended one contract's text to another's by implicit string
+concatenation, which produces text that is merely SIMILAR --
+`test_one_concept_is_not_split_across_many_help_ids` requires
+byte-identical, correctly. The arm was INVALID, not a survivor. Fourth
+instance in this file of "a mutation that does not do what it says is not a
+mutation"; the harness now prints an EDIT-CHECK asserting the two texts
+really are equal before it runs the guard.
+
+**AND A DRIVE STEP WITH A WRONG PANEL ID IS A SILENT NO-OP.**
+`{"do": "panel", "id": "Quantum Chemistry"}` changes nothing:
+`_dock_by_panel_id` matches on `dock.objectName()`, which is
+`Quantum_Chemistry` with an UNDERSCORE, and `_on_panel_chosen` returns
+quietly when it finds none. The run logged `step 1 panel` and looked
+perfectly healthy while photographing the Compare panel. **Read the shot,
+not the log.**
+
+## BATCH WAS A SECOND IMPLEMENTATION OF WHAT PROPERTIES ALREADY DID
+
+Reported as "the entire system is a total mess", with three complaints:
+no select-all, no select-all-in-group, and a result table that is
+"incredibly un user friendly". The third one is the structural half:
+**this app had TWO batch systems and they disagreed.**
+
+    PropertyPanel._on_run_selected    N calculators x 1 molecule
+    BatchPanel                        N calculators x M molecules
+
+Same 51 tick boxes -- one `help_id`, `properties.batch_selection` -- and
+two different meanings:
+
+    | | Properties, "Run selected" | Batch |
+    | runs via | DescriptorService.run_calculator | its own _BatchTask |
+    | produces | one ScientificResult | N columns via reduce_result |
+    | offers | a row, Details, an inspector | a number in a cell |
+    | keeps | yes, in _reports | no -- reduced and dropped |
+    | costs | one calculator, when asked | molecules x properties, up front |
+
+The third row is the complaint: **a calculator that is one coherent thing
+in Properties became N unrelated columns in Batch.** Topology Analysis is
+one button and one Details view on the left; on the right it was a Wiener
+column, a Randic column and a Szeged column with nothing tying them
+together. And lossy on top -- `result_reduction` recovers 73 numeric
+columns from the real registry and REFUSES 25 real lines outright.
+
+### The spine: the ScientificResult is the stored thing
+
+`domain/batch.BatchResultStore` retains them; `reduce_result` is a
+PRESENTATION PROJECTION and its module docstring now says so, because
+that is the regression this whole change exists to prevent and a
+docstring is what survives the next author.
+
+**THE DIRECTION MATTERS ONE LEVEL DOWN.** A `BatchTable` is rows by
+columns; the store is keyed by `(molecule, calculator, parameters,
+structure_version)`, which is not a table and does not become one because
+a table can be built from it. If the store were the table, `reduce_result`
+would be back in the storage position by another route.
+
+### NONE OF THE FOUR KEY COMPONENTS IS INVENTED
+
+Checked rather than assumed, because a retained result makes "which
+result am I looking at" a real question and getting it wrong trades a
+lossy system for a stale one:
+
+    molecule_uuid      a uuid4 carried through `to_dict()` into the
+                       project file -- semantic identity, not object
+                       identity. `ResultCache` warns against keying on it
+                       ALONE, which is what the next line is for.
+    structure_version  `StructureCheckService.current_version()`, the
+                       counter `StructureReport` is already built on and
+                       the Atom Inspector's cache already keyed on.
+    parameters_key     a thin wrapper over `result_cache.key_for`, already
+                       sorted-JSON-into-SHA-256 and already stable across
+                       processes. A SECOND parameter serialisation is how
+                       two identical requests become two keys.
+
+So editing a molecule makes its results STALE rather than wrong, and
+stale results are REPORTED rather than deleted -- silently serving one and
+silently blanking it are the two ways this goes wrong and they look
+identical from outside.
+
+**The recorded trap applies directly**: the Atom Inspector's version is
+`None` in a plain fixture, so it is 0 forever, and two guards for a
+stale-index crash passed while testing the cache. Any test here that
+mutates a molecule must move the thing the key is keyed on.
+
+### RETENTION COSTS LITTLE, and the contract was not signed first
+
+Measured over 8 drug-like molecules against all 53 registry-executable
+calculators, 424 results:
+
+    mean per result        9.05 KiB
+    largest single        37.1  KiB   regulatory_screen -- and the SAME
+                                      size for every molecule, which is
+                                      worth knowing but was not chased
+    5 molecules            2.3 MiB     50 ->  23 MiB
+    200 molecules         94   MiB   1000 -> 469 MiB
+
+No eviction, no disk spill: nothing there asks for one at the sizes the
+lazy path reaches. The bulk path could reach the bottom of that table, and
+it states its cost first.
+
+### THE COMPUTATION MATRIX -- five rows, five tests
+
+"Nothing is computed unasked" is only an invariant if *asked* is defined:
+
+    open the Batch panel      zero calculations
+    select a molecule         that molecule's ticked properties, and NO
+                              other molecule's
+    look at it again          nothing -- retention is what makes lazy
+                              usable rather than merely lazy
+    press Fill table          the full explicitly-requested matrix
+    Fill table, large         asks first; Cancel computes nothing
+
+Driven in the app, and the log IS the design:
+
+    panel-opened        ticked 0 | rows 0 cols  0 | store 0
+    category-ticked     ticked 2 | rows 0 cols  0 | store 0
+    after-lazy-details  ticked 2 | rows 0 cols  0 | store 2
+    filled              ticked 2 | rows 3 cols 14 | store 6
+
+**TWO THINGS THE PANEL HAD TO LEARN**, both because the lazy and bulk
+paths now arrive on the identical event. The table is adopted ONLY when
+the run was a fill -- a one-molecule run returns a ONE-ROW table, and
+letting that through makes opening a detail view destroy the table the
+user just built. And the store is MERGED rather than replaced, or a
+one-molecule run wipes the other 199.
+
+### `ItemIsAutoTristate` DOES TOO MUCH
+
+It looks like exactly what a select-all-in-group wants. With it set, Qt
+propagates a parent's tick down to EVERY child itself, hidden ones
+included -- which reaches entries the filter is hiding and contradicts the
+filter's own documented promise that it filters the LIST and never the
+results. Measured: the hidden-children guard fails on a child Qt ticked
+before our handler ran. Both directions are ours instead, with one
+re-entry guard.
+
+**AND NEITHER OBVIOUS ASSERTION CAN TELL A CHECKABLE ROW FROM A PLAIN
+ONE.** Measured on a bare `QTreeWidgetItem`:
+
+    ItemIsUserCheckable   in Qt's DEFAULT item flags -- True on a row
+                          nobody ever made checkable
+    checkState(0)         Unchecked whether a state was set or not
+    data(0, CheckStateRole)   None until setCheckState is called  <- the
+                          only discriminator, and what decides whether a
+                          box is DRAWN
+
+A mutation emptying `_make_groups_checkable` survived both of the obvious
+versions of the guard.
+
+### A FIELD WRITTEN BY EVERY CALLER AND READ BY NOTHING
+
+`BatchRequest.molecule_uuids` was never consulted -- `_BatchTask` iterated
+whatever list it was handed -- so a request naming two molecules while the
+caller passed twenty ran twenty, and nothing would have noticed. Found by
+mutation: widening the request's scope changed no behaviour at all.
+
+Latent rather than live, since no caller disagreed with itself. The lazy
+path is what makes them disagree easily, because it asks for one molecule
+out of a project. The request is the authority on scope now, with an empty
+list still meaning "everything given".
+
+**THE TWO HALVES NOW CROSS-CHECK, so each alone is an EQUIVALENT
+mutation** -- widening the request's scope is clamped by the molecules
+handed over, and vice versa. Only widening BOTH changes behaviour, and
+that is caught. Verified as its own paired arm rather than assumed, since
+"two survivors" otherwise reads as a coverage gap.
+
+### THE CAP COUNTS DIALOGS; CHROMIUM JUSTIFIES THE NUMBER
+
+Measured before it was written, sampled DURING the run because they are
+all reaped at exit and a post-mortem finds zero and looks healthy:
+
+    open inspectors      QtWebEngineProcess
+    1..8                              1..8    exactly one each, linear
+    disposed per widget                  0    all of them freed
+    disposed via processEvents           8    NONE freed
+
+So resources are not the binding constraint -- the recorded hang was at
+91-116 processes. **The bound is READABILITY and says so**; the Properties
+panel reached the same conclusion independently, declining to pop
+inspectors from a multi-calculator run because "six inspectors stacking up
+is not what anybody asked for". A cap expressed in `QtWebEngineProcess`
+counts would change meaning under a Qt upgrade and is not something a user
+can reason about.
+
+The second row is why `close()` is followed by the per-widget
+`sendPostedEvents(dialog, DeferredDelete)`: without it the cap would be
+cumulative rather than concurrent. `processEvents()` never delivers a
+`DeferredDelete` at event-loop level 0, which this file already records
+and which held again here.
+
+### A GUARD MUST NOT DO WORK PROPORTIONAL TO WHAT IT GUARDS
+
+The cap's first guard built `range(MAX_OPEN_INSPECTORS)` stand-ins, so it
+scaled its own work by the constant under test -- and the `1 << 30` arm
+allocated a billion objects and **hung the mutation pass twice** before
+the cause was spotted. Split in two: the shipped constant's magnitude is
+asserted directly and cheaply, and the refusal is exercised against a
+monkeypatched cap of 2.
+
+### THE HARNESS ITSELF COST TWO RUNS
+
+`ROOT.rglob("__pycache__")` reaches into `.venv`, which is thousands of
+directories -- clearing it between arms made every one recompile the whole
+dependency set and took each into the minutes. Scope a mutation harness's
+cache clearing to `src/` and `tests/`.
+
+And `batch_details` REPORTED A WORKING FEATURE BROKEN: `_show_details`
+starts a background run and RETURNS, with `_present_details` called later
+from the progress handler, so a patch restored in a `finally` was gone
+before the dialog was built. The step said "no dialog open" for a run that
+was perfectly correct.
+
+### The cell now says WHAT it is
+
+    SCALAR      a number, as before
+    NON_SCALAR  a real result with no scalar form -- a per-atom map, a
+                spectrum, a structure set. Named, italic, its own colour,
+                and a tooltip saying it is one double-click away.
+    FAILED      the em dash, unchanged
+
+Those last two used to render identically, which is the OPPOSITE
+statement: one says nothing was computed, the other says something was and
+a table is the wrong shape for it. `reduce_result` refuses 25 of the real
+registry's lines, so the second is the common case rather than an edge
+one.
+
+## THE VIEWER AND THE DOCKING WERE SHOWING DIFFERENT CHAINS
+
+`Viewer.loadStructureFromData`'s default preset builds **biological
+assembly 1**, which is not the deposited file this app hands to Vina.
+Measured on 6WGT (5-HT2A with LSD), which carries three copies of 7LD and a
+`REMARK 350` assembly per chain:
+
+    copy      centre                    in assembly 1?
+    A/1201    (24.28,  41.05, 54.36)    yes   <- all Mol* displayed
+    B/1201    ( 6.71,   2.21, 54.62)    no    <- what docking boxes
+    C/1201    (24.01, -37.77, 54.49)    no
+
+`binding_site._single_copy` picks B by burial, for reasons measured on
+other deposits. So the search box was geometrically right and drawn about
+43 A from anything on screen -- and the interaction colouring, which
+matches residues by NAME AND NUMBER, was painting chain A's residues for a
+pose computed against chain B's site. **That second half is older than the
+overlay, needed a chain term of its own, and now has one -- see "THE
+COLOURING NEEDED THE CHAIN" below for the 6WGT measurements.**
+
+#### THE COLOURING NEEDED THE CHAIN, AND NOW CARRIES IT
+
+This file said the residue colouring "is fixed as a side effect" of the
+deposited-model change and had "not been verified end to end". It has been
+verified now, and it is **half fixed**.
+
+Measured live on 6WGT, reading Mol*'s OWN loaded state rather than the
+source:
+
+    structure-from-model params   {"type":{"name":"model"}}   <- the fix IS live
+    chains in the loaded structure  A,B,C                     <- was chain A alone
+    GLN72 resolves to chains        A,B,C                     <- the defect
+
+`build_interaction_layers` emitted `receptor_residue` as
+`f"{residue_name}{residue_number}"` -- **no chain** -- and `viewer.html`
+turned that into
+
+    (and (= atom.auth_comp_id GLN) (= atom.auth_seq_id 72))
+
+which had no chain term either. So the deposited-model fix changed
+"paints the WRONG copy" into "paints the right copy AND two wrong ones":
+chain B was displayed and coloured, and so were A and C.
+
+**THE DATA WAS ALREADY THERE.** `analyze_pose` has carried
+`receptor_chain` beside `receptor_residue` at all three of its emit sites
+since the hERG work -- a homotetramer whose subunits share residue
+numbering -- with a comment saying exactly why. `build_interaction_layers`
+was the consumer throwing it away, so the fix is one composed key and one
+extra clause:
+
+    ResidueColorLayer key   "B/TYR652" when the chain is known
+                            "TYR652"   when it is not
+    the selection           (and (= atom.auth_asym_id B)
+                                 (= atom.auth_comp_id TYR)
+                                 (= atom.auth_seq_id 652))
+
+The bare form is still accepted and is still right for a single-chain
+receptor or a source with no chain labelling, so a producer that cannot
+say which chain degrades to the old behaviour rather than losing the
+colouring. **The chain goes in UNQUOTED**, for the reason residue NAMES
+already do: quoting matches zero atoms while the overpaint commits
+successfully. A chain id that would not survive that is dropped rather
+than guessed at.
+
+The ambiguity is the ordinary case rather than an edge one. Over the
+cached deposits, counted from the PDB text:
+
+    6WGT   3 chains, 370 of 388 residue keys in >1 chain   (95%)
+    1HSG   2 chains,  99 of  99                            (100%)
+    4DKL   1 chain,    0 of 442                            (0%)
+
+and even the ligand is ambiguous -- all three copies of 7LD are
+`auth_seq_id 1201`, in chains A, B and C.
+
+**A SINGLE-CHAIN RECEPTOR CANNOT SHOW THIS**, which is why it survived:
+4DKL, the deposit most of the docking work was measured on, has one chain
+and 0% collision. Any test of residue targeting has to use a multi-copy
+deposit or it is asserting against a structure where the bug cannot exist.
+
+##### TWO ORACLES WERE BUILT AND THROWN AWAY BEFORE ONE WORKED
+
+**A COMMIT THAT SUCCEEDS PROVES NOTHING.** The first probe asked whether
+`atom.auth_asym_id` is a real mol-script symbol by committing an overpaint
+and watching for a rejection. The candidate came back OK -- **and so did a
+control using a symbol that cannot exist**. Mol* accepts a nonsense
+selection and paints nothing, silently, which is the same failure mode the
+quoted-residue-name finding already records. Both results were discarded.
+
+What replaced it measured the EFFECT, on 6WGT, at 900x700:
+
+    baseline, no overpaint                298 red px
+    no chain term                         673        +375
+    chain B only                          432        +134   ~ a third, as
+                                                            three chains predicts
+    CONTROL: chain Z, absent              298          +0   the arm that says NO
+
+**THEN THE TEST WRITTEN FROM IT WAS TIMING-DEPENDENT AND HAD TO GO.** It
+waited fixed durations for frames to land, passed when run alone, and
+failed when run with its own file -- the exact class this file forbids.
+The guard that shipped instead is a seam: `residueSelectionClauses` and
+`applyResidueColors` share ONE `residueClause` builder, so what a test
+reads is what the viewer paints, and
+`test_the_colouring_and_the_diagnostic_share_one_builder` fails if the
+chain term is ever written in two places. The live pixel measurement above
+is what establishes the semantics; the seam defends that the expression
+keeps being emitted.
+
+Three mutations, three caught: Python dropping the chain, the page
+ignoring it, and the chain quoted.
+
+**AND ONE OF MY OWN PROBES LIED FIRST.** An aggregate sweep over
+`struct.units` reported "0 keys matching more than one chain" on 6WGT --
+flatly contradicting the PDB, which says 370. The tell was that its key
+count, 377, is exactly chain A's residue count. Counting one residue
+directly (`GLN72 chains: A,B,C`) is what settled it. **When two
+measurements of the same thing disagree, the smaller and more direct one
+is the one to trust**, and neither should be reported until they agree.
+
+`showDepositedCoordinates()` in `viewer.html` updates the
+`structure-from-model` transform to `{name: 'model'}` after every load.
+**Scoped to one invariant** -- the structure DISPLAYED, the structure the
+box is derived from and the structure docking runs against must be the same
+coordinates and the same copy -- and explicitly NOT a claim that deposited
+coordinates are the better representation in general. It is also what the
+app already defaults to elsewhere: building an assembly for docking is an
+opt-in in the Contents dialog, defaulted off, which the viewer was silently
+contradicting. That opt-in is untouched.
+
+**THE OPTION THAT LOOKS LIKE THE FIX DOES NOTHING.** Passing
+`structure: {name: 'model'}` in `loadStructureFromData`'s options is
+accepted and ignored -- the state tree still shows
+`type: {name: "assembly", params: {id: "1"}}`. The transform has to be
+updated after the load.
+
+**A CIRCULAR FRAME TEST WOULD HAVE PASSED.** The obvious check is
+`box_from_ligand` centre == the box the page was given == the ligand's
+coordinates; the first two are the same value handed along, so that pair
+proves plumbing and nothing else. Reading the ligand's coordinates out of
+**Mol\*'s own loaded state** reported 0 of 24 atoms inside the box
+immediately. Re-verified across seven receptors chosen for shape variety
+(6WGT, 1HSG, 4DKL, 3HS4, 5I6X, 4EY7, 6X3T): every one now encloses its
+boxed copy, and the multi-copy entries show all copies while enclosing only
+the boxed one, which is the correct relationship.
+
+### Drawing a box: `BoxShape3D` exists, and the mirror lies about it
+
+`molstar.lib.plugin.StateTransforms.Shape` has `BoxShape3D` and
+`getBoxMesh`; `createDefaultParams()` is
+`{bottomLeft, topRight, radius: 0.15, color: 16711680}`. Probed against the
+vendored bundle in a bare `QWebEngineView`, the same way Ketcher is, rather
+than reasoned about -- `MolStarViewerBackend` inherits `apply_shapes`' no-op
+default, so "Mol* cannot draw shapes" was a plausible and wrong conclusion.
+
+**A BACK-TO-BACK BURST LEAVES ORPHANS WHILE THE STATE REPORTS ONE BOX.**
+Three `showSearchBox` calls in a row left THREE shapes in the scene while
+`searchBoxState()` correctly said one: a builder created before the
+previous commit resolved deletes a ref the state tree does not have yet, so
+the delete silently no-ops. Fixed with one desired state and one applier
+that re-checks on completion, so a burst of any length costs at most two
+commits. **The guard counts shapes in the SCENE**, not stored refs.
+
+**AND `loadStructure` CALLS `plugin.clear()`**, which wipes the box and
+leaves the page's refs dangling. The DESIRED box survives a load
+deliberately and is restored onto the new structure, which is what makes
+loading a receptor redraw its search region without the window sequencing
+the two calls.
+
+**MEASURING THE RENDER OVER THE WHOLE WINDOW SAYS THE OPPOSITE OF THE
+TRUTH.** Ink went 39940 -> 39942 (+2) on the first attempt and read as
+"committed but nothing drew". Two faults in the metric: the scene was empty
+so the camera framed nothing, and Mol*'s UI chrome is ~57% of the window.
+With a structure loaded and the count cropped to the 3D canvas, 16778 ->
+20270 (+20.8%).
+
+### AND IT WAS ONLY HALF FIXED: A POSE INTERLEAVED AND THE RECEPTOR STAYED ON ASSEMBLY 1
+
+Reported as tryptamines docking "way outside the receptor" in 6WGT -- the
+same symptom this section is about, two years of commits later, because
+`showDepositedCoordinates` had **zero test coverage**: `deposited`,
+`assembly` and `structure-from-model` all matched nothing in
+`tests/test_molstar_viewer_backend.py`. **It was verified by loading a
+receptor ALONE, which is the one path on which it cannot fail.**
+
+The box was measurably correct throughout. Driven in the app:
+`Search box is on the 7LD site (0.0 A from its centre) and holds 217
+receptor atoms`, against `describe_box_placement`'s own pinned 218.
+
+`_on_docking_result_ready` makes two calls back to back:
+
+    load_macromolecule(receptor)     -> loadStructure
+    load_additional_structure(pose)  -> loadAdditionalStructure
+
+`loadStructure` does its work inside `plugin.clear().then(...)` and returns
+immediately; `loadAdditionalStructure` ran **synchronously**. So the pose
+interleaved, and `showDepositedCoordinates` -- which kept the **LAST**
+matching cell -- retargeted the POSE. Measured against the real bundle:
+
+    receptor  type {name: 'assembly', params: {id: '1'}}   <- chain A only
+    pose      type {name: 'model'}
+
+**Retargeting a single ligand is a NO-OP**, so nothing anywhere reported a
+problem while the receptor was drawn as assembly 1 -- on 6WGT that is ~43 A
+from the chain-B pocket the box and the pose are both in.
+
+#### ONE CHANGE IS LOAD-BEARING AND THE OTHER TWO ARE NOT, WHICH ONLY MUTATION SAID
+
+Four arms, and the first pass had **three survivors** -- every one an
+EQUIVALENT mutation rather than a coverage gap:
+
+    M1  showDepositedCoordinates back to last-match-wins   SURVIVED
+    M2  it retargets EVERY structure                       SURVIVED
+    M3  the pose ignores its generation                    SURVIVED
+    M4  the pose is not queued                             caught
+
+They are equivalent for one reason, and it is the thing to know before
+anybody "simplifies" this page: `loadStructure` calls `plugin.clear()`, so
+once the loads are SERIALIZED the scene contains nothing but the structure
+that load just created. There is no reachable state in which picking the
+last cell, picking every cell and picking the one we loaded differ. **The
+queue removed the condition the other two rules defend against.**
+
+So the ownership diff and the generation binding are defence in depth. They
+are KEPT -- each becomes load-bearing again the moment `loadStructure` stops
+clearing, or a load path that skips the queue is added, both ordinary future
+edits -- and they are asserted on the SOURCE rather than dressed up as
+behavioural coverage they do not have. This file's own rule: *an unreachable
+branch is a question about where to assert.* Second pass: four arms, four
+caught, each by the intended guard.
+
+**THE GENERATION IS READ AT REQUEST TIME, NOT AT RUN TIME.** Reading it when
+the queued step runs would always find the newest receptor and the binding
+would say nothing. And capturing it without COMPARING it is a variable
+nothing reads -- measured, deleting that one line leaves every other guard
+in the file green, which is why the comparison is asserted by name.
+
+#### DRIVEN, AND THE LIVE CONTROL WAS INCONCLUSIVE -- WHICH IS THE FINDING
+
+`benchmarks/visual/docked_pose_in_6wgt.json` docks DMT into 6WGT through the
+new `dock_run` step. Real Vina, ~5 minutes a run.
+
+    after   three chains drawn, the pose BURIED in the orange chain's
+            helical bundle at 9x magnification
+    before  three chains ALSO drawn -- the race did not reproduce that run
+
+**The race is intermittent in the running app and deterministic in the
+headless test.** So here the TEST is the instrument and the screenshot is
+the confirmation, which is the opposite of this file's usual order and is
+worth stating: reporting that before/after pair as a demonstration would
+have been reporting a coin flip as a control.
+
+**`dock_run` PRESSES THE BUTTON**, for the reason `jobs_cancel` does. A
+DISABLED button is logged rather than clicked -- Qt silently ignores a click
+on a disabled control, so without that check the run reports a healthy
+`dock_run` step and never docks, which is the wrong-panel-id trap in another
+costume. Docking is asynchronous: give the step an `after_ms` long enough
+(300000 here) or the next step photographs a viewer that has not been handed
+a pose, which looks exactly like the pose failing to draw.
+
+#### THE PIPELINE REPRODUCES THE DEPOSITED POSE, AND THE SPREAD IS WHAT MAKES THAT READABLE
+
+`redock.py` takes `--targets` and `--repeat` now. `VinaDockingProvider`
+passes `seed=None`, so the shipped app runs a RANDOM seed and a lone
+centroid shift is a draw from a distribution nobody has measured. Four runs
+of 6WGT/7LD:
+
+    affinity  -9.4  -9.4  -9.4  -9.4
+    shift     2.90  2.89  2.91  2.87 A     spread 0.04 A
+    verdict   same pocket, all four
+
+So the shift is ~70x the same-receptor noise floor and inside the 3.0 A
+threshold. **This establishes only that the pipeline reproduces a known pose
+on this deposit** -- it is not a claim that docking is chemically correct in
+general, and LSD at 3.40 A resolution is a large flexible ligand.
+
+## THE ALIGNMENT COULD NOT MOVE A TORSION, AND THE RMSD COULD NOT SAY SO
+
+Reported against MPMI vs 4-HO-MPMI -- the same skeleton, one hydroxyl
+apart -- aligned on *Common scaffold (MCS)*: "the tail pyrrolidine is not
+aligned at all, which makes no sense". The panel said **score 109.75, RMSD
+0.116, 14 paired atoms**, which is a confident, healthy-looking result for
+a picture that is visibly wrong.
+
+Reproduced bit for bit from `MPMI.ocsproj`, the project the report came
+from, BEFORE anything was changed. Three defects:
+
+**A. THE STORED CONFORMERS WERE THROWN AWAY.**
+`_EnsembleAlignmentTask` calls `engine.mol_from_model`, which reads
+`model.molblock` -- the 2D drawing -- and never `model.conformers`. The
+reference had **17** stored conformers and the alignment embedded five
+fresh ones instead.
+
+**B. O3A IS A RIGID SUPERPOSITION.** The MCS fixes the PAIRING; `Align()`
+then finds the best rigid transform for it. It cannot rotate a bond. So a
+probe embedded in isolation keeps whatever rotamer the embedder chose, the
+rigid indole lands perfectly because it is in the MCS, and the pyrrolidine
+lands wherever it was. **More starting conformers is a lottery, not a
+fix** -- measured, at "Accurate" (20 conformers) rigid mode stumbles onto a
+good rotamer for this molecule anyway, which is exactly why sampling is
+not the answer.
+
+**C. `AddHs` WITH NO `addCoords=True` PUTS EVERY HYDROGEN AT THE ORIGIN**
+when the molecule already carries a 3D conformer -- measured on this
+fixture, all **18** of them -- and `Is3D()` stays True throughout, so it
+returned silently. Unreachable while the input was always a 2D drawing.
+**A is what makes it reachable**, so it lands with it.
+
+### The measurement, through the shipped path
+
+    mode                             score   rmsd   core   flex   geometry
+    rigid (today)                   109.75  0.116  0.083  0.931  embedded
+    flexible                        125.15  0.046  0.052  0.036  constrained
+    flexible + ref conformers       125.24  0.023  0.027  0.016  constrained
+
+Flexible RMSD **0.931 -> 0.036, 26x**.
+
+**AND A ALONE MAKES THE REPORTED CASE WORSE**, which is why measuring
+first mattered: the probe has no stored conformer, so using the
+reference's only moves the target -- core goes to **3.493** while the tail
+improves to 0.212, and the popped-out shot shows the indole benzo ring
+plainly out of register. B is what fixes the picture; A is a refinement
+that needs B.
+
+### THE OBVIOUS METRIC CANNOT BE COMPUTED
+
+The first draft of the guard said "RMSD over the atoms NOT in the MCS".
+**Those atoms have no correspondence by construction** -- the hydroxyl
+exists in one molecule and not the other -- and every patch for it (a
+second MCS, nearest neighbour, matching indices) invents one and turns the
+oracle into an arbitrary geometric metric.
+
+The atoms worth measuring are INSIDE the correspondence. What separates
+them is FLEXIBILITY, not MCS membership: both molecules have the
+pyrrolidine, so the MCS covers it. `mcs_partition` splits the MCS's own
+pairs:
+
+    1  pairs     the MCS correspondence, heavy atoms only
+    2  scaffold  the largest fused ring system OF THE PATTERN -- computed
+                 ONCE, on the shared subgraph
+    3  cuttable  bonds matching RDKit's own RotatableBondSmarts
+    4  core      reachable from the scaffold without crossing one
+    5  classify  a PAIR takes its pattern atom's bucket
+
+**STEP 2 IS THE LOAD-BEARING ONE.** Classifying each molecule
+independently is how "14 core atoms here, 17 there" happens, and two
+RMSDs over two different partitions are not comparable.
+
+### A FLEXIBLE REQUEST THAT CANNOT EMBED DEGRADES AND SAYS SO
+
+Pinning the shared atoms onto the reference is not always geometrically
+possible, and that is chemistry rather than a bug: **ibuprofen's MCS with
+naproxen spans BOTH rings of the naphthalene**, so no conformer of a single
+benzene can put its shared ring atoms there. Distance geometry correctly
+refuses -- measured, it fails at all 14 constraints, at the 6 ring ones,
+and at every subset carrying the real shape, while an arbitrary 6 succeed.
+Forcing it would mean inventing a geometry, so it falls back to an ordinary
+embed and reports `embedded` rather than `constrained_embed`. The panel
+shows that column, so "flexible did not take on this pair" is visible.
+
+**`ff.Initialize()` IS REQUIRED AFTER `AddExtraPoint`**, or `Minimize`
+raises a "size mismatch" pre-condition -- the force field still believes it
+holds as many points as the molecule has atoms.
+
+### `matched_atoms` IS NOT THE MCS SIZE
+
+`len(alignment.Matches())` is O3A's own count. The panel printed it
+unconditionally, so an MCS-method result read **"14 paired atoms" for a
+maximum common substructure of 33**. Two fields now -- `mcs_atom_count`
+and `o3a_match_count` -- because one field with a method-dependent meaning
+is how that ambiguity returns under a new label.
+
+### The mutation pass found a vacuous guard, as it usually does
+
+Six arms. **M1 (reverting `addCoords=True`) SURVIVED** against a test
+named for it: the fixture stored a conformer that already had EXPLICIT
+hydrogens, so `AddHs` added nothing and the bug could not fire. It needs a
+3D conformer carrying IMPLICIT hydrogens -- `Chem.RemoveHs` then
+`MolToMolBlock` -- and `test_the_hydrogen_fixture_really_has_hydrogens_to_place`
+now asserts that setup so it cannot go vacuous again.
+
+**The invariant needs no table and no tolerance**: every added hydrogen is
+nearer to the heavy atom it is bonded to than to any other. `Is3D()` and
+"the coordinates are finite" both pass with the bug in place.
+
+**And the self-alignment tolerance was below the representable
+precision.** It asserted `abs=1e-6` and passed because rigid mode handed
+O3A the same object twice; flexible builds a constrained conformer and
+lands 4.9e-05 away. That is an order of magnitude BELOW the **5e-4**
+molblock floor this file already records. A tolerance tighter than the data
+format can represent is not a stronger test.
+
+### THE 3D VIEW WAS 63 PIXELS TALL, and adding a control made it worse
+
+Measured in the running app with the new `align_report` step, which dumps
+every DIRECT CHILD's height -- "the viewer is 63 px" does not say which
+sibling to argue with:
+
+    panel 699 | viewer 398x63 | QGroupBox=414 QTableWidget=160 PopOutHost=95
+
+The settings box and a results table fixed at 160 px for two rows left the
+overlay -- this panel's entire output -- a strip. Two changes:
+
+    Accuracy and Flexibility share ONE flow_row     2 form rows -> 1
+    the table sizes to its rows under a cap         160 -> 100
+
+    before   viewer 398x63
+    after    viewer 398x123
+
+`flow_row` rather than a `QHBoxLayout`, because a horizontal layout's
+minimum width is the SUM of its children and this panel has already set the
+whole window's minimum that way once.
+
+**JUDGE AN OVERLAY IN THE POPPED-OUT WINDOW, NOT IN THE STRIP.** A 123 px
+crop shows an edge of the molecule and nothing about whether it
+superimposes. `{"do": "pop_out", "panel": "3D_Alignment"}` then
+`{"do": "shot", "widget": "popout"}` gives 960x720 of it, which is what
+settled both arms.
+
+### The drive steps this added
+
+    {"do": "open_project",     "path": "C:/tmp/MPMI.ocsproj"}
+    {"do": "align",            "flexibility": "Flexible"}   (new option)
+    {"do": "align_report",     "tag": "after"}
+    {"do": "ensemble_visible", "row": 1, "on": false}
+    {"do": "overlay_colour",   "mode": "element"}
+
+The last two drive the CONTROL rather than the helper behind it: a test
+that calls `_show_ensemble` directly proves the helper works and says
+nothing about whether the box is wired to it.
+
+## POPPING A VIEW OUT: the widget MOVES, and that was measured first
+
+Reported against 3D Alignment: two molecules aligned on a common
+scaffold, and "the 3d conformer is contained in that tiny area". The
+overlay IS that panel's entire output and it renders into a strip about
+400x90 px, because a settings group box, a 160 px result table and the
+style row are all fixed height above it in a dock that opens at 420.
+
+`ui/widgets/pop_out_host.py` is the mechanism. `PopOutHost` wraps one
+view, puts a `↗` button in a thin header row, and moves the widget into a
+`PopOutWindow` and back. Six sites use it: the alignment overlay, and
+Quantum Chemistry's Surfaces, IR, 1D Signals and three correlation plots.
+
+**IT MOVES THE WIDGET; `FactView.open_in_window` COPIES ITS VIEW. Both
+are right, and the difference is the thing to keep.** A report is cheap
+to re-render and two side by side is the use case. A 3D view is stateful
+-- the camera angle the user just set is the whole reason they want it
+bigger -- so copying hands them a default camera and a second
+QtWebEngine process set.
+
+**THE RULE, because an agent meeting `open_in_window()` will assume the
+`FactView` pattern:** for a stateful visualisation the documentation and
+the help contract must SAY which one it is. `workspace.pop_out_view`'s
+text is explicit that the view moves. Never infer it from a label.
+
+### RE-PARENTING A `QWebEngineView` SURVIVES, and nothing here had ever done it
+
+Measured before a line was written, on a real display, with an ensemble
+loaded and the camera turned to a distinctive angle:
+
+    stage                    identity   parent chain              ink%  black%
+    docked                   same       View -> host -> panel     10.5  0.2
+    detached                 same       View -> QDialog -> ...    10.7  0.2
+    drag while detached      --         camera MOVED              --    --
+    returned                 same       View -> host -> panel      9.7  0.1
+    3x round trip            same       stable                     9.0  0.2
+    destroyed after return   ALIVE      View -> host -> panel      9.7  0.1
+
+The camera quaternion came back byte-identical across the move, a
+synthetic drag landed while detached, and the canvas genuinely re-laid
+out -- 796x596 -> 1800x1400 -> 796x596 -- rather than freezing on a last
+frame, which is what distinguishes a live page from a stale one.
+
+**BLACK FRACTION IS COUNTED SEPARATELY FROM INK**, because a failed
+render is a BLACK canvas and scores as heavily inked; this file already
+records that metric being read backwards once, at 94875 against 3067.
+
+**READ THE PAGE'S OWN CANVAS, not the widget.** A `QWebEngineView`
+renders out of process, so 3Dmol's `viewer.pngURI()` is the honest
+source and `widget.grab()` is not.
+
+### THE LIFECYCLE: three states, four transitions, nothing else
+
+                        pop_out()
+            DOCKED  ---------------->  DETACHED
+              |     <----------------      |
+              |      return_home()         |
+              |      window closed         |
+              |                            |
+              |   owner destroyed          |  owner destroyed
+              +----------> DISPOSING <-----+
+
+**"LOOKED AWAY FROM" AND "DESTROYED" ARE DIFFERENT THINGS**, and the
+first draft of this design conflated them -- it said the owner being
+destroyed "returns the view home", which is incoherent once there is no
+home to return to. Six Qt events mean "the panel went away" and only two
+bring the view back:
+
+    another dock selected                stays open
+    another tab selected                 stays open
+    the dock hidden or closed            stays open (retained, not destroyed)
+    the dock floated                     stays open
+    a new job / the result cleared       RETURNS HOME (a semantic reset)
+    the owner destroyed / app shutdown   DISPOSING, no restore
+
+Which is why there is deliberately **NO `hideEvent` hook**: the first
+four rows are all `hideEvent`, so a hideEvent-driven return snaps the
+window shut every time the user glances at another tab.
+
+**THE WINDOW IS PARENTED TO THE HOST**, which is what makes `DISPOSING` a
+cascade rather than a policy somebody has to remember: panel -> host ->
+window -> content, one direction, nothing dangling. An unparented window
+outlives its owner, which is the one forbidden outcome.
+
+### `finished` IS THE PRIMARY HOOK AND `closeEvent` IS NOT
+
+A review proposed driving the restore from `PopOutWindow.closeEvent()`
+with `finished` as a backstop. It is the wrong way round, and it leaks
+the Escape key:
+
+    the X button   close() -> QCloseEvent -> QDialog::closeEvent
+                   -> reject() -> done() -> finished
+    Escape         keyPressEvent -> reject() -> done() -> finished
+                   ... and NO QCloseEvent at all
+
+So `closeEvent` alone silently leaves the content inside a hidden window.
+`closeEvent` is kept as an additional EARLIER hook on the X path, and
+`return_home` is idempotent so both firing is harmless.
+`test_escape_returns_the_view_even_though_it_sends_no_close_event` is the
+guard, and it is the only thing that catches the closeEvent-only
+mutation.
+
+### VIEW CONTROLS STAY IN THE PANEL; the window gets only a Return button
+
+Alignment's `Style:` combo stays in the dock and goes on driving the
+detached overlay, because `Mol3DViewerBackend` holds the page and the
+channel rather than the parent widget. That falls out of the existing
+design rather than being built, which is exactly why it needs an
+assertion -- free today, easy to break.
+
+A duplicate control in the window would be two widgets for one setting.
+The header row therefore never moves, and a header widget that already
+belongs to another layout is REFUSED in the constructor, because the
+silent mistake is
+
+    layout.addWidget(style_combo)          # still there
+    PopOutHost(..., header=[style_combo])  # and now here too
+
+which Qt honours by stealing it and leaving a hole.
+
+**THE BUTTON COSTS THE PANEL NOTHING.** Measured either side of the
+change, since a `QHBoxLayout`'s minimum is the SUM of its children and
+this file's worst layout bug came from exactly that: the alignment
+panel's minimum is **297 x 392 before and after**. The note label in the
+settings box sets it; the header row has slack.
+
+### A PLAIN `QLabel` PLACEHOLDER, NEVER `empty_state()`
+
+`QuantumChemistryPanel.empty_message_for_tab` returns the first
+`is_empty_state` widget it finds anywhere under a tab, via
+`findChildren`. Building the "showing in its own window" placeholder with
+the helper whose NAME sounds right would put a hidden marked label inside
+every host, and every wrapped tab would start answering for itself with
+the pop-out's message. Two guards, one at each end.
+
+### THE SECOND GLYPH WAS AN EMOJI, and only the magnified shot said so
+
+The button first showed `U+2B1C WHITE LARGE SQUARE` while detached. All
+22 tests passed, `--missing` said "Nothing matched", and a 3x crop of the
+running app showed a **lavender emoji square** in the panel chrome.
+Windows resolves that codepoint to a colour emoji font; `U+25FB`,
+`U+29C9` and `U+1F5D6` all do the same.
+
+**A PROBE THAT COUNTS COLOURED PIXELS CANNOT SETTLE IT.** At button size
+ClearType's sub-pixel fringes are genuinely coloured, so an unassigned
+control codepoint scored as "drew, in colour" too and the probe could not
+discriminate. `QFontMetrics.inFont()` is no help either, for the reason
+this file already records. **The screenshot was the oracle.**
+
+The state is not carried by a glyph at all now: `setChecked` is drawn by
+the platform style, is themed, and cannot be missing from a font.
+`U+2197` is kept for both states because it was confirmed in a screenshot
+of the real application at the real size.
+
+### THE MUTATION PASS FOUND A VACUOUS GUARD, as it usually does
+
+Nine arms, nine caught, each by the intended guard and each running the
+full 96 -- but **M5 only after the guard it was aimed at was repaired**.
+`test_a_detached_view_survives_switching_to_another_tab` never showed its
+panel, and **a widget that was never shown receives no hide events at
+all**, so it passed with a `hideEvent` hook installed and without one.
+It shows the panel now and asserts its own setup -- that switching the
+tab really did hide the host -- because otherwise the claim is about a
+hide that never happened.
+
+This is the same lesson as `repaint()` and `resize()` on an unshown
+widget, one event along.
+
+### THE DRIVE STEPS, and the trap in the first run
+
+`{"do": "align"}` and `{"do": "pop_out", "panel": "3D_Alignment"}` --
+note the UNDERSCORE, since `_dock_by_panel_id` matches
+`dock.objectName()`. `{"do": "shot", "widget": "popout"}` photographs the
+detached window.
+
+**NAME THE REFERENCE.** The first run reported "Ensemble alignment
+failed" and read as a bug in the panel: with no reference named, the
+combo sits at index 0, which is the STARTER MOLECULE, and it has no
+molblock. Same shape as the `smiles`/`conformers` trap already recorded
+-- a step that does not select what it added. The failure also made the
+detached screenshot 4.6 KB against 63 KB, which is how it was noticed.
+
+## A HORIZONTAL ROW'S MINIMUM IS THE SUM, and it set the whole window's
+
+Reported as "the rightmost tab ... will change size, and even became
+pretty much inaccessible until I got out of fullscreen. But then while
+windowed, clicking another menu item, and then maximizing will fix it."
+
+**The window's minimum width was 1877-2055 px against a 1920 px screen**,
+varying by which right-hand panel was showing. So `resize()` was silently
+clamped, the window really was 2055 px wide on a 1920 px display, the
+panel rail sat at x=1785..2055 with 135 px past the edge, and switching
+panels moved the minimum by up to 178 px. Every symptom follows from that
+one number, including why a windowed/maximize cycle "fixed" it.
+
+**The panel in the screenshots was not the cause.** Measured with the
+`geometry` drive step: every right-hand dock's minimum is 102-280 px and
+the scroll wrappers ask for 58, so `_wrap_scrollable` -- the obvious
+suspect, whose docstring even promises a "defensive floor" -- was
+innocent. It came from the centre:
+
+    central QStackedWidget      minHint 1336
+      MoleculeViewer3DWidget    minHint 1330
+        widest direct child     minHint  143   <- nothing explains it
+
+Nothing inside it reached even 300 px, because **a `QHBoxLayout`'s
+minimum width is the SUM of its children**: fourteen controls at 1252 px
+plus thirteen gaps = 1330. "Which child is widest" is the wrong question
+for a horizontal layout and the reason a chain walk comes back empty --
+dump every descendant over a threshold as well, which the drive step now
+does.
+
+`ui/widgets/flow_layout.py` wraps instead, and `FlowLayout.minimumSize`
+returns the widest SINGLE item. Minimums fell to 690-868, the window to
+1920, the rail to x=1650..1920.
+
+**`QToolBar` LOOKS LIKE THE FIX AND SILENTLY LOSES CONTROLS.** Its
+overflow (`>>`) button exists only for a toolbar in a `QMainWindow`
+toolbar area; as a plain child widget it drops whatever does not fit with
+nothing to reach it by. Measured: 8 controls at 320 px left **1 visible
+and no extension button**, while the minimum fell 2410 -> 115. A 20x
+improvement that loses seven controls is not one.
+
+**A SYMPTOM TEST CAN PASS WITH THE BUG RESTORED.** Both revert-mutations
+were caught only by the structural tests at first, because Qt clamps
+`resize()` -- so the window simply grew past the screen and the rail sat
+comfortably inside an over-wide window. Asserting that the window really
+BECAME the size it was asked for is what makes it a test of the symptom.
+
+### What the geometry says about the GUI's shape -- data, not a decision
+
+Recorded from that baseline for a future consolidation pass, since the
+application has grown from an editor with calculators into a workbench
+and the "every feature gets a panel" assumption will eventually bite.
+**Nothing here is acted on**, with ONE exception now: the dock's
+STARTING width, below.
+
+#### ACTED ON: the right dock now opens at 420, not at its minimum
+
+Nothing used to set a starting width, so Qt handed every panel its own
+minimum -- 280 px, permanently, until somebody dragged it. **That is why
+the Properties caption clipping was reachable at all**: the panel spent
+its whole life at the narrowest width it was legally allowed to be.
+
+Re-measured in the running app, and these supersede the numbers in the
+list below, which are CONTENT MINIMUMS from an older tree. These are
+each dock's `sizeHint` -- what it would like:
+
+    Quantum Chemistry 576   Docking        466
+    Interactions      546   Atom Inspector 417
+    3D Alignment      518   Batch          413
+    Structure Check   467   Jobs           264
+
+420 clears three of those outright and comes within 10% of two more.
+Capped at a quarter of the SCREEN, so 1920 gives 420, 1366 gives 341,
+and anything under ~1120 keeps today's behaviour because the panel's own
+minimum wins. A saved layout is never overridden.
+
+**THE CAP MUST COME FROM THE SCREEN, NOT `self.width()`.** This runs
+during construction, before the window is shown, where `self.width()` is
+Qt's pre-show default rather than the geometry `restoreGeometry` is
+about to apply -- about 1400 px on a 1920 px display. Capping against it
+produced 350, which is a plausible-looking quarter of a window that
+never exists.
+
+**AND THE SUITE CANNOT SEE ANY OF IT.** `offscreen` reports an 800 px
+screen, so the cap always bites and the computed width equals the dock's
+minimum -- applying the feature and deleting it are indistinguishable by
+outcome. `initial_right_dock_width` is therefore a pure function and the
+table is tested directly; deleting the CALL is the one mutation nothing
+catches, and it is written into the test rather than papered over.
+
+- **The rail costs 270 px, and it IS collapsible** -- this entry used to
+  end "whether it should be collapsible is a real question", and by then
+  it already was. `PanelRail._on_group_clicked` folds the name list on a
+  second click of the group already showing, and `set_list_visible` /
+  `is_list_visible` shipped with it; the `_names` container exists so the
+  fold is one `setVisible`. Measured: 270 px expanded, **40** collapsed,
+  and the window's own minimum follows it 716 -> 486.
+
+  **What was actually missing was PERSISTENCE**, which is a different
+  entry in the same list and was found by reading the code rather than
+  the note. `MainWindow` saved `ui/pinned_panels` and nothing else, so
+  anyone who folded the rail to reclaim 230 px did it again every launch.
+  It now stores `ui/rail_collapsed`, restored AFTER
+  `_restore_window_state` for the reason `initial_right_dock_width`
+  records.
+- **Every dock is displayed at 280 px while its content wants far more**:
+  Quantum Chemistry 669, Docking 462, Batch 409, Atom Inspector 352.
+  Those four are the panels genuinely relying on scrolling, not merely
+  benefiting from it.
+- **The cheap panels are cheap**: Jobs wants 66, Structure Check 186,
+  Interactions 211, Compare 222.
+- **ACTED ON: the centre has a deliberate floor of 400 px.** This entry
+  read "no minimum worth the name (~280 after the fix)" and the real
+  figure was **149**, measured in the running app -- below even the
+  `CENTRAL_FLOOR = 200` that `tests/test_right_dock_width.py` had been
+  reasoning about since the flow-layout work. That constant was
+  test-only: nothing enforced it, and it held solely because no dock
+  happened to ask for enough to break it. The test file imports it from
+  `main_window` now, so the two cannot drift.
+
+  **ON THE `QTabWidget`, NOT ON A PAGE AND NOT ON THE WINDOW.**
+  `centralWidget()` holds three pages (2D Editor, 3D Viewer,
+  Macromolecule Viewer) and a `QTabWidget` takes the MAXIMUM over them,
+  so a floor on the editor page propagates today by accident and
+  evaporates when the pages are rearranged, while guaranteeing nothing
+  for the other two. It is also the object the CEILING guard already
+  measures, so the two bounds are on one quantity rather than two.
+
+  **400 is bounded on both sides by measurement**, not chosen: the
+  non-centre chrome is 567 px on the real desktop and 854 under
+  `offscreen`, putting the window minimum at 967 and 1254 against the
+  1366 this product supports. 640 would put `offscreen` at 1494 and
+  redden `test_the_window_can_be_made_narrower_than_a_small_laptop`. And
+  400 is what makes the guard able to say NO at all: `offscreen`'s
+  emergent centre minimum is already 282, so a floor of 200 could never
+  fail, which is the same blindness `initial_right_dock_width` records
+  one entry up.
+
+  **`minimumSizeHint()` DOES NOT ANSWER THIS.** It is Qt's RECOMMENDED
+  minimum and is unmoved by `setMinimumWidth` -- measured, hint 282
+  against an enforced minimum of 400 -- so the first guard written for
+  this failed against correct code. Assert the behaviour: squeeze the
+  window and read the centre's actual width.
+- **Any future single-row toolbar will reproduce this exactly.** The
+  guard in `tests/test_right_dock_width.py` catches it at the window
+  level; `flow_row()` is the cure.
+
+## A PANEL THAT LEAKS ITSELF AND THEN POLLS FOREVER
+
+The Linux segfault's cause, and the first entry in this file's long
+access-violation family that names a MECHANISM rather than heap layout.
+Every link was already documented here; nothing was joined up.
+
+    JobsPanel.refresh connects a lambda capturing `self`
+      -> PySide6 holds it STRONGLY, so the panel is immortal
+      -> its 500 ms QTimer is never stopped, so it polls forever
+      -> every poll calls setItem/setCellWidget, which DELETE the old cell
+      -> _wait_until pumps processEvents() for up to 60 s
+      -> Qt destroys a widget inside an unrelated test's event dispatch
+      -> segfault, in whichever test was pumping
+
+**THE LEAK IS "ANY PANEL THAT EVER HAD A JOB TO SHOW", and that is what the
+guard's fixture has to reproduce.** The lambda lived inside
+`for row, job in enumerate(jobs)`, so measured with `_survives_collection`:
+
+    one active job at construction    leaks: True   -> False after the fix
+    no jobs at all                    leaks: False  (both)
+
+A fixture built from a bare `JobManager()` **passes against the bug**, which
+is why `test_a_jobs_panel_with_no_jobs_could_never_have_shown_the_leak`
+exists -- it states in the suite, rather than in a comment, that the empty
+panel is not evidence.
+
+### WHAT IT COST, and why one number would have misled
+
+Instrumented over `test_jobs_panel.py` + `test_molstar_viewer_backend.py`
+alone -- five leaked panels, refreshing inside a file five positions later:
+
+    arm                 cross-file refreshes   widget destructions there
+    neither (master)                     170                         680
+    the bound method
+      alone (A)                            0                           0
+    the snapshot
+      alone (B)                          365                           0
+    A + B                                  0                           0
+
+**NEITHER FIX SUBSUMES THE OTHER.** B alone takes the DESTRUCTIONS -- the
+segfault site -- to zero and leaves the panels immortal, so their refresh
+count goes UP: a cheap refresh fits into the same pump window more often. A
+is what removes the refreshes at all, because a collectable panel's timer
+dies with it. Read either column alone and the other fix looks unnecessary.
+
+### THE VISIBILITY GATE HAD TO LAND LAST, or it would have taken the credit
+
+A panel that is never shown never polls, so stopping the timer in
+`hideEvent` makes the crash disappear **without touching the leak**. The
+attribution table above was taken before that existed, deliberately.
+
+**AND ITS GUARD'S `show()` IS LOAD-BEARING IN THE OPPOSITE DIRECTION FROM
+THE USUAL ONE.** This file records repeatedly that a widget which was never
+shown runs almost none of its own code, so a guard skipping the show passes
+vacuously. Here it does not: no show means no hide event, so the timer stays
+running and the guard **FAILS AGAINST CORRECT CODE**. Measured both ways;
+the first draft of that docstring had it backwards.
+
+**THE TIMER IS STILL STARTED IN `__init__`.** Starting it only in
+`showEvent` means the panel polls if and only if such an event arrives, and
+a frozen Jobs list is indistinguishable from an idle one -- which is what it
+shows most of the time. That mutation is green everywhere except
+`test_a_freshly_built_panel_polls_without_waiting_for_a_show_event`.
+
+### FIVE FILES HAD THE SAME LAMBDA; THREE HAD ALREADY BEEN FIXED
+
+The rule existed, the cure existed (`setProperty`/`setData` + a bound method
+reading `sender()`), and the population was a hand-kept list of two.
+
+    ui/panels/jobs_panel.py                 the crash site
+    ui/panels/atom_inspector_panel.py       every panel
+    ui/dialogs/structure_lookup_dialog.py   two, every dialog
+    app/main_window.py                      a context-menu action, one more
+                                            rooted on every right-click
+    services/quantum_chemistry_service.py   three, on a QProcess
+
+**THE `QProcess` CASE LOOKS HARMLESS AND IS NOT.** The captured object is a
+long-lived service, so "it lives anyway" is the obvious reading -- but the
+service OWNS the process and the process holds the lambda holds the service,
+which is a cycle, and the callable lives in PySide's own map that the cyclic
+collector cannot see through. Every job run rooted the whole service graph.
+
+`test_no_signal_is_connected_to_a_self_capturing_lambda` asserts it over the
+package, in the shape `test_every_single_shot_timer_is_bound_to_a_context_object`
+already uses. **265 connect() calls, 0 offenders**, and it prints that count
+even when it passes -- `checked >= N` catches the walk collapsing to zero,
+the printed count catches drift that stays above the threshold.
+
+**IT SAYS WHAT IT DOES NOT COVER, in its own docstring**, because a green
+structural guard reads as a lifetime proof: it pins ONE SHAPE and is blind
+to `self` reached through another name, a `functools.partial`, a reference
+held elsewhere, or a Qt parent. The two per-widget outcome guards stay.
+
+### AND THE MUTATION HARNESS LIED ONCE, AGAIN
+
+The arm that removes the `checked >= N` threshold sliced the file between an
+`index()` and a later `index()` -- and the second matched the OTHER guard's
+identical `assert not offenders`, so the slice DUPLICATED text instead of
+removing the threshold. It reported a confident result from an edit that
+never landed. Sixth instance in this file. **Assert the edit before running
+the arm**: `assert 'assert checked >= 200' not in mutated`.
+
+Correctly applied, it is the failure mode worth knowing: with the threshold
+gone and the walk broken the guard passes **green while checking nothing**,
+printing `checked 0 connect() calls`.
+
+## OPEN BABEL HAS NO DATA FILES ON WINDOWS -- THE PLATFORM THIS SHIPS ON
+
+**AND I FIRST WROTE THIS UP AS "ON EVERY PLATFORM", WHICH WAS WRONG.** The
+Linux half was an INFERENCE -- that its wheel had the same layout because it
+behaves as a repaired Windows does -- and the environment probe added in the
+same commit refuted it on its first run. The commit message
+(`9e302e4`) carries the wrong claim and cannot be edited; this is the
+correction. Same failure this file records repeatedly: a measurement on one
+platform, generalised to another that was never measured.
+
+What is measured, both platforms, from the probe:
+
+    Linux    BABEL_DATADIR -> share/openbabel/3.1.0    55 files, space-groups.txt
+             bin/data                                   DOES NOT EXIST
+    Windows  BABEL_DATADIR -> share/openbabel/3.1.0     1 file, splash.png
+             bin/data                                   40+ files, space-groups.txt
+
+**The two wheels lay their data out differently and only one of them agrees
+with the variable `openbabel/__init__.py:28` sets.** Linux is correct.
+Windows is broken -- and Windows is the platform this application ships on,
+which makes it the worse half rather than the better one.
+
+**IT IS NOT SILENT -- it warns, and the warnings have been in every Windows
+run all along**, which is why nobody noticed: they are noise on stderr in a
+suite that produces a lot of it.
+
+**THE DEFECT IS NOT CONFINED TO SPACE GROUPS**, which is what makes it worth
+an entry rather than a footnote. Measured ON WINDOWS on aspirin, `addh` +
+`make3D` + write PDBQT, with and without the data dir repaired:
+
+    BABEL_DATADIR      space groups   ring fragments   MMFF94 setup
+    as the wheel sets  cannot open    cannot open      **False**
+    at bin/data        fine           fine             **True**
+
+Open Babel's MMFF94 **cannot be set up at all** as things stand. PDBQT atom
+types came out identical in both arms for that molecule (`A`x6 `C`x3 `OA`x4
+`HD`x1), so typing is not obviously affected -- **that is ONE molecule and is
+not a claim about the docking path.**
+
+**NOTHING IS CHANGED HERE, DELIBERATELY.** Repairing the variable alters what
+Open Babel does in every format conversion on the shipping platform, and the
+one effect measured so far REVERSES a shipped test result (below). That is its
+own measurement with its own benchmark, not a side effect of repairing a test.
+
+**AND THE REPAIR IS NOT "POINT IT AT `bin/data`"**, because that directory
+does not exist on Linux. Whatever ships has to derive the right answer per
+installation -- or better, be reported upstream to the wheel.
+
+### IT IS ISSUE #8's ROOT CAUSE, AND THE FIX FOR IT IS TO CHANGE NOTHING
+
+`pose_analysis.is_symmetry_generated` has said since the docking work that
+Open Babel "expands the unit cell when it cannot recognise a space group".
+That was the OBSERVATION. The CAUSE is the missing database above, and
+establishing it took one fixture with a real group rather than the bogus one
+the test suite uses:
+
+    P 21 21 21, its four operations, four deposited atoms
+    BABEL_DATADIR as the wheel sets it   16 atoms, 12 invented
+    BABEL_DATADIR at bin/data             4 atoms,  0 invented
+
+With the database present Open Babel resolves the group and duplicates
+nothing. **The recorded ratios follow from the operation counts** -- 6WGT's
+8.00x is a group with eight operations, 7M93's 2.00x one with two -- which is
+what turns a coincidence into an explanation.
+
+Confirmed on real data rather than only a fixture. The six COD crystals in
+`tests/fixtures/cif/`, read through Open Babel both ways:
+
+    1502211   1488 -> 186    8.0x
+    1511792    241 ->  61    4.0x
+    1569411     78 ->  20    3.9x
+    1004002    476 -> 238    2.0x
+    1504676     60 ->  30    2.0x
+    7717378    240 -> 120    2.0x
+
+**The BOND count is identical in every arm** (267, 181, 31, 46, 20, 110), so
+the extra atoms are unbonded duplicates -- the signature the filter keys on.
+
+#### AND THE RECOMMENDATION IS TO LEAVE IT ALONE, WHICH THE MEASUREMENT DECIDED
+
+The instinct on finding a root cause is to fix it. Measured through
+`_convert_receptor_to_pdbqt`, the receptor this application hands Vina is
+**byte-identical either way** -- same SHA-256, because `is_symmetry_generated`
+drops every invented atom before the PDBQT is written.
+
+    broken    7 lines   {N:1, C:2, OA:1, HD:3}   sha 8acc47d7b1a8b147
+    repaired  7 lines   {N:1, C:2, OA:1, HD:3}   sha 8acc47d7b1a8b147
+
+And the rest of the defect misses this application entirely: `make3D`,
+`localopt`, `OBForceField` and `GetForceField` appear **nowhere in `src/`**,
+so the broken MMFF94 and the missing ring fragments cost nothing here. What
+Open Babel is used for is format conversion, two atom iterators and
+`OBAtomAssignTypicalImplicitHydrogens`.
+
+So repairing the variable would change what Open Babel does on the platform
+this ships on, change nothing observable, and turn an exact measured filter
+into a no-op. **There is no benchmark that comes out better.** The cost of
+leaving it is wasted work -- 6WGT builds a 73,707-atom intermediate and throws
+90% of it away -- which is real, bounded, and not worth a behaviour change on
+the shipping platform to avoid.
+
+**THE TRAP FOR WHOEVER REVISITS THIS:** the obvious repair, pointing
+`BABEL_DATADIR` at `bin/data`, **cannot ship** -- that directory does not
+exist on Linux, where the declared path is already correct. Any fix has to
+derive the answer per installation, which is more machinery than the problem
+justifies. The right place for it is upstream.
+
+#### THE UPSTREAM REPORT, RECORDED SO IT NEED NOT BE RE-DERIVED
+
+`openbabel-wheel` 3.1.1.23, Windows only. `openbabel/__init__.py` sets
+`BABEL_DATADIR` to `<pkg>/share/openbabel/<version>/`, which the Windows wheel
+populates with `splash.png` alone; its data files ship in `<pkg>/bin/data/`.
+The Linux wheel populates the declared directory with all 55 and has no
+`bin/data`. Reproduction, on Windows, with no OpenChem code involved:
+
+```python
+import os, pathlib, openbabel
+from openbabel import pybel
+d = pathlib.Path(os.environ["BABEL_DATADIR"])
+print(sorted(p.name for p in d.iterdir()))          # ['splash.png']
+print((pathlib.Path(openbabel.__file__).parent / "bin/data/space-groups.txt").is_file())
+pybel.readstring("smi", "c1ccccc1").make3D()        # warns: cannot open
+```
+
+Symptoms: `Unable to open data file 'space-groups.txt'`, `Cannot open
+ring-fragments-index.txt`, and an MMFF94 force field that cannot be set up at
+all (`Setup()` returns False; True once `BABEL_DATADIR` is repointed).
+
+### AND IT IS THE WHOLE WINDOWS/LINUX DIFFERENCE ON ISSUE #8's FIXTURE
+
+`test_open_babel_really_does_invent_symmetry_copies_from_this_fixture` failed
+on **every completed Linux run** and passed on Windows. This file recorded
+that as a platform-dependent fixture. It is not:
+
+    BABEL_DATADIR as the wheel sets it   8 atoms, EXPANDS
+    BABEL_DATADIR at the real data dir   4 atoms, does NOT expand
+
+...on Windows, both arms, nothing else varied. So **Windows expands BECAUSE
+Open Babel cannot find its space-group database.** The fixture declares a
+deliberately bogus `'Z 99 BOGUS'` group plus two explicit operations; with no
+database Open Babel warns, falls back to "Converting to P 1 cell using
+available symmetry transformations", and applies the two listed operations.
+With the database it resolves nothing for a bogus name and leaves the cell
+alone.
+
+**THE INFERENCE ABOUT LINUX WAS WRONG AND THE PROBE CAUGHT IT SAME-DAY.** The
+first write-up said its wheel presumably shared the defect, on the strength of
+it behaving like a repaired Windows. It does not: Linux resolves 55 files and
+has no `bin/data` at all. The environment step added to `tests.yml` reported
+that on its first run, which is the whole argument for a job that prints
+environment facts rather than one that only passes or fails.
+
+### THE GATE IS MEASURED, AND IT WAS PROVEN TO SAY NO WITHOUT WAITING FOR CI
+
+`symmetry_expansion_skip_reason()` reads Open Babel and returns a REASON or
+None, the shape `conftest.webgl_skip_reason` already uses so both answers are
+values. The DECISION is split into `expansion_skip_reason(atom_count)` -- pure
+arithmetic, so its guards need no Open Babel and cannot become a claim about
+which build the machine has. Same two-level split as `ui/visual_check.py`.
+
+**A CAPABILITY GATE IS WORTH WHAT ITS ABILITY TO SAY NO IS WORTH**, and that
+was verified on ONE machine by reproducing the other's condition rather than
+by pushing and hoping:
+
+    normal Windows                     both guards RUN (23 passed)
+    BABEL_DATADIR pointed at bin/data  both guards SKIP, naming the reason
+
+`test_the_symmetry_gate_measures_open_babel_and_never_the_platform` asserts on
+the source that no platform read crept in -- the tempting repair, and wrong
+twice over: it encodes a conclusion about an environment instead of measuring
+one, and it would keep skipping if a future wheel fixed its data directory.
+
+## THE LINUX JOB COULD NOT NAME ITS OWN VICTIM, AND THE DATA WAS ALREADY THERE
+
+The fingerprint step derived the crashed test by grepping `suite.log` for the
+deepest `tests/*.py", line N in ...` frame. **For a fatal signal that frame is
+wherever the process happened to be** -- `abort()` unwinds through pluggy and
+the test function need not appear at all. Measured on master `becc743`:
+
+    the annotation said    "Reached [57%] then died at an unidentified frame"
+    census.txt, same       tests/test_nmr_view_dialog.py::
+    artifact, said         test_dialog_shows_the_signal_list
+
+`census.txt` is written per test, flushed, and **was already being uploaded**.
+The step simply never opened it. `tools/read_census.py` does now, so every
+future crash names its victim in the annotation -- one `gh api` call instead
+of an artifact download, an unzip and two greps.
+
+**THAT IS WHERE THIS FILE'S "the victim depends on heap layout" READING CAME
+FROM.** The 59%/59%/63%-on-four-different-tests figures were taken from runs
+with no census, where the victim was inferred from a traceback frame. The
+census does not wander:
+
+    33031947731  master   test_dialog_loads_a_conformer_into_the_3d_pane...
+    33099748752  PR #53   test_dialog_shows_the_signal_list
+    33105696692  PR #54   test_dialog_shows_the_signal_list
+    33144071885  master   test_dialog_shows_the_signal_list
+
+**Four observations in ONE file, three on that file's first test. It localises
+the victim; it does not establish the cause** -- and PR #56 then ran to
+completion on the same tree, so the trigger is still intermittent and still
+unknown. The location is pinned; the trigger is not.
+
+**THE PARSER FAILS CLOSED, and the narrow half is the load-bearing one.**
+`return the last BEGIN` names a victim on every clean run too, which would
+make the annotation cry wolf until somebody deleted it -- so a CLEAN trail
+must name NO victim, and an empty or unreadable one reports `NO TRAIL` rather
+than either. Seven mutations, seven caught. It always exits 0: a diagnostic
+that fails the job it was added to observe does not survive.
+
+**THE SENTINEL WAS CHECKED RATHER THAN ASSUMED.** The whole design rests on
+"absent sentinel means it died mid-run", and a first read of the completed
+PR #56 trail suggested the sentinel was never written at all. That was a
+`&&` chain dying on an earlier `grep -c` that legitimately returned 0 --
+`# session finished` is present on the completed run and absent on the crashed
+one, as designed. Two minutes, and it was load-bearing enough to be worth them.
+
+## THE LINUX SUITE CRASHES ON 4 OF 6 COMMITS, AND THE INSTRUMENT NEEDED FIXING TWICE
+
+Measured 2026-08-26, after the jobs-panel fix landed. The entry above
+says "THAT IS ONE RUN" about the green Linux job on `f46537e`, and
+correctly declined to call it proof. Master's own subsequent runs have
+now answered it, and the answer is no.
+
+    9db5ff8  CRASHED     the sigma/pi merge
+    398c084  CRASHED     that branch's PR run
+    9ce6202  CRASHED     a DOCUMENTATION-ONLY commit
+    469ec27  CRASHED     the #48 merge
+    f46537e  OK          <- the one run the entry above cites
+    e9b2716  OK
+
+Only these six carry the verdict, because the annotation that exposes it
+was added in `b229bb0` and nothing earlier can be read this way.
+
+**`git diff f46537e 469ec27` IS EMPTY.** Those two commits carry
+byte-identical trees, and Linux passed on one and crashed on the other.
+That is the strongest single fact here: **no code change causes this**,
+so no bisect can find it and no commit can be blamed. A
+documentation-only commit crashing is the same statement said twice.
+
+### THIS SECTION'S NUMBERS ARE FROM WINDOWS, AND THE CRASH IS ON LINUX
+
+Stated first, because everything below is worth less than it looks
+otherwise. The census figures here were taken on:
+
+    python 3.13.7 | PySide6 / Qt 6.11.1 | rdkit 2025.09.6
+    Windows-11-10.0.26200-SP0 | QT_QPA_PLATFORM=offscreen
+    6090 passed, 15 skipped, 19m09, zero crash markers
+
+**"Linux" is not a reproducible experimental condition and neither is
+"Windows"** -- record the versions beside any figure that will later be
+compared against CI, which is the whole reason to instrument this at all.
+
+### The census was broken twice, and the full suite is what found it
+
+`OPENCHEM_CENSUS=<path>` switches on the widget-lifetime census in
+`tests/conftest.py`. Both defects shipped in `68aa89e`/`40f9fcf`, and both
+survived because **nobody had run the full suite with it enabled**.
+
+**ONE: IT REDDENED THE SUITE WHENEVER IT WAS SWITCHED ON.** `tests/` has
+no `__init__.py`, so pytest loads the conftest under its own plugin name
+-- and four tests in three files do `from tests.conftest import
+painted/ink`, which imports the SAME FILE again under a second module
+name and re-runs it at module level, calling `_start_census()` a second
+time. The double-wrap guard then fired:
+
+    census OFF   4 passed     `_CENSUS_PATH is None`, returns early
+    census ON    4 failed     RuntimeError from the guard
+
+An instrument that reddens the suite exactly when enabled is the hazard
+that guard exists to prevent, restated. The flag records the SOURCE FILE
+now rather than a bool: re-executing the same file returns quietly, a
+census from a DIFFERENT file still raises. Both halves are guarded and
+**the narrow one is load-bearing** -- "never raise" satisfies the first
+and silently deletes the stacked-instrument protection.
+
+**AND THE CENSUS HAD NEVER RUN IN CI AT ALL, WHICH IS WHY THIS SURVIVED.**
+`conftest.py` said "The Linux CI job sets it" and no workflow did --
+measured, `grep -rn OPENCHEM_CENSUS .github/` matched nothing. So an
+instrument written to diagnose a crash that only reproduces on Linux was
+never switched on where that crash happens, and the four failures were
+unreachable until somebody ran the full suite with it locally.
+
+**I REPEATED THAT CLAIM HERE BEFORE CHECKING IT**, in this very section,
+because the docstring stated it as a fact. A comment asserting an
+intention is worse than silence: it is believed, and then quoted. It is
+wired into the Linux job now -- which is what makes the sentence true --
+and `census.txt` goes up beside `suite.log` as an artifact, because a run
+that aborts has no pytest summary line while the census's last `BEGIN`
+still names the test it died in.
+
+**RETURNING BEFORE THE `open()` IS LOAD-BEARING.** The handle is opened
+`"w"`, so a second execution that reached it would TRUNCATE the trail --
+destroying the evidence in exactly the crash case where it is the only
+evidence there is.
+
+**TWO: IT COULD NOT TELL PROCESS TEARDOWN FROM A CROSS-TEST LANDMINE.**
+`gone()` calls a destruction LATE when the test that built the widget is
+not the test running now. At interpreter shutdown every survivor is torn
+down while `_census_where[0]` still holds the LAST test's nodeid, so
+every one of them trips that check:
+
+    LATE lines written during the run          0
+    LATE lines written after the last test   16022   <- all teardown
+
+Every one of the 16022 fell after the final `end` line, which is the only
+reason the two could be told apart at all -- by comparing line numbers, a
+step no reader is going to know to take. A `pytest_sessionfinish` sentinel
+names the boundary now, so each line says `died=<session teardown>`
+outright. **It is a SENTINEL, not a report**: reporting totals from that
+hook cannot work, because the process dies before it -- but a line saying
+"the session ended here" has the opposite property, since if the run
+aborts it is simply ABSENT, and its absence is the correct answer.
+
+### What the corrected census measures
+
+    built                        28875
+    destroyed during the run     12853
+    destroyed LATE, in the run       0
+    alive at the last test       16022  -> all destroyed at teardown
+
+**ZERO cross-test late destructions, re-measured with an instrument that
+is not leaking.** So the conclusion the previous entry reached survives,
+while the reasoning that produced it did not: `40f9fcf` was right to doubt
+the instrument, and its own extrapolation -- "late destructions appear
+immediately" -- is NOT reproduced. Neither a full run nor either of two
+Qt-heavy pairs shows one.
+
+**THE LEAK WAS REAL, and this is what it was worth**, measured on
+`test_property_panel.py` with the original closure restored exactly:
+
+    census as fixed    built 1918   destroyed 1918   alive     0
+    the real leak      built 1918   destroyed  310   alive  1608
+
+84% of widgets immortalised, and `40f9fcf`'s cited test
+(`test_a_pending_metrics_dump_is_cancelled_when_the_panel_is_destroyed`)
+fails with it and passes without, exactly as that commit says.
+
+**AND MY FIRST TWO ATTEMPTS TO REPRODUCE IT SHOWED NOTHING, BECAUSE THE
+MUTATION WAS NOT THE BUG.** The original captured `self` in the BODY of
+`gone`, inside an f-string; I put `type(self).__name__` in a DEFAULT
+ARGUMENT, which evaluates at def-time and captures nothing. Both arms came
+back identical and I nearly wrote up "not reproduced". Same lesson this
+file already records five times: **assert that the edit changed BEHAVIOUR,
+not that the bytes changed** -- and for a closure, that the name really is
+a free variable.
+
+**THE 16022 ALIVE ARE NOT A MYSTERY AND MOSTLY NOT A DEFECT.** They come
+from 23 files, and the largest contributors are the MainWindow builders
+this file already documents as deliberately retained -- `conftest.py` keeps
+every MainWindow for the session, and
+`test_main_windows_are_deliberately_never_collected` fails if that
+retainer is removed:
+
+    3810  test_isotopes.py                  946  test_right_dock_width.py
+    3255  test_main_window_empty_state.py   930  test_main_window_docking_visualization.py
+    2815  test_main_window_menu_actions.py  620  test_command_palette.py
+    1197  test_main_window_conformers.py    468  test_receptor_library_dialog.py
+
+A widget still alive has never been destroyed, so it cannot be the thing
+that faults. It is a leak, not a landmine -- which is what the earlier
+census already said, and remains the right reading.
+
+### THE CENSUS CAUGHT ONE, ON LINUX, ON ITS FIRST LIVE RUN
+
+Run 33031947731, 2026-08-27 -- the first Linux job ever to have
+`OPENCHEM_CENSUS` set, and it crashed, which is the whole reason the
+instrument exists. What the trail says:
+
+    the `# session finished` sentinel   ABSENT  -> it aborted
+    the last BEGIN, with no `end`       tests/test_nmr_view_dialog.py::
+                                        test_dialog_loads_a_conformer_into_
+                                        the_3d_pane_when_one_exists
+    test number                         3623, at 58%
+    LATE lines in the whole trail       0
+    at the last completed test          built 19963  destroyed 5991
+                                        late 0  alive 13972
+
+**THE CENSUS AND THE TRACEBACK AGREE INDEPENDENTLY**, which is what
+validates the instrument rather than merely using it: `suite.log`'s
+`Fatal Python error: Aborted` names
+`test_nmr_view_dialog.py, line 48`, and the census's last `BEGIN` names
+the same test, derived from a completely different mechanism -- a line
+flushed before the test ran, versus a C-level traceback written after it
+died.
+
+**ZERO LATE DESTRUCTIONS, MEASURED ON LINUX AT THE MOMENT OF THE CRASH.**
+The entry above establishes that on Windows, where the suite does not
+crash; this establishes it on the platform where it does, in the run that
+did. So an object destroyed inside an unrelated test's event dispatch is
+not the mechanism here, and a theory starting there is starting in the
+wrong place -- which is what the previous entry claimed on weaker
+evidence and is now measured.
+
+**AND THE FRAME IS A CONSTRUCTOR, NOT A DISPOSAL.** Line 48 is
+`NmrViewDialog(engine, molecule, spectrum, conformer.molblock,
+backend=backend)` -- the dialog being BUILT. That is a second frame of
+ours across four Linux logs, and it points the opposite way from the
+first: the `test_panel_rail.py` lead is `sendPostedEvents(widget,
+DeferredDelete)`, a forced disposal. One says building, one says tearing
+down.
+
+**n=1, THE VICTIM MOVES, AND THE TEST PASSES LOCALLY** -- 5 of 5, and
+59%/59%/63% previously against 58% here, on four different tests. That is
+the documented order-dependent shape: the victim is chosen by heap layout
+rather than by fault. It is a lead and not a finding, and the next Linux
+crash now carries a trail to compare it against, which no previous one
+did.
+
+**SUPERSEDED -- see "TEN CENSUS-NAMED CRASHES, TWO FILES" below.** Those
+percentages name TRACEBACK FRAMES, and for a fatal signal a traceback frame
+is wherever the process happened to be. Read from the census instead, seven
+crashes land in ONE file.
+
+#### AND THE VICTIM DID NOT MOVE: 58% THREE TIMES, TWICE THE SAME TEST
+
+Measured 2026-08-27 on PR #53, and it revises the paragraph above rather
+than merely adding to it. The `::error::` annotation the entry below calls
+untested-in-anger has now fired live, twice, and both times the job
+reported **success at every level the REST API exposes**:
+
+    33031947731   58%   test_nmr_view_dialog.py:48 ...conformer_into_the_3d_pane
+    08cb4d5       58%   "an unidentified frame"
+    ecf17e0       58%   test_nmr_view_dialog.py:48 ...conformer_into_the_3d_pane
+
+**THE PARENT COMMIT CRASHED AT THE SAME PERCENTAGE**, which is what says
+the child did not cause it -- `ecf17e0` adds 19 tests and shifts
+collection order, and the crash did not move. So for THIS crash the
+victim is stable, not chosen by heap layout, and "the victim moves" holds
+across the 59%/59%/63% batch above and NOT within this one.
+
+That makes `test_nmr_view_dialog.py:48` the first Linux frame worth
+attacking directly. It is a CONSTRUCTOR -- `NmrViewDialog(...)` being
+built -- which points the opposite way from the `test_panel_rail.py`
+`sendPostedEvents(widget, DeferredDelete)` lead.
+
+**IT IS STILL NON-BLOCKING AND THE WINDOWS GATE WAS GREEN**, all four
+gating steps executed. The point of recording it is that three
+`gh run view --json` calls would have said `success` three times.
+
+**AND `gh run view --job ID --log` CANNOT ANSWER THIS.** The verdict goes
+to `$GITHUB_STEP_SUMMARY`; the job log carries the fingerprint SCRIPT,
+whose own text contains `Fatal Python error|Windows` and
+`Extension modules:` as grep PATTERNS -- so grepping the log counts the
+source and reports a crash on a clean run. Read the ANNOTATION:
+
+    gh api repos/OWNER/REPO/commits/SHA/check-runs       --jq '.check_runs[] | select(.name|startswith("linux")) | .id'
+    gh api repos/OWNER/REPO/check-runs/ID/annotations       --jq '.[] | select(.annotation_level=="failure") | .message'
+
+## TEN CENSUS-NAMED CRASHES, TWO FILES, AND THE COUNTER-EXAMPLE CAME ON A BYTE-IDENTICAL TREE
+
+**THE HEADING BELOW USED TO READ "SEVEN CENSUS-NAMED CRASHES, ONE FILE,
+AND 'THE VICTIM MOVES' WAS AN ARTEFACT", AND ITS OWN SUCCESSOR RUN
+REFUTED IT THREE COMMITS LATER.** It is kept with its correction beside
+it rather than edited away, the way `9e302e4`'s Open Babel claim is,
+because the WAY it was got wrong is the durable part: seven observations
+in one file is a real measurement and "the file is the constant" is an
+inference from it, and this file had just finished warning that the
+59%/63% figures were exactly that mistake one level up. **A pattern in
+seven samples of a 50/50 process is not a law.** Third instance here of
+a claim being tightened past what the data carries.
+
+    what it said      the victim wanders WITHIN one file, never across
+    what happened     observation ten landed in a different file, at a
+                      different percentage, on a byte-identical tree
+
+The corrected account follows; the original text is preserved below it.
+
+### THE MEASUREMENT THAT BROKE IT
+
+Sweeping the Linux annotation across the 18 runs since (`gh api
+.../check-runs/{id}/annotations`, filtered to `annotation_level=failure`)
+gives **9 crashes in 18 runs** and three census-named observations that
+postdate the table below:
+
+    33298732951  4267fdc  master   test_dialog_shows_the_signal_list   57%
+    33300040059  c6155fa  PR #61   test_dialog_shows_the_signal_list   57%
+    33301056335  96e8c9c  master   test_screening_service.py::
+                                   test_the_ranked_table_leaves_a_
+                                   failure_unranked                    83%
+
+**Ten census-named crashes, TWO files.**
+
+#### `git diff c6155fa 96e8c9c` IS EMPTY, AND THAT IS THE WHOLE ARGUMENT
+
+Those are the branch tip and the merge commit of PR #61, which carry the
+same tree byte for byte. **Two runs of one tree crashed in different
+files, 26 percentage points apart** -- 57% and 3683 tests against 83% and
+5365. `git diff 0da570c 4267fdc` is empty too, and there one run was
+CLEAN and the other crashed at 57%.
+
+So on a FIXED tree: crash-versus-clean is a coin flip, and when it
+crashes the victim is not fixed. No count of same-file observations can
+establish a law that a single pair of same-tree runs refutes -- which is
+why the pair, not the count, is the thing to cite.
+
+And #61 changed **`.gitignore` and a deleted binary**: nothing executable
+at all. That is the second non-executable commit in this file's history
+to "cause" a crash, after `5a331ab`.
+
+### AND THE PLATFORMS CONVERGE, FOR THE FIRST TIME
+
+`tests/test_screening_service.py` is not a new name here. It is the
+canonical **Windows** victim, and it has now been named **four times
+across the two platforms**, three of them at one statement:
+
+    Windows   :120 in _drain     processEvents()       83%   (recorded)
+    Windows   :120 in _drain     processEvents()       84%   (recorded)
+    Windows   :122 in _drain     processEvents()       83%   (this branch)
+    Linux     :269 in widgets    sendPostedEvents(w, DeferredDelete)  83%
+
+The third is from this branch's own first suite run -- see the figure at
+the top of "Running the tests". `:122` is `:120`: an import edit above it
+moved the line, and `_drain` is byte-identical to master.
+
+Both are event pump/flush moments in one file. **That is a datum, not a
+conclusion**: the two signatures (`Aborted` against an access violation)
+are still different, and whether they are one bug is still NOT
+established. What changed is that there is now something to connect them
+by, where before there was nothing.
+
+### THE EVIDENCE VOCABULARY, and it is a CONVENTION rather than a guard
+
+Three words, used from here on, so a weak claim cannot become a strong
+one by being restated -- which is exactly what happened to "seven
+observations" above:
+
+    LEAD        a repeated traceback frame. NOT causal proof.
+    HYPOTHESIS  a lead with a preregistered experiment attached.
+    FINDING     a preregistered experiment that supports the mechanism.
+
+Same move `ARCHITECTURE.md` makes with `OPEN`/`DECISION`/`SETTLED`,
+`sources.toml` with `citation`/`citation_and_claim`/`unverified`, and
+`ArmStatus` with `HONEST`/`OPTIMISTIC`.
+
+**NOTHING ENFORCES IT.** `test_docs_are_current.py`'s `DEFERRALS` parses
+`ARCHITECTURE.md`'s markers and fails closed on an unknown one; nothing
+parses this file. Do not read these three words as guarded.
+
+### The original text, superseded and kept
+
+**This supersedes every victim claim above it**, including the
+"59%/59%/63% on four different tests" figures and the reading of this class as
+"a corrupting free whose VICTIM depends on heap layout". Those numbers are
+real; what was done with them was not. **They name traceback frames, and for a
+fatal signal a traceback frame is wherever the process happened to be** --
+`abort()` unwinds through pluggy and the test function need not appear at all.
+
+The census names the test that was RUNNING, from a line flushed before it
+started. Since the annotation learned to read it (PR #57), every crash reports
+its own victim:
+
+    33031947731  master   test_dialog_loads_a_conformer_into_the_3d_pane   2nd of 5
+    33099748752  PR #53   test_dialog_shows_the_signal_list                1st
+    33105696692  PR #54   test_dialog_shows_the_signal_list                1st
+    33144071885  master   test_dialog_shows_the_signal_list                1st
+    33256330770  PR #57   test_dialog_shows_the_signal_list                1st
+    33268500266  PR #58   test_copy_signals_gives_tab_separated_columns    4th
+    33287037217  PR #59   test_dialog_shows_the_signal_list                1st
+
+**SEVEN OBSERVATIONS, ALL IN `tests/test_nmr_view_dialog.py`.** The preceding
+file is always `tests/test_nmr_spectrum_widget.py` and it always completes.
+
+### THE FILE IS THE CONSTANT. THE TEST IS NOT.  -- **WRONG, see the correction above**
+
+*(Kept as written. Observation ten is in another file, so the heading is
+false as stated; the per-test breakdown within `test_nmr_view_dialog.py`
+is still a real measurement of nine of the ten.)*
+
+Three of that file's five tests, one of them five times out of seven. So both
+earlier readings were half right and neither was the shape:
+
+    "the victim moves"        true WITHIN the file, false across files
+    "the victim is stable"    true of one test five times, and #6 broke it
+
+The honest statement is the file. Any fix attempt starts at
+`NmrViewDialog`, not at heap-layout roulette and not at one test.
+
+### AND IT STILL DOES NOT ESTABLISH A CAUSE
+
+Roughly half the runs reach the end -- PR #55, PR #56, and PR #57's second run
+(a fully clean `6325 passed`) all did. **Observation six is a
+DOCUMENTATION-ONLY commit**, `5a331ab`, a docstring and markdown with nothing
+executable in it, which is the strongest available form of this file's own
+"no code change causes this". The LOCATION is pinned; the TRIGGER is not.
+
+`late=0` in all seven, so an object destroyed inside an unrelated test's event
+dispatch is still not the mechanism -- which is what the census sections above
+claim on Windows and now hold on Linux across seven crashes rather than one.
+
+### WHAT THE CENSUS ANSWERED THAT NOTHING ELSE COULD
+
+On the PR #59 run the suite died at 57% with no summary line, so the log could
+not say whether that branch's new guard had even passed. The census could:
+`tests/test_constant_docs.py` shows 11 `BEGIN` lines and 11 matching `end`
+lines, so all of it ran to completion before the crash. **A crashed run is not
+a run with no information in it**, which is the whole reason that trail is
+written per test and flushed.
+
+**AND THE PROGRESS-CHARACTER COUNT LIED ON THAT SAME LOG**, exactly as this
+file warns two sections along. A naive `^[.sFEx]+` count reported 2 failures;
+both were Chromium's `ERROR:` and the `F` of `Fatal Python error` bleeding
+into pytest's progress line. The whole-line anchored form gives 0:
+
+    grep -oE "^[.sFEx]+ *(\[ *[0-9]+%\])?$"
+
+### The two platforms have DIFFERENT signatures
+
+    Linux CI    Fatal Python error: Aborted           at 59%, 59%, 63%
+    Windows     Windows fatal exception: access violation
+
+`Aborted` is `abort()` -- a Qt fatal, an assertion, a C++ exception
+escaping -- and NOT a segfault. Nothing is printed before it: the log goes
+straight from progress dots to the traceback, so whatever calls `abort()`
+is not saying why. Whether the two platforms are one bug wearing two coats
+is **not established**, and the difference is large enough that assuming it
+would be a guess.
+
+**ONE OF THE THREE LINUX LOGS NAMES A FRAME OF OURS, and the other two do
+not.** That one is:
+
+    tests/test_panel_rail.py, line 19 in _dispose
+    tests/test_panel_rail.py, line 250 in
+        test_clicking_the_active_group_again_collapses_the_rail
+
+Line 19 is `sendPostedEvents(widget, DeferredDelete)` -- **the disposal
+recipe itself**, not a later collection. That file is well behaved: every
+test calls `_dispose`, which is the documented per-widget form and not the
+forbidden global drain. So the suspicion it raises is that FORCING a
+deferred delete is itself the dangerous moment, which is the opposite of
+what the recipe assumes. ~~**n=1, and the other two logs cannot
+corroborate it**~~ -- **CORROBORATED, n=2. See below.**
+
+#### THE SAME LINE, IN AN UNRELATED FILE -- the LEAD is n=2
+
+Observation ten's frame is `tests/test_screening_service.py:269 in
+widgets`. Verified: that line is
+`QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)`,
+in a fixture teardown. **The same line of the same three-line recipe, in
+a file with nothing to do with `test_panel_rail.py`.** Those are the only
+two frames of ours ever named across the whole Linux history, and they
+name the same operation.
+
+`late=0` in all ten, so the cross-test late-destruction mechanism stays
+ruled out. That flush is the only frame of ours that has ever appeared.
+
+**AND THE CLOSEST PRIOR EXPERIMENT SAYS THAT FLUSH IS DANGEROUS.**
+`tests/conftest.py` documents `dispose_app_widgets`, a reverted fixture
+that destroyed abandoned widgets "with the same per-object
+`deleteLater()` plus flush used below", and which crashed the suite **8
+of 8 full runs** on master while 8 of 8 completed with it neutered.
+
+**THE 58 HAND-WRITTEN COPIES OF THAT RECIPE HAVE NEVER BEEN A/B'd**,
+because that experiment was about the AUTOMATIC fixture -- which
+discovered 112 widgets by itself -- and not about the per-file copies a
+test hands over explicitly. `benchmarks/disposal/inventory.md` is what
+those copies are, measured: 64 sequences, 8 distinct, 46 files.
+
+**THIS IS A LEAD, NOT A FINDING, AND THE PROMOTION IS NOT AUTOMATIC.**
+What makes it worth an experiment is the recurrence of one operation
+across unrelated files PLUS the prior 8-of-8 -- **not** that either frame
+is trustworthy on its own. For a fatal signal a traceback frame is still
+wherever the process happened to be, and that caution is unchanged.
+
+##### AND THE EXPERIMENT SAID NO. 40 legs, and the flush is not the cause
+
+`benchmarks/disposal/README.md` carries the preregistration; the result
+is a flat null:
+
+    commit 1c8c71f, 20 legs per arm, all 40 accounted for
+
+                    crashed  completed
+      control            13          7        flush in dispose()
+      treatment          11          9        flush at end of test
+
+      Fisher exact  p = 0.7475      odds ratio 1.519
+
+**NOT AN UNDERPOWERED NULL.** It was powered for near-total elimination,
+and 13 against 11 is no effect at all rather than a shrunken one.
+
+**WHAT IT DOES NOT REFUTE**, because the arm tests one thing and not the
+other: the treatment still delivers the same `DeferredDelete` per object,
+just later, through `flush_deferred_deletes`. So the TIMING is refuted,
+not forced delivery as such. "Never force it" is a different arm and is
+not runnable -- it leaves the process-wide backlog that fixture exists to
+prevent, which is its own documented crash.
+
+So both frames of ours, and the 8-of-8 prior, survived as a lead right up
+to the point somebody measured them. That is the vocabulary earning its
+keep three sections after being written: this stayed a **LEAD**, was
+never called a FINDING, and is now a lead with evidence against it.
+
+##### THE VICTIM SPANS FIVE FILES, which is the sharper result
+
+Across those 50 legs -- 27 crashes, rate **0.54** on a fixed tree:
+
+       23  test_nmr_view_dialog.py
+        1  test_screening_service.py
+        1  test_panel_rail.py
+        1  test_main_window_conformers.py
+        1  test_rotation_transaction.py
+
+The "one file" reading was opened above by refuting it with a single
+counter-example; it is buried here by four. **`test_panel_rail.py` is the
+file whose `_dispose` frame was the original n=1 lead**, which is worth
+knowing before anybody reads its reappearance as corroboration of
+anything.
+
+##### AND I MADE THE SAME MISTAKE AGAIN, ONE COMMIT AFTER CORRECTING IT
+
+The pilot measured 3 crashes in 10 and the preregistration was amended on
+the strength of it, concluding the rate was 0.30 rather than the assumed
+0.50. Wave 2's control measured **13 in 20** on a tree with no executable
+difference; the two waves differ at p = 0.12 with overlapping intervals,
+and pooled the control is **16/30 = 0.53**.
+
+**The original assumption was fine. 0.30 was an n=10 artefact.** So this
+whole section's lesson -- a pattern in a handful of samples of a 50/50
+process is not a law -- was committed, and then broken by its own author
+in the next commit. The amendment's ACTION (n=20) was right anyway and
+cost only runner time; only its stated reason was unsound.
+
+**The rule that would have caught both:** before concluding anything from
+a rate here, ask what n it rests on and what the interval is. Ten legs of
+a coin-flip process supports almost nothing, and it looks exactly like
+data.
+
+### THE CRASH-MARKER GREP FALSE-POSITIVES ON THE CENSUS'S OWN PROSE
+
+Measured: a run reporting "crash markers: 4" had not crashed. The phrase
+`Fatal Python error: Aborted` appears in `_start_census`'s docstring, and
+pytest echoes the source of a failing function into the log as failure
+context -- so four failures printed that docstring four times and the grep
+counted its own subject. Same shape as the `INFRASTRUCTURE FAILURE` string
+this file already records: **grepping for a phrase counts the source, not
+the outcome.** The SUMMARY LINE is the oracle, and the pair to check is
+that one EXISTS and that the marker count is 0.
+
+### What it would take, recorded so the next attempt starts here
+
+The reproduction is on the platform this project does not ship, at 4 in 6,
+with a 17-minute round trip through CI and no local Linux environment.
+Windows reproduces it too but at roughly 1 in 3, and with a different
+signature.
+
+The census works now and says **zero cross-test late destructions on
+Windows** -- which is a real measurement and is not an answer about Linux.
+The next attempt runs it THERE, where the annotation added in `b229bb0`
+can carry the trail out, and where the sentinel's ABSENCE will say the
+process died before the session ended.
+
+`flush_deferred_deletes`' own docstring has said the whole time that the
+crash it was written around is not fixed, and asks not to be read as
+evidence that it is. That is still true, and this entry is the measured
+version of it.
+
+
+## A RED SUITE SILENTLY DISABLES EVERY GATE BEHIND IT
+
+`.github/workflows/tests.yml` runs the suite and then three gates in the
+same job -- the naming benchmark, the regulatory benchmark and the
+ruleset validation. GitHub skips later steps once one fails, so **a red
+suite takes the gates with it**, and they report as `skipped` rather than
+as anything alarming:
+
+    failure  Run the test suite
+    skipped  Naming benchmark (must stay 181/181)
+    skipped  Regulatory benchmark
+    skipped  Validate regulatory rulesets
+
+Measured: master was red across three pushes, so the benchmark this file
+calls the arbiter of naming quality had not actually run in CI for any of
+them. **Check the STEP LIST, not just the conclusion** -- a red run hides
+how much never executed.
+
+### FIXED STRUCTURALLY: the gates are their own job now
+
+This section's whole subject is a COUPLING -- the three gates were steps
+behind the suite in one job, and GitHub skips later steps once one fails.
+Every fix recorded above buys back one CAUSE of that: deselecting the network
+test stops NCBI doing it, reading the step list stops a reader missing it.
+None of them touches the coupling, so the next unrelated cause does it again.
+
+**AND THE NEXT CAUSE WAS THE CLOCK.** Measured 2026-09-10 on run
+34452130638, which passed all sixteen steps:
+
+    the suite step                  33m24
+    the three gating benchmarks     naming 3m12, regulatory 10 s,
+                                    rulesets 6m33
+    the job                         44m31  against a 45-minute timeout
+
+99% of budget. A timeout there is not a slow run, it is this section's own
+failure with a new trigger: all three gates report `skipped`.
+
+**AND "WHAT GOT SLOWER" HAD NO ANSWER, WHICH IS THE MEASUREMENT THAT
+MATTERED.** The job's own comment said to look at what got slower rather
+than raise the number a second time -- good advice, and it assumes growth is
+the driver. It is not:
+
+    ae0094ad   suite step 1345 s   7172 collected
+    fdf68292   suite step 1633 s   7172 collected   <- +21%
+
+`git diff ae0094ad fdf68292` is **empty**. Those two carry byte-identical
+trees, so a 288-second spread is what this runner does with no code change at
+all, and the 29-second margin was far inside it. **A first reading of the
+same numbers as "the suite lost 30% of its throughput" was wrong** -- that
+compared one run of one tree against one run of another and attributed the
+whole difference to the trees, which is this file's own most-repeated
+mistake made again, and the same-tree pair is what refuted it.
+
+So the honest statement is that the gate was at risk on ANY run rather than
+on a bigger one, which is an argument about COUPLING and not about budget.
+`jobs.gates` runs the three benchmarks with **no `needs: suite`** -- that
+would restore the coupling one level up, since a red suite would skip a
+dependent job exactly as it skipped a later step.
+
+**THE COST WAS MEASURED BEFORE IT WAS PAID**: one more checkout and one more
+`uv sync`, which that run clocks at **5 seconds** because it is cached. About
+a minute of setup, against ten minutes of benchmark that can no longer be
+switched off by something unrelated to it.
+
+**THE SUITE'S 45 IS DELIBERATELY UNCHANGED, and it means something different
+now.** The suite alone is ~34 minutes, about 77% of budget, and a timeout
+there fails the suite rather than silently disabling three benchmarks -- which
+is the honest thing for a suite timeout to do. The recorded advice stands for
+the number that is left.
+
+**AND `master` IS NOT BRANCH-PROTECTED**, checked rather than assumed:
+`repos/.../branches/master/protection` returns 404, so there are no required
+status checks and "blocking" in this file's vocabulary means a human reads the
+step list and declines to merge. Splitting a job therefore needed no
+protection change -- and equally, nothing mechanical stops a merge over a red
+gate, which is worth knowing before trusting the word "blocking".
+
+### A SECOND PUSH TO MASTER DOES THE SAME THING, and it is not a failure
+
+Same outcome, different mechanism, and this one is self-inflicted.
+`tests.yml` declares
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+and every push to master shares one ref, so **a follow-up push cancels the
+previous commit's run wherever it had got to.** Measured on `3eb9423`,
+cancelled by a one-line lockfile push that landed nine minutes later:
+
+    success    Run the test suite
+    cancelled  Naming benchmark (must stay 181/181)
+    skipped    Regulatory benchmark
+    skipped    Validate regulatory rulesets
+
+The suite had already passed; the three gates never ran. The run's
+conclusion is `cancelled`, which reads as "somebody tidied up" rather than
+as "the arbiter of naming quality did not execute for this commit".
+
+**IT IS NOT A COVERAGE HOLE IF THE TREE WAS ALREADY GATED, and that is
+worth checking rather than assuming.** Those gates had run and passed on
+the PR's own run for `cfb630b`, and `git diff cfb630b 3eb9423` is empty --
+the merge carries the branch's tree byte for byte, which is the check the
+"Running the tests" section already insists on for a different reason. So
+the honest statement is that the commit is gated, by a run under a
+different id.
+
+The practical rule: **do not push to master while its previous run is in
+flight** unless you mean to void it. Landing two commits nine minutes
+apart costs one of them its gates, and a doc-only follow-up is exactly the
+change nobody thinks to check for it.
+
+**IT HAPPENS ON A PULL REQUEST TOO, AND `gh run watch --exit-status`
+REPORTS IT AS SUCCESS.** The concurrency group keys on `github.ref`, which
+for a `pull_request` event is the same for every push to that PR -- so a
+follow-up commit cancels the run on the previous one exactly as it does on
+master. Measured on PR #36: a docsweep pushed while the first run was in
+flight cancelled it, and the step list is the familiar shape --
+
+    cancelled  Run the test suite
+    skipped    Naming benchmark (must stay 181/181)
+    skipped    Regulatory benchmark
+    skipped    Validate regulatory rulesets
+
+-- while **`gh run watch --exit-status` on that same run exited 0**. The
+exit code is not an oracle for "the gates ran": it reports the WATCH
+succeeding, and a cancelled run is a watch that finished normally. Read the
+step list. This is the same lesson as `grep FAILED` on a crashed suite log,
+one layer out: an absence of failure is not the presence of a result.
+
+### A RERUN COUNTS AS AN IN-FLIGHT RUN, AND IT CANCELLED THE PUSH THAT FOLLOWED
+
+The rule two sections up -- *do not push while a run is in flight unless you
+mean to void it* -- was read the same afternoon and tripped anyway, because
+a **`gh run rerun` is an in-flight run in the concurrency group** and nothing
+about issuing one feels like starting a run.
+
+    gh run rerun 34329400199 --job <linux>   ref refs/pull/81/merge
+    git push  ->  run 34336690771            ref refs/pull/81/merge  SAME
+    cancel-in-progress: true                 the two collide
+
+**AND THE CANCELLATION LANDED IN TEARDOWN, AFTER EVERY STEP HAD PASSED.**
+This is the sharpest form of "read the step list, not the conclusion" yet
+recorded, because for once the conclusion is pessimistic rather than
+optimistic:
+
+    suite + gating benchmarks -> CANCELLED
+      success  Run the test suite
+      success  Naming benchmark (must stay 181/181)
+      success  Regulatory benchmark
+      success  Validate regulatory rulesets
+      success  Complete job
+      skipped  Post Install uv          <- the only casualty
+
+**`gh pr checks` RENDERS THAT AS `fail`** and the PR goes `UNSTABLE`, so a
+run whose every gate passed reads as a blocked merge. The previous entry
+records the opposite reading -- a cancelled run looking like "somebody tidied
+up" -- and both come from the same place: **the run conclusion is not a
+statement about whether the work ran.**
+
+The cure is a re-run on the same SHA, which costs wall clock and nothing
+else. The habit is to treat `gh run rerun` as a push for concurrency
+purposes, because to that config it is one.
+
+### `jq` IS NOT INSTALLED HERE, AND A WATCH BUILT ON IT IS SILENT FOR AN HOUR
+
+A background watch on PR #81's checks emitted **nothing in sixty minutes**
+while both checks had already finished. Nothing was wrong with CI and
+nothing was wrong with the polling interval:
+
+    gh pr checks 81 --json name,bucket | jq -r '...'
+    bash: jq: command not found        -> the variable is EMPTY, every poll
+
+So the "have all checks settled" test compared two empty strings, was never
+true, and the loop ran to its timeout. **A watch that cannot fail is not a
+watch**, which is this file's own `grep FAILED` lesson and its
+`gh run watch --exit-status` lesson arriving a third time: an absence of
+output is not an absence of events.
+
+**`gh` HAS ITS OWN `--jq` AND IT NEEDS NO BINARY.** That is the form to use,
+because it cannot be missing on a machine that has `gh` at all:
+
+```bash
+gh run view RUN_ID --json jobs --jq '.jobs[] | "\(.name): \(.conclusion)"'
+```
+
+The plain-text form is better still for a settlement test, since it needs no
+JSON at all: `gh pr checks N` prints one row per check with its verdict and
+exits non-zero while any are pending.
+
+**AND THE GENERAL RULE, which this file states for monitors and then broke:**
+before arming a watch, ask what it prints if the thing it watches has already
+happened. If the answer is "nothing", it cannot tell that from "not yet".
+
+### `QT_QPA_PLATFORM` IS NOT A WebGL CHECK, and that is what reddened it
+
+Four viewer tests failed on CI for environmental reasons, and the gate
+meant to cover exactly that could not see it, because it asked about the
+Qt PLATFORM instead of the capability:
+
+    QT_QPA_PLATFORM=offscreen, machine with a GPU   2 contexts (ANGLE/D3D11)
+    QT_QPA_PLATFORM=windows,   machine with a GPU   2 contexts
+    GPU-less CI runner                              0, "getContext returned null"
+
+So the name and the capability disagree in BOTH directions: `offscreen`
+locally has WebGL and the tests really do run there, while CI has none
+and 3Dmol's `viewer` is never defined -- which is why
+`test_the_matrix_matches_where_atoms_are_actually_drawn` failed in its
+SETUP, and why `test_a_gallery_that_cannot_be_built_is_reported` reported
+"the gallery failed silently" when the reporting was fine and nothing had
+got far enough to be reported.
+
+The `webgl` fixture in `tests/conftest.py` MEASURES it, from a bare
+canvas rather than from the app's own viewer page -- so the gate
+establishes the PREREQUISITE is absent and never that our code failed to
+use it. If WebGL works and 3Dmol still cannot build a viewer, the test
+runs and fails.
+
+**An inconclusive probe RAISES rather than reporting zero**, and that is
+load-bearing: "I could not find out" is not "the prerequisite is absent".
+It caught its own bug immediately -- the probe page was missing its
+closing `</script>`, so `runJavaScript` returned `''` (primitives only,
+as this file already records) and a blanket `except: return 0` would have
+skipped all four tests on every machine while looking like it worked.
+
+`tests/test_webgl_gate.py` guards it, and the guard that matters most is
+`test_a_measured_PRESENCE_does_not_skip` -- a capability gate is worth
+what its ability to say NO is worth. Measured before and after on CI:
+
+    before   4 failed, 4173 passed,  8 skipped   gates never ran
+    after    0 failed, 4178 passed, 12 skipped   "Naming benchmark holds at 181/181"
+
+The gallery tests still skip on a platform check -- and it was
+investigated afterwards and DELIBERATELY KEPT. The ladder in the
+conformer-gallery section shows every capability underneath working under
+`offscreen` (twelve contexts, six viewers) while `createViewerGrid`
+throws even for one cell, so the only thing predicting that failure is
+the call under test. **A platform gate you can justify beats a capability
+probe that cannot say no**, and this is the case that draws the line
+between the two.
+
+**IT IS ONE GATE NOW, AND IT CARRIES BOTH HALVES.** `grid_display` in
+`tests/conftest.py` pairs that admitted platform check with
+`webgl_skip_reason`'s MEASURED one. It had been written privately twice
+-- `_needs_a_display` and `_NEEDS_A_DISPLAY`, in two files -- and the
+gallery overlay would have made a third; both are gone and every site
+takes the fixture. `test_no_test_file_derives_the_platform_gate_for_itself`
+fails if a fourth appears, walking `skipif` CONDITIONS as an AST because
+a text search flags the prose explaining the rule.
+
+The measured half is what makes them safe to run anywhere: a GPU-less
+machine has no context at all, so they skip naming the absent
+prerequisite rather than failing and blaming the code. **That is what
+lets CI run them.** `tests.yml` has a non-blocking
+`Conformer gallery guards` step under `QT_QPA_PLATFORM=windows`, placed
+AFTER the three gates so it cannot disable them, which makes their status
+visible instead of assumed -- the same argument as the PubChem step.
+Expected to skip on the hosted runner today; if that image ever gains a
+GPU they start running for free. **`continue-on-error` means advisory,
+not passing**: read that step, not the job's tick.
+
+Locally, where there is a GPU, they really run:
+
+```bash
+QT_QPA_PLATFORM=windows uv run --no-sync python -u -m pytest -q -ra tests/test_spatial_annotations.py tests/test_mol3d_viewer_backend.py
+```
+
+One INVERSE use survives and is correct:
+`test_a_gallery_that_cannot_be_built_is_reported` asserts the FAILURE
+path, so `offscreen` is its prerequisite rather than its obstacle. It
+asks the shared `conftest.grid_platform_is_offscreen()` -- which is why
+that is a predicate and not a mark.
+
+## A WINDOWS RUNNER HANDS A BASH SCRIPT TO POWERSHELL
+
+GitHub's default shell for a `run:` step is **bash on Linux and `pwsh` on
+Windows**. `benchmarks-selfhosted.yml` is `runs-on: [self-hosted, windows,
+openchem-tools]` and its steps are written in bash, and until 2026-08-26
+nothing in the repository declared a shell at all.
+
+Measured on the runner machine rather than reasoned about:
+
+    [ ! -d tdc_data ]     ParserError: Missing type name after '['
+    <<ROWS heredoc        ParserError
+    case / esac           ParserError
+
+**A POWERSHELL PARSE ERROR KILLS THE WHOLE STEP** before its first line
+runs. So the step fails having done nothing, and what a reader sees is a
+red benchmark rather than a wrong shell.
+
+**THE ONE BASH-ISM THAT SURVIVED IS THE DANGEROUS ONE.** The docking
+step's `mkdir -p bench-out` shipped when docking was encoded and never
+failed loudly, because **PowerShell resolves `-p` as a PREFIX of
+`-Path`** -- partial parameter matching. So it parses, silently means
+something else, and errors only on a re-run once the directory exists,
+with Actions running pwsh under `$ErrorActionPreference = 'stop'`.
+
+**WHY NOTHING CAUGHT IT FOR SO LONG.** `tests.yml`'s Windows job is green
+and declares no shell either -- because every one of its steps is a
+single plain command (`uv sync ...`, `uv run ...`) that runs identically
+in any shell. The default is harmless right up until a step grows a pipe,
+a test bracket or a heredoc, and that happened first in the file no PR
+ever runs.
+
+The cure is one job-level `defaults: run: shell: bash`; both shells are
+present on the runner. `test_a_windows_job_running_bash_declares_that_it_is_bash`
+is the guard.
+
+**IT IS TEXTUAL, NOT A YAML PARSE**, for the reason `test_workflow_safety.py`
+already records: `pyyaml` is not a dependency of this project.
+
+**AND IT IS SPLIT PER JOB, WHICH ITS FIRST RUN IS THE ARGUMENT FOR.**
+Checked over the whole FILE it failed on `tests.yml`, which has a
+windows-latest job and an ubuntu-latest one -- and the bash lives in the
+LINUX job's fingerprint. A whole-file scan cannot attribute a step to a
+job, so it read the two as one Windows job full of bash and demanded a
+declaration on a file that does not need one. A guard whose first finding
+is a false positive is a guard that would have been deleted.
+
+### THE HAND-RUN RULE DOES NOT COVER THE SHELL
+
+This is worth stating on its own, because the workflow's own comment says
+a benchmark is encoded only after "running its pipeline by hand on the
+runner machine first, then encoding exactly what worked" -- and that rule
+was followed for docking and for all three of the last batch. It still
+missed this.
+
+A hand-run happens in whatever shell the person is using. Encoding it
+into YAML changes the interpreter, and nothing about the transcription
+looks different. **"Exactly what worked" is a claim about the COMMAND and
+not about the thing that runs it.**
+
+## A FORMULATION IS NOT A MOLECULE, AND THE COMPONENTS ARE EACH REFUSED
+
+`domain/formulation.py` is the recipe as a project DOCUMENT and the
+formulations half of `chem/energetics.py` is the arithmetic. **NO NEW
+DETONATION EQUATION IS INTRODUCED** -- `arbitrary_gas`,
+`heat_of_detonation` and `detonation_from_parameters` are pure functions
+over element counts, and they accept the FRACTIONAL counts a mixture
+produces. What is new is the abstraction, not any chemistry.
+
+**THE FEATURE EXISTS BECAUSE THE SINGLE-SUBSTANCE PATH STRUCTURALLY
+CANNOT ANSWER FOR ITS OWN INGREDIENTS.** Measured through the shipped
+calculator:
+
+    TNT                  answered
+    RDX                  answered
+    ammonium nitrate     REFUSED  over-oxidised: needs 2 <= O <= 2, has 3
+    nitroglycerin        REFUSED  over-oxidised: needs 2.5 <= O <= 8.5, has 9
+    dodecane (fuel oil)  REFUSED  too little oxygen to form water
+
+...and the MIXTURE lands inside. ANFO at 94.5/5.5 composites to
+`C0.3195 H4.5857 N1.9468 O2.9201` against a window of 2.2928 to 2.9317.
+Two refusals in, one answer out.
+
+### THE AUTHORS EVALUATED THE METHOD ON MIXTURES THEMSELVES
+
+Applying Kamlet-Jacobs to a recipe reads like a liberty taken with a
+single-substance correlation, and it is not. Read directly off p45 of
+[source:kamlet1968_iii], its Table I's 80 data sets cover "13 explosive
+compounds and 14 binary mixtures of three general types", and the same
+paragraph says those calculations' parameters "were estimated from the
+H2O-CO2 arbitrary according to Eqs. (13)-(15) of Ref. 1" -- the identical
+arbitrary `arbitrary_gas` implements. RDX/TNT mixtures are named on that
+page. [source:kamlet1968_iv] is the matching evaluation for the VELOCITY,
+which this reports beside the pressure.
+
+**BOTH ARE `citation`, NOT `citation_and_claim`**, and the distinction is
+the one this file already draws: they establish the method is STATED for
+mixtures, never that a number here is right. Table I's measured pressures
+have NOT been transcribed -- its text layer is OCR-damaged ("4S" for 45,
+"1. 632k" for 1.632k), so it needs the render-at-magnification treatment,
+which is three-for-three on finding a one-digit error in this project.
+
+### MASS IN, MOLES FOR THE FORMULA, AND THE ERROR IS SILENT
+
+A recipe is stated the way it is mixed, by MASS; `CaHbNcOd` is per MOLE.
+Treating the stated mass fractions as mole fractions is wrong by a few
+percent per element, and measured on ANFO:
+
+    mass -> mole (correct)   C0.3195 H4.5857 N1.9468 O2.9201   INSIDE
+    mass AS mole (wrong)     C0.6600 H5.2100 N1.8900 O2.8350   INSIDE
+
+**BOTH LAND INSIDE THE ARBITRARY AND BOTH GIVE AN ORDINARY PRESSURE**, so
+no domain check separates them. That is why the composite formula is a
+REPORTED FACT rather than an internal: it is the one number a reader can
+check the arithmetic against.
+
+### THE MUTATION PASS FOUND AN UNGUARDED WEIGHTING, as it usually does
+
+Five arms. Four caught, and the survivor is the entry worth reading:
+
+    M1  mole conversion -> mass-as-mole      4 tests
+    M2  drop a component's dHf               **SURVIVED**
+    M3  loading density falls back to a
+        weighted average of the components   1 test, the intended one
+    M4  fractions silently normalised        2 tests
+    M5  mean molar mass as a MASS-weighted
+        average of M_i                       1 test, the intended one
+
+**M2 MOVED COMPOSITION B'S COMPOSITE ENTHALPY FROM 2.58 TO 8.90 kcal/mol
+-- A FACTOR OF THREE -- AND NOTHING NOTICED.** dHf enters Q divided by the
+mean molar mass, so 6.3 kcal/mol over ~224 g/mol is about 2% on Q, ~1% on
+P and ~0.5% on D, which fits comfortably under the published-formulation
+tolerances of rel=0.08 and rel=0.04. That is the loose-oracle trade seen
+from the other side: **an oracle slack enough to tolerate an unsourced
+reference value is slack enough to tolerate a real arithmetic fault.**
+`test_the_composite_enthalpy_is_mole_weighted_over_EVERY_component`
+asserts the weighting directly, written from the surviving arm and
+confirmed to fail against it.
+
+**AND M3'S MUTANT RETURNED 254 kbar / 7.78 mm/us FOR COMPOSITION B**
+against a real ~295 / 7.89. The docstring's claim that deriving the
+loading density is "a large error wearing a plausible number" is measured
+rather than asserted -- nothing about that output looks wrong.
+
+#### TWO OF THE THREE PUBLISHED FORMULATIONS ARE DEGENERATE
+
+The sharpest finding, and it is about the FIXTURE rather than the code.
+Under M1, `test_published_formulations_are_reproduced` fails on Pentolite
+and **passes on Composition B AND Cyclotol** -- because RDX (222.12) and
+TNT (227.13) are 2.3% apart in molar mass, so for any RDX/TNT recipe the
+mass fractions and the mole fractions nearly coincide and the bug barely
+moves the answer. PETN (316.14) against TNT is 39% apart.
+
+So two of the three rows cannot see the one defect the file exists to
+catch, while the parametrisation reads as three-way coverage. Do not drop
+the PETN row. Same lesson as the assembly corpus blind to a transposed
+matrix: **a fixture is not big or small, it is degenerate or not with
+respect to a specific mutation.**
+
+**THE ORACLE'S PROVENANCE IS THE WEAKEST THING IN THAT FILE AND SAYS SO.**
+Those three velocities and pressures are widely published and NOTHING
+CITES THEM; they were not read out of either paper. Recorded rather than
+quietly relied on, with the tolerances left loose to match what is really
+known -- tightening them without sourcing the values would assert more
+than anybody here has checked.
+
+### The loading density is supplied or the estimate is refused
+
+`rho0` is the MEASURED bulk density of the charge. A mass-weighted average
+of the components' crystal densities is arithmetically reasonable and
+wrong: a packed charge is nowhere near its ingredients' crystals, and P
+goes as the SQUARE. There is no source-backed route from a recipe to it,
+so `test_the_loading_density_is_required_and_never_derived` holds the line
+and M3 is what proves that guard is the only thing holding it.
+
+Stated fractions are checked rather than normalised, for the reason
+`CrystalModel` stores what was typed: 94.5 + 5.0 renormalises to a
+perfectly ordinary recipe that is not the one anybody meant.
+
+### ONE TOLERANCE, TWO CHECKERS, AND IT WAS NEARLY TWO LITERALS
+
+The same claim -- how far a recipe's fractions may sum from 1 -- is
+checked on the document and in the compositing, and it first shipped as
+two separate `1e-3` literals. `chem/energetics.py` already imports from
+`domain/` three times, so it imports the constant now;
+`test_the_two_sides_check_the_same_tolerance_because_it_is_one_constant`
+asserts IDENTITY rather than equality, because a copied literal compares
+equal. It is the CONSTANT that is imported and not the component TYPE,
+which `composite_formula` still takes structurally.
+
+**AND THE CONSTANT HAD LANDED INSIDE ANOTHER ONE'S DOC COMMENT**, between
+`ENTHALPY_NOT_SUPPLIED`'s `#:` block and `ENTHALPY_NOT_SUPPLIED` itself --
+so the sentence "CHNO explosives run roughly -200 to +200 kcal/mol, so
+this is outside anything real by a wide margin" was documenting a
+tolerance of 1e-3, and the sentinel it was written for had no
+documentation at all. Nothing catches that; it needs a reader.
+
+### AND THE WHOLE THING WAS REACHABLE FROM NOTHING A USER COULD PRESS
+
+`build_formulation_report` shipped correct, sourced, and covered by 24
+tests. **No menu item, panel or registration invoked it.** The only
+caller in the repository was its own test file.
+
+**AND `tests/test_calculator_reachability.py` WAS GREEN THROUGHOUT**,
+which is the part worth reading. That file exists precisely because PR
+#41 shipped four unreachable modules, and it checks three directions --
+forward from the registry, reverse from `USER_FACING_PROVIDER`, and wide
+from `openchem.main`. All three passed, because **every one of them is
+about the MODULE**:
+
+    chem/energetics.py is statically reachable from openchem.main   yes
+    it declares USER_FACING_PROVIDER                                yes
+    ...naming "Oxygen balance, through the 'Oxygen Balance'
+       calculator", which is TRUE                                  yes
+
+So the module's own declaration was satisfied by a DIFFERENT function in
+the same file, and the report sat beside it reached by nothing. PR #41's
+failure at finer granularity: **"shipped" had come to mean *the file
+exists and something else in it is wired up*.**
+
+#### The rule that closes it is a real family, and it was measured first
+
+`test_every_report_builder_is_called_by_the_application` derives its
+population from the naming convention every one of them already follows,
+so a seventh is checked without anybody remembering to add it. Measured
+BEFORE the rule was written -- six builders, five with a real call site
+in `src/` and exactly one with none:
+
+    build_atom_report         ui/panels/atom_inspector_panel.py:517
+    build_bond_report         ui/panels/atom_inspector_panel.py:511
+    build_molecule_report     ui/panels/atom_inspector_panel.py:513
+    build_crystal_report      app/main_window.py:2113
+    build_site_report         app/main_window.py:2249
+    build_formulation_report  NOTHING
+
+**IT COUNTS `ast.Call`, NEVER TEXT, AND THAT DECIDES THE ANSWER.** Five
+of the six are also named in PROSE -- `services/atom_fact_service.py`
+names three in one docstring sentence, and `chem/energetics.py` mentions
+`build_crystal_report` in two comments explaining a convention it
+borrows. A `grep -c` rule counts those and passes, which is this file's
+own *"grepping for a phrase counts the source, not the outcome"* lesson
+one layer down.
+
+**WHAT IT DOES NOT CLAIM** is that the call site is reachable from
+`openchem.main`; the wide direction says that, and the two compose.
+
+Two mutations, two caught, and the first is the demonstration: removing
+the production call fails this guard **while the other 87 tests in the
+file stay green**, which is the blind spot shown rather than described.
+Neutering the population regex fails both halves.
+
+### THE ANSWER SHIPPED BEHIND A FOLD, AND EVERY TEST WAS GREEN
+
+Found by driving the app and reading the shot, which is now the
+thirteenth entry in this file's running count of that. The report opened
+on a name, a component list, and a collapsed **"Structure (4)"** --
+`DEFAULT_EXPANDED` holds IDENTITY and ELECTRONIC, and the composite
+formula, the pressure, the velocity and the heat of detonation are all
+STRUCTURE. **The entire answer was one click away and invisible.**
+
+`FactView._compact`'s own docstring already records this defect, in the
+same heading and at the same count, for the solubility stats block -- and
+its fix does not cover this: `_compact` fires when the CONTROLS are
+hidden, and here they are shown. `set_report` takes an `expanded`
+override now, defaulting to None so every existing caller is unmoved.
+`DEFAULT_EXPANDED` exists because *"a hundred-odd facts rendered flat is
+a wall"*; a six-fact report is not one.
+
+**NOTHING IN THE SUITE ASSERTED A SECTION'S INITIAL STATE**, which is why
+it shipped. The guard reads `isChecked()` rather than counting rows: the
+facts were always PRESENT, and present is not visible.
+
+**AND THE HELPER GUARD DOES NOT CATCH IT** -- mutating the override out
+of `_formulation_report_dialog` leaves both `FactView` guards green and
+fails only
+`test_the_windows_own_report_dialog_opens_with_the_answer_visible`.
+*Testing a helper is not testing the wiring*, for the third time in this
+file.
+
+### `Fact.units` NEVER REACHES A FactView ROW, and that is PRE-EXISTING
+
+Recorded rather than fixed, because it is system-wide and not this
+branch's. The detonation facts carry `units="kbar"`, `"mm/us"`,
+`"cal/g"`; the row renders `display_value` alone and the row TOOLTIP
+carries source, basis, evidence and limitations -- not units. So the
+report reads `Detonation pressure (C-J)  70.7`.
+
+**It is not a dead field**, which is the thing to check before calling it
+one: `ui/report_format.py`, `ui/result_clipboard.py` and
+`comparison_panel` all read it, so *Copy report* carries the units the
+screen does not. And `chem/crystal_report.py` has the identical shape --
+`units="A^3"`, `"g/cm^3"`, `"kJ/mol"`, none of them rendered -- so every
+Fact-based report in the application reads this way and has since the
+migration. Changing it touches all of them and wants its own measurement,
+its own guard and its own driven check.
+
+## A POWDER PATTERN'S POSITIONS SHIP AND ITS INTENSITIES ARE REFUSED
+
+`chem/powder_xrd.py` reports where a calculated powder X-ray pattern's
+peaks fall -- (hkl), d, 2theta, multiplicity -- and **no peak heights at
+all.** The plan for this branch asked for both halves and named a
+three-layer source chain for the second; the split is the plan's own
+("different evidence requirements"), and the refusal is a MEASUREMENT
+rather than an estimate of effort.
+
+**POSITIONS ARE CHECKABLE BY ARITHMETIC A READER CAN REDO.** For a cubic
+cell the general expression must reduce to the closed form, and halite
+comes out where a textbook prints it:
+
+    111  d 3.2564  2theta 27.37      200  d 2.8201  31.70
+    220  d 1.9941  45.45             311  d 1.7006  53.87
+
+**THE PLAN'S OWN ACCEPTANCE VALUE IS WRONG, and this is the second branch
+running where a plan premise did not survive measurement.** It quotes
+d(111) = 3.258 for a = 5.64; the arithmetic gives **3.2563**, and 3.258
+would need a = 5.6431. Its 200 and 220 are right. Recompute a plan's
+numbers before encoding them.
+
+### The intensity refusal, measured
+
+    numeric tokens on Waasmaier & Kirfel Table 1 (4 pages)   2267
+    visibly corrupted                                         673   29.7%
+
+...and 70.3% "clean" is an UPPER BOUND on correctness, because a token
+can be well formed and still wrong. Element labels are corrupted too --
+the **calcium** row extracts as `Cs`, which would silently put caesium's
+scattering factors on calcium.
+
+**THE DECIDING POINT IS THAT ONLY 6 OF THE 11 PARAMETERS HAVE AN
+ORACLE.** A neutral atom's scattering factor at zero angle is its
+electron count, so `sum(a_i) + c = Z` checks `a1..a5` and `c` per row.
+The five `b` values have NONE: a wrong `b` is wrong at every non-zero
+angle and exactly right at theta = 0, which is the one place the
+checksum looks. A table where nearly a third of the numbers are visibly
+damaged and 5 in 11 are unverifiable produces plausible intensities of
+unknown correctness.
+
+**AND THE PDF LIBRARY INDEXER AGREED BY A DIFFERENT ROUTE.** Branch F's
+`tools/index_pdf_library.py --check` reports `brown2006` as
+`unresolved` -- it finds no identity evidence inside the file at all --
+which is the same conclusion about that scan's text layer, reached
+without looking at a single number. That makes four unresolved scans
+rather than three.
+
+### THREE SOURCES REGISTERED, ALL `assessed_not_shipped`
+
+    waasmaier1995   the parameters, refused with the measurement above
+    brown2006       ITC Vol C 6.1.1, the intensity formalism
+    coppens2006     ITC Vol B 1.2, the structure factor
+
+**`coppens2006` IS DELIBERATELY NOT CITED AS BACKING THE ABSENCE RULE**,
+which this project DOES ship. Searching that chapter finds no occurrence
+of "systematic", "absence" or "extinction condition" -- reflection
+conditions are Vol. A material. Citing it would be this file's own "a
+citation-level entry does not authorize an implementation merely because
+its title matches" trap.
+
+**NONE OF THE THREE PRINTS A DOI**, so none is recorded. All three
+citations were read off the papers' own header lines -- and
+`waasmaier1995`'s page 1 opens with the TAIL OF THE PRECEDING ARTICLE's
+references, which is this file's "a PDF's first page is not necessarily
+its paper" trap, hit again. `brown2006`'s text layer is unusable, so its
+citation, section number and five-author list were read from a **350 dpi
+render**.
+
+### THE ABSENCE RULE IS DERIVED, NEVER TABULATED
+
+    if h.R == h  and  h.t is not an integer   ->   F(hkl) = 0
+
+One statement over the space group's own operations reproduces every
+centring and glide/screw condition a textbook lists separately --
+verified against the F-centring parity rule on all eight cases. A
+hand-kept table of conditions per space group would be the
+`inapplicable_calculators` rot waiting to happen, 230 rows deep.
+
+### THREE MUTATIONS, THREE CAUGHT, AND TWO SAY SOMETHING
+
+    M1  absences disabled                    7 tests
+    M2  the Friedel pair dropped             ONE test -- the P1 one
+    M3  diagonal-only tensor inverse         ONE test -- the triclinic one
+
+**M2 AND M3 ARE BOTH BLIND TO THE OBVIOUS FIXTURE.** Fm-3m is
+centrosymmetric, so the Friedel pair is already in its orbit and every
+cubic multiplicity test passes with the term deleted; only a P1 cell,
+which has ONE operation, can show that the pairing comes from anywhere
+else. And a diagonal-only inverse is EXACTLY RIGHT for an orthogonal
+cell, so the whole cubic acceptance case cannot tell it from the real
+one -- which is `Lattice.volume`'s own recorded lesson ("a cubic-only
+check cannot tell this formula from a bare multiplication") arriving one
+property along.
+
+### WHAT DRIVING THE APP FOUND, AND WHAT IT DID NOT
+
+**The pattern was computed and invisible.** Marked `Detail.ADVANCED`
+throughout, the whole thing vanished behind "16 advanced hidden" and
+nothing on screen said a powder pattern existed. The summary row is
+`STANDARD` now and the individual lines stay `ADVANCED` -- the split the
+regulatory report already makes, where ruleset versions are advanced so
+they do not bury the findings.
+
+**The report's sections are still collapsed, and that is PRE-EXISTING.**
+`Structure` and `Geometry` are not in `DEFAULT_EXPANDED`, so the cell
+volume and the density have always opened behind the same fold. Not
+touched here, because the `expanded` override that fixes it lives on an
+unmerged branch and duplicating it would be a merge conflict.
+
+**AND THE CRYSTAL REPORT WAS ALREADY SLOW.** Measured with the powder
+facts stubbed out, before blaming the new code:
+
+    fixture      report WITHOUT powder     pattern alone
+    1502211              10.63 s               1.17 s
+    1004002               3.61 s               0.70 s
+    1504676               0.07 s               0.17 s
+
+So the pattern is 10-30% of a report that already takes ten seconds on
+its worst fixture. Recorded rather than fixed; the cost is in the
+coordination shells.
+
+### HOISTING THE METRIC TENSOR IS 4-10x, AND THE GUESS WAS WRONG FIRST
+
+`Lattice.d_spacing` inverts the metric tensor on every call, which is
+right for a readable one-reflection API and ruinous inside an enumeration
+reaching ~226000 index triples for a 15 A cell. Measured over the six CIF
+fixtures at 60 degrees, hoisting it out of the loop took the range from
+**1.9-3.9 s to 0.02-0.91 s** with every pattern unchanged.
+
+Reordering the cheap d-test ahead of the 192-operation orbit was tried
+FIRST, on the reasoning that the orbit was the expensive part, and bought
+almost nothing -- one fixture got SLOWER. The inversion was the cost.
+Profile before optimising, even when the expensive-looking thing is
+obvious.
+
+### A GUARD READ MY OWN COMMENT AS A DECLARATION
+
+`chem/powder_xrd.py` declares no `USER_FACING_PROVIDER` -- it reaches the
+user through the crystal report rather than through a registered
+calculator, exactly as `chem/crystal_report.py` does -- and the module
+says so at its head. **That explanation put it in the guard's
+population**, because `_declared_providers()` finds candidates with
+`if _MARKER not in text`, a TEXT scan. The module then failed two guards
+for a declaration nobody had made.
+
+The text scan is kept as a PREFILTER -- it is what lets an unimportable
+module fail there rather than as a collection error elsewhere -- and
+`hasattr` is the answer. **`hasattr`, not truthiness**:
+`USER_FACING_PROVIDER = ""` IS a declaration and a useless one, and it
+must keep failing `test_every_declaration_names_the_surface_it_reaches`
+rather than vanishing from the population. Both halves are guarded.
+
+Same family as this file's `grep FAILED`, `INFRASTRUCTURE FAILURE` and
+`Fatal Python error|Windows` entries: **grepping for a phrase counts the
+source, not the outcome** -- this time counting a comment that existed
+only to explain why the thing it names is absent.
+
+## A DECISION WAS REVERSED ON PRODUCT GROUNDS, AND THE RECORD SAYS SO
+
+`docs/ARCHITECTURE.md` carried a subatomic-particle editor as a
+**DECISION** against building it: nothing in this application consumes a
+particle, every layer below the UI is built on atoms as the smallest
+unit, and the stated expiry was "the day something downstream can read a
+baryon".
+
+**THAT DAY HAS NOT COME AND THIS DOES NOT BRING IT.** `domain/particle.py`
+reaches no molecule, no property and no report. The entry is SETTLED now
+and says outright that the condition was not met and the thing was built
+because it was wanted -- because a DECISION marker that can be retired by
+doing the thing anyway records nothing for the next reader. The original
+reasoning was not refuted; it was outweighed.
+
+**THE GUARD FIRED EXACTLY AS ITS OWN COMMENT PREDICTED.** The deferral's
+predicate was `"quark" not in _src_text().lower()`, with a comment saying
+"it fails the day somebody adds one, which is the point". It does:
+measured after the module landed, that expression is now `False`. The
+entry is removed with a note recording that it went stale in the
+direction this table is least able to argue with -- somebody built the
+thing.
+
+### What the reversal buys is a boundary, not an apology
+
+Four guards in `tests/test_particle.py`, and the last two are the
+load-bearing ones:
+
+    domain/particle.py imports nothing from openchem.chem
+    no ProjectModel field mentions a particle
+    ParticleState has NO to_dict/from_dict/uuid/molblock/smiles
+    nothing under chem/ imports domain.particle
+
+The third is the narrow half: "no field on `ProjectModel`" is satisfied
+by smuggling a particle into `metadata`, or by giving the type a
+`to_dict` a project writer would happily call. Asserting the type carries
+no serialisation at all is what leaves nothing to call.
+
+## GELL-MANN--NISHIJIMA IS THE CHECKSUM ON A HAND-ENTERED TABLE
+
+    Q = I3 + (B + S + C + B' + T) / 2
+
+It holds per quark and both sides are additive, so it holds for any
+composition BY CONSTRUCTION -- which makes it useless as a test of the
+composition logic and exactly right as a test of the six-row flavour
+table this module types by hand. A wrong sign or a mistyped third in any
+flavour breaks it.
+
+**THE SIGNS IT PROTECTS ARE THE CLASSIC TRAPS**, and they came from the
+PDG's own section headers rather than from memory:
+
+    Lambda BARYONS (S = -1, I = 0)    above   Lambda0 = uds
+    Xi BARYONS     (S = -2, I = 1/2)  above   Xi0 = uss, Xi- = dss
+    Omega BARYONS  (S = -3, I = 0)    above   Omega- = sss
+
+...which is the strange quark carrying **S = -1**. The negatively-charged
+quarks carry NEGATIVE flavour numbers -- s has S = -1 and b has B' = -1,
+while c has C = +1 and t has T = +1.
+
+**`Fraction`, NEVER FLOAT.** A proton is 2/3 + 2/3 - 1/3, which in binary
+floating point is 0.9999999999999999 -- so an equality test against +1
+fails, and a tolerance would be a tolerance on a number that is exactly
+an integer.
+
+## THE PDG SUPPLIES ITS OWN COUNTEREXAMPLE, WHICH IS THE WHOLE DESIGN
+
+Lambda and Sigma zero have the SAME quark content:
+
+    Lambda BARYONS (S = -1, I = 0)   Lambda0 = uds    1115.683 MeV
+    Sigma BARYONS  (S = -1, I = 1)   Sigma0  = uds    1192.642 MeV
+
+Identical charge, baryon number, strangeness AND third isospin component.
+They differ in **TOTAL isospin, which is not a sum over quark content the
+way I3 is** -- so the derived numbers PROVABLY cannot tell them apart.
+
+That is why the verdict is three-valued rather than known/not-known:
+
+    invalid                not a baryon or a meson
+    valid, not identified  the arithmetic works, no unique named state
+    identified             exactly one PDG row has this content
+
+Forcing two states would have to lie about `uds`. The editor names both
+candidates and picks neither.
+
+**AND THE LOOKUP IS BY CONTENT, NEVER BY QUANTUM-NUMBER TUPLE.** Searching
+the table for a row whose (Q, B, S) happens to match is how "known
+particle" quietly becomes "whatever came back". Asserted on the SOURCE --
+an AST check that `identify` calls `_same_content` -- because the shipped
+table contains no pair whose numbers coincide while their contents
+differ, so no composition discriminates the two implementations end to
+end. Same rule as "an unreachable branch is a question about where to
+assert".
+
+## A NEUTRAL LIGHT MESON IS A SUPERPOSITION, AND THE SOURCE PRINTS IT
+
+The light-unflavoured meson section is headed
+
+    for I = 1 (pi, b, rho, a):  ud, (uu-dd)/sqrt(2), du
+    for I = 0 (eta, eta', ...): c1(uu + dd) + c2(ss)
+
+so pi0 is not a quark-antiquark PAIR at all and the I = 0 states carry
+mixing coefficients the table does not fix. A bare `u ubar` therefore
+composes to a valid meson this editor refuses to name -- **that refusal is
+the PDG's own position rather than a limitation of the arithmetic**, which
+is a materially different thing to tell a reader.
+
+## THE PDG WAS FETCHED, READ AS A PDF, AND CROSS-CHECKED
+
+No copy in `Sci Downloads`. The summary tables are free, so they were
+fetched -- and `WebFetch` cannot read a PDF, but it SAVES one, which is
+the useful part: the file was then read with pymupdf exactly like every
+other source here. Every page carries
+`Citation: S. Navas et al. (Particle Data Group), Phys. Rev. D 110,
+030001 (2024)` verbatim, which is where the registry entry comes from.
+
+**EVERY MEASURED VALUE AGREED WITH AN INDEPENDENT EXPECTATION BEFORE IT
+WAS WRITTEN DOWN** -- proton 938.27208816 MeV, neutron 939.5654205 MeV
+and 878.4 s, Lambda 1115.683, Sigma+ 1189.37, Sigma0 1192.642, Sigma-
+1197.449, Xi0 1314.86, Xi- 1321.71, Omega- 1672.45, pi+ 139.57039, K+
+493.677. The source supplies the value; the expectation only screens for
+a transcription failure. Two routes agreeing is what makes a hand-typed
+number checkable, and it is the pattern the Waasmaier radius inversion
+already used.
+
+**A LIMIT IS NOT A MEASUREMENT.** `mean_life_s` is None for the proton and
+the note says the PDG prints `> 9 x 10^29 years (CL 90%)`. Storing that
+figure as a lifetime would turn "nobody has ever seen one decay" into "it
+decays", which is the same shape as this file's `n/a is not 0` finding.
+
+## THE DIALOG OPENED ON A DELTA++ AND EVERY TEST PASSED
+
+Found by driving the app and reading the shot -- the fourteenth entry in
+this file's running count of that, and the mechanism is new.
+
+**`QComboBox.findData` CANNOT MATCH A PYTHON TUPLE, AND FAILS SILENTLY.**
+The items carry `(Flavour, bool)` as their data; `findData` compares
+through `QVariant`, returns -1, and `_select` left every box at index 0.
+So `_reset_to_proton` believed it had set `u u d` and the editor opened
+on `u u u`.
+
+**NOTHING NOTICED BECAUSE `content()` READS `currentData()`** -- it was
+perfectly correct about the wrong selection, so all 56 tests passed
+against a dialog showing the wrong particle. The verdict on screen was
+even right FOR what was displayed: "a valid baryon, not identified" is
+the correct answer for a Delta++, which this table does not carry.
+
+Comparing in Python is the fix, and the lookup now RAISES on a miss
+rather than returning quietly: the whole reason the bug was invisible was
+a silent -1. Both halves are guarded, and the regression test asserts the
+CONTENT the dialog opens with rather than combo indices, so it survives
+the picker being reordered.
+
+## A DRIVE STEP THAT DRIVES THE CONTROLS, NOT THE FUNCTION BEHIND THEM
+
+`{"do": "particle", "content": "u d s"}` sets the combo boxes and reads
+the rendered verdict. Calling `identify` in the step would photograph an
+answer the dialog never produced -- and the defect above was precisely a
+broken selection sitting behind correct arithmetic, so a step that
+bypassed the boxes could not have caught it. Same argument
+`jobs_cancel` makes by pressing the real button.
+
+## FILE DIALOGS REMEMBER WHERE YOU WERE, AND `QFileDialog` IS PATCHABLE
+
+`_open_project` and `_save_project` passed **no `dir` argument at all**, so
+Qt fell back to the process working directory -- the repo root, because that
+is where the app is launched from. Nothing anywhere remembered a directory.
+Six dialogs now seed from `dialog_start_directory(settings, kind)` and record
+through `remember_chosen_path`, which stores the PARENT of the chosen file
+and is called only on a non-empty result, so cancelling records nothing.
+
+**SEPARATE MEMORY PER PURPOSE**, so importing a PDB cannot move the Open
+Project dialog. The narrow half is the load-bearing guard --
+`test_the_kinds_do_not_share_one_memory` -- because a single shared key
+passes everything else in the file.
+
+**`DIRECTORY_KINDS` IS CLOSED AND AN UNKNOWN KIND RAISES.** The failure of an
+open vocabulary here is silent: a typo'd kind gets its own private settings
+key, the dialog quietly stops remembering, no test fails and nothing says
+why. Same fail-closed rule as the `**OPNE**` marker in the `DEFERRALS` parse.
+
+The fallback is `QStandardPaths.DocumentsLocation`, and the test asserts it
+DERIVED rather than as a literal -- a hardcoded path would be a claim about
+this machine, which is the failure `initial_right_dock_width` and the
+`offscreen` font measurements already record.
+
+### `QFileDialog`'s STATIC METHODS *ARE* MONKEYPATCHABLE, unlike `QMenu.exec`
+
+Recorded because this file already states that a C++ slot is not, and that
+was generalised to the file dialogs without anybody measuring it. Measured:
+`monkeypatch.setattr(QFileDialog, "getOpenFileName", staticmethod(fake))`
+takes, the fake runs, and the real `dir` argument is readable from inside it.
+
+So the wiring is guarded BOTH ways and both are kept. A behavioural test
+drives the real window and reads what reaches Qt -- the stronger claim, and
+the one matching the report. The AST guards cover all six call sites for the
+price of a parse and cannot fail for environmental reasons. Six mutations
+(each call site dropping `dir`), six caught, every one by its behavioural
+guard AND its own AST case.
+
+**`Settings.add_recent_project` STILL HAS NO CALLER.** Noticed and
+deliberately not touched.
+
+### THE `#:` RATCHET FIRED ON A FILE THAT HAD NEVER USED THE CONVENTION
+
+`settings.py` documented ZERO constants before this, so it was outside the
+population -- and the moment `DIRECTORY_KINDS` got its `#:` block the whole
+file joined, taking `APP_NAME` and `ORG_NAME` with it. Those are the two
+constants this file already names as the canonical case that does NOT want
+documentation, so they were RECORDED rather than answered with
+`#: The app name.` -- the degenerate comment the whole design refuses.
+
+That is the per-file scope rule working exactly as written, from the
+direction nobody had seen it from: documenting one constant conscripts every
+other constant in its file.
+
+**AND "the fixture may only shrink" IS PROSE THAT NOTHING ENFORCES.** It is
+stated here and in `test_every_recorded_constant_names_a_real_file`'s
+docstring; no assertion implements it, and `--record` grew the set 407 ->
+409 with all 11 guards green. Third instance in this file of *a comment
+asserting an intention is worse than silence: it is believed, and then
+quoted* -- quoted, this time, out of this very document.
+
+
+## THE RECEPTOR WAS PREPARED AT pH 7.4 AND THE LIGAND AT NEUTRAL
+
+Reported as three fentanyl analogues docking into 5C1M "better than in the
+past, but still a lot to be desired", with affinities of **-8.88 / -8.79 /
+-8.75** -- 0.13 kcal/mol across three different molecules.
+
+`_convert_receptor_to_pdbqt` is ~300 lines and calls
+`mol.OBMol.AddHydrogens(False, True, ph)`. `_convert_ligand_to_pdbqt` was six
+lines and called `mol.addh()`. **The receptor was moved off that call and the
+ligand never was** -- and the receptor's own comment at the fix site says so
+outright: *"replaces the old bare mol.addh() (which pybel's own wrapper calls
+with correctForPH=False)"*.
+
+**IT IS A TYPING DEFECT, NOT A CHARGE ONE, AND THE DIFFERENCE IS THE WHOLE
+MECHANISM.** Measured through the real PDBQT writer on all three ligands:
+
+    addh()             charge  0   {A:12, C:10, N:1, NA:1, OA:1}
+    AddHydrogens 7.4   charge +1   {A:12, C:10, N:2, HD:1, OA:1}
+
+`NA` is a hydrogen-bond ACCEPTOR and the receptor's anchor carboxylate is an
+acceptor too, so the intended donor contribution is absent from Vina's
+directional hydrogen-bond term. **Vina has no Coulomb term**, so this is not
+an electrostatics claim -- and equally not a claim that formal charge is
+irrelevant, since the charge is what puts the hydrogen there in the first
+place.
+
+**A TEST ALREADY NAMED THE ASYMMETRY AND CALLED IT INCIDENTAL.**
+`test_docking_providers.py` carried *"the ligand-prep path's own addh() call
+(with all defaults) is expected too and isn't what's under test"*. It was
+seen, written down, and read as a detail of somebody else's test.
+
+### OPEN BABEL IS THE RUNTIME PATH AND OUR OWN PROTONATION IS THE CROSS-CHECK
+
+`pka_providers.dominant_microspecies` is validated 16/16 against literature
+charge states and carries the tertiary-amide correction, so it looks like the
+obvious implementation. It **returns a mol built from SMILES and therefore has
+no conformer**, and adopting it would discard the 3D geometry
+`canonical_conformer` deliberately selects. A second runtime protonation
+implementation is also the drift failure this file records four times over
+(`is_stripped_residue`, `filter_altlocs`, `is_symmetry_generated`,
+`normalise_element_symbols`).
+
+    ours vs Open Babel        16/16 agree
+    Open Babel vs literature  16/16
+
+**THE LITERATURE IS THE REFERENCE AND NEITHER IMPLEMENTATION IS THE ORACLE.**
+Calling ours the oracle would let two implementations agree while sharing an
+assumption and have that read as validation -- and the runtime path is now the
+one that is NOT ours, which is exactly why the fixture must be the published
+state.
+
+Open Babel gets all four tertiary amides right, which is what makes it usable
+here: Dimorphite-DL's amine rule has no exclusion for an adjacent carbonyl,
+which is the class this project fixed one branch ago.
+
+### THE A/B SAYS YES, AND IT IS A SMALL YES
+
+`benchmarks/docking/ligand_ph_ab.py`, exhaustiveness 25, five pinned seeds
+per target, real Vina 1.2.7:
+
+    target   pH 7.4 (fix)      neutral (defect)   delta
+    8EF5     3.06 - 3.13 A     3.18 - 3.25 A      -0.12 +- 0.02 A
+    5C1M     0.40 - 0.43 A     0.51 - 0.53 A      -0.11 +- 0.01 A
+
+**10 of 10 paired runs improve**, on two receptors. The effect is about
+0.12 A against a seed-to-seed spread within either arm of 0.07 A, so **it is
+the SIGN that carries this and not the size.**
+
+**COMPARING THE BRANCH AGAINST MASTER WOULD HAVE MEASURED TWO THINGS**, which
+is why this is not a cross-commit A/B: master also has exhaustiveness 8, and
+it cannot pin a seed at all -- `seed=None` is Vina's own "pick randomly" --
+so a same-seed comparison across commits is impossible to construct. Both arms
+run in THIS tree instead, and the receptor PDBQT is built ONCE and reused, so
+it is byte-identical between arms rather than merely equivalent.
+
+**THE SETUP IS ASSERTED BEFORE THE DOCKING RUNS.** The script prints
+`fix has HD: True   neutral has NA: True` per target, because two arms that
+turned out to prepare the ligand identically would produce a perfect null
+result and look like evidence.
+
+**IT DOES NOT RESCUE 8EF5**, which stays above 3 A in both arms -- and 8EF5
+is a **3.30 A cryo-EM** structure, so its reference ligand position carries
+real uncertainty of its own. 5C1M is the better-resolved reference at 2.07 A
+and lands at 0.42 A. A 4 A shift against a 3.3 A EM ligand and a 4 A shift
+against a 2.0 A X-ray ligand are not the same claim.
+
+**AND THE FIX NEVER DEPENDED ON THIS.** Its acceptance criterion is chemical
+correctness: the ligand is represented at the declared pH or it is not. A
+null result was pre-registered as still shipping, which is what stops a
+correct fix being reverted later because a benchmark did not move.
+
+### REPEATABILITY AND VARIABILITY ARE TWO QUESTIONS, AND THE SECOND ANSWERS THE REPORT
+
+Measured on 5C1M, exhaustiveness 25, fentanyl, through the real engine:
+
+    same pinned seed, 3 runs   -8.76 every time, pose sha c186c02b329bea05
+                               BYTE-IDENTICAL -- so a pinned seed reproduces
+    three different seeds      -8.79 / -8.79 / -8.73, three DIFFERENT pose
+                               hashes
+
+Collapsing these into one "noise floor" is what this file's own docking rule
+warns against, and here they answer different questions. The first says the
+recorded seed is worth recording. The second is the sharper one:
+
+**THE SEARCH'S OWN SCATTER ON ONE MOLECULE IS ~0.06 kcal/mol, AND THE THREE
+REPORTED ANALOGUES SPANNED 0.13.** So the difference between three different
+molecules was about twice the difference the same molecule shows against
+nothing but a seed change. That is the [source:su2019] ranking-power claim
+arriving as a local measurement rather than a citation, and it is the honest
+answer to "the docking has a lot to be desired": **those three were never
+going to rank.** n=3 seeds, so it is an order-of-magnitude statement rather
+than a variance estimate.
+
+### AN INFERENCE ABOUT `BABEL_DATADIR` THAT MEASURING KILLED
+
+`phmodel.txt` is absent from `BABEL_DATADIR` and present in `bin/data`, the
+directory this file documents as unreachable on Windows -- which looked like
+it would make the RECEPTOR's pH control a silent no-op too, a far larger
+finding. **It does not.** Open Babel resolves the pH model regardless, and
+`correctForPH=True` behaves identically with the data dir broken and repaired.
+Recorded so nobody re-derives it.
+
+## THE ANCHOR RESIDUE IS NUMBERED DIFFERENTLY IN THE TWO STRUCTURES
+
+Found while verifying a claim written from memory, and it would have been a
+silent trap. [source:zhuang2022] states the interaction as **D149(3.32)**;
+this project's own note said Asp147. Read out of the deposited files:
+
+    5C1M   ASP 147   chain A   mouse mu-OR
+    4DKL   ASP 147   chain A   mouse mu-OR
+    8EF5   ASP 149   chain R   human mu-OR
+
+Same residue by Ballesteros-Weinstein number; **different sequence number AND
+different chain.** "Asp147" was right for the receptor reported and wrong for
+the benchmark receptor -- right by luck, which is the worst way to be right.
+No residue identity is hardcoded anywhere in this work, and 8EF5's chain R
+makes it a good adversarial case for the chain-qualified residue keys this
+file already records a bug class for.
+
+## THE BOX WAS NOT THE PROBLEM, AND THE FIRST MEASUREMENT SAID IT WAS
+
+The plan for this work recorded a third defect: the box is sized from the
+CRYSTAL ligand, and fentanyl at 16.1 A exceeded its 16.00 A shortest side.
+That number counted **every hydrogen**. Vina's ligand PDBQT MERGES nonpolar
+hydrogens into their heavy atom, so it described a molecule Vina never
+receives. Re-measured on the atoms actually written to the file:
+
+    atoms Vina receives        extent    vs 16.00 A shortest side
+    BU-72 (the reference)   34  12.39 A  inside
+    fentanyl                26  14.13 A  inside
+    butyryl fentanyl        27  13.73 A  inside
+
+**So the reported box was adequate for all three and explains nothing.** The
+warning still ships, because a user-editable box CAN be too small and
+[source:feinstein2015] measures accuracy degrading when it is -- but it is a
+guard against a box somebody makes too small, not the diagnosis of the run
+that motivated it. `tests/test_ligand_extent_warning.py` asserts the negative
+case by name, so nobody later tunes the threshold until it fires on the
+complaint.
+
+**A warning tuned until it fires on the case somebody complained about is not
+evidence about that case.**
+
+## THE STORED RESULT WAS A PLAUSIBLE-LOOKING LIE
+
+`DockingResultModel` already had `scoring_function`, `exhaustiveness`, `seed`,
+`engine` and `engine_version` -- and `_DockingTask` filled three of them with
+LITERALS:
+
+    scoring_function="vina",  exhaustiveness=8,  seed=None,
+
+True only by coincidence. They described the defaults that file happened to
+hold, and `exhaustiveness=8` was a second copy of `DEFAULT_EXHAUSTIVENESS`
+that would have gone silently stale the moment the default moved -- which this
+branch then moved, to 25. **A stored result naming settings it did not use is
+worse than one naming none**, because nothing distinguishes it from a
+measurement. The provider records what it actually ran, mirroring the
+`_last_resolved_engine` cache that was already there for the engine.
+
+**AND `seed=None` REACHED VINA AS ITS OWN "PICK RANDOMLY"**, so no run was
+reproducible even in principle. A seed is chosen when the caller pins none,
+passed explicitly, and stored -- so a run can be repeated AFTER the fact
+rather than only when somebody thought to pin it in advance. That reproduces a
+run under the same engine, version and settings; it is not determinism across
+versions or thread counts, and the wording says so.
+
+## CASF-2016 SPLITS THE ANSWER, AND IT IS THE ANSWER TO THE REPORT
+
+The most useful sentence in nine papers read for this branch, from
+[source:su2019]:
+
+> "some not-so-good scoring functions in the scoring/ranking power tests
+> exhibit good performance in the docking power test, such as **AutoDock
+> Vina**, GlideScore-SP, and GlideScore-XP."
+
+CASF-2016 scores four separate abilities and puts Vina strong at **docking
+power** (right pose, success "close to 90%") and weak at **ranking power**.
+[source:agboola2026] reaches the same split another way: across eleven
+targets, ranking barely moved between a site-directed and a blind box
+(ROC-AUC 0.69 -> 0.62) while placement collapsed (96% -> 48%), and the two
+were **uncorrelated (r = -0.03)**.
+
+    the POSE      docking power, where Vina is strong -- and where a
+                  mis-typed anchor nitrogen wastes that strength
+    the RANKING   ranking power, where Vina is documented as not-so-good
+
+**So the honest thing to tell a user is that the poses should improve and the
+three analogues will probably still not rank.** 0.13 kcal/mol across close
+congeners is this scoring function behaving as published, not a finding about
+those molecules. That is now in `SCIENTIFIC_LIMITATIONS.md` rather than left
+for somebody to infer.
+
+**AND MORE SEARCH EFFORT IS NOT THE CURE.** [source:agboola2026] re-docked
+misplaced actives at twice the default exhaustiveness and left *"six of eight
+gross misplacements unresolved"*.
+
+## EXHAUSTIVENESS 25, AND THE NUMBER WAS REVISED ON READING THE SOURCE
+
+32 was chosen first, on the reasoning that accuracy matters more than the ~20
+seconds it costs. [source:agarwal2022] then measured 1/8/25/50/75/100 and
+says, in its own words, that 8 *"performs well overall"*, that mRMSD *"changes
+little with values higher than 25"*, and recommends 8 *"with, if the
+computational resources are available, a value of 25 also being an option"*.
+
+32 sits past the convergence point, so it could not have been described as
+more accurate -- only as more expensive. **The default is the paper's
+resources-available value and the docs say it is a documented engineering
+choice rather than an optimum**, because that study measured its own benchmark
+set and not this receptor family. 8, 16 and 32 stay selectable.
+
+## `flow_row` IS NOT A FREE SUBSTITUTION FOR A TWO-CHILD `QHBoxLayout`
+
+The **fifteenth** entry in this file's running count of defects found only by
+driving the app and magnifying the shot, and the first where the defect was
+one I had just introduced by applying one of this file's own rules.
+
+The Docking panel's strip-checkbox row was a `QHBoxLayout`. It was swapped for
+`flow_row` on the recorded rule that *"a horizontal layout's minimum width is
+the SUM of its children"* -- which is true, and was the wrong call here.
+Measured at the dock's 420 px default:
+
+    QHBoxLayout   row 17 px   group hint  85   group min width 828
+    flow_row      row 38 px   group hint 106   group min width 654
+
+The two checkboxes need **372 px**, so the flow row WRAPS at that width and
+reserves two lines for content that draws on one -- a visible dead band under
+the checkboxes, which on screen pushed *Poses / Configure Vina / Dock* down.
+`flow_row` is behaving correctly: `heightForWidth` is 38 below 420 px and 17
+at or above it. It is the RIGHT answer for a row of fourteen controls and the
+wrong one for a row of two.
+
+**AND THE WIDTH IT BOUGHT BACK NEVER MATTERED**:
+`tests/test_right_dock_width.py` passes on both arms, because the panel
+minimum was never near the binding constraint. So the change cost 21 px of
+visible space and bought nothing measurable.
+
+**NOTHING IN THE SUITE COULD SEE IT.** 141 tests across the panel, the width
+guard and the tooltip coverage pass identically either way -- the group's
+height is not asserted anywhere, and there is no reason it should be. The
+magnified screenshot is what showed it, and re-shooting after the revert is
+what confirmed it.
+
+The rule this leaves: **`flow_row` is a cure for a row whose children cannot
+fit, not a prophylactic.** Reach for it when a row is wide, and measure the
+group's height when you do.
+
+## A REVIEW'S CITATION DID NOT RESOLVE TWICE, AND I CALLED IT FABRICATED
+
+`10.1016/j.rineng.2026.112651` was offered as a bonus source. Two attempts to
+retrieve it returned unrelated papers from the same journal --
+`...2026.110745` (subway-station digital twins) and `...2025.104139`
+(construction governance), neither mentioning Vina, docking or RMSD once --
+and I concluded the citation did not exist. **The third attempt is the paper,
+at exactly the DOI given.**
+
+**Two failed downloads are evidence about the downloads, not about the
+paper.** Same "a pattern in a handful of samples is not a law" mistake this
+file records at n=7 and n=10, made again at n=2, and made while writing a
+section about verifying citations.
+
+The eight other new sources were each verified from their own first page, and
+three are pre-publication copies recorded as such: `agarwal2022` is an
+Accepted Article, `feinstein2015` a Provisional PDF, `agboola2026` a Journal
+Pre-proof. All three say so on their own first page.
+
+## `Read` CANNOT OPEN A PDF HERE, AND THE THROWAWAY VENV IS THE ANSWER
+
+Recorded again because it cost a turn: `pdftoppm` is not installed, so the
+`Read` tool refuses a PDF outright. `uv venv` in the scratchpad plus
+`uv pip install pymupdf` -- never the project venv -- reads them, and can
+render pages to PNG for the tables whose text layer is damaged.
+
+**AND THE HEREDOC ATE A BACKSLASH AGAIN.** Replacing a string containing
+`\n\n` through a quoted `<<'PY'` heredoc silently failed to match; this file
+already records the same trap writing `"\\n"`. Use a real editing tool when the
+content contains escapes.
+
+## A SCORE IS ONE DRAW, AND THE PANEL PRINTED IT TO TWO DECIMAL PLACES
+
+Reported as three fentanyl analogues docking into 5C1M at **-8.88 / -8.79 /
+-8.75**. Nothing on screen said those three numbers were one draw each from a
+distribution nobody had measured.
+
+`domain/affinity_range.py` is the answer: a dock can now run N searches, and
+what is reported is the RANGE of the runs performed, the median, and N.
+
+**IT LICENSES EXACTLY ONE DIRECTION, and that is the whole design:**
+
+    ranges OVERLAP        "indistinguishable by this method"      SUPPORTED
+    ranges are DISJOINT   "A binds better than B"             NOT SUPPORTED
+
+A separation says the SCORING FUNCTION told two ligands apart by more than its
+own run-to-run scatter. It does not say the separation is real -- CASF-2016
+puts even top-ranked functions at "around 0.6" ([source:su2019]) and an
+independent 800-complex evaluation puts Vina at **0.498 +/- 0.026**
+([source:nguyen2020]). **A range shipped as a two-sided error bar would be
+strictly worse than the bare number it replaced**, because a bare number at
+least claims no precision.
+
+### THE p-VALUE IS TWO-SIDED, AND THE FIRST STATEMENT OF IT WAS WRONG
+
+Complete separation is the extreme outcome (U = 0) of the Mann-Whitney
+rank-sum test [source:mann1947]. Its own p. 51 supplies the derivation --
+"each of the (m + n)!/m!n! sequences of n 0's and m 1's is equally likely" --
+so of those equally likely orderings, one puts all of A below all of B and one
+more puts all of B below all of A.
+
+The first draft wrote `1/C(2n,n)` and concluded the minimum useful count is 3.
+That is the ONE-SIDED rate and holds only when the direction is fixed before
+the data is seen. The panel reports an ordering in EITHER direction:
+
+    n     one-sided (WRONG)     what ships
+    3     0.050                 0.100    does NOT reach 0.05
+    4     0.014                 0.029    the smallest that does
+
+**So the minimum is 4 runs each, not 3**, and it is DERIVED from alpha rather
+than typed -- `MIN_REPLICATES_FOR_SEPARATION = min(n for n in count(1) if
+separation_p_value(n, n) <= ALPHA)`. Shipping the original claim would have
+licensed orderings at a one-in-ten false rate under documentation saying one
+in twenty, which is worse than no rule because the number would be believed.
+
+**COMPUTE, NEVER TABULATE.** Unequal counts are the ordinary case -- a failed
+replicate, a legacy result -- and `2/comb(n_a+n_b, n_a)` behaves
+non-obviously: **2 runs against 5 refuses at 0.095 while 2 against 8 allows at
+0.044**. Any "minimum 4 each" shortcut gets both wrong.
+
+**AND A PER-PAIR RATE DOES NOT CONTROL A TABLE.** A 50-ligand screen has 1225
+pairs; at 0.029 each you expect ~35 falsely-ordered pairs. No p-value is
+printed per row -- it justifies the minimum count and lives in the docs.
+
+### THE MEASUREMENT: 80 REAL VINA RUNS, AND THE COUNT DECIDES
+
+`benchmarks/docking/seed_spread.py`, exhaustiveness 25, four receptors x two
+deposited ligands x ten pinned seeds, ~26 minutes.
+
+**THE WIDTH GREW IN 8 OF 8 LIGANDS AND SHRANK IN NONE:**
+
+    ligand                    n=3     n=5    n=10
+    5C1M  BU72               0.00    0.00    0.02
+    5C1M  fentanyl           0.04    0.04    0.04
+    6WGT  LSD                0.01    0.02    0.03
+    6WGT  ergotamine         0.04    0.04    0.08
+    2RH1  carazolol          0.01    0.03    0.05
+    2RH1  BI-167107          0.04    0.05    0.06
+    3PBL  eticlopride        0.04    0.04    0.05
+    3PBL  nemonapride        0.14    0.14    0.18
+
+The MEDIAN moved by at most 0.01 over the same range, which is the other half
+of why the representative is the median: it is stable in n where the width and
+the minimum are not.
+
+**A FITTED NOISE FLOOR WOULD HAVE TO BE WRONG SOMEWHERE.** At n = 10 the
+widths span 0.02 to 0.18 -- a factor of NINE across eight ligands of one
+method on four receptors. The no-fitted-constant rule, measured rather than
+argued.
+
+**THE COUNT DECIDES AND NOT THE SIZE, shown on real output.** BU72 and
+fentanyl in 5C1M are **3.70 kcal/mol apart, ~90x the wider of their widths**,
+and at 3 runs each the shipped `compare()` still returns NOT_ASSESSED. All
+four pairs flip to SEPARATED at exactly n = 5 -- the first count above the
+derived minimum of 4. Nothing about the gap enters that decision.
+
+**2RH1 IS THE ROW THAT EXPLAINS THE ONE-DIRECTIONAL RULE.** Carazolol and
+BI-167107 are **0.08 kcal/mol apart** with widths of 0.05 and 0.06, and the
+method calls them SEPARATED. True about the search, and meaningless about the
+chemistry: 0.08 is far below what a ~0.6-correlation scoring function
+resolves. A reader taking "separated" as chemical evidence has made the exact
+error the panel's wording exists to prevent.
+
+**AND THE MOTIVATING FIGURE WAS AN UNDERESTIMATE.** Fentanyl's own width in
+5C1M is 0.04 over ten runs against the reported analogues' 0.13 spread -- so
+those three were about THREE times the single-molecule width, not the
+"roughly twice" recorded from a three-seed sample. The sample-size effect,
+appearing in the figure that motivated the work.
+
+**PREP IS NOT WORTH CACHING and flexibility is what costs.** Receptor prep is
+0.2-1.0 s paid ONCE; a search is 6.1-37.8 s paid per run, so prep is under 2%
+of a ten-replicate sweep. Ergotamine (43 heavy atoms) takes 37.8 s per run
+against LSD's 6.1 s **on the same receptor**.
+
+### THE RECEPTOR PDBQT IS NOT REPRODUCIBLE, AND THE SCORE IS
+
+Found because the benchmark prints the receptor's sha256 as a setup assertion
+and two runs of identical inputs printed different ones. Measured, three
+preparations of 5C1M in ONE process:
+
+    three different sha256, all at 302,980 bytes
+    80 of 3794 lines differ, and EVERY one is an added polar HYDROGEN
+    on a rotatable group (Arg guanidinium and friends)
+
+Open Babel places those at a rotamer it does not fix. Heavy atoms are
+identical. **The scores were unaffected** -- the same two ligands at the same
+three seeds gave byte-identical affinities across two separately-prepared
+receptors -- so this is a hidden non-deterministic step between the recorded
+settings and the search that has not been observed to move an answer. n=6, so
+that is an observation and not a guarantee.
+
+**IT MEANS A PRINTED sha IS EVIDENCE ABOUT ONE RUN, NOT A REPRODUCIBILITY
+FINGERPRINT**, which is now written into the benchmark beside the number it
+qualifies.
+
+### TWO SEED CONCEPTS, AND A PINNED SEED NO LONGER REACHES VINA
+
+    protocol_seed 4712              what the user typed
+      +- derived per (protocol_seed, ligand_uuid)
+           +- replicate[0].seed  881423     the actual Vina seeds
+           +- replicate[1].seed  1990277
+    representative_index 1          so DockingResultModel.seed == 1990277
+
+**DERIVED PER LIGAND IS A STATISTICAL REQUIREMENT, NOT A CONVENIENCE.** The
+rank-sum calculation needs two INDEPENDENT samples; deriving from the protocol
+seed alone would hand every ligand in a screen the same seed set, so their
+values would arrive as correlated pairs and the exact calculation would be
+void -- while every number on screen still looked fine. No numerical test
+notices that.
+
+That is also what disqualifies the friendly-looking variant where replicate 0
+keeps the protocol seed verbatim: every ligand would then share seed 4712 as
+its first run. The cost is stated rather than discovered -- **pinning 4712 no
+longer makes Vina run at 4712**, so a result recorded before this cannot be
+reproduced by re-typing its number, and `DockingResultModel.seed` keeps its
+old meaning (the seed of the run that produced the STORED poses).
+
+**SHA-256, NEVER `hash()`, AND NEVER A TUPLE SEED.** `hash()` of a str is
+randomised per process, so the obvious derivation would have made a
+"reproducible" protocol depend on PYTHONHASHSEED -- this project shipped
+exactly that once, in `protonate_at_ph`. And `random.Random((seed, uuid))`
+raises: `random.seed` takes only None/int/float/str/bytes/bytearray. The
+shipped sequence is also PREFIX-STABLE -- seed i never depends on `count` --
+so raising 3 replicates to 5 keeps the first three runs.
+
+### THE REPRESENTATIVE IS THE MEDIAN, AND BEST-OF-N IS DISQUALIFIED
+
+Best-of-N is a MAX SELECTION, so the headline affinity drifts more negative
+purely as the replicate count rises -- the reported number becoming a function
+of how many times it was run, which is this feature's own harm reintroduced in
+the first number a reader sees. The median also makes the pose table's row 1
+equal BY CONSTRUCTION to the reported centre.
+
+The fixture that guards it is `-10.0 / -9.0 / -8.0 / -1.0`, chosen because
+FIRST, BEST and LAST each select a DIFFERENT replicate on it -- index 0, 0 and
+3 against the median's 2 -- so one assertion rules out all three. An
+even-length list whose middles tie would not.
+
+### THREE STATES, NOT TWO, AND THE THIRD IS THE DEFAULT
+
+    replicates is None   "not recorded -- this result predates replicate runs"
+    n == 1               "1 run (seed 358255849, protocol seed 4712) --
+                          no spread measured"
+    n >= 2               "Score range over 3 runs: -8.85 to -8.73 (median
+                          -8.79). Poses are from the median run (...)."
+
+`DEFAULT_REPLICATES = 1`, so at the default the fix is BEHAVIOURAL and costs
+no runtime: the number stops presenting itself as a measurement. A width of
+0.0 from five agreeing runs is a MEASUREMENT and must stay distinguishable
+from all three, which is why `AffinityRange.width` is None at n = 1 rather
+than 0.0.
+
+**AND `from_dict` SYNTHESISES NOTHING for a legacy result.** A one-element
+record and a genuine single-replicate run are different claims about how the
+run was performed.
+
+### THE PROGRESS MAPPING WAS DESIGNED AGAINST A CHANNEL THAT DOES NOT EXIST
+
+The plan specified that replicate i map its 0..1 into `[i/n, (i+1)/n]`. There
+is nothing to map it into: `_on_progress` has never read `fraction`, and
+`JobHandle`'s own docstring says it reuses the free-text message "rather than
+a second, parallel progress-reporting channel". Computing a mapped fraction
+would be a number nothing consumes.
+
+**The MESSAGE names the run** -- "Run 2 of 3: Preparing receptor" -- which
+buys what the mapping was for: a three-minute job stops LOOKING like it reset
+three times. At N == 1 the text is unchanged, and that narrow half is the
+load-bearing guard: "always prefix the run" satisfies the N > 1 test and ships
+"Run 1 of 1:" to every user who never asked for replicates.
+
+### RANKING IS A DOMINANCE RANK, NOT A TIE-GROUPING
+
+    rank(x) = 1 + |{ y : y is separated-below x }|
+
+**"Not separated" is NOT an equivalence relation**, which is what kills the
+obvious implementation. With A = [-9.0, -8.5], B = [-8.6, -7.0] and
+C = [-7.2, -6.0], A overlaps B and B overlaps C while **A and C are
+disjoint** -- a transitive closure renders 1, 1, 1 and destroys a separation
+the data supports. The dominance rank renders 1, 1, 2.
+
+"Separated-below" IS a strict partial order (an interval order, hence
+transitive), so counting dominators is well defined. The guard asserts its own
+setup -- that A and C really are disjoint -- because otherwise it renders
+1, 1, 1 and passes against the closure it exists to rule out.
+
+**AT ONE REPLICATE THE TABLE REFUSES TO RANK, VISIBLY.** Every pair is
+NOT_ASSESSED so every row reads 1, which is correct and looks exactly like a
+broken rank column -- so a note says why and names the minimum count.
+
+### AND QT'S ROW INDEX CONTRADICTED THE RANK COLUMN
+
+Found by grabbing the screening dialog and reading the shot, with every guard
+in the file green. The results table is SORTED BY SCORE, so the vertical
+header's 1, 2, 3, 4 reads as a strict ranking -- and it sat immediately left
+of a Rank column reading 1, 1, 1 above a note saying the ranking could not be
+assessed. **The refusal was defeated by the widget beside it**, and a reader
+would believe the numbers over the prose. Hidden.
+
+**NOT the same as the Docking panel's pose table**, where the row index merely
+DUPLICATES a "Pose" column -- poses really are strictly ordered by score
+within one run, so that one is redundant rather than wrong. The distinction is
+in both comments, because the obvious sweep would hide both.
+
+### THE POSE TABLE'S AFFINITY HEADER WAS CLIPPED AT BOTH ENDS
+
+The **sixteenth** entry in this file's running count of defects found only by
+driving the app and magnifying the shot, and it was pre-existing. Every column
+was `ResizeMode.Stretch`, so the table's 440 px divided into four 110 px
+sections while "Binding Affinity (kcal/mol)" needs 141 -- and a header
+OVERFLOWS rather than eliding, so it rendered:
+
+    ling Affinity (kcal/r
+
+Identical to what `virtual_screening_dialog.py:109-119` already records fixing
+in its own table ("est score (kcal/mo"). Measured at 440 px:
+
+    Stretch on all four        [110, 110, 110, 110]   affinity CLIPPED
+    stretch the LAST section   [ 34, 154,  62, 190]   190 px for a
+                                                      five-character number
+    this                       [ 34, 278,  62,  66]   nothing clipped
+
+`ResizeToContents` sizes a section to the WIDER of its header and its cells,
+so those three cannot clip at ANY font or DPI -- a stronger statement than a
+measurement, and why only the affinity column takes the remainder. **Proven to
+say no on BOTH font platforms**: reverting fails the guard under `offscreen`
+AND under `windows`.
+
+### THE LIMIT NOTE NAMES NEITHER "CONFIDENCE" NOR "INTERVAL"
+
+The plan's draft wording denied both by name -- "It is not a confidence
+interval, a prediction interval, or a binding-affinity uncertainty". A denial
+teaches the reader the exact frame the sentence exists to prevent, AND it
+makes any guard on the rendered string unable to tell a denial from a claim.
+Saying what the number IS leaves a clean word ban, which is what ships:
+
+    That range is how much these runs disagreed with each other -- not an
+    uncertainty on the affinity. A gap between two ligands means the search
+    separated them, not that they bind differently.
+
+**ON SCREEN, NOT ONLY IN THE TOOLTIP**, because this project has twice
+recorded a meaning that lived only in a hover and was absent from every
+screenshot -- the isotope table's spin/parity marks, and `Fact.limitations`.
+
+### NOT ONE SMILES IS TYPED IN THE BENCHMARK
+
+Every ligand is DEPOSITED, fetched by chemical-component code: each receptor's
+own ligand plus the ligand of a sibling entry in the same family, so both are
+real ligands of the receptor being docked. This project has already recorded a
+benchmark whose story changed when two from-memory SMILES were replaced by the
+corpus's own.
+
+**ALL FOUR TARGETS ARE GPCRs, AND THAT IS A LIMIT RATHER THAN A CHOICE.** The
+family-sibling rule is what removes typed SMILES, and the receptor library's
+only multi-deposit families are GPCRs -- there is no second
+acetylcholinesterase or HIV-protease entry to take a second ligand from. So
+none of this says how the spread behaves on a soluble enzyme with a buried
+pocket.
+
+### DRIVEN AGAINST REAL VINA, AND THE MEDIAN IS THE REPORTED NUMBER
+
+`benchmarks/visual/docking_replicates.json` docks fentanyl into 5C1M at
+**3 replicates**, unpinned, through the real button. Five minutes unattended.
+What the panel rendered:
+
+    Score range over 3 runs: -8.91 to -8.86 (median -8.88). Poses are from
+    the median run (seed 1649537115). That range is how much these runs
+    disagreed with each other -- not an uncertainty on the affinity. ...
+
+**THE MEDIAN IS -8.88, WHICH IS THE NUMBER THE WHOLE FEATURE WAS REPORTED
+FROM** -- now with a width of 0.05 and a count beside it. The pose table's row
+1 reads -8.88 too, equal by construction.
+
+The unpinned branch is verified live by what is ABSENT: "seed 1649537115" with
+no "protocol seed" clause, because nothing was pinned. And `dock_panel` logged
+`replicates=1 spread_hidden=True spread=''` before the run against
+`replicates=3 spread_hidden=False` after, which is the hidden/shown transition
+a screenshot cannot distinguish from an empty label -- the reason the drive
+step logs the flag beside taking the shot.
+
+### AND THE MAGNIFIED SHOT FOUND A PRE-EXISTING CLIP: THE PANEL DID NOT FIT
+
+At the dock's 420 px default the Docking panel was 466 px wide, so roughly
+26 px of every widget sat past the right edge behind the scroll area: the
+**Dock button read "Doc"**, "RMSD u.b." read "RMSI", and each of the new
+label's lines was cut mid-word.
+
+**IT PREDATED EVERYTHING HERE**, checked rather than assumed: the artifact from
+this branch's own earlier `docking_search_controls` run, taken before the panel
+gained anything, shows the box status clipped identically as
+`box 16x18x16 A (size cl`. The panel's minimum was 466 px before AND after the
+replicate work. It was also an accepted compromise -- this file's own
+`initial_right_dock_width` entry lists Docking at 466 and chose 420 anyway.
+
+What changed its status is that the cost changed shape: clipping 26 px off a
+spin box is invisible; clipping it off four lines of prose makes the sentence
+unreadable, and clipping it off a BUTTON leaves "Doc".
+
+**THE CAUSE IS THAT QT SIZES A SPIN BOX TO ITS RANGE.** A `QDoubleSpinBox`
+asks for the widest value its range permits plus slack, so the six coordinate
+spins each wanted 109 px for a number that in practice reads "-58.78". Three
+of them plus a form label column is a 444 px group in a 420 px dock.
+
+    baseline                             466   clipped
+    shorter form labels alone            427   still clipped
+    both                                 406   fits, 14 px to spare
+
+**`flow_row` IS NOT THE CURE, measured twice over.** It wraps, so an `x, y, z`
+triple would split across lines -- worse to read than the clip -- and it costs
+height in a panel whose 3D sibling was once 63 px tall. The shipped fix costs
+**zero** height: 610 px minimum before and after, asserted.
+
+**AND MY FIRST FIX WAS A PIXEL CONSTANT THAT MEASURED BEAUTIFULLY AND WAS WRONG
+IN KIND.** A flat 100 px cap took the panel to 400 and looked perfect. Under a
+larger UI font it gives the line edit 80 px for a value needing 96, so it would
+clip the NUMBER -- strictly worse than clipping a label, because a half-shown
+coordinate is a wrong coordinate. `coordinate_spin_width` derives the width
+from the font and the STYLE instead:
+
+    platform    text   chrome   Qt's hint   derived
+    windows       44       52         109    96 + a digit
+    offscreen     96       20         132   116 + a digit
+
+**THE CHROME IS ASKED OF THE STYLE, NOT ALLOWED FOR.** A first check budgeted
+30 px for the buttons and frame and concluded 90 px was fine. Asked of the LINE
+EDIT -- where the text is painted -- it is 52 px here and 20 px under
+`offscreen`, so 90 px would have clipped "-1000.00" while every arithmetic
+check said it fit. **Ask the widget, do not budget for it.**
+
+#### THE MUTATION PASS HAD TO RUN ON BOTH FONT PLATFORMS, AND THAT IS THE POINT
+
+Six arms, run under `windows` AND `offscreen`:
+
+    W1  no cap at all                     caught on both
+    W2  a flat 100 px cap                 SURVIVED on windows, caught on offscreen
+    W3  the chrome guessed at 30 px       caught on both
+    W4  the digit of margin dropped       SURVIVED on both -- admitted equivalent
+    W5  the width ignores the range       caught on both
+    W6  the long form labels come back    caught on both, after a guard was added
+
+**W2 IS THE WHOLE ARGUMENT.** The defect a fixed cap introduces is invisible at
+the font it was fitted to and only appears at another -- which is the failure
+this file records as "a geometry claim about real fixed text is a claim about
+the font", arriving as a mutation that a single-platform pass would have
+scored SURVIVED and shrugged at.
+
+**W6 WAS A REAL GAP.** Restoring the long labels takes the panel 406 -> 427,
+back above the dock, and nothing caught it: the spin guard covers the spins and
+the fits-the-value guard covers the text. A guard on the box GROUP's width
+closes it.
+
+**W4 IS AN ADMITTED EQUIVALENT.** Without the digit of margin the line edit
+comes out exactly as wide as the text, which still satisfies `>=`. It is
+defensive slack against rounding, no test distinguishes it, and the docstring
+says so rather than a guard restating the line.
+
+**AND THE GUARDS ARE FONT-INDEPENDENT BECAUSE THEY HAD TO BE.** "The panel's
+minimum is at most 420" cannot be asserted: under `offscreen` it is 706 with
+the fix and without it, because a different group binds at that font. What is
+assertable everywhere is that the widest permitted value fits its line edit,
+that the width differs between the two ranges (a constant cannot), and that the
+box GROUP shrinks. The first draft asserted the PANEL and failed under
+`offscreen` against correct code.
+
+### `search_options` NEVER REACHES A SCREEN -- **FIXED, see below**
+
+**SUPERSEDED.** `request_screen` takes and forwards it now, and the
+dialog grew the four controls. Kept because its closing sentence names
+the decision correctly and the reasoning stands; see "A SCREEN COULD NOT
+BE PINNED EVEN IN PRINCIPLE" for what it cost and why LATENT understated
+it.
+
+`ScreeningService.request_screen` takes no `search_options` and passes none to
+`request_docking`, so a screen runs at the provider's own defaults while the
+Docking panel sends its three. Latent rather than live, because they coincide
+today at 25 / vina / random seed -- the same shape as
+`BatchRequest.molecule_uuids`.
+
+**The plan claimed replicates could not be threaded through without fixing
+it. That is false**: `replicates` is a `request_docking` parameter, a sibling
+of `num_poses`, and threads exactly as `num_poses` already does. So it was NOT
+fixed -- adding a parameter no caller can fill is the unread-field defect in
+another costume, and fixing it properly means the screening dialog growing
+exhaustiveness, scoring and seed controls, which is a decision about whether a
+screen should be configurable.
+
+### AND THE SAME OMISSION HAD A LIVE HALF: THE SCREEN DOCKED INTO AN OCCUPIED POCKET
+
+The entry above says `search_options` never reaches a screen and calls it
+LATENT, because the three settings coincide with the provider's defaults.
+`receptor_prep_options` never reached a screen either -- **and one of ITS
+keys does not coincide with anything.**
+
+`VirtualScreeningDialog._start` passed no prep dict at all, so
+`strip_ligand_codes` defaulted to `()` and the co-crystallised ligand whose
+coordinates DEFINED the search box was left sitting in it. The other five
+keys really do coincide -- checked, not assumed: `ph` 7.4 against
+`DEFAULT_PREPARATION_PH`, `strip_waters` True, `strip_cofactors` False,
+`keep_chains` empty, `build_assembly` off. Only the sixth was a live defect,
+and it is the one with no default that could be right.
+
+**THE DIALOG ALREADY KNEW WHICH RESIDUE WAS IN THE WAY.** `_start` reads
+`receptor.metadata["ligand_code"]` on the line above to place the box, and
+then did not pass it to preparation. So the information was in hand and
+dropped between two adjacent statements.
+
+**AND THE PREDICATE'S OWN DOCSTRING NAMED THE VICTIM.**
+`pose_analysis.is_stripped_residue` carries the measurement -- indinavir
+redocked into its own 1HSG, **-5.34 against -9.78 kcal/mol**, and the
+occupied run SLOWER -- and ends: *"a small ligand fitting the leftover space
+is penalised less than a large one that does not, so the RANKING can invert
+-- and a ranking is the entire output of a virtual screen."* Virtual
+screening was the one caller that omitted it. Fourth instance in this file of
+a comment describing a harm that the code path it names actually has.
+
+**TWO NUMBERS FOR ONE MEASUREMENT, and neither was corrected here.**
+`is_stripped_residue` says `-9.78`; the helper's docstring in
+`docking_panel.py` said `-9.75`. The moved docstring now cites the predicate
+rather than restating the figures, so there is one record instead of two that
+disagree -- but WHICH digit is right is not established and is not guessed at.
+
+**THE FIX IS ONE IMPLEMENTATION, NOT A SECOND COPY.**
+`_box_defining_ligand_codes` was module-private in `docking_panel.py`; it is
+`chem/binding_site.box_defining_ligand_codes` now and both UI callers import
+it. Copying it into the dialog would have been the drift already paid for
+four times (`is_stripped_residue`, `filter_altlocs`, `is_symmetry_generated`,
+`normalise_element_symbols`).
+
+**THE NARROW HALF IS UNREACHABLE THROUGH THIS DIALOG, and that is written
+into the guard rather than left as a gap.** "An imported receptor strips
+nothing" is the obvious companion test and it cannot be reached here: `_start`
+needs `ligand_code` to derive the box at all, so a receptor without one is
+refused several lines earlier. A test written that way asserts on an empty
+call list and passes whatever the prep dict says. The reachable property is
+that the dialog REFUSES; the narrow half lives on the predicate in
+`tests/test_binding_site.py`. An unreachable branch is a question about where
+to assert.
+
+**THREE MUTATIONS, THREE CAUGHT, and the third is the entry worth reading.**
+Reverting the prep dict fails the screening guard; a "guess a ligand" rule in
+the helper fails three predicate guards; and **giving the dialog its own
+BEHAVIOURALLY IDENTICAL copy** fails only
+`test_the_screen_and_the_panel_ask_THE_SAME_FUNCTION`, which is a SOURCE
+check for exactly that reason -- two correct copies agree on every input, and
+only their existence differs.
+
+**DRIVEN, AND THE PREP DICT IS A FLAG NO SCREENSHOT CARRIES.** A screen with
+the crystal ligand still in the pocket renders identically to one without:
+same table, same progress bar, scores 4 kcal/mol out. So `screen_run` presses
+the real Run button and logs what the REAL `ScreeningService` received. On
+1HSG, one ligand:
+
+    screen_run receptor='HIV-1 protease (1HSG)' queued=1 poses=9
+    replicates=1 prep={'strip_ligand_codes': ['MK1']}
+    box=(11.634, 22.47, 5.8585)
+
+`MK1` is indinavir. Before this, that dict was empty.
+
+**AND `binding_site.py:167` CARRIES AN EM DASH IN A USER-FACING REFUSAL**,
+found by the fixture for this work and NOT fixed here. `"No residue {code!r}
+in this structure — it may be..."` reaches the screening dialog's status label
+and the log; this file's own rule is that an em dash passes a cp1252
+assertion and still renders as a replacement character on a real console, and
+it did in the pytest capture. Recorded rather than swept, because a
+non-ASCII sweep over every user-facing string is its own change.
+
+## MASTER CRASHES IN THE SAME TWO TESTS, AND THAT IS THE ATTRIBUTION
+
+PR #65's first CI run reported `completed/success` at every level the REST API
+exposes and had crashed. The annotation is the only thing that says so:
+
+    Reached [58%]. CENSUS: died in tests/test_nmr_view_dialog.py::
+    test_dialog_without_a_conformer_still_shows_the_spectrum after 3903
+    test(s); 1 late destruction(s) during the run.
+
+**RE-RUN ON THE SAME SHA IT CRASHED AGAIN** -- 58%, same file, the ADJACENT
+test, after 3901 tests. Two for two.
+
+**AND MASTER DOES THE SAME THING, ON COMMITS THAT PREDATE THE BRANCH.** This is
+what settles attribution, and it took one loop over `git log` plus the
+annotations API:
+
+    tree              test                                          late
+    master 7bcde4ce   ..._without_a_conformer_still_shows_...        0
+    master d261da8d   test_dialog_shows_the_signal_list              0
+    PR #65            ..._without_a_conformer_still_shows_...        1
+    PR #65 re-run     test_dialog_shows_the_signal_list              1
+
+The same two tests, alternating, at 57-58%, on a tree with no docking work in
+it. Two crashes in two runs is unremarkable against this file's own measured
+fixed-tree rate of 0.54 -- p = 0.25 for 2-of-2 -- and the branch touches
+nothing NMR, nothing Qt-lifetime and nothing in `conftest.py`. What it does do
+is add ~60 tests, which shifts collection order, which is the documented
+mechanism that MOVES the victim rather than creating one.
+
+**SURVEY THE BASE BEFORE BLAMING THE BRANCH.** Six master commits' annotations
+cost about a minute and turned "my branch crashes CI" into "this is the thing
+CLAUDE.md has a section about". Without it the obvious move is to go hunting
+through a diff that cannot contain the cause.
+
+### THE VICTIM'S COLLECTED POSITION IS IDENTICAL ON MASTER, AND THE BRANCH DID NOT MOVE IT
+
+Three Linux runs of `stage-6-quantitative-limits`, two of them on trees whose
+collected sets are byte-identical (a docs-only push), all three:
+
+    Reached [57%]. died in tests/test_nmr_view_dialog.py::
+    test_dialog_shows_the_signal_list after 4192 test(s); 0 late destruction(s)
+
+Same file, same test, same count, three times.
+
+**THE ATTRIBUTION IS SETTLED BY ONE `grep`, AND IT POINTS THE OPPOSITE WAY
+FROM THE DOCUMENTED MECHANISM.** The standing reading of this class is that
+added tests shift collection order and MOVE the victim. Measured on the
+`--collect-only` lists either side:
+
+    victim's position, master fdf6829   4196
+    victim's position, this branch      4196     IDENTICAL
+
+Every test this branch adds -- `test_osha_*`, `test_quantitative_*`,
+`test_regulatory_*`, `test_sources_*` -- sorts AFTER `test_nmr_*`, so nothing
+before position 4196 moved at all. **The branch cannot have shifted this
+victim**, which is a stronger statement than "the branch touches nothing NMR"
+and takes one command rather than a diff review.
+
+**AND THAT LEAVES A REAL PUZZLE RATHER THAN A CLEAN ANSWER.** Master's two
+most recent Linux runs are CLEAN at the same position, and this branch is 3
+for 3 at it. So:
+
+    master        0 of 2 crashed
+    this branch   3 of 3 crashed, at an IDENTICAL position
+
+**NEITHER SIDE IS SIGNIFICANT AND BOTH ARE ORDINARY.** Against this file's own
+measured fixed-tree rate of 0.54, three crashes in three is p = 0.157 and two
+cleans in two is p = 0.21. Fisher exact on the pair is p = 0.10. **The counts
+say nothing.**
+
+What is anomalous is the CONSTANCY, and only against the recorded history:
+the 50-leg disposal experiment measured 27 crashes across FIVE files on a
+fixed tree, so a victim that does not wander is new. That experiment was on
+`1c8c71f`, many commits ago, so this may simply be what the class looks like
+today rather than a property of this branch.
+
+**IT IS A LEAD, IN THIS FILE'S OWN VOCABULARY, AND NOT A FINDING.** n = 3
+against n = 2, no preregistered experiment, and a base rate that swallows
+both. What would settle it is legs on master at the current tree, which is
+the same shape as the disposal experiment and costs the same kind of runner
+time. Recorded so the next person starts from the position measurement rather
+than from a diff.
+
+#### AND THE FOURTH RUN WAS CLEAN, WHICH REFUTES THE CONSTANCY ABOVE
+
+Kept with its correction beside it rather than edited away, because the WAY
+it was got wrong is this file's own most-repeated failure and I committed it
+knowing that:
+
+    18628a0   crashed   57%, after 4192 tests
+    18628a0   crashed   57%, after 4192 tests    re-run, SAME SHA
+    cf4f533   crashed   57%, after 4192 tests
+    cf4f533   CLEAN                              re-run, SAME SHA
+
+**A SAME-SHA PAIR THAT DISAGREES IS THE WHOLE ARGUMENT**, exactly as it was
+for `0da570c`/`4267fdc` one section up. So this tree is NOT deterministic and
+the victim's constancy was three samples of a coin flip -- 3 of 4 now, against
+master's 0 of 2, which Fisher exact puts at p = 0.21. Even less remarkable
+than when it was written.
+
+**WHAT SURVIVES IS THE POSITION MEASUREMENT**, which is a fact about the
+collected lists rather than about any run: 4196 on both trees, unmoved. And
+what survives of the constancy is only the weaker statement that WHEN this
+tree crashes it has so far crashed at the same place -- which is three
+observations of a process that also produces clean runs, and is not a
+property anybody should build on.
+
+**FOURTH INSTANCE HERE OF TIGHTENING A CLAIM PAST WHAT THE DATA CARRIES**,
+after n=7, n=10 and n=2. The hedging was right and insufficient: the entry
+said LEAD, named the base rate and computed the p-value, and still put the
+word "constancy" in a heading. **The cheap discriminator was one more run on
+the same SHA**, which this file already names as the discriminator and which
+cost forty-five minutes of runner time and no thought at all.
+
+##### AND THE FIFTH RUN MOVED THE VICTIM, ON AN IDENTICAL COLLECTED SET
+
+The clean run above refutes the constancy claim; this one buries it, and it
+is the sharper of the two because nothing about the input changed:
+
+    18628a0   crashed   4192   test_dialog_shows_the_signal_list
+    18628a0   crashed   4192   test_dialog_shows_the_signal_list   re-run
+    cf4f533   crashed   4192   test_dialog_shows_the_signal_list
+    cf4f533   CLEAN                                                re-run
+    502ecd3   crashed   4193   test_dialog_loads_a_conformer_into_the_3d_pane
+
+`git diff --name-only cf4f533 502ecd3` is **CLAUDE.md and nothing else**, so
+those two trees collect the same tests in the same order, byte for byte --
+and the victim still moved to the adjacent test one position along. **4 of 5
+crashed, two distinct tests, both inside `test_nmr_view_dialog.py`.**
+
+That is the recorded shape restored exactly: *the victim moves WITHIN the
+file*. Three identical observations looked like a deterministic tree and
+were three draws that happened to agree, which the fourth and fifth runs
+each falsified by a different route -- one by crashing not at all, one by
+crashing somewhere else on an input that did not change.
+
+**THE POSITION MEASUREMENT IS UNAFFECTED AND IS STILL THE USEFUL PART.**
+4196 on master and 4196 here is a statement about the collected lists, so no
+number of runs can move it; it is what says the branch did not shift this
+victim, and it stays true whichever test the crash lands on.
+
+
+### THE ONE NEW DATUM IS `late`, AND IT IS MINE
+
+Every one of the ten previously recorded observations reports `0 late
+destruction(s)`. Both of this branch's report **1**, and master reports 0 on
+the same instrument. That is a real difference, whatever it means for the
+crash.
+
+It has an obvious candidate: `tests/test_docking_panel.py` had **no disposal at
+all** for any of its 26 panels, and this branch added five guards that
+additionally `show()` theirs -- and a shown widget runs far more of its own
+code and holds far more state than an unshown one. So a dormant leak became a
+live one. `conftest.dispose` per file, the same recipe
+`test_screening_service.py` and `test_batch_panel.py` take.
+
+**THE LOCAL A/B COULD NOT CONFIRM IT, AND CI DID.** Running the census over
+the six files that matter -- the panel, the screening pair, the docking
+service, `test_ir_view_widget.py` (the file already recorded as leaking nine
+widgets) and the victim itself -- gives **LATE = 0 with the disposal AND
+without it**. The subset does not reproduce the condition; it needs the full
+suite's ordering and the collector's timing, which is the same reason the
+original leak measurement had to be a full run.
+
+So the disposal shipped because the RULE says so, with the CI reading as the
+experiment. **It answered: `late` went 1 -> 0 on the next run**, against 1 on
+both runs of the previous SHA and 0 on master throughout. n=1 on the after
+side, but the before side is 2 for 2 and master is consistent, so the reading
+is real.
+
+**AND THE CRASH SURVIVED IT**, at 58% in the same file, on a third distinct
+test of that file -- with `0 late destruction(s)`. Which is exactly what master
+already implied: a late destruction is not necessary for this crash, and
+removing one does not touch it. That is worth having as a measurement rather
+than an inference, because "we fixed a leak and the crash is still there" is a
+much stronger statement than "we fixed a leak".
+
+**A LATE DESTRUCTION IS NOT KNOWN TO CAUSE THIS CRASH.** Master crashes with
+`late = 0`, so it is plainly not necessary. Fixing it is hygiene the project
+already requires, not a fix for the crash, and saying otherwise would be this
+file's own "a residual explained by inference" mistake.
+
+### WHAT THE BLOCKING GATE SAID
+
+`suite + gating benchmarks` passed with **all sixteen steps SUCCESS**,
+including the three that a red suite silently takes with it:
+
+    SUCCESS  Run the test suite
+    SUCCESS  Naming benchmark (must stay 181/181)
+    SUCCESS  Regulatory benchmark
+    SUCCESS  Validate regulatory rulesets
+
+Read the STEP LIST, not the conclusion -- and note the Linux job's
+`completed/success` beside it, which is the whole reason that rule exists.
+
+## A SECOND SCORE ON A POSE, AND THREE WAYS TO SHIP A WRONG NUMBER
+
+Route 2 of the roadmap's ranking work: the pose is worth keeping and the
+number attached to it is what a second opinion is for. `chem/rescoring.py`
+attaches one, and every difficult thing in it is about making sure the
+second number cannot be mistaken for a better version of the first.
+
+**IT NEEDED NO NEW INSTALL, WHICH IS WHY IT WENT FIRST.** The roadmap named
+X-Score; the Vina binary already configured here supports `--score_only`,
+`--local_only` and `--scoring vinardo`, so the whole axis could be built and
+proved before anything had to be registered for or compiled. X-Score is now
+displaced entirely -- see the roadmap correction.
+
+### `--local_only`'s OUTPUT FILE CARRIES THE INPUT POSE'S NUMBER
+
+The plan for this work said `--local_only` "writes an out-PDBQT and so
+reuses `parse_vina_output_pdbqt`". Following that would have shipped **a
+Vina number labelled Vinardo** -- the exact defect
+`docs/SOURCES.md`'s quiroga2016 entry warns about, arriving through a door
+nobody was watching. Measured on one fentanyl pose in 5C1M:
+
+    mode                              stdout    out-PDBQT REMARK
+    --score_only --scoring vina       -8.757    (writes no file)
+    --score_only --scoring vinardo    -5.405    (writes no file)
+    --local_only --scoring vina       -8.717    -8.758
+    --local_only --scoring vinardo    -5.477    -8.758
+
+**Identical REMARKs for two functions whose real answers are 3.2 kcal/mol
+apart**, both equal to the input pose's own -8.758. So both modes are read
+from STDOUT, and `ExecutableVinaEngine.score_pose` never asks for `--out` at
+all -- which is what makes the wrong parser unreachable rather than merely
+unused.
+
+### VINA REFUSES THE WRAPPER OPEN BABEL NEEDS
+
+`_raw_pose_to_model` wraps a pose in `MODEL 1 ... ENDMDL` before handing it
+to pybel. Vina rejects precisely that:
+
+    PDBQT parsing error: Unexpected multi-MODEL tag found in flex residue
+    or ligand PDBQT file.
+
+Two consumers of one pose, opposite requirements, and the failure is silent
+in the direction that matters: every pose reports "rescore failed" while the
+docking result looks perfect.
+
+**THE MESSAGE IS ONLY THERE BECAUSE `check=True` WAS REMOVED.** Vina writes
+its complaint to STDERR and says nothing useful on stdout, so
+`CalledProcessError` names only the exit status and the argv -- which is how
+this read as "Rescore failed" with nothing to act on. Surfacing stderr named
+the cause on the next run.
+
+### RESCORING WITH VINA REPRODUCES THE DOCK FOR THE TOP POSE ONLY
+
+The obvious acceptance test is "rescore with the function that produced the
+pose and you get the pose's own affinity back". It holds for pose 0 (0.000)
+and fails for pose 1 by **0.414**, which is far too large to be coordinate
+rounding.
+
+**MY FIRST EXPLANATION WAS REFUTED BY ITS OWN ARITHMETIC.** "The dock uses
+pose 0's intra as a shared unbound reference, so diff_i = intra_i - intra_0"
+predicted -0.561 where the real difference was +0.414 -- wrong sign AND
+magnitude. The mechanism was right and the arithmetic omitted Vina's
+torsional divisor. Vina reports
+
+    affinity = (inter + intra - unbound) / (1 + w_rot * N_rot)
+
+and `--score_only` sets `unbound = intra` (verified: it reports them equal on
+every pose), so score_only collapses to `inter / D`. That makes D recoverable
+from the output rather than assumed: `inter/total` is **1.3507** on all five
+poses, giving `w_rot * N_rot = 0.3507` and, at Vina's own `w_rot = 0.05846`,
+**N_rot = 6.00** -- which RDKit independently gives as fentanyl's rotatable
+bond count. Two routes agreeing.
+
+Solving for the dock's shared U gives **-0.861 with a spread of 0.013 across
+five poses**, equal to pose 0's own internal energy to four decimals. So
+
+    diff_i = (U - intra_i) / D
+
+which matches on all five poses, worst residual **0.005 kcal/mol**.
+
+**THIS IS A THIRD REASON THE TWO COLUMNS MUST NOT BE COMPARED**, on top of
+the scale difference and the protocol: even the SAME function is not on the
+same reference.
+
+### THE PUBLISHED WEIGHTS MATCH, AND THE RADII CANNOT BE CHECKED
+
+[source:quiroga2016] implemented Vinardo in **smina**, not Vina; Vina 1.2
+added `--scoring vinardo` later. So "our Vinardo is that Vinardo" is a check
+rather than an assumption. Table 1's weights are `w1 -0.045, w2 0.000,
+w3 0.800, w4 -0.035, w5 -0.600` and Vina 1.2.7's `--weight_vinardo_*`
+defaults are the same five, with no vinardo gauss2 weight exposed at all --
+consistent with the paper's removal of that term. **The atomic radii
+(Table 3: C 2.0, C_A 1.9, N 1.7, O 1.6) are NOT exposed by the CLI** and stay
+unverified from outside; smina is the independent cross-check when it lands.
+
+### FOUR STATES, AND THE MIDDLE TWO COLLAPSE INTO A MISSING COLUMN
+
+A review caught this and it is this codebase's own *n/a is not 0* rule:
+
+    not requested   no PoseScore, no column
+    succeeded       a value, plus both input hashes
+    unavailable     value None, `inapplicable` -- the backend cannot
+                    score-only. Correct, permanent, neutral rather than red.
+    failed          value None, a reason -- a FAULT
+
+Rendering "requested and broken" as a missing column makes it
+indistinguishable from "nobody asked", so a failed rescore still shows its
+column and prints its reason through `domain.common.describe_failure`.
+
+### THE HASHES SAY WHAT WAS SCORED, AND THEY ARE NOT A REPRODUCIBILITY CLAIM
+
+The rescore runs INSIDE `VinaDockingProvider.dock`, against the receptor
+PDBQT the search itself used -- because receptor preparation is not
+reproducible here, so a later pass over a stored result would rebuild a
+*nearly* identical receptor and score against that instead. Nothing else on
+a `PoseScore` would reveal a future edit that regenerated it, so the sha256
+of the receptor and of the pose travel with the number.
+
+**They were confirmed to differ across runs immediately.** Three docking
+calls of identical inputs produced three different receptor hashes
+(`dd73ede9`, `0d16850b`, `2980c3c0`) while the pose hashes were identical --
+the recorded non-determinism, made visible for the first time.
+
+### THE COLUMN FITS, AND THE MAGNIFIED SHOT IS WHY IT DOES
+
+Two width defects, both found by driving the app rather than by any test.
+
+**THE AFFINITY COLUMN CANNOT KEEP `Stretch` ONCE THERE IS A FIFTH COLUMN.**
+Stretch hands it the slack, which is right for four columns and exactly wrong
+for five: measured, it fell to 98 px against the 328 its own header needs,
+then to 170 with a shorter fifth header. No header text is short enough to
+fix that, because the squeeze is the stretch column absorbing every other
+column's growth. All five are `ResizeToContents` when the fifth is shown, so
+none can clip at any font.
+
+**AND THE HEADER LOST ITS UNITS AFTER THE SHOT SHOWED "Vinard".** At
+"Vinardo (kcal/mol)" the five columns total 426 px against a 367 px viewport,
+so the table overflowed and grew a horizontal scrollbar. At "Vinardo" the
+total is **367 against 379** and nothing scrolls. Measured under
+`QT_QPA_PLATFORM=windows`, because `offscreen`'s font is more than twice as
+wide and a width conclusion drawn under it is a claim about the test
+platform.
+
+**The scale warning went into a label under the table**, not the header --
+the panel already puts the replicate-spread note there for the same reason,
+and a sentence has room where a column header does not.
+
+### DRIVEN, AND THE TWO FUNCTIONS DISAGREED ABOUT THE BEST POSE
+
+`benchmarks/visual/docking_rescore.json`, real Vina, ~10 minutes. Nine poses
+of fentanyl in 5C1M:
+
+    pose      0       1       2       3       4
+    Vina   -8.894  -8.872  -8.798  -8.670  -8.623
+    Vinardo -4.914  -5.835  -5.912  -5.094  -5.940
+
+**Vina's best pose is the worst of the first three by Vinardo, and its fifth
+rescores best.** That is the never-share-a-ranking rule demonstrated rather
+than argued, and it is why nothing re-ranks on the second column.
+
+The drive step logs `rescore_hidden`, the header, `note_hidden` and the
+stored `PoseScore` beside the shot, because two of the four states
+photograph identically -- "not requested" and "requested, and every pose
+failed" are both a table with no numbers in that column.
+
+### NINE MUTATIONS, AND THE SURVIVOR WAS THE ONE THAT MATTERED
+
+M4 -- `score_pose` dropping `--scoring` from the command line, so a result
+labelled Vinardo runs plain Vina -- **SURVIVED**. The guard for it used a
+SPY ENGINE, which tests the rescorer's wiring and never
+`ExecutableVinaEngine`'s argv. *Testing a helper is not testing the wiring*,
+for the fourth time in this file. `tests/test_vina_engine.py` now asserts the
+real argv, and the narrow half with it: `--scoring` is OMITTED for plain
+vina, because emitting it always would satisfy the guard and change every
+ordinary run's command line.
+
+### THE `#:` RATCHET CAUGHT THE EXACT DEFECT IT WAS BUILT FOR, ON ME
+
+The full suite came back `1 failed`:
+
+    src/openchem/ui/panels/docking_panel.py::_LIMITATION_NOTE
+
+`_rescore_note()` had been inserted BETWEEN `_LIMITATION_NOTE` and the `#:`
+block documenting it, so the doc comment now documented a function and the
+constant had none. That is `ENTHALPY_NOT_SUPPLIED` verbatim -- the defect
+`tools/constant_docs.py` exists for -- committed by somebody who had read
+that entry the same day.
+
+**The ratchet's own design note is what makes it able to catch this**: the
+precise signature is not detectable, because a documented constant followed
+by an undocumented one is also what two ordinary constants look like. What
+is detectable is the constant's ARRIVAL in the undocumented set, which is a
+recorded baseline rather than a pattern match. The fix is to move the
+function below the constant; nothing about the guard needed changing.
+
+**AND I MISREAD MY OWN CHECK BEFORE READING THE SUMMARY LINE.** A
+`grep -cE "^FAILED"` printed nothing and was read as zero, and the run was
+briefly reported as clean. The count is what caught it: 6690 passed + 16
+skipped is 6706 against 6707 collected, and one test was unaccounted for.
+This file's own rule is to check that a summary line EXISTS and to reconcile
+the counts -- an absence of output from a grep is not an absence of
+failures, which is the same lesson one level in from `grep FAILED` on a
+crashed log.
+
+### AND THE HEREDOC ATE A BACKSLASH TWICE IN ONE SESSION
+
+This file records the trap twice already and it was hit twice more here, both
+times replacing a string containing `\n` through a quoted `<<'PY'` heredoc:
+once the search text silently failed to match (reported as an
+`AssertionError` on the count), once the replacement's `\\n` became real
+newlines and split string literals across lines, making the file
+unparseable. **Reach for a real editing tool when the content contains
+escapes** -- the rule is already written down and was still not followed.
+
+## A P-VALUE LOOKED AT REPEATEDLY IS NOT A P-VALUE, AND MINE CROSSED 0.05 AND CAME BACK
+
+The Within-Assay Docking Ranking Benchmark's sign test, as its 56-series
+frozen selection accumulated. Every row is the same statistic on the same
+protocol, computed correctly, on more data:
+
+    15 series (the first frozen selection)   11/15   p = 0.118
+    28 series (widening in flight)           19/28   p = 0.087
+    37 series (widening in flight)           25/37   p = 0.047   <-- crossed
+    56 series (the PRE-COMMITTED ENDPOINT)   32/56   p = 0.350
+
+**At 37 series this benchmark said "significant" about a dataset whose
+completed form says nothing of the kind**, and it said so because I ran the
+report three times while the run was in flight to answer "how is it going".
+Nothing in the arithmetic was wrong at any step. The INSPECTION SCHEDULE was.
+
+**THE FIX IS IN THE SCRIPT, NOT IN A RESOLUTION TO BE CAREFUL.**
+`rank_report.py` compares its complete-series count against the frozen
+selection in the manifest and prints a PARTIAL banner whenever it is short:
+the script cannot know who is running it or for the how-many-th time, and the
+interim value that happens to sit across a conventional threshold is exactly
+the one that gets quoted. A note in a docstring is read once; a banner is
+printed every time.
+
+### AND THE GROUP SPLIT MOVED THE SAME WAY, WHICH IS WHY THE CAVEAT SHIPPED
+
+The report splits the first fifteen from the forty-one that widening added.
+That split ALSO drifted, in the other direction:
+
+    added-by-widening median rho, at 13 added   +0.073
+    added-by-widening median rho, at 22 added   +0.182
+    added-by-widening median rho, at 41 added   +0.006
+
+So a mid-run reading would have supported "widening shows the effect is
+weaker", then "the two groups are converging", then the opposite again. The
+groups are **not exchangeable** and the report says so: the selection walk
+takes the largest series first, so the added ones are smaller and lower-span
+by construction — noisier instruments with a higher random floor (0.289
+against 0.302). A lower median among them is partly an artefact of that.
+
+**Both halves are printed anyway.** Suppressing the split would hide whether
+widening changed the answer or merely sharpened it. Here it changed it:
++0.245 with an interval that almost excluded zero became +0.082 with one
+that comfortably includes it.
+
+## REPRODUCIBLE SEARCH PLUS NO CORRELATION IS THE STRONGEST NULL AVAILABLE
+
+3828 real Vina searches, 624 ligands, 56 single-assay ChEMBL series, 14.5
+hours. The headline is a null, and the row that makes it worth anything is
+not the headline:
+
+    median rho(-vina, pChEMBL)   +0.082   95% bootstrap [-0.030, +0.245]
+    SEARCH REPEATABILITY         median +0.990, 55/56 at or above +0.95
+                                 60 of 3462 ligand pairs swapped (1.7%)
+
+**Without the repeatability row this is "docking did not correlate", which is
+consistent with the search being too noisy to have tried.** With it, the
+search orders these ligands almost identically across independent replicate
+halves, so the disagreement is **not sampling** and no amount of extra
+exhaustiveness addresses it. That is the difference between a result and a
+shrug, and it is only measurable because route 1 shipped replicates first.
+
+**47 of 56 series are ordered at least as well by a trivial physicochemical
+descriptor as by docking.** This project has already shipped an endpoint that
+turned out to be molecular size at r = +0.98, which is why the baselines are
+computed at CORPUS BUILD time, free, before any Vina runs — a benchmark whose
+sanity floor costs 14 hours is a benchmark nobody checks the floor of.
+
+### AN INTERIM READING OF A NUMBER I WAS ABOUT TO REPORT
+
+Recorded because the failure mode is social rather than technical. Each of
+the three interim reports was produced in answer to "how is it going" — a
+reasonable question with a reasonable answer, which is a progress figure.
+What makes it dangerous is that the progress figure and the RESULT are the
+same number here, so answering the first publishes the second.
+
+The rule: **when a run's own statistic is what says whether it is going
+well, report the completion count and refuse the statistic.** Records, hours,
+series done. Not rho.
+
+## WIDENING A CORPUS AFTER A MARGINAL RESULT IS CORRECT, AND MUST BE PRE-COMMITTED
+
+The first frozen selection returned +0.245 with a 95% interval of
+[-0.030, +0.398] — a hair from excluding zero, which is the shape most likely
+to be written up as "suggestive". The response was to widen the corpus from
+15 series to 56 and re-run, at 3.5x the compute.
+
+**That is a legitimate move and a p-hacking move, and the ONLY thing that
+separates them is what is committed before the data arrives.** The manifest
+carries a `widening_note` recording the pre-commitment: report the full set
+whatever it says, with the first fifteen beside it and the exchangeability
+caveat attached. Without that, "we added data and the effect went away" is
+indistinguishable from having stopped at whichever n looked best.
+
+**The corpus holds 1586 series and 56 were docked.** Widening further needs
+no new machinery and would cost proportionally; that is a real option and not
+a way to reach a different answer, precisely because this endpoint is now on
+the record.
+## A SCREEN COULD NOT BE PINNED EVEN IN PRINCIPLE, WHILE A SINGLE DOCK COULD
+
+The entry `search_options` NEVER REACHES A SCREEN called it LATENT, because
+the three settings coincided with the provider's defaults. That reading was
+right about the VALUES and wrong about what the omission cost:
+
+    a single dock    can pin a seed, and the seed is recorded either way
+    a screen         could not pin one, ever
+
+So the one operation this application offers for RANKING was the one that was
+not reproducible, and the entry's own closing line -- "fixing it properly
+means the screening dialog growing exhaustiveness, scoring and seed controls,
+which is a decision about whether a screen should be configurable" -- named
+the decision. **With route 2's ranking benchmark measured, the answer is
+yes**: a screen is the feature users run to rank, and a ranking nobody can
+reproduce is a ranking nobody can check.
+
+`ScreeningService.request_screen` takes `search_options` and passes it to
+`request_docking` unchanged. One line, and it is the whole defect.
+
+### THE HELP CONTRACT IS WHY THE CONTROLS ARE SHARED, NOT DRY
+
+`ui/widgets/search_options.py` owns the four controls and both surfaces build
+one. The drift argument is the ordinary one and is NOT the deciding one:
+
+**`help_id` NAMES A DEFINITION, NOT AN INSTANCE.** "Exhaustiveness" means
+exactly the same thing in a panel and in a dialog, so it is ONE id with two
+renderings that `instance_path` tells apart. Writing the dialog its own four
+contracts would be four concepts shredded into eight ids -- which is the
+mutation `test_one_concept_is_not_split_across_many_help_ids` exists to
+refuse, shipped on purpose. A second copy of the WIDGETS forces a second copy
+of the CONTRACTS, so the two questions are one question.
+
+The drift half is real too, and would have been silent AND meaningful: a
+dialog offering exhaustiveness 10/20/50 against the panel's 8/16/25/32, or
+reading a seed of 0 as zero rather than as "Random", produces perfectly
+plausible runs that are not the runs the other surface would have produced.
+
+**IT OWNS THE WIDGETS AND NOT THE LAYOUT**, which is what let the panel keep
+its own row ordering: Replicates sits directly above Seed there because it
+changes what Seed MEANS -- a pinned seed is the root of a DERIVED set of
+per-run seeds rather than the number Vina receives. A shared GROUP BOX would
+have forced one ordering on both.
+
+**AND `rescore_with` HAS A SECOND LEGITIMATE RENDERING.** The panel attaches
+that same contract to a LABEL under the pose table, not only to the combo --
+one concept, two renderings, which is the rule working rather than an
+exception to it. Moving the contract into the shared module and leaving a
+copy behind would have split it; the label imports it.
+
+### THE PROTOCOL RECORDS WHAT WAS ASKED AND WHAT RAN, AND THEY ARE DIFFERENT FIELDS
+
+`ScreeningProtocol` is carried on every `ScreeningProgress`, once per screen
+rather than once per ligand -- the same asymmetry the module docstring
+already draws around the receptor, and the thing that makes a screen's
+ranking mean anything.
+
+    requested_exhaustiveness    None means NOT ASKED
+    exhaustiveness              what the run really used, from the RESULT
+
+**NOTHING IS DEFAULTED TO A LITERAL, and this project has already paid for
+the alternative.** `_DockingTask` once filled `scoring_function="vina"`,
+`exhaustiveness=8` and `seed=None` with literals true only by coincidence,
+and the recorded lesson is that *a stored result naming settings it did not
+use is worse than one naming none* -- nothing distinguishes it from a
+measurement. So the request records silence as silence, and `resolved_against`
+fills the performed values from the provider's own answer.
+
+`resolved` is a flag no screenshot can carry: a protocol showing the
+requested settings and one showing what actually ran render identically until
+a result lands. The drive step logs it beside the shot for that reason.
+
+**AND `""` IS NOT `None` FOR THE RESCORE.** An explicit "Off" is a decision
+somebody made; `None` is a screen that predates the control. Collapsing them
+loses the difference, and it is the `n/a is not 0` rule in a new place.
+
+### THE MUTATION THAT SURVIVED: TESTING THE SERVICE IS NOT TESTING THE DIALOG
+
+Ten arms. Nine caught first time, and the survivor is the entry worth
+reading:
+
+    M5  the dialog assembles its own dict instead of calling
+        `self._search.options()`                              SURVIVED
+
+It passed the SENTINEL -- one screen request carrying a distinct value for
+every option, asserting `request_docking` receives exactly those -- because
+that test drives the SERVICE. The dialog's own wiring was covered by nothing,
+which is *testing a helper is not testing the wiring* for the fifth time in
+this file.
+
+The guard written from it sets the four controls to distinct non-default
+values, presses the real Run button, and reads what the service was handed.
+**Its narrow half is load-bearing**: "send everything the controls hold"
+satisfies that and is also satisfied by a dialog that reads one widget and
+hardcodes the other three, so the UNTOUCHED case is asserted too -- and that
+is the one every user who never opens the controls actually runs.
+
+Second pass: ten arms, ten caught.
+
+**AND `"vinardo"` AS A LITERAL IS GUARDED FROM BOTH SIDES.** The combos are
+built from `SUPPORTED_SCORING_FUNCTIONS` and `SUPPORTED_RESCORE_FUNCTIONS`,
+so a function the UI offers is one the provider accepts by construction. That
+guard alone is satisfied by a file that ALSO carries an
+`if rescore_with == "vinardo":` fossil elsewhere, which is what the plan
+named -- so a second guard walks every `ui/` file for the id used as a branch
+rather than as prose.
+
+### AND MY OWN FIXTURE HIT THE TEMPORARY-PARENT TRAP
+
+`SearchOptionsControls(QComboBox())` reads correctly and does not work: the
+parent is a temporary, Qt destroys it and every child with it, and the next
+line raises `Internal C++ object already deleted`. Identical to this file's
+recorded `bar.actions()` case, met in a test fixture rather than in
+production -- which is where it is cheap.
+
+### DRIVEN, AND THE SHOT WAS MAGNIFIED
+
+`benchmarks/visual/screening_search_controls.json`. The `screen_run` step
+takes the four settings now and drives the WIDGETS rather than the service,
+for the reason M5 established; a value matching no item is LOGGED rather than
+ignored, because a silently-unset combo photographs identically to a
+correctly-set one.
+
+    search={'exhaustiveness': 32, 'scoring_function': 'vinardo',
+            'seed': 4712, 'rescore_with': 'vina'}
+    protocol_resolved=False   requested_exhaustiveness=32
+    prep={'strip_ligand_codes': ['MK1']}
+
+At 2x nothing is clipped, no caption overlaps its value, and Seed reads 4712
+ON SCREEN -- so the control is genuinely bound rather than merely present.
+`protocol_resolved=False` two seconds in is correct: no result had landed.
+
+**FOUR NEW ROWS IN A DIALOG THAT HAD FIVE IS WORTH MEASURING**, because the
+periodic table's own history is one tab's comfortable floor becoming the
+whole dialog's and its action row ending up 105 px below the screen -- and a
+`QDialog` has no maximise button and no size grip by default, so a minimum
+larger than the screen cannot be rescued by resizing. Measured under
+`QT_QPA_PLATFORM=windows`: **593 x 450**, against 728 of usable height on the
+smallest screen this product supports. The guard asserts HEIGHT ONLY, because
+a width bound would be a claim about the font.
+
+## A REFUSAL THAT NAMED ITS OWN UNBLOCKING CONDITION, UNCHECKED FOR TEN DAYS
+
+`docs/sources.toml` recorded Waasmaier & Kirfel 1995 as `assessed_not_shipped`
+and its reason ended: *"WHAT WOULD LIFT IT: a machine-readable copy of this
+table."* **Nobody had checked whether one existed.** One does, it is MIT, and
+the whole intensity half of `chem/powder_xrd.py` shipped in an afternoon.
+
+**THE BLOCKER WAS MISDIAGNOSED, AND THE MISDIAGNOSIS IS THE DURABLE PART.**
+The recorded reason was that only 6 of 11 parameters per row have an oracle --
+`sum(a_i) + c = Z` checks `a1..a5` and `c`, while a wrong `b` is wrong at every
+non-zero angle and *exactly right at theta = 0*, which is the one place that
+checksum looks. Every word of that is true. What was concluded from it is not:
+that the five `b` values were unverifiable. **They were unverifiable BY HAND,
+from a scan 29.7% corrupted.** Given a candidate table, the paper itself is the
+oracle for all eleven -- every value can be looked for in its own Table 1.
+
+    values found VERBATIM in the copy we hold   1280 of 2321   (55.1%)
+    against that scan's own ceiling             ~70%
+    species, and cctbx reports 211 independently   211
+
+Fifth instance in this file of a deferral whose REASONS rotted while its
+verdict looked settled -- and the first where the entry had already written
+down what would lift it.
+
+### THE PROVENANCE CHAIN, AND WHY THREE COPIES CAN BE ONE SOURCE
+
+A review named praxes, ASE and Demeter as carrying the table. **If all three
+trace to DABAX that is ONE source wearing three coats, not three agreeing
+routes** -- the "a pattern in a handful of samples is not a law" lesson in a
+new place. What shipped instead has two genuinely separate chains:
+
+    xraydb 4.5.8, MIT       waasmaier_kirfel.dat; its f0 docstring cites the
+                            paper by volume and page
+    cctbx, independent      the same table, origin documented as the authors'
+                            own ftp://wrzx02.rz.uni-wuerzburg.de/... sfac.dat,
+                            "picked up Jul 4, 1995. File verified Sep 12, 2001"
+
+**Both report 211 species**, which is agreement on the table's SHAPE rather
+than only on its numbers. MIT and MPL-2.0 are both compatible with this
+project's GPL-3.0-or-later, which was checked rather than assumed.
+
+**AND THE DOI WAS VERIFIED BEFORE IT WAS RECORDED.** The registry entry said
+none is printed in the file, which is still true. Crossref resolves
+`10.1107/S0108767394013292` to this exact paper -- both authors, Acta Cryst.
+A51(3) 416-431, 1995 -- so it is checked rather than remembered, which is this
+file's own most-repeated failure avoided for once.
+
+### THE ACCEPTANCE IS A CLOSED FORM, NOT A REFERENCE TABLE
+
+For rock salt the structure factor collapses to two cases every text prints:
+all-even `hkl` put Na and Cl in phase and give `4(f_Na + f_Cl)`, all-odd put
+them out of phase and give `4(f_Na - f_Cl)`. Measured through the shipped path:
+
+    (1 1 1) odd    computed |F|^2 = 324.6    16(f_Na - f_Cl)^2 = 324.6
+    (2 0 0) even   computed |F|^2 = 7292.5   16(f_Na + f_Cl)^2 = 7292.5
+
+**Sharp because three things must be right TOGETHER** -- the scattering
+factors, the symmetry expansion that puts four of each ion in the cell, and
+the phase sum. Any one wrong still produces a plausible-looking pattern, which
+is why `test_the_structure_factor_sums_the_WHOLE_CELL_not_the_asymmetric_unit`
+asserts the atom count is 8 against a CIF listing 2: summing the asymmetric
+unit gives peaks in the right PLACES with intensities wrong by an
+hkl-dependent factor, and nothing downstream can see that.
+
+`test_the_odd_reflection_is_weak_and_the_even_one_is_strong` is separate on
+purpose: a sign error swapping the two cases would satisfy the parametrised
+check on every line it was applied to, being self-consistent about the wrong
+pairing.
+
+### TWO ASSUMPTIONS THE DATA REFUTED, AND ONE COST A WRONG VERDICT
+
+**`b >= 0` IS NOT AN INVARIANT, AND ASSUMING IT FLAGGED 13 CORRECT ROWS.**
+Carbon's own row, read out of the paper we hold:
+
+    C RHF 2.657506 14.780758 1.078079 0.776775 1.490909 42.086843
+          -4.241070 -0.000294 0.713791 0.239535 4.297983
+
+-- a large NEGATIVE a paired with a tiny negative b against a large positive
+c; nitrogen's c is -11.804902. Artefacts of an unconstrained five-Gaussian
+least squares, not corruption. So the shipped invariants are on **f0 itself**
+rather than on the shape of its parameters: over the paper's full stated range
+all 211 species decay monotonically and none goes negative. Only Be2+ touches
+-0.0004, which is a two-electron ion's fit straddling its own zero asymptote,
+and it is NAMED in `NEGATIVE_F0_FLOOR` rather than absorbed by a loose bound.
+
+**AND `s` VERSUS `s^2` IS A SEVERAL-ELECTRON ERROR.** gemmi's `calculate_sf`
+takes `stol2`; the first cross-check passed `s`, and californium came out
+**21.2 electrons** out. Corrected, the worst disagreement between the
+five-Gaussian and four-Gaussian fits is **0.125** electrons. That accident is
+what established the check discriminates at all -- a corrupted exponent moves
+f0 by electrons, a genuine fit-to-fit difference by hundredths.
+
+**BOTH PRE-DECLARED TOLERANCES FAILED AS WRITTEN, AND WERE NOT RETRO-FITTED.**
+Declared before looking: max abs < 0.10 and RMSE < 0.03 against the
+International Tables fit, and checksum < 0.02. Measured: 6 of 98 over the
+first (worst iodine 0.125), 34 of 98 over the second (worst francium 0.044),
+19 of 211 over the third (worst osmium 0.038, none over 0.05). Every offender
+is a heavy element, which is precisely where Waasmaier & Kirfel argue the
+four-Gaussian fit is inadequate -- so the disagreement is the expected result
+and the TOLERANCES were mis-calibrated guesses about fit-to-fit spread. They
+are reported as failed rather than widened, and the acceptance rests on the
+paper instead.
+
+### THE FIVE (a, b) PAIRS MUST NOT BE SORTED
+
+Table 1 does not print ascending exponents -- **208 of 211 rows are
+non-monotonic** -- and some elements carry near-equal `b` values, so a tidy-up
+sorting by `b` re-pairs each `a` with another `a`'s exponent while every row
+still looks well formed. `test_the_five_gaussian_pairs_are_in_the_papers_own_order`
+asserts it on the shipped file rather than trusting the comment.
+
+### DEBYE-WALLER IS A NAMED REFUSAL, NOT `B = 0`
+
+`chem/cif.py` parses no atomic displacement parameters at all -- `Site` carries
+no `U_iso`, `B_iso` or `U_ij` -- so there is nothing to apply. **The input is
+never read, which is a stronger statement than "it may be absent".** Defaulting
+to zero would turn missing experimental information into the assumption that
+the atoms are motionless, and that assumption GROWS WITH ANGLE, so it is least
+visible exactly where a reader would check it.
+
+Measured against published NaCl relative intensities, this project's residual
+is concentrated at high angle -- 222, 400 and 420 all read high -- which is
+that term, arriving as confirmation rather than as a surprise.
+
+**AND `intensity_refusal()` KEPT ITS NAME WHILE CHANGING ITS ANSWER.** It
+returns `""` now and a reason only for a species the paper does not tabulate
+at all. Its contract is unchanged -- a consumer may not render a pattern
+without saying why a column is missing -- and four guards were flipped
+deliberately, including one that asserted the reflection has no intensity
+attribute at all.
+
+### THE SCALE IS OVER THE REPORTED LINES, AND THAT IS A DEFINITION
+
+Normalising over every family in range is the nicer property and costs a
+structure factor per reflection. Measured at 60 degrees: 2934 reflections over
+476 atoms is **1.59 s**, and 918 over 1488 atoms is **2.40 s** -- against a
+crystal report this file already records at 3.6-10.6 s on those same fixtures.
+So a truncated pattern is normalised within its own window and the limitation
+says so; **two patterns cut at different lengths are not on one scale.**
+
+The cap also still orders by ANGLE rather than intensity, now that there is
+something to rank by. Ranking by intensity would silently change WHICH
+reflections a truncated pattern contains for every caller already passing a
+cap, and a powder pattern is read along its angle axis.
+
+## THE RANKING CORPUS WIDENED OFF THE GPCRs, AND THE ENDPOINT EXCLUDED TWO CLASSES
+
+The 56-series null is dominated by one pocket family: five of eight targets are
+aminergic GPCRs sharing an orthosteric site, and **seven of eight sit at
+`SERIES_PER_TARGET = 8`**, so more SERIES re-measure the same eight pockets.
+Nothing separated "docking cannot rank" from "docking cannot rank in shallow
+aminergic GPCR pockets".
+
+**ADDING A TARGET IS A SUPERSET BY CONSTRUCTION, WHICH IS STRONGER THAN THE
+WIDENING THAT MODULE ALREADY DEFENDS.** `select_for_docking` loops
+`for row in JOIN` and filters each row's candidates on
+`series["pdb_id"] == row.pdb_id`, so a new row's body cannot reach another
+row's candidate list. Audited rather than argued -- `widening_diff.json`
+records it, and the retained 56 were checked by CONTENT as well as by identity:
+
+    release ChEMBL_37 -> ChEMBL_37     schema 1 -> 1     targets 8 -> 12
+    selection 56 -> 77   added 21   REMOVED 0
+    retained series with changed ligands or pChEMBL: 0
+
+**THE COST IS DERIVED FROM THE REBUILT MANIFEST, NOT FROM AN AVERAGE.** The
+frozen run's "68 searches per series" is a mean over series spanning 5-14
+ligands at 6 replicates -- 30 to 84 searches -- so multiplying it by a series
+count is an average dressed as a prediction. The real figure is
+`sum(n_ligands) * REPLICATES` = **195 x 6 = 1170 searches, 1.9 to 12.3 hours**.
+
+### TWO ENZYME CLASSES ARE EXCLUDED BY THE ENDPOINT, NOT BY CHOICE
+
+`PRIMARY_ENDPOINT` is Ki, and screening candidates BEFORE freezing them found
+that two obvious ones cannot form even one series of `MIN_SERIES` = 5:
+
+    1HSG  HIV-1 protease   SIFTS gives P03367, the Gag-Pol polyprotein, whose
+                           ChEMBL target carries Ki = 4      (IC50 = 77)
+    5KIR  COX-2            Ki = 27                           (IC50 = 6116)
+
+So the aspartic-protease and eicosanoid-enzyme classes are absent. The module's
+own header already recorded the COX-2 case ("a Ki-only rule silently refuses an
+enzyme class"); **the protease case is new and sharper, because 1HSG is the
+textbook docking system** and its SIFTS accession is the polyprotein rather
+than the mature protease.
+
+**THEY ARE NOT SWITCHED TO IC50 TO RESCUE THEM.** An IC50 series is admissible
+and reported SEPARATELY -- within one assay an IC50 ordering is valid while a
+Ki and an IC50 are not one quantity -- but opening that stratum now, for two
+targets, after seeing that Ki excludes them, would be choosing a rule to admit
+a case.
+
+What shipped instead is four classes with the data to support them: MAO-B
+(flavoenzyme, Ki 686), estrogen receptor alpha (nuclear receptor, 702),
+acetylcholinesterase (serine hydrolase, 665) and **sigma-1 (ER membrane
+chaperone, 3301 -- the richest pool in the corpus)**. All four already
+curated in `receptor_library.py` with validated boxes, so no receptor
+curation happened at all.
+
+### THE RESULT: THE NULL HOLDS, AND THE HYPOTHESIS THAT MOTIVATED IT IS BACKWARDS
+
+4998 searches, 833 ligands, 77 series, 12 receptors, 18.8 hours.
+
+    median rho(-vina, pChEMBL)   +0.046   95% [-0.027, +0.122]
+    series with rho > 0          43/77    sign test p = 0.362
+    median rho(Vinardo - Vina)   +0.000   95% [-0.053, +0.073]
+    leakage  810 ABSENT, 23 PRESENT, 0 UNRESOLVED
+             ABSENT-only median +0.046, IDENTICAL to the full set
+
+Widening did not change the answer; it slightly WEAKENED it (+0.082 ->
++0.046), on 37% more series and 50% more receptors. Reported as
+pre-committed, whatever it said.
+
+**AND THE QUESTION CAME BACK THE OTHER WAY ROUND.** The widening existed to
+separate "docking cannot rank" from "docking cannot rank in shallow aminergic
+GPCR pockets":
+
+    aminergic GPCR only               32 series   median +0.205   21/32
+    everything NOT an aminergic GPCR  45 series   median -0.010   21/45
+
+**The aminergic GPCRs are where this method does relatively BEST**, and the
+four added folds -- flavoenzyme, nuclear receptor, serine hydrolase, ER
+chaperone -- are flat. So pocket family is removed as an explanation for the
+null, in the direction nobody predicted.
+
+**THE OBVIOUS CONFOUND WAS CHECKED BEFORE THE SPLIT WAS PRINTED**, because
+the added series are smaller by construction and a group difference could
+have been an instrument difference:
+
+    group              n   med ligands   med span   med floor
+    aminergic GPCR    32            12       1.94      0.302
+    everything else   45            12       1.95      0.302
+
+Identical on all three.
+
+**IT IS STILL POST HOC AND IS NOT A RESULT OF THIS RUN.** The pre-registered
+quantity was the aggregate; this compares groups chosen after the data was
+seen, across twelve targets where something will look extreme by chance. It
+is a hypothesis for a future pre-registered test. ER alpha rests on 3 series
+and acetylcholinesterase on 2, so nothing may be rendered as `0/4 new targets
+showed ranking`.
+
+### AND THE CANDIDATE SET WAS FROZEN ON DATA, WITH THE RESERVE ORDER
+
+Screening on Ki availability is selecting on the DATA, never on an outcome --
+no docking score, no rho and no ordering existed at any point. The reserve
+order is frozen in the README beside it, because "a reserve takes its place"
+is otherwise outcome-dependent once more than one candidate could fill a gap.
+
+## A CHART IS DECLARED, AND THE MERGE KEEPS WHAT EACH PRODUCER DECLARED
+
+Reported as two things and they turned out to be one architecture:
+Elemental Analysis "should have a mass spectrometry simulator... I like
+visual charts a lot", and `Details...` shows ONE calculator so its filter
+box is useless -- "run Substance & Bonding, then Lewis Sites, and the
+second window replaces the first."
+
+`ReportResult.charts` is a second producer-declared presentation channel
+built to the `spatial` precedent: a closed set of kinds, a STRUCTURAL
+validator that fails closed, a renderer that refuses a malformed
+annotation rather than repairing it.
+
+**THE TEST THE WHOLE CHANNEL EXISTS TO MAKE POSSIBLE** is
+`test_a_chart_is_never_derived_from_the_facts`: a report whose facts
+contain `"C: 55.34%"` and `charts == ()` renders NO chart. What would
+breach `FactView`'s "IT KNOWS NO CHEMISTRY" contract is named and
+forbidden -- choosing a chart kind from `report_id`, deriving sticks from
+facts, or inferring axis direction from a units string.
+
+**`valid_chart_annotation` MUST NOT JUDGE THE CHEMISTRY**, and its
+complement is asserted: an m/z of 1e6, intensities not summing to 100 and
+sticks out of order must all be ACCEPTED. Same line
+`valid_total_declaration` draws. It accepts a negative y deliberately, so
+a future difference chart is not refused by a rule fitted to spectra, and
+it never reads `units` -- a units string is prose.
+
+**COLOUR IS NOT IN THE CONTRACT.** The widget reuses the Okabe-Ito
+palette as implementation precedent; a palette in a scientific chart's
+DECLARATION would be the producer specifying how it looks rather than
+what it means.
+
+### THE MERGE KEEPS THE REPORTS WHOLE, and that is not what batch does
+
+`BatchResultStore.merged_report` folds facts into one anonymous
+`ReportResult` and **silently drops `spatial`**. That proves fact-folding
+works; it is not evidence one anonymous report can carry several
+producers' charts, provenance and stale state.
+
+    MergedResults.reports   arrival order, identity intact
+    MergedResults.facts     flattened, each stamped with its origin
+    charts / spatial / provenance / staleness   READ OFF `reports`,
+                                                never copied
+
+One representation, so they cannot drift. `_AllResults` is a VIEW over it
+that duck-types what `FactView` consumes -- building a real
+`ReportResult` there would flatten several producers into one
+`report_id` and one `structure_version`, which is precisely what the
+container exists to avoid.
+
+**`Fact.origin` IS ADDED AND `Fact.source` IS UNTOUCHED.** `source` is
+the scientific source ("RDKit"); `origin` is the OpenChem report that
+produced the fact. A merge overwriting `source` destroys real provenance
+in order to record different provenance, and
+`test_a_facts_source_and_its_origin_stay_independent` holds both on one
+fact. `origin` is a `report_id` and the CONTAINER resolves the name --
+`FactView` never prettifies an opaque id.
+
+**AND THE SEARCH BOX GOT THE FEATURE FOR FREE.** `find()` matches
+`origin`, so "show me everything Lewis Sites said" is a question the box
+can now answer -- which is the complaint's own half about the filter
+being useless, answered by the merge rather than by a new control.
+
+### STALENESS: the field already existed and was 0 on every report
+
+`StructureReport.structure_version` has been there since the batch work
+and `report_from_fields` never set it -- measured, 0 on every calculator
+report. Stamped in ONE place on the path every result takes, and the
+merge derives stale from it.
+
+**REPORTED, NEVER DISCARDED.** Silently serving a stale result and
+silently blanking it are the two ways this goes wrong and they look
+identical from outside. The window marks it in the focus box, in the
+title and in a sentence above the facts.
+
+### `exec()` MAKES THE FEATURE UNREACHABLE, which is the sharpest constraint
+
+The old Details dialog was modal, so with it **you could never run the
+second calculator whose results this exists to accumulate.** Modeless,
+keyed by molecule UUID rather than object identity (a rebuilt model must
+not open a second window for one molecule), and live -- the second
+calculator's facts land in the OPEN window.
+
+## THE ION IS A COMPOSITION, AND POTASSIUM IS WHY
+
+`chem/mass_spectrum.py` reproduces the reported screenshot exactly --
+C7H4Br2O2 at 278/280/282 in 1:2:1, exact mass 277.857804 against Marvin's
+277.857805.
+
+A scalar `delta_mass` expresses `[M+H]+` and `[M+Na]+` and **cannot
+express `[M+Cl]-`**: an adduct with its own isotopes contributes its own
+envelope and a number has nowhere to put it. The invariant is
+
+    ion composition -> exact atomic mass delta -> electron correction -> m/z
+
+never `hardcoded delta_mass -> m/z`.
+
+**`AtomDelta.isotope` IS None FOR NATURAL ABUNDANCE AND A MASS NUMBER FOR
+A SPECIFIC NUCLIDE**, and sodium could not have established that rule:
+`[M+Na]+` is monoisotopic, so both readings agree. **`[M+K]+` is 6.7%
+41K** and `[M+Cl]-` is 3:1, so the distinction is general rather than a
+special case for chloride. Protonation adds 1H BY DEFINITION and must not
+acquire a deuterium shoulder.
+
+**NOT `0`-AS-SENTINEL**: 0 is a plausible typo for a mass number and
+would read as one.
+
+**IDENTITY IS `composition + charge`; THE LABEL IS DISPLAY TEXT.** On a
+frozen dataclass every field participates in `__eq__`/`__hash__` by
+default, which would make two spellings of one ion two ions.
+`field(compare=False)`, tested both ways round.
+
+### NOMINAL BINNING DIVIDES BY |CHARGE|, and 1+ cannot see it
+
+The path is integer arithmetic in isotope space and only the last step
+touches m/z:
+
+    isotope composition -> integer nominal shift -> exact m/z -> nominal m/z
+
+**NEVER by rounding the final exact m/z**, because mass defect is
+composition-dependent. And a +1 mass-number shift moves a 1+ ion by 1.0
+m/z and a **2+ ion by 0.5** -- so an implementation that adds
+`nominal_shift` straight to m/z works at every singly-charged fixture and
+silently mis-draws every ESI spectrum. `[M+2H]2+` is in the first
+vocabulary rather than merely representable for exactly that reason:
+shipping the charge model with no multiply-charged member leaves that
+path untravelled.
+
+**AND THERE IS NO FREE CHARGE CONTROL ANYWHERE.** Charge comes from the
+chosen ion. A spinbox accepting arbitrary values beside a handful of
+hardcoded compositions is the ion model degrading back into labels plus
+masses.
+
+### PRUNING TOUCHES THE REPORTED PEAK LIST ONLY
+
+    full theoretical distribution -> derived summary values
+                                  -> optional pruning for reported peaks
+
+So `monoisotopic_mz`, `average_mz` and `base_peak_mz` come off the full
+distribution and never move with the threshold; a test asserts
+`average_mz` is identical at threshold 0 and at the default. **At
+threshold 0 the result is the UNPRUNED THEORETICAL distribution, not
+"exact"** -- it is still subject to floating point and to RDKit's finite
+table, whose VERSION is therefore recorded in provenance.
+
+**`base_peak_mz` IS NOT `peaks[i].mz`, and a test asserted it was.**
+Summary masses are exact and unit-resolution peaks are nominal, so
+78.9178 against 79.0 is the two conventions meeting, not a defect. Ties
+go to the lowest m/z, extracted as `base_peak_shift` so the rule is
+testable rather than "whichever the sort happened to put first".
+
+### THE ENGINE WAS RIGHT AND MY TEST WAS WRONG
+
+A fixture assumed consecutive isotope shifts. **Bromine is 79/81**, so
+Br2 lands on shifts 0/2/4 and there is nothing at M+1 from the halogens
+at all -- which the reported screenshot's 278/280/282 says outright.
+Reading the oracle off the picture that motivated the work would have
+caught it before the test was written.
+
+The acceptance oracles are **binomial and trinomial expansions of the
+shipped abundance table**, computed independently of the convolution --
+never remembered ratios, and never the screenshot, which is a visual
+target and not a source.
+
+### THE CAPTION IS THE ARCHITECTURE'S OTHER HALF
+
+`SpectrumBasis` is MEASURED / CALCULATED / PREDICTED, declared by the
+producer and reaching the screen -- three values, because a predicted
+fragmentation spectrum and a calculated envelope must not render alike.
+The caption says CALCULATED and never "theoretical spectrum", because a
+theoretical distribution is not the observed one: ion sampling, detector
+response and centroiding all move a real spectrum. The enum is the
+architectural protection and the wording has to be equally disciplined.
+
+## SIX DEFECTS THE DRIVEN APP FOUND WITH 1006 TESTS GREEN
+
+The seventeenth entry in this file's running count, and the first one is
+in the feature's own logic rather than on screen.
+
+**A FALSE STALE MARK, FROM THE FIRST MOMENT.** The run reported
+`stale=['functional_groups']` before anything was edited. Alert-derived
+reports go through `report_from_alert`, which never sets
+`structure_version`, so they arrive at 0 against a molecule at 1 -- the
+merge's central claim, quietly false for one producer. Re-driven:
+`stale=[]` before the edit and exactly the three explicit calculators
+stale after.
+
+**AND `jobs_report`'s LESSON APPLIES TO THE `results` STEP.** A window
+showing one calculator's facts and one focused on ONE OF SIX photograph
+identically, and a stale badge is a few pixels of text -- so the step
+LOGS reports, facts, charts, focus and the stale list beside taking the
+shot. It goes through the panel's own opener rather than constructing a
+`MergedResultsDialog`, for the reason `jobs_cancel` presses the button:
+building the dialog proves it renders and says nothing about which
+reports the panel hands it.
+
+Four were on screen and the fifth was caused by fixing the first:
+
+    a caption cut mid-sentence     a FIXED two-line reservation, so the
+                                   sentence saying CALCULATED was the one
+                                   being halved
+    a title painted twice          section header and in-plot, colliding
+                                   with the M+2 label
+    a "max 1" readout              saying nothing about a base-peak-
+                                   normalised chart
+    the plot collapsed             the caption, now rendering in full,
+                                   wrapped to three lines and took a flat
+                                   160 px minimum with it
+
+**THE MEASUREMENT AND THE ALLOCATION HAD TO BE SEPARATED.** Capping
+inside `_caption_height` made the two chase each other -- the hint set a
+height, the height capped the caption, the smaller caption changed the
+hint. `_caption_height` measures, `_room_for_caption` caps, and the cap
+lives in `_plot_rect` alone so painting and hit-testing cannot disagree
+about where the axis is. **Still no `heightForWidth`**, which fighting
+`setWidgetResizable(True)` is a defect this project has paid for three
+times.
+
+### AN UNREACHABLE BRANCH IS A QUESTION ABOUT WHERE TO ASSERT, AGAIN
+
+Four mutation arms on the caption sizing. `max(base, FLOOR + caption)` --
+the collapsed plot, restored -- **SURVIVED all 25 tests**, and it is not
+a coverage gap: `super().minimumSizeHint()` on a painted widget with no
+children is near zero, so it is indistinguishable from the correct form
+for every value the widget can produce. It would reinstate the defect the
+day this gains a child or a layout.
+
+`minimum_height(base, caption)` is that arithmetic, pure, asserted over a
+table including a base of 300 where the two forms differ by the whole
+caption. Second pass: four arms, four caught -- including the one
+restoring the fixed two-line reservation, which now fails two tests
+instead of none.
+
+### `isVisible()` IS FALSE FOR EVERY CHILD OF AN UNSHOWN WINDOW
+
+Paid for again, in the empty-state guard. The obvious assertion passed
+against a panel rendering an EMPTY REPORT -- which is the distinction
+that test exists for, since "nothing has been computed" and "everything
+ran and had nothing to say" are different statements. `isHidden()` reads
+the explicit flag and is the one to use.
+
+## A GUARD RED FOR A REAL REASON: a category holding one calculator
+
+`test_no_category_holds_a_single_calculator` refused a `mass_spectrometry`
+section, and it was right -- this panel was measured at 26 sections
+holding 49 buttons, eleven of them holding exactly one. Mass Spectrum
+went into `identity` on the MERITS rather than by elimination: it sits
+beside Elemental Analysis, shares its engine, and answers the same
+question about what a structure is and what it weighs. That deleted a
+section, a label and a category-count change from the diff.
+
+**AND SEVEN BARE DOIs IN `docs/ROADMAP.md` WERE THE OTHER RED GUARD.**
+The DOI backstop treats a DOI cited anywhere in the tree with no registry
+row as a citation that bypassed the registry, which is what the EI and
+MS/MS gates were. All seven are `reference_only` / `citation`: nothing
+here implements EI fragmentation and the entries must never read as
+though something did.
+
+**TWO YEARS WERE WRONG AS HANDED OVER**, and both came off the paper:
+`alves2013.pdf` is 2014, and the subset-based EI paper's `2c` DOI is an
+ACS SUBMISSION-year code where its own citation line reads 2023. The
+paper decides, never the DOI and never the filename -- the citation
+audit's rule, where all six errors were in the field nothing could check.
+
+## THE ISOTOPE FOLD WAS EXPONENTIAL IN THE ATOM COUNT
+
+`compute_elemental_analysis` could not answer for ibuprofen, or for most
+of drug space, and it shipped that way behind a fully green branch.
+Measured through the shipped path:
+
+    aspirin      C9H8O4    21 atoms    4097 ms
+    ibuprofen    C13H18O2  33 atoms    never returns
+
+**EVERY ISOTOPOLOGUE WAS KEPT AS ITS OWN BRANCH AND THEN AVERAGED AWAY.**
+`_convolve` appended each one to a list per nominal shift and `_collapse`
+merged them once at the end, so the entry count was `k^n` in the ATOM
+count rather than in the element count -- aspirin is 2^9 * 2^8 * 3^4 =
+10.6 million branches, ibuprofen 19 BILLION. Nothing downstream ever read
+one: `_collapse` ran unconditionally, and even the exact-resolution path
+reports its probability-weighted MEAN.
+
+**MERGING INSIDE THE FOLD IS EXACT, NOT AN APPROXIMATION**, which is what
+makes this a repair rather than a speed-for-accuracy trade. A
+probability-weighted mean is linear, so folding `(M, f)` into a merged
+bin gives `(mu + M, P*f)`, and two such bins landing on one shift merge
+to `[P1 f1 (mu1+M1) + P2 f2 (mu2+M2)] / (P1 f1 + P2 f2)` -- algebraically
+what collapsing every individual branch at the end produces. The full
+distribution is bit-identical, so `monoisotopic_mz`, `average_mz` and
+`base_peak_mz` still come off it and the pruning contract is untouched.
+
+    aspirin   4097 ms -> 0.2 ms      ibuprofen   never -> 0.3 ms
+    tests/test_batch_service.py   >300 s and timing out -> 4.51 s
+    ms_elemental_analysis.png     BYTE-IDENTICAL, sha 2f7829d6
+
+The byte-identical screenshot is the acceptance test worth having: the
+engine was rewritten underneath the picture and the picture did not move
+a pixel.
+
+### THE UNIT TESTS AND THE DRIVEN CHECK WERE BOTH DEGENERATE
+
+Neither instrument this branch built could see it, for one reason. Every
+oracle in `tests/test_mass_spectrum.py` is a two- or three-atom binomial
+expansion or the 15-atom acid from the reported screenshot -- and
+`benchmarks/visual/mass_spectrum_and_merged_details.json` drives that
+SAME acid, which folds 73,728 branches and is fast either way.
+
+**IT TOOK THE FULL SUITE, AND IT DID NOT ANNOUNCE ITSELF AS A MASS
+SPECTRUM.** Two `test_batch_service.py` tests run real calculators over
+aspirin/caffeine/ibuprofen and blew their 120-second `waitForDone`, which
+surfaced as `state is not COMPLETED` and a missing nitrogen column. That
+file's own docstring already says why it exists -- "the thing worth
+testing is that 50 registered calculators survive being invoked in one
+pass, which is precisely what a mock cannot tell you" -- and this is the
+second defect it has caught by that route.
+
+A fixture is degenerate or not with respect to a specific defect, which
+this file records at the assembly corpus, the two published formulations
+and the panel captions. This is the first time the DRIVE SCRIPT was
+degenerate as well, and the cause is worth naming: a drive script is
+written from the reported case, so it inherits whatever that case cannot
+show.
+
+### THE GUARD'S ORDER IS LOAD-BEARING, BECAUSE THE REVERT HANGS
+
+Reverting the fold does not make the drug-sized case FAIL -- it makes it
+never return, and a hang or an out-of-memory kill is not a readable test
+result. So the shape assertion runs on WATER first, where the exponential
+form folds 12 branches in microseconds, and the drug-sized fold follows
+it. Measured: the revert is caught in 2.28 s.
+
+**THE ASSERTION IS ON THE VALUES AND NEVER ON `len(accumulated)`.** The
+exponential form keyed on nominal shift too, so its dict was exactly as
+long -- what reached millions was what each key POINTED AT. A length
+assertion passes against the defect it is written for. Unpacking a bin
+into two floats is the discriminator and needs no `isinstance` on a
+container: a list of branches cannot become two floats whatever its
+length.
+
+The zero-weight drop SURVIVED at first, and is not a coverage gap:
+`isotopes_of` filters to `abundance > 0`, so no real composition can
+reach it. Asserted on a constructed distribution, which is the answer
+this same file already gives for the base-peak tie. Five arms, five
+caught.
+
+## "EXACT" WAS THE ARITHMETIC AND THE CONTRACT SAID FINE STRUCTURE
+
+`MassPeak.mz` documented that at exact resolution it carries "the
+isotopologue's own m/z". It does not and never has: isotopologues sharing
+a mass-number shift are merged, so M+1 of a CHNO molecule is 13C, 17O and
+2H at three different exact masses and ONE peak is reported for all of
+them. Telling them apart is precisely the fine-structure extension the
+roadmap gates.
+
+**NOTHING COULD SEE IT BECAUSE EVERY OTHER ASSERTION IS AT UNIT
+RESOLUTION**, where the bin's mean is rounded away. The guard's oracle is
+the three +1 deltas read from the shipped abundance table without the
+convolution -- the reported value must lie strictly between the smallest
+and the largest and equal none of them -- and the fixture asserts the
+three deltas really do differ, so it cannot pass vacuously. Two arms, two
+caught: exact resolution falling back to the nominal bin, and a bin
+reporting its lightest contributor rather than its mean.
+
+It was found by documenting a constant, which is the part worth keeping:
+the `#:` ratchet named `EXACT_RESOLUTION`, writing its line meant saying
+what the value MEANS, and saying that out loud is what exposed the
+sentence one module away that said something else.
+
+### THE 13-GUARD SWEEP MISSES THE `#:` RATCHET TOO
+
+This file already records that `rg -l "ast.parse" tests/` does not include
+`test_docs_are_current.py`, and that reading it as though it did put a red
+commit on master. **`tests/test_constant_docs.py` is not in that set
+either** -- it delegates the parsing to `tools/constant_docs.py`, so it
+carries no `ast.parse` of its own. Both have to be named:
+
+```bash
+uv run --no-sync python -m pytest -q $(rg -l "ast.parse" tests/ | tr '\n' ' ') \
+    tests/test_docs_are_current.py tests/test_constant_docs.py
+```
+
+Measured on this branch: a sweep reporting `1006 passed` had run neither,
+and the full suite then failed on the ratchet. The population a text
+search finds is the population that MENTIONS the technique, never the
+population that USES it -- the same lesson as grepping for a phrase
+counting the source rather than the outcome, one layer along.
+
+## A UNIT IN BOTH FIELDS AND A UNIT IN NEITHER, AND THEY PARTITIONED PERFECTLY
+
+Reported as the Properties panel showing `Detonation pressure (C-J) 70.7`
+with no `kbar`. `FactView` rendered `display_value` alone, and the field
+was not dead -- `report_format`, `result_clipboard` and `comparison_panel`
+all read `units` -- so **Copy report carried what the screen did not**.
+
+Fixing it found the opposite defect at the same time. Measured over the
+real registry: **896 distinct facts, 449 carrying units**, and the two
+populations do not overlap at all.
+
+    223 from `report_adapter`   the unit in BOTH fields, already
+                                exporting "C: 60.00 % %"
+    226 native                  the unit in neither place a reader
+                                could see
+
+`Fact.value_with_units` is the one place they are joined, for the EIGHT
+consumers that want a fact as one string. **JSON and CSV do not use it**,
+deliberately: they give value and units their own field, which is the
+shape a script wants and the reason `units` exists at all.
+
+**THE ROUND TRIP IS UNCHANGED, which is what made this safe on a
+plugin-API surface.** `ReportResult.matched` recomposes `label: value
+units`, so all 223 adapted lines leave byte-identical -- verified by
+dumping every matched line before and after rather than by reasoning.
+What DID change is that a NATIVE fact's line now carries its units:
+`"Boiling point (normal): 259.91"` became `"... 259.91 K"`, because a
+temperature with no unit was ambiguous rather than concise. 226 lines
+out, 224 in (two pairs deduplicated once they gained units).
+
+### THE FIRST PROBE MEASURED A POPULATION THAT COULD NOT CONTAIN THE BUG
+
+Sweeping `CALCULATOR_DEFINITIONS` reported **zero** composition failures
+and read exactly like a clean result. `chem/crystal_report.py` is not a
+registered calculator -- it reaches the user through the crystal path and
+`chem/powder_xrd.py` declares no `USER_FACING_PROVIDER` at all -- so the
+sweep never ran it. Walking every report BUILDER instead:
+
+    atom_report      1   "0.76 A" beside units="A", hand-written
+    crystal_report  72   a four-quantity SENTENCE claiming "degrees
+                         2theta", so the composition appended a unit to
+                         the wrong number
+
+**`Fact.units` BELONGS TO `value`, NOT TO `display_value`**, which its own
+`#:` comment says ("set when the value is a number, so a consumer can
+format or compare without re-parsing `display_value`"). Composing is
+sound only while `display_value` is a bare rendering of the same number.
+
+`tests/test_fact_units_convention.py` holds that in two halves, and the
+second is load-bearing: once the powder lines were fixed **no shipped
+fact reached the sentence rule**, so deleting it left the population walk
+green. The walk proves the producers comply; a constructed-case arm
+proves the rule can still say no.
+
+## THE POWDER PATTERN REACHED THE CHART CHANNEL, AND TWO COMMENTS WERE LYING
+
+`PowderPattern` has carried intensities since `5c00ace` and
+`crystal_report` emitted no charts at all. `pattern_chart` is a
+PROJECTION -- it reads `reflections` exactly as `calculate_pattern`
+produced them and rederives nothing, because a presentation builder that
+recomputes is a second place for the science to be wrong.
+
+**THE SCALE BASIS IS DOMAIN METADATA NOW.** `calculate_pattern` truncates
+BEFORE it normalises, so on a cut pattern `FULL_SCALE` marks the
+strongest line in the reported window rather than in range -- and two
+patterns cut at different lengths are not on one scale. That was
+recoverable only by reading prose; `intensity_scale_covers_the_whole_range`
+answers it without English.
+
+### DRIVEN AND MAGNIFIED, AND BOTH DEFECTS WERE A COMMENT AGAINST ITS CODE
+
+Every test green, and a 3x crop showed two. Both in `StickChartWidget`,
+both latent until powder data reached them -- a mass spectrum's peaks are
+far apart and its caption is one sentence.
+
+    _LABEL_CLEARANCE  said the text must not overlap "the axis OR ITS
+                      NEIGHBOURS" and that "a label sitting on the wrong
+                      stick is worse than no label", while the only gate
+                      was a HEIGHT test. Twelve lines clustered at low
+                      angle overprinted three (hkl) indices into
+                      "(0 1 {1 -1)1 0)".
+    _MAXIMUM_CAPTION  said a long caption "is elided, which is visibly
+    _FRACTION         different from being silently clipped", while
+                      `drawText` into a fixed rect clipped with no marker
+                      at all. The caption ended on "This list is CUT: the
+                      tallest" -- **the truncation warning, truncated.**
+
+Labels are placed TALLEST FIRST and a colliding one is dropped, so the
+survivor is the peak a reader is looking for rather than whichever came
+first. The half-width is MEASURED: the fixed 45 px box it replaced was
+generous for `M+2` and far too narrow for `(0 1 -2)`, so a collision rule
+built on it would have been a claim about the font.
+
+**MARKING THE CUT MADE IT HONEST WITHOUT MAKING IT READABLE**, which is
+the half worth remembering. The fix that mattered was on the PRODUCER
+side: `chart_caption` is the CELL form -- two claims and a pointer -- and
+the full caveats stay on the report's `limitations`. `describe_failure`'s
+split, applied to a caption.
+
+### AND THE MODULE DOCSTRING HAD BEEN FALSE FOR THREE COMMITS
+
+`powder_xrd.py` still opened "why their heights are refused" and
+"## POSITIONS ARE SHIPPED. INTENSITIES ARE REFUSED" while
+`structure_factor_squared` sat 400 lines below it and `intensity_refusal()`
+said the unconditional refusal was retired. Corrected with the reasoning
+kept, because the refusal was right when written -- and because its own
+stated unblocking condition ("a machine-readable copy of this table")
+went unchecked for ten days.
+
+## A SECOND CHART KIND, AND ONE RENDERER FOR CURVES
+
+`LineChartAnnotation` carries several `LineSeries` on one pair of axes.
+Adding the kind and moving `PhCurveWidget` onto it were ONE task: that
+widget already did multi-series drawing, a legend, gridlines, a zero line
+and a hover readout, and its only coupling to pH was its argument type.
+
+**NO pH CONCEPT REACHED THE GENERIC ANNOTATION.** No `show_pKa`, no
+buffer highlight, no chemistry-specific readout. The one thing that moved
+is `y_min`/`y_max`, which is an AXIS declaration beside `x_descending` --
+a quantity with real bounds gets an axis at those bounds, as true of a
+quantum yield as of a microspecies fraction.
+
+### THE ONE DELIBERATE BREAK FROM THE SIBLING KIND
+
+`valid_chart_annotation` REFUSES a series whose x is not monotonic, where
+`StickChartAnnotation` explicitly requires no order and preserves the
+producer's. The geometry is why: sticks are drawn independently at their
+own positions, so order only decides which of two sharing an x a hit test
+resolves to. **A line is a POLYLINE -- order is not metadata about the
+picture, it IS the picture.**
+
+NON-DECREASING **or** NON-INCREASING, never strict, because two values at
+one x is a real thing to have. A parametric path (a hysteresis loop)
+is a different kind, not a looser rule here.
+
+**IT DECLINES A SHARED-x-GRID RULE AND SAYS WHY.** The five pH
+calculators all sample `ph_grid`, so a rule fitted to them would pass on
+every producer that exists today and refuse the first computed-against-
+measured overlay -- the `half_angle_deg < 180` mistake, which refused a
+real Tolman measurement because the common case looked like the only one.
+
+### THE PLAN'S NAMED PRODUCER HAD NO ROUTE, AND ANOTHER DID
+
+"The five pH calculators declare their curve" cannot happen:
+`PhCurveResult` is its own `ScientificResult` and never becomes a
+`ReportResult` outside `_build_facts_view`, which turns charts OFF
+because the dialog already shows the curve an inch above. Wiring it there
+would draw the same numbers twice.
+
+`compute_solubility` returns a real `ReportResult` from the same analysis
+its curve calculator uses, so that is the producer -- through ONE
+`solubility_profile` builder, since a fact and a picture disagreeing is
+worse than either being wrong alone, which that module already records
+paying for.
+
+## A DEPICTION, FROM THE LAYER TYPE THAT ALREADY EXISTED
+
+The roadmap's Lewis-site diagrams, and the finding is how little was
+needed. `render_2d_svg` has taken per-atom colours and labels since Phase
+18; `VisualizationLayer` has been "atom index -> colour and label,
+renderer-independent" since Phase 11. **What was missing was a producer
+saying WHICH atoms.**
+
+So `VisualizationLayer` MOVED to `domain/visualization.py` rather than
+being copied. A `DepictionAnnotation` with its own per-atom map would
+have been a second representation of one idea, and the 3D viewer and a
+declared 2D depiction now describe the same thing. The move was possible
+because every one of those types is a frozen dataclass of primitives:
+the new module imports no toolkit and no GUI, and `ui/visualization.py`
+re-exports all of it so the **twenty-two** modules naming them are
+untouched. The BUILDERS stay behind -- they need `chem.scalar_field`.
+
+The same argument was made once before in that very file:
+`CATEGORICAL_SCALE` moved to `domain/common.py` when `chem/` needed it,
+because the marker "was never a UI concept". Neither is a layer.
+
+### THE RENDER CONTEXT IS INJECTED, AND THE ANNOTATION CARRIES NO GEOMETRY
+
+    annotation      WHAT to draw -- atom indices and their styling
+    report          WHICH molecule -- StructureReport.molecule_uuid
+    render context  the geometry, resolved and supplied by the UI
+
+`FactView.set_structure_resolver` is that context. A widget reaching for
+a project to find a molblock would be a view that knows where structures
+live; a host with no project supplies nothing and the depiction SAYS SO
+rather than drawing an empty frame.
+
+The validator checks what it can without the molecule -- index types,
+duplicates, one canonical hex colour -- and deliberately cannot ask
+whether the molecule HAS atom 99. `render_2d_svg`'s own `drawable()`
+guard already answers that, and exists because calculators legitimately
+hold data keyed to `AddHs(mol)` while the depiction is the editor's
+molblock.
+
+### AND THE SHOT FOUND A DEFECT INTRODUCED MINUTES EARLIER
+
+The Lewis diagram drew two blue atoms and **nothing on screen said blue
+meant donor**: the caption was declared and dropped. For a depiction the
+caption IS the legend, so it was the one thing a reader needed -- and
+both other chart widgets had painted theirs from the start. This file's
+own rule, a meaning that lives only in a tooltip being absent from every
+screenshot, with the meaning not reaching even a tooltip.
+
+The layering guard caught the second: the drive step imported RDKit into
+`app/`, which `test_layer_never_imports_chemistry_engines_directly`
+forbids. It goes through `chemistry_engine` now, as `_do_smiles` does,
+and the driven output is identical either way.
+
+### FIFTY-ONE MUTATIONS, FIFTY-ONE CAUGHT, AND SIX NEEDED A GUARD WRITTEN
+
+Across the four stages. The survivors are the entry worth reading,
+because five of the six were MY tests rather than untested code:
+
+    matched drops units again          nothing asserted the contract at all
+    the crystal report declares no     seven guards on the BUILDER, none on
+    chart                              the wiring -- "testing a helper is
+                                       not testing the wiring", again
+    the label collision rule           written from the survivor
+    a chart outside water              BOTH "no chart" tests asserted
+                                       `charts == ()` on results that take
+                                       an early return BEFORE the chart is
+                                       built, so dropping both guards left
+                                       the file green
+    the union loses a kind             the union test never named the third
+    "no structure" logged as a FAULT   the early return LOOKED equivalent
+                                       because the exception path shows the
+                                       same words -- and would log a
+                                       warning on every render of a view
+                                       with no resolver, which is how a log
+                                       stops being read
+
+**"A CHART OUTSIDE WATER" IS THE ONE TO REMEMBER.** It is the degenerate
+fixture in miniature: a test can assert the right thing about the wrong
+code path and never fail. Asserted on the predicate instead, with its own
+setup checked -- an unreachable branch is a question about where to
+assert.
+
+
+## THREE GUARDS I WROTE MATCHED THE PROSE EXPLAINING THEIR OWN RULE
+
+This file already records the shape four times -- *grepping for a phrase
+counts the source, not the outcome* -- at `grep FAILED`, `INFRASTRUCTURE
+FAILURE`, `Fatal Python error|Windows`, and `_declared_providers`' text
+scan reading a comment that existed only to explain the absence it named.
+
+**It was sprung three more times in ONE branch, by somebody who had read
+all four.** Every instance has the same shape: a guard forbidding a thing,
+in a file whose docstring explains why that thing is forbidden.
+
+    scanned `resolve_roles` for "hardness"   matched the paragraph saying
+                                             why hardness must not break a tie
+    scanned the settings dialog for "rdkit"  matched the docstring saying why
+                                             RDKit must not be imported there
+    scanned `_do_visual_check`'s surface     (caught before it shipped)
+
+**THE TWO FIXES ARE DIFFERENT AND THE SECOND IS THE BETTER ONE.** The
+first excludes the docstring and walks the AST body -- `ast.get_docstring`
+then `function.body[1:]` -- collecting `Name` and `Attribute` nodes, with
+a setup assertion that the walk found the call the function certainly
+makes, so an AST walk that quietly returned nothing cannot satisfy it.
+
+The second was **DELETED**. `tests/test_layering.py` already forbids a
+`ui/` module importing RDKit, by AST, over the whole package. A second
+copy was redundant AND wrong, and the redundancy is what made it wrong:
+nobody writes a careful check for a rule they believe is already covered.
+**Before writing a source-scanning guard, ask whether the rule already has
+one** -- and if it does, cite it instead.
+
+## A HELP-CONTRACT FIXTURE THAT COULD NOT BE BUILT WAS SKIPPING 5 CONTROLS
+
+`ui/dialogs/inventory.py`'s `calculator_settings` calls
+`_require(context, "services")`, and `tests/test_dialog_help_contracts.py`
+walks with a bare `DialogContext()`. So it raised `DialogUnavailable`, was
+reported as unavailable rather than failing, and **every parameter widget
+the generic settings dialog builds has been unguarded for as long as that
+dialog has existed.**
+
+That is the inventory's own "a dialog that cannot be built is REPORTED,
+never skipped" rule working exactly as designed -- and the report is a
+line nobody was reading as a coverage gap. The dialog was in the
+inventory, so it looked covered.
+
+**A SYNTHETIC FIXTURE FIXES IT, and it found seven on its first run.**
+`CalculatorSettingsDialogAllKinds` builds from a definition this project
+invents rather than from "the first registered calculator", so coverage
+cannot quietly shrink when a registration changes -- and its parameter
+list is DERIVED FROM `PARAMETER_KINDS`, so a seventh kind is walked
+without anybody remembering to add it.
+
+**THE CONTRACTS ARE KEYED BY KIND, NOT BY CALCULATOR**, which is the
+sixty-tick-boxes shape again: "a numeric setting for this calculator"
+means the same thing on every one of the sixty-odd calculators that has
+one, and `instance_path` tells the renderings apart. `float` and `int`
+SHARE an id -- a number is a number, and splitting them would be one
+concept wearing two, which `test_one_concept_is_not_split_across_many_help_ids`
+refuses.
+
+**THE PLAN'S OWN PREMISE WAS HALF WRONG AND I REPEATED IT.** The previous
+branch's plan said the inventory "builds it BARE for the help-contract
+guard". The substance is right -- only a definition is passed -- and the
+guarantee is not. Carried into a new plan without checking, which is this
+file's most-repeated failure.
+
+## A `"choice"` PARAMETER STORED THE ENGLISH ON THE SCREEN, IN THE CACHE KEY
+
+`CalculatorSettingsDialog.parameters()` read `QComboBox.currentText()`,
+and `batch_service.py:334` hashes what it gets into `parameters_key`. So
+the DISPLAYED PROSE was part of every retained result's identity, and
+rewording a label silently orphaned every result computed under the old
+wording.
+
+`choices` is the stable value vocabulary now and `choice_labels` carries
+the prose. **With no labels declared the behaviour is byte-identical**,
+which is the load-bearing half: 23 of the 24 shipped `"choice"` parameters
+declare none and their stored values are already inside retained results.
+
+**THE BLAST RADIUS WAS MEASURED RATHER THAN FEARED**, and the two things
+`parameters_key` feeds are not the same thing:
+
+    BatchResultStore   IN-MEMORY. An orphaned key is a same-session
+                       recompute of a cheap calculator.
+    result_cache       ON-DISK retention for expensive QM work, whose own
+                       docstring says a result that must be recomputed to
+                       be seen again "is a rumour".
+
+Only a parameter deliberately migrated is affected -- one, in this branch,
+reaching no QM cache. The policy is that an old key MISSES and recomputes;
+**nothing is aliased**, because silent dual identity is worse than either.
+
+**AND AN UNKNOWN KIND IS REFUSED AT REGISTRATION, NOT AT CLICK.**
+`_build_widget` matches no branch for an unknown kind and returns nothing,
+so the failure is otherwise a settings dialog silently missing one of its
+controls. `PARAMETER_KINDS` is the single vocabulary -- the factory
+dispatches on it and the coverage fixture derives from it, so a new kind
+cannot be added to one and miss the other.
+
+## A HEADER OVERFLOWS; A CELL ELIDES. AND THE ORACLE SEES NEITHER
+
+The Batch results table never sized its columns, so each stayed at Qt's
+default section width -- and **a `QHeaderView` OVERFLOWS rather than
+eliding**, with centre alignment costing BOTH ends: "Substance
+classification" rendered `ostance classificat`.
+
+**`visual_check` REPORTED 0 FINDINGS, AT BOTH WIDTHS, ON BOTH RUNS**, and
+structurally always will: a header is painted by the VIEW, and
+`painted_items` walks CHILD WIDGETS. The same reach limit shows in the
+population -- 12-13 painted items on Batch and 5 on Compare against 40 on
+Properties, both being mostly item views -- so **a clean geometric result
+on an item-view-shaped panel is a far weaker statement than the same
+result on a form-shaped one.** Written into `benchmarks/visual/README.md`
+beside the script that found it.
+
+**AND THE FIX HAD AN EDGE THE SAME TECHNIQUE FOUND.** Sizing to contents
+puts a header off screen once a cell is long, because a header is CENTRED
+in its section: measured, a 200-character limitation line drove its column
+to 710 px against a 416 px viewport and "Lewis Adduct" landed past the
+edge, so the column read as though it had no header at all. Capped at the
+viewport and never below the header's own width.
+
+**`resizeColumnsToContents()` ONCE, NOT THE `ResizeToContents` MODE**, and
+the reason is a measurement trap: the mode makes every section
+non-draggable, and it is not free either -- it DEFERS the same work to
+paint time, so a probe timing `setSectionResizeMode` reports **0.0 ms and
+has measured nothing**. Timed properly, 32.8 ms one-shot at 181 molecules
+x 63 columns, bounded to 3.7 ms by `setResizeContentsPrecision(20)`.
+
+## `batch_service` READS AN EMPTY SCOPE AS "EVERYTHING GIVEN"
+
+Which is a deliberate compatibility contract with its own tests, and the
+single most dangerous fact about adding a molecule-selection control:
+unticking every molecule and pressing Fill table would run the WHOLE
+PROJECT -- a bug that looks like correct behaviour.
+
+**The UI refuses; the service keeps its convention.** And that same
+contract is what makes the CONTROL test's vacuity the crux of the feature:
+a scope control that does nothing sends an empty list and is
+**indistinguishable by outcome** from the correct default. The guard
+therefore asserts the widget's own ticks as well as the request.
+
+**THE SERVICE CLAMPS THE PAYLOAD BY THE REQUEST**, so widening either half
+alone is an equivalent mutation -- measured, the request widening ALONE
+reddens exactly one test, and only because the sentinel asserts both.
+
+## TESTING A HELPER IS NOT TESTING THE WIRING -- TWICE MORE, BOTH MINE
+
+This file records the lesson five times. Two more, both caught by mutation
+rather than by review, both in guards written the same afternoon:
+
+    the frozen-settings guard asserted on `calculator_parameters()`'s
+    RETURN VALUE, so handing `_run` the live dict survived it
+    the column-cap guard CALLED `_cap_column_widths()`, so deleting its
+    call site survived it
+
+Both now go through `_run` and `_render_table`. The tell is the same in
+both: a test that names a behaviour and then invokes the helper directly
+is testing that the helper works.
+
+## A COMMITTED DRIVE SCRIPT DID NOT CONSTRUCT ITS OWN STATE
+
+`benchmarks/visual/README.md` opens with that rule, and the Batch panel
+breaks it silently: `BatchPanel` persists its ticked property ids under
+`batch/selected_property_ids` and restores them on construction, so a
+selection **outlives the process** and leaks from one committed script
+into the next. Measured -- a scope benchmark ticking `lewis_adduct` alone
+came back carrying a Substance-classification column belonging to the
+benchmark before it.
+
+`batch_select` takes `clear` now and every Batch script opens with it. The
+molecule scope needs no equivalent, being deliberately unpersisted.
+
+## A BLANK LINE IN A REPORT IS A ROW WITH NO VALUE
+
+`FactView` renders one row per `matched` line, so `lines.append("")` --
+used as a separator between two reported orientations -- draws a label
+with nothing beside it, which reads as a fact whose value is missing. Name
+the section instead; the name is more useful than the whitespace anyway.
+
+Found by driving the app with 105 tests green, which is the eighteenth
+entry in this file's running count of that.
+
+## MEASURE THE POPULATION BEFORE DESIGNING FOR IT
+
+Two decisions in one branch were settled by a count that took a minute:
+
+    calculators carrying parameters   69 of 69, so a marker on the
+                                      parameterised leaves would mark
+                                      EVERYTHING and was not built
+    Drago table overlap               24 acid-only, 33 base-only, ZERO in
+                                      both -- so "tabulated both ways" is
+                                      unreachable with shipped data and is
+                                      asserted on a replaced table
+
+The second is this file's own "an unreachable branch is a question about
+where to assert" arriving before the branch was written rather than after.
+
+**AND A NON-DEGENERATE FIXTURE HAD TO BE SEARCHED FOR.** The obvious Drago
+pair is a tabulated acid and a tabulated base -- and it is degenerate: THF
+cannot act as an acid at all, so the SITE rule decides that pair
+identically and deleting the table rule changes nothing. tert-butanol and
+methylamine are both admissible BOTH ways, so only the table can decide
+them. Measured before the guard was believed, and the mutation confirmed
+it: with the table, resolved; without it, unresolved.
+
+A second one, for the same rule from the other side: a Drago rule reading
+only "is the subject a tabulated acid?" gives the RIGHT answer whenever
+the partner is a tabulated base, so it survives that fixture too. What
+tells them apart is a tabulated acid against a partner in NEITHER table.
+
+## A LIMIT IS A NUMBER PLUS WHAT IT IS A LIMIT ON, AND FOUR WAYS THAT GOES WRONG
+
+Stage 6 of the regulatory work: the first QUANTITATIVE domain, OSHA's
+Table Z-1 permissible exposure limits under 29 CFR 1910.1000. The model is
+`SourceLimitFact` (what the regulation printed) beside `QuantitativeLimit`
+(our reading of it) -- `Rule`'s existing `LegalSource`/`MachineInterpretation`
+split one level down, as two TYPES rather than five `source_*` prefixes and
+a comment, so a reader can tell a transcription from a reading without
+reading a page of prose.
+
+**AND IT IS A REGULATION, NOT A STATUTE.** This project's own
+*"an identity comes from the CAS the statute prints"* rule was written
+about the CWC Annex, an actual treaty text. Table Z-1's footnote (c) says
+the opposite in its own words -- *"The CAS number is for information only.
+Enforcement is based on the substance name"* -- and 176 of its 610 rows
+print no CAS at all, so an identity anchored there would rest on something
+the regulation calls informational and drop a quarter of the table. Both
+rules are right for their own regulation. **The rule is to anchor on
+whatever the regulation treats as the identifier, and to let the regulation
+say which that is.**
+
+### `LimitPrecision` HAS THREE VALUES BECAUSE ONE COLUMN CARRIES TWO STATUSES
+
+Footnote (b): a mg/m3 entry *"is exact"* standing alone and *"is
+approximate"* when a ppm entry accompanies it. So two mg/m3 numbers,
+printed identically, are different claims and nothing about a cell reveals
+which. Measured over the shipped table: 197 exact, 234 approximate, 234 ppm
+entries UNSTATED -- because footnote (b) says nothing about ppm, and a
+two-valued flag would force a guess on every source that is silent, which
+is how an unstated precision becomes a claimed one.
+
+### THE FOUR ROW CLASSES, AND 110 ROWS THAT BECOME NO RULE
+
+    500 substances     390 HAS_LIMIT
+                         1 NO_LIMIT_PRINTED   respirable crystalline silica
+                        87 CROSS_REFERENCE    "; see 1910.1028"
+                        22 ELSEWHERE          the value is `(2)` or `(3)`
+
+**610 ROWS AND 500 SUBSTANCES ARE BOTH RIGHT**, and the gap read as a
+contradiction for an hour: 110 rows are INDENTED SUB-ROWS belonging to the
+substance above, so 610 = 500 + 110. The extractor groups a sub-row under
+its parent and carries its label as the limit's qualifier.
+
+**A ROW THAT DEFERS TO TABLE Z-2 IS NOT A ROW WITH NO LIMIT.** Encoding
+toluene or carbon disulfide with no limit would say OSHA sets none, which
+is the opposite of what the table says. They are counted and omitted, and
+the ruleset's own limitations say so.
+
+### THE COUNT IN THE PROSE WAS TYPED, AND IT WAS WRONG
+
+`known_limitations` said *"26 rows of Z-1 point at them"*. The table has 22
+rows deferring to Z-2/Z-3 and 87 cross-references. **Nothing could catch
+it, because no guard reads prose** -- and it was a number inside SHIPPED
+DATA, which is this file's most-repeated failure arriving in a new place.
+
+`row_census` is the fix: the four counts as structured data, with every
+number in the sentences DERIVED from it. The guard that compares the two
+is deliberately weak -- it can only catch them drifting -- and that is the
+point: **the strong version is that there is one source for the number, not
+two.**
+
+It lives in the SOURCE artefact and reaches the generated ruleset as prose,
+because `known_limitations` already flows loader -> `Ruleset` -> the screen.
+Carrying the census itself through would mean a field on `Ruleset` and a
+migration for four rulesets that have no census, which is a model change
+this branch did not need in order to stop the sentence lying.
+
+### TWO PROVENANCE HASHES, ANSWERING DIFFERENT QUESTIONS
+
+`provenance.source_document_sha256` hashes the source JSON in this
+repository, so it says whether OUR BUILD INPUT changed. That was enough
+while every source JSON was hand-transcribed. **The OSHA one is itself
+generated**, from a committed eCFR XML, so that field pointed at an
+intermediate and the chain back to the regulation stopped one link short.
+
+`SourceSnapshot` is the missing link -- document, sha256, retrieval date
+and a STATUS STRING, because retrieved today, current as of retrieval,
+official but historical and superseded are four states and a bool loses the
+one that matters. `None` for the four rulesets that predate it: an empty
+snapshot claims a retrieval that never happened, so the loader refuses a
+partial one rather than filling the gaps.
+
+#### AND `core.autocrlf` WOULD HAVE BROKEN IT ON CI
+
+`git add` printed *"LF will be replaced by CRLF the next time Git touches
+it"*. The snapshot carries **4763 bare LFs**, so a fresh Windows clone
+would hash 176334 CRLF-expanded bytes to a different digest than Linux CI,
+and the guard tying the shipped numbers to the regulation would go red on
+one platform for a reason with nothing to do with the regulation. This
+repository had **no `.gitattributes` at all**.
+
+**NORMALISING THE HASH INSTEAD WOULD BE WRONG HERE, and the distinction is
+worth keeping.** `build_regulatory_rulesets.py` DOES hash newline-normalised
+text, correctly -- it asks whether a GENERATED artefact is current, and a
+line ending is not a content edit. The snapshot is not ours. Its digest
+answers *"is this the document we read"*, so it has to be the document's own
+bytes, and the fix is to stop git translating them.
+
+**THE GUARD ASSERTS `.gitattributes`, NOT THE WORKING TREE**, because the
+working tree is right on the machine that wrote the file and wrong on the
+next clone -- which is exactly why this is easy to miss.
+
+### WRITING 24 SMILES BY HAND FOUND TWO WRONG STRUCTURES
+
+The corpus check this project already believes in, applied to a new
+ruleset: write a SMILES for a well-known substance INDEPENDENTLY, and ask
+whether it matches the rule OPSIN derived from the printed name. 17 of 24
+agreed -- including *Methyl alcohol* and *Ethyl ether*, which is the two
+routes agreeing on the regulation's older names. The disagreements were not
+noise.
+
+**AN ALIAS IN PARENTHESES BECOMES A TWO-COMPONENT MIXTURE.** Table Z-1
+prints `Chloroform (Trichloromethane)`; OPSIN reads the whole string as two
+components and returns `ClC(Cl)Cl.C(Cl)(Cl)Cl`, whose InChIKey is not
+chloroform's. So the rule shipped as a `verified` identity **that could
+never match a drawn chloroform** -- a screen that says nothing, which is the
+silence-read-as-reassurance this engine exists to prevent. Same for
+`Ethyl alcohol (Ethanol)`.
+
+**AN ELEMENT NAME GIVES OPSIN AN ATOM.** `Chlorine` resolves to `[Cl]`
+where the air contaminant with a 1 ppm ceiling is Cl2. Measured, every
+diatomic element does it: F, Cl, Br, I.
+
+    fragments all the SAME substance   collapse to one -- an alias names
+                                       the compound it is an alias for
+    fragments DIFFER                   leave alone; for a SALT the
+                                       multi-component structure IS the
+                                       identity
+    a lone atom of a diatomic element  REFUSE, and count it
+
+**REFUSED RATHER THAN CORRECTED.** Writing Cl2 by hand would be a typed
+structure standing in for a resolution, which is the one thing the build
+exists to prevent. The row becomes a counted unresolved entry a reader can
+see instead of a rule that can never fire.
+
+#### AND MY OWN REFUSAL WAS OVER-BROAD, WHICH ONLY COUNTING SHOWED
+
+The first version of the mixture rule refused ANY multi-component answer as
+a misparse. It read as a tidy safety check and **dropped 18 rules** --
+calcium carbonate, barium sulfate, ammonium sulfamate -- because for a salt
+`[Ca+2].[O-]C([O-])=O` is OPSIN working correctly.
+
+**236 fell to 216, and every test stayed green.** That is the
+green-suite-and-a-smaller-universe failure in miniature, and nothing but
+comparing the rule count either side of the change could see it. The guard
+written from it asserts the survivors BY NAME rather than by a threshold
+that would read as stronger than it is -- the same shape as
+`test_the_composite_rule_does_not_swallow_the_line_edits`.
+
+Final: **232 of 390 resolved**, and `resolved + unresolved == total_entries`
+is asserted, because this project has already shipped a build that
+double-counted an unresolved entry.
+
+#### FIVE ARMS, FIVE CAUGHT, AND BOTH OVER-BROAD ONES BY THE NARROW HALF ALONE
+
+The two resolution rules mutated together, each arm running the full 40 and
+each edit asserted to have landed. **The guards call `_resolve_name`
+directly rather than reading the shipped JSON**, which is what makes a
+mutation of the build tool reachable from the suite at all:
+
+    M1  the alias rule deleted            2 -- both parenthetical aliases
+    M2  the alias rule OVER-BROAD         4 -- those two PLUS both salts
+    M3  the lone-atom refusal deleted     2 -- Chlorine and Iodine
+    M4  the lone-atom refusal OVER-BROAD  1 -- Copper, and NOTHING else
+    M5  it keys on heavy-atom count       2 -- Ammonia and Hydrogen chloride
+
+**M4 IS THE ENTRY WORTH READING.** Refusing every lone atom rather than
+only the diatomic ones is caught by exactly ONE test in the file,
+`test_the_lone_atom_rule_does_not_swallow_what_it_must_not[Copper]`, and by
+nothing else -- because copper really IS a lone atom and its Z-1 row says
+"as Cu". Delete that one parametrised case and an over-broad refusal ships
+with a green suite and a smaller ruleset, which reads as tidier coverage
+rather than as lost rows. Same for M2 against the salts. **The narrow half
+is not a stylistic pairing here; it is the only thing holding either rule
+from being widened.**
+
+**AND M5 FAILED PRECISELY WHERE ITS OWN DOCSTRING SAID IT WOULD.** That
+guard names ammonia and hydrogen chloride as "the other trap -- one heavy
+atom apiece, and the rule keys on hydrogens rather than on heavy-atom count
+for exactly that reason", and dropping the hydrogen term failed those two
+and no others. A docstring predicting its own mutation's victims is the
+cheapest available evidence that the fixture is not degenerate.
+
+### A FACT THE TABLE PRINTS, FILED WHERE NOTHING RENDERS IT
+
+95 substances carry a SKIN DESIGNATION -- the table's own column saying the
+substance is absorbed through the skin. The extractor put it in the rule's
+`assumptions`, and **`MachineInterpretation.assumptions` has no reader on
+the regulatory path at all**: measured, `.assumptions` is rendered only by
+the Lewis and interactions reports, while `limitations` reaches every
+finding line.
+
+So it was a source fact the application never showed. It belongs in
+`limitations` on the merits too -- the table PRINTS it, so it is not
+something we assumed, and what it says is that the airborne number does not
+cover that route, which is a limit on how the PEL may be read.
+
+### THE NUMBER REACHES THE SCREEN WITH ITS MEANING ATTACHED
+
+`Benzene 10` is dangerous in a way `Benzene 10 ppm (8-hour TWA)` is not, and
+a reader cannot recover the difference. This project has shipped that
+failure once already -- `Fact.units` was populated, read by three exporters
+and never rendered in the row, so *Copy report* carried units the screen did
+not -- so the guards assert the RENDERED LINE and not the JSON.
+
+Three things travel with the number and the line is worse without any:
+the unit, the limit type, and the precision. The qualifier gets its OWN line
+rather than being folded in, because it is a footnote of unknown length and
+appending prose to a number is how a value ends up unreadable beside its own
+caption.
+
+**`_LIMIT_TYPE_LABELS` IS HAND-WRITTEN AND GUARDED, NOT DERIVED.** Deriving
+a label from the enum member's name gives "twa 8h", which is the id wearing
+a space -- the restate-the-label degeneracy the help-contract layer refuses
+one floor up. Its first doc comment claimed it WAS derived, which is a
+comment asserting an intention it does not have.
+
+### THE PRIME, AND WHICH OF THREE NAME FIELDS MAY BE TRANSLITERATED
+
+Table Z-1 prints `4,4'-Thiobis (6-tert, Butyl-m-cresol)` with U+2032 PRIME.
+Three fields carry that name and they do not get the same treatment:
+
+    display_name   OURS. Rendered onto finding lines that reach Qt, logs
+                   and console streams -> transliterated
+    names          OURS. Handed to OPSIN, which writes it to a temp file
+                   in the console encoding -> transliterated
+    legal.quote    THE REGULATION'S. Verbatim, always.
+
+**The `names` half was a defect with a misleading symptom.** The raw prime
+failed with `UnicodeEncodeError`, and that string went into the coverage as
+the row's unresolved REASON -- telling a reader the substance could not be
+read when what happened is that our temp file could not be written.
+Transliterated it fails with `NamingError` instead, because
+*"6-tert, Butyl"* is not valid nomenclature: **the same outcome with an
+honest reason.** The name was deliberately NOT rewritten into
+`4,4'-thiobis(6-tert-butyl-m-cresol)`, which does resolve -- that would be
+guessing a structure by editing the regulation's own name.
+
+`_ascii_display` FAILS CLOSED on an unmapped character rather than dropping
+it: a silently mangled substance name is a wrong identity that looks like a
+right one.
+
+### AN EMPTY LIST IS NOT THE SAME AS SILENCE, IN A GENERATED FILE
+
+The build first emitted `"quantitative_limits": []` for every rule, which
+rewrote all 91 rules shipped before the field existed -- **190 changed lines
+carrying no information, and four moved ruleset hashes**. The loader reads
+an absent key as an empty tuple, so an emitted `[]` says exactly what
+silence says. The writer mirrors that contract now, and the four
+pre-existing rulesets come back byte-identical.
+
+**IT WAS NOT EVIDENCE OF STALENESS, WHICH IS WHAT IT LOOKED LIKE.**
+Categorising every changed line took one command and settled it; the
+alternative reading -- that the shipped rulesets had been stale for weeks --
+would have sent somebody a long way in the wrong direction.
+
+#### DRIVEN AND MAGNIFIED, AND THE THREE-VALUED PRECISION IS VISIBLE
+
+Ethanol through the real Properties panel, `admet` expanded, cropped 3x.
+What the screen says:
+
+    Regulatory Screen: Ethyl alcohol (Ethanol) (29 CFR 1910.1000 Table Z-1)
+      [us, identity, verified] - per US OSHA Table Z-1
+    Regulatory Screen: exposure limit: 1000 ppm (8-hour TWA)
+    Regulatory Screen: exposure limit: 1900 mg/m3 (8-hour TWA, approximate)
+    Limitation: A permissible exposure limit is an AIRBORNE CONCENTRATION
+      for an occupational setting. ...
+
+**THE TWO LINES TOGETHER ARE THE ARGUMENT FOR THREE PRECISION VALUES**, and
+no headless assertion shows it as plainly: the mg/m3 entry carries
+"approximate" because a ppm entry accompanies it, and the ppm entry carries
+NO precision word at all -- `UNSTATED` rendering as silence rather than as a
+guess, because footnote (b) says nothing about ppm. A two-valued flag would
+have had to print something on that line, and whatever it printed would have
+been invented.
+
+Nothing is clipped, nothing elides, and no value overlaps its caption at the
+420 px dock default. `mg/m3` is ASCII rather than `mg/m^3` with a superscript,
+so the line survives a cp437 console -- the rule this file already records
+costing a refusal message a wrong verdict.
+
+**THE PANEL IS 13441 px OF CONTENT IN A ~580 px VIEWPORT**, so the band had
+to be found by scrolling rather than photographed from the top. A `shot` of
+the panel at rest shows none of this.
+
+### THE BENCHMARK-CORPUS GUARD BECAME A RATCHET, WITH ITS REASON STATED
+
+The corpus guard was a blanket assertion over all 91 rules, and Table Z-1
+contributed 232 identity rules at once. A blanket rule would have forbidden
+landing them at all.
+
+It splits into
+`test_every_rule_outside_table_z1_is_exercised_by_the_benchmark_corpus` --
+**full strength for every ruleset that predates Z-1** -- and
+`test_the_table_z1_rules_awaiting_a_positive_case_only_shrink`, a recorded
+count of the Z-1 rules still owing one, which may only SHRINK -- the `tooltip_migration_debt.json` shape at a scale that does not
+warrant its own fixture file. **Nobody is expected to empty it quickly**,
+and the reason is the interesting part: a positive case here is a SMILES
+written INDEPENDENTLY of the resolver. Deriving one from the rule's own
+InChIKey would exercise the matcher against the number it came from and
+prove nothing about the name resolution -- which is precisely the check that
+found the two wrong structures above.
+
+## THE RESULTS LIST FOLLOWED WHICHEVER CALCULATION FINISHED FIRST
+
+`PropertyPanel._reports` is a dict keyed by `report_id`, `merge_reports` kept
+that order, and the "Showing" box was built straight from it -- so the list was
+in the order results LANDED, and calculations finish asynchronously. Two runs of
+the same six calculators could produce six different lists, and a seventh
+landing while somebody read one moved everything below it.
+
+**AND ARRIVAL ORDER IS NOT THE ORDER THE APPLICATION ALREADY USES.** Measured
+over the 30 results that reach the merged reader for aspirin, run in registry
+order: **30 of 30 sit in a different position** from the sections the Properties
+panel shows them in. The registry groups by MODULE; `CATEGORY_ORDER` groups by
+what a reader is looking for.
+
+`domain/result_ordering.py` is the key, and it is total:
+
+    display band -> category -> registry position -> display name -> report_id
+
+### THE REGISTRY POSITION IS EDITORIAL ORDER, AND DROPPING IT IS NOT FREE
+
+The tempting simplification is to drop it and sort by name inside a section --
+it needs no injected lookup and reads as tidier. Measured over the shipped
+registry, it changes **5 of the 8 multi-entry sections** and every change is a
+bad one:
+
+    solubility   Solubility, Solubility vs pH, Hansen   -> HANSEN FIRST
+    lewis        Lewis Sites, Lewis Adduct              -> inverted
+    admet        ADMET, Regulatory Screen, CNS MPO, BBB -> BBB second
+    geometry     Geometry first                         -> 3D Alignment first
+    surface      Molecular Surface Area first           -> Accessible SA first
+
+That is the same judgement `CATEGORY_ORDER` already records BETWEEN sections
+(solubility before pKa; lewis directly after it), applied within one.
+`CalculatorRegistry.display_order` does not introduce an order -- `by_category`
+returns dict values, so the panel has always rendered buttons in registration
+order. It makes the order already in use ASKABLE.
+
+**THE CATEGORY NEEDS NO LOOKUP AT ALL, WHICH IS WHY ONLY THE POSITION IS
+INJECTED.** `ReportResult` carries its own `category`, and measured over those
+same 30 results it agrees with the registered calculator's **30 times out of
+30**, with none falling back to the `"other"` default.
+
+### ONE `report_id` DECLARED TWO SECTIONS, AND GROUPING IS WHAT SHOWED IT
+
+Driving the app put **Functional Groups under "ADMET / Regulatory"**. The
+always-on alert declared `category="admet"` while the registered calculator of
+the same id declares `substructure` -- so its BUTTON sat under Substructure
+Search and its always-on RESULT ROW appeared under ADMET / Regulatory. That is
+exactly the defect `test_a_calculators_result_lands_in_its_own_section` exists
+for, and that guard walks the REGISTRY, so a producer declaring its own category
+was outside its population.
+
+Measured over every literal `(id, category)` pair in the tree: **41
+declarations, and precisely one disagreed.** A fragment count is not an ADMET
+property; the alert now says `substructure`, and
+`test_a_result_declares_the_same_section_its_calculator_does` holds the rule
+with the four genuine producer-only catalogs (PAINS, BRENK, mutagenicity, hERG)
+as its narrow half.
+
+**AND A TEST ENCODED THE DEFECT IN ITS OWN NAME.** The guard for this row was
+called "...lands in admet section" and built its OWN `AlertResult` with
+`category="admet"`, so it asserted the panel's ROUTING and could say nothing
+about where the real result goes. Its successor,
+`test_the_functional_groups_alert_lands_in_the_section_its_producer_names`, runs
+the shipped producer and reads the category off the result, so the two cannot
+drift again through it.
+
+### THE ALWAYS-ON ENTRY BELONGS TO NO SECTION, AND SAYS SO
+
+`DescriptorAggregate` holds the 41 always-computed descriptors, and those span
+**ten different calculator categories** -- medicinal chemistry 13,
+physicochemical 5, topology 5, admet 2, and six more with one apiece. No section
+is true of it, and it was being appended LAST, so the only entry always present
+sat below every calculator that happened to have run.
+
+It declares `display_band = ALWAYS_ON`, which is **read, never inferred** -- the
+rule `charts`, `spatial` and `TOTAL` already follow. An unknown band RAISES
+rather than defaulting, because a band nothing recognises would sort at whatever
+integer it happened to be and silently reorder the list, which is the failure
+the module exists to remove arriving through its own front door. Exactly one
+type in the application declares it, and the population is derived from the
+source rather than trusted to review.
+
+### A GROUP HOLDING ONE ENTRY IS ORDINARY HERE, WHICH IS THE OPPOSITE RULE
+
+`test_no_category_holds_a_single_calculator` exists because a SECTION concealing
+one button is a taxonomy failure. A group in this list holds one entry whenever
+you have run one calculator from that section -- measured on a full run for
+aspirin, **11 of 17 groups do**. Applying the panel's rule here would apply a
+rule about the taxonomy to a statement about what somebody ran.
+
+The invariant that does hold is that **no group is ever emitted empty**, and it
+is what makes a search control safe to add later without revisiting any of this:
+filtering changes the input set, and a set with nothing in a category produces
+no heading for it.
+
+**`""` AND `"other"` ARE ONE SECTION, AND HAD TO BE NORMALISED.**
+`ReportResult.category` defaults to `"other"`, `category_label` renders both as
+"Other", and `category_sort_key` orders unlisted categories by the STRING --
+which puts them at opposite ends of the tail. A plugin category sorting between
+them yields two groups both headed "Other", which reads as a rendering fault and
+is a normalisation one.
+
+### THE FIXTURE WHERE THE ID ORDER AGREED WITH THE NAME ORDER
+
+Twelve mutation arms, and **M5 -- deleting the `display_name` term -- SURVIVED**
+the first pass. Both guards for that term used entries whose report_id order
+happened to match their name order, so the key fell through to the id and gave
+the same answer. The discriminating fixture has ids that CONTRADICT the names;
+with it, M5 fails two tests. Second pass: twelve arms, twelve caught.
+
+That term is not decoration. Two plugins with ids `zz_tool` and `aa_tool` named
+"Alpha Tool" and "Zulu Tool" would otherwise render in the order of the thing
+nobody can see.
+
+### A CLOSED COMBO BOX PAINTS ONE ROW, AND ITS LIST IS ANOTHER WINDOW
+
+The section headings are the whole point of the change and **no screenshot of
+the results window contains them**: a closed combo paints the current entry, and
+its popup is a separate top-level, so `PrintWindow` on the application does not
+capture it either. `{"do": "shot", "widget": "results_list"}` calls `showPopup()`
+and grabs `QComboBox.view()`, which is an ordinary widget -- `showPopup()` FIRST,
+because an unshown view has never been laid out and grabs at its default size.
+
+**AND THE LOG CARRIES WHAT EVEN THAT CANNOT.** `{"do": "results"}` now prints
+every row with `HEADING` and `disabled` beside it, because a selectable heading
+and an unselectable one render identically until somebody arrows onto one. That
+is the `jobs_report` rule applied to a list rather than a timer -- and the
+heading is DISABLED rather than merely styled, so Qt refuses to make it current.
+
+**THE MAGNIFIED SHOT FOUND ONE MORE, AND IT WAS THE FIRST LINE A READER SEES.**
+The summary read `9 calculator(s): Molecular Properties, ...` -- naming as a
+calculator the one entry that explicitly is not one, has no `calculator_id`, is
+never offered as a runnable and never enters a cache key. Invisible until the
+ordering put it first. It says `result(s)` now.
+
+### THE HEREDOC ATE A BACKSLASH AND PUT A NUL BYTE IN THE SOURCE
+
+Third instance, sprung by somebody who had read the other two the same hour.
+`GROUP_HEADING = "\x00heading"` written through a quoted heredoc produced a real
+NUL byte, and the module failed to import with `source code string cannot
+contain null bytes`. The sentinel is an INTEGER now, which needs no escape and
+cannot collide with a `report_id` by construction -- every id is a string.
+
+**AND `read_bytes().decode()` BREAKS A MULTI-LINE REPLACEMENT THAT
+`read_text()` DOES NOT.** This working tree is CRLF (`core.autocrlf=true`), so
+a replacement string joined with `\n` matches nothing against decoded bytes;
+`read_text`/`write_text` translate both ways and round-trip the line endings
+unchanged. Reach for a real editing tool the moment the content contains an
+escape -- the rule was already written down twice.
+
+## A READER'S POSITION HAD NEVER HAD TO SURVIVE ANYTHING
+
+`MergedResultsDialog` is opened for one molecule and closed when the selection
+moves, so "which report was focused" was never state anybody kept. Close it and
+reopen it and you got "All results" and an empty filter box, whatever you had
+been reading a second earlier. A reader that FOLLOWS the selection -- which is
+what a dock is -- turns that into state, and the failure mode is not neutral:
+silently jumping back to All results every time somebody glances at another
+molecule is worse than the window it replaces.
+
+`domain/reader_state.py` is the model: `ReaderMemory` (what each molecule was
+showing, by uuid) and `reader_state` (which of three empty-or-not states a
+reader is in).
+
+### THE SAVE-ON-CLOSE HOOK IS THE WRONG SHAPE, AND IT IS THE OBVIOUS ONE
+
+`finished` covers the X, `close()` and Escape alike -- `PopOutWindow` already
+relies on exactly that, and this file records why `closeEvent` alone leaks the
+Escape key. It is still wrong here: **a persistent reader never closes**, so a
+save-on-close design settles nothing for the surface the behaviour is being
+settled FOR. The position is recorded as the reader MOVES it, through a new
+`FactView.filter_changed`, and the memory is never behind.
+
+**AND THE COMPLEMENT IS LOAD-BEARING: A HOST RESTORING MUST NOT WRITE BACK.**
+`set_filter_state` and `apply_view` deliberately do NOT record. With a recall
+that FELL BACK -- the focused report is gone -- recording the restore would
+overwrite the remembered id with the empty one, so a report that came back
+later could never be restored again. Two mutations, two guards.
+
+### THE STALE RULE IS A PROPERTY OF THE INPUT, NOT A RULE TO REMEMBER
+
+A stale result is a record of what was computed, and this project refuses to
+discard one everywhere else; jumping away from a stale selection discards it in
+the one place somebody is looking. So `ReaderMemory` **is never told about
+staleness at all** -- it is handed the ids that EXIST and restores whatever is
+among them, and a stale report is one of them. That is stronger than a rule
+saying "do not filter on stale", and it moves the real risk to the call site,
+where the guard belongs: the panel must offer every report id, stale included.
+Mutating it to offer only current ones is caught by one test.
+
+**FALLING BACK KEEPS THE FILTER.** Only the report is forgotten. The search text
+is about what somebody is looking FOR, and clearing "lewis" because a report
+vanished answers a question nobody asked. The memory is per uuid, so no molecule
+inherits another's.
+
+### "EVERYTHING" IS NOT A `Detail`, AND STORING IT LIKE ONE WOULD BE AMBIGUOUS
+
+`FactView` gives the depth combo's "Everything" entry the data `""` -- it is the
+ABSENCE of a depth filter rather than a `Detail` member, which is why
+`_showing_everything` asks `not currentData()`. Mirroring that in a saved
+position would make `""` mean *showing everything* in a record where every other
+empty string means *nothing remembered*. It is a bool.
+
+**AND `filter_state()` READS THE CONTROLS, NOT THE RENDERED ANSWER.**
+`_showing_everything` is also True in compact mode, where the controls are
+HIDDEN -- recording that would save a filter nobody set and restore it into a
+view whose controls are visible.
+
+### THE PLAN'S OWN ACCEPTANCE SCENARIO CANNOT ARISE YET, AND SAYING SO IS THE POINT
+
+It reads: leave molecule A, return, find BBB Score present but STALE. Measured,
+`_on_molecule_selected` calls `self._reports.clear()`, so A's calculator results
+are GONE rather than stale and the memory can only restore the filter across a
+switch. Per-molecule result retention would fix it -- `BatchResultStore` already
+proves the pattern and its cost -- and it would desynchronise the panel's rows
+from the window until Stage 2c empties the panel, so it belongs there. The
+restore rule is written so it passes unchanged when retention lands, and the
+guard for the stale case reaches it the way that IS available today: close the
+window, move the structure, reopen.
+
+Driven end to end: reader chooses Lewis Sites, closes, reopens -> restored;
+erase an oxygen, close, reopen -> `focus='lewis_sites'`, the box reads
+"Lewis Sites (stale)", and the line above the facts says why.
+
+### THIRTEEN MUTATION ARMS, AND THE SURVIVOR WAS THE NO-MOLECULE CASE
+
+Twelve caught first time. **I13 -- the window recording under
+`self._molecule_uuid or "x"` -- SURVIVED**, and it is a real hole rather than an
+equivalent: a reader with nothing selected still has a search box somebody can
+type in, and filing that under any key means the next molecule inherits a filter
+it never had. `ReaderMemory.remember` refuses a falsy uuid and **cannot help**,
+because the failure is the window substituting a truthy one. The guard is the
+recording half of the no-molecule state, opposite the rendering half that was
+already there. Second pass: thirteen arms, thirteen caught.
+
+**`_on_molecule_selected` SETS THE PANEL'S UUID FIRST AND CLOSES THE WINDOW
+AFTER**, so anything reading the PANEL's uuid to record a position would file
+the old molecule's reading position under the new molecule's name. The window
+records under its own `molecule_uuid()`, which cannot be wrong about what it was
+showing, and a guard asserts that rather than trusting the ordering to stay put.
+
+## THE READER CONTRACT WAS FOUR NAMES AND THE READER READ NINE
+
+`is_report_shaped` admitted anything with `report_id`, `facts`, `by_category`
+and `find`. `FactView._status_text` reads `limitations` DIRECTLY,
+`MergedResults.name_for` reads `name`, and `ui/report_format.py` reads
+`assumptions`, `molecule_uuid` and `structure_version` -- so a container could
+pass the admission door and then raise in a PAINT path.
+
+`DescriptorAggregate` did exactly that. **Focusing "Molecular Properties"
+raised `AttributeError: 'DescriptorAggregate' object has no attribute
+'limitations'`**, and it had shipped that way because nothing focused it -- the
+entry existed in the selector, and the guards for it checked that it was merged
+rather than that it could be read. 0h then sorted it to the TOP of the list.
+
+The contract is now the nine names the reader really reads, and a container
+missing one is refused AT THE DOOR. Refusing an entry is visible; admitting one
+that raises two frames into a paint path is not.
+
+**`charts` AND `spatial` ARE DELIBERATELY NOT IN IT.** Both are read with
+`getattr` throughout, because a bond report legitimately has neither and a
+reader with no picture is an ordinary reader.
+
+### `format_report` DISPATCHED ON TYPE AND FELL OFF THE END INTO THE ATOM BRANCH
+
+Same shape as the `FactLink` chain, and the `ReportResult` branch's own comment
+records fixing this exact `AttributeError` once already -- for calculator
+results, when they were the new thing. Adding a branch per type is what let it
+come back. Measured over two subjects x four formats:
+
+    ReportResult          ok    ok    ok    ok
+    DescriptorAggregate   RAISED on all four   ('atom_index')
+    the all-results view  RAISED on all four   ('atom_index')
+
+**8 of 12, unhandled, out of the Copy and Export click paths** -- `FactView`
+wraps neither in a try. The dispatch asks `names_itself` (a `report_id` AND a
+`name`) instead, so every result-shaped entry is covered by one rule, and the
+default RAISES naming the type rather than dying on a field the reader has
+never heard of. `StructureReport` carries neither name, so the atom family
+cannot answer True by accident.
+
+Driven, after: `ResultSummaryView` 18721ch, `DescriptorAggregate` 2023ch,
+`ReportResult` 1758ch, all four formats each.
+
+### ONE CANONICAL READER WAS THREE IMPLEMENTATIONS, AND THEY HAD DIVERGED
+
+`by_category` and `find` each existed three times -- on `StructureReport`, on
+`DescriptorAggregate` and on the results window's private all-results view. The
+groupings agreed. **The searches did not**, and the search box is one control:
+
+    StructureReport       label, value, evidence
+    DescriptorAggregate   label, value
+    the all-results view  label, value, origin, evidence
+
+So the same box meant three different things depending on which entry was
+focused, and Molecular Properties silently searched no evidence at all.
+
+`group_facts_by_category` and `find_facts` are now one each, in
+`domain/report.py`. **Unifying on the WIDEST is what made it safe, and that is
+a measurement rather than an argument**: over the real registry, 0 of 164
+producer facts carry an `origin` -- `merge_reports` stamps its own COPIES and
+never the report's -- and the aggregate's facts carry no evidence. So the
+divergence is removed and no behaviour is.
+
+### THE VIEW IS NAMED SO NOBODY PERSISTS IT
+
+`ui/result_summary.py`'s `ResultSummaryView` replaces the private
+`_AllResults`. It satisfies both contracts a reader entry meets -- which are
+NOT the same one and are easy to confuse -- and refuses persistence
+structurally rather than by a note: no `to_dict`, no `from_dict`, not a
+`ReportResult`, no `calculator_id`. Two things would be lost by storing one:
+several producers' facts under ONE id, which `MergedResults` exists to refuse,
+and (for the single-result summaries Stage 1a adds) presentation-DERIVED facts
+attributed to a producer that never declared them.
+
+Its `report_id` is deliberately EMPTY for the merged view: giving it one would
+make the all-results view focusable as a calculator containing everybody else's
+results.
+
+### TWELVE ARMS, AND ONE OF THE TWO SURVIVORS WAS AN EQUIVALENT
+
+    J8   the aggregate gets its private label/value search back   SURVIVED
+    J10  the merged view rebuilds its facts tuple                 SURVIVED
+
+**J10 IS EQUIVALENT AND THE TEST WAS OVER-TIGHT.** `tuple(t) is t` in CPython,
+so `facts=tuple(merged.facts)` returns the same object and an identity
+assertion cannot tell the two apart. The claim worth asserting is that no FACT
+was rewritten -- a view rebuilding them with its own `source` would be
+attributing the producers' facts to itself -- so the arm became that, and is
+caught.
+
+**J8 IS A REAL GAP, AND THE FIXTURE IS WHY.** The guard exercised a report and
+a summary view and left the AGGREGATE out, so restoring its private search
+survived the whole file: the aggregate's own facts carry no evidence today,
+which is exactly why the divergence was invisible in the first place. Second
+pass: twelve arms, twelve caught, with J1 -- the shipped isinstance dispatch --
+failing ten tests.
+
+### AND THE MUTATION HARNESS LEFT A FILE MUTATED ON DISK
+
+Its edit-check was `assert old not in path.read_text()`, which is wrong for an
+INSERTION -- the old text is still there -- and it ran OUTSIDE the `try`, so
+the `finally` that restores the backup never fired. `git status` was the only
+thing that said so. Assert that the bytes CHANGED (`landed != source`), and put
+the assertion inside the try.
+
+## HALF THE APPLICATION'S OUTPUT COULD NOT REACH THE READER
+
+Stage 1a, the admission bridge. `merge_reports` admits an entry that is
+report-shaped, and 0b widened that from "has facts" to "is a real producer
+result" -- which is necessary and not sufficient, because most calculators do
+not return a report at all. Counted over the registry:
+
+    60 registered calculators
+    30 return a result the reader REFUSED ENTIRELY
+       16 per-atom datasets   7 structure sets   5 pH curves
+        1 trajectory          1 spectrum
+
+`ADAPTERS` gains `summary`, `chart` and `payload` beside `to_text` and
+`rich_view`, total over all eight kinds, and `summarise()` projects each one
+into a `ResultSummaryView`. Driven in the app on aspirin: **reports 9 -> 12,
+facts 161 -> 173**, with Partial Charge (Gasteiger), LogP Contribution
+(Crippen) and Molar Refractivity Contribution (Crippen) appearing as reader
+entries in their own sections for the first time.
+
+### PROBING FIELD NAMES IN A FIXED ORDER IS GUESSING, AND IT SAID "None found."
+
+`PropertyPanel._summarise` walked a tuple of candidate attribute names and
+took the first one present, with `("values", "atom")` FIRST. **A vibrational
+spectrum leaves `values` empty on purpose** -- a normal mode is not a property
+of one atom -- so the walk found an empty payload and the row read **"None
+found." for a spectrum with three real modes in it.** Measured.
+
+That is the fourth consumer of this file's one-vocabulary-many-registries
+defect, after the clipboard, the view factory and the inspector. `payload` is
+keyed by KIND now, so the vibrational entry names `("modes", "mode")` and the
+question is answered by the registry rather than by a probe order.
+
+**AND THE GUARD FOR IT EXISTED WITH A HAND-WRITTEN POPULATION.**
+`_SUMMARISED_TYPES` in `tests/test_property_panel_result_rows.py` listed the
+result types a row must summarise and omitted `VibrationalSpectrumResult` --
+the one type the probe got wrong. Derived from the shared vocabulary now, so a
+ninth kind is walked without anybody remembering to add it.
+
+### THREE THINGS I HAD WRONG, AND MEASURING CORRECTED EACH
+
+**`declare_total(..., basis=...)` IS THE ATOM BASIS, NOT `Fact.Basis`.**
+Reading it as a scientific basis raises `ValueError: 'heavy_atoms' is not a
+valid Basis`, which is how it was found rather than shipped. The producer
+declares no scientific basis for its total, so none may be invented: the
+projected total is HEURISTIC, because claiming a fitted Crippen total as
+DETERMINISTIC -- "right, or the periodic table is wrong" -- is the
+overstatement `DETERMINISTIC_DESCRIPTORS` errs away from.
+
+**A RANGE OVER A LIST PAYLOAD DESCRIBES THE WRONG AXIS.** Widening
+`_numbers_in` to any payload made a solubility curve read **"57 pH points,
+0.00 to 28.00"** -- a span over the pH GRID, presented where a property range
+goes. An existing test caught it. Mapping-only is a DECISION now rather than
+the old accident, and its docstring says which payloads are keyed by something
+(`values`) and which are axes or contents (`ph_values`, `frames`, `entries`).
+
+**AND MY OWN NEW TEST CONTRADICTED THIS PROJECT'S UNITS CONVENTION**, asserting
+`display_value.endswith("ppm")`. `Fact.units` belongs to `value`, never folded
+into `display_value` -- the rule the units work already settled and guards from
+both sides. The code was right; the test was fixed.
+
+### AN ALERT HAS NO FACTS, SO IT GOES THROUGH THE ONE BRIDGE
+
+`_already_readable` called `result.facts` on an `AlertResult`, which has none.
+`summarise` returns the NATIVE form for the two already-report-shaped kinds --
+a `ReportResult` whole, an `AlertResult` through
+`chem/report_adapter.report_from_alert` -- and `_no_summary_needed` RAISES
+rather than returning `()`, because an empty projection is indistinguishable
+from a result that genuinely had nothing to say.
+
+That bridge is not a convenience: it preserves the `cache_state` and `error` a
+refused catalog carries, and a view built from an alert's facts alone would
+render every refusal as a calculator that ran and had nothing to say -- the
+statement `merge_reports` stopped making when it stopped gating on facts. The
+same fields are CARRIED rather than re-derived on every projected view, for the
+same reason: a refused calculator has FEWER values to project, so it is exactly
+the case a summary would otherwise render as nothing.
+
+### FIFTEEN ARMS, THREE SURVIVORS, AND ALL THREE WERE MY OWN TESTS
+
+Not one of the three was an equivalent mutation. Every one was a claim written
+in a docstring and enforced by nothing -- this file's most-repeated failure,
+committed by somebody who has now recorded it four times:
+
+    A9   a projected fact stamps "summary" as its `Fact.source`   SURVIVED
+    A10  the declared total claims DETERMINISTIC                  SURVIVED
+    A13  `summarise` reads the section off the RESULT             SURVIVED
+
+**A13 IS THE ONE TO READ.** Measured over every non-report result the registry
+produces for aspirin, `PerAtomDataset.category` is EMPTY for all twelve, and
+`PhCurveResult`, `StructureSetResult`, `TrajectoryResult` and
+`NMRSpectrumResult` have no such field at all -- so a summary reading its own
+section off the result would file **twenty reader entries under "Other"**. That
+is the section miscategorisation 0h exists to remove, arriving through a
+different door and INVISIBLE, because "Other" is a real section.
+`test_the_section_comes_from_the_caller_because_the_result_carries_none`
+asserts its own setup first, so a fixture that gained a category cannot make it
+pass vacuously.
+
+**A9 IS SEARCHABLE, WHICH IS WHAT MAKES IT MORE THAN PROVENANCE HYGIENE.**
+`find_facts` matches `source`, so a view naming itself there makes one word
+match every projected row in the reader. What says "this was projected" is the
+entry's LIMITATION, which is a statement about the whole entry rather than a
+claim about one value -- and it is prepended before the producer's own caveats,
+because a reader meeting those under a summary has no way to tell which half
+they are reading.
+
+Both narrow halves are load-bearing and both were written from the surviving
+arm: a producer with no method falls back to `"core"` and not to the view's
+name, and a COUNT stays DETERMINISTIC, since marking every projected fact
+HEURISTIC satisfies A10's guard while understating arithmetic over what
+arrived. Second pass: fifteen arms, fifteen caught.
+
+## A SUMMARY WITH NO WAY BACK TO THE RESULT IS A DEAD END
+
+Stage 1d. 1a made every result kind reachable AS A SUMMARY, and a summary is
+a count, a range and whatever total the producer declared -- so without a way
+to open the whole thing it is strictly less than the row it replaced.
+Measured over the registry on aspirin:
+
+    entries reaching the reader                  60   (30 before 1a)
+    declaring a viewer, able to offer NOTHING    30   calculator_inspector 29,
+                                                      nmr_view 1
+    facts carrying a FactLink                     0
+
+**THE ACTION BELONGS TO THE RESULT, NOT TO A FACT ROW**, which is 0g's rule
+arriving where it was written for. A summary's facts are PROJECTIONS and none
+of them IS the result, so "the first fact carries the link" would strip the
+viewer from precisely the 30 entries that need one.
+
+**AND THE FACT-LEVEL HALF HAS NO LIVE INSTANCE, so it is guarded on the
+WIRING.** `FactView` builds a `>` button per linked fact and emits
+`link_activated`; the Atom Inspector routes it and this reader never
+connected it, so a link here rendered a control and did nothing -- the same
+silent no-op 0g removed one surface along. Zero of the reader's facts carry
+one today, so there is no end-to-end route to drive, and an unreachable
+branch is a question about where to assert.
+
+### THE PANEL NOW RETAINS RAW RESULTS, WHICH IS A REAL CHANGE
+
+`_show_result` opened the inspector immediately and dropped the object, so
+nothing anywhere held a `PerAtomDataset` once its dialog closed -- and after
+1a `_reports[id]` holds a summary VIEW, which is deliberately not the result.
+So "open this properly" cannot be answered by what the reader is holding.
+
+**THE COST WAS MEASURED RATHER THAN FEARED.** `domain/batch` records a mean
+of **9.05 KiB per retained result** over 424 real results, so one molecule's
+whole set is well under a megabyte. It is keyed and cleared exactly as
+`_reports` is, because a raw result outliving its summary would open the
+PREVIOUS molecule's data under this one's name while every guard on the
+summaries stayed green.
+
+### A VIEWER THAT CANNOT BE REACHED GETS NO BUTTON, AND THAT IS NOT 0g's RULE
+
+`ADAPTERS[VIBRATIONAL_SPECTRUM].rich_view` is `ir_view`, and there is no such
+route: `IrViewWidget` is a TAB inside the Quantum Chemistry panel rather than
+a viewer a single result is handed to. The first version gated the button on
+`bool(target)`, so it would have drawn one labelled by a `.get` fallback and
+answered by the router with "unknown target".
+
+**That is a DIFFERENT claim from 0g's**, which is that a link somebody
+DECLARED must never be a silent no-op. Manufacturing a link known to be
+unroutable is not that, and a control that cannot work is worse than an
+absent one. `_VIEWER_ACTIONS` is the vocabulary; a kind absent from it offers
+nothing, and the entry records WHAT WOULD LIFT IT -- an IR viewer a single
+result can open in, or an `ir_view` route revealing the panel that owns it,
+which is the shape `nmr_view` already degrades to.
+
+### THE SUITE REFUSED A COMPUTED LINK TARGET, AND IT WAS RIGHT
+
+The obvious shape is `FactLink(target=target, ...)` with the focused entry's
+declared viewer in a variable. `test_no_producer_computes_a_link_target`
+rejects it -- and that guard is the narrow half of
+`test_every_emitted_link_target_has_a_handler`, which walks the SOURCE for
+emitted targets and is what found four dead buttons. A target it cannot read
+statically shrinks that guard's universe **without failing it**.
+
+Green suite and a smaller universe, caught before it shipped. `_VIEWER_ACTIONS`
+holds a `FactLink` PROTOTYPE per target with the target as a literal, and the
+report id is filled in per use with `replace` since `FactLink` is frozen.
+
+### ELEVEN ARMS, FIVE SURVIVORS, AND FOUR WERE ONE SHAPE
+
+None equivalent. Four of the five are the same failure -- the PIECES were
+tested and the WIRING between them was not, which this file records five
+times over and which is now recorded a sixth:
+
+    D6   the panel stops retaining the raw result        SURVIVED
+    D8   the raw store outlives its molecule             SURVIVED
+    D9   the window stops routing the reader's request   SURVIVED
+    D10  the handler ignores the reader's param shape    SURVIVED
+    D11  the all-results path leaves a stale button up   SURVIVED
+
+D9 is the middle of a chain both of whose ends were guarded: the dialog had
+tests saying it EMITS and the router had tests saying it ROUTES, and removing
+the connection between them passed every one. Its guard walks every
+`<something>.link_activated.connect(...)` in the window rather than naming the
+two panels, so a third emitting surface is held to the rule without anybody
+remembering it, and the population is asserted so the walk cannot collapse to
+nothing and pass.
+
+**D11 IS THE DEGENERATE-FIXTURE CASE AGAIN.** The existing guard sets the
+focus to "" on a window whose button was never shown, so it holds against a
+render path that does nothing at all. The discriminating sequence is the only
+one a reader performs: focus a summarised result, THEN go back to everything.
+
+#### AND D10's FIRST GUARD WAS THE GREP FAILURE, IN THE GUARD FOR IT
+
+`assert "report_id" in ast.unparse(node)` asks whether the WORD appears. The
+mutation replaces `params.get("report_id")` with `None` and leaves the word
+in the assignment and in the `if`, so the handler stopped reading the reader's
+shape and the guard stayed green **on the second pass**. Grepping for a
+phrase counts the source and not the outcome -- this file's most-repeated
+lesson, committed inside the guard written to catch it, and fixed by walking
+for the `params.get("...")` call instead. Third pass: eleven arms, eleven
+caught.
+
+## TWO SEARCHES, AND ONE BOX OVER BOTH CANNOT SAY WHAT IT MATCHED
+
+Stage 1e. The reader had one search -- `FactView`'s, over fact label, value,
+origin and evidence -- and no way to narrow the LIST. 1a is what made that a
+problem rather than a nicety. Measured on a full run for aspirin:
+
+    before 1a   30 entries across 17 groups
+    after 1a    60 entries across 20 groups
+    the combo   81 rows, counting the headings and "All results"
+
+**THE TWO ANSWER DIFFERENT QUESTIONS AND ARE THEREFORE TWO CONTROLS.** The
+selector search narrows WHICH result is on screen; the fact search narrows the
+VALUES inside it. One box over facts, reports, categories, providers and
+viewers at once cannot tell a reader which of those it just matched -- and a
+hit in a VALUE would silently change which producer they are reading, which is
+the plausible-looking wrongness this reader exists to remove. They carry
+separate `help_id`s for the same reason: one id would be two concepts wearing
+one, the mirror of the split
+`test_one_concept_is_not_split_across_many_help_ids` refuses.
+
+### THE EMPTY-HEADING BEHAVIOUR IS INHERITED, NOT IMPLEMENTED
+
+`grouped_reports` never emits a group with nothing in it, and its docstring
+said why before this existed: *"filtering changes the input set, and a set with
+nothing in a category produces no heading for it."* So the filter is applied to
+the INPUT and the headings follow, with no second rule here to keep in step.
+That is a design note paying for itself two stages later.
+
+**MATCHING IS A PURE FUNCTION AND THE WIDGET IS DRIVEN**, the same two-level
+split `ui/visual_check.py` uses: `matches_search` and `matching_reports` live
+in `domain/result_ordering.py` beside the grouping they feed, and are tested
+headless.
+
+**IT MATCHES THE SECTION AS WELL AS THE NAME**, which is how somebody who
+cannot remember a calculator's name looks for it. The narrow half needs its own
+fixture: an entry under "ADMET / Regulatory" called "hERG Risk Factors" is
+found by "regulatory" and by nothing in its own name, and without that case a
+name-only rule passes the obvious test.
+
+### THE FOCUSED ENTRY STAYS IN THE LIST, MATCHING OR NOT
+
+Filtering narrows what you can PICK, never what you are READING. 0i settled
+that jumping away from a reading position is the worse of the two failures, and
+`ALL_RESULTS`' own rule is that the control always names what it is currently
+doing -- a list that hid the current selection would show one report and name
+another. `always` keeps ONE entry rather than its section, which is its own
+guard.
+
+**AND IT IS REMEMBERED SEPARATELY.** `ReaderView` gains one defaulted
+`selector_search` beside `search`. Collapsing them into one field would apply a
+fact filter to a selector or the reverse on every restore, and neither string
+means anything in the other box.
+
+### THE STALE MEASUREMENT IN `grouped_reports` IS SUPERSEDED, NOT ADJUSTED
+
+It read *"30 entries across 17 groups, 11 of them holding exactly one"*, true
+when only report-shaped results reached the reader. Re-measured: **60 entries,
+20 groups, 2 singletons.** So the singleton case got RARER as coverage grew --
+1a filled the existing groups out rather than adding new ones -- and the rule
+that a group holding one entry is ordinary here is now exercised by NMR and
+Thermophysical alone. Both figures are kept, because "why are there only two
+now" is the question a reader will have.
+
+### TWELVE ARMS, TWO SURVIVORS, AND BOTH WERE MY OWN TESTS AGAIN
+
+    E4  the filter SORTS its output            SURVIVED
+    E9  typing is not recorded in the memory   SURVIVED
+
+**E4 IS THE DEGENERATE FIXTURE FOR THE FOURTH TIME THIS STAGE.** The corpus
+happened to be in alphabetical order by display name, so a mutation sorting the
+output produced a byte-identical list. The replacement input CONTRADICTS
+alphabetical order and asserts that setup, so it cannot go vacuous again.
+
+**E9 IS THE MIRROR OF A RULE ONLY HALF ASSERTED.** `apply_view` must not write
+a restore back, which has a guard; a reader TYPING must write, which had none.
+`view()` reads the widget, so every test built on it stayed green with
+`_remember` deleted from the handler -- the reader would simply have forgotten
+the box between sessions, silently. Second pass: twelve arms, twelve caught.
+
+### THE RUNNING TALLY FOR STAGE 1, BECAUSE THE SHAPE REPEATS
+
+    1a   15 arms   3 survivors
+    1d   11 arms   5 survivors
+    1e   12 arms   2 survivors
+
+**Ten survivors, and NOT ONE was an equivalent mutation** -- every one a hole
+in a test written minutes earlier. Two shapes account for eight of them: a
+fixture too degenerate to see its own subject (four), and both ends of a chain
+guarded with nothing asserting the middle (four). Worth watching for directly
+rather than relying on the mutation pass to keep finding them.
+
+## A SHAPE-VALUED RESULT WAS A DIFFERENT-SHAPED, MODAL WINDOW
+
+Stage 1f. A chart, a 2D depiction and a 3D overlay are already peers in the
+MODEL -- all producer-declared annotations, validated fail-closed, and
+`ui/visualization.py` calls the layer type renderer-independent. What differed
+was where each ended up, and the difference was live rather than cosmetic:
+
+`_on_details_clicked` sent any report declaring `spatial` into
+`SpatialResultDialog(...).exec()` and RETURNED. So of the results reaching the
+reader, the two carrying a 3D overlay -- **Geometry and Dipole Moment** --
+never reached it from that button at all, and reached a MODAL window instead.
+That reinstated for those two exactly what `MergedResultsDialog`'s own
+docstring says it exists to remove: with a modal window you could never run
+the second calculator whose results this exists to accumulate.
+
+Measured on aspirin WITH A CONFORMER, which is the fixture the first attempt
+got wrong: 6 results carry a picture -- 2 stick charts, 1 line chart, 1
+depiction, 1 axes, 1 arrow. **Without a conformer nothing spatial can exist**,
+so the first measurement reported zero spatial annotations and would have made
+this whole item look like it had no subject.
+
+`domain/visualization_index.py` lists them as peers, each saying what KIND it
+is, and the reader opens the 3D ones with `show()` rather than `exec()`.
+
+### THE TYPE LABEL IS THE POINT, AND SO IS WHICH ONES GET A BUTTON
+
+"Open" says nothing about what arrives, and the three cost very different
+amounts: a 3D overlay is a QtWebEngine process, which this project has
+measured accumulating to 116 and hanging the suite. So a 3D overlay is
+DELIBERATELY never inline -- a fixed-height 3D view inside a `QScrollArea`
+with `setWidgetResizable(True)` is the height-for-width fight already lost
+three times here.
+
+**AN INLINE PICTURE IS LISTED AND OFFERED NO BUTTON.** It is already drawn a
+few rows below, so a button would imply a second copy; the row says "shown
+below" instead, because a row with nothing on its right reads as a control
+that failed to draw.
+
+**KIND IS DERIVED FROM THE ANNOTATION TYPE**, the same question
+`chart_widget_for` asks, so a label and its widget cannot disagree. The map is
+total over the six shipped types and a walk over `domain/report.py` asserts it
+STAYS total -- a seventh type with no entry would be a picture nobody can see,
+with nothing red.
+
+### `label` IS A VALUE ON EVERY SPATIAL PRODUCER, AND ONLY THE APP SAID SO
+
+The nineteenth entry in this file's running count of defects found by driving
+the app, and the cause is a fixture written here.
+
+The title rule was `annotation.title or annotation.label`, on the reasoning
+that charts declare `title` and spatial annotations declare `label` -- "Dipole
+moment", "Steric cone". Driven, the row came out titled **"0.89 D"**: a
+measurement sitting where a picture's name belongs. Checked across all three
+shipped producers afterwards, every one formats a NUMBER into that field:
+
+    chem/dipole.py             label=f"{magnitude:.2f} D"
+    chem/steric.py             label=f"{angle:.1f} deg"
+    chem/geometry_analysis.py  labels=one per axis
+
+It is a caption drawn ON the model, which is why the 3D view wants it and a
+list of pictures does not.
+
+**AND THE FIXTURE FOR IT HAD INVENTED THE OPPOSITE.** `_arrow()` passed
+`label="Dipole moment"` -- a name no producer writes -- so nineteen unit tests
+agreed with a rule the application disproved on its first run, and FOUR of
+them had to be corrected rather than adjusted. The fallback is the OWNER's
+name now: a spatial annotation is one report's picture, and the report is what
+names it. The fixture uses a value-shaped label so it cannot drift back.
+
+Same lesson as the assembly corpus blind to a transposed matrix, with the
+sharper edge that the fixture was not merely unrepresentative -- it asserted
+something untrue about the producers it stood in for.
+
+### FOURTEEN ARMS, THREE SURVIVORS, AND F11 WAS THE WHOLE POINT
+
+    F11  Details diverts to the modal dialog again    SURVIVED
+    F12  the spatial opener answers True with no
+         conformer                                    SURVIVED
+    F14  the inline chart heading drops its kind      SURVIVED
+
+**F11 IS THE DEFECT THIS ITEM EXISTS TO REMOVE, AND NOTHING GUARDED IT.**
+Every test written for 1f covered what the reader SHOWS; none covered how a
+reader GETS there. Its guard presses the real Details button, because
+`_on_details_clicked` reads which report it means off `sender()` -- calling it
+directly passes `sender() is None` and proves nothing about the wiring that
+changed.
+
+**F12 IS THE DEGENERATE FIXTURE IN A NEW COSTUME.** The panel had no project,
+so `open_spatial_view` refused several lines BEFORE the conformer check and
+the branch under test never executed. It needs a real project holding a drawn
+molecule that genuinely has no conformer, and the guard asserts that setup.
+
+Second pass: fourteen arms, fourteen caught.
+
+### AND THE DRIVEN CHECK CONFIRMED WHAT NO TEST COULD
+
+`benchmarks/visual/results_reader_stage1.json`, about fifty seconds
+unattended. The `results` step logs three flags no screenshot carries --
+whether the result-level Open button is up, the visualization rows with their
+kinds, and **whether the spatial dialog opened MODAL** -- because a modal and
+a modeless window photograph identically and the modal one silently blocks
+everything behind it.
+
+    reports=11 facts=108 charts=3
+    Lewis sites   | [2D depiction] | shown below
+    Dipole Moment | [3D overlay]   | Open
+    spatial dialogs open=1 modal=[False]
+
+All four the plan named are present: LogP Contribution, Lewis Sites,
+**Solubility vs pH** and IUPAC Locants. The Lewis depiction DRAWS -- donor,
+acceptor and ambiphilic sites coloured on the structure -- which is 0a's
+finding realised, since `set_structure_resolver` had zero production callers
+and it could never render.
+
+**AND THE STALE REFUSAL IS EXACTLY RIGHT, WHICH WAS NEARLY REPORTED AS A
+DEFECT.** After erasing an oxygen the reader shows `Lewis Sites (stale)`, the
+banner, and a depiction section that at first glance is blank -- so a 300 px
+crop looked like a silent refusal, which 0c forbids. The message is
+vertically centred in a tall frame and sits below that crop:
+
+    Visualization unavailable -- this result was calculated for an earlier
+    version of this structure (version 1; the molecule is now at 2). Its atom
+    numbering describes the structure at that time, so drawing it on the
+    current one would point at the wrong atoms. Re-run the calculator to see
+    the picture.
+
+Facts stay readable underneath it. **Read the whole shot, not the top of it**
+-- this file's own rule, paid for again by somebody writing it down.
+
+**`solubility_curve` NEEDED 12 SECONDS, NOT 4**, and the first run quit while
+it was still computing -- which surfaced as a worker publishing into a
+destroyed event bus (`RuntimeError: Signal source has been deleted`) AFTER the
+quit line. That is a pre-existing shutdown race and not this stage's; what it
+cost here was one of the four results the check exists to show.
+
+## A READER THAT FOLLOWS THE SELECTION CANNOT BE A DIALOG
+
+Stage 2a. `MergedResultsDialog` was 759 lines of which almost none was a
+window: a title, a size, and `QDialog`. Everything else is reading, and a
+reader that follows the selection is a DOCK -- something never closed --
+while the same content also has to sit in a pop-out window. So the reader
+moved into `ui/widgets/results_view.ResultsView` and the dialog became a
+shell around it.
+
+**THE EXTRACTION IS BEHAVIOUR-NEUTRAL BY CONSTRUCTION, WHICH IS THE ONLY
+KIND WORTH TRUSTING.** `MergedResultsDialog` keeps its whole surface as
+delegations and ALIASES onto the view's own widgets -- `_view`,
+`_focus_box`, `_selector_search`, `_open_button`, `_visuals`,
+`_visuals_layout`, `_empty`. Measured: **7549 collected before and after,
+149 existing tests unmoved**, and the guard sweep at 1318 either side. Same
+move `ui/widgets/zoomable_svg_view.py` made out of the Lewis dialog, and
+for the same reason -- a refactor whose correctness rests on re-testing
+rests on the tests having been complete.
+
+**A PRIVATE NAME IS NOT PUBLIC SURFACE, AND THE TWO TESTS THAT BROKE ARE
+THE PROOF.** `_VIEWER_ACTIONS` and `_on_open_clicked` were reached from
+`tests/test_result_viewer_actions.py`; both moved with the reader. They
+were re-pointed rather than re-exported from the shell, because a
+re-exported private is a fiction the next reader has to unpick -- the
+PUBLIC surface is what may not move, and a test reaching for a private is
+coupled to the implementation's location by definition.
+
+### THE INITIAL STATE WAS ASSUMED, AND IT WAS THE WRONG ONE
+
+The guard for the dock's precondition failed on its first run, which is
+what a guard is for. `self._empty` is CONSTRUCTED holding
+`EMPTY_MESSAGES[NOTHING_COMPUTED]` and nothing rendered until `set_reports`
+arrived -- true by construction while this was a dialog, because a dialog
+is opened FOR a molecule and `reader_state`'s other empty state was
+**unreachable through the whole application**.
+
+A reader that follows the selection starts exactly there, and the message
+names the wrong problem: "Nothing has been computed for this molecule yet"
+when no molecule is selected sends somebody looking for a calculator to
+run. `_render()` at the end of `__init__` is the fix -- the widget's
+initial state is now its RENDERED state rather than a hardcoded guess at
+one of two.
+
+**IT IS A DEFECT 0i's OWN VOCABULARY PREDICTED AND NOTHING COULD REACH.**
+`reader_state` has named three states since Stage 0 and this window could
+only ever be in two of them.
+
+### SIX ARMS, SIX CAUGHT, AND FOUR BY ONE TEST EACH
+
+    A1  the shell rebuilds a FactView instead of aliasing   21 tests
+    A2  the initial state is not rendered                    1 -- the new guard
+    A3  a public method does reader work, not forwarding     1 -- the AST guard
+    A4  link_activated is not forwarded                      3
+    A5  the molecule uuid goes back to required              1
+    A6  the delegation walk collapses to an empty list       1 -- its own setup
+
+**A3 IS THE ONE WORTH READING**, because it is behaviourally identical
+today: it reimplements `focus()` in the shell by reading the combo box,
+which returns the same answer. Nothing about the application changes, and
+it is exactly the drift the split exists to prevent -- so it is asserted
+on the SOURCE, by AST rather than by a text scan. A search for "reader" or
+"view" would match this file's own explanation of the rule, which is the
+failure this repository has now recorded seven times.
+
+**A6 IS WHY THE AST GUARD ASSERTS ITS OWN POPULATION.** With the walk
+collapsed the `all()` over it is vacuously true, so the guard passes while
+checking nothing -- the green-suite-and-a-smaller-universe failure in
+miniature. `assert len(methods) >= 9` is what refuses it.
+
+## RESULTS IS A PANEL NOW, AND ONE PANEL AT A TIME IS WHY THE POP-OUT IS LOAD-BEARING
+
+Stage 2b. The reader extracted in 2a is registered as a right-hand dock in
+the `analysis` group, beside the launcher it reads for, and it FOLLOWS the
+selection rather than being opened for a molecule.
+
+**THE CONSTRAINT THE PLAN DID NOT ANTICIPATE.** `_show_only_right_dock`
+means exactly one right-hand panel is visible, so choosing Results REPLACES
+Properties -- and reading results while starting more calculations is the
+precise workflow `MergedResultsDialog` exists for. That is not a defect to
+work around: the same method's docstring already records the answer, that
+"a dock the user has floated is left alone: they have deliberately pulled
+it out to see it alongside something else". So `PopOutHost` is the design
+rather than a flourish, and the pop-out MOVES the widget, which is what
+makes the reading position, filter and scroll travel by construction.
+
+Driven and confirmed: detached at 960x824, `Showing in its own window.` in
+the vacated dock, and returned intact.
+
+### THE DOCK WIDENED THE WINDOW BY 108 PX, AND FOUR GUARDS SAID SO
+
+Unwrapped, the Results dock took the window's minimum to **1474 px**
+against the 1366 this product supports. The cause is this file's oldest
+width finding in a new place: `FactView`'s own control row is a
+`QHBoxLayout`, whose minimum width is the SUM of its children --
+
+    150  the depth combo        146  Copy report
+    150  the format combo       plus the search box
+    ---
+    482  under `offscreen`, where the font is more than twice as wide
+
+-- and unwrapped that reaches the window. **The Atom Inspector holds the
+same `FactView` and sits at 266 precisely because it is
+`_wrap_scrollable`'d**, so the fix is the one nine other panels already
+use rather than anything new. After: the dock's minimum is **182**, the
+smallest of the eleven bar Jobs.
+
+**THE WIDGET IN ISOLATION SAID 234 AND WAS NOT WRONG.** A first probe built
+a bare `ResultsView` and measured its minimum at 234, which reads as
+"nothing to see here" -- the 482 only reaches the window once the dock is
+SHOWN and laid out. Measure the assembled window, not the widget.
+
+### THE RESTORE FIRED AT THE ONE MOMENT IT COULD NOT SUCCEED
+
+The rule is 0i's: coming back to a molecule restores where its reader was.
+Written the obvious way -- restore when the molecule changes -- it is
+**dead**, and mutation is what said so: gating it on "the molecule moved"
+changed no test at all.
+
+`_on_molecule_selected` CLEARS `_reports`, so at the instant of the switch
+the molecule has no results, `recall` correctly falls back to All results,
+and nothing tries again. The position was lost for as long as it took a
+calculator to be re-run, which is forever unless somebody re-runs one.
+
+**RESTORING ON EVERY ARRIVING RESULT IS THE OTHER EXTREME, AND ITS COST IS
+INVISIBLE TO ANY ASSERTION ON THE OUTCOME.** It gives the same answer --
+the memory tracks every move, so re-applying is idempotent -- and
+`apply_view` rewrites the fact search box, where `setText` puts the cursor
+at the end of somebody's half-typed search.
+
+So the restore stays OUTSTANDING until the remembered report is reachable,
+then stops asking. Measured behaviour: the filter comes back immediately
+(0i's fallback keeps it), and the report comes back the moment it is
+recomputed.
+
+**`recall` CANNOT ANSWER "IS THERE STILL SOMETHING TO WAIT FOR".** It
+applies the availability rule, so a report that is absent right now and one
+that was never chosen both come back as `""`. `ReaderMemory.remembered_report`
+is the missing question, and it is a second METHOD rather than a second
+field on `ReaderView` -- a field there would be read by one caller and
+ignored by every other, which is the unread-field defect this repository
+has recorded twice.
+
+**AND IT MEANS 2c's RETENTION NEEDS NO EDIT HERE.** Once results survive a
+molecule change the remembered report is reachable at the switch, the
+pending flag closes on the first sync, and the rule is unchanged.
+
+### TEN ARMS, TWO FIRST-PASS SURVIVORS, AND BOTH WERE REAL
+
+    B4  the restore gives up after one try        SURVIVED -- it was dead
+    B8  the docked reader's links are not routed  SURVIVED -- a dead control
+
+**B8 IS THE SAME SHAPE AS 1d's D9, IN THE ONE SURFACE 0g DID NOT HAVE.**
+`ResultsView` has tests saying it EMITS `link_activated` and `main_window`
+has tests saying it ROUTES one; nothing asserted the docked reader's signal
+was connected to anything. Deleting the `connect` passed **132 tests**, and
+every viewer action and every visualization Open button in the dock would
+have been a silent no-op. Both ends of a chain guarded with nothing
+asserting the middle -- now five times across Stages 1 and 2.
+
+Second pass: ten arms, ten caught.
+
+### DRIVEN, AND THE ORACLE LEARNED THE NEW SURFACE
+
+`benchmarks/visual/results_dock_stage2.json`. `visual_check` had no name
+for the reader, so its first run logged `unknown visual_check surface` --
+a surface the geometry oracle cannot name is a surface it cannot check.
+Added, and the check reports **79 painted item(s), 0 finding(s)**: the
+population beside the verdict, because "nothing overflowed" and "the walk
+found nothing to measure" read identically in an empty findings list.
+
+At the 420 px default nothing is clipped and nothing overlaps: the selector
+search, `Showing: All results`, the eight-result summary, the fact
+controls, and **the Lewis depiction drawing inside the dock**. Popped out
+at 960 px the fact search box stops eliding and reads
+`Filter facts (element, lewis, ring...)` in full.
+
+### A FIELD WRITTEN BY 173 CONTROLS AND READ BY ONE QUERY TOOL
+
+Found while looking for a help topic for the new dock, and recorded here
+because it belongs to 2d rather than to this item. `HelpTooltip.topic` is
+validated by nothing and consumed only by `tools/list_tooltips.py`'s JSON.
+Measured over the tree against `openchem.help`'s 46 real topics:
+
+    173 construction sites carry a topic
+    117 of them resolve                 11 distinct values
+     56 of them DO NOT                   9 distinct values
+
+     16  'periodic table'   <- the key is `periodic-table`; a space
+     12  '3d-viewer'         6  'conformers'    5  'panels'
+      8  'facts'             4  'diagram'       2  'help', 2 'editor'
+      1  'workspace'
+
+`'periodic table'` is the tell: a typo no reader could see, in a field
+nothing checks, which is exactly what an unread field collects. The eight
+`'facts'` sites are the results reader's own. Not fixed here -- 2d is where
+tooltips are the subject, and several of the nine need a judgement about
+which topic they meant rather than a rename.
+
+## ONE READER, AND "DETAILS..." REACHES IT WHEREVER IT IS
+
+The second half of Stage 2b. The dock and the per-molecule
+`MergedResultsDialog` were two readers for one molecule, which is what
+`_open_results_window`'s own docstring warned about one level down --
+*"two windows for one molecule is how a reader ends up comparing a result
+with itself, and the second would not be the one receiving updates."*
+Just as true of a window and a dock. The dialog is retired.
+
+**THE DECIDING MEASUREMENT WAS THAT `PopOutHost` PERSISTS GEOMETRY AND NOT
+THE DETACHED STATE.** So "reveal the dock" as the answer to Details would
+cost a panel switch each way, every session, in the run-read-run loop --
+where the old button gave you a live window beside the panel. The rule
+that ships reproduces that and respects an arrangement somebody has
+already made:
+
+    already detached   raise that window
+    the visible panel  do nothing -- it is already on screen
+    hidden             detach it, so Properties stays put
+
+Driven, and both branches logged, because a docked reader and a detached
+one holding the same report photograph almost identically:
+
+    reader hidden   -> detached=True  dock_hidden=True
+    reader visible  -> detached=False dock_hidden=False
+
+`reveal_results` lives on the WINDOW and the panel is handed a callable.
+Where the reader lives is a fact about the layout; the panel's business is
+which report.
+
+### THE ANSWER BEHIND A FOLD, FOR THE SECOND TIME
+
+Found by driving, with 1581 tests green. Focusing Topology Analysis showed
+a title and a folded **`Topology (27)`** -- everything asked for, one click
+away, invisible. Identical to the formulation report's recorded defect, and
+`FactView.set_report`'s `expanded` override already existed FOR that one,
+so this is a call site rather than a mechanism.
+
+**THE RULE IS THE ONE THAT ENTRY DREW, APPLIED TO THE READER'S TWO
+MODES.** A report somebody explicitly focused opens OPEN;
+`DEFAULT_EXPANDED` stays for All results, which IS the wall it exists for
+-- every producer at once. Both halves are guarded, because "expand
+everything, always" satisfies the first and undoes the second.
+
+**AND THE PAINTED-ITEM COUNT IS WHAT CAUGHT IT.** `visual_check` reported
+**1 painted item, 0 findings** -- a clean verdict over a population of
+one, which is the vacuous pass that count exists to expose. After the fix,
+**55 painted items, 0 findings**. A findings list cannot tell "nothing
+overflowed" from "there was nothing to measure"; the population can.
+
+**THE FIXTURE HAD TO USE A CATEGORY THAT CAN FOLD.** That file's `_fact`
+builds `IDENTITY`, which is one of the two in `DEFAULT_EXPANDED`, so a
+report made from it opens expanded whatever the code does and both guards
+would have passed vacuously. They build `TOPOLOGY` facts -- the category
+the driven defect was found in.
+
+### THE MIGRATION: 5 RETIRED, EVERY ONE WITH A NAMED SUCCESSOR
+
+Diffed both directions in a detached worktree with the `PYTHONPATH`
+override asserted before the count was believed: **7549 -> 7560**, and by
+TEST NAME rather than by id, so the two file renames do not read as 54
+losses.
+
+    the two that asserted a CLOSED window disconnects itself, and that
+    reopening after a close gives a live window rather than a duplicate
+        -> the reader is never closed. What they asserted is impossible by
+           construction now rather than handled.
+
+    the two that asserted a molecule change CLOSES the window, and that a
+    second molecule gets a second one
+        -> `test_changing_molecule_carries_the_reader_across_rather_than_closing_it`
+           asserts the OPPOSITE behaviour, which IS the change.
+
+    the one that asserted the window is modeless
+        -> a widget in a dock has no modality to assert.
+
+(Named in prose rather than cited, because a doc may not cite a test the
+same branch deleted -- this file's own rule, and the guard said so on the
+first run of this entry.)
+
+**A RENAME IS NOT A REMOVAL AND A RAW ID DIFF CANNOT TELL THEM APART.**
+The raw diff says 54 removed and 65 added; by name it is 6 gone, one of
+which is itself a rename -- the ordering guard, now
+`test_the_reader_orders_by_the_registrys_own_order`. Strip the file before
+believing a removal count on a branch that renamed files.
+
+### THE ORDERING'S SUPPLIER MOVED, AND ONE GUARD DID NOT NOTICE
+
+`display_order_of` was passed by the PANEL when it built the window; the
+reader is constructed by whoever owns it now, so the WINDOW passes it. The
+existing test proves the reader honours a registry position when given
+one and would not have noticed the application ceasing to give it -- the
+reader would silently fall back to ordering by display name, which on the
+shipped registry puts Hansen Solubility Parameters ahead of Solubility.
+`test_the_application_tells_the_reader_where_each_calculator_SITS` is the
+half that moved with it.
+
+### AND MY OWN CLEANUP GREP MISSED AN IMPORT
+
+After deleting the module I grepped `debug_drive.py` for
+`_results_window|MergedResultsDialog` and reported it clean. The file also
+carried `from openchem.ui.dialogs.merged_results_dialog import
+GROUP_HEADING` -- the MODULE path, matching neither pattern -- and the
+`results` drive step died on it at the next run. **Grep for the module
+path, not for the names you happen to remember**, and the sweep that
+settles it is `rg "ui.dialogs.merged_results_dialog"` over `src/`,
+`tests/` and `tools/`.
+
+It also cost nothing to find, because the drive script exercises that step
+-- which is the argument for a committed drive script over a remembered
+one.
+
+## THE LAUNCHER HAS TO SAY WHETHER THERE IS ANYTHING TO READ
+
+Stage 2c, first half. Properties is becoming the surface a calculation is
+STARTED from, so the one thing it still owes a reader is whether a
+calculator has run and how that ended. `domain/result_status.py` is the
+closed vocabulary and a chip beside each calculator renders it.
+
+### WHAT THE PANEL IS TODAY, MEASURED BEFORE ANYTHING WAS CHANGED
+
+Six calculators run on aspirin, plus the auto-descriptors:
+
+    scroll viewport    396 x 580
+    content            396 x 16299        28 screens
+    rendered overflow  0 findings at the default width, at 900 and at 1600
+    tolerance -1000    99 findings, so the check can still say no
+
+**AND ONE ROW IS 11,979 PX OF IT** -- 73% -- a single `admet` result whose
+inner label is 11,936 px. Nothing is CLIPPED anywhere; the panel's problem
+is length, and most of the length is one calculator's output. That is a
+sharper statement than "the panel is long", and only the per-row dump
+gives it.
+
+### THE STATUS IS A PROPERTY OF THE RESULT, NEVER OF WHAT A READER MADE OF IT
+
+The tempting shortcut is "does this report have facts?", and it is wrong in
+the direction that looks right: a successful catalogue that flagged
+nothing, and a structure set that generated nothing, are **READY**. Reading
+emptiness as failure paints two correct answers as broken -- the confusion
+`AlertResult.severity` was introduced to end one layer along.
+
+**THE ORDER THE STATES ARE TESTED IN IS THE DESIGN**, and every pair is one
+this application can genuinely be in at once:
+
+    RUNNING before everything    the previous answer is about to be
+                                 replaced; reporting it invites somebody to
+                                 read a value being recomputed
+    INAPPLICABLE before FAILED   a refusal TRAVELS as a FAILED cache
+                                 state -- that is how its reason reaches
+                                 the reader -- so testing FAILED first
+                                 paints every correct, permanent refusal as
+                                 a fault. This project shipped exactly that
+                                 and it was reported as "some calculator
+                                 failures" when neither had failed.
+    FAILED before STALE          both true, one glyph fits, and "it did not
+                                 run" is the more actionable
+
+### NO NEW CODEPOINT, AND THAT IS NOT FUSSINESS
+
+The plan's sketch used an em dash for "not run" and U+27F3 for "running".
+Neither is in the set this panel has PROVEN renders --
+`test_the_status_glyphs_really_render` paints each glyph against a Private
+Use Area control, because `QFontMetrics.inFont()` answers False for all
+four of the shipped ones and a tofu box is ink. A status that draws as a
+box reads as a rendering bug rather than as a status. So the four already
+through that oracle are the four used, and the two remaining states say
+their word without one. "Running..." keeps its exact ASCII wording, which
+the waiting indicator already used: two paths saying one thing.
+
+### THE CHIP CLAIMS NOTHING IT CANNOT ATTRIBUTE
+
+**NO RESULT TYPE IN THIS APPLICATION CARRIES A `calculator_id`**, checked
+rather than assumed -- so "which calculator produced this" is not a
+question the data can answer, and `_pending_calculator_id` does not bridge
+it either, being matched by EQUALITY against the result's own id.
+
+Two of the sixty publish under a name that is not their own:
+`nmr_database` publishes `nmr_13c`, `gasteiger_charge_at_ph` publishes
+`gasteiger_charge`. **Both have buttons in this panel**, measured against
+the live registry rather than assumed from the note that records them.
+
+Both tempting answers are lies. "Not run" for something somebody just ran
+is the plausible-looking wrongness this project spends its time removing;
+"Ready" asserts a success `CalculationFinished` does not promise, being
+published in a `finally` that fires for a calculator which failed or
+raised. So the chip is REMOVED for that row -- an absence of a claim rather
+than a false one.
+
+**WHAT WOULD LIFT IT:** a `calculator_id` on the result. With one the chip
+attributes exactly and the branch is unreachable.
+
+### DISABLED RATHER THAN HIDDEN WHERE THERE IS NOTHING TO OPEN
+
+The reader's own rule is the opposite -- its viewer button is hidden
+because "a disabled control invites a reader to wonder what would enable
+it". Here that question has an obvious answer: run it. What is NOT an
+option is the third one, an enabled chip that accepts a press and does
+nothing, which is the silent no-op 0g exists to forbid.
+
+### SEVEN ARMS, SEVEN CAUGHT
+
+    C1  a refusal reads as a fault              2 tests
+    C2  emptiness read as failure               2
+    C3  a running calculator shows its old
+        answer                                  1
+    C4  the chips are never refreshed           5
+    C5  an unattributable calculator claims
+        Ready                                   1
+    C6  an empty chip is pressable              2
+    C7  the press does not read its sender      1
+
+**AND THE CHIPS ADDED NO WIDTH**, which is the trap this file records more
+than any other: tick + button + chip is a `QHBoxLayout`, whose minimum is
+the SUM. Measured -- 21 width guards green, painted items 86 -> 101, and
+**0 findings at the default width, at 900 and at 1600**. The calculator
+names do not elide to make room.
+
+**WHAT IS NOT YET CONFIRMED BY EYE:** the chips have not been photographed.
+The panel is 16,299 px tall and its calculator rows sit below sections that
+are collapsed by default, so three drive attempts reached section headings
+rather than rows. The instrumentation is what stands behind them for now --
+the painted-item count, the zero findings, the width guards and eight
+behavioural tests -- and the shot belongs to the second half of 2c, where
+emptying the panel makes the rows reachable in one frame.
+
+## Running the tests
+
+```bash
+uv run --no-sync python -u -m pytest -q > /tmp/suite.log 2>&1; tail -5 /tmp/suite.log
+```
+
+**PIPE IT TO A FILE, WHICH IS WHY THAT REDIRECT IS IN THE RECIPE.** A run sent
+through `... | grep -E "passed|failed" | tail -4` instead lost its entire
+summary when the task was backgrounded: `tail` emits nothing until the end, and
+the captured output was 22 bytes reading `[exited with code 0]`. That is not a
+figure -- this file records a CRASHED run exiting 0 with no summary line -- so
+21 minutes bought nothing and had to be spent again.
+
+**AND `rg` IS NOT `grep`: `\|` IS A LITERAL PIPE, NOT ALTERNATION.** The same
+command's `$(rg -l "FactView\|fact_view\|..." tests/)` matched NOTHING, so
+`pytest -q` ran with no paths -- the whole suite, silently, in place of the
+targeted set that was asked for. Use `-e` per alternative, and check that a
+command substitution feeding pytest is non-empty before believing what it ran.
+
+Writing to a file rather than a pipe is worth doing because it lets you watch
+progress while it runs.
+
+A clean run is **6-26 minutes**, ending at `7533 passed, 16 skipped`
+(measured 2026-09-10, **22m00**, on `stage-1-every-result-reaches-results` --
+Stage 1 of the Properties-to-Results work: 1a, 1d, 1e and 1f.
+
+**+91 collected and 0 REMOVED**, diffed both directions with `comm` in a
+detached worktree, with the `PYTHONPATH` override asserted before the count was
+believed (`import openchem` reported the WORKTREE's `src`):
+
+    origin/master   fe112f1   COLLECTS 7458
+    this one                  COLLECTS 7549   = 7458 + 91
+    the run                            7533 passed + 16 skipped = 7549
+
+    35  test_result_summaries.py        1a -- the per-kind summaries, the
+                                        adapter table total over 8 kinds, and
+                                        the three claims only mutation caught
+    23  test_visualizations_section.py  1f -- the kind vocabulary, the reader's
+                                        list, and the modal diversion removed
+    17  test_result_selector_search.py  1e -- the second search, headless, plus
+                                        the window
+    14  test_result_viewer_actions.py   1d -- the result-level viewer action
+     1  test_property_panel_result_rows.py  1a's population, derived rather
+                                        than hand-written
+     1  test_fact_link_router.py        1d's walk over every surface that emits
+                                        a link
+
+**AND THE FIRST ID DUMP WAS WRONG IN A WAY THE COUNT ALONE WOULD NOT SHOW.**
+It passed `--rootdir wt-base wt-base/tests`, which changes conftest resolution:
+it collected **7244** against the plain run's 7458 in the same worktree, and
+duly reported `test_stick_chart_widget.py`, `test_spatial_overlay_widget.py`
+and five other PRE-EXISTING files as "added". A diff whose baseline is 214
+short invents additions rather than losing them, which reads as new work.
+**Dump the ids the same way the count was taken** -- `cd` into the worktree and
+run it plainly.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored, since
+pytest's progress dots share the line -- as do `^FAILED` and `^ERROR`. The
+skips are the deterministic 16. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in `test_dock_title_bar.py`
+and `test_trajectory_player.py`.
+
+**CLEAN ON ITS FIRST RUN**, with nothing else touching the tree for its
+duration. 22m00 sits inside the band and does not move it.)
+
+Before it: `7442 passed, 16 skipped`
+(measured 2026-09-10 on `results-first-foundation` -- Stage 0 of the
+Properties-to-Results work, all ten items, 0a through 0j.
+
+**+112 collected and 1 REMOVED**, diffed both directions with `comm` against
+the stage's own starting point `cb61170`:
+
+    0g's tree  cb61170   COLLECTS 7347
+    this one             COLLECTS 7458   = 7347 + 112 - 1
+    the run                       7442 passed + 16 skipped = 7458
+
+    33  test_result_summary.py            the reader contract, the format
+                                          dispatch, one grouping and one
+                                          search
+    31  test_result_ordering.py           the five-term key, its stability,
+                                          the band, and the grouping
+    19  test_reader_state.py              the per-molecule memory and the
+                                          three empty states
+    11  test_merged_results_dialog.py     grouped headings, the selection
+                                          surviving an arrival, and the
+                                          no-molecule state both ways
+     9  test_property_panel_results_window.py   the wiring only the panel
+                                          can be wrong about
+     5  test_fact_view.py                 the filter as saveable state
+     2  test_calculator_sections.py       one id may not name two sections
+     1  test_property_panel.py            the successor to the removal
+     1  test_batch_result_store.py        the fact order is not a race
+
+**THE ONE REMOVAL IS A GUARD THAT ENCODED A DEFECT IN ITS OWN NAME.** It was
+called "...lands in admet section" and built its OWN `AlertResult` with
+`category="admet"`, so it asserted the panel's ROUTING and could say nothing
+about where the real result goes -- which is how one `report_id` came to
+declare two sections. Its successor,
+`test_the_functional_groups_alert_lands_in_the_section_its_producer_names`,
+runs the shipped producer and reads the category off the result.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored,
+since pytest's progress dots share the line -- as do `^FAILED` and `^ERROR`.
+The skips are the deterministic 16. The two `DeprecationWarning`s are the
+same pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**THE WALL CLOCK WAS 28m35 AND IS NOT CITABLE, SO THE BAND IS NOT WIDENED.**
+Concurrent work ran against it -- a `git add -A` and a commit, plus several
+greps -- which this file forbids for a figure it intends to compare. The
+COUNTS are deterministic and unaffected, so the tree is measured; the
+duration describes a contended machine. The 6-26 band stands on the runs
+that were taken cleanly.
+
+Before it: `7215 passed, 16 skipped`
+(measured 2026-09-09, **25m32**, on `stage-6-quantitative-limits` -- the
+quantitative regulatory model, and OSHA Table Z-1 on top of it.
+
+**THE BAND WENT 6-22 TO 6-26 ON THIS RUN, AND THE FOUR MINUTES ARE
+UNEXPLAINED.** The entry below is 19m32 on a tree 59 tests smaller, and 59
+tests that run in under two seconds cannot cost six minutes. Nothing ran
+alongside it -- the collected-count diff and the worktree were both taken
+after the summary line landed, which this file's own rule demands of a
+figure intended for citation. Widened so a reader whose run takes 25
+minutes does not conclude the suite has hung, and recorded as the outlier
+it is rather than as a new normal. That is now the eighth consecutive entry
+to say the band is a range with no predictive value inside it.
+
+**+60 collected and 1 REMOVED**, diffed both directions with `comm` in a
+detached worktree, with the `PYTHONPATH` override asserted before the count
+was believed (`import openchem` reported the WORKTREE's `src`):
+
+    master     fdf6829   COLLECTS 7172
+    this one             COLLECTS 7231   = 7172 + 60 - 1
+    the run                       7215 passed + 16 skipped = 7231
+
+**AND THE FIRST BASELINE I COLLECTED WAS THE WRONG COMMIT.** `0dd7c1a` is
+the merge this branch's own predecessor was measured against, and it is one
+merge stale -- it collects 7132, so reading it would have reported +99
+against a real +60. `git merge-base origin/master HEAD` is `fdf6829`, which
+IS `origin/master` exactly, so nothing landed while this branch was open.
+**Derive the baseline with `merge-base`, never from the entry above** -- the
+same drift this section already records at 4, 5, 10 and 11 tests, caught one
+step earlier because the two numbers were four commits apart rather than
+four tests.
+
+    40  test_osha_table_z1.py           the snapshot chain, the two
+                                        provenance hashes, the row census,
+                                        the four row classes, the two
+                                        footnotes, and the two resolution
+                                        rules with their narrow halves
+    15  test_quantitative_limits.py     the model, the closed vocabularies,
+                                        the three-valued precision, and the
+                                        four rulesets that predate the field
+     4  test_regulatory_rulesets.py     the corpus guard's split, plus the
+                                        control guards' new positive half
+     1  test_sources_are_current.py     a parametrised case of the EXISTING
+                                        schema guard, for the new registry
+                                        entry
+
+**THE ONE REMOVAL IS THE CORPUS GUARD SPLITTING, WITH TWO NAMED
+SUCCESSORS**, which is the whole reason to diff rather than subtract. A
+blanket "every shipped rule is exercised by the benchmark corpus" would have
+forbidden landing 232 Table Z-1 identity rules at all, so it became
+`test_every_rule_outside_table_z1_is_exercised_by_the_benchmark_corpus` --
+full strength for every ruleset that predates Z-1 -- beside
+`test_the_table_z1_rules_awaiting_a_positive_case_only_shrink`, a ratchet.
+The assertion is unchanged for the population it always covered; what is new
+is that the population is named.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored,
+since pytest's progress dots share the line -- as do `^FAILED`, `^ERROR`
+and a whole-line-anchored count of `F`/`E` progress characters. The skips
+are the deterministic 16. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**CLEAN ON ITS FIRST RUN.**)
+
+Before it: `7156 passed, 16 skipped`
+(measured 2026-09-09, **19m32**, on `stage-5-the-no-gate-trio` -- the three
+items the roadmap called ready to build with no science gate, plus the two
+defects planning found on the way.
+
+**+40 collected and 0 REMOVED**, diffed both directions with `comm` in a
+detached worktree, with the `PYTHONPATH` override asserted before the count
+was believed (`import openchem` reported the WORKTREE's `src`):
+
+    master     0dd7c1a   COLLECTS 7132
+    this one             COLLECTS 7172   = 7132 + 40
+    the run                       7156 passed + 16 skipped = 7172
+
+    16  test_batch_panel.py             the molecule scope's sentinel and
+                                        its control, the lifecycle, the
+                                        per-calculator parameters, and the
+                                        two column-width guards
+    12  test_lewis_adduct.py            the two orientation rules, the
+                                        both-ways refusal, the five role
+                                        states and the no-rule-3 guard
+     9  test_calculator_settings_dialog.py  the SMILES chooser's two modes
+                                        and `choice_labels`' two halves
+     3  test_sources_are_current.py     parametrised cases of the EXISTING
+                                        schema guard, one per new source
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored,
+since pytest's progress dots share the line -- as do `^FAILED`, `^ERROR`
+and a whole-line-anchored count of `F`/`E` progress characters. The skips
+are the deterministic 16. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**AND THE FIRST ATTEMPT AT THIS FIGURE WAS KILLED AT 2%, WHICH IS THE
+REASON THE PAIR IS A PAIR.** It was launched as `nohup ... &` inside a
+backgrounded command, so the outer shell returned immediately, the harness
+reaped the group, and the log ended mid-progress-line with **no summary,
+no FAILED lines and no crash markers** -- which every naive check reads as
+a clean run. Launch it as the background command itself, not as a
+background command that backgrounds something else.
+
+19m32 sits in the upper half of the band; the 6-22 range stands.)
+
+Before it: `7116 passed, 16 skipped`
+(measured 2026-09-08, **20m01**, on `widen-the-presentation-channel` --
+`Fact.units` reaching the row, and the chart channel going from one kind
+to three.
+
+**+81 collected and 0 REMOVED**, diffed both directions with `comm` in a
+detached worktree, with the `PYTHONPATH` override asserted before the
+count was believed (`import openchem` reported the WORKTREE's `src`):
+
+    master     17c475c   COLLECTS 7051
+    this one             COLLECTS 7132   = 7051 + 81
+    the run                       7116 passed + 16 skipped = 7132
+
+    24  test_depiction_annotations.py   the third kind, the layer move,
+                                        and the render-context boundary
+    12  test_line_chart_widget.py       the generic curve renderer and
+                                        the pH adapter's golden check
+    12  test_chart_annotations.py       the line kind's validator, and
+                                        the refusals it DECLINES
+     9  test_powder_xrd.py              the projection, the two
+                                        limitations, the scale basis
+     5  test_stick_chart_widget.py      label collision, visible elision
+     5  test_chart_widget_factory.py    dispatch by type, both failure
+                                        modes told apart
+     4  test_solubility.py              the curve's real producer
+     4  test_fact_units_convention.py   ALL SIX report builders, because
+                                        the registry sweep could not
+                                        reach the offender
+     3  test_report_adapter.py          the duplication, the round trip
+     3  test_fact_view.py               the row itself
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored,
+since pytest's progress dots share the line -- as do `^FAILED`, `^ERROR`
+and a whole-line-anchored count of `F`/`E` progress characters. The skips
+are the deterministic 16. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**CLEAN ON ITS FIRST RUN**, and 20m01 sits near the top of the band
+without moving it; the 6-22 range already covers it. An earlier run of
+this branch at stage three came in at 16m58 on a tree 24 tests smaller,
+which is the same unexplained variance this section has now recorded six
+times -- do not read either end as predictive.)
+
+Before it: `7035 passed, 16 skipped`
+(measured 2026-09-08, **16m25**, on `mass-spectrometry-and-a-chart-channel`
+-- the isotope envelope, the producer-declared chart channel and one
+merged results window per molecule.
+
+**+209 collected and 0 REMOVED** against master at `4d24951`, diffed both
+directions with `comm` in a detached worktree, with the `PYTHONPATH`
+override asserted before the count was believed (`import openchem`
+reported the WORKTREE's `src`):
+
+    master     4d24951   COLLECTS 6842
+    this one             COLLECTS 7051   = 6842 + 209
+    the run                       7035 passed + 16 skipped = 7051
+
+    44  test_mass_spectrum.py            the binomial and trinomial
+                                         oracles, the Marvin fixture, the
+                                         ion identity, the exponential
+                                         fold and the exact-resolution
+                                         semantics
+    29  test_stick_chart_widget.py       written
+    25  test_mass_spectrum_calculators.py  the two callers, one engine
+    20  test_merged_results.py           written
+    19  test_chart_annotations.py        the validator, failing closed,
+                                         AND its does-not-judge complement
+    15  test_merged_results_dialog.py    the window, focus and staleness
+    14  test_fact_view_charts.py         charts never derived from facts
+    12  test_sources_are_current.py      parametrised cases of the
+                                         EXISTING schema guard, one per
+                                         new registry entry
+    12  test_plot_axis.py                the extracted axis mechanics
+     9  test_property_panel_results_window.py
+     5  test_batch_result_store.py       merged_results beside merged_report
+     2  test_layering.py                 domain may not import Qt, both arms
+     2  test_descriptor_service.py       the structure_version stamp
+     1  test_calculator_reachability.py  the new module's declaration
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored,
+since pytest's progress dots share the line -- as do `^FAILED`, `^ERROR`
+and a whole-line-anchored count of `F`/`E` progress characters. The skips
+are the deterministic 16. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**THIS FIGURE IS THE THIRD RUN, AND THE FIRST TWO ARE THE REASON THIS
+SECTION EXISTS.** Recorded rather than quietly re-run:
+
+    run 1   KILLED at 8% by a session teardown -- and its 646 progress
+            characters carried TWO `F`s, which is what found the
+            exponential isotope fold. A partial log is not an empty one.
+    run 2   1 failed, 7033 passed   the `#:` ratchet, on EXACT_RESOLUTION
+    run 3   7035 passed, 16 skipped, 16m25      <- the cited figure
+
+Run 1 is the entry worth reading. It never reached a summary line, so
+every ordinary check reports nothing -- but mapping the `F` positions
+back onto `--collect-only` order named
+`tests/test_batch_service.py::test_a_run_fills_a_cell_for_every_molecule_and_property`
+and its neighbour, which is how a calculator that could not answer for
+ibuprofen was found. **A crashed or killed run is not a run with no
+information in it**, and the progress line is the instrument:
+
+    grep -oE "^[.sFEx]+ *(\[ *[0-9]+%\])?$" /tmp/suite.log
+
+Run 2's failure is written up above under the `#:` ratchet, and it is
+the second time this branch met a guard the 13-file `rg "ast.parse"`
+sweep does not run.
+
+16m25 sits mid-band; the 6-22 range stands.)
+
+Before it: `6814 passed, 16 skipped`
+(measured 2026-09-07, **15m11**, on `widen-the-ranking-corpus` -- the powder
+intensities and the ranking corpus widened off the aminergic GPCRs.
+
+**+67 collected and 3 REMOVED**, diffed both directions with `comm` in a
+detached worktree, with the `PYTHONPATH` override asserted before the count was
+believed (`import openchem` reported the WORKTREE's `src`):
+
+    master     add0024   COLLECTS 6766
+    this one             COLLECTS 6830   = 6766 + 67 - 3
+    the run                       6814 passed + 16 skipped = 6830
+
+**ALL THREE REMOVALS ARE THE INTENSITY REFUSAL'S OWN GUARDS, FLIPPED ON
+PURPOSE**, which is the whole reason to diff rather than subtract. Each
+asserted the refusal this branch lifts and each has a named successor:
+
+    test_the_pattern_carries_no_intensity_at_all
+      -> test_the_rock_salt_structure_factor_matches_its_closed_form
+    test_every_pattern_says_why_it_has_no_intensities
+      -> test_every_pattern_says_that_no_debye_waller_factor_is_applied
+    test_every_reported_line_carries_the_intensity_refusal
+      -> test_every_reported_line_carries_the_debye_waller_refusal
+
+The first of those asserted the reflection has no intensity ATTRIBUTE at all,
+so it could not be weakened -- only replaced by its opposite.
+
+    55  test_rank_power_console.py       written -- 52 are 13 characters
+                                         against 4 codepages
+    10  test_powder_xrd.py               the rock-salt oracle, the cell
+                                         expansion, s-versus-s^2, the
+                                         missing-species refusal, the table
+                                         invariants and the row-length proxy
+     1  test_sources_are_current.py      a parametrised case of the EXISTING
+                                         schema guard, for the new data table
+     1  test_chembl_corpus.py            the target-superset guard
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored, since
+pytest's progress dots share the line -- as do `^FAILED` and `^ERROR`. The skips
+are the deterministic 16. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**CLEAN ON ITS FIRST RUN, and it is the first figure here taken with the
+machine genuinely idle** -- the 4998-search docking run had finished, which
+matters because this file has already thrown away one figure for being
+concurrent with other work. 15m11 sits mid-band; the 6-22 range stands.)
+
+Before it: `6750 passed, 16 skipped`
+(measured 2026-09-06, **17m18**, on `a-screen-you-can-configure-and-reproduce`
+AT ITS MERGE OF MASTER -- the screen that could not pin a seed, on top of the
+ranking benchmark that landed as #72.
+
+**MEASURED ON THE MERGE, and the branch's own earlier figure was thrown away
+for the reason this section keeps recording.** That run was clean and
+reconciled exactly -- `6714 passed, 16 skipped, 18m34` against 6730 collected,
++17 and 0 removed against the branch point `1e1deae` -- and it described a
+tree that no longer existed, because #72 merged while the branch was open. The
+figure above is the merged tree; the discarded one is recorded rather than
+quietly re-run.
+
+**+17 collected and 0 REMOVED** against master at `baa9e61`, diffed both
+directions with `comm` in a detached worktree, with the `PYTHONPATH` override
+asserted before the count was believed (`import openchem` reported the
+WORKTREE's `src`):
+
+    master     baa9e61   COLLECTS 6749
+    this one             COLLECTS 6766   = 6749 + 17
+    the run                       6750 passed + 16 skipped = 6766
+
+**17 ITEMS AND 17 FUNCTIONS**, all in the new `test_screening_is_configurable.py`
+and none parametrised, so for once the two deltas are the same number. The
+help-contract guards gain nothing despite four new controls, which is the
+shared-widget design working as intended: the contracts moved rather than being
+copied, so the four ids each acquired a second RENDERING rather than a second
+id.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored -- as
+do `^FAILED` and `^ERROR`. The skips are the deterministic 16. The two
+`DeprecationWarning`s are the same pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**AND THE MERGE ITSELF COST A CONFLICT THAT COMMITTING FIRST WOULD HAVE
+AVOIDED.** The branch had no commits when master was merged into it, so the
+sequence was `git stash` -- fast-forward -- `git stash pop`, and the pop
+conflicted on CLAUDE.md because #72 and this branch both append before
+`## Running the tests`. Nothing was lost (git keeps the stash, and the conflict
+was purely additive), but a branch with no commits has nothing for a merge to
+merge against. **Commit before merging master in.**
+
+17m18 sits mid-band; the 6-22 range stands, and this run does not move it.)
+
+Before it: `6697 passed, 16 skipped`
+(measured 2026-09-05, **21m46**, on `the-screen-docked-into-an-occupied-pocket`
+-- the virtual screen that left the co-crystallised ligand in the pocket its
+own box was derived from.
+
+**THE BAND WENT 6-21 TO 6-22 ON THIS RUN, AND THE 46 SECONDS ARE
+UNEXPLAINED.** Nothing ran alongside it -- the collect-only counts and the
+driven app run both finished before it started, which this file's own rule
+demands of a figure intended for citation -- and the tree is SIX tests larger
+than the 18m06 entry below, which cannot cost three and a half minutes. It is
+widened so a reader whose run takes 22 minutes does not conclude the suite has
+hung, and recorded as the outlier it is rather than as a new normal. That is
+now the seventh consecutive entry to say the band is a range with no
+predictive value inside it; do not narrow it back on one fast run either.
+
+**+7 collected and 1 REMOVED**, diffed both directions with `comm` rather than
+subtracted:
+
+    master        17e012c   COLLECTS 6707
+    this one                COLLECTS 6713   = 6707 + 7 - 1
+    the run                          6697 passed + 16 skipped = 6713
+
+**THE ONE REMOVAL IS A MOVE WITH A NAMED SUCCESSOR**, which is the whole
+reason to diff rather than subtract. The panel's own imported-receptor guard
+became `tests/test_binding_site.py::test_an_imported_receptor_has_nothing_stripped`
+when the helper it tests moved out of the panel -- the assertion is unchanged
+and it now sits with the function rather than with one of its two callers.
+
+**AND WRITING THIS ENTRY TRIPPED THE DOCS GUARD, which is the trap this file
+already records from the other side.** The first draft named the DELETED test
+beside its successor, to show the rename; `test_every_test_a_doc_names_still_exists`
+failed on it immediately. A doc may not cite a test the same branch removed,
+even to say that it was removed -- cite the successor and describe the
+ancestor in prose. The dead name survives in
+`tests/test_binding_site.py`'s own comment, where it is a comment rather than
+a citation.
+
+    4  test_binding_site.py             the helper's four-case contract
+    3  test_virtual_screening_dialog.py the screen's strip, the refusal that
+                                        makes the narrow half unreachable
+                                        there, and the same-function guard
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored, for
+the reason recorded above -- as do `^FAILED` and `^ERROR`. The skips are the
+deterministic 16. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**CLEAN ON ITS FIRST RUN.**)
+
+Before it: `6691 passed, 16 skipped`
+(measured 2026-09-03, **18m06**, on `rescoring-axis` -- a second, differently
+labelled score attached to a pose the search already found.
+
+**+58 collected and 0 REMOVED** against master at `363ca54`, diffed both
+directions with `comm` in a detached worktree, with the `PYTHONPATH` override
+asserted before the count was believed (`import openchem` reported the
+WORKTREE's `src`):
+
+    master     363ca54   COLLECTS 6649
+    this one             COLLECTS 6707   = 6649 + 58
+    the run                       6691 passed + 16 skipped = 6707
+
+    28  test_rescoring.py               written
+     8  test_vina_engine.py             the score_pose argv, both halves
+     8  test_docking_providers.py       the wiring, and what must not change
+     8  test_docking_panel.py           the column's four states
+     4  test_sources_are_current.py     parametrised cases of the EXISTING
+                                        schema guard, one per new source
+     2  test_calculator_reachability.py the new module's declaration
+
+**THE CITED FIGURE IS THE SECOND RUN, AND THE FIRST ONE'S FAILURE WAS MINE.**
+Recorded rather than quietly re-run:
+
+    run 1   1 failed, 6690 passed   test_constant_docs.py
+    run 2   6691 passed, 16 skipped, 18m06      <- the cited figure
+
+The failure was the `#:` ratchet catching `_LIMITATION_NOTE` orphaned from
+its own doc comment -- see the entry above, which is the defect that guard
+exists for, committed the same day its write-up was read.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored --
+as do `^FAILED` and `^ERROR`. The skips are the deterministic 16. The two
+`DeprecationWarning`s are the same pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+18m06 sits in the upper half of the band; the 6-21 range stands.)
+
+Before it: `6536 passed, 16 skipped`
+(measured 2026-08-31, **16m45**, on
+`ligand-protonation-and-search-controls` -- the ligand prepared at neutral pH
+while the receptor was prepared at 7.4, the search controls, and the box
+warning whose motivating case turned out not to trip it.
+
+**+62 collected and 0 REMOVED** against master at `d261da8`, diffed both
+directions with `comm` in a detached worktree, with the `PYTHONPATH` override
+asserted before the count was believed (`import openchem` reported the
+WORKTREE's `src`):
+
+    master     d261da8   COLLECTS 6490
+    this one             COLLECTS 6552   = 6490 + 62
+    the run                       6536 passed + 16 skipped = 6552
+
+    35  test_ligand_preparation.py       written
+    15  test_ligand_extent_warning.py    written
+     7  test_sources_are_current.py      parametrised cases of the EXISTING
+                                         schema guard, one per new source
+     5  test_docking_providers.py        the wiring guards
+
+**THE CITED FIGURE IS THE SECOND RUN, AND THE FIRST ONE'S FAILURES WERE
+MINE.** Recorded rather than quietly re-run:
+
+    run 1   4 failed, 6532 passed   tests/test_structure_summary.py
+    run 2   6536 passed, 16 skipped, 16m45      <- the cited figure
+
+All four were `_convert_receptor_to_pdbqt() missing 1 required positional
+argument: 'ph'` -- that file calls the method DIRECTLY, and the targeted set
+run before the suite did not include it. **A targeted set is chosen from
+where you think you changed something**, which this file already records; the
+signature change was three files away from where the tests were looking.
+
+`ph` was left REQUIRED rather than given a default, deliberately. A default
+is exactly how a future caller silently gets 7.4 instead of the declared pH,
+which is the defect this branch exists to fix -- so the four call sites moved
+instead.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored --
+as do `^FAILED` and `^ERROR`. The skips are the deterministic 16. The two
+`DeprecationWarning`s are the same pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+16m45 sits mid-band; the 6-21 range stands.)
+
+Before it: `6474 passed, 16 skipped`
+(measured 2026-08-31, **19m53**, on
+`charge-is-protonated-and-a-refusal-is-not-a-fault` -- the non-deterministic
+protonation, the species the inspector never named, and the refusals that
+looked like faults.
+
+**+66 collected and 0 REMOVED** against the branch point `531ec09`, diffed
+both directions with `comm` in a detached worktree, with the `PYTHONPATH`
+override asserted before the count was believed:
+
+    531ec09              COLLECTS 6424
+    this one             COLLECTS 6490   = 6424 + 66
+    the run                       6474 passed + 16 skipped = 6490
+
+    30  test_gasteiger_charges.py        written -- 22 of them are Table 3
+    29  test_protonation_microspecies.py written -- 16 are the charge-state
+                                         corpus
+     5  test_property_panel.py           refusal-vs-fault, and the fourth
+                                         glyph joining the shipped oracle
+     2  test_calculator_inspector_dialog.py
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored --
+as do `^FAILED` and `^ERROR`. The skips are the deterministic 16. The two
+`DeprecationWarning`s are the same pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**CLEAN ON ITS FIRST RUN**, and 19m53 sits near the top of the band without
+moving it; the 6-21 range already covers it.
+
+**THIS BRANCH IS STACKED ON AN UNPUSHED ONE.** It was cut from `531ec09`,
+which is `remembered-directories-and-the-displayed-chain` -- so the +66 is
+against that branch and not against master.
+
+Before it: `6407 passed, 16 skipped`
+(measured 2026-08-30, **19m37**, on
+`remembered-directories-and-the-displayed-chain` -- the remembered file-dialog
+directories and the docked-pose/receptor chain mismatch.
+
+**+41 collected and 0 REMOVED** against master at `591cee3`, diffed both
+directions with `comm` in a detached worktree, with the `PYTHONPATH` override
+asserted before the count was believed (`import openchem` reported the
+WORKTREE's `src`):
+
+    master     591cee3   COLLECTS 6383
+    this one             COLLECTS 6424   = 6383 + 41
+    the run                       6407 passed + 16 skipped + 1 failed = 6424
+
+    35  test_dialog_directories.py       written
+     6  test_molstar_viewer_backend.py   the three state-tree probes and the
+                                         three source rules the mutation pass
+                                         forced
+
+**THE RUN CARRIES ONE FAILURE AND IT IS RECORDED RATHER THAN HIDDEN**, since
+the figure above is the second measurement of this tree:
+`test_no_constant_has_fallen_out_of_documentation` named `APP_NAME` and
+`ORG_NAME`, for the reason written up under the `#:` ratchet below -- a file
+that had never used the convention joined the population. `--record` took the
+set 407 -> 409 and the 11 guards are green; the FIGURE is from the run before
+that, so it is honest about what was measured rather than re-run to look
+tidy.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored, for
+the reason recorded above -- as does `^ERROR`. The skips are the
+deterministic 16. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**19m37 is near the top of the band and the band is unchanged.** Nothing
+distinguishes this tree; the 6-21 range already covers it.
+
+Before it: `6367 passed, 16 skipped`
+(measured 2026-08-30, **14m29**, on `linux-victim-wandered-after-all` --
+the record correction, the disposal consolidation and the A/B harness.
+
+**+24 collected and 0 REMOVED** against master at `96e8c9c`, diffed both
+directions with `comm` rather than subtracted:
+
+    master     96e8c9c   COLLECTS 6359
+    this one             COLLECTS 6383   = 6359 + 24
+    the run                       6367 passed + 16 skipped = 6383
+
+    15  test_disposal_score.py       written
+     9  test_qt_object_disposal.py   the two walker guards, the flush
+                                     default, and 6 parametrised cases
+                                     of the fail-safe parse
+
+**THE CONSOLIDATION ITSELF ADDED NOTHING, WHICH IS THE POINT.** It
+rewrote 58 disposal sites across 45 files and the collected set is
+byte-identical either side -- 0 added, 0 removed, measured before the new
+tests were written. A pure refactor that moved the count would have been
+the finding.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored,
+for the reason recorded above -- as do `^FAILED` and `^ERROR`. The skips
+are the deterministic 16. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**THIS FIGURE IS THE SECOND RUN, AND THE FIRST ONE CRASHED IN THE FILE
+THIS BRANCH IS ABOUT.** Recorded rather than quietly re-run, because it
+is evidence:
+
+    run 1   CRASHED at 83%, access violation, exit code 0, NO summary
+            tests/test_screening_service.py:122 in _drain
+            tests/test_screening_service.py:140 in
+                test_ligands_are_docked_one_at_a_time
+    run 2   6367 passed, 16 skipped, 14m29        <- the cited figure
+
+Line 122 is `QApplication.instance().processEvents()` -- **the same
+statement this file already records at `:120 in _drain` on two earlier
+Windows crashes**, at 83% and 84%. The line number moved by 2 because of
+an import edit above it; `_drain` itself is byte-identical to master.
+That makes THREE Windows observations at one statement, and with the
+Linux crash at `:269` it is four naming this one file.
+
+**AND ONE CRASH PLUS ONE CLEAN ON A FIXED TREE IS NOT A VERDICT ON
+EITHER SIDE.** It cannot show the branch caused it -- the disposal
+semantics are unchanged, `FLUSH_AT_DISPOSE` defaults on and every one of
+the 58 sites does exactly what it did before -- and it cannot show the
+branch did not, because 24 added tests shift collection order, which is
+precisely what this file says moves the victim. n=1 per arm, against a
+class documented at roughly 1 in 3 on Windows. The re-run is the
+discriminator this project uses and all it settles is that the tree is
+not deterministically broken.
+
+Before it: `6343 passed, 16 skipped`
+(measured 2026-08-29, **14m25**, on `constant-doc-guard` -- the `#:` ratchet.
+
+**+11 collected and 0 REMOVED** against master at `2ae9de2`:
+
+    master     2ae9de2   COLLECTS 6348
+    this one             COLLECTS 6359   = 6348 + 11
+    the run                       6343 passed + 16 skipped = 6359
+
+All 11 are `test_constant_docs.py`, none parametrised, so the two deltas agree.
+
+**AND THIS ONE IS CITABLE WHERE THE ENTRY BELOW IS NOT.** Nothing else touched
+the tree for its duration -- no git, no `gh`, no PR being opened -- which is
+what the previous figure could not say. It came in at **14m25 against that
+one's 26m53**, on a tree 11 tests LARGER, which is the concurrency explanation
+confirmed rather than assumed: the earlier duration described a contended
+machine and not the suite. The 6-21 band stands and did not need widening.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored -- as
+do `^FAILED` and `^ERROR`. The skips are the deterministic 16; the new guard
+needs no display and none of its 11 skips. The two `DeprecationWarning`s are
+the same pre-existing six-argument `QMouseEvent` overload.)
+
+Before it: `6332 passed, 16 skipped`
+(measured 2026-08-29 on `linux-job-can-report` -- the census reader and the
+Open Babel capability gate.
+
+**+14 collected and 0 REMOVED** against master at `e4dd6b8`:
+
+    master     e4dd6b8   COLLECTS 6334
+    this one             COLLECTS 6348   = 6334 + 14
+    the run                       6332 passed + 16 skipped = 6348
+
+    11  test_read_census.py          written
+     3  test_docking_providers.py    the gate's two answers, and the
+                                     never-reads-the-platform guard
+
+**THE SKIPS ARE STILL 16 ON WINDOWS, WHICH IS THE GATE WORKING RATHER THAN
+IDLE.** The two issue-#8 guards RUN here, because this platform's Open Babel
+has no space-group database and so still expands the fixture. They skip where
+it does not -- verified by repairing `BABEL_DATADIR` locally, which is the
+Linux condition reproduced on Windows.
+
+**THE WALL CLOCK IS 26m53 AND IS NOT CITABLE, SO THE BAND IS NOT WIDENED.**
+Concurrent work ran against this one -- git operations, `gh` calls and a PR
+being opened -- which this file forbids for a figure it intends to compare.
+The COUNTS are unaffected and reconcile exactly, so the tree is measured; the
+duration describes a contended machine and nothing else. The 6-21 band stands
+on the runs that were taken cleanly.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored -- as
+do `^FAILED` and `^ERROR`. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload.)
+
+Before it: `6318 passed, 16 skipped`
+(measured 2026-08-29, **15m49**, on `driven-visual-oracle` -- the geometric
+oracle, its drive step and the committed visual benchmarks.
+
+**+26 collected and 0 REMOVED** against master at `becc743`, and for once the
+reconciliation needs no diff because both halves are nameable:
+
+    master     becc743   COLLECTS 6308
+    this one             COLLECTS 6334   = 6308 + 26
+    the run                       6318 passed + 16 skipped = 6334
+
+    24  test_visual_check.py             written
+     2  test_docs_are_current.py         parametrised cases of the EXISTING
+                                         doc guards, for the new
+                                         `docs/LIVE_VERIFICATION.md`
+
+**THE 24 ARE 24 FUNCTIONS**, none parametrised, so the two deltas agree.
+
+**THE SKIPS ARE THE DETERMINISTIC 16 AND THE COMPOSITION IS UNCHANGED** --
+13 `createViewerGrid` under offscreen (7 spatial + 6 mol3d), the network test,
+`test_namer_known_defects.py`'s empty parametrisation, and
+`test_pdf_library_index.py:274`. None of the 24 new tests skips: the predicate
+half needs no display and the extraction half builds its own widgets.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- UNANCHORED, for
+the reason recorded above -- as do `^FAILED` and `^ERROR`. The two
+`DeprecationWarning`s are the same pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**CLEAN ON ITS FIRST RUN**, with nothing else touching the tree for its
+duration -- the memory files edited during it live outside the repository, so
+no source-scanning guard could read a file mid-write. 15m49 sits mid-band; the
+6-21 range stands.)
+
+Before it: `6292 passed, 16 skipped`
+(measured 2026-08-28, **15m36**, on `particle-editor` AT ITS MERGE OF
+MASTER -- the quark editor and the DECISION it reverses, on top of the
+formulation work (#53) and the powder pattern (#54).
+
+**MEASURED ON THE MERGE**, like the entry below it and unlike the branch
+figures either of them replaced. All three of D, C and E were siblings off
+`d90cf70`, so their +19, +57 and +62 are each measured against the SAME
+base and adding them to one total is meaningless -- what is meaningful is
+that each merge's collection reconciles against the master it landed on:
+
+    d90cf70  6143  ->  #53  6189  ->  #54  6246  ->  this one  6308
+
+**+62 collected and 0 REMOVED** against master at the merge:
+
+    master     378180e   COLLECTS 6246      <- #53 and #54 already in
+    this one             COLLECTS 6308      = 6246 + 62
+    the run                       6292 passed + 16 skipped = 6308
+
+    61  test_particle.py             written
+     1  test_sources_are_current.py  a parametrised case of the EXISTING
+                                     schema guard, for `pdg2024`
+
+**RETIRING A DEFERRAL REMOVED NO TEST**, which is worth stating because a
+reader would expect one: the `DEFERRALS` guards loop over the table INSIDE
+one test each rather than parametrising over it, so dropping the particle
+entry changes the list they iterate and not the collected count.
+
+**THE SKIPS ARE 16 AND THE COMPOSITION IS UNCHANGED** across all three
+merges -- 13 `createViewerGrid` under offscreen (7 spatial + 6 mol3d), the
+network test, `test_namer_known_defects.py:471`'s empty parametrisation,
+and `test_pdf_library_index.py:274` from #51. Chromium's `Failed to make
+current` fires 16 times here, against 41 on the previous merge, and both
+cost **zero** skips -- the sixth independent confirmation that the GPU is
+not what moved that figure, and the widest spread yet recorded (5 to 41)
+with no effect either way.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- UNANCHORED,
+for the reason the entry below records -- as do `^FAILED` and `^ERROR`.
+The two `DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**THIS ONE WAS CLEAN ON ITS FIRST RUN**, which is worth saying beside the
+entry below, where three were needed. Nothing distinguishes the two trees
+that would predict it; that is the crash class being what this file has
+always said it is.
+
+15m36 sits mid-band; the 6-21 range stands.)
+
+Before it: `6230 passed, 16 skipped`
+(measured 2026-08-27, **14m49**, on `powder-xrd` AT ITS MERGE OF MASTER --
+a calculated powder pattern's POSITIONS with its intensities refused, on
+top of the formulation work that landed as #53.
+
+**MEASURED ON THE MERGE, which is what the entry below it could not be.**
+That one is `energetic-formulations` and this one was `powder-xrd`, and
+the two are SIBLINGS off master rather than one being an ancestor of the
+other -- so **adding 6173 and 6184 is meaningless**, they share master's
+tests. Only collecting the merged tree answers it.
+
+**+57 collected and 0 REMOVED** against master at the merge:
+
+    master     7a227be   COLLECTS 6189      <- #53 already in
+    this one             COLLECTS 6246      = 6189 + 57
+    the run                       6230 passed + 16 skipped = 6246
+
+    52  test_powder_xrd.py               written
+     2  test_calculator_reachability.py  the text-scan prefilter, both arms
+     3  test_sources_are_current.py      parametrised cases of the EXISTING
+                                         schema guard, one per new source
+
+**THE SKIPS ARE 16 AND THE COMPOSITION IS UNCHANGED** -- 13
+`createViewerGrid` under offscreen (7 spatial + 6 mol3d), the network
+test, `test_namer_known_defects.py:471`'s empty parametrisation, and
+`test_pdf_library_index.py:274` from #51. Chromium's `Failed to make
+current` fires **41 times** in this log -- the highest count yet recorded
+here, against 28, 18, 12 and 5 -- and costs **zero** skips, which is the
+fifth independent confirmation that the GPU is not what moved that figure.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0**, as do
+`^FAILED` and `^ERROR`. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+**AND THE MARKER GREP MUST NOT BE ANCHORED, which cost a wrong verdict on
+the first run of this figure.** `^(Windows fatal exception|...)` reported
+**0 markers on a run that had plainly crashed**, because pytest's
+progress dots share the line:
+
+    .......Windows fatal exception: access violation
+
+This file's own recipe is unanchored for exactly that reason. Tightening
+it looks more careful and is strictly worse -- it is the crash-pair check
+reporting clean on a crashed run, which is the one thing it exists to
+prevent. The FAILED/ERROR greps stay anchored; those really do start
+their line.
+
+**THIS FIGURE IS THE THIRD RUN, AND THE FIRST TWO WERE THROWN AWAY.**
+Recorded because a reader comparing numbers deserves to know:
+
+    run 1   CRASHED at 84%, access violation, 790s, no summary line
+    run 2   CLEAN but 6h11m -- 24x the norm -- with ONE failure
+    run 3   6230 passed, 16 skipped, 14m49          <- the cited figure
+
+Run 1 died in `tests/test_screening_service.py:120 in _drain`, which is
+**the same file, line and function this file already records** one branch
+ago at 83%. `_drain` is `waitForDone` + `processEvents()` in a
+60-iteration loop -- the canonical victim position. The file is untouched
+by this merge (nothing in the diff matches `screen|dock`) and passes 15 of
+15 in isolation.
+
+Run 2's single failure was a Ketcher page-load timeout in
+`test_electron_overlay_lifecycle.py`, which passes 8 of 8 in isolation in
+42 s. **A 24x wall clock is the finding, not the failure**: its counts
+still reconcile exactly (6229 + 1 + 16 = 6246), so nothing was lost, and
+the most likely cause is the machine SLEEPING mid-run -- a QtWebEngine
+page load spanning a suspend times out exactly that way. Discarded rather
+than diagnosed, which is this file's standing rule for a contaminated run;
+the machine measured 0% load and zero stray `QtWebEngineProcess` handles
+immediately afterwards, so there was nothing left to diagnose.
+
+14m49 sits mid-band; the 6-21 range stands.)
+
+Before it: `6173 passed, 16 skipped`
+(measured 2026-08-27, **15m12**, on `energetic-formulations` -- the
+formulation report reaching a control a user can press, and the
+reachability guard's module-level blind spot.
+
+**+19 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed -- `import openchem; print(openchem.__file__)` reported the
+WORKTREE's `src`:
+
+    08cb4d5              COLLECTS 6170
+    this one             COLLECTS 6189   = 6170 + 19
+    the run                       6173 passed + 16 skipped = 6189
+
+**19 ITEMS, 19 NEW FUNCTIONS**, none parametrised, so for once the two
+deltas are the same number:
+
+    16  test_formulation_wiring.py       the dialog, the two commands,
+                                         the events, and the fold
+     3  test_calculator_reachability.py  the report-builder guard, its
+                                         narrow half, and the
+                                         docstring-is-not-a-call arm
+
+**THE SKIPS ARE 16 AND THE 16th IS NOW ATTRIBUTED**, which the entry
+this replaces recorded as unexplained between two candidates. It is
+neither mysterious nor the GPU: **`tests/test_pdf_library_index.py:274`,
+added by #51**, so master moved. Read off `-rs` rather than inferred:
+
+    13  $3Dmol.createViewerGrid under offscreen   6 mol3d + 7 spatial
+     1  test_naming_providers.py:297              hits the network
+     1  test_namer_known_defects.py:471           an EMPTY PARAMETER SET
+     1  test_pdf_library_index.py:274             NEW, from #51
+
+**AND THE GPU CANDIDATE IS REFUTED RATHER THAN MERELY UNCHOSEN.**
+Chromium's `Failed to make current` fires **28 times** in this very log
+and costs **zero** skips -- so 15 was never "15 unless the GPU wobbles",
+and the previous entry's suspicion was wrong in a checkable way.
+
+**THE EMPTY-PARAMETER-SET SKIP IS WHY NO GREP FOUND IT.** A subset run
+over every file matching `skipif|pytest.skip|importorskip|mark.skip`
+gives 15, not 16, because `test_namer_known_defects.py` carries no skip
+MARKER at all -- pytest reports an empty parametrisation as a skip. Any
+future attempt to enumerate the skip-capable files by text will miss it
+the same way; `-rs` on the full run is the only complete answer, and it
+costs nothing when folded into a run you are taking anyway.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`^(Windows fatal exception|Fatal Python error)` matches **0**, as do
+`^FAILED` and `^ERROR`. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+15m12 sits mid-band; the 6-21 range stands.)
+
+Before it: `6087 passed, 15 skipped`
+(measured 2026-08-26, **14m05**, on `sigma-pi-benchmarks-and-issue-8` --
+the pi component, the last three self-hosted benchmarks, and the docking
+half of issue #8's fix.
+
+**+19 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed -- `import openchem; print(openchem.__file__)` reported the
+WORKTREE's `src`:
+
+    master     9ce6202   COLLECTS 6083
+    this one             COLLECTS 6102   = 6083 + 19
+    the run                       6087 passed + 15 skipped = 6102
+
+**19 ITEMS, 14 NEW FUNCTIONS**, and the five-item gap is parametrisation
+rather than anything written:
+
+    12  test_electronic_properties.py   the pi component, and the tick
+                                        box that does nothing for it
+     2  test_docking_providers.py       the docking half of issue #8
+     4  test_workflow_safety.py         ONE function over the three
+                                        workflows, plus its setup guard
+     1  test_sources_are_current.py     a parametrised case of the
+                                        EXISTING data-table guard, for
+                                        pi_orbital_electronegativity.json
+
+**THE BENCHMARK WIRING ADDED ZERO, deliberately.** Its evidence is three
+hand-runs on this machine, not a test -- the rule for that workflow is
+that a step is encoded only after its pipeline has been run by hand, and
+a unit test asserting a YAML string would be the decorative control that
+rule exists to avoid. The four it DID earn are about the SHELL, which is
+a property of the file rather than of a run.
+
+**THIS FIGURE IS THE THIRD RUN, AND THE SECOND ONE CRASHED.** Recorded
+because the class is documented here at length and a reader comparing
+numbers deserves to know a run was thrown away:
+
+    run 1   the 6097 tree    CLEAN, 6082 passed   -- and CONTAMINATED
+    run 2   the 6102 tree    CRASHED at 83%, test 5083 of 6102
+    run 3   the 6102 tree    CLEAN, 6087 passed   <- the cited figure
+
+Run 2 died with `Windows fatal exception: access violation` in
+`tests/test_screening_service.py:120 in _drain` -- **and pytest exited
+0**, with no summary line, which is exactly the trap this file already
+records. `_drain` is `waitForDone` + `processEvents()` in a 60-iteration
+loop, i.e. the canonical victim position: the same pump shape as the
+`_wait_until` that took the Linux segfault one branch ago.
+
+**THE VICTIM FILE IS UNTOUCHED BY THAT BRANCH and passes 15 of 15 in
+isolation**, and the five tests added between runs 1 and 2 are Qt-free --
+RDKit, Open Babel and text scanning -- so none of them builds a widget.
+The reading is the documented order-dependent class, where added tests
+shift collection order and move the victim.
+
+**THAT IS A READING AND NOT A FINDING.** Re-running the identical tree
+is the discriminator this file uses, and it gives 1 crash and 1 clean on
+that tree -- n=1 per arm, where the standing rule is that no A/B on this
+crash class is worth much below about n=10. It is consistent with the
+class and is not proof of it.
+
+**RUN 1 WAS DISCARDED FOR A SECOND REASON WORTH KEEPING.** A probe fell
+into an interactive Python REPL and spun for about two minutes while that
+run was between 5% and 24% -- concurrent work against a run intended for
+citation, which this file forbids. It came back clean anyway, and was
+still superseded, because it also predated five tests.
+
+**AND THE FIGURE WAS WRITTEN DOWN WRONG ONCE, WHICH IS THE POINT.** It
+was first committed as `6082 passed, 15 skipped` / 6097 collected -- a
+real measurement of run 1, taken BEFORE the shell guard's four items and
+the tick-box test landed, so it was stale by 5 at the moment it was
+written. The same drift this section records at 5, 10 and 11 items, made
+again by somebody who had just read the warning. **Re-collect AFTER the
+last test lands, and reconcile the run against it.**
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and run 3 has no crash markers --
+`grep -cE "Windows fatal exception|Fatal Python error"` is 0 and there IS
+a summary line, which is the pair this file insists on rather than an
+absence of FAILED lines. The anchored progress-character count is 0 F/E,
+and `^FAILED` and `^ERROR` are both 0. The two `DeprecationWarning`s are
+the same pre-existing six-argument `QMouseEvent` overload in
+`test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+14m05 sits mid-band; the 6-21 range stands.)
+
+Before it: `6068 passed, 15 skipped`
+(measured 2026-08-26, **15m06**, on `jobs-panel-leaks-and-polls-forever` --
+the Linux segfault's cause, and the five files that shared one lambda.
+
+**+11 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed -- `import openchem; print(openchem.__file__)` reported the
+WORKTREE's `src`:
+
+    master     a123fd2   COLLECTS 6072
+    this one             COLLECTS 6083   = 6072 + 11
+    the run                       6068 passed + 15 skipped = 6083
+
+**THE BASELINE WAS DERIVED, NOT READ FROM THE ENTRY BELOW, and it was
+stale by 4.** That entry records 6068 collected at `7b4652c`, while master
+at `a123fd2` collects 6072 -- the docs-guard commit moved it. Reading the
+entry would have reported +15.
+
+**11 ITEMS BUT 8 NEW FUNCTIONS**, and the three-item gap is one
+parametrisation rather than anything written:
+
+     4  test_a_changed_job_list_does_rebuild   ONE function, over the four
+                                               fields `_rendered_state`
+                                               carries -- which is what
+                                               makes dropping any one of
+                                               them a failure
+     1  test_an_unchanged_job_list_rebuilds_nothing
+     1  test_a_freshly_built_panel_polls_without_waiting_for_a_show_event
+     1  test_a_hidden_panel_stops_polling
+     1  test_showing_it_again_resumes_polling_and_catches_up
+     1  test_the_jobs_panel_does_not_leak
+     1  test_a_jobs_panel_with_no_jobs_could_never_have_shown_the_leak
+     1  test_no_signal_is_connected_to_a_self_capturing_lambda
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception|Fatal Python error"` is 0 and there IS a
+summary line, which is the pair this file insists on rather than an absence
+of FAILED lines. The anchored progress-character count is 0 F/E as well.
+The two `DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**CI MEASURES THE SAME TREE AT 6063 passed, 19 skipped, 1 deselected**
+(run 32959039607, PR #48, Windows gate green, all three gates RAN), which
+is the same 6083: 6063 + 19 + 1. The four extra skips are the GPU-gated
+conformer gallery guards and the deselection is the PubChem network test.
+
+**AND THE LINUX JOB REACHED THE END, which is the whole point of the
+branch.** It crashed at 53% on master's merge; here it is
+`6063 passed, 19 skipped, 1 deselected` in 16m50 with **zero crash
+markers**, and the count reconciles to the same 6083. **THAT IS ONE RUN.**
+This file's own rule is that no A/B on this crash class is worth much below
+about n=10 per arm, and one green Linux run is n=1 -- it is consistent with
+the fix and is not proof of it. The instrumented 170-refreshes-to-0 is the
+number to trust.
+
+**THE ANNOTATION'S CRASH BRANCH DID NOT FIRE, BECAUSE NOTHING CRASHED**, so
+say what is and is not established. The classification LOGIC is verified
+against the real crashed log plus three synthetic arms (empty / no-summary
+/ clean / crashed), offline. That annotations from this job reach the REST
+API at all is verified directly -- the linux check-run already carries two,
+both `level=warning`. What has NOT run live is the `::error::` line itself.
+When it does, this is how to read it, and the `failure` filter is what
+tells it from the two ambient warnings:
+
+    gh api repos/OWNER/REPO/commits/SHA/check-runs       --jq '.check_runs[] | select(.name|startswith("linux")) | .id'
+    gh api repos/OWNER/REPO/check-runs/ID/annotations       --jq '.[] | select(.annotation_level=="failure")'
+
+15m06 sits mid-band; the 6-21 range stands.)
+
+Before it: `6053 passed, 15 skipped`
+(measured 2026-08-26, **18m21**, on `joback-thermophysical` -- the Hansen
+fragmenter, HOMA, Bird, and the merge of the cell/hover branch. **THIS IS THE
+MERGED TREE the entry below says is owed**, so that debt is paid.
+
+**+171 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    39a7114    COLLECTS 5897
+    this one   COLLECTS 6068   = 5897 + 171
+    the run                     6053 passed + 15 skipped = 6068
+
+**171 ITEMS BUT 103 NEW FUNCTIONS**, and the 68-item gap is the reason this
+section records the two deltas separately. Every added item reconciles to a
+new function or to a new REGISTRATION:
+
+     66  test_hansen_fragmenter.py        the 113 SMARTS
+     25  test_bird.py
+     24  test_hansen_table.py
+     22  test_homa.py
+     12  test_failure_messages.py         arrived with the merge
+      9  test_sources_are_current.py
+      5  test_property_panel.py           arrived with the merge
+      3  test_descriptor_providers.py
+      3  test_calculator_reachability.py
+      2  test_property_panel_long_values.py   arrived with the merge
+
+Twelve of those are PARAMETRISED CASES OF PRE-EXISTING GUARDS rather than
+anything written, and each names a real registration -- which is what a bare
+"+171" would have hidden:
+
+    3  ..._has_a_callable_compute       bird_aromaticity, hansen_solubility,
+                                        homa_aromaticity
+    5  test_every_entry_matches_the_schema
+                                        bird1985, katritzky1990,
+                                        kruszewski1972, krygowski1993,
+                                        stefanis2008
+    4  ..._data_table_declares_its_source
+                                        bird_oracle.json, bird_parameters.json,
+                                        hansen_groups.json, homa_parameters.json
+
+**AND THE GROUP-CONTRIBUTION EXTRACTION ADDED ZERO**, which is the proof it
+was behaviour-neutral: `test_joback_fragmenter.py`'s 59 tests are unmoved.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line, which
+is the pair this file insists on rather than an absence of FAILED lines. The
+two `DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**CHROMIUM'S `Failed to make current since context is marked as lost` FIRED
+AND COST NO SKIPS THIS TIME.** This file records that message taking the
+skips 15 -> 19 once; here it appears five times and the figure is still 15.
+So it is not reliably a skip-costing event, and 15 stays the deterministic
+number rather than becoming "15 unless the GPU wobbles".
+
+**AND IT BREAKS THE OBVIOUS PROGRESS-COUNTING AWK, which read as 9
+FAILURES.** Chromium writes into the middle of pytest's progress line, so a
+pattern anchored `^[.sFEx]+` matches `Failed to make current...` and
+`[ERROR:...]` as progress characters. Measured on this log: the loose
+pattern counts **9 F/E** on a run with **zero** failures. Anchor the whole
+line -- `^[.sFEx]+ *(\[ *[0-9]+%\])?$` -- which gives 0. The SUMMARY LINE is
+the oracle; a progress-character count is a diagnostic, and this one lies in
+the alarming direction.
+
+**THE FIRST RUN OF THIS FIGURE WAS THROWN AWAY AT 42%, AND THE RULE IS WIDER
+THAN THIS FILE HAD IT.** The recorded rule is "do not edit anything the suite
+reads". Nothing was edited: the probes ran in a SEPARATE detached worktree
+with `PYTHONPATH` pointed at its own `src`, so the main tree was untouched by
+construction. That run still produced an `E` in
+`test_ketcher_editor_backend.py` -- the file this document already names as
+the canonical victim of resource and timing disturbance -- while three other
+Python processes were running against the same venv.
+
+It is recorded as DISCARDED RATHER THAN DIAGNOSED, deliberately. That file
+passes 31 of 31 in isolation and the clean rerun has 0 F/E, which is
+suggestive and is not proof: this file's own rule is that the crash class
+moves between batches and that no A/B here is worth anything below about
+n=10 per arm. **The point is that a contaminated run cannot tell the two
+apart**, so it buys nothing however it comes out. Do not run ANY concurrent
+work against a suite run you intend to cite -- not merely edits.
+
+**AND THE FULL SUITE CAUGHT WHAT THE TARGETED FILES DID NOT, again.** HOMA
+and Bird were verified against `test_homa.py`, `test_bird.py`, the 13
+source-scanning guards and the docs guard -- all green -- and the full run
+failed `test_calculation_input.py::test_geometry_is_opt_in_and_the_default_is_the_drawing`,
+which enumerates the GEOMETRY calculators as an EXACT SET. Both new indices
+are `calculation_input = GEOMETRY` and neither was in it. A targeted set is
+chosen from where you think you changed something, and the registry-wide
+guard was somewhere else.
+
+**THE SEVEN'S OWN VERIFICATION METHOD IS DEGENERATE FOR THESE TWO**, which is
+why adding them meant measuring rather than typing two names. That guard's
+members were each checked by flattening z and confirming the answer changed
+-- and an aromatic ring is ALREADY PLANAR, so flattening barely moves the
+bonds HOMA and Bird read. Measured on benzene:
+
+    2D drawing            REFUSED NO_CONFORMER   both -- the STRONGER claim
+    3D conformer          HOMA  0.9880   Bird  99.9998
+    z flattened           HOMA  0.9890   Bird  99.8308   <- nearly a no-op
+    bond alternation 0.1  HOMA -1.5979   Bird  17.2222   <- what they measure
+    uniform scale x1.1    HOMA -4.5164   Bird 100.0000   <- Bird ignores it
+
+A probe built on flattening alone would have reported "unchanged" and read as
+evidence they belong on DRAWING. **Bird's flatness under a uniform scale is
+the method and not a defect** -- it is a coefficient of VARIATION of bond
+orders, so six equal bonds score 100 at any length -- and that claim was
+already shipped in its limitations and already guarded from both sides by
+`test_a_ring_with_equal_bonds_scores_exactly_100` and
+`test_homa_disagrees_with_bird_on_the_same_rings`. The probe confirmed prose
+the code had already written, which is the outcome to hope for.
+
+**CI MEASURES THE SAME TREE AT 6048 passed, 19 skipped, 1 deselected**
+(run 32939866603, PR #46, 17m27), which is the same 6068: 6048 + 19 + 1. The
+four extra skips are the GPU-gated conformer gallery guards and the
+deselection is the PubChem network test, both already documented above.
+
+**All three gates RAN** -- "Naming benchmark (must stay 181/181)", the
+regulatory benchmark and the ruleset validation -- which is the step list
+rather than the conclusion, and the thing a red suite would have taken with
+it.
+
+**AND THE NON-BLOCKING LINUX JOB CRASHED, WHILE REPORTING SUCCESS AT EVERY
+LEVEL THE API EXPOSES.** This file's `continue-on-error` warning is stated
+for the two advisory STEPS; the Linux job shows it is worse than that,
+because THREE separate mechanisms each turn the failure green:
+
+    the suite step ends `|| true`      so the STEP is [success]
+    the job has continue-on-error      so the JOB is -> success
+    the workflow tolerates the job     so the RUN is completed/success
+
+Every one is deliberate and documented in `tests.yml`; together they mean
+**no field the REST API returns can tell you the Linux suite failed.** The
+real verdict goes to `$GITHUB_STEP_SUMMARY`, which `gh run view --json`
+cannot read. What IS recoverable from the job log is the step's own
+`tail -30 suite.log`: a run that finished carries a pytest summary line, and
+this one carries a C-level fatal traceback instead.
+
+    grep -oE "[0-9]+ passed[^)]*\)"        present = it reached the end
+    grep -cE "Fatal Python error|Extension modules:"   1 = it did not
+
+**AND THE `INFRASTRUCTURE FAILURE` STRING IS NOT A VERDICT.** It appears
+twice in every Linux job log including the green ones, because the
+fingerprint SCRIPT is echoed into the log by `##[group]Run {`. Grepping for
+it counts the source, not the outcome -- the same shape as this file's
+`grep FAILED` lesson, one layer out.
+
+**IT WAS INTRODUCED ON THIS BRANCH, AND n=1 PER COMMIT IS ALL THAT SAYS SO:**
+
+    39a7114   Linux 5877 passed, 19 skipped, 1 deselected, 16m42   GREEN
+    baf5804   not measured
+    c36614c   no summary line, fatal traceback                     CRASHED
+    6729e26   no summary line, fatal traceback                     CRASHED
+
+**NEITHER CANDIDATE COMMIT CONTAINS A LINE OF Qt.** `baf5804` is a JSON
+table, a build tool and 24 tests; `c36614c` is a pure-Python refactor of a
+SMARTS walk whose 59 existing tests did not move. So the likeliest reading is
+the documented order-dependent crash class surfacing on a second platform --
+"non-monotonic ... a corrupting free whose VICTIM depends on heap layout",
+where adding tests shifts collection order and moves the victim, exactly as
+PR #43's Windows crash took a Qt-free victim file. **That is a reading, not a
+finding**: this file's own rule is that no A/B on this crash class is worth
+anything below about n=10 per arm, and this is one sample per commit.
+
+**THE VICTIM TEST IS IDENTIFIED NOW, AND FETCHING THE ARTIFACT IS WHAT DID
+IT.** This entry used to end "the victim test is not identified, because
+`tail -30` starts mid-traceback"; that is right about the tail and wrong
+about the artifact, which carries the WHOLE `suite.log` rather than the
+tail. The advice worked exactly as written -- fetch it before spending any
+time on a hypothesis:
+
+    gh api repos/OWNER/REPO/actions/runs/RUN_ID/artifacts
+    gh api repos/OWNER/REPO/actions/artifacts/ARTIFACT_ID/zip > a.zip
+
+    Fatal Python error: Segmentation fault
+      src/openchem/ui/panels/jobs_panel.py, line 119 in refresh
+      tests/test_molstar_viewer_backend.py, line 48 in _wait_until
+      tests/test_molstar_viewer_backend.py, line 307 in
+          test_a_clear_racing_a_show_ends_on_whichever_came_last
+
+**AND THE CAUSE IS A NAMED MECHANISM RATHER THAN HEAP-LAYOUT ROULETTE** --
+see "A PANEL THAT LEAKS ITSELF AND THEN POLLS FOREVER" below. The reading
+recorded here, that this was "the documented order-dependent crash class
+surfacing on a second platform", was the right family and the wrong level of
+detail: the widget churn was not random, it was one panel doing table work
+twice a second inside another test's event pump.
+
+It did NOT gate the PR, by that job's explicit design, and the blocking
+Windows gate was green. Recorded because a job whose failure is invisible to
+every automated check is exactly the decorative control `tests.yml`'s own
+header warns against -- and that hole is closed now, by an annotation the
+REST API can read.
+
+18m21 sits mid-band; the 6-21 range stands.)
+
+Before it: `5882 passed, 15 skipped`
+(measured 2026-08-26, **16m19**, on `joback-thermophysical` -- stage 1 of the
+calculator families, the citation sweep's worktree blindness, and the
+all-surfaces provenance audit.
+
+**+27 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed -- `import openchem; print(openchem.__file__)` reported the
+WORKTREE's `src`, not the main checkout:
+
+    d7e0735    COLLECTS 5870
+    this one   COLLECTS 5897   = 5870 + 27
+    the run                     5882 passed + 15 skipped = 5897
+
+**27 ITEMS BUT 22 NEW FUNCTIONS**, which is the whole reason this section
+records the two deltas separately:
+
+    14  test_descriptor_providers.py   14 functions, none parametrised
+    13  test_sources_are_current.py     8 functions, PLUS 5 parametrised
+                                        cases of the EXISTING schema guard,
+                                        one per new source
+
+A count that only said "+27" would have read as 27 tests written. Every one
+reconciles to a new function or to a new registry entry.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line, which
+is the pair this file insists on rather than an absence of FAILED lines. The
+two `DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**CI MEASURES THE SAME TREE AT 5877 passed, 19 skipped, 1 deselected**
+(run 32925668575, PR #46, 19m49), which is the same 5897: 5877 + 19 + 1. The
+four extra skips are the GPU-gated conformer gallery guards and the
+deselection is the PubChem network test, both already documented above. Worth
+stating because a reader comparing the two figures should not go looking for
+five lost tests.
+
+**THAT RUN IS ON `9e9e287` AND THIS ENTRY IS IN ITS CHILD**, which is the
+weaker of the two claims this file allows and is checkable rather than
+assumed: the child adds only this CLAUDE.md entry and no test, so
+`--collect-only` is unmoved at 5897. Citing the run that measures the tree
+the figure DESCRIBES is the point -- this section has already thrown away one
+figure for describing a tree that no longer existed.
+
+**All three gates RAN** -- "Naming benchmark holds at 181/181", the
+regulatory benchmark and the ruleset validation -- which is the step list
+rather than the conclusion, and the thing a red suite would have taken with
+it. The previous commit `d7e0735` measured 5850 + 19 + 1 = 5870 on run
+32923570851, agreeing with its own local figure the same way.
+
+**AND THAT WAS THIS BRANCH'S FIRST CI RUN AT 4,729 LINES.** `tests.yml`
+fires only on push-to-master or on `pull_request`, so a branch accumulating
+work sees nothing until a PR exists -- and a DRAFT PR triggers the full
+workflow without being a review request. Worth knowing before the next long
+branch: this project has three recorded CI-only failures no local run could
+reproduce.
+
+16m19 sits mid-band; the 6-21 range stands.)
+
+Before it: `5855 passed, 15 skipped`
+(measured 2026-08-25, **20m31**, on `joback-thermophysical` -- oxygen balance
+on both published conventions, and Kamlet-Jacobs detonation.
+
+**+84 collected and 0 REMOVED**, diffed both directions:
+
+    previous commit   COLLECTS 5786
+    this one          COLLECTS 5870   = 5786 + 84
+    the run                    5855 passed + 15 skipped = 5870
+
+    77  test_energetics.py            written
+     4  test_calculator_reachability.py   the new declared module
+     3  test_sources_are_current.py       klapotke2017, westwell1995, kamlet1968
+
+**THE BAND WENT 6-19 TO 6-21 ON THIS RUN, AND IT IS UNEXPLAINED.** The
+previous entry is 15m37 on a tree 84 tests smaller -- a 31% spread with
+nothing to account for it, on the same machine, and 84 arithmetic-only tests
+that run in 0.3 s cannot cost five minutes. Widened so a reader whose run
+takes 20 minutes does not conclude the suite has hung, and recorded as the
+outlier it is rather than as a new normal. This is the sixth consecutive
+entry to say the band is a range with no predictive value inside it; do not
+narrow it back on one fast run either.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line, which
+is the pair this file insists on rather than an absence of FAILED lines. The
+background task also exited 0, which on its own proves nothing. The two
+`DeprecationWarning`s are the same pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.)
+
+Before it: `5771 passed, 15 skipped`
+(measured 2026-08-25, **15m37**, on `joback-thermophysical` -- the Joback
+group-contribution table, its SMARTS fragmenter, and the sources backfill
+that found nine shipped methods with no registry entry.
+
+**+106 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed (`import openchem; print(openchem.__file__)` reported
+`/tmp/jbase/src`, not the main checkout):
+
+    master        d7358ac   COLLECTS 5680
+    the branch              COLLECTS 5786   = 5680 + 106
+    the run                          5771 passed + 15 skipped = 5786
+
+**AND 92 OF THE 106 ARE MINE; THE OTHER 14 ARE PARAMETRISED GUARDS DOING
+THEIR JOB**, which is the whole reason to diff by FILE rather than subtract
+a total:
+
+    59  test_joback_fragmenter.py     written
+    33  test_joback_table.py          written
+    11  test_sources_are_current.py   10 new sources + 1 new data table
+     3  test_calculator_reachability.py   the new declared module
+
+A count that only said "+106" would have read as 14 tests appearing from
+nowhere. Every one reconciles to a registry entry or a declaration.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line, which
+is the pair this file insists on rather than an absence of FAILED lines. The
+background task also exited 0, which on its own proves nothing. The two
+`DeprecationWarning`s are the same pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.
+
+15m37 sits mid-band; the 6-19 range stands.)
+
+**THE MERGE OF THOSE TWO BRANCHES IS MEASURED NOW, at the top of this
+section.** This note is kept because the WARNING is the durable part: the two
+figures below are real and NEITHER describes the merged tree. They were taken
+on `joback-thermophysical` and on `failed-descriptor-cell-and-hover`, which
+are SIBLINGS off master rather than one being an ancestor of the other, so
+**adding 5882 to 5684 is meaningless** -- they share master's tests. The
+merged tree collects 6068, which is neither sum and could only be obtained by
+collecting it. Until a figure for a merge exists, the newest entry is the
+newer of two parallel measurements rather than the current one.
+
+Before it, on the OTHER branch of this merge:
+A clean run is **6-19 minutes**, ending at `5684 passed, 15 skipped`
+(measured 2026-08-26, **16m09**, on `failed-descriptor-cell-and-hover` --
+the FAILED descriptor's reason splitting into a cell form and a full one,
+and the value column learning to elide.
+
+**+19 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    master        d7358ac   COLLECTS 5680
+    the branch              COLLECTS 5699   = 5680 + 19
+    the run                          5684 passed + 15 skipped = 5699
+
+Every one of the 19 reconciles to this branch: 12 in the new
+`test_failure_messages.py` (the pairing rule in six arms, the two shipped
+producer strings, the observational codepage walk and its control, and
+the wiring guard mutation exposed), 5 in `test_property_panel.py` (the
+degradation path, the cell/hover split, the export leak, the recovery
+staleness, and the wide-row-versus-cell pair) and 2 in
+`test_property_panel_long_values.py` (the geometry oracle and the control
+that proves its fixture can still see the defect).
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line,
+which is the pair this file insists on rather than an absence of FAILED
+lines. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**TWO OF THE SEVEN MUTATION ARMS SURVIVED FIRST TIME**, and both were
+real gaps rather than uncatchable equivalents: `setText` no longer
+clearing the export override (a row that fails and then succeeds goes on
+exporting the stale reason), and the provider no longer attaching
+`error_summary` at all (a constant that exists and is unwired). Each was
+re-run against the guard it forced and caught by it.
+
+16m09 sits mid-band; the 6-19 range stands.)
+
+Before it: `5665 passed, 15 skipped`
+(measured 2026-08-25, **14m42**, on
+`alignment-geometry-and-batch-on-properties` -- the 3D alignment's three
+defects, and rebuilding batch on the Properties model.
+
+**+74 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    master        6962868   COLLECTS 5606
+    the branch              COLLECTS 5680   = 5606 + 74
+    the run                          5665 passed + 15 skipped = 5680
+
+Every one of the 74 reconciles to this branch: 28 in `test_batch_panel.py`
+(tri-state selection, the computation matrix, the three cell kinds, the
+group counts, persistence, column groups), 14 in the new
+`test_batch_result_store.py`, 13 in `test_alignment.py` (the flexibility
+contract in two arms, the hydrogen invariant and its own setup guard, the
+partition, the two counts), 10 in the new `test_batch_detail_dialog.py`,
+7 in `test_alignment_panel.py` (visibility, colour mode, the four new
+columns) and 2 in `test_batch_service.py` for the scope field that was
+read by nothing.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line,
+which is the pair this file insists on rather than an absence of FAILED
+lines. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**CI MEASURES THE SAME TREE AT 5660 passed, 19 skipped, 1 deselected**
+(run 32896691945, PR #45, 23m21), which is the same 5680: 5660 + 19 + 1.
+The four extra skips are the GPU-gated conformer gallery guards and the
+deselection is the PubChem network test, both already documented above.
+Worth stating because a reader comparing the two figures should not go
+looking for five lost tests. All three gates RAN -- "Naming benchmark
+holds at 181/181", the regulatory benchmark and the ruleset validation --
+which is the step list rather than the conclusion, and the thing a red
+suite would have taken with it.
+
+14m42 sits mid-band; the 6-19 range stands. The run logged Chromium's
+`Failed to make current since context is marked as lost` partway through
+without costing any skips this time -- the `webgl` fixture's behaviour is
+already recorded two entries down, where the same message took 15 skips
+to 19.)
+
+Before it: `5591 passed, 15 skipped`
+(measured 2026-08-25, **15m37**, on `static-import-reachability` -- the
+reachability guard's three blind spots, the widening to all 277 modules,
+and the mis-routed result that measuring a doc claim turned up.
+
+**+15 collected and 0 REMOVED**, diffed both directions against master at
+`b1961d8`, which COLLECTS 5591:
+
+    master        b1961d8   COLLECTS 5591
+    the branch              COLLECTS 5606   = 5591 + 15
+    the run                          5591 passed + 15 skipped = 5606
+
+Every one of the 15 reconciles to this branch: 11 in
+`test_calculator_reachability.py` (the three walk guards, the refusal, the
+entry-point and wide-direction pair, the narrow half, the sidecar setup
+assertion, and the kind/reason check parametrised over the three declared
+modules) and 4 in `test_calculator_sections.py` (the always-on batch's
+declarations, both routing halves, and the guide's category count).
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line,
+which is the pair this file insists on rather than an absence of FAILED
+lines. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**THIRTEEN MUTATION ARMS, THIRTEEN CAUGHT**, each by the intended guard --
+and one of them is a lesson about the HARNESS rather than the code. M6
+(unmarking a genuinely unreachable module) scored `INVALID -- only 92 of
+93 ran`, because the kind/reason guard is PARAMETRISED OVER THE DECLARED
+SET, so removing a declaration legitimately removes a case. The ran-count
+rule that catches an arm which errored out is the same rule that
+false-positives on an arm which changes the parametrised population. Re-run
+by hand it fails the wide direction, which is the intended catcher.
+
+15m37 sits mid-band; the 6-19 range stands.)
+
+Before it: `5559 passed, 15 skipped`
+(measured 2026-08-20, **13m27**, on `make-the-new-science-reachable` --
+wiring PR #41's four unreachable modules, and the three defects that
+surfaced doing it.
+
+**+185 collected and 5 REMOVED**, over two measurements, diffed both
+directions in a detached worktree with the `PYTHONPATH` override
+asserted before the count was believed:
+
+    branch point   d29a077   COLLECTS 5394
+    the wiring               COLLECTS 5567   = 5394 + 175 - 2
+    the handbook             COLLECTS 5574   = 5567 +  10 - 3
+    the run                           5559 passed + 15 skipped = 5574
+
+**ALL FIVE REMOVALS ARE RENAMES WITH NAMED SUCCESSORS**, which is the
+whole reason to diff rather than subtract, and three of them are one
+event: Lange's Handbook arriving turned "no page-verified radius" into
+"an element the book does not tabulate", so every fixture keyed on the
+first wording had to be re-pointed at an element the BOOK stops short of
+rather than one this project could not check.
+
+    test_a_second_tier_atom_contributes_the_increment_the_paper_states
+      -> test_tert_butyl_carries_the_papers_own_crowding_correction
+      +  test_two_branches_are_not_corrected_and_table_4_is_why
+    test_hydrogens_are_ignored_as_the_paper_simplifies
+      -> test_hydrogens_are_excluded_by_default_as_eq_6_simplifies
+    test_an_element_with_no_page_verified_radius_is_refused
+      -> test_an_element_the_book_does_not_tabulate_is_refused
+    test_every_shipped_radius_says_which_printed_value_it_came_from
+      -> test_every_shipped_radius_carries_its_row_from_the_book
+    test_the_registry_refuses_tsei_on_an_element_with_no_verified_radius
+      -> ..._on_an_element_the_book_does_not_tabulate
+
+The first is the sharpest: it asserted t-Bu = 1.3750 from a sentence the
+paper prints and then REJECTS, so its successors assert 1.8125 and keep
+the two-branch case plain.
+
+The 185 reconcile: 64 in the new `test_calculator_reachability.py`, 44 in
+`test_tsei.py` across both commits, 34 in the new `test_gutmann_bridge.py`,
+11 in `test_polarizability_miller.py` for the paper's printed hybrid
+assignments, 10 in the new `test_griffin_hlb_calculator.py`, 9 in the new
+`test_rescued_science_end_to_end.py`, 7 for the polarizability methods, 5
+for the calculator-claim guard and 2 from the new `langes15` registry
+entry.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line,
+which is the pair this file insists on rather than an absence of FAILED
+lines. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**AN EARLIER RUN OF THIS FIGURE WAS THROWN AWAY AT 25%**, and the reason
+is this file's own rule applied to itself: it was started, and then
+CLAUDE.md and `docs/VALIDATION.md` were edited while it ran.
+`test_docs_are_current.py` READS CLAUDE.md. The rule is not "do not edit
+`src/`" -- it is "do not edit anything the suite reads".
+
+**FOURTEEN MUTATION ARMS, ALL CAUGHT**, and two needed repairing first.
+One found a real gap -- a plausible declared `TOTAL` on the TSEI
+projection passed every guard in `test_declared_totals.py` AND every
+guard in `test_tsei.py`, so that calculator joined the named list. The
+other was not a mutation at all: `{...} if False else decline_total(...)`
+changes no behaviour and scored a confident SURVIVED, which is the fifth
+instance of that lesson here.
+
+13m27 sits mid-band; the 6-19 range stands.)
+
+Before it: `5379 passed, 15 skipped`
+(measured 2026-08-20, **14m35**, on `dialogs-driven-and-documented` at
+`95877c6` -- the deferred backlog: a layout guard, pop-out persistence,
+and five rotted deferral reasons.
+
+**+143 collected and 1 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    branch before   f24be24   COLLECTS 5252
+    after           95877c6   COLLECTS 5394   = 5252 + 143 - 1
+    the run                            5379 passed + 15 skipped = 5394
+
+**THE ONE REMOVAL IS A RENAME WITH A NAMED SUCCESSOR**, which is the
+whole reason to diff rather than subtract. The test asserting that acetic
+acid is absent from the solvent table "and that is deliberate" asserted
+the opposite of what is now true, and **was right when it was written**:
+the only coefficients that existed were predicted. Its successor is
+`test_acetic_acid_is_present_now_and_the_refusal_is_history`, which says
+so in its docstring, and four more acetic-acid guards landed beside it.
+What changed was the literature, not the standard.
+
+(And naming the OLD test here is what reddened `test_docs_are_current`
+on the first attempt at this entry -- a doc may not cite a test the same
+branch deleted, which is the trap this file already records one section
+along. Cite the successor.)
+
+The 143 reconcile to the nine commits: 46 in the new
+`tests/test_tsei.py` (Table 1 parametrised twice over n = 1..20), 27 in
+`test_gutmann.py`, 21 each in `test_polarizability_miller.py` and
+`test_hlb.py`, 10 in `test_sources_are_current.py` (8 new registry
+entries plus 2 new data tables, each parametrised), 7 in
+`test_abraham.py`, 4 each in `test_right_dock_width.py` and
+`test_pop_out_host.py`, and 3 in `test_structure_check_panel.py`.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line,
+which is the pair this file insists on rather than an absence of FAILED
+lines. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**FORTY MUTATION ARMS, ALL CAUGHT**, and three are worth naming because
+they reconstruct recorded failures rather than inventing new ones: the
+2026-08-15 `_LAYOUT_VERSION` omission, Miller's +27% on benzene, and its
+-50% on CCl4. **And one arm found a vacuous guard again** -- the
+Structure Check tests asserted the pop-out MECHANISM while a call site
+could steal the widget back out of its host, leaving an empty strip with
+an orphaned button; all 47 of that panel's tests passed with it applied.
+
+14m35 sits mid-band; the 6-19 range stands.)
+
+Before it: `5237 passed, 15 skipped`
+(measured 2026-08-20, **14m51**, on `dialogs-driven-and-documented` at
+`366640d` -- popping a cramped view out into its own window.
+
+**+31 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    branch before   05018fe   COLLECTS 5221
+    after           366640d   COLLECTS 5252   = 5221 + 31
+    the run                            5237 passed + 15 skipped = 5252
+
+Every one of the 31 reconciles to this commit: 24 in the new
+`tests/test_pop_out_host.py` (26 items -- the `fit_within` table is
+parametrised three ways), 5 in `test_quantum_chemistry_panel.py` for the
+tab machinery, and 3 in `test_alignment_panel.py` for the reported
+panel.
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and there are no crash markers --
+`grep -c "Windows fatal exception"` is 0 and there IS a summary line,
+which is the pair this file insists on rather than an absence of FAILED
+lines. The two `DeprecationWarning`s are the same pre-existing
+six-argument `QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+**A GUARD IN THIS BATCH PASSED WHILE TESTING NOTHING, and only mutation
+said so.** `test_a_detached_view_survives_switching_to_another_tab`
+never showed its panel, and a widget that was never shown receives no
+hide events at all -- so it was green with a `hideEvent` hook installed
+and without one. Nine mutation arms, nine caught, but that one only
+after the guard it was aimed at was repaired to show the panel and
+assert its own setup. Same lesson as `repaint()` and `resize()` on an
+unshown widget, one event along.
+
+14m51 sits mid-band; the 6-19 range stands.)
+
+Before it: `5206 passed, 15 skipped`
+(measured 2026-08-19, **14m57**, on `dialogs-driven-and-documented` at
+`6480834` -- the dialog inventory and its drive step, the screening
+table's clipped header, and the help contracts reaching every dialog a
+bare context can build.
+
+**+11 collected and 0 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    master           a2ec8a8   COLLECTS 5210
+    branch tip       6480834   COLLECTS 5221   = 5210 + 11
+    the run                             5206 passed + 15 skipped = 5221
+
+**THE MERGE BASE IS MASTER**, checked rather than assumed, so nothing
+landed underneath this branch and the figure will be master's when it
+merges.
+
+**11 AND NOT THE 9 THE TWO NEWEST COMMITS ADDED**, which is the whole
+reason to diff rather than subtract: the extra two are
+`test_virtual_screening_dialog.py`, added earlier on the same branch when
+the dialogs had no coverage at all. Every one of the 11 reconciles to a
+commit:
+
+    13b0b46  +2   the screening table's two column-sizing guards
+    da7262c  +6   the clear-button exclusion (2), the dialog blanket
+                  and its walk (4)
+    6480834  +3   the element cell's live tooltip, the printed spin
+                  marks, and the `*` count against the paper
+
+**THE SKIPS ARE THE DETERMINISTIC 15** and no crash markers -- `grep -c
+"Windows fatal exception"` is 0 and there IS a summary line, which is the
+pair this file insists on rather than an absence of FAILED lines. The
+background task also exited 0, which on its own proves nothing: this file
+already records a crashed run that exited 0 with no FAILED lines in it.
+
+14m57 sits mid-band; the 6-19 range stands. The two
+`DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.)
+
+Before it: `5195 passed, 15 skipped`
+(measured 2026-08-19, **14m26**, on
+`drive-consolidate-and-finish-the-contracts` -- the baseline drive's three
+defects, the two geometry decisions, and the help migration reaching zero.
+
+**+14 collected and 2 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    branch point   60c418a   COLLECTS 5198
+    branch tip               COLLECTS 5210   = 5198 + 14 - 2
+    the run                           5195 passed + 15 skipped = 5210
+
+**BOTH REMOVALS ARE THE RETIRED MIGRATION SCAFFOLDING, and they have one
+named successor between them.** `test_the_migration_debt_never_grows` and
+`test_a_finished_surface_does_not_regress` existed only because `missing`
+could not be a failure while a migration was in flight; at zero,
+`test_every_control_carries_a_help_contract` says what both said and
+needs no fixture.
+
+**CI MEASURES THE SAME TREE AT 5190 passed, 19 skipped, 1 deselected**,
+which is the same 5210. The four extra skips are the GPU-gated conformer
+gallery guards and the deselection is the PubChem network test -- both
+already documented above, and worth stating because a reader comparing
+the two figures should not go looking for five lost tests.
+
+**THE ONE FAILURE OF THE FIRST RUN WAS A DOC CITATION, AND IT PASSED
+TWICE BEFORE IT FAILED.** `test_every_file_a_doc_cites_still_exists`
+caught CLAUDE.md naming the two fixtures this branch deletes. It had been
+run twice after the deletion and passed both times, because `_repo_files`
+asks `git ls-files` -- a file removed from the working tree but still in
+the INDEX is still tracked and still resolves, so the citation only broke
+once `git add -A` staged the removal. **A green docs run taken mid-change
+is not evidence about the tree you are about to commit.**
+
+The two `DeprecationWarning`s are the same pre-existing six-argument
+`QMouseEvent` overload in `test_dock_title_bar.py` and
+`test_trajectory_player.py`.
+
+14m26 sits mid-band; the 6-19 range stands.)
+
+Before it: `5183 passed, 15 skipped`
+(measured 2026-08-18, **16m09**, on `isotopes-on-the-canvas` -- the
+isotope reaching the canvas, the laptop-sized dialog, the right-click
+menu, and the isomers.
+
+**+77 collected and 4 REMOVED**, diffed both directions in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed:
+
+    branch point   363ae36   COLLECTS 5125
+    branch tip               COLLECTS 5198   = 5125 + 77 - 4
+    the run                           5183 passed + 15 skipped = 5198
+
+**THE LAST SEVEN WERE ADDED AFTER THE FIRST FULL RUN CAME BACK GREEN AT
+5176**, which is the entry worth reading: every one of them guards a
+defect the app was DRIVEN to find -- the contradicting caption, the
+button hint naming the wrong nuclide, `IT` as a raw token, the status bar
+claiming "ready" when nothing was armed, its two seams, and the
+stay-armed pin. A green suite is a statement about the tests that exist.
+
+**ALL FOUR REMOVALS ARE RENAMES WITH SUCCESSORS, AND THAT IS THE WHOLE
+REASON TO DIFF RATHER THAN SUBTRACT.** Every one described a table that
+held ground states only, and every one has a named replacement asserting
+the same thing about the table that now holds states:
+
+    test_the_table_is_ground_states_only
+      -> test_the_table_carries_every_state_and_the_counts_reconcile
+    test_technetium_99m_is_not_in_the_table
+      -> test_technetium_99m_is_here_and_says_which_state_it_is
+    test_every_key_is_its_own_z_and_a
+      -> test_every_key_is_its_own_z_and_a_and_state
+    test_there_are_exactly_253_stable_nuclides
+      -> test_there_are_exactly_253_stable_GROUND_STATES
+
+The third and fourth are the interesting pair: a key gained a state part
+that must be asserted or Tc-99m collides onto Tc-99 and a dict silently
+keeps the last one written, and 253 became "253 ground states, plus
+Ta-180m named by hand" rather than a loosened bound.
+
+**THE SKIPS ARE THE DETERMINISTIC 15**, and no crash markers -- `grep -c
+"Windows fatal exception"` is 0 and there is a summary line, which is the
+pair this file insists on rather than an absence of FAILED lines.
+
+15m37 sits inside the band and near its top; the 6-19 range stands. The
+two `DeprecationWarning`s are the pre-existing six-argument `QMouseEvent`
+overload in `test_dock_title_bar.py` and `test_trajectory_player.py`.)
+
+Before it: `5110 passed, 15 skipped`
+(measured 2026-08-18, **17m00**, on `nuclear-isotopes-and-decay` AT ITS
+MERGE OF MASTER -- the NUBASE table, the isotope picker, the two
+radioactivity modes, the isotope write and the decay chains, plus
+master's help-contract sweep and chain-qualified colouring arriving from
+PR #36.
+
+**MEASURED ON THE MERGE, WHICH IS THE WHOLE REASON THE EARLIER FIGURE HAD
+TO BE THROWN AWAY.** This entry first recorded `5056 passed` at 16m03 on
+the branch alone, and master moved underneath it while the PR was open --
+so that number described a tree that no longer existed. The two counts
+reconcile exactly, which is what says nothing was lost in the merge:
+
+    branch point   76d63d3   COLLECTS 4855
+    branch tip               COLLECTS 5071   = 4855 + 220 - 4
+    master         1f1a0c7   COLLECTS 4808   = 4754 + 54
+    the merge                COLLECTS 5125   = 5071 + 54
+    the run                           5110 passed + 15 skipped = 5125
+
+**+220 collected and 4 REMOVED** for this branch's own work, diffed both
+directions in a detached worktree with the `PYTHONPATH` override asserted
+before the count was believed.
+
+**ALL FOUR REMOVALS ARE ACCOUNTED FOR AND NONE IS A LOST TEST**, which is
+the whole reason to diff rather than subtract. Three are N8 replacements
+-- the atom drawing used to explain why polonium had no neutron count and
+now names Po-209, so tests asserting the absence became tests asserting
+the name, with the "never INVENTED" invariant surviving under a new
+name. The fourth is a PARAMETRISED ID changing:
+`test_a_real_word_finds_the_right_thing_first[isotope-Periodic Table...]`
+became `[isotope-Isotopes...]`, which is one case being re-pointed rather
+than dropped.
+
+**THE SKIPS ARE BACK TO THE DETERMINISTIC 15**, from the previous entry's
+19 -- and that entry says why: the extra four were a GPU context lost
+partway through an 18-minute run, which the `webgl` fixture correctly
+reports rather than failing on. Nothing here needs a display.
+
+The two `DeprecationWarning`s are pre-existing, in `test_dock_title_bar.py`
+and `test_trajectory_player.py`: the six-argument `QMouseEvent` overload.
+New code in this branch uses the form that takes a global position.
+
+**AND THE MERGE ITSELF WAS NOT FREE, WHICH IS WORTH KNOWING BEFORE THE
+NEXT LONG BRANCH.** GitHub would not run CI on the PR at all until the
+conflicts were resolved -- a `pull_request` workflow builds against the
+merge commit, and one cannot exist while the branch conflicts, so the
+run list was simply EMPTY rather than red. Two of the four conflicts were
+master telling this branch it was incomplete: a menu action added here
+needed the `_document()` contract master had just introduced, and a panel
+button using a raw `setToolTip` was refused outright by the migration-debt
+guard, which is `test_every_control_carries_a_help_contract` now that the
+debt is zero. The guard caught that, not review
+-- the help layer working on its first contact with code written before
+it existed.)
+
+Before it: `4836 passed, 19 skipped`
+(measured 2026-08-18, **17m56**, on `periodic-table-and-lewis-makeover`
+at the docs commit -- the periodic-table correctness work and the Lewis
+readability work. **+102 collected items and 1 REMOVED**, which is the
+first entry in this list with a removal in it. The abstained-bond test
+asserting it is "the only line in the picture" is false once bond guides
+exist, so it became
+`test_an_abstained_bond_is_the_only_line_when_guides_are_off` and asserts
+the original claim in the configuration where it still holds, rather than
+being weakened until green. Diffed both
+directions with `comm` against a detached worktree at `068208e`, with the
+`PYTHONPATH` override asserted before the count was believed.
+
+    branch point  068208e   COLLECTS 4754
+    after                   COLLECTS 4855   = 4754 - 1 + 102
+    the run                          4836 passed + 19 skipped = 4855
+
+**THE SKIPS WENT 15 -> 19 AND IT IS THE GPU, NOT A COVERAGE HOLE.** None
+of the 102 new tests skips, and none of the seven touched files does
+either -- measured, 266 passed and 0 skipped across them. Every subset
+run of the skip-capable files gives **15**. The full run's log carries
+`Failed to make current since context is marked as lost` from Chromium
+partway through, after which the `webgl` fixture measures no context and
+correctly skips naming the absent prerequisite rather than failing and
+blaming the code. That is the fixture doing its job; treat 15 as the
+deterministic figure and up to 19 as what an 18-minute run costs a GPU
+context.
+
+Before it: `4793 passed, 15 skipped`
+(measured 2026-08-17, **18m12**, on `docking-box-from-the-ligand` -- the
+chain-qualified residue selection. **+5 collected items and +5 test
+FUNCTIONS**: 2 in `test_visualization.py` for the composed key and its
+degrade-to-bare path, 3 in `test_molstar_viewer_backend.py` for the
+emitted clause, the chain-only selection and the shared builder.
+4803 -> 4808 collected; 4793 + 15 = 4808. Skips unchanged at 15.)
+
+Before it: `4788 passed, 15 skipped`
+(measured 2026-08-17, **22m19**, on `docking-box-from-the-ligand` -- the
+Properties panel, the Docking panel and the dock title bar. **+1 collected
+item and +1 test FUNCTION**,
+`test_the_derive_buttons_live_tooltip_still_carries_its_contract` in
+`test_docking_panel.py`. 4802 -> 4803 collected; 4788 + 15 = 4803.
+
+**THE BAND WENT 6-19 TO 6-23 ON THIS RUN, AND IT IS UNEXPLAINED.** The
+previous entry is 14m07 on a tree ONE test smaller -- a 58% spread with
+nothing to account for it, on the same machine, with nothing else running
+(the Mol* probes in this session finished before it started). Widened so a
+reader whose run takes 20 minutes does not conclude the suite has hung, and
+recorded as the outlier it is rather than as a new normal. This is the
+fifth consecutive entry to say the band is a range with no predictive value
+inside it.)
+
+Before it: `4787 passed, 15 skipped`
+(measured 2026-08-17, **14m07**, on `docking-box-from-the-ligand` -- the
+menu bar's help contracts. **+5 collected items and +5 test FUNCTIONS**,
+all in `test_tooltip_coverage.py`: the three menu-title guards, the
+menu-tooltip visibility guard, and the finished-surface regression guard.
+4797 -> 4802 collected; 4787 passed + 15 skipped = 4802. Skips unchanged
+at 15.
+
+**THE RUN BEFORE THIS ONE WAS RED, AND THE FAILURE WAS REAL** --
+`test_nothing_tells_the_reader_to_go_to_the_3d_viewer_tab`, on a sentence
+in a tooltip that contradicted a design decision. See the menu-bar section
+above; it is the argument for running the 13 source-scanning guards
+together before paying for a full run.)
+
+Before it: `4782 passed, 15 skipped`
+(measured 2026-08-17, **13m52**, on `docking-box-from-the-ligand` -- the
+synthesised-`QAction`-tooltip reclassification. **+2 collected items and
++2 test FUNCTIONS**, both in `test_tooltip_coverage.py`: the menu actions
+Qt documented for us, and the narrow-half control that keeps a real
+hand-written action tooltip counting as debt. 4795 -> 4797 collected;
+4782 passed + 15 skipped = 4797. Skips unchanged at 15.)
+
+Before it: `4780 passed, 15 skipped`
+(measured 2026-08-17, **13m54**, on `docking-box-from-the-ligand` -- the
+Quantum Chemistry panel's help contracts and the `QTabBar` exclusion.
+**+2 collected items and +2 test FUNCTIONS**, both in
+`test_tooltip_coverage.py`: the tab-bar scroll buttons and the
+does-not-swallow-the-panels control.
+
+    before  1b30e1f   COLLECTS 4793
+    after             COLLECTS 4795   = 4793 + 2
+    the run                    4780 passed + 15 skipped = 4795
+
+Diffed both directions in a detached worktree with the `PYTHONPATH`
+override asserted before the count was believed: **0 removed, 2 added**.
+Skips unchanged at 15 -- neither new test needs a display.
+
+**39 CONTRACTS WERE ADDED AND THE SUITE GREW BY 2**, which is the staged
+migration working as designed rather than a coverage hole: the contracts
+are checked by the guards that already existed, and only genuinely new
+BEHAVIOUR -- the exclusion rule -- needed new tests.)
+
+Before it: `4778 passed, 15 skipped`
+(measured 2026-08-17, **14m27**, on `docking-box-from-the-ligand` -- the
+calculator help contracts. **+1 collected item and +1 test FUNCTION**,
+`test_one_concept_is_not_split_across_many_help_ids`, written because a
+mutation walked straight through the existing guards. 4792 -> 4793
+collected, 0 removed.)
+
+Before it: `4777 passed, 15 skipped`
+(measured 2026-08-17, **13m54**, on `docking-box-from-the-ligand` -- the
+help-contract layer. **+9 collected items and +9 test FUNCTIONS**, all in
+`test_tooltip_coverage.py`: the three-surface walk, contract validity,
+help_id-means-one-thing, anchor and source resolution, the placeholder
+floor, the migration debt, the shared-discovery check, and the exclusion
+reasons.
+
+    before  a91fa41   COLLECTS 4783
+    after             COLLECTS 4792   = 4783 + 9
+    the run                    4777 passed + 15 skipped = 4792
+
+**THE FIRST RUN OF THIS FIGURE CRASHED, AND `grep FAILED` SAID IT WAS
+FINE.** It died at 4057 of 4792 with `Windows fatal exception: access
+violation`, top frame `conftest.py pytest_runtest_logfinish` -- the
+teardown collect. There are no `FAILED` lines in a run that never reaches
+the end, so a grep for them returned nothing and read as success, and the
+background task reported exit 0. **Check for a SUMMARY LINE, not for an
+absence of failures** -- `grep -E "[0-9]+ passed"` and
+`grep -c "Windows fatal exception"`. This is the same lesson as the
+skipped-gates one two sections down, one level lower.
+
+The likely cause was a module-scoped fixture holding **372 live Qt
+references** -- widgets, `QAction`s and `QTableWidgetItem`s, which are not
+even `QObject`s -- and releasing them all at once into that collect. The
+fixture extracts plain data and drops every handle now, which is better
+regardless. **The re-run was clean, and that is ONE run**: this crash class
+is documented below as moving between batches, and n=1 is not evidence
+either way.
+
+Also note the collected-count diff needs `--include-untracked`: four of
+the six files were new, so a plain `git stash push` left them in both arms
+and reported 0 added.)
+
+Before it: `4768 passed, 15 skipped`
+(measured 2026-08-17, **15m10**, on `docking-box-from-the-ligand` -- the
+search box drawn in the Mol* viewer. **+11 collected items and +11 test
+FUNCTIONS**: 7 in `test_molstar_viewer_backend.py` for the box's committed
+state, the latest-wins burst, both clear/replace races, the queued-clear
+sentinel and surviving a structure reload; 4 in
+`test_main_window_docking_visualization.py` for panel visibility, spinbox
+redraw, the no-receptor case and the end-to-end geometry invariant.
+
+    before  bf447a0   COLLECTS 4772
+    after             COLLECTS 4783   = 4772 + 11
+    the run                    4768 passed + 15 skipped = 4783
+
+Diffed both directions, **0 removed, 11 added**. Skips unchanged at 15 --
+the Mol* tests run under `offscreen`, where its state management works
+without a GPU even though rendering does not.
+
+**MOL* WAS SHOWING A DIFFERENT MOLECULE FROM THE ONE BEING DOCKED**, and
+that is the finding this commit exists for -- see the section below.)
+
+Before it: `4755 passed, 15 skipped`
+(measured 2026-08-17, **17m18**, on `docking-box-from-the-ligand` -- the
+docking search box deriving from the receptor's own ligand. **+16 collected
+items and +16 test FUNCTIONS**, so the two deltas agree again: 6 in
+`test_binding_site.py` for `describe_box_placement`'s three relationship
+states plus the centre-to-centre and tolerance guards, and 10 in
+`test_docking_panel.py` for the derived/manual/none payload paths, the
+stale-box reset, idempotence and the pose-column tooltips.
+
+    master 068208e   COLLECTS 4754
+    after            COLLECTS 4770   = 4754 + 16
+    the run                   4755 passed + 15 skipped = 4770
+
+Diffed both directions with `--collect-only -q | grep :: | sort` and
+`comm`: **0 removed, 16 added**. Skips unchanged at 15 -- none of the 16
+needs a display. Baseline derived with `rev-parse` and a `--collect-only`
+rather than read from the entry below, which for once was already correct.
+
+17m18 sits inside the band and near its top. The 6-19 range stands.)
+
+Before it: `4739 passed, 15 skipped`
+(measured 2026-08-17, **15m22**, on master at `8c0c257` + the CIP
+staleness fix. **+19 collected items and +19 test FUNCTIONS**, so for once
+the two deltas agree: 9 in `test_ketcher_editor_backend.py` against the
+real bundle, 5 in `test_molecule_editor_widget.py`, 4 in
+`test_ketcher_bundle_is_current.py` -- three of those the parametrised
+`window.openchem*` guard, which covers the two globals that had shipped
+unguarded -- and 1 in `test_main_window_menu_actions.py`. Diffed both
+directions against `8c0c257`'s 4735, **0 removed, 19 added**. Skips
+unchanged at 15; the run reconciles exactly, 4739 + 15 = 4754 collected.
+
+**THIS FIGURE WAS 4738 AN HOUR EARLIER, AND THE +1 IS THE POINT.** That
+run was green and honest, and the pool-id bug below was live through all
+of it -- the guard that catches it was written afterwards, from a bug
+report. A green suite is a statement about the tests that exist.
+
+**THE BASELINE WAS DERIVED, NOT READ FROM THE ENTRY BELOW, and it was
+stale by 10.** That entry records 4710 + 15 = 4725, while master at
+`8c0c257` COLLECTS 4735 -- the release commit moved it. Reading the entry
+would have reported +28. `rev-parse`, a detached worktree and a
+`--collect-only`, with the `PYTHONPATH` override asserted by
+`python -c "import openchem; print(openchem.__file__)"` before the count
+was believed.
+
+**AND THE FIRST RUN OF THIS FIGURE WAS THROWN AWAY, WHICH IS THE ENTRY
+WORTH READING.** It was started and then six files were edited while it
+ran -- five of them DOCSTRING-ONLY, which is exactly the change a person
+talks themselves into believing is inert. It came back
+`2 failed, 4736 passed`:
+
+    test_generation_has_one_implementation_reached_two_ways
+    test_every_intercepted_name_has_a_route
+
+Both pass in isolation, and neither had anything to do with the change.
+**They read source FROM DISK** -- the first `ast.parse`s every file under
+`src/openchem`, the second reads `main.jsx` and
+`ketcher_editor_backend.py` -- so they parsed files caught mid-write. Two
+plausible, alarming, entirely fictitious regressions. The rule elsewhere
+in this file is that a run concurrent with anything touching `src/` is not
+a measurement; this is what that costs when ignored, and "it was only a
+docstring" is not an exemption, because a source-scanning test does not
+care what the bytes MEAN.
+
+Before it: `4710 passed, 15 skipped`
+(measured 2026-08-16, **15m29**, on `sources-registry` -- the provenance
+registry. **+77 collected items**, and for once the interesting number is
+that only 4 of them are new test FUNCTIONS in existing files: 73 are
+`test_sources_are_current.py`, heavily parametrised over the registry's 53
+entries and the 7 shipped data tables, plus 2 in `test_lewis_adduct.py` and
+2 from `docs/SOURCES.md` joining the parametrised `DOCS` list in
+`test_docs_are_current.py`.
+
+    branch point  1f0cd6b   COLLECTS 4648
+    after                   COLLECTS 4725   = 4648 + 77
+    the run                          4710 passed + 15 skipped = 4725
+
+Diffed both directions, **0 removed, 77 added**, measured in a detached
+worktree with the `PYTHONPATH` override asserted before the count was
+believed. Skips unchanged at 15 -- nothing new needs a display.
+
+15m29 sits mid-band. The 6-19 range stands.)
+
+Before it: `4633 passed, 15 skipped`
+(measured 2026-08-16, **14m16**, on `solubility-base-bias` -- the base-bias
+power study at criteria v3. **+5 test functions**, all in
+`test_abraham.py`, none parametrised: the experiment/production agreement
+guard, the evidence-reading guard, the artifact-reproducibility guard, the
+endpoint-eligibility guard and the duplicate-table refusal. Skips unchanged
+at 15; 4643 -> 4648 collected, diffed both directions, 0 removed.
+
+**PRODUCTION IS UNTOUCHED BY THIS ONE.** The verdict was `SURFACE_ONLY`,
+so `production_change_permitted = false` and `git diff src/` is empty for
+the whole power study -- the guard against fixing the model once the
+answer is inconvenient.)
+
+Before it: `4628 passed, 15 skipped`
+(measured 2026-08-16, **13m29**, on `solubility-base-bias` at `435130d` --
+the base-bias verdict and the arm-status work. **+6 test functions**, all
+in `test_abraham.py`, none parametrised. Skips unchanged at 15.
+
+    master f9a4627   COLLECTS 4637
+    after            COLLECTS 4643   = 4637 + 6
+    the run                   4628 passed + 15 skipped = 4643
+
+Diffed both directions, 0 removed. **THE BASELINE WAS 4637 AND NOT THE
+4632 THIS FILE CARRIED EARLIER IN THE DAY** -- that figure predated the
+five acetic-acid guards, and reading it would have reported +11. Derived
+with `rev-parse` and a `--collect-only` in a detached worktree, with the
+`PYTHONPATH` override asserted before the count was believed.
+
+13m29 sits mid-band. The 6-19 range stands.)
+
+Before it: `4622 passed, 15 skipped`
+(measured 2026-08-16, **14m03**, on `solubility-predictor` at `60643d8` --
+the two open edges closed. **+5 test functions**, all in
+`test_abraham.py`: the predicted-only reason, its reachability through the
+calculator, the no-shipped-coefficients guard, water-first ordering, and
+the familiar-solvent filter. Skips unchanged at 15.
+
+**THE ENTRY BELOW WENT STALE BY 5 WITHIN THE SAME SESSION**, which is the
+drift this section keeps recording -- and this time the tests that made it
+stale were written an hour after the figure was taken, by the same person,
+who then had to re-measure rather than subtract. 14m03 against the
+previous run's 19m18 on a tree FIVE tests larger is a 27% spread with
+nothing to explain it, so the 6-19 band stands as a range with no
+predictive value inside it.)
+
+Before it: `4617 passed, 15 skipped`
+(measured 2026-08-16, **19m18**, on `solubility-predictor` at `bd91fce` +
+the non-aqueous lookup route. **+24 collected items and +24 test
+functions**, every one in the new `tests/test_abraham.py` and none of them
+parametrised, so for once the two deltas are the same number.
+
+**THE BAND WENT 6-18 TO 6-19, AND THIS RUN IS ITS NEW TOP.** 19m18 is the
+slowest full run this file has recorded. Nothing explains it -- the tree
+is 24 tests larger than a run that took 14m08, and 24 non-webview tests
+cannot cost five minutes. Recorded as the outlier it is rather than as a
+new normal, which is the same caution the four entries below already
+carry. Do not read a 19-minute run as a hang.
+
+**SKIPS UNCHANGED AT 15.** None of the 24 needs a display, so
+4593 + 24 = 4617 passed and 15 skipped is the whole delta accounted for.
+
+**THE BASELINE WAS DERIVED WITH `rev-parse`, NOT READ FROM THE ENTRY
+BELOW** -- and that mattered, because the entry below says 4563 and the
+branch had already moved to 4593 passed / 4608 collected at `bd91fce`
+(the Platts-reading commit added tests). Reading 4563 as the baseline
+would have reported +54 instead of +24.
+
+    branch before  bd91fce   COLLECTS 4608
+    after                    COLLECTS 4632   = 4608 + 24
+    the run                           4617 passed + 15 skipped = 4632
+
+**The +24 was DIFFED, not subtracted** -- `--collect-only -q | grep :: |
+sort` on both trees, `comm -23` for removals and `comm -13` for
+additions: **0 removed, 24 added**. Measured in a detached worktree with
+`PYTHONPATH` pointed at ITS `src`, and the override asserted with
+`python -c "import openchem; print(openchem.__file__)"` before the count
+was believed -- without that, `openchem.pth` silently imports the MAIN
+`src` and you measure the old tests against the new source.)
+
+Before it: `4563 passed, 15 skipped`
+(measured 2026-08-16, 14m08, on `solubility-predictor` -- the solubility
+predictor. **+65 collected items and +55 test functions** over master's
+4513 at `6f8a8c8`: 55 in `test_solubility.py`, 6 in `test_logd.py`
+pinning the shared-factor extraction, 2 in `test_fact_view.py` for the
+compact form, and 2 in `test_docs_are_current.py` from the new
+assessment doc joining its parametrised list.
+
+**The +63 was DIFFED, not subtracted** -- `--collect-only -q | grep :: |
+sort` on both trees, `comm -23` for removals and `comm -13` for
+additions: 0 removed. A bare subtraction cannot tell "63 added" from "70
+added and 7 quietly deleted".
+
+**SKIPS UNCHANGED AT 15.** None of the new tests needs a display, so
+4498 + 65 = 4563 passed and 15 skipped is the whole delta accounted for.
+
+**AND THE FIGURE WAS WRITTEN DOWN WRONG ONCE, WITHIN THE HOUR.** It was
+first recorded as 4576, which was a real measurement taken BEFORE the
+last two tests were written -- the two `FactView` guards that the live
+check forced. The run then reported 4563 + 15 = 4578 and did not
+reconcile. Nothing was stale about the method; the count was simply
+taken too early. **Re-collect AFTER the last test lands, and reconcile
+the run against it** -- a 2-item gap is exactly the size that reads as a
+rounding error and is not one.
+
+Note master had already moved 4498 -> 4513 since the entry below, which
+is the same drift one level up: derive the baseline with `rev-parse` and
+a `--collect-only`, never from the previous entry.
+
+A clean run is **6-18 minutes**, ending at `4498 passed, 15 skipped`
+(measured 2026-08-15, 15m32, on master at `4ba375e` — the right dock's
+starting width. **+5 test functions**, all in
+`test_right_dock_width.py`: the width table, the floor, the cap, the
+saved-layout gate, and that the method resizes anything at all.
+Collected 4508 -> 4513, skips unchanged at 15.)
+
+**THE THREE FIGURES IN THIS SESSION RAN 11m55, 16m59 AND 15m32** on
+trees within eight tests of each other. That is the band's whole story:
+it is a range, not a prediction, and the entry below already says not to
+narrow it on a fast run. Nothing here changes it.
+
+**THE FIGURE WENT STALE BY 5 WITHIN THE HOUR, WHICH IS THE POINT.** The
+tests that made it stale were added by the commit directly below this
+one, and the gap was noticed only because somebody went looking. That is
+the same drift the entries below record at 11 tests and at 111 — the
+instrument is `--collect-only`, it costs six seconds, and it is the only
+thing that makes "did my change add what I think it did" a question with
+an answer.
+
+Before it: `4493 passed, 15 skipped`
+(measured 2026-08-15, 16m59, on master at the ORCA scratch-cleanup work.
+**+2 test functions**, both in `test_quantum_chemistry_service.py`: the
+scratch-isolation guard and the deterministic retry guard. Collected
+4506 -> 4508, skips unchanged at 15.)
+
+**THE BAND HAS NOW ABSORBED ITS FOURTH UNEXPLAINED SWING.** 11m55 and
+16m59 on trees differing by TWO tests is a 43% spread. Same machine,
+same tree to within two functions, nothing to explain it — which is now
+the fourth consecutive entry to say so. **Treat 6-18 as a range with no
+predictive value inside it**, and do not read a slow run as a hang or a
+fast one as an improvement.
+
+**THE SUITE LEAVES THE REAL DATA ROOTS UNTOUCHED, and that is measured
+rather than assumed.** Snapshotted `data_root`, `cache_root`,
+`space_free_cache_root` and `default_data_root` either side of a full
+run: **+0 -0 on all four**. Worth having as a baseline, because one file
+WAS writing into them until this commit (see the ORCA scratch section)
+and nothing would have noticed. Re-measure it the same way if a service
+gains a new on-disk artefact:
+
+```bash
+uv run --no-sync python -c "from openchem import paths; print(paths.data_root(), paths.space_free_cache_root())"
+```
+
+Before it: `4491 passed, 15 skipped`
+(measured 2026-08-15, 11m55, on master at `2d5f0c8` — the Properties
+panel's width clip. **+8 test functions**, all in
+`test_property_panel_long_values.py`: the rendered-overflow oracle and
+its two boundary controls, the production-path and wide-row caption
+guards, viewport stability, the two reported strings, and the export
+path. Skips unchanged at 15 — none of the eight needs a display.)
+
+**MEASURED ON MASTER ITSELF**, on a clean tree, so none of the
+branch-versus-merge reasoning below applies. Counts reconcile:
+
+    before  f3b1689   COLLECTS 4498
+    after   2d5f0c8   COLLECTS 4506   = 4498 + 8
+    the run                    4491 passed + 15 skipped = 4506
+
+**+8 COLLECTED AND +8 FUNCTIONS, which is worth stating** because the
+entry below had to separate them: nothing added here is parametrised, so
+for once the two deltas are the same number.
+
+**THE BAND IS UNMOVED AND THIS RUN IS NEAR ITS FLOOR.** 11m55 against the
+previous entry's 18m00 on a tree eight tests LARGER — a 51% spread with
+nothing to explain it, which is the same unexplained variance this
+section has now recorded three times. Do not narrow the band on it.
+
+**THE FULL SUITE CAUGHT WHAT NINE TARGETED FILES DID NOT.** The width
+work was verified against `test_property_panel*.py`,
+`test_calculator_sections.py`, `test_right_dock_width.py`,
+`test_docs_are_current.py`, `test_layering.py`, `test_qt_object_disposal.py`
+and `test_empty_states.py` — 188 passed — and the full run then failed
+`test_result_presentation.py::test_every_descriptor_row_shows_its_display_name_and_units`,
+whose probe read a caption's `.text()`. That is now a width-dependent
+view, so `'Molecular Weight (g/mol)'` came back `'Molecul…'`. **A
+targeted set is chosen from where you think you changed something**, and
+the third consumer of caption text was somewhere else.
+
+Before it: `4483 passed, 15 skipped`
+(measured 2026-08-15, 18m00, on master's merge `f3b1689` — the
+regulatory-coverage work: four rulesets in two domains, plus date-aware
+screening. **+111 collected items and +81 test functions** over
+`ca87c60`, all of them in three files: 53 functions / 83 items in
+`test_regulatory_rulesets.py`, 18 in `test_regulatory_engine.py` for the
+date filtering, 10 in `test_regulatory_calculator.py`.)
+
+**THE TWO DELTAS ARE DIFFERENT NUMBERS AND BOTH ARE RECORDED**, because
+this section has conflated them before. 111 is collected ITEMS, 81 is
+distinct test FUNCTIONS, and the 30-item gap is parametrisation of the
+new functions — measured, not inferred: the set of added items belonging
+to a PRE-EXISTING function is EMPTY, so no old function merely gained
+cases. A `--collect-only` count moves for either reason and cannot tell
+you which; strip the `[param]` suffix and diff again to find out.
+
+**THE BAND DID NOT MOVE.** 18m00 sits exactly ON the top of the 6-18
+band rather than past it, so 6-18 stands as written. Worth saying
+explicitly because the two entries below EACH widened it and each
+flagged the widening as unexplained — a reader scanning this list should
+not read a third consecutive stretch into it.
+
+**THE SKIPS ARE UNCHANGED AT 15.** Not one of the 111 is gated on
+`grid_display` or on anything else, so 4372 + 111 = 4483 passed and
+11 + 4 = 15 skipped is untouched. That is the whole delta accounted for.
+
+**MEASURED ON A BRANCH, AND TREE-IDENTICAL TO THE MERGE.** `f3b1689^2`
+is `f5f8ae5` and `git diff f5f8ae5 f3b1689` is **empty**, so the merge
+commit carries the branch's tree byte for byte — checked AFTER merging
+rather than predicted, which is the whole point of the rule. The
+merge-base equals `^1`, so nothing landed while the branch was open:
+
+    master before  ca87c60   COLLECTS 4387
+    merge          f3b1689   COLLECTS 4498   = 4387 + 111
+    the run                          4483 passed + 15 skipped = 4498
+
+**THE PARENT WAS NOT THE COMMIT ANYBODY REMEMBERED, and that is the
+warning rather than a footnote.** The obvious baseline for this figure is
+`c9cba3b`, the `wire-the-gallery-overlay` merge the entry below was
+measured against — and it is WRONG. `git rev-parse f3b1689^1` is
+`ca87c60`, a `docsweep-after-the-gallery-overlay` merge that landed in
+between and that no entry in this list mentions. It happens to collect
+4387 as well, so the arithmetic would have come out right while naming
+the wrong commit. **Derive the baseline with `rev-parse`, never from
+memory or from the entry above** — this is the same drift as the 4176
+entry being stale by 11, caught one step earlier.
+
+**The +111 was DIFFED, not subtracted.** `--collect-only -q | grep :: |
+sort` on both trees, `comm -23` for removals and `comm -13` for
+additions: **0 removed, 111 added**, and the same on function names, 0
+removed and 81 added. A bare subtraction cannot distinguish "111 added"
+from "130 added and 19 quietly deleted", and this section has twice
+recorded a delta that was wrong.
+
+**A WORKTREE HAS NO `.venv`, AND THE OBVIOUS WORKAROUND MEASURES THE
+WRONG TREE.** `uv run` in a fresh worktree builds an empty venv and
+reports `No module named pytest`; reaching for the main checkout's
+interpreter instead silently imports the MAIN `src`, because
+`openchem.pth` is an editable install pointing there — so the baseline
+collection would be the old tests against the new source. `PYTHONPATH`
+precedes `.pth` additions in `sys.path`, so this is the cheap fix, and
+it costs 7 seconds rather than a full sync:
+
+```bash
+git worktree add --detach /tmp/base f3b1689^1
+cd /tmp/base && PYTHONPATH=/tmp/base/src \
+  "/d/Random Projects/OpenChem Studio/.venv/Scripts/python.exe" \
+  -m pytest --collect-only -q | tail -2
+```
+
+**Assert the override worked before believing the count** — one
+`python -c "import openchem; print(openchem.__file__)"` says which `src`
+you are about to measure, and the failure mode is a plausible number
+from the wrong tree.
+
+Before it: `4372 passed, 15 skipped`
+(measured 2026-08-14, 17m50, on `wire-the-gallery-overlay` — the gallery
+overlay's last wire, +20 test functions over master's `c3ab297`: 12 in
+`test_spatial_overlay_widget` for the per-cell routing, 4 in
+`test_spatial_annotations` for the page's build race, grid replacement,
+label limitation and caption clear, 3 in `test_webgl_gate` for the
+shared display gate, and 1 in `test_adopt_conformer` for the readability
+thresholds.
+
+**+4 SKIPS, and they are the four new PAGE guards** — every one is gated
+on `grid_display`, like the gallery tests already there. The 16 other new
+tests use fakes and run everywhere. So 4356 + 16 = 4372 passed and
+11 + 4 = 15 skipped, which is the whole delta accounted for.
+
+**THE BAND WENT 6-16 TO 6-18 ON THIS RUN**, and the same caution applies
+as the last time it widened: 14m11 and 17m50 on trees differing by ONE
+test function is a 25% spread that the added test cannot explain. It is
+widened so a reader whose run takes 17 minutes does not conclude the
+suite has hung, and recorded as unexplained rather than as a new normal.
+
+**A BRANCH FIGURE, AND HERE IS WHAT MAKES IT CITABLE.** It adds test
+functions, so the identical-tree rule below does NOT apply — the weaker
+one does: `origin/master` at `c3ab297` **is** the merge-base, so nothing
+landed while the branch was open. Counts reconcile exactly, in seconds:
+
+    master        c3ab297   COLLECTS 4367
+    branch tip              COLLECTS 4387   = 4367 + 20
+    the run                          4372 passed + 15 skipped = 4387
+
+**The +19 was DIFFED, not counted.** `--collect-only | grep :: | sort`
+on both trees and `comm` between them names all 19 additions and shows
+**zero removals** — which is what a bare subtraction cannot tell you, and
+this section has twice recorded a delta that was wrong.
+
+**AND THE FIRST RUN OF THIS FIGURE WAS THROWN AWAY**, for the reason the
+entry below already gives. It was started before the CLAUDE.md edits and
+`tests/test_docs_are_current.py` READS CLAUDE.md, so the run was
+measuring a file being rewritten underneath it. The rule is not "do not
+edit `src/`" — it is "do not edit anything the suite reads", and a
+troubleshooting file is not exempt from it.
+
+Before it: `4356 passed, 11 skipped`
+(measured 2026-08-14, 12m36, on `overlay-spatial-annotations` at
+`76bfcc9`; master's merge `46ccd66` adds no test function and COLLECTS
+4367 = 4356 + 11, so the figure is master's. +57 passed over the 4299
+below, across two branches: the spatial dialog -- 22 in
+`test_spatial_annotations`, 2 for the dialog -- and the overlay -- 15 in
+the service, 11 in the widget, 3 for origin resolution, 5 for recorded
+parameters. **The 3 new SKIPS are the gallery per-cell guards**, which
+need `QT_QPA_PLATFORM=windows` for the same `createViewerGrid` reason
+the other gallery tests do.)
+
+Before it: `4299 passed, 8 skipped`
+(measured 2026-08-13, 11m57. +6 over the 4293 below, for the report
+parser's sign class -- both-signs, the sign kept in the value, the
+positive Huckel HOMO, the value list, the attached unit, and the
+`report_fields` entry point).
+
+**A BRANCH THAT ADDS TESTS CAN STILL DESCRIBE MASTER, AND HERE IS THE
+CONDITION.** The entries below say a branch figure is citable when the
+trees are identical, which this one is NOT -- it adds six test
+functions. The weaker check that does apply: `origin/master` at
+`be585c3` **is** the merge-base, so nothing landed while the branch was
+open and the merge is a FAST-FORWARD -- so master's merge commit
+`a915443` has the branch's tree, byte for byte. Confirmed after merging
+rather than predicted: `git diff af0ef79 a915443` is empty. That is
+strictly what "measured on the merge commit" buys, without the second
+twelve-minute run.
+
+Counts, all reconciling exactly (4 seconds each):
+
+    master before  be585c3   COLLECTS 4301
+    branch tip     af0ef79   COLLECTS 4307   = 4301 + 6
+    master merge   a915443   COLLECTS 4307   same tree
+    the run                          4299 passed + 8 skipped = 4307
+
+**Check the fast-forward, do not assume it.** The whole reason the
+entries below are so insistent is that master HAS moved under a branch
+before, twice, and the branch figure was wrong both times:
+
+```bash
+[ "$(git merge-base origin/master HEAD)" = "$(git rev-parse origin/master)" ]
+```
+
+**AND THE FIRST RUN OF THIS FIGURE WAS THROWN AWAY.** A mutation harness
+was writing to `src/openchem/chem/report_adapter.py` and clearing
+`__pycache__` across the tree while that suite run was in flight, which
+is exactly the "an A/B is worthless if the tree is being edited during
+it" rule elsewhere in this file, applied to a plain run rather than to an
+A/B. It reached 26% looking perfectly healthy. **A run concurrent with
+anything that touches `src/` is not a measurement**, and the previous
+entry's "CONCURRENT with funnel generation and a live app drive" was
+survivable only because those two generate data rather than edit code.
+
+Before it: 4293 (measured 2026-08-13, 12m30. +24 over the 4269 below,
+for the conformer funnel work -- 5 symmetry-metric guards in the dedup
+file, 5 in generation-options (the snapshot default, origin tracing, the
+persistence boundary, the observational guard, the embedder wiring), 6 in
+the service (four truncation, two provenance-flag), 7 for the details
+dialog, and the defaults pin).
+
+Measured on `conformer-defaults` at `6245a32`. Master's merge `2ed1100`
+adds only `cdfc72e` -- a docstring and the funnel script's constant
+import, no test functions -- and the cheap half of the rule confirms it:
+master COLLECTS 4301, which is exactly 4293 + 8, in seven seconds. Note
+the run was also CONCURRENT with funnel generation and a live app drive
+for part of its length and still came in at 12m30, which says the 6-16
+band has slack in it rather than being tight.
+
+Before it: 4269 (measured 2026-08-12, 14m54. +13 over the 4255 below,
+for the deferred-list sweep -- 8 for the docs staleness guard, the three
+MISMATCH paths and the reaction-template example, 4 for the ORCA path
+normalisation and 1 for the version-fragment fix).
+
+**TAKEN ON A BRANCH, AND HERE IS WHY IT STILL DESCRIBES MASTER.** The run
+was on `close-the-open-three`, not on master's merge commit `26e8725`.
+The cheap half of the rule below was applied rather than skipped: both
+COLLECT 4277, and the branch adds no test functions -- its changes are
+documentation, benchmark reference data, and the bodies of existing
+tests. So the count is master's. A branch that had ADDED tests could not
+be cited this way, which is the trap the entries below are about.
+
+**NOTE THE `1 deselected` IS GONE, and that is a change in the COMMAND
+rather than in the suite.** The figure below was taken with the network
+test deselected; this one was taken bare, and that test now passes rather
+than failing on `HTTP 400`. 4277 collected either way. If it starts
+failing again, deselect it as the entry below describes -- but do not read
+its absence here as a test having been lost.
+
+Before it: 4255 passed, 8 skipped, 1 deselected (master's MERGE COMMIT
+`e52fa29`, measured 2026-08-12, 13m35. +58 for the declared-total
+contract -- the registry audit, the Crippen hydrogen modes, the
+descriptor-caption fix and the presentation guards -- over the 4197
+below).
+
+The run was actually taken on `9981029`, the branch's merge of master
+INTO it, and the two are cited together because they are the same tree:
+`git diff 90f094e e52fa29` is empty and nothing landed on master in
+between, so the figure describes master rather than merely a branch that
+had caught up. Checking that is the cheap half of the rule below -- an
+identical tree makes the branch measurement valid, and a non-identical
+one means it was never master's number.
+
+**+58, AND THE BRANCH SPENT A DAY BELIEVING IT WAS +68.** It was
+measured against the 4176 entry, which was already two merges stale, and
+the corrected figure was sitting in an unmerged commit at the time. The
+collected count settles it in four seconds and reconciles exactly:
+4264 collected = 4255 + 8 + 1, against master's 4206. The instrument
+below is not a nicety -- it is the difference between a delta you can
+state and one you cannot.
+
+Before it: 4197 on the MERGE COMMIT `887549a` (measured 2026-08-12,
+16m22. +9 for the single-shot timer work -- two guards for the panel
+reveal, two for the crystal draw, one each for the worker-thread
+progress reporter, the ketcher settle token, the instrumented metrics
+dump and the destroyed window, plus the package-wide invariant -- and
++1 from #15, which landed on master while that branch was in flight,
+over the 4187 below).
+
+**MEASURED ON THE MERGE COMMIT, AND THAT IS NOT WHAT THE BRANCH SAID.**
+The branch itself ended at 4196 in 13m06, with five earlier runs at
+11m02, 11m24, 12m06, 12m36 and 12m46 as it grew. master had moved under
+it: #15 added `ui/widgets/collapsible_section.py` and a property-panel
+test while the branch was open, touching the same area the branch did.
+The merge reported CLEAN, which is a statement about TEXT and not about
+behaviour, and the branch figure could not have told you either way.
+Both are green -- but "I measured the branch" is not an answer to "what
+does master do", and this is the rule at the top of this section being
+paid for rather than quoted.
+
+**THE BAND WENT 6-14 TO 6-16 ON A SINGLE RUN, AND THAT RUN IS
+UNEXPLAINED.** 6-14 was written about an hour earlier, off six runs of
+the same branch, and the very next measurement landed two minutes
+outside it. One added test cannot cost three minutes and nothing else
+changed. It is widened anyway, because a reader whose run takes 15
+minutes should not conclude the suite has hung -- but it is recorded as
+the outlier it is, not as a new normal. The ten-run spread further down
+(361 to 568 seconds on essentially one tree) is the reason not to fit a
+band to one number in either direction, and that cuts both ways: do not
+narrow it back on one fast run either.
+
+**THE 4176 ENTRY BELOW WAS ALREADY STALE BY 11 WHEN THAT BRANCH STARTED,
+and nothing in this list accounts for them.** master at `9159d1d`, this
+branch's base, **collects 4196**, i.e. 4187 passed against the same 8
+skips and 1 deselection. Two merges landed after the Lewis entry --
+`ci-webgl-skip` (#12) and `right-dock-width` (#13) -- and neither
+refreshed the figure, which is precisely the drift the warning further
+down describes, caught happening rather than described in the abstract.
+
+**That 4187 is DERIVED, not measured**, and is written that way on
+purpose: it comes from `pytest --collect-only -q` on the base commit
+minus the skips and the deselection, not from a run, because no full
+measurement has been taken on master since the Lewis entry. Treat it as
+the arithmetic it is. **A collected count is the sharper instrument for
+"did my change add the tests I think it did"** -- it is deterministic,
+takes four seconds rather than twelve minutes, and is not perturbed by a
+skip whose condition moved. The merge figure above reconciles with it
+exactly: 4206 collected, 4197 + 8 + 1.
+
+**THAT ENTRY MOVED THREE TIMES IN ONE DAY -- 4195, 4196, 4197** -- once
+from the next commit on the same branch, once from a merge that landed
+on master while the branch was open. Left as a note rather than quietly
+corrected each time, because it is the strongest argument in this
+section for the instrument rather than the number: this is not slow
+drift over months, and a figure re-derived in four seconds by
+`--collect-only` cannot go stale under you the way one that costs
+sixteen minutes does. Take the collected count for "did my change add
+what I think it did", and re-measure the passed count only when you
+need the wall clock too.
+
+Before it: 4176 on branch `full-lewis-structure` (measured 2026-08-11,
+11m25, with an earlier run of the same branch at 12m15. +161 for the full
+Lewis structure -- the resonance gate, the model, the SVG renderer, the
+RDKit builder and the dialog -- over the 4015 below).
+
+Before it: 4015 on branch `lone-pairs-on-the-canvas`, 11m43 and 12m47 on
+two consecutive runs. +79 for drawing lone pairs on the canvas, over the
+3936 below.
+
+**THE BAND WIDENED, and it is the webview tests that did it.** Two runs
+of the same tree came in at 11m43 and 12m47, both outside the old
+6-9.5. About two minutes of that is
+`tests/test_electron_overlay_canvas.py` and
+`test_electron_overlay_lifecycle.py`, which drive the REAL vendored
+Ketcher bundle -- each test builds a `QWebEngineView`, waits for the
+page, and pumps events. That is the price of testing the overlay against
+the thing it actually runs on, and it is worth paying; see the
+lone-pair sections below for what those tests caught. Do not read 12
+minutes as a hang.
+
+**The 161 Lewis tests did NOT widen it further** -- they build no webview
+and the whole set runs in about 2 s. A test count and a wall clock are
+not the same measurement here, and it is the webview files that decide
+the second one: the branch's two full runs came in at 12m15 and 11m25,
+the FASTER of them being the one with 24 more tests in it.
+
+Before it: 3936 on clean `master` at the `editor-as-workspace` merge,
+9m03 -- measured on the merge commit itself rather than on the branch,
+which is a rule this file learned the hard way. +40 for rotating in the
+2D editor and +34 for the stereo/lone-pair work, over the 3862 below.
+
+Before it: 3862 on branch `conformer-comparison`, after making
+conformers comparable, putting the 3D shape into the 2D editor, and the
+gallery: +4 for the Ketcher 3D gate, +21 for display alignment, camera
+retention and relative energies, +29 for the camera-oriented drawing,
++13 for the gallery and +13 for the generation controls, over the 3765
+below.
+
+**The skip count went 2 -> 7, and the five are deliberate.** The
+page-level gallery tests do not run under Qt's `offscreen` platform,
+where `$3Dmol.createViewerGrid` throws; run them with
+`QT_QPA_PLATFORM=windows`. See the gallery section below -- and note the
+reason is NOT "a second WebGL context", which was measured and killed.
+
+Before it: 3765 on branch `ketcher-overrule`, after the Ketcher overrule
+and the conformer round trip: +24 for intercepting Ketcher's duplicated
+controls and +17 for "Use in 2D Editor", four of those seventeen added
+after it was reported broken on a bridged cage, plus +4 for the Atom
+Inspector bounds check found in the same report, over the 3720 below.
+
+Before it: 3720 on branch `Fix-A`, after the navigation-audit work: the
+calculator-presentation fixes, the periodic table merge, the waiting
+indicator, the section merge, the trajectory player, the palette
+vocabulary and the documentation sweep. +107 over the 3613 it started
+from, and every one of those a guard -- the last 18 being the
+doc-currency check widening from 6 of the repo's markdown files to 15.
+
+**THE 3-8 MINUTE BAND WAS UNDERSTATED and the spread is real.** Measured
+across eight full runs of essentially the same tree on this machine:
+361, 365, 367, 389, 389, 416, 490, 534, 554, 568 seconds -- and one that
+blew a ten-minute wall at 89%. Do not read a slow run as a hang without
+sampling; do not read a fast one as a speed-up either.
+
+The single slowest test is deliberate and says so:
+`test_a_calculators_result_lands_in_its_own_section` runs all 49 registry
+calculators (~35 s warm, ~76 s in a full run, against a next-slowest of
+14 s) because it is the only thing standing between a category merge and
+a calculator whose button is in one section while its answer is in
+another. Its cost lives in a module-scoped fixture so it is paid once and
+is attributed to setup rather than hidden in a test body.
+
+Before it: 3613 on the merge of the mmCIF element-symbol/ligand-copy/
+protonation work (measured 2026-08-09, 5m25s -- the number that mattered
+then, and not either side's: that branch alone gave 3611 against the 3570
+it started from, and master's assembly-gate work contributed the last 2).
+Before that: 3501 on clean master at `77ad231` after the conformer
+de-duplication and calculator-routing work, 3446 at `14e5d08`, 3350 after
+the crystallography work, 3236 before that, 3155 before the
+polarity/lattice-energy work, 3081 before the substance-perception work,
+3019 before the Ketcher pool-id merge, and 2788 before the
+presentation-layer Phase 0-8 work.
+
+The 3501 -> 3570 step is a worked example of the warning below: nothing
+in this file recorded the assembly work's 69 tests, and a count taken
+against 3501 would have read as 69 tests missing.
+
+**THE FIGURE DRIFTS AND THIS LIST IS THE EVIDENCE.** The 3350 entry was
+stale by 96 tests before anybody noticed, because a count is only
+refreshed when somebody happens to take one. Treat a mismatch as "the
+number is old" and re-measure before treating it as "something is
+missing" -- and take that measurement on a CLEAN checkout, never a
+working tree, which is a mistake this file has already recorded once.
+
+**That figure is
+from the DESELECTED form below, not the command above** -- run it bare and
+the same tree reports one FAILURE, from the network test explained next.
+
+**One test fails against the network, not against the code.**
+`test_pubchem_name_round_trips_back_through_opsin` returns `HTTP 400` from
+NCBI and does so on trees predating the work that was running when it was
+first seen -- confirmed by stashing. Deselect it when you need a clean signal:
+
+```bash
+uv run --no-sync python -u -m pytest -q --deselect tests/test_naming_providers.py::test_pubchem_name_round_trips_back_through_opsin
+```
+
+Take the count on a **clean tree**. The main checkout often carries
+work-in-progress tests, and a figure measured there is inflated -- which has
+already produced one wrong edit to this file.
+
+The suite also needs the optional extras installed, or ~40 tests fail on
+missing imports and it looks like something is badly broken when nothing is:
+
+```bash
+uv sync --extra ai --extra network --extra openbabel
+```
+
+(Not `--all-extras`: that pulls in `docking`, whose `vina` wheel builds from
+source and needs Boost. The reference environment does not have it.)
+
+### The suite used to hang — fixed, kept here as history
+
+This is no longer something to work around. It is recorded because the cause
+took three attempts to identify and the failure mode was invisible.
+
+**`QtWebEngineProcess.exe` instances accumulated and were never torn down.**
+Every `QWebEngineView` a test constructs spawns Chromium helper processes, and
+nothing disposed of them between tests. A hung run was caught with **91 alive**;
+a measured baseline reached **116**, plateauing near 88, with the Python
+process at **14 seconds of CPU** while wall clock passed 40 minutes — blocked,
+not working. They pile up until something (handles, memory, a port) gives out,
+always around the webview-heavy tests at roughly 30%.
+
+They ARE reaped when pytest exits, so a post-mortem finds zero and looks
+healthy. **The count only means anything sampled DURING a run.**
+
+The fix is the autouse `dispose_web_engine_views` fixture in
+`tests/conftest.py` — read its docstring before changing anything there, since
+two plausible-looking implementations of it crash. Measured across two full
+runs after the fix: peak **6** processes, mostly 0–1, against 116 before.
+
+**Three wrong explanations were believed before the right one** — recorded so
+a fourth does not get invented:
+
+1. A bad shell wait-loop (`until grep -q "passed|failed"`, which never matched
+   because `-q` buffers). Wrong, and accepting it cost a second 40-minute hang
+   the same day.
+2. The `pytest.exe` console-script shim under `uv run` spawning an extra
+   nested process. Plausible, written into this file as near-fact, and also
+   wrong — the module form hung the very next run. The shim was correlation.
+3. While fixing it: that tearing pages down mid-load caused the teardown
+   crash, so `view.stop()` was the cure. Removing `stop()` did not reproduce
+   the crash in 8 runs. The actual cause was
+   `sendPostedEvents(None, DeferredDelete)` draining every pending deferred
+   delete in the process, including ones other tests had queued on
+   already-collected objects. It is now flushed per view.
+
+If a run ever stalls again, sample before assuming it is slow:
+
+```bash
+powershell "(Get-CimInstance Win32_Process -Filter \"Name='QtWebEngineProcess.exe'\" | Measure-Object).Count"
+```
+
+### A test that builds a panel must destroy it before the next one runs
+
+Same family as the webview leak above, different object, and it fails much
+louder. A test that constructs an unparented widget and walks away leaves it
+with no owner, so Python destroys it at whatever arbitrary later moment the
+collector happens to run -- inside an unrelated test, from within Qt's own
+event dispatch. The result is a **Windows access violation**, and it surfaces
+in whichever test happens to be pumping events at the time (any test of an
+event-driven panel must, since `EventBus.publish` is a *queued* Qt signal and
+nothing has been delivered when `waitForDone()` returns).
+
+Measured on `tests/test_batch_panel.py`: **3 of 3 full runs of the file
+crashed**, while running only some subsets of it passed -- because whether it
+fires depends on when the collector happened to run. That "sometimes"
+is exactly what makes it read as flakiness rather than as a bug in the test.
+
+The fix is to destroy each widget deterministically and flush **that
+widget's** deferred delete:
+
+```python
+widget.setParent(None)
+widget.deleteLater()
+QCoreApplication.sendPostedEvents(widget, QEvent.Type.DeferredDelete)
+```
+
+Per widget, never `sendPostedEvents(None, DeferredDelete)` -- the global form
+drains every pending deferred delete in the process, including ones other
+test files left queued, which is the same double-free the webview fixture
+already documents.
+
+**Do this per file. There is no global version of it, and the attempt to
+build one is recorded below as a warning.** The autouse
+`flush_deferred_deletes` in `tests/conftest.py` handles only the
+`deleteLater()` half -- it stops a backlog accumulating, and does NOT
+destroy widgets a test walks away from.
+`tests/test_qt_object_disposal.py` fails if it regresses.
+
+#### How the ketcher crash was found, and the two things that were wrong about it
+
+Recorded because the version of this section written before it was solved
+named the wrong mechanism, and reasoning from that mechanism produced a fix
+that measurably did not work.
+
+The symptom: `test_ketcher_editor_backend.py` died with an access violation
+at ~30% of a full run, on 3 runs and then not on the next 6, with CI green
+throughout. **Do not trust green runs here** -- the corrected fix below was
+verified against a deterministic reproduction, not against a streak.
+
+What was wrong in the old account:
+
+1. *"`processEvents()` drains the `DeferredDelete`."* It does not. Measured
+   against this Qt build, a `DeferredDelete` posted at event-loop level 0 is
+   delivered only when an actual event loop at that level returns, and
+   `QApplication.processEvents()` never delivers one, however many times it
+   is called. A pytest run never enters such a loop, so **every**
+   `deleteLater()` in the suite sits in the process-wide queue until
+   something spins a NESTED event loop -- which drains the entire backlog at
+   once. QtWebEngine spins one internally while a page loads. That is the
+   whole reason the victim is always a webview test: it is not that its
+   `processEvents` pump is dangerous, it is that Chromium is the only thing
+   in the suite that lights the fuse.
+2. *"The widget's Python wrapper was already collected."* Not for the
+   deleteLater'd object itself -- PySide keeps that wrapper alive until the
+   event is delivered, so it is still weak-referenceable at session end,
+   which is what made a census possible at all.
+
+**Instrumentation found it in one run where bisection could not.** Wrapping
+`QObject.deleteLater` to record its receiver weakly, then reporting which
+receivers were still valid at each test boundary, named the offenders
+exactly: 18 undelivered deletes, of which the 9 `IrViewWidget`s from
+`test_ir_view_widget.py` (five files earlier) were the ones live while the
+ketcher tests ran. Wrapping widget constructors the same way found the
+second, larger half: **112 top-level widgets abandoned by 20 files**.
+
+**Forcing the drain turns the heisenbug into a 12-second reproduction.** Run
+one nested `QEventLoop` before each ketcher test and the crash is
+deterministic:
+
+```python
+loop = QEventLoop(); QTimer.singleShot(0, loop.quit); loop.exec()
+```
+
+Measured with that lever, on `test_ir_view_widget.py` + the four files
+between + `test_ketcher_editor_backend.py`:
+
+| tree | result |
+| --- | --- |
+| before the fix | crash 5 / 5 |
+| ketcher file alone (nothing queued) | pass |
+| deferred deletes flushed only | crash 2 / 2, via `test_jobs_panel.py` |
+| both fixtures | pass 8 / 8 |
+
+That middle row looked like the whole story, and it was not.
+
+#### THE WIDGET-DISPOSAL FIXTURE WAS REVERTED. Do not rebuild it blind.
+
+`dispose_app_widgets` tracked every top-level widget of one of this app's
+classes and destroyed each at teardown, per object. Against the base it was
+developed on (`a85463f`) every number said it worked: the table above, plus
+the leaked-widget census 112 -> 0 and 11 of 11 plain full runs green.
+
+**It crashed the suite outright on master**, at `2dff778`, once the
+help-window work had added many more MainWindow-with-viewer tests. Measured
+by an interleaved A/B with a byte-identical file set, neutering the fixture
+in place rather than deleting its test file:
+
+| arm | full runs |
+| --- | --- |
+| both fixtures active | **access violation 8 / 8** |
+| `dispose_app_widgets` neutered, flush still on | complete 8 / 8 |
+| `flush_deferred_deletes` neutered, widgets still on | access violation 3 / 3 |
+
+So it is that one fixture, on its own. The crash sites were
+`test_main_window_docking_visualization.py` and
+`test_ketcher_editor_backend.py` -- the MainWindow-plus-webview tests that
+pump events, neither at fault. Re-ordering it to finalise after
+`dispose_web_engine_views` did NOT help (still 5 of 5), so "a live view was
+taken down as a child" is not the explanation, and why destroying an
+abandoned widget synchronously at teardown faults here is **still unknown**.
+
+**The original ketcher crash was open when this was written; it is now
+solved -- skip to "SOLVED. The census named it" below before acting on
+anything in this subsection.** Two further things
+that were measured and do not fit together yet, for whoever picks this up:
+master at `a093912` crashed 3 of 3 in a clean worktree with none of these
+fixtures, while master at `2dff778` is green 8 of 8 in the main checkout
+with none of them. Same suite, opposite results -- so before trusting ANY
+result here, pin down the checkout and the commit, and never compare a run
+in one against a run in the other.
+
+Method note, learned the hard way: an early "before" measurement was taken
+in a checkout that was being edited by hand at the time, so the two arms
+were different trees and the comparison was worthless. Check `git status`
+and file mtimes before believing an A/B.
+
+#### A `lambda` that captures `self` in a `connect()` leaks the widget forever
+
+Found while chasing the above, and it is a separate bug with a separate
+fix. **PySide6 holds a connected plain callable STRONGLY and a QObject's
+bound method weakly.** So this roots its widget for the life of the
+process -- past refcounting AND past the cyclic collector, which cannot
+see through the internal map the callable is kept in:
+
+```python
+button.clicked.connect(lambda _checked=False, d=definition: self._open(d))
+```
+
+Measured on a three-button minimal case: the self-capturing lambda leaks,
+the same widget with `connect(self._go)` is freed by refcounting alone,
+and a lambda capturing only plain data is also fine. It is `self` in the
+closure that does it, not the lambda.
+
+`PropertyPanel` was the worst of it -- one such connection per registered
+calculator, 22 on a default registry -- so every panel ever built stayed
+in memory for the session. Fixed, with the payload travelling on the
+button as a Qt property and a bound method reading it back through
+`sender()`. Same fix in `PeriodicTableDialog` (118 cells) and
+`ExternalToolsDialog`.
+
+`tests/test_qt_object_disposal.py` guards all of it, and deliberately
+asserts the leak itself as well: if a future PySide6 stops leaking here,
+that test fails and the workarounds can go.
+
+#### The root of the cycles: `EventBus` now holds bound methods weakly
+
+`EventBus.subscribe` used to store the handler in a plain list. A bound
+method holds its object, so the bus owned every panel that ever subscribed
+and the panel owned the bus -- a cycle nothing could break by reference
+counting, leaving the whole graph to the cyclic collector.
+
+Bound methods are held with `weakref.WeakMethod` now; everything else is
+still held strongly, and that asymmetry is the load-bearing part. A lambda
+usually has no other reference, so held weakly it would be collected the
+instant `subscribe` returned and the subscription would silently never
+fire -- worse than a leak, because nothing looks wrong. Measured when the
+change was made: production code subscribes 38 bound methods and ZERO
+lambdas, while the tests subscribe 74 lambdas.
+
+Measured effect, per panel:
+
+| | before | after |
+| --- | --- | --- |
+| `JobsPanel` | refcounting | refcounting |
+| `DockingPanel` | needed the cyclic collector | **refcounting** |
+| `PropertyPanel` | leaked outright | **refcounting** |
+
+**It does NOT replace the teardown `gc.collect()`, and the numbers say so
+plainly.** With weak handlers and no collect, late C++ destructions went
+UP -- 138 before, 177 after -- because more objects are now destructible
+at all rather than leaked. With both, 8, against 2352 destroyed inside
+their own test. Keep both.
+
+It also moved MainWindow, without fixing it: with weak handlers AND the
+menu lambdas removed, the first window is destroyed cleanly and the
+SECOND construction segfaults, 5/5. So destroying a MainWindow leaves
+something process-global in a state the next one trips over. That is the
+next thread to pull; the section below still applies until it is pulled.
+
+#### What makes MainWindow destruction fault: the undo stack
+
+Bisected against the real window, by disabling one piece at a time:
+
+| window | destroyed |
+| --- | --- |
+| as built | **segfault 5/5** |
+| `_new_molecule` suppressed (nothing ever pushed) | clean 3/3 |
+| `_undo_stack.clear()` before dropping | clean 5/5 |
+| `close()` alone, before `closeEvent` cleared the stack | **segfault** |
+
+So commands sitting on the stack are what makes destruction fatal, and
+clearing it first is what makes destruction safe. `closeEvent` now clears
+it, which is why that line is there.
+
+**The mechanism is NOT understood, and nothing here should pretend
+otherwise.** A synthetic `QUndoCommand` on a `QUndoStack` destroys fine, so
+does the real `AddMoleculeCommand` in a minimal harness, and so does a
+hand-built `QMainWindow` carrying every panel, all three web views, custom
+dock title bars, a status-bar widget, scroll areas, menus and a plugin
+manager -- 3/3 each. It takes the whole real window. The commands are
+necessary but not sufficient.
+
+Ruled out along the way, each measured 3-5 times: `QWebEngineView`,
+`MoleculeEditorWidget`, `MoleculeViewer3DWidget`, `MolStarViewerBackend`,
+all three viewers together in a `QTabWidget`, `DockTitleBar`,
+`CheckerStatusIndicator`, `QScrollArea` + `tabifyDockWidget`, menus,
+`PluginManager`, and `_restore_window_state`.
+
+##### The full fix IS shipped, once the collect was moved
+
+The first attempt looked like a disaster and was reverted: menu lambdas
+removed + this clear + the seven `test_main_window_*` files closing their
+windows made the suite green 2/2 while late C++ destructions went from 8
+to **1190**. The open question was "after `window.close()`, what still
+references the window?"
+
+**Nothing in the application does.** Listing the referrers of a window
+still alive at teardown found only pytest: `SubRequest`, `TopRequest`,
+`_pytest.python.Function`, and the fixture-name cache. Pytest holds every
+fixture value for the whole item protocol, so a `gc.collect()` running in
+`pytest_runtest_teardown` CANNOT collect a fixture-provided window -- and
+the conftest hook had no `trylast`, so it ran before fixtures were even
+finalised.
+
+    collect in pytest_runtest_teardown, unordered   1190 late
+    collect in pytest_runtest_teardown, trylast      135 late
+    collect in pytest_runtest_logfinish                0 late
+
+Zero, with 3587 destroyed inside their own test, the suite green 3/3, the
+forced-drain reproduction 0/10, and the run slightly FASTER than before.
+
+The trap worth remembering: a test that builds its window as a plain local
+cannot tell the right hook from the wrong one, because the local is
+released when the function returns either way. The guard in
+`tests/test_qt_object_disposal.py` takes its window from a FIXTURE for
+exactly that reason -- the first version of it did not, and the mutation
+survived.
+
+#### MainWindow's menu lambdas ARE fixed now (an earlier note said not to)
+
+They were reverted once, with the note "the leak is load-bearing", because
+removing them made the window collectable and destroying a MainWindow
+crashed. Both halves of that are now solved and the fix is in:
+
+- `closeEvent` empties the undo stack, which is what made destruction
+  safe (see the section above it);
+- the collect runs after the item protocol, so windows are collected at
+  the right moment (see below).
+
+Menu actions carry their payload on the `QAction` via `setData` and connect
+bound methods that read it back through `sender()`. Two facts about Qt that
+this depends on, measured rather than assumed, because the file previously
+asserted the opposite of the first:
+
+    menu.addAction(label, callable)     calls it with NO arguments,
+                                        whatever its signature
+    action.triggered.connect(callable)  passes `checked`
+
+So a handler reached through `addAction` keeps its own defaults --
+`_duplicate_molecule(molecule=None)` really does receive None -- and only
+`toggled`/`triggered` connections have to take the bool.
+
+Two measurement traps from the attempt that got reverted, both general:
+
+- **A probe that prints "destroyed" after `del` + `gc.collect()` proves
+  nothing.** It has to assert with a weakref that the object really died.
+  Without that, a leaked window reads as a successful destruction, and a
+  bisect across eight commits reported "destructible" everywhere while
+  destroying nothing at all.
+- **Reverting any ONE piece of the fix appeared to cure the crash.** It did
+  not -- it just left one lambda still leaking, so nothing was destroyed.
+  Any partial revert looks like a fix, which makes bisecting within the
+  change actively misleading.
+
+#### SOLVED. The census named it, and the fix is one line of timing.
+
+Read this before acting on anything above it. The sections above are kept
+as the record of how it was chased and several of their intermediate
+conclusions were later reversed; the cause is now measured and the fix is
+in `tests/conftest.py`.
+
+**Census A (undelivered deletes) found nothing** -- 0 outstanding at every
+test boundary and at session end. `flush_deferred_deletes` had already
+closed that half completely, so every hypothesis built on the delete
+backlog was chasing a queue that is empty.
+
+**Census B (widgets alive at session end) measured the wrong population.**
+It reported 65 live parentless panels, which looks damning and is
+irrelevant: a widget still alive has never been destroyed, so it cannot be
+the thing that faults. Those 65 are a LEAK, not a landmine.
+
+**Census C, then D, found it.** Instrumenting `QObject.destroyed` -- the
+only event that runs a C++ destructor -- and recording the test that was
+running at that instant against the test that built the widget:
+
+    destroyed inside their own test : 2003
+    destroyed in a LATER test       : 138   <- the landmine, measured
+
+138 from seven files, 104 of them `test_quantum_chemistry_panel.py`. (Do
+NOT use a weakref callback for this, as census C did: it counts Python
+wrappers, over-reports by an order of magnitude -- 1406 -- because a
+wrapper collected after Qt already destroyed the C++ object is harmless.)
+
+**Why they outlive their test.** `EventBus.subscribe` stores the BOUND
+METHOD in `_handlers`, so the bus holds the panel and the panel holds the
+bus. Reference counting cannot break a cycle; nothing is freed when the
+test's locals go out of scope, and it waits for the cyclic collector,
+which runs whenever it likes -- including inside Qt's event dispatch in an
+unrelated test. Measured per class: `JobsPanel` (subscribes to nothing)
+dies by refcounting, `DockingPanel` needs the cyclic collector,
+`PropertyPanel` survives both and is a real leak.
+
+**The fix is `gc.collect()` in a teardown hook, gated on `qapp`.** It
+destroys nothing itself -- that distinction is the whole point, since
+forcing destruction with `deleteLater()` has now crashed the suite twice
+under two different implementations. It only chooses the MOMENT at which
+Python does its own ordinary work, and a teardown hook is a moment with no
+Qt event dispatch in progress.
+
+| arm | late C++ destructions | full run |
+| --- | --- | --- |
+| before | 138 | 116 s |
+| `gc.collect()` after every test | **0** | 326 s |
+| `gc.collect()` only after `qapp` tests | **4** | 171 s |
+
+The last row is what shipped. The four that remain are all inside
+`test_quantum_chemistry_panel.py` itself; closing them costs another 155
+seconds on every run, which is not worth it for four same-file
+destructions when the crash being chased was cross-file.
+
+Corroboration, given how unreliable crash-rate arms are here: the
+forced-drain reproduction went **0 crashes in 10** with the fix, and three
+plain full runs were green. Neither is proof on its own -- the whole
+lesson below is that these arms move between batches -- which is why the
+deterministic 138 -> 4 is the number to trust and to re-measure if this
+ever comes back.
+
+#### Confirmed again, independently, at the Structure Check work
+
+The reverted fixture's central finding was re-derived from scratch by
+somebody who had not yet connected it to this section, which is worth
+recording because it means the result is real and not an artefact of how
+`dispose_app_widgets` happened to be written.
+
+Adding `tests/test_structure_check_panel.py` (which builds a MainWindow and
+pumps events) gave **1 access violation in 5 full runs**, at
+`test_a_quick_fix_lands_on_the_undo_stack`. That file inserts ~50 tests
+ahead of the panel tests and so shifts collection timing; it does not
+introduce anything new. Note `pytest-randomly` IS NOT INSTALLED here, so
+file order is deterministic and adding a file is the only thing that
+reorders anything.
+
+Seven files build a MainWindow and abandon it -- `test_main_window_*.py`
+(six of them) and `test_receptor_library_dialog.py`. Giving each the
+per-file disposal recipe from the section above, so the abandoned windows
+are destroyed deterministically at teardown, produced:
+
+| arm | forced-drain subset |
+| --- | --- |
+| abandoned, as today | crash 3/3, then 0/10 on the same tree |
+| explicitly disposed | **crash 6/6** |
+
+So **destroying them is worse than leaving them**, which is exactly what
+the `dispose_app_widgets` table already said and is now confirmed by a
+second, differently-written implementation. Do not try this a third time.
+
+The middle row is the other lesson: an unchanged tree gave 3/3 and then
+0/10. The rate itself moves between batches, so **no A/B here is worth
+anything below about n=10 per arm**, and a 3-run comparison -- which is
+what most of the earlier work in this section used -- can say the opposite
+of the truth.
+
+The forced-drain lever from the ketcher section works on this crash too and
+is the only reason any of the above could be measured at all:
+
+```python
+loop = QEventLoop(); QTimer.singleShot(0, loop.quit); loop.exec()
+```
+
+run as an autouse fixture before each test of the victim file.
+
+One caveat worth knowing if you re-run that instrumentation: stacking BOTH
+diagnostic plugins on top of the now-permanent fixtures double-wraps every
+widget constructor and destabilised a run by itself (a `Fatal Python error:
+Aborted` in `test_molstar_viewer_backend.py` that appears under no other
+configuration). Run one census at a time.
+
+### The suite must not touch the machine's real settings
+
+`Settings` wraps `QSettings`, which on Windows is the real registry key a
+shipped install uses. The autouse `isolated_settings` fixture redirects it to
+an INI file under `tmp_path`; `tests/test_settings_isolation.py` fails if that
+regresses.
+
+Worth knowing because the previous version of that fixture **looked** correct
+and half-worked. It called `QSettings.setDefaultFormat(IniFormat)` and gave
+each test a unique org/app name — but `setDefaultFormat` does not affect the
+`QSettings(organization, application)` constructor in practice, whatever the
+docs say:
+
+```python
+QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+QSettings.defaultFormat()          # Format.IniFormat
+QSettings("Org", "App").format()   # Format.NativeFormat  <- still the registry
+```
+
+So the real `OpenChemStudio` key stayed clean (the unique name did that much)
+while every run deposited **84 junk keys** under `HKCU\Software`, one per
+test, named after the test, permanent. Nothing in the suite output showed it.
+Building the QSettings from an explicit file path avoids the format question
+entirely.
+
+If you touch that fixture, verify by counting, not by reading:
+
+```bash
+powershell "(Get-ChildItem 'HKCU:\Software' | Where-Object PSChildName -like 'OpenChemStudio-pytest-*' | Measure-Object).Count"
+```
+
+#### A FUNCTION-SCOPED AUTOUSE FIXTURE DOES NOT COVER A MODULE-SCOPED ONE
+
+The isolation above is real and it had a hole underneath it for as long
+as it has existed. `isolated_settings` is `autouse=True` and therefore
+FUNCTION-scoped, and **pytest sets higher-scoped fixtures up first** -- so
+a `scope="module"` fixture that builds a `Settings` or a `MainWindow` runs
+while `QSettings` is still the real one. Five fixtures in this suite do:
+
+    module   window       tests/test_right_dock_width.py
+    module   window       tests/test_ketcher_overrule.py
+    module   window       tests/test_conformers_without_the_3d_viewer.py
+    module   main_window  tests/test_command_palette_vocabulary.py
+    module   controls     tests/test_tooltip_coverage.py
+
+**Measured on the real key, either side of ONE run of one file:**
+
+    before   13:39:20   plugins/project_directory = .../tmpes9xm92a/none
+    after    13:41:30   plugins/project_directory = .../tmpfk04ymjp/none
+
+A live rewrite of the developer's own registry, pointing at a temp
+directory that had already been deleted. Not junk keys under a scratch
+name this time -- the real `OpenChemStudio` key, the one a shipped install
+reads.
+
+**`tests/test_settings_isolation.py` COULD NOT SEE IT, and the reason
+generalises:** all three of its guards are function-scoped, so they always
+ran INSIDE the patch and always found a clean INI. A guard for a
+scope-ordering bug has to live at the scope where the bug happens; the
+one that catches it now takes a deliberately `scope="module"` fixture and
+asserts on `fileName()`, since a NativeFormat `QSettings` reports a
+`\HKEY_CURRENT_USER\...` pseudo-path and that is the only thing telling
+the two backends apart from inside the process.
+
+`_isolated_settings_for_higher_scopes` is session-scoped and does the same
+redirection. It does NOT replace the per-test fixture -- tests must still
+not see each other's writes, and that one gives each its own file. This is
+the floor underneath it.
+
+#### The same rule, the same mistake, in the DATA root
+
+`paths` documents `OPENCHEM_DATA_ROOT` as existing for "portable installs
+and tests, which must never touch a developer's real data directory", and
+six test files use it. `test_quantum_chemistry_service.py` did not -- its
+`_make_service(tmp_path, provider)` **took `tmp_path` and never used it**
+-- so every test in it created ORCA job directories under the real
+per-user cache. A CI failure named the path outright:
+
+    C:/Users/runneradmin/AppData/Local/OpenChemStudio/Cache/orca_job_4710091i
+
+**"No leftovers" IS NOT EVIDENCE OF ISOLATION**, and that is the part
+worth carrying. The directories were normally removed on the way out, so
+counting them found nothing while every run was writing there; only a
+cleanup that FAILED left proof. The guard therefore asserts where the
+scratch directory is **while a job is still running**, not what is left
+behind afterwards.
+
+**And the first version of that guard passed for the wrong reason.** It
+asserted the scratch was not under `paths.default_data_root()` -- the
+OS-nominated location -- which sounds like the same claim and is not. A
+machine with a CONFIGURED data root sends the scratch somewhere else
+entirely (here `D:\OpenChemStudio-scratch`), so the assertion held while
+the test wrote outside `tmp_path` exactly as before. It asserts
+`is_relative_to(tmp_path)` now, with the no-space precondition asserted
+too, since `space_free_cache_root()` legitimately relocates off a spaced
+path. Caught only by neutering the fixture and seeing nothing fail.
+
+### `resize()` does not resize a widget that was never shown, either
+
+The same trap in a different Qt event, found a year of sessions later and
+recorded beside its sibling because the first one did not generalise on
+its own. Measured on a counting subclass of `_ElidingPushButton`:
+
+    resize(400) then resize(420), never shown    0 resizeEvent calls
+    show(), then the same two resizes           2
+
+So a test that constructs a widget, resizes it and asserts on whatever
+`resizeEvent` was supposed to do is asserting on the CONSTRUCTOR. Three
+successive versions of one guard passed that way -- the last of them
+counting `QPushButton.setText` calls, which is a genuinely sharp probe
+aimed at code that never ran.
+
+**A widget that was never shown runs almost none of its own code.** If a
+test names an event handler, `show()` it first, or use
+`conftest.painted()` where a paint is what matters.
+
+Two smaller shapes of the same mistake, both from the same afternoon and
+both caught only by mutation:
+
+- A resize to the SAME size sends no `resizeEvent` at all. Two different
+  widths, chosen so the rendered text is identical at both, is what makes
+  "did it do redundant work" observable.
+- `super().setText()` inside a widget method bypasses a subclass
+  override, so a spy has to go on the Qt class rather than on a subclass
+  of the widget under test.
+
+### `repaint()` does not paint a widget that was never shown
+
+A `paintEvent` test that constructs a widget, resizes it and calls
+`repaint()` proves nothing. Measured on a counting subclass:
+
+    repaint() on a never-shown widget    0 paintEvent calls
+    update() + processEvents             0
+    grab()                               1
+    repaint() AFTER show()               1
+
+So `widget.grab()` (or showing it first) is the only way to exercise the
+painter. Four such tests existed and were green without ever running the
+code they named -- including one then called
+`test_highlighting_survives_a_repaint`, in which no repaint occurred. (That
+name is history, not a test to go and find; all four were rewritten.)
+
+**Use `conftest.painted()` / `conftest.ink()`**, which render into a
+`QImage` and force the paint.
+
+ASSERTING THAT SOMETHING WAS DRAWN IS HARDER THAN IT LOOKS, and two
+plausible checks were tried and killed by mutation testing -- blanking a
+widget's peak-drawing loop and seeing which tests noticed:
+
+1. *"Some pixel is non-transparent."* Useless. Every one of these widgets
+   fills an opaque background before its first mark, so alpha is set
+   across all 30,000 sampled pixels even for an EMPTY spectrum.
+2. *"More ink than the same widget with no data."* Still passes a blanked
+   painter. Different data changes the axis range, so the tick labels
+   alone move the count.
+
+What works: **hold the axes fixed and vary only the content** -- two
+spectra sharing their extreme shifts, differing by one peak in the
+middle. Identical ticks and labels, so the ink difference can only be the
+peak. That took the number of tests catching a blanked painter from 1
+to 6.
+
+`ink()` counts pixels differing from the modal (background) colour, not
+transparent ones, for reason 1 above.
+
+Tests that assert on child-widget structure rather than drawing -- e.g.
+`test_structure_grid_widget.py` counting cells in a layout -- are not
+affected and do not need any of this.
+
+### The 3D viewer's JS console logs at DEBUG, and hid a daily error
+
+`_LoggingPage.javaScriptConsoleMessage` forwards the page's console to
+`logger.debug`, so **an exception thrown inside viewer.html is invisible in
+normal use.** Raising it to WARNING for one measurement run found this on
+**9 of 9 cold launches**:
+
+    Uncaught TypeError: Cannot read properties of undefined (reading 'clear')
+
+`::1` with no filename is how QtWebEngine reports a `runJavaScript` string,
+which is what named the caller: Python, calling into the page before the
+page existed. `MoleculeViewer3DWidget._refresh_view` runs during its own
+construction, the starter molecule has no conformers, so it calls
+`clear()` — and every load path in `Mol3DViewerBackend` queued behind
+`loadFinished` while `clear()` and `set_style()` did not.
+
+`clear()` merely threw. **`set_style()` was the damaging one**: a style
+chosen before the page loads is silently dropped, leaving the viewer
+rendering in the default representation with the combo box showing the one
+the user picked. Both are queued now.
+
+Two general points. **Raise a log level before concluding a page is fine** —
+the error was thrown on every launch for months. And a `clear` that queues
+must CANCEL the pending payloads rather than queue itself, or it is
+overtaken on replay by the very structure it was meant to remove.
+
+#### Ketcher had the same two holes, and a WIDER window than the viewer
+
+`KetcherEditorBackend.set_render_option` and `trigger_toolbar_action` called
+`runJavaScript` unguarded while `load_molblock` and `get_molblock` both
+checked `_ketcher_ready`. Same bug class, and the exposure is larger rather
+than smaller: **Ketcher's ready signal is a JS callback (`ketcherReady`), not
+`loadFinished`**, so it fires after the page exists — the window in which a
+call is reachable and silently dropped outlasts the one the 3D viewer had.
+
+Neither is reachable at construction today (the View menu's toggles are never
+`setChecked`, so nothing emits `toggled` until a user clicks), so this is the
+same latent-ordering case `set_style` was, not a daily error.
+
+**Queue state, drop gestures**, and say which a thing is. A render option is
+state: dropped, the menu checkbox and the canvas disagree with nothing on
+screen to say which is real, so it queues. A toolbar action is a transient
+gesture: replayed, "Add/Remove explicit hydrogens" would mutate a structure
+the user never saw (the canvas is empty until `_pending_molblock` replays a
+moment later) and "3D Viewer" would open a dialog seconds after the click
+that asked for it. It is dropped deliberately, and a test asserts the drop so
+the asymmetry reads as a decision.
+
+**The queue is a dict, and the test that proves it must use TWO different
+options.** "The same option toggled twice applies once with the last value"
+passes just as happily against a single `(name, value)` slot, which silently
+discards every option but the most recent — and the menu offers two side by
+side. Measured: the single-slot mutation kills only
+`test_two_different_options_queued_before_ready_both_survive`, and nothing
+else in the file notices.
+
+**The two backends drain their queues in OPPOSITE orders, and both are
+right.** 3Dmol's `loadMolblock` clears layers and surfaces, so
+`Mol3DViewerBackend` replays those last. Ketcher's `setMolecule` does not
+touch `render.options` — measured against the real bundle — so options go
+first there and are laid out with the structure rather than re-rendering it
+a frame later. Do not copy one ordering to the other on the strength of the
+shape looking the same; check what the engine's own load actually resets.
+For Ketcher it is a preference and not a constraint, which is worth stating
+because inverting the replay breaks no test: a mutation of the order passed
+all 14.
+
+#### The render flakiness that could not be reproduced
+
+Recorded so the next person does not re-derive the same non-conclusion.
+Driving the app 5x per arm, the molecule path rendered a **black
+half-height canvas** in 3 of 5 and then 4 of 5 runs — then 9 of 9 clean
+with only a `console.log` added, and 5 of 5 clean after the fixes. **No
+cause was established** and the fixes below are not claimed to be one.
+
+The two things that DID come out of it are worth keeping:
+
+- **A black canvas scores as heavily inked.** The `Count-Ink` helper counts
+  any pixel darker than 240, so a failed render measured 94875 against a
+  successful one's 3067 — 30x — and read as "drew". Measure a black
+  fraction separately, or the metric reports failure as success.
+- **The rate moves between batches**, exactly as the access-violation
+  section already warns. Three arms of five said three different things.
+
+### The formerly-flaky webview test
+
+`tests/test_mol3d_viewer_backend.py::test_apply_visualization_sets_atom_colors`
+used to fail intermittently on `QWebEngineView` readiness (sometimes a sibling
+failed instead — the tell that the test was not what was wrong). It was the
+leak above, caught where starting one more Chromium process was slow rather
+than impossible.
+
+It failed on the pre-fix baseline run and has passed **5 consecutive full runs**
+since. If it flakes again, that is a genuinely new bug, not this one.
+
+### The vendored nomenclature engine's own suite
+
+`tests/vendor/` holds ~3,200 tests belonging to the vendored IUPAC namer. They
+are **excluded from the default run** (`norecursedirs` in `pyproject.toml`)
+because they take ~10 minutes against the main suite's 3, and they cover that
+engine's internals rather than our integration with it.
+
+Run them whenever you change anything under `src/openchem/vendor/`:
+
+```bash
+export JAVA_HOME="/d/Random Programs/OpenChemStudio_Data/jre/jdk-21.0.12+8-jre"
+export PATH="$JAVA_HOME/bin:$PATH"
+uv run --no-sync python -u -m pytest tests/vendor -q > /tmp/vendor.log 2>&1; tail -4 /tmp/vendor.log
+```
+
+Expect `3209 passed, 0 skipped` (~10 min).
+
+**`JAVA_HOME` AND `PATH`, and they are not the same requirement.** Setting
+only PATH gives `3193 passed, 16 skipped` -- which is the figure this file
+carried for a long time, then "corrected" to blame an `ImportError` on
+`py2opsin`. That attribution was wrong, and measuring it rather than
+reasoning about it is what showed the difference:
+
+    py2opsin imports fine, java on PATH   3193 passed, 16 skipped
+    JAVA_HOME set as well                 3209 passed, 0 skipped
+
+All 16 live in `tests/vendor/iupac_namer/test_tautomer_alignment.py`, whose
+`_java_available()` reads the JAVA_HOME **environment variable** and does not
+look at PATH at all. CI sets JAVA_HOME as a side effect of its setup-java
+step, which is why CI saw 3209 and a PATH-only local run never could.
+
+Finding them took mapping the `s` characters in pytest's `-q` progress output
+back onto `--collect-only` order; `-rs` on the whole suite is another ten
+minutes, and the skip reasons are not in a `-q` log.
+
+PATH is still needed on its own: py2opsin shells out to a bare `java`, and
+pytest does not inherit the managed Temurin the app injects per-subprocess
+(`naming_providers._java_on_path`). Without PATH you get a bare
+`FileNotFoundError` naming neither Java nor OPSIN.
+
+## RESONANCE: four things measured before the Lewis diagram was built
+
+`tests/test_resonance_gate.py` is the gate, kept as assertions. The idea
+it rests on is that a delocalised bond still has a localised sigma
+component, so only the excess is delocalised:
+
+    localised pairs on a bond = MINIMUM order across resonance structures
+    delocalised electrons     = (kekulised total - localised) x 2
+
+**THE TOTAL MUST COME FROM A KEKULISED COPY.** Summed over the AROMATIC
+form each bond counts 1.5, and naphthalene reports 11 delocalised
+electrons against a textbook 10 -- small enough to read as a rounding
+wobble and a whole electron wrong.
+
+**`KEKULE_ALL` ALONE.** `ALLOW_CHARGE_SEPARATION` looks like the fix for
+the five-membered aromatics and is not: pyrrole and furan are unchanged
+at zero, and AMIDE gains two delocalised electrons from a
+charge-separated contributor a Lewis structure has no business drawing.
+
+**HYPERVALENCY IS NOT VISIBLE IN RDKit's VALENCE LIST.**
+`GetValenceList(16)` is `[2, 4, 6]`, so sulfur(VI) is a perfectly normal
+valence and sulfate goes undetected. Count the octet instead --
+`2 x (bonds + lone pairs) > 8` -- which flags sulfate, phosphate, SF6,
+sulfite, DMSO and phosphine oxide, and correctly leaves a
+charge-separated perchlorate alone, since that one obeys the octet
+exactly. No element list to rot.
+
+**FORMAL CHARGES DO MOVE BETWEEN CONTRIBUTORS, and a first probe said
+otherwise.** It sampled anthracene, pentacene, porphine and the
+hypervalent set -- all neutral, mostly symmetric, none able to show it.
+Acetate moves its negative between the two oxygens, which is the whole
+point of drawing it delocalised. Read charges from the INPUT molecule.
+
+Cost is negligible and the enumeration is small: anthracene 4 structures,
+pentacene 6, porphine 2, none reaching even 16, all under 2.3 ms. So the
+fail-closed truncation path is headroom rather than a working limit --
+and still has to exist, because "no input I tried hit it" is not "no
+input can".
+
+**A LONE-PAIR AROMATIC CANNOT BE COUNTED THIS WAY.** Pyrrole, furan and
+thiophene have ONE Kekule structure, so the arithmetic says zero when the
+answer is six -- two of those electrons come from a heteroatom lone pair
+that sits in the ring, and the enumeration never moves it there. Those
+rings are delocalised with an UNKNOWN count: never 0, which would be a
+lie, and never a fabricated 6. Asserted as a defect, so a future RDKit
+that fixes it fails the gate and the abstention can go.
+
+## The naming benchmark
+
+`benchmarks/naming/` is the regression check on naming quality — 181 molecules,
+scored by OPSIN round-trip rather than string equality. It is the arbiter for
+"is this naming engine better", and it has twice overturned a conclusion
+reached without it.
+
+Generate fresh predictions, then score them:
+
+```bash
+uv run --no-sync python - <<'PY'
+import json
+from pathlib import Path
+from openchem.vendor.iupac_namer import name_smiles
+rows = json.loads(Path("benchmarks/naming/corpus.json").read_text(encoding="utf-8"))
+preds = []
+for r in rows:
+    try: preds.append(str(name_smiles(r["smiles"]) or ""))
+    except Exception as e: preds.append(f"<ERROR {type(e).__name__}>")
+Path("benchmarks/naming/predictions_check.json").write_text(
+    json.dumps({"check": {"predictions": preds}}, indent=1), encoding="utf-8")
+PY
+uv run --no-sync python benchmarks/naming/score.py benchmarks/naming/predictions_check.json
+```
+
+Current: **181/181** (82 exact, 98 equivalent, 1 tautomer — metformin, which
+counts as a success since the `tautomer` outcome class was added). If a
+change under `src/openchem/vendor/` drops this, that
+outranks any number of narrow tests it fixed.
+
+`score.py` takes exactly one predictions file. The committed
+`predictions_full.json` and `predictions_deterministic.json` were recorded
+against the older 124-molecule corpus and will now be **refused** by the
+length guard rather than silently mis-scored — that guard is deliberate, not a
+bug. They are kept as the record of what the ML alternatives scored at the
+time; compare them only against the corpus revision they were made for.
+
+## Ketcher CAN report atom AND bond selection, with one trap
+
+The 2D editor was assumed to expose nothing for selection -- its Python
+backend has only `load_molblock`, `set_render_option`,
+`trigger_toolbar_action` and `get_molblock`. That is a fact about **our
+wrapper**, not about Ketcher, and reading the wrapper is what made it look
+impossible.
+
+Probing the real vendored build (load `resources/ketcher/dist/index.html`
+in a bare `QWebEngineView` and evaluate JS -- far faster than driving the
+app) found:
+
+- `ketcher.subscribe(name, handler)` is a **switch** that accepts only
+  `'change'` and `'libraryUpdate'`. This is the dead end that makes
+  selection look unavailable.
+- `editor.subscribe` is a DIFFERENT method and does exist.
+- `editor.event` carries ~30 events including **`selectionChange`**, plus
+  `click`/`mousedown`/`mousemove` added at runtime by `domEventSetup` --
+  so the live object has more than the `this.event = {...}` literal in the
+  bundle shows.
+- `editor.selection()` reads the current selection synchronously and
+  returns `null` when nothing is selected. `editor.selection({atoms:[1]})`
+  sets it and dispatches the event, which is how to test this without
+  synthesising canvas clicks.
+- **Bonds work identically**: `editor.selection({bonds:[0]})` round-trips
+  as `{bonds: [0]}`. The selection object carries ONLY the keys with
+  something in them -- a bond click has no `atoms` key at all -- so a
+  handler must check both rather than assume one shape.
+- **A SELECTION REPORTS POOL IDS, NOT MOLFILE POSITIONS.** This was
+  previously recorded here as "Ketcher's bond ids are RDKit's bond
+  indices... no translation table is needed, and one would be a place for
+  a silent off-by-one to live". That is wrong, and the section below is
+  the correction. The verification behind it was real but was performed on
+  a freshly LOADED molblock -- the one state in which a pool has never had
+  anything removed from it and the two agree by coincidence.
+
+**THE TRAP: `selectionChange` hands your handler `undefined`.** It is a
+`PipelineSubscription`, which feeds each handler the PREVIOUS handler's
+RETURN VALUE rather than the original payload. Ketcher registers its own
+handler first and that one returns nothing, so anything subscribed
+afterwards receives `undefined` forever. Measured: a probe handler saw
+`typeof sel === 'undefined'` on every dispatch while the event itself was
+firing correctly, which reads exactly like "the event does not work".
+
+`change` does NOT behave this way -- it is a plain `Subscription` -- so the
+two look interchangeable and are not.
+
+The fix is one line: ignore the argument and call
+`ketcherInstance.editor.selection()` inside the handler.
+
+#### A POOL ID IS NOT A MOLFILE POSITION, and a fresh load hides it
+
+Reported from the running app: drawing a benzene and clicking a ring vertex
+answered **"Atom 9 is in the 3D structure but not in the structure as drawn
+-- the report covers heavy atoms and treats hydrogens as implicit. Pick a
+heavy atom."** A second vertex gave atom 11. Benzene as drawn has six atoms,
+and the molecule really was C6H6.
+
+`Pool` extends `Map` and hands out ids from a counter that only ever
+increments -- `add` and `newId` both `return this.nextId++` (read in the
+bundle, then measured). **An id is a permanent identity handle and a freed
+one is never reused**, while the molfile is positional and RDKit numbers its
+atoms by reading it in order. The two agree only until something is deleted.
+
+Reproduced through Ketcher's own API in about 20 seconds: draw two rings,
+select the first and press Delete, and the surviving six-atom ring carries
+pool ids **6..11** against a molfile of six atoms numbered 1..6. Every
+vertex was off by six; clicking two of them sends 8 and 10, which is exactly
+the report.
+
+    molfile position  0  1  2  3  4   5
+    what was sent     6  7  8  9  10  11     atoms AND bonds, both
+
+**Bonds had the identical offset and were the worse half.** A wrong bond
+index usually stays in range, so no guard fires and the panel silently
+describes a DIFFERENT bond. The atom side was only ever visible because
+`_atom_is_in_report` happened to catch it and say something.
+
+Two reasons this shipped, both worth knowing:
+
+- **A fresh `setMolecule` rebuilds the pool from zero.** Every probe that
+  established the old claim loaded a molblock and read the ids straight
+  back, so all of them saw a dense pool. **Any check of an index space has
+  to run against an EDITED structure, never a freshly loaded one.**
+- **A full erase resets it too**, so "draw, clear the canvas, draw again"
+  looks fine. It takes a PARTIAL deletion -- which is the ordinary case,
+  not the exotic one.
+
+**It is NOT the vite 6 rebuild** (`001bd63`), which was the first
+suspicion. The previous bundle, restored with `git archive 2768ee8`, gives a
+byte-identical verdict: 6/6 atoms and 6/6 bonds wrong. This is Ketcher's
+data model, and the bug is as old as the selection feature.
+
+The fix is `molfilePosition()` in `tools/ketcher-host/src/main.jsx`, which
+translates before the value crosses the bridge -- so Python's contract stays
+"this is an RDKit index" and the one place that knows Ketcher exists is the
+one place that knows about pools.
+
+**INSERTION ORDER, NEVER SORTED, and this is the trap inside the fix.**
+`indexOf` on `Array.from(pool.keys())` looks interchangeable with sorting the
+ids, and is not. Undo re-inserts a deleted atom under its ORIGINAL id at the
+END of the Map. Measured on a C-N-O-F-S-P chain with the carbon deleted and
+restored:
+
+    pool insertion order   [1, 2, 3, 4, 5, 0]
+    molfile atom order      N  O  F  S  P  C     <- follows insertion order
+    sorted by id           [0, 1, 2, 3, 4, 5]    <- wrong in all 6 positions
+
+Bonds behave the same way and the case is sharper, because a bond pool can
+be out of numeric order without any atom being: the same edit left bond ids
+`[0, 4, 1, 2, 3]`, and RDKit's bond order matched that exactly, checked pair
+by pair. A sorted implementation produces perfectly plausible indices and is
+wrong, which is why `test_a_selection_is_never_forwarded_as_a_raw_ketcher_id`
+asserts the absence of a `.sort(` by name.
+
+Two guards, deliberately split. `tests/test_ketcher_editor_backend.py::`
+`test_a_selection_arrives_as_a_molfile_position_not_a_ketcher_pool_id`
+builds the real two-ring-minus-one state against the real bundle and asserts
+what Python receives -- it must, since a stale dist leaves the app broken
+with every Python test green. It **asserts its own setup** (pool ids really
+are `[6..11]`) first, because if the Delete hotkey ever stops erasing, the
+pool stays dense and the test would pass while testing nothing. Verified by
+running it against the vite 5 bundle: fails, `assert [6,...] == [0,...]`.
+The cheap half is a source check in `test_ketcher_bundle_is_current.py`,
+confirmed to catch both a raw-id regression and a sorted one.
+
+**`runJavaScript` on this Qt build returns PRIMITIVES ONLY.** Numbers and
+strings arrive intact; an array or a plain object arrives as `''`,
+indistinguishable from a script that returned nothing. This cost the first
+probe run entirely -- every result read as empty and looked like Ketcher
+failing rather than marshalling failing. Wrap anything structural in
+`JSON.stringify`; `_run_js_json` in the test file does.
+
+**THE 3D VIEWER AND A REPORT DO NOT SHARE AN INDEX SPACE**, and the
+mismatch is a crash rather than a wrong answer. A conformer carries
+EXPLICIT hydrogens; the structure as drawn has implicit ones. Ethanol is 3
+atoms in a report and 9 in the viewer, so clicking a hydrogen in 3D sends
+index 3-8 -- past the end. `GetBondBetweenAtoms(1, 5)` raises
+`RuntimeError: Range Error` inside a Qt signal handler.
+
+The heavy atoms agree ONLY because `AddHs` appends, so indices 0..n-1 line
+up and nothing warns about the rest. That is why a live check that clicked
+only heavy atoms found nothing, and why the bug was found by asking what a
+hydrogen click would do rather than by hitting one. Anything wiring a
+viewer click to a structure index needs the same bounds check;
+`_atom_is_in_report` is the one in the inspector.
+
+**3Dmol, by contrast, reports ATOMS ONLY.** Its `setClickable` callback
+receives an atom, and bonds drawn in stick mode are not separately
+selectable -- a click near one resolves to the nearest atom. So the 3D
+viewer names a bond by its two atoms: the inspector takes two clicks and
+resolves the bond between them, which uses only what the library provides.
+That is deliberately NOT built on the viewer's existing multi-atom
+selection, which drives distance measurement -- sharing it would make one
+gesture mean two things depending on a mode nobody set.
+
+Editing `tools/ketcher-host/src/main.jsx` requires `npm run build` in that
+directory for anything to change; `resources/ketcher/dist/` is build
+output. node and npm are installed, and a build takes about a minute
+(measured 54 s and 1m00 on two bond-selection rebuilds).
+
+#### DRAWING ON KETCHER'S CANVAS: the transform, and where it is safe
+
+The lone-pair overlay draws on top of the editor without touching it.
+Everything it rests on is in `tests/test_ketcher_viewport_transform.py`,
+which is the gate kept as assertions; the parts worth knowing before
+building anything else that draws there:
+
+**`render.ps()` and `obj2view()` DO NOT EXIST on this build.** `page2obj`
+is the only mapping exposed and it runs backwards. Inverting it at two
+probe points gives a forward map accurate to **under a pixel**, and it
+tracks zoom exactly because Ketcher zooms by changing the SVG viewBox and
+`page2obj` already accounts for that:
+
+    a = page2obj(0,0);  b = page2obj(100,100)
+    scale = 100 / (b.x - a.x);  offset = -a.x * scale
+    screen = pp * scale + offset
+
+Better than deriving it from `microModeScale`, `zoom` and the viewBox by
+hand, because it cannot drift when Ketcher changes how any of those work.
+`devicePixelRatio` is deliberately absent: both sides are CSS pixels, so
+display scaling cancels rather than being corrected.
+
+**`ketcher.setZoom` DOES NOTHING.** It returns cleanly, leaves
+`options.zoom` at 1 and moves no atom. `editor.zoom()` is the call that
+works. Two gate arms reported a comfortable zero-pixel error against a
+viewport that had never changed before this was noticed -- assert the
+drawing MOVED before believing any accuracy number.
+
+**Nothing is announced.** `zoomChanged` is in `editor.event` and does not
+fire for a real zoom; Ketcher does not pan by scrolling either (its
+client area has no overflow), so there is no scroll event. Both are
+viewBox changes and both show up only in the derived affine. Comparing it
+costs 0.009 ms against a 16 ms frame, so the overlay WATCHES on an
+animation frame rather than subscribing.
+
+**Work in MODEL SPACE and pan/zoom become free.** Ketcher's viewport
+transform is scale + translate with NO rotation, so a label box is
+axis-aligned in model units exactly as on screen. Put every computed
+thing in model units under one `<g>`, and a viewport change rewrites one
+transform attribute and touches no dot -- measured, slot identity is
+unchanged across zoom 1 -> 1.8 -> 0.55 -> 1 on six fixtures. A guarantee
+by construction rather than a tolerance.
+
+**A LABEL'S HYDROGENS HANG OFF ONE SIDE, and which side varies.** Ketcher
+anchors the element symbol on the atom and puts the hydrogens left or
+right depending on the bonds and on conventions of its own -- water is
+written H2O and ammonia NH3, opposite sides, neither with a bond to go
+on. Measured as offsets from the atom in bond lengths:
+
+    methanol  O   symbol -0.13..0.13   H  at +0.12..+0.35   (right)
+    water     O   symbol -0.13..0.13   H  at -0.57..-0.33   (left)
+    ammonia   N   symbol -0.12..0.12   H3 at +0.11..+0.52   (right)
+    ammonium  N   the '+' reaches      +0.81
+    methyl    C   H3 at -0.57..-0.13                        (left)
+
+A box half the text wide and centred on the atom therefore under-covers
+whichever side they took, and the lone-pair slot radius (0.33) sits
+inside methanol's +0.35 -- so a dot was drawn straight through the H of
+"OH". Reach the FULL text width on BOTH sides instead: a deliberate
+over-estimate that needs no knowledge of Ketcher's side-picking, which
+would be a special case that rots.
+
+**AN OBSTACLE ERROR IS THE ONE CLASS A CHECKER CANNOT SEE.**
+`chem/electron_layout.py` judges what the page drew rather than
+re-implementing it, which catches a great deal -- but it is handed the
+same label box the page used, so both agreed the dot was clear. Every
+test passed, including the one whose whole job is to catch a dot inside a
+label. It took looking at the screen. A judge grades placement against
+the rules it is GIVEN.
+
+#### AND IT HAPPENED AGAIN IN THE OWN-SVG RENDERER: Qt ignores `dominant-baseline`
+
+The full Lewis structure (`chem/lewis_svg.py`, shown in a `QSvgWidget`)
+is a second renderer with the same checker, and it reproduced the
+finding above almost exactly -- the box was right, the page drew
+somewhere else, and both agreed.
+
+**Qt's SVG renderer silently ignores `dominant-baseline`, and ignores
+`dy` too.** Measured, with and without the attribute giving
+byte-identical output:
+
+    plain                      ink 84..97   centre -9.5 from the anchor
+    dominant-baseline=central  ink 84..97   IDENTICAL
+    dy="0.35em"                ink 84..97   IDENTICAL
+    dy="6.3"                   ink 84..97   IDENTICAL
+    y shifted +6.3             ink 90..103  moved
+
+So **only `x` and `y` move a glyph**. The needed shift is exactly half
+the font size, glyph-independent, checked at 12/18/24/36 px.
+
+At production scale the atom's label ink ran **74..87 against a checker
+box of 78.6..101.4** -- the glyph poking 4.6 px out of the top while the
+bottom 14 px of the box held nothing.
+
+**Writing the shift into `y` costs nothing in a browser, and that was
+measured rather than reasoned.** In Chromium, via `getBBox` on an inline
+SVG, `dominant-baseline="central"` shifts a text element by **+6.00 px at
+font-size 18 = +0.333 em**, which is `(ascent - descent)/2` for Arial. So
+`y + 1/3 em` with no attribute is the same placement a compliant renderer
+gives, and the exported SVG stays right.
+
+Two method notes from that measurement, both already in this file in
+other forms and both paid for again:
+
+- **`runJavaScript` cannot return a Promise**, so the obvious probe
+  (draw the SVG to a canvas via `Image.onload`, resolve the ink box)
+  came back empty for every variant and read as "nothing rendered".
+  Inline the SVG in the DOM and return a `JSON.stringify` synchronously.
+- **Sampling a column through the atom does not isolate its label** -- it
+  catches the lone-pair dots as well, and measured a 13-px "O" as 35 px
+  tall. Render twice, once with the atom text stripped, and difference.
+
+#### A REFUSED ANALYSIS MUST NOT BE HANDED TO A `QSvgWidget`, OR CLAIM A BUDGET
+
+Two more from the same feature, both found by driving the app with every
+test green, and both about what a REFUSAL looks like rather than what an
+answer looks like.
+
+**`QSvgWidget` scales its viewBox to fill the pane.** The renderer is
+total and answers a refusal with a card carrying the reason, in a
+200x60 viewBox -- fitted into the dialog that became ~37 px text with
+both ends clipped, and read as a broken window rather than as a message.
+The status line already carries the same words at a normal size, so the
+view is hidden instead. **A message is not a picture; do not render one
+through an image widget that fits to its box.**
+
+**A refused diagram has no atoms, so every accounting term is zero and
+the budget "balances".** The details panel was therefore reporting a
+closed electron budget for a molecule the analysis had explicitly
+declined to analyse. A number that agrees with itself about nothing is
+worse than no number, because it reads as a result -- the same shape as
+the `0` that iron(III) reported for its lone pairs before `Unknown`
+existed. It says "not applicable - nothing was analysed" now.
+
+#### A BRANCH CAN BE SHIPPED, DOCUMENTED, AND NEVER ONCE RUN
+
+`lewis_builder` fails closed when the resonance enumeration truncates,
+which is invariant 7 of its plan. Mutating that branch unreachable
+**survived the entire suite**: nothing comes near `maxStructs=256` --
+the gate's own measurement records pentacene at 6 -- so no fixture ever
+entered it. The plan named it, the code had it, the docstring explained
+it, and it had never executed.
+
+**Reach such a branch by moving the THRESHOLD, not by hunting an input.**
+`monkeypatch.setattr(builder, "MAX_RESONANCE_STRUCTURES", 2)` makes
+benzene truncate in milliseconds; a molecule genuinely large enough to
+truncate is also slow enough that nobody keeps the fixture (the hunt for
+one was still running after 400 s and was abandoned). The existing "small
+and fast on hard systems" test is now explicitly its CONTROL -- without
+it a cap of 2 would satisfy the new guard while making every aromatic
+molecule in the app abstain.
+
+**A guard that SKIPS itself under its own mutation scores as neither
+caught nor survived.**
+`test_abstentions_are_printed_verbatim_with_their_subject` called
+`pytest.skip` when nothing abstained, so removing the expanded-octet
+abstention turned the guard into a skip. The only reason it was noticed
+is that the harness compares the arm's test COUNT against the control's
+and reported `INVALID (134 of 135 ran)`. A harness that only greps for
+failures would have called that a survivor and sent somebody looking at
+the wrong code. **Assert the setup; never skip on it.**
+
+#### KETCHER'S MOLBLOCK IS NOT IN ANGSTROM, and nothing said so
+
+Anything that takes `getMolfile` output and treats it as a measurement
+has to restore the scale first. Measured against the real bundle:
+cyclohexane loaded with C-C at **1.5301 A** comes back at **1.0702**, a
+uniform **x0.6994** on every bond. Ketcher normalises bond lengths to its
+own unit on load and writes that out.
+
+**Harmless for as long as the canvas only ever held a LAYOUT**, which is
+why it went unnoticed for the life of the project -- a 2D depiction's
+coordinates are arbitrary units and nothing reads them as distances. The
+moment the canvas holds a GEOMETRY (the rotation mode, the adopted
+conformer) it is a 30% error in every bond length.
+
+**It hides from almost every check.** A uniform scale preserves the atom
+order, the bond orders, the formal charges, the CIP labels, the
+fingerprint, and the SIGN of the oriented volume. Only a LENGTH or an
+ENERGY sees one. That is why `RotateStructureCommand` asserts MMFF energy
+as a separate invariant, and a mutation confirms it is the sole guard
+that catches a unimodular shear -- the other plausible wrong matrix,
+which has det exactly 1 and so preserves chirality too.
+
+`ChemistryEngine.rescale_like` fits the factor by least squares over
+every pairwise distance and returns the RESIDUAL, which is the thing that
+says the motion was rigid at all. Three ways to not be a rotation, each
+blind to the others:
+
+    a reflection   preserves every distance   only stereochemistry sees it
+    a shear        det exactly 1              only the distances see it
+    a scale        preserves both of those    only a length or energy does
+
+The corollary that bit separately: **a zero-distance drag cannot be
+detected by comparing molblock TEXT.** The editor's copy is at Ketcher's
+scale, so the incoming string differs from the model's on every drag
+including the ones that moved nothing -- a check that looks obviously
+correct and is never true. `RotateStructureCommand.moved` answers on the
+geometry, after the rescale.
+
+#### A KETCHER TOOLBAR ACTION CAN FIRE `change` WITHOUT CHANGING ANYTHING
+
+And this app turned that into an `EditStructureCommand`, which cleared
+the conformer set. Measured in the running app -- import, generate
+conformers, press *Calculate CIP (Stereo Descriptors)*:
+
+    conformers 4 -> 0,  canonical SMILES IDENTICAL either side
+
+So a read-only annotation destroyed the geometry it was annotating.
+Layout and Clean Up have the same shape, as does dragging an atom.
+
+`_invalidate_stale_conformers` now compares canonical SMILES, which is
+the same discriminator `MoleculeEditorWidget._on_molecule_changed`
+already uses and for the same reason: **a coordinate change is not a
+structure change.** Constitution AND stereochemistry, so flipping a wedge
+still clears -- a conformer of the R enantiomer is not a conformer of the
+S one, and anything comparing formulas or heavy-atom graphs would call
+that edit a no-op.
+
+#### CALCULATED ANNOTATION STATE: the category that was missing
+
+Reported as "a bug with at least the R/S label. If a molecule is changed
+while the label is turned on, it won't update ... I'm assuming all the
+other 2d display functions have this bug". Half right, and the useful
+half is WHICH half. Four classes, and the rule for placing a new one is
+**does this value derive from the current molecular graph and get drawn
+attached to it?**
+
+    render option state       Ketcher's       re-rendered from the flag;
+    carbonExplicitly,                         nothing to do on an edit
+    showValence, stereo flags
+    calculated annotation     OURS            MUST be recomputed when the
+    CIP labels, lone pairs                    graph changes
+    structural model state    the undo stack  becomes model state
+    Aromatize, Layout, H
+    snapshot view state       the dialog      frozen deliberately, and
+    Full Lewis                                says so
+
+The application had no third row, so CIP was implemented through the
+STRUCTURAL-EDIT path (the section directly above) and the lone pairs as a
+one-off. **Both went stale on the one route nothing covered**: the user
+drawing on the canvas. Measured -- the four render options are fine
+(checked either side of a real edit), Oxidation States is fine (its panel
+is re-fed on every `MoleculeChanged`), Full Lewis is a documented
+snapshot, and exactly two things were broken.
+
+**THE LONE PAIRS WERE THE WORSE OF THE TWO and nobody had reported them.**
+`_publish_electron_overlay` had exactly two call sites, `set_molecule` and
+`set_electron_mode`, and an own edit reaches neither -- `_on_editor_edited`
+updates `_synced_smiles` before `_on_molecule_changed` can compare, so it
+returns early every time. The counts are keyed on MOLFILE POSITION, so
+after a deletion the dots are not stale, they are **on the wrong atoms**.
+`test_a_NEW_STRUCTURE_republishes_without_anyone_asking` covers the
+`set_molecule` routes and its docstring lists them; the canvas edit is
+simply not among them.
+
+##### `ketcher.indigo.calculateCip` IS THE DOOR. The toolbar button is not.
+
+The button was the only known integration point, and measuring found the
+other one. Both routes, same fixture, same bundle:
+
+    toolbar "Calculate CIP button"   1 change event, ASYNCHRONOUSLY
+                                     (0 immediately after the click),
+                                     Ketcher history undo 3 -> 4
+    ketcher.indigo.calculateCip      0 change events, history 1 -> 1,
+                                     and it does NOT touch the live struct
+
+A `change` becomes an `EditStructureCommand`, so recomputing on every edit
+through the button would leave a phantom undo step per edit -- and being
+ASYNCHRONOUS, nothing can correlate the event with the call that caused
+it, so no suppression could be written safely. A timer-bounded "armed
+flag" was designed and rejected on exactly that: it can swallow a real
+user edit that arrives inside the window, which is far worse than the
+display bug it was fixing. The measurement removed the need for it.
+
+`calculateCip` resolves to a **replacement Struct on its own dense pool**.
+So the flow is compute, clear, copy the fields across BY POSITION,
+`render.update(true)` -- which fires no `change` either, as the rotation
+preview already relies on. End to end: **0 change events, no history
+growth, no undo entry, and no recursion to guard against.**
+
+##### AND THE FIRST VERSION COPIED BY POOL ID, WHICH IS THE SAME BUG AS THE SELECTION ONE
+
+Shipped, and reported from the running app within the hour: the label
+appeared "way to the left of the molecule", on a ring carbon nowhere near
+the stereocentre, and **pressing Ctrl+Z fixed it** -- because undo reloads
+through `setMolecule`, which rebuilds the pool dense. Measured after
+erasing one atom:
+
+    live pool          [1, 2, 3, 4, 5, 6]     the centre is id 3
+    calculateCip's     [0, 1, 2, 3, 4, 5]     the centre is id 2
+    where it landed    id 2                   a different atom
+
+`calculateCip` round-trips through indigo, which parses its answer into a
+pool starting at zero; the live pool only starts at zero until the first
+deletion. Identical in cause to the selection bug this file already
+records, one function along.
+
+**THE "0 MISSING OVER THE FIXTURE" CHECK THAT LICENSED IT WAS
+MEANINGLESS.** It counted ids present in the target -- and both pools have
+the same SIZE, so every lookup succeeds and every one of them is off by
+one. A membership check cannot see a shifted index space; only asking
+WHICH ATOM the value landed on can.
+
+**AND THE TEST SUITE COULD NOT SEE IT EITHER, BY EXACTLY THE DOCUMENTED
+ROUTE.** The recompute-after-an-edit test erases the amine, which destroys
+the stereocentre -- so no surviving atom label is left to misplace, and
+the one surviving bond sits at an index the two pools happen to agree on.
+Mutating the fix back to copy-by-id is caught by **one** test, the one
+written afterwards; the other five CIP tests pass straight through it.
+What it takes is an edit leaving a centre STANDING while making the pool
+non-dense, and the guard asserts its own setup (`pool == [1..6]`) so a
+dense pool cannot make it vacuous.
+
+The rule this file already states was simply not applied: **any check of
+an index space has to run against an EDITED structure, never a freshly
+loaded one.** Both the probe and the first test used a fresh load.
+
+**CLEAR BEFORE COPYING, ALWAYS.** A centre that stops being a
+stereocentre keeps its old `cip` otherwise. Measured: delete the amine
+from `C/C=C/[C@@H](N)CC` and the canvas still reads `(S)` -- an
+answer-shaped lie, worse than an obviously missing label, and the variant
+a user cannot detect. Clear-then-recompute leaves `(E)` alone, correctly.
+
+**TWO RACE GUARDS, AND THEY CATCH DIFFERENT THINGS.** The calculation is
+a promise, so an answer is in flight for a few frames. A GENERATION
+counter covers a newer refresh or a `clear` issued meanwhile -- without
+it, switching the display off is undone by the answer landing a moment
+later, intermittently, which reads as a flaky toggle rather than a race.
+A STRUCT IDENTITY check covers a `setMolecule` landing meanwhile, which
+rebuilds the pool from zero and would have one molecule's descriptors
+copied onto another's atoms by id. Both are mutated in
+`tests/test_ketcher_editor_backend.py`; each is caught by one test.
+
+##### A GENERIC "NOTHING CHANGED" PREDICATE WAS DESIGNED, THEN KILLED
+
+The first plan suppressed any editor change altering neither canonical
+SMILES nor coordinates. It is unsound and the counterexample is concrete:
+`set_structure_from_molblock` stores `Chem.MolToMolBlock(mol)`, which
+KEKULIZES, so **Aromatize** yields identical canonical SMILES and
+identical coordinates while genuinely changing the drawing -- it would
+have been suppressed outright, leaving the canvas aromatic and the model
+never told. A wedge drawn on a non-stereogenic bond is a second case.
+**A predicate that must enumerate every user-editable property to be
+correct is not a safe escape hatch**, and the honest fallback if the good
+route had not existed was to accept the extra undo entry.
+
+**AND THE MOLFILE HEADER CARRIES A TIMESTAMP** -- `-INDIGO-08172603362D`,
+to the minute -- so comparing `getMolfile` text across a minute boundary
+reports a difference that is not one. Two reads with nothing in between
+are byte-identical; two reads either side of :00 are not. That produced
+one wrong reading of the probe before it was checked.
+
+##### THE BUNDLE GUARD COVERED ONLY THE BRIDGE NAMES
+
+`test_ketcher_bundle_is_current.py` parametrises over `bridgeObject.*` --
+what JS calls on Python -- and nothing covered the globals Python calls on
+JS. `openchemRotation` and `openchemElectrons` had both shipped uncovered;
+`openchemCip` made it three, and a forgotten rebuild would have left the
+feature silently absent with every test green. Guarded in two halves, and
+the pairing is the point: a source scan proves the NAME reached the
+bundle, not that the functions hanging off it did, so it is fail-open
+alone. `test_the_cip_api_the_page_exposes_is_the_one_python_calls` asks
+the real page.
+
+#### KETCHER KEEPS 3D COORDINATES, including through an edit
+
+Measured, because the whole "show the conformer's real shape in the 2D
+editor" feature is unreachable if it does not, and because the failure
+would have been silent and compounding: `main.jsx` forwards every canvas
+change as `structureEdited(ketcher.getMolfile())`, which becomes an
+`EditStructureCommand`, and that command CLEARS the conformer set. So a
+Ketcher that flattened z would mean
+
+    adopt a 3D structure -> click anything -> molblock flattened to z = 0
+                                              AND conformers = []
+
+one click destroying both the view and the geometry behind it.
+
+It does not. `tests/test_ketcher_holds_3d_coordinates.py`, against the
+real vendored bundle:
+
+    xy pairwise distance ratio    0.7993 .. 0.7993   spread 1.0000
+    3D pairwise distance ratio    0.6943 .. 0.6944   spread 1.0001
+    z spread, cyclohexane chair   0.9832 A in -> 0.6828 A out
+    after deleting an atom (6 -> 5)                  0.6828 A
+
+So Ketcher applies **one uniform 3D scale** and nothing else -- no
+re-layout, no flattening, and z is scaled by the same factor as x and y.
+Bond lengths and angles survive exactly.
+
+**A non-zero z is not the same as an intact geometry**, and the test that
+only checks z would pass against an anisotropic scale that silently
+changes every bond length. Assert that all pairwise 3D distances share
+ONE ratio.
+
+**Two scale factors from two different molecules are not evidence of
+anisotropy.** 0.6943 and 0.7993 above look like a discrepancy and are
+not: Ketcher normalises to its own bond length per structure, so an
+aromatic molecule and cyclohexane get different factors. 0.9832 x 0.6943
+= 0.6826, which is the 0.6828 measured. Nearly wrote up a bug that was
+not there.
+
+#### The bundle was rebuilt on vite 6, and what that cost
+
+The toolchain moved from vite 5.4.21 to 6.4.3 to clear six dependabot
+alerts, and the dist was regenerated on it. Worth knowing before the next
+bundler bump:
+
+**It costs almost nothing, and the obvious estimate is wrong by two
+orders of magnitude.** Measured, `git count-objects -vH` before and after
+the commit plus a `gc`:
+
+    size-pack  15.27 MiB  ->  15.59 MiB      +0.32 MB
+
+against a rewritten 34 MB JS file. Reasoning from FILE SIZE predicted
+~35 MB and talked this rebuild out of happening once; the pack barely
+moved because **minification is disabled here** (a TDZ bug in
+ketcher-core's circular imports, see the config) so the bundle is
+line-structured text that deltas against its predecessor almost
+perfectly. Git even records the assets as renames-with-changes rather
+than new blobs. Only the CSS was byte-identical
+(`index-DaFekdiN.css`); all three JS chunks were replaced.
+
+Measure the pack, not the file, before refusing a rebuild on size.
+
+**No security depended on it.** All four vite/esbuild advisories are
+DEV-SERVER issues -- `server.fs.deny` bypass, launch-editor NTLM, `.map`
+path traversal, dev-server CORS -- and this project has no dev server:
+`package.json` declares exactly one script, `build`. The output bundle
+was never affected. The alerts are cleared by the LOCKFILE, so rebuilding
+was a choice about keeping artifact and toolchain in step, not a fix.
+
+`brace-expansion`, `uuid` and `nanoid` are pinned through npm `overrides`
+because they arrive transitively (via `dpdm`, `vite-plugin-top-level-await`
+and `postcss`) and their own CVEs are not dev-server-only.
+
+**The bundle guard cannot tell you a rebuild WORKS.**
+`test_ketcher_bundle_is_current.py` checks that each bridge name appears
+as a string in the bundle -- it catches a forgotten rebuild, not a broken
+one. After any toolchain change, exercise the paths that depend on module
+init order, which is exactly what a bundler changes:
+
+    npm run build                                    28 s on vite 6
+    pytest tests/test_ketcher_bundle_is_current.py   names present
+    pytest tests/test_ketcher_editor_backend.py      8 pass, real QtWebEngine
+    a live selection probe                           see below
+
+Selection is the one to check by hand, because it is the piece this file
+already documents as fragile (the `PipelineSubscription` trap) and no
+test covers it firing end to end. Drive it through Ketcher's own API
+rather than synthesising canvas clicks:
+
+```python
+backend._page.runJavaScript("window.ketcher.editor.selection({atoms:[1]}); 1")
+backend._page.runJavaScript("window.ketcher.editor.selection({bonds:[1]}); 1")
+```
+
+Measured on the vite 6 bundle: `atomSelected -> [1]`, `bondSelected ->
+[1]`. Verify the build in a scratch outDir first (`npx vite build --outDir
+...`) and repoint `_DIST_INDEX` with a one-line pytest plugin -- that
+proves the toolchain before `emptyOutDir: true` deletes a working dist.
+
+**Forgetting the rebuild is silent** -- the tests pass, the app starts, and
+the feature is simply absent. `tests/test_ketcher_bundle_is_current.py`
+catches it: it extracts every `bridgeObject.foo(` from the JSX and asserts
+the name appears in the committed bundle, then that a `_Bridge` method of
+that name exists to receive it. Verified by simulating the mistake -- adding
+a call without rebuilding fails with the method named and the fix printed.
+
+**It is a string check, not a rebuild-and-diff, and that was measured
+rather than assumed.** The build IS byte-for-byte reproducible on one
+machine (snapshot the dist, rebuild, diff: 5 files, zero differences, git
+clean). But CI is Linux on a different node, and reproducibility across
+toolchains is a much stronger claim -- one byte from a minifier would fail
+every PR, and a check that cries wolf gets deleted. Bridge method names
+cannot be minified (they are properties of the object Qt injects), so they
+fingerprint the build for free and with no platform sensitivity. It needs
+no node in CI, and `tests.yml` runs bare `pytest`, so it was picked up
+without touching the workflow.
+
+Reproducibility confirmed a second time, and with it something that saves a
+rebuild: **a COMMENT-ONLY edit to `main.jsx` does not stale the dist.**
+Comments do not survive the build even though minification is off -- a
+distinctive phrase added to a comment appears 0 times in the 35 MB bundle --
+so rewording one and rebuilding produced a byte-identical asset, same
+content hash (`ea091b8d...`, `index-E55nh8EI.js`). Rebuild for a code
+change; a comment is free.
+
+**Building the dist in CI instead was considered and rejected**, with
+numbers: the whole `.git` is 40 MB, only 10 MB of it large blobs, and the
+dist has been rebuilt 3 times in the project's life. Moving the build out
+would cost node in CI, a build step on every fresh clone, and 19 tests that
+construct `KetcherEditorBackend` (which raises `FileNotFoundError` without
+a dist) -- to save single-digit megabytes. Git also records the rebuilds as
+99% renames, so successive versions barely cost anything.
+
+## SHAPE-VALUED RESULTS DRAW THEMSELVES, and what that took to make honest
+
+"Can our own dipole moment calculator resemble Marvins too, with a 3d
+model?" It can, and the per-atom family already did -- the Calculator
+Inspector has always drawn charges and LogP contributions on a 3D model.
+What was missing was results that are one geometric OBJECT: the dipole
+vector, the steric cone, the principal axes. `ReportResult.spatial`
+carries them now (producer-declared `ArrowAnnotation` / `ConeAnnotation`
+/ `AxesAnnotation`, validated fail-closed by `valid_spatial_annotation`),
+`viewer.html` draws them, and `SpatialResultDialog` is the Marvin-style
+popup. Verified against Marvin's own cis-1,2-dichloroethene screenshot:
+same molecule, same charge family, 1.90 D against their 1.81, arrow
+pointing the same way.
+
+Five things measured on the way, each the kind that reads fine wrong:
+
+- **The direction oracle runs on the RENDERED endpoints, never the
+  annotation.** A producer sign bug and a renderer sign bug cancel in any
+  annotation-level check, and the screenshot looks perfect. The page
+  mirrors the exact geometry it hands 3Dmol into `drawnShapes`; the HCl
+  guard asserts the drawn arrow runs Cl -> H (mu = sum(q*r) points
+  delta-minus to delta-plus, which is also what Marvin draws) and that
+  reversing the vector reverses the endpoints.
+- **A review bound can be chemically wrong.** The reviewed plan
+  specified a cone half-angle bound of 90 degrees; Tolman's own table has
+  P(tBu)3 at a FULL angle of 182 -- half-angle 91. The validator's
+  ceiling is 180, with a guard asserting 91 is accepted, because a
+  validator that refuses real measurements is worse than none.
+- **The steric cone only exists when its frame is displayable.**
+  `_ensemble` embeds its own conformers for a flat drawing, and those
+  coordinates live in a frame no viewer holds -- a cone drawn from them
+  would sit plausibly on the WRONG conformer. The annotation is attached
+  only when the caller's own 3D conformer was used, and
+  `geometry_source` now says which happened ("provided_conformer" vs
+  "free_ligand_mmff" -- the latter used to be claimed unconditionally,
+  which was wrong for the provided case).
+- **The cone's length is the sweep's reach, not scalar salad.**
+  `metal_distance_a + sphere_radius_a` looks like a cone length and is
+  two unrelated numbers; the honest extent is the farthest vdW-sphere
+  edge `_half_angles` measured to, and the guard asserts the two DIFFER
+  on PPh3 so nobody swaps them back for tidiness.
+- **Shapes are state with one deliberate difference from the
+  visualization layer's machine**: a load DROPS pending shapes (their
+  coordinates are in the previous conformer's frame), where a pending
+  layer survives to replay. Both halves are guarded against the real
+  page, including the shapes-for-the-inflight-load case.
+
+The dipole arrow only exists when the magnitude survives the DISPLAYED
+precision -- benzene's residual vector is float noise, and "Dipole: 0.00"
+beside an arrow would be the panel disagreeing with itself. And the
+drawn length is display scaling (half the longest interatomic span,
+floored at 1 A) of a vector whose units are DEBYE -- the one unit
+confusion the whole annotation contract exists to forbid.
+
+### The gallery overlay: CONNECTED, and what the last wire cost
+
+For a while this section said the machinery was built and nothing called
+it -- `apply_grid_shapes` reached from no production code, because
+`_request_overlay` only ever passed `SINGLE_VIEW_CELL` and `_refresh_view`
+diverted into `_refresh_gallery()` first. It is wired now. Verified live:
+six cells, six different dipoles (1.10, 1.18, 1.12, 1.11, 1.19, 3.68 D),
+each recomputed for the conformer in that cell, on the FIRST render.
+
+`_refresh_gallery` issues one request per populated cell and
+`_on_spatial_annotations_ready` routes by `event.cell_index`. Two things
+about that are worth keeping:
+
+- **`enumerate(page)`, never `index - self._page_start`.** The invariant
+  is `page[cell] <-> gridCells[cell]`, because `load_conformer_grid` maps
+  its entries position-for-position onto the cells. The arithmetic agrees
+  while `page` is a contiguous range; only one of them says why.
+- **The value stays IN THE CELL.** The page already draws each arrow's
+  own caption (`shapeLabel` takes the target viewer), so the status line
+  keeps saying "Conformers 1-6 of 8". One line cannot honestly carry six
+  values, and one of six would be worse than none.
+
+#### THE ANSWER ARRIVES BEFORE THE CELLS DO, and that is the ordinary case
+
+`loadGrid` resets `gridShapes` synchronously and then builds inside
+`whenGridSized`, which polls every 25 ms and wants the height repeated
+across two frames. The overlay recompute is ~5 ms. `drawCellShapes`
+no-ops for a cell that does not exist yet and nothing replayed
+afterwards, so **the first page of a gallery drew nothing at all** and
+only a later redraw appeared to fix it. `loadGrid` now replays
+`gridShapes` at the foot of its build callback.
+
+**The three existing per-cell guards could not see this**, and the reason
+generalises: `_grid_of_two` waits for `.cell-overlay` before applying
+anything, so every test built on it exercises a grid that already exists.
+A helper that waits past the window is how a whole window goes untested.
+
+**TWO `loadGrid` CALLS BUILD TWICE.** `whenGridSized` closes over its own
+poll state, so a second call while the first is waiting leaves BOTH
+callbacks armed and both reach `buildGrid`. Harmless until the replay
+existed; with it, the older callback rebuilds from ITS conformers and
+then replays `gridShapes`, which by then holds the NEWER request's
+payloads. A `gridGeneration` counter makes the superseded build return
+early. It costs a whole `createViewerGrid` (91 ms at 4 cells, 175 at 12)
+per page paged through, and `gridBuilds` exists as a diagnostic seam
+because nothing else can observe it -- the superseded build is overtaken
+microseconds later and never reaches a screenshot.
+
+#### Two bugs that only the running app showed, with every test green
+
+Both found by driving a real gallery after the unit and page guards were
+all passing, which is the entire argument for doing it:
+
+- **`clearAllGridShapes` removed the arrows and LEFT THEIR CAPTIONS**, so
+  unticking "Show shapes" left "1.14 D" floating over a structure with
+  nothing drawn on it. It had its own clearing loop calling
+  `removeAllShapes()` and not `removeAllLabels()`. **The existing guard
+  could not see it**: `_drawn_cell` reads `drawnGridShapes`, the page's
+  own mirror, which that function emptied perfectly correctly. A mirror
+  records intent; the labels are what is on the screen. It goes through
+  `drawCellShapes` now -- one path for "make this cell show exactly
+  `gridShapes[i]`", and clearing is that with nothing in it.
+- **`_refresh_status` wrote the SINGLE VIEW's line over the gallery's.**
+  Unticking the overlay turned "Conformers 7-8 of 8" into "Conformer 7/8
+  - +0.62 kcal/mol" -- describing one of the pictures, in the wording of
+  a mode that was not on screen. Every unit test read the label; none
+  asked what the label was describing.
+
+#### `_overlay_tokens` and `service.accepts` are EQUIVALENT, measured
+
+Both are set from the same value in `request()` and cleared together in
+`_drop_overlay_drawings`, and a cell the service has never seen answers
+False either way. So a mutation deleting EITHER survives the whole file
+and only deleting BOTH is caught. Kept as the widget's own record rather
+than deleted -- recorded here so nobody re-derives it, and so nobody
+writes a test claiming to guard one while really exercising the other.
+
+The one case they catch that nothing else does is real: a second spatial
+result re-requests every cell, and the job already in flight was computed
+from FEWER reports, so landing late it would replace a complete overlay
+with an incomplete one -- same molecule, same cell, same conformer.
+
+#### The redundant clear that no test could kill
+
+`_refresh_gallery` called `clear_all_grid_shapes()` after
+`load_conformer_grid`, and a mutation deleting it survived everything.
+Measured why: `load_conformer_grid` already drops `_pending_grid_shapes`
+and the page's `loadGrid` already resets `gridShapes`, so the explicit
+clear only removed shapes from the OLD cells, which were being discarded
+anyway. Deleted. The rebuild's own reset is guarded against the real page
+instead, which is where it actually happens.
+
+#### `ViewerBackend` now declares the shape methods, with NO-OP defaults
+
+`apply_shapes` was called unconditionally by the widget on an interface
+that never declared it -- it worked because the one test file that
+reached that path happened to define it on its fake. The shape methods
+are declared now and default to doing nothing, which is the opposite of
+every other method on that base and is deliberate: they are drawing calls
+made on the widget's own state changes, so "this backend has nothing to
+draw shapes on" is a correct answer to "clear the shapes", not a failure.
+
+**`load_conformer_grid` IS DELIBERATELY NOT DECLARED.** The widget probes
+it with `hasattr` to decide whether the gallery exists at all, so
+declaring it would make every backend claim a gallery it cannot build,
+Mol* included.
+
+### The overlay: recompute in the displayed frame, never transform into it
+
+The dialog was frame-safe because it loads the STORED conformer. The
+main viewer shows display-ALIGNED copies, so the obvious next step was to
+expose the rigid transform `align_conformers_for_display` computes and
+throws away, and rotate each annotation by it. **Measurement retired that
+before a line of it was written.** Recomputing the producer on the
+DISPLAYED molblock gives an annotation already in the right frame:
+
+    four real conformers of ethylmorphine, through display_molblocks
+    the vector rotates with the frame, magnitude preserved
+    to 1e-4 and NOT 1e-6 -- the molblock's four-decimal text format
+    5.2 ms for all four
+
+So the transform-composition bug class -- the one whose oracle this file
+already records as backwards in the camera work -- never arises: there is
+no matrix to get the wrong way round. It is also the better answer, since
+each conformer genuinely has its own dipole (4.43, 5.53, 5.53, 5.19 D
+across those four), which is why the overlay labels its value with the
+conformer and the Properties panel keeps reporting the canonical one.
+
+**A PROBE THAT SEEDS EVERY CONFORMER THE SAME READS AS CONFIRMATION.**
+The first version used `EmbedMultipleConfs(randomSeed=0)`, which is the
+trap `RDKitConformerProvider` documents -- four copies of one structure.
+It reported "magnitudes identical, vectors unrotated", which is exactly
+what a working transform-free path would look like if alignment were a
+no-op. Four identical conformers of a flexible molecule is the tell.
+
+**A RESULT DID NOT SAY WHAT IT WAS COMPUTED WITH.** The routing layer has
+recorded which CONFORMER a calculator was handed since the
+calculation-input work and never the SETTINGS, so any replay would have
+silently used today's defaults -- a different calculation under the
+original's label. `INPUT_PREFIX + "parameters"` closes it generically for
+every result, JSON-safe scalars only (`Provenance.to_dict` puts them
+straight into the saved project), and a value that cannot be persisted is
+DROPPED rather than stringified: a `repr()` cannot be fed back to
+`compute()`, so storing one turns "I cannot replay this" into something
+that looks replayable. Origin resolves through `report_id ->
+CalculatorRegistry`, audited over the live registry -- 49
+registry-executable calculators, 17 producing reports, zero mismatches --
+with the RELATIONSHIP pinned as the contract and the counts explicitly
+not.
+
+**A REJECTED RESULT MUST STILL RELEASE THE CELL, and ten green tests
+missed it.** The overlay collapses rapid conformer stepping to one
+running job plus one pending request per cell, and the widget called
+`service.finished()` only on the path where it ACCEPTED the answer. Step
+two conformers and the first answer arrives stale, is correctly rejected
+-- and the cell stays "running" forever, so the queued request never
+starts and the overlay never draws again. Found by driving the app:
+conformer 3 showed no arrow and no value, permanently, while every unit
+test passed. `finished` is a no-op for a token that is not the running
+one, so it is called unconditionally now, before any rejection.
+
+**AND THE FIRST FIX FOR IT WAS PARTIAL, WHICH IS WORSE THAN OBVIOUS.**
+It was applied to the conformer check only, so switching MOLECULES
+mid-flight returned earlier still and wedged the cell identically --
+found in review, measured (`jobs_started` stuck at 1 with every later
+request only becoming `pending`), and fixed by hoisting the release above
+EVERY rejection. Every early return after it is a rejection and none of
+them may skip it. This file's own warning applies: a partial revert, or a
+partial fix, looks like a fix.
+
+A method note from the same review: the first assertion written for it
+(`running is None` after the discard) FAILED against correct code,
+because the release immediately starts whatever was queued and the cell
+is legitimately busy again. Assert the symptom -- that the new molecule's
+work runs at all -- not an instantaneous internal state.
+
+Measured on the collapse itself, scrubbing seven conformers as fast as
+the event loop allows: **7 requests -> 2 jobs started**, 5 superseded,
+never more than one pending, settling in 18 ms. No debouncing was added,
+because the numbers did not ask for one.
+
+## The bond and molecule reports, and what generalising cost
+
+`AtomReport` was written with `AtomFact`/`FactCategory` deliberately free
+of anything atom-specific, on the stated bet that bonds and molecules would
+want the same shape. **The bet paid: they moved to `domain/report.py`
+UNCHANGED**, `AtomReport` lost only its identity fields to a shared
+`StructureReport`, and every existing import still works through aliases
+(`AtomFact = Fact`, `AtomFactProvider = FactProvider`,
+`AtomFactService = FactService`). The panel's whole rendering half --
+sections, search, copy, links -- needed no change at all.
+
+Three things measured while building them:
+
+- **A 2D depiction has coordinates, and they are not measurements.** Every
+  bond in a layout comes out about the same length whatever its order:
+  aspirin's 2D C=O reads 1.5 "units" against a real 1.264 A. So the bond
+  report emits NO length from a 2D conformer rather than a wrong one, and
+  the molecule report says outright which kind of coordinates exist.
+- **RDKit's strict rotatable-bond definition could not be reconstructed.**
+  Excluding amides leaves aspirin at 3 against `CalcNumRotatableBonds`'s 2;
+  excluding all conjugated bonds drops biphenyl's central bond, which RDKit
+  DOES count. Two attempts, both wrong, so the bond report reports "single,
+  acyclic, non-terminal" -- the thing it can stand behind -- and names the
+  gap rather than shipping a "rotatable" verdict that contradicts the
+  molecule's own descriptor.
+- **BRICS bonds are a synthesis statement, not a stability one.** A bond
+  BRICS would cut is one a known reaction class could FORM. It says nothing
+  about strength, and the fact carries that.
+
+Two mutations survived the first pass, and both were tests that could not
+discriminate rather than code that was wrong:
+
+- **A monocyclic molecule has as many bonds as atoms.** Aspirin is 13 and
+  13, so swapping `atom_count` and `bond_count` was invisible. Assert
+  counts on an ACYCLIC molecule.
+- **Overlapping atom and bond indices hide which field is being read.** A
+  fixture with `atom_indices=(0, 1)` and `bond_indices=(0,)` gives the same
+  answer either way. Make them disjoint.
+
+## A new panel needs a help topic, and nothing was checking
+
+`HELP_TOPIC_BY_DOCK` in `app/main_window.py` maps a dock's object name to a
+section anchor in `docs/`. Both guards in `tests/test_help.py` iterated
+**over the map**, so a panel MISSING from it was invisible to them: its `?`
+button opened help with nothing selected, and the suite stayed green.
+
+The Atom Inspector and the Interactions panel both shipped that way and
+were found by reading the map against the docks by hand during a
+documentation sweep. `test_every_dock_the_window_builds_has_a_help_topic`
+now goes the other direction and names the offending dock.
+
+A documentation sweep is worth doing for the same reason: it found four
+shipped features with no user-facing documentation at all, and an LED
+section missing from `SCIENTIFIC_LIMITATIONS.md` -- the file that exists
+precisely to say what the app cannot honestly tell you.
+
+**CLAUDE.md itself had drifted badly.** 132 lines were a stale duplicate of
+the four sections above them, reaching the OPPOSITE conclusions: an
+all-caps "DO NOT 'FIX' MAINWINDOW'S MENU LAMBDAS. THE LEAK IS
+LOAD-BEARING." sat directly below "MainWindow's menu lambdas ARE fixed
+now". Anyone reading top-to-bottom hit the correct account and then a
+shoutier contradiction of it. Check for this when adding to a long
+troubleshooting file -- appending a corrected account does not remove the
+old one:
+
+```bash
+rg -n "^#{2,5} " CLAUDE.md | awk -F': ' '{print $2}' | sort | uniq -d
+```
+
+## A DOC GUARD THAT CHECKS CITATIONS CANNOT CHECK CLAIMS
+
+`tests/test_docs_are_current.py` was built to stop the docs rotting and it
+works -- 170 cited paths and 26 cited test names, zero stale. It asks
+whether a document cites something that EXISTS. **It cannot ask whether a
+document's CLAIM is still true**, and four claims went stale underneath it:
+
+    ROADMAP  "ensemble alignment ... needs its own panel"   the panel shipped
+    ROADMAP  "reaction templates -- Deferred, still" (x3)   the namespace shipped
+    ARCH     "hydrophobic contact detection is a real gap"  it shipped
+    ARCH     "IUPAC Name withheld on a morphine derivative" does not reproduce
+
+The third is the sharpest: **ROADMAP had ALREADY corrected that exact
+claim** ("seven interaction types now"), so the two documents contradicted
+each other outright and the one a reader trusts for implementation detail
+was the wrong one. The second went stale in a paragraph whose own subject
+is a previous correction of the same list.
+
+`DEFERRALS` in that file is the fix, and the shape is the point:
+
+- **Scope is ARCHITECTURE.md's Known TODOs only**, because it declares a
+  closed `OPEN`/`DECISION`/`SETTLED` vocabulary and is therefore the one
+  place deferral status is structured data. ROADMAP's `- [ ]` bullets are
+  planning prose; parsing them would produce tests whose only purpose is
+  proving a TODO still exists. Same instinct as `applies_to` being closed
+  while `category` stayed a free string.
+- **OPEN and DECISION both need an `unbuilt` predicate**, because a
+  DECISION whose feature shipped anyway is stale even when its recorded
+  reason still holds. Only DECISION additionally carries a `reason`, and
+  only where the reason is countable -- "there is still no concrete fourth
+  plugin" is `len(shipped plugins) < 4`; "the cause was never established"
+  is not checkable by anything and says so.
+- **Fail closed on BOTH sides.** The parse rejects an unknown marker
+  (`**OPNE**`) rather than skipping it, and cross-checks the classified
+  bullet count against a raw one. The mapping requires each claim
+  substring to occur EXACTLY ONCE -- without that, rewording a claim
+  silently detaches its predicate and the guard goes on passing, which is
+  the fail-open hole the whole thing is written against.
+
+Six mutations, each caught by the intended test: a claim made true, a new
+unguarded bullet, a typo'd marker, a reworded claim, a duplicated claim,
+and a deleted justification. **The one thing it cannot catch is a
+predicate hardcoded to True**, which is written into the docstring as an
+admitted limit rather than papered over with a second implementation.
+
+Writing the guard immediately caught a flaw in its own first rule: it
+demanded a written reason from every entry lacking a `reason` predicate,
+including OPEN ones -- which have no recorded reason by definition, so it
+was demanding an explanation for something the document never claimed.
+
+## A blocklist of category NAMES rots; a declared capability does not
+
+`chem/crystal_report.inapplicable_calculators` matched each calculator's
+`category` against a hand-written set of thirteen names. Measured before
+replacing it, and it had rotted in both directions at once:
+
+    registered calculators                              49
+    correctly listed as inapplicable to a crystal       22
+    silently treated as APPLICABLE                      27
+    blocked category names matching no live category     3 of 13
+
+The 27 included IUPAC Name, Tautomers, Molecular Dynamics and NMR
+Shifts. **It rotted for a structural reason, not a careless one.**
+`CalculatorDefinition.category` is deliberately a free string -- its own
+docstring says a new category "needs no code change, just a new
+registration" -- so nothing ever brought anybody back to the list.
+
+`CalculatorDefinition.applies_to` replaces it, and **the default is the
+restrictive one**: `frozenset({MOLECULE})`. A calculator registered
+without a thought is molecule-only, which is the answer that cannot be
+wrong about a periodic solid; applying to a crystal is an opt-in
+somebody had to mean. Unlike `category` and `tags` it is a CLOSED
+vocabulary, because a typo would make a calculator apply to nothing and
+look fine.
+
+The answer today is 49 of 49 inapplicable, which is honest: the crystal
+report computes its own facts and no molecular calculator claims one.
+
+**`inapplicable_calculators` had a guard test and NO production
+consumer.** It was computed and thrown away, so the refusal the module
+docstring describes was never shown to anybody. The guard asserted
+`len(names) > 10`, which passed comfortably on a list more than half
+wrong -- a threshold assertion where a derived one belonged. The
+replacement recomputes the expected set from the same declarations.
+
+### A crystal in a project stores its CIF TEXT, not its parse
+
+Following `MacromoleculeModel.structure_text`. The deciding reason is
+not tidiness: **a reader improvement then reaches projects already
+saved.** Reparse and an old project gains whatever `chem/cif.py` learned
+since; store the parse and it is stuck with the reader that first read
+it, `Crystal.unhandled` included.
+
+`CrystalModel` therefore has **no `to_crystal()` method**, and the first
+version that did was caught by
+`test_the_crystal_domain_model_imports_no_chemistry_toolkit` -- `domain/`
+may not import `openchem.chem`, and a deferred import inside a method is
+still an import. Callers hold the chem layer already and call
+`read_cif(model.cif_text)`.
+
+Selection publishes **`CrystalSelected`, not `MoleculeSelected` with a
+crystal uuid**. Every subscriber to the latter looks the uuid up in
+`project.molecules`, finds nothing, and leaves its panel showing the
+previous molecule beside a crystal's name -- the same index-space
+confusion as a crystal click reaching the molecular measurement.
+
+## The presentation layer, and four things measured while fixing it
+
+The app's chemistry was correct and its presentation was not, which is a
+different kind of bug and needs a different kind of evidence. Recorded
+here because three of these four cost real time and two contradict what
+the obvious approach would have been.
+
+### `WrappedLabel` is load-bearing in one place and catastrophic in another
+
+`ui/widgets/collapsible_section.py`'s `WrappedLabel` overrides
+`minimumSizeHint`, `hasHeightForWidth` and the size policy so a wrapped
+label reports its true height. Inside the property panel's scroll area
+that is what stops the calculator buttons being squeezed to 13 px -- its
+own docstring has the table.
+
+Used for a **one-line status in a top-level row it is the opposite**, and
+by a wide margin. Measured on a bare Qt reproduction at 900x950:
+
+    WrappedLabel batch status   461 px tall, scroll area starts at y=478
+    plain QLabel                 20 px tall, scroll area starts at y=37
+
+`MinimumExpanding` makes the row claim the panel's vertical stretch, so a
+third of the Properties panel was one line of transient status. The rule
+is not "always use WrappedLabel" -- it is "use it where a label's true
+height must survive a squeeze", and a status line is not that.
+
+### A STYLE CHANGE RE-ARMS THE HEIGHT-FOR-WIDTH FLAG, and starved a section
+
+Reported as the Lipophilicity section's three calculator buttons
+rendering on top of one another. It is the truncation mechanism
+`ExplicitHeightLabel` already documents, coming back through a door
+that class did not cover -- so read its docstring first, then this.
+
+`QLabel::changeEvent` answers **`StyleChange` and `FontChange`** by
+calling the same `QLabelPrivate::updateLabel()` that `setText` does, and
+that re-derives the size policy's height-for-width flag from the
+word-wrap flag. `ExplicitHeightLabel` overrode `setText` and
+`resizeEvent` and **not `changeEvent`**, so setting a style sheet on ANY
+ancestor silently re-armed the flag on every wrapped label beneath it,
+long after the last `setText`, with nothing on the label itself having
+changed. Measured by logging each transition of the flag:
+
+    '13 atoms, -0.4195 to 0.5437'   re-set hfw on event 100
+                                              (QEvent::StyleChange)
+
+From there the whole chain is height-for-width carrying again and
+`QBoxLayout.setGeometry` substitutes the section's `heightForWidth` for
+its minimum. Measured in the running app, aspirin, panel at 280 px:
+
+    arm       section h   its minimum   its 3 buttons (min 26)
+    before          145           192   15 / 15 / 14
+    after           192           192   26 / 26 / 26
+
+**It was never confined to one section** -- the same run re-armed the
+flag on the alert rows, the pKa and NMR hints and the substance
+classification. Lipophilicity is simply where a squeeze was visible.
+
+**THE SYMPTOM CANNOT BE REPRODUCED OUT OF THE APP, and two tests that
+tried both passed with the bug deliberately restored.** In a harness the
+section's `heightForWidth` and its minimum come out EQUAL (418 and 418),
+so the substitution has nothing to take away -- widening the panel,
+shortening it, and registering the calculator buttons all failed to
+starve anything. **The fifth time an out-of-app Qt harness has
+disagreed with the running application about this panel.** The guard
+that ships asserts the MECHANISM (the flag stays clear across a style
+change, with a plain `QLabel` as the control proving the style change
+was delivered at all); the symptom was verified by driving the app.
+
+### AND THE SAME PANEL WAS CLIPPED SIDEWAYS, by its own row captions
+
+The height work above is a different bug from this one and both are
+real. Reported as the untouched Schedule 2 "Legitimate uses" line losing
+the **last character of every visual line**, with the date-refusal
+message riding on the same defect — `leave the field blank` rendering as
+`leave the field bla`. Recoverable by scrolling right, which is exactly
+why it read as cosmetic for so long.
+
+    admet section minimum   272     widest caption 210, word wrap off
+    scroll viewport         256     panel 280, less frame and scrollbar
+    scroll content          272     max(viewport, minimum)
+    every widget            +14 px past the right edge
+
+**A `QLabel` WITH WORD WRAP OFF REPORTS ITS WHOLE TEXT AS ITS MINIMUM**,
+`QFormLayout` sizes the label column to the widest of them, and
+`setWidgetResizable` sizes the content to `max(viewport, minimum)`. So
+ONE long descriptor name clipped every row in the panel — which is why
+the symptom was uniform rather than confined to a bad row, and why
+hunting the row that "looked wrong" would never have found it.
+
+It is `_ElidingPushButton`'s bug one widget along. That class was written
+when the widest thing in the panel was a BUTTON (content 287 against a
+256 viewport); with buttons capped, the caption inherited the title.
+`_ElidingLabel` is the same cure and wrapping is NOT an option —
+one height-for-width widget in a section restores everything the three
+parts above exist to prevent.
+
+**THREE IMPLEMENTATIONS PASSED THE WHOLE PANEL SUITE WHILE VISIBLY
+BREAKING THE APP.** Each was found by magnifying a screenshot, and the
+first two are traps anybody reaching for the obvious fix will hit:
+
+- **`QSizePolicy.Ignored` corrupts a FORM.** It is exactly what
+  `_ElidingPushButton` uses and it is right there — but an ignored label
+  no longer sizes the label column, so `QFormLayout` drew the value on
+  top of the caption: `Aqu36ous Solubility (...`, which is "Aqueous
+  Solubility" and "-3.68" in one rectangle. **All 98 panel tests passed
+  with the two overlapping.**
+- **Qt's size hints LATCH on elided text.** They measure the string
+  currently set, which is the elided one, so once squeezed the caption
+  reported the width of `...`, was given that, and could never grow back
+  — three captions rendered as a bare `...` beside their values. Both
+  hints derive from `full_text` now, which does not change when the
+  painted string does.
+- **`QFormLayout` COLLAPSES a label whose `sizeHint` does not fit**
+  rather than clamping it at `minimumSizeHint`. Measured on a bare form
+  290 px wide: `QRect(16, 2, 0, 14)` — zero width, against a stated
+  minimum of 120. Capping the hint at a CONSTANT fixes that and buys the
+  opposite defect, a caption frozen at 120 px on a 900 px panel. The cap
+  is derived from the room available instead: 130 px at host 250, 660 and
+  the full string at 900, no overlap anywhere.
+
+**A CAPTION'S PAINTED TEXT MUST NOT LEAVE THE PANEL.** Three consumers
+read it and all three were wrong — `as_text` (so "Copy all" exported
+`Blood-Brain Barrier Permeant (heur...`), the instrumentation dump, and
+a guard in `test_result_presentation.py` that the targeted test files
+never reach. `_unelided_text` is the accessor; the rule is the one
+`_without_glyphs` already follows on the value side.
+
+**AND THE VALUE COLUMN WAS READ RAW UNTIL IT ELIDED TOO**, which is the
+same rule arriving one column across. See "A FAILED DESCRIPTOR'S REASON
+WAS ALSO ITS TOOLTIP" below: once the value label elides, `as_text`
+reading `.text()` would export the short cell form in place of the
+reason, so there are now two accessors — `_unelided_text` (what it says,
+ignoring width) and `_exported_text` (what belongs on a clipboard). They
+differ for exactly one case and folding them back together reinstates
+the coupling this whole area exists to remove.
+
+#### The oracle, and why the obvious one is disproven
+
+`property_panel.rendered_overflow` is shipped code, for the reason the
+instrumentation beside it already is. It maps every painted descendant
+into the scroll viewport and reports what left it.
+
+**`horizontalScrollBar().maximum() == 0` IS NOT AN ORACLE.** That
+assertion has been in the suite since the wide-row work, it passes on
+every platform, and it passed throughout this bug. The test asserting it
+is renamed to `test_the_panel_has_no_horizontal_scrollbar` and says in
+its own docstring that the absence of a scrollbar does not prove the
+absence of clipping.
+
+Three things the probe had to get right, each measured:
+
+- **BOTH EDGES.** Left-edge clipping is on record in this panel —
+  `"bb_permeant"`, `"unctional Groups"` from a run that had scrolled
+  right.
+- **`isVisibleTo`, not `isHidden` and not `isVisible`.** A widget in a
+  COLLAPSED section has `isHidden() == False` and has never been laid
+  out, so it carries a default geometry: 56 findings at "right 384 px"
+  against a real overflow of 14. `isVisible()` is the opposite mistake
+  this file already records — False for every child of an unshown window.
+- **The intra-widget term is LABELS ONLY.** A `QPushButton`'s
+  `contentsRect` is not its text rectangle, so the 80 px "Details..."
+  button reports 40 px of phantom overflow under the test platform's
+  wider font while rendering correctly for a user.
+
+#### A FIXTURE'S CAPTIONS WERE TOO SHORT TO REPRODUCE ANYTHING
+
+The strongest lesson here, and it is about the guard rather than the
+code. The first version of the overflow oracle **passed with the entire
+fix reverted**, because `_panel_with_a_long_result` captions its rows
+"LogP", "TPSA", "Ring Count" — none wider than a third of the viewport,
+so no arrangement of them can push content past its edge. The real
+panel's widest is `Blood-Brain Barrier Permeant (heuristic)` at 210 px.
+
+Same shape as the assembly corpus that was blind to a transposed matrix:
+**a fixture is not "big enough" or "small", it is degenerate or not with
+respect to a specific mutation.** Five arms, all caught only after the
+guards were repaired, all running the full 20 tests:
+
+    M1 minimumSizeHint cap removed         4 failed
+    M2 form call site -> plain string      2 failed
+    M3 sizeHint ceiling removed            1 failed
+    M4 wide-row caption -> plain QLabel    1 failed
+    M5 export uses painted text            1 failed
+
+M4 needed a second repair for a different reason: **a spanning row has no
+field column beside it**, so its overflow is `caption - viewport` rather
+than `caption + field - viewport`. At one pixel over, reverting that
+caption moved the content 290 -> 293 and the row's margins absorbed it
+to within tolerance. The fixture asks for 40 px now.
+
+**A GEOMETRY CLAIM ABOUT REAL FIXED TEXT IS A CLAIM ABOUT THE FONT.**
+The suite runs `offscreen`, whose default font this file already records
+as more than twice as wide as the one a user sees. Pinned at a fixed
+width, the two-reported-strings test failed by 40 px on a panel that is
+measurably clean in the app. It sizes the panel from its own content
+instead; every font-independent claim is made with captions sized from
+`QFontMetrics` against the real viewport.
+
+Measured after, in the running app, all four states — empty panel, a
+molecule, the screen, the refusal: content 256 against a 256 viewport,
+**zero** rendered overflow, and the horizontal scrollbar gone (viewport
+height 569 -> 581). Captions elide at the 280 px minimum and recover as
+the dock widens — 2 of 3 full at 340, all three at 420.
+
+### A FAILED DESCRIPTOR'S REASON WAS ALSO ITS TOOLTIP
+
+Reported as a shape descriptor's message clipping mid-word at the panel
+edge, on any molecule with no 3D conformer. The clip is the symptom; the
+cause is that ONE FIELD WAS DOING TWO JOBS.
+
+    if descriptor.cache_state.value == "failed":
+        value_label.setText(descriptor.error or "Failed")
+        value_label.setToolTip(descriptor.error or "")
+
+So a producer had a single string with which to be both a table cell and
+an explanation, and it cannot be both. Measured in the running app at
+Segoe UI 9 -- the font a user gets, NOT `offscreen`'s, which is more than
+twice as wide and would have made every number here look hopeless:
+
+    panel width   caption   value cell
+          280       116          120     <- the dock's own minimum
+          420       116          230     <- its default
+
+against a reason of 87 characters, and a pkasolver one of 344.
+
+**AND THE ROW DID NOT MERELY OVERFLOW ITSELF.** A `QLabel` with word wrap
+off reports its WHOLE TEXT as its minimum width, so this is the caption
+bug of the section above, one column across. Measured on the ten shape
+descriptors with no conformer, panel at 280:
+
+    value label width         1164 px
+    scroll viewport            256
+    rendered_overflow           10 findings, right = 916
+
+-- every row in the panel clipped at the right edge, not just the failed
+ones. `_ElidingCaptionLabel` became `_ElidingLabel` and serves BOTH
+columns, because a second class for the value side would have been a
+second copy of every lesson that class already carries. Measured on a
+bare form with one caption and one long value, the mechanism is unchanged
+by the role: form minimum **1972 -> 268** px.
+
+#### `error` KEEPS ITS MEANING; `error_summary` IS THE NEW CELL FORM
+
+`domain/common.describe_failure(error, summary)` returns `(cell, hover)`
+and is the ONE place that decides which string goes where -- the panel had
+FOUR independent FAILED branches, each writing `error or "Failed"` by
+hand, which is this repository's most repeated failure mode.
+
+**TWO PLAIN FIELDS, NOT ONE WIDENED TYPE**, and the reason is the
+degradation. `error` is still the FULL explanation and still a `str`, so
+every producer that writes it and nothing else keeps exactly today's
+behaviour. A `FailureMessage` value object in that field would have
+rendered as a repr in four call sites and looked plausible doing it.
+`test_a_producer_that_declares_no_summary_gets_exactly_the_old_behaviour`
+is the guard.
+
+**NO LENGTH CEILING ON THE SUMMARY, DELIBERATELY.** Eliding already
+handles width and is measured; a cap would be a second mechanism for one
+problem and a constant nobody could derive. `describe_failure` owns WHICH
+string goes where and never grades one against the other -- the same line
+`valid_total_declaration` draws, and
+`test_the_summary_is_not_graded_against_its_reason` holds it.
+
+#### A WIDE ROW IS NOT A CELL, and consolidating the four lost text
+
+The panel has FOUR FAILED branches and only ONE of them is short of
+room. The other three render into an `ExplicitHeightLabel` inside
+`_add_wide_row` -- spanning both form columns, word wrap ON, stating its
+own height so the value shows IN FULL. The reason is already entirely
+visible there.
+
+So routing all four through `describe_failure` and rendering its CELL
+member was a regression, and it was written, tested green and nearly
+shipped: the pkasolver row is 344 characters of install guidance, and it
+would have become "pkasolver not configured" with the rest reachable only
+by hovering. Deleting what a reader could already see, in the name of
+fixing a clip somewhere else.
+
+    _on_descriptor_computed   QFormLayout field, one line, 120-230 px
+                              -> the CELL form
+    _present_alert            _add_wide_row, wraps, full height
+    _present_result           _add_wide_row
+    _on_report_computed       _add_wide_row
+                              -> the FULL reason, all three
+
+`describe_failure` still supplies all four with the "Failed" default, so
+the branches cannot drift on that; what differs is which MEMBER of the
+pair each renders, and that is a property of the row it is rendering
+into. **The function owns which string is which; the call site owns how
+much room it has.**
+
+`test_a_wide_row_keeps_the_whole_reason_while_a_value_cell_takes_the_summary`
+asserts BOTH halves in one test, deliberately: "always use the summary"
+satisfies the descriptor half and "never use it" satisfies the alert
+half, so either alone is passed by the wrong rule. Mutated in both
+directions, caught in both.
+
+This is "reusing a command whose invariants do not apply is not reuse",
+one layer down and in a presentation function rather than a command.
+
+#### THREE STRINGS, NOT TWO, AND MY OWN FIX SHIPPED THE BUG AGAIN
+
+`as_text` read `value_widget.text()` raw. That was safe only while no
+value elided -- the moment the value column got the caption column's
+treatment, "Copy all" exported `Needs a 3D conformer` where the sentence
+saying what to press belongs. The identical leak the caption rule exists
+to stop, reintroduced by fixing its neighbour, and **caught only because
+the guard for it was written before the fix was believed**.
+
+    painted      what fits the present width
+    unelided     what it says, ignoring width      `_unelided_text`
+    exported     what belongs on a clipboard       `_exported_text`
+
+They differ for exactly one case and agree everywhere else. Folding them
+back into one accessor is the ONE-FIELD-TWO-JOBS bug in miniature, which
+is why they are two names rather than a fallback chain in one.
+
+**`setText` CLEARS THE EXPORT OVERRIDE, and that is what makes staleness
+impossible.** The value label is reused as a descriptor moves through its
+states, so an override set on a failure is still attached when the row
+later succeeds -- exporting a conformer instruction beside a perfectly
+good number. Every branch calls `setText` first, so the reset is
+automatic rather than a rule four call sites have to remember.
+
+#### FIVE MUTATIONS, FIVE CAUGHT -- AND TWO ONLY AFTER THE GUARD EXISTED
+
+    M1  eliding value label -> plain QLabel     the geometry oracle
+    M2  as_text exports the cell form           the export guard
+    M3  setText stops clearing the override     SURVIVED
+    M4  the non-ASCII wording restored          the codepage guard
+    M5  the producer stops declaring a summary  SURVIVED
+
+**M3 AND M5 ARE THE ENTRY WORTH READING.** M3 -- a row that fails and
+then succeeds goes on exporting the stale reason forever -- passed the
+whole panel suite, the geometry guards and the presentation guards. M5 --
+the provider stops attaching `error_summary` -- passed every guard in the
+new file too, because those read the module CONSTANTS and checked they
+relate. A constant existing is not a constant REACHING, which is this
+file's own "shipped is not reachable" one layer down. Both guards were
+written from the surviving arm and both then caught it.
+
+`test_the_probe_can_see_a_failed_reason_widen_the_panel` is the control
+for the geometry guard: it puts the shipped defect back -- a plain,
+non-eliding `QLabel` carrying the same string -- and requires the oracle
+to SAY SO. Without it the guard would pass against a panel with no
+eliding value label at all, which is exactly how the caption oracle in
+the section above once passed with its entire fix reverted.
+
+#### `▸` RAISES ON cp1252 TOO, so the string was unprintable everywhere
+
+`_NEEDS_CONFORMER_ERROR` carried an em dash and a U+25B8 triangle. The
+report noted the em dash; the triangle is worse and measured
+independently per codepage, because the obvious probe short-circuits
+(`ch.encode("cp437"); ch.encode("cp850")` never reaches cp850 when cp437
+raises, which produced one wrong reading of this very table):
+
+    char                      cp1252   cp437   cp850
+    A-ring, sup-2, degree         ok      ok      ok
+    sup-3                         ok   RAISE      ok
+    em dash                       ok   RAISE   RAISE
+    triangle U+25B8            RAISE   RAISE   RAISE
+
+So it was unprintable on EVERY Windows console codepage rather than only
+the DOS ones. `>` is the separator `_PKA_NOT_INSTALLED_MESSAGE` already
+uses for "Tools > External Tools".
+
+**`test_every_line_is_ascii` IS WEAKER THAN ITS OWN DOCSTRING SAYS.**
+That guard, in `tests/test_regulatory_calculator.py`, asserts against
+cp1252 -- and its docstring
+claims that stream "raises on a tick or an em-dash". It raises on the
+tick; it does NOT raise on an em dash. The guard is real and its stated
+reach is not.
+
+**AND `DescriptorValue.error` HAD NO SWEEP COVERAGE AT ALL.**
+`benchmarks/report_lines/sweep.py` instruments `report_adapter._split`,
+so it enumerates the lines reaching `AlertResult.matched` and never
+touches the `error` field -- which is exactly where the shipped non-ASCII
+string was. Run over the real registry, the `matched` population is 499
+distinct lines, 62 of them non-ASCII and **0 failing cp1252 or cp850**;
+10 fail cp437, all of them the `Å³` in `surface_analysis.py:129`. A
+blanket "must be pure ASCII" rule would therefore fail 62 legitimate
+lines, so the rule the constraint actually implies is "encodes under all
+three", and `tests/test_failure_messages.py` is the guard for the error
+population the sweep cannot see.
+
+**THE ONE REMAINING FINDING IS NOT FIXED AND SAYS SO.** `Å³` fails cp437
+only -- the least likely of the three -- and cp437 has `²` but not `³`,
+so the ASCII repair (`Å^3`) would leave line 129 inconsistent with the
+five `Å²` lines directly above it. Recorded rather than changed, because
+it alters user-visible units for the least common codepage.
+
+#### DRIVEN AND MAGNIFIED, and for once nothing new was wrong
+
+`OPENCHEM_DRIVE` with a `CCO` molecule and every section above `shape`
+collapsed, cropped 3x. All ten rows read a complete `Needs a 3D
+conformer` in red, no ellipsis and nothing past the panel edge, and the
+in-app `dump` reports **0 rendered-overflow findings** at both the dock's
+420 default and a squeezed window. At the 280 minimum the cell is 120 px
+against a summary needing 118 -- it fits whole, by 2 px, and past that it
+elides with the reason still in the tooltip.
+
+**`{"do": "expand", "section": ...}` TAKES THE CATEGORY ID, AND `shape`
+IS BELOW THE FOLD.** A first run expanded it correctly and photographed
+nothing, because the section sits under eighteen others in
+`_CATEGORY_ORDER` and the panel scrolls. Collapse the ones above it
+rather than scrolling; a scroll position is one more thing to get right.
+
+### 20 of 25 `AlertResult`s were never alerts
+
+`AlertResult.matched` is a `list[str]`, and it became the generic line
+carrier for anything that was not a single scalar -- `topology_analysis`
+puts `"Szeged index: 12"` in it, `regulatory/calculator.py` documents
+doing so deliberately. The panel rendered any non-empty `matched` as
+`"N alert(s): "` + a comma-join, in `#c62828`.
+
+Counted rather than estimated: **25 distinct `alert_id`s, of which only
+`pains`, `brenk`, `mutagenicity_alerts`, `herg_risk_factors` and a
+regulatory screen WITH findings are warnings.** So four fifths of the
+app's results were painted as though the molecule were flagged, and an
+elemental analysis read `8 alert(s): Formula: CHNO, Mass: 43.025, ...`.
+
+The fix is `AlertResult.severity`, declared by the PRODUCER, defaulting to
+INFO. Guessing from the id would have been a heuristic; the producer
+knows. `Severity` already existed in `domain/structure_issue.py` and is
+already rendered by the structure-check panel -- reused rather than
+paralleled, which is this project's most repeatable mistake.
+
+**An empty `matched` was rendered as a green "Clean" without checking
+`cache_state` first.** Geometry with no 3D conformer returns FAILED
+carrying "This calculation needs a 3D conformer", and the panel reported
+success while discarding the message that said what to do. "Clean" is a
+verdict and only a catalog is entitled to give one; a report with nothing
+to say has cleared the molecule of nothing.
+
+### `QFontMetrics.inFont()` does not answer "will this glyph render"
+
+Needed for the status glyphs, since colour alone is invisible to a
+colour-blind reader and is lost entirely in copied text. The obvious check
+is wrong:
+
+    inFont('✕') -> False     and it renders perfectly
+    inFont('△') -> False     and it renders perfectly
+    inFont('✓') -> False     and it renders perfectly
+
+It asks about the one nominated font, not the fallback chain Qt actually
+paints with. **Painting is the only honest test**, and "it drew some ink"
+is not enough either, because a tofu box is ink.
+
+The control is a Private Use Area codepoint, which no font assigns. It
+turned out to render as **nothing at all** here, byte-identical to a
+space -- not as tofu, which was the guess. That is asserted in
+`test_the_status_glyphs_really_render` rather than assumed, so a platform
+change that starts drawing tofu fails there naming the reason instead of
+quietly weakening the test.
+
+### The cp1252 rule reaches further than `matched`
+
+**AND cp1252 IS THE WRONG CODEPAGE TO ASSERT AGAINST, which this file says
+throughout and which is measurably too weak.** `sys.stdout.encoding` reports
+cp1252 in a modern terminal, so a guard written against it looks right -- but
+a Windows CONSOLE defaults to an OEM codepage, and those are STRICTER:
+
+    character   cp1252   cp437   cp850   ascii
+    em dash     ok       RAISES  RAISES  RAISES
+    tick        RAISES   RAISES  RAISES  RAISES
+    Angstrom    ok       ok      ok      RAISES
+
+So an em dash passes a cp1252 assertion and still renders as a replacement
+character on a real console. Found the hard way: a refusal message written
+with one rendered as `�`, the guard for it asserted `encode("cp1252")`,
+and **the mutation restoring the em dash SURVIVED**. `isascii()` is the bound
+worth asserting for a result STRING; a units field may legitimately carry an
+Angstrom, which is why the rows above are separated rather than merged into
+one rule.
+
+
+`regulatory/calculator.py` already records that result lines hit Windows
+console streams and that a tick RAISES there -- three times in one
+session. The status glyphs are non-ASCII, so they are produced at RENDER
+time and stripped at every exit (`_without_glyphs`, used by the panel's
+"Copy all"). A glyph is decoration: somebody pasting into a paper wants
+`Pass`, not `✓ Pass`, and the word already carries what the glyph
+duplicates on screen.
+
+Hit immediately, in a scratchpad script that printed the panel back:
+`UnicodeEncodeError: 'charmap' codec can't encode character '✕'`.
+
+### Reusing a command whose invariants do not apply is not reuse
+
+"Use in 2D Editor" -- the way back from the 3D viewer, which had never
+existed -- was first built on `EditStructureCommand`, because pushing a
+molblock onto the undo stack is exactly what that command is for. It is
+also wrong, and the three ways it is wrong were each invisible to the
+tests and visible in the running app.
+
+`EditStructureCommand.redo` **clears the conformer set**, correctly: a
+structure edit invalidates geometries computed for the old structure.
+Adopting a conformer edits no structure. Measured live: the count went
+1 -> 0, and `_refresh_view` answers an empty list by clearing the backend
+and disabling the button -- so the control **blanked the very viewer it
+lives in** and discarded the set the user had just generated.
+
+The other two are about what a conformer IS, and both are worth knowing
+anywhere a geometry meets a drawing:
+
+    aspirin as drawn                       13 atoms
+    a conformer of it                      21 atoms   embedded after AddHs
+    naively adopted                        21 atoms
+      canonical SMILES becomes  [H]OC(=O)c1c([H])c([H])c([H])c([H])c1...
+
+so the drawing becomes a different structure to everything that compares
+one -- and `select_calculation_input` already records that eight of the
+49 registered calculators return a different number for a molecule
+carrying explicit hydrogens. That is why `DRAWING` is its default.
+
+    closest heavy-atom approach in the drawing
+    case                    proper   conformer x,y   laid out
+    aspirin (flat)           1.500           0.701      1.500
+    cyclohexane (chair)      1.500           1.331      1.500
+    camphor (bicyclic)       0.781           0.476      0.624
+    cholesterol (steroid)    1.500           0.219      1.500
+    sucrose (two rings)      1.500           0.241      1.500
+
+**A conformer's x and y are a projection, not a layout**, and it fails
+worst on exactly the molecules whose 3D geometry is worth having.
+`AllChem.GenerateDepictionMatching3DStructure` lays out a real drawing
+that still follows the 3D orientation. **A test on a FLAT molecule cannot
+see this** -- aspirin projects to something usable by accident -- which
+is why the guard uses cholesterol and asserts the projection really does
+overlap first.
+
+#### AND THAT LAID-OUT COLUMN IS ITSELF DEGENERATE FOR A SYMMETRIC BRIDGE
+
+The table above shipped, and was reported broken the same day: "I tried
+to use a send to 2d editor, and it didn't really do anything", on a
+benzobicyclo[2.2.2]octane. **Camphor's 0.624 was the warning and it was
+explained away** as that molecule being cramped -- it was the only
+bridged case in a five-molecule set, and it scored worst.
+
+Seen down the bridgehead-to-bridgehead axis of a bicyclo[2.2.2] system
+the two `-CH2CH2-` bridges superimpose EXACTLY, and a depiction that
+follows the 3D orientation reproduces that faithfully. Measured over 29
+molecules, as the ratio of the oriented layout's closest approach to the
+plain depiction's:
+
+    0.000  bicyclo[2.2.2]octane, quinuclidine, DABCO, barrelene, and the
+           reported benzobicyclo[2.2.2]octane   <- two atoms AT THE SAME POINT
+    0.239  tropinone
+    0.392  morphine
+           <-- the gap, 0.41 wide, the largest in the set
+    0.799  camphor
+    1.000  twenty others, norbornane / adamantane / cubane / strychnine
+           among them
+    1.388  sucrose, where the oriented layout BEATS the plain one
+
+So it is **not** a "bridged" test -- norbornane and adamantane are fine.
+It is the symmetric two-bridge case. The tell in a user's log is RDKit's
+`Warning: ambiguous stereochemistry - overlapping neighbors`, which is it
+saying two atoms share a coordinate.
+
+`READABLE_LAYOUT_FRACTION = 0.6` sits in that gap and a guard fails if it
+leaves `[0.40, 0.79]`. Below it the plain layout is used and
+`ConformerDrawing.follows_geometry` is False, which the status bar says
+out loud -- a correct drawing that ignores the conformer is exactly the
+"did nothing" the report was about, so it has to announce itself.
+
+**ROTATING THE REFERENCE FIRST DOES NOT HELP.** The obvious reading is
+that this is a viewpoint problem, since the cage only superimposes along
+one axis. `GenerateDepictionMatching3DStructure` normalises orientation
+internally: all 25 combinations of rotating the conformer 0-90 degrees
+about two axes returned byte-identical layouts, 0.000 every time, on all
+five degenerate cases. Measured before accepting the fallback, because
+"why not just rotate it" is the first thing anybody will ask.
+
+##### THE FIXTURE-VALIDITY BOUND WAS ITSELF FITTED TO ONE CONFORMER
+
+`test_the_drawing_is_laid_out_rather_than_projected` asserted
+`projected < 0.5` before testing anything -- the setup assertion that
+cholesterol's raw projection really is unusable, without which the real
+claim proves nothing. It failed on the non-blocking Linux CI job at
+**0.5237**, which reads as a platform quirk and is not one.
+
+**5 OF 20 EMBEDDING SEEDS BREAK IT ON THIS MACHINE TOO.** Measured over
+20 seeds, cholesterol's projection ranges **0.067 to 0.721** in molblock
+units, so 0.5 sits inside its own distribution and Linux merely drew one
+of the conformers that exceed it. The number was fitted to whatever
+`randomSeed=0xC0FFEE` happened to produce. Same shape as the conformer
+de-duplication threshold fitted to butane, one level along: not a wrong
+value, a wrong KIND of bound.
+
+Both readability bounds are RATIOS against the molecule's own ordinary
+depiction now, which removes the bond-length unit, and the two
+populations really are bimodal:
+
+    the conformer's raw x,y   0.045 .. 0.480     20 seeds
+    the laid-out drawing      0.940 .. 1.000
+                              a gap 0.46 wide
+
+`PROJECTION_IS_DEGENERATE_BELOW = 0.65` and
+`LAYOUT_IS_READABLE_ABOVE = 0.75` both sit in that gap, and
+`test_the_two_readability_thresholds_sit_in_the_measured_gap` checks
+each against the RECORDED spread rather than against the other -- so
+widening one to make a failure go away fails there, naming the
+measurement. Linux's own value is 0.349, comfortably inside the first
+band, which is what says the spread describes that machine as well.
+
+**The behaviour is still under test, and that was mutated rather than
+assumed.** Making `drawing_from_conformer` keep the raw projection fails
+this test and two others; only widening the constant is caught by the
+new guard alone.
+
+**The fourth defect was found only by driving the app, with every test
+green.** `MoleculeEditorWidget._on_molecule_changed` compares canonical
+SMILES and deliberately ignores a coordinates-only change, so the canvas
+has to be reloaded explicitly -- and doing that at the call site covers
+the button press but NOT undo or redo, neither of which comes back
+through it:
+
+    state       model              canvas             conformers
+    adopted      2.7760   0.0000    17.6739  -6.2560      1
+    undone      -0.1507  -2.5113    17.6739  -6.2560      1   <- disagree
+    undone (fixed)         -0.1507  -2.5113  both          1
+
+The reload belongs in the command, which is the only thing that knows
+about all three transitions.
+
+One mutation SURVIVED and is genuinely equivalent: deriving the drawing
+inside `redo` from the conformer instead of in the constructor produces
+identical bytes, because RDKit's depiction is deterministic. Deriving it
+from `self._molecule.molblock` -- which after an undo is the ORIGINAL
+drawing -- is a real bug and is caught. The distinction is written into
+the test rather than left as a green tick.
+
+### Conformers are aligned for DISPLAY, and the copy is never stored
+
+`EmbedMolecule` leaves every conformer in its own arbitrary frame -- a
+gauge choice carrying no information -- so stepping between them in the
+viewer changed the orientation as much as the shape. Reported as "It is
+extremely difficult to compare different conformers... I arranged the
+first conformer in 1 row, then in the second conformer I moved it a
+certain way, then moved back to the first conformer, and it was once
+again in a different way."
+
+**The cause had been sitting in plain sight**: `GetBestRMS` computes the
+optimal superposition during de-duplication and throws the transform
+away -- the same shape as `CoordinationShell` discarding the positions it
+already held.
+
+`align_conformers_for_display` in `chem/alignment.py` recomputes it;
+`ConformerModel.molblock` is never touched. A transform field on the
+model was rejected because every consumer would have to remember to apply
+it, and the one that forgets shows exactly the unaligned view the whole
+thing exists to fix.
+
+**IDENTITY ATOM MAP, NOT `GetBestRMS`.** Conformers of one molecule
+already share an ordering, so identity is deterministic. `GetBestRMS`
+searches symmetry-equivalent permutations, and on a symmetric core it can
+pick one that flips the whole structure between conformers -- replacing
+the jump being fixed with a different one.
+
+**Fit on heavy atoms, apply to all.** A rotating methyl otherwise drags
+the fit and swings the ring to chase three hydrogens nobody is comparing.
+
+Four things the invariants had to be shaped around, three of them found
+by mutation:
+
+- **A reflection preserves every interatomic distance**, so a distance
+  test cannot see one. Chirality can: the signed volume of four
+  non-coplanar atoms keeps its sign under any proper rotation. Both are
+  asserted, and the mirror mutation kills 4 tests.
+- **"Common frame" and "idempotent" do not pin down the reference.**
+  Chaining each conformer to its predecessor satisfies both, distorts
+  nothing, and passed every invariant -- a surviving mutation. What it
+  breaks is that a conformer's orientation then depends on which others
+  are in the list, which matters because the gallery pages through
+  SUBSETS. The guard aligns `[A,B,C]` and `[A,C]` and requires C to come
+  out identical.
+- **Compare within molblock precision, not bitwise.** Coordinates go
+  through a four-decimal text format, so 5e-4 is the floor.
+- **A heavy-atom fit does not align all-atom centroids**, and asserting
+  that it does fails at ~0.17 A on hexanol -- fourteen hydrogens are
+  exactly what varies between conformers.
+
+#### The drawing can BE the 3D structure, turned to face the camera
+
+"the structure is not in a *literal* 3d shape, which is the entire point
+of what I'm trying to do" -- against a MarvinSketch screenshot of
+buckminsterfullerene drawn in perspective inside a 2D editor. The flat
+depiction that shipped first was the wrong target: **crossing bonds are
+not a defect, they are what a projection of a real geometry looks like.**
+
+`drawing_from_conformer(molblock, view=...)` rotates the conformer by the
+camera and writes a **3D** molblock; the editor draws its x and y. Live,
+comparing the adopted drawing against `modelToScreen` for the same atoms:
+**agreement +0.9966**.
+
+**`camera_to_model_transform` is a pure function and det(R) is asserted,
+because a reflection preserves every interatomic distance** and so hides
+from anything measuring geometry. The point set in its tests is
+deliberately asymmetric -- a symmetric one makes an inverted transform
+look correct.
+
+**THE OBVIOUS ORACLE FOR THE DIRECTION IS WRONG.** Asking 3Dmol to apply
+its own quaternion, via `$3Dmol.Vector3.applyQuaternion`, DISAGREES with
+the standard convention: for `q = (0, sin35, 0, cos35)` it returns the -70
+degree rotation where the standard form gives +70. Settled against where
+atoms are really drawn, with `viewer.modelToScreen`:
+
+    70 deg about y    matrix +0.9989   transpose +0.5441
+    40 deg about x    matrix +0.9994   transpose +0.6598
+    55 deg about z    matrix +0.9993   transpose -0.3351
+
+Give each rotation a FRESH viewer -- rotating one through all three in
+turn composes them, and scored 0.83 on a case that is really 0.9994.
+
+**A degenerate ANGLE is reported, not repaired.** The bicyclo[2.2.2]
+fallback still exists for the no-camera path, but when the orientation
+came from the user's own camera, substituting a tidier one would be the
+same silent-substitution failure in a new place. `ConformerDrawing.crowded`
+says so and the status bar suggests turning the view.
+
+**A drawing that loses its chiral flag says something different.** RDKit
+writes 0 by default and Ketcher renders 0 as **"AND Enantiomer"** against
+1 as **"ABS"** -- so a drawing derived from a conformer quietly stopped
+claiming which enantiomer it was, while its SMILES kept the @ and every
+calculator went on treating it as resolved. Set
+`_MolFileChiralFlag` when the molecule has a defined centre, and only
+then. This was PRE-EXISTING in the flat path, not introduced by the
+camera work.
+
+**"Perceive stereo before RemoveHs" is NOT load-bearing here**, though it
+sounds as though it must be. `MolFromMolBlock` already assigns from 3D at
+parse time, and measured on alanine with the tags wiped first, both orders
+give `(1, 'R')` -- three heavy neighbours and their coordinates determine
+the fourth direction. A mutation deleting the explicit call survives, and
+the docstring says so rather than claiming a delicate sequence.
+
+**Reading the camera is asynchronous, so the adoption is a SNAPSHOT.**
+Pressing `>` while the read is in flight would otherwise adopt conformer 2
+with conformer 1's camera -- a structure at an angle nobody ever looked
+at, chemically valid and undetectable downstream. The index and structure
+key are captured first and re-checked on the way back, and the button is
+disabled meanwhile.
+
+**And the camera composes with the DISPLAYED frame, not the stored one.**
+The viewer shows the display-aligned copy, so rotating the retained
+conformer by the on-screen camera gives some unrelated angle. Caught by a
+mutation -- and only after the test was rewritten with real embedded
+conformers, because placeholder molblocks do not parse and make aligned
+and retained the same string. That is the SECOND time that trap fired in
+this work.
+
+#### THE FUNNEL: de-duplication was not where the conformers went
+
+Reported as "I still feel like it's over filtering conformers", on
+"virtually almost any fine molecule", after a session that had already
+raised the count. A count cannot answer that -- it cannot tell
+under-sampling from over-merging, and the two want opposite fixes -- so
+`benchmarks/conformers/funnel.py` reports every STAGE and then the pairs
+that were actually discarded. Measured at 50 embeddings, seed 0, RMSD-only
+on both sides so the two are comparable:
+
+    molecule         embedded  distinct PRE-opt  converged  POST-opt  POST shipped
+    cyclohexane            50          1               50        1          2
+    (S)-ibuprofen          50         17               50       10         10
+    ethylmorphine          50          8               50        2         10
+
+**De-duplication removes NOTHING on ibuprofen** -- 10 by RMSD alone, 10
+under the shipped criterion. The 17 -> 10 is minimisation converging
+distinct starting geometries into shared minima, which is what
+minimisation is for. **Cyclohexane's 50 embeddings are one shape** before
+minimisation, so at the rigid end the constraint is ETKDG's sampling and
+the twist-boat arrives only through the energy veto.
+
+**THE DISCARDED PAIRS ARE DEGENERATE, NOT DISTINCT, and that is the
+answer.** Of the merged-away pairs whose largest corrected torsion moved
+more than 90 degrees, the greatest energy difference is:
+
+    butane 0.0000   pentane 0.0000   ibuprofen 0.0009   ethylmorphine 0.0680
+
+Equal energy plus a large torsion is the signature of a MIRROR-IMAGE pair,
+and butane's are exactly its g+/g- forms at +-65 degrees -- 130 degrees
+apart in the C-C-C-C torsion, RMSD 0.477, dE 0.0000. Merging those is what
+produces butane's textbook count of 2. So "a torsion moved 130 degrees and
+it was merged anyway" reads as a smoking gun and is not one.
+
+**The one place real conformers are lost is the CAP.** `num_conformers`
+defaults to 10 and ethylmorphine finds ~12.8 at the default 50 embeddings,
+so the rest are truncated -- they converged, they are distinct, and they
+are silently absent. `conformers_returned` is now recorded beside
+`conformers_distinct` (it was the one stage count that never was) and the
+3D viewer's *Details...* dialog shows the two together. **No threshold,
+window or default was changed**: nothing the funnel found is a defect in
+the criterion.
+
+##### The metric that would have lied about all of it
+
+`MergeCandidate.max_dihedral_change` was read with a raw `GetDihedralDeg`
+on fixed indices while the merge decision uses symmetry-aware
+`GetBestRMS`. Measured on ibuprofen through the real `_merge_scan`:
+
+    rmsd 0.000  dE 0.000  TFD 0.0000  maxDih 180.0  C1-C3-C4ar-C5ar
+
+A pair of IDENTICAL structures reporting half a turn, because flipping a
+para-substituted ring maps the molecule onto itself. **33 of 40 merged
+pairs flagged a torsion over 90 degrees**; corrected, 14. A funnel built on
+the uncorrected metric would have reported a catastrophic over-merge on
+the first molecule anybody tried.
+
+The fix takes the correspondence from `GetBestAlignmentTransform` and
+CHECKS it against the RMSD `_merge_scan` used, on the
+`comparison_skeleton` -- which is what makes it cheap, since carbon-bound
+hydrogens carry the methyl permutations and dropping them takes ibuprofen
+from 1728 automorphisms to 4, at 0.6 ms per pair. It costs no torsion:
+`CalculateTorsionLists` returns identical group counts on the full
+molecule and the skeleton.
+
+**This is the SECOND time this diagnostic has been wrong** -- the first
+read only the non-ring list and had a written conclusion resting on it.
+The ethylmorphine claim it supported survived re-measurement to the digit,
+which is luck rather than vindication.
+
+Three things worth carrying:
+
+- **A structure against an exact `Chem.Mol` copy of itself cannot show
+  this.** Same atom ordering, so both metrics read 0. It takes two
+  genuinely different embeddings that happen to superimpose, which is why
+  the guard SEARCHES for the pair and asserts the naive arm still reads
+  180 -- without that assertion the test passes vacuously the day the
+  fixture stops containing the case.
+- **A positional fixture was wrong for a subtler reason:**
+  `generate_conformer_batch` sorts by energy, so "embeddings 0 and 1" of a
+  2-embedding run is not the pair with those indices in a 20-embedding
+  run. Everything downstream sorts, filters and truncates, so a list
+  position is not an identity -- which is why `MergeCandidate` carries an
+  `_oc_origin` tag (`seed=0 embedding=17`) written at the one point that
+  knows the attempt number.
+- **`n/a` is not 0, and ethanol is the case.** RDKit's torsion
+  enumeration is EMPTY for a skeleton as small as C-C-O-H, so all 240 of
+  its merged pairs report unavailable -- nothing to measure, rather than a
+  measurement that failed. A forensic table that rendered those as 0.0
+  would have said ethanol's discarded pairs were motionless.
+
+##### Acted on 2026-08-13: two defaults and one sampling flag
+
+The verdict above was put to Alex and three decisions came back; all
+three shipped on the `conformer-defaults` branch, each with its evidence.
+
+**`useSmallRingTorsions` is now on by default**, gated in ISOLATION at
+the benchmark protocol (50 embeddings/seed, identical seeds, nothing else
+varied -- evaluating it at the new application defaults would have
+confounded the flag with the sampling increase). Ten of eleven corpus
+molecules byte-identical; ethylmorphine's 5-seed union grew 17 -> 25,
+because its flexibility IS ring pucker. Paired cost x1.17 total. The
+funnel confirmed cyclohexane still counts 2 -- pre-opt diversity rose
+1 -> 3 but chair and twist-boat still merge geometrically (0.3747 < 0.5),
+so the energy veto stays load-bearing and extra sampling never became
+extra counting. The azirine same-shape floor is unmoved; its guard
+recomputes both bounds and passed under the flag. The flag is recorded in
+provenance and the benchmark environment, read from the provider that ran
+(None for a provider that never declared it), so no stored record is
+ambiguous about which sampling produced it.
+
+**Keep 10 -> 20, embeddings 50 -> 100.** 20 exceeds the maximum distinct
+count observed at 100 embeddings (~15-18) -- observed headroom, not a
+sufficiency claim; the union under the flag is at least 25, which is why
+the cap still exists and the Details dialog still names it when it
+bites. 100 embeddings doubles a flexible molecule's yield (10 -> 15
+distinct on ethylmorphine) at ~5 s. The two moved together on purpose:
+raising embeddings without raising keep makes the silent-loss case worse.
+A pin test carries the evidence, so an accidental revert fails naming it.
+
+**The funnel tables above are pre-flag measurements.** They motivated the
+flag, so they must not be silently reread as current behaviour --
+cyclohexane's PRE-opt row is 3 under it, and
+`benchmarks/conformers/README.md` carries the full OFF/ON gate table.
+
+#### Marvin-parity generation: emulate the CONTROLS, never claim the algorithm
+
+"make it resemble marvin's conformer generator calculator much more
+closely". Four controls now exist -- diversity threshold, optimisation
+level, time limit, enhanced refinement -- and the discipline that matters
+is what is NOT claimed.
+
+**ChemAxon publishes no default values.** Fetched twice and confirmed:
+the Generate3D page states none for diversity, `[o]`, timelimit or
+hyperfine. A reported figure of 0.1 for diversity could not be confirmed,
+so nothing here presents 0.5 as matching theirs.
+
+**"hyperfine" may be EXPLAINED but never SHOWN or WRITTEN.** ChemAxon's
+hyperfine is short molecular dynamics followed by strict optimisation; a
+minimiser cannot leave the basin it is already in, which is the whole
+point of the dynamics. Provenance records `enhanced_optimization`,
+because a stored SDF property outlives every UI that wrote it. The guard
+walks the AST and checks STRING LITERALS only -- the first version
+forbade the word outright and failed on the very comments that exist to
+prevent the confusion.
+
+**The strictness decides how hard to try, NOT what counts as a
+conformer.** The plan for this work said the level should decide whether
+to keep a non-converged geometry; it must not, and this file already
+records why -- such a structure corrupts the ranking, the veto, the
+de-duplication and any geometry calculator. Discarded at every level, and
+a test asserts it at every level.
+
+**Minimise through the FORCE FIELD, not `MMFFOptimizeMolecule`.** That
+wrapper exposes no force tolerance, and a gradient criterion is exactly
+what an optimisation level has to vary. `ForceField.Minimize(maxIts,
+forceTol)` returns 0 on convergence, the same contract.
+
+##### What the four controls actually do, measured
+
+30 embeddings each of seven molecules from the de-duplication corpus:
+
+    molecule         Loose  Loose+refine  Normal  Very strict
+    ethylmorphine        8             9       9            9
+    the other six     same          same    same         same
+
+Every level converged 30 of 30. So **the strictness is visible on exactly
+one molecule**, and **enhanced refinement's only measurable effect is
+recovering what a loose first pass lost** -- nothing at Normal or above,
+at about 25% more time. That is what its tooltip says, rather than
+implying it improves sampling.
+
+**A from-memory SMILES nearly produced a different story.** The first run
+of that benchmark used an ibuprofen and an ethylmorphine typed from
+memory; the ethylmorphine did not parse and the ibuprofen showed Loose
+finding 16 against 14, which reads as "Loose over-counts". Re-run with
+the corpus SMILES, ibuprofen is 8 everywhere and the effect is somewhere
+else entirely. **Take benchmark inputs from the corpus file, not from
+memory.**
+
+##### The plugin interface gained a parameter without breaking anybody
+
+`ConformerProvider.generate_conformer_batch` now takes `options`, and
+`ConformerProvider` is a published plugin API. The service asks
+`inspect.signature` whether a provider accepts it rather than passing and
+catching `TypeError` -- which would also swallow a real one raised from
+inside the provider. Same instinct as the `NOT abstract, so a provider
+written against the original interface keeps working` note already on
+that method.
+
+#### A GEOMETRY CAN DEFINE STEREOCHEMISTRY, and that is not the same as the drawing specifying it
+
+Reported as two things that were one. Adopting a conformer of a
+benzobicyclo[2.2.2]octane changed the molecule's identity:
+
+    as drawn         [(6, 'R'), (14, '?'), (17, '?')]
+    after adopting   [(6, 'R'), (14, 'S'), (17, 'S')]
+
+and the naming panel then withheld a name that had not changed. **The
+nomenclature engine was innocent** -- it derives the same name for both,
+that name cannot express bridgehead stereo, and only the round-trip
+comparison changed its mind. Chasing the namer would have been chasing
+the symptom.
+
+**The perception is not authority.** Once atoms have positions RDKit will
+label centres a flat drawing left open, but that label is a consequence of
+the geometry that happened to be generated. Interconverting conformations,
+symmetric environments, pseudoasymmetric centres and stereogenic
+axes/planes all sit outside what one embedded conformer settles. So
+`chem/stereochemistry.py` REPORTS rather than asserts, with four outcomes
+and two refusals:
+
+    unchanged                commit silently, however far the atoms moved
+    unspecified -> assigned  commit, and say so
+    assigned -> DIFFERENT    REFUSE -- a different compound
+    assigned -> unspecified  REFUSE -- perception going backwards after a
+                             rigid transform is a bug, not a result
+
+Refused in the COMMAND CONSTRUCTOR, so nothing reaches the undo stack.
+
+**`verify_name_round_trip` returns a verdict, not a bool.** `MATCH` /
+`STEREO_OMITTED` / `MISMATCH` / `UNVERIFIED`, the same move the naming
+benchmark made when it added its `tautomer` class. `STEREO_OMITTED`
+requires BOTH that the name parsed AND that the skeletons agree while the
+full SMILES disagree -- SMILES inference alone would only establish that
+two structures differ stereochemically, which is a different claim from
+the name being valid for either. Benchmark unmoved at **181/181**.
+
+Two mutations worth keeping:
+
+- **An empty clause is invisible to a substring assertion.** Appending
+  the description unconditionally gave `"...rotated in 3D -- and ."`,
+  which contains no "stereocentre" and passed the guard that was meant to
+  catch exactly that. Assert the SHAPE of the message, not only its
+  absence of a word.
+- **`includeUnassigned=True` is not load-bearing.** `compare_*` reads the
+  label dicts with `.get(index, UNSPECIFIED)`, so an absent atom already
+  compares as unspecified and every outcome is identical with the flag
+  off. Kept for readability; recorded so nobody re-derives it.
+
+#### The gallery reads a DIFFERENT camera, and Phase 2's tests could not see it
+
+Reported as "when I try to use it in the 2d editor, it is again not
+actually *3d*, it is just again the absolute, 2d structure".
+
+`current_view` read `viewer.getView()` -- the SINGLE viewer -- always. In
+gallery mode that one is hidden and unrotated while the cell the user
+turned carries the orientation, so "Use in 2D Editor" baked in no
+rotation at all. Measured: the cell pointed `(0, 0.537, 0, 0.843)` after
+a 65-degree turn and the read returned `[0, 0, 0, 1]`.
+
+**The Phase 2 tests were correct and blind.** They exercise the single
+viewer, where "the camera" and "the selected cell's camera" are the same
+object, so a regression that only exists once a second camera exists
+could not fail them. The page now answers `currentView()`, which is the
+only side that knows which mode is showing.
+
+Its sibling: the page resets `gridSelectedCell` to 0 on every rebuild, so
+paging left `_conformer_index` pointing at another page -- the CAMERA
+from cell 0 and the CONFORMER from somewhere else, which is the same
+mismatch the adoption snapshot exists to prevent.
+
+#### The conformer gallery: one WebGL context, and four traps
+
+"all separate images possible... you could check several ones to be
+visible at a time if wanted, and on the screen at the same time, yet
+independently rotatable." `$3Dmol.createViewerGrid` gives exactly that,
+and **the whole grid shares ONE WebGL context** -- measured,
+`querySelectorAll('canvas').length` stays at 2 (single viewer plus grid)
+from 2x2 to 10x10. A `QWebEngineView` per conformer would instead be a
+Chromium helper set per conformer, which this file already records
+accumulating into a 40-minute hang.
+
+**Cost does not set the ceiling; legibility does.**
+
+    cells   build     redraw
+        4    91 ms      1 ms
+       12   175 ms      1 ms
+       25   373 ms      1 ms
+      100  1481 ms      5 ms
+
+100 cells in a 1000x700 pane is 100x70 px each. It stops at 12 and pages.
+
+**`control_all` IS NOT THE LOCK, and it looks like it is.** It ties mouse
+INPUT together and does nothing for a view changed any other way:
+measured with `control_all: true`, turning one cell programmatically left
+the others at the identity and the cells pointed two different ways.
+`linkViewer` propagates a view change however it was made -- linked in
+both directions for every pair, no loop, no measurable cost. There is no
+unlink, so the lock is a rebuild.
+
+**`createViewerGrid` DOES NOT WORK UNDER `offscreen`, AND "A SECOND
+WebGL CONTEXT" IS NOT WHY.** That explanation stood here for a long time
+and is wrong. It throws `Cannot read properties of null (reading
+'clearDepth')` under Qt's `offscreen` platform -- which
+`tests/conftest.py` sets -- and works on an ordinary windowed one.
+Measured against the real bundle with nothing varying but
+`QT_QPA_PLATFORM`:
+
+    rung                                offscreen      windows
+    a bare WebGL context                ok             ok
+    TWELVE bare contexts                12 of 12       -
+    one $3Dmol.createViewer             ok             ok
+    two independent viewers             ok             ok
+    SIX independent viewers             6 of 6         -
+    two viewers in one parent div       ok             -
+    createViewerGrid 2x2 (400x300)      THROWS         ok, 4 cells, 0 null
+    createViewerGrid 1x1                THROWS         -
+    the app's own gallery backend       grid_failed    2 cells drawn
+
+Not the number of contexts, not the number of viewers, not a shared
+parent, and **not the container size** -- a 400x300 container failed
+while a 0x0 one "succeeded". A grid of a SINGLE cell fails too, so it is
+not multiplicity in any form. Every capability underneath works; only
+`createViewerGrid` does not, and **why is still unknown**.
+
+So the page reports the failure and the widget falls back to the single
+view saying why, rather than leaving an empty pane -- a user on software
+rendering hits the same wall. The page-level gallery tests skip under
+`offscreen` (`QT_QPA_PLATFORM=windows pytest ...` runs them, verified 42
+passed); the fallback path is tested where the rest of the suite runs.
+
+**THAT SKIP STAYS A PLATFORM CHECK ON PURPOSE**, and the ladder above is
+the justification rather than laziness: the only thing that predicts the
+failure is the call being tested, so a "capability probe" here would gate
+a test on its own subject and turn a real regression into a silent skip.
+An admitted platform gate beats a probe that cannot say no. Contrast the
+`webgl` fixture in `tests/conftest.py`, where a genuine prerequisite --
+whether a WebGL context exists at all -- does exist and is measured.
+
+**Wait for the container size to SETTLE, not merely to be non-zero.**
+`createViewerGrid` fixes each cell's canvas at build time and never
+re-fits, so building while the pane is still growing leaves the gallery
+in the top half of it. `display: block` does not reflow within the same
+synchronous script either -- measured `clientWidth 0`, zero overlays and
+an empty `gridViews()`, while the identical sequence in a standalone
+script happened to work.
+
+##### The 3D viewer had been HALF THE SIZE IT SHOULD BE
+
+Found while wondering why the gallery filled only the top of the pane,
+and it was never the gallery. A `QWebEngineView` and a `QLabel` both
+report a `Preferred` vertical policy, so `QVBoxLayout` split the spare
+height evenly:
+
+    tab               1418 x 728
+    viewer widget     1412 x 698
+    the 3D view       1412 x 330   <- half
+    measurement label 1412 x 330   <- a ONE-LINE readout
+
+`addWidget(view, 1)` takes it to 644 against the label's 16. **Same shape
+as the `WrappedLabel` finding in the Properties panel** -- a one-line
+status claiming a panel's vertical stretch -- and it had been shipping
+for as long as that label has existed, invisible until something needed
+the space.
+
+#### Camera retention keys on a viewer-SESSION identity
+
+`viewer.zoomTo()` ran on every `loadMolblock`, so the camera was re-fitted
+on every conformer step. `loadMolblock(molblock, keepCamera)` now takes
+the decision from Python, because only Python knows whether this is the
+same molecule and the same batch.
+
+**Not the molblock, and not the model object.** Molblock equality would
+let an imported structure with a matching graph inherit an unrelated
+camera; an object identity cannot survive the model being rebuilt. The
+key is `(molecule.uuid, tuple of conformer timestamps)` --
+`_ConformerGenerationTask` stamps one `Provenance` across a whole run, so
+a regenerated set correctly re-fits and a conformer appended later by
+`AddConformerCommand` changes the tuple rather than slipping in unseen.
+
+Verified live on Alex's own sequence, reading `getView()` rather than
+comparing screenshots:
+
+    as generated       [0,0,0,0,0,0,    0,1    ]
+    arranged by hand   [0,0,0,0,0,0.574,0,0.819]
+    stepped to conf 2  [0,0,0,0,0,0.574,0,0.819]
+    stepped back to 1  [0,0,0,0,0,0.574,0,0.819]
+
+**A placeholder molblock makes an alignment test vacuous.** Every test in
+`test_molecule_viewer3d_widget.py` used strings like `"conf-1"`, which do
+not parse -- so the aligner returns them untouched and "aligned" and
+"retained" are the same string. A mutation that bypassed alignment
+entirely passed all of them. One test now builds real embedded
+conformers, which is the only thing that tells the two apart.
+
+### A CACHE can make a guard pass while the code under test never runs
+
+Third instance of "a test naming a behaviour is not a test of it", and a
+new mechanism for it. The Atom Inspector's report cache is keyed on
+`(uuid, structure_version, subject, index)`, and the version comes from
+`StructureCheckService` -- which is **None in a plain panel fixture**, so
+the version is 0 forever.
+
+Two guards for a stale-index crash therefore edited the molecule, called
+`_render_facts()`, and got the CACHED report back. The builder never ran,
+so `build_atom_report` was never reached, so nothing could raise. Both
+passed against a panel with no bounds check at all; a mutation removing
+the check outright left the file green.
+
+The fix is a fixture supplying a version counter and bumping it on every
+edit, which is what the application does. **If a panel caches, a test
+that mutates state must move whatever the cache is keyed on**, or it is
+testing the cache.
+
+The same run produced a second, smaller lesson worth keeping: the
+`0 <=` half of `0 <= index < limit` is **not reachable** through the
+panel -- no caller produces a negative index -- so a mutation deleting it
+survived every end-to-end test. It is asserted directly on the predicate
+instead of being deleted, because the predicate's contract is "does this
+name something in the molecule" and answering True for -1 is wrong on its
+own terms. **An unreachable branch is a question about where to assert,
+not automatically dead code.**
+
+### The command palette introduces no registry, deliberately
+
+`Ctrl+Shift+P` reads three indexes the app already has -- the rail's panel
+list, `CalculatorRegistry`, and the live `QMenuBar` -- for **113 commands
+with nothing registering itself**. A palette that required each feature to
+register would be a fourth list to keep in step, and the one that falls
+out of step is always the one nobody remembers to update. A new
+calculator or menu item is in the palette because it exists.
+
+`score()` is a pure function so the ranking is testable without a dialog,
+which matters because ranking is the only part of a palette that can be
+subtly WRONG rather than broken. Four tiers -- exact, prefix, word start,
+subsequence -- with subsequence last because it matches almost everything
+and would otherwise drown a real prefix. Ties keep the caller's order, so
+panels beat calculators beat menu items and "batch" lands on the panel.
+
+#### PySide invalidates a wrapper reached through a TEMPORARY list
+
+Hit twice in one hour, in production code and then in a test:
+
+```python
+menu = next(a.menu() for a in bar.actions() if ...)   # menu is DEAD here
+```
+
+The C++ object is fine; the wrapper is not. `bar.actions()` is a
+temporary, and releasing it invalidates every wrapper obtained from it --
+the next line raises `Internal C++ object already deleted`. Hold the
+parent list, or read what you need while you still have it.
+
+`_menu_actions` does the latter: it captures each label DURING the walk
+and returns `(label, source, action)`, rather than handing back a wrapper
+for the caller to read later. `findChildren(QMenu)` is worse still and is
+avoided -- it is recursive over the whole object tree and returns wrappers
+for menus Qt has already freed.
+
+A dock's `toggleViewAction` carries the panel's own name, so every panel
+appeared twice until exact duplicates were dropped. The panel command
+wins because it SHOWS the panel; a toggle can hide it, which from a
+palette is a surprising thing to have asked for. Only exact duplicates go
+-- Console is a dock with a toggle and no rail entry, and its View item is
+the only way to reach it.
+
+### Comparison: the engine existed, the way in did not
+
+`chem/comparison.py` had `atom_correspondence`, `build_comparison` and
+`deltas_against` since the LED work, reachable from exactly one place --
+a tab inside `BatchAnalysisDialog`, behind building a batch table first.
+So "how do these two molecules differ", which is a question people ask
+constantly, required a workflow nobody would guess at.
+
+`compare_values` is the everyday case beside that per-atom machinery:
+molecules in columns, properties in rows, built from the values other
+panels have already published. **The panel never computes** -- a blank
+cell means that calculator has not run for that molecule, and the intro
+says so, because a comparison view that silently launches forty
+calculators is one people stop opening.
+
+**"Differences only" is the feature, not a filter.** Measured live on the
+motivating pair: aspirin against salicylic acid is **15 differing rows
+out of 29**, and finding those 15 by eye is exactly the work the table was
+supposed to save.
+
+Three decisions worth keeping:
+
+- **Absence counts as a difference.** A property one molecule has and
+  another does not stays visible under "differences only" -- a missing
+  value is usually the interesting thing, and hiding it would be the more
+  misleading of the two choices.
+- **Rows keep producer order, never alphabetical.** A calculator emits
+  formula before mass before composition deliberately, and sorting
+  scatters that.
+- **Agreeing on everything is a RESULT, not an empty table.** Two
+  molecules matching on every property known says something, so that
+  empty state differs from "nothing computed yet".
+
+The ticks do NOT follow the tree selection, for the same reason the
+Interactions panel's two combos do not: the comparison is a deliberate
+choice, and reshuffling it because somebody clicked elsewhere would
+silently change what the table on screen describes.
+
+#### The rail must follow a panel opened from anywhere
+
+"Compare with..." showed the Compare panel while the rail still
+highlighted Analysis. `_on_panel_chosen` now calls
+`PanelRail.select_panel`, which is a no-op when the rail itself was the
+caller and is what keeps the two in step for every other route -- a
+plugin revealing its panel, a cross-link, the command palette. Navigation
+claiming one thing while the screen shows another is worse than either
+alone.
+
+### `AlertResult` was carrying twenty reports and five alerts
+
+`AlertResult.matched` is a `list[str]`, and it became the generic line
+carrier for anything that was not a single scalar. Counted: **25 distinct
+`alert_id`s, of which only pains, brenk, mutagenicity_alerts and
+herg_risk_factors are catalogs.** The panel rendered every non-empty
+`matched` as `"N alert(s): "` in red, so four fifths of the app's output
+looked like a warning.
+
+`ReportResult` carries `Fact`s instead -- label, value, units, basis,
+evidence, limitations, which atoms it is about, how specialist it is. All
+of that was already being computed and flattened away at the last step.
+
+Measured after the migration: **16 fact-based reports, 4 alert catalogs.**
+
+**`AlertResult` is not deprecated and must not be.** It is in the plugin
+API, and for a real catalog "N alert(s)" in red is the correct rendering.
+`chem/report_adapter.py` converts one to facts for anything that has not
+migrated -- permanently, not as a shim.
+
+#### The batch table shows what a string cost
+
+`result_reduction.py` had to PARSE `"Randic index: 9.52"` back into a
+label, a number and a unit, with a deliberately strict regex. Measured
+when it was written: 73 numeric columns extracted and **25 lines refused**
+-- formulas, prose caveats, value lists, all correctly refused and all
+genuinely lost.
+
+A `Fact` was never flattened, so `_reduce_report` has nothing to recover:
+45 facts give 43 numeric columns on the same four calculators, the two
+text ones being a formula and a direction vector. **The column ids are
+byte-identical**, so saved tables, charts and exports survive.
+
+#### NEVER TUNE EITHER STRING PARSER BY READING ITS PRODUCERS
+
+There are two -- `report_adapter._MEASUREMENT` (presentation: recover a
+label) and `result_reduction.parse_reported_numbers` (numeric columns) --
+and they judge free-text lines written across 49 calculators, so "which
+lines does my change affect" is not a grep question.
+`benchmarks/report_lines/sweep.py` answers it by instrumenting
+`report_adapter._split` and running the real registry: **484 distinct
+lines**, and `--candidate` diffs a value pattern against them in both
+directions.
+
+```bash
+uv run --no-sync python benchmarks/report_lines/sweep.py --candidate '...'
+```
+
+**It has already overruled one obviously-correct fix.** `_MEASUREMENT`
+accepted a leading minus and not a leading plus, so a line formatted
+`f"{v:+.2f}"` was refused for its SIGN -- 18 lines, and the panel showed
+three parsed dipole components beside one unparsed one. The candidate fix
+added a `(?=\s|$)` boundary so a comma-separated value list could not
+mis-split, and the sweep said it **regresses 31 real lines**: `"C:
+23.79%"` and `"Percent buried volume: 13.30%"` attach their unit with no
+space. What shipped is the one-character `-?` -> `[-+]?`.
+
+Two things that decided it, both worth reusing:
+
+- **Check the candidate against `_as_float` as well.** A stricter number
+  parses `"+2.00"` out of a ten-orbital spectrum, so the batch table
+  would gain a numeric column asserting a list is a scalar. Leaving the
+  comma in the value class makes it unfloatable, which is what keeps that
+  column correctly textual.
+- **The two parsers must NOT be aligned.** The numeric one is entitled to
+  refuse `"Pi system: 10 atoms, 10 pi electrons"`; the presentation one
+  still has to show it. Making one call the other looks like reuse and
+  deletes that distinction.
+
+#### `ReportResult.matched` is a DERIVED view, kept on purpose
+
+Composed from the facts on demand, never stored. It exists because
+`matched` is in the plugin API and because a large number of assertions
+read it -- "does the topology calculator report a Randic index" is a real
+question whose answer does not change with the shape it arrives in.
+
+Regulatory's lines were already self-labelling (`"Near miss: ..."`), so
+they are split at that colon and `matched` recomposes them byte-for-byte.
+That is what let 13 modules migrate without rewriting their tests.
+
+#### Regulatory finally says what it did NOT check
+
+It computed the rulesets consulted, the coverage notes and the unchecked
+domains into `Provenance.parameters` and **displayed none of it** -- the
+panel showed `1 alert(s): No matches in the 1 ruleset consulted`. They
+are facts now: aspirin's screen lists twelve domains with no ruleset
+loaded, each carrying "this screen says nothing about it either way".
+Ruleset versions and coverage notes are marked ADVANCED so they do not
+bury the findings; "NOT checked" is deliberately STANDARD, because a gap
+in coverage is not specialist information.
+
+#### DATE-AWARE SCREENING: two mutations no shipped ruleset can catch
+
+`screen(as_of=...)` withholds rules taking effect after a date, and the
+whole feature is guarded by tests on FIXTURES rather than on the shipped
+rulesets. That is not a stylistic preference -- for two of them the shipped
+data is degenerate, and a guard written against it would pass while testing
+nothing.
+
+**THE BUILD ALREADY WROTE THE FALLBACK IN.**
+`tools/build_regulatory_rulesets.py` copies a ruleset's `effective_date`
+onto every rule that does not declare one, so in a shipped ruleset the
+engine's runtime fallback and the baked-in value always agree. Deleting
+`resolve_effective_date`'s ruleset branch therefore changes NOTHING
+measurable across all 91 rules. `loader.py` does no such copying, so a USER
+ruleset that dates itself and not its rules is the only thing that reaches
+that branch -- and a synthetic fixture is the only way to build one.
+Measured: that mutation is caught by
+`test_a_rule_with_no_date_takes_its_ruleset_s` and by nothing else in the
+suite.
+
+**AND EVERY SHIPPED RULE IS DATED IN THE PAST**, so defaulting `as_of` to
+`date.today()` instead of `None` gives identical answers on all 91 rules and
+on all four benchmark corpora. Only a rule dated in the FUTURE tells them
+apart, which is what
+`test_a_rule_dated_in_the_future_still_matches_an_undated_screen` exists
+for. Seven mutations were run; those two were caught by one test each.
+
+**THE DEFAULT THAT COULD HAVE GONE THE OTHER WAY.** An undated rule is NOT
+DATE-FILTERED -- and that wording is load-bearing rather than fussy, because
+"applies at every date" is a claim about history the data cannot support.
+The shipped split is 40 rules at 1997-04-29, 4 at 2020-06-07, and **47
+undated** (the whole DEA list, at rule and ruleset level), so treating an
+absent date as "never applicable" would silently empty a majority of the
+screen while looking exactly like a substance that is not listed.
+
+**A REFUSAL AND A DEGRADATION ARE OPPOSITE ANSWERS TO THE SAME BAD DATA,
+and which one is right depends on whose data it is.** A malformed
+`effective_date` inside a ruleset FILE degrades that one rule to undated and
+is reported (`ScreeningReport.malformed_effective_dates`), because one bad
+entry must not cost somebody every other rule -- the same policy as the
+existing `PredicateError` skip. A malformed date typed by the USER refuses
+the whole screen (`CacheState.FAILED`, no findings, no coverage rows),
+because there the QUESTION is broken: answering "what applied in 2019" with
+today's rulesets and a warning attached means the reader has to notice the
+warning to know they were given the wrong answer. The first draft of this
+had it falling back to an undated screen and was corrected in review.
+
+One parser serves both, with three states that must not collapse into two:
+absence is a VALUE (`None`), malformation is an EXCEPTION. The build lets it
+become a `BuildError`; the engine catches it. Neither calls
+`date.fromisoformat` itself, so they cannot drift.
+
+**A SHIPPED RULESET CARRIED A CLAIM THIS FEATURE FALSIFIED**, and a
+too-loose test assertion found it rather than review. Schedule 1's
+`known_limitations` said the 2019 additions' effective date "is recorded on
+the rules rather than enforced". `known_limitations` is prose inside DATA,
+so no docs guard covers it -- `tests/test_docs_are_current.py` reads
+markdown. Check a ruleset's own declared limits when you change what the
+engine does with that ruleset's fields.
+
+### The right-hand panels are NOT tabified, and must not become so again
+
+Twelve panels shared one tabified dock group, and Qt gives such a group a
+single `QTabBar`. **That bar wanted 1992 px and had about 920**, so every
+label elided to two or three characters -- `"Qu..."`, `"J..."`, `"B..."`.
+Widening the dock cannot fix it: a bar wide enough for twelve labels is
+wider than the window.
+
+`tabifyDockWidget` is what creates that bar, so the fix is not to hide it
+but to stop tabifying. One right-hand dock is visible at a time and
+`ui/widgets/panel_rail.py` chooses which. That also answers the reason
+they were tabified in the first place -- the visible panel gets the whole
+column, instead of nine slivers.
+
+**Hiding Qt's bar does not work**, tried first: `setVisible(False)` on the
+live one reads back `True` after the next relayout, because the dock area
+re-shows it.
+
+`test_the_right_hand_panels_have_no_tab_bar_to_elide` fails if a
+`QTabBar` parented to the WINDOW comes back. The ones parented to a
+`QTabWidget` belong to individual panels and are fine.
+
+#### `restoreState` restores TABIFICATION, so old layouts are discarded
+
+This is the part that a test would not have caught, and did not. Every
+`tabifyDockWidget` call was gone and the elided nine-tab bar was **still
+there** on a real install, because `QMainWindow.restoreState` had put it
+back from the saved layout.
+
+`_LAYOUT_VERSION` in `app/main_window.py` gates it: a state saved under an
+older arrangement is dropped. There is nothing to migrate -- `saveState`
+is an opaque blob with no readable structure -- so the only honest
+options are restore it or do not. **The geometry is kept either way**; it
+carries no dock arrangement, and discarding somebody's window size to fix
+their panel layout would be a gratuitous second change.
+
+Bump `_LAYOUT_VERSION` for any future change a saved layout cannot
+express, and probe a REAL install rather than trusting the suite: every
+test builds a window with no prior state, which is exactly the case that
+cannot see this.
+
+**AND THE VERY NEXT GEOMETRY CHANGE FORGOT TO, which is why that sentence
+is worth more than it looks.** `_LAYOUT_VERSION` went to `"2"` on
+2026-08-07 with the rail; the 420 px starting width landed 2026-08-15 and
+left it alone. So every install that had run the app in between carried a
+version-2 layout with 280 px docks, and the fix that exists to stop
+caption clipping **never reached any of them** -- including this
+project's own. Read off the real registry: `ui/layout_version = 2`, and
+`_set_initial_right_dock_width` is skipped whenever a layout restores.
+
+Measured by driving the app with the version bumped and nothing else
+changed: docks 280 -> 420, and the Batch panel's horizontal scrollbar and
+off-screen "Virtual Screening..." button both disappear. Bumped to `"3"`.
+
+The tell is that the suite cannot see this class of defect AT ALL -- a
+saved layout is the one state no test starts from -- so the check is
+`ui/layout_version` in the real store, not a green run.
+
+#### `isVisible()` is False for every child of an unshown window
+
+Bit twice in two phases, in production code and in a test. A dock that
+has been `setVisible(True)` on a window nobody showed still reports
+`isVisible() == False`, so a check written that way answers "none of
+them" under a test harness while looking right in the running app --
+the same blindness as `repaint()` on a widget that was never shown.
+
+`isHidden()` reads the explicit flag and is the one to use. Both
+`_help_topic_for_visible_panel` and
+`test_only_one_right_side_dock_is_visible_at_a_time` had to change.
+
+### Empty states: iterate over what is BUILT
+
+There was no empty-state text anywhere in `ui/` -- a search for any
+placeholder string over the whole package matched two files, neither a
+panel. So "not run yet", "ran and found nothing", "failed" and "not
+applicable to this job" all rendered identically as blankness, and an ESP
+single point left six of seven quantum tabs looking broken.
+
+`tests/test_empty_states.py` walks the tabs **the panel actually builds**,
+never a list kept beside it -- the same direction that caught the two
+missing help topics. It asks each tab what it SHOWS, not how it stores
+it, which is what let the three mechanisms below coexist behind one
+guard. Verified by simulating the mistake: removing one tab's placeholder
+fails naming the tab.
+
+#### SOLVED: the teardown collect was DESTROYING MainWindows
+
+Windows fatal exception `0xc0000374` (heap corruption), raised inside the
+`gc.collect()` in `pytest_runtest_logfinish`, in whichever test was
+unlucky. **It cost about fifteen full suite runs across three phases of
+UI work**, and every appearance looked at first like an unrelated failure
+somewhere else.
+
+**Collecting a `MainWindow` corrupts the heap.** A window a test builds
+has no Qt parent, so PySide gives Python ownership, and freeing the
+wrapper deletes the C++ window. The window sits in a reference cycle
+nothing else breaks, so the thing that eventually frees it is the
+teardown collect. `tests/conftest.py` now retains every MainWindow for
+the session, and `test_main_windows_are_deliberately_never_collected`
+fails if that retainer is removed.
+
+**This is the project's own conclusion, finally made true.** The sections
+below record two earlier attempts to destroy abandoned MainWindows, both
+of which made the suite crash MORE, and both concluded "leave them". What
+nobody had noticed was that the collect was destroying them anyway --
+`pytest_runtest_logfinish`'s own docstring asserted it "does not destroy
+anything itself", which was wrong.
+
+##### Why it looked like "adding a widget breaks it"
+
+Because the crash is **non-monotonic in widget count**, which is the tell
+that it is a corrupting free whose VICTIM depends on heap layout, not a
+capacity being exceeded. Measured with a tunable probe that adds N empty
+`QLabel`s to a panel, on the 20-second reproduction:
+
+    0, 1, 2, 4 extra labels    clean
+    8, 16 extra labels         CRASH
+    32 extra labels            clean
+
+So the widgets never caused anything; they shuffled the heap until the
+freed window's memory happened to be adjacent to something that mattered.
+Every "prefer a change that adds no widget" rule written into this file
+across two commits was a superstition that worked by luck, and all of it
+has been deleted.
+
+##### How it was found, in the order that worked
+
+1. **A tunable probe driven by an environment variable**, so an A/B needs
+   no file edit at all. Three arms in an earlier bisect had silently
+   tested an unmodified file.
+2. **`PYTHONMALLOC=debug` reported nothing**, which rules out Python's
+   allocator and says the corruption is in the C++ heap.
+3. **`gc.DEBUG_SAVEALL` made it clean.** That is the decisive step: with
+   nothing freed there is no crash, so the crash is in FREEING a member
+   of a cycle, and `gc.garbage` then holds the exact candidates.
+4. **Retaining one class at a time** named it. Patching `__init__` to
+   append to a global list prevents collection at the source:
+
+        retain nothing                          crashed
+        retain MainWindow                       clean
+        retain the three viewer backends        crashed
+        retain QWebEngineView + QWebChannel     crashed
+
+Retaining the windows also made the reproduction **twice as fast** (1.76 s
+to 0.85 s), because destroying them was expensive. Full suite: 2846
+passed, peak working set 760 MB.
+
+##### Six hypotheses that are WRONG
+
+Recorded so nobody pays for them again. Each was tested against the full
+suite; two of them this file previously asserted as the rule.
+
+1. *The `dict[QWidget, ...]` holding placeholders.* Removed -- still dead.
+2. *Hiding sibling content.* Suppressed every visibility change -- still
+   dead.
+3. *A new test file shifting collection order.* Removed -- still dead.
+4. *"A placeholder in a tab page that already holds widgets."* The log's
+   `CollapsibleSection` went into a main layout and died the same way.
+5. *Python-derived widget subclasses.* A plain `QLabel` killed it too.
+6. *That panel's leaked test widgets.* `test_quantum_chemistry_panel.py`
+   abandons 15 panels and accounts for 104 of 138 late destructions;
+   giving it the per-widget disposal recipe and re-adding the fatal
+   widget **still died at the same test index**.
+
+##### AN ARM THAT DOES NOT RUN IS NOT AN ARM
+
+Three arms reported a comfortable "no crash" and were worthless.
+**Removing the widget under test usually breaks MainWindow
+construction**, so the tests ERROR instead of running -- and the crash
+needs a MainWindow to exist. A harness that only greps for
+`fatal exception` scores that as a pass. Check the passing-test COUNT
+against the control:
+
+```bash
+uv run --no-sync python -m pytest -q tests/test_receptor_library_dialog.py tests/test_regulatory_calculator.py 2>&1 | tail -1
+```
+
+That pair is the **20-second reproduction**, and having one is what made
+the root cause findable at all after three phases of 3.5-minute arms.
+
+This is the second version of a lesson already in this file. The first
+was a mutation script whose edit never landed; this is an edit that
+landed and a test that never ran.
+
+##### If it ever comes back
+
+The signature is a truncated `-q` progress line, then
+`Windows fatal exception: code 0xc0000374`, then a traceback whose top
+frame is `conftest.py ... pytest_runtest_logfinish` / `Garbage-collecting`.
+
+Count how far it got and name the test:
+
+```bash
+awk '/^[.sFEx]+/ {gsub(/[^.sFEx]/,"",$0); n+=length($0)} END {print n}' /tmp/suite.log
+```
+
+**Pin the baseline before blaming yourself OR the suite**: `git stash`
+everything and run master. This file's warnings about flaky access
+violations elsewhere would otherwise excuse a crash that is entirely
+reproducible and entirely yours.
+
+###### AND CI HAS SEEN IT NOW, which nothing above had established
+
+Every measurement in this section was taken locally. **PR #43's run
+32794020310 crashed on the hosted Windows runner**, 2026-08-25, which moves
+the class from "a thing this machine does" to "a thing the suite does".
+
+    crashed at test 4608 of 5591   tests/test_result_reduction.py
+    then 37 more dots, exit 1      and NO SUMMARY LINE
+    the three gates                skipped, as a red suite always takes them
+
+**`--log-failed` RETURNED NOTHING, CORRECTLY, AND THAT IS THE TRAP.** There
+is no failing test to name -- so the first two searches for one came back
+empty and read as a broken log rather than as a crash. The pair this file
+insists on is what answers it: a summary line that must EXIST, and a count
+of `Windows fatal exception`.
+
+**THE VICTIM BUILDS NO QT OBJECT AT ALL.** `tests/test_result_reduction.py`
+reduces results to table columns; there is no widget, no window and no event
+loop in the file. That is the signature rather than a surprise -- the
+corruption is in FREEING a member of a cycle, so whichever test is running
+at that instant is chosen by heap layout.
+
+**THE COMMIT THAT "CAUSED" IT EDITS FOUR DOCUMENTS AND ADDS ONE QT-FREE
+TEST.** `tests/test_gutmann_bridge.py` gained
+`test_the_solvent_count_is_the_merged_one`, which sorts before
+`test_result_reduction.py` and shifts every later index by one. That is the
+documented trigger exactly: the widgets never cause anything, they shuffle
+the heap until the freed window's memory is next to something that matters.
+
+Three cheap checks before the flake verdict, and the third is the one that
+settles it:
+
+    the runner image        IDENTICAL to the previous green run
+                            (windows-2025-vs2026, 20260818.207.1), so no
+                            image bump to blame
+    the same tree locally   5576 passed, 15 skipped, 0 crash markers
+    a re-run, SAME SHA      5571 passed, 19 skipped, 1 deselected,
+                            0 crash markers, all three gates EXECUTED
+
+**A RE-RUN ON THE SAME SHA IS THE DISCRIMINATOR AND COSTS ONLY WALL
+CLOCK.** `gh run rerun <id> --failed` re-uses the ORIGINAL commit -- normally
+the trap this file warns about, and here exactly what is wanted: a second
+sample of one tree. The same move settled the ORCA scratch-cleanup flake.
+The merge commit then made it three CI samples, one crashed.
+
+**AND IT HAPPENED AGAIN ON PR #50, WHICH IS THE SECOND CI INSTANCE.** Run
+33029344304, 2026-08-27:
+
+    first attempt   crashed at 83%, `0xc0000374`, top frame
+                    `conftest.py pytest_runtest_logfinish` /
+                    `Garbage-collecting` -- the same site as before
+    the three gates skipped, exactly as a red suite always takes them
+    re-run, SAME SHA   6085 passed, 19 skipped, 1 deselected,
+                       all three gates EXECUTED, naming 181/181
+
+So the discriminator worked a second time and cost one wall-clock cycle.
+Worth recording because the branch under test was editing `conftest.py`,
+which makes "I broke it" the obvious reading -- and the census it was
+changing is **switched off unless `OPENCHEM_CENSUS` is set**, which no
+workflow did at the time, so every line of that change was inert on CI.
+**Check whether your change is even LIVE on the job that failed before
+believing you caused the failure.**
+
+**THE TWO SKIP COUNTS ARE NOT A DISCREPANCY.** CI's 19 against the local 15
+is the four GPU-gated gallery guards, and 5571 + 19 + 1 reconciles to the
+5591 a local `--collect-only` reports. Check that before reading a CI figure
+as five lost tests.
+
+## A UI MUST NOT INFER SCIENTIFIC MEANING FROM A DATASET'S SHAPE
+
+Reported as "the logp calculator is a bit confusing... I assume the
+overall partition is that number 3.624, but on the detailed viewer that
+number is not there". The Properties panel said `mol_logp 3.624`; the
+Calculator Inspector beside it said `Overall: 0.8585`.
+
+**Neither number was a chemistry error.** `Overall:` was
+`sum(result.values.values())`, on the stated belief that everything the
+dialog shows is additive over the atoms present. Measured on aspirin
+across every per-atom calculator in the registry, that belief was wrong
+three ways at once, meaningless twice more, and merely mute four times:
+
+    crippen_logp_contrib       0.1511   real LogP 1.3101
+    crippen_mr_contrib         35.51    real MR   44.71
+    gasteiger_charge_at_ph     -1.359   the molecule is NEUTRAL
+    orbital_electronegativity  134.8    summed eV, no referent
+    topology_eccentricity      65       summed hops, no referent
+    topology_distance_degree   492      2x Wiener, unnamed
+    atom_sasa                  220.7    correct, and never said as WHAT
+    atomic_polarizability      18.11    correct, unnamed
+    huckel_pi_density          10       correct, unnamed
+
+The first three share one cause: **Crippen and PEOE both give hydrogens
+their own increment, and the editor's hydrogens are implicit**, so those
+increments have no atom to sit on. Verified --
+`sum(_CalcCrippenContribs(AddHs(mol)))` equals `MolLogP(mol)` exactly on
+every molecule tried.
+
+**THE FILE ALREADY KNEW.** `calculator_inspector_dialog.py`'s ESP branch
+documents "gave neutral acetic acid a net -0.40 e" (re-measured: -0.4008)
+while a branch 150 lines above printed that same sum as a total. Two
+statements about one quantity, in one file, disagreeing.
+
+**A LIST OF NUMBERS DOES NOT SAY WHETHER ADDING IT UP MEANS ANYTHING.**
+The producer knows; the producer declares. `Provenance.parameters[TOTAL]`
+carries `{declared, value, label, units, basis}` or
+`{declared: False, reason}`, and `domain/common.valid_total_declaration`
+is **structural only** -- it checks a value is numeric and a label is
+non-empty, never that "A^2" is right for a surface area. Validating that
+here would rebuild, in the layer being fixed, the very "the UI decides
+what numbers mean" engine the key exists to remove.
+
+That split is asserted directly:
+`test_a_plausible_lie_passes_the_validator_and_fails_the_chemistry`
+declares `label="LogP (Crippen)", value=sum(values)` and requires the
+validator to ACCEPT it and the Crippen guard to REJECT it. If the
+validator ever catches it, semantics have leaked back.
+
+**`Overall:` had already been narrowed twice** -- for spectra, then for
+categorical results -- each time by finding another special case the hard
+way. Inverting the default is what ends that: no declaration, no
+headline. Same instinct as `applies_to`'s restrictive default and the
+same rot `inapplicable_calculators` suffered.
+
+**A CATEGORICAL DATASET NEEDS NO SECOND DECLARATION.** `CATEGORICAL_SCALE`
+already says "these are category ids, not magnitudes", which is the same
+statement; requiring `TOTAL` as well would put one claim in two places.
+The audit accepts either.
+
+### The residual is the VIEW's arithmetic; its meaning is the PRODUCER's
+
+The dialog says *"21 heavy-atom contributions sum to 0.86 - the balance
+(+2.77) is on implicit hydrogens."* Subtracting two numbers is ordinary
+work for a view. Concluding that the remainder IS the hydrogens is
+chemistry, and this file already records what inferring a mechanism from
+a residual costs. So the producer supplies `{visible_basis, explanation}`
+and nothing else; with no explanation the gap goes unmentioned.
+
+**And the sentence is suppressed within the displayed precision.** The
+two hydrogen modes that DO add up reproduce their total to ~1e-16, so
+without a tolerance every one of them would announce a balance of
++0.0000000000000002 -- noise given a voice.
+
+### The hydrogen fold already existed, under Marvin's name
+
+`gasteiger_charge_at_ph` has shipped "Increment of Hs (add implicit H
+charge)" since Phase 18, and it takes acetic acid's charge sum from
+-0.4008 to -0.0000. The same fold on Crippen reproduces `MolLogP` to
+1e-9 (ethanol, benzene, aspirin, caffeine, morphine). Both Crippen
+calculators now offer three modes; **the declared total is identical in
+all three**, which is the guard that a display option never reaches the
+chemistry.
+
+`Explicit hydrogens` is a pure addition, measured rather than assumed
+before being built on: `AddHs(addCoords=True)` moves every heavy atom by
+**0.00e+00** in 2D and on a real conformer, leaves 0 overlapping pairs,
+gives the new hydrogens real non-zero z, and `PrepareMolForDrawing`
+KEEPS them (8 in, 8 out). Without an explicit-H depiction the labels are
+silently dropped by `render_2d_svg`'s `drawable()` guard -- whose
+docstring already described this situation for SASA and polarizability.
+
+### THE REGISTRY AUDIT IS THE PART WORTH KEEPING
+
+`tests/test_declared_totals.py` enumerates **from the live registry**,
+never from a list of ids, and fails naming any calculator whose per-atom
+result carries no `TOTAL` key. A maintained list is exactly what
+`inapplicable_calculators` was when it rotted into 27 wrong entries. It
+is what covers calculator #37, which nobody has written yet.
+
+### Three smaller findings from the same screen
+
+- **EVERY descriptor row was captioned with its raw id**, and lost its
+  units: `mol_logp`, `mol_wt`, `tpsa`. `DescriptorService` publishes a
+  RUNNING placeholder per id BEFORE `compute()` runs -- so it can only
+  fill in `name=descriptor_id, units=""` -- and the panel wrote the row
+  caption once, at creation. Measured 26 of 26 wrong. It cannot be fixed
+  at the producer: the placeholder precedes the names, and the consumer
+  is the only place that sees both.
+- **The legend printed the COLOUR DOMAIN as the data range.** For signed
+  data the scale is symmetric about zero, so it named +1.019 when no atom
+  had it, while the panel an inch away said 0.5437. Two quantities, one
+  name. They have separate names now (`data_range` vs the colour domain)
+  specifically so a later simplification cannot merge them again.
+- **One dataset rendered at four precisions on one screen** -- 2 dp atom
+  labels, `.3f` legend, `.4g` headline, `.4g` panel row. All of them go
+  through `label_decimals` now, and the balance tolerance derives from it.
+
+### A BRANCH MEASURED A STARVED SECTION THAT MASTER HAD ALREADY FIXED
+
+Kept because both halves are instructive: the measurement was right, the
+conclusion drawn from it was obsolete before it was written, and only
+looking at master said so.
+
+Driving the app showed `LogP (Crippen) 3.62 - 21 atom contributions,`
+ending flat against the panel edge with its range gone. Every test was
+green. `OPENCHEM_INSTRUMENT_PANEL=1` gave the reason -- the Lipophilicity
+section starved at 145 px against a 192 px minimum, so the result row was
+handed 34 whatever it asked for -- and the branch responded by shortening
+its own row to fit the shortfall it found.
+
+**That shortfall was a bug with a fix already on master.** The section
+above, `A STYLE CHANGE RE-ARMED THE HEIGHT-FOR-WIDTH FLAG`, is the same
+145/192 measured independently a day earlier and repaired. Re-measured
+after merging, with the `dump` drive step:
+
+    arm                    row given/needs   section h / min
+    total + count               47 / 47         192 / 192   ok
+    total + count + range       63 / 63         208 / 208   ok
+
+So the row carries everything it used to plus the total, and the guard
+that pinned the shorter wording was deleted -- it would have held a
+workaround in place for a bug that no longer existed.
+
+**A CONSTRAINT DISCOVERED BY MEASUREMENT CAN STILL BE STALE.** Nothing
+about the numbers was wrong; they described a tree eleven commits behind.
+`git fetch` before concluding that a defect is pre-existing, and again
+before shipping a design that works around one -- this branch also wrote
+up two "pre-existing bugs, deliberately not fixed here" that master had
+fixed while it was in flight, one of them with the exact one-line change
+the write-up recommended.
+
+**A bare Qt harness said the opposite of the app** -- it reported the
+label wrapping to 4 lines and `CLIPPED: False`, because it had handed the
+label 100 px instead of the real 205. That is the SIXTH time this file
+has recorded an out-of-app harness disagreeing with the running
+application about this panel, the fifth being in the style-change section
+above, and the two were found within a day of each other by different
+routes. Whatever else is true of that panel, do not measure it out of
+process.
+
+### `sum(x.values())` is not by itself evidence of this bug
+
+Auditing every such call in the tree found only ONE offending site. The
+hits in `electronic_properties.py` and `surface_analysis.py` are
+PRODUCERS computing their own legitimate totals -- which is precisely
+what they should be doing, and they now declare them. The rule is about
+where a total may be INVENTED, not about arithmetic.
+
+### A mutation that does not parse is not a mutation
+
+Five arms, four caught by the guard they were aimed at. The fifth
+replaced a call with text that did not parse, so the module failed to
+import and **0 of 50 tests ran** -- and the harness scored it INVALID
+rather than SURVIVED only because it compares the arm's ran-count against
+the control's. This is the third time this file has recorded a version of
+that lesson.
+
+Method note paid for again in the same session: **an A/B is worthless if
+the tree is being edited during it.** A source file was edited by hand
+while the harness was mid-run, so the whole set was re-run on an
+untouched tree before any result was believed.
+
+## SOLUBILITY: an uncapped model, a 1000x review, and two defects only the screen showed
+
+`chem/solubility.py` is the ChemAxon-shaped predictor -- intrinsic value,
+value at a pH, Low/Moderate/High category, pH curve. Five things worth
+carrying, each measured rather than reasoned.
+
+**A PROBE THAT PASSES `None` FOR AN INTERPRETER PATH REPORTS "NOT
+INSTALLED" ON A MACHINE WHERE IT PLAINLY IS.** `pka_predictor_available(None)`
+and `admet_available(None)` both answered False while pkasolver and the
+ADMET sidecar were configured and working. A whole design was built on
+that -- including a Dimorphite-DL pKa fallback that was then measured and
+found to put propranolol at 5.65 against a real 9.42, off by 3.8 -- before
+the paths were read from settings. **Read the configured value; do not
+probe with a placeholder.**
+
+**UNCAPPED HENDERSON-HASSELBALCH REACHES 4.7e10 mg/mL.** Aspirin at pH 14,
+which is 47 tonnes per litre: correct arithmetic, meaningless answer, the
+same failure this file records at 40619 kcal/mol.
+
+**TWO BOUNDS STOP IT AND THEY ARE NOT THE SAME CLAIM.** The first draft
+had one symmetric +2.0, inferred from a single ChemAxon screenshot with
+no source behind it. Avdeef's **"sdiff 3-4"** replaced it: in 0.15 M
+NaCl the counter-ion salt precipitates once solubility exceeds intrinsic
+by about FOUR orders for a weak acid and THREE for a weak base. Cited,
+and asymmetric because a sodium and a chloride salt are not equally
+soluble. On propranolol at gastric pH it moves the answer from 7 to
+**70 mg/mL** against a real hydrochloride solubility near 50.
+
+**THE READING WAS VERIFIED AGAINST THE PAPER'S OWN WORKED EXAMPLE**
+rather than assumed: Avdeef gives amiodarone intrinsic 7.9e-9 M and Ksp
+1.2e-6 M^2 "using the sdiff 3-4 approximation", and 7.9e-9 x 10^3 x 0.15
+= 1.19e-6 reproduces it. That is what says the rule was understood, not
+merely quoted.
+
+**AND sdiff ALONE IS NOT ENOUGH, WHICH ONLY MEASURING SHOWED.** It is
+stated for SPARINGLY-soluble drugs -- the paper's title -- and says
+nothing about a compound whose intrinsic solubility is already
+appreciable. Aspirin's uncapped rise of 3.91 never reaches an acid's
+4.0, so the salt rule leaves it at **11,925 mg/mL**, twelve kilograms
+per litre. A pure-compound ceiling of 1000 mg/mL catches the rest: a
+solute cannot outweigh the solution holding it. The two are reported
+separately, because "the salt precipitates here" and "past here the
+number is meaningless" must not render as one sentence.
+
+**THE FIX PARTLY DISSOLVED THE PROBLEM THAT MOTIVATED THE BOUNDED
+SCREEN.** Under +2, propranolol saturated the entire ICH window. Under
+the base limit of 3.0 its 2.60 at pH 6.8 fits underneath, so the window
+carries real pH information again. Saturation is pushed back rather than
+abolished -- a base above about pKa 10 still fills the window -- and the
+verdict is unaffected either way, which is the point of it being bounded.
+
+**THE LIMIT SATURATES THE ENTIRE ICH WINDOW FOR A STRONG BASE, and that
+is the ordinary case rather than an edge one.** Propranolol (pKa 9.4)
+wants +8.20 at pH 1.2 and +2.60 at pH 6.8, so every point in pH 1.2-6.8
+hits the limit and the displayed spread across it is **0.000**. Found by
+writing the guard, not by review.
+
+**SO THE SAFEGUARD WAS DECIDING A REGULATORY VERDICT, AND A BOUND
+REPLACED IT.** The first version returned `UNDETERMINED` whenever the
+limit saturated -- i.e. for basic drugs as a class, on the strength of an
+arbitrary constant. The fix is that the screen never reads the cap at
+all. Two REAL bounds exist:
+
+    S(pH) >= S0             ionization only ADDS dissolved species
+    S(pH) <= uncapped HH    which assumes the salt never precipitates
+
+so the dose number is sandwiched, and each side licenses ONE verdict --
+PASS when even the pessimistic bound clears the criterion, FAIL when even
+the optimistic one misses it. Measured: caffeine PASS, aspirin FAIL 1.36,
+ibuprofen FAIL 26.7, ketoconazole FAIL 3497, propranolol genuinely
+UNDETERMINED at 2.27 against 0.005. **Four of five get a sound answer
+where the capped version gave one blank class**, and
+`test_a_verdict_never_depends_on_the_adjustment_safeguard` runs the
+screen at four different limits including none and requires one outcome.
+
+**A CEILING BUILT FROM THE DISPLAYED CURVE IS NOT A CEILING, and the
+mutation for it SURVIVED the whole file at first.** Swapping the uncapped
+profile for the capped one understates solubility, so it can license a
+FAIL the evidence does not support -- and no fixture noticed, because for
+an ACID the window minimum sits at pH 1.2 where capped and uncapped agree
+exactly, and propranolol at 40 mg lands on the same verdict either way.
+The two only disagree about the OUTCOME when the dose falls in the gap
+between them, which for propranolol is **1745-6989 mg**. The guard uses
+3000 mg and asserts its own setup first. Same shape as the assembly
+corpus blind to a transposed matrix: a fixture is not big or small, it is
+degenerate or not with respect to a specific mutation.
+
+**A REVIEW'S "MOST DANGEROUS CONVERSION BUG" WAS ITSELF THE BUG.** A
+plan review proposed `mg/mL = 10**logS * MW / 1000`, in the point it
+titled exactly that. It is wrong by 1000x -- 1 mol/L of MW 180.16 is
+180.16 g/L, and a g/L IS a mg/mL. Checked against ChemAxon's own published
+aspirin figure, which is categorised High and needs 2.79 mg/mL; the
+proposed form gives 0.0028 and classifies it Low. **Every category would
+have been wrong.** Three review rounds were taken point by point and two
+of their points were rejected on measurement; the rest improved the work.
+Do not apply a review wholesale, and do not dismiss one either.
+
+**A FIXTURE SAT 0.00002 mg/mL FROM THE BOUNDARY.** Ibuprofen was the
+obvious molecule for "the category must read the baseline, not the
+pH-adjusted value" and is degenerate: its ESOL baseline is 0.06002 mg/mL
+against a 0.06 threshold, so it reads High on BOTH sides and the mutation
+is invisible. Diclofenac is 0.0019 (Low) against 0.19 (High) -- two bands
+apart, neither near a threshold. Same lesson as the assembly corpus that
+could not see a transposed matrix.
+
+### IONIZATION SITES MULTIPLY. THIS CODEBASE SUMMED THEM FOR YEARS.
+
+Found by reading Avdeef 2007 (Adv Drug Deliv Rev 59:568-590, doi
+10.1016/j.addr.2007.05.008) Table 1 after Alex fetched it. The bug was in
+`logd_henderson_hasselbalch`, so it reached logD, the logD curve, CNS MPO
+and BBB descriptors -- not only the new solubility code.
+
+    WRONG   log10(1 + sum of terms)
+    RIGHT   sum of log10(1 + term)
+
+A sum never reaches the doubly-ionized scaling, because getting there
+needs BOTH protons off and the sum has no term for it. Measured on a pKa
+3.0/4.5 diacid at pH 8: the summed form understates the adjustment by
+**3.49 log units**, and at pH 12 by 5.5.
+
+**ONE SITE IS WHERE THE TWO FORMS AGREE**, which is exactly why it
+survived: monoprotic answers are bit-identical under both, and monoprotic
+is the overwhelmingly common case. Every pre-existing pinned value in
+`test_logd.py` that survived the change is a single-site one, and the two
+that moved are the diprotic and the ampholyte.
+
+**THE CORRECT MATH WAS ALREADY HERE, ONE MODULE AWAY.**
+`ph_curves.microspecies_fractions` builds the beta-product from
+successive dissociation constants and has since it was written. Two
+implementations of one piece of chemistry, one right, coexisting -- which
+is the whole argument for the shared `ionization_log_factor` that
+replaced them.
+
+**A TOLERANCE WOULD HAVE BURIED A REAL DISTINCTION.** The independent-site
+product and Avdeef's Table 1 disagree by 4.3e-6 at pH 8, and the first
+instinct was to widen `abs=1e-9` until they matched. They are not meant to
+match: Avdeef's constants are MACROSCOPIC (the singly-ionized species
+lumps both microstates) and ours are per-SITE -- `ph_curves` already
+records that pkasolver "predicts per-site values, which are closer to
+microscopic constants". The product is the form matching our inputs, and
+`test_the_microscopic_and_macroscopic_forms_differ_and_we_use_the_right_one`
+pins the difference rather than rounding it away.
+
+The renamed function is the signal: `ionization_factor` returned a bare
+sum, `ionization_log_factor` returns the log. A silent semantic swap under
+the old name would have been the worst of both.
+
+### THE BENCHMARK, AND A LEAK THAT WAS NOT THE OBVIOUS ONE
+
+`benchmarks/solubility/` scores ESOL against the Solubility Challenge
+(Llinas, Glen & Goodman 2008), taken from the AqSolDB repository's
+`dataset-I`. Measured 2026-08-16, 61 scored of 80:
+
+    all      n=61  MAE 0.74  RMSE 0.98  median 0.52  max 2.65  bias -0.17
+    neutral  n=16  MAE 0.80                                    bias +0.02
+    acid     n=18  MAE 0.55                                    bias +0.26
+    base     n=27  MAE 0.84                                    bias -0.59
+
+**THESE SUPERSEDE 67/-0.20/+0.06/-0.52, AND THE REASON IS NOT DRIFT.**
+Three compounds appear in SC-1 under one InChIKey as two solid forms, and
+`score.py` was scoring both -- counting them twice AND charging the
+polymorph gap (up to 0.88 log) to the model as prediction error. Refusing
+them is what moved every figure here; see the polymorph section below.
+The old numbers are still in PR #28's body, which is immutable history.
+
+**THE STRATIFICATION EARNED ITS KEEP ON THE FIRST RUN.** The aggregate
+bias is -0.17 and reads as noise. Split by class, ESOL under-predicts
+BASES by more than half a log unit while acids sit at +0.26 -- a
+systematic error across a third of a druglike set, invisible in a single
+MAE.
+
+**AND IT REPLICATED ON A SECOND, INDEPENDENT SET.** The Solubility
+Challenge 2 tight set (Llinas, Oprisiu & Avdeef 2020, Table 1, doi
+10.1021/acs.jcim.0c00701) gives base bias **-0.42** against SC-1's -0.59,
+on 73 different compounds. One set makes a bias a curiosity; two make it
+a property of the model. Delaney's paper mentions ionization, amines and
+salts ZERO times, so ESOL cannot tell a base from a neutral of the same
+size and lipophilicity -- the bias is domain, not a fixable defect.
+
+**A NUMBER WITHOUT A BASELINE SAYS NOTHING.** On the same 73 compounds
+the General Solubility Equation scores RMSE 1.18 against ESOL's 1.26 --
+and the GSE needs a MEASURED MELTING POINT that this app does not have.
+So the honest reading is "the endpoint is hard", not "our model is poor".
+The paper also gives the noise floor: interlab SD 0.17, and CheqSol
+against high-quality shake-flask at RMSE 0.34. Nothing can score below
+that.
+
+**A CLAIM IN THIS FILE WAS OVERTURNED BY THE BETTER MEASUREMENT.** The
+solubility module used to say ESOL beat Marvin on Marvin's own
+documentation molecule, resting on an ESOL-era experimental value of
+-2.19 for aspirin. SC-2's interlaboratory mean over 16 sources is
+**-1.67**, and against that Marvin (0.14 off) and AqSolDB (0.05) both
+beat ESOL (0.42). The old row is kept with its correction beside it
+rather than edited away, because "where did that number come from" is the
+question a reader will have.
+
+**EXTRACTING A TABLE FROM A PDF NEEDS AN ACCEPTANCE TEST, and the paper
+supplies one.** Table 1 closes with a Min/Max/Mean row. The first
+extraction produced a perfectly plausible **129 rows** by running past the
+end of Table 1 into Table 2 -- the "contentious" set, interlab SD 0.62 --
+silently mixing two data qualities. Recomputing the summary row is what
+caught it; the count alone would not have, because 129 looks as
+reasonable as 100. Two further defects fell out of the same check: a row
+split across a page break (`bromazepam`), and a melting point carrying a
+footnote marker (`193b`) that a plain numeric match rejects.
+
+**AND THE NAME RESOLUTION WAS NOT REPRODUCIBLE UNTIL IT WAS CACHED.** Two
+consecutive PubChem runs over the same 100 names returned 100 and then
+97; diazoxide, diclofenac and nortriptyline dropped out to rate limiting.
+A corpus whose membership depends on network luck is not a corpus, and
+nothing says so unless somebody compares row counts. It caches, retries,
+and an unresolved name is now fatal rather than a warning.
+
+**THE ANTI-LEAK RULE CAUGHT THE MODEL NOBODY SUSPECTED.** Refusing to
+score the AqSolDB sidecar on AqSolDB was the obvious half and was in the
+plan. The half that was NOT: **the merged AqSolDB contains Delaney's own
+ESOL set as one of its nine sources**, so the first design would have
+scored ESOL against its own fit. Verified against the AqSolDB README
+rather than recalled -- `dataset-G` is reference [7], Delaney 2004.
+`fetch.py` downloads that set purely to SUBTRACT it: 14 of 94 rows share
+an InChIKey and are dropped. **An evaluation set assembled from other
+people's datasets inherits all of their provenance**, and "is this model
+trained on this data" has to be asked of every model, not just the one
+whose name matches the file.
+
+**16% OF A DRUGLIKE SET IS REFUSED** -- 13 of 80 are ampholytes. That is
+a large slice to decline, and it is printed beside the accuracy so the
+two can never be read apart; a model that refuses its hard cases looks
+better the more it refuses.
+
+**AND THE ORIGINAL PLAN'S DATA SOURCE DID NOT WORK.** TDC's Harvard
+Dataverse returned 403 and PyTDC then cached the 0-byte failure as a
+"local copy", so every retry reported "Found local copy..." before
+failing -- which reads as a code bug rather than an outage. The GitHub
+route needs no PyTDC, no throwaway virtualenv and no Dataverse, and it is
+the one that exposes the constituent datasets the de-leaking depends on.
+
+### AND TWO DEFECTS THAT ONLY THE RENDERED WIDGET SHOWED
+
+Every unit test passed, 55 of them, and the panel looked right in the
+app. Rendering the CURVE view at real font size showed both at once:
+
+- **Four of seven facts sat behind a collapsed heading.** `FactCategory`
+  STRUCTURE is not in `DEFAULT_EXPANDED`, so the stats block whose whole
+  purpose is showing the intrinsic solubility beside the chart was
+  showing only the method.
+- **The status line advised choosing "Everything" from a combo box that
+  had been deliberately hidden.** `show_controls=False` hides the depth
+  filter; it did not stop the filter applying, or the hint referring to
+  it.
+
+Both come from one cause and take one line: **when the controls are
+hidden, nothing may hide behind them.** `FactView._compact` derives from
+`show_controls`, so the depth filter is off and every section starts
+expanded. `test_hiding_the_controls_hides_nothing_behind_them` is the
+guard and `test_the_full_view_still_collapses_and_filters` is its
+control -- the second matters because the fix is in shared code and the
+control-bearing form must be untouched.
+
+**THE HEADLESS GRAB UNDER `offscreen` COULD NOT HAVE FOUND THEM.** That
+platform has no fonts, so every label renders as tofu boxes: the chart's
+SHAPE was verifiable there and not one word of text was.
+`QT_QPA_PLATFORM=windows` with `widget.grab()` gives real fonts without
+needing the whole application, which is the cheapest form of the rule
+this file states six times over.
+
+### 91 SOLVENTS, BY LOOKUP ON BOTH SIDES -- and three deferrals that were wrong
+
+`chem/abraham.py` answers for solvents other than water using Abraham's
+solvation equation, `log Ss = log Sw + c + eE + sS + aA + bB + vV`. Both
+halves are LOOKED UP, neither is predicted: 91 measured solvent
+coefficient sets (Bradley, Abraham & Acree, BMC Chemistry 2015, doi
+10.1186/s13065-015-0085-4, Table 1) and 2193 measured solute descriptor
+sets (Bradley, Acree & Lang, figshare, doi 10.6084/m9.figshare.1176994).
+`tools/build_abraham_tables.py` fetches both; both are CC BY 4.0 and both
+shipped JSON files carry their attribution.
+
+**THIS FILE AND ARCHITECTURE.md BOTH SAID IT COULD NOT BE BUILT, FOR
+THREE REASONS, AND TWO OF THEM WERE FALSE.**
+
+- *"`E` is derivable from Crippen molar refractivity."* Measured and
+  killed: hexane's Crippen-derived value is **0.805** against a defined
+  `E` of **0.000** -- hexane IS the n-alkane reference `E` is an excess
+  over, and MR does not carry that reference.
+- *"Ethanol is structurally unreachable because it is miscible with
+  water."* False, and it cost a round of the work. No two-phase partition
+  coefficient exists for a miscible pair and the UFZ LSER database omits
+  ethanol for exactly that reason -- which is what made this look
+  structural rather than like one database's scope. **Abraham's
+  coefficients here come from SOLUBILITY RATIOS**, so neat ethanol is in
+  the measured table.
+- *"`S`, `A` and `B` need the Platts fragment scheme."* True, and no
+  longer binding. The scheme would work and is ~480 coefficients and ~132
+  hand-written SMARTS patterns, every one a place for a silent error, with
+  fragments 59-67 defined in a FIGURE and so unreadable from the PDF's
+  text layer. **Looking up an experimental descriptor costs none of that
+  and carries none of its 0.7-1.0 log error.**
+
+The general lesson is the one the assessment doc now leads with: a
+deferral's REASONS rot independently of its verdict, and the route that
+finally worked is the one all three reasons had ruled out.
+
+**TWO QUALITY GATES IN THE SOURCE, AND ONE IS A TRAP.** A `donotuse`
+column with a written reason (6 rows), and **`-123` as a missing-value
+sentinel** (513 rows), which `float()` reads as a perfectly ordinary
+number. A single leak puts a wildly negative descriptor into a prediction
+that still looks like a prediction;
+`test_the_missing_value_sentinel_never_reached_the_shipped_table` walks
+every shipped row.
+
+**A DUPLICATE IS MERGED BY MEDIAN WITH ITS SPREAD KEPT PER DESCRIPTOR.**
+432 InChIKeys appear more than once and only 51 of those groups agree
+exactly; the widest single-descriptor disagreement is 2.24. Acetanilide
+settles the design -- three rows give `S` = 3.61, 1.54, 1.37 and the
+FIRST is the outlier, so "take the first row" would have shipped it. The
+spread propagates into a stated uncertainty and refuses past 1.0 log,
+because a solvent coefficient of -4.9 turns a 0.3 disagreement in `B`
+into 1.5 log units on the answer.
+
+**PER DESCRIPTOR, NOT ONE BLANKET NUMBER.** The first bound multiplied
+the single widest spread by the SUM of all five coefficient magnitudes --
+assuming every descriptor is wrong by the worst amount, all in the same
+direction -- and refused aspirin, caffeine and ibuprofen, **three of the
+first four drugs tried**. A bound that rejects the ordinary case is not a
+safety feature.
+
+**ACETIC ACID IS ABSENT DELIBERATELY.** The paper also PREDICTS
+coefficients for 293 further solvents and says of those "not as gospel".
+Only the 91 measured ones ship, which is the same call already made
+against Miller polarizability, HLB and TSEI. Alex asked for acetic acid
+by name, so this one is a refusal with a reason rather than an oversight.
+
+#### AND THE RENDERED PANEL FOUND THREE MORE, WITH ALL 101 TESTS GREEN
+
+Same lever as the two above, one feature later, and the second of the
+three is the sharpest thing in this section.
+
+- **A row labelled "Predicted intrinsic solubility" carried an ETHANOL
+  number.** `baseline_logs` already includes the Abraham shift, so three
+  unqualified rows reported 52.81 mg/mL in the wording every other part
+  of the app uses for the aqueous value.
+- **ChemAxon's Low/Moderate/High were being applied outside water.**
+  Those thresholds are defined on INTRINSIC AQUEOUS solubility -- they
+  encode expectations about dissolution in the gut -- so "High" for 52.81
+  mg/mL in ethanol borrows an aqueous verdict's authority for a different
+  question. **This is the same scoping mistake the BCS screen is guarded
+  against ONE FUNCTION AWAY**, written in the same session, and it was
+  still missed: getting a rule right in one place does not apply it in
+  the next. It is a refusal with a reason now, not an omitted row, since
+  a missing row reads as "not computed yet".
+- **The panel repeated one value four times.** With no pH adjustment
+  outside water the "baseline" rows and the "at pH" row coincide exactly.
+  Invisible to every test, which read LABELS rather than asking whether
+  two rows said the same thing.
+
+**A REFUSAL THAT NAMES THE WRONG CAUSE IS WORSE THAN A VAGUE ONE.** The
+non-aqueous BCS path first reused `BcsReason.UNSUPPORTED_SPECIES`, whose
+text is "this species is outside the model" -- false, and it sends the
+reader to fix their molecule. `NON_AQUEOUS_SOLVENT` says ICH M9 is
+defined on aqueous media. Same family as "reusing a command whose
+invariants do not apply is not reuse", one layer down in an enum.
+
+**TEN MUTATIONS, TEN CAUGHT** -- but the tenth arm is the one worth
+keeping. `varies_with_ph` losing its `is_water` term **SURVIVED** at
+first, and it is not a blind test: its ONE caller already returns for a
+non-aqueous solvent several lines earlier, so the term cannot change any
+rendered output. Asserted directly on the predicate instead, which is
+this file's existing "an unreachable branch is a question about where to
+assert" applied a second time. **And that guard's own setup assertion
+then caught its fixture being degenerate** -- without a pKa in BOTH arms,
+aspirin classifies UNSUPPORTED in ethanol too, so `varies_with_ph` was
+False for a reason having nothing to do with the solvent.
+
+**pH, THE ICH SCREEN AND THE CURVE STAY WATER-ONLY.**
+Henderson-Hasselbalch, the pKa values behind it and the regulatory window
+are all defined on aqueous media. A non-aqueous solvent gets an intrinsic
+solubility and no pH story rather than an authoritative-looking curve
+that means nothing.
+
+#### ACETIC ACID: REFUSED BY THE BOUND THAT WAS ALREADY THERE
+
+Alex asked for it by name, so "not in the table" was not an acceptable
+answer. The paper DOES predict its coefficients, so the question is
+whether a published prediction can ship. Two measurements say no, and the
+first uses no new policy at all:
+
+**IT FAILS THE EXISTING UNCERTAINTY BOUND.** Propagating the paper's own
+Table 4 out-of-bag RMSE (`e` 0.181, `s` 0.326, `a` 0.477, `b` 0.471,
+`v` 0.228) through the same `sum(|error| * descriptor)` the module already
+applies to measured-descriptor disagreement:
+
+    aspirin 1.57   caffeine 2.04   ibuprofen 1.34   paracetamol 1.76
+    benzene 0.51
+
+against a ceiling of 1.0. Caffeine is a factor of 110. Only benzene
+passes, and a solvent that works for benzene and no drug is not an option.
+Two coefficients are poor at the source -- OOB R^2 **0.308** for `e` and
+**0.474** for `b`, against in-sample 0.885 and 0.903, which is the overfit
+gap and the paper flags it itself.
+
+**AND THE PREDICTED TABLE IS THE WRONG PARAMETERISATION.** It carries only
+the `c = 0` refit (`e0 s0 a0 b0 v0`), which is the paper's equation 3 for
+log P and exists to make solvents comparable. The solubility equation is
+equation 2 and needs the intercept: ethanol's measured `c` is +0.222 and
+the predicted table has no column for it.
+
+**THE GOOD MESSAGE WAS UNREACHABLE FOR THE ONE CASE IT EXISTS FOR.** It
+was written into `solvent_shift`, and `resolve_solvent` refuses an unknown
+solvent several layers earlier -- so acetic acid never reached it and the
+user still got "91 solvents are supported". `predicted_only_reason()` is
+one function called from both, because writing the sentence twice is how
+two refusals drift into disagreeing.
+
+**THE NAMES SHIP, THE NUMBERS DO NOT.** `predicted_only` in the solvents
+JSON is 118 bare names so a refusal can be specific; a test asserts no
+coefficient is ever shipped beside them.
+
+**AND "293 FURTHER SOLVENTS" WAS WRONG IN FOUR DOCUMENTS.** 293 is the
+TOTAL the paper considers (sustainable + classic + measured), of which 91
+are measured -- so 202 are predicted-only, and the article's own table
+lists 118 of them. Written from memory of the abstract rather than from
+the sentence, which reads "a complete set of coefficients for all 293
+solvents (sustainable, classic, and measured)".
+
+#### THE NON-AQUEOUS BENCHMARK: TWO ARMS ARE CLAIMS, ONE IS NOT
+
+**THE LEAKAGE IS STRUCTURAL AND CANNOT BE ENGINEERED AWAY.** Abraham's
+solvent coefficients are, in the source's own words, "obtained by linear
+regression using experimentally determined partitions and SOLUBILITIES of
+solutes with known Abraham descriptors". The endpoint being scored IS the
+endpoint they were fitted to -- the AqSolDB/ESOL circularity in a new
+place, and this time unavoidable rather than fixable by subtraction.
+
+`benchmarks/solubility/nonaqueous.py` is built around that. The ONS
+Solubility Challenge dataset carries a CITATION column, so rows from
+Abraham or Acree publications can be dropped -- 1998 of 9536, 21%. That is
+the only handle that exists and it is a PARTIAL defence, since their
+coefficients may rest on measurements other people published.
+
+Measured 2026-08-16, 968 de-leaked cases, 159 solutes, 70 solvents:
+
+    composite  our prediction vs measured    786  MAE 0.68  RMSE 0.96  HONEST
+    baseline   our ESOL vs measured aqueous  786  MAE 0.61  RMSE 0.85  HONEST
+    shift only predicted vs measured shift   786  MAE 0.29  RMSE 0.49  OPTIMISTIC
+
+**THE COMPOSITE BEING BARELY WORSE THAN THE BASELINE IS THE RESULT.** It
+confirms the module's claim -- a non-aqueous answer is an ESOL prediction
+moved by a measured shift, so ESOL dominates the error -- and that claim
+does NOT require the shift to be validated, which is why it can be made at
+all. **Design the benchmark around the claim you can support**, not around
+the one you wish you could.
+
+**AND THE CONTROL MAKES THE LEAKAGE VISIBLE.** `--keep-leaked` improves
+the shift arm from **0.29 to 0.21 MAE** -- the coefficients looking 28%
+better on data they were fitted to -- while the composite barely moves
+(0.68 -> 0.69). **A de-leaking rule whose effect you cannot see is a
+de-leaking rule you have not tested**, and this one is measured in both
+directions.
+
+**`solvent_choices()` PUTS WATER FIRST, and that is not cosmetic.**
+`sorted(SOLVENTS)` buries the default at position 88 of 91, and water is
+not merely the default -- it is the solvent the pH curve, the BCS screen
+and the entire benchmark are about. The refusal message names six
+FAMILIAR solvents filtered against the real table, because the first six
+alphabetically are `1,2-dichloroethane` and `1,9-decadiene`, which answer
+"is my solvent here?" for nobody.
+
+### THE BASE BIAS IS REPORTED, NOT CORRECTED -- and the test said so
+
+`benchmarks/solubility/base_bias.py` put an adjustment for ESOL's base
+bias through a cross-corpus HELD-OUT test whose criteria were fixed before
+it was first run. **Outcome: `SURFACE_ONLY`.** Four of five criteria pass:
+
+    offsets        +0.586 / +0.422, agreement 0.165        PASS
+    base RMSE      0.822 -> 0.780 and 1.101 -> 0.932       PASS
+    overall MAE    not worse either direction              PASS
+    improvement CI [-0.231,+0.397] and [-0.0009,+0.300]    FAIL, both include zero
+
+**ONE OF THEM MISSES BY 0.0009**, which is the entire argument for fixing
+a threshold in advance. A criterion chosen after seeing that number is a
+description of it, not a test.
+
+**THE OVERLAP REMOVAL IS WHAT MADE IT UNDERPOWERED, AND IS ALSO WHAT MADE
+IT HONEST.** The two corpora share 20 compounds, 7 of them bases, so the
+held-out arms fall to n=10 and n=20. Two corpora that look like
+independent validation are less independent than their sizes suggest --
+without that exclusion this would have "passed" spuriously.
+
+**A PRE-REGISTRATION CAN BE DEFECTIVE, AND AMENDING IT IS NOT CHEATING IF
+NOTHING HAS BEEN SEEN.** v1 halted on its FIRST run having computed
+nothing: SC-1 carries `chlorprothixene_form_I` and `_form_II` under one
+InChIKey at -6.75 and -5.87. That is one compound as two solids, not a
+corpus contradicting itself, and v1 conflated them. v2 drops polymorph
+pairs, and the amendment is recorded in the docstring with the reason it
+was admissible -- no offset, no arm and no verdict existed yet.
+
+**AND IT FOUND A DEFECT IN THE SHIPPED SCORER.** `score.py` was counting
+those three compounds TWICE and charging the polymorph gap -- up to 0.88
+log, the size of the bias under investigation -- to the model as
+prediction error. Refusing them moved acid bias +0.06 -> +0.26 and base
+bias -0.52 -> **-0.59**, i.e. the fix makes the bias LARGER, not smaller.
+
+#### MORE DATA DID NOT HELP, AND THE REASON IS WHICH SIDE IT LANDS ON
+
+The obvious answer to a CI that missed by 0.0009 is more compounds. Two
+further corpora were extracted from `avdeef2020.pdf` (v3 of the criteria,
+written before they were run) and the verdict stayed `SURFACE_ONLY`:
+
+    A1  Yalkowsky & Banerjee 1992   19 rows -> 5 after de-leaking, 0 bases
+    A2  Hopfinger et al. 2009       27 rows -> 23, 7 bases
+
+**POWER IS SET BY THE TEST SIDE, NOT THE FIT SIDE.** Neither new corpus
+has the 10 bases needed to BE a held-out side, so both can only join the
+fit pool -- which moves the fitted offset and narrows nothing. Measured:
+the SC-1 arm's CI lower bound went **-0.0009 -> -0.0338**, slightly
+FURTHER from significance. Adding data to the wrong side of a held-out
+split is not adding power.
+
+**A1 IS 74% INSIDE ESOL'S OWN TRAINING SET** -- 14 of 19 rows share an
+InChIKey with Delaney's fit, and it yields zero bases. Yalkowsky &
+Banerjee 1992 is a classic compilation of industrial and agrochemical
+solubility, which is the chemistry ESOL was fitted on. Extracting it
+anyway is what turned a suspicion into a number; dropping it unmeasured
+would have been assuming the answer.
+
+**TWO OF AVDEEF'S FIVE APPENDIX TABLES ARE THE SC-2 SETS UNDER OTHER
+NAMES.** A3 is the tight set, A4 the loose set -- so a bulk extractor over
+those pages would have double-counted data the project already had and
+INFLATED the power of the experiment it was meant to strengthen. A naive
+row count over pages 35-44 gives 172 compounds and the honest independent
+gain is 49. `extract_avdeef_sets.py` refuses A3/A4/A5 by name and says
+why.
+
+**THE OUTCOME VOCABULARY EARNED ITS SPLIT.** `insufficient_evidence` (the
+CI spans zero) and `contrary_evidence` (an arm got worse) are recorded
+separately, because "we could not show it" and "we showed it does not
+work" are opposite findings that read alike in a bare SURFACE_ONLY. The
+adjustment does substantially remove the bias in-sample -- base bias
+-0.619 -> -0.108 and -0.351 -> +0.265 -- which is exactly why the
+distinction matters.
+
+`production_change_permitted = false` is emitted for every non-SHIP
+outcome, and `git diff src/` was checked empty: a guard against fixing the
+model after an inconvenient result.
+
+#### A FACT-LEVEL LIMITATION IS A TOOLTIP, AND A TOOLTIP TELLS NOBODY
+
+Both new notes were attached to the `Fact`, rendered correctly, passed
+every test -- and were **invisible on screen**. `FactView._add_row` puts
+`fact.limitations` into the ROW'S TOOLTIP; only `report.limitations`
+reaches the status line under the panel. Found by grabbing the panel,
+which is the fourth defect this feature has produced with a green suite.
+They are carried in BOTH places now: on the fact for the tooltip and the
+export, and on the report so somebody actually reads them.
+
+#### THE ARM STATUS IS A CLOSED ENUM, ATTACHED TO THE NUMBER
+
+`nonaqueous.py` hand-typed `(HONEST)` into the printed TITLE while its
+`--json` carried no status at all, so the two could drift and a machine
+reader got the figure naked. `ArmStatus` + `ARM_STATUS` is one source
+feeding both, the shift arm is `OPTIMISTIC`, and a test asserts it can
+never be emitted as `VALIDATED`. **A caveat that lives beside a number
+rather than inside it is one refactor from being lost.**
+
+## SOURCES: a provenance registry, and two traps in building one
+
+`docs/sources.toml` is the hand-edited registry of every paper, dataset,
+legal text, standard and bundled library this project rests on;
+`tools/build_sources_doc.py` generates `docs/SOURCES.md` from it, with the
+same both-directions `--check` as `build_regulatory_rulesets.py`.
+`tests/test_sources_are_current.py` is the guard.
+
+**`source_key` IS THE INVARIANT; THE DOI SWEEP IS A BACKSTOP.** There are
+71 sources and **35 DOIs**, so a DOI-only guard would cover about half of
+them and leave every prose citation -- the CRC Handbook, the CWC schedules,
+IUPAC 2013 -- free to rot while the suite stayed green. Prose cites with
+`[source:key]`, never a bare backtick: these documents hold thousands of
+backticked identifiers, so a guard reading every one as a key would need an
+enormous allowlist or would teach the prose to look like the test. The
+syntax is validated BEFORE it is resolved, so `[srouce:x]` fails rather than
+being skipped into a false clean state -- the `**OPNE**` lesson again.
+
+**A PLAIN TOP-LEVEL KEY IN A DATA FILE BREAKS ITS LOADER.** `_source_key`
+is underscore-prefixed and that is load-bearing, not style.
+`oxidation_states.electronegativity_table` and `checkers.valence.hypervalent_rules`
+both read their file's TOP LEVEL as the data map and drop keys beginning
+with an underscore -- the latter says so in its own docstring. A plain
+`source_key` is therefore indistinguishable from an element symbol, and
+adding one failed **43 tests** with `TypeError: string indices must be
+integers`. Files that nest their data under a named key (`elements`,
+`radii`, `solutes`) tolerate either spelling, which is exactly what makes
+the mistake survivable in five files and fatal in two.
+
+**HASHING RAW BYTES FOR A GENERATED-FILE CHECK FAILS ON CI.** The first
+`--check` hashed `sources.toml`'s bytes. This repo has `core.autocrlf=true`
+and no `.gitattributes`, so the same commit is CRLF in a Windows working
+tree and LF on a Linux runner, and the check would have gone red for a
+reason with nothing to do with content. It hashes newline-NORMALISED text
+now, which still catches every content edit including a reworded comment
+and ignores only a platform artifact nobody reviewed. Verified by converting
+both files to LF and back.
+
+**THE LICENCE GUARD WALKS THE FILESYSTEM, AND IT IS FILE-LEVEL.** Driving
+discovery from the registry alone means a bundle nobody registered is
+invisible -- how `inapplicable_calculators` rotted into 27 wrong entries --
+so the walk finds the files and the registry explains them, in three
+directions. File-level because directory-level is already wrong here:
+`resources/viewer3d/` holds `3Dmol-min.js` (theirs) beside `viewer.html`
+(entirely ours). It found that **Ketcher shipped with no LICENSE file at
+all** while Mol*, 3Dmol and the vendored namer each carried one.
+
+**AND IT PROVES DECLARATION, NOT COMPATIBILITY.** `resources/ketcher/dist/`
+is a BUNDLE: EPAM's Miew 0.11.1 is in there (its banner survives) and so is
+three.js, against a build tree of 429 packages. Registering Ketcher's own
+Apache-2.0 was necessary and never sufficient.
+
+**THE NOTICES CANNOT COME FROM THE ARTIFACT, SO THEY COME FROM THE
+LOCKFILE.** The build strips comments even with minification off, so exactly
+**two** licence banners survive in 35 MB.
+`tools/build_ketcher_notices.py` generates
+`resources/ketcher/THIRD-PARTY-NOTICES.txt` from `package-lock.json` plus
+the licence files in `node_modules/`, and it is committed beside the dist
+for the same reason the dist is: CI has no node, and a fresh clone must
+carry what it redistributes. 318 packages, 437 KB, 312 of them with the
+package's own licence TEXT rather than just an identifier.
+
+**318 OF 429 IS DELIBERATELY MORE THAN THE BUNDLE CONTAINS**, being every
+package the lockfile does not mark `dev`. A build-time tool can be a runtime
+DEPENDENCY of a runtime package -- the whole `@babel/*` set arrives that way
+via `@emotion/babel-plugin` -- and vite tree-shakes, so some listed packages
+contribute no code at all. Narrowing it would mean deciding, per package,
+whether any of its code survived into a comment-stripped 35 MB artifact.
+**Over-attribution is the safe direction and under-attribution is not**, and
+the generated file says so rather than implying a precision the method does
+not have.
+
+**MIEW APPEARS AT 0.11.1, MATCHING THE BANNER IN THE DIST EXACTLY**, which
+is the check that a lockfile-derived list really describes the artifact --
+along with three.js 0.153.0 and raphael 2.3.0, the latter explaining the
+otherwise-mysterious `eve-raphael`.
+
+Three guards hold it, and deleting the file trips all three: the licence
+guard, the operational-path check, and
+`test_the_ketcher_third_party_notices_are_current`, which runs the
+generator's `--check`. That compares the RECORDED lockfile hash against the
+lockfile as it stands, so a dependency bump without a regeneration fails.
+**Its regenerate-and-compare half needs `node_modules/` and CI has none**,
+so the tool skips that half and says so on stdout rather than passing
+silently -- a check that degrades quietly is worse than one that admits what
+it could not do.
+
+The licence guard still proves DECLARATION rather than compatibility.
+
+**VERSIONS ARE CHECKED WHERE THEY ARE RECOVERABLE, AND THE OBVIOUS PROBE
+LIES.** Ketcher's version is read from `package-lock.json` -- not
+`package.json`, which happens to pin exactly (`"3.17.0"`, no caret) but is a
+request rather than a result; the lockfile resolves with an integrity hash.
+`ketcher-core` is **3.17.1** while `ketcher-react` and `ketcher-standalone`
+are 3.17.0, which is why `package_name` is declared explicitly and never
+inferred from a registry key. Mol* and 3Dmol get no version check on
+purpose: grepping `molstar.js` for a version yields `18.3.1`, which is
+**React's** version inside the bundle. `pyproject.toml`'s `>=` lines are
+constraints, and `uv.lock` is the reference environment's resolution rather
+than a user's, so both are recorded as constraints.
+
+**AND IT PROVES NEITHER COMPLETENESS NOR CORRECTNESS.** The guards check
+consistency after the registry was populated; that every source was found
+rests on the reconstruction sweep. They cannot tell you a citation points at
+the right paper, a table number is right, or a source still supports the
+claim resting on it. `citation` means the reference is right,
+`citation_and_claim` means the NUMBER this project uses was checked against
+the source, and the two are separate because this project has shipped a
+fixture labelled "verbatim from a real run" whose energies were typed from
+memory. After the verification pass below: 17 `citation_and_claim`, 21
+`citation`, 16 `unverified`, and every one of the 16 genuinely has no local
+copy and no local metadata to check against.
+
+**THOSE THREE NUMBERS DESCRIBE THAT PASS AND NOT THE REGISTRY TODAY**, which
+is worth saying because they read as current. Measured on master after the
+four calculator families landed: **94 entries, 38 `citation_and_claim`, 56
+`citation`, and ZERO `unverified`.** The 16 are gone -- not by lowering the
+bar, but because every entry added since has arrived with its source read.
+Kept with the correction beside it rather than edited away, because "where
+did that number come from" is the question a reader will have.
+
+### THE VERIFICATION PASS FOUND TWO WRONG ENTRIES, AND ONE WAS MARKED VERIFIED
+
+Read the PDFs with `pymupdf` in a THROWAWAY venv (`uv venv` in a scratch
+directory, `uv pip install pymupdf`) rather than the project venv, so the
+suite environment stays exactly what `uv sync` produces. `pdftoppm` is not
+installed, so the `Read` tool cannot open a PDF here. Force
+`PYTHONIOENCODING=utf-8` or the first paper with an "∼" in its title raises
+`UnicodeEncodeError` on the cp1252 console -- the same trap already recorded
+for result lines.
+
+**`avdeef2020` CARRIED A DIFFERENT PAPER'S TITLE while claiming
+`citation_and_claim`.** The real title is "Prediction of aqueous intrinsic
+solubility of druglike molecules using Random Forest regression trained with
+Wiki-pS0 database"; the one recorded was "Multi-lab intrinsic solubility
+measurement reproducibility in CheqSol and shake-flask methods", which is
+Avdeef, ADMET & DMPK **2019, 7, 210-219** -- reference (5) of Llinàs 2020.
+**The volume, pages and DOI were right the whole time, because those came
+from the repository; only the title came from memory.** That asymmetry is
+the tell: the fields nobody could check were the ones that were wrong.
+
+**`gutmann_frontiers2022` CLAIMED A LOCAL PDF AND AN AUTHOR, BOTH
+INVENTED.** `kaya2022.pdf` matched the DOI's year and was assumed to be it;
+it is "On the Prediction of Lattice Energy with the Fukui Potential",
+J. Phys. Chem. A 2022, 126, 4507-4516. Searching every PDF in the archive
+for the Frontiers DOI or for Gutmann donor numbers returns nothing -- that
+paper is not held locally at all.
+
+**SO AUDIT THE ENTRIES THAT ALREADY CLAIM TO BE VERIFIED, not only the
+unverified ones.** The pass was started to upgrade 24 `unverified` rows and
+found its two real defects among the rows that already said `citation` or
+`citation_and_claim`. Ten other entries checked out exactly -- `mayo1990`,
+`shannon1976`, `parr_pearson1983`, `pearson1988`, `avdeef2007`,
+`jenkins1999`, `platts1999`, `bolovinos1984`, `lorentzon1995`,
+`moreland1974` -- each matching the paper's own running header.
+
+**A PDF's FIRST PAGE IS NOT NECESSARILY ITS PAPER.** `Drago & Wayland EC
+1965.pdf` opens on the tail of the PRECEDING article, about Co(II)
+relaxation times, so a check that reads page one alone concludes the file is
+the wrong paper. Searching the whole text found it, and found the sentence
+the Lewis scale guard rests on: **"E A = 1.00 and CA = 1.00. Iodine was
+selected because"**.
+
+**A REFERENCE LIST IS A VERIFICATION INSTRUMENT.** Llinàs 2020's references
+supplied a confirmed citation for `llinas2008` (its reference 2), named the
+paper `avdeef2020` had been confused with (reference 5), and revealed a
+source the sweep had missed entirely -- `llinas2019`, "Solubility Challenge
+Revisited after Ten Years, with Tight (SD ~0.17 log) and Loose (SD ~0.62
+log) Test Sets", which is where the tight/loose vocabulary this project uses
+actually comes from. It also caught an over-attribution: Llinàs 2020 states
+the interlab SD ~0.17 itself, but its RMSE = 0.34 carries a citation marker
+and belongs to Avdeef 2019.
+
+**AND THE ENTRIES WITH NO PDF NEEDED THE SAME AUDIT, FOR THE SAME REASON.**
+Asked where the still-unverified citations came from, the answer was "the
+repository's own text" -- mostly true, and in four cases not. `aqsoldb`,
+`allred1961`, `vogel_drago1996` and `ich_m9` had each been given a TITLE or
+a volume/page that the repo never carried and that nothing had checked. All
+four now say only what the repository says, with "title not established" in
+place of the invention. **A citation assembled from a real source plus a
+remembered detail is not a real citation**, and it fails in the direction
+that looks most convincing.
+
+`vogel_drago1996` is the one worth knowing about: `lewis_parameters.json`
+says the shipped E/C numbers came "via the Wikipedia ECW model compilation",
+so the chain is Wikipedia -> this repo -> the registry and **no step of it
+has touched the paper.** What stands in for that check today is
+`test_the_shipped_table_reproduces_the_measured_enthalpies`, which
+reproduces eight measured enthalpies to 0.27 kcal/mol.
+
+### AND READING THE SOURCES FOUND TWO DEFECTS THE TESTS COULD NOT
+
+Both were in SHIPPED data, both had passed every test for as long as they
+had existed, and neither is findable without the paper open beside the file.
+
+**THE DRAGO E/C TABLE HAD A TRANSCRIPTION ERROR.** All 53 shipped
+parameters were checked against Table 1 of [source:vogel_drago1996]; **52
+matched exactly** and methylamine's `C_B` was 3.13 where the paper prints
+3.12. Fixed in `tools/build_lewis_parameters.py`. It does not move the
+validation MAE (0.272 over eight iodine adducts), which is precisely why
+nothing caught it: **a validation that averages cannot see one value that
+is 0.01 out.** The scan has no text layer, so this needed a 520-dpi render.
+
+That paper also closed the project's weakest provenance chain -- the E/C
+numbers had reached the repo "via the Wikipedia ECW model compilation" with
+no step touching the source -- and its **footnote 1 is the argument for
+`_parameter_scale` existing**: these parameters "should not be mixed with
+those parameters found in the literature prior to 1991".
+
+**AND `electronegativity.json` CARRIED A CLAIM THAT IS FALSE.** It said the
+Allred set is "the set reproduced in the CRC Handbook of Chemistry and
+Physics". Measured against table 9-103 of the 97th edition: **72 of 85
+agree, 13 do not** -- As, Au, Bi, Hg, Lu, Np, Pb, Pt, Pu, Tc, Tl, U, W, some
+of them widely (Pb 2.33 against 1.8, W 2.36 against 1.7).
+
+**NO SHIPPED VALUE IS WRONG**, and establishing that is the point: CRC's
+table says outright it gives values "for the most common oxidation state",
+a different quantity, while Allred's own Table 4 tabulates oxidation states
+separately and lists Tl(I) 1.62 -- exactly what this project ships, where
+CRC prints 1.8. Fe 1.83 and Tl 1.62 both appear in Allred's tables, so the
+attribution is sound. Only the word "reproduced" failed.
+
+**"WHICH EDITION" WAS THE WRONG QUESTION ABOUT THE CRC.** With the book in
+hand the answer is that **no number here came from any edition**: the
+lattice targets are [source:kaya2022]'s, the CRC column named in
+`lattice_energy.py` is [source:jenkins1999]'s own ref 40 taken from
+Jenkins' table, and the electronegativities are Allred's. It is
+`reference_only`.
+
+**`kaya2022` WAS CITED TWICE AND REGISTERED ZERO TIMES, and the coverage
+check could not have found it.** The author-year sweep below greps a fixed
+alternation of surnames; "Kaya" was not in it. **That check finds only
+authors somebody already thought of** -- the real limit of the non-DOI
+half. It was found by chasing the CRC's provenance for an unrelated reason.
+
+#### The coverage sweep, and what it cannot do
+
+The DOI backstop covers the DOI-bearing sources; nothing mechanical covers
+a prose citation. This is the manual half, worth re-running after any batch
+of source work -- every author-year it prints should resolve to a registry
+key, and the alternation wants extending when a new name enters the tree:
+
+```bash
+rg -o -N --no-filename -g '!docs/sources.toml' -g '!docs/SOURCES.md' -g '!**/vendor/**' -g '!**/resources/**' -e '(Glasser|Jenkins|Sorkun|Avdeef|Llin[aà]s|Abraham|Acree|Bradley|Delaney|Platts|Pearson|Parr|Drago|Shannon|Allred|Mayo|Hopfinger|Yalkowsky|Banerjee|Kaya|Kuhn|Neese|Vogel|Gasteiger|Marsili|Saller|Wildman|Crippen|Ertl|Schuffenhauer|Rohde|Selzer|Baell|Holloway|Brenk|Bickerton|Bertz|Lovering|Joback|Reid|Stefanis|Panayiotou|Kamlet|Jacobs|Klap[oö]tke|Krygowski|Kruszewski|Bird|Schleyer|Yang|Mortier|Wiener|Randi[cć]|Balaban|Kier|Miller|Cao|Schott|Gutmann)[ ,]{0,2}(?:et al\.?)?[ ,]{0,3}(19|20)\d\d' . | sort -u
+```
+
+**IT MISSED FIVE SHIPPED METHODS FOR YEARS, AND THE REASON IS THE ALTERNATION
+ITSELF.** Measured 2026-08-25: `gasteiger`, `wildman`, `baell`, `brenk`,
+`labute`, `kier`, `wiener`, `randic`, `balaban`, `lipinski`, `veber` and
+`huckel` all returned **zero hits** in `docs/sources.toml`, while
+Gasteiger-Marsili PEOE, Wildman-Crippen logP/MR, Ertl TPSA and the
+PAINS/BRENK catalogues each backed a shipped calculator. None of those
+surnames was in the list above, so the sweep could not have found them --
+this is its own documented limit, paid for.
+
+**THE `rdkit` ENTRY DOES NOT COVER THEM.** It is `kind = "software"` -- a
+licence and a version constraint -- and makes no claim about the METHODS
+RDKit implements. Under the registry's own scope (`status = "shipped"` means
+this source backs something we ship), a library-implemented method needs its
+own entry exactly as a hand-transcribed table does.
+
+**AND A LIBRARY'S IMPLEMENTATION IS NOT ALWAYS THE PAPER'S.** Two of the
+RDKit contributions register a divergence in their own headers:
+`Contrib/SA_Score/sascorer.py` records a different macrocyclic penalty, an
+added symmetry term and **r2 = 0.97** against Ertl's original rather than
+1.0; `Contrib/NP_Score/npscorer.py` is a 2015 re-fit on ~50k public natural
+products and ~1M ZINC molecules rather than the Novartis corpus behind the
+2008 paper. So a source entry for a library-implemented method says the
+DEFINITION is that paper's -- never that the number is. Validating a shipped
+SA score against [source:ertl2009]'s printed values would be an acceptance
+test that fails against correct code.
+
+**THE RULE THAT FOLLOWS**, and it belongs beside `verification`'s three
+values: a citation-level entry does not authorize an implementation merely
+because its title matches. `citation_and_claim` is granted only after the
+exact method variant, its equation and parameter conventions, and an
+acceptance fixture have been checked against that source.
+
+**PDFs HELD LOCALLY AND CITED NOWHERE ARE NOT REGISTRY ENTRIES**, because
+the registry records what this project rests on and an unused source
+inflates it. Recorded here instead so nobody re-derives whether they
+matter: `glasser2000`, `glasser2012`, `jenkins2002` (lattice-energy
+family); `tantardini2021` (thermochemical electronegativities, adjacent to
+`electronegativity.json`); `bodor1992`, `klopman1992`, `sun2019` and the
+Yalkowsky & He *Handbook of Aqueous Solubility Data* (candidates for a
+wider solubility corpus, **with the leakage question asked of each first**);
+`drago1994` and `romeo1997`.
+
+**Their DOIs are deliberately not written down anywhere in the tree**, and
+that is not fussiness: the DOI backstop treats any DOI it finds as a
+citation that must resolve to a registry entry, and it caught exactly this
+list when they were included. Its Table 3 supplies every experimental
+lattice energy the Kapustinskii route is scored against: 35 of 36 salts
+located, all 35 matching.
+
+Its file had also been dismissed twice -- first mistaken for the Gutmann
+paper because the filename matched that DOI's year, then written off as
+unrelated once it was not. **"Not that paper" is not "not a source"**, and
+both errors were the same move: deciding what a file is without opening it.
+
+**LOCAL PACKAGE METADATA VERIFIES SOFTWARE BETTER THAN ANY PDF.**
+`importlib.metadata` gave licences for five dependencies, and corrected one:
+PySide6 is "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0", not the plain
+"LGPL-3.0" recorded -- flattening a disjunction loses the fact that there is
+a choice. `VENDORING.md` corrected the namer's identifier, which pointed at
+THIS project's repository rather than the upstream it was vendored from, and
+supplied the pinned commit. And 3Dmol's own licence text turned out to
+declare a second bundling case: "3Dmol.js incorporates code from GLmol,
+Three.js, and jQuery" -- same shape as the Ketcher bundle, except this one
+says so in the file we ship.
+
+**`lewis_parameters.json` IS THE CASE THAT NEEDED BOTH FIELDS.** It cites
+three works (1965, 1992, 1996) and the shipped numbers come from the 1996
+compilation, so `_source_key` is `vogel_drago1996` with the other two
+supplementary. `_parameter_scale` is a SEPARATE claim: Drago & Wayland 1965
+normalise iodine to `E_A = C_A = 1.000`, where this table has iodine at
+`E = 0.5, C = 2.0`, so citing the 1965 paper as the source would imply a
+scale these values are not on and a reader combining the tables would get
+plausible, wrong enthalpies.
+`test_lewis_parameters_match_the_declared_parameter_scale` DERIVES the scale
+from the iodine entry rather than trusting the label -- the same move
+`test_assembly_gate.py` makes -- and lives with the Lewis tests, because a
+guard over every data file in the project must not know chemistry.
+
+### THE DOCS GUARD WAS CHECKING THE MACHINE, NOT THE REPOSITORY
+
+`test_docs_are_current._repo_files` enumerated with `rglob("*")` over the
+whole tree. Measured when it was fixed: **38,680 files against git's 1,021**
+-- so 97% of what every cited path was matched against was `.venv`,
+`node_modules` and `__pycache__`.
+
+That matters because of the BASENAME FALLBACK, which is deliberate and
+correct on its own terms ("see `engine.py`" should resolve): a bare filename
+passes if anything anywhere carries that name. So `docs/ROADMAP.md` cited a
+bare `setup.py` this repository does not contain, and passed on any machine
+with numpy installed, because numpy ships one of its own under
+numpy/_core/tests/examples/cython/ (written without backticks here, because
+the fixed guard correctly rejects a document that cites it).
+
+**THE A/B IS THE PART WORTH KEEPING**, because the symptom was a GREEN test
+and nothing about the guard looked wrong. Citing a pandas module present
+only in the virtualenv:
+
+    old, rglob incl. .venv     19 passed in 32.18 s   <- silently accepted
+    new, git ls-files          1 failed  in  0.26 s   <- caught
+
+120x faster as well, which is what walking 38,000 files instead of 1,000
+costs on every one of the 19 parametrised documents.
+
+`test_the_citation_check_only_sees_the_repository` guards the FIX rather
+than the symptom, and asserts the two things that distinguish the
+enumerations: no `.venv`/`node_modules`/`__pycache__` member is in the list,
+and the count is of the right ORDER. **`dist` is deliberately not in that
+intruder set** -- `resources/ketcher/dist/` is a committed, shipped bundle,
+and the first version of the guard failed on it. An environment directory is
+one git does not track; a build OUTPUT can be a legitimate part of a repo.
+
+**AN INCONCLUSIVE PROBE RAISES**, as with the `webgl` fixture: "I could not
+ask git" is not "the repository is empty", and a blanket except would turn
+every citation check into a silent pass -- the exact failure this file
+exists to prevent, installed in its own foundation.
+
+**`local` NAMES A PDF AND IS NEVER CHECKED.** `Sci Downloads` is not in the
+repository, so no run can resolve it. That is an admitted gap rather than an
+oversight: a check that cannot run is worse than a stated limit.
+
+## A PANEL THAT DREW TWO THIRDS OF AN ANSWER AND SAID NOTHING
+
+Reported as "our periodic table is rather unreliable", with polonium and
+bismuth as the screenshots. The sharp one:
+`OrbitalBoxes.paintEvent` packed rows against `self.height()` and
+
+    if y + row_height > self.height():
+        break
+
+so polonium's panel stopped at `5s`. `5p6 5d10 6s2 6p4` -- **22 of its 84
+electrons** -- were not drawn, while the line directly above printed the
+full `[Xe] 4f14 5d10 6s2 6p4`. Measured against the shipped geometry: Po
+needs 160 px at width 420 and the old panel had about 130, which leaves
+exactly the 4 subshells the screenshot is missing.
+
+**THE STRING AND THE PICTURE DISAGREED AND THE PICTURE LOST QUIETLY**,
+which is the worst way for a reference table to be wrong -- and the suite
+was green throughout, because
+`test_the_boxes_draw_more_for_more_subshells` compares two SMALL elements
+and both of them fit. The population is the whole test: the defect only
+exists once a configuration is taller than its widget, which begins
+around period 5.
+
+### The scroll-area contract, which is the THIRD time this flag has bitten
+
+`heightForWidth` + `setWidgetResizable(True)` is two mechanisms fighting:
+the scroll area tells the child to fit the viewport while height-for-width
+says the natural height follows from the width. `WrappedLabel` starving a
+panel and a style change re-arming the flag through `changeEvent` are the
+first two. So:
+
+    _layout_rows(width)   the one authority on where anything goes
+    _draw_rows(...)       draws ALL of them, no truncation branch
+    the widget is told its WIDTH and answers with a minimum HEIGHT
+    the QScrollArea grants it and scrolls the excess
+
+**AND THE INVARIANT IS SELF-RESTORING, which took two attempts to
+discover.** `resize()` is clamped to the widget's own minimum; dropping
+the minimum first does not help either, because delivering the resize
+runs `resizeEvent`, which puts it straight back and Qt grows the widget
+again -- `grab()` on a widget resized to 120 returned a 256 px image. So
+the diagnostic banner is unreachable through the public API, and
+exercising it needs a subclass modelling the one thing that could cause
+it. A restored truncation branch SURVIVED both earlier attempts.
+
+**`QPainter` METHODS *ARE* MONKEYPATCHABLE UNDER PySide6**, which is
+worth knowing because the opposite is the natural assumption and it would
+have cost a rewrite. `monkeypatch.setattr(QPainter, "drawText", spy)`
+works, and `grab()` paints the WHOLE widget rather than an exposed
+viewport rect -- which is what lets a deliberately short widget be the
+setup rather than the obstacle.
+
+### The other three, and 34 elements with no nucleus at all
+
+- **`nucleus()` raised for any element with no naturally occurring
+  isotope**, so `ShellDiagram` drew nothing at all and the caption fell
+  to a bare "Electrons: 84". Measured: 34 of 118 -- Tc, Pm, Po, At and
+  everything from Rn up except Th and U. Refusing to invent a neutron
+  count was right; refusing to draw the protons was the bug. **The two
+  refusals must not merge**: `nucleus("Si", mass_number=99)` still
+  raises, `nucleus("Po")` returns a proton-only nucleus.
+- **"Typical valences" was RDKit's implicit-H model wearing a chemistry
+  label.** `GetValenceList` gives Cl [1], Br [1], I [1, 3, 5] -- so the
+  table said bromine has one typical valence and iodine three, when both
+  do 1/3/5/7. Relabelled, not removed: the app's own valence checker acts
+  on the same list.
+- **A 32-electron shell drew as a solid band.** A fixed 5 px dot leaves
+  uranium's N shell 0.5 px between electrons. Scaled against the ARC each
+  electron has to itself, the shipped worst case is 3.8 px.
+
+## THE CRC OVERTURNED THE REASON IT WAS OPENED
+
+The plan for the oxidation-state review said bromine was missing +3 and
++7, "which makes it inconsistent with chlorine in the same group". Read
+off the CRC Handbook 97th ed. page 2639 -- rendered at 10x, because the
+poster is rotated 90 degrees and its text layer interleaves neighbouring
+cells:
+
+    F   -1
+    Cl  +1 +5 +7 -1        <- no +3
+    Br  +1 +5 -1           <- no +3, no +7
+    I   +1 +5 +7 -1
+    At  (none listed)
+
+**Bromine matches the CRC exactly.** The group asymmetry is the source's
+own. What differs is CHLORINE, where this project ships a +3 the CRC does
+not -- and ClF3 and the chlorites are real, so that is the CRC being
+conservative rather than this project being wrong. Nothing was changed;
+what was added is the record of how the two relate.
+
+**AN AUTOMATED EXTRACTION WAS ABANDONED, and its acceptance checks are
+why that was safe.** Two positional passes over that poster each produced
+113 plausible rows with every element carrying its NEIGHBOUR's states, in
+two different directions. A count alone would have accepted both. The
+melting-point table (4-116..4-118) extracted cleanly by the same method
+once the columns were understood -- they are right-aligned, so values sit
+LEFT of their headers, and binning against the headers gave 2 rows of
+100.
+
+## A BETTER LAYOUT ENGINE THAT IS WORSE ON THE REPORTED MOLECULE
+
+`rdCoordGen` is the obvious replacement for `AllChem.Compute2DCoords`.
+Closest non-bonded approach in bond lengths, higher is better:
+
+    methane      1.414 -> 1.000   coordgen worse
+    caffeine     1.177 -> 1.000   coordgen worse
+    glucose      0.524 -> 0.805   coordgen better
+    morphine     0.303 -> 0.186   coordgen worse
+    cholesterol  0.036 -> 0.565   coordgen better, sixteenfold
+
+**Morphine is essentially the structure the Lewis bug was reported for**,
+and it is one CoordGen loses. Both are deterministic and together cost
+about 20 ms on the largest case, so `lewis_builder` lays out with both
+and keeps the better -- which cannot regress *according to the measured
+metric*, a weaker and more honest claim than "cannot regress".
+
+**WHICH TERM LEADS THE SCORE WAS CHOSEN ON A DESIGN SET AND FROZEN.**
+`benchmarks/lewis_layout/choose.py` declares its criteria before running,
+splits 42 molecules alphabetically before anything is scored, fixes the
+ordering on one half and evaluates it on the other:
+
+    A (-crossings, crowding)   design 19/21 not worse   rejected
+    B (crowding, -crossings)   design 21/21             holdout 21/21,
+                                                        8 strictly better
+
+**Clearance leads, which is not the intuitive answer** -- crossings-first
+makes two of twenty-one design molecules worse on clearance to remove a
+crossing.
+
+**AND THE CHOOSER MOVED AN EXISTING FIXTURE.**
+`test_crowding_is_a_LEGIBILITY_number_and_not_a_refusal` used glucose as
+its crowded case; glucose now measures
+0.805 and is on the roomy side of `CROWDED_APPROACH`. Morphine replaces
+it, being one CoordGen loses, so it stays crowded whichever engine wins.
+
+## THE MUTATION STEP EARNED ITS KEEP SEVEN TIMES IN ONE BRANCH
+
+Of about forty mutations run across this work, seven found a guard that
+was testing nothing, and every one of those was the TEST being wrong
+rather than the code:
+
+- **a vacuous fixture.** An unshown `OrbitalBoxes` is 640x480, where
+  polonium needs 112 px -- under the 120 px placeholder floor. So
+  `minimumHeight() >= required_height()` held on a widget that had
+  computed nothing.
+- **a fixture the fix healed.** The rendered guard resized to
+  `minimumHeight()` before grabbing, so every row fitted and the branch
+  under test was never reached.
+- **asking the wrong object.** A scroll-area guard checked
+  `boxes_scroll.widget() is boxes`, which stays true when the scroll area
+  is built and never added to a layout.
+- **a bound that was not a bound.** "Electrons never touch" written as
+  `2 * radius < arc` is satisfied by a fixed 5 px dot on uranium's N
+  shell by 0.5 px -- not overlapping, and a solid band on screen. It is a
+  CLEARANCE now.
+- **a declared range that clipped a real element.** Helium's covalent
+  radius is 0.28 against a floor declared at 0.30. Checking a declared
+  range against the shipped data is what keeps "declared" from meaning
+  "invented".
+- **a redundant branch that double-counted.** `_segments_cross` also
+  tested collinear overlap; removing it changed no test and no benchmark
+  number, because two overlapping collinear segments must put an endpoint
+  of one inside the other, which the atom pass already counts.
+- **a claim whose wording had to change.** The abstained-bond test
+  asserting it is "the only line in the picture" is false once guides
+  exist. Renamed to "...when guides are off", asserting the original
+  claim in the configuration where it still holds, rather than weakened
+  until green.
+
+## AND TWO DEFECTS ONLY THE MAGNIFIED SHOT FOUND
+
+Both with the whole file green, which is now the eighth and ninth entries
+in this file's running count of that:
+
+- **the ring counts collided.** Polonium's rings are 15 px apart, so six
+  labels stacked on one bearing ran together and "18 32" read as "1832".
+  They fan across the left side now, buying separation from the ANGLE
+  where the radius has none.
+- **a label whose gap fell inside the nucleus disc was SKIPPED**,
+  silently -- the innermost shell of every element, in the one branch of
+  this codebase written against silent omissions.
+
+## NUCLIDES: what the isotope and decay work cost
+
+`chem/nuclides.py`, `chem/decay.py`, `chem/decay_svg.py` and
+`chem/isotopes.py` are the NUBASE2020 table and what reads it. Most of
+it is in the modules' own docstrings; these are the parts that are not
+recoverable from the code.
+
+**A HALF-LIFE HAS EIGHT STATES AND A BRANCHING HAS ITS OWN FOUR.** An
+early draft of the plan attributed the branching qualifiers to the
+half-life column -- "145 `<`, 20 `>` and 340 `~`" -- and they are a
+different field. The half-life's own bounds are 9 `>`, 4 `<` and 6 `~`
+among 5,843 rows. **AND THE VALUE AND ITS UNCERTAINTY ARE TWO
+DIMENSIONS**: 38 rows have no half-life but a bound in `dT`, and 256
+carry BOTH a value and a `dT` bound, so one qualifier field would force
+a silent precedence rule.
+
+**A DEGENERATE FIXTURE APPEARED IN EVERY SINGLE COMMIT OF THIS BRANCH.**
+Nine mutation runs, and the survivors were almost never untested code --
+they were tests that could not discriminate:
+
+    N3  the absent-vs-zero pair used masses 101/102, so the mass
+        tie-break gave the right order anyway
+    N3  CARBON cannot see abundance-before-half-life; uranium can
+        (U-234 abundant at 0.0054%/246 ky vs U-236 no abundance/23.4 My)
+    N3  tin's ten stable isotopes all have distinct abundances, so the
+        final tie-break never fired
+    N5  "carbon's fill differs from uranium's" passes when the terminal
+        swatch is painted with the ramp's TOP colour -- uranium sits at
+        0.638
+    N6  "a 13C landed" passes when the scope is hardcoded to every atom;
+        ethanol has TWO carbons and counting them is the discriminator
+    N6  the checkbox guard picked a row first, so it only ever reached
+        the path where the label was already right
+    N4  four checks of `edge_weight` did not notice the RENDERER
+        ignoring it
+    N4  the click test called the handler directly, so a filter that
+        swallowed the press survived
+    N4  the refit CONTROL switched to tab 0, which was already current,
+        so `currentChanged` never fired
+
+The last two are one lesson twice: **a control that does not move is not
+a control**, and **testing a helper is not testing the wiring**.
+
+**AND THE PLAN'S OWN REFUSAL FIXTURE WAS DEGENERATE TOO.** It specified
+"asking for O-18 on a carbon must be refused". Mass number 18 is a real
+nuclide of BOTH elements -- C-18 exists at 92 ms -- so that call is
+correctly ACCEPTED. Mass number 2 is the sharp case: deuterium exists,
+C-2 does not. Carbon's table runs 8..23.
+
+### THE CHART OF THE NUCLIDES NEEDS NO LAYOUT ALGORITHM
+
+x is the neutron number and y is the proton number. **(Z, N) determines
+A, so CELLS cannot collide** -- measured across 200+ chains at zero,
+which is a proof rather than a tolerance. Alpha is two cells down and two
+left, beta-minus one up and one left, so the SHAPE carries meaning and
+U-238 comes out as the staircase books draw.
+
+**THAT PROOF IS ABOUT CELLS, NOT NODES, AND THE ISOMERS SPLIT THE TWO.**
+Once a state exists, (Z, N) still determines the CELL and the state index
+chooses a slot within it -- so the property to guard is one box per
+STATE, not one per cell, and the injectivity guard was rewritten rather
+than deleted.
+
+**`STATE_OFFSET` WAS A CHOSEN NUMBER AND IT WAS WRONG.** Written as 11.0
+against a 40 px box, two states of one isotope OVERLAPPED -- and
+`node_at` returns the first box containing the point, so a click on the
+isomer resolved silently to the ground state, which is the exact bug
+class carrying the key end to end exists to prevent. It is `BOX_H +
+STATE_GAP` now, derived, and the row PITCH grows with the deepest stack
+so a stacked cell cannot reach the row below. With no isomer in a chart
+-- every chart a ground-state root can draw -- `deepest` is 0, the pitch
+is exactly `CELL_H`, and U-238 still renders at 2320x862 with 37 nodes.
+
+**THE TWO GUARDS FOR IT WERE BOTH DEGENERATE FIRST**, and the reasons are
+different and both worth keeping:
+
+    the rebuild arm survived because the test called `_focus_decay_node`
+    itself instead of driving the event filter -- testing a helper is not
+    testing the wiring, which this branch paid for twice
+    the row-pitch arm survived because Ru-99 is one column ACROSS on a
+    NEUTRON-number axis, so no stack could ever reach it. Mo-98 shares
+    Tc-99 N=56 and is the only arrangement that collides.
+
+**THE FIRST RENDER WAS UNREADABLE AND WEIGHTING FIXED IT.** A cluster
+emission is an enormous jump on this chart -- uranium's 32Si branch moves
+14 protons and 18 neutrons at once -- so at uniform stroke a handful of
+decays at ~1e-10% drew lines across the whole width while the real series
+was a faint zigzag underneath. Line weight is the branching now, and
+nothing is dropped: a guard counts `<line ` against followable edges.
+
+**FOUR "STABLE" NUCLIDES ALSO CARRY A DECAY.** Pb-204, Pb-206, Pb-208 and
+Hg-204 are marked `stbl` in NUBASE AND list a mode nobody has ever
+observed (`A ?`, `2B- ?`). So `leaves()` correctly reports Hg-200, Hg-202
+and Tl-205 for uranium-238 and omits Pb-206, which is where every
+textbook says that series ends -- the status line reports which stable
+nuclides a chain REACHES instead. Asserted, so a future NUBASE that
+resolves the contradiction fails rather than silently redrawing.
+
+**AND U-238 CANNOT DEMONSTRATE AN UNFOLLOWABLE LEAF.** It has seven SF
+branches, and every node carrying one also has a followable alpha, so
+none of them is a leaf. Measured over the whole table: 8,038 stable
+leaves, 109 unfollowable, 17 off-table. Fm-259 fissions outright; Li-3
+decays off the table.
+
+### ARMING THE CANVAS: the mass number was never part of the gesture
+
+Reported as "I can place carbon 13 for example, but it is just CH4, there
+is no 13", and it is not a rendering bug. Ketcher draws isotopes
+correctly -- a molblock carrying `M  ISO  1   1  13` loads as
+`{label: 'C', isotope: 13}` and the canvas draws `['C','13','H','3',...]`.
+The cause was one line: `set_atom_tool` armed `tool('atom', {label})`, a
+BARE element, so the picked isotope was dropped before the click.
+
+`ketcher.editor.tool('atom', {label:'C', isotope:13})` is accepted and
+returns an `AtomTool2` carrying `atomProps`. Probed against the vendored
+bundle rather than reasoned about, which is how this project reads
+Ketcher every time.
+
+**A SYNTHETIC DOM CLICK CANNOT DRIVE THE ATOM TOOL.** Dispatching
+`mousedown`/`mouseup`, and then pointer events, left the struct untouched
+in both cases -- so a drive step built that way reports "the app ignored
+it" for a feature that works. Calling `AtomTool2.mousedown/mouseup`
+directly with `{pageX, pageY, target}` is what places an atom.
+
+**AND A DEAD GUARD IS NOT A WEAK TEST.** A mutation on the
+element-must-match rule in the placement path survived, and the reason is
+that `select()` REPOPULATES the isotope table, dropping the row selection
+-- so the mismatch cannot be reached through the UI at all. It is
+asserted on the predicate directly, which is this file own
+"an unreachable branch is a question about where to assert" rule again.
+
+### AND FOUR MORE THE MAGNIFIED SHOT FOUND, with 5,176 tests green
+
+The whole suite passed, every guard was mutated, the docs were written --
+and then the app was driven and cropped 2x, which is the step this file
+has now recorded twelve separate findings for. Three were on the screen
+and the fourth came out of the probe that failed first.
+
+**A CAPTION CONTRADICTED THE PICTURE DIRECTLY ABOVE IT.** The decay
+legend ended "**Ground states only**, so a chain that runs through an
+isomer is not drawn" while the chart above it was drawing Ag-108m and its
+stacked ground state. Nothing could catch it: the sentence was correct
+when it was written and no test relates a caption to what was rendered.
+`test_the_caption_never_contradicts_the_picture_above_it` asserts the
+CONTRADICTION is absent rather than pinning the replacement wording, so a
+future rewrite is free to say it better and not free to say the chart
+cannot do what it is doing.
+
+**A BUTTON HINT NAMED A DIFFERENT NUCLIDE FROM THE ONE IT PLACES.** "Adds
+Ag-108m to the canvas" -- and `_insert_decay_nuclide` emits a MASS
+NUMBER, which is all a molfile can record, so it adds Ag-108. It says so
+now, with the same reason `IsotopeRefusal.ISOMER_NOT_IN_MOLFILE` gives.
+
+**`IT` RENDERED AS ITS RAW TOKEN beside "beta+" and "electron capture".**
+`_MODE_NAMES` exists precisely because "NUBASE's own tokens are compact
+and cryptic", and `IT` arrived as the SECOND commonest mode in the table
+at 1,471 rows without being added to it: the Isotopes tab read "beta+
+91.3%, IT 8.7%". One line, and only a screenshot asks the question.
+
+**AND THE STATUS BAR CLAIMED "Ready to place: 13C" WHILE NOTHING WAS
+ARMED.** `set_atom_tool` DROPS before Ketcher is ready -- deliberately,
+and still correctly, because a gesture replayed later primes the canvas
+with an element the user has stopped thinking about. But it returned
+nothing, so the window said "ready" either way. Measured, ~2 s after
+launch:
+
+    armed at 2 s   tool SelectTool2   count 0   nothing placed
+    armed at 5 s   tool AtomTool2     count 1   [13CH4]
+
+That is the user's ORIGINAL REPORT arriving through a different door --
+click the element, click the canvas, nothing happens. It returns a bool
+through all three layers now. **The middle layer is where the answer gets
+lost**: a `MoleculeEditorWidget.set_atom_tool` that calls down and
+returns None passes the backend test AND the window test while restoring
+the defect, so it has its own guard with both arms.
+
+**A FAKE THAT RETURNS `None` WAS SILENTLY MODELLING A FAILURE.** Two
+existing tests stubbed `set_atom_tool` with `lambda ...: None`, which the
+moment the contract gained an answer meant "did not arm" -- and one of
+them failed immediately, which is how the change proved it had teeth.
+
+### THE TOOL STAYS ARMED ACROSS PLACEMENTS, and the probe must not re-arm
+
+Measured in the running app: arm once, then click the canvas three times
+without re-arming.
+
+    click 1   count 1   AtomTool2
+    click 2   count 2   AtomTool2
+    click 3   count 3   AtomTool2
+    SMILES    [13CH4].[13CH4].[13CH4]
+
+Preserved deliberately rather than ruled on -- Ketcher's own element
+buttons behave this way, so a periodic table that disarmed after one
+placement would make two gestures that look identical behave differently.
+
+**THE `place` DRIVE STEP TAKES `arm: false` FOR EXACTLY THIS**, and
+without it the question cannot be asked: re-arming before each click
+makes every click land whether the tool was retained or not, so a probe
+that arms each time answers yes regardless of the truth. Both halves go
+through one `_click_canvas`, because if they clicked differently "the
+tool stayed armed" would be a claim about two different gestures.
+
+**AND THE FIRST RUN OF THAT PROBE MEASURED A COLD PAGE.** It reported
+`count 0, SelectTool2` and read as "placement is broken" -- Ketcher had
+simply not finished loading. That reading was wrong about the feature and
+right about something else, which is how the status-bar defect above was
+found. Give the page a `smiles` step and ~4 s before probing it.
+
+### A `QTabWidget` TAKES THE MAXIMUM OVER ITS PAGES, and one tab set the floor
+
+Reported as "there is no way to adjust the size of the periodic table
+popup", with the action row off the bottom of a 1366x768 laptop. **The
+buttons were not broken; they were 105 px below the screen.**
+
+This is `A HORIZONTAL ROW MINIMUM IS THE SUM` in the vertical, one
+container along. The Decay tab `ZoomableSvgView` carried
+`minimum_size=(520, 360)`, copied from the Lewis dialog where that widget
+is the whole window -- here it sits under a 502 px element grid, so ONE
+tab set the floor for all four:
+
+    page      before      after
+    Facts     58 x 58     unchanged
+    Atom      499 x 238   unchanged      <- the real floor now
+    Isotopes  452 x 108   unchanged
+    Decay     520 x 464   320 x 244
+    dialog    902 x 1142  902 x 922
+
+**A MINIMUM IS A FLOOR, NOT A PREFERRED SIZE**, and every page here
+scrolls or zooms internally, so none loses anything by being allowed to
+get small. The dialog OPENS far larger than its minimum.
+
+**AND A `QDialog` HAS NEITHER A MAXIMISE BUTTON NOR A SIZE GRIP BY
+DEFAULT**, so a window that opened too tall could not be shrunk, moved
+back into view, or maximised. Both are set now -- but they are the SECOND
+fix: a minimum larger than the screen cannot be rescued by resizing at
+all, because `resize()` is clamped to it.
+
+**A 1366x768 LAPTOP STILL CANNOT SHOW ALL OF IT** at 922 px, recorded as
+a stated limit rather than quietly claimed as fixed. The element grid
+alone is 880x502.
+
+**THE WIDTH CANNOT BE GUARDED AND THE HEIGHT CAN.** The same dialog is
+**1288 px wide under `offscreen`** against **902** in the running
+application, because that platform default font is far wider -- so a
+width bound is a claim about the font. Height is driven by row counts:
+898 offscreen against 922 real.
+
+Three more degenerate fixtures, in the fix for a degenerate-fixture
+branch:
+
+    `dialog.width() <= available.width()` on a dialog the fixture NEVER
+    SHOWS reads Qt pre-show default and cannot fail. Replaced by a pure
+    `fit_within` and a table -- and `offscreen` reports an 800x800
+    screen, where the cap always bites, so **deleting the CALL is the one
+    mutation nothing catches** and is written into the test rather than
+    papered over. Same shape as `initial_right_dock_width`.
+    "inserting reveals the editor" held with the reveal deleted, because
+    the editor tab was ALREADY CURRENT. The fixture looks away first.
+    lowering `ShellDiagram` changed nothing, because
+    `AtomDiagram.setMinimumHeight(240)` sat above it and was the real
+    binder. Measure the CONTAINER, not the widget you suspect.
+
+### KETCHER HAS NO CONTEXT-MENU HOOK, so ours intercepts the gesture
+
+`ketcher-react` `Config` declares `buttons`, `customButtons` and
+`togglerComponent` and nothing else, so injecting into its atom menu is
+unsupported in 3.17. `main.jsx` installs a CAPTURE-phase `contextmenu`
+listener: on an ATOM it suppresses react-contexify and forwards to
+Python; off an atom it does nothing and Ketcher own menu opens exactly
+as before.
+
+**`findItem` RETURNED `atoms#0` EVERYWHERE at first, and the coordinates
+were why.** `page2obj` maps a synthetic PLAIN-OBJECT event to (0, 0), and
+atom 0 sits there -- so every probe "worked" and every answer was the
+same atom. Only a real `MouseEvent` carries what `page2obj` reads.
+
+**AND THE ACTUAL BUG WAS A SILENT `ReferenceError`.**
+`installAtomContextMenu(editor)` was called in a function with no such
+parameter, which aborted the rest of that function -- so the listener was
+never installed and nothing anywhere said so. `window.openchemContextMenuInstalled`
+is set by the installer and a guard asserts the CALL SITE, because a
+bundle string check proves the name reached the file and not that it ran.
+
+**A STEP THAT OPENS A MENU MUST NOT CALL `QMenu.exec`, AND
+MONKEYPATCHING IT DOES NOT HELP.** The first version of these tests ran
+for **42 minutes** on an invisible modal menu; `monkeypatch.setattr(QMenu,
+"exec", ...)` did not stop it, because it is a C++ slot. The fix is
+structural: `build_atom_context_menu` returns the menu UNSHOWN and
+`_show_atom_context_menu` is the thin caller that pops it. 48 tests in 6
+seconds. Same family as the "a modal dialog step must not call `exec()`"
+rule this file already carries for `OPENCHEM_DRIVE`.
+
+### NUBASE NAMES NO DAUGHTER STATE, AND THE ASSUMPTION WAS ALREADY BEING MADE
+
+Read off the raw rows, the whole of what the decay field carries is the
+mode and the branching -- `B-=100`, `IT~100;B-=0.0037`. So which state of
+Ru-99 a Tc-99m beta decay populates is not in the source, and neither is
+where an `IT` cascade from index 2 lands.
+
+**THE HONEST FRAMING IS THAT ISOMERS DID NOT CREATE THE ASSUMPTION, THEY
+MADE IT VISIBLE.** The uranium chain resolved U-238 to Th-234 ground
+state because ground states were all the table held. So
+`DaughterProvenance` is a VALUE that reaches the screen: an assumed edge
+is DASHED and the legend says what the dash means. A diagram that looked
+like an exact NUBASE-derived chain while part of it is this
+application own guess is precisely the plausible-looking wrongness this
+project spends its time removing.
+
+    EXACT                  an IT from state index 1 -- only the ground
+                           state is below it, so nothing is chosen
+    ASSUMED_GROUND_STATE   NUBASE names no state populated
+    UNFOLLOWABLE           no single daughter exists to have a state
+
+**EXACT IS NOT A DEAD BRANCH, and reaching it needed the threshold
+moved rather than an input hunted.** No shipped nuclide could reach it
+until the data landed, so both arms are tested by BUILDING a state-1
+`Nuclide` directly. `daughter()` returns the provenance WITH the result
+rather than taking a policy argument: a `DaughterStatePolicy` would have
+had exactly one caller and one value, and a consumer wanting exact-only
+can filter on what it is already handed.
+
+**AN `IT` IS `(0, 0)` IN (Z, A) SPACE, WHICH IS A SELF-LOOP.** The state
+index is what makes the walk a strict descent and terminate, so
+`delta_for("IT")` must never be followed on its own -- callers go through
+`daughter()`. An `IT` on a ground state is a contradiction in the data
+rather than a branch, and is reported unfollowable rather than resolved
+to itself.
+
+### THE ISOMERS: 3,557 nuclides became 5,684, and the build refused twice
+
+`NuclideKey(z, a, state_index)` is a TYPE rather than a bare tuple
+because it is the identity contract -- the SVG node carries one, a click
+resolves one, the write path refuses one, and three places reassembling
+`(z, a, i)` by hand is where a click starts landing on the wrong thing.
+**`state_index`, NOT "level"**: NUBASE own field is an isomer INDEX, and
+calling it a level invites a later reader to treat `2` as an excitation
+energy.
+
+**THE FAIL-CLOSED RULE EARNED ITS KEEP TWICE, and the second was not
+anticipated.** The zero-unrecognised-modes invariant REFUSED to build:
+
+    IT   1,471 rows, and `is_recognised("IT")` was False
+    B        1 row -- Pd-126p writes `B=72 8`, a beta with NO SIGN
+
+The sign is exactly what decides whether Z goes up or down. Pd-126 own
+ground state is `B-=100` and an isomer sits HIGHER in energy, so
+beta-minus is a near-certain inference -- **which is precisely why it is
+refused.** NUBASE format header documents no mode vocabulary to appeal
+to, and this project does not derive physics the source declined to
+state.
+
+`UNDERSPECIFIED_MODE` is a FOURTH leaf reason and deliberately not a
+physical one: the three others describe the nucleus, this one describes
+the DATA. Folding it into `unfollowable` would tell a reader no daughter
+exists when one does. **It never becomes a whole node leaf reason** --
+Pd-126p also carries `IT=28`, which is followable -- and that is written
+into the test rather than left as a silent gap.
+
+**THE LARGEST TREE DID NOT MOVE, AND THAT IS THE RESULT.** Au-169 is
+still 161 nodes: an isomer `IT` leads to its own ground state and the
+ordinary chain continues, so an isomer adds a ROOT rather than a branch.
+Which is why "trees containing an isomer" is exactly 2127, one per
+isomer -- a non-IT decay resolves to a ground state, so no ground-state
+tree ever reaches an isomer. The corpus pin is a PROFILE now, because
+"the largest tree is 161" stopped being the relevant statistic:
+
+    max nodes 161 (Au-169)   median 7 (was 8)   over-60 86 (was 54)
+    max edges 223            isomer trees 2127  IT trees 1787
+
+**THE SUFFIX IS THE SOURCE OWN AND THE MAP IS EXACT.** Read from the
+name field rather than derived from the index, because a table mapping 1
+to `m` would be a second implementation of somebody else notation.
+Measured across all 2,127 and one-to-one both ways: 1 m, 2 n, 3 p, 4 q,
+5 r, 6 x, 8 i, 9 j. Carbon tab goes 16 rows to 20 -- the four are its
+isobaric analogue states, SHOWN rather than filtered, because deciding a
+reader may not see a state NUBASE lists would be this application
+editing its source.
+
+**253 AND 254 ARE BOTH CORRECT.** Ta-180m is an isomer marked `stbl`, so
+a bare count gives 254 and reads as an off-by-one against every
+reference. The test names its population and asserts the extra one by
+name rather than tolerating it with a loosened bound.
+
+### THE WRITE PATH REFUSES AN ISOMER, AND THE REFUSAL IS THE FEATURE
+
+`M  ISO` carries a mass number and nothing else, so Tc-99m and Tc-99
+write the same bytes and every reader downstream -- RDKit, the
+calculators, a saved project -- would treat the metastable structure as
+the ground state. The alternative to refusing is silently discarding the
+one thing the user asked for.
+
+`IsotopeRefusal.ISOMER_NOT_IN_MOLFILE` is a VALUE with generated text, so
+`if "isomer" in message` never becomes application logic.
+`refuse_isomer()` builds it in ONE place because **both** the Apply path
+and the PLACEMENT path need it -- a placed atom becomes a molfile too,
+and that second one is easy to miss.
+
+### THE PALETTE NEEDED NO CODE CHANGE, which is worth recording
+
+Alex semantics: an isotope representative half-life is its
+longest-lived RADIOACTIVE state, so Ag-108 legitimately wins at 439 y via
+Ag-108m. **A maximum over every state already equals the maximum over
+isotopes of each isotope own maximum**, so what the plan called a
+per-isotope grouping falls out of the existing `max`. Nobody should add
+machinery for it later. Four elements moved:
+
+    WINNER MOVES   Ag  105 -> 108   41.3 d -> 439 y   (Ag-108m)
+                   Hs  269 -> 277   16 s   -> 2.17 m  (Hs-277m)
+    VALUE MOVES    Ir  A=192 both   74 d   -> 241 y   (Ir-192n)
+                   Lv  A=293 both   70 ms  -> 80 ms   (Lv-293m)
+
+The swatch NAMES the state, so nobody is told Hs-277 lasts 2.17 minutes.
+**AND SILVER CANNOT DEMONSTRATE THAT**, which is why the guard does not
+use it: Ag has a stable isotope, so its swatch is terminal ("has a stable
+isotope") and the Ag-108m value never reaches the screen at all.
+
+**`has_stable_isotope` IS NOT A DECISION, WHICH MEASURING SETTLED.**
+"Any state" and "the ground state" are indistinguishable on this data --
+exactly one isomer in NUBASE is marked stable, Ta-180m, and tantalum
+already has a stable ground state in Ta-181. The simpler form stands,
+with a change detector that fails the day a revision separates them.
+
+**THE SORT STATE TIE-BREAK IS THE LAST TERM, NOT A GLOBAL RULE.** Tc-99
+and Tc-99m tie on every earlier key, so without it the order comes down
+to nothing. But "ground states first" would be WRONG: Ta-180m carries a
+natural abundance and is marked stable while Ta-180 is neither, so it
+legitimately sorts ABOVE its own ground state and never reaches the
+tie-break. Both are fixtures, for exactly that contrast.
+
+### A SOURCE CHECK MATCHED THE PROSE EXPLAINING ITS OWN RULE, AGAIN
+
+The generator count reconciliation cannot fail on any INPUT -- every
+parsed row increments exactly one bucket -- so it is a self-check on the
+next EDIT, and the guard for it reads the source. The first version
+asserted `"the arithmetic does not close" in text`, which also appears in
+the MODULE DOCSTRING, so deleting the raise left it passing. It anchors
+on fragments unique to the message now. Third instance of this shape in
+this file.
+
+### A TAB'S COMFORTABLE FLOOR BECAME THE WHOLE DIALOG'S, and the buttons left the screen
+
+Reported as "I cannot select an element and place it on the actual
+editor ... this is a new problem on this branch", with "there is no way
+to adjust the size of the periodic table popup" beside it. **The buttons
+were not broken. They were 105 px below the bottom of the screen.**
+
+    available screen          1920 x 1032
+    dialog minimumSizeHint     902 x 1142
+    "Insert into drawing"     global y=1136   OFF SCREEN
+    maximise button           False
+    size grip                 False
+
+This is `A HORIZONTAL ROW'S MINIMUM IS THE SUM` in the vertical, one
+container along: **`QTabWidget` takes the MAXIMUM over its pages.** The
+Decay tab's `ZoomableSvgView` carried `minimum_size=(520, 360)`, copied
+from the Lewis dialog where that widget is the whole window -- here it
+sits under a 502 px element grid, so one tab's comfort set the floor for
+all four and the dialog could not be made short enough to show its own
+action row.
+
+    page      before      after
+    Facts     58 x 58     unchanged
+    Atom      499 x 238   unchanged      <- the real floor now
+    Isotopes  452 x 108   unchanged
+    Decay     520 x 464   320 x 244
+    dialog    902 x 1142  902 x 922
+
+**A MINIMUM IS A FLOOR, NOT A PREFERRED SIZE**, and every page here
+already scrolls or zooms internally, so none of them loses anything by
+being allowed to get small. The dialog OPENS far larger than its minimum.
+
+**AND A `QDialog` HAS NEITHER A MAXIMISE BUTTON NOR A SIZE GRIP BY
+DEFAULT**, so a window that opened too tall could not be shrunk, moved
+back into view, or maximised. Both are set now, and both are guarded --
+but they are the second fix, not the first: a minimum larger than the
+screen cannot be rescued by resizing at all, because `resize()` is
+clamped to it.
+
+**A 1366x768 LAPTOP STILL CANNOT SHOW ALL OF IT** at 922 px, and that is
+recorded as a stated limit rather than quietly claimed as fixed. The
+element grid alone is 880x502; getting under ~728 means shrinking or
+scrolling the periodic table itself, which is the primary content. It is
+also pre-existing -- the dialog was ~880 before the Decay tab existed.
+
+**THE WIDTH CANNOT BE GUARDED AND THE HEIGHT CAN.** Measured, the same
+dialog is **1288 px wide under `offscreen`** against **902** in the
+running application, because that platform's default font is far wider --
+so a width bound is a claim about the font. Height is driven by row
+counts: 898 offscreen against 922 real. The guard asserts height only and
+says why.
+
+**THREE MORE DEGENERATE FIXTURES, IN THE FIX FOR A DEGENERATE-FIXTURE
+BRANCH.** Seven mutations, four caught first time:
+
+- `dialog.width() <= available.width()` on a dialog **the fixture never
+  shows**, so it read Qt's pre-show default and could not fail. Replaced
+  by a pure `fit_within` and a table, because `offscreen` reports an
+  800x800 screen where this dialog's minimum is larger still -- so
+  calling the cap and deleting it are indistinguishable by outcome, and
+  **deleting the CALL is the one mutation nothing catches**. Written into
+  the guard, as `initial_right_dock_width` already does.
+- "inserting reveals the editor" held with the reveal deleted, because
+  **the editor tab was already current**. The fixture looks away first.
+- and the suite's one real failure was `"isotope" -> "Periodic Table..."`
+  in the palette vocabulary. That is the ranking WORKING: there is now a
+  literal `Isotopes...` menu item, which is both a prefix match and the
+  better answer. Same case as the `# NOT "valence"` note already beside
+  it.
+
+**THE PATH THAT WAS REPORTED BROKEN HAD NO END-TO-END GUARD AT ALL.** The
+dialog's tests stopped at `insert_requested`; the window's wiring of that
+signal to `set_atom_tool` was never asserted. That is the half that was
+missing, rather than the half that failed.
+
+### KETCHER'S CONTEXT MENU: MEASURED, AND NOT SHIPPED
+
+The plan proposed appending items to `context-menu-for-atoms`. The spike
+came back negative and the feature did not depend on it, by design.
+
+    react-contexify is the library    no global hooks: a scan of
+                                      `window` returns an empty list
+    the `.contexify` root             exists only while open, and React
+                                      re-renders it every time
+    `main.jsx` composes `<Editor>`    the menu is inside Ketcher's own
+                                      component tree; no prop, no slot
+
+**THE DECIDING MEASUREMENT IS THAT IT CANNOT BE TESTED.** Ketcher's
+canvas is **0x0 in a bare `QWebEngineView`**, even inside a laid-out host
+widget and selected by its own `ketcher-canvas` testid -- `page2obj`
+divides by that zero and returns non-finite coordinates, so a right-click
+cannot be synthesised at an atom outside the running application. An
+injection whose only verification is driving the app and watching for a
+DOM node React can re-render away does not belong in a vendored bundle
+that `test_ketcher_bundle_is_current.py` can only fingerprint by name.
+
+Two facts worth keeping from the probe: **`page2obj` is on
+`editor.render`, not on `editor`** (this file said only that it exists),
+and `editor.event` carries `click`, `mousedown` and `mouseup` -- so
+forwarding a right-click to Python and raising a Qt menu is reachable.
+Not done, because Ketcher's own menu opens on the same gesture and two
+menus on one right-click is worse than either.
+
+### The zoom view is now shared, and the extraction was free
+
+`ui/widgets/zoomable_svg_view.py` is the Lewis dialog's scroll-and-zoom
+contract lifted out for the decay chart. The dialog keeps its whole
+surface (`zoom`, `set_zoom`, `zoom_to_fit`, `natural_size`, `_view`,
+`_scroll`) as delegations and ALIASES onto the same objects, so the
+extraction is behaviour-neutral by construction rather than by
+re-testing -- 43 Lewis tests unmoved.
+
+**A ZOOM COMPUTED AGAINST AN UNSHOWN VIEWPORT IS NOT A FIT.** The decay
+chart refreshes from `select`, which runs while another tab is current,
+so `zoom_to_fit` measured a viewport Qt had not laid out and clamped to
+its 25% floor: a 2320 px chart drawn a quarter size in a 1265 px pane. It
+re-fits when its tab is shown.
+
+### Four more defects that only the rendered widget showed
+
+Every one with the whole suite green, which is the fifth, sixth, seventh
+and eighth entries in this file's running count of that:
+
+- **the half-life legend explained no marks.** Five cells print a
+  trailing `#` because a colour cannot say "estimated", and its meaning
+  lived only in a tooltip -- while the legend is the part a screenshot
+  carries. The guard derives the marks from what the cells actually
+  print.
+- **"has a stable isotope, not established shown separately"** attaches
+  the exception to the second class alone.
+- **RED AND GREEN carrying a whole mode by themselves.** Every other
+  discrete palette spreads its classes over four or ten hues, where
+  confusing two costs one element; here it costs the picture. The cells
+  print "stable" and "decays" -- not "unstable", which at 9 px differs
+  from "stable" by two leading letters.
+- **`**Ground states only**` rendered with its asterisks.** QLabel does
+  not do markdown.
+
+## FIVE THINGS TO KEEP DISTINCT IN A SCIENTIFIC CALCULATION
+
+Written after a backlog sweep closed five deferrals in one branch, in
+which every confusion was one of these being mistaken for another:
+
+    definition      what quantity is computed
+    applicability   when that quantity is meaningful AT ALL
+    implementation  how OpenChem computes it
+    provenance      which source supports the claim
+    oracle          which published values establish it CORRECT
+
+**A SOURCE USED FOR THE DEFINITION IS NOT AUTOMATICALLY AN ORACLE**, and a
+validation set from a neighbouring method is not one merely because it
+shares an informal name. Three near-misses in one branch, each caught by
+reading the source rather than by review:
+
+- **Guo 2006 was twice written down as the Griffin HLB oracle.** It
+  tabulates 224 nonionic surfactants, which is exactly what "nothing to
+  check a result against" was asking for. It mentions **Griffin zero
+  times**: it is a Davies/ECL paper, and its reference column is
+  manufacturer data -- its own footnotes read "reported by BASF Corp."
+  and "by ICI Americas Inc.". Scoring Griffin against it would have
+  compared two scales and produced a disagreement that reads as a bug.
+- **TSEI's correlations read as an oracle and are a behavioural check.**
+  r = 0.9912 is a fine thing to assert and a weak transcription test:
+  systematically wrong implementations still correlate. Table 1's exact
+  values are the transcription oracle.
+- **Gutmann DN was briefly to be validated against the Drago E/C table.**
+  DN is defined as -dH against SbCl5 and E/C predicts -dH, so they are
+  related -- but they are distinct parameterisations, and cross-scale
+  agreement as a CORRECTNESS criterion lets a real transcription error
+  hide behind a legitimate difference.
+
+### A DEFERRAL'S REASONS ROT INDEPENDENTLY OF ITS VERDICT
+
+Fifth instance in this project. `docs/VALIDATION.md`'s "Measured, and
+deliberately not shipped" section held five entries whose verdicts looked
+settled and whose REASONS had quietly expired:
+
+    acetic acid     "only predicted coefficients exist"    measured in 2015
+    Miller          "the parameters are unpublished"        a claim about
+                                                            ChemAxon's docs,
+                                                            not the literature
+    HLB             "no formulas published"                 both are printed
+    TSEI            "no reference value was found"          Table 1 prints 20
+    Gutmann DN/AN   "the accessible source is ionic
+                     liquids"                               true of THAT paper
+
+Not one of those was a lowered standard. The literature moved, or was
+never checked. **Re-read the REASON, not the verdict**, and ask what would
+have to be true today.
+
+### TRANSCRIBING A TABLE FROM A SCIENTIFIC PDF
+
+**The text layer is not the table.** Every scanned source in this sweep
+gave usable-looking output that was wrong:
+
+    Gutmann 1976   "Dimethylsulphoxitie", "l.o.0" for 10.0, ";:Z" where a
+                   number belongs, and names and numbers extracted as two
+                   SEPARATE runs needing positional alignment
+    Miller 1990    "0.392 0.31 1 0.3 13 0.387" for a row of four numbers,
+                   "3 .000" for 3.000, "TA" for tau_A
+    Guo 2006       clean -- so the rule is to CHECK, not to assume either way
+
+Render at 300-400 dpi and read it. It is not caution for its own sake: the
+render caught t-butylamine's donicity at **57.5** where the text layer
+said 57.6, which is the Drago audit's one-in-53-out-by-0.01 again.
+
+**AND IT HAPPENED AGAIN, at one in 33.** Marsili & Gasteiger 1980's Table
+I -- the pi-orbital electronegativity parameters, which now ship -- has an
+OCR text layer reading `b = 11.13` for O-sp2 where the page prints
+**11.73**. Three instances now, in three unrelated scans, each a single
+digit and each invisible to any validation that averages. Any table
+transcribed from a scan gets rendered and read, without exception.
+
+**KEEP THE SOURCE ROW IDENTITY IN THE GENERATED DATA.** `"carbon_sp2": {...}`
+loses the trail; carrying the paper's own `symbol` and `hybrid` columns
+beside it means a future audit runs against the page line by line rather
+than re-deriving which row was meant.
+
+**AND THE ACCEPTANCE TEST IS THE CASE THAT FAILED BEFORE.** Miller's
+recorded failures were benzene (+27%) and CCl4 (-50%), so those two are
+the gate rather than a sample -- and both mutations reproducing them are
+caught. A perturbed coefficient must fail something: a table no test can
+falsify is a table nobody checked.
+
+### ONE NAME, TWO QUANTITIES -- NOW FOUND FOUR TIMES
+
+    "HLB"           Griffin or Davies, differing "substantially... in the
+                    entire range of practical applications"
+    "steric index"  Taft's Es, Hancock's Esc, Charton's nu, Cao-Liu TSEI
+    "donicity"      dilute or BULK -- water is 18.0 and 33.0
+    "SZ"            Mordred's is "sum of constitutional descriptor", not
+                    the Szeged index
+
+The move each time is the same: **ship under the specific name** -- Griffin
+HLB, Cao-Liu TSEI -- never the ambiguous one, and keep the two columns
+apart in the data rather than picking one. Water is the row that proves
+it is not pedantry: merging the donicity columns would be wrong there by
+more than the whole range from benzene to acetonitrile.
+
+### APPLICABILITY IS A RESULT, NOT A FOOTNOTE
+
+Griffin HLB on aspirin is 4.14 and means nothing. Returning it and relying
+on documentation to say so is the failure the `AlertResult` migration
+spent a phase removing.
+
+**AND THE RULE COMES FROM THE SOURCE.** Griffin's definition opens "for
+nonionic surfactants with polyoxyethylene as the sole hydrophilic
+moiety" -- a structural condition, answered per molecule, in the
+refusal-with-a-named-reason shape `BcsReason` and `IsotopeRefusal`
+already use. Sorbitan esters are the case most likely to be got wrong:
+Griffin's EXPERIMENTS produced Span and Tween's published values, but
+sorbitan is a polyhydric alcohol, so his FORMULA does not apply to them.
+
+### CHECKING AGAINST THE SOURCE FINDS BUGS READING THE CODE DOES NOT
+
+Both of these read fine and were wrong, and both were found by comparing
+against a printed closed form rather than by review:
+
+- the polyoxyethylene SMARTS matched a chain from BOTH ends, so a C12E4
+  counted as 9 units; and it matched the chain's own terminal hydroxyl,
+  so **dodecanol** -- the lipophile Brij is built FROM -- was accepted as
+  a surfactant and given an HLB;
+- benzene assigned to Miller's `CBR` row gives 13.99 against 10.39, and
+  the row's symbol is the reason anybody would.
+
+
+## SHIPPED IS NOT REACHABLE, AND THE GUARD FOR IT HAD THREE BLIND SPOTS
+
+PR #42 added `tests/test_calculator_reachability.py` after four correct,
+guarded, sourced modules turned out to be reachable from nothing a user
+could press. It did not stop that recurring, and both reasons are worth
+knowing.
+
+**IT CHECKED FOUR MODULES.** Only the ones declaring
+`USER_FACING_PROVIDER` were checked, so a FIFTH unreachable module was
+invisible unless somebody remembered to declare it -- the "somebody
+remembers" failure the file exists to remove, one level up from where it
+was being fought.
+
+**AND ITS WALK UNDER-REPORTED REACHABILITY THREE WAYS**, each measured:
+
+    from openchem.chem import nmr_hybrid    the edge landed on the PACKAGE
+                                            and never the submodule, so
+                                            element_palettes and nmr_hybrid
+                                            both read unreachable
+    importing a.b.c imports a.b             chem/regulatory/__init__.py is
+                                            imported by name by NOTHING --
+                                            every consumer wants
+                                            regulatory.engine
+    the ROOT package keyed wrong            `removesuffix` binds to the
+                                            `join`, not the concatenation,
+                                            so src/openchem/__init__.py
+                                            became `openchem.__init__`
+
+The third is the one to remember: every SUBpackage came out right
+(`chem.regulatory.__init__` -> `chem.regulatory`) and only the root did
+not, which is exactly the one nothing would notice.
+
+**THE INVARIANT IS STATIC IMPORT REACHABILITY, NOT "THE APPLICATION RUNS
+THIS".** The walk is an AST pass over `import` statements; a module can be
+genuinely used without appearing in one. That distinction is concrete here
+rather than pedantic, because this project has three such modules -- so
+every name and message says *statically*, and nothing should ever be read
+as proof the application EXECUTES anything.
+
+    first-party modules                        277
+    statically reachable from openchem.main    274
+    script_path (a separate interpreter)         2   admet_runner, pka_runner
+    tooling (the suite and tools/, not the app)  1   tooltip_inventory
+
+**ONE ROOT, AND THE ROOT SET WAS A LOOPHOLE UNTIL REVIEW.** The plan
+rooted on `openchem.main` PLUS every registry compute. A compute module
+forced in as a root is *declared* reachable rather than *shown* to be, so
+a broken registration would still pass a guard whose entire subject is
+reachability. Measured, the extra roots also bought **nothing** -- `main`
+alone gives the identical answer -- so they are gone, and
+`test_the_registry_is_statically_reachable_from_the_entry_point` asserts
+the property they were quietly assuming.
+
+### `REACHED_BY`: a closed kind, a free reason, and both directions
+
+The exception is declared BY THE MODULE, in production source, discovered
+the way `USER_FACING_PROVIDER` already is. A test-side allowlist would be
+the "somebody remembers to add it to the list" failure wearing a new
+costume.
+
+    REACHED_BY = "script_path: handed to the ADMET environment's
+                  interpreter by chem/admet_providers.py"
+    REACHED_BY = "tooling: consumed by tests/test_tooltip_coverage.py and
+                  tools/list_tooltips.py, never by the running application"
+
+**THE KIND IS A CLOSED VOCABULARY AND THE REASON IS FREE TEXT**, which is
+the `applies_to`-beside-`category` split: a typo in a free-form kind reads
+as a silent exemption, while a new instance of a known mechanism should
+need no code change. The two kinds are genuinely different claims -- one
+is a runtime entry surface, the other is not an application surface at all
+-- and a single flat string would conflate them.
+
+**THE NARROW HALF IS LOAD-BEARING**: a MARKED module must genuinely be
+unreachable, derived from the walk. Without it, writing the marker on
+anything turns a red guard green.
+
+**A RELATIVE IMPORT IS REFUSED, NOT RESOLVED.** Review asked for
+relative-import resolution; measured first, this codebase contains
+**ZERO**. Building a resolver and fixtures for a case the tree does not
+contain is a second untested code path, and silently dropping one is the
+fail-open hole -- an edge the walk cannot see reads as an edge that is not
+there. So it raises, naming the file, and a guard asserts both arms. Same
+shape as the `**OPNE**` refusal and the inconclusive-probe rule.
+
+## "25 COLLAPSIBLE CATEGORIES" WAS 20, AND MEASURING IT FOUND A 21st
+
+`docs/USER_GUIDE.md` had claimed 25 for as long as it can be traced, and
+three earlier attempts to measure it failed. Driven in the real
+application -- aspirin selected, Properties dumped -- it is **20**, which
+is exactly what `_every_reachable_category()` in
+`tests/test_calculator_sections.py` already answered. That function reads
+the registry, both descriptor spec tables, and RUNS `compute_alerts`, so
+there was never a need for a second enumerator; the guard lives beside it
+rather than in `test_docs_are_current.py` for that reason.
+
+**THE FIRST RUN SHOWED 21, AND THE EXTRA ONE WAS A BUG.** A section named
+`other`, holding a single result: **"Partial Charge (Gasteiger)"**.
+
+`compute_per_atom` is the always-on batch, explicitly "not registry-driven",
+and the panel routed it by looking its `property_id` up in the registry
+anyway. Two of its three datasets resolved **by coincidence**:
+
+    crippen_logp_contrib   registered too  -> lipophilicity   by luck
+    crippen_mr_contrib     registered too  -> electronic      by luck
+    gasteiger_charge       NOT registered  -> "Other"
+
+The registered charge calculator is `gasteiger_charge_at_ph`, a different
+calculation with a pH parameter, so no twin existed for the third one and
+it fell through. `PerAtomDataset` carries a declared `category` now, the
+batch sets all three, and the panel prefers the producer's declaration
+with the registry as the FALLBACK -- which keeps working for every dataset
+a registered calculator produces, since those declare nothing and are
+placed by exactly that lookup.
+
+**AND THE EXISTING SUITE CAUGHT THE AMBIGUITY IN THAT FIX IMMEDIATELY.**
+`test_a_calculators_result_lands_in_its_own_section` reads
+`getattr(result, "category", None)`, and adding a field defaulting to `""`
+made every registered per-atom result start "carrying" one -- 16
+mismatches, `button in 'charge', result in ''`. Empty is not a missing
+value here; it is the producer saying *I am in the registry, ask it*. The
+guard reads `or None` now and keeps its real teeth: a NON-empty category
+disagreeing with its definition is still the bug it was written for.
+
+**THE DIAGNOSTIC COULD NOT NAME WHAT IT LISTED.** `_dump_container_items`
+printed `CollapsibleSection` twenty-one times, so its own docstring's
+question -- *"one section is given half"*, which one? -- was unanswerable
+from its output. It reverse-maps `_sections` and prints the category now,
+which is how the `other` section was found at all.
+
+**THIRTEEN MUTATION ARMS, THIRTEEN CAUGHT**, each by the intended guard,
+and one of them is a note about harnesses rather than about the code: M6
+(unmarking a genuinely unreachable module) scored `INVALID -- only 92 of
+93 ran`, because the kind/reason guard is PARAMETRISED OVER THE DECLARED
+SET and removing a declaration legitimately removes a case. The ran-count
+rule that catches an arm which errored out is the same rule that
+false-positives here. Re-run by hand it fails
+`test_every_module_is_statically_reachable_or_declares_why_not`, which is
+the intended catcher.
+
+## SHIPPED IS NOT REACHABLE, AND FOUR MODULES PROVED IT
+
+PR #41 added `chem/hlb.py`, `chem/tsei.py`, `chem/polarizability_miller.py`
+and `chem/gutmann.py`. Each was correct, guarded by its own test file, and
+registered in `docs/sources.toml`. **Not one was reachable from anything a
+user could press.** Measured against the RUNTIME registry rather than by
+grep, because a dynamic import makes a text search lie: 51 calculators
+backed by 27 modules, none of them among the four.
+
+Every test passed. "Shipped" had come to mean *the file exists* rather than
+*source -> registry -> UI*.
+
+`tests/test_calculator_reachability.py` is the guard, and it checks BOTH
+directions -- every registered calculator's compute is callable, and every
+module that DECLARES itself user-facing is reachable from one.
+
+**USER-FACING IS DECLARED, NEVER INFERRED FROM LIVING UNDER `chem/`.** That
+inference is `inapplicable_calculators` again, a rule keyed on something
+incidental that rotted into 27 wrong entries. A module carries a
+`USER_FACING_PROVIDER` string naming the surface it reaches; the audit reads
+the declaration. An exemption LIST would be the same blocklist in a new
+place, and a module WITHOUT the marker is not claimed to be internal -- it
+is simply making no claim, the same scope `DEFERRALS` has.
+
+**THE WALK MUST FOLLOW A DEFERRED IMPORT, and that is the load-bearing
+half.** Two of the four are reached only from inside a function body --
+`electronic_properties` imports Miller in its method dispatch, `lewis`
+imports Gutmann in its line builder -- so an `ast` walk restricted to
+module-level imports reports both unreachable and is WRONG about it.
+`test_the_reachability_walk_follows_a_deferred_import` asserts those two
+edges by name, and `test_a_module_nothing_reaches_would_fail_this` asserts
+the walk is not simply returning everything.
+
+### A DESCRIPTION IS A TOOLTIP, AND ONE HAD ALREADY ROTTED
+
+`property_panel._calculator_help` GENERATES each help contract from
+`CalculatorDefinition.description`, so a description is not a comment --
+it is what a user reads on hover, and the one place this application says a
+method is unavailable.
+
+**`topology_analysis` said the Szeged index was "deliberately omitted"
+while its own module docstring, twenty lines from the compute function,
+said "The SZEGED INDEX is now included, validated by a THEOREM".** Two
+statements about one quantity in one feature, disagreeing, and the one a
+user reads was the wrong one. It rotted unaided.
+
+`CALCULATOR_CLAIMS` in `tests/test_docs_are_current.py` is the guard, in the
+`DEFERRALS` shape: a `fragment` that must occur EXACTLY ONCE, and an
+`unbuilt` predicate over CODE. **THE CLAIM IS DECLARED, NOT DETECTED** --
+"is not offered", "is unavailable" and "does not provide" are one claim in
+three shapes, and deciding whether a sentence asserts unavailability is the
+prose analysis `help_tooltip.py` refuses.
+
+A phrase scan survives as a **CANDIDATE DETECTOR, never a semantic oracle**.
+It says "this looks like an availability claim and is not registered --
+classify it", never "this sentence is false". Its failure message is worded
+that way deliberately: pretending natural language is a type system is how
+such a check decays into `NEGATIVE_WORDS = {...}` and starts flagging "this
+estimator is intentionally absent". **It earned its keep on its first run**,
+catching a "Davies' HLB is not offered" sentence written minutes earlier.
+
+**SCOPE IS AVAILABILITY OF AN EXTERNAL METHOD, NOT OUR OWN SCOPE.**
+`orbital_electronegativity` says the pi component "is not offered -- it
+needs a separate pi-charge iteration", which is a statement about OpenChem
+behaviour and is still true; it was reworded rather than registered. Same
+split `help_tooltip.py` draws between an external fact and our own.
+
+### EQ 7 WAS A SPECIAL CASE AND SHIPPED AS THE DEFINITION
+
+`chem/tsei.py` computed `TSEI = SUM 1/L_i^3`, which is [source:cao2004]'s
+eq 7 -- derived one line after "**For any alkyl, it only contains carbon
+and hydrogen atoms.** When its hydrogen atoms are ignored, eq 4 also can be
+simplified to eq 6". The general quantity is eq 4, each atom's covalent
+radius over the SUMMED BOND LENGTHS to the reaction centre.
+
+    an all-carbon path      every R_i/R_C is 1 and every l_i is L_i x l_CC,
+                            so eq 8a collapses to eq 7 EXACTLY
+    a first-tier chlorine   the paper derives 1.4190 in full; eq 7 gives
+                            1.000, because it cannot tell a chlorine from
+                            a carbon
+
+**TABLE 1 IS BLIND TO THIS, WHICH IS WHY IT SHIPPED.** All twenty normal
+alkyls reproduced perfectly against the wrong implementation. A fixture
+family is not "big enough" -- it is degenerate or not with respect to a
+specific defect, and this file has now recorded that four times.
+
+**TABLE 6 IS WHERE THE HETEROATOM VALUES ARE, and finding it changed
+everything.** It prints TSEI for F, Cl, Br, I, MeO and OEt, and its
+footnote c says its values include hydrogens where Tables 1/2/4 ignore
+them. **18 of the 19 reachable printed values now reproduce.**
+
+    Table 1, n = 1..20     the CONSTANT      blind to the radius term
+    a first-tier halogen   the RADIUS term   1.4190 vs eq 7's 1.000
+    MeO 0.9505, OEt 0.9939 the TRAVERSAL     a multi-bond path through a
+                                             heteroatom, where l_i stops
+                                             being L_i x l_CC
+
+#### THE RADII WERE RECOVERED BEFORE THE BOOK ARRIVED, AND THE TWO AGREE
+
+The paper's radius source is Lange's Handbook of Chemistry 15th ed., Table
+4.7 "Covalent Radii for Atoms", p 4.35 -- its ref 18. **This project did
+not hold it when TSEI was corrected**, and typing a remembered Pauling
+table is the "fields nobody can check" failure recorded in this project's
+own citation audit -- six errors, every one in the field nothing could
+verify.
+
+So every radius was **inverted from a TSEI value the paper prints**. For a
+lone first-tier atom, eq 8a collapses to `8 rho^3 / (1+rho)^3` with
+`rho = R_X/R_C`, which inverts to a radius:
+
+    F   0.7449  ->  0.63997     Cl  1.4190  ->  0.99001
+    Br  1.6957  ->  1.14002     I   2.0265  ->  1.33000
+    H   from Me = 1.0362  ->  0.30001
+    O   from MeO = 0.9505 ->  0.66      (OEt = 0.9939 uses both at once)
+
+Every one landed on a clean two-decimal value, which is itself evidence
+the inversion was reading a real table rather than fitting noise, and it
+IDENTIFIED the family as the tetrahedral covalent radii -- a measured fact
+rather than an inference from the numbers looking familiar.
+
+**THE BOOK THEN ARRIVED AND AGREED WITH ALL SEVEN TO THE LAST DIGIT** --
+64, 99, 114, 133, 30 and 66 pm, and carbon at **77.2** rather than a
+rounded 77, which is the extra digit the paper itself writes and what
+identifies this as the right table rather than a neighbouring one. Its
+footnote settles the column: "Single-bond radii are for a tetrahedral
+(CN = 4) structure". Two routes sharing no step, agreeing seven times.
+
+**THE INVERSION IS KEPT AS A LIVE CROSS-CHECK, not as history.** A
+mistyped radius for any of those seven would have to be wrong in exactly
+the way that reproduces a number from a different paper. The other 21 have
+the book alone, and `tsei_radii.json` says which is which -- a radius with
+a second independent route to it is a different kind of number.
+
+**WHAT THE BOOK CHANGED IS THE COVERAGE, and it is most of drug space.**
+Nitrogen (70 pm), sulfur (104) and phosphorus (110) are not among the
+substituents the paper tabulates, so the inversion could never have
+reached them and the projection refused every amine, thiol and phosphine.
+28 elements now.
+
+**THE EQUATION IS GEOMETRIC AND THE VALIDATION IS NOT**, which is the
+distinction to keep as the table widens. `R^3 / l^3` has no per-element
+fitting, so a radius is the only input any element needs; but Cao & Liu
+validated against alkyl, halogen and ether substituents on biphenyls, so a
+silver or a mercury radius buys arithmetic rather than evidence.
+
+**RDKit's `GetRcovalent` IS A DIFFERENT TABLE** -- Cordero 2008, carbon
+0.760 against 0.772, chlorine 1.02 against 0.99 -- and it puts the paper's
+own chlorine example at 1.5052 against 1.4190.
+
+#### THE PAPER'S OWN STRAW MAN WAS SHIPPED AS A FIXTURE
+
+A fixture quoted "their corresponding steric effect increments delta-TSEI
+... should be 0.1250, 0.2500, and 0.3750" and asserted t-Bu = 1.3750; its
+successors are `test_tert_butyl_carries_the_papers_own_crowding_correction`
+and `test_two_branches_are_not_corrected_and_table_4_is_why`, which assert
+1.8125 and keep the two-branch case plain. That sentence is
+the paper setting up a question it then answers with **no**: it concludes
+three carbons on one carbon contribute 6.5 times one, and every TSEI it
+publishes afterwards uses that -- t-Bu is 1.8125 in Table 2 and 1.8395 in
+Table 6. Table 2 tabulates both variants and prefers the corrected one,
+R = 1.0000 against 0.9411.
+
+Quoting a source is not the same as reading it. The quote was accurate and
+the conclusion drawn from it was the opposite of the paper's.
+
+#### AND ONE PRINTED VALUE DOES NOT REPRODUCE, recorded rather than chased
+
+Table 6 gives i-Pr as 1.3752 where the traversal gives 1.2801. The paper's
+own text, Table 2 and every i-Pr-bearing row of Table 4 all say 1.2500 with
+hydrogens ignored, which plus its seven hydrogens is 1.2801. Reaching
+1.3752 needs the two second-tier carbons scaled by 2.7611, a factor the
+paper never states and which Table 4's own two-branch rows (i-Bu 1.1990,
+s-Bu 1.2870) refute. 1.3752 is within 0.0002 of 1.3750 -- t-Bu's
+plain-additivity value in the table directly above it.
+
+### A PAPER'S PROSE AND ITS TABLES CAN DISAGREE, AND THE TABLES WIN
+
+[source:miller1990] p 8535 states the `CBR` rule as a hydrogen count: "one
+for branched trigonal carbon atoms (CBR) in trigonal carbon atoms **not
+bonded to hydrogen atoms**, and the other for alkenes and aromatic systems
+(CTR) in trigonal carbon atoms bonded to **at least one hydrogen** atom."
+
+That sentence is simpler than the conjugation rule, reads as authoritative,
+and **is contradicted by the paper's own Table II three pages later**:
+
+    toluene       6CTR 1CTE 8H      ipso carbon, NO hydrogen, and CTR
+    styrene       7CTR 1CBR 8H      ipso carbon, NO hydrogen, and CBR
+    acetone       2CTE 1CTR 1OTR4 6H
+                                    carbonyl carbon, no hydrogen, and CTR
+    b-methylnaphthalene           8CTR 1CTE 2CBR 10H
+    a-naphthalenecarboxaldehyde   8CTR 1OTR4 3CBR 8H
+                                    THE SAME RING POSITION, CTR under a
+                                    methyl and CBR under a conjugated CHO
+
+No hydrogen count produces that last pair. The hydrogen rule was
+implemented here for one commit on the strength of the sentence and put
+benzene at **13.99 against 10.39** -- the +36% shape the module's own
+docstring already warns about.
+
+**THE ASSIGNMENT COLUMN IS A FAR STRONGER ORACLE THAN THE TOTALS**, and it
+was sitting unused. Benzene and CCl4 pin the numbers; Table II pins which
+ROW every atom got, which is where the error class actually lives. Nine
+molecules are fixtures now, chosen because they SEPARATE the two candidate
+rules -- the two-molecule check could not have caught this, and did not.
+
+Nitrobenzene is the one disagreement in nine and is named rather than
+smoothed over: the paper gives `6CTR 1NPI2 2OTE 5H`, differing on the ipso
+carbon AND on the nitro oxygens. That row is also one of the worst in the
+table at -6.8%, and the paper's own text lists nitrobenzene among the
+molecules whose correction "lead to a larger deviation from experimental
+results".
+
+### THE JOIN FOUND A DEFECT THE TRANSCRIPTION TESTS COULD NOT
+
+Wiring Gutmann's numbers to a drawn structure needed one row per liquid,
+and two liquids turned out to be carrying **half their data each**:
+
+    donicity("dioxane")   AN 10.8, no DN     the DN table spells it "Dioxan"
+                                             and prints 14.8
+    donicity("glyme")     AN 10.2, no DN     the DN table files it under
+                                             "Dimethoxyethane (DME)"
+
+One solvent, two names, split across the donor table and the acceptor
+table. Every test in `tests/test_gutmann.py` passed -- they check the
+transcription against the page, and each half IS on the page.
+
+Confirmed against the paper's own prose rather than by the names looking
+alike: p12 reads "faster in THF (DN = 20) than in dioxane (DN = 14,8)",
+using the -e spelling for the row the DN table spells without one.
+
+**DECLARED, NEVER FUZZY-MATCHED.** `difflib` pairs "1,2-dichloroethane"
+with "dichloromethane" and "isopropylamine" with "isopropyl myristate" at
+the same confidence -- two different liquids and a wrong merge no numeric
+test would catch. `_SPELLING_VARIANTS` in the generator is two declared
+pairs, and it fails closed on both sides: a variant naming a row that does
+not exist, or a variant whose two spellings both already carry the same
+field.
+
+**AND `diglyme` IS THE ARM THAT SAYS NO** -- a different ether, keeping its
+own row with an acceptor number and no donor number, which is what the
+paper prints.
+
+#### NOT ONE SMILES IS TYPED FOR THE STRUCTURE LOOKUP
+
+`domain/lewis.py` was written with room for "what is coming -- donor and
+acceptor numbers", and filling it needs a name -> structure map. Writing
+sixty SMILES by hand for liquids like selenium oxychloride and
+phenylphosphonic difluoride would be sixty chances to ship a plausible
+wrong molecule.
+
+The structures come from `abraham_solutes.json` instead -- a SHIPPED,
+SOURCED dataset keyed by InChIKey and carrying each solute's name -- so the
+join is name to name and every structure was somebody else's transcription
+with its own provenance. **35 of 66 solvents are reachable from a drawn
+structure**; the rest have no structure here and get no donicity rather
+than a guessed one.
+
+`test_the_structure_map_is_derived_and_not_a_typed_list_of_smiles` asserts
+the module contains no `MolFromSmiles` at all.
+
+**GUTMANN NUMBERS MUST NOT ENTER THE ABRAHAM CALCULATION.** They are
+additional solvent FACTS, never another descriptor -- the creep is obvious
+and would be plausible ("since we have DN, use it as a predictor") and
+nothing in either source establishes that relationship. Asserted
+structurally, because the numeric version would need a solvent whose DN
+moved and there is none.
+
+**DN AND AN ARE TWO LABELLED FACTS, ALWAYS**, asserted on the presentation
+object rather than trusted to prose: a later tidy-up into one "Gutmann"
+field would erase the distinction without breaking any numeric test. Water
+is 18.0 DN against 54.8 AN with a THIRD number, 33.0 bulk; HMPA is 2nd of
+46 by donor number and in the bottom third by acceptor number.
+
+### A MUTATION FOUND A GAP IN THE DECLARED-TOTALS AUDIT
+
+Fourteen arms, thirteen caught first time. The fourteenth -- declaring a
+plausible total on the TSEI projection, `declare_total(0.0, "TSEI
+projection total")` -- **passed every guard in `test_declared_totals.py`
+and every guard in `test_tsei.py`.** That audit checks a declaration EXISTS
+and is WELL FORMED; only naming the calculator says which answer is right,
+which is exactly why
+`test_the_two_meaningless_sums_are_declined_by_name` names its members
+individually. `tsei_projection` joined that list.
+
+The chemistry behind the name is worth having beside it: on chloromethane
+the carbon feels 1.4190 from the chlorine and the chlorine feels 0.6729
+back, across the same bond. The increments are ASYMMETRIC, because `l_i` is
+a bond length and the radius sits in the numerator on one side only, so the
+sum over atoms is 2.0919 -- not either atom's answer, not twice anything,
+and not a property of the molecule.
+
+**AND THE FIRST VERSION OF THAT ARM WAS NOT A MUTATION AT ALL.** It wrote
+`{...} if False else decline_total(...)`, which changes no behaviour, and
+scored a confident SURVIVED. Fifth instance of that lesson here; the
+harness prints an EDIT-CHECK and compares the arm's ran-count against the
+control's, and neither catches an edit that lands and does nothing.
+
+### `{"do": "scroll"}` -- because a panel that scrolls hides its own output
+
+Measured with a Lewis result on screen: **viewport 396x580 against content
+396x2361**, so five sixths of the Properties panel is unphotographable from
+the top. `dump` reports that the content FITS and `rendered_overflow`
+reports 0 findings -- both true, and neither is a picture.
+
+The step takes `{"to": "bottom"}`, `{"to": "top"}` or `{"y": 1000}` and
+LOGS where it landed, because a request past the end is clamped and a
+silent clamp makes "I scrolled to the bottom" a claim about a position
+nobody checked.
+
+**SCROLLING TO THE BOTTOM OVERSHOOTS A TALL RESULT BOX.** The result widget
+is mostly empty below its text, so `to: bottom` photographs blank space
+with the text above the viewport. Find the band first -- count dark rows
+per scanline across a few positions -- then crop to it.
+
+## `variants[0]` WAS NOT A RANKING, AND THE ORDER CAME FROM THE HASH SEED
+
+Reported as "I wanna check the accuracy of our charge calculators because
+that doesn't seem right to me". The instinct was right and the cause was
+upstream of every charge model.
+
+`protonate_at_ph` took `variants[0]` from Dimorphite-DL. **That list is an
+ENUMERATION of microspecies; it does not rank them**, and its order comes
+from a set iteration -- so it inherited `PYTHONHASHSEED`. Measured on an
+isobutyrylfentanyl at pH 7.4, eight separate processes:
+
+    net charge  +1  +0  +1  +0  +1  +0  +2  +0
+
+Within ONE process twelve calls agreed, and `PYTHONHASHSEED=0` was stable
+across processes while varying seeds were not. **So a scientific answer
+was a function of the process's hash seed**, which is why it was invisible
+to a suite that runs in one process.
+
+**IT REACHED SIX PRODUCTION CONSUMERS**, and the worst was not the charge
+panel: `logd_from_microspecies` moved **1.68 to 4.38 on one molecule**
+across runs -- a factor of 500 in partition coefficient. Also `ph_curves`
+(twice), `electronic_properties`, `calculator_options` and the charge/ESP
+surfaces.
+
+`precision=0.0` fixes that half: it collapses Dimorphite's window to the
+pKa itself, so one state comes back. Six processes, identical. The
+selection is ALSO sorted rather than taken in arrival order -- belt to
+those braces, and the only form of the property a test can actually put,
+since within one process the order never varies. A fake returning the same
+states in three different orders must give one answer.
+
+### DETERMINISM IS NOT CORRECTNESS, AND THE SECOND HALF IS A WHOLE CLASS
+
+Dimorphite's `Amines_primary_secondary_tertiary` site is `[C:1]-[NX3+0:2]`
+with pKa 8.16 and **no exclusion for an adjacent carbonyl**, while its
+`*Amide` rule is `[C:1](=[O:2])-[N:3]-[H]` and REQUIRES an N-H. So a
+TERTIARY amide matches nothing amide-specific, falls through to the plain
+amine rule, and is protonated at pH 7.4 because 7.4 < 8.16.
+
+Measured over sixteen drug-like molecules with literature charge states,
+five were wrong before the fix and **every one was that class**:
+
+    DMF, DEET, N,N-dimethylacetamide, N-methylpyrrolidone   0 -> +1
+    fentanyl, isobutyrylfentanyl                           +1 -> +2
+
+Acetanilide and lidocaine are right BECAUSE THEY HAVE AN N-H, which is the
+tell that identifies the class rather than the molecule. After the fix,
+16/16.
+
+`_deprotonate_delocalised_nitrogen` is the correction and it is
+deliberately narrow: it **only ever removes a proton Dimorphite added** to
+an amide, thioamide or sulfonamide nitrogen, never adds one, and it
+reports the atoms it touched. Overriding a library's chemistry is a claim,
+and that is the narrowest form of it. `corrected_atoms` is empty for 11 of
+the 16, which is what says the rule is not a blanket.
+
+**THE ORIGINAL SCREENSHOT HAD THE RIGHT TOTAL FROM THE WRONG MOLECULE.**
+The panel read "Net calculated charge: 1.00 e", which is correct for this
+compound at pH 7.4 -- and the species charged was the ANILIDIUM, with the
+basic piperidine left neutral, so every per-atom value was wrong while the
+sum was right by luck. A number that is right for the wrong reason is the
+hardest kind to notice, and only reading the SMILES of the species showed
+it.
+
+**AND `pkasolver` IS DELIBERATELY NOT IN THIS PATH.** Gating the
+correction on an optional sidecar would make every protonation refuse on a
+machine that has not configured one -- worse than the bug -- so the class
+fix is structural and dependency-free.
+
+## A CORRECT NUMBER THAT READS AS A WRONG ONE
+
+The same report, and the other half of it. The Properties panel said
+"Total charge 0" for the drawn structure while the Calculator Inspector
+said "Net calculated charge: 1.00 e" for the pH 7.4 microspecies, with
+**nothing on screen relating the two**.
+
+The producer had anticipated exactly this, in a comment -- *"taking it
+from `mol` would report the drawn structure's net charge beside values
+computed for a different ionization state"* -- and that reasoning lived
+only in the source. Two things were missing on screen:
+
+- **the calculator's own name.** `result.name` is "Partial Charge
+  (Gasteiger) at pH 7.4 incl. H" and carries the pH AND the hydrogen mode;
+  the dialog rendered neither, and its title carries only the molecule.
+  (`result.name` IS shown at `calculator_inspector_dialog.py:381` -- that
+  is the pH-curve dialog, a different class.)
+- **which species was charged.** Declared by the PRODUCER, because the
+  view cannot work it out and must not try: reading
+  `total - formal_charge(drawn)` and concluding "so it was protonated" is
+  a mechanism invented from a residual, which `_balance_text`'s own
+  comment already refuses.
+
+`summary_note` was the existing hook and was **reachable only when there
+was NO total**, so a result with a headline could not explain anything
+about it. One ordering change makes it render alongside one.
+
+**SILENT WHEN NOTHING CHANGED.** A molecule with no ionizable centre is
+charged exactly as drawn, and a line saying so on every neutral result is
+noise given a voice.
+
+### A `findChildren` GUARD PASSED WITH THE WIDGET REMOVED FROM THE LAYOUT
+
+The mutation that deletes `layout.addWidget(name_label)` SURVIVED, because
+a QLabel constructed with the dialog as parent is a child whether or not
+anything ever laid it out. Walking the LAYOUT is the question that matters
+-- and the walk has to descend into a child WIDGET's own layout as well as
+into nested layouts, because this dialog puts its content inside a
+`_CalculatorResultView` and a layouts-only walk found nothing at all. Same
+shape as the recorded scroll-area guard that asked
+`boxes_scroll.widget() is boxes`.
+
+## A REFUSAL IS NOT A FAULT, AND THE STYLE'S OWN COMMENT SAID SO
+
+Reported as "some calculator failures, possible ones for the newer
+calculators". **Neither was a failure.** Joback's 1987 table has `>NH`
+(ring) and `>N-` (nonring) and **no ring tertiary amine**, which is what
+the molecule has; Kamlet-Jacobs needs a measured loading density no
+structure can supply. Both refusals are generated on purpose and both name
+their own reason.
+
+They rendered with the same red glyph as a crash, because
+`_FAILURE_STYLE`'s comment read *"red: it did not work, **or it is
+invalid**"* -- the style admitting in its own comment that it meant two
+different things -- and nothing in `domain/` carried the distinction.
+
+`inapplicable` is a plain optional bool on `ScientificResult` and
+`DescriptorValue`, following `error_summary`'s precedent exactly: a
+producer that declines to declare one is completely unmoved. **DECLARED,
+NEVER SNIFFED** -- `if "no group for" in error` as application logic is
+what `joback.refusal_text` exists to prevent, and it would rot the first
+time somebody reworded a sentence.
+
+    FAULT         something broke, or the input is invalid, and the user
+                  may be able to act. Red.
+    INAPPLICABLE  the METHOD does not cover this molecule. Correct,
+                  permanent, nothing to fix. Neutral.
+
+**`NoConformerError` IS A FAULT IN THIS VOCABULARY**, deliberately:
+"generate a conformer first" names an action, which is exactly what an
+inapplicable method cannot offer. It is the sharpest boundary case and has
+its own test.
+
+**THE GLYPH WAS VERIFIED THROUGH THE PROJECT'S OWN ORACLE, NOT A NEW
+PROBE.** A throwaway probe of mine reported every candidate identical to
+tofu AND to blank -- including the control and the three shipped glyphs --
+i.e. it was broken, not the platform, since
+`test_the_status_glyphs_really_render` passes under `offscreen`. Adding
+U+25CB to that shipped test's own parametrisation is the measurement;
+writing a second probe was how the wrong answer was nearly believed.
+
+## GASTEIGER'S OWN TABLE 3 IS AN ORACLE, AND IT AGREES
+
+`gasteiger1980` sat at `verification = "citation"` for the life of the
+project -- the reference was right and **no number this application
+produces had ever been checked against the paper**. The only Gasteiger
+assertion in 6,400 tests was a relative ordering of two atoms.
+
+Table 3 (p3224) prints PEOE charges on carbon in millielectrons for 17
+compounds and 22 values. Measured against RDKit:
+
+    n = 22    mean -1.9 me    MAE 2.1 me    max |diff| 8.6 me
+
+The paper prints whole millielectrons, so 0.5 me is rounding before
+anything else. The three largest deviations -- H2CO 8.6, CH3CF3 7.2,
+CH3CHO 6.6 -- are pi-containing or heavily fluorinated, where the abstract
+itself scopes the method to "sigma-bonded and nonconjugated pi-systems".
+Upgraded to `citation_and_claim`.
+
+**BOTH OUTCOMES WERE WRITTEN DOWN BEFORE MEASURING**, because a library's
+implementation is not always the paper's -- RDKit's own SA and NP scores
+document divergences from Ertl in their headers. Disagreement would have
+been recorded as a finding with numbers and the entry left at `citation`.
+Deciding the verdict after seeing the number is the failure mode.
+
+**THE TEXT LAYER IS NOT THE TABLE, FOR THE FOURTH TIME.** This scan gives
+the paper's own page range as "3219 to 3288" where ten pages from 3219 is
+3228 -- an OCR digit error in the first line read. Table 3 was transcribed
+from a 320 dpi render. The paper states its own count in prose ("these
+were 17 compounds and 22 values"), which is a free acceptance test on the
+transcription and is asserted.
+
+### AND THE `#:` RATCHET FIRED AGAIN, THE SAME WAY
+
+`pka_providers.py` had never used the convention, so documenting
+`_OVERPROTONATED_N` conscripted the whole file and three constants fell
+into the undocumented set. Unlike `APP_NAME`, all three already HAD
+explanatory comments in plain `#` form, so they were promoted to `#:`
+rather than recorded as debt -- the documentation existed, it was just not
+in the form the guard reads. Second instance in two sessions of "one `#:`
+conscripts a file"; it is a property of the per-file scope rule rather
+than a surprise.
