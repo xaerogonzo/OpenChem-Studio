@@ -33,6 +33,8 @@ Nothing here imports Qt, RDKit or anything from `ui/` -- it is a vocabulary, and
 
 from __future__ import annotations
 
+from openchem.domain.report import FactCategory
+
 
 #: The order sections are shown in, top to bottom. A category absent from this
 #: list is not an error -- it is appended alphabetically by `category_sort_key`,
@@ -197,3 +199,47 @@ def category_sort_key(category: str) -> tuple[int, str]:
     """
     listed = category in CATEGORY_ORDER
     return (CATEGORY_ORDER.index(category) if listed else len(CATEGORY_ORDER), category)
+
+
+#: `Fact` needs one of the nine `FactCategory` values. Anything unlisted
+#: becomes STRUCTURE rather than being dropped -- a fact filed under the
+#: wrong heading is recoverable, a missing one is not.
+_CATEGORY_BY_NAME: dict[str, FactCategory] = {
+    "identity": FactCategory.IDENTITY,
+    "naming": FactCategory.IDENTITY,
+    "physicochemical": FactCategory.IDENTITY,
+    "charge": FactCategory.ELECTRONIC,
+    "electronic": FactCategory.ELECTRONIC,
+    "quantum": FactCategory.QUANTUM,
+    "lewis": FactCategory.ELECTRONIC,
+    "nmr": FactCategory.SPECTROSCOPY,
+    "topology": FactCategory.TOPOLOGY,
+    "geometry": FactCategory.GEOMETRY,
+    "surface": FactCategory.GEOMETRY,
+    "shape": FactCategory.GEOMETRY,
+    "regulatory": FactCategory.REGULATORY,
+    "medicinal_chemistry": FactCategory.STRUCTURE,
+    "admet": FactCategory.STRUCTURE,
+    "substructure": FactCategory.STRUCTURE,
+    "stereochemistry": FactCategory.STRUCTURE,
+    "interactions": FactCategory.STRUCTURE,
+    "pka": FactCategory.ELECTRONIC,
+}
+
+
+def category_for(name: str) -> FactCategory:
+    """Which `FactCategory` a calculator category's facts belong under.
+
+    **THE BRIDGE BETWEEN THE TWO VOCABULARIES, AND IT LIVES WITH ONE OF
+    THEM.** It was in `chem/report_adapter.py`, which imports nothing from
+    `chem/` at all -- it is a domain-level projection filed under the
+    chemistry layer. Both ENDPOINTS are domain vocabularies: the calculator
+    category above, and `FactCategory` in `domain/report.py`. A second copy
+    would be the drift `CATEGORY_LABELS` was moved here to prevent.
+
+    Unlisted becomes STRUCTURE rather than raising, and that asymmetry is
+    deliberate: `category` is a FREE STRING so a plugin may invent one, and a
+    fact filed under the wrong heading is recoverable where a refused fact is
+    not. The closed vocabularies in this project refuse; this one cannot.
+    """
+    return _CATEGORY_BY_NAME.get(name, FactCategory.STRUCTURE)

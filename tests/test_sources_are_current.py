@@ -1077,6 +1077,13 @@ _PROVENANCE_DEBT = frozenset({
     # `comparison.py` and `report_adapter.py` are: the walk finds it
     # because it touches results, not because it computes one.
     "src/openchem/domain/merged_results.py",
+    # IMPLEMENTS NO METHOD EITHER, and for the same reason one line up. It
+    # groups the auto-descriptors into one reader entry and derives a flat
+    # fact view beside the originals -- every value, every state and every
+    # reason comes from the producer that computed it. There is no method
+    # here to source, only a container. The walk finds it because it builds
+    # `Fact`s, not because it computes one.
+    "src/openchem/domain/descriptor_aggregate.py",
     "src/openchem/chem/crystal_report.py",
     "src/openchem/chem/elemental_analysis.py",
     "src/openchem/chem/geometry_analysis.py",

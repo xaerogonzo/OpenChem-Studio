@@ -26,36 +26,12 @@ from __future__ import annotations
 
 import re
 
+from openchem.domain.calculator_taxonomy import category_for
 from openchem.domain.report import Fact, FactCategory, ReportResult
 from openchem.domain.scientific_result import AlertResult
 from openchem.domain.structure_issue import Basis, Severity
 
 #: `alert.category` is a free-text string chosen by the producer; a
-#: `Fact` needs one of the nine `FactCategory` values. Anything unlisted
-#: becomes STRUCTURE rather than being dropped -- a fact filed under the
-#: wrong heading is recoverable, a missing one is not.
-_CATEGORY_BY_NAME: dict[str, FactCategory] = {
-    "identity": FactCategory.IDENTITY,
-    "naming": FactCategory.IDENTITY,
-    "physicochemical": FactCategory.IDENTITY,
-    "charge": FactCategory.ELECTRONIC,
-    "electronic": FactCategory.ELECTRONIC,
-    "quantum": FactCategory.QUANTUM,
-    "lewis": FactCategory.ELECTRONIC,
-    "nmr": FactCategory.SPECTROSCOPY,
-    "topology": FactCategory.TOPOLOGY,
-    "geometry": FactCategory.GEOMETRY,
-    "surface": FactCategory.GEOMETRY,
-    "shape": FactCategory.GEOMETRY,
-    "regulatory": FactCategory.REGULATORY,
-    "medicinal_chemistry": FactCategory.STRUCTURE,
-    "admet": FactCategory.STRUCTURE,
-    "substructure": FactCategory.STRUCTURE,
-    "stereochemistry": FactCategory.STRUCTURE,
-    "interactions": FactCategory.STRUCTURE,
-    "pka": FactCategory.ELECTRONIC,
-}
-
 #: `"Label: 2.35 A"` -> label, number, unit. Anchored so a line that is
 #: prose rather than a measurement does not match: `"Note: this is
 #: indicative only"` has no number after the colon and stays one line.
@@ -93,10 +69,6 @@ _CATEGORY_BY_NAME: dict[str, FactCategory] = {
 #: unit with no space, so requiring whitespace after the number refuses
 #: the elemental analysis and the buried-volume result outright.
 _MEASUREMENT = re.compile(r"^(?P<label>[^:]{1,60}):\s+(?P<value>[-+]?\d[\d.,eE+-]*)\s*(?P<units>[^\s].*)?$")
-
-
-def category_for(name: str) -> FactCategory:
-    return _CATEGORY_BY_NAME.get(name, FactCategory.STRUCTURE)
 
 
 def _split(line: str, source: str, category: FactCategory) -> Fact:

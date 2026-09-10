@@ -249,3 +249,118 @@ def test_an_alert_derived_report_is_not_born_stale(panel):
         "a report that has just arrived describes the structure it arrived for"
     )
     window.close()
+
+
+# --- the auto-descriptors reach the reader -------------------------------
+#
+# They are `DescriptorValue`s rather than `ScientificResult`s, so before the
+# aggregate existed they reached the reader's fact model NOT AT ALL -- the
+# single largest thing computed for a molecule that this window could not
+# show. See `domain/descriptor_aggregate.py` for why it holds the originals.
+
+
+def _descriptor(bus, molecule, descriptor_id, **kwargs):
+    from openchem.domain.common import CacheState
+    from openchem.domain.descriptor import DescriptorValue
+    from openchem.events.events import DescriptorComputed
+
+    defaults = dict(
+        descriptor_id=descriptor_id,
+        name=descriptor_id.replace("_", " ").title(),
+        units="",
+        category="physicochemical",
+        provider="rdkit",
+        molecule_uuid=molecule.uuid,
+        cache_state=CacheState.COMPLETED,
+    )
+    defaults.update(kwargs)
+    bus.publish(DescriptorComputed(descriptor=DescriptorValue(**defaults)))
+    QCoreApplication.processEvents()
+
+
+def test_the_descriptors_reach_the_results_window_as_one_entry(panel):
+    """ONE entry, not forty-one. The window's selector is the surface this
+    would otherwise flood."""
+    from openchem.domain.descriptor_aggregate import DESCRIPTOR_AGGREGATE_ID
+
+    widget, bus, molecule, _project, _versions = panel
+    _descriptor(bus, molecule, "mol_wt", name="Molecular Weight", units="g/mol", value=46.07)
+    _descriptor(bus, molecule, "tpsa", name="TPSA", units="A^2", value=20.23)
+    widget._open_results_window()
+
+    merged = widget._results_window.merged()
+    ids = [r.report_id for r in merged.reports]
+    assert ids.count(DESCRIPTOR_AGGREGATE_ID) == 1, f"expected one aggregate, got {ids}"
+    labels = {f.label for f in merged.facts}
+    assert {"Molecular Weight", "TPSA"} <= labels
+    dispose(widget._results_window)
+
+
+def test_a_failed_descriptor_keeps_its_own_state_in_the_window(panel):
+    """The reason the aggregate is a container. A molecule drawn flat fails
+    the ten shape descriptors while the other thirty-one succeed, and one
+    report-level `cache_state` cannot say that."""
+    from openchem.domain.common import CacheState
+    from openchem.domain.descriptor_aggregate import DESCRIPTOR_AGGREGATE_ID
+
+    widget, bus, molecule, _project, _versions = panel
+    _descriptor(bus, molecule, "mol_wt", name="Molecular Weight", units="g/mol", value=46.07)
+    _descriptor(
+        bus, molecule, "spherocity_index", name="Spherocity Index", category="shape",
+        cache_state=CacheState.FAILED,
+        error="Needs a real 3D conformer - generate one first",
+        error_summary="Needs a 3D conformer",
+    )
+    widget._open_results_window()
+
+    aggregate = widget._results_window.merged().report_for(DESCRIPTOR_AGGREGATE_ID)
+    states = {d.descriptor_id: d.cache_state for d in aggregate.descriptors}
+    assert states["mol_wt"] is CacheState.COMPLETED
+    assert states["spherocity_index"] is CacheState.FAILED
+    assert [d.descriptor_id for d in aggregate.failed()] == ["spherocity_index"]
+    dispose(widget._results_window)
+
+
+def test_a_running_placeholder_is_replaced_rather_than_accumulated(panel):
+    """Every descriptor arrives TWICE -- `DescriptorService` publishes a
+    RUNNING placeholder before `compute()` runs. Keyed by id, so the result
+    replaces the placeholder instead of sitting beside it."""
+    from openchem.domain.common import CacheState
+    from openchem.domain.descriptor_aggregate import DESCRIPTOR_AGGREGATE_ID
+
+    widget, bus, molecule, _project, _versions = panel
+    _descriptor(bus, molecule, "mol_wt", cache_state=CacheState.RUNNING)
+    _descriptor(bus, molecule, "mol_wt", name="Molecular Weight", value=46.07)
+    widget._open_results_window()
+
+    aggregate = widget._results_window.merged().report_for(DESCRIPTOR_AGGREGATE_ID)
+    assert len(aggregate.descriptors) == 1
+    assert aggregate.descriptors[0].cache_state is CacheState.COMPLETED
+    dispose(widget._results_window)
+
+
+def test_switching_molecule_does_not_carry_the_descriptors_over(panel):
+    """A leftover set would appear under the new molecule's name with nothing
+    saying otherwise -- the same rule the reports and the open window follow."""
+    widget, bus, molecule, project, _versions = panel
+    _descriptor(bus, molecule, "mol_wt", value=46.07)
+    assert widget._descriptor_values
+
+    other = MoleculeModel()
+    project.molecules.append(other)
+    bus.publish(MoleculeSelected(molecule_uuid=other.uuid))
+    QCoreApplication.processEvents()
+    assert not widget._descriptor_values
+
+
+def test_no_aggregate_appears_before_any_descriptor_has_landed(panel):
+    """The narrow half. An empty "Molecular Properties" entry would be a
+    heading promising values nothing has computed yet."""
+    from openchem.domain.descriptor_aggregate import DESCRIPTOR_AGGREGATE_ID
+
+    widget, bus, molecule, _project, _versions = panel
+    _land(bus, _report("a", "A", "Formula", molecule.uuid))
+    widget._open_results_window()
+    ids = [r.report_id for r in widget._results_window.merged().reports]
+    assert DESCRIPTOR_AGGREGATE_ID not in ids
+    dispose(widget._results_window)

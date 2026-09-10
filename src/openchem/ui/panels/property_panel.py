@@ -39,6 +39,8 @@ from openchem.domain.calculator_taxonomy import (
     category_sort_key,
 )
 from openchem.domain.common import CacheState, describe_failure
+from openchem.domain.descriptor import DescriptorValue
+from openchem.domain.descriptor_aggregate import aggregate_descriptors
 from openchem.domain.project import ProjectModel
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
 from openchem.domain.structure_resolution import resolve_structure_for_report
@@ -1506,6 +1508,12 @@ class PropertyPanel(QWidget):
         #: Fact-based reports, kept so "Details..." can open one after the
         #: fact. Plain data keyed by string -- never a dict keyed by a
         #: QWidget, which hashes on a C++ pointer Qt frees with the parent.
+        #: Every auto-descriptor that has landed for the selected molecule,
+        #: keyed by id. The results reader's "Molecular Properties" entry is
+        #: built from these -- the ORIGINALS, so each keeps its own
+        #: `cache_state`, `error` and `inapplicable` rather than the forty-one
+        #: sharing one between them.
+        self._descriptor_values: dict[str, DescriptorValue] = {}
         self._reports: dict[str, ReportResult] = {}
         self._report_labels: dict[str, QLabel] = {}
         self._sections: dict[str, _CollapsibleSection] = {}
@@ -1650,6 +1658,10 @@ class PropertyPanel(QWidget):
             status.setVisible(False)
         self._batch_status.setText("")
         self._value_labels.clear()
+        # The VALUES too, not only their labels. They feed the results
+        # reader's "Molecular Properties" entry, so a leftover set would put
+        # the previous molecule's descriptors under this one's name.
+        self._descriptor_values.clear()
         self._alert_labels.clear()
         self._result_labels.clear()
         self._reports.clear()
@@ -1865,6 +1877,12 @@ class PropertyPanel(QWidget):
         descriptor = event.descriptor
         if descriptor.molecule_uuid != self._selected_molecule_uuid:
             return
+        # RETAINED, keyed by id so the RUNNING placeholder each descriptor
+        # publishes first is replaced by its result rather than accumulating
+        # beside it. These are what the results reader's aggregate is built
+        # from -- see `domain/descriptor_aggregate.py` for why it holds the
+        # originals rather than converting them.
+        self._descriptor_values[descriptor.descriptor_id] = descriptor
         section = self._section_for(descriptor.category or "other")
         row_key = (descriptor.provider, descriptor.descriptor_id)
         label = f"{descriptor.name} ({descriptor.units})" if descriptor.units else descriptor.name
@@ -2454,9 +2472,25 @@ class PropertyPanel(QWidget):
         window = self._results_window
         if window is None or window.molecule_uuid() != self._selected_molecule_uuid:
             return
-        window.set_reports(
-            list(self._reports.values()), self._current_structure_version()
-        )
+        version = self._current_structure_version()
+        entries = list(self._reports.values())
+        # **THE 41 AUTO-DESCRIPTORS, AS ONE ENTRY RATHER THAN 41.** They are
+        # `DescriptorValue`s, so before this they reached the reader's fact
+        # model not at all -- the single largest thing computed for a molecule
+        # that the results window could not show.
+        #
+        # A PROJECTION, not a calculator: it is built here from what has
+        # arrived rather than run, has no `calculator_id`, and never enters a
+        # cache key.
+        if self._descriptor_values:
+            entries.append(
+                aggregate_descriptors(
+                    self._selected_molecule_uuid or "",
+                    self._descriptor_values.values(),
+                    structure_version=version,
+                )
+            )
+        window.set_reports(entries, version)
 
     def _resolve_structure_for_report(self, report):
         """Coordinates for a report's depiction, or why it must not be drawn.
