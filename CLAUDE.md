@@ -7134,6 +7134,110 @@ name, and a COUNT stays DETERMINISTIC, since marking every projected fact
 HEURISTIC satisfies A10's guard while understating arithmetic over what
 arrived. Second pass: fifteen arms, fifteen caught.
 
+## A SUMMARY WITH NO WAY BACK TO THE RESULT IS A DEAD END
+
+Stage 1d. 1a made every result kind reachable AS A SUMMARY, and a summary is
+a count, a range and whatever total the producer declared -- so without a way
+to open the whole thing it is strictly less than the row it replaced.
+Measured over the registry on aspirin:
+
+    entries reaching the reader                  60   (30 before 1a)
+    declaring a viewer, able to offer NOTHING    30   calculator_inspector 29,
+                                                      nmr_view 1
+    facts carrying a FactLink                     0
+
+**THE ACTION BELONGS TO THE RESULT, NOT TO A FACT ROW**, which is 0g's rule
+arriving where it was written for. A summary's facts are PROJECTIONS and none
+of them IS the result, so "the first fact carries the link" would strip the
+viewer from precisely the 30 entries that need one.
+
+**AND THE FACT-LEVEL HALF HAS NO LIVE INSTANCE, so it is guarded on the
+WIRING.** `FactView` builds a `>` button per linked fact and emits
+`link_activated`; the Atom Inspector routes it and this reader never
+connected it, so a link here rendered a control and did nothing -- the same
+silent no-op 0g removed one surface along. Zero of the reader's facts carry
+one today, so there is no end-to-end route to drive, and an unreachable
+branch is a question about where to assert.
+
+### THE PANEL NOW RETAINS RAW RESULTS, WHICH IS A REAL CHANGE
+
+`_show_result` opened the inspector immediately and dropped the object, so
+nothing anywhere held a `PerAtomDataset` once its dialog closed -- and after
+1a `_reports[id]` holds a summary VIEW, which is deliberately not the result.
+So "open this properly" cannot be answered by what the reader is holding.
+
+**THE COST WAS MEASURED RATHER THAN FEARED.** `domain/batch` records a mean
+of **9.05 KiB per retained result** over 424 real results, so one molecule's
+whole set is well under a megabyte. It is keyed and cleared exactly as
+`_reports` is, because a raw result outliving its summary would open the
+PREVIOUS molecule's data under this one's name while every guard on the
+summaries stayed green.
+
+### A VIEWER THAT CANNOT BE REACHED GETS NO BUTTON, AND THAT IS NOT 0g's RULE
+
+`ADAPTERS[VIBRATIONAL_SPECTRUM].rich_view` is `ir_view`, and there is no such
+route: `IrViewWidget` is a TAB inside the Quantum Chemistry panel rather than
+a viewer a single result is handed to. The first version gated the button on
+`bool(target)`, so it would have drawn one labelled by a `.get` fallback and
+answered by the router with "unknown target".
+
+**That is a DIFFERENT claim from 0g's**, which is that a link somebody
+DECLARED must never be a silent no-op. Manufacturing a link known to be
+unroutable is not that, and a control that cannot work is worse than an
+absent one. `_VIEWER_ACTIONS` is the vocabulary; a kind absent from it offers
+nothing, and the entry records WHAT WOULD LIFT IT -- an IR viewer a single
+result can open in, or an `ir_view` route revealing the panel that owns it,
+which is the shape `nmr_view` already degrades to.
+
+### THE SUITE REFUSED A COMPUTED LINK TARGET, AND IT WAS RIGHT
+
+The obvious shape is `FactLink(target=target, ...)` with the focused entry's
+declared viewer in a variable. `test_no_producer_computes_a_link_target`
+rejects it -- and that guard is the narrow half of
+`test_every_emitted_link_target_has_a_handler`, which walks the SOURCE for
+emitted targets and is what found four dead buttons. A target it cannot read
+statically shrinks that guard's universe **without failing it**.
+
+Green suite and a smaller universe, caught before it shipped. `_VIEWER_ACTIONS`
+holds a `FactLink` PROTOTYPE per target with the target as a literal, and the
+report id is filled in per use with `replace` since `FactLink` is frozen.
+
+### ELEVEN ARMS, FIVE SURVIVORS, AND FOUR WERE ONE SHAPE
+
+None equivalent. Four of the five are the same failure -- the PIECES were
+tested and the WIRING between them was not, which this file records five
+times over and which is now recorded a sixth:
+
+    D6   the panel stops retaining the raw result        SURVIVED
+    D8   the raw store outlives its molecule             SURVIVED
+    D9   the window stops routing the reader's request   SURVIVED
+    D10  the handler ignores the reader's param shape    SURVIVED
+    D11  the all-results path leaves a stale button up   SURVIVED
+
+D9 is the middle of a chain both of whose ends were guarded: the dialog had
+tests saying it EMITS and the router had tests saying it ROUTES, and removing
+the connection between them passed every one. Its guard walks every
+`<something>.link_activated.connect(...)` in the window rather than naming the
+two panels, so a third emitting surface is held to the rule without anybody
+remembering it, and the population is asserted so the walk cannot collapse to
+nothing and pass.
+
+**D11 IS THE DEGENERATE-FIXTURE CASE AGAIN.** The existing guard sets the
+focus to "" on a window whose button was never shown, so it holds against a
+render path that does nothing at all. The discriminating sequence is the only
+one a reader performs: focus a summarised result, THEN go back to everything.
+
+#### AND D10's FIRST GUARD WAS THE GREP FAILURE, IN THE GUARD FOR IT
+
+`assert "report_id" in ast.unparse(node)` asks whether the WORD appears. The
+mutation replaces `params.get("report_id")` with `None` and leaves the word
+in the assignment and in the `if`, so the handler stopped reading the reader's
+shape and the guard stayed green **on the second pass**. Grepping for a
+phrase counts the source and not the outcome -- this file's most-repeated
+lesson, committed inside the guard written to catch it, and fixed by walking
+for the `params.get("...")` call instead. Third pass: eleven arms, eleven
+caught.
+
 ## Running the tests
 
 ```bash

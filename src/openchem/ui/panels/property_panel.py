@@ -7,7 +7,7 @@ import os
 from collections.abc import Callable
 from typing import NamedTuple
 
-from PySide6.QtCore import QPoint, QSize, Qt, QTimer
+from PySide6.QtCore import QPoint, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QFontMetrics, QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -1478,6 +1478,17 @@ class PropertyPanel(QWidget):
     that needs the real `MoleculeModel`, not just its uuid.
     """
 
+    #: A request from this panel's results reader to open something.
+    #:
+    #: Carries a `FactLink`, and re-emits the reader's own signal rather than
+    #: answering it here, for the reason `AtomInspectorPanel.link_activated`
+    #: already exists: ROUTING lives in the window that owns the dialogs, so
+    #: this panel stays constructible in a test with no application around
+    #: it. There is ONE router and one outcome vocabulary; a panel that
+    #: opened dialogs itself would be a second place for a target to go
+    #: unrouted, which is the silent no-op 0g removed.
+    link_activated = Signal(object)
+
     def __init__(
         self,
         event_bus: EventBus,
@@ -1559,6 +1570,23 @@ class PropertyPanel(QWidget):
         #: sharing one between them.
         self._descriptor_values: dict[str, DescriptorValue] = {}
         self._reports: dict[str, ReportResult] = {}
+        #: The RAW results behind the summaries in `_reports`, so the reader
+        #: can open the whole thing.
+        #:
+        #: **RETENTION, AND IT IS A REAL CHANGE RATHER THAN A LOOKUP.** This
+        #: panel used to open the inspector immediately and drop the object,
+        #: so nothing anywhere held a `PerAtomDataset` once its dialog closed.
+        #: Measured over the registry on aspirin, **30 of 60 reader entries
+        #: declare a viewer** -- exactly the half that arrives as a summary --
+        #: and a summary with no way back to the result is a dead end.
+        #:
+        #: The cost was measured before it was paid rather than feared:
+        #: `domain/batch` records a mean of **9.05 KiB per retained result**
+        #: over 424 real results, so a molecule's whole set is well under a
+        #: megabyte. It is keyed and cleared exactly as `_reports` is, because
+        #: a raw result outliving its summary is the stale-result confusion
+        #: this panel already had to fix once.
+        self._retained_results: dict[str, object] = {}
         self._report_labels: dict[str, QLabel] = {}
         self._sections: dict[str, _CollapsibleSection] = {}
         # Which section each row currently lives in -- lets
@@ -1714,6 +1742,7 @@ class PropertyPanel(QWidget):
         self._alert_labels.clear()
         self._result_labels.clear()
         self._reports.clear()
+        self._retained_results.clear()
         # The window describes ONE molecule and is keyed on its uuid, so a
         # window left open here would be showing the previous molecule's
         # results under the new molecule's name.
@@ -2105,6 +2134,10 @@ class PropertyPanel(QWidget):
             category=category,
             structure_version=self._current_structure_version(),
         )
+        # The result ITSELF, beside the summary of it. `open_retained_result`
+        # is what the reader's "open the whole thing" action resolves through,
+        # and a summary is the only thing that reaches the reader.
+        self._retained_results[result_id] = result
         self._refresh_results_window()
         section = self._section_for(category or "other")
         label = self._result_labels.get(result_id)
@@ -2529,6 +2562,10 @@ class PropertyPanel(QWidget):
             # closed -- which is what a docked reader is -- would never write
             # its position anywhere.
             window.set_reader_memory(self._reader_memory)
+            # Straight through to whoever owns the dialogs. A bound
+            # SIGNAL rather than a lambda: PySide6 holds a plain
+            # callable strongly, and this panel has paid for that.
+            window.link_activated.connect(self.link_activated)
             self._results_window = window
         self._refresh_results_window()
         if focus:
@@ -3066,6 +3103,25 @@ class PropertyPanel(QWidget):
             return
         top = row.mapTo(container, QPoint(0, 0)).y()
         self._scroll_area.verticalScrollBar().setValue(max(0, top - _REVEAL_MARGIN))
+
+    def open_retained_result(self, report_id: str) -> bool:
+        """Open the whole result the reader is showing a summary of.
+
+        **THE READER HOLDS A VIEW, AND A VIEW IS NOT THE RESULT.** That is the
+        point of the name -- so "open this properly" cannot be answered by the
+        thing the reader is holding, and has to come back to whoever kept the
+        result. This panel is that, and it keeps them keyed exactly as it
+        keeps the summaries.
+
+        Returns whether it could, for the reason `open_result_inspector`
+        does: the router's UNAVAILABLE outcome is a visible message rather
+        than a button that does nothing, and "this molecule's results were
+        cleared" is precisely the state a reader needs told about.
+        """
+        result = self._retained_results.get(report_id)
+        if result is None:
+            return False
+        return self.open_result_inspector(result)
 
     def open_result_inspector(self, result) -> bool:
         """Open the right inspector for `result`, saying whether it could.

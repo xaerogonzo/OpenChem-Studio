@@ -78,6 +78,20 @@ class ResultSummaryView:
     category: str = "other"
     facts: tuple[Fact, ...] = ()
     charts: tuple = ()
+    #: Which dedicated viewer opens the WHOLE result this summarises, or
+    #: `NO_RICH_VIEW`.
+    #:
+    #: **DECLARED HERE BECAUSE A SUMMARY IS A DEAD END WITHOUT IT.** Measured
+    #: over the registry on aspirin: 60 entries reach the reader and **30 of
+    #: them declare a viewer**, which is precisely the half 1a admitted -- so
+    #: without this a reader shows a count and a range for thirty results and
+    #: offers no way to see any of them.
+    #:
+    #: It is the ADAPTER's answer, copied once at projection time rather than
+    #: re-derived by asking `kind_of` again later: a view is not the result,
+    #: so a consumer holding one cannot ask it what kind the result was, and
+    #: a second derivation is a second place for the two to disagree.
+    rich_view: str = ""
     limitations: tuple[str, ...] = ()
     assumptions: tuple[str, ...] = ()
     molecule_uuid: str = ""

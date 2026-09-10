@@ -700,6 +700,10 @@ def summarise(
         category=category,
         facts=adapter.summary(result, fact_category),
         charts=adapter.chart(result),
+        # The adapter's own answer, carried so the reader can offer the whole
+        # result. Without it a summary is a dead end for the 30 of 60 entries
+        # that have a viewer.
+        rich_view=adapter.rich_view,
         # The projection's own caveat FIRST, then whatever the producer said.
         # A reader meeting the producer's caveats under a summary would have
         # no way to tell which half it was reading.

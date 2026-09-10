@@ -27,13 +27,15 @@ wrong, and they look identical from outside.
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QHBoxLayout,
     QLabel,
+    QPushButton,
     QVBoxLayout,
     QWidget,
 )
@@ -46,12 +48,73 @@ from openchem.domain.reader_state import (
     ReaderView,
     reader_state,
 )
+from openchem.domain.report import FactLink
 from openchem.domain.result_ordering import grouped_reports
 from openchem.ui.result_summary import summary_of_merge
 from openchem.ui.widgets.fact_view import FactView
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 logger = logging.getLogger("openchem.ui")
+
+#: Which viewer opens the whole of a summarised result, what the button
+#: calls it, and -- because this table IS the vocabulary -- which kinds get
+#: a button at all.
+#:
+#: The label names the DESTINATION rather than the action. "Open" says
+#: nothing about where you land, and a reader choosing between a summary and
+#: the whole thing is choosing which surface to read it on.
+#:
+#: **A KIND ABSENT FROM IT OFFERS NO BUTTON.**
+#: `ir_view` is deliberately not here. `IrViewWidget` is a TAB inside the
+#: Quantum Chemistry panel rather than a viewer a result can be handed to, so
+#: there is nothing to route to -- and offering a button that reports "unknown
+#: target" is worse than offering none, which is a different claim from 0g's
+#: rule that a link somebody DECLARED must never be a silent no-op.
+#:
+#: Measured: no registry calculator produces a vibrational spectrum at all
+#: (60 results on aspirin, and the kinds are report, per_atom, structure_set,
+#: ph_curve, alert, spectrum, trajectory), so this costs nothing today. WHAT
+#: WOULD LIFT IT: an IR viewer a single result can be opened in, or an
+#: `ir_view` route that reveals the panel owning it -- the shape `nmr_view`
+#: already degrades to when no spectrum is named.
+#:
+#: **PROTOTYPES WITH LITERAL TARGETS, NOT A COMPUTED ONE, AND THE SUITE
+#: REFUSED THE COMPUTED FORM.** The obvious shape is
+#: `FactLink(target=target, ...)` with the focused entry's declared viewer in
+#: a variable -- and `test_no_producer_computes_a_link_target` rejects it,
+#: correctly: `test_every_emitted_link_target_has_a_handler` walks the source
+#: for emitted targets and is what found four dead buttons, so a target it
+#: cannot read statically shrinks that guard's universe without failing it.
+#: The green-suite-and-a-smaller-universe failure, caught before it shipped.
+#:
+#: Each entry carries its own `target` as a literal and its own label; the
+#: report id is filled in per use with `replace`, since `FactLink` is frozen.
+_VIEWER_ACTIONS: dict[str, FactLink] = {
+    "calculator_inspector": FactLink(
+        target="calculator_inspector", label="Open in Calculator Inspector"
+    ),
+    "nmr_view": FactLink(target="nmr_view", label="Open in NMR view"),
+}
+
+#: What the result-level action means. ONE contract for every viewer it
+#: can offer: "open the whole thing" means the same wherever it lands,
+#: and a contract per destination would be one concept wearing several.
+_OPEN_HELP = HelpTooltip(
+    text=(
+        "Open the whole result this summary describes, in the viewer that "
+        "owns it.\n\n"
+        "A per-atom table, a curve, a spectrum, a set of structures and a "
+        "trajectory each reach this window as a SUMMARY -- a count, a range, "
+        "and whatever total the calculator declared. This opens the result "
+        "itself, which is where every value lives.\n\n"
+        "It computes nothing and re-runs nothing. If the result is no longer "
+        "held -- the molecule changed, or its results were cleared -- the "
+        "status bar says so rather than the button doing nothing."
+    ),
+    tier=1,
+    help_id="results.open_full_result",
+    topic="facts",
+)
 
 #: What the focus control means. ONE contract, however many calculators
 #: populate the list -- the same rule `CollapsibleSection`'s toggle
@@ -117,6 +180,21 @@ GROUP_HEADING = -1
 class MergedResultsDialog(QDialog):
     """One molecule's accumulated results, focusable by calculator."""
 
+    #: A request to open something -- a fact's own cross-link, or the WHOLE
+    #: result the focused entry is a summary of.
+    #:
+    #: **ONE SIGNAL FOR BOTH, BECAUSE THEY ARE ONE QUESTION.** Both carry a
+    #: `FactLink`, both are answered by `FactLinkRouter`, and both have the
+    #: same three outcomes -- opened, known but unavailable, unknown target.
+    #: A second signal would be a second place for a target to go unrouted,
+    #: which is the defect 0g exists to remove.
+    #:
+    #: This window does NOT open anything itself. Routing lives in the window
+    #: that owns the dialogs, so this stays constructible in a test with no
+    #: application around it -- the same split `AtomInspectorPanel` already
+    #: makes with `link_activated`.
+    link_activated = Signal(object)
+
     def __init__(
         self,
         molecule_uuid: str,
@@ -151,8 +229,28 @@ class MergedResultsDialog(QDialog):
         row.addWidget(QLabel("Showing:", focus_row))
         row.addWidget(self._focus_box, 1)
 
+        # **THE RESULT-LEVEL ACTION, WHICH A FACT ROW CANNOT CARRY.** Measured
+        # over the registry on aspirin: 60 entries reach the reader and 30 of
+        # them declare a viewer, which is exactly the half that arrives as a
+        # summary. "The first fact carries the link" would strip the viewer
+        # from precisely those, because a summary's facts are projections and
+        # none of them is the result.
+        self._open_button = QPushButton("", focus_row)
+        self._open_button.clicked.connect(self._on_open_clicked)
+        self._open_button.setVisible(False)
+        apply_help_tooltip(self._open_button, _OPEN_HELP)
+        row.addWidget(self._open_button)
+
         self._view = FactView(self)
         self._view.filter_changed.connect(self._remember)
+        # **DEAD IN THIS WINDOW UNTIL NOW.** `FactView` builds a `>` button
+        # per linked fact and emits this; the Atom Inspector routes it and
+        # this reader never connected it, so a link here rendered a control
+        # and did nothing -- the same silent no-op 0g removed one surface
+        # along. Measured, no registry result carries a `FactLink` today, so
+        # this is defence rather than a live fix; it is asserted on the
+        # WIRING for that reason.
+        self._view.link_activated.connect(self.link_activated)
         self._empty = QLabel(EMPTY_MESSAGES[NOTHING_COMPUTED], self)
         self._empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty.setWordWrap(True)
@@ -332,6 +430,54 @@ class MergedResultsDialog(QDialog):
         # A READER moving the control, which is the case the memory is for.
         self._remember()
 
+    def _viewer_for(self, report) -> str:
+        """Which viewer opens the whole of `report`, or "".
+
+        **ASKED OF THE ENTRY, NEVER RE-DERIVED FROM ITS TYPE.** A summary
+        carries the adapter's own answer; a `ReportResult` is already the
+        whole thing and declares none, which is why `getattr` with an empty
+        default is the right shape rather than a lookup that would have to
+        decide what a report's viewer is.
+        """
+        return str(getattr(report, "rich_view", "") or "")
+
+    def _on_open_clicked(self) -> None:
+        """Ask for the whole result behind the focused summary.
+
+        The link names the report rather than a fact, which is the difference
+        between the two things this signal carries: a fact link says "where
+        did this VALUE come from", and this says "show me the result this is
+        a summary OF".
+        """
+        report = self._merged.report_for(self._focus) if self._focus else None
+        if report is None:
+            return
+        target = self._viewer_for(report)
+        if target not in _VIEWER_ACTIONS:
+            return
+        self.link_activated.emit(
+            replace(_VIEWER_ACTIONS[target], params={"report_id": report.report_id})
+        )
+
+    def _sync_open_button(self, report) -> None:
+        """Show the button only where there is something to open.
+
+        Hidden rather than disabled: a disabled control invites a reader to
+        wonder what would enable it, and for an entry that IS the whole
+        result -- every `ReportResult` -- the honest answer is that nothing
+        would. The "All results" view shows none either, because it is
+        several producers at once and no one viewer owns it.
+        """
+        target = self._viewer_for(report) if report is not None else ""
+        # **`in _VIEWER_ACTIONS`, NOT merely truthy.** A kind can declare a
+        # viewer this window has no way to reach -- see the note on that
+        # table -- and `bool(target)` would draw a button for it, labelled by
+        # a fallback and answered by the router with "unknown target". A
+        # control that cannot work is worse than an absent one.
+        self._open_button.setVisible(target in _VIEWER_ACTIONS)
+        if target in _VIEWER_ACTIONS:
+            self._open_button.setText(_VIEWER_ACTIONS[target].label)
+
     def _render(self) -> None:
         state = reader_state(self._molecule_uuid, len(self._merged.reports))
         if state in EMPTY_MESSAGES:
@@ -341,6 +487,7 @@ class MergedResultsDialog(QDialog):
             # "no molecule is selected" is a third, which a reader that
             # follows the selection can be in and this window could not.
             self._empty.setText(EMPTY_MESSAGES[state])
+            self._sync_open_button(None)
             self._view.setVisible(False)
             self._empty.setVisible(True)
             self._view.clear()
@@ -353,8 +500,10 @@ class MergedResultsDialog(QDialog):
             title = self._merged.name_for(report.report_id)
             if self._merged.is_stale(report):
                 title += STALE_MARK
+            self._sync_open_button(report)
             self._view.set_report(report, title, self._summary_for(report))
             return
+        self._sync_open_button(None)
         self._view.set_report(
             summary_of_merge(self._merged, self._molecule_uuid),
             "All results",
