@@ -28,10 +28,14 @@ from openchem.domain.report import (
     FactLink,
     ReportResult,
 )
-from openchem.ui.dialogs.merged_results_dialog import (
-    MergedResultsDialog,
-    _VIEWER_ACTIONS,
-)
+from openchem.ui.dialogs.merged_results_dialog import MergedResultsDialog
+
+# The vocabulary moved with the reader when it left the window. Imported
+# from where it lives rather than re-exported from the shell: a private
+# constant is not public surface, so a test reaching for one follows the
+# implementation, and a re-exported private would be a fiction the next
+# reader has to unpick.
+from openchem.ui.widgets.results_view import _VIEWER_ACTIONS
 from openchem.ui.result_summary import ResultSummaryView
 from tests.conftest import dispose
 
@@ -187,7 +191,8 @@ def test_pressing_it_on_an_unreachable_viewer_asks_for_nothing(window):
     window.link_activated.connect(seen.append)
     window.set_reports([_summary(report_id="ir", name="IR", rich_view="ir_view")])
     window.set_focus("ir")
-    window._on_open_clicked()
+    # On the VIEW: the handler went with the reader when it left the window.
+    window.results_view()._on_open_clicked()
     assert seen == []
 
 

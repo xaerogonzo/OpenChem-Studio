@@ -7464,6 +7464,75 @@ destroyed event bus (`RuntimeError: Signal source has been deleted`) AFTER the
 quit line. That is a pre-existing shutdown race and not this stage's; what it
 cost here was one of the four results the check exists to show.
 
+## A READER THAT FOLLOWS THE SELECTION CANNOT BE A DIALOG
+
+Stage 2a. `MergedResultsDialog` was 759 lines of which almost none was a
+window: a title, a size, and `QDialog`. Everything else is reading, and a
+reader that follows the selection is a DOCK -- something never closed --
+while the same content also has to sit in a pop-out window. So the reader
+moved into `ui/widgets/results_view.ResultsView` and the dialog became a
+shell around it.
+
+**THE EXTRACTION IS BEHAVIOUR-NEUTRAL BY CONSTRUCTION, WHICH IS THE ONLY
+KIND WORTH TRUSTING.** `MergedResultsDialog` keeps its whole surface as
+delegations and ALIASES onto the view's own widgets -- `_view`,
+`_focus_box`, `_selector_search`, `_open_button`, `_visuals`,
+`_visuals_layout`, `_empty`. Measured: **7549 collected before and after,
+149 existing tests unmoved**, and the guard sweep at 1318 either side. Same
+move `ui/widgets/zoomable_svg_view.py` made out of the Lewis dialog, and
+for the same reason -- a refactor whose correctness rests on re-testing
+rests on the tests having been complete.
+
+**A PRIVATE NAME IS NOT PUBLIC SURFACE, AND THE TWO TESTS THAT BROKE ARE
+THE PROOF.** `_VIEWER_ACTIONS` and `_on_open_clicked` were reached from
+`tests/test_result_viewer_actions.py`; both moved with the reader. They
+were re-pointed rather than re-exported from the shell, because a
+re-exported private is a fiction the next reader has to unpick -- the
+PUBLIC surface is what may not move, and a test reaching for a private is
+coupled to the implementation's location by definition.
+
+### THE INITIAL STATE WAS ASSUMED, AND IT WAS THE WRONG ONE
+
+The guard for the dock's precondition failed on its first run, which is
+what a guard is for. `self._empty` is CONSTRUCTED holding
+`EMPTY_MESSAGES[NOTHING_COMPUTED]` and nothing rendered until `set_reports`
+arrived -- true by construction while this was a dialog, because a dialog
+is opened FOR a molecule and `reader_state`'s other empty state was
+**unreachable through the whole application**.
+
+A reader that follows the selection starts exactly there, and the message
+names the wrong problem: "Nothing has been computed for this molecule yet"
+when no molecule is selected sends somebody looking for a calculator to
+run. `_render()` at the end of `__init__` is the fix -- the widget's
+initial state is now its RENDERED state rather than a hardcoded guess at
+one of two.
+
+**IT IS A DEFECT 0i's OWN VOCABULARY PREDICTED AND NOTHING COULD REACH.**
+`reader_state` has named three states since Stage 0 and this window could
+only ever be in two of them.
+
+### SIX ARMS, SIX CAUGHT, AND FOUR BY ONE TEST EACH
+
+    A1  the shell rebuilds a FactView instead of aliasing   21 tests
+    A2  the initial state is not rendered                    1 -- the new guard
+    A3  a public method does reader work, not forwarding     1 -- the AST guard
+    A4  link_activated is not forwarded                      3
+    A5  the molecule uuid goes back to required              1
+    A6  the delegation walk collapses to an empty list       1 -- its own setup
+
+**A3 IS THE ONE WORTH READING**, because it is behaviourally identical
+today: it reimplements `focus()` in the shell by reading the combo box,
+which returns the same answer. Nothing about the application changes, and
+it is exactly the drift the split exists to prevent -- so it is asserted
+on the SOURCE, by AST rather than by a text scan. A search for "reader" or
+"view" would match this file's own explanation of the rule, which is the
+failure this repository has now recorded seven times.
+
+**A6 IS WHY THE AST GUARD ASSERTS ITS OWN POPULATION.** With the walk
+collapsed the `all()` over it is vacuously true, so the guard passes while
+checking nothing -- the green-suite-and-a-smaller-universe failure in
+miniature. `assert len(methods) >= 9` is what refuses it.
+
 ## Running the tests
 
 ```bash
