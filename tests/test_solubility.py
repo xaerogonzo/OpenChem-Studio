@@ -18,6 +18,7 @@ from openchem.chem.logd import (
     ionization_log_factor,
     logd_henderson_hasselbalch,
 )
+from openchem.domain.common import CacheState
 from openchem.chem.pka_providers import PKaResolution, PKaStatus
 from openchem.chem.solubility import (
     AQSOLDB,
@@ -710,14 +711,27 @@ def test_the_curve_carries_its_scalar_findings_as_facts():
     assert any(label.startswith("Predicted intrinsic solubility") for label in labels)
 
 
-def test_the_existing_ph_curves_carry_no_facts():
-    """`facts` was added for solubility. Migrating `isoelectric_point` and
-    `logd_curve` off their name-string workaround is a separate decision,
-    and this pins that it has not drifted in."""
+def test_a_ph_curve_that_could_not_run_declares_no_facts():
+    """Supersedes `test_the_existing_ph_curves_carry_no_facts`, which pinned
+    the isoelectric/logD migration as not-yet-done. That migration has now
+    happened -- see `tests/test_ph_curves.py`.
+
+    **AND THAT GUARD WAS VACUOUS, WHICH IS THE PART WORTH KEEPING.** It passed
+    `interpreter_path=None`, so both curves took the `_failed_curve` path,
+    which never sets facts under any implementation. It asserted `facts == ()`
+    on a branch that has none by construction, so it would have passed
+    identically after the migration it existed to detect.
+
+    What is true and worth pinning is the narrower claim: a curve that could
+    not run declares nothing. A refusal has no scalar findings to report.
+    """
     from openchem.chem.ph_curves import compute_isoelectric_point, compute_logd_curve
 
     for compute in (compute_isoelectric_point, compute_logd_curve):
         result = compute(mol(ASPIRIN), "u", {}, interpreter_path=None)
+        assert result.cache_state is CacheState.FAILED, (
+            "fixture is degenerate: this must take the refusal path"
+        )
         assert result.facts == ()
 
 

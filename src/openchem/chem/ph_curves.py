@@ -31,6 +31,7 @@ from rdkit.Chem import Crippen, Lipinski
 
 from openchem.chem.calculator_options import ph_grid_from
 from openchem.domain.common import CacheState, Provenance
+from openchem.domain.report import Basis, Fact, FactCategory
 from openchem.domain.scientific_result import (
     PhCurveResult,
     StructureEntry,
@@ -116,6 +117,47 @@ def isoelectric_point(
         else:
             low = middle
     return (low + high) / 2.0
+
+
+def _fact(
+    label: str,
+    value: object,
+    display: str,
+    *,
+    source: str,
+    units: str = "",
+    category: FactCategory = FactCategory.ELECTRONIC,
+    basis: Basis = Basis.HEURISTIC,
+    evidence: tuple[str, ...] = (),
+    limitations: tuple[str, ...] = (),
+) -> Fact:
+    """One scalar finding declared BY THE PRODUCER.
+
+    **THESE USED TO BE INTERPOLATED INTO THE DISPLAY NAME**, because
+    `PhCurveResult` had nowhere else to put them -- `compute_isoelectric_point`
+    built `f"Charge vs pH - pI = {pi:.2f}"` and `compute_logd_curve` built
+    `f"LogD vs pH (LogP = {...})"`. A name is not a value: it cannot carry
+    units, a basis, evidence or a limitation, and it cannot be copied out as
+    data. `PhCurveResult.facts` was added for solubility with that migration
+    explicitly deferred; this is it.
+
+    `source` is REQUIRED rather than defaulted to the producer, because these
+    scalars do not share one. The pI comes from predicted pKa values and the
+    LogP from RDKit's Crippen implementation, and flattening both to
+    "ph_curves" would destroy real provenance to record the module they
+    happened to be assembled in.
+    """
+    return Fact(
+        category=category,
+        label=label,
+        value=value,
+        display_value=display,
+        source=source,
+        basis=basis,
+        units=units,
+        evidence=evidence,
+        limitations=limitations,
+    )
 
 
 def _resolve_pkas(
@@ -210,15 +252,41 @@ def compute_isoelectric_point(
     charges = [net_charge_at_ph(ph, pkas, n_acids, n_bases, permanent) for ph in grid]
     pi = isoelectric_point(pkas, n_acids, n_bases, permanent)
 
-    name = f"Charge vs pH — pI = {pi:.2f}" if pi is not None else "Charge vs pH — no isoelectric point in 0-14"
+    # DECLARED, not interpolated into the name. `isoelectric_point` returns
+    # None when the net charge never crosses zero in PH_MIN..PH_MAX, and its
+    # docstring is explicit that this is a real answer rather than a failure:
+    # a permanently charged molecule genuinely has no isoelectric point, and
+    # reporting a boundary value would invent one. So the absence is declared
+    # too, with `value=None` -- n/a is not 0, and a missing fact would read as
+    # "not computed".
+    #
+    # The name loses the number AND an em dash with it. That character passes
+    # a cp1252 assertion and still renders as a replacement character on a
+    # real Windows console, which this repository records costing a refusal
+    # message its meaning once already.
+    facts = (
+        _fact(
+            "Isoelectric point (pI)",
+            pi,
+            f"{pi:.2f}" if pi is not None else f"none between pH {PH_MIN:.0f} and {PH_MAX:.0f}",
+            source="pkasolver",
+            limitations=()
+            if pi is not None
+            else (
+                "The net charge does not cross zero anywhere in the sampled "
+                "range, so this molecule has no isoelectric point there.",
+            ),
+        ),
+    )
     return PhCurveResult(
         curve_id="isoelectric_point",
-        name=name,
+        name="Charge vs pH",
         method="pkasolver",
         molecule_uuid=molecule_uuid,
         ph_values=grid,
         series={"Net charge": charges},
         y_label="charge",
+        facts=facts,
         provenance=Provenance(
             created_by="core", method="pkasolver", parameters={"pI": pi, "pka_values": pkas}
         ),
@@ -261,14 +329,32 @@ def compute_logd_curve(
             "logd_curve", "LogD vs pH", molecule_uuid, "No ionizable centre to vary with pH."
         )
 
+    # Declared rather than interpolated into the name -- same migration as
+    # the isoelectric curve above. LogP is the value logD reduces to when
+    # nothing is ionized, so it is the number a reader compares the curve
+    # against; it belonged in a field rather than in a title all along.
+    logp = float(Crippen.MolLogP(mol))
+    facts = (
+        _fact(
+            "LogP",
+            logp,
+            f"{logp:.2f}",
+            # RDKit, not "pkasolver": this one does not come from the pKa
+            # predictor at all, and `source` answers where a value came from
+            # rather than which module assembled it.
+            source="RDKit",
+            evidence=("Crippen fragment method",),
+        ),
+    )
     return PhCurveResult(
         curve_id="logd_curve",
-        name=f"LogD vs pH (LogP = {Crippen.MolLogP(mol):.2f})",
+        name="LogD vs pH",
         method="pkasolver",
         molecule_uuid=molecule_uuid,
         ph_values=grid,
         series={"logD": [float(value) for value in values]},
         y_label="logD",
+        facts=facts,
         provenance=Provenance(
             created_by="core", method="pkasolver", parameters={"pka_values": pkas}
         ),
