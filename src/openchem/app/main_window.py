@@ -103,6 +103,7 @@ from openchem.ui.panels.structure_check_panel import StructureCheckPanel
 from openchem.ui.widgets.checker_status_indicator import CheckerStatusIndicator
 from openchem.ui.widgets.dock_title_bar import DockTitleBar
 from openchem.ui.panels.comparison_panel import ComparisonPanel
+from openchem.ui.fact_link_router import FactLinkRouter
 from openchem.ui.widgets.panel_rail import DEFAULT_GROUP, PanelRail
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
 from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
@@ -425,6 +426,7 @@ class MainWindow(QMainWindow):
             structure_check_service=services.structure_check_service,
             parent=self,
         )
+        self._fact_link_router = self._build_fact_link_router()
         self._atom_inspector_panel.link_activated.connect(self._on_atom_fact_link)
         self._atom_inspector_panel.atoms_highlighted.connect(self._on_facts_highlighted)
         self._atom_inspector_panel._facts.compare_requested.connect(self._on_compare_requested)
@@ -3252,6 +3254,97 @@ class MainWindow(QMainWindow):
             9000,
         )
 
+    def _build_fact_link_router(self) -> FactLinkRouter:
+        """Every `FactLink` target this application can follow.
+
+        **THE MAP IS THE VOCABULARY.** `FactLink.target` is deliberately open
+        so a new destination does not change that class, so a target with no
+        entry here is UNKNOWN by construction rather than by comparison
+        against a second list that would rot.
+
+        Four of these were missing and their links were dead buttons -- see
+        `ui/fact_link_router.py` for the measurement. A handler returns
+        whether it opened something, so declining is an ordinary answer
+        rather than an exception.
+        """
+        return FactLinkRouter(
+            {
+                "periodic_table": self._link_to_periodic_table,
+                "structure_check": self._link_to_structure_check,
+                "interactions": self._link_to_interactions,
+                "atom_report": self._link_to_atom_report,
+                "calculator_inspector": self._link_to_calculator_inspector,
+                "nmr_view": self._link_to_nmr_view,
+            }
+        )
+
+    def _link_to_periodic_table(self, params: dict) -> bool:
+        self._show_periodic_table()
+        dialog = getattr(self, "_periodic_table_dialog", None)
+        symbol = params.get("symbol")
+        if dialog is None:
+            return False
+        if symbol:
+            dialog.select(symbol)
+        return True
+
+    def _link_to_structure_check(self, _params: dict) -> bool:
+        self._structure_check_dock.show()
+        self._structure_check_dock.raise_()
+        return True
+
+    def _link_to_interactions(self, _params: dict) -> bool:
+        parent = self._interactions_panel.parentWidget()
+        if parent is None:
+            return False
+        parent.show()
+        parent.raise_()
+        return True
+
+    def _link_to_atom_report(self, params: dict) -> bool:
+        """`bond_report`'s "Inspect C7" -- select that atom in the inspector.
+
+        `select_atom` bounds-checks, so an index the current molecule does not
+        have is refused there rather than here.
+        """
+        index = params.get("atom_index")
+        if index is None:
+            return False
+        self._on_panel_chosen("Atom_Inspector")
+        self._atom_inspector_panel.select_atom(int(index))
+        return True
+
+    def _link_to_calculator_inspector(self, params: dict) -> bool:
+        """Two shapes, because two producers emit this target.
+
+        `atom_report` names a `calculator_id` -- a per-atom dataset the
+        inspector is already holding -- and `molecule_report` names a
+        `descriptor_id`, whose home is the Properties panel row. They are the
+        same destination in the sense that both mean "show me the tool this
+        came from", and different in where that tool is.
+        """
+        calculator_id = params.get("calculator_id")
+        if calculator_id:
+            dataset = self._atom_inspector_panel.retained_result("per_atom", calculator_id)
+            return self._property_panel.open_result_inspector(dataset)
+        descriptor_id = params.get("descriptor_id")
+        if descriptor_id:
+            self._reveal_descriptor(str(descriptor_id))
+            return True
+        return False
+
+    def _link_to_nmr_view(self, params: dict) -> bool:
+        """`atom_report` names a `spectrum_type`; `molecule_report` names
+        nothing and just means "open NMR"."""
+        spectrum_type = params.get("spectrum_type")
+        if spectrum_type:
+            spectrum = self._atom_inspector_panel.retained_result("spectra", spectrum_type)
+            return self._property_panel.open_result_inspector(spectrum)
+        # No spectrum named: reveal the panel that owns NMR rather than
+        # guessing which spectrum was meant.
+        self._on_panel_chosen("Quantum_Chemistry")
+        return True
+
     def _on_atom_fact_link(self, link) -> None:
         """Follow a fact's cross-link to the tool that produced it.
 
@@ -3259,19 +3352,15 @@ class MainWindow(QMainWindow):
         me that properly". Routing lives here because the panel should not
         have to know how to open a dialog -- that keeps it constructible
         in a test without a window.
+
+        **AND THE OUTCOME IS ALWAYS VISIBLE.** This was an `if/elif` chain
+        that fell off the end, so a link naming any of four real targets
+        rendered a button and did nothing. A silent no-op is
+        indistinguishable from a broken control.
         """
-        if link.target == "periodic_table":
-            self._show_periodic_table()
-            dialog = getattr(self, "_periodic_table_dialog", None)
-            symbol = link.params.get("symbol")
-            if dialog is not None and symbol:
-                dialog.select(symbol)
-        elif link.target == "structure_check":
-            self._structure_check_dock.show()
-            self._structure_check_dock.raise_()
-        elif link.target == "interactions":
-            self._interactions_panel.parentWidget().show()
-            self._interactions_panel.parentWidget().raise_()
+        result = self._fact_link_router.follow(link)
+        if not result.opened:
+            self.statusBar().showMessage(result.message, 10000)
 
     def _toggle_oxidation_states(self, checked: bool) -> None:
         """Mirror of the panel's own checkbox.

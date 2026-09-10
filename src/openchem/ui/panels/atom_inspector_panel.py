@@ -336,6 +336,25 @@ class AtomInspectorPanel(QWidget):
         self._atom_index = None
         self._rebuild_atom_table()
 
+    def retained_result(self, kind: str, key: str):
+        """A per-atom dataset or spectrum this panel already holds, or None.
+
+        **THE LINKS IT EMITS POINT AT THESE**, so something has to be able to
+        resolve one at click time. `atom_report` builds a
+        `calculator_inspector` link naming a `calculator_id` and `bond_report`
+        an `nmr_view` link naming a `spectrum_type`; both were dead buttons
+        because the router had no way to get from the id back to the result.
+
+        `kind` is "per_atom" or "spectra", matching `_context_for`'s own keys
+        rather than a second vocabulary beside them.
+
+        Returns None rather than raising when nothing matches -- that is the
+        UNAVAILABLE case, and it is a statement about what has been computed
+        for this molecule rather than an error.
+        """
+        context = self._context.get(self._molecule_uuid or "", {})
+        return (context.get(kind) or {}).get(key)
+
     def _context_for(self, molecule_uuid: str) -> dict:
         return self._context.setdefault(
             molecule_uuid, {"per_atom": {}, "spectra": {}, "issues": ()}

@@ -2967,6 +2967,23 @@ class PropertyPanel(QWidget):
         top = row.mapTo(container, QPoint(0, 0)).y()
         self._scroll_area.verticalScrollBar().setValue(max(0, top - _REVEAL_MARGIN))
 
+    def open_result_inspector(self, result) -> bool:
+        """Open the right inspector for `result`, saying whether it could.
+
+        The public face of `_open_inspector`, added so the fact-link router
+        can follow a `calculator_inspector` link without reaching into a
+        private -- and returning a BOOL because the router's UNAVAILABLE
+        outcome needs to know. `_open_inspector` returns early and silently
+        when there is no project or no molecule, which is exactly the state
+        the reader needs told about rather than a button that does nothing.
+        """
+        if result is None or self._project is None:
+            return False
+        if self._project.find_molecule(getattr(result, "molecule_uuid", "")) is None:
+            return False
+        self._open_inspector(result)
+        return True
+
     def _open_inspector(self, result: PerAtomDataset | SpectrumResult) -> None:
         if self._project is None:
             return
