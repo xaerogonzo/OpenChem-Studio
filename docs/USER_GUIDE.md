@@ -681,6 +681,13 @@ kept** — in that box, in the heading and in a line above the values. Re-run th
 calculator to refresh it. A stale answer and a missing one are different things,
 and silently serving one looks exactly like silently discarding it.
 
+**The window remembers where you were reading, per molecule.** Close it and
+reopen it and you get back the report you had chosen and the filter you had
+typed — including when that report has since gone stale, because a stale result
+is a record of what was computed and jumping away from it would discard it in
+the one place you were looking. It falls back to *All results* only when the
+report genuinely is not there any more, and it keeps your filter when it does.
+
 A *shape*-valued result is the exception and still opens on its own 3D model,
 as described under **Some results draw themselves on a 3D model** above.
 

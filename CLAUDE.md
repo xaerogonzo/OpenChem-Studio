@@ -6765,6 +6765,97 @@ a replacement string joined with `\n` matches nothing against decoded bytes;
 unchanged. Reach for a real editing tool the moment the content contains an
 escape -- the rule was already written down twice.
 
+## A READER'S POSITION HAD NEVER HAD TO SURVIVE ANYTHING
+
+`MergedResultsDialog` is opened for one molecule and closed when the selection
+moves, so "which report was focused" was never state anybody kept. Close it and
+reopen it and you got "All results" and an empty filter box, whatever you had
+been reading a second earlier. A reader that FOLLOWS the selection -- which is
+what a dock is -- turns that into state, and the failure mode is not neutral:
+silently jumping back to All results every time somebody glances at another
+molecule is worse than the window it replaces.
+
+`domain/reader_state.py` is the model: `ReaderMemory` (what each molecule was
+showing, by uuid) and `reader_state` (which of three empty-or-not states a
+reader is in).
+
+### THE SAVE-ON-CLOSE HOOK IS THE WRONG SHAPE, AND IT IS THE OBVIOUS ONE
+
+`finished` covers the X, `close()` and Escape alike -- `PopOutWindow` already
+relies on exactly that, and this file records why `closeEvent` alone leaks the
+Escape key. It is still wrong here: **a persistent reader never closes**, so a
+save-on-close design settles nothing for the surface the behaviour is being
+settled FOR. The position is recorded as the reader MOVES it, through a new
+`FactView.filter_changed`, and the memory is never behind.
+
+**AND THE COMPLEMENT IS LOAD-BEARING: A HOST RESTORING MUST NOT WRITE BACK.**
+`set_filter_state` and `apply_view` deliberately do NOT record. With a recall
+that FELL BACK -- the focused report is gone -- recording the restore would
+overwrite the remembered id with the empty one, so a report that came back
+later could never be restored again. Two mutations, two guards.
+
+### THE STALE RULE IS A PROPERTY OF THE INPUT, NOT A RULE TO REMEMBER
+
+A stale result is a record of what was computed, and this project refuses to
+discard one everywhere else; jumping away from a stale selection discards it in
+the one place somebody is looking. So `ReaderMemory` **is never told about
+staleness at all** -- it is handed the ids that EXIST and restores whatever is
+among them, and a stale report is one of them. That is stronger than a rule
+saying "do not filter on stale", and it moves the real risk to the call site,
+where the guard belongs: the panel must offer every report id, stale included.
+Mutating it to offer only current ones is caught by one test.
+
+**FALLING BACK KEEPS THE FILTER.** Only the report is forgotten. The search text
+is about what somebody is looking FOR, and clearing "lewis" because a report
+vanished answers a question nobody asked. The memory is per uuid, so no molecule
+inherits another's.
+
+### "EVERYTHING" IS NOT A `Detail`, AND STORING IT LIKE ONE WOULD BE AMBIGUOUS
+
+`FactView` gives the depth combo's "Everything" entry the data `""` -- it is the
+ABSENCE of a depth filter rather than a `Detail` member, which is why
+`_showing_everything` asks `not currentData()`. Mirroring that in a saved
+position would make `""` mean *showing everything* in a record where every other
+empty string means *nothing remembered*. It is a bool.
+
+**AND `filter_state()` READS THE CONTROLS, NOT THE RENDERED ANSWER.**
+`_showing_everything` is also True in compact mode, where the controls are
+HIDDEN -- recording that would save a filter nobody set and restore it into a
+view whose controls are visible.
+
+### THE PLAN'S OWN ACCEPTANCE SCENARIO CANNOT ARISE YET, AND SAYING SO IS THE POINT
+
+It reads: leave molecule A, return, find BBB Score present but STALE. Measured,
+`_on_molecule_selected` calls `self._reports.clear()`, so A's calculator results
+are GONE rather than stale and the memory can only restore the filter across a
+switch. Per-molecule result retention would fix it -- `BatchResultStore` already
+proves the pattern and its cost -- and it would desynchronise the panel's rows
+from the window until Stage 2c empties the panel, so it belongs there. The
+restore rule is written so it passes unchanged when retention lands, and the
+guard for the stale case reaches it the way that IS available today: close the
+window, move the structure, reopen.
+
+Driven end to end: reader chooses Lewis Sites, closes, reopens -> restored;
+erase an oxygen, close, reopen -> `focus='lewis_sites'`, the box reads
+"Lewis Sites (stale)", and the line above the facts says why.
+
+### THIRTEEN MUTATION ARMS, AND THE SURVIVOR WAS THE NO-MOLECULE CASE
+
+Twelve caught first time. **I13 -- the window recording under
+`self._molecule_uuid or "x"` -- SURVIVED**, and it is a real hole rather than an
+equivalent: a reader with nothing selected still has a search box somebody can
+type in, and filing that under any key means the next molecule inherits a filter
+it never had. `ReaderMemory.remember` refuses a falsy uuid and **cannot help**,
+because the failure is the window substituting a truthy one. The guard is the
+recording half of the no-molecule state, opposite the rendering half that was
+already there. Second pass: thirteen arms, thirteen caught.
+
+**`_on_molecule_selected` SETS THE PANEL'S UUID FIRST AND CLOSES THE WINDOW
+AFTER**, so anything reading the PANEL's uuid to record a position would file
+the old molecule's reading position under the new molecule's name. The window
+records under its own `molecule_uuid()`, which cannot be wrong about what it was
+showing, and a guard asserts that rather than trusting the ordering to stay put.
+
 ## Running the tests
 
 ```bash

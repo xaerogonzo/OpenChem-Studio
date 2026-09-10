@@ -23,6 +23,7 @@ from openchem.domain.report import (
 )
 from openchem.ui.dialogs.merged_results_dialog import (
     ALL_RESULTS,
+    EMPTY_MESSAGES,
     GROUP_HEADING,
     STALE_MARK,
     MergedResultsDialog,
@@ -464,3 +465,123 @@ def test_a_completed_report_carries_no_status_line(qapp):
     text = dialog._view.summary_text()
     assert "did not run" not in text and "Not applicable" not in text
     dispose(dialog)
+
+
+# --- the three states a reader can be empty in ---------------------------
+
+
+def test_a_reader_with_no_molecule_says_so_rather_than_nothing_computed(qapp):
+    """**TWO EMPTY STATES, NOT ONE.** "Pick a molecule" and "nothing has been
+    computed for this one yet" send a reader to two different places. This
+    window is always opened FOR a molecule, so the first has had no route
+    through the application -- a reader that follows the selection has one,
+    which is why the text exists before the dock does.
+    """
+    from openchem.domain.reader_state import NO_MOLECULE, NOTHING_COMPUTED
+
+    nothing = MergedResultsDialog("")
+    nothing.set_reports([])
+    assert nothing._empty.text() == EMPTY_MESSAGES[NO_MOLECULE]
+
+    a_molecule = MergedResultsDialog("mol-1")
+    a_molecule.set_reports([])
+    assert a_molecule._empty.text() == EMPTY_MESSAGES[NOTHING_COMPUTED]
+    assert EMPTY_MESSAGES[NO_MOLECULE] != EMPTY_MESSAGES[NOTHING_COMPUTED]
+    dispose(nothing)
+    dispose(a_molecule)
+
+
+def test_a_reader_with_results_shows_them_rather_than_either_message(qapp):
+    """The narrow half: "always show the empty label" satisfies the pair
+    above and hides every result in the application."""
+    window = MergedResultsDialog("mol-1")
+    window.set_reports(_two())
+    assert window._empty.isHidden()
+    assert not window._view.isHidden()
+    dispose(window)
+
+
+# --- where the reader is --------------------------------------------------
+
+
+def test_the_window_reports_its_own_position(qapp):
+    window = MergedResultsDialog("mol-1")
+    window.set_reports(_two())
+    window.set_focus("lewis_sites")
+    window._view.search_box().setText("donor")
+    view = window.view()
+    assert view.report_id == "lewis_sites"
+    assert view.search == "donor"
+    assert view.everything is False
+    dispose(window)
+
+
+def test_applying_a_position_does_not_record_it_as_a_move(qapp):
+    """**A HOST RESTORING MUST NOT WRITE BACK.** With a recall that FELL BACK
+    -- the focused report is gone -- recording the restore would overwrite the
+    remembered id with the empty one, and a report that came back later could
+    never be restored again."""
+    from openchem.domain.reader_state import ReaderMemory, ReaderView
+
+    memory = ReaderMemory()
+    memory.remember("mol-1", ReaderView(report_id="gone", search="donor"))
+    window = MergedResultsDialog("mol-1")
+    window.set_reader_memory(memory)
+    window.set_reports(_two())
+
+    window.apply_view(memory.recall("mol-1", [r.report_id for r in window.merged().reports]))
+    assert window.focus() == "", "the remembered report is genuinely absent"
+    assert memory.recall("mol-1", ["gone"]).report_id == "gone", (
+        "the restore overwrote the memory it came from"
+    )
+    dispose(window)
+
+
+def test_a_reader_choosing_in_the_box_is_recorded(qapp):
+    """The complement: a READER moving the control is exactly what the memory
+    is for, so this must be written."""
+    from openchem.domain.reader_state import ReaderMemory
+
+    memory = ReaderMemory()
+    window = MergedResultsDialog("mol-1")
+    window.set_reader_memory(memory)
+    window.set_reports(_two())
+
+    index = window._focus_box.findData("lewis_sites")
+    window._focus_box.setCurrentIndex(index)
+    assert memory.recall("mol-1", ["lewis_sites"]).report_id == "lewis_sites"
+    dispose(window)
+
+
+def test_a_window_with_no_memory_behaves_exactly_as_before(qapp):
+    """Optional, so nothing that builds one without a memory changes."""
+    window = MergedResultsDialog("mol-1")
+    window.set_reports(_two())
+    window.set_focus("lewis_sites")
+    window._view.search_box().setText("donor")
+    assert window.focus() == "lewis_sites"
+    dispose(window)
+
+
+def test_a_reader_with_no_molecule_records_no_position(qapp):
+    """**THE OTHER HALF OF THE NO-MOLECULE STATE, AND ONLY MUTATION FOUND
+    IT.** The rendering half is above; this is the recording one. A reader
+    with nothing selected still has a search box somebody can type in, and
+    filing that under any key at all means the next molecule to arrive
+    inherits a filter it never had.
+
+    `ReaderMemory.remember` refuses a falsy uuid, and that cannot help here:
+    the failure is the WINDOW substituting a truthy one. Mutating
+    `self._molecule_uuid` to `self._molecule_uuid or "x"` passed every other
+    guard in this file.
+    """
+    from openchem.domain.reader_state import ReaderMemory
+
+    memory = ReaderMemory()
+    window = MergedResultsDialog("")
+    window.set_reader_memory(memory)
+    window.set_reports([])
+
+    window._view.search_box().setText("ring")
+    assert len(memory) == 0, "a reader with no molecule filed a position"
+    dispose(window)

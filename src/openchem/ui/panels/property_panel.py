@@ -42,6 +42,7 @@ from openchem.domain.common import CacheState, describe_failure
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.descriptor_aggregate import aggregate_descriptors
 from openchem.domain.project import ProjectModel
+from openchem.domain.reader_state import ReaderMemory
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
 from openchem.domain.structure_resolution import resolve_structure_for_report
 from openchem.ui import visual_check
@@ -1505,6 +1506,14 @@ class PropertyPanel(QWidget):
         #: the second calculator whose results the window exists to
         #: accumulate.
         self._results_window = None
+        #: Where each molecule's reader was left, by uuid.
+        #:
+        #: **HELD BY THE PANEL, NOT BY THE WINDOW**, because the window is
+        #: closed and rebuilt whenever the selection moves -- which is the one
+        #: thing this has to survive. A reader that silently jumps back to
+        #: "All results" every time somebody glances at another molecule is
+        #: worse than the window it replaces.
+        self._reader_memory = ReaderMemory()
         #: Fact-based reports, kept so "Details..." can open one after the
         #: fact. Plain data keyed by string -- never a dict keyed by a
         #: QWidget, which hashes on a C++ pointer Qt frees with the parent.
@@ -1640,6 +1649,11 @@ class PropertyPanel(QWidget):
 
     def set_project(self, project: ProjectModel | None) -> None:
         self._project = project
+        # A new project's molecules carry new uuids, so nothing could be READ
+        # back by mistake -- this is housekeeping rather than correctness, so a
+        # long session does not accumulate the positions of molecules nothing
+        # can reach any more.
+        self._reader_memory.clear()
 
     def _on_molecule_selected(self, event: MoleculeSelected) -> None:
         self._selected_molecule_uuid = event.molecule_uuid
@@ -2454,10 +2468,29 @@ class PropertyPanel(QWidget):
             # A BOUND METHOD, not a lambda capturing self: PySide6 holds a
             # plain callable strongly and this codebase has paid for that.
             window.set_structure_resolver(self._resolve_structure_for_report)
+            # WHERE THIS MOLECULE'S READER WAS. Given to the window rather
+            # than read out of it on close, because a window that is never
+            # closed -- which is what a docked reader is -- would never write
+            # its position anywhere.
+            window.set_reader_memory(self._reader_memory)
             self._results_window = window
         self._refresh_results_window()
         if focus:
+            # An explicit destination beats a remembered one: pressing
+            # "Details..." beside a calculator is asking for THAT report, and
+            # `set_focus` records it as the new position.
             window.set_focus(focus)
+        else:
+            # **EVERY REPORT ID, STALE ONES INCLUDED.** The memory is not told
+            # about staleness -- it restores whatever still EXISTS -- so the
+            # rule that a stale selection is kept rather than jumped away from
+            # lives in what is offered here. Filtering this to current results
+            # would silently reinstate the behaviour the rule forbids.
+            window.apply_view(
+                self._reader_memory.recall(
+                    uuid, [r.report_id for r in window.merged().reports]
+                )
+            )
         window.show()
         window.raise_()
         window.activateWindow()

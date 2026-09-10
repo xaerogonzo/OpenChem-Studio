@@ -40,6 +40,12 @@ from PySide6.QtWidgets import (
 
 from openchem.domain.common import CacheState, describe_failure
 from openchem.domain.merged_results import MergedResults, merge_reports
+from openchem.domain.reader_state import (
+    NO_MOLECULE,
+    NOTHING_COMPUTED,
+    ReaderView,
+    reader_state,
+)
 from openchem.domain.result_ordering import grouped_reports
 from openchem.ui.widgets.fact_view import FactView
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
@@ -72,6 +78,25 @@ STALE_MARK = " (stale)"
 #: A real entry rather than an empty string, so the control always names
 #: what it is currently doing.
 ALL_RESULTS = "All results"
+
+#: What an empty reader says, per `reader_state`.
+#:
+#: **TWO MESSAGES, BECAUSE THERE ARE TWO EMPTY STATES.** "Pick a molecule"
+#: and "nothing has been computed for this one yet" send a reader to two
+#: different places, and this window rendered only the second -- it is
+#: opened for a molecule, so the first has had no route through the
+#: application. A reader that FOLLOWS the selection has one, which is why
+#: the text exists before the dock does.
+EMPTY_MESSAGES = {
+    NO_MOLECULE: (
+        "No molecule is selected.\n\n"
+        "Choose one and everything computed for it appears here."
+    ),
+    NOTHING_COMPUTED: (
+        "Nothing has been computed for this molecule yet.\n\n"
+        "Run a calculator and its results appear here."
+    ),
+}
 
 #: The data a group heading carries.
 #:
@@ -108,6 +133,9 @@ class MergedResultsDialog(QDialog):
         # testable without one. Absent, the order is still total and still
         # stable; it just cannot honour the editorial order WITHIN a section.
         self._display_order_of = display_order_of
+        # Where this molecule's reader was, if anything is keeping track.
+        # Optional, so a window built without one behaves exactly as before.
+        self._memory = None
 
         self.setWindowTitle(f"Results - {molecule_name}" if molecule_name else "Results")
         self.resize(560, 680)
@@ -123,11 +151,8 @@ class MergedResultsDialog(QDialog):
         row.addWidget(self._focus_box, 1)
 
         self._view = FactView(self)
-        self._empty = QLabel(
-            "Nothing has been computed for this molecule yet.\n\n"
-            "Run a calculator and its results appear here.",
-            self,
-        )
+        self._view.filter_changed.connect(self._remember)
+        self._empty = QLabel(EMPTY_MESSAGES[NOTHING_COMPUTED], self)
         self._empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty.setWordWrap(True)
 
@@ -157,6 +182,44 @@ class MergedResultsDialog(QDialog):
 
     def molecule_uuid(self) -> str:
         return self._molecule_uuid
+
+    # --- where the reader is ------------------------------------------------
+
+    def set_reader_memory(self, memory) -> None:
+        """Record this reader's position, as it moves.
+
+        **RECORDED ON EVERY CHANGE, NOT SAVED ON CLOSE.** A save-on-close hook
+        would work here -- `finished` covers the X, `close()` and Escape alike,
+        which `PopOutWindow` already relies on -- and it settles nothing for
+        the surface this behaviour is being settled FOR: a persistent reader
+        never closes. So the position is written as the reader moves it, and
+        the memory is never behind.
+        """
+        self._memory = memory
+
+    def view(self) -> ReaderView:
+        """What this window is showing: the focused report and the filter."""
+        search, everything = self._view.filter_state()
+        return ReaderView(report_id=self._focus, search=search, everything=everything)
+
+    def apply_view(self, view: ReaderView) -> None:
+        """Put the window where `view` says, without recording that as a move.
+
+        The filter first, then the focus -- `set_focus` renders, so setting
+        them the other way round renders the new report through the OLD filter
+        and then again through the new one.
+        """
+        self._view.set_filter_state(view.search, view.everything)
+        self._apply_focus(view.report_id)
+        # NOT a `_remember`. A host restoring a position must not write it
+        # back: with a memory whose recall FELL BACK -- the focused report is
+        # gone -- recording the restore would overwrite the remembered id with
+        # the empty one, so a report that came back later could never be
+        # restored again.
+
+    def _remember(self) -> None:
+        if self._memory is not None:
+            self._memory.remember(self._molecule_uuid, self.view())
 
     def set_reports(self, reports, structure_version: int = 0) -> None:
         """Replace what this window shows.
@@ -188,6 +251,14 @@ class MergedResultsDialog(QDialog):
         contribute a chart or a 3D annotation, "the first one" stops being
         an answer to anything.
         """
+        self._apply_focus(report_id)
+        # A HOST ACTING FOR A READER -- pressing "Details..." beside a
+        # calculator is choosing that report, and it is where the reader
+        # should be when they come back. `apply_view` deliberately does NOT
+        # come through here; see its own note.
+        self._remember()
+
+    def _apply_focus(self, report_id: str) -> None:
         # `is not None`. A refused calculator's report has no facts, and
         # truthiness here made it unfocusable -- it appeared in the selector
         # and choosing it fell back to All results, silently.
@@ -257,12 +328,18 @@ class MergedResultsDialog(QDialog):
     def _on_focus_changed(self, _index: int) -> None:
         self._focus = str(self._focus_box.currentData() or "")
         self._render()
+        # A READER moving the control, which is the case the memory is for.
+        self._remember()
 
     def _render(self) -> None:
-        if not self._merged.reports:
+        state = reader_state(self._molecule_uuid, len(self._merged.reports))
+        if state in EMPTY_MESSAGES:
             # NOT an empty FactView. "Nothing has been computed" and
             # "everything ran and had nothing to say" are different
-            # statements, and an empty report makes the second one.
+            # statements, and an empty report makes the second one -- and
+            # "no molecule is selected" is a third, which a reader that
+            # follows the selection can be in and this window could not.
+            self._empty.setText(EMPTY_MESSAGES[state])
             self._view.setVisible(False)
             self._empty.setVisible(True)
             self._view.clear()

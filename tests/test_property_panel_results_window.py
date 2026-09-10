@@ -447,3 +447,159 @@ def test_the_results_window_orders_by_the_registrys_own_order(qapp):
     assert ids == ["zulu", "alpha"], ids
     dispose(window)
     dispose(widget)
+
+
+# --- where each molecule's reader was left --------------------------------
+
+
+def _open(widget, focus: str = ""):
+    widget._open_results_window(focus=focus)
+    return widget._results_window
+
+
+def test_reopening_restores_the_report_that_was_being_read(panel):
+    """**A WINDOW KEYED ON A MOLECULE IS THROWN AWAY, SO ITS POSITION HAD TO
+    BE.** Closing and reopening handed the reader "All results" and an empty
+    box, whatever they had been looking at a second earlier."""
+    widget, bus, molecule, _project, _versions = panel
+    _land(bus, _report("a", "A", "Formula", molecule.uuid))
+    _land(bus, _report("b", "B", "Donor sites", molecule.uuid))
+
+    window = _open(widget)
+    window.set_focus("b")
+    window.close()
+    QCoreApplication.processEvents()
+
+    assert _open(widget).focus() == "b"
+    dispose(widget._results_window)
+
+
+def test_reopening_restores_the_filter_too(panel):
+    """The search text is a reading position as much as the report is."""
+    widget, bus, molecule, _project, _versions = panel
+    _land(bus, _report("a", "A", "Formula", molecule.uuid))
+
+    window = _open(widget)
+    window._view.search_box().setText("form")
+    window.close()
+    QCoreApplication.processEvents()
+
+    reopened = _open(widget)
+    assert reopened._view.filter_state() == ("form", False)
+    dispose(reopened)
+
+
+def test_an_explicit_details_press_beats_the_remembered_position(panel):
+    """Pressing "Details..." beside a calculator is asking for THAT report.
+    A memory that overrode it would make the button do something other than
+    what it says."""
+    widget, bus, molecule, _project, _versions = panel
+    _land(bus, _report("a", "A", "Formula", molecule.uuid))
+    _land(bus, _report("b", "B", "Donor sites", molecule.uuid))
+
+    window = _open(widget)
+    window.set_focus("b")
+    window.close()
+    QCoreApplication.processEvents()
+
+    assert _open(widget, focus="a").focus() == "a"
+    dispose(widget._results_window)
+
+
+def test_a_stale_report_is_restored_rather_than_jumped_away_from(panel):
+    """**THE RULE THIS WIRING EXISTS FOR.** A stale result is a record of what
+    was computed, and this project refuses to discard one everywhere else;
+    jumping away from a stale selection discards it in the one place somebody
+    is looking.
+
+    The memory is never told about staleness -- it restores whatever still
+    EXISTS -- so the rule lives in what the panel OFFERS, and this is the
+    guard for that. Filtering the offer to current results would silently
+    reinstate exactly the behaviour the rule forbids.
+    """
+    widget, bus, molecule, _project, versions = panel
+    _land(bus, _report("bbb_score", "BBB Score", "Score", molecule.uuid, version=1))
+    versions.version = 1
+
+    window = _open(widget)
+    window.set_focus("bbb_score")
+    window.close()
+    QCoreApplication.processEvents()
+
+    # The structure moves under it: the report is now stale, and still there.
+    versions.version = 2
+    reopened = _open(widget)
+    assert reopened.merged().stale_report_ids() == ("bbb_score",), (
+        "fixture is degenerate: the report must really be stale, or this "
+        "guard passes against a memory that only ever restores current ones"
+    )
+    assert reopened.focus() == "bbb_score"
+    dispose(reopened)
+
+
+def test_a_report_that_is_gone_falls_back_and_the_filter_survives(panel):
+    """Selecting another molecule clears this one's results, so returning
+    finds the remembered report genuinely absent. Falling back to all results
+    is right; clearing the search box with it is not -- the filter is about
+    what somebody is looking FOR, and the memory is per molecule, so nothing
+    inherits another's."""
+    widget, bus, molecule, project, _versions = panel
+    _land(bus, _report("a", "A", "Formula", molecule.uuid))
+    window = _open(widget)
+    window.set_focus("a")
+    window._view.search_box().setText("form")
+
+    other = MoleculeModel()
+    project.molecules.append(other)
+    bus.publish(MoleculeSelected(molecule_uuid=other.uuid))
+    QCoreApplication.processEvents()
+    bus.publish(MoleculeSelected(molecule_uuid=molecule.uuid))
+    QCoreApplication.processEvents()
+
+    _land(bus, _report("b", "B", "Donor sites", molecule.uuid))
+    reopened = _open(widget)
+    assert reopened.merged().report_for("a") is None, (
+        "fixture is degenerate: the remembered report must really be gone"
+    )
+    assert reopened.focus() == ""
+    assert reopened._view.filter_state() == ("form", False)
+    dispose(reopened)
+
+
+def test_a_position_is_filed_under_the_window_s_molecule_not_the_panel_s(panel):
+    """**THE ORDER `_on_molecule_selected` DOES THINGS IN IS A TRAP.** It sets
+    the panel's uuid FIRST and closes the window after, so anything reading
+    the PANEL's uuid to record a position would file the old molecule's
+    reading position under the new molecule's name.
+
+    The window records under its own `molecule_uuid()`, which cannot be wrong
+    about which molecule it was showing. This asserts that rather than trusting
+    the ordering to stay as it is.
+    """
+    widget, bus, molecule, project, _versions = panel
+    _land(bus, _report("a", "A", "Formula", molecule.uuid))
+    window = _open(widget)
+    window.set_focus("a")
+
+    other = MoleculeModel()
+    project.molecules.append(other)
+    bus.publish(MoleculeSelected(molecule_uuid=other.uuid))
+    QCoreApplication.processEvents()
+
+    memory = widget._reader_memory
+    assert memory.recall(molecule.uuid, ["a"]).report_id == "a"
+    assert memory.recall(other.uuid, ["a"]).report_id == "", (
+        "the other molecule inherited a position it never had"
+    )
+
+
+def test_a_new_project_starts_every_reader_fresh(panel):
+    widget, bus, molecule, _project, _versions = panel
+    _land(bus, _report("a", "A", "Formula", molecule.uuid))
+    window = _open(widget)
+    window.set_focus("a")
+    assert len(widget._reader_memory) == 1
+
+    widget.set_project(ProjectModel(molecules=[]))
+    assert len(widget._reader_memory) == 0
+    dispose(window)

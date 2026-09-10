@@ -178,6 +178,13 @@ class FactView(QWidget):
     highlight_requested = Signal(tuple)
     #: "Compare with..." was chosen on this report.
     compare_requested = Signal(object)
+    #: The search text or the depth control moved.
+    #:
+    #: **NOT emitted by `set_report`, and not by `set_filter_state`.** Those
+    #: are a host putting the view somewhere; this is a READER moving it, and
+    #: a host that recorded its own restore would write the position it just
+    #: read back over the one it came from.
+    filter_changed = Signal()
 
     def __init__(
         self,
@@ -228,7 +235,7 @@ class FactView(QWidget):
 
         self._search = QLineEdit(self)
         self._search.setPlaceholderText("Filter facts (element, lewis, ring...)")
-        self._search.textChanged.connect(self._render)
+        self._search.textChanged.connect(self._on_filter_changed)
         apply_help_tooltip(self._search, _HELP['search'])
 
         # Category and depth are ORTHOGONAL, so they are two controls
@@ -238,7 +245,7 @@ class FactView(QWidget):
         self._detail.addItem("Standard", Detail.STANDARD.value)
         self._detail.addItem("Everything", "")
         apply_help_tooltip(self._detail, _HELP['detail'])
-        self._detail.currentIndexChanged.connect(self._render)
+        self._detail.currentIndexChanged.connect(self._on_filter_changed)
 
         self._copy_format = QComboBox(self)
         self._copy_format.addItems(COPY_FORMATS)
@@ -355,6 +362,41 @@ class FactView(QWidget):
     def search_box(self) -> QLineEdit:
         """Exposed so a window-level shortcut can focus it."""
         return self._search
+
+    def filter_state(self) -> tuple[str, bool]:
+        """What the two filter CONTROLS hold: the search text, and whether
+        the depth filter is off.
+
+        **THE CONTROLS, NOT THE RENDERED ANSWER.** `_showing_everything`
+        also returns True in compact mode, where the controls are HIDDEN --
+        that is a rendering decision, and recording it as the reader's
+        position would save a filter nobody set and restore it into a view
+        where the controls are visible.
+
+        A bool rather than the combo's own data, because "Everything" is
+        stored as the EMPTY STRING there -- it is the absence of a depth
+        filter rather than a `Detail` member -- and an empty string means
+        "nothing recorded" everywhere a position is saved.
+        """
+        return self._search.text(), not self._detail.currentData()
+
+    def set_filter_state(self, search: str, everything: bool) -> None:
+        """Put the two controls back where they were.
+
+        One `_render` at the end rather than one per control: setting them
+        separately renders an intermediate state -- the old depth with the
+        new search -- which for a large report is visible work nobody asked
+        for.
+        """
+        blocked_search = self._search.blockSignals(True)
+        blocked_detail = self._detail.blockSignals(True)
+        self._search.setText(search)
+        index = self._detail.findData("" if everything else Detail.STANDARD.value)
+        if index >= 0:
+            self._detail.setCurrentIndex(index)
+        self._search.blockSignals(blocked_search)
+        self._detail.blockSignals(blocked_detail)
+        self._render()
 
     def visible_fact_labels(self) -> list[str]:
         """What is on screen, read back off the rows.
@@ -522,6 +564,17 @@ class FactView(QWidget):
             section.setParent(None)
             section.deleteLater()
         self._sections.clear()
+
+    def _on_filter_changed(self) -> None:
+        """Re-render, and say that the filter moved.
+
+        **A SIGNAL RATHER THAN A SAVE-ON-CLOSE HOOK.** A reader's position
+        has to be recorded as it CHANGES, not when its window shuts: a
+        persistent dock never closes, so a `finished`-driven save settles
+        nothing for the surface it is being settled for.
+        """
+        self._render()
+        self.filter_changed.emit()
 
     def _showing_everything(self) -> bool:
         return self._compact or not self._detail.currentData()

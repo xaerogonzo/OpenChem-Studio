@@ -1548,6 +1548,16 @@ class _Driver(QObject):
         same in a screenshot, and a stale badge is a few pixels of text.
         """
         panel = self._window._property_panel
+        if step.get("close"):
+            # **THE REAL CLOSE, WITH `WA_DeleteOnClose` ON IT.** A reader's
+            # position has to survive the window being destroyed, which is
+            # the one thing a test holding a live widget cannot demonstrate
+            # by itself -- and it is the transition the memory exists for.
+            if getattr(panel, "_results_window", None) is not None:
+                panel._results_window.close()
+            self._results = None
+            logger.warning("OPENCHEM_DRIVE: results tag=%s CLOSED", step.get("tag", ""))
+            return
         panel._open_results_window(focus=str(step.get("focus") or ""))
         window = panel._results_window
         if window is None:

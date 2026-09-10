@@ -378,3 +378,62 @@ def test_units_are_composed_for_display_and_never_written_back():
     assert fact.units == "A^3"
     assert fact.value_with_units == "1179.4 A^3"
     _dispose(view)
+
+
+# --- the filter, as state a host can save and restore ---------------------
+
+
+def test_the_filter_state_round_trips():
+    view = FactView()
+    view.set_filter_state("donor", True)
+    assert view.filter_state() == ("donor", True)
+    view.set_filter_state("", False)
+    assert view.filter_state() == ("", False)
+    _dispose(view)
+
+
+def test_everything_is_the_absence_of_a_depth_filter_not_a_Detail():
+    """The combo stores "Everything" as the EMPTY STRING, because it is not a
+    `Detail` member -- it is no depth filter at all. `filter_state` answers a
+    bool for that reason: an empty string means "nothing recorded" in every
+    saved position, and the two must not be one value."""
+    view = FactView()
+    view.set_filter_state("", True)
+    assert view._detail.currentData() == ""
+    assert view.filter_state()[1] is True
+    view.set_filter_state("", False)
+    assert view._detail.currentData() == Detail.STANDARD.value
+    _dispose(view)
+
+
+def test_a_reader_moving_the_filter_says_so():
+    view = FactView()
+    moved = []
+    view.filter_changed.connect(lambda: moved.append(True))
+    view.search_box().setText("ring")
+    assert moved, "a search must announce itself, or nothing can record it"
+    _dispose(view)
+
+
+def test_a_host_restoring_the_filter_does_NOT_say_so():
+    """**THE NARROW HALF, AND IT IS LOAD-BEARING.** A host that recorded its
+    own restore would write the position it just read back over the one it
+    came from -- so a recall that FELL BACK, because the focused report is
+    gone, would overwrite the remembered id with the empty one and the report
+    could never be restored again if it returned."""
+    view = FactView()
+    moved = []
+    view.filter_changed.connect(lambda: moved.append(True))
+    view.set_filter_state("ring", True)
+    assert not moved, "restoring a position is not a reader moving it"
+    _dispose(view)
+
+
+def test_the_filter_state_reads_the_controls_rather_than_the_rendered_answer():
+    """`_showing_everything` is also True in compact mode, where the controls
+    are HIDDEN. Recording that as a reader's position would save a filter
+    nobody set and restore it into a view whose controls are visible."""
+    compact = FactView(show_controls=False)
+    assert compact._showing_everything() is True
+    assert compact.filter_state() == ("", False), "the controls, not the render"
+    _dispose(compact)
