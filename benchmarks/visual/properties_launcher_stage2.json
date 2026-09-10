@@ -1,0 +1,111 @@
+[
+  {
+    "do": "smiles",
+    "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+    "name": "Aspirin",
+    "after_ms": 800
+  },
+  {
+    "do": "select",
+    "molecule": -1,
+    "after_ms": 500
+  },
+  {
+    "do": "panel",
+    "id": "Properties",
+    "after_ms": 600
+  },
+
+  {
+    "do": "calculator",
+    "id": "elemental_analysis",
+    "after_ms": 2000
+  },
+  {
+    "do": "calculator",
+    "id": "topology_analysis",
+    "after_ms": 2000
+  },
+  {
+    "do": "calculator",
+    "id": "lewis_sites",
+    "after_ms": 2000
+  },
+  {
+    "do": "calculator",
+    "id": "crippen_logp_contrib",
+    "after_ms": 2000
+  },
+  {
+    "do": "calculator",
+    "id": "regulatory_screen",
+    "after_ms": 4000
+  },
+  {
+    "do": "calculator",
+    "id": "locants",
+    "after_ms": 3000
+  },
+
+  {
+    "do": "dump",
+    "tag": "2c-BEFORE-the-panel-renders-every-value",
+    "after_ms": 800
+  },
+  {
+    "do": "visual_check",
+    "surface": "properties",
+    "tag": "2c-BEFORE-at-the-default-window",
+    "after_ms": 500
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage2c_properties_before.png",
+    "after_ms": 500
+  },
+
+  {
+    "do": "resize",
+    "width": 900,
+    "after_ms": 900
+  },
+  {
+    "do": "dump",
+    "tag": "2c-BEFORE-at-900",
+    "after_ms": 500
+  },
+  {
+    "do": "visual_check",
+    "surface": "properties",
+    "tag": "2c-BEFORE-at-900",
+    "after_ms": 500
+  },
+
+  {
+    "do": "resize",
+    "width": 1600,
+    "after_ms": 900
+  },
+  {
+    "do": "dump",
+    "tag": "2c-BEFORE-at-1600",
+    "after_ms": 500
+  },
+  {
+    "do": "visual_check",
+    "surface": "properties",
+    "tag": "2c-BEFORE-at-1600",
+    "after_ms": 500
+  },
+  {
+    "do": "visual_check",
+    "surface": "properties",
+    "tolerance": -1000,
+    "tag": "2c-BEFORE-the-check-can-still-say-no",
+    "after_ms": 500
+  },
+
+  {
+    "do": "quit"
+  }
+]

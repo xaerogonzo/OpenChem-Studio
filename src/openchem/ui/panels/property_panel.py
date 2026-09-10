@@ -43,6 +43,15 @@ from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.descriptor_aggregate import aggregate_descriptors
 from openchem.domain.project import ProjectModel
 from openchem.domain.reader_state import ReaderMemory
+from openchem.domain.result_status import (
+    FAILED,
+    INAPPLICABLE,
+    NOT_RUN,
+    READY,
+    RUNNING,
+    STALE,
+    status_of,
+)
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
 from openchem.domain.structure_resolution import resolve_structure_for_report
 from openchem.ui import visual_check
@@ -146,6 +155,56 @@ _FAILURE_GLYPH = "✕ "  # ballot X
 _INAPPLICABLE_GLYPH = "○ "  # white circle
 _WARNING_GLYPH = "△ "  # white up-pointing triangle
 _SUCCESS_GLYPH = "✓ "  # check mark
+
+#: Status -> what the chip beside a calculator says, and how it looks.
+#:
+#: **NO NEW CODEPOINT, DELIBERATELY.** The plan's sketch used an em dash
+#: for "not run" and U+27F3 for "running", and neither is in the set this
+#: panel has PROVEN renders: `test_the_status_glyphs_really_render` paints
+#: each glyph and compares it against a Private Use Area control, because
+#: `QFontMetrics.inFont()` answers False for all four of these and a tofu
+#: box is ink. A status that draws as a box reads as a rendering bug rather
+#: than as a status, so the four already through that oracle are the four
+#: used here -- and the two remaining states say their word without one.
+#:
+#: "Running..." keeps its ASCII dots and its exact wording, which the
+#: waiting indicator already used: two paths saying one thing.
+_STATUS_APPEARANCE: dict[str, tuple[str, str]] = {
+    NOT_RUN: ("Not run", _INFORMATION_STYLE),
+    RUNNING: ("Running...", _INFORMATION_STYLE),
+    READY: (_SUCCESS_GLYPH + "Ready", _SUCCESS_STYLE),
+    STALE: (_WARNING_GLYPH + "Stale", _WARNING_STYLE),
+    FAILED: (_FAILURE_GLYPH + "Failed", _FAILURE_STYLE),
+    INAPPLICABLE: (_INAPPLICABLE_GLYPH + "Not applicable", _INFORMATION_STYLE),
+}
+
+#: Which calculator a status chip belongs to, carried on the chip.
+#:
+#: `setProperty` plus a bound method reading `sender()` -- never a lambda
+#: closing over `self`, which PySide6 holds strongly and which leaked one
+#: widget per calculator in five files here.
+_STATUS_CALCULATOR_PROPERTY = "openchem_status_calculator"
+
+#: What a status chip means. ONE contract across ~60 renderings, which is
+#: the rule the batch tick boxes already follow: "how did this calculator's
+#: last run end, and take me to it" is a single concept, and a contract per
+#: calculator would be that concept shredded sixty ways.
+_STATUS_CHIP_HELP = HelpTooltip(
+    text=(
+        "How this calculator's last run for this molecule ended, and a way "
+        "to the result.\n\n"
+        "Not run, Running..., Ready, Stale, Failed, or Not applicable. "
+        "Ready means the calculation succeeded -- it says nothing about how "
+        "much was produced, because a calculator that ran and found nothing "
+        "has still answered. Not applicable means the method does not cover "
+        "this molecule: correct, permanent, and not a fault.\n\n"
+        "Pressing it shows that result in Results. It computes nothing and "
+        "re-runs nothing; use the calculator's own button to run it again."
+    ),
+    tier=1,
+    help_id="properties.result_status",
+    topic="results",
+)
 
 
 def _failure_appearance(result) -> tuple[str, str]:
@@ -1646,7 +1705,15 @@ class PropertyPanel(QWidget):
         #: removed around each run: this panel's layout is delicate enough
         #: that adding and deleting form rows mid-life is a worse risk than
         #: one permanently-parked label, and a hidden widget costs no space.
-        self._calculator_status: dict[str, QLabel] = {}
+        self._calculator_status: dict[str, QPushButton] = {}
+        #: Calculators whose dispatch has ENDED, however it ended.
+        #:
+        #: Kept apart from the results because `CalculationFinished`
+        #: carries the CALCULATOR's id and a result never can -- and
+        #: the two are not always the same name. It is what lets the
+        #: chip tell "never asked" from "asked, and its answer is
+        #: filed under another id", which are different things to say.
+        self._finished_calculator_ids: set[str] = set()
         self._run_selected_button = QPushButton("Run selected", self)
         self._run_selected_button.setEnabled(False)
         apply_help_tooltip(self._run_selected_button, _RUN_SELECTED_HELP)
@@ -1755,6 +1822,8 @@ class PropertyPanel(QWidget):
         # reader's "Molecular Properties" entry, so a leftover set would put
         # the previous molecule's descriptors under this one's name.
         self._descriptor_values.clear()
+        # A different molecule has been asked nothing yet.
+        self._finished_calculator_ids.clear()
         self._alert_labels.clear()
         self._result_labels.clear()
         self._reports.clear()
@@ -1771,7 +1840,7 @@ class PropertyPanel(QWidget):
         # molecule the previous one's results and then correct itself,
         # which is a flicker at best and the wrong answer if anything reads
         # it in between.
-        self._sync_attached_reader()
+        self._refresh_reader()
         self._request_substance_perception()
 
     def _section_for(self, category: str) -> _CollapsibleSection:
@@ -1865,11 +1934,25 @@ class PropertyPanel(QWidget):
             # ASCII dots, matching `_present_alert`: result text reaches
             # Windows console streams, where a non-ASCII ellipsis raises
             # (see regulatory/calculator.py, three times in one session).
-            status = QLabel("Running...", row)
-            status.setStyleSheet(_INFORMATION_STYLE)
-            status.setVisible(False)
+            # **AND IT SAYS ALL SIX STATES NOW, NOT ONE.** The waiting
+            # indicator answered exactly one question -- is it going? -- and
+            # was invisible the rest of the time, which is every moment
+            # except the few seconds a calculation takes. Once the panel
+            # stops rendering the values it still has to say whether there
+            # is anything to read, and this is where that goes.
+            #
+            # A BUTTON rather than a label, because it is a control: it
+            # takes you to the result. That also puts it in the tooltip
+            # inventory, which is where a control belongs.
+            status = QPushButton("", row)
+            status.setFlat(True)
+            status.setCursor(Qt.CursorShape.PointingHandCursor)
+            status.setProperty(_STATUS_CALCULATOR_PROPERTY, definition.calculator_id)
+            status.clicked.connect(self._on_status_chip_clicked)
+            apply_help_tooltip(status, _STATUS_CHIP_HELP)
             self._calculator_status[definition.calculator_id] = status
             row_layout.addWidget(status)
+            self._refresh_status_chip(definition.calculator_id)
             section.add_calculator_widget(row)
         self._add_service_execution_hint(section, category)
         self._add_cross_theory_hint(section, category)
@@ -2091,9 +2174,7 @@ class PropertyPanel(QWidget):
             self._running_calculator_ids.add(calculator_id)
         else:
             self._running_calculator_ids.discard(calculator_id)
-        status = self._calculator_status.get(calculator_id)
-        if status is not None:
-            status.setVisible(running)
+        self._refresh_status_chip(calculator_id)
 
     def _on_calculation_finished(self, event) -> None:
         """A dispatched run is over, whatever it produced.
@@ -2114,6 +2195,8 @@ class PropertyPanel(QWidget):
         indicator would otherwise be stuck permanently, which is worse
         than never having shown one.
         """
+        # RECORDED BEFORE the chip refreshes, because the chip reads it.
+        self._finished_calculator_ids.add(event.calculator_id)
         self._set_running(event.calculator_id, False)
         if not self._running_calculator_ids and self._batch_status.text().startswith("Running"):
             self._batch_status.setText("Finished.")
@@ -2677,6 +2760,98 @@ class PropertyPanel(QWidget):
         if wanted.report_id or not self._reader_memory.remembered_report(uuid):
             self._reader_restore_pending = ""
 
+    # --- what the launcher says about each calculator ------------------------
+
+    def _result_for(self, calculator_id: str):
+        """The result filed under this calculator's OWN id, or None.
+
+        **THE ATTRIBUTION IS BY NAME, BECAUSE NOTHING ELSE EXISTS.** No
+        result type in this application carries a `calculator_id` -- checked
+        rather than assumed -- so "which calculator produced this" is not a
+        question the data can answer. `_pending_calculator_id` does not
+        bridge it either: it is matched by EQUALITY against the result's own
+        id, so it works exactly where this does.
+        """
+        report = self._reports.get(calculator_id)
+        if report is not None:
+            return report
+        return self._retained_results.get(calculator_id)
+
+    def _status_for(self, calculator_id: str) -> str:
+        """One of `RESULT_STATUSES`, from the RESULT and never from a row.
+
+        Running is the panel's own answer -- `CalculationFinished` carries
+        the calculator's id where no result event can -- and everything
+        else is `status_of`'s.
+        """
+        if calculator_id in self._running_calculator_ids:
+            return RUNNING
+        result = self._result_for(calculator_id)
+        if result is None:
+            return NOT_RUN
+        return status_of(result, structure_version=self._current_structure_version())
+
+    def _refresh_status_chip(self, calculator_id: str) -> None:
+        """Put one chip in step with what is known about its calculator.
+
+        **AND IT MAKES NO CLAIM IT CANNOT ATTRIBUTE**, which is the whole
+        of the awkward case. Two of the sixty calculators publish under a
+        name that is not their own -- `nmr_database` publishes `nmr_13c`
+        and `gasteiger_charge_at_ph` publishes `gasteiger_charge`, both
+        measured, both with buttons in this panel. When one of those has
+        FINISHED there is a result somewhere and this panel cannot tell
+        which, so:
+
+            never dispatched, nothing filed   "Not run" -- known, and true
+            dispatched, nothing filed         NO CHIP -- an absence of a
+                                              claim rather than a false one
+
+        "Not run" for something somebody just ran is the plausible-looking
+        lie this project spends its time removing, and "Ready" would assert
+        a success `CalculationFinished` does not promise -- it is published
+        in a `finally`, so it fires for a calculator that failed or raised.
+
+        WHAT WOULD LIFT IT: a `calculator_id` on the result, which nothing
+        carries today. With one, the chip attributes exactly and this
+        branch is unreachable.
+        """
+        chip = self._calculator_status.get(calculator_id)
+        if chip is None:
+            return
+        status = self._status_for(calculator_id)
+        result = self._result_for(calculator_id)
+        if status == NOT_RUN and calculator_id in self._finished_calculator_ids:
+            chip.setVisible(False)
+            return
+        text, style = _STATUS_APPEARANCE[status]
+        chip.setText(text)
+        chip.setStyleSheet(style)
+        # DISABLED rather than hidden where there is nothing to open: the
+        # question "what would enable this" has an obvious answer here --
+        # run it -- which is the case the hidden-not-disabled rule
+        # elsewhere in this project is NOT about. A silent no-op would be
+        # the third option and is the one 0g exists to forbid.
+        chip.setEnabled(result is not None)
+        chip.setVisible(True)
+
+    def _refresh_status_chips(self) -> None:
+        for calculator_id in tuple(self._calculator_status):
+            self._refresh_status_chip(calculator_id)
+
+    def _on_status_chip_clicked(self) -> None:
+        """Show that calculator's result in the reader.
+
+        Reads which calculator off `sender()`, for the reason
+        `jobs_cancel` presses the real button: a handler taking the id as
+        an argument could not be reached by a click at all.
+        """
+        chip = self.sender()
+        if chip is None:
+            return
+        calculator_id = str(chip.property(_STATUS_CALCULATOR_PROPERTY) or "")
+        if calculator_id and self._result_for(calculator_id) is not None:
+            self._show_in_reader(focus=calculator_id)
+
     def _refresh_reader(self) -> None:
         """Push the currently-held reports into the reader.
 
@@ -2684,8 +2859,16 @@ class PropertyPanel(QWidget):
         calculator run while the reader is on screen appears in it rather
         than waiting for anything to be reopened. That is the whole point
         of the reader being persistent.
+
+        **AND THE CHIPS GO WITH IT, FROM ONE PLACE.** Every path that can
+        change what is known about a calculator already funnels through
+        here, so refreshing them alongside the reader is what stops the
+        launcher and the reader disagreeing about whether something ran.
+        Sixty chips is a handful of `setText` calls; a per-result update
+        would be six call sites and five chances to miss one.
         """
         self._sync_attached_reader()
+        self._refresh_status_chips()
 
     def _reader_entries(self):
         """What any reader of this molecule should be showing, and at which

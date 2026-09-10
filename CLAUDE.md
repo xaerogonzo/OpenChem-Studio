@@ -7774,6 +7774,120 @@ It also cost nothing to find, because the drive script exercises that step
 -- which is the argument for a committed drive script over a remembered
 one.
 
+## THE LAUNCHER HAS TO SAY WHETHER THERE IS ANYTHING TO READ
+
+Stage 2c, first half. Properties is becoming the surface a calculation is
+STARTED from, so the one thing it still owes a reader is whether a
+calculator has run and how that ended. `domain/result_status.py` is the
+closed vocabulary and a chip beside each calculator renders it.
+
+### WHAT THE PANEL IS TODAY, MEASURED BEFORE ANYTHING WAS CHANGED
+
+Six calculators run on aspirin, plus the auto-descriptors:
+
+    scroll viewport    396 x 580
+    content            396 x 16299        28 screens
+    rendered overflow  0 findings at the default width, at 900 and at 1600
+    tolerance -1000    99 findings, so the check can still say no
+
+**AND ONE ROW IS 11,979 PX OF IT** -- 73% -- a single `admet` result whose
+inner label is 11,936 px. Nothing is CLIPPED anywhere; the panel's problem
+is length, and most of the length is one calculator's output. That is a
+sharper statement than "the panel is long", and only the per-row dump
+gives it.
+
+### THE STATUS IS A PROPERTY OF THE RESULT, NEVER OF WHAT A READER MADE OF IT
+
+The tempting shortcut is "does this report have facts?", and it is wrong in
+the direction that looks right: a successful catalogue that flagged
+nothing, and a structure set that generated nothing, are **READY**. Reading
+emptiness as failure paints two correct answers as broken -- the confusion
+`AlertResult.severity` was introduced to end one layer along.
+
+**THE ORDER THE STATES ARE TESTED IN IS THE DESIGN**, and every pair is one
+this application can genuinely be in at once:
+
+    RUNNING before everything    the previous answer is about to be
+                                 replaced; reporting it invites somebody to
+                                 read a value being recomputed
+    INAPPLICABLE before FAILED   a refusal TRAVELS as a FAILED cache
+                                 state -- that is how its reason reaches
+                                 the reader -- so testing FAILED first
+                                 paints every correct, permanent refusal as
+                                 a fault. This project shipped exactly that
+                                 and it was reported as "some calculator
+                                 failures" when neither had failed.
+    FAILED before STALE          both true, one glyph fits, and "it did not
+                                 run" is the more actionable
+
+### NO NEW CODEPOINT, AND THAT IS NOT FUSSINESS
+
+The plan's sketch used an em dash for "not run" and U+27F3 for "running".
+Neither is in the set this panel has PROVEN renders --
+`test_the_status_glyphs_really_render` paints each glyph against a Private
+Use Area control, because `QFontMetrics.inFont()` answers False for all
+four of the shipped ones and a tofu box is ink. A status that draws as a
+box reads as a rendering bug rather than as a status. So the four already
+through that oracle are the four used, and the two remaining states say
+their word without one. "Running..." keeps its exact ASCII wording, which
+the waiting indicator already used: two paths saying one thing.
+
+### THE CHIP CLAIMS NOTHING IT CANNOT ATTRIBUTE
+
+**NO RESULT TYPE IN THIS APPLICATION CARRIES A `calculator_id`**, checked
+rather than assumed -- so "which calculator produced this" is not a
+question the data can answer, and `_pending_calculator_id` does not bridge
+it either, being matched by EQUALITY against the result's own id.
+
+Two of the sixty publish under a name that is not their own:
+`nmr_database` publishes `nmr_13c`, `gasteiger_charge_at_ph` publishes
+`gasteiger_charge`. **Both have buttons in this panel**, measured against
+the live registry rather than assumed from the note that records them.
+
+Both tempting answers are lies. "Not run" for something somebody just ran
+is the plausible-looking wrongness this project spends its time removing;
+"Ready" asserts a success `CalculationFinished` does not promise, being
+published in a `finally` that fires for a calculator which failed or
+raised. So the chip is REMOVED for that row -- an absence of a claim rather
+than a false one.
+
+**WHAT WOULD LIFT IT:** a `calculator_id` on the result. With one the chip
+attributes exactly and the branch is unreachable.
+
+### DISABLED RATHER THAN HIDDEN WHERE THERE IS NOTHING TO OPEN
+
+The reader's own rule is the opposite -- its viewer button is hidden
+because "a disabled control invites a reader to wonder what would enable
+it". Here that question has an obvious answer: run it. What is NOT an
+option is the third one, an enabled chip that accepts a press and does
+nothing, which is the silent no-op 0g exists to forbid.
+
+### SEVEN ARMS, SEVEN CAUGHT
+
+    C1  a refusal reads as a fault              2 tests
+    C2  emptiness read as failure               2
+    C3  a running calculator shows its old
+        answer                                  1
+    C4  the chips are never refreshed           5
+    C5  an unattributable calculator claims
+        Ready                                   1
+    C6  an empty chip is pressable              2
+    C7  the press does not read its sender      1
+
+**AND THE CHIPS ADDED NO WIDTH**, which is the trap this file records more
+than any other: tick + button + chip is a `QHBoxLayout`, whose minimum is
+the SUM. Measured -- 21 width guards green, painted items 86 -> 101, and
+**0 findings at the default width, at 900 and at 1600**. The calculator
+names do not elide to make room.
+
+**WHAT IS NOT YET CONFIRMED BY EYE:** the chips have not been photographed.
+The panel is 16,299 px tall and its calculator rows sit below sections that
+are collapsed by default, so three drive attempts reached section headings
+rather than rows. The instrumentation is what stands behind them for now --
+the painted-item count, the zero findings, the width guards and eight
+behavioural tests -- and the shot belongs to the second half of 2c, where
+emptying the panel makes the rows reachable in one frame.
+
 ## Running the tests
 
 ```bash
