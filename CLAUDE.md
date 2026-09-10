@@ -2920,6 +2920,65 @@ calls the arbiter of naming quality had not actually run in CI for any of
 them. **Check the STEP LIST, not just the conclusion** -- a red run hides
 how much never executed.
 
+### FIXED STRUCTURALLY: the gates are their own job now
+
+This section's whole subject is a COUPLING -- the three gates were steps
+behind the suite in one job, and GitHub skips later steps once one fails.
+Every fix recorded above buys back one CAUSE of that: deselecting the network
+test stops NCBI doing it, reading the step list stops a reader missing it.
+None of them touches the coupling, so the next unrelated cause does it again.
+
+**AND THE NEXT CAUSE WAS THE CLOCK.** Measured 2026-09-10 on run
+34452130638, which passed all sixteen steps:
+
+    the suite step                  33m24
+    the three gating benchmarks     naming 3m12, regulatory 10 s,
+                                    rulesets 6m33
+    the job                         44m31  against a 45-minute timeout
+
+99% of budget. A timeout there is not a slow run, it is this section's own
+failure with a new trigger: all three gates report `skipped`.
+
+**AND "WHAT GOT SLOWER" HAD NO ANSWER, WHICH IS THE MEASUREMENT THAT
+MATTERED.** The job's own comment said to look at what got slower rather
+than raise the number a second time -- good advice, and it assumes growth is
+the driver. It is not:
+
+    ae0094ad   suite step 1345 s   7172 collected
+    fdf68292   suite step 1633 s   7172 collected   <- +21%
+
+`git diff ae0094ad fdf68292` is **empty**. Those two carry byte-identical
+trees, so a 288-second spread is what this runner does with no code change at
+all, and the 29-second margin was far inside it. **A first reading of the
+same numbers as "the suite lost 30% of its throughput" was wrong** -- that
+compared one run of one tree against one run of another and attributed the
+whole difference to the trees, which is this file's own most-repeated
+mistake made again, and the same-tree pair is what refuted it.
+
+So the honest statement is that the gate was at risk on ANY run rather than
+on a bigger one, which is an argument about COUPLING and not about budget.
+`jobs.gates` runs the three benchmarks with **no `needs: suite`** -- that
+would restore the coupling one level up, since a red suite would skip a
+dependent job exactly as it skipped a later step.
+
+**THE COST WAS MEASURED BEFORE IT WAS PAID**: one more checkout and one more
+`uv sync`, which that run clocks at **5 seconds** because it is cached. About
+a minute of setup, against ten minutes of benchmark that can no longer be
+switched off by something unrelated to it.
+
+**THE SUITE'S 45 IS DELIBERATELY UNCHANGED, and it means something different
+now.** The suite alone is ~34 minutes, about 77% of budget, and a timeout
+there fails the suite rather than silently disabling three benchmarks -- which
+is the honest thing for a suite timeout to do. The recorded advice stands for
+the number that is left.
+
+**AND `master` IS NOT BRANCH-PROTECTED**, checked rather than assumed:
+`repos/.../branches/master/protection` returns 404, so there are no required
+status checks and "blocking" in this file's vocabulary means a human reads the
+step list and declines to merge. Splitting a job therefore needed no
+protection change -- and equally, nothing mechanical stops a merge over a red
+gate, which is worth knowing before trusting the word "blocking".
+
 ### A SECOND PUSH TO MASTER DOES THE SAME THING, and it is not a failure
 
 Same outcome, different mechanism, and this one is self-inflicted.
