@@ -668,6 +668,20 @@ them, and the search box matches a producing calculator as well as a value, so
 "lewis" finds everything Lewis Sites said. It is not modal — you can leave it
 open and keep working, which is the whole point of a window that accumulates.
 
+**Every kind of result reaches that window now, not just the ones that are a
+list of values.** Half the calculators here answer with something else — a
+per-atom table, a curve, a spectrum, a set of structures, a trajectory — and
+those used to be reachable only from the row that produced them. They appear
+as reader entries with the few numbers worth seeing beside the name: how many
+values, the range they span, the molecular total *if the calculator declared
+one*, and which atoms it is keyed to. Each says **"This is a summary of the
+result, not the result"** and opens the proper viewer for the whole thing.
+
+A summary never adds up a column to invent a total. If a calculator does not
+declare one, no total is shown — a per-atom LogP contribution has a molecular
+LogP and a per-atom eccentricity has no molecular anything, and only the
+calculator knows which it is.
+
 That box is **grouped into the same sections as the panel behind it, in the same
 order**, with **Molecular Properties** — the descriptors computed for every
 molecule, whether you asked or not — above them. A section appears only once

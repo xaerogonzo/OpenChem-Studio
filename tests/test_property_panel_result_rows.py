@@ -35,6 +35,7 @@ from openchem.domain.scientific_result import (
     StructureEntry,
     StructureSetResult,
     TrajectoryResult,
+    VibrationalSpectrumResult,
 )
 from openchem.domain.structure_issue import Basis
 from openchem.events.base import EventBus
@@ -48,7 +49,8 @@ from openchem.events.events import (
     TrajectoryComputed,
 )
 from openchem.services.calculator_registry import CalculatorRegistry
-from openchem.ui.panels.property_panel import _PAYLOAD_FIELDS, PropertyPanel, _summarise
+from openchem.ui.panels.property_panel import PropertyPanel, _summarise
+from openchem.ui.result_adapters import ADAPTERS
 
 import conftest
 
@@ -137,13 +139,25 @@ def test_the_report_row_says_how_many_facts_it_is_showing(panel, bus):
 
 #: Every result type the panel routes through `_show_result`, i.e. every
 #: one whose detail lives in a dialog and whose row is a summary.
-_SUMMARISED_TYPES = (
-    PerAtomDataset,
-    SpectrumResult,
-    NMRSpectrumResult,
-    StructureSetResult,
-    PhCurveResult,
-    TrajectoryResult,
+#: **DERIVED FROM THE KIND VOCABULARY, NOT HAND-WRITTEN, AND THAT IS THE
+#: WHOLE POINT OF THIS SECTION.** The list used to be typed out here and
+#: OMITTED `VibrationalSpectrumResult` -- the one type the old fixed-order
+#: probe got wrong -- so the guard below passed while the panel rendered
+#: "None found." for a spectrum with real modes in it. A population somebody
+#: maintains by hand is a population that excludes the case nobody thought of.
+_SUMMARISED_TYPES = tuple(
+    sorted(
+        {
+            PerAtomDataset,
+            SpectrumResult,
+            NMRSpectrumResult,
+            VibrationalSpectrumResult,
+            StructureSetResult,
+            PhCurveResult,
+            TrajectoryResult,
+        },
+        key=lambda cls: cls.__name__,
+    )
 )
 
 
@@ -159,11 +173,12 @@ def test_every_summarised_result_type_has_a_field_the_table_names(result_type):
     instead of silently reverting to "Ready".
     """
     fields = {f.name for f in dataclasses.fields(result_type)}
-    named = {attribute for attribute, _ in _PAYLOAD_FIELDS} & fields
+    declared = {adapter.payload[0] for adapter in ADAPTERS.values() if adapter.payload[0]}
+    named = declared & fields
 
     assert named, (
-        f"{result_type.__name__} carries none of {[a for a, _ in _PAYLOAD_FIELDS]}, "
-        f"so _summarise falls through to 'Ready'. Its fields are: {sorted(fields)}"
+        f"{result_type.__name__} carries none of {sorted(declared)}, so "
+        f"_summarise falls through to 'Ready'. Its fields are: {sorted(fields)}"
     )
 
 

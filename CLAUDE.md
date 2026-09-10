@@ -6963,6 +6963,118 @@ the `finally` that restores the backup never fired. `git status` was the only
 thing that said so. Assert that the bytes CHANGED (`landed != source`), and put
 the assertion inside the try.
 
+## HALF THE APPLICATION'S OUTPUT COULD NOT REACH THE READER
+
+Stage 1a, the admission bridge. `merge_reports` admits an entry that is
+report-shaped, and 0b widened that from "has facts" to "is a real producer
+result" -- which is necessary and not sufficient, because most calculators do
+not return a report at all. Counted over the registry:
+
+    60 registered calculators
+    30 return a result the reader REFUSED ENTIRELY
+       16 per-atom datasets   7 structure sets   5 pH curves
+        1 trajectory          1 spectrum
+
+`ADAPTERS` gains `summary`, `chart` and `payload` beside `to_text` and
+`rich_view`, total over all eight kinds, and `summarise()` projects each one
+into a `ResultSummaryView`. Driven in the app on aspirin: **reports 9 -> 12,
+facts 161 -> 173**, with Partial Charge (Gasteiger), LogP Contribution
+(Crippen) and Molar Refractivity Contribution (Crippen) appearing as reader
+entries in their own sections for the first time.
+
+### PROBING FIELD NAMES IN A FIXED ORDER IS GUESSING, AND IT SAID "None found."
+
+`PropertyPanel._summarise` walked a tuple of candidate attribute names and
+took the first one present, with `("values", "atom")` FIRST. **A vibrational
+spectrum leaves `values` empty on purpose** -- a normal mode is not a property
+of one atom -- so the walk found an empty payload and the row read **"None
+found." for a spectrum with three real modes in it.** Measured.
+
+That is the fourth consumer of this file's one-vocabulary-many-registries
+defect, after the clipboard, the view factory and the inspector. `payload` is
+keyed by KIND now, so the vibrational entry names `("modes", "mode")` and the
+question is answered by the registry rather than by a probe order.
+
+**AND THE GUARD FOR IT EXISTED WITH A HAND-WRITTEN POPULATION.**
+`_SUMMARISED_TYPES` in `tests/test_property_panel_result_rows.py` listed the
+result types a row must summarise and omitted `VibrationalSpectrumResult` --
+the one type the probe got wrong. Derived from the shared vocabulary now, so a
+ninth kind is walked without anybody remembering to add it.
+
+### THREE THINGS I HAD WRONG, AND MEASURING CORRECTED EACH
+
+**`declare_total(..., basis=...)` IS THE ATOM BASIS, NOT `Fact.Basis`.**
+Reading it as a scientific basis raises `ValueError: 'heavy_atoms' is not a
+valid Basis`, which is how it was found rather than shipped. The producer
+declares no scientific basis for its total, so none may be invented: the
+projected total is HEURISTIC, because claiming a fitted Crippen total as
+DETERMINISTIC -- "right, or the periodic table is wrong" -- is the
+overstatement `DETERMINISTIC_DESCRIPTORS` errs away from.
+
+**A RANGE OVER A LIST PAYLOAD DESCRIBES THE WRONG AXIS.** Widening
+`_numbers_in` to any payload made a solubility curve read **"57 pH points,
+0.00 to 28.00"** -- a span over the pH GRID, presented where a property range
+goes. An existing test caught it. Mapping-only is a DECISION now rather than
+the old accident, and its docstring says which payloads are keyed by something
+(`values`) and which are axes or contents (`ph_values`, `frames`, `entries`).
+
+**AND MY OWN NEW TEST CONTRADICTED THIS PROJECT'S UNITS CONVENTION**, asserting
+`display_value.endswith("ppm")`. `Fact.units` belongs to `value`, never folded
+into `display_value` -- the rule the units work already settled and guards from
+both sides. The code was right; the test was fixed.
+
+### AN ALERT HAS NO FACTS, SO IT GOES THROUGH THE ONE BRIDGE
+
+`_already_readable` called `result.facts` on an `AlertResult`, which has none.
+`summarise` returns the NATIVE form for the two already-report-shaped kinds --
+a `ReportResult` whole, an `AlertResult` through
+`chem/report_adapter.report_from_alert` -- and `_no_summary_needed` RAISES
+rather than returning `()`, because an empty projection is indistinguishable
+from a result that genuinely had nothing to say.
+
+That bridge is not a convenience: it preserves the `cache_state` and `error` a
+refused catalog carries, and a view built from an alert's facts alone would
+render every refusal as a calculator that ran and had nothing to say -- the
+statement `merge_reports` stopped making when it stopped gating on facts. The
+same fields are CARRIED rather than re-derived on every projected view, for the
+same reason: a refused calculator has FEWER values to project, so it is exactly
+the case a summary would otherwise render as nothing.
+
+### FIFTEEN ARMS, THREE SURVIVORS, AND ALL THREE WERE MY OWN TESTS
+
+Not one of the three was an equivalent mutation. Every one was a claim written
+in a docstring and enforced by nothing -- this file's most-repeated failure,
+committed by somebody who has now recorded it four times:
+
+    A9   a projected fact stamps "summary" as its `Fact.source`   SURVIVED
+    A10  the declared total claims DETERMINISTIC                  SURVIVED
+    A13  `summarise` reads the section off the RESULT             SURVIVED
+
+**A13 IS THE ONE TO READ.** Measured over every non-report result the registry
+produces for aspirin, `PerAtomDataset.category` is EMPTY for all twelve, and
+`PhCurveResult`, `StructureSetResult`, `TrajectoryResult` and
+`NMRSpectrumResult` have no such field at all -- so a summary reading its own
+section off the result would file **twenty reader entries under "Other"**. That
+is the section miscategorisation 0h exists to remove, arriving through a
+different door and INVISIBLE, because "Other" is a real section.
+`test_the_section_comes_from_the_caller_because_the_result_carries_none`
+asserts its own setup first, so a fixture that gained a category cannot make it
+pass vacuously.
+
+**A9 IS SEARCHABLE, WHICH IS WHAT MAKES IT MORE THAN PROVENANCE HYGIENE.**
+`find_facts` matches `source`, so a view naming itself there makes one word
+match every projected row in the reader. What says "this was projected" is the
+entry's LIMITATION, which is a statement about the whole entry rather than a
+claim about one value -- and it is prepended before the producer's own caveats,
+because a reader meeting those under a summary has no way to tell which half
+they are reading.
+
+Both narrow halves are load-bearing and both were written from the surviving
+arm: a producer with no method falls back to `"core"` and not to the view's
+name, and a COUNT stays DETERMINISTIC, since marking every projected fact
+HEURISTIC satisfies A10's guard while understating arithmetic over what
+arrived. Second pass: fifteen arms, fifteen caught.
+
 ## Running the tests
 
 ```bash

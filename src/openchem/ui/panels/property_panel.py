@@ -46,10 +46,12 @@ from openchem.domain.reader_state import ReaderMemory
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
 from openchem.domain.structure_resolution import resolve_structure_for_report
 from openchem.ui import visual_check
+from openchem.ui.result_adapters import adapter_for, summarise
 from openchem.ui.visualization import declared_total, label_decimals
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.chem.report_adapter import report_from_alert
 from openchem.domain.report import ReportResult
+from openchem.domain.result_kinds import UnknownResultKind
 from openchem.domain.structure_issue import Severity
 from openchem.events.base import EventBus
 from openchem.events.events import (
@@ -295,12 +297,13 @@ def _present_alert(alert) -> tuple[str, str, str]:
 #: structures" is the kind of blemish that makes a panel read as
 #: unfinished, and every one of these counts can legitimately be 1
 #: (a molecule with one tautomer, a single-frame trajectory).
-_PAYLOAD_FIELDS: tuple[tuple[str, str], ...] = (
-    ("values", "atom"),
-    ("entries", "structure"),
-    ("ph_values", "pH point"),
-    ("frames", "frame"),
-)
+#:
+#: **THE TABLE ITSELF IS GONE, AND IT WAS THE DEFECT.** It probed four
+#: attribute names in a fixed order with `("values", "atom")` first, so a
+#: vibrational spectrum -- which leaves `values` empty on purpose -- matched
+#: an empty payload and rendered "None found." for a spectrum with real modes
+#: in it. `ResultAdapter.payload` declares it per KIND instead, which is the
+#: same vocabulary `to_text` and `rich_view` are already keyed on.
 
 
 def _counted(count: int, noun: str) -> str:
@@ -345,29 +348,61 @@ def _summarise(result: object) -> str:
     """
     total = declared_total(result)
     places = label_decimals(result)
-    for attribute, noun in _PAYLOAD_FIELDS:
-        payload = getattr(result, attribute, None)
-        if payload is None:
-            continue
-        if not payload:
-            return "None found."
-        if isinstance(payload, dict):
-            numbers = [v for v in payload.values() if isinstance(v, (int, float))]
-            if numbers:
-                units = getattr(result, "units", "")
-                units_suffix = f" {units}" if units else ""
-                span = (
-                    f"{min(numbers):.{places}f} to {max(numbers):.{places}f}{units_suffix}"
-                )
-                if total is None:
-                    return f"{_counted(len(payload), noun)}, {span}"
-                total_units = f" {total['units']}" if total["units"] else ""
-                return (
-                    f"{total['label']} {total['value']:.{places}f}{total_units}"
-                    f" - {_counted(len(payload), noun)}, {span}"
-                )
+    # **ASKED OF THE KIND, NOT PROBED FOR IN A FIXED ORDER.** This walked a
+    # tuple of candidate attribute names with `("values", "atom")` first, and
+    # a vibrational spectrum leaves `values` EMPTY on purpose -- a normal mode
+    # is not a property of one atom -- so the walk found an empty payload and
+    # this returned "None found." for a spectrum with real modes in it.
+    # Measured on three. The registry declares which field each kind's content
+    # lives in, so the question is asked once rather than guessed per caller.
+    try:
+        attribute, noun = adapter_for(result).payload
+    except UnknownResultKind:
+        # "Ready" is reserved for a shape this does not recognise, which is
+        # now exactly one case: a result kind nothing has registered.
+        return "Ready"
+    payload = getattr(result, attribute, None) if attribute else None
+    if payload is None:
+        return "Ready"
+    if not payload:
+        return "None found."
+    numbers = _numbers_in(payload)
+    if not numbers:
         return _counted(len(payload), noun)
-    return "Ready"
+    units = getattr(result, "units", "")
+    units_suffix = f" {units}" if units else ""
+    span = f"{min(numbers):.{places}f} to {max(numbers):.{places}f}{units_suffix}"
+    if total is None:
+        return f"{_counted(len(payload), noun)}, {span}"
+    total_units = f" {total['units']}" if total["units"] else ""
+    return (
+        f"{total['label']} {total['value']:.{places}f}{total_units}"
+        f" - {_counted(len(payload), noun)}, {span}"
+    )
+
+
+def _numbers_in(payload) -> list[float]:
+    """The measured values in a payload, or nothing.
+
+    **A MAPPING ONLY, AND THAT IS A DECISION RATHER THAN THE OLD ACCIDENT.**
+    A dict payload is values KEYED by something -- per-atom contributions,
+    per-nucleus shifts -- so its range is the range of the quantity. A LIST
+    payload is not: `ph_values` is the x GRID, `frames` are molblocks and
+    `entries` are structures. Widening this to any payload was tried and
+    produced "57 pH points, 0.00 to 28.00" on a solubility curve, which reads
+    as the property spanning 0 to 28 when it is the pH axis. A number that
+    describes the wrong axis is worse than no number.
+
+    A mapping with no numbers in it gets a count and no range, which is right
+    for a categorical dataset: a span over oxidation-state category ids is a
+    quantity nobody computed.
+    """
+    if not isinstance(payload, dict):
+        return []
+    return [
+        value for value in payload.values()
+        if isinstance(value, (int, float)) and not isinstance(value, bool)
+    ]
 
 
 #: Qt property carrying which calculator a section button opens.
@@ -2050,6 +2085,27 @@ class PropertyPanel(QWidget):
         per-atom values do not belong in a form row, and the Calculator
         Inspector already renders them properly.
         """
+        # **AND INTO THE READER, WHICH IS WHAT THIS COULD NOT DO.** Half the
+        # registry produces a result the merged reader had no shape for: of
+        # 60 calculators, 30 return a per-atom dataset, a structure set, a pH
+        # curve, a spectrum or a trajectory, and `merge_reports` refused every
+        # one -- so "Details..." showed the other half and nothing said the
+        # rest existed. `summarise` gives each a reading surface without
+        # converting it into a report, and this is the one place all five
+        # kinds arrive, already carrying the two things the RESULT cannot
+        # know: which section it belongs to and which structure it describes.
+        #
+        # BEFORE the failure branch below, deliberately: a refused calculator
+        # has fewer facts to project and is exactly the one a reader most
+        # needs to see, which is why the merge stopped gating on facts at all.
+        self._reports[result_id] = summarise(
+            result,
+            result_id=result_id,
+            name=name,
+            category=category,
+            structure_version=self._current_structure_version(),
+        )
+        self._refresh_results_window()
         section = self._section_for(category or "other")
         label = self._result_labels.get(result_id)
         if label is None:
