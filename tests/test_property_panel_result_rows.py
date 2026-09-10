@@ -471,14 +471,24 @@ def test_a_failed_calculation_still_clears_its_indicator(running_panel):
 
 def test_switching_molecule_clears_a_stale_indicator(running_panel):
     """The calculator ROWS survive a molecule change -- they are buttons,
-    not results -- so a "Running..." left visible would sit beside a
-    different molecule claiming work that is not happening."""
+    not results -- so a "Running..." left over would sit beside a different
+    molecule claiming work that is not happening.
+
+    **THE CLAIM IS UNCHANGED AND ITS ASSERTION MOVED.** The indicator used
+    to be a label that was VISIBLE only while running, so "cleared" meant
+    hidden. It is a status chip now and is visible whatever the state, so
+    what must be true is that it no longer says "Running..." -- it says
+    the new molecule has been asked nothing.
+    """
     panel, _molecule, _dispatched = running_panel
     panel._open_calculator(panel._calculator_registry.get("topology_analysis"))
+    assert panel._calculator_status["topology_analysis"].text() == "Running...", (
+        "setup: it must really be showing the running state to clear one"
+    )
 
     panel._on_molecule_selected(MoleculeSelected(molecule_uuid="some-other-molecule"))
 
-    assert panel._calculator_status["topology_analysis"].isHidden()
+    assert panel._calculator_status["topology_analysis"].text() == "Not run"
     assert not panel._running_calculator_ids
 
 
