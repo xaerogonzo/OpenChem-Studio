@@ -1552,6 +1552,25 @@ class PropertyPanel(QWidget):
         #: the second calculator whose results the window exists to
         #: accumulate.
         self._results_window = None
+        #: A reader that is never closed, if the application built one.
+        #:
+        #: **THE OPPOSITE LIFETIME FROM THE WINDOW ABOVE, WHICH IS WHY IT IS
+        #: A SECOND FIELD AND NOT A SECOND WINDOW.** The window is opened for
+        #: one molecule and closed when the selection moves; a docked reader
+        #: FOLLOWS the selection and outlives every molecule it shows. The two
+        #: cannot share a code path because the molecule-change rule is
+        #: opposite in each: close, against carry across and restore.
+        #:
+        #: Optional, so a panel built in a test -- or in an application with
+        #: no Results dock -- behaves exactly as it did before.
+        self._attached_reader = None
+        #: The molecule whose reading position has not been restored yet.
+        #:
+        #: A molecule change opens this and the first result that makes the
+        #: remembered report reachable closes it. It is a uuid rather than a
+        #: bool so that switching away mid-restore cannot leave the flag set
+        #: for a molecule nobody is reading.
+        self._reader_restore_pending = ""
         #: Where each molecule's reader was left, by uuid.
         #:
         #: **HELD BY THE PANEL, NOT BY THE WINDOW**, because the window is
@@ -1754,6 +1773,14 @@ class PropertyPanel(QWidget):
         for section in self._sections.values():
             section.clear_rows()
         self._substance_card.clear()
+        # **THE DOCKED READER FOLLOWS RATHER THAN CLOSING**, which is the one
+        # behaviour that separates it from the window three lines above. It
+        # runs AFTER the clears deliberately: it reads `_reports` and
+        # `_descriptor_values`, so moving it earlier would hand the new
+        # molecule the previous one's results and then correct itself,
+        # which is a flicker at best and the wrong answer if anything reads
+        # it in between.
+        self._sync_attached_reader()
         self._request_substance_perception()
 
     def _section_for(self, category: str) -> _CollapsibleSection:
@@ -2631,17 +2658,104 @@ class PropertyPanel(QWidget):
         """
         self._results_window = None
 
+    def attach_reader(self, reader) -> None:
+        """Keep a persistent reader fed, for as long as this panel lives.
+
+        **A DOCKED READER IS NOT A SECOND WINDOW**, and everything awkward
+        about this is that difference. The window is per molecule and is
+        closed when the selection moves; this one carries across, so the
+        molecule change is a `set_molecule` plus a restore rather than a
+        close plus a rebuild.
+
+        The panel supplies what only it has -- the render context, the
+        position memory, and the reports themselves -- exactly as it does
+        for the window, so a reader gets the same four things whichever
+        surface it is.
+        """
+        self._attached_reader = reader
+        # THE RENDER CONTEXT. Without it a declared depiction has nothing to
+        # draw ON, which is why the Lewis-site diagram never appeared.
+        reader.set_structure_resolver(self._resolve_structure_for_report)
+        reader.set_reader_memory(self._reader_memory)
+        # A bound SIGNAL, never a lambda: PySide6 holds a plain callable
+        # strongly and this panel has paid for that.
+        reader.link_activated.connect(self.link_activated)
+        self._sync_attached_reader()
+
+    def _sync_attached_reader(self) -> None:
+        """Move the persistent reader onto the selected molecule and feed it.
+
+        **THE RESTORE HAPPENS ONLY WHEN THE MOLECULE REALLY MOVED.** Every
+        arriving result calls this, and re-applying a remembered position on
+        each one would drag the reader back to wherever it was last recorded
+        every time a calculator finished -- fighting somebody who is reading.
+        """
+        reader = self._attached_reader
+        if reader is None:
+            return
+        uuid = self._selected_molecule_uuid or ""
+        if reader.molecule_uuid() != uuid:
+            # DROPS THE PREVIOUS MOLECULE'S REPORTS, which is what stops them
+            # being rendered under this molecule's name -- and opens a
+            # restore that the next few results may be needed to satisfy.
+            reader.set_molecule(uuid)
+            self._reader_restore_pending = uuid
+        entries, version = self._reader_entries()
+        reader.set_reports(entries, version)
+        if self._reader_restore_pending != uuid:
+            return
+        # **RESTORE UNTIL THE REMEMBERED REPORT IS REACHABLE, THEN STOP
+        # ASKING -- AND BOTH HALVES WERE MEASURED.**
+        #
+        # Restoring only at the moment the molecule changes is dead on this
+        # surface: `_on_molecule_selected` CLEARS the reports, so at that
+        # instant the molecule has none and `recall` always falls back. The
+        # position would be lost for exactly as long as results take to come
+        # back, which is forever unless somebody re-runs. Mutation said so --
+        # gating on "the molecule moved" changed no test at all.
+        #
+        # Restoring on EVERY result is the other extreme and has a cost a
+        # test cannot see: `apply_view` rewrites the fact search box, and
+        # `setText` moves the cursor to the end of somebody's half-typed
+        # search.
+        #
+        # **EVERY REPORT ID, STALE ONES INCLUDED** -- the memory restores
+        # whatever still EXISTS, so filtering this to current results would
+        # silently reinstate the jump-away-from-a-stale-selection behaviour
+        # 0i forbids.
+        wanted = self._reader_memory.recall(
+            uuid, [r.report_id for r in reader.merged().reports]
+        )
+        reader.apply_view(wanted)
+        # Done when the remembered report is on screen, or when there is no
+        # remembered report to wait for. `recall` cannot tell those apart --
+        # it answers "" for both -- which is what `remembered_report` is for.
+        if wanted.report_id or not self._reader_memory.remembered_report(uuid):
+            self._reader_restore_pending = ""
+
     def _refresh_results_window(self) -> None:
-        """Push the currently-held reports into the open window.
+        """Push the currently-held reports into whatever is reading them.
 
         Called whenever a result lands for the selected molecule, so a
-        calculator run while the window is open appears in it rather than
+        calculator run while a reader is open appears in it rather than
         waiting for a reopen. That is the whole point of the window being
-        modeless.
+        modeless, and of the dock existing at all.
         """
+        self._sync_attached_reader()
         window = self._results_window
         if window is None or window.molecule_uuid() != self._selected_molecule_uuid:
             return
+        entries, version = self._reader_entries()
+        window.set_reports(entries, version)
+
+    def _reader_entries(self):
+        """What any reader of this molecule should be showing, and at which
+        structure version.
+
+        ONE builder for every surface: the window and the dock must not be
+        able to disagree about what has been computed, and two call sites
+        assembling this list is exactly how they would.
+        """
         version = self._current_structure_version()
         entries = list(self._reports.values())
         # **THE 41 AUTO-DESCRIPTORS, AS ONE ENTRY RATHER THAN 41.** They are
@@ -2660,7 +2774,7 @@ class PropertyPanel(QWidget):
                     structure_version=version,
                 )
             )
-        window.set_reports(entries, version)
+        return entries, version
 
     def _resolve_structure_for_report(self, report):
         """Coordinates for a report's depiction, or why it must not be drawn.

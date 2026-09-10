@@ -764,7 +764,7 @@ def _fresh_layout_only_call_sites() -> list[str]:
 #: Pinned together on purpose: the question this guard exists to ask is
 #: "did the version move when the list did".
 FRESH_LAYOUT_ONLY = ["_set_initial_right_dock_width()"]
-FRESH_LAYOUT_REVIEWED_AT_VERSION = "3"
+FRESH_LAYOUT_REVIEWED_AT_VERSION = "4"
 
 
 def test_fresh_layout_behaviour_is_versioned():
@@ -827,6 +827,7 @@ def test_fresh_layout_behaviour_is_versioned():
 #: would make the pin depend on which plugins happen to be installed.
 OWN_RIGHT_DOCKS = [
     "Properties",
+    "Results",
     "Atom_Inspector",
     "Interactions",
     "Structure_Check",

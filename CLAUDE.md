@@ -7533,6 +7533,135 @@ collapsed the `all()` over it is vacuously true, so the guard passes while
 checking nothing -- the green-suite-and-a-smaller-universe failure in
 miniature. `assert len(methods) >= 9` is what refuses it.
 
+## RESULTS IS A PANEL NOW, AND ONE PANEL AT A TIME IS WHY THE POP-OUT IS LOAD-BEARING
+
+Stage 2b. The reader extracted in 2a is registered as a right-hand dock in
+the `analysis` group, beside the launcher it reads for, and it FOLLOWS the
+selection rather than being opened for a molecule.
+
+**THE CONSTRAINT THE PLAN DID NOT ANTICIPATE.** `_show_only_right_dock`
+means exactly one right-hand panel is visible, so choosing Results REPLACES
+Properties -- and reading results while starting more calculations is the
+precise workflow `MergedResultsDialog` exists for. That is not a defect to
+work around: the same method's docstring already records the answer, that
+"a dock the user has floated is left alone: they have deliberately pulled
+it out to see it alongside something else". So `PopOutHost` is the design
+rather than a flourish, and the pop-out MOVES the widget, which is what
+makes the reading position, filter and scroll travel by construction.
+
+Driven and confirmed: detached at 960x824, `Showing in its own window.` in
+the vacated dock, and returned intact.
+
+### THE DOCK WIDENED THE WINDOW BY 108 PX, AND FOUR GUARDS SAID SO
+
+Unwrapped, the Results dock took the window's minimum to **1474 px**
+against the 1366 this product supports. The cause is this file's oldest
+width finding in a new place: `FactView`'s own control row is a
+`QHBoxLayout`, whose minimum width is the SUM of its children --
+
+    150  the depth combo        146  Copy report
+    150  the format combo       plus the search box
+    ---
+    482  under `offscreen`, where the font is more than twice as wide
+
+-- and unwrapped that reaches the window. **The Atom Inspector holds the
+same `FactView` and sits at 266 precisely because it is
+`_wrap_scrollable`'d**, so the fix is the one nine other panels already
+use rather than anything new. After: the dock's minimum is **182**, the
+smallest of the eleven bar Jobs.
+
+**THE WIDGET IN ISOLATION SAID 234 AND WAS NOT WRONG.** A first probe built
+a bare `ResultsView` and measured its minimum at 234, which reads as
+"nothing to see here" -- the 482 only reaches the window once the dock is
+SHOWN and laid out. Measure the assembled window, not the widget.
+
+### THE RESTORE FIRED AT THE ONE MOMENT IT COULD NOT SUCCEED
+
+The rule is 0i's: coming back to a molecule restores where its reader was.
+Written the obvious way -- restore when the molecule changes -- it is
+**dead**, and mutation is what said so: gating it on "the molecule moved"
+changed no test at all.
+
+`_on_molecule_selected` CLEARS `_reports`, so at the instant of the switch
+the molecule has no results, `recall` correctly falls back to All results,
+and nothing tries again. The position was lost for as long as it took a
+calculator to be re-run, which is forever unless somebody re-runs one.
+
+**RESTORING ON EVERY ARRIVING RESULT IS THE OTHER EXTREME, AND ITS COST IS
+INVISIBLE TO ANY ASSERTION ON THE OUTCOME.** It gives the same answer --
+the memory tracks every move, so re-applying is idempotent -- and
+`apply_view` rewrites the fact search box, where `setText` puts the cursor
+at the end of somebody's half-typed search.
+
+So the restore stays OUTSTANDING until the remembered report is reachable,
+then stops asking. Measured behaviour: the filter comes back immediately
+(0i's fallback keeps it), and the report comes back the moment it is
+recomputed.
+
+**`recall` CANNOT ANSWER "IS THERE STILL SOMETHING TO WAIT FOR".** It
+applies the availability rule, so a report that is absent right now and one
+that was never chosen both come back as `""`. `ReaderMemory.remembered_report`
+is the missing question, and it is a second METHOD rather than a second
+field on `ReaderView` -- a field there would be read by one caller and
+ignored by every other, which is the unread-field defect this repository
+has recorded twice.
+
+**AND IT MEANS 2c's RETENTION NEEDS NO EDIT HERE.** Once results survive a
+molecule change the remembered report is reachable at the switch, the
+pending flag closes on the first sync, and the rule is unchanged.
+
+### TEN ARMS, TWO FIRST-PASS SURVIVORS, AND BOTH WERE REAL
+
+    B4  the restore gives up after one try        SURVIVED -- it was dead
+    B8  the docked reader's links are not routed  SURVIVED -- a dead control
+
+**B8 IS THE SAME SHAPE AS 1d's D9, IN THE ONE SURFACE 0g DID NOT HAVE.**
+`ResultsView` has tests saying it EMITS `link_activated` and `main_window`
+has tests saying it ROUTES one; nothing asserted the docked reader's signal
+was connected to anything. Deleting the `connect` passed **132 tests**, and
+every viewer action and every visualization Open button in the dock would
+have been a silent no-op. Both ends of a chain guarded with nothing
+asserting the middle -- now five times across Stages 1 and 2.
+
+Second pass: ten arms, ten caught.
+
+### DRIVEN, AND THE ORACLE LEARNED THE NEW SURFACE
+
+`benchmarks/visual/results_dock_stage2.json`. `visual_check` had no name
+for the reader, so its first run logged `unknown visual_check surface` --
+a surface the geometry oracle cannot name is a surface it cannot check.
+Added, and the check reports **79 painted item(s), 0 finding(s)**: the
+population beside the verdict, because "nothing overflowed" and "the walk
+found nothing to measure" read identically in an empty findings list.
+
+At the 420 px default nothing is clipped and nothing overlaps: the selector
+search, `Showing: All results`, the eight-result summary, the fact
+controls, and **the Lewis depiction drawing inside the dock**. Popped out
+at 960 px the fact search box stops eliding and reads
+`Filter facts (element, lewis, ring...)` in full.
+
+### A FIELD WRITTEN BY 173 CONTROLS AND READ BY ONE QUERY TOOL
+
+Found while looking for a help topic for the new dock, and recorded here
+because it belongs to 2d rather than to this item. `HelpTooltip.topic` is
+validated by nothing and consumed only by `tools/list_tooltips.py`'s JSON.
+Measured over the tree against `openchem.help`'s 46 real topics:
+
+    173 construction sites carry a topic
+    117 of them resolve                 11 distinct values
+     56 of them DO NOT                   9 distinct values
+
+     16  'periodic table'   <- the key is `periodic-table`; a space
+     12  '3d-viewer'         6  'conformers'    5  'panels'
+      8  'facts'             4  'diagram'       2  'help', 2 'editor'
+      1  'workspace'
+
+`'periodic table'` is the tell: a typo no reader could see, in a field
+nothing checks, which is exactly what an unread field collects. The eight
+`'facts'` sites are the results reader's own. Not fixed here -- 2d is where
+tooltips are the subject, and several of the nine need a judgement about
+which topic they meant rather than a rename.
+
 ## Running the tests
 
 ```bash

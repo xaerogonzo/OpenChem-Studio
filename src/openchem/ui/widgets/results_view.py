@@ -404,6 +404,32 @@ class ResultsView(QWidget):
     def molecule_uuid(self) -> str:
         return self._molecule_uuid
 
+    def set_molecule(self, molecule_uuid: str) -> None:
+        """Read a different molecule, holding none of the last one's results.
+
+        **THE CONTENT IS DROPPED HERE RATHER THAN LEFT FOR THE CALLER**, and
+        that is a safety property rather than tidiness. A reader that changed
+        its uuid and kept its reports would render the PREVIOUS molecule's
+        results under the new molecule's name -- every value plausible, every
+        one about something else. It is the same failure class as a stale
+        depiction drawn on the current structure, one level up, and nothing
+        downstream could detect it.
+
+        **IT RECORDS NOTHING.** `_remember` has already written this reader's
+        position on every move that made it, so the outgoing molecule's
+        position is safe; and writing the incoming molecule's EMPTY state here
+        would overwrite the very position the host is about to restore. Same
+        rule `apply_view` follows, and the reason it does not call `_remember`
+        either.
+        """
+        if molecule_uuid == self._molecule_uuid:
+            return
+        self._molecule_uuid = molecule_uuid
+        self._merged = MergedResults(reports=(), facts=())
+        self._focus = ""
+        self._rebuild_focus_box()
+        self._render()
+
     # --- where the reader is ------------------------------------------------
 
     def set_reader_memory(self, memory) -> None:

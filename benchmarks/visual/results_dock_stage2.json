@@ -1,0 +1,93 @@
+[
+  {
+    "do": "smiles",
+    "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+    "name": "Aspirin",
+    "after_ms": 800
+  },
+  {
+    "do": "select",
+    "molecule": -1,
+    "after_ms": 500
+  },
+  {
+    "do": "panel",
+    "id": "Properties",
+    "after_ms": 500
+  },
+
+  {
+    "do": "calculator",
+    "id": "crippen_logp_contrib",
+    "after_ms": 2500
+  },
+  {
+    "do": "calculator",
+    "id": "lewis_sites",
+    "after_ms": 2500
+  },
+  {
+    "do": "calculator",
+    "id": "topology_analysis",
+    "after_ms": 2500
+  },
+
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage2_properties_before.png",
+    "after_ms": 500
+  },
+
+  {
+    "do": "panel",
+    "id": "Results",
+    "after_ms": 1200
+  },
+  {
+    "do": "dump",
+    "tag": "2b-the-dock-is-fed-without-anyone-opening-it",
+    "after_ms": 500
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage2_results_dock.png",
+    "after_ms": 500
+  },
+  {
+    "do": "visual_check",
+    "surface": "results",
+    "tag": "2b-nothing-clipped-in-the-dock",
+    "after_ms": 500
+  },
+
+  {
+    "do": "pop_out",
+    "panel": "Results",
+    "after_ms": 1200
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage2_results_popped_out.png",
+    "widget": "popout",
+    "after_ms": 500
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage2_window_while_popped_out.png",
+    "after_ms": 500
+  },
+  {
+    "do": "pop_out",
+    "panel": "Results",
+    "after_ms": 1200
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage2_results_returned.png",
+    "after_ms": 500
+  },
+
+  {
+    "do": "quit"
+  }
+]

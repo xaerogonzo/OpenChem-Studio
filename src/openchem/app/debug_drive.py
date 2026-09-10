@@ -2264,6 +2264,12 @@ class _Driver(QObject):
         """
         if name == "properties":
             return self._window._property_panel
+        if name == "results":
+            # The reader itself, never the dock or the scroll wrapper around
+            # it: the oracle maps painted items into the surface's own
+            # rectangle, and handing it the wrapper would measure the
+            # viewport rather than the thing laid out inside it.
+            return self._window._results_view
         if name == "batch":
             return self._window._batch_panel
         if name == "compare":

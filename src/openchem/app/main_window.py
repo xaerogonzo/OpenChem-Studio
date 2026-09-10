@@ -105,6 +105,8 @@ from openchem.ui.widgets.dock_title_bar import DockTitleBar
 from openchem.ui.panels.comparison_panel import ComparisonPanel
 from openchem.ui.fact_link_router import FactLinkRouter
 from openchem.ui.widgets.panel_rail import DEFAULT_GROUP, PanelRail
+from openchem.ui.widgets.pop_out_host import PopOutHost
+from openchem.ui.widgets.results_view import ResultsView
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
 from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
 from openchem.ui.widgets.molstar_viewer_backend import MolStarViewerBackend
@@ -251,7 +253,7 @@ def initial_right_dock_width(available_width: int, dock_minimum: int) -> int:
     return max(dock_minimum, min(_INITIAL_RIGHT_DOCK_WIDTH, available_width // 4))
 
 
-_LAYOUT_VERSION = "3"
+_LAYOUT_VERSION = "4"
 _LAYOUT_VERSION_KEY = "ui/layout_version"
 _RAIL_COLLAPSED_KEY = "ui/rail_collapsed"
 
@@ -281,6 +283,7 @@ def _as_bool(value: object) -> bool:
 HELP_TOPIC_BY_DOCK = {
     "Project_Explorer": "projects",
     "Properties": "properties",
+    "Results": "results",
     "Docking": "docking",
     "Quantum_Chemistry": "quantum-chemistry",
     "Batch": "batch",
@@ -582,6 +585,51 @@ class MainWindow(QMainWindow):
             Qt.DockWidgetArea.RightDockWidgetArea,
         )
 
+        # **THE READER, AS A PANEL.** Properties is where a calculation is
+        # STARTED; this is where one is READ. It follows the selection, so
+        # unlike the per-molecule window it is never closed -- which is the
+        # whole reason the reading moved out of `MergedResultsDialog` into a
+        # widget in the first place.
+        #
+        # **IN A `PopOutHost`, AND THAT IS LOAD-BEARING RATHER THAN A
+        # FLOURISH.** One right-hand panel is visible at a time, so choosing
+        # Results REPLACES Properties -- and reading results while starting
+        # more calculations is the exact workflow the merged reader exists
+        # for. `_show_only_right_dock` already records the answer in its own
+        # docstring ("a dock the user has floated is left alone: they have
+        # deliberately pulled it out to see it alongside something else");
+        # the pop-out is that, with the position and filter travelling
+        # because the widget MOVES rather than being copied.
+        #
+        # **`_wrap_scrollable`, FOR THE REASON THE ATOM INSPECTOR IS**, and
+        # the first attempt without it is what measured the reason.
+        # `FactView` scrolls its own FACTS, and its own control row --
+        # search box, depth combo, format combo, Copy report -- is a
+        # `QHBoxLayout`, whose minimum width is the SUM of its children:
+        # 150 + 150 + 146 + the box, i.e. **482 px under `offscreen`**.
+        # Unwrapped that reaches the window, which went to **1474 px**
+        # against the 1366 this product supports, and four width guards
+        # said so. The Atom Inspector holds the same `FactView` and sits at
+        # 266 precisely because it is wrapped.
+        self._results_view = ResultsView(
+            display_order_of=services.calculator_registry.display_order
+        )
+        self._results_host = PopOutHost(
+            self._results_view,
+            title="Results",
+            settings_id="results",
+            settings=settings,
+        )
+        results_dock = self._add_dock(
+            "Results",
+            self._wrap_scrollable(self._results_host),
+            Qt.DockWidgetArea.RightDockWidgetArea,
+        )
+        # The panel owns the results and the reading position; the reader
+        # renders them. Attached rather than constructed there, because the
+        # dock belongs to the window and the panel must work without one.
+        self._property_panel.attach_reader(self._results_view)
+
         # THE RIGHT-HAND PANELS ARE NO LONGER TABIFIED, and the tab bar is
         # gone with them.
         #
@@ -602,6 +650,7 @@ class MainWindow(QMainWindow):
         # exactly what tabifying was working around.
         self._right_docks: list[QDockWidget] = [
             self._properties_dock,
+            results_dock,
             atom_inspector_dock,
             interactions_dock,
             self._structure_check_dock,
@@ -614,6 +663,7 @@ class MainWindow(QMainWindow):
         ]
         for dock, group in (
             (self._properties_dock, "analysis"),
+            (results_dock, "analysis"),
             (atom_inspector_dock, "analysis"),
             (interactions_dock, "analysis"),
             (self._structure_check_dock, "analysis"),
