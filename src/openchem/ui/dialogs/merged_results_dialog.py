@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.domain.common import CacheState, describe_failure
 from openchem.domain.merged_results import MergedResults, merge_reports
 from openchem.ui.widgets.fact_view import FactView
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
@@ -144,7 +145,10 @@ class MergedResultsDialog(QDialog):
         contribute a chart or a 3D annotation, "the first one" stops being
         an answer to anything.
         """
-        self._focus = report_id if self._merged.report_for(report_id) else ""
+        # `is not None`. A refused calculator's report has no facts, and
+        # truthiness here made it unfocusable -- it appeared in the selector
+        # and choosing it fell back to All results, silently.
+        self._focus = report_id if self._merged.report_for(report_id) is not None else ""
         self._sync_focus_box()
         self._render()
 
@@ -208,6 +212,46 @@ class MergedResultsDialog(QDialog):
         return f"{len(names)} calculator(s): " + ", ".join(names)
 
     def _summary_for(self, report) -> str:
+        """What to say above a focused report's facts.
+
+        **A REPORT WITH NO FACTS NOW REACHES THIS WINDOW, AND "0 facts." IS
+        NOT AN EXPLANATION.** `merge_reports` used to refuse one, so a refused
+        Lewis Sites result -- `matched=[]`, `cache_state=FAILED` -- appeared
+        here as nothing at all. Admitting it is only half the fix: without a
+        reason it now appears as a calculator that ran and had nothing to say,
+        which is a different and equally wrong statement.
+
+        Status first, staleness after, and BOTH when both apply: a failed
+        result computed against an older structure is two facts about it, and
+        showing one would leave a reader to discover the other by surprise.
+        """
+        parts = [text for text in (self._status_line(report), self._stale_line(report)) if text]
+        return " ".join(parts)
+
+    def _status_line(self, report) -> str:
+        """The failure or refusal, in the reader's own words.
+
+        `describe_failure` owns which string is the short form and which is
+        the full one, so this does not re-decide it -- the HOVER form is right
+        here, because a summary line above a report has room for a sentence
+        where a 120 px table cell does not. That is the same call
+        `_present_alert` and the wide rows make.
+
+        **A REFUSAL IS NOT A FAULT**, and the existing `inapplicable` field is
+        what separates them rather than a second vocabulary invented here: the
+        method not covering this molecule is a correct, permanent answer, and
+        painting it as a crash is what made two working calculators read as
+        broken.
+        """
+        if getattr(report, "cache_state", None) is not CacheState.FAILED:
+            return ""
+        _cell, reason = describe_failure(
+            getattr(report, "error", None), getattr(report, "error_summary", None)
+        )
+        lead = "Not applicable" if getattr(report, "inapplicable", False) else "This did not run"
+        return f"{lead}: {reason}"
+
+    def _stale_line(self, report) -> str:
         return (
             "Computed for an earlier version of this structure -- re-run it "
             "to refresh."

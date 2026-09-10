@@ -147,6 +147,30 @@ class MergedResults:
         )
 
 
+#: The reader contract, as a membership test. A `FactView` consumes anything
+#: with `facts`, `by_category()` and `find()`; `MergedResults` additionally
+#: needs a `report_id` to focus and select by, since a report nothing can name
+#: cannot be chosen in a selector or linked to from a status chip.
+#:
+#: Structural rather than `isinstance`, deliberately, and for the reason
+#: `_AllResults` exists: the merged view is a VIEW over several producers, and
+#: a summary projection of a per-atom dataset or a pH curve satisfies this
+#: surface without being a `ReportResult`. Requiring the class would force
+#: those to be fabricated as real reports, which is precisely what
+#: `MergedResults` refuses to do to its own contents.
+_READER_CONTRACT = ("report_id", "facts", "by_category", "find")
+
+
+def is_report_shaped(result: object) -> bool:
+    """Whether `result` can be read by the merged results reader.
+
+    **NOT "does it have facts".** See `merge_reports` for the bug that
+    distinction fixes: a FAILED, inapplicable or picture-only report has none
+    and is exactly what a reader must show.
+    """
+    return all(hasattr(result, name) for name in _READER_CONTRACT)
+
+
 def merge_reports(
     reports, structure_version: int = 0
 ) -> MergedResults:
@@ -154,10 +178,35 @@ def merge_reports(
 
     **ONLY RESULTS THAT ARE REPORTS CONTRIBUTE**, which is the rule
     `merged_report` already applied to facts and which now applies to the
-    other channels too: a per-atom dataset, a spectrum or a structure set
-    has no facts to merge and is reached through its own inspector. Without
-    that, a factless result could smuggle a chart into a merged view
-    through a door the facts are refused at.
+    other channels too: a per-atom dataset, a spectrum or a structure set is
+    not a report and is reached through its own inspector. Without that, such
+    a result could smuggle a chart into a merged view through a door the facts
+    are refused at.
+
+    **BUT "IS A REPORT" IS NOT "HAS FACTS", AND CONFLATING THEM WAS A BUG.**
+    This gate was `if not getattr(report, "facts", None): continue`, which is
+    two rules wearing one test -- reject non-reports, AND reject reports that
+    happen to have no facts. The second is wrong the moment Results is the
+    canonical reader rather than one of two places a result appears.
+
+    A report legitimately has no facts when it FAILED, when the method does
+    not apply to this molecule, or when its whole content is a picture. Those
+    are exactly the cases a reader must show. Measured: `compute_lewis_sites`
+    returns `report_from_fields(..., matched=[], cache_state=FAILED)` on
+    refusal, so a refused Lewis Sites result reached the Properties panel and
+    reached this window not at all -- it was rendered as nothing having
+    happened.
+
+    So the gate is the READER CONTRACT instead: `report_id` to be focused by,
+    plus the `facts`/`by_category`/`find` surface a `FactView` consumes. That
+    is the same duck-type `_AllResults` implements, so a summary view of a
+    non-report result passes through the same door rather than a side one.
+
+    It still refuses the kinds it always did, and truthiness was never what
+    did that: `PhCurveResult` carries a `facts` field (empty by default) and
+    no `by_category`, so it was refused for having no facts YET rather than
+    for not being a report -- and would have been admitted, chart and all, the
+    day a producer declared one. Now it is refused for the honest reason.
 
     **`Fact.source` IS NEVER TOUCHED.** It is the scientific or
     producer-declared source -- "RDKit", "LewisAnalysis" -- and it answers
@@ -169,7 +218,7 @@ def merge_reports(
     kept: list[ReportResult] = []
     facts: list[Fact] = []
     for report in reports:
-        if not getattr(report, "facts", None):
+        if not is_report_shaped(report):
             continue
         kept.append(report)
         origin = getattr(report, "report_id", "")

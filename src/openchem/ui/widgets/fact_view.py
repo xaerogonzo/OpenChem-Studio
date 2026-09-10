@@ -330,6 +330,23 @@ class FactView(QWidget):
     def title_text(self) -> str:
         return self._title.text()
 
+    def summary_text(self) -> str:
+        """The pinned line above the sections -- what `set_report`'s `summary`
+        argument put there.
+
+        **NOT `status_text`, and the two are easy to confuse.** `_status` is
+        this widget's OWN sentence about what it is showing, recomputed on
+        every render ("12 facts. 6 advanced hidden..."), so a caller cannot
+        put anything in it that survives a keystroke in the search box. The
+        summary is the HOST's sentence about the report -- staleness, a
+        refusal's reason -- and it is the one a caller sets.
+
+        Exposed because a host that writes it had no way to read it back, so
+        a guard on what the reader says about a failed result had to reach
+        into `_summary` directly.
+        """
+        return self._summary.text()
+
     def search_box(self) -> QLineEdit:
         """Exposed so a window-level shortcut can focus it."""
         return self._search
@@ -425,7 +442,9 @@ class FactView(QWidget):
 
     def _molblock_for_report(self) -> str:
         resolver = getattr(self, "_structure_resolver", None)
-        uuid = getattr(self._report, "molecule_uuid", "") if self._report else ""
+        # `is not None`, NOT truthiness: a factless report is a real report
+        # (a refusal, a picture-only result) and must still resolve a structure.
+        uuid = getattr(self._report, "molecule_uuid", "") if self._report is not None else ""
         if resolver is None or not uuid:
             return ""
         try:

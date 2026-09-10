@@ -11,6 +11,7 @@ from __future__ import annotations
 import pytest
 from PySide6.QtCore import Qt
 
+from openchem.domain.common import CacheState
 from openchem.domain.report import (
     ArrowAnnotation,
     Basis,
@@ -252,3 +253,84 @@ def test_spatial_annotations_keep_their_owner(qapp):
     assert window.merged().spatial_for("dipole") == (arrow,)
     assert window.merged().spatial_for("lewis_sites") == ()
     dispose(window)
+
+
+# --- a report with no facts ----------------------------------------------
+#
+# `merge_reports` used to refuse one, so a refused calculator's report reached
+# this window not at all and read as nothing having happened. Admitting it is
+# only half the fix; the other half is that "0 facts." is not an explanation.
+
+
+def _failed(report_id: str, reason: str, *, inapplicable: bool = False) -> ReportResult:
+    """A producer's refusal, in the shape `report_from_fields` really emits --
+    empty facts, FAILED, and the reason in `error`."""
+    return ReportResult(
+        report_id=report_id,
+        name=report_id.replace("_", " ").title(),
+        molecule_uuid="u",
+        facts=(),
+        cache_state=CacheState.FAILED,
+        error=reason,
+        inapplicable=inapplicable,
+    )
+
+
+def test_a_failed_report_with_no_facts_is_shown_rather_than_dropped(qapp):
+    """The live bug. `compute_lewis_sites` returns `matched=[]` with
+    `cache_state=FAILED` on refusal, so this exact shape was invisible here."""
+    dialog = MergedResultsDialog("u")
+    dialog.set_reports([_failed("lewis_sites", "no assignable Lewis sites")])
+    assert [r.report_id for r in dialog.merged().reports] == ["lewis_sites"]
+    # And reachable in the selector, not merely in the model.
+    labels = [dialog._focus_box.itemText(i) for i in range(dialog._focus_box.count())]
+    assert "Lewis Sites" in labels
+    dispose(dialog)
+
+
+def test_a_failed_report_says_why_rather_than_reading_as_an_empty_result(qapp):
+    """Without this the fix trades one wrong statement for another: a refused
+    calculator would appear as one that ran and had nothing to say."""
+    dialog = MergedResultsDialog("u")
+    dialog.set_reports([_failed("lewis_sites", "no assignable Lewis sites")])
+    dialog.set_focus("lewis_sites")
+    assert "no assignable Lewis sites" in dialog._view.summary_text()
+    dispose(dialog)
+
+
+def test_a_refusal_does_not_read_as_a_fault(qapp):
+    """A REFUSAL IS NOT A FAULT. The method not covering this molecule is a
+    correct, permanent answer; painting it as a crash is what made two working
+    calculators read as broken. The existing `inapplicable` field separates
+    them -- this asserts the reader uses it rather than inventing a second
+    vocabulary."""
+    dialog = MergedResultsDialog("u")
+    dialog.set_reports([_failed("joback", "no group for a ring tertiary amine", inapplicable=True)])
+    dialog.set_focus("joback")
+    text = dialog._view.summary_text()
+    assert "Not applicable" in text
+    assert "did not run" not in text
+    dispose(dialog)
+
+
+def test_a_failed_and_stale_report_says_both(qapp):
+    """Two facts about one result. Showing one would leave a reader to
+    discover the other by surprise."""
+    dialog = MergedResultsDialog("u")
+    dialog.set_reports([_failed("lewis_sites", "no assignable Lewis sites")], structure_version=3)
+    dialog.set_focus("lewis_sites")
+    text = dialog._view.summary_text()
+    assert "no assignable Lewis sites" in text
+    assert "earlier version" in text
+    dispose(dialog)
+
+
+def test_a_completed_report_carries_no_status_line(qapp):
+    """The narrow half. A status line on every report would be noise, and
+    "always explain" satisfies the three guards above while doing it."""
+    dialog = MergedResultsDialog("u")
+    dialog.set_reports([_report("ok", "OK", ["Mass"])])
+    dialog.set_focus("ok")
+    text = dialog._view.summary_text()
+    assert "did not run" not in text and "Not applicable" not in text
+    dispose(dialog)

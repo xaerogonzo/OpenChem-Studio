@@ -218,7 +218,7 @@ def test_building_a_report_starts_no_calculation(monkeypatch):
             lambda self, *a, **k: called.append("run"),
         )
     report = build_molecule_report(mol(embed=True), context={})
-    assert report, "a report with no context is still worth having"
+    assert report.facts, "a report with no context is still worth having"
     assert called == []
 
 

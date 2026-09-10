@@ -265,8 +265,27 @@ class StructureReport(ScientificResult):
     assumptions: tuple[str, ...] = ()
     limitations: tuple[str, ...] = ()
 
-    def __bool__(self) -> bool:
-        return bool(self.facts)
+    # **THERE WAS A `__bool__` HERE RETURNING `bool(self.facts)`, AND IT MADE
+    # A FACTLESS REPORT FALSY.** Harmless while a report with nothing to say
+    # was nothing to show; a trap the moment one is first-class -- a report
+    # legitimately has no facts when it FAILED, when the method does not apply
+    # to this molecule, or when its whole content is a picture.
+    #
+    # It made `if report:` mean "has facts" while reading as "exists", and
+    # both of its reachable users meant the second. `MergedResultsDialog`
+    # focused with `report_id if merged.report_for(report_id) else ""`, so a
+    # refused calculator appeared in the selector and choosing it silently
+    # fell back to All results; `FactView._molblock_for_report` resolved no
+    # structure for one, so its depiction could never draw.
+    #
+    # Measured before removing it: ONE boolean-context use in `src/` and three
+    # bare `assert report` in tests, every one of which meant "it still has
+    # facts" (their own messages say so) and now says `report.facts` -- which
+    # is a stronger assertion, not a weaker one. Nothing wanted this operator.
+    #
+    # A dataclass with no `__bool__` is truthy, which is the right answer to
+    # "does this report exist". Anything wanting the other question asks
+    # `report.facts`, where it cannot be misread.
 
     def by_category(self) -> dict[FactCategory, tuple[Fact, ...]]:
         """Facts grouped for display, in `CATEGORY_ORDER`.
