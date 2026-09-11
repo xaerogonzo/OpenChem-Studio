@@ -133,6 +133,75 @@ class AdoptConformerCommand(OpenChemCommand):
             self._on_applied(self._molecule)
 
 
+class RedrawFlatCommand(OpenChemCommand):
+    """Lay the drawing out flat again, keeping the structure and the
+    conformers.
+
+    **THE OTHER HALF OF "Use in 2D Editor".** That button brings a
+    conformer across as a 3D projection, deliberately -- the drawing keeps
+    its z and the canvas draws the x/y, which is what makes it look like
+    the geometry. What was missing was the way back: reported as "we don't
+    have an easy way to convert the structure back to a two d form. I tried
+    hitting the cleanup button. but it did not convert it back".
+
+    **CLEAN UP IS NOT THAT, AND MEASURING SAID SO.** It zeroes the z column
+    and keeps the projected x/y, so the picture stays the overlapping mess
+    it was -- 7 structure warnings on the reported cage. Ketcher's Layout
+    does redraw it properly and is the one that changed the compound; see
+    `ChemistryEngine.flat_drawing`.
+
+    **NOT `EditStructureCommand`**, for the reason `AdoptConformerCommand`
+    is not: that one clears the conformer set on redo, correctly, because a
+    structure edit invalidates it. This changes coordinates and nothing
+    else, so the conformers still describe this structure and must survive.
+    """
+
+    def __init__(
+        self,
+        engine: ChemistryEngine,
+        molecule: MoleculeModel,
+        event_bus: EventBus,
+        on_applied: Callable[[MoleculeModel], None] | None = None,
+    ) -> None:
+        super().__init__(f"Redraw '{molecule.display_name}' in 2D")
+        self._engine = engine
+        self._molecule = molecule
+        self._event_bus = event_bus
+        self._on_applied = on_applied
+        self._old_molblock = molecule.molblock
+        # Built in the constructor and refused here, so nothing reaches the
+        # undo stack -- the rule `AdoptConformerCommand` states and the
+        # reason a redo cannot produce a different drawing from the one
+        # that was accepted.
+        drawing = engine.flat_drawing(molecule.molblock or "", reference=molecule.molblock)
+        if drawing.stereo is not None and not drawing.stereo.safe:
+            raise StereochemistryConflict(
+                f"Redrawing this flat {drawing.stereo.describe()}."
+            )
+        self._new_molblock = drawing.molblock
+        #: What laying it out flat did to the stereochemistry. Safe by
+        #: construction; the caller is still expected to say so when it is
+        #: not quiet, exactly as the adopt path does.
+        self.stereo = drawing.stereo
+
+    def redo(self) -> None:
+        self._engine.set_structure_from_molblock(self._molecule, self._new_molblock)
+        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
+        self._redraw()
+
+    def undo(self) -> None:
+        if self._old_molblock:
+            self._engine.set_structure_from_molblock(self._molecule, self._old_molblock)
+        self._event_bus.publish(MoleculeChanged(molecule_uuid=self._molecule.uuid))
+        self._redraw()
+
+    def _redraw(self) -> None:
+        """The canvas does not follow a coordinates-only change on its own
+        -- see `AdoptConformerCommand._redraw` for the measurement."""
+        if self._on_applied is not None:
+            self._on_applied(self._molecule)
+
+
 class SetConformersCommand(OpenChemCommand):
     """Replaces a molecule's conformer set wholesale.
 

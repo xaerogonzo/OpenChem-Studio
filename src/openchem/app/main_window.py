@@ -49,6 +49,7 @@ from openchem.chem.structure_clipboard import parse_structure_text
 from openchem.commands.conformer_commands import (
     AdoptConformerCommand,
     AddConformerCommand,
+    RedrawFlatCommand,
     SetConformersCommand,
 )
 from openchem.commands.docking_commands import SetDockingResultCommand
@@ -1534,6 +1535,19 @@ class MainWindow(QMainWindow):
             ("Clean Up", "Clean Up button", "clean_up"),
         ):
             self._add_editor_action(self._structure_menu, label, test_id, help_key)
+        # **NOT ONE OF KETCHER'S**, which is the whole point and the
+        # reason it sits beside them rather than among them. The way back
+        # from a drawing adopted out of the 3D viewer has to read the
+        # STRUCTURE: Clean Up keeps the projected positions (measured: the
+        # z column zeroes and the picture stays an overlapping mess, 7
+        # structure warnings) and Layout re-reads the picture, which on
+        # that same drawing turned [C@@] into [C@]. See
+        # `ChemistryEngine.flat_drawing`.
+        self._redraw_flat_action = self._document(
+            QAction("Redraw in 2D", self), "redraw_flat"
+        )
+        self._redraw_flat_action.triggered.connect(self._on_redraw_flat)
+        self._structure_menu.addAction(self._redraw_flat_action)
         self._structure_menu.addSeparator()
         self._add_editor_action(
             self._structure_menu,
@@ -3261,7 +3275,8 @@ class MainWindow(QMainWindow):
             # rather than quietly replaced with a tidier one.
             message = (
                 f"{molecule.display_name}: redrawn as you have it rotated -- but some "
-                "atoms overlap at this angle. Turn the 3D view a little and try again."
+                "atoms overlap at this angle. Turn the 3D view a little and try "
+                "again, or use Structure > Redraw in 2D to lay it out flat."
             )
         else:
             message = f"{molecule.display_name}: redrawn as you have it rotated in 3D."
@@ -3269,6 +3284,44 @@ class MainWindow(QMainWindow):
         # says so rather than letting the molecule quietly become more
         # specific than it was drawn. See `chem/stereochemistry.py` for
         # why that is not the same as the structure having specified it.
+        if command.stereo is not None and not command.stereo.quiet:
+            message = f"{message[:-1]} -- and {command.stereo.describe()}."
+        self.statusBar().showMessage(message, 10000)
+
+    def _on_redraw_flat(self, _checked: bool = False) -> None:
+        """Lay the current drawing out flat, keeping the conformers.
+
+        Through a command, because it changes the drawing and Ctrl+Z has to
+        take it back -- the project's rule for any structure-modifying
+        action, and here it is also the thing that makes trying it safe.
+        """
+        molecule = self._current_molecule()
+        if molecule is None or not molecule.molblock:
+            return
+        try:
+            command = RedrawFlatCommand(
+                self._services.chemistry_engine,
+                molecule,
+                self._services.event_bus,
+                # The editor's own method, not one of this window's: see
+                # `_adopt_conformer` for why a bound method of the window
+                # would be a new reference into it from the undo stack.
+                on_applied=self._editor.set_molecule,
+            )
+        except StereochemistryConflict as exc:
+            # The same refusal the adopt path makes, and for the same
+            # reason: a drawing that would make this a different compound
+            # is not a drawing to offer.
+            logger.warning("Refused a flat redraw that would change stereochemistry: %s", exc)
+            QMessageBox.warning(
+                self,
+                "Redraw in 2D",
+                f"{exc}" + chr(10) + chr(10) + "The drawing has been left as it was.",
+            )
+            return
+        self._undo_stack.push(command)
+        self._center_tabs.setCurrentWidget(self._editor)
+        message = f"{molecule.display_name}: redrawn flat."
         if command.stereo is not None and not command.stereo.quiet:
             message = f"{message[:-1]} -- and {command.stereo.describe()}."
         self.statusBar().showMessage(message, 10000)
@@ -3378,6 +3431,7 @@ class MainWindow(QMainWindow):
         # user ever figure that out?". This is a way IN; the ways OUT are on
         # the overlay itself, which is what covers the canvas once it is on.
         menu.addAction(self._rotate_action)
+        menu.addAction(self._redraw_flat_action)
         menu.addSeparator()
         # Kept by decision: replacing the menu must not cost the editor's
         # own dialog, which is the one thing it had that we do not.

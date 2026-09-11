@@ -35,7 +35,10 @@ from rdkit import Chem
 
 from openchem.bootstrap import build_service_container
 from openchem.chem.calculation_input import canonical_conformer
-from openchem.commands.conformer_commands import AdoptConformerCommand
+from openchem.commands.conformer_commands import (
+    AdoptConformerCommand,
+    RedrawFlatCommand,
+)
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.events.base import EventBus
@@ -571,3 +574,207 @@ def test_a_molecule_with_no_stereocentre_makes_no_such_claim(engine):
     drawing = engine.drawing_from_conformer(_conformer_molblock(engine, molecule))
 
     assert drawing.molblock.splitlines()[3][12:15].strip() == "0"
+
+
+# --- the way BACK -------------------------------------------------------------
+#
+# "we don't have an easy way to convert the structure back to a two d form. I
+# tried hitting the cleanup button. but it did not convert it back to a two d
+# form."
+#
+# Measured in the running app on the reported cage, after Use in 2D Editor:
+#
+#   Clean Up   z spread 6.8435 -> 0.0   conformers 3   SMILES unchanged
+#              ...and the picture stays the overlapping projection: 7 structure
+#              warnings, because it keeps the x,y it was given.
+#   Layout     z spread 6.8435 -> 0.0   conformers 3 -> 0
+#              ...and [C@@] -> [C@]. A DIFFERENT COMPOUND, and the conformers
+#              went because `_invalidate_stale_conformers` correctly saw the
+#              canonical SMILES move.
+#
+# The same Layout on a drawing that was never adopted leaves the SMILES alone
+# (measured as a control in the same run), so what breaks is re-reading a
+# drawing whose atoms overlap -- which the adopt path already warns about.
+
+#: The molecule this was reported on. A fused cage: every ring is locked, and
+#: the quaternary carbon closing two of them is the centre that inverted.
+CAGE = "C[C@H]1CC[C@H]2[C@H]3Cc4ccc(O)c5c4[C@@]2(CCN3C)[C@H]1O5"
+
+
+def _adopted(engine, smiles: str, view=VIEW_Y90):
+    """A molecule whose DRAWING is a 3D projection, as the button leaves it.
+
+    **THE CAMERA IS WHAT MAKES IT 3D**, and leaving it out is not a smaller
+    version of this setup -- it is a different one. With `view=None` the
+    adopt path lays out a flat depiction instead, so every test below would
+    be redrawing something already flat and would pass against an
+    implementation that does nothing. Caught by
+    `test_the_adopted_drawing_really_is_three_dimensional`, which is there
+    for exactly that.
+    """
+    molecule = _molecule(engine, smiles)
+    conformer = ConformerModel(molblock=_conformer_molblock(engine, molecule), energy=1.0)
+    molecule.conformers = [conformer]
+    AdoptConformerCommand(
+        engine, molecule, conformer.molblock, EventBus(), view=view
+    ).redo()
+    return molecule, conformer
+
+
+def test_the_adopted_drawing_really_is_three_dimensional(engine):
+    """The precondition, asserted rather than assumed: without it every test
+    below would be redrawing something that was already flat and would pass
+    against an implementation that does nothing."""
+    molecule, _conformer = _adopted(engine, CAGE)
+
+    assert _z_spread(molecule.molblock) > 1.0
+
+
+def test_redrawing_flat_removes_the_third_dimension(engine):
+    molecule, _conformer = _adopted(engine, CAGE)
+
+    RedrawFlatCommand(engine, molecule, EventBus()).redo()
+
+    assert _z_spread(molecule.molblock) == pytest.approx(0.0, abs=1e-6)
+
+
+def test_redrawing_flat_does_not_change_the_compound(engine):
+    """**THE REGRESSION FOR THE MEASURED DEFECT.** Ketcher's Layout on this
+    exact drawing turned `[C@@]` into `[C@]` -- twice, in two runs. This
+    reads the structure instead of the picture, so an overlapping projection
+    has nothing to mislead it with."""
+    molecule, _conformer = _adopted(engine, CAGE)
+    before = molecule.canonical_smiles
+
+    RedrawFlatCommand(engine, molecule, EventBus()).redo()
+
+    assert molecule.canonical_smiles == before
+
+
+def test_redrawing_flat_keeps_the_conformers(engine):
+    """Coordinates only, so the geometries still describe this structure.
+
+    The conformer loss that came with Layout was a SYMPTOM -- the canonical
+    SMILES moved and `EditStructureCommand._invalidate_stale_conformers`
+    correctly dropped them. A redraw that changes no structure must give it
+    nothing to drop.
+    """
+    molecule, conformer = _adopted(engine, CAGE)
+
+    RedrawFlatCommand(engine, molecule, EventBus()).redo()
+
+    assert molecule.conformers == [conformer]
+
+
+def test_redrawing_flat_is_undoable_back_to_the_3d_drawing(engine):
+    """Trying it has to be free, which is the whole reason it is a command."""
+    molecule, _conformer = _adopted(engine, CAGE)
+    projected = molecule.molblock
+    command = RedrawFlatCommand(engine, molecule, EventBus())
+
+    command.redo()
+    assert _z_spread(molecule.molblock) == pytest.approx(0.0, abs=1e-6)
+
+    command.undo()
+    assert molecule.molblock == projected
+
+
+def test_the_flat_drawing_is_readable_where_the_projection_was_not(engine):
+    """The complaint was not about the z column -- Clean Up zeroes that and
+    the picture stays unusable. It was that the drawing is unreadable.
+
+    **AND THE REFERENCE IS A FRESH DEPICTION, not a number.** The first
+    version of this asserted `> 2 * projected` and read 1.83 -- a threshold
+    fitted to nothing, which is the error this file's own calibration
+    comment records one paragraph up. The claim does not need one: a fused
+    cage has close contacts in ANY honest drawing, so what "readable"
+    means here is "as readable as the drawing you would have got without
+    ever going through the 3D viewer".
+    """
+    molecule, _conformer = _adopted(engine, CAGE)
+    projected = _closest_approach(molecule.molblock)
+    fresh = _closest_approach(_molecule(engine, CAGE).molblock)
+
+    RedrawFlatCommand(engine, molecule, EventBus()).redo()
+
+    assert projected < fresh, "the projection was not crowded -- nothing to recover"
+    # NOT byte-identical, and the tolerance says which claim this is.
+    # Measured 0.600023 against 0.599987: the redraw lays out a structure
+    # that has been through a conformer and back, so its atom ORDER differs
+    # from one built straight from SMILES and `Compute2DCoords` answers
+    # microscopically differently. "The same drawing quality" is the claim;
+    # "the same bytes" is not one this can make.
+    assert _closest_approach(molecule.molblock) == pytest.approx(fresh, rel=1e-3)
+
+
+def test_redrawing_a_drawing_that_is_already_flat_changes_nothing_about_it(engine):
+    """It is offered from a menu, so it can be pressed at any time."""
+    molecule = _molecule(engine, CAGE)
+    before = molecule.canonical_smiles
+
+    RedrawFlatCommand(engine, molecule, EventBus()).redo()
+
+    assert molecule.canonical_smiles == before
+    assert _z_spread(molecule.molblock) == pytest.approx(0.0, abs=1e-6)
+
+
+def test_the_flat_drawing_drops_explicit_hydrogens(engine):
+    """**THE SURVIVOR, AND THE PATH THAT MAKES THE LINE LOAD-BEARING.**
+
+    Through `RedrawFlatCommand` the input is always a DRAWING, whose
+    hydrogens are already implicit, so removing the `RemoveHs` changed
+    nothing and the arm survived a full run. But `flat_drawing` is a public
+    engine method and its contract has to hold for any molblock -- and the
+    obvious thing to hand it is a conformer, which carries 44 explicit
+    hydrogens here. Those reaching a drawing change the canonical SMILES to
+    `[H]O...` and with it what eight calculators report, which is the first
+    of the three defects `AdoptConformerCommand` exists to avoid.
+    """
+    molecule = _molecule(engine, CAGE)
+    conformer = _conformer_molblock(engine, molecule)
+    assert _atom_count(conformer) > _atom_count(molecule.molblock), "no hydrogens to drop"
+
+    drawing = engine.flat_drawing(conformer)
+
+    assert _atom_count(drawing.molblock) == _atom_count(molecule.molblock)
+
+
+def test_a_redraw_the_engine_calls_unsafe_is_refused(engine, monkeypatch):
+    """**AND THE OTHER SURVIVOR, WHICH IS NOT A HOLE BUT A REACH PROBLEM.**
+
+    Nothing found makes a flat redraw stereochemically unsafe. Measured
+    over the cage, cholesterol, the reported bicyclo[2.2.2], an undefined
+    centre, both alkene geometries, a two-centre case and strychnine, each
+    from its drawing AND from a real 3D projection: safe and quiet every
+    time. That is expected -- the reference IS the molblock being redrawn,
+    and `Compute2DCoords` is faithful to the parities it was given.
+
+    So the refusal cannot be provoked through chemistry, and asserting it
+    over an input nobody can construct would be a test of nothing. What IS
+    falsifiable, and what would actually regress, is the WIRING: when the
+    engine flags a drawing unsafe, the command must refuse in its
+    constructor so nothing reaches the undo stack.
+    """
+    from openchem.chem.engine import ConformerDrawing
+    from openchem.chem.stereochemistry import StereochemistryConflict
+
+    molecule = _molecule(engine, CAGE)
+    real = engine.flat_drawing(molecule.molblock, reference=molecule.molblock)
+
+    class _Unsafe:
+        safe = False
+        quiet = False
+
+        def describe(self):
+            return "turns (R) into (S)"
+
+    monkeypatch.setattr(
+        engine,
+        "flat_drawing",
+        lambda *a, **k: ConformerDrawing(
+            real.molblock, follows_geometry=False, stereo=_Unsafe()
+        ),
+    )
+
+    with pytest.raises(StereochemistryConflict):
+        RedrawFlatCommand(engine, molecule, EventBus())
