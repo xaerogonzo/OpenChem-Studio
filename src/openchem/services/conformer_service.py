@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import logging
 import time
+from dataclasses import replace
 
 import rdkit
 from PySide6.QtCore import QRunnable, QThreadPool
@@ -10,9 +11,11 @@ from PySide6.QtCore import QRunnable, QThreadPool
 from openchem.chem.conformer_providers import (
     DEFAULT_ENERGY_WINDOW,
     DEFAULT_RMS_THRESHOLD,
+    DEFAULT_SEARCH_SEED,
     GenerationOptions,
     RDKitConformerProvider,
     distinct_conformers,
+    search_conformers,
     select_for_return,
 )
 from openchem.chem.alignment import align_conformers_for_display
@@ -71,8 +74,15 @@ class _ConformerGenerationTask(QRunnable):
         # perfect threshold, 10 embeddings of ethylmorphine found at most
         # 6 distinct geometries against a reference lower bound of 12.
         self._num_conformers = num_conformers
+        # **A TOTAL BUDGET, NOT A BATCH SIZE.** `num_embeddings` has meant
+        # the total to try since it was split from `num_conformers`, and it
+        # still does -- it is the deprecated spelling of
+        # `GenerationOptions.max_embeddings`. Quietly turning it into the
+        # per-batch step would be an API change hidden inside a bug fix.
         self._num_embeddings = num_embeddings if num_embeddings is not None else num_conformers
         self._options = options or GenerationOptions()
+        if self._num_embeddings:
+            self._options = replace(self._options, max_embeddings=self._num_embeddings)
         self._optimize = optimize
         self._event_bus = event_bus
         self._job_manager = job_manager
@@ -94,15 +104,21 @@ class _ConformerGenerationTask(QRunnable):
             # called without it. Checked with `inspect` rather than by
             # catching TypeError, which would also swallow a real one
             # raised from inside the provider.
-            extra = {"options": self._options} if _accepts_options(self._provider) else {}
-            batch = self._provider.generate_conformer_batch(
+            # **A SEARCH, NOT ONE DRAW.** It embeds in batches and stops when
+            # a few in a row add nothing unmatched -- see `search_conformers`
+            # for why the survivor COUNT cannot be the signal. One unseeded
+            # draw of 100 gave the reported molecule 6, then 9, then 8, then
+            # 7; this gives 9 from either of two seeds, stopping on a plateau.
+            outcome = search_conformers(
+                self._provider,
                 mol,
-                self._num_embeddings,
                 self._optimize,
+                self._options,
                 on_progress=self._on_progress,
-                **extra,
+                accepts_options=_accepts_options(self._provider),
             )
-            results = batch.results
+            batch = outcome
+            results = outcome.pool
         except Exception as exc:  # noqa: BLE001 - report failure, never crash the pool
             logger.exception("Conformer generation failed for molecule %s", self._model.uuid)
             self._event_bus.publish(
@@ -147,13 +163,21 @@ class _ConformerGenerationTask(QRunnable):
         # cap of 10. Unconditional, including the zero cases: a stage count
         # that only exists on the happy path cannot be read as a stage.
         returned = len(results)
-        if distinct < converged:
-            logger.info(
-                "Kept %d distinct conformer(s) of %d converged for molecule %s",
-                distinct,
-                converged,
-                self._model.uuid,
-            )
+        # **IT SAYS WHY THE SEARCH ENDED, and that is the difference between
+        # a count that reads as loss and one that reads as an answer.** "Kept
+        # 8 of 100" invites the question the report could not answer; "8
+        # distinct, search plateau after 4 batches" is a statement about the
+        # sampling. NOT the word "converged" for the stop: a plateau means no
+        # new candidate in the last few batches, never that the space is
+        # enumerated.
+        logger.info(
+            "%d distinct conformer(s) from %d embedding(s) in %d batch(es) -- %s -- for molecule %s",
+            distinct,
+            outcome.attempted,
+            outcome.batches,
+            outcome.stop_reason,
+            self._model.uuid,
+        )
 
         method = (
             f"{self._provider.provider_id}+MMFF94/UFF" if self._optimize else self._provider.provider_id
@@ -197,6 +221,24 @@ class _ConformerGenerationTask(QRunnable):
                 # wrong, but because nothing says which version of this
                 # method produced that record.
                 "conformers_returned": returned,
+                # **THE ONE GENUINELY MISSING FIELD, and about to be the most
+                # load-bearing.** Everything else about the protocol was
+                # already here; without the seed a stored result cannot say
+                # which search produced it, and the search is seeded now.
+                # Read off the provider rather than assumed, like
+                # `use_small_ring_torsions` below: a plugin that never heard
+                # of seeds records None ("not declared"), never a guess.
+                "random_seed": getattr(self._provider, "random_seed", None),
+                "seed_offset_policy": "global_embedding_index",
+                "embedding_batch_size": self._options.embedding_batch_size,
+                "max_embeddings": self._options.max_embeddings,
+                "plateau_batches_required": self._options.plateau_batches_required,
+                # Recorded rather than derived from the setting above: the
+                # threshold is a setting and a stored record must not start
+                # describing itself with today's value.
+                "batches": outcome.batches,
+                "batches_without_new_candidates": outcome.batches_without_new_candidates,
+                "stop_reason": outcome.stop_reason,
                 "rms_threshold": self._options.diversity_rmsd,
                 "optimisation_level": self._options.optimisation,
                 "time_limit_seconds": self._options.time_limit_seconds,
@@ -315,7 +357,10 @@ class ConformerService:
     ) -> None:
         self._event_bus = event_bus
         self._engine = engine
-        default_provider = RDKitConformerProvider()
+        # **SEEDED, so a run repeats.** See `DEFAULT_SEARCH_SEED`: unseeded
+        # is ETKDG's own default and is what made the same molecule report 6,
+        # then 9, then 8, then 7 distinct conformers.
+        default_provider = RDKitConformerProvider(random_seed=DEFAULT_SEARCH_SEED)
         self._providers: dict[str, ConformerProvider] = (
             providers if providers is not None else {default_provider.provider_id: default_provider}
         )

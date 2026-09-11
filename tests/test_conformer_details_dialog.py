@@ -163,3 +163,64 @@ def test_a_conformer_with_no_generation_history_fabricates_nothing(qapp):
             assert "Embeddings attempted" not in shown
         finally:
             _dispose(dialog)
+
+
+# --- how the search ended ----------------------------------------------------
+#
+# A count on its own reads as a failure. "8 distinct, search plateau after 9
+# batches" is a statement about the sampling, and the difference is the whole
+# reason this dialog exists.
+
+
+def test_a_plateau_is_never_called_convergence():
+    """**THE WORD MATTERS MOST WHERE THE READER IS ALREADY DOUBTFUL.** They
+    opened this dialog because the count looked low; telling them the search
+    "converged" implies the space was enumerated, which nothing here did."""
+    note = ConformerDetailsDialog._stop_note(
+        {"stop_reason": "plateau", "batches_without_new_candidates": 2}
+    )
+
+    assert "plateau" in note.lower()
+    assert "converg" not in note.lower()
+    assert "not a count of every shape" in note
+
+
+def test_the_three_stop_reasons_are_different_answers():
+    """A search that ran out of budget was still finding things; one that
+    plateaued was not. Collapsing them would hide the case where asking for
+    more would help."""
+    plateau = ConformerDetailsDialog._stop_note({"stop_reason": "plateau"})
+    budget = ConformerDetailsDialog._stop_note({"stop_reason": "budget"})
+    clock = ConformerDetailsDialog._stop_note({"stop_reason": "time"})
+
+    assert plateau and budget and clock
+    assert len({plateau, budget, clock}) == 3
+    assert "may find more" in budget, "the actionable half of a budget stop is missing"
+
+
+def test_a_run_that_never_recorded_a_stop_reason_says_nothing():
+    """Nothing is fabricated for an old project -- the rule the whole dialog
+    already follows."""
+    assert ConformerDetailsDialog._stop_note({}) == ""
+
+
+def test_fewer_than_asked_for_is_explained_as_a_result():
+    """**THE QUESTION SOMEBODY ACTUALLY OPENS THIS FOR.** Ask for 20, get 9,
+    and the obvious reading is that something went wrong. The cap note
+    answers the opposite case (found 26, kept 20) and says nothing here."""
+    note = ConformerDetailsDialog._shortfall_note(
+        {"conformers_distinct": 9, "conformers_returned": 9, "num_conformers": 20}
+    )
+
+    assert "9 distinct" in note
+    assert "20" in note
+    assert "does not manufacture" in note
+
+
+def test_the_shortfall_note_is_silent_when_the_CAP_is_why():
+    """Two different situations, and printing both would leave the reader to
+    work out which applies to them."""
+    capped = {"conformers_distinct": 26, "conformers_returned": 20, "num_conformers": 20}
+
+    assert ConformerDetailsDialog._shortfall_note(capped) == ""
+    assert ConformerDetailsDialog._truncation_note(capped) != ""

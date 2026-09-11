@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from typing import Callable
 
 from rdkit import Chem
@@ -228,6 +228,105 @@ DEFAULT_OPTIMISATION_LEVEL = "Normal"
 #: at once.
 _DISCARD_NON_CONVERGED = True
 
+#: How many new embeddings one sampling batch asks the provider for.
+#:
+#: **A BATCH SIZE, NEVER A BUDGET.** `num_embeddings` has meant "the total
+#: to try" since it was split from `num_conformers`, and it still does --
+#: quietly turning it into this would be an API change hidden inside a bug
+#: fix. The two live side by side: `max_embeddings` is the ceiling, this is
+#: the step.
+#:
+#: It does NOT change what the search samples. Seeds are drawn from a
+#: GLOBAL embedding index, so the same base seed and total budget draw the
+#: same sequence at 25, 50 or 100 per batch -- batching is control flow,
+#: not sampling. `tests/test_conformer_search.py` asserts exactly that.
+DEFAULT_EMBEDDING_BATCH_SIZE = 50
+
+#: The seed the application searches with, so a run REPEATS.
+#:
+#: The provider has taken one since the benchmark needed it and the
+#: application passed None, which is ETKDG's "draw from the global RNG" --
+#: correct for a random search and the whole of a reported defect: the same
+#: molecule gave 6 distinct conformers, then 9, then 8, then 7. The funnel
+#: says why. Across 5 seeds x 100 embeddings the entire discovered set is
+#: 10, so one run finds four fifths of it and a different four fifths each
+#: time (coverage 0.80).
+#:
+#: **A CONSTANT, AND THAT IS THE POINT.** Pressing Generate twice returning
+#: the same answer is the behaviour being asked for; a molecule's conformer
+#: set is not supposed to depend on when you looked. The value itself is
+#: arbitrary and carries no meaning -- it is recorded in provenance so a
+#: stored result can say which search produced it.
+DEFAULT_SEARCH_SEED = 0xC0FFEE
+
+#: The seed for a single reference geometry -- the one embedding a
+#: calibration or a reference compound is built from.
+#:
+#: **A SEPARATE CONSTANT FROM `DEFAULT_SEARCH_SEED`, DELIBERATELY.** Sharing
+#: one would couple two unrelated decisions: retuning the conformer SEARCH
+#: would move TMS's reference shielding, and with it every NMR shift scaled
+#: against it. They are seeded for the same reason and must be free to
+#: change apart.
+#:
+#: These call sites asked for ONE conformer with no seed, so the geometry a
+#: reference was computed on depended on when it was computed -- the same
+#: defect as the conformer search, on a path where nobody would think to
+#: look for it. Nothing chose it; it was inherited from ETKDG's default.
+REFERENCE_GEOMETRY_SEED = 0x5EED
+
+#: How many embeddings a reference geometry is chosen from.
+#:
+#: **ONE IS NOT ENOUGH, AND SEEDING ALONE WOULD HAVE MADE IT WORSE.** These
+#: call sites asked for a single embedding, so the geometry was whichever
+#: one the draw produced. Measured on the NMR calibration set: ten of the
+#: eleven compounds are rigid and land on the same structure from any seed,
+#: and CYCLOHEXANE does not -- chair at -3.5609 kcal/mol, twist-boat at
+#: +2.3688, a 5.93 kcal/mol difference, and unseeded it came out twist-boat
+#: about one time in three.
+#:
+#: The experimental shift it is calibrated against (26.9 ppm for carbon) is
+#: the chair's. **And the first seed picked here, 0x5EED, produces the
+#: TWIST-BOAT** -- so pinning the seed without this would have locked the
+#: calibration onto the wrong conformer permanently and silently, which is
+#: worse than the coin flip it replaced.
+#:
+#: `generate_conformers` returns ascending by energy, so asking for several
+#: and taking the first is the whole fix. Ten is ample for molecules this
+#: size: cyclohexane's chair appears in most embeddings, and the eleven
+#: compounds together cost well under a second.
+REFERENCE_GEOMETRY_EMBEDDINGS = 10
+
+#: The hard ceiling on embeddings for one search. **REQUIRED, and that is
+#: the point**: the loop below stops on a plateau, and a plateau is a
+#: property of a random process that may not arrive. A ceiling is what
+#: makes `while not plateau` terminate for a caller who passed no time
+#: limit.
+DEFAULT_MAX_EMBEDDINGS = 1000
+
+#: Consecutive batches that must contain NO unmatched candidate before the
+#: search stops.
+#:
+#: **ONE EMPTY BATCH IS NOT EVIDENCE OF SATURATION.** A random search can
+#: miss a low-probability region for a whole batch and find it in the next,
+#: and that matters most here: the funnel says ETKDG samples a small subset
+#: of this space, which is the whole diagnosis. Two is deliberately small
+#: -- the cost of being wrong is a search that stops early, and the cost of
+#: being right is one more batch.
+DEFAULT_PLATEAU_BATCHES = 2
+
+#: Why a search stopped. NOT "converged": a plateau says no new candidate
+#: turned up in the last few batches, which is a statement about the
+#: SAMPLING and not about the molecule. The conformational space is not
+#: enumerated by any of these.
+STOP_PLATEAU = "plateau"
+#: The embedding ceiling was reached while the search was still finding new
+#: shapes. The one stop reason that means "ask for more".
+STOP_BUDGET = "budget"
+#: The clock stopped it. Says nothing about whether more shapes exist.
+STOP_TIME = "time"
+#: The user stopped it from the Jobs panel.
+STOP_CANCELLED = "cancelled"
+
 
 @dataclass(frozen=True)
 class GenerationOptions:
@@ -273,6 +372,21 @@ class GenerationOptions:
     #: "no candidates", the exact could-not-measure-vs-nothing-there
     #: confusion the funnel exists to remove.
     record_pre_optimisation: bool = False
+    #: New embeddings per sampling batch. See `DEFAULT_EMBEDDING_BATCH_SIZE`.
+    embedding_batch_size: int = DEFAULT_EMBEDDING_BATCH_SIZE
+    #: The hard ceiling for a whole search. Never None.
+    max_embeddings: int = DEFAULT_MAX_EMBEDDINGS
+    #: Consecutive batches with nothing unmatched that end the search.
+    plateau_batches_required: int = DEFAULT_PLATEAU_BATCHES
+    #: How many embeddings the SEARCH has already attempted, so this batch
+    #: seeds from where the last one stopped.
+    #:
+    #: **BOOKKEEPING, NOT A REQUEST**, which is why it sits oddly among the
+    #: rest of this class. It is here rather than as a new parameter on
+    #: `generate_conformer_batch` because that signature is a published
+    #: plugin API: a provider written against it keeps working untouched,
+    #: and one that ignores this field simply has no seeds to offset.
+    attempt_offset: int = 0
 
     def level(self) -> tuple[int, float, int]:
         return OPTIMISATION_LEVELS.get(
@@ -731,6 +845,244 @@ def _merge_scan(
     return kept, candidates
 
 
+class SearchArchive:
+    """The representatives a batched search has found, and whether a new
+    batch added anything to them.
+
+    **THIS IS A SEARCH HEURISTIC. `distinct_conformers` IS THE RESULT.**
+    The two are deliberately different operations and may disagree about
+    WHICH structure represents a family: this one absorbs candidates in
+    arrival order across batches, while the authoritative pass sorts the
+    whole pool by energy first, because greedy leader clustering is
+    order-dependent (see `_in_comparison_order`). The final answer is one
+    pass of `distinct_conformers` + `select_for_return` over the complete
+    pool, exactly as it was before there were batches. If these ever
+    disagree, the final pass wins by definition -- written down because it
+    is the sort of difference somebody later "fixes" in the wrong
+    direction.
+
+    **AND IT EXISTS BECAUSE THE SURVIVOR COUNT IS NOT A MEASURE OF
+    YIELD.** The obvious plateau rule is "re-cluster the pool and see
+    whether the number went up", and it is wrong under this criterion:
+    leaders are chosen in ascending energy order, so a lower-energy
+    arrival is re-ordered AHEAD of existing leaders and can absorb more
+    than one of them. Constructed from the shipped thresholds:
+
+        pool {A 3.0, B 3.4}   A-B RMSD 0.9  -> no merge      2 distinct
+        add   C 2.5           C-A RMSD 0.4 dE 0.5 -> merge
+                              C-B RMSD 0.4 dE 0.9 -> merge
+        pool {C, A, B}        C leads, A and B merge in      1 distinct
+
+    One arrival, and the count went DOWN. The delta can be zero or
+    negative on a batch that sampled something the pool had not seen. So
+    the question asked here is "did this batch contain a candidate that
+    merges with NOTHING already known", which is the only one of the three
+    that answers it.
+
+    **"UNMATCHED" IS A SEARCH TERM, NOT AN ONTOLOGICAL ONE.**
+    `_permits_merge` reads as a veto -- True means "no evidence against",
+    never "these are the same conformer" -- so nothing here is called a
+    novel conformer, and the user-facing wording says no new distinct
+    CANDIDATES were found, never that the molecule has no more.
+
+    Cost is O(batch x representatives) per batch rather than the O(N^2) a
+    full re-clustering would repeat at every step up to the budget.
+    """
+
+    def __init__(
+        self,
+        rms_threshold: float = DEFAULT_RMS_THRESHOLD,
+        energy_window: float = DEFAULT_ENERGY_WINDOW,
+    ) -> None:
+        self._rms_threshold = rms_threshold
+        self._energy_window = energy_window
+        self._kept: list[tuple[Chem.Mol, float | None]] = []
+        #: Comparison skeletons, positionally aligned with `_kept`. `None`
+        #: for one that could not be built -- kept, and never matched
+        #: against, which is the same direction `_merge_scan` takes: a
+        #: shape we cannot compare is one we keep.
+        self._heavy: list[Chem.Mol | None] = []
+
+    def __len__(self) -> int:
+        return len(self._kept)
+
+    def add_batch(self, results: list[tuple[Chem.Mol, float | None]]) -> int:
+        """Absorb a batch; return how many of it matched nothing already here.
+
+        Zero is the plateau signal. It is NOT the same as "the distinct
+        count did not rise" -- see the class docstring for the case where
+        those two disagree in opposite directions.
+        """
+        unmatched = 0
+        for mol, energy in results:
+            if not self._absorb(mol, energy):
+                unmatched += 1
+        return unmatched
+
+    def _absorb(self, mol: Chem.Mol, energy: float | None) -> bool:
+        """True when this candidate merged into something already here."""
+        try:
+            heavy = comparison_skeleton(mol)
+        except Exception:  # noqa: BLE001 - a shape we cannot compare is one we keep
+            self._kept.append((mol, energy))
+            self._heavy.append(None)
+            return False
+        for (_kept_mol, kept_energy), other in zip(self._kept, self._heavy):
+            if other is None:
+                continue
+            try:
+                rmsd = rdMolAlign.GetBestRMS(heavy, other)
+            except (RuntimeError, ValueError):
+                # Same direction as `_merge_scan`: a pair that cannot be
+                # matched is not evidence of sameness.
+                continue
+            if rmsd >= self._rms_threshold:
+                continue
+            if _permits_merge(rmsd, energy, kept_energy, self._energy_window):
+                return True
+        self._kept.append((mol, energy))
+        self._heavy.append(heavy)
+        return False
+
+
+@dataclass(frozen=True)
+class SearchOutcome:
+    """What one batched search did, and why it stopped.
+
+    `pool` is EVERY converged candidate, un-deduplicated: the caller runs
+    `distinct_conformers` + `select_for_return` over it in one pass, which
+    is what keeps batching a control-flow change and nothing else.
+    """
+
+    pool: list[tuple[Chem.Mol, float | None]] = field(default_factory=list)
+    attempted: int = 0
+    embedded: int = 0
+    converged: int = 0
+    embedding_failures: int = 0
+    convergence_failures: int = 0
+    pre_optimisation: list[Chem.Mol] = field(default_factory=list)
+    batches: int = 0
+    #: One of `STOP_PLATEAU`, `STOP_BUDGET`, `STOP_TIME`, `STOP_CANCELLED`.
+    stop_reason: str = STOP_BUDGET
+    #: How many batches in a row ended with nothing unmatched. Recorded
+    #: rather than derived, because the threshold it is compared against
+    #: is a setting and a stored record must not depend on today's value.
+    batches_without_new_candidates: int = 0
+
+
+def search_conformers(
+    provider: ConformerProvider,
+    mol: Chem.Mol,
+    optimize: bool,
+    options: GenerationOptions,
+    on_progress: Callable[[int, int], bool | None] | None = None,
+    accepts_options: bool = True,
+) -> SearchOutcome:
+    """Embed in batches until the search plateaus, the budget runs out, or
+    the time does.
+
+    **REPLACES "embed exactly N once".** One unseeded draw of 100 gave the
+    reported molecule 6, then 9, then 8, then 7 -- and the funnel says why:
+    across 5 seeds the whole discovered set is 10, so a single run finds
+    four fifths of it and a different four fifths each time. Sampling until
+    nothing new turns up answers both halves at once, and pinning the seed
+    makes the answer repeat.
+
+    **PLATEAU IS NOT CONVERGENCE**, and the vocabulary keeps that straight:
+    `STOP_PLATEAU` means no unmatched candidate in the last few batches,
+    `STOP_BUDGET` means the ceiling was reached, `STOP_TIME` means the
+    clock was. None of them means the conformational space is enumerated.
+
+    **THE DEADLINE SPANS THE SEARCH, NOT THE BATCH.** `options.time_limit_
+    seconds` used to bound one call; with several calls, passing it
+    through unchanged would give each batch the whole limit. The remaining
+    time goes down to the provider so a long batch still stops inside it.
+    """
+    deadline = (
+        time.monotonic() + options.time_limit_seconds
+        if options.time_limit_seconds
+        else None
+    )
+    archive = SearchArchive(options.diversity_rmsd)
+    pool: list[tuple[Chem.Mol, float | None]] = []
+    pre_optimisation: list[Chem.Mol] = []
+    attempted = embedded = converged = 0
+    embedding_failures = convergence_failures = 0
+    batches = quiet_batches = 0
+    stop_reason = STOP_BUDGET
+    cancelled = False
+
+    batch_size = max(1, options.embedding_batch_size)
+    ceiling = max(1, options.max_embeddings)
+    required = max(1, options.plateau_batches_required)
+
+    while attempted < ceiling:
+        if deadline is not None and time.monotonic() >= deadline and pool:
+            stop_reason = STOP_TIME
+            break
+        size = min(batch_size, ceiling - attempted)
+        # **THE OFFSET IS WHAT MAKES THE SEED SEQUENCE GLOBAL.** Without
+        # it every batch would re-draw seeds base..base+size and the
+        # search would sample the same embeddings over and over.
+        step = replace(
+            options,
+            attempt_offset=attempted,
+            time_limit_seconds=(
+                None if deadline is None else max(0.0, deadline - time.monotonic())
+            ),
+        )
+        done_before = attempted
+
+        def report(done: int, _total: int, _before: int = done_before) -> bool | None:
+            # GLOBAL progress: the provider counts within its own batch, and
+            # a bar that restarted at each one would read as the run
+            # starting over. The total is the ceiling, so a plateau stop
+            # leaves it short -- which is honest, the search ended early.
+            return None if on_progress is None else on_progress(_before + done, ceiling)
+
+        extra = {"options": step} if accepts_options else {}
+        batch = provider.generate_conformer_batch(mol, size, optimize, report, **extra)
+        batches += 1
+        attempted += batch.attempted
+        embedded += batch.embedded
+        converged += batch.converged
+        embedding_failures += batch.embedding_failures
+        convergence_failures += batch.convergence_failures
+        pre_optimisation.extend(batch.pre_optimisation)
+        pool.extend(batch.results)
+
+        if archive.add_batch(batch.results):
+            quiet_batches = 0
+        else:
+            quiet_batches += 1
+
+        if on_progress is not None and on_progress(attempted, ceiling) is False:
+            cancelled = True
+            stop_reason = STOP_CANCELLED
+            break
+        # A batch the provider cut short means it stopped early itself --
+        # its own deadline, or cancellation through `report`.
+        if batch.attempted < size:
+            stop_reason = STOP_TIME if deadline is not None else STOP_CANCELLED
+            break
+        if quiet_batches >= required:
+            stop_reason = STOP_PLATEAU
+            break
+
+    return SearchOutcome(
+        pool=pool,
+        attempted=attempted,
+        embedded=embedded,
+        converged=converged,
+        embedding_failures=embedding_failures,
+        convergence_failures=convergence_failures,
+        pre_optimisation=pre_optimisation,
+        batches=batches,
+        stop_reason=stop_reason,
+        batches_without_new_candidates=quiet_batches,
+    )
+
+
 # RDKitConformerProvider implements the same ConformerProvider ABC a future
 # plugin would (openchem.plugins.interfaces.ConformerProvider) — ConformerService
 # can't tell a built-in method from a plugin-supplied one.
@@ -773,6 +1125,18 @@ class RDKitConformerProvider(ConformerProvider):
         measurement harness.
         """
         self._random_seed = random_seed
+
+    @property
+    def random_seed(self) -> int | None:
+        """The seed this provider draws from, for provenance.
+
+        Public because the service RECORDS it, and a stored record that
+        cannot say which seed produced it is the reason this field was
+        the one genuinely missing from an otherwise complete protocol.
+        Read with `getattr` there, so a plugin provider records None
+        ("not declared") rather than a guess.
+        """
+        return self._random_seed
 
     def generate_conformers(
         self,
@@ -817,7 +1181,7 @@ class RDKitConformerProvider(ConformerProvider):
                 )
                 break
             attempted += 1
-            conf_mol = self._embed_one(mol, attempt=i)
+            conf_mol = self._embed_one(mol, attempt=options.attempt_offset + i)
             if conf_mol is None:
                 embedding_failures += 1
             elif optimize:
@@ -886,6 +1250,13 @@ class RDKitConformerProvider(ConformerProvider):
             # Per attempt, so the embeddings within a run still differ
             # while the run repeats. Seeding them all identically would
             # return N copies of one conformer.
+            #
+            # **`attempt` IS THE GLOBAL EMBEDDING INDEX**, not the position
+            # within a batch -- `search_conformers` offsets it. Were it
+            # local, the random sequence would become a function of the
+            # batch size, so re-tuning that would silently change what the
+            # search finds. With a global index, 25/50/100 per batch draw
+            # the same seeds for embeddings 0..N-1.
             params.randomSeed = self._random_seed + attempt
         conf_id = AllChem.EmbedMolecule(conf_mol, params)
         if conf_id < 0:

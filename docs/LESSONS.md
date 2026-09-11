@@ -19062,3 +19062,285 @@ a `QUndoCommand` -- and the plan does not say whether it should REPLACE the
 current molecule's structure or ADD a new molecule. Replace is destructive
 if that is the wrong reading, which makes it a decision to be taken rather
 than guessed.
+
+## A MODE WHOSE EXIT DELETED THE ONLY WAY OUT OF IT
+
+Reported: *"I clicked f7 to try to rotate it in 3d. And while it works, I'm
+unable to leave the 3d rotate mode."* Confirmed by reading, before anything
+was changed, and it was mine from stage 5c.
+
+`_apply_rotation_toggle` hid the bar and returned. `end_rotation` had
+**exactly one production caller** — `_cancel_rotation` — so un-checking the
+button, pressing F7 again and the Structure menu's tick all told the page
+nothing, and the overlay is `position:absolute; inset:0; z-index:20`. It
+stayed up, swallowing every click on the canvas.
+
+**And un-checking the button HIDES Cancel.** The gesture that looks like the
+way out removes the only way out, so after one F7-off there was no exit at
+all.
+
+### TWO CONTROLS AGREEING SAID NOTHING ABOUT THE THIRD THING
+
+`tests/test_rotate_3d_shortcut.py` asserted that the menu tick and the
+button agree. They did agree — both correctly reading "off" while the page
+was still in the mode. The gap is that neither of them asks the page, and
+nothing else did either.
+
+`rotate_report` reads it directly now: is `.openchem-rotate` still in the
+document. That is the fact no screenshot carries and no pair of Qt controls
+can infer.
+
+### ONE EXIT PATH, AND THE INTENT IS A PARAMETER ON IT
+
+Cancel used to end the mode itself and then uncheck, which ends it twice
+once un-checking also ends it. It drives the button now and sets
+`_rotation_discarding`, so `end_rotation` has one call site. Two call sites
+is how the keep-path came to be missing in the first place.
+
+### AND CANCEL WAS LYING ABOUT BOTH HALVES OF ITS OWN CONTRACT
+
+*"Leave rotation mode and put the structure back as it was. Nothing reaches
+the undo stack, so this is not the same as rotating and then undoing."*
+
+True only **before a drag**, which is the only case where the button does
+anything. Every drag commits through `RotateStructureCommand`, and
+`end_rotation(restore=True)` restores the PAGE, whose position writes fire
+no `change` event. Measured on ALANINE: after one drag the molblock came
+back different from the one the mode was entered on — the canvas showing the
+entry geometry and the model holding the turn.
+
+It rewinds to the entry index now, and the help text says what that leaves
+behind. **A contract that is false in the one situation somebody reads it in
+is worse than none.**
+
+### ESCAPE IS TWO ROUTES INTO ONE PATH
+
+The first draft had them inconsistent: a `keydown` listener on the overlay,
+and a test with focus on a panel. A listener on the overlay cannot hear
+that. So `main.jsx` listens on `document` in capture — focus anywhere in the
+page — and a `WindowShortcut` answers for the rest of the window, armed only
+while the mode is on.
+
+Neither leaves the mode itself. The page cannot un-check the host's button,
+so an overlay that dismissed itself would leave every other control claiming
+a mode nothing is in.
+
+### AND THE HARNESS LIED ONCE MORE — THE SEVENTH
+
+Escape-from-elsewhere first read as broken, with `focusWidget()` returning
+`None`: the step switched panels without focusing anything, and **nobody
+using the application is ever in that state**. Focusing a real widget
+answers correctly. The step takes a focus target now.
+
+Measured, all three reports agreeing at each step: entering via the menu
+gives tick/button/overlay all true; F7 with focus in the canvas leaves (so
+it does reach Qt through the web view); Escape in the canvas leaves; Escape
+from the Project Explorer leaves.
+
+### MUTATION FOUND TWO HOLES WITH ONE CAUSE
+
+Nine arms. Two survived, and both because **every test entered the mode on
+an empty undo stack**, where the entry index is 0 and never recording it is
+indistinguishable from recording it. Two tests with work already done fixed
+both: a Cancel that rewinds past the entry point, and a stale exit request
+from the page arriving after the mode ended.
+
+An unattended run can no longer stop on a modal either. The box that halted
+this one was not opened by a step at all — pressing Rotate 3D on a flat
+drawing makes the window ask whether to generate a structure — and the run
+sat on it, 12 of 27 steps in, with the rest reported as producing nothing.
+The harness answers and **logs**, because a question the application asked
+is a fact about the run.
+
+---
+
+## THE TIDY ACTION THAT CHANGED THE COMPOUND
+
+Reported: *"we don't have an easy way to convert the structure back to a two
+d form. I tried hitting the cleanup button. but it did not convert it back."*
+
+Both of Ketcher's tidy actions were tried in the running app before anything
+was written, on `C[C@H]1CC[C@H]2[C@H]3Cc4ccc(O)c5c4[C@@]2(CCN3C)[C@H]1O5`
+after Use in 2D Editor:
+
+```
+Clean Up   z 6.8435 -> 0.0   conformers 3   SMILES unchanged
+           and the picture KEEPS the projected x,y -- still the
+           overlapping mess, 7 structure warnings
+
+Layout     z 6.8435 -> 0.0   conformers 3 -> 0
+           and [C@@] -> [C@].  A DIFFERENT COMPOUND, in silence
+```
+
+**So the complaint was never about the z column**, and a fix aimed at it
+would have missed. Clean Up flattens and leaves the drawing unreadable;
+Layout draws it properly and changes the molecule.
+
+### THE CONFORMER LOSS IS A SYMPTOM, NOT A SECOND DEFECT
+
+`EditStructureCommand._invalidate_stale_conformers` compares canonical
+SMILES and drops the set when it moves — correctly. The SMILES moved.
+
+### AND THE CONTROL IS WHAT MAKES THE DIAGNOSIS
+
+The same Layout on a drawing that was never adopted leaves the SMILES
+untouched, measured in the same run. So Layout is not broken; **re-reading a
+drawing whose atoms sit on top of each other is**, and the adopt path
+already says so on screen. Two runs, same flip.
+
+`Redraw in 2D` therefore reads the STRUCTURE rather than the picture, and is
+modelled on `AdoptConformerCommand` rather than `EditStructureCommand` for
+the reason that one exists: coordinates only, so the conformers stay valid.
+
+### A THRESHOLD WRITTEN AND REMOVED
+
+`> 2 * projected` read 1.83 — a number fitted to nothing, which is the error
+the same file's calibration comment records one paragraph above it. A fused
+cage has close contacts in any honest drawing, so the reference is a FRESH
+depiction of the same molecule: 0.600023 against 0.599987.
+
+### ONE ARM SURVIVED FOR A REASON THAT IS NOT A HOLE
+
+The stereo refusal cannot be provoked by chemistry. Swept over the cage,
+cholesterol, the reported bicyclo[2.2.2], an undefined centre, both alkene
+geometries, a two-centre case and strychnine — each from its drawing AND
+from a real 3D projection — safe and quiet every time, which is what a
+faithful `Compute2DCoords` against its own reference should give.
+
+Asserting it over an input nobody can construct would be a test of nothing.
+What is tested is the **wiring**: the engine flags a drawing unsafe, the
+command refuses in its constructor, and nothing reaches the undo stack.
+
+---
+
+## THE CONFORMER COUNT MOVED BECAUSE NOBODY HAD PINNED THE DRAW
+
+Reported: *"every time I run it now, I get wildly different results, and I
+get way, way less conformers than I should. Sometimes I get six, sometimes I
+get nine, sometimes eight for the exact same molecule."*
+
+This is the third time conformer generation has been questioned, and the
+first two closed correctly. `benchmarks/conformers/funnel.py` on the exact
+molecule, 5 seeds × 100 embeddings, says why this one is different:
+
+```
+embedded / converged            100 / 100
+distinct PRE-optimisation         3 - 4      per seed
+distinct, RMSD only               3
+distinct, shipped criterion       6 - 9      per seed
+returned                          = distinct (cap 20 never bit)
+union across 5 seeds             10
+coverage                          0.80
+```
+
+**The de-duplication was never the bottleneck and neither was the cap.** One
+hundred embeddings contain only three or four distinct shapes before
+minimisation — an upper bound on what any downstream stage could keep. The
+diagnosis moves to the embedder.
+
+And the instability had a one-line cause: `ConformerService` built
+`RDKitConformerProvider()` with no seed, which is ETKDG's "draw from the
+global RNG". The provider's own docstring said so. Coverage 0.80 means one
+run misses a fifth of even that small set — which is exactly 6, 9, 8, 7.
+
+### WHAT THE MEASUREMENT ESTABLISHES, AND WHAT IT DOES NOT
+
+500 ETKDG embeddings produced 10 distinct minima under this comparison
+protocol. That **disproves the assumption that raising the post-filter cap
+will produce hundreds**. It does **not** establish an exhaustive conformer
+count: rare minima, alternative pucker families and minima this ETKDG setup
+cannot reach are all still possible. The measurement is about the pipeline,
+not about the molecule.
+
+### PLATEAU IS NOT CONVERGENCE, AND THE VOCABULARY KEEPS IT STRAIGHT
+
+The search embeds in batches and stops when K in a row contain nothing
+unmatched. Three outcomes, and they are scientifically different — `plateau`,
+`budget`, `time`. The word "converged" appears nowhere, in the code or on
+screen: a plateau says no new candidate turned up recently, which is a
+statement about the sampling.
+
+**One quiet batch is not evidence.** K is 2, deliberately small: the cost of
+being wrong is a search that stops early, and the whole diagnosis is that
+ETKDG samples a small subset of this space.
+
+### THE SURVIVOR COUNT IS NOT A MEASURE OF YIELD
+
+The obvious plateau rule is "re-cluster and see whether the number went up".
+It is wrong under this criterion, and the counter-example is constructible
+from the shipped thresholds — three geometries made by rotating one torsion
+of hexane:
+
+```
+pool {A 3.0, B 3.4}   A-B RMSD 0.623 >= 0.50  -> no merge      2 distinct
+add   C 2.5           C-A 0.323, dE 0.5 -> merge
+                      C-B 0.319, dE 0.9 -> merge
+pool {C, A, B}        C leads; A and B both merge in           1 distinct
+```
+
+One arrival, and the count went **down** — leaders are chosen in ascending
+energy order, so a lower-energy arrival is re-ordered ahead of the existing
+ones and can absorb more than one. The delta can be zero or negative on a
+batch that sampled something new.
+
+Three quantities, kept apart: `unmatched_candidate_found` controls stopping;
+`representative_change` and `survivor_count_delta` are diagnostics. And the
+case that separates them is a batch holding **both** a merging candidate and
+a new one — measured, 2 distinct before and 2 after, while a real shape was
+found.
+
+**"Unmatched" is a search term, not an ontological one.** `_permits_merge`
+reads as a veto, so nothing is called a novel conformer and the screen says
+no new distinct *candidates* were found.
+
+### BATCHING IS CONTROL FLOW, NOT SAMPLING
+
+Seeds come from a **global embedding index**, not a position within a batch.
+Were it local, the random sequence would be a function of the batch size and
+re-tuning that would silently change what the search finds. With a global
+index, 25/50/100 per batch draw the same seeds for embeddings 0..N-1 —
+asserted on the seed sequence itself through the origin each embedding
+carries, so a failure names itself.
+
+And the authoritative selection is unchanged: `distinct_conformers` +
+`select_for_return`, **once, over the complete pool**. The archive that
+answers "did this batch find anything" is a search heuristic and may pick
+different representatives; if the two disagree the final pass wins by
+definition.
+
+### WHAT IT COST AND WHAT IT BOUGHT
+
+| | before | after |
+|---|---|---|
+| the reported cage | 6, 9, 8, 7 across runs | **9 every run**, plateau |
+| ethylmorphine | 20–21 per run, 5-seed union 23 | **26–27**, plateau |
+| embeddings spent (cage) | 100 | 450 |
+| wall clock (cage) | ~8 s | ~40 s |
+
+Three runs in the running app: 9 distinct, 450 embeddings, 9 batches,
+plateau — identical every time.
+
+**The cost is real and it is the trade.** Generation shows progress and is
+cancellable. Part of it is that the incremental archive over-counts
+representatives relative to the energy-sorted final pass, so "unmatched"
+fires more often than the final count grows and the search runs longer than
+it strictly needs to. That is the conservative direction to be wrong in, and
+it is not free.
+
+### AND MOST OF IT DOES NOT REACH THE USER
+
+"Conformers are too few" is a complaint, not a request for a
+stochastic-search configuration console. **Search: Automatic / Advanced**,
+with the four knobs behind Advanced and Automatic spending a budget chosen
+from the corpus. Supporting a setting is not a reason to show it.
+
+The Details dialog explains the commoner question directly — ask for 20, get
+9, and *"the generator does not manufacture more to fill the request"* is
+what turns a number that reads as a failure into a result about the molecule.
+
+### MUTATION: TEN ARMS, FIVE SURVIVED FIRST
+
+Every one was a genuine hole, and one was a test too loose rather than
+missing: the time-limit guard asserted the per-batch limit was
+*non-increasing*, and handing every batch the same 5.0 is a non-increasing
+sequence. Strictly decreasing is the claim.

@@ -276,15 +276,27 @@ appear whether Results is docked, popped out, or opened as a copy in its
 own window. A picture that has not been drawn (a stale result refuses to
 draw one) says so rather than copying a blank.
 
-Three ways in, all the same mode: the **Rotate 3D** button at the top of
-the 2D Editor tab, **Structure ▸ Rotate 3D**, and **F7** — the key Marvin
-uses for it. The menu entry is ticked while the mode is on.
+Four ways in, all the same mode: the **Rotate 3D** button at the top of
+the 2D Editor tab, **Structure ▸ Rotate 3D**, **right-click on an atom**,
+and **F7** — the key Marvin uses for it. All four tick together, because
+they are one control shown in four places.
 
 While the mode is on, **dragging turns the molecule instead of drawing**,
 which is why the banner is there and why it is a mode you switch on
-rather than a modifier you hold. **Cancel** leaves it and puts the entry
-geometry back; letting go of a drag commits it as one undo step, so
-Ctrl+Z reverses a whole turn rather than a frame of one.
+rather than a modifier you hold.
+
+**And there are four ways out, which matters more than the ways in.** Any
+of the four controls above turns it off again, **Escape** leaves it from
+anywhere in the window, and the banner over the canvas carries its own
+**Done (Esc)** and **Cancel**. The banner is the one to reach for while
+the mode is on: it covers the canvas, so it is what you are looking at.
+
+The two exits mean different things. **Done, Escape and turning the mode
+off all KEEP the turn** — letting go of a drag commits it as one undo
+step, so Ctrl+Z reverses a whole turn rather than a frame of one.
+**Cancel discards it**, putting the structure back as it was when you
+entered; anything you turned while the mode was on is taken back for you,
+and Redo brings it back if you change your mind.
 
 **A flat drawing has nothing to turn**, so pressing the button on one
 does something different depending on what the molecule has:
@@ -304,6 +316,31 @@ is no.
 Rotation itself changes coordinates and nothing else: same atoms, bonds,
 charges and stereocentres. If it ever appears to change one, the app
 refuses the whole rotation and says so rather than committing it.
+
+### Getting a flat drawing back — **Structure ▸ Redraw in 2D**
+
+**Use in 2D Editor** brings a conformer across as a *projection* of the
+real geometry, deliberately: the drawing keeps its third dimension and the
+canvas draws it as you had it turned. For a compact or caged molecule that
+projection can be genuinely hard to read, with atoms drawn on top of each
+other — the app says so when it happens.
+
+**Redraw in 2D** lays it out flat again. It is also on the canvas
+right-click menu, and Ctrl+Z puts the 3D drawing back, so trying it costs
+nothing.
+
+It reads the *structure* rather than the picture, which is why it is a
+separate entry from the two beside it:
+
+| | what it does |
+| --- | --- |
+| **Redraw in 2D** | a clean flat layout from the structure; keeps your generated conformers |
+| **Clean Up** | tidies the drawing you have, keeping its arrangement — it will flatten a projection without making it readable |
+| **Layout** | Ketcher's own; recomputes coordinates by re-reading the drawing |
+
+Prefer **Redraw in 2D** after Use in 2D Editor. Layout re-reads the
+picture, and on a projection whose atoms overlap that has been measured
+changing the compound.
 
 **3D Viewer** — 3Dmol, showing conformers. Style selector
 (stick / ball-and-stick / spacefill / line), conformer navigation, a
@@ -401,10 +438,44 @@ methyl is not a conformer — but hydrogens on N, O and S are kept, because
 an O–H orientation changes hydrogen bonding and changes the energy of any
 QM job you run afterwards.
 
-**Generate Conformers** asks for six things. Two are counts —
-embeddings to try, and distinct conformers to keep. The other four are
-modelled on the controls in ChemAxon's Generate3D calculator, and are
-emulations of those controls rather than of the algorithms behind them:
+**How the search works, and when it stops.** Generation is not a fixed
+number of attempts. It embeds in batches and keeps going while new shapes
+are still turning up, stopping when two batches in a row find none. That
+is reported afterwards as one of three things, and they mean different
+things:
+
+| | |
+| --- | --- |
+| **Search plateau** | no new conformers in the last couple of batches |
+| **Budget reached** | it was still finding shapes when it ran out of embeddings — a higher maximum may find more |
+| **Time limit reached** | it stopped on the clock |
+
+**A plateau is not a guarantee that you have them all.** It says the
+search stopped finding new ones, which is a statement about the sampling
+rather than about the molecule. Nothing here enumerates a conformational
+space.
+
+The search is also **seeded**, so the same molecule with the same settings
+gives the same conformers every time. That is deliberate: a molecule's
+conformer set should not depend on when you asked for it.
+
+**Getting fewer than you asked for is normal**, and the Details dialog
+after a run says which of the two reasons applies — the generator found
+fewer distinct shapes than the limit you set, or it found more and kept
+the lowest-energy ones. A rigid structure genuinely has fewer shapes; the
+generator does not manufacture extras to fill a request.
+
+**Generate Conformers** asks for the counts, and hides the search
+settings behind **Advanced** — on **Automatic** it spends a documented
+budget, which is what you want unless you have a reason not to. Under
+Advanced: maximum embeddings (a ceiling, not a count), embeddings per
+batch, how many quiet batches end the search, and a time limit. Changing
+the batch size does not change what gets sampled, only how often the
+search checks whether it is still finding things.
+
+The remaining controls are modelled on ChemAxon's Generate3D calculator,
+and are emulations of those controls rather than of the algorithms behind
+them:
 
 - **Diversity threshold (RMSD)** — how far apart two embeddings must be to
   count as different shapes. This is a sampling and de-duplication

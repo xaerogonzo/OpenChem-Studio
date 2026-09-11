@@ -87,7 +87,12 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "menu",       "text": "Rotate 3D"}  THIS app's menu bar
     {"do": "picture",    "index": 0, "path": "..."}  the reader's
                                           chart, through the REAL export
-    {"do": "rotate_report", "tag": "entered"}  the tick AND the button
+    {"do": "rotate_report", "tag": "entered"}  the tick, the button AND
+                                              whether the PAGE is still in it
+    {"do": "key", "key": "F7", "focus": "canvas"}  a REAL key, at the
+    {"do": "key", "key": "Escape", "focus": "explorer"}   focus widget
+    {"do": "geometry_report", "tag": "flat"}   z spread AND the conformers
+    {"do": "adopt"}                            the REAL "Use in 2D Editor"
     {"do": "select_atom", "atom": 4}       the inspector ROW, and
     {"do": "selection_report"}             BOTH id spaces off the page
     {"do": "report",     "tag": "after"}      conformers, undo depth, SMILES
@@ -313,6 +318,9 @@ are verbatim, so grep the file for the line.
 - THE REASON EXISTED, IN A BATCH CELL, AND THE READER NEVER READ IT
 - A MODE WITH ONE WAY IN, AND TWO WRONG WAYS TO GIVE IT A SECOND
 - A PICTURE THAT COULD BE READ AND NOT TAKEN AWAY
+- A MODE WHOSE EXIT DELETED THE ONLY WAY OUT OF IT
+- THE TIDY ACTION THAT CHANGED THE COMPOUND
+- THE CONFORMER COUNT MOVED BECAUSE NOBODY HAD PINNED THE DRAW
 - Running the tests
 - RESONANCE: four things measured before the Lewis diagram was built
 - The naming benchmark

@@ -24,7 +24,46 @@ _STAGES: tuple[tuple[str, str], ...] = (
     ("conformers_converged", "Converged (minimised)"),
     ("conformers_distinct", "Distinct after production filtering"),
     ("conformers_returned", "Returned"),
+    ("batches", "Sampling batches"),
 )
+
+#: How a search ended, in plain words with the qualifier attached.
+#:
+#: **NEVER THE WORD "CONVERGED".** A plateau means no new distinct
+#: candidates turned up in the last few batches, which is a statement
+#: about the SAMPLING. It is not an enumeration of the molecule's
+#: conformational space, and a word that implies one would be the most
+#: expensive kind of wrong here -- the reader is looking at this dialog
+#: precisely because they doubt the count.
+#:
+#: And not naked jargon either: "Search plateau" alone is only useful
+#: to somebody who already knows, so the sentence comes with it.
+_STOP_REASONS = {
+    "plateau": (
+        "Search plateau"
+            "\n\n"
+        "The search stopped because recent batches found no new distinct "
+        "candidates. That is a statement about the sampling, not a count of "
+        "every shape the molecule has."
+    ),
+    "budget": (
+        "Budget reached"
+            "\n\n"
+        "The search used its whole embedding allowance and was still "
+        "finding new shapes. A higher maximum may find more."
+    ),
+    "time": (
+        "Time limit reached"
+            "\n\n"
+        "The search stopped on the clock rather than because it ran out of "
+        "new shapes to find."
+    ),
+    "cancelled": (
+        "Cancelled"
+            "\n\n"
+        "The search was stopped before it finished."
+    ),
+}
 
 #: Shown only when non-zero, since "0 failed" on every ordinary run is
 #: noise that pushes the numbers that moved off the top of the dialog.
@@ -75,9 +114,13 @@ class ConformerDetailsDialog(QDialog):
             )
         else:
             layout.addLayout(self._stages(parameters))
-            note = self._truncation_note(parameters)
-            if note:
-                layout.addWidget(self._note(note))
+            for note in (
+                self._stop_note(parameters),
+                self._truncation_note(parameters),
+                self._shortfall_note(parameters),
+            ):
+                if note:
+                    layout.addWidget(self._note(note))
             missing = [label for key, label in _STAGES if key not in parameters]
             if missing:
                 # Partial provenance: say which stages were not recorded
@@ -112,6 +155,49 @@ class ConformerDetailsDialog(QDialog):
             if parameters.get(key):
                 form.addRow(f"{label}:", QLabel(str(parameters[key])))
         return form
+
+    @staticmethod
+    def _stop_note(parameters: dict) -> str:
+        """Why the search ended. Absent on a run that predates recording it."""
+        reason = parameters.get("stop_reason")
+        if reason not in _STOP_REASONS:
+            return ""
+        headline, explanation = _STOP_REASONS[reason].split(chr(10) + chr(10), 1)
+        quiet = parameters.get("batches_without_new_candidates")
+        if reason == "plateau" and quiet:
+            headline = f"{headline} -- no new conformers in the last {quiet} batches"
+        return f"{headline}." + chr(10) + chr(10) + explanation
+
+    @staticmethod
+    def _shortfall_note(parameters: dict) -> str:
+        """Why fewer came back than were ASKED FOR, when the cap is not why.
+
+        **THE OTHER HALF OF `_truncation_note`, and the commoner case.**
+        That one answers "I found 26 and kept 20"; this answers "I asked for
+        20 and got 8", which is what somebody opens this dialog about. The
+        generator does not manufacture conformers to fill a request, and
+        saying so turns a number that reads as a failure into a result about
+        the molecule.
+
+        Silent when the cap bit instead -- the two are different situations
+        and printing both would leave the reader to work out which applies.
+        """
+        distinct = parameters.get("conformers_distinct")
+        returned = parameters.get("conformers_returned")
+        cap = parameters.get("num_conformers")
+        if distinct is None or returned is None or cap is None:
+            return ""
+        if returned >= cap or distinct != returned:
+            return ""
+        return (
+            f"Only {distinct} distinct conformer{'s were' if distinct != 1 else ' was'} "
+            f"found under this run's search and comparison settings, against the "
+            f"{cap} it was allowed to keep."
+            + chr(10) + chr(10)
+            + "The generator does not manufacture more to fill the request: a rigid "
+            "structure has fewer distinct shapes than a flexible one, and that is a "
+            "result about the molecule."
+        )
 
     @staticmethod
     def _truncation_note(parameters: dict) -> str:

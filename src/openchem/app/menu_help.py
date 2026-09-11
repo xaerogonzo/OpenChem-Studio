@@ -274,7 +274,7 @@ MENU_HELP: dict[str, HelpTooltip] = {
     "redraw_flat": HelpTooltip(
         text=(
             "Lays the drawing out flat again, undoing a picture brought across "
-            "from the 3D viewer.\n\n"
+            "by Use in 2D Editor.\n\n"
             "It reads the STRUCTURE, not the drawing, so overlapping atoms in a "
             "3D projection cannot confuse it -- and it changes coordinates only, so "
             "the generated conformers are kept. Ctrl+Z puts the 3D drawing back."
