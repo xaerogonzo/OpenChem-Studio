@@ -269,6 +269,13 @@ literal 3D shape, in a 2D editor. Rulers appear down the left and across
 the top, and the live X/Y angles are shown both on the bar and at the
 right of the blue banner.
 
+Any chart or structure drawing in **Results** can be taken away:
+right-click it for **Copy picture**, **Save picture…**, and — for a
+structure drawing, which is vector — **Copy as SVG**. The same actions
+appear whether Results is docked, popped out, or opened as a copy in its
+own window. A picture that has not been drawn (a stale result refuses to
+draw one) says so rather than copying a blank.
+
 Three ways in, all the same mode: the **Rotate 3D** button at the top of
 the 2D Editor tab, **Structure ▸ Rotate 3D**, and **F7** — the key Marvin
 uses for it. The menu entry is ticked while the mode is on.

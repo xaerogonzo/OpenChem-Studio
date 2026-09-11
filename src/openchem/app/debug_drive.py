@@ -46,6 +46,8 @@ The script is a JSON list of steps, run in order:
       {"do": "geometry",   "label": "maximized/Quantum"},
       {"do": "open_project",     "path": "C:/tmp/MPMI.ocsproj"},
       {"do": "menu",             "text": "Rotate 3D"},  THIS app's menu
+      {"do": "picture",          "index": 0, "path": "..."},  the real
+                                                 export, not a screenshot
       {"do": "rotate_report",    "tag": "entered"},     tick AND button
       {"do": "select_atom",      "atom": 4}    the inspector ROW, plus
                                               what the CANVAS selected
@@ -1939,6 +1941,55 @@ class _Driver(QObject):
         and a plain erase with nothing selected, can be read too.
         """
         self._report_editor_selection()
+
+    def _do_picture(self, step: dict[str, Any]) -> None:
+        """Export the reader's Nth chart through the REAL export path.
+
+        `{"do": "picture", "index": 0, "path": "C:/tmp/chart.png"}`
+
+        **NOT A SCREENSHOT OF THE PANEL.** A `shot` photographs the dock and
+        would look identical whether the export works or writes a blank
+        file, which is the failure mode the export's refusals exist for. So
+        this drives `picture_export` itself against the widget the reader
+        actually built, and logs what came back -- including whether the
+        widget offered a vector form, which no picture can carry.
+
+        The menu is NOT exec'd: `QMenu.exec` spins its own event loop and
+        stalls an unattended run, and monkeypatching it does not help
+        because it is a C++ slot. The actions it would have called are
+        called directly; what is under test is the export, and the menu's
+        own assembly is covered by `tests/test_picture_export.py`.
+        """
+        from openchem.ui.picture_export import is_blank, raster_source, vector_source
+
+        import pathlib as _pathlib
+
+        # `chart_widgets()` reads the charts back OFF THE SECTIONS, so this
+        # cannot pass against a chart that never reached the display -- the
+        # reason that accessor exists rather than walking the report.
+        widgets = self._window._results_view._view.chart_widgets()
+        index = int(step.get("index", 0))
+        if index >= len(widgets):
+            logger.error(
+                "OPENCHEM_DRIVE: picture -- the reader has %d chart(s), asked for %d",
+                len(widgets), index,
+            )
+            return
+        widget = widgets[index]
+        image = raster_source(widget)
+        svg = vector_source(widget)
+        logger.warning(
+            "OPENCHEM_DRIVE: picture %d %s %dx%d blank=%s vector=%s",
+            index, type(widget).__name__, image.width(), image.height(),
+            is_blank(image), bool(svg),
+        )
+        path = step.get("path")
+        if path:
+            image.save(str(path), "PNG")
+            logger.warning("OPENCHEM_DRIVE: wrote %s", path)
+        if svg and step.get("svg_path"):
+            _pathlib.Path(str(step["svg_path"])).write_text(svg, encoding="utf-8")
+            logger.warning("OPENCHEM_DRIVE: wrote %s", step["svg_path"])
 
     def _do_menu(self, step: dict[str, Any]) -> None:
         """Trigger one of THIS application's menu entries, by its text.

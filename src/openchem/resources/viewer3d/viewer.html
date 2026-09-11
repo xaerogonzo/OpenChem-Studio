@@ -952,6 +952,44 @@
           cell.render();
         },
 
+        // WHAT IS ON SCREEN, AS A PNG DATA URI.
+        //
+        // **THE PAGE HAS TO DO THIS.** A `QWebEngineView` renders OUT OF
+        // PROCESS, so `widget.grab()` on the Python side photographs an
+        // empty frame where the molecule should be -- the canvas belongs
+        // to a different process and Qt has nothing to copy. 3Dmol's own
+        // `pngURI()` reads the WebGL canvas it drew into, which is the
+        // only side that has the pixels.
+        //
+        // A `render()` first, deliberately: 3Dmol draws on demand, and a
+        // grab taken without one returns whatever was last painted --
+        // which after a `resize` or a style change is the previous frame.
+        //
+        // Returns a STRING, which `runJavaScript` marshals; anything
+        // structural would arrive as `''` on this Qt build.
+        pngURI: function () {
+          try {
+            // **A 0x0 CANVAS ANSWERS `data:,`**, which is a valid data URI
+            // holding nothing -- so an unshown viewer produces a "successful"
+            // grab that writes an unopenable file. Measured: the canvas is
+            // 0x0 until the widget is shown and 840x640 within 0.3 s after
+            // (420x320 at device pixel ratio 2). Named here rather than left
+            // for the caller to infer from `data:,`, because "the viewer is
+            // not on screen" and "the page refused" want different answers
+            // from whoever is looking.
+            var canvas = viewer.getCanvas ? viewer.getCanvas() : null;
+            if (!canvas || !canvas.width || !canvas.height) {
+              return 'error: the 3D canvas is ' +
+                (canvas ? canvas.width + 'x' + canvas.height : 'missing') +
+                ' -- the viewer has not been shown';
+            }
+            viewer.render();
+            return viewer.pngURI();
+          } catch (e) {
+            return 'error:' + String(e);
+          }
+        },
+
         leaveGrid: function () {
           gridContainer.style.display = 'none';
           document.getElementById('viewer-container').style.display = 'block';

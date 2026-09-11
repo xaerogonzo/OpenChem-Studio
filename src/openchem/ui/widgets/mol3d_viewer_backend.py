@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import json
 import logging
 from pathlib import Path
@@ -385,6 +387,55 @@ class Mol3DViewerBackend(ViewerBackend):
         self._page.runJavaScript(
             "(window.openchemViewer && window.openchemViewer.currentView)"
             " ? window.openchemViewer.currentView() : ''",
+            done,
+        )
+
+    def grab_png(self, callback: Callable[[bytes | None], None]) -> None:
+        """What is on screen, as PNG bytes, or `None`.
+
+        **`widget.grab()` PHOTOGRAPHS AN EMPTY FRAME HERE**, and that is
+        the whole reason this exists rather than a screenshot one layer
+        up. A `QWebEngineView` renders OUT OF PROCESS: the WebGL canvas
+        belongs to the render process, Qt has no pixels to copy, and the
+        grab succeeds while producing a blank rectangle -- a picture-shaped
+        lie of exactly the kind this project keeps finding. The page reads
+        its own canvas instead.
+
+        Asynchronous for the same reason `current_view` is: the answer
+        comes back through `runJavaScript`, and it crosses as a STRING
+        because this Qt build marshals primitives only.
+
+        `None` rather than empty bytes on every failure -- the page not
+        ready, a refusal, an unreadable URI -- so a caller cannot mistake
+        "nothing came back" for "an image with no content".
+        """
+        if not self._page_ready:
+            callback(None)
+            return
+
+        def done(raw: object) -> None:
+            text = str(raw or "")
+            if not text or text.startswith("error:"):
+                if text:
+                    logger.warning("The 3D viewer could not render a PNG: %s", text)
+                callback(None)
+                return
+            prefix = "data:image/png;base64,"
+            if not text.startswith(prefix):
+                # A URI of some other type is not a PNG, and writing it to
+                # a .png would produce a file nothing opens.
+                logger.warning("The 3D viewer returned %r, not a PNG data URI", text[:40])
+                callback(None)
+                return
+            try:
+                callback(base64.b64decode(text[len(prefix):], validate=True))
+            except (ValueError, binascii.Error):
+                logger.warning("The 3D viewer's PNG did not decode")
+                callback(None)
+
+        self._page.runJavaScript(
+            "(window.openchemViewer && window.openchemViewer.pngURI)"
+            " ? window.openchemViewer.pngURI() : ''",
             done,
         )
 

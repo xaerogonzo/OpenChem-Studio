@@ -54,6 +54,8 @@ class DepictionWidget(QWidget):
     ) -> None:
         super().__init__(parent)
         self._annotation: DepictionAnnotation | None = None
+        #: The SVG last DRAWN, so an export is the picture on screen.
+        self._rendered_svg = ""
         self._molblock = molblock
         #: Why the host would not supply a structure. Shown INSTEAD of
         #: `NO_STRUCTURE`, because "this result describes an earlier version
@@ -138,7 +140,21 @@ class DepictionWidget(QWidget):
         # would describe colours that are not on screen.
         self._caption.setHidden(True)
 
+    def rendered_svg(self) -> str:
+        """The SVG actually drawn, or `""` when nothing was.
+
+        **THE DRAWN ONE, NOT A RE-RENDER.** Re-rendering on demand would
+        run `render_2d_svg` against whatever the widget holds NOW, so an
+        export taken after the molecule moved would be a picture nobody had
+        seen -- and for a stale result, one drawn against the wrong
+        structure, which is the failure this reader refuses everywhere
+        else. Empty whenever a message is showing, so a caller cannot
+        export the previous molecule's drawing.
+        """
+        return self._rendered_svg
+
     def _render(self) -> None:
+        self._rendered_svg = ""
         if self._annotation is None:
             self._show_message(NO_STRUCTURE)
             return
@@ -151,6 +167,7 @@ class DepictionWidget(QWidget):
             logger.warning("Could not draw a declared depiction: %s", exc)
             self._show_message(NO_STRUCTURE)
             return
+        self._rendered_svg = svg
         self._view.load(QByteArray(svg.encode("utf-8")))
         self._view.setHidden(False)
         self._message.setHidden(True)

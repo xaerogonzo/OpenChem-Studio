@@ -85,6 +85,8 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "cip",        "on": true}          R/S and E/Z, through the menu
     {"do": "erase",      "element": "N"}      a REAL canvas edit
     {"do": "menu",       "text": "Rotate 3D"}  THIS app's menu bar
+    {"do": "picture",    "index": 0, "path": "..."}  the reader's
+                                          chart, through the REAL export
     {"do": "rotate_report", "tag": "entered"}  the tick AND the button
     {"do": "select_atom", "atom": 4}       the inspector ROW, and
     {"do": "selection_report"}             BOTH id spaces off the page
@@ -310,6 +312,7 @@ are verbatim, so grep the file for the line.
 - THE POOL-ID TRAP IN REVERSE, AND THE LOOP IT CLOSES
 - THE REASON EXISTED, IN A BATCH CELL, AND THE READER NEVER READ IT
 - A MODE WITH ONE WAY IN, AND TWO WRONG WAYS TO GIVE IT A SECOND
+- A PICTURE THAT COULD BE READ AND NOT TAKEN AWAY
 - Running the tests
 - RESONANCE: four things measured before the Lewis diagram was built
 - The naming benchmark

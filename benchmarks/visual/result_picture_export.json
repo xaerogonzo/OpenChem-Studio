@@ -1,0 +1,14 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(O)=O", "name": "Aspirin", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "panel", "id": "Properties", "after_ms": 1500},
+  {"do": "calculator", "id": "lewis_sites", "after_ms": 12000},
+
+  {"do": "panel", "id": "Results", "after_ms": 2500},
+  {"do": "results", "tag": "loaded", "after_ms": 1500},
+  {"do": "picture", "index": 0,
+   "path": "benchmarks/visual/artifacts/stage5d_depiction.png",
+   "svg_path": "benchmarks/visual/artifacts/stage5d_depiction.svg", "after_ms": 1500},
+
+  {"do": "quit"}
+]

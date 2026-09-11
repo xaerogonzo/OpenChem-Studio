@@ -18963,3 +18963,102 @@ rather than two copies of its words, because
 `test_one_help_id_means_exactly_one_thing` and
 `test_one_concept_is_not_split_across_many_help_ids` between them require it
 and two hand-written copies would satisfy neither for long.
+
+## A PICTURE THAT COULD BE READ AND NOT TAKEN AWAY
+
+Stage 5d. Exporting a drawing existed in exactly ONE dialog -- Lewis's Copy
+SVG / Save SVG -- so every other picture this application draws was
+read-only. The charts and depictions in the results reader had none, which
+is a dead end of the same kind as a summary with no way back to the result.
+
+Shared chrome, not per-dialog behaviour: `ui/picture_export.py` is the
+behaviour and the reader installs it on whatever widget it just built, so
+the DOCKED reader, the POPPED-OUT one and a copy in its own window export
+identically by construction rather than by three implementations agreeing.
+
+**SVG WHEN THERE IS ONE, PNG ALWAYS**, derived from what the widget can
+actually produce (`rendered_svg()`) rather than from a flag somebody has to
+remember to set. A `QPainter` chart offered "Save as SVG" would write a
+bitmap in an SVG wrapper.
+
+### `widget.grab()` IS CORRECT FOR A CHART AND A LIE FOR THE 3D VIEW
+
+A `QWebEngineView` renders OUT OF PROCESS. `grab()` succeeds -- no
+exception, a correctly-sized QPixmap -- and contains no molecule, because
+the canvas belongs to the render process and Qt has nothing to copy. So the
+3D view reads the PAGE's own canvas through `viewer.pngURI()`.
+
+**The counter-measurement is asserted rather than asserted-about.** Without
+it, "use pngURI" is a claim from a comment and the obvious simplification
+back to `widget.grab()` looks correct and produces blank exports. Measured
+against the real page: the page grab has content, the widget grab is a flat
+fill. If Qt ever starts compositing that canvas into the widget, the test
+fails and says the design note needs revisiting.
+
+### `data:,` IS A VALID DATA URI HOLDING NOTHING
+
+A 0x0 canvas answers `data:,`, so an unshown viewer produces a
+"successful" grab that writes an unopenable file. Measured: the canvas is
+0x0 until the widget is shown and 840x640 within 0.3 s after (420x320 at
+device pixel ratio 2). The page names the case now, because "the viewer is
+not on screen" and "the page refused" should not arrive as the same silence.
+
+Found because two tests passed alone and failed after forty other backends
+had been built in the same process. **The production code refused correctly
+both times; the tests had waited on a fixed delay instead of on the
+precondition.** A predicate costs a fast run nothing and makes a slow one
+correct.
+
+### THREE OF MY OWN TESTS WERE HOLES, AND ONE ARM WAS INVALID
+
+- A fresh `DepictionWidget` cannot test the DREW-THEN-REFUSED transition:
+  `__init__` had already set the retained SVG empty, so removing the line
+  that clears it on a refusal survived a full run. The real case is a widget
+  that drew a real picture and was then handed a stale structure -- it would
+  hand back the PREVIOUS molecule's drawing.
+- The same fresh-widget blindness hid whether `rendered_svg()` returns what
+  was DRAWN or re-renders from current state.
+- An arm scored INVALID rather than SURVIVED because its replacement left a
+  dangling `except`, which is exactly what the ran-count check is for.
+
+And one line survives on purpose. The zero-size early return in `is_blank`
+is OUTCOME-REDUNDANT -- the scan below also answers True for a null image,
+its loop running zero times -- so no test can honestly claim to cover it.
+It is kept for a different reason, now written down: it prevents the
+`pixel(0, 0)` read below, which on a null QImage returns garbage (measured:
+12345) and warns.
+
+### A THIRD INERT GUARD, AND THE DIAGNOSIS IT WAS DEFENDING WAS UNPROVEN
+
+The full suite died with an access violation inside `conftest.dispose` and
+**zero failures reported** -- the shape a crashed run has, and the reason
+the verification triple checks for a fatal line rather than for FAILED.
+
+The picture menu had been connected as a nested closure capturing `self`,
+which breaks a rule measured twice in `app/main_window.py`: PySide6 holds a
+connected plain callable strongly, so the capture survives refcounting AND
+the cyclic collector. That was fixed -- a bound method, with the file name
+carried on the widget as a Qt property.
+
+**But the weakref test written to pin it was inert.** `conftest.dispose`
+force-deletes the C++ object, so the reference clears whatever holds the
+Python wrapper, and a mutation arm putting the closure straight back
+SURVIVED it. What ships instead is a source guard that reads the
+CONNECTION rather than the leak, labelled as the weak half, recording that
+the strong half was tried and does not work here.
+
+**And the closure was never shown to have caused the crash.** The file
+passes alone, this repository already records that crash class as
+pre-existing and victim-varying on a byte-identical tree, and the re-run
+was clean -- with the fix in it, so the two explanations are not separated.
+The closure is fixed because it breaks a recorded rule, which is reason
+enough without borrowing a crash it may not have caused.
+
+### NOT BUILT: "SEND TO 2D EDITOR"
+
+The one item of 5d left undone, and deliberately. It is not an export:
+putting a `StructureEntry` into the editor is a STRUCTURE EDIT, so it owes
+a `QUndoCommand` -- and the plan does not say whether it should REPLACE the
+current molecule's structure or ADD a new molecule. Replace is destructive
+if that is the wrong reading, which makes it a decision to be taken rather
+than guessed.
