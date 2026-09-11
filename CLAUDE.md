@@ -283,6 +283,7 @@ are verbatim, so grep the file for the line.
 - ONE READER, AND "DETAILS..." REACHES IT WHEREVER IT IS
 - THE LAUNCHER HAS TO SAY WHETHER THERE IS ANYTHING TO READ
 - EMPTYING THE LAUNCHER IS HOW YOU FIND OUT WHAT ONLY THE LAUNCHER SAID
+- THE 41 DESCRIPTORS LEAVE, AND EVERY CLAIM THEY CARRIED ALONE GOES RED
 - Running the tests
 - RESONANCE: four things measured before the Lewis diagram was built
 - The naming benchmark

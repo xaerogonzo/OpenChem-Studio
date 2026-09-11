@@ -113,15 +113,19 @@ def _display(descriptor: DescriptorValue) -> tuple[str, tuple[str, ...]]:
         # A snapshot taken mid-batch is a real state, not a gap. Saying so
         # beats an empty cell, which reads as a value of nothing.
         return descriptor.cache_state.value.capitalize() + "...", ()
-    # **THE SAME CONVENTIONS `PropertyPanel._format_value` USES**, and
-    # deliberately so: bool -> Pass/Fail, float -> `.4g`, None -> empty. A
-    # descriptor showing 247.3 in the panel and 247.34 in the reader would be
-    # one value with two renderings, which is the disagreement this whole
-    # area keeps producing.
+    # **THE ONLY RENDERING OF A DESCRIPTOR VALUE, AND IT USED TO BE ONE OF
+    # TWO.** bool -> Pass/Fail, float -> `.4g`, None -> empty. The Properties
+    # panel had `_format_value` doing the same job for its own row, so a
+    # descriptor could show 247.3 in one place and 247.34 in the other --
+    # a disagreement this area kept producing, held off by a test asserting
+    # the two agreed. 2c removed the row and its renderer with it, so the
+    # class is designed out rather than guarded: there is nothing left to
+    # disagree with.
     #
-    # NOT shared with it, because they are not the same function: the panel's
-    # adds a status GLYPH and a Qt stylesheet, which are presentation, and
-    # `domain/` cannot hold either. What they must agree on is the plain text,
+    # What the panel's added was a status GLYPH and a Qt stylesheet -- the
+    # green tick on a boolean -- which are presentation, and `domain/` holds
+    # neither. That is the one thing genuinely lost with the row: the WORD
+    # survives here and the glyph does not,
     # and `test_the_two_renderings_of_a_descriptor_value_agree` asserts that
     # rather than trusting this comment.
     value = descriptor.value

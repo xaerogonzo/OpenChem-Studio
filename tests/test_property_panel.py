@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from PySide6.QtWidgets import QDialog
 
 import openchem.ui.panels.property_panel as property_panel_module
@@ -56,246 +57,6 @@ def _make_panel(qapp, calculator_registry: CalculatorRegistry | None = None):
     engine = ChemistryEngine()
     panel = PropertyPanel(bus, registry, descriptor_service, engine)
     return panel, bus, descriptor_service
-
-
-def test_same_bare_descriptor_id_from_different_providers_does_not_collide(qapp):
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(
-        DescriptorComputed(
-            descriptor=DescriptorValue(
-                descriptor_id="value",
-                name="From RDKit",
-                units="",
-                category="",
-                provider="rdkit",
-                molecule_uuid="mol-1",
-                value=1,
-                cache_state=CacheState.COMPLETED,
-            )
-        )
-    )
-    bus.publish(
-        DescriptorComputed(
-            descriptor=DescriptorValue(
-                descriptor_id="value",
-                name="From Plugin",
-                units="",
-                category="",
-                provider="myplugin",
-                molecule_uuid="mol-1",
-                value=2,
-                cache_state=CacheState.COMPLETED,
-            )
-        )
-    )
-
-    assert len(panel._value_labels) == 2
-
-
-def test_descriptor_creates_a_section_for_its_category(qapp):
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(DescriptorComputed(descriptor=_descriptor(category="shape", descriptor_id="pbf")))
-
-    assert "shape" in panel._sections
-    # Widgets never get shown in these headless construction-only tests, so
-    # QWidget.isVisible() always reports False regardless of section state
-    # (it requires the whole ancestor chain, including a shown top-level
-    # window, to be real) -- the toggle button's checked state is this
-    # section's actual logical expanded/collapsed source of truth.
-    assert panel._sections["shape"]._toggle_button.isChecked() is False  # not in the default-expanded set
-
-
-def test_default_expanded_categories_start_visible(qapp):
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(DescriptorComputed(descriptor=_descriptor(category="physicochemical")))
-
-    assert panel._sections["physicochemical"]._toggle_button.isChecked() is True
-
-
-def test_boolean_descriptor_renders_as_pass_fail(qapp):
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(
-        DescriptorComputed(
-            descriptor=_descriptor(
-                descriptor_id="lipinski_pass", category="medicinal_chemistry", value=True, units=""
-            )
-        )
-    )
-    pass_label = panel._value_labels[("rdkit", "lipinski_pass")]
-    # A glyph as well as the colour: colour alone is invisible to a
-    # colour-blind reader and is lost entirely in a copied plain-text
-    # export, where "Pass" and "Fail" would otherwise be indistinguishable
-    # from any other word.
-    assert "Pass" in pass_label.text()
-    assert pass_label.text().startswith("✓")
-
-    bus.publish(
-        DescriptorComputed(
-            descriptor=_descriptor(
-                descriptor_id="ghose_pass", category="medicinal_chemistry", value=False, units=""
-            )
-        )
-    )
-    fail_label = panel._value_labels[("rdkit", "ghose_pass")]
-    assert "Fail" in fail_label.text()
-    assert fail_label.text().startswith("✕")
-
-
-def test_failed_descriptor_shows_error_message(qapp):
-    """A failure says why, rather than leaving the cell blank.
-
-    **READ THROUGH `_unelided_text`, NEVER `.text()`.** The value column
-    elides now -- a FAILED descriptor writes a SENTENCE there, and a plain
-    label reporting its whole text as its minimum is what dragged the
-    scroll content 916 px past a 256 px viewport. `.text()` is therefore
-    whatever fits the fixture's present width, and asserting on it would
-    make this test a claim about the fixture's geometry rather than about
-    the panel saying why the descriptor failed. Same reasoning
-    `test_result_presentation._row_caption` already records for captions.
-    """
-    from openchem.ui.panels.property_panel import _unelided_text
-
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(
-        DescriptorComputed(
-            descriptor=_descriptor(
-                descriptor_id="pbf",
-                category="shape",
-                value=None,
-                cache_state=CacheState.FAILED,
-                error="Needs a real 3D conformer.",
-            )
-        )
-    )
-
-    label = panel._value_labels[("rdkit", "pbf")]
-    assert _unelided_text(label) == "Needs a real 3D conformer."
-
-
-def test_a_producer_that_declares_no_summary_gets_exactly_the_old_behaviour(qapp):
-    """THE DEGRADATION PATH, and it is why this is two fields not one.
-
-    Every producer that writes `error` and nothing else -- which is all of
-    them but two -- must keep putting that same string in the cell and in
-    the hover. If this stops holding, the retrofit stopped being additive
-    and every unmigrated failure message changed meaning at once.
-    """
-    from openchem.ui.panels.property_panel import _unelided_text
-
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-    bus.publish(
-        DescriptorComputed(
-            descriptor=_descriptor(
-                descriptor_id="pbf", category="shape", value=None,
-                cache_state=CacheState.FAILED, error="Something went wrong.",
-            )
-        )
-    )
-    label = panel._value_labels[("rdkit", "pbf")]
-    assert _unelided_text(label) == "Something went wrong."
-    assert label.toolTip() == "Something went wrong."
-
-
-def test_a_declared_summary_reaches_the_cell_and_the_reason_reaches_the_hover(qapp):
-    """THE POINT OF THE WHOLE CHANGE.
-
-    One field could not be both a table cell and an explanation, so the
-    explanation won and was cut off at the panel edge. The producer now
-    says which string is which, and the two must land in DIFFERENT places
-    -- a summary that also became the tooltip would leave the reader with
-    no way to reach the detail at all, which is worse than the clip.
-    """
-    from openchem.ui.panels.property_panel import _unelided_text
-
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-    bus.publish(
-        DescriptorComputed(
-            descriptor=_descriptor(
-                descriptor_id="pbf", category="shape", value=None,
-                cache_state=CacheState.FAILED,
-                error="This descriptor is measured from a real 3D conformer.",
-                error_summary="Needs a 3D conformer",
-            )
-        )
-    )
-    label = panel._value_labels[("rdkit", "pbf")]
-    assert _unelided_text(label) == "Needs a 3D conformer"
-    assert label.toolTip() == "This descriptor is measured from a real 3D conformer."
-    # And the two really are different strings, or this test would pass
-    # against a panel that had simply put the reason in both places.
-    assert _unelided_text(label) != label.toolTip()
-
-
-def test_copy_all_exports_the_reason_and_never_the_cell_summary(qapp):
-    """**THE LEAK THIS CHANGE COULD EASILY HAVE INTRODUCED.**
-
-    `as_text` read `value_widget.text()` raw. That was safe only while no
-    value elided; the moment the value column got the caption column's
-    treatment, "Copy all" would have exported `Needs a 3D conformer` --
-    the cell form -- in place of the sentence saying what to press. It is
-    the identical bug the caption rule already exists to stop, one column
-    across, and nothing would have failed.
-    """
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-    bus.publish(
-        DescriptorComputed(
-            descriptor=_descriptor(
-                descriptor_id="pbf", name="Plane of Best Fit", category="shape",
-                value=None, cache_state=CacheState.FAILED,
-                error="Generate one with Structure > Generate Conformers...",
-                error_summary="Needs a 3D conformer",
-            )
-        )
-    )
-    exported = panel.as_text()
-    assert "Generate one with Structure > Generate Conformers..." in exported
-    assert "Needs a 3D conformer" not in exported
-
-
-def test_selecting_a_new_molecule_clears_previous_rows(qapp):
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-    bus.publish(DescriptorComputed(descriptor=_descriptor()))
-    assert len(panel._value_labels) == 1
-
-    bus.publish(MoleculeSelected(molecule_uuid="mol-2"))
-    assert len(panel._value_labels) == 0
-
-
-def test_a_descriptor_whose_category_changes_moves_to_the_new_section(qapp):
-    """Regression test for the category-bucketing bug: a placeholder
-    published with one category (e.g. "" before the real category was
-    known) must not permanently strand the row in that section once a
-    later event for the same (provider, descriptor_id) reports the real
-    one."""
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(DescriptorComputed(descriptor=_descriptor(category="", cache_state=CacheState.QUEUED, value=None)))
-    assert panel._row_sections[("rdkit", "mol_wt")] is panel._sections["other"]
-
-    bus.publish(DescriptorComputed(descriptor=_descriptor(category="physicochemical")))
-
-    assert panel._row_sections[("rdkit", "mol_wt")] is panel._sections["physicochemical"]
-    label = panel._value_labels[("rdkit", "mol_wt")]
-    assert label.text() == "78.11"
-    # The row must appear exactly once in the new section's layout, not
-    # duplicated, and must be gone from the old one.
-    assert panel._sections["physicochemical"].content_layout().rowCount() == 1
-    assert panel._sections["other"].content_layout().rowCount() == 0
 
 
 def test_descriptor_for_a_different_molecule_is_ignored(qapp):
@@ -707,43 +468,7 @@ def test_unrelated_per_atom_data_does_not_open_the_inspector(qapp, monkeypatch):
 # --- Phase 19: ADMET/toxicity -------------------------------------------------
 
 
-def test_admet_scalar_descriptor_lands_in_the_admet_section(qapp):
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(DescriptorComputed(descriptor=_descriptor(descriptor_id="esol_logs", category="admet", value=-2.09)))
-
-    assert "admet" in panel._sections
-    label = panel._value_labels[("rdkit", "esol_logs")]
-    assert label.text() == "-2.09"
-
-
-def test_admet_section_has_no_open_row_since_nothing_is_registered_there(qapp):
-    panel, bus, _service = _make_panel(qapp)  # empty CalculatorRegistry
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(DescriptorComputed(descriptor=_descriptor(descriptor_id="esol_logs", category="admet", value=-2.09)))
-
-    section = panel._sections["admet"]
-    assert section._calculators_layout.count() == 0
-
-
 # --- Phase 20: functional groups + hERG risk factors + extended filters -----
-
-
-def test_pfizer_gsk_rule_of_three_land_in_medicinal_chemistry(qapp):
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    for descriptor_id in ("pfizer_375_pass", "gsk_400_pass", "rule_of_three_pass"):
-        bus.publish(
-            DescriptorComputed(
-                descriptor=_descriptor(descriptor_id=descriptor_id, category="medicinal_chemistry", value=True)
-            )
-        )
-
-    for descriptor_id in ("pfizer_375_pass", "gsk_400_pass", "rule_of_three_pass"):
-        assert panel._row_sections[("rdkit", descriptor_id)] is panel._sections["medicinal_chemistry"]
 
 
 def _lewis_registry(*, with_lewis: bool = True) -> CalculatorRegistry:
@@ -1193,21 +918,6 @@ def test_a_batch_run_says_when_it_has_finished(qapp):
     assert "Running" not in panel._batch_status.text()
 
 
-def test_a_value_can_be_selected_and_copied(qapp):
-    """Nothing in the panel was copyable: plain QLabels are not even
-    text-selectable, and there was no context menu. `result_to_text`
-    already existed and five other surfaces already used it."""
-    from PySide6.QtCore import Qt
-
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-    bus.publish(DescriptorComputed(descriptor=_descriptor()))
-
-    label = panel._value_labels[("rdkit", "mol_wt")]
-    assert label.textInteractionFlags() & Qt.TextInteractionFlag.TextSelectableByMouse
-    assert panel.contextMenuPolicy() == Qt.ContextMenuPolicy.CustomContextMenu
-
-
 def test_the_status_glyphs_really_render(qapp):
     """A glyph is only accessible if something in the font chain HAS it.
 
@@ -1372,118 +1082,12 @@ def test_a_result_nobody_asked_for_does_not_hijack_the_scroll(qapp):
     assert not revealed
 
 
-def test_a_row_that_recovers_stops_exporting_its_old_failure_reason(qapp):
-    """FOUND BY MUTATION, and nothing else in the file caught it.
-
-    The value label is REUSED as a descriptor moves through its states --
-    the same widget carries the failure and then the number. So the export
-    override set on the failure is still attached when the row later
-    succeeds, and "Copy all" would hand somebody a conformer instruction
-    beside a perfectly good value. `setText` clears it, which is why the
-    reset lives there rather than at the four call sites: every branch
-    calls `setText` first, so no branch has to remember.
-
-    Removing that one line leaves the whole of this file, the geometry
-    guards and the presentation guards passing.
-    """
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(
-        DescriptorComputed(
-            descriptor=_descriptor(
-                descriptor_id="pbf", name="Plane of Best Fit", category="shape",
-                value=None, cache_state=CacheState.FAILED,
-                error="Generate one with Structure > Generate Conformers...",
-                error_summary="Needs a 3D conformer",
-            )
-        )
-    )
-    assert "Generate one with Structure" in panel.as_text(), (
-        "setup: the failure must reach the export, or the recovery below "
-        "is asserting against a panel that never carried a reason"
-    )
-
-    bus.publish(
-        DescriptorComputed(
-            descriptor=_descriptor(
-                descriptor_id="pbf", name="Plane of Best Fit", category="shape",
-                value=0.42, cache_state=CacheState.COMPLETED,
-            )
-        )
-    )
-
-    exported = panel.as_text()
-    assert "0.42" in exported
-    assert "Generate one with Structure" not in exported
-    assert "Needs a 3D conformer" not in exported
-
-
 # --- a refusal is not a fault ------------------------------------------------
 #
 # Joback has no group for a ring tertiary amine and Kamlet-Jacobs needs a
 # measured loading density: both are correct, permanent statements about a
 # METHOD, and both used to be painted with the same red ballot X as a
 # crash. Reported as "some calculator failures"; neither was one.
-
-
-def test_an_inapplicable_result_is_not_dressed_as_a_fault():
-    from openchem.ui.panels.property_panel import (
-        _FAILURE_GLYPH,
-        _FAILURE_STYLE,
-        _failure_appearance,
-    )
-
-    class _R:
-        inapplicable = True
-
-    glyph, style = _failure_appearance(_R())
-    assert glyph != _FAILURE_GLYPH
-    assert style != _FAILURE_STYLE
-
-
-def test_a_genuine_fault_IS_still_dressed_as_one():
-    """THE LOAD-BEARING HALF. "Nothing is ever red" satisfies the guard
-    above and silently deletes error reporting -- so the complement is
-    asserted rather than assumed.
-
-    `NoConformerError` is the boundary case and it is deliberately a
-    FAULT: "generate a conformer first" names an action the user can take,
-    which is exactly what an inapplicable method cannot offer.
-    """
-    from openchem.ui.panels.property_panel import (
-        _FAILURE_GLYPH,
-        _FAILURE_STYLE,
-        _failure_appearance,
-    )
-
-    class _R:
-        inapplicable = False
-
-    assert _failure_appearance(_R()) == (_FAILURE_GLYPH, _FAILURE_STYLE)
-    # A producer that declares nothing at all gets today's behaviour.
-    assert _failure_appearance(object()) == (_FAILURE_GLYPH, _FAILURE_STYLE)
-
-
-def test_the_distinction_is_read_from_the_declaration_not_the_message():
-    """Asserted on the SOURCE, because no shipped message discriminates the
-    two implementations: sniffing `error` for "no group for" would pass
-    every behavioural test here and rot the first time somebody reworded a
-    refusal."""
-    from pathlib import Path
-
-    body = (
-        Path(__file__).parent.parent
-        / "src" / "openchem" / "ui" / "panels" / "property_panel.py"
-    ).read_text(encoding="utf-8")
-    fn = body[body.index("def _failure_appearance") :]
-    fn = fn[: fn.index("\n\n\n")]
-    assert 'getattr(result, "inapplicable", False)' in fn
-    for sniff in ("error", "message", "no group", "startswith", "lower()"):
-        assert sniff not in fn.split('"""')[-1], (
-            f"_failure_appearance inspects {sniff!r} -- the distinction must "
-            "come from the producer's declaration, not the prose"
-        )
 
 
 def test_the_inapplicable_glyph_is_stripped_on_the_way_out():
@@ -1577,3 +1181,319 @@ def test_the_substance_card_is_cleared_when_the_molecule_changes(qapp):
     bus.publish(MoleculeSelected(molecule_uuid="mol-2"))
     qapp.processEvents()
     assert panel._substance_card.data().is_empty
+
+
+# --- the 41 always-on descriptors, now read in the results panel ---------
+#
+# Stage 2c takes their rows out of Properties. Each claim below was asserted
+# against `panel._value_labels[...]` until then and is re-asserted against
+# the surface that renders it now -- the reader's one "Molecular Properties"
+# entry, where every value keeps its own state, provenance and units.
+#
+# Driven through the panel rather than by building the aggregate directly,
+# because what only the panel can be wrong about is whether a descriptor
+# reaches the aggregate AT ALL -- and one whole class of them did not, see
+# the provider test immediately below.
+
+
+def _aggregate(panel):
+    from openchem.domain.descriptor_aggregate import DESCRIPTOR_AGGREGATE_ID
+
+    report = panel._attached_reader.merged().report_for(DESCRIPTOR_AGGREGATE_ID)
+    return report
+
+
+def _with_reader(qapp, registry=None):
+    from openchem.ui.widgets.results_view import ResultsView
+
+    panel, bus, service = _make_panel(qapp, registry)
+    reader = ResultsView()
+    panel.attach_reader(reader)
+    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+    return panel, bus, reader
+
+
+def test_same_bare_descriptor_id_from_different_providers_does_not_collide(qapp):
+    """**THE PANEL'S ROWS PROTECTED AGAINST THIS AND ITS STORE DID NOT.**
+
+    `_value_labels` was keyed `(provider, descriptor_id)` with a comment
+    saying why: two providers -- a plugin and the built-in one -- may pick
+    the same short name. `_descriptor_values`, which is what the reader's
+    aggregate is built from, was keyed on the bare id, so one of the two
+    was thrown away before the aggregate ever saw it.
+
+    Nobody could see it while the rows were on screen showing both. 2c
+    makes the store the only path, and measured before the fix, two
+    providers publishing one id reached the reader as ONE value.
+    `aggregate_descriptors` handles the pair correctly and never got the
+    chance.
+    """
+    panel, bus, _reader = _with_reader(qapp)
+
+    for provider, name, value in (("rdkit", "From RDKit", 1), ("myplugin", "From Plugin", 2)):
+        bus.publish(
+            DescriptorComputed(
+                descriptor=DescriptorValue(
+                    descriptor_id="value",
+                    name=name,
+                    units="",
+                    category="",
+                    provider=provider,
+                    molecule_uuid="mol-1",
+                    value=value,
+                    cache_state=CacheState.COMPLETED,
+                )
+            )
+        )
+
+    facts = {fact.label: fact for fact in _aggregate(panel).facts}
+    assert set(facts) == {"From RDKit", "From Plugin"}, sorted(facts)
+    # And each keeps WHOSE it is, which is the half a merge would lose.
+    assert {facts["From RDKit"].source, facts["From Plugin"].source} == {"rdkit", "myplugin"}
+
+
+def test_a_boolean_descriptor_reads_as_pass_or_fail(qapp):
+    """The WORD, which is the half that survives every surface.
+
+    The panel row painted a green "✓ Pass" and a red "✕ Fail". The glyph
+    and the colour do not survive the move and the word does -- and the
+    word is the half that was load-bearing: colour alone is invisible to a
+    colour-blind reader and is lost entirely in a copied plain-text export.
+
+    **THE GLYPH IS A REAL LOSS AND IS RECORDED AS ONE**, not quietly
+    dropped: what replaces it is the label beside the value, so a reader
+    sees "Lipinski: Pass" rather than a bare "Pass" in a column. That is
+    weaker than a glyph on the same line and stronger than colour.
+    """
+    panel, bus, _reader = _with_reader(qapp)
+
+    for descriptor_id, name, value in (
+        ("lipinski_pass", "Lipinski", True),
+        ("ghose_pass", "Ghose", False),
+    ):
+        bus.publish(
+            DescriptorComputed(
+                descriptor=_descriptor(
+                    descriptor_id=descriptor_id,
+                    name=name,
+                    category="medicinal_chemistry",
+                    value=value,
+                    units="",
+                )
+            )
+        )
+
+    facts = {fact.label: fact.display_value for fact in _aggregate(panel).facts}
+    assert facts["Lipinski"] == "Pass", facts
+    assert facts["Ghose"] == "Fail", facts
+
+
+def test_a_failed_descriptor_says_why_rather_than_arriving_blank(qapp):
+    """A failure says why. It reads its reason off the producer's
+    declaration, never off the message text."""
+    panel, bus, _reader = _with_reader(qapp)
+    bus.publish(
+        DescriptorComputed(
+            descriptor=_descriptor(
+                descriptor_id="pbf",
+                name="Plane of Best Fit",
+                category="shape",
+                value=None,
+                cache_state=CacheState.FAILED,
+                error="Needs a real 3D conformer.",
+            )
+        )
+    )
+
+    fact = next(f for f in _aggregate(panel).facts if f.label == "Plane of Best Fit")
+    assert fact.display_value == "Needs a real 3D conformer."
+
+
+def test_a_declared_summary_leads_and_the_full_reason_travels_beside_it(qapp):
+    """THE POINT OF THE WHOLE CHANGE, one surface along.
+
+    One field could not be both a table cell and an explanation, so the
+    explanation won and was cut off at the panel edge. The producer says
+    which string is which, and the two must land in DIFFERENT places -- a
+    summary that also became the long form would leave a reader with no way
+    to reach the detail at all, which is worse than the clip.
+
+    The panel put the short one in the cell and the long one in the hover.
+    A `Fact` has somewhere better for both: `display_value` leads, and
+    `limitations` carries the sentence saying what to press -- which is
+    what reaches the clipboard, the export and the reader's own rows.
+    """
+    panel, bus, _reader = _with_reader(qapp)
+    bus.publish(
+        DescriptorComputed(
+            descriptor=_descriptor(
+                descriptor_id="pbf", name="Plane of Best Fit",
+                category="shape", value=None,
+                cache_state=CacheState.FAILED,
+                error="This descriptor is measured from a real 3D conformer.",
+                error_summary="Needs a 3D conformer",
+            )
+        )
+    )
+
+    fact = next(f for f in _aggregate(panel).facts if f.label == "Plane of Best Fit")
+    assert fact.display_value == "Needs a 3D conformer"
+    assert fact.limitations == ("This descriptor is measured from a real 3D conformer.",)
+    # And the two really are different strings, or this would pass against a
+    # projection that had simply put the reason in both places.
+    assert fact.display_value not in fact.limitations
+
+
+def test_exporting_carries_the_reason_and_never_only_the_summary(qapp):
+    """**THE LEAK THIS CHANGE DID INTRODUCE, AND IT WAS MEASURED.**
+
+    `PropertyPanel.as_text` took deliberate care here: exporting a FAILED
+    descriptor's short cell form in place of the sentence saying what to
+    press is the identical bug the caption rule exists to stop, one column
+    across. 2c removes that surface -- and measured before this guard,
+    every one of the reader's four formats did exactly that. `Fact`-level
+    limitations were dropped by all of them while report-level ones were
+    kept, which nobody could see while the careful exporter was the one in
+    use.
+    """
+    from openchem.ui.report_format import format_report
+
+    reason = "Generate one with Structure > Generate Conformers..."
+    panel, bus, _reader = _with_reader(qapp)
+    bus.publish(
+        DescriptorComputed(
+            descriptor=_descriptor(
+                descriptor_id="pbf", name="Plane of Best Fit", category="shape",
+                value=None, cache_state=CacheState.FAILED,
+                error=reason, error_summary="Needs a 3D conformer",
+            )
+        )
+    )
+
+    aggregate = _aggregate(panel)
+    for fmt in ("Markdown", "CSV", "Plain text", "JSON"):
+        exported = format_report(aggregate, fmt)
+        assert reason in exported, f"{fmt} dropped the reason: {exported[:200]!r}"
+
+
+def test_selecting_a_new_molecule_drops_the_previous_values(qapp):
+    """A leftover set would put the previous molecule's descriptors under
+    this one's name, with nothing saying otherwise."""
+    panel, bus, _reader = _with_reader(qapp)
+    bus.publish(DescriptorComputed(descriptor=_descriptor()))
+    assert _aggregate(panel) is not None
+
+    bus.publish(MoleculeSelected(molecule_uuid="mol-2"))
+    assert _aggregate(panel) is None, "the previous molecule's values carried over"
+
+
+def test_a_descriptor_that_recovers_carries_no_trace_of_its_old_failure(qapp):
+    """FOUND BY MUTATION on the panel, and structurally impossible here.
+
+    The panel REUSED one label widget as a descriptor moved through its
+    states, so an export override set on the failure was still attached
+    when the row later succeeded -- "Copy all" handed somebody a conformer
+    instruction beside a perfectly good value. The aggregate is re-projected
+    from the latest value per id every time, so there is no widget to carry
+    anything over; this pins that the projection really is rebuilt rather
+    than patched.
+    """
+    reason = "Needs a real 3D conformer."
+    panel, bus, _reader = _with_reader(qapp)
+    bus.publish(
+        DescriptorComputed(
+            descriptor=_descriptor(
+                descriptor_id="pbf", name="Plane of Best Fit",
+                category="shape", value=None,
+                cache_state=CacheState.FAILED, error=reason,
+            )
+        )
+    )
+    assert reason in str([f.display_value for f in _aggregate(panel).facts])
+
+    bus.publish(
+        DescriptorComputed(
+            descriptor=_descriptor(
+                descriptor_id="pbf", name="Plane of Best Fit",
+                category="shape", value=1.23,
+                cache_state=CacheState.COMPLETED,
+            )
+        )
+    )
+
+    fact = next(f for f in _aggregate(panel).facts if f.label == "Plane of Best Fit")
+    assert fact.display_value == "1.23"
+    assert reason not in " ".join(fact.limitations)
+
+
+@pytest.mark.parametrize(
+    ("category", "expected"),
+    [
+        ("admet", "STRUCTURE"),
+        ("medicinal_chemistry", "STRUCTURE"),
+        ("shape", "GEOMETRY"),
+        ("physicochemical", "IDENTITY"),
+        ("lipophilicity", "IDENTITY"),
+    ],
+)
+def test_a_descriptors_declared_category_decides_where_it_is_grouped(
+    qapp, category, expected
+):
+    """Routing, which used to mean "which panel section drew the row".
+
+    **THE TWO VOCABULARIES STAY DISTINCT, WHICH IS WHY admet AND
+    medicinal_chemistry SHARE A HEADING HERE.** The calculator category
+    says which producer; `FactCategory` says what KIND of fact, and the
+    reader groups by the second -- 19 calculator categories onto 9 fact
+    categories, deliberately. A descriptor keeps its own declared category
+    on the value itself; what this pins is that the declaration is READ
+    rather than the grouping being invented by the consumer.
+
+    `lipophilicity` is in the list because it was UNMAPPED and took the
+    STRUCTURE default until this stage, which put LogP under Structure the
+    moment the reader's grouping became the only grouping.
+    """
+    from openchem.domain.report import FactCategory
+
+    panel, bus, _reader = _with_reader(qapp)
+    bus.publish(
+        DescriptorComputed(
+            descriptor=_descriptor(
+                descriptor_id="probe", name="Probe", category=category, value=1.0
+            )
+        )
+    )
+
+    fact = next(f for f in _aggregate(panel).facts if f.label == "Probe")
+    assert fact.category is getattr(FactCategory, expected)
+    # The producer's own word survives on the value, which is what a
+    # consumer wanting the calculator category reads.
+    stored = panel._descriptor_values[("rdkit", "probe")]
+    assert stored.category == category
+
+
+def test_a_descriptor_whose_category_changes_is_regrouped(qapp):
+    """A row's category can legitimately change between events -- a
+    placeholder published before the real category was known. The panel had
+    to re-parent a widget for that; the projection simply reads the latest
+    value, which is one of the things moving these gained."""
+    from openchem.domain.report import FactCategory
+
+    panel, bus, _reader = _with_reader(qapp)
+    bus.publish(
+        DescriptorComputed(
+            descriptor=_descriptor(descriptor_id="probe", name="probe", category="",
+                                   value=None, cache_state=CacheState.RUNNING)
+        )
+    )
+    bus.publish(
+        DescriptorComputed(
+            descriptor=_descriptor(
+                descriptor_id="probe", name="Probe", category="shape", value=1.0
+            )
+        )
+    )
+
+    facts = [f for f in _aggregate(panel).facts if f.label in ("Probe", "probe")]
+    assert len(facts) == 1, "the placeholder and the value both survived"
+    assert facts[0].category is FactCategory.GEOMETRY

@@ -52,7 +52,7 @@ binding-site boxes validated by redocking their own crystallographic ligands.
 Per-pose interaction analysis, chain exclusion, and a box that refuses to run
 when it contains no receptor.
 
-**60 calculators across 23 categories** — physicochemical, topological,
+**60 calculators across 20 categories** — physicochemical, topological,
 geometric, surface, medicinal-chemistry, ADMET, quantum, stereochemical and
 regulatory. Each is labelled `empirical` or `ab_initio` where a basis exists
 to state one.

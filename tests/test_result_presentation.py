@@ -35,11 +35,14 @@ from openchem.events.base import EventBus
 from openchem.events.events import DescriptorComputed, MoleculeSelected
 from openchem.services.calculator_registry import CalculatorRegistry
 from openchem.ui.dialogs.calculator_inspector_dialog import CalculatorInspectorDialog
-from openchem.ui.panels.property_panel import PropertyPanel, _summarise
+from openchem.ui.panels.property_panel import PropertyPanel
+from openchem.ui.result_adapters import summarise
 from openchem.ui.result_clipboard import result_to_text
+from openchem.ui.widgets.results_view import ResultsView
 from openchem.ui.visualization import build_atom_color_layer, data_range
 
 import conftest
+from conftest import dispose
 
 RDLogger.DisableLog("rdApp.*")
 
@@ -83,6 +86,27 @@ def _row_caption(panel: PropertyPanel, key: tuple[str, str]) -> str:
     return _unelided_text(form.itemAt(row, QFormLayout.ItemRole.LabelRole).widget())
 
 
+def _projected(result) -> str:
+    """The per-atom result AS THE READER RENDERS IT, flattened to one line.
+
+    **THIS WAS `property_panel._summarise`**, the one-line summary the
+    panel drew in the result's row. 2c removes that row, and the reader's
+    own projection is the surface that carries the same four things -- the
+    declared total leading, the atom count, the value range and the atom
+    basis -- at the producer's declared precision. Flattened here so the
+    assertions below stay about CONTENT and precision rather than about
+    which fact carries which half.
+    """
+    view = summarise(
+        result,
+        result_id=getattr(result, "property_id", "r"),
+        name=getattr(result, "name", "R"),
+        category="physicochemical",
+        structure_version=0,
+    )
+    return " ".join(f"{f.label} {f.display_value}" for f in view.facts)
+
+
 def _dataset(values, parameters=None, units="") -> PerAtomDataset:
     return PerAtomDataset(
         property_id="test_calc",
@@ -98,19 +122,30 @@ def _dataset(values, parameters=None, units="") -> PerAtomDataset:
 # --- 1. descriptor row captions -------------------------------------------
 
 
-def test_every_descriptor_row_shows_its_display_name_and_units(qapp):
+def test_every_descriptor_reaches_the_reader_under_its_display_name_and_units(qapp):
     """DERIVED FROM `_DESCRIPTOR_SPECS`, so a descriptor added later is
     covered without touching this test.
 
-    The sequence matters and is exactly what `DescriptorService` does:
-    a RUNNING placeholder for every id FIRST (published before
-    `compute()` runs, so it can only carry `name=descriptor_id, units=""`),
-    then the real values. The row was captioned from the placeholder and
-    never corrected, which is why the nice names in `_DESCRIPTOR_SPECS`
-    were computed on every run and thrown away.
+    The sequence matters and is exactly what `DescriptorService` does: a
+    RUNNING placeholder for every id FIRST (published before `compute()`
+    runs, so it can only carry `name=descriptor_id, units=""`), then the
+    real values. The panel row was captioned from the placeholder and never
+    corrected, which is why the nice names in `_DESCRIPTOR_SPECS` were
+    computed on every run and thrown away -- 26 of 26 showing `mol_logp`,
+    `mol_wt`, `tpsa`.
+
+    **THE ROW IS GONE AND THE SEQUENCE IS NOT.** 2c makes Properties a
+    launcher, so these are read in the reader's aggregate entry. The
+    aggregate is re-projected from the LATEST value per id every time,
+    which is structurally why it cannot repeat the defect -- there is no
+    first render to be stuck with. Driven through the panel rather than by
+    building the aggregate directly, because the placeholder-then-value
+    ordering is the thing under test and only the panel sees both.
     """
     bus = EventBus()
     panel = PropertyPanel(bus, CalculatorRegistry(), _FakeDescriptorService(), ChemistryEngine())
+    reader = ResultsView()
+    panel.attach_reader(reader)
     bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
 
     def publish(descriptor_id, name, units, category, state, value=None):
@@ -134,22 +169,38 @@ def test_every_descriptor_row_shows_its_display_name_and_units(qapp):
     for descriptor_id, name, units, category in _DESCRIPTOR_SPECS:
         publish(descriptor_id, name, units, category, CacheState.COMPLETED, 1.0)
 
+    aggregate = reader.merged().report_for("molecular_properties")
+    assert aggregate is not None, "the descriptors reached the reader not at all"
+    facts = {fact.label: fact for fact in aggregate.facts}
+
     wrong = []
     for descriptor_id, name, units, _category in _DESCRIPTOR_SPECS:
-        expected = f"{name} ({units})" if units else name
-        actual = _row_caption(panel, ("rdkit", descriptor_id))
-        if actual != expected:
-            wrong.append((descriptor_id, actual, expected))
+        fact = facts.get(name)
+        if fact is None:
+            wrong.append((descriptor_id, "missing", name))
+        elif fact.units != units:
+            wrong.append((descriptor_id, fact.units, units))
 
-    assert not wrong, f"rows still captioned with their raw ids: {wrong}"
+    assert not wrong, f"descriptors still carrying the wrong name or units: {wrong}"
+    # **THE UNITS STAY IN THEIR OWN FIELD.** The panel composed them into the
+    # caption because a form row has one string; a `Fact` has `units` beside
+    # `value` and `value_with_units` composes them, which is what stopped
+    # `report_adapter`'s facts exporting "C: 60.00 % %".
+    raw_ids = {did for did, _n, _u, _c in _DESCRIPTOR_SPECS}
+    assert not (set(facts) & raw_ids), (
+        f"facts still labelled with a raw id: {sorted(set(facts) & raw_ids)}"
+    )
+    dispose(reader)
     _dispose(panel)
 
 
-def test_the_reported_row_reads_logp_rather_than_mol_logp(qapp):
-    """The specific row from the screenshot, named so a regression is
+def test_the_reported_descriptor_reads_logp_rather_than_mol_logp(qapp):
+    """The specific value from the screenshot, named so a regression is
     recognisable as the thing that was reported."""
     bus = EventBus()
     panel = PropertyPanel(bus, CalculatorRegistry(), _FakeDescriptorService(), ChemistryEngine())
+    reader = ResultsView()
+    panel.attach_reader(reader)
     bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
 
     for name, units, state, value in (
@@ -171,7 +222,11 @@ def test_the_reported_row_reads_logp_rather_than_mol_logp(qapp):
             )
         )
 
-    assert _row_caption(panel, ("rdkit", "mol_logp")) == "LogP"
+    aggregate = reader.merged().report_for("molecular_properties")
+    labels = {fact.label for fact in aggregate.facts}
+    assert "LogP" in labels
+    assert "mol_logp" not in labels
+    dispose(reader)
     _dispose(panel)
 
 
@@ -205,9 +260,11 @@ def test_the_dialog_and_the_panel_row_quote_the_same_total(qapp):
     """They disagreed on screen, three inches apart -- `mol_logp 3.624`
     against `Overall: 0.8585`. Both read the one declaration now.
 
-    It is the TOTAL they must agree on rather than the range: the row no
-    longer carries a range at all, because the section it sits in has no
-    room for both (see `_summarise`, which has the measurements).
+    It is the TOTAL they must agree on. The panel row that used to be the
+    second surface carried no range, because the section it sat in had no
+    room for both; 2c removed the row, and the reader's projection carries
+    the total AND the range AND the atom basis, so the constraint that
+    shaped the old assertion is gone with it.
     """
     engine = ChemistryEngine()
     molecule = MoleculeModel(display_name="Aspirin")
@@ -219,7 +276,7 @@ def test_the_dialog_and_the_panel_row_quote_the_same_total(qapp):
 
     texts = [label.text() for label in dialog.findChildren(QLabel)]
     assert f"LogP (Crippen): {headline}" in texts, texts
-    assert _summarise(result).startswith(f"LogP (Crippen) {headline}")
+    assert f"LogP (Crippen) {headline}" in _projected(result)
     _dispose(dialog)
 
 
@@ -242,8 +299,8 @@ def test_the_dialog_legend_still_carries_the_range(qapp):
     _dispose(dialog)
 
 
-def test_the_panel_row_keeps_everything_it_used_to_show_and_adds_the_total(qapp):
-    """The row is strictly richer than the one it replaced.
+def test_the_reader_keeps_everything_the_row_showed_and_adds_the_total(qapp):
+    """The projection is strictly richer than the row it replaced.
 
     An earlier version of this guard asserted the row must not GROW,
     because carrying the total and the range together overflowed a
@@ -260,12 +317,14 @@ def test_the_panel_row_keeps_everything_it_used_to_show_and_adds_the_total(qapp)
     and carries a control proving its probe can see one.
     """
     result = compute_crippen_logp_contrib_calculator(Chem.MolFromSmiles(ASPIRIN), "u", {})
-    summary = _summarise(result)
+    summary = _projected(result)
     low, high = data_range(result)
 
-    assert summary.startswith("LogP (Crippen) 1.31")  # the total, leading
-    assert f"{len(result.values)} atoms" in summary  # the count, as before
+    assert "LogP (Crippen) 1.31" in summary  # the declared total
+    assert f"Atoms {len(result.values)}" in summary  # the count, as before
     assert f"{low:.2f} to {high:.2f}" in summary  # the range, as before
+    # And the one the row never had room for: what the values are keyed to.
+    assert "heavy atoms" in summary, summary
 
 
 # --- 3. one precision -----------------------------------------------------
@@ -276,9 +335,11 @@ def test_one_dataset_renders_at_one_precision_everywhere(qapp, places):
     """Headline, balance, legend, panel row and clipboard all go through
     `label_decimals`. Four of them used to disagree.
 
-    Each surface is asserted at whatever it SHOWS -- the panel row carries
-    the total but no longer a range, the dialog carries both -- so this
-    stays a precision test rather than quietly becoming a content one.
+    Each surface is asserted at whatever it SHOWS, so this stays a
+    precision test rather than quietly becoming a content one. The fourth
+    surface was the Properties row until 2c removed it; the reader's
+    projection replaced it and carries both the total and the range, which
+    is more of the contract under one assertion rather than less.
     """
     engine = ChemistryEngine()
     molecule = MoleculeModel(display_name="Aspirin")
@@ -300,9 +361,9 @@ def test_one_dataset_renders_at_one_precision_everywhere(qapp, places):
     assert span in texts  # dialog legend
     balance = next(t for t in texts if "balance" in t)  # dialog balance sentence
     assert f"sum to {visible_sum}" in balance, balance
-    panel_row = _summarise(result)
-    assert panel_row.startswith(f"LogP (Crippen) {total}")  # panel row: total
-    assert span in panel_row  # panel row: range, at the same precision
+    projected = _projected(result)
+    assert f"LogP (Crippen) {total}" in projected  # reader: the total
+    assert span in projected  # reader: range, at the same precision
     assert f"LogP (Crippen)\t{total}" in result_to_text(result)  # clipboard
     _dispose(dialog)
 
@@ -314,7 +375,7 @@ def test_rounding_boundaries_render_identically_in_every_place(qapp, value):
     result = _dataset({0: value}, parameters={"decimal_places": 2, "total": declare_total(value, "T")})
 
     expected = f"{value:.2f}"
-    assert expected in _summarise(result)
+    assert expected in _projected(result)
     assert f"T\t{expected}" in result_to_text(result)
 
 

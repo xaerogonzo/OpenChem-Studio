@@ -921,27 +921,31 @@ def test_a_result_nobody_asked_for_does_not_move_the_reader(panel):
     assert widget._attached_reader._focus == "a"
 
 
-def test_the_reader_keeps_the_WHOLE_reason_while_a_value_cell_takes_the_summary(panel):
+def test_the_reader_keeps_the_WHOLE_reason_while_a_SUMMARY_takes_the_short_form(panel):
     """A READING SURFACE IS NOT A CELL, and treating them alike loses text.
 
     `describe_failure` owns both forms, and which one is right depends on
     how much room the surface has. The reader's summary line sits above a
     report and has room for a sentence: the pkasolver message is 344
-    characters of install guidance and is the whole point of showing it.
-    `_on_descriptor_computed`'s single-line value cell is the one that is
-    short of room, and only it takes the short form.
+    characters of install guidance and is the whole point of showing it. A
+    single-line cell is the one that is short of room, and only it takes the
+    short form.
 
     Both halves are asserted together because each alone is satisfiable by
-    the wrong rule -- "always use the summary" passes the descriptor half,
-    "never use it" passes the reader half -- and this repository's own
-    lesson is that reusing a mechanism whose invariants do not apply is not
-    reuse. The wide ROW this was originally written against is gone; the
-    asymmetry it was guarding is not.
+    the wrong rule -- "always use the summary" passes one, "never use it"
+    passes the other -- and this repository's own lesson is that reusing a
+    mechanism whose invariants do not apply is not reuse.
+
+    **BOTH HALVES ARE IN THE READER NOW.** The short half was the Properties
+    panel's descriptor cell until 2c removed it; a descriptor's short form
+    is `Fact.display_value` and its long form is `Fact.limitations`, so the
+    asymmetry survived the move into a single object -- which is why the
+    export had to be taught to carry the second, and had not been.
     """
     from openchem.domain.common import CacheState
     from openchem.domain.descriptor import DescriptorValue
+    from openchem.domain.descriptor_aggregate import DESCRIPTOR_AGGREGATE_ID
     from openchem.events.events import DescriptorComputed
-    from openchem.ui.panels.property_panel import _unelided_text
 
     reason = (
         "No pkasolver environment configured. Set the interpreter path "
@@ -973,11 +977,16 @@ def test_the_reader_keeps_the_WHOLE_reason_while_a_value_cell_takes_the_summary(
     QCoreApplication.processEvents()
 
     reader = widget._attached_reader
+    # The roomy surface keeps every word of it...
     line = reader._summary_for(reader.merged().report_for("pka"))
-    cell = widget._value_labels[("rdkit", "pbf")]
-
-    # The reading surface keeps every word of it...
     assert reason in line, line
     assert line != summary
-    # ...and the one-line cell takes the short form.
-    assert _unelided_text(cell) == summary
+
+    # ...and the one-line value takes the short form, with the sentence
+    # travelling beside it rather than being discarded.
+    fact = next(
+        f for f in reader.merged().report_for(DESCRIPTOR_AGGREGATE_ID).facts
+        if f.label == "Plane of Best Fit"
+    )
+    assert fact.display_value == summary
+    assert fact.limitations == (reason,)

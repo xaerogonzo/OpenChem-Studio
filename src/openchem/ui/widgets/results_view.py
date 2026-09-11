@@ -518,6 +518,38 @@ class ResultsView(QWidget):
         # come through here; see its own note.
         self._remember()
 
+    def reveal_fact(self, report_id: str, label: str) -> bool:
+        """Focus one result and narrow it to a single fact.
+
+        **THE COMMAND PALETTE'S ROUTE, AND IT USED TO BE A SCROLLBAR.** A
+        descriptor cannot be "run" -- the 41 of them are computed as a batch
+        the moment a molecule is selected -- so the palette had no action to
+        offer for them and searching "solubility" returned nothing at all.
+        Revealing is the action that does exist, and until 2c it meant
+        scrolling the Properties panel to a row possibly a thousand pixels
+        down inside a collapsed section.
+
+        There is no row now, so the reveal is done with the control the
+        reader already has: the search box, which narrows to the fact and
+        SHOWS WHY it is the only one on screen. That is strictly better than
+        a scroll for the case it exists for -- an aggregate of 41 values is
+        exactly where "it is on screen somewhere" stops being useful -- and
+        it is undone by clearing one box.
+
+        `everything=True` because a descriptor may be ADVANCED, and a reveal
+        that silently declines to show the specialist half would fail for
+        precisely the values somebody had to search for.
+
+        Returns whether the fact was found, so a caller can say something
+        honest when it was not -- the same contract `open_retained_result`
+        and `open_spatial_view` carry.
+        """
+        if self._merged.report_for(report_id) is None:
+            return False
+        self.set_focus(report_id)
+        self._view.set_filter_state(label, True)
+        return label in self._view.visible_fact_labels()
+
     def _apply_focus(self, report_id: str) -> None:
         # `is not None`. A refused calculator's report has no facts, and
         # truthiness here made it unfocusable -- it appeared in the selector

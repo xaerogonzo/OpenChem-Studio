@@ -363,7 +363,11 @@ def test_every_export_format_round_trips(panel):
     assert any(f["label"] == "Lewis role" for f in payload["facts"])
 
     rows = format_report(report, "CSV").splitlines()
-    assert rows[0] == "category,label,value,units,source,basis"
+    # `limitations` joined the header when the descriptors stopped being
+    # rendered by the Properties panel: a Fact's own caveats were dropped by
+    # every format, which nobody saw while a careful exporter was the one in
+    # use. See `ui/report_format.format_report`.
+    assert rows[0] == "category,label,value,units,source,basis,limitations"
     assert len(rows) == len(report.facts) + 1
 
 

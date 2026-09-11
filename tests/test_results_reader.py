@@ -740,3 +740,90 @@ def test_a_FAILED_result_says_why_rather_than_that_it_is_empty(qapp):
     assert "no group" in summary
     assert "produced no values" not in summary
     dispose(view)
+
+
+# --- revealing ONE fact, which is what the palette asks for --------------
+
+
+def _detailed_report(report_id, name, standard, advanced):
+    """A report whose facts are split across the depth filter."""
+    from openchem.domain.report import Detail
+
+    facts = tuple(
+        Fact(
+            category=FactCategory.IDENTITY, label=label, value=label,
+            display_value=label, source="RDKit", basis=Basis.DETERMINISTIC,
+            detail=Detail.STANDARD if label in standard else Detail.ADVANCED,
+        )
+        for label in (*standard, *advanced)
+    )
+    return ReportResult(
+        molecule_uuid="mol-1", report_id=report_id, name=name,
+        category="other", facts=facts,
+    )
+
+
+def test_revealing_a_fact_focuses_its_report_and_narrows_to_it(qapp):
+    """**THE COMMAND PALETTE'S ROUTE, AND IT USED TO BE A SCROLLBAR.**
+
+    A descriptor cannot be run -- the 41 are computed as a batch the moment
+    a molecule is selected -- so the palette had no action to offer and
+    searching "solubility" returned nothing at all. Revealing is the action
+    that exists, and until 2c it meant scrolling the Properties panel to a
+    row possibly a thousand pixels down inside a collapsed section.
+
+    There is no row now. Narrowing shows the value AND says why it is the
+    only one on screen, which "it is somewhere below" never did -- and an
+    aggregate of 41 values is exactly where that stops being an answer.
+    """
+    view = ResultsView("mol-1")
+    try:
+        view.set_reports([_detailed_report("molecular_properties", "Molecular Properties",
+                                           ["LogP", "TPSA", "Molecular Weight"], [])])
+
+        assert view.reveal_fact("molecular_properties", "TPSA")
+
+        assert view.focus() == "molecular_properties"
+        assert view._view.visible_fact_labels() == ["TPSA"]
+    finally:
+        dispose(view)
+
+
+def test_revealing_an_ADVANCED_fact_lifts_the_depth_filter(qapp):
+    """The narrow half, and not a hypothetical one.
+
+    A reveal that honoured the standing depth filter would decline for
+    precisely the specialist values somebody had to search the palette to
+    find -- and it would decline SILENTLY, which is the no-op 0g forbids.
+
+    **NO DESCRIPTOR DECLARES `ADVANCED` TODAY**, measured over the
+    aggregate: all 31 facts are STANDARD. So this is asserted here, where a
+    report can be built with both kinds, rather than through a descriptor
+    fixture that could only be degenerate.
+    """
+    view = ResultsView("mol-1")
+    try:
+        view.set_reports([_detailed_report("r", "R", ["Common"], ["Specialist"])])
+        view._view.set_filter_state("", False)
+        assert "Specialist" not in view._view.visible_fact_labels(), (
+            "setup: the advanced fact must start hidden or this proves nothing"
+        )
+
+        assert view.reveal_fact("r", "Specialist")
+
+        assert view._view.visible_fact_labels() == ["Specialist"]
+    finally:
+        dispose(view)
+
+
+def test_revealing_a_fact_that_is_not_there_says_so(qapp):
+    """It returns whether it worked, so a caller can say something honest
+    rather than leaving somebody looking at an unchanged screen."""
+    view = ResultsView("mol-1")
+    try:
+        view.set_reports([_detailed_report("r", "R", ["Common"], [])])
+
+        assert not view.reveal_fact("r", "Nothing Like This")
+        assert not view.reveal_fact("no_such_report", "Common")
+    finally:
+        dispose(view)

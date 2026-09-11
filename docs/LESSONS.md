@@ -10124,9 +10124,9 @@ section has now recorded three times. Do not narrow the band on it.
 work was verified against `test_property_panel*.py`,
 `test_calculator_sections.py`, `test_right_dock_width.py`,
 `test_docs_are_current.py`, `test_layering.py`, `test_qt_object_disposal.py`
-and `test_empty_states.py` — 188 passed — and the full run then failed
-`test_result_presentation.py::test_every_descriptor_row_shows_its_display_name_and_units`,
-whose probe read a caption's `.text()`. That is now a width-dependent
+and `test_empty_states.py` — 188 passed — and the full run then failed a
+descriptor-caption guard in `test_result_presentation.py` whose probe read
+a caption's `.text()`. That is now a width-dependent
 view, so `'Molecular Weight (g/mol)'` came back `'Molecul…'`. **A
 targeted set is chosen from where you think you changed something**, and
 the third consumer of caption text was somewhere else.
@@ -12694,8 +12694,9 @@ degradation. `error` is still the FULL explanation and still a `str`, so
 every producer that writes it and nothing else keeps exactly today's
 behaviour. A `FailureMessage` value object in that field would have
 rendered as a repr in four call sites and looked plausible doing it.
-`test_a_producer_that_declares_no_summary_gets_exactly_the_old_behaviour`
-is the guard.
+A guard in `test_property_panel.py` pinned it. (Retired at 2c with the
+panel's value rows; the producer contract it guarded is unchanged, and
+`describe_failure` still owns which string is the short form.)
 
 **NO LENGTH CEILING ON THE SUMMARY, DELIBERATELY.** Eliding already
 handles width and is measured; a cap would be a second mechanism for one
@@ -12784,12 +12785,17 @@ relate. A constant existing is not a constant REACHING, which is this
 file's own "shipped is not reachable" one layer down. Both guards were
 written from the surviving arm and both then caught it.
 
-`test_the_probe_can_see_a_failed_reason_widen_the_panel` is the control
-for the geometry guard: it puts the shipped defect back -- a plain,
-non-eliding `QLabel` carrying the same string -- and requires the oracle
-to SAY SO. Without it the guard would pass against a panel with no
-eliding value label at all, which is exactly how the caption oracle in
-the section above once passed with its entire fix reverted.
+That geometry guard had a CONTROL beside it, which put the shipped defect
+back -- a plain, non-eliding `QLabel` carrying the same string -- and
+required the oracle to say so. Without it the guard would pass against a
+panel with no eliding value label at all, which is exactly how the caption
+oracle in the section above once passed with its entire fix reverted.
+
+Both retired at 2c, and the way they went is worth more than either: the
+panel stopped having a value row, so the guard passed over an EMPTY
+population -- and so did its control, because a control builds its own
+widget. **A control proves the instrument works; it does not prove the
+instrument was pointed at anything.**
 
 #### `▸` RAISES ON cp1252 TOO, so the string was unprintable everywhere
 
@@ -18190,3 +18196,169 @@ Substance & Bonding, grey **Not run** beside Mass Spectrum, and the
 Identity section's three buttons reachable in one frame. The shot is what
 the first half could not produce, and it is the same measurement that made
 it possible.
+
+## THE 41 DESCRIPTORS LEAVE, AND EVERY CLAIM THEY CARRIED ALONE GOES RED
+
+Stage 2c finished. The always-on descriptors stop being rendered by the
+Properties panel and are read in the reader's one "Molecular Properties"
+entry, where each keeps its own state, provenance and units. The panel is a
+launcher: a substance header, and a button, a tick box and a status chip per
+calculator.
+
+Measured on aspirin with six calculators run, at the same 396 px width
+throughout:
+
+    16,299 px   before 2c            28 screens
+       801 px   calculator results out
+       592 px   descriptors out       ONE screen (the viewport is 580)
+
+0 rendered-overflow findings at the default width, at 900 and at 1600, and
+34 findings at tolerance -1000 so the check can still say no. The reader
+holds all of it unchanged: 15 results, 168 facts, 2 charts.
+
+**TWO SECTION HEADINGS DISAPPEARED AND THAT IS CORRECT.** Physicochemical
+and Shape held only descriptors -- nothing registered to launch -- so a
+launcher has no row to offer there. Every category with a calculator in it
+is now visible on one screen without scrolling, which is what the panel is
+for.
+
+### FIVE GAPS, AND EACH WAS FOUND BY THE SAME METHOD
+
+Removing a renderer is an instrument: whatever it was carrying alone goes
+red. Three of these had been true for a long time and were invisible because
+a second surface was quietly covering for the first.
+
+**1. Two providers collided in the store.** `_value_labels` was keyed
+`(provider, descriptor_id)` with a comment saying exactly why -- a plugin and
+the built-in one may pick the same short name. `_descriptor_values`, which is
+what the aggregate is built from, was keyed on the BARE ID. So one of the two
+was thrown away before the aggregate ever saw it; measured, two providers
+publishing one id reached the reader as one value.
+`aggregate_descriptors` handles the pair correctly and never got the chance.
+The rows showed both, so nobody looked.
+
+**2. A fact's limitations reached no export.** `format_report` emitted
+REPORT-level limitations and dropped `Fact.limitations` in all four formats.
+That is where a failed descriptor's full reason lives, so measured before the
+fix, Markdown, CSV, plain text and JSON all exported "Needs a 3D conformer"
+with the sentence saying what to press nowhere in the file. The Properties
+panel's own `as_text` took deliberate care about exactly this and says so in
+its docstring -- **the careful exporter was the one in use, which is why the
+careless one was never noticed.**
+
+**3. "Copy all" copied nothing.** Measured after the last row went:
+`as_text()` returned the EMPTY STRING. Not a decision anybody made -- a
+control that became a silent no-op by subtraction, which is the thing 0g
+exists to forbid. It copies what a launcher has now: the substance header,
+and each calculator with its status.
+
+**4. LogP was filed as a structural fact.** `category_for` maps 19 calculator
+categories onto 9 fact categories and falls back to STRUCTURE for anything
+unlisted -- correct policy for a category a PLUGIN invented, and not a
+decision for one this project ships. `lipophilicity` and `solubility` were
+unlisted, so LogP and Aqueous Solubility took the default. Invisible while
+the panel filed them under its own headings; plainly wrong once the reader's
+grouping was the only grouping. Both map to IDENTITY now, which is where
+their siblings already are -- `physicochemical` is the same entry, so this is
+consistency rather than a new taxonomy call. The remaining six are named
+with a reason, and a guard refuses a new one falling through unnoticed.
+
+**5. `_unelided_text` returned the painted string for a button.**
+`_ElidingLabel` keeps its string in `full_text` and `_ElidingPushButton` in
+`_full_text`; the helper knew only the first, so handed a calculator button
+it returned the ELIDED text -- the exact answer it exists to refuse, for the
+one widget class whose name is the longest thing in the panel. Nothing
+exported a button through it while the rows carried the values.
+
+### WHAT MOVED RATHER THAN WENT
+
+**REVEALING A PROPERTY IS A SEARCH NOW, NOT A SCROLL.** A descriptor cannot
+be run, so the command palette offers to REVEAL it -- the fix for "searching
+solubility returned nothing at all". It used to scroll this panel to a row
+possibly a thousand pixels down inside a collapsed section. The reader has no
+such row, so the reveal focuses the aggregate and narrows the search box to
+that one value, which shows it AND says why it is the only one on screen. An
+aggregate of 41 values is exactly where "it is somewhere below" stops being
+an answer.
+
+`everything=True` on that narrowing, because a reveal that honoured the
+standing depth filter would decline for precisely the specialist values
+somebody had to search for -- and decline silently. Measured while writing
+its test: **no descriptor declares ADVANCED today**, all 31 facts are
+STANDARD, so the guard for that lives at the reader where a report can be
+built with both kinds rather than in a descriptor fixture that could only be
+degenerate.
+
+**THE WINDOW'S ROUTE STILL NAMES PROPERTIES, FOR THE FAILURE PATH ONLY.**
+The panel reveals the reader itself on the happy path. Both refusals --
+nothing selected, not computed for this molecule -- are written into the
+Properties status line, which is invisible if the rail is left on Results. So
+the window shows Properties when the reveal returns False, and not otherwise.
+
+**THE INSTRUMENTED SHOT IS ON ITS THIRD HOME, AND THAT IS THE POINT.** It
+hung off a report row, then off a descriptor row, and 2c removed each in
+turn -- every time leaving it unscheduled, which would make both the
+instrument and its lifetime guard pass by never arming. Both previous homes
+were RESULT rows. A calculator row is permanent furniture of a launcher.
+
+**AND ITS PARTNER GUARD RETIRED WITH ITS HAZARD.** `reveal_descriptor` used
+to defer a scroll by one turn, so the panel could die inside it; the reveal
+is immediate now, so there is one deferred shot left in the panel rather than
+two, and the parametrised pair collapsed to the one that still exists.
+
+### WHAT IS GENUINELY LOST, MEASURED RATHER THAN ASSUMED
+
+The panel painted a boolean descriptor as a green **✓ Pass** and a red
+**✕ Fail**, and an inapplicable one with **○**. The aggregate gives `"Pass"`,
+`"Fail"` and the refusal's own sentence. **The word survives, the glyph and
+the colour do not** -- and the word was always the load-bearing half, because
+colour alone is invisible to a colour-blind reader and is lost entirely in a
+copied export. What replaces the glyph is the label beside the value:
+"Lipinski: Pass" rather than a bare "Pass" in a column. Weaker than a glyph
+on the same line, stronger than colour.
+
+The refusal/fault distinction survives in the DATA -- `inapplicable()` is
+kept apart from `failed()` -- but not in the rendered row, which shows both
+as their reason. Worth knowing before anyone reads this as lossless.
+
+### A TEST FILE THE PREVIOUS COMMIT BROKE, AND HOW
+
+`test_result_presentation.py` imported `_summarise`, which 2c-2 deleted. The
+targeted sweep that signed 2c-2 off did not include it, and neither did the
+1600-test guard sweep -- **because a targeted set is chosen from where you
+think you changed something.** That lesson is already in this file under my
+name, from earlier in this same branch. Collecting the whole suite takes
+seven seconds and is what caught it; it is now what I do before believing a
+green run.
+
+### FOUR FIXTURES THAT QUIETLY STOPPED PRODUCING ANYTHING
+
+Three width guards passed after the removal by iterating an EMPTY population
+-- a long descriptor caption, a long report caption, a failed descriptor's
+reason. Each had a control arm proving its probe could see a clip, and each
+control passed too, because the control builds its own widget. **A control
+proves the instrument works; it does not prove the instrument was pointed at
+anything.** They are retired: their subject is a row that no longer exists,
+and the long-value question moved to the reader, which has its own guard.
+
+A fourth was mine from two hours earlier: `_panel_with_rows` was renamed
+honestly when its alert stopped rendering, and then stopped producing rows at
+all when the descriptors went. It builds calculator rows now -- and those are
+a `QHBoxLayout`, whose minimum is the SUM of its children, which is the most
+expensive trap this file records.
+
+### NINE ARMS, NINE CAUGHT
+
+    F1  two providers collide in the store again    6 tests
+    F2  the reader is not told a descriptor landed 16
+    F3  the reveal does not narrow                  2
+    F4  the reveal honours the depth filter         1
+    F5  the export drops a fact's limitations       1
+    F6  Copy all copies nothing                     1
+    F7  lipophilicity is unmapped again             3
+    F8  _unelided_text forgets the button's store   1
+    F9  the metrics dump is never scheduled         1
+
+F4 and F7 are the narrow halves. F2's sixteen is the shape of the change: the
+panel's one remaining job for a descriptor is to hand it on, so severing that
+takes everything with it.

@@ -40,7 +40,10 @@ from openchem.domain.calculator_taxonomy import (
 )
 from openchem.domain.common import describe_failure
 from openchem.domain.descriptor import DescriptorValue
-from openchem.domain.descriptor_aggregate import aggregate_descriptors
+from openchem.domain.descriptor_aggregate import (
+    DESCRIPTOR_AGGREGATE_ID,
+    aggregate_descriptors,
+)
 from openchem.domain.project import ProjectModel
 from openchem.domain.reader_state import ReaderMemory
 from openchem.domain.result_status import (
@@ -105,7 +108,17 @@ _CATEGORY_LABELS = CATEGORY_LABELS
 #: fallback. Aliased, not reimplemented.
 _category_label = category_label
 
-_DEFAULT_EXPANDED = {"physicochemical", "identity"}
+#: Which sections start open.
+#:
+#: **IT NAMED `physicochemical` UNTIL 2c AND THAT ENTRY WAS DEAD.** Sections
+#: are built for the categories a RUNNABLE calculator declares, and
+#: `physicochemical` has none -- it was a section only because the 41
+#: always-on descriptors built one, and they are read in the results panel
+#: now. So half this set named a category the panel never builds, which is
+#: silent: an unreachable entry expands nothing and complains about nothing.
+#: `test_every_default_expanded_category_is_one_the_panel_builds` is the
+#: guard.
+_DEFAULT_EXPANDED = {"identity"}
 
 # Sections are collapsed/expanded up front, computation is NOT deferred
 # until a section opens -- every descriptor here finishes in well under a
@@ -202,52 +215,10 @@ _STATUS_CHIP_HELP = HelpTooltip(
 )
 
 
-def _failure_appearance(result) -> tuple[str, str]:
-    """(glyph, style) for a FAILED result, from the producer's declaration.
-
-    READ, NEVER SNIFFED. Deciding this from the message text -- `if "no
-    group for" in error` -- is precisely what `joback.refusal_text`'s own
-    docstring exists to prevent, and it would rot the first time somebody
-    reworded a sentence.
-    """
-    if getattr(result, "inapplicable", False):
-        return _INAPPLICABLE_GLYPH, _INFORMATION_STYLE
-    return _FAILURE_GLYPH, _FAILURE_STYLE
-
-
 #: Plain BMP glyphs, not emoji. Qt's emoji rendering on Windows falls back
 #: per font and can produce a tofu box where a symbol was intended; these
 #: three are in every shipped UI font. Verified by painting, not assumed --
 #: see `test_property_panel.py`.
-
-
-def _format_value(value: object) -> tuple[str, str]:
-    """Returns (text, stylesheet) for a descriptor's value -- dispatches on
-    the Python type of the value itself (bool vs. number vs. text) rather
-    than a separate declared "display_type" field, so no per-category
-    branching accumulates here as new descriptors are added."""
-    if value is None:
-        return "", ""
-    if isinstance(value, bool):
-        return (_SUCCESS_GLYPH + "Pass", _SUCCESS_STYLE) if value else (_FAILURE_GLYPH + "Fail", _FAILURE_STYLE)
-    if isinstance(value, float):
-        return f"{value:.4g}", ""
-    return str(value), ""
-
-
-def _make_copyable(label: QLabel) -> None:
-    """Let the mouse select this label's text.
-
-    A `QLabel` is not selectable by default, so every number in this panel
-    used to be look-only -- you could read a partial charge but not paste
-    it into a notebook, an issue or a message. Five other surfaces already
-    reach `ui/result_clipboard.py`; this panel reached nothing.
-
-    `LinksAccessibleByMouse` is preserved because fact links depend on it.
-    """
-    label.setTextInteractionFlags(
-        label.textInteractionFlags() | Qt.TextInteractionFlag.TextSelectableByMouse
-    )
 
 
 def _without_glyphs(text: str) -> str:
@@ -472,10 +443,6 @@ _MAX_CALCULATOR_NAME = 34
 #: Room the button's own frame and padding take off its width before
 #: there is anywhere to put text.
 _ELIDED_BUTTON_PADDING = 16
-
-#: Pixels of headroom left above a revealed row, so it lands inside the
-#: viewport rather than flush against its bottom edge.
-_REVEAL_MARGIN = 24
 
 #: How a wide row's name is drawn, now that it is a caption above its
 #: value rather than a `QFormLayout` label beside it. Muted and small so
@@ -1266,12 +1233,21 @@ def _unelided_text(widget: QWidget | None) -> str:
     the full explanation belongs -- the identical bug, one column across,
     reintroduced by fixing its neighbour. Both columns come through here
     now, which is why the name no longer says "caption".
+
+    **AND IT READS THE BUTTON'S STORE TOO, WHICH IT DID NOT.**
+    `_ElidingLabel` keeps its string in `full_text` and `_ElidingPushButton`
+    keeps its in `_full_text`; this knew only the first, so handed a
+    calculator button it returned the PAINTED string -- the exact answer it
+    exists to refuse, silently, for the one widget class whose name is the
+    longest thing in the panel. Nothing exported a button through here while
+    the rows carried the values, so nothing saw it.
     """
     if widget is None:
         return ""
-    full = getattr(widget, "full_text", None)
-    if isinstance(full, str) and full:
-        return full
+    for attribute in ("full_text", "_full_text"):
+        full = getattr(widget, attribute, None)
+        if isinstance(full, str) and full:
+            return full
     getter = getattr(widget, "text", None)
     return str(getter() or "") if callable(getter) else ""
 
@@ -1369,9 +1345,6 @@ class PropertyPanel(QWidget):
         # see compute_crippen_logp_contrib_calculator's docstring), which
         # must not silently pop the inspector open on its own.
         self._pending_calculator_id: str | None = None
-        #: The row `_reveal_pending_result` scrolls to on the next turn
-        #: of the event loop, once its geometry has settled.
-        self._reveal_target: QWidget | None = None
         # Keyed on (provider, descriptor_id) rather than bare descriptor_id:
         # two providers (e.g. a plugin and the built-in one) could otherwise
         # pick the same short name and silently collide.
@@ -1412,12 +1385,24 @@ class PropertyPanel(QWidget):
         #: Fact-based reports, kept so "Details..." can open one after the
         #: fact. Plain data keyed by string -- never a dict keyed by a
         #: QWidget, which hashes on a C++ pointer Qt frees with the parent.
-        #: Every auto-descriptor that has landed for the selected molecule,
-        #: keyed by id. The results reader's "Molecular Properties" entry is
-        #: built from these -- the ORIGINALS, so each keeps its own
-        #: `cache_state`, `error` and `inapplicable` rather than the forty-one
-        #: sharing one between them.
-        self._descriptor_values: dict[str, DescriptorValue] = {}
+        #: Every auto-descriptor that has landed for the selected molecule.
+        #: The results reader's "Molecular Properties" entry is built from
+        #: these -- the ORIGINALS, so each keeps its own `cache_state`,
+        #: `error` and `inapplicable` rather than the forty-one sharing one
+        #: between them.
+        #:
+        #: **KEYED ON (provider, descriptor_id), NOT ON THE BARE ID**, for
+        #: the reason the row map beside it always was: two providers -- a
+        #: plugin and the built-in one -- may pick the same short name, and
+        #: a bare-id store silently keeps whichever published last.
+        #:
+        #: It WAS keyed on the bare id, and nothing saw it: the rows were
+        #: keyed correctly and showed both, so the loss was confined to the
+        #: reader, where nobody had looked. 2c makes this the only path, and
+        #: measured before the fix, two providers publishing one id reached
+        #: the reader as one value. `aggregate_descriptors` handles the pair
+        #: correctly and never got the chance.
+        self._descriptor_values: dict[tuple[str, str], DescriptorValue] = {}
         self._reports: dict[str, ReportResult] = {}
         #: The RAW results behind the summaries in `_reports`, so the reader
         #: can open the whole thing.
@@ -1448,15 +1433,15 @@ class PropertyPanel(QWidget):
         #: changes when the RUNNING placeholder's raw id is replaced by the
         #: real display name, which is a comparison this needs to make on
         #: every event without touching Qt.
-        self._row_labels: dict[tuple[str, str], str] = {}
 
         self._sections_container = QWidget(self)
         self._sections_layout = QVBoxLayout(self._sections_container)
         self._sections_layout.setContentsMargins(0, 0, 0, 0)
         self._sections_layout.addStretch()
 
-        # Held rather than left a local: `_reveal_pending_result` scrolls a
-        # freshly-arrived row into view through it.
+        # Held rather than left a local: `_dump_width_budget` and
+        # `rendered_overflow` both measure against this viewport, and the
+        # panel's whole width story is stated in terms of it.
         self._scroll_area = scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True)
         scroll_area.setWidget(self._sections_container)
@@ -1531,7 +1516,7 @@ class PropertyPanel(QWidget):
         layout.addWidget(scroll_area)
 
         # Right-click anywhere to copy. Selecting text with the mouse works
-        # too (see `_make_copyable`), but a panel of forty short values is
+        # too, but a panel of forty short values is
         # awkward to drag across, and "copy the whole thing" is what people
         # actually want when pasting into a notebook or an issue.
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -1724,6 +1709,35 @@ class PropertyPanel(QWidget):
             row_layout.addWidget(status)
             self._refresh_status_chip(definition.calculator_id)
             section.add_calculator_widget(row)
+            # Triggered HERE rather than at construction: at startup the
+            # panel is empty and every row it could measure does not exist
+            # yet.
+            #
+            # **ITS TWO PREVIOUS HOMES WERE BOTH RESULT ROWS, WHICH IS WHY
+            # IT KEPT MOVING.** It hung off a report row, then off a
+            # descriptor row, and 2c removed each in turn -- leaving the
+            # instrument with nothing to schedule it and its lifetime guard
+            # passing by never arming, which is the vacuity that guard's own
+            # control arm exists to catch. A calculator row is permanent
+            # furniture of a launcher: it exists as soon as a section does,
+            # and no later stage of this plan takes it away.
+            if _INSTRUMENT:
+                # A BOUND METHOD, not a lambda capturing self. `singleShot`
+                # releases its callable after firing so this one would not
+                # leak permanently, but PySide6 holds a plain callable
+                # STRONGLY and this codebase has already paid for that once
+                # -- see CLAUDE.md and tests/test_qt_object_disposal.py.
+                #
+                # `self` is the CONTEXT OBJECT for the same reason the
+                # the reveal shot used to (that one is gone with the rows
+                # it scrolled to), and it is wide open: `_dump_panel_metrics`
+                # opens
+                # on `panel.width()`, a C++ call that raises once the panel
+                # is gone, and it waits 1500 ms rather than a turn. Being
+                # behind an env var makes it rarely reached, not safe -- the
+                # one run where somebody is debugging a layout is exactly
+                # the run that closes panels while shots are in flight.
+                QTimer.singleShot(_INSTRUMENT_DELAY_MS, self, self._dump_metrics)
         self._add_service_execution_hint(section, category)
         self._add_cross_theory_hint(section, category)
         self._reorder_sections()
@@ -1823,124 +1837,38 @@ class PropertyPanel(QWidget):
         self._sections_layout.addStretch()
 
     def _on_descriptor_computed(self, event: DescriptorComputed) -> None:
+        """Record an always-on descriptor. It is READ in the results panel.
+
+        **THIS BUILT A ROW PER DESCRIPTOR, AND THERE ARE 41 OF THEM.** They
+        reach the reader as ONE entry -- "Molecular Properties", the
+        aggregate projection -- where each keeps its own state, provenance
+        and units, which is the whole reason `descriptor_aggregate` holds
+        the originals rather than converting them. Rendering them here as
+        well was the same information in two places, and the launcher is not
+        where a value is read.
+
+        The caption bug this handler was carrying is worth keeping in mind
+        rather than in code: every descriptor arrives TWICE, because
+        `DescriptorService` publishes a RUNNING placeholder for each id
+        before `compute()` runs and therefore before any display name
+        exists, filling in `name=descriptor_id, units=""`. A row built from
+        that placeholder and never re-captioned showed 26 of 26 internal ids
+        -- `mol_logp` for "LogP", `tpsa` for "TPSA (A^2)". The aggregate
+        cannot repeat it: it is built from the LATEST value per id every
+        time it is projected, so there is no first render to be stuck with.
+        """
         descriptor = event.descriptor
         if descriptor.molecule_uuid != self._selected_molecule_uuid:
             return
         # RETAINED, keyed by id so the RUNNING placeholder each descriptor
         # publishes first is replaced by its result rather than accumulating
-        # beside it. These are what the results reader's aggregate is built
-        # from -- see `domain/descriptor_aggregate.py` for why it holds the
-        # originals rather than converting them.
-        self._descriptor_values[descriptor.descriptor_id] = descriptor
-        section = self._section_for(descriptor.category or "other")
-        row_key = (descriptor.provider, descriptor.descriptor_id)
-        label = f"{descriptor.name} ({descriptor.units})" if descriptor.units else descriptor.name
-
-        value_label = self._value_labels.get(row_key)
-        if value_label is None:
-            # AN ELIDING LABEL, NOT A PLAIN ONE -- for the reason the
-            # caption beside it is. A `QLabel` with wrap off reports its
-            # whole text as its minimum, and a FAILED descriptor puts a
-            # SENTENCE in this cell: measured on the ten shape
-            # descriptors with no 3D conformer, this label came out 1164
-            # px wide inside a 256 px viewport and dragged the scroll
-            # content out with it, so every row in the panel was clipped
-            # at the right edge and the reason stopped mid-word. That is
-            # the caption bug exactly, one column across.
-            value_label = _ElidingLabel("", section.content)
-            value_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-            _make_copyable(value_label)
-            # A CAPTION WIDGET, not the string. `addRow(str, widget)` has
-            # Qt build a plain `QLabel`, whose minimum width is its whole
-            # text -- and the widest of those sized the form's label
-            # column, the column sized the content, and the content
-            # overflowed the viewport. See `_ElidingLabel`.
-            section.content_layout().addRow(_ElidingLabel(label, section.content), value_label)
-            self._value_labels[row_key] = value_label
-            self._row_labels[row_key] = label
-            # Triggered HERE rather than at construction: at startup the
-            # panel is empty and every row it could measure does not exist
-            # yet.
-            #
-            # **IT USED TO HANG OFF A REPORT ROW, WHICH WAS THEN THE CASE
-            # UNDER INVESTIGATION.** There are no report rows now, and this
-            # instrument measures THIS PANEL's row geometry -- so it moved
-            # to the rows that remain rather than being left with nothing to
-            # schedule it, which would have made both the instrument and its
-            # lifetime guard silently vacuous.
-            if _INSTRUMENT:
-                # A BOUND METHOD, not a lambda capturing self. `singleShot`
-                # releases its callable after firing so this one would not
-                # leak permanently, but PySide6 holds a plain callable
-                # STRONGLY and this codebase has already paid for that once
-                # -- see CLAUDE.md and tests/test_qt_object_disposal.py.
-                #
-                # `self` is the CONTEXT OBJECT for the same reason the
-                # reveal shot passes one (see `_reveal_pending_result`), and
-                # this is the WIDEST window of the three: `_dump_panel_metrics`
-                # opens on `panel.width()`, a C++ call that raises once the
-                # panel is gone, and it waits 1500 ms rather than a turn.
-                # Being behind an env var makes it rarely reached, not safe --
-                # the one run where somebody is debugging a layout is exactly
-                # the run that closes panels while shots are in flight.
-                QTimer.singleShot(_INSTRUMENT_DELAY_MS, self, self._dump_metrics)
-        elif self._row_sections.get(row_key) is not section:
-            # A row's category can legitimately change between events (e.g.
-            # a placeholder published before the real category was known) --
-            # move it to the right section instead of leaving it stuck
-            # wherever it was first drawn. `takeRow` (not `removeRow`, which
-            # deletes the widgets) removes the row without destroying
-            # `value_label`, so it can be re-added under the new section.
-            old_section = self._row_sections.get(row_key)
-            if old_section is not None:
-                taken = old_section.content_layout().takeRow(value_label)
-                if taken.labelItem is not None and taken.labelItem.widget() is not None:
-                    taken.labelItem.widget().deleteLater()
-            section.content_layout().addRow(_ElidingLabel(label, section.content), value_label)
-            self._row_labels[row_key] = label
-        self._row_sections[row_key] = section
-
-        # THE CAPTION IS REFRESHED, NOT WRITTEN ONCE, and that one word is
-        # the whole bug. Every descriptor arrives twice: `DescriptorService`
-        # publishes a RUNNING placeholder for each id BEFORE `compute()` runs
-        # and therefore before anything knows the real names, so it fills in
-        # `name=descriptor_id, units=""` (see `_publish`). The row was created
-        # from that placeholder and its caption never touched again -- so the
-        # display names and units in `_DESCRIPTOR_SPECS` were computed on
-        # every run and thrown away, and EVERY row was captioned with its
-        # internal id: measured, 26 of 26 from that table, plus the shape
-        # descriptors. `mol_logp` for "LogP", `mol_wt` for "Molecular Weight
-        # (g/mol)", `tpsa` for "TPSA (A^2)".
-        #
-        # It cannot be fixed at the producer: the placeholder is published
-        # before the names exist, and this is the only place that sees both.
-        if self._row_labels.get(row_key) != label:
-            form = section.content_layout()
-            row, _role = form.getWidgetPosition(value_label)
-            item = form.itemAt(row, QFormLayout.ItemRole.LabelRole) if row >= 0 else None
-            if item is not None and item.widget() is not None:
-                item.widget().setText(label)
-                self._row_labels[row_key] = label
-
-        if descriptor.cache_state.value == "failed":
-            cell, hover = describe_failure(descriptor.error, descriptor.error_summary)
-            value_label.setText(cell)
-            # AFTER `setText`, which clears it. The cell is deliberately
-            # the shorter of the two, so an export reading it would hand
-            # somebody "Needs a 3D conformer" where the sentence saying
-            # what to press belongs.
-            value_label.export_text = hover
-            value_label.setStyleSheet(_failure_appearance(descriptor)[1])
-            value_label.setToolTip(hover)
-        elif descriptor.cache_state.value in ("queued", "running"):
-            value_label.setText(descriptor.cache_state.value.capitalize() + "...")
-            value_label.setStyleSheet(_INFORMATION_STYLE)
-            value_label.setToolTip("")
-        else:
-            text, style = _format_value(descriptor.value)
-            value_label.setText(text)
-            value_label.setStyleSheet(style)
-            value_label.setToolTip("")
+        # beside it. These are what the reader's aggregate is built from.
+        self._descriptor_values[(descriptor.provider, descriptor.descriptor_id)] = descriptor
+        # **AND THE READER IS TOLD, WHICH IT WAS NOT BEFORE.** While the
+        # panel rendered these itself the reader could lag a whole batch
+        # behind and nobody would see it, because the values were on screen
+        # here. With this the only place they appear, a lag IS the bug.
+        self._refresh_reader()
 
     def _finish_batch_run(self, result_id: str) -> None:
         """A ticked calculator's result arrived, so it is no longer running.
@@ -2218,14 +2146,14 @@ class PropertyPanel(QWidget):
         _dump_panel_metrics(self)
         _dump_height_budget(self)
         _dump_container_items(self)
-        # THE DESCRIPTOR ROWS, which are the rows this panel still has. This
-        # walked `_report_labels` while a finished calculator built a row of
-        # its own; that map is gone, and an instrument iterating an always-
-        # empty dict reports a healthy panel by saying nothing at all.
-        for row_key, value in self._value_labels.items():
-            container = value.parentWidget()
+        # THE CALCULATOR ROWS, which are the rows this panel has. This
+        # walked the report rows, then the descriptor rows; 2c removed both,
+        # and an instrument iterating an always-empty dict reports a healthy
+        # panel by saying nothing at all.
+        for calculator_id, chip in self._calculator_status.items():
+            container = chip.parentWidget()
             if container is not None:
-                logger.warning("--- descriptor row %r ---", row_key[1])
+                logger.warning("--- calculator row %r ---", calculator_id)
                 _dump_ancestors(container, self)
         if os.environ.get("OPENCHEM_INSTRUMENT_RELAYOUT"):
             logger.warning("=== ARM 1: relayout, pumped to completion ===")
@@ -2796,24 +2724,36 @@ class PropertyPanel(QWidget):
         QGuiApplication.clipboard().setText(self.as_text())
 
     def as_text(self) -> str:
-        """Everything currently on screen, as plain text.
+        """What this panel shows, as plain text.
 
-        Walks the SECTIONS rather than the three label dictionaries, so the
-        output carries the same headings and the same order the reader is
-        looking at. Reading it out of the dicts would silently reorder it
-        and drop the groupings, which is most of what makes it legible.
+        **IT USED TO BE "EVERY VALUE" AND THE VALUES HAVE MOVED.** Measured
+        after 2c removed the last of the rows: this returned the EMPTY
+        STRING, so "Copy all properties" put nothing on the clipboard --
+        the silent no-op 0g exists to forbid, arrived at by subtraction
+        rather than by anybody deciding it.
 
-        **BOTH COLUMNS come through `_exported_text`, never `.text()`.**
-        A label on screen is elided to whatever the panel's width allows,
-        so `.text()` would put `Blood-Brain Barrier Permeant (heur...`
-        on the clipboard -- a width decision leaking into exported data.
-        The VALUE side read `.text()` raw until the value column started
-        eliding too, at which point it would have exported a FAILED
-        descriptor's short cell form in place of its full reason -- the
-        same leak the caption rule exists to stop, one column across.
-        `_without_glyphs` still runs on the value, for its own reason.
+        A launcher's content is what has been run and how it ended, so that
+        is what this copies: the substance header, then each category with
+        its calculators and their status. The VALUES are copied from the
+        results panel, which has its own four formats and carries the
+        provenance, the units and the limitations that a status line
+        cannot.
+
+        Walks the SECTIONS rather than the status dictionary, so the output
+        carries the same headings and the same order as the screen. Reading
+        it out of the dict would silently reorder it and drop the
+        groupings, which is most of what makes it legible.
+
+        Names come through `_exported_text`, never `.text()`: a button on
+        screen is elided to whatever the panel's width allows, so `.text()`
+        would put `Blood-Brain Barrier Permea...` on the clipboard -- a
+        width decision leaking into exported data. `_without_glyphs` runs
+        on the status for its own reason.
         """
         lines: list[str] = []
+        summary = self._substance_card.summary_text()
+        if summary:
+            lines.extend([summary, ""])
         for category in sorted(
             self._sections,
             key=lambda cat: (
@@ -2821,20 +2761,13 @@ class PropertyPanel(QWidget):
                 cat,
             ),
         ):
-            section = self._sections[category]
-            form = section.content_layout()
             rows: list[str] = []
-            for row in range(form.rowCount()):
-                label_item = form.itemAt(row, QFormLayout.ItemRole.LabelRole)
-                field_item = form.itemAt(row, QFormLayout.ItemRole.FieldRole)
-                if label_item is None or field_item is None:
+            for definition in self._calculator_registry.by_category(category):
+                chip = self._calculator_status.get(definition.calculator_id)
+                if chip is None:
                     continue
-                name_widget = label_item.widget()
-                value_widget = field_item.widget()
-                if name_widget is None or value_widget is None:
-                    continue
-                value = _without_glyphs(_exported_text(value_widget)).replace("\n", "; ")
-                rows.append(f"  {_exported_text(name_widget)}: {value}")
+                status = _without_glyphs(_exported_text(chip)).strip()
+                rows.append(f"  {definition.display_name}: {status or 'Not run'}")
             if rows:
                 lines.append(_category_label(category))
                 lines.extend(rows)
@@ -2925,102 +2858,58 @@ class PropertyPanel(QWidget):
         self._attached_reader.set_focus(result_id)
 
     def reveal_descriptor(self, descriptor_id: str) -> bool:
-        """Scroll a computed property's row into view, and say so if it
-        is not there.
+        """Put one computed property in front of the reader, and say so if
+        it is not there.
 
         **A DESCRIPTOR CANNOT BE "RUN", which is why the command palette
-        had none of them.** The 36 of them are computed as a batch the
-        moment a molecule is selected, so there is no per-descriptor
-        action to offer -- and the palette, which only knew how to offer
-        actions, therefore knew nothing about Aqueous Solubility, QED,
-        Lipinski, Veber, Ghose, Egan, Pfizer 3/75 or GSK 4/400. Searching
-        "solubility" returned nothing at all.
+        had none of them.** The 41 are computed as a batch the moment a
+        molecule is selected, so there is no per-descriptor action to
+        offer -- and the palette, which only knew how to offer actions,
+        knew nothing about Aqueous Solubility, QED, Lipinski, Veber,
+        Ghose, Egan, Pfizer 3/75 or GSK 4/400. Searching "solubility"
+        returned nothing at all.
 
-        Revealing is the action that does exist, and it is the one the
-        palette is for: "type what you want instead of remembering where
-        it lives". The row is already on screen somewhere -- possibly a
-        thousand pixels down, inside a collapsed section, which is the
-        same invisibility `_reveal` was written for.
+        Revealing is the action that does exist. It used to scroll this
+        panel's row into view; 2c removes the row, so it asks the reader
+        instead -- focus the aggregate, narrow it to this one value. See
+        `ResultsView.reveal_fact` for why the search box is a better answer
+        here than a scroll.
 
-        Returns whether the row was found, so the caller can say
-        something honest when it was not. Nothing is computed here: a
-        palette entry that silently launched a calculation would be the
-        surprise this panel already refuses elsewhere.
+        **THE TWO REFUSALS STAY DISTINCT.** Nothing selected is a different
+        problem from selected-but-not-computed, and both are different from
+        having no reader to show it in. Nothing is computed here: a palette
+        entry that silently launched a calculation would be the surprise
+        this panel refuses elsewhere.
         """
-        matches = [key for key in self._value_labels if key[1] == descriptor_id]
-        if not matches:
+        if self._selected_molecule_uuid is None:
+            self._batch_status.setText("Select a molecule to see its properties.")
+            return False
+        # By id across every provider, because the palette offers an id and
+        # the store is keyed by the pair. First match wins, which is the
+        # same answer the row-based version gave.
+        descriptor = next(
+            (value for (_provider, did), value in self._descriptor_values.items()
+             if did == descriptor_id),
+            None,
+        )
+        if descriptor is None:
             self._batch_status.setText(
-                "Select a molecule to see its properties."
-                if self._selected_molecule_uuid is None
-                else "That property has not been computed for this molecule."
+                "That property has not been computed for this molecule."
             )
             return False
-
-        row_key = matches[0]
-        label = self._value_labels[row_key]
-        section = self._row_sections.get(row_key)
-        if section is not None:
-            section.set_expanded(True)
-        # Same one-turn deferral `_reveal` uses: the section was expanded a
-        # moment ago and the row's geometry is not settled, so asking now
-        # scrolls to where it used to be. `self` is the context object for
-        # the same reason it is there -- see `_reveal_pending_result`.
-        self._reveal_target = label
-        QTimer.singleShot(0, self, self._reveal_pending_result)
-        return True
-
-    def _reveal_pending_result(self) -> None:
-        """Put the row's TOP near the top of the viewport.
-
-        **NOT `ensureWidgetVisible`, for two measured reasons.**
-
-        It moves BOTH axes, and a row a little wider than the viewport
-        makes it scroll right as well -- in the app that left every label
-        clipped on its left edge ("bb_permeant", "unctional Groups"). A
-        properties panel scrolled sideways is the failure this project
-        already calls worse than the one being fixed. Setting the vertical
-        bar alone cannot do that.
-
-        And it scrolls the MINIMUM distance, measured against a height
-        that is not settled yet: an `ExplicitHeightLabel` fixes its height
-        from its width during the layout pass, so a moment after the row
-        is added it is still short. The result was the caption arriving
-        flush against the bottom edge with its values below the fold --
-        the same invisibility this whole fix is about. Anchoring the row's
-        TOP does not depend on its final height at all, so it is right
-        whenever it runs.
-
-        **BOTH CALLERS PASS `self` AS THE CONTEXT OBJECT, and the `row is
-        None` guard below cannot substitute for it.** A bare
-        `QTimer.singleShot(0, callable)` is tied to nothing, so a pending
-        shot outlives the panel: the panel is disposed, this runs anyway,
-        and `self._scroll_area` is a live Python wrapper around a freed
-        QScrollArea. That raises `RuntimeError: libshiboken: Internal C++
-        object ... already deleted` -- inside whichever unrelated test
-        happens to be pumping events, which is what made it read as a
-        failure somewhere else entirely. Measured on PySide6 6.11.1, with
-        the panel disposed by the recipe the fixtures use:
-
-            plain     / panel alive        fired cleanly
-            context   / panel alive        fired cleanly
-            plain     / panel destroyed    FIRED, and raised
-            context   / panel destroyed    never fired
-
-        Qt disconnects a context-bound single shot when the context object
-        is destroyed, so the shot is CANCELLED rather than firing and then
-        declining. A `shiboken6.isValid` check here would be the latter:
-        it would silence this one line while leaving every future line
-        added to this method to be written against a dead widget.
-        """
-        row = self._reveal_target
-        self._reveal_target = None
-        if row is None:
-            return
-        container = self._scroll_area.widget()
-        if container is None:
-            return
-        top = row.mapTo(container, QPoint(0, 0)).y()
-        self._scroll_area.verticalScrollBar().setValue(max(0, top - _REVEAL_MARGIN))
+        if self._attached_reader is None:
+            # A panel with no reader around it still has to work, and
+            # saying so beats a silent False -- this is reached only in a
+            # host that built no Results panel.
+            self._batch_status.setText("Open the Results panel to read it.")
+            return False
+        # FED AND REVEALED, in that order, for the reason `_show_in_reader`
+        # gives: the reader has to hold the aggregate before it can be
+        # focused on it.
+        self._show_in_reader(focus=DESCRIPTOR_AGGREGATE_ID)
+        return self._attached_reader.reveal_fact(
+            DESCRIPTOR_AGGREGATE_ID, descriptor.name
+        )
 
     def open_retained_result(self, report_id: str) -> bool:
         """Open the whole result the reader is showing a summary of.

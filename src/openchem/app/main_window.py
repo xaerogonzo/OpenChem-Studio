@@ -985,16 +985,30 @@ class MainWindow(QMainWindow):
         return commands
 
     def _reveal_descriptor(self, descriptor_id: str) -> None:
-        """Show the Properties panel and scroll to one computed value.
+        """Put one computed value in front of somebody.
 
         Routed through the window rather than the palette reaching into
         the panel, for the reason `_on_atom_fact_link` gives: the panel
         should not have to know how to reveal itself, and the rail has to
         be told too or navigation claims one thing while the screen shows
         another.
+
+        **IT USED TO SHOW PROPERTIES, AND THE VALUE IS NOT THERE ANY
+        MORE.** 2c makes Properties a launcher; the descriptors are read in
+        the Results panel, as one aggregate entry. The panel reveals the
+        reader itself on the way -- `_show_in_reader` asks this window
+        through the callback `attach_reader` was given -- so there is
+        nothing to show here on the happy path.
+
+        **THE FAILURE PATH IS WHY PROPERTIES IS STILL NAMED.** Both
+        refusals -- nothing selected, and not computed for this molecule --
+        are written into the Properties panel's status line, which is
+        invisible if the rail is left on Results. Showing it is how the
+        answer reaches the person who asked; a silent no-op is the thing
+        0g exists to forbid.
         """
-        self._on_panel_chosen("Properties")
-        self._property_panel.reveal_descriptor(descriptor_id)
+        if not self._property_panel.reveal_descriptor(descriptor_id):
+            self._on_panel_chosen("Properties")
 
     def _menu_actions(self) -> list[tuple[str, str, object]]:
         """Every leaf action on the live menu bar, as (label, menu, action).

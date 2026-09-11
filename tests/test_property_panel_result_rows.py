@@ -362,21 +362,37 @@ def _descriptor(descriptor_id: str, name: str, category: str):
     )
 
 
-def test_revealing_a_property_expands_its_section_and_scrolls(panel, bus):
+def test_revealing_a_property_narrows_the_reader_to_it(panel, bus):
     """A descriptor cannot be run, so REVEALING it is the action the
-    palette offers -- the value is already on screen somewhere, possibly
-    far down inside a collapsed section."""
+    palette offers.
+
+    **IT USED TO BE A SCROLL AND IT IS A SEARCH NOW.** The value was on
+    screen somewhere in this panel, possibly far down inside a collapsed
+    section; 2c moves the 41 into the reader's one aggregate entry, where
+    "somewhere on screen" is exactly the problem. Narrowing to the fact
+    shows it AND says why it is the only one there, and one box clears it.
+    """
+    from openchem.domain.descriptor_aggregate import DESCRIPTOR_AGGREGATE_ID
     from openchem.events.events import DescriptorComputed
+    from openchem.ui.widgets.results_view import ResultsView
 
-    bus.publish(DescriptorComputed(descriptor=_descriptor("esol_logs", "Aqueous Solubility", "admet")))
-    section = panel._sections["admet"]
-    section.set_expanded(False)
+    reader = ResultsView()
+    panel.attach_reader(reader)
+    try:
+        bus.publish(
+            DescriptorComputed(
+                descriptor=_descriptor("esol_logs", "Aqueous Solubility", "admet")
+            )
+        )
 
-    found = panel.reveal_descriptor("esol_logs")
+        assert panel.reveal_descriptor("esol_logs")
 
-    assert found
-    assert section.is_expanded()
-    assert panel._reveal_target is panel._value_labels[("rdkit", "esol_logs")]
+        assert reader.focus() == DESCRIPTOR_AGGREGATE_ID
+        assert reader._view.visible_fact_labels() == ["Aqueous Solubility"], (
+            "the reveal did not narrow to the value that was asked for"
+        )
+    finally:
+        conftest.dispose(reader)
 
 
 def test_revealing_a_property_computes_nothing(panel, bus):
@@ -384,86 +400,23 @@ def test_revealing_a_property_computes_nothing(panel, bus):
     surprise this panel refuses elsewhere."""
     from openchem.events.events import DescriptorComputed
 
-    bus.publish(DescriptorComputed(descriptor=_descriptor("qed", "QED", "medicinal_chemistry")))
-    panel._descriptor_service.run_calculator = _fail_if_called
+    from openchem.ui.widgets.results_view import ResultsView
 
-    panel.reveal_descriptor("qed")
+    reader = ResultsView()
+    panel.attach_reader(reader)
+    try:
+        bus.publish(
+            DescriptorComputed(descriptor=_descriptor("qed", "QED", "medicinal_chemistry"))
+        )
+        panel._descriptor_service.run_calculator = _fail_if_called
+
+        panel.reveal_descriptor("qed")
+    finally:
+        conftest.dispose(reader)
 
 
 def _fail_if_called(*_args, **_kwargs):
     raise AssertionError("revealing a property must not compute anything")
-
-
-def _schedule_from_the_palette(built, bus) -> None:
-    """`reveal_descriptor` -- the command palette's route."""
-    bus.publish(
-        DescriptorComputed(descriptor=_descriptor("esol_logs", "Aqueous Solubility", "admet"))
-    )
-    assert built.reveal_descriptor("esol_logs"), "the reveal was never scheduled"
-
-
-@pytest.mark.parametrize(
-    "schedule",
-    [_schedule_from_the_palette],
-    ids=["palette"],
-)
-def test_a_pending_reveal_is_cancelled_when_the_panel_is_destroyed(qapp, bus, monkeypatch, schedule):
-    """A reveal is deferred by one turn, and the panel can die in it.
-
-    A bare `QTimer.singleShot(0, callable)` is tied to nothing, so a shot
-    scheduled by a panel that is then disposed still fires -- against a
-    live Python wrapper around a freed QScrollArea, which raises
-    `RuntimeError: libshiboken: Internal C++ object ... already deleted`
-    inside whichever unrelated test happens to be pumping events at the
-    time. It surfaced in `test_calculator_sections.py`, an innocent
-    bystander. Passing `self` as Qt's CONTEXT OBJECT disconnects the shot
-    when the panel is destroyed, so it is CANCELLED rather than firing
-    and then declining -- which is why the handler's `row is None` guard
-    could never have helped.
-
-    **THERE IS ONE SCHEDULING SITE NOW, AND IT IS PARAMETRISED ANYWAY.**
-    It used to be two -- the palette, and `_reveal` answering a button
-    press with an inline result -- and the pairing was load-bearing:
-    reverting only `_reveal`'s call left the whole two-file reproduction
-    green at 38 passed, so a single-route guard would have signed off on
-    half a fix. 2c removed the inline row, so `_reveal` went with it and
-    the palette is the only route left. The shape is kept rather than
-    flattened because the next deferred shot added here should join the
-    list instead of being tested somewhere else -- which is exactly what
-    happened last time.
-
-    The OTHER deferred shot this panel owns has not gone anywhere: the
-    instrumented metrics dump keeps its own guard directly below.
-
-    **THE ALIVE ARM IS THE CONTROL AND IT IS LOAD-BEARING.** A reveal
-    that was never scheduled, or an event pump that delivers no timers,
-    reads exactly like a cancelled one -- so without it this guard would
-    pass just as happily against a panel that had lost the feature
-    altogether.
-    """
-    fired: list[str] = []
-
-    def _record(self) -> None:
-        fired.append("fired")
-
-    # Patched on the CLASS and before construction: `singleShot` captures
-    # the bound method at schedule time, so patching afterwards would
-    # leave the original scheduled and record nothing either way.
-    monkeypatch.setattr(PropertyPanel, "_reveal_pending_result", _record)
-
-    def schedule_a_reveal(*, dispose: bool) -> None:
-        built = PropertyPanel(bus, CalculatorRegistry(), _FakeService(), ChemistryEngine())
-        bus.publish(MoleculeSelected(molecule_uuid=MOLECULE))
-        schedule(built, bus)
-        if dispose:
-            conftest.dispose(built)
-        QCoreApplication.processEvents()
-
-    schedule_a_reveal(dispose=False)
-    assert fired == ["fired"], "the control did not fire, so the arm below proves nothing"
-
-    schedule_a_reveal(dispose=True)
-    assert fired == ["fired"], "a pending reveal outlived the panel that scheduled it"
 
 
 def test_a_pending_metrics_dump_is_cancelled_when_the_panel_is_destroyed(qapp, bus, monkeypatch):
@@ -486,12 +439,18 @@ def test_a_pending_metrics_dump_is_cancelled_when_the_panel_is_destroyed(qapp, b
     The alive arm is the control and doubles as the setup assertion: with
     `_INSTRUMENT` left off nothing is scheduled at all, and it fails.
 
-    **SCHEDULED BY A DESCRIPTOR ROW, WHICH IS WHERE THE ROWS ARE NOW.**
-    This built a report row, because a finished calculator's row was then
-    the case under investigation; 2c took those rows out, and the shot
-    moved to the rows that remain rather than being left unscheduled --
-    which would have made this guard pass by never arming, the exact
-    vacuity the control arm exists to catch.
+    **SCHEDULED BY A CALCULATOR ROW, AND THAT IS THE THIRD HOME.** It hung
+    off a report row, then off a descriptor row, and 2c removed each in
+    turn -- each time leaving the shot unscheduled, which would have made
+    this guard pass by never arming, the exact vacuity the control arm
+    exists to catch. Both previous homes were RESULT rows, which is why
+    they kept moving; a calculator row is permanent furniture of a
+    launcher.
+
+    **IT IS ALSO THE ONLY DEFERRED SHOT THIS PANEL HAS LEFT.** The reveal
+    that used to sit beside it scrolled to a row and went with the rows, so
+    the parametrised pair above it is gone too -- there is one hazard here
+    now, and this is it.
     """
     import openchem.ui.panels.property_panel as property_panel_module
 
@@ -505,20 +464,31 @@ def test_a_pending_metrics_dump_is_cancelled_when_the_panel_is_destroyed(qapp, b
 
     monkeypatch.setattr(PropertyPanel, "_dump_metrics", _record)
 
-    def build_a_descriptor_row(*, dispose: bool) -> None:
-        built = PropertyPanel(bus, CalculatorRegistry(), _FakeService(), ChemistryEngine())
-        bus.publish(MoleculeSelected(molecule_uuid=MOLECULE))
-        bus.publish(
-            DescriptorComputed(descriptor=_descriptor("esol_logs", "Aqueous Solubility", "admet"))
+    from openchem.domain.calculator import CalculatorDefinition, RegistryExecution
+
+    def build_a_calculator_row(*, dispose: bool) -> None:
+        registry = CalculatorRegistry()
+        registry.register(
+            CalculatorDefinition(
+                calculator_id="topology_analysis",
+                display_name="Topology",
+                category="topology",
+                description="test calculator",
+                execution=RegistryExecution(compute=lambda mol, uuid, params: None),
+            )
         )
+        built = PropertyPanel(bus, registry, _FakeService(), ChemistryEngine())
+        bus.publish(MoleculeSelected(molecule_uuid=MOLECULE))
+        # The rows are built lazily, per section, when one is first asked for.
+        built._section_for("topology")
         if dispose:
             conftest.dispose(built)
         QCoreApplication.processEvents()
 
-    build_a_descriptor_row(dispose=False)
+    build_a_calculator_row(dispose=False)
     assert fired == ["fired"], "nothing was scheduled, so the arm below proves nothing"
 
-    build_a_descriptor_row(dispose=True)
+    build_a_calculator_row(dispose=True)
     assert fired == ["fired"], "a pending metrics dump outlived the panel that scheduled it"
 
 

@@ -569,7 +569,7 @@ importer that reads them (`cif`, `sdf`, `xyz`, `mmcif`, `pdb`), and a
 calculator's own tags find it by subject, so `toxicity` reaches ADMET and
 `screening` reaches Virtual Screening. A **computed property** cannot be
 run — the whole batch is computed when you select a molecule — so choosing
-one scrolls the Properties panel to its row instead, which is the useful
+one opens Results and narrows it to that value instead, which is the useful
 answer to "where is ESOL?".
 
 Type initials: `qc` finds Quantum Chemistry, `sck` finds Structure Check.
@@ -616,15 +616,23 @@ the thing that needs the room.
 <!-- help:properties -->
 ## Properties
 
-The Properties panel is where most calculation happens. It has **23
-collapsible categories** covering **60 registered calculators**;
-Physicochemical and Identity are open by default.
+The Properties panel is where a calculation is **started**, and the
+[Results](#results) panel is where one is **read**. It has **20 collapsible
+categories** covering **60 registered calculators**; Identity is open by
+default.
 
-Scalar descriptors compute eagerly — the whole batch finishes in well under
-a millisecond, so there is no waiting and no lazy-loading complexity.
-Anything that needs a parameter, or that produces per-atom data worth
-looking at, gets a **button of its own** instead, labelled with the
-calculator's name and a trailing `…`.
+Each calculator gets a row: a tick box that adds it to a batch run, a
+**button** labelled with its name and a trailing `…`, and a **status chip**
+saying where it stands — `Not run`, `Running…`, `✓ Ready`, `! Stale`,
+`✕ Failed` or `○ Not applicable`. Pressing the chip opens that result in
+Results.
+
+Scalar descriptors still compute eagerly — the whole batch finishes in well
+under a millisecond, so there is no waiting and no lazy-loading complexity —
+and they are read in Results as a single **Molecular Properties** entry
+where each keeps its own units, provenance and state. The command palette
+can put one in front of you: choosing a computed property opens Results and
+narrows it to that value.
 
 That ellipsis is a promise and it is kept: every one of them opens a
 **settings dialog built from the calculator's own parameter list** (pH, decimal places, a SMARTS string, whatever that

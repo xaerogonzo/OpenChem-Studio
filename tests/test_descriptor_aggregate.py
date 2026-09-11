@@ -254,21 +254,61 @@ def test_every_deterministic_descriptor_is_a_real_one():
 # --- the two renderings agree --------------------------------------------
 
 
-@pytest.mark.parametrize(
-    "value",
-    [180.16, 0.0, -3.335, True, False, None, "C15H21NO2", 42],
-)
-def test_the_two_renderings_of_a_descriptor_value_agree(value):
-    """**TWO IMPLEMENTATIONS OF ONE QUESTION, DELIBERATELY**, so this asserts
-    they agree rather than trusting a comment.
+# --- a refusal is not a fault, where that decision now lives -------------
 
-    `PropertyPanel._format_value` adds a status GLYPH and a Qt stylesheet,
-    which `domain/` cannot hold, so they are not one function. What they must
-    never disagree on is the plain text -- a descriptor showing 247.3 in the
-    panel and 247.34 in the reader is one value with two renderings.
+
+def test_an_inapplicable_descriptor_is_kept_APART_from_a_failed_one():
+    """**A REFUSAL IS NOT A FAULT**, and painting a method limit as a crash
+    is what made two working calculators read as broken.
+
+    The Properties panel decided this when it painted a row: `○` for a
+    refusal, `✕` for a fault, read from the producer's `inapplicable` flag.
+    2c removes that renderer, and the aggregate is where the two are told
+    apart now -- by the same flag, never by the prose.
     """
-    from openchem.ui.panels.property_panel import _format_value, _without_glyphs
+    refusal = _descriptor(
+        "npr1", value=None, cache_state=CacheState.FAILED,
+        inapplicable=True, error="This shape descriptor needs a 3D conformer.",
+    )
+    fault = _descriptor(
+        "pbf", value=None, cache_state=CacheState.FAILED,
+        error="RDKit raised: bad conformer id 7.",
+    )
+    aggregate = aggregate_descriptors("u", [refusal, fault])
 
-    panel_text, _style = _format_value(value)
-    aggregate_text, _limitations = _display(_descriptor("x", value=value))
-    assert aggregate_text == _without_glyphs(panel_text)
+    assert [d.descriptor_id for d in aggregate.inapplicable()] == ["npr1"]
+    # Both are FAILED, which is how a refusal travels -- so the flag is the
+    # only thing separating them, and `failed()` deliberately holds both.
+    assert {d.descriptor_id for d in aggregate.failed()} == {"npr1", "pbf"}
+
+
+def test_the_distinction_is_READ_from_the_declaration_not_the_message():
+    """Asserted on the SOURCE, because no shipped message discriminates the
+    two implementations: sniffing `error` for "no group for" would pass every
+    behavioural test and rot the first time somebody reworded a refusal.
+
+    **IT USED TO SCAN `PropertyPanel._failure_appearance`**, which 2c
+    deleted along with the row it painted. The decision did not go away --
+    it moved to `DescriptorAggregate.inapplicable`, so that is what this
+    scans. A source guard whose subject is deleted must follow the subject,
+    not be deleted with it.
+    """
+    from pathlib import Path
+
+    body = (
+        Path(__file__).parent.parent
+        / "src" / "openchem" / "domain" / "descriptor_aggregate.py"
+    ).read_text(encoding="utf-8")
+    fn = body[body.index("    def inapplicable(self)") :]
+    # To the NEXT method, not to the first blank line -- the docstring
+    # has blank lines in it, and cutting at one left the guard reading
+    # only the signature, where every forbidden word is trivially absent.
+    cut = fn.find("\n    def ", 1)
+    fn = fn[:cut] if cut > 0 else fn
+    assert 'getattr(d, "inapplicable", False)' in fn
+    behaviour = fn.split('"""')[-1]
+    for sniff in ("error", "message", "no group", "startswith", "lower()"):
+        assert sniff not in behaviour, (
+            f"inapplicable() inspects {sniff!r} -- the distinction must come "
+            "from the producer's declaration, not the prose"
+        )
