@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import functools
 
 from openchem.app.settings import Settings
 from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
@@ -228,6 +229,15 @@ def _bind_settings(definition: CalculatorDefinition, settings: Settings) -> Calc
 
     # Read lazily, per call: reconfiguring the path in Tools > External
     # Tools then takes effect without restarting the application.
+    #
+    # **`functools.wraps` IS LOAD-BEARING, NOT TIDINESS.** A bare closure
+    # keeps none of the wrapped function's metadata, so every
+    # sidecar-backed calculator presented itself as a nameless `compute`
+    # with no docstring and, the part that bit, NO RETURN ANNOTATION.
+    # Measured when the calculator reference was generated: 12 of 59
+    # calculators could not say what they produce, and 9 of those 12 had an
+    # annotation all along -- this wrapper was eating it.
+    @functools.wraps(inner)
     def compute(mol, molecule_uuid, parameters, _inner=inner, _keys=keys):
         paths = {name: settings.get(key, "") for name, key in _keys.items()}
         return _inner(mol, molecule_uuid, parameters, **paths)

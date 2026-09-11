@@ -230,9 +230,23 @@ class TestSearch:
     """
 
     def test_finds_a_word_that_appears_in_no_heading(self):
+        """Body text is searched, not only headings.
+
+        **THIS ASSERTED `all(not in_title)` AND THAT STOPPED BEING TRUE.**
+        `docs/CALCULATOR_REFERENCE.md` gives every calculator a heading, and
+        one of them is "Molecular Docking (Vina)" -- so the word now appears
+        in a title as well, which is a better help system rather than a
+        regression. What the test is for is that the SEVEN body-only matches
+        still come back, so the assertion names that rather than the absence
+        of any title match.
+        """
         hits = help_docs.search("Vina")
         assert len(hits) >= 3
-        assert all(not hit.in_title for hit in hits)
+        body_only = [hit for hit in hits if not hit.in_title]
+        assert len(body_only) >= 3, [h.topic.key for h in hits]
+        assert {"limits-docking", "external-tools"} <= {
+            hit.topic.key for hit in body_only
+        }
 
     def test_a_title_match_outranks_a_busier_body_match(self):
         """Someone typing "docking" wants the Docking section, not

@@ -87,6 +87,7 @@ _DOCUMENT_LABELS = {
     "QUICKSTART.md": "Getting started",
     "USER_GUIDE.md": "Using the application",
     "SCIENTIFIC_LIMITATIONS.md": "What the numbers do and do not mean",
+    "CALCULATOR_REFERENCE.md": "What each calculator does",
 }
 
 #: Short forms, for search-result rows where the full label would be
@@ -95,6 +96,7 @@ _DOCUMENT_TAGS = {
     "QUICKSTART.md": "Setup",
     "USER_GUIDE.md": "Guide",
     "SCIENTIFIC_LIMITATIONS.md": "Limitations",
+    "CALCULATOR_REFERENCE.md": "Reference",
 }
 
 

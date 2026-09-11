@@ -745,7 +745,9 @@ def predict_spectrum(
 DEFAULT_SPHERES = 6
 
 
-def compute_database_nmr(mol, molecule_uuid: str, parameters: dict | None = None):
+def compute_database_nmr(
+    mol, molecule_uuid: str, parameters: dict | None = None
+) -> "NMRSpectrumResult":
     """The "nmr" category's database calculator.
 
     Instant where the ab initio path takes minutes, and it reports its own

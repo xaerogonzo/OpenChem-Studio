@@ -1107,6 +1107,19 @@ _PROVENANCE_DEBT = frozenset({
     "src/openchem/chem/naming_providers.py",
     "src/openchem/chem/nmr_reference.py",
     "src/openchem/chem/orca_engine.py",
+    # **FOUND BY ANNOTATING IT, WHICH IS THIS WALK WORKING AS DESIGNED.**
+    # `compute_mass_spectrum` declared no return type until stage 4, and
+    # the return ANNOTATION is this walk's discriminator -- so a producer
+    # that said nothing was invisible to the one guard written to find
+    # producers whatever surface registers them. Declaring it made it
+    # appear; nothing about the module changed.
+    #
+    # IMPLEMENTS NO PUBLISHED METHOD. The envelope is exact arithmetic over
+    # the natural abundances in RDKit's own periodic table, and the four
+    # papers the module cites are cited for what it DELIBERATELY DOES NOT
+    # do -- pruning, adjustable accuracy, ion sampling. There is no method
+    # paper to name because the naive exact enumeration is the choice.
+    "src/openchem/chem/mass_spectrum.py",
     "src/openchem/chem/oxidation_states.py",
     "src/openchem/chem/regulatory/calculator.py",
     "src/openchem/chem/report_adapter.py",

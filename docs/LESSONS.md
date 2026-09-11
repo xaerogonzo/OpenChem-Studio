@@ -18669,3 +18669,109 @@ surface. A test that passes by construction is not coverage, and the
 fact-versus-picture agreement it really guarded is asserted by
 `test_the_drawn_curve_honours_the_same_bound_its_facts_describe`, which
 compares the drawn maximum against the limit the facts state.
+
+## A REFERENCE OVER 68 CALCULATORS IS 68 PLACES TO FORGET
+
+Stage 4. `docs/CALCULATOR_REFERENCE.md` is the canonical destination the
+plan asks for -- the tooltip is the short answer, this is the deep one --
+and it is **generated**, following this repository's own precedent
+(`docs/SOURCES.md` from `sources.toml`, `build_regulatory_rulesets.py`).
+
+A hand-written reference is 68 places to forget when a calculator is added,
+renamed, re-categorised or retired. That shape has already been paid for
+four times here: the `inapplicable_calculators` blocklist, the
+`_PAYLOAD_FIELDS` probe asking for field names no result type ever had, the
+Properties panel's private taxonomy copy, and a guide saying 51 while the
+registry held 53. The declarations are what the APPLICATION reads; a
+reference derived from them cannot describe a tree that does not exist.
+
+71 anchors, 118 help topics, 62 KB.
+
+### `--check` NEEDS NO HASH HERE, AND `SOURCES.md` DOES
+
+`build_sources_doc.py` carries a hash because its source is a SEPARATE FILE
+that can move underneath it -- so a hand-edited `SOURCES.md` is perfectly
+consistent with the hash it carries (the hash describes the source, not
+itself) and a stale one hashes correctly to an older TOML. Neither check
+sees the other's case.
+
+Here the source IS the code being imported. Regenerating in memory and
+comparing byte for byte catches both failure modes in one pass, because a
+hand edit and a stale file both simply differ from what the registry
+produces right now. Same discipline, one fewer moving part.
+
+### THE CURRENCY CHECK HIDES EVERY OTHER GUARD, AND THE FIRST MUTATION PASS PROVED IT
+
+Nine arms, nine caught -- and **four of them were caught only by the
+currency check**. Mutating the generator does not change the file on disk,
+so `--check` fails first and the completeness guards never fire. On that
+evidence "every registered calculator has a section" was unproven.
+
+The case those guards exist for is the one the currency check CANNOT see: a
+generator that drops a calculator produces a file that matches itself
+perfectly. So the arms were re-run mutating the generator **and
+regenerating**, and all five then failed on the specific guard --
+completeness, the alias listing, the descriptor listing, the coverage
+denominator, and a section for something unregistered.
+
+**A byte-for-byte check is a superset of everything downstream of it**, and
+a mutation pass that never regenerates is measuring the superset.
+
+### ANNOTATING A FUNCTION REVEALED AN UNSOURCED PRODUCER
+
+The reference says what each calculator produces, read off the compute
+function's return annotation. Twelve of 59 could not say.
+
+**NINE OF THE TWELVE HAD AN ANNOTATION ALL ALONG.**
+`bootstrap._bind_settings` wraps every sidecar-backed calculator so the
+interpreter path can be re-read per call, and a bare closure keeps none of
+the wrapped function's metadata -- so each one presented itself as a
+nameless `compute` with no docstring and no return type. `functools.wraps`
+is the fix, and it is load-bearing rather than tidiness.
+
+A tenth declared `-> "PerAtomDataset"` as a string against a
+`TYPE_CHECKING` import, which `get_type_hints` raises `NameError` on and
+which therefore looks identical to declaring nothing. Reading the
+signature's raw annotation recovers it.
+
+The last three genuinely declared nothing and now do. **And annotating
+`compute_mass_spectrum` made the provenance walk see it for the first
+time** -- that walk's discriminator IS the return annotation, chosen so it
+finds a producer whatever surface registers it, so a producer that said
+nothing was invisible to the one guard written to find producers. Nothing
+about the module changed; declaring it made it appear.
+
+It is recorded as debt with its reason: the envelope is exact arithmetic
+over the natural abundances in RDKit's own periodic table, and the four
+papers it cites are cited for what it deliberately does NOT do -- pruning,
+adjustable accuracy, ion sampling. There is no method paper to name because
+the naive exact enumeration is the choice.
+
+### A HELP KEY AND A CALCULATOR ID DIFFER BY SEPARATOR
+
+`_ANCHOR` is `[a-z0-9-]+` -- no underscores -- and every calculator id has
+one. So `topology_analysis` anchors as `calc-topology-analysis`, and
+`docking.vina` as `calc-docking-vina`. One function owns the translation
+rather than a second `.replace()` somewhere else.
+
+### RETIREMENT IS A DECLARATION NOW
+
+`RETIREMENTS` holds the id, the old display name, what replaced it and why.
+The old NAME is the point: people search for what a thing used to be
+called, and a reference listing only what exists today sends somebody
+looking for "Solubility vs pH" away empty -- the same dead end as a search
+box that cannot match a synonym.
+
+Asserted through `help.search`, not by reading the file: the claim is that
+somebody TYPING the old name arrives at the right section, and the file
+containing the words proves only that the words are in the file. Measured:
+searching "Solubility vs pH" reaches `calc-solubility`.
+
+### AND A SEARCH TEST STOPPED BEING TRUE, CORRECTLY
+
+`test_finds_a_word_that_appears_in_no_heading` searched "Vina" and asserted
+that NO hit was in a title. The reference gives every calculator a heading
+and one of them is "Molecular Docking (Vina)", so the premise is now false
+-- which is a better help system rather than a regression. What the test is
+for is that the seven body-only matches still come back, so it names those
+rather than the absence of any title match.

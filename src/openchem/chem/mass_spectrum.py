@@ -445,7 +445,7 @@ EXACT_RESOLUTION = "Exact mass"
 DEFAULT_MINIMUM_PERCENT = 0.5
 
 
-def compute_mass_spectrum(mol, molecule_uuid: str, parameters=None):
+def compute_mass_spectrum(mol, molecule_uuid: str, parameters=None) -> "ReportResult":
     """The "mass_spectrometry" category's calculator.
 
     **THE MODES LIVE HERE AND NOT ON ELEMENTAL ANALYSIS.** That calculator
