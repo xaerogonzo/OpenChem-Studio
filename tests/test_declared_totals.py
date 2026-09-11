@@ -506,13 +506,19 @@ def test_the_reported_molecule_reproduces_the_screenshot(registry):
     assert declared_total(result)["value"] == pytest.approx(3.6239, abs=5e-5)
 
 
-def test_the_dialog_and_the_panel_agree_on_the_reported_molecule(qapp):
+def test_the_dialog_and_the_reader_agree_on_the_reported_molecule(qapp):
     """The report in one sentence: two places showed different numbers
     for one molecule. They are read from the same declaration now, so
-    they cannot disagree -- but "cannot" is worth a test."""
+    they cannot disagree -- but "cannot" is worth a test.
+
+    **THE SECOND PLACE USED TO BE THE PROPERTIES ROW**, and 2c removed it;
+    the reader's summary is where a per-atom result is read now, so that is
+    the surface held against the dialog. The declaration both consult is
+    unchanged, which is the whole reason the claim survives the move.
+    """
     from openchem.chem.engine import ChemistryEngine
     from openchem.domain.molecule import MoleculeModel
-    from openchem.ui.panels.property_panel import _summarise
+    from openchem.ui.result_adapters import summarise
 
     engine = ChemistryEngine()
     molecule = MoleculeModel(display_name="reported")
@@ -520,8 +526,14 @@ def test_the_dialog_and_the_panel_agree_on_the_reported_molecule(qapp):
     mol = Chem.MolFromMolBlock(molecule.molblock)
 
     result = compute_crippen_logp_contrib_calculator(mol, "uuid", {})
-    panel_row = _summarise(result)
-    headline = f"{declared_total(result)['label']} {declared_total(result)['value']:.2f}"
+    view = summarise(
+        result, result_id="crippen_logp_contrib", name="LogP Contribution",
+        category="physicochemical", structure_version=0,
+    )
+    declared = declared_total(result)
+    reader = {fact.label: fact for fact in view.facts}
 
-    assert panel_row.startswith(headline)
-    assert "3.62" in panel_row
+    assert declared["label"] in reader, sorted(reader)
+    total = reader[declared["label"]]
+    assert total.value == pytest.approx(declared["value"])
+    assert "3.62" in total.display_value

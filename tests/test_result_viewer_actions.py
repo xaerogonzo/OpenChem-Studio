@@ -28,10 +28,14 @@ from openchem.domain.report import (
     FactLink,
     ReportResult,
 )
-from openchem.ui.dialogs.merged_results_dialog import (
-    MergedResultsDialog,
-    _VIEWER_ACTIONS,
-)
+from openchem.ui.widgets.results_view import ResultsView
+
+# The vocabulary moved with the reader when it left the window. Imported
+# from where it lives rather than re-exported from the shell: a private
+# constant is not public surface, so a test reaching for one follows the
+# implementation, and a re-exported private would be a fiction the next
+# reader has to unpick.
+from openchem.ui.widgets.results_view import _VIEWER_ACTIONS
 from openchem.ui.result_summary import ResultSummaryView
 from tests.conftest import dispose
 
@@ -75,7 +79,7 @@ def _summary(report_id="charges", name="Partial Charge", rich_view="calculator_i
 
 @pytest.fixture
 def window(qapp):
-    w = MergedResultsDialog(MOLECULE, "Aspirin")
+    w = ResultsView(MOLECULE)
     yield w
     dispose(w)
 

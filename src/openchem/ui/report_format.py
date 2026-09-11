@@ -122,6 +122,16 @@ def format_report(report, fmt: str) -> str:
     for a spreadsheet. A module-level function rather than a method so the
     formats are testable without constructing a panel -- and so anything
     else that grows a report can reuse them.
+
+    **EVERY FORMAT CARRIES `Fact.limitations`, AND NONE OF THEM DID.** The
+    report-level ones were emitted and the per-fact ones were dropped by all
+    four, which went unnoticed while the surface that mattered was the
+    Properties panel: `PropertyPanel.as_text` took deliberate care to export
+    a failed descriptor's FULL reason rather than the short cell form, and
+    its own docstring says so. 2c removes that surface, and measured here
+    before the fix, all three text formats exported "Needs a 3D conformer"
+    with the sentence saying what to press nowhere in the file -- the exact
+    leak the panel's rule existed to stop, one surface along.
     """
     header = report_header(report)
     grouped = report.by_category()
@@ -141,6 +151,7 @@ def format_report(report, fmt: str) -> str:
                         "basis": fact.basis.value,
                         "units": fact.units,
                         "evidence": list(fact.evidence),
+                        "limitations": list(fact.limitations),
                     }
                     for fact in report.facts
                 ],
@@ -153,11 +164,14 @@ def format_report(report, fmt: str) -> str:
     if fmt == "CSV":
         buffer = io.StringIO()
         writer = csv.writer(buffer, lineterminator="\n")
-        writer.writerow(["category", "label", "value", "units", "source", "basis"])
+        writer.writerow(
+            ["category", "label", "value", "units", "source", "basis", "limitations"]
+        )
         for fact in report.facts:
             writer.writerow([
                 fact.category.value, fact.label, fact.display_value,
                 fact.units, fact.source, fact.basis.value,
+                "; ".join(fact.limitations),
             ])
         return buffer.getvalue()
 
@@ -174,6 +188,11 @@ def format_report(report, fmt: str) -> str:
                     f"| {fact.source} | {fact.basis.value} |"
                 )
             lines.append("")
+            for fact in facts:
+                for text in fact.limitations:
+                    lines.append(f"> **{fact.label}** -- {text}")
+            if any(fact.limitations for fact in facts):
+                lines.append("")
         for text in report.limitations:
             lines.append(f"> {text}")
         return "\n".join(lines).rstrip() + "\n"
@@ -183,6 +202,8 @@ def format_report(report, fmt: str) -> str:
         lines.append(f"{CATEGORY_LABELS[category]}:")
         for fact in facts:
             lines.append(f"  {fact.label}: {fact.value_with_units}  [{fact.basis.value}]")
+            for text in fact.limitations:
+                lines.append(f"    {text}")
         lines.append("")
     for text in report.limitations:
         lines.append(f"Limitation: {text}")

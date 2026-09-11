@@ -80,51 +80,39 @@ def button_counts(registry) -> Counter:
 
 
 def _every_reachable_category() -> set[str]:
-    """Every category that can reach `_section_for`, from all four sources.
+    """Every category that can reach `_section_for`.
 
-    The registry and the two descriptor spec tables are lists and can be
-    read. A PROVIDER's alert categories are not -- they are literals
-    inside `compute_alerts` -- so that one is derived by RUNNING it,
-    which is the only way to enumerate them without a hand-written copy
-    that would rot the way this whole file is about.
+    **IT WAS FOUR SOURCES AND IT IS ONE.** The registry, the two descriptor
+    spec tables and a provider's alert literals could each put a category in
+    front of `_section_for`, because a descriptor built a row and an alert
+    built a row, and a row needs a section to live in. 2c removes both: the
+    always-on values are read in the results panel, so the ONLY thing that
+    creates a section now is a registered calculator this panel can run.
+
+    Measured at the change: the four-source enumeration gives 23 and the
+    built panel gives 20. Three categories -- physicochemical, shape and
+    one more -- are declared by descriptors alone and no longer appear in
+    Properties at all, correctly: a launcher has nothing to offer where
+    there is nothing to launch.
+
+    **THE CATEGORIES THAT LEFT ARE NOT UNGUARDED**, which is the only
+    reason narrowing this is safe. A descriptor's category still decides
+    where its value is GROUPED in the reader, and
+    `test_calculator_taxonomy.py::test_every_category_a_DESCRIPTOR_declares_is_mapped_explicitly`
+    is what holds that -- written at the same change, because two of them
+    were silently taking a default.
 
     A calculator's RESULT category is deliberately not read here:
-    `test_a_calculators_result_lands_in_its_own_section` already forbids
-    it differing from its definition's, so it adds nothing new.
-
-    **THE ALERT BRANCH CATCHES NOTHING TODAY, and that is said rather
-    than hidden.** Measured: every category a provider's alerts carry
-    (medicinal_chemistry, admet, shape, lipophilicity, pka, surface) also
-    comes from the registry or a spec table, so removing this branch
-    changes no result. It is here because those literals are enumerated
-    by nothing else -- the moment a provider introduces a category of its
-    own, this is the only source that would see it.
+    `test_a_calculators_result_lands_in_its_own_section` already forbids it
+    differing from its definition's, so it adds nothing new.
     """
-    from rdkit import Chem, RDLogger
-
-    from openchem.chem.descriptor_providers import (
-        _DESCRIPTOR_SPECS,
-        _SHAPE_DESCRIPTOR_SPECS,
-        RDKitDescriptorProvider,
-    )
-
-    RDLogger.DisableLog("rdApp.*")
     registry = _real_registry()
-    categories = {
+    return {
         d.category
         for c in registry.categories()
         for d in registry.by_category(c)
         if isinstance(d.execution, RegistryExecution)
     }
-    categories |= {spec[3] for spec in _DESCRIPTOR_SPECS if spec[3]}
-    if _SHAPE_DESCRIPTOR_SPECS:
-        categories.add("shape")
-
-    mol = Chem.AddHs(Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O"))
-    for alert in RDKitDescriptorProvider().compute_alerts(mol, "uuid"):
-        if alert.category:
-            categories.add(alert.category)
-    return categories
 
 
 def test_no_category_holds_a_single_calculator(button_counts):
@@ -489,12 +477,14 @@ def test_the_heading_and_the_copied_text_agree(qapp):
     only one of them.
 
     A category NOBODY has named is the only way to reach the fallback at
-    all, so the descriptor carries an invented one.
+    all, so the CALCULATOR carries an invented one -- it was a descriptor
+    until 2c, which removed the value rows and with them the only thing a
+    descriptor put in a section.
     """
     from openchem.chem.engine import ChemistryEngine
-    from openchem.domain.descriptor import DescriptorValue
+    from openchem.domain.calculator import CalculatorDefinition, RegistryExecution
     from openchem.events.base import EventBus
-    from openchem.events.events import DescriptorComputed, MoleculeSelected
+    from openchem.events.events import MoleculeSelected
     from openchem.services.calculator_registry import CalculatorRegistry
     from openchem.ui.panels.property_panel import (
         _CATEGORY_LABELS,
@@ -509,25 +499,22 @@ def test_the_heading_and_the_copied_text_agree(qapp):
         def run_calculator(self, model, request) -> None:
             pass
 
+    registry = CalculatorRegistry()
+    registry.register(
+        CalculatorDefinition(
+            calculator_id="whatever",
+            display_name="Whatever",
+            category=category,
+            description="a plugin's calculator, in a category nobody named",
+            execution=RegistryExecution(compute=lambda mol, uuid, params: None),
+        )
+    )
     bus = EventBus()
-    panel = PropertyPanel(bus, CalculatorRegistry(), _Service(), ChemistryEngine())
+    panel = PropertyPanel(bus, registry, _Service(), ChemistryEngine())
     try:
         bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-        bus.publish(
-            DescriptorComputed(
-                descriptor=DescriptorValue(
-                    descriptor_id="whatever",
-                    name="Whatever",
-                    units="",
-                    category=category,
-                    provider="plugin",
-                    molecule_uuid="mol-1",
-                    value=1.0,
-                    cache_state=CacheState.COMPLETED,
-                )
-            )
-        )
-
+        # Sections are built lazily, when one is first asked for.
+        panel._section_for(category)
         heading = panel._sections[category]._toggle_button.text()
         copied = panel.as_text()
 
@@ -599,10 +586,19 @@ def test_the_always_on_per_atom_batch_declares_every_category():
 def test_a_declared_category_routes_a_dataset_the_registry_cannot_place():
     """THE CONSUMER HALF, and it is the one a revert breaks silently.
 
-    The producer declaring a category buys nothing if the panel goes on
+    The producer declaring a category buys nothing if the consumer goes on
     asking the registry. Driven through the real `PerAtomDataComputed`
-    path with an EMPTY registry, so there is nothing to resolve the id
-    and the declaration is the only thing that can put the row anywhere.
+    path with an EMPTY registry, so there is nothing to resolve the id and
+    the declaration is the only thing that can place the result anywhere.
+
+    **THE CONSUMER MOVED IN 2c AND THE QUESTION DID NOT.** This asserted
+    that the declared category created its SECTION in the Properties panel,
+    because the row was filed there. There is no row now -- and a section
+    heading created for a category with no calculator buttons in it would
+    be an empty heading -- so the declaration is read where the result is
+    read: the reader groups its selector by exactly this field. What must
+    not happen is the same either way, the category being invented by the
+    consumer instead of taken from the producer.
     """
     from openchem.chem.engine import ChemistryEngine
     from openchem.domain.common import Provenance
@@ -635,13 +631,14 @@ def test_a_declared_category_routes_a_dataset_the_registry_cannot_place():
             )
         )
 
-        assert "charge" in panel._sections, (
-            "the declared category did not create its section, so the panel "
-            "is still routing by the registry"
+        summary = panel._reports["nothing_registered_owns_this"]
+        assert summary.category == "charge", (
+            "the declared category did not survive the trip to the reader, so "
+            "the consumer is still routing by the registry"
         )
-        assert "other" not in panel._sections, (
-            "the dataset landed in the generic section despite declaring "
-            "where it belongs"
+        assert summary.category != "other", (
+            "the dataset was filed under the generic category despite "
+            "declaring where it belongs"
         )
     finally:
         conftest.dispose(panel)
@@ -725,7 +722,11 @@ def test_the_guide_states_the_real_number_of_collapsible_categories():
         Path(__file__).resolve().parent.parent / "docs" / "USER_GUIDE.md"
     ).read_text(encoding="utf-8")
 
-    stated = re.search(r"\*\*(\d+)\s*\n?collapsible categories\*\*", guide)
+    # ANY whitespace between the two words, not only after the digits:
+    # the sentence was reflowed at 2c and the line break landed between
+    # "collapsible" and "categories", which this read as the count having
+    # been removed altogether.
+    stated = re.search(r"\*\*(\d+)\s+collapsible\s+categories\*\*", guide)
     assert stated, "the guide no longer states a collapsible-category count"
     assert int(stated.group(1)) == len(_every_reachable_category()), (
         f"the guide says {stated.group(1)} collapsible categories and there "
@@ -834,3 +835,38 @@ def test_the_four_catalogs_have_no_registered_calculator_and_that_is_fine():
     registered = {d.calculator_id for d in CALCULATOR_DEFINITIONS}
     catalogs = {"pains", "brenk", "mutagenicity_alerts", "herg_risk_factors"}
     assert not (catalogs & registered), sorted(catalogs & registered)
+
+
+def test_every_default_expanded_category_is_one_the_panel_builds(qapp):
+    """An entry naming a category that gets no section expands nothing.
+
+    **MEASURED AT HALF THE SET.** `_DEFAULT_EXPANDED` held
+    `{"physicochemical", "identity"}`; sections are built for the categories
+    a RUNNABLE calculator declares, and `physicochemical` has none -- it had
+    a section only because the 41 always-on descriptors built one, and 2c
+    reads those in the results panel instead. So one of the two named
+    nothing, silently: an unreachable entry expands nothing and complains
+    about nothing.
+    """
+    from openchem.bootstrap import build_service_container
+    from openchem.chem.engine import ChemistryEngine
+    from openchem.ui.panels.property_panel import _DEFAULT_EXPANDED, PropertyPanel
+
+    services = build_service_container()
+    panel = PropertyPanel(
+        services.event_bus,
+        services.calculator_registry,
+        services.descriptor_service,
+        ChemistryEngine(),
+    )
+    try:
+        unreachable = sorted(_DEFAULT_EXPANDED - set(panel._sections))
+        assert not unreachable, (
+            f"_DEFAULT_EXPANDED names categories the panel never builds: "
+            f"{unreachable}. A section is built per category with a runnable "
+            "calculator."
+        )
+    finally:
+        conftest.dispose(panel)
+
+

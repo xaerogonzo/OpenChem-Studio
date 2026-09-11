@@ -152,6 +152,26 @@ class ReaderMemory:
             return replace(view, report_id="")
         return view
 
+    def remembered_report(self, molecule_uuid: str) -> str:
+        """What this molecule's reader was last focused on, whether or not
+        that report exists now.
+
+        **THE ONE QUESTION `recall` DELIBERATELY CANNOT ANSWER.** It applies
+        the availability rule, so a remembered report that is currently
+        absent and one that was never chosen both come back as `""` -- which
+        is right for "where do I put the reader" and wrong for "is there
+        still something to wait for". A host that restores a position the
+        moment it becomes reachable needs to tell those apart; without this
+        it either gives up on the first try (and the position is lost the
+        instant results are recomputed) or asks forever.
+
+        NOT a widening of `recall`'s return: a second field there would be
+        read by exactly one caller and silently ignored by the rest, which
+        is the unread-field defect this repository has recorded twice.
+        """
+        view = self._views.get(molecule_uuid)
+        return view.report_id if view is not None else ""
+
     def forget(self, molecule_uuid: str) -> None:
         self._views.pop(molecule_uuid, None)
 

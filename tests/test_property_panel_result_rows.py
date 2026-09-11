@@ -1,20 +1,25 @@
-"""What the Properties panel SAYS about each kind of result.
+"""What the Properties panel DOES when a result arrives.
 
-**Nothing in the suite exercised this at all**, which is why four
-separate defects shipped and stayed green across 3613 tests. Found by
-running every registered calculator in the real app and asking which
-ones reach the screen:
+**IT USED TO BE WHAT THE PANEL *SAID* ABOUT EACH KIND OF RESULT**, and
+that half has moved: 2c makes Properties a launcher, so a result is read
+in the results panel and the row this file was written about is gone. The
+four defects it was written for are all still guarded, one surface along
+-- `tests/test_result_summaries.py` holds the per-kind projections, and
+`tests/test_property_panel_reader.py` holds the wiring that carries a
+result there.
 
-    facts[:6]                7 calculators, 50 of 126 facts never drawn
-    _summarise field names   9 calculators rendered as the word "Ready"
-    TrajectoryComputed       no subscriber at all -- MD produced no row
-    empty payload            "Ready", where "none found" was the answer
+What is left is the half only the panel can be wrong about: whether it
+says a calculation is running, whether it can put a computed property in
+front of you, and whether the shots it defers outlive it.
 
-None of it is a painting bug, so none of it needs `painted()`/`ink()`:
-the panel builds the wrong STRING, and `label.text()` catches all four.
-That distinction is worth keeping -- the natural instinct after a
-"nothing renders" report is to reach for the pixel helpers, and here
-they would have measured a perfectly-painted wrong answer.
+The retired half is worth remembering for HOW it was found, because
+nothing in the suite exercised it at all and four defects shipped green
+across 3613 tests -- by running every registered calculator in the real
+app and asking which ones reached the screen. None of them was a painting
+bug, so none needed `painted()`/`ink()`: the panel built the wrong
+STRING. The instinct after a "nothing renders" report is to reach for the
+pixel helpers, and here they would have measured a perfectly-painted
+wrong answer.
 """
 
 from __future__ import annotations
@@ -41,6 +46,7 @@ from openchem.domain.structure_issue import Basis
 from openchem.events.base import EventBus
 from openchem.events.events import (
     CalculationFinished,
+    DescriptorComputed,
     MoleculeSelected,
     PerAtomDataComputed,
     PhCurveComputed,
@@ -49,7 +55,7 @@ from openchem.events.events import (
     TrajectoryComputed,
 )
 from openchem.services.calculator_registry import CalculatorRegistry
-from openchem.ui.panels.property_panel import PropertyPanel, _summarise
+from openchem.ui.panels.property_panel import PropertyPanel
 from openchem.ui.result_adapters import ADAPTERS
 
 import conftest
@@ -113,27 +119,6 @@ def _report(facts: int) -> ReportResult:
 # --- A: the cap ---------------------------------------------------------
 
 
-def test_a_report_row_renders_every_fact_not_the_first_six(panel, bus):
-    """`topology_analysis` really does report 27 facts on aspirin, and the
-    row showed 6 of them with only a tooltip to say so.
-
-    Asserts the LAST fact by name. A count alone would pass against an
-    off-by-one slice, and the defect being guarded was precisely a slice.
-    """
-    bus.publish(ReportComputed(report=_report(27)))
-
-    text = panel._report_labels["topology_analysis"].text()
-    assert len(text.splitlines()) == 27
-    assert "Descriptor 26: 26" in text
-    assert "Descriptor 6: 6" in text  # the first one the old cap dropped
-
-
-def test_the_report_row_says_how_many_facts_it_is_showing(panel, bus):
-    bus.publish(ReportComputed(report=_report(27)))
-
-    assert "27 facts" in panel._report_labels["topology_analysis"].toolTip()
-
-
 # --- B: the field-name mismatch ----------------------------------------
 
 
@@ -182,143 +167,10 @@ def test_every_summarised_result_type_has_a_field_the_table_names(result_type):
     )
 
 
-def test_a_structure_set_says_how_many_structures(panel, bus):
-    """`major_microspecies` and `tautomers` both rendered as "Ready"."""
-    bus.publish(
-        StructureSetComputed(
-            structure_set=StructureSetResult(
-                set_id="tautomers",
-                name="Tautomers",
-                method="rdkit",
-                molecule_uuid=MOLECULE,
-                entries=[StructureEntry(molblock="", label=f"t{n}") for n in range(9)],
-                provenance=_provenance(),
-            )
-        )
-    )
-
-    assert panel._result_labels["tautomers"].text() == "9 structures"
-
-
-def test_a_ph_curve_says_how_many_points(panel, bus):
-    bus.publish(
-        PhCurveComputed(
-            curve=PhCurveResult(
-                curve_id="pka_microspecies",
-                name="Microspecies",
-                method="pkasolver",
-                molecule_uuid=MOLECULE,
-                ph_values=[n / 2 for n in range(57)],
-                series={"neutral": [0.0] * 57},
-                provenance=_provenance(),
-            )
-        )
-    )
-
-    assert panel._result_labels["pka_microspecies"].text() == "57 pH points"
-
-
-def test_a_single_structure_is_not_reported_as_1_structures(panel, bus):
-    """Caffeine really does have exactly one major microspecies, so the
-    count of 1 is the ORDINARY case here, not an edge one."""
-    bus.publish(
-        StructureSetComputed(
-            structure_set=StructureSetResult(
-                set_id="major_microspecies",
-                name="Major Microspecies",
-                method="pkasolver",
-                molecule_uuid=MOLECULE,
-                entries=[StructureEntry(molblock="", label="neutral")],
-                provenance=_provenance(),
-            )
-        )
-    )
-
-    assert panel._result_labels["major_microspecies"].text() == "1 structure"
-
-
-def test_no_summarised_type_falls_through_to_ready():
-    """The blanket statement, so a NEW result type cannot repeat this.
-
-    A type with a payload must describe it. "Ready" is reserved for a
-    shape this function does not recognise, and the whole defect was that
-    every structure set and pH curve landed there.
-    """
-    populated = (
-        PerAtomDataset(
-            property_id="p", name="P", units="e", method="m",
-            molecule_uuid=MOLECULE, values={0: 1.0},
-        ),
-        StructureSetResult(
-            set_id="s", name="S", method="m", molecule_uuid=MOLECULE,
-            entries=[StructureEntry(molblock="")],
-        ),
-        PhCurveResult(
-            curve_id="c", name="C", method="m", molecule_uuid=MOLECULE,
-            ph_values=[7.0], series={"a": [1.0]},
-        ),
-        TrajectoryResult(
-            trajectory_id="t", name="T", method="m", molecule_uuid=MOLECULE,
-            frames=["", ""], times=[0.0, 1.0], energies=[0.0, 0.0],
-        ),
-    )
-
-    summaries = {type(r).__name__: _summarise(r) for r in populated}
-
-    assert "Ready" not in summaries.values(), summaries
-
-
 # --- D: an empty payload is an answer ----------------------------------
 
 
-def test_an_empty_result_says_none_found_rather_than_ready(panel, bus):
-    """`stereocenters` on a molecule with none is a RESULT.
-
-    "Ready" is indistinguishable from the panel having failed to render,
-    which is the same confusion `_present_alert` already records for an
-    empty `matched` reading as a green "Clean".
-    """
-    bus.publish(
-        PerAtomDataComputed(
-            dataset=PerAtomDataset(
-                property_id="stereocenters",
-                name="Stereocenters",
-                units="",
-                method="rdkit",
-                molecule_uuid=MOLECULE,
-                values={},
-                provenance=_provenance(),
-            )
-        )
-    )
-
-    assert panel._result_labels["stereocenters"].text() == "None found."
-
-
 # --- C: the trajectory that arrived nowhere -----------------------------
-
-
-def test_a_trajectory_reaches_the_panel_at_all(panel, bus):
-    """`TrajectoryComputed` was published and NOTHING subscribed to it, so
-    `molecular_dynamics` ran, produced 101 frames, and left no trace in
-    the panel -- indistinguishable from never having started."""
-    bus.publish(
-        TrajectoryComputed(
-            trajectory=TrajectoryResult(
-                trajectory_id="molecular_dynamics",
-                name="Molecular Dynamics",
-                method="rdkit-mmff",
-                molecule_uuid=MOLECULE,
-                frames=[""] * 101,
-                times=[float(n) for n in range(101)],
-                energies=[0.0] * 101,
-                provenance=_provenance(),
-            )
-        )
-    )
-
-    assert "molecular_dynamics" in panel._result_labels
-    assert panel._result_labels["molecular_dynamics"].text() == "101 frames"
 
 
 def test_a_trajectory_opens_the_player_now_that_one_exists(panel, bus, monkeypatch):
@@ -471,14 +323,24 @@ def test_a_failed_calculation_still_clears_its_indicator(running_panel):
 
 def test_switching_molecule_clears_a_stale_indicator(running_panel):
     """The calculator ROWS survive a molecule change -- they are buttons,
-    not results -- so a "Running..." left visible would sit beside a
-    different molecule claiming work that is not happening."""
+    not results -- so a "Running..." left over would sit beside a different
+    molecule claiming work that is not happening.
+
+    **THE CLAIM IS UNCHANGED AND ITS ASSERTION MOVED.** The indicator used
+    to be a label that was VISIBLE only while running, so "cleared" meant
+    hidden. It is a status chip now and is visible whatever the state, so
+    what must be true is that it no longer says "Running..." -- it says
+    the new molecule has been asked nothing.
+    """
     panel, _molecule, _dispatched = running_panel
     panel._open_calculator(panel._calculator_registry.get("topology_analysis"))
+    assert panel._calculator_status["topology_analysis"].text() == "Running...", (
+        "setup: it must really be showing the running state to clear one"
+    )
 
     panel._on_molecule_selected(MoleculeSelected(molecule_uuid="some-other-molecule"))
 
-    assert panel._calculator_status["topology_analysis"].isHidden()
+    assert panel._calculator_status["topology_analysis"].text() == "Not run"
     assert not panel._running_calculator_ids
 
 
@@ -500,21 +362,37 @@ def _descriptor(descriptor_id: str, name: str, category: str):
     )
 
 
-def test_revealing_a_property_expands_its_section_and_scrolls(panel, bus):
+def test_revealing_a_property_narrows_the_reader_to_it(panel, bus):
     """A descriptor cannot be run, so REVEALING it is the action the
-    palette offers -- the value is already on screen somewhere, possibly
-    far down inside a collapsed section."""
+    palette offers.
+
+    **IT USED TO BE A SCROLL AND IT IS A SEARCH NOW.** The value was on
+    screen somewhere in this panel, possibly far down inside a collapsed
+    section; 2c moves the 41 into the reader's one aggregate entry, where
+    "somewhere on screen" is exactly the problem. Narrowing to the fact
+    shows it AND says why it is the only one there, and one box clears it.
+    """
+    from openchem.domain.descriptor_aggregate import DESCRIPTOR_AGGREGATE_ID
     from openchem.events.events import DescriptorComputed
+    from openchem.ui.widgets.results_view import ResultsView
 
-    bus.publish(DescriptorComputed(descriptor=_descriptor("esol_logs", "Aqueous Solubility", "admet")))
-    section = panel._sections["admet"]
-    section.set_expanded(False)
+    reader = ResultsView()
+    panel.attach_reader(reader)
+    try:
+        bus.publish(
+            DescriptorComputed(
+                descriptor=_descriptor("esol_logs", "Aqueous Solubility", "admet")
+            )
+        )
 
-    found = panel.reveal_descriptor("esol_logs")
+        assert panel.reveal_descriptor("esol_logs")
 
-    assert found
-    assert section.is_expanded()
-    assert panel._reveal_target is panel._value_labels[("rdkit", "esol_logs")]
+        assert reader.focus() == DESCRIPTOR_AGGREGATE_ID
+        assert reader._view.visible_fact_labels() == ["Aqueous Solubility"], (
+            "the reveal did not narrow to the value that was asked for"
+        )
+    finally:
+        conftest.dispose(reader)
 
 
 def test_revealing_a_property_computes_nothing(panel, bus):
@@ -522,86 +400,23 @@ def test_revealing_a_property_computes_nothing(panel, bus):
     surprise this panel refuses elsewhere."""
     from openchem.events.events import DescriptorComputed
 
-    bus.publish(DescriptorComputed(descriptor=_descriptor("qed", "QED", "medicinal_chemistry")))
-    panel._descriptor_service.run_calculator = _fail_if_called
+    from openchem.ui.widgets.results_view import ResultsView
 
-    panel.reveal_descriptor("qed")
+    reader = ResultsView()
+    panel.attach_reader(reader)
+    try:
+        bus.publish(
+            DescriptorComputed(descriptor=_descriptor("qed", "QED", "medicinal_chemistry"))
+        )
+        panel._descriptor_service.run_calculator = _fail_if_called
+
+        panel.reveal_descriptor("qed")
+    finally:
+        conftest.dispose(reader)
 
 
 def _fail_if_called(*_args, **_kwargs):
     raise AssertionError("revealing a property must not compute anything")
-
-
-def _schedule_from_the_palette(built, bus) -> None:
-    """`reveal_descriptor` -- the command palette's route."""
-    from openchem.events.events import DescriptorComputed
-
-    bus.publish(
-        DescriptorComputed(descriptor=_descriptor("esol_logs", "Aqueous Solubility", "admet"))
-    )
-    assert built.reveal_descriptor("esol_logs"), "the reveal was never scheduled"
-
-
-def _schedule_from_a_finished_calculator(built, bus) -> None:
-    """`_reveal` -- an inline result answering a button press."""
-    built._pending_calculator_id = "topology_analysis"
-    bus.publish(ReportComputed(report=_report(3)))
-    assert built._reveal_target is not None, "the reveal was never scheduled"
-
-
-@pytest.mark.parametrize(
-    "schedule",
-    [_schedule_from_the_palette, _schedule_from_a_finished_calculator],
-    ids=["palette", "finished calculator"],
-)
-def test_a_pending_reveal_is_cancelled_when_the_panel_is_destroyed(qapp, bus, monkeypatch, schedule):
-    """A reveal is deferred by one turn, and the panel can die in it.
-
-    A bare `QTimer.singleShot(0, callable)` is tied to nothing, so a shot
-    scheduled by a panel that is then disposed still fires -- against a
-    live Python wrapper around a freed QScrollArea, which raises
-    `RuntimeError: libshiboken: Internal C++ object ... already deleted`
-    inside whichever unrelated test happens to be pumping events at the
-    time. It surfaced in `test_calculator_sections.py`, an innocent
-    bystander. Passing `self` as Qt's CONTEXT OBJECT disconnects the shot
-    when the panel is destroyed, so it is CANCELLED rather than firing
-    and then declining -- which is why the handler's `row is None` guard
-    could never have helped.
-
-    **BOTH SCHEDULING SITES, because one arm does not cover the other.**
-    Measured: reverting only `_reveal`'s call left the whole two-file
-    reproduction green at 38 passed, so a single-route guard would have
-    signed off on half a fix.
-
-    **THE ALIVE ARM IS THE CONTROL AND IT IS LOAD-BEARING.** A reveal
-    that was never scheduled, or an event pump that delivers no timers,
-    reads exactly like a cancelled one -- so without it this guard would
-    pass just as happily against a panel that had lost the feature
-    altogether.
-    """
-    fired: list[str] = []
-
-    def _record(self) -> None:
-        fired.append("fired")
-
-    # Patched on the CLASS and before construction: `singleShot` captures
-    # the bound method at schedule time, so patching afterwards would
-    # leave the original scheduled and record nothing either way.
-    monkeypatch.setattr(PropertyPanel, "_reveal_pending_result", _record)
-
-    def schedule_a_reveal(*, dispose: bool) -> None:
-        built = PropertyPanel(bus, CalculatorRegistry(), _FakeService(), ChemistryEngine())
-        bus.publish(MoleculeSelected(molecule_uuid=MOLECULE))
-        schedule(built, bus)
-        if dispose:
-            conftest.dispose(built)
-        QCoreApplication.processEvents()
-
-    schedule_a_reveal(dispose=False)
-    assert fired == ["fired"], "the control did not fire, so the arm below proves nothing"
-
-    schedule_a_reveal(dispose=True)
-    assert fired == ["fired"], "a pending reveal outlived the panel that scheduled it"
 
 
 def test_a_pending_metrics_dump_is_cancelled_when_the_panel_is_destroyed(qapp, bus, monkeypatch):
@@ -623,6 +438,19 @@ def test_a_pending_metrics_dump_is_cancelled_when_the_panel_is_destroyed(qapp, b
 
     The alive arm is the control and doubles as the setup assertion: with
     `_INSTRUMENT` left off nothing is scheduled at all, and it fails.
+
+    **SCHEDULED BY A CALCULATOR ROW, AND THAT IS THE THIRD HOME.** It hung
+    off a report row, then off a descriptor row, and 2c removed each in
+    turn -- each time leaving the shot unscheduled, which would have made
+    this guard pass by never arming, the exact vacuity the control arm
+    exists to catch. Both previous homes were RESULT rows, which is why
+    they kept moving; a calculator row is permanent furniture of a
+    launcher.
+
+    **IT IS ALSO THE ONLY DEFERRED SHOT THIS PANEL HAS LEFT.** The reveal
+    that used to sit beside it scrolled to a row and went with the rows, so
+    the parametrised pair above it is gone too -- there is one hazard here
+    now, and this is it.
     """
     import openchem.ui.panels.property_panel as property_panel_module
 
@@ -636,18 +464,31 @@ def test_a_pending_metrics_dump_is_cancelled_when_the_panel_is_destroyed(qapp, b
 
     monkeypatch.setattr(PropertyPanel, "_dump_metrics", _record)
 
-    def build_a_report_row(*, dispose: bool) -> None:
-        built = PropertyPanel(bus, CalculatorRegistry(), _FakeService(), ChemistryEngine())
+    from openchem.domain.calculator import CalculatorDefinition, RegistryExecution
+
+    def build_a_calculator_row(*, dispose: bool) -> None:
+        registry = CalculatorRegistry()
+        registry.register(
+            CalculatorDefinition(
+                calculator_id="topology_analysis",
+                display_name="Topology",
+                category="topology",
+                description="test calculator",
+                execution=RegistryExecution(compute=lambda mol, uuid, params: None),
+            )
+        )
+        built = PropertyPanel(bus, registry, _FakeService(), ChemistryEngine())
         bus.publish(MoleculeSelected(molecule_uuid=MOLECULE))
-        bus.publish(ReportComputed(report=_report(3)))
+        # The rows are built lazily, per section, when one is first asked for.
+        built._section_for("topology")
         if dispose:
             conftest.dispose(built)
         QCoreApplication.processEvents()
 
-    build_a_report_row(dispose=False)
+    build_a_calculator_row(dispose=False)
     assert fired == ["fired"], "nothing was scheduled, so the arm below proves nothing"
 
-    build_a_report_row(dispose=True)
+    build_a_calculator_row(dispose=True)
     assert fired == ["fired"], "a pending metrics dump outlived the panel that scheduled it"
 
 

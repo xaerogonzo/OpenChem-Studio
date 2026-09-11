@@ -1,4 +1,26 @@
-"""Everything computed for one molecule, in one window.
+"""Everything computed for one molecule, as one embeddable widget.
+
+**THE READER IS A WIDGET, NOT A WINDOW, AND THAT IS THE WHOLE POINT OF
+THIS MODULE EXISTING.** All of this lived in `MergedResultsDialog` and was
+therefore a dialog: something you open, read and close. A reader that
+FOLLOWS the selection cannot be a dialog -- it is a dock, and the same
+content also has to be able to sit in a pop-out window -- so the reader
+moved out of the window and the window became a shell around it.
+
+**ONE CLASS, HOWEVER MANY FORMATS.** A docked reader and a popped-out one
+that were two classes would drift the moment one grew a control, and this
+project has paid for two implementations of one idea four times over
+(`is_stripped_residue`, `filter_altlocs`, `is_symmetry_generated`,
+`normalise_element_symbols`). `PopOutHost` MOVES this widget between a
+dock and a window rather than copying it, so focus, filter and scroll
+travel with it by construction rather than by being kept in step.
+
+**THE EXTRACTION IS BEHAVIOUR-NEUTRAL BY CONSTRUCTION**, which is the same
+move `ui/widgets/zoomable_svg_view.py` made out of the Lewis dialog:
+`MergedResultsDialog` keeps its whole surface as delegations and ALIASES
+onto these same objects, so its tests are unmoved rather than rewritten.
+A refactor whose correctness rests on re-testing is a refactor whose
+correctness rests on the tests having been complete.
 
 **THE COMPLAINT THIS EXISTS FOR.** "Details..." opened one calculator's
 report, so running Substance & Bonding and then Lewis Sites replaced the
@@ -7,16 +29,16 @@ and copy, all built for a hundred facts, were being handed four. The
 filter was useless because there was nothing to filter.
 
 **IT IS THE SAME SURFACE, FOCUSED, NOT A SECOND ONE.** Every existing
-"Details..." button still opens this window; it arrives focused on the
+"Details..." button still reaches this reader; it arrives focused on the
 report whose button was pressed, with that report's facts in view and its
 chart drawn. A second parallel Details implementation is exactly what this
 change exists to end.
 
-**MODELESS, AND LIVE.** The old dialog used `exec()`, which blocks the
+**LIVE, AND NEVER MODAL.** The old dialog used `exec()`, which blocks the
 panel -- so with a modal window you could never run the second calculator
-whose results this exists to accumulate. One window per molecule, keyed by
-UUID rather than by object identity (a rebuilt model must not open a
-second window for the same molecule), refreshed as results arrive.
+whose results this exists to accumulate. Keyed by molecule UUID rather
+than by object identity (a rebuilt model must not read as a different
+molecule), refreshed as results arrive.
 
 **STALE RESULTS ARE MARKED, NEVER DISCARDED.** A report describing an
 older revision of the structure is still a record of what was computed.
@@ -32,7 +54,6 @@ from dataclasses import replace
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
-    QDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -51,6 +72,7 @@ from openchem.domain.reader_state import (
 )
 from openchem.domain.report import FactLink
 from openchem.domain.result_ordering import grouped_reports, matching_reports
+from openchem.domain.structure_issue import Severity
 from openchem.domain.visualization_index import declared_visualizations
 from openchem.ui.result_summary import summary_of_merge
 from openchem.ui.widgets.fact_view import FactView
@@ -237,8 +259,12 @@ EMPTY_MESSAGES = {
 GROUP_HEADING = -1
 
 
-class MergedResultsDialog(QDialog):
-    """One molecule's accumulated results, focusable by calculator."""
+class ResultsView(QWidget):
+    """One molecule's accumulated results, focusable by calculator.
+
+    Embeddable rather than a window: a dialog holds one today, a dock and
+    its pop-out window hold one next. Nothing here knows which.
+    """
 
     #: A request to open something -- a fact's own cross-link, or the WHOLE
     #: result the focused entry is a summary of.
@@ -257,12 +283,15 @@ class MergedResultsDialog(QDialog):
 
     def __init__(
         self,
-        molecule_uuid: str,
-        molecule_name: str = "",
+        molecule_uuid: str = "",
         parent: QWidget | None = None,
         display_order_of=None,
     ) -> None:
         super().__init__(parent)
+        # DEFAULTED, because a reader that follows the selection starts
+        # before anything is selected. `reader_state` already has a name for
+        # that state and this window had no route into it -- it was opened
+        # FOR a molecule, so "no molecule" was unreachable here.
         self._molecule_uuid = molecule_uuid
         self._merged = MergedResults(reports=(), facts=())
         self._focus = ""
@@ -275,9 +304,6 @@ class MergedResultsDialog(QDialog):
         # Where this molecule's reader was, if anything is keeping track.
         # Optional, so a window built without one behaves exactly as before.
         self._memory = None
-
-        self.setWindowTitle(f"Results - {molecule_name}" if molecule_name else "Results")
-        self.resize(560, 680)
 
         self._focus_box = QComboBox(self)
         self._focus_box.currentIndexChanged.connect(self._on_focus_changed)
@@ -346,6 +372,17 @@ class MergedResultsDialog(QDialog):
         layout.addWidget(self._view, 1)
         layout.addWidget(self._empty, 1)
 
+        # **RENDER THE INITIAL STATE RATHER THAN ASSUMING IT**, and the guard
+        # for it failed on its first run. `self._empty` is built with the
+        # nothing-computed message, and until this call the widget SHOWED
+        # that whatever it was holding -- true by construction while this was
+        # a dialog, because a dialog is opened FOR a molecule and the other
+        # empty state was unreachable. A reader that follows the selection
+        # starts with no molecule, where that message names the wrong
+        # problem: "nothing has been computed for this molecule" when there
+        # is no molecule sends somebody looking for a calculator to run.
+        self._render()
+
     # --- what it is showing --------------------------------------------------
 
     def set_structure_resolver(self, resolver) -> None:
@@ -367,6 +404,32 @@ class MergedResultsDialog(QDialog):
 
     def molecule_uuid(self) -> str:
         return self._molecule_uuid
+
+    def set_molecule(self, molecule_uuid: str) -> None:
+        """Read a different molecule, holding none of the last one's results.
+
+        **THE CONTENT IS DROPPED HERE RATHER THAN LEFT FOR THE CALLER**, and
+        that is a safety property rather than tidiness. A reader that changed
+        its uuid and kept its reports would render the PREVIOUS molecule's
+        results under the new molecule's name -- every value plausible, every
+        one about something else. It is the same failure class as a stale
+        depiction drawn on the current structure, one level up, and nothing
+        downstream could detect it.
+
+        **IT RECORDS NOTHING.** `_remember` has already written this reader's
+        position on every move that made it, so the outgoing molecule's
+        position is safe; and writing the incoming molecule's EMPTY state here
+        would overwrite the very position the host is about to restore. Same
+        rule `apply_view` follows, and the reason it does not call `_remember`
+        either.
+        """
+        if molecule_uuid == self._molecule_uuid:
+            return
+        self._molecule_uuid = molecule_uuid
+        self._merged = MergedResults(reports=(), facts=())
+        self._focus = ""
+        self._rebuild_focus_box()
+        self._render()
 
     # --- where the reader is ------------------------------------------------
 
@@ -454,6 +517,38 @@ class MergedResultsDialog(QDialog):
         # should be when they come back. `apply_view` deliberately does NOT
         # come through here; see its own note.
         self._remember()
+
+    def reveal_fact(self, report_id: str, label: str) -> bool:
+        """Focus one result and narrow it to a single fact.
+
+        **THE COMMAND PALETTE'S ROUTE, AND IT USED TO BE A SCROLLBAR.** A
+        descriptor cannot be "run" -- the 41 of them are computed as a batch
+        the moment a molecule is selected -- so the palette had no action to
+        offer for them and searching "solubility" returned nothing at all.
+        Revealing is the action that does exist, and until 2c it meant
+        scrolling the Properties panel to a row possibly a thousand pixels
+        down inside a collapsed section.
+
+        There is no row now, so the reveal is done with the control the
+        reader already has: the search box, which narrows to the fact and
+        SHOWS WHY it is the only one on screen. That is strictly better than
+        a scroll for the case it exists for -- an aggregate of 41 values is
+        exactly where "it is on screen somewhere" stops being useful -- and
+        it is undone by clearing one box.
+
+        `everything=True` because a descriptor may be ADVANCED, and a reveal
+        that silently declines to show the specialist half would fail for
+        precisely the values somebody had to search for.
+
+        Returns whether the fact was found, so a caller can say something
+        honest when it was not -- the same contract `open_retained_result`
+        and `open_spatial_view` carry.
+        """
+        if self._merged.report_for(report_id) is None:
+            return False
+        self.set_focus(report_id)
+        self._view.set_filter_state(label, True)
+        return label in self._view.visible_fact_labels()
 
     def _apply_focus(self, report_id: str) -> None:
         # `is not None`. A refused calculator's report has no facts, and
@@ -685,7 +780,24 @@ class MergedResultsDialog(QDialog):
                 title += STALE_MARK
             self._sync_open_button(report)
             self._sync_visualizations(report)
-            self._view.set_report(report, title, self._summary_for(report))
+            # **A FOCUSED REPORT OPENS OPEN, AND ALL RESULTS DOES NOT.**
+            # `DEFAULT_EXPANDED` exists because "a hundred-odd facts
+            # rendered flat is a wall" -- true of every producer at once,
+            # and false of the one somebody just asked for. Focused on
+            # Topology Analysis the reader showed a name and a folded
+            # `Topology (27)`: the answer, one click away and invisible.
+            #
+            # Found by driving the app, exactly as the formulation report's
+            # identical defect was, and fixed with the override written for
+            # that one -- `set_report`'s own docstring already describes
+            # this failure, which is what makes this a call site rather
+            # than a mechanism.
+            self._view.set_report(
+                report,
+                title,
+                self._summary_for(report),
+                expanded={fact.category for fact in report.facts},
+            )
             return
         self._sync_open_button(None)
         self._sync_visualizations(None)
@@ -724,8 +836,79 @@ class MergedResultsDialog(QDialog):
         result computed against an older structure is two facts about it, and
         showing one would leave a reader to discover the other by surprise.
         """
-        parts = [text for text in (self._status_line(report), self._stale_line(report)) if text]
+        parts = [
+            text
+            for text in (
+                self._status_line(report),
+                self._verdict_line(report),
+                self._empty_line(report),
+                self._stale_line(report),
+            )
+            if text
+        ]
         return " ".join(parts)
+
+    def _empty_line(self, report) -> str:
+        """Say that a SUCCESSFUL result produced nothing, rather than nothing.
+
+        **"IT RAN AND FOUND NOTHING" AND "IT NEVER RAN" MUST NOT LOOK THE
+        SAME**, and once the Properties panel stops rendering values this is
+        where that distinction has to live. Measured: a clean catalogue
+        reaches this window through `report_from_alert` with **no facts, no
+        matched lines and no limitations** -- so focusing it showed a title
+        and blankness, which is the "0 facts. is not an explanation" case
+        this method's own docstring names, reached from a second direction.
+
+        **IT DOES NOT SAY "CLEAN", AND `_verdict_line` DOES.** That is a
+        verdict, and only a catalog is entitled to give one -- the rule
+        `AlertResult.severity` exists to keep. This says what a reader can
+        see for themselves is true of ANY successful result with nothing in
+        it, and leaves the chemistry to whoever knows it; a catalog has a
+        better sentence and takes it instead, which is why this stands aside
+        when that one speaks.
+
+        Nothing here fires for a failure or a refusal: those already have a
+        status line saying more, and two sentences where one is enough is how
+        a summary stops being read.
+        """
+        if self._status_line(report) or self._verdict_line(report):
+            return ""
+        if getattr(report, "facts", ()) or getattr(report, "charts", ()):
+            return ""
+        return "This ran and produced no values."
+
+    def _verdict_line(self, report) -> str:
+        """A CATALOG's verdict -- and only a catalog gets to give one.
+
+        **THE SEVERITY USED TO STOP AT THE PANEL**, and once Properties
+        stopped painting alerts this was the only renderer left. Measured
+        before it was carried: a clean PAINS and an elemental analysis with
+        no lines reached here BYTE-IDENTICAL -- no facts, no severity, no
+        limitations -- so `_empty_line` said the same neutral sentence over
+        both. That is precisely the confusion `AlertResult.severity` was
+        introduced to end one layer along: its own docstring says the field
+        exists so a renderer can tell "contains a PAINS substructure" from
+        "weighs 43.025".
+
+        **A MATCH COUNT, NEVER A RE-READING OF THE MATCHES.** The facts are
+        rendered in full below this line; restating them here would be the
+        third copy of one answer, which is the whole reason the panel's rows
+        went. The count is a deterministic projection of declared data, and
+        the verdict is the producer's, not this widget's.
+
+        Silent for a failure or a refusal: those are not verdicts about the
+        molecule, and `_status_line` already says more than this could.
+        """
+        if self._status_line(report):
+            return ""
+        # Declared, never guessed from the id -- `is_catalog`'s rule, applied
+        # to the report the alert was converted into.
+        if getattr(report, "severity", Severity.INFO) is Severity.INFO:
+            return ""
+        matches = len(getattr(report, "facts", ()))
+        if not matches:
+            return "Checked, nothing flagged."
+        return f"{matches} alert(s) matched."
 
     def _status_line(self, report) -> str:
         """The failure or refusal, in the reader's own words.
@@ -733,8 +916,10 @@ class MergedResultsDialog(QDialog):
         `describe_failure` owns which string is the short form and which is
         the full one, so this does not re-decide it -- the HOVER form is right
         here, because a summary line above a report has room for a sentence
-        where a 120 px table cell does not. That is the same call
-        `_present_alert` and the wide rows make.
+        where a 120 px table cell does not. The Properties panel's spanning
+        row used to make the same call for the same reason; 2c removed it,
+        and this is now the only surface in the application with room for
+        the long form.
 
         **A REFUSAL IS NOT A FAULT**, and the existing `inapplicable` field is
         what separates them rather than a second vocabulary invented here: the

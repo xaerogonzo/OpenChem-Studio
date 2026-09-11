@@ -149,6 +149,13 @@ def report_from_alert(alert: AlertResult) -> ReportResult:
         cache_state=alert.cache_state,
         error=alert.error,
         provenance=alert.provenance,
+        # **THE VERDICT TRAVELS.** It used to stop here, and that mattered
+        # the moment the results reader became the only renderer: a clean
+        # PAINS and an elemental analysis with no lines arrived identical,
+        # and a WARNING catalog could not be told from an ERROR one. This is
+        # a genuine catalog being converted, so its severity is real --
+        # unlike `report_fields`, where a migrating calculator declares none.
+        severity=alert.severity,
     )
 
 
@@ -167,9 +174,14 @@ def report_fields(
     every keyword at every site -- there are 20 of them across 13 modules,
     and a 20-way hand edit is 20 chances to transpose a field.
 
-    `severity` is dropped rather than carried: a `ReportResult` is by
-    definition not a catalog, so the field would always be INFO and a
-    field that is always the same value is a field nobody reads.
+    `severity` is dropped rather than carried: a calculator migrating off
+    `AlertResult` is by definition not a catalog, so it has no verdict to
+    give and takes `ReportResult`'s neutral INFO default.
+
+    **THAT IS NOT THE SAME AS SAYING THE FIELD IS ALWAYS INFO**, which is
+    what this note used to claim. `report_from_alert` converts a REAL
+    catalog and carries a real severity; dropping it there is what left the
+    reader unable to tell a PAINS hit from a molecular weight.
     """
     rest.pop("severity", None)
     lines = list(matched or [])
@@ -221,7 +233,14 @@ def is_catalog(alert: AlertResult) -> bool:
     """Whether this result is a genuine alert catalog.
 
     The producer declares it through `severity`; guessing from the id
-    would be a heuristic, and the producer knows. Counted when `severity`
-    was introduced: 5 of 25 `alert_id`s are catalogs.
+    would be a heuristic, and the producer knows.
+
+    **FOUR, re-counted 2026-09-10.** This said "5 of 25", which was true
+    when `severity` was introduced and has drifted since -- the fifth was a
+    regulatory screen, which now publishes a `ReportResult` and does not
+    come through here at all. Walking every `AlertResult` construction in
+    the tree gives 14, of which `mutagenicity_alerts`, `herg_risk_factors`,
+    `pains` and `brenk` declare a non-INFO severity. A count in prose is a
+    dated measurement, so this one carries its date.
     """
     return alert.severity is not Severity.INFO

@@ -569,7 +569,7 @@ importer that reads them (`cif`, `sdf`, `xyz`, `mmcif`, `pdb`), and a
 calculator's own tags find it by subject, so `toxicity` reaches ADMET and
 `screening` reaches Virtual Screening. A **computed property** cannot be
 run — the whole batch is computed when you select a molecule — so choosing
-one scrolls the Properties panel to its row instead, which is the useful
+one opens Results and narrows it to that value instead, which is the useful
 answer to "where is ESOL?".
 
 Type initials: `qc` finds Quantum Chemistry, `sck` finds Structure Check.
@@ -616,15 +616,23 @@ the thing that needs the room.
 <!-- help:properties -->
 ## Properties
 
-The Properties panel is where most calculation happens. It has **23
-collapsible categories** covering **60 registered calculators**;
-Physicochemical and Identity are open by default.
+The Properties panel is where a calculation is **started**, and the
+[Results](#results) panel is where one is **read**. It has **20 collapsible
+categories** covering **60 registered calculators**; Identity is open by
+default.
 
-Scalar descriptors compute eagerly — the whole batch finishes in well under
-a millisecond, so there is no waiting and no lazy-loading complexity.
-Anything that needs a parameter, or that produces per-atom data worth
-looking at, gets a **button of its own** instead, labelled with the
-calculator's name and a trailing `…`.
+Each calculator gets a row: a tick box that adds it to a batch run, a
+**button** labelled with its name and a trailing `…`, and a **status chip**
+saying where it stands — `Not run`, `Running…`, `✓ Ready`, `! Stale`,
+`✕ Failed` or `○ Not applicable`. Pressing the chip opens that result in
+Results.
+
+Scalar descriptors still compute eagerly — the whole batch finishes in well
+under a millisecond, so there is no waiting and no lazy-loading complexity —
+and they are read in Results as a single **Molecular Properties** entry
+where each keeps its own units, provenance and state. The command palette
+can put one in front of you: choosing a computed property opens Results and
+narrows it to that value.
 
 That ellipsis is a promise and it is kept: every one of them opens a
 **settings dialog built from the calculator's own parameter list** (pH, decimal places, a SMARTS string, whatever that
@@ -864,6 +872,107 @@ than rendering blank. Roughly half of all molecules name to a form that
 carries no atom indices at all, and for those the locants come from ring
 templates instead of from the name — so an empty or partial result is a
 property of the naming path, not a failure.
+
+---
+
+<!-- help:results -->
+## Results
+
+Everything computed for the selected molecule, in one place, kept as
+results arrive. Properties is where you *start* a calculation; Results is
+where you *read* one.
+
+It **follows the selection**. Choose another molecule and Results shows
+that molecule's results; come back and it returns to whatever you were
+reading, including the search text you had typed. Nothing is recomputed by
+looking.
+
+### Showing
+
+The **Showing** list holds every result this molecule has, grouped under
+the same section headings the Properties panel uses, so a calculator's
+answer is filed where its button is. Section headings are shown in bold
+and cannot be selected — they name a group rather than being an entry in
+it. **All results** shows every producer's facts at once and is what the
+panel opens on.
+
+With everything run, that list is around sixty entries across twenty
+sections, which is why there are two search boxes and not one:
+
+- the box **above** the list narrows *which result* you are looking at, by
+  name or by section — so `solubility` finds everything filed there
+  whatever each entry is called;
+- the box **below** it narrows *the values inside* the result you have
+  chosen.
+
+They answer different questions, so neither one can stand in for the
+other. Filtering the list never changes what you are currently reading:
+the entry in view stays in the list whether or not it matches.
+
+### Hovering a value
+
+Each row answers two different questions, and they are on two different
+halves of it:
+
+- hover the **name** and you get what the quantity IS — a definition plus
+  the qualifier that matters most, such as the unit, the range, or the
+  thing it is easy to read it as and should not be. The forty-one
+  always-on **Molecular Properties** all carry one.
+- hover the **value** and you get where it came FROM — the producer, the
+  basis (deterministic or heuristic), and any evidence or limitations the
+  calculator declared.
+
+A value with nothing written about its meaning shows its provenance on both
+halves rather than nothing on one. For a calculator's own facts that is
+usually the whole answer anyway.
+
+### Summaries, and opening the whole thing
+
+Not every calculator produces a list of facts. A per-atom dataset, a curve,
+a spectrum, a set of structures and a trajectory each arrive here as a
+**summary** — a count, a range, and whatever total the calculator itself
+declared. Nothing is summed on your behalf: a total appears only where the
+producer stated one, because adding up per-atom values is meaningful for
+some properties and meaningless for others.
+
+Where the whole result lives in a viewer of its own, a button beside the
+Showing list opens it there and says which viewer it is. It computes
+nothing and re-runs nothing.
+
+### Visualizations
+
+A result may declare pictures as well as values, and they are listed
+together with what each one *is*:
+
+- **Chart** — a plot of numbers, drawn below the facts.
+- **2D depiction** — the structure as drawn, with atoms marked on it, also
+  drawn below the facts.
+- **3D overlay** — a vector, a cone or a set of axes drawn on a conformer.
+  This opens in its own window rather than inline, because it needs a 3D
+  view and a fact list is the wrong shape for one.
+
+The first two say *shown below* rather than offering a button, because
+they are already on screen a few rows down.
+
+### Stale results
+
+A result computed for an earlier version of the structure is **marked, not
+discarded** — its entry reads *(stale)* and a line above the facts says so.
+The values stay readable, because a record of what was computed is still a
+record. What refuses is any picture tied to atom numbering: a depiction or
+an overlay describes the structure as it was, so drawing it on the current
+one would point at the wrong atoms. It says that instead of drawing.
+
+Re-run the calculator to refresh it.
+
+### Seeing it beside Properties
+
+One right-hand panel is visible at a time, so choosing Results replaces
+Properties rather than sitting next to it. To read results while you start
+more calculations, use the **↗** button in the panel's header to move
+Results into its own window — the panel and the window are the same view,
+so your position, filter and scroll travel with it. Closing that window,
+or pressing its **Return to panel** button, puts it back.
 
 ---
 

@@ -67,6 +67,7 @@ from openchem.ui.widgets.collapsible_section import (
     ExplicitHeightLabel,
     WrappedLabel,
 )
+from openchem.ui.fact_help import contract_for
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.chart_widgets import CHART_WIDGET_TYPES, chart_widget_for
 from openchem.ui.widgets.stick_chart_widget import StickChartWidget
@@ -635,22 +636,51 @@ class FactView(QWidget):
 
         self._status.setText(self._status_text(report, shown, needle, hidden_by_depth))
 
+    def _caption(self, section: CollapsibleSection, fact: Fact, provenance: str) -> QLabel:
+        """The fact's NAME, carrying what the fact MEANS.
+
+        **THE CAPTION IS WHAT A READER HOVERS, AND IT HAD NO TOOLTIP AT
+        ALL.** `addRow(str, widget)` has Qt build the label for you, and a
+        label Qt built carries nothing -- so the provenance went on the
+        value and the question people actually ask, "what IS this", was
+        answered nowhere. That is the complaint the whole help layer started
+        from: somebody asked what the docking table's "RMSD l.b." column
+        meant and the application had no answer.
+
+        **MEANING HERE, PROVENANCE ON THE VALUE.** Two different questions,
+        and folding both into one tooltip makes the long one unreadable. The
+        name says what the quantity is; the number says where it came from.
+
+        A fact with no contract falls back to the provenance rather than to
+        nothing: a dead hover on the thing a reader points at first is worse
+        than a repeated one, and for a calculator's own facts the evidence
+        and limitations really are the whole answer.
+        """
+        caption = QLabel(fact.label, section.content)
+        contract = contract_for(fact.help_id)
+        if contract is not None:
+            apply_help_tooltip(caption, contract)
+        elif provenance:
+            caption.setToolTip(provenance)
+        return caption
+
     def _add_row(self, section: CollapsibleSection, fact: Fact) -> None:
+        provenance = "\n".join(
+            [
+                f"Source: {fact.source}",
+                f"Basis: {fact.basis.value}",
+                *fact.evidence,
+                *fact.limitations,
+            ]
+        )
         value = _FactRow(fact.value_with_units, section.content)
         value.setProperty(_FACT_PROPERTY, fact)
-        value.setToolTip(
-            "\n".join(
-                [
-                    f"Source: {fact.source}",
-                    f"Basis: {fact.basis.value}",
-                    *fact.evidence,
-                    *fact.limitations,
-                ]
-            )
-        )
+        value.setToolTip(provenance)
         value.hovered.connect(self._on_row_hovered)
         if fact.link is None:
-            section.content_layout().addRow(fact.label, value)
+            section.content_layout().addRow(
+                self._caption(section, fact, provenance), value
+            )
             return
 
         row = QWidget(section.content)
@@ -663,7 +693,7 @@ class FactView(QWidget):
         open_button.setProperty(_LINK_PROPERTY, fact.link)
         open_button.clicked.connect(self._on_link_clicked)
         row_layout.addWidget(open_button)
-        section.content_layout().addRow(fact.label, row)
+        section.content_layout().addRow(self._caption(section, fact, provenance), row)
 
     def _status_text(self, report, shown: int, needle: str, hidden_by_depth: int) -> str:
         total = len(report.facts)

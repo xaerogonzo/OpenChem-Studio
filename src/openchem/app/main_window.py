@@ -105,6 +105,8 @@ from openchem.ui.widgets.dock_title_bar import DockTitleBar
 from openchem.ui.panels.comparison_panel import ComparisonPanel
 from openchem.ui.fact_link_router import FactLinkRouter
 from openchem.ui.widgets.panel_rail import DEFAULT_GROUP, PanelRail
+from openchem.ui.widgets.pop_out_host import PopOutHost
+from openchem.ui.widgets.results_view import ResultsView
 from openchem.ui.widgets.molecule_editor_widget import MoleculeEditorWidget
 from openchem.ui.widgets.molecule_viewer3d_widget import MoleculeViewer3DWidget
 from openchem.ui.widgets.molstar_viewer_backend import MolStarViewerBackend
@@ -251,7 +253,7 @@ def initial_right_dock_width(available_width: int, dock_minimum: int) -> int:
     return max(dock_minimum, min(_INITIAL_RIGHT_DOCK_WIDTH, available_width // 4))
 
 
-_LAYOUT_VERSION = "3"
+_LAYOUT_VERSION = "4"
 _LAYOUT_VERSION_KEY = "ui/layout_version"
 _RAIL_COLLAPSED_KEY = "ui/rail_collapsed"
 
@@ -281,6 +283,7 @@ def _as_bool(value: object) -> bool:
 HELP_TOPIC_BY_DOCK = {
     "Project_Explorer": "projects",
     "Properties": "properties",
+    "Results": "results",
     "Docking": "docking",
     "Quantum_Chemistry": "quantum-chemistry",
     "Batch": "batch",
@@ -582,6 +585,57 @@ class MainWindow(QMainWindow):
             Qt.DockWidgetArea.RightDockWidgetArea,
         )
 
+        # **THE READER, AS A PANEL.** Properties is where a calculation is
+        # STARTED; this is where one is READ. It follows the selection, so
+        # unlike the per-molecule window it is never closed -- which is the
+        # whole reason the reading moved out of `MergedResultsDialog` into a
+        # widget in the first place.
+        #
+        # **IN A `PopOutHost`, AND THAT IS LOAD-BEARING RATHER THAN A
+        # FLOURISH.** One right-hand panel is visible at a time, so choosing
+        # Results REPLACES Properties -- and reading results while starting
+        # more calculations is the exact workflow the merged reader exists
+        # for. `_show_only_right_dock` already records the answer in its own
+        # docstring ("a dock the user has floated is left alone: they have
+        # deliberately pulled it out to see it alongside something else");
+        # the pop-out is that, with the position and filter travelling
+        # because the widget MOVES rather than being copied.
+        #
+        # **`_wrap_scrollable`, FOR THE REASON THE ATOM INSPECTOR IS**, and
+        # the first attempt without it is what measured the reason.
+        # `FactView` scrolls its own FACTS, and its own control row --
+        # search box, depth combo, format combo, Copy report -- is a
+        # `QHBoxLayout`, whose minimum width is the SUM of its children:
+        # 150 + 150 + 146 + the box, i.e. **482 px under `offscreen`**.
+        # Unwrapped that reaches the window, which went to **1474 px**
+        # against the 1366 this product supports, and four width guards
+        # said so. The Atom Inspector holds the same `FactView` and sits at
+        # 266 precisely because it is wrapped.
+        self._results_view = ResultsView(
+            display_order_of=services.calculator_registry.display_order
+        )
+        self._results_host = PopOutHost(
+            self._results_view,
+            title="Results",
+            settings_id="results",
+            settings=settings,
+        )
+        results_dock = self._add_dock(
+            "Results",
+            self._wrap_scrollable(self._results_host),
+            Qt.DockWidgetArea.RightDockWidgetArea,
+        )
+        self._results_dock = results_dock
+        # The panel owns the results and the reading position; the reader
+        # renders them. Attached rather than constructed there, because the
+        # dock belongs to the window and the panel must work without one --
+        # and the panel is handed a way to REVEAL the reader rather than a
+        # reference to the dock, because where the reader lives is this
+        # window's business and not the panel's.
+        self._property_panel.attach_reader(
+            self._results_view, reveal=self.reveal_results
+        )
+
         # THE RIGHT-HAND PANELS ARE NO LONGER TABIFIED, and the tab bar is
         # gone with them.
         #
@@ -602,6 +656,7 @@ class MainWindow(QMainWindow):
         # exactly what tabifying was working around.
         self._right_docks: list[QDockWidget] = [
             self._properties_dock,
+            results_dock,
             atom_inspector_dock,
             interactions_dock,
             self._structure_check_dock,
@@ -614,6 +669,7 @@ class MainWindow(QMainWindow):
         ]
         for dock, group in (
             (self._properties_dock, "analysis"),
+            (results_dock, "analysis"),
             (atom_inspector_dock, "analysis"),
             (interactions_dock, "analysis"),
             (self._structure_check_dock, "analysis"),
@@ -929,16 +985,30 @@ class MainWindow(QMainWindow):
         return commands
 
     def _reveal_descriptor(self, descriptor_id: str) -> None:
-        """Show the Properties panel and scroll to one computed value.
+        """Put one computed value in front of somebody.
 
         Routed through the window rather than the palette reaching into
         the panel, for the reason `_on_atom_fact_link` gives: the panel
         should not have to know how to reveal itself, and the rail has to
         be told too or navigation claims one thing while the screen shows
         another.
+
+        **IT USED TO SHOW PROPERTIES, AND THE VALUE IS NOT THERE ANY
+        MORE.** 2c makes Properties a launcher; the descriptors are read in
+        the Results panel, as one aggregate entry. The panel reveals the
+        reader itself on the way -- `_show_in_reader` asks this window
+        through the callback `attach_reader` was given -- so there is
+        nothing to show here on the happy path.
+
+        **THE FAILURE PATH IS WHY PROPERTIES IS STILL NAMED.** Both
+        refusals -- nothing selected, and not computed for this molecule --
+        are written into the Properties panel's status line, which is
+        invisible if the rail is left on Results. Showing it is how the
+        answer reaches the person who asked; a silent no-op is the thing
+        0g exists to forbid.
         """
-        self._on_panel_chosen("Properties")
-        self._property_panel.reveal_descriptor(descriptor_id)
+        if not self._property_panel.reveal_descriptor(descriptor_id):
+            self._on_panel_chosen("Properties")
 
     def _menu_actions(self) -> list[tuple[str, str, object]]:
         """Every leaf action on the live menu bar, as (label, menu, action).
@@ -1111,6 +1181,39 @@ class MainWindow(QMainWindow):
         return HELP_TOPIC_BY_CENTRE_TAB.get(
             self._center_tabs.tabText(self._center_tabs.currentIndex()), "projects"
         )
+
+    def reveal_results(self) -> None:
+        """Put the results reader somewhere it can be read.
+
+        **THREE STATES, AND THE RULE NEVER OVERRIDES AN ARRANGEMENT
+        SOMEBODY HAS ALREADY MADE.**
+
+            already detached   raise that window
+            the visible panel  do nothing -- it is already on screen
+            hidden             detach it, so Properties stays put
+
+        The last row is what makes "Details..." behave as it always has:
+        the button opened a live window beside the panel, and one right-hand
+        panel is visible at a time, so revealing the DOCK would take
+        Properties off screen -- hiding the calculator buttons at the moment
+        somebody is working through them. `_show_only_right_dock`'s own
+        docstring records the same reasoning from the other side.
+
+        The middle row is the half that keeps it honest: somebody who has
+        deliberately chosen Results in the rail gets the report focused
+        where they put it, not yanked into a window.
+        """
+        if self._results_host.is_popped_out():
+            # Idempotent: this raises the existing window rather than
+            # building a second one driving the same view.
+            self._results_host.pop_out()
+            return
+        # `isHidden`, never `isVisible` -- this repository has paid twice
+        # for `isVisible()` being False for every child of a window that
+        # has not been shown, which is every window under test.
+        if not self._results_dock.isHidden():
+            return
+        self._results_host.pop_out()
 
     def _wrap_scrollable(self, widget: QWidget) -> QScrollArea:
         """Defensive floor for form-heavy panels (Docking, Quantum Chemistry):

@@ -22,7 +22,13 @@ from pathlib import Path
 
 import pytest
 
-from openchem.ui.widgets.help_tooltip import HelpTooltip, HelpTooltipError
+from openchem.ui.widgets.help_tooltip import (
+    MINIMUM_LENGTH,
+    HelpTooltip,
+    HelpTooltipError,
+    normalised_text,
+    placeholder_reason,
+)
 from openchem.ui.widgets.tooltip_inventory import (
     iter_documentable_controls,
     iter_exclusions,
@@ -234,43 +240,22 @@ def test_a_claimed_source_key_is_in_the_registry(controls):
         assert key in keys, f"{control.instance_path} cites unknown source {key!r}"
 
 
-#: Rejected outright. A FLOOR, NOT A QUALITY ORACLE -- and what is
-#: deliberately excluded matters as much as what is here: no label-overlap
-#: detection, no noun/verb heuristics, no word-count rules, no
-#: "must contain units" regexes, no LLM grading. Every one of those turns a
-#: useful structural check into a brittle pseudo-language-model that is
-#: satisfied by nonsense like "Maximum poses. Higher values."
-_DEGENERATE = frozenset({
-    "options", "settings", "choose a value", "select a value",
-    "input", "value", "details", "help",
-})
-
-#: Tiers 2 and 3 must say more than a label restated. Conservative on
-#: purpose: long enough to exclude "Poses." and short enough not to become
-#: a writing-style rule.
-_MINIMUM_LENGTH = {2: 40, 3: 80}
-
-
-def _normalised(text: str) -> str:
-    return " ".join(text.casefold().split()).rstrip(".")
-
-
 def test_no_contract_is_a_placeholder(controls):
+    """The floor, applied to every control the walk finds.
+
+    **THE RULE ITSELF MOVED INTO PRODUCTION**, because a second population
+    now needs it: a `Fact`'s contract hangs on a caption label, which is not
+    an interactive widget and is therefore outside this walk altogether.
+    `tests/test_fact_help.py` holds that half and asks the same function, so
+    the two cannot drift into different standards.
+    """
     found, _ = controls
     for control in found:
         tooltip = control.help_tooltip
         if tooltip is None:
             continue
-        normalised = _normalised(tooltip.text)
-        assert normalised not in _DEGENERATE, (
-            f"{control.instance_path} ({tooltip.help_id}) has placeholder text {tooltip.text!r}"
-        )
-        floor = _MINIMUM_LENGTH.get(tooltip.tier)
-        if floor is not None:
-            assert len(normalised) >= floor, (
-                f"{tooltip.help_id} is tier {tooltip.tier} but only {len(normalised)} characters: "
-                f"{tooltip.text!r}"
-            )
+        reason = placeholder_reason(tooltip)
+        assert reason is None, f"{control.instance_path} ({tooltip.help_id}) has {reason}"
 
 
 def test_the_cli_and_this_guard_share_one_discovery_layer():
@@ -732,9 +717,9 @@ def test_a_weak_but_well_formed_contract_is_ACCEPTED(controls):
 
     weak.validate()  # the structural contract: must not raise
 
-    normalised = _normalised(weak.text)
-    assert normalised not in _DEGENERATE
-    assert len(normalised) >= _MINIMUM_LENGTH[weak.tier], (
+    normalised = normalised_text(weak.text)
+    assert placeholder_reason(weak) is None
+    assert len(normalised) >= MINIMUM_LENGTH[weak.tier], (
         "the degenerate-string floor has grown into a prose grader: it now "
         "rejects a contract that is merely UNINFORMATIVE rather than "
         "malformed. Judging whether wording explains a control is a "

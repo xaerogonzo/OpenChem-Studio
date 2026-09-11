@@ -1529,41 +1529,55 @@ class _Driver(QObject):
         self._spatial.show()
 
     def _do_results(self, step: dict[str, Any]) -> None:
-        """Open the merged results window, optionally focused on one report.
+        """Show the results reader, optionally focused on one report.
 
         `{"do": "results", "focus": "elemental_analysis"}`, then
         `{"do": "shot", "widget": "results"}`.
 
-        **IT GOES THROUGH THE PANEL'S OWN OPENER, NOT THE DIALOG'S
-        CONSTRUCTOR.** Building a `MergedResultsDialog` here would prove
-        the dialog renders and say nothing about the thing that changed:
-        which reports the panel hands it, which version it compares them
-        against, and whether the window is the one that later results
-        land in. That is the `jobs_cancel` rule -- press the control, not
-        the handler behind it.
+        **IT GOES THROUGH THE PANEL'S OWN ROUTE, NOT THE READER'S API.**
+        Calling `set_reports` on the view here would prove the view renders
+        and say nothing about the thing that changed: which reports the
+        panel hands it, which version it compares them against, and whether
+        the reader is the one that later results land in. That is the
+        `jobs_cancel` rule -- press the control, not the handler behind it.
 
-        It LOGS what the window is showing, because two of this feature's
-        states photograph identically. A window with one calculator's
-        facts and a window focused on one calculator OUT OF SIX look the
-        same in a screenshot, and a stale badge is a few pixels of text.
+        It LOGS what the reader is showing, because two of this feature's
+        states photograph identically. A reader with one calculator's facts
+        and one focused on a calculator OUT OF SIX look the same in a
+        screenshot, and a stale badge is a few pixels of text.
         """
         panel = self._window._property_panel
         if step.get("close"):
-            # **THE REAL CLOSE, WITH `WA_DeleteOnClose` ON IT.** A reader's
-            # position has to survive the window being destroyed, which is
-            # the one thing a test holding a live widget cannot demonstrate
-            # by itself -- and it is the transition the memory exists for.
-            if getattr(panel, "_results_window", None) is not None:
-                panel._results_window.close()
+            # **RETURNS A DETACHED READER RATHER THAN DESTROYING ONE.** The
+            # reader is persistent now, so there is no close -- what this
+            # step meant (put it away and prove the position survives) is
+            # `return_home`, and the position has to survive that too.
+            self._window._results_host.return_home()
             self._results = None
-            logger.warning("OPENCHEM_DRIVE: results tag=%s CLOSED", step.get("tag", ""))
+            logger.warning("OPENCHEM_DRIVE: results tag=%s RETURNED", step.get("tag", ""))
             return
-        panel._open_results_window(focus=str(step.get("focus") or ""))
-        window = panel._results_window
+        panel._show_in_reader(focus=str(step.get("focus") or ""))
+        window = panel._attached_reader
         if window is None:
-            logger.error("OPENCHEM_DRIVE: no results window opened -- is a molecule selected?")
+            logger.error("OPENCHEM_DRIVE: no results reader attached to the panel")
             return
         self._results = window
+        # **WHERE THE READER IS, WHICH NO SCREENSHOT CARRIES.** A docked
+        # reader and a detached one holding the same report photograph
+        # almost identically, and `reveal_results` picks between three
+        # outcomes -- raise, do nothing, detach -- that differ only in
+        # which window the pixels end up in. So the flag is logged, and
+        # the detached window is handed to `shot widget=popout`, which
+        # otherwise only knows about a window the HARNESS opened.
+        host = getattr(self._window, "_results_host", None)
+        detached = bool(host is not None and host.is_popped_out())
+        if detached:
+            self._popout = host.window()
+        logger.warning(
+            "OPENCHEM_DRIVE: results reader detached=%s dock_hidden=%s",
+            detached,
+            self._window._results_dock.isHidden(),
+        )
         # THE SELECTOR SEARCH, TYPED INTO THE REAL BOX. `setText` is what a
         # user's keystrokes reach, and it fires the handler that rebuilds and
         # remembers -- calling `_rebuild_focus_box` here would prove the list
@@ -1725,7 +1739,7 @@ class _Driver(QObject):
         top-level window, so `PrintWindow` on the application does not
         capture it.
         """
-        from openchem.ui.dialogs.merged_results_dialog import GROUP_HEADING
+        from openchem.ui.widgets.results_view import GROUP_HEADING
 
         box = window._focus_box
         model = box.model()
@@ -2264,6 +2278,12 @@ class _Driver(QObject):
         """
         if name == "properties":
             return self._window._property_panel
+        if name == "results":
+            # The reader itself, never the dock or the scroll wrapper around
+            # it: the oracle maps painted items into the surface's own
+            # rectangle, and handing it the wrapper would measure the
+            # viewport rather than the thing laid out inside it.
+            return self._window._results_view
         if name == "batch":
             return self._window._batch_panel
         if name == "compare":

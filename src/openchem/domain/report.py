@@ -24,7 +24,7 @@ from enum import Enum
 from typing import Any
 
 from openchem.domain.common import ScientificResult
-from openchem.domain.structure_issue import Basis
+from openchem.domain.structure_issue import Basis, Severity
 from openchem.domain.visualization import VisualizationLayer
 
 
@@ -211,6 +211,20 @@ class Fact:
     #: viewer, and an out-of-range index raised `RuntimeError: Range Error`
     #: inside a Qt signal handler the last time this was assumed.
     highlight: tuple[int, ...] = ()
+    #: A stable SEMANTIC identifier for what this fact MEANS, which a view
+    #: resolves to a help contract -- `descriptor.tpsa`.
+    #:
+    #: **AN ID, NEVER A `HelpTooltip`.** That class is a UI object, and a
+    #: domain dataclass holding one would put presentation inside `domain/`
+    #: -- the layering `tests/test_layering.py` enforces. The producer names
+    #: the concept; `ui/fact_help.py` says what the concept means.
+    #:
+    #: Empty means "nothing written for this one", which is the ordinary
+    #: case and not a failure: a calculator's facts already carry their own
+    #: evidence and limitations on the row, and the registry exists for
+    #: values that have nowhere else to say what they are. It defaults to
+    #: empty so every existing producer is untouched.
+    help_id: str = ""
 
     @property
     def value_with_units(self) -> str:
@@ -947,6 +961,25 @@ class ReportResult(StructureReport):
     report_id: str  # e.g. "geometry_analysis", matching the calculator id
     name: str  # display name, e.g. "Geometry"
     category: str = "other"
+    #: Whether a MATCH here means "look at this" -- the catalog verdict,
+    #: carried rather than dropped.
+    #:
+    #: **IT IS HERE BECAUSE DROPPING IT RE-CREATED THE DEFECT THE FIELD WAS
+    #: INVENTED TO FIX.** `AlertResult.severity`'s own docstring says why it
+    #: exists: "without it a renderer cannot tell 'this molecule contains a
+    #: PAINS substructure' from 'this molecule weighs 43.025'". Once the
+    #: Properties panel stopped painting alerts itself, the results reader
+    #: became that renderer -- and `report_from_alert` was handing it a
+    #: report with the verdict already discarded. Measured: a clean PAINS and
+    #: an elemental analysis with no lines arrived BYTE-IDENTICAL (no facts,
+    #: no severity), and a WARNING catalog was indistinguishable from an
+    #: ERROR one.
+    #:
+    #: INFO by default, which keeps `report_fields` honest: a calculator
+    #: migrating away from `AlertResult` is by definition not a catalog, so
+    #: it declares nothing and gets the neutral value. Only
+    #: `report_from_alert`, converting a genuine catalog, carries a real one.
+    severity: Severity = Severity.INFO
     #: Geometry the CALCULATION produced -- a dipole vector, a swept cone,
     #: measured axes -- drawable on the conformer the calculator ran on.
     #:

@@ -107,8 +107,18 @@ SKIP_FILES = {REGISTRY, GENERATED}
 SYNTAX_DOCUMENTING_FILES = {
     Path(__file__).resolve(),
     ROOT / "tools" / "build_sources_doc.py",
-    ROOT / "CLAUDE.md",
 }
+
+#: The key used when the SYNTAX is being shown rather than a source cited.
+#:
+#: **NARROWER THAN EXCLUDING THE FILE, AND THAT IS THE POINT.** The lesson
+#: log documents this syntax and carries twenty-one real citations; the
+#: whole-file exemption it inherited from `CLAUDE.md` silenced its own
+#: example by dropping every one of them out of the sweep. Skipping the
+#: placeholder instead leaves the real ones checked -- which is how they
+#: came to be checked for the first time, having lived their whole life
+#: inside an exempted file.
+PLACEHOLDER_KEYS = {"key"}
 
 
 @lru_cache(maxsize=1)
@@ -330,7 +340,7 @@ def test_every_source_reference_resolves():
     unresolved = sorted({
         f"{_rel(path)}: [source:{ref}]"
         for path, ref in _source_refs()
-        if ref not in keys
+        if ref not in keys and ref not in PLACEHOLDER_KEYS
     })
     assert not unresolved, "source references naming no registry entry:\n" + "\n".join(unresolved)
 

@@ -208,6 +208,20 @@ _CATEGORY_BY_NAME: dict[str, FactCategory] = {
     "identity": FactCategory.IDENTITY,
     "naming": FactCategory.IDENTITY,
     "physicochemical": FactCategory.IDENTITY,
+    # **ADDED WHEN THE DESCRIPTORS STOPPED BEING GROUPED BY THE PANEL.**
+    # Both were unlisted and took the STRUCTURE default, which nobody saw
+    # while the Properties panel filed LogP under its own "Lipophilicity"
+    # heading and Aqueous Solubility under "Solubility". 2c makes the
+    # reader's grouping the only grouping, and measured there, LogP
+    # appeared under Structure.
+    #
+    # IDENTITY because that is where their siblings already are: Molecular
+    # Weight and TPSA declare `physicochemical` and map here. This is
+    # consistency with an existing entry rather than a new taxonomy call --
+    # the taxonomy review itself is stage 3, and the six categories still
+    # taking the default are named in `test_calculator_taxonomy.py`.
+    "lipophilicity": FactCategory.IDENTITY,
+    "solubility": FactCategory.IDENTITY,
     "charge": FactCategory.ELECTRONIC,
     "electronic": FactCategory.ELECTRONIC,
     "quantum": FactCategory.QUANTUM,

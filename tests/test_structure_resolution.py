@@ -38,7 +38,7 @@ from openchem.domain.structure_resolution import (
     resolve_structure_for_report,
     structure_request,
 )
-from openchem.ui.dialogs.merged_results_dialog import MergedResultsDialog
+from openchem.ui.widgets.results_view import ResultsView
 from openchem.ui.widgets.depiction_widget import DepictionWidget
 from tests.conftest import dispose
 
@@ -191,7 +191,7 @@ def test_the_lewis_depiction_actually_draws(qapp):
     """
     report, molblock = _lewis_report(4)
     project = _project(molblock)
-    dialog = MergedResultsDialog("u")
+    dialog = ResultsView("u")
     dialog.set_structure_resolver(lambda r: resolve_structure_for_report(r, project, 4))
     dialog.set_reports([report], structure_version=4)
     dialog.set_focus("lewis_sites")
@@ -207,7 +207,7 @@ def test_a_stale_lewis_depiction_refuses_on_screen(qapp):
     not in a tooltip. A reader who cannot see it has been shown a blank."""
     report, molblock = _lewis_report(4)
     project = _project(molblock)
-    dialog = MergedResultsDialog("u")
+    dialog = ResultsView("u")
     dialog.set_structure_resolver(lambda r: resolve_structure_for_report(r, project, 5))
     dialog.set_reports([report], structure_version=5)
     dialog.set_focus("lewis_sites")
@@ -232,7 +232,7 @@ def test_a_view_with_no_resolver_still_renders_a_chart_that_needs_no_structure(q
         x_descending=False,
         title="Curve",
     )
-    dialog = MergedResultsDialog("u")
+    dialog = ResultsView("u")
     dialog.set_reports([ReportResult(report_id="c", name="C", molecule_uuid="u", charts=(chart,))])
     dialog.set_focus("c")
     assert any(isinstance(w, LineChartWidget) for w in dialog._view.chart_widgets())
@@ -245,7 +245,7 @@ def test_a_resolver_that_raises_refuses_rather_than_escaping_the_paint_path(qapp
     def boom(_report):
         raise RuntimeError("project exploded")
 
-    dialog = MergedResultsDialog("u")
+    dialog = ResultsView("u")
     dialog.set_structure_resolver(boom)
     dialog.set_reports([report], structure_version=1)
     dialog.set_focus("lewis_sites")

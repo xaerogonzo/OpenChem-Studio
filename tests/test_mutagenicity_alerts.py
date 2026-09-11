@@ -16,6 +16,8 @@ genotoxicity records. SMILES are the canonical PubChem strings used by
 from __future__ import annotations
 
 import pytest
+
+from tests.conftest import dispose
 from rdkit import Chem
 
 from openchem.chem.descriptor_providers import (
@@ -165,15 +167,34 @@ def test_the_alert_reaches_the_properties_panel(qapp):
     alert = compute_mutagenicity_alerts(Chem.MolFromSmiles(SMILES["2-nitrofluorene"]), "mol-1")
     bus.publish(AlertComputed(alert=alert))
 
-    assert "admet" in panel._sections, "lands in the ADMET / Toxicity section"
-    label = panel._alert_labels[("core", "mutagenicity_alerts")]
-    assert "Aromatic nitro" in label.text()
+    # **THE READER, NOT A PANEL ROW.** Properties is the launcher now; what
+    # "reaches the user" means is that the result is held and filed under
+    # the section its producer names, which is what the reader groups by.
+    report = panel._reports["mutagenicity_alerts"]
+    assert report.category == "admet", "filed under ADMET / Toxicity"
+    assert any("Aromatic nitro" in line for line in report.matched)
 
 
-def test_a_clean_molecule_reads_as_clean_in_the_panel(qapp):
-    """An empty alert list must render as "Clean" rather than blank --
-    otherwise a screen that ran and found nothing looks identical to one
-    that never ran."""
+def test_a_clean_molecule_still_says_it_ran(qapp):
+    """A screen that ran and found nothing must not look like one that
+    never ran.
+
+    **THE PANEL SAID "Clean" AND THE READER SAID NOTHING AT ALL.** Measured
+    while emptying the launcher: a clean catalogue reaches the reader
+    through `report_from_alert` with no facts, no matched lines and no
+    limitations, so focusing it showed a title and blankness. Two things
+    now separate it from a calculator nobody ran -- the entry EXISTS, and
+    the reader says so above the (absent) facts.
+
+    **AND IT GIVES THE VERDICT, WHICH IT COULD NOT WHEN THIS WAS WRITTEN.**
+    The first version of this said the reader deliberately does not, on the
+    ground that only a catalog is entitled to one. The entitlement was never
+    the problem: `report_from_alert` was DROPPING `severity`, so the reader
+    had no way to know it was holding a catalog at all. Carrying it is what
+    makes the verdict sayable, and a report with nothing to say still gets
+    the neutral sentence -- `tests/test_property_panel_reader.py` asserts
+    both directions.
+    """
     from openchem.chem.engine import ChemistryEngine
     from openchem.events.base import EventBus
     from openchem.events.events import AlertComputed, MoleculeSelected
@@ -195,7 +216,13 @@ def test_a_clean_molecule_reads_as_clean_in_the_panel(qapp):
         AlertComputed(alert=compute_mutagenicity_alerts(Chem.MolFromSmiles(SMILES["aspirin"]), "mol-1"))
     )
 
-    # "Clean" now carries a check glyph as well as the green: colour
-    # alone is invisible to a colour-blind reader and is lost entirely
-    # in a copied plain-text export.
-    assert "Clean" in panel._alert_labels[("core", "mutagenicity_alerts")].text()
+    from openchem.ui.widgets.results_view import ResultsView
+
+    reader = ResultsView("mol-1")
+    reader.set_reports(list(panel._reports.values()))
+    reader.set_focus("mutagenicity_alerts")
+    assert not reader.merged().report_for("mutagenicity_alerts").facts, (
+        "setup: a clean catalogue really does arrive with nothing in it"
+    )
+    assert "Checked, nothing flagged." in reader._view._summary.text()
+    dispose(reader)

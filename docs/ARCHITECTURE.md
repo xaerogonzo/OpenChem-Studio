@@ -37,7 +37,7 @@ subscribe by event type rather than by ad-hoc signal name.
 | `openchem.commands` | `QUndoCommand` subclasses wrapping service calls, giving undo/redo for structure edits, conformer generation, docking results, quantum-chemistry conformers, and project operations from day one. |
 | `openchem.plugins` | `interfaces.py` (`Plugin`, `DescriptorProvider`, `ConformerProvider`, `DockingProvider`, `QuantumEngineProvider`, `FactProvider`, `PanelProvider`, `MenuProvider`, `Importer`, `Exporter`), `manifest.py` (`PluginManifest` + dependency topological sort), `context.py` (`PluginContext`, including the `context.secrets` namespace backed by the OS keychain via `keyring`, and `context.molecules`/`context.docking`/`context.quantum_chemistry`), `ui_registry.py` (`UIRegistry` protocol), `manager.py` (`PluginManager` — discovery, transactional load/unload/reload, hot-reload watcher). See `PLUGIN_SDK.md`. |
 | `openchem.app` | Composition: `MainWindow`, typed `Settings`, `SessionManager`, structured logging setup. `MainWindow` implements the `UIRegistry` protocol and constructs `PluginManager` at the end of `__init__`. |
-| `openchem.ui` | Widgets and dock panels. `EditorBackend`/`KetcherEditorBackend` (2D, `resources/ketcher/dist/`), `ViewerBackend`/`Mol3DViewerBackend` (3D small molecules, `resources/viewer3d/`, 3Dmol.js), and `ViewerBackend`/`MolStarViewerBackend` (macromolecules/crystallography, `resources/molstar/`, Mol*) are interface + implementation pairs — new content types get a sibling implementation, or a new optional capability method on the shared `ViewerBackend` base, without touching chemistry, services, or commands. `panels/docking_panel.py` and `panels/quantum_chemistry_panel.py` are core (not plugin) panels, same tier as `PropertyPanel`. Four widgets **compute nothing and are handed already-decided data**, which is what keeps `ui/` free of the chemistry layer: `widgets/atom_diagram.py` (shell rings with a p/n nucleus, and orbital boxes with spin arrows, drawn from `chem/electron_shells.py`'s triples) and `widgets/zoomable_svg_view.py` (an SVG at its own size in a scroll area, shared by the Lewis dialog and the decay chart -- extracted rather than copied, with the dialog keeping its whole surface as delegations so the extraction is behaviour-neutral by construction) and `widgets/substance_card.py` (the Properties panel's identity header, whose shape follows what the structure IS — a salt shows its formula unit and its ions, a complex its metal and two named counts) and `widgets/stick_chart_widget.py` (a declared `ChartAnnotation`, drawn and never edited: it refuses a malformed annotation rather than repairing one, and renormalises, reorders and relabels nothing — the axis mechanics live in `widgets/plot_axis.py`, extracted for it rather than generalised out of the NMR and IR spectrum widgets, which know three chemistries between them and are deliberately left alone). `dialogs/merged_results_dialog.py` is one modeless window per molecule UUID holding everything computed for it; every existing "Details..." button is an entry point into that one surface, focused by `report_id`, rather than a second implementation of it. **The help-contract layer lives here too and knows no chemistry**: `widgets/help_tooltip.py` is the metadata (a `HelpTooltip` is constructible with no `QApplication`, which is what makes it unit-testable), `widgets/tooltip_inventory.py` is the ONE definition of which controls owe the user an explanation, and `app/menu_help.py` carries the menu bar's contracts so `main_window.py` keeps only the job of building menus. `tests/test_tooltip_coverage.py` and `tools/list_tooltips.py` both consume `iter_documentable_controls` and neither walks the tree itself — two implementations of "all interactive controls" would drift, which this repository has paid for four times. |
+| `openchem.ui` | Widgets and dock panels. `EditorBackend`/`KetcherEditorBackend` (2D, `resources/ketcher/dist/`), `ViewerBackend`/`Mol3DViewerBackend` (3D small molecules, `resources/viewer3d/`, 3Dmol.js), and `ViewerBackend`/`MolStarViewerBackend` (macromolecules/crystallography, `resources/molstar/`, Mol*) are interface + implementation pairs — new content types get a sibling implementation, or a new optional capability method on the shared `ViewerBackend` base, without touching chemistry, services, or commands. `panels/docking_panel.py` and `panels/quantum_chemistry_panel.py` are core (not plugin) panels, same tier as `PropertyPanel`. Four widgets **compute nothing and are handed already-decided data**, which is what keeps `ui/` free of the chemistry layer: `widgets/atom_diagram.py` (shell rings with a p/n nucleus, and orbital boxes with spin arrows, drawn from `chem/electron_shells.py`'s triples) and `widgets/zoomable_svg_view.py` (an SVG at its own size in a scroll area, shared by the Lewis dialog and the decay chart -- extracted rather than copied, with the dialog keeping its whole surface as delegations so the extraction is behaviour-neutral by construction) and `widgets/substance_card.py` (the Properties panel's identity header, whose shape follows what the structure IS — a salt shows its formula unit and its ions, a complex its metal and two named counts) and `widgets/stick_chart_widget.py` (a declared `ChartAnnotation`, drawn and never edited: it refuses a malformed annotation rather than repairing one, and renormalises, reorders and relabels nothing — the axis mechanics live in `widgets/plot_axis.py`, extracted for it rather than generalised out of the NMR and IR spectrum widgets, which know three chemistries between them and are deliberately left alone). `widgets/results_view.py` is the results reader, and it is a WIDGET rather than a window so that one class serves both formats it appears in: a dock in the `analysis` group that follows the selection, and the pop-out window `PopOutHost` MOVES it into. It replaced a per-molecule dialog, which could not follow a selection because a dialog is opened, read and closed; every "Details..." button reaches this one surface, focused by `report_id`, rather than a second implementation of it. **The help-contract layer lives here too and knows no chemistry**: `widgets/help_tooltip.py` is the metadata (a `HelpTooltip` is constructible with no `QApplication`, which is what makes it unit-testable), `widgets/tooltip_inventory.py` is the ONE definition of which controls owe the user an explanation, and `app/menu_help.py` carries the menu bar's contracts so `main_window.py` keeps only the job of building menus. `tests/test_tooltip_coverage.py` and `tools/list_tooltips.py` both consume `iter_documentable_controls` and neither walks the tree itself — two implementations of "all interactive controls" would drift, which this repository has paid for four times. |
 | `openchem.vendor` | Third-party code owned in-tree rather than depended on. Currently one entry: `iupac_namer`, a deterministic IUPAC nomenclature engine (structure -> name). Reached only through `chem/naming_providers.py`; nothing else imports it. See below and `vendor/VENDORING.md`. |
 | `plugins/ai_assistant` | Bundled first-party plugin (loads by default, unlike `examples/`). `providers.py` (`AIProvider` ABC, `AnthropicProvider`, `OpenAICompatibleProvider` covering OpenAI + local Ollama, `ClaudeCLIProvider` driving a locally-logged-in `claude` CLI headless for claude.ai subscription users with no separate API key), `context_builder.py` (`MoleculeContextCache` — accumulates molecule identity/descriptors purely from subscribed events, same pattern as `PropertyPanel`), `panel.py` (chat UI), `plugin.py` (registers the panel + two menu-driven canned prompts). Kept out of core `openchem` so the `anthropic`/`openai` SDKs stay optional (`pyproject.toml`'s `ai` extra) — `ClaudeCLIProvider` needs neither, just `claude` on PATH. |
 | `plugins/database_search` | Bundled plugin: `DatabaseSearchProvider` ABC (`PubChemProvider`, `ChEMBLProvider`), search results import as a new molecule via `context.molecules.add(...)`. `requests` stays optional (`network` extra). |
@@ -728,6 +728,16 @@ document may cite a file or a test that does not exist.
   `PropertyPanel`.** `_on_report_computed` had zero coverage, which is
   why four defects shipped green. `tests/test_property_panel_result_rows.py`
   covers it now, mutation-tested against all four.
+
+  **CORRECTION, 2026-09-10: the four claims moved with the rows.** Stage
+  2c makes Properties a launcher, so `_on_report_computed` builds no rows
+  and the file named above holds only what the PANEL can still be wrong
+  about. The four are guarded one surface along --
+  `tests/test_result_summaries.py` for the per-kind projections and
+  `tests/test_property_panel_reader.py` for the wiring that carries a
+  result to the reader at all -- and both were mutation-tested at the
+  move. The sentence above is kept because how the defects were FOUND is
+  the durable part.
 
   The three leads recorded here, for the record of how leads mislead:
   the report-row truncation fix (wrong -- it was the earlier
@@ -1491,6 +1501,16 @@ document may cite a file or a test that does not exist.
   worse than the wrapping it replaced. So it swaps one documented
   behaviour for another rather than fixing both.
 
+  **CORRECTION, 2026-09-10: those five guards no longer exist.** Stage 2c
+  removed the spanning row they were written against, so the trade above
+  cannot be re-run as stated. The question it was about did not go away --
+  it moved to the results reader, which is now the only surface in the
+  application that renders a long value, and
+  `tests/test_results_dock.py::test_a_long_reason_in_the_reader_does_not_widen_the_window`
+  is what holds it there. Measured at the move: a 275-character refusal
+  leaves the window minimum at 1024 and the Results dock minimum at 182,
+  identical to empty.
+
   Three options were weighed and the third was built -- it is the one
   described at the top of this entry. The other two are recorded because
   each is a trap that looks like a fix:
@@ -1539,10 +1559,13 @@ document may cite a file or a test that does not exist.
   - **The suite's `QT_QPA_PLATFORM=offscreen` uses a different font.** The
     same line needs 187 px on the platform a user sees and 420 px
     offscreen, so a "renders in six lines" assertion measures the test
-    environment. `tests/test_property_panel_long_values.py` asserts the
-    WRAP instead, which is font-independent. Note it does NOT catch the
+    environment. `tests/test_property_panel_long_values.py` asserted the
+    WRAP instead, which is font-independent. Note it did NOT catch the
     240 px case -- the live check did, and that gap is why the panel
     minimum needs re-checking in the app rather than in the suite.
+    (2026-09-10: the wrap assertions went with the spanning row in 2c; the
+    font-independence REASONING is what survives, and the converted
+    reader test sizes from the viewport for exactly this reason.)
 
   The in-process probe that once said "ok" was CIRCULAR and must not be
   repeated: it compared each label's `height()` against its own
@@ -1661,9 +1684,17 @@ document may cite a file or a test that does not exist.
     Anchoring the row's TOP does not depend on its final height, so it is
     right whenever it runs.
 
-  Guards: `test_an_explicitly_run_row_result_is_scrolled_into_view` and
-  `test_a_result_nobody_asked_for_does_not_hijack_the_scroll`. Both
+  Guards: `test_an_explicitly_run_calculator_is_FOCUSED_in_the_reader` and
+  `test_a_result_nobody_asked_for_does_not_move_the_reader`. Both
   mutation-tested, including against the `ensureWidgetVisible` version.
+
+  **2026-09-10: the scroll became a focus.** 2c leaves the two inline
+  kinds with no row to scroll to, so the request is answered where the
+  result now is -- the reader, focused by `report_id`, which also records
+  the position so a reader opened afterwards is already on it. It
+  deliberately does NOT reveal the reader: whether Results is on screen is
+  a layout question, and a press in one panel is not consent to rearrange
+  another.
 - **DECISION** -- a derived IUPAC name that fails its OPSIN round trip
   stays WITHHELD. This was open as "worth deciding whether to show the
   withheld name marked as unverified rather than nothing at all", on the

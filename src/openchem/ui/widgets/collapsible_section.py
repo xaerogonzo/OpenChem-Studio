@@ -305,11 +305,15 @@ class CollapsibleSection(QWidget):
         #     WrapAllRows     True              False
         #
         # So the wrap policy cannot be the thing that gives a long value
-        # the full width. `PropertyPanel._add_wide_row` does it instead,
+        # the full width. `PropertyPanel._add_wide_row` did it instead,
         # with a genuine spanning row -- explicit, and free of any
-        # width-dependent height. `WrapAllRows` is the other non-hfw
-        # option and is still wrong for this panel: it moves EVERY short
-        # scalar onto two rows, measured at +75% section height.
+        # width-dependent height. That row went with the result rendering
+        # in 2c and this panel has no long values left, but the POLICY
+        # still has to be `DontWrapRows`: the reason is the height-for-width
+        # chain above, which the descriptor rows sit in exactly as the
+        # result rows did. `WrapAllRows` is the other non-hfw option and is
+        # still wrong here: it moves EVERY short scalar onto two rows,
+        # measured at +75% section height.
         self._content_layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.DontWrapRows)
         content_layout.addLayout(self._content_layout)
 

@@ -22,6 +22,7 @@ import pytest
 from openchem.domain.calculator_taxonomy import (
     CATEGORY_LABELS,
     CATEGORY_ORDER,
+    _CATEGORY_BY_NAME,
     category_label,
     category_sort_key,
 )
@@ -122,3 +123,79 @@ def test_a_plugin_category_sorts_deterministically_rather_than_by_arrival():
 )
 def test_the_label_has_one_answer_and_one_fallback(category, expected):
     assert category_label(category) == expected
+
+
+#: Calculator categories that deliberately take `category_for`'s STRUCTURE
+#: default, with the reason each is not worth an entry YET.
+#:
+#: **NOT A BLANKET EXEMPTION, AND THE DISTINCTION IS THE POINT.** An
+#: unlisted category falling to STRUCTURE is correct policy for a category a
+#: PLUGIN invented -- `category` is a free string and a refused fact is worse
+#: than a mis-filed one, which `category_for`'s own docstring argues. It is
+#: not automatically right for a category this project declares itself, and
+#: while the Properties panel grouped by calculator category nobody could
+#: see the difference: two of these were mis-filed for as long as they have
+#: existed and it only became visible when 2c made the reader's grouping the
+#: only grouping.
+DEFAULTED_ON_PURPOSE = {
+    "aromaticity": "structural by nature; the default is already right",
+    "docking": "a pose is structural; and it renders in its own panel",
+    "energetic": "thermochemistry, and which FactCategory it wants is a "
+                 "stage-3 taxonomy question rather than a consistency one",
+    "quantum_chemistry": "runs from its own panel; 'quantum' is the mapped "
+                         "spelling and the two should probably merge in "
+                         "stage 3",
+    "structures": "a generated set is structural",
+    "thermophysical": "closest sibling is physicochemical, but the table it "
+                      "belongs to is under review in stage 3",
+}
+
+
+def test_every_category_a_DESCRIPTOR_declares_is_mapped_explicitly():
+    """The always-on descriptors are read in ONE place now, so their
+    grouping there is the only grouping they get.
+
+    **MEASURED AT TWO MIS-FILED VALUES.** `lipophilicity` and `solubility`
+    were unlisted, so LogP and Aqueous Solubility took `category_for`'s
+    STRUCTURE default -- invisible while the Properties panel filed them
+    under its own headings, and plainly wrong once the reader's aggregate
+    became where they are read.
+
+    Scoped to the DESCRIPTORS rather than to every declared category,
+    deliberately. The default is correct policy for a category a plugin
+    invented; it is a decision for one the project ships, and the 41
+    always-on values are the set with nowhere else to be grouped.
+    """
+    from openchem.chem.descriptor_providers import (
+        _DESCRIPTOR_SPECS,
+        _SHAPE_DESCRIPTOR_SPECS,
+    )
+
+    declared = {category for *_rest, category in _DESCRIPTOR_SPECS}
+    declared |= {"shape"} if _SHAPE_DESCRIPTOR_SPECS else set()
+    unmapped = sorted(c for c in declared if c not in _CATEGORY_BY_NAME)
+
+    assert not unmapped, (
+        "these descriptor categories take category_for's STRUCTURE default, "
+        f"so their values are grouped as structural facts: {unmapped}. Map "
+        "them beside their siblings, or say here why the default is right."
+    )
+
+
+def test_the_categories_that_take_the_default_are_named_with_a_reason():
+    """The other half, so the set above cannot quietly grow.
+
+    A category may take the default -- what it may not do is take it by
+    nobody noticing. Anything the project declares is either mapped or
+    listed with why, and a new one is neither until somebody decides.
+    """
+    unmapped = {c for c in CATEGORY_LABELS if c not in _CATEGORY_BY_NAME}
+
+    undeclared = sorted(unmapped - set(DEFAULTED_ON_PURPOSE))
+    assert not undeclared, (
+        f"new categories fell through to STRUCTURE unnoticed: {undeclared}"
+    )
+    stale = sorted(set(DEFAULTED_ON_PURPOSE) - unmapped)
+    assert not stale, (
+        f"these are mapped now and no longer take the default: {stale}"
+    )
