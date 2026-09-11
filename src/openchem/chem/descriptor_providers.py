@@ -1497,7 +1497,9 @@ def compute_polar_surface_area(
 
 
 
-def compute_admet_endpoints(mol, molecule_uuid, parameters=None, interpreter_path=None):
+def compute_admet_endpoints(
+    mol, molecule_uuid, parameters=None, interpreter_path=None
+) -> "AlertResult":
     """ADMET-AI's hERG / CYP / Ames predictions, as an AlertResult.
 
     An AlertResult rather than a PerAtomDataset because these are

@@ -43,6 +43,12 @@ HELP_DOCUMENTS: tuple[str, ...] = (
     "QUICKSTART.md",
     "USER_GUIDE.md",
     "SCIENTIFIC_LIMITATIONS.md",
+    # GENERATED from the calculator registry -- see
+    # `tools/build_calculator_reference.py`. It is here rather than
+    # excluded with ARCHITECTURE and ROADMAP because it answers a USER's
+    # question ("what does this calculator do") rather than a maintainer's,
+    # which is the line this tuple draws.
+    "CALCULATOR_REFERENCE.md",
 )
 
 _ANCHOR = re.compile(r"^<!--\s*help:([a-z0-9-]+)\s*-->\s*$")

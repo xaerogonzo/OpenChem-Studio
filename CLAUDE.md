@@ -286,6 +286,7 @@ are verbatim, so grep the file for the line.
 - THE 41 DESCRIPTORS LEAVE, AND EVERY CLAIM THEY CARRIED ALONE GOES RED
 - A CONTRACT FOLLOWS THE VALUE, NOT THE WIDGET
 - A MERGE HAS EXACTLY ONE POSSIBLE TARGET, AND THE DATA MODEL SAYS WHICH
+- A REFERENCE OVER 68 CALCULATORS IS 68 PLACES TO FORGET
 - Running the tests
 - RESONANCE: four things measured before the Lewis diagram was built
 - The naming benchmark

@@ -33,6 +33,8 @@ Nothing here imports Qt, RDKit or anything from `ui/` -- it is a vocabulary, and
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from openchem.domain.report import FactCategory
 
 
@@ -238,6 +240,53 @@ _CATEGORY_BY_NAME: dict[str, FactCategory] = {
     "stereochemistry": FactCategory.STRUCTURE,
     "interactions": FactCategory.STRUCTURE,
     "pka": FactCategory.ELECTRONIC,
+}
+
+
+@dataclass(frozen=True)
+class Retirement:
+    """A calculator id that is no longer offered, and what became of it."""
+
+    #: What it was called on screen. **THE SEARCHABLE HALF**: people look
+    #: for "Solubility vs pH" without knowing it was folded in, so the
+    #: reference carries the old name as an alias beside the new one.
+    display_name: str
+    #: The calculator id that does its job now, or "" if nothing does.
+    replaced_by: str
+    #: One sentence, in the past tense, saying what happened.
+    reason: str
+
+
+#: Calculator ids this application used to offer.
+#:
+#: **RETIRED IS NOT DELETED, AND THIS TABLE IS THE DIFFERENCE.** The
+#: recorded policy has three halves and only one of them is about the
+#: registry:
+#:
+#:   not offered      the id is simply absent from the registry, so nothing
+#:                    can start a new calculation under it
+#:   still readable   a STORED result keeps working, because the reader
+#:                    renders what it was handed rather than asking the
+#:                    registry what produced it
+#:   never aliased    an old cache key MISSES and recomputes under the new
+#:                    identity; silently serving a new result under an old
+#:                    key would be the plausible-looking lie this project
+#:                    spends its time removing
+#:
+#: The display name is here so a retired calculator stays FINDABLE. A
+#: reference that only lists what exists today sends somebody looking for
+#: "Solubility vs pH" away empty, which is the same dead end as a search
+#: box that cannot match a synonym.
+RETIREMENTS: dict[str, Retirement] = {
+    "solubility_curve": Retirement(
+        display_name="Solubility vs pH",
+        replaced_by="solubility",
+        reason=(
+            "Folded into Solubility, which reported the same nine facts and "
+            "the same curve points and already honoured the pH range it now "
+            "offers."
+        ),
+    ),
 }
 
 
