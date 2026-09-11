@@ -660,6 +660,35 @@ class KetcherEditorBackend(EditorBackend):
         self._page.runJavaScript(script)
         return True
 
+    def select_atoms(self, atom_indices: list[int]) -> None:
+        """Select these atoms on the canvas, by MOLFILE POSITION.
+
+        **A GESTURE, so it is DROPPED when the page is not ready**, like
+        `set_atom_tool` and `trigger_toolbar_action` and the deliberate
+        opposite of `set_cip_labels`. A selection describes what the user
+        is looking at right now; replayed after boot it would put a
+        marquee on whatever structure loaded in the meantime, having been
+        asked about a different one.
+
+        The translation to pool ids happens ON THE PAGE, in `poolIdAt` --
+        Python has no view of Ketcher's pool, and inventing one here would
+        be a second copy of the assumption the whole `molfilePosition`
+        comment exists to record.
+        """
+        if not self._ketcher_ready:
+            logger.debug("Dropping selection request -- Ketcher is not ready")
+            return
+        positions = [int(index) for index in atom_indices]
+        self._page.runJavaScript(
+            f"""
+            (function() {{
+              if (window.openchemSelection) {{
+                window.openchemSelection.set({json.dumps(positions)});
+              }}
+            }})();
+            """
+        )
+
     def open_atom_editor(self, atom_index: int) -> None:
         """Open Ketcher's OWN atom-properties dialog for one atom.
 

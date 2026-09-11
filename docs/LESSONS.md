@@ -18775,3 +18775,191 @@ and one of them is "Molecular Docking (Vina)", so the premise is now false
 -- which is a better help system rather than a regression. What the test is
 for is that the seven body-only matches still come back, so it names those
 rather than the absence of any title match.
+
+## THE POOL-ID TRAP IN REVERSE, AND THE LOOP IT CLOSES
+
+Stage 5a. `AtomInspectorPanel.atom_selected` was emitted and **connected to
+nothing** -- its own comment said "so viewers can highlight it" and no viewer
+ever heard it, so picking a row named an atom you then had to find by eye.
+
+Connecting it needs the inverse of `molfilePosition`, and **the inverse fails
+worse than the original**. An outbound mistake tells the inspector the wrong
+index and the inspector sometimes DECLINES ("Atom 9 is in the 3D structure but
+not in the structure as drawn"). An inbound one puts the marquee on a
+different atom while the row it came from goes on naming the right one: two
+panels disagreeing with total confidence, and nothing anywhere says no.
+
+`Array.from(pool.keys())[position]` -- **insertion order, never sorted**.
+
+### MEASURED IN THE RUNNING APP, ON AN EDITED STRUCTURE, BEFORE ANYTHING CHANGED
+
+A fresh `setMolecule` rebuilds the pool dense and the two index spaces agree
+by accident, which is how this class shipped the first time. So the drive
+script erases an atom first, and the report prints BOTH spaces:
+
+    dense pool    poolOrder [0,1,2,3,4,5]   position 5 -> pool id 5 -> "O"
+    after erase   poolOrder [0,1,3,4,5]     position 4 -> pool id 5 -> "O"
+
+Reading position 4 as an id would have selected pool id 4, which sits at
+position 3 and is a CARBON -- a real atom, still in range, so nothing
+declines. The magnified shot shows the OH highlighted, which is the half the
+log cannot carry.
+
+`Editor.selection` was read from Ketcher's own TypeScript source rather than
+the minified bundle. It **does not validate the ids it is handed**, so an
+unresolvable position is dropped before it gets there; and it **dispatches
+`selectionChange` unconditionally**, which is the next problem.
+
+### THE ECHO, AND THE ORDER OF TWO LINES
+
+Every selection sent to the page comes straight back as `atomSelected`. That
+return trip runs `select_atom` -> `_select_row_for` -> `selectRow`, and Qt
+delivers `itemSelectionChanged` SYNCHRONOUSLY -- so the panel re-emits before
+`_on_editor_atom_selected` has returned.
+
+**A re-entrancy flag cannot close that loop.** The trip is synchronous in a
+test and asynchronous through the web channel in the application, so the flag
+is either still set or long since cleared depending on which. Comparing the
+indices closes it in both, because the two directions agree on one index
+space -- and only if the assignment happens FIRST.
+`_on_editor_atom_selected` recorded the index *after* calling `select_atom`,
+so the echo arrived while the comparison still read `None`:
+
+    erase an atom -> an unrelated carbon selected on the canvas
+
+which the drive script found and no test would have. A Ketcher selection is
+**actionable**, so that left the next Delete keystroke armed on an atom
+nobody had picked.
+
+### A GUARD THAT CAUGHT NOTHING, REMOVED -- TWICE
+
+The first diagnosis was wrong. The stray selection looked like the
+inspector's table rebuild announcing a selection it had made for itself, so
+`_rebuild_atom_table` got a `_rebuilding` flag. A stack trace showed the emit
+coming from `_select_row_for` instead, and a direct measurement -- rebuild
+and subject-switch, flag on and neutralised -- showed **a rebuild emits
+nothing either way**. Inert; it did not ship.
+
+The same thing happened again in 5c, and there the mutation pass found it
+rather than a hunch: a `setChecked` resync that arm N4 removed with nothing
+failing. The button is never disabled, so the signal always corrects the
+tick and the resync could not change an outcome. **A line that cannot change
+an outcome is worse than absent** -- it reads as the thing keeping two
+controls in step, which is another line's job.
+
+### THE MUTATION PASS FOUND THREE HOLES, ALL IN MY OWN TESTS
+
+- The wiring test patched `window._editor.select_atoms` -- **the very method
+  that carries the call from the widget to its backend** -- so emptying that
+  method out changed nothing. The recorder had stood in for the thing under
+  test. "Testing a helper is not testing the wiring", in a new shape:
+  testing a *stand-in* for it.
+- The drop-before-ready arm survived because the file owning its guard was
+  **not in the arm's path list**. Not a missing guard; an uncollected one.
+- **Sorting the pool keys survived a full 37-test run.** Every setup I had
+  written left the pool ASCENDING -- `[6..11]` after an erase, `[1,2]` after
+  a delete, `[0,1,2]` fresh -- so `.sort()` was a no-op in all of them, and
+  only the source guard caught it, which is the weak half by that file's own
+  account. Ketcher's own undo produces the other shape, measured rather than
+  assumed:
+
+      fresh        ids [0, 1, 2]   labels C, C, O
+      after delete ids [1, 2]      labels C, O
+      after undo   ids [1, 2, 0]   labels C, O, C
+      molblock                            C, O, C
+
+  the molfile agreeing independently is what makes that a fact about Ketcher
+  rather than about the test. Position 1 is the oxygen; sorting to `[0,1,2]`
+  makes it the first carbon.
+
+**The JS arms must rebuild**, which is Stage 4's lesson one language along.
+`main.jsx` is source and `dist/` is what the page runs, so an arm that edits
+the JSX without `npm run build` is measured entirely by the source guards
+while the behavioural tests pass against the untouched old bundle. A rebuild
+renames assets by content hash, which gives the arm its own edit-check.
+
+## THE REASON EXISTED, IN A BATCH CELL, AND THE READER NEVER READ IT
+
+Stage 5b. `compute_locants` writes one of **six** sentences into
+`provenance.parameters["summary"]`, three of them for the empty case, because
+"no locants" has several legitimate causes and the result knows which.
+Measured on the real producer:
+
+    urea      named by a retained name, which carries no derived numbering
+    camphor   named by a retained name AND its ring skeleton could not be
+              matched to a numbered entry in the tables
+
+Those are different investigations. Camphor's ring IS in the tables with a
+full locant map -- it is the MATCH that fails -- so one hardcoded sentence
+would have sent anyone looking for a missing entry that is already there.
+
+`visualization.summary_note` has been public for this all along, with a
+docstring saying it "exists for the empty case", and a batch cell has
+rendered it since batch existed. The reader was the one consumer that never
+read it, so its row said "0" while the batch column said why.
+
+**`Fact.evidence` IS THE OBVIOUS CHANNEL AND IT IS THE WRONG ONE.**
+`FactView._add_row` folds evidence into the value widget's TOOLTIP and
+nowhere else. A reason nobody hovers for has not travelled -- which is this
+same defect, one layer along. It gets a row.
+
+**And "Atoms: 0" stays "0".** The first version changed it to "None found",
+which a test refused with a recorded reason: the label already supplies what
+was counted, so an empty payload and an unrendered one cannot be confused --
+it was the OLD panel's bare "None found." that had no such protection. What
+was missing was never the wording.
+
+### A DOCSTRING THAT DESCRIBED A RULE THE CODE DID NOT IMPLEMENT
+
+Found while doing the above. `_numeric_range` said a categorical dataset "has
+a count and no range, and inventing one from category ids would be a quantity
+nobody computed" -- then tested `isinstance(v, float)`, while `compute_locants`
+stores `values[i] = float(category)`. **The ids ARE floats, so the guard never
+fired once.** Measured on aspirin: four of five categorical per-atom results
+carried a range over their own ids, `locants` reporting "2 to 2" for what is
+the SOURCE of the numbering rather than any number on the molecule.
+`stereocenters` looked clean only because aspirin has none.
+
+**OXIDATION STATES LOOKS LIKE THE EXCEPTION AND IS NOT**, and it nearly cost
+a second predicate. Its values really are the states, so "-3 to +3" reads as
+a legitimate measurement and a discriminator built to preserve it would have
+been built. `compute_oxidation_states` refuses it in as many words: marked
+categorical "because an oxidation state is not a magnitude. Iron(+3) is not
+'one more' of anything than iron(+2), and a continuous colour ramp across
+them would imply an ordering the formalism does not carry." A range IS that
+ordering claim. Deferring to the declaration rather than to my own chemistry
+opinion made `is_categorical` -- already public, already correct -- the whole
+test. What the producer offers instead is better than the range was:
+"C -3, -1, 0, +1, +3; O -2".
+
+## A MODE WITH ONE WAY IN, AND TWO WRONG WAYS TO GIVE IT A SECOND
+
+Stage 5c. Rotate 3D existed only as a button on the editor's own bar, so it
+was reachable only while the 2D Editor tab was showing and discoverable only
+by noticing it. **The plan said it had a Structure-menu entry; it did not** --
+three occurrences in `src/`, and none of them a menu action.
+
+A second control for one mode is the drift this codebase keeps refusing, so
+the button decides and the entry follows. Both attempts at "follows" were
+wrong, and Qt's own semantics are why:
+
+- **`QAction.trigger()` flips the action's own state before `triggered`
+  arrives**, so a handler acting on that argument makes the action the
+  authority. It is not.
+- **Forwarding the button's `toggled` reports the wrong value.**
+  `_on_rotate_toggled` refuses by calling `setChecked(False)` on the button
+  that is mid-emission, and Qt runs that NESTED emission to completion before
+  the outer one reaches its remaining slots. Measured: a listener sees
+  `[False, True]` -- the refusal first, the request last -- and ends
+  believing the mode is on. The Structure menu's tick read checked over an
+  unchecked button.
+
+The fix is to emit the button's FINAL state, in a `finally` so that all four
+exits report and three of them are refusals -- which is the exit a second
+control most needs to hear about.
+
+F7, the key Marvin uses. One `HelpTooltip` OBJECT registered in both places
+rather than two copies of its words, because
+`test_one_help_id_means_exactly_one_thing` and
+`test_one_concept_is_not_split_across_many_help_ids` between them require it
+and two hand-written copies would satisfy neither for long.

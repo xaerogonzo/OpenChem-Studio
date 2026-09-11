@@ -45,6 +45,11 @@ The script is a JSON list of steps, run in order:
       {"do": "scroll",     "to": "bottom"},
       {"do": "geometry",   "label": "maximized/Quantum"},
       {"do": "open_project",     "path": "C:/tmp/MPMI.ocsproj"},
+      {"do": "menu",             "text": "Rotate 3D"},  THIS app's menu
+      {"do": "rotate_report",    "tag": "entered"},     tick AND button
+      {"do": "select_atom",      "atom": 4}    the inspector ROW, plus
+                                              what the CANVAS selected
+      {"do": "selection_report"}               the canvas selection alone
       {"do": "batch_select",     "category": "Identity"},
       {"do": "batch_select_all", "filter": "logp"},
       {"do": "batch_fill"},
@@ -1880,6 +1885,107 @@ class _Driver(QObject):
             })();
             """
             % json.dumps(element)
+        )
+
+    def _do_select_atom(self, step: dict[str, Any]) -> None:
+        """Pick an Atom Inspector ROW, and ask the canvas what it selected.
+
+        `{"do": "select_atom", "atom": 4}`
+
+        **THE TABLE ROW, NOT `select_atom()` BEHIND IT.** The panel's own
+        `select_atom` is the INBOUND door -- the 3D viewer's click lands
+        there -- and the path under test starts one step later, at
+        `_on_row_selected` reading the table's selection. Driving the
+        method would exercise the same emit and prove nothing about the
+        row being what emits it, which is the `jobs_cancel` rule.
+
+        The read-back is the point and comes from the PAGE, because a
+        selection is a few highlighted pixels and the failure it guards
+        against is a plausible-looking one. `poolOrder` is logged with it:
+        on an edited structure the pool ids and the molfile positions
+        diverge, and that divergence is the whole reason this step exists.
+        A STRING, because `runJavaScript` marshals primitives only.
+        """
+        wanted = int(step.get("atom", 0))
+        panel = self._window._atom_inspector_panel
+        table = panel._atom_table
+        for row in range(table.rowCount()):
+            cell = table.item(row, 0)
+            if cell is not None and cell.data(Qt.ItemDataRole.UserRole) == wanted:
+                table.selectRow(row)
+                logger.warning(
+                    "OPENCHEM_DRIVE: inspector row %d selected for atom %d", row, wanted
+                )
+                break
+        else:
+            logger.error(
+                "OPENCHEM_DRIVE: no inspector row holds atom %d (%d rows, subject %s)",
+                wanted, table.rowCount(), panel._subject,
+            )
+            return
+        self._report_editor_selection()
+
+    def _report_editor_selection(self) -> None:
+        self._window._editor._backend._page.runJavaScript(
+            "window.openchemSelection ? window.openchemSelection.report()"
+            " : '{\"ready\": false, \"missing\": true}'",
+            lambda value: logger.warning("OPENCHEM_DRIVE: canvas selection %s", value),
+        )
+
+    def _do_selection_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "selection_report"}` -- what the canvas has selected now.
+
+        Separate from `select_atom` so the EDITOR -> inspector direction,
+        and a plain erase with nothing selected, can be read too.
+        """
+        self._report_editor_selection()
+
+    def _do_menu(self, step: dict[str, Any]) -> None:
+        """Trigger one of THIS application's menu entries, by its text.
+
+        `{"do": "menu", "text": "Rotate 3D"}`
+
+        Distinct from `editor_action`, which presses one of KETCHER's
+        toolbar buttons. This walks the real `QMenuBar` and triggers the
+        real `QAction`, so what is measured includes the enabled state and
+        whatever the action is connected to -- `_do_cip` does the same walk
+        and this generalises it rather than adding a third copy.
+
+        Logs the action's own checked state AFTER triggering, because for a
+        checkable entry that is the thing most likely to be wrong and the
+        thing no screenshot of a closed menu can carry.
+        """
+        wanted = str(step["text"])
+        for menu_action in self._window.menuBar().actions():
+            menu = menu_action.menu()
+            if menu is None:
+                continue
+            for action in _walk_actions(menu):
+                if action.text().replace("&", "") != wanted:
+                    continue
+                action.trigger()
+                logger.warning(
+                    "OPENCHEM_DRIVE: menu %r triggered -- enabled=%s checkable=%s checked=%s",
+                    wanted, action.isEnabled(), action.isCheckable(), action.isChecked(),
+                )
+                return
+        logger.error("OPENCHEM_DRIVE: no menu entry named %r", wanted)
+
+    def _do_rotate_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "rotate_report"}` -- the menu tick AND the button, together.
+
+        The whole of 5c is that these two must agree, and they are two
+        different widgets in two different places on screen: a shot showing
+        the banner says nothing about the tick inside a closed menu.
+        """
+        window = self._window
+        action = getattr(window, "_rotate_action", None)
+        logger.warning(
+            "OPENCHEM_DRIVE: rotate %s menu_checked=%s button_checked=%s agree=%s",
+            step.get("tag", ""),
+            None if action is None else action.isChecked(),
+            window._editor.rotation_active(),
+            None if action is None else action.isChecked() == window._editor.rotation_active(),
         )
 
     def _do_editor_action(self, step: dict[str, Any]) -> None:

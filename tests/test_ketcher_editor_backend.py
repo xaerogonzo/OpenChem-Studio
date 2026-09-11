@@ -1101,3 +1101,263 @@ def test_an_armed_atom_tool_survives_a_placement(qapp):
     assert armed["name"] == "AtomTool2"
     assert armed["props"]["label"] == "C"
     assert armed["props"]["isotope"] == 13
+
+
+# --- the pool-id trap, IN REVERSE -------------------------------------------
+#
+# Everything above this line is about an index leaving the page. These are
+# about one arriving: the Atom Inspector says "atom 4", and the canvas has to
+# put the marquee on the atom the molfile numbers 4. The failure is worse in
+# this direction. An outbound mistake tells the inspector the wrong thing and
+# the inspector sometimes DECLINES ("pick a heavy atom"); an inbound one
+# highlights a different atom on the canvas while the row it came from goes on
+# naming the right one, so two panels disagree with total confidence and
+# nothing anywhere says no.
+
+
+def _selection_report(qapp, backend) -> dict:
+    return _run_js_json(qapp, backend, "return JSON.parse(window.openchemSelection.report());")
+
+
+def _load_ethanol_and_delete_the_first_carbon(qapp, backend) -> dict:
+    """Leave C-O on the canvas under pool ids 1 and 2.
+
+    A MIDDLE-OF-THE-POOL deletion with distinguishable elements, which is
+    the silent shape: every surviving position still maps to an id that
+    EXISTS, so a naive mapping selects a real atom -- the wrong one --
+    rather than failing visibly.
+    """
+    backend.load_molblock(_ETHANOL_MOLBLOCK_NO_EXPLICIT_H)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+    _run_js_json(qapp, backend, """
+      var e = window.ketcher.editor, s = e.struct();
+      e.selection({atoms: [0], bonds: Array.from(s.bonds.keys()).filter(function (b) {
+        var bd = s.bonds.get(b); return bd.begin === 0 || bd.end === 0; })});
+      return 1;
+    """)
+    _wait_until(qapp, lambda: False, timeout_seconds=0.5)
+    _run_js_json(qapp, backend, """
+      var el = document.querySelector('.Ketcher-root') || document.body;
+      ['keydown','keyup'].forEach(function (t) {
+        el.dispatchEvent(new KeyboardEvent(t, {key: 'Delete', code: 'Delete',
+          bubbles: true, cancelable: true, keyCode: 46, which: 46})); });
+      return 1;
+    """)
+    _wait_until(qapp, lambda: False, timeout_seconds=1.5)
+    return _run_js_json(qapp, backend, """
+      var s = window.ketcher.editor.struct();
+      return {atoms: Array.from(s.atoms.keys()),
+              labels: Array.from(s.atoms.keys()).map(function (id) {
+                return s.atoms.get(id).label; })};
+    """)
+
+
+def test_selecting_a_position_on_an_EDITED_structure_reaches_the_right_atom(qapp):
+    """**THE ONE THAT MATTERS, AND IT NEEDS AN EDITED STRUCTURE.**
+
+    Reproduced as reported in the outbound direction and asserted here in
+    the inbound one: two rings drawn, the first erased, and the surviving
+    benzene carries pool ids 6..11 against a six-atom molfile. Asking for
+    molfile position 0 must select pool id 6. A naive
+    `selection({atoms: [0]})` asks for an id that no longer exists.
+
+    Against the real bundle, because the mapping lives in JS: a stale dist
+    leaves the application broken with every Python test green.
+    """
+    backend = _ready_backend(qapp, shown=True)
+    pool = _draw_two_rings_and_erase_the_first(qapp, backend)
+
+    # ASSERT THE SETUP. A dense pool makes ids and positions agree by
+    # accident, and every assertion below would pass while testing nothing
+    # -- which is exactly how this class of bug shipped the first time.
+    assert pool.get("atoms") == [6, 7, 8, 9, 10, 11], (
+        f"setup did not produce non-dense pool ids: {pool}"
+    )
+
+    for position, expected_id in ((0, 6), (3, 9), (5, 11)):
+        backend.select_atoms([position])
+        _wait_until(qapp, lambda: False, timeout_seconds=0.4)
+        report = _selection_report(qapp, backend)
+        assert report["poolIds"] == [expected_id], (
+            f"position {position} selected pool id(s) {report['poolIds']}, "
+            f"expected [{expected_id}] -- the pool is {report['poolOrder']}"
+        )
+        assert report["positions"] == [position], report
+
+    backend.widget().hide()
+
+
+def test_a_position_whose_id_still_exists_is_the_silent_case(qapp):
+    """**THE WRONG ATOM, NOT NO ATOM**, which is the dangerous half.
+
+    Deleting from the MIDDLE leaves every surviving position mapping to an
+    id that is still in the pool, so a naive mapping selects a real atom
+    and nothing declines. Ethanol with its first carbon erased leaves C-O
+    under ids 1 and 2: position 1 is the OXYGEN, and reading the position
+    as an id selects pool id 1, a carbon.
+    """
+    backend = _ready_backend(qapp, shown=True)
+    pool = _load_ethanol_and_delete_the_first_carbon(qapp, backend)
+
+    assert pool.get("atoms") == [1, 2], f"setup did not delete the first carbon: {pool}"
+    assert pool.get("labels") == ["C", "O"], pool
+
+    backend.select_atoms([1])
+    _wait_until(qapp, lambda: False, timeout_seconds=0.4)
+    report = _selection_report(qapp, backend)
+
+    assert report["labels"] == ["O"], (
+        f"molfile position 1 is the oxygen; the canvas selected "
+        f"{report['labels']} (pool ids {report['poolIds']} of {report['poolOrder']})"
+    )
+    assert report["poolIds"] == [2], report
+
+    backend.widget().hide()
+
+
+def test_a_pool_left_OUT_OF_NUMERIC_ORDER_by_undo_is_read_in_insertion_order(qapp):
+    """**THE ARM THAT SURVIVED, AND THE ONE THAT WOULD REGRESS SILENTLY.**
+
+    Every other case here leaves the pool ids ASCENDING -- 6..11 after an
+    erase, 1..2 after a delete, 0..2 on a fresh load -- so sorting them is a
+    no-op and a `.sort()` slipped into `poolIdAt` passes all of them. A
+    mutation arm proved exactly that: sorting survived a full run of this
+    file, caught only by the source guard in
+    `tests/test_ketcher_bundle_is_current.py`, which is the weak half.
+
+    Ketcher's UNDO is what produces the other shape. It re-inserts a deleted
+    atom under its ORIGINAL id at the END of the Map, and the molfile follows
+    the Map. Measured on ethanol with the first carbon deleted and restored:
+
+        pool ids   [1, 2, 0]        labels  C, O, C
+        molblock                            C, O, C
+
+    -- the molfile agreeing independently, which is what makes this a fact
+    about Ketcher rather than about this test. So molfile position 1 is the
+    OXYGEN, and sorting the keys to [0, 1, 2] makes it the first CARBON: a
+    real atom, in range, wrong.
+    """
+    backend = _ready_backend(qapp, shown=True)
+    pool = _load_ethanol_and_delete_the_first_carbon(qapp, backend)
+    assert pool.get("atoms") == [1, 2], f"setup did not delete the first carbon: {pool}"
+
+    # Ketcher's OWN undo, not the application's. The application's routes
+    # through `EditStructureCommand` and ends in `setMolecule`, which
+    # rebuilds the pool dense from zero -- destroying the very state this
+    # test exists to reach.
+    _run_js_json(qapp, backend, "window.ketcher.editor.undo(); return 1;")
+    _wait_until(qapp, lambda: False, timeout_seconds=1.5)
+
+    restored = _run_js_json(qapp, backend, """
+      var s = window.ketcher.editor.struct();
+      return {atoms: Array.from(s.atoms.keys()),
+              labels: Array.from(s.atoms.keys()).map(function (id) {
+                return s.atoms.get(id).label; })};
+    """)
+
+    # ASSERT THE SETUP. If undo ever starts re-inserting in numeric order,
+    # sorting becomes harmless and this test would go on passing while
+    # guarding nothing -- the failure mode the whole file is written against.
+    assert restored.get("atoms") == [1, 2, 0], (
+        f"undo did not leave the pool out of numeric order, so this test "
+        f"would pass vacuously: {restored}"
+    )
+    assert restored.get("labels") == ["C", "O", "C"], restored
+
+    backend.select_atoms([1])
+    _wait_until(qapp, lambda: False, timeout_seconds=0.4)
+    report = _selection_report(qapp, backend)
+
+    assert report["labels"] == ["O"], (
+        f"molfile position 1 is the oxygen; the canvas selected "
+        f"{report['labels']} (pool ids {report['poolIds']} of "
+        f"{report['poolOrder']}). Sorting the pool keys gives exactly this."
+    )
+    assert report["poolIds"] == [2], report
+
+    backend.widget().hide()
+
+
+def test_selecting_a_position_on_a_FRESH_structure_is_an_identity(qapp):
+    """The counterpart, and it is not redundant.
+
+    A fresh `setMolecule` rebuilds the pool from zero, so ids and positions
+    coincide. A mapping that returned "the id six higher" would satisfy the
+    edited-structure test above and break every molecule nobody had touched
+    -- which is the accident that let this class ship in the first place.
+    """
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_ETHANOL_MOLBLOCK_NO_EXPLICIT_H)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+
+    backend.select_atoms([2])
+    _wait_until(qapp, lambda: False, timeout_seconds=0.4)
+    report = _selection_report(qapp, backend)
+
+    assert report["poolOrder"] == [0, 1, 2], f"expected a dense pool after a load: {report}"
+    assert report["poolIds"] == [2] and report["labels"] == ["O"], report
+
+    backend.widget().hide()
+
+
+def test_a_position_past_the_end_selects_NOTHING_rather_than_a_wrong_atom(qapp):
+    """`Editor.selection` does not validate the ids it is handed -- read
+    from Ketcher's own TypeScript, not the bundle -- so an unresolvable
+    position has to be dropped before it gets there. Selecting nothing is
+    the honest answer; selecting whatever id happens to be lying around is
+    the failure this whole pair of functions exists to prevent."""
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_ETHANOL_MOLBLOCK_NO_EXPLICIT_H)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+
+    backend.select_atoms([1])
+    _wait_until(qapp, lambda: False, timeout_seconds=0.4)
+    assert _selection_report(qapp, backend)["poolIds"] == [1]
+
+    backend.select_atoms([99])
+    _wait_until(qapp, lambda: False, timeout_seconds=0.4)
+    report = _selection_report(qapp, backend)
+
+    assert report["poolIds"] == [], (
+        f"a position past the end selected {report['poolIds']}"
+    )
+
+    backend.widget().hide()
+
+
+def test_an_empty_selection_clears_the_canvas(qapp):
+    """"Nothing is selected" is a statement the panel has to be able to
+    make -- otherwise a stale marquee outlives the row that put it there."""
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_ETHANOL_MOLBLOCK_NO_EXPLICIT_H)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+
+    backend.select_atoms([0])
+    _wait_until(qapp, lambda: False, timeout_seconds=0.4)
+    assert _selection_report(qapp, backend)["poolIds"] == [0]
+
+    backend.select_atoms([])
+    _wait_until(qapp, lambda: False, timeout_seconds=0.4)
+    assert _selection_report(qapp, backend)["poolIds"] == []
+
+    backend.widget().hide()
+
+
+def test_a_selection_before_ketcher_is_ready_is_DROPPED_not_queued(qapp):
+    """A GESTURE, like `set_atom_tool` and `trigger_toolbar_action` and the
+    deliberate opposite of `set_cip_labels`.
+
+    A selection describes what the user is looking at now. Replayed after
+    boot it would mark up whatever structure loaded in the meantime, which
+    is the same argument the interface records for arming an atom tool --
+    and here it is worse, because a Ketcher selection is ACTIONABLE and the
+    next Delete acts on it.
+    """
+    backend = KetcherEditorBackend()
+    calls: list[str] = []
+    backend._page.runJavaScript = lambda *a, **k: calls.append(a[0] if a else "")
+
+    assert backend._ketcher_ready is False
+    backend.select_atoms([0])
+
+    assert calls == [], f"a selection reached the page before it was ready: {calls}"

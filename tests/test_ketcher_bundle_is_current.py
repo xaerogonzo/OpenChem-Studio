@@ -460,3 +460,66 @@ def test_the_listener_is_installed_with_the_editor_it_belongs_to():
     assert calls == ["installAtomContextMenu(ketcherInstance.editor)"], calls
     # And the flag that tells "installed" from "never ran" apart.
     assert "window.openchemContextMenuInstalled = true" in source
+
+
+def test_an_index_arriving_from_python_is_never_used_as_a_raw_pool_id():
+    """The same trap as above, in the direction nothing declines.
+
+    `test_a_selection_is_never_forwarded_as_a_raw_ketcher_id` covers an
+    index LEAVING the page. This covers one arriving: a molfile position
+    read as a pool id selects a different atom on the canvas while the
+    Atom Inspector row it came from goes on naming the right one, so two
+    panels disagree and neither refuses.
+
+    The behavioural half is in `tests/test_ketcher_editor_backend.py`
+    against the real bundle. This is the fast half, and it fails the
+    moment somebody "simplifies" the translation away.
+    """
+    source = jsx_source()
+
+    assert "function poolIdAt(" in source, "poolIdAt() is gone"
+
+    body = source.split("function selectAtomsByPosition(")[1].split("\n}")[0]
+    assert "poolIdAt(struct.atoms," in body, (
+        "selectAtomsByPosition() no longer translates. A molfile position "
+        "used as a pool id selects a DIFFERENT atom -- and on a structure "
+        "edited from the middle it selects a real one, so nothing declines."
+    )
+    assert "editor.selection({ atoms: ids })" in body, (
+        "expected the selection to be set from TRANSLATED ids"
+    )
+
+    # INSERTION ORDER, NOT SORTED, for the reason `molfilePosition` records
+    # one function above: undo re-inserts a deleted atom under its original
+    # id at the END of the Map, so sorting would be wrong in every position
+    # while still producing entirely plausible ids.
+    helper = source.split("function poolIdAt(")[1].split("\n}")[0]
+    assert ".sort(" not in helper, (
+        "poolIdAt() sorts the pool keys. The molfile follows the pool's "
+        "INSERTION order, which undo can leave out of numeric order."
+    )
+
+
+def test_every_inverse_translation_reads_the_pool_in_insertion_order():
+    """**THERE ARE TWO OF THEM, AND ONLY ONE HAS A NAME.**
+
+    `open_atom_editor` in `ketcher_editor_backend.py` already did this
+    translation, inline, in an injected script -- it predates `poolIdAt`
+    and is correct. It is left where it is rather than routed through the
+    named function, because it is injected JS and cannot reach a
+    module-scope helper; so the rule is asserted over both instead, which
+    is the half that would actually notice a regression.
+
+    `Array.from(...).sort()` in either place reintroduces the off-by-one
+    both exist to avoid, and it would look entirely reasonable.
+    """
+    injected = _BACKEND.read_text(encoding="utf-8")
+    block = injected.split("def open_atom_editor(")[1].split("\n    def ")[0]
+
+    assert "Array.from(ed.struct().atoms.keys())" in block, (
+        "open_atom_editor no longer reads the pool keys in order"
+    )
+    assert ".sort(" not in block, (
+        "open_atom_editor sorts the pool keys before indexing them. The "
+        "molfile follows INSERTION order -- see poolIdAt() in main.jsx."
+    )

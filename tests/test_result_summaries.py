@@ -624,3 +624,154 @@ def test_no_populated_result_projects_nothing(result):
     facts = _view(result).facts
     assert facts, f"{type(result).__name__} carries a payload and projected no facts"
     assert any(fact.display_value for fact in facts), facts
+
+
+# --- the producer's own account of what it found -------------------------
+#
+# 5b. "No locants found" is a normal answer, and the REASON has to travel
+# with it. The explanation existed all along -- `compute_locants` writes one
+# of six sentences into provenance, and a batch cell has rendered it since
+# batch existed -- and the reader was the one consumer that never read it.
+
+
+def _with_summary(note: str, values=None, **extra):
+    parameters = {"summary": note}
+    parameters.update(extra)
+    return _per_atom(
+        values if values is not None else {},
+        provenance=Provenance(created_by="core", method="m", parameters=parameters),
+    )
+
+
+def test_a_producers_declared_finding_reaches_the_reader():
+    view = _view(_with_summary("No IUPAC numbering available."))
+
+    findings = [f.display_value for f in view.facts if f.label == "Finding"]
+    assert findings == ["No IUPAC numbering available."], (
+        f"the producer's own sentence did not reach the reader: "
+        f"{[(f.label, f.display_value) for f in view.facts]}"
+    )
+
+
+def test_the_finding_is_a_VISIBLE_row_and_not_an_evidence_tooltip():
+    """**`Fact.evidence` IS THE OBVIOUS CHANNEL AND IT IS THE WRONG ONE.**
+
+    `FactView._add_row` folds evidence into the value widget's TOOLTIP and
+    nowhere else, so a reason carried there is a reason nobody sees unless
+    they happen to hover the row -- which is this exact defect, one layer
+    along. The sentence is the answer, so it gets a row.
+    """
+    view = _view(_with_summary("This structure is named by a retained name."))
+
+    finding = next(f for f in view.facts if f.label == "Finding")
+    assert finding.display_value == "This structure is named by a retained name."
+    assert not finding.evidence, (
+        "the reason was put in evidence, which only reaches a tooltip"
+    )
+
+
+def test_a_producer_that_declared_no_finding_gets_no_row():
+    """**A DECLARATION, NOT A PROJECTION.** The reader carries the
+    producer's sentence verbatim or says nothing; a row this layer composed
+    would be a scientific claim invented by a view, which 0d forbids."""
+    view = _view(_per_atom({0: 1.0}))
+
+    assert not [f for f in view.facts if f.label == "Finding"]
+
+
+def test_the_reason_an_empty_result_gives_is_the_PRODUCERS_and_not_one_sentence():
+    """**"NO LOCANTS" HAS SEVERAL LEGITIMATE CAUSES AND THE RESULT KNOWS
+    WHICH**, which is why this is carried rather than written here.
+
+    Measured on the real producer: urea names to a retained name and carries
+    no derived numbering at all, while camphor's ring skeleton COULD have
+    been numbered -- the tables hold it -- and the match is what failed.
+    Both render an unmarked molecule; one hardcoded sentence would be wrong
+    about one of them, and would send anyone investigating camphor to look
+    for a missing table entry that is already there.
+    """
+    from rdkit import Chem
+
+    from openchem.chem.structure_annotation import compute_locants
+
+    reasons = {}
+    for name, smiles in (("urea", "NC(N)=O"), ("camphor", "CC1(C)C2CCC1(C)C(=O)C2")):
+        result = compute_locants(Chem.MolFromSmiles(smiles), MOLECULE)
+        assert not result.values, f"{name} unexpectedly produced locants"
+        view = _view(result, result_id="locants", name="IUPAC Locants", category="naming")
+        finding = next((f for f in view.facts if f.label == "Finding"), None)
+        assert finding is not None, f"{name} explained nothing"
+        reasons[name] = finding.display_value
+
+    assert reasons["urea"] != reasons["camphor"], (
+        f"both empty answers gave the same reason, so the reader is not "
+        f"carrying the producer's: {reasons}"
+    )
+    assert "could not be matched" in reasons["camphor"], reasons["camphor"]
+    assert "carries no derived numbering" in reasons["urea"], reasons["urea"]
+
+
+# --- and a range over category ids is a quantity nobody computed ---------
+
+
+def test_a_categorical_dataset_gets_NO_range():
+    """**THE DOCSTRING SAID THIS AND THE CODE DID NOT DO IT.**
+
+    `_numeric_range` explained that inventing a range from category ids
+    "would be a quantity nobody computed", then tested `isinstance(v,
+    float)` -- and `compute_locants` stores `values[i] = float(category)`.
+    The ids ARE floats, so the guard never fired once. Measured on aspirin:
+    four of five categorical per-atom results carried a range over their own
+    ids, `locants` reporting "2 to 2" for what is the SOURCE of the
+    numbering rather than any number on the molecule.
+    """
+    view = _view(_with_summary("2 groups.", {0: 1.0, 1: 2.0, 2: 3.0}, scale="categorical"))
+
+    assert not [f for f in view.facts if f.label == "Range"], (
+        f"a range was projected over category ids: "
+        f"{[(f.label, f.display_value) for f in view.facts]}"
+    )
+    assert [f for f in view.facts if f.label == "Atoms"], (
+        "the count must survive -- a categorical result has one"
+    )
+
+
+def test_a_magnitude_dataset_still_gets_its_range():
+    """The other half, and the reason this is a declaration test rather than
+    a mute: a guard that dropped every range would pass the test above and
+    remove a real projection from every quantitative dataset."""
+    view = _view(_per_atom({0: -0.25, 1: 0.5}))
+
+    ranges = [f.display_value for f in view.facts if f.label == "Range"]
+    assert len(ranges) == 1, [(f.label, f.display_value) for f in view.facts]
+
+
+def test_oxidation_states_looks_like_the_exception_and_is_not():
+    """**IT IS THE CASE THAT WOULD TEMPT A SECOND PREDICATE.**
+
+    Its values really are the states -- -3 to +3 on aspirin -- so a range
+    over them reads as a legitimate measurement, and a discriminator built
+    to preserve it would have been built here. `compute_oxidation_states`
+    refuses it in as many words: marked categorical "because an oxidation
+    state is not a magnitude. Iron(+3) is not 'one more' of anything than
+    iron(+2), and a continuous colour ramp across them would imply an
+    ordering the formalism does not carry." A range IS that ordering claim.
+
+    And what the producer offers instead is better than the range was:
+    its own summary, grouped by element.
+    """
+    from rdkit import Chem
+
+    from openchem.chem.oxidation_states import compute_oxidation_states
+
+    result = compute_oxidation_states(Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(O)=O"), MOLECULE)
+    assert result.values, "no states assigned, so this test would prove nothing"
+    assert min(result.values.values()) < max(result.values.values()), (
+        "every atom has the same state, so a range would be invisible here"
+    )
+
+    view = _view(result, result_id="oxidation_states", name="Oxidation States")
+    labels = {f.label: f.display_value for f in view.facts}
+
+    assert "Range" not in labels, labels
+    assert "Finding" in labels, labels
