@@ -50,8 +50,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from openchem.domain.common import ScientificResult
-from openchem.domain.report import ReportResult
+from openchem.domain.common import HEAVY_ATOMS, ScientificResult
+from openchem.domain.report import Basis, Fact, FactCategory, ReportResult
 from openchem.domain.result_kinds import (
     ALERT,
     PER_ATOM,
@@ -69,9 +69,10 @@ from openchem.domain.scientific_result import (
     PhCurveResult,
     SpectrumResult,
     StructureSetResult,
+    TrajectoryResult,
     VibrationalSpectrumResult,
 )
-from openchem.ui.visualization import declared_total, label_decimals
+from openchem.ui.visualization import atom_basis, declared_total, label_decimals
 
 #: This kind has no dedicated viewer to open. A VALUE rather than an absent
 #: entry, so "no rich view" and "nobody filled this in" stay different states --
@@ -88,6 +89,15 @@ NMR_VIEW = "nmr_view"
 #: panel. Named here so the registry can say a vibrational spectrum does NOT
 #: belong in the NMR view, which is the point of it having its own kind.
 IR_VIEW = "ir_view"
+#: A shape-valued result on a 3D model -- `SpatialResultDialog`.
+#:
+#: **NOT A RESULT KIND'S `rich_view`, AND THAT IS THE DISTINCTION.** Every
+#: other identifier here answers "which viewer owns THIS KIND of result"; a
+#: spatial annotation is declared by a `ReportResult`, whose kind is already
+#: report-shaped and needs no viewer. So this is reached from a declared
+#: PICTURE rather than from a kind, which is why nothing in `ADAPTERS` names
+#: it.
+SPATIAL_VIEW = "spatial_view"
 
 
 def _units_suffix(result: ScientificResult) -> str:
@@ -236,6 +246,346 @@ def _generic_to_text(result: ScientificResult) -> str:
     return getattr(result, "name", "") or type(result).__name__
 
 
+#: What a summary says about itself, so a reader can tell a PROJECTION from a
+#: producer's declaration.
+#:
+#: **0d's RULE, RENDERED.** A presentation summary may be deterministically
+#: projected from declared result data and must be IDENTIFIED as one; it never
+#: introduces a new scientific claim. `len(peaks)` is a projection; a curve
+#: crossing found by interpolation is a claim and belongs to a producer. Saying
+#: so on the view is what keeps the two distinguishable once both are rows in
+#: the same reader.
+SUMMARY_LIMITATION = (
+    "This is a summary of the result, not the result. Open it for every value."
+)
+
+
+def _summary_fact(
+    label: str,
+    value,
+    display: str,
+    category: FactCategory,
+    source: str,
+    *,
+    units: str = "",
+    basis: Basis = Basis.DETERMINISTIC,
+) -> Fact:
+    """One projected fact.
+
+    `source` is the PRODUCER's own method, never "summary": `Fact.source`
+    answers where a value came from scientifically, and overwriting it to
+    record that a view assembled the row would destroy real provenance to
+    record a different kind. What says "this was projected" is the view's
+    limitation, which is a statement about the whole entry.
+    """
+    return Fact(
+        category=category,
+        label=label,
+        value=value,
+        display_value=display,
+        source=source or "core",
+        basis=basis,
+        units=units,
+    )
+
+
+def _source_of(result: Any) -> str:
+    return str(getattr(result, "method", "") or "")
+
+
+def _numeric_range(
+    result: Any, values, category: FactCategory
+) -> tuple[Fact, ...]:
+    """The span of a numeric payload, at the producer's own precision.
+
+    Empty when nothing in the payload is a number -- a categorical per-atom
+    dataset (oxidation states drawn as labels, functional-group ids) has a
+    count and no range, and inventing one from category ids would be a
+    quantity nobody computed.
+    """
+    numbers = [v for v in values if isinstance(v, (int, float)) and not isinstance(v, bool)]
+    if not numbers:
+        return ()
+    places = label_decimals(result)
+    low, high = min(numbers), max(numbers)
+    return (
+        _summary_fact(
+            "Range",
+            (low, high),
+            f"{low:.{places}f} to {high:.{places}f}",
+            category,
+            _source_of(result),
+            units=getattr(result, "units", "") or "",
+        ),
+    )
+
+
+def _declared_total_fact(result: Any, category: FactCategory) -> tuple[Fact, ...]:
+    """The producer's molecular total, if it declared one.
+
+    **NEVER SUMMED, AND THAT IS THE WHOLE POINT OF THE KEY.**
+    `domain/common.TOTAL` exists because the UI used to invent a molecular
+    total by adding per-atom values up -- the `Overall:` bug that put a net
+    -1.36 e on a neutral molecule. `declared_total` returns None for no
+    declaration, an explicit refusal AND a malformed one, so an undeclared
+    total simply produces no row.
+    """
+    total = declared_total(result)
+    if total is None:
+        return ()
+    places = label_decimals(result)
+    return (
+        _summary_fact(
+            total["label"],
+            total["value"],
+            f"{total['value']:.{places}f}",
+            category,
+            _source_of(result),
+            units=total["units"],
+            # **HEURISTIC, AND THE DECLARATION'S OWN `basis` IS NOT THIS ONE.**
+            # `declare_total(..., basis=HEAVY_ATOMS)` says WHICH ATOMS the
+            # total is over -- it is the atom basis, not `Fact.Basis` -- so
+            # reading it as a scientific basis raises, which is how this was
+            # found rather than shipped. The producer declares no scientific
+            # basis for its total, so none may be invented: understating a
+            # Wiener index as judgement is recoverable, and claiming a fitted
+            # Crippen total as "right, or the periodic table is wrong" is the
+            # overstatement `DETERMINISTIC_DESCRIPTORS` errs away from.
+            basis=Basis.HEURISTIC,
+        ),
+    )
+
+
+def _per_atom_summary(result: PerAtomDataset, category: FactCategory) -> tuple[Fact, ...]:
+    """A per-atom dataset as the few numbers a reader wants beside it.
+
+    The DECLARED total leads, because it is the number the row was opened
+    for -- a LogP contribution table whose summary omits the molecule's LogP
+    is true and useless. The count and the range are projections; the atom
+    basis is a producer declaration and is carried because a value keyed to
+    explicit hydrogens and one keyed to heavy atoms are different data under
+    the same name.
+    """
+    return (
+        *_declared_total_fact(result, category),
+        _summary_fact(
+            "Atoms", len(result.values), str(len(result.values)), category, _source_of(result)
+        ),
+        *_numeric_range(result, result.values.values(), category),
+        _summary_fact(
+            "Keyed to", atom_basis(result), _ATOM_BASIS_LABELS[atom_basis(result)],
+            category, _source_of(result),
+        ),
+    )
+
+
+#: How each declared atom basis reads. Hand-written rather than derived from
+#: the value, because `explicit_h` titles as "Explicit H" and what a reader
+#: needs is what it MEANS -- the restate-the-identifier degeneracy the help
+#: contracts refuse one floor up.
+_ATOM_BASIS_LABELS = {
+    HEAVY_ATOMS: "heavy atoms (hydrogens implicit)",
+    "explicit_h": "every atom, hydrogens included",
+    "pi_system": "the pi system only",
+}
+
+
+def _spectrum_summary(result: SpectrumResult, category: FactCategory) -> tuple[Fact, ...]:
+    """Peak count and range, keyed by ATOM -- which is what a spectrum whose
+    values are per-nucleus is made of."""
+    return (
+        _summary_fact(
+            "Signals", len(result.values), str(len(result.values)), category, _source_of(result)
+        ),
+        *_numeric_range(result, result.values.values(), category),
+    )
+
+
+def _vibrational_summary(
+    result: VibrationalSpectrumResult, category: FactCategory
+) -> tuple[Fact, ...]:
+    """**MODES, NOT ATOMS, AND THE GENERIC ANSWER IS WRONG RATHER THAN
+    THIN.** A vibrational result leaves `values` empty on purpose -- a normal
+    mode is not a property of one atom -- so the shared payload walk reported
+    `None found.` for a spectrum with real modes in it. Measured on three:
+    "None found." That is the fourth consumer of one vocabulary read through
+    a different registry, after the clipboard, the view factory and the
+    inspector.
+    """
+    wavenumbers = [mode.wavenumber_cm1 for mode in result.modes]
+    facts = [
+        _summary_fact(
+            "Modes", len(result.modes), str(len(result.modes)), category, _source_of(result)
+        )
+    ]
+    if wavenumbers:
+        places = label_decimals(result)
+        low, high = min(wavenumbers), max(wavenumbers)
+        facts.append(
+            _summary_fact(
+                "Wavenumbers",
+                (low, high),
+                f"{low:.{places}f} to {high:.{places}f}",
+                category,
+                _source_of(result),
+                units=getattr(result, "units", "") or "cm^-1",
+            )
+        )
+    return tuple(facts)
+
+
+def _ph_curve_summary(result: PhCurveResult, category: FactCategory) -> tuple[Fact, ...]:
+    """**THE PRODUCER'S OWN FACTS FIRST, UNCHANGED.** `PhCurveResult.facts`
+    is where the pI and the LogP live -- scalars a producer COMPUTED, which
+    used to be interpolated into the display name because there was nowhere
+    to put them. They pass through; only the shape of the curve is projected.
+    """
+    projected = [
+        _summary_fact(
+            "Series",
+            tuple(result.series),
+            ", ".join(result.series) or "none",
+            category,
+            _source_of(result),
+        )
+    ]
+    if result.ph_values:
+        projected.append(
+            _summary_fact(
+                "pH range",
+                (result.ph_values[0], result.ph_values[-1]),
+                f"{result.ph_values[0]:.2f} to {result.ph_values[-1]:.2f}"
+                f" ({len(result.ph_values)} points)",
+                category,
+                _source_of(result),
+            )
+        )
+    return (*result.facts, *projected)
+
+
+def _structure_set_summary(
+    result: StructureSetResult, category: FactCategory
+) -> tuple[Fact, ...]:
+    """Counts, **never a SMILES list**.
+
+    A hundred structures rendered as facts is the wall the reader exists to
+    avoid, and the set already has an inspector that draws them. What a
+    summary owes is how many there are and whether it is showing all of them
+    -- `truncated` is a producer declaration and reads as a different claim
+    from a short list.
+    """
+    facts = [
+        _summary_fact(
+            "Structures", len(result.entries), str(len(result.entries)),
+            category, _source_of(result),
+        )
+    ]
+    if result.total_available and result.total_available != len(result.entries):
+        facts.append(
+            _summary_fact(
+                "Available", result.total_available, str(result.total_available),
+                category, _source_of(result),
+            )
+        )
+    if result.truncated:
+        facts.append(
+            _summary_fact(
+                "Showing", "truncated",
+                f"the first {len(result.entries)} of {result.total_available}",
+                category, _source_of(result),
+            )
+        )
+    return tuple(facts)
+
+
+def _trajectory_summary(
+    result: TrajectoryResult, category: FactCategory
+) -> tuple[Fact, ...]:
+    """Frames, duration and temperature -- and a final energy **only if an
+    energy series exists**.
+
+    A trajectory with no energies is an ordinary trajectory, and reporting
+    `0.0` for one would be a number nobody computed sitting where a real
+    energy goes.
+    """
+    facts = [
+        _summary_fact(
+            "Frames", len(result.frames), str(len(result.frames)), category, _source_of(result)
+        )
+    ]
+    if result.times:
+        facts.append(
+            _summary_fact(
+                "Duration", result.times[-1], f"{result.times[-1]:.6g}",
+                category, _source_of(result), units="ps",
+            )
+        )
+    if result.temperature is not None:
+        facts.append(
+            _summary_fact(
+                "Temperature", result.temperature, f"{result.temperature:.6g}",
+                category, _source_of(result), units="K",
+            )
+        )
+    if result.energies:
+        facts.append(
+            _summary_fact(
+                "Final energy", result.energies[-1], f"{result.energies[-1]:.6g}",
+                category, _source_of(result), units="kcal/mol",
+            )
+        )
+    return tuple(facts)
+
+
+def _no_summary_needed(result: Any, _category: FactCategory) -> tuple[Fact, ...]:
+    """This kind already has a report-shaped form, so `summarise` returns
+    THAT rather than projecting one.
+
+    **NAMED IN THE TABLE RATHER THAN LEFT OUT**, for the reason
+    `_generic_to_text` is: "this is the right answer here" and "nothing
+    matched" must stay distinguishable in the registry itself, which is
+    exactly how the vibrational case stayed invisible. It RAISES rather than
+    returning `()`, because an empty projection is indistinguishable from a
+    result that genuinely had nothing to say -- and for these two the answer
+    is not a projection at all.
+
+    A `ReportResult` is returned whole so its provenance, cache state and
+    version travel with it. An `AlertResult` goes through
+    `chem/report_adapter.report_from_alert`, which is the ONE bridge for that
+    and preserves the `cache_state` and `error` a refused catalog carries --
+    a view built from its facts alone would render a failure as a calculator
+    that ran and had nothing to say.
+    """
+    raise TypeError(
+        f"{type(result).__name__} is already report-shaped; `summarise` returns "
+        "its native form rather than a projection"
+    )
+
+
+def _no_chart(_result: Any) -> tuple:
+    """This kind declares no chart. A named entry, same rule as above."""
+    return ()
+
+
+def _ph_curve_chart(result: PhCurveResult) -> tuple:
+    """The curve itself, through the ONE adapter that already builds it.
+
+    `ph_curve_widget.annotation_for` is what the pH dialog draws from, so the
+    reader and that dialog cannot disagree about the picture. A second
+    pairing of the grid with the series is exactly where a double transform
+    would hide.
+
+    **THE INSPECTOR TURNS ITS CHART OFF AND THIS DOES NOT**, and both are
+    right: that dialog already shows the curve an inch above its facts, so a
+    second plot of the same numbers is not a second view of them. The reader
+    shows no curve at all without this.
+    """
+    from openchem.ui.widgets.ph_curve_widget import annotation_for
+
+    annotation = annotation_for(result)
+    return (annotation,) if annotation is not None else ()
+
+
 @dataclass(frozen=True)
 class ResultAdapter:
     """How one kind of result is presented."""
@@ -244,23 +594,141 @@ class ResultAdapter:
     to_text: Callable[[Any], str]
     #: Which dedicated viewer opens it, or `NO_RICH_VIEW`.
     rich_view: str
+    #: The few facts a reader shows in place of the whole result.
+    summary: Callable[[Any, FactCategory], tuple[Fact, ...]]
+    #: Charts this kind can project. `()` for every kind whose content is not
+    #: a curve -- named, not defaulted.
+    chart: Callable[[Any], tuple]
+    #: Which field holds "what arrived", and what one of them is called.
+    #:
+    #: **KEYED BY KIND BECAUSE PROBING FIELDS IN A FIXED ORDER GUESSES.**
+    #: `PropertyPanel._summarise` walked a tuple of candidate attribute names
+    #: and took the first one present -- with `("values", "atom")` FIRST. A
+    #: vibrational spectrum leaves `values` empty on purpose, so the walk
+    #: found an empty payload and the panel row read **"None found." for a
+    #: spectrum with real modes in it**. Measured on three. That is the same
+    #: one-vocabulary-many-registries defect the module docstring opens with,
+    #: in a fourth consumer.
+    #:
+    #: `("", "")` for the two kinds that are already report-shaped: they are
+    #: rendered as facts rather than as a one-line "what arrived".
+    payload: tuple[str, str]
 
 
 #: Kind -> how to present it. TOTAL over `RESULT_KINDS`, which
 #: `test_every_kind_has_an_adapter` asserts -- a missing entry would raise a
 #: KeyError deep in a paint path rather than at registration.
 ADAPTERS: dict[str, ResultAdapter] = {
-    REPORT: ResultAdapter(to_text=_report_to_text, rich_view=NO_RICH_VIEW),
-    ALERT: ResultAdapter(to_text=_alert_to_text, rich_view=NO_RICH_VIEW),
-    PER_ATOM: ResultAdapter(to_text=_per_atom_to_text, rich_view=CALCULATOR_INSPECTOR),
-    SPECTRUM: ResultAdapter(to_text=_spectrum_to_text, rich_view=NMR_VIEW),
-    VIBRATIONAL_SPECTRUM: ResultAdapter(to_text=_vibrational_to_text, rich_view=IR_VIEW),
-    PH_CURVE: ResultAdapter(to_text=_ph_curve_to_text, rich_view=CALCULATOR_INSPECTOR),
-    STRUCTURE_SET: ResultAdapter(
-        to_text=_structure_set_to_text, rich_view=CALCULATOR_INSPECTOR
+    REPORT: ResultAdapter(
+        to_text=_report_to_text, rich_view=NO_RICH_VIEW,
+        summary=_no_summary_needed, chart=_no_chart,
+        payload=("", ""),
     ),
-    TRAJECTORY: ResultAdapter(to_text=_generic_to_text, rich_view=CALCULATOR_INSPECTOR),
+    ALERT: ResultAdapter(
+        to_text=_alert_to_text, rich_view=NO_RICH_VIEW,
+        summary=_no_summary_needed, chart=_no_chart,
+        payload=("", ""),
+    ),
+    PER_ATOM: ResultAdapter(
+        to_text=_per_atom_to_text, rich_view=CALCULATOR_INSPECTOR,
+        summary=_per_atom_summary, chart=_no_chart,
+        payload=("values", "atom"),
+    ),
+    SPECTRUM: ResultAdapter(
+        to_text=_spectrum_to_text, rich_view=NMR_VIEW,
+        summary=_spectrum_summary, chart=_no_chart,
+        payload=("values", "signal"),
+    ),
+    VIBRATIONAL_SPECTRUM: ResultAdapter(
+        to_text=_vibrational_to_text, rich_view=IR_VIEW,
+        summary=_vibrational_summary, chart=_no_chart,
+        payload=("modes", "mode"),
+    ),
+    PH_CURVE: ResultAdapter(
+        to_text=_ph_curve_to_text, rich_view=CALCULATOR_INSPECTOR,
+        summary=_ph_curve_summary, chart=_ph_curve_chart,
+        payload=("ph_values", "pH point"),
+    ),
+    STRUCTURE_SET: ResultAdapter(
+        to_text=_structure_set_to_text, rich_view=CALCULATOR_INSPECTOR,
+        summary=_structure_set_summary, chart=_no_chart,
+        payload=("entries", "structure"),
+    ),
+    TRAJECTORY: ResultAdapter(
+        to_text=_generic_to_text, rich_view=CALCULATOR_INSPECTOR,
+        summary=_trajectory_summary, chart=_no_chart,
+        payload=("frames", "frame"),
+    ),
 }
+
+
+def summarise(
+    result: Any,
+    *,
+    result_id: str,
+    name: str,
+    category: str = "",
+    structure_version: int = 0,
+):
+    """`result` in the shape the results reader consumes.
+
+    **THE CALLER SUPPLIES THE TWO THINGS THE RESULT CANNOT KNOW.** Measured
+    over every non-report result the registry produces for aspirin:
+    `PerAtomDataset.category` is EMPTY for all twelve of them, and
+    `PhCurveResult`, `StructureSetResult`, `TrajectoryResult` and
+    `NMRSpectrumResult` have no such field at all -- so a summary that read
+    the section off the result would file twenty entries under "Other".
+    Neither does any of them carry a `structure_version`: only
+    `StructureReport` does, so an unstamped summary would read as stale the
+    moment the structure moved past 0, which is exactly what alert-derived
+    reports used to do.
+
+    `PropertyPanel._show_result` already resolves both at the point every one
+    of these arrives, which is why they are arguments rather than a second
+    injected lookup.
+
+    A REPORT passes straight through: it is already what the reader consumes,
+    and wrapping it would flatten its provenance into a view.
+    """
+    kind = kind_of(result)
+    if kind == REPORT:
+        return result
+    if kind == ALERT:
+        from openchem.chem.report_adapter import report_from_alert
+
+        return report_from_alert(result)
+    adapter = adapter_for(result)
+    from openchem.domain.calculator_taxonomy import category_for
+    from openchem.ui.result_summary import ResultSummaryView
+
+    fact_category = category_for(category)
+    producer_limitations = tuple(getattr(result, "limitations", ()) or ())
+    return ResultSummaryView(
+        report_id=result_id,
+        name=name,
+        category=category,
+        facts=adapter.summary(result, fact_category),
+        charts=adapter.chart(result),
+        # The adapter's own answer, carried so the reader can offer the whole
+        # result. Without it a summary is a dead end for the 30 of 60 entries
+        # that have a viewer.
+        rich_view=adapter.rich_view,
+        # The projection's own caveat FIRST, then whatever the producer said.
+        # A reader meeting the producer's caveats under a summary would have
+        # no way to tell which half it was reading.
+        limitations=(SUMMARY_LIMITATION, *producer_limitations),
+        molecule_uuid=str(getattr(result, "molecule_uuid", "") or ""),
+        structure_version=structure_version,
+        # CARRIED, NEVER RE-DERIVED. A refused calculator has fewer facts to
+        # project than a successful one, so it is exactly the case a summary
+        # would otherwise render as a producer that ran and had nothing to
+        # say -- the statement `merge_reports` stopped making when it stopped
+        # gating on facts.
+        cache_state=getattr(result, "cache_state", None),
+        error=getattr(result, "error", None),
+        error_summary=getattr(result, "error_summary", None),
+        inapplicable=bool(getattr(result, "inapplicable", False)),
+    )
 
 
 def adapter_for(result: object) -> ResultAdapter:

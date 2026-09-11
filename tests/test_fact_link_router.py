@@ -199,24 +199,104 @@ def test_the_router_exposes_what_it_can_follow():
 
 
 def test_the_calculator_inspector_handler_accepts_both_shapes():
-    """Two producers emit this target with different params: `atom_report`
-    names a `calculator_id` (a per-atom dataset) and `molecule_report` a
-    `descriptor_id` (a Properties row). Both mean "show me the tool this came
-    from"; they differ in where that tool is.
+    """THREE producers emit this target with different params: `atom_report`
+    names a `calculator_id` (a per-atom dataset), `molecule_report` a
+    `descriptor_id` (a Properties row), and the RESULTS READER a `report_id`
+    -- the entry it is showing a summary of. All three mean "show me the tool
+    this came from"; they differ in which store the thing being shown is in.
 
-    Asserted on the SOURCE because reaching either branch needs a real window
+    **THE READER'S SHAPE IS THE ONE A MUTATION FOUND MISSING.** Dropping it
+    left every guard on the dialog, the panel and the router green, because
+    each of those tests one END of a chain nobody was asserting the middle
+    of -- "testing a helper is not testing the wiring", for the sixth time.
+
+    Asserted on the SOURCE because reaching any branch needs a real window
     with a project and a retained result, and this is a claim about the
-    handler covering both shapes rather than about either destination.
+    handler covering all three shapes rather than about any destination.
     """
     source = (SRC / "app" / "main_window.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef) and node.name == "_link_to_calculator_inspector":
-            body = ast.unparse(node)
-            assert "calculator_id" in body
-            assert "descriptor_id" in body
+            assert _params_read(node) >= {"calculator_id", "descriptor_id", "report_id"}, (
+                f"reads only {sorted(_params_read(node))}"
+            )
             return
     raise AssertionError("_link_to_calculator_inspector is gone")
+
+
+def _params_read(function: ast.FunctionDef) -> set[str]:
+    """Which `params` keys a handler actually READS.
+
+    **`"report_id" in ast.unparse(node)` IS NOT THIS, AND A MUTATION PROVED
+    IT.** The first version of the guard above asked whether the WORD appeared
+    in the body; replacing `params.get("report_id")` with `None` leaves the
+    word in the assignment and in the `if`, so the handler stopped reading the
+    reader's shape and the guard stayed green.
+
+    That is this project's own most-repeated lesson -- grepping for a phrase
+    counts the SOURCE, not the outcome -- committed inside the guard written
+    to catch it. Walking for the `.get("...")` call is the structural form,
+    and a mutation cannot satisfy it by mentioning the name.
+    """
+    keys: set[str] = set()
+    for node in ast.walk(function):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)):
+            continue
+        if node.func.attr != "get" or ast.unparse(node.func.value) != "params":
+            continue
+        if node.args and isinstance(node.args[0], ast.Constant):
+            keys.add(node.args[0].value)
+    return keys
+
+
+def test_every_surface_that_emits_a_link_is_connected_to_the_router():
+    """**THE MIDDLE OF THE CHAIN, WHICH NOTHING ASSERTED.**
+
+    Two surfaces emit `link_activated` -- the Atom Inspector and the
+    Properties panel, the latter forwarding its results reader's. Each has
+    guards saying it EMITS, and the router has guards saying it ROUTES, and
+    a mutation removing the connection between them passed all of them: the
+    reader's requests simply went nowhere, silently, which is the dead-button
+    defect this router exists to remove.
+
+    Derived from the SOURCE rather than from a list of panel names -- it
+    walks every `<something>.link_activated.connect(...)` in the window and
+    checks what it lands on -- so a third emitting surface is held to the
+    same rule without anybody remembering to add it. The population is
+    asserted, so a walk that collapses to nothing cannot pass vacuously.
+    """
+    source = (SRC / "app" / "main_window.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    connected: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)):
+            continue
+        if node.func.attr != "connect":
+            continue
+        signal = node.func.value
+        if not (isinstance(signal, ast.Attribute) and signal.attr == "link_activated"):
+            continue
+        emitter = ast.unparse(signal.value)
+        handler = ast.unparse(node.args[0]) if node.args else ""
+        connected[emitter] = handler
+
+    assert len(connected) >= 2, (
+        f"the walk found {len(connected)} link_activated connections, so it is "
+        "measuring nothing"
+    )
+    unrouted = {
+        emitter: handler
+        for emitter, handler in connected.items()
+        if not handler.endswith("_on_atom_fact_link")
+    }
+    assert not unrouted, (
+        "these surfaces emit a link that reaches no router: "
+        + ", ".join(f"{e} -> {h or 'nothing'}" for e, h in sorted(unrouted.items()))
+    )
+    assert "self._property_panel" in connected, (
+        "the results reader's requests are not routed anywhere"
+    )
 
 
 @pytest.mark.parametrize(

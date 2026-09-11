@@ -428,6 +428,11 @@ class MainWindow(QMainWindow):
         )
         self._fact_link_router = self._build_fact_link_router()
         self._atom_inspector_panel.link_activated.connect(self._on_atom_fact_link)
+        # THE SAME ROUTER FOR THE RESULTS READER. Its requests are the
+        # same three outcomes -- opened, unavailable, unknown target --
+        # and a second dispatch would be a second place for a target to
+        # go unrouted, which is the dead-button defect 0g removed.
+        self._property_panel.link_activated.connect(self._on_atom_fact_link)
         self._atom_inspector_panel.atoms_highlighted.connect(self._on_facts_highlighted)
         self._atom_inspector_panel._facts.compare_requested.connect(self._on_compare_requested)
         # The 3D viewer already reports clicks -- it has since the distance
@@ -3275,8 +3280,25 @@ class MainWindow(QMainWindow):
                 "atom_report": self._link_to_atom_report,
                 "calculator_inspector": self._link_to_calculator_inspector,
                 "nmr_view": self._link_to_nmr_view,
+                "spatial_view": self._link_to_spatial_view,
             }
         )
+
+    def _link_to_spatial_view(self, params: dict) -> bool:
+        """One declared picture, drawn on a 3D model.
+
+        Reached from the results reader's Visualizations list rather than
+        from a result KIND -- a spatial annotation is declared by a report,
+        whose kind is already report-shaped, so there is no `rich_view` to
+        carry it. The panel answers whether it could: a report with no
+        annotation, and a molecule with no conformer, are both refusals the
+        reader is told about rather than a button that does nothing.
+        """
+        report_id = params.get("report_id")
+        if not report_id:
+            return False
+        index = params.get("annotation_index") or 0
+        return self._property_panel.open_spatial_view(str(report_id), int(index))
 
     def _link_to_periodic_table(self, params: dict) -> bool:
         self._show_periodic_table()
@@ -3323,6 +3345,14 @@ class MainWindow(QMainWindow):
         same destination in the sense that both mean "show me the tool this
         came from", and different in where that tool is.
         """
+        report_id = params.get("report_id")
+        if report_id:
+            # THE RESULTS READER'S SHAPE. It holds a summary VIEW, which is
+            # deliberately not the result, so "open this properly" has to come
+            # back to whoever kept the result -- the Properties panel. Same
+            # destination as the two below; what differs is which store the
+            # thing being shown lives in.
+            return self._property_panel.open_retained_result(str(report_id))
         calculator_id = params.get("calculator_id")
         if calculator_id:
             dataset = self._atom_inspector_panel.retained_result("per_atom", calculator_id)
@@ -3336,6 +3366,9 @@ class MainWindow(QMainWindow):
     def _link_to_nmr_view(self, params: dict) -> bool:
         """`atom_report` names a `spectrum_type`; `molecule_report` names
         nothing and just means "open NMR"."""
+        report_id = params.get("report_id")
+        if report_id:
+            return self._property_panel.open_retained_result(str(report_id))
         spectrum_type = params.get("spectrum_type")
         if spectrum_type:
             spectrum = self._atom_inspector_panel.retained_result("spectra", spectrum_type)

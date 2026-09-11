@@ -188,6 +188,63 @@ def group_label(entry) -> str:
     return category_label(category_of(entry))
 
 
+def display_name_of(entry) -> str:
+    """What an entry is called, falling back to its id.
+
+    The same fallback `MergedResults.name_for` makes, and for the same
+    reason: an id is at least true where a prettified id would be a guess.
+    Here it also means a producer that set no name is still findable by the
+    only string a reader can see.
+    """
+    report_id = str(getattr(entry, "report_id", "") or "")
+    return str(getattr(entry, "name", "") or "") or report_id
+
+
+def matches_search(entry, text: str) -> bool:
+    """Whether `entry` answers a SELECTOR search.
+
+    **NAME AND SECTION, NOT FACTS.** This is the second of two deliberately
+    separate searches: this one narrows WHICH RESULT you are reading, and
+    `FactView`'s narrows the values within it. One box over facts, reports,
+    categories, providers and viewers at once cannot tell a reader which of
+    those it just matched, and a hit in a value would silently change which
+    producer is on screen.
+
+    Matching the SECTION as well as the name is what makes "solubility" find
+    the three entries filed under it whatever they are called, which is how
+    somebody who does not remember a calculator's name looks for it.
+
+    Empty text matches everything -- the absence of a filter, not a filter
+    that happens to match nothing.
+    """
+    needle = text.strip().casefold()
+    if not needle:
+        return True
+    return needle in display_name_of(entry).casefold() or needle in group_label(entry).casefold()
+
+
+def matching_reports(reports, text: str, always: str = "") -> tuple:
+    """`reports` narrowed to a selector search, keeping what is on screen.
+
+    **`always` IS THE FOCUSED ENTRY, AND KEEPING IT IS NOT A CONVENIENCE.**
+    A reader typing into the search must not have the thing they are reading
+    swapped out from under them -- 0i settled that jumping away from a
+    reading position is the worse failure of the two, and `ALL_RESULTS`'
+    own rule is that the control always names what it is currently doing. A
+    box that hid the current selection would show one report and name
+    another.
+
+    Order is preserved, so the caller's sort survives and
+    `grouped_reports` can be handed the result directly -- which is what
+    makes the empty-heading behaviour free rather than a second rule.
+    """
+    return tuple(
+        report for report in reports
+        if matches_search(report, text)
+        or (always and str(getattr(report, "report_id", "") or "") == always)
+    )
+
+
 def grouped_reports(
     reports, display_order_of: Callable[[str], int | None] | None = None
 ) -> tuple[ResultGroup, ...]:
@@ -206,11 +263,28 @@ def grouped_reports(
     the rule the Properties panel is held to.
     `test_no_category_holds_a_single_calculator` exists because a SECTION
     concealing one button is a taxonomy failure; a group here holds one entry
-    whenever you have run one calculator from that section, which is most of
-    them. Measured on a full run of everything reachable for aspirin: 30
-    entries across 17 groups, **11 of them holding exactly one**. Applying the
+    whenever you have run one calculator from that section. Applying the
     panel's rule to this list would be applying a rule about the taxonomy to a
     statement about what somebody ran.
+
+    **THE FIGURE THAT USED TO BE HERE WAS MEASURED BEFORE STAGE 1a AND IS
+    RECORDED AS SUPERSEDED RATHER THAN ADJUSTED.** It read "30 entries across
+    17 groups, 11 of them holding exactly one", which was true when only
+    report-shaped results reached the reader. Re-measured on a full run for
+    aspirin now that every kind does:
+
+        entries  60      groups  20      holding exactly one  2
+
+    So the singleton case got RARER as coverage grew -- 1a filled the groups
+    out rather than adding new ones -- and the rule above is now exercised by
+    NMR and Thermophysical alone. It is still the right rule; what changed is
+    that it is no longer the common case, which is worth knowing before
+    anybody reads two singletons as an anomaly.
+
+    **AND 60 ENTRIES IS WHY A SELECTOR SEARCH EXISTS.** With a heading per
+    group and an "All results" row, that list is 81 rows -- which is a
+    scrolling problem rather than a reading one, and is what `matching_reports`
+    above narrows.
 
     Groups are cut from the SORTED sequence rather than collected into a dict
     and re-sorted, so the group order and the order within a group are one

@@ -2920,6 +2920,65 @@ calls the arbiter of naming quality had not actually run in CI for any of
 them. **Check the STEP LIST, not just the conclusion** -- a red run hides
 how much never executed.
 
+### FIXED STRUCTURALLY: the gates are their own job now
+
+This section's whole subject is a COUPLING -- the three gates were steps
+behind the suite in one job, and GitHub skips later steps once one fails.
+Every fix recorded above buys back one CAUSE of that: deselecting the network
+test stops NCBI doing it, reading the step list stops a reader missing it.
+None of them touches the coupling, so the next unrelated cause does it again.
+
+**AND THE NEXT CAUSE WAS THE CLOCK.** Measured 2026-09-10 on run
+34452130638, which passed all sixteen steps:
+
+    the suite step                  33m24
+    the three gating benchmarks     naming 3m12, regulatory 10 s,
+                                    rulesets 6m33
+    the job                         44m31  against a 45-minute timeout
+
+99% of budget. A timeout there is not a slow run, it is this section's own
+failure with a new trigger: all three gates report `skipped`.
+
+**AND "WHAT GOT SLOWER" HAD NO ANSWER, WHICH IS THE MEASUREMENT THAT
+MATTERED.** The job's own comment said to look at what got slower rather
+than raise the number a second time -- good advice, and it assumes growth is
+the driver. It is not:
+
+    ae0094ad   suite step 1345 s   7172 collected
+    fdf68292   suite step 1633 s   7172 collected   <- +21%
+
+`git diff ae0094ad fdf68292` is **empty**. Those two carry byte-identical
+trees, so a 288-second spread is what this runner does with no code change at
+all, and the 29-second margin was far inside it. **A first reading of the
+same numbers as "the suite lost 30% of its throughput" was wrong** -- that
+compared one run of one tree against one run of another and attributed the
+whole difference to the trees, which is this file's own most-repeated
+mistake made again, and the same-tree pair is what refuted it.
+
+So the honest statement is that the gate was at risk on ANY run rather than
+on a bigger one, which is an argument about COUPLING and not about budget.
+`jobs.gates` runs the three benchmarks with **no `needs: suite`** -- that
+would restore the coupling one level up, since a red suite would skip a
+dependent job exactly as it skipped a later step.
+
+**THE COST WAS MEASURED BEFORE IT WAS PAID**: one more checkout and one more
+`uv sync`, which that run clocks at **5 seconds** because it is cached. About
+a minute of setup, against ten minutes of benchmark that can no longer be
+switched off by something unrelated to it.
+
+**THE SUITE'S 45 IS DELIBERATELY UNCHANGED, and it means something different
+now.** The suite alone is ~34 minutes, about 77% of budget, and a timeout
+there fails the suite rather than silently disabling three benchmarks -- which
+is the honest thing for a suite timeout to do. The recorded advice stands for
+the number that is left.
+
+**AND `master` IS NOT BRANCH-PROTECTED**, checked rather than assumed:
+`repos/.../branches/master/protection` returns 404, so there are no required
+status checks and "blocking" in this file's vocabulary means a human reads the
+step list and declines to merge. Splitting a job therefore needed no
+protection change -- and equally, nothing mechanical stops a merge over a red
+gate, which is worth knowing before trusting the word "blocking".
+
 ### A SECOND PUSH TO MASTER DOES THE SAME THING, and it is not a failure
 
 Same outcome, different mechanism, and this one is self-inflicted.
@@ -6963,6 +7022,448 @@ the `finally` that restores the backup never fired. `git status` was the only
 thing that said so. Assert that the bytes CHANGED (`landed != source`), and put
 the assertion inside the try.
 
+## HALF THE APPLICATION'S OUTPUT COULD NOT REACH THE READER
+
+Stage 1a, the admission bridge. `merge_reports` admits an entry that is
+report-shaped, and 0b widened that from "has facts" to "is a real producer
+result" -- which is necessary and not sufficient, because most calculators do
+not return a report at all. Counted over the registry:
+
+    60 registered calculators
+    30 return a result the reader REFUSED ENTIRELY
+       16 per-atom datasets   7 structure sets   5 pH curves
+        1 trajectory          1 spectrum
+
+`ADAPTERS` gains `summary`, `chart` and `payload` beside `to_text` and
+`rich_view`, total over all eight kinds, and `summarise()` projects each one
+into a `ResultSummaryView`. Driven in the app on aspirin: **reports 9 -> 12,
+facts 161 -> 173**, with Partial Charge (Gasteiger), LogP Contribution
+(Crippen) and Molar Refractivity Contribution (Crippen) appearing as reader
+entries in their own sections for the first time.
+
+### PROBING FIELD NAMES IN A FIXED ORDER IS GUESSING, AND IT SAID "None found."
+
+`PropertyPanel._summarise` walked a tuple of candidate attribute names and
+took the first one present, with `("values", "atom")` FIRST. **A vibrational
+spectrum leaves `values` empty on purpose** -- a normal mode is not a property
+of one atom -- so the walk found an empty payload and the row read **"None
+found." for a spectrum with three real modes in it.** Measured.
+
+That is the fourth consumer of this file's one-vocabulary-many-registries
+defect, after the clipboard, the view factory and the inspector. `payload` is
+keyed by KIND now, so the vibrational entry names `("modes", "mode")` and the
+question is answered by the registry rather than by a probe order.
+
+**AND THE GUARD FOR IT EXISTED WITH A HAND-WRITTEN POPULATION.**
+`_SUMMARISED_TYPES` in `tests/test_property_panel_result_rows.py` listed the
+result types a row must summarise and omitted `VibrationalSpectrumResult` --
+the one type the probe got wrong. Derived from the shared vocabulary now, so a
+ninth kind is walked without anybody remembering to add it.
+
+### THREE THINGS I HAD WRONG, AND MEASURING CORRECTED EACH
+
+**`declare_total(..., basis=...)` IS THE ATOM BASIS, NOT `Fact.Basis`.**
+Reading it as a scientific basis raises `ValueError: 'heavy_atoms' is not a
+valid Basis`, which is how it was found rather than shipped. The producer
+declares no scientific basis for its total, so none may be invented: the
+projected total is HEURISTIC, because claiming a fitted Crippen total as
+DETERMINISTIC -- "right, or the periodic table is wrong" -- is the
+overstatement `DETERMINISTIC_DESCRIPTORS` errs away from.
+
+**A RANGE OVER A LIST PAYLOAD DESCRIBES THE WRONG AXIS.** Widening
+`_numbers_in` to any payload made a solubility curve read **"57 pH points,
+0.00 to 28.00"** -- a span over the pH GRID, presented where a property range
+goes. An existing test caught it. Mapping-only is a DECISION now rather than
+the old accident, and its docstring says which payloads are keyed by something
+(`values`) and which are axes or contents (`ph_values`, `frames`, `entries`).
+
+**AND MY OWN NEW TEST CONTRADICTED THIS PROJECT'S UNITS CONVENTION**, asserting
+`display_value.endswith("ppm")`. `Fact.units` belongs to `value`, never folded
+into `display_value` -- the rule the units work already settled and guards from
+both sides. The code was right; the test was fixed.
+
+### AN ALERT HAS NO FACTS, SO IT GOES THROUGH THE ONE BRIDGE
+
+`_already_readable` called `result.facts` on an `AlertResult`, which has none.
+`summarise` returns the NATIVE form for the two already-report-shaped kinds --
+a `ReportResult` whole, an `AlertResult` through
+`chem/report_adapter.report_from_alert` -- and `_no_summary_needed` RAISES
+rather than returning `()`, because an empty projection is indistinguishable
+from a result that genuinely had nothing to say.
+
+That bridge is not a convenience: it preserves the `cache_state` and `error` a
+refused catalog carries, and a view built from an alert's facts alone would
+render every refusal as a calculator that ran and had nothing to say -- the
+statement `merge_reports` stopped making when it stopped gating on facts. The
+same fields are CARRIED rather than re-derived on every projected view, for the
+same reason: a refused calculator has FEWER values to project, so it is exactly
+the case a summary would otherwise render as nothing.
+
+### FIFTEEN ARMS, THREE SURVIVORS, AND ALL THREE WERE MY OWN TESTS
+
+Not one of the three was an equivalent mutation. Every one was a claim written
+in a docstring and enforced by nothing -- this file's most-repeated failure,
+committed by somebody who has now recorded it four times:
+
+    A9   a projected fact stamps "summary" as its `Fact.source`   SURVIVED
+    A10  the declared total claims DETERMINISTIC                  SURVIVED
+    A13  `summarise` reads the section off the RESULT             SURVIVED
+
+**A13 IS THE ONE TO READ.** Measured over every non-report result the registry
+produces for aspirin, `PerAtomDataset.category` is EMPTY for all twelve, and
+`PhCurveResult`, `StructureSetResult`, `TrajectoryResult` and
+`NMRSpectrumResult` have no such field at all -- so a summary reading its own
+section off the result would file **twenty reader entries under "Other"**. That
+is the section miscategorisation 0h exists to remove, arriving through a
+different door and INVISIBLE, because "Other" is a real section.
+`test_the_section_comes_from_the_caller_because_the_result_carries_none`
+asserts its own setup first, so a fixture that gained a category cannot make it
+pass vacuously.
+
+**A9 IS SEARCHABLE, WHICH IS WHAT MAKES IT MORE THAN PROVENANCE HYGIENE.**
+`find_facts` matches `source`, so a view naming itself there makes one word
+match every projected row in the reader. What says "this was projected" is the
+entry's LIMITATION, which is a statement about the whole entry rather than a
+claim about one value -- and it is prepended before the producer's own caveats,
+because a reader meeting those under a summary has no way to tell which half
+they are reading.
+
+Both narrow halves are load-bearing and both were written from the surviving
+arm: a producer with no method falls back to `"core"` and not to the view's
+name, and a COUNT stays DETERMINISTIC, since marking every projected fact
+HEURISTIC satisfies A10's guard while understating arithmetic over what
+arrived. Second pass: fifteen arms, fifteen caught.
+
+## A SUMMARY WITH NO WAY BACK TO THE RESULT IS A DEAD END
+
+Stage 1d. 1a made every result kind reachable AS A SUMMARY, and a summary is
+a count, a range and whatever total the producer declared -- so without a way
+to open the whole thing it is strictly less than the row it replaced.
+Measured over the registry on aspirin:
+
+    entries reaching the reader                  60   (30 before 1a)
+    declaring a viewer, able to offer NOTHING    30   calculator_inspector 29,
+                                                      nmr_view 1
+    facts carrying a FactLink                     0
+
+**THE ACTION BELONGS TO THE RESULT, NOT TO A FACT ROW**, which is 0g's rule
+arriving where it was written for. A summary's facts are PROJECTIONS and none
+of them IS the result, so "the first fact carries the link" would strip the
+viewer from precisely the 30 entries that need one.
+
+**AND THE FACT-LEVEL HALF HAS NO LIVE INSTANCE, so it is guarded on the
+WIRING.** `FactView` builds a `>` button per linked fact and emits
+`link_activated`; the Atom Inspector routes it and this reader never
+connected it, so a link here rendered a control and did nothing -- the same
+silent no-op 0g removed one surface along. Zero of the reader's facts carry
+one today, so there is no end-to-end route to drive, and an unreachable
+branch is a question about where to assert.
+
+### THE PANEL NOW RETAINS RAW RESULTS, WHICH IS A REAL CHANGE
+
+`_show_result` opened the inspector immediately and dropped the object, so
+nothing anywhere held a `PerAtomDataset` once its dialog closed -- and after
+1a `_reports[id]` holds a summary VIEW, which is deliberately not the result.
+So "open this properly" cannot be answered by what the reader is holding.
+
+**THE COST WAS MEASURED RATHER THAN FEARED.** `domain/batch` records a mean
+of **9.05 KiB per retained result** over 424 real results, so one molecule's
+whole set is well under a megabyte. It is keyed and cleared exactly as
+`_reports` is, because a raw result outliving its summary would open the
+PREVIOUS molecule's data under this one's name while every guard on the
+summaries stayed green.
+
+### A VIEWER THAT CANNOT BE REACHED GETS NO BUTTON, AND THAT IS NOT 0g's RULE
+
+`ADAPTERS[VIBRATIONAL_SPECTRUM].rich_view` is `ir_view`, and there is no such
+route: `IrViewWidget` is a TAB inside the Quantum Chemistry panel rather than
+a viewer a single result is handed to. The first version gated the button on
+`bool(target)`, so it would have drawn one labelled by a `.get` fallback and
+answered by the router with "unknown target".
+
+**That is a DIFFERENT claim from 0g's**, which is that a link somebody
+DECLARED must never be a silent no-op. Manufacturing a link known to be
+unroutable is not that, and a control that cannot work is worse than an
+absent one. `_VIEWER_ACTIONS` is the vocabulary; a kind absent from it offers
+nothing, and the entry records WHAT WOULD LIFT IT -- an IR viewer a single
+result can open in, or an `ir_view` route revealing the panel that owns it,
+which is the shape `nmr_view` already degrades to.
+
+### THE SUITE REFUSED A COMPUTED LINK TARGET, AND IT WAS RIGHT
+
+The obvious shape is `FactLink(target=target, ...)` with the focused entry's
+declared viewer in a variable. `test_no_producer_computes_a_link_target`
+rejects it -- and that guard is the narrow half of
+`test_every_emitted_link_target_has_a_handler`, which walks the SOURCE for
+emitted targets and is what found four dead buttons. A target it cannot read
+statically shrinks that guard's universe **without failing it**.
+
+Green suite and a smaller universe, caught before it shipped. `_VIEWER_ACTIONS`
+holds a `FactLink` PROTOTYPE per target with the target as a literal, and the
+report id is filled in per use with `replace` since `FactLink` is frozen.
+
+### ELEVEN ARMS, FIVE SURVIVORS, AND FOUR WERE ONE SHAPE
+
+None equivalent. Four of the five are the same failure -- the PIECES were
+tested and the WIRING between them was not, which this file records five
+times over and which is now recorded a sixth:
+
+    D6   the panel stops retaining the raw result        SURVIVED
+    D8   the raw store outlives its molecule             SURVIVED
+    D9   the window stops routing the reader's request   SURVIVED
+    D10  the handler ignores the reader's param shape    SURVIVED
+    D11  the all-results path leaves a stale button up   SURVIVED
+
+D9 is the middle of a chain both of whose ends were guarded: the dialog had
+tests saying it EMITS and the router had tests saying it ROUTES, and removing
+the connection between them passed every one. Its guard walks every
+`<something>.link_activated.connect(...)` in the window rather than naming the
+two panels, so a third emitting surface is held to the rule without anybody
+remembering it, and the population is asserted so the walk cannot collapse to
+nothing and pass.
+
+**D11 IS THE DEGENERATE-FIXTURE CASE AGAIN.** The existing guard sets the
+focus to "" on a window whose button was never shown, so it holds against a
+render path that does nothing at all. The discriminating sequence is the only
+one a reader performs: focus a summarised result, THEN go back to everything.
+
+#### AND D10's FIRST GUARD WAS THE GREP FAILURE, IN THE GUARD FOR IT
+
+`assert "report_id" in ast.unparse(node)` asks whether the WORD appears. The
+mutation replaces `params.get("report_id")` with `None` and leaves the word
+in the assignment and in the `if`, so the handler stopped reading the reader's
+shape and the guard stayed green **on the second pass**. Grepping for a
+phrase counts the source and not the outcome -- this file's most-repeated
+lesson, committed inside the guard written to catch it, and fixed by walking
+for the `params.get("...")` call instead. Third pass: eleven arms, eleven
+caught.
+
+## TWO SEARCHES, AND ONE BOX OVER BOTH CANNOT SAY WHAT IT MATCHED
+
+Stage 1e. The reader had one search -- `FactView`'s, over fact label, value,
+origin and evidence -- and no way to narrow the LIST. 1a is what made that a
+problem rather than a nicety. Measured on a full run for aspirin:
+
+    before 1a   30 entries across 17 groups
+    after 1a    60 entries across 20 groups
+    the combo   81 rows, counting the headings and "All results"
+
+**THE TWO ANSWER DIFFERENT QUESTIONS AND ARE THEREFORE TWO CONTROLS.** The
+selector search narrows WHICH result is on screen; the fact search narrows the
+VALUES inside it. One box over facts, reports, categories, providers and
+viewers at once cannot tell a reader which of those it just matched -- and a
+hit in a VALUE would silently change which producer they are reading, which is
+the plausible-looking wrongness this reader exists to remove. They carry
+separate `help_id`s for the same reason: one id would be two concepts wearing
+one, the mirror of the split
+`test_one_concept_is_not_split_across_many_help_ids` refuses.
+
+### THE EMPTY-HEADING BEHAVIOUR IS INHERITED, NOT IMPLEMENTED
+
+`grouped_reports` never emits a group with nothing in it, and its docstring
+said why before this existed: *"filtering changes the input set, and a set with
+nothing in a category produces no heading for it."* So the filter is applied to
+the INPUT and the headings follow, with no second rule here to keep in step.
+That is a design note paying for itself two stages later.
+
+**MATCHING IS A PURE FUNCTION AND THE WIDGET IS DRIVEN**, the same two-level
+split `ui/visual_check.py` uses: `matches_search` and `matching_reports` live
+in `domain/result_ordering.py` beside the grouping they feed, and are tested
+headless.
+
+**IT MATCHES THE SECTION AS WELL AS THE NAME**, which is how somebody who
+cannot remember a calculator's name looks for it. The narrow half needs its own
+fixture: an entry under "ADMET / Regulatory" called "hERG Risk Factors" is
+found by "regulatory" and by nothing in its own name, and without that case a
+name-only rule passes the obvious test.
+
+### THE FOCUSED ENTRY STAYS IN THE LIST, MATCHING OR NOT
+
+Filtering narrows what you can PICK, never what you are READING. 0i settled
+that jumping away from a reading position is the worse of the two failures, and
+`ALL_RESULTS`' own rule is that the control always names what it is currently
+doing -- a list that hid the current selection would show one report and name
+another. `always` keeps ONE entry rather than its section, which is its own
+guard.
+
+**AND IT IS REMEMBERED SEPARATELY.** `ReaderView` gains one defaulted
+`selector_search` beside `search`. Collapsing them into one field would apply a
+fact filter to a selector or the reverse on every restore, and neither string
+means anything in the other box.
+
+### THE STALE MEASUREMENT IN `grouped_reports` IS SUPERSEDED, NOT ADJUSTED
+
+It read *"30 entries across 17 groups, 11 of them holding exactly one"*, true
+when only report-shaped results reached the reader. Re-measured: **60 entries,
+20 groups, 2 singletons.** So the singleton case got RARER as coverage grew --
+1a filled the existing groups out rather than adding new ones -- and the rule
+that a group holding one entry is ordinary here is now exercised by NMR and
+Thermophysical alone. Both figures are kept, because "why are there only two
+now" is the question a reader will have.
+
+### TWELVE ARMS, TWO SURVIVORS, AND BOTH WERE MY OWN TESTS AGAIN
+
+    E4  the filter SORTS its output            SURVIVED
+    E9  typing is not recorded in the memory   SURVIVED
+
+**E4 IS THE DEGENERATE FIXTURE FOR THE FOURTH TIME THIS STAGE.** The corpus
+happened to be in alphabetical order by display name, so a mutation sorting the
+output produced a byte-identical list. The replacement input CONTRADICTS
+alphabetical order and asserts that setup, so it cannot go vacuous again.
+
+**E9 IS THE MIRROR OF A RULE ONLY HALF ASSERTED.** `apply_view` must not write
+a restore back, which has a guard; a reader TYPING must write, which had none.
+`view()` reads the widget, so every test built on it stayed green with
+`_remember` deleted from the handler -- the reader would simply have forgotten
+the box between sessions, silently. Second pass: twelve arms, twelve caught.
+
+### THE RUNNING TALLY FOR STAGE 1, BECAUSE THE SHAPE REPEATS
+
+    1a   15 arms   3 survivors
+    1d   11 arms   5 survivors
+    1e   12 arms   2 survivors
+
+**Ten survivors, and NOT ONE was an equivalent mutation** -- every one a hole
+in a test written minutes earlier. Two shapes account for eight of them: a
+fixture too degenerate to see its own subject (four), and both ends of a chain
+guarded with nothing asserting the middle (four). Worth watching for directly
+rather than relying on the mutation pass to keep finding them.
+
+## A SHAPE-VALUED RESULT WAS A DIFFERENT-SHAPED, MODAL WINDOW
+
+Stage 1f. A chart, a 2D depiction and a 3D overlay are already peers in the
+MODEL -- all producer-declared annotations, validated fail-closed, and
+`ui/visualization.py` calls the layer type renderer-independent. What differed
+was where each ended up, and the difference was live rather than cosmetic:
+
+`_on_details_clicked` sent any report declaring `spatial` into
+`SpatialResultDialog(...).exec()` and RETURNED. So of the results reaching the
+reader, the two carrying a 3D overlay -- **Geometry and Dipole Moment** --
+never reached it from that button at all, and reached a MODAL window instead.
+That reinstated for those two exactly what `MergedResultsDialog`'s own
+docstring says it exists to remove: with a modal window you could never run
+the second calculator whose results this exists to accumulate.
+
+Measured on aspirin WITH A CONFORMER, which is the fixture the first attempt
+got wrong: 6 results carry a picture -- 2 stick charts, 1 line chart, 1
+depiction, 1 axes, 1 arrow. **Without a conformer nothing spatial can exist**,
+so the first measurement reported zero spatial annotations and would have made
+this whole item look like it had no subject.
+
+`domain/visualization_index.py` lists them as peers, each saying what KIND it
+is, and the reader opens the 3D ones with `show()` rather than `exec()`.
+
+### THE TYPE LABEL IS THE POINT, AND SO IS WHICH ONES GET A BUTTON
+
+"Open" says nothing about what arrives, and the three cost very different
+amounts: a 3D overlay is a QtWebEngine process, which this project has
+measured accumulating to 116 and hanging the suite. So a 3D overlay is
+DELIBERATELY never inline -- a fixed-height 3D view inside a `QScrollArea`
+with `setWidgetResizable(True)` is the height-for-width fight already lost
+three times here.
+
+**AN INLINE PICTURE IS LISTED AND OFFERED NO BUTTON.** It is already drawn a
+few rows below, so a button would imply a second copy; the row says "shown
+below" instead, because a row with nothing on its right reads as a control
+that failed to draw.
+
+**KIND IS DERIVED FROM THE ANNOTATION TYPE**, the same question
+`chart_widget_for` asks, so a label and its widget cannot disagree. The map is
+total over the six shipped types and a walk over `domain/report.py` asserts it
+STAYS total -- a seventh type with no entry would be a picture nobody can see,
+with nothing red.
+
+### `label` IS A VALUE ON EVERY SPATIAL PRODUCER, AND ONLY THE APP SAID SO
+
+The nineteenth entry in this file's running count of defects found by driving
+the app, and the cause is a fixture written here.
+
+The title rule was `annotation.title or annotation.label`, on the reasoning
+that charts declare `title` and spatial annotations declare `label` -- "Dipole
+moment", "Steric cone". Driven, the row came out titled **"0.89 D"**: a
+measurement sitting where a picture's name belongs. Checked across all three
+shipped producers afterwards, every one formats a NUMBER into that field:
+
+    chem/dipole.py             label=f"{magnitude:.2f} D"
+    chem/steric.py             label=f"{angle:.1f} deg"
+    chem/geometry_analysis.py  labels=one per axis
+
+It is a caption drawn ON the model, which is why the 3D view wants it and a
+list of pictures does not.
+
+**AND THE FIXTURE FOR IT HAD INVENTED THE OPPOSITE.** `_arrow()` passed
+`label="Dipole moment"` -- a name no producer writes -- so nineteen unit tests
+agreed with a rule the application disproved on its first run, and FOUR of
+them had to be corrected rather than adjusted. The fallback is the OWNER's
+name now: a spatial annotation is one report's picture, and the report is what
+names it. The fixture uses a value-shaped label so it cannot drift back.
+
+Same lesson as the assembly corpus blind to a transposed matrix, with the
+sharper edge that the fixture was not merely unrepresentative -- it asserted
+something untrue about the producers it stood in for.
+
+### FOURTEEN ARMS, THREE SURVIVORS, AND F11 WAS THE WHOLE POINT
+
+    F11  Details diverts to the modal dialog again    SURVIVED
+    F12  the spatial opener answers True with no
+         conformer                                    SURVIVED
+    F14  the inline chart heading drops its kind      SURVIVED
+
+**F11 IS THE DEFECT THIS ITEM EXISTS TO REMOVE, AND NOTHING GUARDED IT.**
+Every test written for 1f covered what the reader SHOWS; none covered how a
+reader GETS there. Its guard presses the real Details button, because
+`_on_details_clicked` reads which report it means off `sender()` -- calling it
+directly passes `sender() is None` and proves nothing about the wiring that
+changed.
+
+**F12 IS THE DEGENERATE FIXTURE IN A NEW COSTUME.** The panel had no project,
+so `open_spatial_view` refused several lines BEFORE the conformer check and
+the branch under test never executed. It needs a real project holding a drawn
+molecule that genuinely has no conformer, and the guard asserts that setup.
+
+Second pass: fourteen arms, fourteen caught.
+
+### AND THE DRIVEN CHECK CONFIRMED WHAT NO TEST COULD
+
+`benchmarks/visual/results_reader_stage1.json`, about fifty seconds
+unattended. The `results` step logs three flags no screenshot carries --
+whether the result-level Open button is up, the visualization rows with their
+kinds, and **whether the spatial dialog opened MODAL** -- because a modal and
+a modeless window photograph identically and the modal one silently blocks
+everything behind it.
+
+    reports=11 facts=108 charts=3
+    Lewis sites   | [2D depiction] | shown below
+    Dipole Moment | [3D overlay]   | Open
+    spatial dialogs open=1 modal=[False]
+
+All four the plan named are present: LogP Contribution, Lewis Sites,
+**Solubility vs pH** and IUPAC Locants. The Lewis depiction DRAWS -- donor,
+acceptor and ambiphilic sites coloured on the structure -- which is 0a's
+finding realised, since `set_structure_resolver` had zero production callers
+and it could never render.
+
+**AND THE STALE REFUSAL IS EXACTLY RIGHT, WHICH WAS NEARLY REPORTED AS A
+DEFECT.** After erasing an oxygen the reader shows `Lewis Sites (stale)`, the
+banner, and a depiction section that at first glance is blank -- so a 300 px
+crop looked like a silent refusal, which 0c forbids. The message is
+vertically centred in a tall frame and sits below that crop:
+
+    Visualization unavailable -- this result was calculated for an earlier
+    version of this structure (version 1; the molecule is now at 2). Its atom
+    numbering describes the structure at that time, so drawing it on the
+    current one would point at the wrong atoms. Re-run the calculator to see
+    the picture.
+
+Facts stay readable underneath it. **Read the whole shot, not the top of it**
+-- this file's own rule, paid for again by somebody writing it down.
+
+**`solubility_curve` NEEDED 12 SECONDS, NOT 4**, and the first run quit while
+it was still computing -- which surfaced as a worker publishing into a
+destroyed event bus (`RuntimeError: Signal source has been deleted`) AFTER the
+quit line. That is a pre-existing shutdown race and not this stage's; what it
+cost here was one of the four results the check exists to show.
+
 ## Running the tests
 
 ```bash
@@ -6985,7 +7486,51 @@ command substitution feeding pytest is non-empty before believing what it ran.
 Writing to a file rather than a pipe is worth doing because it lets you watch
 progress while it runs.
 
-A clean run is **6-26 minutes**, ending at `7442 passed, 16 skipped`
+A clean run is **6-26 minutes**, ending at `7533 passed, 16 skipped`
+(measured 2026-09-10, **22m00**, on `stage-1-every-result-reaches-results` --
+Stage 1 of the Properties-to-Results work: 1a, 1d, 1e and 1f.
+
+**+91 collected and 0 REMOVED**, diffed both directions with `comm` in a
+detached worktree, with the `PYTHONPATH` override asserted before the count was
+believed (`import openchem` reported the WORKTREE's `src`):
+
+    origin/master   fe112f1   COLLECTS 7458
+    this one                  COLLECTS 7549   = 7458 + 91
+    the run                            7533 passed + 16 skipped = 7549
+
+    35  test_result_summaries.py        1a -- the per-kind summaries, the
+                                        adapter table total over 8 kinds, and
+                                        the three claims only mutation caught
+    23  test_visualizations_section.py  1f -- the kind vocabulary, the reader's
+                                        list, and the modal diversion removed
+    17  test_result_selector_search.py  1e -- the second search, headless, plus
+                                        the window
+    14  test_result_viewer_actions.py   1d -- the result-level viewer action
+     1  test_property_panel_result_rows.py  1a's population, derived rather
+                                        than hand-written
+     1  test_fact_link_router.py        1d's walk over every surface that emits
+                                        a link
+
+**AND THE FIRST ID DUMP WAS WRONG IN A WAY THE COUNT ALONE WOULD NOT SHOW.**
+It passed `--rootdir wt-base wt-base/tests`, which changes conftest resolution:
+it collected **7244** against the plain run's 7458 in the same worktree, and
+duly reported `test_stick_chart_widget.py`, `test_spatial_overlay_widget.py`
+and five other PRE-EXISTING files as "added". A diff whose baseline is 214
+short invents additions rather than losing them, which reads as new work.
+**Dump the ids the same way the count was taken** -- `cd` into the worktree and
+run it plainly.
+
+**The crash pair is satisfied**: there IS a summary line, and
+`Windows fatal exception|Fatal Python error` matches **0** -- unanchored, since
+pytest's progress dots share the line -- as do `^FAILED` and `^ERROR`. The
+skips are the deterministic 16. The two `DeprecationWarning`s are the same
+pre-existing six-argument `QMouseEvent` overload in `test_dock_title_bar.py`
+and `test_trajectory_player.py`.
+
+**CLEAN ON ITS FIRST RUN**, with nothing else touching the tree for its
+duration. 22m00 sits inside the band and does not move it.)
+
+Before it: `7442 passed, 16 skipped`
 (measured 2026-09-10 on `results-first-foundation` -- Stage 0 of the
 Properties-to-Results work, all ten items, 0a through 0j.
 

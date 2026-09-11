@@ -53,6 +53,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.domain.visualization_index import kind_of_annotation
 from openchem.domain.report import (
     CATEGORY_LABELS,
     DEFAULT_EXPANDED,
@@ -456,8 +457,17 @@ class FactView(QWidget):
             # not open on a heading where the picture should be. Several
             # charts at once is the batch case, and five expanded plots is a
             # wall of the same kind.
+            # **THE HEADING SAYS WHAT KIND OF PICTURE IT IS**, derived from
+            # the annotation TYPE by the same question `chart_widget_for`
+            # asks below, so the label and the widget cannot disagree about
+            # what an annotation is. "Isotope pattern" and "Lewis sites" are
+            # a plot and a structure drawing, and a reader scrolling past a
+            # folded heading has no other way to tell.
+            kind = kind_of_annotation(chart)
             section = CollapsibleSection(
-                chart.title or f"Chart {index + 1}", index == 0, self._container
+                f"{chart.title or f'Chart {index + 1}'} [{kind}]",
+                index == 0,
+                self._container,
             )
             # DISPATCH BY TYPE, in one place. A second kind cost a `|` on
             # the union and an entry in the factory; a `chart.kind ==`

@@ -43,7 +43,8 @@ name exists to prevent.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import Any
 
 from openchem.domain.report import Fact, FactCategory, find_facts, group_facts_by_category
 
@@ -77,10 +78,43 @@ class ResultSummaryView:
     category: str = "other"
     facts: tuple[Fact, ...] = ()
     charts: tuple = ()
+    #: Which dedicated viewer opens the WHOLE result this summarises, or
+    #: `NO_RICH_VIEW`.
+    #:
+    #: **DECLARED HERE BECAUSE A SUMMARY IS A DEAD END WITHOUT IT.** Measured
+    #: over the registry on aspirin: 60 entries reach the reader and **30 of
+    #: them declare a viewer**, which is precisely the half 1a admitted -- so
+    #: without this a reader shows a count and a range for thirty results and
+    #: offers no way to see any of them.
+    #:
+    #: It is the ADAPTER's answer, copied once at projection time rather than
+    #: re-derived by asking `kind_of` again later: a view is not the result,
+    #: so a consumer holding one cannot ask it what kind the result was, and
+    #: a second derivation is a second place for the two to disagree.
+    rich_view: str = ""
     limitations: tuple[str, ...] = ()
     assumptions: tuple[str, ...] = ()
     molecule_uuid: str = ""
     structure_version: int = 0
+    #: The producer's own status, carried rather than re-derived.
+    #:
+    #: **A REFUSED RESULT MUST NOT READ AS ONE THAT RAN AND HAD NOTHING TO
+    #: SAY**, which is the whole reason `merge_reports` stopped gating on
+    #: facts. `MergedResultsDialog._status_line` reads `cache_state`, `error`,
+    #: `error_summary` and `inapplicable` off the entry, so a summary that
+    #: dropped them would turn every refusal into a silent blank -- and a
+    #: refused calculator has FEWER facts to project, so it is exactly the
+    #: case a summary is most likely to render as nothing.
+    #:
+    #: `Any` rather than `CacheState` so this stays a view over whatever a
+    #: producer declared, and defaulting to None keeps a view built without
+    #: one indistinguishable from today's behaviour.
+    cache_state: Any = None
+    error: str | None = None
+    error_summary: str | None = None
+    #: A refusal is not a fault -- the same field, and the same distinction,
+    #: `DescriptorValue` already carries.
+    inapplicable: bool = False
 
     def by_category(self) -> dict[FactCategory, tuple[Fact, ...]]:
         return group_facts_by_category(self.facts)
