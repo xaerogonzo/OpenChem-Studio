@@ -157,3 +157,95 @@ def test_molblock_to_smiles_keeps_stereochemistry():
     molblock = Chem.MolToMolBlock(Chem.MolFromSmiles("C[C@H](F)Cl"))
 
     assert engine.molblock_to_smiles(molblock) == "C[C@H](F)Cl"
+
+
+# --- a declared chart's numbers reach the clipboard ----------------------
+#
+# Found by merging `solubility_curve` into `Solubility` in stage 3:
+# `PhCurveResult` serialised its points as a pasteable table and
+# `ReportResult` serialised its declared charts not at all, so the merged
+# result exported the facts and dropped 57 rows. General rather than
+# solubility-specific -- measured, a mass spectrum's stick chart was
+# equally unexportable.
+
+
+def _line_chart(title="Solubility vs pH"):
+    from openchem.domain.report import LineChartAnnotation, LineSeries
+
+    return LineChartAnnotation(
+        series=(LineSeries(points=((0.0, -2.1), (7.0, 0.74)), name="Solubility"),),
+        x_label="pH",
+        y_label="logS",
+        x_descending=False,
+        title=title,
+    )
+
+
+def _report_with(chart):
+    from openchem.domain.report import Basis, Fact, FactCategory, ReportResult
+
+    return ReportResult(
+        molecule_uuid="m",
+        report_id="probe",
+        name="Probe",
+        facts=(
+            Fact(
+                category=FactCategory.IDENTITY, label="Category", value="High",
+                display_value="High", source="core", basis=Basis.HEURISTIC,
+            ),
+        ),
+        charts=(chart,),
+    )
+
+
+def test_a_declared_line_chart_exports_its_points():
+    """A copy that drops the curve says less than the screen shows."""
+    from openchem.ui.result_clipboard import result_to_text
+
+    text = result_to_text(_report_with(_line_chart()))
+    assert "Category" in text, "the facts must survive too"
+    assert "pH\tSolubility" in text, text
+    assert "7\t0.74" in text, text
+    assert "Solubility vs pH" in text
+
+
+def test_a_declared_stick_chart_exports_its_sticks():
+    """The other drawable kind, and it carries its numbers differently --
+    sticks with an optional label rather than named series of pairs. A
+    consumer guessing from attribute names is the probe-for-a-field-nobody-
+    has failure this project already paid for across nine calculators."""
+    from openchem.domain.report import Stick, StickChartAnnotation
+    from openchem.ui.result_clipboard import result_to_text
+
+    chart = StickChartAnnotation(
+        sticks=(Stick(180.0, 1.0, "M"), Stick(181.0, 0.0998, "M+1")),
+        x_label="m/z", y_label="Relative abundance", x_descending=False,
+        title="Mass spectrum",
+    )
+    text = result_to_text(_report_with(chart))
+    assert "m/z\tRelative abundance\tlabel" in text, text
+    assert "180\t1\tM" in text, text
+
+
+def test_a_DEPICTION_exports_no_table_because_it_has_none():
+    """The negative, and it is the half that keeps the rule honest: a
+    picture of a structure has no numbers to paste, and inventing a table
+    for it would be the UI deriving data nobody declared."""
+    from openchem.ui.report_format import chart_rows
+
+    class _Depiction:
+        title = "Lewis sites"
+
+    assert chart_rows(_Depiction()) == []
+
+
+def test_an_empty_chart_exports_nothing_rather_than_a_bare_header():
+    """A header row with no data under it reads as a table that lost its
+    contents."""
+    from openchem.domain.report import LineChartAnnotation
+    from openchem.ui.report_format import chart_rows
+
+    empty = LineChartAnnotation(
+        series=(), x_label="pH", y_label="logS", x_descending=False
+    )
+    assert chart_rows(empty) == []

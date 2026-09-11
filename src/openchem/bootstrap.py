@@ -216,10 +216,6 @@ _CALCULATOR_INTERPRETER_SETTING: dict[str, str | dict[str, str]] = {
         "interpreter_path": PKASOLVER_PYTHON_SETTING,
         "admet_interpreter_path": ADMET_PYTHON_SETTING,
     },
-    "solubility_curve": {
-        "interpreter_path": PKASOLVER_PYTHON_SETTING,
-        "admet_interpreter_path": ADMET_PYTHON_SETTING,
-    },
 }
 
 

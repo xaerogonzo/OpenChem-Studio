@@ -96,7 +96,6 @@ from openchem.chem.solubility import (
     ESOL,
     LOG_S,
     compute_solubility,
-    compute_solubility_curve,
     solvent_choices,
 )
 from openchem.chem.solubility import esol_logs as _esol_logs
@@ -113,6 +112,7 @@ from openchem.chem.regulatory.calculator import (
     compute_regulatory_screen,
 )
 from openchem.chem.oxidation_states import compute_oxidation_states
+from openchem.chem.report_adapter import report_from_fields
 from openchem.chem.structure_annotation import (
     FG_LABEL_MODES,
     RING_LABEL_MODES,
@@ -503,6 +503,15 @@ def compute_fragment_group_alert(mol: Chem.Mol, molecule_uuid: str) -> AlertResu
         count = getattr(Fragments, fn_name)(mol)
         if count > 0:
             matched.append(f"{display_name} ({count})")
+    # **STILL AN `AlertResult`, AND IT IS THE LAST ONE.** This is a report
+    # wearing an alert's clothes like the four migrated beside it -- but it
+    # is published through the ALWAYS-ON channel, and that channel is typed:
+    # `descriptor_service` sends every `compute_alerts` result out as an
+    # `AlertComputed`, and both `_on_alert_computed` and
+    # `batch_service._run_alerts` read `alert_id`, which a `ReportResult`
+    # does not have. Migrating it means changing the channel, which is a
+    # bigger decision than changing a call, and it is in none of stage 3's
+    # merge candidates.
     return AlertResult(
         alert_id="functional_groups",
         name="Functional Groups",
@@ -1328,7 +1337,7 @@ def compute_pka_dataset(
     from openchem.chem.pka_providers import compute_pka, pka_predictor_available
 
     if not pka_predictor_available(interpreter_path):
-        return AlertResult(
+        return report_from_fields(
             alert_id="pka",
             name="pKa",
             molecule_uuid=molecule_uuid,
@@ -1342,7 +1351,7 @@ def compute_pka_dataset(
     try:
         pairs = compute_pka(mol, interpreter_path)
     except RuntimeError as exc:
-        return AlertResult(
+        return report_from_fields(
             alert_id="pka",
             name="pKa",
             molecule_uuid=molecule_uuid,
@@ -1352,7 +1361,7 @@ def compute_pka_dataset(
             cache_state=CacheState.FAILED,
             error=str(exc),
         )
-    return AlertResult(
+    return report_from_fields(
         alert_id="pka",
         name="pKa",
         molecule_uuid=molecule_uuid,
@@ -1424,7 +1433,7 @@ def compute_logd(
         try:
             pkas = [p.value for p in (compute_pka(mol, interpreter_path) or [])]
         except RuntimeError as exc:
-            return AlertResult(
+            return report_from_fields(
                 alert_id="logd", name="LogD", molecule_uuid=molecule_uuid, matched=[], category="lipophilicity",
                 provenance=Provenance(created_by="core", method="pkasolver"),
                 cache_state=CacheState.FAILED, error=str(exc),
@@ -1446,7 +1455,7 @@ def compute_logd(
         method = "rdkit+dimorphite_dl"
 
     lines.append(f"Ionizable centres: {acids} acidic, {bases} basic")
-    return AlertResult(
+    return report_from_fields(
         alert_id="logd",
         name=f"LogD at pH {ph:g}",
         molecule_uuid=molecule_uuid,
@@ -1477,7 +1486,7 @@ def compute_polar_surface_area(
         lines.append(f"Polar surface area at pH {ph:g}: {rdMolDescriptors.CalcTPSA(protonated):.2f} Å²")
     except Exception:  # noqa: BLE001 - Dimorphite-DL is optional-ish; the neutral value still stands
         lines.append(f"Could not build the dominant microspecies at pH {ph:g}; showing the drawn form only.")
-    return AlertResult(
+    return report_from_fields(
         alert_id="polar_surface_area",
         name="Polar Surface Area (2D)",
         molecule_uuid=molecule_uuid,
@@ -1516,6 +1525,23 @@ def compute_admet_endpoints(mol, molecule_uuid, parameters=None, interpreter_pat
     # field on AlertResult, and adding one would have been invisible --
     # no consumer reads it, so the model-output caveat below would never
     # have reached a screen.
+    # **STILL AN `AlertResult`, AND THE REASON IS ITS OWN SHAPE.** Like the
+    # four migrated in stage 3 this is a report wearing an alert's clothes,
+    # and a mechanical migration measurably HALF works: the endpoint lines
+    # are `name: value` and become proper facts -- "hERG blockade" with the
+    # value "0.93", which is an improvement -- but the `[Toxicity and
+    # safety]` group HEADINGS have no colon, so `facts_from_alert` labels
+    # each with the calculator's own name and files the bracket text as the
+    # value. Four noise facts all called "ADMET (ADMET-AI)".
+    #
+    # `ReportResult.matched` also does not round-trip the two-space indent
+    # those headings group with, so the visual structure is lost for any
+    # consumer still reading lines.
+    #
+    # Migrating it properly means giving the endpoints a `FactCategory`
+    # instead of a bracket heading -- which is a change to what ADMET
+    # REPORTS, not to how it is carried, and belongs with whoever decides
+    # that. It is in none of stage 3's merge candidates.
     try:
         endpoints = compute_admet(mol, interpreter_path, tier)
     except RuntimeError as exc:
@@ -2284,9 +2310,11 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         category="solubility",
         description=(
             "Predicted intrinsic aqueous solubility in logS, mg/mL and mol/L, its "
-            "Low/Moderate/High category, the value at a chosen pH, and an ICH M9 "
-            "high-solubility screening estimate. Ampholytes and salts are refused rather "
-            "than modelled."
+            "Low/Moderate/High category, the value at a chosen pH, an ICH M9 "
+            "high-solubility screening estimate, and the solubility-versus-pH curve "
+            "across the range you choose. Ampholytes and salts are refused rather "
+            "than modelled; a molecule with no ionizable centre gets a flat line, "
+            "which is an answer rather than a failure."
         ),
         execution=RegistryExecution(compute=compute_solubility),
         parameters=[
@@ -2322,55 +2350,29 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 name="compare_models", label="Compare against the other model",
                 kind="bool", default=True,
             ),
-        ],
-        prediction_basis="empirical",
-        tags=["solubility", "logs", "esol", "admet", "ph", "bcs"],
-    ),
-    CalculatorDefinition(
-        calculator_id="solubility_curve",
-        display_name="Solubility vs pH",
-        category="solubility",
-        description=(
-            "Solubility across the pH range by Henderson-Hasselbalch, with the intrinsic "
-            "value and category shown beside the chart. A molecule with no ionizable centre "
-            "gets a flat line, which is an answer rather than a failure. The pH adjustment "
-            "is capped at +2 logS -- a model safeguard, not a predicted saturation plateau."
-        ),
-        execution=RegistryExecution(compute=compute_solubility_curve),
-        parameters=[
-            CalculatorParameter(
-                name="model", label="Baseline model", kind="choice",
-                default=ESOL, choices=[ESOL, AQSOLDB],
-            ),
-            CalculatorParameter(
-                name="unit", label="Units", kind="choice",
-                default=LOG_S, choices=list(DISPLAY_UNITS),
-            ),
-            CalculatorParameter(
-                name="pH", label="Report at pH", kind="float", default=DEFAULT_PH,
-                minimum=0.0, maximum=14.0,
-            ),
-            CalculatorParameter(
-                name="pka_values", label="pKa values (optional, e.g. 3.49, 9.4)",
-                kind="text", default="",
-            ),
-            CalculatorParameter(
-                name="solvent", label="Solvent", kind="choice",
-                default="water", choices=solvent_choices(),
-            ),
-            # Costs ~6 s when the ADMET sidecar is configured, and nothing
-            # at all when it is not. On by default because two independent
-            # models disagreeing by half a log unit is the most useful
-            # thing on the panel; switchable because it is not free.
-            CalculatorParameter(
-                name="compare_models", label="Compare against the other model",
-                kind="bool", default=True,
-            ),
+            # **THIS CALCULATOR ALREADY HONOURED THESE; IT JUST DID NOT
+            # OFFER THEM.** `solubility_chart` reads ph_min/ph_max/ph_step
+            # straight out of `parameters`, so passing them moved the chart
+            # long before `solubility_curve` was retired -- measured at the
+            # merge, 5 points over pH 6-8 against the default 57 over 0-14.
+            # The second registration's only real contribution was a dialog
+            # that showed them.
             *ph_range_parameters(),
         ],
         prediction_basis="empirical",
-        tags=["solubility", "logs", "ph", "curve", "esol"],
+        tags=["solubility", "logs", "esol", "admet", "ph", "bcs", "curve"],
     ),
+    # **`solubility_curve` WAS RETIRED HERE.** It reported the same nine
+    # facts and the same curve points as `Solubility` -- measured identical
+    # on aspirin -- and the one fact it added is reported above now. The
+    # only thing it really contributed was a dialog exposing the pH range,
+    # which `Solubility` already honoured and now offers.
+    #
+    # RETIRED IS NOT DELETED: the id is simply not offered as a new
+    # calculation. A stored `solubility_curve` result stays readable,
+    # because the reader reads what it was handed rather than asking the
+    # registry, and an old cache key MISSES and recomputes under the new
+    # identity rather than being aliased to it.
     # ---- Phase 29: naming --------------------------------------------
     CalculatorDefinition(
         calculator_id="iupac_name",

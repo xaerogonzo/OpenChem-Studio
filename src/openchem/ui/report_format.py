@@ -114,6 +114,60 @@ def _unknown_subject(report) -> str:
     )
 
 
+def chart_rows(chart) -> list[list[str]]:
+    """A declared chart as a header row plus data rows, or [] if it has none.
+
+    **BY THE ANNOTATION'S OWN SHAPE, NEVER BY DUCK-TYPING A `.points`.**
+    The two drawable kinds carry their numbers differently -- a line chart
+    holds named series of (x, y) pairs, a stick chart holds sticks with an
+    optional label -- and a consumer guessing from attribute names is the
+    probe-for-a-field-nobody-has failure this project already paid for
+    across nine calculators.
+
+    A depiction returns nothing, correctly: it is a picture of a structure
+    and has no table to paste.
+    """
+    from openchem.domain.report import LineChartAnnotation, StickChartAnnotation
+
+    if isinstance(chart, LineChartAnnotation):
+        names = [s.name or chart.y_label for s in chart.series]
+        xs: list = []
+        for series in chart.series:
+            for x, _y in series.points:
+                if x not in xs:
+                    xs.append(x)
+        rows = [[chart.x_label, *names]]
+        for x in xs:
+            row = [f"{x:.6g}"]
+            for series in chart.series:
+                value = next((y for px, y in series.points if px == x), None)
+                row.append("" if value is None else f"{value:.6g}")
+            rows.append(row)
+        return rows if len(rows) > 1 else []
+
+    if isinstance(chart, StickChartAnnotation):
+        rows = [[chart.x_label, chart.y_label, "label"]]
+        for stick in chart.sticks:
+            rows.append([f"{stick.x:.6g}", f"{stick.y:.6g}", stick.label or ""])
+        return rows if len(rows) > 1 else []
+
+    return []
+
+
+def _chart_lines(report) -> list[str]:
+    """Every declared chart as a tab-separated block, for a plain-text copy."""
+    lines: list[str] = []
+    for chart in getattr(report, "charts", ()) or ():
+        rows = chart_rows(chart)
+        if not rows:
+            continue
+        lines.append("")
+        if getattr(chart, "title", ""):
+            lines.append(chart.title)
+        lines.extend("\t".join(row) for row in rows)
+    return lines
+
+
 def format_report(report, fmt: str) -> str:
     """One report as text, whatever its subject.
 
@@ -157,6 +211,11 @@ def format_report(report, fmt: str) -> str:
                 ],
                 "assumptions": list(report.assumptions),
                 "limitations": list(report.limitations),
+                "charts": [
+                    {"title": getattr(c, "title", ""), "rows": chart_rows(c)}
+                    for c in getattr(report, "charts", ()) or ()
+                    if chart_rows(c)
+                ],
             },
             indent=1,
         )
@@ -207,4 +266,10 @@ def format_report(report, fmt: str) -> str:
         lines.append("")
     for text in report.limitations:
         lines.append(f"Limitation: {text}")
+    # **THE PICTURE'S NUMBERS, WHICH NO FORMAT CARRIED.** A report that
+    # declares a curve exported the facts and dropped the curve, so a copy
+    # said less than the screen showed -- the defect the Properties panel's
+    # own "Copy all" had once, in a second place. Measured when
+    # `solubility_curve` was merged into `Solubility`: 57 rows lost.
+    lines.extend(_chart_lines(report))
     return "\n".join(lines).rstrip() + "\n"

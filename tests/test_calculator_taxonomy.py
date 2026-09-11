@@ -199,3 +199,123 @@ def test_the_categories_that_take_the_default_are_named_with_a_reason():
     assert not stale, (
         f"these are mapped now and no longer take the default: {stale}"
     )
+
+
+# --- stage 3: what the merge and the migration left behind ---------------
+
+
+def _real_registry():
+    """The live registry. Built here rather than imported from
+    `test_calculator_sections`, because importing another TEST module is
+    the smell this file already names -- production is the shared seam."""
+    from openchem.bootstrap import build_service_container
+
+    return build_service_container().calculator_registry
+
+
+def test_the_retired_curve_calculator_is_not_offered_as_a_new_calculation():
+    """**RETIRED IS NOT DELETED.** `solubility_curve` reported the same nine
+    facts and the same curve points as `Solubility` -- measured identical on
+    aspirin -- so it was folded in. The id is simply not registered any
+    more: a stored result under it stays readable, because the reader reads
+    what it was handed rather than asking the registry, and an old cache key
+    MISSES and recomputes under the new identity rather than being aliased.
+    """
+    registry = _real_registry()
+
+    assert registry.get("solubility_curve") is None
+    assert registry.get("solubility") is not None
+
+
+def test_the_surviving_calculator_offers_the_range_it_already_honoured():
+    """The one thing the retired registration really contributed was a
+    dialog exposing `ph_min`/`ph_max`/`ph_step`. `Solubility` read them out
+    of `parameters` long before the merge -- measured, passing them moved
+    its chart from 57 points over pH 0-14 to 5 over 6-8 -- it just never
+    offered them."""
+    names = {p.name for p in _real_registry().get("solubility").parameters}
+
+    assert {"ph_min", "ph_max", "ph_step"} <= names
+    # And nothing the survivor had was dropped on the way.
+    assert {"model", "unit", "pH", "pka_values", "dose_mg", "solvent"} <= names
+
+
+def test_no_merge_left_a_category_holding_one_calculator():
+    """The guard `test_no_category_holds_a_single_calculator` enforces, said
+    again at the merge that could have broken it. Solubility held three and
+    holds two; a merge that emptied a category down to one would have to be
+    a category merge as well, and is not."""
+    from openchem.domain.calculator import RegistryExecution as _RegistryExecution
+
+    registry = _real_registry()
+    counts = {
+        category: len(
+            [
+                d
+                for d in registry.by_category(category)
+                if isinstance(d.execution, _RegistryExecution)
+            ]
+        )
+        for category in registry.categories()
+    }
+
+    assert counts["solubility"] >= 2, counts
+
+
+@pytest.mark.parametrize(
+    "calculator_id", ["pka", "logd", "polar_surface_area"]
+)
+def test_the_migrated_calculators_return_a_report_not_an_alert(calculator_id):
+    """**A CURVE CANNOT FOLD INTO AN `AlertResult`**, which is why this
+    migration was stage 3's prerequisite rather than tidying.
+
+    Measured over the three kinds: `AlertResult` carries no facts, no charts
+    and no limitations; `PhCurveResult` carries facts but no charts and no
+    limitations; only `ReportResult` carries all three. So a merge that
+    folds a curve into its scalar has exactly one possible target, and these
+    three could not be it until they moved.
+    """
+    from rdkit import Chem
+
+    from openchem.domain.report import ReportResult
+
+    definition = _real_registry().get(calculator_id)
+    result = definition.execution.compute(
+        Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O"), "u", {}
+    )
+
+    assert isinstance(result, ReportResult), type(result).__name__
+
+
+def test_only_a_real_catalogue_still_uses_the_alert_shape():
+    """The narrow half: migrating everything would take the four genuine
+    catalogues with it, and `AlertResult.severity` is what lets a renderer
+    tell "contains a PAINS substructure" from "weighs 43.025".
+
+    Two non-catalogues remain and each records why in the source:
+    `admet_ml`, whose bracket group headings have no colon and so become
+    facts labelled with the calculator's own name, and `functional_groups`,
+    which is published through the always-on alert channel whose consumers
+    read `alert_id`.
+    """
+    import ast
+    from pathlib import Path
+
+    source = (
+        Path(__file__).resolve().parent.parent
+        / "src" / "openchem" / "chem" / "descriptor_providers.py"
+    ).read_text(encoding="utf-8")
+    still_alerts = set()
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "AlertResult":
+            keywords = {k.arg: k.value for k in node.keywords}
+            if "alert_id" in keywords:
+                try:
+                    still_alerts.add(ast.literal_eval(keywords["alert_id"]))
+                except ValueError:
+                    pass
+
+    assert still_alerts == {
+        "pains", "brenk", "mutagenicity_alerts", "herg_risk_factors",
+        "admet_ml", "functional_groups",
+    }, sorted(still_alerts)

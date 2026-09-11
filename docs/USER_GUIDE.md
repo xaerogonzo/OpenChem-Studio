@@ -618,7 +618,7 @@ the thing that needs the room.
 
 The Properties panel is where a calculation is **started**, and the
 [Results](#results) panel is where one is **read**. It has **20 collapsible
-categories** covering **60 registered calculators**; Identity is open by
+categories** covering **59 registered calculators**; Identity is open by
 default.
 
 Each calculator gets a row: a tick box that adds it to a batch run, a
