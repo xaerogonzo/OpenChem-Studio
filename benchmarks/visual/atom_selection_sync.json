@@ -1,0 +1,20 @@
+[
+  {"do": "smiles", "smiles": "CCNCCO", "name": "Chain", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "panel", "id": "Atom_Inspector", "after_ms": 2000},
+
+  {"do": "selection_report", "after_ms": 1200},
+  {"do": "select_atom", "atom": 5, "after_ms": 2000},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/stage5a_selection_dense-pool.png", "after_ms": 1200},
+
+  {"do": "erase", "element": "N", "after_ms": 4000},
+  {"do": "report", "tag": "after-erase", "after_ms": 1500},
+  {"do": "selection_report", "after_ms": 1500},
+
+  {"do": "select_atom", "atom": 4, "after_ms": 2000},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/stage5a_selection_diverged-pool.png", "after_ms": 1200},
+  {"do": "select_atom", "atom": 0, "after_ms": 2000},
+  {"do": "selection_report", "after_ms": 1200},
+
+  {"do": "quit"}
+]

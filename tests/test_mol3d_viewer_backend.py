@@ -971,3 +971,209 @@ def test_the_camera_read_for_adoption_is_the_SELECTED_CELLS(qapp, grid_display):
     assert orientation == tuple(
         round(n, 3) for n in _grid_views(qapp, backend)[0][4:]
     ), "read a camera that is not the selected cell's"
+
+
+# --- the 3D view as a picture ---------------------------------------------
+
+
+def _grab_png(qapp, backend, timeout_seconds: float = 10):
+    result: dict[str, object] = {}
+    backend.grab_png(lambda data: result.__setitem__("png", data))
+    _wait_until(qapp, lambda: "png" in result, timeout_seconds=timeout_seconds)
+    return result.get("png", "never called")
+
+
+def _canvas_size(qapp, backend) -> tuple[int, int]:
+    raw = _run_js(qapp, backend, """
+      (function () { var c = viewer.getCanvas ? viewer.getCanvas() : null;
+        return c ? c.width + 'x' + c.height : '0x0'; })()
+    """)
+    width, _sep, height = str(raw or "0x0").partition("x")
+    try:
+        return int(width), int(height)
+    except ValueError:
+        return 0, 0
+
+
+def _webgl_available(qapp, backend) -> bool:
+    """Can this machine make a WebGL context at all?
+
+    **ASKED, SO A SKIP CANNOT SWALLOW A REGRESSION.** The CI runner
+    blocklists WebGL -- `ContextResult::kFatalFailure: WebGL2 blocklisted`
+    in the job log -- so 3Dmol.js never creates a canvas and the size
+    predicate below can never come true there. Skipping on "the canvas has
+    no size" alone would also skip a real defect on a machine that CAN
+    render; skipping on "there is no WebGL here" cannot.
+    """
+    raw = _run_js(qapp, backend, """
+      (function () {
+        try {
+          var c = document.createElement('canvas');
+          return (c.getContext('webgl2') || c.getContext('webgl')) ? 'yes' : 'no';
+        } catch (e) { return 'no'; }
+      })()
+    """)
+    return str(raw or "no") == "yes"
+
+
+def _shown_with_a_sized_canvas(qapp, backend) -> tuple[int, int]:
+    """Show the viewer and WAIT FOR ITS CANVAS TO HAVE A SIZE.
+
+    **NOT A FIXED SLEEP, AND A FIXED SLEEP IS WHAT BROKE THIS.** The canvas
+    is 0x0 until the widget is shown -- measured, and `pngURI()` answers
+    `data:,` for it -- and 0.3 s was ample in isolation while 2 s was not
+    enough after forty other backends had been built in the same process.
+    A predicate costs a fast run nothing and makes a slow one correct.
+
+    Returns the size so a failure can say what it actually got.
+    """
+    backend.widget().resize(420, 320)
+    backend.widget().show()
+    assert _wait_until(qapp, lambda: backend.widget().isVisible(), timeout_seconds=5)
+    _wait_until(qapp, lambda: _canvas_size(qapp, backend) != (0, 0), timeout_seconds=20)
+    size = _canvas_size(qapp, backend)
+    if size == (0, 0) and not _webgl_available(qapp, backend):
+        # Not a failure and not a pass. What these tests compare is a
+        # RENDERED canvas against a widget grab of it; with no WebGL there
+        # is no render, and both sides would be blank for a reason that has
+        # nothing to do with the code under test. Local runs still exercise
+        # it -- measured 840x640 at device pixel ratio 2.
+        pytest.skip(
+            "no WebGL on this machine, so 3Dmol.js never creates a canvas "
+            "and there is no rendered view to grab"
+        )
+    assert size != (0, 0), (
+        "the 3D canvas never got a size, so a grab would be measuring an "
+        "unshown viewer rather than the thing under test"
+    )
+    return size
+
+
+def _distinct_colours(image) -> int:
+    from PySide6.QtGui import QImage
+
+    assert isinstance(image, QImage)
+    scaled = image.scaled(60, 60)
+    return len({scaled.pixel(x, y) for x in range(scaled.width()) for y in range(scaled.height())})
+
+
+def test_the_3d_view_grabs_a_real_png(qapp):
+    """PNG bytes the page produced, not an empty frame."""
+    from PySide6.QtGui import QImage
+
+    backend = _ready_backend(qapp)
+    _shown_with_a_sized_canvas(qapp, backend)
+
+    png = _grab_png(qapp, backend)
+
+    assert isinstance(png, bytes) and png, f"no PNG came back: {png!r}"
+    assert png[:8] == b"\x89PNG\r\n\x1a\n", f"not a PNG: {png[:12]!r}"
+    image = QImage.fromData(png, "PNG")
+    assert not image.isNull(), "the bytes did not decode as an image"
+    assert _distinct_colours(image) > 2, (
+        "the grab decoded but is a flat fill -- the canvas had nothing on it"
+    )
+
+    backend.widget().hide()
+
+
+def test_widget_grab_is_the_blank_frame_THIS_EXISTS_TO_AVOID(qapp):
+    """**THE COUNTER-MEASUREMENT, AND IT IS THE WHOLE JUSTIFICATION.**
+
+    `QWebEngineView` renders OUT OF PROCESS. `widget.grab()` therefore
+    succeeds -- no exception, a correctly-sized QPixmap -- and contains no
+    molecule, because the WebGL canvas belongs to the render process and Qt
+    has nothing to copy. A picture-shaped lie, which is why `grab_png` asks
+    the PAGE instead.
+
+    Asserted rather than asserted-about: without this, "use pngURI" is a
+    claim from a comment, and the obvious simplification back to
+    `widget.grab()` would look correct and produce blank exports.
+
+    **A FLAT GRAB IS THE FINDING, NOT A FAILURE.** If Qt ever starts
+    compositing this into the widget, this test fails and says so -- at
+    which point the design note above needs revisiting, not deleting.
+    """
+    backend = _ready_backend(qapp)
+    _shown_with_a_sized_canvas(qapp, backend)
+
+    from_page = _grab_png(qapp, backend)
+    assert isinstance(from_page, bytes) and from_page, "the page grab failed, so this proves nothing"
+
+    from_qt = backend.widget().grab().toImage()
+
+    assert _distinct_colours(from_qt) <= 2, (
+        f"widget.grab() came back with {_distinct_colours(from_qt)} colours. "
+        "If Qt now composites the render process's canvas into the widget, "
+        "the reason grab_png reads the page needs revisiting -- read the "
+        "docstring before changing anything."
+    )
+
+    backend.widget().hide()
+
+
+def test_a_grab_before_the_page_is_ready_answers_None(qapp):
+    """`None`, never empty bytes: a caller must not be able to mistake
+    "nothing came back" for "an image with no content" and write a 0-byte
+    file called something.png."""
+    backend = Mol3DViewerBackend()
+    seen: list[object] = []
+    backend._page_ready = False
+
+    backend.grab_png(seen.append)
+
+    assert seen == [None]
+
+
+def test_a_page_that_refuses_answers_None_rather_than_a_broken_file(qapp):
+    """The page catches its own exception and returns `error:...`, because
+    a thrown one crosses `runJavaScript` as an empty string and would be
+    indistinguishable from a viewer with nothing on it."""
+    backend = _ready_backend(qapp)
+    _run_js(
+        qapp,
+        backend,
+        "window.openchemViewer.pngURI = function () { return 'error: no canvas'; }; 1",
+    )
+
+    assert _grab_png(qapp, backend) is None
+
+
+def test_a_uri_that_is_not_a_png_is_refused(qapp):
+    """Writing a JPEG's bytes to a `.png` produces a file nothing opens, so
+    the prefix is checked rather than trusted."""
+    backend = _ready_backend(qapp)
+    _run_js(
+        qapp,
+        backend,
+        "window.openchemViewer.pngURI = function () { return 'data:image/jpeg;base64,AAAA'; }; 1",
+    )
+
+    assert _grab_png(qapp, backend) is None
+
+
+def test_an_unshown_viewer_is_refused_by_NAME_rather_than_answering_data_colon(qapp):
+    """**`data:,` IS A VALID DATA URI HOLDING NOTHING**, and a 0x0 canvas
+    is what produces it -- so an unshown viewer would otherwise hand back a
+    "successful" grab that writes an unopenable file.
+
+    Measured: the canvas is 0x0 until the widget is shown, and 840x640
+    within 0.3 s after (420x320 at device pixel ratio 2). Found because two
+    tests here passed alone and failed after forty other backends had been
+    built in the same process -- the production code refused correctly both
+    times; it was the test that had waited on the wrong thing.
+
+    The page names the case so that "the viewer is not on screen" and "the
+    page refused" do not arrive as the same silence.
+    """
+    backend = _ready_backend(qapp)
+    backend.widget().hide()
+    assert _canvas_size(qapp, backend) == (0, 0) or not backend.widget().isVisible()
+
+    raw = _run_js(qapp, backend, "window.openchemViewer.pngURI()")
+
+    if str(raw).startswith("data:image/png"):
+        pytest.skip("this environment sizes the canvas without showing the widget")
+    assert str(raw).startswith("error:"), raw
+    assert "has not been shown" in str(raw), raw
+    assert _grab_png(qapp, backend) is None

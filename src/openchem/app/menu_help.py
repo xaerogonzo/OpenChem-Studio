@@ -30,6 +30,7 @@ than four copies of "sets the stereo label style".
 from __future__ import annotations
 
 from openchem.ui.widgets.help_tooltip import HelpTooltip
+from openchem.ui.widgets.molecule_editor_widget import ROTATE_HELP
 
 _M = "menus"
 
@@ -309,6 +310,13 @@ MENU_HELP: dict[str, HelpTooltip] = {
         tier=2, help_id="structure.generate_conformers", topic=_M,
         help_anchor="limits-conformers",
     ),
+    # **THE SAME OBJECT THE BUTTON CARRIES, NOT A COPY OF ITS WORDS.**
+    # Rotate 3D is offered from the editor's own bar and from here, and it
+    # is one concept -- so it gets one `help_id` and one text, which is what
+    # `test_one_help_id_means_exactly_one_thing` and
+    # `test_one_concept_is_not_split_across_many_help_ids` between them
+    # require. Two hand-written copies would satisfy neither for long.
+    "rotate_in_3d": ROTATE_HELP,
     "isotopes": HelpTooltip(
         text=(
             "Opens the periodic table on its Isotopes tab, for the element of "

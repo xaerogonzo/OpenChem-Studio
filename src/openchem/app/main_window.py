@@ -469,6 +469,13 @@ class MainWindow(QMainWindow):
         # bridge, so this indexes the molblock the model holds.
         self._selected_atom_index: int | None = None
         self._editor.atom_selected.connect(self._on_editor_atom_selected)
+        # AND BACK THE OTHER WAY. `atom_selected` was emitted by the
+        # inspector and connected to nothing -- its own docstring said
+        # "so viewers can highlight it" and no viewer ever heard it, so
+        # picking a row named an atom you then had to find by eye.
+        self._atom_inspector_panel.atom_selected.connect(
+            self._on_inspector_atom_selected
+        )
         self._editor.atom_context_menu.connect(self._show_atom_context_menu)
         self._atom_inspector_panel.isotopes_requested.connect(
             self._show_isotopes_for_selection
@@ -1569,6 +1576,25 @@ class MainWindow(QMainWindow):
         # spike came back negative and the isotope feature must not DEPEND
         # on that injection working, so this exists, needs no change to
         # the editor bundle, and is what the guard checks.
+        # **ROTATE 3D HAD NO MENU ENTRY AND NO SHORTCUT.** It existed only
+        # as a button on the editor's own bar, so it was reachable only
+        # while the 2D Editor tab was showing and discoverable only by
+        # noticing it. F7 is the key Marvin uses for the same gesture.
+        #
+        # **CHECKABLE, AND MIRRORING THE BUTTON RATHER THAN DUPLICATING
+        # IT.** The mode is a state, so an entry that could not show it
+        # would be worse than none; but two controls each deciding the
+        # state is the drift this file keeps refusing. So the button
+        # decides and this follows: `triggered` clicks the button, and the
+        # button's own `toggled` sets this. A REFUSAL follows too -- a flat
+        # drawing sets the button back and the tick comes back off with it.
+        self._rotate_action = QAction("Rotate 3D", self)
+        self._rotate_action.setCheckable(True)
+        self._rotate_action.setShortcut("F7")
+        self._document(self._rotate_action, "rotate_in_3d")
+        self._rotate_action.triggered.connect(self._on_rotate_action)
+        self._editor.rotation_mode_changed.connect(self._rotate_action.setChecked)
+        self._structure_menu.addAction(self._rotate_action)
         self._document(
             self._structure_menu.addAction(
                 "Isotopes...", self._show_isotopes_for_selection
@@ -2922,9 +2948,45 @@ class MainWindow(QMainWindow):
         The picker needs an ELEMENT as well as an index, and only this
         layer holds both the selection and the molecule to read it from.
         """
-        self._atom_inspector_panel.select_atom(index)
+        # **BEFORE `select_atom`, AND THE ORDER IS THE WHOLE GUARD.**
+        # `select_atom` selects the table row synchronously, which emits
+        # `atom_selected` straight back into `_on_inspector_atom_selected`
+        # -- so recording what the editor reported after that call means
+        # the echo arrives while this still reads `None` and gets pushed
+        # to the canvas as though the user had picked it.
+        #
+        # Measured: erasing an atom (which selects it before pressing
+        # Delete, as a user does) left an unrelated carbon selected on the
+        # canvas, because the position the page had reported was sent back
+        # after the atom at it was gone. Assigning first makes the echo
+        # compare equal and stop here.
         self._selected_atom_index = index
+        self._atom_inspector_panel.select_atom(index)
         self._push_selected_atom_to_periodic_table()
+
+    def _on_inspector_atom_selected(self, index: int) -> None:
+        """Picked a row in the Atom Inspector -- show which atom that is.
+
+        **THE ECHO IS THE WHOLE DESIGN PROBLEM.** `Editor.selection()`
+        dispatches `selectionChange` unconditionally (read from Ketcher's
+        own TypeScript source), so every selection sent from here comes
+        straight back through `atomSelected` and into `select_atom`, which
+        re-selects the row, which emits again. A re-entrancy flag cannot
+        close that loop: the return trip is asynchronous through the web
+        channel and the flag is long since cleared by the time it lands.
+
+        Comparing the indices does close it, because the two directions
+        agree on one index space. `_selected_atom_index` is what the
+        editor last reported, so an inbound selection matching it IS our
+        own echo and is not sent back. That makes the loop terminate by
+        construction rather than by relying on Qt declining to emit a
+        selection signal for a row that was already selected -- which is
+        true, and is not a property this should be resting on.
+        """
+        if index == self._selected_atom_index:
+            return
+        self._selected_atom_index = index
+        self._editor.select_atoms([index])
 
     def _selected_atom_element(self) -> str | None:
         """The element of the atom selected in the 2D editor, or None.
@@ -3079,6 +3141,28 @@ class MainWindow(QMainWindow):
         )
         if answer == QMessageBox.StandardButton.Yes:
             self._generate_conformers()
+
+    def _on_rotate_action(self, _checked: bool = False) -> None:
+        """Menu or F7 -- press the editor's own Rotate 3D button.
+
+        **THE ARGUMENT IS IGNORED, DELIBERATELY.** Qt has already flipped
+        this action's own checked state by the time `triggered` arrives, and
+        acting on that would make the action the authority. It is not: the
+        button is, and `toggle_rotation` clicks it. `rotation_mode_changed`
+        then sets this action to whatever really happened -- including a
+        refusal, which is why that signal reports the button's final state
+        rather than the request.
+
+        **AND THERE IS DELIBERATELY NO `setChecked` RESYNC HERE.** One was
+        written, because `QAction.trigger()` flips this action's state
+        whether or not anything downstream agrees. A mutation arm then
+        removed it and nothing failed: the button is never disabled, so a
+        click always toggles, always reaches the emit, and always corrects
+        the tick. The resync could not change an outcome, and a line that
+        cannot is worse than absent -- it reads as the thing keeping the two
+        in step, which is the signal's job.
+        """
+        self._editor.toggle_rotation()
 
     def _generate_conformers(self) -> None:
         """The Structure menu's route into conformer generation.

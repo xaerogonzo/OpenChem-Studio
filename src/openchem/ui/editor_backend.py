@@ -180,6 +180,28 @@ class EditorBackend(QObject):
         """
         raise NotImplementedError
 
+    def select_atoms(self, atom_indices: list[int]) -> None:
+        """Select these atoms on the canvas, by molfile position.
+
+        The OUTBOUND half of `atom_selected`, so that picking an atom in
+        the Atom Inspector shows you which one it is. Indices are molfile
+        positions -- the index space the rest of the application speaks --
+        and it is the backend's job to translate them into whatever its
+        engine uses internally.
+
+        A GESTURE, not state, so a backend that is not ready must DROP it
+        rather than queue it, exactly as `set_atom_tool` does: a selection
+        describes what the user is looking at now, and replaying one after
+        boot marks up whatever structure loaded in the meantime.
+
+        An empty list CLEARS the selection, which is the same statement
+        one step further: nothing is selected.
+
+        Concrete and a no-op by default, like `set_electron_overlay`: an
+        editor that cannot be told what to select is not broken, and
+        forcing every test double to declare that would be noise.
+        """
+
     def open_atom_editor(self, atom_index: int) -> None:
         """Open the editor's own atom-properties dialog, if it has one.
 

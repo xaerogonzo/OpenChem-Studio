@@ -1,0 +1,18 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(O)=O", "name": "Aspirin", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "rotate_report", "tag": "baseline", "after_ms": 800},
+
+  {"do": "conformers", "count": 1, "after_ms": 20000},
+  {"do": "rotate_report", "tag": "with-geometry", "after_ms": 800},
+
+  {"do": "menu", "text": "Rotate 3D", "after_ms": 2500},
+  {"do": "rotate_report", "tag": "entered", "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/stage5c_rotate_entered.png", "after_ms": 1200},
+
+  {"do": "menu", "text": "Rotate 3D", "after_ms": 2500},
+  {"do": "rotate_report", "tag": "left", "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/stage5c_rotate_left.png", "after_ms": 1200},
+
+  {"do": "quit"}
+]

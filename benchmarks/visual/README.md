@@ -70,6 +70,9 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 | `batch_molecule_scope.json` | the Batch panel's molecule scope, narrowed then emptied then restored | nothing yet -- it exists because the scope is a state NO SCREENSHOT CARRIES |
 | `batch_calculator_settings.json` | one calculator batched with and without its settings | Lewis Adduct failing on EVERY molecule in Batch, because the panel sent no parameters; and then a column so wide its centred header sat off screen |
 | `lewis_partner_picker.json` | the settings dialog at every parameter kind, and the three role states | a blank separator line rendering as a row with a LABEL AND NO VALUE -- a fact whose value is missing |
+| `result_picture_export.json` | a depiction in the Results reader, exported through the real export path | nothing yet -- exporting a drawing existed in ONE dialog, so every other picture the application draws was read-only |
+| `rotate_3d_reach.json` | Rotate 3D from the Structure menu, entered and left | nothing yet -- the mode was reachable only from one button on one tab, and two designs for the menu entry's tick disagreed with the button |
+| `atom_selection_sync.json` | the Atom Inspector and the 2D canvas, on a FRESHLY LOADED structure and then on an EDITED one | the pool-id/molfile-position divergence, outbound: clicking a carbon answered "pick a heavy atom" -- this is the same trap inbound, where nothing declines |
 
 **`lewis_partner_picker.json` PHOTOGRAPHS A DISTINCTION THE PROVENANCE ALREADY
 RECORDS**, which is the point of it: an orientation worked out from the Drago
@@ -92,6 +95,19 @@ Its middle arm is the one worth keeping: unticking everything and pressing Fill
 table must SHOW a refusal, because `batch_service` reads an empty scope as
 "everything given" and a silent fall-through there would look exactly like
 success.
+
+**`atom_selection_sync.json` ERASES AN ATOM BEFORE IT MEASURES ANYTHING**,
+and a run that skipped that would pass while testing nothing. A fresh
+`setMolecule` rebuilds Ketcher's pool dense, so ids and positions agree by
+accident -- which is how this class of bug shipped the first time. The
+script therefore reports the selection once on the dense pool, erases the
+nitrogen, and reports again on `poolOrder [0,1,3,4,5]`; the second arm is
+the only one that can fail.
+
+Its log carries what the shot cannot: `selection_report` prints the pool
+order, the pool ids, the molfile positions and the element labels together,
+so "the right atom" is asserted rather than recognised. The shot is still
+worth magnifying -- it is what shows the marquee is actually drawn.
 
 `properties-width.json` squeezes **and then widens** deliberately: a latched
 caption is only observable once the room comes back, so a single-width run

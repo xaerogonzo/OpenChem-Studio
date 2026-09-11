@@ -47,6 +47,89 @@ function molfilePosition(pool, poolId) {
   return Array.from(pool.keys()).indexOf(poolId)
 }
 
+// And back: which pool id sits at this molfile position?
+//
+// THE SAME TRAP, AND IT FAILS WORSE IN THIS DIRECTION. Reading a position
+// as though it were an id does not merely mis-report a number -- it puts
+// the marquee on a DIFFERENT atom on the canvas while the Atom Inspector
+// row it came from goes on naming the right one, so two panels disagree
+// with complete confidence and nothing declines. Measured on `CCNCCO`
+// with the nitrogen erased: the surviving pool ids are 0,1,3,4,5 against
+// molfile positions 0..4, so asking for the oxygen (position 4) naively
+// selects pool id 4, which is a CARBON.
+//
+// INSERTION ORDER, NEVER SORTED, for the reason above: undo re-inserts a
+// deleted atom under its ORIGINAL id at the END of the Map, so sorting
+// would be wrong in every position while still producing entirely
+// plausible ids.
+//
+// Out of range answers `undefined` rather than throwing. `Editor.selection`
+// does not validate the ids it is handed -- read from its TypeScript
+// source, not the bundle -- so a stray one reaches `explicitSelected()`
+// as a lookup for an atom that is not there; the caller filters instead.
+function poolIdAt(pool, position) {
+  const keys = Array.from(pool.keys())
+  return position >= 0 && position < keys.length ? keys[position] : undefined
+}
+
+// Select atoms by MOLFILE POSITION -- the index space every other part of
+// this application speaks, and the only one Python has.
+//
+// `editor.selection(null)` clears; `selection({atoms: ids})` sets. Both
+// dispatch `selectionChange`, unconditionally, so a selection set from
+// Python comes straight back through `bridgeObject.atomSelected()` as an
+// echo. That is not a bug to suppress here -- the page cannot tell its own
+// echo from a user's click -- so the loop is terminated on the Python side,
+// where the two selections can be compared. See `_on_inspector_atom_selected`
+// in app/main_window.py.
+//
+// Returns how many positions RESOLVED, so a request that named nothing on
+// this structure is distinguishable from one that named nothing at all.
+function selectAtomsByPosition(positions) {
+  if (!ketcherInstance) return -1
+  const editor = ketcherInstance.editor
+  const struct = editor.struct()
+  const ids = (positions || [])
+    .map(function (position) {
+      return poolIdAt(struct.atoms, position)
+    })
+    .filter(function (id) {
+      return id !== undefined
+    })
+  if (!ids.length) {
+    editor.selection(null)
+    return 0
+  }
+  editor.selection({ atoms: ids })
+  return ids.length
+}
+
+// What is selected, in BOTH id spaces at once.
+//
+// The probe the driven check reads, and the reason it can ASSERT rather
+// than photograph: a selection is a few highlighted pixels, and the whole
+// failure this guards against is a plausible-looking one. `poolOrder` is
+// here because it is the measurement -- it is what makes the divergence
+// between the two spaces visible in the log instead of inferred.
+function selectionReport() {
+  if (!ketcherInstance) return JSON.stringify({ ready: false })
+  const struct = ketcherInstance.editor.struct()
+  const selection = ketcherInstance.editor.selection()
+  const ids = (selection && selection.atoms) || []
+  return JSON.stringify({
+    ready: true,
+    poolOrder: Array.from(struct.atoms.keys()),
+    poolIds: ids,
+    positions: ids.map(function (id) {
+      return molfilePosition(struct.atoms, id)
+    }),
+    labels: ids.map(function (id) {
+      const atom = struct.atoms.get(id)
+      return atom ? atom.label : null
+    }),
+  })
+}
+
 function tryWireBridge() {
   if (!ketcherInstance || !bridgeObject) return
   if (!notifiedReady) {
@@ -1273,6 +1356,13 @@ function handleKetcherInit(ketcher) {
       cipWork.failed = 0
       return 1
     },
+  }
+  // Fourth global, same reason as the three above: without a reference
+  // reachable from the entry point vite tree-shakes the whole thing away
+  // and the feature is silently absent.
+  window.openchemSelection = {
+    set: selectAtomsByPosition,
+    report: selectionReport,
   }
   tryWireBridge()
 }

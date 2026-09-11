@@ -72,7 +72,13 @@ from openchem.domain.scientific_result import (
     TrajectoryResult,
     VibrationalSpectrumResult,
 )
-from openchem.ui.visualization import atom_basis, declared_total, label_decimals
+from openchem.ui.visualization import (
+    atom_basis,
+    declared_total,
+    is_categorical,
+    label_decimals,
+    summary_note,
+)
 
 #: This kind has no dedicated viewer to open. A VALUE rather than an absent
 #: entry, so "no rich view" and "nobody filled this in" stay different states --
@@ -298,11 +304,39 @@ def _numeric_range(
 ) -> tuple[Fact, ...]:
     """The span of a numeric payload, at the producer's own precision.
 
-    Empty when nothing in the payload is a number -- a categorical per-atom
-    dataset (oxidation states drawn as labels, functional-group ids) has a
-    count and no range, and inventing one from category ids would be a
-    quantity nobody computed.
+    Empty when nothing in the payload is a number -- and empty when the
+    numbers are IDS rather than quantities, which is a different test and
+    the one this used to get wrong.
+
+    **THIS DOCSTRING DESCRIBED THE RULE AND THE CODE DID NOT IMPLEMENT
+    IT.** It said a categorical dataset "has a count and no range, and
+    inventing one from category ids would be a quantity nobody computed",
+    then tested `isinstance(v, float)` -- while `compute_locants` stores
+    `values[i] = float(category)`. The ids ARE floats, so the guard never
+    fired. Measured on aspirin: four of five categorical per-atom results
+    carried a range over their own category ids -- `locants` "2 to 2" (the
+    SOURCE of the numbering, not a number on the molecule),
+    `functional_groups` "1 to 2", `ring_systems`, and `stereocenters`
+    "7 to 7" on morphine. `stereocenters` looked clean on aspirin only
+    because aspirin has none.
+
+    **AND OXIDATION STATES LOOKS LIKE THE EXCEPTION AND IS NOT.** Its
+    values really are the states -- -3 to +3 on aspirin -- so a range over
+    them reads as a legitimate measurement. `compute_oxidation_states`
+    declares otherwise, in as many words: marked categorical "because an
+    oxidation state is not a magnitude. Iron(+3) is not 'one more' of
+    anything than iron(+2), and a continuous colour ramp across them would
+    imply an ordering the formalism does not carry". A range IS that
+    ordering claim, so the producer has already refused it and this defers
+    rather than deciding the chemistry for itself.
+
+    `is_categorical` is therefore the whole test, reading the DECLARATION
+    instead of inferring from the payload's shape -- the rule
+    `docs/LESSONS.md` records as "A UI MUST NOT INFER SCIENTIFIC MEANING
+    FROM A DATASET'S SHAPE".
     """
+    if is_categorical(result):
+        return ()
     numbers = [v for v in values if isinstance(v, (int, float)) and not isinstance(v, bool)]
     if not numbers:
         return ()
@@ -362,20 +396,62 @@ def _per_atom_summary(result: PerAtomDataset, category: FactCategory) -> tuple[F
     The DECLARED total leads, because it is the number the row was opened
     for -- a LogP contribution table whose summary omits the molecule's LogP
     is true and useless. The count and the range are projections; the atom
-    basis is a producer declaration and is carried because a value keyed to
-    explicit hydrogens and one keyed to heavy atoms are different data under
-    the same name.
+    basis and the finding are producer declarations, and are carried for the
+    same reason: a value keyed to explicit hydrogens and one keyed to heavy
+    atoms are different data under the same name.
     """
     return (
         *_declared_total_fact(result, category),
+        # **"Atoms: 0", NOT "None found", AND THAT IS A DECISION ALREADY
+        # TAKEN.** `test_an_empty_payload_is_reported_as_a_count_and_not_as_
+        # silence` records why: the label already supplies what was counted,
+        # so an empty payload and an unrendered one cannot be confused. It
+        # was the OLD panel's bare "None found." that had no such protection.
+        # What was missing was never the wording -- it was the reason, below.
         _summary_fact(
             "Atoms", len(result.values), str(len(result.values)), category, _source_of(result)
         ),
+        *_producer_finding(result, category),
         *_numeric_range(result, result.values.values(), category),
         _summary_fact(
             "Keyed to", atom_basis(result), _ATOM_BASIS_LABELS[atom_basis(result)],
             category, _source_of(result),
         ),
+    )
+
+
+def _producer_finding(result: PerAtomDataset, category: FactCategory) -> tuple[Fact, ...]:
+    """The producer's own sentence about what it found, if it declared one.
+
+    **THE EXPLANATION ALREADY EXISTED AND DID NOT TRAVEL.** `compute_locants`
+    writes one of six sentences into `provenance.parameters["summary"]` --
+    three of them for the empty case, because "no locants" has several
+    legitimate causes and the result knows which: a retained name carries no
+    derived numbering at all, while caffeine's purine IS in the nomenclature
+    tables with a full locant map and it is the MATCH that fails. Measured
+    over the naming corpus, 95 of 181 molecules name to a retained string,
+    so the empty answer is the common case rather than an edge one.
+
+    **AND `visualization.summary_note` HAS BEEN PUBLIC FOR IT ALL ALONG**,
+    with a docstring saying it "exists for the empty case ... a producer
+    that can explain its own emptiness puts the sentence here". A batch cell
+    has read the same key since batch existed. The reader never did, so the
+    row said "0" while the batch column said why.
+
+    **A DECLARATION, NOT A PROJECTION**, which is why it is carried verbatim
+    and attributed to the producer's own method. This layer composes nothing
+    and interpolates nothing; a producer that declared no summary gets no
+    row, rather than a sentence this layer invented.
+
+    **ITS OWN ROW, NOT `Fact.evidence`.** Evidence reaches only the value
+    widget's tooltip (`FactView._add_row`), and a reason nobody hovers for
+    has not travelled -- which is this same defect, one layer along.
+    """
+    note = summary_note(result).strip()
+    if not note:
+        return ()
+    return (
+        _summary_fact("Finding", note, note, category, _source_of(result)),
     )
 
 

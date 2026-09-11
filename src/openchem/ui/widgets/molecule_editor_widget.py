@@ -28,7 +28,7 @@ from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 #: TIER 2 BECAUSE IT CHANGES WHAT A DRAG MEANS. A mode that silently
 #: reassigns the primary gesture is the one thing a user must never be in
 #: doubt about, which is why a readout bar exists only while it is on.
-_ROTATE_HELP = HelpTooltip(
+ROTATE_HELP = HelpTooltip(
     text=(
         "Turn the structure in three dimensions and keep the result as "
         "the drawing.\n\n"
@@ -79,6 +79,11 @@ class MoleculeEditorWidget(QWidget):
 
     #: One atom, when the user selects exactly one on the 2D canvas.
     atom_selected = Signal(int)
+    #: The 3D rotation mode was entered or left. **The BUTTON is the only
+    #: state**; this exists so a second route to the same gesture can show
+    #: it without keeping a copy that can drift -- the reason the CIP
+    #: display is one QAction offered from two menus.
+    rotation_mode_changed = Signal(bool)
     atom_context_menu = Signal(int, int, int)
     #: One bond, likewise. Ketcher reports both through the same event.
     bond_selected = Signal(int)
@@ -129,7 +134,7 @@ class MoleculeEditorWidget(QWidget):
         # while the mode is on.
         self._rotate_button = QPushButton("Rotate 3D", self)
         self._rotate_button.setCheckable(True)
-        apply_help_tooltip(self._rotate_button, _ROTATE_HELP)
+        apply_help_tooltip(self._rotate_button, ROTATE_HELP)
         self._rotate_button.toggled.connect(self._on_rotate_toggled)
         self._rotate_readout = QLabel("", self)
         self._rotate_cancel = QPushButton("Cancel", self)
@@ -210,6 +215,16 @@ class MoleculeEditorWidget(QWidget):
     def open_atom_editor(self, atom_index: int) -> None:
         """Ketcher's own atom dialog, offered from our context menu."""
         self._backend.open_atom_editor(atom_index)
+
+    def select_atoms(self, atom_indices: list[int]) -> None:
+        """Show the user which atoms these are, on the canvas.
+
+        A pass-through, like `open_atom_editor` above: the widget owns no
+        selection state of its own. Ketcher's is the only one, and a copy
+        here would be a second answer to "what is selected" that nothing
+        keeps in step.
+        """
+        self._backend.select_atoms(atom_indices)
 
     def trigger_toolbar_action(self, test_id: str) -> None:
         """Proxies to one of Ketcher's own real toolbar buttons (e.g. "Add/
@@ -404,7 +419,49 @@ class MoleculeEditorWidget(QWidget):
         """
         self._rotate_button.setChecked(True)
 
+    def rotation_active(self) -> bool:
+        """Whether the 3D rotation mode is on, read off the button itself.
+
+        The authoritative answer. Used by the driven check's
+        `rotate_report`, which exists because the mode has TWO controls
+        now -- the button and the Structure menu's tick -- and whether they
+        agree is the thing no screenshot can carry: the menu is closed in
+        every shot.
+        """
+        return self._rotate_button.isChecked()
+
+    def toggle_rotation(self) -> None:
+        """Enter the mode if it is off, leave it if it is on.
+
+        **CLICKS THE REAL BUTTON**, like `begin_rotation` above and for the
+        same reason: the checked state, the bar and the page all follow
+        exactly as they do for a press. A caller that flipped the mode
+        directly would leave the button showing the opposite.
+        """
+        self._rotate_button.click()
+
     def _on_rotate_toggled(self, on: bool) -> None:
+        """Enter or leave the mode, then report where it ACTUALLY ended up.
+
+        **THE BUTTON IS RE-READ RATHER THAN `on` FORWARDED**, and a
+        measurement is why. This method REFUSES in three places by calling
+        `setChecked(False)` on the button that is mid-emission, and Qt runs
+        that nested emission to completion before the outer one reaches its
+        remaining slots. So a listener connected to `toggled` directly sees
+        `[False, True]` -- the refusal first and the request last -- and
+        ends up believing the mode is on. Measured exactly that way: the
+        Structure menu's tick read checked over an unchecked button.
+
+        In a `finally`, so all four exits report. Three of them are
+        refusals, and a refusal is the one a second control most needs to
+        hear about.
+        """
+        try:
+            self._apply_rotation_toggle(on)
+        finally:
+            self.rotation_mode_changed.emit(self._rotate_button.isChecked())
+
+    def _apply_rotation_toggle(self, on: bool) -> None:
         """Enter or leave the mode.
 
         **Entering mutates nothing.** The page snapshots the geometry and

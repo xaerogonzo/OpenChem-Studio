@@ -190,6 +190,14 @@ class AtomInspectorPanel(QWidget):
     #: dialog, which keeps it testable without a window.
     link_activated = Signal(object)
     #: Emitted when the selected atom changes, so viewers can highlight it.
+    #:
+    #: **IT FIRES RE-ENTRANTLY FROM `select_atom`**, because that selects
+    #: the table row and Qt delivers `itemSelectionChanged` synchronously.
+    #: So the 2D editor reporting a click comes straight back out of here
+    #: as though the user had picked it in the panel, and whoever wired
+    #: the two together owes that loop a terminating condition --
+    #: `main_window._on_editor_atom_selected` explains the one measured
+    #: to work and what it cost to find.
     atom_selected = Signal(int)
     #: The atoms a hovered fact is ABOUT, or `()` on the way out.
     #: Always bounds-checked; see `_on_highlight_requested`.

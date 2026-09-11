@@ -80,6 +80,9 @@ COPY_FORMATS = ("Markdown", "Plain text", "JSON", "CSV")
 #: fact again. Never a lambda closing over `self` -- PySide6 holds a
 #: connected plain callable strongly, which rooted a whole window here once.
 _FACT_PROPERTY = "openchem_fact"
+#: The default file name a chart's picture saves under, carried ON the
+#: widget so one connection can serve every chart without a closure.
+_PICTURE_STEM = "openchem_picture_stem"
 _LINK_PROPERTY = "fact_link"
 
 
@@ -480,12 +483,63 @@ class FactView(QWidget):
                 molblock=resolved.molblock,
                 refusal=resolved.refusal,
             )
+            # **THE PICTURE CAN BE TAKEN AWAY, FROM WHEREVER IT IS BEING
+            # READ.** Installed on the widget the reader just built, so the
+            # docked reader, the popped-out one and a copy in its own window
+            # offer it identically by construction rather than by three
+            # implementations agreeing -- which is most of the value of
+            # having one renderer. Before this, exporting a drawing existed
+            # in exactly one dialog and every other picture was read-only.
+            self._install_picture_menu(widget, chart.title or f"chart-{index + 1}")
             # `add_calculator_widget` puts it full-width above the form
             # rows rather than into the label/field grid -- a plot has no
             # caption column, and a form row would give it half the width.
             section.add_calculator_widget(widget)
             self._container_layout.insertWidget(index, section)
             self._chart_sections.append(section)
+
+    def _install_picture_menu(self, widget, stem: str) -> None:
+        """Right-click a chart or a depiction to copy or save it.
+
+        A context menu rather than a button per section: the Atom Inspector
+        renders this widget in a 280 px dock, and a control beside every
+        chart is the width this whole line of work spent three rounds
+        reclaiming. The actions are built when the menu OPENS, so a
+        depiction that refused to draw offers no "Copy as SVG" -- see
+        `picture_export.add_picture_actions`.
+        """
+        from openchem.ui.picture_export import file_stem
+
+        widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        # **A BOUND METHOD, NEVER A CLOSURE CAPTURING `self`.** PySide6
+        # holds a connected plain callable strongly, so a closure's captured
+        # `self` survives refcounting AND the cyclic collector -- recorded
+        # twice in `app/main_window.py`, where it leaked whole windows. Here
+        # it would pin this view from a chart widget it owns, and this
+        # project ties that leak class to the disposal crashes.
+        #
+        # The stem travels on the WIDGET rather than in a capture, which is
+        # the same trick `_add_editor_action` uses to carry a test id on a
+        # QAction.
+        widget.setProperty(_PICTURE_STEM, file_stem(stem))
+        widget.customContextMenuRequested.connect(self._on_picture_menu)
+
+    def _on_picture_menu(self, position) -> None:
+        """Right-clicked a chart -- offer what THAT chart can produce.
+
+        The widget comes from `sender()` rather than from a capture, so one
+        connection serves every chart and nothing holds a reference to this
+        view. `sender()` is the emitting widget because the connection was
+        made on it.
+        """
+        from openchem.ui.picture_export import add_picture_actions
+
+        widget = self.sender()
+        if widget is None:  # pragma: no cover - defensive
+            return
+        menu = QMenu(widget)
+        add_picture_actions(menu, widget, self, str(widget.property(_PICTURE_STEM) or "picture"))
+        menu.exec(widget.mapToGlobal(position))
 
     def set_structure_resolver(self, resolver) -> None:
         """Supply how to resolve a REPORT to coordinates, or None.

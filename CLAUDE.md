@@ -84,6 +84,12 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "overlay",    "on": true, "gallery": true, "step": 1}
     {"do": "cip",        "on": true}          R/S and E/Z, through the menu
     {"do": "erase",      "element": "N"}      a REAL canvas edit
+    {"do": "menu",       "text": "Rotate 3D"}  THIS app's menu bar
+    {"do": "picture",    "index": 0, "path": "..."}  the reader's
+                                          chart, through the REAL export
+    {"do": "rotate_report", "tag": "entered"}  the tick AND the button
+    {"do": "select_atom", "atom": 4}       the inspector ROW, and
+    {"do": "selection_report"}             BOTH id spaces off the page
     {"do": "report",     "tag": "after"}      conformers, undo depth, SMILES
     {"do": "jobs_report", "tag": "running"}   rows AND whether it is POLLING
     {"do": "jobs_cancel", "row": 0}           the real button in a real row
@@ -104,6 +110,22 @@ that is load-bearing rather than stylistic: `_on_cancel_clicked` reads
 which job it means off `sender()`, so calling it directly passes
 `sender() is None` and proves nothing about the wiring, which is the thing
 that changed.
+
+**`select_atom` AND `selection_report` READ BOTH ID SPACES AT ONCE**, which
+is why they exist beside a `shot` rather than instead of one. A selection is
+a few highlighted pixels, and the failure they guard against is a
+plausible-looking one: Ketcher's pool ids and the molfile's positions
+diverge as soon as anything is deleted, so the two agree on a freshly
+loaded structure and disagree on an edited one. `selection_report` prints
+the pool order beside what is selected -- measured on `CCNCCO` with the
+nitrogen erased, `poolOrder [0,1,3,4,5]` against positions `0..4`, and
+asking for the oxygen at position 4 correctly reaches pool id 5 where
+reading the position as an id would have selected a carbon.
+
+`select_atom` drives the inspector's TABLE ROW, not the `select_atom()`
+method behind it, for the reason `jobs_cancel` presses the real button: the
+panel's own method is the INBOUND door the 3D viewer's click lands on, and
+the path under test starts one step later.
 
 **`erase` is the only step that drives the route `set_molecule` never
 covers** -- the user drawing on the canvas -- so it is what any
@@ -287,6 +309,10 @@ are verbatim, so grep the file for the line.
 - A CONTRACT FOLLOWS THE VALUE, NOT THE WIDGET
 - A MERGE HAS EXACTLY ONE POSSIBLE TARGET, AND THE DATA MODEL SAYS WHICH
 - A REFERENCE OVER 68 CALCULATORS IS 68 PLACES TO FORGET
+- THE POOL-ID TRAP IN REVERSE, AND THE LOOP IT CLOSES
+- THE REASON EXISTED, IN A BATCH CELL, AND THE READER NEVER READ IT
+- A MODE WITH ONE WAY IN, AND TWO WRONG WAYS TO GIVE IT A SECOND
+- A PICTURE THAT COULD BE READ AND NOT TAKEN AWAY
 - Running the tests
 - RESONANCE: four things measured before the Lewis diagram was built
 - The naming benchmark
