@@ -1550,6 +1550,14 @@ def compute_solubility(
         analysis, mol, admet_interpreter_path,
         compare=bool(parameters.get("compare_models", True)),
     )
+    # **THE CURVE'S OWN FACT, NOW THAT THIS CALCULATOR DRAWS THE CURVE.**
+    # `solubility_curve` was a second registration reporting the same nine
+    # facts and the same points -- measured, identical -- and this was the
+    # one thing it said that this did not. Empty outside water and empty
+    # when nothing reached the cap, so a molecule that never saturates
+    # gains no row.
+    if analysis.baseline_logs is not None and analysis.solvent.is_water:
+        facts += limit_facts(analysis, solubility_profile(analysis, parameters)[0])
 
     # **A FACT-LEVEL LIMITATION IS A TOOLTIP, AND A TOOLTIP IS NOT TELLING
     # ANYBODY.** `FactView._add_row` puts `fact.limitations` into the row's
@@ -1663,6 +1671,46 @@ def solubility_profile(
     return grid, {label: [in_unit(v, unit, analysis.molecular_weight) for v in values]}
 
 
+def limit_facts(analysis, grid) -> list:
+    """Whether the pH adjustment hit its cap, and at how many points.
+
+    **IT IS A FACT ABOUT THE GRID, WHICH IS WHY IT LIVES BESIDE THE
+    CHART.** "reached at 12 of 57 sampled pH values" is only meaningful
+    against the range that was sampled, so it belongs with whatever drew
+    the curve rather than with the intrinsic scalar.
+
+    Shared rather than duplicated: `Solubility` and the curve it now draws
+    itself both report it, and two copies of this block would be two
+    chances for the wording and the cap to drift -- which is the merge's
+    whole point.
+    """
+    if not grid:
+        return []
+    limit = analysis.limit
+    limited = [
+        v
+        for v in (
+            ph_adjustment(p, analysis.pkas, analysis.is_acid, limit.log_units) for p in grid
+        )
+        if v.limited
+    ]
+    if not limited:
+        return []
+    return [
+        _fact(
+            f"Adjustment limit ({limit.kind.value})",
+            limit.log_units,
+            f"+{limit.log_units:.1f} logS, reached at {len(limited)} of {len(grid)} sampled pH values",
+            units="logS",
+            limitations=(
+                _SALT_LIMIT_NOTES[limit.kind].format(
+                    limit=limit.log_units, ceiling=MISCIBILITY_CEILING_MG_PER_ML
+                ),
+            ),
+        )
+    ]
+
+
 def solubility_chart(analysis, parameters: dict | None = None):
     """The solubility profile as a declared chart, or None.
 
@@ -1690,7 +1738,17 @@ def solubility_chart(analysis, parameters: dict | None = None):
         x_label="pH",
         y_label=next(iter(series)),
         x_descending=False,
-        title="Solubility vs pH",
+        # **THE NEUTRAL CASE IS SAID, NOT LEFT TO THE FLAT LINE.** A
+        # molecule with no ionizable centre genuinely does not vary with
+        # pH, and a flat line alone reads as a broken calculation. The
+        # retired `solubility_curve` carried this in its result NAME; the
+        # chart title is where it lives now, because a report's name is the
+        # calculator's and cannot vary per molecule.
+        title=(
+            "Solubility vs pH - no ionizable centre, so it does not vary"
+            if analysis.ionization is IonizationClass.NEUTRAL
+            else "Solubility vs pH"
+        ),
         caption=(
             "Calculated from the intrinsic value and the pKa set, bounded by the "
             "salt limit the facts describe. The report's limitations carry the model "
@@ -1699,100 +1757,19 @@ def solubility_chart(analysis, parameters: dict | None = None):
     )
 
 
-def compute_solubility_curve(
-    mol: Chem.Mol,
-    molecule_uuid: str,
-    parameters: dict | None = None,
-    interpreter_path: str | None = None,
-    admet_interpreter_path: str | None = None,
-) -> PhCurveResult:
-    """Solubility against pH, with the scalar findings carried alongside.
+# `compute_solubility_curve` was here, and was retired into
+# `compute_solubility` in stage 3.
+#
+# **THE TWO REPORTED THE SAME THING.** Measured on aspirin: nine of ten
+# facts identical, the curve points identical, and the scalar already
+# honoured `ph_min`/`ph_max`/`ph_step` -- passing them moved its chart to
+# exactly what this returned for the same range. The one fact it added is
+# `limit_facts`, which both called by the end.
+#
+# Deleted rather than kept, because nothing in the application reached it
+# once the registration went: a function only its own tests can call is the
+# "shipped is not reachable" shape this repository has recorded four times.
+# `solubility_profile` and `solubility_chart` are the curve engine and are
+# reached from `compute_solubility`.
 
-    **A NEUTRAL MOLECULE GETS A FLAT LINE, NOT A FAILURE.** Caffeine's
-    solubility genuinely does not vary with pH, and that is an answer.
-    `compute_logd_curve` declines the same molecule because a flat logD
-    line tells you nothing you did not already know from logP -- the
-    difference is real, which is why the pKa resolver hands back a status
-    and lets each caller decide instead of deciding for both.
-    """
-    parameters = parameters or {}
-    analysis = analyse_solubility(mol, parameters, interpreter_path, admet_interpreter_path)
-    provenance = _provenance(analysis, parameters)
-    if analysis.refusal or analysis.baseline_logs is None:
-        return PhCurveResult(
-            curve_id="solubility_curve",
-            name="Solubility vs pH",
-            method=analysis.estimate.label,
-            molecule_uuid=molecule_uuid,
-            cache_state=CacheState.FAILED,
-            error=analysis.refusal or "No solubility model could be applied.",
-            provenance=provenance,
-        )
 
-    if not analysis.solvent.is_water:
-        return PhCurveResult(
-            curve_id="solubility_curve",
-            name="Solubility vs pH",
-            method=analysis.estimate.label,
-            molecule_uuid=molecule_uuid,
-            cache_state=CacheState.FAILED,
-            error=(
-                f"pH is an aqueous concept, so there is no solubility-versus-pH curve in "
-                f"{analysis.solvent.label}. The Solubility calculator reports an intrinsic "
-                f"value there instead."
-            ),
-            provenance=provenance,
-        )
-
-    unit = str(parameters.get("unit", LOG_S))
-    if unit not in DISPLAY_UNITS:
-        unit = LOG_S
-    ph = float(parameters.get("pH", DEFAULT_PH))
-    limit = analysis.limit
-    grid, series = solubility_profile(analysis, parameters)
-
-    facts = _baseline_facts(analysis, unit)
-    facts += _gutmann_facts(analysis.solvent.key)
-    facts += _ph_facts(analysis, unit, ph)
-    facts += _model_facts(
-        analysis, mol, admet_interpreter_path,
-        compare=bool(parameters.get("compare_models", True)),
-    )
-
-    limited = [
-        v
-        for v in (
-            ph_adjustment(p, analysis.pkas, analysis.is_acid, limit.log_units) for p in grid
-        )
-        if v.limited
-    ]
-    if limited:
-        facts.append(
-            _fact(
-                f"Adjustment limit ({limit.kind.value})",
-                limit.log_units,
-                f"+{limit.log_units:.1f} logS, reached at {len(limited)} of {len(grid)} sampled pH values",
-                units="logS",
-                limitations=(
-                    _SALT_LIMIT_NOTES[limit.kind].format(
-                        limit=limit.log_units, ceiling=MISCIBILITY_CEILING_MG_PER_ML
-                    ),
-                ),
-            )
-        )
-
-    name = f"Solubility vs pH ({analysis.estimate.label})"
-    if analysis.ionization is IonizationClass.NEUTRAL:
-        name = "Solubility vs pH - no ionizable centre, so it does not vary"
-
-    return PhCurveResult(
-        curve_id="solubility_curve",
-        name=name,
-        method=analysis.estimate.label,
-        molecule_uuid=molecule_uuid,
-        ph_values=grid,
-        series=series,
-        y_label=unit_symbol(unit),
-        facts=tuple(facts),
-        provenance=provenance,
-    )

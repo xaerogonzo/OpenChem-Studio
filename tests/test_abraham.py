@@ -22,7 +22,7 @@ from openchem.chem.abraham import (
     solvent_names,
     solvent_shift,
 )
-from openchem.chem.solubility import SOLVENTS, compute_solubility, compute_solubility_curve
+from openchem.chem.solubility import SOLVENTS, compute_solubility
 
 _DATA = Path(__file__).resolve().parents[1] / "src" / "openchem" / "chem" / "data"
 
@@ -378,9 +378,16 @@ def test_varies_with_ph_answers_for_the_solvent_and_not_only_the_molecule():
 
 
 def test_the_ph_curve_refuses_outright_outside_water():
-    curve = compute_solubility_curve(mol(ASPIRIN), "u", {"solvent": "ethanol"})
-    assert curve.error
-    assert "pH is an aqueous concept" in curve.error
+    # **NO CHART RATHER THAN A FAILED CALCULATOR.** The retired
+    # `solubility_curve` refused outright in a non-aqueous solvent, which
+    # was right for a calculator whose only output was the curve. The
+    # merged `Solubility` still has an intrinsic value to report in
+    # ethanol, so it reports it and simply draws nothing -- pH is an
+    # aqueous concept, and a report that says so in words must not also
+    # draw a picture contradicting it.
+    report = compute_solubility(mol(ASPIRIN), "u", {"solvent": "ethanol"})
+    assert not report.charts
+    assert report.facts
 
 
 def test_the_bcs_screen_does_not_follow_the_solute_out_of_water():

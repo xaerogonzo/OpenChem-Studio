@@ -18515,3 +18515,157 @@ between a `#:` block and the constant that block was written for, leaving
 the original undocumented. I put `DESCRIPTOR_HELP_PREFIX` immediately above
 `DESCRIPTOR_AGGREGATE_ID` and it took its doc comment -- the same defect,
 in the same shape, caught within the hour by the guard written for it.
+
+## A MERGE HAS EXACTLY ONE POSSIBLE TARGET, AND THE DATA MODEL SAYS WHICH
+
+Stage 3 opened with the taxonomy review the plan asks for, and the review
+changed what the stage does. Two things came out of measuring before
+merging: the plan's clearest candidate is clearer than it claimed, and
+three of the eight candidates were blocked by something nobody had named.
+
+### WHAT A RESULT KIND CAN CARRY DECIDES THE MERGE DIRECTION
+
+    AlertResult      facts NO    charts NO    limitations NO
+    PhCurveResult    facts YES   charts NO    limitations NO
+    ReportResult     facts YES   charts YES   limitations YES
+
+That table is the whole stage. The merge pattern for a scalar and its
+curve is to fold the curve in as a DECLARED CHART, so the target must be
+able to hold a chart -- which means:
+
+* a curve can never fold into an `AlertResult`, and `logd`, `pka` and
+  `polar_surface_area` all returned one. **That is why the migration was
+  the prerequisite rather than tidying.**
+* the report must be the target and never the curve, because
+  `PhCurveResult` cannot carry limitations. Measured on the pair actually
+  merged: the curve could not carry the scalar's caveats at all.
+
+### THE CLEAREST CANDIDATE, AND THE COMMENT IT CONTRADICTS
+
+The plan said `solubility_curve` was "redundant rather than adjacent",
+citing a line number. Measured on aspirin with the pKa supplied, so
+neither refuses:
+
+    solubility        10 facts   chart, 57 points, pH 0-14
+    solubility_curve  10 facts   57 points, pH 0-14
+
+**Nine of the ten facts are identical and the curve points are
+identical.** Sharper still: passing `ph_min`/`ph_max`/`ph_step` to the
+SCALAR moves its chart too -- 5 points over pH 6-8, matching the curve
+calculator exactly for the same range. The second registration's only real
+contribution was a dialog that showed those parameters.
+
+**AND THE CODE'S OWN COMMENT SAID THE OPPOSITE**, sitting on the line that
+builds the chart: "The `solubility_curve` calculator is a DIFFERENT
+registration with its own dialog, so this duplicates nothing." It
+duplicated nine tenths of it. A comment asserting non-duplication is
+exactly the kind that stops anybody measuring.
+
+After folding in the one fact the curve reported alone, the survivor is a
+strict superset: 11 facts against 10, nothing unique to the curve.
+
+### THE MERGE BROKE THE EXPORT, AND A TEST I WAS CONVERTING FOUND IT
+
+`PhCurveResult` serialised its points as a pasteable table.
+`ReportResult` serialised its declared charts **not at all**. So the
+merged result exported the facts and silently dropped 57 rows -- gate 7,
+"saved results stay readable", failing inside the merge that was supposed
+to satisfy it.
+
+Found while converting the curve's clipboard test, which had asserted both
+halves -- the facts a reader quotes AND the table a reader pastes -- for
+exactly this reason.
+
+The fix is general, not solubility's: `report_format.chart_rows` walks a
+declared chart BY ITS OWN SHAPE -- a line chart's named series of pairs, a
+stick chart's sticks -- and every format carries it. Verified on a mass
+spectrum, whose stick chart was equally unexportable and now pastes its
+m/z table. A depiction returns nothing, correctly: it is a picture of a
+structure and has no table.
+
+**NEVER BY DUCK-TYPING A `.points`.** Probing for an attribute name is the
+failure this repository already paid for across nine calculators, which
+rendered as the bare word "Ready" because the probe asked for `structures`
+and `points` and the classes call them `entries` and `ph_values`.
+
+### THE MIGRATION IS FIVE MINUS TWO, AND THE TWO RECORD WHY
+
+`AlertResult` was the only result shape that took a list of strings, so 20
+of 25 `alert_id`s borrowed it as a line carrier. Five non-catalogues still
+did. Three migrated with a one-name change, because `report_fields`
+translates the keywords; two did not, and each says why in the source:
+
+**`admet_ml`** -- a mechanical migration measurably HALF works. Its
+endpoint lines are `name: value` and become proper facts ("hERG blockade"
+valued "0.93", an improvement); its `[Toxicity and safety]` group headings
+have no colon, so they become four facts all labelled with the
+calculator's own name. `ReportResult.matched` also does not round-trip the
+two-space indent the headings group with. Migrating it properly means
+giving the endpoints a `FactCategory` instead of a bracket heading, which
+changes what ADMET REPORTS rather than how it is carried.
+
+**`functional_groups`** -- published through the ALWAYS-ON channel, and
+that channel is typed. `descriptor_service` sends every `compute_alerts`
+result out as an `AlertComputed`, and both `_on_alert_computed` and
+`batch_service._run_alerts` read `alert_id`, which a `ReportResult` has
+not got. Measured by migrating it and watching twelve tests go red --
+including ones for catalogues I had not touched, because they index the
+batch by `alert_id`.
+
+Migrating it means changing the channel, which is a bigger decision than
+changing a call, and it is in none of stage 3's merge candidates.
+
+### RETIRED IS NOT DELETED, AND THE FUNCTION IS
+
+The id is simply not registered. A stored `solubility_curve` result stays
+readable because the reader reads what it was handed rather than asking
+the registry, and an old cache key MISSES and recomputes under the new
+identity rather than being aliased to it -- the recorded policy, unchanged.
+
+The FUNCTION went, though, and that is a different question. Once the
+registration was gone nothing in the application reached
+`compute_solubility_curve`; only its own seven tests did, which is the
+"shipped is not reachable" shape this repository has recorded four times.
+The curve engine -- `solubility_profile` and `solubility_chart` -- is
+reached from `compute_solubility` and stays.
+
+### ONE THING THE MERGE NEARLY LOST, AND WHERE IT WENT
+
+The retired calculator varied its RESULT NAME per molecule: "Solubility vs
+pH - no ionizable centre, so it does not vary". A report's name is the
+calculator's and cannot do that. Caffeine's solubility genuinely does not
+vary with pH, and a flat line with no explanation reads as a broken
+calculation.
+
+It lives in the CHART TITLE now, which is the thing that is actually
+per-molecule. Measured: caffeine's chart carries the sentence and spans
+exactly 0.000; aspirin's carries the plain title and spans 2.833.
+
+### EIGHT ARMS, EIGHT CAUGHT
+
+    H1  the scalar drops the adjustment-limit fact   2 tests
+    H2  a line chart exports no table                2
+    H3  a stick chart exports no table               1
+    H4  a depiction is given an invented table       1
+    H5  the pH range is not declared                 1
+    H6  the neutral case is not said                 1
+    H7  polar_surface_area returns an alert again    2
+    H8  an empty chart emits a bare header           1
+
+H4 and H8 are the negatives, and both matter more than they look: a table
+invented for a picture, and a header row with nothing under it, are each
+worse than no export at all because each reads as data.
+
+### AND ONE TEST WAS RETIRED BECAUSE IT CANNOT FAIL ANY MORE
+
+`test_the_chart_and_the_curve_calculator_draw_THE_SAME_numbers` held two
+surfaces to one profile builder, because a fact and a picture disagreeing
+is worse than either being wrong alone -- this module records paying for
+exactly that, when the facts said "limited at +3.0 logS" while the chart
+climbed to 1.8e8 mg/mL.
+
+There is one drawer now, so the two surfaces it compared are the same
+surface. A test that passes by construction is not coverage, and the
+fact-versus-picture agreement it really guarded is asserted by
+`test_the_drawn_curve_honours_the_same_bound_its_facts_describe`, which
+compares the drawn maximum against the limit the facts state.

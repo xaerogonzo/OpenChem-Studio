@@ -44,7 +44,6 @@ from openchem.chem.solubility import (
     bcs_high_solubility_screen,
     classify_ionization,
     compute_solubility,
-    compute_solubility_curve,
     dose_number,
     esol_logs,
     evaluate_solubility_window,
@@ -596,11 +595,16 @@ def test_a_neutral_molecule_gets_a_flat_curve_rather_than_a_failure():
     is exactly why pKa resolution hands back a status instead of deciding
     for both callers.
     """
-    curve = compute_solubility_curve(mol(CAFFEINE), "u", {})
-    assert not curve.error
-    values = next(iter(curve.series.values()))
+    report = compute_solubility(mol(CAFFEINE), "u", {})
+    assert not report.error
+    chart = report.charts[0]
+    values = [y for _x, y in chart.series[0].points]
     assert max(values) - min(values) == 0.0
-    assert "does not vary" in curve.name
+    # **THE CHART'S TITLE, BECAUSE A REPORT'S NAME IS THE CALCULATOR'S.**
+    # The retired `solubility_curve` varied its result NAME per molecule;
+    # one calculator cannot, so the sentence moved to the thing that is
+    # actually per-molecule.
+    assert "does not vary" in chart.title
 
 
 def test_an_ampholyte_is_refused_with_the_reason_named():
@@ -704,11 +708,20 @@ def test_no_model_disagreement_is_reported_when_only_one_model_ran():
 # --- the curve result --------------------------------------------------
 
 
-def test_the_curve_carries_its_scalar_findings_as_facts():
-    curve = compute_solubility_curve(mol(ASPIRIN), "u", {"pka_values": "3.49"})
-    labels = {f.label for f in curve.facts}
+def test_one_result_carries_the_scalar_findings_AND_the_curve():
+    """**THE MERGE'S OWN CLAIM.** `solubility_curve` was a second
+    registration reporting the same nine facts and the same curve points --
+    measured identical on aspirin -- so the two were folded into one. What
+    must survive is both halves: the numbers a reader quotes and the shape
+    they look at.
+    """
+    report = compute_solubility(mol(ASPIRIN), "u", {"pka_values": "3.49"})
+    labels = {f.label for f in report.facts}
     assert "Solubility category" in labels
     assert any(label.startswith("Predicted intrinsic solubility") for label in labels)
+    # The one fact only the curve used to report.
+    assert any(label.startswith("Adjustment limit") for label in labels), sorted(labels)
+    assert report.charts and report.charts[0].series[0].points
 
 
 def test_a_ph_curve_that_could_not_run_declares_no_facts():
@@ -748,9 +761,14 @@ def test_copying_a_curve_exports_its_facts_as_well_as_its_table():
     would silently export less than the screen shows."""
     from openchem.ui.result_clipboard import result_to_text
 
-    curve = compute_solubility_curve(mol(ASPIRIN), "u", {"pka_values": "3.49"})
-    text = result_to_text(curve)
+    report = compute_solubility(mol(ASPIRIN), "u", {"pka_values": "3.49"})
+    text = result_to_text(report)
     assert "Solubility category" in text
+    # **THE MERGE BROKE THIS AND THE TEST FOUND IT.** `PhCurveResult`
+    # serialised its points as a pasteable table; `ReportResult` serialised
+    # its declared charts not at all, so folding the curve in exported the
+    # facts and silently dropped 57 rows. `report_format.chart_rows` is the
+    # fix, and it is general -- a mass spectrum was equally unexportable.
     assert "pH\t" in text
 
 
@@ -760,11 +778,7 @@ def test_every_reported_string_survives_a_windows_console():
     from openchem.ui.result_clipboard import result_to_text
 
     for target, params in ((ASPIRIN, {"pka_values": "3.49"}), (PROPRANOLOL, {"pka_values": "9.42"})):
-        for result in (
-            compute_solubility(mol(target), "u", params),
-            compute_solubility_curve(mol(target), "u", params),
-        ):
-            result_to_text(result).encode("cp1252")
+        result_to_text(compute_solubility(mol(target), "u", params)).encode("cp1252")
 
 
 # --- ESOL, and that it is now shared -----------------------------------
@@ -927,18 +941,18 @@ def test_the_drawn_curve_honours_the_same_bound_its_facts_describe():
     while the plotted curve climbed to 1.8e8 mg/mL. Every test passed; the
     y-axis showed it instantly.
     """
-    curve = compute_solubility_curve(
+    report = compute_solubility(
         mol(PROPRANOLOL), "u",
         {"pka_values": str(PROPRANOLOL_PKA), "unit": MG_PER_ML, "compare_models": False},
     )
-    stated = next(f for f in curve.facts if f.label.startswith("Adjustment limit"))
+    stated = next(f for f in report.facts if f.label.startswith("Adjustment limit"))
     assert "reached at" in stated.display_value
 
     baseline = esol_logs(mol(PROPRANOLOL))
     mw = Descriptors.MolWt(mol(PROPRANOLOL))
     ceiling = logs_to_mg_per_ml(baseline + float(stated.value), mw)
 
-    drawn = next(iter(curve.series.values()))
+    drawn = [y for _x, y in report.charts[0].series[0].points]
     assert max(drawn) == pytest.approx(ceiling, rel=1e-9)
 
 
@@ -1023,21 +1037,19 @@ def test_the_report_declares_its_ph_curve_as_a_chart():
     assert len(chart.series) == 1
 
 
-def test_the_chart_and_the_curve_calculator_draw_THE_SAME_numbers():
-    """One profile builder, so the two surfaces cannot disagree.
-
-    A fact and a picture disagreeing is worse than either being wrong
-    alone -- which this module already records paying for, when the facts
-    said "limited at +3.0 logS" while the chart climbed to 1.8e8 mg/mL
-    because one call site had not been given the resolved limit.
-    """
-    mol = Chem.MolFromSmiles("Cn1cnc2c1c(=O)n(C)c(=O)n2C")
-    chart = compute_solubility(mol, "m1", {}).charts[0]
-    curve = compute_solubility_curve(mol, "m1", {})
-
-    drawn = chart.series[0].points
-    expected = tuple(zip(curve.ph_values, next(iter(curve.series.values()))))
-    assert drawn == expected
+# `test_the_chart_and_the_curve_calculator_draw_THE_SAME_numbers` was here.
+# It held two surfaces to one profile builder, because a fact and a picture
+# disagreeing is worse than either being wrong alone -- this module records
+# paying for exactly that, when the facts said "limited at +3.0 logS" while
+# the chart climbed to 1.8e8 mg/mL.
+#
+# There is one drawer now. The curve calculator was retired into
+# `Solubility`, so the two surfaces it compared are the same surface and
+# the assertion cannot fail -- which is a reason to delete it rather than
+# keep a test that passes by construction. What still needs guarding is the
+# fact-versus-picture agreement itself, and
+# `test_the_drawn_curve_honours_the_same_bound_its_facts_describe` above is
+# where that lives.
 
 
 def test_no_curve_is_drawn_where_pH_does_not_apply():
