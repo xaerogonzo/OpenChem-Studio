@@ -39,6 +39,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   experimental shift describes) came up about one run in three. Reference
   geometries are now the lowest-energy of several, and reproducible.
 
+### Changed
+
+- **"Add to Project" is now "Send to 2D Editor".** Picking a tautomer or
+  stereoisomer out of a generated set and working on it has been possible
+  since that grid was built -- it adds the structure as a new molecule,
+  leaves the one you have alone, and is undoable -- but the label described
+  the mechanism rather than the destination, so nobody looking for a way to
+  edit a tautomer would have found it. Same behaviour, plus it now reveals
+  the editor instead of leaving you on whichever tab you were on.
+
 ### Added
 
 - **Structure > Redraw in 2D**, the way back from **Use in 2D Editor**. That

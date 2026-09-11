@@ -115,3 +115,68 @@ def test_the_layout_contract_no_longer_claims_the_compound_is_unchanged(window):
     text = MENU_HELP["layout"].text
     assert "The compound is unchanged" not in text
     assert "Redraw in 2D" in text, "the contract does not name what to use instead"
+
+
+# --- sending a generated structure to the editor ------------------------------
+#
+# Tautomers, stereoisomers and resonance forms come back as a
+# `StructureSetResult`, and the Calculator Inspector's grid has been able to
+# put a chosen one into the project since it was built -- as "Add to Project".
+#
+# **THE BEHAVIOUR WAS ALREADY RIGHT.** Measured on acetylacetone before any
+# change: molecules 2 -> 3, the original untouched, the editor showing the
+# picked enol, one undo step. What was missing was any way to know that from
+# a label describing the mechanism rather than the destination.
+
+
+def _tautomer_molblock(window):
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    mol = Chem.MolFromSmiles("C=C(O)CC(C)=O")
+    AllChem.Compute2DCoords(mol)
+    return Chem.MolToMolBlock(mol)
+
+
+def test_a_generated_structure_ADDS_a_molecule_rather_than_replacing_one(window):
+    """**A TAUTOMER IS A DIFFERENT COMPOUND**, not a different arrangement of
+    the same one -- which is the whole reason this adds where "Use in 2D
+    Editor" replaces. Replacing would discard the molecule being worked on
+    and everything computed for it."""
+    project = window._session.project
+    before = list(project.molecules)
+    assert before, "no molecule to preserve"
+
+    window._add_generated_structure(_tautomer_molblock(window), "Tautomer 3")
+
+    assert len(project.molecules) == len(before) + 1
+    assert project.molecules[: len(before)] == before, "an existing molecule was disturbed"
+    assert project.molecules[-1].display_name == "Tautomer 3"
+
+
+def test_sending_a_generated_structure_REVEALS_the_editor(window):
+    """A control labelled "Send to 2D Editor" that leaves you on another tab
+    is the navigation-claims-one-thing problem the panel rail exists to
+    avoid. `add_molecule` selects the molecule and loads the canvas; it does
+    not show it.
+
+    Started from the 3D Viewer deliberately -- the editor is the default
+    tab, so a test that does not move first passes without the reveal.
+    """
+    window._center_tabs.setCurrentWidget(window._viewer3d)
+    assert window._center_tabs.currentWidget() is not window._editor
+
+    window._add_generated_structure(_tautomer_molblock(window), "Tautomer 3")
+
+    assert window._center_tabs.currentWidget() is window._editor
+
+
+def test_a_structure_that_cannot_be_read_adds_nothing(window):
+    """Reported, never crashes the dialog that called in -- and never leaves
+    a half-built molecule in the project either."""
+    project = window._session.project
+    before = len(project.molecules)
+
+    window._add_generated_structure("not a molblock", "Broken")
+
+    assert len(project.molecules) == before

@@ -553,7 +553,13 @@ def test_copying_a_molblock_gives_the_molblock_not_smiles(qapp):
     assert Chem.MolFromMolBlock(copied) is not None
 
 
-def test_add_to_project_hands_over_the_picked_structure(qapp):
+def test_send_to_2d_editor_hands_over_the_picked_structure(qapp):
+    """**RENAMED, NOT REBUILT.** Asked for as a feature to build; it was
+    already here as "Add to Project", doing exactly the right thing.
+    Measured on acetylacetone before the rename: molecules 2 -> 3, the
+    original untouched, the editor showing the picked enol, one undo step.
+
+    What was missing was any way to know that from the label."""
     engine = ChemistryEngine()
     added: list[tuple[str, str]] = []
     dialog = CalculatorInspectorDialog(
@@ -565,7 +571,7 @@ def test_add_to_project_hands_over_the_picked_structure(qapp):
     )
 
     dialog._view._on_cell_clicked(1)
-    _button(dialog, "Add to Project").click()
+    _button(dialog, "Send to 2D Editor").click()
 
     assert len(added) == 1
     molblock, label = added[0]
@@ -573,7 +579,7 @@ def test_add_to_project_hands_over_the_picked_structure(qapp):
     assert engine.molblock_to_smiles(molblock) == "C[C@@H](F)Cl"
 
 
-def test_add_to_project_is_hidden_when_no_handler_was_given(qapp):
+def test_send_to_2d_editor_is_hidden_when_no_handler_was_given(qapp):
     """The dialog is constructible without a project (tests, and any
     future caller that has no undo stack) -- it must not offer an action
     it cannot perform."""
@@ -582,7 +588,7 @@ def test_add_to_project_is_hidden_when_no_handler_was_given(qapp):
         engine, _aspirin_molecule(engine), _stereoisomer_result(), None
     )
 
-    assert not _button(dialog, "Add to Project").isVisible()
+    assert not _button(dialog, "Send to 2D Editor").isVisible()
 
 
 # --- what am I looking at ----------------------------------------------------
@@ -668,3 +674,25 @@ def test_a_producer_note_is_shown_ALONGSIDE_a_total(qapp):
     assert any("dominant microspecies" in t for t in texts), (
         "the producer's own sentence is still gated behind having no total"
     )
+
+
+def test_the_button_says_it_does_not_replace_what_you_have(qapp):
+    """The rename is the whole change, so the words are the thing under test.
+
+    A tautomer is a DIFFERENT COMPOUND, not a different arrangement of the
+    same one -- which is why this adds rather than replaces, and why a
+    reader needs to be told before pressing it rather than after.
+    """
+    engine = ChemistryEngine()
+    dialog = CalculatorInspectorDialog(
+        engine,
+        _aspirin_molecule(engine),
+        _stereoisomer_result(),
+        None,
+        on_add_structure=lambda molblock, label: None,
+    )
+
+    tip = _button(dialog, "Send to 2D Editor").toolTip().lower()
+
+    assert "new" in tip, "the label promises the editor; the contract must say a NEW molecule"
+    assert "left exactly as it is" in tip, "it never says the current molecule survives"

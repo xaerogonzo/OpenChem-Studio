@@ -840,6 +840,23 @@ The **Regulatory Screen** now says what it did *not* check. A molecule with no
 matches lists every domain for which no ruleset is loaded, because "no matches"
 without its scope is the silence that reads as reassurance.
 
+### Working on a generated structure — **Send to 2D Editor**
+
+**Stereoisomers**, **Tautomers**, **Resonance Forms** and **Markush
+Enumeration** return a *set* of structures rather than a number. Opening one
+of those results gives a grid of depictions; click a cell to pick it, then
+**Send to 2D Editor**.
+
+**It adds, it does not replace.** A tautomer or an isomer is a different
+compound, not a different arrangement of the one you have — so the new
+structure joins the project under the generator's own label ("Isomer 2",
+"Tautomer 3"), your original stays exactly as it is, and you can compare
+them. Ctrl+Z removes it again.
+
+That is the opposite of **Use in 2D Editor** in the 3D viewer, which
+replaces your drawing's coordinates with a conformer's: same molecule,
+different geometry.
+
 ### Running several calculators at once
 
 Tick the box beside any calculator you want and press **Run selected**. The selection spans categories, so you can tick something from

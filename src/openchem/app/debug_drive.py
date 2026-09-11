@@ -1126,6 +1126,11 @@ class _Driver(QObject):
             result,
             best.molblock if best is not None else None,
             window,
+            # **THE CALLBACK THE REAL PATH PASSES.** Without it the dialog
+            # HIDES its "Add to Project" button, so a driven run would have
+            # photographed a dialog missing a control the application shows
+            # -- and reported the absence as a product fact.
+            on_add_structure=window._add_generated_structure,
         )
         self._inspector.show()
         logger.warning(
@@ -2195,6 +2200,45 @@ class _Driver(QObject):
         """
         self._window._center_tabs.setCurrentWidget(self._window._viewer3d)
         self._window._viewer3d._use_button.click()
+
+    def _do_structure_pick(self, step: dict[str, Any]) -> None:
+        """Pick the Nth structure in a set result and press the REAL button.
+
+        `{"do": "structure_pick", "id": "tautomers", "index": 1}`
+
+        **THE GRID CELL AND THE BUTTON, not the callback behind them.** What
+        is being asked here is whether a reader can get a generated tautomer
+        into the editor at all, and the answer lives in which controls exist
+        and what pressing them leaves on screen -- not in whether a method
+        works when called directly.
+        """
+        from openchem.ui.dialogs.calculator_inspector_dialog import CalculatorInspectorDialog
+
+        dialog = getattr(self, "_inspector", None)
+        if dialog is None:
+            logger.error("OPENCHEM_DRIVE: structure_pick needs an `inspect` step first")
+            return
+        grid = dialog._view
+        index = int(step.get("index", 0))
+        grid._on_cell_clicked(index)
+        buttons = [
+            b.text()
+            for b in dialog.findChildren(type(dialog._add_button))
+            if b.text()
+        ]
+        before = len(self._window._session.project.molecules)
+        dialog._add_button.click()
+        after = len(self._window._session.project.molecules)
+        logger.warning(
+            "OPENCHEM_DRIVE: structure_pick index=%d buttons=%s molecules %d -> %d "
+            "centre_tab=%r selected=%r",
+            index,
+            buttons,
+            before,
+            after,
+            self._window._center_tabs.tabText(self._window._center_tabs.currentIndex()),
+            self._window._session.project.molecules[-1].display_name,
+        )
 
     def _do_editor_action(self, step: dict[str, Any]) -> None:
         """Press one of Ketcher's own toolbar buttons by its `data-testid`.

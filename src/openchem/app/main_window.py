@@ -2280,6 +2280,13 @@ class MainWindow(QMainWindow):
             logger.exception("Could not add generated structure %r to the project", label)
             return
         self.add_molecule(molecule)
+        # **SHOWN, NOT MERELY SELECTED.** `add_molecule` publishes
+        # `MoleculeSelected`, which loads the canvas -- but leaves whoever
+        # pressed the button on whatever tab they were on, which for a
+        # control now labelled "Send to 2D Editor" would be the
+        # navigation-claims-one-thing problem the panel rail exists to
+        # avoid. Same reason `_adopt_conformer` reveals it.
+        self._center_tabs.setCurrentWidget(self._editor)
 
     def _import_molecule(self) -> None:
         if self._session.project is None:
