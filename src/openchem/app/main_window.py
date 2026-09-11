@@ -3367,6 +3367,18 @@ class MainWindow(QMainWindow):
         inspector = menu.addAction("Show in Atom Inspector")
         inspector.triggered.connect(self._reveal_atom_inspector)
         menu.addSeparator()
+        # **THE SAME OBJECT AS THE STRUCTURE MENU'S AND F7's**, so the tick
+        # cannot say one thing here and another there -- the rule the CIP
+        # action already follows, and the reason the label stays "Rotate 3D"
+        # with a tick rather than becoming "Exit Rotate 3D" when it is on.
+        #
+        # A THIRD DOOR, because the first two were a button on one tab and a
+        # key nobody is told about: "we definitely need ... a possible menu
+        # item or a context right click or something ... because how would a
+        # user ever figure that out?". This is a way IN; the ways OUT are on
+        # the overlay itself, which is what covers the canvas once it is on.
+        menu.addAction(self._rotate_action)
+        menu.addSeparator()
         # Kept by decision: replacing the menu must not cost the editor's
         # own dialog, which is the one thing it had that we do not.
         editor_edit = menu.addAction("Edit... (the editor's own)")

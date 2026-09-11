@@ -55,6 +55,19 @@ class EditorBackend(QObject):
     #: as ONE undoable step -- the preview itself is not undoable and does
     #: not touch Ketcher's own history.
     rotation_finished = Signal()
+    #: The PAGE is asking to leave 3D rotation mode; True means
+    #: discard (its Cancel), False means keep (its Done, and Escape).
+    #:
+    #: **ONE SIGNAL WITH A PARAMETER, not one per control**, which is
+    #: the rule `editor_action_requested` above states in as many
+    #: words -- two signals whose only difference is a name is the
+    #: shape this line of work removes.
+    #:
+    #: **IT ASKS; IT DOES NOT ANNOUNCE.** The page cannot un-check the
+    #: host's button, so an overlay that dismissed itself would leave
+    #: every other control claiming a mode nothing is in. The host
+    #: drives the same exit a press of the button drives.
+    rotation_exit_requested = Signal(bool)
 
     def load_molblock(self, molblock: str) -> None:
         """Load a structure (as a V2000/V3000 molblock) into the editor."""

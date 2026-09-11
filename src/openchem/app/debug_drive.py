@@ -48,7 +48,12 @@ The script is a JSON list of steps, run in order:
       {"do": "menu",             "text": "Rotate 3D"},  THIS app's menu
       {"do": "picture",          "index": 0, "path": "..."},  the real
                                                  export, not a screenshot
-      {"do": "rotate_report",    "tag": "entered"},     tick AND button
+      {"do": "rotate_report",    "tag": "entered"},     tick, button
+                                                       AND the page
+      {"do": "key",              "key": "F7"},          a REAL key, at
+      {"do": "key", "key": "Escape", "focus": "canvas"}  the focus widget
+      {"do": "geometry_report",  "tag": "flat"},        z spread AND the
+                                                       conformers
       {"do": "select_atom",      "atom": 4}    the inspector ROW, plus
                                               what the CANVAS selected
       {"do": "selection_report"}               the canvas selection alone
@@ -185,6 +190,7 @@ class _Driver(QObject):
 
     def start(self) -> None:
         logger.warning("OPENCHEM_DRIVE: %d step(s) from %s", len(self._steps), _DRIVE_SCRIPT)
+        self._answer_modal_boxes()
         # THE WINDOW IS THE CONTEXT OBJECT, NOT THE DRIVER, and it is the
         # right one for a reason beyond `_Driver` being a plain class Qt
         # would refuse: every step acts on that window, so a window that
@@ -194,6 +200,45 @@ class _Driver(QObject):
         # `self._window` is safe to reach for here -- `main.py` hangs the
         # driver off the window, so the driver never outlives it.
         QTimer.singleShot(_DEFAULT_AFTER_MS, self._window, self._run_next)
+
+    def _answer_modal_boxes(self) -> None:
+        """Answer every `QMessageBox` in the log instead of on screen.
+
+        **THE RULE THIS FILE ALREADY STATES, ONE STEP FURTHER OUT.** A step
+        that opens a modal must not `exec()` it, because that spins its own
+        event loop and the next step is never scheduled. But the modal that
+        actually stopped a run was not opened by a step at all: pressing
+        Rotate 3D on a flat drawing makes the WINDOW ask "generate a 3D
+        structure for it?", and the run sat on that question with nobody to
+        answer it. Measured -- the script ran 12 of 27 steps and the rest
+        were reported as though they had simply produced nothing.
+
+        So the harness answers them. **The answer is logged**, which is the
+        point: a question the application asked is a fact about the run, and
+        one that silently vanished would be worse than the block. `"modal"`
+        in the script picks the button; the default is No, because No is the
+        answer that changes nothing.
+        """
+        from PySide6.QtWidgets import QMessageBox
+
+        answer = str(os.environ.get("OPENCHEM_DRIVE_MODAL", "no")).lower()
+        button = {
+            "yes": QMessageBox.StandardButton.Yes,
+            "no": QMessageBox.StandardButton.No,
+            "ok": QMessageBox.StandardButton.Ok,
+        }.get(answer, QMessageBox.StandardButton.No)
+
+        def answered(kind):
+            def stub(parent, title, text, *args, **kwargs):
+                logger.warning(
+                    "OPENCHEM_DRIVE: modal %s %r -- %r, answered %s",
+                    kind, title, text, answer,
+                )
+                return button
+            return stub
+
+        for kind in ("question", "warning", "information", "critical"):
+            setattr(QMessageBox, kind, staticmethod(answered(kind)))
 
     def _run_next(self) -> None:
         if self._index >= len(self._steps):
@@ -2023,21 +2068,133 @@ class _Driver(QObject):
         logger.error("OPENCHEM_DRIVE: no menu entry named %r", wanted)
 
     def _do_rotate_report(self, step: dict[str, Any]) -> None:
-        """`{"do": "rotate_report"}` -- the menu tick AND the button, together.
+        """`{"do": "rotate_report"}` -- the tick, the button AND the page.
 
-        The whole of 5c is that these two must agree, and they are two
+        The whole of 5c is that the first two must agree, and they are two
         different widgets in two different places on screen: a shot showing
         the banner says nothing about the tick inside a closed menu.
+
+        **AND BOTH OF THEM AGREEING PROVED NOTHING ABOUT THE THIRD.** The
+        mode shipped with no way out because leaving un-checked the button
+        and the tick and told the PAGE nothing -- so the overlay stayed up,
+        `inset:0`, swallowing every click, while both controls correctly
+        reported "off". That is the state this step could not see and now
+        reads directly: is `.openchem-rotate` still in the document.
         """
         window = self._window
         action = getattr(window, "_rotate_action", None)
+        tag = step.get("tag", "")
+        menu_checked = None if action is None else action.isChecked()
+        button_checked = window._editor.rotation_active()
+
+        def report(overlay_present):
+            logger.warning(
+                "OPENCHEM_DRIVE: rotate %s menu_checked=%s button_checked=%s "
+                "page_overlay=%s agree=%s",
+                tag,
+                menu_checked,
+                button_checked,
+                overlay_present,
+                menu_checked == button_checked == bool(overlay_present),
+            )
+
+        from PySide6.QtWidgets import QApplication
+
         logger.warning(
-            "OPENCHEM_DRIVE: rotate %s menu_checked=%s button_checked=%s agree=%s",
-            step.get("tag", ""),
-            None if action is None else action.isChecked(),
-            window._editor.rotation_active(),
-            None if action is None else action.isChecked() == window._editor.rotation_active(),
+            "OPENCHEM_DRIVE: rotate %s escape_enabled=%s active_window=%s focus=%s",
+            tag,
+            window._editor._rotate_escape.isEnabled(),
+            type(QApplication.activeWindow()).__name__,
+            type(QApplication.focusWidget()).__name__,
         )
+        window._editor._backend._page.runJavaScript(
+            "!!document.querySelector('.openchem-rotate')", report
+        )
+
+    def _do_key(self, step: dict[str, Any]) -> None:
+        """Press a real key at whatever currently has focus.
+
+        `{"do": "key", "key": "F7"}` / `{"do": "key", "key": "Escape"}`
+
+        **`QTest.keyClick`, NOT `sendEvent`.** A shortcut is matched by
+        Qt's shortcut map on the way IN from the platform, so an event
+        posted straight at a widget runs the widget's handler and no
+        shortcut at all -- which would make every one of these pass while
+        the key did nothing in the running app.
+
+        **AND IT AIMS AT THE FOCUS WIDGET**, because that is the whole
+        question here: `QWebEngineView` renders out of process and accepts
+        `ShortcutOverride` for keys the page claims, so "F7 works" and "F7
+        works once you have clicked on the canvas" are different answers
+        and only one of them is any use.
+        """
+        from PySide6.QtTest import QTest
+        from PySide6.QtWidgets import QApplication
+
+        name = str(step.get("key", "Escape"))
+        key = getattr(Qt, f"Key_{name}", None)
+        if key is None:
+            logger.warning("OPENCHEM_DRIVE: key %s -- no such key", name)
+            return
+        where = step.get("focus")
+        if where == "canvas":
+            self._window._center_tabs.setCurrentWidget(self._window._editor)
+            self._window._editor._backend.widget().setFocus()
+        elif where == "explorer":
+            # A REAL widget elsewhere in the window. Leaving focus wherever
+            # it happened to be is not the same test: a run with focus
+            # NOWHERE reports `focusWidget() is None`, which is a state a
+            # person using the application is never in.
+            self._window._project_explorer.setFocus()
+        target = QApplication.focusWidget() or self._window
+        logger.warning(
+            "OPENCHEM_DRIVE: key %s -> %s", name, type(target).__name__
+        )
+        QTest.keyClick(target, key)
+
+    def _do_geometry_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "geometry_report", "tag": "after-layout"}`
+
+        Is the DRAWING flat, and are the generated conformers still there.
+        **Two different stores, and the distinction is the whole point of
+        the back-to-2D work**: redrawing the drawing flat must not throw
+        away the conformers the 3D viewer is showing, and zeroing the z
+        column is only half of "it is 2D again".
+        """
+        molecule = self._window._current_molecule()
+        if molecule is None:
+            logger.warning("OPENCHEM_DRIVE: geometry %s -- no molecule", step.get("tag", ""))
+            return
+        lines = (molecule.molblock or "").splitlines()
+        spread = None
+        if len(lines) >= 5:
+            try:
+                count = int(lines[3][:3])
+                zs = [float(lines[4 + i][20:30]) for i in range(count)]
+                spread = round(max(zs) - min(zs), 4)
+            except (IndexError, ValueError):
+                spread = "unreadable"
+        logger.warning(
+            "OPENCHEM_DRIVE: geometry %s z_spread=%s conformers=%d smiles=%s",
+            step.get("tag", ""),
+            spread,
+            len(molecule.conformers),
+            molecule.canonical_smiles,
+        )
+
+    def _do_adopt(self, step: dict[str, Any]) -> None:
+        """Press the 3D viewer's real "Use in 2D Editor" button.
+
+        `{"do": "adopt"}`
+
+        **THE BUTTON, NOT `_adopt_conformer`.** The handler behind it reads
+        the conformer ON SCREEN and takes one camera snapshot, and both of
+        those are the thing worth driving -- calling the window's method
+        with a molblock chosen here would skip exactly the part that has
+        been wrong before.
+        """
+        self._window._center_tabs.setCurrentWidget(self._window._viewer3d)
+        self._window._viewer3d._use_button.click()
 
     def _do_editor_action(self, step: dict[str, Any]) -> None:
         """Press one of Ketcher's own toolbar buttons by its `data-testid`.

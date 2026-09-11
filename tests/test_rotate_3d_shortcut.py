@@ -183,3 +183,23 @@ def test_the_signal_reports_where_the_mode_ENDED_not_what_was_asked(qapp):
         f"the last thing reported was {reported}, so a mirror would be left "
         f"claiming a mode nothing is in"
     )
+
+
+def test_the_canvas_right_click_offers_the_SAME_action(window):
+    """**A THIRD DOOR, AND THE SAME OBJECT BEHIND IT.**
+
+    "we definitely need ... a possible menu item or a context right click
+    or something ... because how would a user ever figure that out?" -- a
+    button on one tab and an undocumented key were the only ways in.
+
+    The same `QAction` as the Structure menu's, so the tick cannot say one
+    thing in the menu bar and another under the cursor. A second action
+    with the same label is what this asserts against, and it is the exact
+    drift `_cip_action` is shared to avoid.
+    """
+    menu = window.build_atom_context_menu(0)
+
+    assert window._rotate_action in menu.actions(), (
+        f"the right-click menu has no Rotate 3D: "
+        f"{[a.text() for a in menu.actions() if a.text()]}"
+    )
