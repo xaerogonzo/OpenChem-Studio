@@ -995,6 +995,27 @@ def _canvas_size(qapp, backend) -> tuple[int, int]:
         return 0, 0
 
 
+def _webgl_available(qapp, backend) -> bool:
+    """Can this machine make a WebGL context at all?
+
+    **ASKED, SO A SKIP CANNOT SWALLOW A REGRESSION.** The CI runner
+    blocklists WebGL -- `ContextResult::kFatalFailure: WebGL2 blocklisted`
+    in the job log -- so 3Dmol.js never creates a canvas and the size
+    predicate below can never come true there. Skipping on "the canvas has
+    no size" alone would also skip a real defect on a machine that CAN
+    render; skipping on "there is no WebGL here" cannot.
+    """
+    raw = _run_js(qapp, backend, """
+      (function () {
+        try {
+          var c = document.createElement('canvas');
+          return (c.getContext('webgl2') || c.getContext('webgl')) ? 'yes' : 'no';
+        } catch (e) { return 'no'; }
+      })()
+    """)
+    return str(raw or "no") == "yes"
+
+
 def _shown_with_a_sized_canvas(qapp, backend) -> tuple[int, int]:
     """Show the viewer and WAIT FOR ITS CANVAS TO HAVE A SIZE.
 
@@ -1011,6 +1032,16 @@ def _shown_with_a_sized_canvas(qapp, backend) -> tuple[int, int]:
     assert _wait_until(qapp, lambda: backend.widget().isVisible(), timeout_seconds=5)
     _wait_until(qapp, lambda: _canvas_size(qapp, backend) != (0, 0), timeout_seconds=20)
     size = _canvas_size(qapp, backend)
+    if size == (0, 0) and not _webgl_available(qapp, backend):
+        # Not a failure and not a pass. What these tests compare is a
+        # RENDERED canvas against a widget grab of it; with no WebGL there
+        # is no render, and both sides would be blank for a reason that has
+        # nothing to do with the code under test. Local runs still exercise
+        # it -- measured 840x640 at device pixel ratio 2.
+        pytest.skip(
+            "no WebGL on this machine, so 3Dmol.js never creates a canvas "
+            "and there is no rendered view to grab"
+        )
     assert size != (0, 0), (
         "the 3D canvas never got a size, so a grab would be measuring an "
         "unshown viewer rather than the thing under test"
