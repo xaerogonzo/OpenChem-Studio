@@ -186,8 +186,14 @@ def test_a_clean_molecule_still_says_it_ran(qapp):
     now separate it from a calculator nobody ran -- the entry EXISTS, and
     the reader says so above the (absent) facts.
 
-    The reader deliberately does NOT say "Clean": that is a verdict, and
-    only a catalogue is entitled to give one.
+    **AND IT GIVES THE VERDICT, WHICH IT COULD NOT WHEN THIS WAS WRITTEN.**
+    The first version of this said the reader deliberately does not, on the
+    ground that only a catalog is entitled to one. The entitlement was never
+    the problem: `report_from_alert` was DROPPING `severity`, so the reader
+    had no way to know it was holding a catalog at all. Carrying it is what
+    makes the verdict sayable, and a report with nothing to say still gets
+    the neutral sentence -- `tests/test_property_panel_reader.py` asserts
+    both directions.
     """
     from openchem.chem.engine import ChemistryEngine
     from openchem.events.base import EventBus
@@ -218,5 +224,5 @@ def test_a_clean_molecule_still_says_it_ran(qapp):
     assert not reader.merged().report_for("mutagenicity_alerts").facts, (
         "setup: a clean catalogue really does arrive with nothing in it"
     )
-    assert "produced no values" in reader._view._summary.text()
+    assert "Checked, nothing flagged." in reader._view._summary.text()
     dispose(reader)

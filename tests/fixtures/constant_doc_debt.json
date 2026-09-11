@@ -347,7 +347,6 @@
     "src/openchem/ui/panels/property_panel.py::_FAILURE_GLYPH",
     "src/openchem/ui/panels/property_panel.py::_FAILURE_STYLE",
     "src/openchem/ui/panels/property_panel.py::_INFORMATION_STYLE",
-    "src/openchem/ui/panels/property_panel.py::_REPORT_ID_PROPERTY",
     "src/openchem/ui/panels/property_panel.py::_SUCCESS_GLYPH",
     "src/openchem/ui/panels/property_panel.py::_SUCCESS_STYLE",
     "src/openchem/ui/panels/property_panel.py::_WARNING_GLYPH",

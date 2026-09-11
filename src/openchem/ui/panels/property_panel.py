@@ -38,7 +38,7 @@ from openchem.domain.calculator_taxonomy import (
     category_label,
     category_sort_key,
 )
-from openchem.domain.common import CacheState, describe_failure
+from openchem.domain.common import describe_failure
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.descriptor_aggregate import aggregate_descriptors
 from openchem.domain.project import ProjectModel
@@ -55,13 +55,10 @@ from openchem.domain.result_status import (
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
 from openchem.domain.structure_resolution import resolve_structure_for_report
 from openchem.ui import visual_check
-from openchem.ui.result_adapters import adapter_for, summarise
-from openchem.ui.visualization import declared_total, label_decimals
+from openchem.ui.result_adapters import summarise
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.chem.report_adapter import report_from_alert
 from openchem.domain.report import ReportResult
-from openchem.domain.result_kinds import UnknownResultKind
-from openchem.domain.structure_issue import Severity
 from openchem.events.base import EventBus
 from openchem.events.events import (
     AlertComputed,
@@ -88,8 +85,6 @@ from openchem.ui.dialogs.nmr_view_dialog import NmrViewDialog
 from openchem.ui.widgets.substance_card import SubstanceCard, card_data_from_report
 from openchem.ui.widgets.collapsible_section import CollapsibleSection as _CollapsibleSection
 from openchem.ui.widgets.collapsible_section import ExplicitHeightLabel as _ExplicitHeightLabel
-from openchem.ui.widgets.collapsible_section import WrappedLabel as _WrappedLabel
-from openchem.ui.widgets.fact_view import FactView
 
 # Preferred display order -- any category not listed here (e.g. a future
 # plugin-supplied one) is appended alphabetically after these, not dropped.
@@ -275,190 +270,23 @@ def _without_glyphs(text: str) -> str:
     return text
 
 
-def _present_alert(alert) -> tuple[str, str, str]:
-    """How one `AlertResult` should read: (text, stylesheet, tooltip).
-
-    Pulled out of the panel so the decision is testable on its own and so
-    the four states are visible together rather than spread through an
-    if-chain in a Qt slot.
-
-    THE ORDER MATTERS. `cache_state` is checked BEFORE `matched`, because a
-    failure carries no matches -- and an empty `matched` used to fall
-    straight through to a green "Clean". Geometry without a 3D conformer
-    therefore reported success while discarding the message that said what
-    to do about it, which is the worst of both: wrong, and silent.
-    """
-    if alert.cache_state is CacheState.FAILED:
-        # **THE FULL REASON, NOT THE CELL FORM -- A WIDE ROW IS NOT A
-        # CELL.** An alert renders into an `ExplicitHeightLabel` inside
-        # `_add_wide_row`, which spans BOTH form columns, wraps, and
-        # states its own height so the value renders in full. So the
-        # reason is already entirely visible here, and substituting a
-        # summary would DELETE what a reader can see -- the pkasolver
-        # message is 344 characters of install guidance, and it is the
-        # whole point of that row. Only `_on_descriptor_computed`'s
-        # single-line value cell is short of room, and only it takes the
-        # cell form. `describe_failure` is still what supplies the
-        # "Failed" default, so the four branches cannot drift.
-        _cell, reason = describe_failure(alert.error, getattr(alert, "error_summary", None))
-        glyph, style = _failure_appearance(alert)
-        return glyph + reason, style, reason
-    if alert.cache_state in (CacheState.QUEUED, CacheState.RUNNING):
-        return alert.cache_state.value.capitalize() + "...", _INFORMATION_STYLE, ""
-
-    if not alert.matched:
-        # "Clean" is a verdict, and only a catalog is entitled to give one.
-        # An elemental analysis with nothing to say has not cleared the
-        # molecule of anything.
-        if alert.severity is Severity.WARNING:
-            return _SUCCESS_GLYPH + "Clean", _SUCCESS_STYLE, "Checked, nothing flagged."
-        return "Nothing to report.", _INFORMATION_STYLE, ""
-
-    joined = "\n".join(alert.matched)
-    if alert.severity is Severity.ERROR:
-        return _FAILURE_GLYPH + joined, _FAILURE_STYLE, joined
-    if alert.severity is Severity.WARNING:
-        return (
-            f"{_WARNING_GLYPH}{len(alert.matched)} alert(s): {', '.join(alert.matched)}",
-            _WARNING_STYLE,
-            joined,
-        )
-    # INFO: a report. One line per line -- comma-joining them produced the
-    # "8 alert(s): Formula: CHNO, Mass: 43.025, Exact mass: ..." run that
-    # made a composition table look like a toxicity finding.
-    return joined, _INFORMATION_STYLE, joined
-
-
-#: The attribute each result type carries its payload in -> the noun for a
-#: count of it. ORDERED, because a subclass can carry more than one: an
-#: `NMRSpectrumResult` has `values`, `ranges` AND `couplings`, and `values`
-#: is the one its view renders, so the first match is the right one.
+#: Which calculator a button or tick box MEANS, carried on the widget.
 #:
-#: **THE PREVIOUS VERSION PROBED FOR NAMES NO RESULT TYPE HAS EVER HAD.**
-#: It asked for `structures` and `points`; `StructureSetResult` calls it
-#: `entries` and `PhCurveResult` calls it `ph_values`. Both probes missed
-#: on every result, so nine calculators rendered as the bare word "Ready"
-#: -- the calculator ran, the payload was there, and the panel said
-#: nothing about it. Measured on aspirin: 11 of 26 dialog-detail
-#: calculators, `major_microspecies` and `tautomers` among them.
+#: A `QObject` dynamic property rather than a closure over `definition`,
+#: because both handlers read the widget back off `sender()`: sixty buttons
+#: each holding their own lambda is sixty captures of `self`, which is the
+#: leak shape `tests/test_qt_object_disposal.py` exists for. The id is
+#: resolved back through the registry, the single source of truth for what
+#: is registered anyway, so nothing here can name a calculator that is not.
 #:
-#: Same failure as the `inapplicable_calculators` blocklist: a name
-#: written once, against a shape nobody re-checked. `test_summarise.py`
-#: derives this table's correctness FROM the dataclasses, so a renamed
-#: field fails there instead of silently reverting to "Ready".
-#: The noun is SINGULAR and pluralised at the point of use -- "1
-#: structures" is the kind of blemish that makes a panel read as
-#: unfinished, and every one of these counts can legitimately be 1
-#: (a molecule with one tautomer, a single-frame trajectory).
-#:
-#: **THE TABLE ITSELF IS GONE, AND IT WAS THE DEFECT.** It probed four
-#: attribute names in a fixed order with `("values", "atom")` first, so a
-#: vibrational spectrum -- which leaves `values` empty on purpose -- matched
-#: an empty payload and rendered "None found." for a spectrum with real modes
-#: in it. `ResultAdapter.payload` declares it per KIND instead, which is the
-#: same vocabulary `to_text` and `rich_view` are already keyed on.
-
-
-def _counted(count: int, noun: str) -> str:
-    """`3 structures`, `1 structure`. Every noun in `_PAYLOAD_FIELDS`
-    pluralises regularly, so there is nothing to look up."""
-    return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
-
-
-def _summarise(result: object) -> str:
-    """A one-line "what arrived" for a result whose detail lives in a
-    dialog. Enough to show the run happened and produced something, with
-    the shape of it, so "nothing noticeable happens" cannot recur.
-
-    **An EMPTY payload says so rather than falling through to "Ready".**
-    `stereocenters` on a molecule with none is a real answer, and "Ready"
-    is indistinguishable from the panel having failed to render one. The
-    row is captioned with the result's own name, so "None found." reads
-    as "Stereocenters: None found."
-
-    **A DECLARED TOTAL LEADS** -- it is the number the row was opened for.
-    This read "21 atoms, -1.019 to 0.5437" for a LogP contribution: true,
-    and not what anybody wanted to know, with the molecule's own LogP
-    nowhere on the row. It now reads
-    "LogP (Crippen) 3.62 - 21 atoms, -1.02 to 0.54", which is the same
-    number the dialog behind it shows, at the same precision.
-
-    **THE RANGE STAYS, AND THAT DEPENDED ON A FIX THAT LANDED SEPARATELY.**
-    A first version dropped it, because carrying both overflowed a section
-    that was starved -- 145 px against a 192 px minimum, so the row was
-    handed 34 px whatever it asked for. That starvation was a
-    height-for-width flag re-armed by a style change
-    (`ExplicitHeightLabel.changeEvent`), fixed on master while this was in
-    flight. Re-measured on the merge with `{"do": "dump"}`:
-
-        total + count            row 47/47   section 192/192   ok
-        total + count + range    row 63/63   section 208/208   ok
-
-    Both now get what they ask for, so the constraint that removed the
-    range no longer exists and the row carries everything it used to plus
-    the total. A result that declares no total keeps the old wording
-    exactly.
-    """
-    total = declared_total(result)
-    places = label_decimals(result)
-    # **ASKED OF THE KIND, NOT PROBED FOR IN A FIXED ORDER.** This walked a
-    # tuple of candidate attribute names with `("values", "atom")` first, and
-    # a vibrational spectrum leaves `values` EMPTY on purpose -- a normal mode
-    # is not a property of one atom -- so the walk found an empty payload and
-    # this returned "None found." for a spectrum with real modes in it.
-    # Measured on three. The registry declares which field each kind's content
-    # lives in, so the question is asked once rather than guessed per caller.
-    try:
-        attribute, noun = adapter_for(result).payload
-    except UnknownResultKind:
-        # "Ready" is reserved for a shape this does not recognise, which is
-        # now exactly one case: a result kind nothing has registered.
-        return "Ready"
-    payload = getattr(result, attribute, None) if attribute else None
-    if payload is None:
-        return "Ready"
-    if not payload:
-        return "None found."
-    numbers = _numbers_in(payload)
-    if not numbers:
-        return _counted(len(payload), noun)
-    units = getattr(result, "units", "")
-    units_suffix = f" {units}" if units else ""
-    span = f"{min(numbers):.{places}f} to {max(numbers):.{places}f}{units_suffix}"
-    if total is None:
-        return f"{_counted(len(payload), noun)}, {span}"
-    total_units = f" {total['units']}" if total["units"] else ""
-    return (
-        f"{total['label']} {total['value']:.{places}f}{total_units}"
-        f" - {_counted(len(payload), noun)}, {span}"
-    )
-
-
-def _numbers_in(payload) -> list[float]:
-    """The measured values in a payload, or nothing.
-
-    **A MAPPING ONLY, AND THAT IS A DECISION RATHER THAN THE OLD ACCIDENT.**
-    A dict payload is values KEYED by something -- per-atom contributions,
-    per-nucleus shifts -- so its range is the range of the quantity. A LIST
-    payload is not: `ph_values` is the x GRID, `frames` are molblocks and
-    `entries` are structures. Widening this to any payload was tried and
-    produced "57 pH points, 0.00 to 28.00" on a solubility curve, which reads
-    as the property spanning 0 to 28 when it is the pH axis. A number that
-    describes the wrong axis is worse than no number.
-
-    A mapping with no numbers in it gets a count and no range, which is right
-    for a categorical dataset: a span over oxidation-state category ids is a
-    quantity nobody computed.
-    """
-    if not isinstance(payload, dict):
-        return []
-    return [
-        value for value in payload.values()
-        if isinstance(value, (int, float)) and not isinstance(value, bool)
-    ]
-
-
-#: Qt property carrying which calculator a section button opens.
+#: **IT HAD NO DOCUMENTATION UNTIL 2026-09-10, AND THE GUARD SAID IT DID.**
+#: A `#:` block describing a payload table sat directly above it; the table
+#: was removed in `366aad2` and its block was not, so by the convention's
+#: own rule -- the block immediately above -- this constant silently
+#: inherited it. `tests/test_constant_docs.py` is written for the MIRROR of
+#: that (a constant inserted UNDER someone else's block, which leaves the
+#: original bare and is caught), and the deletion direction leaves nothing
+#: to fall into the recorded set.
 _CALCULATOR_ID_PROPERTY = "openchem_calculator_id"
 
 
@@ -576,8 +404,6 @@ _INSTRUMENT = bool(os.environ.get("OPENCHEM_INSTRUMENT_PANEL"))
 #: too early and you measure a transient mid-relayout state, which has
 #: already produced one false "reproduction" of this bug.
 _INSTRUMENT_DELAY_MS = 1500
-
-_REPORT_ID_PROPERTY = "openchem_report_id"
 
 #: An elided calculator button never shrinks below this, so it stays a
 #: button rather than a sliver at any panel width.
@@ -1266,9 +1092,10 @@ class _ElidingLabel(QLabel):
 
     **ELIDING, NOT WRAPPING.** A wrapped caption is height-for-width, and
     one height-for-width widget anywhere in a section puts back the
-    truncation that `ExplicitHeightLabel`, `DontWrapRows` and
-    `_add_wide_row` exist to prevent -- `_add_wide_row`'s own docstring
-    says so. This label never wraps, so it never offers one.
+    truncation `ExplicitHeightLabel` and `DontWrapRows` exist to prevent.
+    This label never wraps, so it never offers one. (The third member of
+    that set was `_add_wide_row`, removed with the result rows in 2c --
+    the rule is unchanged, and the sections it protects are still here.)
 
     **IT CAPS `minimumSizeHint`, AND `Ignored` IS THE WRONG TOOL HERE.**
     The obvious move is `_ElidingPushButton`'s -- `QSizePolicy.Ignored`
@@ -1471,46 +1298,6 @@ def _exported_text(widget: QWidget | None) -> str:
     return _unelided_text(widget)
 
 
-def _add_wide_row(section, name: str, field: QWidget) -> None:
-    """Add a value that can be long, spanning BOTH form columns.
-
-    This replaces the `WrapLongRows` + minimum-width pair that used to
-    give long values the full width. That mechanism worked by making the
-    field's minimum too wide to sit beside its label, so Qt wrapped the
-    row -- which meant the form's height depended on its width, which
-    made the form height-for-width, which is what truncated report rows
-    (see `ExplicitHeightLabel`). Asking for a spanning row outright says
-    the same thing with no width-dependent height in it.
-
-    **It also removes the minimum width, and with it the sideways
-    scroll.** That minimum existed only to TRIGGER the wrap, and a
-    minimum on the value is a minimum on the CONTENT: below about 360 px
-    the panel scrolled horizontally instead of wrapping. Nothing needs
-    to be forced wide now, so nothing can overflow.
-
-    The caption is a plain label with wrapping OFF, deliberately -- a
-    wrapped one would be height-for-width and would put the whole
-    problem back one level down.
-    """
-    holder = QWidget(section.content)
-    box = QVBoxLayout(holder)
-    box.setContentsMargins(0, 0, 0, 0)
-    box.setSpacing(0)
-    # ELIDING, and still with wrapping off. The docstring above is right
-    # that a wrapped caption would be height-for-width and would put the
-    # truncation back; what it did not cover is that a NON-wrapping label
-    # reports its full text width as its minimum, so a long caption made
-    # the content wider than the viewport and every row was clipped at the
-    # right edge instead. `_ElidingLabel` is neither -- no wrap, and
-    # no width demand. See its docstring for the measurement.
-    caption = _ElidingLabel(name, holder)
-    caption.setStyleSheet(_WIDE_ROW_CAPTION_STYLE)
-    box.addWidget(caption)
-    field.setParent(holder)
-    box.addWidget(field)
-    section.content_layout().addRow(holder)
-
-
 class PropertyPanel(QWidget):
     """Categorized, collapsible descriptor view.
 
@@ -1589,13 +1376,6 @@ class PropertyPanel(QWidget):
         # two providers (e.g. a plugin and the built-in one) could otherwise
         # pick the same short name and silently collide.
         self._value_labels: dict[tuple[str, str], QLabel] = {}
-        self._alert_labels: dict[tuple[str, str], QLabel] = {}
-        #: Results whose detail lives in a dialog -- per-atom datasets,
-        #: spectra, structure sets, pH curves. Before these existed a
-        #: batch run computed them, published them, and rendered nothing
-        #: whatsoever, which is exactly what "I can hit run on several
-        #: things and nothing noticeable happens" was describing.
-        self._result_labels: dict[str, QLabel] = {}
         #: The merged results window for the selected molecule, or None.
         #:
         #: A reader that is never closed, if the application built one.
@@ -1656,7 +1436,6 @@ class PropertyPanel(QWidget):
         #: a raw result outliving its summary is the stale-result confusion
         #: this panel already had to fix once.
         self._retained_results: dict[str, object] = {}
-        self._report_labels: dict[str, QLabel] = {}
         self._sections: dict[str, _CollapsibleSection] = {}
         # Which section each row currently lives in -- lets
         # _on_descriptor_computed detect a category change and re-parent the
@@ -1818,11 +1597,8 @@ class PropertyPanel(QWidget):
         self._descriptor_values.clear()
         # A different molecule has been asked nothing yet.
         self._finished_calculator_ids.clear()
-        self._alert_labels.clear()
-        self._result_labels.clear()
         self._reports.clear()
         self._retained_results.clear()
-        self._report_labels.clear()
         self._row_sections.clear()
         for section in self._sections.values():
             section.clear_rows()
@@ -1919,15 +1695,15 @@ class PropertyPanel(QWidget):
             # exactly how it was reported ("Details itself has a loading
             # time").
             #
-            # `_present_alert` has rendered a "Running..." state since
-            # Phase 18 AND IT COULD NEVER APPEAR, because a result row is
-            # created when the first RESULT arrives -- there was nothing
-            # on screen to put it in. Same wording here, deliberately, so
-            # the two paths say one thing.
+            # The alert row rendered a "Running..." state from Phase 18
+            # AND IT COULD NEVER APPEAR, because a result row was created
+            # when the first RESULT arrived -- there was nothing on screen
+            # to put it in. The chip has no such problem: it exists from
+            # the moment the button does. Same wording, deliberately.
             #
-            # ASCII dots, matching `_present_alert`: result text reaches
-            # Windows console streams, where a non-ASCII ellipsis raises
-            # (see regulatory/calculator.py, three times in one session).
+            # ASCII dots: result text reaches Windows console streams,
+            # where a non-ASCII ellipsis raises (see
+            # regulatory/calculator.py, three times in one session).
             # **AND IT SAYS ALL SIX STATES NOW, NOT ONE.** The waiting
             # indicator answered exactly one question -- is it going? -- and
             # was invisible the rest of the time, which is every moment
@@ -2082,6 +1858,32 @@ class PropertyPanel(QWidget):
             section.content_layout().addRow(_ElidingLabel(label, section.content), value_label)
             self._value_labels[row_key] = value_label
             self._row_labels[row_key] = label
+            # Triggered HERE rather than at construction: at startup the
+            # panel is empty and every row it could measure does not exist
+            # yet.
+            #
+            # **IT USED TO HANG OFF A REPORT ROW, WHICH WAS THEN THE CASE
+            # UNDER INVESTIGATION.** There are no report rows now, and this
+            # instrument measures THIS PANEL's row geometry -- so it moved
+            # to the rows that remain rather than being left with nothing to
+            # schedule it, which would have made both the instrument and its
+            # lifetime guard silently vacuous.
+            if _INSTRUMENT:
+                # A BOUND METHOD, not a lambda capturing self. `singleShot`
+                # releases its callable after firing so this one would not
+                # leak permanently, but PySide6 holds a plain callable
+                # STRONGLY and this codebase has already paid for that once
+                # -- see CLAUDE.md and tests/test_qt_object_disposal.py.
+                #
+                # `self` is the CONTEXT OBJECT for the same reason the
+                # reveal shot passes one (see `_reveal_pending_result`), and
+                # this is the WIDEST window of the three: `_dump_panel_metrics`
+                # opens on `panel.width()`, a C++ call that raises once the
+                # panel is gone, and it waits 1500 ms rather than a turn.
+                # Being behind an env var makes it rarely reached, not safe --
+                # the one run where somebody is debugging a layout is exactly
+                # the run that closes panels while shots are in flight.
+                QTimer.singleShot(_INSTRUMENT_DELAY_MS, self, self._dump_metrics)
         elif self._row_sections.get(row_key) is not section:
             # A row's category can legitimately change between events (e.g.
             # a placeholder published before the real category was known) --
@@ -2234,27 +2036,11 @@ class PropertyPanel(QWidget):
         # and a summary is the only thing that reaches the reader.
         self._retained_results[result_id] = result
         self._refresh_reader()
-        section = self._section_for(category or "other")
-        label = self._result_labels.get(result_id)
-        if label is None:
-            label = _ExplicitHeightLabel("", section.content)
-            _make_copyable(label)
-            _add_wide_row(section, name, label)
-            self._result_labels[result_id] = label
-        if getattr(result, "cache_state", None) is CacheState.FAILED:
-            # The full reason: another `_add_wide_row`, see `_present_alert`.
-            _cell, reason = describe_failure(
-                getattr(result, "error", None), getattr(result, "error_summary", None)
-            )
-            glyph, style = _failure_appearance(result)
-            label.setText(glyph + reason)
-            label.setStyleSheet(style)
-            label.setToolTip(reason)
-            return
-        summary = _summarise(result)
-        label.setText(summary)
-        label.setStyleSheet(_INFORMATION_STYLE)
-        label.setToolTip("Open the calculator's button above to see the detail.")
+        # **AND NO ROW.** What followed built a spanning row carrying a
+        # one-line summary and a link to the detail. The reader shows the
+        # whole result, the chip beside the calculator says whether there
+        # is one, and a summary in between was a third rendering of the
+        # same answer -- the one that made this panel 16,299 px tall.
 
     def _category_of(self, calculator_id: str) -> str:
         """Which section a result belongs in.
@@ -2280,23 +2066,18 @@ class PropertyPanel(QWidget):
         self._finish_batch_run(alert.alert_id)
         if alert.molecule_uuid != self._selected_molecule_uuid:
             return
-        # Phase 19: routed via alert.category (PAINS -> medicinal_chemistry,
-        # BRENK -> admet) now that a second alert catalog exists.
-        section = self._section_for(alert.category)
-        row_key = ("core", alert.alert_id)
-
-        value_label = self._alert_labels.get(row_key)
-        if value_label is None:
-            value_label = _ExplicitHeightLabel("", section.content)
-            _make_copyable(value_label)
-            _add_wide_row(section, alert.name, value_label)
-            self._alert_labels[row_key] = value_label
-
-        text, style, tooltip = _present_alert(alert)
-        value_label.setText(text)
-        value_label.setStyleSheet(style)
-        value_label.setToolTip(tooltip)
-        self._reveal(alert.alert_id, section, value_label.parentWidget())
+        # **NO ROW.** An alert used to render its own spanning row here --
+        # "3 alert(s): ..." or a green "Clean" -- which is the value the
+        # reader now shows in full, with the evidence and the limitations
+        # that one line could not carry.
+        #
+        # **AND THE VERDICT ONLY SURVIVED BECAUSE IT WAS CHECKED.** A first
+        # draft of this comment claimed the row's `_present_alert` was still
+        # what the reader's status line is built from. It was not: nothing
+        # called it any more, and `report_from_alert` was DROPPING
+        # `severity`, so the reader could not tell a clean catalog from a
+        # report with nothing to say. Carrying severity is what made this
+        # removal lossless; `results_view._verdict_line` is where it lands.
         # An alert is still a report; it just has to be reconstructed from
         # its strings. Held so "Details..." works for it exactly as it does
         # for a migrated one.
@@ -2333,6 +2114,7 @@ class PropertyPanel(QWidget):
             structure_version=self._current_structure_version(),
         )
         self._refresh_reader()
+        self._focus_requested_result(alert.alert_id)
 
     def _on_molecule_changed(self, event: MoleculeChanged) -> None:
         """Re-perceive when the STRUCTURE changes, not only when the
@@ -2422,151 +2204,13 @@ class PropertyPanel(QWidget):
             self._substance_card.set_data(
                 card_data_from_report(report, name=self._selected_molecule_name())
             )
-        section = self._section_for(report.category)
-
-        label = self._report_row(section, report.report_id, report.name)
-        if report.cache_state is CacheState.FAILED:
-            # The full reason: another `_add_wide_row`, see `_present_alert`.
-            _cell, reason = describe_failure(
-                report.error, getattr(report, "error_summary", None)
-            )
-            glyph, style = _failure_appearance(report)
-            label.setText(glyph + reason)
-            label.setStyleSheet(style)
-            label.setToolTip(reason)
-        elif not report.facts:
-            label.setText("Nothing to report.")
-            label.setStyleSheet(_INFORMATION_STYLE)
-        else:
-            # EVERY fact, never a slice. This read `report.facts[:6]` from
-            # the ReportResult migration (f8a3cdc) until it was measured:
-            # 7 calculators over the cap, 50 of 126 facts never rendered,
-            # `topology_analysis` showing 6 of 27. The only signal was a
-            # tooltip nobody hovers, so a calculator that had computed 27
-            # values looked like one that computed 6.
-            #
-            # The path this replaced -- `_present_alert`, still live for
-            # the four catalogs -- has always joined its lines uncapped,
-            # so this restores parity rather than inventing a policy. A
-            # long report is a tall row in a section that collapses, in a
-            # panel that already scrolls; that is a layout question, and
-            # discarding the values is not an answer to it.
-            # UNITS TOO. A `Fact` holds them separately and this dropped
-            # them, so "Enthalpy of formation: 26.41" left a reader to guess
-            # between kJ/mol and kcal/mol. Same defect the descriptor rows
-            # had -- captioned with a raw id and stripped of units -- one
-            # surface along, and surfaced by the first calculator to report
-            # eleven quantities in eight different units.
-            #
-            # It composed them HERE until `Fact.value_with_units` existed,
-            # and doing so DOUBLED them for the 223 facts that arrive
-            # through `report_adapter` -- which held the units in both
-            # fields, so this exported "C: 60.00 % %". Six consumers each
-            # composing (or forgetting to) is what that property replaced.
-            label.setText("\n".join(
-                f"{f.label}: {f.value_with_units}"
-                for f in report.facts
-            ))
-            label.setStyleSheet(_INFORMATION_STYLE)
-            label.setToolTip(
-                f"{len(report.facts)} facts. "
-                "Details... for evidence, limitations and export."
-            )
-        # Every branch, including the failures -- a run that failed is
-        # exactly the case where being shown the answer matters most, and
-        # the early returns this replaced meant a FAILED report scrolled
-        # nowhere and read as nothing having happened.
-        self._reveal(report.report_id, section, label.parentWidget())
-        # AND INTO THE OPEN WINDOW, if there is one. The window is the
-        # accumulation surface, so a calculator run while it is open has
-        # to land in it -- otherwise "run another one and watch it appear"
-        # is exactly the thing that does not work.
+        # **AND NO ROWS.** One row PER FACT in the calculator's own
+        # section is what followed. The reader renders the report whole
+        # -- with its charts, its pictures, its provenance and its
+        # limitations -- and the chip beside the calculator says it is
+        # there. Three renderings of one answer was two too many.
         self._refresh_reader()
-
-    def _report_row(self, section, report_id: str, name: str):
-        """The label for one report, created once and reused.
-
-        Paired with a "Details..." button that opens the report in a
-        `FactView` -- the same widget the Atom Inspector uses, so search,
-        the depth filter, evidence, limitations and export come along
-        without this panel implementing any of it.
-
-        THIS ROW USED TO TRUNCATE TO ONE LINE, and nothing on the row
-        was ever the cause. Measured in the running app, the field
-        asked for 144 px of height and was given 14 -- but so was the
-        plain `formula` row above it, which dropped from 16 px to 14
-        the moment this row appeared. An unrelated scalar cannot be
-        shortened by a report row; only a
-        container short of space can shorten both.
-
-        The shortfall is at the SECTION: it is given 113 px while asking
-        225, because a vertical `QBoxLayout` holding a height-for-width
-        item substitutes that item's `heightForWidth` for its minimum,
-        and one `WrappedLabel` inside makes every ancestor layout
-        height-for-width carrying.
-
-        EIGHT FIXES HAVE BEEN TRIED, four of them against this row, and
-        all eight failed. Do not design a ninth here -- the numbers on
-        this row are correct.
-
-        THIS ROW TRUNCATED FOR NINE ATTEMPTED FIXES, four of them aimed
-        at this row, whose numbers were correct the whole time.
-        `QBoxLayout.setGeometry` OVERWRITES a height-for-width item's
-        minimum with its `heightForWidth` before distributing space, so
-        no minimum stated anywhere on the chain could win. The fix is to
-        leave the chain with no height-for-width in it at all, which
-        takes all three of `ExplicitHeightLabel`, `DontWrapRows` and
-        `_add_wide_row` -- see `docs/ARCHITECTURE.md`'s Known TODO.
-
-        The value is a `_ExplicitHeightLabel` and NOT a `_WrappedLabel`
-        for that reason, and one `_WrappedLabel` anywhere in this section
-        would put the truncation back.
-        """
-        existing = self._report_labels.get(report_id)
-        if existing is not None:
-            return existing
-        row = QWidget(section.content)
-        row_layout = QVBoxLayout(row)
-        row_layout.setContentsMargins(0, 0, 0, 0)
-        row_layout.setSpacing(2)
-        value = _ExplicitHeightLabel("", row)
-        _make_copyable(value)
-        row_layout.addWidget(value)
-        details = QPushButton("Details...", row)
-        details.setMaximumWidth(80)
-        # The payload rides on the button; a lambda capturing self is held
-        # STRONGLY by PySide6 and would root this panel for the process.
-        details.setProperty(_REPORT_ID_PROPERTY, report_id)
-        details.clicked.connect(self._on_details_clicked)
-        # UNDER the value, not beside it. Beside it, the button took 80 px
-        # plus spacing off a field column that was already the narrow half
-        # of a 280 px dock, leaving the text about 22 px -- a
-        # one-word-per-line ribbon. The row spans the full width now, so
-        # the value gets all of it and the button costs a row of its own
-        # rather than two thirds of the line.
-        row_layout.addWidget(details, 0, Qt.AlignmentFlag.AlignRight)
-        _add_wide_row(section, name, row)
-        self._report_labels[report_id] = value
-        # Triggered HERE rather than at construction: at startup the
-        # panel is empty and every row it could measure does not exist
-        # yet. A report row is exactly the case under investigation.
-        if _INSTRUMENT:
-            # A BOUND METHOD, not a lambda capturing self. `singleShot`
-            # releases its callable after firing so this one would not
-            # leak permanently, but PySide6 holds a plain callable
-            # STRONGLY and this codebase has already paid for that once
-            # -- see CLAUDE.md and tests/test_qt_object_disposal.py.
-            #
-            # `self` is the CONTEXT OBJECT for the same reason the two
-            # reveal shots pass one (see `_reveal_pending_result`), and
-            # this is the WIDEST window of the four: `_dump_panel_metrics`
-            # opens on `panel.width()`, a C++ call that raises once the
-            # panel is gone, and it waits 1500 ms rather than a turn.
-            # Being behind an env var makes it rarely reached, not safe --
-            # the one run where somebody is debugging a layout is exactly
-            # the run that closes panels while shots are in flight.
-            QTimer.singleShot(_INSTRUMENT_DELAY_MS, self, self._dump_metrics)
-        return value
+        self._focus_requested_result(report.report_id)
 
     def _dump_metrics(self) -> None:
         """Log this panel's row geometry. Only reachable with
@@ -2574,10 +2218,14 @@ class PropertyPanel(QWidget):
         _dump_panel_metrics(self)
         _dump_height_budget(self)
         _dump_container_items(self)
-        for report_id, value in self._report_labels.items():
+        # THE DESCRIPTOR ROWS, which are the rows this panel still has. This
+        # walked `_report_labels` while a finished calculator built a row of
+        # its own; that map is gone, and an instrument iterating an always-
+        # empty dict reports a healthy panel by saying nothing at all.
+        for row_key, value in self._value_labels.items():
             container = value.parentWidget()
             if container is not None:
-                logger.warning("--- report row %r ---", report_id)
+                logger.warning("--- descriptor row %r ---", row_key[1])
                 _dump_ancestors(container, self)
         if os.environ.get("OPENCHEM_INSTRUMENT_RELAYOUT"):
             logger.warning("=== ARM 1: relayout, pumped to completion ===")
@@ -2588,37 +2236,6 @@ class PropertyPanel(QWidget):
             _force_section_minimums(self)
             _dump_panel_metrics(self)
             _dump_height_budget(self)
-
-    def _on_details_clicked(self, _checked: bool = False) -> None:
-        """Open the merged results window, focused on this report.
-
-        **THE SAME SURFACE, FOCUSED, NOT A SECOND ONE.** Every
-        "Details..." button in this panel now arrives at one window per
-        molecule holding everything computed for it, opened on the report
-        whose button was pressed. That is what makes `FactView`'s search
-        and depth filter worth having: they were built for a hundred facts
-        and were being handed one calculator's four.
-        """
-        button = self.sender()
-        if button is None:
-            return
-        report_id = button.property(_REPORT_ID_PROPERTY)
-        report = self._reports.get(report_id)
-        if report is None:
-            return
-        # **"Details..." GOES TO THE READER FOR EVERY RESULT NOW, AND IT USED
-        # NOT TO.** A report declaring spatial annotations was diverted here
-        # into `SpatialResultDialog(...).exec()` and RETURNED -- so two of the
-        # sixty results, Geometry and Dipole Moment, never reached the merged
-        # reader at all, and reached a MODAL window instead. That reinstated
-        # for those two exactly what this window's own docstring says it
-        # exists to remove: with a modal dialog you cannot run the second
-        # calculator whose results the reader accumulates.
-        #
-        # The picture is not lost, it moved: the reader lists every declared
-        # visualization with its type and opens this same dialog from there,
-        # so a shape-valued result stops being a different-shaped window.
-        self._show_in_reader(focus=str(report_id))
 
     def open_spatial_view(self, report_id: str, annotation_index: int = 0) -> bool:
         """Draw one declared annotation on this molecule's conformer.
@@ -2850,6 +2467,29 @@ class PropertyPanel(QWidget):
         Reads which calculator off `sender()`, for the reason
         `jobs_cancel` presses the real button: a handler taking the id as
         an argument could not be reached by a click at all.
+
+        **THIS IS WHAT "Details..." BECAME.** Each finished result used to
+        carry its own button in its own row; 2c removes the row, and the
+        chip is the control that takes you to the result -- which is why it
+        is a `QPushButton` and not a label, and why it is in the tooltip
+        inventory.
+
+        **THE SAME SURFACE, FOCUSED, NOT A SECOND ONE.** Every route into
+        the reader arrives at one panel per molecule holding everything
+        computed for it, opened on the result that was asked for. That is
+        what makes `FactView`'s search and depth filter worth having: they
+        were built for a hundred facts and were being handed one
+        calculator's four.
+
+        **AND IT GOES TO THE READER FOR EVERY RESULT, WHICH IT USED NOT
+        TO.** A report declaring spatial annotations was diverted into
+        `SpatialResultDialog(...).exec()` and RETURNED -- so two of the
+        sixty, Geometry and Dipole Moment, never reached the merged reader
+        at all and reached a MODAL window instead, reinstating for those
+        two exactly what the reader exists to remove: with a modal dialog
+        you cannot run the second calculator whose results it accumulates.
+        The picture is not lost, it moved -- the reader lists every declared
+        visualization with its type and opens that same dialog from there.
         """
         chip = self.sender()
         if chip is None:
@@ -3245,41 +2885,44 @@ class PropertyPanel(QWidget):
             CalculationRequest(calculator_id=definition.calculator_id, molecule_uuid=molecule.uuid, parameters=parameters),
         )
 
-    def _reveal(self, calculator_id: str, section, row: QWidget | None) -> None:
-        """Bring an explicitly-requested ROW result onto the screen.
+    def _focus_requested_result(self, result_id: str) -> None:
+        """Point the reader at a result the user explicitly asked for.
 
-        **THIS IS WHY THE ADMET CALCULATOR "PRODUCED NOTHING".** It
-        produced everything: the sidecar ran, the model returned its
-        endpoints and the row was rendered correctly -- about 900 px below
-        the top of a panel whose viewport is 372 px, inside a section that
-        is collapsed by default and sits near the bottom of twenty-odd
-        others. Confirmed by driving the app and scrolling down to find
-        `hERG blockade: 0.82` sitting there.
+        **THIS IS WHAT `_reveal` DID WITH A SCROLLBAR, AND THE REASON IT
+        EXISTED HAS NOT GONE AWAY.** The ADMET complaint was "the
+        calculator produces nothing": it produced everything, into a row
+        about 900 px down a 372 px viewport, inside a section collapsed by
+        default. Four of the six result shapes already answered a button
+        press unmissably by opening their viewer; the two that rendered
+        INLINE -- an alert and a report -- did not, so the louder the
+        result the better it was hidden.
 
-        Four of the six result shapes already answer a button press
-        unmissably: a per-atom dataset, a spectrum, a structure set and a
-        pH curve all open a dialog when they match
-        `_pending_calculator_id`. The two that render INLINE -- an alert
-        and a report -- had no such handling, so the louder the result the
-        better it was hidden. That asymmetry, not the sidecar, is the bug.
+        Those two have no row to scroll to now, and the answer is one
+        surface along: the reader is where the result is, so an explicit
+        request focuses it there. `set_focus` also RECORDS the position, so
+        a reader opened a moment later is already on what was just run --
+        the same rule "Details..." follows.
 
-        Deliberately NOT a dialog. A row-shaped result belongs in its row;
-        popping a window for it would stack windows during a batch run and
-        would answer a different question from the one the user asked.
+        **IT DOES NOT REVEAL THE READER.** Whether Results is on screen is
+        a layout question, and a button press in one panel is not consent
+        to rearrange another -- 2c's rule is that Properties stays useful
+        while Results is hidden, with the status chip carrying completion.
+
+        Matched by EQUALITY against the result's own id, which is the only
+        attribution available: no result type in this application carries a
+        `calculator_id`. The two calculators that publish under a different
+        id than they are registered under therefore do not match, and get
+        no focus rather than somebody else's.
         """
-        if self._pending_calculator_id != calculator_id:
+        if self._pending_calculator_id != result_id:
             return
+        # Consumed either way. Left set it would sit there until some later,
+        # unrelated result happened to share the id -- and a request the user
+        # made two calculations ago is not a request.
         self._pending_calculator_id = None
-        section.set_expanded(True)
-        self._reveal_target = row
-        # Deferred by one turn because the row was created or re-texted a
-        # moment ago and its geometry is not settled: asked now,
-        # `ensureWidgetVisible` scrolls to where the row used to be. A
-        # BOUND METHOD, never a lambda capturing self -- PySide6 holds a
-        # plain callable strongly (see tests/test_qt_object_disposal.py).
-        # `self` is the CONTEXT OBJECT, and it is what ties the pending
-        # shot to this panel's lifetime -- see `_reveal_pending_result`.
-        QTimer.singleShot(0, self, self._reveal_pending_result)
+        if self._attached_reader is None:
+            return
+        self._attached_reader.set_focus(result_id)
 
     def reveal_descriptor(self, descriptor_id: str) -> bool:
         """Scroll a computed property's row into view, and say so if it

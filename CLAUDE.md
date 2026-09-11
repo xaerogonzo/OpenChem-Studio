@@ -282,6 +282,7 @@ are verbatim, so grep the file for the line.
 - RESULTS IS A PANEL NOW, AND ONE PANEL AT A TIME IS WHY THE POP-OUT IS LOAD-BEARING
 - ONE READER, AND "DETAILS..." REACHES IT WHEREVER IT IS
 - THE LAUNCHER HAS TO SAY WHETHER THERE IS ANYTHING TO READ
+- EMPTYING THE LAUNCHER IS HOW YOU FIND OUT WHAT ONLY THE LAUNCHER SAID
 - Running the tests
 - RESONANCE: four things measured before the Lewis diagram was built
 - The naming benchmark

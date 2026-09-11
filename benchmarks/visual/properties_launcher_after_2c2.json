@@ -1,0 +1,139 @@
+[
+  {
+    "do": "smiles",
+    "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+    "name": "Aspirin",
+    "after_ms": 800
+  },
+  {
+    "do": "select",
+    "molecule": -1,
+    "after_ms": 500
+  },
+  {
+    "do": "panel",
+    "id": "Properties",
+    "after_ms": 600
+  },
+
+  {
+    "do": "calculator",
+    "id": "elemental_analysis",
+    "after_ms": 2000
+  },
+  {
+    "do": "calculator",
+    "id": "topology_analysis",
+    "after_ms": 2000
+  },
+  {
+    "do": "calculator",
+    "id": "lewis_sites",
+    "after_ms": 2000
+  },
+  {
+    "do": "calculator",
+    "id": "crippen_logp_contrib",
+    "after_ms": 2000
+  },
+  {
+    "do": "calculator",
+    "id": "regulatory_screen",
+    "after_ms": 4000
+  },
+  {
+    "do": "calculator",
+    "id": "locants",
+    "after_ms": 3000
+  },
+
+  {
+    "do": "dump",
+    "tag": "2c2-AFTER-the-launcher-renders-no-results",
+    "after_ms": 800
+  },
+  {
+    "do": "visual_check",
+    "surface": "properties",
+    "tag": "2c2-AFTER-at-the-default-window",
+    "after_ms": 500
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage2c2_properties_after.png",
+    "after_ms": 500
+  },
+
+  {
+    "do": "expand",
+    "section": "admet",
+    "after_ms": 700
+  },
+  {
+    "do": "dump",
+    "tag": "2c2-AFTER-admet-expanded-the-chip-rows-are-reachable",
+    "after_ms": 600
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage2c2_chips.png",
+    "after_ms": 500
+  },
+
+  {
+    "do": "resize",
+    "width": 900,
+    "after_ms": 900
+  },
+  {
+    "do": "visual_check",
+    "surface": "properties",
+    "tag": "2c2-AFTER-at-900",
+    "after_ms": 500
+  },
+
+  {
+    "do": "resize",
+    "width": 1600,
+    "after_ms": 900
+  },
+  {
+    "do": "visual_check",
+    "surface": "properties",
+    "tag": "2c2-AFTER-at-1600",
+    "after_ms": 500
+  },
+  {
+    "do": "visual_check",
+    "surface": "properties",
+    "tolerance": -1000,
+    "tag": "2c2-AFTER-the-check-can-still-say-no",
+    "after_ms": 500
+  },
+
+  {
+    "do": "panel",
+    "id": "Results",
+    "after_ms": 800
+  },
+  {
+    "do": "results",
+    "tag": "2c2-AFTER-everything-is-readable-here",
+    "after_ms": 600
+  },
+  {
+    "do": "visual_check",
+    "surface": "results",
+    "tag": "2c2-AFTER-the-reader-at-1600",
+    "after_ms": 500
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/stage2c2_reader.png",
+    "after_ms": 500
+  },
+
+  {
+    "do": "quit"
+  }
+]

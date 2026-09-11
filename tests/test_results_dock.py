@@ -337,3 +337,75 @@ def test_a_panel_with_no_reader_attached_is_completely_unmoved(qapp):
     # The reports are still held, and nothing raised on the way.
     assert "a" in panel._reports
     dispose(panel)
+
+
+def test_a_long_reason_in_the_reader_does_not_widen_the_window(window, qapp_module):
+    """**THE LONG-VALUE PROBLEM MOVED HERE, AND FOUR GUARDS DID NOT.**
+
+    The Properties panel had four tests on its spanning row -- it takes the
+    whole width, across the dock's whole range, without pushing short values
+    onto two lines. 2c removes that row, so the reader's summary line is the
+    only surface in the application that renders a long value, and nothing
+    had ever asked this question of it.
+
+    Measured before writing this, on a 1366x768 window with a 275-character
+    refusal focused: window minimum 1024 and results-dock minimum 182,
+    IDENTICAL empty and loaded. It is the `_wrap_scrollable` from 2b that
+    holds it -- the same wrapper added when the bare dock widened the window
+    to 1474 px, 108 px past the smallest display this ships on.
+
+    So this pins a property that already holds rather than reporting a bug,
+    which is the honest reason to write it: four guards went away and this
+    is what replaces them.
+    """
+    from openchem.domain.common import CacheState, Provenance
+    from openchem.domain.scientific_result import AlertResult
+    from openchem.events.events import AlertComputed
+
+    reason = (
+        "No pkasolver environment configured. Set the interpreter path under "
+        "Tools > External Tools. The bundled environment was not found and no "
+        "override is set, so the microspecies distribution cannot be computed "
+        "for this structure. See the documentation for the supported versions."
+    )
+    # **THE WINDOW'S OWN STARTER MOLECULE, NOT A NEW ONE.** `add_molecule`
+    # starts the real descriptor batch, and this file's window is
+    # module-scoped and deliberately never closed -- so the batch outlives
+    # the test and publishes into a deleted bus, which surfaces as
+    # `RuntimeError: Signal source has been deleted` inside whichever
+    # unrelated test is pumping events. Measured: adding one here turned a
+    # clean file into a red one at teardown.
+    molecule_uuid = window._property_panel._selected_molecule_uuid
+    assert molecule_uuid, "setup: the window has no molecule selected"
+    window.resize(1366, 768)
+    QCoreApplication.processEvents()
+
+    before_window = window.minimumSizeHint().width()
+    before_dock = window._results_dock.minimumSizeHint().width()
+
+    window._services.event_bus.publish(
+        AlertComputed(
+            alert=AlertResult(
+                alert_id="pka", name="pKa", molecule_uuid=molecule_uuid, matched=[],
+                category="pka", cache_state=CacheState.FAILED, error=reason,
+                provenance=Provenance(created_by="core", method="pkasolver"),
+            )
+        )
+    )
+    QCoreApplication.processEvents()
+    window._results_view.set_focus("pka")
+    QCoreApplication.processEvents()
+    QCoreApplication.processEvents()
+
+    # THE CONTROL. A reader that never received the reason cannot be widened
+    # by it, and would pass this happily.
+    shown = window._results_view._summary_for(
+        window._results_view.merged().report_for("pka")
+    )
+    assert reason in shown, f"the reason never reached the reader: {shown[:120]!r}"
+
+    assert window.minimumSizeHint().width() == before_window, (
+        f"a {len(reason)}-character reason moved the window's minimum from "
+        f"{before_window} to {window.minimumSizeHint().width()}"
+    )
+    assert window._results_dock.minimumSizeHint().width() == before_dock

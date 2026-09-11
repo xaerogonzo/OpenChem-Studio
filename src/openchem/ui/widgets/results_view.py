@@ -72,6 +72,7 @@ from openchem.domain.reader_state import (
 )
 from openchem.domain.report import FactLink
 from openchem.domain.result_ordering import grouped_reports, matching_reports
+from openchem.domain.structure_issue import Severity
 from openchem.domain.visualization_index import declared_visualizations
 from openchem.ui.result_summary import summary_of_merge
 from openchem.ui.widgets.fact_view import FactView
@@ -807,6 +808,7 @@ class ResultsView(QWidget):
             text
             for text in (
                 self._status_line(report),
+                self._verdict_line(report),
                 self._empty_line(report),
                 self._stale_line(report),
             )
@@ -825,21 +827,56 @@ class ResultsView(QWidget):
         and blankness, which is the "0 facts. is not an explanation" case
         this method's own docstring names, reached from a second direction.
 
-        **IT DOES NOT SAY "CLEAN".** That is a verdict, and only a catalogue
-        is entitled to give one -- the rule `AlertResult.severity` was
-        introduced to keep. This says what a reader can see for themselves is
-        true of ANY successful result with nothing in it, and leaves the
-        chemistry to whoever knows it.
+        **IT DOES NOT SAY "CLEAN", AND `_verdict_line` DOES.** That is a
+        verdict, and only a catalog is entitled to give one -- the rule
+        `AlertResult.severity` exists to keep. This says what a reader can
+        see for themselves is true of ANY successful result with nothing in
+        it, and leaves the chemistry to whoever knows it; a catalog has a
+        better sentence and takes it instead, which is why this stands aside
+        when that one speaks.
 
         Nothing here fires for a failure or a refusal: those already have a
         status line saying more, and two sentences where one is enough is how
         a summary stops being read.
         """
-        if self._status_line(report):
+        if self._status_line(report) or self._verdict_line(report):
             return ""
         if getattr(report, "facts", ()) or getattr(report, "charts", ()):
             return ""
         return "This ran and produced no values."
+
+    def _verdict_line(self, report) -> str:
+        """A CATALOG's verdict -- and only a catalog gets to give one.
+
+        **THE SEVERITY USED TO STOP AT THE PANEL**, and once Properties
+        stopped painting alerts this was the only renderer left. Measured
+        before it was carried: a clean PAINS and an elemental analysis with
+        no lines reached here BYTE-IDENTICAL -- no facts, no severity, no
+        limitations -- so `_empty_line` said the same neutral sentence over
+        both. That is precisely the confusion `AlertResult.severity` was
+        introduced to end one layer along: its own docstring says the field
+        exists so a renderer can tell "contains a PAINS substructure" from
+        "weighs 43.025".
+
+        **A MATCH COUNT, NEVER A RE-READING OF THE MATCHES.** The facts are
+        rendered in full below this line; restating them here would be the
+        third copy of one answer, which is the whole reason the panel's rows
+        went. The count is a deterministic projection of declared data, and
+        the verdict is the producer's, not this widget's.
+
+        Silent for a failure or a refusal: those are not verdicts about the
+        molecule, and `_status_line` already says more than this could.
+        """
+        if self._status_line(report):
+            return ""
+        # Declared, never guessed from the id -- `is_catalog`'s rule, applied
+        # to the report the alert was converted into.
+        if getattr(report, "severity", Severity.INFO) is Severity.INFO:
+            return ""
+        matches = len(getattr(report, "facts", ()))
+        if not matches:
+            return "Checked, nothing flagged."
+        return f"{matches} alert(s) matched."
 
     def _status_line(self, report) -> str:
         """The failure or refusal, in the reader's own words.
@@ -847,8 +884,10 @@ class ResultsView(QWidget):
         `describe_failure` owns which string is the short form and which is
         the full one, so this does not re-decide it -- the HOVER form is right
         here, because a summary line above a report has room for a sentence
-        where a 120 px table cell does not. That is the same call
-        `_present_alert` and the wide rows make.
+        where a 120 px table cell does not. The Properties panel's spanning
+        row used to make the same call for the same reason; 2c removed it,
+        and this is now the only surface in the application with room for
+        the long form.
 
         **A REFUSAL IS NOT A FAULT**, and the existing `inapplicable` field is
         what separates them rather than a second vocabulary invented here: the

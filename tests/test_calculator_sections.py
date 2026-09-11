@@ -599,10 +599,19 @@ def test_the_always_on_per_atom_batch_declares_every_category():
 def test_a_declared_category_routes_a_dataset_the_registry_cannot_place():
     """THE CONSUMER HALF, and it is the one a revert breaks silently.
 
-    The producer declaring a category buys nothing if the panel goes on
+    The producer declaring a category buys nothing if the consumer goes on
     asking the registry. Driven through the real `PerAtomDataComputed`
-    path with an EMPTY registry, so there is nothing to resolve the id
-    and the declaration is the only thing that can put the row anywhere.
+    path with an EMPTY registry, so there is nothing to resolve the id and
+    the declaration is the only thing that can place the result anywhere.
+
+    **THE CONSUMER MOVED IN 2c AND THE QUESTION DID NOT.** This asserted
+    that the declared category created its SECTION in the Properties panel,
+    because the row was filed there. There is no row now -- and a section
+    heading created for a category with no calculator buttons in it would
+    be an empty heading -- so the declaration is read where the result is
+    read: the reader groups its selector by exactly this field. What must
+    not happen is the same either way, the category being invented by the
+    consumer instead of taken from the producer.
     """
     from openchem.chem.engine import ChemistryEngine
     from openchem.domain.common import Provenance
@@ -635,13 +644,14 @@ def test_a_declared_category_routes_a_dataset_the_registry_cannot_place():
             )
         )
 
-        assert "charge" in panel._sections, (
-            "the declared category did not create its section, so the panel "
-            "is still routing by the registry"
+        summary = panel._reports["nothing_registered_owns_this"]
+        assert summary.category == "charge", (
+            "the declared category did not survive the trip to the reader, so "
+            "the consumer is still routing by the registry"
         )
-        assert "other" not in panel._sections, (
-            "the dataset landed in the generic section despite declaring "
-            "where it belongs"
+        assert summary.category != "other", (
+            "the dataset was filed under the generic category despite "
+            "declaring where it belongs"
         )
     finally:
         conftest.dispose(panel)

@@ -1411,3 +1411,49 @@ def test_a_doc_whose_counts_are_history_is_excused_for_a_written_reason():
     for rel, reason in CALCULATOR_COUNTS_ARE_HISTORY.items():
         assert (_ROOT / rel).exists(), f"{rel} is excused and does not exist"
         assert len(reason) > 20, f"{rel} is excused without a real reason"
+
+
+#: Source comments cite test FILES by name -- "see `tests/test_x.py`" -- and
+#: nothing checked they exist. Names WITHOUT the extension are deliberately
+#: not swept: `test_layering` and `test_binarycif` are the same citation in a
+#: different style, but so is the tail of a sentence that wrapped
+#: mid-identifier, and measured over the tree that form gives 66 candidates
+#: of which almost all are one or the other. A population that is mostly
+#: false positives is a guard nobody keeps.
+_SOURCE_TEST_FILE = re.compile(r"\b(test_\w+\.py)\b")
+
+
+def test_every_test_file_the_SOURCE_names_still_exists():
+    """A source comment may not cite a test file that has been deleted.
+
+    **FOUND BY A DELETED CITATION THAT NOTHING NOTICED.** A `#:` block in
+    `property_panel.py` cited `test_summarise.py`, which had not existed for
+    some time -- and that same block was documenting a table removed in
+    `366aad2`, so it had been sitting directly above an unrelated constant
+    ever since, silently standing in as ITS documentation.
+    `tests/test_constant_docs.py` cannot see that: it is written for the
+    mirror case, a constant inserted UNDER someone else's block, where the
+    original is left bare and falls into the recorded set. Delete the
+    constant instead and nothing falls anywhere.
+
+    The stale test name is the tell that survives both directions, and it is
+    the half that can be checked mechanically. `docs/` has had this guard
+    since the calculator-reference work; the source tree never did, and it
+    carries 51 such citations.
+
+    Deliberately NOT `ALLOWED_MISSING`-style: a test file named in a comment
+    either exists or the comment is wrong, and a renamed file should take
+    its references with it.
+    """
+    tests = {path.name for path in (_ROOT / "tests").rglob("test_*.py") if "vendor" not in path.parts}
+    missing: dict[str, list[str]] = {}
+    for path in sorted((_ROOT / "src" / "openchem").rglob("*.py")):
+        if "vendor" in path.parts:
+            continue
+        for name in set(_SOURCE_TEST_FILE.findall(path.read_text(encoding="utf-8"))):
+            if name not in tests:
+                missing.setdefault(name, []).append(str(path.relative_to(_ROOT)))
+
+    assert not missing, "source comments name test files that do not exist:\n" + "\n".join(
+        f"  {name} -- cited in {', '.join(where)}" for name, where in sorted(missing.items())
+    )

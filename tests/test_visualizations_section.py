@@ -367,29 +367,50 @@ def _panel(qapp):
 def test_details_reaches_the_READER_even_for_a_shape_valued_result(qapp):
     """**F11, AND IT IS THE WHOLE POINT OF THIS STAGE.**
 
-    `_on_details_clicked` used to send any report declaring `spatial` into
+    The panel used to send any report declaring `spatial` into
     `SpatialResultDialog(...).exec()` and RETURN, so Geometry and Dipole
     Moment -- 2 of the 60 results reaching the reader -- never reached it
-    from that button, and reached a MODAL window instead.
+    from that control, and reached a MODAL window instead.
 
-    Driven through the real button rather than by calling the handler, for
-    the reason `jobs_cancel` presses the real control: the handler reads
-    which report it means off `sender()`, so calling it directly passes
+    Driven through the real control rather than by calling the handler, for
+    the reason `jobs_cancel` presses the real button: the handler reads
+    which result it means off `sender()`, so calling it directly passes
     `sender() is None` and proves nothing about the wiring that changed.
+
+    **THE CONTROL IS THE STATUS CHIP NOW.** "Details..." lived in the
+    result's own row and 2c removes the row, so the chip beside the
+    calculator is what takes you to the result -- which is why it is a
+    button rather than a label. The claim is unchanged and the widget it
+    is made against is not, so the test presses the one that exists.
+
+    A registered calculator is part of the setup for that reason: a chip
+    belongs to a calculator row, and this panel's other tests run on an
+    empty registry where no row exists at all.
     """
+    from openchem.domain.calculator import CalculatorDefinition, RegistryExecution
     from openchem.events.events import ReportComputed
-    from PySide6.QtWidgets import QPushButton
 
     bus, panel = _panel(qapp)
+    panel._calculator_registry.register(
+        CalculatorDefinition(
+            calculator_id="dipole_moment",
+            display_name="Dipole Moment",
+            category="electronic",
+            description="test calculator",
+            execution=RegistryExecution(compute=lambda mol, uuid, params: None),
+        )
+    )
+    # The rows are built lazily, per section, when the section is first
+    # asked for -- and nothing asks for one on a result's behalf now.
+    panel._section_for("electronic")
     reader = ResultsView()
     panel.attach_reader(reader)
     try:
         bus.publish(ReportComputed(report=_report(spatial=[_arrow()])))
-        row = panel._report_labels["dipole_moment"].parentWidget()
-        details = row.findChildren(QPushButton)[0]
-        assert details.text() == "Details...", "setup: the real button"
+        chip = panel._calculator_status["dipole_moment"]
+        assert chip.isEnabled(), "setup: a result arrived, so the chip is pressable"
 
-        details.click()
+        chip.click()
 
         # STRONGER than "a reader exists": the shape-valued result has to
         # arrive FOCUSED, like every other one. The window it used to be

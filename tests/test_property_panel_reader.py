@@ -525,12 +525,15 @@ def test_a_new_project_starts_every_reader_fresh(panel):
 
 
 def test_an_alert_CATALOGUE_reaches_the_reader_like_everything_else(panel):
-    """**THE FIVE CATALOGUES REACHED IT NEVER, AND NOTHING NOTICED.**
+    """**THE FOUR CATALOGUES REACHED IT NEVER, AND NOTHING NOTICED.**
 
     `_on_alert_computed` recorded a report only `if not _is_catalog(alert)`,
-    so PAINS, BRENK, mutagenicity alerts, hERG risk factors and a
-    regulatory screen WITH findings never entered `_reports` -- and
-    `_reports` is what the reader is built from. Their only rendering
+    so PAINS, BRENK, mutagenicity alerts and hERG risk factors never
+    entered `_reports` -- and `_reports` is what the reader is built from.
+
+    FOUR, counted rather than quoted: `is_catalog`'s docstring said "5 of
+    25" and had drifted, the fifth being a regulatory screen that now
+    publishes a `ReportResult` and never came through this gate at all. Their only rendering
     anywhere was the red row in the Properties panel, which is exactly why
     it looked like a duplication rather than a gap.
 
@@ -586,3 +589,395 @@ def test_an_informational_alert_still_reaches_it_too(panel):
     bus.publish(AlertComputed(alert=info))
     QCoreApplication.processEvents()
     assert widget._attached_reader.merged().report_for("functional_groups") is not None
+
+
+# --- what the alert ROWS used to say, now the panel has none -------------
+#
+# Stage 2c took the Properties panel's alert row out. Every claim below was
+# asserted against `panel._alert_labels[...]` until then, and each one is
+# re-asserted here against the surface that renders it now. They are wiring
+# tests deliberately: the rule lives in the reader, but an alert reaching the
+# reader AT ALL is something only the panel can be wrong about, and it was
+# wrong about it for four whole catalogues.
+
+
+def _alert(molecule_uuid, **overrides):
+    from openchem.domain.common import Provenance
+    from openchem.domain.scientific_result import AlertResult
+
+    defaults = dict(
+        alert_id="pains", name="PAINS", molecule_uuid=molecule_uuid, matched=[],
+        category="medicinal_chemistry",
+        provenance=Provenance(created_by="core", method="rdkit"),
+    )
+    defaults.update(overrides)
+    return AlertResult(**defaults)
+
+
+def _land_alert(bus, alert):
+    from openchem.events.events import AlertComputed
+
+    bus.publish(AlertComputed(alert=alert))
+    QCoreApplication.processEvents()
+
+
+def test_a_clean_CATALOGUE_says_it_checked_and_flagged_nothing(panel):
+    """A verdict, and only a catalog is entitled to give one.
+
+    **THE VERDICT USED TO STOP AT THE PANEL.** `report_from_alert` dropped
+    `severity`, so measured before it was carried, a clean PAINS and an
+    elemental analysis with no lines arrived at the reader BYTE-IDENTICAL --
+    no facts, no severity, no limitations -- and the reader said the same
+    neutral sentence over both. That is exactly the confusion
+    `AlertResult.severity` was introduced to end one layer along: its own
+    docstring says the field exists so a renderer can tell "contains a PAINS
+    substructure" from "weighs 43.025". Once Properties stopped painting
+    alerts, the reader WAS that renderer.
+    """
+    from openchem.domain.scientific_result import Severity
+
+    widget, bus, molecule, _project, _versions = panel
+    _land_alert(bus, _alert(molecule.uuid, matched=[], severity=Severity.WARNING))
+
+    reader = widget._attached_reader
+    report = reader.merged().report_for("pains")
+    assert report is not None
+    assert reader._summary_for(report) == "Checked, nothing flagged."
+
+
+def test_a_REPORT_with_nothing_to_say_does_not_borrow_that_verdict(panel):
+    """The other side of the verdict rule, and the half a single-direction
+    fix would lose. An elemental analysis that produced no lines has checked
+    nothing and cleared nothing, so it must not read as a clean catalog."""
+    from openchem.domain.scientific_result import Severity
+
+    widget, bus, molecule, _project, _versions = panel
+    _land_alert(bus, _alert(
+        molecule.uuid, alert_id="elemental_analysis", name="Elemental Analysis",
+        matched=[], category="identity", severity=Severity.INFO,
+    ))
+
+    reader = widget._attached_reader
+    report = reader.merged().report_for("elemental_analysis")
+    summary = reader._summary_for(report)
+    assert "flagged" not in summary and "Clean" not in summary, summary
+    assert summary == "This ran and produced no values."
+
+
+def test_a_flagged_CATALOGUE_still_reads_as_a_catalog_and_not_as_facts(panel):
+    """PAINS is what `AlertResult` was written for, and a match there really
+    is something to look at.
+
+    The matches themselves render as facts below the summary, so the summary
+    COUNTS them rather than restating them -- a third copy of one answer is
+    what the panel's rows were removed for.
+    """
+    from openchem.domain.scientific_result import Severity
+
+    widget, bus, molecule, _project, _versions = panel
+    _land_alert(bus, _alert(
+        molecule.uuid, matched=["rhod_sat_A(33)"], severity=Severity.WARNING,
+    ))
+
+    reader = widget._attached_reader
+    report = reader.merged().report_for("pains")
+    assert reader._summary_for(report) == "1 alert(s) matched."
+    assert [f.display_value for f in report.facts] == ["rhod_sat_A(33)"]
+
+
+def test_an_informational_result_is_not_dressed_up_as_alerts(panel):
+    """20 of the 25 `alert_id`s in this codebase are reports, not catalogs --
+    elemental analysis, topology indices, Huckel energies, the IUPAC name.
+    All of them once rendered as "8 alert(s): Formula: CHNO, ..." in alert
+    red, and red is reserved for failed, dangerous or invalid."""
+    from openchem.domain.scientific_result import Severity
+
+    widget, bus, molecule, _project, _versions = panel
+    _land_alert(bus, _alert(
+        molecule.uuid, alert_id="elemental_analysis", name="Elemental Analysis",
+        matched=["Formula: CHNO", "Mass: 43.025", "C: 27.92%"],
+        category="identity", severity=Severity.INFO,
+    ))
+
+    reader = widget._attached_reader
+    report = reader.merged().report_for("elemental_analysis")
+    assert "alert(s)" not in reader._summary_for(report)
+    rendered = " ".join(f.label + f.display_value for f in report.facts)
+    assert "Formula" in rendered, rendered
+
+
+def test_a_FAILED_alert_carries_its_reason_rather_than_a_verdict(panel):
+    """A FAILED result has an empty `matched`, and empty used to mean
+    "Clean" -- in green, with the real message discarded. Geometry is the
+    case: no 3D conformer, so the calculator returns FAILED carrying "This
+    calculation needs a 3D conformer" and the panel reported success.
+
+    A failure is not a verdict about the molecule, so the catalog line stays
+    silent even for a catalog and the status line says what happened.
+    """
+    from openchem.domain.common import CacheState
+    from openchem.domain.scientific_result import Severity
+
+    widget, bus, molecule, _project, _versions = panel
+    _land_alert(bus, _alert(
+        molecule.uuid, alert_id="geometry_analysis", name="Geometry",
+        matched=[], category="geometry", severity=Severity.WARNING,
+        cache_state=CacheState.FAILED,
+        error="This calculation needs a 3D conformer.",
+    ))
+
+    reader = widget._attached_reader
+    summary = reader._summary_for(reader.merged().report_for("geometry_analysis"))
+    assert "3D conformer" in summary
+    assert "flagged" not in summary and "Clean" not in summary, summary
+
+
+@pytest.mark.parametrize(
+    ("alert_id", "name", "category"),
+    [
+        ("brenk", "BRENK (Reactive/Unstable Groups)", "admet"),
+        ("mutagenicity_alerts", "Mutagenicity Alerts", "admet"),
+        ("herg_risk_factors", "hERG Risk Factors", "admet"),
+    ],
+)
+def test_an_alert_reaches_the_reader_under_the_category_ITS_PRODUCER_NAMED(
+    panel, alert_id, name, category
+):
+    """Routing, which used to mean "which panel section drew the row".
+
+    It still matters and it is still the producer's declaration -- BRENK's
+    toxicity-relevant alerts belong under admet rather than medicinal
+    chemistry -- but the consumer is the reader's grouped selector now. A
+    category invented by the consumer is the blocklist failure this
+    repository has already paid for; `alert.category` travels through
+    `report_from_alert` untouched, and this is what says so.
+    """
+    widget, bus, molecule, _project, _versions = panel
+    _land_alert(bus, _alert(
+        molecule.uuid, alert_id=alert_id, name=name,
+        matched=["something"], category=category,
+    ))
+
+    report = widget._attached_reader.merged().report_for(alert_id)
+    assert report is not None, f"{alert_id} did not reach the reader at all"
+    assert report.category == category
+
+
+def test_the_pains_default_category_has_not_silently_changed(panel):
+    """**THE DEFAULT, WHICH THE PARAMETRISED CASE ABOVE CANNOT SEE.**
+
+    `AlertResult.category` defaults to `medicinal_chemistry` because PAINS
+    was its only caller before a second catalog existed. Every other test
+    here passes a category explicitly, so all of them would keep passing if
+    that default changed underneath PAINS -- which is the one result it
+    would silently move.
+    """
+    widget, bus, molecule, _project, _versions = panel
+    from openchem.domain.common import Provenance
+    from openchem.domain.scientific_result import AlertResult
+
+    bare = AlertResult(
+        alert_id="pains", name="PAINS", molecule_uuid=molecule.uuid,
+        matched=["quinone_A(370)"],
+        provenance=Provenance(created_by="core", method="rdkit"),
+    )
+    _land_alert(bus, bare)
+
+    report = widget._attached_reader.merged().report_for("pains")
+    assert report.category == "medicinal_chemistry"
+
+
+def test_the_functional_groups_alert_arrives_under_the_section_ITS_PRODUCER_names(panel):
+    """**THE PRODUCER'S OWN ALERT, NOT A HAND-BUILT ONE.**
+
+    This used to construct its own `AlertResult` with `category="admet"` and
+    was named for that section, so it asserted the routing and could say
+    nothing about where the REAL result goes -- which is how
+    `functional_groups` came to declare `admet` here while its registered
+    calculator declared `substructure`, putting the BUTTON in one section
+    and the always-on row in another.
+
+    Running the shipped producer is what closes that: the category is read
+    off the result rather than typed, so the two cannot drift again through
+    this test. The row it used to land in is gone; the reader entry it lands
+    in now is read the same way, and the reason for using the real producer
+    is unchanged by the move.
+    """
+    from rdkit import Chem
+
+    from openchem.chem.descriptor_providers import compute_fragment_group_alert
+
+    widget, bus, molecule, _project, _versions = panel
+    alert = compute_fragment_group_alert(
+        Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O"), molecule.uuid
+    )
+    assert alert.matched, "fixture is degenerate: no groups matched"
+    assert alert.category == "substructure", (
+        "a fragment count is not an ADMET property, and its calculator "
+        "already says so"
+    )
+    _land_alert(bus, alert)
+
+    report = widget._attached_reader.merged().report_for("functional_groups")
+    assert report is not None
+    assert report.category == alert.category
+    rendered = " ".join(f"{f.label}: {f.display_value}" for f in report.facts)
+    assert "Ester" in rendered, rendered
+
+
+# --- three more claims the rows were carrying ----------------------------
+
+
+def test_a_batch_result_reaches_the_reader_without_anything_being_opened(panel):
+    """"I can hit run on several things, and nothing noticeable happens."
+
+    `_on_run_selected` deliberately does not set `_pending_calculator_id`
+    (six stacked inspectors is not a saving), and every per-atom handler
+    used to return early without it -- so a batch-run result was computed,
+    published, and then rendered nowhere at all.
+
+    The row that fixed it is gone, and the requirement is not: a result
+    nobody explicitly asked for still has to ARRIVE somewhere a reader can
+    find it, without a dialog opening itself. That place is the reader, fed
+    whether or not it is the surface currently on screen.
+    """
+    from openchem.domain.common import Provenance
+    from openchem.domain.scientific_result import PerAtomDataset
+    from openchem.events.events import PerAtomDataComputed
+
+    widget, bus, molecule, _project, _versions = panel
+    bus.publish(
+        PerAtomDataComputed(
+            dataset=PerAtomDataset(
+                property_id="gasteiger_charge",
+                name="Partial Charge (Gasteiger)",
+                units="e",
+                method="rdkit",
+                molecule_uuid=molecule.uuid,
+                values={0: -0.4, 1: 0.1, 2: 0.3},
+                provenance=Provenance(created_by="core", method="rdkit"),
+            )
+        )
+    )
+    QCoreApplication.processEvents()
+
+    report = widget._attached_reader.merged().report_for("gasteiger_charge")
+    assert report is not None, "a batch result left no trace anywhere"
+    labelled = {fact.label: fact.display_value for fact in report.facts}
+    assert labelled.get("Atoms") == "3", labelled
+    assert widget._pending_calculator_id is None, (
+        "a batch run must not leave a request behind for a later result to "
+        "answer"
+    )
+
+
+def test_an_explicitly_run_calculator_is_FOCUSED_in_the_reader(panel):
+    """The ADMET complaint: "the calculator produces nothing".
+
+    It produced everything -- the sidecar ran, the model returned its
+    endpoints, and the row rendered correctly about 900 px down a panel
+    whose viewport is 372 px, inside a section collapsed by default near the
+    bottom of twenty-odd others. Four of the six result shapes already
+    answered a button press unmissably by opening their viewer; the two that
+    rendered INLINE did not, so the more a result had to say, the better it
+    was hidden.
+
+    There is no row to scroll to now, so the request is answered where the
+    result actually is. `set_focus` also records the position, so a reader
+    opened afterwards is already on what was just run.
+    """
+    widget, bus, molecule, _project, _versions = panel
+    _land(bus, _report("a", "Elemental Analysis", "Formula", molecule.uuid))
+    widget._attached_reader.set_focus("")
+    assert widget._attached_reader._focus == ""
+
+    widget._pending_calculator_id = "admet_ml"
+    _land_alert(bus, _alert(
+        molecule.uuid, alert_id="admet_ml", name="ADMET (ADMET-AI)",
+        category="admet", matched=["hERG blockade: 0.82"],
+    ))
+
+    assert widget._attached_reader._focus == "admet_ml", (
+        "the result the user asked for is not what the reader is showing"
+    )
+    assert widget._pending_calculator_id is None, "the request was not consumed"
+
+
+def test_a_result_nobody_asked_for_does_not_move_the_reader(panel):
+    """The narrow half, and the one that makes the guard above mean
+    something. "Always focus the newest result" satisfies it and is the
+    defect this project already fixed once under another name: a reader that
+    follows whichever calculation finished first cannot be read, because a
+    batch run moves it out from under you."""
+    widget, bus, molecule, _project, _versions = panel
+    _land(bus, _report("a", "Elemental Analysis", "Formula", molecule.uuid))
+    widget._attached_reader.set_focus("a")
+
+    assert widget._pending_calculator_id is None, "setup: nothing was requested"
+    _land_alert(bus, _alert(
+        molecule.uuid, alert_id="pains", name="PAINS", matched=["quinone_A(370)"],
+    ))
+
+    assert widget._attached_reader._focus == "a"
+
+
+def test_the_reader_keeps_the_WHOLE_reason_while_a_value_cell_takes_the_summary(panel):
+    """A READING SURFACE IS NOT A CELL, and treating them alike loses text.
+
+    `describe_failure` owns both forms, and which one is right depends on
+    how much room the surface has. The reader's summary line sits above a
+    report and has room for a sentence: the pkasolver message is 344
+    characters of install guidance and is the whole point of showing it.
+    `_on_descriptor_computed`'s single-line value cell is the one that is
+    short of room, and only it takes the short form.
+
+    Both halves are asserted together because each alone is satisfiable by
+    the wrong rule -- "always use the summary" passes the descriptor half,
+    "never use it" passes the reader half -- and this repository's own
+    lesson is that reusing a mechanism whose invariants do not apply is not
+    reuse. The wide ROW this was originally written against is gone; the
+    asymmetry it was guarding is not.
+    """
+    from openchem.domain.common import CacheState
+    from openchem.domain.descriptor import DescriptorValue
+    from openchem.events.events import DescriptorComputed
+    from openchem.ui.panels.property_panel import _unelided_text
+
+    reason = (
+        "No pkasolver environment configured. Set the interpreter path "
+        "under Tools > External Tools."
+    )
+    summary = "pkasolver not configured"
+
+    widget, bus, molecule, _project, _versions = panel
+    _land_alert(bus, _alert(
+        molecule.uuid, alert_id="pka", name="pKa", matched=[], category="pka",
+        cache_state=CacheState.FAILED, error=reason, error_summary=summary,
+    ))
+    bus.publish(
+        DescriptorComputed(
+            descriptor=DescriptorValue(
+                descriptor_id="pbf",
+                name="Plane of Best Fit",
+                value=None,
+                units="",
+                provider="rdkit",
+                molecule_uuid=molecule.uuid,
+                category="shape",
+                cache_state=CacheState.FAILED,
+                error=reason,
+                error_summary=summary,
+            )
+        )
+    )
+    QCoreApplication.processEvents()
+
+    reader = widget._attached_reader
+    line = reader._summary_for(reader.merged().report_for("pka"))
+    cell = widget._value_labels[("rdkit", "pbf")]
+
+    # The reading surface keeps every word of it...
+    assert reason in line, line
+    assert line != summary
+    # ...and the one-line cell takes the short form.
+    assert _unelided_text(cell) == summary

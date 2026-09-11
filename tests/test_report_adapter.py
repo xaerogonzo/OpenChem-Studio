@@ -260,7 +260,8 @@ def test_the_report_keeps_the_identity_the_panel_files_it_under():
 
 def test_a_catalog_is_told_apart_from_a_report_by_its_declared_severity():
     """Guessing from the id would be a heuristic; the producer knows.
-    Counted when severity was introduced: 5 of 25 alert_ids are catalogs."""
+    Four of the fourteen AlertResult constructions in the tree, re-counted
+    2026-09-10 -- this said "5 of 25", which had drifted."""
     assert is_catalog(_alert(alert_id="pains", severity=Severity.WARNING))
     assert not is_catalog(_alert(alert_id="elemental_analysis"))
 

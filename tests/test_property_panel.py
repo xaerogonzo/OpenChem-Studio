@@ -265,81 +265,6 @@ def test_copy_all_exports_the_reason_and_never_the_cell_summary(qapp):
     assert "Needs a 3D conformer" not in exported
 
 
-def test_alert_computed_shows_clean_when_nothing_matched(qapp):
-    """"Clean" is a VERDICT, and only a catalog is entitled to give one.
-
-    PAINS declares `Severity.WARNING`, so an empty match list really does
-    mean "checked, nothing flagged". A report that happens to produce no
-    lines has not cleared the molecule of anything -- see
-    `test_a_report_with_nothing_to_say_does_not_claim_the_molecule_is_clean`.
-    """
-    from openchem.domain.structure_issue import Severity
-
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(
-        AlertComputed(
-            alert=AlertResult(
-                alert_id="pains",
-                name="PAINS",
-                molecule_uuid="mol-1",
-                matched=[],
-                severity=Severity.WARNING,
-                provenance=Provenance(created_by="core", method="rdkit"),
-            )
-        )
-    )
-
-    label = panel._alert_labels[("core", "pains")]
-    assert "Clean" in label.text()
-    assert "medicinal_chemistry" in panel._sections
-
-
-def test_a_report_with_nothing_to_say_does_not_claim_the_molecule_is_clean(qapp):
-    """The other side of the verdict rule. An elemental analysis that
-    produced no lines has checked nothing and cleared nothing, so it must
-    not borrow the catalogs' green "Clean"."""
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(
-        AlertComputed(
-            alert=AlertResult(
-                alert_id="elemental_analysis",
-                name="Elemental Analysis",
-                molecule_uuid="mol-1",
-                matched=[],
-                category="identity",
-                provenance=Provenance(created_by="core", method="rdkit"),
-            )
-        )
-    )
-
-    label = panel._alert_labels[("core", "elemental_analysis")]
-    assert "Clean" not in label.text()
-
-
-def test_alert_computed_lists_matches(qapp):
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(
-        AlertComputed(
-            alert=AlertResult(
-                alert_id="pains",
-                name="PAINS",
-                molecule_uuid="mol-1",
-                matched=["rhod_sat_A(33)"],
-                provenance=Provenance(created_by="core", method="rdkit"),
-            )
-        )
-    )
-
-    label = panel._alert_labels[("core", "pains")]
-    assert "rhod_sat_A(33)" in label.text()
-
-
 def test_selecting_a_new_molecule_clears_previous_rows(qapp):
     panel, bus, _service = _make_panel(qapp)
     bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
@@ -782,51 +707,6 @@ def test_unrelated_per_atom_data_does_not_open_the_inspector(qapp, monkeypatch):
 # --- Phase 19: ADMET/toxicity -------------------------------------------------
 
 
-def test_admet_alert_routes_to_the_admet_section(qapp):
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(
-        AlertComputed(
-            alert=AlertResult(
-                alert_id="brenk",
-                name="BRENK (Reactive/Unstable Groups)",
-                molecule_uuid="mol-1",
-                matched=["aldehyde"],
-                provenance=Provenance(created_by="core", method="rdkit"),
-                category="admet",
-            )
-        )
-    )
-
-    label = panel._alert_labels[("core", "brenk")]
-    assert "aldehyde" in label.text()
-    assert "admet" in panel._sections
-    assert "medicinal_chemistry" not in panel._sections  # PAINS never published in this test
-
-
-def test_pains_still_routes_to_medicinal_chemistry_by_default(qapp):
-    """Regression guard: AlertResult.category's default must not silently
-    change PAINS's existing section."""
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(
-        AlertComputed(
-            alert=AlertResult(
-                alert_id="pains",
-                name="PAINS",
-                molecule_uuid="mol-1",
-                matched=[],
-                provenance=Provenance(created_by="core", method="rdkit"),
-            )
-        )
-    )
-
-    assert "medicinal_chemistry" in panel._sections
-    assert "admet" not in panel._sections
-
-
 def test_admet_scalar_descriptor_lands_in_the_admet_section(qapp):
     panel, bus, _service = _make_panel(qapp)
     bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
@@ -849,63 +729,6 @@ def test_admet_section_has_no_open_row_since_nothing_is_registered_there(qapp):
 
 
 # --- Phase 20: functional groups + hERG risk factors + extended filters -----
-
-
-def test_the_functional_groups_alert_lands_in_the_section_its_producer_names(qapp):
-    """**THE PRODUCER'S OWN ALERT, NOT A HAND-BUILT ONE.**
-
-    This used to construct its own `AlertResult` with `category="admet"` and
-    was named for that section, so it asserted the panel's routing and could
-    say nothing about where the real result goes -- which is how
-    `functional_groups` came to declare `admet` here while its registered
-    calculator declared `substructure`, putting the BUTTON in one section and
-    the always-on ROW in another.
-
-    Running the shipped producer is what closes that: the category is read
-    off the result rather than typed, so the two cannot drift again through
-    this test.
-    """
-    from rdkit import Chem
-
-    from openchem.chem.descriptor_providers import compute_fragment_group_alert
-
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    alert = compute_fragment_group_alert(
-        Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O"), "mol-1"
-    )
-    assert alert.matched, "fixture is degenerate: no groups matched"
-    bus.publish(AlertComputed(alert=alert))
-
-    assert alert.category == "substructure", (
-        "a fragment count is not an ADMET property, and its calculator "
-        "already says so"
-    )
-    assert alert.category in panel._sections
-    label = panel._alert_labels[("core", "functional_groups")]
-    assert "Ester (1)" in label.text()
-
-
-def test_herg_risk_factors_alert_lands_in_admet_section(qapp):
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(
-        AlertComputed(
-            alert=AlertResult(
-                alert_id="herg_risk_factors",
-                name="hERG Risk Factors (not a prediction)",
-                molecule_uuid="mol-1",
-                matched=["Basic amine present"],
-                provenance=Provenance(created_by="core", method="rdkit"),
-                category="admet",
-            )
-        )
-    )
-
-    label = panel._alert_labels[("core", "herg_risk_factors")]
-    assert "Basic amine present" in label.text()
 
 
 def test_pfizer_gsk_rule_of_three_land_in_medicinal_chemistry(qapp):
@@ -1338,127 +1161,6 @@ def test_the_batch_row_does_not_swallow_the_panel(qapp):
     )
 
 
-def test_a_failed_alert_shows_its_reason_rather_than_clean(qapp):
-    """A FAILED result has an empty `matched` list, and empty used to mean
-    "Clean" -- in green, with the real message discarded.
-
-    Geometry is the case Alex hit: no 3D conformer, so
-    `compute_geometry_analysis` returns FAILED carrying "This calculation
-    needs a 3D conformer", and the panel reported success.
-    """
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(
-        AlertComputed(
-            alert=AlertResult(
-                alert_id="geometry_analysis",
-                name="Geometry",
-                molecule_uuid="mol-1",
-                matched=[],
-                category="geometry",
-                cache_state=CacheState.FAILED,
-                error="This calculation needs a 3D conformer.",
-                provenance=Provenance(created_by="core", method="rdkit"),
-            )
-        )
-    )
-
-    label = panel._alert_labels[("core", "geometry_analysis")]
-    assert "3D conformer" in label.text()
-    assert "Clean" not in label.text()
-
-
-def test_an_informational_result_is_not_dressed_up_as_alerts(qapp):
-    """20 of the 25 `alert_id`s in this codebase are reports, not alert
-    catalogs -- elemental analysis, topology indices, Huckel energies,
-    the IUPAC name. All of them rendered as
-    `"8 alert(s): Formula: CHNO, Mass: 43.025, ..."` in alert red.
-
-    Red is reserved for failed, dangerous or invalid. An elemental
-    analysis is none of those.
-    """
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(
-        AlertComputed(
-            alert=AlertResult(
-                alert_id="elemental_analysis",
-                name="Elemental Analysis",
-                molecule_uuid="mol-1",
-                matched=["Formula: CHNO", "Mass: 43.025", "C: 27.92%"],
-                category="identity",
-                provenance=Provenance(created_by="core", method="rdkit"),
-            )
-        )
-    )
-
-    label = panel._alert_labels[("core", "elemental_analysis")]
-    assert "alert(s)" not in label.text()
-    assert "Formula: CHNO" in label.text()
-    assert "#c62828" not in label.styleSheet(), "informational results must not be alert red"
-
-
-def test_a_real_alert_catalog_still_reads_as_a_warning(qapp):
-    """The other half of the same change: PAINS is what `AlertResult` was
-    written for, and a match there really is something to look at. It
-    declares `Severity.WARNING` and keeps a warning colour."""
-    from openchem.domain.structure_issue import Severity
-
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(
-        AlertComputed(
-            alert=AlertResult(
-                alert_id="pains",
-                name="PAINS",
-                molecule_uuid="mol-1",
-                matched=["rhod_sat_A(33)"],
-                severity=Severity.WARNING,
-                provenance=Provenance(created_by="core", method="rdkit"),
-            )
-        )
-    )
-
-    label = panel._alert_labels[("core", "pains")]
-    assert "rhod_sat_A(33)" in label.text()
-    assert "1 alert(s)" in label.text()
-    assert label.styleSheet() != ""
-
-
-def test_a_batch_result_is_visible_without_opening_anything(qapp):
-    """"I can hit run on several things, and nothing noticeable happens."
-
-    `_on_run_selected` does not set `_pending_calculator_id` (six stacked
-    inspectors is not a saving), and every per-atom handler returned
-    early without it -- so a batch-run result was computed, published,
-    and then rendered nowhere at all.
-    """
-    panel, bus, service = _panel_with_recorder(qapp)
-    model = _select_molecule(panel, bus)
-
-    bus.publish(
-        PerAtomDataComputed(
-            dataset=PerAtomDataset(
-                property_id="gasteiger_charge",
-                name="Partial Charge (Gasteiger)",
-                units="e",
-                method="rdkit",
-                molecule_uuid=model.uuid,
-                values={0: -0.4, 1: 0.1, 2: 0.3},
-                provenance=Provenance(created_by="core", method="rdkit"),
-            )
-        )
-    )
-    qapp.processEvents()
-
-    texts = [label.text() for label in panel._result_labels.values()]
-    assert texts, "a batch result left no trace in the panel"
-    assert any("3 atoms" in text for text in texts), texts
-
-
 def test_a_batch_run_says_when_it_has_finished(qapp):
     """The status read "Running 2 with default settings: ..." forever --
     it was set on dispatch and never updated when the results landed."""
@@ -1630,67 +1332,6 @@ def test_a_molecule_with_no_structure_is_not_dispatched(qapp):
     assert not [r for r in service.requests if r.calculator_id == "substance_analysis"]
 
 
-def test_an_explicitly_run_row_result_is_scrolled_into_view(qapp):
-    """The ADMET complaint: "the calculator produces nothing".
-
-    It produced everything -- the sidecar ran, the model returned its
-    endpoints, and the row rendered correctly about 900 px down a panel
-    whose viewport is 372 px, inside a section collapsed by default near
-    the bottom of twenty-odd others. Confirmed by driving the app and
-    scrolling down to find `hERG blockade: 0.82` sitting there.
-
-    Four of the six result shapes already answer a button press
-    unmissably -- a per-atom dataset, a spectrum, a structure set and a pH
-    curve each open a dialog when they match `_pending_calculator_id`. The
-    two that render INLINE had no such handling, so the more a result had
-    to say, the better it was hidden.
-    """
-    registry = CalculatorRegistry()
-    definition = _calculator_definition("admet_ml", category="admet")
-    registry.register(definition)
-    panel, bus, service = _make_panel(qapp, registry)
-    molecule = MoleculeModel(display_name="Ethanol")
-    panel.set_project(ProjectModel(molecules=[molecule]))
-    bus.publish(MoleculeSelected(molecule_uuid=molecule.uuid))
-
-    section = panel._section_for("admet")
-    section.set_expanded(False)
-    panel._open_calculator(definition)
-    assert panel._pending_calculator_id == "admet_ml"
-
-    # Spy on the CALL, not on `valueChanged`: an unshown panel has no
-    # scroll range, so a real setValue would be a silent no-op here and
-    # the test would pass whatever the code did.
-    revealed: list[int] = []
-    panel._scroll_area.verticalScrollBar().setValue = revealed.append
-    horizontal: list[int] = []
-    panel._scroll_area.horizontalScrollBar().setValue = horizontal.append
-
-    bus.publish(
-        AlertComputed(
-            alert=AlertResult(
-                alert_id="admet_ml",
-                name="ADMET (ADMET-AI)",
-                category="admet",
-                matched=["hERG blockade: 0.82"],
-                molecule_uuid=molecule.uuid,
-                cache_state=CacheState.COMPLETED,
-                provenance=Provenance(created_by="admet_ai", method="chemprop"),
-            )
-        )
-    )
-    qapp.processEvents()
-    qapp.processEvents()
-
-    assert section.is_expanded(), "a collapsed section hides the result it was asked for"
-    assert revealed, "the row was never scrolled into view"
-    assert not horizontal, (
-        "the panel scrolled SIDEWAYS, which this project treats as worse "
-        "than the invisibility it is fixing"
-    )
-    assert panel._pending_calculator_id is None, "the request was not consumed"
-
-
 def test_a_result_nobody_asked_for_does_not_hijack_the_scroll(qapp):
     """A batch run publishes many results and must not yank the panel
     around per result -- `_on_run_selected` deliberately leaves
@@ -1776,69 +1417,6 @@ def test_a_row_that_recovers_stops_exporting_its_old_failure_reason(qapp):
     assert "0.42" in exported
     assert "Generate one with Structure" not in exported
     assert "Needs a 3D conformer" not in exported
-
-
-def test_a_wide_row_keeps_the_whole_reason_while_a_value_cell_takes_the_summary(qapp):
-    """A WIDE ROW IS NOT A CELL, and treating them alike loses text.
-
-    Three of the panel's four FAILED branches render into an
-    `ExplicitHeightLabel` inside `_add_wide_row` -- spanning both form
-    columns, wrapping, and stating its own height so the value shows in
-    full. The reason is therefore ALREADY entirely visible there, and
-    substituting the cell form would DELETE what a reader can see: the
-    pkasolver message is 344 characters of install guidance and is the
-    whole point of that row.
-
-    Only `_on_descriptor_computed`'s single-line value cell is short of
-    room, and only it takes the summary. Both halves are asserted
-    together because each alone is satisfiable by the wrong rule --
-    "always use the summary" passes the descriptor half, "never use it"
-    passes the alert half, and this repository's own lesson is that
-    reusing a mechanism whose invariants do not apply is not reuse.
-    """
-    from openchem.ui.panels.property_panel import _unelided_text
-
-    reason = (
-        "No pkasolver environment configured. Set the interpreter path "
-        "under Tools > External Tools."
-    )
-    summary = "pkasolver not configured"
-
-    panel, bus, _service = _make_panel(qapp)
-    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
-
-    bus.publish(
-        AlertComputed(
-            alert=AlertResult(
-                alert_id="pka",
-                name="pKa",
-                molecule_uuid="mol-1",
-                matched=[],
-                category="pka",
-                cache_state=CacheState.FAILED,
-                error=reason,
-                error_summary=summary,
-            )
-        )
-    )
-    bus.publish(
-        DescriptorComputed(
-            descriptor=_descriptor(
-                descriptor_id="pbf", category="shape", value=None,
-                cache_state=CacheState.FAILED, error=reason, error_summary=summary,
-            )
-        )
-    )
-
-    wide = panel._alert_labels[("core", "pka")] if ("core", "pka") in panel._alert_labels \
-        else next(v for k, v in panel._alert_labels.items() if k[1] == "pka")
-    cell = panel._value_labels[("rdkit", "pbf")]
-
-    # The wrapping row keeps every word of it...
-    assert reason in wide.text()
-    assert wide.text() != summary
-    # ...and the one-line cell takes the short form.
-    assert _unelided_text(cell) == summary
 
 
 # --- a refusal is not a fault ------------------------------------------------
@@ -1932,3 +1510,70 @@ def test_every_status_glyph_survives_a_windows_console_after_stripping():
         assert stripped.isascii(), f"{glyph!r} left non-ASCII behind: {stripped!r}"
         for codepage in ("cp1252", "cp437", "cp850"):
             stripped.encode(codepage)
+
+
+def _substance_report(molecule_uuid: str, smiles: str = "[Na+].[Cl-]"):
+    """The SHIPPED producer, not a hand-built report.
+
+    A hand-built one would let the panel's wiring and the real result drift
+    apart -- the failure `test_the_functional_groups_alert...` records, in a
+    different handler of the same panel.
+    """
+    from rdkit import Chem
+
+    from openchem.chem.substance import compute_substance_analysis
+
+    import dataclasses
+
+    report = compute_substance_analysis(Chem.MolFromSmiles(smiles), molecule_uuid)
+    return dataclasses.replace(report, molecule_uuid=molecule_uuid)
+
+
+def test_the_substance_card_is_FED_by_the_panel_and_not_only_buildable(qapp):
+    """**FOUND BY DELETING THE FEED AND WATCHING NOTHING GO RED.**
+
+    `tests/test_substance_card.py` builds a `SubstanceCard()` directly and
+    calls `card_data_from_report` directly, so it proves the widget renders
+    and the projection is right -- and says nothing about whether anything
+    ever calls either. Removing `_on_report_computed`'s one line that joins
+    them left the whole suite green.
+
+    That was not hypothetical. The line sits in the middle of the handler
+    that used to build the result rows, and 2c empties that handler; a
+    removal script written against the rows took the card's feed with them,
+    and the only thing that said it should not was the panel's own comment
+    at the card's construction -- "A PERSISTENT header, not a result row".
+
+    The project's own lesson, again: testing a helper is not testing the
+    wiring.
+    """
+    from openchem.events.events import ReportComputed
+
+    panel, bus, _service = _make_panel(qapp)
+    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+    assert panel._substance_card.data().is_empty, "setup: the card starts empty"
+
+    bus.publish(ReportComputed(report=_substance_report("mol-1")))
+    qapp.processEvents()
+
+    assert not panel._substance_card.data().is_empty, (
+        "the substance card was never fed, so the panel's persistent header "
+        "stays blank however the analysis turns out"
+    )
+
+
+def test_the_substance_card_is_cleared_when_the_molecule_changes(qapp):
+    """The narrow half. "Feed it once" satisfies the guard above and leaves
+    the previous molecule's headline sitting over this one's properties --
+    the same leftover-state defect the retained descriptor values had."""
+    from openchem.events.events import ReportComputed
+
+    panel, bus, _service = _make_panel(qapp)
+    bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
+    bus.publish(ReportComputed(report=_substance_report("mol-1")))
+    qapp.processEvents()
+    assert not panel._substance_card.data().is_empty
+
+    bus.publish(MoleculeSelected(molecule_uuid="mol-2"))
+    qapp.processEvents()
+    assert panel._substance_card.data().is_empty

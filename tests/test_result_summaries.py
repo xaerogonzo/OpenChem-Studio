@@ -126,15 +126,16 @@ def test_a_vibrational_spectrum_summarises_as_modes_not_as_nothing():
     projection read that emptiness as "there is nothing here". It is the
     fourth consumer of one vocabulary read through a different registry,
     after the clipboard, the view factory and the inspector.
-    """
-    from openchem.ui.panels.property_panel import _summarise
 
+    The panel row is gone with 2c and its half of this assertion with it;
+    the projection is the half that still renders, and it was always the
+    half the defect lived in.
+    """
     result = VibrationalSpectrumResult(
         spectrum_type="ir", name="IR Spectrum", units="cm^-1", method="ORCA",
         molecule_uuid=MOLECULE,
         modes=tuple(VibrationalMode(wavenumber_cm1=w) for w in (1650.0, 2900.0, 3400.0)),
     )
-    assert _summarise(result) == "3 modes"
     facts = {f.label: f for f in _view(result).facts}
     assert facts["Modes"].display_value == "3"
     assert "1650" in facts["Wavenumbers"].display_value
@@ -549,3 +550,77 @@ def test_the_section_comes_from_the_caller_because_the_result_carries_none():
     assert view.facts
     for fact in view.facts:
         assert fact.category is FactCategory.TOPOLOGY, fact.label
+
+
+# --- what the retired panel rows used to say ----------------------------
+
+
+def test_an_empty_payload_is_reported_as_a_count_and_not_as_silence():
+    """`stereocenters` on a molecule with none is a RESULT.
+
+    **THE PANEL ROW THIS REPLACES SAID "None found." AND HAD TO**, because
+    its alternative was the bare word "Ready" -- indistinguishable from the
+    panel having failed to render, the same confusion an empty `matched`
+    reading as a green "Clean" already caused one surface along.
+
+    A labelled fact cannot fall into that hole: "Atoms: 0" states the count
+    and the thing counted, so an empty payload and an unrendered one do not
+    look alike. Asserted rather than assumed, because "it summarises" is
+    satisfied by a projection that returns nothing at all.
+    """
+    view = _view(_per_atom({}), result_id="stereocenters", name="Stereocenters")
+
+    assert view.facts, "an empty dataset projected nothing, which reads as not having run"
+    labelled = {fact.label: fact.display_value for fact in view.facts}
+    assert labelled.get("Atoms") == "0", labelled
+
+
+def test_a_count_of_one_needs_no_pluralisation_because_there_is_no_sentence():
+    """Caffeine really does have exactly one major microspecies, so a count
+    of 1 is the ORDINARY case here rather than an edge one.
+
+    The panel row built a sentence and therefore had to pluralise it -- "1
+    structures" is the kind of blemish that makes a panel read as
+    unfinished, and every one of these counts can legitimately be 1. A
+    label and a value have no grammar to get wrong, so the whole class is
+    designed out rather than fixed. This pins that it stays that way.
+    """
+    one = StructureSetResult(
+        set_id="major_microspecies", name="Major Microspecies", method="pkasolver",
+        molecule_uuid=MOLECULE, entries=[StructureEntry(molblock="", label="neutral")],
+    )
+    labelled = {fact.label: fact.display_value for fact in _view(one).facts}
+
+    assert labelled.get("Structures") == "1", labelled
+    assert not any("structures" in fact.display_value for fact in _view(one).facts), (
+        "the count was rendered as a sentence again, which brings the "
+        "pluralisation back with it"
+    )
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        PerAtomDataset(property_id="p", name="P", units="e", method="m",
+                       molecule_uuid=MOLECULE, values={0: 1.0}),
+        StructureSetResult(set_id="s", name="S", method="m", molecule_uuid=MOLECULE,
+                           entries=[StructureEntry(molblock="")]),
+        PhCurveResult(curve_id="c", name="C", method="m", molecule_uuid=MOLECULE,
+                      ph_values=[7.0], series={"a": [1.0]}),
+        TrajectoryResult(trajectory_id="t", name="T", method="m", molecule_uuid=MOLECULE,
+                         frames=["", ""], times=[0.0, 1.0], energies=[0.0, 0.0]),
+    ],
+    ids=lambda r: type(r).__name__,
+)
+def test_no_populated_result_projects_nothing(result):
+    """The blanket statement, so a NEW result kind cannot repeat this.
+
+    A kind with a payload must describe it. The panel's version of this
+    guarded against the bare word "Ready", which is what nine calculators
+    rendered as for months; here the equivalent failure is a projection
+    that returns no facts, leaving a populated result looking like one that
+    ran and found nothing.
+    """
+    facts = _view(result).facts
+    assert facts, f"{type(result).__name__} carries a payload and projected no facts"
+    assert any(fact.display_value for fact in facts), facts

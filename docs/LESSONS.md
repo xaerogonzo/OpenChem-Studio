@@ -6542,9 +6542,10 @@ as its narrow half.
 called "...lands in admet section" and built its OWN `AlertResult` with
 `category="admet"`, so it asserted the panel's ROUTING and could say nothing
 about where the real result goes. Its successor,
-`test_the_functional_groups_alert_lands_in_the_section_its_producer_names`, runs
-the shipped producer and reads the category off the result, so the two cannot
-drift again through it.
+`test_the_functional_groups_alert_arrives_under_the_section_ITS_PRODUCER_names`,
+runs the shipped producer and reads the category off the result, so the two
+cannot drift again through it. (Renamed at 2c: the row it landed in became a
+reader entry, and running the real producer is why it was written.)
 
 ### THE ALWAYS-ON ENTRY BELONGS TO NO SECTION, AND SAYS SO
 
@@ -7888,7 +7889,7 @@ called "...lands in admet section" and built its OWN `AlertResult` with
 `category="admet"`, so it asserted the panel's ROUTING and could say nothing
 about where the real result goes -- which is how one `report_id` came to
 declare two sections. Its successor,
-`test_the_functional_groups_alert_lands_in_the_section_its_producer_names`,
+`test_the_functional_groups_alert_arrives_under_the_section_ITS_PRODUCER_names`,
 runs the shipped producer and reads the category off the result.
 
 **The crash pair is satisfied**: there IS a summary line, and
@@ -12731,11 +12732,13 @@ pair each renders, and that is a property of the row it is rendering
 into. **The function owns which string is which; the call site owns how
 much room it has.**
 
-`test_a_wide_row_keeps_the_whole_reason_while_a_value_cell_takes_the_summary`
+`test_the_reader_keeps_the_WHOLE_reason_while_a_value_cell_takes_the_summary`
 asserts BOTH halves in one test, deliberately: "always use the summary"
-satisfies the descriptor half and "never use it" satisfies the alert
-half, so either alone is passed by the wrong rule. Mutated in both
-directions, caught in both.
+satisfies the descriptor half and "never use it" satisfies the other, so
+either alone is passed by the wrong rule. Mutated in both directions,
+caught in both. (2c moved the roomy half from the panel's wide row to the
+reader's summary line; the asymmetry it guards is unchanged, which is why
+the test moved rather than went.)
 
 This is "reusing a command whose invariants do not apply is not reuse",
 one layer down and in a presentation function rather than a command.
@@ -17965,3 +17968,225 @@ molecular table, and reports its own acceptor-number model failing outright
 relative criteria but not an absolute and quantitative model". Note the
 donor number is *defined* as −ΔH against SbCl₅, which is already in the
 Drago table — so that line is partly available already.
+
+## EMPTYING THE LAUNCHER IS HOW YOU FIND OUT WHAT ONLY THE LAUNCHER SAID
+
+Stage 2c, second half. The Properties panel stops rendering calculator
+RESULTS -- reports, alerts and result summaries -- and the useful part is
+not the deletion. Removing them was used as an INSTRUMENT: every claim the
+panel was carrying alone goes red the moment it stops carrying it. **Three
+were real gaps, and the third was found only because the second fix made
+it visible.**
+
+Measured on aspirin with six calculators run: **396 x 16,299 px of panel
+content becomes 396 x 801** -- 28 screens to 1.4 -- with 0 rendered-overflow
+findings at the default width, at 900 and at 1600, and 61 findings at
+tolerance -1000 so the check can still say no. The reader holds all of it:
+**15 results, 168 facts, 2 charts.**
+
+### THE FOUR CATALOGUES REACHED THE READER NEVER
+
+`_on_alert_computed` recorded a report `if not _is_catalog(alert):`, so
+PAINS, BRENK, mutagenicity alerts and hERG risk factors never entered
+`_reports` -- and `_reports` is what the reader is built from. Their only
+rendering anywhere was the red row in the panel, which is exactly why it
+read as a duplication to avoid rather than as the only copy.
+
+**IT MEANS STAGE 1a's HEADLINE WAS NOT QUITE TRUE.** "Every result kind
+reaches the reader" was measured through `summarise`, which could always
+project an alert; the PANEL was withholding one class of them, and no test
+asked the panel.
+
+**FOUR, COUNTED RATHER THAN QUOTED.** `is_catalog`'s own docstring said "5
+of 25 alert_ids are catalogs" and `test_report_adapter` repeated it.
+Walking every `AlertResult` construction in the tree gives 14, of which
+exactly four declare a non-INFO severity. The fifth was a regulatory screen
+that now publishes a `ReportResult` and never came through this gate at
+all. I had already written "five" into a commit message before counting,
+which is the same shape as the counts the docs guard exists for: a number
+inherited instead of measured. Both statements of it now carry a date.
+
+### THE VERDICT STOPPED AT THE PANEL, AND I NEARLY SHIPPED A COMMENT SAYING IT DID NOT
+
+Writing the removal I left a comment reading *"`_present_alert` is NOT
+orphaned by this: it is what the reader's own status line for an alert is
+built from."* Checking it: `_present_alert` had **no callers at all**, and
+`report_from_alert` **drops `severity`**. So the claim was false twice over
+-- and behind it was a real defect.
+
+Measured through the conversion:
+
+    clean PAINS               0 facts, no severity
+    clean elemental analysis  0 facts, no severity     <- IDENTICAL
+    flagged PAINS (WARNING)   1 heuristic fact
+    flagged mutagenicity      1 heuristic fact         <- IDENTICAL
+
+The panel painted those four differently -- a green "Clean", a neutral
+"Nothing to report.", amber, red. In the reader they were two pairs of
+indistinguishable things. **That is precisely the confusion
+`AlertResult.severity` was invented to end**, and its own docstring says
+so: the field exists "without it a renderer cannot tell 'this molecule
+contains a PAINS substructure' from 'this molecule weighs 43.025'". Once
+Properties stopped painting alerts, the reader WAS that renderer, and the
+adapter was handing it the verdict already discarded.
+
+`ReportResult` carries `severity` now and `report_from_alert` passes it
+through. `results_view._verdict_line` renders it -- "Checked, nothing
+flagged." for a clean catalog, a match COUNT for a flagged one, and silence
+for everything else. It counts rather than restating the matches, which are
+rendered in full below it: a third copy of one answer is what the rows were
+removed for.
+
+**THE COMMENT IS THE LESSON, NOT THE FIX.** A sentence asserting that
+something is still used is checkable in one grep, and I wrote it without
+one; had it shipped, the next reader would have had a documented reason not
+to look.
+
+### A CLEAN CATALOGUE ARRIVED AS NOTHING AT ALL
+
+The narrower half of the same finding: an `AlertResult` with no matches
+reaches the reader with no facts, no matched lines and no limitations, so
+focusing it showed a title and blankness -- the "0 facts. is not an
+explanation" case `_summary_for`'s own docstring names, arrived at from a
+second direction. `_empty_line` says a successful result produced nothing;
+`_verdict_line` overrides it where a catalog is entitled to a verdict.
+
+### DELETING A LINE NOTHING GUARDS, AND THE COMMENT THAT CAUGHT IT
+
+The first removal script took `_on_report_computed`'s substance-card feed
+with the rows, because the feed sits in the middle of the handler that
+built them. **Nothing went red.** `test_substance_card.py` builds a
+`SubstanceCard()` directly and calls `card_data_from_report` directly, so
+it proves the widget renders and the projection is right and says nothing
+about whether anything ever calls either.
+
+What caught it was the panel's own comment at the card's construction: *"A
+PERSISTENT header, not a result row."* Testing a helper is not testing the
+wiring -- and this time the prose was the only guard. There is a real one
+now, mutated in both directions.
+
+### THE SPLIT THE MEASUREMENT FOUND
+
+Emptying all four render paths fails 53 tests. Restoring the descriptor
+rows leaves **27**, so the population divides cleanly:
+
+    26  the 41 always-on descriptors
+    27  calculator RESULTS -- reports, alerts and result summaries
+
+They are different questions. A result is something somebody ran and can
+read in full elsewhere; the always-on descriptors are the molecule's
+standing properties, computed eagerly, and moving them is a separate
+product decision. The result half is where the height was: of 16,299 px,
+one `admet` row was 11,979 -- 73%.
+
+Of the 27: **fourteen converted, thirteen retired** against successors
+verified to cover them, not assumed to. Three more outside that set went
+red on the orphan cleanup and were converted too.
+
+**AND TWO OF THE RETIREMENTS WERE NEARLY WRONG.** A blanket conversion of
+the four alert-routing tests into one parametrised reader test would have
+dropped two things neither name mentions: one asserted the DEFAULT
+`AlertResult.category`, which every other test passes explicitly and so
+cannot see; the other deliberately ran the SHIPPED PRODUCER rather than a
+hand-built alert, because a hand-built one is how `functional_groups` came
+to declare `admet` in a test while its calculator declared `substructure`.
+Both are kept as their own tests. Reading what a test asserts is not the
+same as reading what it is named.
+
+### WHAT THE REMOVAL COST, MEASURED RATHER THAN ASSUMED
+
+**THE LONG-VALUE PROBLEM MOVED AND FOUR GUARDS DID NOT.** The panel had
+four tests on its spanning row; the reader's summary line is now the only
+surface in the application that renders a long value, and nothing had ever
+asked the question there. Measured on a 1366x768 window with a
+275-character refusal focused: window minimum **1024** and Results dock
+minimum **182**, identical empty and loaded. The `_wrap_scrollable` added
+in 2b holds it. One guard replaces the four, pinning the measurement.
+
+**A FIXTURE STOPPED PRODUCING THE THING IT WAS NAMED FOR.**
+`_panel_with_a_long_result` published a long geometry alert that now
+renders nothing, so three assertions walked an EMPTY `_alert_labels` and
+passed by iterating nothing. Renamed to what it makes. Giving it a
+replacement long value was tried and reverted: `_widest_floor` is measured
+from that panel and four other tests build panels at that width, so one
+extra failed descriptor put six value cells 22 px past the viewport in a
+test with nothing to do with it.
+
+**"Details..." BECAME THE STATUS CHIP.** The button lived in the result's
+row. The chip was already a `QPushButton` for exactly this reason, so the
+control exists; the test that presses it presses the chip now, still the
+real control rather than the handler, because the handler reads
+`sender()`.
+
+**AND THE EXPLICIT-RUN REVEAL BECAME A FOCUS.** `_reveal` scrolled an
+inline result into view, and was the answer to "the ADMET calculator
+produces nothing" -- it produced everything, 900 px down a 372 px viewport
+inside a collapsed section. There is no row to scroll to, so the request is
+answered where the result is: the reader, focused by `report_id`, which
+also records the position so a reader opened later is already on it. It
+does NOT reveal the reader -- a press in one panel is not consent to
+rearrange another, and 2c's rule is that Properties stays useful while
+Results is hidden.
+
+**WHAT IS GENUINELY DIFFERENT, AND IS A PRODUCT CALL RATHER THAN A BUG:**
+the four catalogues have no chip, because a chip belongs to a calculator
+row and they are always-on perceptions with no button. They now appear in
+Properties **not at all** -- a flagged PAINS is one panel away instead of
+on screen. That is a deliberate consequence of the launcher/reader split
+and it should be looked at with the descriptor decision, not assumed
+settled.
+
+### AND A GUARD WHOSE WHOLE SUBJECT IS THIS HAS THE MIRROR BLIND SPOT
+
+`test_constant_docs.py` exists for a `#:` block orphaned from its constant:
+a constant INSERTED under someone else's block leaves the original bare,
+which falls into the recorded set and is caught. Delete the constant
+instead and nothing falls anywhere -- the block simply becomes the next
+constant's documentation, silently.
+
+That had already happened here. `_PAYLOAD_FIELDS` was removed in `366aad2`
+and its block was not, so `_CALCULATOR_ID_PROPERTY` had been sitting under
+a description of a payload table ever since, with the guard green. It
+surfaced only because deleting the dead block made the constant go bare.
+
+The structural tell is gone in that direction, but a textual one survives:
+the orphaned block cited a test module that had stopped existing -- and
+naming it here would be the same dead reference one file along, which is
+why this says what it was rather than which.
+`docs/` has had a "every test a doc names still exists" guard since the
+calculator-reference work; **the source tree never did**, and it carries 51
+test-file citations. It does now. Deliberately file names only -- the
+extensionless form gives 66 candidates over the tree, almost all of them
+either the same citation in another style or the tail of a sentence that
+wrapped mid-identifier, and a population that is mostly false positives is
+a guard nobody keeps.
+
+### NINE ARMS, NINE CAUGHT
+
+    E1  the verdict stops at the adapter again      3 tests
+    E2  the reader gives no verdict at all          3
+    E3  every result gets a verdict, catalog or not 2
+    E4  the substance card is never fed             2
+    E5  the explicit run is not focused             1
+    E6  every arriving result moves the reader      2
+    E7  the pending request is left set             1
+    E8  the metrics dump is never scheduled         1
+    E9  an empty successful result says nothing     1
+
+E3 and E6 are the narrow halves, and both are the mutation that satisfies
+the obvious guard while losing the case beside it. E8 is worth its own
+note: the instrumented shot was scheduled from a report row, so removing
+the rows left it with no scheduler at all -- an instrument that never arms
+and a lifetime guard that passes by never firing. It hangs off a descriptor
+row now, which is where the rows are.
+
+### AND THE CHIPS ARE PHOTOGRAPHED AT LAST
+
+Three drive attempts in the first half of 2c reached section headings
+rather than calculator rows, because the panel was 16,299 px tall and its
+rows sat below sections collapsed by default. At 801 px the whole section
+list fits one screen: green **✓ Ready** beside Elemental Analysis and
+Substance & Bonding, grey **Not run** beside Mass Spectrum, and the
+Identity section's three buttons reachable in one frame. The shot is what
+the first half could not produce, and it is the same measurement that made
+it possible.

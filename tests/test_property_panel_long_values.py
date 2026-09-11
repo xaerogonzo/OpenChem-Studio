@@ -94,7 +94,26 @@ def _required_height(label: QLabel) -> int:
     return metrics.boundingRect(QRect(0, 0, width, 0), int(flags), label.text()).height()
 
 
-def _panel_with_a_long_result(qapp, width: int, height: int = 1000):
+def _panel_with_rows(qapp, width: int, height: int = 1000):
+    """The panel's ordinary rows, settled.
+
+    **IT USED TO PUBLISH A LONG GEOMETRY ALERT AND WAS NAMED FOR IT.** 2c
+    took the alert row out, so that publication built nothing, and every
+    assertion that walked `_alert_labels` walked an EMPTY dict and passed
+    by iterating nothing -- a fixture that quietly stops producing the
+    thing it is named for is exactly how this file's own history says a
+    guard goes green while the app is visibly broken. It is named for what
+    it actually makes now.
+
+    Deliberately NOT given a replacement long value. `_widest_floor` is
+    measured from this panel and several tests build other panels at that
+    width, so changing what it contains moves a number four other tests
+    depend on -- measured: adding one failed descriptor put six value
+    cells 22 px past the viewport in a test that had nothing to do with
+    it. The panel's remaining long string is a failed descriptor's reason,
+    and `test_a_failed_descriptors_reason_does_not_widen_the_panel` builds
+    its own panel to hold it.
+    """
     bus = EventBus()
     panel = PropertyPanel(bus, CalculatorRegistry(), _FakeService(), ChemistryEngine())
     bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
@@ -113,19 +132,6 @@ def _panel_with_a_long_result(qapp, width: int, height: int = 1000):
                 )
             )
         )
-    bus.publish(
-        AlertComputed(
-            alert=AlertResult(
-                alert_id="geometry_analysis",
-                name="Geometry",
-                molecule_uuid="mol-1",
-                matched=GEOMETRY_LINES,
-                category="physicochemical",
-                cache_state=CacheState.COMPLETED,
-                provenance=Provenance(created_by="core", method="test"),
-            )
-        )
-    )
     for section in panel._sections.values():
         section.set_expanded(True)
     panel.resize(width, height)
@@ -167,7 +173,7 @@ def _widest_floor(qapp) -> int:
 
     The larger of the two is the only value that satisfies both.
     """
-    panel = _panel_with_a_long_result(qapp, width=400, height=1000)
+    panel = _panel_with_rows(qapp, width=400, height=1000)
     try:
         panel.resize(1, panel.height())
         for _ in range(20):
@@ -196,7 +202,7 @@ def _panel_forced_to_scroll(qapp, width: int):
     """
     from PySide6.QtWidgets import QScrollArea
 
-    panel = _panel_with_a_long_result(qapp, width=width, height=1000)
+    panel = _panel_with_rows(qapp, width=width, height=1000)
     scroll = panel.findChild(QScrollArea)
     assert scroll is not None
     wanted = scroll.widget().sizeHint().height()
@@ -238,73 +244,6 @@ def test_the_probe_can_see_a_clip_at_all(qapp):
 _WRAPPED_FRACTION = 0.8
 
 
-def test_a_long_result_gets_the_whole_panel_width(qapp):
-    """170 px is what the running app's right-hand dock gave this panel,
-    and the panel now refuses to be that narrow.
-
-    ASSERTS THE WRAP, NOT A LINE COUNT, and that is not a weaker check --
-    it is the only one that means the same thing on both platforms. The
-    suite runs `QT_QPA_PLATFORM=offscreen`, whose default font is much
-    wider than the real one: the longest line here needs 187 px on the
-    platform a user sees and 420 px offscreen. A "renders in six lines"
-    assertion would therefore be asserting the test environment's font.
-    The row WRAPPING is font-independent, and it is the thing the fix
-    actually does.
-    """
-    panel = _panel_with_a_long_result(qapp, width=170)
-    try:
-        label = next(iter(panel._alert_labels.values()))
-        assert label.contentsRect().width() >= _WRAPPED_FRACTION * panel.width()
-    finally:
-        _dispose(panel, qapp)
-
-
-def test_it_keeps_the_whole_width_across_the_range_the_dock_produces(qapp):
-    """Not a single lucky width. The dock is user-resizable, so the
-    property has to hold across the range rather than at one point --
-    including the ~300 px dead zone where a smaller minimum left the
-    field column too narrow to fit the text and too wide to trigger the
-    wrap."""
-    for width in (170, 240, 300, 400):
-        panel = _panel_with_a_long_result(qapp, width=width)
-        try:
-            label = next(iter(panel._alert_labels.values()))
-            assert label.contentsRect().width() >= _WRAPPED_FRACTION * panel.width(), width
-        finally:
-            _dispose(panel, qapp)
-
-
-def test_nothing_is_actually_clipped(qapp):
-    """The original complaint: text cut mid-glyph. Distinct from the
-    ribbon problem above -- a label can use the right number of lines and
-    still be given too little height for them."""
-    panel = _panel_with_a_long_result(qapp, width=170)
-    try:
-        for label in panel._alert_labels.values():
-            assert _required_height(label) - label.contentsRect().height() <= 1
-    finally:
-        _dispose(panel, qapp)
-
-
-def test_a_short_value_still_shares_its_row_with_its_label(qapp):
-    """The cost this fix exists to AVOID.
-
-    `WrapAllRows` also renders long values correctly and was measured at
-    +75% section height, because it moves every short scalar onto two
-    rows and this panel is mostly short scalars. Short values must keep
-    sharing a row, so the fix has to be selective.
-    """
-    panel = _panel_with_a_long_result(qapp, width=240)
-    try:
-        short = next(iter(panel._value_labels.values()))
-        long_value = next(iter(panel._alert_labels.values()))
-        # A shared row puts the value to the RIGHT of its label, so it
-        # starts well into the panel; a wrapped row starts at the left.
-        assert short.x() > long_value.x()
-    finally:
-        _dispose(panel, qapp)
-
-
 def test_no_layout_in_a_section_offers_a_height_for_width(qapp):
     """The mechanism that makes long values work, asserted where it lives.
 
@@ -322,7 +261,7 @@ def test_no_layout_in_a_section_offers_a_height_for_width(qapp):
     This test is the guard on the answer, so it checks the whole chain
     rather than one widget.
     """
-    panel = _panel_with_a_long_result(qapp, width=280)
+    panel = _panel_with_rows(qapp, width=280)
     try:
         for name, section in panel._sections.items():
             if section.isHidden() or not section.is_expanded():
@@ -363,40 +302,6 @@ def test_the_wrap_policy_is_the_one_that_can_be_free_of_height_for_width(qapp):
         )
     finally:
         section.deleteLater()
-
-
-def test_a_long_value_is_added_as_a_spanning_row(qapp):
-    """The full width comes from a SPANNING row now, not from the wrap
-    policy -- so it must actually be one.
-
-    The old mechanism forced the field's minimum wide enough that Qt had
-    to wrap the row. That minimum was also a minimum on the CONTENT, so
-    below ~360 px the panel scrolled sideways instead of wrapping. Asking
-    for a spanning row says the same thing with nothing forced wide, and
-    `test_the_panel_never_scrolls_sideways` is what holds that gain.
-    """
-    from PySide6.QtWidgets import QFormLayout
-
-    panel = _panel_with_a_long_result(qapp, width=280)
-    try:
-        long_value = next(iter(panel._alert_labels.values()))
-        form = None
-        for section in panel._sections.values():
-            if long_value in section.content.findChildren(type(long_value)):
-                form = section.content_layout()
-                break
-        assert form is not None, "the long value is not in any section"
-        spanning = [
-            form.itemAt(row, QFormLayout.ItemRole.SpanningRole)
-            for row in range(form.rowCount())
-        ]
-        holders = [item.widget() for item in spanning if item is not None]
-        assert any(long_value in holder.findChildren(type(long_value)) for holder in holders), (
-            "the long value is not in a spanning row, so it only has the "
-            "field column's width"
-        )
-    finally:
-        _dispose(panel, qapp)
 
 
 def test_an_explicit_height_label_never_offers_a_height_for_width_after_setText(qapp):
@@ -925,30 +830,36 @@ def test_the_two_reported_lines_render_in_full(qapp):
         the row is actually PAINTED     a widget can satisfy both above
                                         while drawing nothing at all
 
-    **Byte-equality is about the STORED text, not the visual layout.** The
-    value wraps across several lines on screen and is expected to; what must
-    not happen is a character going missing, or somebody "fixing" the width
-    by trimming the sentence. Taking the strings from
-    `compute_regulatory_screen` is what makes the second of those fail here.
+    **THE SURFACE MOVED AND THE STRINGS DID NOT.** This was asserted
+    against the Properties panel's report row until 2c removed it; the
+    results reader renders these two now, and it is the only place in the
+    application that renders a long value at all. Driven through the panel
+    rather than by feeding the reader directly, because "the regulatory
+    screen reaches a reader" is the half only the wiring can be wrong
+    about -- and four catalogues were, silently, for the whole of stage 1.
 
-    **THE PANEL IS SIZED FROM ITS OWN CONTENT, AND THAT IS NOT A DODGE.**
+    **Byte-equality is about the STORED text, not the visual layout.** The
+    value wraps across several lines on screen and is expected to; what
+    must not happen is a character going missing, or somebody "fixing" the
+    width by trimming the sentence. Taking the strings from
+    `compute_regulatory_screen` is what makes the second of those fail
+    here.
+
+    **THE READER IS SIZED FROM ITS OWN CONTENT, AND THAT IS NOT A DODGE.**
     These are REAL strings of fixed length, so any width asserted against
     them is really an assertion about the font -- and the suite runs
     `offscreen`, whose default font this file already records as more than
-    twice as wide as the one a user sees (187 px against 420 for the same
-    line). Pinned at a fixed width this test failed by 40 px on a panel that
-    is measurably clean in the running app. Giving the panel room for its
-    content first keeps the claim font-independent: *given somewhere to put
-    it, none of this text is painted outside the viewport*. The claim that
-    the panel FITS at its own minimum is a different one, and it is made by
-    the three tests above, whose captions are sized from font metrics and so
-    mean the same thing on every platform.
+    twice as wide as the one a user sees. Given somewhere to put it, none
+    of this text may be painted outside the viewport. Whether the reader
+    FITS at its minimum is a different claim, and
+    `tests/test_right_dock_width.py` is where it is made.
     """
     from rdkit import Chem
 
     from openchem.chem.regulatory.calculator import compute_regulatory_screen
     from openchem.events.events import ReportComputed
     from openchem.ui.panels.property_panel import rendered_overflow
+    from openchem.ui.widgets.results_view import ResultsView
     from tests.conftest import ink
 
     mol = Chem.MolFromSmiles("COP(C)(=O)OC")  # dimethyl methylphosphonate
@@ -961,38 +872,54 @@ def test_the_two_reported_lines_render_in_full(qapp):
     for report, expected in ((screened, legitimate.display_value), (refused, refused.error)):
         bus = EventBus()
         panel = PropertyPanel(bus, CalculatorRegistry(), _FakeService(), ChemistryEngine())
+        reader = ResultsView()
         try:
+            panel.attach_reader(reader)
             bus.publish(MoleculeSelected(molecule_uuid="mol-1"))
             bus.publish(ReportComputed(report=report))
-            for section in panel._sections.values():
-                section.set_expanded(True)
-            panel.resize(_widest_floor(qapp) + 1, 500)
-            panel.show()
+            reader.set_focus("regulatory_screen")
+            reader.resize(420, 700)
+            reader.show()
             _settle(qapp)
 
             # Room for the content, whatever this platform's font makes of
             # it -- see the docstring. The vertical scrollbar's width is
             # added back because it is taken off the viewport, which is the
             # very subtraction that produced the original defect.
-            scroll = panel.findChild(QScrollArea)
+            scroll = reader.findChild(QScrollArea)
             needed = scroll.widget().minimumSizeHint().width()
             bar = scroll.verticalScrollBar().sizeHint().width()
-            panel.resize(max(panel.width(), needed + bar + 8), 500)
+            # **MEASURED FROM THE VIEWPORT, NOT FROM THE WIDGET.** The
+            # reader wraps its fact area in a header, a selector and two
+            # frames, so its own width runs ~62 px ahead of the viewport
+            # the rows are laid out in. Sizing to `needed + bar` alone left
+            # the viewport 14 px short and reported every row as overflow
+            # -- uniformly, whatever its text, which is the tell that the
+            # container and not the string was short.
+            chrome = reader.width() - scroll.viewport().width()
+            reader.resize(max(reader.width(), needed + chrome + bar + 8), 700)
             _settle(qapp)
 
-            label = panel._report_labels["regulatory_screen"]
-            assert expected in label.text(), (
-                f"the panel dropped part of the message.\n  wanted: {expected!r}\n"
-                f"  showed: {label.text()[:300]!r}"
+            painted = [
+                label for label in reader.findChildren(QLabel)
+                if expected in label.text()
+            ]
+            assert painted, (
+                f"the reader dropped part of the message.\n  wanted: {expected!r}\n"
+                f"  showed: "
+                f"{[lbl.text()[:120] for lbl in reader.findChildren(QLabel) if lbl.text()]!r}"
             )
-            viewport = panel.findChild(QScrollArea).viewport().width()
-            findings = rendered_overflow(panel)
+            viewport = scroll.viewport().width()
+            findings = rendered_overflow(reader)
             assert not findings, "\n".join(
                 [f"the reported line overflowed (viewport {viewport}):"]
                 + ["  " + finding.describe(viewport) for finding in findings]
             )
-            assert ink(label) > 0, "the row holds the text and paints nothing"
+            assert any(ink(label) > 0 for label in painted), (
+                "the reader holds the text and paints nothing"
+            )
         finally:
+            _dispose(reader, qapp)
             _dispose(panel, qapp)
 
 

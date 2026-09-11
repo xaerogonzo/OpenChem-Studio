@@ -729,6 +729,16 @@ document may cite a file or a test that does not exist.
   why four defects shipped green. `tests/test_property_panel_result_rows.py`
   covers it now, mutation-tested against all four.
 
+  **CORRECTION, 2026-09-10: the four claims moved with the rows.** Stage
+  2c makes Properties a launcher, so `_on_report_computed` builds no rows
+  and the file named above holds only what the PANEL can still be wrong
+  about. The four are guarded one surface along --
+  `tests/test_result_summaries.py` for the per-kind projections and
+  `tests/test_property_panel_reader.py` for the wiring that carries a
+  result to the reader at all -- and both were mutation-tested at the
+  move. The sentence above is kept because how the defects were FOUND is
+  the durable part.
+
   The three leads recorded here, for the record of how leads mislead:
   the report-row truncation fix (wrong -- it was the earlier
   `ReportResult` migration, `f8a3cdc`); the `PeriodicTableDialog` lambda
@@ -1491,6 +1501,16 @@ document may cite a file or a test that does not exist.
   worse than the wrapping it replaced. So it swaps one documented
   behaviour for another rather than fixing both.
 
+  **CORRECTION, 2026-09-10: those five guards no longer exist.** Stage 2c
+  removed the spanning row they were written against, so the trade above
+  cannot be re-run as stated. The question it was about did not go away --
+  it moved to the results reader, which is now the only surface in the
+  application that renders a long value, and
+  `tests/test_results_dock.py::test_a_long_reason_in_the_reader_does_not_widen_the_window`
+  is what holds it there. Measured at the move: a 275-character refusal
+  leaves the window minimum at 1024 and the Results dock minimum at 182,
+  identical to empty.
+
   Three options were weighed and the third was built -- it is the one
   described at the top of this entry. The other two are recorded because
   each is a trap that looks like a fix:
@@ -1539,10 +1559,13 @@ document may cite a file or a test that does not exist.
   - **The suite's `QT_QPA_PLATFORM=offscreen` uses a different font.** The
     same line needs 187 px on the platform a user sees and 420 px
     offscreen, so a "renders in six lines" assertion measures the test
-    environment. `tests/test_property_panel_long_values.py` asserts the
-    WRAP instead, which is font-independent. Note it does NOT catch the
+    environment. `tests/test_property_panel_long_values.py` asserted the
+    WRAP instead, which is font-independent. Note it did NOT catch the
     240 px case -- the live check did, and that gap is why the panel
     minimum needs re-checking in the app rather than in the suite.
+    (2026-09-10: the wrap assertions went with the spanning row in 2c; the
+    font-independence REASONING is what survives, and the converted
+    reader test sizes from the viewport for exactly this reason.)
 
   The in-process probe that once said "ok" was CIRCULAR and must not be
   repeated: it compared each label's `height()` against its own
@@ -1661,9 +1684,17 @@ document may cite a file or a test that does not exist.
     Anchoring the row's TOP does not depend on its final height, so it is
     right whenever it runs.
 
-  Guards: `test_an_explicitly_run_row_result_is_scrolled_into_view` and
-  `test_a_result_nobody_asked_for_does_not_hijack_the_scroll`. Both
+  Guards: `test_an_explicitly_run_calculator_is_FOCUSED_in_the_reader` and
+  `test_a_result_nobody_asked_for_does_not_move_the_reader`. Both
   mutation-tested, including against the `ensureWidgetVisible` version.
+
+  **2026-09-10: the scroll became a focus.** 2c leaves the two inline
+  kinds with no row to scroll to, so the request is answered where the
+  result now is -- the reader, focused by `report_id`, which also records
+  the position so a reader opened afterwards is already on it. It
+  deliberately does NOT reveal the reader: whether Results is on screen is
+  a layout question, and a press in one panel is not consent to rearrange
+  another.
 - **DECISION** -- a derived IUPAC name that fails its OPSIN round trip
   stays WITHHELD. This was open as "worth deciding whether to show the
   withheld name marked as unverified rather than nothing at all", on the
