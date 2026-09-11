@@ -211,6 +211,20 @@ class Fact:
     #: viewer, and an out-of-range index raised `RuntimeError: Range Error`
     #: inside a Qt signal handler the last time this was assumed.
     highlight: tuple[int, ...] = ()
+    #: A stable SEMANTIC identifier for what this fact MEANS, which a view
+    #: resolves to a help contract -- `descriptor.tpsa`.
+    #:
+    #: **AN ID, NEVER A `HelpTooltip`.** That class is a UI object, and a
+    #: domain dataclass holding one would put presentation inside `domain/`
+    #: -- the layering `tests/test_layering.py` enforces. The producer names
+    #: the concept; `ui/fact_help.py` says what the concept means.
+    #:
+    #: Empty means "nothing written for this one", which is the ordinary
+    #: case and not a failure: a calculator's facts already carry their own
+    #: evidence and limitations on the row, and the registry exists for
+    #: values that have nowhere else to say what they are. It defaults to
+    #: empty so every existing producer is untouched.
+    help_id: str = ""
 
     @property
     def value_with_units(self) -> str:

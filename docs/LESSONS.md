@@ -18362,3 +18362,156 @@ expensive trap this file records.
 F4 and F7 are the narrow halves. F2's sixteen is the shape of the change: the
 panel's one remaining job for a descriptor is to hand it on, so severing that
 takes everything with it.
+
+## A CONTRACT FOLLOWS THE VALUE, NOT THE WIDGET
+
+Stage 2d, and the last of Stage 2. The 41 always-on descriptors get help
+contracts, the reader's fact CAPTION carries them, and `Fact` gains a
+`help_id` to join the two.
+
+### THE RECORDED HOLE WAS ALREADY CLOSED, BY DELETION
+
+The plan called for extending the tooltip coverage guard to "runtime-built
+rows with a molecule selected", on the ground that the `controls` fixture
+builds a `MainWindow` with no molecule and so had never seen the descriptor
+rows -- a real hole under a green guard.
+
+**MEASURED FIRST, AND THE HOLE HAD MOVED.** With a molecule selected and
+the reader showing the aggregate, the walk finds 478 controls against 473,
+and **0 uncontracted in both states**. 2c deleted the rows that were the
+hole. What the walk finds inside the `FactView` is 13 controls -- the search
+box, two combo boxes, the copy button and five section toggles -- and **not
+one of the 41 rows**, because `_INTERACTIVE` is buttons, combos, spin boxes,
+line edits and sliders, and a caption is a `QLabel`.
+
+So widening the walk would have closed nothing. What replaced the rows is
+DATA, and data needs a guard of its own: `tests/test_fact_help.py` holds the
+registry, and the population it walks comes off the spec tables rather than
+being typed out.
+
+### THE CAPTION IS WHAT YOU HOVER, AND IT CARRIED NOTHING
+
+`addRow(fact.label, value)` has Qt build the label for you, and a label Qt
+built carries no tooltip. So the provenance went on the VALUE and the
+question people actually ask -- what IS this -- was answered nowhere. That
+is the complaint the whole help layer started from: somebody asked what the
+docking table's "RMSD l.b." column meant and the application had no answer.
+
+Two questions, two halves of the row: **the name says what the quantity is,
+the number says where it came from.** Folding both into one tooltip makes
+the long one unreadable. A fact with no contract falls back to the
+provenance rather than to nothing, because a dead hover on the thing a
+reader points at first is worse than a repeated one.
+
+Measured in the running application on the real descriptor batch: **41
+facts, 41 captions carrying a contract, 0 missing** -- and the reader's
+geometry is unchanged, 0 findings at 900 and 1600 with the same painted-item
+counts as before the change.
+
+### THE TEXT DESCRIBES WHAT SHIPS, NOT WHAT THE PAPER SAYS
+
+Several of these filters are documented approximations, and the contracts
+had to be written against the code rather than from memory of the
+literature:
+
+    Ghose         bounds HEAVY atoms 20-70; the original bounds all atoms
+    Egan          a rectangle, -1 <= LogP <= 5.88; the paper is an ellipse
+    Rule of Three has NO rotatable-bond term here, so it is more permissive
+    BBB           TPSA <= 90 and MW <= 450 -- not Clark's regression
+    Bioavailable  not the Abbott Bioavailability Score it is named after
+    Pfizer 3/75   inverted, so PASS is the absence of a risk flag
+    GSK 4/400     likewise
+
+A tooltip quoting a threshold the code does not use is worse than no
+tooltip, so each of those says the shipped rule and names the difference.
+Twelve contracts cite a source key from the registry; the guard resolves
+every one.
+
+### A `help_id`, NEVER A `HelpTooltip`
+
+`Fact.help_id` is a stable semantic identifier and nothing else.
+`HelpTooltip` is a UI object, and a domain dataclass holding one would put
+presentation inside `domain/` -- the layering this repository enforces. The
+producer names the concept, `ui/fact_help.py` says what the concept means,
+the view renders it.
+
+**THE ID SCHEME LIVES WITH THE PRODUCER FOR THE SAME REASON.** `domain/`
+cannot import `ui/`, so `DESCRIPTOR_HELP_PREFIX` is in
+`descriptor_aggregate.py` and the registry imports it. Two copies of the
+string would be the drift this project has paid for four times.
+
+`descriptor.` and not `properties.` or `results.`: a help id names a concept
+and must survive the UI being reorganised -- and these 41 values have just
+moved panels once.
+
+### I CARRIED A FINDING FOR FOUR SESSIONS AND IT WAS NOT ONE
+
+Recorded and repeated across several handovers: "**56 of 173 `HelpTooltip`
+sites declare a `topic` that resolves to nothing**, including `'periodic
+table'` where the key is `periodic-table`".
+
+The measurement is right -- 56 of 175 now, across 9 distinct topics. **The
+conclusion was wrong.** `HelpTooltip.topic`'s own docstring says it is
+"Grouping only. NEVER validated against anything, and no consumer may treat
+it as a documentation identity -- that is `help_anchor`'s job, and a field
+with two jobs is a pair that can disagree." Checked: the only consumer is
+`tools/list_tooltips.py`, which prints it as a JSON field. The `.topic`
+hits elsewhere are a different object entirely -- `help_docs.topic(key)`,
+the help-document topic.
+
+**WHAT MADE IT LOOK LIKE A BUG IS THE COINCIDENCE: 119 of the 175 DO match
+an anchor name.** Two namespaces that overlap by four fifths read as one
+namespace with holes in it. The field's docstring anticipated exactly this
+reader and said so, and I did not check it before writing the finding down
+four times.
+
+Nothing is changed for it. The correction is the entry.
+
+### THE PROSE FLOOR MOVED, AND NEARLY LOST ITS CONTROL
+
+`placeholder_reason` moved out of `test_tooltip_coverage.py` into
+`help_tooltip.py` so the two populations are held to one standard rather
+than two that drift -- a test module importing another test module is the
+smell this repository already names.
+
+**WHAT DID NOT COME WITH IT WAS A TEST THAT IT EVER SAYS NO.** Both callers
+assert `is None`, so a mutation disabling the degenerate-text branch changed
+nothing anywhere, and so did one disabling the length floor. Found by
+running both arms and watching them survive. The rule has its own control
+now, in both directions.
+
+Deliberately not folded into `validate()`: that is the structural contract
+every construction must satisfy, and this is a floor on PROSE -- raising
+there would make a half-written tooltip unconstructible mid-edit.
+
+### ELEVEN ARMS, ELEVEN CAUGHT -- AFTER TWO SURVIVED
+
+    G1  the aggregate stamps no help_id            2 tests
+    G2  the caption is never given its contract    1
+    G3  a fact with no contract has a dead caption 1
+    G4  the value loses its provenance             1
+    G5  a contract restates its own name           1
+    G6  a contract cites an unknown source         1
+    G7  a contract claims an unknown anchor        1
+    G8  producer and registry disagree on the id   3
+    G9  one descriptor has no contract             3
+    G10 the degenerate-text branch is disabled     1
+    G11 the tier length floor is disabled          1
+
+**G5 SURVIVED THE FIRST TIME AND THE REASON IS WORTH KEEPING.** The
+anti-restatement guard stripped the display name out of the text and
+required eight words to remain. Fed "The Spherocity Index of this conformer,
+which is the spherocity index. Spherocity Index." it saw NINE tokens and
+passed -- because `split()` counted two orphaned full stops as words. It
+counts `[a-z0-9]+` matches now, which gives seven, and the arm is caught.
+
+G4 is the narrow half: moving the meaning onto the caption must not take the
+provenance off the value.
+
+### AND THE CONSTANT GUARD CAUGHT ME COMMITTING ITS OWN MOTIVATING DEFECT
+
+`test_constant_docs.py` exists because a new constant was once inserted
+between a `#:` block and the constant that block was written for, leaving
+the original undocumented. I put `DESCRIPTOR_HELP_PREFIX` immediately above
+`DESCRIPTOR_AGGREGATE_ID` and it took its doc comment -- the same defect,
+in the same shape, caught within the hour by the guard written for it.

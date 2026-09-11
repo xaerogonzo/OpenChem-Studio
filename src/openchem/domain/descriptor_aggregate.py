@@ -55,6 +55,28 @@ from openchem.domain.result_ordering import ALWAYS_ON
 #: with it; `test_the_aggregate_id_is_not_a_registered_calculator` holds that.
 DESCRIPTOR_AGGREGATE_ID = "molecular_properties"
 
+#: The prefix every descriptor's help contract id carries.
+#:
+#: **IT LIVES HERE BECAUSE THE PRODUCER STAMPS IT.** `ui/fact_help.py` holds
+#: what each id MEANS and imports this; the reverse would be `domain/`
+#: importing `ui/`, which `tests/test_layering.py` refuses. Two copies of
+#: the string would be the drift this project has paid for four times.
+#:
+#: `descriptor.` and NOT `properties.` or `results.`: a help id names a
+#: concept and must survive the UI being reorganised, and these values have
+#: just moved panels once.
+#:
+#: **THIS WAS INSERTED ABOVE `DESCRIPTOR_AGGREGATE_ID` AND STOLE ITS DOC
+#: COMMENT**, which is the precise defect `tests/test_constant_docs.py`
+#: exists for -- and the guard caught it within the hour.
+DESCRIPTOR_HELP_PREFIX = "descriptor."
+
+
+def descriptor_help_id(descriptor_id: str) -> str:
+    """The contract id a descriptor's fact carries."""
+    return f"{DESCRIPTOR_HELP_PREFIX}{descriptor_id}"
+
+
 #: What the entry is called on screen.
 DESCRIPTOR_AGGREGATE_NAME = "Molecular Properties"
 
@@ -156,6 +178,12 @@ def fact_for(descriptor: DescriptorValue) -> Fact:
         basis=_basis_for(descriptor),
         units=descriptor.units,
         limitations=limitations,
+        # WHAT THIS VALUE MEANS, by id. The 41 always-on descriptors are
+        # read here and nowhere else now, so this is the only place a
+        # reader can be told what "Spherocity Index" is -- and while the
+        # Properties panel drew them, every success branch of that row
+        # ended `setToolTip("")`.
+        help_id=descriptor_help_id(descriptor.descriptor_id),
     )
 
 

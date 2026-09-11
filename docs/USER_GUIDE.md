@@ -909,6 +909,23 @@ They answer different questions, so neither one can stand in for the
 other. Filtering the list never changes what you are currently reading:
 the entry in view stays in the list whether or not it matches.
 
+### Hovering a value
+
+Each row answers two different questions, and they are on two different
+halves of it:
+
+- hover the **name** and you get what the quantity IS — a definition plus
+  the qualifier that matters most, such as the unit, the range, or the
+  thing it is easy to read it as and should not be. The forty-one
+  always-on **Molecular Properties** all carry one.
+- hover the **value** and you get where it came FROM — the producer, the
+  basis (deterministic or heuristic), and any evidence or limitations the
+  calculator declared.
+
+A value with nothing written about its meaning shows its provenance on both
+halves rather than nothing on one. For a calculator's own facts that is
+usually the whole answer anyway.
+
 ### Summaries, and opening the whole thing
 
 Not every calculator produces a list of facts. A per-atom dataset, a curve,

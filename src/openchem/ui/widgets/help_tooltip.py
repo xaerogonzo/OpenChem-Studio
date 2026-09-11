@@ -65,6 +65,55 @@ _WIDGET_WORDS = frozenset({
 })
 
 
+#: Contract text rejected outright. A FLOOR, NOT A QUALITY ORACLE -- and
+#: what is deliberately excluded matters as much as what is here: no
+#: label-overlap detection, no noun/verb heuristics, no word-count rules, no
+#: "must contain units" regexes, no LLM grading. Every one of those turns a
+#: useful structural check into a brittle pseudo-language-model that is
+#: satisfied by nonsense like "Maximum poses. Higher values."
+DEGENERATE_TEXT = frozenset({
+    "options", "settings", "choose a value", "select a value",
+    "input", "value", "details", "help",
+})
+
+#: Tiers 2 and 3 must say more than a label restated. Conservative on
+#: purpose: long enough to exclude "Poses." and short enough not to become a
+#: writing-style rule.
+MINIMUM_LENGTH = {2: 40, 3: 80}
+
+
+def normalised_text(text: str) -> str:
+    """Case, whitespace and a trailing stop removed, for comparison only."""
+    return " ".join(text.casefold().split()).rstrip(".")
+
+
+def placeholder_reason(tooltip: "HelpTooltip") -> str | None:
+    """Why this contract is a placeholder, or None if it is not.
+
+    **IT LIVES IN PRODUCTION BECAUSE TWO GUARDS ASK IT.** The control walk
+    covers what a user operates; a `Fact`'s contract is attached to a
+    caption label, which is not an interactive widget and so is outside
+    that universe entirely. Both must hold contracts to one standard, and
+    the alternative -- a test module importing another test module -- is the
+    smell `test_the_guide_states_the_real_number_of_collapsible_categories`
+    already names.
+
+    Deliberately NOT part of `validate()`: that is the structural contract
+    every construction must satisfy, and this is a floor on PROSE. Raising
+    here would make a half-written tooltip unconstructible mid-edit, which
+    is a different and worse bargain.
+    """
+    normalised = normalised_text(tooltip.text)
+    if normalised in DEGENERATE_TEXT:
+        return f"placeholder text {tooltip.text!r}"
+    floor = MINIMUM_LENGTH.get(tooltip.tier)
+    if floor is not None and len(normalised) < floor:
+        return (
+            f"tier {tooltip.tier} but only {len(normalised)} characters: {tooltip.text!r}"
+        )
+    return None
+
+
 class HelpTooltipError(ValueError):
     """A contract that cannot be right whatever the repository contains."""
 
