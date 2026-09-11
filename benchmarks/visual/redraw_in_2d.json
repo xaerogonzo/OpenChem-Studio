@@ -1,0 +1,59 @@
+[
+  {
+    "do": "smiles",
+    "smiles": "C[C@H]1CC[C@H]2[C@H]3Cc4ccc(O)c5c4[C@@]2(CCN3C)[C@H]1O5",
+    "name": "redraw"
+  },
+  {
+    "do": "select",
+    "molecule": -1,
+    "after_ms": 500
+  },
+  {
+    "do": "conformers",
+    "count": 3,
+    "embeddings": 60,
+    "after_ms": 30000
+  },
+  {
+    "do": "geometry_report",
+    "tag": "drawn-flat"
+  },
+  {
+    "do": "adopt",
+    "after_ms": 2500
+  },
+  {
+    "do": "geometry_report",
+    "tag": "after-use-in-2d"
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/visual/redraw_before.png"
+  },
+  {
+    "do": "menu",
+    "text": "Redraw in 2D",
+    "after_ms": 2500
+  },
+  {
+    "do": "geometry_report",
+    "tag": "after-redraw-in-2d"
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/visual/redraw_after.png"
+  },
+  {
+    "do": "menu",
+    "text": "Undo Redraw 'redraw' in 2D",
+    "after_ms": 2000
+  },
+  {
+    "do": "geometry_report",
+    "tag": "after-undo"
+  },
+  {
+    "do": "quit"
+  }
+]
