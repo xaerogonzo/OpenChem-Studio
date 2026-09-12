@@ -106,3 +106,12 @@ while, so this list is the third line of defence rather than the only one.
 | `343a1131219eb8e6165b4b0d6de62c25abff4423` | `widen-the-presentation-channel` |
 
 Recorded against `master` at `bf86752`.
+
+## Later deletions
+
+Same check, same `-d`, recorded here as each one goes.
+
+| date | SHA | branch | merged as |
+|---|---|---|---|
+| 2026-09-12 | `300c997b26470b145cc5b0cf823f3cee0425859b` | `attribute-the-suites-time-and-close-the-linux-chase` | #92, `1c5eea7` |
+| 2026-09-12 | `756c252d31aa85f95c7fd8d82c4288f7ec4d2505` | `shard-the-windows-suite` | #93, `5c21f2a` |
