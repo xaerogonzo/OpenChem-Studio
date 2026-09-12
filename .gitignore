@@ -104,3 +104,8 @@ artifacts/
 .pyscope/
 benchmarks/free_energy/cache/
 benchmarks/free_energy/results/
+
+# Suite timing reports, written by `pytest --junitxml` in CI and when
+# measuring locally. The ANALYSIS is committed (`tools/suite_timings.py`);
+# a single run of one machine is a measurement, not a fact about the repo.
+suite-timings*.xml
