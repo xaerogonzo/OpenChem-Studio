@@ -1869,8 +1869,19 @@ document may cite a file or a test that does not exist.
 - **DECISION** -- the Linux CI suite crashes part-way through, and the
   investigation is CLOSED rather than solved. Measured 2026-09-12 from
   each leg's own `leg.json` rather than from annotations: **8 of the last
-  8 legs crashed**, the deepest reaching 6642 of 7844 tests (84.7%),
-  across four victim files. The precise wording is *a known Linux CI
+  8 legs crashed**, across four victim files, at these depths of 7844:
+
+      6621, 6628, 6642          84.4-84.7%   test_rotation_transaction.py
+      4422, 4426, 4429, 4430    56.4-56.5%   test_nmr_view_dialog.py
+      408                        5.2%        test_batch_panel.py
+
+  **The 5.2% leg is a mode, not an outlier to smooth away.** PR #92's own
+  Linux leg died at 444 tests (5.6%) in the same file, so it has been
+  observed twice. This entry's first draft called the range "56-84%" and
+  dropped it -- the tightening-past-the-data this repository already has
+  an entry about, committed into the one condition below meant to prevent
+  an over-reaction, where it would have made a 5% leg read as TRIPPING
+  condition 3 and triggered a false reopen. The precise wording is *a known Linux CI
   test-harness failure, currently accepted because this application ships
   Windows-only and a dozen-plus sessions produced no fix* -- it is **not**
   a claim that the crash has been shown harmless, and the crash frame
@@ -1887,6 +1898,9 @@ document may cite a file or a test that does not exist.
   failure mode in the **Windows** suite under its SHIPPED configuration --
   an experimental arm does not count, and `tests/conftest.py`'s collect
   arms crash it deliberately; (2) a real Linux **application** failure
-  reproduced, as opposed to a test-harness one; (3) legs dying materially
-  earlier than the 56-84% band recorded above, which is the point at which
-  the job stops giving the cross-platform signal it exists for.
+  reproduced, as opposed to a test-harness one; (3) the depth
+  distribution above shifting materially DOWNWARD -- a new mode below the
+  ~5% one, or the 56% and 84% clusters collapsing towards it -- which is
+  the point at which the job stops giving the cross-platform signal it
+  exists for. A leg landing in any of the three recorded modes is not
+  that, however early the lowest of them looks.

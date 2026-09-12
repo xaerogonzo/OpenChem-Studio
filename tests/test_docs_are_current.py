@@ -598,8 +598,9 @@ DEFERRALS: list[Deferral] = [
         unbuilt=lambda: True,
         manual="All three reopen conditions are readings of CI RUNS -- a "
         "Windows crash under the shipped configuration, a reproduced Linux "
-        "application failure, or legs dying earlier than the recorded "
-        "56-84% band. None is a code fact an offline predicate could "
+        "application failure, or the recorded depth distribution (modes "
+        "at ~5%, ~56% and ~84%) shifting downward. None is a code fact an "
+        "offline predicate could "
         "check, and a predicate asserting the decision still EXISTS would "
         "be checking existence rather than correctness, which this file "
         "refuses elsewhere. The live check is the annotation emitted on "
