@@ -220,3 +220,344 @@ def test_the_absolute_delta_view_finds_the_real_gap(tmp_path):
     rows = [r for r in first_table.splitlines() if "tests/" in r]
 
     assert "test_layering" in rows[0], "the 60 s difference was not first"
+
+
+# ---------------------------------------------------------------------------
+# The per-test hook's own cost, and the contract that carries it
+# ---------------------------------------------------------------------------
+#
+# Two halves, guarded separately because they answer different questions:
+# `_hook_buckets` in tests/conftest.py PRODUCES the shape and the reader
+# CONSUMES it. A producer and a consumer exercised only against each other
+# can agree perfectly and both be wrong, which is why the contract's field
+# names are asserted on both sides rather than round-tripped once.
+
+
+def _props(**values: str) -> str:
+    inner = "".join(
+        f'<property name="{name}" value="{value}" />'
+        for name, value in values.items()
+    )
+    return f"<properties>{inner}</properties>"
+
+
+def _xml_with_props(cases: str, tests: int, props: str, time: str = "1.0") -> str:
+    return (
+        '<?xml version="1.0" encoding="utf-8"?>'
+        '<testsuites name="pytest tests">'
+        f'<testsuite name="pytest" errors="0" failures="0" skipped="0" '
+        f'tests="{tests}" time="{time}">{props}{cases}</testsuite></testsuites>'
+    )
+
+
+def test_the_buckets_account_for_every_collect_exactly_once():
+    """No collect may be dropped or double-counted by the partition.
+
+    `round(i * n / count)` spreads the remainder instead of truncating,
+    and that arithmetic is easy to get subtly wrong in a way no eyeball
+    catches: an off-by-one at one edge moves a ms/collect figure without
+    changing the shape, and the figure is what gets read.
+    """
+    import conftest
+
+    timeline = [0.1 * i for i in range(1, 58)]
+    buckets = conftest._hook_buckets(timeline)
+
+    assert sum(count for count, _ in buckets) == len(timeline)
+    assert sum(seconds for _, seconds in buckets) == pytest.approx(
+        sum(timeline), abs=0.05
+    )
+
+
+def test_an_empty_timeline_produces_no_buckets():
+    """A run that collected nothing is not a run of ten empty deciles.
+
+    It happens for real -- a suite slice with no Qt test in it never
+    enters the branch at all -- and ten rows of `0.00` would read as
+    "collects are free" rather than "there were none".
+    """
+    import conftest
+
+    assert conftest._hook_buckets([]) == []
+
+
+def test_fewer_collects_than_buckets_still_partitions_cleanly():
+    """Three collects over ten deciles is three buckets, not seven empty ones."""
+    import conftest
+
+    buckets = conftest._hook_buckets([1.0, 2.0, 3.0])
+
+    assert [count for count, _ in buckets] == [1, 1, 1]
+    assert [seconds for _, seconds in buckets] == [1.0, 2.0, 3.0]
+
+
+def test_a_rising_cost_shows_as_a_rising_last_decile_and_a_flat_one_does_not():
+    """The shape half, stated as an assertion in both directions.
+
+    **THIS IS THE MUTATION GUARD FOR THE ORDINAL CHOICE.** Bucketing by
+    HOOK CALL instead of by COLLECT was measured reporting growth that
+    was not there: only `qapp` tests collect, pytest runs files
+    alphabetically, and a two-file probe put every second into deciles
+    8-10 purely because `test_jobs_panel.py` sorts after
+    `test_abraham.py`. A partition that kept order but not per-bucket
+    counts would still pass the sum check above; it fails this one.
+
+    The flat arm matters as much as the rising one. Flat buckets are the
+    result that REFUTES the growing-heap explanation, so a partition that
+    manufactured a trend would invent evidence rather than lose it.
+    """
+    import conftest
+
+    rising = conftest._hook_buckets([float(i) for i in range(1, 101)])
+    flat = conftest._hook_buckets([1.0] * 100)
+
+    def per_call(buckets):
+        return [seconds / count for count, seconds in buckets]
+
+    assert per_call(rising)[-1] > per_call(rising)[0] * 5
+    assert per_call(flat)[-1] == pytest.approx(per_call(flat)[0])
+
+
+def test_an_xml_with_no_hook_properties_still_reports(tmp_path):
+    """Old XML must keep working, and absent must not read as a measured zero.
+
+    The two CI reports this work was written against carry no properties
+    at all, and they are the baseline every later number is compared
+    against. A reader that treated absent as `0.0` would report that the
+    hook costs nothing on exactly the runs used to prove it costs
+    something.
+    """
+    module = _module()
+    path = tmp_path / "old.xml"
+    path.write_text(_xml(_case("test_a", "test_one", "0.4"), 1), encoding="utf-8")
+
+    report = module.load("old", path)
+    rendered = module.describe(report, top=1, wall=2.0)
+
+    assert report.hook_seconds is None
+    assert report.remaining_unaccounted is None
+    assert "runtest_logfinish" not in rendered
+    assert "in no test case" in rendered
+
+
+def test_a_non_numeric_hook_property_is_refused(tmp_path):
+    """Malformed is not absent, and must not collapse into zero.
+
+    The realistic failure is the producer and this reader drifting apart
+    -- a renamed property, a units change, a format string that emitted
+    `nan`. Reading that as zero reports the most misleading answer
+    available, and names the property so the drift is findable.
+    """
+    module = _module()
+    path = tmp_path / "bad.xml"
+    path.write_text(
+        _xml_with_props(
+            _case("test_a", "test_one", "0.4"),
+            1,
+            _props(openchem_hook_logfinish_seconds="about three"),
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(module.TimingError) as excinfo:
+        module.load("bad", path)
+
+    assert "openchem_hook_logfinish_seconds" in str(excinfo.value)
+
+
+def test_a_non_numeric_call_count_is_refused_too(tmp_path):
+    """The integer properties get the same treatment as the float ones.
+
+    Guarded separately because they go through a different cast, and a
+    guard that only covered `float` would leave `int` silently coercing.
+    """
+    module = _module()
+    path = tmp_path / "badint.xml"
+    path.write_text(
+        _xml_with_props(
+            _case("test_a", "test_one", "0.4"),
+            1,
+            _props(openchem_gc_calls="7.5"),
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(module.TimingError, match="openchem_gc_calls"):
+        module.load("badint", path)
+
+
+def test_bucket_json_that_does_not_parse_is_refused(tmp_path):
+    module = _module()
+    path = tmp_path / "badjson.xml"
+    path.write_text(
+        _xml_with_props(
+            _case("test_a", "test_one", "0.4"),
+            1,
+            _props(openchem_hook_buckets="{not json"),
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(module.TimingError, match="not valid JSON"):
+        module.load("badjson", path)
+
+
+def test_a_bucket_property_without_its_scheme_object_is_refused(tmp_path):
+    """A bare array parses as JSON and is still exactly what is refused.
+
+    The array form is what the first draft emitted, and it is unreadable
+    later: `[785, 37.2]` cannot say whether 785 counts collected tests,
+    hook calls, or collects. Valid JSON is not a valid contract.
+    """
+    module = _module()
+    path = tmp_path / "bare.xml"
+    path.write_text(
+        _xml_with_props(
+            _case("test_a", "test_one", "0.4"),
+            1,
+            _props(openchem_hook_buckets="[[785, 37.2]]"),
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(module.TimingError, match="buckets"):
+        module.load("bare", path)
+
+
+def test_the_split_accounts_for_the_whole_session_clock(tmp_path):
+    """test time + hook + remaining is the session clock.
+
+    True by construction today, and guarded anyway because the three
+    lines are printed one under another and a reader will add them up.
+    If the arithmetic ever stops holding, the report is wrong in the one
+    place it is most trusted.
+    """
+    module = _module()
+    path = tmp_path / "split.xml"
+    path.write_text(
+        _xml_with_props(
+            _case("test_a", "test_one", "4.0"),
+            1,
+            _props(openchem_hook_logfinish_seconds="3.0"),
+            time="10.0",
+        ),
+        encoding="utf-8",
+    )
+
+    report = module.load("split", path)
+
+    assert report.summed == pytest.approx(4.0)
+    assert report.hook_seconds == pytest.approx(3.0)
+    assert report.remaining_unaccounted == pytest.approx(3.0)
+    assert report.summed + report.hook_seconds + report.remaining_unaccounted == (
+        pytest.approx(report.declared_time)
+    )
+
+
+def test_a_hook_claiming_more_than_the_session_leaves_says_so_loudly(tmp_path):
+    """A negative residual is a contradiction, not a small number.
+
+    Printed as a minus sign and nothing else it reads as rounding. It is
+    not: it means the hook's clock and pytest's session clock cannot both
+    be right, and neither should then be quoted.
+    """
+    module = _module()
+    path = tmp_path / "impossible.xml"
+    path.write_text(
+        _xml_with_props(
+            _case("test_a", "test_one", "1.0"),
+            1,
+            _props(openchem_hook_logfinish_seconds="9.0"),
+            time="1.0",
+        ),
+        encoding="utf-8",
+    )
+
+    rendered = module.describe(module.load("impossible", path), top=1, wall=1.0)
+
+    assert "CONTRADICTION" in rendered
+
+
+def test_a_residual_inside_the_tolerance_is_not_called_a_contradiction(tmp_path):
+    """The other side of the same boundary, so the alarm cannot cry wolf.
+
+    The hook's clock and pytest's session clock start and stop at
+    slightly different moments, so a sub-second disagreement is expected.
+    Without this arm the tolerance could be set to zero and nothing would
+    notice until a real run printed a false alarm.
+    """
+    module = _module()
+    path = tmp_path / "close.xml"
+    path.write_text(
+        _xml_with_props(
+            _case("test_a", "test_one", "1.0"),
+            1,
+            _props(openchem_hook_logfinish_seconds="1.2"),
+            time="2.0",
+        ),
+        encoding="utf-8",
+    )
+
+    rendered = module.describe(module.load("close", path), top=1, wall=2.0)
+
+    assert "CONTRADICTION" not in rendered
+
+
+def test_the_bucket_table_prints_even_when_the_hook_total_is_small(tmp_path):
+    """Flat buckets are a RESULT, so the table cannot be conditional.
+
+    They refute the growing-heap explanation whatever the total turned
+    out to be. A table that appeared only when the total looked
+    interesting could never report that refutation -- which is the
+    outcome this instrument was always most likely to produce.
+    """
+    module = _module()
+    path = tmp_path / "small.xml"
+    path.write_text(
+        _xml_with_props(
+            _case("test_a", "test_one", "1.0"),
+            1,
+            _props(
+                openchem_hook_logfinish_seconds="0.001",
+                openchem_hook_buckets=(
+                    "{&quot;scheme&quot;:&quot;deciles-of-completed-gc-collect-ordinal"
+                    "&quot;,&quot;completed_calls&quot;:2,&quot;completed_collects"
+                    "&quot;:2,&quot;buckets&quot;:[[1,0.0005],[1,0.0005]]}"
+                ),
+            ),
+            time="2.0",
+        ),
+        encoding="utf-8",
+    )
+
+    rendered = module.describe(module.load("small", path), top=1, wall=2.0)
+
+    assert "by decile of completed COLLECTS" in rendered
+    assert "ms/collect" in rendered
+
+
+def test_the_producer_and_the_reader_agree_on_every_property_name():
+    """The contract, asserted against the file that writes it.
+
+    **THE FAILURE THIS CATCHES IS SILENT IN BOTH DIRECTIONS.** Renaming a
+    property in `tests/conftest.py` alone makes the reader fall back to
+    its absent-properties path, which looks exactly like an old XML;
+    renaming it here alone does the same. Nothing goes red, a number just
+    stops being reported -- so the two spellings are compared directly
+    rather than trusted to stay in step.
+    """
+    import conftest
+
+    module = _module()
+    source = Path(conftest.__file__).read_text(encoding="utf-8")
+
+    declared = (
+        set(module._SECONDS_PROPERTIES)
+        | set(module._COUNT_PROPERTIES)
+        | {module._BUCKETS_PROPERTY}
+    )
+    for name in declared:
+        assert f'"{name}"' in source, (
+            f"the reader expects property {name!r}, which tests/conftest.py "
+            f"never writes. One of the two was renamed without the other."
+        )

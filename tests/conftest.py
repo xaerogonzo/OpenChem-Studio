@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 import sys
 import gc
+import json
+import time
 import weakref
 from pathlib import Path
 
@@ -751,6 +753,93 @@ _retain_main_windows()
 _used_qt = [False]
 
 
+#: Each arm as (which tests trigger a collect, which generation to walk).
+#:
+#: THE GENERATION AXIS WAS TRIED AND IS CLOSED. `gen0` crashed 1 of 6 and
+#: `gen1` 2 of 2, both with 0xC0000005, in the same victim files the crash
+#: class already names. They are kept selectable so the result is
+#: reproducible rather than folklore -- not because either is a candidate.
+#: See `pytest_runtest_logfinish` for the measured table.
+#:
+#: Why it looked promising: `gc.collect()` defaults to a FULL gen-2 pass, which
+#: walks every live object -- which is why per-collect cost came out flat
+#: at ~215 ms whether the suite collected 1861 times or 7865, and why
+#: collecting MORE often cannot make any single collect cheaper. The
+#: objects this hook actually wants reclaimed are young: the panel was
+#: built by the test that just ended. A gen-0 or gen-1 pass walks only the
+#: young generations. Whether that is enough depends on whether CPython
+#: has already promoted them, which is a measurement and not an argument.
+_COLLECT_ARMS: dict[str, tuple[str | None, int | None]] = {
+    "none": (None, None),
+    "qapp": ("qapp", 2),
+    "always": ("all", 2),
+    "gen1": ("qapp", 1),
+    "gen0": ("qapp", 0),
+}
+
+
+def collect_policy(value: str | None) -> str:
+    """Which tests get a `gc.collect()` in the teardown hook.
+
+    A pure function so the mapping is testable without touching the
+    process environment -- the same shape `flush_at_dispose` above uses,
+    and for the same reason. **Anything unrecognised means the SHIPPED
+    policy**, so a typo fails safe onto the control arm rather than
+    silently running an experimental one and reporting it as the default.
+
+    The three names are the arms `pytest_runtest_logfinish`'s own
+    docstring already measured (no collect / always / if-qapp), kept
+    verbatim so new numbers can be set beside the old ones with no
+    translation step in between.
+    """
+    return value if value in _COLLECT_ARMS else "qapp"
+
+
+#: The shipped behaviour, and the control arm. `OPENCHEM_COLLECT_POLICY`
+#: selects `none` or `always` for an A/B; see docs/LESSONS.md.
+COLLECT_POLICY = collect_policy(os.environ.get("OPENCHEM_COLLECT_POLICY"))
+
+
+#: Wall time inside `pytest_runtest_logfinish`, and the part of it inside
+#: `gc.collect()`.
+#:
+#: TWO NUMBERS RATHER THAN ONE, because on Windows they are equal BY
+#: CONSTRUCTION -- `OPENCHEM_CENSUS` is unset there, so the census branch
+#: below never runs -- while on Linux the census does a flushed write per
+#: test, 6,600+ a run, which nobody has ever costed. A single total cannot
+#: tell those apart, and the two platforms are where the two open
+#: questions live.
+_hook_seconds = [0.0]
+_gc_seconds = [0.0]
+
+#: Call counts. The `qapp` calls are the ones that actually collect, so a
+#: large `_gc_seconds` spread thinly over nearly every test is a different
+#: defect from the same total concentrated in a few hundred Qt tests --
+#: and the two point at different remedies.
+_hook_calls = [0]
+_gc_calls = [0]
+
+#: Seconds per `gc.collect()`, in COLLECT order. The SHAPE half of the
+#: question, deliberately separate from the totals above: a hook that is
+#: uniformly expensive and one that DEGRADES through the run are different
+#: defects, and only the second is evidence that `_retained_windows` is
+#: growing the heap each collect has to walk.
+#:
+#: **IN COLLECT ORDER RATHER THAN CALL ORDER, AND THAT WAS MEASURED
+#: WRONG FIRST.** Bucketing every hook call put all the cost in the last
+#: three deciles of a two-file probe -- not because the heap grew, but
+#: because `test_jobs_panel.py` sorts after `test_abraham.py` and pytest
+#: runs files alphabetically. Qt tests cluster wherever their filenames
+#: fall, so a call-ordinal bucket reports that clustering and calls it
+#: growth. Collect ordinal puts the same number of collects in every
+#: bucket, so only their COST can differ.
+_gc_timeline: list[float] = []
+
+#: The JUnit writer, captured by the fixture below and called at session
+#: finish. A list because the fixture may never run (no tests collected).
+_publish_property: list = []
+
+
 @pytest.hookimpl(trylast=True)
 def pytest_runtest_teardown(item, nextitem):
     _used_qt[0] = "qapp" in getattr(item, "fixturenames", ())
@@ -798,20 +887,71 @@ def pytest_runtest_logfinish(nodeid, location):
     nothing happens at that moment was not.
 
     Gated on `qapp` because most of this suite is pure chemistry and
-    cannot leave a widget behind. Measured over a full run:
+    cannot leave a widget behind.
 
+    **RE-MEASURED 2026-09-12 OVER 7865 TESTS, AND THE OLD TABLE WAS WRONG
+    IN EVERY CELL.** It is kept beneath its replacement rather than edited
+    away, because what it got wrong is the durable part: it was read for
+    three phases of UI work as this hook's justification, and the two
+    claims that made the gating look like a careful compromise -- that
+    `always` reaches zero, and that this arm sits at four -- are both
+    false.
+
+        arm       wall      late/run   crashes
+        none      ~950 s    285-295    1 of 8
+        qapp     ~1400 s    100        0 of 5   <- this, and still right
+        always    2999 s    100        0 of 2
+        gen0      ~890 s    100-110    1 of 6
+        gen1        --        --       2 of 2
+
+        refuted, kept so the old claim stays findable:
         no collect          138 late destructions   116 s
         collect always        0 late destructions   326 s
-        collect if qapp       4 late destructions   171 s   <- this
+        collect if qapp       4 late destructions   171 s
 
-    The four that remain are all within `test_quantum_chemistry_panel.py`
-    itself. Closing them costs another 155 seconds on every run, which is
-    not worth it for four same-file destructions when the crash being
-    chased was cross-file.
+    `always` IS STRICTLY DOMINATED: 4.2x the collects, +110% wall clock,
+    the identical late count. The old "0" is what made it look like an
+    option worth the money.
+
+    **LATE DESTRUCTIONS ARE NOT THE DISCRIMINATOR**, which is the finding
+    that matters most here and the one this instrument was not built to
+    see. `gen0` holds them at the same 100-110 as this arm and crashed
+    anyway. The count this hook exists to minimise does not separate the
+    arms that crash from the arms that do not. What does, on this
+    evidence, is whether the collect is a FULL gen-2 pass -- 0 crashes in
+    7 runs across `qapp` and `always`, against 4 in 16 across `none`,
+    `gen0` and `gen1`. Small n; an observation, not a law.
+
+    A CHEAPER WALK WAS TRIED AND IS REFUSED. `gc.collect()` is a full
+    gen-2 pass, which is why per-collect cost measured flat at ~215 ms
+    whether the suite collected 1861 times or 7865: it walks the LIVE
+    heap, so collecting more often cannot make any single collect
+    cheaper. The young generations were the obvious cheaper walk and both
+    of those arms crashed. Do not retry them without a crash-rate
+    experiment at n~10 per arm WITH a control -- this screen was n=6 and
+    no control, which is enough to refuse a change and not enough to
+    justify one.
+
+    So this hook costs 410-480 s of a ~1400 s suite, roughly 30% of the
+    wall clock, and every alternative measured is worse. That is the
+    trade, stated in numbers rather than implied.
     """
-    if _used_qt[0]:
-        _used_qt[0] = False
-        gc.collect()
+    started = time.perf_counter()
+    _hook_calls[0] += 1
+
+    # Read and clear in one step, so the flag is reset on EVERY arm. Under
+    # `none` the branch below never runs, and a flag cleared only inside it
+    # would stay True for the rest of the session -- which matters the
+    # moment an arm reads it for anything else.
+    trigger, generation = _COLLECT_ARMS[COLLECT_POLICY]
+    used_qt, _used_qt[0] = _used_qt[0], False
+    if trigger == "all" or (trigger == "qapp" and used_qt):
+        collect_started = time.perf_counter()
+        gc.collect(generation)
+        collect_elapsed = time.perf_counter() - collect_started
+        _gc_seconds[0] += collect_elapsed
+        _gc_calls[0] += 1
+        _gc_timeline.append(collect_elapsed)
 
     # The census's per-test line, written from INSIDE this hook rather
     # than from a second `pytest_runtest_logfinish`. Defining that would
@@ -825,6 +965,110 @@ def pytest_runtest_logfinish(nodeid, location):
             f"destroyed={_census_counts['destroyed']} "
             f"late={_census_counts['late']} alive={len(_census_born)}"
         )
+
+    # LAST, so the census write above is inside the measurement. On
+    # Windows that branch is skipped and this equals the collect; on Linux
+    # the difference between the two totals IS the census's own cost.
+    _hook_seconds[0] += time.perf_counter() - started
+
+
+def _hook_buckets(timeline: list[float], count: int = 10) -> list[list[float]]:
+    """Deciles over the COMPLETED-COLLECT ordinal.
+
+    Two things this ordinal is chosen over, each for its own reason.
+
+    Not the COLLECTED-TEST index: on a crashed leg most tests never reach
+    the hook, so empty tail buckets would read as "it got cheaper at the
+    end" when the run simply stopped.
+
+    Not the HOOK-CALL index: only `qapp` tests collect, and pytest runs
+    files alphabetically, so Qt tests cluster wherever their filenames
+    fall. A call-ordinal bucket reports that clustering as if it were
+    growth -- measured, a two-file probe put every second in deciles 8-10
+    purely because `test_jobs_panel.py` sorts after `test_abraham.py`.
+
+    Returns `[[collects, seconds], ...]`. Bucket sizes are not exactly
+    equal when the count does not divide -- `round` spreads the remainder
+    -- which is why each pair carries its own count rather than leaving a
+    reader to assume `n / 10`.
+    """
+    n = len(timeline)
+    if n == 0:
+        return []
+    edges = [round(i * n / count) for i in range(count + 1)]
+    return [
+        [hi - lo, round(sum(timeline[lo:hi]), 3)]
+        for lo, hi in zip(edges, edges[1:])
+        if hi > lo
+    ]
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _capture_testsuite_property(record_testsuite_property):
+    """Capture the JUnit writer. Do NOT write from here -- see below.
+
+    MEASURED, because the obvious version is wrong by one test. A
+    session-scoped fixture is finalised inside the FINAL test's teardown,
+    which happens BEFORE that test's `pytest_runtest_logfinish`. A
+    three-test probe whose hook added 1.5 s a call reported 3.000 where
+    4.500 was correct. Capturing the callable and invoking it from
+    `pytest_sessionfinish` costs nothing and loses nothing.
+
+    It adds no fixture named `qapp` to any item, so `_used_qt` above is
+    unaffected.
+    """
+    _publish_property.append(record_testsuite_property)
+
+
+def _publish_hook_timings() -> None:
+    """Write this hook's own cost into the JUnit XML, as declared properties.
+
+    A REPORT, written from a hook whose docstring says totals reported
+    there cannot work -- so the exception has to be stated rather than
+    left to look like an oversight. That warning is about the CENSUS,
+    which exists precisely to survive a crash, and a total written at
+    session finish would only ever describe runs that did not crash.
+
+    These properties ride in the JUnit XML, which pytest itself only
+    writes for a completed session. So they inherit exactly that
+    limitation instead of introducing a new one, and on a crashed leg
+    their ABSENCE is the correct reading rather than a zero.
+
+    The schema is a contract with `tools/suite_timings.py`. `buckets` is
+    an object rather than a bare array because a reader six months from
+    now cannot otherwise tell whether `[785, 37.2]` means the first tenth
+    of collected tests, of completed calls, or every 785th call.
+    """
+    if not _publish_property:
+        return
+    record = _publish_property[0]
+    record("openchem_hook_logfinish_seconds", f"{_hook_seconds[0]:.3f}")
+    record("openchem_gc_collect_seconds", f"{_gc_seconds[0]:.3f}")
+    record("openchem_hook_calls", str(_hook_calls[0]))
+    record("openchem_gc_calls", str(_gc_calls[0]))
+    # NAMED BECAUSE IT IS THE HYPOTHESISED CAUSE, not because it is proof.
+    # A rising per-collect cost is consistent with a heap that grows, and
+    # `_retained_windows` is the one thing this suite grows ON PURPOSE --
+    # but every Qt object still alive is also in that heap. The count is
+    # recorded so the size of the deliberate part is known rather than
+    # assumed; only the arms in Stage 2 can attribute the cost.
+    record("openchem_retained_windows", str(len(_retained_windows)))
+    # WHICH ARM PRODUCED THIS REPORT. A timing file that cannot say is
+    # worse than no file: the arms differ by a third of the wall clock,
+    # so a mislabelled one would look like a regression or a win.
+    record("openchem_collect_policy", COLLECT_POLICY)
+    record(
+        "openchem_hook_buckets",
+        json.dumps(
+            {
+                "scheme": "deciles-of-completed-gc-collect-ordinal",
+                "completed_calls": _hook_calls[0],
+                "completed_collects": _gc_calls[0],
+                "buckets": _hook_buckets(_gc_timeline),
+            },
+            separators=(",", ":"),
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1021,6 +1265,7 @@ def pytest_runtest_logstart(nodeid, location):
     _census_write(f"BEGIN {nodeid} pid={os.getpid()}")
 
 
+@pytest.hookimpl(tryfirst=True)
 def pytest_sessionfinish(session, exitstatus):
     """Mark the boundary, so a shutdown destruction is not read as a landmine.
 
@@ -1047,7 +1292,16 @@ def pytest_sessionfinish(session, exitstatus):
     makes each line say which it is (`died=<session teardown>`) instead of
     leaving a reader to compare line numbers -- and a reader who does not
     know to do that reads 16022 landmines that are not there.
+
+    `tryfirst` because the JUnit plugin SERIALISES the file from its own
+    `pytest_sessionfinish`; a property added after that lands nowhere.
+    And the publish call sits ABOVE the census gate below on purpose --
+    under it, the timings would be written only when `OPENCHEM_CENSUS` is
+    set, which is to say only on Linux, which is the one platform whose
+    legs crash before this hook runs at all.
     """
+    _publish_hook_timings()
+
     if _CENSUS_PATH is None:
         return
     _census_write(f"# session finished exitstatus={exitstatus}")

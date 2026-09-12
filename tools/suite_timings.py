@@ -29,6 +29,7 @@ what it would distort.
 
 from __future__ import annotations
 
+import json
 import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -43,6 +44,31 @@ DEFAULT_MIN_SECONDS = 5.0
 
 #: How many rows each table prints.
 DEFAULT_TOP = 25
+
+#: How far the three-way split may fail to add up before it is called a
+#: contradiction rather than a boundary effect. The hook's clock and
+#: pytest's session clock start and stop at slightly different moments, so
+#: demanding exact agreement would turn a sub-second artefact into a false
+#: alarm. A gap larger than this is arithmetic that cannot be true.
+RECONCILE_TOLERANCE_SECONDS = 1.0
+
+#: Properties `tests/conftest.py` writes at session finish. The names are
+#: a CONTRACT between these two files; changing one without the other
+#: silently drops a number rather than failing, which is why they are
+#: declared here in one place rather than spelled inline.
+_SECONDS_PROPERTIES = {
+    "openchem_hook_logfinish_seconds": "hook_seconds",
+    "openchem_gc_collect_seconds": "gc_seconds",
+}
+_COUNT_PROPERTIES = {
+    "openchem_hook_calls": "hook_calls",
+    "openchem_gc_calls": "gc_calls",
+    "openchem_retained_windows": "retained_windows",
+}
+_TEXT_PROPERTIES = {
+    "openchem_collect_policy": "collect_policy",
+}
+_BUCKETS_PROPERTY = "openchem_hook_buckets"
 
 
 class TimingError(RuntimeError):
@@ -66,6 +92,30 @@ class Report:
     #: parsed rows are checked against rather than a second opinion.
     declared_tests: int = 0
     declared_time: float = 0.0
+
+    #: What `tests/conftest.py` reported about its own per-test hook.
+    #: `None` means the property was ABSENT -- an XML written before this
+    #: existed -- which is a different thing from a measured zero and must
+    #: keep rendering the old single "unattributed" line.
+    hook_seconds: float | None = None
+    gc_seconds: float | None = None
+    hook_calls: int | None = None
+    gc_calls: int | None = None
+    retained_windows: int | None = None
+    collect_policy: str | None = None
+    buckets: dict | None = None
+
+    @property
+    def in_session_unaccounted(self) -> float:
+        """Session clock minus test time: in pytest, in no test case."""
+        return self.declared_time - self.summed
+
+    @property
+    def remaining_unaccounted(self) -> float | None:
+        """What is left once the hook is named. `None` if it was not."""
+        if self.hook_seconds is None:
+            return None
+        return self.in_session_unaccounted - self.hook_seconds
 
     @property
     def summed(self) -> float:
@@ -141,6 +191,67 @@ def _status_of(case: ElementTree.Element) -> str:
     return "passed_or_xpassed"
 
 
+def _numeric_property(label: str, name: str, raw: str, cast):
+    """Parse one declared property, refusing a value it cannot vouch for.
+
+    **ABSENT AND MALFORMED ARE DIFFERENT AND MUST NOT COLLAPSE.** Absent
+    means an XML written before the producer existed, and the old single
+    line is the right rendering for it. Malformed means the producer and
+    this reader have drifted apart -- and reading it as zero would report
+    "the hook costs nothing", which is the most misleading answer
+    available and the exact shape of finding this branch exists to chase.
+    """
+    try:
+        return cast(raw)
+    except (TypeError, ValueError):
+        raise TimingError(
+            f"{label}: property {name!r} has value {raw!r}, which is not a "
+            f"{cast.__name__}. The producer in tests/conftest.py and this "
+            f"reader disagree; refusing to guess a number for it."
+        ) from None
+
+
+def _bucket_property(label: str, raw: str) -> dict:
+    """Parse the self-describing bucket object.
+
+    It carries its own `scheme` because a bare `[[785, 37.2]]` cannot say
+    whether 785 counts collected tests, completed hook calls, or the stride
+    between samples -- and a reader six months on would have to guess.
+    """
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise TimingError(
+            f"{label}: property {_BUCKETS_PROPERTY!r} is not valid JSON "
+            f"({exc}). Refusing to report a shape from it."
+        ) from exc
+    if not isinstance(parsed, dict) or "buckets" not in parsed:
+        raise TimingError(
+            f"{label}: property {_BUCKETS_PROPERTY!r} parsed, but is not an "
+            f"object carrying a 'buckets' key. Got {type(parsed).__name__}."
+        )
+    return parsed
+
+
+def _read_properties(report: Report, suite) -> None:
+    container = suite.find("properties")
+    if container is None:
+        return
+    for prop in container.findall("property"):
+        name = prop.get("name", "")
+        raw = prop.get("value", "")
+        if name in _SECONDS_PROPERTIES:
+            setattr(report, _SECONDS_PROPERTIES[name],
+                    _numeric_property(report.label, name, raw, float))
+        elif name in _COUNT_PROPERTIES:
+            setattr(report, _COUNT_PROPERTIES[name],
+                    _numeric_property(report.label, name, raw, int))
+        elif name in _TEXT_PROPERTIES:
+            setattr(report, _TEXT_PROPERTIES[name], raw)
+        elif name == _BUCKETS_PROPERTY:
+            report.buckets = _bucket_property(report.label, raw)
+
+
 def load(label: str, path: Path) -> Report:
     """Parse one report, refusing anything it cannot vouch for.
 
@@ -170,6 +281,7 @@ def load(label: str, path: Path) -> Report:
     for suite in suites:
         report.declared_tests += int(suite.get("tests", 0))
         report.declared_time += float(suite.get("time", 0.0) or 0.0)
+        _read_properties(report, suite)
         for case in suite.iter("testcase"):
             report.cases.append(
                 Case(
@@ -200,6 +312,124 @@ def _table(rows, headers, widths) -> str:
     return "\n".join(out)
 
 
+def _accounting(report: Report, wall: float | None) -> list[str]:
+    """Partition the session's time, naming every term.
+
+    **ONE REMAINDER CALLED "unattributed" WAS THE PROBLEM.** It meant
+    "wall clock not represented by a JUnit case", which silently bundled
+    three unrelated things: the per-test hook, everything else inside
+    pytest, and the process start/stop outside pytest's own clock. A
+    single 38% could not be acted on because no one term could be
+    attacked. These are the same seconds, split.
+
+    `<testsuite time>` is NOT the wall clock -- measured on a 44-test run,
+    pytest reported 6.93 s while the attribute said 5.377 s. An earlier
+    draft subtracted the two and labelled the difference "collection",
+    wrong by an order of magnitude. So the wall clock stays an INPUT and
+    its absence is stated rather than papered over.
+    """
+    arm = ""
+    if report.collect_policy is not None:
+        arm = f"   [collect policy: {report.collect_policy}]"
+    lines = [
+        f"  WHERE THE TIME WENT{arm}",
+        f"    test time           {report.summed:10.1f} s   "
+        f"setup + call + teardown, per JUnit",
+    ]
+    if report.hook_seconds is None:
+        lines.append(
+            f"    in no test case     {report.in_session_unaccounted:10.1f} s   "
+            f"in pytest, in no case (this XML declares no hook properties)"
+        )
+    else:
+        lines.append(
+            f"    runtest_logfinish   {report.hook_seconds:10.1f} s   "
+            f"per-test hook, outside all three phases"
+        )
+        if report.gc_seconds is not None:
+            detail = ""
+            if report.gc_calls is not None and report.hook_calls is not None:
+                detail = (f"   {report.gc_calls} collects "
+                          f"in {report.hook_calls} calls")
+            lines.append(
+                f"      of which gc.collect{report.gc_seconds:8.1f} s{detail}"
+            )
+        remaining = report.remaining_unaccounted
+        lines.append(
+            f"    remaining unaccounted{remaining:9.1f} s   "
+            f"in pytest, in neither of the above"
+        )
+        # A NEGATIVE RESIDUAL IS NOT A ROUNDING STORY. The hook would be
+        # claiming more time than the session clock leaves outside the
+        # tests, which cannot both be true -- so say so loudly rather than
+        # printing a minus sign and letting it read as a small number.
+        if remaining < -RECONCILE_TOLERANCE_SECONDS:
+            lines.append(
+                f"    ** CONTRADICTION: the hook claims {abs(remaining):.1f} s "
+                f"more than the session clock leaves outside the tests. One "
+                f"of the two clocks is wrong; do not quote either."
+            )
+    lines.append(f"    {'-' * 60}")
+    lines.append(
+        f"    <testsuite time>    {report.declared_time:10.1f} s   "
+        f"pytest's own session clock"
+    )
+    if wall is not None:
+        lines.append(
+            f"    outside pytest      {wall - report.declared_time:10.1f} s   "
+            f"process start/stop"
+        )
+        lines.append(f"    wall clock          {wall:10.1f} s   (given)")
+    else:
+        lines.append(
+            "    wall clock                   -- pass --wall=SECONDS "
+            "(pytest's own summary, or the CI job duration)"
+        )
+    return lines
+
+
+def _bucket_table(report: Report) -> list[str]:
+    """Does the hook get more expensive as the run goes on?
+
+    **PRINTED EVEN WHEN THE TOTAL IS SMALL**, because flat buckets are a
+    RESULT rather than an absence of one: they refute the growing-heap
+    explanation whatever the total turned out to be. A table shown only
+    when the total looked interesting could never report that, and the
+    magnitude and the shape are separate questions on purpose.
+    """
+    if not report.buckets:
+        return []
+    data = report.buckets.get("buckets") or []
+    if not data:
+        return []
+    lines = [
+        f"  gc.collect() cost by decile of completed COLLECTS "
+        f"({report.buckets.get('scheme', 'scheme NOT DECLARED')})",
+    ]
+    rows = []
+    for index, entry in enumerate(data, start=1):
+        calls, seconds = entry[0], entry[1]
+        per_ms = (seconds / calls * 1000) if calls else 0.0
+        rows.append((str(index), str(calls), f"{seconds:.2f}", f"{per_ms:.2f}"))
+    lines.append(_table(
+        rows, ("decile", "collects", "seconds", "ms/collect"), (6, 9, 9, 11),
+    ))
+    if report.retained_windows is not None:
+        lines.append(
+            f"  {report.retained_windows} MainWindows retained for the whole "
+            f"session -- the heap grows on purpose, see tests/conftest.py"
+        )
+    first, last = data[0], data[-1]
+    if first[0] and last[0] and first[1] > 0:
+        a = first[1] / first[0] * 1000
+        b = last[1] / last[0] * 1000
+        lines.append(
+            f"  first decile {a:.2f} ms/collect -> last decile {b:.2f} ms/collect "
+            f"= {b / a:.2f}x"
+        )
+    return lines
+
+
 def describe(report: Report, top: int, wall: float | None = None) -> str:
     out = [
         f"=== {report.label}  ({report.path.name}) ===",
@@ -207,33 +437,13 @@ def describe(report: Report, top: int, wall: float | None = None) -> str:
         f"  by status        " + "  ".join(
             f"{k}={v}" for k, v in sorted(report.counts().items())
         ),
-        f"  sum of per-test  {report.summed:9.1f} s",
-        f"  <testsuite time> {report.declared_time:9.1f} s",
+        "",
     ]
-    # THE GAP IS A FINDING IN ITS OWN RIGHT, AND THE XML CANNOT SHOW IT
-    # ALONE. Per-test times exclude collection, session-scoped fixtures and
-    # interpreter startup, so a large difference between them and the JOB'S
-    # WALL CLOCK says the cost is in none of the tests and no per-test
-    # optimisation will touch it.
-    #
-    # `<testsuite time>` is NOT that wall clock -- measured on a 44-test
-    # run, pytest reported 6.93 s while the attribute said 5.377 s. An
-    # earlier draft of this function subtracted the two and labelled the
-    # 0.1 s difference "collection", which was wrong by an order of
-    # magnitude and would have read as "there is nothing outside the
-    # tests". So the wall clock is an INPUT, and its absence is stated
-    # rather than papered over.
-    if wall is not None:
-        out.append(f"  wall clock       {wall:9.1f} s   (given)")
-        out.append(
-            f"  unattributed     {wall - report.summed:9.1f} s   "
-            f"(collection, session fixtures, interpreter startup)"
-        )
-    else:
-        out.append(
-            "  unattributed         -- pass --wall=SECONDS (pytest's own "
-            "summary, or the CI job duration) to see it"
-        )
+    out.extend(_accounting(report, wall))
+    buckets = _bucket_table(report)
+    if buckets:
+        out.append("")
+        out.extend(buckets)
     out.append("")
     out.append(f"  slowest {top} tests")
     slowest = sorted(report.cases, key=lambda c: -c.seconds)[:top]
