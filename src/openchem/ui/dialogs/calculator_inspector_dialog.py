@@ -669,8 +669,27 @@ class CalculatorInspectorDialog(QDialog):
             self._copy_smiles_button.clicked.connect(self._on_copy_smiles)
             self._copy_molblock_button = QPushButton("Copy Molblock", self)
             self._copy_molblock_button.clicked.connect(self._on_copy_molblock)
-            self._add_button = QPushButton("Add to Project", self)
-            self._add_button.setToolTip("Add the selected structure as a new molecule (undoable).")
+            # **RENAMED FROM "Add to Project", AND THE BEHAVIOUR IS
+            # UNCHANGED.** Asked for as a feature to build -- "for the
+            # tautomers, isomers, etc. yeah, build it" -- and it was
+            # already here, doing exactly the right thing. Measured on
+            # acetylacetone: molecules 2 -> 3, the original untouched, the
+            # editor showing the picked enol, one undo step.
+            #
+            # What was missing was any way to know that. "Add to Project"
+            # describes the mechanism; nobody looking for a way to work on
+            # a tautomer would read it and think it was the answer. So the
+            # label says the destination and the contract says the rest --
+            # that a new molecule appears and the current one survives,
+            # which is the half a reader needs before pressing it.
+            self._add_button = QPushButton("Send to 2D Editor", self)
+            self._add_button.setToolTip(
+                "Open the selected structure in the 2D editor, as a NEW "
+                "molecule. Your current molecule is left exactly as it is -- "
+                "a tautomer or an isomer is a different compound, not a "
+                "different arrangement of the same one, so both stay in the "
+                "project and you can compare them. Ctrl+Z removes it again."
+            )
             self._add_button.clicked.connect(self._on_add_selected)
             self._add_button.setVisible(self._on_add_structure is not None)
             for button in (self._copy_smiles_button, self._copy_molblock_button, self._add_button):
@@ -731,4 +750,6 @@ class CalculatorInspectorDialog(QDialog):
         if entry is None or self._on_add_structure is None:
             return
         self._on_add_structure(entry.molblock, entry.label)
-        self._set_status(f"Added {entry.label} to the project.")
+        self._set_status(
+            f"{entry.label} opened in the 2D editor as a new molecule."
+        )

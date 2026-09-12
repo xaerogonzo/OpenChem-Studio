@@ -402,7 +402,18 @@ const ROTATION_STYLES = `
   position:absolute; top:0; left:0; right:0; height:24px; line-height:24px;
   background:#1976d2; color:#fff; font:12px system-ui, sans-serif;
   padding:0 10px; box-sizing:border-box; pointer-events:none; }
-.openchem-rotate .rot-readout { float:right; font-variant-numeric:tabular-nums; }
+.openchem-rotate .rot-readout { float:right; font-variant-numeric:tabular-nums;
+  margin:0 10px; }
+/* The BANNER is pointer-events:none so a drag that starts on it still
+   rotates; these are the only things in it that take a click. Without the
+   re-enable they would be decoration -- which is how the mode came to have
+   no visible way out at all. */
+.openchem-rotate .rot-exit {
+  pointer-events:auto; float:right; margin:3px 0 0 6px; padding:0 8px;
+  height:18px; line-height:16px; cursor:pointer;
+  font:11px system-ui, sans-serif; color:#1976d2;
+  background:#fff; border:1px solid #fff; border-radius:3px; }
+.openchem-rotate .rot-exit:hover { background:#e3f0fb; }
 .openchem-rotate .rot-ruler { position:absolute; pointer-events:none;
   font:10px system-ui, sans-serif; color:#1976d2; }
 .openchem-rotate .rot-top { top:24px; left:0; right:0; height:16px;
@@ -590,8 +601,18 @@ function buildRotationOverlay() {
   const host = document.querySelector('.Ketcher-root') || document.body
   const overlay = document.createElement('div')
   overlay.className = 'openchem-rotate'
+  // **THE WAY OUT LIVES ON THE THING THAT COVERS THE CANVAS.** The
+  // overlay is inset:0 z-index:20, so while it is up it is the only
+  // thing the eye is on -- and the application's own Cancel button sits
+  // above the web view, where it was reported as not found. Floated
+  // right in DOM order, so they read Done, Cancel, readout from the
+  // right edge.
   overlay.innerHTML =
     '<div class="rot-banner">3D rotation — drag to turn' +
+    '<button type="button" class="rot-exit" data-openchem-rotate="done">'
+    + 'Done (Esc)</button>' +
+    '<button type="button" class="rot-exit" data-openchem-rotate="cancel">'
+    + 'Cancel</button>' +
     '<span class="rot-readout">X 0°   Y 0°</span></div>' +
     '<div class="rot-ruler rot-top"></div><div class="rot-ruler rot-left"></div>'
   host.appendChild(overlay)
@@ -602,6 +623,10 @@ function buildRotationOverlay() {
   let dragging = false
   let startX = 0, startY = 0, baseX = 0, baseY = 0
   overlay.addEventListener('mousedown', function (event) {
+    // A press on Done or Cancel must not also begin a rotation: the whole
+    // overlay is the drag surface, so without this the button works AND
+    // turns the molecule on the way out.
+    if (event.target.closest('[data-openchem-rotate]')) return
     dragging = true
     startX = event.clientX; startY = event.clientY
     baseX = rotationAngles.x; baseY = rotationAngles.y
@@ -621,6 +646,35 @@ function buildRotationOverlay() {
     if (bridgeObject) bridgeObject.rotationFinished()
   }
   const onResize = function () { positionRotationOverlay(overlay) }
+  // **NEITHER OF THESE LEAVES THE MODE ITSELF.** The page cannot uncheck
+  // the application's button, so a page that dismissed its own overlay
+  // would leave every other control claiming a mode nothing is in -- the
+  // defect this file's interception comments keep naming. They ASK, and
+  // Python drives the same exit the button does.
+  const onExit = function (event) {
+    const control = event.target.closest('[data-openchem-rotate]')
+    if (!control || !bridgeObject) return
+    event.preventDefault()
+    event.stopPropagation()
+    if (control.getAttribute('data-openchem-rotate') === 'cancel') {
+      bridgeObject.rotationCancelRequested()
+    } else {
+      bridgeObject.rotationExitRequested()
+    }
+  }
+  // ON `document`, IN CAPTURE, not on the overlay: Ketcher's own canvas and
+  // its toolbar are siblings of this element, so a listener on the overlay
+  // hears nothing once focus has moved off it -- and "Escape works, but only
+  // if you click the canvas first" is the same trap as a hidden Cancel.
+  // Focus outside the PAGE entirely is Qt's half; see `_rotate_escape`.
+  const onKey = function (event) {
+    if (event.key !== 'Escape' || !bridgeObject) return
+    event.preventDefault()
+    event.stopPropagation()
+    bridgeObject.rotationExitRequested()
+  }
+  overlay.addEventListener('click', onExit)
+  document.addEventListener('keydown', onKey, true)
   window.addEventListener('mousemove', onMove)
   window.addEventListener('mouseup', onUp)
   window.addEventListener('resize', onResize)
@@ -628,6 +682,10 @@ function buildRotationOverlay() {
     window.removeEventListener('mousemove', onMove)
     window.removeEventListener('mouseup', onUp)
     window.removeEventListener('resize', onResize)
+    // The key listener is on `document`, so it outlives the element unless
+    // it is taken off here -- the leak `leaveRotationMode` already records
+    // for mousemove/mouseup, one listener along.
+    document.removeEventListener('keydown', onKey, true)
   }
 }
 

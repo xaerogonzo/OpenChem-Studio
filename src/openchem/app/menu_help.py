@@ -262,10 +262,24 @@ MENU_HELP: dict[str, HelpTooltip] = {
             "Recomputes the drawing's coordinates from scratch, giving a clean "
             "standard depiction.\n\n"
             "IT DISCARDS THE ARRANGEMENT YOU DREW, including a layout adopted "
-            "from a 3D conformer. The compound is unchanged; only its picture "
-            "moves."
+            "from a 3D conformer.\n\n"
+            "This is Ketcher's own, and it re-reads the drawing to do it. On a "
+            "drawing brought across from a conformer -- where atoms can sit on "
+            "top of each other -- that has been measured CHANGING the compound. "
+            "Use Redraw in 2D for that case: it reads the structure instead of "
+            "the picture."
         ),
         tier=2, help_id="structure.layout", topic=_M, help_anchor="centre-tabs",
+    ),
+    "redraw_flat": HelpTooltip(
+        text=(
+            "Lays the drawing out flat again, undoing a picture brought across "
+            "by Use in 2D Editor.\n\n"
+            "It reads the STRUCTURE, not the drawing, so overlapping atoms in a "
+            "3D projection cannot confuse it -- and it changes coordinates only, so "
+            "the generated conformers are kept. Ctrl+Z puts the 3D drawing back."
+        ),
+        tier=2, help_id="structure.redraw_flat", topic=_M, help_anchor="centre-tabs",
     ),
     "clean_up": HelpTooltip(
         text=(

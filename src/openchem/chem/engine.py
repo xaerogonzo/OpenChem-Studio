@@ -344,6 +344,39 @@ class ChemistryEngine:
             stereo=self._stereo_change(reference, oriented),
         )
 
+    def flat_drawing(self, molblock: str, reference: str | None = None) -> ConformerDrawing:
+        """A plain 2D layout of this structure, following no geometry.
+
+        **THE WAY BACK FROM A 3D DRAWING, and it deliberately does not go
+        through the editor.** Ketcher's own Layout is the obvious route and
+        was measured changing the compound: on a drawing adopted from a
+        conformer -- whose projection has atoms on top of each other, which
+        the adopt path already warns about -- a round trip through Layout
+        turned `[C@@]` into `[C@]` and the canonical SMILES change then
+        correctly cleared the conformers. Twice, on
+        `C[C@H]1CC[C@H]2[C@H]3Cc4ccc(O)c5c4[C@@]2(CCN3C)[C@H]1O5`. The same
+        Layout on a drawing that was never adopted leaves the SMILES
+        untouched, so the fault is the degenerate drawing being re-read,
+        not the layout itself.
+
+        Reading the STRUCTURE rather than the picture avoids the whole
+        class: the parities come from the molblock's own stereo, not from
+        wedges on overlapping bonds, and `_stereo_change` still checks the
+        result against the drawing it replaces.
+
+        Coordinates only -- this is the same promise `AdoptConformerCommand`
+        makes, so the conformers stay valid and are not cleared.
+        """
+        heavy = Chem.RemoveHs(self.mol_from_molblock(molblock))
+        _claim_absolute_stereochemistry(heavy)
+        plain = Chem.Mol(heavy)
+        AllChem.Compute2DCoords(plain)
+        return ConformerDrawing(
+            Chem.MolToMolBlock(plain),
+            follows_geometry=False,
+            stereo=self._stereo_change(reference, plain),
+        )
+
     def _oriented_drawing(
         self, molblock: str, view: Sequence[float], reference: str | None = None
     ) -> ConformerDrawing:

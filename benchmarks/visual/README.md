@@ -165,3 +165,41 @@ scripts do and watch findings appear.
 - **Not golden-image diffing.** Described in `docs/LIVE_VERIFICATION.md`,
   deliberately not built here: adding goldens beside a brand-new oracle would
   be two unproven mechanisms landing at once.
+
+### `rotate_3d_leaving.json` — the mode had one way out, and it hid it
+
+`_apply_rotation_toggle` hid the bar and returned, so `end_rotation` had one
+production caller and un-checking the button HID that caller's control. The
+overlay is `inset:0; z-index:20`, so it stayed up swallowing every click.
+
+**`rotate_report` prints three facts, and the third is the one that was
+wrong**: the menu tick, the button, and whether `.openchem-rotate` is still
+in the document. The first two agreed throughout — both correctly reading
+"off" while the page went on rotating — which is why a test asserting they
+agree could not see it.
+
+Must show `agree=True` at every tag, including after F7 with focus in the
+canvas (so the key reaches Qt through the web view) and after Escape from a
+panel (so `WindowShortcut` answers where the page listener cannot).
+
+### `redraw_in_2d.json` — the way back, and the two that do not work
+
+Measured before this shipped, after Use in 2D Editor: **Clean Up** flattens
+the z column and keeps the projected positions, leaving the picture the
+overlapping mess it was; **Layout** draws it properly and turned `[C@@]`
+into `[C@]`, a different compound, which then correctly cleared the
+conformers.
+
+Must show `z_spread` falling to 0, `conformers` unchanged, `smiles`
+unchanged, and Undo putting the 3D drawing back. The two shots are the half
+no number carries — the projection is unreadable and the redraw is not.
+
+### `conformer_search_stability.json` — the same molecule, three times
+
+Reported as "sometimes I get six, sometimes I get nine, sometimes eight for
+the exact same molecule". The search is seeded and stops on a plateau now,
+so the three `report` lines must agree — measured 9 distinct, 450
+embeddings, 9 batches, plateau, identical across three runs.
+
+**Slow on purpose**: about 40 s a run against ~8 s before. That is the trade
+for a count that does not move, and it is why the step allows 90 s.

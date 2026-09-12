@@ -92,6 +92,10 @@ class ResultSummaryView:
     #: so a consumer holding one cannot ask it what kind the result was, and
     #: a second derivation is a second place for the two to disagree.
     rich_view: str = ""
+    #: What the button opening it should SAY, or "" for the
+    #: destination's own label. Carried beside `rich_view` and for the
+    #: same reason: the adapter's answer, copied once, never re-derived.
+    rich_view_label: str = ""
     limitations: tuple[str, ...] = ()
     assumptions: tuple[str, ...] = ()
     molecule_uuid: str = ""

@@ -1,0 +1,45 @@
+[
+  {
+    "do": "smiles",
+    "smiles": "C[C@H]1CC[C@H]2[C@H]3Cc4ccc(O)c5c4[C@@]2(CCN3C)[C@H]1O5",
+    "name": "search stability"
+  },
+  {
+    "do": "select",
+    "molecule": -1,
+    "after_ms": 500
+  },
+  {
+    "do": "conformers",
+    "count": 20,
+    "embeddings": 1000,
+    "after_ms": 90000
+  },
+  {
+    "do": "report",
+    "tag": "run-1"
+  },
+  {
+    "do": "conformers",
+    "count": 20,
+    "embeddings": 1000,
+    "after_ms": 90000
+  },
+  {
+    "do": "report",
+    "tag": "run-2"
+  },
+  {
+    "do": "conformers",
+    "count": 20,
+    "embeddings": 1000,
+    "after_ms": 90000
+  },
+  {
+    "do": "report",
+    "tag": "run-3"
+  },
+  {
+    "do": "quit"
+  }
+]

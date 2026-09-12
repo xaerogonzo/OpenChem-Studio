@@ -54,11 +54,13 @@ class _Bridge(QObject):
         on_editor_action: Callable[[str], None] | None = None,
         on_rotation_angles: Callable[[float, float], None] | None = None,
         on_rotation_finished: Callable[[], None] | None = None,
+        on_rotation_exit: Callable[[bool], None] | None = None,
     ) -> None:
         super().__init__()
         self._on_structure_edited = on_structure_edited
         self._on_rotation_angles = on_rotation_angles
         self._on_rotation_finished = on_rotation_finished
+        self._on_rotation_exit = on_rotation_exit
         self._on_ketcher_ready = on_ketcher_ready
         self._on_molfile_ready = on_molfile_ready
         self._on_load_complete = on_load_complete
@@ -110,6 +112,18 @@ class _Bridge(QObject):
     def rotationFinished(self) -> None:  # noqa: N802 - called from JS by this exact name
         if self._on_rotation_finished is not None:
             self._on_rotation_finished()
+
+    @Slot()
+    def rotationExitRequested(self) -> None:  # noqa: N802 - called from JS by this exact name
+        """The overlay's "Done (Esc)", and Escape inside the page."""
+        if self._on_rotation_exit is not None:
+            self._on_rotation_exit(False)
+
+    @Slot()
+    def rotationCancelRequested(self) -> None:  # noqa: N802 - called from JS by this exact name
+        """The overlay's own Cancel -- the DISCARDING exit."""
+        if self._on_rotation_exit is not None:
+            self._on_rotation_exit(True)
 
     @Slot()
     def periodicTableRequested(self) -> None:  # noqa: N802 - called from JS by this exact name
@@ -215,6 +229,7 @@ class KetcherEditorBackend(EditorBackend):
             self.editor_action_requested.emit,
             self.rotation_angles_changed.emit,
             self.rotation_finished.emit,
+            self.rotation_exit_requested.emit,
         )
         self._channel.registerObject("bridge", self._bridge)
         self._page.setWebChannel(self._channel)

@@ -398,3 +398,48 @@ def test_a_provider_that_never_declared_the_flag_records_None(qapp):
     _drain(qapp)
     parameters = payload["conformers"][0].provenance.parameters
     assert parameters["use_small_ring_torsions"] is None
+
+
+# --- the search protocol reaches the record ----------------------------------
+
+
+def test_the_service_searches_with_a_SEED():
+    """**THE REPORTED DEFECT, one line up from where it was fixed.** The
+    application built its provider with no seed, which is ETKDG's "draw from
+    the global RNG" -- correct for a random search and the whole of "every
+    time I run it now, I get wildly different results".
+
+    Asserted on the provider the SERVICE builds, not on one built here: a
+    test that constructs its own would pass whatever the service does.
+    """
+    from openchem.chem.conformer_providers import DEFAULT_SEARCH_SEED
+    from openchem.events.base import EventBus
+    from openchem.chem.engine import ChemistryEngine
+    from openchem.services.conformer_service import ConformerService
+
+    service = ConformerService(EventBus(), ChemistryEngine())
+
+    provider = service._providers["rdkit"]
+    assert provider.random_seed == DEFAULT_SEARCH_SEED
+
+
+def test_the_record_says_how_the_search_ended_and_what_it_spent(qapp, tmp_path):
+    """A stored result that cannot say which search produced it is the gap
+    the seed closes, and the stop reason is what turns a count into an
+    answer. Read off a REAL run's provenance rather than asserted about the
+    dict that builds it."""
+    _conformers, parameters = _generate_with_cap(qapp, keep=5, embeddings=8)
+
+    for key in (
+        "random_seed",
+        "seed_offset_policy",
+        "embedding_batch_size",
+        "max_embeddings",
+        "plateau_batches_required",
+        "batches",
+        "batches_without_new_candidates",
+        "stop_reason",
+    ):
+        assert key in parameters, f"provenance never recorded {key}"
+    assert parameters["stop_reason"] in ("plateau", "budget", "time", "cancelled")
+    assert parameters["batches"] >= 1

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 
-from PySide6.QtGui import QUndoStack
+from PySide6.QtGui import QKeySequence, QShortcut, QUndoStack
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -44,11 +44,22 @@ ROTATE_HELP = HelpTooltip(
 
 #: A DIFFERENT CONCEPT FROM THE MODE ITSELF: this DISCARDS, where turning
 #: the mode off keeps whatever the structure now looks like.
+#:
+#: **IT USED TO SAY "nothing reaches the undo stack", AND THAT WAS FALSE
+#: AFTER A DRAG.** Each drag commits through `RotateStructureCommand`, so
+#: by the time Cancel is pressed the turn is already on the stack -- the
+#: old wording described the no-drag case and quietly mis-described the
+#: only case where this button does anything. Measured on ALANINE: the
+#: molblock after Cancel was not the one the mode was entered on.
+#: `_cancel_rotation` rewinds to the entry index now, and the text says
+#: what that leaves behind.
 _ROTATE_CANCEL_HELP = HelpTooltip(
     text=(
         "Leave rotation mode and put the structure back as it was.\n\n"
-        "Nothing reaches the undo stack, so this is not the same as "
-        "rotating and then undoing."
+        "Any turning you did while the mode was on is taken back for "
+        "you, which is what makes this different from simply turning "
+        "the mode off -- that keeps it.\n\n"
+        "Redo brings the rotation back if you change your mind."
     ),
     tier=1,
     help_id="editor.rotate_cancel",
@@ -122,6 +133,19 @@ class MoleculeEditorWidget(QWidget):
         #: "off", "pairs", or "lewis". Off by default: an annotation
         #: nobody asked for is one more thing on a crowded canvas.
         self._electron_mode = "off"
+        #: Set while `_cancel_rotation` is driving the button, so the one
+        #: exit path knows this leave DISCARDS rather than keeps. It is a
+        #: parameter on a single call rather than a second `end_rotation`
+        #: caller, because two callers is what let the keep-path go
+        #: missing for a whole release: `_cancel_rotation` was the only
+        #: one, and every other way of leaving told the page nothing.
+        self._rotation_discarding = False
+        #: Where the undo stack stood when the mode was entered, so Cancel
+        #: can put the document back. **A drag COMMITS** -- see
+        #: `_on_rotation_finished` -- so by the time Cancel is pressed the
+        #: turn is already the structure, and restoring only the page would
+        #: leave the drawing and the model showing different geometries.
+        self._rotation_entry_index = 0
         #: Whether (R)/(S) and (E)/(Z) are shown. Off by default, same
         #: reasoning. Lives here rather than in the window so the labels are
         #: recomputed whenever the structure changes -- see
@@ -142,6 +166,18 @@ class MoleculeEditorWidget(QWidget):
         self._rotate_cancel.clicked.connect(self._cancel_rotation)
         for widget in (self._rotate_readout, self._rotate_cancel):
             widget.setVisible(False)
+
+        # **THE OTHER HALF OF ESCAPE.** main.jsx listens on `document`,
+        # which covers focus anywhere in the PAGE -- and covers nothing
+        # once focus is on a panel, the project tree or the menu bar.
+        # `WindowShortcut` answers there. Disabled unless the mode is
+        # on, so Escape goes on meaning what it usually means
+        # everywhere else; a modal dialog is its own window and is not
+        # affected either way.
+        self._rotate_escape = QShortcut(QKeySequence(Qt.Key_Escape), self)
+        self._rotate_escape.setContext(Qt.WindowShortcut)
+        self._rotate_escape.setEnabled(False)
+        self._rotate_escape.activated.connect(self._on_escape)
 
         rotate_bar = QHBoxLayout()
         rotate_bar.setContentsMargins(4, 2, 4, 2)
@@ -171,6 +207,7 @@ class MoleculeEditorWidget(QWidget):
         # was still on screen.
         self._backend.rotation_angles_changed.connect(self._on_rotation_angles)
         self._backend.rotation_finished.connect(self._on_rotation_finished)
+        self._backend.rotation_exit_requested.connect(self._on_page_exit_requested)
         event_bus.subscribe(MoleculeChanged, self._on_molecule_changed)
 
     def set_molecule(self, molecule: MoleculeModel | None) -> None:
@@ -468,10 +505,28 @@ class MoleculeEditorWidget(QWidget):
         rotates a copy, so toggling on and straight off again leaves the
         structure byte-identical -- which is what makes a mode you tried
         out of curiosity safe.
+
+        **LEAVING HAS TO TELL THE PAGE, AND THE FIRST VERSION DID NOT.** It
+        hid the bar and returned. The overlay is `inset:0; z-index:20`, so
+        it stayed and went on swallowing every click on the canvas -- while
+        `_cancel_rotation` was the ONLY caller of `end_rotation`, and
+        un-checking the button HIDES Cancel. The gesture that looks like the
+        way out removed the only way out; after one F7-off there was no exit
+        at all. Reported as "I clicked f7 ... and while it works, I am unable
+        to leave the 3d rotate mode".
+
+        **`restore=False` here, and Cancel keeps `restore=True`.** Every drag
+        has already committed through `RotateStructureCommand`
+        (`_on_rotation_finished`), so by the time the mode is left the
+        rotation IS the structure and Ctrl+Z is what takes it back. Restoring
+        here would revert the PAGE while the model kept the rotation, which
+        is the two-surfaces-disagreeing failure this file keeps finding.
         """
         for widget in (self._rotate_readout, self._rotate_cancel):
             widget.setVisible(on)
+        self._rotate_escape.setEnabled(on)
         if not on:
+            self._backend.end_rotation(restore=self._rotation_discarding)
             return
         if self._molecule is None or not self._molecule.molblock:
             self._rotate_button.setChecked(False)
@@ -486,6 +541,7 @@ class MoleculeEditorWidget(QWidget):
             self.geometry_requested.emit()
             return
         self._rotate_readout.setText("X 0\u00b0   Y 0\u00b0")
+        self._rotation_entry_index = self._undo_stack.index()
         if not self._backend.start_rotation():
             # The editor could not enter -- its page is still loading, or
             # it is a backend with no rotation at all. **The button comes
@@ -495,18 +551,66 @@ class MoleculeEditorWidget(QWidget):
             # finding: a control that says it did something it did not.
             self._rotate_button.setChecked(False)
 
+    def _on_page_exit_requested(self, discard: bool) -> None:
+        """The overlay's own Done/Cancel, and Escape inside the page.
+
+        **IT PRESSES THE CONTROLS**, like every other second route in
+        this widget: the button is the authority on the mode, so a
+        handler that ended the rotation directly would leave the
+        button, the menu tick and the context menu all still ticked.
+
+        Guarded on the button rather than trusted, because the page
+        can ask twice -- a click on Done also lands as a `click` on
+        the overlay -- and a second `setChecked(False)` on an already
+        unchecked button emits nothing, while a second
+        `_cancel_rotation` would rewind the undo stack a second time.
+        """
+        if not self._rotate_button.isChecked():
+            return
+        if discard:
+            self._cancel_rotation()
+        else:
+            self._rotate_button.setChecked(False)
+
+    def _on_escape(self) -> None:
+        """Escape with focus outside the page. Same exit as Done."""
+        self._on_page_exit_requested(discard=False)
+
     def _on_rotation_angles(self, x_degrees: float, y_degrees: float) -> None:
         self._rotate_readout.setText(f"X {x_degrees:.0f}\u00b0   Y {y_degrees:.0f}\u00b0")
 
     def _cancel_rotation(self, _checked: bool = False) -> None:
         """Leave the mode, putting the entry geometry back.
 
-        Zero undo steps: the preview was never an edit. A conformer
-        generated on the way in stays -- cancelling a rotation must not
-        delete a legitimate structure.
+        A conformer generated on the way in stays -- cancelling a rotation
+        must not delete a legitimate structure.
+
+        **IT DRIVES THE BUTTON RATHER THAN THE PAGE**, so that every way of
+        leaving goes through `_apply_rotation_toggle` and there is exactly
+        ONE `end_rotation` call site. The obvious version -- end the mode
+        here, then uncheck -- ends it twice now that un-checking also ends
+        it, and relies on the page tolerating the second call. More to the
+        point, two call sites is how the keep-path came to be missing at
+        all: this method was the only caller, so the button, F7 and the
+        menu tick all left the overlay in place.
+
+        `_rotation_discarding` is what makes the two exits differ, and it
+        is the whole difference: this one restores the entry geometry,
+        every other one keeps what the drags committed.
         """
-        self._backend.end_rotation(restore=True)
-        self._rotate_button.setChecked(False)
+        # **THE DOCUMENT, THEN THE PAGE.** `end_rotation(restore=True)` puts
+        # back the PAGE's entry snapshot, and main.jsx records that mutating
+        # positions fires no `change` event -- so on its own it left the
+        # canvas showing the entry geometry while the model held the last
+        # committed drag. Measured on ALANINE: after one drag the molblock
+        # came back different from the one the mode was entered on, and both
+        # halves of this button's stated contract were false.
+        self._undo_stack.setIndex(self._rotation_entry_index)
+        self._rotation_discarding = True
+        try:
+            self._rotate_button.setChecked(False)
+        finally:
+            self._rotation_discarding = False
 
     def _on_rotation_finished(self) -> None:
         """A drag ended: read the structure back and commit it once."""

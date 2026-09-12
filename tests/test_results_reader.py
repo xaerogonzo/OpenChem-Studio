@@ -827,3 +827,112 @@ def test_revealing_a_fact_that_is_not_there_says_so(qapp):
         assert not view.reveal_fact("no_such_report", "Common")
     finally:
         dispose(view)
+
+
+# --- what the Open button SAYS -----------------------------------------------
+#
+# Four kinds open the Calculator Inspector, and naming the window is right for
+# three of them. A structure set goes there to be PICKED FROM, and
+# "Open in Calculator Inspector" never said so -- reported as a missing
+# capability by someone whose screen was showing the button that does it.
+
+
+def test_a_structure_set_names_the_destination_it_is_going_to():
+    from openchem.domain.result_kinds import STRUCTURE_SET
+    from openchem.ui.result_adapters import ADAPTERS
+
+    assert ADAPTERS[STRUCTURE_SET].rich_view_label == "Send to 2D Editor..."
+
+
+def test_every_other_kind_leaves_the_label_to_the_destination():
+    """**NOT DEFAULTED, AND THAT IS THE POINT.** `ResultAdapter` names every
+    field on every kind -- the same convention `chart` states -- so a new kind
+    has to say whether it renames the door rather than inheriting silence.
+
+    Empty means "the destination's own label", which is right wherever the
+    window's name is what a reader wants: a per-atom dataset really is going
+    to be inspected.
+    """
+    from openchem.domain.result_kinds import STRUCTURE_SET
+    from openchem.ui.result_adapters import ADAPTERS
+
+    renaming = {kind for kind, a in ADAPTERS.items() if a.rich_view_label}
+
+    assert renaming == {STRUCTURE_SET}
+
+
+def test_a_kind_that_renames_the_door_still_opens_the_same_one():
+    """One destination, one `rich_view` target. A second target for the same
+    window would be two strings meaning one place, which is what
+    `FactLink.target`'s own docstring refuses."""
+    from openchem.domain.result_kinds import PER_ATOM, STRUCTURE_SET
+    from openchem.ui.result_adapters import ADAPTERS, CALCULATOR_INSPECTOR
+
+    assert ADAPTERS[STRUCTURE_SET].rich_view == CALCULATOR_INSPECTOR
+    assert ADAPTERS[PER_ATOM].rich_view == CALCULATOR_INSPECTOR
+
+
+def test_the_label_reaches_the_summary_a_reader_holds():
+    """Carried at projection time, never re-derived -- a view is not the
+    result, so a consumer holding one cannot ask what kind it came from."""
+    from openchem.domain.scientific_result import StructureEntry, StructureSetResult
+    from openchem.ui.result_adapters import summarise
+
+    result = StructureSetResult(
+        set_id="tautomers",
+        name="Tautomers",
+        method="rdkit",
+        molecule_uuid="m1",
+        entries=[StructureEntry(molblock="", label="Tautomer 1")],
+    )
+    view = summarise(
+        result,
+        result_id="tautomers",
+        name="Tautomers",
+        category="structure_generators",
+    )
+
+    assert view.rich_view_label == "Send to 2D Editor..."
+
+
+def test_the_ROW_shows_the_kinds_own_label(qapp):
+    """**THE WIRING, NOT THE TABLE.** Three tests above pin what the adapter
+    declares; an arm that made the widget ignore it survived all of them.
+    Testing a helper is not testing the wiring -- recorded in CLAUDE.md, and
+    this is another instance of it.
+
+    So this drives the real view: focus a structure-set summary and read the
+    button a user would click.
+    """
+    from openchem.domain.scientific_result import StructureEntry, StructureSetResult
+    from openchem.ui.result_adapters import summarise
+
+    result = StructureSetResult(
+        set_id="tautomers",
+        name="Tautomers",
+        method="rdkit",
+        molecule_uuid="mol-1",
+        entries=[StructureEntry(molblock="", label="Tautomer 1")],
+    )
+    window = ResultsView("mol-1")
+    window.set_reports(
+        (summarise(result, result_id="tautomers", name="Tautomers", category="structure_generators"),)
+    )
+
+    window._focus_box.setCurrentIndex(window._focus_box.findData("tautomers"))
+
+    assert window._open_button.text() == "Send to 2D Editor..."
+    dispose(window)
+
+
+def test_a_kind_with_nothing_to_add_keeps_the_destinations_words(qapp):
+    """The fallback half. A per-atom dataset really is going to be inspected,
+    so the window's own name is the right label and the row must not invent
+    one."""
+    window = ResultsView("mol-1")
+    window.set_reports(_two())
+
+    window._focus_box.setCurrentIndex(window._focus_box.findData("elemental_analysis"))
+
+    assert "Send to 2D Editor" not in window._open_button.text()
+    dispose(window)

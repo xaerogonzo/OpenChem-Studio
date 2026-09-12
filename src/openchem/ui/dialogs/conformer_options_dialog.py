@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from openchem.chem.conformer_providers import (
+from openchem.chem.conformer_providers import (  # noqa: F401 - re-exported
+    DEFAULT_EMBEDDING_BATCH_SIZE,
+    DEFAULT_PLATEAU_BATCHES,
     DEFAULT_OPTIMISATION_LEVEL,
     DEFAULT_RMS_THRESHOLD,
     OPTIMISATION_LEVELS,
@@ -15,7 +17,9 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QDialogButtonBox,
     QFormLayout,
+    QHBoxLayout,
     QLabel,
+    QRadioButton,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -43,18 +47,48 @@ from PySide6.QtWidgets import (
 #: Generation shows progress and is cancellable, so the cost is visible
 #: rather than mysterious.
 DEFAULT_CONFORMERS_TO_KEEP = 20
-DEFAULT_EMBEDDINGS_TO_TRY = 100
+
+#: The search CEILING, not the number of embeddings a run makes.
+#:
+#: **IT CHANGED MEANING WHEN THE SEARCH DID, AND THAT IS WHY IT MOVED.**
+#: Generation used to make exactly this many embeddings once; it now embeds
+#: in batches and stops when a few in a row add nothing unmatched, so this
+#: is the hard stop for a search that has not plateaued. Left at 100 it
+#: would cut every flexible molecule short -- measured, the plateau arrives
+#: at 200 embeddings for the reported cage and 350-400 for ethylmorphine.
+#:
+#: Chosen from the corpus rather than picked: nothing measured reaches it,
+#: which is what a ceiling is for. Cost at the ceiling is roughly a minute,
+#: and generation shows progress and is cancellable from the Jobs panel.
+DEFAULT_EMBEDDINGS_TO_TRY = 1000
 
 #: The old dialog's ceiling was 200, applied to what turned out to be the
 #: embedding count. Kept for embeddings; keeping more than 50 distinct
 #: conformers is not a thing anybody has asked for and a larger number
 #: mostly buys a slow N-squared comparison.
-MAX_EMBEDDINGS = 500
+MAX_EMBEDDINGS = 5000
 MAX_CONFORMERS_TO_KEEP = 50
 
 #: No time limit. The generation is already cancellable from the Jobs
 #: panel, so a limit is a convenience rather than the only way out.
 NO_TIME_LIMIT = 0
+
+#: What "Automatic" spends, and it is a TESTED default rather than UI
+#: decoration -- `tests/test_conformer_search.py` gates it on three cases
+#: finishing: the rigid cage (plateau at 200 embeddings, ~13 s), the
+#: flexible stress case ethylmorphine (plateau at 350-400, ~20 s), and a
+#: molecule that reaches neither, which must stop on the ceiling.
+#:
+#: "Conformers are too few" is a complaint, not a request for a
+#: stochastic-search configuration console. Nobody should have to know
+#: whether to ask for 500 embeddings or 2 plateau batches, so by default
+#: they are not asked.
+AUTOMATIC_SEARCH = {
+    "max_embeddings": DEFAULT_EMBEDDINGS_TO_TRY,
+    "embedding_batch_size": DEFAULT_EMBEDDING_BATCH_SIZE,
+    "plateau_batches_required": DEFAULT_PLATEAU_BATCHES,
+    "time_limit_seconds": None,
+}
 
 
 #: THE PROSE WAS ALREADY RIGHT, and that is the whole reason this
@@ -67,15 +101,70 @@ NO_TIME_LIMIT = 0
 #: is a property of the subject: every control here changes what the
 #: returned conformers MEAN, not merely how many there are.
 _HELP: dict[str, HelpTooltip] = {
+    "automatic": HelpTooltip(
+        text=(
+            "Search until no new conformers are turning up, using a "
+            "documented budget.\n\n"
+            "The search embeds in batches and stops when two in a row add "
+            "nothing new -- measured, that arrives at 200 embeddings for a "
+            "fused cage and 350 to 400 for a flexible drug-like molecule. "
+            "It is capped, and it can be cancelled from the Jobs panel."
+        ),
+        tier=2,
+        help_id="conformers.search_automatic",
+        topic="conformers",
+    ),
+    "advanced": HelpTooltip(
+        text=(
+            "Set the sampling budget by hand instead.\n\n"
+            "Nothing here changes what a conformer IS -- only how hard the "
+            "search looks before giving up. The results are selected the "
+            "same way either way."
+        ),
+        tier=2,
+        help_id="conformers.search_advanced",
+        topic="conformers",
+    ),
     "embeddings": HelpTooltip(
         text=(
-            "How many random embeddings to generate.\n\n"
-            "The search is random rather than exhaustive, so more attempts "
-            "find more distinct shapes -- with no guarantee attached to any "
-            "count. Cost is roughly linear in this number."
+            "The most random embeddings the search may make.\n\n"
+            "A CEILING, NOT A COUNT. The search stops earlier when new "
+            "shapes stop appearing, so a rigid molecule spends a fraction "
+            "of this. Reaching it instead means the search was still "
+            "finding things when it ran out of budget -- the Details "
+            "dialog after a run says which happened.\n\n"
+            "Cost is roughly linear in the embeddings actually made."
         ),
         tier=2,
         help_id="conformers.embeddings_to_try",
+        topic="conformers",
+    ),
+    "batch": HelpTooltip(
+        text=(
+            "How many embeddings the search makes between checks for new "
+            "shapes.\n\n"
+            "IT DOES NOT CHANGE WHAT IS SAMPLED. Seeds come from a running "
+            "count across the whole search, so the same budget draws the "
+            "same embeddings at any batch size -- this trades how often "
+            "the search can notice a plateau against the cost of checking."
+        ),
+        tier=3,
+        help_id="conformers.embedding_batch_size",
+        topic="conformers",
+    ),
+    "plateau": HelpTooltip(
+        text=(
+            "How many batches in a row must find nothing new before the "
+            "search stops.\n\n"
+            "ONE IS NOT EVIDENCE. A random search can miss a rare shape for "
+            "a whole batch and find it in the next, so stopping at the "
+            "first quiet one ends searches early. Higher is more thorough "
+            "and slower.\n\n"
+            "Stopping here means no new shapes were SAMPLED recently. It is "
+            "not a statement that the molecule has no more."
+        ),
+        tier=3,
+        help_id="conformers.plateau_batches",
         topic="conformers",
     ),
     "keep": HelpTooltip(
@@ -223,13 +312,52 @@ class ConformerOptionsDialog(QDialog):
         self._refine_check = QCheckBox("Enhanced refinement")
         apply_help_tooltip(self._refine_check, _HELP['refine'])
 
+        # **THE SEARCH HAS FOUR KNOBS AND SHOWS NONE OF THEM BY DEFAULT.**
+        # Supporting a setting is not a reason to put it on screen: the
+        # report behind this work was "I get way, way less conformers than I
+        # should", which nobody answers by choosing a batch size.
+        self._automatic = QRadioButton("Automatic")
+        self._advanced = QRadioButton("Advanced")
+        self._automatic.setChecked(True)
+        apply_help_tooltip(self._automatic, _HELP['automatic'])
+        apply_help_tooltip(self._advanced, _HELP['advanced'])
+        search_mode = QHBoxLayout()
+        search_mode.setContentsMargins(0, 0, 0, 0)
+        search_mode.addWidget(self._automatic)
+        search_mode.addWidget(self._advanced)
+        search_mode.addStretch()
+        self._search_mode = QWidget()
+        self._search_mode.setLayout(search_mode)
+
+        self._batch_spin = QSpinBox()
+        self._batch_spin.setRange(1, MAX_EMBEDDINGS)
+        self._batch_spin.setValue(DEFAULT_EMBEDDING_BATCH_SIZE)
+        apply_help_tooltip(self._batch_spin, _HELP['batch'])
+
+        self._plateau_spin = QSpinBox()
+        self._plateau_spin.setRange(1, 10)
+        self._plateau_spin.setValue(DEFAULT_PLATEAU_BATCHES)
+        apply_help_tooltip(self._plateau_spin, _HELP['plateau'])
+
         form = QFormLayout()
-        form.addRow("Embeddings to try:", self._embeddings_spin)
         form.addRow("Distinct conformers to keep:", self._keep_spin)
         form.addRow("Diversity threshold (RMSD):", self._diversity_spin)
         form.addRow("Optimisation:", self._optimisation_combo)
-        form.addRow("Time limit:", self._time_limit_spin)
         form.addRow("", self._refine_check)
+        form.addRow("Search:", self._search_mode)
+        # The four the radio hides. Kept in the same form so they line
+        # up with the rest when they appear.
+        self._advanced_rows = (
+            ("Maximum embeddings:", self._embeddings_spin),
+            ("Embeddings per batch:", self._batch_spin),
+            ("Stop after quiet batches:", self._plateau_spin),
+            ("Time limit:", self._time_limit_spin),
+        )
+        for label, widget in self._advanced_rows:
+            form.addRow(label, widget)
+        self._form = form
+        self._advanced.toggled.connect(self._on_advanced_toggled)
+        self._on_advanced_toggled(False)
 
         # Says the quiet part out loud, because "I asked for 10 and got 3"
         # is the exact confusion this dialog exists to prevent.
@@ -254,7 +382,28 @@ class ConformerOptionsDialog(QDialog):
         layout.addWidget(note)
         layout.addWidget(buttons)
 
+    def _on_advanced_toggled(self, advanced: bool) -> None:
+        """Show or hide the search controls.
+
+        `setRowVisible` rather than hiding the widgets: hiding a field
+        leaves its LABEL behind, which is the width-clip family of defect
+        this project has already paid for three times.
+        """
+        for index in range(self._form.rowCount()):
+            item = self._form.itemAt(index, QFormLayout.ItemRole.FieldRole)
+            widget = None if item is None else item.widget()
+            if widget in (w for _label, w in self._advanced_rows):
+                self._form.setRowVisible(index, advanced)
+        self.adjustSize()
+
+    def is_automatic(self) -> bool:
+        """Whether the documented budget is in use rather than these fields."""
+        return self._automatic.isChecked()
+
     def embeddings_to_try(self) -> int:
+        """The search CEILING. Automatic spends the documented budget."""
+        if self.is_automatic():
+            return int(AUTOMATIC_SEARCH["max_embeddings"])
         return self._embeddings_spin.value()
 
     def conformers_to_keep(self) -> int:
@@ -267,10 +416,23 @@ class ConformerOptionsDialog(QDialog):
         them as parameters since before this existed and a caller that
         wants nothing else should not have to build an object.
         """
-        seconds = self._time_limit_spin.value()
+        if self.is_automatic():
+            # **THE DOCUMENTED BUDGET, read from one place.** Reproducing
+            # the three numbers here would make `AUTOMATIC_SEARCH` a
+            # comment rather than a setting, and the gate that measures it
+            # would be measuring something else.
+            search = dict(AUTOMATIC_SEARCH)
+        else:
+            seconds = self._time_limit_spin.value()
+            search = {
+                "max_embeddings": self._embeddings_spin.value(),
+                "embedding_batch_size": self._batch_spin.value(),
+                "plateau_batches_required": self._plateau_spin.value(),
+                "time_limit_seconds": None if seconds == NO_TIME_LIMIT else float(seconds),
+            }
         return GenerationOptions(
             diversity_rmsd=self._diversity_spin.value(),
             optimisation=self._optimisation_combo.currentText(),
-            time_limit_seconds=None if seconds == NO_TIME_LIMIT else float(seconds),
             enhanced_refinement=self._refine_check.isChecked(),
+            **search,
         )

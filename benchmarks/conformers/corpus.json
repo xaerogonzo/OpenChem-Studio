@@ -1,126 +1,135 @@
 {
-  "_readme": [
-    "Reference conformer counts for the de-duplication benchmark.",
-    "",
-    "TWO KINDS OF KNOWLEDGE LIVE HERE AND THEY ARE NOT INTERCHANGEABLE.",
-    "'textbook' is a count somebody established independently of this code.",
-    "'computational_lower_bound' means: at least this many distinct minima",
-    "were FOUND under the sampling protocol below. It is NOT the number of",
-    "conformers the molecule has, and scoring must never treat it as an",
-    "exact target. Ethylmorphine's 12 means '>=12 found', not '12 exist'.",
-    "",
-    "ENANTIOMER POLICY. rdMolAlign.GetBestRMS does not reflect, so",
-    "mirror-image conformers of an achiral molecule are counted",
-    "SEPARATELY by this pipeline. Pentane's textbook 4 unique conformers",
-    "(TT, TG, G+G+, G+G-) therefore reads as 5-6 here, because G+G+ and",
-    "G-G- are enantiomeric and cannot be superimposed by a proper",
-    "rotation. This is understood behaviour, not noise -- see the",
-    "'convention' field on each entry.",
-    "",
-    "Every SMILES is stereochemically defined. Racemic input embeds BOTH",
-    "enantiomers, which inflates the RMSD count and deflates the",
-    "energy-derived bound at the same time: measured on racemic ibuprofen,",
-    "19 'distinct' shapes against 5 distinct energies, neither meaningful."
-  ],
-  "sampling_protocol": {
-    "embedder": "ETKDGv3",
-    "force_field": "MMFF94, UFF fallback",
-    "max_iters": 2000,
-    "optimisation_attempts": 2,
-    "convergence": "rc == 0 required; non-converged embeddings are discarded",
-    "embeddings": 50,
-    "note": "The lower bounds below were derived from distinct converged energies (0.05 kcal/mol apart) over runs of this protocol, which is independent of the RMSD comparison being benchmarked. use_small_ring_torsions shipped 2026-08-13 after an isolated OFF/ON gate (see README): it moved no reference here -- the bounds predate it and remain valid as lower bounds, since the flag only ever ADDS sampled shapes.",
-    "use_small_ring_torsions": true
+ "_readme": [
+  "Reference conformer counts for the de-duplication benchmark.",
+  "",
+  "TWO KINDS OF KNOWLEDGE LIVE HERE AND THEY ARE NOT INTERCHANGEABLE.",
+  "'textbook' is a count somebody established independently of this code.",
+  "'computational_lower_bound' means: at least this many distinct minima",
+  "were FOUND under the sampling protocol below. It is NOT the number of",
+  "conformers the molecule has, and scoring must never treat it as an",
+  "exact target. Ethylmorphine's 12 means '>=12 found', not '12 exist'.",
+  "",
+  "ENANTIOMER POLICY. rdMolAlign.GetBestRMS does not reflect, so",
+  "mirror-image conformers of an achiral molecule are counted",
+  "SEPARATELY by this pipeline. Pentane's textbook 4 unique conformers",
+  "(TT, TG, G+G+, G+G-) therefore reads as 5-6 here, because G+G+ and",
+  "G-G- are enantiomeric and cannot be superimposed by a proper",
+  "rotation. This is understood behaviour, not noise -- see the",
+  "'convention' field on each entry.",
+  "",
+  "Every SMILES is stereochemically defined. Racemic input embeds BOTH",
+  "enantiomers, which inflates the RMSD count and deflates the",
+  "energy-derived bound at the same time: measured on racemic ibuprofen,",
+  "19 'distinct' shapes against 5 distinct energies, neither meaningful."
+ ],
+ "sampling_protocol": {
+  "embedder": "ETKDGv3",
+  "force_field": "MMFF94, UFF fallback",
+  "max_iters": 2000,
+  "optimisation_attempts": 2,
+  "convergence": "rc == 0 required; non-converged embeddings are discarded",
+  "embeddings": 50,
+  "note": "The lower bounds below were derived from distinct converged energies (0.05 kcal/mol apart) over runs of this protocol, which is independent of the RMSD comparison being benchmarked. use_small_ring_torsions shipped 2026-08-13 after an isolated OFF/ON gate (see README): it moved no reference here -- the bounds predate it and remain valid as lower bounds, since the flag only ever ADDS sampled shapes.",
+  "use_small_ring_torsions": true
+ },
+ "molecules": [
+  {
+   "name": "aziridine",
+   "smiles": "C1CN1",
+   "reference": 1,
+   "reference_type": "textbook",
+   "convention": "a three-membered ring has one shape",
+   "notes": "The original bug: ten embeddings returned ten copies and the viewer reported 'Conformer 1/10' for every one."
   },
-  "molecules": [
-    {
-      "name": "aziridine",
-      "smiles": "C1CN1",
-      "reference": 1,
-      "reference_type": "textbook",
-      "convention": "a three-membered ring has one shape",
-      "notes": "The original bug: ten embeddings returned ten copies and the viewer reported 'Conformer 1/10' for every one."
-    },
-    {
-      "name": "2H-azirine",
-      "smiles": "C1=NC1",
-      "reference": 1,
-      "reference_type": "textbook",
-      "convention": "a three-membered ring has one shape",
-      "notes": "THE OVER-COUNT CASE. About 2% of embeddings converge to a distorted minimum 10.7 kcal/mol up -- same connectivity and torsions, C=N stretched to 1.339 A from 1.246. The energy veto promoted that force-field artefact to a second conformer until _IDENTICAL_SHAPE_RMSD was added. Present so the corpus covers over-counting as well as under-counting."
-    },
-    {
-      "name": "benzene",
-      "smiles": "c1ccccc1",
-      "reference": 1,
-      "reference_type": "textbook",
-      "convention": "planar and rigid",
-      "notes": "A rigid case with no ring strain, so an over-count here would mean something different from azirine's."
-    },
-    {
-      "name": "ethanol",
-      "smiles": "CCO",
-      "reference": 2,
-      "reference_type": "textbook",
-      "convention": "anti and gauche; the two gauche forms are mirror images",
-      "notes": "One of the two molecules the shipped 0.5 A threshold was calibrated on, and one it gets right. Present to catch a regression, not to prove anything new."
-    },
-    {
-      "name": "butane",
-      "smiles": "CCCC",
-      "reference": 2,
-      "reference_type": "textbook",
-      "convention": "anti and gauche; the two gauche forms are mirror images",
-      "notes": "The calibration molecule. Its pairwise RMSDs are BIMODAL -- below 0.5 A or at 0.66 A, nothing between -- which is a property of butane and is why a threshold fitted here generalised badly."
-    },
-    {
-      "name": "1,2-dichloroethane",
-      "smiles": "ClCCCl",
-      "reference": 2,
-      "reference_type": "textbook",
-      "convention": "anti and gauche",
-      "notes": "A second small anti/gauche case with heavier substituents, so the check does not rest on hydrogen positions alone."
-    },
-    {
-      "name": "cyclohexane",
-      "smiles": "C1CCCCC1",
-      "reference": 2,
-      "reference_type": "textbook",
-      "convention": "chair and twist-boat",
-      "notes": "THE MOTIVATING FAILURE. The 0.5 A RMSD criterion alone reports 1 -- it merges the twist-boat into the chair, calling a textbook two-conformer molecule rigid. This is the row the energy veto has to earn. Still true with use_small_ring_torsions: the flag lifts pre-optimisation diversity from 1 shape to 3, but chair and twist-boat still merge geometrically (RMSD 0.3747 < 0.5), so the count stays 2 and the veto stays load-bearing."
-    },
-    {
-      "name": "pentane",
-      "smiles": "CCCCC",
-      "reference": 4,
-      "reference_type": "textbook",
-      "convention": "TT, TG, G+G+, G+G- as UNIQUE conformers; this pipeline separates enantiomeric pairs and so reports more",
-      "notes": "Deliberately kept despite the convention mismatch: it is the clearest case of the enantiomer policy above, and a run that suddenly reports 4 would mean GetBestRMS had started reflecting."
-    },
-    {
-      "name": "ethylene glycol",
-      "smiles": "OCCO",
-      "reference": 6,
-      "reference_type": "computational_lower_bound",
-      "convention": "mirror images counted separately",
-      "notes": "Two rotatable O-H plus the C-C torsion. The classic case for keeping polar hydrogens in the comparison: heavy-atom-only RMSD collapses it to 2."
-    },
-    {
-      "name": "(S)-ibuprofen",
-      "smiles": "CC(C)Cc1ccc(cc1)[C@@H](C)C(=O)O",
-      "reference": 5,
-      "reference_type": "computational_lower_bound",
-      "convention": "mirror images counted separately",
-      "notes": "Stereochemically defined on purpose. The racemic SMILES embeds both enantiomers and makes both metrics meaningless -- see the readme."
-    },
-    {
-      "name": "ethylmorphine",
-      "smiles": "CN1CC[C@]23[C@@H]4[C@H]1CC5=C2C(=C(C=C5)OCC)O[C@H]3[C@H](C=C4)O",
-      "reference": 12,
-      "reference_type": "computational_lower_bound",
-      "convention": "mirror images counted separately",
-      "notes": "The C19H23NO3 morphine derivative from the bug report, which generated 'Kept 2 distinct conformer(s) of 10 embedded'. BOTH geometric measures are blind here: for the extreme pair (dE 17.87 kcal/mol) the ten largest displacements are all hydrogens, TFD reads 0.038 against a literature cut of 0.2, and the heavy atoms barely move.",
-      "tighter_bound_note": "12 is what a SINGLE run of the protocol finds without small-ring torsions; with them (shipped 2026-08-13) a single run averages 15 [10-18]. Pooling five seeds found 17 before the flag and 25 with it -- so the true count is at least 25. The reference is deliberately left at the pre-flag single-run figure: it is a lower bound, exceeding it is not a failure, and moving it with every sampling improvement would make the benchmark grade itself. This is also the molecule with the weakest seed-to-seed agreement (coverage 0.60 under the flag: the discoverable space grew faster than per-run yield), so its union grows fastest with sampling budget."
-    }
-  ]
+  {
+   "name": "2H-azirine",
+   "smiles": "C1=NC1",
+   "reference": 1,
+   "reference_type": "textbook",
+   "convention": "a three-membered ring has one shape",
+   "notes": "THE OVER-COUNT CASE. About 2% of embeddings converge to a distorted minimum 10.7 kcal/mol up -- same connectivity and torsions, C=N stretched to 1.339 A from 1.246. The energy veto promoted that force-field artefact to a second conformer until _IDENTICAL_SHAPE_RMSD was added. Present so the corpus covers over-counting as well as under-counting."
+  },
+  {
+   "name": "benzene",
+   "smiles": "c1ccccc1",
+   "reference": 1,
+   "reference_type": "textbook",
+   "convention": "planar and rigid",
+   "notes": "A rigid case with no ring strain, so an over-count here would mean something different from azirine's."
+  },
+  {
+   "name": "ethanol",
+   "smiles": "CCO",
+   "reference": 2,
+   "reference_type": "textbook",
+   "convention": "anti and gauche; the two gauche forms are mirror images",
+   "notes": "One of the two molecules the shipped 0.5 A threshold was calibrated on, and one it gets right. Present to catch a regression, not to prove anything new."
+  },
+  {
+   "name": "butane",
+   "smiles": "CCCC",
+   "reference": 2,
+   "reference_type": "textbook",
+   "convention": "anti and gauche; the two gauche forms are mirror images",
+   "notes": "The calibration molecule. Its pairwise RMSDs are BIMODAL -- below 0.5 A or at 0.66 A, nothing between -- which is a property of butane and is why a threshold fitted here generalised badly."
+  },
+  {
+   "name": "1,2-dichloroethane",
+   "smiles": "ClCCCl",
+   "reference": 2,
+   "reference_type": "textbook",
+   "convention": "anti and gauche",
+   "notes": "A second small anti/gauche case with heavier substituents, so the check does not rest on hydrogen positions alone."
+  },
+  {
+   "name": "cyclohexane",
+   "smiles": "C1CCCCC1",
+   "reference": 2,
+   "reference_type": "textbook",
+   "convention": "chair and twist-boat",
+   "notes": "THE MOTIVATING FAILURE. The 0.5 A RMSD criterion alone reports 1 -- it merges the twist-boat into the chair, calling a textbook two-conformer molecule rigid. This is the row the energy veto has to earn. Still true with use_small_ring_torsions: the flag lifts pre-optimisation diversity from 1 shape to 3, but chair and twist-boat still merge geometrically (RMSD 0.3747 < 0.5), so the count stays 2 and the veto stays load-bearing."
+  },
+  {
+   "name": "pentane",
+   "smiles": "CCCCC",
+   "reference": 4,
+   "reference_type": "textbook",
+   "convention": "TT, TG, G+G+, G+G- as UNIQUE conformers; this pipeline separates enantiomeric pairs and so reports more",
+   "notes": "Deliberately kept despite the convention mismatch: it is the clearest case of the enantiomer policy above, and a run that suddenly reports 4 would mean GetBestRMS had started reflecting."
+  },
+  {
+   "name": "ethylene glycol",
+   "smiles": "OCCO",
+   "reference": 6,
+   "reference_type": "computational_lower_bound",
+   "convention": "mirror images counted separately",
+   "notes": "Two rotatable O-H plus the C-C torsion. The classic case for keeping polar hydrogens in the comparison: heavy-atom-only RMSD collapses it to 2."
+  },
+  {
+   "name": "(S)-ibuprofen",
+   "smiles": "CC(C)Cc1ccc(cc1)[C@@H](C)C(=O)O",
+   "reference": 5,
+   "reference_type": "computational_lower_bound",
+   "convention": "mirror images counted separately",
+   "notes": "Stereochemically defined on purpose. The racemic SMILES embeds both enantiomers and makes both metrics meaningless -- see the readme."
+  },
+  {
+   "name": "ethylmorphine",
+   "smiles": "CN1CC[C@]23[C@@H]4[C@H]1CC5=C2C(=C(C=C5)OCC)O[C@H]3[C@H](C=C4)O",
+   "reference": 12,
+   "reference_type": "computational_lower_bound",
+   "convention": "mirror images counted separately",
+   "notes": "The C19H23NO3 morphine derivative from the bug report, which generated 'Kept 2 distinct conformer(s) of 10 embedded'. BOTH geometric measures are blind here: for the extreme pair (dE 17.87 kcal/mol) the ten largest displacements are all hydrogens, TFD reads 0.038 against a literature cut of 0.2, and the heavy atoms barely move.",
+   "tighter_bound_note": "12 is what a SINGLE run of the protocol finds without small-ring torsions; with them (shipped 2026-08-13) a single run averages 15 [10-18]. Pooling five seeds found 17 before the flag and 25 with it -- so the true count is at least 25. The reference is deliberately left at the pre-flag single-run figure: it is a lower bound, exceeding it is not a failure, and moving it with every sampling improvement would make the benchmark grade itself. This is also the molecule with the weakest seed-to-seed agreement (coverage 0.60 under the flag: the discoverable space grew faster than per-run yield), so its union grows fastest with sampling budget."
+  },
+  {
+   "name": "morphinan cage",
+   "smiles": "C[C@H]1CC[C@H]2[C@H]3Cc4ccc(O)c5c4[C@@]2(CCN3C)[C@H]1O5",
+   "reference": 8,
+   "reference_type": "computational_lower_bound",
+   "convention": "mirror images counted separately",
+   "notes": "C18H23NO2, reported as 'every time I run it now, I get wildly different results ... sometimes I get six, sometimes I get nine, sometimes eight'. THE RIGID COUNTERWEIGHT TO ethylmorphine: a fully fused pentacyclic cage whose only freely rotatable bond is the phenol O-H, so its flexibility is ring pucker and essentially nothing else. It is in the corpus because the batched search changed how every molecule is sampled and a rigid case is where an over-eager search would show up as invented conformers.",
+   "tighter_bound_note": "8 is what the least generous single run of the protocol above finds (measured at 50 embeddings, seeds 0/1/2: 8, 9, 9 distinct converged energies 0.05 kcal/mol apart). DERIVED AT THE PROTOCOL RECORDED ABOVE rather than at the settings that motivated the entry, deliberately -- filing a differently-measured number under a shared protocol block is the error `reference_type` exists to prevent. The motivating numbers, for the record and NOT as the reference: funnel.py at 5 seeds x 100 embeddings gives 6-9 per seed under the RMSD criterion, union 10, coverage 0.80 -- and only 3-4 distinct shapes PRE-optimisation, which is why the diagnosis moved from the de-duplication to the embedder. The shipped batched search finds 9 from either of two seeds. AND IT SCORES SHORT, WHICH IS THE INTERESTING PART. The scorer compares the RMSD criterion's retained count against this energy-derived bound, and here the criterion finds fewer: 6.6 mean [6-8] against 8. That is the OPPOSITE direction to every other entry -- ethylmorphine's bound of 12 scores 15.0 -- and it is what a rigid cage looks like under a comparison that is blind to ring pucker: the energies separate states the heavy-atom RMSD merges, which is exactly the disagreement the energy veto exists to arbitrate. Recorded rather than tuned away. Nothing gates on this file; a human reads it."
+  }
+ ]
 }

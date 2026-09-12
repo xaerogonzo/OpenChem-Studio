@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from rdkit import Chem
 
-from openchem.chem.conformer_providers import RDKitConformerProvider
+from openchem.chem.conformer_providers import (
+    REFERENCE_GEOMETRY_EMBEDDINGS,
+    REFERENCE_GEOMETRY_SEED,
+    RDKitConformerProvider,
+)
 from openchem.domain.scientific_result import NMRSpectrumResult
 
 # TMS (tetramethylsilane, Si(CH3)4) -- the standard 1H/13C NMR chemical
@@ -23,7 +27,18 @@ def tms_molecule() -> Chem.Mol:
     through before an ORCA job -- not a shortcut/simplified geometry.
     """
     mol = Chem.MolFromSmiles(_TMS_SMILES)
-    conformers = RDKitConformerProvider().generate_conformers(mol, num_conformers=1, optimize=True)
+    # **SEEDED AND LOWEST-ENERGY, and the second half is the one that
+    # matters.** Unseeded, TMS was embedded from a different random
+    # draw each time; TMS is rigid enough that this never moved it
+    # (measured: identical MMFF energy and heavy-atom RMSD below 1e-6
+    # from five seeds), but the calibration path next door shares this
+    # shape and cyclohexane there is NOT rigid. Both take the lowest of
+    # several now, which is what a reference geometry means.
+    conformers = RDKitConformerProvider(
+        random_seed=REFERENCE_GEOMETRY_SEED
+    ).generate_conformers(
+        mol, num_conformers=REFERENCE_GEOMETRY_EMBEDDINGS, optimize=True
+    )
     if not conformers:
         raise RuntimeError("Failed to embed a TMS reference conformer")
     return conformers[0][0]

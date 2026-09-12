@@ -122,6 +122,12 @@ _HELP: dict[str, HelpTooltip] = {
         text=(
             "Redraw the 2D structure to match this conformer's geometry, "
             "and switch to the editor.\n\n"
+            "IT REPLACES THE DRAWING YOU HAVE. The structure itself is "
+            "unchanged -- same atoms and bonds -- but the arrangement you "
+            "drew is gone, and Ctrl+Z is what brings it back. The new "
+            "drawing is a projection of the real geometry, so for a compact "
+            "molecule it can be hard to read; Structure > Redraw in 2D lays "
+            "it out flat again without losing the conformers.\n\n"
             "The drawing keeps its implicit hydrogens and the conformers "
             "are kept, so this is not the same as adopting the raw "
             "coordinates.\n\n"

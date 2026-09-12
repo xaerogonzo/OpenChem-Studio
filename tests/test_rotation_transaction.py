@@ -589,3 +589,231 @@ def test_entering_the_mode_with_a_3d_drawing_starts_rotating(qapp):
     assert asked == []
     assert backend.rotation_starts == 1
     assert widget._rotate_button.isChecked()
+
+
+# --- leaving the mode --------------------------------------------------------
+
+
+def test_turning_the_mode_OFF_tells_the_page_to_leave(qapp):
+    """**THE DEFECT THIS SECTION EXISTS FOR.** `_apply_rotation_toggle` hid
+    the bar and returned, so `_cancel_rotation` was the only caller of
+    `end_rotation` anywhere in production -- and un-checking the button
+    HIDES Cancel. The overlay is `inset:0; z-index:20`, so it went on
+    swallowing every click on the canvas with no control left to dismiss it.
+
+    Reported as "I clicked f7 ... and while it works, I'm unable to leave
+    the 3d rotate mode". The earlier tests here asserted that the menu tick
+    and the button AGREE; agreeing about a mode the page is still in is
+    exactly what they could not see.
+    """
+    widget, backend, molecule, stack = _widget_with(_embedded(ALANINE))
+    widget._rotate_button.setChecked(True)
+    assert backend.rotation_starts == 1, "the fixture never entered the mode"
+
+    widget._rotate_button.setChecked(False)
+
+    assert backend.rotation_ends == [False], (
+        f"leaving asked the page for {backend.rotation_ends} -- [] means the "
+        f"overlay is still up with nothing left to dismiss it"
+    )
+
+
+def test_leaving_KEEPS_the_rotation_and_undo_takes_it_back(qapp):
+    """Turning the mode off is the KEEP exit, so `restore=False`.
+
+    Every drag has already committed, so the rotation is the structure by
+    the time the mode is left; asking the page to restore here would revert
+    the drawing while the model kept the turn. Ctrl+Z is what takes it back,
+    and it is one step for the one drag.
+    """
+    widget, backend, molecule, stack = _widget_with(_embedded(ALANINE))
+    before = molecule.molblock
+
+    _drag(widget, backend, molecule)
+    widget._rotate_button.setChecked(False)
+
+    assert backend.rotation_ends == [False]
+    assert molecule.molblock != before, "the drag was not kept"
+    assert stack.count() == 1
+    stack.undo()
+    assert molecule.molblock == before
+
+
+def test_cancelling_AFTER_a_drag_honours_the_contract_it_states(qapp):
+    """`_ROTATE_CANCEL_HELP` promises two things in as many words: *"put the
+    structure back as it was"* and *"nothing reaches the undo stack, so this
+    is not the same as rotating and then undoing."*
+
+    Both have to hold after a drag, which is the only case where they say
+    anything: before a drag there is nothing to put back. `end_rotation`
+    restores the PAGE from the entry snapshot, and main.jsx records that
+    mutating positions fires no `change` event -- so on its own it leaves
+    the page showing one geometry and the model holding another.
+    """
+    widget, backend, molecule, stack = _widget_with(_embedded(ALANINE))
+    before = molecule.molblock
+
+    _drag(widget, backend, molecule)
+    widget._cancel_rotation()
+
+    assert molecule.molblock == before, "the structure was not put back"
+    assert stack.index() == 0, (
+        f"undo index {stack.index()} of {stack.count()}: the cancelled "
+        f"rotation is still the current state of the document"
+    )
+    # RECOVERABLE, and the contract says so. Rewinding is not erasing --
+    # QUndoStack has no way to drop a command -- so the turn is still
+    # there to redo. Pinned rather than tolerated, because "nothing
+    # reaches the undo stack" was the old wording and this is what
+    # replaced it.
+    assert stack.count() == 1
+    stack.redo()
+    assert molecule.molblock != before
+
+
+# --- the ways out ------------------------------------------------------------
+#
+# The mode had ONE: a Cancel button that the act of leaving hid. These are the
+# routes added for that, and every one of them presses a control rather than
+# ending the rotation itself -- the page cannot un-check the host's button, so
+# an overlay that dismissed itself would leave the button, the Structure menu's
+# tick and the context menu all still ticked.
+
+
+def test_the_overlays_Done_leaves_the_mode_keeping_the_turn(qapp):
+    """The banner's own exit, on the thing that covers the canvas.
+
+    The application's Cancel button sits ABOVE the web view and was
+    reported as not found; the overlay is `inset:0`, so while the mode is
+    on it is the only thing the eye is on.
+    """
+    widget, backend, molecule, stack = _widget_with(_embedded(ALANINE))
+    _drag(widget, backend, molecule)
+    turned = molecule.molblock
+
+    backend.rotation_exit_requested.emit(False)
+
+    assert widget._rotate_button.isChecked() is False
+    assert backend.rotation_ends == [False]
+    assert molecule.molblock == turned, "Done discarded the turn"
+
+
+def test_the_overlays_Cancel_leaves_the_mode_discarding(qapp):
+    """The same button as the application's, reached from the overlay, and
+    it has to mean the same thing -- which is why it drives
+    `_cancel_rotation` rather than a second implementation of it."""
+    widget, backend, molecule, stack = _widget_with(_embedded(ALANINE))
+    before = molecule.molblock
+    _drag(widget, backend, molecule)
+
+    backend.rotation_exit_requested.emit(True)
+
+    assert widget._rotate_button.isChecked() is False
+    assert backend.rotation_ends == [True]
+    assert molecule.molblock == before, "Cancel kept the turn"
+
+
+def test_an_exit_asked_for_twice_only_happens_once(qapp):
+    """**THE PAGE CAN ASK TWICE.** A click on Done lands on the control and
+    on the overlay, and Escape can arrive alongside either. A second
+    `setChecked(False)` on an unchecked button emits nothing and is
+    harmless; a second `_cancel_rotation` would rewind the undo stack
+    again, past the entry index and into whatever the user did before.
+    """
+    widget, backend, molecule, stack = _widget_with(_embedded(ALANINE))
+    before = molecule.molblock
+    _drag(widget, backend, molecule)
+    assert stack.count() == 1
+
+    backend.rotation_exit_requested.emit(True)
+    backend.rotation_exit_requested.emit(True)
+
+    assert backend.rotation_ends == [True], "the page's second ask was acted on"
+    assert molecule.molblock == before
+
+
+def test_escape_is_armed_only_while_the_mode_is_on(qapp):
+    """Escape means what it usually means the rest of the time.
+
+    `WindowShortcut` is the context, so it answers wherever focus is in
+    this window -- which is the whole point, since main.jsx's own listener
+    covers only focus inside the page. Leaving it armed would take Escape
+    away from every other control in the window.
+    """
+    widget, backend, molecule, stack = _widget_with(_embedded(ALANINE))
+    assert widget._rotate_escape.isEnabled() is False
+
+    widget._rotate_button.setChecked(True)
+    assert widget._rotate_escape.isEnabled() is True
+
+    widget._rotate_button.setChecked(False)
+    assert widget._rotate_escape.isEnabled() is False
+
+
+def test_escape_takes_the_KEEPING_exit_not_cancels(qapp):
+    """Two exits, and Escape is the one that agrees with the banner's Done
+    and with turning the mode off -- so the same gesture does not mean keep
+    on one route and discard on another. Cancel is labelled, and stays the
+    only thing that discards."""
+    widget, backend, molecule, stack = _widget_with(_embedded(ALANINE))
+    _drag(widget, backend, molecule)
+    turned = molecule.molblock
+
+    widget._rotate_escape.activated.emit()
+
+    assert widget._rotate_button.isChecked() is False
+    assert backend.rotation_ends == [False]
+    assert molecule.molblock == turned
+    assert stack.count() == 1
+
+
+def test_cancel_rewinds_to_where_the_MODE_started_not_to_the_bottom(qapp):
+    """**THE ARM THAT SURVIVED, AND WHY.** Every other test here enters the
+    mode on an empty stack, so `_rotation_entry_index` is 0 and never
+    recording it looks identical to recording it. The case that separates
+    them is the ordinary one: work that was already done before the user
+    reached for the rotation.
+
+    Two turns, and only the second is cancelled. The first has to still be
+    there -- a Cancel that reached back past the moment the mode was
+    entered would quietly undo whatever the user did before it.
+    """
+    widget, backend, molecule, stack = _widget_with(_embedded(ALANINE))
+    original = molecule.molblock
+
+    _drag(widget, backend, molecule, 20.0, 0.0)
+    widget._rotate_button.setChecked(False)
+    after_first = molecule.molblock
+    assert after_first != original and stack.index() == 1
+
+    _drag(widget, backend, molecule, 0.0, 40.0)
+    widget._cancel_rotation()
+
+    assert stack.index() == 1, f"rewound to {stack.index()}, past the mode's start"
+    assert molecule.molblock == after_first, "the first, kept turn was discarded too"
+
+
+def test_a_stale_exit_from_the_page_cannot_rewind_later_work(qapp):
+    """**WHAT THE `isChecked` GUARD IS FOR**, and the reason the doubled-ask
+    test could not show it.
+
+    The bridge is asynchronous, so an exit asked for as the mode ends can
+    land after it has ended -- and `_rotation_entry_index` still holds the
+    LAST entry point. Acting on it then rewinds whatever the user has done
+    since, which is the one outcome worse than the overlay staying up.
+
+    Two turns kept, then a stale discard: nothing may move.
+    """
+    widget, backend, molecule, stack = _widget_with(_embedded(ALANINE))
+
+    _drag(widget, backend, molecule, 20.0, 0.0)
+    widget._rotate_button.setChecked(False)
+    _drag(widget, backend, molecule, 0.0, 40.0)
+    widget._rotate_button.setChecked(False)
+    settled = molecule.molblock
+    assert stack.index() == 2
+
+    backend.rotation_exit_requested.emit(True)
+
+    assert stack.index() == 2, f"a stale ask rewound the stack to {stack.index()}"
+    assert molecule.molblock == settled

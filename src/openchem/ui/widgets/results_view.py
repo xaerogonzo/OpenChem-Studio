@@ -753,7 +753,17 @@ class ResultsView(QWidget):
         # control that cannot work is worse than an absent one.
         self._open_button.setVisible(target in _VIEWER_ACTIONS)
         if target in _VIEWER_ACTIONS:
-            self._open_button.setText(_VIEWER_ACTIONS[target].label)
+            # **THE KIND MAY NAME THE DOOR.** Four kinds open the Calculator
+            # Inspector and "Open in Calculator Inspector" is the right words
+            # for three of them. A structure SET goes there to be picked from,
+            # and that capability was reported as missing by someone with the
+            # application open: nothing on the row suggested a tautomer could
+            # be worked on. Falls back to the destination's own label, so a
+            # kind that has nothing to add says nothing.
+            self._open_button.setText(
+                str(getattr(report, "rich_view_label", "") or "")
+                or _VIEWER_ACTIONS[target].label
+            )
 
     def _render(self) -> None:
         state = reader_state(self._molecule_uuid, len(self._merged.reports))

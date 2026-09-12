@@ -152,12 +152,27 @@ def reference_molecule(compound: ReferenceCompound):
     """
     from rdkit import Chem
 
-    from openchem.chem.conformer_providers import RDKitConformerProvider
+    from openchem.chem.conformer_providers import (
+        REFERENCE_GEOMETRY_EMBEDDINGS,
+        REFERENCE_GEOMETRY_SEED,
+        RDKitConformerProvider,
+    )
 
     mol = Chem.MolFromSmiles(compound.smiles)
     if mol is None:
         raise CalibrationError(f"Could not parse reference SMILES for {compound.name}.")
-    conformers = RDKitConformerProvider().generate_conformers(mol, num_conformers=1, optimize=True)
+    # **THE LOWEST OF SEVERAL, not the first of one.** A calibration
+    # fitted on geometries that change between runs changes between
+    # runs -- but the sharper problem is WHICH geometry. Cyclohexane
+    # is in this set, and a single embedding gave its twist-boat about
+    # one time in three: 5.93 kcal/mol above the chair, against an
+    # experimental shift that is the chair's. See
+    # `REFERENCE_GEOMETRY_EMBEDDINGS`.
+    conformers = RDKitConformerProvider(
+        random_seed=REFERENCE_GEOMETRY_SEED
+    ).generate_conformers(
+        mol, num_conformers=REFERENCE_GEOMETRY_EMBEDDINGS, optimize=True
+    )
     if not conformers:
         raise CalibrationError(f"Could not embed a conformer for {compound.name}.")
     return conformers[0][0]

@@ -1,0 +1,92 @@
+[
+  {
+    "do": "smiles",
+    "smiles": "C[C@H]1CC[C@H]2[C@H]3Cc4ccc(O)c5c4[C@@]2(CCN3C)[C@H]1O5",
+    "name": "rotate exit"
+  },
+  {
+    "do": "select",
+    "molecule": -1,
+    "after_ms": 500
+  },
+  {
+    "do": "conformers",
+    "count": 3,
+    "embeddings": 60,
+    "after_ms": 30000
+  },
+  {
+    "do": "adopt",
+    "after_ms": 2500
+  },
+  {
+    "do": "tab",
+    "name": "2D Editor",
+    "after_ms": 800
+  },
+  {
+    "do": "rotate_report",
+    "tag": "before",
+    "after_ms": 400
+  },
+  {
+    "do": "menu",
+    "text": "Rotate 3D",
+    "after_ms": 1500
+  },
+  {
+    "do": "rotate_report",
+    "tag": "entered-via-menu",
+    "after_ms": 1000
+  },
+  {
+    "do": "key",
+    "key": "F7",
+    "focus": "canvas",
+    "after_ms": 1500
+  },
+  {
+    "do": "rotate_report",
+    "tag": "after-F7-canvas-focus",
+    "after_ms": 1000
+  },
+  {
+    "do": "menu",
+    "text": "Rotate 3D",
+    "after_ms": 1500
+  },
+  {
+    "do": "key",
+    "key": "Escape",
+    "focus": "canvas",
+    "after_ms": 1500
+  },
+  {
+    "do": "rotate_report",
+    "tag": "after-ESC-in-canvas",
+    "after_ms": 1000
+  },
+  {
+    "do": "menu",
+    "text": "Rotate 3D",
+    "after_ms": 1500
+  },
+  {
+    "do": "key",
+    "key": "Escape",
+    "focus": "explorer",
+    "after_ms": 1500
+  },
+  {
+    "do": "rotate_report",
+    "tag": "after-ESC-from-a-panel",
+    "after_ms": 1000
+  },
+  {
+    "do": "shot",
+    "path": "benchmarks/visual/artifacts/visual/rotate_3d_leaving.png"
+  },
+  {
+    "do": "quit"
+  }
+]

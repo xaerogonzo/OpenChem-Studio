@@ -11,7 +11,7 @@
   "energy_window": 1.0,
   "seeds": 5,
   "embeddings_per_seed": 50,
-  "generated_at": "2026-08-13 14:51:18"
+  "generated_at": "2026-09-11 17:34:06"
  },
  "predictions": [
   {
@@ -6314,6 +6314,759 @@
     "coverage": 0.6,
     "jaccard_mean": 0.548,
     "jaccard_min": 0.4,
+    "pairs": 10
+   }
+  },
+  {
+   "name": "morphinan cage",
+   "runs": [
+    {
+     "seed": 0,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 6,
+     "distinct_energies": 8,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 8,
+       "rmsd_only": 6
+      },
+      "0.35": {
+       "veto": 8,
+       "rmsd_only": 5
+      },
+      "0.50": {
+       "veto": 6,
+       "rmsd_only": 2
+      },
+      "0.75": {
+       "veto": 5,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 5,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 127,
+      "vetoed": 83,
+      "merged_away": {
+       "pairs": 44,
+       "rmsd_min": 0.0,
+       "rmsd_max": 0.4978,
+       "torsion_over_30": 11,
+       "torsion_over_60": 11,
+       "torsion_over_90": 11,
+       "torsion_unavailable": 0,
+       "worst": [
+        {
+         "rmsd": 0.4978,
+         "energy_difference": 0.166,
+         "tfd": 0.161,
+         "max_dihedral_change": 111.7,
+         "merged": true,
+         "candidate_origin": "seed=0 embedding=5",
+         "representative_origin": "seed=0 embedding=19"
+        },
+        {
+         "rmsd": 0.4978,
+         "energy_difference": 0.166,
+         "tfd": 0.161,
+         "max_dihedral_change": 111.7,
+         "merged": true,
+         "candidate_origin": "seed=0 embedding=9",
+         "representative_origin": "seed=0 embedding=19"
+        },
+        {
+         "rmsd": 0.4178,
+         "energy_difference": 0.075,
+         "tfd": 0.0889,
+         "max_dihedral_change": 102.5,
+         "merged": true,
+         "candidate_origin": "seed=0 embedding=16",
+         "representative_origin": "seed=0 embedding=31"
+        },
+        {
+         "rmsd": 0.4178,
+         "energy_difference": 0.075,
+         "tfd": 0.0889,
+         "max_dihedral_change": 102.5,
+         "merged": true,
+         "candidate_origin": "seed=0 embedding=17",
+         "representative_origin": "seed=0 embedding=31"
+        },
+        {
+         "rmsd": 0.4178,
+         "energy_difference": 0.075,
+         "tfd": 0.0889,
+         "max_dihedral_change": 102.5,
+         "merged": true,
+         "candidate_origin": "seed=0 embedding=37",
+         "representative_origin": "seed=0 embedding=31"
+        }
+       ]
+      },
+      "vetoed_merge": {
+       "pairs": 83,
+       "rmsd_min": 0.2113,
+       "rmsd_max": 0.4782,
+       "torsion_over_30": 77,
+       "torsion_over_60": 77,
+       "torsion_over_90": 77,
+       "torsion_unavailable": 0,
+       "worst": [
+        {
+         "rmsd": 0.4146,
+         "energy_difference": 13.396,
+         "tfd": 0.0968,
+         "max_dihedral_change": 102.5,
+         "merged": false,
+         "candidate_origin": "seed=0 embedding=21",
+         "representative_origin": "seed=0 embedding=6"
+        },
+        {
+         "rmsd": 0.4146,
+         "energy_difference": 13.396,
+         "tfd": 0.0968,
+         "max_dihedral_change": 102.5,
+         "merged": false,
+         "candidate_origin": "seed=0 embedding=18",
+         "representative_origin": "seed=0 embedding=6"
+        },
+        {
+         "rmsd": 0.4146,
+         "energy_difference": 13.396,
+         "tfd": 0.0968,
+         "max_dihedral_change": 102.5,
+         "merged": false,
+         "candidate_origin": "seed=0 embedding=11",
+         "representative_origin": "seed=0 embedding=6"
+        },
+        {
+         "rmsd": 0.4146,
+         "energy_difference": 13.396,
+         "tfd": 0.0968,
+         "max_dihedral_change": 102.5,
+         "merged": false,
+         "candidate_origin": "seed=0 embedding=7",
+         "representative_origin": "seed=0 embedding=6"
+        },
+        {
+         "rmsd": 0.4146,
+         "energy_difference": 13.396,
+         "tfd": 0.0968,
+         "max_dihedral_change": 102.5,
+         "merged": false,
+         "candidate_origin": "seed=0 embedding=3",
+         "representative_origin": "seed=0 embedding=6"
+        }
+       ]
+      }
+     }
+    },
+    {
+     "seed": 100003,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 8,
+     "distinct_energies": 10,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 11,
+       "rmsd_only": 9
+      },
+      "0.35": {
+       "veto": 11,
+       "rmsd_only": 6
+      },
+      "0.50": {
+       "veto": 8,
+       "rmsd_only": 3
+      },
+      "0.75": {
+       "veto": 6,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 6,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 136,
+      "vetoed": 94,
+      "merged_away": {
+       "pairs": 42,
+       "rmsd_min": 0.0,
+       "rmsd_max": 0.4978,
+       "torsion_over_30": 18,
+       "torsion_over_60": 18,
+       "torsion_over_90": 18,
+       "torsion_unavailable": 0,
+       "worst": [
+        {
+         "rmsd": 0.4978,
+         "energy_difference": 0.166,
+         "tfd": 0.161,
+         "max_dihedral_change": 111.7,
+         "merged": true,
+         "candidate_origin": "seed=100003 embedding=17",
+         "representative_origin": "seed=100003 embedding=10"
+        },
+        {
+         "rmsd": 0.4978,
+         "energy_difference": 0.166,
+         "tfd": 0.161,
+         "max_dihedral_change": 111.7,
+         "merged": true,
+         "candidate_origin": "seed=100003 embedding=22",
+         "representative_origin": "seed=100003 embedding=10"
+        },
+        {
+         "rmsd": 0.4897,
+         "energy_difference": 0.886,
+         "tfd": 0.1616,
+         "max_dihedral_change": 110.0,
+         "merged": true,
+         "candidate_origin": "seed=100003 embedding=18",
+         "representative_origin": "seed=100003 embedding=40"
+        },
+        {
+         "rmsd": 0.4897,
+         "energy_difference": 0.886,
+         "tfd": 0.1616,
+         "max_dihedral_change": 110.0,
+         "merged": true,
+         "candidate_origin": "seed=100003 embedding=1",
+         "representative_origin": "seed=100003 embedding=40"
+        },
+        {
+         "rmsd": 0.4178,
+         "energy_difference": 0.075,
+         "tfd": 0.0889,
+         "max_dihedral_change": 102.5,
+         "merged": true,
+         "candidate_origin": "seed=100003 embedding=3",
+         "representative_origin": "seed=100003 embedding=47"
+        }
+       ]
+      },
+      "vetoed_merge": {
+       "pairs": 94,
+       "rmsd_min": 0.2113,
+       "rmsd_max": 0.4899,
+       "torsion_over_30": 84,
+       "torsion_over_60": 84,
+       "torsion_over_90": 84,
+       "torsion_unavailable": 0,
+       "worst": [
+        {
+         "rmsd": 0.4669,
+         "energy_difference": 18.463,
+         "tfd": 0.1062,
+         "max_dihedral_change": 91.0,
+         "merged": false,
+         "candidate_origin": "seed=100003 embedding=24",
+         "representative_origin": "seed=100003 embedding=7"
+        },
+        {
+         "rmsd": 0.4146,
+         "energy_difference": 13.396,
+         "tfd": 0.0968,
+         "max_dihedral_change": 102.5,
+         "merged": false,
+         "candidate_origin": "seed=100003 embedding=4",
+         "representative_origin": "seed=100003 embedding=7"
+        },
+        {
+         "rmsd": 0.4146,
+         "energy_difference": 13.396,
+         "tfd": 0.0968,
+         "max_dihedral_change": 102.5,
+         "merged": false,
+         "candidate_origin": "seed=100003 embedding=23",
+         "representative_origin": "seed=100003 embedding=7"
+        },
+        {
+         "rmsd": 0.4146,
+         "energy_difference": 13.396,
+         "tfd": 0.0968,
+         "max_dihedral_change": 102.5,
+         "merged": false,
+         "candidate_origin": "seed=100003 embedding=34",
+         "representative_origin": "seed=100003 embedding=7"
+        },
+        {
+         "rmsd": 0.4146,
+         "energy_difference": 13.396,
+         "tfd": 0.0968,
+         "max_dihedral_change": 102.5,
+         "merged": false,
+         "candidate_origin": "seed=100003 embedding=29",
+         "representative_origin": "seed=100003 embedding=7"
+        }
+       ]
+      }
+     }
+    },
+    {
+     "seed": 200006,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 6,
+     "distinct_energies": 10,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 10,
+       "rmsd_only": 7
+      },
+      "0.35": {
+       "veto": 10,
+       "rmsd_only": 6
+      },
+      "0.50": {
+       "veto": 6,
+       "rmsd_only": 3
+      },
+      "0.75": {
+       "veto": 5,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 5,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 90,
+      "vetoed": 46,
+      "merged_away": {
+       "pairs": 44,
+       "rmsd_min": 0.0,
+       "rmsd_max": 0.4978,
+       "torsion_over_30": 17,
+       "torsion_over_60": 17,
+       "torsion_over_90": 17,
+       "torsion_unavailable": 0,
+       "worst": [
+        {
+         "rmsd": 0.4978,
+         "energy_difference": 0.166,
+         "tfd": 0.161,
+         "max_dihedral_change": 111.7,
+         "merged": true,
+         "candidate_origin": "seed=200006 embedding=33",
+         "representative_origin": "seed=200006 embedding=21"
+        },
+        {
+         "rmsd": 0.4937,
+         "energy_difference": 0.627,
+         "tfd": 0.1631,
+         "max_dihedral_change": 110.7,
+         "merged": true,
+         "candidate_origin": "seed=200006 embedding=16",
+         "representative_origin": "seed=200006 embedding=42"
+        },
+        {
+         "rmsd": 0.4937,
+         "energy_difference": 0.627,
+         "tfd": 0.1631,
+         "max_dihedral_change": 110.7,
+         "merged": true,
+         "candidate_origin": "seed=200006 embedding=44",
+         "representative_origin": "seed=200006 embedding=42"
+        },
+        {
+         "rmsd": 0.4868,
+         "energy_difference": 0.768,
+         "tfd": 0.1605,
+         "max_dihedral_change": 110.1,
+         "merged": true,
+         "candidate_origin": "seed=200006 embedding=39",
+         "representative_origin": "seed=200006 embedding=3"
+        },
+        {
+         "rmsd": 0.4867,
+         "energy_difference": 0.768,
+         "tfd": 0.1605,
+         "max_dihedral_change": 110.0,
+         "merged": true,
+         "candidate_origin": "seed=200006 embedding=29",
+         "representative_origin": "seed=200006 embedding=3"
+        }
+       ]
+      },
+      "vetoed_merge": {
+       "pairs": 46,
+       "rmsd_min": 0.212,
+       "rmsd_max": 0.4904,
+       "torsion_over_30": 40,
+       "torsion_over_60": 40,
+       "torsion_over_90": 40,
+       "torsion_unavailable": 0,
+       "worst": [
+        {
+         "rmsd": 0.4218,
+         "energy_difference": 14.189,
+         "tfd": 0.1004,
+         "max_dihedral_change": 104.3,
+         "merged": false,
+         "candidate_origin": "seed=200006 embedding=33",
+         "representative_origin": "seed=200006 embedding=42"
+        },
+        {
+         "rmsd": 0.4904,
+         "energy_difference": 9.063,
+         "tfd": 0.0184,
+         "max_dihedral_change": 8.7,
+         "merged": false,
+         "candidate_origin": "seed=200006 embedding=3",
+         "representative_origin": "seed=200006 embedding=42"
+        },
+        {
+         "rmsd": 0.2255,
+         "energy_difference": 7.517,
+         "tfd": 0.096,
+         "max_dihedral_change": 104.5,
+         "merged": false,
+         "candidate_origin": "seed=200006 embedding=22",
+         "representative_origin": "seed=200006 embedding=42"
+        },
+        {
+         "rmsd": 0.2255,
+         "energy_difference": 7.517,
+         "tfd": 0.096,
+         "max_dihedral_change": 104.5,
+         "merged": false,
+         "candidate_origin": "seed=200006 embedding=32",
+         "representative_origin": "seed=200006 embedding=42"
+        },
+        {
+         "rmsd": 0.2255,
+         "energy_difference": 7.517,
+         "tfd": 0.096,
+         "max_dihedral_change": 104.5,
+         "merged": false,
+         "candidate_origin": "seed=200006 embedding=18",
+         "representative_origin": "seed=200006 embedding=42"
+        }
+       ]
+      }
+     }
+    },
+    {
+     "seed": 300009,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 6,
+     "distinct_energies": 8,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 8,
+       "rmsd_only": 6
+      },
+      "0.35": {
+       "veto": 8,
+       "rmsd_only": 4
+      },
+      "0.50": {
+       "veto": 6,
+       "rmsd_only": 3
+      },
+      "0.75": {
+       "veto": 6,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 6,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 138,
+      "vetoed": 94,
+      "merged_away": {
+       "pairs": 44,
+       "rmsd_min": 0.0,
+       "rmsd_max": 0.4996,
+       "torsion_over_30": 4,
+       "torsion_over_60": 4,
+       "torsion_over_90": 4,
+       "torsion_unavailable": 0,
+       "worst": [
+        {
+         "rmsd": 0.4996,
+         "energy_difference": 0.084,
+         "tfd": 0.1616,
+         "max_dihedral_change": 111.7,
+         "merged": true,
+         "candidate_origin": "seed=300009 embedding=3",
+         "representative_origin": "seed=300009 embedding=24"
+        },
+        {
+         "rmsd": 0.4937,
+         "energy_difference": 0.627,
+         "tfd": 0.1631,
+         "max_dihedral_change": 110.7,
+         "merged": true,
+         "candidate_origin": "seed=300009 embedding=0",
+         "representative_origin": "seed=300009 embedding=13"
+        },
+        {
+         "rmsd": 0.4937,
+         "energy_difference": 0.627,
+         "tfd": 0.1631,
+         "max_dihedral_change": 110.7,
+         "merged": true,
+         "candidate_origin": "seed=300009 embedding=41",
+         "representative_origin": "seed=300009 embedding=13"
+        },
+        {
+         "rmsd": 0.4937,
+         "energy_difference": 0.627,
+         "tfd": 0.1631,
+         "max_dihedral_change": 110.7,
+         "merged": true,
+         "candidate_origin": "seed=300009 embedding=25",
+         "representative_origin": "seed=300009 embedding=13"
+        },
+        {
+         "rmsd": 0.0001,
+         "energy_difference": 0.0,
+         "tfd": 0.0,
+         "max_dihedral_change": 0.0,
+         "merged": true,
+         "candidate_origin": "seed=300009 embedding=12",
+         "representative_origin": "seed=300009 embedding=2"
+        }
+       ]
+      },
+      "vetoed_merge": {
+       "pairs": 94,
+       "rmsd_min": 0.2255,
+       "rmsd_max": 0.4811,
+       "torsion_over_30": 43,
+       "torsion_over_60": 43,
+       "torsion_over_90": 43,
+       "torsion_unavailable": 0,
+       "worst": [
+        {
+         "rmsd": 0.2255,
+         "energy_difference": 7.517,
+         "tfd": 0.096,
+         "max_dihedral_change": 104.5,
+         "merged": false,
+         "candidate_origin": "seed=300009 embedding=3",
+         "representative_origin": "seed=300009 embedding=13"
+        },
+        {
+         "rmsd": 0.3589,
+         "energy_difference": 6.59,
+         "tfd": 0.0052,
+         "max_dihedral_change": 0.4,
+         "merged": false,
+         "candidate_origin": "seed=300009 embedding=14",
+         "representative_origin": "seed=300009 embedding=24"
+        },
+        {
+         "rmsd": 0.3589,
+         "energy_difference": 6.59,
+         "tfd": 0.0052,
+         "max_dihedral_change": 0.4,
+         "merged": false,
+         "candidate_origin": "seed=300009 embedding=40",
+         "representative_origin": "seed=300009 embedding=24"
+        },
+        {
+         "rmsd": 0.3589,
+         "energy_difference": 6.59,
+         "tfd": 0.0052,
+         "max_dihedral_change": 0.4,
+         "merged": false,
+         "candidate_origin": "seed=300009 embedding=23",
+         "representative_origin": "seed=300009 embedding=24"
+        },
+        {
+         "rmsd": 0.3589,
+         "energy_difference": 6.59,
+         "tfd": 0.0052,
+         "max_dihedral_change": 0.4,
+         "merged": false,
+         "candidate_origin": "seed=300009 embedding=26",
+         "representative_origin": "seed=300009 embedding=24"
+        }
+       ]
+      }
+     }
+    },
+    {
+     "seed": 400012,
+     "attempted": 50,
+     "embedded": 50,
+     "converged": 50,
+     "embedding_failures": 0,
+     "convergence_failures": 0,
+     "distinct": 7,
+     "distinct_energies": 10,
+     "threshold_sweep": {
+      "0.25": {
+       "veto": 10,
+       "rmsd_only": 7
+      },
+      "0.35": {
+       "veto": 10,
+       "rmsd_only": 6
+      },
+      "0.50": {
+       "veto": 7,
+       "rmsd_only": 3
+      },
+      "0.75": {
+       "veto": 6,
+       "rmsd_only": 1
+      },
+      "1.00": {
+       "veto": 6,
+       "rmsd_only": 1
+      }
+     },
+     "merge_candidates": {
+      "examined": 91,
+      "vetoed": 48,
+      "merged_away": {
+       "pairs": 43,
+       "rmsd_min": 0.0,
+       "rmsd_max": 0.4937,
+       "torsion_over_30": 22,
+       "torsion_over_60": 22,
+       "torsion_over_90": 22,
+       "torsion_unavailable": 0,
+       "worst": [
+        {
+         "rmsd": 0.4937,
+         "energy_difference": 0.627,
+         "tfd": 0.1631,
+         "max_dihedral_change": 110.7,
+         "merged": true,
+         "candidate_origin": "seed=400012 embedding=3",
+         "representative_origin": "seed=400012 embedding=39"
+        },
+        {
+         "rmsd": 0.4937,
+         "energy_difference": 0.627,
+         "tfd": 0.1631,
+         "max_dihedral_change": 110.7,
+         "merged": true,
+         "candidate_origin": "seed=400012 embedding=19",
+         "representative_origin": "seed=400012 embedding=39"
+        },
+        {
+         "rmsd": 0.4937,
+         "energy_difference": 0.627,
+         "tfd": 0.1631,
+         "max_dihedral_change": 110.7,
+         "merged": true,
+         "candidate_origin": "seed=400012 embedding=21",
+         "representative_origin": "seed=400012 embedding=39"
+        },
+        {
+         "rmsd": 0.4897,
+         "energy_difference": 0.886,
+         "tfd": 0.1616,
+         "max_dihedral_change": 110.0,
+         "merged": true,
+         "candidate_origin": "seed=400012 embedding=32",
+         "representative_origin": "seed=400012 embedding=46"
+        },
+        {
+         "rmsd": 0.4897,
+         "energy_difference": 0.886,
+         "tfd": 0.1616,
+         "max_dihedral_change": 110.0,
+         "merged": true,
+         "candidate_origin": "seed=400012 embedding=15",
+         "representative_origin": "seed=400012 embedding=46"
+        }
+       ]
+      },
+      "vetoed_merge": {
+       "pairs": 48,
+       "rmsd_min": 0.212,
+       "rmsd_max": 0.3575,
+       "torsion_over_30": 45,
+       "torsion_over_60": 45,
+       "torsion_over_90": 45,
+       "torsion_unavailable": 0,
+       "worst": [
+        {
+         "rmsd": 0.2626,
+         "energy_difference": 12.397,
+         "tfd": 0.1009,
+         "max_dihedral_change": 91.4,
+         "merged": false,
+         "candidate_origin": "seed=400012 embedding=12",
+         "representative_origin": "seed=400012 embedding=39"
+        },
+        {
+         "rmsd": 0.2255,
+         "energy_difference": 7.517,
+         "tfd": 0.096,
+         "max_dihedral_change": 104.5,
+         "merged": false,
+         "candidate_origin": "seed=400012 embedding=8",
+         "representative_origin": "seed=400012 embedding=39"
+        },
+        {
+         "rmsd": 0.212,
+         "energy_difference": 6.665,
+         "tfd": 0.0931,
+         "max_dihedral_change": 102.3,
+         "merged": false,
+         "candidate_origin": "seed=400012 embedding=38",
+         "representative_origin": "seed=400012 embedding=43"
+        },
+        {
+         "rmsd": 0.212,
+         "energy_difference": 6.665,
+         "tfd": 0.0931,
+         "max_dihedral_change": 102.3,
+         "merged": false,
+         "candidate_origin": "seed=400012 embedding=26",
+         "representative_origin": "seed=400012 embedding=43"
+        },
+        {
+         "rmsd": 0.212,
+         "energy_difference": 6.665,
+         "tfd": 0.0931,
+         "max_dihedral_change": 102.3,
+         "merged": false,
+         "candidate_origin": "seed=400012 embedding=17",
+         "representative_origin": "seed=400012 embedding=43"
+        }
+       ]
+      }
+     }
+    }
+   ],
+   "set_overlap": {
+    "union": 10,
+    "mean_per_seed": 6.6,
+    "coverage": 0.66,
+    "jaccard_mean": 0.749,
+    "jaccard_min": 0.556,
     "pairs": 10
    }
   }

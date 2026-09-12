@@ -7,7 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **3D rotation mode could be entered and not left.** Turning it off hid the
+  bar and told the page nothing, so the full-canvas overlay stayed up
+  swallowing every click -- and turning it off also HID the Cancel button
+  that was the only thing calling the exit. There are four ways out now: any
+  of the four controls that turn it on, **Escape** from anywhere in the
+  window, and **Done** on the banner over the canvas itself. Cancel still
+  discards; everything else keeps the turn, and Cancel now puts the
+  *structure* back rather than only the page -- it had been restoring the
+  canvas while the model kept the rotation.
+
+- **Conformer generation returned a different count every run.** The same
+  molecule gave 6, then 9, then 8, then 7: the search was unseeded, and one
+  run of a fixed number of embeddings finds only part of what is there
+  (measured: 80% of the discovered set, a different 80% each time). It is
+  seeded now and samples in batches until new shapes stop appearing.
+  Measured on the reported molecule: 9 every run. On a flexible drug-like
+  molecule the count rose from 20-21 to 26-27. It is slower -- about 40 s
+  against 8 s on the reported case -- and it shows progress and can be
+  cancelled.
+
+  The **Details** dialog after a run now says *why* the search stopped, and
+  explains the commoner question directly: asking for 20 and getting 9 means
+  9 distinct shapes were found, not that anything failed.
+
+- **The NMR calibration was fitted on whichever cyclohexane turned up.**
+  Reference geometries were built from a single unseeded embedding, and
+  cyclohexane's twist-boat (5.93 kcal/mol above the chair, and not what its
+  experimental shift describes) came up about one run in three. Reference
+  geometries are now the lowest-energy of several, and reproducible.
+
+### Changed
+
+- **"Add to Project" is now "Send to 2D Editor".** Picking a tautomer or
+  stereoisomer out of a generated set and working on it has been possible
+  since that grid was built -- it adds the structure as a new molecule,
+  leaves the one you have alone, and is undoable -- but the label described
+  the mechanism rather than the destination, so nobody looking for a way to
+  edit a tautomer would have found it. Same behaviour, plus it now reveals
+  the editor instead of leaving you on whichever tab you were on.
+
+  The **Results panel** says so too: a structure-set result's button reads
+  **Send to 2D Editor...** rather than "Open in Calculator Inspector". Four
+  kinds open that window and naming it is right for three of them; a set of
+  tautomers goes there to be picked from, which the label never said.
+
 ### Added
+
+- **Structure > Redraw in 2D**, the way back from **Use in 2D Editor**. That
+  button brings a conformer across as a projection of the real geometry,
+  which for a caged molecule can be unreadable -- and neither of the two
+  actions people reach for first is the answer. **Clean Up** flattens the
+  third dimension and keeps the overlapping positions; **Layout** re-reads
+  the drawing, and on a projection whose atoms overlap that was measured
+  changing the compound. Redraw in 2D reads the structure instead, keeps
+  your generated conformers, and Ctrl+Z puts the 3D drawing back. It is on
+  the Structure menu and the canvas right-click menu.
 
 - **Mass spectrometry, as a capability rather than a feature.** Elemental
   Analysis draws the molecular ion's natural-abundance isotope envelope
