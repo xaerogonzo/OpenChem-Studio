@@ -2398,6 +2398,32 @@ source and reports a crash on a clean run. Read the ANNOTATION:
     gh api repos/OWNER/REPO/commits/SHA/check-runs       --jq '.check_runs[] | select(.name|startswith("linux")) | .id'
     gh api repos/OWNER/REPO/check-runs/ID/annotations       --jq '.[] | select(.annotation_level=="failure") | .message'
 
+**THAT RECIPE IS NO LONGER SUFFICIENT, MEASURED 2026-09-12.** The
+annotation channel SILENTLY DROPS VERDICTS: across the eight most recent
+legs, two (`fdadf48`, `039d7e5`) reported `annotations_count=0` on runs
+that had plainly crashed. It is not eventual consistency -- re-querying
+hours later still returned zero, while `a43fdf2` carried two. And it is
+not a failure to emit: line 730 of job `103511801198`'s own log carries
+the full `##[error]Reached [84%] ...`. The annotation was produced and the
+API does not return it. Cause undetermined from eight samples, and not
+guessed at here.
+
+**READ `leg.json` INSTEAD.** Every leg uploads one under `if: always()`,
+it names the victim, the depth and the late count, and it was correct in
+both cases the annotation lost:
+
+    gh run download RUN_ID --repo OWNER/REPO --dir legs
+    cat legs/linux-suite-log-*/leg.json
+
+**THE COST OF NOT DOING THIS IS ON THE RECORD**, because the gap produced
+a wrong finding inside the session that found it: reading those eight legs
+by annotation gave "6 of 8 crashed, two clean", and reading the same eight
+by `leg.json` gives **8 of 8**. A silent absence was read as a negative
+result -- the same decorative-control failure this workflow's own header
+was written to prevent, one level further out. The annotation is a
+convenience for a human; `leg.json` is the verdict.
+
+
 ## TEN CENSUS-NAMED CRASHES, TWO FILES, AND THE COUNTER-EXAMPLE CAME ON A BYTE-IDENTICAL TREE
 
 **THE HEADING BELOW USED TO READ "SEVEN CENSUS-NAMED CRASHES, ONE FILE,
@@ -8903,11 +8929,44 @@ against the real crashed log plus three synthetic arms (empty / no-summary
 / clean / crashed), offline. That annotations from this job reach the REST
 API at all is verified directly -- the linux check-run already carries two,
 both `level=warning`. What has NOT run live is the `::error::` line itself.
+
+**IT HAS RUN LIVE MANY TIMES SINCE, and the sentence above is kept only
+so the claim stays findable.** Measured 2026-09-12, six of the eight most
+recent legs carried the `::error::` crash branch; the classification is
+exercised. What was NOT anticipated is that emitting it is not the same
+as being able to READ it back -- see the correction below.
+
 When it does, this is how to read it, and the `failure` filter is what
 tells it from the two ambient warnings:
 
     gh api repos/OWNER/REPO/commits/SHA/check-runs       --jq '.check_runs[] | select(.name|startswith("linux")) | .id'
     gh api repos/OWNER/REPO/check-runs/ID/annotations       --jq '.[] | select(.annotation_level=="failure")'
+
+**THAT RECIPE IS NO LONGER SUFFICIENT, MEASURED 2026-09-12.** The
+annotation channel SILENTLY DROPS VERDICTS: across the eight most recent
+legs, two (`fdadf48`, `039d7e5`) reported `annotations_count=0` on runs
+that had plainly crashed. It is not eventual consistency -- re-querying
+hours later still returned zero, while `a43fdf2` carried two. And it is
+not a failure to emit: line 730 of job `103511801198`'s own log carries
+the full `##[error]Reached [84%] ...`. The annotation was produced and the
+API does not return it. Cause undetermined from eight samples, and not
+guessed at here.
+
+**READ `leg.json` INSTEAD.** Every leg uploads one under `if: always()`,
+it names the victim, the depth and the late count, and it was correct in
+both cases the annotation lost:
+
+    gh run download RUN_ID --repo OWNER/REPO --dir legs
+    cat legs/linux-suite-log-*/leg.json
+
+**THE COST OF NOT DOING THIS IS ON THE RECORD**, because the gap produced
+a wrong finding inside the session that found it: reading those eight legs
+by annotation gave "6 of 8 crashed, two clean", and reading the same eight
+by `leg.json` gives **8 of 8**. A silent absence was read as a negative
+result -- the same decorative-control failure this workflow's own header
+was written to prevent, one level further out. The annotation is a
+convenience for a human; `leg.json` is the verdict.
+
 
 15m06 sits mid-band; the 6-21 range stands.)
 
@@ -19523,3 +19582,101 @@ other OPSIN caller still pays 0.21 s of `java -version` before a 0.27 s parse,
 Measured and written down here rather than folded into a fix aimed at something
 else -- the same reason the NMR seeding was kept to its own commit, so a moved
 number has one candidate cause.
+
+
+## A THIRD OF THE SUITE WAS IN NO TEST, AND THE TABLE JUSTIFYING IT WAS WRONG IN EVERY CELL
+
+The previous commit added `--junitxml` and `tools/suite_timings.py` and
+said so in its subject: *before changing anything about it*. This is the
+after. Measured on 7844 tests, Windows:
+
+    test time              940.8 s   setup + call + teardown, per JUnit
+    runtest_logfinish      418.1 s   the hook, outside all three phases
+      of which gc.collect  418.1 s   1861 collects in 7844 calls
+    remaining unaccounted   11.3 s
+    <testsuite time>      1370.3 s
+    outside pytest           7.4 s   process start/stop
+    wall clock            1377.7 s
+
+**One `gc.collect()` is 30.3% of the wall clock**, and 418.1 of the
+429.4 s that sits inside pytest and inside no test -- 97.4% of it.
+
+### WHY IT WAS INVISIBLE, AND THE RULE THAT GENERALISES
+
+`pytest_runtest_logfinish` fires OUTSIDE setup, call and teardown, and a
+JUnit case's `time` is the sum of exactly those three (`junit_duration_report`
+defaults to `total`). So any cost in that hook is structurally
+unattributable by the XML -- not hidden by accident, invisible by
+construction. Collection was ruled out separately: 7845 tests collect in
+7.76 s.
+
+**The generalisation: a per-test instrument that reports "everything
+else" as one remainder cannot be acted on.** Splitting one 38% into
+`test time / runtest_logfinish / remaining unaccounted` is what turned it
+from a mystery into a decision.
+
+### THE ARMS, RE-MEASURED, AND THE OLD TABLE IS WRONG THREE TIMES
+
+    arm       wall      late/run   crashes
+    none      ~950 s    285-295    1 of 8
+    qapp     ~1400 s    100        0 of 5   <- shipped, and still right
+    always    2999 s    100        0 of 2
+    gen0      ~890 s    100-110    1 of 6
+    gen1        --        --       2 of 2
+
+    the table it replaces, kept so the old claim stays findable:
+    no collect          138 late destructions   116 s
+    collect always        0 late destructions   326 s
+    collect if qapp       4 late destructions   171 s
+
+`always` is STRICTLY DOMINATED -- 4.2x the collects, +110% wall clock,
+identical late count. The old "0" is what made it read as a real option.
+
+**LATE DESTRUCTIONS ARE NOT THE DISCRIMINATOR**, which is the finding the
+census was never built to see. `gen0` holds them at the same 100-110 as
+the shipped arm and crashed anyway. The number this hook exists to
+minimise does not separate the arms that crash from the arms that do not.
+What does, on this evidence, is whether the collect is a FULL gen-2 pass:
+0 crashes in 7 runs across `qapp`/`always` against 4 in 16 across
+`none`/`gen0`/`gen1`. Small n -- an observation, and this file already
+carries an entry about a pattern in nine samples of a coin flip being
+written up as a law.
+
+### THE CHEAPER WALK WAS THE ONLY REAL CANDIDATE, AND IT IS REFUSED
+
+Per-collect cost measured FLAT at ~215 ms whether the suite collected
+1861 times or 7865. That is the signature of walking the LIVE heap rather
+than clearing garbage, and it has a hard consequence: **collecting more
+often cannot make any single collect cheaper.** Fewer collects, or a
+cheaper walk, are the only levers.
+
+The young generations are the obvious cheaper walk -- the panel was built
+by the test that just ended -- and both arms crash. Do not retry without
+a crash-rate experiment at n~10 per arm WITH a control. The screen here
+was n=6 and no control: enough to refuse a change, nowhere near enough to
+justify one.
+
+### TWO INSTRUMENT ERRORS, BOTH FOUND BY RUNNING IT RATHER THAN READING IT
+
+**Bucketing by hook-call ordinal reported growth that did not exist.**
+Only `qapp` tests collect and pytest runs files alphabetically, so a
+two-file probe put every second into deciles 8-10 purely because
+`test_jobs_panel.py` sorts after `test_abraham.py`. That version would
+have "confirmed" a growing-heap story from filename order alone.
+Bucketing by COLLECT ordinal puts the same number of collects in every
+bucket, so only their cost can differ.
+
+**Publishing from a session fixture's teardown loses the last test.**
+That teardown runs inside the final test's teardown, which is before its
+`logfinish`: a three-test probe adding 1.5 s per call reported 3.000 where
+4.500 was correct. Capture the writer in the fixture and call it from
+`pytest_sessionfinish(tryfirst=True)` -- `tryfirst` because the JUnit
+plugin serialises the file from its own `pytest_sessionfinish`, and a
+property added after that lands nowhere.
+
+### AND ONE HYPOTHESIS OF MINE, KILLED BY THE SAME INSTRUMENT
+
+The census writes a flushed line per test, 6600+ a run, and that was a
+live suspicion for why Linux is slow. It costs **0.2 s across 7865
+tests**. Only the split hook/gc timers could show that, which is why they
+are two numbers rather than one.

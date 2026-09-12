@@ -1865,3 +1865,28 @@ document may cite a file or a test that does not exist.
 
   The one band the computation gets too WEAK is pyridine's B1u-like, at
   0.26-0.36x of measured. Everything else it overestimates.
+
+- **DECISION** -- the Linux CI suite crashes part-way through, and the
+  investigation is CLOSED rather than solved. Measured 2026-09-12 from
+  each leg's own `leg.json` rather than from annotations: **8 of the last
+  8 legs crashed**, the deepest reaching 6642 of 7844 tests (84.7%),
+  across four victim files. The precise wording is *a known Linux CI
+  test-harness failure, currently accepted because this application ships
+  Windows-only and a dozen-plus sessions produced no fix* -- it is **not**
+  a claim that the crash has been shown harmless, and the crash frame
+  having moved into `gc.collect()` does not establish the harness as the
+  cause. What the chase produced: one null (`4edbd46`, 40 legs, the
+  disposal flush is not the cause) and three of its own claims refuted
+  (`4e36903`, `4d38238`, `502ecd3`).
+  **The job itself STAYS**, because it earned its place: it found three
+  tests that were testing nothing (`cdb923e`), a file leaking all 26 of
+  its panels (`12aff89`), and a Windows-only Open Babel data-dir defect
+  where Linux was the correct platform (`9e302e4`, `a4af90e`). It also
+  runs concurrently with the Windows job, so it adds no wall clock to a PR.
+  **Three conditions reopen it, and curiosity is not one:** (1) the same
+  failure mode in the **Windows** suite under its SHIPPED configuration --
+  an experimental arm does not count, and `tests/conftest.py`'s collect
+  arms crash it deliberately; (2) a real Linux **application** failure
+  reproduced, as opposed to a test-harness one; (3) legs dying materially
+  earlier than the 56-84% band recorded above, which is the point at which
+  the job stops giving the cross-platform signal it exists for.

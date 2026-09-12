@@ -587,7 +587,16 @@ jobs:
           if [ ! -s suite.log ]; then
             echo "::error title=Linux suite produced NO OUTPUT::Nothing ran. This is not 'zero failures' -- the suite could not start."
           elif [ -z "$summary" ] && [ "$crash_markers" != "0" ]; then
-            echo "::error title=Linux suite CRASHED MID-RUN::Reached ${reached:-an unknown point}. CENSUS: ${census}. Traceback frame: ${victim:-none identified}. No pytest summary line: the counts below are absent, not zero."
+            # THE REFUSAL LIVES HERE, not only in a document, and that is
+            # the whole point of putting it in the message. This line is
+            # what a person reads at the exact moment they would otherwise
+            # start investigating; prose in a file nobody opens is what
+            # failed the last dozen times. It also warns off THIS channel:
+            # measured 2026-09-12, 2 of 8 annotations were silently
+            # dropped, and re-querying hours later confirmed they were
+            # lost rather than delayed -- so a reader who sees nothing
+            # must not conclude nothing happened.
+            echo "::error title=Linux suite CRASHED MID-RUN (KNOWN AND ACCEPTED -- do not investigate)::Reached ${reached:-an unknown point}. CENSUS: ${census}. Traceback frame: ${victim:-none identified}. No pytest summary line: the counts below are absent, not zero. THIS IS A KNOWN, ACCEPTED Linux test-harness failure and the investigation is CLOSED -- see docs/ARCHITECTURE.md 'Known TODOs', the Linux CI suite crash DECISION, for the three conditions that reopen it. None of them is 'it crashed again'. AND DO NOT TRUST THIS CHANNEL for the verdict: 2 of 8 annotations were silently dropped (measured 2026-09-12). The authoritative record is this leg's leg.json artifact."
           elif [ -z "$summary" ]; then
             echo "::error title=Linux suite produced NO SUMMARY LINE::Output exists and carries no crash marker either. The run did not reach the end."
           fi

@@ -129,6 +129,13 @@ ALLOWED_MISSING_PATHS = {
     # used `rglob`, this resolved silently against numpy's
     # `numpy/_core/tests/examples/cython/setup.py` inside `.venv`.
     "setup.py",
+    # A CI ARTIFACT, not a tracked file. The Linux job writes `leg.json`
+    # per leg and uploads it; `docs/ARCHITECTURE.md` names it because it
+    # is the AUTHORITATIVE verdict for whether a leg crashed -- measured
+    # 2026-09-12, the annotation channel silently dropped 2 of 8 verdicts
+    # and re-querying hours later confirmed they were lost, not delayed.
+    # It cannot exist in the tree and must stay citable.
+    "leg.json",
 }
 
 #: Test names cited as HISTORY rather than as tests to go and find.
@@ -583,6 +590,21 @@ DEFERRALS: list[Deferral] = [
         "`structure_uuid`, every calculator's `applies_to` declaration becomes "
         "load-bearing at runtime, which is what "
         "test_a_calculation_cannot_even_be_ADDRESSED_to_a_crystal exists to say.",
+    ),
+    Deferral(
+        claim="the Linux CI suite crashes part-way through",
+        # There is no fix to detect: the decision is to stop looking, and
+        # nothing in the tree changes when that stops being right.
+        unbuilt=lambda: True,
+        manual="All three reopen conditions are readings of CI RUNS -- a "
+        "Windows crash under the shipped configuration, a reproduced Linux "
+        "application failure, or legs dying earlier than the recorded "
+        "56-84% band. None is a code fact an offline predicate could "
+        "check, and a predicate asserting the decision still EXISTS would "
+        "be checking existence rather than correctness, which this file "
+        "refuses elsewhere. The live check is the annotation emitted on "
+        "every crashed leg, which names this decision at the moment "
+        "somebody would otherwise start investigating.",
     ),
     Deferral(
         claim="the 3D viewer rendered a black half-height",
