@@ -174,8 +174,38 @@ jobs:
 
       # `--deselect` for the network test, so NCBI cannot switch off the
       # three gates below. See the `env:` block for the whole reasoning.
+      # `--junitxml` RECORDS A TIME FOR EVERY TEST, which `--durations`
+      # cannot: it prints the top N and nothing joinable. This job and the
+      # Linux one below run the same pytest invocation against the same
+      # tree and finish 35-41 min against 18m36, and until now the only
+      # number either produced was the total -- so nothing could say
+      # whether Windows is uniformly slower or a particular class of test
+      # pays a platform cost here. `--durations=30` is for a human reading
+      # the log; the XML is what gets analysed.
+      #
+      # WRITTEN AT SESSION FINISH, so this covers COMPLETED runs only. A
+      # segfault or the 45-minute kill leaves no usable XML, and the
+      # `if: always()` on the upload below publishes a file that exists
+      # rather than making the report incremental. That is why the timeout
+      # question is answered from successful runs, several per platform.
       - name: Run the test suite
-        run: uv run --no-sync python -u -m pytest -q -ra --deselect "${{ env.NETWORK_TEST }}"
+        run: >
+          uv run --no-sync python -u -m pytest -q -ra
+          --deselect "${{ env.NETWORK_TEST }}"
+          --junitxml=suite-timings-windows.xml
+          --durations=30
+
+      # Uploaded whatever the suite did: a red suite's timings are still
+      # timings, and a job that only published them on success would lose
+      # them exactly when somebody is looking.
+      - name: Publish the Windows suite timings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: suite-timings-windows-${{ github.run_number }}
+          path: suite-timings-windows.xml
+          if-no-files-found: warn
+          retention-days: 30
 
       # THE GALLERY GUARDS, WHICH THE RUN ABOVE SKIPS. `tests/conftest.py`
       # sets QT_QPA_PLATFORM=offscreen, where `$3Dmol.createViewerGrid`
@@ -418,6 +448,8 @@ jobs:
           echo "arm: OPENCHEM_DISPOSE_FLUSH=$OPENCHEM_DISPOSE_FLUSH  replica: ${{ matrix.replica }}"
           xvfb-run -a uv run --no-sync python -u -m pytest -q -ra \
             --deselect "${{ env.NETWORK_TEST }}" \
+            --junitxml=suite-timings-linux.xml \
+            --durations=30 \
             > suite.log 2>&1 || true
           echo "exit_code=${PIPESTATUS[0]:-0}" >> "$GITHUB_OUTPUT"
           tail -30 suite.log
@@ -652,5 +684,6 @@ jobs:
             suite.log
             census.txt
             leg.json
+            suite-timings-linux.xml
           if-no-files-found: warn
           retention-days: 30
