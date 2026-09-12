@@ -321,6 +321,7 @@ are verbatim, so grep the file for the line.
 - A MODE WHOSE EXIT DELETED THE ONLY WAY OUT OF IT
 - THE TIDY ACTION THAT CHANGED THE COMPOUND
 - THE CONFORMER COUNT MOVED BECAUSE NOBODY HAD PINNED THE DRAW
+- A FEATURE THAT EXISTED, UNDER A NAME NOBODY WOULD LOOK FOR
 - Running the tests
 - RESONANCE: four things measured before the Lewis diagram was built
 - The naming benchmark

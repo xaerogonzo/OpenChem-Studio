@@ -19344,3 +19344,101 @@ Every one was a genuine hole, and one was a test too loose rather than
 missing: the time-limit guard asserted the per-batch limit was
 *non-increasing*, and handing every batch the same 5.0 is a non-increasing
 sequence. Strictly decreasing is the claim.
+
+## A FEATURE THAT EXISTED, UNDER A NAME NOBODY WOULD LOOK FOR
+
+Asked for as a thing to build: *"Like for the tautomers, isomers, etc. Yeah,
+build it, and yeah, that shouldn't replace what's in the 2d editor."*
+
+It had shipped. The Calculator Inspector's structure grid has had **"Add to
+Project"** since it was built, with two tests on it. Driven on
+acetylacetone's five tautomers before anything was changed:
+
+```
+buttons    Copy All | Copy SMILES | Copy Molblock | Add to Project
+molecules  2 -> 3          the original untouched
+editor     C=C(O)CC(C)=O   the picked enol
+undo       one step
+```
+
+Add rather than replace, which is the semantic that was asked for, for the
+reason the asker gave: **a tautomer is a different compound, not a different
+arrangement of the same one.**
+
+### THREE CLAIMS I MADE ABOUT IT, ALL WRONG
+
+- that it needed building — it did not;
+- that it would route through `AdoptConformerCommand` — that command changes
+  coordinates only, which is exactly what a tautomer is not;
+- that it was "a few hours with tests and a driven check" — it was a rename,
+  a tooltip and one line.
+
+Every one of them came from designing against the plan instead of pressing
+the control. Two minutes of driving replaced all three.
+
+### A FEATURE REQUEST IS EVIDENCE OF UNREACHABILITY, NOT OF ABSENCE
+
+**"Add to Project" describes the mechanism.** Nobody hunting for a way to
+work on a tautomer reads it and thinks it is the answer — and the person who
+reported it missing had the application open in front of him.
+
+Those are different defects with different fixes, and building the absent one
+would have shipped a duplicate control while leaving the reachability defect
+exactly where it was. This repository already records `SHIPPED IS NOT
+REACHABLE` twice, both times about modules nothing could call. This is the
+same shape one layer up: a control nothing tells you about.
+
+So the deliverable was the label — **"Send to 2D Editor"** — plus a contract
+saying the half a reader needs *before* pressing rather than after (a new
+molecule appears; the current one is left exactly as it is), and one real
+behaviour change: it reveals the editor, which `add_molecule` never did.
+
+### THE ROW COULD NOT CARRY THE ACTION, AND THAT IS NOT A MISS
+
+Asked next to put it on the Results panel row. **There is nothing picked on
+the row.** `_structure_set_summary` refuses a list in as many words — a
+hundred structures rendered as facts is the wall the reader exists to avoid —
+so the summary is a count and "send it" has no answer to *which one*.
+
+What a row can honestly offer is the way IN, and that is where the defect
+actually was: four kinds open the Calculator Inspector, and "Open in
+Calculator Inspector" is the right words for three of them. A per-atom
+dataset really is going to be inspected. A structure SET goes there to be
+picked from, and the row never said so.
+
+**ONE DESTINATION, AND THE KIND NAMES THE DOOR.** A second `rich_view`
+target for the same window would be two strings meaning one place, which
+`FactLink.target`'s own docstring refuses. `ResultAdapter` gains
+`rich_view_label` instead, carried onto `ResultSummaryView` beside
+`rich_view` and for the same recorded reason — the adapter's answer, copied
+once at projection time, never re-derived by a consumer that no longer knows
+what kind it came from. Named on every kind, never defaulted, which is the
+convention `chart` states one field up.
+
+Measured: focused on Tautomers the row reads `visible=True text='Send to 2D
+Editor...'`; on "All results" it stays hidden, because several producers at
+once have no single viewer.
+
+### AND THE HARNESS WAS BUILDING A DIALOG THE APPLICATION NEVER SHOWS
+
+`_do_inspect` constructed `CalculatorInspectorDialog` without
+`on_add_structure`, and the dialog HIDES that button when the callback is
+absent. So a driven run would have photographed a dialog missing a control
+the application does show — and the absence would have read as a product
+fact. It passes the real callback now.
+
+That is the harness-disagrees-with-the-app family again, and the cheapest
+member of it so far: the harness was not wrong about behaviour, it was
+building a different object.
+
+### TWO TEST FAILURES OF MY OWN, ONE OF EACH KIND
+
+A mutation arm making the results row ignore the label **survived three
+tests**, all of which pinned what the adapter *declares* and none of which
+touched the widget. Testing a helper is not testing the wiring, and this file
+already says so twice.
+
+And one assertion that asserted nothing:
+`assert window._open_button.isVisible() or True`, written to sidestep a
+widget that needs a shown parent. Deleted rather than weakened — a test that
+cannot fail is worse than an absent one, because it reports coverage.
