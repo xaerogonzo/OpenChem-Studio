@@ -873,3 +873,28 @@ def test_only_the_exact_string_zero_turns_the_flush_off(value, flushes):
     import conftest
 
     assert conftest.flush_at_dispose(value) is flushes
+
+
+@pytest.mark.parametrize(
+    "value, policy",
+    [
+        (None, "qapp"),  # unset: the shipped behaviour and the control arm
+        ("qapp", "qapp"),
+        ("none", "none"),  # treatment: no collect at all
+        ("always", "always"),  # treatment: a collect after every test
+        ("", "qapp"),
+        ("NONE", "qapp"),  # case is NOT folded -- a near miss is still a miss
+        ("nonsense", "qapp"),
+    ],
+)
+def test_an_unrecognised_collect_policy_falls_back_to_the_shipped_one(value, policy):
+    """Fail SAFE, the same rule the flush knob above follows.
+
+    The arms differ by roughly a third of the suite's wall clock, so a
+    typo that silently selected `none` would not look like a mistake --
+    it would look like a large and welcome improvement, and get believed.
+    Anything unrecognised is the control arm.
+    """
+    import conftest
+
+    assert conftest.collect_policy(value) == policy

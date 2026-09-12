@@ -753,6 +753,28 @@ _retain_main_windows()
 _used_qt = [False]
 
 
+def collect_policy(value: str | None) -> str:
+    """Which tests get a `gc.collect()` in the teardown hook.
+
+    A pure function so the mapping is testable without touching the
+    process environment -- the same shape `flush_at_dispose` above uses,
+    and for the same reason. **Anything unrecognised means the SHIPPED
+    policy**, so a typo fails safe onto the control arm rather than
+    silently running an experimental one and reporting it as the default.
+
+    The three names are the arms `pytest_runtest_logfinish`'s own
+    docstring already measured (no collect / always / if-qapp), kept
+    verbatim so new numbers can be set beside the old ones with no
+    translation step in between.
+    """
+    return value if value in {"none", "always"} else "qapp"
+
+
+#: The shipped behaviour, and the control arm. `OPENCHEM_COLLECT_POLICY`
+#: selects `none` or `always` for an A/B; see docs/LESSONS.md.
+COLLECT_POLICY = collect_policy(os.environ.get("OPENCHEM_COLLECT_POLICY"))
+
+
 #: Wall time inside `pytest_runtest_logfinish`, and the part of it inside
 #: `gc.collect()`.
 #:
@@ -854,8 +876,12 @@ def pytest_runtest_logfinish(nodeid, location):
     started = time.perf_counter()
     _hook_calls[0] += 1
 
-    if _used_qt[0]:
-        _used_qt[0] = False
+    # Read and clear in one step, so the flag is reset on EVERY arm. Under
+    # `none` the branch below never runs, and a flag cleared only inside it
+    # would stay True for the rest of the session -- which matters the
+    # moment an arm reads it for anything else.
+    used_qt, _used_qt[0] = _used_qt[0], False
+    if COLLECT_POLICY == "always" or (COLLECT_POLICY == "qapp" and used_qt):
         collect_started = time.perf_counter()
         gc.collect()
         collect_elapsed = time.perf_counter() - collect_started
@@ -963,6 +989,10 @@ def _publish_hook_timings() -> None:
     # recorded so the size of the deliberate part is known rather than
     # assumed; only the arms in Stage 2 can attribute the cost.
     record("openchem_retained_windows", str(len(_retained_windows)))
+    # WHICH ARM PRODUCED THIS REPORT. A timing file that cannot say is
+    # worse than no file: the arms differ by a third of the wall clock,
+    # so a mislabelled one would look like a regression or a win.
+    record("openchem_collect_policy", COLLECT_POLICY)
     record(
         "openchem_hook_buckets",
         json.dumps(
