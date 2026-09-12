@@ -518,7 +518,10 @@ def _resolve(name: str):
     )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module._resolve_name(name)
+    # Both halves of the build's resolver: it asks OPSIN for a LIST of
+    # names now (one JVM start for the whole table instead of 390), so a
+    # single name is a list of one.
+    return module._key_for_answer(module._opsin_structures([name]).get(name))
 
 
 @pytest.mark.parametrize(

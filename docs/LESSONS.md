@@ -19442,3 +19442,84 @@ And one assertion that asserted nothing:
 `assert window._open_button.isVisible() or True`, written to sidestep a
 widget that needs a shown parent. Deleted rather than weakened — a test that
 cannot fail is worse than an absent one, because it reports coverage.
+
+
+## THE COST OF AN OPSIN CALL IS THE JVM, NOT THE PARSE
+
+`tests/test_regulatory_rulesets.py::test_the_build_check_passes_on_the_shipped_sources`
+was the most expensive test in the suite at **4 minutes 35 seconds** -- on its
+own larger than most branches contribute in total. It runs
+`tools/build_regulatory_rulesets.py --check`, which resolves OSHA Table Z-1's
+390 chemical names through OPSIN.
+
+`py2opsin` shells out to `java -jar`. **Profiling it rather than guessing split
+the time in two, and only one half was the part anyone would have suspected:**
+
+| | calls | cumulative |
+|---|---|---|
+| `py2opsin` -- a JVM per name | 390 | 192.1 s |
+| `java_home()` -- `java -version` probes | 1170 | 82.2 s |
+| the whole build | | 274.8 s |
+
+**Three Java probes per name, and nothing asked for any of them.**
+`opsin_structure_for_name` calls `opsin_available()`, which calls `java_home()`
+once itself and once more inside `_java_on_path()`; the call site then enters
+`_java_on_path()` a third time. Each probe runs `java -version` as its own
+subprocess. **1561 processes to parse 390 names.**
+
+**And `py2opsin` already takes a LIST, serving all of it from one JVM.**
+Measured on the same 390 names: 0.476 s each asked separately, 0.64 s for the
+whole list in one call. The build asks once per file now -- 4:35 -> **1.2 s**,
+and the test 281.8 s -> **1.44 s**. No cache, no threads, no skipping: the same
+work, asked once.
+
+### THE ALIGNMENT IS THE SAFETY PROPERTY, AND IT WAS MEASURED BEFORE THE CHANGE
+
+Batching is only safe if OPSIN answers positionally. It emits one output line
+per INPUT line, blank for a name it cannot parse -- checked deliberately with
+the failure in the MIDDLE, because a trailing failure shifts nothing and would
+pass under the bug:
+
+```
+["Acetaldehyde", "Portland cement", "Benzene"] -> ["C(C)=O", "", "C1=CC=CC=C1"]
+```
+
+Had it instead skipped what it could not parse, every name after the first
+failure would have come back carrying the NEXT name's structure -- silently,
+and with the right *number* of answers. For a regulatory ruleset that is the
+worst defect on the menu: a rule that screens perfectly, for a substance nobody
+asked about.
+
+Mutating the alignment away proved both guards live. The unit test
+`test_a_failure_does_not_shift_the_rest` went red, and so did the build's own
+`--check`, which named the row and the wrong key outright:
+
+```
+rules[osha-z1-1].interpretation.inchikeys[0]:
+    'IKHGUXGNUITLKF-UHFFFAOYSA-N' -> 'GEHMBYLTCISYNY-UHFFFAOYSA-N'
+```
+
+**A name containing a newline would become two input lines**, shifting
+everything after it -- a hazard the one-at-a-time version could not have,
+introduced by the fix and closed in the same commit rather than left as a
+latent case nobody has written yet.
+
+### BYTE-IDENTICAL OUTPUT WAS AVAILABLE HERE, SO NO ARGUMENT WAS NEEDED
+
+`--check` rebuilds every ruleset and compares it with the committed artefact,
+so the refactor did not need a case made for it: the five generated files came
+back unchanged, 232 of 390 names resolved either way. That is worth reaching
+for whenever it exists, and it is what decided one small question. An
+unresolved row still reads `OPSIN could not parse: NamingError` -- wording that
+names an exception class the batch path never raises, kept because changing it
+at the same time would have cost the only clean proof that nothing else moved.
+
+### THE 82 SECONDS OF PROBING IS FIXED FOR ONE CALLER, NOT FIXED
+
+The build now probes Java three times in total instead of 1170, because it
+makes one call instead of 390. **The redundancy itself is untouched**: every
+other OPSIN caller still pays 0.21 s of `java -version` before a 0.27 s parse,
+44% of a single name lookup, including the one behind the naming calculator.
+Measured and written down here rather than folded into a fix aimed at something
+else -- the same reason the NMR seeding was kept to its own commit, so a moved
+number has one candidate cause.

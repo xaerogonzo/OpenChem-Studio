@@ -45,6 +45,7 @@ import logging
 import os
 import urllib.error
 import urllib.parse
+from collections.abc import Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 
@@ -383,6 +384,76 @@ def opsin_structure_for_name(name: str) -> StructureResult:
     if not smiles:
         raise NamingError(f"OPSIN could not parse {name.strip()!r} as an IUPAC name.")
     return StructureResult(smiles=smiles, source="OPSIN", kind=PARSED)
+
+
+def opsin_structures_for_names(names: Sequence[str]) -> list[StructureResult | None]:
+    """Parse many names in ONE JVM start. `None` where a name did not parse.
+
+    **THE COST OF AN OPSIN CALL IS THE JVM, NOT THE PARSE.** `py2opsin`
+    shells out to `java -jar`, so resolving a list one name at a time pays
+    a process launch per name. Measured on the 390 names of OSHA Table
+    Z-1: 0.476 s each one-at-a-time against 0.64 s for the whole list in a
+    single call -- 186 s against under a second, for byte-identical
+    answers. The regulatory build was doing it the slow way and was the
+    single most expensive test in the suite at 4.7 minutes.
+
+    **THE ALIGNMENT IS THE SAFETY PROPERTY, AND IT IS WHY THIS IS A
+    SEPARATE FUNCTION RATHER THAN A LOOP.** OPSIN's CLI emits one output
+    line per INPUT line, blank for a name it cannot parse -- verified
+    here, deliberately with a failure in the middle rather than at the
+    end:
+
+        ["Acetaldehyde", "Portland cement", "Benzene"]
+        -> ["C(C)=O", "", "C1=CC=CC=C1"]
+
+    If it instead skipped what it could not parse, every name after the
+    first failure would come back carrying the NEXT name's structure --
+    silently, with the right count of answers. For a regulatory ruleset
+    that is the worst defect available: a rule that screens correctly for
+    a substance nobody asked about. `test_a_failure_does_not_shift_the_rest`
+    pins it.
+
+    **A NAME CONTAINING A NEWLINE IS REFUSED, not sent.** It would become
+    two input lines and shift everything after it -- the exact failure the
+    alignment guarantee otherwise rules out. (The single-name path never
+    had to care, which is why this is stated here rather than left to the
+    caller.)
+    """
+    names = list(names)
+    if not names:
+        return []
+    with _java_on_path() as home:
+        if home is None:
+            raise NamingError(describe_opsin_status())
+        try:
+            from py2opsin import py2opsin as run_opsin
+        except ImportError as exc:  # pragma: no cover - environment-dependent
+            raise NamingError(describe_opsin_status()) from exc
+
+        askable = [name.strip() for name in names]
+        # Index by position so the refused ones can be put back afterwards
+        # without the answers for the rest moving.
+        sendable = [(i, n) for i, n in enumerate(askable) if n and "\n" not in n and "\r" not in n]
+        parsed: list[str] = []
+        if sendable:
+            answer = run_opsin([n for _, n in sendable])
+            if answer is False or answer is None:
+                # A failed JVM is not 390 unparseable names, and reporting
+                # it as one would read as the table being bad rather than
+                # the toolchain being absent.
+                raise NamingError("OPSIN did not run; no names could be parsed.")
+            parsed = list(answer) if isinstance(answer, list) else [str(answer)]
+        if len(parsed) != len(sendable):
+            raise NamingError(
+                f"OPSIN returned {len(parsed)} answers for {len(sendable)} names. "
+                "Refusing to match them up by position."
+            )
+
+    results: list[StructureResult | None] = [None] * len(names)
+    for (index, _name), smiles in zip(sendable, parsed):
+        if smiles:
+            results[index] = StructureResult(smiles=smiles, source="OPSIN", kind=PARSED)
+    return results
 
 
 class RoundTrip(str, Enum):

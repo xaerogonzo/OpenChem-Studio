@@ -1297,3 +1297,62 @@ def test_a_rebuild_of_one_source_matches_despite_its_timestamp(tmp_path):
     rebuilt["provenance"]["ruleset_sha256"] = "0" * 64
 
     assert verify_matches_source(rebuilt, committed) == ""
+
+
+def test_an_unparseable_name_is_counted_not_guessed():
+    """`_key_for_answer` is handed OPSIN's answer now rather than fetching
+    it. A name OPSIN could not parse arrives as `None`, and must become a
+    counted coverage fact -- never a skipped row and never a structure
+    somebody typed."""
+    sys.path.insert(0, str(REPO / "tools"))
+    from build_regulatory_rulesets import _key_for_answer
+
+    key, why = _key_for_answer(None)
+
+    assert key == ""
+    assert "could not parse" in why
+
+
+def test_opsin_being_absent_reads_as_unresolved_rows_not_as_a_broken_table():
+    """A machine with no JRE must produce the same per-row coverage report
+    it produced when each name asked separately -- the batch raises once
+    for all 390, and that one failure has to reach every row."""
+    sys.path.insert(0, str(REPO / "tools"))
+    import build_regulatory_rulesets as builder
+
+    def explode(_names):
+        raise RuntimeError("no JRE")
+
+    from openchem.chem import naming_providers
+
+    saved = naming_providers.opsin_structures_for_names
+    naming_providers.opsin_structures_for_names = explode
+    try:
+        structures = builder._opsin_structures(["Acetaldehyde", "Benzene"])
+    finally:
+        naming_providers.opsin_structures_for_names = saved
+
+    assert set(structures) == {"Acetaldehyde", "Benzene"}
+    for name, value in structures.items():
+        key, why = builder._key_for_answer(value)
+        assert key == ""
+        assert "RuntimeError" in why
+
+
+def test_the_build_asks_java_once_per_file(monkeypatch):
+    """The regression guard for the 4.7-minute test. Counted, not timed."""
+    sys.path.insert(0, str(REPO / "tools"))
+    import build_regulatory_rulesets as builder
+    from openchem.chem import naming_providers
+
+    calls = []
+
+    def counting(names):
+        calls.append(list(names))
+        return [None for _ in names]
+
+    monkeypatch.setattr(naming_providers, "opsin_structures_for_names", counting)
+    builder.build_one(SOURCES / "osha_table_z1.json")
+
+    assert len(calls) == 1, f"one batch per file, not {len(calls)}"
+    assert len(calls[0]) > 300, "the whole table went in one call"

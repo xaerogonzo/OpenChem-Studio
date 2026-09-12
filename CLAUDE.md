@@ -322,6 +322,7 @@ are verbatim, so grep the file for the line.
 - THE TIDY ACTION THAT CHANGED THE COMPOUND
 - THE CONFORMER COUNT MOVED BECAUSE NOBODY HAD PINNED THE DRAW
 - A FEATURE THAT EXISTED, UNDER A NAME NOBODY WOULD LOOK FOR
+- THE COST OF AN OPSIN CALL IS THE JVM, NOT THE PARSE
 - Running the tests
 - RESONANCE: four things measured before the Lewis diagram was built
 - The naming benchmark

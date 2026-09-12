@@ -539,3 +539,120 @@ def test_mismatch_path_three_the_skeletons_genuinely_differ(monkeypatch):
     assert naming_providers._skeleton(Chem.MolFromSmiles(other)) != naming_providers._skeleton(
         Chem.MolFromSmiles(original)
     ), "the fixture no longer differs in skeleton, so this is not path three"
+
+
+# --- Many names, one JVM -------------------------------------------------
+#
+# `py2opsin` shells out to `java -jar`, so the cost of resolving a list one
+# name at a time is a process launch per name. Measured on OSHA Table Z-1's
+# 390 names: 0.476 s each against 0.64 s for the whole list in one call.
+# These pin the two things that made batching safe as well as fast.
+
+
+def _fake_opsin(monkeypatch, answer):
+    """Make the batch path runnable with no JRE, and record what it asked."""
+    import py2opsin as py2opsin_module
+    from pathlib import Path
+
+    from openchem.services import java_setup
+
+    calls = []
+
+    def fake(chemical_name, *args, **kwargs):
+        calls.append(chemical_name)
+        return answer(chemical_name) if callable(answer) else answer
+
+    monkeypatch.setattr(java_setup, "java_home", lambda: Path("/fake/jre"))
+    monkeypatch.setattr(py2opsin_module, "py2opsin", fake)
+    return calls
+
+
+def test_the_whole_list_is_one_opsin_call(monkeypatch):
+    """THE POINT OF THE FUNCTION, asserted on the call count rather than on
+    a duration -- a timing assertion on a shared runner is a flake, and a
+    later "simplify" back to a loop would still pass one."""
+    calls = _fake_opsin(monkeypatch, lambda names: ["C" for _ in names])
+
+    naming_providers.opsin_structures_for_names(["methane", "ethane", "propane"])
+
+    assert len(calls) == 1, f"one JVM start, not {len(calls)}"
+    assert calls[0] == ["methane", "ethane", "propane"]
+
+
+def test_a_failure_does_not_shift_the_rest(monkeypatch):
+    """**THE SAFETY PROPERTY.** OPSIN emits one output line per INPUT line,
+    blank for a name it cannot parse. If it instead skipped what it could
+    not parse, every later name would come back carrying the NEXT name's
+    structure -- silently, and with a plausible count of answers.
+
+    The failure is in the MIDDLE deliberately: at the end it shifts
+    nothing, so a test using a trailing failure passes under the bug.
+    """
+    _fake_opsin(monkeypatch, ["CC=O", "", "c1ccccc1"])
+
+    results = naming_providers.opsin_structures_for_names(
+        ["Acetaldehyde", "Portland cement", "Benzene"]
+    )
+
+    assert [r.smiles if r else None for r in results] == ["CC=O", None, "c1ccccc1"]
+
+
+def test_a_short_answer_is_refused_rather_than_matched_up(monkeypatch):
+    """And if OPSIN ever DID drop a line, the mismatch must be refused
+    loudly instead of zipped together -- `zip` would silently truncate,
+    which is how the shift above would ship."""
+    _fake_opsin(monkeypatch, ["CC=O", "c1ccccc1"])  # two answers, three names
+
+    with pytest.raises(naming_providers.NamingError, match="Refusing to match"):
+        naming_providers.opsin_structures_for_names(["a", "b", "c"])
+
+
+def test_a_name_containing_a_newline_cannot_shift_the_batch(monkeypatch):
+    """A newline inside a name would become two INPUT lines and push every
+    later answer up by one. It is refused and never sent; the names around
+    it still resolve, in their own positions."""
+    calls = _fake_opsin(monkeypatch, lambda names: ["C" + "C" * i for i in range(len(names))])
+
+    results = naming_providers.opsin_structures_for_names(
+        ["methane", "eth\nane", "propane"]
+    )
+
+    assert calls[0] == ["methane", "propane"], "the malformed name was sent anyway"
+    assert results[1] is None
+    assert results[0].smiles == "C" and results[2].smiles == "CC"
+
+
+def test_no_names_asks_java_nothing(monkeypatch):
+    calls = _fake_opsin(monkeypatch, [])
+    assert naming_providers.opsin_structures_for_names([]) == []
+    assert calls == []
+
+
+@pytest.mark.skipif(
+    not naming_providers.opsin_available(),
+    reason="needs py2opsin and a JRE",
+)
+def test_the_batch_answers_exactly_what_asking_one_at_a_time_did():
+    """The equivalence the speed-up rests on, against the real OPSIN.
+
+    Five names rather than the table's 390 -- one alias in parentheses,
+    one salt, one element and one the parser refuses -- because the
+    one-at-a-time arm costs half a second per name and re-measuring the
+    whole table is the 4.7-minute test this replaced.
+    """
+    names = [
+        "Acetaldehyde",
+        "Chloroform (Trichloromethane)",
+        "Calcium carbonate",
+        "Chlorine",
+        "Portland cement",
+    ]
+
+    batched = naming_providers.opsin_structures_for_names(names)
+
+    for name, got in zip(names, batched):
+        try:
+            expected = naming_providers.opsin_structure_for_name(name).smiles
+        except naming_providers.NamingError:
+            expected = None
+        assert (got.smiles if got else None) == expected, name
