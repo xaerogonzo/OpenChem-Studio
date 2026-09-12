@@ -753,6 +753,31 @@ _retain_main_windows()
 _used_qt = [False]
 
 
+#: Each arm as (which tests trigger a collect, which generation to walk).
+#:
+#: THE GENERATION AXIS WAS TRIED AND IS CLOSED. `gen0` crashed 1 of 6 and
+#: `gen1` 2 of 2, both with 0xC0000005, in the same victim files the crash
+#: class already names. They are kept selectable so the result is
+#: reproducible rather than folklore -- not because either is a candidate.
+#: See `pytest_runtest_logfinish` for the measured table.
+#:
+#: Why it looked promising: `gc.collect()` defaults to a FULL gen-2 pass, which
+#: walks every live object -- which is why per-collect cost came out flat
+#: at ~215 ms whether the suite collected 1861 times or 7865, and why
+#: collecting MORE often cannot make any single collect cheaper. The
+#: objects this hook actually wants reclaimed are young: the panel was
+#: built by the test that just ended. A gen-0 or gen-1 pass walks only the
+#: young generations. Whether that is enough depends on whether CPython
+#: has already promoted them, which is a measurement and not an argument.
+_COLLECT_ARMS: dict[str, tuple[str | None, int | None]] = {
+    "none": (None, None),
+    "qapp": ("qapp", 2),
+    "always": ("all", 2),
+    "gen1": ("qapp", 1),
+    "gen0": ("qapp", 0),
+}
+
+
 def collect_policy(value: str | None) -> str:
     """Which tests get a `gc.collect()` in the teardown hook.
 
@@ -767,7 +792,7 @@ def collect_policy(value: str | None) -> str:
     verbatim so new numbers can be set beside the old ones with no
     translation step in between.
     """
-    return value if value in {"none", "always"} else "qapp"
+    return value if value in _COLLECT_ARMS else "qapp"
 
 
 #: The shipped behaviour, and the control arm. `OPENCHEM_COLLECT_POLICY`
@@ -862,16 +887,54 @@ def pytest_runtest_logfinish(nodeid, location):
     nothing happens at that moment was not.
 
     Gated on `qapp` because most of this suite is pure chemistry and
-    cannot leave a widget behind. Measured over a full run:
+    cannot leave a widget behind.
 
+    **RE-MEASURED 2026-09-12 OVER 7865 TESTS, AND THE OLD TABLE WAS WRONG
+    IN EVERY CELL.** It is kept beneath its replacement rather than edited
+    away, because what it got wrong is the durable part: it was read for
+    three phases of UI work as this hook's justification, and the two
+    claims that made the gating look like a careful compromise -- that
+    `always` reaches zero, and that this arm sits at four -- are both
+    false.
+
+        arm       wall      late/run   crashes
+        none      ~950 s    285-295    1 of 8
+        qapp     ~1400 s    100        0 of 5   <- this, and still right
+        always    2999 s    100        0 of 2
+        gen0      ~890 s    100-110    1 of 6
+        gen1        --        --       2 of 2
+
+        refuted, kept so the old claim stays findable:
         no collect          138 late destructions   116 s
         collect always        0 late destructions   326 s
-        collect if qapp       4 late destructions   171 s   <- this
+        collect if qapp       4 late destructions   171 s
 
-    The four that remain are all within `test_quantum_chemistry_panel.py`
-    itself. Closing them costs another 155 seconds on every run, which is
-    not worth it for four same-file destructions when the crash being
-    chased was cross-file.
+    `always` IS STRICTLY DOMINATED: 4.2x the collects, +110% wall clock,
+    the identical late count. The old "0" is what made it look like an
+    option worth the money.
+
+    **LATE DESTRUCTIONS ARE NOT THE DISCRIMINATOR**, which is the finding
+    that matters most here and the one this instrument was not built to
+    see. `gen0` holds them at the same 100-110 as this arm and crashed
+    anyway. The count this hook exists to minimise does not separate the
+    arms that crash from the arms that do not. What does, on this
+    evidence, is whether the collect is a FULL gen-2 pass -- 0 crashes in
+    7 runs across `qapp` and `always`, against 4 in 16 across `none`,
+    `gen0` and `gen1`. Small n; an observation, not a law.
+
+    A CHEAPER WALK WAS TRIED AND IS REFUSED. `gc.collect()` is a full
+    gen-2 pass, which is why per-collect cost measured flat at ~215 ms
+    whether the suite collected 1861 times or 7865: it walks the LIVE
+    heap, so collecting more often cannot make any single collect
+    cheaper. The young generations were the obvious cheaper walk and both
+    of those arms crashed. Do not retry them without a crash-rate
+    experiment at n~10 per arm WITH a control -- this screen was n=6 and
+    no control, which is enough to refuse a change and not enough to
+    justify one.
+
+    So this hook costs 410-480 s of a ~1400 s suite, roughly 30% of the
+    wall clock, and every alternative measured is worse. That is the
+    trade, stated in numbers rather than implied.
     """
     started = time.perf_counter()
     _hook_calls[0] += 1
@@ -880,10 +943,11 @@ def pytest_runtest_logfinish(nodeid, location):
     # `none` the branch below never runs, and a flag cleared only inside it
     # would stay True for the rest of the session -- which matters the
     # moment an arm reads it for anything else.
+    trigger, generation = _COLLECT_ARMS[COLLECT_POLICY]
     used_qt, _used_qt[0] = _used_qt[0], False
-    if COLLECT_POLICY == "always" or (COLLECT_POLICY == "qapp" and used_qt):
+    if trigger == "all" or (trigger == "qapp" and used_qt):
         collect_started = time.perf_counter()
-        gc.collect()
+        gc.collect(generation)
         collect_elapsed = time.perf_counter() - collect_started
         _gc_seconds[0] += collect_elapsed
         _gc_calls[0] += 1

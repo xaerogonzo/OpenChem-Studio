@@ -65,6 +65,9 @@ _COUNT_PROPERTIES = {
     "openchem_gc_calls": "gc_calls",
     "openchem_retained_windows": "retained_windows",
 }
+_TEXT_PROPERTIES = {
+    "openchem_collect_policy": "collect_policy",
+}
 _BUCKETS_PROPERTY = "openchem_hook_buckets"
 
 
@@ -99,6 +102,7 @@ class Report:
     hook_calls: int | None = None
     gc_calls: int | None = None
     retained_windows: int | None = None
+    collect_policy: str | None = None
     buckets: dict | None = None
 
     @property
@@ -242,6 +246,8 @@ def _read_properties(report: Report, suite) -> None:
         elif name in _COUNT_PROPERTIES:
             setattr(report, _COUNT_PROPERTIES[name],
                     _numeric_property(report.label, name, raw, int))
+        elif name in _TEXT_PROPERTIES:
+            setattr(report, _TEXT_PROPERTIES[name], raw)
         elif name == _BUCKETS_PROPERTY:
             report.buckets = _bucket_property(report.label, raw)
 
@@ -322,8 +328,11 @@ def _accounting(report: Report, wall: float | None) -> list[str]:
     wrong by an order of magnitude. So the wall clock stays an INPUT and
     its absence is stated rather than papered over.
     """
+    arm = ""
+    if report.collect_policy is not None:
+        arm = f"   [collect policy: {report.collect_policy}]"
     lines = [
-        "  WHERE THE TIME WENT",
+        f"  WHERE THE TIME WENT{arm}",
         f"    test time           {report.summed:10.1f} s   "
         f"setup + call + teardown, per JUnit",
     ]

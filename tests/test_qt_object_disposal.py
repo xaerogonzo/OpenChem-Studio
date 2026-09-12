@@ -882,6 +882,8 @@ def test_only_the_exact_string_zero_turns_the_flush_off(value, flushes):
         ("qapp", "qapp"),
         ("none", "none"),  # treatment: no collect at all
         ("always", "always"),  # treatment: a collect after every test
+        ("gen1", "gen1"),  # treatment: the qapp trigger, young generations only
+        ("gen0", "gen0"),
         ("", "qapp"),
         ("NONE", "qapp"),  # case is NOT folded -- a near miss is still a miss
         ("nonsense", "qapp"),
