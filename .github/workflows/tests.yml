@@ -110,8 +110,17 @@ env:
 
 jobs:
   suite:
-    name: test suite
+    name: test suite ${{ matrix.shard }}/2
     runs-on: windows-latest
+    strategy:
+      # BOTH SHARDS ALWAYS REPORT. With the default `fail-fast`, a failure
+      # in one cancels the other, and the cancelled half reports as a
+      # failure it never had -- so a one-shard bug reads as a two-shard
+      # bug and the second verdict, which is the one that says whether the
+      # problem is local, is destroyed.
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     # 30 WAS NOT A CEILING, IT WAS A COIN FLIP -- measured across five
     # consecutive runs, four of them on unmodified master:
     #
@@ -140,12 +149,28 @@ jobs:
     # tree differed by 21%, so nothing measurable had "got slower"; the
     # margin was simply inside the noise. See the `gates` job below.
     #
-    # SO THIS NUMBER IS UNCHANGED AND NOW MEANS SOMETHING DIFFERENT. The
-    # suite alone is ~34 minutes, about 77% of budget, and a timeout here
-    # no longer takes three benchmarks with it -- it fails the suite, which
-    # is the honest thing for a suite timeout to do. Raise it only when the
-    # SUITE genuinely needs it, and re-read the paragraph above first.
-    timeout-minutes: 45
+    # THE SUITE WAS ~34 MINUTES OF THAT 45, ABOUT 77% OF BUDGET, AND
+    # SHARDING IS WHAT MOVED IT -- not a raise, which the paragraph above
+    # rules out, and not a faster suite either.
+    #
+    # LOOKING CAME FIRST, as that paragraph demands, and the answer is in
+    # docs/LESSONS.md: 30% of the wall clock is ONE `gc.collect()` in
+    # `tests/conftest.py`'s teardown hook. Every cheaper collect policy
+    # was then measured and every one is worse -- `none` triples late
+    # destructions, `always` costs +110% for an identical late count, and
+    # both partial-generation arms crash the suite. Nothing got slower;
+    # the suite grew past a cost it always had.
+    #
+    # So the lever that was left is the one that needs no test to change:
+    # THE TIMEOUT IS PER JOB. Two shards of ~17 minutes sit at ~57% of
+    # this 30, where one job of ~34 sat at 77% of 45.
+    #
+    # 30 RATHER THAN 45 ON PURPOSE. A budget with no pressure in it stops
+    # being a gate, and this one is supposed to notice growth. If a shard
+    # genuinely needs more than 30 minutes, add a third shard before
+    # raising this -- the splitter takes `--splits=N` and the only other
+    # change is this matrix.
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v5
@@ -188,12 +213,23 @@ jobs:
       # `if: always()` on the upload below publishes a file that exists
       # rather than making the report incremental. That is why the timeout
       # question is answered from successful runs, several per platform.
-      - name: Run the test suite
-        run: >
-          uv run --no-sync python -u -m pytest -q -ra
-          --deselect "${{ env.NETWORK_TEST }}"
-          --junitxml=suite-timings-windows.xml
-          --durations=30
+      # THE SHARD IS COMPUTED FROM THE FILES ON DISK, never from a
+      # committed list -- `tools/suite_shards.py` explains why at length,
+      # but the short version is that a stale list drops a NEW test file
+      # from every shard and nothing goes red. `tests/test_suite_shards.py`
+      # asserts the partition is exact.
+      #
+      # POWERSHELL, EXPLICITLY. `windows-latest` defaults to pwsh, and an
+      # array variable expands into separate arguments for a native
+      # command there -- this file already records a Windows runner
+      # handing a bash script to PowerShell and one line surviving.
+      - name: Run this shard of the test suite
+        shell: pwsh
+        run: |
+          $files = uv run --no-sync python tools/suite_shards.py --splits=2 --group=${{ matrix.shard }}
+          Write-Host "shard ${{ matrix.shard }} of 2: $($files.Count) test files"
+          if ($files.Count -lt 1) { throw "the splitter produced no files for this shard" }
+          uv run --no-sync python -u -m pytest -q -ra --deselect "${{ env.NETWORK_TEST }}" --junitxml=suite-timings-windows-${{ matrix.shard }}.xml --durations=30 $files
 
       # Uploaded whatever the suite did: a red suite's timings are still
       # timings, and a job that only published them on success would lose
@@ -202,8 +238,13 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: suite-timings-windows-${{ github.run_number }}
-          path: suite-timings-windows.xml
+          # THE SHARD IS IN THE NAME because `upload-artifact@v4` FAILS on
+          # a duplicate name -- the same trap the linux replicas below
+          # already carry. Each shard's XML is self-consistent, so
+          # `tools/suite_timings.py` reads either one directly; the
+          # suite's total is now the sum of the two.
+          name: suite-timings-windows-${{ github.run_number }}-${{ matrix.shard }}
+          path: suite-timings-windows-${{ matrix.shard }}.xml
           if-no-files-found: warn
           retention-days: 30
 
@@ -228,8 +269,12 @@ jobs:
       # banner below says out loud, because "12 skipped" and "10 passed,
       # 2 failed" must not look alike six months from now, and only
       # pytest's own summary line tells them apart.
+      # SHARD 1 ONLY. These do not depend on the shard's file list, so
+      # running them in both would double the cost and produce two
+      # identical verdicts -- and two copies of an advisory step is how a
+      # reader stops reading either.
       - name: Conformer gallery guards (NON-BLOCKING -- needs a GPU)
-        if: always()
+        if: always() && matrix.shard == 1
         continue-on-error: true
         env:
           QT_QPA_PLATFORM: windows
@@ -251,8 +296,11 @@ jobs:
       # stay visible; what changes is only that neither can take the gates
       # with it. If this step is red for days rather than minutes, that is a
       # real provider regression and not a flake.
+      # SHARD 1 ONLY, for the reason above -- and because hitting NCBI
+      # twice per run doubles the rate-limiting this step already
+      # documents as its main failure mode.
       - name: PubChem round trip (NON-BLOCKING -- third-party network)
-        if: always()
+        if: always() && matrix.shard == 1
         continue-on-error: true
         run: uv run --no-sync python -u -m pytest -q -ra "${{ env.NETWORK_TEST }}"
 
