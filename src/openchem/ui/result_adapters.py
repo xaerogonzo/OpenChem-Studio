@@ -670,6 +670,24 @@ class ResultAdapter:
     to_text: Callable[[Any], str]
     #: Which dedicated viewer opens it, or `NO_RICH_VIEW`.
     rich_view: str
+    #: What the button that opens it should SAY, or "" for the
+    #: destination's own label.
+    #:
+    #: **THE DESTINATION AND THE DOOR ARE DIFFERENT THINGS.** Four
+    #: kinds open the Calculator Inspector, and naming the window is
+    #: the right label for three of them -- a per-atom dataset really
+    #: is going to be inspected. A structure SET is going there to be
+    #: picked from, and "Open in Calculator Inspector" never says
+    #: that: the capability was reported as missing by someone who
+    #: had the application open, because nothing on the row suggested
+    #: a tautomer could be worked on.
+    #:
+    #: A second `rich_view` target for the same window would be two
+    #: strings meaning one place, which `FactLink.target` exists to
+    #: avoid. One destination, and the kind names the door.
+    #:
+    #: Named on every kind, never defaulted -- same reason as `chart`.
+    rich_view_label: str
     #: The few facts a reader shows in place of the whole result.
     summary: Callable[[Any, FactCategory], tuple[Fact, ...]]
     #: Charts this kind can project. `()` for every kind whose content is not
@@ -696,42 +714,44 @@ class ResultAdapter:
 #: KeyError deep in a paint path rather than at registration.
 ADAPTERS: dict[str, ResultAdapter] = {
     REPORT: ResultAdapter(
-        to_text=_report_to_text, rich_view=NO_RICH_VIEW,
+        to_text=_report_to_text, rich_view=NO_RICH_VIEW, rich_view_label="",
         summary=_no_summary_needed, chart=_no_chart,
         payload=("", ""),
     ),
     ALERT: ResultAdapter(
-        to_text=_alert_to_text, rich_view=NO_RICH_VIEW,
+        to_text=_alert_to_text, rich_view=NO_RICH_VIEW, rich_view_label="",
         summary=_no_summary_needed, chart=_no_chart,
         payload=("", ""),
     ),
     PER_ATOM: ResultAdapter(
-        to_text=_per_atom_to_text, rich_view=CALCULATOR_INSPECTOR,
+        to_text=_per_atom_to_text, rich_view=CALCULATOR_INSPECTOR, rich_view_label="",
         summary=_per_atom_summary, chart=_no_chart,
         payload=("values", "atom"),
     ),
     SPECTRUM: ResultAdapter(
-        to_text=_spectrum_to_text, rich_view=NMR_VIEW,
+        to_text=_spectrum_to_text, rich_view=NMR_VIEW, rich_view_label="",
         summary=_spectrum_summary, chart=_no_chart,
         payload=("values", "signal"),
     ),
     VIBRATIONAL_SPECTRUM: ResultAdapter(
-        to_text=_vibrational_to_text, rich_view=IR_VIEW,
+        to_text=_vibrational_to_text, rich_view=IR_VIEW, rich_view_label="",
         summary=_vibrational_summary, chart=_no_chart,
         payload=("modes", "mode"),
     ),
     PH_CURVE: ResultAdapter(
-        to_text=_ph_curve_to_text, rich_view=CALCULATOR_INSPECTOR,
+        to_text=_ph_curve_to_text, rich_view=CALCULATOR_INSPECTOR, rich_view_label="",
         summary=_ph_curve_summary, chart=_ph_curve_chart,
         payload=("ph_values", "pH point"),
     ),
     STRUCTURE_SET: ResultAdapter(
         to_text=_structure_set_to_text, rich_view=CALCULATOR_INSPECTOR,
+        # The one kind that goes there to be PICKED FROM.
+        rich_view_label="Send to 2D Editor...",
         summary=_structure_set_summary, chart=_no_chart,
         payload=("entries", "structure"),
     ),
     TRAJECTORY: ResultAdapter(
-        to_text=_generic_to_text, rich_view=CALCULATOR_INSPECTOR,
+        to_text=_generic_to_text, rich_view=CALCULATOR_INSPECTOR, rich_view_label="",
         summary=_trajectory_summary, chart=_no_chart,
         payload=("frames", "frame"),
     ),
@@ -789,6 +809,7 @@ def summarise(
         # result. Without it a summary is a dead end for the 30 of 60 entries
         # that have a viewer.
         rich_view=adapter.rich_view,
+        rich_view_label=adapter.rich_view_label,
         # The projection's own caveat FIRST, then whatever the producer said.
         # A reader meeting the producer's caveats under a summary would have
         # no way to tell which half it was reading.

@@ -49,6 +49,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   edit a tautomer would have found it. Same behaviour, plus it now reveals
   the editor instead of leaving you on whichever tab you were on.
 
+  The **Results panel** says so too: a structure-set result's button reads
+  **Send to 2D Editor...** rather than "Open in Calculator Inspector". Four
+  kinds open that window and naming it is right for three of them; a set of
+  tautomers goes there to be picked from, which the label never said.
+
 ### Added
 
 - **Structure > Redraw in 2D**, the way back from **Use in 2D Editor**. That

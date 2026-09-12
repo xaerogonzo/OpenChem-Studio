@@ -843,9 +843,16 @@ without its scope is the silence that reads as reassurance.
 ### Working on a generated structure — **Send to 2D Editor**
 
 **Stereoisomers**, **Tautomers**, **Resonance Forms** and **Markush
-Enumeration** return a *set* of structures rather than a number. Opening one
-of those results gives a grid of depictions; click a cell to pick it, then
+Enumeration** return a *set* of structures rather than a number. In the
+Results panel those read **Send to 2D Editor...** rather than the usual
+"Open in Calculator Inspector" — the ellipsis because it asks which one.
+Pressing it gives a grid of depictions; click a cell to pick it, then
 **Send to 2D Editor**.
+
+The row cannot offer it without the ellipsis, and that is deliberate: the
+summary is a count, not a list, so there is no structure picked yet. A
+hundred-member library rendered as rows is the wall the reader exists to
+avoid.
 
 **It adds, it does not replace.** A tautomer or an isomer is a different
 compound, not a different arrangement of the one you have — so the new

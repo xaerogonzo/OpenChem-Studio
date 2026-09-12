@@ -1642,6 +1642,16 @@ class _Driver(QObject):
         if "search" in step:
             window._selector_search.setText(str(step.get("search") or ""))
         merged = window.merged()
+        # **THE OPEN BUTTON'S WORDS, because that is the whole of what a row
+        # offers.** A result kind that has a viewer and a row that SAYS so are
+        # different states, and they photograph the same at this size -- which
+        # is how "there's no way to work on a tautomer" was reported by
+        # someone whose screen was showing the button that does it.
+        logger.warning(
+            "OPENCHEM_DRIVE: results open_button visible=%s text=%r",
+            window._open_button.isVisible(),
+            window._open_button.text(),
+        )
         logger.warning(
             "OPENCHEM_DRIVE: results tag=%s reports=%d facts=%d charts=%d "
             "focus=%r stale=%s version=%s",
