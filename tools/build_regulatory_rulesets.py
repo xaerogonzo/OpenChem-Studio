@@ -146,8 +146,44 @@ def _validate_expression(expression, rule_id: str) -> None:
 DIATOMIC_ELEMENTS = frozenset({"H", "N", "O", "F", "Cl", "Br", "I"})
 
 
-def _resolve_name(name: str) -> tuple[str, str]:
-    """(inchikey, note) for a chemical name, via OPSIN.
+def _opsin_structures(names: list[str]) -> dict[str, object]:
+    """Every name in one JVM start. name -> StructureResult, None, or the
+    exception that stopped the whole batch.
+
+    **ONE PROCESS LAUNCH FOR THE FILE, NOT ONE PER NAME.** `py2opsin`
+    shells out to `java -jar`, and resolving Table Z-1's 390 names one at
+    a time paid that launch 390 times: measured 0.476 s per name against
+    0.64 s for the entire list in a single call. With the three `java
+    -version` probes each call also triggered, this script took 4 minutes
+    35 seconds and was the most expensive test in the suite.
+
+    The chemistry is untouched -- `_resolve_name` still does the fragment
+    and element reasoning per name, on exactly the structure it would have
+    received before. Only the trip to Java is shared.
+    """
+    from openchem.chem import naming_providers
+
+    unique = sorted(set(names))
+    if not unique:
+        return {}
+    try:
+        structures = naming_providers.opsin_structures_for_names(unique)
+    except Exception as exc:  # noqa: BLE001
+        # OPSIN ABSENT IS NOT 390 UNPARSEABLE NAMES, but it must read the
+        # same way per row as it did when each name asked separately --
+        # otherwise a machine without Java produces a different coverage
+        # report rather than the same one.
+        return {name: exc for name in unique}
+    return dict(zip(unique, structures))
+
+
+def _key_for_answer(structure: object) -> tuple[str, str]:
+    """(inchikey, note) for what OPSIN said about one name.
+
+    Takes the ANSWER rather than the name because the names are now
+    asked for together -- see `_opsin_structures`. Everything below
+    this line is unchanged and per-name: the batching moved the trip
+    to Java, not any of the chemistry.
 
     Returns an empty key rather than raising: an unresolved name is a
     coverage fact to be reported, not a build failure. Guessing the
@@ -156,13 +192,19 @@ def _resolve_name(name: str) -> tuple[str, str]:
     from rdkit import Chem, RDLogger
 
     RDLogger.DisableLog("rdApp.*")
-    from openchem.chem import naming_providers
 
-    try:
-        result = naming_providers.opsin_structure_for_name(name)
-    except Exception as exc:  # noqa: BLE001
-        return "", f"OPSIN could not parse: {type(exc).__name__}"
-    smiles = getattr(result, "smiles", "") or ""
+    if isinstance(structure, Exception):
+        return "", f"OPSIN could not parse: {type(structure).__name__}"
+    if structure is None:
+        # THE STRING NAMES AN EXCEPTION CLASS BECAUSE THE COMMITTED
+        # COVERAGE REPORT DOES. Asking one name at a time, an unparseable
+        # name arrived as a raised `NamingError`; asking for all of them
+        # at once it arrives as a blank line, and no exception exists.
+        # Keeping the wording is what let batching be PROVED to change
+        # nothing -- `--check` compares the regenerated files against the
+        # committed ones byte for byte, and it passed unchanged.
+        return "", "OPSIN could not parse: NamingError"
+    smiles = getattr(structure, "smiles", "") or ""
     if not smiles:
         return "", "OPSIN returned no structure"
     mol = Chem.MolFromSmiles(smiles)
@@ -267,6 +309,11 @@ def build_one(source_path: Path) -> tuple[dict, list[str]]:
     #    this half is what keeps the shipped set clean.
     _check_effective_date(source.get("effective_date"), f"{source_path.name} ruleset")
 
+    # Ask Java once for the whole file, before the per-rule work.
+    structures = _opsin_structures(
+        [name for entry in source.get("rules", []) for name in (entry.get("names") or [])]
+    )
+
     for entry in source.get("rules", []):
         rule_id = entry.get("rule_id") or "<unnamed>"
         legal = dict(entry.get("legal", {}))
@@ -303,7 +350,7 @@ def build_one(source_path: Path) -> tuple[dict, list[str]]:
         # Identity entries: resolve names rather than carrying structures.
         keys: list[str] = []
         for name in entry.get("names", []) or []:
-            key, why = _resolve_name(name)
+            key, why = _key_for_answer(structures.get(name))
             if key:
                 keys.append(key)
             else:
