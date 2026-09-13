@@ -397,5 +397,93 @@
    8.4
   ]
  },
- "gate_stages_3_4": true
+ "gate_stages_3_4": true,
+ "b_post_hoc_diagnosis": {
+  "rule": "every pose within SCORE_TOL_KCAL of smina after --weight_vinardo_rot 0",
+  "accepted": false,
+  "max_abs_delta_rot0": 0.62089,
+  "rows": [
+   {
+    "pose": 0,
+    "vina_vinardo": -5.369,
+    "vina_vinardo_rot0": -7.252,
+    "smina_vinardo": -7.36951,
+    "delta_shipped": -2.00051,
+    "delta_rot0": -0.11751,
+    "ratio_rot0_over_shipped": 1.3507
+   },
+   {
+    "pose": 1,
+    "vina_vinardo": -5.064,
+    "vina_vinardo_rot0": -6.841,
+    "smina_vinardo": -7.12047,
+    "delta_shipped": -2.05647,
+    "delta_rot0": -0.27947,
+    "ratio_rot0_over_shipped": 1.3509
+   },
+   {
+    "pose": 2,
+    "vina_vinardo": -5.439,
+    "vina_vinardo_rot0": -7.347,
+    "smina_vinardo": -7.42199,
+    "delta_shipped": -1.98299,
+    "delta_rot0": -0.07499,
+    "ratio_rot0_over_shipped": 1.3508
+   },
+   {
+    "pose": 3,
+    "vina_vinardo": -6.571,
+    "vina_vinardo_rot0": -8.875,
+    "smina_vinardo": -8.66767,
+    "delta_shipped": -2.09667,
+    "delta_rot0": 0.20733,
+    "ratio_rot0_over_shipped": 1.3506
+   },
+   {
+    "pose": 4,
+    "vina_vinardo": -6.182,
+    "vina_vinardo_rot0": -8.35,
+    "smina_vinardo": -7.72911,
+    "delta_shipped": -1.54711,
+    "delta_rot0": 0.62089,
+    "ratio_rot0_over_shipped": 1.3507
+   },
+   {
+    "pose": 5,
+    "vina_vinardo": -5.576,
+    "vina_vinardo_rot0": -7.532,
+    "smina_vinardo": -7.10615,
+    "delta_shipped": -1.53015,
+    "delta_rot0": 0.42585,
+    "ratio_rot0_over_shipped": 1.3508
+   },
+   {
+    "pose": 6,
+    "vina_vinardo": -5.208,
+    "vina_vinardo_rot0": -7.034,
+    "smina_vinardo": -6.99264,
+    "delta_shipped": -1.78464,
+    "delta_rot0": 0.04136,
+    "ratio_rot0_over_shipped": 1.3506
+   },
+   {
+    "pose": 7,
+    "vina_vinardo": -5.208,
+    "vina_vinardo_rot0": -7.034,
+    "smina_vinardo": -6.74362,
+    "delta_shipped": -1.53562,
+    "delta_rot0": 0.29038,
+    "ratio_rot0_over_shipped": 1.3506
+   },
+   {
+    "pose": 8,
+    "vina_vinardo": -6.005,
+    "vina_vinardo_rot0": -8.111,
+    "smina_vinardo": -7.57082,
+    "delta_shipped": -1.56582,
+    "delta_rot0": 0.54018,
+    "ratio_rot0_over_shipped": 1.3507
+   }
+  ]
+ }
 }
