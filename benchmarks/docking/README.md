@@ -362,6 +362,59 @@ reason CASF-2016 is not. So the overlap is **unknown, not absent**.
 - **Pose counts vary.** Vina merges similar modes, so 5C1M returned 2 poses
   and 1ERE 4. A rho over two points is not a measurement.
 
+## The smina spike — is `PoseRescorer` an abstraction or a Vina-shaped hole?
+
+[source:koes2013]. smina is a fork of Vina 1.1.2, so this is an
+**abstraction test and never an independent second opinion**. Every
+comparison was pre-registered in its script's docstring and committed before
+it ran. `git diff src/` is empty, and smina was **not** added to the
+application.
+
+```bash
+set OPENCHEM_SMINA=<conda env>\Library\bin\smina.exe
+uv run --no-sync python benchmarks/docking/smina_oracles.py --probe
+uv run --no-sync python benchmarks/docking/smina_oracles.py
+uv run --no-sync python benchmarks/docking/smina_oracles.py --explain-b
+uv run --no-sync python benchmarks/docking/_smina.py --self-check
+uv run --no-sync python benchmarks/docking/_smina.py --live
+uv run --no-sync python benchmarks/docking/rescore_power.py --exhaustiveness 25 --engine smina --rescorer smina:dkoes_scoring
+```
+
+| file | what it holds |
+| --- | --- |
+| `smina_oracles.json` | score, reproducibility and refinement oracles on fentanyl in 5C1M, identical files for both programs |
+| `smina_seam_ledger.json` | eight seams, each `held` / `adapter_workaround` / `interface_change_required`, with the line and the run behind it |
+| `smina_docking_power.json` | the four arms below, at exhaustiveness 8 and 25 |
+| `smina_live.json` | the shipped provider with only its engine swapped |
+| `smina_fixtures/` | smina's real output text, which the adapter's parsers are checked against |
+
+**Docking power at exhaustiveness 25** — the protocol of the table above.
+The shipped path (A0) reproduced that table on all eight rows first.
+
+    arm  search -> score the pick is made on             picks  mean    ceiling
+    A0   Vina 1.2.7 -> Vina (native) / Vinardo (rescore) 6/8    1.45 / 1.46  8/8
+    A1   Vina 1.2.7 -> smina default (rescore)           6/8    1.40         8/8
+    A2   smina 2020.12.10 -> smina default (native)      6/8    1.43         7/8
+    A3   smina 2020.12.10 -> smina dkoes_scoring (rescore) 6/8  1.77         7/8
+
+n = 8 cannot separate them, and no difference is claimed. smina's search
+ceiling is 7/8 because 3EML's best pose landed at 3.14 Å against a 3.0 Å
+threshold. Leakage is `TRAINING_PROVENANCE_UNRESOLVED` for every function.
+
+**The first write-up claimed A0 reproduced this table when it did not.** The
+arms were first run at the script's default exhaustiveness of 8; the counts
+matched (6/8, 6/8, 8/8) and the rows did not. The correction and the re-run
+at 25 are both in the git history, and the exhaustiveness-8 arms are kept
+because they are comparable with each other.
+
+**Three findings reach beyond smina** — see `docs/ROADMAP.md`:
+- the shipped provider silently turned a "vinardo" rescore into smina's
+  Vinardo once the engine was swapped;
+- the Vinardo this application ships is Vina 1.2.7's implementation, which
+  differs from the paper's own by a torsion normalisation plus an unexplained
+  residual;
+- `dkoes_scoring` is fitted to pK while smina prints kcal/mol beside it.
+
 ## The Within-Assay Docking Ranking Benchmark — route 2's acceptance
 
 `chembl_corpus.py` → `rank_power.py` → `rank_report.py`. Three stages, each

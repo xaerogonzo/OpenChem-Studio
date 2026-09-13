@@ -19680,3 +19680,48 @@ The census writes a flushed line per test, 6600+ a run, and that was a
 live suspicion for why Linux is slow. It costs **0.2 s across 7865
 tests**. Only the split hook/gc timers could show that, which is why they
 are two numbers rather than one.
+
+## A MATCHING COUNT IS NOT A REPRODUCTION, AND A PAPER'S SILENCE IS NOT A TERM
+
+From the smina spike (2026-09-12, `benchmarks/docking/README.md`'s smina
+section). Every comparison was pre-registered, and still three claims I wrote
+had to be taken back -- all three before they reached a document, and each
+by a different instrument.
+
+**"A0 reproduces the recorded baseline exactly" -- it did not.** The
+pre-registration said the shipped path "must reproduce the recorded Vina 6/8"
+and never named the exhaustiveness. The record was measured at 25; the arms
+ran at the script's default of 8. The COUNTS matched -- 6/8, 6/8, ceiling
+8/8, means 1.44/1.46 against 1.45/1.46 -- and the rows did not: 3EML's best
+possible pose was 1.62 A against 2.50. A Spearman "drift" I then recorded
+beside it was the same two protocols compared. Found only by putting the
+new table next to the README's row by row, while writing it up. At 25 the
+reproduction matched all eight rows with a maximum difference of 0.
+
+  A pre-registered reproduction names the PROTOCOL it reproduces, not just
+  the number. And compare ROWS: eight coarse counts agree by accident far
+  more easily than eight rows do.
+
+**"The paper's Eq 1 has no torsion term" -- true, and evidence of
+nothing.** Vina 1.2.7 divides its Vinardo by (1 + w N_rot) and smina, the
+paper's own implementation, does not, so the paper looked like the tiebreak.
+Its Eq 1 sits in the section describing VINA, a function known to apply that
+normalisation. It writes the term for neither function. Found by searching
+the PDF for the term under other names before quoting the absence.
+
+  Before citing what a source does NOT say, find where it does not say it:
+  an omission in a simplified presentation is not a specification.
+
+**A guard built from the constant it tests passed with the constant
+deleted.** The adapter's argv check expected `[..., *COMPAT_FLAGS]`, so
+setting `COMPAT_FLAGS = ()` changed the code and the expectation together.
+One of five mutations; the other four were caught. Spelled out literally now.
+It is the shape of "THREE GUARDS I WROTE MATCHED THE PROSE EXPLAINING THEIR
+OWN RULE", in code rather than prose.
+
+**And one pre-registered rule that did its job.** smina's Vinardo was 1.53-2.10
+kcal/mol from Vina's, and the obvious cause -- the torsion divisor -- was
+measured EXACTLY: Vina's values scale by 1.3507 on all nine poses. Stopping
+there would have "explained" a 2 kcal/mol gap. The rule written before the
+intervention demanded 0.01 kcal/mol per pose, and a residual of -0.28 to
++0.62 remained, in both signs. It is recorded as unexplained.

@@ -975,7 +975,10 @@ with respect to docking- and ranking power"* and a statement that it is
 SCIENTIFIC candidate and is the unobtainable one; smina is obtainable and is
 **Vina-derived**, so it cannot be the independent second opinion this axis
 needs. Its default scoring *is* Vina's, and `dkoes_scoring` is a linear
-regression fitted against CSAR 2012. Vinardo already failed to improve ranking
+regression -- fitted, by [source:koes2013]'s own account, on CSAR-NRC HiQ 2010
+with CSAR 2012 held out as a test set, though [source:quiroga2016] names both
+as training data. (This sentence said "fitted against CSAR 2012" until the
+smina spike read the primary source.) Vinardo already failed to improve ranking
 and Vinardo is Vina-family; adding a third Vina-family function tests the
 `PoseRescorer` ABSTRACTION -- which is worth something, smina being both engine
 and rescorer -- and does not retest the FAMILY question.
@@ -1123,14 +1126,56 @@ this application's own.
   two papers on it, and CASF-2016's leader ΔVinaRF20 carries the warning from
   its own authors.
 
-**AND ONE THING IS NEWLY NOT-REFUSED.** `smina` ([source:koes2013]) was an
-unevaluable option and is now a measurable question, because the harness to
-measure it exists: `rank_power.py`'s `run_series` already takes
-`(provider, engine, rescorer)`, and `_rescore_best` already goes through the
-shipped `PoseRescorer`. It is the only candidate that is both an engine and a
+**AND ONE THING WAS NEWLY NOT-REFUSED, AND IS NOW SPIKED: smina.**
+([source:koes2013]) It is the only candidate that is both an engine and a
 rescorer, so it is the arm that tests whether `PoseRescorer` is a real
-abstraction or a Vina-shaped hole. What is unknown is whether it builds and
-runs on Windows — a spike, not a claim.
+abstraction or a Vina-shaped hole -- **and nothing more: it is a Vina 1.1.2
+fork, not an independent second opinion.** Spiked 2026-09-12 with every
+comparison pre-registered before it ran; the record is
+`benchmarks/docking/smina_oracles.json`, `smina_seam_ledger.json` and
+`smina_docking_power.json`, and `git diff src/` is empty. Decided afterwards:
+**stop at findings.** smina is not added to the application.
+
+    binary              conda-forge win-64 build RUNS, no PATH change
+    default vs Vina     AGREE, max 0.004 kcal/mol over 9 poses
+    vinardo vs Vina     NOT ONE QUANTITY: smina 1.53-2.10 kcal/mol more
+                        negative on every pose, see below
+    reproducibility     same-seed re-docks byte-identical, both engines
+    refinement          --minimize and Vina --local_only are different
+                        operations (refined poses 0.126 A apart)
+    docking power       6/8 in every arm at exhaustiveness 25, with the
+                        shipped path reproducing the recorded table on all
+                        eight rows first; n = 8 cannot separate them
+    seam ledger         2 held, 3 adapter workaround, 3 interface change
+
+**THE ABSTRACTION HALF-HOLDS, AND WHERE IT DOES NOT IS SILENT.** The shipped
+`VinaDockingProvider`, with only its engine swapped, ran smina end to end --
+once the adapter translated smina's output into the `REMARK VINA RESULT`
+format `VinaEngine.dock` promises, using only numbers smina itself reported.
+But `_attach_rescores` builds `VinaPoseRescorer` around whichever engine it
+holds, so the rescore requested as "vinardo" was **silently computed by
+smina's Vinardo**; a rescorer from a different engine than the search, or a
+function outside `("vina", "vinardo")`, cannot be requested at all; and the
+pose table names the column by function alone. The persisted `PoseScore`
+keeps the engine id, so the stored record stays honest where the screen
+does not. The three `interface_change_required` seams -- an injected rescorer,
+an engine-qualified rescore id, per-engine function vocabularies -- are the
+work any second engine would have to start with.
+
+**THE VINARDO THIS APPLICATION SHIPS IS NOT THE PAPER'S IMPLEMENTATION.** smina
+is [source:quiroga2016]'s own code. Vina 1.2.7 divides its Vinardo by exactly
+1.3507 on every pose -- `--weight_vinardo_rot` defaults to Vina's N_rot weight
+-- where smina weights that term 0; zeroing it in Vina leaves a residual of
+-0.28 to +0.62 kcal/mol that is **unexplained**. The paper's text cannot say
+which is intended: its Eq 1 sits in the section describing Vina and writes the
+normalisation for neither function. None of this touches ranking -- Vinardo is
+already a null there -- but it is why a "Vinardo" number from another program
+must not be compared with this one.
+
+**`dkoes_scoring` IS koes2013's published function, and it is not in kcal/mol.**
+Its printed weights are Table 3's docked-trained coefficients, negated, to
+every digit, and that table was fitted to pK. smina prints "(kcal/mol)" beside
+it regardless.
 
 ### Mass spectrometry
 

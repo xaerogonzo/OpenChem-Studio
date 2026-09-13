@@ -4483,8 +4483,28 @@ it was made: Table 1's published weights (w1 -0.045, w2 0.000, w3 0.800,
 w4 -0.035, w5 -0.600) match Vina 1.2.7's own `--weight_vinardo_*` defaults
 exactly, and Vina exposes no vinardo gauss2 weight at all, consistent with
 the paper's removal of that term. The atomic radii (Table 3: C 2.0, C_A 1.9,
-N 1.7, O 1.6) are NOT exposed by the CLI and remain unverified from outside;
-smina is the independent cross-check when it lands.
+N 1.7, O 1.6) are NOT exposed by the CLI and remain unverified from outside.
+
+**THE CROSS-CHECK AGAINST smina RAN ON 2026-09-12, AND THE TWO VINARDOS ARE
+NOT ONE QUANTITY.** smina is the paper's own implementation, so this is a
+reference-implementation check -- not an independent one, which the earlier
+wording here ("the independent cross-check") wrongly called it. On nine
+fentanyl poses in 5C1M, identical receptor and pose files, score-only
+(`benchmarks/docking/smina_oracles.json`, oracle b):
+
+    smina vinardo minus Vina 1.2.7 vinardo     -1.53 to -2.10 kcal/mol,
+                                               every pose, deterministic
+
+One component is measured exactly: Vina 1.2.7 divides its Vinardo by 1.3507
+on every pose (= 1 + 6 x 0.05846), because `--weight_vinardo_rot` defaults to
+Vina's own N_rot weight, while smina weights `num_tors_div` at 0. The paper's
+TEXT does not settle which is right -- its Eq 1 sits in the section describing
+Vina, which applies that normalisation, so it writes it for neither. With the
+term zeroed in Vina a residual of -0.28 to +0.62 kcal/mol remains,
+pose-dependent and in both signs, and is UNEXPLAINED; the radii above are the
+obvious candidate and nothing here measured them. So what this application
+labels Vinardo is Vina 1.2.7's implementation, which differs from the
+paper's implementation by up to 2.1 kcal/mol on one pose.
 
 **AND IT IS WHY X-SCORE IS NOT AN INDEPENDENT SECOND OPINION.** Section 1:
 "Vina uses an empirical scoring function which is inspired by the X-score
@@ -4789,8 +4809,34 @@ that a conda-forge PyTorch needed a missing MSVC-named OpenMP DLL before it
 would import at all, and that a package's CHANNEL is a fact about the solve
 rather than about the command that started it.
 
-`assessed_not_shipped`: nothing in `src/` uses smina yet. Promote to `shipped`
-with a `used_by` when an engine lands.
+**THE BINARY RUNS, AND THE SPIKE IS DONE -- 2026-09-12, branch smina-spike.**
+`smina 2020.12.10 conda-forge:b08c07c`, "Based on AutoDock Vina 1.1.2", runs
+directly from `<env>\\Library\\bin\\smina.exe` with no PATH change and docked
+fentanyl into 5C1M in 3.6 s. What it established, in
+`benchmarks/docking/smina_oracles.json`, `smina_seam_ledger.json` and
+`smina_docking_power.json`:
+
+    default vs Vina 1.2.7 vina     AGREE, max 0.004 kcal/mol over 9 poses
+    vinardo vs Vina 1.2.7 vinardo  1.53-2.10 apart -- see quiroga2016
+    same-seed re-dock              byte-identical
+    --minimize vs Vina --local_only  different operations (0.126 A apart)
+    docking power, 8 targets       no difference detectable at n = 8
+    seam ledger                    2 held, 3 adapter workaround,
+                                   3 interface change required
+
+**`dkoes_scoring` IS this paper's function, and its number is not kcal/mol.**
+smina's printed weights equal Table 3's docked-trained coefficients (vdw
+-0.00990, ad4_solvation -0.04893, hydrogen_bond 0.15305, #torsions^2 -0.31726,
+constant 2.46902) with every sign negated, and Table 3's footnote says they
+"were trained against pK binding affinities". smina prints "(kcal/mol)" beside
+it anyway. Its training set, per this paper, is CSAR-NRC HiQ 2010 (343
+structures from Binding MOAD), with CSAR 2012 an independent test set "not
+available when the scoring function was created"; [source:quiroga2016] names
+both sets as training data. The sources disagree and this entry records both.
+
+`assessed_not_shipped`: nothing in `src/` uses smina, by decision after the
+spike -- it tests the abstraction and is not an independent second opinion.
+Promote to `shipped` with a `used_by` if an engine ever lands.
 """
 
 [[source]]
