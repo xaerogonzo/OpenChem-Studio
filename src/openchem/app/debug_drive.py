@@ -618,6 +618,25 @@ class _Driver(QObject):
         else:
             self._window.addDockWidget(self._AREAS[str(step.get("area", "right"))], dock)
         dock.show()
+        # `"width"` / `"height"`: the size a user's drag would leave, so a
+        # layout complaint can be reproduced at the size it was reported at.
+        # A split's default share is whatever Qt picks, and the first run at
+        # it gave Results 132 px where the report showed about 380.
+        if "width" in step:
+            self._window.resizeDocks([dock], [int(step["width"])], Qt.Orientation.Horizontal)
+        if "height" in step:
+            self._window.resizeDocks([dock], [int(step["height"])], Qt.Orientation.Vertical)
+
+    def _do_dock_resize(self, step: dict[str, Any]) -> None:
+        """`{"do": "dock_resize", "panel": "Results", "width": 380}` -- resize
+        without moving, for a dock already where it should be."""
+        dock = self._dock(str(step["panel"]))
+        if dock is None:
+            return
+        if "width" in step:
+            self._window.resizeDocks([dock], [int(step["width"])], Qt.Orientation.Horizontal)
+        if "height" in step:
+            self._window.resizeDocks([dock], [int(step["height"])], Qt.Orientation.Vertical)
 
     def _do_dock_tabify(self, step: dict[str, Any]) -> None:
         """`{"do": "dock_tabify", "panel": "Results", "onto": "Properties"}`"""
@@ -653,6 +672,76 @@ class _Driver(QObject):
         """
         report = self._window.dock_layout_report()
         logger.warning("OPENCHEM_DRIVE: dock_report %s %s", step.get("tag", ""), json.dumps(report))
+
+    def _do_reader_layout_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "reader_layout_report", "tag": "beside"}` -- how much of the
+        Results reader is FACTS, in rows a person can read.
+
+        **ROWS, NOT PIXELS.** The reported defect was the fact list squeezed
+        to about two rows between a 35-name summary and a caveat paragraph;
+        "the scroll area is 60 px" means nothing across fonts and DPI, while
+        "2 rows fully visible" is the complaint itself. Pixels are logged
+        beside it for the record.
+        """
+        from PySide6.QtCore import QPoint, QRect
+
+        from openchem.ui.widgets.fact_view import _FactRow
+
+        reader = self._window._property_panel._attached_reader
+        if reader is None:
+            logger.error("OPENCHEM_DRIVE: reader_layout_report -- no reader")
+            return
+        view = reader._view
+
+        def on_screen(widget) -> QRect:
+            """The part of `widget` no ancestor clips away, in global
+            coordinates. EVERY ancestor, not the nearest scroll area: the
+            dock wraps the reader in a scroll area of its own, and measured
+            against the inner one alone a squeezed reader reported 49 whole
+            rows inside a 2198 px viewport while the screen showed none."""
+            rect = QRect(widget.mapToGlobal(QPoint(0, 0)), widget.size())
+            parent = widget.parentWidget()
+            while parent is not None:
+                rect = rect.intersected(QRect(parent.mapToGlobal(QPoint(0, 0)), parent.size()))
+                parent = parent.parentWidget()
+            return rect
+
+        rows = view._container.findChildren(_FactRow)
+        whole = 0
+        for row in rows:
+            if not row.isVisible():
+                continue
+            if on_screen(row).size() == row.size():
+                whole += 1
+        viewport = view._area.viewport()
+        reader_visible = on_screen(reader)
+        clipped_right = reader_visible.width() < reader.width()
+        properties_dock = self._dock("Properties")
+        logger.warning(
+            "OPENCHEM_DRIVE: reader_layout %s rows_whole=%d rows_total=%d facts_on_screen_h=%d "
+            "summary_h=%d summary_truncated=%s status_h=%d status_truncated=%s "
+            "controls_stacked=%s reader_w=%d reader_visible_w=%d reader_min_h=%d reader_visible_h=%d clipped=%s "
+            "properties_visible=%s selected=%s",
+            step.get("tag", ""),
+            whole,
+            len(rows),
+            on_screen(viewport).height(),
+            view._summary.height(),
+            # getattr: the step also runs against a build BEFORE the notes
+            # folded, which is how the defect is reproduced before the fix
+            # is judged.
+            getattr(view._summary, "is_truncated", lambda: None)(),
+            view._status.height(),
+            getattr(view._status, "is_truncated", lambda: None)(),
+            getattr(view, "controls_are_stacked", lambda: None)(),
+            reader.width(),
+            reader_visible.width(),
+            reader.minimumSizeHint().height(),
+            reader_visible.height(),
+            clipped_right or reader_visible.height() < reader.height(),
+            bool(properties_dock is not None and properties_dock.isVisible()),
+            self._window._property_panel._selected_molecule_uuid,
+        )
 
     def _do_align(self, step: dict[str, Any]) -> None:
         """Run the 3D Alignment panel on the project's molecules.

@@ -30,6 +30,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that structure brings the values back without recomputing. The Results
   panel still shows the old result, marked stale.
 
+- **Results squeezed its facts to a couple of rows in a narrow panel.** With
+  Results beside Properties, the list of result names above the facts and the
+  explanatory note below them took their full height, and the filter box was
+  cut to "Filter f...". Measured in the running app, the reader needed 1634
+  px of height before this change and 277 px after. Long notes now fold to
+  three lines with **More** / **Less**, give way to one line when a panel is
+  short, and never take the facts' last few rows. The filter box gets its own
+  row when the panel is narrow, and in a wide panel the results filter shares
+  the "Showing:" row. Copy report still carries every word.
+
 - **Opening a result's inspector held up every other panel.** When a
   calculator you ran finished, its Calculator Inspector opened from inside
   the event delivery, so panels that listen after Properties -- the Atom
@@ -86,6 +96,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tautomers goes there to be picked from, which the label never said.
 
 ### Added
+
+- **Partial Charge (pH-dependent) offers MMFF94 beside Gasteiger.** Choose
+  the method in the calculator's settings. MMFF94's charges were checked
+  against the table Halgren published with the force field: RDKit
+  reproduces every printed charge and atom type for 19 of its 20 molecules
+  and ions, and the 20th disagrees with the same table's acetate row. The
+  two methods are different models and give different numbers for the same
+  atom. Running it again with the other method replaces the result, as
+  changing the pH does. Open Babel's EEM and QEq are recorded as deferred in
+  the roadmap, with the reasons.
 
 - **Structure > Redraw in 2D**, the way back from **Use in 2D Editor**. That
   button brings a conformer across as a projection of the real geometry,

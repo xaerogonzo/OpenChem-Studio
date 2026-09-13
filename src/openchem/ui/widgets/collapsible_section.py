@@ -95,6 +95,123 @@ class WrappedLabel(QLabel):
         return QSize(0, self.heightForWidth(width))
 
 
+class ClampedLabel(WrappedLabel):
+    """A `WrappedLabel` that claims at most `max_lines` until expanded.
+
+    **`WrappedLabel`'s whole point is that its full height is BINDING, and
+    that is exactly wrong for prose pinned above or below a scroll area.**
+    The Results reader's summary ("35 result(s): Molecular Properties, ...")
+    and its caveat note are both unbounded, so in a narrow or short dock the
+    two labels took their full height and the fact list between them -- the
+    thing being read -- was squeezed to about two rows. Nothing is lost by
+    clamping: `is_truncated()` says when text is cut, the host shows a way to
+    expand it, and Copy report carries every word.
+
+    Top-aligned for the reason `ExplicitHeightLabel` gives: the clamp cuts
+    the bottom, so the first lines are the ones that show.
+
+    **IT PREFERS `max_lines` AND MAY GIVE WAY TO ONE.** Measured with Results
+    docked across the top at the 190 px it was reported at: the reader's
+    chrome plus two notes held to three lines each already exceeded the dock
+    before a single fact row, so the dock's own scroll area took over and the
+    facts were off screen entirely. A folded note therefore states
+    `max_lines` as its PREFERRED height and one line as its MINIMUM, and the
+    layout shrinks it before the fact area, whose floor is binding. Expanded,
+    the whole text is binding: somebody asked for it.
+
+    NO HEIGHT-FOR-WIDTH, for the reason `ExplicitHeightLabel` records: a box
+    layout overwrites a height-for-width item's minimum with that height, so
+    "prefer three, accept one" cannot be expressed through it. The heights
+    are stated from the current width and restated when the width changes.
+    """
+
+    def __init__(self, text: str = "", parent: QWidget | None = None, max_lines: int = 3) -> None:
+        super().__init__(text, parent)
+        self._max_lines = max_lines
+        self._expanded = False
+        self.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        # MAXIMUM, not Preferred: the size hint is a CEILING it may shrink
+        # below, never a floor it may grow past. Preferred let a roomy layout
+        # hand spare height to the note -- six lines at 700 px in the guard
+        # -- which is the unfolding this class exists to stop.
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+
+    def hasHeightForWidth(self) -> bool:  # noqa: N802 - Qt's own casing
+        return False
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt's own casing
+        super().resizeEvent(event)
+        if event.oldSize().width() != event.size().width():
+            self.updateGeometry()
+
+    def setText(self, text: str) -> None:  # noqa: N802 - Qt's own casing
+        super().setText(text)
+        self.updateGeometry()
+
+    def _lines_height(self, lines: int, width: int) -> int:
+        """The height THIS label would take for exactly `lines` lines.
+
+        **MEASURED ON A PROBE, NOT DERIVED.** The first version took the full
+        height minus a font-metrics estimate of the wrapped text, and the two
+        wrap at different widths: under `offscreen` it put 44 px of
+        "overhead" on a 14 px line and folded to six lines instead of three.
+        A hidden label with the same font and style, holding `lines` short
+        lines, answers with Qt's own arithmetic -- padding included.
+        """
+        probe = getattr(self, "_probe", None)
+        if probe is None:
+            probe = self._probe = QLabel(self)
+            probe.setWordWrap(True)
+            probe.hide()
+        probe.setFont(self.font())
+        probe.setStyleSheet(self.styleSheet())
+        probe.setText("\n".join(["M"] * max(1, lines)))
+        return probe.heightForWidth(width)
+
+    def _line_height(self, width: int) -> int:
+        return min(self.full_height(width), self._lines_height(1, width))
+
+    def set_expanded(self, expanded: bool) -> None:
+        self._expanded = bool(expanded)
+        self.updateGeometry()
+
+    def is_expanded(self) -> bool:
+        return self._expanded
+
+    def full_height(self, width: int) -> int:
+        return super().heightForWidth(width)
+
+    def clamped_height(self, width: int) -> int:
+        """`max_lines` of text plus whatever the label adds around text."""
+        return min(self.full_height(width), self._lines_height(self._max_lines, width))
+
+    def is_truncated(self) -> bool:
+        """Whether the text does not fit in the height the label HAS now --
+        which is what a reader sees, whether the fold or the layout cut it."""
+        width = self.width()
+        if width <= 0 or not self.text():
+            return False
+        return self.full_height(width) > self.height()
+
+    def _width(self) -> int:
+        return self.width() if self.width() > 0 else 0
+
+    def sizeHint(self) -> QSize:  # noqa: N802 - Qt's own casing
+        hint = super().sizeHint()
+        width = self._width()
+        if width > 0:
+            hint.setHeight(self.full_height(width) if self._expanded else self.clamped_height(width))
+        return hint
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 - Qt's own casing
+        width = self._width()
+        if width <= 0:
+            return QLabel.minimumSizeHint(self)
+        if self._expanded:
+            return QSize(0, self.full_height(width))
+        return QSize(0, self._line_height(width))
+
+
 class ExplicitHeightLabel(QLabel):
     """A wrapped label that STATES a height instead of offering a
     height-for-width. Use this for any long value inside a

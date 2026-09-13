@@ -437,11 +437,21 @@ def test_no_fact_label_is_clipped(qapp):
     for _ in range(3):
         QCoreApplication.processEvents()
 
+    from openchem.ui.widgets.collapsible_section import ClampedLabel
+
+    def declared(label) -> bool:
+        """A FOLDED note is cut on purpose and SAYS so with a visible More
+        control; that is the one exemption, and it is checked, not assumed.
+        A folded note whose control is hidden is still silent clipping."""
+        toggle = getattr(label.parentWidget(), "toggle", None)
+        return isinstance(label, ClampedLabel) and toggle is not None and toggle.isVisible()
+
     clipped = [
         label.text()[:40]
         for label in widget.findChildren(WrappedLabel)
         if label.isVisible() and label.width() > 0
         and label.height() < label.heightForWidth(label.width())
+        and not declared(label)
     ]
     assert clipped == []
     dispose(widget)
