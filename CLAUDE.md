@@ -235,6 +235,7 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- A MATCHING COUNT IS NOT A REPRODUCTION, AND A PAPER'S SILENCE IS NOT A TERM
 - A THIRD OF THE SUITE WAS IN NO TEST, AND THE TABLE JUSTIFYING IT WAS WRONG IN EVERY CELL
 - THE DRIVEN CHECK CAN ASSERT NOW, AND THREE EYE-ONLY DEFECTS BECAME TESTS
 - A RATCHET IS NOT A MIGRATION, AND CALLING THIS ONE A MIGRATION WAS WRONG

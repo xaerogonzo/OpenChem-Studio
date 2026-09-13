@@ -1,0 +1,489 @@
+{
+ "smina_version": "smina 2020.12.10 conda-forge:b08c07c     Built Jul 15 2025.  Based on AutoDock Vina 1.1.2.",
+ "vina_version": "AutoDock Vina v1.2.7",
+ "tolerances": {
+  "score_kcal": 0.01,
+  "coord_a": 0.001,
+  "refine_dest_a": 0.02
+ },
+ "verdict_configuration": "COMPAT",
+ "configurations": {
+  "DEFAULTS": [],
+  "NO_ADDH": [
+   "--addH",
+   "0"
+  ],
+  "FLEX_H": [
+   "--flex_hydrogens"
+  ],
+  "COMPAT": [
+   "--addH",
+   "0",
+   "--flex_hydrogens"
+  ]
+ },
+ "receptor_sha16": "5177381d35644122",
+ "ligand_sha16": "119feb2ed00ad649",
+ "box": {
+  "center": [
+   2.0254999999999996,
+   15.9195,
+   -58.7845
+  ],
+  "size": [
+   16.0,
+   17.795,
+   16.271
+  ]
+ },
+ "pose_sha16": [
+  "9ee8f7ffaf3e396d",
+  "0a55bd1baed84e8c",
+  "ff1b493729fe717d",
+  "71a0b3f7d4cdbd90",
+  "2d037148796980f8",
+  "2724a3b5cd62e4ee",
+  "68895b23310d5990",
+  "ed45d475e06a139f",
+  "2f25760deb56daee"
+ ],
+ "a": {
+  "verdict": "AGREE",
+  "cause": null,
+  "deterministic": true,
+  "by_configuration": {
+   "DEFAULTS": {
+    "max_abs_delta": 0.00416,
+    "deltas": [
+     0.00294,
+     -0.00328,
+     -0.00416,
+     -0.00122,
+     -0.00255,
+     4e-05,
+     0.00073,
+     -0.0012,
+     0.00024
+    ],
+    "agree": true
+   },
+   "NO_ADDH": {
+    "max_abs_delta": 0.00416,
+    "deltas": [
+     0.00294,
+     -0.00328,
+     -0.00416,
+     -0.00122,
+     -0.00255,
+     4e-05,
+     0.00073,
+     -0.0012,
+     0.00024
+    ],
+    "agree": true
+   },
+   "FLEX_H": {
+    "max_abs_delta": 0.00416,
+    "deltas": [
+     0.00294,
+     -0.00328,
+     -0.00416,
+     -0.00122,
+     -0.00255,
+     4e-05,
+     0.00073,
+     -0.0012,
+     0.00024
+    ],
+    "agree": true
+   },
+   "COMPAT": {
+    "max_abs_delta": 0.00416,
+    "deltas": [
+     0.00294,
+     -0.00328,
+     -0.00416,
+     -0.00122,
+     -0.00255,
+     4e-05,
+     0.00073,
+     -0.0012,
+     0.00024
+    ],
+    "agree": true
+   }
+  },
+  "vina": [
+   -8.727,
+   -8.703,
+   -8.573,
+   -9.438,
+   -8.569,
+   -8.53,
+   -8.725,
+   -8.513,
+   -8.669
+  ],
+  "smina": {
+   "DEFAULTS": [
+    -8.72406,
+    -8.70628,
+    -8.57716,
+    -9.43922,
+    -8.57155,
+    -8.52996,
+    -8.72427,
+    -8.5142,
+    -8.66876
+   ],
+   "NO_ADDH": [
+    -8.72406,
+    -8.70628,
+    -8.57716,
+    -9.43922,
+    -8.57155,
+    -8.52996,
+    -8.72427,
+    -8.5142,
+    -8.66876
+   ],
+   "FLEX_H": [
+    -8.72406,
+    -8.70628,
+    -8.57716,
+    -9.43922,
+    -8.57155,
+    -8.52996,
+    -8.72427,
+    -8.5142,
+    -8.66876
+   ],
+   "COMPAT": [
+    -8.72406,
+    -8.70628,
+    -8.57716,
+    -9.43922,
+    -8.57155,
+    -8.52996,
+    -8.72427,
+    -8.5142,
+    -8.66876
+   ]
+  }
+ },
+ "b": {
+  "verdict": "UNEXPLAINED",
+  "cause": null,
+  "deterministic": true,
+  "by_configuration": {
+   "DEFAULTS": {
+    "max_abs_delta": 2.09667,
+    "deltas": [
+     -2.00051,
+     -2.05647,
+     -1.98299,
+     -2.09667,
+     -1.54711,
+     -1.53015,
+     -1.78464,
+     -1.53562,
+     -1.56582
+    ],
+    "agree": false
+   },
+   "NO_ADDH": {
+    "max_abs_delta": 2.09667,
+    "deltas": [
+     -2.00051,
+     -2.05647,
+     -1.98299,
+     -2.09667,
+     -1.54711,
+     -1.53015,
+     -1.78464,
+     -1.53562,
+     -1.56582
+    ],
+    "agree": false
+   },
+   "FLEX_H": {
+    "max_abs_delta": 2.09667,
+    "deltas": [
+     -2.00051,
+     -2.05647,
+     -1.98299,
+     -2.09667,
+     -1.54711,
+     -1.53015,
+     -1.78464,
+     -1.53562,
+     -1.56582
+    ],
+    "agree": false
+   },
+   "COMPAT": {
+    "max_abs_delta": 2.09667,
+    "deltas": [
+     -2.00051,
+     -2.05647,
+     -1.98299,
+     -2.09667,
+     -1.54711,
+     -1.53015,
+     -1.78464,
+     -1.53562,
+     -1.56582
+    ],
+    "agree": false
+   }
+  },
+  "vina": [
+   -5.369,
+   -5.064,
+   -5.439,
+   -6.571,
+   -6.182,
+   -5.576,
+   -5.208,
+   -5.208,
+   -6.005
+  ],
+  "smina": {
+   "DEFAULTS": [
+    -7.36951,
+    -7.12047,
+    -7.42199,
+    -8.66767,
+    -7.72911,
+    -7.10615,
+    -6.99264,
+    -6.74362,
+    -7.57082
+   ],
+   "NO_ADDH": [
+    -7.36951,
+    -7.12047,
+    -7.42199,
+    -8.66767,
+    -7.72911,
+    -7.10615,
+    -6.99264,
+    -6.74362,
+    -7.57082
+   ],
+   "FLEX_H": [
+    -7.36951,
+    -7.12047,
+    -7.42199,
+    -8.66767,
+    -7.72911,
+    -7.10615,
+    -6.99264,
+    -6.74362,
+    -7.57082
+   ],
+   "COMPAT": [
+    -7.36951,
+    -7.12047,
+    -7.42199,
+    -8.66767,
+    -7.72911,
+    -7.10615,
+    -6.99264,
+    -6.74362,
+    -7.57082
+   ]
+  }
+ },
+ "d": {
+  "smina": {
+   "reproducible": true,
+   "pose_counts": [
+    9,
+    9
+   ],
+   "scores": [
+    [
+     -8.75381088,
+     -8.55608559,
+     -8.52983379,
+     -8.29262924,
+     -8.24886894,
+     -8.03988266,
+     -8.01144695,
+     -7.97306728,
+     -7.96982479
+    ],
+    [
+     -8.75381088,
+     -8.55608559,
+     -8.52983379,
+     -8.29262924,
+     -8.24886894,
+     -8.03988266,
+     -8.01144695,
+     -7.97306728,
+     -7.96982479
+    ]
+   ],
+   "byte_identical": true
+  },
+  "vina_control": {
+   "reproducible": true,
+   "pose_counts": [
+    9,
+    9
+   ],
+   "scores": [
+    [
+     -8.739,
+     -8.482,
+     -8.466,
+     -8.287,
+     -8.074,
+     -8.011,
+     -7.924,
+     -7.728,
+     -7.663
+    ],
+    [
+     -8.739,
+     -8.482,
+     -8.466,
+     -8.287,
+     -8.074,
+     -8.011,
+     -7.924,
+     -7.728,
+     -7.663
+    ]
+   ],
+   "byte_identical": true
+  }
+ },
+ "e": {
+  "vina_local_only": {
+   "accepted": true,
+   "score": -8.693,
+   "seconds": 1.22,
+   "rmsd_from_input": 0.056
+  },
+  "smina_minimize": {
+   "accepted": true,
+   "score": -8.71817,
+   "smina_reported_rmsd": 0.13201,
+   "seconds": 0.164,
+   "rmsd_from_input": 0.132
+  },
+  "smina_local_only": {
+   "accepted": true,
+   "score": -8.75701,
+   "smina_reported_rmsd": 0.14452,
+   "seconds": 0.077,
+   "rmsd_from_input": 0.1447
+  },
+  "destination_rmsd_vina_vs_smina_minimize": 0.126,
+  "verdict": "ENGINE_SPECIFIC_PROTOCOL"
+ },
+ "f": {
+  "smina": [
+   9.1,
+   9.3,
+   9.4
+  ],
+  "vina": [
+   9.0,
+   8.3,
+   8.4
+  ]
+ },
+ "gate_stages_3_4": true,
+ "b_post_hoc_diagnosis": {
+  "rule": "every pose within SCORE_TOL_KCAL of smina after --weight_vinardo_rot 0",
+  "accepted": false,
+  "max_abs_delta_rot0": 0.62089,
+  "rows": [
+   {
+    "pose": 0,
+    "vina_vinardo": -5.369,
+    "vina_vinardo_rot0": -7.252,
+    "smina_vinardo": -7.36951,
+    "delta_shipped": -2.00051,
+    "delta_rot0": -0.11751,
+    "ratio_rot0_over_shipped": 1.3507
+   },
+   {
+    "pose": 1,
+    "vina_vinardo": -5.064,
+    "vina_vinardo_rot0": -6.841,
+    "smina_vinardo": -7.12047,
+    "delta_shipped": -2.05647,
+    "delta_rot0": -0.27947,
+    "ratio_rot0_over_shipped": 1.3509
+   },
+   {
+    "pose": 2,
+    "vina_vinardo": -5.439,
+    "vina_vinardo_rot0": -7.347,
+    "smina_vinardo": -7.42199,
+    "delta_shipped": -1.98299,
+    "delta_rot0": -0.07499,
+    "ratio_rot0_over_shipped": 1.3508
+   },
+   {
+    "pose": 3,
+    "vina_vinardo": -6.571,
+    "vina_vinardo_rot0": -8.875,
+    "smina_vinardo": -8.66767,
+    "delta_shipped": -2.09667,
+    "delta_rot0": 0.20733,
+    "ratio_rot0_over_shipped": 1.3506
+   },
+   {
+    "pose": 4,
+    "vina_vinardo": -6.182,
+    "vina_vinardo_rot0": -8.35,
+    "smina_vinardo": -7.72911,
+    "delta_shipped": -1.54711,
+    "delta_rot0": 0.62089,
+    "ratio_rot0_over_shipped": 1.3507
+   },
+   {
+    "pose": 5,
+    "vina_vinardo": -5.576,
+    "vina_vinardo_rot0": -7.532,
+    "smina_vinardo": -7.10615,
+    "delta_shipped": -1.53015,
+    "delta_rot0": 0.42585,
+    "ratio_rot0_over_shipped": 1.3508
+   },
+   {
+    "pose": 6,
+    "vina_vinardo": -5.208,
+    "vina_vinardo_rot0": -7.034,
+    "smina_vinardo": -6.99264,
+    "delta_shipped": -1.78464,
+    "delta_rot0": 0.04136,
+    "ratio_rot0_over_shipped": 1.3506
+   },
+   {
+    "pose": 7,
+    "vina_vinardo": -5.208,
+    "vina_vinardo_rot0": -7.034,
+    "smina_vinardo": -6.74362,
+    "delta_shipped": -1.53562,
+    "delta_rot0": 0.29038,
+    "ratio_rot0_over_shipped": 1.3506
+   },
+   {
+    "pose": 8,
+    "vina_vinardo": -6.005,
+    "vina_vinardo_rot0": -8.111,
+    "smina_vinardo": -7.57082,
+    "delta_shipped": -1.56582,
+    "delta_rot0": 0.54018,
+    "ratio_rot0_over_shipped": 1.3507
+   }
+  ]
+ }
+}

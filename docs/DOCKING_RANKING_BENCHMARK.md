@@ -506,18 +506,20 @@ list is priced rather than merely ordered:
 
 | | cost | what it buys |
 | --- | --- | --- |
-| **smina** ([source:koes2013]) | obtainable; then a pose-retaining re-dock | the only candidate that is BOTH engine and rescorer, so it is the arm that tests whether `PoseRescorer` is a real abstraction or a Vina-shaped hole. **It is NOT an independent second opinion** -- it is Vina-derived, and DSX, which was, is unobtainable (both spikes run 2026-09-07; see `docs/ROADMAP.md`) |
+| ~~**smina**~~ ([source:koes2013]) | **SPIKED 2026-09-12, stopped at findings** | the abstraction test it was for has an answer: 2 seams held, 3 needed adapter translation, 3 need interface changes (`benchmarks/docking/smina_seam_ledger.json`). **Not an independent second opinion** -- a Vina 1.1.2 fork -- and not added to the application. See `docs/ROADMAP.md` |
 | **more targets** | curation, not compute | eight is family spread, not data volume, and seven of the eight are GPCRs or a single enzyme |
 | **more series** | ~14.5 h per 56 | 1586 exist and 56 were docked; needs no new machinery and costs proportionally. All 1586 is ≈ **17 days** continuous |
 | **RBFE, one series** | **2.3–5.5 GPU-days** | one ΔΔG ladder over one series, against a measured docking baseline |
 | **RBFE, this corpus** | **121–291 GPU-days** | refused on cost — see `docs/ROADMAP.md` |
 
-**smina is nearly free in the harness and nobody had noticed.**
-`rank_power.py`'s `run_series` already takes `(provider, engine, rescorer)` as
-parameters, so a second engine slots in at the constructor site, and
-`_rescore_best` already goes through the shipped `PoseRescorer` interface with
-a comment anticipating a rescorer from another family. The unknown is entirely
-whether smina builds and runs on Windows, which is a spike and not a claim.
+**smina was nearly free in the harness -- and the harness is not the shipped
+path, which is what the spike found.** `rank_power.py`'s `run_series` takes
+`(provider, engine, rescorer)`, so a second engine does slot in at the
+constructor site. The shipped provider does not: it builds its own
+`VinaPoseRescorer` around its own engine, so a rescore requested as "vinardo"
+came back as smina's Vinardo -- 1.5-2.1 kcal/mol from Vina's on the same poses
+-- with nothing on screen to say so. The spike ran no corpus arm here: it would
+retest the abstraction, not the family, on a function already a ranking null.
 
 **More targets buys more than more series does.** Widening series adds
 statistical power to a question already answered at p = 0.350; widening

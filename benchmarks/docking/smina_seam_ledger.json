@@ -1,0 +1,69 @@
+{
+ "about": "The smina spike's acceptance artifact. Each verdict describes the SHIPPED path in src/ (held = works unchanged; adapter_workaround = works only through translation in benchmarks/docking/_smina.py, inventing nothing; interface_change_required = cannot be done honestly without changing src/). `_smina.py --self-check` proves this file is COMPLETE, never that a verdict is RIGHT -- that rests on what `established_by` cites. Entries marked 'reading:' come from source, not from a run.",
+ "smina": "smina 2020.12.10 conda-forge:b08c07c, based on AutoDock Vina 1.1.2 (conda-forge win-64 build 2)",
+ "vina": "AutoDock Vina 1.2.7",
+ "seams": {
+  "1": {
+   "title": "There is no engine-neutral engine ABC; VinaEngine.dock promises Vina's own output format",
+   "verdict": "adapter_workaround",
+   "evidence": "src/openchem/chem/vina_engine.py:126",
+   "established_by": "smina_fixtures/probe_dock_out.pdbqt; _smina.py --live L1 (smina_live.json)",
+   "finding": "smina fits only by rewriting its output into a line named `REMARK VINA RESULT` carrying smina's numbers. Nothing is invented: the affinity is smina's own remark and the RMSD bounds come from smina's stdout table, with the pairing asserted. With that translation the SHIPPED VinaDockingProvider ran smina end to end (9 poses, engine_id smina-executable). An engine that reports no RMSD bounds anywhere could not meet this contract without fabricating them."
+  },
+  "2": {
+   "title": "The pose parser is global: VinaDockingProvider.dock calls parse_vina_output_pdbqt on any engine's output",
+   "verdict": "adapter_workaround",
+   "evidence": "src/openchem/chem/docking_providers.py:288",
+   "established_by": "_smina.py --self-check (parsers): the shipped parser reads raw smina output as ZERO poses",
+   "finding": "smina's docking output carries `REMARK minimizedAffinity` and no `REMARK VINA RESULT`, so without translation the provider would report no poses rather than failing. The parser belongs to the provider, not the engine, so every non-Vina engine must emit Vina's format."
+  },
+  "3": {
+   "title": "Score-only parsing",
+   "verdict": "held",
+   "evidence": "src/openchem/chem/vina_engine.py:410",
+   "established_by": "reading: the sole caller of parse_vina_score_output is ExecutableVinaEngine.score_pose; smina_fixtures/probe_score_only_stdout.txt",
+   "finding": "Parsing is engine-local, so a sibling engine parses its own stdout (`Affinity: -8.75406 (kcal/mol)`) with no change to src/. The one trap is shared by both programs: a refined OUTPUT FILE carries the input pose's value passed through, so stdout is what must be read."
+  },
+  "4": {
+   "title": "The rescorer is not injected: _attach_rescores constructs VinaPoseRescorer itself",
+   "verdict": "interface_change_required",
+   "evidence": "src/openchem/chem/docking_providers.py:347",
+   "established_by": "_smina.py --live L1 (smina_live.json)",
+   "finding": "VinaPoseRescorer is built around the provider's own engine, so injecting smina SILENTLY turned the requested 'vinardo' rescore into smina's Vinardo (pose 0: -7.42). Two arms cannot be expressed through the provider at all: a rescorer from a different engine than the search (Vina search + smina rescore), and any function outside Vina's vocabulary (dkoes_scoring). The receptor PDBQT is deleted when dock() returns, so a rescore cannot be attached afterwards either; the harness had to prepare the receptor itself and call the engine and rescorer directly."
+  },
+  "5": {
+   "title": "Request-side identity: rescore_with is a bare function name",
+   "verdict": "interface_change_required",
+   "evidence": "src/openchem/chem/docking_providers.py:341",
+   "established_by": "smina_oracles.json (b) and b_post_hoc_diagnosis; _smina.py --live L1",
+   "finding": "'vinardo' names two quantities that are 1.53-2.10 kcal/mol apart on the same nine poses. Vina 1.2.7 divides by exactly 1.3507 (--weight_vinardo_rot defaults to 0.05846); smina, the paper's reference implementation, weights that term 0. The paper's TEXT cannot settle which is right: its Eq 1 is written in the section describing Vina, which is known to apply the normalisation, so its silence is not evidence either way. With it removed a pose-dependent residual of -0.28 to +0.62 remains, UNEXPLAINED. Neither search_options['rescore_with'] nor ScreeningProtocol.rescore_with (screening_service.py:154) can say which implementation was meant; L1 shows the engine decides silently."
+  },
+  "6": {
+   "title": "Function vocabularies are module constants, not per engine",
+   "verdict": "interface_change_required",
+   "evidence": "src/openchem/chem/docking_providers.py:65",
+   "established_by": "reading: SUPPORTED_SCORING_FUNCTIONS checked in VinaDockingProvider.dock before the engine is invoked; SUPPORTED_RESCORE_FUNCTIONS at src/openchem/chem/rescoring.py:81 refused at construction",
+   "finding": "Both tuples are ('vina', 'vinardo'), so smina's dkoes_scoring and ad4_scoring cannot reach a search or a rescore through src/. The harness needed SminaPoseRescorer's own vocabulary. smina's 'vina' and 'default' were measured to be one function (-8.75406 both, L2), so the ABC's default name carries over."
+  },
+  "7": {
+   "title": "REFINE_THEN_SCORE is one protocol constant naming two operations",
+   "verdict": "adapter_workaround",
+   "evidence": "src/openchem/domain/docking.py:50",
+   "established_by": "smina_oracles.json (e): ENGINE_SPECIFIC_PROTOCOL",
+   "finding": "Vina 1.2.7 --local_only moved the top pose 0.056 A to -8.693; smina --minimize (which its own help recommends over its --local_only) moved it 0.132 A to -8.718; the two destinations are 0.126 A apart. The adapter maps refine to --minimize and the stored record stays honest ONLY because PoseScore carries the engine id. The constant's own definition is written from a Vina measurement ('moves the ligand 0.079 A under Vina')."
+  },
+  "8": {
+   "title": "Persisted provenance",
+   "verdict": "held",
+   "evidence": "src/openchem/domain/docking.py:67",
+   "established_by": "_smina.py --self-check (provenance); _smina.py --live L1 rescore_engine = smina-executable",
+   "finding": "function, protocol, value, engine, engine_version and both sha256s survive to_dict/from_dict, and smina's and Vina's 'vinardo' persist as distinguishable records. THE SCREEN DOES NOT: the pose table names the column by function.title() alone (src/openchem/ui/panels/docking_panel.py:1511), so both render as 'Vinardo' with an identical note. The self-check asserts that sameness, so it reddens the day the panel names the engine."
+  }
+ },
+ "also_checked": {
+  "RescoreRequest": "held -- SminaPoseRescorer needed only the PDBQT paths; pose_molblocks went unused (src/openchem/plugins/interfaces.py:279)",
+  "units": "held, as an INSTANCE attribute -- PoseRescorer.units is declared as a class-level default ('kcal/mol') but PoseScore stores units per record, so a multi-function rescorer can be honest. It had to be: smina's dkoes_scoring weights are koes2013 Table 3's pK-fitted coefficients with every sign negated, so its value is a negated pK while smina prints '(kcal/mol)' beside it. Not a docking-power effect (a pick is an argmin), a stored-label one.",
+  "dkoes_scoring_identity": "verified -- smina's printed dkoes_scoring weights equal koes2013 Table 3 (bottom, docked-trained) term for term, negated, to every printed digit. Training set per koes2013: CSAR-NRC HiQ 2010; quiroga2016 also names CSAR 2012, which koes2013 calls an independent test set."
+ },
+ "tally": {"held": 2, "adapter_workaround": 3, "interface_change_required": 3}
+}
