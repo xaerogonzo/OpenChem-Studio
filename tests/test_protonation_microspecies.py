@@ -183,6 +183,177 @@ def test_the_thin_wrapper_agrees_with_the_detailed_form():
     )
 
 
+# --- the drawn atom order survives ---------------------------------------------
+#
+# The SMILES round trip used to hand back Dimorphite's canonical order, and
+# every per-atom consumer numbered its values by that. On O-O-C=N the pH 7.4
+# Gasteiger charges put nitrogen's +0.00 on an oxygen.
+
+#: Read through `_drawn`, which REVERSES each molecule's atom order. Measured:
+#: written as SMILES, 11 of 15 drug-like molecules come back from the library
+#: in their own order, so a SMILES corpus tests almost nothing -- while a
+#: drawing is numbered in the order its atoms were placed, which is exactly
+#: what the canonical round trip does not preserve. The setup guard below
+#: asserts the reordering rather than assuming it.
+_REORDERED = [
+    "O1OC=N1",
+    "O1OCN1",
+    "CC(=O)O",
+    "NCC(=O)O",
+    "CC(=O)NC",
+    "c1c[nH]cn1",
+    "OC(=O)CCC(=O)O",
+    "C/C=C/C(=O)O",
+    "N[C@@H](Cc1ccccc1)C(=O)O",
+    "CCC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1",
+]
+
+
+def _adjacency(mol: Chem.Mol, index: int) -> set[int]:
+    return {n.GetIdx() for n in mol.GetAtomWithIdx(index).GetNeighbors()}
+
+
+def _drawn(smiles: str) -> Chem.Mol:
+    mol = Chem.MolFromSmiles(smiles)
+    return Chem.RenumberAtoms(mol, list(reversed(range(mol.GetNumAtoms()))))
+
+
+def test_the_reordering_corpus_really_reorders():
+    """ASSERTS ITS OWN SETUP: a corpus the library returns in drawn order
+    would pass every index test below while testing nothing."""
+    import dimorphite_dl
+
+    reordered = 0
+    for smiles in _REORDERED:
+        mol = _drawn(smiles)
+        raw = dimorphite_dl.protonate_smiles(
+            Chem.MolToSmiles(mol), ph_min=7.4, ph_max=7.4, precision=0.0
+        )
+        parsed = Chem.MolFromSmiles(sorted(raw)[0])
+        # Reordered means reading the library's index as the drawing's gets
+        # an element OR a neighbour set wrong -- an element sequence alone
+        # misses a swap between two atoms of the same element.
+        if any(
+            parsed.GetAtomWithIdx(i).GetAtomicNum() != mol.GetAtomWithIdx(i).GetAtomicNum()
+            or _adjacency(parsed, i) != _adjacency(mol, i)
+            for i in range(mol.GetNumAtoms())
+        ):
+            reordered += 1
+    assert reordered == len(_REORDERED), f"only {reordered} of the corpus is actually reordered"
+
+
+@pytest.mark.parametrize("ph", [1.0, 7.4, 12.0])
+@pytest.mark.parametrize("smiles", _REORDERED)
+def test_every_atom_keeps_its_drawn_index(smiles, ph):
+    """Element and heavy-atom ADJACENCY, index for index -- not bond orders,
+    which protonation legitimately changes (O-O-C=N comes back aromatic)."""
+    mol = _drawn(smiles)
+    species = dominant_microspecies(mol, ph).mol
+    for index in range(mol.GetNumAtoms()):
+        assert species.GetAtomWithIdx(index).GetAtomicNum() == mol.GetAtomWithIdx(index).GetAtomicNum()
+        assert _adjacency(species, index) == _adjacency(mol, index), (smiles, ph, index)
+
+
+@pytest.mark.parametrize("smiles", _REORDERED)
+def test_renumbering_changes_nothing_but_the_numbering(smiles):
+    """The same molecule Dimorphite chose, stereo included -- the fix is
+    about identity and must not move a proton or a charge."""
+    import dimorphite_dl
+
+    from openchem.chem.pka_providers import restore_heavy_atom_order
+
+    mol = _drawn(smiles)
+    raw = dimorphite_dl.protonate_smiles(Chem.MolToSmiles(mol), ph_min=7.4, ph_max=7.4, precision=0.0)
+    parsed = Chem.MolFromSmiles(sorted(raw)[0])
+    assert Chem.MolToSmiles(restore_heavy_atom_order(mol, parsed)) == Chem.MolToSmiles(parsed)
+
+
+def test_the_ring_from_the_report_puts_each_charge_on_its_own_atom():
+    """THE REPORTED CASE. Charges computed on the species, read back by the
+    drawing's index, must be the charges of the drawing's atoms: nitrogen's
+    value on the nitrogen, not on an oxygen."""
+    from openchem.chem.descriptor_providers import compute_gasteiger_charge_at_ph
+
+    mol = Chem.MolFromSmiles("O1OC=N1")
+    dataset = compute_gasteiger_charge_at_ph(mol, "u", {"pH": 7.4})
+    by_element = {
+        mol.GetAtomWithIdx(i).GetSymbol() + str(i): round(v, 4) for i, v in dataset.values.items()
+    }
+    # Measured on the renumbered species. Before the fix the pH 7.4 values
+    # were {0: +0.2762, 1: +0.0027, 2: -0.164, 3: -0.2513}: the carbon's and
+    # nitrogen's charges sitting on the two oxygens.
+    assert by_element["O0"] < 0 and by_element["O1"] < 0, by_element
+    assert by_element["C2"] > 0.2, by_element
+
+
+def test_the_registered_calculator_keys_charges_to_the_drawn_atoms():
+    """THROUGH THE REGISTRY, not the function: a direct-import test once
+    passed while the registration bound to a different callable. A drawing
+    in placement order, so the library genuinely reorders it."""
+    from openchem.bootstrap import build_service_container
+    from openchem.chem.descriptor_providers import compute_gasteiger_charges
+
+    registry = build_service_container().calculator_registry
+    mol = _drawn("CC(=O)NC")  # an amide: Dimorphite leaves it neutral at 7.4
+    result = registry.compute("gasteiger_charge_at_ph", mol, "uuid", {"pH": 7.4})
+    assert result.values == pytest.approx(compute_gasteiger_charges(Chem.Mol(mol))), (
+        "on a molecule whose dominant species IS the drawing, the pH charges "
+        "must equal the drawing's own charges index for index"
+    )
+
+
+def test_the_drawings_own_hydrogen_atoms_keep_their_indices():
+    mol = Chem.AddHs(Chem.MolFromSmiles("CC(=O)O"))
+    species = dominant_microspecies(mol, 1.0).mol
+    assert [a.GetSymbol() for a in species.GetAtoms()] == [a.GetSymbol() for a in mol.GetAtoms()]
+    for index in range(mol.GetNumAtoms()):
+        assert _adjacency(species, index) == _adjacency(mol, index)
+
+
+def test_a_drawn_hydrogen_the_species_removes_is_refused_not_dropped():
+    """Deleting the atom would renumber everything after it -- the very bug
+    being fixed -- so an index with no answer is a refusal."""
+    from openchem.chem.engine import InvalidStructureError
+
+    with pytest.raises(InvalidStructureError, match="drawn with a hydrogen"):
+        dominant_microspecies(Chem.AddHs(Chem.MolFromSmiles("CC(=O)O")), 7.4)
+
+
+def test_the_proton_goes_to_the_atom_the_drawing_says_held_it(monkeypatch):
+    """With bond orders erased an acid's two oxygens are interchangeable; the
+    DRAWING breaks the tie. The -OH, not the =O, becomes O-."""
+    import dimorphite_dl
+
+    monkeypatch.setattr(dimorphite_dl, "protonate_smiles", lambda *a, **k: ["[O-]C(C)=O"])
+    mol = Chem.MolFromSmiles("CC(=O)O")  # 0 C, 1 C, 2 =O, 3 -OH
+    species = dominant_microspecies(mol, 7.4).mol
+    assert species.GetAtomWithIdx(3).GetFormalCharge() == -1
+    assert species.GetAtomWithIdx(2).GetFormalCharge() == 0
+
+
+def test_a_genuinely_ambiguous_correspondence_refuses(monkeypatch):
+    """One of two EQUIVALENT amines protonated: nothing says which drawn
+    nitrogen carries it, so choosing would be invention."""
+    import dimorphite_dl
+
+    from openchem.chem.engine import InvalidStructureError
+
+    monkeypatch.setattr(dimorphite_dl, "protonate_smiles", lambda *a, **k: ["NCC[NH3+]"])
+    with pytest.raises(InvalidStructureError, match="Symmetry-equivalent"):
+        dominant_microspecies(Chem.MolFromSmiles("NCCN"), 7.4)
+
+
+def test_symmetry_that_cannot_matter_does_not_refuse():
+    """The narrow half: both amines protonated, or a phenyl ring flipped, is
+    symmetric but unambiguous -- every candidate puts the same thing at
+    every index. "Refuse whenever there is symmetry" passes the guard above
+    and refuses fentanyl."""
+    assert dominant_microspecies(Chem.MolFromSmiles("NCCN"), 7.4).formal_charge == 2
+    assert dominant_microspecies(
+        Chem.MolFromSmiles("CCC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1"), 7.4
+    ).formal_charge == 1
+
+
 # --- the producer says which species it charged ------------------------------
 
 

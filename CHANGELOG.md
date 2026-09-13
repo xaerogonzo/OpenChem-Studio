@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **pH-dependent partial charges were on the wrong atoms.** The dominant
+  protonation state came back from a SMILES round trip in the library's own
+  atom order, and the charges were numbered by that order. On the reported
+  O-O-C=N ring, nitrogen's +0.00 was shown on an oxygen. The protonated form
+  is now renumbered back into the drawing's order before anything is
+  computed on it, and every per-atom result that uses it (Hückel π density,
+  Lewis sites under "major microspecies") benefits. Measured over 126
+  molecule/pH pairs: each comes back as the same molecule the library chose,
+  in the drawn order, stereo included. Two cases now refuse rather than
+  guess: a drawn hydrogen that the protonated form removes, and two
+  equivalent sites of which only one is protonated.
+
 - **3D rotation mode could be entered and not left.** Turning it off hid the
   bar and told the page nothing, so the full-canvas overlay stayed up
   swallowing every click -- and turning it off also HID the Cancel button
