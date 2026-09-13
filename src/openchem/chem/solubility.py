@@ -1696,18 +1696,29 @@ def limit_facts(analysis, grid) -> list:
     ]
     if not limited:
         return []
+    notes = (
+        _SALT_LIMIT_NOTES[limit.kind].format(
+            limit=limit.log_units, ceiling=MISCIBILITY_CEILING_MG_PER_ML
+        ),
+    )
+    # TWO FACTS, because they are two quantities with two units. One fact
+    # read "+0.9 logS, reached at 10 of 57 sampled pH values" in its value
+    # and "logS" in its units, and `value_with_units` put the unit after the
+    # sentence: "... sampled pH values logS".
     return [
         _fact(
             f"Adjustment limit ({limit.kind.value})",
             limit.log_units,
-            f"+{limit.log_units:.1f} logS, reached at {len(limited)} of {len(grid)} sampled pH values",
+            f"+{limit.log_units:.1f}",
             units="logS",
-            limitations=(
-                _SALT_LIMIT_NOTES[limit.kind].format(
-                    limit=limit.log_units, ceiling=MISCIBILITY_CEILING_MG_PER_ML
-                ),
-            ),
-        )
+            limitations=notes,
+        ),
+        _fact(
+            "Adjustment limit reached",
+            len(limited),
+            f"at {len(limited)} of {len(grid)} sampled pH values",
+            limitations=notes,
+        ),
     ]
 
 

@@ -1169,7 +1169,14 @@ class _Driver(QObject):
             return
         parameters: dict[str, Any] = {p.name: p.default for p in definition.parameters}
         parameters.update(step.get("parameters") or {})
-        panel._pending_calculator_id = calculator_id
+        # `"reveal": false` skips the reveal, and it is not cosmetic for a
+        # PER-ATOM calculator: the reveal opens the Calculator Inspector with
+        # `exec()` INSIDE the bus handler, so every later subscriber to that
+        # event -- the Atom Inspector among them -- is not called until the
+        # dialog closes. Unattended, that is the end of the run. Measured:
+        # the dataset reached the Atom Inspector 67 s later, at quit.
+        if step.get("reveal", True):
+            panel._pending_calculator_id = calculator_id
         panel._set_running(calculator_id, True)
         window._services.descriptor_service.run_calculator(
             molecule,
@@ -2098,6 +2105,46 @@ class _Driver(QObject):
         """
         self._report_editor_selection()
 
+    def _do_inspector_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "inspector_report", "tag": "after-edit"}` -- what the Atom
+        Inspector is SHOWING for its subject: title, the pinned line, and
+        every fact as label=value.
+
+        **THE PINNED LINE IS THE POINT.** A per-atom result computed for an
+        earlier structure is withheld and NAMED there; a screenshot shows a
+        missing row and a sentence, which is exactly the pair that reads as
+        "never computed" if one of them fails. Logged as text so a run can
+        assert on both.
+        """
+        panel = self._window._atom_inspector_panel
+        facts = panel._facts
+        report = getattr(facts, "_report", None)
+        rows = [
+            f"{fact.label}={fact.value_with_units}" for fact in getattr(report, "facts", ()) or ()
+        ]
+        # Every HELD per-atom result and what the panel decides about it, so
+        # "not on screen" can be told apart from "never arrived".
+        model, _mol = panel._molecule()
+        held = {}
+        if model is not None:
+            context = panel._context_for(model.uuid)
+            cache: dict = {}
+            for key in context["per_atom"]:
+                calculation_input, fingerprint = context["inputs"].get(("per_atom", key), ("", ""))
+                held[key] = panel._freshness(model, calculation_input, fingerprint, cache)
+        # And what PROPERTIES holds, which is the other half of "never
+        # arrived": a result there and not here was missed by this panel.
+        properties = sorted(getattr(self._window._property_panel, "_retained_results", {}) or {})
+        logger.warning(
+            "OPENCHEM_DRIVE: inspector %s title=%r pinned=%r held=%s properties=%s facts=%s",
+            step.get("tag", ""),
+            panel.title_text(),
+            facts._summary.text(),
+            json.dumps(held),
+            json.dumps(properties),
+            json.dumps(rows),
+        )
+
     def _do_picture(self, step: dict[str, Any]) -> None:
         """Export the reader's Nth chart through the REAL export path.
 
@@ -2163,12 +2210,17 @@ class _Driver(QObject):
         thing no screenshot of a closed menu can carry.
         """
         wanted = str(step["text"])
+        # `"prefix": true` for an entry whose text names what it acts on --
+        # `QUndoStack.createUndoAction` reads "Undo <last command>", so the
+        # exact text of Edit > Undo is not known before the run.
+        prefix = bool(step.get("prefix"))
         for menu_action in self._window.menuBar().actions():
             menu = menu_action.menu()
             if menu is None:
                 continue
             for action in _walk_actions(menu):
-                if action.text().replace("&", "") != wanted:
+                text = action.text().replace("&", "")
+                if not (text.startswith(wanted) if prefix else text == wanted):
                     continue
                 action.trigger()
                 logger.warning(

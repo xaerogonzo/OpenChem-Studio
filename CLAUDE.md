@@ -75,6 +75,10 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "panel",      "id": "Properties"}
     {"do": "expand",     "section": "admet"}
     {"do": "calculator", "id": "admet_ml", "parameters": {...}}
+    {"do": "calculator", "id": "...", "reveal": false}  no modal Calculator
+                                          Inspector -- see below
+    {"do": "inspector_report", "tag": "after-edit"}  the Atom Inspector's
+                                          pinned line, HELD results and state
     {"do": "shot",       "path": "..."}
     {"do": "lewis",      "details": true}     the Full Lewis window
     {"do": "shot",       "path": "...", "widget": "lewis"}
@@ -85,6 +89,7 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "cip",        "on": true}          R/S and E/Z, through the menu
     {"do": "erase",      "element": "N"}      a REAL canvas edit
     {"do": "menu",       "text": "Rotate 3D"}  THIS app's menu bar
+    {"do": "menu",       "text": "Undo", "prefix": true}  "Undo <command>"
     {"do": "picture",    "index": 0, "path": "..."}  the reader's
                                           chart, through the REAL export
     {"do": "rotate_report", "tag": "entered"}  the tick, the button AND
@@ -143,6 +148,14 @@ reading the position as an id would have selected a carbon.
 method behind it, for the reason `jobs_cancel` presses the real button: the
 panel's own method is the INBOUND door the 3D viewer's click lands on, and
 the path under test starts one step later.
+
+**A PER-ATOM `calculator` STEP WITHOUT `"reveal": false` STARVES EVERY
+OTHER PANEL**, and it read as the Atom Inspector never receiving the result.
+The reveal opens the Calculator Inspector with `exec()` inside the bus
+handler, so subscribers after Properties are not called until that dialog
+closes -- unattended, at quit. Measured 2026-09-13: Properties held
+`gasteiger_charge_at_ph` 67 s before the Atom Inspector did. Add
+`inspector_report`, whose `held=` separates "not shown" from "never arrived".
 
 **`erase` is the only step that drives the route `set_molecule` never
 covers** -- the user drawing on the canvas -- so it is what any

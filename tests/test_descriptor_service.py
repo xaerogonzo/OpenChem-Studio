@@ -425,6 +425,39 @@ def test_run_calculator_end_to_end_with_the_real_charge_at_ph_calculator(qapp):
     assert len(datasets[0].values) > 0
 
 
+def test_a_per_atom_event_names_the_input_its_indices_describe(qapp):
+    """THE DISPATCHER STAMPS IT, because only the dispatcher resolved the
+    input. Without it the Atom Inspector cannot tell a dataset for this
+    drawing from one for the drawing before an edit."""
+    from openchem.chem.calculation_input import input_fingerprint
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
+    from openchem.domain.calculator import DRAWING
+
+    bus = EventBus()
+    engine = ChemistryEngine()
+    registry = CalculatorRegistry()
+    for definition in CALCULATOR_DEFINITIONS:
+        registry.register(definition)
+    service = DescriptorService(bus, engine, calculator_registry=registry)
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CC(=O)O")
+
+    events = []
+    bus.subscribe(PerAtomDataComputed, events.append)
+    service.run_calculator(
+        model,
+        CalculationRequest(calculator_id="gasteiger_charge_at_ph", molecule_uuid=model.uuid, parameters={"pH": 7.4}),
+    )
+    service.request_descriptors(model)
+    _drain(qapp)
+
+    assert events, "setup: nothing per-atom was published"
+    expected = input_fingerprint(engine, model, DRAWING)
+    for event in events:
+        assert event.input_fingerprint == expected, event.dataset.property_id
+        assert event.calculation_input == DRAWING, event.dataset.property_id
+
+
 def test_an_unusable_conformer_falls_back_instead_of_failing_every_descriptor(qapp):
     """What the caller's inline copy left out.
 

@@ -21,6 +21,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   guess: a drawn hydrogen that the protonated form removes, and two
   equivalent sites of which only one is protonated.
 
+- **The Atom Inspector showed an earlier structure's per-atom values.** After
+  an edit, a charge computed for the previous drawing was still laid over the
+  current atoms, where the same number can name a different atom. Each
+  per-atom result now carries the identity of the structure it was computed
+  on. The inspector withholds one that does not match, and says so in the
+  line above the facts ("computed for an earlier structure"); undoing back to
+  that structure brings the values back without recomputing. The Results
+  panel still shows the old result, marked stale.
+
+- **Units were printed twice** in the Atom Inspector ("-0.1394 e e") and in
+  Solubility's adjustment limit ("... sampled pH values logS"). Measured
+  over 1170 fact lines from 68 calculators: no other fact did this.
+
 - **3D rotation mode could be entered and not left.** Turning it off hid the
   bar and told the page nothing, so the full-canvas overlay stayed up
   swallowing every click -- and turning it off also HID the Cancel button

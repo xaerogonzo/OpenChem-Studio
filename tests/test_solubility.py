@@ -945,8 +945,12 @@ def test_the_drawn_curve_honours_the_same_bound_its_facts_describe():
         mol(PROPRANOLOL), "u",
         {"pka_values": str(PROPRANOLOL_PKA), "unit": MG_PER_ML, "compare_models": False},
     )
-    stated = next(f for f in report.facts if f.label.startswith("Adjustment limit"))
-    assert "reached at" in stated.display_value
+    stated = next(f for f in report.facts if f.label.startswith("Adjustment limit ("))
+    reached = next(f for f in report.facts if f.label == "Adjustment limit reached")
+    assert "sampled pH values" in reached.display_value
+    assert stated.value_with_units == f"+{float(stated.value):.1f} logS", (
+        "the unit is no longer beside its own number"
+    )
 
     baseline = esol_logs(mol(PROPRANOLOL))
     mw = Descriptors.MolWt(mol(PROPRANOLOL))

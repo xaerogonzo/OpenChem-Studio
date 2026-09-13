@@ -176,7 +176,27 @@ class ReportComputed(Event):
 
 @dataclass(frozen=True)
 class PerAtomDataComputed(Event):
+    """A per-atom dataset, and WHICH INPUT its atom indices describe.
+
+    **THE DISPATCHER KNOWS THE INPUT; THE DATASET DOES NOT.** A dataset is a
+    dict of atom index -> value, and an index means nothing without the
+    structure it indexes. The Atom Inspector used to hold these by property
+    id alone and lay them over whatever was drawn NOW, so after an edit it
+    showed an earlier structure's charges beside the current atoms.
+
+    `input_fingerprint` is `chem.calculation_input`'s fingerprint of the
+    exact input the calculator was handed, set by the code that resolved it
+    (`descriptor_service`) or restored from the stored identity on replay.
+    Empty means nobody said, and a structure-bound consumer must treat that
+    as unverifiable rather than as current.
+    """
+
     dataset: PerAtomDataset
+    input_fingerprint: str = ""
+    #: `domain.calculator.DRAWING` or `GEOMETRY` -- which input the
+    #: fingerprint is OF, so a consumer can ask for the current one to
+    #: compare with. Empty exactly when the fingerprint is.
+    calculation_input: str = ""
 
 
 @dataclass(frozen=True)
@@ -266,7 +286,18 @@ class QuantumChemistryResultReady(Event):
 
 @dataclass(frozen=True)
 class SpectrumComputed(Event):
+    """A spectrum, with the input identity when the producer has one.
+
+    Same two fields as `PerAtomDataComputed`, for the replay envelope. NOT a
+    claim that every spectrum is structure-bound: the ORCA service publishes
+    these from a molecule object with no model behind it and leaves both
+    empty, and the Atom Inspector keeps showing those as before (a recorded
+    gap, not a verified pass).
+    """
+
     spectrum: SpectrumResult
+    input_fingerprint: str = ""
+    calculation_input: str = ""
 
 
 @dataclass(frozen=True)

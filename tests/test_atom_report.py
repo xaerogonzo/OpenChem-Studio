@@ -127,7 +127,12 @@ def test_computed_per_atom_data_joins_the_report():
         "gasteiger_charge", "Partial Charge (Gasteiger)", {CARBONYL_C: 0.2034}, "e")}}
     charge = fact_named(report_for(CHALCONE, CARBONYL_C, context=context), "Partial Charge (Gasteiger)")
     assert charge.value == pytest.approx(0.2034)
-    assert charge.display_value == "0.2034 e"
+    # Value and units in their OWN fields, joined once. This asserted
+    # "0.2034 e" in display_value, which is the half of the bug that put
+    # "-0.1394 e e" on screen once `value_with_units` appended the units.
+    assert charge.display_value == "0.2034"
+    assert charge.units == "e"
+    assert charge.value_with_units == "0.2034 e"
 
 
 def test_each_atom_gets_its_own_value_and_only_its_own():

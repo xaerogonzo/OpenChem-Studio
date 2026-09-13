@@ -358,6 +358,16 @@ def test_a_replayed_failure_still_reads_as_failed():
     assert status_of(event_for(_dataset("b")).dataset) == READY
 
 
+def test_a_replayed_per_atom_dataset_carries_its_stored_input_identity():
+    """The store is the only record of which structure a restored dataset's
+    indices describe; a replay that dropped it would hand the Atom Inspector
+    a dataset it must treat as unverifiable."""
+    stored = _stored("m", "a", DRAWING, "fp-of-the-drawing")
+    event = event_for(stored.result, identity=stored.identity)
+    assert event.input_fingerprint == "fp-of-the-drawing"
+    assert event.calculation_input == DRAWING
+
+
 def test_a_restored_report_is_restamped_to_the_current_version():
     from openchem.domain.report import ReportResult
 

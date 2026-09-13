@@ -16,7 +16,9 @@ from PySide6.QtCore import QCoreApplication, Qt
 from PySide6.QtWidgets import QPushButton
 from rdkit import Chem
 
+from openchem.chem.calculation_input import input_fingerprint
 from openchem.chem.engine import ChemistryEngine
+from openchem.domain.calculator import DRAWING
 from openchem.domain.atom_report import AtomFact, FactCategory
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.molecule import MoleculeModel
@@ -68,6 +70,16 @@ def showing(panel: AtomInspectorPanel, model: MoleculeModel, atom: int | None = 
     if atom is not None:
         panel.select_atom(atom)
     QCoreApplication.processEvents()
+
+
+def computed(model: MoleculeModel, dataset: PerAtomDataset) -> PerAtomDataComputed:
+    """The event a dispatcher publishes: the dataset AND the input it was
+    computed on, taken from the one resolver everything else uses."""
+    return PerAtomDataComputed(
+        dataset=dataset,
+        input_fingerprint=input_fingerprint(ChemistryEngine(), model, DRAWING),
+        calculation_input=DRAWING,
+    )
 
 
 def section_titles(panel: AtomInspectorPanel) -> list[str]:
@@ -230,7 +242,7 @@ def test_a_computed_result_joins_the_report_without_being_asked(panel):
     showing(widget, model, CARBONYL_O)
     before = len(widget._report_for(CARBONYL_O).facts)
 
-    bus.publish(PerAtomDataComputed(dataset=PerAtomDataset(
+    bus.publish(computed(model, PerAtomDataset(
         property_id="gasteiger_charge", name="Partial Charge", units="e", method="rdkit",
         molecule_uuid=model.uuid, values={CARBONYL_O: -0.2712},
         cache_state=CacheState.COMPLETED, provenance=_PROVENANCE)))
@@ -250,7 +262,7 @@ def test_new_knowledge_invalidates_the_cached_report(panel):
     widget._report_for(CARBONYL_O)
     assert widget._cache
 
-    bus.publish(PerAtomDataComputed(dataset=PerAtomDataset(
+    bus.publish(computed(model, PerAtomDataset(
         property_id="atom_sasa", name="Atom SASA", units="A^2", method="rdkit",
         molecule_uuid=model.uuid, values={CARBONYL_O: 21.0},
         cache_state=CacheState.COMPLETED, provenance=_PROVENANCE)))
@@ -264,13 +276,106 @@ def test_a_result_for_another_molecule_is_kept_apart(panel):
     mine, other = molecule(), molecule("CCO", "ethanol")
     showing(widget, mine, CARBONYL_O)
 
-    bus.publish(PerAtomDataComputed(dataset=PerAtomDataset(
+    bus.publish(computed(other, PerAtomDataset(
         property_id="gasteiger_charge", name="Partial Charge", units="e", method="rdkit",
         molecule_uuid=other.uuid, values={CARBONYL_O: 9.9},
         cache_state=CacheState.COMPLETED, provenance=_PROVENANCE)))
     QCoreApplication.processEvents()
 
     assert not any(f.label == "Partial Charge" for f in widget._report_for(CARBONYL_O).facts)
+
+
+# --- a result computed for another structure is not laid over this one ------
+#
+# The reported case: pH 7.4 charges computed for an O-O-C=N ring were shown
+# beside the atoms of the O-O-C-N ring it had been edited into. A stale MARK
+# would not have helped -- an index names a different atom after an edit.
+
+RING_BEFORE = "O1OC=N1"
+RING_AFTER = "O1OCN1C"  # an atom added: index 4 did not exist before
+
+
+def _charges(model: MoleculeModel, value: float = -0.2513) -> PerAtomDataset:
+    return PerAtomDataset(
+        property_id="gasteiger_charge_at_ph", name="Partial Charge (Gasteiger) at pH 7.4",
+        units="e", method="rdkit", molecule_uuid=model.uuid,
+        values={0: value, 1: 0.0027, 2: 0.2762, 3: -0.164},
+        cache_state=CacheState.COMPLETED, provenance=_PROVENANCE,
+    )
+
+
+def _edit(model: MoleculeModel, smiles: str) -> None:
+    mol = Chem.MolFromSmiles(smiles)
+    model.molblock = Chem.MolToMolBlock(mol)
+    model.canonical_smiles = Chem.MolToSmiles(mol)
+
+
+def _has_charge(widget, index: int) -> bool:
+    return any(
+        f.label.startswith("Partial Charge (Gasteiger) at pH")
+        for f in widget._report_for(index).facts
+    )
+
+
+def test_a_dataset_computed_before_an_edit_is_not_shown_for_the_edited_atoms(panel):
+    widget, bus = panel
+    model = molecule(RING_BEFORE, "ring")
+    showing(widget, model, 0)
+    bus.publish(computed(model, _charges(model)))
+    QCoreApplication.processEvents()
+    assert _has_charge(widget, 0), "setup: the fresh dataset never reached the report"
+
+    _edit(model, RING_AFTER)
+    showing(widget, model, 0)
+
+    assert not _has_charge(widget, 0), (
+        "a charge computed for the earlier ring is still laid over the edited one"
+    )
+    summary = widget._facts._summary.text()
+    assert "Partial Charge (Gasteiger) at pH 7.4" in summary and "earlier structure" in summary, summary
+
+
+def test_undo_back_to_the_computed_structure_makes_it_current_again(panel):
+    """FINGERPRINT, not a counter: returning to structure A is structure A,
+    so A's values come back with nothing recomputed."""
+    widget, bus = panel
+    model = molecule(RING_BEFORE, "ring")
+    showing(widget, model, 0)
+    bus.publish(computed(model, _charges(model)))
+    QCoreApplication.processEvents()
+
+    _edit(model, RING_AFTER)
+    showing(widget, model, 0)
+    assert not _has_charge(widget, 0)
+
+    _edit(model, RING_BEFORE)
+    showing(widget, model, 0)
+    assert _has_charge(widget, 0), "undoing back to the computed structure did not restore it"
+
+
+def test_a_dataset_with_no_identity_is_unverifiable_and_says_so(panel):
+    """Not "computed for an earlier structure" -- nobody knows that."""
+    widget, bus = panel
+    model = molecule(RING_BEFORE, "ring")
+    showing(widget, model, 0)
+    bus.publish(PerAtomDataComputed(dataset=_charges(model)))
+    QCoreApplication.processEvents()
+
+    assert not _has_charge(widget, 0)
+    summary = widget._facts._summary.text()
+    assert "identity unavailable" in summary, summary
+    assert "earlier structure" not in summary, summary
+
+
+def test_a_current_dataset_says_nothing_about_withholding(panel):
+    """The narrow half: 'always print a warning' passes both guards above."""
+    widget, bus = panel
+    model = molecule(RING_BEFORE, "ring")
+    showing(widget, model, 0)
+    bus.publish(computed(model, _charges(model)))
+    QCoreApplication.processEvents()
+    widget._render_facts()
+    assert "Not shown" not in widget._facts._summary.text()
 
 
 # --- the never-computes guarantee -------------------------------------------
@@ -492,7 +597,7 @@ def test_each_subject_is_cached_separately(panel):
     widget.select_bond(0)
     QCoreApplication.processEvents()
 
-    subjects = {key[2] for key in widget._cache}
+    subjects = {key[3] for key in widget._cache}
     assert {"Atom", "Bond"} <= subjects
 
 
