@@ -1555,6 +1555,34 @@ Licensing shaped the data model and is recorded in
 ACS), no DrugBank (CC BY-NC, incompatible with GPL), no ACGIH TLVs (OSHA
 PELs are public instead), no IATA DGR (UN Model Regulations instead).
 
+### A Settings page — deferred, and what it would hold
+
+**Deferred by decision (2026-09-13), not blocked by anything technical.**
+The application has preferences scattered across dialogs (External Tools,
+the data root, per-dialog directories) and no single page for them. Several
+behaviours built in the results-persistence and docking work are fixed
+choices that a person could reasonably want different. Alex asked for them
+to be written down rather than turned into settings before a page exists to
+hold them, because a setting with no discoverable home is worse than none.
+
+What a Settings page would expose, each with today's fixed behaviour:
+
+- **How the rail treats panels.** Today: one managed panel at a time in its
+  area, and a panel the user placed stays on screen. The alternative is "the
+  rail never hides anything", with tabs as the only grouping.
+- **Recovery copies.** Today: on, written 5 s after a change, under
+  `<data root>/recovery`. A setting would cover on/off and the delay.
+- **Saved results across an update.** Today: the always-on set is
+  recomputed once after an update, and results run by hand are kept and
+  labelled with their build. The alternative is to also mark hand-run results
+  stale after an update, or to keep the always-on set too.
+- **Revisions kept per molecule** (`MAX_REVISIONS`, today 8), which trades
+  memory for undo without recomputing.
+
+Unblocking condition: the page itself, with a place for each existing
+preference, so that these arrive as entries on it rather than as the reason
+it was built.
+
 ## Naming — resolved, and how
 
 Structure-to-name went through three answers in one day. Recorded because
