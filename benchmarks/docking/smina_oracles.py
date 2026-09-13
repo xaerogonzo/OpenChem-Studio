@@ -129,9 +129,15 @@ a re-labelling of the verdict.
 The lead, from the two programs' own printouts: smina's built-in `vinardo`
 prints `num_tors_div` with weight **0**, while Vina 1.2.7's
 `--help_advanced` gives `--weight_vinardo_rot` a default of **0.05846** --
-Vina's own N_rot weight reused. And [source:quiroga2016]'s Eq 1 defines the
-binding energy as the sum of pair interactions alone, with no rotatable-bond
-term anywhere in the paper.
+Vina's own N_rot weight reused.
+
+**CORRECTED after the diagnosis ran:** this paragraph went on to say
+[source:quiroga2016]'s Eq 1 has no rotatable-bond term, as though that
+supported smina's side. Eq 1 is written in the paper's section DESCRIBING
+VINA, which is known to divide by (1 + w N_rot), and Vinardo is said to keep
+"the final combination of interaction terms" -- so the paper writes the
+normalisation for neither function and its silence is evidence of nothing.
+What does say Vinardo omits it is the paper's own IMPLEMENTATION, smina.
 
 **The intervention changes ONE variable:** Vina 1.2.7 `--scoring vinardo
 --weight_vinardo_rot 0`, same receptor file, same poses. The diagnosis is

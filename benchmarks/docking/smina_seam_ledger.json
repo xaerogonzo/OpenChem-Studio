@@ -36,7 +36,7 @@
    "verdict": "interface_change_required",
    "evidence": "src/openchem/chem/docking_providers.py:341",
    "established_by": "smina_oracles.json (b) and b_post_hoc_diagnosis; _smina.py --live L1",
-   "finding": "'vinardo' names two quantities that are 1.53-2.10 kcal/mol apart on the same nine poses. Vina 1.2.7 divides by exactly 1.3507 (--weight_vinardo_rot defaults to 0.05846); smina, the paper's reference implementation, weights that term 0, and quiroga2016 Eq 1 has none. With it removed a pose-dependent residual of -0.28 to +0.62 remains, UNEXPLAINED. Neither search_options['rescore_with'] nor ScreeningProtocol.rescore_with (screening_service.py:154) can say which implementation was meant; L1 shows the engine decides silently."
+   "finding": "'vinardo' names two quantities that are 1.53-2.10 kcal/mol apart on the same nine poses. Vina 1.2.7 divides by exactly 1.3507 (--weight_vinardo_rot defaults to 0.05846); smina, the paper's reference implementation, weights that term 0. The paper's TEXT cannot settle which is right: its Eq 1 is written in the section describing Vina, which is known to apply the normalisation, so its silence is not evidence either way. With it removed a pose-dependent residual of -0.28 to +0.62 remains, UNEXPLAINED. Neither search_options['rescore_with'] nor ScreeningProtocol.rescore_with (screening_service.py:154) can say which implementation was meant; L1 shows the engine decides silently."
   },
   "6": {
    "title": "Function vocabularies are module constants, not per engine",
