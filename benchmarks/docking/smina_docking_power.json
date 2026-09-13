@@ -1,7 +1,10 @@
 {
  "protocol": "rescore_power.py, 8 targets, exhaustiveness 8 (the script DEFAULT), seed 4712, 9 poses, SAME_POCKET_A 3.0 (centroid, not RMSD); pre-registered in b68a626",
  "n_is_descriptive": true,
- "arms": {
+ "A0_reproduces_recorded_6_of_8": "see exhaustiveness_25.A0_reproduction; the exhaustiveness-8 A0 was NOT a reproduction",
+ "correction": "A0 at exhaustiveness 8 matched the recorded COUNTS, but the README's baseline was measured at exhaustiveness 25 and its per-target rows differ, so this was not a reproduction; commit 0626b00's message says otherwise and is wrong. These exhaustiveness-8 arms remain comparable WITH EACH OTHER. The reproduction is the exhaustiveness-25 re-run.",
+ "withdrawn_observation": "The 'Spearman drift' (+0.66 vs +0.71) recorded at 0626b00 compared an exhaustiveness-8 run with an exhaustiveness-25 record. It was a protocol difference, not a drift, and it is withdrawn.",
+ "exhaustiveness_8_arms": {
   "A0": {
    "search": "Vina 1.2.7 search, NATIVE Vina 1.2.7 vina",
    "rescore": "RESCORE Vina 1.2.7 vinardo (shipped path)",
@@ -258,7 +261,338 @@
    ]
   }
  },
- "A0_reproduces_recorded_6_of_8": false,
- "correction": "A0 at exhaustiveness 8 matched the recorded COUNTS, but the README's baseline was measured at exhaustiveness 25 and its per-target rows differ, so this was not a reproduction; commit 0626b00's message says otherwise and is wrong. These exhaustiveness-8 arms remain comparable WITH EACH OTHER. The reproduction is the exhaustiveness-25 re-run.",
- "withdrawn_observation": "The 'Spearman drift' (+0.66 vs +0.71) recorded at 0626b00 compared an exhaustiveness-8 run with an exhaustiveness-25 record. It was a protocol difference, not a drift, and it is withdrawn."
+ "exhaustiveness_25": {
+  "protocol": "rescore_power.py --exhaustiveness 25, 8 targets, seed 4712, 9 poses; the recorded baseline's protocol (amendment in rescore_power.py)",
+  "A0_reproduction": {
+   "criterion": "Vina 6/8, Vinardo 6/8, ceiling 8/8",
+   "met": true,
+   "rows_vs_README_max_abs_difference": 0,
+   "rows_vs_README": [
+    {
+     "pdb": "1HSG",
+     "poses": 0,
+     "best_possible_a": 0.0,
+     "search_pick_a": 0.0,
+     "rescore_pick_a": 0.0,
+     "rho": 0.0
+    },
+    {
+     "pdb": "4DKL",
+     "poses": 0,
+     "best_possible_a": 0.0,
+     "search_pick_a": 0.0,
+     "rescore_pick_a": 0.0,
+     "rho": 0.0
+    },
+    {
+     "pdb": "3EML",
+     "poses": 0,
+     "best_possible_a": 0.0,
+     "search_pick_a": 0.0,
+     "rescore_pick_a": 0.0,
+     "rho": 0.0
+    },
+    {
+     "pdb": "2RH1",
+     "poses": 0,
+     "best_possible_a": 0.0,
+     "search_pick_a": 0.0,
+     "rescore_pick_a": 0.0,
+     "rho": 0.0
+    },
+    {
+     "pdb": "1ERE",
+     "poses": 0,
+     "best_possible_a": 0.0,
+     "search_pick_a": 0.0,
+     "rescore_pick_a": 0.0,
+     "rho": 0.0
+    },
+    {
+     "pdb": "4EY7",
+     "poses": 0,
+     "best_possible_a": 0.0,
+     "search_pick_a": 0.0,
+     "rescore_pick_a": 0.0,
+     "rho": 0.0
+    },
+    {
+     "pdb": "8EF5",
+     "poses": 0,
+     "best_possible_a": 0.0,
+     "search_pick_a": 0.0,
+     "rescore_pick_a": 0.0,
+     "rho": 0.0
+    },
+    {
+     "pdb": "5C1M",
+     "poses": 0,
+     "best_possible_a": 0.0,
+     "search_pick_a": 0.0,
+     "rescore_pick_a": 0.0,
+     "rho": 0.0
+    }
+   ]
+  },
+  "arms": {
+   "A0": {
+    "search": "Vina 1.2.7 search, NATIVE Vina 1.2.7 vina",
+    "rescore": "RESCORE Vina 1.2.7 vinardo (shipped path)",
+    "leakage": "TRAINING_PROVENANCE_UNRESOLVED (search and rescore)",
+    "search_hits": "6/8",
+    "search_mean_a": 1.45,
+    "rescore_hits": "6/8",
+    "rescore_mean_a": 1.46,
+    "ceiling": "8/8",
+    "rho_mean": 0.71,
+    "rho_negative": 0,
+    "rows": [
+     {
+      "pdb": "1HSG",
+      "ligand": "MK1",
+      "poses": 9,
+      "best_possible_a": 0.44,
+      "search_pick_a": 0.44,
+      "rescore_pick_a": 0.44,
+      "rho": 0.12
+     },
+     {
+      "pdb": "4DKL",
+      "ligand": "BF0",
+      "poses": 9,
+      "best_possible_a": 0.72,
+      "search_pick_a": 1.17,
+      "rescore_pick_a": 0.94,
+      "rho": 0.9
+     },
+     {
+      "pdb": "3EML",
+      "ligand": "ZMA",
+      "poses": 9,
+      "best_possible_a": 2.5,
+      "search_pick_a": 3.77,
+      "rescore_pick_a": 4.22,
+      "rho": 0.07
+     },
+     {
+      "pdb": "2RH1",
+      "ligand": "CAU",
+      "poses": 9,
+      "best_possible_a": 0.37,
+      "search_pick_a": 0.37,
+      "rescore_pick_a": 0.37,
+      "rho": 0.92
+     },
+     {
+      "pdb": "1ERE",
+      "ligand": "EST",
+      "poses": 4,
+      "best_possible_a": 0.31,
+      "search_pick_a": 0.48,
+      "rescore_pick_a": 0.48,
+      "rho": 1.0
+     },
+     {
+      "pdb": "4EY7",
+      "ligand": "E20",
+      "poses": 9,
+      "best_possible_a": 0.46,
+      "search_pick_a": 0.46,
+      "rescore_pick_a": 0.46,
+      "rho": 0.83
+     },
+     {
+      "pdb": "8EF5",
+      "ligand": "7V7",
+      "poses": 9,
+      "best_possible_a": 0.52,
+      "search_pick_a": 4.45,
+      "rescore_pick_a": 4.31,
+      "rho": 0.82
+     },
+     {
+      "pdb": "5C1M",
+      "ligand": "VF1",
+      "poses": 2,
+      "best_possible_a": 0.43,
+      "search_pick_a": 0.43,
+      "rescore_pick_a": 0.43,
+      "rho": 1.0
+     }
+    ]
+   },
+   "A1": {
+    "search": "Vina 1.2.7 search, NATIVE Vina 1.2.7 vina (direct path)",
+    "rescore": "RESCORE smina 2020.12.10 default, as_docked",
+    "leakage": "TRAINING_PROVENANCE_UNRESOLVED (search and rescore)",
+    "search_hits": "6/8",
+    "search_mean_a": 1.45,
+    "rescore_hits": "6/8",
+    "rescore_mean_a": 1.4,
+    "ceiling": "8/8",
+    "rho_mean": 0.85,
+    "rho_negative": 0,
+    "rows": [
+     {
+      "pdb": "1HSG",
+      "ligand": "MK1",
+      "poses": 9,
+      "best_possible_a": 0.44,
+      "search_pick_a": 0.44,
+      "rescore_pick_a": 0.44,
+      "rho": 0.32
+     },
+     {
+      "pdb": "4DKL",
+      "ligand": "BF0",
+      "poses": 9,
+      "best_possible_a": 0.72,
+      "search_pick_a": 1.17,
+      "rescore_pick_a": 0.94,
+      "rho": 0.9
+     },
+     {
+      "pdb": "3EML",
+      "ligand": "ZMA",
+      "poses": 9,
+      "best_possible_a": 2.5,
+      "search_pick_a": 3.77,
+      "rescore_pick_a": 3.61,
+      "rho": 0.78
+     },
+     {
+      "pdb": "2RH1",
+      "ligand": "CAU",
+      "poses": 9,
+      "best_possible_a": 0.37,
+      "search_pick_a": 0.37,
+      "rescore_pick_a": 0.37,
+      "rho": 0.98
+     },
+     {
+      "pdb": "1ERE",
+      "ligand": "EST",
+      "poses": 4,
+      "best_possible_a": 0.31,
+      "search_pick_a": 0.48,
+      "rescore_pick_a": 0.48,
+      "rho": 1.0
+     },
+     {
+      "pdb": "4EY7",
+      "ligand": "E20",
+      "poses": 9,
+      "best_possible_a": 0.46,
+      "search_pick_a": 0.46,
+      "rescore_pick_a": 0.46,
+      "rho": 0.92
+     },
+     {
+      "pdb": "8EF5",
+      "ligand": "7V7",
+      "poses": 9,
+      "best_possible_a": 0.52,
+      "search_pick_a": 4.45,
+      "rescore_pick_a": 4.45,
+      "rho": 0.9
+     },
+     {
+      "pdb": "5C1M",
+      "ligand": "VF1",
+      "poses": 2,
+      "best_possible_a": 0.43,
+      "search_pick_a": 0.43,
+      "rescore_pick_a": 0.43,
+      "rho": 1.0
+     }
+    ]
+   },
+   "A2_A3": {
+    "search": "smina 2020.12.10 search, NATIVE smina default  [= A2]",
+    "rescore": "RESCORE smina 2020.12.10 dkoes_scoring, as_docked  [= A3]",
+    "leakage": "TRAINING_PROVENANCE_UNRESOLVED (search and rescore)",
+    "search_hits": "6/8",
+    "search_mean_a": 1.43,
+    "rescore_hits": "6/8",
+    "rescore_mean_a": 1.77,
+    "ceiling": "7/8",
+    "rho_mean": 0.42,
+    "rho_negative": 1,
+    "rows": [
+     {
+      "pdb": "1HSG",
+      "ligand": "MK1",
+      "poses": 9,
+      "best_possible_a": 0.41,
+      "search_pick_a": 0.41,
+      "rescore_pick_a": 0.41,
+      "rho": 0.32
+     },
+     {
+      "pdb": "4DKL",
+      "ligand": "BF0",
+      "poses": 9,
+      "best_possible_a": 0.66,
+      "search_pick_a": 1.15,
+      "rescore_pick_a": 1.58,
+      "rho": 0.72
+     },
+     {
+      "pdb": "3EML",
+      "ligand": "ZMA",
+      "poses": 9,
+      "best_possible_a": 3.14,
+      "search_pick_a": 3.68,
+      "rescore_pick_a": 3.56,
+      "rho": 0.07
+     },
+     {
+      "pdb": "2RH1",
+      "ligand": "CAU",
+      "poses": 9,
+      "best_possible_a": 0.39,
+      "search_pick_a": 0.39,
+      "rescore_pick_a": 0.39,
+      "rho": 0.52
+     },
+     {
+      "pdb": "1ERE",
+      "ligand": "EST",
+      "poses": 5,
+      "best_possible_a": 0.32,
+      "search_pick_a": 0.49,
+      "rescore_pick_a": 0.46,
+      "rho": -0.2
+     },
+     {
+      "pdb": "4EY7",
+      "ligand": "E20",
+      "poses": 9,
+      "best_possible_a": 0.4,
+      "search_pick_a": 0.4,
+      "rescore_pick_a": 2.84,
+      "rho": 0.05
+     },
+     {
+      "pdb": "8EF5",
+      "ligand": "7V7",
+      "poses": 9,
+      "best_possible_a": 0.49,
+      "search_pick_a": 4.46,
+      "rescore_pick_a": 4.46,
+      "rho": 0.92
+     },
+     {
+      "pdb": "5C1M",
+      "ligand": "VF1",
+      "poses": 2,
+      "best_possible_a": 0.45,
+      "search_pick_a": 0.45,
+      "rescore_pick_a": 0.45,
+      "rho": 1.0
+     }
+    ]
+   }
+  }
+ }
 }
