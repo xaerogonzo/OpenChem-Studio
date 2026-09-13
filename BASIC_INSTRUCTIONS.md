@@ -7,7 +7,7 @@
 > If you are looking for user or developer documentation, start at
 > [`README.md`](README.md) or [`docs/`](docs/).
 
-@D:\Claude Co worker\Token Save Manager Source\templates\project-baseline.md
+@project-baseline.md
 
 ---
 
