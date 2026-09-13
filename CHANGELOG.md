@@ -97,6 +97,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Switch Solubility's units in the Results panel without running it
+  again.** A **Units** box (log mol/L, mg/mL, mol/L) changes the chart, the
+  rows, Copy report and a saved picture together. The calculator's own
+  **Units** setting is gone: every unit was already being computed, so it was
+  a display choice dressed as a calculation parameter. Any result can now
+  declare several renderings like this; the panel offers the switch only
+  when the declaration holds together, and says why when it does not.
+
 - **Partial Charge (pH-dependent) offers MMFF94 beside Gasteiger.** Choose
   the method in the calculator's settings. MMFF94's charges were checked
   against the table Halgren published with the force field: RDKit

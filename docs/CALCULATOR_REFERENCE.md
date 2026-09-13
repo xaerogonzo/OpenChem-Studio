@@ -560,7 +560,6 @@ Also known as **Solubility vs pH** -- retired and folded in here. Folded into So
 - Basis: empirical (fitted to measured data, with real scatter).
 - Options:
   - `model` -- Baseline model (esol, aqsoldb) default `esol`
-  - `unit` -- Units (logS (log mol/L), mg/mL, mol/L) default `logS (log mol/L)`
   - `pH` -- at pH default `7.4` range 0.0 to 14.0
   - `pka_values` -- pKa values (optional, e.g. 3.49, 9.4)
   - `dose_mg` -- Highest single dose (mg, for BCS) default `0.0` range 0.0 to 100000.0

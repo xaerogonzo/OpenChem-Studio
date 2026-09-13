@@ -79,6 +79,11 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           Inspector -- see below
     {"do": "inspector_report", "tag": "after-edit"}  the Atom Inspector's
                                           pinned line, HELD results and state
+    {"do": "units", "key": "mg_per_ml"}   the reader's Units COMBO, and what
+                                          the chart and unit rows then say
+    {"do": "reader_layout_report", "tag": "beside"}  whole fact ROWS on
+                                          screen, through every clipping parent
+    {"do": "dock_resize", "panel": "Results", "width": 380}
     {"do": "shot",       "path": "..."}
     {"do": "lewis",      "details": true}     the Full Lewis window
     {"do": "shot",       "path": "...", "widget": "lewis"}

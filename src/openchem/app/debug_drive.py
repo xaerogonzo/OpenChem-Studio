@@ -2236,6 +2236,46 @@ class _Driver(QObject):
             json.dumps(rows),
         )
 
+    def _do_units(self, step: dict[str, Any]) -> None:
+        """`{"do": "units", "key": "mg_per_ml", "tag": "mg"}` -- choose a unit
+        in the reader's Units COMBO, then log what the reader shows.
+
+        **THE COMBO, NOT `set_rendering`.** A user picks an entry; the index
+        change is what the view is wired to, so that is what is driven. With
+        no `key` it only reports. The log carries the chart's y label and the
+        unit-bearing fact rows, because "the unit changed" and "the numbers
+        changed with it" photograph the same at a glance.
+        """
+        view = self._window._results_view._view
+        box = view._rendering_box
+        key = step.get("key")
+        if key:
+            index = box.findData(str(key))
+            if index < 0:
+                logger.error("OPENCHEM_DRIVE: units -- no entry %r (offered: %s)", key,
+                             [box.itemData(i) for i in range(box.count())])
+                return
+            box.setCurrentIndex(index)
+        shown = view._report
+        charts = getattr(shown, "charts", ()) or ()
+        rows = [
+            f"{fact.label}={fact.value_with_units}"
+            for fact in getattr(shown, "facts", ()) or ()
+            if getattr(fact, "rendering", "")
+        ]
+        logger.warning(
+            "OPENCHEM_DRIVE: units %s offered=%s visible=%s current=%s problem=%r "
+            "chart_y=%r first_y=%s rows=%s",
+            step.get("tag", ""),
+            [box.itemText(i) for i in range(box.count())],
+            not view._rendering_widget.isHidden(),
+            view.rendering(),
+            view.rendering_problem(),
+            charts[0].y_label if charts else None,
+            (charts[0].series[0].points[0][1] if charts and charts[0].series else None),
+            json.dumps(rows),
+        )
+
     def _do_picture(self, step: dict[str, Any]) -> None:
         """Export the reader's Nth chart through the REAL export path.
 

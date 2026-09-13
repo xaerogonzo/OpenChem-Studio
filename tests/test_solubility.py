@@ -34,6 +34,8 @@ from openchem.chem.solubility import (
     MG_PER_ML,
     MODERATE_HIGH_BOUNDARY_MG_PER_ML,
     MOL_PER_L,
+    UNIT_KEYS,
+    unit_symbol,
     AdjustmentLimit,
     BcsOutcome,
     BcsReason,
@@ -643,29 +645,50 @@ def test_water_is_supported_and_is_the_default():
 # --- the two plumbing invariants ---------------------------------------
 
 
-def test_changing_the_display_unit_changes_no_modelled_quantity():
-    """**A PURE PLUMBING TRAP.** The unit orders the report; it must never
-    reach the chemistry. Same category, same underlying logS, three
-    renderings."""
-    target = mol(ASPIRIN)
-    reports = {
-        unit: compute_solubility(target, "u", {"unit": unit, "pka_values": "3.49"})
-        for unit in (LOG_S, MG_PER_ML, MOL_PER_L)
-    }
-    categories = {
-        next(f.display_value for f in r.facts if f.label == "Solubility category")
-        for r in reports.values()
-    }
-    assert len(categories) == 1
+def test_every_unit_is_declared_and_the_chemistry_carries_no_unit():
+    """**A PURE PLUMBING TRAP.** A unit is how a number is READ; it must never
+    reach the chemistry. So the report states the value in every unit, each
+    tagged with its rendering, and the modelled quantities -- the category
+    among them -- carry no tag at all, so no unit choice can move them."""
+    from openchem.domain.report import COMPLETE_RENDERINGS, rendering_state
 
-    logs = {
-        next(
-            f.value for f in r.facts
-            if f.label == "Predicted intrinsic solubility (log mol/L)"
-        )
-        for r in reports.values()
-    }
-    assert len(logs) == 1
+    report = compute_solubility(mol(ASPIRIN), "u", {"pka_values": "3.49"})
+    assert rendering_state(report) == (COMPLETE_RENDERINGS, "")
+    assert [r.key for r in report.renderings] == [UNIT_KEYS[u] for u in (LOG_S, MG_PER_ML, MOL_PER_L)]
+
+    by_rendering = {}
+    for fact in report.facts:
+        by_rendering.setdefault(fact.rendering, []).append(fact.label)
+    for unit in (LOG_S, MG_PER_ML, MOL_PER_L):
+        labels = by_rendering[UNIT_KEYS[unit]]
+        assert any(label.startswith("Predicted intrinsic solubility") for label in labels), labels
+        assert any(label.startswith("Predicted solubility at pH") for label in labels), labels
+    category = next(f for f in report.facts if f.label == "Solubility category")
+    assert category.rendering == ""
+
+
+def test_the_chart_is_declared_in_every_unit_on_one_x_grid():
+    from openchem.domain.report import chart_in_rendering
+
+    report = compute_solubility(mol(ASPIRIN), "u", {"pka_values": "3.49"})
+    (chart,) = report.charts
+    xs = [x for x, _y in chart.series[0].points]
+    seen = set()
+    for unit in (LOG_S, MG_PER_ML, MOL_PER_L):
+        shown = chart_in_rendering(chart, UNIT_KEYS[unit])
+        assert [x for x, _y in shown.series[0].points] == xs
+        assert unit_symbol(unit) in shown.y_label
+        seen.add(tuple(round(y, 6) for _x, y in shown.series[0].points))
+    assert len(seen) == 3, "two units drew the same numbers"
+
+
+def test_a_stored_request_still_naming_a_unit_changes_nothing():
+    """Projects saved before this carry `"unit"` in their parameters. It is
+    ignored, not honoured: the report is the same whatever it says."""
+    plain = compute_solubility(mol(ASPIRIN), "u", {"pka_values": "3.49"})
+    legacy = compute_solubility(mol(ASPIRIN), "u", {"pka_values": "3.49", "unit": MG_PER_ML})
+    assert [f.display_value for f in plain.facts] == [f.display_value for f in legacy.facts]
+    assert "unit" not in plain.provenance.parameters
 
 
 def test_changing_the_reported_ph_leaves_the_baseline_and_pka_untouched():
@@ -943,7 +966,7 @@ def test_the_drawn_curve_honours_the_same_bound_its_facts_describe():
     """
     report = compute_solubility(
         mol(PROPRANOLOL), "u",
-        {"pka_values": str(PROPRANOLOL_PKA), "unit": MG_PER_ML, "compare_models": False},
+        {"pka_values": str(PROPRANOLOL_PKA), "compare_models": False},
     )
     stated = next(f for f in report.facts if f.label.startswith("Adjustment limit ("))
     reached = next(f for f in report.facts if f.label == "Adjustment limit reached")
@@ -956,7 +979,12 @@ def test_the_drawn_curve_honours_the_same_bound_its_facts_describe():
     mw = Descriptors.MolWt(mol(PROPRANOLOL))
     ceiling = logs_to_mg_per_ml(baseline + float(stated.value), mw)
 
-    drawn = [y for _x, y in report.charts[0].series[0].points]
+    from openchem.domain.report import chart_in_rendering
+
+    # The curve as a reader switched to mg/mL sees it -- a declared rendering,
+    # not a rerun with a unit parameter, which no longer exists.
+    in_mg = chart_in_rendering(report.charts[0], UNIT_KEYS[MG_PER_ML])
+    drawn = [y for _x, y in in_mg.series[0].points]
     assert max(drawn) == pytest.approx(ceiling, rel=1e-9)
 
 

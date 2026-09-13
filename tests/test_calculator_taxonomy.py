@@ -237,7 +237,10 @@ def test_the_surviving_calculator_offers_the_range_it_already_honoured():
 
     assert {"ph_min", "ph_max", "ph_step"} <= names
     # And nothing the survivor had was dropped on the way.
-    assert {"model", "unit", "pH", "pka_values", "dose_mg", "solvent"} <= names
+    assert {"model", "pH", "pka_values", "dose_mg", "solvent"} <= names
+    # ...except the unit, which left on purpose: every unit is declared on the
+    # result and chosen in the reader, so it is no longer something to run.
+    assert "unit" not in names
 
 
 def test_no_merge_left_a_category_holding_one_calculator():

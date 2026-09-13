@@ -2451,10 +2451,6 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 default=ESOL, choices=[ESOL, AQSOLDB],
             ),
             CalculatorParameter(
-                name="unit", label="Units", kind="choice",
-                default=LOG_S, choices=list(DISPLAY_UNITS),
-            ),
-            CalculatorParameter(
                 name="pH", label="at pH", kind="float", default=DEFAULT_PH,
                 minimum=0.0, maximum=14.0,
             ),

@@ -28,7 +28,16 @@ from __future__ import annotations
 import dataclasses
 from dataclasses import dataclass
 
-from openchem.domain.report import ChartAnnotation, Fact, ReportResult, SpatialAnnotation
+from openchem.domain.report import (
+    COMPLETE_RENDERINGS,
+    ChartAnnotation,
+    Fact,
+    ReportResult,
+    SpatialAnnotation,
+    default_rendering,
+    facts_in_rendering,
+    rendering_state,
+)
 from openchem.domain.result_ordering import ordered_reports
 from openchem.domain.structure_resolution import is_stale
 
@@ -267,7 +276,19 @@ def merge_reports(
     ):
         kept.append(report)
         origin = getattr(report, "report_id", "")
-        for fact in report.facts:
+        # ONE RENDERING PER REPORT IN THE FLATTENED VIEW. A report stating
+        # one quantity in three units carries three facts for it; "All
+        # results" showing all three would be the same number three times.
+        # The default rendering is kept -- and a report whose renderings do
+        # not hold keeps every fact, because choosing among an invalid
+        # declaration is exactly what must not happen.
+        state, _reason = rendering_state(report)
+        shown = (
+            facts_in_rendering(report.facts, default_rendering(report))
+            if state == COMPLETE_RENDERINGS
+            else report.facts
+        )
+        for fact in shown:
             facts.append(fact if fact.origin else dataclasses.replace(fact, origin=origin))
     return MergedResults(
         reports=tuple(kept), facts=tuple(facts), structure_version=structure_version

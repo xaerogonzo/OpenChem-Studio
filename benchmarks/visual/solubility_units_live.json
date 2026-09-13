@@ -1,0 +1,18 @@
+[
+  {"do": "smiles", "smiles": "CC(=O)Oc1ccccc1C(=O)O", "name": "Aspirin", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "calculator", "id": "solubility", "parameters": {"pka_values": "3.49", "compare_models": false}, "reveal": false, "after_ms": 40000},
+  {"do": "panel", "id": "Results", "after_ms": 2000},
+  {"do": "results", "focus": "solubility", "after_ms": 2500},
+  {"do": "report", "tag": "before-switch", "after_ms": 500},
+  {"do": "units", "tag": "default", "after_ms": 800},
+  {"do": "picture", "index": 0, "path": "benchmarks/visual/artifacts/solubility_units_logs.png", "after_ms": 800},
+  {"do": "units", "key": "mg_per_ml", "tag": "mg", "after_ms": 1500},
+  {"do": "picture", "index": 0, "path": "benchmarks/visual/artifacts/solubility_units_mg.png", "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/solubility_units_mg_reader.png", "widget": "results", "after_ms": 800},
+  {"do": "report", "tag": "after-switch", "after_ms": 500},
+  {"do": "results", "focus": "", "after_ms": 2000},
+  {"do": "results", "focus": "solubility", "after_ms": 2000},
+  {"do": "units", "tag": "remembered", "after_ms": 800},
+  {"do": "quit"}
+]

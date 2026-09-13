@@ -36,6 +36,7 @@ MainWindows now, and CLAUDE.md has the measurements.
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 
 from PySide6.QtCore import Qt, Signal
@@ -57,10 +58,16 @@ from PySide6.QtWidgets import (
 from openchem.domain.visualization_index import kind_of_annotation
 from openchem.domain.report import (
     CATEGORY_LABELS,
+    COMPLETE_RENDERINGS,
     DEFAULT_EXPANDED,
+    INVALID_RENDERINGS,
     Detail,
     Fact,
     FactLink,
+    chart_in_rendering,
+    default_rendering,
+    facts_in_rendering,
+    rendering_state,
 )
 from openchem.domain.structure_resolution import ResolvedStructure
 from openchem.ui.widgets.collapsible_section import (
@@ -156,6 +163,20 @@ _HELP: dict[str, HelpTooltip] = {
         ),
         tier=2,
         help_id="facts.copy_format",
+        topic="facts",
+    ),
+    "rendering": HelpTooltip(
+        text=(
+            "Which unit to read this result in.\n\n"
+            "Every unit was computed when the calculator ran; switching shows "
+            "a different one and runs nothing. The chart, the facts below it, "
+            "Copy report and a saved picture all follow the choice.\n\n"
+            "Offered only when the result declares its units completely -- "
+            "an older result, or one whose units do not hold together, is "
+            "shown in the unit it was computed in."
+        ),
+        tier=1,
+        help_id="facts.rendering",
         topic="facts",
     ),
     "more": HelpTooltip(
@@ -342,6 +363,25 @@ class FactView(QWidget):
         apply_help_tooltip(self._detail, _HELP['detail'])
         self._detail.currentIndexChanged.connect(self._on_filter_changed)
 
+        #: The report as handed in. `_report` is what is SHOWN: this, in the
+        #: chosen rendering. Everything that renders, copies or exports reads
+        #: `_report`, so all of it follows the choice by construction.
+        self._source_report = None
+        #: report_id -> the rendering key last chosen for it, so returning to
+        #: a result reopens it in the unit it was being read in.
+        self._rendering_choice: dict[str, str] = {}
+        #: Why a declared set of renderings is not offered, or "".
+        self._rendering_problem = ""
+        self._rendering_widget = QWidget(self)
+        rendering_row = QHBoxLayout(self._rendering_widget)
+        rendering_row.setContentsMargins(0, 0, 0, 0)
+        rendering_row.addWidget(QLabel("Units:", self._rendering_widget))
+        self._rendering_box = QComboBox(self._rendering_widget)
+        apply_help_tooltip(self._rendering_box, _HELP["rendering"])
+        self._rendering_box.currentIndexChanged.connect(self._on_rendering_chosen)
+        rendering_row.addWidget(self._rendering_box)
+        self._rendering_widget.setVisible(False)
+
         self._copy_format = QComboBox(self)
         self._copy_format.addItems(COPY_FORMATS)
         apply_help_tooltip(self._copy_format, _HELP['copy_format'])
@@ -402,29 +442,29 @@ class FactView(QWidget):
             return
         self._controls_arrangement = arrangement
         grid = self._controls_layout
-        for widget in (self._search, self._detail, self._copy_format, self._copy_button):
+        others = (self._rendering_widget, self._detail, self._copy_format, self._copy_button)
+        for widget in (self._search, *others):
             grid.removeWidget(widget)
-        for column in range(4):
+        for column in range(5):
             grid.setColumnStretch(column, 0)
         if stacked:
-            grid.addWidget(self._search, 0, 0, 1, 4)
-            grid.addWidget(self._detail, 1, 0)
-            grid.addWidget(self._copy_format, 1, 1)
-            grid.addWidget(self._copy_button, 1, 2)
-            grid.setColumnStretch(3, 1)
+            grid.addWidget(self._search, 0, 0, 1, 5)
+            for column, widget in enumerate(others):
+                grid.addWidget(widget, 1, column)
+            grid.setColumnStretch(4, 1)
         else:
             grid.addWidget(self._search, 0, 0)
-            grid.addWidget(self._detail, 0, 1)
-            grid.addWidget(self._copy_format, 0, 2)
-            grid.addWidget(self._copy_button, 0, 3)
+            for column, widget in enumerate(others, start=1):
+                grid.addWidget(widget, 0, column)
             grid.setColumnStretch(0, 1)
 
     def _controls_need_two_rows(self, width: int) -> bool:
         fixed = sum(
             widget.sizeHint().width()
-            for widget in (self._detail, self._copy_format, self._copy_button)
+            for widget in (self._rendering_widget, self._detail, self._copy_format, self._copy_button)
+            if not widget.isHidden()
         )
-        spacing = max(0, self._controls_layout.horizontalSpacing()) * 3
+        spacing = max(0, self._controls_layout.horizontalSpacing()) * 4
         search = self.fontMetrics().averageCharWidth() * _SEARCH_MIN_CHARS
         return width < fixed + spacing + search
 
@@ -461,13 +501,14 @@ class FactView(QWidget):
         None keeps `DEFAULT_EXPANDED`, so every existing caller is
         unchanged.
         """
-        self._report = report
+        self._source_report = report
         self._expanded_override = (
             None if expanded is None else frozenset(expanded)
         )
         self._title.setText(title)
         self._summary.setText(summary)
         self._summary.setVisible(bool(summary))
+        self._sync_renderings()
         # BEFORE `_render`, which inserts the category sections at the end
         # of the container -- so the charts sit above the facts, which is
         # where a picture of the result belongs.
@@ -475,10 +516,78 @@ class FactView(QWidget):
         self._render()
 
     def report(self):
-        return self._report
+        """The report as it was handed in -- every rendering, not just the
+        one on screen, so a caller opening it elsewhere can still switch."""
+        return self._source_report
+
+    # --- renderings (units) ---------------------------------------------------
+
+    def rendering(self) -> str:
+        """The rendering key on screen, or "" for a report with none."""
+        data = self._rendering_box.currentData()
+        return data if self._rendering_widget.isVisibleTo(self) and isinstance(data, str) else ""
+
+    def rendering_problem(self) -> str:
+        return self._rendering_problem
+
+    def set_rendering(self, key: str) -> None:
+        """Choose a rendering by KEY, as a reader picking it would."""
+        index = self._rendering_box.findData(key)
+        if index >= 0:
+            self._rendering_box.setCurrentIndex(index)
+
+    def _sync_renderings(self) -> None:
+        """Offer the report's units -- only when its declaration holds.
+
+        **A DECLARATION THAT DOES NOT HOLD IS READ IN ITS DEFAULT FORM, AND
+        SAYS WHY.** An old result has no renderings and gets no control; one
+        whose chart changes its x grid between units gets no control either,
+        because switching would change the curve rather than its unit, and
+        the status line names the reason instead of the control silently
+        vanishing.
+        """
+        report = self._source_report
+        state, reason = rendering_state(report) if report is not None else ("none", "")
+        self._rendering_problem = reason if state == INVALID_RENDERINGS else ""
+        blocked = self._rendering_box.blockSignals(True)
+        self._rendering_box.clear()
+        if state == COMPLETE_RENDERINGS:
+            for rendering in report.renderings:
+                self._rendering_box.addItem(rendering.label, rendering.key)
+            wanted = self._rendering_choice.get(getattr(report, "report_id", ""), "")
+            index = self._rendering_box.findData(wanted)
+            self._rendering_box.setCurrentIndex(index if index >= 0 else 0)
+        self._rendering_box.blockSignals(blocked)
+        self._rendering_widget.setVisible(state == COMPLETE_RENDERINGS)
+        self._report = self._in_chosen_rendering(report, state)
+        self._arrange_controls(stacked=self._controls_need_two_rows(self.width()))
+
+    def _in_chosen_rendering(self, report, state: str):
+        if report is None or state != COMPLETE_RENDERINGS:
+            return report
+        key = self._rendering_box.currentData() or default_rendering(report)
+        return dataclasses.replace(
+            report,
+            facts=facts_in_rendering(report.facts, key),
+            charts=tuple(chart_in_rendering(chart, key) for chart in report.charts),
+        )
+
+    def _on_rendering_chosen(self, _index: int) -> None:
+        report = self._source_report
+        if report is None:
+            return
+        key = self._rendering_box.currentData()
+        if isinstance(key, str):
+            self._rendering_choice[getattr(report, "report_id", "")] = key
+        self._report = self._in_chosen_rendering(report, rendering_state(report)[0])
+        self._rebuild_charts()
+        self._render()
+        self.filter_changed.emit()
 
     def clear(self, title: str = "", status: str = "") -> None:
         self._report = None
+        self._source_report = None
+        self._rendering_widget.setVisible(False)
         self._title.setText(title)
         self._summary.setVisible(False)
         self._clear_sections()
@@ -899,6 +1008,12 @@ class FactView(QWidget):
         section.content_layout().addRow(self._caption(section, fact, provenance), row)
 
     def _status_text(self, report, shown: int, needle: str, hidden_by_depth: int) -> str:
+        text = self._status_text_for_facts(report, shown, needle, hidden_by_depth)
+        if self._rendering_problem:
+            text += f" Units cannot be switched: {self._rendering_problem}."
+        return text
+
+    def _status_text_for_facts(self, report, shown: int, needle: str, hidden_by_depth: int) -> str:
         total = len(report.facts)
         if needle.strip() and shown != total:
             return f"{shown} of {total} facts match {needle.strip()!r}."
@@ -962,7 +1077,8 @@ class FactView(QWidget):
         dialog.setWindowTitle(self._title.text() or "Report")
         dialog.resize(520, 640)
         view = FactView(dialog, show_charts=self._show_charts)
-        view.set_report(self._report, self._title.text(), self._summary.text())
+        view.set_report(self._source_report, self._title.text(), self._summary.text())
+        view.set_rendering(self.rendering())
         view.link_activated.connect(self.link_activated)
         view.compare_requested.connect(self.compare_requested)
         layout = QVBoxLayout(dialog)

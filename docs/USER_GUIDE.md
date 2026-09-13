@@ -1834,10 +1834,14 @@ rather than a number to put in a protocol.
 
 ### Reading the numbers
 
-Every value appears in three units — logS, mg/mL and mol/L — because the
-same solubility in different units is the single easiest thing to
-misread. The row you chose is shown first; the other two are there when
-you expand the detail.
+Every value is computed in three units — logS, mg/mL and mol/L — because
+the same solubility in different units is the single easiest thing to
+misread. In the Results panel, the **Units** box above the report picks
+which one you read: the chart, the rows, **Copy report** and a saved
+picture all switch together, and nothing is run again. The panel remembers
+the unit you chose for each result. (A result saved before this change has
+no Units box and stays in the unit it was computed in; run it again to get
+the choice.)
 
 **The category is computed from the intrinsic value, not the pH-adjusted
 one**, which is how ChemAxon defines those thresholds: below 0.01 mg/mL
