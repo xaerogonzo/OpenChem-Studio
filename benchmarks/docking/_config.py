@@ -14,6 +14,8 @@ source.
 
 from __future__ import annotations
 
+import os
+
 from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
 from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
 
@@ -45,6 +47,23 @@ def admet_interpreter() -> str:
         raise SystemExit(
             "No ADMET environment is configured.\n"
             "Set one up via Tools > External Tools > ADMET (hERG/CYP), then re-run."
+        )
+    return path
+
+
+#: The ONE tool here that is not read from Settings, and deliberately: the
+#: application has no smina surface at all -- it is a spike's instrument, and
+#: inventing a Settings key for it would be app surface nothing reaches.
+#: Promote it to a Settings key the day an engine lands in `src/`.
+SMINA_ENV_VAR = "OPENCHEM_SMINA"
+
+
+def smina_executable() -> str:
+    path = os.environ.get(SMINA_ENV_VAR, "")
+    if not path:
+        raise SystemExit(
+            f"No smina executable given. Set {SMINA_ENV_VAR} to smina.exe -- the\n"
+            "conda-forge win-64 build lands at <env>\\Library\\bin\\smina.exe."
         )
     return path
 
