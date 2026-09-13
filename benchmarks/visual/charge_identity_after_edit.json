@@ -1,0 +1,26 @@
+[
+  {"do": "smiles", "smiles": "O1OC=N1", "name": "Ring", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "calculator", "id": "gasteiger_charge_at_ph", "parameters": {"pH": 7.4}, "reveal": false, "after_ms": 12000},
+  {"do": "panel", "id": "Atom_Inspector", "after_ms": 2000},
+
+  {"do": "select_atom", "atom": 3, "after_ms": 1500},
+  {"do": "inspector_report", "tag": "fresh-N", "after_ms": 800},
+  {"do": "select_atom", "atom": 0, "after_ms": 1500},
+  {"do": "inspector_report", "tag": "fresh-O", "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/charge_identity_fresh.png", "after_ms": 1000},
+
+  {"do": "erase", "element": "N", "after_ms": 4000},
+  {"do": "report", "tag": "after-erase", "after_ms": 1500},
+  {"do": "select_atom", "atom": 0, "after_ms": 1500},
+  {"do": "inspector_report", "tag": "after-edit", "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/charge_identity_after_edit.png", "after_ms": 1000},
+
+  {"do": "menu", "text": "Undo", "prefix": true, "after_ms": 4000},
+  {"do": "report", "tag": "after-undo", "after_ms": 1500},
+  {"do": "select_atom", "atom": 0, "after_ms": 1500},
+  {"do": "inspector_report", "tag": "after-undo", "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/charge_identity_after_undo.png", "after_ms": 1000},
+
+  {"do": "quit"}
+]

@@ -1,0 +1,259 @@
+[
+ {
+  "do": "smiles",
+  "smiles": "CCCC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1",
+  "name": "Butyryl Fentanyl",
+  "after_ms": 3000
+ },
+ {
+  "do": "select",
+  "molecule": -1,
+  "after_ms": 3000
+ },
+ {
+  "do": "calculator",
+  "id": "elemental_analysis",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "mass_spectrum",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "iupac_name",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "gasteiger_charge_at_ph",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "crippen_logp_contrib",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "stereoisomers",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "tautomers",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "resonance_forms",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "huckel_analysis",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "huckel_pi_density",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "crippen_mr_contrib",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "polarizability",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "atomic_polarizability",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "orbital_electronegativity",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "topology_analysis",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "topology_eccentricity",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "tsei_projection",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "topology_distance_degree",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "ring_systems",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "hbond_vs_ph",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "functional_groups",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "solubility",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "hansen_solubility",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "oxidation_states",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "polar_surface_area",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "cns_mpo",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "bbb_descriptors",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "structural_frameworks",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "stereocenters",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "calculator",
+  "id": "locants",
+  "reveal": false,
+  "after_ms": 700
+ },
+ {
+  "do": "wait",
+  "after_ms": 30000
+ },
+ {
+  "do": "panel",
+  "id": "Results",
+  "after_ms": 2000
+ },
+ {
+  "do": "results",
+  "after_ms": 2500
+ },
+ {
+  "do": "dock_move",
+  "panel": "Properties",
+  "beside": "Results",
+  "orientation": "horizontal",
+  "after_ms": 2500
+ },
+ {
+  "do": "dock_resize",
+  "panel": "Results",
+  "width": 380,
+  "after_ms": 2500
+ },
+ {
+  "do": "dock_report",
+  "tag": "beside",
+  "after_ms": 800
+ },
+ {
+  "do": "reader_layout_report",
+  "tag": "beside",
+  "after_ms": 800
+ },
+ {
+  "do": "shot",
+  "path": "benchmarks/visual/artifacts/results_layout_beside.png",
+  "after_ms": 1000
+ },
+ {
+  "do": "dock_move",
+  "panel": "Results",
+  "area": "top",
+  "after_ms": 2500,
+  "height": 190
+ },
+ {
+  "do": "dock_report",
+  "tag": "top",
+  "after_ms": 800
+ },
+ {
+  "do": "reader_layout_report",
+  "tag": "top",
+  "after_ms": 800
+ },
+ {
+  "do": "shot",
+  "path": "benchmarks/visual/artifacts/results_layout_top.png",
+  "after_ms": 1000
+ },
+ {
+  "do": "quit"
+ }
+]

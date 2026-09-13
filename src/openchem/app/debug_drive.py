@@ -618,6 +618,25 @@ class _Driver(QObject):
         else:
             self._window.addDockWidget(self._AREAS[str(step.get("area", "right"))], dock)
         dock.show()
+        # `"width"` / `"height"`: the size a user's drag would leave, so a
+        # layout complaint can be reproduced at the size it was reported at.
+        # A split's default share is whatever Qt picks, and the first run at
+        # it gave Results 132 px where the report showed about 380.
+        if "width" in step:
+            self._window.resizeDocks([dock], [int(step["width"])], Qt.Orientation.Horizontal)
+        if "height" in step:
+            self._window.resizeDocks([dock], [int(step["height"])], Qt.Orientation.Vertical)
+
+    def _do_dock_resize(self, step: dict[str, Any]) -> None:
+        """`{"do": "dock_resize", "panel": "Results", "width": 380}` -- resize
+        without moving, for a dock already where it should be."""
+        dock = self._dock(str(step["panel"]))
+        if dock is None:
+            return
+        if "width" in step:
+            self._window.resizeDocks([dock], [int(step["width"])], Qt.Orientation.Horizontal)
+        if "height" in step:
+            self._window.resizeDocks([dock], [int(step["height"])], Qt.Orientation.Vertical)
 
     def _do_dock_tabify(self, step: dict[str, Any]) -> None:
         """`{"do": "dock_tabify", "panel": "Results", "onto": "Properties"}`"""
@@ -653,6 +672,76 @@ class _Driver(QObject):
         """
         report = self._window.dock_layout_report()
         logger.warning("OPENCHEM_DRIVE: dock_report %s %s", step.get("tag", ""), json.dumps(report))
+
+    def _do_reader_layout_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "reader_layout_report", "tag": "beside"}` -- how much of the
+        Results reader is FACTS, in rows a person can read.
+
+        **ROWS, NOT PIXELS.** The reported defect was the fact list squeezed
+        to about two rows between a 35-name summary and a caveat paragraph;
+        "the scroll area is 60 px" means nothing across fonts and DPI, while
+        "2 rows fully visible" is the complaint itself. Pixels are logged
+        beside it for the record.
+        """
+        from PySide6.QtCore import QPoint, QRect
+
+        from openchem.ui.widgets.fact_view import _FactRow
+
+        reader = self._window._property_panel._attached_reader
+        if reader is None:
+            logger.error("OPENCHEM_DRIVE: reader_layout_report -- no reader")
+            return
+        view = reader._view
+
+        def on_screen(widget) -> QRect:
+            """The part of `widget` no ancestor clips away, in global
+            coordinates. EVERY ancestor, not the nearest scroll area: the
+            dock wraps the reader in a scroll area of its own, and measured
+            against the inner one alone a squeezed reader reported 49 whole
+            rows inside a 2198 px viewport while the screen showed none."""
+            rect = QRect(widget.mapToGlobal(QPoint(0, 0)), widget.size())
+            parent = widget.parentWidget()
+            while parent is not None:
+                rect = rect.intersected(QRect(parent.mapToGlobal(QPoint(0, 0)), parent.size()))
+                parent = parent.parentWidget()
+            return rect
+
+        rows = view._container.findChildren(_FactRow)
+        whole = 0
+        for row in rows:
+            if not row.isVisible():
+                continue
+            if on_screen(row).size() == row.size():
+                whole += 1
+        viewport = view._area.viewport()
+        reader_visible = on_screen(reader)
+        clipped_right = reader_visible.width() < reader.width()
+        properties_dock = self._dock("Properties")
+        logger.warning(
+            "OPENCHEM_DRIVE: reader_layout %s rows_whole=%d rows_total=%d facts_on_screen_h=%d "
+            "summary_h=%d summary_truncated=%s status_h=%d status_truncated=%s "
+            "controls_stacked=%s reader_w=%d reader_visible_w=%d reader_min_h=%d reader_visible_h=%d clipped=%s "
+            "properties_visible=%s selected=%s",
+            step.get("tag", ""),
+            whole,
+            len(rows),
+            on_screen(viewport).height(),
+            view._summary.height(),
+            # getattr: the step also runs against a build BEFORE the notes
+            # folded, which is how the defect is reproduced before the fix
+            # is judged.
+            getattr(view._summary, "is_truncated", lambda: None)(),
+            view._status.height(),
+            getattr(view._status, "is_truncated", lambda: None)(),
+            getattr(view, "controls_are_stacked", lambda: None)(),
+            reader.width(),
+            reader_visible.width(),
+            reader.minimumSizeHint().height(),
+            reader_visible.height(),
+            clipped_right or reader_visible.height() < reader.height(),
+            bool(properties_dock is not None and properties_dock.isVisible()),
+            self._window._property_panel._selected_molecule_uuid,
+        )
 
     def _do_align(self, step: dict[str, Any]) -> None:
         """Run the 3D Alignment panel on the project's molecules.
@@ -1169,7 +1258,16 @@ class _Driver(QObject):
             return
         parameters: dict[str, Any] = {p.name: p.default for p in definition.parameters}
         parameters.update(step.get("parameters") or {})
-        panel._pending_calculator_id = calculator_id
+        # `"reveal": false` skips the reveal, so no modal Calculator Inspector
+        # sits open for the rest of an unattended run. It USED to be
+        # load-bearing: the reveal ran `exec()` inside the bus handler and
+        # starved every later subscriber (the Atom Inspector got the dataset
+        # 67 s late, at quit). `PropertyPanel._reveal_after_dispatch` fixed
+        # that; with the reveal on, the Atom Inspector now holds the result
+        # while the dialog is open -- measured, OPENCHEM_TRACE_WINDOWS showing
+        # the dialog.
+        if step.get("reveal", True):
+            panel._pending_calculator_id = calculator_id
         panel._set_running(calculator_id, True)
         window._services.descriptor_service.run_calculator(
             molecule,
@@ -2098,6 +2196,128 @@ class _Driver(QObject):
         """
         self._report_editor_selection()
 
+    def _do_inspector_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "inspector_report", "tag": "after-edit"}` -- what the Atom
+        Inspector is SHOWING for its subject: title, the pinned line, and
+        every fact as label=value.
+
+        **THE PINNED LINE IS THE POINT.** A per-atom result computed for an
+        earlier structure is withheld and NAMED there; a screenshot shows a
+        missing row and a sentence, which is exactly the pair that reads as
+        "never computed" if one of them fails. Logged as text so a run can
+        assert on both.
+        """
+        panel = self._window._atom_inspector_panel
+        facts = panel._facts
+        report = getattr(facts, "_report", None)
+        rows = [
+            f"{fact.label}={fact.value_with_units}" for fact in getattr(report, "facts", ()) or ()
+        ]
+        # Every HELD per-atom result and what the panel decides about it, so
+        # "not on screen" can be told apart from "never arrived".
+        model, _mol = panel._molecule()
+        held = {}
+        if model is not None:
+            context = panel._context_for(model.uuid)
+            cache: dict = {}
+            for key in context["per_atom"]:
+                calculation_input, fingerprint = context["inputs"].get(("per_atom", key), ("", ""))
+                held[key] = panel._freshness(model, calculation_input, fingerprint, cache)
+        # And what PROPERTIES holds, which is the other half of "never
+        # arrived": a result there and not here was missed by this panel.
+        properties = sorted(getattr(self._window._property_panel, "_retained_results", {}) or {})
+        logger.warning(
+            "OPENCHEM_DRIVE: inspector %s title=%r pinned=%r held=%s properties=%s facts=%s",
+            step.get("tag", ""),
+            panel.title_text(),
+            facts._summary.text(),
+            json.dumps(held),
+            json.dumps(properties),
+            json.dumps(rows),
+        )
+
+    def _do_units(self, step: dict[str, Any]) -> None:
+        """`{"do": "units", "key": "mg_per_ml", "tag": "mg"}` -- choose a unit
+        in the reader's Units COMBO, then log what the reader shows.
+
+        **THE COMBO, NOT `set_rendering`.** A user picks an entry; the index
+        change is what the view is wired to, so that is what is driven. With
+        no `key` it only reports. The log carries the chart's y label and the
+        unit-bearing fact rows, because "the unit changed" and "the numbers
+        changed with it" photograph the same at a glance.
+        """
+        view = self._window._results_view._view
+        box = view._rendering_box
+        key = step.get("key")
+        if key:
+            index = box.findData(str(key))
+            if index < 0:
+                logger.error("OPENCHEM_DRIVE: units -- no entry %r (offered: %s)", key,
+                             [box.itemData(i) for i in range(box.count())])
+                return
+            box.setCurrentIndex(index)
+        shown = view._report
+        charts = getattr(shown, "charts", ()) or ()
+        rows = [
+            f"{fact.label}={fact.value_with_units}"
+            for fact in getattr(shown, "facts", ()) or ()
+            if getattr(fact, "rendering", "")
+        ]
+        logger.warning(
+            "OPENCHEM_DRIVE: units %s offered=%s visible=%s current=%s problem=%r "
+            "chart_y=%r first_y=%s rows=%s",
+            step.get("tag", ""),
+            [box.itemText(i) for i in range(box.count())],
+            not view._rendering_widget.isHidden(),
+            view.rendering(),
+            view.rendering_problem(),
+            charts[0].y_label if charts else None,
+            (charts[0].series[0].points[0][1] if charts and charts[0].series else None),
+            json.dumps(rows),
+        )
+
+    def _do_chart_cursor(self, step: dict[str, Any]) -> None:
+        """`{"do": "chart_cursor", "x": 7.4}` -- CLICK the reader's first line
+        chart where `x` is, and log the kept reading beside the scalar fact.
+
+        A real mouse click (`QTest.mouseClick`) at the pixel for `x`, so what
+        is measured is the widget's own press handler snapping to a sample --
+        the `jobs_cancel` rule. The log puts the reading's numbers next to the
+        report's "LogD at pH" fact, because "the cursor at the chosen pH is the
+        scalar" is the claim, and a screenshot shows two numbers that merely
+        look alike.
+        """
+        from PySide6.QtCore import QPoint
+        from PySide6.QtTest import QTest
+
+        from openchem.ui.widgets.line_chart_widget import LineChartWidget
+
+        view = self._window._results_view._view
+        charts = [w for w in view.chart_widgets() if isinstance(w, LineChartWidget)]
+        if not charts:
+            logger.error("OPENCHEM_DRIVE: chart_cursor -- the reader shows no line chart")
+            return
+        widget = charts[0]
+        widget.window().raise_()
+        rect = widget._plot_rect()
+        x_min, x_max = widget._x_range()
+        fraction = (float(step["x"]) - x_min) / (x_max - x_min)
+        pixel = QPoint(int(rect.left() + fraction * rect.width()), int(rect.center().y()))
+        QTest.mouseClick(widget, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pixel)
+        pinned = widget.pinned_x()
+        scalar = [
+            f"{fact.label}={fact.value!r}"
+            for fact in getattr(view._report, "facts", ()) or ()
+            if fact.label.startswith("LogD at pH")
+        ]
+        logger.warning(
+            "OPENCHEM_DRIVE: chart_cursor asked=%s pinned=%r readout=%s at_pinned=%r scalar=%s",
+            step["x"], pinned,
+            json.dumps(widget.readout_lines(pinned) if pinned is not None else []),
+            widget.readout_at(pinned) if pinned is not None else None,
+            scalar,
+        )
+
     def _do_picture(self, step: dict[str, Any]) -> None:
         """Export the reader's Nth chart through the REAL export path.
 
@@ -2163,12 +2383,17 @@ class _Driver(QObject):
         thing no screenshot of a closed menu can carry.
         """
         wanted = str(step["text"])
+        # `"prefix": true` for an entry whose text names what it acts on --
+        # `QUndoStack.createUndoAction` reads "Undo <last command>", so the
+        # exact text of Edit > Undo is not known before the run.
+        prefix = bool(step.get("prefix"))
         for menu_action in self._window.menuBar().actions():
             menu = menu_action.menu()
             if menu is None:
                 continue
             for action in _walk_actions(menu):
-                if action.text().replace("&", "") != wanted:
+                text = action.text().replace("&", "")
+                if not (text.startswith(wanted) if prefix else text == wanted):
                     continue
                 action.trigger()
                 logger.warning(

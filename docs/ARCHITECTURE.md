@@ -608,6 +608,33 @@ per molecule, so an undo replays rather than recomputes.
 before a Save. Recovery is off in `MainWindow` unless `main.py` enables it,
 because the suite does not isolate the data root.
 
+### What a per-atom index means, and what a unit is
+
+Four decisions from one session (2026-09-13), recorded together because they
+are the same idea: a value is only meaningful beside what it refers to, and a
+view may choose how to read a result but never recompute or reinterpret it.
+
+- **A protonated species is in the drawing's atom order.**
+  `pka_providers.dominant_microspecies` renumbers Dimorphite's answer back
+  onto the input's atoms by element and adjacency
+  (`restore_heavy_atom_order`), preferring the correspondence whose changes are
+  all proton events and refusing when equivalent sites genuinely differ. Every
+  per-atom consumer (charges, Hückel density, Lewis sites) inherits it.
+- **Structure-bound events carry their input's identity.**
+  `PerAtomDataComputed` and `SpectrumComputed` have `input_fingerprint` and
+  `calculation_input`, stamped by `descriptor_service` and restored on replay.
+  The Atom Inspector compares them with `chem.calculation_input.input_fingerprint`
+  and withholds anything stale or unverifiable, naming it. ORCA spectra carry
+  none today and are shown as before -- a recorded gap.
+- **A unit is a declared rendering, not a parameter.** `ReportResult.renderings`,
+  `Fact.rendering` and `LineChartAnnotation.renderings` let a producer state one
+  quantity several ways; `rendering_state` decides whether a reader may offer the
+  switch; `FactView` shows a filtered copy so rows, charts, Copy and export all
+  follow it. `merge_reports` keeps each report's default rendering.
+- **A chart readout is a sample.** `line_chart_widget.nearest_sampled_x` snaps to
+  a declared point (ties to the lower x, clamped at the ends) and a click keeps
+  it. LogD samples the chosen pH, so the kept reading there is the scalar.
+
 ### Docking: the rail manages panels, the user places them
 
 `_show_only_right_dock` gives the chosen right-hand panel the column by

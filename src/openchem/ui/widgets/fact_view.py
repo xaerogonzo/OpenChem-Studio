@@ -36,6 +36,7 @@ MainWindows now, and CLAUDE.md has the measurements.
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 
 from PySide6.QtCore import Qt, Signal
@@ -43,6 +44,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
     QDialog,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -56,13 +58,20 @@ from PySide6.QtWidgets import (
 from openchem.domain.visualization_index import kind_of_annotation
 from openchem.domain.report import (
     CATEGORY_LABELS,
+    COMPLETE_RENDERINGS,
     DEFAULT_EXPANDED,
+    INVALID_RENDERINGS,
     Detail,
     Fact,
     FactLink,
+    chart_in_rendering,
+    default_rendering,
+    facts_in_rendering,
+    rendering_state,
 )
 from openchem.domain.structure_resolution import ResolvedStructure
 from openchem.ui.widgets.collapsible_section import (
+    ClampedLabel,
     CollapsibleSection,
     ExplicitHeightLabel,
     WrappedLabel,
@@ -156,6 +165,31 @@ _HELP: dict[str, HelpTooltip] = {
         help_id="facts.copy_format",
         topic="facts",
     ),
+    "rendering": HelpTooltip(
+        text=(
+            "Which unit to read this result in.\n\n"
+            "Every unit was computed when the calculator ran; switching shows "
+            "a different one and runs nothing. The chart, the facts below it, "
+            "Copy report and a saved picture all follow the choice.\n\n"
+            "Offered only when the result declares its units completely -- "
+            "an older result, or one whose units do not hold together, is "
+            "shown in the unit it was computed in."
+        ),
+        tier=1,
+        help_id="facts.rendering",
+        topic="facts",
+    ),
+    "more": HelpTooltip(
+        text=(
+            "Show the rest of this note, or fold it back to three lines.\n\n"
+            "Long notes are folded so the facts between them stay readable in "
+            "a narrow or short panel. Nothing is removed: Copy report carries "
+            "the whole text either way."
+        ),
+        tier=1,
+        help_id="facts.more",
+        topic="facts",
+    ),
     "copy": HelpTooltip(
         text=(
             "Copy the facts as they are currently shown.\n\n"
@@ -169,6 +203,82 @@ _HELP: dict[str, HelpTooltip] = {
         topic="facts",
     ),
 }
+
+
+#: Lines a pinned note shows before it folds. Three keeps a one-sentence
+#: staleness or refusal line whole and folds the "35 result(s): ..." list
+#: that squeezed the facts to two rows.
+NOTE_LINES = 3
+
+#: Fact rows the scroll area keeps however little room the panel has: the
+#: facts are what is being read, so they are the LAST thing to give way.
+#: Converted to pixels from the font, never a hard-coded height.
+MIN_VISIBLE_FACT_ROWS = 3
+
+#: The narrowest the filter box may get before the controls take two rows,
+#: in average character widths -- enough for "Filter facts" to be legible.
+_SEARCH_MIN_CHARS = 18
+
+
+class _ClampedNote(QWidget):
+    """A pinned note that folds to `NOTE_LINES` lines, with More/Less.
+
+    The label API the host already used -- `setText`, `text` -- is kept, so
+    every existing reader of `_summary` and `_status` is unchanged. The fold
+    state belongs to the NOTE, not the text, so it survives the note being
+    rewritten on every search keystroke: somebody who opened it keeps it
+    open.
+    """
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.label = ClampedLabel("", self, max_lines=NOTE_LINES)
+        self.toggle = QPushButton("More", self)
+        self.toggle.setFlat(True)
+        self.toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.toggle.setStyleSheet("color: palette(link); padding: 0 4px; text-align: right;")
+        self.toggle.clicked.connect(self._on_toggle)
+        apply_help_tooltip(self.toggle, _HELP["more"])
+        self.toggle.setVisible(False)
+        # BESIDE the text, not under it: under it, the control costs a whole
+        # line in exactly the short panel the fold exists for.
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+        layout.addWidget(self.label, 1)
+        layout.addWidget(self.toggle, 0, Qt.AlignmentFlag.AlignBottom)
+
+    def setText(self, text: str) -> None:  # noqa: N802 - the QLabel name it stands in for
+        self.label.setText(text)
+        self._sync_toggle()
+
+    def text(self) -> str:
+        return self.label.text()
+
+    def setStyleSheet(self, sheet: str) -> None:  # noqa: N802 - Qt's own casing
+        self.label.setStyleSheet(sheet)
+
+    def is_truncated(self) -> bool:
+        return self.label.is_truncated()
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt's own casing
+        super().resizeEvent(event)
+        self._sync_toggle()
+
+    def _on_toggle(self, _checked: bool = False) -> None:
+        self.label.set_expanded(not self.label.is_expanded())
+        self._sync_toggle()
+
+    def _sync_toggle(self) -> None:
+        """Offer the control only when it does something.
+
+        Expanded, it always shows ("Less"); folded, only if text is cut. A
+        "More" under a note that is already whole is a button that lies.
+        """
+        expanded = self.label.is_expanded()
+        self.toggle.setText("Less" if expanded else "More")
+        self.toggle.setVisible(bool(self.label.text()) and (expanded or self.label.is_truncated()))
+        self.label.updateGeometry()
 
 
 class FactView(QWidget):
@@ -231,12 +341,12 @@ class FactView(QWidget):
         self._title = QLabel("", self)
         self._title.setStyleSheet("font-weight: bold;")
 
-        #: The Summary. Pinned above the sections and never collapsible --
-        #: people want formula, weight and a few descriptors immediately,
-        #: not after opening a category. Everything else stays behind a
-        #: heading, which is the only thing that makes a hundred facts
-        #: readable.
-        self._summary = WrappedLabel("", self)
+        #: The Summary. Pinned above the sections and never behind a heading
+        #: -- people want formula, weight and a few descriptors immediately,
+        #: not after opening a category. FOLDED past `NOTE_LINES`, though:
+        #: pinned and unbounded, it is what squeezed the facts. See
+        #: `_ClampedNote`.
+        self._summary = _ClampedNote(self)
         self._summary.setStyleSheet("padding: 2px 0;")
 
         self._search = QLineEdit(self)
@@ -253,6 +363,25 @@ class FactView(QWidget):
         apply_help_tooltip(self._detail, _HELP['detail'])
         self._detail.currentIndexChanged.connect(self._on_filter_changed)
 
+        #: The report as handed in. `_report` is what is SHOWN: this, in the
+        #: chosen rendering. Everything that renders, copies or exports reads
+        #: `_report`, so all of it follows the choice by construction.
+        self._source_report = None
+        #: report_id -> the rendering key last chosen for it, so returning to
+        #: a result reopens it in the unit it was being read in.
+        self._rendering_choice: dict[str, str] = {}
+        #: Why a declared set of renderings is not offered, or "".
+        self._rendering_problem = ""
+        self._rendering_widget = QWidget(self)
+        rendering_row = QHBoxLayout(self._rendering_widget)
+        rendering_row.setContentsMargins(0, 0, 0, 0)
+        rendering_row.addWidget(QLabel("Units:", self._rendering_widget))
+        self._rendering_box = QComboBox(self._rendering_widget)
+        apply_help_tooltip(self._rendering_box, _HELP["rendering"])
+        self._rendering_box.currentIndexChanged.connect(self._on_rendering_chosen)
+        rendering_row.addWidget(self._rendering_box)
+        self._rendering_widget.setVisible(False)
+
         self._copy_format = QComboBox(self)
         self._copy_format.addItems(COPY_FORMATS)
         apply_help_tooltip(self._copy_format, _HELP['copy_format'])
@@ -260,7 +389,7 @@ class FactView(QWidget):
         self._copy_button.clicked.connect(self._on_copy_clicked)
         apply_help_tooltip(self._copy_button, _HELP['copy'])
 
-        self._status = WrappedLabel("", self)
+        self._status = _ClampedNote(self)
 
         self._container = QWidget(self)
         self._container_layout = QVBoxLayout(self._container)
@@ -269,14 +398,19 @@ class FactView(QWidget):
         self._area = QScrollArea(self)
         self._area.setWidget(self._container)
         self._area.setWidgetResizable(True)
+        # THE FACTS GIVE WAY LAST. A floor in ROWS, converted from the font,
+        # so it means the same thing at any DPI or font size.
+        self._area.setMinimumHeight(
+            self.fontMetrics().lineSpacing() * MIN_VISIBLE_FACT_ROWS + 2 * self._area.frameWidth()
+        )
 
         self._controls = QWidget(self)
-        controls = QHBoxLayout(self._controls)
-        controls.setContentsMargins(0, 0, 0, 0)
-        controls.addWidget(self._search, 1)
-        controls.addWidget(self._detail)
-        controls.addWidget(self._copy_format)
-        controls.addWidget(self._copy_button)
+        self._controls_layout = QGridLayout(self._controls)
+        self._controls_layout.setContentsMargins(0, 0, 0, 0)
+        #: "wide" (one row) or "stacked" (the filter on its own row). See
+        #: `_arrange_controls`.
+        self._controls_arrangement = ""
+        self._arrange_controls(stacked=False)
         self._controls.setVisible(show_controls)
 
         layout = QVBoxLayout(self)
@@ -289,6 +423,58 @@ class FactView(QWidget):
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self._on_context_menu)
+
+    # --- the controls row ------------------------------------------------------
+
+    def _arrange_controls(self, stacked: bool) -> None:
+        """Filter, depth, format and Copy -- on one row, or the filter alone
+        above the other three.
+
+        **A ROW OF FOUR SQUEEZES THE ONE CONTROL THAT STRETCHES.** At the
+        width Results takes beside Properties the filter box was cut to
+        "Filter f..." while three fixed-width controls kept every pixel. Two
+        rows only when one cannot fit, and never `flow_row`: that wraps
+        per item and reserves lines by width, which the lesson on it records
+        costing visible space for a row this short.
+        """
+        arrangement = "stacked" if stacked else "wide"
+        if arrangement == self._controls_arrangement:
+            return
+        self._controls_arrangement = arrangement
+        grid = self._controls_layout
+        others = (self._rendering_widget, self._detail, self._copy_format, self._copy_button)
+        for widget in (self._search, *others):
+            grid.removeWidget(widget)
+        for column in range(5):
+            grid.setColumnStretch(column, 0)
+        if stacked:
+            grid.addWidget(self._search, 0, 0, 1, 5)
+            for column, widget in enumerate(others):
+                grid.addWidget(widget, 1, column)
+            grid.setColumnStretch(4, 1)
+        else:
+            grid.addWidget(self._search, 0, 0)
+            for column, widget in enumerate(others, start=1):
+                grid.addWidget(widget, 0, column)
+            grid.setColumnStretch(0, 1)
+
+    def _controls_need_two_rows(self, width: int) -> bool:
+        fixed = sum(
+            widget.sizeHint().width()
+            for widget in (self._rendering_widget, self._detail, self._copy_format, self._copy_button)
+            if not widget.isHidden()
+        )
+        spacing = max(0, self._controls_layout.horizontalSpacing()) * 4
+        search = self.fontMetrics().averageCharWidth() * _SEARCH_MIN_CHARS
+        return width < fixed + spacing + search
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt's own casing
+        super().resizeEvent(event)
+        self._arrange_controls(stacked=self._controls_need_two_rows(event.size().width()))
+
+    def controls_are_stacked(self) -> bool:
+        """Whether the filter box has its own row, for a guard to read."""
+        return self._controls_arrangement == "stacked"
 
     # --- what it is showing --------------------------------------------------
 
@@ -315,13 +501,14 @@ class FactView(QWidget):
         None keeps `DEFAULT_EXPANDED`, so every existing caller is
         unchanged.
         """
-        self._report = report
+        self._source_report = report
         self._expanded_override = (
             None if expanded is None else frozenset(expanded)
         )
         self._title.setText(title)
         self._summary.setText(summary)
         self._summary.setVisible(bool(summary))
+        self._sync_renderings()
         # BEFORE `_render`, which inserts the category sections at the end
         # of the container -- so the charts sit above the facts, which is
         # where a picture of the result belongs.
@@ -329,10 +516,78 @@ class FactView(QWidget):
         self._render()
 
     def report(self):
-        return self._report
+        """The report as it was handed in -- every rendering, not just the
+        one on screen, so a caller opening it elsewhere can still switch."""
+        return self._source_report
+
+    # --- renderings (units) ---------------------------------------------------
+
+    def rendering(self) -> str:
+        """The rendering key on screen, or "" for a report with none."""
+        data = self._rendering_box.currentData()
+        return data if self._rendering_widget.isVisibleTo(self) and isinstance(data, str) else ""
+
+    def rendering_problem(self) -> str:
+        return self._rendering_problem
+
+    def set_rendering(self, key: str) -> None:
+        """Choose a rendering by KEY, as a reader picking it would."""
+        index = self._rendering_box.findData(key)
+        if index >= 0:
+            self._rendering_box.setCurrentIndex(index)
+
+    def _sync_renderings(self) -> None:
+        """Offer the report's units -- only when its declaration holds.
+
+        **A DECLARATION THAT DOES NOT HOLD IS READ IN ITS DEFAULT FORM, AND
+        SAYS WHY.** An old result has no renderings and gets no control; one
+        whose chart changes its x grid between units gets no control either,
+        because switching would change the curve rather than its unit, and
+        the status line names the reason instead of the control silently
+        vanishing.
+        """
+        report = self._source_report
+        state, reason = rendering_state(report) if report is not None else ("none", "")
+        self._rendering_problem = reason if state == INVALID_RENDERINGS else ""
+        blocked = self._rendering_box.blockSignals(True)
+        self._rendering_box.clear()
+        if state == COMPLETE_RENDERINGS:
+            for rendering in report.renderings:
+                self._rendering_box.addItem(rendering.label, rendering.key)
+            wanted = self._rendering_choice.get(getattr(report, "report_id", ""), "")
+            index = self._rendering_box.findData(wanted)
+            self._rendering_box.setCurrentIndex(index if index >= 0 else 0)
+        self._rendering_box.blockSignals(blocked)
+        self._rendering_widget.setVisible(state == COMPLETE_RENDERINGS)
+        self._report = self._in_chosen_rendering(report, state)
+        self._arrange_controls(stacked=self._controls_need_two_rows(self.width()))
+
+    def _in_chosen_rendering(self, report, state: str):
+        if report is None or state != COMPLETE_RENDERINGS:
+            return report
+        key = self._rendering_box.currentData() or default_rendering(report)
+        return dataclasses.replace(
+            report,
+            facts=facts_in_rendering(report.facts, key),
+            charts=tuple(chart_in_rendering(chart, key) for chart in report.charts),
+        )
+
+    def _on_rendering_chosen(self, _index: int) -> None:
+        report = self._source_report
+        if report is None:
+            return
+        key = self._rendering_box.currentData()
+        if isinstance(key, str):
+            self._rendering_choice[getattr(report, "report_id", "")] = key
+        self._report = self._in_chosen_rendering(report, rendering_state(report)[0])
+        self._rebuild_charts()
+        self._render()
+        self.filter_changed.emit()
 
     def clear(self, title: str = "", status: str = "") -> None:
         self._report = None
+        self._source_report = None
+        self._rendering_widget.setVisible(False)
         self._title.setText(title)
         self._summary.setVisible(False)
         self._clear_sections()
@@ -753,6 +1008,12 @@ class FactView(QWidget):
         section.content_layout().addRow(self._caption(section, fact, provenance), row)
 
     def _status_text(self, report, shown: int, needle: str, hidden_by_depth: int) -> str:
+        text = self._status_text_for_facts(report, shown, needle, hidden_by_depth)
+        if self._rendering_problem:
+            text += f" Units cannot be switched: {self._rendering_problem}."
+        return text
+
+    def _status_text_for_facts(self, report, shown: int, needle: str, hidden_by_depth: int) -> str:
         total = len(report.facts)
         if needle.strip() and shown != total:
             return f"{shown} of {total} facts match {needle.strip()!r}."
@@ -816,7 +1077,8 @@ class FactView(QWidget):
         dialog.setWindowTitle(self._title.text() or "Report")
         dialog.resize(520, 640)
         view = FactView(dialog, show_charts=self._show_charts)
-        view.set_report(self._report, self._title.text(), self._summary.text())
+        view.set_report(self._source_report, self._title.text(), self._summary.text())
+        view.set_rendering(self.rendering())
         view.link_activated.connect(self.link_activated)
         view.compare_requested.connect(self.compare_requested)
         layout = QVBoxLayout(dialog)

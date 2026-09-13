@@ -132,6 +132,12 @@ def dominant_microspecies(mol: Chem.Mol, ph: float) -> Microspecies:
     Overriding a library's chemistry is a claim, and this is the narrowest
     form of it -- anything the library does that is not this specific,
     well-understood error stands.
+
+    **THE RETURNED MOLECULE IS IN THE INPUT'S ATOM ORDER.** The SMILES round
+    trip used to hand back the library's canonical order, and every per-atom
+    consumer numbered its values by that. On a four-atom O-O-C=N ring the
+    pH 7.4 Gasteiger charges landed nitrogen's +0.00 on an oxygen. See
+    `restore_heavy_atom_order` for the contract.
     """
     import dimorphite_dl
 
@@ -154,9 +160,13 @@ def dominant_microspecies(mol: Chem.Mol, ph: float) -> Microspecies:
     # can actually be tested: a fake returning the same states in two
     # different orders must give one answer.
     chosen = sorted(variants)[0]
-    protonated = Chem.MolFromSmiles(chosen)
-    if protonated is None:
+    parsed = Chem.MolFromSmiles(chosen)
+    if parsed is None:
         raise InvalidStructureError(f"Could not parse Dimorphite-DL output {chosen!r}")
+    # Correspondence FIRST, chemistry second, and neither knows about the
+    # other: which atom is which is a separate question from which formal
+    # state that atom should carry.
+    protonated = restore_heavy_atom_order(mol, parsed)
 
     corrected = _deprotonate_delocalised_nitrogen(protonated)
     return Microspecies(
@@ -164,6 +174,221 @@ def dominant_microspecies(mol: Chem.Mol, ph: float) -> Microspecies:
         formal_charge=Chem.GetFormalCharge(protonated),
         corrected_atoms=corrected,
     )
+
+
+#: More candidate correspondences than this is refused rather than searched.
+#: Only automorphisms produce extra candidates, and a drug-sized molecule has
+#: tens (fentanyl's two phenyl flips and its piperidine); a count at the cap
+#: means the search was truncated, which is not a uniqueness result.
+_MAX_CORRESPONDENCES = 5000
+
+
+def restore_heavy_atom_order(original: Chem.Mol, protonated: Chem.Mol) -> Chem.Mol:
+    """`protonated`, renumbered into `original`'s atom order.
+
+    **THE CONTRACT:** for every atom index i of `original`, atom i of the
+    result is the same atom. A heavy atom carries the protonated state
+    (charge, hydrogen count, aromaticity); a hydrogen `original` holds as an
+    ATOM stays an atom at its own index, bonded to the same parent. Nothing
+    else is guaranteed: this answers "which atom is which", never "which
+    state is right" -- that is Dimorphite's answer and
+    `_deprotonate_delocalised_nitrogen`'s correction.
+
+    **WHY IT MATCHES THE SKELETON INSTEAD OF CARRYING ATOM MAPS.** Maps were
+    the obvious route and they change the chemistry: measured over 111
+    molecule/pH pairs, a mapped imidazole comes back with NO state at pH 7.4
+    and 12 where the unmapped one returns an anion, and 4-nitrophenol's nitro
+    oxygen loses its map. So Dimorphite is called exactly as before and the
+    correspondence is recovered afterwards on element and adjacency alone --
+    protonation changes charges, hydrogens, bond orders and aromaticity
+    (the O-O-C=N ring comes back aromatic), and never the heavy-atom graph.
+
+    **THE DRAWING BREAKS THE TIES THE SKELETON CANNOT.** With bond orders
+    erased, a carboxylic acid's two oxygens are interchangeable, and the
+    first version refused 60 of 126 molecule/pH pairs for exactly that --
+    every acid. But the drawing says which oxygen held the proton. Dimorphite
+    only moves protons, so the right correspondence is the one that departs
+    LEAST from the drawing: `-OH -> -O-` changes one atom, where the swap
+    also turns a single bond double and a double single.
+
+    **AMBIGUITY THAT REMAINS REFUSES, UNLESS IT CANNOT MATTER.** Among the
+    least-departing candidates, each is compared on what it would put at
+    each index -- charge, hydrogens, aromaticity, bond orders. If they all
+    agree, which one is used is unobservable (a phenyl ring flipped). If they
+    disagree (one of two equivalent amines protonated), choosing would assign
+    the proton to an atom nothing chose, so it raises `InvalidStructureError`.
+    """
+    heavy = [atom.GetIdx() for atom in original.GetAtoms() if atom.GetAtomicNum() != 1]
+    if any(atom.GetAtomicNum() == 1 for atom in protonated.GetAtoms()):
+        raise InvalidStructureError(
+            "The protonated form holds hydrogen atoms; its correspondence to "
+            "the drawing cannot be established"
+        )
+    if len(heavy) != protonated.GetNumAtoms():
+        raise InvalidStructureError(
+            f"The protonated form has {protonated.GetNumAtoms()} heavy atoms "
+            f"where the drawing has {len(heavy)}"
+        )
+
+    query, heavy_bonds = _skeleton(original, heavy)
+    target, _ = _skeleton(protonated, list(range(protonated.GetNumAtoms())))
+    if len(heavy_bonds) != protonated.GetNumBonds():
+        raise InvalidStructureError("The protonated form's bonding differs from the drawing")
+
+    params = Chem.SubstructMatchParameters()
+    params.uniquify = False
+    params.maxMatches = _MAX_CORRESPONDENCES
+    matches = target.GetSubstructMatches(query, params)
+    if not matches:
+        raise InvalidStructureError("The protonated form does not match the drawing")
+    if len(matches) >= _MAX_CORRESPONDENCES:
+        raise InvalidStructureError("Too many symmetric correspondences to establish atom identity")
+
+    def signature(match):
+        atoms = tuple(
+            (
+                protonated.GetAtomWithIdx(match[q]).GetFormalCharge(),
+                protonated.GetAtomWithIdx(match[q]).GetTotalNumHs(),
+                protonated.GetAtomWithIdx(match[q]).GetIsAromatic(),
+            )
+            for q in range(len(heavy))
+        )
+        bonds = tuple(
+            protonated.GetBondBetweenAtoms(match[a], match[b]).GetBondType()
+            for a, b in heavy_bonds
+        )
+        return atoms, bonds
+
+    def departures(match):
+        """Changes to the DRAWING this correspondence cannot explain.
+
+        A proton event moves a hydrogen AND a unit of charge onto (or off)
+        the same atom, so `(+1 H, +1 charge)` and `(-1 H, -1 charge)` are
+        explained and cost nothing; anything else on an atom, and any bond
+        whose order changed, is a departure. Returned as (unexplained,
+        total) so the explained count still separates candidates that tie
+        on the first.
+        """
+        unexplained = total = 0
+        for q, index in enumerate(heavy):
+            drawn = original.GetAtomWithIdx(index)
+            made = protonated.GetAtomWithIdx(match[q])
+            change = (
+                made.GetTotalNumHs() - drawn.GetTotalNumHs(),
+                made.GetFormalCharge() - drawn.GetFormalCharge(),
+            )
+            total += (change[0] != 0) + (change[1] != 0)
+            unexplained += change not in ((0, 0), (1, 1), (-1, -1))
+        for a, b in heavy_bonds:
+            drawn = original.GetBondBetweenAtoms(heavy[a], heavy[b])
+            made = protonated.GetBondBetweenAtoms(match[a], match[b])
+            changed = drawn.GetBondType() != made.GetBondType()
+            unexplained += changed
+            total += changed
+        return unexplained, total
+
+    scored = [(departures(match), match) for match in matches]
+    fewest = min(score for score, _ in scored)
+    best = [match for score, match in scored if score == fewest]
+    first = signature(best[0])
+    if any(signature(match) != first for match in best[1:]):
+        raise InvalidStructureError(
+            "Symmetry-equivalent atoms receive different protonation states, so "
+            "which drawn atom carries the change cannot be established"
+        )
+    return _rebuild_in_original_order(original, protonated, heavy, best[0])
+
+
+def _skeleton(mol: Chem.Mol, keep: list[int]) -> tuple[Chem.Mol, list[tuple[int, int]]]:
+    """Element and adjacency only, over the atoms in `keep`, renumbered 0..n.
+
+    Returns the skeleton and its bonds as position pairs. Everything
+    protonation may legitimately change is erased, so substructure matching
+    between two skeletons of equal size is graph isomorphism.
+    """
+    position = {index: p for p, index in enumerate(keep)}
+    skeleton = Chem.RWMol()
+    for index in keep:
+        atom = Chem.Atom(mol.GetAtomWithIdx(index).GetAtomicNum())
+        atom.SetNoImplicit(True)
+        skeleton.AddAtom(atom)
+    bonds = []
+    for bond in mol.GetBonds():
+        a, b = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+        if a in position and b in position:
+            skeleton.AddBond(position[a], position[b], Chem.BondType.SINGLE)
+            bonds.append((position[a], position[b]))
+    skeleton.UpdatePropertyCache(strict=False)
+    return skeleton.GetMol(), bonds
+
+
+def _rebuild_in_original_order(
+    original: Chem.Mol, protonated: Chem.Mol, heavy: list[int], match: tuple[int, ...]
+) -> Chem.Mol:
+    """Atoms added in `original`'s order, bonds in `original`'s bond order.
+
+    Bond order is kept deliberately: an atom's chiral tag is a parity over the
+    order its bonds were added, so rebuilding in the drawing's bond order is
+    what lets the drawing's own tag stay valid.
+    """
+    to_protonated = {index: match[p] for p, index in enumerate(heavy)}
+    drawn_h = {index: 0 for index in heavy}
+    for atom in original.GetAtoms():
+        if atom.GetAtomicNum() == 1:
+            for neighbour in atom.GetNeighbors():
+                if neighbour.GetIdx() in drawn_h:
+                    drawn_h[neighbour.GetIdx()] += 1
+
+    rebuilt = Chem.RWMol()
+    for atom in original.GetAtoms():
+        index = atom.GetIdx()
+        if index not in to_protonated:
+            rebuilt.AddAtom(Chem.Atom(atom))
+            continue
+        source = protonated.GetAtomWithIdx(to_protonated[index])
+        hydrogens = source.GetTotalNumHs() - drawn_h[index]
+        if hydrogens < 0:
+            raise InvalidStructureError(
+                f"Atom {index + 1} is drawn with a hydrogen the protonated form removes"
+            )
+        new = Chem.Atom(source.GetAtomicNum())
+        new.SetFormalCharge(source.GetFormalCharge())
+        new.SetNumRadicalElectrons(source.GetNumRadicalElectrons())
+        new.SetIsAromatic(source.GetIsAromatic())
+        new.SetIsotope(atom.GetIsotope())
+        new.SetChiralTag(atom.GetChiralTag())
+        new.SetNumExplicitHs(hydrogens)
+        new.SetNoImplicit(True)
+        rebuilt.AddAtom(new)
+
+    stereo = []
+    for bond in original.GetBonds():
+        a, b = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+        if a in to_protonated and b in to_protonated:
+            source = protonated.GetBondBetweenAtoms(to_protonated[a], to_protonated[b])
+            rebuilt.AddBond(a, b, source.GetBondType())
+            rebuilt.GetBondBetweenAtoms(a, b).SetIsAromatic(source.GetIsAromatic())
+            if source.GetBondType() == Chem.BondType.DOUBLE and len(bond.GetStereoAtoms()) == 2:
+                stereo.append((a, b, tuple(bond.GetStereoAtoms()), bond.GetStereo()))
+        else:
+            rebuilt.AddBond(a, b, Chem.BondType.SINGLE)
+    # AFTER every bond exists: a stereo atom must already be bonded to its
+    # end of the double bond, and it may be a later bond in the drawing.
+    for a, b, atoms, kind in stereo:
+        new_bond = rebuilt.GetBondBetweenAtoms(a, b)
+        new_bond.SetStereoAtoms(*atoms)
+        new_bond.SetStereo(kind)
+
+    result = rebuilt.GetMol()
+    try:
+        Chem.SanitizeMol(result)
+    except Exception as exc:  # noqa: BLE001 - a rebuild that does not sanitize is a refusal
+        raise InvalidStructureError(f"The renumbered protonated form is not valid ({exc})") from exc
+    # cleanIt=False: the double-bond stereo copied above has no directional
+    # bonds behind it, and a cleaning pass reads that as "unspecified" and
+    # erases it -- measured on crotonic acid, where E vanished.
+    Chem.AssignStereochemistry(result, cleanIt=False, force=True)
+    return result
 
 
 def _deprotonate_delocalised_nitrogen(mol: Chem.Mol) -> tuple[int, ...]:

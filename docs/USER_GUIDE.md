@@ -738,7 +738,7 @@ the thing that needs the room.
 
 The Properties panel is where a calculation is **started**, and the
 [Results](#results) panel is where one is **read**. It has **20 collapsible
-categories** covering **59 registered calculators**; Identity is open by
+categories** covering **58 registered calculators**; Identity is open by
 default.
 
 Each calculator gets a row: a tick box that adds it to a batch run, a
@@ -937,7 +937,7 @@ arrived together. It reads as a slow dialog and is not one.
 | Solubility | ESOL solubility, the Low/Moderate/High category, solubility at a chosen pH, the pH–solubility curve, a BCS high-solubility screening estimate, solubility in 91 non-aqueous solvents, and Gutmann donor and acceptor numbers for the chosen solvent where they were measured. Also the three Hansen partial solubility parameters and their Hildebrand total by Stefanis-Panayiotou group contribution, which says which of the paper's two parameter sets produced each value |
 | Identity | formula, exact mass, nominal mass, elemental composition, InChI/InChIKey, and the molecular ion's isotope pattern drawn beside the percentages. A separate **Mass Spectrum** calculator carries the ionisation modes — eight ions from `[M]+•` to `[M+Cl]⁻`, unit or exact resolution, and a minimum intensity |
 | Naming | IUPAC name with its source and exactness label |
-| Charge | Gasteiger partial charges, and charges at a chosen pH |
+| Charge | Gasteiger partial charges, and charges at a chosen pH by Gasteiger or MMFF94 |
 | Lipophilicity | logP per-atom contributions, and pH-dependent logD with its curve |
 | Topology | Wiener, Randić, Balaban, Platt, Szeged, Harary, per-atom eccentricity, and the Cao–Liu TSEI projection — how much of each atom's approach the rest of the molecule screens |
 | Geometry (3D) | radius of gyration, molecular radii, projection area, MMFF94/UFF/Dreiding energies, 3D alignment, molecular dynamics and intramolecular contacts |
@@ -1834,10 +1834,14 @@ rather than a number to put in a protocol.
 
 ### Reading the numbers
 
-Every value appears in three units — logS, mg/mL and mol/L — because the
-same solubility in different units is the single easiest thing to
-misread. The row you chose is shown first; the other two are there when
-you expand the detail.
+Every value is computed in three units — logS, mg/mL and mol/L — because
+the same solubility in different units is the single easiest thing to
+misread. In the Results panel, the **Units** box above the report picks
+which one you read: the chart, the rows, **Copy report** and a saved
+picture all switch together, and nothing is run again. The panel remembers
+the unit you chose for each result. (A result saved before this change has
+no Units box and stays in the unit it was computed in; run it again to get
+the choice.)
 
 **The category is computed from the intrinsic value, not the pH-adjusted
 one**, which is how ChemAxon defines those thresholds: below 0.01 mg/mL

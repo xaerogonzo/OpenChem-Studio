@@ -148,7 +148,8 @@ from openchem.domain.common import (
 )
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.scientific_result import AlertResult, PerAtomDataset
-from openchem.domain.structure_issue import Severity
+from openchem.domain.report import Fact, ReportResult
+from openchem.domain.structure_issue import Basis, Severity
 from openchem.plugins.interfaces import DescriptorProvider
 
 # RDKitDescriptorProvider implements the same DescriptorProvider ABC a future
@@ -1114,37 +1115,151 @@ def _microspecies_note(drawn: Chem.Mol, species, ph: float) -> str:
     return note
 
 
+#: Gasteiger-Marsili PEOE, the charge calculator's original and default
+#: method. A STORED code: the settings dialog shows `CHARGE_METHOD_LABELS`.
+GASTEIGER = "gasteiger"
+#: Halgren's MMFF94 bond-charge-increment charges, validated against his
+#: Table V. A stored code, like `GASTEIGER`.
+MMFF94 = "mmff94"
+#: Every method the pH-dependent charge calculator offers, in the order its
+#: combo box lists them. Anything else is refused rather than defaulted.
+CHARGE_METHODS = (GASTEIGER, MMFF94)
+#: What each method is called on screen and in a result's name.
+CHARGE_METHOD_LABELS = {GASTEIGER: "Gasteiger", MMFF94: "MMFF94"}
+
+#: How far an MMFF94 charge set may miss the formal charge before it is
+#: refused. MMFF charges are formal charges redistributed by bond
+#: increments, so the sum is exact up to float noise: measured 0 to 1e-15 on
+#: every molecule and ion of Halgren's Table V.
+_MMFF_CONSERVATION_TOLERANCE = 1e-6
+
+
+def compute_mmff94_charges(
+    mol: Chem.Mol, include_hydrogens: bool = False
+) -> tuple[dict[int, float], float] | None:
+    """MMFF94 partial charges keyed to `mol`'s own atom indices, and the sum
+    over EVERY atom -- or None when MMFF94 cannot type the molecule.
+
+    **WHAT A "FOLDED" VALUE IS, stated because it is not an MMFF94 charge.**
+    MMFF94 assigns charges to every atom, hydrogens included, and needs the
+    hydrogens present to type anything. `mol` holds hydrogens implicitly, so
+    they are added (`AddHs` appends, which keeps every existing index), and:
+
+        include_hydrogens=False   each atom's own MMFF94 charge; the added
+                                  hydrogens' charges are not reported
+        include_hydrogens=True    each atom's own charge PLUS the charges of
+                                  the hydrogens added to it -- an aggregation
+                                  this application performs, the same one
+                                  Gasteiger's "Increment of Hs" performs
+
+    A hydrogen the drawing holds as an ATOM keeps its own index and value in
+    both modes; only hydrogens this function added are folded.
+
+    Validated against Halgren (1996) part II Table V
+    [source:halgren1996_mmff2] -- every charge and atom type of the atoms it
+    prints, for 19 of 20 molecules and ions, and the 20th disagrees with the
+    table's own acetate row. Reached through RDKit's port
+    [source:tosco2014]. See `tests/test_mmff94_charges.py`.
+    """
+    from rdkit.Chem import rdForceFieldHelpers
+
+    count = mol.GetNumAtoms()
+    full = Chem.AddHs(Chem.Mol(mol))
+    properties = rdForceFieldHelpers.MMFFGetMoleculeProperties(full)
+    if properties is None:
+        return None
+    every = [properties.GetMMFFPartialCharge(i) for i in range(full.GetNumAtoms())]
+    values = {i: every[i] for i in range(count)}
+    if include_hydrogens:
+        for index in range(count, full.GetNumAtoms()):
+            parent = full.GetAtomWithIdx(index).GetNeighbors()[0].GetIdx()
+            values[parent] += every[index]
+    return values, sum(every)
+
+
 def compute_gasteiger_charge_at_ph(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any]
 ) -> PerAtomDataset:
     """The "charge" category's calculator. Protonates `mol` to the
     pH-appropriate dominant microspecies via Dimorphite-DL
-    (`chem.pka_providers.protonate_at_ph`) before computing Gasteiger
+    (`chem.pka_providers.protonate_at_ph`) before computing partial
     charges, so the result reflects that pH's ionization state rather than
     whatever protonation state the molecule happened to be drawn in.
+
+    **THE METHOD IS A PARAMETER, AND THE ID DID NOT CHANGE WITH IT.** Named
+    for Gasteiger because that was its only method; renaming it would orphan
+    every stored result for no gain. The result's NAME and provenance carry
+    the method, and `parameters_key` -- part of every stored identity --
+    carries it too, so a Gasteiger result is never served as an MMFF94 one.
+    Like every other parameter in this application, running it again with a
+    different method REPLACES the previous result rather than adding one.
     """
     _places = decimals(parameters)
     from openchem.chem.pka_providers import dominant_microspecies
 
     ph = parameters.get("pH", 7.4)
     include_hydrogens = bool(parameters.get("include_hydrogens", False))
+    method = str(parameters.get("method", GASTEIGER))
+    if method not in CHARGE_METHODS:
+        raise ValueError(f"Unknown charge method {method!r}; expected one of {CHARGE_METHODS}")
+    label = CHARGE_METHOD_LABELS[method]
     species = dominant_microspecies(mol, ph)
     protonated = species.mol
-    charges = compute_gasteiger_charges(protonated, include_hydrogens=include_hydrogens)
     suffix = " incl. H" if include_hydrogens else ""
+    name = f"Partial Charge ({label}) at pH {ph:g}{suffix}"
+    if method == MMFF94:
+        computed = compute_mmff94_charges(protonated, include_hydrogens=include_hydrogens)
+        if computed is None:
+            # A LIMIT OF THE METHOD, not a fault: MMFF94 has no atom type for
+            # something in this structure, and nothing the user does short
+            # of changing the molecule will give it one.
+            return PerAtomDataset(
+                property_id="gasteiger_charge_at_ph", name=name, units="e",
+                method="rdkit-mmff94+dimorphite_dl", molecule_uuid=molecule_uuid,
+                cache_state=CacheState.FAILED, inapplicable=True,
+                error="MMFF94 has no atom type for part of this structure.",
+                error_summary="Not covered by MMFF94",
+            )
+        charges, every_atom = computed
+        formal = Chem.GetFormalCharge(protonated)
+        # CONSERVATION, CHECKED RATHER THAN ASSUMED. A dropped or doubled
+        # hydrogen in the folding above would still produce plausible
+        # numbers; it would not produce the right sum.
+        if abs(every_atom - formal) > _MMFF_CONSERVATION_TOLERANCE or (
+            include_hydrogens and abs(sum(charges.values()) - formal) > _MMFF_CONSERVATION_TOLERANCE
+        ):
+            raise ValueError(
+                f"MMFF94 charges sum to {every_atom:+.6f} on a species of formal charge {formal:+d}"
+            )
+        total = declare_total(every_atom, "Net calculated charge", units="e")
+        if not include_hydrogens:
+            total["balance"] = {
+                "visible_basis": "heavy-atom charges",
+                "explanation": "implicit hydrogens",
+            }
+        provenance_method = "rdkit-mmff94+dimorphite_dl"
+    else:
+        charges = compute_gasteiger_charges(protonated, include_hydrogens=include_hydrogens)
+        total = _gasteiger_total(protonated, include_hydrogens=include_hydrogens)
+        provenance_method = "rdkit+dimorphite_dl"
     return PerAtomDataset(
         property_id="gasteiger_charge_at_ph",
-        name=f"Partial Charge (Gasteiger) at pH {ph:g}{suffix}",
+        name=name,
         units="e",
-        method="rdkit+dimorphite_dl",
+        method=provenance_method,
         molecule_uuid=molecule_uuid,
         values=charges,
         provenance=Provenance(
             created_by="core",
-            method="rdkit+dimorphite_dl",
+            method=provenance_method,
             parameters={
                 "pH": ph,
                 "include_hydrogens": include_hydrogens,
+                "charge_method": method,
+                # WHAT A VALUE IS, beside which method made it: "folded" is
+                # an atom's charge plus its implicit hydrogens', which this
+                # application sums -- not a quantity either method defines.
+                "hydrogen_aggregation": "folded" if include_hydrogens else "separate",
                 "decimal_places": _places,
                 ATOM_BASIS: HEAVY_ATOMS,
                 # THE PRODUCER SAYS WHICH SPECIES IT CHARGED, because the
@@ -1162,7 +1277,7 @@ def compute_gasteiger_charge_at_ph(
                 # charges these are -- taking it from `mol` would report the
                 # drawn structure's net charge beside values computed for a
                 # different ionization state.
-                TOTAL: _gasteiger_total(protonated, include_hydrogens=include_hydrogens),
+                TOTAL: total,
             },
         ),
     )
@@ -1408,59 +1523,137 @@ def _pka_line(prediction, parameters: dict[str, Any] | None, mol: Chem.Mol | Non
 
 def compute_logd(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any], interpreter_path: str | None = None
-) -> AlertResult:
+) -> ReportResult:
     """The "logd" category's calculator (Phase 23) -- pH-adjustable
-    distribution coefficient.
+    distribution coefficient, and the curve it lies on.
 
     Uses real Henderson-Hasselbalch when numeric pKa is available
     (pkasolver, out of process), and clearly says so. Otherwise falls back
     to the LogP of the dominant microspecies at that pH via Dimorphite-DL:
     a real pH-dependent number, but NOT true logD, and labelled as such
     rather than presented as equivalent.
+
+    **THE CURVE WAS A SECOND CALCULATOR, AND IS NOW THIS ONE'S PICTURE.**
+    `logd_curve` sampled the same Henderson-Hasselbalch function across pH
+    in a separate registration, so reading logD at one pH and seeing where
+    it sits on the curve meant running two things. The curve is declared on
+    this report now, and `logd_curve` is retired (`RETIREMENTS`).
+
+    **THE SCALAR IS UNCHANGED, BRANCH FOR BRANCH**, and the curve is only
+    ADDED. The three branches below pick the number exactly as before; the
+    chart is built from the SAME pKa list and the SAME function, with the
+    chosen pH inserted as a sample, so the curve at that pH is the scalar
+    rather than a neighbour of it. Asserted in `tests/test_logd_report.py`
+    against values recorded before the change.
+
+    KNOWN LIMITATION, ZWITTERIONS -- carried over from `compute_logd_curve`:
+    Henderson-Hasselbalch assumes the partitioning species has no site
+    ionized, which breaks for amphoteric molecules (glycine: about -4.7
+    modelled against about -3.2 measured).
     """
     from openchem.chem.logd import classify_ionizable_centres, logd_from_microspecies, logd_from_pkas
     from openchem.chem.pka_providers import compute_pka, pka_predictor_available
+    from openchem.chem.ph_curves import ph_grid_from
+    from openchem.domain.calculator_taxonomy import category_for
+    from openchem.domain.report import LineChartAnnotation, LineSeries
 
     ph = float(parameters.get("pH", 7.4))
     logp = Crippen.MolLogP(mol)
     acids, bases = classify_ionizable_centres(mol)
+    category = category_for("lipophilicity")
 
-    lines: list[str] = []
+    def fact(label, value, display, *, evidence=(), limitations=(), source="core"):
+        return Fact(
+            category=category, label=label, value=value, display_value=display,
+            source=source, basis=Basis.HEURISTIC, evidence=tuple(evidence),
+            limitations=tuple(limitations),
+        )
+
+    def curve(values_at, title):
+        grid = sorted(set(ph_grid_from(parameters)) | {ph})
+        return LineChartAnnotation(
+            series=(LineSeries(points=tuple((x, float(values_at(x))) for x in grid), name="logD"),),
+            x_label="pH",
+            y_label="logD",
+            x_descending=False,
+            title=title,
+            caption=(
+                "Henderson-Hasselbalch on the pKa values listed below. Hover to read logD at a "
+                "sampled pH; click to keep the reading. Zwitterions are under-predicted."
+            ),
+        )
+
+    facts: list[Fact] = []
+    charts: tuple = ()
+    limitations: list[str] = []
     if acids == 0 and bases == 0:
-        lines.append(f"logD = {logp:.2f} at pH {ph:g} (no ionizable centre — equal to LogP)")
         method = "rdkit"
+        facts.append(fact(
+            f"LogD at pH {ph:g}", logp, f"{logp:.2f}",
+            evidence=("No ionizable centre, so logD equals LogP at every pH.",),
+            source="RDKit",
+        ))
+        charts = (curve(
+            lambda _x: logp,
+            "LogD vs pH - no modelled ionizable centre, so logD is pH-independent under this method",
+        ),)
     elif pka_predictor_available(interpreter_path):
         try:
             pkas = [p.value for p in (compute_pka(mol, interpreter_path) or [])]
         except RuntimeError as exc:
-            return report_from_fields(
-                alert_id="logd", name="LogD", molecule_uuid=molecule_uuid, matched=[], category="lipophilicity",
+            return ReportResult(
+                report_id="logd", name="LogD", molecule_uuid=molecule_uuid, category="lipophilicity",
                 provenance=Provenance(created_by="core", method="pkasolver"),
                 cache_state=CacheState.FAILED, error=str(exc),
             )
         value = logd_from_pkas(mol, ph, pkas)
-        lines.append(f"logD = {value:.2f} at pH {ph:g} (Henderson-Hasselbalch)")
-        lines.append(f"LogP = {logp:.2f}")
-        lines.append("pKa: " + ", ".join(f"{p:.2f}" for p in sorted(pkas)))
+        facts.append(fact(
+            f"LogD at pH {ph:g}", value, f"{value:.2f}",
+            evidence=("Henderson-Hasselbalch on the predicted pKa values.",),
+        ))
+        facts.append(fact("LogP", logp, f"{logp:.2f}", evidence=("Crippen fragment method",), source="RDKit"))
+        facts.append(fact(
+            "pKa", tuple(sorted(pkas)), ", ".join(f"{p:.2f}" for p in sorted(pkas)), source="pkasolver",
+        ))
         method = "rdkit+pkasolver"
+        # From the SAME list the scalar used, in the same order: the curve at
+        # the chosen pH must be the number above, not a re-derived one.
+        charts = (curve(lambda x, _p=tuple(pkas): logd_from_pkas(mol, x, list(_p)), "LogD vs pH"),)
+        limitations.append(
+            "Henderson-Hasselbalch assumes the partitioning species has no site ionized, so it "
+            "under-predicts logD for zwitterions (amino acids); monoprotic acids and bases are "
+            "unaffected."
+        )
     else:
         value = logd_from_microspecies(mol, ph)
-        lines.append(f"logD ~ {value:.2f} at pH {ph:g} (approximation)")
-        lines.append(f"LogP = {logp:.2f}")
-        lines.append(
+        approximation = (
             "Approximation: LogP of the dominant microspecies at this pH (Dimorphite-DL), "
-            "not true Henderson-Hasselbalch logD — configure a pkasolver environment in "
+            "not true Henderson-Hasselbalch logD \u2014 configure a pkasolver environment in "
             "Tools > External Tools for real numeric pKa."
         )
+        facts.append(fact(
+            f"LogD at pH {ph:g} (approximation)", value, f"{value:.2f}",
+            limitations=(approximation,),
+        ))
+        facts.append(fact("LogP", logp, f"{logp:.2f}", evidence=("Crippen fragment method",), source="RDKit"))
         method = "rdkit+dimorphite_dl"
+        limitations.append(approximation)
+        # NO CURVE on this branch, and the reason is said rather than left
+        # as a missing picture: sampling a microspecies' LogP across pH would
+        # draw steps between charge states and read as a logD curve.
+        limitations.append(
+            "No LogD-vs-pH curve without numeric pKa: the approximation is not a curve."
+        )
 
-    lines.append(f"Ionizable centres: {acids} acidic, {bases} basic")
-    return report_from_fields(
-        alert_id="logd",
+    facts.append(fact("Ionizable centres", (acids, bases), f"{acids} acidic, {bases} basic"))
+    return ReportResult(
+        report_id="logd",
         name=f"LogD at pH {ph:g}",
         molecule_uuid=molecule_uuid,
-        matched=lines,
         category="lipophilicity",
+        facts=tuple(facts),
+        charts=charts,
+        limitations=tuple(limitations),
         provenance=Provenance(created_by="core", method=method, parameters={"pH": ph}),
     )
 
@@ -1599,9 +1792,21 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         calculator_id="gasteiger_charge_at_ph",
         display_name="Partial Charge (pH-dependent)",
         category="charge",
-        description="Gasteiger partial charges, recomputed on the dominant protonation state at a given pH.",
+        description=(
+            "Partial charges, recomputed on the dominant protonation state at a given pH, "
+            "by Gasteiger's PEOE or by MMFF94's bond-charge increments. The two are "
+            "different models and give different numbers for the same atom."
+        ),
         execution=RegistryExecution(compute=compute_gasteiger_charge_at_ph),
         parameters=[
+            CalculatorParameter(
+                name="method",
+                label="Charge method",
+                kind="choice",
+                default=GASTEIGER,
+                choices=list(CHARGE_METHODS),
+                choice_labels=[CHARGE_METHOD_LABELS[m] for m in CHARGE_METHODS],
+            ),
             CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0),
             CalculatorParameter(
                 name="include_hydrogens",
@@ -1610,7 +1815,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 default=False,
             ),
         ],
-        tags=["charge", "ph", "per-atom"],
+        tags=["charge", "ph", "per-atom", "gasteiger", "mmff94", "partial charge"],
     ),
     CalculatorDefinition(
         calculator_id="crippen_logp_contrib",
@@ -1692,18 +1897,23 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="logd",
-        tags=['logd', 'lipophilicity', 'partition', 'ph', 'distribution'],
+        tags=['logd', 'lipophilicity', 'partition', 'ph', 'distribution', 'curve', 'logd vs ph'],
         display_name="LogD (pH-dependent)",
         category="lipophilicity",
         description=(
-            "Distribution coefficient at a given pH. Real Henderson-Hasselbalch when a "
-            "pkasolver environment is configured; otherwise the LogP of the dominant "
-            "microspecies at that pH, labelled as an approximation."
+            "Distribution coefficient at a given pH, and the curve across pH it lies on. "
+            "Real Henderson-Hasselbalch when a pkasolver environment is configured; otherwise "
+            "the LogP of the dominant microspecies at that pH, labelled as an approximation and "
+            "drawn as no curve. Hover the curve to read logD at a sampled pH. Under-predicts "
+            "zwitterions (amino acids)."
         ),
         execution=RegistryExecution(compute=compute_logd),
         prediction_basis="empirical",
         parameters=[
-            CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0)
+            CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0),
+            # The curve's range. Absorbed from the retired `logd_curve`, whose
+            # whole contribution was offering these.
+            *ph_range_parameters(),
         ],
     ),
     # ---- Phase 26 ----------------------------------------------------
@@ -2274,21 +2484,6 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         tags=["charge", "ph", "pi", "curve"],
     ),
     CalculatorDefinition(
-        calculator_id="logd_curve",
-        parameters=ph_range_parameters(),
-        display_name="LogD vs pH",
-        category="lipophilicity",
-        description=(
-            "The distribution coefficient across pH 0-14 by Henderson-Hasselbalch. Needs a "
-            "configured pkasolver environment. Note: Henderson-Hasselbalch under-predicts logD "
-            "for zwitterions (e.g. amino acids), because it assumes the partitioning species has "
-            "no site ionized; monoprotic acids and bases are unaffected."
-        ),
-        execution=RegistryExecution(compute=compute_logd_curve),
-        prediction_basis="empirical",
-        tags=["logd", "ph", "partitioning", "curve"],
-    ),
-    CalculatorDefinition(
         calculator_id="hbond_vs_ph",
         parameters=ph_range_parameters(step=0.5),
         display_name="H-Bond Donors/Acceptors vs pH",
@@ -2323,10 +2518,6 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             CalculatorParameter(
                 name="model", label="Baseline model", kind="choice",
                 default=ESOL, choices=[ESOL, AQSOLDB],
-            ),
-            CalculatorParameter(
-                name="unit", label="Units", kind="choice",
-                default=LOG_S, choices=list(DISPLAY_UNITS),
             ),
             CalculatorParameter(
                 name="pH", label="at pH", kind="float", default=DEFAULT_PH,

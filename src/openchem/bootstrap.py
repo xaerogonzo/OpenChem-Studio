@@ -208,7 +208,6 @@ _CALCULATOR_INTERPRETER_SETTING: dict[str, str | dict[str, str]] = {
     "logd": PKASOLVER_PYTHON_SETTING,
     "pka_microspecies": PKASOLVER_PYTHON_SETTING,
     "isoelectric_point": PKASOLVER_PYTHON_SETTING,
-    "logd_curve": PKASOLVER_PYTHON_SETTING,
     "cns_mpo": PKASOLVER_PYTHON_SETTING,
     "bbb_descriptors": PKASOLVER_PYTHON_SETTING,
     # ADMET-AI (hERG / CYP / Ames)

@@ -75,6 +75,17 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "panel",      "id": "Properties"}
     {"do": "expand",     "section": "admet"}
     {"do": "calculator", "id": "admet_ml", "parameters": {...}}
+    {"do": "calculator", "id": "...", "reveal": false}  no modal Calculator
+                                          Inspector -- see below
+    {"do": "inspector_report", "tag": "after-edit"}  the Atom Inspector's
+                                          pinned line, HELD results and state
+    {"do": "units", "key": "mg_per_ml"}   the reader's Units COMBO, and what
+                                          the chart and unit rows then say
+    {"do": "reader_layout_report", "tag": "beside"}  whole fact ROWS on
+                                          screen, through every clipping parent
+    {"do": "dock_resize", "panel": "Results", "width": 380}
+    {"do": "chart_cursor", "x": 7.4}       a REAL click on the line chart,
+                                          and the kept reading beside the fact
     {"do": "shot",       "path": "..."}
     {"do": "lewis",      "details": true}     the Full Lewis window
     {"do": "shot",       "path": "...", "widget": "lewis"}
@@ -85,6 +96,7 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "cip",        "on": true}          R/S and E/Z, through the menu
     {"do": "erase",      "element": "N"}      a REAL canvas edit
     {"do": "menu",       "text": "Rotate 3D"}  THIS app's menu bar
+    {"do": "menu",       "text": "Undo", "prefix": true}  "Undo <command>"
     {"do": "picture",    "index": 0, "path": "..."}  the reader's
                                           chart, through the REAL export
     {"do": "rotate_report", "tag": "entered"}  the tick, the button AND
@@ -143,6 +155,15 @@ reading the position as an id would have selected a carbon.
 method behind it, for the reason `jobs_cancel` presses the real button: the
 panel's own method is the INBOUND door the 3D viewer's click lands on, and
 the path under test starts one step later.
+
+**A MODAL DIALOG OPENED INSIDE A BUS HANDLER STARVES EVERY LATER
+SUBSCRIBER**, and in a driven run it read as the Atom Inspector never
+receiving the result. The calculator reveal used to `exec()` the Calculator
+Inspector inside `EventBus._dispatch`; measured 2026-09-13, Properties held
+`gasteiger_charge_at_ph` 67 s before the Atom Inspector did (at quit). Fixed
+by `PropertyPanel._reveal_after_dispatch`. `inspector_report`'s `held=` is
+what separates "not shown" from "never arrived"; `"reveal": false` keeps an
+unattended run free of an open modal.
 
 **`erase` is the only step that drives the route `set_molecule` never
 covers** -- the user drawing on the canvas -- so it is what any
@@ -247,6 +268,8 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- A FOOTNOTE ON THE NEXT COLUMN IS NOT A FLAG ON THIS ONE
+- THE SMILES ROUND TRIP DROPPED THE INDEX SPACE, AND ATOM MAPS WERE THE WRONG REPAIR
 - A PARTIAL RESTORE IS NOT A CACHE HIT, AND THREE DEFECTS ONLY RUNNING FOUND
 - A RE-RENDER OPENED 1801 WINDOWS, AND ONLY A TRACE COULD NAME THEM
 - A MATCHING COUNT IS NOT A REPRODUCTION, AND A PAPER'S SILENCE IS NOT A TERM

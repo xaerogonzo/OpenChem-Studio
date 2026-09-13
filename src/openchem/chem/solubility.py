@@ -77,7 +77,7 @@ from openchem.chem.calculator_options import DEFAULT_PH, ph_grid_from
 from openchem.chem.logd import assign_site_polarity, classify_ionizable_centres, ionization_log_factor
 from openchem.chem.pka_providers import PKaResolution, PKaStatus
 from openchem.domain.common import CacheState, Provenance
-from openchem.domain.report import Detail, Fact, FactCategory, ReportResult
+from openchem.domain.report import Detail, Fact, FactCategory, Rendering, ReportResult
 from openchem.domain.scientific_result import PhCurveResult
 from openchem.domain.structure_issue import Basis
 
@@ -916,6 +916,11 @@ MG_PER_ML = "mg/mL"
 MOL_PER_L = "mol/L"
 DISPLAY_UNITS = (LOG_S, MG_PER_ML, MOL_PER_L)
 
+#: The STABLE key each display unit is tagged with on a fact and a chart --
+#: what a reader remembers. Never the English above, which is what the
+#: "choice stored its label" lesson warns about.
+UNIT_KEYS = {LOG_S: "log_mol_per_l", MG_PER_ML: "mg_per_ml", MOL_PER_L: "mol_per_l"}
+
 
 def in_unit(logs: float, unit: str, molecular_weight: float) -> float:
     if unit == MG_PER_ML:
@@ -946,6 +951,13 @@ def unit_symbol(unit: str) -> str:
     session with a tick mark. "mg/mL" rather than any prettier form.
     """
     return {LOG_S: "log mol/L", MG_PER_ML: "mg/mL", MOL_PER_L: "mol/L"}.get(unit, "")
+
+
+#: The renderings the Solubility report declares, in `DISPLAY_UNITS` order --
+#: the first is what a reader opens on.
+SOLUBILITY_RENDERINGS = tuple(
+    Rendering(key=UNIT_KEYS[unit], label=unit_symbol(unit)) for unit in DISPLAY_UNITS
+)
 
 
 # --- the calculators ---------------------------------------------------
@@ -990,6 +1002,7 @@ def _fact(
     detail: Detail = Detail.STANDARD,
     evidence: tuple[str, ...] = (),
     limitations: tuple[str, ...] = (),
+    rendering: str = "",
 ) -> Fact:
     return Fact(
         category=category,
@@ -1002,6 +1015,7 @@ def _fact(
         detail=detail,
         evidence=evidence,
         limitations=limitations,
+        rendering=rendering,
     )
 
 
@@ -1204,7 +1218,9 @@ def _provenance(analysis: SolubilityAnalysis, parameters: dict) -> Provenance:
             "adjustment_limit_kind": analysis.limit.kind.value,
             "ph": float(parameters.get("pH", DEFAULT_PH)),
             "dose_mg": parameters.get("dose_mg"),
-            "unit": str(parameters.get("unit", LOG_S)),
+            # NO "unit". It used to be recorded here and in the cache key,
+            # while every unit was already computed: a display choice
+            # passing itself off as a calculation parameter.
         },
     )
 
@@ -1252,19 +1268,23 @@ def _base_bias_limitation(analysis: SolubilityAnalysis) -> tuple[str, ...]:
     return (_BASE_BIAS_NOTE,) if analysis.ionization is IonizationClass.BASE else ()
 
 
-def _baseline_facts(analysis: SolubilityAnalysis, unit: str) -> list[Fact]:
-    """The three unit renderings plus the category.
+def _baseline_facts(analysis: SolubilityAnalysis) -> list[Fact]:
+    """The value in every display unit, each tagged with its rendering, plus
+    the category.
 
-    All three are emitted whatever `unit` is chosen, which is why changing
-    the display unit provably cannot change the model or the category --
-    the unit orders the report, it does not feed the chemistry.
+    **ALL THREE, ALWAYS, AND THE READER CHOOSES.** The unit used to be a
+    calculation parameter that ordered these and demoted two to "advanced";
+    changing it meant running the calculator again for numbers it had
+    already computed. Now each is a fact tagged with its unit's key and the
+    report declares the three renderings, so switching is a display choice
+    with nothing recomputed -- and provably cannot move the model or the
+    category, which carry no tag.
     """
     baseline = analysis.baseline_logs
     assert baseline is not None
     mw = analysis.molecular_weight
     mg_per_ml = logs_to_mg_per_ml(baseline, mw)
     aqueous = analysis.solvent.is_water
-    ordered = [unit] + [u for u in DISPLAY_UNITS if u != unit]
 
     # **THE ROW MUST NAME THE SOLVENT WHEN IT IS NOT WATER.** `baseline_logs`
     # already carries the Abraham shift, so an unqualified "intrinsic
@@ -1291,11 +1311,11 @@ def _baseline_facts(analysis: SolubilityAnalysis, unit: str) -> list[Fact]:
             f"{heading} ({unit_symbol(name)})",
             in_unit(baseline, name, mw), format_in_unit(baseline, name, mw),
             units=unit_symbol(name),
-            detail=Detail.STANDARD if name == unit else Detail.ADVANCED,
             evidence=evidence,
             limitations=limitations,
+            rendering=UNIT_KEYS[name],
         )
-        for name in ordered
+        for name in DISPLAY_UNITS
     ]
 
     if not aqueous:
@@ -1337,7 +1357,7 @@ def _baseline_facts(analysis: SolubilityAnalysis, unit: str) -> list[Fact]:
     return facts
 
 
-def _ph_facts(analysis: SolubilityAnalysis, unit: str, ph: float) -> list[Fact]:
+def _ph_facts(analysis: SolubilityAnalysis, ph: float) -> list[Fact]:
     baseline = analysis.baseline_logs
     assert baseline is not None
     mw = analysis.molecular_weight
@@ -1360,7 +1380,9 @@ def _ph_facts(analysis: SolubilityAnalysis, unit: str, ph: float) -> list[Fact]:
                 in_unit(baseline, unit, mw), format_in_unit(baseline, unit, mw),
                 units=unit_symbol(unit),
                 evidence=("No ionizable centre, so solubility does not vary with pH.",),
+                rendering=UNIT_KEYS[unit],
             )
+            for unit in DISPLAY_UNITS
         ]
     limit = analysis.limit
     adjustment = ph_adjustment(ph, analysis.pkas, analysis.is_acid, limit.log_units)
@@ -1378,12 +1400,14 @@ def _ph_facts(analysis: SolubilityAnalysis, unit: str, ph: float) -> list[Fact]:
             f"Predicted solubility at pH {ph:g}",
             in_unit(value, unit, mw), format_in_unit(value, unit, mw),
             units=unit_symbol(unit),
+            rendering=UNIT_KEYS[unit],
             evidence=(
                 f"Baseline {baseline:.2f} logS raised by {adjustment.applied:.2f} for ionization "
                 f"at pH {ph:g}.",
             ),
             limitations=limitations,
         )
+        for unit in DISPLAY_UNITS
     ]
 
 
@@ -1538,14 +1562,11 @@ def compute_solubility(
             provenance=provenance,
         )
 
-    unit = str(parameters.get("unit", LOG_S))
-    if unit not in DISPLAY_UNITS:
-        unit = LOG_S
     ph = float(parameters.get("pH", DEFAULT_PH))
 
-    facts = _baseline_facts(analysis, unit)
+    facts = _baseline_facts(analysis)
     facts += _gutmann_facts(analysis.solvent.key)
-    facts += _ph_facts(analysis, unit, ph)
+    facts += _ph_facts(analysis, ph)
     facts += _model_facts(
         analysis, mol, admet_interpreter_path,
         compare=bool(parameters.get("compare_models", True)),
@@ -1629,6 +1650,7 @@ def compute_solubility(
         molecule_uuid=molecule_uuid,
         facts=tuple(facts),
         charts=() if chart is None else (chart,),
+        renderings=SOLUBILITY_RENDERINGS,
         assumptions=_method_chain(
             analysis.estimate, analysis.resolution, analysis.solvent, analysis.ionization,
             analysis.molecular_weight,
@@ -1639,7 +1661,7 @@ def compute_solubility(
 
 
 def solubility_profile(
-    analysis, parameters: dict | None = None
+    analysis, parameters: dict | None = None, unit: str = LOG_S
 ) -> tuple[list[float], dict[str, list[float]]]:
     """The pH grid and the solubility series on it, in ONE place.
 
@@ -1656,7 +1678,9 @@ def solubility_profile(
     than either being wrong alone.
     """
     parameters = parameters or {}
-    unit = str(parameters.get("unit", LOG_S))
+    # THE UNIT IS AN ARGUMENT, never read out of `parameters` any more: it
+    # stopped being a calculation parameter when every unit started being
+    # declared. A stored request still carrying "unit" is ignored here.
     if unit not in DISPLAY_UNITS:
         unit = LOG_S
     grid = ph_grid_from(parameters)
@@ -1696,18 +1720,29 @@ def limit_facts(analysis, grid) -> list:
     ]
     if not limited:
         return []
+    notes = (
+        _SALT_LIMIT_NOTES[limit.kind].format(
+            limit=limit.log_units, ceiling=MISCIBILITY_CEILING_MG_PER_ML
+        ),
+    )
+    # TWO FACTS, because they are two quantities with two units. One fact
+    # read "+0.9 logS, reached at 10 of 57 sampled pH values" in its value
+    # and "logS" in its units, and `value_with_units` put the unit after the
+    # sentence: "... sampled pH values logS".
     return [
         _fact(
             f"Adjustment limit ({limit.kind.value})",
             limit.log_units,
-            f"+{limit.log_units:.1f} logS, reached at {len(limited)} of {len(grid)} sampled pH values",
+            f"+{limit.log_units:.1f}",
             units="logS",
-            limitations=(
-                _SALT_LIMIT_NOTES[limit.kind].format(
-                    limit=limit.log_units, ceiling=MISCIBILITY_CEILING_MG_PER_ML
-                ),
-            ),
-        )
+            limitations=notes,
+        ),
+        _fact(
+            "Adjustment limit reached",
+            len(limited),
+            f"at {len(limited)} of {len(grid)} sampled pH values",
+            limitations=notes,
+        ),
     ]
 
 
@@ -1723,20 +1758,35 @@ def solubility_chart(analysis, parameters: dict | None = None):
     convention is specific to chemical shift and would be actively wrong
     for a titration curve.
     """
-    from openchem.domain.report import LineChartAnnotation, LineSeries
+    from openchem.domain.report import LineChartAnnotation, LineRendering, LineSeries
 
     if analysis.refusal or analysis.baseline_logs is None or not analysis.solvent.is_water:
         return None
-    grid, series = solubility_profile(analysis, parameters)
-    if not grid or not series:
-        return None
+    renderings = []
+    for unit in DISPLAY_UNITS:
+        grid, series = solubility_profile(analysis, parameters, unit)
+        if not grid or not series:
+            return None
+        # ONE SERIES NAME FOR EVERY UNIT: the name is what a rendering must
+        # keep, and "Solubility (mg/mL)" in one and "Solubility (log mol/L)"
+        # in another would read to `rendering_state` as a different curve.
+        # The unit lives in the axis label, where it belongs.
+        renderings.append(
+            LineRendering(
+                key=UNIT_KEYS[unit],
+                series=tuple(
+                    LineSeries(points=tuple(zip(grid, values)), name="Solubility")
+                    for values in series.values()
+                ),
+                y_label=next(iter(series)),
+            )
+        )
+    default = renderings[0]
     return LineChartAnnotation(
-        series=tuple(
-            LineSeries(points=tuple(zip(grid, values)), name=name)
-            for name, values in series.items()
-        ),
+        series=default.series,
         x_label="pH",
-        y_label=next(iter(series)),
+        y_label=default.y_label,
+        renderings=tuple(renderings),
         x_descending=False,
         # **THE NEUTRAL CASE IS SAID, NOT LEFT TO THE FLAT LINE.** A
         # molecule with no ionizable centre genuinely does not vary with

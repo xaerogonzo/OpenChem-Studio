@@ -221,6 +221,11 @@ _FOCUS_HELP = HelpTooltip(
 #: Shown for every result the structure has moved on from.
 STALE_MARK = " (stale)"
 
+#: The narrowest reader in which the results filter shares the "Showing:"
+#: row. Below it the two would squeeze each other; above it, a row of its
+#: own is a line of facts lost in a short dock.
+_SHARED_ROW_MIN_WIDTH = 720
+
 #: The focus entry that narrows to nothing -- i.e. shows every calculator.
 #: A real entry rather than an empty string, so the control always names
 #: what it is currently doing.
@@ -324,6 +329,8 @@ class ResultsView(QWidget):
         focus_row = QWidget(self)
         row = QHBoxLayout(focus_row)
         row.setContentsMargins(0, 0, 0, 0)
+        #: Kept so `_arrange_search` can move the results filter into it.
+        self._focus_row_layout = row
         row.addWidget(QLabel("Showing:", focus_row))
         row.addWidget(self._focus_box, 1)
 
@@ -367,8 +374,12 @@ class ResultsView(QWidget):
         self._empty.setWordWrap(True)
 
         layout = QVBoxLayout(self)
+        self._layout = layout
         layout.addWidget(self._selector_search)
         layout.addWidget(focus_row)
+        #: Whether the results filter shares the "Showing:" row. See
+        #: `_arrange_search`.
+        self._search_in_focus_row = False
         layout.addWidget(self._visuals)
         layout.addWidget(self._view, 1)
         layout.addWidget(self._empty, 1)
@@ -383,6 +394,36 @@ class ResultsView(QWidget):
         # problem: "nothing has been computed for this molecule" when there
         # is no molecule sends somebody looking for a calculator to run.
         self._render()
+
+    # --- the filter's place ---------------------------------------------------
+
+    def _arrange_search(self, width: int) -> None:
+        """The results filter on its own row, or at the front of "Showing:".
+
+        **A ROW OF HEIGHT IN A SHORT DOCK IS A ROW OF FACTS.** Docked across
+        the top at the 190 px it was reported at, the filter, the Showing row
+        and the pop-out control took about 110 px before the report began, so
+        the facts were off screen whatever the notes did. A wide dock has the
+        width to put both controls on one row; a narrow one does not, and
+        there the filter keeps its own row rather than squeezing the combo.
+        """
+        together = width >= _SHARED_ROW_MIN_WIDTH
+        if together == self._search_in_focus_row:
+            return
+        self._search_in_focus_row = together
+        if together:
+            self._layout.removeWidget(self._selector_search)
+            self._focus_row_layout.insertWidget(0, self._selector_search, 1)
+        else:
+            self._focus_row_layout.removeWidget(self._selector_search)
+            self._layout.insertWidget(0, self._selector_search)
+
+    def search_shares_the_focus_row(self) -> bool:
+        return self._search_in_focus_row
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt's own casing
+        super().resizeEvent(event)
+        self._arrange_search(event.size().width())
 
     # --- what it is showing --------------------------------------------------
 

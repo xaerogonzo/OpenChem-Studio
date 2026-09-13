@@ -1,0 +1,105 @@
+# MMFF94 atomic charges and atom types, transcribed AS PRINTED from
+# Halgren, J. Comput. Chem. 1996, 17, 520-552 (MMFF part II), Table V,
+# pp. 533-534 -- read from the page rendered at 200-400 dpi, not from the
+# PDF's text layer. Columns: the MMFF column only.
+#
+# neighbours: the atom's neighbours' element symbols, sorted, WITH hydrogens
+# explicit -- the identity used to find the atom in an RDKit molecule. Where
+# two atoms share element and neighbours (imidazole C4/C5), the MMFF type
+# separates them.
+#
+# status:
+#   computed        the row as printed, checked against RDKit
+#   type_misprint   the charge is checked; the printed TYPE is not, because it
+#                   cannot be right: imidazole ring H printed "15" (a
+#                   sulfur type in MMFF) where every other aromatic C-H in
+#                   the table is 5
+#   contradicted    printed value disagrees with the same table: the
+#                   zwitterion's carboxylate C prints 0.900, the acetate row
+#                   prints 0.906 for the same types in the same bonding, and
+#                   eq. (7) makes those identical. NOT flagged in the paper --
+#                   its footnote (o) is on the Abraham column, not this one.
+molecule,smiles,atom,element,neighbours,mmff_type,charge,status
+CH3OH,CO,C,C,HHHO,1,0.280,computed
+CH3OH,CO,HC,H,C,5,0.000,computed
+CH3OH,CO,O,O,CH,6,-0.680,computed
+CH3OH,CO,H,H,O,21,0.400,computed
+CH3NH2,CN,C,C,HHHN,1,0.270,computed
+CH3NH2,CN,HC,H,C,5,0.000,computed
+CH3NH2,CN,N,N,CHH,8,-0.990,computed
+CH3NH2,CN,H,H,N,23,0.360,computed
+CH3CN,CC#N,C,C,CHHH,1,0.200,computed
+CH3CN,CC#N,HC,H,C,5,0.000,computed
+CH3CN,CC#N,C,C,CN,4,0.357,computed
+CH3CN,CC#N,N,N,C,42,-0.557,computed
+CH3OCH3,COC,C,C,HHHO,1,0.280,computed
+CH3OCH3,COC,HC,H,C,5,0.000,computed
+CH3OCH3,COC,O,O,CC,6,-0.560,computed
+CH3SH,CS,C,C,HHHS,1,0.230,computed
+CH3SH,CS,HC,H,C,5,0.000,computed
+CH3SH,CS,S,S,CH,15,-0.410,computed
+CH3SH,CS,H,H,S,71,0.180,computed
+CH3Cl,CCl,C,C,ClHHH,1,0.290,computed
+CH3Cl,CCl,HC,H,C,5,0.000,computed
+CH3Cl,CCl,Cl,Cl,C,12,-0.290,computed
+C2H6,CC,C,C,CHHH,1,0.000,computed
+C2H6,CC,H,H,C,5,0.000,computed
+CH3CONH2,CC(N)=O,C,C,CHHH,1,0.061,computed
+CH3CONH2,CC(N)=O,HC,H,C,5,0.000,computed
+CH3CONH2,CC(N)=O,C,C,CNO,3,0.569,computed
+CH3CONH2,CC(N)=O,O,O,C,7,-0.570,computed
+CH3CONH2,CC(N)=O,N,N,CHH,10,-0.800,computed
+CH3CONH2,CC(N)=O,H,H,N,28,0.370,computed
+CH3COOH,CC(O)=O,C,C,CHHH,1,0.061,computed
+CH3COOH,CC(O)=O,HC,H,C,5,0.000,computed
+CH3COOH,CC(O)=O,C,C,COO,3,0.659,computed
+CH3COOH,CC(O)=O,O=,O,C,7,-0.570,computed
+CH3COOH,CC(O)=O,O-,O,CH,6,-0.650,computed
+CH3COOH,CC(O)=O,H,H,O,24,0.500,computed
+(CH3)2CO,CC(C)=O,C,C,CHHH,1,0.061,computed
+(CH3)2CO,CC(C)=O,HC,H,C,5,0.000,computed
+(CH3)2CO,CC(C)=O,C,C,CCO,3,0.448,computed
+(CH3)2CO,CC(C)=O,O,O,C,7,-0.570,computed
+CH3COOCH3,CC(=O)OC,C,C,CHHH,1,0.061,computed
+CH3COOCH3,CC(=O)OC,HC,H,C,5,0.000,computed
+CH3COOCH3,CC(=O)OC,C,C,COO,3,0.659,computed
+CH3COOCH3,CC(=O)OC,O=,O,C,7,-0.570,computed
+CH3COOCH3,CC(=O)OC,O-,O,CC,6,-0.430,computed
+CH3COOCH3,CC(=O)OC,C,C,HHHO,1,0.280,computed
+C6H6,c1ccccc1,C,C,CCH,37,-0.150,computed
+C6H6,c1ccccc1,H,H,C,5,0.150,computed
+C5H5N,n1ccccc1,N,N,CC,38,-0.620,computed
+C5H5N,n1ccccc1,C1,C,CHN,37,0.160,computed
+C5H5N,n1ccccc1,C2,C,CCH,37,-0.150,computed
+C5H5N,n1ccccc1,H1,H,C,5,0.150,computed
+C6H5NH2,Nc1ccccc1,H,H,N,28,0.400,computed
+C6H5NH2,Nc1ccccc1,N,N,CHH,40,-0.900,computed
+C6H5NH2,Nc1ccccc1,C1,C,CCN,37,0.100,computed
+C6H5NH2,Nc1ccccc1,C2,C,CCH,37,-0.150,computed
+C6H5NH2,Nc1ccccc1,H2,H,C,5,0.150,computed
+Imidazole,c1c[nH]cn1,N1,N,CCH,39,0.033,computed
+Imidazole,c1c[nH]cn1,H1,H,N,23,0.270,computed
+Imidazole,c1c[nH]cn1,C2,C,HNN,63,0.037,computed
+Imidazole,c1c[nH]cn1,N3,N,CC,66,-0.565,computed
+Imidazole,c1c[nH]cn1,C4,C,CHN,64,0.077,computed
+Imidazole,c1c[nH]cn1,C5,C,CHN,63,-0.302,computed
+Imidazole,c1c[nH]cn1,H2/H4/H5,H,C,15,0.150,type_misprint
+H2O,O,O,O,HH,70,-0.860,computed
+H2O,O,H,H,O,31,0.430,computed
+CH3CO2(-),CC(=O)[O-],C,C,CHHH,1,-0.106,computed
+CH3CO2(-),CC(=O)[O-],HC,H,C,5,0.000,computed
+CH3CO2(-),CC(=O)[O-],C,C,COO,41,0.906,computed
+CH3CO2(-),CC(=O)[O-],O,O,C,32,-0.900,computed
+CH3NH3(+),C[NH3+],C,C,HHHN,1,0.503,computed
+CH3NH3(+),C[NH3+],HC,H,C,5,0.000,computed
+CH3NH3(+),C[NH3+],N,N,CHHH,34,-0.853,computed
+CH3NH3(+),C[NH3+],H,H,N,36,0.450,computed
+Imidazolium(+),c1c[nH]c[nH+]1,N1,N,CCH,81,-0.700,computed
+Imidazolium(+),c1c[nH]c[nH+]1,H1,H,N,36,0.450,computed
+Imidazolium(+),c1c[nH]c[nH+]1,C2,C,HNN,80,0.650,computed
+Imidazolium(+),c1c[nH]c[nH+]1,H2,H,C,5,0.150,computed
+Imidazolium(+),c1c[nH]c[nH+]1,C5,C,CHN,78,0.200,computed
+(-)O2C(CH2)6NH3(+),[O-]C(=O)CCCCCC[NH3+],O,O,C,32,-0.900,computed
+(-)O2C(CH2)6NH3(+),[O-]C(=O)CCCCCC[NH3+],C,C,COO,41,0.900,contradicted
+(-)O2C(CH2)6NH3(+),[O-]C(=O)CCCCCC[NH3+],N,N,CHHH,34,-0.853,computed
+(-)O2C(CH2)6NH3(+),[O-]C(=O)CCCCCC[NH3+],H,H,N,36,0.450,computed

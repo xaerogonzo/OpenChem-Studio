@@ -31,7 +31,7 @@ from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.domain.report import ReportResult, StructureReport
-from openchem.domain.result_store import BundleState, SessionResultStore, StoredResult
+from openchem.domain.result_store import BundleState, ResultIdentity, SessionResultStore, StoredResult
 from openchem.domain.scientific_result import (
     AlertResult,
     PerAtomDataset,
@@ -62,8 +62,13 @@ logger = logging.getLogger("openchem.result_store")
 SUBSTANCE_PART = "substance_analysis"
 
 
-def event_for(result: object, structure_version: int = 0):
+def event_for(result: object, structure_version: int = 0, identity: ResultIdentity | None = None):
     """The event `result` originally arrived as, ready to publish again.
+
+    **AND THE INPUT IT DESCRIBES**, for the two events that carry one. The
+    stored `identity` is the only record of which structure a per-atom
+    dataset's indices refer to; replaying the dataset without it would hand
+    the Atom Inspector values it has to treat as unverifiable.
 
     **A `StructureReport` IS RE-STAMPED WITH THE CURRENT VERSION**, forcibly.
     `status_of` reads staleness off the result, and the version it carries
@@ -81,10 +86,16 @@ def event_for(result: object, structure_version: int = 0):
         return ReportComputed(report=result)
     if isinstance(result, AlertResult):
         return AlertComputed(alert=result)
+    fingerprint = identity.input_fingerprint if identity is not None else ""
+    calculation_input = identity.calculation_input if identity is not None else ""
     if isinstance(result, PerAtomDataset):
-        return PerAtomDataComputed(dataset=result)
+        return PerAtomDataComputed(
+            dataset=result, input_fingerprint=fingerprint, calculation_input=calculation_input
+        )
     if isinstance(result, SpectrumResult):
-        return SpectrumComputed(spectrum=result)
+        return SpectrumComputed(
+            spectrum=result, input_fingerprint=fingerprint, calculation_input=calculation_input
+        )
     if isinstance(result, StructureSetResult):
         return StructureSetComputed(structure_set=result)
     if isinstance(result, PhCurveResult):
@@ -184,7 +195,7 @@ class ResultStoreService:
         sent: list[StoredResult] = []
         for stored in fresh:
             try:
-                event = event_for(stored.result, structure_version)
+                event = event_for(stored.result, structure_version, stored.identity)
             except TypeError:
                 logger.warning("Cannot replay %s", stored.identity.result_id)
                 continue

@@ -9,6 +9,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **pH-dependent partial charges were on the wrong atoms.** The dominant
+  protonation state came back from a SMILES round trip in the library's own
+  atom order, and the charges were numbered by that order. On the reported
+  O-O-C=N ring, nitrogen's +0.00 was shown on an oxygen. The protonated form
+  is now renumbered back into the drawing's order before anything is
+  computed on it, and every per-atom result that uses it (Hückel π density,
+  Lewis sites under "major microspecies") benefits. Measured over 126
+  molecule/pH pairs: each comes back as the same molecule the library chose,
+  in the drawn order, stereo included. Two cases now refuse rather than
+  guess: a drawn hydrogen that the protonated form removes, and two
+  equivalent sites of which only one is protonated.
+
+- **The Atom Inspector showed an earlier structure's per-atom values.** After
+  an edit, a charge computed for the previous drawing was still laid over the
+  current atoms, where the same number can name a different atom. Each
+  per-atom result now carries the identity of the structure it was computed
+  on. The inspector withholds one that does not match, and says so in the
+  line above the facts ("computed for an earlier structure"); undoing back to
+  that structure brings the values back without recomputing. The Results
+  panel still shows the old result, marked stale.
+
+- **Results squeezed its facts to a couple of rows in a narrow panel.** With
+  Results beside Properties, the list of result names above the facts and the
+  explanatory note below them took their full height, and the filter box was
+  cut to "Filter f...". Measured in the running app, the reader needed 1634
+  px of height before this change and 277 px after. Long notes now fold to
+  three lines with **More** / **Less**, give way to one line when a panel is
+  short, and never take the facts' last few rows. The filter box gets its own
+  row when the panel is narrow, and in a wide panel the results filter shares
+  the "Showing:" row. Copy report still carries every word.
+
+- **Opening a result's inspector held up every other panel.** When a
+  calculator you ran finished, its Calculator Inspector opened from inside
+  the event delivery, so panels that listen after Properties -- the Atom
+  Inspector among them -- did not receive the result until that dialog was
+  closed. The dialog now opens once every panel has the result.
+
+- **Units were printed twice** in the Atom Inspector ("-0.1394 e e") and in
+  Solubility's adjustment limit ("... sampled pH values logS"). Measured
+  over 1170 fact lines from 68 calculators: no other fact did this.
+
 - **3D rotation mode could be entered and not left.** Turning it off hid the
   bar and told the page nothing, so the full-canvas overlay stayed up
   swallowing every click -- and turning it off also HID the Cancel button
@@ -55,6 +96,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tautomers goes there to be picked from, which the label never said.
 
 ### Added
+
+- **LogD draws the curve it lies on.** Running **LogD (pH-dependent)** now
+  gives the value at your pH and the LogD-vs-pH curve together; hover the
+  curve to read logD at any sampled pH and click to keep the reading. The pH
+  you asked for is one of the samples, so the kept reading there is the same
+  number as the value above it. **LogD vs pH** is retired as a separate
+  calculator -- a search for it still finds LogD. The value itself is
+  unchanged on every branch (checked against the previous implementation's
+  numbers); without a pKa sidecar it stays the labelled approximation and
+  draws no curve.
+
+- **Switch Solubility's units in the Results panel without running it
+  again.** A **Units** box (log mol/L, mg/mL, mol/L) changes the chart, the
+  rows, Copy report and a saved picture together. The calculator's own
+  **Units** setting is gone: every unit was already being computed, so it was
+  a display choice dressed as a calculation parameter. Any result can now
+  declare several renderings like this; the panel offers the switch only
+  when the declaration holds together, and says why when it does not.
+
+- **Partial Charge (pH-dependent) offers MMFF94 beside Gasteiger.** Choose
+  the method in the calculator's settings. MMFF94's charges were checked
+  against the table Halgren published with the force field: RDKit
+  reproduces every printed charge and atom type for 19 of its 20 molecules
+  and ions, and the 20th disagrees with the same table's acetate row. The
+  two methods are different models and give different numbers for the same
+  atom. Running it again with the other method replaces the result, as
+  changing the pH does. Open Babel's EEM and QEq are recorded as deferred in
+  the roadmap, with the reasons.
 
 - **Structure > Redraw in 2D**, the way back from **Use in 2D Editor**. That
   button brings a conformer across as a projection of the real geometry,

@@ -19793,3 +19793,58 @@ rail's area rule broke no docking test, because every test moved docks the
 way a user does, and a user's move also marks the dock placed. The case
 the rule exists for is a layout saved before placement was tracked. Only a
 test that restores such a layout can see it.
+
+## THE SMILES ROUND TRIP DROPPED THE INDEX SPACE, AND ATOM MAPS WERE THE WRONG REPAIR
+
+Reported as "the Atom Inspector and the Calculator Inspector disagree about an
+oxygen's charge" (2026-09-13). Two bugs, and neither was the chemistry.
+
+**The pH-dependent charges were on the wrong atoms.** `dominant_microspecies`
+sent Dimorphite a canonical SMILES and parsed its answer back, so the species
+came back in the library's atom order and every per-atom value was keyed to
+it. On O1OC=N1 at pH 7.4 nitrogen's +0.0027 sat on an oxygen. Anything that
+reports molecule-level numbers could not see it.
+
+**Atom maps were the obvious repair and they change the library's answer.**
+Measured over 111 molecule/pH pairs before using them: a mapped imidazole
+comes back with NO state at pH 7.4 and 12 where the unmapped one returns an
+anion, and 4-nitrophenol's nitro oxygen loses its map. So Dimorphite is called
+exactly as before and the correspondence is recovered on element and
+adjacency. The first version of that refused 60 of 126 pairs, because with
+bond orders erased an acid's two oxygens are interchangeable. What broke the
+tie was the drawing itself: the right correspondence is the one whose changes
+are all proton events (+1 H with +1 charge, or -1 with -1). Refusal is kept
+only for equivalent sites that genuinely differ. Result: 126 of 126 pairs
+round-trip to the identical molecule, stereo included.
+
+**A SMILES corpus tested almost nothing.** Written as canonical SMILES, 11 of
+15 drug-like molecules come back from the library in their own order, so the
+index tests passed with the fix reverted. The corpus reverses each molecule's
+atom order, which is what a drawing is: atoms numbered in the order they were
+placed.
+
+**The second bug was a stale dataset laid over current atoms,** and a stale
+MARK would not have fixed it: after an edit the same index names a different
+atom. Per-atom events now carry the calculation-input fingerprint and the
+inspector withholds anything not fresh. Proving it live found a third defect
+nobody was looking for: the calculator reveal ran `exec()` inside the bus
+handler, so the Atom Inspector received the dataset 67 s late, at quit, and a
+driven run read as "never arrived".
+
+## A FOOTNOTE ON THE NEXT COLUMN IS NOT A FLAG ON THIS ONE
+
+Halgren's MMFF94 Table V (part II) is an exact oracle: RDKit reproduces every
+charge and atom type for 19 of its 20 molecules and ions (2026-09-13). The
+20th, the -O2C(CH2)6NH3+ zwitterion, prints its carboxylate carbon as 0.900
+where the same table's acetate row prints 0.906 for the same types in the same
+bonding.
+
+I first recorded that row as "inferred per footnote (o)", in the plan, the
+memory and the draft source entry. Rendering the row at 400 dpi showed the
+superscript on the ABRAHAM column's -0.545, not on the MMFF value. The MMFF
+0.900 is an unflagged internal contradiction, and the fixture now stores it
+as printed with that status.
+
+A superscript is exactly the kind of field nothing downstream can check. The
+number was right and the reason was wrong, and a wrong reason is still what a
+later reader would repeat.

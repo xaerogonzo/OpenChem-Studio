@@ -146,7 +146,7 @@ def test_phase27_and_28_calculators_are_registered():
     expected = {
         "stereoisomers", "tautomers", "resonance_forms", "markush_enumeration",
         "pka_microspecies", "major_microspecies", "isoelectric_point",
-        "logd_curve", "hbond_vs_ph",
+        "hbond_vs_ph",
     }
     registered = {
         definition.calculator_id
@@ -154,6 +154,9 @@ def test_phase27_and_28_calculators_are_registered():
         for definition in registry.by_category(category)
     }
     assert expected <= registered
+    # `logd_curve` was one of these and is RETIRED, folded into `logd`: not
+    # offered, and still findable by its old name through `RETIREMENTS`.
+    assert "logd_curve" not in registered
 
 
 def test_ph_curve_calculators_get_the_pkasolver_interpreter_injected():
@@ -163,7 +166,7 @@ def test_ph_curve_calculators_get_the_pkasolver_interpreter_injected():
     from openchem.bootstrap import _CALCULATOR_INTERPRETER_SETTING
     from openchem.chem.pka_providers import PKASOLVER_PYTHON_SETTING
 
-    for calculator in ("pka_microspecies", "isoelectric_point", "logd_curve"):
+    for calculator in ("pka_microspecies", "isoelectric_point", "logd"):
         assert _CALCULATOR_INTERPRETER_SETTING.get(calculator) == PKASOLVER_PYTHON_SETTING
 
 

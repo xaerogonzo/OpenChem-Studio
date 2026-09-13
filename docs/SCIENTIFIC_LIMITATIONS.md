@@ -991,6 +991,37 @@ the Properties panel's "Total charge" (the drawn structure) and the
 inspector's "Net calculated charge" (the species) legitimately differ. The
 inspector names the species when they do.
 
+**The charge calculator and logD can disagree about which species that is.
+Unresolved, and recorded as three facts rather than a verdict.** Measured on
+the ring O1OCN1 (2026-09-13):
+
+- pkasolver predicts a basic pKa of 3.20, so at pH 7.4 logD treats the
+  molecule as neutral;
+- Dimorphite-DL, which picks the species the charges are computed on,
+  protonates that nitrogen at pH 7.4;
+- so the pH-dependent charges and logD rest on different ionization states
+  for the same molecule at the same pH.
+
+Neither is known to be right here; both are empirical models, and the
+difference is between two libraries rather than a defect in either one's
+use. Fixing the atom ORDER of the species (below) says nothing about
+whether its protonation state is correct.
+
+**Charges are keyed to the drawn atoms.** The species comes back from the
+library in its own atom order; it is renumbered into the drawing's before
+anything is computed on it. Until 2026-09-13 it was not, and on that same
+ring nitrogen's charge was shown on an oxygen.
+
+**Two charge methods, and they are different models.** Gasteiger (PEOE)
+equalizes orbital electronegativity along bonds; MMFF94 starts from formal
+charges and adds a fixed increment per bonded pair of atom types. They give
+different numbers for the same atom — methanol's oxygen is −0.40 by
+Gasteiger and −0.68 by MMFF94 — and neither is "more correct" in general;
+MMFF94's are the charges the MMFF94 force field was fitted with. A folded
+("Increment of Hs") MMFF94 value is the atom's own charge plus its implicit
+hydrogens', which is arithmetic this application does, not a quantity MMFF94
+defines. A structure MMFF94 has no atom type for is refused, not guessed.
+
 ---
 
 <!-- help:limits-structure -->
@@ -1930,7 +1961,7 @@ and a molecular atom that share index 7 are not the same object.
 ### Which calculators a crystal is offered, and why it is none of them
 
 Every calculator declares the structure kinds it applies to, and the
-default is molecule-only. Today **none of the 59 registered calculators
+default is molecule-only. Today **none of the 58 registered calculators
 declares a crystal**, so the crystal report says so outright rather than
 implying some subset applies. That is not a gap being admitted — a
 molecular weight, a logP or a rotatable-bond count is a property of a

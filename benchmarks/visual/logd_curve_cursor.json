@@ -1,0 +1,11 @@
+[
+  {"do": "smiles", "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)O", "name": "Ibuprofen", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "calculator", "id": "logd", "parameters": {"pH": 7.4}, "reveal": false, "after_ms": 60000},
+  {"do": "panel", "id": "Results", "after_ms": 2000},
+  {"do": "results", "focus": "logd", "after_ms": 2500},
+  {"do": "chart_cursor", "x": 7.4, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/logd_cursor_at_7_4.png", "widget": "results", "after_ms": 800},
+  {"do": "chart_cursor", "x": 3.1, "after_ms": 800},
+  {"do": "quit"}
+]

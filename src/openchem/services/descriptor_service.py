@@ -127,7 +127,11 @@ class _DescriptorComputeTask(QRunnable):
             self._part_failed = True
         else:
             for dataset in datasets:
-                self._event_bus.publish(PerAtomDataComputed(dataset=dataset))
+                self._event_bus.publish(PerAtomDataComputed(
+                    dataset=dataset,
+                    input_fingerprint=self._fingerprint,
+                    calculation_input=self._calculation_input,
+                ))
                 self._record(dataset)
         self._finish_part()
 
@@ -378,7 +382,11 @@ class _CalculationTask(QRunnable):
             self._publish_failed(str(exc))
             return
         if isinstance(result, PerAtomDataset):
-            self._event_bus.publish(PerAtomDataComputed(dataset=result))
+            self._event_bus.publish(PerAtomDataComputed(
+                dataset=result,
+                input_fingerprint=self._fingerprint,
+                calculation_input=self._calculation_input,
+            ))
         elif isinstance(result, ReportResult):
             # BEFORE AlertResult, not after: nothing subclasses the other
             # today, but the ordering says which is the specific case if
@@ -387,7 +395,11 @@ class _CalculationTask(QRunnable):
         elif isinstance(result, AlertResult):
             self._event_bus.publish(AlertComputed(alert=result))
         elif isinstance(result, SpectrumResult):
-            self._event_bus.publish(SpectrumComputed(spectrum=result))
+            self._event_bus.publish(SpectrumComputed(
+                spectrum=result,
+                input_fingerprint=self._fingerprint,
+                calculation_input=self._calculation_input,
+            ))
         elif isinstance(result, StructureSetResult):
             self._event_bus.publish(StructureSetComputed(structure_set=result))
         elif isinstance(result, PhCurveResult):
@@ -462,11 +474,18 @@ class _CalculationTask(QRunnable):
             cache_state=CacheState.FAILED,
             error=message,
         )
-        self._event_bus.publish(PerAtomDataComputed(dataset=dataset))
-        # Recorded, so the session does not retry a failure on every
-        # selection; `SessionResultStore.to_dict` never writes it to a file.
+        # The fingerprint BEFORE publishing, so the event carries it: a failure
+        # is as structure-bound as a success, and a stale one must not read as
+        # current.
         if not self._fingerprint:
             self._fingerprint = input_fingerprint(self._engine, self._model, DRAWING)
+        self._event_bus.publish(PerAtomDataComputed(
+            dataset=dataset,
+            input_fingerprint=self._fingerprint,
+            calculation_input=self._calculation_input,
+        ))
+        # Recorded, so the session does not retry a failure on every
+        # selection; `SessionResultStore.to_dict` never writes it to a file.
         self._record_and_finish(dataset)
 
 

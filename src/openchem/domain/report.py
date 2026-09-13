@@ -225,6 +225,16 @@ class Fact:
     #: values that have nowhere else to say what they are. It defaults to
     #: empty so every existing producer is untouched.
     help_id: str = ""
+    #: Which of its report's declared `renderings` this fact belongs to, or
+    #: empty for a fact that reads the same in every rendering.
+    #:
+    #: **A DISPLAY CHOICE THE PRODUCER DECLARED, NOT A SECOND CALCULATION.**
+    #: Solubility computes one number and states it in logS, mol/L and
+    #: mg/mL; each statement is a fact tagged with its unit's key, and a
+    #: reader shows the ones for the unit chosen. Nothing converts anything
+    #: at display time -- the conversion needs a molecular weight and is
+    #: chemistry, which does not belong in a view.
+    rendering: str = ""
 
     @property
     def value_with_units(self) -> str:
@@ -584,6 +594,24 @@ class LineSeries:
 
 
 @dataclass(frozen=True)
+class LineRendering:
+    """The SAME curves in another unit, declared by the producer.
+
+    Only the y values, the y label and the y units may differ from the
+    chart's own series; `rendering_state` refuses anything else, because a
+    reader switching renderings must never change which curve is which or
+    where along x it was sampled.
+    """
+
+    #: A stable machine id, matching one of the report's `Rendering.key`s --
+    #: never the label on screen.
+    key: str
+    series: tuple[LineSeries, ...]
+    y_label: str
+    y_units: str = ""
+
+
+@dataclass(frozen=True)
 class LineChartAnnotation:
     """A continuous curve the calculation produced: several series on one pair
     of axes.
@@ -634,6 +662,12 @@ class LineChartAnnotation:
     #: the data.
     y_min: float | None = None
     y_max: float | None = None
+    #: The curves again in each of the report's declared renderings, in the
+    #: report's order. Empty for a chart with one way to be read, which is
+    #: every chart but the ones a producer chose to offer in several units.
+    #: `series`/`y_label`/`y_units` above stay the default rendering's, so a
+    #: consumer that knows nothing of renderings draws the default.
+    renderings: tuple[LineRendering, ...] = ()
 
 
 #: The union of chart kinds. TWO members; `spatial` shipped as three and
@@ -930,6 +964,104 @@ def _line_series_rules_hold(annotation: LineChartAnnotation) -> bool:
     return True
 
 
+@dataclass(frozen=True)
+class Rendering:
+    """One way a report can be READ, declared by its producer: a unit today.
+
+    `key` is what facts and charts are tagged with and what a reader
+    remembers; `label` is only what the Units control shows.
+    """
+
+    key: str
+    label: str
+
+
+#: `rendering_state` outcomes.
+NO_RENDERINGS = "none"
+#: Every rendering is declared once, every fact and chart points at a
+#: declared one, and each chart rendering is the same curves in another unit.
+COMPLETE_RENDERINGS = "complete"
+#: Renderings are declared but something does not hold -- read the report
+#: in its default form and offer no choice.
+INVALID_RENDERINGS = "invalid"
+
+
+def rendering_state(report: Any) -> tuple[str, str]:
+    """Whether a reader may offer this report's renderings, and why not.
+
+    **PRESENT IS NOT COMPLETE.** A saved or hand-edited result could declare
+    renderings whose chart has a different x grid or a different series in
+    one of them; offering a Units switch over that would change the curve
+    under the reader's cursor, not its unit. So the switch is offered only
+    for a declaration that holds, and anything else is read in its default
+    form with the reason said.
+    """
+    declared = tuple(getattr(report, "renderings", ()) or ())
+    if not declared:
+        return NO_RENDERINGS, ""
+    keys = [getattr(item, "key", None) for item in declared]
+    if not all(isinstance(key, str) and key.strip() for key in keys) or len(set(keys)) != len(keys):
+        return INVALID_RENDERINGS, "its units are not declared once each"
+    for fact in getattr(report, "facts", ()) or ():
+        tag = getattr(fact, "rendering", "")
+        if tag and tag not in keys:
+            return INVALID_RENDERINGS, f"a fact names an undeclared unit {tag!r}"
+    for chart in getattr(report, "charts", ()) or ():
+        if not isinstance(chart, LineChartAnnotation) or not chart.renderings:
+            continue
+        if [getattr(item, "key", None) for item in chart.renderings] != keys:
+            return INVALID_RENDERINGS, "a chart's units differ from the report's"
+        if not all(_same_curves_in_another_unit(chart, item) for item in chart.renderings):
+            return INVALID_RENDERINGS, "a chart's units do not hold the same curves"
+    return COMPLETE_RENDERINGS, ""
+
+
+def _same_curves_in_another_unit(chart: LineChartAnnotation, rendering: Any) -> bool:
+    """Same series, same names, same order, same x at every point; finite y."""
+    if not isinstance(rendering, LineRendering):
+        return False
+    if not isinstance(rendering.y_label, str) or not rendering.y_label.strip():
+        return False
+    if len(rendering.series) != len(chart.series):
+        return False
+    for base, other in zip(chart.series, rendering.series):
+        if not isinstance(other, LineSeries) or other.name != base.name:
+            return False
+        if len(other.points) != len(base.points):
+            return False
+        for (x, _y), (other_x, other_y) in zip(base.points, other.points):
+            if other_x != x or not _finite(other_x, other_y):
+                return False
+    return True
+
+
+def default_rendering(report: Any) -> str:
+    """The key a reader starts on: the first declared, or empty."""
+    declared = tuple(getattr(report, "renderings", ()) or ())
+    return declared[0].key if declared else ""
+
+
+def facts_in_rendering(facts, key: str) -> tuple:
+    """The facts a reader shows for `key`: untagged ones, and `key`'s own."""
+    return tuple(fact for fact in facts if not getattr(fact, "rendering", "") or fact.rendering == key)
+
+
+def chart_in_rendering(chart: Any, key: str) -> Any:
+    """`chart` redrawn in `key`, or unchanged when it has no such rendering.
+
+    The chart's `renderings` stay attached, so whatever reads the result
+    afterwards can still switch.
+    """
+    if not isinstance(chart, LineChartAnnotation) or not chart.renderings:
+        return chart
+    for rendering in chart.renderings:
+        if rendering.key == key:
+            return dataclasses.replace(
+                chart, series=rendering.series, y_label=rendering.y_label, y_units=rendering.y_units
+            )
+    return chart
+
+
 @dataclass(frozen=True, kw_only=True)
 class ReportResult(StructureReport):
     """A CALCULATOR's output, as facts rather than a list of strings.
@@ -1011,6 +1143,11 @@ class ReportResult(StructureReport):
     #:
     #: Defaulted, so every existing constructor and plugin keeps working.
     charts: tuple[ChartAnnotation, ...] = ()
+    #: The ways this report can be read -- units, today -- in the order a
+    #: reader offers them, the first being the default. Empty for a report
+    #: with one way to be read. See `rendering_state` for when a reader may
+    #: offer them, and `Fact.rendering` for what they select.
+    renderings: tuple[Rendering, ...] = ()
 
     @property
     def matched(self) -> list[str]:

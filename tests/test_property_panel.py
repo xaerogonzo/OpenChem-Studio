@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from PySide6.QtCore import QCoreApplication
 from PySide6.QtWidgets import QDialog
 
 import openchem.ui.panels.property_panel as property_panel_module
@@ -361,10 +362,51 @@ def test_matching_result_opens_the_inspector_and_clears_pending(qapp, monkeypatc
             )
         )
     )
+    # The reveal runs after the bus finishes dispatching; see
+    # `PropertyPanel._reveal_after_dispatch`.
+    QCoreApplication.processEvents()
 
     assert len(opened) == 1
     assert opened[0][0] is molecule
     assert panel._pending_calculator_id is None
+
+
+def test_the_revealed_inspector_does_not_starve_later_subscribers(qapp, monkeypatch):
+    """A MODAL `exec()` INSIDE A BUS HANDLER held every later subscriber.
+
+    The reveal opened the Calculator Inspector from inside
+    `EventBus._dispatch`, so a subscriber registered after this panel -- the
+    Atom Inspector, in the running app -- was not called until the dialog
+    closed. Measured in a driven run: 67 s, because nobody closed it until
+    quit. The dialog must open only after every subscriber has the result.
+    """
+    order: list[str] = []
+
+    class _FakeInspectorDialog:
+        def __init__(self, engine, molecule, result, conformer_molblock, parent=None, **kwargs):
+            pass
+
+        def exec(self):
+            order.append("dialog exec")
+            return QDialog.DialogCode.Accepted
+
+    monkeypatch.setattr(property_panel_module, "CalculatorInspectorDialog", _FakeInspectorDialog)
+
+    panel, bus, _service = _make_panel(qapp)
+    molecule = MoleculeModel(display_name="Ethanol")
+    panel.set_project(ProjectModel(molecules=[molecule]))
+    bus.publish(MoleculeSelected(molecule_uuid=molecule.uuid))
+    later = lambda event: order.append("later subscriber")  # noqa: E731
+    bus.subscribe(PerAtomDataComputed, later)
+    panel._pending_calculator_id = "crippen_logp_contrib"
+
+    bus.publish(PerAtomDataComputed(dataset=PerAtomDataset(
+        property_id="crippen_logp_contrib", name="LogP Contribution", units="",
+        method="rdkit", molecule_uuid=molecule.uuid, values={0: 0.1},
+    )))
+    QCoreApplication.processEvents()
+
+    assert order == ["later subscriber", "dialog exec"], order
 
 
 def test_matching_spectrum_result_opens_the_nmr_view_and_clears_pending(qapp, monkeypatch):
@@ -419,6 +461,9 @@ def test_matching_spectrum_result_opens_the_nmr_view_and_clears_pending(qapp, mo
             )
         )
     )
+    # The reveal runs after the bus finishes dispatching; see
+    # `PropertyPanel._reveal_after_dispatch`.
+    QCoreApplication.processEvents()
 
     assert len(opened) == 1
     assert opened[0][0] is molecule

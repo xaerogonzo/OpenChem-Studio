@@ -247,14 +247,16 @@ def collect_per_atom_data(mol: Any, index: int, context: dict) -> list[AtomFact]
         if index not in dataset.values:
             continue
         value = dataset.values[index]
-        units = f" {dataset.units}" if dataset.units else ""
         facts.append(
             _fact(
                 _PROPERTY_CATEGORY.get(dataset.property_id, FactCategory.ELECTRONIC),
                 dataset.name,
                 value,
                 dataset.property_id,
-                display=f"{value:.4g}{units}",
+                # The number alone: `units` is its own field and
+                # `Fact.value_with_units` joins them. Both fields carried it,
+                # and the inspector showed "-0.1394 e e".
+                display=f"{value:.4g}",
                 units=dataset.units,
                 link=FactLink(
                     target="calculator_inspector",
@@ -274,14 +276,13 @@ def collect_spectra(mol: Any, index: int, context: dict) -> list[AtomFact]:
         if index not in spectrum.values:
             continue
         value = spectrum.values[index]
-        units = f" {spectrum.units}" if spectrum.units else ""
         facts.append(
             _fact(
                 FactCategory.SPECTROSCOPY,
                 spectrum.name,
                 value,
                 spectrum.spectrum_type,
-                display=f"{value:.3f}{units}",
+                display=f"{value:.3f}",
                 units=spectrum.units,
                 link=FactLink(
                     target="nmr_view",

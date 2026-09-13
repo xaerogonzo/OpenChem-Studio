@@ -106,11 +106,12 @@ Oxidation state per atom, by the IUPAC electronegativity-partition rule: each bo
 <!-- help:calc-gasteiger-charge-at-ph -->
 ### Partial Charge (pH-dependent)
 
-Gasteiger partial charges, recomputed on the dominant protonation state at a given pH.
+Partial charges, recomputed on the dominant protonation state at a given pH, by Gasteiger's PEOE or by MMFF94's bond-charge increments. The two are different models and give different numbers for the same atom.
 
 - Produces one value per atom, with a depiction coloured by them.
 - Runs on the 2D drawing, so no conformer is needed.
 - Options:
+  - `method` -- Charge method (gasteiger, mmff94) default `gasteiger`
   - `pH` -- pH default `7.4` range 0.0 to 14.0
   - `include_hydrogens` -- Increment of Hs (add implicit H charge) default `False`
 
@@ -119,23 +120,15 @@ Gasteiger partial charges, recomputed on the dominant protonation state at a giv
 <!-- help:calc-logd -->
 ### LogD (pH-dependent)
 
-Distribution coefficient at a given pH. Real Henderson-Hasselbalch when a pkasolver environment is configured; otherwise the LogP of the dominant microspecies at that pH, labelled as an approximation.
+Distribution coefficient at a given pH, and the curve across pH it lies on. Real Henderson-Hasselbalch when a pkasolver environment is configured; otherwise the LogP of the dominant microspecies at that pH, labelled as an approximation and drawn as no curve. Hover the curve to read logD at a sampled pH. Under-predicts zwitterions (amino acids).
 
-- Produces a list of matched lines.
+Also known as **LogD vs pH** -- retired and folded in here. Folded into LogD, which now declares the curve it lies on -- the same Henderson-Hasselbalch function over the same pH range, with the chosen pH as a sample -- so reading logD at one pH and seeing the curve is one run.
+
+- Produces a list of facts, each with its own units, basis and evidence.
 - Runs on the 2D drawing, so no conformer is needed.
 - Basis: empirical (fitted to measured data, with real scatter).
 - Options:
   - `pH` -- pH default `7.4` range 0.0 to 14.0
-
-<!-- help:calc-logd-curve -->
-### LogD vs pH
-
-The distribution coefficient across pH 0-14 by Henderson-Hasselbalch. Needs a configured pkasolver environment. Note: Henderson-Hasselbalch under-predicts logD for zwitterions (e.g. amino acids), because it assumes the partitioning species has no site ionized; monoprotic acids and bases are unaffected.
-
-- Produces a curve against pH.
-- Runs on the 2D drawing, so no conformer is needed.
-- Basis: empirical (fitted to measured data, with real scatter).
-- Options:
   - `ph_min` -- pH from default `0.0` range -2.0 to 16.0
   - `ph_max` -- pH to default `14.0` range -2.0 to 16.0
   - `ph_step` -- Step default `0.25` range 0.01 to 2.0
@@ -559,7 +552,6 @@ Also known as **Solubility vs pH** -- retired and folded in here. Folded into So
 - Basis: empirical (fitted to measured data, with real scatter).
 - Options:
   - `model` -- Baseline model (esol, aqsoldb) default `esol`
-  - `unit` -- Units (logS (log mol/L), mg/mL, mol/L) default `logS (log mol/L)`
   - `pH` -- at pH default `7.4` range 0.0 to 14.0
   - `pka_values` -- pKa values (optional, e.g. 3.49, 9.4)
   - `dose_mg` -- Highest single dose (mg, for BCS) default `0.0` range 0.0 to 100000.0

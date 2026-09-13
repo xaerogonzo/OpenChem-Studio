@@ -287,6 +287,15 @@ RETIREMENTS: dict[str, Retirement] = {
             "offers."
         ),
     ),
+    "logd_curve": Retirement(
+        display_name="LogD vs pH",
+        replaced_by="logd",
+        reason=(
+            "Folded into LogD, which now declares the curve it lies on -- the same "
+            "Henderson-Hasselbalch function over the same pH range, with the chosen pH "
+            "as a sample -- so reading logD at one pH and seeing the curve is one run."
+        ),
+    ),
 }
 
 
