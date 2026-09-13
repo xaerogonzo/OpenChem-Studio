@@ -278,6 +278,20 @@ def test_a_lost_entry_is_partial_and_the_calculators_run_again():
     assert len(loaded.fresh_results("m", {DRAWING: "fp"})) == 2
 
 
+def test_an_always_on_set_from_another_build_is_recomputed():
+    """The user guide's promise: a later version gets its own perception."""
+    store = SessionResultStore("project")
+    stored = _stored("m", "a", DRAWING, "fp")
+    stored.application_version = "0.9.0"
+    store.put(stored)
+    store.record_part("m", BundlePart("provider", "fp", ("a",)))
+
+    assert store.bundle_state("m", "fp", {"provider"}, "0.9.0")[0] is BundleState.COMPLETE
+    assert store.bundle_state("m", "fp", {"provider"}, "0.10.0")[0] is BundleState.PARTIAL
+    # ...while the result itself is still there to show until the rerun lands.
+    assert store.fresh_results("m", {DRAWING: "fp"})
+
+
 def test_a_new_producer_makes_an_old_manifest_incomplete():
     state, missing = _complete_store().bundle_state("m", "fp", {"provider", "plugin"})
     assert state is BundleState.PARTIAL and missing == {"plugin"}

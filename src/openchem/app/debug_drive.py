@@ -573,6 +573,87 @@ class _Driver(QObject):
     def _do_panel(self, step: dict[str, Any]) -> None:
         self._window._on_panel_chosen(str(step["id"]))
 
+    _AREAS = {
+        "left": Qt.DockWidgetArea.LeftDockWidgetArea,
+        "right": Qt.DockWidgetArea.RightDockWidgetArea,
+        "top": Qt.DockWidgetArea.TopDockWidgetArea,
+        "bottom": Qt.DockWidgetArea.BottomDockWidgetArea,
+    }
+
+    def _dock(self, panel_id: str):
+        from PySide6.QtWidgets import QDockWidget
+
+        dock = self._window.findChild(QDockWidget, panel_id)
+        if dock is None:
+            logger.error("OPENCHEM_DRIVE: no dock %r", panel_id)
+        return dock
+
+    def _do_dock_move(self, step: dict[str, Any]) -> None:
+        """Put a dock in an area, as a user's drop would leave it.
+
+        `{"do": "dock_move", "panel": "Results", "area": "top"}`
+        `{"do": "dock_move", "panel": "Results", "beside": "Properties",
+          "orientation": "vertical"}`   -- a split next to another dock
+
+        Calls `addDockWidget` / `splitDockWidget` on the window directly,
+        OUTSIDE the window's own arranging guard, so it reaches the same
+        `dockLocationChanged` a real drop does -- which is the signal the
+        rail's "user-placed" rule is built on.
+        """
+        dock = self._dock(str(step["panel"]))
+        if dock is None:
+            return
+        dock.setFloating(False)
+        beside = step.get("beside")
+        if beside:
+            other = self._dock(str(beside))
+            if other is None:
+                return
+            orientation = (
+                Qt.Orientation.Vertical if step.get("orientation", "vertical") == "vertical"
+                else Qt.Orientation.Horizontal
+            )
+            other.show()
+            self._window.splitDockWidget(other, dock, orientation)
+        else:
+            self._window.addDockWidget(self._AREAS[str(step.get("area", "right"))], dock)
+        dock.show()
+
+    def _do_dock_tabify(self, step: dict[str, Any]) -> None:
+        """`{"do": "dock_tabify", "panel": "Results", "onto": "Properties"}`"""
+        dock, onto = self._dock(str(step["panel"])), self._dock(str(step["onto"]))
+        if dock is None or onto is None:
+            return
+        dock.setFloating(False)
+        onto.show()
+        self._window.tabifyDockWidget(onto, dock)
+        dock.show()
+
+    def _do_dock_float(self, step: dict[str, Any]) -> None:
+        """`{"do": "dock_float", "panel": "Properties", "on": true}`"""
+        dock = self._dock(str(step["panel"]))
+        if dock is not None:
+            dock.setFloating(bool(step.get("on", True)))
+            dock.show()
+
+    def _do_reset_layout(self, step: dict[str, Any]) -> None:
+        """`{"do": "reset_layout"}` -- the real View > Reset Panel Layout."""
+        self._window.reset_panel_layout()
+
+    def _do_dock_report(self, step: dict[str, Any]) -> None:
+        """Every dock's area, state and rectangle -- and which ones OVERLAP.
+
+        `{"do": "dock_report", "tag": "after-move"}`
+
+        **THE OVERLAP IS THE POINT.** The reported screenshot showed the
+        Results title bar painted on top of the Project Explorer's
+        ("Resjdts Explorer"), which no screenshot comparison can name but a
+        rectangle intersection can. Visible, docked (not floating) docks only;
+        a floating window overlapping the main window is its whole purpose.
+        """
+        report = self._window.dock_layout_report()
+        logger.warning("OPENCHEM_DRIVE: dock_report %s %s", step.get("tag", ""), json.dumps(report))
+
     def _do_align(self, step: dict[str, Any]) -> None:
         """Run the 3D Alignment panel on the project's molecules.
 

@@ -41,6 +41,7 @@ from openchem.domain.scientific_result import (
     TrajectoryResult,
 )
 from openchem.events.base import EventBus
+from openchem.services.result_identity import application_version
 from openchem.events.events import (
     AlertComputed,
     AutomaticPartFinished,
@@ -171,7 +172,10 @@ class ResultStoreService:
 
     def automatic_state(self, model: MoleculeModel, expected_parts: set[str]) -> tuple[BundleState, set[str]]:
         return self.store.bundle_state(
-            model.uuid, input_fingerprint(self._engine, model, DRAWING), expected_parts
+            model.uuid,
+            input_fingerprint(self._engine, model, DRAWING),
+            expected_parts,
+            application_version(),
         )
 
     def replay(self, model: MoleculeModel, structure_version: int = 0) -> list[StoredResult]:

@@ -259,6 +259,9 @@ def initial_right_dock_width(available_width: int, dock_minimum: int) -> int:
 
 _LAYOUT_VERSION = "4"
 _LAYOUT_VERSION_KEY = "ui/layout_version"
+#: Docks the user has placed, which the rail leaves on screen. Saved beside
+#: the window state, and read only when that state is restored.
+_USER_PLACED_KEY = "ui/user_placed_docks"
 _RAIL_COLLAPSED_KEY = "ui/rail_collapsed"
 
 #: What the central editor is never squeezed below, in pixels.
@@ -322,6 +325,18 @@ class MainWindow(QMainWindow):
         self._settings = settings
         self._session = session
         self._undo_stack = QUndoStack(self)
+        # Docking state, before any dock exists -- see `_on_dock_moved`.
+        # `_arranging` starts True and is cleared at the END of construction:
+        # every dock this constructor adds, and the saved layout it restores,
+        # fires the same signals a user's drop does.
+        self._arranging = True
+        self._user_placed_docks: set[str] = set()
+        self._default_dock_areas: dict[str, Qt.DockWidgetArea] = {}
+        self._docks_to_classify: set[QDockWidget] = set()
+        self._classify_timer = QTimer(self)
+        self._classify_timer.setSingleShot(True)
+        self._classify_timer.setInterval(0)
+        self._classify_timer.timeout.connect(self._classify_moved_docks)
         self._plugin_panels: dict[str, QDockWidget] = {}
         self._plugin_menu_actions: dict[str, list[QAction]] = {}
         #: Whether a docked pose is currently drawn into the
@@ -698,6 +713,17 @@ class MainWindow(QMainWindow):
             (compare_dock, "compare"),
         ):
             self._panel_rail.register(dock.objectName(), dock.windowTitle(), group)
+        # NESTED AND TABBED DROPS, so a panel can be dropped BESIDE or UNDER
+        # another in the same column, or onto it as a tab. Without
+        # `AllowNestedDocks` a column is one stack and "Properties with Results
+        # below it" is not a place a drop can land -- which is most of why
+        # docking felt loose. Tabs here are the user's choice for one pair,
+        # not the twelve-tab bar the rail replaced.
+        self.setDockOptions(
+            QMainWindow.DockOption.AnimatedDocks
+            | QMainWindow.DockOption.AllowNestedDocks
+            | QMainWindow.DockOption.AllowTabbedDocks
+        )
         self._show_only_right_dock(self._properties_dock)
 
         # A structure-check light in the corner, following Marvin's. The
@@ -737,6 +763,7 @@ class MainWindow(QMainWindow):
         services.event_bus.subscribe(PluginUnloaded, self._on_plugins_state_changed)
 
         self._new_project()
+        self._arranging = False
 
         # Constructed last: PluginManager depends only on the UIRegistry
         # protocol (add_panel/remove_panel/add_menu_action/remove_menu_actions
@@ -750,6 +777,13 @@ class MainWindow(QMainWindow):
         dock.setObjectName(title.replace(" ", "_"))
         dock.setWidget(widget)
         self.addDockWidget(area, dock)
+        # Where it STARTS, for Reset Panel Layout -- recorded rather than
+        # re-derived, so a reset cannot disagree with construction.
+        self._default_dock_areas[dock.objectName()] = area
+        # A drop by the user. Bound methods, never lambdas: PySide6 holds a
+        # plain callable strongly and this window has paid for that.
+        dock.dockLocationChanged.connect(self._on_dock_moved)
+        dock.topLevelChanged.connect(self._on_dock_moved)
 
         # A "?" in the title bar, for the panels that have a help topic.
         # F1 already does this, but a keyboard shortcut is only useful to
@@ -784,14 +818,152 @@ class MainWindow(QMainWindow):
         A dock the user has floated is left alone: they have deliberately
         pulled it out to see it alongside something else, and yanking it
         back would undo that.
+
+        **AND SO IS ONE THEY HAVE PUT SOMEWHERE -- THE SAME RULE, WHICH
+        ONLY COVERED FLOATING.** Reported: Results dragged to the top of the
+        window vanished the moment Properties was picked, because this hid
+        every non-floating dock in `_right_docks` wherever it now lived.
+        Measured with `dock_report` before the fix: Results at the top,
+        choose Properties, Results hidden. So a dock is hidden only if it is
+        still where the rail manages panels -- the chosen dock's area -- and
+        the user has not placed it (`_on_dock_moved`).
         """
+        placed = self._user_placed_docks
+        chosen_area = self.dockWidgetArea(chosen)
         for dock in self._right_docks:
-            if dock.isFloating():
+            if dock is chosen:
+                dock.setVisible(True)
                 continue
-            dock.setVisible(dock is chosen)
+            if dock.isFloating() or dock.objectName() in placed:
+                continue
+            if chosen.objectName() in placed or chosen.isFloating():
+                # Choosing a placed panel shows it where the user put it and
+                # takes nothing else off screen.
+                continue
+            if self.dockWidgetArea(dock) != chosen_area:
+                continue
+            dock.setVisible(False)
         if not chosen.isFloating():
             chosen.raise_()
         self._sync_docking_box_overlay()
+
+    def _on_dock_moved(self, *_args) -> None:
+        """Record that the user put a dock somewhere, once Qt has settled.
+
+        **WHAT "USER-PLACED" MEANS, EXACTLY.** A dock the user dropped into a
+        different area from the one it started in, or into a split or tab
+        group beside another visible docked panel. It stays placed -- the
+        rail will not hide it -- until it is dropped back on its own into
+        its starting area, or View > Reset Panel Layout runs. It is
+        saved with the window layout, so the rail behaves the same after a
+        restart as before one.
+
+        The window's OWN arranging (construction, restoring a saved layout,
+        a reset) moves docks too and fires the same signals, so those run
+        under `_arranging` and are ignored here.
+
+        Deferred a turn, because `dockLocationChanged` fires before the dock
+        area has laid out and "is it alone" cannot be answered yet.
+        """
+        if self._arranging:
+            return
+        dock = self.sender()
+        if isinstance(dock, QDockWidget):
+            self._docks_to_classify.add(dock)
+            self._classify_timer.start()
+
+    def _classify_moved_docks(self) -> None:
+        for dock in list(self._docks_to_classify):
+            if dock.isFloating():
+                continue  # already exempt; placement is decided when it lands
+            name = dock.objectName()
+            area = self.dockWidgetArea(dock)
+            started = self._default_dock_areas.get(name, Qt.DockWidgetArea.RightDockWidgetArea)
+            companions = [
+                other for other in self.findChildren(QDockWidget)
+                if other is not dock and other.parent() is self
+                and not other.isHidden() and not other.isFloating()
+                and self.dockWidgetArea(other) == area
+            ]
+            if area != started or companions:
+                self._user_placed_docks.add(name)
+            else:
+                self._user_placed_docks.discard(name)
+        self._docks_to_classify.clear()
+
+    def reset_panel_layout(self) -> None:
+        """View > Reset Panel Layout: every dock back where it starts.
+
+        An application-level reset rather than deleting a settings key and
+        hoping Qt sorts it out: every floating dock is docked, every dock is
+        removed and re-added to its starting area (which is also what
+        undoes a tab group or a split), the placed set is emptied, and the
+        rail is put back on Properties -- the same arrangement construction
+        produces.
+        """
+        self._arranging = True
+        try:
+            for dock in self.findChildren(QDockWidget):
+                if dock.parent() is not self:
+                    continue
+                area = self._default_dock_areas.get(dock.objectName())
+                if area is None:
+                    continue
+                dock.setFloating(False)
+                self.removeDockWidget(dock)
+                self.addDockWidget(area, dock)
+                dock.show()
+            self._user_placed_docks.clear()
+            self._show_only_right_dock(self._properties_dock)
+            self._set_initial_right_dock_width()
+        finally:
+            self._arranging = False
+        self._panel_rail.select_panel(self._properties_dock.objectName())
+
+    def dock_layout_report(self) -> dict:
+        """Where every dock is, and which visible docked ones overlap.
+
+        Plain data for the drive harness and for tests: `isHidden()` rather
+        than `isVisible()` for the reason recorded throughout this file, and
+        rectangles in WINDOW coordinates so two docks can be compared.
+        """
+        area_names = {
+            Qt.DockWidgetArea.LeftDockWidgetArea: "left",
+            Qt.DockWidgetArea.RightDockWidgetArea: "right",
+            Qt.DockWidgetArea.TopDockWidgetArea: "top",
+            Qt.DockWidgetArea.BottomDockWidgetArea: "bottom",
+        }
+        docks = []
+        for dock in self.findChildren(QDockWidget):
+            if dock.parent() is not self:
+                continue
+            top_left = dock.mapTo(self, QPoint(0, 0)) if not dock.isFloating() else dock.pos()
+            docks.append({
+                "id": dock.objectName(),
+                "area": area_names.get(self.dockWidgetArea(dock), "none"),
+                "floating": dock.isFloating(),
+                "hidden": dock.isHidden(),
+                "tabified_with": sorted(d.objectName() for d in self.tabifiedDockWidgets(dock)),
+                "user_placed": dock.objectName() in getattr(self, "_user_placed_docks", set()),
+                "rect": [top_left.x(), top_left.y(), dock.width(), dock.height()],
+            })
+        shown = [d for d in docks if not d["hidden"] and not d["floating"]]
+        overlaps = []
+        for index, first in enumerate(shown):
+            for second in shown[index + 1:]:
+                if first["tabified_with"] and second["id"] in first["tabified_with"]:
+                    continue  # a tab group shares one rectangle by design
+                ax, ay, aw, ah = first["rect"]
+                bx, by, bw, bh = second["rect"]
+                width = min(ax + aw, bx + bw) - max(ax, bx)
+                height = min(ay + ah, by + bh) - max(ay, by)
+                if width > 0 and height > 0:
+                    overlaps.append([first["id"], second["id"], width, height])
+        return {
+            "docks": docks,
+            "overlaps": overlaps,
+            "window_minimum": [self.minimumSizeHint().width(), self.minimumSizeHint().height()],
+        }
 
     def _sync_docking_box_overlay(self) -> None:
         """Draw the docking search box while, and only while, Docking shows.
@@ -1275,6 +1447,12 @@ class MainWindow(QMainWindow):
         if not state:
             return False
         self.restoreState(state)
+        # Placement is part of the layout: without it a panel restored at the
+        # top of the window would be hidden by the first rail click, which
+        # is the reported bug returning on every launch.
+        stored = str(self._settings.get(_USER_PLACED_KEY, "") or "")
+        known = set(self._default_dock_areas)
+        self._user_placed_docks = {name for name in stored.split(",") if name in known}
         return True
 
     def _set_initial_right_dock_width(self) -> None:
@@ -1359,6 +1537,7 @@ class MainWindow(QMainWindow):
         self._settings.set_window_geometry(self.saveGeometry())
         self._settings.set_window_state(self.saveState())
         self._settings.set(_LAYOUT_VERSION_KEY, _LAYOUT_VERSION)
+        self._settings.set(_USER_PLACED_KEY, ",".join(sorted(self._user_placed_docks)))
         # EMPTY THE UNDO STACK BEFORE THE WINDOW GOES.
         #
         # Destroying a MainWindow whose stack still holds commands faults.
@@ -1655,6 +1834,10 @@ class MainWindow(QMainWindow):
             self._view_menu.addAction(
                 self._document(dock.toggleViewAction(), "panel_visibility")
             )
+        self._view_menu.addSeparator()
+        reset_layout = self._document(QAction("Reset Panel Layout", self), "reset_panel_layout")
+        reset_layout.triggered.connect(self.reset_panel_layout)
+        self._view_menu.addAction(reset_layout)
         self._view_menu.addSeparator()
         structure_display_menu = self._view_menu.addMenu("2D Structure Display")
         self._add_structure_display_toggle(

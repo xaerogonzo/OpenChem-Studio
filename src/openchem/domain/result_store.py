@@ -233,7 +233,11 @@ class SessionResultStore:
         return fresh
 
     def bundle_state(
-        self, molecule_uuid: str, drawing_fingerprint: str, expected_parts: set[str]
+        self,
+        molecule_uuid: str,
+        drawing_fingerprint: str,
+        expected_parts: set[str],
+        application_version: str | None = None,
     ) -> tuple[BundleState, set[str]]:
         """Whether the automatic set can be replayed instead of recomputed.
 
@@ -245,6 +249,15 @@ class SessionResultStore:
         A FAILED part counts as done. Within a session that is what stops a
         failing sidecar being retried on every selection; failures are never
         written to a file (`to_dict`), so the next session retries.
+
+        **`application_version`, when given, must match every result the
+        part holds.** The user guide promises that a project opened in a
+        later build gets that build's chemistry perception rather than a
+        frozen snapshot of an older one. Saved results would break that
+        silently, so the always-on set -- a second or so of work -- is
+        replayed only when THIS build computed it. Results a person ran by
+        hand are not part of any bundle and are still restored, marked with
+        the build that produced them.
         """
         record = self._molecules.get(molecule_uuid)
         if record is None or not record.parts:
@@ -256,7 +269,13 @@ class SessionResultStore:
                 missing.add(part_id)
                 continue
             held = all(
-                (rid, DRAWING, drawing_fingerprint) in record.results for rid in part.result_ids
+                (rid, DRAWING, drawing_fingerprint) in record.results
+                and (
+                    application_version is None
+                    or record.results[(rid, DRAWING, drawing_fingerprint)].application_version
+                    == application_version
+                )
+                for rid in part.result_ids
             )
             if not held:
                 missing.add(part_id)
