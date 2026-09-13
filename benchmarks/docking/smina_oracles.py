@@ -117,6 +117,26 @@ would have to pass flags to get the Vina-shaped answer).
 
 (a) is AGREE or EXPLAINED_DIVERGENCE, and (d) is REPRODUCIBLE for smina.
 Otherwise the spike's write-up is a refusal carrying this evidence.
+
+## POST-HOC, added after the registered results were committed (40c14f9)
+
+**Oracle (b) came back UNEXPLAINED and STAYS UNEXPLAINED under the rule
+above.** smina's Vinardo was 1.53-2.10 kcal/mol more negative on every pose,
+and no configuration removed it. What follows is a diagnosis, written and
+given its own acceptance rule BEFORE `--explain-b` was first run -- it is not
+a re-labelling of the verdict.
+
+The lead, from the two programs' own printouts: smina's built-in `vinardo`
+prints `num_tors_div` with weight **0**, while Vina 1.2.7's
+`--help_advanced` gives `--weight_vinardo_rot` a default of **0.05846** --
+Vina's own N_rot weight reused. And [source:quiroga2016]'s Eq 1 defines the
+binding energy as the sum of pair interactions alone, with no rotatable-bond
+term anywhere in the paper.
+
+**The intervention changes ONE variable:** Vina 1.2.7 `--scoring vinardo
+--weight_vinardo_rot 0`, same receptor file, same poses. The diagnosis is
+ACCEPTED iff every pose then lies within SCORE_TOL_KCAL of smina's `vinardo`
+(COMPAT). Anything else leaves (b) without a cause.
 """
 
 from __future__ import annotations
@@ -531,11 +551,65 @@ def compare() -> int:
     return 0
 
 
+def explain_b() -> int:
+    """The post-hoc intervention in the module docstring. One variable."""
+    from openchem.chem.vina_engine import parse_vina_score_output
+
+    smina, vina = smina_executable(), vina_executable()
+    rows = []
+    with tempfile.TemporaryDirectory() as scratch_dir:
+        scratch = pathlib.Path(scratch_dir)
+        receptor, ligand, box = prepare(scratch)
+        vina_out, _ = dock_vina(vina, receptor, ligand, box, POSE_SET_EXHAUSTIVENESS, POSE_SET_SEED,
+                                scratch / "vina_poses.pdbqt")
+        for index, block in enumerate(models(vina_out)):
+            pose = scratch / f"pose_{index}.pdbqt"
+            pose.write_text(block, encoding="utf-8")
+            base = [vina, "--receptor", str(receptor), "--ligand", str(pose), *box_args(box),
+                    "--score_only", "--scoring", "vinardo"]
+            as_shipped = run(base)
+            rot_zero = run([*base, "--weight_vinardo_rot", "0"])
+            smina_row = run([smina, "-r", str(receptor), "-l", str(pose), *box_args(box),
+                             "--score_only", "--scoring", "vinardo", *CONFIGURATIONS[VERDICT_CONFIGURATION]])
+            for done in (as_shipped, rot_zero, smina_row):
+                if done.returncode != 0:
+                    raise RuntimeError(done.stderr or done.stdout)
+            rows.append({
+                "pose": index,
+                "vina_vinardo": parse_vina_score_output(as_shipped.stdout),
+                "vina_vinardo_rot0": parse_vina_score_output(rot_zero.stdout),
+                "smina_vinardo": smina_affinity(smina_row.stdout),
+            })
+            if index == 0:
+                (FIXTURES / "explain_b_vina_vinardo_pose0_stdout.txt").write_text(as_shipped.stdout, encoding="utf-8")
+                (FIXTURES / "explain_b_vina_vinardo_rot0_pose0_stdout.txt").write_text(rot_zero.stdout, encoding="utf-8")
+
+    print(f"{'pose':>4} {'Vina vinardo':>13} {'rot=0':>9} {'smina':>9} {'d shipped':>10} {'d rot=0':>9} {'ratio':>7}")
+    for r in rows:
+        r["delta_shipped"] = round(r["smina_vinardo"] - r["vina_vinardo"], 5)
+        r["delta_rot0"] = round(r["smina_vinardo"] - r["vina_vinardo_rot0"], 5)
+        r["ratio_rot0_over_shipped"] = round(r["vina_vinardo_rot0"] / r["vina_vinardo"], 4)
+        print(f"{r['pose']:>4} {r['vina_vinardo']:>13.3f} {r['vina_vinardo_rot0']:>9.3f} {r['smina_vinardo']:>9.3f}"
+              f" {r['delta_shipped']:>10.4f} {r['delta_rot0']:>9.4f} {r['ratio_rot0_over_shipped']:>7.4f}")
+    accepted = all(abs(r["delta_rot0"]) <= SCORE_TOL_KCAL for r in rows)
+    result = {"rule": "every pose within SCORE_TOL_KCAL of smina after --weight_vinardo_rot 0",
+              "accepted": accepted, "max_abs_delta_rot0": max(abs(r["delta_rot0"]) for r in rows), "rows": rows}
+    summary = json.loads(SUMMARY.read_text(encoding="utf-8"))
+    summary["b_post_hoc_diagnosis"] = result
+    SUMMARY.write_text(json.dumps(summary, indent=1), encoding="utf-8")
+    print(f"\nDIAGNOSIS {'ACCEPTED' if accepted else 'NOT ACCEPTED'} "
+          f"(max |d| after rot=0: {result['max_abs_delta_rot0']:.4f}); (b)'s registered verdict is unchanged")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--probe", action="store_true", help="Stage 1 gate and format capture only")
+    parser.add_argument("--explain-b", action="store_true", help="the post-hoc one-variable diagnosis of (b)")
     args = parser.parse_args()
-    return probe() if args.probe else compare()
+    if args.probe:
+        return probe()
+    return explain_b() if args.explain_b else compare()
 
 
 if __name__ == "__main__":
