@@ -261,13 +261,281 @@ def probe() -> int:
     return 0
 
 
+# ---------------------------------------------------------------------------
+# Parsers, written AFTER `--probe` fixed the formats and BEFORE any comparison.
+#
+# score-only prints `Affinity: -8.75406 (kcal/mol)`; --minimize and
+# --local_only print `Affinity: -8.73664  -0.97922 (kcal/mol)` then
+# `RMSD: 0.10268`. The FIRST number is the affinity in both.
+#
+# **A minimised output PDBQT carries TWO `minimizedAffinity` remarks** --
+# the new value, then the INPUT's value passed through
+# (smina_fixtures/probe_min.pdbqt). So the first match is the answer and the
+# last is a lie, which is the same passthrough trap `parse_vina_score_output`
+# records for Vina's --local_only. The stdout is what gets read.
+# ---------------------------------------------------------------------------
+
+_SMINA_AFFINITY_RE = re.compile(r"^Affinity:\s+(-?\d+(?:\.\d+)?)", re.MULTILINE)
+_SMINA_RMSD_RE = re.compile(r"^RMSD:\s+(-?\d+(?:\.\d+)?)", re.MULTILINE)
+_SMINA_MODEL_AFFINITY_RE = re.compile(r"^REMARK minimizedAffinity\s+(-?\d+(?:\.\d+)?)", re.MULTILINE)
+_VINA_MODEL_AFFINITY_RE = re.compile(r"^REMARK VINA RESULT:\s+(-?\d+(?:\.\d+)?)", re.MULTILINE)
+_NON_HEAVY_TYPES = {"H", "HD", "HS"}
+
+
+def smina_affinity(stdout: str) -> float:
+    match = _SMINA_AFFINITY_RE.search(stdout)
+    if match is None:
+        raise ValueError(f"smina printed no Affinity line:\n{stdout[-400:]}")
+    return float(match.group(1))
+
+
+def heavy_coordinates(block: str) -> list[tuple[str, tuple[float, float, float]]]:
+    """(atom name, xyz) for every heavy atom, in file order."""
+    atoms = []
+    for line in block.splitlines():
+        if not line.startswith(("ATOM", "HETATM")):
+            continue
+        if line.split()[-1] in _NON_HEAVY_TYPES:
+            continue
+        atoms.append((line[12:16].strip(), (float(line[30:38]), float(line[38:46]), float(line[46:54]))))
+    return atoms
+
+
+def rmsd(a, b) -> float:
+    # SETUP ASSERTION: an RMSD over two different atom orders is a number
+    # about nothing, and would read as a small displacement.
+    assert [name for name, _ in a] == [name for name, _ in b], "atom order differs; RMSD undefined"
+    total = sum((p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2 + (p[2] - q[2]) ** 2 for (_, p), (_, q) in zip(a, b))
+    return (total / len(a)) ** 0.5
+
+
+def max_displacement(a, b) -> float:
+    assert [name for name, _ in a] == [name for name, _ in b], "atom order differs"
+    return max(max(abs(p[i] - q[i]) for i in range(3)) for (_, p), (_, q) in zip(a, b))
+
+
+def score_verdict(vina: list[list[float]], by_config: dict[str, list[list[float]]]) -> dict:
+    """Apply the pre-registered rule. `vina[i]` and `by_config[c][i]` are the
+    REPEATS values for pose i."""
+
+    def deltas(config):
+        return [s[0] - v[0] for s, v in zip(by_config[config], vina)]
+
+    def agrees(config):
+        return all(abs(d) <= SCORE_TOL_KCAL for d in deltas(config))
+
+    deterministic = all(len(set(v)) == 1 for v in vina) and all(
+        len(set(s)) == 1 for rows in by_config.values() for s in rows
+    )
+    table = {
+        config: {
+            "max_abs_delta": round(max(abs(d) for d in deltas(config)), 5),
+            "deltas": [round(d, 5) for d in deltas(config)],
+            "agree": agrees(config),
+        }
+        for config in by_config
+    }
+    if agrees(VERDICT_CONFIGURATION):
+        verdict, cause = "AGREE", None
+    else:
+        signs = {d > 0 for d in deltas(VERDICT_CONFIGURATION) if abs(d) > SCORE_TOL_KCAL}
+        rescuers = [c for c in by_config if c != VERDICT_CONFIGURATION and agrees(c)]
+        if deterministic and len(signs) == 1 and rescuers:
+            verdict, cause = "EXPLAINED_DIVERGENCE", f"agrees under {rescuers}, not under {VERDICT_CONFIGURATION}"
+        else:
+            verdict, cause = "UNEXPLAINED", None
+    return {"verdict": verdict, "cause": cause, "deterministic": deterministic, "by_configuration": table}
+
+
+def dock_smina(smina, receptor, ligand, box, exhaustiveness, seed, out: pathlib.Path):
+    started = time.monotonic()
+    done = run([smina, "-r", str(receptor), "-l", str(ligand), *box_args(box),
+                "--num_modes", str(NUM_POSES), "--exhaustiveness", str(exhaustiveness),
+                "--seed", str(seed), "-o", str(out), *CONFIGURATIONS[VERDICT_CONFIGURATION]])
+    elapsed = time.monotonic() - started
+    if done.returncode != 0:
+        raise RuntimeError(done.stderr or done.stdout)
+    return out.read_text(encoding="utf-8"), elapsed
+
+
+def dock_vina(vina, receptor, ligand, box, exhaustiveness, seed, out: pathlib.Path):
+    started = time.monotonic()
+    done = run([vina, "--receptor", str(receptor), "--ligand", str(ligand), *box_args(box),
+                "--num_modes", str(NUM_POSES), "--exhaustiveness", str(exhaustiveness),
+                "--seed", str(seed), "--out", str(out)])
+    elapsed = time.monotonic() - started
+    if done.returncode != 0:
+        raise RuntimeError(done.stderr or done.stdout)
+    return out.read_text(encoding="utf-8"), elapsed
+
+
+def reproducibility(first: str, second: str, affinity_re) -> dict:
+    a, b = models(first), models(second)
+    same_count = len(a) == len(b)
+    scores_a = [float(affinity_re.search(m).group(1)) for m in a]
+    scores_b = [float(affinity_re.search(m).group(1)) for m in b]
+    scores_agree = same_count and all(abs(x - y) <= SCORE_TOL_KCAL for x, y in zip(scores_a, scores_b))
+    coords_agree = same_count and all(
+        max_displacement(heavy_coordinates(x), heavy_coordinates(y)) <= COORD_TOL_A for x, y in zip(a, b)
+    )
+    return {
+        "reproducible": bool(same_count and scores_agree and coords_agree),
+        "pose_counts": [len(a), len(b)],
+        "scores": [scores_a, scores_b],
+        "byte_identical": first == second,
+    }
+
+
+def compare() -> int:
+    smina, vina = smina_executable(), vina_executable()
+    vina_engine = ExecutableVinaEngine(vina)
+    raw = HERE / "results" / "smina_oracles_raw"
+    raw.mkdir(parents=True, exist_ok=True)
+    summary: dict = {
+        "smina_version": run([smina, "--version"]).stdout.strip(),
+        "vina_version": vina_engine.version(),
+        "tolerances": {"score_kcal": SCORE_TOL_KCAL, "coord_a": COORD_TOL_A, "refine_dest_a": REFINE_DEST_TOL_A},
+        "verdict_configuration": VERDICT_CONFIGURATION,
+        "configurations": {k: list(v) for k, v in CONFIGURATIONS.items()},
+    }
+
+    with tempfile.TemporaryDirectory() as scratch_dir:
+        scratch = pathlib.Path(scratch_dir)
+        receptor, ligand, box = prepare(scratch)
+        summary["receptor_sha16"], summary["ligand_sha16"] = sha16(receptor), sha16(ligand)
+        summary["box"] = {"center": list(box.center), "size": list(box.size)}
+        print(f"receptor sha {summary['receptor_sha16']}  ligand sha {summary['ligand_sha16']}")
+
+        # The pose set, from Vina, written bare.
+        vina_out, _ = dock_vina(vina, receptor, ligand, box, POSE_SET_EXHAUSTIVENESS, POSE_SET_SEED,
+                                scratch / "vina_poses.pdbqt")
+        pose_paths = []
+        for index, block in enumerate(models(vina_out)):
+            path = scratch / f"pose_{index}.pdbqt"
+            path.write_text(block, encoding="utf-8")
+            pose_paths.append(path)
+        assert pose_paths, "Vina produced no poses; nothing to compare"
+        summary["pose_sha16"] = [sha16(p) for p in pose_paths]
+        print(f"pose set: {len(pose_paths)} Vina poses")
+
+        # (a) and (b)
+        for oracle, vina_function, smina_function in (("a", "vina", "default"), ("b", "vinardo", "vinardo")):
+            vina_values = [
+                [vina_engine.score_pose(receptor, p, box, vina_function) for _ in range(REPEATS)]
+                for p in pose_paths
+            ]
+            by_config = {}
+            for config, flags in CONFIGURATIONS.items():
+                rows = []
+                for index, p in enumerate(pose_paths):
+                    values = []
+                    for repeat in range(REPEATS):
+                        done = run([smina, "-r", str(receptor), "-l", str(p), *box_args(box),
+                                    "--score_only", "--scoring", smina_function, *flags])
+                        if done.returncode != 0:
+                            raise RuntimeError(done.stderr or done.stdout)
+                        values.append(smina_affinity(done.stdout))
+                        if repeat == 0:
+                            (raw / f"{oracle}_{config}_pose{index}.txt").write_text(done.stdout, encoding="utf-8")
+                    rows.append(values)
+                by_config[config] = rows
+            result = score_verdict(vina_values, by_config)
+            result["vina"] = [v[0] for v in vina_values]
+            result["smina"] = {c: [r[0] for r in rows] for c, rows in by_config.items()}
+            summary[oracle] = result
+            print(f"({oracle}) {smina_function} vs Vina {vina_function}: {result['verdict']}"
+                  f"  max|d| {VERDICT_CONFIGURATION} {result['by_configuration'][VERDICT_CONFIGURATION]['max_abs_delta']}"
+                  f"  deterministic {result['deterministic']}")
+            for config, row in result["by_configuration"].items():
+                print(f"    {config:9s} max|d| {row['max_abs_delta']:.5f}  {row['deltas']}")
+
+        # (c) the fixtures the adapter's parsers are written against.
+        FIXTURES.mkdir(exist_ok=True)
+        done = run([smina, "-r", str(receptor), "-l", str(pose_paths[0]), *box_args(box),
+                    "--score_only", *CONFIGURATIONS[VERDICT_CONFIGURATION]])
+        (FIXTURES / "score_only_vina_pose0_compat_stdout.txt").write_text(done.stdout, encoding="utf-8")
+
+        # (d) within-engine reproducibility
+        repro = {}
+        first, _ = dock_smina(smina, receptor, ligand, box, REPRO_EXHAUSTIVENESS, REPRO_SEED, scratch / "s1.pdbqt")
+        second, _ = dock_smina(smina, receptor, ligand, box, REPRO_EXHAUSTIVENESS, REPRO_SEED, scratch / "s2.pdbqt")
+        repro["smina"] = reproducibility(first, second, _SMINA_MODEL_AFFINITY_RE)
+        (FIXTURES / "dock_compat_seed11_ex8.pdbqt").write_text(first, encoding="utf-8")
+        first, _ = dock_vina(vina, receptor, ligand, box, REPRO_EXHAUSTIVENESS, REPRO_SEED, scratch / "v1.pdbqt")
+        second, _ = dock_vina(vina, receptor, ligand, box, REPRO_EXHAUSTIVENESS, REPRO_SEED, scratch / "v2.pdbqt")
+        repro["vina_control"] = reproducibility(first, second, _VINA_MODEL_AFFINITY_RE)
+        summary["d"] = repro
+        for engine, row in repro.items():
+            print(f"(d) {engine}: reproducible {row['reproducible']}  byte-identical {row['byte_identical']}"
+                  f"  poses {row['pose_counts']}")
+
+        # (e) refinement, on Vina's top pose
+        top = pose_paths[0]
+        input_atoms = heavy_coordinates(top.read_text(encoding="utf-8"))
+        refine: dict = {}
+        vina_refined = scratch / "vina_refined.pdbqt"
+        started = time.monotonic()
+        done = run([vina, "--receptor", str(receptor), "--ligand", str(top), *box_args(box),
+                    "--local_only", "--out", str(vina_refined)])
+        refine["vina_local_only"] = {
+            "accepted": done.returncode == 0 and vina_refined.exists(),
+            "score": vina_engine.score_pose(receptor, top, box, "vina", refine=True) if done.returncode == 0 else None,
+            "seconds": round(time.monotonic() - started, 3),
+        }
+        for label, flag in (("smina_minimize", "--minimize"), ("smina_local_only", "--local_only")):
+            out = scratch / f"{label}.pdbqt"
+            started = time.monotonic()
+            done = run([smina, "-r", str(receptor), "-l", str(top), *box_args(box), flag,
+                        "-o", str(out), *CONFIGURATIONS[VERDICT_CONFIGURATION]])
+            refine[label] = {
+                "accepted": done.returncode == 0 and out.exists(),
+                "score": smina_affinity(done.stdout) if done.returncode == 0 else None,
+                "smina_reported_rmsd": float(_SMINA_RMSD_RE.search(done.stdout).group(1))
+                if done.returncode == 0 and _SMINA_RMSD_RE.search(done.stdout) else None,
+                "seconds": round(time.monotonic() - started, 3),
+            }
+            (raw / f"e_{label}.txt").write_text(done.stdout + done.stderr, encoding="utf-8")
+        refined_atoms = {}
+        for label, path in (("vina_local_only", vina_refined),
+                            ("smina_minimize", scratch / "smina_minimize.pdbqt"),
+                            ("smina_local_only", scratch / "smina_local_only.pdbqt")):
+            if refine[label]["accepted"]:
+                blocks = models(path.read_text(encoding="utf-8")) or [path.read_text(encoding="utf-8")]
+                refined_atoms[label] = heavy_coordinates(blocks[0])
+                refine[label]["rmsd_from_input"] = round(rmsd(input_atoms, refined_atoms[label]), 4)
+        if {"vina_local_only", "smina_minimize"} <= refined_atoms.keys():
+            destination = rmsd(refined_atoms["vina_local_only"], refined_atoms["smina_minimize"])
+            scores = (refine["vina_local_only"]["score"], refine["smina_minimize"]["score"])
+            same = destination <= REFINE_DEST_TOL_A and abs(scores[0] - scores[1]) <= SCORE_TOL_KCAL
+            refine["destination_rmsd_vina_vs_smina_minimize"] = round(destination, 4)
+            refine["verdict"] = "SAME_OPERATION" if same else "ENGINE_SPECIFIC_PROTOCOL"
+        else:
+            refine["verdict"] = "ENGINE_SPECIFIC_PROTOCOL"
+        summary["e"] = refine
+        print(f"(e) {refine['verdict']}  " + json.dumps({k: v for k, v in refine.items() if k != 'verdict'}))
+
+        # (f) cost
+        timing = {"smina": [], "vina": []}
+        for seed in TIMING_SEEDS:
+            _, elapsed = dock_smina(smina, receptor, ligand, box, TIMING_EXHAUSTIVENESS, seed, scratch / f"ts{seed}.pdbqt")
+            timing["smina"].append(round(elapsed, 1))
+            _, elapsed = dock_vina(vina, receptor, ligand, box, TIMING_EXHAUSTIVENESS, seed, scratch / f"tv{seed}.pdbqt")
+            timing["vina"].append(round(elapsed, 1))
+        summary["f"] = timing
+        print(f"(f) seconds per dock at exhaustiveness {TIMING_EXHAUSTIVENESS}: {timing}")
+
+    gate = summary["a"]["verdict"] in {"AGREE", "EXPLAINED_DIVERGENCE"} and summary["d"]["smina"]["reproducible"]
+    summary["gate_stages_3_4"] = gate
+    SUMMARY.write_text(json.dumps(summary, indent=1), encoding="utf-8")
+    print(f"\nGATE for Stages 3-4: {'PASS' if gate else 'FAIL'}\nwrote {SUMMARY}")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--probe", action="store_true", help="Stage 1 gate and format capture only")
     args = parser.parse_args()
-    if args.probe:
-        return probe()
-    raise SystemExit("The comparison run is written after the probe fixes the output formats.")
+    return probe() if args.probe else compare()
 
 
 if __name__ == "__main__":
