@@ -200,13 +200,23 @@ class SminaPoseRescorer(PoseRescorer):
     """A second score from one of smina's built-in functions."""
 
     rescorer_id = "smina-rescore"
-    units = "kcal/mol"
-    SUPPORTED = ("default", "vinardo", "dkoes_scoring")
+    #: PER FUNCTION, because they are not one quantity. smina prints
+    #: "(kcal/mol)" after every Affinity line whatever the function -- and
+    #: `dkoes_scoring`'s printed weights are koes2013 Table 3's docked-trained
+    #: coefficients (vdw -0.00990, ad4_solvation -0.04893, hydrogen_bond
+    #: 0.15305, #torsions^2 -0.31726, constant 2.46902) with every sign
+    #: NEGATED, and that table's footnote says they "were trained against pK
+    #: binding affinities". So its number is a negated pK, and the label smina
+    #: prints beside it is wrong. Measured by printing smina's weights and
+    #: reading the paper's table, 2026-09-12.
+    UNITS = {"default": "kcal/mol", "vinardo": "kcal/mol", "dkoes_scoring": "-pK (smina prints kcal/mol)"}
+    SUPPORTED = tuple(UNITS)
 
     def __init__(self, score_function: str, engine: SminaEngine) -> None:
         if score_function not in self.SUPPORTED:
             raise ValueError(f"Unsupported smina function {score_function!r}; expected one of {self.SUPPORTED}.")
         self.score_function = score_function
+        self.units = self.UNITS[score_function]
         self._engine = engine
 
     def is_available(self) -> bool:
@@ -359,6 +369,9 @@ def check_provenance(failures: list[str]) -> None:
             pose_molblocks=(),
         )
         smina_score = SminaPoseRescorer("vinardo", _Spy()).rescore(request, AS_DOCKED)[0]
+        dkoes_score = SminaPoseRescorer("dkoes_scoring", _Spy()).rescore(request, AS_DOCKED)[0]
+    if PoseScore.from_dict(dkoes_score.to_dict()).units == "kcal/mol":
+        failures.append("provenance: a dkoes_scoring value is stored as kcal/mol; it is a negated pK")
     restored = PoseScore.from_dict(smina_score.to_dict())
     for field in ("function", "protocol", "value", "engine", "engine_version",
                   "receptor_pdbqt_sha256", "pose_pdbqt_sha256"):
