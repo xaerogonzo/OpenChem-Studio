@@ -670,6 +670,32 @@ label says what it is.
 document may cite a file or a test that does not exist.
 
 
+- **OPEN** -- ORCA spectra carry no input identity, so the Atom Inspector
+  cannot tell a QM NMR shift computed for an earlier drawing from a current
+  one. Per-atom datasets and registry spectra carry `input_fingerprint`
+  (see "What a per-atom index means" above) and are withheld when stale;
+  `QuantumChemistryService` publishes `SpectrumComputed` from a bare
+  molecule with no model behind it, so it has nothing to stamp. Treating
+  an empty identity as unverifiable would remove every QM shift from the
+  inspector, so those are shown unchecked instead. Closing it means passing
+  the drawing's fingerprint in at job submission.
+
+- **OPEN** -- two protonation authorities disagree on some molecules.
+  pkasolver (behind logD and solubility) and Dimorphite-DL (behind the
+  pH-dependent charges and every "major microspecies" option) are separate
+  models; measured on O1OCN1 at pH 7.4, pkasolver's basic pKa 3.20 says
+  neutral and Dimorphite protonates the nitrogen. Recorded as unresolved in
+  `docs/SCIENTIFIC_LIMITATIONS.md`; neither is known to be right there, so
+  nothing was changed.
+
+- **OPEN** -- a very short Results dock still scrolls. Docked across the
+  top at 190 px (the height it was reported at) the reader's minimum is
+  ~208 px after the notes fold, so the dock's own scroll area keeps a small
+  overflow. The remaining height is the reader's own chrome -- the pop-out
+  row, the Showing row, the title -- rather than anything the notes or the
+  fact floor can give back.
+
+
 - **DECISION** -- the 3D alignment overlay has ONE pane with a colour
   mode, not ChemAxon's two side-by-side views. Requested from a
   MarvinSpace screenshot on 2026-08-25, showing the same overlay twice --

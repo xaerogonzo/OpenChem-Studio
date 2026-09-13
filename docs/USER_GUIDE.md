@@ -1088,15 +1088,15 @@ nothing and re-runs nothing.
 A result may declare pictures as well as values, and they are listed
 together with what each one *is*:
 
-- **Chart** — a plot of numbers, drawn below the facts.
+- **Chart** — a plot of numbers, drawn in the report above its facts.
 - **2D depiction** — the structure as drawn, with atoms marked on it, also
-  drawn below the facts.
+  drawn above the facts.
 - **3D overlay** — a vector, a cone or a set of axes drawn on a conformer.
   This opens in its own window rather than inline, because it needs a 3D
   view and a fact list is the wrong shape for one.
 
 The first two say *shown below* rather than offering a button, because
-they are already on screen a few rows down.
+they are already on screen a few rows down, below this list.
 
 ### Stale results
 
@@ -1111,12 +1111,48 @@ Re-run the calculator to refresh it.
 
 ### Seeing it beside Properties
 
-One right-hand panel is visible at a time, so choosing Results replaces
-Properties rather than sitting next to it. To read results while you start
-more calculations, use the **↗** button in the panel's header to move
-Results into its own window — the panel and the window are the same view,
-so your position, filter and scroll travel with it. Closing that window,
-or pressing its **Return to panel** button, puts it back.
+Picked from the rail, Results takes the column in place of Properties. To
+read results while you start more calculations, either drag Results beside,
+above or below Properties — a panel you place like that stays on screen,
+see [Finding your way around](#finding-your-way-around) — or use the **↗** button in the panel's header to move
+Results into its own window. The panel and the window are the same view, so
+your position, filter and scroll travel with it. Closing that window, or
+pressing its **Return to panel** button, puts it back.
+
+**In a narrow or short panel the facts come first.** The list of result
+names above the report and the explanatory note below it fold to three
+lines with **More** / **Less** beside them, and shrink to one line when the
+panel is short, so the rows you are reading are the last thing to be
+squeezed. In a narrow panel the fact filter moves onto its own row instead
+of shrinking to nothing; in a wide one the result filter shares the
+**Showing** row. Nothing is cut from **Copy report**.
+
+### Units
+
+A result that states its values in more than one unit shows a **Units** box
+beside the fact filter — Solubility offers log mol/L, mg/mL and mol/L. Every
+unit was computed when the calculator ran, so switching runs nothing: the
+chart, the rows, **Copy report** and a saved picture all change together,
+and the panel remembers the unit you chose for each result.
+
+The box appears only when the result's units hold together. A result saved
+before units could be switched has none and stays in the unit it was
+computed in; one whose units disagree with each other (a chart sampled at
+different pH values in one unit than another, say) is shown in its default
+unit, and the line under the facts says why the box is missing.
+
+### Reading a curve
+
+Hover a curve to read it: a line marks the sampled point nearest the
+pointer and the values there are shown in the corner, with their units. A
+reading is always a point the calculation actually produced — between two
+samples you get the nearer one (the lower, if exactly halfway), and past
+either end you get the end sample. **Click** to keep the reading while you
+move away; click it again to let it go.
+
+**LogD** is the case this was built for: its curve includes the pH you
+asked for as one of its samples, so the reading kept there is the same
+number as the *LogD at pH* row.
 
 ---
 
@@ -1132,6 +1168,14 @@ without visiting each of them.
 shows what has already been computed, gathered as results arrive. An
 inspector that launched ORCA when you clicked an atom would be a
 calculator launcher, and you would stop trusting it.
+
+**A per-atom value computed for an earlier drawing is not shown.** After an
+edit, atom 3 may be a different atom from the one a charge was computed
+for, so the inspector holds such values back and names them in the line
+above the facts — *computed for an earlier structure; run it again to
+inspect atoms*. Undo back to that drawing and they return without anything
+being recomputed. Results still lists the old result, marked stale, if you
+want to read it. (NMR shifts from an ORCA run are not checked this way yet.)
 
 The atom table on the left is the primary navigation and works with no 3D
 structure at all, which is the normal state right after drawing something.

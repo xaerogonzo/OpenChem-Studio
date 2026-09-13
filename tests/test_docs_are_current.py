@@ -618,6 +618,34 @@ DEFERRALS: list[Deferral] = [
         "(spikes/crystallography/render_reproducibility.ps1) rather than "
         "starting over; only a human seeing it again can close it.",
     ),
+    Deferral(
+        claim="ORCA spectra carry no input identity",
+        # Closing it means the QM service stamping the fingerprint the Atom
+        # Inspector already compares; the day that name appears in the
+        # service, this entry is describing the past.
+        unbuilt=lambda: "input_fingerprint" not in (
+            _ROOT / "src/openchem/services/quantum_chemistry_service.py"
+        ).read_text(encoding="utf-8"),
+    ),
+    Deferral(
+        claim="two protonation authorities disagree on some molecules",
+        # Nothing reconciles them today: the microspecies is Dimorphite's
+        # alone. A fix would make `dominant_microspecies` consult the pKa
+        # predictor, and this watches for exactly that call in its body.
+        unbuilt=lambda: "compute_pka(" not in re.search(
+            r"def dominant_microspecies\b(?:.|\n)*?(?=\ndef )",
+            (_ROOT / "src/openchem/chem/pka_providers.py").read_text(encoding="utf-8"),
+        ).group(0),
+    ),
+    Deferral(
+        claim="a very short Results dock still scrolls",
+        unbuilt=lambda: True,
+        manual="The claim is a measurement of the running window (reader "
+        "minimum ~208 px against a 190 px dock), not a code fact. Re-measure "
+        "with benchmarks/visual/results_layout_narrow_and_short.json, whose "
+        "reader_layout_report logs reader_min_h and reader_visible_h for the "
+        "top-docked case.",
+    ),
 ]
 
 
