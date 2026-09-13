@@ -512,6 +512,86 @@ def test_a_new_result_marks_the_session_dirty(window, qapp):
     assert window._session.is_dirty
 
 
+def _recovering(window, tmp_path):
+    from openchem.services.recovery_service import RecoveryService
+
+    service = RecoveryService(window._services.project_service, tmp_path / "recovery")
+    window.enable_recovery(service, delay_ms=0)
+    return service
+
+
+def _fire_recovery_timer(window, qapp) -> None:
+    for _ in range(20):
+        qapp.processEvents()
+
+
+def test_a_window_without_recovery_enabled_writes_nothing(window, qapp, tmp_path):
+    a, _b = _two_molecule_project(window)
+    _select(window, qapp, a)
+    assert not hasattr(window, "_recovery_service")
+
+
+def test_unsaved_results_reach_a_recovery_copy_and_save_removes_it(window, qapp, tmp_path):
+    service = _recovering(window, tmp_path)
+    a, _b = _two_molecule_project(window)
+    _select(window, qapp, a)
+    _fire_recovery_timer(window, qapp)
+
+    [candidate] = service.candidates()
+    _project, results = service.load(candidate)
+    assert a.uuid in results.molecule_uuids()
+
+    window.save_project_to(tmp_path / "saved.ocsproj")
+    assert service.candidates() == []
+
+
+def test_a_recovery_write_queued_before_save_does_not_bring_the_file_back(window, qapp, tmp_path):
+    service = _recovering(window, tmp_path)
+    window._recovery_timer.setInterval(60_000)  # queued, not yet fired
+    a, _b = _two_molecule_project(window)
+    _select(window, qapp, a)
+    assert window._recovery_timer.isActive()
+
+    window.save_project_to(tmp_path / "saved.ocsproj")
+    window._session.mark_dirty()  # even dirty again, the OLD write must not land
+    window._write_recovery()
+
+    assert service.candidates() == []
+
+
+def test_accepting_the_offer_restores_the_project_and_its_results(window, qapp, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+
+    service = _recovering(window, tmp_path)
+    a, _b = _two_molecule_project(window)
+    _select(window, qapp, a)
+    _fire_recovery_timer(window, qapp)
+    lost_uuid = window._session.project.uuid
+
+    window._set_project(ProjectModel(name="something else"))
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Yes))
+    calls = _counting(window)
+
+    assert window.offer_recovery()
+    assert window._session.project.uuid == lost_uuid
+    assert window._session.is_dirty
+    _select(window, qapp, window._session.project.find_molecule(a.uuid))
+    assert calls["descriptors"] == []
+
+
+def test_declining_the_offer_discards_the_copy(window, qapp, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+
+    service = _recovering(window, tmp_path)
+    a, _b = _two_molecule_project(window)
+    _select(window, qapp, a)
+    _fire_recovery_timer(window, qapp)
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.No))
+
+    assert not window.offer_recovery()
+    assert service.candidates() == []
+
+
 def test_a_result_arriving_for_a_previous_project_is_not_kept(window, qapp):
     from openchem.events.events import ResultRecorded
 

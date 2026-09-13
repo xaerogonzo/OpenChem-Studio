@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import partial
 
 import logging
+import time
 from pathlib import Path
 from typing import Callable
 
@@ -2167,6 +2168,8 @@ class MainWindow(QMainWindow):
             QMessageBox.StandardButton.Save,
         )
         if choice == QMessageBox.StandardButton.Discard:
+            # Deliberately thrown away, so there is nothing to recover.
+            self._settle_recovery()
             return True
         if choice == QMessageBox.StandardButton.Save:
             return self._save_project()
@@ -2269,6 +2272,98 @@ class MainWindow(QMainWindow):
         )
         self._undo_stack.push(command)
         self._session.mark_clean()
+        self._project_path = str(path)
+        self._settle_recovery()
+
+    # --- recovery -------------------------------------------------------------
+
+    def enable_recovery(self, recovery_service, delay_ms: int = 5000) -> None:
+        """Keep a recovery copy of unsaved work. OFF unless this is called.
+
+        **OFF BY DEFAULT, AND THAT IS A SAFETY PROPERTY.** The copy is written
+        under the configured data root, and the test suite does not isolate
+        that root -- so a window that wrote recovery files on its own would
+        fill a developer's real data directory from every test that marks a
+        session dirty, and a later launch would offer to "recover" them.
+        `main.py` turns it on for the real application only.
+
+        Debounced: every change restarts the timer, so a burst of edits is
+        one write. The generation is read when the write FIRES, and the
+        service drops it if a Save or Discard advanced it in between.
+        """
+        self._recovery_service = recovery_service
+        self._recovery_timer = QTimer(self)
+        self._recovery_timer.setSingleShot(True)
+        self._recovery_timer.setInterval(delay_ms)
+        self._recovery_timer.timeout.connect(self._write_recovery)
+        self._undo_stack.indexChanged.connect(self._schedule_recovery)
+
+    def _schedule_recovery(self, *_args) -> None:
+        service = getattr(self, "_recovery_service", None)
+        if service is None:
+            return
+        self._recovery_generation = service.generation
+        self._recovery_timer.start()
+
+    def _write_recovery(self) -> None:
+        service = getattr(self, "_recovery_service", None)
+        project = self._session.project
+        if service is None or project is None or not self._session.is_dirty:
+            return
+        results, fingerprints = self._current_results()
+        try:
+            service.write(
+                project, results, fingerprints,
+                getattr(self, "_recovery_generation", service.generation),
+                source_path=getattr(self, "_project_path", ""),
+            )
+        except Exception:  # noqa: BLE001 - a recovery copy must never interrupt work
+            logger.exception("Could not write a recovery copy of %s", project.uuid)
+
+    def _settle_recovery(self) -> None:
+        service = getattr(self, "_recovery_service", None)
+        if service is None or self._session.project is None:
+            return
+        if getattr(self, "_recovery_timer", None) is not None:
+            self._recovery_timer.stop()
+        try:
+            service.settle(self._session.project.uuid)
+        except OSError:
+            logger.exception("Could not remove the recovery copy of %s", self._session.project.uuid)
+
+    def offer_recovery(self) -> bool:
+        """At launch, offer the newest recovery copy. True if one was taken.
+
+        Called by `main.py` once the window is on screen, never from the
+        constructor: it asks a modal question, and a window being built by a
+        test or a drive script must not stop to ask anybody anything.
+        """
+        service = getattr(self, "_recovery_service", None)
+        if service is None:
+            return False
+        candidates = service.candidates()
+        if not candidates:
+            return False
+        newest = candidates[0]
+        when = time.strftime("%Y-%m-%d %H:%M", time.localtime(newest.written_at))
+        where = f"\nLast saved to: {newest.source_path}" if newest.source_path else "\nNever saved."
+        choice = QMessageBox.question(
+            self,
+            "Recover unsaved work",
+            f"'{newest.project_name}' ({newest.molecule_count} molecule(s)) has unsaved work "
+            f"from {when}, including any calculation results.{where}\n\nRecover it?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if choice != QMessageBox.StandardButton.Yes:
+            service.discard(newest)
+            return False
+        project, results = service.load(newest)
+        self._set_project(project, results)
+        self._project_path = newest.source_path
+        # Recovered work is unsaved by definition; keep the copy until it is.
+        self._session.mark_dirty()
+        return True
 
     # --- molecule lifecycle --------------------------------------------------
 
@@ -2976,6 +3071,7 @@ class MainWindow(QMainWindow):
 
     def _on_result_retained(self, molecule_uuid: str) -> None:
         self._session.mark_dirty()
+        self._schedule_recovery()
 
     def _current_results(self):
         """The store and fingerprints a save writes, or (None, None)."""
