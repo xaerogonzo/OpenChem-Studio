@@ -19725,3 +19725,71 @@ measured EXACTLY: Vina's values scale by 1.3507 on all nine poses. Stopping
 there would have "explained" a 2 kcal/mol gap. The rule written before the
 intervention demanded 0.01 kcal/mol per pose, and a residual of -0.28 to
 +0.62 remained, in both signs. It is recorded as unexplained.
+
+
+## A RE-RENDER OPENED 1801 WINDOWS, AND ONLY A TRACE COULD NAME THEM
+
+Reported 2026-09-13 on `MPMI.ocsproj`: selecting a molecule flashed small
+white windows, and the Results panel took 10-15 s to settle. Nothing in
+`src/` creates a hidden or off-screen top-level window, so reading the code
+could not name the widget. `OPENCHEM_TRACE_WINDOWS` (`app/window_trace.py`)
+installs an application event filter that logs every `QEvent.Show` on a
+widget with `isWindow()` true. One select 0-1-0 run logged **1801** of them,
+every one a parentless `CollapsibleSection`.
+
+**The mechanism is Qt's, and it needs two renders in one event-loop turn.**
+`QLayout.addChildWidget` does not show a new child; it queues
+`_q_showIfNotHidden`. The reader re-renders once per arriving result, so the
+next render's `_clear_sections` called `setParent(None)` on a section whose
+queued show had not run yet. When the show did run, the widget had no
+parent, so it opened as a window, and `deleteLater` closed it a moment later.
+`discard_widget` calls `hide()` first. That sets `WA_WState_ExplicitShowHide`,
+which is exactly what `_q_showIfNotHidden` checks, so the pending show does
+nothing. There were four detach sites with the same pattern. Measured on the
+same drive script: 1801 windows became 0, and result delivery per selection
+went from 5.5 s to 1.4 s.
+
+  `setParent(None)` on a widget that was just added to a layout is a window
+  waiting to open. Hide before detaching. And when a symptom is on screen but
+  not in the code, trace the event before guessing at the widget.
+
+The stack trace was no help: every show came from inside `app.exec()`,
+which is itself the tell that it was a QUEUED call.
+
+## A PARTIAL RESTORE IS NOT A CACHE HIT, AND THREE DEFECTS ONLY RUNNING FOUND
+
+Results persistence (2026-09-13). The rule, from a review that read the plan:
+saving may degrade gracefully, but a replay must never treat a partial or
+unsupported result set as complete. So completeness is a manifest of what
+each producer made (`BundlePart`), not a count of what came back. One
+undecodable entry reruns its part.
+
+Three defects passed every test that had been written from reading the code.
+All three showed up only when results were replayed into the real window:
+
+**Str-enums were saved as bare strings, and an `==` sweep over 283 results
+passed.** `encode` tested `str` before `Enum`. `Basis`, `FactCategory`,
+`Detail` and `CacheState` are `str` subclasses, and
+`Basis.DETERMINISTIC == "deterministic"` is True. The first restored fact
+crashed the reader on `fact.basis.value`. The sweep now compares TYPE at every
+node.
+
+  A round-trip checked with `==` cannot see a lossy type. That is the same
+  class as "A ROUND TRIP can pass without exercising what it is named for".
+
+**An edit overwrote the previous revision.** Results were keyed by result id
+alone, so undoing back to a structure recomputed everything. The key now
+includes the fingerprint, and eight revisions are kept per molecule.
+
+**"Never save a failure" made every reopen incomplete.** The shape
+descriptors fail deterministically without a conformer, the manifest lists
+them, and a part missing any result is PARTIAL by design. So the rule that
+looked cautious guaranteed a rerun every time. Now a failure inside a sound
+part is saved, because it is the producer's own answer. A raised part and a
+failure from a hand-run calculator are not saved.
+
+And one mutation was invisible until a case was added for it. Removing the
+rail's area rule broke no docking test, because every test moved docks the
+way a user does, and a user's move also marks the dock placed. The case
+the rule exists for is a layout saved before placement was tracked. Only a
+test that restores such a layout can see it.

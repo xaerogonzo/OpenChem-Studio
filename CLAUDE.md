@@ -100,7 +100,19 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "jobs_cancel", "row": 0}           the real button in a real row
     {"do": "screen_run",  "receptor": 0}      the REAL Run button, and the
                                               PREP DICT the service got
+    {"do": "save_project", "path": "..."}     the REAL save, results included
+    {"do": "dock_move", "panel": "Results", "area": "top"}   as a drop
+    {"do": "dock_move", "panel": "Results", "beside": "Properties"}
+    {"do": "dock_tabify", "panel": "Results", "onto": "Properties"}
+    {"do": "dock_float", "panel": "Properties", "on": true}
+    {"do": "reset_layout"}                    View > Reset Panel Layout
+    {"do": "dock_report", "tag": "after"}     areas, rects, OVERLAPS, placed
     {"do": "wait"} {"do": "quit"}
+
+**`OPENCHEM_TRACE_WINDOWS=1` LOGS EVERY TOP-LEVEL WINDOW THAT SHOWS**, with
+its class, its parent chain and a timestamp for every result event. It is
+how the 1801 flashing windows were named; see the lesson. Pair it with
+any drive script.
 
 **`jobs_report` CARRIES A FLAG NO SCREENSHOT CAN**, which is why it exists
 beside a `shot` rather than instead of one: both of the Jobs panel's
@@ -235,6 +247,8 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- A PARTIAL RESTORE IS NOT A CACHE HIT, AND THREE DEFECTS ONLY RUNNING FOUND
+- A RE-RENDER OPENED 1801 WINDOWS, AND ONLY A TRACE COULD NAME THEM
 - A MATCHING COUNT IS NOT A REPRODUCTION, AND A PAPER'S SILENCE IS NOT A TERM
 - A THIRD OF THE SUITE WAS IN NO TEST, AND THE TABLE JUSTIFYING IT WAS WRONG IN EVERY CELL
 - THE DRIVEN CHECK CAN ASSERT NOW, AND THREE EYE-ONLY DEFECTS BECAME TESTS

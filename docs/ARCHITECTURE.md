@@ -567,6 +567,65 @@ cannot classify something must not take a calculator down with it.
 The same move `chem/structure_annotation.py` already made for that
 engine's ring and functional-group perception.
 
+### Calculation results persist, and a partial restore is not a cache hit
+
+Every result is retained for the session (`services/result_store_service.py`
+over `domain/result_store.py`) and written into the `.ocsproj` as a
+`calculation_results` block that `ProjectService` owns beside
+`ProjectModel.to_dict()`. The document model itself is unchanged. Five
+decisions carry the design:
+
+- **Identity comes from the dispatcher.** No result type carries its
+  calculator, parameters or input. `DescriptorService` publishes
+  `ResultRecorded(StoredResult)` beside each result event, with an identity
+  built only by `services/result_identity.make_identity`.
+- **The key is the input fingerprint**, produced by
+  `chem/calculation_input.resolve_calculation_input`, the same branches that
+  pick the molecule. A geometry calculator's key includes the conformer id
+  and molblock, and a fallback to the drawing gets the drawing's key. The
+  checker's `structure_version` is a per-session counter and cannot key
+  anything in a file; replayed reports are re-stamped with the current one,
+  which the fingerprint match makes true.
+- **Completeness is a manifest.** Each producer of the always-on set (every
+  descriptor provider, plus `substance_analysis`) publishes
+  `AutomaticPartFinished` with the ids it produced. A part replays only if
+  every one of those results is held, for this fingerprint, from this build.
+  Only missing parts rerun. One undecodable entry therefore reruns its part
+  instead of leaving a gap that reads as complete.
+- **The codec is versioned and allowlisted** (`domain/result_codec.py`): a
+  `__type__`/`__version__` per dataclass, construction only from
+  `openchem.domain` classes, never pickle. `unknown_type`,
+  `unsupported_version` and `malformed` are counted separately.
+- **Failures.** A raised part is retried next session and never written. A
+  failed result inside a sound part is the producer's own answer ("Needs a
+  3D conformer") and is written. Without that, every molecule without a
+  conformer reran the whole set on each reopen.
+
+The store belongs to one project and keeps the last eight structure revisions
+per molecule, so an undo replays rather than recomputes.
+`services/recovery_service.py` writes the same text Save writes to
+`<data root>/recovery/`. A generation counter drops a write that was queued
+before a Save. Recovery is off in `MainWindow` unless `main.py` enables it,
+because the suite does not isolate the data root.
+
+### Docking: the rail manages panels, the user places them
+
+`_show_only_right_dock` gives the chosen right-hand panel the column by
+hiding the others, and it skips three kinds of dock:
+
+- a floating dock;
+- a dock in a different area from the chosen one;
+- a user-placed dock. `_on_dock_moved` marks one when `dockLocationChanged` or
+  `topLevelChanged` fires outside the window's own `_arranging` guard and the
+  dock has landed away from its starting area or beside a visible docked
+  panel.
+
+Placement is saved with the window state. `AllowNestedDocks | AllowTabbedDocks`
+lets a drop land beside, under or on a panel. `reset_panel_layout` re-adds
+every dock to the area `_add_dock` recorded for it. The area rule is not
+redundant with placement: a layout saved before placement was tracked has
+moved docks with no record, and only the area rule keeps them on screen.
+
 ## Known TODOs
 
 **Every item carries a verdict**, because this list had become half

@@ -71,6 +71,7 @@ from openchem.ui.fact_help import contract_for
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.chart_widgets import CHART_WIDGET_TYPES, chart_widget_for
 from openchem.ui.widgets.stick_chart_widget import StickChartWidget
+from openchem.ui.widgets.widget_disposal import discard_widget
 
 logger = logging.getLogger("openchem.ui")
 
@@ -421,8 +422,8 @@ class FactView(QWidget):
 
     def _clear_charts(self) -> None:
         for section in self._chart_sections:
-            section.setParent(None)
-            section.deleteLater()
+            # Not `setParent(None)` alone -- see `widget_disposal`.
+            discard_widget(section)
         self._chart_sections.clear()
 
     def _rebuild_charts(self) -> None:
@@ -626,8 +627,10 @@ class FactView(QWidget):
 
     def _clear_sections(self) -> None:
         for section in self._sections.values():
-            section.setParent(None)
-            section.deleteLater()
+            # Not `setParent(None)` alone: that opened each section as a
+            # white window when renders arrived faster than the event loop.
+            # See `widget_disposal`.
+            discard_widget(section)
         self._sections.clear()
 
     def _on_filter_changed(self) -> None:

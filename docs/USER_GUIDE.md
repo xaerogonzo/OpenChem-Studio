@@ -23,6 +23,29 @@ plus canonical SMILES/InChI/InChIKey and metadata, and the structure is
 rebuilt on load — so a project opened in a later version gets that version's
 chemistry perception rather than a frozen snapshot of an older one.
 
+**Calculation results are saved in the project too.** Everything computed
+for a molecule — the properties worked out when you select it, and every
+calculator you ran — is kept for the whole session and written into the
+`.ocsproj` when you save. Moving back to a molecule shows its results at
+once instead of recalculating them, and so does reopening the project.
+
+- A result belongs to the exact structure it was computed on. Edit the
+  molecule and the properties are recalculated; undo the edit and the
+  earlier results come back without recalculating.
+- A calculator that needs 3D is tied to the conformer it used. Generate new
+  conformers and that result is not shown for the new ones.
+- The automatic properties are recalculated once after you update the
+  application, so a new version's perception is what you see. Results you
+  ran yourself are kept, and each records the version that produced it.
+- If part of a saved set cannot be read (a file from a newer version, or a
+  damaged entry), only that part is recalculated; the rest is shown.
+
+**Unsaved work is kept in a recovery copy.** While a project has unsaved
+changes, a copy — results included — is written to the `recovery` folder
+under your data directory every few seconds. Saving or choosing *Discard*
+removes it. If the application closes without either, the next launch asks
+whether to recover it.
+
 **Every panel follows the selected molecule.** Selecting one in the Project
 Explorer moves the 2D editor, the 3D viewer, the Properties panel, the
 Quantum Chemistry panel's Molecule field and the Docking panel's Ligand
@@ -630,6 +653,21 @@ One panel is shown at a time and it gets the whole column. Right-click any
 name and **Pin to top** to keep it above the groups, so a panel you use
 constantly does not need you to remember which group it is filed under.
 Pins survive a restart.
+
+**To keep two panels on screen, put one where you want it.** Drag a panel by
+its title bar and drop it:
+
+- beside, above or below another panel in the column — to split it;
+- onto another panel — to make them tabs;
+- on another side of the window — the top, the left or the bottom;
+- or anywhere outside the window, to float it.
+
+A panel you have placed like that **stays on screen** when you pick a
+different panel from the rail; the rail only swaps the panels it is still
+managing. Keeping Properties and Results together is the common case: drop
+Results below Properties and start calculations while you read them.
+Placements are saved with the window layout. **View ▸ Reset Panel Layout**
+puts every panel back where it started and hands them all back to the rail.
 
 ("Compute" rather than "Quantum" because the group holds docking and
 alignment too, and neither is quantum chemistry.)

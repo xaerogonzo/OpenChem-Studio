@@ -17,6 +17,7 @@ from openchem.services.job_manager import JobManager
 from openchem.services.measurement_service import MeasurementService
 from openchem.services.project_service import ProjectService
 from openchem.services.qm_surface_service import QmSurfaceService
+from openchem.services.result_store_service import ResultStoreService
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.services.screening_service import ScreeningService
 from openchem.services.atom_fact_service import AtomFactService
@@ -59,3 +60,7 @@ class ServiceContainer:
     #: defaulted field before required ones -- and defaulted so a
     #: container built without it (every existing test) still works.
     spatial_overlay_service: SpatialOverlayService | None = None
+    #: The session's retained calculation results. Defaulted for the same
+    #: reason: a container without it behaves exactly as before -- every
+    #: selection recomputes and nothing is written to the project file.
+    result_store_service: ResultStoreService | None = None

@@ -17,7 +17,9 @@ being skipped.
 
 from __future__ import annotations
 
+import hashlib
 import logging
+from typing import NamedTuple
 
 from rdkit import Chem
 
@@ -60,6 +62,64 @@ def select_calculation_input(
 ) -> Chem.Mol:
     """The molecule to hand a calculator declaring `calculation_input`.
 
+    See `resolve_calculation_input`, which this is the molecule half of.
+    """
+    return resolve_calculation_input(engine, model, calculation_input).mol
+
+
+class ResolvedInput(NamedTuple):
+    """The molecule a calculation is handed, and a fingerprint OF THAT INPUT.
+
+    **ONE RESOLUTION PRODUCES BOTH, AND THAT IS THE POINT.** A retained
+    result is reusable only while the input it was computed on is still the
+    input a rerun would get. If the fingerprint were worked out separately
+    -- "hash the molblock, add the conformer id for geometry" -- it would
+    agree with this function until the day the fallback rules below change,
+    and then a result would read as fresh while the calculator would be
+    handed different coordinates. So the key is produced by the same
+    branches that pick the molecule.
+
+    `mol` is None when only the fingerprint was asked for.
+    """
+
+    mol: Chem.Mol | None
+    fingerprint: str
+
+
+def _fingerprint(*parts: str) -> str:
+    """SHA-256 over the EXACT stored text, not a canonical form.
+
+    Deliberately not canonicalised: the claim is "this is the input the
+    calculation received", and a cosmetic re-save of a molblock costing one
+    recompute is a far cheaper mistake than two different inputs sharing a
+    key because a normaliser judged them equivalent.
+    """
+    digest = hashlib.sha256()
+    for part in parts:
+        digest.update(part.encode("utf-8"))
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def input_fingerprint(
+    engine: ChemistryEngine, model: MoleculeModel, calculation_input: str = DRAWING
+) -> str:
+    """The fingerprint `resolve_calculation_input` would give, for comparing.
+
+    DRAWING needs no parse. GEOMETRY does, because whether the conformer is
+    used at all depends on it parsing into something 3D -- and that decision
+    is part of the input.
+    """
+    if calculation_input != GEOMETRY:
+        return _fingerprint(DRAWING, model.molblock or "")
+    return resolve_calculation_input(engine, model, calculation_input).fingerprint
+
+
+def resolve_calculation_input(
+    engine: ChemistryEngine, model: MoleculeModel, calculation_input: str = DRAWING
+) -> ResolvedInput:
+    """The molecule to hand a calculator declaring `calculation_input`.
+
     `DRAWING` returns the drawn structure unchanged -- byte-for-byte what
     every calculator received before this policy existed, whether or not
     the molecule has conformers. That is not a fallback, it is the
@@ -91,13 +151,20 @@ def select_calculation_input(
                 )
             else:
                 if mol.GetNumConformers() > 0 and mol.GetConformer().Is3D():
-                    return mol
+                    return ResolvedInput(
+                        mol,
+                        _fingerprint(GEOMETRY, conformer.conformer_id, conformer.molblock or ""),
+                    )
                 logger.info(
                     "Conformer %s of molecule %s is not 3D; using the drawn structure",
                     conformer.conformer_id,
                     model.uuid,
                 )
-    return engine.mol_from_model(model)
+    # The DRAWING fingerprint for a geometry request that fell back, on
+    # purpose: the calculator really was handed the drawing, so a result
+    # computed that way is the same input as a drawing-policy one.
+    molblock = model.molblock or ""
+    return ResolvedInput(engine.mol_from_model(model), _fingerprint(DRAWING, molblock))
 
 
 #: Every key `geometry_provenance` adds carries this prefix.

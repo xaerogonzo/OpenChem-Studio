@@ -393,6 +393,18 @@ MENU_HELP: dict[str, HelpTooltip] = {
         tier=1, help_id="view.panel_rail_visibility", topic=_M,
         help_anchor="properties",
     ),
+    "reset_panel_layout": HelpTooltip(
+        text=(
+            "Puts every panel back where it starts: floating panels are docked "
+            "again, panels moved to another side return to theirs, tabs and "
+            "splits are undone, and Properties is shown.\n\n"
+            "A panel you have moved or split beside another stays on screen "
+            "when you pick a different panel from the rail; this is how to hand "
+            "it back to the rail."
+        ),
+        tier=1, help_id="view.reset_panel_layout", topic=_M,
+        help_anchor="properties",
+    ),
     "show_carbon_labels": HelpTooltip(
         text=(
             "Draws the element symbol on carbon atoms, which are normally left as "

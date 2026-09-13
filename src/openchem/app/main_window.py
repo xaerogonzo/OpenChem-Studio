@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import partial
 
 import logging
+import time
 from pathlib import Path
 from typing import Callable
 
@@ -66,6 +67,7 @@ from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.calculator import GEOMETRY, RegistryExecution
 from openchem.domain.project import ProjectModel
+from openchem.domain.result_store import SessionResultStore
 from openchem.events.events import (
     CrystalSelected,
     ConformersChanged,
@@ -83,6 +85,7 @@ from openchem.events.events import (
 )
 from openchem.plugins.manager import PluginManager
 from openchem.services.container import ServiceContainer
+from openchem.services.result_store_service import SUBSTANCE_PART
 from openchem.ui.widgets.help_tooltip import apply_help_tooltip
 from openchem.ui.dialogs.about_dialog import AboutDialog
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
@@ -256,6 +259,9 @@ def initial_right_dock_width(available_width: int, dock_minimum: int) -> int:
 
 _LAYOUT_VERSION = "4"
 _LAYOUT_VERSION_KEY = "ui/layout_version"
+#: Docks the user has placed, which the rail leaves on screen. Saved beside
+#: the window state, and read only when that state is restored.
+_USER_PLACED_KEY = "ui/user_placed_docks"
 _RAIL_COLLAPSED_KEY = "ui/rail_collapsed"
 
 #: What the central editor is never squeezed below, in pixels.
@@ -319,6 +325,18 @@ class MainWindow(QMainWindow):
         self._settings = settings
         self._session = session
         self._undo_stack = QUndoStack(self)
+        # Docking state, before any dock exists -- see `_on_dock_moved`.
+        # `_arranging` starts True and is cleared at the END of construction:
+        # every dock this constructor adds, and the saved layout it restores,
+        # fires the same signals a user's drop does.
+        self._arranging = True
+        self._user_placed_docks: set[str] = set()
+        self._default_dock_areas: dict[str, Qt.DockWidgetArea] = {}
+        self._docks_to_classify: set[QDockWidget] = set()
+        self._classify_timer = QTimer(self)
+        self._classify_timer.setSingleShot(True)
+        self._classify_timer.setInterval(0)
+        self._classify_timer.timeout.connect(self._classify_moved_docks)
         self._plugin_panels: dict[str, QDockWidget] = {}
         self._plugin_menu_actions: dict[str, list[QAction]] = {}
         #: Whether a docked pose is currently drawn into the
@@ -400,7 +418,13 @@ class MainWindow(QMainWindow):
             # so the merged results window's "stale" marks compare like
             # with like rather than two notions of a version.
             structure_version_of=services.structure_check_service.current_version,
+            substance_perception_needed=self._substance_perception_needed,
         )
+        if services.result_store_service is not None:
+            # A retained result is unsaved work: the user asked for results
+            # to live in the project file, so one that is not there yet is
+            # exactly what the unsaved-changes prompt is for.
+            services.result_store_service.add_recorded_listener(self._on_result_retained)
         self._console_panel = ConsolePanel(self)
         self._docking_panel = DockingPanel(
             services.docking_service, services.chemistry_engine, self._settings, services.event_bus, self
@@ -689,6 +713,17 @@ class MainWindow(QMainWindow):
             (compare_dock, "compare"),
         ):
             self._panel_rail.register(dock.objectName(), dock.windowTitle(), group)
+        # NESTED AND TABBED DROPS, so a panel can be dropped BESIDE or UNDER
+        # another in the same column, or onto it as a tab. Without
+        # `AllowNestedDocks` a column is one stack and "Properties with Results
+        # below it" is not a place a drop can land -- which is most of why
+        # docking felt loose. Tabs here are the user's choice for one pair,
+        # not the twelve-tab bar the rail replaced.
+        self.setDockOptions(
+            QMainWindow.DockOption.AnimatedDocks
+            | QMainWindow.DockOption.AllowNestedDocks
+            | QMainWindow.DockOption.AllowTabbedDocks
+        )
         self._show_only_right_dock(self._properties_dock)
 
         # A structure-check light in the corner, following Marvin's. The
@@ -728,6 +763,7 @@ class MainWindow(QMainWindow):
         services.event_bus.subscribe(PluginUnloaded, self._on_plugins_state_changed)
 
         self._new_project()
+        self._arranging = False
 
         # Constructed last: PluginManager depends only on the UIRegistry
         # protocol (add_panel/remove_panel/add_menu_action/remove_menu_actions
@@ -741,6 +777,13 @@ class MainWindow(QMainWindow):
         dock.setObjectName(title.replace(" ", "_"))
         dock.setWidget(widget)
         self.addDockWidget(area, dock)
+        # Where it STARTS, for Reset Panel Layout -- recorded rather than
+        # re-derived, so a reset cannot disagree with construction.
+        self._default_dock_areas[dock.objectName()] = area
+        # A drop by the user. Bound methods, never lambdas: PySide6 holds a
+        # plain callable strongly and this window has paid for that.
+        dock.dockLocationChanged.connect(self._on_dock_moved)
+        dock.topLevelChanged.connect(self._on_dock_moved)
 
         # A "?" in the title bar, for the panels that have a help topic.
         # F1 already does this, but a keyboard shortcut is only useful to
@@ -775,14 +818,152 @@ class MainWindow(QMainWindow):
         A dock the user has floated is left alone: they have deliberately
         pulled it out to see it alongside something else, and yanking it
         back would undo that.
+
+        **AND SO IS ONE THEY HAVE PUT SOMEWHERE -- THE SAME RULE, WHICH
+        ONLY COVERED FLOATING.** Reported: Results dragged to the top of the
+        window vanished the moment Properties was picked, because this hid
+        every non-floating dock in `_right_docks` wherever it now lived.
+        Measured with `dock_report` before the fix: Results at the top,
+        choose Properties, Results hidden. So a dock is hidden only if it is
+        still where the rail manages panels -- the chosen dock's area -- and
+        the user has not placed it (`_on_dock_moved`).
         """
+        placed = self._user_placed_docks
+        chosen_area = self.dockWidgetArea(chosen)
         for dock in self._right_docks:
-            if dock.isFloating():
+            if dock is chosen:
+                dock.setVisible(True)
                 continue
-            dock.setVisible(dock is chosen)
+            if dock.isFloating() or dock.objectName() in placed:
+                continue
+            if chosen.objectName() in placed or chosen.isFloating():
+                # Choosing a placed panel shows it where the user put it and
+                # takes nothing else off screen.
+                continue
+            if self.dockWidgetArea(dock) != chosen_area:
+                continue
+            dock.setVisible(False)
         if not chosen.isFloating():
             chosen.raise_()
         self._sync_docking_box_overlay()
+
+    def _on_dock_moved(self, *_args) -> None:
+        """Record that the user put a dock somewhere, once Qt has settled.
+
+        **WHAT "USER-PLACED" MEANS, EXACTLY.** A dock the user dropped into a
+        different area from the one it started in, or into a split or tab
+        group beside another visible docked panel. It stays placed -- the
+        rail will not hide it -- until it is dropped back on its own into
+        its starting area, or View > Reset Panel Layout runs. It is
+        saved with the window layout, so the rail behaves the same after a
+        restart as before one.
+
+        The window's OWN arranging (construction, restoring a saved layout,
+        a reset) moves docks too and fires the same signals, so those run
+        under `_arranging` and are ignored here.
+
+        Deferred a turn, because `dockLocationChanged` fires before the dock
+        area has laid out and "is it alone" cannot be answered yet.
+        """
+        if self._arranging:
+            return
+        dock = self.sender()
+        if isinstance(dock, QDockWidget):
+            self._docks_to_classify.add(dock)
+            self._classify_timer.start()
+
+    def _classify_moved_docks(self) -> None:
+        for dock in list(self._docks_to_classify):
+            if dock.isFloating():
+                continue  # already exempt; placement is decided when it lands
+            name = dock.objectName()
+            area = self.dockWidgetArea(dock)
+            started = self._default_dock_areas.get(name, Qt.DockWidgetArea.RightDockWidgetArea)
+            companions = [
+                other for other in self.findChildren(QDockWidget)
+                if other is not dock and other.parent() is self
+                and not other.isHidden() and not other.isFloating()
+                and self.dockWidgetArea(other) == area
+            ]
+            if area != started or companions:
+                self._user_placed_docks.add(name)
+            else:
+                self._user_placed_docks.discard(name)
+        self._docks_to_classify.clear()
+
+    def reset_panel_layout(self) -> None:
+        """View > Reset Panel Layout: every dock back where it starts.
+
+        An application-level reset rather than deleting a settings key and
+        hoping Qt sorts it out: every floating dock is docked, every dock is
+        removed and re-added to its starting area (which is also what
+        undoes a tab group or a split), the placed set is emptied, and the
+        rail is put back on Properties -- the same arrangement construction
+        produces.
+        """
+        self._arranging = True
+        try:
+            for dock in self.findChildren(QDockWidget):
+                if dock.parent() is not self:
+                    continue
+                area = self._default_dock_areas.get(dock.objectName())
+                if area is None:
+                    continue
+                dock.setFloating(False)
+                self.removeDockWidget(dock)
+                self.addDockWidget(area, dock)
+                dock.show()
+            self._user_placed_docks.clear()
+            self._show_only_right_dock(self._properties_dock)
+            self._set_initial_right_dock_width()
+        finally:
+            self._arranging = False
+        self._panel_rail.select_panel(self._properties_dock.objectName())
+
+    def dock_layout_report(self) -> dict:
+        """Where every dock is, and which visible docked ones overlap.
+
+        Plain data for the drive harness and for tests: `isHidden()` rather
+        than `isVisible()` for the reason recorded throughout this file, and
+        rectangles in WINDOW coordinates so two docks can be compared.
+        """
+        area_names = {
+            Qt.DockWidgetArea.LeftDockWidgetArea: "left",
+            Qt.DockWidgetArea.RightDockWidgetArea: "right",
+            Qt.DockWidgetArea.TopDockWidgetArea: "top",
+            Qt.DockWidgetArea.BottomDockWidgetArea: "bottom",
+        }
+        docks = []
+        for dock in self.findChildren(QDockWidget):
+            if dock.parent() is not self:
+                continue
+            top_left = dock.mapTo(self, QPoint(0, 0)) if not dock.isFloating() else dock.pos()
+            docks.append({
+                "id": dock.objectName(),
+                "area": area_names.get(self.dockWidgetArea(dock), "none"),
+                "floating": dock.isFloating(),
+                "hidden": dock.isHidden(),
+                "tabified_with": sorted(d.objectName() for d in self.tabifiedDockWidgets(dock)),
+                "user_placed": dock.objectName() in getattr(self, "_user_placed_docks", set()),
+                "rect": [top_left.x(), top_left.y(), dock.width(), dock.height()],
+            })
+        shown = [d for d in docks if not d["hidden"] and not d["floating"]]
+        overlaps = []
+        for index, first in enumerate(shown):
+            for second in shown[index + 1:]:
+                if first["tabified_with"] and second["id"] in first["tabified_with"]:
+                    continue  # a tab group shares one rectangle by design
+                ax, ay, aw, ah = first["rect"]
+                bx, by, bw, bh = second["rect"]
+                width = min(ax + aw, bx + bw) - max(ax, bx)
+                height = min(ay + ah, by + bh) - max(ay, by)
+                if width > 0 and height > 0:
+                    overlaps.append([first["id"], second["id"], width, height])
+        return {
+            "docks": docks,
+            "overlaps": overlaps,
+            "window_minimum": [self.minimumSizeHint().width(), self.minimumSizeHint().height()],
+        }
 
     def _sync_docking_box_overlay(self) -> None:
         """Draw the docking search box while, and only while, Docking shows.
@@ -1266,6 +1447,12 @@ class MainWindow(QMainWindow):
         if not state:
             return False
         self.restoreState(state)
+        # Placement is part of the layout: without it a panel restored at the
+        # top of the window would be hidden by the first rail click, which
+        # is the reported bug returning on every launch.
+        stored = str(self._settings.get(_USER_PLACED_KEY, "") or "")
+        known = set(self._default_dock_areas)
+        self._user_placed_docks = {name for name in stored.split(",") if name in known}
         return True
 
     def _set_initial_right_dock_width(self) -> None:
@@ -1350,6 +1537,7 @@ class MainWindow(QMainWindow):
         self._settings.set_window_geometry(self.saveGeometry())
         self._settings.set_window_state(self.saveState())
         self._settings.set(_LAYOUT_VERSION_KEY, _LAYOUT_VERSION)
+        self._settings.set(_USER_PLACED_KEY, ",".join(sorted(self._user_placed_docks)))
         # EMPTY THE UNDO STACK BEFORE THE WINDOW GOES.
         #
         # Destroying a MainWindow whose stack still holds commands faults.
@@ -1646,6 +1834,10 @@ class MainWindow(QMainWindow):
             self._view_menu.addAction(
                 self._document(dock.toggleViewAction(), "panel_visibility")
             )
+        self._view_menu.addSeparator()
+        reset_layout = self._document(QAction("Reset Panel Layout", self), "reset_panel_layout")
+        reset_layout.triggered.connect(self.reset_panel_layout)
+        self._view_menu.addAction(reset_layout)
         self._view_menu.addSeparator()
         structure_display_menu = self._view_menu.addMenu("2D Structure Display")
         self._add_structure_display_toggle(
@@ -2159,6 +2351,8 @@ class MainWindow(QMainWindow):
             QMessageBox.StandardButton.Save,
         )
         if choice == QMessageBox.StandardButton.Discard:
+            # Deliberately thrown away, so there is nothing to recover.
+            self._settle_recovery()
             return True
         if choice == QMessageBox.StandardButton.Save:
             return self._save_project()
@@ -2169,7 +2363,7 @@ class MainWindow(QMainWindow):
             return
         self._set_project(ProjectModel(name="Untitled project"))
 
-    def _set_project(self, project: ProjectModel) -> None:
+    def _set_project(self, project: ProjectModel, results: SessionResultStore | None = None) -> None:
         # THE UNDO STACK BELONGS TO THE DOCUMENT, and every command holds a
         # direct reference to the project it was built against. Without
         # this, opening a second project left the first one's commands
@@ -2179,6 +2373,11 @@ class MainWindow(QMainWindow):
         # Explorer showed the new one and nothing appeared to happen.
         self._undo_stack.clear()
         self._session.set_project(project)
+        # THE RESULT STORE BELONGS TO THE DOCUMENT TOO, for the same reason,
+        # and it is replaced BEFORE any panel is told: a panel may select a
+        # molecule, and that selection has to find this project's results.
+        if self._services.result_store_service is not None:
+            self._services.result_store_service.set_project(project, results)
         self._project_explorer.set_project(project)
         self._docking_panel.set_project(project)
         self._quantum_chemistry_panel.set_project(project)
@@ -2216,7 +2415,7 @@ class MainWindow(QMainWindow):
         command = OpenProjectCommand(self._services.project_service, Path(path_str))
         self._undo_stack.push(command)
         if command.loaded_project is not None:
-            self._set_project(command.loaded_project)
+            self._set_project(command.loaded_project, command.loaded_results)
 
     def _save_project(self) -> bool:
         """True when the project reached disk.
@@ -2241,9 +2440,112 @@ class MainWindow(QMainWindow):
         remember_chosen_path(self._settings, "project", path_str)
         if not path_str.endswith(".ocsproj"):
             path_str += ".ocsproj"
-        command = SaveProjectCommand(self._services.project_service, self._session.project, Path(path_str))
+        self.save_project_to(Path(path_str))
+        return True
+
+    def save_project_to(self, path: Path) -> None:
+        """Write the project, with its retained results, to `path`.
+
+        Everything Save does after the file dialog, so a scripted run saves
+        through the same command and the same results the menu does.
+        """
+        results, fingerprints = self._current_results()
+        command = SaveProjectCommand(
+            self._services.project_service, self._session.project, path, results, fingerprints
+        )
         self._undo_stack.push(command)
         self._session.mark_clean()
+        self._project_path = str(path)
+        self._settle_recovery()
+
+    # --- recovery -------------------------------------------------------------
+
+    def enable_recovery(self, recovery_service, delay_ms: int = 5000) -> None:
+        """Keep a recovery copy of unsaved work. OFF unless this is called.
+
+        **OFF BY DEFAULT, AND THAT IS A SAFETY PROPERTY.** The copy is written
+        under the configured data root, and the test suite does not isolate
+        that root -- so a window that wrote recovery files on its own would
+        fill a developer's real data directory from every test that marks a
+        session dirty, and a later launch would offer to "recover" them.
+        `main.py` turns it on for the real application only.
+
+        Debounced: every change restarts the timer, so a burst of edits is
+        one write. The generation is read when the write FIRES, and the
+        service drops it if a Save or Discard advanced it in between.
+        """
+        self._recovery_service = recovery_service
+        self._recovery_timer = QTimer(self)
+        self._recovery_timer.setSingleShot(True)
+        self._recovery_timer.setInterval(delay_ms)
+        self._recovery_timer.timeout.connect(self._write_recovery)
+        self._undo_stack.indexChanged.connect(self._schedule_recovery)
+
+    def _schedule_recovery(self, *_args) -> None:
+        service = getattr(self, "_recovery_service", None)
+        if service is None:
+            return
+        self._recovery_generation = service.generation
+        self._recovery_timer.start()
+
+    def _write_recovery(self) -> None:
+        service = getattr(self, "_recovery_service", None)
+        project = self._session.project
+        if service is None or project is None or not self._session.is_dirty:
+            return
+        results, fingerprints = self._current_results()
+        try:
+            service.write(
+                project, results, fingerprints,
+                getattr(self, "_recovery_generation", service.generation),
+                source_path=getattr(self, "_project_path", ""),
+            )
+        except Exception:  # noqa: BLE001 - a recovery copy must never interrupt work
+            logger.exception("Could not write a recovery copy of %s", project.uuid)
+
+    def _settle_recovery(self) -> None:
+        service = getattr(self, "_recovery_service", None)
+        if service is None or self._session.project is None:
+            return
+        if getattr(self, "_recovery_timer", None) is not None:
+            self._recovery_timer.stop()
+        try:
+            service.settle(self._session.project.uuid)
+        except OSError:
+            logger.exception("Could not remove the recovery copy of %s", self._session.project.uuid)
+
+    def offer_recovery(self) -> bool:
+        """At launch, offer the newest recovery copy. True if one was taken.
+
+        Called by `main.py` once the window is on screen, never from the
+        constructor: it asks a modal question, and a window being built by a
+        test or a drive script must not stop to ask anybody anything.
+        """
+        service = getattr(self, "_recovery_service", None)
+        if service is None:
+            return False
+        candidates = service.candidates()
+        if not candidates:
+            return False
+        newest = candidates[0]
+        when = time.strftime("%Y-%m-%d %H:%M", time.localtime(newest.written_at))
+        where = f"\nLast saved to: {newest.source_path}" if newest.source_path else "\nNever saved."
+        choice = QMessageBox.question(
+            self,
+            "Recover unsaved work",
+            f"'{newest.project_name}' ({newest.molecule_count} molecule(s)) has unsaved work "
+            f"from {when}, including any calculation results.{where}\n\nRecover it?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if choice != QMessageBox.StandardButton.Yes:
+            service.discard(newest)
+            return False
+        project, results = service.load(newest)
+        self._set_project(project, results)
+        self._project_path = newest.source_path
+        # Recovered work is unsaved by definition; keep the copy until it is.
+        self._session.mark_dirty()
         return True
 
     # --- molecule lifecycle --------------------------------------------------
@@ -2868,7 +3170,7 @@ class MainWindow(QMainWindow):
         self._editor.set_molecule(molecule)
         self._viewer3d.set_molecule(molecule)
         if molecule is not None:
-            self._services.descriptor_service.request_descriptors(molecule)
+            self._restore_or_compute(molecule)
             self._publish_molecule_snapshot(molecule)
         self._check_current_structure()
 
@@ -2876,13 +3178,90 @@ class MainWindow(QMainWindow):
         self._session.mark_dirty()
         molecule = self._current_molecule()
         if molecule is not None and molecule.uuid == event.molecule_uuid:
-            self._services.descriptor_service.request_descriptors(molecule)
+            # The same decision as a selection: an undo back to a structure
+            # whose results are held replays them rather than recomputing.
+            self._restore_or_compute(molecule)
             self._publish_molecule_snapshot(molecule)
         # After the snapshot, not before: the service bumps this molecule's
         # version from its own MoleculeChanged subscription, and checking
         # against the version it had a moment ago would produce a result
         # that is stale the instant it is published.
         self._check_current_structure()
+
+    # --- retained results -------------------------------------------------------
+
+    def _expected_automatic_parts(self) -> set[str]:
+        """Every producer of the always-on set, as this build has it now.
+
+        Read live rather than fixed, so a plugin registering a provider makes
+        every older manifest incomplete -- and the new provider runs -- instead
+        of an old manifest vouching for a set that has since grown.
+        """
+        parts = set(self._services.descriptor_service.provider_ids())
+        if self._services.calculator_registry.get(SUBSTANCE_PART) is not None:
+            parts.add(SUBSTANCE_PART)
+        return parts
+
+    def _missing_automatic_parts(self, molecule: MoleculeModel) -> set[str] | None:
+        """The always-on producers that must run for `molecule`, or None.
+
+        None means there is no result store at all, which is "run
+        everything, exactly as before".
+        """
+        store_service = self._services.result_store_service
+        if store_service is None:
+            return None
+        try:
+            _state, missing = store_service.automatic_state(molecule, self._expected_automatic_parts())
+        except Exception:  # noqa: BLE001 - a store problem must never cost a computation
+            logger.exception("Could not read retained results for %s; recomputing", molecule.uuid)
+            return None
+        return missing
+
+    def _substance_perception_needed(self, molecule_uuid: str) -> bool:
+        project = self._session.project
+        molecule = project.find_molecule(molecule_uuid) if project is not None else None
+        if molecule is None:
+            return True
+        missing = self._missing_automatic_parts(molecule)
+        return missing is None or SUBSTANCE_PART in missing
+
+    def _restore_or_compute(self, molecule: MoleculeModel) -> None:
+        """Replay what is held for this structure, and compute only the rest.
+
+        **A PARTIAL RESTORE IS NOT A CACHE HIT.** `missing` comes from the
+        manifest, so a provider whose results did not all come back is rerun
+        even when most of them did. What was restored stays on screen and is
+        replaced as the rerun arrives.
+        """
+        missing = self._missing_automatic_parts(molecule)
+        if missing is None:
+            self._services.descriptor_service.request_descriptors(molecule)
+            return
+        store_service = self._services.result_store_service
+        try:
+            store_service.replay(
+                molecule,
+                self._services.structure_check_service.current_version(molecule.uuid),
+            )
+        except Exception:  # noqa: BLE001 - see _missing_automatic_parts
+            logger.exception("Could not replay retained results for %s; recomputing", molecule.uuid)
+            self._services.descriptor_service.request_descriptors(molecule)
+            return
+        providers = missing - {SUBSTANCE_PART}
+        if providers:
+            self._services.descriptor_service.request_descriptors(molecule, only_providers=providers)
+
+    def _on_result_retained(self, molecule_uuid: str) -> None:
+        self._session.mark_dirty()
+        self._schedule_recovery()
+
+    def _current_results(self):
+        """The store and fingerprints a save writes, or (None, None)."""
+        store_service = self._services.result_store_service
+        if store_service is None:
+            return None, None
+        return store_service.store, store_service.project_fingerprints()
 
     # --- structure checking ----------------------------------------------------
 

@@ -1314,8 +1314,15 @@ class PropertyPanel(QWidget):
         parent: QWidget | None = None,
         on_add_structure: Callable[[str, str], None] | None = None,
         structure_version_of=None,
+        substance_perception_needed: Callable[[str], bool] | None = None,
     ) -> None:
         super().__init__(parent)
+        #: Asked on SELECTION whether the header's one automatic calculator
+        #: still has to run, or whether a retained result will be replayed
+        #: instead. The host owns that answer because it owns the result
+        #: store; None (a panel built on its own) runs it every time, which is
+        #: what this panel always did.
+        self._substance_perception_needed = substance_perception_needed
         #: `StructureCheckService.current_version`, or None in a fixture
         #: with no checker. A CALLABLE rather than the service, for the
         #: reason `DescriptorService` takes one: this needs a single number
@@ -1596,7 +1603,12 @@ class PropertyPanel(QWidget):
         # which is a flicker at best and the wrong answer if anything reads
         # it in between.
         self._refresh_reader()
-        self._request_substance_perception()
+        if (
+            self._substance_perception_needed is None
+            or self._selected_molecule_uuid is None
+            or self._substance_perception_needed(self._selected_molecule_uuid)
+        ):
+            self._request_substance_perception()
 
     def _section_for(self, category: str) -> _CollapsibleSection:
         section = self._sections.get(category)
@@ -2058,7 +2070,10 @@ class PropertyPanel(QWidget):
         """
         if event.molecule_uuid != self._selected_molecule_uuid:
             return
-        self._request_substance_perception()
+        # The same gate as a selection: undoing back to a structure whose
+        # perception is retained replays it instead of running it again.
+        if self._substance_perception_needed is None or self._substance_perception_needed(event.molecule_uuid):
+            self._request_substance_perception()
 
     def _selected_molecule_name(self) -> str:
         """What the app calls the selected molecule, or "".
