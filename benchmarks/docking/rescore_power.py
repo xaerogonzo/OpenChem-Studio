@@ -110,6 +110,22 @@ Handling, fixed now: no target is dropped after results are seen; a
 KNOWN_OVERLAP target, were one found, is kept, flagged, and the arm reported
 with and without it; UNRESOLVED is printed on the arm and never called clean.
 **n = 8 is descriptive**: a one-target difference is not claimed as one.
+
+### AMENDMENT -- written after the exhaustiveness-8 runs, before any at 25
+
+**The registration above named "the recorded Vina 6/8" and did not name the
+exhaustiveness it was recorded at.** `benchmarks/docking/README.md` measured
+it at **25**; every arm was then run at this script's default of **8**. A0
+at 8 matched the recorded COUNTS (6/8, 6/8, ceiling 8/8) while its per-target
+rows differ from the README's -- so it was a coincidence of counts, not a
+reproduction, and the first write-up said otherwise.
+
+The exhaustiveness-8 arms are KEPT: all four ran under one protocol, so they
+are comparable with each other. The arms are re-run at `--exhaustiveness 25`
+with nothing else changed, and A0 at 25 is the reproduction. Its criterion is
+the registered one (Vina 6/8, Vinardo 6/8, ceiling 8/8); each target's picks
+are ALSO compared with the README's rows and reported as a diagnostic, since
+receptor preparation is not reproducible and a row may legitimately move.
 """
 
 from __future__ import annotations

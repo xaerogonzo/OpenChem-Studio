@@ -1,5 +1,5 @@
 {
- "protocol": "rescore_power.py, 8 targets, exhaustiveness 8, seed 4712, 9 poses, SAME_POCKET_A 3.0 (centroid, not RMSD); pre-registered in b68a626",
+ "protocol": "rescore_power.py, 8 targets, exhaustiveness 8 (the script DEFAULT), seed 4712, 9 poses, SAME_POCKET_A 3.0 (centroid, not RMSD); pre-registered in b68a626",
  "n_is_descriptive": true,
  "arms": {
   "A0": {
@@ -258,6 +258,7 @@
    ]
   }
  },
- "A0_reproduces_recorded_6_of_8": true,
- "observation_not_explained": "A0's within-run Spearman summary drifted from the recorded value (mean +0.66 vs +0.71, min -0.15 vs +0.07) while every pick reproduced. Receptor preparation is known to be non-reproducible here; that it causes this drift was NOT measured."
+ "A0_reproduces_recorded_6_of_8": false,
+ "correction": "A0 at exhaustiveness 8 matched the recorded COUNTS, but the README's baseline was measured at exhaustiveness 25 and its per-target rows differ, so this was not a reproduction; commit 0626b00's message says otherwise and is wrong. These exhaustiveness-8 arms remain comparable WITH EACH OTHER. The reproduction is the exhaustiveness-25 re-run.",
+ "withdrawn_observation": "The 'Spearman drift' (+0.66 vs +0.71) recorded at 0626b00 compared an exhaustiveness-8 run with an exhaustiveness-25 record. It was a protocol difference, not a drift, and it is withdrawn."
 }
