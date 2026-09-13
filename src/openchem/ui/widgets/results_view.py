@@ -77,6 +77,7 @@ from openchem.domain.visualization_index import declared_visualizations
 from openchem.ui.result_summary import summary_of_merge
 from openchem.ui.widgets.fact_view import FactView
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
+from openchem.ui.widgets.widget_disposal import discard_widget
 
 logger = logging.getLogger("openchem.ui")
 
@@ -644,8 +645,7 @@ class ResultsView(QWidget):
             item = self._visuals_layout.takeAt(1)
             widget = item.widget()
             if widget is not None:
-                widget.setParent(None)
-                widget.deleteLater()
+                discard_widget(widget)
 
         found = declared_visualizations(report) if report is not None else ()
         self._visuals.setVisible(bool(found))

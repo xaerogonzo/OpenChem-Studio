@@ -10,6 +10,7 @@ from openchem.app.logging_setup import configure_logging
 from openchem.app.main_window import MainWindow
 from openchem.app.session import SessionManager
 from openchem.app.settings import Settings
+from openchem.app.window_trace import install_if_requested
 from openchem.bootstrap import build_service_container
 
 
@@ -22,6 +23,8 @@ def main() -> int:
     app.setApplicationName("OpenChemStudio")
 
     services = build_service_container()
+    # Before the window exists, so the trace sees every window it shows.
+    app._window_tracer = install_if_requested(app, services.event_bus)
     settings = Settings(services.event_bus)
     session = SessionManager()
 

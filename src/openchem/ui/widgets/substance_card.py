@@ -30,6 +30,7 @@ from dataclasses import dataclass, field
 
 from PySide6.QtCore import Qt
 from openchem.ui.widgets.collapsible_section import WrappedLabel
+from openchem.ui.widgets.widget_disposal import discard_widget
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -242,5 +243,4 @@ class SubstanceCard(QFrame):
             item = self._rows.takeAt(0)
             widget = item.widget()
             if widget is not None:
-                widget.setParent(None)
-                widget.deleteLater()
+                discard_widget(widget)
