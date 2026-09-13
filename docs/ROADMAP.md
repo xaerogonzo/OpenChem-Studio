@@ -392,6 +392,27 @@ have since shipped, on re-reading their reasons rather than their
 verdicts; the fourth was measured against a printed oracle and refused,
 which is the outcome that list exists to hold.
 
+**Partial-charge methods: Gasteiger and MMFF94 ship; EEM and QEq are
+deferred, not refused (2026-09-13).** The pH-dependent charge calculator
+takes a `method`. MMFF94 was checked against the charges and atom types that
+Halgren part II Table V prints for 20 molecules and ions, and RDKit
+reproduces 19 of them exactly (`tests/test_mmff94_charges.py`). Open Babel's
+EEM and QEq were asked for at the same time and left for later, for three
+reasons that are each checkable:
+
+- Open Babel is an optional extra, and on Windows, where this ships, its
+  data files are missing (see the lesson "OPEN BABEL HAS NO DATA FILES ON
+  WINDOWS"). A method that exists only on some installs needs its absence
+  handled as a refusal, not a crash.
+- Each needs its OWN printed reference. EEM depends on which parameter set
+  (Bultinck 2002 and others differ), and Open Babel's QEq is its own
+  implementation. Table V's QEq column is Cerius 3.2 on MP2 geometries, so it
+  is not an oracle for either.
+- Neither is a drop-in: EEM and QEq equalize electronegativity over the whole
+  molecule, so they respond to the protonated species differently from bond
+  increments, and that difference would need a measurement before a user is
+  offered all four as interchangeable.
+
 ### Spectroscopy
 
 NMR via three routes that share one result shape: an offline HOSE-code

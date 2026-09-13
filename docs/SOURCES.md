@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 895db889ecc02109f765e360177c126ebd3add8108b8fc7a69a1a3269dc2a67e -->
+<!-- SOURCE SHA256: 68c677ccc9ed301b2024151045478ac7cb63b63cf3d393bbc6571bb9fec3b0c5 -->
 
 # Sources
 
@@ -133,6 +133,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`guo2006`](#guo2006) | literature | reference only | citation + claim |
 | [`gutmann1976`](#gutmann1976) | literature | shipped | citation + claim |
 | [`gutmann_frontiers2022`](#gutmann_frontiers2022) | literature | **not shipped** | citation |
+| [`halgren1996_mmff2`](#halgren1996_mmff2) | literature | shipped | citation + claim |
 | [`hall1981`](#hall1981) | literature | shipped | citation |
 | [`hancock1996`](#hancock1996) | literature | reference only | citation |
 | [`hlb`](#hlb) | reference_table | reference only | citation |
@@ -207,6 +208,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`tdc_admet`](#tdc_admet) | dataset | reference only | citation |
 | [`tenbrink2009`](#tenbrink2009) | literature | shipped | citation + claim |
 | [`threedmol`](#threedmol) | software | shipped | citation |
+| [`tosco2014`](#tosco2014) | literature | reference only | citation |
 | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
 | [`tsei`](#tsei) | reference_table | reference only | citation |
 | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | citation + claim |
@@ -1800,6 +1802,69 @@ had NO registry entry, because the coverage sweep greps a fixed alternation
 of surnames and Gasteiger was never in it -- that check finds only authors
 somebody already thought of. Wildman, Ertl, Baell and Brenk were missing for
 the same reason; all five landed together.
+
+### halgren1996_mmff2
+
+<a id="halgren1996_mmff2"></a>
+
+> T. A. Halgren, 'Merck Molecular Force Field. II. MMFF94 van der Waals and Electrostatic Parameters for Intermolecular Interactions', J. Comput. Chem. 1996, 17(5-6), 520-552.
+
+| | |
+| --- | --- |
+| Identifier | Journal of Computational Chemistry, Vol. 17, Nos. 5 & 6, 520-552 (1996) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-09-13 |
+| Local copy | `halgren1996_II.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py` |
+
+CHECKED AGAINST THE PAPER'S OWN TABLE V (pp. 533-534), which prints MMFF94
+atom types and charges for 20 small molecules and ions. Every row is in
+`tests/fixtures/mmff94_halgren1996_table5.csv`, transcribed from a 200-400
+dpi render, and RDKit's `GetMMFFPartialCharge` reproduces every charge AND
+every atom type of 19 of the 20 to the three decimals printed. The charge
+model is this paper's eq. (7): formal charge plus bond-charge increments.
+
+TWO DEFECTS ARE THE PAGE'S, and both are kept as printed and asserted:
+- imidazole's ring hydrogens are printed as type 15; RDKit types them 5,
+  like every other aromatic C-H in the table, and the charge agrees.
+- the zwitterion -O2C(CH2)6NH3+ prints its carboxylate carbon as 0.900,
+  where the same table's acetate row prints 0.906 for the same types in the
+  same bonding, and eq. (7) makes those one number. RDKit gives 0.906.
+  NOT flagged by the paper: the row's footnote (o) sits on the Abraham
+  column. That was first misread as marking the MMFF value "inferred", and
+  caught by rendering the row at 400 dpi.
+
+It backs the MMFF94 method of `gasteiger_charge_at_ph`. The table's
+Gasteiger column is SYBYL 5.5's implementation and differs from RDKit's
+(methanol O -0.398 against -0.400, acetic acid C +0.256 against +0.300), so
+it is not used to check anything; see [source:gasteiger1980] for the check
+that is. Its QEq column is Cerius 3.2 on MP2 geometries, and is no oracle
+for any QEq this application might add.
+
+The PDF carries no DOI (typeset 1996); the identifier is what page 1 prints.
+
+### tosco2014
+
+<a id="tosco2014"></a>
+
+> P. Tosco, N. Stiefl & G. Landrum, 'Bringing the MMFF force field to the RDKit: implementation and validation', J. Cheminform. 2014, 6:37.
+
+| | |
+| --- | --- |
+| Identifier | [10.1186/s13321-014-0037-3](https://doi.org/10.1186/s13321-014-0037-3) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-13 |
+| Local copy | `tosco2014.pdf` (not checked) |
+| Used by | `src/openchem/chem/descriptor_providers.py` |
+
+**Why it is reference only.** The implementation this application reaches MMFF94 through, and the record
+that it was validated on the original Merck suite's atom types and charges.
+Cited for that, not for a number: the numbers were checked directly against
+[source:halgren1996_mmff2]'s Table V rather than taken on this paper's word.
+
+DOI and title read off the PDF.
 
 ### marsili1980
 

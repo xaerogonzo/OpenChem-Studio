@@ -106,11 +106,12 @@ Oxidation state per atom, by the IUPAC electronegativity-partition rule: each bo
 <!-- help:calc-gasteiger-charge-at-ph -->
 ### Partial Charge (pH-dependent)
 
-Gasteiger partial charges, recomputed on the dominant protonation state at a given pH.
+Partial charges, recomputed on the dominant protonation state at a given pH, by Gasteiger's PEOE or by MMFF94's bond-charge increments. The two are different models and give different numbers for the same atom.
 
 - Produces one value per atom, with a depiction coloured by them.
 - Runs on the 2D drawing, so no conformer is needed.
 - Options:
+  - `method` -- Charge method (gasteiger, mmff94) default `gasteiger`
   - `pH` -- pH default `7.4` range 0.0 to 14.0
   - `include_hydrogens` -- Increment of Hs (add implicit H charge) default `False`
 

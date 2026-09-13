@@ -1114,37 +1114,151 @@ def _microspecies_note(drawn: Chem.Mol, species, ph: float) -> str:
     return note
 
 
+#: Gasteiger-Marsili PEOE, the charge calculator's original and default
+#: method. A STORED code: the settings dialog shows `CHARGE_METHOD_LABELS`.
+GASTEIGER = "gasteiger"
+#: Halgren's MMFF94 bond-charge-increment charges, validated against his
+#: Table V. A stored code, like `GASTEIGER`.
+MMFF94 = "mmff94"
+#: Every method the pH-dependent charge calculator offers, in the order its
+#: combo box lists them. Anything else is refused rather than defaulted.
+CHARGE_METHODS = (GASTEIGER, MMFF94)
+#: What each method is called on screen and in a result's name.
+CHARGE_METHOD_LABELS = {GASTEIGER: "Gasteiger", MMFF94: "MMFF94"}
+
+#: How far an MMFF94 charge set may miss the formal charge before it is
+#: refused. MMFF charges are formal charges redistributed by bond
+#: increments, so the sum is exact up to float noise: measured 0 to 1e-15 on
+#: every molecule and ion of Halgren's Table V.
+_MMFF_CONSERVATION_TOLERANCE = 1e-6
+
+
+def compute_mmff94_charges(
+    mol: Chem.Mol, include_hydrogens: bool = False
+) -> tuple[dict[int, float], float] | None:
+    """MMFF94 partial charges keyed to `mol`'s own atom indices, and the sum
+    over EVERY atom -- or None when MMFF94 cannot type the molecule.
+
+    **WHAT A "FOLDED" VALUE IS, stated because it is not an MMFF94 charge.**
+    MMFF94 assigns charges to every atom, hydrogens included, and needs the
+    hydrogens present to type anything. `mol` holds hydrogens implicitly, so
+    they are added (`AddHs` appends, which keeps every existing index), and:
+
+        include_hydrogens=False   each atom's own MMFF94 charge; the added
+                                  hydrogens' charges are not reported
+        include_hydrogens=True    each atom's own charge PLUS the charges of
+                                  the hydrogens added to it -- an aggregation
+                                  this application performs, the same one
+                                  Gasteiger's "Increment of Hs" performs
+
+    A hydrogen the drawing holds as an ATOM keeps its own index and value in
+    both modes; only hydrogens this function added are folded.
+
+    Validated against Halgren (1996) part II Table V
+    [source:halgren1996_mmff2] -- every charge and atom type of the atoms it
+    prints, for 19 of 20 molecules and ions, and the 20th disagrees with the
+    table's own acetate row. Reached through RDKit's port
+    [source:tosco2014]. See `tests/test_mmff94_charges.py`.
+    """
+    from rdkit.Chem import rdForceFieldHelpers
+
+    count = mol.GetNumAtoms()
+    full = Chem.AddHs(Chem.Mol(mol))
+    properties = rdForceFieldHelpers.MMFFGetMoleculeProperties(full)
+    if properties is None:
+        return None
+    every = [properties.GetMMFFPartialCharge(i) for i in range(full.GetNumAtoms())]
+    values = {i: every[i] for i in range(count)}
+    if include_hydrogens:
+        for index in range(count, full.GetNumAtoms()):
+            parent = full.GetAtomWithIdx(index).GetNeighbors()[0].GetIdx()
+            values[parent] += every[index]
+    return values, sum(every)
+
+
 def compute_gasteiger_charge_at_ph(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any]
 ) -> PerAtomDataset:
     """The "charge" category's calculator. Protonates `mol` to the
     pH-appropriate dominant microspecies via Dimorphite-DL
-    (`chem.pka_providers.protonate_at_ph`) before computing Gasteiger
+    (`chem.pka_providers.protonate_at_ph`) before computing partial
     charges, so the result reflects that pH's ionization state rather than
     whatever protonation state the molecule happened to be drawn in.
+
+    **THE METHOD IS A PARAMETER, AND THE ID DID NOT CHANGE WITH IT.** Named
+    for Gasteiger because that was its only method; renaming it would orphan
+    every stored result for no gain. The result's NAME and provenance carry
+    the method, and `parameters_key` -- part of every stored identity --
+    carries it too, so a Gasteiger result is never served as an MMFF94 one.
+    Like every other parameter in this application, running it again with a
+    different method REPLACES the previous result rather than adding one.
     """
     _places = decimals(parameters)
     from openchem.chem.pka_providers import dominant_microspecies
 
     ph = parameters.get("pH", 7.4)
     include_hydrogens = bool(parameters.get("include_hydrogens", False))
+    method = str(parameters.get("method", GASTEIGER))
+    if method not in CHARGE_METHODS:
+        raise ValueError(f"Unknown charge method {method!r}; expected one of {CHARGE_METHODS}")
+    label = CHARGE_METHOD_LABELS[method]
     species = dominant_microspecies(mol, ph)
     protonated = species.mol
-    charges = compute_gasteiger_charges(protonated, include_hydrogens=include_hydrogens)
     suffix = " incl. H" if include_hydrogens else ""
+    name = f"Partial Charge ({label}) at pH {ph:g}{suffix}"
+    if method == MMFF94:
+        computed = compute_mmff94_charges(protonated, include_hydrogens=include_hydrogens)
+        if computed is None:
+            # A LIMIT OF THE METHOD, not a fault: MMFF94 has no atom type for
+            # something in this structure, and nothing the user does short
+            # of changing the molecule will give it one.
+            return PerAtomDataset(
+                property_id="gasteiger_charge_at_ph", name=name, units="e",
+                method="rdkit-mmff94+dimorphite_dl", molecule_uuid=molecule_uuid,
+                cache_state=CacheState.FAILED, inapplicable=True,
+                error="MMFF94 has no atom type for part of this structure.",
+                error_summary="Not covered by MMFF94",
+            )
+        charges, every_atom = computed
+        formal = Chem.GetFormalCharge(protonated)
+        # CONSERVATION, CHECKED RATHER THAN ASSUMED. A dropped or doubled
+        # hydrogen in the folding above would still produce plausible
+        # numbers; it would not produce the right sum.
+        if abs(every_atom - formal) > _MMFF_CONSERVATION_TOLERANCE or (
+            include_hydrogens and abs(sum(charges.values()) - formal) > _MMFF_CONSERVATION_TOLERANCE
+        ):
+            raise ValueError(
+                f"MMFF94 charges sum to {every_atom:+.6f} on a species of formal charge {formal:+d}"
+            )
+        total = declare_total(every_atom, "Net calculated charge", units="e")
+        if not include_hydrogens:
+            total["balance"] = {
+                "visible_basis": "heavy-atom charges",
+                "explanation": "implicit hydrogens",
+            }
+        provenance_method = "rdkit-mmff94+dimorphite_dl"
+    else:
+        charges = compute_gasteiger_charges(protonated, include_hydrogens=include_hydrogens)
+        total = _gasteiger_total(protonated, include_hydrogens=include_hydrogens)
+        provenance_method = "rdkit+dimorphite_dl"
     return PerAtomDataset(
         property_id="gasteiger_charge_at_ph",
-        name=f"Partial Charge (Gasteiger) at pH {ph:g}{suffix}",
+        name=name,
         units="e",
-        method="rdkit+dimorphite_dl",
+        method=provenance_method,
         molecule_uuid=molecule_uuid,
         values=charges,
         provenance=Provenance(
             created_by="core",
-            method="rdkit+dimorphite_dl",
+            method=provenance_method,
             parameters={
                 "pH": ph,
                 "include_hydrogens": include_hydrogens,
+                "charge_method": method,
+                # WHAT A VALUE IS, beside which method made it: "folded" is
+                # an atom's charge plus its implicit hydrogens', which this
+                # application sums -- not a quantity either method defines.
+                "hydrogen_aggregation": "folded" if include_hydrogens else "separate",
                 "decimal_places": _places,
                 ATOM_BASIS: HEAVY_ATOMS,
                 # THE PRODUCER SAYS WHICH SPECIES IT CHARGED, because the
@@ -1162,7 +1276,7 @@ def compute_gasteiger_charge_at_ph(
                 # charges these are -- taking it from `mol` would report the
                 # drawn structure's net charge beside values computed for a
                 # different ionization state.
-                TOTAL: _gasteiger_total(protonated, include_hydrogens=include_hydrogens),
+                TOTAL: total,
             },
         ),
     )
@@ -1599,9 +1713,21 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         calculator_id="gasteiger_charge_at_ph",
         display_name="Partial Charge (pH-dependent)",
         category="charge",
-        description="Gasteiger partial charges, recomputed on the dominant protonation state at a given pH.",
+        description=(
+            "Partial charges, recomputed on the dominant protonation state at a given pH, "
+            "by Gasteiger's PEOE or by MMFF94's bond-charge increments. The two are "
+            "different models and give different numbers for the same atom."
+        ),
         execution=RegistryExecution(compute=compute_gasteiger_charge_at_ph),
         parameters=[
+            CalculatorParameter(
+                name="method",
+                label="Charge method",
+                kind="choice",
+                default=GASTEIGER,
+                choices=list(CHARGE_METHODS),
+                choice_labels=[CHARGE_METHOD_LABELS[m] for m in CHARGE_METHODS],
+            ),
             CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0),
             CalculatorParameter(
                 name="include_hydrogens",
@@ -1610,7 +1736,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 default=False,
             ),
         ],
-        tags=["charge", "ph", "per-atom"],
+        tags=["charge", "ph", "per-atom", "gasteiger", "mmff94", "partial charge"],
     ),
     CalculatorDefinition(
         calculator_id="crippen_logp_contrib",
