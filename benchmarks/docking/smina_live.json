@@ -1,0 +1,43 @@
+{
+ "smina_version": "smina 2020.12.10 conda-forge:b08c07c     Built Jul 15 2025.  Based on AutoDock Vina 1.1.2.",
+ "L1_shipped_provider_with_smina": {
+  "poses": 9,
+  "provider_engine_id": "smina-executable",
+  "run_settings": {
+   "exhaustiveness": 8,
+   "seed": 11,
+   "scoring_function": "vina",
+   "ligand_prep_params": {
+    "ph": 7.4
+   }
+  },
+  "affinities": [
+   -8.75381088,
+   -8.55608559,
+   -8.52983379,
+   -8.29262924,
+   -8.24886894,
+   -8.03988266,
+   -8.01144695,
+   -7.97306728,
+   -7.96982479
+  ],
+  "rescore_function": "vinardo",
+  "rescore_engine": "smina-executable",
+  "rescore_values": [
+   -7.42361,
+   -7.77228,
+   -7.55371,
+   -7.11305,
+   -6.76567,
+   -7.45733,
+   -7.01408,
+   -6.82013,
+   -6.36576
+  ]
+ },
+ "L2_vina_and_default_names": {
+  "vina": -8.75406,
+  "default": -8.75406
+ }
+}
