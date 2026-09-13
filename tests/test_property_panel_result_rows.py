@@ -204,6 +204,9 @@ def test_a_trajectory_opens_the_player_now_that_one_exists(panel, bus, monkeypat
             )
         )
     )
+    # The reveal runs after the bus finishes dispatching; see
+    # `PropertyPanel._reveal_after_dispatch`.
+    QCoreApplication.processEvents()
 
     assert len(opened) == 1
     assert isinstance(opened[0], TrajectoryResult)

@@ -1169,12 +1169,14 @@ class _Driver(QObject):
             return
         parameters: dict[str, Any] = {p.name: p.default for p in definition.parameters}
         parameters.update(step.get("parameters") or {})
-        # `"reveal": false` skips the reveal, and it is not cosmetic for a
-        # PER-ATOM calculator: the reveal opens the Calculator Inspector with
-        # `exec()` INSIDE the bus handler, so every later subscriber to that
-        # event -- the Atom Inspector among them -- is not called until the
-        # dialog closes. Unattended, that is the end of the run. Measured:
-        # the dataset reached the Atom Inspector 67 s later, at quit.
+        # `"reveal": false` skips the reveal, so no modal Calculator Inspector
+        # sits open for the rest of an unattended run. It USED to be
+        # load-bearing: the reveal ran `exec()` inside the bus handler and
+        # starved every later subscriber (the Atom Inspector got the dataset
+        # 67 s late, at quit). `PropertyPanel._reveal_after_dispatch` fixed
+        # that; with the reveal on, the Atom Inspector now holds the result
+        # while the dialog is open -- measured, OPENCHEM_TRACE_WINDOWS showing
+        # the dialog.
         if step.get("reveal", True):
             panel._pending_calculator_id = calculator_id
         panel._set_running(calculator_id, True)

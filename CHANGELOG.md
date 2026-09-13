@@ -30,6 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that structure brings the values back without recomputing. The Results
   panel still shows the old result, marked stale.
 
+- **Opening a result's inspector held up every other panel.** When a
+  calculator you ran finished, its Calculator Inspector opened from inside
+  the event delivery, so panels that listen after Properties -- the Atom
+  Inspector among them -- did not receive the result until that dialog was
+  closed. The dialog now opens once every panel has the result.
+
 - **Units were printed twice** in the Atom Inspector ("-0.1394 e e") and in
   Solubility's adjustment limit ("... sampled pH values logS"). Measured
   over 1170 fact lines from 68 calculators: no other fact did this.

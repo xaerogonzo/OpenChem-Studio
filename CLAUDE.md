@@ -149,13 +149,14 @@ method behind it, for the reason `jobs_cancel` presses the real button: the
 panel's own method is the INBOUND door the 3D viewer's click lands on, and
 the path under test starts one step later.
 
-**A PER-ATOM `calculator` STEP WITHOUT `"reveal": false` STARVES EVERY
-OTHER PANEL**, and it read as the Atom Inspector never receiving the result.
-The reveal opens the Calculator Inspector with `exec()` inside the bus
-handler, so subscribers after Properties are not called until that dialog
-closes -- unattended, at quit. Measured 2026-09-13: Properties held
-`gasteiger_charge_at_ph` 67 s before the Atom Inspector did. Add
-`inspector_report`, whose `held=` separates "not shown" from "never arrived".
+**A MODAL DIALOG OPENED INSIDE A BUS HANDLER STARVES EVERY LATER
+SUBSCRIBER**, and in a driven run it read as the Atom Inspector never
+receiving the result. The calculator reveal used to `exec()` the Calculator
+Inspector inside `EventBus._dispatch`; measured 2026-09-13, Properties held
+`gasteiger_charge_at_ph` 67 s before the Atom Inspector did (at quit). Fixed
+by `PropertyPanel._reveal_after_dispatch`. `inspector_report`'s `held=` is
+what separates "not shown" from "never arrived"; `"reveal": false` keeps an
+unattended run free of an open modal.
 
 **`erase` is the only step that drives the route `set_molecule` never
 covers** -- the user drawing on the canvas -- so it is what any

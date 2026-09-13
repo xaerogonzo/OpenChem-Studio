@@ -2545,7 +2545,7 @@ class PropertyPanel(QWidget):
             and dataset.molecule_uuid == self._selected_molecule_uuid
         ):
             self._pending_calculator_id = None
-            self._open_inspector(dataset)
+            self._reveal_after_dispatch(dataset)
 
     def _on_spectrum_computed(self, event: SpectrumComputed) -> None:
         # Phase 22: a RegistryExecution-backed calculator (e.g. the
@@ -2567,7 +2567,7 @@ class PropertyPanel(QWidget):
             and spectrum.molecule_uuid == self._selected_molecule_uuid
         ):
             self._pending_calculator_id = None
-            self._open_inspector(spectrum)
+            self._reveal_after_dispatch(spectrum)
 
     def _on_structure_set_computed(self, event: StructureSetComputed) -> None:
         # Phase 27: a structure-generating calculator (stereoisomers,
@@ -2589,7 +2589,7 @@ class PropertyPanel(QWidget):
             and structure_set.molecule_uuid == self._selected_molecule_uuid
         ):
             self._pending_calculator_id = None
-            self._open_inspector(structure_set)
+            self._reveal_after_dispatch(structure_set)
 
     def _on_ph_curve_computed(self, event: PhCurveComputed) -> None:
         # Phase 28. Matched on curve_id, which every pH calculator sets
@@ -2608,7 +2608,7 @@ class PropertyPanel(QWidget):
             and curve.molecule_uuid == self._selected_molecule_uuid
         ):
             self._pending_calculator_id = None
-            self._open_inspector(curve)
+            self._reveal_after_dispatch(curve)
 
     def _on_trajectory_computed(self, event: TrajectoryComputed) -> None:
         """A trajectory is a result, and it used to arrive NOWHERE.
@@ -2641,7 +2641,7 @@ class PropertyPanel(QWidget):
             and trajectory.molecule_uuid == self._selected_molecule_uuid
         ):
             self._pending_calculator_id = None
-            self._open_inspector(trajectory)
+            self._reveal_after_dispatch(trajectory)
 
     def _on_calculator_button_clicked(self, _checked: bool = False) -> None:
         """Resolve the button that was pressed back to its calculator.
@@ -2961,6 +2961,32 @@ class PropertyPanel(QWidget):
             return False
         self._open_inspector(result)
         return True
+
+    def _reveal_after_dispatch(self, result) -> None:
+        """Open the inspector for a just-arrived result ONCE THE BUS IS DONE.
+
+        **A MODAL DIALOG OPENED INSIDE A BUS HANDLER STARVES EVERY LATER
+        SUBSCRIBER.** `_open_inspector` ends in `exec()`, which runs a nested
+        event loop inside `EventBus._dispatch`; the subscribers after this
+        panel for the same event -- the Atom Inspector among them -- were not
+        called until the dialog closed. Measured in a driven run: Properties
+        held `gasteiger_charge_at_ph` 67 s before the Atom Inspector did,
+        because nobody closed the dialog until quit.
+
+        A zero-delay shot runs after the current dispatch returns, so every
+        subscriber has the result before the dialog opens. Only the latest
+        result is kept: `_pending_calculator_id` names one calculator, and a
+        second arrival before the shot fires supersedes the first rather than
+        stacking two modal dialogs. The context object cancels the shot if the
+        panel is destroyed first.
+        """
+        self._deferred_reveal = result
+        QTimer.singleShot(0, self, self._open_deferred_reveal)
+
+    def _open_deferred_reveal(self) -> None:
+        result, self._deferred_reveal = getattr(self, "_deferred_reveal", None), None
+        if result is not None:
+            self._open_inspector(result)
 
     def _open_inspector(self, result: PerAtomDataset | SpectrumResult) -> None:
         if self._project is None:
