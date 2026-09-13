@@ -10,6 +10,7 @@ from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.docking import DockingResultModel
 from openchem.domain.structure_issue import CheckerResult
 from openchem.domain.report import ReportResult
+from openchem.domain.result_store import BundlePart, StoredResult
 from openchem.domain.scientific_result import (
     AlertResult,
     PerAtomDataset,
@@ -405,3 +406,32 @@ class StructureChecked(Event):
     """
 
     result: CheckerResult
+
+
+@dataclass(frozen=True)
+class ResultRecorded(Event):
+    """A result, WITH the identity only its dispatcher knew.
+
+    **AN ENVELOPE, PUBLISHED BESIDE THE RESULT EVENTS AND NOT INSTEAD OF
+    THEM.** `ReportComputed`, `PerAtomDataComputed` and the rest carry the
+    result alone, and no result says which calculator made it or which
+    structure it was computed on. Rather than teach a store to reconstruct
+    that per result type, the one place that knows it says so once.
+
+    Renderers keep listening to the result events; only the result store
+    listens to this.
+    """
+
+    stored: StoredResult
+
+
+@dataclass(frozen=True)
+class AutomaticPartFinished(Event):
+    """One producer of the always-on set has finished, and what it made.
+
+    The manifest half of `ResultRecorded`: without it a lost result is an
+    absence nobody can see. See `domain/result_store.BundlePart`.
+    """
+
+    molecule_uuid: str
+    part: BundlePart

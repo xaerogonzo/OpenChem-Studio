@@ -985,12 +985,27 @@ class _Driver(QObject):
         if command.loaded_project is None:
             logger.error("OPENCHEM_DRIVE: could not load %s", path)
             return
-        self._window._set_project(command.loaded_project)
+        self._window._set_project(command.loaded_project, command.loaded_results)
         logger.warning(
             "OPENCHEM_DRIVE: opened %s -- %d molecule(s)",
             path.name,
             len(command.loaded_project.molecules),
         )
+
+    def _do_save_project(self, step: dict[str, Any]) -> None:
+        """Save without the file dialog.
+
+        `{"do": "save_project", "path": "C:/tmp/saved.ocsproj"}`
+
+        Through `MainWindow.save_project_to`, which is everything the File
+        menu's Save does once a path is chosen -- including the retained
+        results, which is what a save-then-reopen check is checking.
+        """
+        from pathlib import Path as _Path
+
+        path = _Path(str(step.get("path", "")))
+        self._window.save_project_to(path)
+        logger.warning("OPENCHEM_DRIVE: saved %s (%d bytes)", path, path.stat().st_size if path.exists() else -1)
 
     def _do_pop_out(self, step: dict[str, Any]) -> None:
         """Move a panel's view into its own window, or bring it back.

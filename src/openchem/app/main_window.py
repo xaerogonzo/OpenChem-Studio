@@ -66,6 +66,7 @@ from openchem.domain.macromolecule import MacromoleculeModel
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.calculator import GEOMETRY, RegistryExecution
 from openchem.domain.project import ProjectModel
+from openchem.domain.result_store import SessionResultStore
 from openchem.events.events import (
     CrystalSelected,
     ConformersChanged,
@@ -83,6 +84,7 @@ from openchem.events.events import (
 )
 from openchem.plugins.manager import PluginManager
 from openchem.services.container import ServiceContainer
+from openchem.services.result_store_service import SUBSTANCE_PART
 from openchem.ui.widgets.help_tooltip import apply_help_tooltip
 from openchem.ui.dialogs.about_dialog import AboutDialog
 from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
@@ -400,7 +402,13 @@ class MainWindow(QMainWindow):
             # so the merged results window's "stale" marks compare like
             # with like rather than two notions of a version.
             structure_version_of=services.structure_check_service.current_version,
+            substance_perception_needed=self._substance_perception_needed,
         )
+        if services.result_store_service is not None:
+            # A retained result is unsaved work: the user asked for results
+            # to live in the project file, so one that is not there yet is
+            # exactly what the unsaved-changes prompt is for.
+            services.result_store_service.add_recorded_listener(self._on_result_retained)
         self._console_panel = ConsolePanel(self)
         self._docking_panel = DockingPanel(
             services.docking_service, services.chemistry_engine, self._settings, services.event_bus, self
@@ -2169,7 +2177,7 @@ class MainWindow(QMainWindow):
             return
         self._set_project(ProjectModel(name="Untitled project"))
 
-    def _set_project(self, project: ProjectModel) -> None:
+    def _set_project(self, project: ProjectModel, results: SessionResultStore | None = None) -> None:
         # THE UNDO STACK BELONGS TO THE DOCUMENT, and every command holds a
         # direct reference to the project it was built against. Without
         # this, opening a second project left the first one's commands
@@ -2179,6 +2187,11 @@ class MainWindow(QMainWindow):
         # Explorer showed the new one and nothing appeared to happen.
         self._undo_stack.clear()
         self._session.set_project(project)
+        # THE RESULT STORE BELONGS TO THE DOCUMENT TOO, for the same reason,
+        # and it is replaced BEFORE any panel is told: a panel may select a
+        # molecule, and that selection has to find this project's results.
+        if self._services.result_store_service is not None:
+            self._services.result_store_service.set_project(project, results)
         self._project_explorer.set_project(project)
         self._docking_panel.set_project(project)
         self._quantum_chemistry_panel.set_project(project)
@@ -2216,7 +2229,7 @@ class MainWindow(QMainWindow):
         command = OpenProjectCommand(self._services.project_service, Path(path_str))
         self._undo_stack.push(command)
         if command.loaded_project is not None:
-            self._set_project(command.loaded_project)
+            self._set_project(command.loaded_project, command.loaded_results)
 
     def _save_project(self) -> bool:
         """True when the project reached disk.
@@ -2241,10 +2254,21 @@ class MainWindow(QMainWindow):
         remember_chosen_path(self._settings, "project", path_str)
         if not path_str.endswith(".ocsproj"):
             path_str += ".ocsproj"
-        command = SaveProjectCommand(self._services.project_service, self._session.project, Path(path_str))
+        self.save_project_to(Path(path_str))
+        return True
+
+    def save_project_to(self, path: Path) -> None:
+        """Write the project, with its retained results, to `path`.
+
+        Everything Save does after the file dialog, so a scripted run saves
+        through the same command and the same results the menu does.
+        """
+        results, fingerprints = self._current_results()
+        command = SaveProjectCommand(
+            self._services.project_service, self._session.project, path, results, fingerprints
+        )
         self._undo_stack.push(command)
         self._session.mark_clean()
-        return True
 
     # --- molecule lifecycle --------------------------------------------------
 
@@ -2868,7 +2892,7 @@ class MainWindow(QMainWindow):
         self._editor.set_molecule(molecule)
         self._viewer3d.set_molecule(molecule)
         if molecule is not None:
-            self._services.descriptor_service.request_descriptors(molecule)
+            self._restore_or_compute(molecule)
             self._publish_molecule_snapshot(molecule)
         self._check_current_structure()
 
@@ -2876,13 +2900,89 @@ class MainWindow(QMainWindow):
         self._session.mark_dirty()
         molecule = self._current_molecule()
         if molecule is not None and molecule.uuid == event.molecule_uuid:
-            self._services.descriptor_service.request_descriptors(molecule)
+            # The same decision as a selection: an undo back to a structure
+            # whose results are held replays them rather than recomputing.
+            self._restore_or_compute(molecule)
             self._publish_molecule_snapshot(molecule)
         # After the snapshot, not before: the service bumps this molecule's
         # version from its own MoleculeChanged subscription, and checking
         # against the version it had a moment ago would produce a result
         # that is stale the instant it is published.
         self._check_current_structure()
+
+    # --- retained results -------------------------------------------------------
+
+    def _expected_automatic_parts(self) -> set[str]:
+        """Every producer of the always-on set, as this build has it now.
+
+        Read live rather than fixed, so a plugin registering a provider makes
+        every older manifest incomplete -- and the new provider runs -- instead
+        of an old manifest vouching for a set that has since grown.
+        """
+        parts = set(self._services.descriptor_service.provider_ids())
+        if self._services.calculator_registry.get(SUBSTANCE_PART) is not None:
+            parts.add(SUBSTANCE_PART)
+        return parts
+
+    def _missing_automatic_parts(self, molecule: MoleculeModel) -> set[str] | None:
+        """The always-on producers that must run for `molecule`, or None.
+
+        None means there is no result store at all, which is "run
+        everything, exactly as before".
+        """
+        store_service = self._services.result_store_service
+        if store_service is None:
+            return None
+        try:
+            _state, missing = store_service.automatic_state(molecule, self._expected_automatic_parts())
+        except Exception:  # noqa: BLE001 - a store problem must never cost a computation
+            logger.exception("Could not read retained results for %s; recomputing", molecule.uuid)
+            return None
+        return missing
+
+    def _substance_perception_needed(self, molecule_uuid: str) -> bool:
+        project = self._session.project
+        molecule = project.find_molecule(molecule_uuid) if project is not None else None
+        if molecule is None:
+            return True
+        missing = self._missing_automatic_parts(molecule)
+        return missing is None or SUBSTANCE_PART in missing
+
+    def _restore_or_compute(self, molecule: MoleculeModel) -> None:
+        """Replay what is held for this structure, and compute only the rest.
+
+        **A PARTIAL RESTORE IS NOT A CACHE HIT.** `missing` comes from the
+        manifest, so a provider whose results did not all come back is rerun
+        even when most of them did. What was restored stays on screen and is
+        replaced as the rerun arrives.
+        """
+        missing = self._missing_automatic_parts(molecule)
+        if missing is None:
+            self._services.descriptor_service.request_descriptors(molecule)
+            return
+        store_service = self._services.result_store_service
+        try:
+            store_service.replay(
+                molecule,
+                self._services.structure_check_service.current_version(molecule.uuid),
+            )
+        except Exception:  # noqa: BLE001 - see _missing_automatic_parts
+            logger.exception("Could not replay retained results for %s; recomputing", molecule.uuid)
+            self._services.descriptor_service.request_descriptors(molecule)
+            return
+        providers = missing - {SUBSTANCE_PART}
+        if providers:
+            self._services.descriptor_service.request_descriptors(molecule, only_providers=providers)
+
+    def _on_result_retained(self, molecule_uuid: str) -> None:
+        self._session.mark_dirty()
+
+    def _current_results(self):
+        """The store and fingerprints a save writes, or (None, None)."""
+        store_service = self._services.result_store_service
+        if store_service is None:
+            return None, None
+        return store_service.store, store_service.project_fingerprints()
 
     # --- structure checking ----------------------------------------------------
 

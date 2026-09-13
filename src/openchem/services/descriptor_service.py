@@ -9,8 +9,9 @@ from PySide6.QtCore import QRunnable, QThreadPool
 from openchem.chem.calculation_input import (
     INPUT_PREFIX,
     geometry_provenance,
+    input_fingerprint,
     recordable_parameters,
-    select_calculation_input,
+    resolve_calculation_input,
 )
 from openchem.chem.descriptor_providers import DescriptorProvider, RDKitDescriptorProvider
 from openchem.chem.engine import ChemistryEngine
@@ -27,8 +28,11 @@ from openchem.domain.scientific_result import (
     StructureSetResult,
     TrajectoryResult,
 )
+from openchem.domain.result_store import BundlePart, StoredResult, is_failure
 from openchem.events.base import EventBus
 from openchem.events.events import (
+    AutomaticPartFinished,
+    ResultRecorded,
     AlertComputed,
     CalculationFinished,
     ReportComputed,
@@ -40,8 +44,14 @@ from openchem.events.events import (
     TrajectoryComputed,
 )
 from openchem.services.calculator_registry import CalculatorRegistry
+from openchem.services.result_identity import application_version, make_identity
 
 logger = logging.getLogger("openchem.chemistry")
+
+#: Registry calculators that belong to the always-on set a selection runs,
+#: beside the descriptor providers. See
+#: `PropertyPanel._request_substance_perception` for why it is the only one.
+AUTOMATIC_CALCULATOR_IDS = frozenset({"substance_analysis"})
 
 
 class _DescriptorComputeTask(QRunnable):
@@ -74,53 +84,116 @@ class _DescriptorComputeTask(QRunnable):
         categories = self._provider.descriptor_categories()
         for descriptor_id in self._provider.descriptor_ids():
             self._publish(descriptor_id, CacheState.RUNNING, category=categories.get(descriptor_id, ""))
+        #: What this run produced, for the manifest. See `_finish_part`.
+        self._produced: list[str] = []
+        self._part_failed = False
+        # The fingerprint is taken from the SAME resolution that picks the
+        # molecule, and before anything can fail: a failure is recorded
+        # against the input it failed on.
+        self._fingerprint = input_fingerprint(self._engine, self._model, DRAWING)
         try:
-            mol = select_calculation_input(self._engine, self._model, self._calculation_input)
+            resolved = resolve_calculation_input(self._engine, self._model, self._calculation_input)
+            self._fingerprint = resolved.fingerprint
+            mol = resolved.mol
             values = self._provider.compute(mol, self._model.uuid)
         except Exception as exc:  # noqa: BLE001 - a bad provider must not kill the pool
             logger.exception("Descriptor provider %s failed", self._provider.provider_id)
+            self._part_failed = True
             for descriptor_id in self._provider.descriptor_ids():
                 self._publish(
-                    descriptor_id, CacheState.FAILED, error=str(exc), category=categories.get(descriptor_id, "")
+                    descriptor_id, CacheState.FAILED, error=str(exc), category=categories.get(descriptor_id, ""),
+                    record=True,
                 )
+            self._finish_part()
             return
         for value in values:
             self._event_bus.publish(DescriptorComputed(descriptor=value))
+            self._record(value)
 
         try:
             alerts = self._provider.compute_alerts(mol, self._model.uuid)
         except Exception:  # noqa: BLE001 - alerts are an enhancement, must not drop the descriptors above
             logger.exception("Alert computation failed for provider %s", self._provider.provider_id)
+            self._part_failed = True
         else:
             for alert in alerts:
                 self._event_bus.publish(AlertComputed(alert=alert))
+                self._record(alert)
 
         try:
             datasets = self._provider.compute_per_atom(mol, self._model.uuid)
         except Exception:  # noqa: BLE001 - per-atom data is an enhancement, must not drop the descriptors above
             logger.exception("Per-atom data computation failed for provider %s", self._provider.provider_id)
-            return
-        for dataset in datasets:
-            self._event_bus.publish(PerAtomDataComputed(dataset=dataset))
+            self._part_failed = True
+        else:
+            for dataset in datasets:
+                self._event_bus.publish(PerAtomDataComputed(dataset=dataset))
+                self._record(dataset)
+        self._finish_part()
 
-    def _publish(
-        self, descriptor_id: str, state: CacheState, error: str | None = None, category: str = ""
-    ) -> None:
-        self._event_bus.publish(
-            DescriptorComputed(
-                descriptor=DescriptorValue(
-                    descriptor_id=descriptor_id,
-                    name=descriptor_id,
-                    units="",
-                    category=category,
-                    provider=self._provider.provider_id,
+    def _record(self, result) -> None:
+        """Hand the result, with its identity, to whoever retains results."""
+        try:
+            stored = StoredResult(
+                identity=make_identity(
                     molecule_uuid=self._model.uuid,
-                    cache_state=state,
-                    error=error,
-                    timestamp=time.time(),
-                )
+                    result=result,
+                    calculation_input=self._calculation_input,
+                    input_fingerprint=self._fingerprint,
+                    producer=self._provider.provider_id,
+                ),
+                result=result,
+                application_version=application_version(),
+            )
+        except Exception:  # noqa: BLE001 - retaining a result must never cost the result
+            logger.exception("Could not record a result from %s", self._provider.provider_id)
+            self._part_failed = True
+            return
+        self._produced.append(stored.identity.result_id)
+        self._event_bus.publish(ResultRecorded(stored=stored))
+
+    def _finish_part(self) -> None:
+        """Say this producer is done, and exactly what it made.
+
+        Only a DRAWING run is part of the always-on set: that is the run a
+        selection triggers and the one a replay would stand in for. A
+        GEOMETRY run's results are still recorded -- they are replayed on
+        top when the conformer is unchanged -- but they vouch for nothing.
+        """
+        if self._calculation_input != DRAWING:
+            return
+        self._event_bus.publish(
+            AutomaticPartFinished(
+                molecule_uuid=self._model.uuid,
+                part=BundlePart(
+                    part_id=self._provider.provider_id,
+                    input_fingerprint=self._fingerprint,
+                    result_ids=tuple(self._produced),
+                    failed=self._part_failed,
+                ),
             )
         )
+
+    def _publish(
+        self, descriptor_id: str, state: CacheState, error: str | None = None, category: str = "",
+        record: bool = False,
+    ) -> None:
+        descriptor = DescriptorValue(
+            descriptor_id=descriptor_id,
+            name=descriptor_id,
+            units="",
+            category=category,
+            provider=self._provider.provider_id,
+            molecule_uuid=self._model.uuid,
+            cache_state=state,
+            error=error,
+            timestamp=time.time(),
+        )
+        self._event_bus.publish(DescriptorComputed(descriptor=descriptor))
+        # RUNNING placeholders are never recorded: they are a statement about
+        # a run in progress, and replaying one would claim work is happening.
+        if record:
+            self._record(descriptor)
 
 
 def _with_geometry_provenance(
@@ -217,6 +290,7 @@ class _CalculationTask(QRunnable):
         request: CalculationRequest,
         event_bus: EventBus,
         structure_version_of=None,
+        bundle_part: bool = False,
     ) -> None:
         super().__init__()
         self._registry = registry
@@ -225,6 +299,12 @@ class _CalculationTask(QRunnable):
         self._request = request
         self._event_bus = event_bus
         self._structure_version_of = structure_version_of
+        #: Whether this calculation is one producer of the always-on set, so
+        #: its completion is recorded in the manifest. Only substance
+        #: perception is, today.
+        self._bundle_part = bundle_part
+        self._calculation_input = DRAWING
+        self._fingerprint = ""
 
     def run(self) -> None:
         """Compute, publish, and ALWAYS say when the run is over.
@@ -252,6 +332,7 @@ class _CalculationTask(QRunnable):
             logger.error("Unknown calculator_id: %s", self._request.calculator_id)
             self._publish_failed(f"Unknown calculator: {self._request.calculator_id}")
             return
+        self._calculation_input = definition.calculation_input
         try:
             # THE GAP THIS CLOSES: every registered calculator ran on the
             # 2D DRAWING, so the Properties panel reported "The available
@@ -262,7 +343,13 @@ class _CalculationTask(QRunnable):
             # Only calculators that DECLARE they want geometry get it --
             # eight of the 49 return a different number when handed a
             # conformer purely because it carries explicit hydrogens.
-            mol = select_calculation_input(self._engine, self._model, definition.calculation_input)
+            #
+            # Resolved WITH its fingerprint, so the result is recorded
+            # against exactly the input it was computed on.
+            self._fingerprint = input_fingerprint(self._engine, self._model, DRAWING)
+            resolved = resolve_calculation_input(self._engine, self._model, definition.calculation_input)
+            self._fingerprint = resolved.fingerprint
+            mol = resolved.mol
             result = self._registry.compute(
                 self._request.calculator_id, mol, self._model.uuid, self._request.parameters
             )
@@ -313,26 +400,74 @@ class _CalculationTask(QRunnable):
                 self._request.calculator_id,
                 type(result).__name__,
             )
+            self._finish_part(None)
+            return
+        self._record_and_finish(result)
+
+    def _record_and_finish(self, result) -> None:
+        """Record the published result with its identity, then close the part.
+
+        EVERY exit of `_run` that published something comes through here or
+        through `_finish_part(None)` -- a part left unfinished would read as
+        missing forever and rerun on every selection.
+        """
+        try:
+            stored = StoredResult(
+                identity=make_identity(
+                    molecule_uuid=self._model.uuid,
+                    result=result,
+                    calculation_input=self._calculation_input,
+                    input_fingerprint=self._fingerprint,
+                    producer=self._request.calculator_id,
+                    parameters=self._request.parameters,
+                ),
+                result=result,
+                application_version=application_version(),
+            )
+        except Exception:  # noqa: BLE001 - retaining a result must never cost the result
+            logger.exception("Could not record the result of %s", self._request.calculator_id)
+            self._finish_part(None)
+            return
+        self._event_bus.publish(ResultRecorded(stored=stored))
+        self._finish_part(stored)
+
+    def _finish_part(self, stored: StoredResult | None) -> None:
+        if not self._bundle_part or self._calculation_input != DRAWING:
+            return
+        failed = stored is None or is_failure(stored.result)
+        self._event_bus.publish(
+            AutomaticPartFinished(
+                molecule_uuid=self._model.uuid,
+                part=BundlePart(
+                    part_id=self._request.calculator_id,
+                    input_fingerprint=self._fingerprint,
+                    result_ids=(stored.identity.result_id,) if stored is not None else (),
+                    failed=failed,
+                ),
+            )
+        )
 
     def _publish_failed(self, message: str) -> None:
         # Empty PerAtomDataset is the only "there was a problem" shape
         # every current consumer (PropertyPanel, Calculator Inspector)
         # already knows how to render via ScientificResult.error -- no new
         # event type needed for a calculator-not-found/crashed report.
-        self._event_bus.publish(
-            PerAtomDataComputed(
-                dataset=PerAtomDataset(
-                    property_id=self._request.calculator_id,
-                    name=self._request.calculator_id,
-                    units="",
-                    method="",
-                    molecule_uuid=self._model.uuid,
-                    values={},
-                    cache_state=CacheState.FAILED,
-                    error=message,
-                )
-            )
+        dataset = PerAtomDataset(
+            property_id=self._request.calculator_id,
+            name=self._request.calculator_id,
+            units="",
+            method="",
+            molecule_uuid=self._model.uuid,
+            values={},
+            cache_state=CacheState.FAILED,
+            error=message,
         )
+        self._event_bus.publish(PerAtomDataComputed(dataset=dataset))
+        # Recorded, so the session does not retry a failure on every
+        # selection; `SessionResultStore.to_dict` never writes it to a file.
+        if not self._fingerprint:
+            self._fingerprint = input_fingerprint(self._engine, self._model, DRAWING)
+        self._record_and_finish(dataset)
 
 
 class DescriptorService:
@@ -377,6 +512,11 @@ class DescriptorService:
             _CalculationTask(
                 self._calculator_registry, self._engine, model, request,
                 self._event_bus, self._structure_version_of,
+                # BY ID, not by a flag from the caller: seventeen test doubles
+                # implement `run_calculator(model, request)` exactly, and the
+                # fact "this calculator is part of the always-on set" belongs
+                # to the calculator rather than to whoever happened to ask.
+                request.calculator_id in AUTOMATIC_CALCULATOR_IDS,
             )
         )
 
@@ -388,7 +528,16 @@ class DescriptorService:
     def unregister_provider(self, provider_id: str) -> None:
         self._providers = [p for p in self._providers if p.provider_id != provider_id]
 
-    def request_descriptors(self, model: MoleculeModel, calculation_input: str = DRAWING) -> None:
+    def provider_ids(self) -> list[str]:
+        """Every registered provider, which is what the always-on set holds."""
+        return [p.provider_id for p in self._providers]
+
+    def request_descriptors(
+        self,
+        model: MoleculeModel,
+        calculation_input: str = DRAWING,
+        only_providers: set[str] | None = None,
+    ) -> None:
         """Computes descriptors for `model` against `calculation_input`.
 
         **SAY WHICH STRUCTURE YOU WANT, DO NOT RESOLVE ONE AND HAND IT
@@ -425,6 +574,10 @@ class DescriptorService:
             # MoleculeChanged handler that re-requests descriptors).
             return
         for provider in self._providers:
+            # `only_providers` is how a partial restore reruns just the part
+            # that did not come back, rather than the whole set.
+            if only_providers is not None and provider.provider_id not in only_providers:
+                continue
             categories = provider.descriptor_categories()
             for descriptor_id in provider.descriptor_ids():
                 self._event_bus.publish(

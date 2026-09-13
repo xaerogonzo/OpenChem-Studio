@@ -32,6 +32,7 @@ from openchem.services.import_service import ImportService
 from openchem.services.job_manager import JobManager
 from openchem.services.measurement_service import MeasurementService
 from openchem.services.project_service import ProjectService
+from openchem.services.result_store_service import ResultStoreService
 from openchem.services.qm_surface_service import QmSurfaceService
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
 from openchem.services.screening_service import ScreeningService
@@ -333,4 +334,7 @@ def build_service_container() -> ServiceContainer:
         # registrar, exactly like every other provider service.
         atom_fact_service=AtomFactService(),
         reaction_template_service=ReactionTemplateService(),
+        # Subscribes to the result envelopes at construction, so nothing a
+        # calculator records can arrive before there is a store to take it.
+        result_store_service=ResultStoreService(event_bus, engine),
     )
