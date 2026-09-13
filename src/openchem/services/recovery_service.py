@@ -43,7 +43,10 @@ from openchem.services.project_service import ProjectService
 
 logger = logging.getLogger("openchem.recovery")
 
+#: The wrapper's own layout version; a newer one is not offered.
 RECOVERY_VERSION = 1
+#: Not `.ocsproj`, so a recovery copy can never be opened by mistake as the
+#: project it is a copy of.
 SUFFIX = ".ocsrecover"
 
 

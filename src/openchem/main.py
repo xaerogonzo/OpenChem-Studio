@@ -46,7 +46,7 @@ def main() -> int:
         window.enable_recovery(
             RecoveryService(services.project_service, subdirectory("recovery"))
         )
-        QTimer.singleShot(0, window.offer_recovery)
+        QTimer.singleShot(0, window, window.offer_recovery)
 
     return app.exec()
 

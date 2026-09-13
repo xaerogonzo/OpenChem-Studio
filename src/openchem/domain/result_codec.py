@@ -56,9 +56,14 @@ _MODULES = (
     "openchem.domain.visualization",
 )
 
+#: A class not on the allowlist, met while encoding or decoding.
 UNKNOWN_TYPE = "unknown_type"
+#: A known class written by a NEWER layout than this build reads.
 UNSUPPORTED_VERSION = "unsupported_version"
+#: The right class, but its fields will not build it.
 MALFORMED = "malformed"
+#: Every reason an entry can fail to decode, kept apart on purpose -- see
+#: the module docstring for why a version skew must not look like damage.
 PROBLEMS = (UNKNOWN_TYPE, UNSUPPORTED_VERSION, MALFORMED)
 
 #: Layout version per type name. Absent means 1.
@@ -68,13 +73,22 @@ TYPE_VERSIONS: dict[str, int] = {}
 #: dict into the next version's. Applied repeatedly until current.
 MIGRATIONS: dict[tuple[str, int], Callable[[dict[str, Any]], dict[str, Any]]] = {}
 
+#: Key naming a dataclass, by `module.QualName` under `_MODULES`.
 _TYPE = "__type__"
+#: Key carrying that dataclass's layout version.
 _VERSION = "__version__"
+#: Key naming an enum; its member is stored by NAME, not value.
 _ENUM = "__enum__"
+#: A tuple, which JSON would otherwise turn into a list.
 _TUPLE = "__tuple__"
+#: A set, which JSON has no form for.
 _SET = "__set__"
+#: A frozenset, kept apart from a set so the type survives.
 _FROZENSET = "__frozenset__"
+#: A dict written as key/value PAIRS -- how int keys survive JSON.
 _DICT = "__dict__"
+#: Every marker key: a plain dict using one of these as a key is written as
+#: pairs instead, so it cannot be mistaken for a tagged value on the way back.
 _MARKERS = (_TYPE, _ENUM, _TUPLE, _SET, _FROZENSET, _DICT)
 
 
@@ -101,6 +115,9 @@ def _build_allowlist() -> dict[str, type]:
     return allowed
 
 
+#: The allowlist, built on first use: importing every domain module at this
+#: module's import would drag half the domain in for a caller that never
+#: decodes anything.
 _ALLOWED: dict[str, type] | None = None
 
 
