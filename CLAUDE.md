@@ -84,6 +84,8 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "reader_layout_report", "tag": "beside"}  whole fact ROWS on
                                           screen, through every clipping parent
     {"do": "dock_resize", "panel": "Results", "width": 380}
+    {"do": "chart_cursor", "x": 7.4}       a REAL click on the line chart,
+                                          and the kept reading beside the fact
     {"do": "shot",       "path": "..."}
     {"do": "lewis",      "details": true}     the Full Lewis window
     {"do": "shot",       "path": "...", "widget": "lewis"}
@@ -266,6 +268,8 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- A FOOTNOTE ON THE NEXT COLUMN IS NOT A FLAG ON THIS ONE
+- THE SMILES ROUND TRIP DROPPED THE INDEX SPACE, AND ATOM MAPS WERE THE WRONG REPAIR
 - A PARTIAL RESTORE IS NOT A CACHE HIT, AND THREE DEFECTS ONLY RUNNING FOUND
 - A RE-RENDER OPENED 1801 WINDOWS, AND ONLY A TRACE COULD NAME THEM
 - A MATCHING COUNT IS NOT A REPRODUCTION, AND A PAPER'S SILENCE IS NOT A TERM

@@ -2276,6 +2276,48 @@ class _Driver(QObject):
             json.dumps(rows),
         )
 
+    def _do_chart_cursor(self, step: dict[str, Any]) -> None:
+        """`{"do": "chart_cursor", "x": 7.4}` -- CLICK the reader's first line
+        chart where `x` is, and log the kept reading beside the scalar fact.
+
+        A real mouse click (`QTest.mouseClick`) at the pixel for `x`, so what
+        is measured is the widget's own press handler snapping to a sample --
+        the `jobs_cancel` rule. The log puts the reading's numbers next to the
+        report's "LogD at pH" fact, because "the cursor at the chosen pH is the
+        scalar" is the claim, and a screenshot shows two numbers that merely
+        look alike.
+        """
+        from PySide6.QtCore import QPoint
+        from PySide6.QtTest import QTest
+
+        from openchem.ui.widgets.line_chart_widget import LineChartWidget
+
+        view = self._window._results_view._view
+        charts = [w for w in view.chart_widgets() if isinstance(w, LineChartWidget)]
+        if not charts:
+            logger.error("OPENCHEM_DRIVE: chart_cursor -- the reader shows no line chart")
+            return
+        widget = charts[0]
+        widget.window().raise_()
+        rect = widget._plot_rect()
+        x_min, x_max = widget._x_range()
+        fraction = (float(step["x"]) - x_min) / (x_max - x_min)
+        pixel = QPoint(int(rect.left() + fraction * rect.width()), int(rect.center().y()))
+        QTest.mouseClick(widget, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pixel)
+        pinned = widget.pinned_x()
+        scalar = [
+            f"{fact.label}={fact.value!r}"
+            for fact in getattr(view._report, "facts", ()) or ()
+            if fact.label.startswith("LogD at pH")
+        ]
+        logger.warning(
+            "OPENCHEM_DRIVE: chart_cursor asked=%s pinned=%r readout=%s at_pinned=%r scalar=%s",
+            step["x"], pinned,
+            json.dumps(widget.readout_lines(pinned) if pinned is not None else []),
+            widget.readout_at(pinned) if pinned is not None else None,
+            scalar,
+        )
+
     def _do_picture(self, step: dict[str, Any]) -> None:
         """Export the reader's Nth chart through the REAL export path.
 

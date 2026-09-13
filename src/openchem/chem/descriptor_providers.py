@@ -148,7 +148,8 @@ from openchem.domain.common import (
 )
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.scientific_result import AlertResult, PerAtomDataset
-from openchem.domain.structure_issue import Severity
+from openchem.domain.report import Fact, ReportResult
+from openchem.domain.structure_issue import Basis, Severity
 from openchem.plugins.interfaces import DescriptorProvider
 
 # RDKitDescriptorProvider implements the same DescriptorProvider ABC a future
@@ -1522,59 +1523,137 @@ def _pka_line(prediction, parameters: dict[str, Any] | None, mol: Chem.Mol | Non
 
 def compute_logd(
     mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any], interpreter_path: str | None = None
-) -> AlertResult:
+) -> ReportResult:
     """The "logd" category's calculator (Phase 23) -- pH-adjustable
-    distribution coefficient.
+    distribution coefficient, and the curve it lies on.
 
     Uses real Henderson-Hasselbalch when numeric pKa is available
     (pkasolver, out of process), and clearly says so. Otherwise falls back
     to the LogP of the dominant microspecies at that pH via Dimorphite-DL:
     a real pH-dependent number, but NOT true logD, and labelled as such
     rather than presented as equivalent.
+
+    **THE CURVE WAS A SECOND CALCULATOR, AND IS NOW THIS ONE'S PICTURE.**
+    `logd_curve` sampled the same Henderson-Hasselbalch function across pH
+    in a separate registration, so reading logD at one pH and seeing where
+    it sits on the curve meant running two things. The curve is declared on
+    this report now, and `logd_curve` is retired (`RETIREMENTS`).
+
+    **THE SCALAR IS UNCHANGED, BRANCH FOR BRANCH**, and the curve is only
+    ADDED. The three branches below pick the number exactly as before; the
+    chart is built from the SAME pKa list and the SAME function, with the
+    chosen pH inserted as a sample, so the curve at that pH is the scalar
+    rather than a neighbour of it. Asserted in `tests/test_logd_report.py`
+    against values recorded before the change.
+
+    KNOWN LIMITATION, ZWITTERIONS -- carried over from `compute_logd_curve`:
+    Henderson-Hasselbalch assumes the partitioning species has no site
+    ionized, which breaks for amphoteric molecules (glycine: about -4.7
+    modelled against about -3.2 measured).
     """
     from openchem.chem.logd import classify_ionizable_centres, logd_from_microspecies, logd_from_pkas
     from openchem.chem.pka_providers import compute_pka, pka_predictor_available
+    from openchem.chem.ph_curves import ph_grid_from
+    from openchem.domain.calculator_taxonomy import category_for
+    from openchem.domain.report import LineChartAnnotation, LineSeries
 
     ph = float(parameters.get("pH", 7.4))
     logp = Crippen.MolLogP(mol)
     acids, bases = classify_ionizable_centres(mol)
+    category = category_for("lipophilicity")
 
-    lines: list[str] = []
+    def fact(label, value, display, *, evidence=(), limitations=(), source="core"):
+        return Fact(
+            category=category, label=label, value=value, display_value=display,
+            source=source, basis=Basis.HEURISTIC, evidence=tuple(evidence),
+            limitations=tuple(limitations),
+        )
+
+    def curve(values_at, title):
+        grid = sorted(set(ph_grid_from(parameters)) | {ph})
+        return LineChartAnnotation(
+            series=(LineSeries(points=tuple((x, float(values_at(x))) for x in grid), name="logD"),),
+            x_label="pH",
+            y_label="logD",
+            x_descending=False,
+            title=title,
+            caption=(
+                "Henderson-Hasselbalch on the pKa values listed below. Hover to read logD at a "
+                "sampled pH; click to keep the reading. Zwitterions are under-predicted."
+            ),
+        )
+
+    facts: list[Fact] = []
+    charts: tuple = ()
+    limitations: list[str] = []
     if acids == 0 and bases == 0:
-        lines.append(f"logD = {logp:.2f} at pH {ph:g} (no ionizable centre — equal to LogP)")
         method = "rdkit"
+        facts.append(fact(
+            f"LogD at pH {ph:g}", logp, f"{logp:.2f}",
+            evidence=("No ionizable centre, so logD equals LogP at every pH.",),
+            source="RDKit",
+        ))
+        charts = (curve(
+            lambda _x: logp,
+            "LogD vs pH - no modelled ionizable centre, so logD is pH-independent under this method",
+        ),)
     elif pka_predictor_available(interpreter_path):
         try:
             pkas = [p.value for p in (compute_pka(mol, interpreter_path) or [])]
         except RuntimeError as exc:
-            return report_from_fields(
-                alert_id="logd", name="LogD", molecule_uuid=molecule_uuid, matched=[], category="lipophilicity",
+            return ReportResult(
+                report_id="logd", name="LogD", molecule_uuid=molecule_uuid, category="lipophilicity",
                 provenance=Provenance(created_by="core", method="pkasolver"),
                 cache_state=CacheState.FAILED, error=str(exc),
             )
         value = logd_from_pkas(mol, ph, pkas)
-        lines.append(f"logD = {value:.2f} at pH {ph:g} (Henderson-Hasselbalch)")
-        lines.append(f"LogP = {logp:.2f}")
-        lines.append("pKa: " + ", ".join(f"{p:.2f}" for p in sorted(pkas)))
+        facts.append(fact(
+            f"LogD at pH {ph:g}", value, f"{value:.2f}",
+            evidence=("Henderson-Hasselbalch on the predicted pKa values.",),
+        ))
+        facts.append(fact("LogP", logp, f"{logp:.2f}", evidence=("Crippen fragment method",), source="RDKit"))
+        facts.append(fact(
+            "pKa", tuple(sorted(pkas)), ", ".join(f"{p:.2f}" for p in sorted(pkas)), source="pkasolver",
+        ))
         method = "rdkit+pkasolver"
+        # From the SAME list the scalar used, in the same order: the curve at
+        # the chosen pH must be the number above, not a re-derived one.
+        charts = (curve(lambda x, _p=tuple(pkas): logd_from_pkas(mol, x, list(_p)), "LogD vs pH"),)
+        limitations.append(
+            "Henderson-Hasselbalch assumes the partitioning species has no site ionized, so it "
+            "under-predicts logD for zwitterions (amino acids); monoprotic acids and bases are "
+            "unaffected."
+        )
     else:
         value = logd_from_microspecies(mol, ph)
-        lines.append(f"logD ~ {value:.2f} at pH {ph:g} (approximation)")
-        lines.append(f"LogP = {logp:.2f}")
-        lines.append(
+        approximation = (
             "Approximation: LogP of the dominant microspecies at this pH (Dimorphite-DL), "
-            "not true Henderson-Hasselbalch logD — configure a pkasolver environment in "
+            "not true Henderson-Hasselbalch logD \u2014 configure a pkasolver environment in "
             "Tools > External Tools for real numeric pKa."
         )
+        facts.append(fact(
+            f"LogD at pH {ph:g} (approximation)", value, f"{value:.2f}",
+            limitations=(approximation,),
+        ))
+        facts.append(fact("LogP", logp, f"{logp:.2f}", evidence=("Crippen fragment method",), source="RDKit"))
         method = "rdkit+dimorphite_dl"
+        limitations.append(approximation)
+        # NO CURVE on this branch, and the reason is said rather than left
+        # as a missing picture: sampling a microspecies' LogP across pH would
+        # draw steps between charge states and read as a logD curve.
+        limitations.append(
+            "No LogD-vs-pH curve without numeric pKa: the approximation is not a curve."
+        )
 
-    lines.append(f"Ionizable centres: {acids} acidic, {bases} basic")
-    return report_from_fields(
-        alert_id="logd",
+    facts.append(fact("Ionizable centres", (acids, bases), f"{acids} acidic, {bases} basic"))
+    return ReportResult(
+        report_id="logd",
         name=f"LogD at pH {ph:g}",
         molecule_uuid=molecule_uuid,
-        matched=lines,
         category="lipophilicity",
+        facts=tuple(facts),
+        charts=charts,
+        limitations=tuple(limitations),
         provenance=Provenance(created_by="core", method=method, parameters={"pH": ph}),
     )
 
@@ -1818,18 +1897,23 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="logd",
-        tags=['logd', 'lipophilicity', 'partition', 'ph', 'distribution'],
+        tags=['logd', 'lipophilicity', 'partition', 'ph', 'distribution', 'curve', 'logd vs ph'],
         display_name="LogD (pH-dependent)",
         category="lipophilicity",
         description=(
-            "Distribution coefficient at a given pH. Real Henderson-Hasselbalch when a "
-            "pkasolver environment is configured; otherwise the LogP of the dominant "
-            "microspecies at that pH, labelled as an approximation."
+            "Distribution coefficient at a given pH, and the curve across pH it lies on. "
+            "Real Henderson-Hasselbalch when a pkasolver environment is configured; otherwise "
+            "the LogP of the dominant microspecies at that pH, labelled as an approximation and "
+            "drawn as no curve. Hover the curve to read logD at a sampled pH. Under-predicts "
+            "zwitterions (amino acids)."
         ),
         execution=RegistryExecution(compute=compute_logd),
         prediction_basis="empirical",
         parameters=[
-            CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0)
+            CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0),
+            # The curve's range. Absorbed from the retired `logd_curve`, whose
+            # whole contribution was offering these.
+            *ph_range_parameters(),
         ],
     ),
     # ---- Phase 26 ----------------------------------------------------
@@ -2398,21 +2482,6 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         execution=RegistryExecution(compute=compute_isoelectric_point),
         prediction_basis="empirical",
         tags=["charge", "ph", "pi", "curve"],
-    ),
-    CalculatorDefinition(
-        calculator_id="logd_curve",
-        parameters=ph_range_parameters(),
-        display_name="LogD vs pH",
-        category="lipophilicity",
-        description=(
-            "The distribution coefficient across pH 0-14 by Henderson-Hasselbalch. Needs a "
-            "configured pkasolver environment. Note: Henderson-Hasselbalch under-predicts logD "
-            "for zwitterions (e.g. amino acids), because it assumes the partitioning species has "
-            "no site ionized; monoprotic acids and bases are unaffected."
-        ),
-        execution=RegistryExecution(compute=compute_logd_curve),
-        prediction_basis="empirical",
-        tags=["logd", "ph", "partitioning", "curve"],
     ),
     CalculatorDefinition(
         calculator_id="hbond_vs_ph",

@@ -97,6 +97,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **LogD draws the curve it lies on.** Running **LogD (pH-dependent)** now
+  gives the value at your pH and the LogD-vs-pH curve together; hover the
+  curve to read logD at any sampled pH and click to keep the reading. The pH
+  you asked for is one of the samples, so the kept reading there is the same
+  number as the value above it. **LogD vs pH** is retired as a separate
+  calculator -- a search for it still finds LogD. The value itself is
+  unchanged on every branch (checked against the previous implementation's
+  numbers); without a pKa sidecar it stays the labelled approximation and
+  draws no curve.
+
 - **Switch Solubility's units in the Results panel without running it
   again.** A **Units** box (log mol/L, mg/mL, mol/L) changes the chart, the
   rows, Copy report and a saved picture together. The calculator's own

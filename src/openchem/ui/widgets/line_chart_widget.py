@@ -55,6 +55,27 @@ SERIES_COLORS = [
 _AXIS_PAD = 0.08
 
 
+def nearest_sampled_x(sampled: list[float], target: float) -> float:
+    """The sampled x a reading at `target` shows -- NEVER an interpolated one.
+
+    Three rules, each asserted in `tests/test_line_chart_cursor.py`:
+
+        exactly on a sample     that sample
+        halfway between two     the LOWER, so the same pointer position
+                                always reads the same sample
+        outside the range       the end sample (clamped): a reading past
+                                the last sample is the last sample, and
+                                says which x it is
+
+    Between samples the reader sees a real sample and its x, which is the
+    point: a value interpolated between two pH samples is a number the
+    calculation never produced.
+    """
+    if not sampled:
+        raise ValueError("no samples")
+    return min(sampled, key=lambda value: (abs(value - target), value))
+
+
 class LineChartWidget(QWidget):
     """One `LineChartAnnotation`, painted."""
 
@@ -66,6 +87,8 @@ class LineChartWidget(QWidget):
 
     #: The x under the cursor, snapped to the nearest sampled point.
     x_hovered = Signal(float)
+    #: A reading was pinned by a click (the x), or released (None).
+    x_pinned = Signal(object)
 
     def __init__(
         self,
@@ -75,6 +98,11 @@ class LineChartWidget(QWidget):
         super().__init__(parent)
         self._annotation: LineChartAnnotation | None = None
         self._hover_x: float | None = None
+        #: A reading KEPT by a click, shown when the pointer is elsewhere.
+        #: "Stop somewhere on the chart and read it" was the request; a
+        #: hover alone vanishes the moment the pointer leaves to do anything
+        #: with the number.
+        self._pinned_x: float | None = None
         self.setMinimumSize(320, 240)
         self.setMouseTracking(True)
         if annotation is not None:
@@ -95,6 +123,7 @@ class LineChartWidget(QWidget):
             annotation = None
         self._annotation = annotation
         self._hover_x = None
+        self._pinned_x = None
         self.update()
 
     def annotation(self) -> LineChartAnnotation | None:
@@ -191,12 +220,31 @@ class LineChartWidget(QWidget):
         if self._annotation.x_descending:
             fraction = 1.0 - fraction
         target = x_min + fraction * (x_max - x_min)
-        sampled = self._sampled_x()
-        nearest = min(sampled, key=lambda value: abs(value - target))
+        nearest = nearest_sampled_x(self._sampled_x(), target)
         if nearest != self._hover_x:
             self._hover_x = nearest
             self.x_hovered.emit(nearest)
             self.update()
+
+    def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt override
+        """Keep the reading under the pointer; click it again to let it go."""
+        if not self._has_data() or event.button() != Qt.MouseButton.LeftButton:
+            return super().mousePressEvent(event)
+        self.mouseMoveEvent(event)
+        self.pin(None if self._hover_x == self._pinned_x else self._hover_x)
+
+    def pin(self, x: float | None) -> None:
+        """Pin the reading at the sample nearest `x`, or release it."""
+        if x is not None and self._has_data():
+            x = nearest_sampled_x(self._sampled_x(), x)
+        elif x is not None:
+            x = None
+        self._pinned_x = x
+        self.x_pinned.emit(x)
+        self.update()
+
+    def pinned_x(self) -> float | None:
+        return self._pinned_x
 
     def leaveEvent(self, event) -> None:  # noqa: N802 - Qt override
         self._hover_x = None
@@ -342,24 +390,42 @@ class LineChartWidget(QWidget):
                 series.name,
             )
 
+    def readout_lines(self, x: float) -> list[str]:
+        """The reading at `x`, as it is drawn: x, then each series with the
+        chart's y units -- so a reading in mg/mL says mg/mL."""
+        annotation = self._annotation
+        label = annotation.x_label or "x"
+        units = f" {annotation.y_units}" if annotation.y_units else ""
+        lines = [f"{label} {x:.2f}{' ' + annotation.x_units if annotation.x_units else ''}"]
+        lines.extend(f"{name}: {value:.4g}{units}" for name, value in self.readout_at(x).items())
+        return lines
+
     def _draw_hover(self, painter: QPainter, rect: QRectF) -> None:
-        if self._hover_x is None:
+        shown = self._hover_x if self._hover_x is not None else self._pinned_x
+        if shown is None:
             return
-        x = self._to_widget(self._hover_x, 0.0, rect).x()
-        painter.setPen(QPen(QColor(120, 120, 120), 1, Qt.PenStyle.DashLine))
+        x = self._to_widget(shown, 0.0, rect).x()
+        kept = self._pinned_x is not None and shown == self._pinned_x
+        # SOLID for a kept reading, dashed for a passing one, so the two
+        # states differ in more than the caption.
+        style = Qt.PenStyle.SolidLine if kept else Qt.PenStyle.DashLine
+        painter.setPen(QPen(QColor(120, 120, 120), 1, style))
         painter.drawLine(QPointF(x, rect.top()), QPointF(x, rect.bottom()))
 
-        label = self._annotation.x_label or "x"
-        lines = [f"{label} {self._hover_x:.2f}"]
-        lines.extend(
-            f"{name}: {value:.2f}" for name, value in self.readout_at(self._hover_x).items()
+        lines = self.readout_lines(shown)
+        if kept:
+            lines[0] += "  (kept -- click again to release)"
+        text = "\n".join(lines)
+        area = QRectF(rect.left() + 6, rect.top() + 4, rect.width() - 12, rect.height())
+        # A BACKING BOX: the reading is drawn over the plot, and where the
+        # curve crosses it the digits were unreadable -- seen on the LogD
+        # curve, whose plateau runs straight through the top-left corner.
+        bounds = painter.fontMetrics().boundingRect(
+            area.toRect(), int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop), text
         )
+        painter.fillRect(QRectF(bounds).adjusted(-3, -2, 3, 2), QColor(255, 255, 255, 225))
         painter.setPen(QPen(QColor(40, 40, 40)))
-        painter.drawText(
-            QRectF(rect.left() + 6, rect.top() + 4, rect.width() - 12, rect.height()),
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop,
-            "\n".join(lines),
-        )
+        painter.drawText(area, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop, text)
 
 
 def axis_caption(label: str, units: str) -> str:
