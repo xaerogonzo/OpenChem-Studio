@@ -69,7 +69,7 @@ def test_every_fixture_matches_the_hash_the_preregistration_recorded():
     text = PREREGISTRATION.read_text(encoding="utf-8")
     fixtures = sorted(FIXTURES.glob("*.csv"))
     hashed = [f for f in fixtures if f.name != "slater_reference.csv"]
-    assert len(hashed) == 8
+    assert len(hashed) == 11
     for fixture in hashed:
         digest = hashlib.sha256(fixture.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
         assert f"`{fixture.name}`" in text and digest in text, fixture.name
@@ -907,3 +907,59 @@ def test_both_lambda_readings_reproduce_their_historical_miss_sets(reading, expe
                 misses.add((table, molecule, order, column))
     assert 2 * len(cells) == 76
     assert misses == expected
+
+
+def test_bakowies_1996_reprints_rappe_goddard_table_i_as_we_transcribed_it():
+    """A parameter mismatch would mean a transcription or source-version
+    problem, and is kept apart from the charge comparison below."""
+    ours = {row["element"]: row for row in _rows("rappe1991_table1.csv")}
+    reprint = _rows("bakowies1996_table8_parameters.csv")
+    assert [row["element"] for row in reprint] == ["H", "C", "N", "O"]
+    for row in reprint:
+        if row["element"] == "H":
+            assert (float(row["chi_eV"]), float(row["J_eV"])) == ce.HYDROGEN_SETS["experimental"]
+        assert (float(row["chi_eV"]), float(row["J_eV"])) == (float(ours[row["element"]]["chi_eV"]), float(ours[row["element"]]["J_eV"]))
+
+
+def test_bakowies_1996_reprints_rappe_goddard_table_iv_qeqhf_as_we_transcribed_it():
+    """Only cells that name their Table IV rows are compared; an averaged cell
+    (footnote b) is compared with the mean, at the reprint's two decimals."""
+    table4 = {(row["molecule"], row["printed_order"]): row for row in _rows("rappe1991_table4.csv") if row["status"] == "printed"}
+    compared = 0
+    for row in _rows("bakowies1996_table10_charges.csv"):
+        assert (row["geometry_class"], row["hydrogen_set"], row["column"]) == ("exp", "hf", "QEqHF")
+        if row["relation"] == "not_in_table4":
+            continue
+        orders = row["table4_orders"].split(";")
+        values = [float(table4[(row["table4_molecule"], order)][row["column"]]) for order in orders]
+        assert (row["relation"] == "same") == (len(orders) == 1)
+        assert abs(sum(values) / len(values) - float(row["value"])) <= 0.005 + 1e-12, row
+        compared += 1
+    assert compared == 23
+
+
+def test_ramachandran_1996_table_3_qeq_column_does_not_conserve_charge():
+    """The source audit. Every reference column of both tables sums to zero
+    within rounding, and so does Table 2's QEq column; Table 3's QEq column --
+    Table 2's numbers again -- sums to -2.208 e. Recorded as internally
+    inconsistent with charge conservation, not as a known misprint."""
+    totals: dict[tuple[str, str], float] = {}
+    for row in _rows("ramachandran1996_tables.csv"):
+        key = (row["table"], row["method"])
+        totals[key] = totals.get(key, 0.0) + int(row["multiplicity"]) * float(row["value"])
+    for (table, method), total in totals.items():
+        if (table, method) == ("3", "QEq"):
+            assert abs(total - (-2.208)) < 1e-9
+        else:
+            assert abs(total) <= 0.005, (table, method, total)
+    assert len(totals) == 11
+
+
+def test_ramachandran_1996_gives_silyl_hydrogen_the_sign_we_compute_for_silane():
+    """Independent evidence from the Rappé group's own program, five years on:
+    every silyl H in O(SiH3)2 is negative. That its silicon parameters are
+    1991 Table I's is an inference -- the paper's parameter citation (ref 6)
+    points at a catalysis paper."""
+    qeq = [row for row in _rows("ramachandran1996_tables.csv") if row["table"] == "2" and row["method"] == "QEq"]
+    assert all(float(row["value"]) < 0 for row in qeq if row["atom"].startswith("H"))
+    assert float(next(row["value"] for row in qeq if row["atom"] == "Si")) > 0

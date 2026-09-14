@@ -1,0 +1,16 @@
+# Bakowies & Thiel, J. Comput. Chem. 1996, 17, 87-108, Table VIII
+# ("Parameters of the QEq Model", p. 101), transcribed AS PRINTED from the
+# page rendered at 300 dpi. https://doi.org/10.1002/(SICI)1096-987X(19960115)17:1<87::AID-JCC8>3.0.CO;2-X
+#
+# Only the "Rappe / Goddard" rows (footnote b: "Values reported by Rappe and
+# Goddard", their ref 43 = J. Phys. Chem. 1991, 95, 3358). The QEq/PD,
+# QEq/Mulliken and Parr/Pearson rows are other parameter sets. All eV.
+#
+# A REPRINT, NOT A SOURCE: it checks our transcription of Rappe-Goddard
+# Table I. A disagreement is re-read against the 1991 render, never corrected
+# toward this table (amendment A7).
+element,chi_eV,J_eV
+H,4.5280,13.8904
+C,5.343,10.126
+N,6.899,11.760
+O,8.741,13.364

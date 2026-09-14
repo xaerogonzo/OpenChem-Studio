@@ -20,6 +20,9 @@ The plan behind this is `docs/ROADMAP.md`, "EEM and QEq", DECIDED 2026-09-14.
 | `geometries.csv` | Huber & Herzberg 1979, X-state r_e | `eaa1b880092da5ce33a7c77c85aa18d991c1a6d5ae88dd3d2afc028886f655a0` |
 | `harmony1979_structures.csv` | Harmony et al. 1979, every printed parameter of 15 molecules (added by amendment A4) | `da2928073adde371187a3f420cc9593e1a44ee0ebaee9cf2fd798c7cb5285229` |
 | `kuchitsu1998_ethane.csv` | Kuchitsu (ed.) 1998, ethane only (added by amendment A5) | `4a29c922313513dd20bec0a8f3557566fa3a7aad316c11060005fe48aadb6218` |
+| `bakowies1996_table8_parameters.csv` | Bakowies & Thiel 1996, Table VIII, Rappé–Goddard rows (added by amendment A7) | `8c409a309fed28fbea367163fde1e0615df5aee0de0cb99f68a7f6eabeb9e54d` |
+| `bakowies1996_table10_charges.csv` | same, Table X, Rappé–Goddard column (added by amendment A7) | `d50985432501bbb2a951d181935ea6ff8010b1821c27cf627db8727d6b340750` |
+| `ramachandran1996_tables.csv` | Ramachandran et al. 1996, Tables 2 and 3, every column (added by amendment A7) | `90d8f7e57ba5b67e5644244b25a1bf4c253e6fc4ededa6d8b45eb66a29e0b08a` |
 
 Every value was checked by eye against its page rendered at 300 dpi
 (Huber & Herzberg's rotated tables at 130 dpi). No fixture value comes from a

@@ -1,0 +1,50 @@
+# Bakowies & Thiel, J. Comput. Chem. 1996, 17, 87-108, Table X ("Atomic
+# Partial Charges in Heteronuclear Bonds", p. 104), transcribed AS PRINTED
+# from the page rendered at 300 dpi. Only the "Rappe / Goddard" column, whose
+# footnote c reads "QEq^HF model of Rappe and Goddard; ref. 43 (exp.
+# geometries)". Footnote b: hydrogens bound to a common heavy atom are
+# AVERAGED. Rows printing a dash for Rappe/Goddard are omitted.
+#
+# geometry_class, hydrogen_set and column are recorded per row so a value is
+# never compared on its molecule name alone (amendment A7).
+#
+# relation, i.e. how the cell corresponds to rappe1991_table4.csv's QEqHF:
+#   same           the Table IV row(s) named by table4_orders, one value
+#   average        the mean of the Table IV rows named (footnote b)
+#   not_in_table4  Table IV prints no such atom (e.g. CH4's C); this reprint
+#                  is then Bakowies' own neutrality arithmetic, not compared
+#
+# Where Table IV prints one label twice (HOC(O)H's O, H3CCN's C), which row a
+# bond takes is BAKOWIES' assignment; amendment A4 made the same one as an
+# inference. Agreement is consistency, not proof.
+bond,molecule,atom,value,geometry_class,hydrogen_set,column,table4_molecule,table4_orders,relation
+H-C,CH4,H,0.13,exp,hf,QEqHF,CH4,1,same
+H-C,CH4,C,-0.52,exp,hf,QEqHF,,,not_in_table4
+H-C,C2H6,H,0.13,exp,hf,QEqHF,C2H6,1,same
+H-C,C2H6,C,-0.39,exp,hf,QEqHF,,,not_in_table4
+H-C,C2H4,H,0.13,exp,hf,QEqHF,C2H4,1,same
+H-C,C2H4,C,-0.26,exp,hf,QEqHF,,,not_in_table4
+H-C,C2H2,H,0.11,exp,hf,QEqHF,C2H2,1,same
+H-C,C2H2,C,-0.11,exp,hf,QEqHF,,,not_in_table4
+H-C,CH3OH,H,0.13,exp,hf,QEqHF,H3COH,4;4;5,average
+H-C,CH3OH,C,-0.09,exp,hf,QEqHF,H3COH,3,same
+H-C,CH2O,H,0.10,exp,hf,QEqHF,H2CO,3,same
+H-C,CH2O,C,0.24,exp,hf,QEqHF,H2CO,2,same
+H-N,NH3,H,0.23,exp,hf,QEqHF,NH3,1,same
+H-N,NH3,N,-0.69,exp,hf,QEqHF,,,not_in_table4
+H-N,NH2CHO,H,0.25,exp,hf,QEqHF,H2NC(O)H,4;5,average
+H-N,NH2CHO,N,-0.61,exp,hf,QEqHF,H2NC(O)H,3,same
+H-O,H2O,H,0.35,exp,hf,QEqHF,H2O,1,same
+H-O,H2O,O,-0.70,exp,hf,QEqHF,,,not_in_table4
+H-O,CH3OH,H,0.34,exp,hf,QEqHF,H3COH,1,same
+H-O,CH3OH,O,-0.66,exp,hf,QEqHF,H3COH,2,same
+C#N,CH3CN,C,0.22,exp,hf,QEqHF,H3CCN,2,same
+C#N,CH3CN,N,-0.25,exp,hf,QEqHF,H3CCN,1,same
+C-O,CH3OH,C,-0.09,exp,hf,QEqHF,H3COH,3,same
+C-O,CH3OH,O,-0.66,exp,hf,QEqHF,H3COH,2,same
+C=O,CH2O,C,0.24,exp,hf,QEqHF,H2CO,2,same
+C=O,CH2O,O,-0.44,exp,hf,QEqHF,H2CO,1,same
+C=O,HCOOH,C,0.58,exp,hf,QEqHF,HOC(O)H,2,same
+C=O,HCOOH,O,-0.44,exp,hf,QEqHF,HOC(O)H,1,same
+C=O,CO2,C,0.90,exp,hf,QEqHF,,,not_in_table4
+C=O,CO2,O,-0.45,exp,hf,QEqHF,CO2,1,same
