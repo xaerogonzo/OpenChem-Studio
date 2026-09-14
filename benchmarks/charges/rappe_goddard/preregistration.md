@@ -677,3 +677,44 @@ coordinates, experimental set). Median of 3: atorvastatin ≤ 5 s and aspirin �
 iteration counts. Hardware, OS, Python and numpy versions are recorded.
 
 **O9 is not touched here.** Its study is a separate branch and amendment (A9).
+
+**A8 Stage 2 note (2026-09-14, after Stage 1 missed the time gate and BEFORE any
+Stage 2 code).** Stage 1 kept every node and branch and agreed with the scalar
+routine to 1e-14 Ha, but still evaluates about 2 million quadrature nodes per
+hydrogen iteration on atorvastatin, and measured 10-22 s (the CPU was shared
+with another heavy process). By A8, Stage 2 follows. Fixed now:
+
+*The closed form.* With a = 2ζ_a, b = 2ζ_b, p = 2n_b − 1, m = 2n_a + 1 and
+W_a(r) = r − m/(2a) + e^(−ar) Π(r), where Π(r) = Σ_k π_k r^k,
+π_k = a^(k−1) [−[1≤k≤m]/(k−1)! + [2≤k≤m]/(4n_a (k−2)!) + [k≤m] m/(2 k!)]
+(so that W_a(0) = 0):
+J(R) = b^(2n_b+1) / (2R (2n_b)!) × { L + e^(−aR) A − e^(−aR) B − e^(−bR) C },
+- L = 2(p+1)!/b^(p+2) P(p+2, bR) + 2R p!/b^(p+1) Q(p+1, bR), by the
+  existing gamma functions;
+- A = Σ_k π_k Σ_{i≤k} C(k,i) R^(k−i) (p+i)!/(a+b)^(p+i+1) (all positive
+  powers);
+- C = Σ_k π_k Σ_{i≤p} C(p,i) R^(p−i) (i+k)!/(a+b)^(i+k+1);
+- B = Σ_k π_k R^(p+k+1) p! k!/(p+k+1)! M(p+1; p+k+2; z), z = −(b − a)R,
+  with M Kummer's confluent hypergeometric function.
+
+*The one cancellation switch, dimensionless:* the sign of z. For z ≥ 0, M is
+summed directly (all terms positive); for z < 0 through Kummer's transformation
+M(α; β; z) = e^z M(β−α; β; −z) (all terms positive). At z = 0 both give 1
+exactly. Continuity is tested at z = 0 and z = ±1e-12, ±1e-6 (relative change
+≤ 1e-12). The exponential prefactor (e^(−aR) or e^(−bR)) is applied to each
+series' first term, so no intermediate overflows where the result is finite.
+A series stops once its index exceeds |z| + β and every new term is below
+1e-17 of its running sum; a pair that has not stopped by 4000 terms is sent to
+the fallback, and counted.
+
+*The one small-argument fallback:* where min(a, b)·R < 2 (and for R = 0), the
+1/R prefactor makes the closed form cancel, so those pairs use the Stage 1
+batched quadrature, which is exact to the same standard. QEq refuses R below
+0.1 Å, but diffuse hydrogens (small ζ_H) can still reach the fallback. A
+counter records how often each branch runs, and a test asserts that both are
+exercised.
+
+*Acceptance is unchanged from A8:* ≤ 1e-9 Ha against the mpmath table on all
+1076 points (whichever branch each takes), charge vectors unchanged to ≤ 1e-9
+e, both λ miss sets identical, and the time gate. The closed form is never
+validated only against the quadrature.
