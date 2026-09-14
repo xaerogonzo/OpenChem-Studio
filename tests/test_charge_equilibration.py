@@ -1171,3 +1171,80 @@ def test_hydrogen_pair_entries_use_the_charge_dependent_zeta():
         o_h = ce.coulomb_pair_integral(2, zeta_o, 1, zeta_h, float(distance[0, 1])) * ce.HARTREE_EV
         h_h = ce.coulomb_pair_integral(1, zeta_h, 1, zeta_h, float(distance[1, 2])) * ce.HARTREE_EV
         assert abs(hardness[0, 1] - o_h) <= 1e-9 and abs(hardness[1, 2] - h_h) <= 1e-9, q
+
+
+# =============================================================================
+# A8 Stage 2: the closed form, its one switch and its one fallback
+# =============================================================================
+
+
+def test_both_stage_2_branches_run_on_the_o1_grid_and_both_kummer_signs_occur():
+    """The frozen grid reaches the fallback (its near-zero R) and the closed
+    form, and its unequal exponents give z of both signs."""
+    rows = _grid_rows()
+    before = dict(ce.CLOSED_FORM_USES)
+    for row in rows:
+        ce.coulomb_pair_integrals(int(row["n_a"]), int(row["n_b"]), [float(row["zeta_a"])], [float(row["zeta_b"])], [float(row["R_bohr"])])
+    used = {key: ce.CLOSED_FORM_USES[key] - before[key] for key in before}
+    assert used["closed"] > 0 and used["fallback"] > 0 and used["kummer_negative"] > 0
+    z = [-(float(r["zeta_b"]) - float(r["zeta_a"])) * 2 * float(r["R_bohr"]) for r in rows]
+    assert any(v > 0 for v in z) and any(v == 0 for v in z)
+
+
+def test_the_real_molecules_take_the_closed_form():
+    """Measured on the four timing structures: every pair past the fallback
+    threshold, so the closed form is what a user's result comes from."""
+    elements, coords = _perf_structure("aspirin")
+    before = dict(ce.CLOSED_FORM_USES)
+    ce.qeq_charges(elements, coords)
+    assert ce.CLOSED_FORM_USES["closed"] - before["closed"] > 0
+    assert ce.CLOSED_FORM_USES["series_cap"] == before["series_cap"]
+
+
+@pytest.mark.parametrize("n_a,n_b", [(1, 1), (2, 1), (3, 2), (6, 5)])
+def test_the_closed_form_is_continuous_across_its_kummer_switch(n_a, n_b):
+    """z = -(b - a) R changes sign when the exponents cross. At z = 0 and
+    z = +-1e-12, +-1e-6 the closed form equals the scalar quadrature to 1e-12
+    Ha, and the two sides of z = 0 differ by no more than the exponent change."""
+    R = 3.0
+    base = 0.9
+    values = {}
+    for dz in (-1e-6, -1e-12, 0.0, 1e-12, 1e-6):
+        zeta_b = base - dz / (2 * R)  # z = -(2 zeta_b - 2 zeta_a) R = dz
+        closed = ce.coulomb_pair_integrals(n_a, n_b, [base], [zeta_b], [R])[0]
+        scalar = ce.coulomb_pair_integral(n_a, base, n_b, zeta_b, R)
+        assert abs(closed - scalar) <= 1e-12, (dz, closed - scalar)
+        values[dz] = closed
+    assert abs(values[1e-12] - values[-1e-12]) <= 1e-12 * abs(values[0.0])
+
+
+def test_a_series_that_hits_its_cap_falls_back_and_is_still_right(monkeypatch):
+    monkeypatch.setattr(ce, "_KUMMER_TERM_CAP", 1)
+    before = dict(ce.CLOSED_FORM_USES)
+    R = np.array([3.0, 8.0, 15.0])
+    values = ce.coulomb_pair_integrals(2, 1, [0.9, 0.9, 0.9], [1.3, 0.6, 1.1], R)
+    assert ce.CLOSED_FORM_USES["series_cap"] - before["series_cap"] == 3
+    for k, zeta_b in enumerate((1.3, 0.6, 1.1)):
+        assert abs(values[k] - ce.coulomb_pair_integral(2, 0.9, 1, zeta_b, float(R[k]))) <= 1e-11
+
+
+def _perf_structure(name: str):
+    rows = [r for r in _rows("qeq_perf_conformers.csv") if r["molecule"] == name]
+    rows.sort(key=lambda r: int(r["index"]))
+    return [r["element"] for r in rows], np.array([[float(r["x"]), float(r["y"]), float(r["z"])] for r in rows])
+
+
+@pytest.mark.parametrize("name", ["aspirin", "n-hexadecane"])
+def test_stage_2_charges_equal_a_fresh_scalar_matrix_solve(name, monkeypatch):
+    """End to end against a matrix built from the SCALAR integral: the same
+    hydrogen loop, every pair through `coulomb_pair_integral`. Full vectors."""
+    elements, coords = _perf_structure(name)
+    fast = ce.qeq_charges(elements, coords)
+
+    def scalar_batch(n_a, n_b, zeta_a, zeta_b, R, *args, **kwargs):
+        return np.array([ce.coulomb_pair_integral(n_a, za, n_b, zb, r) for za, zb, r in zip(np.atleast_1d(zeta_a), np.atleast_1d(zeta_b), np.atleast_1d(R))])
+
+    monkeypatch.setattr(ce, "coulomb_pair_integrals", scalar_batch)
+    slow = ce.qeq_charges(elements, coords)
+    assert fast.status == slow.status == "converged" and fast.iterations == slow.iterations
+    assert np.max(np.abs(fast.charges - slow.charges)) <= 1e-9

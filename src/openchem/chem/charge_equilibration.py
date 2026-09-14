@@ -387,9 +387,113 @@ def _shell_average_flat(n: int, a: np.ndarray, s: np.ndarray, R: np.ndarray) -> 
     return out
 
 
+#: How often each Stage 2 branch ran (A8 note): the closed form, the quadrature
+#: fallback, Kummer's transformed series (z < 0), and pairs whose series hit
+#: the term cap and fell back. A branch no test enters is a branch no test checks.
+CLOSED_FORM_USES = {"closed": 0, "fallback": 0, "kummer_negative": 0, "series_cap": 0}
+#: Below this min(a, b) R the closed form's 1/R prefactor cancels; frozen in
+#: the A8 Stage 2 note before the closed form was written.
+_CLOSED_FORM_MIN_X = 2.0
+#: A hypergeometric series still running at this many terms falls back.
+_KUMMER_TERM_CAP = 4000
+
+
+def _pi_coefficients(n_a: int, a: np.ndarray) -> list[np.ndarray]:
+    """Π's coefficients in W_a(r) = r - m/(2a) + e^(-ar) Π(r), per pair (A8 note)."""
+    m = 2 * n_a + 1
+    coefficients = []
+    for k in range(m + 1):
+        c = m / (2.0 * math.factorial(k))
+        if k >= 1:
+            c -= 1.0 / math.factorial(k - 1)
+        if k >= 2:
+            c += 1.0 / (4 * n_a * math.factorial(k - 2))
+        coefficients.append(c * a ** (k - 1))
+    return coefficients
+
+
+def _kummer_with_prefactor(alpha: int, beta: int, z: np.ndarray, log_if_positive: np.ndarray, log_if_negative: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """prefactor x M(alpha; beta; z), every summed term positive.
+
+    z >= 0: M summed directly, prefactor e^(log_if_positive). z < 0: Kummer's
+    M(alpha; beta; z) = e^z M(beta - alpha; beta; -z), and e^z is folded into
+    the prefactor e^(log_if_negative). The prefactor rides on the first term so
+    nothing overflows where the product is finite. Returns (value, capped).
+    """
+    negative = z < 0
+    CLOSED_FORM_USES["kummer_negative"] += int(np.count_nonzero(negative))
+    x = np.abs(z)
+    first = np.where(negative, beta - alpha, alpha).astype(float)
+    term = np.exp(np.where(negative, log_if_negative, log_if_positive))
+    total = term.copy()
+    done = np.zeros(len(z), dtype=bool)
+    j = 0
+    while j < _KUMMER_TERM_CAP:
+        term = term * (first + j) / (beta + j) * x / (j + 1)
+        total = total + term
+        j += 1
+        done = done | ((j > x + beta) & (term <= 1e-17 * total))
+        if np.all(done):
+            break
+    return total, ~done
+
+
+def _closed_form_integrals(n_a: int, n_b: int, zeta_a: np.ndarray, zeta_b: np.ndarray, R: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """The A8 Stage 2 closed form, hartree, for R > 0. Returns (values, capped)."""
+    a, b = 2.0 * zeta_a, 2.0 * zeta_b
+    p = 2 * n_b - 1
+    m = 2 * n_a + 1
+    pi = _pi_coefficients(n_a, a)
+    coulomb = (
+        2.0 * math.factorial(p + 1) / b ** (p + 2) * _lower_gamma(p + 2, b * R)
+        + 2.0 * R * math.factorial(p) / b ** (p + 1) * _upper_gamma(p + 1, b * R)
+    )
+    s = a + b
+    beyond = np.zeros_like(R)  # A: the R + s shells
+    outside = np.zeros_like(R)  # C: the s > R shells, about e^(-bR)
+    inside = np.zeros_like(R)  # B: the s < R shells, prefactor included
+    z = -(b - a) * R
+    capped = np.zeros(len(R), dtype=bool)
+    for k in range(m + 1):
+        beyond = beyond + pi[k] * sum(math.comb(k, i) * R ** (k - i) * math.factorial(p + i) / s ** (p + i + 1) for i in range(k + 1))
+        outside = outside + pi[k] * sum(math.comb(p, i) * R ** (p - i) * math.factorial(i + k) / s ** (i + k + 1) for i in range(p + 1))
+        series, cap = _kummer_with_prefactor(p + 1, p + k + 2, z, -a * R, -b * R)
+        capped |= cap
+        beta_function = math.factorial(p) * math.factorial(k) / math.factorial(p + k + 1)
+        inside = inside + pi[k] * R ** (p + k + 1) * beta_function * series
+    values = b ** (2 * n_b + 1) / (2.0 * R * math.factorial(2 * n_b)) * (coulomb + np.exp(-a * R) * beyond - inside - np.exp(-b * R) * outside)
+    return values, capped
+
+
 def coulomb_pair_integrals(n_a: int, n_b: int, zeta_a, zeta_b, R, panel_order: int = 32, tail_order: int = 64) -> np.ndarray:
     """`coulomb_pair_integral` for arrays of pairs sharing (n_a, n_b): one
     hartree value per pair, in input order.
+
+    The A8 Stage 2 closed form where min(a, b) R >= 2, and the Stage 1 batched
+    quadrature (exact to the same standard) for the rest, for R = 0, and for
+    any pair whose series hit its term cap.
+    """
+    zeta_a = np.asarray(zeta_a, dtype=float).ravel()
+    zeta_b = np.asarray(zeta_b, dtype=float).ravel()
+    R = np.asarray(R, dtype=float).ravel()
+    out = np.empty(len(R))
+    closed = (R > 0) & (2.0 * np.minimum(zeta_a, zeta_b) * R >= _CLOSED_FORM_MIN_X)
+    if np.any(closed):
+        values, capped = _closed_form_integrals(n_a, n_b, zeta_a[closed], zeta_b[closed], R[closed])
+        out[closed] = values
+        if np.any(capped):
+            CLOSED_FORM_USES["series_cap"] += int(np.count_nonzero(capped))
+            closed[np.flatnonzero(closed)[capped]] = False
+    CLOSED_FORM_USES["closed"] += int(np.count_nonzero(closed))
+    rest = ~closed
+    if np.any(rest):
+        CLOSED_FORM_USES["fallback"] += int(np.count_nonzero(rest))
+        out[rest] = quadrature_pair_integrals(n_a, n_b, zeta_a[rest], zeta_b[rest], R[rest], panel_order, tail_order)
+    return out
+
+
+def quadrature_pair_integrals(n_a: int, n_b: int, zeta_a, zeta_b, R, panel_order: int = 32, tail_order: int = 64) -> np.ndarray:
+    """Stage 1: `coulomb_pair_integral`'s own quadrature for arrays of pairs.
 
     Every pair's nodes are laid end to end in one flat array. Pair i
     contributes ceil(R_i a_b,i) panels of `panel_order` nodes on its own
