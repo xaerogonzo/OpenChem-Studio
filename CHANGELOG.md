@@ -9,6 +9,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A long value in Results left a blank gap under it.** A wrapped value kept
+  the height its text would need in a column 100 px wide, so the charges'
+  six-line Finding took seventeen lines of space and a one-line value could
+  take three. Every value row in Results and the Atom Inspector is now exactly
+  as tall as its text, and rows follow the panel back down when it is widened
+  again. The explanatory hints in Properties sections, such as the one under
+  NMR, had the same gap and lose it too.
+
+- **The Atom Inspector showed QM NMR shifts computed for an earlier
+  conformer.** ORCA spectra carried no record of the structure they were
+  computed on, so they were shown unchecked. Each spectrum is now stamped
+  with the conformer it was submitted with, or for a Boltzmann average the
+  exact conformer set, and is withheld once that changes, with the line
+  above the facts saying "computed for an earlier conformer". The run's
+  method, charge and multiplicity are recorded with it. A conformer with no
+  3D coordinates is now refused before ORCA runs; it used to be sent as a flat
+  geometry.
+
+- **A drawing carrying atom-map numbers broke the pH-dependent protonation.**
+  The map numbers were written into the structure handed to Dimorphite-DL,
+  which then returned no state at all for a mapped imidazole, and every atom
+  of the result lost its map. Libraries now get an unmapped copy, and each
+  atom's map is restored on the way back; the pKa sidecar is handed no map
+  numbers either.
+
+- **Results docked across the top still scrolled.** At 190 px the reader
+  needed 234 px and had about 162, all of the difference its own chrome. The
+  **↗** pop-out button now sits in the Results title bar beside float and
+  close instead of on a row of its own, the bold title that repeated the
+  **Showing** box is no longer drawn, and a short reader gives up its margins
+  and tightens its spacing. It now needs 152 px, and an ordinary dock keeps
+  its normal spacing. A folded note given a height between whole lines also
+  no longer draws its last line cut in half.
+
+- **A new conformer search did not refresh the Atom Inspector.** Its report
+  cache was keyed on the drawing alone, so anything computed on a conformer
+  kept its old value on screen until the drawing changed. The cache now
+  follows the conformers too.
+
 - **pH-dependent partial charges were on the wrong atoms.** The dominant
   protonation state came back from a SMILES round trip in the library's own
   atom order, and the charges were numbered by that order. On the reported
@@ -80,7 +119,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   experimental shift describes) came up about one run in three. Reference
   geometries are now the lowest-energy of several, and reproducible.
 
+- **A run of conformer searches dropped the results of the drawing on
+  screen.** Results are kept for the last eight versions of each molecule so
+  an undo does not recompute, but drawings and conformers shared one count.
+  Every conformer search reruns the descriptors on the new geometry, so eight
+  searches in a row pushed out the drawing's results, including calculations
+  run by hand, which nothing reruns. They are now counted separately.
+
 ### Changed
+
+- **Settings, in one window: Edit ▸ Settings… (Ctrl+,).**
+  - Four behaviours that were fixed choices are now settings:
+    - whether choosing a panel from the rail hides the others;
+    - whether recovery copies of unsaved work are written;
+    - how long after a change a copy is written;
+    - how many versions of each molecule keep their results.
+  - Every default is what the app already did, and changes apply as you make
+    them. Lowering the versions kept asks first, and says how many result sets
+    it would remove.
+  - Each kind of file dialog's remembered folder can be forgotten from there.
+  - **External Tools is now a section of the same window.** Tools ▸ External
+    Tools… and the Docking and Quantum Chemistry Configure buttons open it,
+    on their own tool's tab.
+  - A setting for results computed by an earlier version of the app was
+    planned and is not in this release. It needs those results labelled with
+    their version first, and they are not yet.
 
 - **"Add to Project" is now "Send to 2D Editor".** Picking a tautomer or
   stereoisomer out of a generated set and working on it has been possible
@@ -96,6 +159,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tautomers goes there to be picked from, which the label never said.
 
 ### Added
+
+- **An ionization-model cross-check on the pH-dependent charges and logD.**
+  The charges use Dimorphite-DL's dominant form and logD uses pkasolver's
+  pKa values, and on some molecules the two disagree about a site's
+  protonation (on the O-O-C-N ring at pH 7.4, pkasolver says neutral and
+  Dimorphite protonates the nitrogen). With the pkasolver sidecar installed,
+  both results now name each such atom, with the pKa and its distance from
+  the pH. No number changes, and neither model is declared right. pkasolver's
+  answer for a structure is kept for the session, so logD, solubility, pKa and
+  the charges share one call (about 3 s) instead of each paying for it.
 
 - **LogD draws the curve it lies on.** Running **LogD (pH-dependent)** now
   gives the value at your pH and the LogD-vs-pH curve together; hover the

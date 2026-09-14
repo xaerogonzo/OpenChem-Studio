@@ -130,11 +130,17 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
 
         return ReceptorLibraryDialog()
 
-    def external_tools(context: DialogContext):
-        from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
+    def settings_window(context: DialogContext):
+        from openchem.ui.dialogs.settings_dialog import SettingsDialog
 
+        # External Tools is a section of this window now, so this one
+        # fixture covers both -- there is no second dialog to register.
         _require(context, "settings")
-        return ExternalToolsDialog(context.settings)
+        services = context.services
+        return SettingsDialog(
+            context.settings,
+            result_store_service=services.result_store_service if services is not None else None,
+        )
 
     def command_palette(_context: DialogContext):
         from openchem.ui.dialogs.command_palette import CommandPalette
@@ -308,7 +314,7 @@ def iter_dialog_fixtures() -> Iterator[DialogFixture]:
     yield DialogFixture("PeriodicTableDialog", periodic_table)
     yield DialogFixture("ReceptorLibraryDialog", receptor_library)
     yield DialogFixture("CommandPalette", command_palette)
-    yield DialogFixture("ExternalToolsDialog", external_tools, needs="settings")
+    yield DialogFixture("SettingsDialog", settings_window, needs="settings")
     yield DialogFixture("StructureLookupDialog", structure_lookup, needs="a molecule")
     yield DialogFixture("CalculatorSettingsDialog", calculator_settings, needs="the registry")
     yield DialogFixture(

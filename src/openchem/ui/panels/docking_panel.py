@@ -34,7 +34,7 @@ from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
 from openchem.events.events import DockingJobStateChanged, DockingResultReady, MoleculeSelected
 from openchem.services.docking_service import DEFAULT_REPLICATES, DockingService
-from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
+from openchem.ui.dialogs.settings_dialog import EXTERNAL_TOOLS, SettingsDialog
 from openchem.ui.molecule_combo import repopulate, select
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.ui.widgets.search_options import (
@@ -1230,7 +1230,7 @@ class DockingPanel(QWidget):
             self._status_label.setText("")
 
     def _on_configure_clicked(self) -> None:
-        dialog = ExternalToolsDialog(self._settings, self, focus="vina")
+        dialog = SettingsDialog(self._settings, self, section=EXTERNAL_TOOLS, tool="vina")
         dialog.exec()
 
     def _on_dock_clicked(self) -> None:

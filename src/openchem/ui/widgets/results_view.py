@@ -226,6 +226,15 @@ STALE_MARK = " (stale)"
 #: own is a line of facts lost in a short dock.
 _SHARED_ROW_MIN_WIDTH = 720
 
+#: Below this many lines of height the reader is compact: no vertical margins
+#: and `_COMPACT_SPACING` between rows. Sixteen lines sits above the reader's
+#: ordinary minimum (about ten), which is what `_arrange_for_height` needs to
+#: be stable. See there.
+_COMPACT_BELOW_LINES = 16
+
+#: Pixels between the reader's rows in compact mode, against the style's 6.
+_COMPACT_SPACING = 2
+
 #: The focus entry that narrows to nothing -- i.e. shows every calculator.
 #: A real entry rather than an empty string, so the control always names
 #: what it is currently doing.
@@ -360,6 +369,9 @@ class ResultsView(QWidget):
         self._visuals.setVisible(False)
 
         self._view = FactView(self)
+        # The "Showing" box names what is showing -- the same name, stale mark
+        # included, that the view's bold title line repeated underneath it.
+        self._view.set_title_shown(False)
         self._view.filter_changed.connect(self._remember)
         # **DEAD IN THIS WINDOW UNTIL NOW.** `FactView` builds a `>` button
         # per linked fact and emits this; the Atom Inspector routes it and
@@ -380,6 +392,11 @@ class ResultsView(QWidget):
         #: Whether the results filter shares the "Showing:" row. See
         #: `_arrange_search`.
         self._search_in_focus_row = False
+        #: The style's own vertical margins and spacing, and whether they are
+        #: currently given up. See `_arrange_for_height`.
+        self._normal_margins = layout.contentsMargins()
+        self._normal_spacing = layout.spacing()
+        self._compact = False
         layout.addWidget(self._visuals)
         layout.addWidget(self._view, 1)
         layout.addWidget(self._empty, 1)
@@ -421,9 +438,45 @@ class ResultsView(QWidget):
     def search_shares_the_focus_row(self) -> bool:
         return self._search_in_focus_row
 
+    def _arrange_for_height(self, height: int) -> None:
+        """Give up the vertical margins and most of the spacing when short.
+
+        **THE LAST 34 PX OF A 190 PX DOCK.** Docked across the top at the
+        height it was reported at, the reader needed 234 px and was given about
+        162. Moving the pop-out button into the dock's title bar and dropping
+        the title line that repeated the "Showing" box bought back 48; the
+        rest is air -- a 9 px margin above and below and 6 px between rows --
+        and this takes it only when the reader is short, so an ordinary dock
+        keeps the style's spacing.
+
+        **THE THRESHOLD IS ABOVE THE NORMAL MINIMUM, AND THAT IS WHAT MAKES IT
+        STABLE.** Inside the dock's scroll area the reader is never shorter
+        than its own minimum, so a reader held AT that minimum reads as short
+        and enters compact mode; compact only lowers the minimum, so the
+        height it is then given can only stay below the threshold until the
+        dock itself grows past it. Measured in LINES, so it means the same at
+        any font size.
+        """
+        compact = height < self.fontMetrics().lineSpacing() * _COMPACT_BELOW_LINES
+        if compact == self._compact:
+            return
+        self._compact = compact
+        normal = self._normal_margins
+        if compact:
+            self._layout.setContentsMargins(normal.left(), 0, normal.right(), 0)
+            self._layout.setSpacing(_COMPACT_SPACING)
+        else:
+            self._layout.setContentsMargins(normal)
+            self._layout.setSpacing(self._normal_spacing)
+        self._view.set_compact(compact)
+
+    def is_compact(self) -> bool:
+        return self._compact
+
     def resizeEvent(self, event) -> None:  # noqa: N802 - Qt's own casing
         super().resizeEvent(event)
         self._arrange_search(event.size().width())
+        self._arrange_for_height(event.size().height())
 
     # --- what it is showing --------------------------------------------------
 

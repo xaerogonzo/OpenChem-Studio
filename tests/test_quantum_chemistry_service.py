@@ -1151,3 +1151,121 @@ def test_resolving_orca_does_not_invent_a_path_when_nothing_is_configured():
     assert resolved != ".", "an empty setting was normalised into the current directory"
     # Either None, or whatever a real `orca` on PATH resolves to.
     assert resolved is None or Path(resolved).is_file()
+
+
+# --- which structure a spectrum's atoms belong to ---------------------------
+#
+# The Atom Inspector lays per-atom values over the CURRENT atoms only when the
+# result's recorded input is the current input. ORCA spectra used to carry
+# none, so a shift computed for an earlier conformer was shown as current.
+
+
+class _VibrationalProvider(_NmrSpectrumProvider):
+    """NMR plus an IR spectrum from the same job, so both publish paths of
+    `_finish_calculation_job` are exercised."""
+
+    def parse_vibrational_spectrum(self, output_text, mol, molecule_uuid: str, calc_type: str):
+        from openchem.domain.scientific_result import VibrationalMode, VibrationalSpectrumResult
+
+        return VibrationalSpectrumResult(
+            spectrum_type="ir",
+            name="Fake IR",
+            units="cm-1",
+            method=self.provider_id,
+            molecule_uuid=molecule_uuid,
+            modes=(VibrationalMode(wavenumber_cm1=1700.0, ir_intensity_km_mol=10.0),),
+        )
+
+
+def test_every_spectrum_a_job_publishes_carries_the_identity_it_was_submitted_with(qapp, tmp_path):
+    from openchem.domain.calculator import GEOMETRY
+
+    provider = _VibrationalProvider()
+    service, bus = _make_service(tmp_path, provider)
+    events: list[SpectrumComputed] = []
+    bus.subscribe(SpectrumComputed, events.append)
+    states = []
+    bus.subscribe(QuantumChemistryJobStateChanged, lambda e: states.append(e.state))
+
+    service.request_calculation(
+        mol=Chem.MolFromSmiles("O"), molecule_uuid="mol-1", calc_type="nmr", charge=0,
+        multiplicity=1, method_basis="HF STO-3G", provider_id="fake",
+        input_fingerprint="fp-conformer", calculation_input=GEOMETRY,
+    )
+    assert _wait_until(qapp, lambda: states and states[-1] in (CacheState.COMPLETED, CacheState.FAILED))
+
+    assert sorted(e.spectrum.spectrum_type for e in events) == ["ir", "nmr_raw_shielding"]
+    for event in events:
+        assert (event.input_fingerprint, event.calculation_input) == ("fp-conformer", GEOMETRY), (
+            event.spectrum.spectrum_type
+        )
+
+
+def test_a_spectrum_records_the_run_it_came_from_in_provenance(qapp, tmp_path):
+    """THE RUN'S PARAMETERS ARE PROVENANCE, NOT IDENTITY: these spectra are
+    never stored or replayed, so method/basis cannot be a cache key here --
+    but a spectrum must still say what it was computed with, read from the
+    job's own submission snapshot."""
+    provider = _NmrSpectrumProvider()
+    service, bus = _make_service(tmp_path, provider)
+    events: list[SpectrumComputed] = []
+    bus.subscribe(SpectrumComputed, events.append)
+    states = []
+    bus.subscribe(QuantumChemistryJobStateChanged, lambda e: states.append(e.state))
+
+    service.request_calculation(
+        mol=Chem.MolFromSmiles("O"), molecule_uuid="mol-1", calc_type="nmr", charge=-1,
+        multiplicity=2, method_basis="HF STO-3G", provider_id="fake",
+    )
+    assert _wait_until(qapp, lambda: states and states[-1] in (CacheState.COMPLETED, CacheState.FAILED))
+
+    parameters = events[0].spectrum.provenance.parameters
+    assert parameters["run_calc_type"] == "nmr"
+    assert parameters["run_method_basis"] == "HF STO-3G"
+    assert (parameters["run_charge"], parameters["run_multiplicity"]) == (-1, 2)
+    assert parameters["run_provider"] == "fake"
+
+
+def test_a_boltzmann_average_carries_the_set_it_was_submitted_with(qapp, tmp_path):
+    """Stamped from the RUN, not the last conformer's job: the average is
+    over every conformer, and only the run's frozen fingerprint names them
+    all."""
+    from openchem.domain.calculator import ENSEMBLE
+
+    provider = _PerConformerProvider(energies=[-100.0, -100.0], shifts=[30.0, 10.0])
+    service, bus = _make_service(tmp_path, provider)
+    events: list[SpectrumComputed] = []
+    bus.subscribe(SpectrumComputed, events.append)
+    states = []
+    bus.subscribe(QuantumChemistryJobStateChanged, lambda e: states.append(e.state))
+
+    mol = Chem.MolFromSmiles("CCO")
+    service.request_boltzmann_nmr(
+        mols=[mol, mol], molecule_uuid="mol-1", calc_type="nmr", charge=0, multiplicity=1,
+        method_basis="B3LYP pcSseg-1", provider_id="fake",
+        input_fingerprint="fp-set", calculation_input=ENSEMBLE,
+    )
+    assert _wait_until(qapp, lambda: states and states[-1] in (CacheState.COMPLETED, CacheState.FAILED))
+
+    assert states[-1] == CacheState.COMPLETED
+    assert [(e.input_fingerprint, e.calculation_input) for e in events] == [("fp-set", ENSEMBLE)]
+    assert events[0].spectrum.provenance.parameters["run_method_basis"] == "B3LYP pcSseg-1"
+
+
+def test_a_caller_with_no_model_behind_the_molecule_publishes_no_identity(qapp, tmp_path):
+    """Empty stays empty -- the inspector withholds it rather than the
+    service inventing an identity it cannot vouch for."""
+    provider = _NmrSpectrumProvider()
+    service, bus = _make_service(tmp_path, provider)
+    events: list[SpectrumComputed] = []
+    bus.subscribe(SpectrumComputed, events.append)
+    states = []
+    bus.subscribe(QuantumChemistryJobStateChanged, lambda e: states.append(e.state))
+
+    service.request_calculation(
+        mol=Chem.MolFromSmiles("O"), molecule_uuid="mol-1", calc_type="nmr", charge=0,
+        multiplicity=1, method_basis="HF STO-3G", provider_id="fake",
+    )
+    assert _wait_until(qapp, lambda: states and states[-1] in (CacheState.COMPLETED, CacheState.FAILED))
+
+    assert [(e.input_fingerprint, e.calculation_input) for e in events] == [("", "")]

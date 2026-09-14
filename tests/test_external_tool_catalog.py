@@ -21,7 +21,7 @@ from PySide6.QtWidgets import QMessageBox
 from openchem.app.settings import Settings
 from openchem.events.base import EventBus
 from openchem.ui.dialogs import external_tool_catalog as catalog
-from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
+from openchem.ui.dialogs.external_tools_pages import ExternalToolsPages
 
 ALL_DESCRIPTORS = ("java", "nmr_database", "pkasolver", "admet")
 SIDECARS = ("pkasolver", "admet")
@@ -183,7 +183,7 @@ def test_a_blocked_precondition_never_starts_the_install(qapp, monkeypatch):
     import openchem.services.java_setup as java_setup
 
     monkeypatch.setattr(java_setup, "system_java_home", lambda: "C:/java")
-    dialog = ExternalToolsDialog(Settings(EventBus()))
+    dialog = ExternalToolsPages(Settings(EventBus()))
     tab = dialog._tab_for("java")
 
     started = []
@@ -202,7 +202,7 @@ def test_a_failed_install_re_enables_its_button(key, qapp):
     """`_on_setup_clicked` disables the button so it cannot be pressed
     twice. If the failure path forgets to restore it, the only way to
     retry is to close and reopen the dialog."""
-    dialog = ExternalToolsDialog(Settings(EventBus()))
+    dialog = ExternalToolsPages(Settings(EventBus()))
     tab = dialog._tab_for(key)
     tab.setup_button.setEnabled(False)
 
@@ -225,7 +225,7 @@ def test_admet_keeps_an_environment_that_built_but_failed_its_check(qapp, tmp_pa
     monkeypatch.setattr(admet_setup, "default_install_root", lambda: tmp_path)
     monkeypatch.setattr(admet_setup, "interpreter_for", lambda root: interpreter)
 
-    dialog = ExternalToolsDialog(Settings(EventBus()))
+    dialog = ExternalToolsPages(Settings(EventBus()))
     tab = dialog._tab_for("admet")
     tab._failed("model load timed out")
 
@@ -240,7 +240,7 @@ def test_admet_reports_a_plain_failure_when_nothing_was_built(qapp, tmp_path, mo
     monkeypatch.setattr(admet_setup, "default_install_root", lambda: tmp_path)
     monkeypatch.setattr(admet_setup, "interpreter_for", lambda root: tmp_path / "absent.exe")
 
-    dialog = ExternalToolsDialog(Settings(EventBus()))
+    dialog = ExternalToolsPages(Settings(EventBus()))
     tab = dialog._tab_for("admet")
     tab._failed("no network")
 
@@ -257,7 +257,7 @@ def test_removing_a_component_refreshes_every_tool_tab(qapp, monkeypatch):
     just been deleted and cleared from settings -- exactly the
     configured-but-broken state that method exists to prevent.
     """
-    dialog = ExternalToolsDialog(Settings(EventBus()))
+    dialog = ExternalToolsPages(Settings(EventBus()))
     refreshed: list[str] = []
     for tab in dialog._tool_tabs:
         monkeypatch.setattr(
@@ -279,7 +279,7 @@ def test_every_sidecar_tab_offers_the_full_affordance_set(key, qapp):
     """Generalises the ADMET-only version of this check. A tab that can be
     configured but not installed, or installed but not removed, is the gap
     that made the pkasolver and STOUT tabs frustrating."""
-    dialog = ExternalToolsDialog(Settings(EventBus()))
+    dialog = ExternalToolsPages(Settings(EventBus()))
     tab = dialog._tab_for(key)
 
     assert tab.path_row is not None
@@ -293,7 +293,7 @@ def test_every_sidecar_tab_offers_the_full_affordance_set(key, qapp):
 def test_a_sidecar_writes_its_path_to_the_setting_its_calculator_reads(name, qapp):
     """A mismatch here looks configured and behaves unconfigured."""
     settings = Settings(EventBus())
-    dialog = ExternalToolsDialog(settings)
+    dialog = ExternalToolsPages(settings)
     descriptor = _descriptor(name)
     tab = dialog._tab_for(descriptor.key)
 

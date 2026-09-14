@@ -14,6 +14,7 @@ and none works alone.
 from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QRegion
 from PySide6.QtWidgets import (
     QFormLayout,
     QLabel,
@@ -143,10 +144,42 @@ class ClampedLabel(WrappedLabel):
         super().resizeEvent(event)
         if event.oldSize().width() != event.size().width():
             self.updateGeometry()
+        self._show_whole_lines_only()
 
     def setText(self, text: str) -> None:  # noqa: N802 - Qt's own casing
         super().setText(text)
         self.updateGeometry()
+        self._show_whole_lines_only()
+
+    def _show_whole_lines_only(self) -> None:
+        """Mask off a line the height it was given cuts through.
+
+        **"PREFER THREE, ACCEPT ONE" ALSO MEANS ACCEPTING TWO AND A HALF.** A
+        box layout hands a note anything between its one-line minimum and its
+        three-line hint, and a top-aligned label paints into all of it -- so a
+        second line whose top half fit was drawn with its bottom half cut off.
+        Magnified in the Results reader docked across the top at 190 px, once
+        the reader had 10 px to spare: 27 px for a note whose lines are 18.
+
+        Masked rather than laid out differently, because the layout cannot be
+        asked for whole-line heights. The spare pixels stay blank; the text,
+        `is_truncated` and More are unchanged.
+        """
+        width, height = self.width(), self.height()
+        if width <= 0 or height <= 0 or not self.text() or self.full_height(width) <= height:
+            self.clearMask()
+            return
+        shown = self._lines_height(1, width)
+        lines = 2
+        while True:
+            taller = self._lines_height(lines, width)
+            if taller > height or taller <= shown:
+                break
+            shown, lines = taller, lines + 1
+        if shown >= height:
+            self.clearMask()
+        else:
+            self.setMask(QRegion(0, 0, width, shown))
 
     def _lines_height(self, lines: int, width: int) -> int:
         """The height THIS label would take for exactly `lines` lines.
@@ -174,6 +207,7 @@ class ClampedLabel(WrappedLabel):
     def set_expanded(self, expanded: bool) -> None:
         self._expanded = bool(expanded)
         self.updateGeometry()
+        self._show_whole_lines_only()
 
     def is_expanded(self) -> bool:
         return self._expanded
@@ -237,9 +271,12 @@ class ExplicitHeightLabel(QLabel):
     unrelated `formula` row dropped from 16 px to 14 at the same moment.
 
     A `heightForWidth` is an OFFER a layout may recompute and get wrong;
-    a fixed height is a fact. So this label reports no height-for-width
-    at all and keeps its own fixed height correct, on every text change
-    and every resize.
+    a stated height is a fact. So this label reports no height-for-width
+    at all and states the height its text needs at the width it HAS, on
+    every text change and every resize -- as its size hint under a
+    `Fixed` policy, and NEVER as an explicit minimum.
+    `_match_height_to_text` has the measurement that made that last
+    clause part of the contract.
 
     Proven by removal: with this label AND `DontWrapRows` (see
     `CollapsibleSection`, whose policy makes the form height-for-width by
@@ -249,15 +286,19 @@ class ExplicitHeightLabel(QLabel):
 
     def __init__(self, text: str = "", parent: QWidget | None = None) -> None:
         super().__init__(text, parent)
+        #: The height stated for the current width and text; 0 until measured.
+        self._stated_height = 0
         self.setWordWrap(True)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         # TOP-aligned because the height is stated rather than negotiated.
-        # A `QLabel` centres vertically by default, so wherever the stated
-        # height exceeds what the text draws -- `heightForWidth` reserves
-        # 144 px for the Elemental Analysis report where the glyphs use
-        # about 96 -- the slack appears as a gap ABOVE the first line,
-        # which reads as a broken row. Top-aligned it becomes trailing
-        # space, which reads as nothing at all.
+        # A `QLabel` centres vertically by default, so wherever a stated
+        # height exceeds what the text draws the slack appears as a gap
+        # ABOVE the first line, which reads as a broken row; top-aligned it
+        # is trailing space, which reads as nothing at all. It was recorded
+        # here as 144 px stated for the Elemental Analysis report where the
+        # glyphs used about 96. A height left over from a narrower width is
+        # the one cause of such slack since measured, and it is closed (see
+        # `_match_height_to_text`); the alignment stays for any other.
         self.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         self._match_height_to_text()
 
@@ -318,18 +359,71 @@ class ExplicitHeightLabel(QLabel):
         super().resizeEvent(event)
         self._match_height_to_text()
 
+    def sizeHint(self) -> QSize:  # noqa: N802 - Qt's own casing
+        """The stated height, and `QLabel`'s width.
+
+        `sizeHint` alone, not `minimumSizeHint` too: for a `Fixed` policy the
+        layout takes the larger of the two, and `QLabel`'s own minimum is a
+        single line. Overriding both let each cover for the other's removal.
+        Without this, `QLabel`'s own guess stands, made for a width it picks
+        itself. Measured, a row 110 px tall where its text needed 250 --
+        cut off -- and 110 where it needed 54.
+        """
+        hint = super().sizeHint()
+        # `getattr`: a hint asked for before `__init__` has set anything.
+        stated = getattr(self, "_stated_height", 0)
+        if stated > 0:
+            hint.setHeight(stated)
+        return hint
+
     def _match_height_to_text(self) -> None:
+        """State the height the text needs at the width the label has.
+
+        **A SIZE HINT AND NEVER AN EXPLICIT MINIMUM, because
+        `QLabel.heightForWidth` never answers below the label's own minimum
+        height.** `QLabelPrivate::sizeForWidth` ends by expanding to
+        `minimumSize()`: measured, a label held at 1608 px answers 1608 at a
+        width where its text needs 250. This used to `setFixedHeight` what
+        that call returned and then ask it again, so a stated height could
+        grow and never come back down -- and the first width it is ever
+        asked about is Qt's 100 px default for a child widget, before any
+        layout pass. Every row that wraps at 100 px kept that height.
+        Measured in the Results reader at its default docked width, on the
+        pH-dependent charges result for fentanyl:
+
+            row       width  held    its text needs   held = the need at
+            Finding     251  272 px  96 px, 6 lines   100 px
+            Keyed to    251   48 px  16 px, 1 line    106 px
+
+        To a layout a hint under a `Fixed` policy binds as a fixed height
+        does: the item's minimum, maximum and hint are all the hint. In the
+        section chain, widened, narrowed and widened again, the hint and an
+        honestly measured fixed height gave the same section heights and the
+        same layout passes. Two other repairs
+        were measured and not taken. Lifting the minimum around the call
+        invalidated the parent layout on every change event, three layout
+        requests for three no-op events against none. And a hidden probe
+        label must copy every property that sizes text to stay right. See
+        docs/LESSONS.md.
+
+        **SO NOTHING MAY GIVE THIS LABEL AN EXPLICIT MINIMUM HEIGHT.**
+        `setFixedHeight` or `setMinimumHeight` from a host puts the floor
+        back.
+        """
         self._stop_offering_height_for_width()
         width = self.width()
-        # Before the first layout pass there is no width to wrap against,
-        # and `heightForWidth` would be answering about nothing.
+        # Not a wait for the first layout pass: Qt reports 100, not 0, for a
+        # child widget nobody has sized. That first answer is a guess the
+        # first real width corrects, which only works because nothing
+        # floors the correction.
         if width <= 0:
             return
         wanted = self.heightForWidth(width)
-        # Guarded because `setFixedHeight` triggers another resize; with
-        # the width unchanged the second pass agrees and it settles.
-        if wanted > 0 and wanted != self.minimumHeight():
-            self.setFixedHeight(wanted)
+        # Guarded because a new hint makes the layout resize this label;
+        # with the width unchanged the second pass agrees and it settles.
+        if wanted > 0 and wanted != self._stated_height:
+            self._stated_height = wanted
+            self.updateGeometry()
 
     def _stop_offering_height_for_width(self) -> None:
         """Clear the size policy's height-for-width flag HERE, not in

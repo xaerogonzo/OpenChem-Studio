@@ -219,6 +219,10 @@ MIN_VISIBLE_FACT_ROWS = 3
 #: in average character widths -- enough for "Filter facts" to be legible.
 _SEARCH_MIN_CHARS = 18
 
+#: Pixels between rows in compact mode, against the style's own (6 on the
+#: Windows style this ships on). See `FactView.set_compact`.
+_COMPACT_SPACING = 2
+
 
 class _ClampedNote(QWidget):
     """A pinned note that folds to `NOTE_LINES` lines, with More/Less.
@@ -420,6 +424,9 @@ class FactView(QWidget):
         layout.addWidget(self._controls)
         layout.addWidget(self._area, 1)
         layout.addWidget(self._status)
+        self._layout = layout
+        #: The style's own spacing, restored when compact mode ends.
+        self._normal_spacing = layout.spacing()
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self._on_context_menu)
@@ -602,6 +609,28 @@ class FactView(QWidget):
 
     def title_text(self) -> str:
         return self._title.text()
+
+    def set_title_shown(self, shown: bool) -> None:
+        """Whether the bold title LINE is drawn. Its text is kept either way.
+
+        For a host whose own control already names what is showing -- the
+        Results reader's "Showing" box carries the same name, stale mark
+        included, so the line repeated it at the cost of a row. `title_text`
+        and `open_in_window` still read the text, so nothing that uses the
+        title as a name loses it.
+        """
+        self._title.setVisible(shown)
+
+    def set_compact(self, compact: bool) -> None:
+        """Tighter spacing between the rows, for a host that is short.
+
+        Spacing only -- no row is removed and the fact floor is untouched, so
+        compact changes how much air there is, never what can be read.
+        """
+        self._layout.setSpacing(_COMPACT_SPACING if compact else self._normal_spacing)
+
+    def is_compact(self) -> bool:
+        return self._layout.spacing() == _COMPACT_SPACING and self._normal_spacing != _COMPACT_SPACING
 
     def summary_text(self) -> str:
         """The pinned line above the sections -- what `set_report`'s `summary`

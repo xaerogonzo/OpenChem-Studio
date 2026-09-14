@@ -1,0 +1,22 @@
+[
+  {"do": "smiles", "smiles": "CO", "name": "Methanol", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 1, "after_ms": 20000},
+  {"do": "report", "tag": "first-search", "after_ms": 1000},
+
+  {"do": "panel", "id": "Quantum_Chemistry", "after_ms": 1500},
+  {"do": "qc_run", "calc_type": "NMR (raw shielding)", "method": "HF def2-SVP", "after_ms": 120000},
+
+  {"do": "panel", "id": "Atom_Inspector", "after_ms": 2000},
+  {"do": "select_atom", "atom": 0, "after_ms": 1500},
+  {"do": "inspector_report", "tag": "fresh", "expect_spectrum": "fresh", "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/qm_shift_fresh.png", "after_ms": 1000},
+
+  {"do": "conformers", "count": 1, "after_ms": 20000},
+  {"do": "report", "tag": "second-search", "after_ms": 1000},
+  {"do": "select_atom", "atom": 0, "after_ms": 1500},
+  {"do": "inspector_report", "tag": "after-new-search", "expect_spectrum": "stale", "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/qm_shift_after_new_search.png", "after_ms": 1000},
+
+  {"do": "quit"}
+]

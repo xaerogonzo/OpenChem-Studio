@@ -173,7 +173,9 @@ distributable, are in [docs/QUICKSTART.md](docs/QUICKSTART.md).
 None are required. The app runs without all of them, and each missing tool
 degrades to a clearly-labelled "not installed" state rather than an error.
 All are installed from **Tools > External Tools**, into a configurable data
-directory rather than into the application.
+directory rather than into the application. That opens the External tools
+section of **Edit > Settings** (Ctrl+,), which also holds the app's other
+preferences.
 
 | Tool | Unlocks |
 |---|---|

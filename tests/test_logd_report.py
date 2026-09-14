@@ -12,7 +12,6 @@ precision from the same functions it called; each branch is pinned.
 
 from __future__ import annotations
 
-from types import SimpleNamespace
 
 import pytest
 from rdkit import Chem
@@ -44,9 +43,15 @@ PKAS = {IBUPROFEN: [4.91], PROPRANOLOL: [9.42]}
 def pkasolver(monkeypatch):
     def configure(available: bool, smiles: str = IBUPROFEN):
         monkeypatch.setattr(pka_providers, "pka_predictor_available", lambda _path: available)
+        # The REAL prediction type, unmapped: `compute_logd` now also hands
+        # the predictions to the ionization cross-check, which reads fields a
+        # bare namespace does not have. Unmapped means "not compared" there,
+        # so nothing these recorded scalars depend on moves.
         monkeypatch.setattr(
             pka_providers, "compute_pka",
-            lambda _mol, _path: [SimpleNamespace(value=v) for v in PKAS.get(smiles, [])],
+            lambda _mol, _path: [
+                pka_providers.PkaPrediction(atom_index=None, value=v) for v in PKAS.get(smiles, [])
+            ],
         )
     return configure
 

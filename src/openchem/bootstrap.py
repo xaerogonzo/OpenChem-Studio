@@ -210,6 +210,9 @@ _CALCULATOR_INTERPRETER_SETTING: dict[str, str | dict[str, str]] = {
     "isoelectric_point": PKASOLVER_PYTHON_SETTING,
     "cns_mpo": PKASOLVER_PYTHON_SETTING,
     "bbb_descriptors": PKASOLVER_PYTHON_SETTING,
+    # For its ionization-model cross-check only: the charges are computed on
+    # Dimorphite-DL's species with or without it.
+    "gasteiger_charge_at_ph": PKASOLVER_PYTHON_SETTING,
     # ADMET-AI (hERG / CYP / Ames)
     "admet_ml": ADMET_PYTHON_SETTING,
     # Both, independently.
@@ -335,5 +338,5 @@ def build_service_container() -> ServiceContainer:
         reaction_template_service=ReactionTemplateService(),
         # Subscribes to the result envelopes at construction, so nothing a
         # calculator records can arrive before there is a store to take it.
-        result_store_service=ResultStoreService(event_bus, engine),
+        result_store_service=ResultStoreService(event_bus, engine, settings),
     )

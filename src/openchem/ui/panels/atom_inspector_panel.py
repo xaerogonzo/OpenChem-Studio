@@ -48,7 +48,7 @@ from openchem.chem.bond_report import bond_label, build_bond_report
 from openchem.chem.molecule_report import build_molecule_report
 from openchem.chem.calculation_input import input_fingerprint
 from openchem.chem.engine import ChemistryEngine
-from openchem.domain.calculator import DRAWING
+from openchem.domain.calculator import DRAWING, ENSEMBLE, GEOMETRY
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 from openchem.domain.molecule_report import MoleculeReport
 from openchem.domain.atom_report import (
@@ -57,6 +57,7 @@ from openchem.domain.atom_report import (
 from openchem.domain.project import ProjectModel
 from openchem.events.base import EventBus
 from openchem.events.events import (
+    ConformersChanged,
     MoleculeSelected,
     PerAtomDataComputed,
     SpectrumComputed,
@@ -247,14 +248,17 @@ class AtomInspectorPanel(QWidget):
 
         #: molecule uuid -> everything that has arrived by event for it.
         self._context: dict[str, dict] = {}
-        #: (molecule uuid, structure version, subject, index) -> report.
-        #: One cache for all three kinds: the key already had to carry
-        #: the version, and adding the subject to it is cheaper than
-        #: three dicts that can fall out of step on invalidation.
-        self._cache: dict[tuple[str, int, str, str, int], object] = {}
-        #: (name, state) of every held result `_current_context` kept off the
-        #: current atoms, for the line that says so. See `_withheld_line`.
-        self._withheld: tuple[tuple[str, str], ...] = ()
+        #: (molecule uuid, structure version, drawing fingerprint, subject,
+        #: index, held-input fingerprints) -> report. One cache for all three
+        #: kinds: the key already had to carry the version, and adding the
+        #: subject to it is cheaper than three dicts that can fall out of
+        #: step on invalidation. See `_report_for` for the fingerprints.
+        self._cache: dict[tuple, object] = {}
+        #: (name, state, calculation input) of every held result
+        #: `_current_context` kept off the current atoms, for the line that
+        #: says so. The input is kept so that line can name WHAT moved on --
+        #: a structure, a conformer or a conformer set. See `_withheld_line`.
+        self._withheld: tuple[tuple[str, str, str], ...] = ()
         self._sections: dict[str, CollapsibleSection] = {}
 
         self._atom_table = QTableWidget(0, len(_ATOM_COLUMNS), self)
@@ -325,6 +329,11 @@ class AtomInspectorPanel(QWidget):
         event_bus.subscribe(PerAtomDataComputed, self._on_per_atom_data)
         event_bus.subscribe(SpectrumComputed, self._on_spectrum)
         event_bus.subscribe(StructureChecked, self._on_structure_checked)
+        # A new conformer search changes what a GEOMETRY or ENSEMBLE result
+        # is fresh against without touching the drawing, so it is a reason
+        # to rebuild exactly as an edit is. Every conformer change -- a
+        # search, its undo, the clearing an edit causes -- publishes this.
+        event_bus.subscribe(ConformersChanged, lambda event: self._invalidate(event.molecule_uuid))
 
     # --- what it is showing -------------------------------------------------
     #
@@ -542,8 +551,14 @@ class AtomInspectorPanel(QWidget):
         # version is the structure checker's counter and is 0 with no checker
         # at all, and freshness below is decided by fingerprint, so a key
         # without it could hand back a report built before an edit.
+        #
+        # **AND SO IS EVERY OTHER INPUT A HELD RESULT IS FRESH AGAINST.** A
+        # QM shift is stamped with its conformer; a new conformer search
+        # leaves the drawing -- and so a drawing-only key -- unchanged, and
+        # the cached report kept showing the old shift. Found by the test
+        # written for exactly that, not by reading.
         drawing = input_fingerprint(self._engine, model, DRAWING)
-        key = (model.uuid, version, drawing, self._subject, index)
+        key = (model.uuid, version, drawing, self._subject, index, self._held_input_fingerprints(model))
         cached = self._cache.get(key)
         if cached is not None:
             return cached
@@ -568,6 +583,25 @@ class AtomInspectorPanel(QWidget):
             report = build_atom_report(mol, index, **common)
         self._cache[key] = report
         return report
+
+    def _held_input_fingerprints(self, model) -> tuple[tuple[str, str], ...]:
+        """The CURRENT fingerprint of every non-drawing input a held result names.
+
+        Empty when everything held is a drawing result, which is the common
+        case and costs nothing. An input that cannot be resolved contributes
+        an empty fingerprint -- it still changes the key when it later can.
+        """
+        kinds = sorted(
+            {kind for kind, _ in self._context_for(model.uuid).get("inputs", {}).values()}
+            - {"", DRAWING}
+        )
+        current = []
+        for kind in kinds:
+            try:
+                current.append((kind, input_fingerprint(self._engine, model, kind)))
+            except Exception:  # noqa: BLE001 - an unknown kind vouches for nothing, and changes nothing
+                current.append((kind, ""))
+        return tuple(current)
 
     def _freshness(self, model, calculation_input: str, fingerprint: str, cache: dict) -> str:
         """FRESH, STALE or UNVERIFIABLE: may these indices be read as `model`'s?
@@ -605,37 +639,29 @@ class AtomInspectorPanel(QWidget):
         into. The Results reader still holds the old result, marked stale,
         for anyone who wants it.
 
-        Spectra are withheld only when they carry an identity that differs.
-        One WITHOUT an identity is shown as before: the ORCA service
-        publishes spectra from a bare molecule with no model behind it, and
-        treating those as unverifiable would remove every QM NMR shift from
-        this panel. That is a recorded gap, not a verified pass.
+        **SPECTRA FOLLOW THE SAME RULE, AND UNTIL 2026-09-14 THEY DID NOT.**
+        An ORCA spectrum used to arrive with no identity and was shown
+        unchecked, because withholding it would have removed every QM shift
+        from this panel. The QC service now stamps each spectrum with the
+        conformer (GEOMETRY) or conformer set (ENSEMBLE) it was submitted
+        with, so an identity-less spectrum can only come from code that
+        cannot vouch for it -- and is withheld like any other.
         """
         held = self._context_for(model.uuid)
         inputs = held.get("inputs", {})
         current: dict[str, str] = {}
-        withheld: list[tuple[str, str]] = []
-        per_atom = {}
-        for key, dataset in held["per_atom"].items():
-            calculation_input, fingerprint = inputs.get(("per_atom", key), ("", ""))
-            state = self._freshness(model, calculation_input, fingerprint, current)
-            if state == FRESH:
-                per_atom[key] = dataset
-            else:
-                withheld.append((getattr(dataset, "name", key), state))
-        spectra = {}
-        for key, spectrum in held["spectra"].items():
-            calculation_input, fingerprint = inputs.get(("spectra", key), ("", ""))
-            if fingerprint:
+        withheld: list[tuple[str, str, str]] = []
+        kept: dict[str, dict] = {"per_atom": {}, "spectra": {}}
+        for kind in ("per_atom", "spectra"):
+            for key, result in held[kind].items():
+                calculation_input, fingerprint = inputs.get((kind, key), ("", ""))
                 state = self._freshness(model, calculation_input, fingerprint, current)
-            else:
-                state = FRESH
-            if state == FRESH:
-                spectra[key] = spectrum
-            else:
-                withheld.append((getattr(spectrum, "name", key), state))
+                if state == FRESH:
+                    kept[kind][key] = result
+                else:
+                    withheld.append((getattr(result, "name", key), state, calculation_input))
         self._withheld = tuple(withheld)
-        return {**held, "per_atom": per_atom, "spectra": spectra}
+        return {**held, **kept}
 
     def _on_row_selected(self) -> None:
         items = self._atom_table.selectedItems()
@@ -889,22 +915,34 @@ __all__ = ["AtomInspectorPanel", "format_report", "report_header"]
 _SUMMARY_LABELS = ("Formula", "Molecular weight", "TPSA", "LogP", "HBA", "HBD")
 
 
-def _withheld_line(withheld: tuple[tuple[str, str], ...]) -> str:
+#: What a STALE result was computed for, by the input it recorded. Named,
+#: because "an earlier structure" is wrong for a QM shift whose drawing never
+#: changed: it is the CONFORMER that moved on, and a reader told the
+#: structure changed goes looking for an edit that never happened.
+_EARLIER = {GEOMETRY: "an earlier conformer", ENSEMBLE: "an earlier conformer set"}
+
+
+def _withheld_line(withheld: tuple[tuple[str, str, str], ...]) -> str:
     """Say what is NOT shown, and why -- in the pinned line, not a tooltip.
 
     Withholding silently would read as "never computed", which sends
     somebody to run a calculation they already ran. The two reasons are
-    worded differently because they are different claims.
+    worded differently because they are different claims, and a stale
+    result says what it was computed for.
     """
     if not withheld:
         return ""
-    stale = sorted(name for name, state in withheld if state == STALE)
-    unknown = sorted(name for name, state in withheld if state == UNVERIFIABLE)
+    stale_by_input: dict[str, list[str]] = {}
+    for name, state, calculation_input in withheld:
+        if state == STALE:
+            earlier = _EARLIER.get(calculation_input, "an earlier structure")
+            stale_by_input.setdefault(earlier, []).append(name)
+    unknown = sorted(name for name, state, _ in withheld if state == UNVERIFIABLE)
     parts = []
-    if stale:
+    for earlier in sorted(stale_by_input):
         parts.append(
-            f"Not shown: {', '.join(stale)} -- computed for an earlier structure; "
-            "run it again to inspect atoms."
+            f"Not shown: {', '.join(sorted(stale_by_input[earlier]))} -- computed for "
+            f"{earlier}; run it again to inspect atoms."
         )
     if unknown:
         parts.append(

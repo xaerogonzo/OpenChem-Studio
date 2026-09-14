@@ -82,7 +82,11 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "units", "key": "mg_per_ml"}   the reader's Units COMBO, and what
                                           the chart and unit rows then say
     {"do": "reader_layout_report", "tag": "beside"}  whole fact ROWS on
-                                          screen, through every clipping parent
+                                          screen, through every clipping parent,
+                                          and every CHROME row (reader_chrome)
+    {"do": "fact_rows_report", "tag": "docked"}  each value row's height
+                                          against its TEXT's, never the row's
+                                          own answer, which is floored
     {"do": "dock_resize", "panel": "Results", "width": 380}
     {"do": "chart_cursor", "x": 7.4}       a REAL click on the line chart,
                                           and the kept reading beside the fact
@@ -91,6 +95,10 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "shot",       "path": "...", "widget": "lewis"}
     {"do": "dialog",     "name": "HelpDialog"}   built by ui/dialogs/inventory
     {"do": "dialog",     "name": "PeriodicTableDialog", "tab": "Isotopes"}
+    {"do": "dialog",     "name": "SettingsDialog", "section": "results"}
+    {"do": "control",    "name": "railHidesPanels", "value": false}  a NAMED
+                                          control of the open dialog, for real
+    {"do": "close_dialog"}                before a key that needs MainWindow active
     {"do": "shot",       "path": "...", "widget": "dialog"}
     {"do": "overlay",    "on": true, "gallery": true, "step": 1}
     {"do": "cip",        "on": true}          R/S and E/Z, through the menu
@@ -103,6 +111,9 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                               whether the PAGE is still in it
     {"do": "key", "key": "F7", "focus": "canvas"}  a REAL key, at the
     {"do": "key", "key": "Escape", "focus": "explorer"}   focus widget
+    {"do": "key", "key": "Comma", "modifiers": "ctrl", "close_modal_after_ms": 1500}
+                                          a shortcut that opens a MODAL: the
+                                          log names it, and the ACTIVE window
     {"do": "geometry_report", "tag": "flat"}   z spread AND the conformers
     {"do": "adopt"}                            the REAL "Use in 2D Editor"
     {"do": "select_atom", "atom": 4}       the inspector ROW, and
@@ -112,6 +123,11 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "jobs_cancel", "row": 0}           the real button in a real row
     {"do": "screen_run",  "receptor": 0}      the REAL Run button, and the
                                               PREP DICT the service got
+    {"do": "qc_run", "calc_type": "NMR (raw shielding)", "method": "HF def2-SVP"}
+                                              REAL ORCA, and the IDENTITY
+                                              the service was handed
+    {"do": "inspector_report", "expect_spectrum": "stale"}  ASSERTS the held
+                                              spectrum carries that identity
     {"do": "save_project", "path": "..."}     the REAL save, results included
     {"do": "dock_move", "panel": "Results", "area": "top"}   as a drop
     {"do": "dock_move", "panel": "Results", "beside": "Properties"}
@@ -268,7 +284,10 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- A ROW KEPT THE HEIGHT ITS TEXT NEEDS AT 100 PX, BECAUSE QLABEL FLOORS ITS OWN ANSWER
+- A CALLER'S ATOM MAPS REACHED THE LIBRARY, AND THE ORACLE HAD TO AVOID THE RULE IT TESTED
 - A FOOTNOTE ON THE NEXT COLUMN IS NOT A FLAG ON THIS ONE
+- A SETTING EXPOSES WHAT ITS DEFAULT HID, AND ENTER PRESSED A BUTTON NOBODY CHOSE
 - THE SMILES ROUND TRIP DROPPED THE INDEX SPACE, AND ATOM MAPS WERE THE WRONG REPAIR
 - OPEN BABEL'S QEQ HAS THE WRONG SIGN, AND THE FIRST DIAGNOSIS NAMED TWO WRONG CAUSES
 - A PARTIAL RESTORE IS NOT A CACHE HIT, AND THREE DEFECTS ONLY RUNNING FOUND

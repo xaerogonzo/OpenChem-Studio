@@ -7,7 +7,9 @@ path to the user's configured pkasolver environment's interpreter (see
 that must not be forced onto this project (which runs numpy 2.x).
 
 Reads a SMILES string from argv, writes JSON to stdout:
-    {"pkas": [{"pka": 4.82, "atom_idx": 7, "site_smiles": "...", ...}, ...]}
+    {"pkas": [{"pka": 4.82, "atom_idx": 7, "site_smiles": "...",
+               "protonated_smiles": "...", "deprotonated_smiles": "...", ...}, ...],
+     "pkasolver_version": "..."}
     {"error": "..."}
 
 `atom_idx` indexes `site_smiles`, NOT the caller's molecule -- see
@@ -108,7 +110,12 @@ def main(argv: list[str]) -> int:
         # objects: `reaction_center_idx` (the atom being protonated/
         # deprotonated at that pKa) and `pka_stddev` (spread across the
         # 50-model ensemble -- real, model-reported uncertainty, worth
-        # surfacing rather than discarding).
+        # surfacing rather than discarding). `protonated_mol` and
+        # `deprotonated_mol` confirmed 2026-09-14, indexed like `ph7_mol`.
+        def tagged(state, name):
+            microstate = getattr(state, name, None)
+            return _indexed_smiles(microstate) if microstate is not None else ""
+
         pkas = [
             {
                 "pka": float(s.pka),
@@ -116,14 +123,23 @@ def main(argv: list[str]) -> int:
                 "stddev": float(getattr(s, "pka_stddev", 0.0)),
                 # The structure `atom_idx` actually indexes. Without it the
                 # index is unusable on the far side of the process boundary.
-                "site_smiles": _indexed_smiles(s.ph7_mol) if getattr(s, "ph7_mol", None) is not None else "",
+                "site_smiles": tagged(s, "ph7_mol"),
+                # What the prediction ENCODES about the site on either side
+                # of its pKa -- the model's own two states, so the app never
+                # has to infer the direction from calling the site an acid
+                # or a base.
+                "protonated_smiles": tagged(s, "protonated_mol"),
+                "deprotonated_smiles": tagged(s, "deprotonated_mol"),
             }
             for s in states
         ]
+        import pkasolver
+
+        version = str(getattr(pkasolver, "__version__", "") or "unknown")
     except Exception as exc:  # noqa: BLE001 - any failure must come back as JSON, not a traceback on stdout
         json.dump({"error": f"{type(exc).__name__}: {exc}"}, sys.stdout)
         return 1
-    json.dump({"pkas": pkas}, sys.stdout)
+    json.dump({"pkas": pkas, "pkasolver_version": version}, sys.stdout)
     return 0
 
 

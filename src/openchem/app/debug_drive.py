@@ -52,6 +52,12 @@ The script is a JSON list of steps, run in order:
                                                        AND the page
       {"do": "key",              "key": "F7"},          a REAL key, at
       {"do": "key", "key": "Escape", "focus": "canvas"}  the focus widget
+      {"do": "key", "key": "Comma", "modifiers": "ctrl", "focus": "canvas",
+                    "close_modal_after_ms": 1500}  a shortcut that opens a
+                                                   modal: named, then closed
+      {"do": "control",          "name": "railHidesPanels", "value": false}
+                                              a named control of the open
+                                              dialog, operated for real
       {"do": "geometry_report",  "tag": "flat"},        z spread AND the
                                                        conformers
       {"do": "select_atom",      "atom": 4}    the inspector ROW, plus
@@ -72,6 +78,11 @@ The script is a JSON list of steps, run in order:
       {"do": "screen_run",       "receptor": 0}   the REAL Run button
       {"do": "screen_run",       "receptor": 0, "exhaustiveness": 32,
                                  "scoring_function": "vinardo", "seed": 4712},
+      {"do": "qc_run",           "calc_type": "NMR (raw shielding)",
+                                 "method": "HF-3c"}   the REAL Run button,
+                                                      and the identity the
+                                                      SERVICE was handed
+      {"do": "inspector_report", "expect_spectrum": "stale"}   asserts it
       {"do": "quit"}
     ]
 
@@ -386,6 +397,72 @@ class _Driver(QObject):
             return
         combo.setCurrentIndex(index)
         logger.warning("OPENCHEM_DRIVE: dock_receptor -> %r", combo.currentText())
+
+    def _do_qc_run(self, step: dict[str, Any]) -> None:
+        """Press the Quantum Chemistry panel's Run button, for real, and log the
+        identity the SERVICE was handed.
+
+        `{"do": "qc_run", "calc_type": "NMR (raw shielding)", "method": "HF-3c",
+        "boltzmann": false, "after_ms": 120000}`
+
+        **WHAT THE SERVICE RECEIVED, read off its own job record** --
+        `_active_jobs` or `_boltzmann_runs`, both set synchronously by the
+        request -- rather than what the panel believes it sent, the distinction
+        `screen_run` reads its prep dict for. It is also REMEMBERED, so a later
+        `inspector_report` with `expect_spectrum` can assert that the spectrum
+        it holds carries exactly this identity rather than trusting a banner:
+        a generic "stale" line would read the same if the wrong conformer
+        happened to be compared against the current one.
+
+        The panel's own combos and checkbox are SET, then the button is
+        clicked, for the reason `dock_run` sets its spin box. The panel's
+        molecule combo is pointed at the Properties selection first; nothing
+        else moves it, and without that the run computes whatever the combo
+        last held.
+
+        ORCA runs for real, so give the step an `after_ms` long enough for the
+        job to finish before any report that expects its spectrum.
+        """
+        from openchem.ui.molecule_combo import select
+
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: qc_run -- no Quantum Chemistry panel on this window")
+            return
+        molecule_uuid = self._window._property_panel._selected_molecule_uuid
+        if not select(panel._molecule_combo, molecule_uuid):
+            logger.error("OPENCHEM_DRIVE: qc_run -- the selected molecule is not in the panel's combo")
+            return
+        calc_type = step.get("calc_type")
+        if calc_type is not None:
+            index = panel._calc_type_combo.findText(str(calc_type))
+            if index < 0:
+                logger.error("OPENCHEM_DRIVE: qc_run -- calc_type %r matches no item", calc_type)
+                return
+            panel._calc_type_combo.setCurrentIndex(index)
+        if step.get("method") is not None:
+            panel._method_combo.setCurrentText(str(step["method"]))
+        panel._boltzmann_check.setChecked(bool(step.get("boltzmann", False)))
+        if not panel._run_button.isEnabled():
+            logger.error("OPENCHEM_DRIVE: qc_run -- the Run button is DISABLED; not clicked")
+            return
+        panel._run_button.click()
+
+        service = panel._quantum_chemistry_service
+        record = service._boltzmann_runs.get(molecule_uuid) or service._active_jobs.get(molecule_uuid)
+        if record is None:
+            logger.error(
+                "OPENCHEM_DRIVE: qc_run -- no job was started; status=%r", panel._status_label.text()
+            )
+            return
+        self._qc_submitted = (record.calculation_input, record.input_fingerprint)
+        logger.warning(
+            "OPENCHEM_DRIVE: qc_run submitted input=%s fingerprint=%s method=%r status=%r",
+            record.calculation_input,
+            record.input_fingerprint[:12],
+            record.method_basis,
+            panel._status_label.text(),
+        )
 
     def _do_dock_run(self, step: dict[str, Any]) -> None:
         """Press the Docking panel's Dock button, for real.
@@ -741,6 +818,130 @@ class _Driver(QObject):
             clipped_right or reader_visible.height() < reader.height(),
             bool(properties_dock is not None and properties_dock.isVisible()),
             self._window._property_panel._selected_molecule_uuid,
+        )
+        # **THE CHROME, PIECE BY PIECE**, because "the reader's minimum is
+        # 208 against 190" does not say which rows to give back. Every row
+        # between the dock's top edge and the facts, with where it sits in the
+        # HOST and what it asks for, so a fold is chosen from the numbers.
+        host = getattr(self._window, "_results_host", None)
+        pieces = [
+            ("popout_button", getattr(host, "_pop_out_button", None)),
+            ("results_filter", getattr(reader, "_selector_search", None)),
+            ("showing_row", getattr(getattr(reader, "_focus_box", None), "parentWidget", lambda: None)()),
+            ("visuals", getattr(reader, "_visuals", None)),
+            ("title", getattr(view, "_title", None)),
+            ("summary", getattr(view, "_summary", None)),
+            ("controls", getattr(view, "_controls", None)),
+            ("facts_area", getattr(view, "_area", None)),
+            ("status", getattr(view, "_status", None)),
+        ]
+        chrome = []
+        for name, widget in pieces:
+            if widget is None:
+                continue
+            top = widget.mapTo(host, QPoint(0, 0)).y() if host is not None else -1
+            chrome.append(
+                f"{name}:vis={int(widget.isVisible())},y={top},h={widget.height()},"
+                f"min={widget.minimumSizeHint().height()}"
+            )
+        logger.warning(
+            "OPENCHEM_DRIVE: reader_chrome %s host_h=%s host_min_h=%s %s",
+            step.get("tag", ""),
+            None if host is None else host.height(),
+            None if host is None else host.minimumSizeHint().height(),
+            " ".join(chrome),
+        )
+
+    def _do_fact_rows_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "fact_rows_report", "tag": "docked", "label": "Finding"}` --
+        each value row in the Results reader against the height its TEXT needs
+        at the width the row has. `label` and `min_chars` narrow the rows.
+
+        **THE ROW CANNOT BE ASKED.** `QLabel.heightForWidth` never answers below
+        the label's own minimum height -- measured, a label held at 1608 px
+        answers 1608 at a width where its text needs 250. Value rows held a
+        fixed height until 2026-09-14, and this step has to measure a build from
+        before that as honestly as one after, so it never takes the row's own
+        answer. `needs_h` is the row's arithmetic with that floor lifted for the
+        one call; `probe_h` is a fresh label given the same text, font and
+        margins, which never touches the row. The two agreeing is what says the
+        measurement is Qt's and not this step's.
+
+        `stated_for_w` is the widest width at which the text still needs the
+        height the row HAS. A row sized for its own width reports its width; a
+        height left over from a narrower layout reports that narrower width.
+        """
+        from PySide6.QtWidgets import QLabel
+
+        from openchem.ui.widgets.fact_view import _FACT_PROPERTY, _FactRow
+
+        reader = self._window._property_panel._attached_reader
+        if reader is None:
+            logger.error("OPENCHEM_DRIVE: fact_rows_report -- no reader")
+            return
+        wanted_label = step.get("label")
+        min_chars = int(step.get("min_chars", 0))
+        probe = QLabel()
+        probe.setWordWrap(True)
+        rows_seen = over = 0
+        try:
+            for row in reader._view._container.findChildren(_FactRow):
+                fact = row.property(_FACT_PROPERTY)
+                label = str(getattr(fact, "label", "?"))
+                # `isVisibleTo`, not `isVisible`: a row in a collapsed section
+                # has never been laid out and its geometry means nothing.
+                if not row.isVisibleTo(reader) or len(row.text()) < min_chars:
+                    continue
+                if wanted_label is not None and label != wanted_label:
+                    continue
+                rows_seen += 1
+                width, height = row.width(), row.height()
+                held = row.minimumHeight()
+                row.setMinimumHeight(0)
+                try:
+                    needs_h = row.heightForWidth(width)
+                finally:
+                    row.setMinimumHeight(held)
+                probe.setFont(row.font())
+                probe.setTextFormat(row.textFormat())
+                probe.setAlignment(row.alignment())
+                probe.setMargin(row.margin())
+                probe.setIndent(row.indent())
+                probe.setContentsMargins(row.contentsMargins())
+                probe.setText(row.text())
+                probe_h = probe.heightForWidth(width)
+                low, high, stated_for_w = 1, width, 0
+                while low <= high:
+                    middle = (low + high) // 2
+                    if probe.heightForWidth(middle) >= height:
+                        stated_for_w, low = middle, middle + 1
+                    else:
+                        high = middle - 1
+                line_h = max(1, row.fontMetrics().lineSpacing())
+                if height - needs_h >= line_h:
+                    over += 1
+                logger.warning(
+                    "OPENCHEM_DRIVE:   fact_row %r source=%r chars=%d w=%d h=%d needs_h=%d "
+                    "probe_h=%d line_h=%d lines_needed=%.1f lines_held=%.1f stated_for_w=%d",
+                    label,
+                    str(getattr(fact, "source", "")),
+                    len(row.text()),
+                    width,
+                    height,
+                    needs_h,
+                    probe_h,
+                    line_h,
+                    needs_h / line_h,
+                    height / line_h,
+                    stated_for_w,
+                )
+        finally:
+            probe.deleteLater()
+        logger.warning(
+            "OPENCHEM_DRIVE: fact_rows %s rows=%d over_by_a_line=%d",
+            step.get("tag", ""),
+            rows_seen,
+            over,
         )
 
     def _do_align(self, step: dict[str, Any]) -> None:
@@ -2215,23 +2416,69 @@ class _Driver(QObject):
         ]
         # Every HELD per-atom result and what the panel decides about it, so
         # "not on screen" can be told apart from "never arrived".
+        from openchem.chem.calculation_input import input_fingerprint
+        from openchem.domain.calculator import DRAWING
+
         model, _mol = panel._molecule()
         held = {}
+        # Spectra WITH their identities: the input kind, the fingerprint the
+        # spectrum carries and the current one for that kind, so "stale"
+        # can be checked against WHAT it is stale relative to.
+        identity: dict[str, dict[str, str]] = {}
         if model is not None:
             context = panel._context_for(model.uuid)
             cache: dict = {}
             for key in context["per_atom"]:
                 calculation_input, fingerprint = context["inputs"].get(("per_atom", key), ("", ""))
                 held[key] = panel._freshness(model, calculation_input, fingerprint, cache)
+            for key in context["spectra"]:
+                calculation_input, fingerprint = context["inputs"].get(("spectra", key), ("", ""))
+                state = panel._freshness(model, calculation_input, fingerprint, cache)
+                held[f"spectrum:{key}"] = state
+                try:
+                    current = input_fingerprint(panel._engine, model, calculation_input or DRAWING)
+                except Exception:  # noqa: BLE001 - an unresolvable input is reported as such
+                    current = ""
+                identity[key] = {
+                    "input": calculation_input,
+                    "held": fingerprint[:12],
+                    "current": current[:12],
+                    "state": state,
+                }
+        expected = step.get("expect_spectrum")
+        if expected:
+            # THE ASSERTION, logged at ERROR when it fails so a run's outcome
+            # is one grep. Every held spectrum must be in the expected state
+            # AND carry exactly the identity the last `qc_run` submitted -- a
+            # stale mark over a different identity is the failure this checks.
+            submitted = getattr(self, "_qc_submitted", None)
+            ok = (
+                bool(identity)
+                and submitted is not None
+                and all(
+                    entry["state"] == expected
+                    and entry["input"] == submitted[0]
+                    and entry["held"] == submitted[1][:12]
+                    for entry in identity.values()
+                )
+            )
+            (logger.warning if ok else logger.error)(
+                "OPENCHEM_DRIVE: EXPECT spectrum %s %s -- submitted=%s identity=%s",
+                expected,
+                "ok" if ok else "FAILED",
+                None if submitted is None else [submitted[0], submitted[1][:12]],
+                json.dumps(identity),
+            )
         # And what PROPERTIES holds, which is the other half of "never
         # arrived": a result there and not here was missed by this panel.
         properties = sorted(getattr(self._window._property_panel, "_retained_results", {}) or {})
         logger.warning(
-            "OPENCHEM_DRIVE: inspector %s title=%r pinned=%r held=%s properties=%s facts=%s",
+            "OPENCHEM_DRIVE: inspector %s title=%r pinned=%r held=%s identity=%s properties=%s facts=%s",
             step.get("tag", ""),
             panel.title_text(),
             facts._summary.text(),
             json.dumps(held),
+            json.dumps(identity),
             json.dumps(properties),
             json.dumps(rows),
         )
@@ -2472,6 +2719,21 @@ class _Driver(QObject):
         if key is None:
             logger.warning("OPENCHEM_DRIVE: key %s -- no such key", name)
             return
+        # `"modifiers": "ctrl"` (or "ctrl+shift"), for a shortcut such as
+        # Ctrl+, -- a bare key could not ask whether one reaches the window.
+        modifiers = Qt.KeyboardModifier.NoModifier
+        for modifier in filter(None, str(step.get("modifiers", "")).lower().split("+")):
+            modifiers |= {
+                "ctrl": Qt.KeyboardModifier.ControlModifier,
+                "shift": Qt.KeyboardModifier.ShiftModifier,
+                "alt": Qt.KeyboardModifier.AltModifier,
+            }[modifier]
+        # `"close_modal_after_ms": 1500` -- for a key that opens a modal WINDOW.
+        # `keyClick` does not return until that window's own `exec()` loop
+        # does, so the next step would never be scheduled. Timers still fire
+        # inside that loop, so one set now names the modal and closes it.
+        if "close_modal_after_ms" in step:
+            QTimer.singleShot(int(step["close_modal_after_ms"]), self._window, self._close_modal)
         where = step.get("focus")
         if where == "canvas":
             self._window._center_tabs.setCurrentWidget(self._window._editor)
@@ -2483,10 +2745,88 @@ class _Driver(QObject):
             # person using the application is never in.
             self._window._project_explorer.setFocus()
         target = QApplication.focusWidget() or self._window
+        # THE ACTIVE WINDOW IS LOGGED because a window shortcut matches only
+        # while its window is active. A run behind another application has
+        # none, and then "the key opened nothing" says nothing about the key.
+        active = QApplication.activeWindow()
         logger.warning(
-            "OPENCHEM_DRIVE: key %s -> %s", name, type(target).__name__
+            "OPENCHEM_DRIVE: key %s%s -> %s (active window %s)",
+            f"{step['modifiers']}+" if step.get("modifiers") else "",
+            name,
+            type(target).__name__,
+            type(active).__name__ if active is not None else None,
         )
-        QTest.keyClick(target, key)
+        QTest.keyClick(target, key, modifiers)
+
+    def _close_modal(self) -> None:
+        """Name the modal window a key opened, then close it. See `_do_key`.
+
+        None is logged too: "the key opened nothing" is the answer to find
+        out, when a web page may claim the key before the window's shortcut
+        sees it.
+        """
+        from PySide6.QtWidgets import QApplication
+
+        modal = QApplication.activeModalWidget()
+        logger.warning(
+            "OPENCHEM_DRIVE: modal open -> %s %r",
+            type(modal).__name__ if modal is not None else None,
+            modal.windowTitle() if modal is not None else "",
+        )
+        if modal is not None:
+            modal.close()
+
+    def _do_close_dialog(self, _step: dict[str, Any]) -> None:
+        """`{"do": "close_dialog"}` -- close what the last `dialog` step opened.
+
+        An open dialog is a window of its own and can be the ACTIVE one, and
+        a window shortcut on the main window does not fire while it is. A
+        `key` step testing one needs the dialog gone first.
+        """
+        if getattr(self, "_dialog", None) is not None:
+            self._dialog.close()
+            self._dialog = None
+        logger.warning("OPENCHEM_DRIVE: dialog closed")
+
+    def _do_control(self, step: dict[str, Any]) -> None:
+        """Operate one named control of the open dialog, as a person would.
+
+        `{"do": "control", "name": "railHidesPanels", "value": false}`
+        `{"do": "control", "name": "maxRevisionsKept", "value": 3}`
+
+        By OBJECT NAME, in the dialog the last `dialog` step opened. A check
+        box is set, a spin box is set and its edit FINISHED (a spin box that
+        acts on commit acts on that), and a button is clicked. What the
+        control then reads is logged beside what was asked, so a control
+        that refused the value -- a bound, a question answered No -- says so.
+        """
+        from PySide6.QtWidgets import QAbstractButton, QCheckBox, QSpinBox, QWidget
+
+        dialog = getattr(self, "_dialog", None)
+        name = str(step.get("name", ""))
+        if dialog is None:
+            logger.error("OPENCHEM_DRIVE: control %s -- no dialog is open", name)
+            return
+        widget = dialog.findChild(QWidget, name)
+        if isinstance(widget, QCheckBox):
+            widget.setChecked(bool(step["value"]))
+            now = widget.isChecked()
+        elif isinstance(widget, QSpinBox):
+            widget.setValue(int(step["value"]))
+            widget.editingFinished.emit()
+            now = widget.value()
+        elif isinstance(widget, QAbstractButton):
+            widget.click()
+            now = "clicked"
+        else:
+            logger.error(
+                "OPENCHEM_DRIVE: control %s -- %s", name,
+                "no such control" if widget is None else f"cannot operate a {type(widget).__name__}",
+            )
+            return
+        logger.warning(
+            "OPENCHEM_DRIVE: control %s asked %r, now %r", name, step.get("value"), now
+        )
 
     def _do_geometry_report(self, step: dict[str, Any]) -> None:
         """`{"do": "geometry_report", "tag": "after-layout"}`
@@ -3587,6 +3927,10 @@ class _Driver(QObject):
         # still held photographs THAT one and the run looks healthy -- the
         # same silent no-op the `panel` step's wrong-id trap produces, and
         # the reason this file says to read the shot rather than the log.
+        # And CLOSED, not only dropped: a script opening one dialog per page
+        # left every earlier one open on screen, each a window of its own.
+        if getattr(self, "_dialog", None) is not None:
+            self._dialog.close()
         self._dialog = None
         fixture = next((f for f in iter_dialog_fixtures() if f.name == wanted), None)
         if fixture is None:
@@ -3623,6 +3967,20 @@ class _Driver(QObject):
             dialog.resize(int(step["width"]), int(step.get("height", dialog.height())))
         dialog.show()
         self._dialog = dialog
+        # `"section": "results"` -- the Settings window's pages are a list,
+        # not tabs, so `tab` below cannot reach them. By id, through the
+        # window's own `show_section`, which RAISES on an unknown one; the
+        # refusal is logged, never photographed as page 0.
+        wanted_section = str(step.get("section", ""))
+        if wanted_section:
+            show_section = getattr(dialog, "show_section", None)
+            if show_section is None:
+                logger.error("OPENCHEM_DRIVE: %s has no sections", wanted)
+            else:
+                try:
+                    show_section(wanted_section)
+                except ValueError as exc:
+                    logger.error("OPENCHEM_DRIVE: %s", exc)
         # `"tab": "Isotopes"` -- half these dialogs are tabbed, and a shot
         # of the default page cannot show what is on the other three. The
         # tab is named rather than indexed, and a name that matches
@@ -3642,11 +4000,12 @@ class _Driver(QObject):
                     wanted, wanted_tab, titles,
                 )
         logger.warning(
-            "OPENCHEM_DRIVE: dialog %s open at %dx%d, tab %r",
+            "OPENCHEM_DRIVE: dialog %s open at %dx%d, tab %r, section %r",
             wanted,
             dialog.width(),
             dialog.height(),
             wanted_tab or "(default)",
+            dialog.current_section() if hasattr(dialog, "current_section") else "(none)",
         )
 
     def _do_rail(self, step: dict[str, Any]) -> None:

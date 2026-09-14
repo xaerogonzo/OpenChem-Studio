@@ -19,7 +19,7 @@ logger = logging.getLogger("openchem.tools")
 # Public GitHub Releases API -- no auth needed for a public repo. AutoDock
 # Vina's releases are Apache-2.0-licensed executables published directly by
 # the Scripps Research Institute's own team, unlike ORCA (registration/EULA
-# gated, no public direct-download URL -- see ExternalToolsDialog).
+# gated, no public direct-download URL -- see ExternalToolsPages).
 VINA_RELEASES_API = "https://api.github.com/repos/ccsb-scripps/AutoDock-Vina/releases/latest"
 VINA_RELEASES_PAGE = "https://github.com/ccsb-scripps/AutoDock-Vina/releases"
 
@@ -28,7 +28,7 @@ VINA_RELEASES_PAGE = "https://github.com/ccsb-scripps/AutoDock-Vina/releases"
 # steward -- confirmed against faccts.de's own site, which points to this
 # exact URL as "Downloads (for registered users)". A free account is
 # required; there is no public direct-download URL, so this can only ever
-# be a link, never an automated fetch (see ExternalToolsDialog).
+# be a link, never an automated fetch (see ExternalToolsPages).
 ORCA_DOWNLOAD_PAGE = "https://www.faccts.de/customer"
 ORCA_DOCS_PAGE = "https://www.faccts.de/docs"
 
@@ -40,7 +40,7 @@ class VinaReleaseAsset:
     """One downloadable asset from AutoDock Vina's latest GitHub release.
 
     Surfaced to the user (name/url/size/version) for explicit confirmation
-    in ExternalToolsDialog before `download_vina_asset` is ever called --
+    in ExternalToolsPages before `download_vina_asset` is ever called --
     this dataclass itself performs no network I/O.
     """
 
@@ -51,7 +51,7 @@ class VinaReleaseAsset:
 
 
 def describe_vina_status(configured_path: str) -> str:
-    """One-line human-readable status for ExternalToolsDialog -- "Found:
+    """One-line human-readable status for ExternalToolsPages -- "Found:
     vina-executable 1.2.7" or "Not found". Kept in the services layer
     (rather than the dialog calling `select_vina_engine` itself) so the UI
     layer's dependency surface stays consistent with the rest of the

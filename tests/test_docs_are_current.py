@@ -619,32 +619,18 @@ DEFERRALS: list[Deferral] = [
         "starting over; only a human seeing it again can close it.",
     ),
     Deferral(
-        claim="ORCA spectra carry no input identity",
-        # Closing it means the QM service stamping the fingerprint the Atom
-        # Inspector already compares; the day that name appears in the
-        # service, this entry is describing the past.
-        unbuilt=lambda: "input_fingerprint" not in (
-            _ROOT / "src/openchem/services/quantum_chemistry_service.py"
-        ).read_text(encoding="utf-8"),
-    ),
-    Deferral(
         claim="two protonation authorities disagree on some molecules",
-        # Nothing reconciles them today: the microspecies is Dimorphite's
-        # alone. A fix would make `dominant_microspecies` consult the pKa
-        # predictor, and this watches for exactly that call in its body.
+        # SURFACED, NOT RECONCILED: the microspecies is still Dimorphite's
+        # alone. Reconciling would make `dominant_microspecies` consult the
+        # pKa predictor, and this watches for exactly that call in its body.
         unbuilt=lambda: "compute_pka(" not in re.search(
             r"def dominant_microspecies\b(?:.|\n)*?(?=\ndef )",
             (_ROOT / "src/openchem/chem/pka_providers.py").read_text(encoding="utf-8"),
         ).group(0),
-    ),
-    Deferral(
-        claim="a very short Results dock still scrolls",
-        unbuilt=lambda: True,
-        manual="The claim is a measurement of the running window (reader "
-        "minimum ~208 px against a 190 px dock), not a code fact. Re-measure "
-        "with benchmarks/visual/results_layout_narrow_and_short.json, whose "
-        "reader_layout_report logs reader_min_h and reader_visible_h for the "
-        "top-docked case.",
+        manual="The recorded reason is that no benchmark against measured pKa "
+        "values has chosen an authority -- a claim about an experiment not yet "
+        "run, which no code fact can check. The day one runs, the ROADMAP entry "
+        "'Measure, then unify protonation' changes, and this entry with it.",
     ),
     Deferral(
         claim="GEOMETRY per-atom datasets assume heavy atoms come first",
@@ -657,6 +643,17 @@ DEFERRALS: list[Deferral] = [
             r"def resolve_calculation_input\b(?:.|\n)*?(?=\n(?:def |#: |[A-Z_]+ = ))",
             (_ROOT / "src/openchem/chem/calculation_input.py").read_text(encoding="utf-8"),
         ).group(0),
+    ),
+    Deferral(
+        claim="the External Tools pages carry no help contracts",
+        # A contract is attached through `apply_help_tooltip` and nothing
+        # else, so the day either file holding the tool tabs calls it, the
+        # entry is describing the past -- and the skip in
+        # `test_every_preference_control_carries_a_help_contract` should go.
+        unbuilt=lambda: not any(
+            "apply_help_tooltip" in (_ROOT / "src/openchem/ui/dialogs" / name).read_text(encoding="utf-8")
+            for name in ("external_tool_tabs.py", "external_tools_pages.py")
+        ),
     ),
 ]
 

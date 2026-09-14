@@ -709,7 +709,8 @@ A right-hand panel is a column, and once a settings box and a results
 table are stacked above one of those pictures there is very little height
 left for it.
 
-Any of them carries a small **↗** button in its own header row. Press it
+Any of them carries a small **↗** button in its own header row (Results
+keeps it in its title bar instead, so it costs no height). Press it
 and the picture moves into its own resizable window, which you can
 maximise or drag onto a second monitor. **Return to panel** puts it back;
 so does closing the window.
@@ -958,6 +959,17 @@ to state one — worth reading, because the NMR row in this panel is the
 instant estimate, and real ab initio NMR lives in the Quantum Chemistry
 panel.
 
+**Two protonation models, and the results say where they part.** Charges at
+a chosen pH are computed on the dominant form Dimorphite-DL picks; logD uses
+pkasolver's numeric pKa values. With the pkasolver sidecar installed, both
+results carry an *ionization-model cross-check*: any atom where the two
+models give a different protonation state at that pH is named, with the pKa
+and how far the pH is from it, as a Finding on the charges and as a note on
+logD. It is a comparison between two models, not a correction — no number
+changes, and neither model is treated as right. The first time a structure
+asks pkasolver takes a few seconds; after that, for the rest of the session,
+its answer is reused by every calculator that needs it.
+
 ### Structural annotation
 
 Four calculators answer "how is this molecule organised?" rather than
@@ -1114,8 +1126,8 @@ Re-run the calculator to refresh it.
 Picked from the rail, Results takes the column in place of Properties. To
 read results while you start more calculations, either drag Results beside,
 above or below Properties — a panel you place like that stays on screen,
-see [Finding your way around](#finding-your-way-around) — or use the **↗** button in the panel's header to move
-Results into its own window. The panel and the window are the same view, so
+see [Finding your way around](#finding-your-way-around) — or use the **↗** button in the Results title bar, beside
+**?**, float and close, to move Results into its own window. The panel and the window are the same view, so
 your position, filter and scroll travel with it. Closing that window, or
 pressing its **Return to panel** button, puts it back.
 
@@ -1125,7 +1137,9 @@ lines with **More** / **Less** beside them, and shrink to one line when the
 panel is short, so the rows you are reading are the last thing to be
 squeezed. In a narrow panel the fact filter moves onto its own row instead
 of shrinking to nothing; in a wide one the result filter shares the
-**Showing** row. Nothing is cut from **Copy report**.
+**Showing** row. In a short panel — Results docked across the top, say — the
+spacing around the rows tightens too, so even a very short panel keeps a few
+fact rows. Nothing is cut from **Copy report**.
 
 ### Units
 
@@ -1175,7 +1189,14 @@ for, so the inspector holds such values back and names them in the line
 above the facts — *computed for an earlier structure; run it again to
 inspect atoms*. Undo back to that drawing and they return without anything
 being recomputed. Results still lists the old result, marked stale, if you
-want to read it. (NMR shifts from an ORCA run are not checked this way yet.)
+want to read it.
+
+**NMR shifts from an ORCA run follow the same rule, against the conformer.**
+A shift belongs to the 3D conformer it was computed on — or, for a Boltzmann
+average, to the whole set of conformers — so generating new conformers
+withholds it even though the drawing never changed, and the line says
+*computed for an earlier conformer* (or *conformer set*). Run the
+calculation again on the new conformers to inspect atoms.
 
 The atom table on the left is the primary navigation and works with no 3D
 structure at all, which is the normal state right after drawing something.
@@ -2107,7 +2128,7 @@ the structure:
 
 | Menu | Holds |
 |---|---|
-| **Edit** | Undo/redo, Copy Structure As, Paste Structure, Duplicate, Rename |
+| **Edit** | Undo/redo, Copy Structure As, Paste Structure, Duplicate, Rename, Settings |
 | **Structure** | Aromatize/Dearomatize, Layout, Clean Up, explicit hydrogens, CIP stereo descriptors, Generate Conformers, Check Structure |
 | **View** | Which panels are shown, and 2D Structure Display toggles |
 | **Tools** | Periodic Table, Identify Structure Online, Virtual Screening, External Tools |
@@ -2343,11 +2364,46 @@ the detail pane and in every cell's tooltip.
 
 ---
 
+<!-- help:settings -->
+## Settings
+
+**Edit ▸ Settings…** (Ctrl+,) holds every preference in one window, with a
+list of sections down its left side. Changes apply as you make them, so
+there is no OK button. The one exception is lowering the number of versions
+kept, which asks first.
+
+- **Panels.** By default, choosing a panel from the rail hides the other
+  right-hand panels in its area, so the one you chose gets the whole column.
+  A panel you have dragged somewhere else, or floated, is never hidden. Turn
+  this off and choosing a panel only shows it: the others stay open beside
+  it, and each closes from its own title bar.
+- **Recovery.** Shortly after each change (5 seconds by default, 1 to 600),
+  a copy of an unsaved project and its results is written under the data
+  folder. It is offered back at the next launch if the app closed without
+  saving, and saving removes it. Turning copies off stops new ones being
+  written; a copy already written is still offered.
+- **Results.** How many versions of each molecule keep their results in
+  memory, 8 by default. The drawing and its 3D conformers are counted
+  separately, so a new conformer search never pushes out the results of the
+  drawing you are still looking at. Undoing back to a version that is still
+  kept shows its results without recomputing. Lowering the number removes
+  the older results straight away, after telling you how many. Your
+  molecules and undo are not affected. A saved project holds only each
+  molecule's current results, whatever this is set to.
+- **File dialogs.** Each kind of file dialog opens where it was last used:
+  projects, molecules, and macromolecules with crystal structures. **Forget**
+  sends one back to your Documents folder.
+- **External tools.** The seven tabs described [below](#external-tools).
+
+---
+
 <!-- help:external-tools -->
 ## External tools
 
-**Tools > External Tools** has seven tabs: AutoDock Vina, ORCA, pkasolver,
-ADMET, Java (Temurin), NMR Database, and Storage.
+**Edit ▸ Settings… ▸ External tools** has seven tabs: AutoDock Vina, ORCA,
+pkasolver, ADMET, Java (Temurin), NMR Database, and Storage. **Tools ▸
+External Tools…**, and the Configure buttons on the Docking and Quantum
+Chemistry panels, open the same window at the right tab.
 
 Each tab tells you what is currently detected, installs or configures the
 tool, and has a **Test** button that runs the tool for real rather than
