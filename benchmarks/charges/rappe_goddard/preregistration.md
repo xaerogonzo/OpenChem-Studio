@@ -574,3 +574,105 @@ by 0, 30 and 60 deg (60 puts the other hydrogens in-plane pointing away). It
 reports signs only, like the Si-O-Si and Si-O sweeps. The H1/H2 magnitude
 comparison maps H1 to the two in-plane hydrogens of the reference
 conformation, an inference from Table 2's multiplicities.
+
+### A8 (2026-09-14, a revised SHIPPING scope; before any optimisation or any number it governs)
+
+**The original gate failed and stays failed.** Section 8 made O4 and O5 the
+condition for shipping QEq. They are not met, and their strict xfails stay in
+the suite unchanged. A8 does not reinterpret them. It records a decision by
+Alex to ship under a narrower, stated validation scope, and why.
+
+**Why the scope was revised, not the bar lowered.**
+- O4/O5 were a strict source-reproduction gate. Later, independent evidence
+  showed that one printed row (SiH₄) conflicts with the authors' own later
+  program (Ramachandran et al. 1996, A7).
+- λ = ½ reproduces that later program (disiloxane O and Si, conformation-
+  independent, 0.002 e). LiH's printed charge is not a solution of the
+  equations (A7).
+- What ships is therefore a narrower claim. The cases the record cannot
+  support are refused or not offered.
+
+**The shipped method.** `qeq_rg1991_lambda_half_h_experimental`: readings
+`ce.ADOPTED`, hydrogen set `experimental`, the solver as it is. **Not
+offered:** the HF-fitted hydrogen set (it misses more cells and inverts the
+paper's ordering of the two sets) and PREREGISTERED. Both stay in code for this
+benchmark.
+
+**The validated subset (the scope's evidence), all under the shipped method:**
+- Table II: all 20 halides, ≤ 0.0005 e.
+- Table III: HF within 0.001 e; H₂O, NH₃ and CH₄ within 0.002 e.
+- Table IV QEq column: HF and ClH, and 33 of 35 polyatomic cells, within 0.01 e.
+  The misses are formamide C (+0.011) and SiH₄.
+- Ramachandran 1996: water (0.3532 against 0.353, at their stated geometry);
+  disiloxane O and Si (0.002 e); all four disiloxane charges within 0.002 e in
+  the anti C2v conformation (post hoc, A7).
+
+**Scope sentence, verbatim for the documentation.** "This calculator implements
+the Rappé–Goddard 1991 QEq formulation using the λ = ½ interpretation (eq 17′)
+and the experimental hydrogen parameter set. It reproduces the validated
+benchmark subset recorded in amendment A8. The published LiH value is not a
+self-consistent solution of the implemented equations, and such cases are
+refused. The published 1991 SiH₄ value is inconsistent with the later
+Rappé-group implementation and is treated as a source discrepancy, not as an
+oracle. Results whose final solution requires an active charge bound are
+refused pending the O9 study."
+
+**Two categories, never merged.**
+- **Computationally refused:** `REFUSE_NOT_CONVERGED` (LiH among others) and
+  `REFUSE_BOUND_ACTIVE` (the final solution has a non-empty active set). This is
+  a deliberate validity boundary: QEq is incomplete over the bound-active
+  domain until O9.
+- **Source discrepancy:** silicon. A result is returned, with a note that it
+  does not reproduce the 1991 SiH₄ row and that Ramachandran 1996 supports its
+  sign.
+
+**Result contract.** `QEqResult.clamped` is, and has been, the active set of the
+converged final iteration. It is renamed `final_active_atoms` (with `clamped`
+kept as an alias). A new `ever_clamped` is true if any pass of any outer
+iteration fixed an atom. The refusal is decided on `final_active_atoms` alone:
+an iterate clamped mid-loop whose final solve is bound-free is a valid result.
+Refusal provenance keeps the diagnostics: iterations, final metrics, trace
+class and `ever_clamped` for non-convergence; index, element, bound and final
+charge per active atom for a bound.
+
+**Provenance separates what was computed from how it was validated.** The
+calculation block carries the method code, `parameter_set =
+rappe_1991_table_I`, `hydrogen_parameter_set = experimental`,
+`zeta_parameterization = rappe_1991_eq17_prime_lambda_half` with `lambda = 0.5`,
+`zeta_h_in_pairs`, `hydrogen_self_term = eq21`, `integral_model =
+ns_slater_exact`, a0, eV per hartree, iterations, final metrics,
+`bound_passes_max`, `ever_clamped` and `solver_to_source`. A separate
+validation block carries A8 and the scope sentence; it is not part of any
+result's identity. EEM stays the default method, and its default
+`parameters_key` stays `c8a6d189021bbd3d35d4621f5b102f37`.
+
+**Speed: a pure optimisation, with acceptance fixed now.** No screening,
+cutoff, truncation, reduced pair list or loosened tolerance. A change that moves
+a charge beyond these limits is a new model and does not ship under A8. The
+authorities, in order:
+1. **The mpmath table** (`slater_reference.csv`), the independent accuracy
+   reference: fast integrals ≤ 1e-9 Ha on all 1076 points (O1 as it is).
+2. **The charge oracles**, the scientific end-to-end reference: every charge
+   vector for Tables II–IV, Ramachandran water and disiloxane, and the A7 LiH
+   quantities unchanged to ≤ 1e-9 e, compared as full vectors; both λ miss
+   sets identical.
+3. **The scalar `coulomb_pair_integral`**, the regression-compatibility
+   reference. Stage 1 (vectorisation with the same nodes and branches) must
+   match it pair by pair to ≤ 1e-11 Ha on the O1 grid and every pair of the
+   timing molecules at the ζ_H values their iterations visit. A Stage 2 closed
+   form, used only if Stage 1 misses the time gate, need only meet (1) and (2),
+   and its cancellation switch is frozen in a note before it is written.
+
+Only terms whose inputs do not depend on the hydrogen iteration may be reused
+across it (distances, shells, heavy-atom ζ, χ and diagonal, heavy–heavy pairs).
+Every hydrogen-involving integral is recomputed each iteration.
+
+**Time gate (this machine, not a CI gate).** Only `ce.qeq_charges` is timed:
+integrals, linear solves and hydrogen iteration. Import, parsing, conformer
+generation, UI and provenance are excluded. Input: a frozen fixture of aspirin,
+fentanyl, n-hexadecane and atorvastatin (SMILES, atom order, elements, exact
+coordinates, experimental set). Median of 3: atorvastatin ≤ 5 s and aspirin ≤
+0.5 s; fentanyl and hexadecane reported with atom counts, hydrogen fraction and
+iteration counts. Hardware, OS, Python and numpy versions are recorded.
+
+**O9 is not touched here.** Its study is a separate branch and amendment (A9).
