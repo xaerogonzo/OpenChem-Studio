@@ -629,15 +629,6 @@ DEFERRALS: list[Deferral] = [
         ).group(0),
     ),
     Deferral(
-        claim="a very short Results dock still scrolls",
-        unbuilt=lambda: True,
-        manual="The claim is a measurement of the running window (reader "
-        "minimum ~208 px against a 190 px dock), not a code fact. Re-measure "
-        "with benchmarks/visual/results_layout_narrow_and_short.json, whose "
-        "reader_layout_report logs reader_min_h and reader_visible_h for the "
-        "top-docked case.",
-    ),
-    Deferral(
         claim="GEOMETRY per-atom datasets assume heavy atoms come first",
         # The entry names where the check belongs: the GEOMETRY branch of the
         # resolver, which today looks only at whether the conformer parses and

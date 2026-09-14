@@ -651,6 +651,7 @@ class MainWindow(QMainWindow):
             title="Results",
             settings_id="results",
             settings=settings,
+            button_in_header=False,
         )
         results_dock = self._add_dock(
             "Results",
@@ -658,6 +659,16 @@ class MainWindow(QMainWindow):
             Qt.DockWidgetArea.RightDockWidgetArea,
         )
         self._results_dock = results_dock
+        # **THE POP-OUT BUTTON LIVES IN THE DOCK'S TITLE BAR**, beside float
+        # and close, rather than on a row of its own inside the host. That row
+        # held nothing else and cost 26 px -- measured at 190 px docked across
+        # the top, where the reader needed 234 and was given about 162. The
+        # title bar is outside the content, so the button still does not move
+        # into the window it opens.
+        title_bar = results_dock.titleBarWidget()
+        if not isinstance(title_bar, DockTitleBar):
+            raise RuntimeError("The Results dock has no title bar to hold its pop-out button")
+        title_bar.add_control(self._results_host.pop_out_button())
         # The panel owns the results and the reading position; the reader
         # renders them. Attached rather than constructed there, because the
         # dock belongs to the window and the panel must work without one --

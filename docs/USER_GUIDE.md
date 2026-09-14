@@ -709,7 +709,8 @@ A right-hand panel is a column, and once a settings box and a results
 table are stacked above one of those pictures there is very little height
 left for it.
 
-Any of them carries a small **↗** button in its own header row. Press it
+Any of them carries a small **↗** button in its own header row (Results
+keeps it in its title bar instead, so it costs no height). Press it
 and the picture moves into its own resizable window, which you can
 maximise or drag onto a second monitor. **Return to panel** puts it back;
 so does closing the window.
@@ -1114,8 +1115,8 @@ Re-run the calculator to refresh it.
 Picked from the rail, Results takes the column in place of Properties. To
 read results while you start more calculations, either drag Results beside,
 above or below Properties — a panel you place like that stays on screen,
-see [Finding your way around](#finding-your-way-around) — or use the **↗** button in the panel's header to move
-Results into its own window. The panel and the window are the same view, so
+see [Finding your way around](#finding-your-way-around) — or use the **↗** button in the Results title bar, beside
+**?**, float and close, to move Results into its own window. The panel and the window are the same view, so
 your position, filter and scroll travel with it. Closing that window, or
 pressing its **Return to panel** button, puts it back.
 
@@ -1125,7 +1126,9 @@ lines with **More** / **Less** beside them, and shrink to one line when the
 panel is short, so the rows you are reading are the last thing to be
 squeezed. In a narrow panel the fact filter moves onto its own row instead
 of shrinking to nothing; in a wide one the result filter shares the
-**Showing** row. Nothing is cut from **Copy report**.
+**Showing** row. In a short panel — Results docked across the top, say — the
+spacing around the rows tightens too, so even a very short panel keeps a few
+fact rows. Nothing is cut from **Copy report**.
 
 ### Units
 

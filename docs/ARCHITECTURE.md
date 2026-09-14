@@ -709,12 +709,23 @@ document may cite a file or a test that does not exist.
   `docs/SCIENTIFIC_LIMITATIONS.md`; neither is known to be right there, so
   nothing was changed.
 
-- **OPEN** -- a very short Results dock still scrolls. Docked across the
-  top at 190 px (the height it was reported at) the reader's minimum is
-  ~208 px after the notes fold, so the dock's own scroll area keeps a small
-  overflow. The remaining height is the reader's own chrome -- the pop-out
-  row, the Showing row, the title -- rather than anything the notes or the
-  fact floor can give back.
+- **SETTLED** (2026-09-14) -- a very short Results dock no longer scrolls.
+  Docked across the top at 190 px, the height it was reported at, the host
+  needed 234 px and its viewport gave about 162. `reader_layout_report` now
+  logs every chrome row (`reader_chrome`), and the 72 px came from:
+
+      a row holding only the pop-out button   26   -> the dock's title bar
+      a bold title repeating "Showing"        22   -> not drawn (text kept)
+      9 px margins above and below            18   -> dropped when short
+      6 px between rows                       16   -> 2 px when short
+
+  After: 152 needed against 162 given, `clipped=False`, and the beside-
+  Properties layout unchanged (normal margins, no dock overlaps). Compact
+  mode is height-driven with its threshold above the reader's ordinary
+  minimum, which is what keeps it from oscillating. Magnifying the first
+  fix's shot found a defect the numbers did not show: with 10 px to spare
+  the notes took heights between whole lines and drew their second line cut
+  in half, so `ClampedLabel` now masks off a partial line.
 
 - **OPEN** -- GEOMETRY per-atom datasets assume heavy atoms come first.
   `atom_sasa` keys its values by the conformer's own atom indices, and the

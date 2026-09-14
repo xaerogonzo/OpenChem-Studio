@@ -813,6 +813,38 @@ class _Driver(QObject):
             bool(properties_dock is not None and properties_dock.isVisible()),
             self._window._property_panel._selected_molecule_uuid,
         )
+        # **THE CHROME, PIECE BY PIECE**, because "the reader's minimum is
+        # 208 against 190" does not say which rows to give back. Every row
+        # between the dock's top edge and the facts, with where it sits in the
+        # HOST and what it asks for, so a fold is chosen from the numbers.
+        host = getattr(self._window, "_results_host", None)
+        pieces = [
+            ("popout_button", getattr(host, "_pop_out_button", None)),
+            ("results_filter", getattr(reader, "_selector_search", None)),
+            ("showing_row", getattr(getattr(reader, "_focus_box", None), "parentWidget", lambda: None)()),
+            ("visuals", getattr(reader, "_visuals", None)),
+            ("title", getattr(view, "_title", None)),
+            ("summary", getattr(view, "_summary", None)),
+            ("controls", getattr(view, "_controls", None)),
+            ("facts_area", getattr(view, "_area", None)),
+            ("status", getattr(view, "_status", None)),
+        ]
+        chrome = []
+        for name, widget in pieces:
+            if widget is None:
+                continue
+            top = widget.mapTo(host, QPoint(0, 0)).y() if host is not None else -1
+            chrome.append(
+                f"{name}:vis={int(widget.isVisible())},y={top},h={widget.height()},"
+                f"min={widget.minimumSizeHint().height()}"
+            )
+        logger.warning(
+            "OPENCHEM_DRIVE: reader_chrome %s host_h=%s host_min_h=%s %s",
+            step.get("tag", ""),
+            None if host is None else host.height(),
+            None if host is None else host.minimumSizeHint().height(),
+            " ".join(chrome),
+        )
 
     def _do_align(self, step: dict[str, Any]) -> None:
         """Run the 3D Alignment panel on the project's molecules.

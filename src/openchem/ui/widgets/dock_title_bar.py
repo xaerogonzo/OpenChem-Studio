@@ -104,6 +104,11 @@ class DockTitleBar(QWidget):
         layout.setContentsMargins(6, 2, 2, 2)
         layout.setSpacing(2)
         layout.addWidget(self._label, 1)
+        #: Where `add_control` inserts: after the title, before the dock's
+        #: own buttons, so a panel's controls never separate help from
+        #: float and close.
+        self._layout = layout
+        self._controls_end = 1
 
         if show_help:
             self._help_button = self._make_button(
@@ -134,6 +139,21 @@ class DockTitleBar(QWidget):
         # must not keep offering buttons that no longer do anything.
         dock.featuresChanged.connect(self._sync_features)
         self._sync_features(dock.features())
+
+    def add_control(self, widget: QWidget) -> None:
+        """Put one of the PANEL's controls in its title bar, before the dock's own.
+
+        For an action on the panel's whole view that would otherwise cost a
+        row inside it -- the Results reader's pop-out button, measured at 26
+        of the 190 px a top-docked reader had. The widget is reparented here
+        and keeps its own contract and handler. Like the dock's own buttons
+        it takes no focus, so a click does not pull focus out of whatever
+        the user was typing in.
+        """
+        widget.setParent(self)
+        widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._layout.insertWidget(self._controls_end, widget)
+        self._controls_end += 1
 
     def _emit_help_requested(self) -> None:
         self.help_requested.emit(self._help_topic)

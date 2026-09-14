@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   3D coordinates is now refused before ORCA runs; it used to be sent as a flat
   geometry.
 
+- **Results docked across the top still scrolled.** At 190 px the reader
+  needed 234 px and had about 162, all of the difference its own chrome. The
+  **↗** pop-out button now sits in the Results title bar beside float and
+  close instead of on a row of its own, the bold title that repeated the
+  **Showing** box is no longer drawn, and a short reader gives up its margins
+  and tightens its spacing. It now needs 152 px, and an ordinary dock keeps
+  its normal spacing. A folded note given a height between whole lines also
+  no longer draws its last line cut in half.
+
 - **A new conformer search did not refresh the Atom Inspector.** Its report
   cache was keyed on the drawing alone, so anything computed on a conformer
   kept its old value on screen until the drawing changed. The cache now

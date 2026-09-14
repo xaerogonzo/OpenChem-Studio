@@ -14,6 +14,7 @@ and none works alone.
 from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QRegion
 from PySide6.QtWidgets import (
     QFormLayout,
     QLabel,
@@ -143,10 +144,42 @@ class ClampedLabel(WrappedLabel):
         super().resizeEvent(event)
         if event.oldSize().width() != event.size().width():
             self.updateGeometry()
+        self._show_whole_lines_only()
 
     def setText(self, text: str) -> None:  # noqa: N802 - Qt's own casing
         super().setText(text)
         self.updateGeometry()
+        self._show_whole_lines_only()
+
+    def _show_whole_lines_only(self) -> None:
+        """Mask off a line the height it was given cuts through.
+
+        **"PREFER THREE, ACCEPT ONE" ALSO MEANS ACCEPTING TWO AND A HALF.** A
+        box layout hands a note anything between its one-line minimum and its
+        three-line hint, and a top-aligned label paints into all of it -- so a
+        second line whose top half fit was drawn with its bottom half cut off.
+        Magnified in the Results reader docked across the top at 190 px, once
+        the reader had 10 px to spare: 27 px for a note whose lines are 18.
+
+        Masked rather than laid out differently, because the layout cannot be
+        asked for whole-line heights. The spare pixels stay blank; the text,
+        `is_truncated` and More are unchanged.
+        """
+        width, height = self.width(), self.height()
+        if width <= 0 or height <= 0 or not self.text() or self.full_height(width) <= height:
+            self.clearMask()
+            return
+        shown = self._lines_height(1, width)
+        lines = 2
+        while True:
+            taller = self._lines_height(lines, width)
+            if taller > height or taller <= shown:
+                break
+            shown, lines = taller, lines + 1
+        if shown >= height:
+            self.clearMask()
+        else:
+            self.setMask(QRegion(0, 0, width, shown))
 
     def _lines_height(self, lines: int, width: int) -> int:
         """The height THIS label would take for exactly `lines` lines.
@@ -174,6 +207,7 @@ class ClampedLabel(WrappedLabel):
     def set_expanded(self, expanded: bool) -> None:
         self._expanded = bool(expanded)
         self.updateGeometry()
+        self._show_whole_lines_only()
 
     def is_expanded(self) -> bool:
         return self._expanded

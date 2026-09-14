@@ -82,7 +82,8 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "units", "key": "mg_per_ml"}   the reader's Units COMBO, and what
                                           the chart and unit rows then say
     {"do": "reader_layout_report", "tag": "beside"}  whole fact ROWS on
-                                          screen, through every clipping parent
+                                          screen, through every clipping parent,
+                                          and every CHROME row (reader_chrome)
     {"do": "dock_resize", "panel": "Results", "width": 380}
     {"do": "chart_cursor", "x": 7.4}       a REAL click on the line chart,
                                           and the kept reading beside the fact

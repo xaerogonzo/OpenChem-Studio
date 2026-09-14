@@ -347,6 +347,15 @@ class PopOutHost(QWidget):
     semantically the panel's, so they must not already belong to another
     layout -- passing one that does is refused rather than silently
     stealing it.
+
+    `button_in_header=False` leaves the button out of the host's header row
+    for the OWNER to place -- `pop_out_button()` -- and with no header
+    widgets either, that row is empty and takes no room. **A ROW OF HEIGHT
+    IN A SHORT DOCK IS A ROW OF FACTS**: Results docked across the top at
+    190 px spent 26 of them on a row holding nothing but this button, and a
+    dock's own title bar already has room beside its float and close
+    buttons. The button must NOT be placed inside `content`: the content is
+    what moves into the window, and the button would move with it.
     """
 
     def __init__(
@@ -357,6 +366,7 @@ class PopOutHost(QWidget):
         settings_id: str | None = None,
         settings: object = None,
         header: Sequence[QWidget] = (),
+        button_in_header: bool = True,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -390,7 +400,8 @@ class PopOutHost(QWidget):
         self._pop_out_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         apply_help_tooltip(self._pop_out_button, _HELP["pop_out"])
         self._pop_out_button.clicked.connect(self._on_pop_out_clicked)
-        header_row.addWidget(self._pop_out_button)
+        if button_in_header:
+            header_row.addWidget(self._pop_out_button)
 
         # BUILT HERE AND HIDDEN, never added at pop-out time. CLAUDE.md
         # records a placeholder added to a surface that already held
@@ -420,10 +431,20 @@ class PopOutHost(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        # Added even when it holds only its stretch: measured, an empty row
+        # costs neither height nor spacing, so there is no second shape.
         layout.addLayout(header_row)
         layout.addLayout(self._slot, 1)
 
     # --- state ------------------------------------------------------------
+
+    def pop_out_button(self) -> QToolButton:
+        """The host's own button, for an owner that places it outside the host.
+
+        Still the HOST's control -- its state, its tooltip, its handler --
+        wherever it is laid out. See `button_in_header`.
+        """
+        return self._pop_out_button
 
     def geometry_key(self) -> str | None:
         """Where this host's window size is remembered, or None.
