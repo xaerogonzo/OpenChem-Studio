@@ -1303,3 +1303,44 @@ def test_a9_the_qp_releases_what_the_paper_procedure_keeps_fixed():
             released += 1
         assert qp.energy(hardness, chi, minimum.charges) <= qp.energy(hardness, chi, paper) + 1e-9
     assert released > 0
+
+
+def _o9_corpus_molecule(name: str):
+    rows = [r for r in csv.DictReader(line for line in (FIXTURES / "o9_corpus_conformers.csv").read_text(encoding="utf-8").splitlines() if not line.startswith("#")) if r["molecule"] == name]
+    rows.sort(key=lambda r: int(r["index"]))
+    return [r["element"] for r in rows], np.array([[float(r["x"]), float(r["y"]), float(r["z"])] for r in rows]), float(rows[0]["net_charge"])
+
+
+def test_a9_the_one_bound_active_corpus_molecule_has_a_unique_kkt_point_the_paper_finds():
+    """Measured on the 174-molecule corpus: propane-1,3-diide is the only
+    converged molecule with a final active bound (two H at -1), and the only
+    one whose QEq matrix is not convex on sum q = Q (tangent eigenvalue -0.24).
+    Brute force over all 3^9 assignments finds exactly one KKT point, so it is
+    the global constrained minimum, and the paper's procedure and the QP both
+    reach it."""
+    elements, coords, net = _o9_corpus_molecule("propane-1,3-diide")
+    result = ce.qeq_charges(elements, coords, net)
+    assert result.status == "converged" and set(result.clamped) == {3, 7}
+    q_h = {i: float(result.charges[i]) for i, e in enumerate(elements) if e == "H"}
+    hardness, chi, _ = ce.qeq_hardness_matrix(elements, coords, q_h)
+    assert qp.tangent_min_eigenvalue(hardness) < 0
+    bounds = [ce.charge_bounds(e) for e in elements]
+    lower, upper = np.array([b[0] for b in bounds]), np.array([b[1] for b in bounds])
+    paper = ce.solve_bounded(hardness, chi, net, lower, upper).charges
+    minimum = qp.constrained_minimum(hardness, chi, net, lower, upper).charges
+    kkt_points = []
+    for assignment in itertools.product((0, 1, 2), repeat=len(chi)):
+        fixed = {i: (lower[i] if a == 1 else upper[i]) for i, a in enumerate(assignment) if a}
+        if len(fixed) == len(chi):
+            continue
+        q, _ = qp._equality_solve(hardness, chi, net, fixed, len(chi))
+        if np.all(q >= lower - 1e-9) and np.all(q <= upper + 1e-9) and qp.kkt_violation(hardness, chi, net, lower, upper, q) <= 1e-9:
+            if not any(np.max(np.abs(q - k)) < 1e-8 for k in kkt_points):
+                kkt_points.append(q)
+    assert len(kkt_points) == 1
+    assert np.max(np.abs(paper - kkt_points[0])) <= 1e-10 and np.max(np.abs(minimum - kkt_points[0])) <= 1e-10
+
+
+def test_a9_the_one_corpus_molecule_that_does_not_converge_is_the_dication_methanediylium():
+    elements, coords, net = _o9_corpus_molecule("methanediylium")
+    assert ce.qeq_charges(elements, coords, net).status == ce.REFUSE_NOT_CONVERGED

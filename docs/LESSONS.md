@@ -20277,3 +20277,15 @@ message the user gets.
 **One result slot per property id.** EEM and QEq are two methods of one
 calculator, so running QEq replaces the EEM result in the panels instead of
 sitting beside it, exactly as Gasteiger and MMFF94 already behave.
+
+**Then the bound study ran, and it argued against the fix it was set up to
+test.** Of 174 corpus molecules, the paper's never-release fixing is the exact
+constrained optimum on every converged one. The single bound-active molecule is
+the single non-convex one, whose charges run to the bounds because the energy
+has no minimum on the charge-conserving plane. A release-capable optimiser
+would only return that unphysical answer more rigorously. The synthetic O9
+failures were real, but they came from matrices built to bind, and the
+molecules did not reproduce them. Two process slips on the way: the corpus CSV
+was written without quoting and split fourteen names, and the correction note
+first said "eight" before the names were counted.
+

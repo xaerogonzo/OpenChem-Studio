@@ -1,0 +1,175 @@
+molecule,category,atoms,net_charge,status,iterations,ever_clamped,final_active,tangent_min_eig,paper_kkt_optimal,max_abs_dq,rms_dq,active_status_differs,energy_paper_minus_opt_eV,qp_released
+methanol,simple_aliphatic,6,0.0,converged,25,False,,1.291629159400161,True,0.0,0.0,,0.0,0
+ethanol,simple_aliphatic,9,0.0,converged,25,False,,1.263433098370172,True,0.0,0.0,,0.0,0
+propan-2-ol,simple_aliphatic,12,0.0,converged,23,False,,1.2293568438855227,True,0.0,0.0,,0.0,0
+acetic acid,simple_aliphatic,8,0.0,converged,26,False,,1.2337233996986074,True,0.0,0.0,,0.0,0
+acetone,simple_aliphatic,10,0.0,converged,16,False,,1.2189927634294682,True,0.0,0.0,,0.0,0
+butanal,simple_aliphatic,13,0.0,converged,18,False,,1.2666602116956547,True,0.0,0.0,,0.0,0
+diethyl ether,simple_aliphatic,15,0.0,converged,16,False,,1.237267302497636,True,0.0,0.0,,0.0,0
+butyl propanoate,simple_aliphatic,23,0.0,converged,19,False,,1.2606983987218758,True,0.0,0.0,,0.0,0
+triethylamine,simple_aliphatic,22,0.0,converged,16,False,,1.2378055380323254,True,0.0,0.0,,0.0,0
+acetonitrile,simple_aliphatic,6,0.0,converged,14,False,,1.2423146158057221,True,0.0,0.0,,0.0,0
+urea,simple_aliphatic,8,0.0,converged,20,False,,2.098649522859201,True,0.0,0.0,,0.0,0
+glycerol,simple_aliphatic,14,0.0,converged,29,False,,1.4564026334555362,True,0.0,0.0,,0.0,0
+benzene,aromatic,12,0.0,converged,11,False,,1.4303131685002288,True,0.0,0.0,,0.0,0
+toluene,aromatic,15,0.0,converged,14,False,,1.2315092210143022,True,0.0,0.0,,0.0,0
+phenol,aromatic,13,0.0,converged,24,False,,1.4468576892905602,True,0.0,0.0,,0.0,0
+aniline,aromatic,14,0.0,converged,17,False,,1.4433928190332128,True,0.0,0.0,,0.0,0
+benzoic acid,aromatic,15,0.0,converged,25,False,,1.4519224306784904,True,0.0,0.0,,0.0,0
+styrene,aromatic,16,0.0,converged,16,False,,1.3940328975460485,True,0.0,0.0,,0.0,0
+nitrobenzene,aromatic,14,0.0,converged,17,False,,1.4557981922717338,True,0.0,0.0,,0.0,0
+p-xylene,aromatic,18,0.0,converged,14,False,,1.227479945630823,True,0.0,0.0,,0.0,0
+benzaldehyde,aromatic,14,0.0,converged,17,False,,1.4468099647325956,True,0.0,0.0,,0.0,0
+mesitylene,aromatic,21,0.0,converged,13,False,,1.23127708084662,True,0.0,0.0,,0.0,0
+pyridine,heterocycle,11,0.0,converged,14,False,,1.456110172064789,True,0.0,0.0,,0.0,0
+pyrrole,heterocycle,10,0.0,converged,19,False,,1.4383921692848196,True,0.0,0.0,,0.0,0
+furan,heterocycle,9,0.0,converged,15,False,,1.434418606921683,True,0.0,0.0,,0.0,0
+thiophene,heterocycle,9,0.0,converged,15,False,,1.465631770374744,True,0.0,0.0,,0.0,0
+imidazole,heterocycle,9,0.0,converged,18,False,,1.5255861725402302,True,0.0,0.0,,0.0,0
+pyrimidine,heterocycle,10,0.0,converged,15,False,,1.4753692959893216,True,0.0,0.0,,0.0,0
+piperidine,heterocycle,17,0.0,converged,21,False,,1.371538710678982,True,0.0,0.0,,0.0,0
+morpholine,heterocycle,15,0.0,converged,20,False,,1.360994362653379,True,0.0,0.0,,0.0,0
+oxazole,heterocycle,8,0.0,converged,16,False,,1.5348786287682017,True,0.0,0.0,,0.0,0
+"1,2,3-triazole",heterocycle,8,0.0,converged,22,False,,1.5210101242546532,True,0.0,0.0,,0.0,0
+tetrahydrofuran,heterocycle,13,0.0,converged,16,False,,1.3586480957001472,True,0.0,0.0,,0.0,0
+piperazine,heterocycle,16,0.0,converged,20,False,,1.3774645453746142,True,0.0,0.0,,0.0,0
+naphthalene,fused_polycyclic,18,0.0,converged,13,False,,1.4475077030535726,True,0.0,0.0,,0.0,0
+anthracene,fused_polycyclic,24,0.0,converged,13,False,,1.447279029951475,True,0.0,0.0,,0.0,0
+quinoline,fused_polycyclic,17,0.0,converged,14,False,,1.4514644909113787,True,0.0,0.0,,0.0,0
+indole,fused_polycyclic,16,0.0,converged,19,False,,1.448243811498605,True,0.0,0.0,,0.0,0
+purine,fused_polycyclic,13,0.0,converged,19,False,,1.6057851056601904,True,0.0,0.0,,0.0,0
+carbazole,fused_polycyclic,22,0.0,converged,19,False,,1.4484900075835592,True,0.0,0.0,,0.0,0
+phenanthrene,fused_polycyclic,24,0.0,converged,13,False,,1.4486374230466537,True,0.0,0.0,,0.0,0
+benzofuran,fused_polycyclic,15,0.0,converged,15,False,,1.4514467717001382,True,0.0,0.0,,0.0,0
+acridine,fused_polycyclic,23,0.0,converged,14,False,,1.4499231808398638,True,0.0,0.0,,0.0,0
+indazole,fused_polycyclic,15,0.0,converged,20,False,,1.451357527830143,True,0.0,0.0,,0.0,0
+norbornane,bridged_bicyclic,19,0.0,converged,12,False,,1.3491740055893993,True,0.0,0.0,,0.0,0
+bicyclo[2.2.2]octane,bridged_bicyclic,22,0.0,converged,12,False,,1.3500164975499815,True,0.0,0.0,,0.0,0
+adamantane,bridged_bicyclic,26,0.0,converged,11,False,,1.348336600745326,True,0.0,0.0,,0.0,0
+camphor (flat),bridged_bicyclic,27,0.0,converged,15,False,,1.2306872392341697,True,0.0,0.0,,0.0,0
+quinuclidine,bridged_bicyclic,21,0.0,converged,12,False,,1.3446257040584955,True,0.0,0.0,,0.0,0
+cubane,bridged_bicyclic,16,0.0,converged,11,False,,1.4123594753564501,True,0.0,0.0,,0.0,0
+acetate,charged_zwitterion,7,-1.0,converged,8,False,,1.117594534358594,True,1.1102230246251565e-16,5.970862477482418e-17,,-1.7763568394002505e-15,0
+ammonium,charged_zwitterion,5,1.0,converged,21,False,,2.1886021387514982,True,0.0,0.0,,0.0,0
+tetramethylammonium,charged_zwitterion,17,1.0,converged,17,False,,1.2811072495230025,True,2.7755575615628914e-17,2.2326575769833316e-17,,-3.552713678800501e-15,0
+glycine zwitterion,charged_zwitterion,10,0.0,converged,26,False,,1.4883889842607405,True,0.0,0.0,,0.0,0
+betaine,charged_zwitterion,19,0.0,converged,17,False,,1.2281846589824534,True,0.0,0.0,,0.0,0
+methanesulfonate,charged_zwitterion,8,-1.0,converged,10,False,,1.201337191410245,True,6.938893903907228e-18,4.9065389333867974e-18,,0.0,0
+pyridinium,charged_zwitterion,12,1.0,converged,23,False,,1.4891747202026147,True,6.938893903907228e-18,2.941366760887196e-18,,8.881784197001252e-16,0
+diazomethane,charged_zwitterion,5,0.0,converged,16,False,,1.5211955420061118,True,0.0,0.0,,0.0,0
+deuterated methanol,isotopic,6,0.0,converged,25,False,,1.2916297283786777,True,0.0,0.0,,0.0,0
+deuterated water,isotopic,3,0.0,converged,19,False,,4.000501733683855,True,0.0,0.0,,0.0,0
+N-15 ammonia,isotopic,4,0.0,converged,15,False,,2.476318942858762,True,0.0,0.0,,0.0,0
+carbon-13 methane,isotopic,5,0.0,converged,14,False,,1.090098714341094,True,0.0,0.0,,0.0,0
+(R)-naproxen,stereochemistry,31,0.0,converged,25,False,,1.2641366923616453,True,0.0,0.0,,0.0,0
+(S)-naproxen,stereochemistry,31,0.0,converged,25,False,,1.2641427722547691,True,0.0,0.0,,0.0,0
+(R)-ibuprofen,stereochemistry,33,0.0,converged,25,False,,1.2417293752677887,True,0.0,0.0,,0.0,0
+(R)-alanine,stereochemistry,13,0.0,converged,25,False,,1.27317831778776,True,0.0,0.0,,0.0,0
+(S)-alanine,stereochemistry,13,0.0,converged,26,False,,1.269330512056106,True,0.0,0.0,,0.0,0
+(E)-but-2-ene,stereochemistry,12,0.0,converged,17,False,,1.2276064628918488,True,0.0,0.0,,0.0,0
+(Z)-but-2-ene,stereochemistry,12,0.0,converged,14,False,,1.2352703236758087,True,0.0,0.0,,0.0,0
+(S)-nicotine,stereochemistry,26,0.0,converged,16,False,,1.2469150630927321,True,0.0,0.0,,0.0,0
+(S)-lactic acid,stereochemistry,12,0.0,converged,29,False,,1.2715557954518584,True,0.0,0.0,,0.0,0
+"(S,R)-ephedrine",stereochemistry,27,0.0,converged,24,False,,1.2534668628217978,True,0.0,0.0,,0.0,0
+"(S,S)-tartaric acid",stereochemistry,16,0.0,converged,31,False,,1.5761080542080388,True,0.0,0.0,,0.0,0
+trans-decalin,stereochemistry,28,0.0,converged,17,False,,1.3641152008654982,True,0.0,0.0,,0.0,0
+tetramethylsilane,organosilicon,17,0.0,converged,12,False,,1.231878900135648,True,0.0,0.0,,0.0,0
+trimethylsilanol,organosilicon,15,0.0,converged,22,False,,1.2176365369887199,True,0.0,0.0,,0.0,0
+phenyltrimethylsilane,organosilicon,24,0.0,converged,13,False,,1.2353090172249168,True,0.0,0.0,,0.0,0
+hexamethyldisiloxane,organosilicon,27,0.0,converged,12,False,,1.200002621216323,True,0.0,0.0,,0.0,0
+triethoxysilane,organosilicon,26,0.0,converged,17,False,,1.2386197778520978,True,0.0,0.0,,0.0,0
+dimethyl sulfoxide,sulfur_rich,10,0.0,converged,17,False,,1.2597455649773246,True,0.0,0.0,,0.0,0
+dimethyl sulfone,sulfur_rich,11,0.0,converged,17,False,,1.2506387536266845,True,0.0,0.0,,0.0,0
+thiophenol,sulfur_rich,13,0.0,converged,16,False,,1.4488259171406837,True,0.0,0.0,,0.0,0
+methanethiol,sulfur_rich,6,0.0,converged,18,False,,1.3691994298023396,True,0.0,0.0,,0.0,0
+benzenesulfonamide,sulfur_rich,17,0.0,converged,21,False,,1.4548554207242397,True,0.0,0.0,,0.0,0
+carbon disulfide,sulfur_rich,3,0.0,converged,1,False,,3.1628991779230557,True,0.0,0.0,,0.0,0
+thiourea,sulfur_rich,8,0.0,converged,20,False,,2.146199321056047,True,0.0,0.0,,0.0,0
+dimethyl disulfide,sulfur_rich,10,0.0,converged,17,False,,1.3472417606848204,True,0.0,0.0,,0.0,0
+sulfanilamide,sulfur_rich,19,0.0,converged,22,False,,1.4802613741522588,True,0.0,0.0,,0.0,0
+trimethyl phosphate,phosphorus,17,0.0,converged,17,False,,1.2581464125352029,True,0.0,0.0,,0.0,0
+triphenylphosphine,phosphorus,34,0.0,converged,15,False,,1.4435587678225164,True,0.0,0.0,,0.0,0
+phosphoric acid,phosphorus,8,0.0,converged,27,False,,2.4803622482283703,True,0.0,0.0,,0.0,0
+trimethylphosphine,phosphorus,13,0.0,converged,13,False,,1.256078624537509,True,0.0,0.0,,0.0,0
+dimethyl methylphosphonate,phosphorus,16,0.0,converged,17,False,,1.2482890038328198,True,0.0,0.0,,0.0,0
+triphenylphosphine oxide,phosphorus,35,0.0,converged,16,False,,1.4458367950803463,True,0.0,0.0,,0.0,0
+chloroform,halogenated,5,0.0,converged,20,False,,2.283883513493238,True,0.0,0.0,,0.0,0
+carbon tetrachloride,halogenated,5,0.0,converged,1,False,,3.114429688672823,True,0.0,0.0,,0.0,0
+chlorobenzene,halogenated,12,0.0,converged,17,False,,1.4546816608528705,True,0.0,0.0,,0.0,0
+trifluoromethylbenzene,halogenated,15,0.0,converged,18,False,,1.4592243361490314,True,0.0,0.0,,0.0,0
+iodomethane,halogenated,5,0.0,converged,16,False,,1.4475111922453348,True,0.0,0.0,,0.0,0
+"1,2-dibromoethane",halogenated,8,0.0,converged,22,False,,1.4992042841227275,True,0.0,0.0,,0.0,0
+aspirin,medicinal_scaffold,21,0.0,converged,26,False,,1.2304929064202608,True,0.0,0.0,,0.0,0
+paracetamol,medicinal_scaffold,20,0.0,converged,24,False,,1.2246179218459634,True,0.0,0.0,,0.0,0
+caffeine,medicinal_scaffold,24,0.0,converged,17,False,,1.2728581794089011,True,0.0,0.0,,0.0,0
+ibuprofen (flat),medicinal_scaffold,33,0.0,converged,25,False,,1.2417299070582115,True,0.0,0.0,,0.0,0
+diazepam,medicinal_scaffold,33,0.0,converged,18,False,,1.2748445240915112,True,0.0,0.0,,0.0,0
+nicotine (flat),medicinal_scaffold,26,0.0,converged,15,False,,1.250328316487936,True,0.0,0.0,,0.0,0
+salicylic acid,medicinal_scaffold,16,0.0,converged,32,False,,1.4641172849101742,True,0.0,0.0,,0.0,0
+metformin,medicinal_scaffold,20,0.0,converged,24,False,,1.2235019241522458,True,0.0,0.0,,0.0,0
+phenobarbital,medicinal_scaffold,29,0.0,converged,23,False,,1.2855905267249306,True,0.0,0.0,,0.0,0
+sulfamethoxazole,medicinal_scaffold,28,0.0,converged,21,False,,1.2403693312112392,True,0.0,0.0,,0.0,0
+warfarin (flat),medicinal_scaffold,39,0.0,converged,25,False,,1.227735509426196,True,0.0,0.0,,0.0,0
+chloroquine (flat),medicinal_scaffold,48,0.0,converged,21,False,,1.2425146209973195,True,0.0,0.0,,0.0,0
+indomethacin,medicinal_scaffold,41,0.0,converged,26,False,,1.2537205625729524,True,0.0,0.0,,0.0,0
+atenolol,medicinal_scaffold,41,0.0,converged,27,False,,1.2471551866763524,True,0.0,0.0,,0.0,0
+omeprazole (flat),medicinal_scaffold,43,0.0,converged,21,False,,1.246424011516458,True,0.0,0.0,,0.0,0
+novel pyrazolone,novel_unregistered,47,0.0,converged,22,False,,1.259568776523501,True,0.0,0.0,,0.0,0
+novel triazole sulfonamide,novel_unregistered,59,0.0,converged,21,False,,1.3929683702899935,True,0.0,0.0,,0.0,0
+novel spiro amide,novel_unregistered,50,0.0,converged,21,False,,1.3652354570194642,True,0.0,0.0,,0.0,0
+novel biaryl urea,novel_unregistered,40,0.0,converged,22,False,,1.4721543566324642,True,0.0,0.0,,0.0,0
+methylium,carbocation,4,1.0,converged,31,False,,1.491434515211876,True,0.0,0.0,,0.0,0
+ethan-1-ylium,carbocation,7,1.0,converged,27,False,,1.3381507276462756,True,2.7755575615628914e-17,1.0813485141674955e-17,,0.0,0
+propan-2-ylium,carbocation,10,1.0,converged,24,False,,1.3263163317272526,True,2.7755575615628914e-17,8.777083671441753e-18,,-8.881784197001252e-16,0
+tert-butyl cation,carbocation,13,1.0,converged,18,False,,1.3019196607975179,True,6.938893903907228e-18,1.924502905041693e-18,,0.0,0
+cyclohexan-1-ylium,carbocation,17,1.0,converged,21,False,,1.4013691567479696,True,2.7755575615628914e-17,2.1552006555945314e-17,,-2.6645352591003757e-15,0
+benzyl cation,carbocation,14,1.0,converged,20,False,,1.4600260480408744,True,6.938893903907228e-18,2.6226553776572348e-18,,0.0,0
+allyl cation,carbocation,8,1.0,converged,24,False,,1.4464414000704064,True,1.3877787807814457e-17,7.359808400080195e-18,,1.7763568394002505e-15,0
+vinyl cation,carbocation,5,1.0,converged,26,False,,1.4642193285647633,True,1.3877787807814457e-17,6.206335383118182e-18,,-1.7763568394002505e-15,0
+phenylium,carbocation,11,1.0,converged,18,False,,1.4695207767141287,True,6.938893903907228e-18,2.816650180058294e-18,,0.0,0
+tropylium,carbocation,14,1.0,converged,15,False,,1.4781459247320268,True,6.938893903907228e-18,3.708994804513593e-18,,0.0,0
+acetylium,carbocation,6,1.0,converged,22,False,,1.3288302547626942,True,2.7755575615628914e-17,1.1331166295920986e-17,,0.0,0
+benzoylium,carbocation,13,1.0,converged,18,False,,1.4705976571787682,True,6.938893903907228e-18,2.763856875364108e-18,,0.0,0
+methanide,carbanion,4,-1.0,converged,21,False,,0.9560432319462475,True,1.3877787807814457e-17,8.673617379884035e-18,,0.0,0
+ethan-1-ide,carbanion,7,-1.0,converged,14,False,,1.101674181418416,True,9.540979117872439e-18,4.4777868495206604e-18,,0.0,0
+propan-2-ide,carbanion,10,-1.0,converged,12,False,,1.0787549576565505,True,5.551115123125783e-17,1.8819950951980854e-17,,-1.7763568394002505e-15,0
+benzyl anion,carbanion,14,-1.0,converged,9,False,,1.306822194292972,True,6.938893903907228e-18,2.348350012881504e-18,,-4.440892098500626e-16,0
+allyl anion,carbanion,8,-1.0,converged,14,False,,1.2158934587849273,True,1.3010426069826053e-17,5.761593570117681e-18,,0.0,0
+acetylide,carbanion,3,-1.0,converged,26,False,,1.4882764019199475,True,1.3877787807814457e-17,8.012344526598183e-18,,0.0,0
+cyclopentadienide,carbanion,10,-1.0,converged,12,False,,1.3455490419466467,True,0.0,0.0,,0.0,0
+phenyl anion,carbanion,11,-1.0,converged,11,False,,1.3733884974597508,True,0.0,0.0,,0.0,0
+methylammonium,onium_ion,8,1.0,converged,27,False,,1.4043012029805135,True,0.0,0.0,,0.0,0
+trimethylsulfonium,onium_ion,13,1.0,converged,20,False,,1.3314160774072918,True,2.7755575615628914e-17,1.0886632436545532e-17,,0.0,0
+tetramethylphosphonium,onium_ion,17,1.0,converged,17,False,,1.3261965992064515,True,2.7755575615628914e-17,1.3463431760359522e-17,,-2.6645352591003757e-15,0
+N-methylpyridinium,onium_ion,15,1.0,converged,20,False,,1.3127483741378432,True,6.938893903907228e-18,2.6874220530932865e-18,,0.0,0
+pyrylium,onium_ion,11,1.0,converged,20,False,,1.4992763829275038,True,1.3877787807814457e-17,4.1843104616990316e-18,,0.0,0
+thiopyrylium,onium_ion,11,1.0,converged,20,False,,1.5090466537883434,True,1.3877787807814457e-17,5.917508604114398e-18,,0.0,0
+guanidinium,onium_ion,10,1.0,converged,21,False,,2.0093253496653714,True,5.551115123125783e-17,3.0404709722440586e-17,,1.7763568394002505e-15,0
+benzenediazonium,onium_ion,13,1.0,converged,18,False,,1.4728306199778913,True,6.938893903907228e-18,2.8867543575625394e-18,,0.0,0
+"propane-1,3-diylium",polycharged,9,2.0,converged,33,False,,1.4678939074954012,True,0.0,0.0,,0.0,0
+methanediylium,polycharged,3,2.0,REFUSE_NOT_CONVERGED,50,False,,,,,,,,
+"propane-1,3-diide",polycharged,9,-2.0,converged,20,True,H3@-1;H7@-1,-0.23945291546224734,True,0.0,0.0,,0.0,0
+ethylenediammonium,polycharged,14,2.0,converged,30,False,,1.5105425915317767,True,1.1102230246251565e-16,2.967195843610875e-17,,3.552713678800501e-15,0
+malonate,polycharged,9,-2.0,converged,14,False,,1.2347516612134806,True,1.3877787807814457e-17,5.782411586589357e-18,,0.0,0
+phthalate,polycharged,16,-2.0,converged,12,False,,1.3801198373274288,True,1.3877787807814457e-17,6.009258394948637e-18,,0.0,0
+oxalylium,polycharged,4,2.0,converged,1,False,,2.0774647619216524,True,1.3877787807814457e-17,6.938893903907228e-18,,0.0,0
+propanedioylium,polycharged,7,2.0,converged,25,False,,1.5093551753074437,True,2.0816681711721685e-17,8.293564511085938e-18,,0.0,0
+"benzene-1,2-dicarbonylium",polycharged,14,2.0,converged,23,False,,1.4943490674160518,True,2.7755575615628914e-17,8.136574330657297e-18,,0.0,0
+"benzene-1,3,5-tricarbonylium",polycharged,15,3.0,converged,23,False,,1.5217227761442973,True,1.1102230246251565e-16,4.11535496020152e-17,,0.0,0
+azide,polycharged,3,-1.0,converged,1,False,,3.477189391048357,True,0.0,0.0,,0.0,0
+pyridine N-oxide,n_oxide,12,0.0,converged,16,False,,1.4607772277723303,True,0.0,0.0,,0.0,0
+4-methylpyridine N-oxide,n_oxide,15,0.0,converged,16,False,,1.244314812293335,True,0.0,0.0,,0.0,0
+isonicotinic acid N-oxide,n_oxide,15,0.0,converged,26,False,,1.5133633894680347,True,0.0,0.0,,0.0,0
+(N-oxidopyridinyl)methylium,n_oxide,14,1.0,converged,21,False,,1.475155607082761,True,2.7755575615628914e-17,8.710710709691525e-18,,0.0,0
+(N-oxidopyridinyl)methanide,n_oxide,14,-1.0,converged,11,False,,1.3311787547532488,True,5.551115123125783e-17,1.5749586005836186e-17,,-2.6645352591003757e-15,0
+trimethylamine N-oxide,n_oxide,14,0.0,converged,15,False,,1.2072659000197854,True,0.0,0.0,,0.0,0
+methylguanidinium,guanidinium,13,1.0,converged,26,False,,1.3500716247110298,True,1.1102230246251565e-16,3.4426554548552385e-17,,8.881784197001252e-16,0
+"1,3-dimethylguanidinium",guanidinium,16,1.0,converged,22,False,,1.3348000739234973,True,5.551115123125783e-17,1.3877787807814457e-17,,-1.7763568394002505e-15,0
+"1,1-dimethylguanidinium",guanidinium,16,1.0,converged,22,False,,1.2777929053203565,True,0.0,0.0,,0.0,0
+"1,1,3-trimethylguanidinium",guanidinium,19,1.0,converged,24,False,,1.266634299281558,True,2.7755575615628914e-17,6.3675657488593765e-18,,8.881784197001252e-16,0
+phenylguanidinium,guanidinium,20,1.0,converged,23,False,,1.4663994711273145,True,5.551115123125783e-17,1.5359896425023067e-17,,0.0,0
+"1H-1,2,3-triazole",tautomer,8,0.0,converged,20,False,,1.5198283376780033,True,0.0,0.0,,0.0,0
+"1H-1,2,4-triazole",tautomer,8,0.0,converged,20,False,,1.676641329278679,True,0.0,0.0,,0.0,0
+"4H-1,2,4-triazole",tautomer,8,0.0,converged,18,False,,1.6955571109975645,True,0.0,0.0,,0.0,0
+1H-tetrazole,tautomer,7,0.0,converged,20,False,,1.77306815528817,True,0.0,0.0,,0.0,0
+2H-tetrazole,tautomer,7,0.0,converged,21,False,,1.765443670317293,True,0.0,0.0,,0.0,0
