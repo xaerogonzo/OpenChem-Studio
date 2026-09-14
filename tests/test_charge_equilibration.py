@@ -730,3 +730,180 @@ def test_every_trace_row_names_its_iteration_and_pass():
     assert result.iterations >= 2
     assert all({"hydrogen_iteration", "active_set_pass", "dQ_H", "dzeta_H", "dhardness_diag_H"} <= set(row) for row in result.trace)
     assert result.solver_to_source == [0, 1, 2]
+
+
+# =============================================================================
+# Amendment A7: diagnostics of the open problems -- nothing here changes a result
+# =============================================================================
+
+import qeq_fixed_point as fp  # noqa: E402
+
+
+@functools.lru_cache(maxsize=None)
+def _lih_map(hydrogen: str) -> fp.HydrogenMap:
+    return fp.HydrogenMap(*_diatomic("Li", "H", _r_e("LiH")), hydrogen)
+
+
+@functools.lru_cache(maxsize=None)
+def _lih_root(hydrogen: str) -> float:
+    F = _lih_map(hydrogen)
+    found = fp.roots(F, *fp.scan(F))
+    assert [r.kind for r in found] == ["root"], found  # one root, no tangency candidate
+    return found[0].q
+
+
+def test_F_is_the_production_step():
+    """Iterating A7's map from zero IS the production solver's sequence: its
+    n-th iterate is the charge `qeq_charges` returns after n iterations."""
+    for elements, coords in (_diatomic("H", "F", _r_e("HF")), WATER):
+        F = fp.HydrogenMap(elements, coords)
+        production = ce.qeq_charges(elements, coords)
+        assert production.status == "converged"
+        # tolerance 0: run exactly as many steps as production took
+        run = fp.iterate(F, 1.0, max_iterations=production.iterations, tolerance=0.0)
+        assert len(run.history) == production.iterations + 1
+        assert np.max(np.abs(run.history[production.iterations] - production.charges[F.hydrogens])) <= 1e-12
+
+
+@pytest.mark.parametrize("hydrogen,expected", [("experimental", -0.973), ("hf", -0.982)])
+def test_lih_self_consistent_charge_exists(hydrogen, expected):
+    """Q-A. Measured 2026-09-14: -0.973740 and -0.982743, exactly one root on
+    [-1, +1] each, no tangency candidate, and no bound active near Q*."""
+    F = _lih_map(hydrogen)
+    q = _lih_root(hydrogen)
+    assert abs(fp.g(F, q)) <= 1e-8
+    assert abs(q - expected) <= 0.002
+    assert F.solve(q).passes[-1] == {}
+    assert fp.active_sets_near(F, q) == {frozenset()}
+
+
+@pytest.mark.parametrize("hydrogen,printed", [("experimental", -0.767), ("hf", -0.679)])
+def test_lih_printed_charge_is_not_self_consistent(hydrogen, printed):
+    """Q-B. g(-0.767) = -0.233 and g(-0.679) = -0.321 under ADOPTED."""
+    assert abs(fp.g(_lih_map(hydrogen), printed)) >= 0.05
+
+
+@pytest.mark.parametrize("hydrogen,measured", [("experimental", -14.0606), ("hf", -14.1175)])
+def test_lih_plain_iteration_is_locally_unstable(hydrogen, measured):
+    """Q-C's cause. A7 PREDICTED -14.24 and -14.36 +- 0.1, from an earlier
+    unregistered estimate taken at a coarser root, and that prediction FAILED:
+    the frozen difference gives the values here. The instability (|s| > 1)
+    holds either way; the value and the property are both asserted."""
+    s = fp.slopes(_lih_map(hydrogen), _lih_root(hydrogen))
+    assert max(s.values()) - min(s.values()) <= 0.05
+    assert abs(s[1e-5] - measured) <= 0.01
+    assert abs(s[1e-5]) > 1
+
+
+@pytest.mark.parametrize("hydrogen", ["experimental", "hf"])
+def test_mixing_stability_matches_its_prediction(hydrogen):
+    """Numeric slope -> analytic |1 - alpha(1 - s)| < 1 -> observed trajectory.
+    Where mixing converges it reaches Q*, never the printed charge."""
+    F = _lih_map(hydrogen)
+    q_star = _lih_root(hydrogen)
+    slope = fp.slopes(F, q_star)[1e-5]
+    for alpha in (1.0, 0.75, 0.5, 0.25, 0.1, 0.05):
+        run = fp.iterate(F, alpha)
+        assert run.converged == fp.predicted_to_converge(alpha, slope), alpha
+        if run.converged:
+            assert abs(run.q[0] - q_star) <= 1e-7 and run.residual <= 1e-8
+
+
+def test_mixing_moves_the_path_not_the_fixed_point():
+    """Independently converged at alpha = 1 and 0.5. The stored solver is a
+    separate, third comparison."""
+    cases = [_diatomic("H", "F", _r_e("HF"))] + [qeq_geometries.build(name)[:2] for name in ("H2O", "NH3", "CH4")]
+    for elements, coords in cases:
+        for hydrogen in ("experimental", "hf"):
+            F = fp.HydrogenMap(elements, coords, hydrogen)
+            plain, mixed = fp.iterate(F, 1.0), fp.iterate(F, 0.5)
+            assert plain.converged and mixed.converged
+            assert np.max(np.abs(plain.q - mixed.q)) <= 1e-7
+            assert np.max(np.abs(plain.q - ce.qeq_charges(elements, coords, hydrogen=hydrogen).charges[F.hydrogens])) <= 1e-7
+
+
+def test_a_non_fixed_point_keeps_its_residual():
+    """Mixing cannot validate a target: the printed LiH charge, or any other
+    charge that is not Q*, keeps its residual, and no converging alpha lands
+    near the printed value."""
+    F = _lih_map("experimental")
+    for fake in (-0.767, -0.9, -0.5):
+        assert abs(fp.g(F, fake)) >= 1e-3
+    for alpha in (0.1, 0.05):
+        assert abs(fp.iterate(F, alpha).q[0] - (-0.767)) > 0.2
+
+
+def test_the_convergence_test_needs_the_residual_as_well_as_the_step():
+    """A tiny step alone is not a fixed point: with a vanishing alpha the step
+    is under 1e-8 at Q = 0, where F(Q) - Q is still large."""
+    run = fp.iterate(_lih_map("experimental"), 1e-9, max_iterations=3)
+    assert run.step <= 1e-8 and run.residual > 1e-3 and not run.converged
+
+
+def test_ramachandran_1996_water_at_its_stated_geometry():
+    """Their Table 8: QEq H = 0.353 at O-H 0.9572 A and H-O-H 104.52 deg,
+    stated in their section VIII. Measured 0.3532."""
+    half = math.radians(104.52 / 2)
+    coords = np.array([[0, 0, 0], [0.9572 * math.sin(half), 0, 0.9572 * math.cos(half)], [-0.9572 * math.sin(half), 0, 0.9572 * math.cos(half)]])
+    result = ce.qeq_charges(["O", "H", "H"], coords, hydrogen="experimental")
+    assert result.status == "converged"
+    assert all(abs(q - 0.353) <= 0.001 for q in result.charges[1:])
+
+
+def test_no_silane_geometry_in_the_a7_sweep_reaches_the_printed_charge():
+    """Diagnostic, not fitting: Si-H 1.45-1.51 A with a D2d distortion of +-5
+    deg gives Q_H -0.046 to -0.045 (experimental) and -0.077 to -0.074 (hf).
+    Geometry cannot reach the printed +0.13 / +0.11, nor change the sign."""
+    for hydrogen in ("experimental", "hf"):
+        values = []
+        for bond in (1.45, 1.48, 1.51):
+            for delta in (-5.0, -2.5, 0.0, 2.5, 5.0):
+                theta = math.radians(109.4712206 + delta)
+                a, c = bond * math.sin(theta / 2), bond * math.cos(theta / 2)
+                coords = np.array([[0, 0, 0], [a, 0, c], [-a, 0, c], [0, a, -c], [0, -a, -c]])
+                values.extend(ce.qeq_charges(["Si", "H", "H", "H", "H"], coords, hydrogen=hydrogen).charges[1:])
+        assert max(values) < 0
+
+
+#: The polyatomic cells each lambda reading misses, as oracle.py counts them.
+PREREGISTERED_POLYATOMIC_MISSES = {
+    ("III", "H2O", 1, "QEq"), ("III", "NH3", 1, "QEq"), ("III", "NH3", 1, "QEqHF"), ("III", "CH4", 1, "QEq"), ("III", "CH4", 1, "QEqHF"),
+    *{("IV", m, o, c) for m, o, c in [
+        ("NH3", 1, "QEq"), ("CH4", 1, "QEq"), ("CH4", 1, "QEqHF"), ("CO2", 1, "QEq"), ("CO2", 1, "QEqHF"), ("H2CO", 1, "QEqHF"),
+        ("H2CO", 2, "QEqHF"), ("H3COH", 5, "QEqHF"), ("H2NC(O)H", 1, "QEqHF"), ("H2NC(O)H", 2, "QEq"), ("H2NC(O)H", 2, "QEqHF"),
+        ("H2NC(O)H", 3, "QEq"), ("H2NC(O)H", 3, "QEqHF"), ("H2NC(O)H", 4, "QEq"), ("HOC(O)H", 2, "QEq"), ("HOC(O)H", 2, "QEqHF"),
+        ("HOC(O)H", 3, "QEqHF"), ("HOC(O)H", 4, "QEq"), ("HOC(O)H", 4, "QEqHF"), ("HOC(O)H", 5, "QEq"), ("H3CCN", 1, "QEqHF"),
+        ("H3CCN", 2, "QEq"), ("H3CCN", 2, "QEqHF"), ("H3CCN", 3, "QEq"), ("H3CCN", 3, "QEqHF"), ("H2C=C=O", 1, "QEq"),
+        ("H2C=C=O", 1, "QEqHF"), ("H2C=C=O", 2, "QEq"), ("H2C=C=O", 2, "QEqHF"), ("H2C=C=O", 3, "QEq"), ("H2C=C=O", 3, "QEqHF"),
+        ("SiH4", 1, "QEq"), ("SiH4", 1, "QEqHF"), ("C2H6", 1, "QEq")]},
+}
+ADOPTED_POLYATOMIC_MISSES = {
+    ("III", "H2O", 1, "QEqHF"), ("III", "NH3", 1, "QEqHF"), ("III", "CH4", 1, "QEqHF"),
+    ("IV", "H3COH", 1, "QEqHF"), ("IV", "H3COH", 3, "QEqHF"), ("IV", "H3COH", 5, "QEqHF"), ("IV", "H2NC(O)H", 2, "QEq"),
+    ("IV", "H2NC(O)H", 3, "QEqHF"), ("IV", "SiH4", 1, "QEq"), ("IV", "SiH4", 1, "QEqHF"),
+}
+
+
+@functools.lru_cache(maxsize=None)
+def _polyatomic(molecule: str, hydrogen: str, reading: str):
+    elements, coords, mapping, _ = qeq_geometries.build(qeq_geometries.TABLE_NAMES[molecule])
+    readings = ce.PREREGISTERED if reading == "PREREGISTERED" else ce.ADOPTED
+    return ce.qeq_charges(elements, coords, 0.0, hydrogen=hydrogen, readings=readings), mapping
+
+
+@pytest.mark.parametrize("reading,expected", [("PREREGISTERED", PREREGISTERED_POLYATOMIC_MISSES), ("ADOPTED", ADOPTED_POLYATOMIC_MISSES)])
+def test_both_lambda_readings_reproduce_their_historical_miss_sets(reading, expected):
+    """A6 keeps both readings runnable; this keeps both RESULTS -- 39 of 76 and
+    10 of 76, cell for cell, through the same solver path."""
+    cells = [("III", r["molecule"], 1, r) for r in _rows("rappe1991_table3.csv") if r["molecule"] in ("H2O", "NH3", "CH4")]
+    cells += [("IV", r["molecule"], int(r["printed_order"]), r) for r in _rows("rappe1991_table4.csv")
+              if r["status"] == "printed" and r["molecule"] in qeq_geometries.TABLE_NAMES]
+    misses = set()
+    for table, molecule, order, row in cells:
+        tolerance = 0.002 if table == "III" else 0.01
+        for column, hydrogen in COLUMNS:
+            result, mapping = _polyatomic(molecule, hydrogen, reading)
+            if result.charges is None or any(abs(result.charges[i] - float(row[column])) > tolerance for i in mapping[order]):
+                misses.add((table, molecule, order, column))
+    assert 2 * len(cells) == 76
+    assert misses == expected
