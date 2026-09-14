@@ -1990,6 +1990,13 @@ struck through and marked SHIPPED here, never deleted.
     - **QEq is incomplete over the domain where the final solution needs an
       active charge bound; the calculator deliberately refuses it pending
       O9**, whose study is next and separate.
+    - **O9 studied (amendment A9, 2026-09-14).** On 174 corpus molecules the
+      paper's bound procedure is the true constrained minimum on every
+      converged one. The single molecule with an active bound
+      (propane-1,3-diide) is the only one whose QEq energy is not convex, so
+      bounds bind where the model has no minimum, and the answer is
+      unphysical. The refusal stays, and replacing the procedure is not
+      recommended on this evidence.
 - **Geometry-dependent charges at a pH.** Not started, and deliberately
   separate from the item above. It needs the coordinate gate recorded there:
   protonation must not move or lose the conformer's heavy atoms.

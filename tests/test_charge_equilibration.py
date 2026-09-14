@@ -69,7 +69,7 @@ def test_every_fixture_matches_the_hash_the_preregistration_recorded():
     text = PREREGISTRATION.read_text(encoding="utf-8")
     fixtures = sorted(FIXTURES.glob("*.csv"))
     hashed = [f for f in fixtures if f.name != "slater_reference.csv"]
-    assert len(hashed) == 13
+    assert len(hashed) == 14
     for fixture in hashed:
         digest = hashlib.sha256(fixture.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
         assert f"`{fixture.name}`" in text and digest in text, fixture.name
@@ -1248,3 +1248,99 @@ def test_stage_2_charges_equal_a_fresh_scalar_matrix_solve(name, monkeypatch):
     slow = ce.qeq_charges(elements, coords)
     assert fast.status == slow.status == "converged" and fast.iterations == slow.iterations
     assert np.max(np.abs(fast.charges - slow.charges)) <= 1e-9
+# Amendment A9: the constrained minimum the paper's bound procedure is judged by
+# =============================================================================
+
+import qeq_bounded_qp as qp  # noqa: E402
+
+
+def test_a9_check_1_with_no_bound_active_the_qp_is_the_unconstrained_solve():
+    """On ordinary QEq matrices (no bound binds) the QP, the KKT solve and the
+    paper's procedure are one answer."""
+    cases = [_diatomic("Na", "Cl", _r_e("NaCl")), WATER, qeq_geometries.build("H3COH")[:2]]
+    for elements, coords in cases:
+        result = ce.qeq_charges(elements, coords)
+        assert result.status == "converged" and result.clamped == {}
+        q_h = {i: float(result.charges[i]) for i, e in enumerate(elements) if e == "H"}
+        hardness, chi, _ = ce.qeq_hardness_matrix(elements, coords, q_h)
+        bounds = [ce.charge_bounds(e) for e in elements]
+        lower, upper = np.array([b[0] for b in bounds]), np.array([b[1] for b in bounds])
+        assert qp.tangent_min_eigenvalue(hardness) > 0
+        minimum = qp.constrained_minimum(hardness, chi, 0.0, lower, upper)
+        unconstrained = ce.solve_bounded(hardness, chi, 0.0, np.full(len(chi), -1e9), np.full(len(chi), 1e9)).charges
+        assert minimum.active == {}
+        assert np.max(np.abs(minimum.charges - unconstrained)) <= 1e-10
+
+
+def test_a9_check_2_the_qp_is_the_brute_force_optimum_on_every_synthetic_system():
+    """Measured 3.6e-15 e worst over O9's 200 systems."""
+    for hardness, chi, net, lower, upper in SYNTHETIC:
+        minimum = qp.constrained_minimum(hardness, chi, net, lower, upper)
+        assert np.max(np.abs(minimum.charges - _kkt_optimum(hardness, chi, net, lower, upper))) <= 1e-10
+        assert qp.kkt_violation(hardness, chi, net, lower, upper, minimum.charges) <= 1e-9
+
+
+def test_a9_check_3_where_the_paper_procedure_is_optimal_it_is_the_qp():
+    """172 of the 200 synthetic systems: the paper's fixing already satisfies
+    KKT, and there it equals the QP. The other 28 are O9's recorded misses."""
+    optimal = 0
+    for hardness, chi, net, lower, upper in SYNTHETIC:
+        paper = ce.solve_bounded(hardness, chi, net, lower, upper).charges
+        if qp.kkt_violation(hardness, chi, net, lower, upper, paper) <= 1e-9:
+            optimal += 1
+            assert np.max(np.abs(paper - qp.constrained_minimum(hardness, chi, net, lower, upper).charges)) <= 1e-10
+    assert optimal == 172
+
+
+def test_a9_the_qp_releases_what_the_paper_procedure_keeps_fixed():
+    """The one behaviour that separates them: on some synthetic system the QP
+    releases an atom, and its energy is below the paper's."""
+    released = 0
+    for hardness, chi, net, lower, upper in SYNTHETIC:
+        minimum = qp.constrained_minimum(hardness, chi, net, lower, upper)
+        paper = ce.solve_bounded(hardness, chi, net, lower, upper).charges
+        if minimum.released:
+            released += 1
+        assert qp.energy(hardness, chi, minimum.charges) <= qp.energy(hardness, chi, paper) + 1e-9
+    assert released > 0
+
+
+def _o9_corpus_molecule(name: str):
+    rows = [r for r in csv.DictReader(line for line in (FIXTURES / "o9_corpus_conformers.csv").read_text(encoding="utf-8").splitlines() if not line.startswith("#")) if r["molecule"] == name]
+    rows.sort(key=lambda r: int(r["index"]))
+    return [r["element"] for r in rows], np.array([[float(r["x"]), float(r["y"]), float(r["z"])] for r in rows]), float(rows[0]["net_charge"])
+
+
+def test_a9_the_one_bound_active_corpus_molecule_has_a_unique_kkt_point_the_paper_finds():
+    """Measured on the 174-molecule corpus: propane-1,3-diide is the only
+    converged molecule with a final active bound (two H at -1), and the only
+    one whose QEq matrix is not convex on sum q = Q (tangent eigenvalue -0.24).
+    Brute force over all 3^9 assignments finds exactly one KKT point, so it is
+    the global constrained minimum, and the paper's procedure and the QP both
+    reach it."""
+    elements, coords, net = _o9_corpus_molecule("propane-1,3-diide")
+    result = ce.qeq_charges(elements, coords, net)
+    assert result.status == "converged" and set(result.clamped) == {3, 7}
+    q_h = {i: float(result.charges[i]) for i, e in enumerate(elements) if e == "H"}
+    hardness, chi, _ = ce.qeq_hardness_matrix(elements, coords, q_h)
+    assert qp.tangent_min_eigenvalue(hardness) < 0
+    bounds = [ce.charge_bounds(e) for e in elements]
+    lower, upper = np.array([b[0] for b in bounds]), np.array([b[1] for b in bounds])
+    paper = ce.solve_bounded(hardness, chi, net, lower, upper).charges
+    minimum = qp.constrained_minimum(hardness, chi, net, lower, upper).charges
+    kkt_points = []
+    for assignment in itertools.product((0, 1, 2), repeat=len(chi)):
+        fixed = {i: (lower[i] if a == 1 else upper[i]) for i, a in enumerate(assignment) if a}
+        if len(fixed) == len(chi):
+            continue
+        q, _ = qp._equality_solve(hardness, chi, net, fixed, len(chi))
+        if np.all(q >= lower - 1e-9) and np.all(q <= upper + 1e-9) and qp.kkt_violation(hardness, chi, net, lower, upper, q) <= 1e-9:
+            if not any(np.max(np.abs(q - k)) < 1e-8 for k in kkt_points):
+                kkt_points.append(q)
+    assert len(kkt_points) == 1
+    assert np.max(np.abs(paper - kkt_points[0])) <= 1e-10 and np.max(np.abs(minimum - kkt_points[0])) <= 1e-10
+
+
+def test_a9_the_one_corpus_molecule_that_does_not_converge_is_the_dication_methanediylium():
+    elements, coords, net = _o9_corpus_molecule("methanediylium")
+    assert ce.qeq_charges(elements, coords, net).status == ce.REFUSE_NOT_CONVERGED

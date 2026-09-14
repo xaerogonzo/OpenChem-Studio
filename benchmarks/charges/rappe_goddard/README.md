@@ -230,9 +230,59 @@ inferences A4 made.
   and nothing relies on it.
 
 **Deferred, deliberately:**
-- **The bound procedure (O9).** Still deferred; the shipped calculator refuses
-  its domain (A8).
+- ~~The bound procedure (O9).~~ **Studied under A9**, below: on a 174-molecule
+  corpus the paper's procedure is the constrained optimum everywhere, and the
+  one bound activation is a non-convex runaway that A8 refuses.
 - ~~Speed.~~ **Solved under A8**, below.
+
+## Amendment A9: the bound procedure on a real corpus (2026-09-14)
+
+Pre-registered in A9 before any output: `tests/qeq_bounded_qp.py` (the QP),
+`build_o9_corpus.py` (the frozen corpus) and `o9_study.py`, whose per-molecule
+table is `o9_study.csv`. The corpus is the naming benchmark restricted to
+Table I elements: 174 molecules, 22 categories, including 11 polycharged
+species. Adopted reading, experimental hydrogen set.
+
+**The QP is checked before it judges anything, in A9's order.**
+1. With no bound active it equals the unconstrained solve.
+2. It equals the brute-force KKT optimum on all 200 synthetic systems
+   (3.6e-15 e) and on the one real bound-active matrix.
+3. It equals the paper's procedure wherever that procedure is optimal (172 of
+   the 200 synthetic systems).
+
+Disabling its release step turns the tests red.
+
+**On the corpus:**
+
+| | molecules |
+|---|---|
+| converged | 173 of 174 (methanediylium, CH₂²⁺, does not) |
+| a bound touched at any pass | 1 |
+| a bound active in the final solution | 1: propane-1,3-diide, two H held at −1 |
+| paper's procedure not KKT-optimal | **0** |
+| largest paper − optimum difference | 1.1e-16 e (floating point) |
+| QEq matrix not convex on Σq = Q | 1: the same propane-1,3-diide (tangent eigenvalue −0.24; median over the rest +1.37) |
+
+**What it means.**
+- The paper's never-release fixing, which misses the optimum in 28 of 200
+  synthetic systems built to bind, is the true constrained minimum on every
+  converged molecule of this corpus.
+- **The one bound activation happened exactly where the QEq energy has no
+  minimum without the bounds.** Propane-1,3-diide's matrix is not convex on the
+  charge-conserving plane, so its charges run away until the bounds stop them.
+- Brute force over all 3⁹ assignments finds a single KKT point: the global
+  constrained minimum. The paper, the QP and brute force agree on it.
+- That answer puts the dianion's charge on two hydrogens (−1 each), with the
+  carbanion carbons near −0.16. It is the bounds' answer, not chemistry's.
+  A8's refusal is what keeps it from a user.
+- **So the data do not argue for replacing the paper's procedure.** Where
+  bounds bind in practice, they bind because the model has left its valid
+  domain, and a better optimiser would return a more exact version of an
+  unphysical answer. The refusal stays.
+- **Scope of the conclusion:** one corpus of 174 small molecules, 11 of them
+  polycharged. A larger or more ionic set could find a convex bound-active
+  case, where the paper's procedure and the optimum might differ. The QP and
+  the study script are in place for that.
 
 ## QEq stop 2: the bounds (O9)
 
