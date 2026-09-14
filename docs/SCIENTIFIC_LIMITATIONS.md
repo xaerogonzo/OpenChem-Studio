@@ -1045,11 +1045,12 @@ MMFF94's are the charges the MMFF94 force field was fitted with. A folded
 hydrogens', which is arithmetic this application does, not a quantity MMFF94
 defines. A structure MMFF94 has no atom type for is refused, not guessed.
 
-**The 3D charge calculator is EEM with Bultinck's own parameters, and it
-depends on the conformer.** *Partial Charge (3D, EEM)* solves Bultinck et
-al.'s 2002 electronegativity equalization (part I, eq 3) with that paper's
-Table 1, which covers H, C, N, O and F only; any other element is refused.
-What it is, and is not:
+**The 3D charge calculator offers EEM (Bultinck's own parameters) and QEq
+(Rappé–Goddard 1991), and both depend on the conformer.** *Partial Charge
+(3D)* with EEM solves Bultinck et al.'s 2002 electronegativity equalization
+(part I, eq 3) with that paper's Table 1, which covers H, C, N, O and F only;
+any other element is refused. QEq is described in its own bullet below. What
+they are, and are not:
 
 - **Vacuum charges fitted to Mulliken populations.** Bultinck fitted the
   parameters to B3LYP/6-31G\* Mulliken charges on optimized geometries. They
@@ -1066,12 +1067,24 @@ What it is, and is not:
   carbon and oxygen values appear in no table of either Bultinck paper, and it
   gives unlisted elements hydrogen's parameters. It is used only to check that
   the arithmetic agrees when both are given Table 1.
-- **Rappé–Goddard QEq is implemented and not offered.** It reproduces the
-  paper's alkali halides (Table II) to 0.0005 e, but under no pre-registered
-  reading of its hydrogen treatment does it reproduce Table III's HF, and LiH
-  does not converge. Its bound procedure also misses the constrained optimum
-  in 28 of 200 synthetic systems. The record is
-  `benchmarks/charges/rappe_goddard/README.md`.
+- **QEq ships under a stated scope, not because its original gate passed.**
+  The pre-registered gate (the paper's Tables III and IV) failed and stays on
+  record. The scope it ships under (amendment A8), verbatim: "This calculator implements the Rappé–Goddard 1991 QEq formulation using the λ = ½ interpretation (eq 17′) and the experimental hydrogen parameter set. It reproduces the validated benchmark subset recorded in amendment A8. The published LiH value is not a self-consistent solution of the implemented equations, and such cases are refused. The published 1991 SiH₄ value is inconsistent with the later Rappé-group implementation and is treated as a source discrepancy, not as an oracle. Results whose final solution requires an active charge bound are refused pending the O9 study."
+  - **Validated:** Table II's 20 halides to 0.0005 e; 36 of the 38
+    experimental-column polyatomic cells of Tables III and IV; Ramachandran et
+    al. 1996's water (0.3532 against 0.353) and its disiloxane O and Si.
+  - **Refused, computationally:** molecules whose hydrogen iteration does not
+    settle (LiH is one, and its printed charge is not a solution of the
+    equations), and any molecule whose final solution holds a charge at its
+    bound. That second domain is deliberately incomplete: the paper's bound
+    procedure misses the constrained optimum in synthetic cases, and it is
+    under separate study.
+  - **A source discrepancy, not a refusal:** silicon. The result carries a
+    note that it does not reproduce the 1991 SiH₄ row, whose sign the same
+    group's 1996 calculations contradict.
+  - **Not offered:** the paper's HF-fitted hydrogen set, which misses more
+    cells and orders the two sets the opposite way to the paper.
+  - The whole record is `benchmarks/charges/rappe_goddard/README.md`.
 - **A result filed by a build is not re-run by a fix.** The method code in a
   result's identity names the scientific method and parameter set; which
   build computed it is the application version, and today that invalidates
