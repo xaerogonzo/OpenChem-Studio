@@ -17,7 +17,7 @@ uv run --no-sync python benchmarks/charges/rappe_goddard/oracle.py
 - **QEq stopped at the pre-registered stop rule, twice.** The next decision is
   Alex's.
 - **Harmony et al. 1979 arrived, and the polyatomic rows point at one reading.**
-  - **Under the pre-registered primary P** (Table I's printed ζ), 38 of 74
+  - **Under the pre-registered primary P** (Table I's printed ζ), 39 of 76
     Table III/IV cells miss.
   - **Under R4** (eq 17′, λ = ½ for every element), 10 miss. Table III's
     experimental column for H₂O, NH₃ and CH₄ lands within 0.002 e, as HF's did.
@@ -33,7 +33,7 @@ uv run --no-sync python benchmarks/charges/rappe_goddard/oracle.py
 | O2 | eq 17 regenerates Table I's ζ | 14 elements within ±0.0001; **N misses by 2.5e-5**, within the rounding of its printed radius (amendment A3); **O misses by 0.0030**, four times its rounding, recorded before any solve |
 | O3 | Table II, 20 alkali halides, both λ columns | **passes: worst 0.0005 e** in each column, and eq 18 agrees with the general solver to 1e-8 e |
 | O4 | Table III hydrogen charges (±0.001 e diatomic, ±0.002 e polyatomic) | **STOP**: under P, HF, H₂O, NH₃ and CH₄ miss and LiH never converges |
-| O5 | Table IV at ±0.01 e: diatomics at Huber r_e, polyatomics at Harmony 1979 geometries (amendment A4); ethane is not in Harmony | **P misses 33 of 68 cells; R4 misses 7** (below) |
+| O5 | Table IV at ±0.01 e: diatomics at Huber r_e, polyatomics at Harmony 1979 geometries (A4), ethane at Iijima 1973 from the 1998 Kuchitsu digest (A5) | **P misses 34 of 70 cells; R4 misses 7** (below) |
 | O6 | Open Babel's EEM, given Table 1 | same arithmetic to 1e-6 e (compatibility only) |
 | O7 | EEM eq 3's diatomic closed form | passes; the η-for-2η build fails, as it must |
 | O8 | EEM matrix, entry by entry | passes |
@@ -78,18 +78,20 @@ Q_H by reading, with the difference from the printed value
   undamped iteration that differs in some other detail, or ζ_H entering eq 21
   in some other way. The paper gives no more than it gives.
 
-## The polyatomics, at Harmony 1979's geometries (amendment A4)
+## The polyatomics, at Harmony 1979's geometries (A4) and ethane's (A5)
 
 Run 2026-09-14 by `oracle.py`. Geometries: per parameter, the first printed of
 equilibrium, substitution, average, effective; conformations as Harmony draws
-them. Cells outside tolerance, of 74 (6 in Table III, 68 in Table IV):
+them. Ethane, which Harmony lacks: Iijima 1973's r_z structure, the only one
+in the 1998 digest that predates Landolt–Börnstein II/7. Cells outside
+tolerance, of 76 (6 in Table III, 70 in Table IV):
 
 | reading | P | R1 | R2 | R3 | **R4** | P, effective-first geometry |
 |---|---|---|---|---|---|---|
-| cells missed | 38 | 57 | 62 | 43 | **10** | 39 |
+| cells missed | 39 | 59 | 64 | 44 | **10** | 40 |
 
 - **The geometry choice is not the cause.** Reversing the structure-type order
-  moves P from 38 to 39 misses.
+  moves P from 39 to 40 misses.
 - **R4 with the experimental hydrogen set reproduces every Table III and IV
   cell except two:**
   - formamide's C, +0.011 against a tolerance of 0.01;
@@ -149,8 +151,9 @@ accuracy.
 
 0. **Adopt R4 (λ = ½, eq 17′) as the reading, and say why.**
    - It is what the text says the authors adopted.
-   - With the experimental hydrogen set it reproduces 64 of 68 Table IV cells
-     and all of Table III's polyatomics.
+   - With the experimental hydrogen set it reproduces 33 of Table IV's 35
+     cells (it misses formamide's C by 0.001 past tolerance, and SiH₄) and all
+     of Table III's polyatomics. With the HF-fitted set it misses 5 of 35.
    - The cost of adopting it now is that it was chosen after seeing the
      tables. The record would have to say so, and P's failure stays on file.
    - LiH, SiH₄, the QEqHF column and the bound procedure (O9) remain open
@@ -165,6 +168,6 @@ accuracy.
 2. **The bound algorithm.** Keep the paper's never-release fixing, or
    replace it with a true constrained minimum, labelled as a departure from
    the paper.
-3. **Ethane's geometry** would need Landolt–Börnstein, New Series II/7
-   (1976), the paper's reference 16. It is the only Table IV compound not in
-   Harmony et al. 1979.
+3. **Ethane** runs at a geometry from the 1998 digest of Landolt–Börnstein,
+   not from II/7 itself (amendment A5). Seeing II/7 would confirm or overturn
+   that inference; it changes one row.

@@ -17,8 +17,8 @@ Layers, kept apart on purpose:
     invariants  shift, conservation, net charge, permutation, reading isolation
 
 Polyatomic rows of Tables III and IV run at Harmony et al. 1979's geometries,
-built by `qeq_geometries.py` under amendment A4. Ethane is not in Harmony and
-skips, saying so.
+built by `qeq_geometries.py` under amendment A4; ethane, which Harmony lacks,
+at Iijima 1973's structure from the 1998 Kuchitsu digest under amendment A5.
 """
 
 from __future__ import annotations
@@ -69,7 +69,7 @@ def test_every_fixture_matches_the_hash_the_preregistration_recorded():
     text = PREREGISTRATION.read_text(encoding="utf-8")
     fixtures = sorted(FIXTURES.glob("*.csv"))
     hashed = [f for f in fixtures if f.name != "slater_reference.csv"]
-    assert len(hashed) == 7
+    assert len(hashed) == 8
     for fixture in hashed:
         digest = hashlib.sha256(fixture.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
         assert f"`{fixture.name}`" in text and digest in text, fixture.name
@@ -337,7 +337,6 @@ def test_o3_eq18_from_the_fixture_with_the_oracle_integral_agrees_with_the_gener
 DIATOMIC_HYDRIDES = {"HF": ("H", "F"), "LiH": ("Li", "H"), "ClH": ("H", "Cl")}
 GEOMETRY_NAME = {"HF": "HF", "LiH": "LiH", "ClH": "HCl"}
 COLUMNS = (("QEq", "experimental"), ("QEqHF", "hf"))
-ETHANE = "ethane is not in Harmony et al. 1979 (its C2H6 formulas run from C2H5P to C2H6BN); the paper's other source, Landolt-Bornstein, is not held"
 
 
 @functools.lru_cache(maxsize=None)
@@ -373,6 +372,7 @@ P_MISSES_IV = {
     ("H3CCN", 3, "QEqHF"): -0.275, ("H2C=C=O", 1, "QEq"): -0.434, ("H2C=C=O", 1, "QEqHF"): -0.436,
     ("H2C=C=O", 2, "QEq"): 0.394, ("H2C=C=O", 2, "QEqHF"): 0.396, ("H2C=C=O", 3, "QEq"): -0.197,
     ("H2C=C=O", 3, "QEqHF"): -0.157, ("SiH4", 1, "QEq"): -0.042, ("SiH4", 1, "QEqHF"): -0.069,
+    ("C2H6", 1, "QEq"): 0.1426,
 }
 
 
@@ -405,8 +405,6 @@ def _o5_params():
         for column, hydrogen in COLUMNS:
             key = (row["molecule"], int(row["printed_order"]), column)
             marks = [pytest.mark.xfail(strict=True, reason=f"STOP RECORD: P gives {P_MISSES_IV[key]} against {row[column]}")] if key in P_MISSES_IV else []
-            if row["molecule"] == "C2H6":
-                marks = [pytest.mark.skip(reason=ETHANE)]
             params.append(pytest.param(row, column, hydrogen, marks=marks, id=f"{row['molecule']}-{row['printed_order']}-{column}"))
     return params
 
@@ -421,10 +419,24 @@ def test_o5_table_iv_charges(row, column, hydrogen):
         assert abs(result.charges[atom] - float(row[column])) <= 0.01, (atom, result.charges[atom], row[column])
 
 
+def test_ethane_is_iijima_1973_rz_staggered():
+    elements, coords, _mapping, types = qeq_geometries.build("C2H6")
+    assert types == {"CC": "rz", "CH": "rz", "HCH": "theta_z"}
+    assert abs(np.linalg.norm(coords[1] - coords[0]) - 1.5323) < 1e-12
+    assert all(abs(np.linalg.norm(coords[h] - coords[0 if h < 5 else 1]) - 1.1017) < 1e-12 for h in range(2, 8))
+    u, v = coords[2] - coords[0], coords[3] - coords[0]
+    assert abs(math.degrees(math.acos(u @ v / np.linalg.norm(u) / np.linalg.norm(v))) - 107.30) < 1e-9
+    # staggered: an upper H sits 60 degrees round from each lower one, seen down C-C
+    lower, upper = math.atan2(coords[2][1], coords[2][0]), math.atan2(coords[5][1], coords[5][0])
+    assert abs(math.degrees((upper - lower) % (2 * math.pi / 3)) - 60.0) < 1e-9
+
+
 def test_every_polyatomic_geometry_reproduces_its_harmony_parameters():
     """The builder is held to the fixture: every bond it builds is the chosen
     printed length, so a construction slip cannot pose as a QEq result."""
     for name in qeq_geometries.TABLE_NAMES.values():
+        if name == "C2H6":
+            continue  # its own fixture; held by the ethane test below
         elements, coords, _mapping, _types = qeq_geometries.build(name)
         chosen, _ = qeq_geometries.parameters(name)
         lengths = {round(float(v), 6) for k, v in chosen.items() if k not in ("HOH", "HNH", "HPH", "HCH", "OCO", "HCO", "COH", "H1NH2", "H1NC", "NCO", "NCH", "HCC", "phi")}

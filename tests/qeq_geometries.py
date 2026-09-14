@@ -1,5 +1,6 @@
 """Cartesian geometries for Rappé & Goddard's polyatomic oracles, built from
-Harmony et al. 1979 by the rules of preregistration amendment A4.
+Harmony et al. 1979 by the rules of preregistration amendment A4, and ethane
+from the 1998 Kuchitsu digest by amendment A5.
 
 Not a test module: `tests/test_charge_equilibration.py` and
 `benchmarks/charges/rappe_goddard/oracle.py` both build from here, so the
@@ -71,7 +72,12 @@ def _pyramid(bond: float, angle_deg: float, count: int = 3):
 
 
 def build(molecule: str, order: tuple[str, ...] = PREFERRED):
-    """(elements, coordinates in angstrom, Table IV printed_order -> atom indices, structure types used)."""
+    """(elements, coordinates in angstrom, Table IV printed_order -> atom indices, structure types used).
+
+    Ethane comes from `build_ethane` (amendment A5): it has one determination
+    and no structure-type order to apply."""
+    if molecule == "C2H6":
+        return build_ethane()
     p, types = parameters(molecule, order)
     O = np.zeros(3)
     z = np.array([0.0, 0.0, 1.0])
@@ -149,9 +155,25 @@ def build(molecule: str, order: tuple[str, ...] = PREFERRED):
     raise KeyError(molecule)
 
 
+ETHANE_FIXTURE = pathlib.Path(__file__).parent / "fixtures" / "charges" / "kuchitsu1998_ethane.csv"
+
+
+def build_ethane():
+    """Amendment A5: Iijima 1973's r_z structure from the 1998 digest, the only one
+    of its three determinations that predates Landolt-Bornstein II/7. Staggered D3d."""
+    lines = [line for line in ETHANE_FIXTURE.read_text(encoding="utf-8").splitlines() if not line.startswith("#")]
+    rows = [r for r in csv.DictReader(lines) if r["determination"] == "Iijima 1973 ED" and r["structure_type"] in ("rz", "theta_z")]
+    p = {r["parameter"]: float(r["value"]) for r in rows}
+    c1, c2 = np.zeros(3), np.array([0.0, 0.0, p["CC"]])
+    lower = [np.array([v[0], v[1], -abs(v[2])]) for v in _pyramid(p["CH"], p["HCH"])]
+    turn = np.array([[math.cos(math.pi / 3), -math.sin(math.pi / 3), 0], [math.sin(math.pi / 3), math.cos(math.pi / 3), 0], [0, 0, 1]])
+    upper = [c2 + turn @ np.array([v[0], v[1], abs(v[2])]) for v in _pyramid(p["CH"], p["HCH"])]
+    return ["C", "C", "H", "H", "H", "H", "H", "H"], np.array([c1, c2, *lower, *upper]), {1: [2, 3, 4, 5, 6, 7]}, {"CC": "rz", "CH": "rz", "HCH": "theta_z"}
+
+
 #: Table III/IV compound names -> Harmony molecule keys.
 TABLE_NAMES = {
     "H2O": "H2O", "NH3": "NH3", "CH4": "CH4", "C2H2": "C2H2", "C2H4": "C2H4", "C6H6": "C6H6",
-    "CO2": "CO2", "H2CO": "H2CO", "H3COH": "H3COH", "H2NC(O)H": "H2NC(O)H", "HOC(O)H": "HOC(O)H",
+    "C2H6": "C2H6", "CO2": "CO2", "H2CO": "H2CO", "H3COH": "H3COH", "H2NC(O)H": "H2NC(O)H", "HOC(O)H": "HOC(O)H",
     "H3CCN": "H3CCN", "H2C=C=O": "H2C=C=O", "SiH4": "SiH4", "PH3": "PH3",
 }

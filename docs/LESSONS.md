@@ -20145,7 +20145,7 @@ Five things worth keeping:
 
 **A primary reading can be right on paper and wrong in the tables.** Once
 Harmony 1979 supplied the polyatomic geometries, the pre-registered primary
-(Table I's printed ζ) missed 38 of 74 Table III/IV cells, and the alternate
+(Table I's printed ζ) missed 39 of 76 Table III/IV cells, and the alternate
 the text itself describes adopting (λ = ½, eq 17′) missed 10. The
 pre-registration made that a question rather than a quiet switch, which is the
 point of it: the fit is evidence, and choosing after the fit is still a choice.
