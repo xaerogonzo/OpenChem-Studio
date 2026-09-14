@@ -543,6 +543,30 @@ def test_o9_fix_and_re_solve_reaches_the_constrained_optimum_on_every_synthetic_
     assert not disagreements, f"{len(disagreements)} of {len(SYNTHETIC)}: {disagreements[:5]}"
 
 
+def test_o9_where_fixing_reaches_the_optimum_clipping_does_not_stand_in_for_it():
+    """The guard a clip-and-renormalise mutation must trip. The strict xfail
+    above cannot: it already fails. So on the cases where the paper's fixing
+    DOES reach the constrained optimum, production must match that optimum,
+    and clipping must miss it at least once."""
+    agreeing = clip_misses = 0
+    for hardness, chi, net, lower, upper in SYNTHETIC:
+        optimum = _kkt_optimum(hardness, chi, net, lower, upper)
+        ours = ce.solve_bounded(hardness, chi, net, lower, upper).charges
+        if np.max(np.abs(ours - optimum)) > 1e-10:
+            continue
+        agreeing += 1
+        free = np.linalg.solve(
+            np.block([[hardness, -np.ones((len(chi), 1))], [np.ones((1, len(chi))), np.zeros((1, 1))]]),
+            np.concatenate([-chi, [net]]),
+        )[:-1]
+        clipped = np.clip(free, lower, upper)
+        inside = (clipped > lower) & (clipped < upper)
+        if np.any(inside):
+            clipped[inside] += (net - clipped.sum()) / np.count_nonzero(inside)
+        clip_misses += int(np.max(np.abs(clipped - optimum)) > 1e-3)
+    assert agreeing >= 150 and clip_misses > 0, (agreeing, clip_misses)
+
+
 def test_o9_clip_and_renormalise_is_a_different_answer():
     differences = []
     for hardness, chi, net, lower, upper in SYNTHETIC:

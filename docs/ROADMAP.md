@@ -1944,6 +1944,23 @@ struck through and marked SHIPPED here, never deleted.
     - The plan pre-registers every tolerance, both readings of what the paper
       leaves open, and how the hydrogen iteration and the bounds combine,
       before any solve runs.
+  - **EEM SHIPPED** as Charge ▸ Partial Charge (3D, EEM). It passed its gate:
+    eq 3's closed form, the matrix entry by entry, and Open Babel's arithmetic
+    on the same Table 1 numbers. The rendered part I confirms the read of the
+    text layer: Open Babel's C and O are in none of its tables.
+  - **QEq STOPPED at its pre-registered gate, twice, with decisions waiting.**
+    Everything is in
+    [benchmarks/charges/rappe_goddard/](../benchmarks/charges/rappe_goddard/README.md).
+    - Table II's 20 halides reproduce to 0.0005 e in both λ columns, so the
+      integrals, the system and the heavy-atom parameters are right.
+    - Table III's HF misses under every reading of the hydrogen treatment, and
+      LiH converges under none. Near its printed charge the 2×2 denominator is
+      0.28 eV where 1.98 would be needed.
+    - The paper's never-release bound fixing misses the constrained optimum in
+      28 of 200 synthetic systems.
+    - Decisions: which hydrogen treatment, if any; keep the paper's bound
+      procedure or use a true constrained minimum labelled as a departure. And
+      Harmony et al. 1979 is still needed for any polyatomic check.
 - **Geometry-dependent charges at a pH.** Not started, and deliberately
   separate from the item above. It needs the coordinate gate recorded there:
   protonation must not move or lose the conformer's heavy atoms.

@@ -30,6 +30,12 @@ from openchem.chem.mass_spectrum import (
     compute_mass_spectrum,
 )
 from openchem.chem.geometry_analysis import compute_geometry_analysis
+from openchem.chem.geometry_charges import (
+    EEM_BULTINCK2002_PART1,
+    GEOMETRY_CHARGE_METHOD_LABELS,
+    GEOMETRY_CHARGE_METHODS,
+    compute_geometry_charges,
+)
 from openchem.chem.interaction_analysis import compute_interaction_analysis
 from openchem.chem.markush import DEFAULT_MAX_STRUCTURES as MARKUSH_DEFAULT_MAX
 from openchem.chem.calculator_options import (
@@ -1889,6 +1895,38 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             ),
         ],
         tags=["charge", "ph", "per-atom", "gasteiger", "mmff94", "partial charge"],
+    ),
+    CalculatorDefinition(
+        calculator_id="geometry_partial_charge",
+        calculation_input=GEOMETRY,
+        display_name="Partial Charge (3D, EEM)",
+        category="charge",
+        description=(
+            "Partial charges that depend on the 3D geometry, by Bultinck's electronegativity "
+            "equalization (2002, part I) with that paper's own parameters for H, C, N, O and F. "
+            "Computed on the stored conformer as it is: its own hydrogens and its net charge, "
+            "with no protonation, and only the sum of the charges equals the net charge. "
+            "Needs a conformer with explicit hydrogens; any other element is refused."
+        ),
+        execution=RegistryExecution(compute=compute_geometry_charges),
+        parameters=[
+            CalculatorParameter(
+                name="method",
+                label="Charge method",
+                kind="choice",
+                default=EEM_BULTINCK2002_PART1,
+                choices=list(GEOMETRY_CHARGE_METHODS),
+                choice_labels=[GEOMETRY_CHARGE_METHOD_LABELS[m] for m in GEOMETRY_CHARGE_METHODS],
+            ),
+            CalculatorParameter(
+                name="include_hydrogens",
+                label="Increment of Hs (fold hydrogen charges onto their atom)",
+                kind="bool",
+                default=False,
+            ),
+            decimal_places_parameter(),
+        ],
+        tags=["charge", "3d", "per-atom", "eem", "electronegativity equalization", "partial charge", "bultinck"],
     ),
     CalculatorDefinition(
         calculator_id="crippen_logp_contrib",

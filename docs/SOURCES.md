@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 68c677ccc9ed301b2024151045478ac7cb63b63cf3d393bbc6571bb9fec3b0c5 -->
+<!-- SOURCE SHA256: d4c2f2957c14afb193f749061cad434d6a41564c3e18fac1d81bfbf431b0d342 -->
 
 # Sources
 
@@ -110,6 +110,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`bremer2022`](#bremer2022) | literature | reference only | citation |
 | [`brenk2008`](#brenk2008) | literature | shipped | citation |
 | [`brown2006`](#brown2006) | literature | **not shipped** | citation |
+| [`bultinck2002a`](#bultinck2002a) | literature | shipped | citation + claim |
 | [`cao2004`](#cao2004) | literature | shipped | citation + claim |
 | [`claesen2023`](#claesen2023) | literature | reference only | citation |
 | [`cod`](#cod) | dataset | shipped | citation |
@@ -138,6 +139,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`hancock1996`](#hancock1996) | literature | reference only | citation |
 | [`hlb`](#hlb) | reference_table | reference only | citation |
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
+| [`huber1979`](#huber1979) | literature | reference only | citation + claim |
 | [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
 | [`ipsen2014`](#ipsen2014) | literature | reference only | citation |
 | [`iupac2013`](#iupac2013) | standard | shipped | citation |
@@ -193,6 +195,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`pyside6`](#pyside6) | software | shipped | citation |
 | [`quiroga2016`](#quiroga2016) | literature | shipped | citation + claim |
 | [`ran2002`](#ran2002) | literature | reference only | citation |
+| [`rappe1991`](#rappe1991) | literature | **not shipped** | citation + claim |
 | [`rcsb_pdb`](#rcsb_pdb) | dataset | shipped | citation |
 | [`rdkit`](#rdkit) | software | shipped | citation |
 | [`rdkit_bertz`](#rdkit_bertz) | software | shipped | citation + claim |
@@ -1865,6 +1868,109 @@ Cited for that, not for a number: the numbers were checked directly against
 [source:halgren1996_mmff2]'s Table V rather than taken on this paper's word.
 
 DOI and title read off the PDF.
+
+### bultinck2002a
+
+<a id="bultinck2002a"></a>
+
+> P. Bultinck, W. Langenaeker, P. Lahorte, F. De Proft, P. Geerlings, M. Waroquier & J. P. Tollenaere, 'The Electronegativity Equalization Method I: Parametrization and Validation for Atomic Charge Calculations', J. Phys. Chem. A 2002, 106, 7887-7894.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp0205463](https://doi.org/10.1021/jp0205463) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-09-14 |
+| Local copy | `bultinck2002.pdf` (not checked) |
+| Used by | `src/openchem/chem/charge_equilibration.py`, `src/openchem/chem/geometry_charges.py` |
+
+THE PARAMETERS ARE THIS PAPER'S OWN TABLE 1 ("present study" column), read
+from the page rendered at 300 dpi into
+`tests/fixtures/charges/bultinck2002a_table1.csv`: chi* and eta* in eV for H,
+C, N, O and F, and nothing else, so every other element is refused.
+
+The equation is eq 3 (p. 7888): 2 eta* on the diagonal, 1/R off it, -chi* on
+the right. It carries no conversion constant, so it holds in atomic units,
+and the paper's own "8.5 eV (0.3124 au)" confirms it works in them.
+`tests/test_charge_equilibration.py` pins the convention two ways: a
+closed-form diatomic from eq 3 matches the solver to 1e-12 e, and a build
+with eta* where 2 eta* belongs fails.
+
+OPEN BABEL'S `eem.txt` IS NOT THIS SET, although it is labelled "Bultinck
+B3LYP/6-31G*/MPA". Its C eta* (8.97) and its O pair do not appear in any table
+of this paper, and it gives every unlisted element hydrogen's parameters. See
+`benchmarks/charges/README.md` and `benchmarks/charges/rappe_goddard/`.
+
+The charges are fitted to B3LYP/6-31G* Mulliken charges on optimized
+geometries; this application computes them on force-field conformers.
+
+DOI and title read off the PDF.
+
+### rappe1991
+
+<a id="rappe1991"></a>
+
+> A. K. Rappé & W. A. Goddard III, 'Charge Equilibration for Molecular Dynamics Simulations', J. Phys. Chem. 1991, 95, 3358-3363.
+
+| | |
+| --- | --- |
+| Identifier | J. Phys. Chem. 1991, 95, 3358-3363 |
+| Status | **not shipped** |
+| Verification | citation + claim |
+| Verified | 2026-09-14 |
+| Local copy | `rappe1991.pdf` (not checked) |
+
+**Why it is not shipped.** QEQ IS IMPLEMENTED AND NOT SHIPPED: it stopped at its pre-registered gate.
+`src/openchem/chem/charge_equilibration.py` implements the paper -- exact ns
+Slater Coulomb integrals, the bounds of eq 5 and the fixing of eq 13, and
+hydrogen's charge-dependent exponent (eqs 20-21) -- and no calculator offers
+it.
+
+Checked against the paper's own tables, transcribed from 300 dpi renders into
+`tests/fixtures/charges/rappe1991_table1..4.csv`:
+- Table II (20 alkali halides, no hydrogen) is reproduced in both lambda
+  columns to 0.0005 e. That validates the integrals, the linear system and
+  the heavy-atom parameters.
+- Table III's HF is missed under every pre-registered reading of the
+  hydrogen treatment, and LiH converges under none.
+- The never-release bound fixing misses the constrained optimum in 28 of 200
+  synthetic systems.
+
+Also recorded from the page: oxygen's printed zeta (0.9745) does not follow
+from its printed radius; Table III's footnote and section IV's text describe
+different hydrogen procedures; and the text contradicts Table IV twice. See
+`benchmarks/charges/rappe_goddard/README.md`.
+
+The paper's polyatomic geometries come from Harmony et al. 1979 (J. Phys.
+Chem. Ref. Data 8, 619), which is not held.
+
+### huber1979
+
+<a id="huber1979"></a>
+
+> K. P. Huber & G. Herzberg, 'Molecular Spectra and Molecular Structure IV. Constants of Diatomic Molecules', Van Nostrand Reinhold, New York, 1979.
+
+| | |
+| --- | --- |
+| Identifier | Molecular Spectra and Molecular Structure IV. Constants of Diatomic Molecules (Huber & Herzberg, 1979) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-09-14 |
+| Local copy | `huber1979.pdf` (not checked) |
+| Used by | `tests/fixtures/charges/geometries.csv` |
+
+**Why it is reference only.** THE EXPERIMENTAL BOND LENGTHS THE QEQ ORACLES RUN AT, and nothing the
+application computes. Rappé & Goddard cite this book (their reference 10) for
+their diatomic geometries.
+
+The ground-state r_e of 23 diatomics (the 20 alkali halides of their Table II,
+plus HF, LiH and HCl) were read from each table page rendered upright, with
+book page and PDF page recorded per row in the fixture. Huber & Herzberg print
+the last, least certain digit as a subscript; the fixture says where, and uses
+that digit.
+
+The held PDF's title page names Springer Science+Business Media; the citation
+above is the edition the paper cites.
 
 ### marsili1980
 

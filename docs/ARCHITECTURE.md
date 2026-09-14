@@ -815,7 +815,8 @@ document may cite a file or a test that does not exist.
   mutation run.
 
 - **OPEN** -- GEOMETRY per-atom datasets assume heavy atoms come first.
-  `atom_sasa` keys its values by the conformer's own atom indices, and the
+  `atom_sasa` and `geometry_partial_charge` key their values by the
+  conformer's own atom indices, and the
   Atom Inspector reads per-atom values by the drawing's. The two agree only
   because `AddHs` appends hydrogens after the atoms it was given. Measured
   2026-09-14, the two first-party routes that create a conformer --

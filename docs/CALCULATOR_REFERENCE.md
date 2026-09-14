@@ -103,6 +103,18 @@ Oxidation state per atom, by the IUPAC electronegativity-partition rule: each bo
 - Options:
   - `show_hydrogens` -- Include hydrogens default `False`
 
+<!-- help:calc-geometry-partial-charge -->
+### Partial Charge (3D, EEM)
+
+Partial charges that depend on the 3D geometry, by Bultinck's electronegativity equalization (2002, part I) with that paper's own parameters for H, C, N, O and F. Computed on the stored conformer as it is: its own hydrogens and its net charge, with no protonation, and only the sum of the charges equals the net charge. Needs a conformer with explicit hydrogens; any other element is refused.
+
+- Produces one value per atom, with a depiction coloured by them.
+- Runs on a real 3D conformer -- generate one first.
+- Options:
+  - `method` -- Charge method (eem_bultinck2002_part1) default `eem_bultinck2002_part1`
+  - `include_hydrogens` -- Increment of Hs (fold hydrogen charges onto their atom) default `False`
+  - `decimal_places` -- Decimal places default `2` range 0 to 8
+
 <!-- help:calc-gasteiger-charge-at-ph -->
 ### Partial Charge (pH-dependent)
 

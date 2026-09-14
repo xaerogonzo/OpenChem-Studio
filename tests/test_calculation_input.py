@@ -387,11 +387,17 @@ def test_geometry_is_opt_in_and_the_default_is_the_drawing():
     # ALTERNATION, and at 0.1 A of it HOMA goes 0.979 -> -1.598 and Bird
     # 100.0 -> 17.2. A probe built on flattening alone would have reported
     # "unchanged" and read as evidence they belong on DRAWING.
+    #
+    # `geometry_partial_charge` (EEM) meets the aromaticity indices' standard
+    # AND the seven's: it refuses a drawing outright, and on a conformer
+    # flattening z moves every 1/R and every charge with it --
+    # `tests/test_geometry_charges.py::test_the_charges_follow_the_geometry`.
     assert declared == {
         "atom_sasa",
         "bird_aromaticity",
         "dipole_moment",
         "geometry_analysis",
+        "geometry_partial_charge",
         "homa_aromaticity",
         "interaction_analysis",
         "molecular_dynamics",

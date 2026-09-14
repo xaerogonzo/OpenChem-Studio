@@ -31,6 +31,7 @@ from dataclasses import dataclass, field, replace
 
 import numpy as np
 
+#: eV per hartree, the one conversion both methods use (pre-registration section 2).
 HARTREE_EV = 27.211386
 #: Rappé & Goddard state a0 = 0.52917 A under eq 17; QEq uses exactly that.
 QEQ_BOHR_ANGSTROM = 0.52917
@@ -42,10 +43,10 @@ EEM_BOHR_ANGSTROM = 0.529177210903
 OVERLAP_ANGSTROM = 0.1
 
 # --- Rappé & Goddard 1991, Table I ------------------------------------------
-# element: (n, chi eV, J eV, R angstrom, zeta bohr^-1), as printed. n is not
-# printed: it is the valence shell's principal quantum number, which eq 15
-# needs. Transcribed from the page rendered at 300 dpi; the test holds this
-# table equal to tests/fixtures/charges/rappe1991_table1.csv.
+#: element: (n, chi eV, J eV, R angstrom, zeta bohr^-1), as printed. n is not
+#: printed: it is the valence shell's principal quantum number, which eq 15
+#: needs. Transcribed from the page rendered at 300 dpi; the test holds this
+#: table equal to tests/fixtures/charges/rappe1991_table1.csv.
 QEQ_TABLE_I: dict[str, tuple[int, float, float, float, float]] = {
     "Li": (2, 3.006, 4.772, 1.557, 0.4174),
     "C": (2, 5.343, 10.126, 0.759, 0.8563),
@@ -70,7 +71,9 @@ QEQ_TABLE_I: dict[str, tuple[int, float, float, float, float]] = {
 #: regenerates every heavy atom but O; hydrogen's 1.0698 needs 1/2 (eq 17');
 #: O's printed 0.9745 follows from neither and is kept as printed (reading R3).
 ZETA_PARAMETERIZATION = "rappe_table_I"
+#: Eq 17's lambda for every heavy atom's printed zeta (Table II footnote b).
 LAMBDA_HEAVY = 0.4913
+#: Eq 17' (lambda = 1/2), which hydrogen's printed 1.0698 needs.
 LAMBDA_HYDROGEN = 0.5
 
 #: Hydrogen's charge-free parameters (Table III footnotes b and d; eqs 22, 24).
@@ -99,11 +102,15 @@ EEM_BULTINCK2002_PART1: dict[str, tuple[float, float]] = {
     "O": (14.72, 14.34),
     "F": (15.00, 19.77),
 }
+#: Recorded in provenance: eq 3 with 2 eta* on the diagonal, in atomic units.
 EEM_EQUATION_CONVENTION = "bultinck2002_eq3_atomic_units"
 
 # --- Refusal codes -----------------------------------------------------------
+#: The method's own table has no parameters for an element in the molecule.
 REFUSE_ELEMENT_NOT_PARAMETERISED = "REFUSE_ELEMENT_NOT_PARAMETERISED"
+#: Two centres closer than OVERLAP_ANGSTROM.
 REFUSE_OVERLAPPING_ATOMS = "REFUSE_OVERLAPPING_ATOMS"
+#: QEq's hydrogen loop did not settle; no charges are returned.
 REFUSE_NOT_CONVERGED = "REFUSE_NOT_CONVERGED"
 
 
@@ -122,7 +129,9 @@ REFUSE_NOT_CONVERGED = "REFUSE_NOT_CONVERGED"
 #: pre-registered near-zero points really reach it: a branch no test enters
 #: is a branch no test checks.
 NEAR_ZERO_BRANCH_USES = {"count": 0}
+#: Below this ratio of s to R (or R to s) the shell difference cancels.
 _NEAR_ZERO_RATIO = 1e-3
+#: Terms of the lower incomplete gamma series; x < m + 1 <= 15 converges well inside it.
 _SERIES_TERMS = 80
 
 
@@ -226,7 +235,9 @@ def shell_average(n: int, zeta: float, s: np.ndarray, R: float) -> np.ndarray:
     return out
 
 
+#: Gauss-Legendre nodes by order, built once.
 _LEGENDRE = {}
+#: Gauss-Laguerre nodes by order, built once.
 _LAGUERRE = {}
 
 
@@ -360,7 +371,9 @@ class QEqReadings:
     zeta_source: str = "table_i"
 
 
+#: The readings fixed in advance.
 PRIMARY = QEqReadings()
+#: Each alternate differs from PRIMARY in one field, and is only ever reported beside it.
 ALTERNATES = {
     "R1": replace(PRIMARY, zeta_h_in_pairs=False),
     "R2": replace(PRIMARY, hydrogen_self_term="eq23_gradient"),

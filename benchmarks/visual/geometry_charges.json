@@ -1,0 +1,21 @@
+[
+  {"do": "smiles", "smiles": "[NH3+]CC(=O)[O-]", "name": "Glycine zwitterion", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 3, "after_ms": 15000},
+
+  {"do": "calculator", "id": "geometry_partial_charge", "reveal": false, "after_ms": 6000},
+  {"do": "calculator", "id": "gasteiger_charge_at_ph", "parameters": {"method": "mmff94", "pH": 7.4}, "reveal": false, "after_ms": 8000},
+  {"do": "panel", "id": "Atom_Inspector", "after_ms": 2000},
+  {"do": "select_atom", "atom": 0, "after_ms": 1500},
+  {"do": "inspector_report", "tag": "fresh-N", "expect_per_atom": {"contains": "geometry_partial_charge", "state": "fresh"}, "after_ms": 800},
+  {"do": "select_atom", "atom": 3, "after_ms": 1500},
+  {"do": "inspector_report", "tag": "fresh-O", "expect_per_atom": {"contains": "geometry_partial_charge", "state": "fresh"}, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/geometry_charges_fresh.png", "after_ms": 1000},
+
+  {"do": "conformers", "count": 4, "after_ms": 15000},
+  {"do": "select_atom", "atom": 3, "after_ms": 1500},
+  {"do": "inspector_report", "tag": "after-new-search", "expect_per_atom": {"contains": "geometry_partial_charge", "state": "stale"}, "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/geometry_charges_after_search.png", "after_ms": 1000},
+
+  {"do": "quit"}
+]

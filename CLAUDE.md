@@ -284,6 +284,7 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- A TABLE CAN CHECK ITS OWN TRANSCRIPTION, AND QEQ'S HYDROGEN NEVER CAME BACK
 - A ROW KEPT THE HEIGHT ITS TEXT NEEDS AT 100 PX, BECAUSE QLABEL FLOORS ITS OWN ANSWER
 - A CALLER'S ATOM MAPS REACHED THE LIBRARY, AND THE ORACLE HAD TO AVOID THE RULE IT TESTED
 - A FOOTNOTE ON THE NEXT COLUMN IS NOT A FLAG ON THIS ONE

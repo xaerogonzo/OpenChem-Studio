@@ -7,7 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Charge ▸ Partial Charge (3D, EEM).** Partial charges that depend on the
+  conformer's geometry, by Bultinck's electronegativity equalization with the
+  parameters that paper publishes (H, C, N, O, F). They are computed on the
+  stored conformer as it is, with its own hydrogens and net charge. Open
+  Babel's "Bultinck" EEM file turned out to hold a different parameter set,
+  so it is not used. Rappé–Goddard QEq was implemented too and is not offered:
+  it reproduces the paper's halides but not its hydrogen charges.
+
 ### Fixed
+
+- **A 3D result could name a conformer it was not computed on.** Which
+  conformer a calculation used was read after the calculation finished, so a
+  conformer search landing mid-run filed the result under the new conformer
+  beside the old one's fingerprint. It is now read when the input is resolved.
 
 - **A long value in Results left a blank gap under it.** A wrapped value kept
   the height its text would need in a column 100 px wide, so the charges'

@@ -201,7 +201,8 @@ class _DescriptorComputeTask(QRunnable):
 
 
 def _with_geometry_provenance(
-    result, model: MoleculeModel, calculation_input: str, parameters: dict | None = None
+    result, model: MoleculeModel, calculation_input: str, parameters: dict | None = None,
+    geometry: dict | None = None,
 ):
     """`result` with which-geometry-was-used merged into its provenance.
 
@@ -236,7 +237,7 @@ def _with_geometry_provenance(
     if provenance is None:
         return result
     try:
-        merged = dict(geometry_provenance(model, calculation_input))
+        merged = dict(geometry if geometry is not None else geometry_provenance(model, calculation_input))
         merged[f"{INPUT_PREFIX}parameters"] = recordable_parameters(parameters)
         merged.update(provenance.parameters)
         return replace(result, provenance=replace(provenance, parameters=merged))
@@ -354,6 +355,11 @@ class _CalculationTask(QRunnable):
             resolved = resolve_calculation_input(self._engine, self._model, definition.calculation_input)
             self._fingerprint = resolved.fingerprint
             mol = resolved.mol
+            # WHICH CONFORMER, READ WITH THE RESOLUTION, NOT AFTER THE RUN. It
+            # used to be read off the live model once the calculator returned,
+            # so a conformer search finishing mid-run filed the result under
+            # the NEW conformer's id beside the OLD one's fingerprint.
+            geometry = geometry_provenance(self._model, definition.calculation_input)
             result = self._registry.compute(
                 self._request.calculator_id, mol, self._model.uuid, self._request.parameters
             )
@@ -364,7 +370,7 @@ class _CalculationTask(QRunnable):
             # and the answer has to be an ID: index 0 today is index 3
             # after the next regeneration.
             result = _with_geometry_provenance(
-                result, self._model, definition.calculation_input, self._request.parameters
+                result, self._model, definition.calculation_input, self._request.parameters, geometry=geometry
             )
             # WHICH STRUCTURE this describes, recorded on the way out for
             # the same reason the geometry is: a calculator is handed a
