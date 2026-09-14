@@ -1812,7 +1812,11 @@ The next round of work, in the order it lands. The first three close items
 were waiting on a decision that has now been made. As each one ships it is
 struck through and marked SHIPPED here, never deleted.
 
-- **ORCA spectra carry an exact input identity.** Today the Atom Inspector
+- ~~**ORCA spectra carry an exact input identity.**~~ **SHIPPED 2026-09-14
+  (#97)**, as planned. It was checked live against real ORCA
+  (`benchmarks/visual/qm_shift_identity.json`), and writing it found the Atom
+  Inspector's report cache keyed on the drawing alone. The plan as it stood:
+  before it, the Atom Inspector
   shows QM shifts unchecked, because `QuantumChemistryService` publishes them
   with no fingerprint. The fix stamps each spectrum at submission:
   - a single run carries the conformer's GEOMETRY fingerprint;
@@ -1823,11 +1827,19 @@ struck through and marked SHIPPED here, never deleted.
   Run parameters go into provenance rather than a cache key, because these
   spectra are never stored or replayed. If that ever changes, their identity
   must grow a parameters key.
-- **A short top-docked Results dock stops scrolling.** At 190 px the reader's
-  minimum was about 208 px, all of it the reader's own chrome. Measure each row
-  first, then fold the pop-out control into the Showing row below a height
-  threshold, the way the filter already folds by width.
-- **An ionization-model cross-check, surfaced and not reconciled.** pkasolver
+- ~~**A short top-docked Results dock stops scrolling.**~~ **SHIPPED 2026-09-14
+  (#97), by a different fix than the one planned.** Measuring each row showed
+  folding the pop-out control would win back too little. What shipped: the
+  pop-out button moved into the dock's title bar, the reader's duplicate title
+  was dropped, and a short reader goes compact. It needs 152 px of the 162
+  available. The plan as it stood: at 190 px the reader's minimum was about
+  208 px, all of it the reader's own chrome. Measure each row first, then fold
+  the pop-out control into the Showing row below a height threshold, the way
+  the filter already folds by width.
+- ~~**An ionization-model cross-check, surfaced and not reconciled.**~~
+  **SHIPPED 2026-09-14 (#97).** Both preconditions below were done first. A
+  pkasolver call cost 2.9–3.1 s, over the 2 s gate, so answers are cached per
+  structure. The plan as it stood: pkasolver
   and Dimorphite-DL can disagree on the same site (O1OCN1 at pH 7.4). Each
   pH-dependent result will say, per site, which state each model gives and how
   far the pH is from the pKa. **No number changes**, and a regression test
