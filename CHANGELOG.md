@@ -9,13 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Charge ▸ Partial Charge (3D): QEq beside EEM.** Rappé–Goddard charge
+  equilibration can now be chosen as the method. It ships under a stated
+  scope rather than the gate it originally failed: λ = ½ with the
+  experimental hydrogen parameters, refusing molecules whose iteration does
+  not settle or whose solution reaches a charge bound, and noting silicon
+  as a disagreement with the 1991 paper. Its integrals are now evaluated in
+  closed form: a 76-atom drug takes under half a second instead of minutes,
+  with the same charges.
 - **Charge ▸ Partial Charge (3D, EEM).** Partial charges that depend on the
   conformer's geometry, by Bultinck's electronegativity equalization with the
   parameters that paper publishes (H, C, N, O, F). They are computed on the
   stored conformer as it is, with its own hydrogens and net charge. Open
   Babel's "Bultinck" EEM file turned out to hold a different parameter set,
-  so it is not used. Rappé–Goddard QEq was implemented too and is not offered:
-  it reproduces the paper's halides but not its hydrogen charges. Its
+  so it is not used. Rappé–Goddard QEq was implemented too and was at first
+  not offered (it is now; see the entry above): it reproduces the paper's
+  halides but not all its hydrogen charges. Its
   solver now uses λ = ½ for every element, the rounding the paper's text
   describes, which reproduces 66 of 76 of its polyatomic charges; the
   choice was made after comparing, and is recorded as such.

@@ -1899,14 +1899,17 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     CalculatorDefinition(
         calculator_id="geometry_partial_charge",
         calculation_input=GEOMETRY,
-        display_name="Partial Charge (3D, EEM)",
+        display_name="Partial Charge (3D)",
         category="charge",
         description=(
-            "Partial charges that depend on the 3D geometry, by Bultinck's electronegativity "
-            "equalization (2002, part I) with that paper's own parameters for H, C, N, O and F. "
-            "Computed on the stored conformer as it is: its own hydrogens and its net charge, "
-            "with no protonation, and only the sum of the charges equals the net charge. "
-            "Needs a conformer with explicit hydrogens; any other element is refused."
+            "Partial charges that depend on the 3D geometry, by one of two methods. EEM: Bultinck's "
+            "electronegativity equalization (2002, part I) with that paper's own parameters for H, C, "
+            "N, O and F. QEq: Rappé and Goddard's charge equilibration (1991) with lambda = 1/2 and "
+            "its experimental hydrogen parameters, for the 16 elements of its Table I; it refuses "
+            "molecules where its iteration does not settle or a charge reaches its bound. Computed on "
+            "the stored conformer as it is: its own hydrogens and its net charge, with no protonation, "
+            "and only the sum of the charges equals the net charge. Needs a conformer with explicit "
+            "hydrogens; an element the chosen method has no parameters for is refused."
         ),
         execution=RegistryExecution(compute=compute_geometry_charges),
         parameters=[
@@ -1926,7 +1929,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             ),
             decimal_places_parameter(),
         ],
-        tags=["charge", "3d", "per-atom", "eem", "electronegativity equalization", "partial charge", "bultinck"],
+        tags=["charge", "3d", "per-atom", "eem", "electronegativity equalization", "partial charge", "bultinck", "qeq", "charge equilibration", "rappe"],
     ),
     CalculatorDefinition(
         calculator_id="crippen_logp_contrib",

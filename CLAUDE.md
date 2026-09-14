@@ -79,6 +79,9 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           Inspector -- see below
     {"do": "inspector_report", "tag": "after-edit"}  the Atom Inspector's
                                           pinned line, HELD results and state
+    {"do": "result_report", "calculator": "geometry_partial_charge",
+     "expect_refusal": "REFUSE_NOT_CONVERGED"}  WHICH refusal Properties
+                                          holds; "Not applicable" names none
     {"do": "units", "key": "mg_per_ml"}   the reader's Units COMBO, and what
                                           the chart and unit rows then say
     {"do": "reader_layout_report", "tag": "beside"}  whole fact ROWS on
@@ -284,6 +287,7 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- A GATE THAT FAILED STAYS FAILED, AND QEQ SHIPPED UNDER A NARROWER CLAIM
 - A PRINTED CHARGE THAT IS NOT A SOLUTION, AND A SECOND PAPER'S TABLE THAT DOES NOT SUM
 - A TABLE CAN CHECK ITS OWN TRANSCRIPTION, AND QEQ'S HYDROGEN NEVER CAME BACK
 - A ROW KEPT THE HEIGHT ITS TEXT NEEDS AT 100 PX, BECAUSE QLABEL FLOORS ITS OWN ANSWER

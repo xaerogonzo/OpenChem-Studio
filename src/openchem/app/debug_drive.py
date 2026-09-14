@@ -2397,6 +2397,43 @@ class _Driver(QObject):
         """
         self._report_editor_selection()
 
+    def _do_result_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "result_report", "calculator": "geometry_partial_charge",
+        "expect_refusal": "REFUSE_NOT_CONVERGED"}` -- what Properties holds for
+        one calculator: its method, state, refusal code and the message a user
+        reads.
+
+        **A REFUSAL AND A MISSING RESULT PHOTOGRAPH ALIKE.** "Not applicable"
+        on the row says a refusal happened, not which one; a run that meant to
+        show non-convergence and instead hit "no 3D conformer" would look
+        identical. With `expect_refusal` the code is asserted (ERROR on
+        failure, so a run's outcome is one grep); `"expect_refusal": ""`
+        asserts a computed result.
+        """
+        retained = getattr(self._window._property_panel, "_retained_results", {}) or {}
+        calculator = str(step.get("calculator", ""))
+        matching = {key: result for key, result in retained.items() if calculator and calculator in key}
+        rows = {}
+        for key, result in matching.items():
+            provenance = getattr(result, "provenance", None)
+            parameters = dict(getattr(provenance, "parameters", {}) or {})
+            rows[key] = {
+                "name": getattr(result, "name", ""),
+                "method": getattr(result, "method", ""),
+                "state": str(getattr(result, "cache_state", "")),
+                "refusal": parameters.get("refusal", ""),
+                "summary": getattr(result, "error_summary", "") or "",
+                "error": getattr(result, "error", "") or "",
+            }
+        if "expect_refusal" in step:
+            wanted = str(step["expect_refusal"])
+            ok = bool(rows) and all(row["refusal"] == wanted for row in rows.values())
+            (logger.warning if ok else logger.error)(
+                "OPENCHEM_DRIVE: EXPECT refusal %r for %s %s -- %s",
+                wanted, calculator, "ok" if ok else "FAILED", json.dumps(rows),
+            )
+        logger.warning("OPENCHEM_DRIVE: result %s %s", step.get("tag", ""), json.dumps(rows))
+
     def _do_inspector_report(self, step: dict[str, Any]) -> None:
         """`{"do": "inspector_report", "tag": "after-edit"}` -- what the Atom
         Inspector is SHOWING for its subject: title, the pinned line, and
