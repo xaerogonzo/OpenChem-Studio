@@ -15,7 +15,7 @@ The plan behind this is `docs/ROADMAP.md`, "EEM and QEq", DECIDED 2026-09-14.
 | `rappe1991_table1.csv` | Rappé & Goddard, J. Phys. Chem. 1991, 95, 3358, Table I | `6b4df78c4edda789dfda2ea3e9a44c011b2534eaa61afde711eb9365b8487057` |
 | `rappe1991_table2.csv` | same, Table II | `ae5157ef432612d4e377efa624b76d9ecbe7e5af02ac05c1f994ec144dfcc6d4` |
 | `rappe1991_table3.csv` | same, Table III | `eed451b2ddf561d3228d92c777f10e7ac6d519a65fd6394393b6b6ac29a79030` |
-| `rappe1991_table4.csv` | same, Table IV (QEq and QEqHF columns) | `37327141f505d2de7e767967009c1dc78b4d6bde3634f3e305a31c38f3c3d4ee` |
+| `rappe1991_table4.csv` | same, Table IV (QEq and QEqHF columns) | `6b8e80bd1520d01071041ee12851e1e2e9ad29ec75580a4a856ad95bd6c949f3` |
 | `bultinck2002a_table1.csv` | Bultinck et al., J. Phys. Chem. A 2002, 106, 7887, Table 1 | `746f6c66cd334d32b84ec0e6f7cca3822b6d083e65b3fd78f37079f9c9ebb9aa` |
 | `geometries.csv` | Huber & Herzberg 1979, X-state r_e | `eaa1b880092da5ce33a7c77c85aa18d991c1a6d5ae88dd3d2afc028886f655a0` |
 
@@ -277,4 +277,36 @@ q₁ = [χ₂ − χ₁ + (2η₂ − 1/R) Q] / (2η₁ + 2η₂ − 2/R).
 
 ## Amendments
 
-None yet.
+### A1 (2026-09-14, before any production code or reference value existed)
+
+- **EEM's Bohr radius.** Section 6 says "R is in bohr" without naming a₀, and
+  section 2's 0.52917 Å is Rappé & Goddard's own value, stated in their paper.
+  Bultinck part I states none.
+  - EEM therefore uses CODATA 2018, a₀ = 0.529177210903 Å.
+  - O6's Open Babel κ = 0.529176 differs from it by 2e-6 relative, which is
+    far inside O6's 1e-6 e on these molecules.
+  - QEq keeps 0.52917.
+
+### A2 (2026-09-14, before any oracle had produced a number)
+
+- **`rappe1991_table4.csv`'s hash was taken over the file's CRLF bytes**,
+  against this document's own "LF line endings" rule. It is replaced by the
+  LF hash.
+- The content is unchanged: the committed blob normalised to LF hashes to the
+  new value.
+- Found by the fixture-hash test, the first test to run. Nothing had been
+  solved against a literature table.
+
+### A3 (2026-09-14, AFTER the oracles had run -- disclosed as such)
+
+- **O2's ±0.0001 au failed for N**, by 2.5e-5: eq 17 gives 0.90903 against the
+  printed 0.9089.
+- **The tolerance was an arithmetic error in this document.** R is printed to
+  0.001 Å, so the printed ζ can differ from eq 17 applied to the printed R by
+  up to ζ·0.0005/R + 0.00005. That is 6.9e-4 for N.
+- **The pre-registered check is kept and marked as an expected failure for N.**
+  A second check applies the rounding bound. It passes for 15 elements, and
+  oxygen's 0.0030 is more than three times its bound, so oxygen's exception
+  stands and is not rounding.
+- No charge depends on this: the solver uses the printed ζ.
+
