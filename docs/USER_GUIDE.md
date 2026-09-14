@@ -959,6 +959,17 @@ to state one — worth reading, because the NMR row in this panel is the
 instant estimate, and real ab initio NMR lives in the Quantum Chemistry
 panel.
 
+**Two protonation models, and the results say where they part.** Charges at
+a chosen pH are computed on the dominant form Dimorphite-DL picks; logD uses
+pkasolver's numeric pKa values. With the pkasolver sidecar installed, both
+results carry an *ionization-model cross-check*: any atom where the two
+models give a different protonation state at that pH is named, with the pKa
+and how far the pH is from it, as a Finding on the charges and as a note on
+logD. It is a comparison between two models, not a correction — no number
+changes, and neither model is treated as right. The first time a structure
+asks pkasolver takes a few seconds; after that, for the rest of the session,
+its answer is reused by every calculator that needs it.
+
 ### Structural annotation
 
 Four calculators answer "how is this molecule organised?" rather than

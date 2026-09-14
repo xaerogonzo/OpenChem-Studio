@@ -274,6 +274,7 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- A CALLER'S ATOM MAPS REACHED THE LIBRARY, AND THE ORACLE HAD TO AVOID THE RULE IT TESTED
 - A FOOTNOTE ON THE NEXT COLUMN IS NOT A FLAG ON THIS ONE
 - THE SMILES ROUND TRIP DROPPED THE INDEX SPACE, AND ATOM MAPS WERE THE WRONG REPAIR
 - A PARTIAL RESTORE IS NOT A CACHE HIT, AND THREE DEFECTS ONLY RUNNING FOUND

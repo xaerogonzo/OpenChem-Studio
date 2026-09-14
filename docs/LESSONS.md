@@ -19848,3 +19848,42 @@ as printed with that status.
 A superscript is exactly the kind of field nothing downstream can check. The
 number was right and the reason was wrong, and a wrong reason is still what a
 later reader would repeat.
+
+## A CALLER'S ATOM MAPS REACHED THE LIBRARY, AND THE ORACLE HAD TO AVOID THE RULE IT TESTED
+
+**The defect.** A drawing's atom-map numbers were written straight into the
+SMILES handed to Dimorphite-DL. Measured 2026-09-14: a mapped imidazole came
+back with NO state at pH 7.4 (a refusal) where the unmapped one gives the
+anion, and every output atom lost its map. The earlier atom-order fix had
+already found that maps change this library's chemistry, when they were tried
+as the repair. Nobody had asked what a CALLER'S maps do on the way in. Fixed
+by handing libraries an unmapped copy (`without_atom_maps`) and restoring
+each atom's map on the rebuilt species. The pkasolver runner is handed no
+maps either, because it uses map numbers itself to carry indices back.
+
+**The oracle could not be allowed to know the rule.** Checking
+`restore_heavy_atom_order` needs correspondences known without its
+least-departure scoring, so the ground truth is atoms edited in place and then
+scrambled. The hard part was predicting a REFUSAL:
+
+- **skeleton automorphisms** (the first draft) are wrong for the commonest
+  case: they make a carboxyl's two oxygens equivalent and expect a refusal
+  that production rightly does not make;
+- **"several least-departing candidates that disagree"** is the production
+  rule itself, so the oracle would restate the code it tests;
+- **the drawing's own symmetry classes** (`CanonicalRankAtoms` with ties
+  unbroken) answer the real question -- can the drawing tell the edited atom
+  from one that ends up different -- without the scoring. All 18 cases agreed.
+
+**And the mapping underneath the cross-check is only an orbit.**
+`map_site_atom` picks an arbitrary match where the skeleton is symmetric, so
+pkasolver's carboxylate site lands on either oxygen. Compared atom for atom,
+that is a disagreement that is really a coin toss, so a site is compared over
+its symmetry orbit, with a guard that a real carboxyl disagreement is still
+caught on either oxygen.
+
+**A cost gate set before measuring did its job.** The plan allowed 2 s for
+the pkasolver call the charges would add. Measured median 2.9-3.1 s, so the
+work stopped and asked rather than shipping a slower calculator. The answer,
+per-structure caching, is honest only because three calls were first shown to
+be bit-identical.

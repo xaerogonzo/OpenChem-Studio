@@ -620,13 +620,25 @@ DEFERRALS: list[Deferral] = [
     ),
     Deferral(
         claim="two protonation authorities disagree on some molecules",
-        # Nothing reconciles them today: the microspecies is Dimorphite's
-        # alone. A fix would make `dominant_microspecies` consult the pKa
-        # predictor, and this watches for exactly that call in its body.
+        # SURFACED, NOT RECONCILED: the microspecies is still Dimorphite's
+        # alone. Reconciling would make `dominant_microspecies` consult the
+        # pKa predictor, and this watches for exactly that call in its body.
         unbuilt=lambda: "compute_pka(" not in re.search(
             r"def dominant_microspecies\b(?:.|\n)*?(?=\ndef )",
             (_ROOT / "src/openchem/chem/pka_providers.py").read_text(encoding="utf-8"),
         ).group(0),
+        manual="The recorded reason is that no benchmark against measured pKa "
+        "values has chosen an authority -- a claim about an experiment not yet "
+        "run, which no code fact can check. The day one runs, the ROADMAP entry "
+        "'Measure, then unify protonation' changes, and this entry with it.",
+    ),
+    Deferral(
+        claim="a long wrapped value in the Results reader takes about twice",
+        unbuilt=lambda: True,
+        manual="A measurement of the running window's row heights with no "
+        "established cause, so no code fact could say it is fixed. Re-measure "
+        "by driving the app to a charges result with a long Finding and "
+        "magnifying the shot.",
     ),
     Deferral(
         claim="GEOMETRY per-atom datasets assume heavy atoms come first",

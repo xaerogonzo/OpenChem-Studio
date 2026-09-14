@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   3D coordinates is now refused before ORCA runs; it used to be sent as a flat
   geometry.
 
+- **A drawing carrying atom-map numbers broke the pH-dependent protonation.**
+  The map numbers were written into the structure handed to Dimorphite-DL,
+  which then returned no state at all for a mapped imidazole, and every atom
+  of the result lost its map. Libraries now get an unmapped copy, and each
+  atom's map is restored on the way back; the pKa sidecar is handed no map
+  numbers either.
+
 - **Results docked across the top still scrolled.** At 190 px the reader
   needed 234 px and had about 162, all of the difference its own chrome. The
   **↗** pop-out button now sits in the Results title bar beside float and
@@ -120,6 +127,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tautomers goes there to be picked from, which the label never said.
 
 ### Added
+
+- **An ionization-model cross-check on the pH-dependent charges and logD.**
+  The charges use Dimorphite-DL's dominant form and logD uses pkasolver's
+  pKa values, and on some molecules the two disagree about a site's
+  protonation (on the O-O-C-N ring at pH 7.4, pkasolver says neutral and
+  Dimorphite protonates the nitrogen). With the pkasolver sidecar installed,
+  both results now name each such atom, with the pKa and its distance from
+  the pH. No number changes, and neither model is declared right. pkasolver's
+  answer for a structure is kept for the session, so logD, solubility, pKa and
+  the charges share one call (about 3 s) instead of each paying for it.
 
 - **LogD draws the curve it lies on.** Running **LogD (pH-dependent)** now
   gives the value at your pH and the LogD-vs-pH curve together; hover the

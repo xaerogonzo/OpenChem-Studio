@@ -701,13 +701,26 @@ document may cite a file or a test that does not exist.
   (`benchmarks/visual/qm_shift_identity.json`): fresh with the submitted
   identity, then stale against a new search with that identity unchanged.
 
-- **OPEN** -- two protonation authorities disagree on some molecules.
-  pkasolver (behind logD and solubility) and Dimorphite-DL (behind the
-  pH-dependent charges and every "major microspecies" option) are separate
-  models; measured on O1OCN1 at pH 7.4, pkasolver's basic pKa 3.20 says
-  neutral and Dimorphite protonates the nitrogen. Recorded as unresolved in
-  `docs/SCIENTIFIC_LIMITATIONS.md`; neither is known to be right there, so
-  nothing was changed.
+- **DECISION** -- two protonation authorities disagree on some molecules,
+  and the disagreement is surfaced, not reconciled. pkasolver (behind logD
+  and solubility) and Dimorphite-DL (behind the pH-dependent charges and
+  every "major microspecies" option) are separate models; measured on
+  O1OCN1 at pH 7.4, pkasolver's basic pKa 3.20 says neutral and Dimorphite
+  protonates the nitrogen. Since 2026-09-14 the charges and logD run
+  `pka_providers.ionization_model_cross_check` and name each disagreeing
+  site, changing no number (asserted in `tests/test_ionization_cross_check.py`).
+  - The pkasolver runner now sends each site's own protonated and
+    deprotonated microstates, so the comparison uses what the prediction
+    encodes rather than a guessed polarity.
+  - A site is compared over its skeleton symmetry orbit, because
+    `map_site_atom` places a carboxylate's site on either oxygen.
+  - pkasolver answers are kept per structure (measured deterministic,
+    about 3 s a call).
+
+  Building it found and fixed a defect: a drawing's atom-map numbers
+  reached Dimorphite, which then refused a mapped imidazole outright.
+  Making one model the authority is deliberately not done. It waits on the
+  pre-registered benchmark in ROADMAP, "Measure, then unify protonation".
 
 - **SETTLED** (2026-09-14) -- a very short Results dock no longer scrolls.
   Docked across the top at 190 px, the height it was reported at, the host
@@ -726,6 +739,16 @@ document may cite a file or a test that does not exist.
   fix's shot found a defect the numbers did not show: with 10 px to spare
   the notes took heights between whole lines and drew their second line cut
   in half, so `ClampedLabel` now masks off a partial line.
+
+- **OPEN** -- a long wrapped value in the Results reader takes about twice
+  its text's height. Seen 2026-09-14 in the running app on the pH-dependent
+  charges' Finding row, with Results docked at its default width: fentanyl's
+  six-line note sat in a row roughly 270 px tall, and the O1OCN1 note (eight
+  lines) in one roughly 340 px tall, the rest blank before the next row. The
+  same on both, so it predates the ionization cross-check that made one
+  of them longer. The likely cause is a height stated for a narrower width
+  before the section was laid out -- unconfirmed. Re-measure with a drive run
+  that focuses the charges result and magnifies the shot.
 
 - **OPEN** -- GEOMETRY per-atom datasets assume heavy atoms come first.
   `atom_sasa` keys its values by the conformer's own atom indices, and the
