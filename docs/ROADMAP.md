@@ -433,6 +433,30 @@ GEOMETRY. They need coordinates, and a pinned-seed embedding labelled as the
 drawing would hide a real input. See "Next up" below for the stop rule and the
 coordinate gate.
 
+**Measured properly later the same day, two of the four bullets above were
+wrong, and QEq is stopped.** The method, the tables and the scripts are in
+[benchmarks/charges/](../benchmarks/charges/README.md).
+- **Correction to the second bullet.** Pointed at the real data directory
+  from Python after `import openbabel`, both methods compute. A value set in
+  the shell is overwritten by the wheel's own import, and then `eem.txt` does
+  not open at all. "No parameters found for: C 1" follows from that: an
+  empty parameter table, not a file that opened and failed.
+- **Correction to the third bullet.** The crash is QEq's, and it happens
+  whenever `qeq.txt` cannot be opened, whatever the path style. EEM never
+  crashed.
+- **The fourth bullet, checked.** Twelve elements besides carbon carry
+  carbon's exact pair, and the file's `* *` row computes any unlisted element
+  as hydrogen. Against Bultinck 2002 part II Table 2, H, N and F match and C
+  and O do not. Part I is not held.
+- **EEM's implementation is exact**: within 3e-15 e of an independent solve of
+  the paper's equation on the identical input, over 13 molecules. The same
+  holds for all six `eem2015` sets, within 7e-14 e.
+- **QEq's charges have the wrong sign.** On every neutral molecule they are the
+  negative of the solve of the energy `qeq.cpp` documents, to 4e-6 e:
+  `+chi` stands where `-chi` belongs. On charged molecules they miss by up to
+  8 e. That is the stop rule's second condition, fixed at 1e-4 e before the
+  solve ran. Upstream master computes the same thing.
+
 ### Spectroscopy
 
 NMR via three routes that share one result shape: an offline HOSE-code
@@ -1804,7 +1828,11 @@ The next round of work, in the order it lands. The first three close items
 were waiting on a decision that has now been made. As each one ships it is
 struck through and marked SHIPPED here, never deleted.
 
-- **ORCA spectra carry an exact input identity.** Today the Atom Inspector
+- ~~**ORCA spectra carry an exact input identity.**~~ **SHIPPED 2026-09-14
+  (#97)**, as planned. It was checked live against real ORCA
+  (`benchmarks/visual/qm_shift_identity.json`), and writing it found the Atom
+  Inspector's report cache keyed on the drawing alone. The plan as it stood:
+  before it, the Atom Inspector
   shows QM shifts unchecked, because `QuantumChemistryService` publishes them
   with no fingerprint. The fix stamps each spectrum at submission:
   - a single run carries the conformer's GEOMETRY fingerprint;
@@ -1815,11 +1843,19 @@ struck through and marked SHIPPED here, never deleted.
   Run parameters go into provenance rather than a cache key, because these
   spectra are never stored or replayed. If that ever changes, their identity
   must grow a parameters key.
-- **A short top-docked Results dock stops scrolling.** At 190 px the reader's
-  minimum was about 208 px, all of it the reader's own chrome. Measure each row
-  first, then fold the pop-out control into the Showing row below a height
-  threshold, the way the filter already folds by width.
-- **An ionization-model cross-check, surfaced and not reconciled.** pkasolver
+- ~~**A short top-docked Results dock stops scrolling.**~~ **SHIPPED 2026-09-14
+  (#97), by a different fix than the one planned.** Measuring each row showed
+  folding the pop-out control would win back too little. What shipped: the
+  pop-out button moved into the dock's title bar, the reader's duplicate title
+  was dropped, and a short reader goes compact. It needs 152 px of the 162
+  available. The plan as it stood: at 190 px the reader's minimum was about
+  208 px, all of it the reader's own chrome. Measure each row first, then fold
+  the pop-out control into the Showing row below a height threshold, the way
+  the filter already folds by width.
+- ~~**An ionization-model cross-check, surfaced and not reconciled.**~~
+  **SHIPPED 2026-09-14 (#97).** Both preconditions below were done first. A
+  pkasolver call cost 2.9–3.1 s, over the 2 s gate, so answers are cached per
+  structure. The plan as it stood: pkasolver
   and Dimorphite-DL can disagree on the same site (O1OCN1 at pH 7.4). Each
   pH-dependent result will say, per site, which state each model gives and how
   far the pH is from the pKa. **No number changes**, and a regression test
@@ -1876,6 +1912,20 @@ struck through and marked SHIPPED here, never deleted.
     recorded drawing and conformer maps that are verified rather than
     graph-searched, because an automorphism tie that is harmless for a
     protonation state puts one atom's coordinates on its equivalent.
+  - **STOPPED after measuring (2026-09-14), with decisions waiting.** Nothing
+    was built; see [benchmarks/charges/](../benchmarks/charges/README.md).
+    - **QEq hit the stop rule.** Open Babel's charges have the wrong sign
+      (+chi where -chi belongs), and upstream is unchanged. The decision:
+      implement Rappé–Goddard here (Slater integrals and hydrogen's charge
+      dependence, checked against their Table IV), or leave QEq out.
+    - **EEM passed it, and its labelling did not.** The arithmetic is exact,
+      and a child process that sets the data directory runs it without
+      touching Open Babel anywhere else. But the file labelled "Bultinck"
+      matches his part II Table 2 for H, N and F and not for C or O. Checking
+      C and O needs part I (J. Phys. Chem. A 2002, 106, 7887). Offering an
+      `eem2015` set needs its source paper, which the commit adding them does
+      not name. Any EEM that ships refuses an element with no parameters of
+      its own, rather than taking the file's `* *` row, which is hydrogen's.
 - **Measure, then unify protonation.** Not started. A pre-registered benchmark
   of both models against measured pKa values is the only thing that may make
   one of them the authority, and it is what the cross-check's DECISION waits
