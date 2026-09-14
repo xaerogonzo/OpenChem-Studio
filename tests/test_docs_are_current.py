@@ -646,6 +646,18 @@ DEFERRALS: list[Deferral] = [
         "reader_layout_report logs reader_min_h and reader_visible_h for the "
         "top-docked case.",
     ),
+    Deferral(
+        claim="GEOMETRY per-atom datasets assume heavy atoms come first",
+        # The entry names where the check belongs: the GEOMETRY branch of the
+        # resolver, which today looks only at whether the conformer parses and
+        # is 3D. Any heavy-atom-order check has to compare ELEMENTS, so the
+        # day an atomic number is read in that function, this entry is
+        # describing the past.
+        unbuilt=lambda: "GetAtomicNum" not in re.search(
+            r"def resolve_calculation_input\b(?:.|\n)*?(?=\n(?:def |#: |[A-Z_]+ = ))",
+            (_ROOT / "src/openchem/chem/calculation_input.py").read_text(encoding="utf-8"),
+        ).group(0),
+    ),
 ]
 
 

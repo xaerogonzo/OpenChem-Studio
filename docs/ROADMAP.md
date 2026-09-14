@@ -413,6 +413,26 @@ reasons that are each checkable:
   increments, and that difference would need a measurement before a user is
   offered all four as interchangeable.
 
+**Picked up 2026-09-14, and the first reason turned out worse than written.**
+Measured that day on this machine's venv: Open Babel 3.1.0 registers every
+charge model (`eem`, the six `eem2015` sets, `qeq`, `qtpie`), and **none of
+them computes on Windows**.
+- The wheel's `__init__` resets `BABEL_DATADIR` to a directory holding one
+  image, so `qeq.txt` and `eem.txt` cannot be opened.
+- With the variable pointed at the real data directory, `eem.txt` opens and
+  the run still fails ("No parameters found for: C 1"), with every charge
+  returned as 0.0.
+- A POSIX-style path segfaulted the interpreter.
+- `eem.txt` gives the same parameter pair to thirteen elements from lithium to
+  zinc. That is suspicious and unchecked until it is compared with Bultinck's
+  table.
+
+The route Alex chose: repair the Open Babel path, measure first, and run the
+methods on the **stored conformer** as a separate calculator that declares
+GEOMETRY. They need coordinates, and a pinned-seed embedding labelled as the
+drawing would hide a real input. See "Next up" below for the stop rule and the
+coordinate gate.
+
 ### Spectroscopy
 
 NMR via three routes that share one result shape: an offline HOSE-code
@@ -1578,6 +1598,10 @@ PELs are public instead), no IATA DGR (UN Model Regulations instead).
 
 ### A Settings page — deferred, and what it would hold
 
+**Building (2026-09-14)**, as one window that also holds the External Tools
+tabs. See "Next up" below for the settings contract and the exact meaning of
+each setting. The rest of this section is the record of why it waited.
+
 **Deferred by decision (2026-09-13), not blocked by anything technical.**
 The application has preferences scattered across dialogs (External Tools,
 the data root, per-dialog directories) and no single page for them. Several
@@ -1756,6 +1780,99 @@ episode.
 ONNX Runtime remains worth preferring over a full PyTorch/torch-geometric
 chain if a redistributable pretrained model ever appears — lighter, pure
 pip, no compiler. Revisit when one exists to point at, not before.
+
+## Next up (2026-09-14)
+
+The next round of work, in the order it lands. The first three close items
+#96 left open (tracked in ARCHITECTURE.md's Known TODOs). The rest are new, or
+were waiting on a decision that has now been made. As each one ships it is
+struck through and marked SHIPPED here, never deleted.
+
+- **ORCA spectra carry an exact input identity.** Today the Atom Inspector
+  shows QM shifts unchecked, because `QuantumChemistryService` publishes them
+  with no fingerprint. The fix stamps each spectrum at submission:
+  - a single run carries the conformer's GEOMETRY fingerprint;
+  - a Boltzmann run carries an ENSEMBLE fingerprint over exactly the
+    conformers it submitted (membership, ids, geometry and order);
+  - both are frozen when the job starts, because the conformer set can change
+    while ORCA runs.
+  Run parameters go into provenance rather than a cache key, because these
+  spectra are never stored or replayed. If that ever changes, their identity
+  must grow a parameters key.
+- **A short top-docked Results dock stops scrolling.** At 190 px the reader's
+  minimum was about 208 px, all of it the reader's own chrome. Measure each row
+  first, then fold the pop-out control into the Showing row below a height
+  threshold, the way the filter already folds by width.
+- **An ionization-model cross-check, surfaced and not reconciled.** pkasolver
+  and Dimorphite-DL can disagree on the same site (O1OCN1 at pH 7.4). Each
+  pH-dependent result will say, per site, which state each model gives and how
+  far the pH is from the pKa. **No number changes**, and a regression test
+  holds that. Two preconditions, both found while planning it:
+  - **A drawing that carries atom-map numbers breaks the microspecies.**
+    Measured 2026-09-14: a mapped imidazole comes back with no state at all,
+    where the unmapped one gives the anion, and every output atom loses its
+    map. Caller metadata will be stripped before the library sees it, and
+    restored afterwards.
+  - **The correspondence tests cannot tell a wrong automorphism from the right
+    one**: element plus adjacency is satisfied by both. A known-correspondence
+    oracle comes first, built by editing atoms in place so the answer is known
+    without the scoring rule.
+
+  pkasolver does not report acid or base per site, so its runner will send
+  each site's protonated and deprotonated microstates, and the comparison uses
+  what the prediction encodes.
+- **The Settings page** (the section above). Before any UI, a preferences
+  table fixes each key, type, default and bound. Every default equals today's
+  behaviour, and a stored value is a stable key, never a label.
+  - **What "this build" means is already written in the store:** the result's
+    recorded application version equals the running one.
+  - **Results after an update** gets three states: rebuild the always-on set
+    (today); also mark hand-run results stale; keep everything, labelled as
+    historical. Structural freshness and build currency are separate axes, and
+    neither overwrites the other.
+  - **Revisions kept** counts structures per molecule. Lowering it removes
+    cached result sets immediately, so the dialog shows how many before it
+    applies.
+- **EEM and QEq, through Open Babel, on the stored conformer** (see
+  "Partial-charge methods" above for what was measured).
+  - **First measure:** why each failure happens; whether each parameter file
+    matches its paper (Bultinck 2002, Ionescu 2015, Rappé–Goddard 1991); and
+    how to isolate Open Babel, a subprocess by default, because one attempt
+    segfaulted.
+  - **The stop rule is fixed before measuring.** A method is dropped and
+    brought back for a decision if Open Babel cannot compute it on Windows
+    without changing its other behaviour, or if its charges miss an
+    independent solve of the same equations, on the identical serialized
+    input, by more than 1e-4 e (EEM; QEq's tolerance is written down before its
+    oracle runs).
+  - **Coordinate gate:** protonation must not move the conformer's heavy
+    atoms. Today it would lose them entirely: the species is rebuilt from
+    SMILES with no conformer. Every heavy atom's identity is carried through
+    recorded drawing and conformer maps that are verified rather than
+    graph-searched, because an automorphism tie that is harmless for a
+    protonation state puts one atom's coordinates on its equivalent.
+- **Measure, then unify protonation.** Not started. A pre-registered benchmark
+  of both models against measured pKa values is the only thing that may make
+  one of them the authority, and it is what the cross-check's DECISION waits
+  on.
+- **Particles in the 2D editor.** Alex's idea from the particle editor's
+  branch, still unstarted. It needs a design pass first, and the four isolation
+  guards in `tests/test_particle.py` must be retired on purpose rather than
+  quietly deleted: they are what currently makes "nothing consumes a particle"
+  true.
+- **The broader Open Babel data-directory repair** (space groups, MMFF setup,
+  symmetry expansion). It stays separate from the charge work, because the
+  lesson "OPEN BABEL HAS NO DATA FILES ON WINDOWS" records that repairing the
+  variable reverses a shipped test result. It becomes a candidate only if the
+  charge work produces a per-installation data-directory resolver worth
+  reusing.
+- **GEOMETRY per-atom datasets assume heavy atoms come first.** `atom_sasa`
+  keys its values by the conformer's own atom indices, while the Atom Inspector
+  reads by drawing index. They agree only because `AddHs` appends hydrogens.
+  Measured 2026-09-14, both first-party routes that create a conformer keep
+  that order (generation, and ORCA's optimized geometry, which copies it), so
+  the defect is reachable only through a plugin conformer provider or a project
+  file written elsewhere. Latent, and tracked in Known TODOs.
 
 ## What is left, and why each one is left
 

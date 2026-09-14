@@ -695,6 +695,19 @@ document may cite a file or a test that does not exist.
   row, the Showing row, the title -- rather than anything the notes or the
   fact floor can give back.
 
+- **OPEN** -- GEOMETRY per-atom datasets assume heavy atoms come first.
+  `atom_sasa` keys its values by the conformer's own atom indices, and the
+  Atom Inspector reads per-atom values by the drawing's. The two agree only
+  because `AddHs` appends hydrogens after the atoms it was given. Measured
+  2026-09-14, the two first-party routes that create a conformer --
+  `ConformerService` and ORCA's optimized geometry, which copies the job
+  molecule's order -- both keep heavy atoms first, so a conformer with
+  hydrogens interleaved can only arrive from a plugin conformer provider or
+  a project file written elsewhere. Latent, not reached today. Closing it
+  means the GEOMETRY branch of `resolve_calculation_input` checking the
+  conformer's heavy atoms against the drawing's, element for element, before
+  handing the conformer to anything that keys values by index.
+
 
 - **DECISION** -- the 3D alignment overlay has ONE pane with a colour
   mode, not ChemAxon's two side-by-side views. Requested from a
