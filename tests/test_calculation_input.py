@@ -544,3 +544,92 @@ def test_a_structure_generator_would_emit_3d_depictions_from_a_conformer(engine)
         assert all(emitted_is_3d(calculator_id, conformer)), calculator_id
     # Immune: recomputes coordinates whatever it was given.
     assert not any(emitted_is_3d("structural_frameworks", conformer))
+
+
+# --------------------------------------------------------------------------
+# Which input a resolution USED, and the identity of a conformer SET. The QC
+# service stamps ORCA spectra with these; the Atom Inspector compares them.
+# --------------------------------------------------------------------------
+
+
+def test_a_resolution_states_which_input_the_molecule_came_from(engine):
+    """Asked for, not inferred from the fingerprint matching the drawing's --
+    which is true by construction today and would stay silently true as a
+    test of fallback if the fingerprint rules ever changed."""
+    from openchem.chem.calculation_input import resolve_calculation_input
+
+    flat = ConformerModel(molblock=_drawing(), energy=1.0)
+    real = ConformerModel(molblock=_conformer_molblock(1), energy=1.0)
+
+    assert resolve_calculation_input(engine, _model([real]), DRAWING).used == DRAWING
+    assert resolve_calculation_input(engine, _model([real]), GEOMETRY).used == GEOMETRY
+    assert resolve_calculation_input(engine, _model([]), GEOMETRY).used == DRAWING
+    assert resolve_calculation_input(engine, _model([flat]), GEOMETRY).used == DRAWING
+
+
+def test_an_unknown_calculation_input_cannot_be_fingerprinted(engine):
+    """It used to hash as the DRAWING, so a result stamped with a kind the
+    function did not know could be compared against the drawing and pass."""
+    from openchem.chem.calculation_input import input_fingerprint
+
+    with pytest.raises(ValueError, match="Unknown calculation input"):
+        input_fingerprint(engine, _model(), "geometery")
+
+
+def _ensemble(*seeds: int, ids: tuple[str, ...] = ()) -> list[ConformerModel]:
+    conformers = [ConformerModel(molblock=_conformer_molblock(seed), energy=float(seed)) for seed in seeds]
+    for conformer, conformer_id in zip(conformers, ids):
+        conformer.conformer_id = conformer_id
+    return conformers
+
+
+def test_the_ensemble_identity_is_membership_ids_geometry_and_order(engine):
+    """EACH PART PINNED ON ITS OWN: changing only that part changes the
+    fingerprint. Order in particular is part of the identity on purpose, so
+    an "optimisation" that sorts ids fails here rather than quietly
+    changing what invalidates a Boltzmann average."""
+    from openchem.chem.calculation_input import input_fingerprint
+    from openchem.domain.calculator import ENSEMBLE
+
+    def fingerprint(conformers):
+        return input_fingerprint(engine, _model(conformers), ENSEMBLE)
+
+    base = _ensemble(1, 2, ids=("a", "b"))
+    assert fingerprint(base) == fingerprint(_ensemble(1, 2, ids=("a", "b"))), "nothing changed"
+    assert fingerprint(base) != fingerprint(_ensemble(1, 2, 3, ids=("a", "b", "c"))), "membership"
+    assert fingerprint(base) != fingerprint(_ensemble(1, ids=("a",))), "membership"
+    assert fingerprint(base) != fingerprint(_ensemble(1, 2, ids=("a", "z"))), "an id, same geometry"
+    assert fingerprint(base) != fingerprint(_ensemble(2, 1, ids=("b", "a"))), "order"
+
+    moved = _ensemble(1, 2, ids=("a", "b"))
+    mol = Chem.MolFromMolBlock(moved[1].molblock, removeHs=False)
+    position = mol.GetConformer().GetAtomPosition(0)
+    mol.GetConformer().SetAtomPosition(0, (position.x + 0.001, position.y, position.z))
+    moved[1].molblock = Chem.MolToMolBlock(mol)
+    assert fingerprint(base) != fingerprint(moved), "one coordinate"
+
+
+def test_an_ensemble_resolves_to_exactly_the_set_it_fingerprints(engine):
+    """One read produces both, so what a Boltzmann run submits and what it
+    is stamped with cannot drift apart."""
+    from openchem.chem.calculation_input import input_fingerprint, resolve_ensemble
+    from openchem.domain.calculator import ENSEMBLE
+
+    model = _model(_ensemble(1, 2, 3))
+    resolved = resolve_ensemble(engine, model)
+
+    assert len(resolved.mols) == 3
+    assert all(mol.GetConformer().Is3D() for mol in resolved.mols)
+    assert resolved.fingerprint == input_fingerprint(engine, model, ENSEMBLE)
+
+
+def test_an_ensemble_with_an_unusable_member_is_refused_not_thinned(engine):
+    """Skipping the flat conformer would submit two while the project holds
+    three -- a fingerprint over a set the run was not computed over."""
+    from openchem.chem.calculation_input import resolve_ensemble
+
+    model = _model(_ensemble(1, 2) + [ConformerModel(molblock=_drawing(), energy=9.0)])
+    with pytest.raises(ValueError, match="Conformer 3 has no 3D coordinates"):
+        resolve_ensemble(engine, model)
+    with pytest.raises(ValueError, match="no conformers"):
+        resolve_ensemble(engine, _model([]))

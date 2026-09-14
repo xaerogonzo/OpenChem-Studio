@@ -197,3 +197,21 @@ class TestInTheRealWindow:
         # window. Tracking it too means the fixture reaches a C++ object
         # its parent already freed -- a double-free dressed up as a
         # teardown error.
+
+
+def test_a_panel_control_sits_after_the_title_and_before_the_docks_own_buttons(dock):
+    """A panel's action on its whole view -- the Results reader's pop-out --
+    joins the bar without separating help from float and close, and takes
+    no focus, like them."""
+    _dock, bar = dock
+    extra = QToolButton()
+    extra.setText("extra")
+    bar.add_control(extra)
+
+    layout = bar.layout()
+    order = [layout.itemAt(i).widget() for i in range(layout.count())]
+    assert order[0] is bar._label
+    assert order[1] is extra
+    assert extra.parent() is bar
+    assert extra.focusPolicy() == Qt.FocusPolicy.NoFocus
+    assert len(_buttons(bar)) == 4

@@ -33,7 +33,10 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import subprocess
+import threading
+from collections import OrderedDict
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -58,6 +61,31 @@ _RUNNER = Path(__file__).resolve().parent / "pka_runner.py"
 #: is slow but bounded -- generous enough not to fail a legitimate run on a
 #: cold filesystem cache, short enough not to hang the UI forever.
 _TIMEOUT_SECONDS = 300
+
+#: How many structures' pkasolver answers `compute_pka` keeps. See
+#: `_PAYLOADS` for why it keeps any.
+_PAYLOAD_CACHE_SIZE = 256
+
+#: pkasolver's RAW answers, by structure -- never the predictions mapped onto
+#: one caller's atoms, since the same molecule drawn in another atom order
+#: needs other indices.
+#:
+#: **MEASURED BEFORE IT WAS BUILT, 2026-09-14.** A call costs a median of
+#: 2.9-3.1 s (aspirin, fentanyl, glycine; five runs each) -- nearly all of
+#: it loading the model ensemble -- and three calls on fentanyl returned
+#: bit-identical values, spreads and microstates. Deterministic and slow is
+#: the case for keeping the answer: logD, solubility, CNS MPO, BBB and the pKa
+#: calculator all ask for the same structure, and the pH-dependent charges'
+#: ionization cross-check would otherwise add three seconds to every run.
+#:
+#: The key is the unmapped canonical SMILES plus the interpreter's path and
+#: the modification times of the interpreter and the runner, so a
+#: reinstalled environment or an updated runner is a miss rather than a stale
+#: hit. A failure is never kept: a broken install must go on failing loudly,
+#: and a transient one must be retried.
+_PAYLOADS: OrderedDict[tuple, dict] = OrderedDict()
+#: Guards `_PAYLOADS`: calculators run on the thread pool, several at once.
+_PAYLOADS_LOCK = threading.Lock()
 
 
 #: Nitrogen whose lone pair is DELOCALISED into an adjacent electron sink,
@@ -138,10 +166,19 @@ def dominant_microspecies(mol: Chem.Mol, ph: float) -> Microspecies:
     consumer numbered its values by that. On a four-atom O-O-C=N ring the
     pH 7.4 Gasteiger charges landed nitrogen's +0.00 on an oxygen. See
     `restore_heavy_atom_order` for the contract.
+
+    **THE CALLER'S ATOM MAPS NEVER REACH THE LIBRARY, AND COME BACK ON THEIR
+    OWN ATOMS.** A drawing can carry map numbers (reaction mapping, an
+    imported mapped file), and `MolToSmiles` writes them into the string.
+    Measured 2026-09-14: a mapped imidazole came back from Dimorphite with NO
+    state at pH 7.4 -- a refusal -- where the unmapped one gives the anion,
+    and every output atom had lost its map. So the library is handed an
+    unmapped copy, and the maps are restored index for index. An unmapped
+    input gives an unmapped output; no map is ever created.
     """
     import dimorphite_dl
 
-    smiles = Chem.MolToSmiles(mol)
+    smiles = Chem.MolToSmiles(without_atom_maps(mol))
     # precision=0.0: the dominant state, not the enumeration. See above --
     # without it this function is a coin flip.
     variants = dimorphite_dl.protonate_smiles(
@@ -174,6 +211,20 @@ def dominant_microspecies(mol: Chem.Mol, ph: float) -> Microspecies:
         formal_charge=Chem.GetFormalCharge(protonated),
         corrected_atoms=corrected,
     )
+
+
+def without_atom_maps(mol: Chem.Mol) -> Chem.Mol:
+    """A copy of `mol` with every atom-map number cleared, for a library's input.
+
+    Map numbers are caller metadata. Written into a SMILES they change what a
+    library does -- Dimorphite refuses a mapped imidazole -- and collide with
+    the numbers pkasolver's runner uses to carry its own atom indices across
+    the process boundary (`pka_runner._indexed_smiles`).
+    """
+    copy = Chem.Mol(mol)
+    for atom in copy.GetAtoms():
+        atom.SetAtomMapNum(0)
+    return copy
 
 
 #: More candidate correspondences than this is refused rather than searched.
@@ -217,6 +268,17 @@ def restore_heavy_atom_order(original: Chem.Mol, protonated: Chem.Mol) -> Chem.M
     agree, which one is used is unobservable (a phenyl ring flipped). If they
     disagree (one of two equivalent amines protonated), choosing would assign
     the proton to an atom nothing chose, so it raises `InvalidStructureError`.
+
+    **A CORRESPONDENCE POLICY, NOT AN IDENTITY PROOF.** "Least departure from
+    the drawing" is a rule about which correspondence to believe, and the
+    tests beside it (element and adjacency per index) are satisfied by every
+    automorphism. `tests/test_heavy_atom_correspondence_oracle.py` checks the
+    policy against answers known WITHOUT it -- atoms edited in place, then
+    scrambled -- with refusals predicted from the drawing's own symmetry
+    classes. Measured 2026-09-14: all 18 cases agree, across acids,
+    phenolates, N-heterocycles, nitro groups, symmetric diamines, both
+    reported rings and trimesic acid, and a Kekulé-versus-aromatic form with
+    no proton moved is the identity.
     """
     heavy = [atom.GetIdx() for atom in original.GetAtoms() if atom.GetAtomicNum() != 1]
     if any(atom.GetAtomicNum() == 1 for atom in protonated.GetAtoms()):
@@ -357,6 +419,9 @@ def _rebuild_in_original_order(
         new.SetIsAromatic(source.GetIsAromatic())
         new.SetIsotope(atom.GetIsotope())
         new.SetChiralTag(atom.GetChiralTag())
+        # The CALLER'S map, never the library's: the library was handed an
+        # unmapped copy, and this is the one place the drawn atom is in hand.
+        new.SetAtomMapNum(atom.GetAtomMapNum())
         new.SetNumExplicitHs(hydrogens)
         new.SetNoImplicit(True)
         rebuilt.AddAtom(new)
@@ -626,9 +691,41 @@ class PkaPrediction:
     atom_index: int | None
     value: float
     stddev: float = 0.0
+    #: The site atom's (hydrogens, formal charge) in pkasolver's OWN
+    #: protonated microstate for this pKa -- what the prediction ENCODES
+    #: about the site below its pKa, read off the model's state rather than
+    #: inferred from calling the site an acid or a base. None when the runner
+    #: sent no microstates (a payload older than 2026-09-14).
+    protonated_site: tuple[int, int] | None = None
+    #: The same atom in pkasolver's deprotonated microstate: the site above
+    #: its pKa.
+    deprotonated_site: tuple[int, int] | None = None
+    #: Which pkasolver answered, as the runner reports it, or "unknown".
+    #: Diagnostic provenance only -- no calculation identity depends on it.
+    model_version: str = "unknown"
 
 
-def compute_pka(mol: Chem.Mol, interpreter_path: str | None) -> list[PkaPrediction] | None:
+def _payload_key(smiles: str, interpreter_path: str) -> tuple | None:
+    try:
+        return (
+            smiles,
+            str(interpreter_path),
+            os.stat(interpreter_path).st_mtime_ns,
+            os.stat(_RUNNER).st_mtime_ns,
+        )
+    except OSError:
+        return None
+
+
+def clear_pka_cache() -> None:
+    """Forget every kept pkasolver answer. For setup and for tests."""
+    with _PAYLOADS_LOCK:
+        _PAYLOADS.clear()
+
+
+def compute_pka(
+    mol: Chem.Mol, interpreter_path: str | None, *, use_cache: bool = True
+) -> list[PkaPrediction] | None:
     """Returns a `PkaPrediction` per ionizable centre pkasolver found, or
     `None` if no pkasolver environment is configured -- callers must treat
     `None` as "not installed," not "no ionizable atoms found."
@@ -659,24 +756,46 @@ def compute_pka(mol: Chem.Mol, interpreter_path: str | None) -> list[PkaPredicti
     Raises `RuntimeError` when a pkasolver environment IS configured but
     the run fails, so a broken install is reported rather than silently
     degrading to the same state as "not installed."
+
+    The runner is handed an UNMAPPED copy (`without_atom_maps`): a caller's
+    map numbers are metadata the model must not see, and the runner uses map
+    numbers itself to carry pkasolver's atom indices back.
+
+    The runner's answer for a structure is kept (`_PAYLOADS`) and mapped onto
+    each caller's own atoms. `use_cache=False` is for a check that must really
+    run -- verifying a fresh install.
     """
     if not pka_predictor_available(interpreter_path):
         return None
 
-    smiles = Chem.MolToSmiles(mol)
-    try:
-        completed = subprocess.run(
-            [str(interpreter_path), str(_RUNNER), smiles],
-            capture_output=True,
-            text=True,
-            timeout=_TIMEOUT_SECONDS,
-        )
-    except subprocess.TimeoutExpired as exc:
-        raise RuntimeError(f"pkasolver timed out after {_TIMEOUT_SECONDS}s") from exc
-    except OSError as exc:
-        raise RuntimeError(f"Could not run the configured pkasolver interpreter: {exc}") from exc
+    smiles = Chem.MolToSmiles(without_atom_maps(mol))
+    key = _payload_key(smiles, str(interpreter_path)) if use_cache else None
+    payload = None
+    if key is not None:
+        with _PAYLOADS_LOCK:
+            payload = _PAYLOADS.get(key)
+            if payload is not None:
+                _PAYLOADS.move_to_end(key)
+    if payload is None:
+        try:
+            completed = subprocess.run(
+                [str(interpreter_path), str(_RUNNER), smiles],
+                capture_output=True,
+                text=True,
+                timeout=_TIMEOUT_SECONDS,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError(f"pkasolver timed out after {_TIMEOUT_SECONDS}s") from exc
+        except OSError as exc:
+            raise RuntimeError(f"Could not run the configured pkasolver interpreter: {exc}") from exc
 
-    payload = _parse_runner_output(completed.stdout, completed.stderr, completed.returncode)
+        payload = _parse_runner_output(completed.stdout, completed.stderr, completed.returncode)
+        if key is not None:
+            with _PAYLOADS_LOCK:
+                _PAYLOADS[key] = payload
+                while len(_PAYLOADS) > _PAYLOAD_CACHE_SIZE:
+                    _PAYLOADS.popitem(last=False)
+    version = str(payload.get("pkasolver_version") or "unknown")
     return [
         PkaPrediction(
             # A runner predating `site_smiles` sends no microstate, so the
@@ -690,9 +809,221 @@ def compute_pka(mol: Chem.Mol, interpreter_path: str | None) -> list[PkaPredicti
             # but 0.0 is the only honest default that cannot overstate
             # confidence downstream (see how the pKa calculator prints it).
             stddev=float(entry.get("stddev", 0.0)),
+            protonated_site=site_state(str(entry.get("protonated_smiles", "")), int(entry["atom_idx"])),
+            deprotonated_site=site_state(str(entry.get("deprotonated_smiles", "")), int(entry["atom_idx"])),
+            model_version=version,
         )
         for entry in payload["pkas"]
     ]
+
+
+def site_state(tagged_smiles: str, site_atom_index: int) -> tuple[int, int] | None:
+    """(hydrogens, formal charge) of pkasolver's site atom in one of its microstates.
+
+    `tagged_smiles` carries pkasolver's own atom indices as map numbers
+    (`pka_runner._indexed_smiles`), and `site_atom_index` is one of those
+    indices -- the same index `reaction_center_idx` gives for all three of a
+    state's microstates, which is measured rather than assumed: in the live
+    sidecar the site of glycine's first pKa is atom 4 in each, O with one
+    hydrogen and neutral in the protonated form, none and -1 in the
+    deprotonated.
+
+    None when there is no microstate or the tagged atom is absent -- no
+    state is claimed rather than one guessed.
+    """
+    if not tagged_smiles or site_atom_index < 0:
+        return None
+    mol = Chem.MolFromSmiles(tagged_smiles)
+    if mol is None:
+        return None
+    atom = next((a for a in mol.GetAtoms() if a.GetAtomMapNum() == site_atom_index + 1), None)
+    if atom is None:
+        return None
+    return atom.GetTotalNumHs(), atom.GetFormalCharge()
+
+
+#: A site where pkasolver's encoded state and Dimorphite-DL's species match.
+#: One of three verdicts, never two: "not compared" is not a quieter "agrees".
+AGREES = "agrees"
+#: A site where the two models give different states at this pH.
+DISAGREES = "disagrees"
+#: A site that could not be compared, always with the reason beside it.
+NOT_COMPARED = "not compared"
+
+
+@dataclass(frozen=True)
+class SiteComparison:
+    """One pkasolver site, set against Dimorphite-DL's species at the same pH.
+
+    `pkasolver_state` and `dimorphite_state` are (hydrogens, formal charge) at
+    the site. `distance` is |pH - pKa|, ALWAYS present -- a disagreement 0.01
+    pH units from a pKa and one 4 units away are both "disagrees", and only
+    the number says which is which. No margin is applied to it.
+    """
+
+    atom_index: int | None
+    element: str
+    pka: float
+    stddev: float
+    distance: float
+    verdict: str
+    reason: str = ""
+    pkasolver_state: tuple[int, int] | None = None
+    pkasolver_label: str = ""
+    dimorphite_state: tuple[int, int] | None = None
+    dimorphite_label: str = ""
+
+
+@dataclass(frozen=True)
+class IonizationCrossCheck:
+    """Where two protonation models land, site by site. A MODEL COMPARISON.
+
+    `status` is "pkasolver" when predictions were compared, "not configured"
+    when there were none to compare, or "failed: ..." -- each a different
+    statement, and none of them a verdict on the molecule itself.
+    """
+
+    status: str
+    sites: tuple[SiteComparison, ...] = ()
+    model_version: str = "unknown"
+
+    def disagreements(self) -> tuple[SiteComparison, ...]:
+        return tuple(site for site in self.sites if site.verdict == DISAGREES)
+
+
+def _state_label(state: tuple[int, int] | None, prediction: PkaPrediction) -> str:
+    if state is None:
+        return ""
+    if state == prediction.protonated_site:
+        return "protonated"
+    if state == prediction.deprotonated_site:
+        return "deprotonated"
+    hydrogens, charge = state
+    return f"{hydrogens} H, charge {charge:+d}"
+
+
+def _skeleton_orbit(mol: Chem.Mol, index: int) -> set[int] | None:
+    """Every atom the element-and-connectivity skeleton cannot tell from `index`.
+
+    **THE SITE IS AN ORBIT, BECAUSE ITS MAPPING IS ONE.** `map_site_atom`
+    matches skeletons and, where the skeleton is symmetric, takes an
+    arbitrary match -- so pkasolver's carboxylate site can land on the drawn
+    =O rather than the -OH. Compared atom for atom, that reads as a
+    disagreement that is really a coin toss. None when the symmetry is too
+    large to enumerate honestly.
+    """
+    skeleton, originals = _connectivity_skeleton(mol)
+    if index not in originals:
+        return None
+    params = Chem.SubstructMatchParameters()
+    params.uniquify = False
+    params.maxMatches = _MAX_CORRESPONDENCES
+    matches = skeleton.GetSubstructMatches(skeleton, params)
+    if not matches or len(matches) >= _MAX_CORRESPONDENCES:
+        return None
+    position = originals.index(index)
+    return {originals[match[position]] for match in matches}
+
+
+def ionization_model_cross_check(
+    species: Chem.Mol, predictions: list[PkaPrediction] | None, ph: float
+) -> IonizationCrossCheck:
+    """Set pkasolver's per-site prediction against Dimorphite-DL's species.
+
+    `species` is `dominant_microspecies(drawing, ph).mol` -- in the drawing's
+    atom order, which is what lets a pkasolver site mapped onto the drawing be
+    read in it. `predictions` is `compute_pka(drawing, ...)`, None when no
+    pkasolver is configured.
+
+    **PER SITE, NEVER PER MOLECULE.** Each pKa says what the model ENCODES at
+    its own site on either side of the pKa (`PkaPrediction.protonated_site`,
+    `deprotonated_site`); that is compared with the species at the same atom.
+    A site's state is never turned into a net charge -- a polyprotic molecule
+    has several sites at once, and the species is a whole-molecule state.
+
+    **RULES FIXED BEFORE ANYTHING WAS MEASURED:** no margin around the pKa;
+    pH exactly at the pKa is not compared, being the model's transition point;
+    an unmapped site, a payload with no microstates, and a symmetry too large
+    to place the site are each "not compared" with the reason. The verdict is
+    about two MODELS: nothing here says which is right.
+    """
+    if predictions is None:
+        return IonizationCrossCheck(status="not configured")
+    sites = []
+    version = next((p.model_version for p in predictions), "unknown")
+    for prediction in predictions:
+        distance = abs(ph - prediction.value)
+        index = prediction.atom_index
+        element = species.GetAtomWithIdx(index).GetSymbol() if index is not None and index < species.GetNumAtoms() else ""
+        common = {
+            "atom_index": index, "element": element, "pka": prediction.value,
+            "stddev": prediction.stddev, "distance": distance,
+        }
+        if index is None or not element:
+            sites.append(SiteComparison(**common, verdict=NOT_COMPARED,
+                                        reason="pkasolver's site could not be placed on the drawing"))
+            continue
+        if prediction.protonated_site is None or prediction.deprotonated_site is None:
+            sites.append(SiteComparison(**common, verdict=NOT_COMPARED,
+                                        reason="the pKa runner sent no microstates for this site"))
+            continue
+        if ph == prediction.value:
+            sites.append(SiteComparison(**common, verdict=NOT_COMPARED,
+                                        reason="exactly at the model's transition point"))
+            continue
+        orbit = _skeleton_orbit(species, index)
+        if orbit is None:
+            sites.append(SiteComparison(**common, verdict=NOT_COMPARED,
+                                        reason="too symmetric to place the site on one atom"))
+            continue
+        expected = prediction.deprotonated_site if ph > prediction.value else prediction.protonated_site
+        states = {i: (species.GetAtomWithIdx(i).GetTotalNumHs(), species.GetAtomWithIdx(i).GetFormalCharge())
+                  for i in orbit}
+        agrees = expected in states.values()
+        # The species' state shown is the mapped atom's own, or -- when an
+        # equivalent atom carries the expected state -- that one's.
+        shown = expected if agrees else states[index]
+        sites.append(SiteComparison(
+            **common,
+            verdict=AGREES if agrees else DISAGREES,
+            pkasolver_state=expected,
+            pkasolver_label=_state_label(expected, prediction),
+            dimorphite_state=shown,
+            dimorphite_label=_state_label(shown, prediction),
+        ))
+    return IonizationCrossCheck(status="pkasolver", sites=tuple(sites), model_version=version)
+
+
+def cross_check_lines(check: IonizationCrossCheck, ph: float) -> tuple[str, ...]:
+    """One sentence per disagreeing site, worded as a model comparison."""
+    lines = []
+    for site in check.disagreements():
+        lines.append(
+            f"Ionization-model cross-check at pH {ph:g}: pkasolver predicts atom "
+            f"{site.atom_index + 1} ({site.element}) {site.pkasolver_label} "
+            f"(pKa {site.pka:.2f}{f' ± {site.stddev:.2f}' if site.stddev else ''}, "
+            f"{site.distance:.2f} from this pH); Dimorphite-DL selects it "
+            f"{site.dimorphite_label}. Two models disagree here; neither is known to be right."
+        )
+    return tuple(lines)
+
+
+def cross_check_record(check: IonizationCrossCheck) -> dict:
+    """The provenance entry: JSON-safe, and saying which models answered."""
+    return {
+        "ionization_cross_check": check.status,
+        "ionization_cross_check_model": check.model_version,
+        "ionization_cross_check_sites": [
+            {
+                "atom": None if s.atom_index is None else s.atom_index + 1,
+                "pka": round(s.pka, 4),
+                "distance": round(s.distance, 4),
+                "verdict": s.verdict,
+                "reason": s.reason,
+            }
+            for s in check.sites
+        ],
+    }
 
 
 def _parse_runner_output(stdout: str, stderr: str, returncode: int) -> dict:
@@ -744,7 +1075,9 @@ def describe_pka_status(interpreter_path: str) -> str:
     parts, errors = [], []
     for name, smiles, literature in probes:
         try:
-            pkas = compute_pka(Chem.MolFromSmiles(smiles), interpreter_path)
+            # Never a kept answer: a status line describes the environment as
+            # it is NOW, and a kept success would hide one broken since.
+            pkas = compute_pka(Chem.MolFromSmiles(smiles), interpreter_path, use_cache=False)
         except RuntimeError as exc:
             return f"Configured but not working: {exc}"
         if not pkas:

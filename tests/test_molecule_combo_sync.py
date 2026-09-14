@@ -45,13 +45,25 @@ def widgets():
 
 @pytest.fixture
 def two_molecule_project():
-    """Deliberately BOTH named "New molecule" -- the condition that hid the bug."""
+    """Deliberately BOTH named "New molecule" -- the condition that hid the bug.
+
+    The second molecule's conformer is REALLY 3D. It used to be the flat
+    drawing's own molblock, which the panel sent to ORCA as though it were a
+    geometry; since ORCA's input is resolved as GEOMETRY, a flat conformer is
+    refused with its own message, and that refusal is not what this file is
+    about.
+    """
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
     engine = ChemistryEngine()
     first = MoleculeModel(display_name="New molecule")
     engine.set_structure_from_smiles(first, "O")
     second = MoleculeModel(display_name="New molecule")
     engine.set_structure_from_smiles(second, "C1CN1")
-    second.conformers.append(ConformerModel(molblock=second.molblock, energy=53.72))
+    embedded = Chem.AddHs(Chem.MolFromSmiles("C1CN1"))
+    AllChem.EmbedMolecule(embedded, randomSeed=7)
+    second.conformers.append(ConformerModel(molblock=Chem.MolToMolBlock(embedded), energy=53.72))
     project = ProjectModel(name="Untitled project")
     project.molecules.extend([first, second])
     return project, first, second, engine

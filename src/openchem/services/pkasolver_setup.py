@@ -284,7 +284,8 @@ def _verify(python: Path) -> None:
     from rdkit import Chem
 
     try:
-        pkas = compute_pka(Chem.MolFromSmiles("CC(=O)O"), str(python))
+        # Never a kept answer: this checks the environment just installed.
+        pkas = compute_pka(Chem.MolFromSmiles("CC(=O)O"), str(python), use_cache=False)
     except RuntimeError as exc:
         raise PkasolverSetupError(f"Setup finished but the test prediction failed: {exc}") from exc
     if not pkas:

@@ -1178,7 +1178,7 @@ def compute_mmff94_charges(
 
 
 def compute_gasteiger_charge_at_ph(
-    mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any]
+    mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any], interpreter_path: str | None = None
 ) -> PerAtomDataset:
     """The "charge" category's calculator. Protonates `mol` to the
     pH-appropriate dominant microspecies via Dimorphite-DL
@@ -1193,9 +1193,15 @@ def compute_gasteiger_charge_at_ph(
     carries it too, so a Gasteiger result is never served as an MMFF94 one.
     Like every other parameter in this application, running it again with a
     different method REPLACES the previous result rather than adding one.
+
+    **THE SPECIES IS DIMORPHITE-DL'S, AND IT SAYS WHERE PKASOLVER DIFFERS.**
+    With a pkasolver environment configured (`interpreter_path`), the
+    ionization-model cross-check sets its per-site prediction against this
+    species and names any disagreement in the summary. It changes no charge:
+    the values are computed on the species exactly as without it.
     """
     _places = decimals(parameters)
-    from openchem.chem.pka_providers import dominant_microspecies
+    from openchem.chem.pka_providers import cross_check_lines, cross_check_record, dominant_microspecies
 
     ph = parameters.get("pH", 7.4)
     include_hydrogens = bool(parameters.get("include_hydrogens", False))
@@ -1242,6 +1248,9 @@ def compute_gasteiger_charge_at_ph(
         charges = compute_gasteiger_charges(protonated, include_hydrogens=include_hydrogens)
         total = _gasteiger_total(protonated, include_hydrogens=include_hydrogens)
         provenance_method = "rdkit+dimorphite_dl"
+    # AFTER the charges: nothing above reads it, which is what "changes no
+    # number" rests on.
+    cross_check = _cross_check_species(mol, protonated, ph, interpreter_path)
     return PerAtomDataset(
         property_id="gasteiger_charge_at_ph",
         name=name,
@@ -1272,15 +1281,43 @@ def compute_gasteiger_charge_at_ph(
                 # neutral molecule whose charges are computed on a +1 cation
                 # is the whole reason "Net calculated charge: 1.00 e" sat
                 # beside a panel reading "Total charge 0" and read as a bug.
-                "summary": _microspecies_note(mol, species, ph),
+                "summary": " ".join(
+                    part for part in (_microspecies_note(mol, species, ph), *cross_check_lines(cross_check, ph))
+                    if part
+                ),
                 # From the PROTONATED molecule, which is the one whose
                 # charges these are -- taking it from `mol` would report the
                 # drawn structure's net charge beside values computed for a
                 # different ionization state.
                 TOTAL: total,
+                **cross_check_record(cross_check),
             },
         ),
     )
+
+
+def _cross_check_species(mol: Chem.Mol, species: Chem.Mol, ph: float, interpreter_path: str | None):
+    """The ionization-model cross-check for a species a calculator already built.
+
+    Takes the species rather than building one, so a calculator that computed
+    on it compares exactly that species. pkasolver's answer comes through
+    `compute_pka`'s kept payloads, so a structure asked about by logD,
+    solubility or pKa already costs nothing here.
+    """
+    from openchem.chem.pka_providers import (
+        IonizationCrossCheck,
+        compute_pka,
+        ionization_model_cross_check,
+        pka_predictor_available,
+    )
+
+    if not pka_predictor_available(interpreter_path):
+        return IonizationCrossCheck(status="not configured")
+    try:
+        predictions = compute_pka(mol, interpreter_path) or []
+    except RuntimeError as exc:
+        return IonizationCrossCheck(status=f"failed: {exc}")
+    return ionization_model_cross_check(species, predictions, ph)
 
 
 def crippen_contributions(mol: Chem.Mol, mode: str, want_mr: bool = False) -> tuple[dict[int, float], str]:
@@ -1552,7 +1589,13 @@ def compute_logd(
     modelled against about -3.2 measured).
     """
     from openchem.chem.logd import classify_ionizable_centres, logd_from_microspecies, logd_from_pkas
-    from openchem.chem.pka_providers import compute_pka, pka_predictor_available
+    from openchem.chem.pka_providers import (
+        IonizationCrossCheck,
+        compute_pka,
+        cross_check_lines,
+        cross_check_record,
+        pka_predictor_available,
+    )
     from openchem.chem.ph_curves import ph_grid_from
     from openchem.domain.calculator_taxonomy import category_for
     from openchem.domain.report import LineChartAnnotation, LineSeries
@@ -1586,6 +1629,9 @@ def compute_logd(
     facts: list[Fact] = []
     charts: tuple = ()
     limitations: list[str] = []
+    # Only the Henderson-Hasselbalch branch has pkasolver's predictions to
+    # set against the species; the other two say why nothing was compared.
+    cross_check = IonizationCrossCheck(status="not configured")
     if acids == 0 and bases == 0:
         method = "rdkit"
         facts.append(fact(
@@ -1599,13 +1645,19 @@ def compute_logd(
         ),)
     elif pka_predictor_available(interpreter_path):
         try:
-            pkas = [p.value for p in (compute_pka(mol, interpreter_path) or [])]
+            predictions = compute_pka(mol, interpreter_path) or []
         except RuntimeError as exc:
             return ReportResult(
                 report_id="logd", name="LogD", molecule_uuid=molecule_uuid, category="lipophilicity",
                 provenance=Provenance(created_by="core", method="pkasolver"),
                 cache_state=CacheState.FAILED, error=str(exc),
             )
+        pkas = [p.value for p in predictions]
+        # BESIDE the number, never inside it: the scalar and the curve below
+        # read `pkas` exactly as before, and this only says where the
+        # Dimorphite-DL species other calculators use lands differently.
+        cross_check = ionization_cross_check_for(mol, predictions, ph)
+        limitations.extend(cross_check_lines(cross_check, ph))
         value = logd_from_pkas(mol, ph, pkas)
         facts.append(fact(
             f"LogD at pH {ph:g}", value, f"{value:.2f}",
@@ -1654,8 +1706,29 @@ def compute_logd(
         facts=tuple(facts),
         charts=charts,
         limitations=tuple(limitations),
-        provenance=Provenance(created_by="core", method=method, parameters={"pH": ph}),
+        provenance=Provenance(
+            created_by="core", method=method, parameters={"pH": ph, **cross_check_record(cross_check)}
+        ),
     )
+
+
+def ionization_cross_check_for(mol: Chem.Mol, predictions, ph: float):
+    """Dimorphite-DL's species for `mol` at `ph`, set against `predictions`.
+
+    A species that cannot be built is reported as a FAILED cross-check, never
+    as agreement -- and never as a failure of the calculation it sits beside.
+    """
+    from openchem.chem.pka_providers import (
+        IonizationCrossCheck,
+        dominant_microspecies,
+        ionization_model_cross_check,
+    )
+
+    try:
+        species = dominant_microspecies(mol, ph).mol
+    except Exception as exc:  # noqa: BLE001 - a diagnostic that cannot run says so
+        return IonizationCrossCheck(status=f"failed: no Dimorphite-DL species ({exc})")
+    return ionization_model_cross_check(species, predictions, ph)
 
 
 def compute_polar_surface_area(

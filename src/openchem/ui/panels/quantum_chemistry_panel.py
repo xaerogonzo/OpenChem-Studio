@@ -19,7 +19,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from openchem.chem.calculation_input import canonical_conformer
+from openchem.chem.calculation_input import (
+    canonical_conformer,
+    resolve_calculation_input,
+    resolve_ensemble,
+)
+from openchem.domain.calculator import ENSEMBLE, GEOMETRY
 from openchem.app.settings import Settings
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.nmr_correlation import compute_cosy_pairs, compute_hmbc_pairs, compute_hsqc_pairs
@@ -938,17 +943,40 @@ class QuantumChemistryPanel(QWidget):
             )
             return
 
-        # `canonical_conformer` rather than `conformers[0]`: the two agree
-        # only while the list happens to be energy-sorted, which a project
-        # saved by an older version does not guarantee.
+        # THROUGH THE RESOLVER, so the molecule ORCA is handed and the identity
+        # stamped on its spectra come from one resolution (the canonical
+        # conformer, not `conformers[0]`, which agrees only while the list
+        # happens to be energy-sorted).
+        resolved = resolve_calculation_input(self._chemistry_engine, molecule, GEOMETRY)
+        if resolved.used != GEOMETRY:
+            # The resolver fell back to the DRAWING -- the conformer would not
+            # parse or is flat. Refused, never run: the drawing carries no
+            # hydrogens, and ORCA would compute a plausible-looking answer for
+            # a different molecule (see the conformer check above).
+            self._status_label.setText(
+                "The selected molecule's conformer has no usable 3D coordinates. Regenerate "
+                "it with Structure ▸ Generate Conformers... first."
+            )
+            return
+        mol = resolved.mol
         molblock = canonical_conformer(molecule).molblock
-        mol = self._chemistry_engine.mol_from_molblock(molblock)
 
         calc_type = CALC_TYPE_LABELS[self._calc_type_combo.currentText()]
         method_basis = self._effective_method_basis()
         if not method_basis:
             self._status_label.setText("Enter a method/basis (e.g. 'B3LYP def2-SVP').")
             return
+
+        boltzmann = self._boltzmann_check.isChecked() and len(molecule.conformers) > 1
+        ensemble = None
+        if boltzmann:
+            # Resolved BEFORE the panel commits to a run, so a refusal leaves
+            # the controls as they were rather than disabled with no job.
+            try:
+                ensemble = resolve_ensemble(self._chemistry_engine, molecule)
+            except ValueError as exc:
+                self._status_label.setText(f"Cannot average over the conformers: {exc}")
+                return
 
         if calc_type == "led" and not self._confirm_led_cost(self, mol):
             return
@@ -972,17 +1000,16 @@ class QuantumChemistryPanel(QWidget):
         self._reset_empty_states()
         self._status_label.setText("queued")
 
-        if self._boltzmann_check.isChecked() and len(molecule.conformers) > 1:
+        if ensemble is not None:
             self._quantum_chemistry_service.request_boltzmann_nmr(
-                mols=[
-                    self._chemistry_engine.mol_from_molblock(conformer.molblock)
-                    for conformer in molecule.conformers
-                ],
+                mols=list(ensemble.mols),
                 molecule_uuid=molecule.uuid,
                 calc_type=calc_type,
                 charge=self._charge_spin.value(),
                 multiplicity=self._multiplicity_spin.value(),
                 method_basis=method_basis,
+                input_fingerprint=ensemble.fingerprint,
+                calculation_input=ENSEMBLE,
             )
             return
 
@@ -993,6 +1020,8 @@ class QuantumChemistryPanel(QWidget):
             charge=self._charge_spin.value(),
             multiplicity=self._multiplicity_spin.value(),
             method_basis=method_basis,
+            input_fingerprint=resolved.fingerprint,
+            calculation_input=GEOMETRY,
         )
 
     def _on_cancel_clicked(self) -> None:

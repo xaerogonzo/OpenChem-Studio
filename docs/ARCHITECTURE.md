@@ -622,10 +622,13 @@ view may choose how to read a result but never recompute or reinterpret it.
   per-atom consumer (charges, Hückel density, Lewis sites) inherits it.
 - **Structure-bound events carry their input's identity.**
   `PerAtomDataComputed` and `SpectrumComputed` have `input_fingerprint` and
-  `calculation_input`, stamped by `descriptor_service` and restored on replay.
-  The Atom Inspector compares them with `chem.calculation_input.input_fingerprint`
-  and withholds anything stale or unverifiable, naming it. ORCA spectra carry
-  none today and are shown as before -- a recorded gap.
+  `calculation_input`, stamped by `descriptor_service` and restored on replay,
+  and by `QuantumChemistryService` from each job's submission snapshot. The
+  Atom Inspector compares them with `chem.calculation_input.input_fingerprint`
+  and withholds anything stale or unverifiable, naming it. Three input kinds:
+  DRAWING, GEOMETRY, and ENSEMBLE -- a conformer SET, which only a Boltzmann
+  average uses and no calculator definition may declare. An unknown kind
+  cannot be fingerprinted at all, so it can never compare equal to anything.
 - **A unit is a declared rendering, not a parameter.** `ReportResult.renderings`,
   `Fact.rendering` and `LineChartAnnotation.renderings` let a producer state one
   quantity several ways; `rendering_state` decides whether a reader may offer the
@@ -670,30 +673,104 @@ label says what it is.
 document may cite a file or a test that does not exist.
 
 
-- **OPEN** -- ORCA spectra carry no input identity, so the Atom Inspector
-  cannot tell a QM NMR shift computed for an earlier drawing from a current
-  one. Per-atom datasets and registry spectra carry `input_fingerprint`
-  (see "What a per-atom index means" above) and are withheld when stale;
-  `QuantumChemistryService` publishes `SpectrumComputed` from a bare
-  molecule with no model behind it, so it has nothing to stamp. Treating
-  an empty identity as unverifiable would remove every QM shift from the
-  inspector, so those are shown unchecked instead. Closing it means passing
-  the drawing's fingerprint in at job submission.
+- **SETTLED** (2026-09-14) -- ORCA spectra carry an exact input identity.
+  They used to carry none, so the Atom Inspector showed a QM shift computed
+  for an earlier conformer as current. The Quantum Chemistry panel now
+  resolves what it submits through `chem.calculation_input`, and the service
+  stamps every spectrum from the job's submission snapshot:
+  - a single run carries its conformer's GEOMETRY fingerprint, and the
+    panel refuses outright when the resolver says it fell back to the
+    drawing (`ResolvedInput.used`);
+  - a Boltzmann run carries an ENSEMBLE fingerprint over exactly the
+    conformers it submitted -- membership, ids, geometry and order -- frozen
+    when the job starts, because the conformer list can change while ORCA
+    runs.
 
-- **OPEN** -- two protonation authorities disagree on some molecules.
-  pkasolver (behind logD and solubility) and Dimorphite-DL (behind the
-  pH-dependent charges and every "major microspecies" option) are separate
-  models; measured on O1OCN1 at pH 7.4, pkasolver's basic pKa 3.20 says
-  neutral and Dimorphite protonates the nitrogen. Recorded as unresolved in
-  `docs/SCIENTIFIC_LIMITATIONS.md`; neither is known to be right there, so
-  nothing was changed.
+  The inspector applies one freshness rule to spectra and per-atom data, and
+  names what moved on ("an earlier conformer", "an earlier conformer set").
+  Building it found a second defect the old gap had hidden: the inspector's
+  report cache was keyed on the DRAWING alone, so a new conformer search kept
+  serving the old report. It now keys on every held input's current
+  fingerprint and rebuilds on `ConformersChanged`.
 
-- **OPEN** -- a very short Results dock still scrolls. Docked across the
-  top at 190 px (the height it was reported at) the reader's minimum is
-  ~208 px after the notes fold, so the dock's own scroll area keeps a small
-  overflow. The remaining height is the reader's own chrome -- the pop-out
-  row, the Showing row, the title -- rather than anything the notes or the
-  fact floor can give back.
+  The fingerprint says which structure's atoms; run parameters (method,
+  charge, multiplicity, provider) go into provenance, because these spectra
+  are never stored or replayed. **If ORCA spectra ever enter the result
+  store, their identity must add a parameters key built from those fields.**
+  Checked live against a real ORCA NMR run on methanol
+  (`benchmarks/visual/qm_shift_identity.json`): fresh with the submitted
+  identity, then stale against a new search with that identity unchanged.
+
+- **DECISION** -- two protonation authorities disagree on some molecules,
+  and the disagreement is surfaced, not reconciled. pkasolver (behind logD
+  and solubility) and Dimorphite-DL (behind the pH-dependent charges and
+  every "major microspecies" option) are separate models; measured on
+  O1OCN1 at pH 7.4, pkasolver's basic pKa 3.20 says neutral and Dimorphite
+  protonates the nitrogen. Since 2026-09-14 the charges and logD run
+  `pka_providers.ionization_model_cross_check` and name each disagreeing
+  site, changing no number (asserted in `tests/test_ionization_cross_check.py`).
+  - The pkasolver runner now sends each site's own protonated and
+    deprotonated microstates, so the comparison uses what the prediction
+    encodes rather than a guessed polarity.
+  - A site is compared over its skeleton symmetry orbit, because
+    `map_site_atom` places a carboxylate's site on either oxygen.
+  - pkasolver answers are kept per structure (measured deterministic,
+    about 3 s a call).
+
+  Building it found and fixed a defect: a drawing's atom-map numbers
+  reached Dimorphite, which then refused a mapped imidazole outright.
+  Making one model the authority is deliberately not done. It waits on the
+  pre-registered benchmark in ROADMAP, "Measure, then unify protonation".
+
+- **SETTLED** (2026-09-14) -- a very short Results dock no longer scrolls.
+  Docked across the top at 190 px, the height it was reported at, the host
+  needed 234 px and its viewport gave about 162. `reader_layout_report` now
+  logs every chrome row (`reader_chrome`), and the 72 px came from:
+
+      a row holding only the pop-out button   26   -> the dock's title bar
+      a bold title repeating "Showing"        22   -> not drawn (text kept)
+      9 px margins above and below            18   -> dropped when short
+      6 px between rows                       16   -> 2 px when short
+
+  After: 152 needed against 162 given, `clipped=False`, and the beside-
+  Properties layout unchanged (normal margins, no dock overlaps). Compact
+  mode is height-driven with its threshold above the reader's ordinary
+  minimum, which is what keeps it from oscillating. Magnifying the first
+  fix's shot found a defect the numbers did not show: with 10 px to spare
+  the notes took heights between whole lines and drew their second line cut
+  in half, so `ClampedLabel` now masks off a partial line.
+
+- **SETTLED** (2026-09-14) -- a wrapped value row in the Results reader is as
+  tall as its text. It used to be about twice that: fentanyl's six-line charges
+  Finding sat in a row roughly 270 px tall, O1OCN1's eight lines in one roughly
+  340 px, blank down to the next row. The leading hypothesis, a height stated
+  for a narrower width before the section was laid out, was half of it. The new
+  `fact_rows_report` step measured each row against what its text needs at the
+  row's own width, with Results docked at its default 420 px:
+
+      row        width  held              text needs       held = need at
+      Finding      251  272 px, 17 lines  96 px, 6 lines   100 px
+      Keyed to     251   48 px,  3 lines  16 px, 1 line    106 px
+
+  `ExplicitHeightLabel` first measures at Qt's 100 px default width for a child
+  widget; its `width <= 0` guard never fires. It stated that height with
+  `setFixedHeight`, then asked `heightForWidth` again at every real width, and
+  `QLabel` never answers that below the label's own minimum height. So a
+  stated height could grow and never shrink, and narrowing then widening a
+  dock stuck the same way. The label now states its height as its size hint
+  under its `Fixed` policy and holds no explicit minimum; a layout binds that
+  exactly as it bound the fixed height. After, the same run: 96 for 96, 16 for
+  16, and O1OCN1's eight lines in 128 px. At 300 px and then 700 px every row
+  matched its text, and nothing is cut at 3x. The two Properties section hints
+  use the same class and carried the same slack: 64 px of blank under the NMR
+  hint, now gone.
+
+  Guards: `test_a_value_row_is_as_tall_as_its_text_and_no_taller` and
+  `test_a_value_row_comes_back_down_when_the_reader_widens`, both red before the
+  fix. A fix that only corrected the first layout pass passes the first and
+  fails the second. `benchmarks/visual/results_wrapped_row_height.json` re-drives
+  it. docs/LESSONS.md compares the three repairs measured and records the
+  mutation run.
 
 - **OPEN** -- GEOMETRY per-atom datasets assume heavy atoms come first.
   `atom_sasa` keys its values by the conformer's own atom indices, and the

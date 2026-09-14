@@ -19848,3 +19848,164 @@ as printed with that status.
 A superscript is exactly the kind of field nothing downstream can check. The
 number was right and the reason was wrong, and a wrong reason is still what a
 later reader would repeat.
+
+## A CALLER'S ATOM MAPS REACHED THE LIBRARY, AND THE ORACLE HAD TO AVOID THE RULE IT TESTED
+
+**The defect.** A drawing's atom-map numbers were written straight into the
+SMILES handed to Dimorphite-DL. Measured 2026-09-14: a mapped imidazole came
+back with NO state at pH 7.4 (a refusal) where the unmapped one gives the
+anion, and every output atom lost its map. The earlier atom-order fix had
+already found that maps change this library's chemistry, when they were tried
+as the repair. Nobody had asked what a CALLER'S maps do on the way in. Fixed
+by handing libraries an unmapped copy (`without_atom_maps`) and restoring
+each atom's map on the rebuilt species. The pkasolver runner is handed no
+maps either, because it uses map numbers itself to carry indices back.
+
+**The oracle could not be allowed to know the rule.** Checking
+`restore_heavy_atom_order` needs correspondences known without its
+least-departure scoring, so the ground truth is atoms edited in place and then
+scrambled. The hard part was predicting a REFUSAL:
+
+- **skeleton automorphisms** (the first draft) are wrong for the commonest
+  case: they make a carboxyl's two oxygens equivalent and expect a refusal
+  that production rightly does not make;
+- **"several least-departing candidates that disagree"** is the production
+  rule itself, so the oracle would restate the code it tests;
+- **the drawing's own symmetry classes** (`CanonicalRankAtoms` with ties
+  unbroken) answer the real question -- can the drawing tell the edited atom
+  from one that ends up different -- without the scoring. All 18 cases agreed.
+
+**And the mapping underneath the cross-check is only an orbit.**
+`map_site_atom` picks an arbitrary match where the skeleton is symmetric, so
+pkasolver's carboxylate site lands on either oxygen. Compared atom for atom,
+that is a disagreement that is really a coin toss, so a site is compared over
+its symmetry orbit, with a guard that a real carboxyl disagreement is still
+caught on either oxygen.
+
+**A cost gate set before measuring did its job.** The plan allowed 2 s for
+the pkasolver call the charges would add. Measured median 2.9-3.1 s, so the
+work stopped and asked rather than shipping a slower calculator. The answer,
+per-structure caching, is honest only because three calls were first shown to
+be bit-identical.
+
+## A ROW KEPT THE HEIGHT ITS TEXT NEEDS AT 100 PX, BECAUSE QLABEL FLOORS ITS OWN ANSWER
+
+**The defect.** A wrapped value row in the Results reader was drawn about
+twice as tall as its text, blank down to the next fact. The new
+`fact_rows_report` drive step measured each row against what its text needs at
+the row's own width, Results docked at its default 420 px, fentanyl's
+pH-dependent charges:
+
+    row        width  held              text needs       held = the need at
+    Finding      251  272 px, 17 lines  96 px, 6 lines   100 px
+    Keyed to     251   48 px,  3 lines  16 px, 1 line    106 px
+
+A temporary trace of every measurement a Finding row made showed the order.
+Each row instance measured at 100 px on construction and stated 272, and every
+later width, 211 to 251 px as the layout settled, came back as 272 again.
+
+**TWO HALVES, AND THE HYPOTHESIS WAS ONE OF THEM.** The recorded guess was a
+height stated for a narrower width before the section was laid out. True:
+`ExplicitHeightLabel` measured at Qt's 100 px default width for a child widget,
+and its `width <= 0` guard, commented as waiting for the first layout pass,
+never fires, because Qt reports 100, not 0. But a first guess is harmless if
+the next real width corrects it. What made it permanent is a Qt fact:
+**`QLabel.heightForWidth` never answers below the label's own minimum height**
+(`QLabelPrivate::sizeForWidth` expands its answer to `minimumSize()`).
+Measured on a bare label:
+
+    fresh label              heightForWidth(150) 1608   (600) 250
+    setFixedHeight(1608)                                (600) 1608
+    setMinimumHeight(0)                                 (600) 250
+
+The label stated each height with `setFixedHeight`, so its next measurement came
+back as at least that height. A stated height could grow and never shrink, and
+narrowing then widening a dock stuck exactly as the first 100 px did. Fixing
+only the first measurement would have shipped that half, and it is a mutation
+below.
+
+**THE ROW CANNOT BE ASKED.** For the same reason, a row's own
+`heightForWidth` returns whatever height it already holds. A check comparing a
+row against its own answer passes on this exact bug, which is the circular
+probe docs/ARCHITECTURE.md already records for the Properties panel, arriving by
+a new route. The drive step measures twice instead: the row with its floor
+lifted for one call, and a fresh label given the same text and font. The two
+agreed on every row, before and after.
+
+**THREE REPAIRS, AND ALL THREE WERE RIGHT ON THE NUMBERS.** Measured headless in
+the real section chain (`CollapsibleSection`, `DontWrapRows`, a resizable scroll
+area), widened, narrowed and widened again:
+
+    repair                            heights   layout requests for
+                                                3 no-op change events
+    setFixedHeight (as shipped)       334 held where 110 and 236 needed   0
+    lift the minimum around the call  exact                               3
+    hidden probe label                exact                               0
+    size hint under Fixed, no minimum exact                               0
+
+The lift invalidates the parent layout on every change event, even when nothing
+moved. The probe must copy every property that sizes text: format, margins,
+indent, interaction flags, frame. It is right only until someone adds one it
+does not copy, such as selectable values. The hint has neither cost, and a
+layout binds it exactly as it bound the fixed height. Measured on the layout
+ITEM, not the widget:
+
+    QVBoxLayout   stated 166   item min 166  max 166  hint 166   explicit min 0
+    QFormLayout   stated 208   item min 208  max 208  hint 208   explicit min 0
+
+So the label never holds an explicit minimum, and its docstring says a host
+must not give it one.
+
+**THE OUT-OF-APP HARNESS REPRODUCED IT THIS TIME**, where this file records six
+entries of a harness saying the opposite of the app. That is not a contradiction.
+Those defects lived in how a layout distributes space between widgets. This
+one lives in a single widget's own arithmetic, which a headless run shares.
+Under `offscreen` the Finding row held 474 px where its text needed 278. So the
+guard asserts the symptom directly rather than a proxy for it.
+
+**MUTATIONS, AND THE TWO THAT SURVIVED THE FIRST ROUND.** Two guards in
+`tests/test_fact_view_layout.py`: every row as tall as its text at 420 px, and
+every row at 1200, 360 and 1200 px.
+
+    M1  setFixedHeight restored (the floor)              both red
+    M2  floor kept, nothing measured until a layout      only the WIDEN test
+        has sized the label                              (250 held, 54 needed)
+    M3  no updateGeometry on a new height                both red
+    M4  the stated height never reaches sizeHint        both red, second round
+    M6  stated once, never restated                     both red
+    T1  floor restored AND the test asks the row itself  both red, on the
+                                                         fixtures' setup checks
+
+**M2 is the plausible wrong fix** ("don't measure before layout"), and only the
+widen test stops it.
+
+**TWO OVERRIDES COVERED FOR EACH OTHER, SO BOTH SURVIVED THE FIRST ROUND.** The
+first fix overrode `sizeHint` AND `minimumSizeHint`. For a `Fixed` policy the
+layout takes the larger of the two, so deleting either left the other carrying
+the stated height, and at the fixture's widths QLabel's own guess never came out
+larger. Neither mutation could fail. `minimumSizeHint` went, as the redundant
+one; before the fix it never reported the fixed height either. Deleting the
+remaining override then turned both tests red: 110 px held where the text needed
+250 (cut off), and 110 where it needed 54. The widen test also moved to 1200 px
+and every row, since QLabel's guess is made for a width it picks itself.
+
+**THE POPULATION WAS WIDER THAN THE REPORT.** "Keyed to", 32 characters, held
+three lines. Any value too long for one 100 px line was affected ("Range", at 15
+characters, was not), in Results, the Atom Inspector and every other `FactView`.
+The Properties panel's two section hints use the same class. Driven before and
+after at 420 px, the heading under the NMR hint moved up exactly 64 px, and the
+gap between the hint's last ink and that heading went from 83 px to 19.
+
+**AN EARLIER SIGHTING, NOT RE-MEASURED.** The class's own comment recorded
+"`heightForWidth` reserves 144 px for the Elemental Analysis report where the
+glyphs use about 96", and answered it by top-aligning the text. That turned the
+slack into trailing space and hid it. A height left over from a narrower width
+has that shape. But that case was in the Properties panel's spanning row, which
+stage 2c retired, so the comment now says only that this is the one cause
+measured since.
+
+**AND THE DEFERRAL'S OWN REASON WAS WRONG IN A USEFUL WAY.** Its `manual` said
+there was no established cause, "so no code fact could say it is fixed". Once
+the cause was measured it WAS a code fact, and a headless guard holds it. An
+unexplained symptom is a claim about what is known so far, not about what can
+ever be checked.

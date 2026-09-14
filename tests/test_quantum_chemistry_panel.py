@@ -456,6 +456,185 @@ def test_checked_boltzmann_with_one_conformer_takes_the_ordinary_path(qapp):
     assert service.boltzmann_requests == []
 
 
+# --- the identity a run is submitted with ------------------------------------
+
+
+def test_a_single_run_is_submitted_with_its_conformers_identity(qapp):
+    from openchem.chem.calculation_input import input_fingerprint
+    from openchem.domain.calculator import GEOMETRY
+
+    panel, service, molecule = _panel_with_conformers(3)
+
+    panel._on_run_clicked()
+
+    request = service.requests[0]
+    assert request["calculation_input"] == GEOMETRY
+    assert request["input_fingerprint"] == input_fingerprint(ChemistryEngine(), molecule, GEOMETRY)
+
+
+def test_a_boltzmann_run_is_submitted_with_the_identity_of_exactly_its_set(qapp):
+    from openchem.chem.calculation_input import input_fingerprint
+    from openchem.domain.calculator import ENSEMBLE
+
+    panel, service, molecule = _panel_with_conformers(3)
+    panel._boltzmann_check.setChecked(True)
+
+    panel._on_run_clicked()
+
+    request = service.boltzmann_requests[0]
+    assert request["calculation_input"] == ENSEMBLE
+    assert request["input_fingerprint"] == input_fingerprint(ChemistryEngine(), molecule, ENSEMBLE)
+    assert len(request["mols"]) == 3
+
+
+def test_a_conformer_without_3d_coordinates_is_refused_not_run_on_the_drawing(qapp):
+    """The resolver falls back to the DRAWING for a flat conformer, and the
+    drawing has no hydrogens: ORCA would compute a plausible-looking answer
+    for a different molecule. Refused on the resolver's stated `used`."""
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    panel, engine, service = _make_panel()
+    molecule = MoleculeModel(display_name="Water")
+    engine.set_structure_from_smiles(molecule, "O")
+    flat = Chem.AddHs(Chem.MolFromSmiles("O"))
+    AllChem.Compute2DCoords(flat)
+    molecule.conformers.append(ConformerModel(molblock=Chem.MolToMolBlock(flat), method="flat"))
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("HF STO-3G")
+
+    panel._on_run_clicked()
+
+    assert service.requests == [] and service.boltzmann_requests == []
+    assert "3d" in panel._status_label.text().lower()
+    assert panel._run_button.isEnabled(), "a refusal must leave the panel ready to run"
+
+
+def test_a_boltzmann_set_with_a_flat_member_is_refused_before_the_panel_commits(qapp):
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    panel, service, molecule = _panel_with_conformers(2)
+    flat = Chem.AddHs(Chem.MolFromSmiles("CCCC"))
+    AllChem.Compute2DCoords(flat)
+    molecule.conformers.append(ConformerModel(molblock=Chem.MolToMolBlock(flat), method="flat"))
+    panel._boltzmann_check.setChecked(True)
+
+    panel._on_run_clicked()
+
+    assert service.requests == [] and service.boltzmann_requests == []
+    assert "conformer 3" in panel._status_label.text().lower()
+    assert panel._run_button.isEnabled()
+
+
+def test_what_a_run_publishes_comes_from_its_submission_not_the_panel_later(qapp, tmp_path, monkeypatch):
+    """THE SUBMISSION SNAPSHOT IS THE ONLY SOURCE. Against the REAL service
+    with a slow job: while it runs, the panel's charge, multiplicity and
+    method change and the molecule gains a conformer. The published spectrum
+    must still name what was submitted -- both its identity and its run
+    record -- because a result described from the panel at finish would
+    describe a calculation nobody ran."""
+    import sys
+    import time
+    from pathlib import Path
+
+    from rdkit import Chem
+
+    from openchem import paths as app_paths
+    from openchem.chem.calculation_input import input_fingerprint
+    from openchem.domain.calculator import ENSEMBLE
+    from openchem.domain.common import CacheState
+    from openchem.domain.descriptor import DescriptorValue
+    from openchem.events.events import QuantumChemistryJobStateChanged
+    from openchem.plugins.interfaces import QuantumEngineProvider
+
+    monkeypatch.setenv(app_paths.DATA_ROOT_ENV_VAR, str(tmp_path / "data-root"))
+
+    class _SlowNmr(QuantumEngineProvider):
+        # Registered under the id the panel submits with, so the panel's own
+        # call reaches it unmodified.
+        provider_id = "orca"
+
+        def build_input(self, mol, charge, multiplicity, method_basis, calc_type):
+            return "fake"
+
+        def command_args(self, executable_path, input_path: Path):
+            return [executable_path, "-c", "import time; time.sleep(0.6)"]
+
+        def parse_output(self, output_text, mol, molecule_uuid, calc_type):
+            energy = DescriptorValue(
+                descriptor_id="orca.scf_energy", name="E", units="Hartree",
+                category="quantum_chemistry", provider="orca", molecule_uuid=molecule_uuid,
+                value=-1.0, cache_state=CacheState.COMPLETED,
+            )
+            return [energy], None
+
+        def parse_spectrum_output(self, output_text, mol, molecule_uuid, calc_type):
+            from openchem.domain.common import Provenance
+
+            # With provenance, as the real ORCA parser always gives it: the
+            # Boltzmann average records its conformer count only onto one.
+            return NMRSpectrumResult(
+                spectrum_type="nmr_raw_shielding", name="NMR", units="ppm", method="orca",
+                molecule_uuid=molecule_uuid, values={0: 30.0}, elements={0: "C"},
+                provenance=Provenance(created_by="core", method="orca", parameters={"orca_version": "fake"}),
+            )
+
+    from rdkit.Chem import AllChem
+
+    bus = EventBus()
+    engine = ChemistryEngine()
+    settings = Settings(bus)
+    settings.set("orca/executable_path", sys.executable)
+    real = QuantumChemistryService(bus, settings, providers={"orca": _SlowNmr()})
+    panel = QuantumChemistryPanel(real, engine, settings, bus)
+    molecule = MoleculeModel(display_name="Butane")
+    engine.set_structure_from_smiles(molecule, "CCCC")
+    mol_3d = Chem.AddHs(Chem.MolFromSmiles("CCCC"))
+    AllChem.EmbedMultipleConfs(mol_3d, numConfs=2, randomSeed=42)
+    for conf_id in range(2):
+        molecule.conformers.append(
+            ConformerModel(molblock=Chem.MolToMolBlock(mol_3d, confId=conf_id), method="rdkit_etkdg")
+        )
+    project = ProjectModel(name="Test")
+    project.molecules.append(molecule)
+    panel.set_project(project)
+    panel._molecule_combo.setCurrentIndex(0)
+    panel._method_combo.setCurrentText("B3LYP pcSseg-1")
+    submitted = input_fingerprint(ChemistryEngine(), molecule, ENSEMBLE)
+    events: list[SpectrumComputed] = []
+    bus.subscribe(SpectrumComputed, events.append)
+    states: list = []
+    bus.subscribe(QuantumChemistryJobStateChanged, lambda e: states.append(e.state))
+
+    panel._boltzmann_check.setChecked(True)
+    panel._charge_spin.setValue(0)
+    panel._multiplicity_spin.setValue(1)
+    panel._on_run_clicked()
+
+    # Everything the panel or model could say about the run, changed mid-run.
+    panel._charge_spin.setValue(3)
+    panel._multiplicity_spin.setValue(4)
+    panel._method_combo.setCurrentText("HF STO-3G")
+    molecule.conformers.append(ConformerModel(molblock=molecule.conformers[0].molblock, method="added"))
+
+    deadline = time.time() + 30
+    while not (states and states[-1] in (CacheState.COMPLETED, CacheState.FAILED)) and time.time() < deadline:
+        qapp.processEvents()
+        time.sleep(0.02)
+
+    assert states and states[-1] == CacheState.COMPLETED, states
+    assert [(e.input_fingerprint, e.calculation_input) for e in events] == [(submitted, ENSEMBLE)]
+    assert input_fingerprint(ChemistryEngine(), molecule, ENSEMBLE) != submitted, "setup: the set changed"
+    parameters = events[0].spectrum.provenance.parameters if events[0].spectrum.provenance else {}
+    assert (parameters.get("run_charge"), parameters.get("run_multiplicity")) == (0, 1)
+    assert parameters.get("run_method_basis") == "B3LYP pcSseg-1"
+    assert parameters.get("boltzmann_conformers") == 2
+
+
 def _ethanol_panel(bus, engine, settings, service):
     """A panel with a real ethanol conformer, run-clicked so the panel holds
     the mol its hybrid merge needs."""

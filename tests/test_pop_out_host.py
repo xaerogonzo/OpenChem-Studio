@@ -624,3 +624,32 @@ def test_a_geometry_saved_on_a_bigger_screen_is_clamped_to_this_one(qapp):
     )
     host.return_home()
     _dispose(host)
+
+
+def test_a_host_whose_button_is_placed_elsewhere_still_pops_out_and_returns(qapp):
+    """`button_in_header=False`: the owner lays the button out -- Results puts
+    it in its dock's title bar -- and it is still the HOST's control: its
+    click pops the content out, its checked state follows, and the content
+    comes home to the host rather than to wherever the button lives."""
+    content = QLabel("content")
+    host = PopOutHost(content, title="Test view", button_in_header=False)
+    elsewhere = QWidget()
+    QVBoxLayout(elsewhere).addWidget(host.pop_out_button())
+    host.show()
+    elsewhere.show()
+    QCoreApplication.processEvents()
+    try:
+        header_row = host.layout().itemAt(0).layout()
+        assert all(header_row.itemAt(i).widget() is None for i in range(header_row.count())), (
+            "the button, or something, is still laid out in the host's header row"
+        )
+        button = host.pop_out_button()
+        assert button.parent() is elsewhere
+        button.click()
+        assert host.is_popped_out() and button.isChecked()
+        host.return_home()
+        assert not host.is_popped_out() and not button.isChecked()
+        assert content.parentWidget() is host
+    finally:
+        _dispose(host)
+        _dispose(elsewhere)

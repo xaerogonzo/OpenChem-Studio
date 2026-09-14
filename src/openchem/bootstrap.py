@@ -210,6 +210,9 @@ _CALCULATOR_INTERPRETER_SETTING: dict[str, str | dict[str, str]] = {
     "isoelectric_point": PKASOLVER_PYTHON_SETTING,
     "cns_mpo": PKASOLVER_PYTHON_SETTING,
     "bbb_descriptors": PKASOLVER_PYTHON_SETTING,
+    # For its ionization-model cross-check only: the charges are computed on
+    # Dimorphite-DL's species with or without it.
+    "gasteiger_charge_at_ph": PKASOLVER_PYTHON_SETTING,
     # ADMET-AI (hERG / CYP / Ames)
     "admet_ml": ADMET_PYTHON_SETTING,
     # Both, independently.

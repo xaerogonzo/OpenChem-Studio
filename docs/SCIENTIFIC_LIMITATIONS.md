@@ -1007,6 +1007,29 @@ difference is between two libraries rather than a defect in either one's
 use. Fixing the atom ORDER of the species (below) says nothing about
 whether its protonation state is correct.
 
+**Since 2026-09-14 the results SAY so, site by site, and still change no
+number.** With a pkasolver environment configured, the pH-dependent charges
+and logD run an *ionization-model cross-check*: for each pkasolver site,
+the state its prediction encodes at this pH (its own protonated or
+deprotonated microstate, depending on which side of the pKa the pH falls) is
+compared with Dimorphite-DL's species at the same atom. A disagreement is
+named, with the pKa, its ensemble spread and the distance from the pH. What
+this is and is not:
+
+- a comparison of two models, not a verdict on the molecule. Neither is
+  treated as right;
+- per site. Nothing is added up into a net charge;
+- with no margin, so a site 0.01 pH units from its pKa and one 4 units away
+  are both reported. The distance is what tells them apart;
+- silent about sites it could not compare (unmapped, exactly at the pKa, a
+  runner too old to send microstates), which the provenance records with
+  their reasons.
+
+On O1OCN1 at pH 7.4 it reads: pkasolver predicts atom 4 (N) deprotonated
+(pKa 3.20 ± 0.64, 4.20 from this pH); Dimorphite-DL selects it protonated.
+Reconciling the two needs a pre-registered benchmark against measured pKa
+values (ROADMAP, "Measure, then unify protonation").
+
 **Charges are keyed to the drawn atoms.** The species comes back from the
 library in its own atom order; it is renumbered into the drawing's before
 anything is computed on it. Until 2026-09-13 it was not, and on that same

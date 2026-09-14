@@ -409,3 +409,30 @@ def test_a_long_reason_in_the_reader_does_not_widen_the_window(window, qapp_modu
         f"{before_window} to {window.minimumSizeHint().width()}"
     )
     assert window._results_dock.minimumSizeHint().width() == before_dock
+
+
+def test_the_readers_pop_out_button_is_in_the_title_bar_not_a_row_of_its_own(window):
+    """A row holding only this button cost 26 of the 190 px a top-docked
+    reader had. In the dock's title bar it costs none -- and the title bar is
+    outside the content, so the button still does not travel into the window
+    it opens."""
+    bar = window._results_dock.titleBarWidget()
+    host = window._results_host
+    button = host.pop_out_button()
+    assert button.parent() is bar
+    header_row = host.layout().itemAt(0).layout()
+    assert all(header_row.itemAt(i).widget() is None for i in range(header_row.count()))
+    assert button not in window._results_view.findChildren(type(button))
+
+
+def test_the_title_bar_button_moves_the_reader_out_and_back(window, qapp_module):
+    host = window._results_host
+    button = host.pop_out_button()
+    button.click()
+    try:
+        assert host.is_popped_out()
+        assert host.detached_window().isAncestorOf(window._results_view)
+    finally:
+        host.return_home()
+    assert not host.is_popped_out()
+    assert window._results_view.parentWidget() is host

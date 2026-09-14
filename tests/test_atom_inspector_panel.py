@@ -378,6 +378,142 @@ def test_a_current_dataset_says_nothing_about_withholding(panel):
     assert "Not shown" not in widget._facts._summary.text()
 
 
+# --- spectra follow the same rule ----------------------------------------------
+#
+# ORCA spectra used to arrive with no identity and were shown unchecked. The
+# QC service now stamps what each job was submitted with: the conformer
+# (GEOMETRY) or the conformer set (ENSEMBLE).
+
+
+def _with_conformers(model: MoleculeModel, *seeds: int) -> None:
+    from rdkit.Chem import AllChem
+
+    from openchem.domain.conformer import ConformerModel
+
+    model.conformers = []
+    for seed in seeds:
+        mol = Chem.AddHs(Chem.MolFromSmiles(model.canonical_smiles))
+        params = AllChem.ETKDGv3()
+        params.randomSeed = seed
+        AllChem.EmbedMolecule(mol, params)
+        model.conformers.append(ConformerModel(molblock=Chem.MolToMolBlock(mol), energy=float(seed)))
+
+
+def _shift(model: MoleculeModel, spectrum_type: str = "nmr_raw_shielding"):
+    from openchem.domain.scientific_result import NMRSpectrumResult
+
+    return NMRSpectrumResult(
+        spectrum_type=spectrum_type, name="NMR Isotropic Shielding", units="ppm",
+        method="orca", molecule_uuid=model.uuid, values={0: 30.123}, elements={0: "C"},
+    )
+
+
+def _has_shift(widget, index: int = 0) -> bool:
+    return any(f.label == "NMR Isotropic Shielding" for f in widget._report_for(index).facts)
+
+
+def _spectrum_event(model: MoleculeModel, kind: str):
+    from openchem.events.events import SpectrumComputed
+
+    return SpectrumComputed(
+        spectrum=_shift(model),
+        input_fingerprint=input_fingerprint(ChemistryEngine(), model, kind),
+        calculation_input=kind,
+    )
+
+
+def test_a_qm_shift_for_the_current_conformer_is_shown(panel):
+    from openchem.domain.calculator import GEOMETRY
+
+    widget, bus = panel
+    model = molecule("CCO", "ethanol")
+    _with_conformers(model, 1)
+    showing(widget, model, 0)
+    bus.publish(_spectrum_event(model, GEOMETRY))
+    QCoreApplication.processEvents()
+
+    assert _has_shift(widget)
+    assert "Not shown" not in widget._facts._summary.text()
+
+
+def test_a_qm_shift_for_an_earlier_conformer_is_withheld_and_says_conformer(panel):
+    """The drawing never changed -- the CONFORMER moved on. "An earlier
+    structure" would send somebody looking for an edit that never happened."""
+    from openchem.domain.calculator import GEOMETRY
+
+    widget, bus = panel
+    model = molecule("CCO", "ethanol")
+    _with_conformers(model, 1)
+    showing(widget, model, 0)
+    bus.publish(_spectrum_event(model, GEOMETRY))
+    QCoreApplication.processEvents()
+    assert _has_shift(widget), "setup: the fresh spectrum never reached the report"
+
+    _with_conformers(model, 2)  # a new search: new ids, new geometry
+    showing(widget, model, 0)
+
+    assert not _has_shift(widget), "a shift computed for the earlier conformer is still shown"
+    summary = widget._facts._summary.text()
+    assert "NMR Isotropic Shielding" in summary and "an earlier conformer;" in summary, summary
+    assert "earlier structure" not in summary, summary
+
+
+def test_a_conformer_change_redraws_the_molecule_already_showing(panel):
+    """No reselection: the event every conformer command publishes is
+    itself the reason to rebuild, or the old shift stays on screen until
+    somebody happens to click."""
+    from openchem.domain.calculator import GEOMETRY
+    from openchem.events.events import ConformersChanged
+
+    widget, bus = panel
+    model = molecule("CCO", "ethanol")
+    _with_conformers(model, 1)
+    showing(widget, model, 0)
+    bus.publish(_spectrum_event(model, GEOMETRY))
+    QCoreApplication.processEvents()
+    assert "Not shown" not in widget._facts._summary.text(), "setup"
+
+    _with_conformers(model, 2)
+    bus.publish(ConformersChanged(molecule_uuid=model.uuid))
+    QCoreApplication.processEvents()
+
+    assert "an earlier conformer;" in widget._facts._summary.text()
+
+
+def test_a_boltzmann_shift_for_an_earlier_conformer_set_says_set(panel):
+    from openchem.domain.calculator import ENSEMBLE
+
+    widget, bus = panel
+    model = molecule("CCO", "ethanol")
+    _with_conformers(model, 1, 2)
+    showing(widget, model, 0)
+    bus.publish(_spectrum_event(model, ENSEMBLE))
+    QCoreApplication.processEvents()
+    assert _has_shift(widget), "setup: the fresh average never reached the report"
+
+    _with_conformers(model, 1, 2, 3)  # the set grew
+    showing(widget, model, 0)
+
+    assert not _has_shift(widget)
+    assert "an earlier conformer set" in widget._facts._summary.text()
+
+
+def test_a_spectrum_with_no_identity_is_withheld_like_any_other_result(panel):
+    """It used to be shown unchecked. Every in-app producer stamps one now,
+    so an identity-less spectrum comes from code that cannot vouch for it."""
+    from openchem.events.events import SpectrumComputed
+
+    widget, bus = panel
+    model = molecule("CCO", "ethanol")
+    _with_conformers(model, 1)
+    showing(widget, model, 0)
+    bus.publish(SpectrumComputed(spectrum=_shift(model)))
+    QCoreApplication.processEvents()
+
+    assert not _has_shift(widget)
+    assert "identity unavailable" in widget._facts._summary.text()
+
+
 # --- the never-computes guarantee -------------------------------------------
 
 

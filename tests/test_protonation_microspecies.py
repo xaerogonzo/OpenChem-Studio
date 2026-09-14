@@ -416,3 +416,69 @@ def test_a_calculator_that_simply_works_declares_no_inapplicability():
     result = compute_joback(Chem.MolFromSmiles("CCO"), "u", {})
     assert result.cache_state.value != "failed"
     assert not result.inapplicable
+
+
+# --- the caller's atom maps -----------------------------------------------------
+#
+# Measured 2026-09-14: a drawing carrying map numbers reached Dimorphite with
+# them written into its SMILES. A mapped imidazole came back with NO state at
+# pH 7.4 where the unmapped one gives the anion, and every output atom lost its
+# map.
+
+
+def _mapped(smiles: str) -> Chem.Mol:
+    mol = Chem.MolFromSmiles(smiles)
+    for atom in mol.GetAtoms():
+        atom.SetAtomMapNum(atom.GetIdx() + 1)
+    return mol
+
+
+def _unmapped_smiles(mol: Chem.Mol) -> str:
+    copy = Chem.Mol(mol)
+    for atom in copy.GetAtoms():
+        atom.SetAtomMapNum(0)
+    return Chem.MolToSmiles(copy)
+
+
+@pytest.mark.parametrize("smiles", ["c1c[nH]cn1", "CCC(=O)O", "Oc1ccc(cc1)[N+](=O)[O-]"])
+def test_a_drawing_with_atom_maps_gets_the_same_species_as_one_without(smiles):
+    plain = dominant_microspecies(Chem.MolFromSmiles(smiles), 7.4)
+    mapped = dominant_microspecies(_mapped(smiles), 7.4)
+    assert _unmapped_smiles(mapped.mol) == _unmapped_smiles(plain.mol)
+    assert mapped.formal_charge == plain.formal_charge
+
+
+def test_the_callers_maps_come_back_on_their_own_atoms():
+    mol = _mapped("CCC(=O)O")
+    species = dominant_microspecies(mol, 7.4).mol
+    assert [a.GetAtomMapNum() for a in species.GetAtoms()] == [a.GetAtomMapNum() for a in mol.GetAtoms()]
+    assert species.GetAtomWithIdx(4).GetFormalCharge() == -1, "setup: the acid was not deprotonated"
+
+
+def test_an_unmapped_drawing_stays_unmapped():
+    """The narrow half: 'number every atom' passes the guard above."""
+    species = dominant_microspecies(Chem.MolFromSmiles("CCC(=O)O"), 7.4).mol
+    assert all(a.GetAtomMapNum() == 0 for a in species.GetAtoms())
+
+
+def test_the_pka_runner_is_handed_no_caller_maps(monkeypatch, tmp_path):
+    """The runner uses map numbers itself, to carry pkasolver's indices back;
+    a caller's map 1 on atom 5 must not reach it."""
+    import json
+    import subprocess
+
+    from openchem.chem import pka_providers
+
+    interpreter = tmp_path / "python.exe"
+    interpreter.write_text("")
+    seen = []
+
+    def fake_run(argv, **_kwargs):
+        seen.append(argv[-1])
+        return subprocess.CompletedProcess(argv, 0, stdout=json.dumps({"pkas": []}), stderr="")
+
+    monkeypatch.setattr(pka_providers.subprocess, "run", fake_run)
+    mol = Chem.MolFromSmiles("CCC(=O)O")
+    mol.GetAtomWithIdx(4).SetAtomMapNum(1)
+    assert pka_providers.compute_pka(mol, str(interpreter)) == []
+    assert seen and ":" not in seen[0], f"a map number reached the runner: {seen[0]!r}"
