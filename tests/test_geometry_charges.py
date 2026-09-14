@@ -1,4 +1,4 @@
-"""The geometry-dependent charge calculator: EEM on the stored conformer.
+"""The geometry-dependent charge calculator: EEM and QEq on the stored conformer.
 
 `tests/test_charge_equilibration.py` holds the solver against its papers.
 This file holds the CALCULATOR against its contract, through the registry:
@@ -54,14 +54,51 @@ def _renumbered(mol: Chem.Mol, order: list[int]) -> Chem.Mol:
 # --- registration and identity ------------------------------------------------
 
 
-def test_registered_on_geometry_offering_only_the_gated_method_by_code():
+def test_registered_on_geometry_offering_eem_first_and_qeq_under_its_a8_code():
     definition = _registry().get(CALCULATOR)
     assert definition.calculation_input == GEOMETRY
     assert definition.category == "charge"
     (method,) = [p for p in definition.parameters if p.name == "method"]
-    assert method.choices == ["eem_bultinck2002_part1"]
-    assert method.choice_labels == ["EEM, Bultinck 2002"]
-    assert not any("qeq" in choice for choice in method.choices), "QEq stopped at its gate"
+    assert method.choices == ["eem_bultinck2002_part1", "qeq_rg1991_lambda_half_h_experimental"]
+    assert method.choice_labels == ["EEM, Bultinck 2002", "QEq, Rappé–Goddard 1991"]
+    assert method.default == "eem_bultinck2002_part1"
+    # A8: neither the HF-fitted hydrogen set nor the pre-registered reading is offered.
+    assert not any("hf" in choice or "preregistered" in choice for choice in method.choices)
+
+
+def test_the_eem_default_identity_is_the_one_recorded_before_qeq_was_offered():
+    """A stored EEM result from before A8 must still be found: its identity is
+    parameters_key of the defaults, pinned here at its pre-A8 value."""
+    definition = _registry().get(CALCULATOR)
+    defaults = {p.name: p.default for p in definition.parameters}
+    assert parameters_key(defaults) == "c8a6d189021bbd3d35d4621f5b102f37"
+
+
+def test_eem_output_is_unchanged_by_adding_qeq():
+    """Values captured from the calculator before QEq's dispatch existed."""
+    before = {
+        0: -0.543078958401, 1: -0.055275894735, 2: 0.055889984435, 3: -0.635941577885, 4: 0.164243918641,
+        5: -0.43014364712, 6: 0.281988639174, 7: 0.149251900807, 8: 0.17202170245, 9: 0.134577620593,
+        10: 0.301309946117, 11: 0.281918050611, 12: 0.123238315313,
+    }
+    result = gc.compute_geometry_charges(_conformer("OCC(N)C=O"), "u", {})
+    assert result.name == "Partial Charge (EEM, Bultinck 2002, 3D)" and result.method == "eem_bultinck2002_part1"
+    assert set(result.values) == set(before)
+    assert all(abs(result.values[k] - v) <= 1e-11 for k, v in before.items())
+    assert "validation" not in result.provenance.parameters and "iterations" not in result.provenance.parameters
+
+
+def test_eem_refusals_are_unchanged_by_adding_qeq():
+    engine = ChemistryEngine()
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CCO")
+    flat = gc.compute_geometry_charges(resolve_calculation_input(engine, model, GEOMETRY).mol, "u", {})
+    assert flat.error == (
+        "EEM needs 3D coordinates, and this molecule has no 3D conformer. "
+        "Generate conformers first (Structure ▸ Generate Conformers...)."
+    )
+    sulfur = gc.compute_geometry_charges(_conformer("CS"), "u", {})
+    assert sulfur.error == "Bultinck et al. 2002 part I Table 1 has no parameters for S." and sulfur.error_summary == "Element not parameterised"
 
 
 def test_an_unknown_method_code_raises_rather_than_defaulting():
@@ -71,6 +108,7 @@ def test_an_unknown_method_code_raises_rather_than_defaulting():
 
 def test_distinct_method_codes_and_hydrogen_options_are_distinct_identities():
     base = {"method": "eem_bultinck2002_part1", "include_hydrogens": False, "decimal_places": 2}
+    assert parameters_key(base) != parameters_key({**base, "method": "qeq_rg1991_lambda_half_h_experimental"})
     assert parameters_key(base) != parameters_key({**base, "method": "qeq_rg1991_h_experimental"})
     assert parameters_key(base) != parameters_key({**base, "include_hydrogens": True})
 
@@ -269,3 +307,103 @@ def test_a_conformer_search_finishing_mid_run_does_not_relabel_the_result(qapp):
     assert list(recorded.values()) == ["submitted"]
     # And the result is now stale against the model as it stands.
     assert resolve_calculation_input(engine, model, GEOMETRY).fingerprint != submitted_fingerprint
+
+
+# --- QEq (amendment A8) -----------------------------------------------------------
+
+QEQ = {"method": "qeq_rg1991_lambda_half_h_experimental"}
+
+
+def test_qeq_through_the_registry_is_the_solver_with_the_a8_reading():
+    from openchem.chem import charge_equilibration as ce
+
+    mol = _conformer("OCC(N)C=O")
+    result = _registry().compute(CALCULATOR, mol, "u", QEQ)
+    assert result.cache_state == CacheState.COMPLETED
+    elements = [a.GetSymbol() for a in mol.GetAtoms()]
+    direct = ce.qeq_charges(elements, mol.GetConformer().GetPositions(), 0.0, hydrogen="experimental", readings=ce.ADOPTED)
+    assert all(abs(result.values[i] - direct.charges[i]) <= 1e-12 for i in range(mol.GetNumAtoms()))
+    parameters = result.provenance.parameters
+    assert parameters["parameter_set"] == "rappe_1991_table_I" and parameters["hydrogen_parameter_set"] == "experimental"
+    assert parameters["zeta_parameterization"] == "rappe_1991_eq17_prime_lambda_half" and parameters["lambda"] == 0.5
+    assert parameters["zeta_h_in_pairs"] is True and parameters["hydrogen_self_term"] == "eq21"
+    assert parameters["integral_model"] == "ns_slater_exact" and parameters["iterations"] == direct.iterations
+    assert parameters["validation"]["amendment"] == "A8" and "source discrepancy" in parameters["validation"]["scope"]
+    assert "source_discrepancy" not in parameters
+    assert abs(parameters[TOTAL]["value"]) < 1e-10 and result.name == "Partial Charge (QEq, Rappé–Goddard 1991, 3D)"
+
+
+def test_qeq_charges_move_with_their_atoms():
+    mol = _conformer("OCC(N)C=O")
+    base = gc.compute_geometry_charges(mol, "u", QEQ).values
+    order = [int(i) for i in np.random.default_rng(4).permutation(mol.GetNumAtoms())]
+    moved = gc.compute_geometry_charges(_renumbered(mol, order), "u", QEQ).values
+    for new_index, old_index in enumerate(order):
+        assert moved[new_index] == pytest.approx(base[old_index], abs=1e-10)
+
+
+def test_silicon_is_computed_by_qeq_with_its_source_discrepancy_and_refused_by_eem():
+    silane = _conformer("[SiH4]")
+    qeq = gc.compute_geometry_charges(silane, "u", QEQ)
+    assert qeq.cache_state == CacheState.COMPLETED
+    assert qeq.provenance.parameters["source_discrepancy"] == gc.QEQ_SILICON_NOTE
+    hydrogens = [a.GetIdx() for a in silane.GetAtoms() if a.GetAtomicNum() == 1]
+    assert all(qeq.values[h] < 0 for h in hydrogens)
+    assert gc.compute_geometry_charges(silane, "u", {}).provenance.parameters["refusal"] == "REFUSE_ELEMENT_NOT_PARAMETERISED"
+
+
+def test_qeq_refuses_what_it_has_no_parameters_for_and_the_drawing():
+    boron = gc.compute_geometry_charges(_conformer("B(C)(C)C"), "u", QEQ)
+    assert boron.provenance.parameters["refusal"] == "REFUSE_ELEMENT_NOT_PARAMETERISED" and "B" in boron.error
+    engine = ChemistryEngine()
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CCO")
+    flat = gc.compute_geometry_charges(resolve_calculation_input(engine, model, GEOMETRY).mol, "u", QEQ)
+    assert flat.provenance.parameters["refusal"] == gc.REFUSE_NO_3D_GEOMETRY and flat.error.startswith("QEq needs 3D")
+
+
+def test_qeq_non_convergence_is_refused_with_its_diagnostics():
+    """LiH, whose printed charge is not a solution of the equations (A7)."""
+    lithium_hydride = _conformer("[LiH]")
+    result = gc.compute_geometry_charges(lithium_hydride, "u", QEQ)
+    assert result.inapplicable and not result.values
+    parameters = result.provenance.parameters
+    assert parameters["refusal"] == "REFUSE_NOT_CONVERGED" and result.error_summary == "Did not converge"
+    assert parameters["iterations"] == 50 and parameters["trace_class"] and "dQ_H" in parameters["final_metrics"]
+    assert "ever_clamped" in parameters
+
+
+def _stub_qeq(monkeypatch, *, final_active=None, ever_clamped=False):
+    """No measured molecule ends with an active bound or clamps only mid-loop
+    (both searched for), so the refusal logic is exercised on constructed
+    solver results, and says so."""
+    from openchem.chem import charge_equilibration as ce
+
+    real = ce.qeq_charges
+
+    def constructed(elements, coords, net_charge=0.0, **kwargs):
+        result = real(elements, coords, net_charge, **kwargs)
+        result.final_active_atoms = dict(final_active or {})
+        result.ever_clamped = ever_clamped
+        return result
+
+    monkeypatch.setattr(gc.ce, "qeq_charges", constructed)
+
+
+def test_a_final_active_bound_is_refused_with_per_atom_diagnostics(monkeypatch):
+    _stub_qeq(monkeypatch, final_active={0: -2.0}, ever_clamped=True)
+    result = gc.compute_geometry_charges(_conformer("OCC(N)C=O"), "u", QEQ)
+    assert result.inapplicable and not result.values
+    parameters = result.provenance.parameters
+    assert parameters["refusal"] == gc.REFUSE_BOUND_ACTIVE and result.error_summary == "Charge bound reached"
+    (atom,) = parameters["final_active_atoms"]
+    assert atom["atom"] == 0 and atom["element"] == "O" and atom["bound"] == -2.0 and "final_charge" in atom
+    assert "O0" in result.error
+
+
+def test_touching_a_bound_mid_loop_is_not_a_refusal(monkeypatch):
+    """A8: only the FINAL active set refuses."""
+    _stub_qeq(monkeypatch, final_active={}, ever_clamped=True)
+    result = gc.compute_geometry_charges(_conformer("OCC(N)C=O"), "u", QEQ)
+    assert result.cache_state == CacheState.COMPLETED and result.values
+    assert result.provenance.parameters["ever_clamped"] is True
