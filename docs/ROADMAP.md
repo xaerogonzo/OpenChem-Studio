@@ -1959,8 +1959,13 @@ struck through and marked SHIPPED here, never deleted.
     - The paper's never-release bound fixing misses the constrained optimum in
       28 of 200 synthetic systems.
     - Decisions: which hydrogen treatment, if any; keep the paper's bound
-      procedure or use a true constrained minimum labelled as a departure. And
-      Harmony et al. 1979 is still needed for any polyatomic check.
+      procedure or use a true constrained minimum labelled as a departure.
+    - **Harmony et al. 1979 arrived, and the polyatomic rows point at one
+      reading.** Against Tables III and IV at its geometries, the
+      pre-registered reading misses 38 of 74 cells and the λ = ½ reading
+      (eq 17′, which the text says the authors adopted) misses 10. Promoting a
+      reading because it fits is a decision, not a fix, so it waits on Alex.
+      SiH₄ fails under every reading, and ethane is not in Harmony.
 - **Geometry-dependent charges at a pH.** Not started, and deliberately
   separate from the item above. It needs the coordinate gate recorded there:
   protonation must not move or lose the conformer's heavy atoms.

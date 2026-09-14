@@ -15,8 +15,16 @@ uv run --no-sync python benchmarks/charges/rappe_goddard/oracle.py
 - **EEM passes its gate.** It ships with Bultinck part I Table 1's parameters
   (Phase B).
 - **QEq stopped at the pre-registered stop rule, twice.** The next decision is
-  Alex's. QEq could not have shipped yet anyway, because the polyatomic
-  oracles need Harmony et al. 1979, which is not held.
+  Alex's.
+- **Harmony et al. 1979 arrived, and the polyatomic rows point at one reading.**
+  - **Under the pre-registered primary P** (Table I's printed ζ), 38 of 74
+    Table III/IV cells miss.
+  - **Under R4** (eq 17′, λ = ½ for every element), 10 miss. Table III's
+    experimental column for H₂O, NH₃ and CH₄ lands within 0.002 e, as HF's did.
+  - The paper's text supports R4: "Rounding off to λ = 1/2 … and hence (17)
+    becomes (17′)".
+  - The pre-registration does not allow promoting a reading because it fits,
+    so this is a decision for Alex, below.
 
 | # | Oracle | Result |
 |---|---|---|
@@ -24,8 +32,8 @@ uv run --no-sync python benchmarks/charges/rappe_goddard/oracle.py
 | O1 | against the 30-digit mpmath table (1076 rows; its two coordinate systems agree to 1.8e-22 Ha) | **worst 5.2e-14 Ha**, at the near-zero point R = 1e-6 bohr; passes |
 | O2 | eq 17 regenerates Table I's ζ | 14 elements within ±0.0001; **N misses by 2.5e-5**, within the rounding of its printed radius (amendment A3); **O misses by 0.0030**, four times its rounding, recorded before any solve |
 | O3 | Table II, 20 alkali halides, both λ columns | **passes: worst 0.0005 e** in each column, and eq 18 agrees with the general solver to 1e-8 e |
-| O4 | Table III hydrogen charges | **STOP**: HF misses (below); LiH never converges |
-| O5 | Table IV, the diatomics HF and ClH | pass at ±0.01 e |
+| O4 | Table III hydrogen charges (±0.001 e diatomic, ±0.002 e polyatomic) | **STOP**: under P, HF, H₂O, NH₃ and CH₄ miss and LiH never converges |
+| O5 | Table IV at ±0.01 e: diatomics at Huber r_e, polyatomics at Harmony 1979 geometries (amendment A4); ethane is not in Harmony | **P misses 33 of 68 cells; R4 misses 7** (below) |
 | O6 | Open Babel's EEM, given Table 1 | same arithmetic to 1e-6 e (compatibility only) |
 | O7 | EEM eq 3's diatomic closed form | passes; the η-for-2η build fails, as it must |
 | O8 | EEM matrix, entry by entry | passes |
@@ -70,6 +78,39 @@ Q_H by reading, with the difference from the printed value
   undamped iteration that differs in some other detail, or ζ_H entering eq 21
   in some other way. The paper gives no more than it gives.
 
+## The polyatomics, at Harmony 1979's geometries (amendment A4)
+
+Run 2026-09-14 by `oracle.py`. Geometries: per parameter, the first printed of
+equilibrium, substitution, average, effective; conformations as Harmony draws
+them. Cells outside tolerance, of 74 (6 in Table III, 68 in Table IV):
+
+| reading | P | R1 | R2 | R3 | **R4** | P, effective-first geometry |
+|---|---|---|---|---|---|---|
+| cells missed | 38 | 57 | 62 | 43 | **10** | 39 |
+
+- **The geometry choice is not the cause.** Reversing the structure-type order
+  moves P from 38 to 39 misses.
+- **R4 with the experimental hydrogen set reproduces every Table III and IV
+  cell except two:**
+  - formamide's C, +0.011 against a tolerance of 0.01;
+  - SiH₄.
+- **The QEqHF column misses more under R4.** Of R4's 10 misses, 7 are
+  QEqHF cells:
+  - H₂O +0.008 and CH₄ +0.005 in Table III (tolerance 0.002);
+  - methanol H(O) +0.016, C −0.014 and Ht +0.014;
+  - formamide N −0.013;
+  - SiH₄.
+
+  HF's QEqHF was already +0.010. Something about the HF-fitted hydrogen set is
+  not what the paper says.
+- **SiH₄ fails under every reading by about 0.18 e.**
+  - Every reading gives H about −0.04 e (Si's χ, 4.168, is below hydrogen's
+    4.528); the table prints +0.13.
+  - It is the only hydride whose heavy atom is less electronegative than H in
+    Table I, so a different silicon parameter in the paper's own program is
+    one possibility. Not measured.
+- **LiH still converges under no reading, R4 included.**
+
 ## QEq stop 2: the bounds (O9)
 
 - **The paper's procedure never releases a fixed atom.** It is: solve; fix
@@ -106,6 +147,14 @@ accuracy.
 
 ## The decisions this needs
 
+0. **Adopt R4 (λ = ½, eq 17′) as the reading, and say why.**
+   - It is what the text says the authors adopted.
+   - With the experimental hydrogen set it reproduces 64 of 68 Table IV cells
+     and all of Table III's polyatomics.
+   - The cost of adopting it now is that it was chosen after seeing the
+     tables. The record would have to say so, and P's failure stays on file.
+   - LiH, SiH₄, the QEqHF column and the bound procedure (O9) remain open
+     either way.
 1. **The hydrogen treatment.**
    - Ship QEq only for molecules without hydrogen? That is almost nothing
      useful.
@@ -116,6 +165,6 @@ accuracy.
 2. **The bound algorithm.** Keep the paper's never-release fixing, or
    replace it with a true constrained minimum, labelled as a departure from
    the paper.
-3. **Harmony et al. 1979** (J. Phys. Chem. Ref. Data 8, 619) is still needed
-   for any polyatomic oracle. The file received as `krause1979.pdf` is a
-   different paper.
+3. **Ethane's geometry** would need Landolt–Börnstein, New Series II/7
+   (1976), the paper's reference 16. It is the only Table IV compound not in
+   Harmony et al. 1979.

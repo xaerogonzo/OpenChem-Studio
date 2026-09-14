@@ -16,13 +16,15 @@ Layers, kept apart on purpose:
     O7-O9   EEM's convention, EEM's matrix, and the bound algorithm
     invariants  shift, conservation, net charge, permutation, reading isolation
 
-Polyatomic rows of Tables III and IV need Harmony et al. 1979, which is not
-held; they skip and say so.
+Polyatomic rows of Tables III and IV run at Harmony et al. 1979's geometries,
+built by `qeq_geometries.py` under amendment A4. Ethane is not in Harmony and
+skips, saying so.
 """
 
 from __future__ import annotations
 
 import csv
+import functools
 import hashlib
 import itertools
 import json
@@ -37,9 +39,10 @@ import pytest
 
 from openchem.chem import charge_equilibration as ce
 
+import qeq_geometries
+
 FIXTURES = pathlib.Path(__file__).parent / "fixtures" / "charges"
 PREREGISTRATION = pathlib.Path(__file__).parent.parent / "benchmarks" / "charges" / "rappe_goddard" / "preregistration.md"
-HARMONY = "needs Harmony et al., J. Phys. Chem. Ref. Data 1979, 8, 619 (the paper's polyatomic geometries), which is not held"
 
 
 def _rows(name: str) -> list[dict[str, str]]:
@@ -66,7 +69,7 @@ def test_every_fixture_matches_the_hash_the_preregistration_recorded():
     text = PREREGISTRATION.read_text(encoding="utf-8")
     fixtures = sorted(FIXTURES.glob("*.csv"))
     hashed = [f for f in fixtures if f.name != "slater_reference.csv"]
-    assert len(hashed) == 6
+    assert len(hashed) == 7
     for fixture in hashed:
         digest = hashlib.sha256(fixture.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
         assert f"`{fixture.name}`" in text and digest in text, fixture.name
@@ -333,44 +336,100 @@ def test_o3_eq18_from_the_fixture_with_the_oracle_integral_agrees_with_the_gener
 
 DIATOMIC_HYDRIDES = {"HF": ("H", "F"), "LiH": ("Li", "H"), "ClH": ("H", "Cl")}
 GEOMETRY_NAME = {"HF": "HF", "LiH": "LiH", "ClH": "HCl"}
+COLUMNS = (("QEq", "experimental"), ("QEqHF", "hf"))
+ETHANE = "ethane is not in Harmony et al. 1979 (its C2H6 formulas run from C2H5P to C2H6BN); the paper's other source, Landolt-Bornstein, is not held"
 
 
-O4_STOP = {
-    "HF": "STOP RECORD (pre-registration section 8): P gives Q_H 0.4568 against QEq 0.462 and 0.4613 against QEqHF 0.457; no one-at-a-time alternate passes both columns",
-    "LiH": "STOP RECORD: no reading converges; near the printed -0.767 the 2x2 system's J_Li + J_HH(Q) - 2 J_LiH is 0.28 eV under P, where the printed charge needs about 1.98 eV",
+@functools.lru_cache(maxsize=None)
+def _solved(molecule: str, hydrogen: str):
+    """(charges, Table IV printed_order -> atom indices) under P, at the geometry
+    amendment A4 builds. Diatomics use Huber & Herzberg's r_e."""
+    if molecule in DIATOMIC_HYDRIDES:
+        elements, coords = _diatomic(*DIATOMIC_HYDRIDES[molecule], _r_e(GEOMETRY_NAME[molecule]))
+        mapping = {1: [elements.index("H")]}
+    else:
+        elements, coords, mapping, _types = qeq_geometries.build(qeq_geometries.TABLE_NAMES[molecule])
+    result = ce.qeq_charges(elements, coords, 0.0, hydrogen=hydrogen)
+    return result, mapping
+
+
+#: STOP RECORD (pre-registration section 8): the Table III and IV cells P misses,
+#: with P's value. Measured 2026-09-14. The one-at-a-time alternates are in
+#: benchmarks/charges/rappe_goddard/oracle.py -- R4 (lambda = 1/2 for every
+#: element, eq 17') misses 7 of the 68 Table IV cells, but a reading that fits
+#: is a question for Alex, never a replacement for P.
+P_MISSES_III = {
+    ("HF", "QEq"): 0.4568, ("HF", "QEqHF"): 0.4613, ("LiH", "QEq"): None, ("LiH", "QEqHF"): None,
+    ("H2O", "QEq"): 0.345, ("NH3", "QEq"): 0.230, ("NH3", "QEqHF"): 0.223, ("CH4", "QEq"): 0.134, ("CH4", "QEqHF"): 0.114,
+}
+P_MISSES_IV = {
+    ("NH3", 1, "QEq"): 0.23, ("CH4", 1, "QEq"): 0.134, ("CH4", 1, "QEqHF"): 0.114, ("CO2", 1, "QEq"): -0.426,
+    ("CO2", 1, "QEqHF"): -0.426, ("H2CO", 1, "QEqHF"): -0.43, ("H2CO", 2, "QEqHF"): 0.219, ("H3COH", 5, "QEqHF"): 0.171,
+    ("H2NC(O)H", 1, "QEqHF"): -0.415, ("H2NC(O)H", 2, "QEq"): 0.365, ("H2NC(O)H", 2, "QEqHF"): 0.382,
+    ("H2NC(O)H", 3, "QEq"): -0.597, ("H2NC(O)H", 3, "QEqHF"): -0.585, ("H2NC(O)H", 4, "QEq"): 0.279,
+    ("HOC(O)H", 2, "QEq"): 0.524, ("HOC(O)H", 2, "QEqHF"): 0.536, ("HOC(O)H", 3, "QEqHF"): 0.158,
+    ("HOC(O)H", 4, "QEq"): -0.633, ("HOC(O)H", 4, "QEqHF"): -0.633, ("HOC(O)H", 5, "QEq"): 0.37,
+    ("H3CCN", 1, "QEqHF"): -0.238, ("H3CCN", 2, "QEq"): 0.192, ("H3CCN", 2, "QEqHF"): 0.196, ("H3CCN", 3, "QEq"): -0.331,
+    ("H3CCN", 3, "QEqHF"): -0.275, ("H2C=C=O", 1, "QEq"): -0.434, ("H2C=C=O", 1, "QEqHF"): -0.436,
+    ("H2C=C=O", 2, "QEq"): 0.394, ("H2C=C=O", 2, "QEqHF"): 0.396, ("H2C=C=O", 3, "QEq"): -0.197,
+    ("H2C=C=O", 3, "QEqHF"): -0.157, ("SiH4", 1, "QEq"): -0.042, ("SiH4", 1, "QEqHF"): -0.069,
 }
 
 
 def _o4_params():
-    return [
-        pytest.param(row, marks=pytest.mark.xfail(strict=True, reason=O4_STOP[row["molecule"]])) if row["molecule"] in O4_STOP else row
-        for row in _rows("rappe1991_table3.csv")
-    ]
+    params = []
+    for row in _rows("rappe1991_table3.csv"):
+        for column, hydrogen in COLUMNS:
+            key = (row["molecule"], column)
+            marks = [pytest.mark.xfail(strict=True, reason=f"STOP RECORD: P gives {P_MISSES_III[key]} against {row[column]}" if P_MISSES_III[key] is not None
+                                       else "STOP RECORD: no reading converges; near the printed -0.767 J_Li + J_HH(Q) - 2 J_LiH is 0.28 eV under P, where 1.98 would be needed")] if key in P_MISSES_III else []
+            params.append(pytest.param(row, column, hydrogen, marks=marks, id=f"{row['molecule']}-{column}"))
+    return params
 
 
-@pytest.mark.parametrize("row", _o4_params(), ids=lambda r: r["molecule"])
-def test_o4_table_iii_hydrogen_charges(row):
-    if row["molecule"] not in DIATOMIC_HYDRIDES:
-        pytest.skip(HARMONY)
-    elements, coords = _diatomic(*DIATOMIC_HYDRIDES[row["molecule"]], _r_e(GEOMETRY_NAME[row["molecule"]]))
-    hydrogen = elements.index("H")
-    for column, parameters in (("QEq", "experimental"), ("QEqHF", "hf")):
-        result = ce.qeq_charges(elements, coords, 0.0, hydrogen=parameters)
-        assert result.status == "converged"
-        assert not result.bound_extension_used
-        assert abs(result.charges[hydrogen] - float(row[column])) <= 0.001, (column, result.charges[hydrogen], row[column])
+@pytest.mark.parametrize("row,column,hydrogen", _o4_params())
+def test_o4_table_iii_hydrogen_charges(row, column, hydrogen):
+    tolerance = 0.001 if row["molecule"] in DIATOMIC_HYDRIDES else 0.002
+    result, mapping = _solved(row["molecule"], hydrogen)
+    assert result.status == "converged"
+    assert not result.bound_extension_used
+    for atom in mapping[1]:
+        assert abs(result.charges[atom] - float(row[column])) <= tolerance, (result.charges[atom], row[column])
 
 
-@pytest.mark.parametrize("row", [r for r in _rows("rappe1991_table4.csv") if r["status"] == "printed"],
-                         ids=lambda r: f"{r['molecule']}-{r['printed_order']}")
-def test_o5_table_iv_charges(row):
-    if row["molecule"] not in DIATOMIC_HYDRIDES:
-        pytest.skip(HARMONY)
-    elements, coords = _diatomic(*DIATOMIC_HYDRIDES[row["molecule"]], _r_e(GEOMETRY_NAME[row["molecule"]]))
-    atom = elements.index(row["atom"])
-    for column, parameters in (("QEq", "experimental"), ("QEqHF", "hf")):
-        result = ce.qeq_charges(elements, coords, 0.0, hydrogen=parameters)
-        assert abs(result.charges[atom] - float(row[column])) <= 0.01, (column, result.charges[atom], row[column])
+def _o5_params():
+    params = []
+    for row in _rows("rappe1991_table4.csv"):
+        if row["status"] != "printed":
+            continue
+        for column, hydrogen in COLUMNS:
+            key = (row["molecule"], int(row["printed_order"]), column)
+            marks = [pytest.mark.xfail(strict=True, reason=f"STOP RECORD: P gives {P_MISSES_IV[key]} against {row[column]}")] if key in P_MISSES_IV else []
+            if row["molecule"] == "C2H6":
+                marks = [pytest.mark.skip(reason=ETHANE)]
+            params.append(pytest.param(row, column, hydrogen, marks=marks, id=f"{row['molecule']}-{row['printed_order']}-{column}"))
+    return params
+
+
+@pytest.mark.parametrize("row,column,hydrogen", _o5_params())
+def test_o5_table_iv_charges(row, column, hydrogen):
+    """Every atom a printed label covers must match (amendment A4)."""
+    result, mapping = _solved(row["molecule"], hydrogen)
+    assert result.status == "converged"
+    assert not result.bound_extension_used
+    for atom in mapping[int(row["printed_order"])]:
+        assert abs(result.charges[atom] - float(row[column])) <= 0.01, (atom, result.charges[atom], row[column])
+
+
+def test_every_polyatomic_geometry_reproduces_its_harmony_parameters():
+    """The builder is held to the fixture: every bond it builds is the chosen
+    printed length, so a construction slip cannot pose as a QEq result."""
+    for name in qeq_geometries.TABLE_NAMES.values():
+        elements, coords, _mapping, _types = qeq_geometries.build(name)
+        chosen, _ = qeq_geometries.parameters(name)
+        lengths = {round(float(v), 6) for k, v in chosen.items() if k not in ("HOH", "HNH", "HPH", "HCH", "OCO", "HCO", "COH", "H1NH2", "H1NC", "NCO", "NCH", "HCC", "phi")}
+        built = {round(float(np.linalg.norm(coords[i] - coords[j])), 6) for i, j in itertools.combinations(range(len(elements)), 2)}
+        assert lengths <= built, (name, lengths - built)
 
 
 # =============================================================================

@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: d4c2f2957c14afb193f749061cad434d6a41564c3e18fac1d81bfbf431b0d342 -->
+<!-- SOURCE SHA256: 65a6bdfbd468b7ca84e1dbfa5870666c1fd0a21970e4041a56cefe86541db521 -->
 
 # Sources
 
@@ -137,6 +137,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`halgren1996_mmff2`](#halgren1996_mmff2) | literature | shipped | citation + claim |
 | [`hall1981`](#hall1981) | literature | shipped | citation |
 | [`hancock1996`](#hancock1996) | literature | reference only | citation |
+| [`harmony1979`](#harmony1979) | literature | reference only | citation + claim |
 | [`hlb`](#hlb) | reference_table | reference only | citation |
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | [`huber1979`](#huber1979) | literature | reference only | citation + claim |
@@ -175,6 +176,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`miller_polarizability`](#miller_polarizability) | reference_table | reference only | citation |
 | [`molstar`](#molstar) | software | shipped | citation |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
+| [`mortier1986`](#mortier1986) | literature | reference only | citation |
 | [`neudert2011`](#neudert2011) | literature | **not shipped** | citation |
 | [`nguyen2020`](#nguyen2020) | literature | shipped | citation + claim |
 | [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | citation |
@@ -1914,7 +1916,7 @@ DOI and title read off the PDF.
 
 | | |
 | --- | --- |
-| Identifier | J. Phys. Chem. 1991, 95, 3358-3363 |
+| Identifier | [10.1021/j100161a070](https://doi.org/10.1021/j100161a070) |
 | Status | **not shipped** |
 | Verification | citation + claim |
 | Verified | 2026-09-14 |
@@ -1943,6 +1945,60 @@ different hydrogen procedures; and the text contradicts Table IV twice. See
 
 The paper's polyatomic geometries come from Harmony et al. 1979 (J. Phys.
 Chem. Ref. Data 8, 619), which is not held.
+
+### harmony1979
+
+<a id="harmony1979"></a>
+
+> M. D. Harmony, V. W. Laurie, R. L. Kuczkowski, R. H. Schwendeman, D. A. Ramsay, F. J. Lovas, W. J. Lafferty & A. G. Maki, 'Molecular Structures of Gas-Phase Polyatomic Molecules Determined by Spectroscopic Methods', J. Phys. Chem. Ref. Data 1979, 8, 619-722.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.555605](https://doi.org/10.1063/1.555605) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-09-14 |
+| Local copy | `harmony1979.pdf` (not checked) |
+| Used by | `tests/fixtures/charges/harmony1979_structures.csv`, `tests/qeq_geometries.py` |
+
+**Why it is reference only.** THE POLYATOMIC GEOMETRIES THE QEQ ORACLES RUN AT, and nothing the
+application computes. Rappe & Goddard cite it (their reference 15) for Table
+III and IV's experimental geometries.
+
+Every printed structural parameter of the 15 molecules the oracles need was
+read from 200 dpi renders -- the PDF's text layer is OCR and was not used --
+into `tests/fixtures/charges/harmony1979_structures.csv`, all structure
+types included. Which one is used, and how each molecule is built, is
+pre-registration amendment A4.
+
+ETHANE IS NOT IN IT: the C2H6 formulas run from C2H5P to C2H6BN. The PDF prints
+no DOI; the identifier was confirmed against Crossref's record for this
+volume and page.
+
+### mortier1986
+
+<a id="mortier1986"></a>
+
+> W. J. Mortier, S. K. Ghosh & S. Shankar, 'Electronegativity Equalization Method for the Calculation of Atomic Charges in Molecules', J. Am. Chem. Soc. 1986, 108, 4315-4320.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00275a013](https://doi.org/10.1021/ja00275a013) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-14 |
+| Local copy | `mortier1986.pdf` (not checked) |
+| Used by | `src/openchem/chem/charge_equilibration.py` |
+
+**Why it is reference only.** WHERE EEM COMES FROM, and not what this application computes. Bultinck 2002
+part I builds its equation (its eq 1-3) on this paper's formalism, and its
+Table 1 prints Mortier's parameters beside its own for comparison.
+
+Read for an oracle and found unusable as one: it prints the corrections
+Delta chi and Delta eta (its Table I) and calibration statistics, but no
+per-molecule charges with the geometries they were computed on, so no
+number here can be checked against it. The PDF prints no DOI; the identifier
+was confirmed against Crossref.
 
 ### huber1979
 

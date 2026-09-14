@@ -2,7 +2,8 @@
 
     uv run --no-sync python benchmarks/charges/rappe_goddard/oracle.py
 
-Prints, for every literature row that can run without Harmony 1979:
+Prints, for every literature row that has a geometry (Huber & Herzberg for
+diatomics, Harmony 1979 through amendment A4 for polyatomics):
 the printed value, P (the primary reading), and each one-at-a-time alternate
 (R1-R4), for both hydrogen parameter sets. Then two diagnostics that change
 nothing in the solver:
@@ -137,8 +138,48 @@ def o9_summary():
     print(f"   missed the optimum: {missed} of 200 (worst max|dq| {worst:.3f} e); a fixed atom wants back inside in {wanting}")
 
 
+def polyatomics():
+    """Tables III and IV at Harmony 1979's geometries (amendment A4), every reading,
+    plus the A4 diagnostic with the structure-type order reversed, under P."""
+    import qeq_geometries as g
+
+    print("\n== Polyatomics (O4 tol 0.002, O5 tol 0.01): worst covered atom by reading; 'rev' = effective-first geometry under P")
+    iii = {r["molecule"]: r for r in rows("rappe1991_table3.csv")}
+    cases = [("III", m, 1, "H", iii[m]) for m in ("H2O", "NH3", "CH4")]
+    cases += [("IV", r["molecule"], int(r["printed_order"]), r["atom"], r) for r in rows("rappe1991_table4.csv")
+              if r["status"] == "printed" and r["molecule"] in g.TABLE_NAMES]
+    misses = {name: 0 for name, _ in READINGS}
+    solved = {}
+
+    def charges(molecule, hydrogen, readings, order):
+        key = (molecule, hydrogen, readings, order)
+        if key not in solved:
+            elements, coords, mapping, _ = g.build(g.TABLE_NAMES[molecule], order)
+            solved[key] = (ce.qeq_charges(elements, coords, 0.0, hydrogen=hydrogen, readings=readings), mapping)
+        return solved[key]
+
+    for table, molecule, order_index, atom, printed in cases:
+        tolerance = 0.002 if table == "III" else 0.01
+        for column, hydrogen in (("QEq", "experimental"), ("QEqHF", "hf")):
+            target = float(printed[column])
+            cells = []
+            for name, readings in READINGS + [("rev", ce.PRIMARY)]:
+                result, mapping = charges(molecule, hydrogen, readings, g.REVERSED if name == "rev" else g.PREFERRED)
+                if result.charges is None:
+                    cells.append(f"{'no conv':>16}")
+                    misses[name] = misses.get(name, 0) + 1
+                    continue
+                worst = max((result.charges[i] for i in mapping[order_index]), key=lambda v: abs(v - target))
+                if abs(worst - target) > tolerance:
+                    misses[name] = misses.get(name, 0) + 1
+                cells.append(f"{worst:+.3f} ({worst - target:+.3f})")
+            print(f"   {table:3} {molecule:9} {atom:5} {column:6} {target:+.3f}  " + "  ".join(cells))
+    print(f"   cells outside tolerance, of {2 * len(cases)}: " + ", ".join(f"{k} {v}" for k, v in misses.items()))
+
+
 if __name__ == "__main__":
     table_ii()
     hydrides()
+    polyatomics()
     lih_fixed_points()
     o9_summary()

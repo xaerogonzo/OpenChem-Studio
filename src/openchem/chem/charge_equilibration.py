@@ -21,7 +21,8 @@ drop one.
 
 Units follow the papers: QEq in eV and angstrom with a0 = 0.52917 A (Rappé &
 Goddard, under eq 17) [source:rappe1991]; EEM in atomic units, as its eq 2
-requires [source:bultinck2002a].
+requires [source:bultinck2002a]. EEM itself is Mortier, Ghosh & Shankar's
+formalism [source:mortier1986], which Bultinck re-parameterised.
 """
 
 from __future__ import annotations

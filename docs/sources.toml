@@ -2043,8 +2043,8 @@ DOI and title read off the PDF.
 key = "rappe1991"
 kind = "literature"
 citation = "A. K. Rappé & W. A. Goddard III, 'Charge Equilibration for Molecular Dynamics Simulations', J. Phys. Chem. 1991, 95, 3358-3363."
-identifier_type = "bibliographic"
-identifier = "J. Phys. Chem. 1991, 95, 3358-3363"
+identifier_type = "doi"
+identifier = "10.1021/j100161a070"
 status = "assessed_not_shipped"
 local = "rappe1991.pdf"
 verification = "citation_and_claim"
@@ -2073,6 +2073,56 @@ different hydrogen procedures; and the text contradicts Table IV twice. See
 
 The paper's polyatomic geometries come from Harmony et al. 1979 (J. Phys.
 Chem. Ref. Data 8, 619), which is not held.
+"""
+
+[[source]]
+key = "harmony1979"
+kind = "literature"
+citation = "M. D. Harmony, V. W. Laurie, R. L. Kuczkowski, R. H. Schwendeman, D. A. Ramsay, F. J. Lovas, W. J. Lafferty & A. G. Maki, 'Molecular Structures of Gas-Phase Polyatomic Molecules Determined by Spectroscopic Methods', J. Phys. Chem. Ref. Data 1979, 8, 619-722."
+identifier_type = "doi"
+identifier = "10.1063/1.555605"
+status = "reference_only"
+used_by = ["tests/fixtures/charges/harmony1979_structures.csv", "tests/qeq_geometries.py"]
+local = "harmony1979.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-09-14
+reason = """
+THE POLYATOMIC GEOMETRIES THE QEQ ORACLES RUN AT, and nothing the
+application computes. Rappe & Goddard cite it (their reference 15) for Table
+III and IV's experimental geometries.
+
+Every printed structural parameter of the 15 molecules the oracles need was
+read from 200 dpi renders -- the PDF's text layer is OCR and was not used --
+into `tests/fixtures/charges/harmony1979_structures.csv`, all structure
+types included. Which one is used, and how each molecule is built, is
+pre-registration amendment A4.
+
+ETHANE IS NOT IN IT: the C2H6 formulas run from C2H5P to C2H6BN. The PDF prints
+no DOI; the identifier was confirmed against Crossref's record for this
+volume and page.
+"""
+
+[[source]]
+key = "mortier1986"
+kind = "literature"
+citation = "W. J. Mortier, S. K. Ghosh & S. Shankar, 'Electronegativity Equalization Method for the Calculation of Atomic Charges in Molecules', J. Am. Chem. Soc. 1986, 108, 4315-4320."
+identifier_type = "doi"
+identifier = "10.1021/ja00275a013"
+status = "reference_only"
+used_by = ["src/openchem/chem/charge_equilibration.py"]
+local = "mortier1986.pdf"
+verification = "citation"
+verified_date = 2026-09-14
+reason = """
+WHERE EEM COMES FROM, and not what this application computes. Bultinck 2002
+part I builds its equation (its eq 1-3) on this paper's formalism, and its
+Table 1 prints Mortier's parameters beside its own for comparison.
+
+Read for an oracle and found unusable as one: it prints the corrections
+Delta chi and Delta eta (its Table I) and calibration statistics, but no
+per-molecule charges with the geometries they were computed on, so no
+number here can be checked against it. The PDF prints no DOI; the identifier
+was confirmed against Crossref.
 """
 
 [[source]]

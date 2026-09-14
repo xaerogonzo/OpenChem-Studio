@@ -20143,6 +20143,13 @@ Five things worth keeping:
   green, carrying the active set across hydrogen iterations, because no
   validated molecule activates a QEq bound. That is recorded, not papered over.
 
+**A primary reading can be right on paper and wrong in the tables.** Once
+Harmony 1979 supplied the polyatomic geometries, the pre-registered primary
+(Table I's printed ζ) missed 38 of 74 Table III/IV cells, and the alternate
+the text itself describes adopting (λ = ½, eq 17′) missed 10. The
+pre-registration made that a question rather than a quiet switch, which is the
+point of it: the fit is evidence, and choosing after the fit is still a choice.
+
 Also found on the way: a 3D result's conformer id was read off the live model
 AFTER the calculator returned, so a conformer search landing mid-run filed the
 result under the wrong conformer. It is now read at resolution, with a test
