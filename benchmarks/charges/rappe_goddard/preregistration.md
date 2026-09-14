@@ -574,3 +574,61 @@ by 0, 30 and 60 deg (60 puts the other hydrogens in-plane pointing away). It
 reports signs only, like the Si-O-Si and Si-O sweeps. The H1/H2 magnitude
 comparison maps H1 to the two in-plane hydrogens of the reference
 conformation, an inference from Table 2's multiplicities.
+
+### A9 (2026-09-14, the O9 bound study; before any output it defines)
+
+**The question.** How often does a charge bound activate on realistic
+molecules, and where it does, how far is the paper's never-release fixing
+(eq 13) from the true constrained minimum? This is research: nothing here
+changes the solver or any calculator, and any later decision to ship a
+departure from the paper is Alex's.
+
+**The derivation, so the QP is QEq's and not merely a problem with the same
+unconstrained answer.** At fixed hydrogen parameters, the paper's electrostatic
+energy (its eq 6 at those parameters) is
+E(q) = Σ_i χ_i q_i + ½ qᵀ C q (eV), with C_ii = J_i (hydrogen:
+hardness_diag_H at the fixed Q_H) and C_ij = the Slater Coulomb integral
+(eq 16). Its Hessian is C. Minimising E subject to Σ q = Q gives the linear
+KKT system C q − μ 1 = −χ, 1ᵀq = Q, which is exactly the system `solve_bounded`
+builds (eqs 10–13). Adding eq 5's bounds l ≤ q ≤ u gives the convex QP (when C is
+positive definite on {1ᵀd = 0}, which is checked and reported per matrix), whose
+KKT conditions are: stationarity C q − μ 1 − λ_l + λ_u = −χ, with λ_l, λ_u ≥ 0,
+complementarity, and feasibility. The QP optimum is the reference; the paper's
+procedure is compared with it.
+
+**Hydrogen is frozen for every O9 solve.** ζ_H and hardness_diag_H are fixed at
+given hydrogen charges, so the question contains no nonlinear loop. For a
+corpus molecule they are fixed at the hydrogen charges of its converged
+production solve (ADOPTED, experimental set); for a molecule that does not
+converge, the study reports that and uses no fixed point.
+
+**The QP solver** (`tests/qeq_bounded_qp.py`, used by the benchmark script): a
+primal active-set method that can release atoms. Checked in this order, and
+reported in this order:
+1. with no bound active at the optimum it equals the unconstrained KKT solve,
+   to ≤ 1e-10 e, on ordinary QEq matrices (Table II halides, water, methanol);
+2. it equals the brute-force KKT optimum on O9's 200 synthetic systems, and on
+   every real corpus matrix whose bounds activate, to ≤ 1e-10 e;
+3. it equals the paper's procedure wherever the paper's procedure already
+   satisfies the KKT conditions.
+
+**The corpus, frozen before any solve.** The naming benchmark's
+`benchmarks/naming/corpus.json` (181 molecules), keeping those whose elements
+are all in Table I. Each is hydrogen-added by RDKit, embedded by ETKDGv3 with
+randomSeed 20260914, optimised by MMFF94 (200 iterations), and written to
+`tests/fixtures/charges/o9_corpus_conformers.csv` with its SMILES, net formal
+charge, elements and coordinates. A molecule RDKit cannot embed or MMFF94 cannot
+type is recorded as skipped with the reason. The corpus is an evaluation set:
+nothing is tuned on it.
+
+**Recorded per molecule:** convergence of the production solve; whether any
+bound was active in its final solve (`final_active_atoms`) or at any pass
+(`ever_clamped`); at the frozen hydrogen parameters, whether the paper's
+procedure is KKT-optimal; and where it is not, max |q_paper − q_opt|, RMS
+difference, the atoms whose active status differs, and E(q_paper) − E(q_opt).
+Aggregates: activation frequency, and disagreement frequency and size, by
+element and by the corpus's charge categories.
+
+**No outcome here ships anything.** If no molecule activates a bound, the
+refusal introduced by A8 stays as a cheap safety boundary. If some do, these
+data inform the decision.
