@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 65a6bdfbd468b7ca84e1dbfa5870666c1fd0a21970e4041a56cefe86541db521 -->
+<!-- SOURCE SHA256: faf34b4019434326b6016b32d45054842eb12d8fe6df370ab8dc94d30a80d75e -->
 
 # Sources
 
@@ -159,6 +159,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`koes2013`](#koes2013) | literature | **not shipped** | citation |
 | [`kruszewski1972`](#kruszewski1972) | literature | shipped | citation |
 | [`krygowski1993`](#krygowski1993) | literature | shipped | citation + claim |
+| [`kuchitsu1998`](#kuchitsu1998) | literature | reference only | citation + claim |
 | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
 | [`langes15`](#langes15) | reference_table | shipped | citation + claim |
 | [`llinas2008`](#llinas2008) | dataset | shipped | citation |
@@ -217,6 +218,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
 | [`tsei`](#tsei) | reference_table | reference only | citation |
 | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | citation + claim |
+| [`vogt2019`](#vogt2019) | literature | **not shipped** | citation |
 | [`waasmaier1995`](#waasmaier1995) | literature | shipped | citation + claim |
 | [`wang2021`](#wang2021) | literature | reference only | citation |
 | [`wang2022`](#wang2022) | literature | reference only | citation |
@@ -1974,6 +1976,58 @@ pre-registration amendment A4.
 ETHANE IS NOT IN IT: the C2H6 formulas run from C2H5P to C2H6BN. The PDF prints
 no DOI; the identifier was confirmed against Crossref's record for this
 volume and page.
+
+### kuchitsu1998
+
+<a id="kuchitsu1998"></a>
+
+> K. Kuchitsu (ed.), 'Structure of Free Polyatomic Molecules: Basic Data', Springer, Berlin, 1998.
+
+| | |
+| --- | --- |
+| Identifier | [10.1007/978-3-642-45748-7](https://doi.org/10.1007/978-3-642-45748-7) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-09-14 |
+| Local copy | `structure-of-free-polyatomic-molecules-1998.pdf` (not checked) |
+| Used by | `tests/fixtures/charges/kuchitsu1998_ethane.csv`, `tests/qeq_geometries.py` |
+
+**Why it is reference only.** ETHANE'S GEOMETRY FOR ONE QEQ ORACLE ROW, and nothing the application
+computes. Rappe & Goddard took ethane from Landolt-Bornstein II/7 (1976),
+which is not held; this 1998 volume digests II/7, II/15 and II/23, and its
+ethane entry (p. 138) is tagged II/7(3,274).
+
+It prints three ethane determinations. Pre-registration amendment A5 uses
+only Iijima's 1973 electron-diffraction r_z structure, the one that predates
+II/7. That II/7 carried exactly these numbers is an inference. All three were
+transcribed from a 220 dpi render into
+`tests/fixtures/charges/kuchitsu1998_ethane.csv`.
+
+DOI read off the PDF.
+
+### vogt2019
+
+<a id="vogt2019"></a>
+
+> N. Vogt & J. Vogt, 'Structure Data of Free Polyatomic Molecules', Springer Nature, Cham, 2019.
+
+| | |
+| --- | --- |
+| Identifier | [10.1007/978-3-030-29430-4](https://doi.org/10.1007/978-3-030-29430-4) |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-09-14 |
+| Local copy | `vogt2019.pdf` (not checked) |
+
+**Why it is not shipped.** READ, AND NOT USABLE FOR THE QEQ ORACLES. Its introduction scopes it to gas-
+phase structures "published in the literature between 2009 and 2017" (972
+molecules), as an update to the Landolt-Bornstein structure volumes. Nothing
+in it can be a geometry Rappe & Goddard used in 1991, and amendment A5 says so.
+
+Kept on record because it is the newest experimental gas-phase structure
+compilation held, should a later check need modern reference geometries.
+
+DOI read off the PDF.
 
 ### mortier1986
 

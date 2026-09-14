@@ -2103,6 +2103,54 @@ volume and page.
 """
 
 [[source]]
+key = "kuchitsu1998"
+kind = "literature"
+citation = "K. Kuchitsu (ed.), 'Structure of Free Polyatomic Molecules: Basic Data', Springer, Berlin, 1998."
+identifier_type = "doi"
+identifier = "10.1007/978-3-642-45748-7"
+status = "reference_only"
+used_by = ["tests/fixtures/charges/kuchitsu1998_ethane.csv", "tests/qeq_geometries.py"]
+local = "structure-of-free-polyatomic-molecules-1998.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-09-14
+reason = """
+ETHANE'S GEOMETRY FOR ONE QEQ ORACLE ROW, and nothing the application
+computes. Rappe & Goddard took ethane from Landolt-Bornstein II/7 (1976),
+which is not held; this 1998 volume digests II/7, II/15 and II/23, and its
+ethane entry (p. 138) is tagged II/7(3,274).
+
+It prints three ethane determinations. Pre-registration amendment A5 uses
+only Iijima's 1973 electron-diffraction r_z structure, the one that predates
+II/7. That II/7 carried exactly these numbers is an inference. All three were
+transcribed from a 220 dpi render into
+`tests/fixtures/charges/kuchitsu1998_ethane.csv`.
+
+DOI read off the PDF.
+"""
+
+[[source]]
+key = "vogt2019"
+kind = "literature"
+citation = "N. Vogt & J. Vogt, 'Structure Data of Free Polyatomic Molecules', Springer Nature, Cham, 2019."
+identifier_type = "doi"
+identifier = "10.1007/978-3-030-29430-4"
+status = "assessed_not_shipped"
+local = "vogt2019.pdf"
+verification = "citation"
+verified_date = 2026-09-14
+reason = """
+READ, AND NOT USABLE FOR THE QEQ ORACLES. Its introduction scopes it to gas-
+phase structures "published in the literature between 2009 and 2017" (972
+molecules), as an update to the Landolt-Bornstein structure volumes. Nothing
+in it can be a geometry Rappe & Goddard used in 1991, and amendment A5 says so.
+
+Kept on record because it is the newest experimental gas-phase structure
+compilation held, should a later check need modern reference geometries.
+
+DOI read off the PDF.
+"""
+
+[[source]]
 key = "mortier1986"
 kind = "literature"
 citation = "W. J. Mortier, S. K. Ghosh & S. Shankar, 'Electronegativity Equalization Method for the Calculation of Atomic Charges in Molecules', J. Am. Chem. Soc. 1986, 108, 4315-4320."
