@@ -86,6 +86,24 @@ Q_H by reading, with the difference from the printed value
 - The pre-registration does not allow swapping in a proper active-set method
   silently, so this is recorded and goes to Alex.
 
+## Cost (performance gate B3, 2026-09-14, one Windows machine)
+
+| molecule | atoms with H | EEM, median of 5 | QEq, one run |
+|---|---|---|---|
+| aspirin | 21 | 0.36 ms | 13.5 s (23 iterations) |
+| n-hexadecane | 50 | 1.2 ms | 58 s (18) |
+| fentanyl | 53 | 2.0 ms | 77 s (21) |
+| atorvastatin | 76 | 4.5 ms | 202 s (26) |
+
+**EEM passes the 1 s gate by three orders of magnitude.**
+
+**QEq would fail it by two**, even if its oracles passed. Every hydrogen
+iteration re-evaluates every integral that involves a hydrogen, one pair at
+a time, at about 4 ms per integral. The integral cache the plan allows would
+not help here, because ζ_H changes on every iteration. Shipping QEq would
+first need the pair integrals vectorized across pairs, at the same O1
+accuracy.
+
 ## The decisions this needs
 
 1. **The hydrogen treatment.**
