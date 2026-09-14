@@ -1926,6 +1926,27 @@ struck through and marked SHIPPED here, never deleted.
       `eem2015` set needs its source paper, which the commit adding them does
       not name. Any EEM that ships refuses an element with no parameters of
       its own, rather than taking the file's `* *` row, which is hydrogen's.
+  - **DECIDED (2026-09-14): both are implemented here, and Open Babel becomes
+    a compatibility benchmark only.** Nothing is built from its files.
+    - **QEq** is Rappé–Goddard 1991 as the paper states it: exact ns Slater
+      Coulomb integrals, the charge bounds re-solved rather than clipped, and
+      hydrogen's charge-dependent exponent iterated to self-consistency. It
+      ships only after it reproduces the paper's Tables II, III and IV at
+      their cited experimental geometries. The polyatomic rows need Harmony et
+      al. 1979 (J. Phys. Chem. Ref. Data 8, 619), which is not held yet, so
+      QEq does not ship before that paper does.
+    - **EEM** uses Bultinck part I's own Table 1 (H, C, N, O, F) and refuses
+      every other element. Read from part I's text layer, Open Babel's C and O
+      values appear in none of its tables; the rendered pages confirm or
+      correct that before anything is labelled.
+    - **As drawn first:** the stored conformer's own atoms and hydrogens, and
+      the drawing's net charge. The pH variant is its own item below.
+    - The plan pre-registers every tolerance, both readings of what the paper
+      leaves open, and how the hydrogen iteration and the bounds combine,
+      before any solve runs.
+- **Geometry-dependent charges at a pH.** Not started, and deliberately
+  separate from the item above. It needs the coordinate gate recorded there:
+  protonation must not move or lose the conformer's heavy atoms.
 - **Measure, then unify protonation.** Not started. A pre-registered benchmark
   of both models against measured pKa values is the only thing that may make
   one of them the authority, and it is what the cross-check's DECISION waits
