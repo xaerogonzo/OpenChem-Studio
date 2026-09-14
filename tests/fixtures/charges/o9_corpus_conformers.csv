@@ -406,14 +406,14 @@ oxazole,heterocycle,c1cocn1,0,4,N,0.593547,1.113683,-0.260916
 oxazole,heterocycle,c1cocn1,0,5,H,-1.511232,1.377438,-0.600944
 oxazole,heterocycle,c1cocn1,0,6,H,-1.588571,-1.369069,-0.002595
 oxazole,heterocycle,c1cocn1,0,7,H,2.301977,-0.105698,0.237880
-1,2,3-triazole,heterocycle,c1cn[nH]n1,0,0,C,-0.696197,0.720590,-0.186750
-1,2,3-triazole,heterocycle,c1cn[nH]n1,0,1,C,-0.743326,-0.677888,-0.117338
-1,2,3-triazole,heterocycle,c1cn[nH]n1,0,2,N,0.494695,-1.165840,0.006971
-1,2,3-triazole,heterocycle,c1cn[nH]n1,0,3,N,1.224987,-0.036338,0.006142
-1,2,3-triazole,heterocycle,c1cn[nH]n1,0,4,N,0.572207,1.134193,-0.107186
-1,2,3-triazole,heterocycle,c1cn[nH]n1,0,5,H,-1.498589,1.437585,-0.288286
-1,2,3-triazole,heterocycle,c1cn[nH]n1,0,6,H,-1.592394,-1.345895,-0.150133
-1,2,3-triazole,heterocycle,c1cn[nH]n1,0,7,H,2.238617,-0.066406,0.088589
+"1,2,3-triazole",heterocycle,c1cn[nH]n1,0,0,C,-0.696197,0.720590,-0.186750
+"1,2,3-triazole",heterocycle,c1cn[nH]n1,0,1,C,-0.743326,-0.677888,-0.117338
+"1,2,3-triazole",heterocycle,c1cn[nH]n1,0,2,N,0.494695,-1.165840,0.006971
+"1,2,3-triazole",heterocycle,c1cn[nH]n1,0,3,N,1.224987,-0.036338,0.006142
+"1,2,3-triazole",heterocycle,c1cn[nH]n1,0,4,N,0.572207,1.134193,-0.107186
+"1,2,3-triazole",heterocycle,c1cn[nH]n1,0,5,H,-1.498589,1.437585,-0.288286
+"1,2,3-triazole",heterocycle,c1cn[nH]n1,0,6,H,-1.592394,-1.345895,-0.150133
+"1,2,3-triazole",heterocycle,c1cn[nH]n1,0,7,H,2.238617,-0.066406,0.088589
 tetrahydrofuran,heterocycle,C1CCOC1,0,0,C,0.518233,-0.746286,0.546380
 tetrahydrofuran,heterocycle,C1CCOC1,0,1,C,-0.782746,-0.682951,-0.211946
 tetrahydrofuran,heterocycle,C1CCOC1,0,2,C,-1.024540,0.808718,-0.291742
@@ -1045,49 +1045,49 @@ carbon-13 methane,isotopic,[13CH4],0,4,H,0.990220,-0.458891,-0.042232
 (S)-lactic acid,stereochemistry,C[C@H](O)C(=O)O,0,9,H,0.767685,0.210800,1.330178
 (S)-lactic acid,stereochemistry,C[C@H](O)C(=O)O,0,10,H,-0.047256,2.044383,0.011433
 (S)-lactic acid,stereochemistry,C[C@H](O)C(=O)O,0,11,H,1.622098,0.761966,-2.206089
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,0,C,-2.462196,1.733772,0.407871
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,1,N,-1.660480,0.897753,-0.473370
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,2,C,-1.419667,-0.451352,0.084275
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,3,C,-2.632219,-1.356982,-0.181143
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,4,C,-0.124901,-1.081862,-0.525218
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,5,O,0.007316,-2.451645,-0.120213
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,6,C,1.149092,-0.345018,-0.148571
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,7,C,1.852062,0.393091,-1.111837
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,8,C,3.028663,1.064238,-0.773053
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,9,C,3.515646,1.006536,0.531299
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,10,C,2.825811,0.280590,1.499792
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,11,C,1.649185,-0.390308,1.163100
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,12,H,-2.569735,2.727807,-0.037548
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,13,H,-1.976122,1.864507,1.380072
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,14,H,-3.466723,1.329097,0.560782
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,15,H,-2.114284,0.821277,-1.382634
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,16,H,-1.284799,-0.388912,1.172361
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,17,H,-3.549870,-0.936930,0.242913
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,18,H,-2.495077,-2.342376,0.276402
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,19,H,-2.791984,-1.503299,-1.255246
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,20,H,-0.221194,-1.105554,-1.618372
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,21,H,0.948716,-2.680594,-0.212936
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,22,H,1.480743,0.459010,-2.132005
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,23,H,3.561923,1.637422,-1.526892
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,24,H,4.429625,1.532315,0.794115
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,25,H,3.201461,0.239288,2.518715
-(S,R)-ephedrine,stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,26,H,1.119008,-0.951870,1.929832
-(S,S)-tartaric acid,stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,0,O,2.733033,-1.163535,0.648230
-(S,S)-tartaric acid,stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,1,C,2.007805,-0.274801,0.230840
-(S,S)-tartaric acid,stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,2,O,2.443144,1.003445,0.225429
-(S,S)-tartaric acid,stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,3,C,0.601518,-0.427367,-0.336250
-(S,S)-tartaric acid,stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,4,O,0.242413,-1.802695,-0.510689
-(S,S)-tartaric acid,stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,5,C,-0.391260,0.254961,0.607278
-(S,S)-tartaric acid,stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,6,O,-0.776058,-0.667697,1.640250
-(S,S)-tartaric acid,stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,7,C,-1.585397,0.767155,-0.191904
-(S,S)-tartaric acid,stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,8,O,-1.569107,1.364580,-1.253835
-(S,S)-tartaric acid,stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,9,O,-2.755855,0.540620,0.453073
-(S,S)-tartaric acid,stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,10,H,3.358353,0.937412,0.575046
-(S,S)-tartaric acid,stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,11,H,0.619106,0.025377,-1.333671
-(S,S)-tartaric acid,stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,12,H,0.171284,-2.163886,0.397023
-(S,S)-tartaric acid,stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,13,H,0.034467,1.133809,1.103950
-(S,S)-tartaric acid,stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,14,H,-1.698478,-0.430759,1.870628
-(S,S)-tartaric acid,stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,15,H,-3.434969,0.903383,-0.157216
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,0,C,-2.462196,1.733772,0.407871
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,1,N,-1.660480,0.897753,-0.473370
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,2,C,-1.419667,-0.451352,0.084275
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,3,C,-2.632219,-1.356982,-0.181143
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,4,C,-0.124901,-1.081862,-0.525218
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,5,O,0.007316,-2.451645,-0.120213
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,6,C,1.149092,-0.345018,-0.148571
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,7,C,1.852062,0.393091,-1.111837
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,8,C,3.028663,1.064238,-0.773053
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,9,C,3.515646,1.006536,0.531299
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,10,C,2.825811,0.280590,1.499792
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,11,C,1.649185,-0.390308,1.163100
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,12,H,-2.569735,2.727807,-0.037548
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,13,H,-1.976122,1.864507,1.380072
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,14,H,-3.466723,1.329097,0.560782
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,15,H,-2.114284,0.821277,-1.382634
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,16,H,-1.284799,-0.388912,1.172361
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,17,H,-3.549870,-0.936930,0.242913
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,18,H,-2.495077,-2.342376,0.276402
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,19,H,-2.791984,-1.503299,-1.255246
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,20,H,-0.221194,-1.105554,-1.618372
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,21,H,0.948716,-2.680594,-0.212936
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,22,H,1.480743,0.459010,-2.132005
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,23,H,3.561923,1.637422,-1.526892
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,24,H,4.429625,1.532315,0.794115
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,25,H,3.201461,0.239288,2.518715
+"(S,R)-ephedrine",stereochemistry,CN[C@@H](C)[C@H](O)c1ccccc1,0,26,H,1.119008,-0.951870,1.929832
+"(S,S)-tartaric acid",stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,0,O,2.733033,-1.163535,0.648230
+"(S,S)-tartaric acid",stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,1,C,2.007805,-0.274801,0.230840
+"(S,S)-tartaric acid",stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,2,O,2.443144,1.003445,0.225429
+"(S,S)-tartaric acid",stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,3,C,0.601518,-0.427367,-0.336250
+"(S,S)-tartaric acid",stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,4,O,0.242413,-1.802695,-0.510689
+"(S,S)-tartaric acid",stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,5,C,-0.391260,0.254961,0.607278
+"(S,S)-tartaric acid",stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,6,O,-0.776058,-0.667697,1.640250
+"(S,S)-tartaric acid",stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,7,C,-1.585397,0.767155,-0.191904
+"(S,S)-tartaric acid",stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,8,O,-1.569107,1.364580,-1.253835
+"(S,S)-tartaric acid",stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,9,O,-2.755855,0.540620,0.453073
+"(S,S)-tartaric acid",stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,10,H,3.358353,0.937412,0.575046
+"(S,S)-tartaric acid",stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,11,H,0.619106,0.025377,-1.333671
+"(S,S)-tartaric acid",stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,12,H,0.171284,-2.163886,0.397023
+"(S,S)-tartaric acid",stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,13,H,0.034467,1.133809,1.103950
+"(S,S)-tartaric acid",stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,14,H,-1.698478,-0.430759,1.870628
+"(S,S)-tartaric acid",stereochemistry,O=C(O)[C@@H](O)[C@H](O)C(=O)O,0,15,H,-3.434969,0.903383,-0.157216
 trans-decalin,stereochemistry,C1CC[C@H]2CCCC[C@@H]2C1,0,0,C,2.541432,0.139018,0.548693
 trans-decalin,stereochemistry,C1CC[C@H]2CCCC[C@@H]2C1,0,1,C,2.193382,1.378800,-0.259342
 trans-decalin,stereochemistry,C1CC[C@H]2CCCC[C@@H]2C1,0,2,C,0.747199,1.823124,-0.031584
@@ -1487,14 +1487,14 @@ iodomethane,halogenated,CI,0,1,I,1.925742,-0.028794,0.001478
 iodomethane,halogenated,CI,0,2,H,-0.581542,-0.051387,1.018713
 iodomethane,halogenated,CI,0,3,H,-0.565866,0.921218,-0.457997
 iodomethane,halogenated,CI,0,4,H,-0.592177,-0.843820,-0.562051
-1,2-dibromoethane,halogenated,BrCCBr,0,0,Br,-1.454939,1.117878,1.284032
-1,2-dibromoethane,halogenated,BrCCBr,0,1,C,-0.751135,-0.177686,0.006899
-1,2-dibromoethane,halogenated,BrCCBr,0,2,C,0.699633,0.101394,-0.309929
-1,2-dibromoethane,halogenated,BrCCBr,0,3,Br,1.865158,-0.510205,1.129651
-1,2-dibromoethane,halogenated,BrCCBr,0,4,H,-1.370669,-0.060624,-0.886736
-1,2-dibromoethane,halogenated,BrCCBr,0,5,H,-0.920117,-1.170301,0.433268
-1,2-dibromoethane,halogenated,BrCCBr,0,6,H,0.914594,1.162120,-0.465766
-1,2-dibromoethane,halogenated,BrCCBr,0,7,H,1.017474,-0.462576,-1.191419
+"1,2-dibromoethane",halogenated,BrCCBr,0,0,Br,-1.454939,1.117878,1.284032
+"1,2-dibromoethane",halogenated,BrCCBr,0,1,C,-0.751135,-0.177686,0.006899
+"1,2-dibromoethane",halogenated,BrCCBr,0,2,C,0.699633,0.101394,-0.309929
+"1,2-dibromoethane",halogenated,BrCCBr,0,3,Br,1.865158,-0.510205,1.129651
+"1,2-dibromoethane",halogenated,BrCCBr,0,4,H,-1.370669,-0.060624,-0.886736
+"1,2-dibromoethane",halogenated,BrCCBr,0,5,H,-0.920117,-1.170301,0.433268
+"1,2-dibromoethane",halogenated,BrCCBr,0,6,H,0.914594,1.162120,-0.465766
+"1,2-dibromoethane",halogenated,BrCCBr,0,7,H,1.017474,-0.462576,-1.191419
 aspirin,medicinal_scaffold,CC(=O)Oc1ccccc1C(=O)O,0,0,C,3.365764,0.731050,-0.388319
 aspirin,medicinal_scaffold,CC(=O)Oc1ccccc1C(=O)O,0,1,C,2.021195,0.164531,-0.733849
 aspirin,medicinal_scaffold,CC(=O)Oc1ccccc1C(=O)O,0,2,O,1.638580,-0.064003,-1.874235
@@ -2440,27 +2440,27 @@ benzenediazonium,onium_ion,N#[N+]c1ccccc1,1,9,H,-1.891619,-1.817638,0.443150
 benzenediazonium,onium_ion,N#[N+]c1ccccc1,1,10,H,-2.745031,0.486601,0.161020
 benzenediazonium,onium_ion,N#[N+]c1ccccc1,1,11,H,-1.191695,2.364207,-0.262291
 benzenediazonium,onium_ion,N#[N+]c1ccccc1,1,12,H,1.244772,1.960020,-0.409503
-propane-1,3-diylium,polycharged,[CH2+]C[CH2+],2,0,C,-1.211359,-0.233405,0.162106
-propane-1,3-diylium,polycharged,[CH2+]C[CH2+],2,1,C,0.024456,0.532919,-0.139029
-propane-1,3-diylium,polycharged,[CH2+]C[CH2+],2,2,C,1.223509,-0.340575,-0.085726
-propane-1,3-diylium,polycharged,[CH2+]C[CH2+],2,3,H,-2.164750,0.123705,-0.210155
-propane-1,3-diylium,polycharged,[CH2+]C[CH2+],2,4,H,-1.216630,-1.002512,0.926417
-propane-1,3-diylium,polycharged,[CH2+]C[CH2+],2,5,H,0.132545,1.351220,0.579811
-propane-1,3-diylium,polycharged,[CH2+]C[CH2+],2,6,H,-0.053008,0.979097,-1.135766
-propane-1,3-diylium,polycharged,[CH2+]C[CH2+],2,7,H,1.780583,-0.449237,0.837207
-propane-1,3-diylium,polycharged,[CH2+]C[CH2+],2,8,H,1.484657,-0.961211,-0.934865
+"propane-1,3-diylium",polycharged,[CH2+]C[CH2+],2,0,C,-1.211359,-0.233405,0.162106
+"propane-1,3-diylium",polycharged,[CH2+]C[CH2+],2,1,C,0.024456,0.532919,-0.139029
+"propane-1,3-diylium",polycharged,[CH2+]C[CH2+],2,2,C,1.223509,-0.340575,-0.085726
+"propane-1,3-diylium",polycharged,[CH2+]C[CH2+],2,3,H,-2.164750,0.123705,-0.210155
+"propane-1,3-diylium",polycharged,[CH2+]C[CH2+],2,4,H,-1.216630,-1.002512,0.926417
+"propane-1,3-diylium",polycharged,[CH2+]C[CH2+],2,5,H,0.132545,1.351220,0.579811
+"propane-1,3-diylium",polycharged,[CH2+]C[CH2+],2,6,H,-0.053008,0.979097,-1.135766
+"propane-1,3-diylium",polycharged,[CH2+]C[CH2+],2,7,H,1.780583,-0.449237,0.837207
+"propane-1,3-diylium",polycharged,[CH2+]C[CH2+],2,8,H,1.484657,-0.961211,-0.934865
 methanediylium,polycharged,[CH2+2],2,0,C,0.000000,0.000000,0.000000
 methanediylium,polycharged,[CH2+2],2,1,H,1.064849,-0.017911,0.000000
 methanediylium,polycharged,[CH2+2],2,2,H,-1.064849,0.017910,0.000000
-propane-1,3-diide,polycharged,[CH2-]C[CH2-],-2,0,C,-1.190104,-0.357816,0.061450
-propane-1,3-diide,polycharged,[CH2-]C[CH2-],-2,1,C,-0.007652,0.469144,-0.289433
-propane-1,3-diide,polycharged,[CH2-]C[CH2-],-2,2,C,1.248697,-0.162436,0.186226
-propane-1,3-diide,polycharged,[CH2-]C[CH2-],-2,3,H,-2.096937,-0.268556,-0.525704
-propane-1,3-diide,polycharged,[CH2-]C[CH2-],-2,4,H,-1.246910,-0.870914,1.014984
-propane-1,3-diide,polycharged,[CH2-]C[CH2-],-2,5,H,-0.111191,1.463926,0.155224
-propane-1,3-diide,polycharged,[CH2-]C[CH2-],-2,6,H,0.041924,0.598104,-1.375467
-propane-1,3-diide,polycharged,[CH2-]C[CH2-],-2,7,H,1.646416,0.079737,1.164550
-propane-1,3-diide,polycharged,[CH2-]C[CH2-],-2,8,H,1.715757,-0.951189,-0.391829
+"propane-1,3-diide",polycharged,[CH2-]C[CH2-],-2,0,C,-1.190104,-0.357816,0.061450
+"propane-1,3-diide",polycharged,[CH2-]C[CH2-],-2,1,C,-0.007652,0.469144,-0.289433
+"propane-1,3-diide",polycharged,[CH2-]C[CH2-],-2,2,C,1.248697,-0.162436,0.186226
+"propane-1,3-diide",polycharged,[CH2-]C[CH2-],-2,3,H,-2.096937,-0.268556,-0.525704
+"propane-1,3-diide",polycharged,[CH2-]C[CH2-],-2,4,H,-1.246910,-0.870914,1.014984
+"propane-1,3-diide",polycharged,[CH2-]C[CH2-],-2,5,H,-0.111191,1.463926,0.155224
+"propane-1,3-diide",polycharged,[CH2-]C[CH2-],-2,6,H,0.041924,0.598104,-1.375467
+"propane-1,3-diide",polycharged,[CH2-]C[CH2-],-2,7,H,1.646416,0.079737,1.164550
+"propane-1,3-diide",polycharged,[CH2-]C[CH2-],-2,8,H,1.715757,-0.951189,-0.391829
 ethylenediammonium,polycharged,[NH3+]CC[NH3+],2,0,N,-1.524127,0.680061,0.125475
 ethylenediammonium,polycharged,[NH3+]CC[NH3+],2,1,C,-0.706102,-0.320974,-0.624761
 ethylenediammonium,polycharged,[NH3+]CC[NH3+],2,2,C,0.545856,-0.820821,0.142204
@@ -2511,35 +2511,35 @@ propanedioylium,polycharged,O=[C+]C[C+]=O,2,3,C,1.225082,-0.337114,0.001147
 propanedioylium,polycharged,O=[C+]C[C+]=O,2,4,O,2.226150,-0.955200,-0.003638
 propanedioylium,polycharged,O=[C+]C[C+]=O,2,5,H,-0.010046,1.125013,-0.859603
 propanedioylium,polycharged,O=[C+]C[C+]=O,2,6,H,-0.019761,1.095682,0.896528
-benzene-1,2-dicarbonylium,polycharged,O=[C+]c1ccccc1[C+]=O,2,0,O,2.108779,2.876327,-0.200482
-benzene-1,2-dicarbonylium,polycharged,O=[C+]c1ccccc1[C+]=O,2,1,C,1.363262,1.969464,-0.136624
-benzene-1,2-dicarbonylium,polycharged,O=[C+]c1ccccc1[C+]=O,2,2,C,0.436719,0.877899,-0.059528
-benzene-1,2-dicarbonylium,polycharged,O=[C+]c1ccccc1[C+]=O,2,3,C,-0.937105,1.159144,-0.066445
-benzene-1,2-dicarbonylium,polycharged,O=[C+]c1ccccc1[C+]=O,2,4,C,-1.869645,0.122861,0.007171
-benzene-1,2-dicarbonylium,polycharged,O=[C+]c1ccccc1[C+]=O,2,5,C,-1.437115,-1.199028,0.088052
-benzene-1,2-dicarbonylium,polycharged,O=[C+]c1ccccc1[C+]=O,2,6,C,-0.071178,-1.487284,0.095479
-benzene-1,2-dicarbonylium,polycharged,O=[C+]c1ccccc1[C+]=O,2,7,C,0.871878,-0.452024,0.021844
-benzene-1,2-dicarbonylium,polycharged,O=[C+]c1ccccc1[C+]=O,2,8,C,2.265668,-0.788450,0.032124
-benzene-1,2-dicarbonylium,polycharged,O=[C+]c1ccccc1[C+]=O,2,9,O,3.404038,-1.082212,0.041734
-benzene-1,2-dicarbonylium,polycharged,O=[C+]c1ccccc1[C+]=O,2,10,H,-1.289509,2.188020,-0.129273
-benzene-1,2-dicarbonylium,polycharged,O=[C+]c1ccccc1[C+]=O,2,11,H,-2.934404,0.347375,0.001393
-benzene-1,2-dicarbonylium,polycharged,O=[C+]c1ccccc1[C+]=O,2,12,H,-2.164146,-2.006669,0.145429
-benzene-1,2-dicarbonylium,polycharged,O=[C+]c1ccccc1[C+]=O,2,13,H,0.252759,-2.525425,0.159127
-benzene-1,3,5-tricarbonylium,polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,0,O,-2.655535,-2.994829,-0.199048
-benzene-1,3,5-tricarbonylium,polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,1,C,-1.876636,-2.116412,-0.140664
-benzene-1,3,5-tricarbonylium,polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,2,C,-0.927325,-1.045808,-0.069507
-benzene-1,3,5-tricarbonylium,polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,3,C,-1.370692,0.279188,0.004168
-benzene-1,3,5-tricarbonylium,polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,4,C,-0.443968,1.325119,0.073677
-benzene-1,3,5-tricarbonylium,polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,5,C,-0.898464,2.681657,0.149100
-benzene-1,3,5-tricarbonylium,polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,6,O,-1.271371,3.794679,0.210983
-benzene-1,3,5-tricarbonylium,polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,7,C,0.926918,1.045349,0.069476
-benzene-1,3,5-tricarbonylium,polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,8,C,1.371293,-0.279311,-0.004169
-benzene-1,3,5-tricarbonylium,polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,9,C,2.775100,-0.565245,-0.008436
-benzene-1,3,5-tricarbonylium,polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,10,O,3.926906,-0.799849,-0.011937
-benzene-1,3,5-tricarbonylium,polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,11,C,0.443774,-1.324538,-0.073643
-benzene-1,3,5-tricarbonylium,polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,12,H,-2.439267,0.496840,0.007417
-benzene-1,3,5-tricarbonylium,polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,13,H,1.649533,1.860292,0.123638
-benzene-1,3,5-tricarbonylium,polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,14,H,0.789735,-2.357133,-0.131054
+"benzene-1,2-dicarbonylium",polycharged,O=[C+]c1ccccc1[C+]=O,2,0,O,2.108779,2.876327,-0.200482
+"benzene-1,2-dicarbonylium",polycharged,O=[C+]c1ccccc1[C+]=O,2,1,C,1.363262,1.969464,-0.136624
+"benzene-1,2-dicarbonylium",polycharged,O=[C+]c1ccccc1[C+]=O,2,2,C,0.436719,0.877899,-0.059528
+"benzene-1,2-dicarbonylium",polycharged,O=[C+]c1ccccc1[C+]=O,2,3,C,-0.937105,1.159144,-0.066445
+"benzene-1,2-dicarbonylium",polycharged,O=[C+]c1ccccc1[C+]=O,2,4,C,-1.869645,0.122861,0.007171
+"benzene-1,2-dicarbonylium",polycharged,O=[C+]c1ccccc1[C+]=O,2,5,C,-1.437115,-1.199028,0.088052
+"benzene-1,2-dicarbonylium",polycharged,O=[C+]c1ccccc1[C+]=O,2,6,C,-0.071178,-1.487284,0.095479
+"benzene-1,2-dicarbonylium",polycharged,O=[C+]c1ccccc1[C+]=O,2,7,C,0.871878,-0.452024,0.021844
+"benzene-1,2-dicarbonylium",polycharged,O=[C+]c1ccccc1[C+]=O,2,8,C,2.265668,-0.788450,0.032124
+"benzene-1,2-dicarbonylium",polycharged,O=[C+]c1ccccc1[C+]=O,2,9,O,3.404038,-1.082212,0.041734
+"benzene-1,2-dicarbonylium",polycharged,O=[C+]c1ccccc1[C+]=O,2,10,H,-1.289509,2.188020,-0.129273
+"benzene-1,2-dicarbonylium",polycharged,O=[C+]c1ccccc1[C+]=O,2,11,H,-2.934404,0.347375,0.001393
+"benzene-1,2-dicarbonylium",polycharged,O=[C+]c1ccccc1[C+]=O,2,12,H,-2.164146,-2.006669,0.145429
+"benzene-1,2-dicarbonylium",polycharged,O=[C+]c1ccccc1[C+]=O,2,13,H,0.252759,-2.525425,0.159127
+"benzene-1,3,5-tricarbonylium",polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,0,O,-2.655535,-2.994829,-0.199048
+"benzene-1,3,5-tricarbonylium",polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,1,C,-1.876636,-2.116412,-0.140664
+"benzene-1,3,5-tricarbonylium",polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,2,C,-0.927325,-1.045808,-0.069507
+"benzene-1,3,5-tricarbonylium",polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,3,C,-1.370692,0.279188,0.004168
+"benzene-1,3,5-tricarbonylium",polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,4,C,-0.443968,1.325119,0.073677
+"benzene-1,3,5-tricarbonylium",polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,5,C,-0.898464,2.681657,0.149100
+"benzene-1,3,5-tricarbonylium",polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,6,O,-1.271371,3.794679,0.210983
+"benzene-1,3,5-tricarbonylium",polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,7,C,0.926918,1.045349,0.069476
+"benzene-1,3,5-tricarbonylium",polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,8,C,1.371293,-0.279311,-0.004169
+"benzene-1,3,5-tricarbonylium",polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,9,C,2.775100,-0.565245,-0.008436
+"benzene-1,3,5-tricarbonylium",polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,10,O,3.926906,-0.799849,-0.011937
+"benzene-1,3,5-tricarbonylium",polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,11,C,0.443774,-1.324538,-0.073643
+"benzene-1,3,5-tricarbonylium",polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,12,H,-2.439267,0.496840,0.007417
+"benzene-1,3,5-tricarbonylium",polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,13,H,1.649533,1.860292,0.123638
+"benzene-1,3,5-tricarbonylium",polycharged,O=[C+]c1cc([C+]=O)cc([C+]=O)c1,3,14,H,0.789735,-2.357133,-0.131054
 azide,polycharged,[N-]=[N+]=[N-],-1,0,N,1.460000,-0.000050,0.000000
 azide,polycharged,[N-]=[N+]=[N-],-1,1,N,0.000000,-0.000000,0.000000
 azide,polycharged,[N-]=[N+]=[N-],-1,2,N,-1.460000,0.000050,0.000000
@@ -2640,57 +2640,57 @@ methylguanidinium,guanidinium,CNC(N)=[NH2+],1,9,H,2.351263,-0.533452,-1.261353
 methylguanidinium,guanidinium,CNC(N)=[NH2+],1,10,H,2.019033,-1.501756,0.125415
 methylguanidinium,guanidinium,CNC(N)=[NH2+],1,11,H,0.851491,1.106019,-1.961221
 methylguanidinium,guanidinium,CNC(N)=[NH2+],1,12,H,-0.616513,1.373376,-1.097617
-1,3-dimethylguanidinium,guanidinium,CNC(=[NH2+])NC,1,0,C,2.478032,-0.245298,-0.025815
-1,3-dimethylguanidinium,guanidinium,CNC(=[NH2+])NC,1,1,N,1.122136,-0.732323,-0.274123
-1,3-dimethylguanidinium,guanidinium,CNC(=[NH2+])NC,1,2,C,-0.001757,-0.030761,-0.013049
-1,3-dimethylguanidinium,guanidinium,CNC(=[NH2+])NC,1,3,N,0.068735,1.203019,0.510358
-1,3-dimethylguanidinium,guanidinium,CNC(=[NH2+])NC,1,4,N,-1.197899,-0.593703,-0.288416
-1,3-dimethylguanidinium,guanidinium,CNC(=[NH2+])NC,1,5,C,-2.489106,0.051481,-0.056409
-1,3-dimethylguanidinium,guanidinium,CNC(=[NH2+])NC,1,6,H,3.182821,-1.023244,-0.332328
-1,3-dimethylguanidinium,guanidinium,CNC(=[NH2+])NC,1,7,H,2.611014,-0.054194,1.041778
-1,3-dimethylguanidinium,guanidinium,CNC(=[NH2+])NC,1,8,H,2.663329,0.649749,-0.624577
-1,3-dimethylguanidinium,guanidinium,CNC(=[NH2+])NC,1,9,H,1.021102,-1.658872,-0.668703
-1,3-dimethylguanidinium,guanidinium,CNC(=[NH2+])NC,1,10,H,0.956211,1.637500,0.721771
-1,3-dimethylguanidinium,guanidinium,CNC(=[NH2+])NC,1,11,H,-0.763223,1.740236,0.711171
-1,3-dimethylguanidinium,guanidinium,CNC(=[NH2+])NC,1,12,H,-1.203070,-1.525980,-0.682407
-1,3-dimethylguanidinium,guanidinium,CNC(=[NH2+])NC,1,13,H,-2.559154,0.961781,-0.656749
-1,3-dimethylguanidinium,guanidinium,CNC(=[NH2+])NC,1,14,H,-3.277694,-0.637240,-0.372113
-1,3-dimethylguanidinium,guanidinium,CNC(=[NH2+])NC,1,15,H,-2.611477,0.257849,1.009610
-1,1-dimethylguanidinium,guanidinium,CN(C)C(N)=[NH2+],1,0,C,1.271165,0.887425,0.847051
-1,1-dimethylguanidinium,guanidinium,CN(C)C(N)=[NH2+],1,1,N,0.473839,-0.039080,0.027258
-1,1-dimethylguanidinium,guanidinium,CN(C)C(N)=[NH2+],1,2,C,1.197279,-1.091008,-0.705057
-1,1-dimethylguanidinium,guanidinium,CN(C)C(N)=[NH2+],1,3,C,-0.887131,0.073165,-0.051030
-1,1-dimethylguanidinium,guanidinium,CN(C)C(N)=[NH2+],1,4,N,-1.627653,-0.811132,-0.742636
-1,1-dimethylguanidinium,guanidinium,CN(C)C(N)=[NH2+],1,5,N,-1.547195,1.072974,0.560009
-1,1-dimethylguanidinium,guanidinium,CN(C)C(N)=[NH2+],1,6,H,0.843637,0.948466,1.851975
-1,1-dimethylguanidinium,guanidinium,CN(C)C(N)=[NH2+],1,7,H,2.299599,0.527776,0.945797
-1,1-dimethylguanidinium,guanidinium,CN(C)C(N)=[NH2+],1,8,H,1.282173,1.870053,0.368081
-1,1-dimethylguanidinium,guanidinium,CN(C)C(N)=[NH2+],1,9,H,0.993058,-2.057701,-0.237201
-1,1-dimethylguanidinium,guanidinium,CN(C)C(N)=[NH2+],1,10,H,2.275100,-0.905067,-0.682649
-1,1-dimethylguanidinium,guanidinium,CN(C)C(N)=[NH2+],1,11,H,0.882795,-1.090854,-1.752663
-1,1-dimethylguanidinium,guanidinium,CN(C)C(N)=[NH2+],1,12,H,-2.632994,-0.724640,-0.807090
-1,1-dimethylguanidinium,guanidinium,CN(C)C(N)=[NH2+],1,13,H,-1.209053,-1.603828,-1.209861
-1,1-dimethylguanidinium,guanidinium,CN(C)C(N)=[NH2+],1,14,H,-1.060744,1.791027,1.079296
-1,1-dimethylguanidinium,guanidinium,CN(C)C(N)=[NH2+],1,15,H,-2.553874,1.152425,0.508721
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,0,C,2.703191,0.025114,-0.106791
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,1,N,1.287183,0.264495,-0.378360
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,2,C,0.263215,-0.181257,0.396172
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,3,N,0.544997,-0.914853,1.496948
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,4,N,-1.045134,0.106392,0.070797
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,5,C,-1.380494,0.969642,-1.073657
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,6,C,-2.163676,-0.438419,0.857844
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,7,H,2.905973,-1.048399,-0.125123
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,8,H,3.288847,0.504427,-0.896234
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,9,H,2.975774,0.474359,0.851220
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,10,H,1.056118,0.789752,-1.210225
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,11,H,-0.178816,-1.246958,2.117982
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,12,H,1.496584,-1.143261,1.747646
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,13,H,-0.818798,1.905442,-1.002271
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,14,H,-1.144737,0.441832,-2.001539
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,15,H,-2.445161,1.220912,-1.069873
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,16,H,-2.180728,0.045038,1.838222
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,17,H,-2.047176,-1.521359,0.957960
-1,1,3-trimethylguanidinium,guanidinium,CNC(=[NH2+])N(C)C,1,18,H,-3.117160,-0.252899,0.354714
+"1,3-dimethylguanidinium",guanidinium,CNC(=[NH2+])NC,1,0,C,2.478032,-0.245298,-0.025815
+"1,3-dimethylguanidinium",guanidinium,CNC(=[NH2+])NC,1,1,N,1.122136,-0.732323,-0.274123
+"1,3-dimethylguanidinium",guanidinium,CNC(=[NH2+])NC,1,2,C,-0.001757,-0.030761,-0.013049
+"1,3-dimethylguanidinium",guanidinium,CNC(=[NH2+])NC,1,3,N,0.068735,1.203019,0.510358
+"1,3-dimethylguanidinium",guanidinium,CNC(=[NH2+])NC,1,4,N,-1.197899,-0.593703,-0.288416
+"1,3-dimethylguanidinium",guanidinium,CNC(=[NH2+])NC,1,5,C,-2.489106,0.051481,-0.056409
+"1,3-dimethylguanidinium",guanidinium,CNC(=[NH2+])NC,1,6,H,3.182821,-1.023244,-0.332328
+"1,3-dimethylguanidinium",guanidinium,CNC(=[NH2+])NC,1,7,H,2.611014,-0.054194,1.041778
+"1,3-dimethylguanidinium",guanidinium,CNC(=[NH2+])NC,1,8,H,2.663329,0.649749,-0.624577
+"1,3-dimethylguanidinium",guanidinium,CNC(=[NH2+])NC,1,9,H,1.021102,-1.658872,-0.668703
+"1,3-dimethylguanidinium",guanidinium,CNC(=[NH2+])NC,1,10,H,0.956211,1.637500,0.721771
+"1,3-dimethylguanidinium",guanidinium,CNC(=[NH2+])NC,1,11,H,-0.763223,1.740236,0.711171
+"1,3-dimethylguanidinium",guanidinium,CNC(=[NH2+])NC,1,12,H,-1.203070,-1.525980,-0.682407
+"1,3-dimethylguanidinium",guanidinium,CNC(=[NH2+])NC,1,13,H,-2.559154,0.961781,-0.656749
+"1,3-dimethylguanidinium",guanidinium,CNC(=[NH2+])NC,1,14,H,-3.277694,-0.637240,-0.372113
+"1,3-dimethylguanidinium",guanidinium,CNC(=[NH2+])NC,1,15,H,-2.611477,0.257849,1.009610
+"1,1-dimethylguanidinium",guanidinium,CN(C)C(N)=[NH2+],1,0,C,1.271165,0.887425,0.847051
+"1,1-dimethylguanidinium",guanidinium,CN(C)C(N)=[NH2+],1,1,N,0.473839,-0.039080,0.027258
+"1,1-dimethylguanidinium",guanidinium,CN(C)C(N)=[NH2+],1,2,C,1.197279,-1.091008,-0.705057
+"1,1-dimethylguanidinium",guanidinium,CN(C)C(N)=[NH2+],1,3,C,-0.887131,0.073165,-0.051030
+"1,1-dimethylguanidinium",guanidinium,CN(C)C(N)=[NH2+],1,4,N,-1.627653,-0.811132,-0.742636
+"1,1-dimethylguanidinium",guanidinium,CN(C)C(N)=[NH2+],1,5,N,-1.547195,1.072974,0.560009
+"1,1-dimethylguanidinium",guanidinium,CN(C)C(N)=[NH2+],1,6,H,0.843637,0.948466,1.851975
+"1,1-dimethylguanidinium",guanidinium,CN(C)C(N)=[NH2+],1,7,H,2.299599,0.527776,0.945797
+"1,1-dimethylguanidinium",guanidinium,CN(C)C(N)=[NH2+],1,8,H,1.282173,1.870053,0.368081
+"1,1-dimethylguanidinium",guanidinium,CN(C)C(N)=[NH2+],1,9,H,0.993058,-2.057701,-0.237201
+"1,1-dimethylguanidinium",guanidinium,CN(C)C(N)=[NH2+],1,10,H,2.275100,-0.905067,-0.682649
+"1,1-dimethylguanidinium",guanidinium,CN(C)C(N)=[NH2+],1,11,H,0.882795,-1.090854,-1.752663
+"1,1-dimethylguanidinium",guanidinium,CN(C)C(N)=[NH2+],1,12,H,-2.632994,-0.724640,-0.807090
+"1,1-dimethylguanidinium",guanidinium,CN(C)C(N)=[NH2+],1,13,H,-1.209053,-1.603828,-1.209861
+"1,1-dimethylguanidinium",guanidinium,CN(C)C(N)=[NH2+],1,14,H,-1.060744,1.791027,1.079296
+"1,1-dimethylguanidinium",guanidinium,CN(C)C(N)=[NH2+],1,15,H,-2.553874,1.152425,0.508721
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,0,C,2.703191,0.025114,-0.106791
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,1,N,1.287183,0.264495,-0.378360
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,2,C,0.263215,-0.181257,0.396172
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,3,N,0.544997,-0.914853,1.496948
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,4,N,-1.045134,0.106392,0.070797
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,5,C,-1.380494,0.969642,-1.073657
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,6,C,-2.163676,-0.438419,0.857844
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,7,H,2.905973,-1.048399,-0.125123
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,8,H,3.288847,0.504427,-0.896234
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,9,H,2.975774,0.474359,0.851220
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,10,H,1.056118,0.789752,-1.210225
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,11,H,-0.178816,-1.246958,2.117982
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,12,H,1.496584,-1.143261,1.747646
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,13,H,-0.818798,1.905442,-1.002271
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,14,H,-1.144737,0.441832,-2.001539
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,15,H,-2.445161,1.220912,-1.069873
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,16,H,-2.180728,0.045038,1.838222
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,17,H,-2.047176,-1.521359,0.957960
+"1,1,3-trimethylguanidinium",guanidinium,CNC(=[NH2+])N(C)C,1,18,H,-3.117160,-0.252899,0.354714
 phenylguanidinium,guanidinium,NC(=[NH2+])Nc1ccccc1,1,0,N,3.201040,0.960468,-0.078048
 phenylguanidinium,guanidinium,NC(=[NH2+])Nc1ccccc1,1,1,C,1.994514,0.553291,0.336232
 phenylguanidinium,guanidinium,NC(=[NH2+])Nc1ccccc1,1,2,N,1.909028,-0.042667,1.529247
@@ -2711,30 +2711,30 @@ phenylguanidinium,guanidinium,NC(=[NH2+])Nc1ccccc1,1,16,H,-1.937841,-2.700899,0.
 phenylguanidinium,guanidinium,NC(=[NH2+])Nc1ccccc1,1,17,H,-3.888095,-1.423305,-0.278976
 phenylguanidinium,guanidinium,NC(=[NH2+])Nc1ccccc1,1,18,H,-3.574790,0.851115,-1.211558
 phenylguanidinium,guanidinium,NC(=[NH2+])Nc1ccccc1,1,19,H,-1.331615,1.868418,-1.276115
-1H-1,2,3-triazole,tautomer,c1c[nH]nn1,0,0,C,1.084043,-0.082727,-0.183347
-1H-1,2,3-triazole,tautomer,c1c[nH]nn1,0,1,C,0.011180,0.763320,-0.048628
-1H-1,2,3-triazole,tautomer,c1c[nH]nn1,0,2,N,-1.060661,-0.076494,-0.015027
-1H-1,2,3-triazole,tautomer,c1c[nH]nn1,0,3,N,-0.680931,-1.358109,-0.121569
-1H-1,2,3-triazole,tautomer,c1c[nH]nn1,0,4,N,0.641415,-1.373940,-0.226069
-1H-1,2,3-triazole,tautomer,c1c[nH]nn1,0,5,H,2.134896,0.158768,-0.251163
-1H-1,2,3-triazole,tautomer,c1c[nH]nn1,0,6,H,-0.081778,1.835844,0.022932
-1H-1,2,3-triazole,tautomer,c1c[nH]nn1,0,7,H,-2.048163,0.133337,0.074879
-1H-1,2,4-triazole,tautomer,c1nc[nH]n1,0,0,C,1.234399,0.004318,-0.218938
-1H-1,2,4-triazole,tautomer,c1nc[nH]n1,0,1,N,0.496928,-1.143781,-0.156999
-1H-1,2,4-triazole,tautomer,c1nc[nH]n1,0,2,C,-0.730012,-0.696806,-0.027194
-1H-1,2,4-triazole,tautomer,c1nc[nH]n1,0,3,N,-0.719224,0.662009,-0.012869
-1H-1,2,4-triazole,tautomer,c1nc[nH]n1,0,4,N,0.531035,1.136649,-0.134584
-1H-1,2,4-triazole,tautomer,c1nc[nH]n1,0,5,H,2.311431,0.014275,-0.328313
-1H-1,2,4-triazole,tautomer,c1nc[nH]n1,0,6,H,-1.630964,-1.287027,0.057699
-1H-1,2,4-triazole,tautomer,c1nc[nH]n1,0,7,H,-1.493593,1.310362,0.073207
-4H-1,2,4-triazole,tautomer,c1nnc[nH]1,0,0,C,0.993303,-0.016242,-0.544656
-4H-1,2,4-triazole,tautomer,c1nnc[nH]1,0,1,N,0.761243,-1.292613,-0.347147
-4H-1,2,4-triazole,tautomer,c1nnc[nH]1,0,2,N,-0.484409,-1.405883,0.228241
-4H-1,2,4-triazole,tautomer,c1nnc[nH]1,0,3,C,-0.971641,-0.194920,0.362986
-4H-1,2,4-triazole,tautomer,c1nnc[nH]1,0,4,N,-0.072883,0.710433,-0.111427
-4H-1,2,4-triazole,tautomer,c1nnc[nH]1,0,5,H,1.882201,0.416060,-0.980542
-4H-1,2,4-triazole,tautomer,c1nnc[nH]1,0,6,H,-1.931985,0.069226,0.781301
-4H-1,2,4-triazole,tautomer,c1nnc[nH]1,0,7,H,-0.175830,1.713938,-0.136748
+"1H-1,2,3-triazole",tautomer,c1c[nH]nn1,0,0,C,1.084043,-0.082727,-0.183347
+"1H-1,2,3-triazole",tautomer,c1c[nH]nn1,0,1,C,0.011180,0.763320,-0.048628
+"1H-1,2,3-triazole",tautomer,c1c[nH]nn1,0,2,N,-1.060661,-0.076494,-0.015027
+"1H-1,2,3-triazole",tautomer,c1c[nH]nn1,0,3,N,-0.680931,-1.358109,-0.121569
+"1H-1,2,3-triazole",tautomer,c1c[nH]nn1,0,4,N,0.641415,-1.373940,-0.226069
+"1H-1,2,3-triazole",tautomer,c1c[nH]nn1,0,5,H,2.134896,0.158768,-0.251163
+"1H-1,2,3-triazole",tautomer,c1c[nH]nn1,0,6,H,-0.081778,1.835844,0.022932
+"1H-1,2,3-triazole",tautomer,c1c[nH]nn1,0,7,H,-2.048163,0.133337,0.074879
+"1H-1,2,4-triazole",tautomer,c1nc[nH]n1,0,0,C,1.234399,0.004318,-0.218938
+"1H-1,2,4-triazole",tautomer,c1nc[nH]n1,0,1,N,0.496928,-1.143781,-0.156999
+"1H-1,2,4-triazole",tautomer,c1nc[nH]n1,0,2,C,-0.730012,-0.696806,-0.027194
+"1H-1,2,4-triazole",tautomer,c1nc[nH]n1,0,3,N,-0.719224,0.662009,-0.012869
+"1H-1,2,4-triazole",tautomer,c1nc[nH]n1,0,4,N,0.531035,1.136649,-0.134584
+"1H-1,2,4-triazole",tautomer,c1nc[nH]n1,0,5,H,2.311431,0.014275,-0.328313
+"1H-1,2,4-triazole",tautomer,c1nc[nH]n1,0,6,H,-1.630964,-1.287027,0.057699
+"1H-1,2,4-triazole",tautomer,c1nc[nH]n1,0,7,H,-1.493593,1.310362,0.073207
+"4H-1,2,4-triazole",tautomer,c1nnc[nH]1,0,0,C,0.993303,-0.016242,-0.544656
+"4H-1,2,4-triazole",tautomer,c1nnc[nH]1,0,1,N,0.761243,-1.292613,-0.347147
+"4H-1,2,4-triazole",tautomer,c1nnc[nH]1,0,2,N,-0.484409,-1.405883,0.228241
+"4H-1,2,4-triazole",tautomer,c1nnc[nH]1,0,3,C,-0.971641,-0.194920,0.362986
+"4H-1,2,4-triazole",tautomer,c1nnc[nH]1,0,4,N,-0.072883,0.710433,-0.111427
+"4H-1,2,4-triazole",tautomer,c1nnc[nH]1,0,5,H,1.882201,0.416060,-0.980542
+"4H-1,2,4-triazole",tautomer,c1nnc[nH]1,0,6,H,-1.931985,0.069226,0.781301
+"4H-1,2,4-triazole",tautomer,c1nnc[nH]1,0,7,H,-0.175830,1.713938,-0.136748
 1H-tetrazole,tautomer,c1nnn[nH]1,0,0,C,-0.481564,-0.591481,0.383399
 1H-tetrazole,tautomer,c1nnn[nH]1,0,1,N,0.710800,-1.109563,0.561960
 1H-tetrazole,tautomer,c1nnn[nH]1,0,2,N,1.601369,-0.156712,0.125616

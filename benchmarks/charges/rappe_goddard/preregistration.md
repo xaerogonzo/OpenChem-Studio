@@ -25,7 +25,7 @@ The plan behind this is `docs/ROADMAP.md`, "EEM and QEq", DECIDED 2026-09-14.
 | `ramachandran1996_tables.csv` | Ramachandran et al. 1996, Tables 2 and 3, every column (added by amendment A7) | `90d8f7e57ba5b67e5644244b25a1bf4c253e6fc4ededa6d8b45eb66a29e0b08a` |
 | `almenningen1963_disiloxane.csv` | Almenningen et al. 1963, Table 1 final results, plus labelled reconstruction (added by amendment A7) | `028b430065320a0de85ceef08d07f2b921a3005744b292b5e8bc3a95c3fdef48` |
 | `qeq_perf_conformers.csv` | Aspirin, fentanyl, n-hexadecane and atorvastatin, frozen RDKit/MMFF94 coordinates for the A8 time gate (added by amendment A8) | `6592aefb3aee17f9665604746238fc795b56ca01d180388642cddc7eb68edfae` |
-| `o9_corpus_conformers.csv` | The naming corpus restricted to Table I elements, 174 molecules, frozen RDKit/MMFF94 coordinates (added by amendment A9) | `f94ee6f92f1b21ca4a43d4f1f5a136d5ac17fb138db4d1a3e8ef592310ea9b1b` |
+| `o9_corpus_conformers.csv` | The naming corpus restricted to Table I elements, 174 molecules, frozen RDKit/MMFF94 coordinates (added by amendment A9) | `d4641f3b7ee7a2d014d5b5c0f427b0de8bc21567470a86d0cbc11dd7e47491f1` |
 
 Every value was checked by eye against its page rendered at 300 dpi
 (Huber & Herzberg's rotated tables at 130 dpi). No fixture value comes from a
@@ -776,3 +776,11 @@ element and by the corpus's charge categories.
 **No outcome here ships anything.** If no molecule activates a bound, the
 refusal introduced by A8 stays as a cheap safety boundary. If some do, these
 data inform the decision.
+
+**A9 correction (2026-09-14, before any study output).** The first corpus file
+wrote its rows with an unquoted f-string, so the fourteen molecule names that
+contain a comma ("1,4-…", "(S,R)-…") split across columns, and the first
+study run stopped while reading the file, with no molecule solved. The
+builder now uses `csv.writer`. Regenerated with the same seed, it holds the
+same 174 molecules and coordinates, correctly quoted, and the hash above is
+updated.

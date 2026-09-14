@@ -11,6 +11,8 @@ regenerates this file; the coordinates are its input.
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import pathlib
 import sys
@@ -34,7 +36,9 @@ def main() -> None:
         f"# built once on 2026-09-14 by build_o9_corpus.py: RDKit {rdBase.rdkitVersion} AddHs, ETKDGv3 randomSeed={SEED}, MMFF94 200 iterations.",
         "# Coordinates in angstrom; atom order as RDKit numbered the hydrogen-added molecule. Nothing regenerates this file.",
     ]
-    rows = ["molecule,category,smiles,net_charge,index,element,x,y,z"]
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(["molecule", "category", "smiles", "net_charge", "index", "element", "x", "y", "z"])
     kept = 0
     for entry in corpus:
         label, smiles = entry["label"], entry["smiles"]
@@ -61,10 +65,12 @@ def main() -> None:
         positions = mol.GetConformer().GetPositions()
         for atom in mol.GetAtoms():
             x, y, z = positions[atom.GetIdx()]
-            rows.append(f"{label},{entry['category']},{smiles},{net},{atom.GetIdx()},{atom.GetSymbol()},{x:.6f},{y:.6f},{z:.6f}")
+            # csv.writer quotes a label carrying a comma ("1,4-dioxane"); an
+            # f-string did not, and the first parse read a category as a charge.
+            writer.writerow([label, entry["category"], smiles, net, atom.GetIdx(), atom.GetSymbol(), f"{x:.6f}", f"{y:.6f}", f"{z:.6f}"])
         kept += 1
     header.append(f"# {kept} molecules kept of {len(corpus)}")
-    OUT.write_text("\n".join(header + rows) + "\n", encoding="utf-8", newline="\n")
+    OUT.write_text("\n".join(header) + "\n" + buffer.getvalue(), encoding="utf-8", newline="\n")
     print(f"wrote {OUT} ({kept} of {len(corpus)} molecules)")
 
 
