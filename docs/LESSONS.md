@@ -20098,3 +20098,68 @@ there was no established cause, "so no code fact could say it is fixed". Once
 the cause was measured it WAS a code fact, and a headless guard holds it. An
 unexplained symptom is a claim about what is known so far, not about what can
 ever be checked.
+
+## A TABLE CAN CHECK ITS OWN TRANSCRIPTION, AND QEQ'S HYDROGEN NEVER CAME BACK
+
+Rappé & Goddard 1991 QEq and Bultinck 2002 EEM were implemented here after
+Open Babel's versions failed (#99). Everything was pre-registered before the
+solver existed: `benchmarks/charges/rappe_goddard/preregistration.md`, then
+its README for what the oracles said. EEM shipped. QEq stopped at its gate.
+Five things worth keeping:
+
+- **A derived column is a checksum on a hand-entered table.** Table I prints
+  both R and ζ, and eq 17 makes ζ = λ(2n+1)/(2R/a₀). Recomputing it while
+  transcribing, before any solver, showed two things:
+  - Hydrogen's ζ needs λ = ½ while every heavy atom uses 0.4913. The text only
+    implies that.
+  - Oxygen's printed ζ follows from neither λ. It is four times the rounding
+    of its printed radius, so it is a real discrepancy.
+
+  The same move as Gell-Mann–Nishijima on the particle table.
+- **A rounding tolerance has to include the rounding of every input.** O2's
+  pre-registered ±0.0001 on ζ ignored that R is printed to 0.001 Å, which
+  alone moves ζ by up to 6.4e-4, and nitrogen failed by 2.5e-5. The fix was
+  made AFTER the failure, so it is disclosed as amendment A3, and the original
+  check is kept as a strict xfail beside the corrected one.
+- **Validate the part without the ambiguity first.** Table II (20 alkali
+  halides) has no hydrogen and no active bound, and it reproduced to
+  0.0005 e in both λ columns. That settled the integrals, the sign, the
+  system and the heavy-atom parameters before the hydrogen failures could
+  be blamed on any of them.
+- **A paper can describe its procedure twice, differently.**
+  - Table III's footnote says its numbers come from eq 23's gradient; section
+    IV's text describes iterating eq 21. Both became named readings, and
+    neither reproduces HF.
+  - LiH converges under none. Tabulating the iteration map showed why: near
+    the printed charge, J_Li + J_HH(Q) − 2J_LiH is 0.28 eV where 1.98 would be
+    needed.
+  - Nothing was tuned towards 1.98. A reading that fits one column (R4 on HF)
+    is recorded and is not a validation.
+- **An expected-failure test cannot guard the thing that fails.** The bound
+  mutation (clip and renormalise) stayed green at first, because the only
+  production check on the bounds was already a strict xfail (fixing misses the
+  KKT optimum in 28 of 200 systems). The guard that turned it red runs on the
+  172 cases where fixing does reach the optimum. One mutation still stays
+  green, carrying the active set across hydrogen iterations, because no
+  validated molecule activates a QEq bound. That is recorded, not papered over.
+
+**A primary reading can be right on paper and wrong in the tables.** Once
+Harmony 1979 supplied the polyatomic geometries, the pre-registered primary
+(Table I's printed ζ) missed 39 of 76 Table III/IV cells, and the alternate
+the text itself describes adopting (λ = ½, eq 17′) missed 10. The
+pre-registration made that a question rather than a quiet switch, which is the
+point of it: the fit is evidence, and choosing after the fit is still a choice.
+Alex made it the same day (amendment A6): λ = ½ is the default, the record
+says it was chosen after the tables, and the pre-registered reading stays
+reproducible beside it.
+
+**Measure whether a missing source matters before chasing it.** Ethane's
+geometry came from a 1998 digest, not the 1976 volume the paper cites, and
+getting that volume looked necessary. Solving ethane at all four structures
+the digest prints moved Q_H by 0.005 e against a ±0.01 e tolerance, so no
+edition could change the row.
+
+Also found on the way: a 3D result's conformer id was read off the live model
+AFTER the calculator returned, so a conformer search landing mid-run filed the
+result under the wrong conformer. It is now read at resolution, with a test
+that lands the search mid-run.

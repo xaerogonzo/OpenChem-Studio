@@ -1,0 +1,68 @@
+# QEq charges, transcribed AS PRINTED from Rappe & Goddard, J. Phys. Chem.
+# 1991, 95, 3358-3363, Table IV (p. 3363), read from the page rendered at
+# 300 dpi. ONLY the QEq and QEqHF columns are transcribed; the exptl, HF, MP2,
+# PEOE, Del Re, IDME, EEM and epsilon columns are other methods.
+#
+# Text (p. 3361): "The calculations were carried out at the experimental
+# geometries", polyatomics from Harmony et al. 1979 (ref 15) or
+# Landolt-Bornstein (ref 16), diatomics from Huber & Herzberg (ref 10).
+#
+# atom labels are the table's own: H(O) hydroxyl H, H(C) formyl H,
+# Hg / Ht gauche and trans methyl H (methanol), Hc / Ht cis and trans amide H.
+#
+# status:
+#   printed       as printed
+#   unlabelled    the row between PH3 and ClH prints an atom (H) and values but
+#                 NO compound name. It is not assigned to a molecule, because
+#                 that would be a guess, and no oracle uses it.
+#
+# THE PAPER CONTRADICTS THIS TABLE TWICE IN ITS OWN TEXT (p. 3361): "for
+# H2CO ... QEq leads to Qc = 0.21" where the table prints 0.19, and "for
+# H2O ... QEq leads to QH = 0.36" where the table prints 0.35 (and Table III
+# prints 0.353). The table is the oracle; the text is recorded, not used.
+#
+# printed_order: the row's position within its compound block, top to bottom.
+# The table prints the same label twice in HOC(O)H (O), H3CCN (C) and
+# H2C=C=O (C) and does NOT say which atom each is. Any oracle that needs to
+# tell them apart must state its assignment as an INFERENCE (for example,
+# formic acid's second O is printed directly above H(O)) -- the table does
+# not make it.
+molecule,printed_order,atom,QEq,QEqHF,status
+HF,1,H,0.46,0.46,printed
+H2O,1,H,0.35,0.35,printed
+NH3,1,H,0.24,0.23,printed
+CH4,1,H,0.15,0.13,printed
+C2H6,1,H,0.16,0.13,printed
+C2H2,1,H,0.13,0.11,printed
+C2H4,1,H,0.15,0.13,printed
+C6H6,1,H,0.10,0.09,printed
+CO2,1,O,-0.45,-0.45,printed
+H2CO,1,O,-0.43,-0.44,printed
+H2CO,2,C,0.19,0.24,printed
+H2CO,3,H,0.12,0.10,printed
+H3COH,1,H(O),0.36,0.34,printed
+H3COH,2,O,-0.66,-0.66,printed
+H3COH,3,C,-0.15,-0.09,printed
+H3COH,4,Hg,0.14,0.12,printed
+H3COH,5,Ht,0.18,0.16,printed
+H2NC(O)H,1,O,-0.42,-0.43,printed
+H2NC(O)H,2,C,0.39,0.42,printed
+H2NC(O)H,3,N,-0.63,-0.61,printed
+H2NC(O)H,4,Hc,0.29,0.28,printed
+H2NC(O)H,5,Ht,0.23,0.22,printed
+HOC(O)H,1,O,-0.44,-0.44,printed
+HOC(O)H,2,C,0.56,0.58,printed
+HOC(O)H,3,H(C),0.16,0.14,printed
+HOC(O)H,4,O,-0.65,-0.65,printed
+HOC(O)H,5,H(O),0.38,0.37,printed
+H3CCN,1,N,-0.24,-0.25,printed
+H3CCN,2,C,0.22,0.22,printed
+H3CCN,3,C,-0.37,-0.31,printed
+H3CCN,4,H,0.13,0.11,printed
+H2C=C=O,1,O,-0.45,-0.45,printed
+H2C=C=O,2,C,0.42,0.42,printed
+H2C=C=O,3,C,-0.23,-0.19,printed
+SiH4,1,H,0.13,0.11,printed
+PH3,1,H,0.08,0.07,printed
+,1,H,0.19,0.18,unlabelled
+ClH,1,H,0.32,0.31,printed

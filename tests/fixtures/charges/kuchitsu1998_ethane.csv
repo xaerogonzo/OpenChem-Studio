@@ -1,0 +1,30 @@
+# Ethane's gas-phase structure, transcribed AS PRINTED from K. Kuchitsu (ed.),
+# "Structure of Free Polyatomic Molecules: Basic Data" (Springer, 1998),
+# https://doi.org/10.1007/978-3-642-45748-7 (read off the PDF), p. 138
+# (pdf page index 145), read from the entry rendered at 220 dpi.
+#
+# NOT THE EDITION RAPPE & GODDARD CITE. They cite Landolt-Bornstein New Series
+# II/7 (1976), which is not held. This 1998 volume is a digest of II/7, II/15
+# and II/23, and its ethane entry is tagged "II/7(3,274), II/15(3,335),
+# II/23(3,192)". It prints three determinations:
+#
+#   determination            published  could be in II/7 (1976)?
+#   Iijima, ED (rg, rz)      1973       yes
+#   Hirota et al., MW (rz)   1981       no
+#   Harmony, MW/IR (rm)      1990       no
+#
+# Amendment A5 uses only the one that predates II/7. That II/7 printed exactly
+# these numbers is an INFERENCE: II/7 itself has not been seen. Every column of
+# every determination is transcribed; the CD3-CD3 and C-D rows are omitted.
+molecule,parameter,value,units,structure_type,determination,year,book_page,pdf_page
+C2H6,CC,1.5326,angstrom,rg,Iijima 1973 ED,1973,138,145
+C2H6,CH,1.1108,angstrom,rg,Iijima 1973 ED,1973,138,145
+C2H6,CC,1.5323,angstrom,rz,Iijima 1973 ED,1973,138,145
+C2H6,CH,1.1017,angstrom,rz,Iijima 1973 ED,1973,138,145
+C2H6,HCH,107.30,degree,theta_z,Iijima 1973 ED,1973,138,145
+C2H6,CC,1.5351,angstrom,rz,Hirota 1981 MW,1981,138,145
+C2H6,CH,1.0940,angstrom,rz,Hirota 1981 MW,1981,138,145
+C2H6,CCH,111.17,degree,theta_z,Hirota 1981 MW,1981,138,145
+C2H6,CC,1.522,angstrom,rm_rho,Harmony 1990 MW IR,1990,138,145
+C2H6,CH,1.089,angstrom,rm_rho,Harmony 1990 MW IR,1990,138,145
+C2H6,CCH,111.2,degree,rm_rho,Harmony 1990 MW IR,1990,138,145

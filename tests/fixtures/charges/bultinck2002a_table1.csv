@@ -1,0 +1,19 @@
+# EEM parameters, transcribed AS PRINTED from Bultinck, Langenaeker,
+# Lahorte, De Proft, Geerlings, Waroquier & Tollenaere, J. Phys. Chem. A
+# 2002, 106, 7887-7894 ("The Electronegativity Equalization Method I"),
+# Table 1 (p. 7889), "present study" column, read from the page rendered at
+# 300 dpi. Footnote a: "All values are in eV. N is the number of atoms of a
+# particular element in the training set of 138 molecules."
+#
+# eta_star_eV is the PRINTED eta*, never 2 eta*. Eq 2 and the matrix of eq 3
+# (p. 7888) put 2 eta* on the diagonal; that factor belongs to the solver,
+# not to this file.
+#
+# chi* is standardised so that H = 1.00 (Table 5's caption says so for the
+# whole calibration). A constant shift of every chi* changes no charge.
+element,chi_star_eV,eta_star_eV,N
+H,1.00,17.95,930
+C,5.25,9.00,602
+N,8.80,9.39,105
+O,14.72,14.34,101
+F,15.00,19.77,65

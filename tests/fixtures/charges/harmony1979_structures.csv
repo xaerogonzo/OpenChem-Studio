@@ -1,0 +1,102 @@
+# Gas-phase structural parameters, transcribed AS PRINTED from Harmony,
+# Laurie, Kuczkowski, Schwendeman, Ramsay, Lovas, Lafferty & Maki, "Molecular
+# Structures of Gas-Phase Polyatomic Molecules Determined by Spectroscopic
+# Methods", J. Phys. Chem. Ref. Data 1979, 8, 619-722 (https://doi.org/10.1063/1.555605) -- the paper's
+# reference 15 -- read from each entry rendered at 200 dpi. The PDF's text
+# layer is OCR ("CII" for CH, "Kateano" for Ketene) and was not used.
+#
+# EVERY printed column is transcribed, not only the one used. Which one each
+# oracle uses is a rule in preregistration.md amendment A4, applied in code.
+#
+#   structure_type   equilibrium | substitution | average | effective, as the
+#                    column is headed (r_e, r_s, r_z, r_0 in Harmony section 2)
+#   quality          Harmony's letter rating, printed after the value
+#   book_page        the journal page; pdf_page is the zero-based index in
+#                    harmony1979.pdf as held (book_page - 619)
+#
+# Labels are Harmony's: formic acid O1 is the carbonyl O and O2 the hydroxyl O
+# (its drawing); formamide H1 is the amide H drawn on the same side as O, and
+# H2 the other; methanol's phi is "Angle between CH3 internal rotation axis
+# and CO line; tilt is away from OH group" (its footnote a).
+#
+# ETHANE IS NOT IN THIS COMPILATION: the C2H6 formulas run from C2H5P
+# (Phosphirane, p. 680) straight to C2H6BN (p. 681). Rappé & Goddard's other
+# geometry source is Landolt-Bornstein (their reference 16), which is not held.
+molecule,parameter,value,units,structure_type,quality,book_page,pdf_page
+H2O,OH,0.965,angstrom,effective,D,645,26
+H2O,OH,0.959,angstrom,substitution,C,645,26
+H2O,OH,0.972,angstrom,average,A,645,26
+H2O,OH,0.958,angstrom,equilibrium,A,645,26
+H2O,HOH,104.8,degree,effective,D,645,26
+H2O,HOH,104.5,degree,substitution,C,645,26
+H2O,HOH,104.5,degree,average,A,645,26
+H2O,HOH,104.5,degree,equilibrium,A,645,26
+NH3,NH,1.017,angstrom,effective,B,647,28
+NH3,NH,1.024,angstrom,average,B,647,28
+NH3,NH,1.014,angstrom,substitution,D,647,28
+NH3,NH,1.012,angstrom,equilibrium,B,647,28
+NH3,HNH,107.8,degree,effective,B,647,28
+NH3,HNH,107.3,degree,average,B,647,28
+NH3,HNH,107.1,degree,substitution,D,647,28
+NH3,HNH,106.7,degree,equilibrium,B,647,28
+PH3,PH,1.420,angstrom,effective,A,647,28
+PH3,PH,1.427,angstrom,average,A,647,28
+PH3,HPH,93.3,degree,effective,A,647,28
+PH3,HPH,93.3,degree,average,A,647,28
+SiH4,SiH,1.481,angstrom,effective,A,648,29
+SiH4,SiH,1.479,angstrom,substitution,A,648,29
+H2CO,CO,1.206,angstrom,substitution,B,656,37
+H2CO,CO,1.208,angstrom,average,B,656,37
+H2CO,CH,1.108,angstrom,substitution,B,656,37
+H2CO,CH,1.116,angstrom,average,C,656,37
+H2CO,HCH,116.6,degree,substitution,B,656,37
+H2CO,HCH,116.5,degree,average,C,656,37
+HOC(O)H,CH,1.097,angstrom,effective,X,657,38
+HOC(O)H,CO1,1.202,angstrom,effective,X,657,38
+HOC(O)H,CO2,1.343,angstrom,effective,X,657,38
+HOC(O)H,OH,0.972,angstrom,effective,X,657,38
+HOC(O)H,OCO,124.6,degree,effective,X,657,38
+HOC(O)H,HCO,124.1,degree,effective,X,657,38
+HOC(O)H,COH,106.3,degree,effective,X,657,38
+H2NC(O)H,CN,1.352,angstrom,substitution,D,660,41
+H2NC(O)H,CO,1.219,angstrom,substitution,D,660,41
+H2NC(O)H,CH,1.098,angstrom,substitution,D,660,41
+H2NC(O)H,NH1,1.002,angstrom,substitution,C,660,41
+H2NC(O)H,NH2,1.002,angstrom,substitution,C,660,41
+H2NC(O)H,H1NH2,121.6,degree,substitution,C,660,41
+H2NC(O)H,H1NC,118.5,degree,substitution,C,660,41
+H2NC(O)H,NCO,124.7,degree,substitution,C,660,41
+H2NC(O)H,NCH,112.7,degree,substitution,D,660,41
+CH4,CH,1.094,angstrom,effective,A,662,43
+CH4,CH,1.092,angstrom,substitution,A,662,43
+H3COH,CH,1.094,angstrom,effective,B,663,44
+H3COH,CH,1.094,angstrom,substitution,B,663,44
+H3COH,OH,0.945,angstrom,effective,B,663,44
+H3COH,OH,0.963,angstrom,substitution,C,663,44
+H3COH,CO,1.425,angstrom,effective,B,663,44
+H3COH,CO,1.421,angstrom,substitution,A,663,44
+H3COH,HCH,108.6,degree,effective,C,663,44
+H3COH,HCH,108.5,degree,substitution,B,663,44
+H3COH,COH,108.5,degree,effective,B,663,44
+H3COH,COH,108.0,degree,substitution,B,663,44
+H3COH,phi,3.3,degree,effective,B,663,44
+H3COH,phi,3.2,degree,substitution,B,663,44
+CO2,CO,1.162,angstrom,effective,A,667,48
+CO2,CO,1.160,angstrom,equilibrium,A,667,48
+C2H2,CH,1.058,angstrom,substitution,B,669,50
+C2H2,CH,1.061,angstrom,equilibrium,A,669,50
+C2H2,CC,1.207,angstrom,substitution,C,669,50
+C2H2,CC,1.203,angstrom,equilibrium,A,669,50
+H2C=C=O,CO,1.161,angstrom,substitution,B,672,53
+H2C=C=O,CC,1.314,angstrom,substitution,B,672,53
+H2C=C=O,CH,1.077,angstrom,effective,B,672,53
+H2C=C=O,HCH,122.2,degree,effective,B,672,53
+H3CCN,CN,1.157,angstrom,substitution,B,675,56
+H3CCN,CC,1.458,angstrom,substitution,B,675,56
+H3CCN,CH,1.104,angstrom,substitution,B,675,56
+H3CCN,HCC,109.5,degree,substitution,B,675,56
+C2H4,CH,1.085,angstrom,effective,B,676,57
+C2H4,CC,1.339,angstrom,effective,B,676,57
+C2H4,HCH,117.8,degree,effective,B,676,57
+C6H6,CC,1.396,angstrom,effective,B,717,98
+C6H6,CH,1.083,angstrom,effective,B,717,98

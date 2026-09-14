@@ -2469,6 +2469,18 @@ class _Driver(QObject):
                 None if submitted is None else [submitted[0], submitted[1][:12]],
                 json.dumps(identity),
             )
+        # `"expect_per_atom": {"contains": "geometry_partial_charge", "state": "stale"}`
+        # -- the per-atom counterpart of `expect_spectrum`: every held per-atom
+        # result whose key contains the text must be in that state, and at
+        # least one must be held, so a result that never arrived cannot pass.
+        wanted = step.get("expect_per_atom")
+        if wanted:
+            matching = {key: state for key, state in held.items() if wanted["contains"] in key and not key.startswith("spectrum:")}
+            ok = bool(matching) and all(state == wanted["state"] for state in matching.values())
+            (logger.warning if ok else logger.error)(
+                "OPENCHEM_DRIVE: EXPECT per-atom %s %s %s -- held=%s",
+                wanted["contains"], wanted["state"], "ok" if ok else "FAILED", json.dumps(matching),
+            )
         # And what PROPERTIES holds, which is the other half of "never
         # arrived": a result there and not here was missed by this panel.
         properties = sorted(getattr(self._window._property_panel, "_retained_results", {}) or {})

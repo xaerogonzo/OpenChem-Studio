@@ -1,0 +1,33 @@
+# Alkali-metal halide charges, transcribed AS PRINTED from Rappe & Goddard,
+# J. Phys. Chem. 1991, 95, 3358-3363, Table II (p. 3360), read from the page
+# rendered at 300 dpi. Every column is transcribed; the oracle uses two.
+#
+# Q_exp        footnote a: Reference 25 (Lovas & Tiemann 1974)
+# Q_QEq        footnote b: "From eq 17 with lambda_opt = 0.4913"
+# Q_lambda_0_5 the same with lambda = 0.5 (eq 17')
+# eps_14 .. eps_0: the shielded-Coulomb comparison columns, not QEq
+#
+# Q is the METAL's charge (eq 18: Q_X = -Q_M). The paper fitted lambda on the
+# twelve Na/K/Rb/Cs chlorides, bromides and iodides; the eight Li and F rows
+# are listed but were not in the fit (text under eq 17').
+molecule,metal,halogen,Q_exp,Q_QEq,Q_lambda_0_5,eps_14,eps_1,eps_2,eps_0
+NaCl,Na,Cl,0.792,0.766,0.776,0.420,2.504,0.682,0.395
+NaBr,Na,Br,0.757,0.745,0.756,0.391,2.561,0.644,0.368
+NaI,Na,I,0.708,0.709,0.720,0.350,2.663,0.585,0.328
+KCl,K,Cl,0.800,0.775,0.784,0.473,2.095,0.737,0.447
+KBr,K,Br,0.783,0.768,0.777,0.448,2.165,0.708,0.423
+KI,K,I,0.740,0.754,0.764,0.411,2.299,0.663,0.387
+RbCl,Rb,Cl,0.784,0.763,0.771,0.484,1.918,0.741,0.459
+RbBr,Rb,Br,0.768,0.757,0.766,0.460,1.977,0.713,0.435
+RbI,Rb,I,0.753,0.747,0.757,0.424,2.088,0.672,0.400
+CsCl,Cs,Cl,0.743,0.769,0.777,0.505,1.874,0.763,0.479
+CsBr,Cs,Br,0.734,0.767,0.776,0.482,1.935,0.739,0.457
+CsI,Cs,I,0.735,0.763,0.773,0.449,2.054,0.703,0.424
+LiF,Li,F,0.837,0.791,0.803,0.427,6.033,0.748,0.399
+LiCl,Li,Cl,0.731,0.939,0.958,0.406,13.513,0.737,0.379
+LiBr,Li,Br,0.694,0.902,0.921,0.377,13.563,0.685,0.351
+LiI,Li,I,0.647,0.841,0.860,0.333,14.936,0.608,0.310
+NaF,Na,F,0.879,0.665,0.671,0.434,1.751,0.666,0.411
+KF,K,F,0.821,0.662,0.667,0.473,1.530,0.695,0.450
+RbF,Rb,F,0.781,0.653,0.657,0.481,1.435,0.695,0.458
+CsF,Cs,F,0.697,0.655,0.660,0.496,1.427,0.711,0.473

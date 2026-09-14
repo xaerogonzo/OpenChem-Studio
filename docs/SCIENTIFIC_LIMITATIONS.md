@@ -1045,6 +1045,38 @@ MMFF94's are the charges the MMFF94 force field was fitted with. A folded
 hydrogens', which is arithmetic this application does, not a quantity MMFF94
 defines. A structure MMFF94 has no atom type for is refused, not guessed.
 
+**The 3D charge calculator is EEM with Bultinck's own parameters, and it
+depends on the conformer.** *Partial Charge (3D, EEM)* solves Bultinck et
+al.'s 2002 electronegativity equalization (part I, eq 3) with that paper's
+Table 1, which covers H, C, N, O and F only; any other element is refused.
+What it is, and is not:
+
+- **Vacuum charges fitted to Mulliken populations.** Bultinck fitted the
+  parameters to B3LYP/6-31G\* Mulliken charges on optimized geometries. They
+  are not electrostatic-potential charges, and here they are computed on
+  force-field conformers, not on the geometries the fit used. A different
+  conformer gives different charges; the result names the conformer it used.
+- **"As drawn" means the conformer's atoms, its explicit hydrogens and its net
+  charge, nothing else.** The net charge is spread over the molecule, so a
+  nitro group's N⁺ and O⁻ or a zwitterion's two centres come back as partial
+  charges whose sum is the net charge; no atom keeps its formal charge. No
+  protonation is applied. Hydrogens must be atoms with positions: a conformer
+  without them is refused, and none are placed for it.
+- **Open Babel's "Bultinck" EEM file is a different parameter set.** Its
+  carbon and oxygen values appear in no table of either Bultinck paper, and it
+  gives unlisted elements hydrogen's parameters. It is used only to check that
+  the arithmetic agrees when both are given Table 1.
+- **Rappé–Goddard QEq is implemented and not offered.** It reproduces the
+  paper's alkali halides (Table II) to 0.0005 e, but under no pre-registered
+  reading of its hydrogen treatment does it reproduce Table III's HF, and LiH
+  does not converge. Its bound procedure also misses the constrained optimum
+  in 28 of 200 synthetic systems. The record is
+  `benchmarks/charges/rappe_goddard/README.md`.
+- **A result filed by a build is not re-run by a fix.** The method code in a
+  result's identity names the scientific method and parameter set; which
+  build computed it is the application version, and today that invalidates
+  only the always-on results, not a hand-run charge calculation.
+
 ---
 
 <!-- help:limits-structure -->
@@ -1984,7 +2016,7 @@ and a molecular atom that share index 7 are not the same object.
 ### Which calculators a crystal is offered, and why it is none of them
 
 Every calculator declares the structure kinds it applies to, and the
-default is molecule-only. Today **none of the 58 registered calculators
+default is molecule-only. Today **none of the 59 registered calculators
 declares a crystal**, so the crystal report says so outright rather than
 implying some subset applies. That is not a gap being admitted — a
 molecular weight, a logP or a rotatable-bond count is a property of a
