@@ -1,15 +1,59 @@
 from __future__ import annotations
 
+import logging
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QSettings, QStandardPaths
 
+from openchem.domain.result_store import MAX_REVISIONS
 from openchem.events.base import EventBus
 from openchem.events.events import SettingsChanged
 
+logger = logging.getLogger("openchem.app")
+
 ORG_NAME = "OpenChemStudio"
 APP_NAME = "OpenChemStudio"
+
+
+@dataclass(frozen=True)
+class Preference:
+    """One setting the Settings window offers: its key, type, default and bounds.
+
+    **THE CONTRACT COMES BEFORE ANY CONTROL.** The window and every consumer
+    read a preference through this record (`Settings.preference`), so a
+    default shown on screen and the default a consumer falls back to cannot
+    be two numbers. What is stored is the plain value under a stable key --
+    never a label, which the lesson on a choice parameter storing the
+    English on the screen records the cost of.
+    """
+
+    key: str
+    kind: type
+    default: bool | int
+    minimum: int | None = None
+    maximum: int | None = None
+
+
+#: Whether choosing a right-hand panel hides the other unplaced panels in its
+#: area. On is today's behaviour; off means the rail never hides anything.
+RAIL_HIDES_PANELS = Preference("ui/rail_hides_panels", bool, True)
+
+#: Whether recovery copies of an unsaved project are written at all.
+RECOVERY_ENABLED = Preference("recovery/enabled", bool, True)
+
+#: How long after the last change a recovery copy is written, in seconds.
+RECOVERY_DELAY_SECONDS = Preference("recovery/delay_seconds", int, 5, minimum=1, maximum=600)
+
+#: How many revisions of each molecule keep their results in memory for undo,
+#: counted separately per calculation input (`SessionResultStore._touch`).
+#: The default is the store's own constant, so the two cannot drift.
+MAX_REVISIONS_KEPT = Preference("results/max_revisions", int, MAX_REVISIONS, minimum=1, maximum=64)
+
+#: Every preference, in the order the Settings window groups them. Tests
+#: iterate this, so a preference added here is covered without a new test.
+PREFERENCES = (RAIL_HIDES_PANELS, RECOVERY_ENABLED, RECOVERY_DELAY_SECONDS, MAX_REVISIONS_KEPT)
 
 #: What a remembered file-dialog directory can be ABOUT.
 #:
@@ -81,6 +125,66 @@ class Settings:
 
     def set_last_directory(self, kind: str, path: str) -> None:
         self.set(_directory_key(kind), path)
+
+    def forget_last_directory(self, kind: str) -> None:
+        """Drop the remembered directory, so the dialog opens at Documents again."""
+        key = _directory_key(kind)
+        self._qsettings.remove(key)
+        self._event_bus.publish(SettingsChanged(key=key))
+
+    # --- preferences ---------------------------------------------------------
+
+    def preference(self, preference: Preference) -> bool | int:
+        """The stored value, or the default when it is absent or unreadable.
+
+        **QSETTINGS HANDS BACK WHATEVER THE BACKEND STORED**: an INI file --
+        what the suite's `isolated_settings` uses -- returns a stored bool as
+        the string ``"true"`` or ``"false"``, where the registry returns a
+        real bool (`main_window._as_bool` records the same). So every value is
+        parsed rather than trusted. A value that does not parse, or falls
+        outside the bounds, is logged and the default used -- a hand-edited
+        or damaged setting must not take a feature down with it.
+        """
+        raw = self.get(preference.key, None)
+        if raw is None:
+            return preference.default
+        value = _parse(preference, raw)
+        if value is None:
+            logger.warning(
+                "Setting %s holds %r, which is not a valid value; using %r",
+                preference.key, raw, preference.default,
+            )
+            return preference.default
+        return value
+
+    def set_preference(self, preference: Preference, value: bool | int) -> None:
+        """Store `value`. An invalid one RAISES: a control can only produce a
+        valid value, so an invalid one here is a programming error to see."""
+        parsed = _parse(preference, value)
+        if parsed is None:
+            raise ValueError(f"{value!r} is not a valid value for {preference.key}")
+        self.set(preference.key, parsed)
+
+
+def _parse(preference: Preference, raw: Any) -> bool | int | None:
+    if preference.kind is bool:
+        if isinstance(raw, bool):
+            return raw
+        text = str(raw).strip().lower()
+        return {"true": True, "false": False, "1": True, "0": False}.get(text)
+    if preference.kind is int:
+        if isinstance(raw, bool):
+            return None
+        try:
+            value = int(str(raw).strip())
+        except ValueError:
+            return None
+        if preference.minimum is not None and value < preference.minimum:
+            return None
+        if preference.maximum is not None and value > preference.maximum:
+            return None
+        return value
+    return None
 
 
 # --- where a file dialog should open -------------------------------------

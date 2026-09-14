@@ -1598,9 +1598,11 @@ PELs are public instead), no IATA DGR (UN Model Regulations instead).
 
 ### A Settings page — deferred, and what it would hold
 
-**Building (2026-09-14)**, as one window that also holds the External Tools
-tabs. See "Next up" below for the settings contract and the exact meaning of
-each setting. The rest of this section is the record of why it waited.
+**SHIPPED (2026-09-14)** as one window, **Edit ▸ Settings…** (Ctrl+,), that
+also holds the External Tools tabs. Three of the four behaviours below became
+settings. The fourth, results across an update, is deferred: see its
+correction below. "Next up" below says what changed from the plan and why.
+The rest of this section is the record of why the page waited.
 
 **Deferred by decision (2026-09-13), not blocked by anything technical.**
 The application has preferences scattered across dialogs (External Tools,
@@ -1614,15 +1616,29 @@ What a Settings page would expose, each with today's fixed behaviour:
 
 - **How the rail treats panels.** Today: one managed panel at a time in its
   area, and a panel the user placed stays on screen. The alternative is "the
-  rail never hides anything", with tabs as the only grouping.
+  rail never hides anything", with tabs as the only grouping. *Shipped as the
+  first half:* with the setting off nothing is hidden, and each panel closes
+  from its own title bar. Panels are not tabbed automatically; a drop onto
+  another panel still makes a tab.
 - **Recovery copies.** Today: on, written 5 s after a change, under
   `<data root>/recovery`. A setting would cover on/off and the delay.
+  *Shipped as written.*
 - **Saved results across an update.** Today: the always-on set is
-  recomputed once after an update, and results run by hand are kept and
-  labelled with their build. The alternative is to also mark hand-run results
-  stale after an update, or to keep the always-on set too.
+  recomputed once after an update, and results run by hand are kept. The
+  alternative is to also mark hand-run results stale after an update, or to
+  keep the always-on set too. *Not shipped.*
+  - **Correction (2026-09-14).** This entry said hand-run results were kept
+    "and labelled with their build". They are not labelled. The store records
+    each result's application version (`StoredResult.application_version`),
+    but nothing on screen reads it; checked by searching `ui/` and `app/`
+    for any reader.
+  - So a setting that marks results stale or historical by build would act
+    on a distinction the user cannot see. **The label comes first:** Results
+    and the Atom Inspector must show which build computed a restored result.
+    That label is the unblocking condition for the setting.
 - **Revisions kept per molecule** (`MAX_REVISIONS`, today 8), which trades
-  memory for undo without recomputing.
+  memory for undo without recomputing. *Shipped, counted per calculation
+  input*: see "Next up" for the defect that counting them together had.
 
 Unblocking condition: the page itself, with a place for each existing
 preference, so that these arrive as entries on it rather than as the reason
@@ -1821,18 +1837,27 @@ struck through and marked SHIPPED here, never deleted.
   pkasolver does not report acid or base per site, so its runner will send
   each site's protonated and deprotonated microstates, and the comparison uses
   what the prediction encodes.
-- **The Settings page** (the section above). Before any UI, a preferences
-  table fixes each key, type, default and bound. Every default equals today's
-  behaviour, and a stored value is a stable key, never a label.
-  - **What "this build" means is already written in the store:** the result's
-    recorded application version equals the running one.
-  - **Results after an update** gets three states: rebuild the always-on set
-    (today); also mark hand-run results stale; keep everything, labelled as
-    historical. Structural freshness and build currency are separate axes, and
-    neither overwrites the other.
-  - **Revisions kept** counts structures per molecule. Lowering it removes
-    cached result sets immediately, so the dialog shows how many before it
-    applies.
+- ~~**The Settings page**~~ **SHIPPED 2026-09-14** (the section above). Before
+  any UI, a preferences table (`app/settings.PREFERENCES`) fixed each key,
+  type, default and bound. Every default equals today's behaviour, and a
+  stored value is a stable key, never a label. What changed from the plan:
+  - **Results after an update was deferred.** Its plan rested on hand-run
+    results already being "labelled with their build", and they are not (see
+    the correction in the section above). The label is now the prerequisite.
+    The three states planned for it still stand as its design: rebuild the
+    always-on set (today); also mark hand-run results stale; keep everything,
+    labelled as historical. What "this build" means is written in the store:
+    the result's recorded application version equals the running one.
+  - **Revisions kept is counted per calculation input**, not per molecule.
+    Every conformer change reruns the descriptors on GEOMETRY, so each search
+    is a new fingerprint while the drawing's stays put. With one list for
+    both, measured 2026-09-14, the results of a drawing still on screen
+    (hand-run ones included) were gone after 8 searches at the default. At a
+    limit of 1, which the window would have offered, one search did it.
+    Lowering the limit asks first, with the count of result sets and
+    molecules it removes.
+  - **External Tools moved in as a section.** Tools ▸ External Tools… and the
+    Docking and Quantum Chemistry Configure buttons open the window there.
 - **EEM and QEq, through Open Babel, on the stored conformer** (see
   "Partial-charge methods" above for what was measured).
   - **First measure:** why each failure happens; whether each parameter file

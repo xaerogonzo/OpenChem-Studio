@@ -18,7 +18,7 @@ from openchem.app.settings import Settings
 from openchem.events.base import EventBus
 from openchem.services import tool_download_service as tools
 from openchem.ui.dialogs.external_tool_catalog import orca, vina
-from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
+from openchem.ui.dialogs.external_tools_pages import ExternalToolsPages
 
 import conftest
 
@@ -29,7 +29,7 @@ def _dispose(widget) -> None:
 
 @pytest.fixture
 def dialog(qapp):
-    widget = ExternalToolsDialog(Settings(EventBus()))
+    widget = ExternalToolsPages(Settings(EventBus()))
     yield widget
     _dispose(widget)
 

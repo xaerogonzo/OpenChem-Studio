@@ -56,8 +56,10 @@ AUTOMATIC_BUNDLE_ID = "automatic/v1"
 #: The persisted block's own layout version.
 ENVELOPE_VERSION = 1
 
-#: Structure revisions retained per molecule in a session. Enough to undo
-#: back through a handful of edits without recomputing; not a history.
+#: Revisions retained per molecule in a session, counted separately for each
+#: calculation input (`SessionResultStore._touch`). Enough to undo back
+#: through a handful of edits without recomputing; not a history. The
+#: default of the "Revisions kept" setting, which can change it.
 MAX_REVISIONS = 8
 
 #: Replay order. Drawing results first, geometry on top: the geometry
@@ -154,8 +156,9 @@ class _MoleculeRecord:
     results: dict[tuple[str, str, str], StoredResult] = field(default_factory=dict)
     #: (part id, input fingerprint) -> part
     parts: dict[tuple[str, str], BundlePart] = field(default_factory=dict)
-    #: Fingerprints seen, oldest first. See `SessionResultStore._touch`.
-    revisions: list[str] = field(default_factory=list)
+    #: calculation input -> fingerprints seen for it, oldest first. See
+    #: `SessionResultStore._touch`.
+    revisions: dict[str, list[str]] = field(default_factory=dict)
 
 
 class ForeignProjectError(ValueError):
@@ -170,6 +173,9 @@ class SessionResultStore:
         #: `result_codec.PROBLEMS` plus `unaddressable`. Kept so a PARTIAL
         #: state can be explained rather than merely observed.
         self.load_problems: Counter[str] = Counter()
+        #: Revisions kept per molecule, per calculation input -- `MAX_REVISIONS`
+        #: unless the "Revisions kept" setting says otherwise. See `_touch`.
+        self.max_revisions = MAX_REVISIONS
 
     # --- writing ----------------------------------------------------------
 
@@ -177,16 +183,18 @@ class SessionResultStore:
         identity = stored.identity
         record = self._molecules.setdefault(identity.molecule_uuid, _MoleculeRecord())
         record.results[(identity.result_id, identity.calculation_input, identity.input_fingerprint)] = stored
-        self._touch(record, identity.input_fingerprint)
+        self._touch(record, identity.calculation_input, identity.input_fingerprint)
 
     def record_part(self, molecule_uuid: str, part: BundlePart) -> None:
+        # A part is always a DRAWING run's: `bundle_state` looks parts up by
+        # the drawing fingerprint, and both dispatchers finish a part only
+        # for DRAWING (`descriptor_service._finish_part`).
         record = self._molecules.setdefault(molecule_uuid, _MoleculeRecord())
         record.parts[(part.part_id, part.input_fingerprint)] = part
-        self._touch(record, part.input_fingerprint)
+        self._touch(record, DRAWING, part.input_fingerprint)
 
-    @staticmethod
-    def _touch(record: _MoleculeRecord, fingerprint: str) -> None:
-        """Keep the most recent `MAX_REVISIONS` structures, drop the rest.
+    def _touch(self, record: _MoleculeRecord, calculation_input: str, fingerprint: str) -> None:
+        """Keep the most recent `max_revisions` fingerprints OF EACH INPUT.
 
         **KEYED BY FINGERPRINT, SO AN EDIT DOES NOT OVERWRITE.** The first
         version keyed on the result id alone, so drawing a change replaced
@@ -196,14 +204,62 @@ class SessionResultStore:
 
         Bounded because every edit is a new fingerprint: a result set is
         tens of KiB, and a long drawing session is hundreds of edits.
+
+        **COUNTED PER INPUT, BECAUSE ONE LIST LET A CONFORMER SEARCH EVICT THE
+        CURRENT DRAWING.** Every conformer change reruns the descriptors on
+        GEOMETRY (`MainWindow._on_conformers_changed`), so each search is a
+        new geometry fingerprint while the drawing's stays put. With one list
+        shared by both, measured 2026-09-14: the results of a drawing that
+        was still current -- hand-run ones included, which nothing reruns --
+        were gone after 8 searches at the default, and after ONE at a limit
+        of 1, which the Settings window would have offered.
         """
-        if fingerprint in record.revisions:
-            record.revisions.remove(fingerprint)
-        record.revisions.append(fingerprint)
-        while len(record.revisions) > MAX_REVISIONS:
-            oldest = record.revisions.pop(0)
-            record.results = {k: v for k, v in record.results.items() if k[2] != oldest}
-            record.parts = {k: v for k, v in record.parts.items() if k[1] != oldest}
+        revisions = record.revisions.setdefault(calculation_input, [])
+        if fingerprint in revisions:
+            revisions.remove(fingerprint)
+        revisions.append(fingerprint)
+        self._trim(record)
+
+    def _trim(self, record: _MoleculeRecord) -> None:
+        for calculation_input, revisions in record.revisions.items():
+            while len(revisions) > self.max_revisions:
+                oldest = revisions.pop(0)
+                record.results = {
+                    k: v for k, v in record.results.items() if (k[1], k[2]) != (calculation_input, oldest)
+                }
+                if calculation_input == DRAWING:
+                    record.parts = {k: v for k, v in record.parts.items() if k[1] != oldest}
+
+    def revisions_beyond(self, limit: int) -> tuple[int, int]:
+        """(result sets, molecules) that a limit of `limit` would evict now.
+
+        A result set is one input's results for one fingerprint -- what a
+        single revision holds. Counted BEFORE anything is dropped, for the
+        Settings window's confirmation: lowering the limit trims at once, so
+        the number has to be shown while it can still be declined.
+        """
+        result_sets = molecules = 0
+        for record in self._molecules.values():
+            over = sum(max(0, len(revisions) - limit) for revisions in record.revisions.values())
+            result_sets += over
+            molecules += bool(over)
+        return result_sets, molecules
+
+    def set_max_revisions(self, limit: int) -> None:
+        """Change the limit and apply it to every molecule AT ONCE.
+
+        Only cached results are dropped: the structures themselves live in
+        the project and the undo stack, so undoing back to an evicted one
+        recomputes rather than failing. And no saved file ever carried them:
+        every save passes the current fingerprints, so `to_dict` writes only
+        each molecule's current revision of each input, which any limit of
+        at least 1 keeps.
+        """
+        if limit < 1:
+            raise ValueError(f"at least one revision must be kept, not {limit}")
+        self.max_revisions = limit
+        for record in self._molecules.values():
+            self._trim(record)
 
     def forget_molecule(self, molecule_uuid: str) -> None:
         self._molecules.pop(molecule_uuid, None)

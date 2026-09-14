@@ -46,7 +46,7 @@ from openchem.events.events import (
     SpectrumComputed,
 )
 from openchem.services.quantum_chemistry_service import QuantumChemistryService
-from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
+from openchem.ui.dialogs.settings_dialog import EXTERNAL_TOOLS, SettingsDialog
 from openchem.ui.molecule_combo import repopulate, select
 from openchem.ui.widgets.empty_state import empty_state, empty_state_text, is_empty_state
 from openchem.ui.widgets.flow_layout import flow_row
@@ -912,7 +912,7 @@ class QuantumChemistryPanel(QWidget):
             self._charge_spin.setValue(self._chemistry_engine.formal_charge(molecule))
 
     def _on_configure_clicked(self) -> None:
-        dialog = ExternalToolsDialog(self._settings, self, focus="orca")
+        dialog = SettingsDialog(self._settings, self, section=EXTERNAL_TOOLS, tool="orca")
         dialog.exec()
 
     def _on_run_clicked(self) -> None:

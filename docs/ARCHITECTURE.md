@@ -601,8 +601,12 @@ decisions carry the design:
   3D conformer") and is written. Without that, every molecule without a
   conformer reran the whole set on each reopen.
 
-The store belongs to one project and keeps the last eight structure revisions
-per molecule, so an undo replays rather than recomputes.
+The store belongs to one project and keeps the last eight revisions of each
+calculation input per molecule (the "Revisions kept" setting), so an undo
+replays rather than recomputes. The drawing and its conformers are counted
+separately: each conformer search is a new GEOMETRY fingerprint, and one
+shared list let a run of searches evict the results of a drawing still on
+screen.
 `services/recovery_service.py` writes the same text Save writes to
 `<data root>/recovery/`. A generation counter drops a write that was queued
 before a Save. Recovery is off in `MainWindow` unless `main.py` enables it,
@@ -652,6 +656,44 @@ lets a drop land beside, under or on a panel. `reset_panel_layout` re-adds
 every dock to the area `_add_dock` recorded for it. The area rule is not
 redundant with placement: a layout saved before placement was tracked has
 moved docks with no record, and only the area rule keeps them on screen.
+
+With the "choosing a panel hides the others" setting off, the rail hides
+nothing and each panel closes from its own title bar. The window's own
+arranging (construction, Reset Panel Layout) runs under `_arranging` and still
+shows one panel.
+
+### Preferences: one contract, read where they act
+
+`app/settings.py` declares each preference once, as a `Preference` (key, type,
+default, bounds) in `PREFERENCES`. The Settings window
+(`ui/dialogs/settings_dialog.py`) and every consumer read it through
+`Settings.preference`. That call parses the stored value, because an INI
+backend returns strings, and falls back to the default, with a log line,
+when a value is absent or damaged. Every default is the behaviour that
+shipped before the setting existed.
+
+| Key | Type, default | Read by, and when |
+|---|---|---|
+| `ui/rail_hides_panels` | bool, on | `MainWindow._show_only_right_dock`, on every choice |
+| `recovery/enabled` | bool, on | `MainWindow._schedule_recovery` and `_write_recovery`, so turning it off also stops a queued write |
+| `recovery/delay_seconds` | int 1–600, 5 | `MainWindow._schedule_recovery`, from the next change |
+| `results/max_revisions` | int 1–64, 8 | `ResultStoreService`, at construction, on `set_project`, and on `SettingsChanged`, which trims at once |
+
+Two rules keep the window honest:
+
+- **Everything applies as it changes.** The External Tools tabs already did,
+  and a Close that silently dropped half the changes would be worse. The one
+  change that asks first is lowering the revisions kept. It counts what it
+  would remove (`SessionResultStore.revisions_beyond`) before storing
+  anything.
+- **External Tools is a section, not a second window.** `ExternalToolsPages`
+  is the old dialog's tabs as a widget. Tools ▸ External Tools… and the
+  Docking and Quantum Chemistry Configure buttons open the Settings window
+  at that section, on their own tool's tab.
+
+Results across an update is not a preference yet. Its states act on which
+build computed a result, and nothing displays that; see ROADMAP, "A
+Settings page".
 
 ## Known TODOs
 
@@ -707,6 +749,14 @@ document may cite a file or a test that does not exist.
   means the GEOMETRY branch of `resolve_calculation_input` checking the
   conformer's heavy atoms against the drawing's, element for element, before
   handing the conformer to anything that keys values by index.
+
+- **OPEN** -- the External Tools pages carry no help contracts. Their
+  controls were never walked: the dialog needed settings, so the bare-context
+  guard in `tests/test_dialog_help_contracts.py` could not build it, and
+  moving the tabs into the Settings window did not change that.
+  `tests/test_settings_window.py` walks the window's preference sections and
+  deliberately skips `ExternalToolsPages`. Closing it means a contract on each
+  tool tab's controls, then dropping that skip.
 
 
 - **DECISION** -- the 3D alignment overlay has ONE pane with a colour

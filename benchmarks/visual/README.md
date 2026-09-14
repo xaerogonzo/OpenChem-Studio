@@ -72,6 +72,7 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 | `lewis_partner_picker.json` | the settings dialog at every parameter kind, and the three role states | a blank separator line rendering as a row with a LABEL AND NO VALUE -- a fact whose value is missing |
 | `result_picture_export.json` | a depiction in the Results reader, exported through the real export path | nothing yet -- exporting a drawing existed in ONE dialog, so every other picture the application draws was read-only |
 | `rotate_3d_reach.json` | Rotate 3D from the Structure menu, entered and left | nothing yet -- the mode was reachable only from one button on one tab, and two designs for the menu entry's tick disagreed with the button |
+| `settings_window.json` | every Settings section, the rail setting flipped and restored, and Ctrl+, pressed from the canvas | the first Forget button drawn as the dialog's DEFAULT, which Enter from the section list pressed; and the harness's own `dialog` step failing all five times, which made the rail check report the default |
 | `atom_selection_sync.json` | the Atom Inspector and the 2D canvas, on a FRESHLY LOADED structure and then on an EDITED one | the pool-id/molfile-position divergence, outbound: clicking a carbon answered "pick a heavy atom" -- this is the same trap inbound, where nothing declines |
 
 **`lewis_partner_picker.json` PHOTOGRAPHS A DISTINCTION THE PROVENANCE ALREADY
@@ -95,6 +96,16 @@ Its middle arm is the one worth keeping: unticking everything and pressing Fill
 table must SHOW a refusal, because `batch_service` reads an empty scope as
 "everything given" and a silent fall-through there would look exactly like
 success.
+
+**`settings_window.json` WRITES THE REAL SETTINGS, AND PUTS THEM BACK.**
+A driven run uses the developer's own settings store, so the rail setting it
+turns off is turned on again before it quits. Lowering the versions kept is
+driven too, and asks. The harness answers No and logs the question: measured,
+"Keep 1 version -- 1 older result set for 1 molecule will be removed" after
+two conformer searches, with the stored value still 8. The Ctrl+, step logs
+the ACTIVE WINDOW beside the result, because a window shortcut cannot fire
+while another application is active, and then "opened nothing" would say
+nothing about the key.
 
 **`atom_selection_sync.json` ERASES AN ATOM BEFORE IT MEASURES ANYTHING**,
 and a run that skipped that would pass while testing nothing. A fresh

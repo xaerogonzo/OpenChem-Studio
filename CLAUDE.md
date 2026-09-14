@@ -91,6 +91,7 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "shot",       "path": "...", "widget": "lewis"}
     {"do": "dialog",     "name": "HelpDialog"}   built by ui/dialogs/inventory
     {"do": "dialog",     "name": "PeriodicTableDialog", "tab": "Isotopes"}
+    {"do": "dialog",     "name": "SettingsDialog", "section": "results"}
     {"do": "shot",       "path": "...", "widget": "dialog"}
     {"do": "overlay",    "on": true, "gallery": true, "step": 1}
     {"do": "cip",        "on": true}          R/S and E/Z, through the menu
@@ -269,6 +270,7 @@ about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
 - A FOOTNOTE ON THE NEXT COLUMN IS NOT A FLAG ON THIS ONE
+- A SETTING EXPOSES WHAT ITS DEFAULT HID, AND ENTER PRESSED A BUTTON NOBODY CHOSE
 - THE SMILES ROUND TRIP DROPPED THE INDEX SPACE, AND ATOM MAPS WERE THE WRONG REPAIR
 - A PARTIAL RESTORE IS NOT A CACHE HIT, AND THREE DEFECTS ONLY RUNNING FOUND
 - A RE-RENDER OPENED 1801 WINDOWS, AND ONLY A TRACE COULD NAME THEM

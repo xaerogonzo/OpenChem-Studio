@@ -1,3 +1,11 @@
+"""The External Tools pages: seven tabs that live inside the Settings window.
+
+They were a dialog of their own, `ExternalToolsDialog`, until the Settings
+window was built to hold every preference in one place. The tabs moved in
+unchanged, as a widget, so every route that used to open the dialog now opens
+Settings at this section (`SettingsDialog`, `section="external_tools"`).
+"""
+
 from __future__ import annotations
 
 import logging
@@ -6,8 +14,6 @@ from typing import Any
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QDialog,
-    QDialogButtonBox,
     QFileDialog,
     QHBoxLayout,
     QHeaderView,
@@ -169,7 +175,7 @@ class _VinaTab(ManagedExecutableTab):
         QMessageBox.critical(self, "Download failed", message)
 
 
-class ExternalToolsDialog(QDialog):
+class ExternalToolsPages(QWidget):
     """Single home for configuring/obtaining external chemistry tools --
     replaces the two previously-separate `_VinaPathDialog`
     (docking_panel.py) and `_OrcaPathDialog` (quantum_chemistry_panel.py).
@@ -186,14 +192,16 @@ class ExternalToolsDialog(QDialog):
     `external_tool_tabs`. The three that remain hand-built are the three
     with one implementation each -- Vina's two-phase download, ORCA's
     can't-be-automated tab, and Storage, which is not a tool at all.
+
+    A WIDGET, NOT A DIALOG, since the Settings window: it is one section
+    there, and its message boxes are parented to it rather than to a window
+    of its own. `focus` still picks the tab it opens on.
     """
 
     def __init__(
         self, settings: Settings, parent: QWidget | None = None, focus: str = "vina"
     ) -> None:
         super().__init__(parent)
-        self.setWindowTitle("External Tools")
-        self.resize(560, 380)
         self._settings = settings
         # Set before the Storage tab is built, which reads it.
         self._storage_measured = False
@@ -216,18 +224,29 @@ class ExternalToolsDialog(QDialog):
         self._tabs.addTab(self._build_storage_tab(), "Storage")
         self._tabs.currentChanged.connect(self._on_tab_changed)
 
-        if focus == "orca":
-            self._tabs.setCurrentIndex(1)
-        elif focus == "pkasolver":
-            self._tabs.setCurrentIndex(2)
-
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, self)
-        buttons.rejected.connect(self.reject)
+        self.show_tool(focus)
 
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self._tabs)
-        layout.addWidget(buttons)
 
+    def show_tool(self, key: str) -> None:
+        """Bring one tool's tab to the front, by its catalogue key.
+
+        By KEY, where the dialog used to set indices 1 and 2 by hand -- which
+        could only reach ORCA and pkasolver, and would have pointed at the
+        wrong tab the day one was added in front of them. An unknown key
+        leaves the tabs where they are.
+        """
+        for tab in self._tool_tabs:
+            if tab.descriptor.key == key:
+                self._tabs.setCurrentWidget(tab)
+                return
+
+    def current_tool(self) -> str | None:
+        """The catalogue key of the tab in front, or None on Storage."""
+        widget = self._tabs.currentWidget()
+        return widget.descriptor.key if widget in self._tool_tabs else None
 
     # --- Descriptor-driven tabs ---------------------------------------------
 

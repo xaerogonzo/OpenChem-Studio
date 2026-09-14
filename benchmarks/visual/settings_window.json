@@ -1,0 +1,31 @@
+[
+  {"do": "smiles", "smiles": "CCCCO", "name": "Butanol", "after_ms": 500},
+  {"do": "select", "molecule": -1, "after_ms": 4000},
+  {"do": "conformers", "after_ms": 9000},
+  {"do": "conformers", "after_ms": 9000},
+
+  {"do": "dialog", "name": "SettingsDialog", "section": "panels", "width": 820, "height": 540, "after_ms": 800},
+  {"do": "shot", "path": "artifacts/visual/settings_panels.png", "widget": "dialog"},
+  {"do": "dialog", "name": "SettingsDialog", "section": "recovery", "width": 820, "height": 540, "after_ms": 800},
+  {"do": "shot", "path": "artifacts/visual/settings_recovery.png", "widget": "dialog"},
+  {"do": "dialog", "name": "SettingsDialog", "section": "results", "width": 820, "height": 540, "after_ms": 800},
+  {"do": "shot", "path": "artifacts/visual/settings_results.png", "widget": "dialog"},
+  {"do": "control", "name": "maxRevisionsKept", "value": 1, "after_ms": 500},
+  {"do": "dialog", "name": "SettingsDialog", "section": "file_dialogs", "width": 820, "height": 540, "after_ms": 800},
+  {"do": "shot", "path": "artifacts/visual/settings_file_dialogs.png", "widget": "dialog"},
+  {"do": "dialog", "name": "SettingsDialog", "section": "external_tools", "width": 820, "height": 540, "after_ms": 800},
+  {"do": "shot", "path": "artifacts/visual/settings_external_tools.png", "widget": "dialog"},
+
+  {"do": "dialog", "name": "SettingsDialog", "section": "panels", "after_ms": 500},
+  {"do": "control", "name": "railHidesPanels", "value": false, "after_ms": 500},
+  {"do": "panel", "id": "Results", "after_ms": 1500},
+  {"do": "dock_report", "tag": "rail-off"},
+  {"do": "shot", "path": "artifacts/visual/settings_rail_off.png"},
+  {"do": "control", "name": "railHidesPanels", "value": true, "after_ms": 500},
+  {"do": "panel", "id": "Properties", "after_ms": 1500},
+  {"do": "dock_report", "tag": "rail-on-again"},
+
+  {"do": "close_dialog", "after_ms": 500},
+  {"do": "key", "key": "Comma", "modifiers": "ctrl", "focus": "canvas", "close_modal_after_ms": 1500, "after_ms": 2000},
+  {"do": "quit"}
+]
