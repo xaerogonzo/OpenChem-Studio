@@ -1981,6 +1981,15 @@ struck through and marked SHIPPED here, never deleted.
         pre-registered λ reading cannot.
       - Bakowies & Thiel 1996 confirm the transcriptions.
       - The bound procedure and speed are deferred to their own plans.
+    - **QEq SHIPPED under a revised scope (amendment A8, 2026-09-14)**, as the
+      QEq method of Charge ▸ Partial Charge (3D). The original gate failed and
+      stays on record; A8 ships λ = ½ with the experimental hydrogen set.
+      Speed is solved: the Slater integrals are exact in closed form, and a
+      76-atom drug takes 0.4 s (was 130–200 s) with charges unchanged to
+      1e-13 e.
+    - **QEq is incomplete over the domain where the final solution needs an
+      active charge bound; the calculator deliberately refuses it pending
+      O9**, whose study is next and separate.
 - **Geometry-dependent charges at a pH.** Not started, and deliberately
   separate from the item above. It needs the coordinate gate recorded there:
   protonation must not move or lose the conformer's heavy atoms.

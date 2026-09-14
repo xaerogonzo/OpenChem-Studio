@@ -25,7 +25,12 @@ uv run --no-sync python benchmarks/charges/rappe_goddard/oracle.py
     becomes (17′)".
 - **R4 is ADOPTED (amendment A6, 2026-09-14), after the tables were seen.**
   It is the solver's default; P stays in the code as `PREREGISTERED`, and
-  every P number below stays on file. QEq still does not ship.
+  every P number below stays on file.
+- **QEq SHIPPED under amendment A8's revised scope (2026-09-14).** The
+  original O4/O5 gate failed and its strict xfails stay. What ships is
+  λ = ½ with the experimental hydrogen set; non-convergence and a final
+  active bound are refused, and silicon is a documented source
+  discrepancy. The scope sentence is in A8 and in SCIENTIFIC_LIMITATIONS.
 
 | # | Oracle | Result |
 |---|---|---|
@@ -225,10 +230,9 @@ inferences A4 made.
   and nothing relies on it.
 
 **Deferred, deliberately:**
-- **The bound procedure (O9).**
-- **Speed.** The measured bottleneck is the present numerical quadrature of the
-  two-centre integrals. Any replacement must reproduce the frozen mpmath table
-  and O1, never through an approximation.
+- **The bound procedure (O9).** Still deferred; the shipped calculator refuses
+  its domain (A8).
+- ~~Speed.~~ **Solved under A8**, below.
 
 ## QEq stop 2: the bounds (O9)
 
@@ -246,7 +250,9 @@ inferences A4 made.
 - The pre-registration does not allow swapping in a proper active-set method
   silently, so this is recorded and goes to Alex.
 
-## Cost (performance gate B3, 2026-09-14, one Windows machine)
+## Cost
+
+### Before A8 (performance gate B3, 2026-09-14, one Windows machine)
 
 | molecule | atoms with H | EEM, median of 5 | QEq, one run |
 |---|---|---|---|
@@ -255,14 +261,37 @@ inferences A4 made.
 | fentanyl | 53 | 2.0 ms | 77 s (21) |
 | atorvastatin | 76 | 4.5 ms | 202 s (26) |
 
-**EEM passes the 1 s gate by three orders of magnitude.**
+EEM passed the 1 s gate by three orders of magnitude; QEq failed it by two.
+Every hydrogen iteration re-evaluated every hydrogen-involving integral, one
+pair at a time, by quadrature.
 
-**QEq would fail it by two**, even if its oracles passed. Every hydrogen
-iteration re-evaluates every integral that involves a hydrogen, one pair at
-a time, at about 4 ms per integral. The integral cache the plan allows would
-not help here, because ζ_H changes on every iteration. Shipping QEq would
-first need the pair integrals vectorized across pairs, at the same O1
-accuracy.
+### After A8 (the time gate, `perf.py`, median of 3)
+
+Environment: Windows 11 10.0.26200, Intel64 Family 6 Model 183, Python 3.13.7,
+numpy 2.5.1, RDKit 2025.09.6, with another heavy process sharing the CPU.
+Structures are frozen in `tests/fixtures/charges/qeq_perf_conformers.csv`, so
+their iteration counts differ from B3's.
+
+| molecule | atoms | H % | iterations | Stage 1 (batched quadrature) | Stage 2 (closed form) | gate |
+|---|---|---|---|---|---|---|
+| aspirin | 21 | 38 | 26 | 0.49–0.75 s | **0.117 s** | ≤ 0.5 s: held |
+| fentanyl | 53 | 53 | 17 | 2.8–12 s | **0.114 s** | |
+| n-hexadecane | 50 | 68 | 17 | 3.4–12 s | **0.112 s** | |
+| atorvastatin | 76 | 46 | 26 | 10–22 s | **0.399 s** | ≤ 5 s: held |
+
+- **Stage 1** kept every node and branch of the scalar routine, and agreed with
+  it to 9.8e-15 Ha on the O1 grid and 5.8e-16 Ha on 4000 arguments logged from
+  real iterations. Still about 2 million quadrature nodes per iteration, so it
+  missed the gate. A mutation using a quarter of the panels was not caught: the
+  panel rule is far more conservative than accuracy needs, so node identity is
+  not observable by value. That was recorded, not exploited.
+- **Stage 2**, the closed form frozen in the A8 note before it was written:
+  - within 5.3e-14 Ha of mpmath on all 1076 points;
+  - charges on the four structures unchanged from the pre-A8 scalar solver to
+    6.5e-14 e, with identical iteration counts;
+  - no real molecule reached the quadrature fallback or the series cap.
+- **The timings are acceptance measurements on one machine, not a CI test.**
+  The numerical gates are in the suite.
 
 ## The decisions this needs
 

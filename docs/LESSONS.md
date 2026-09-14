@@ -20229,3 +20229,51 @@ twin, and it is identical to C2 at 0° and 60°, the only torsions any test
 used. A mutation flipping the sign stayed green. Checking C2 at 30° failed on
 the ORIGINAL code, not the mutant. Its one affected sweep point was re-run;
 no sign changed.
+
+## A GATE THAT FAILED STAYS FAILED, AND QEQ SHIPPED UNDER A NARROWER CLAIM
+
+2026-09-14, branch `qeq-ship`, amendment A8.
+
+**Revising a gate is legitimate only if the old verdict stays visible.** QEq's
+pre-registered gate (Tables III and IV) failed. It shipped anyway, and the
+record is built so nobody can read that as the gate passing:
+- the strict xfails stay;
+- A8 states a narrower scope sentence, used verbatim in the limitations
+  document;
+- LiH-like non-convergence and final-bound-active solutions are refused;
+- silicon is labelled a source discrepancy (the 1991 row contradicts the
+  authors' 1996 program), not a pass.
+Two categories never merge: what is computationally refused, and what
+disagrees with a published row.
+
+**The speed problem was the implementation, and the first fix was not
+enough.** Stage 1 vectorised the exact quadrature, node for node, and agreed
+with the scalar routine to 1e-15 Ha. It was 4–13× faster and still missed the
+gate, because the quadrature evaluates about 2 million nodes per hydrogen
+iteration. A8 had fixed in advance that this triggers Stage 2, and Stage 2's
+switches were frozen in a note before any code was written:
+- the confluent hypergeometric piece is summed with all-positive terms, and
+  its only switch is the sign of z = −(b − a)R (Kummer's transformation for
+  z < 0);
+- a fallback to the quadrature covers min(a,b)·R < 2.
+The result is 5.3e-14 Ha against mpmath, and a 76-atom drug in 0.4 s (was
+130–200 s) with charges unchanged to 6.5e-14 e.
+
+**Two mutation findings.**
+- **Caching the hydrogen pairs stayed green at first.** The A7 production-step
+  test builds both sides through the same matrix code, so a frozen ζ_H froze
+  both. A test against the scalar integral at ζ_H(Q) caught it.
+- **A quarter of the quadrature panels was not caught at all.** The panel rule
+  is far more conservative than accuracy needs, so "the same nodes" cannot be
+  observed from values. Recorded, not exploited: using fewer panels after
+  seeing that would have been choosing a method by its result.
+
+**A refusal photographs like an absence.** Properties shows "Not applicable"
+for every refusal, so a drive run meant to show non-convergence could equally
+have been showing "no 3D conformer". The new `result_report` drive step
+asserts the refusal code. On LiH it read REFUSE_NOT_CONVERGED, with the
+message the user gets.
+
+**One result slot per property id.** EEM and QEq are two methods of one
+calculator, so running QEq replaces the EEM result in the panels instead of
+sitting beside it, exactly as Gasteiger and MMFF94 already behave.

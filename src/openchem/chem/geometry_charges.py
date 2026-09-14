@@ -5,13 +5,14 @@ module is pure arithmetic on element symbols and coordinates; this one reads
 an RDKit conformer, refuses what it cannot compute honestly, and says what
 the numbers are.
 
-**ONLY METHODS PAST THEIR PRE-REGISTERED GATE ARE OFFERED.** Today that is
-Bultinck 2002 part I EEM. Rappé–Goddard QEq is implemented and stopped at its
-gate (`benchmarks/charges/rappe_goddard/README.md`: Table III's hydrogen
-charges are not reproduced, and the paper's bound procedure misses the
-constrained optimum), so it has no stored code here. `method` is still a
-parameter so a method added later changes `parameters_key` rather than
-silently sharing results.
+**ONLY METHODS WHOSE CURRENT SHIPPING VALIDATION SCOPE IS SATISFIED ARE
+OFFERED.** Bultinck 2002 part I EEM passed its pre-registered gate.
+Rappé–Goddard QEq did NOT pass its original gate (O4/O5, which stay failed);
+it is offered under the narrower scope of amendment A8 of
+`benchmarks/charges/rappe_goddard/preregistration.md`: lambda = 1/2, the
+experimental hydrogen set only, refusing non-convergence and any solution
+with an active charge bound, and noting silicon as a source discrepancy.
+Each method is its own stored code, so the two never share a result.
 
 **"AS DRAWN", DEFINED.** The stored conformer's own atoms, its own explicit
 hydrogens and their coordinates, and its net formal charge. It does NOT mean
@@ -44,13 +45,38 @@ from openchem.domain.scientific_result import PerAtomDataset
 #: The dataset id, and the calculator id it is registered under.
 PROPERTY_ID = "geometry_partial_charge"
 
-#: The one stored method code. It names the parameter set, not just the model,
-#: so a second EEM parameterisation is a second code and never a reinterpretation.
+#: The stored method codes. Each names its parameter set and reading, not just
+#: the model, so another parameterisation is another code, never a reinterpretation.
 EEM_BULTINCK2002_PART1 = "eem_bultinck2002_part1"
-#: Every method offered, in combo order. Anything else raises.
-GEOMETRY_CHARGE_METHODS = (EEM_BULTINCK2002_PART1,)
+#: Rappé–Goddard 1991 QEq, lambda = 1/2 (eq 17'), experimental hydrogen set:
+#: the one QEq reading amendment A8 ships.
+QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL = "qeq_rg1991_lambda_half_h_experimental"
+#: Every method offered, in combo order; EEM first and the default. Anything else raises.
+GEOMETRY_CHARGE_METHODS = (EEM_BULTINCK2002_PART1, QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL)
 #: What each stored code is called on screen.
-GEOMETRY_CHARGE_METHOD_LABELS = {EEM_BULTINCK2002_PART1: "EEM, Bultinck 2002"}
+GEOMETRY_CHARGE_METHOD_LABELS = {
+    EEM_BULTINCK2002_PART1: "EEM, Bultinck 2002",
+    QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL: "QEq, Rappé–Goddard 1991",
+}
+#: The short name each refusal message speaks of.
+_METHOD_SHORT = {EEM_BULTINCK2002_PART1: "EEM", QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL: "QEq"}
+
+#: A8's validation scope, verbatim. Recorded beside a QEq result as how the
+#: method was validated; it is not part of what was computed.
+QEQ_VALIDATION_SCOPE = (
+    "This calculator implements the Rappé–Goddard 1991 QEq formulation using the λ = ½ "
+    "interpretation (eq 17′) and the experimental hydrogen parameter set. It reproduces the "
+    "validated benchmark subset recorded in amendment A8. The published LiH value is not a "
+    "self-consistent solution of the implemented equations, and such cases are refused. The "
+    "published 1991 SiH₄ value is inconsistent with the later Rappé-group implementation and is "
+    "treated as a source discrepancy, not as an oracle. Results whose final solution requires an "
+    "active charge bound are refused pending the O9 study."
+)
+#: The silicon source discrepancy (A7, A8): a limitation note, not a numerical warning.
+QEQ_SILICON_NOTE = (
+    "Does not reproduce the published 1991 SiH₄ hydrogen charge; Rappé-group calculations "
+    "(Ramachandran et al. 1996) support the sign returned here."
+)
 
 #: No 3D conformer: the resolver handed over the drawing, or a flat one.
 REFUSE_NO_3D_GEOMETRY = "REFUSE_NO_3D_GEOMETRY"
@@ -58,20 +84,28 @@ REFUSE_NO_3D_GEOMETRY = "REFUSE_NO_3D_GEOMETRY"
 REFUSE_IMPLICIT_HYDROGENS = "REFUSE_IMPLICIT_HYDROGENS"
 #: Hydrogen atoms present, but without finite coordinates.
 REFUSE_MISSING_H_COORDINATES = "REFUSE_MISSING_H_COORDINATES"
+#: QEq only: the converged final solution has an atom fixed at a charge bound.
+#: The paper's bound procedure is unresolved (O9), so that domain is refused.
+REFUSE_BOUND_ACTIVE = "REFUSE_BOUND_ACTIVE"
 
-#: What each refusal says. Stable, because help and the user guide quote them.
+#: What each refusal says, with {method} the method's short name. Stable,
+#: because help and the user guide quote them.
 REFUSAL_MESSAGES = {
     REFUSE_NO_3D_GEOMETRY: (
-        "EEM needs 3D coordinates, and this molecule has no 3D conformer. "
+        "{method} needs 3D coordinates, and this molecule has no 3D conformer. "
         "Generate conformers first (Structure ▸ Generate Conformers...)."
     ),
     REFUSE_IMPLICIT_HYDROGENS: (
-        "EEM needs every hydrogen as an atom with a 3D position; this conformer "
+        "{method} needs every hydrogen as an atom with a 3D position; this conformer "
         "implies hydrogens it does not contain, and the calculator will not invent them."
     ),
     REFUSE_MISSING_H_COORDINATES: (
-        "EEM requires explicit hydrogen coordinates for this stored conformer. "
+        "{method} requires explicit hydrogen coordinates for this stored conformer. "
         "Some hydrogen atoms have no valid position, and the calculator will not invent them."
+    ),
+    REFUSE_BOUND_ACTIVE: (
+        "QEq's converged solution needs {atoms} held at a charge bound. How the paper's bound "
+        "procedure should behave there is unresolved, so no charges are returned for this molecule."
     ),
 }
 #: The table-cell form of each refusal; the full sentence is the error.
@@ -82,6 +116,7 @@ _SHORT = {
     ce.REFUSE_ELEMENT_NOT_PARAMETERISED: "Element not parameterised",
     ce.REFUSE_OVERLAPPING_ATOMS: "Atoms overlap",
     ce.REFUSE_NOT_CONVERGED: "Did not converge",
+    REFUSE_BOUND_ACTIVE: "Charge bound reached",
 }
 
 #: Sigma q must equal the net charge to this. A necessary check, never evidence
@@ -96,7 +131,11 @@ AS_DRAWN = (
 )
 
 
-def _refusal(code: str, name: str, method: str, places: int, molecule_uuid: str, message: str | None = None) -> PerAtomDataset:
+def _refusal(
+    code: str, name: str, method: str, places: int, molecule_uuid: str,
+    message: str | None = None, diagnostics: dict | None = None,
+) -> PerAtomDataset:
+    parameters = {"refusal": code, "decimal_places": places, **(diagnostics or {})}
     return PerAtomDataset(
         property_id=PROPERTY_ID,
         name=name,
@@ -105,9 +144,9 @@ def _refusal(code: str, name: str, method: str, places: int, molecule_uuid: str,
         molecule_uuid=molecule_uuid,
         cache_state=CacheState.FAILED,
         inapplicable=True,
-        error=message or REFUSAL_MESSAGES[code],
+        error=message or REFUSAL_MESSAGES[code].format(method=_METHOD_SHORT[method]),
         error_summary=_SHORT.get(code, "Not computed"),
-        provenance=Provenance(created_by="core", method=method, parameters={"refusal": code, "decimal_places": places}),
+        provenance=Provenance(created_by="core", method=method, parameters=parameters),
     )
 
 
@@ -127,8 +166,8 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
     label = GEOMETRY_CHARGE_METHOD_LABELS[method]
     name = f"Partial Charge ({label}, 3D){' incl. H' if include_hydrogens else ''}"
 
-    def refuse(code: str, message: str | None = None) -> PerAtomDataset:
-        return _refusal(code, name, method, places, molecule_uuid, message)
+    def refuse(code: str, message: str | None = None, diagnostics: dict | None = None) -> PerAtomDataset:
+        return _refusal(code, name, method, places, molecule_uuid, message, diagnostics)
 
     try:
         conformer = _require_conformer(mol)
@@ -145,14 +184,39 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
         return refuse(REFUSE_NO_3D_GEOMETRY)
 
     net_charge = float(Chem.GetFormalCharge(mol))
-    result = ce.eem_charges(elements, positions, net_charge)
-    if result.status != "converged":
-        return refuse(result.status, result.message)
+    if method == QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL:
+        result = ce.qeq_charges(elements, positions, net_charge, hydrogen="experimental", readings=ce.ADOPTED)
+        if result.status == ce.REFUSE_NOT_CONVERGED:
+            return refuse(result.status, result.message, {
+                "iterations": result.iterations,
+                "final_metrics": dict(result.final_metrics),
+                "trace_class": result.trace_class,
+                "ever_clamped": result.ever_clamped,
+            })
+        if result.status != "converged":
+            return refuse(result.status, result.message)
+        if result.final_active_atoms:
+            # The refusal is decided on the FINAL active set alone (A8): a
+            # trajectory that touched a bound and left it is a valid result.
+            active = [
+                {"atom": result.solver_to_source[i], "element": elements[i], "bound": bound, "final_charge": float(result.charges[i])}
+                for i, bound in sorted(result.final_active_atoms.items())
+            ]
+            atoms = ", ".join(f"{a['element']}{a['atom']}" for a in active)
+            return refuse(REFUSE_BOUND_ACTIVE, REFUSAL_MESSAGES[REFUSE_BOUND_ACTIVE].format(atoms=atoms), {
+                "final_active_atoms": active,
+                "iterations": result.iterations,
+                "ever_clamped": result.ever_clamped,
+            })
+    else:
+        result = ce.eem_charges(elements, positions, net_charge)
+        if result.status != "converged":
+            return refuse(result.status, result.message)
 
     own = {result.solver_to_source[k]: float(result.charges[k]) for k in range(len(elements))}
     every_atom = sum(own.values())
     if abs(every_atom - net_charge) > _CONSERVATION_TOLERANCE:
-        raise ValueError(f"EEM charges sum to {every_atom:+.10f} on a conformer of net charge {net_charge:+.0f}")
+        raise ValueError(f"{_METHOD_SHORT[method]} charges sum to {every_atom:+.10f} on a conformer of net charge {net_charge:+.0f}")
 
     if include_hydrogens:
         values: dict[int, float] = {}
@@ -175,6 +239,36 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
         values = own
         basis = EXPLICIT_H if any(e == "H" for e in elements) else HEAVY_ATOMS
 
+    if method == QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL:
+        computed = {
+            "parameter_set": "rappe_1991_table_I",
+            "hydrogen_parameter_set": "experimental",
+            "zeta_parameterization": "rappe_1991_eq17_prime_lambda_half",
+            "lambda": 0.5,
+            "zeta_h_in_pairs": ce.ADOPTED.zeta_h_in_pairs,
+            "hydrogen_self_term": ce.ADOPTED.hydrogen_self_term,
+            "integral_model": "ns_slater_exact",
+            "source": "rappe1991 (J. Phys. Chem. 1991, 95, 3358; doi:10.1021/j100161a070)",
+            "hartree_ev": ce.HARTREE_EV,
+            "bohr_angstrom": ce.QEQ_BOHR_ANGSTROM,
+            "iterations": result.iterations,
+            "final_metrics": dict(result.final_metrics),
+            "bound_passes_max": result.bound_passes_max,
+            "ever_clamped": result.ever_clamped,
+            "validation": {"amendment": "A8", "scope": QEQ_VALIDATION_SCOPE},
+        }
+        if "Si" in elements:
+            computed["source_discrepancy"] = QEQ_SILICON_NOTE
+    else:
+        computed = {
+            "parameter_set": "bultinck_2002_part_I_table_1",
+            "source": "bultinck2002a (J. Phys. Chem. A 2002, 106, 7887; doi:10.1021/jp0205463)",
+            "equation_convention": ce.EEM_EQUATION_CONVENTION,
+            "kappa": "1 hartree bohr",
+            "hartree_ev": ce.HARTREE_EV,
+            "bohr_angstrom": ce.EEM_BOHR_ANGSTROM,
+            "equalized_electronegativity_ev": result.equalized_electronegativity_ev,
+        }
     return PerAtomDataset(
         property_id=PROPERTY_ID,
         name=name,
@@ -187,18 +281,12 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
             method=method,
             parameters={
                 "method": method,
-                "parameter_set": "bultinck_2002_part_I_table_1",
-                "source": "bultinck2002a (J. Phys. Chem. A 2002, 106, 7887; doi:10.1021/jp0205463)",
-                "equation_convention": ce.EEM_EQUATION_CONVENTION,
-                "kappa": "1 hartree bohr",
-                "hartree_ev": ce.HARTREE_EV,
-                "bohr_angstrom": ce.EEM_BOHR_ANGSTROM,
+                **computed,
                 "species": AS_DRAWN,
                 "net_charge": net_charge,
                 "include_hydrogens": include_hydrogens,
                 "hydrogen_aggregation": "folded" if include_hydrogens else "separate",
                 "solver_to_source": list(result.solver_to_source),
-                "equalized_electronegativity_ev": result.equalized_electronegativity_ev,
                 "decimal_places": places,
                 "not_applied": "protonation at a pH",
                 ATOM_BASIS: basis,
