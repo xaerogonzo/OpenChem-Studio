@@ -21,7 +21,7 @@ uv run --no-sync python benchmarks/charges/rappe_goddard/oracle.py
 | # | Oracle | Result |
 |---|---|---|
 | O1 | Slater integrals against momentum space, over 1076 grid points | worst 1e-9 eV or better, passes |
-| O1 | against the 30-digit mpmath table | (see the table header once generated) |
+| O1 | against the 30-digit mpmath table (1076 rows; its two coordinate systems agree to 1.8e-22 Ha) | **worst 5.2e-14 Ha**, at the near-zero point R = 1e-6 bohr; passes |
 | O2 | eq 17 regenerates Table I's ζ | 14 elements within ±0.0001; **N misses by 2.5e-5**, within the rounding of its printed radius (amendment A3); **O misses by 0.0030**, four times its rounding, recorded before any solve |
 | O3 | Table II, 20 alkali halides, both λ columns | **passes: worst 0.0005 e** in each column, and eq 18 agrees with the general solver to 1e-8 e |
 | O4 | Table III hydrogen charges | **STOP**: HF misses (below); LiH never converges |
