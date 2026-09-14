@@ -19794,6 +19794,51 @@ way a user does, and a user's move also marks the dock placed. The case
 the rule exists for is a layout saved before placement was tracked. Only a
 test that restores such a layout can see it.
 
+## OPEN BABEL'S QEQ HAS THE WRONG SIGN, AND THE FIRST DIAGNOSIS NAMED TWO WRONG CAUSES
+
+EEM and QEq through Open Babel were planned with a stop rule fixed before
+anything was measured (2026-09-14). The measurement stopped QEq. It also
+overturned two findings recorded that morning, from a quicker probe.
+
+**The quick probe's two causes were both wrong.**
+- It said that with the data directory repaired, `eem.txt` opened and the run
+  still failed ("No parameters found for: C 1"). Measured in a child process
+  per arm, the variable had been set in the shell. The wheel's own import
+  overwrites that, so the file never opened, and the "no parameters" line is
+  what an empty table prints. Set from Python after import, both methods
+  compute.
+- It said a POSIX-style path segfaulted. The crash is QEq's whenever
+  `qeq.txt` cannot be opened, whatever the path style.
+
+Both errors are the same shape: a symptom seen once, and a cause taken from
+the thing most recently changed. **One child process per arm, with the error
+text captured, separated them in a single run.**
+
+**An oracle has to solve the equations, not replay the code.**
+- The independent QEq solve was derived from the energy `qeq.cpp` documents,
+  E = q.chi + ½ q.J.q, by taking its gradient. It was not transcribed from
+  the system the code builds. Reading the code had already suggested the
+  sign; the solve is what measured it.
+- On every neutral molecule, Open Babel came out as the exact negative of the
+  solve, to 4e-6 e: `+chi` where the stationarity condition needs `-chi`.
+  Methanol's oxygen was +1.36, and Rappé & Goddard's own Table IV prints
+  -0.66.
+- A solve transcribed from `qeq.cpp`, which is the obvious way to build a
+  "matching" oracle, would have agreed with it exactly.
+- The EEM solve, written from Bultinck's eq 1, agreed with `eem.cpp` to
+  3e-15 e. So the same method acquitted one implementation and convicted the
+  other.
+
+**The parameter file is a second, separate question.** An exact
+implementation says nothing about the numbers it reads.
+- `eem.txt` is labelled "Bultinck B3LYP/6-31G*/MPA". Read back against his
+  part II Table 2, from a page rendered at 300 dpi, H, N and F match, and C
+  and O do not.
+- Twelve other elements carry carbon's pair verbatim, and the `* *` row gives
+  any unlisted element hydrogen's parameters.
+- A method whose arithmetic passes can still not be labelled with a source its
+  numbers do not match.
+
 ## THE SMILES ROUND TRIP DROPPED THE INDEX SPACE, AND ATOM MAPS WERE THE WRONG REPAIR
 
 Reported as "the Atom Inspector and the Calculator Inspector disagree about an
