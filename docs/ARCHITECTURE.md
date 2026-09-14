@@ -740,15 +740,37 @@ document may cite a file or a test that does not exist.
   the notes took heights between whole lines and drew their second line cut
   in half, so `ClampedLabel` now masks off a partial line.
 
-- **OPEN** -- a long wrapped value in the Results reader takes about twice
-  its text's height. Seen 2026-09-14 in the running app on the pH-dependent
-  charges' Finding row, with Results docked at its default width: fentanyl's
-  six-line note sat in a row roughly 270 px tall, and the O1OCN1 note (eight
-  lines) in one roughly 340 px tall, the rest blank before the next row. The
-  same on both, so it predates the ionization cross-check that made one
-  of them longer. The likely cause is a height stated for a narrower width
-  before the section was laid out -- unconfirmed. Re-measure with a drive run
-  that focuses the charges result and magnifies the shot.
+- **SETTLED** (2026-09-14) -- a wrapped value row in the Results reader is as
+  tall as its text. It used to be about twice that: fentanyl's six-line charges
+  Finding sat in a row roughly 270 px tall, O1OCN1's eight lines in one roughly
+  340 px, blank down to the next row. The leading hypothesis, a height stated
+  for a narrower width before the section was laid out, was half of it. The new
+  `fact_rows_report` step measured each row against what its text needs at the
+  row's own width, with Results docked at its default 420 px:
+
+      row        width  held              text needs       held = need at
+      Finding      251  272 px, 17 lines  96 px, 6 lines   100 px
+      Keyed to     251   48 px,  3 lines  16 px, 1 line    106 px
+
+  `ExplicitHeightLabel` first measures at Qt's 100 px default width for a child
+  widget; its `width <= 0` guard never fires. It stated that height with
+  `setFixedHeight`, then asked `heightForWidth` again at every real width, and
+  `QLabel` never answers that below the label's own minimum height. So a
+  stated height could grow and never shrink, and narrowing then widening a
+  dock stuck the same way. The label now states its height as its size hint
+  under its `Fixed` policy and holds no explicit minimum; a layout binds that
+  exactly as it bound the fixed height. After, the same run: 96 for 96, 16 for
+  16, and O1OCN1's eight lines in 128 px. At 300 px and then 700 px every row
+  matched its text, and nothing is cut at 3x. The two Properties section hints
+  use the same class and carried the same slack: 64 px of blank under the NMR
+  hint, now gone.
+
+  Guards: `test_a_value_row_is_as_tall_as_its_text_and_no_taller` and
+  `test_a_value_row_comes_back_down_when_the_reader_widens`, both red before the
+  fix. A fix that only corrected the first layout pass passes the first and
+  fails the second. `benchmarks/visual/results_wrapped_row_height.json` re-drives
+  it. docs/LESSONS.md compares the three repairs measured and records the
+  mutation run.
 
 - **OPEN** -- GEOMETRY per-atom datasets assume heavy atoms come first.
   `atom_sasa` keys its values by the conformer's own atom indices, and the

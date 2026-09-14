@@ -1866,10 +1866,12 @@ struck through and marked SHIPPED here, never deleted.
   variable reverses a shipped test result. It becomes a candidate only if the
   charge work produces a per-installation data-directory resolver worth
   reusing.
-- **A long wrapped value in Results takes about twice its height.** Seen
-  2026-09-14 on the charges' Finding row (fentanyl and O1OCN1 alike), so it
-  predates the cross-check. Measure the row against its text first; the
-  cause is not established. Tracked in Known TODOs.
+- ~~**A long wrapped value in Results takes about twice its height.**~~
+  **SHIPPED.** The row held the height its text needs at 100 px, Qt's width for
+  a child widget before any layout pass, because `QLabel` never measures below
+  the label's own fixed height. The label now states its height as a size hint
+  and holds no fixed height, so rows follow the dock both ways. The two
+  Properties section hints had the same slack. Known TODOs has the record.
 - **GEOMETRY per-atom datasets assume heavy atoms come first.** `atom_sasa`
   keys its values by the conformer's own atom indices, while the Atom Inspector
   reads by drawing index. They agree only because `AddHs` appends hydrogens.

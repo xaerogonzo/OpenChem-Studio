@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A long value in Results left a blank gap under it.** A wrapped value kept
+  the height its text would need in a column 100 px wide, so the charges'
+  six-line Finding took seventeen lines of space and a one-line value could
+  take three. Every value row in Results and the Atom Inspector is now exactly
+  as tall as its text, and rows follow the panel back down when it is widened
+  again. The explanatory hints in Properties sections, such as the one under
+  NMR, had the same gap and lose it too.
+
 - **The Atom Inspector showed QM NMR shifts computed for an earlier
   conformer.** ORCA spectra carried no record of the structure they were
   computed on, so they were shown unchecked. Each spectrum is now stamped

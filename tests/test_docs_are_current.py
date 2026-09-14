@@ -633,14 +633,6 @@ DEFERRALS: list[Deferral] = [
         "'Measure, then unify protonation' changes, and this entry with it.",
     ),
     Deferral(
-        claim="a long wrapped value in the Results reader takes about twice",
-        unbuilt=lambda: True,
-        manual="A measurement of the running window's row heights with no "
-        "established cause, so no code fact could say it is fixed. Re-measure "
-        "by driving the app to a charges result with a long Finding and "
-        "magnifying the shot.",
-    ),
-    Deferral(
         claim="GEOMETRY per-atom datasets assume heavy atoms come first",
         # The entry names where the check belongs: the GEOMETRY branch of the
         # resolver, which today looks only at whether the conformer parses and
