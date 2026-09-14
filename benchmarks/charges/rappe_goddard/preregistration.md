@@ -19,6 +19,7 @@ The plan behind this is `docs/ROADMAP.md`, "EEM and QEq", DECIDED 2026-09-14.
 | `bultinck2002a_table1.csv` | Bultinck et al., J. Phys. Chem. A 2002, 106, 7887, Table 1 | `746f6c66cd334d32b84ec0e6f7cca3822b6d083e65b3fd78f37079f9c9ebb9aa` |
 | `geometries.csv` | Huber & Herzberg 1979, X-state r_e | `eaa1b880092da5ce33a7c77c85aa18d991c1a6d5ae88dd3d2afc028886f655a0` |
 | `harmony1979_structures.csv` | Harmony et al. 1979, every printed parameter of 15 molecules (added by amendment A4) | `da2928073adde371187a3f420cc9593e1a44ee0ebaee9cf2fd798c7cb5285229` |
+| `kuchitsu1998_ethane.csv` | Kuchitsu (ed.) 1998, ethane only (added by amendment A5) | `4a29c922313513dd20bec0a8f3557566fa3a7aad316c11060005fe48aadb6218` |
 
 Every value was checked by eye against its page rendered at 300 dpi
 (Huber & Herzberg's rotated tables at 130 dpi). No fixture value comes from a
@@ -369,3 +370,30 @@ because the table prints none of them:
 HF, LiH and O9. These rows complete the record Alex decides from. They are
 run under P, with the one-at-a-time alternates in `oracle.py`, as section 3
 requires.
+
+### A5 (2026-09-14, after the 1998 volume arrived and BEFORE ethane is solved)
+
+**The source.** Ethane is the one Table IV compound Harmony 1979 lacks.
+Rappé & Goddard's other source, Landolt–Börnstein II/7 (1976), is not held.
+Held instead is Kuchitsu (ed.), *Structure of Free Polyatomic Molecules: Basic
+Data* (1998), https://doi.org/10.1007/978-3-642-45748-7. It is a digest of
+II/7, II/15 and II/23, and its ethane entry is tagged II/7(3,274).
+
+**Which determination, fixed now.** The entry prints three:
+- Iijima's electron diffraction, 1973;
+- Hirota et al.'s microwave, 1981;
+- Harmony's microwave/IR, 1990.
+
+Only Iijima 1973 predates II/7, so only it can be what the authors used. Within
+it, the r_z structure is used (A4's "average" type): C–C 1.5323 Å, C–H
+1.1017 Å, H–C–H 107.30°, staggered D3d. The r_g values are thermal averages,
+not a structure. **That II/7 printed exactly these numbers is an inference;
+II/7 has not been seen.**
+
+**Label.** Table IV prints ethane's H only. Every H must match (A4), at
+±0.01 e, under P, with the alternates reported in `oracle.py`.
+
+**Not used:** *Vogt & Vogt, Structure Data of Free Polyatomic Molecules*
+(2019), https://doi.org/10.1007/978-3-030-29430-4. Its introduction scopes it to
+structures published 2009–2017, so nothing in it could be a geometry Rappé &
+Goddard used in 1991.
