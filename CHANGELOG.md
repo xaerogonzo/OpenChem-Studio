@@ -119,7 +119,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   experimental shift describes) came up about one run in three. Reference
   geometries are now the lowest-energy of several, and reproducible.
 
+- **A run of conformer searches dropped the results of the drawing on
+  screen.** Results are kept for the last eight versions of each molecule so
+  an undo does not recompute, but drawings and conformers shared one count.
+  Every conformer search reruns the descriptors on the new geometry, so eight
+  searches in a row pushed out the drawing's results, including calculations
+  run by hand, which nothing reruns. They are now counted separately.
+
 ### Changed
+
+- **Settings, in one window: Edit ▸ Settings… (Ctrl+,).**
+  - Four behaviours that were fixed choices are now settings:
+    - whether choosing a panel from the rail hides the others;
+    - whether recovery copies of unsaved work are written;
+    - how long after a change a copy is written;
+    - how many versions of each molecule keep their results.
+  - Every default is what the app already did, and changes apply as you make
+    them. Lowering the versions kept asks first, and says how many result sets
+    it would remove.
+  - Each kind of file dialog's remembered folder can be forgotten from there.
+  - **External Tools is now a section of the same window.** Tools ▸ External
+    Tools… and the Docking and Quantum Chemistry Configure buttons open it,
+    on their own tool's tab.
+  - A setting for results computed by an earlier version of the app was
+    planned and is not in this release. It needs those results labelled with
+    their version first, and they are not yet.
 
 - **"Add to Project" is now "Send to 2D Editor".** Picking a tautomer or
   stereoisomer out of a generated set and working on it has been possible

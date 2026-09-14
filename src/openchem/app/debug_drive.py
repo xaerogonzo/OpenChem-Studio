@@ -52,6 +52,12 @@ The script is a JSON list of steps, run in order:
                                                        AND the page
       {"do": "key",              "key": "F7"},          a REAL key, at
       {"do": "key", "key": "Escape", "focus": "canvas"}  the focus widget
+      {"do": "key", "key": "Comma", "modifiers": "ctrl", "focus": "canvas",
+                    "close_modal_after_ms": 1500}  a shortcut that opens a
+                                                   modal: named, then closed
+      {"do": "control",          "name": "railHidesPanels", "value": false}
+                                              a named control of the open
+                                              dialog, operated for real
       {"do": "geometry_report",  "tag": "flat"},        z spread AND the
                                                        conformers
       {"do": "select_atom",      "atom": 4}    the inspector ROW, plus
@@ -2713,6 +2719,21 @@ class _Driver(QObject):
         if key is None:
             logger.warning("OPENCHEM_DRIVE: key %s -- no such key", name)
             return
+        # `"modifiers": "ctrl"` (or "ctrl+shift"), for a shortcut such as
+        # Ctrl+, -- a bare key could not ask whether one reaches the window.
+        modifiers = Qt.KeyboardModifier.NoModifier
+        for modifier in filter(None, str(step.get("modifiers", "")).lower().split("+")):
+            modifiers |= {
+                "ctrl": Qt.KeyboardModifier.ControlModifier,
+                "shift": Qt.KeyboardModifier.ShiftModifier,
+                "alt": Qt.KeyboardModifier.AltModifier,
+            }[modifier]
+        # `"close_modal_after_ms": 1500` -- for a key that opens a modal WINDOW.
+        # `keyClick` does not return until that window's own `exec()` loop
+        # does, so the next step would never be scheduled. Timers still fire
+        # inside that loop, so one set now names the modal and closes it.
+        if "close_modal_after_ms" in step:
+            QTimer.singleShot(int(step["close_modal_after_ms"]), self._window, self._close_modal)
         where = step.get("focus")
         if where == "canvas":
             self._window._center_tabs.setCurrentWidget(self._window._editor)
@@ -2724,10 +2745,88 @@ class _Driver(QObject):
             # person using the application is never in.
             self._window._project_explorer.setFocus()
         target = QApplication.focusWidget() or self._window
+        # THE ACTIVE WINDOW IS LOGGED because a window shortcut matches only
+        # while its window is active. A run behind another application has
+        # none, and then "the key opened nothing" says nothing about the key.
+        active = QApplication.activeWindow()
         logger.warning(
-            "OPENCHEM_DRIVE: key %s -> %s", name, type(target).__name__
+            "OPENCHEM_DRIVE: key %s%s -> %s (active window %s)",
+            f"{step['modifiers']}+" if step.get("modifiers") else "",
+            name,
+            type(target).__name__,
+            type(active).__name__ if active is not None else None,
         )
-        QTest.keyClick(target, key)
+        QTest.keyClick(target, key, modifiers)
+
+    def _close_modal(self) -> None:
+        """Name the modal window a key opened, then close it. See `_do_key`.
+
+        None is logged too: "the key opened nothing" is the answer to find
+        out, when a web page may claim the key before the window's shortcut
+        sees it.
+        """
+        from PySide6.QtWidgets import QApplication
+
+        modal = QApplication.activeModalWidget()
+        logger.warning(
+            "OPENCHEM_DRIVE: modal open -> %s %r",
+            type(modal).__name__ if modal is not None else None,
+            modal.windowTitle() if modal is not None else "",
+        )
+        if modal is not None:
+            modal.close()
+
+    def _do_close_dialog(self, _step: dict[str, Any]) -> None:
+        """`{"do": "close_dialog"}` -- close what the last `dialog` step opened.
+
+        An open dialog is a window of its own and can be the ACTIVE one, and
+        a window shortcut on the main window does not fire while it is. A
+        `key` step testing one needs the dialog gone first.
+        """
+        if getattr(self, "_dialog", None) is not None:
+            self._dialog.close()
+            self._dialog = None
+        logger.warning("OPENCHEM_DRIVE: dialog closed")
+
+    def _do_control(self, step: dict[str, Any]) -> None:
+        """Operate one named control of the open dialog, as a person would.
+
+        `{"do": "control", "name": "railHidesPanels", "value": false}`
+        `{"do": "control", "name": "maxRevisionsKept", "value": 3}`
+
+        By OBJECT NAME, in the dialog the last `dialog` step opened. A check
+        box is set, a spin box is set and its edit FINISHED (a spin box that
+        acts on commit acts on that), and a button is clicked. What the
+        control then reads is logged beside what was asked, so a control
+        that refused the value -- a bound, a question answered No -- says so.
+        """
+        from PySide6.QtWidgets import QAbstractButton, QCheckBox, QSpinBox, QWidget
+
+        dialog = getattr(self, "_dialog", None)
+        name = str(step.get("name", ""))
+        if dialog is None:
+            logger.error("OPENCHEM_DRIVE: control %s -- no dialog is open", name)
+            return
+        widget = dialog.findChild(QWidget, name)
+        if isinstance(widget, QCheckBox):
+            widget.setChecked(bool(step["value"]))
+            now = widget.isChecked()
+        elif isinstance(widget, QSpinBox):
+            widget.setValue(int(step["value"]))
+            widget.editingFinished.emit()
+            now = widget.value()
+        elif isinstance(widget, QAbstractButton):
+            widget.click()
+            now = "clicked"
+        else:
+            logger.error(
+                "OPENCHEM_DRIVE: control %s -- %s", name,
+                "no such control" if widget is None else f"cannot operate a {type(widget).__name__}",
+            )
+            return
+        logger.warning(
+            "OPENCHEM_DRIVE: control %s asked %r, now %r", name, step.get("value"), now
+        )
 
     def _do_geometry_report(self, step: dict[str, Any]) -> None:
         """`{"do": "geometry_report", "tag": "after-layout"}`
@@ -3828,6 +3927,10 @@ class _Driver(QObject):
         # still held photographs THAT one and the run looks healthy -- the
         # same silent no-op the `panel` step's wrong-id trap produces, and
         # the reason this file says to read the shot rather than the log.
+        # And CLOSED, not only dropped: a script opening one dialog per page
+        # left every earlier one open on screen, each a window of its own.
+        if getattr(self, "_dialog", None) is not None:
+            self._dialog.close()
         self._dialog = None
         fixture = next((f for f in iter_dialog_fixtures() if f.name == wanted), None)
         if fixture is None:
@@ -3864,6 +3967,20 @@ class _Driver(QObject):
             dialog.resize(int(step["width"]), int(step.get("height", dialog.height())))
         dialog.show()
         self._dialog = dialog
+        # `"section": "results"` -- the Settings window's pages are a list,
+        # not tabs, so `tab` below cannot reach them. By id, through the
+        # window's own `show_section`, which RAISES on an unknown one; the
+        # refusal is logged, never photographed as page 0.
+        wanted_section = str(step.get("section", ""))
+        if wanted_section:
+            show_section = getattr(dialog, "show_section", None)
+            if show_section is None:
+                logger.error("OPENCHEM_DRIVE: %s has no sections", wanted)
+            else:
+                try:
+                    show_section(wanted_section)
+                except ValueError as exc:
+                    logger.error("OPENCHEM_DRIVE: %s", exc)
         # `"tab": "Isotopes"` -- half these dialogs are tabbed, and a shot
         # of the default page cannot show what is on the other three. The
         # tab is named rather than indexed, and a name that matches
@@ -3883,11 +4000,12 @@ class _Driver(QObject):
                     wanted, wanted_tab, titles,
                 )
         logger.warning(
-            "OPENCHEM_DRIVE: dialog %s open at %dx%d, tab %r",
+            "OPENCHEM_DRIVE: dialog %s open at %dx%d, tab %r, section %r",
             wanted,
             dialog.width(),
             dialog.height(),
             wanted_tab or "(default)",
+            dialog.current_section() if hasattr(dialog, "current_section") else "(none)",
         )
 
     def _do_rail(self, step: dict[str, Any]) -> None:

@@ -237,6 +237,16 @@ MENU_HELP: dict[str, HelpTooltip] = {
         ),
         tier=1, help_id="edit.rename_molecule", topic=_M, help_anchor="projects",
     ),
+    "settings": HelpTooltip(
+        text=(
+            "Opens Settings: how the panel rail hides panels, recovery copies of "
+            "unsaved work, how many versions of each molecule keep their results, "
+            "the folders file dialogs remember, and the external tools.\n\n"
+            "Changes apply at once. Lowering the versions kept asks first, because "
+            "it removes results straight away."
+        ),
+        tier=1, help_id="edit.settings", topic=_M, help_anchor="settings",
+    ),
     # --- Structure -----------------------------------------------------
     "aromatize": HelpTooltip(
         text=(
@@ -546,10 +556,10 @@ MENU_HELP: dict[str, HelpTooltip] = {
     ),
     "external_tools": HelpTooltip(
         text=(
-            "Opens the settings for the optional external programs -- the docking "
-            "and quantum-chemistry engines.\n\n"
+            "Opens Settings at External tools: the optional external programs, "
+            "such as the docking and quantum-chemistry engines.\n\n"
             "These are installed by you and are not bundled; the features that "
-            "need them stay unavailable until their paths are set here."
+            "need them stay unavailable until their paths are set there."
         ),
         tier=2, help_id="tools.external_tools", topic=_M,
         help_anchor="external-tools",

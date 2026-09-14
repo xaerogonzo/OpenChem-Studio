@@ -338,5 +338,5 @@ def build_service_container() -> ServiceContainer:
         reaction_template_service=ReactionTemplateService(),
         # Subscribes to the result envelopes at construction, so nothing a
         # calculator records can arrive before there is a store to take it.
-        result_store_service=ResultStoreService(event_bus, engine),
+        result_store_service=ResultStoreService(event_bus, engine, settings),
     )

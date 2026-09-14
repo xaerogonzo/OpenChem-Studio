@@ -5,14 +5,14 @@ from pathlib import Path
 
 from openchem.app.settings import Settings
 from openchem.events.base import EventBus
-from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
+from openchem.ui.dialogs.external_tools_pages import ExternalToolsPages
 
 
 def test_dialog_has_every_tool_tab_and_focuses_the_requested_one(qapp):
     bus = EventBus()
     settings = Settings(bus)
 
-    dialog = ExternalToolsDialog(settings, focus="orca")
+    dialog = ExternalToolsPages(settings, focus="orca")
 
     assert [dialog._tabs.tabText(i) for i in range(dialog._tabs.count())] == [
         "AutoDock Vina",
@@ -37,7 +37,7 @@ def test_dialog_can_focus_the_pkasolver_tab(qapp):
     bus = EventBus()
     settings = Settings(bus)
 
-    dialog = ExternalToolsDialog(settings, focus="pkasolver")
+    dialog = ExternalToolsPages(settings, focus="pkasolver")
 
     assert dialog._tabs.currentIndex() == 2
 
@@ -47,7 +47,7 @@ def test_editing_pkasolver_path_saves_immediately_to_settings(qapp):
 
     bus = EventBus()
     settings = Settings(bus)
-    dialog = ExternalToolsDialog(settings, focus="pkasolver")
+    dialog = ExternalToolsPages(settings, focus="pkasolver")
 
     dialog._pkasolver_path_edit.setText(r"C:\some\env\python.exe")
     dialog._on_pkasolver_path_edited()
@@ -59,7 +59,7 @@ def test_dialog_defaults_to_vina_tab(qapp):
     bus = EventBus()
     settings = Settings(bus)
 
-    dialog = ExternalToolsDialog(settings)
+    dialog = ExternalToolsPages(settings)
 
     assert dialog._tabs.currentIndex() == 0
 
@@ -72,7 +72,7 @@ def test_editing_vina_path_saves_immediately_to_settings(qapp):
     """
     bus = EventBus()
     settings = Settings(bus)
-    dialog = ExternalToolsDialog(settings)
+    dialog = ExternalToolsPages(settings)
 
     dialog._vina_path_edit.setText("C:/fake/vina.exe")
     dialog._vina_path_edit.editingFinished.emit()
@@ -83,7 +83,7 @@ def test_editing_vina_path_saves_immediately_to_settings(qapp):
 def test_editing_orca_path_saves_immediately_to_settings(qapp):
     bus = EventBus()
     settings = Settings(bus)
-    dialog = ExternalToolsDialog(settings)
+    dialog = ExternalToolsPages(settings)
 
     dialog._orca_path_edit.setText("C:/fake/orca.exe")
     dialog._orca_path_edit.editingFinished.emit()
@@ -97,7 +97,7 @@ def test_dialog_prefills_paths_already_present_in_settings(qapp):
     settings.set("docking/vina_executable_path", "C:/existing/vina.exe")
     settings.set("orca/executable_path", "C:/existing/orca.exe")
 
-    dialog = ExternalToolsDialog(settings)
+    dialog = ExternalToolsPages(settings)
 
     assert dialog._vina_path_edit.text() == "C:/existing/vina.exe"
     assert dialog._orca_path_edit.text() == "C:/existing/orca.exe"
@@ -109,7 +109,7 @@ def test_each_sidecar_tab_can_remove_its_own_tool(qapp):
     missing, goes hunting under Storage for it. Alex looked and reported
     there was no uninstall.
     """
-    dialog = ExternalToolsDialog(Settings(EventBus()))
+    dialog = ExternalToolsPages(Settings(EventBus()))
 
     for attribute in (
         "_pkasolver_remove_button",
@@ -124,7 +124,7 @@ def test_each_sidecar_tab_can_remove_its_own_tool(qapp):
 def test_the_tab_buttons_reuse_the_storage_tabs_removal_path(qapp, monkeypatch):
     """One confirmation, one set of paths, one refresh -- a second
     implementation is how the two would drift apart."""
-    dialog = ExternalToolsDialog(Settings(EventBus()))
+    dialog = ExternalToolsPages(Settings(EventBus()))
     removed: list[str] = []
     monkeypatch.setattr(dialog, "_on_remove_component", removed.append)
     # Rebuild the buttons so they close over the patched method.
@@ -141,7 +141,7 @@ def test_the_admet_tab_exists_with_the_full_sidecar_affordance_set(qapp):
     """Every sidecar tab offers the same four things. A tab that can be
     configured but not installed, or installed but not removed, is the
     gap that made the pkasolver and STOUT tabs frustrating before."""
-    dialog = ExternalToolsDialog(Settings(EventBus()))
+    dialog = ExternalToolsPages(Settings(EventBus()))
 
     assert "ADMET (hERG/CYP)" in [
         dialog._tabs.tabText(i) for i in range(dialog._tabs.count())
@@ -162,7 +162,7 @@ def test_editing_the_admet_path_persists_to_the_setting_the_calculator_reads(qap
     from openchem.chem.admet_providers import ADMET_PYTHON_SETTING
 
     settings = Settings(EventBus())
-    dialog = ExternalToolsDialog(settings)
+    dialog = ExternalToolsPages(settings)
 
     dialog._admet_path_edit.setText(r"C:\somewhere\python.exe")
     dialog._on_admet_path_edited()
@@ -284,7 +284,7 @@ def test_a_pasted_forward_slash_path_is_stored_in_native_form(qapp, tmp_path):
 
     bus = EventBus()
     settings = Settings(bus)
-    dialog = ExternalToolsDialog(settings, focus="orca")
+    dialog = ExternalToolsPages(settings, focus="orca")
 
     assert "/" in exe.as_posix(), "the fixture must actually use forward slashes"
     dialog._orca_path_edit.setText(exe.as_posix())
@@ -306,7 +306,7 @@ def test_clearing_the_path_field_stores_an_empty_string_not_a_dot(qapp):
     up" check would start answering yes."""
     bus = EventBus()
     settings = Settings(bus)
-    dialog = ExternalToolsDialog(settings, focus="orca")
+    dialog = ExternalToolsPages(settings, focus="orca")
 
     dialog._orca_path_edit.setText("")
     dialog._orca_path_edit.editingFinished.emit()

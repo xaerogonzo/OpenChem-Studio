@@ -19831,6 +19831,50 @@ nobody was looking for: the calculator reveal ran `exec()` inside the bus
 handler, so the Atom Inspector received the dataset 67 s late, at quit, and a
 driven run read as "never arrived".
 
+## A SETTING EXPOSES WHAT ITS DEFAULT HID, AND ENTER PRESSED A BUTTON NOBODY CHOSE
+
+The Settings window (2026-09-14) turned four fixed behaviours into
+preferences. Three things were found while doing it, and none of them was
+in the plan.
+
+**A limit that is safe at its default can be unsafe at a value you offer.**
+The result store kept 8 revisions per molecule, and drawings and conformers
+shared one list. Every conformer change reruns the descriptors on GEOMETRY, so
+each search is a new fingerprint while the drawing's stays put. A probe on the
+pure store, before any control existed: the drawing's results, hand-run ones
+included, were gone after 8 searches at the default and after ONE at a limit
+of 1. At 8 it was latent. As an offered minimum it would have been routine.
+Revisions are counted per calculation input now. The probe ran before the
+control was built, because a window offering 1 would have been the first
+thing to reach the case.
+
+**A roadmap premise was false, and the setting built on it waited.** The
+deferred-settings list said hand-run results after an update were "kept and
+labelled with their build". The store records the version, but nothing in
+`ui/` or `app/` reads it. A setting to mark results stale or historical by
+build would act on a distinction nobody can see, so the label comes first.
+The entry now carries the correction instead of the claim.
+
+**The magnified shot found a default button, and Enter pressed it.** Every
+test was green. The 3x crop of the File dialogs page drew the first Forget
+button with a default button's border. Qt made it the default: shown with
+none, a dialog makes the first auto-default push button in its focus chain
+the default, and a key the focused control passes on presses it if it is
+visible. Measured with a test before any fix:
+- choosing File dialogs in the section list and pressing Enter forgot the
+  projects folder;
+- Enter in the revisions box did NOT, because on the Results page the Forget
+  button is hidden, and Qt skips a hidden default.
+
+The first test written, Enter in the spin box, passed with the defect present.
+The page was the variable. No button is auto-default in that window now.
+
+**And the harness broke first.** Closing the previous dialog in the `dialog`
+step read `self._dialog` before any step had set it. All five dialog steps
+failed, and every shot logged "no dialog open". The rail check that ran
+after them reported the default behaviour, because the control step had
+nothing to operate. Read the log's tracebacks before the dock report.
+
 ## A FOOTNOTE ON THE NEXT COLUMN IS NOT A FLAG ON THIS ONE
 
 Halgren's MMFF94 Table V (part II) is an exact oracle: RDKit reproduces every

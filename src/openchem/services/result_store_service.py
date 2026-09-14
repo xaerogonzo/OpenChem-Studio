@@ -24,6 +24,7 @@ import logging
 from collections.abc import Callable
 from dataclasses import replace
 
+from openchem.app.settings import MAX_REVISIONS_KEPT, Settings
 from openchem.chem.calculation_input import input_fingerprint
 from openchem.chem.engine import ChemistryEngine
 from openchem.domain.calculator import DRAWING, GEOMETRY
@@ -31,7 +32,13 @@ from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.project import ProjectModel
 from openchem.domain.report import ReportResult, StructureReport
-from openchem.domain.result_store import BundleState, ResultIdentity, SessionResultStore, StoredResult
+from openchem.domain.result_store import (
+    MAX_REVISIONS,
+    BundleState,
+    ResultIdentity,
+    SessionResultStore,
+    StoredResult,
+)
 from openchem.domain.scientific_result import (
     AlertResult,
     PerAtomDataset,
@@ -50,6 +57,7 @@ from openchem.events.events import (
     PhCurveComputed,
     ReportComputed,
     ResultRecorded,
+    SettingsChanged,
     SpectrumComputed,
     StructureSetComputed,
     TrajectoryComputed,
@@ -106,17 +114,22 @@ def event_for(result: object, structure_version: int = 0, identity: ResultIdenti
 
 
 class ResultStoreService:
-    def __init__(self, event_bus: EventBus, engine: ChemistryEngine) -> None:
+    def __init__(self, event_bus: EventBus, engine: ChemistryEngine, settings: Settings | None = None) -> None:
         self._event_bus = event_bus
         self._engine = engine
+        #: Where the "Revisions kept" limit comes from. None keeps the
+        #: store's own default, for the tests that build a service alone.
+        self._settings = settings
         self._project: ProjectModel | None = None
         self.store = SessionResultStore("")
+        self.store.set_max_revisions(self.revision_limit())
         #: Called with the molecule uuid whenever a NEW result is retained --
         #: how the session learns it has something unsaved. Plain callables
         #: held here, not Qt connections.
         self._on_recorded: list[Callable[[str], None]] = []
         event_bus.subscribe(ResultRecorded, self._on_result_recorded)
         event_bus.subscribe(AutomaticPartFinished, self._on_part_finished)
+        event_bus.subscribe(SettingsChanged, self._on_settings_changed)
 
     # --- lifecycle ----------------------------------------------------------
 
@@ -125,6 +138,11 @@ class ResultStoreService:
 
         A result still in flight from the previous project arrives after
         this, for a molecule this project does not have, and is ignored.
+
+        **THE LIMIT IS APPLIED TO A STORE THAT CAME FROM A FILE TOO.**
+        `SessionResultStore.from_dict` builds its store with the default, so
+        without this an opened project would keep 8 revisions whatever the
+        setting said, until the setting next changed.
         """
         self._project = project
         uuid = project.uuid if project is not None else ""
@@ -134,6 +152,19 @@ class ResultStoreService:
             if store is not None:
                 logger.warning("Ignoring a result store for project %s", store.project_uuid)
             self.store = SessionResultStore(uuid)
+        self.store.set_max_revisions(self.revision_limit())
+
+    def revision_limit(self) -> int:
+        """How many revisions of each input the store keeps per molecule."""
+        if self._settings is None:
+            return MAX_REVISIONS
+        return int(self._settings.preference(MAX_REVISIONS_KEPT))
+
+    def _on_settings_changed(self, event: SettingsChanged) -> None:
+        # Applied at once, which trims: the Settings window asks before it
+        # stores a lower number, with `revisions_beyond`'s counts.
+        if event.key == MAX_REVISIONS_KEPT.key:
+            self.store.set_max_revisions(self.revision_limit())
 
     def add_recorded_listener(self, callback: Callable[[str], None]) -> None:
         self._on_recorded.append(callback)

@@ -37,6 +37,9 @@ from PySide6.QtWidgets import (
 from openchem.app.session import SessionManager
 from openchem.app.menu_help import MENU_HELP
 from openchem.app.settings import (
+    RAIL_HIDES_PANELS,
+    RECOVERY_DELAY_SECONDS,
+    RECOVERY_ENABLED,
     Settings,
     dialog_start_directory,
     remember_chosen_path,
@@ -88,7 +91,7 @@ from openchem.services.container import ServiceContainer
 from openchem.services.result_store_service import SUBSTANCE_PART
 from openchem.ui.widgets.help_tooltip import apply_help_tooltip
 from openchem.ui.dialogs.about_dialog import AboutDialog
-from openchem.ui.dialogs.external_tools_dialog import ExternalToolsDialog
+from openchem.ui.dialogs.settings_dialog import EXTERNAL_TOOLS, PANELS, SettingsDialog
 from openchem.ui.dialogs.help_dialog import HelpDialog
 from openchem.ui.dialogs.periodic_table_dialog import PeriodicTableDialog
 from openchem.ui.dialogs.structure_lookup_dialog import StructureLookupDialog
@@ -192,6 +195,7 @@ _MENU_KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
     "Identify Structure Online...": ("pubchem", "lookup", "search online", "name"),
     "External Tools...": ("orca", "vina", "sidecar", "executable", "path"),
+    "Settings...": ("preferences", "recovery", "autosave", "revisions"),
     "Check Structure...": ("valence", "sanitise", "sanitize", "validate", "problems"),
     # `crystal`, `cif` and `smiles` deliberately point HERE as well as at
     # the importer. "How do I turn a SMILES into a crystal structure" is a
@@ -838,7 +842,20 @@ class MainWindow(QMainWindow):
         choose Properties, Results hidden. So a dock is hidden only if it is
         still where the rail manages panels -- the chosen dock's area -- and
         the user has not placed it (`_on_dock_moved`).
+
+        **WITH "CHOOSING A PANEL HIDES THE OTHERS" OFF, NOTHING IS HIDDEN**
+        (`RAIL_HIDES_PANELS`): the chosen panel is shown beside whatever is
+        already open, and a panel leaves the screen only through the close
+        button on its own title bar. The window's OWN arranging still shows
+        exactly one -- construction and Reset Panel Layout run under
+        `_arranging` -- or the setting would open eleven panels at launch.
         """
+        if not self._arranging and not self._settings.preference(RAIL_HIDES_PANELS):
+            chosen.setVisible(True)
+            if not chosen.isFloating():
+                chosen.raise_()
+            self._sync_docking_box_overlay()
+            return
         placed = self._user_placed_docks
         chosen_area = self.dockWidgetArea(chosen)
         for dock in self._right_docks:
@@ -1705,6 +1722,17 @@ class MainWindow(QMainWindow):
             "rename_molecule",
         )
 
+        edit_menu.addSeparator()
+        # Ctrl+, is the preferences key on every platform that has one, and
+        # nothing here holds it: no QAction, and none of Ketcher's own
+        # hotkeys in the bundled editor (searched, 2026-09-14). Pressed with
+        # the focus in the canvas in a driven run, it opened this window
+        # (`benchmarks/visual/settings_window.json`).
+        settings_action = self._document(
+            edit_menu.addAction("Settings...", self._show_settings), "settings"
+        )
+        settings_action.setShortcut("Ctrl+,")
+
         # --- Structure -------------------------------------------------------
         #
         # Its own menu, following Marvin, which separates editing the
@@ -2471,7 +2499,7 @@ class MainWindow(QMainWindow):
 
     # --- recovery -------------------------------------------------------------
 
-    def enable_recovery(self, recovery_service, delay_ms: int = 5000) -> None:
+    def enable_recovery(self, recovery_service, delay_ms: int | None = None) -> None:
         """Keep a recovery copy of unsaved work. OFF unless this is called.
 
         **OFF BY DEFAULT, AND THAT IS A SAFETY PROPERTY.** The copy is written
@@ -2484,11 +2512,20 @@ class MainWindow(QMainWindow):
         Debounced: every change restarts the timer, so a burst of edits is
         one write. The generation is read when the write FIRES, and the
         service drops it if a Save or Discard advanced it in between.
+
+        Whether copies are written, and how long after a change, are the
+        Recovery settings, read when a write is scheduled and again when it
+        fires -- so a change applies from the next edit, and turning copies
+        off also stops one already queued. An explicit `delay_ms` fixes the
+        delay instead, for a test that cannot wait seconds.
         """
         self._recovery_service = recovery_service
+        self._recovery_delay_ms = delay_ms
         self._recovery_timer = QTimer(self)
         self._recovery_timer.setSingleShot(True)
-        self._recovery_timer.setInterval(delay_ms)
+        self._recovery_timer.setInterval(
+            delay_ms if delay_ms is not None else self._settings.preference(RECOVERY_DELAY_SECONDS) * 1000
+        )
         self._recovery_timer.timeout.connect(self._write_recovery)
         self._undo_stack.indexChanged.connect(self._schedule_recovery)
 
@@ -2496,6 +2533,11 @@ class MainWindow(QMainWindow):
         service = getattr(self, "_recovery_service", None)
         if service is None:
             return
+        if not self._settings.preference(RECOVERY_ENABLED):
+            self._recovery_timer.stop()
+            return
+        if self._recovery_delay_ms is None:
+            self._recovery_timer.setInterval(self._settings.preference(RECOVERY_DELAY_SECONDS) * 1000)
         self._recovery_generation = service.generation
         self._recovery_timer.start()
 
@@ -2503,6 +2545,8 @@ class MainWindow(QMainWindow):
         service = getattr(self, "_recovery_service", None)
         project = self._session.project
         if service is None or project is None or not self._session.is_dirty:
+            return
+        if not self._settings.preference(RECOVERY_ENABLED):
             return
         results, fingerprints = self._current_results()
         try:
@@ -4454,8 +4498,28 @@ class MainWindow(QMainWindow):
             self,
         ).exec()
 
+    def _show_settings(self) -> None:
+        self.show_settings()
+
     def _show_external_tools_dialog(self) -> None:
-        dialog = ExternalToolsDialog(self._settings, self)
+        # Tools > External Tools stays, and opens the Settings window where
+        # the tools now live: a menu route people know is not taken away
+        # because its window became a section of another.
+        self.show_settings(EXTERNAL_TOOLS)
+
+    def show_settings(self, section: str = PANELS, tool: str = "vina") -> None:
+        """Open the Settings window at `section`.
+
+        Handed the result store service, so lowering the revisions kept can
+        say exactly how much it would remove.
+        """
+        dialog = SettingsDialog(
+            self._settings,
+            self,
+            section=section,
+            tool=tool,
+            result_store_service=self._services.result_store_service,
+        )
         dialog.exec()
 
     def _open_log_folder(self) -> None:

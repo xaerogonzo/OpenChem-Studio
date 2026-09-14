@@ -2128,7 +2128,7 @@ the structure:
 
 | Menu | Holds |
 |---|---|
-| **Edit** | Undo/redo, Copy Structure As, Paste Structure, Duplicate, Rename |
+| **Edit** | Undo/redo, Copy Structure As, Paste Structure, Duplicate, Rename, Settings |
 | **Structure** | Aromatize/Dearomatize, Layout, Clean Up, explicit hydrogens, CIP stereo descriptors, Generate Conformers, Check Structure |
 | **View** | Which panels are shown, and 2D Structure Display toggles |
 | **Tools** | Periodic Table, Identify Structure Online, Virtual Screening, External Tools |
@@ -2364,11 +2364,46 @@ the detail pane and in every cell's tooltip.
 
 ---
 
+<!-- help:settings -->
+## Settings
+
+**Edit ▸ Settings…** (Ctrl+,) holds every preference in one window, with a
+list of sections down its left side. Changes apply as you make them, so
+there is no OK button. The one exception is lowering the number of versions
+kept, which asks first.
+
+- **Panels.** By default, choosing a panel from the rail hides the other
+  right-hand panels in its area, so the one you chose gets the whole column.
+  A panel you have dragged somewhere else, or floated, is never hidden. Turn
+  this off and choosing a panel only shows it: the others stay open beside
+  it, and each closes from its own title bar.
+- **Recovery.** Shortly after each change (5 seconds by default, 1 to 600),
+  a copy of an unsaved project and its results is written under the data
+  folder. It is offered back at the next launch if the app closed without
+  saving, and saving removes it. Turning copies off stops new ones being
+  written; a copy already written is still offered.
+- **Results.** How many versions of each molecule keep their results in
+  memory, 8 by default. The drawing and its 3D conformers are counted
+  separately, so a new conformer search never pushes out the results of the
+  drawing you are still looking at. Undoing back to a version that is still
+  kept shows its results without recomputing. Lowering the number removes
+  the older results straight away, after telling you how many. Your
+  molecules and undo are not affected. A saved project holds only each
+  molecule's current results, whatever this is set to.
+- **File dialogs.** Each kind of file dialog opens where it was last used:
+  projects, molecules, and macromolecules with crystal structures. **Forget**
+  sends one back to your Documents folder.
+- **External tools.** The seven tabs described [below](#external-tools).
+
+---
+
 <!-- help:external-tools -->
 ## External tools
 
-**Tools > External Tools** has seven tabs: AutoDock Vina, ORCA, pkasolver,
-ADMET, Java (Temurin), NMR Database, and Storage.
+**Edit ▸ Settings… ▸ External tools** has seven tabs: AutoDock Vina, ORCA,
+pkasolver, ADMET, Java (Temurin), NMR Database, and Storage. **Tools ▸
+External Tools…**, and the Configure buttons on the Docking and Quantum
+Chemistry panels, open the same window at the right tab.
 
 Each tab tells you what is currently detected, installs or configures the
 tool, and has a **Test** button that runs the tool for real rather than
