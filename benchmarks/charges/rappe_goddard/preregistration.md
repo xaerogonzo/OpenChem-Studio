@@ -18,6 +18,7 @@ The plan behind this is `docs/ROADMAP.md`, "EEM and QEq", DECIDED 2026-09-14.
 | `rappe1991_table4.csv` | same, Table IV (QEq and QEqHF columns) | `6b8e80bd1520d01071041ee12851e1e2e9ad29ec75580a4a856ad95bd6c949f3` |
 | `bultinck2002a_table1.csv` | Bultinck et al., J. Phys. Chem. A 2002, 106, 7887, Table 1 | `746f6c66cd334d32b84ec0e6f7cca3822b6d083e65b3fd78f37079f9c9ebb9aa` |
 | `geometries.csv` | Huber & Herzberg 1979, X-state r_e | `eaa1b880092da5ce33a7c77c85aa18d991c1a6d5ae88dd3d2afc028886f655a0` |
+| `harmony1979_structures.csv` | Harmony et al. 1979, every printed parameter of 15 molecules (added by amendment A4) | `da2928073adde371187a3f420cc9593e1a44ee0ebaee9cf2fd798c7cb5285229` |
 
 Every value was checked by eye against its page rendered at 300 dpi
 (Huber & Herzberg's rotated tables at 130 dpi). No fixture value comes from a
@@ -310,3 +311,61 @@ q₁ = [χ₂ − χ₁ + (2η₂ − 1/R) Q] / (2η₁ + 2η₂ − 2/R).
   stands and is not rounding.
 - No charge depends on this: the solver uses the printed ζ.
 
+### A4 (2026-09-14, after Harmony 1979 arrived and BEFORE any polyatomic solve)
+
+Harmony et al., J. Phys. Chem. Ref. Data 1979, 8, 619
+(https://doi.org/10.1063/1.555605; the PDF prints no DOI, so it was
+confirmed against Crossref's record for that volume and page) was added as `harmony1979_structures.csv`. Every printed column was
+transcribed, from 200 dpi renders.
+
+**Coverage.**
+- All five Table III molecules except the diatomics already run.
+- Every Table IV compound except **ethane**, which is not in the compilation.
+  Its C₂H₆ formulas run from C₂H₅P to C₂H₆BN, so it came from Landolt–Börnstein
+  (the paper's reference 16), which is not held. C₂H₆ stays skipped.
+
+**Which column, fixed now.** Harmony often prints several structure types for
+one parameter. For each parameter, take the first one printed in the order
+**equilibrium, substitution, average, effective**, from nearest to the
+equilibrium structure to furthest. The paper says only "experimental
+geometries".
+- One diagnostic is reported and is not a gate: the reverse order,
+  effective first.
+- The types used per molecule are recorded in the output.
+
+**Construction, fixed now.** Net charge 0 for every molecule; planar where
+Harmony's drawing or symmetry says so.
+
+| molecule | rule |
+|---|---|
+| H₂O, NH₃, PH₃ | C2v / C3v from the bond and the H–X–H angle |
+| CH₄, SiH₄ | Td from the bond |
+| H₂CO | planar C2v; H–C–O = (360° − HCH)/2 |
+| CO₂, C₂H₂ | linear |
+| H₂C=C=O | planar C2v, C=C=O linear, H–C–C = (360° − HCH)/2 |
+| CH₃CN | linear C–C≡N, C3v methyl with H–C–C = HCC |
+| C₂H₄ | planar D2h, H–C–C = (360° − HCH)/2 |
+| C₆H₆ | regular D6h hexagon, C–H radial |
+| HOC(O)H | planar. O1 is the carbonyl (Harmony's drawing). HCO is read as H–C–O1, so H–C–O2 = 360° − OCO − HCO = 111.3°. O2–H at COH, with **H syn to O1** (dihedral O1–C–O2–H = 0°) as drawn. |
+| H₂NC(O)H | planar. N–C–O = NCO, N–C–H = NCH. H1 at H1–N–C = 118.5° **on O's side** (dihedral H1–N–C–O = 0°) as drawn; H2 at 360° − 121.6° − 118.5° = 119.9° on the other side. |
+| H₃COH | C–O and C–O–H in a plane. The methyl is C3v (C–H, H–C–H) about an axis tilted φ from the C–O line **away from the OH group**, in that plane. It is **staggered**: one methyl H anti to the hydroxyl H across C–O, as drawn. |
+
+**Table IV's duplicate and positional labels.** These are inferences, stated
+because the table prints none of them:
+- **HOC(O)H:** the first O (printed before C) is O1, the carbonyl; the second
+  (printed directly above H(O)) is O2.
+- **H₃CCN:** the first C (printed after N) is the nitrile carbon; the second is
+  the methyl carbon.
+- **H₂C=C=O:** the first C (after O) is the carbonyl carbon; the second is CH₂.
+- **H₃COH:** Ht is the methyl H anti to the hydroxyl H; Hg is each of the two
+  gauche H, and both must match.
+- **H₂NC(O)H:** Hc is H1 (cis to O); Ht is H2.
+- **Where one label covers equivalent atoms** (the H of CH₄, C₂H₄, C₆H₆, SiH₄,
+  PH₃, CH₃CN, H₂CO, H₂C=C=O), every such atom must match.
+
+**Tolerances unchanged:** O4 ±0.002 e for polyatomics, O5 ±0.01 e.
+
+**What these can change.** Nothing about shipping: QEq already stopped on
+HF, LiH and O9. These rows complete the record Alex decides from. They are
+run under P, with the one-at-a-time alternates in `oracle.py`, as section 3
+requires.
