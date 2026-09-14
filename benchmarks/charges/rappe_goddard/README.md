@@ -176,10 +176,33 @@ one inferred from a compilation.
 - **Its citations do not point where its text says.** "Follow the earlier
   work" cites ref 6, a catalysis paper. Aluminium's parameters are cited to the
   1991 paper, whose Table I has no aluminium.
-- **Disiloxane at a real geometry** waits on Almenningen et al. 1963,
-  https://doi.org/10.3891/acta.chem.scand.17-2455. Until then SiH₄ stands as a
-  strongly supported inconsistency with the group's later program. It is not
-  called a misprint.
+- **Disiloxane at Almenningen et al. 1963's structure**
+  (https://doi.org/10.3891/acta.chem.scand.17-2455; Si–H 1.486, Si–O 1.634 Å,
+  Si–O–Si 144.1°, O–Si–H 109.9°). Adopted reading, experimental hydrogen set.
+  - **Pre-registered.**
+    - **Signs: held.** Every H is negative and Si positive, at the reference
+      structure, across Si–O–Si 140–180°, Si–O ±0.02 Å and silyl torsion
+      0/30/60°.
+    - **Magnitudes at the authors' non-firm conformation** (in-plane H nearest
+      the 2-fold axis): O −0.6362 (printed −0.636), Si +0.4218 (+0.420) and
+      H2 −0.0283 (−0.040) **held**. **H1 FAILED**: −0.0472 against −0.021,
+      tolerance ±0.02.
+  - **Post hoc, found after H1 failed.** Almenningen's data do not fix the
+    conformation. In the other C2v conformation (in-plane H anti, torsion 60°)
+    **all four printed values reproduce within 0.002 e**: O −0.6361,
+    Si +0.4219, H1 −0.0228, H2 −0.0406.
+  - **Post hoc, and not used to choose anything.** O and Si move by under
+    0.001 e with torsion, so they compare readings with no conformation choice
+    involved. The adopted λ = ½ gives −0.636 / +0.422. The pre-registered
+    reading gives −0.624 / +0.388, and no torsion from 0 to 60° or Si–O–Si
+    from 140 to 150° brings it within 0.03 e. This is independent support for
+    A6 from data that played no part in it.
+  - **So:** Rappé's group's 1996 program reproduces, to 0.002 e, as this
+    solver with 1991 Table I silicon and λ = ½. That same program would give
+    silane hydrogen about −0.045, where the 1991 Table IV prints +0.13. The
+    SiH₄ row is inconsistent with the authors' own program under every check
+    available. It is still not called a misprint, because the 1991 program
+    itself is not available.
 
 **Transcriptions.** Bakowies & Thiel 1996 reprint Table I's H/C/N/O χ and J and
 23 comparable Table IV QEqHF cells. All agree with our fixtures, including

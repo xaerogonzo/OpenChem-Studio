@@ -1975,8 +1975,10 @@ struck through and marked SHIPPED here, never deleted.
       - LiH has one self-consistent charge, −0.974, and the printed −0.767 is
         not one; damped iteration reaches −0.974, never the printed value.
       - SiH₄'s sign is contradicted by Rappé's group's own 1996 QEq charges
-        for O(SiH₃)₂, which are negative; confirming at a real disiloxane
-        geometry waits on Almenningen 1963.
+        for O(SiH₃)₂, which are negative. At Almenningen 1963's structure
+        this solver (λ = ½, Table I silicon) reproduces that 1996 table to
+        0.002 e in one of the two C2v conformations (post hoc), and the
+        pre-registered λ reading cannot.
       - Bakowies & Thiel 1996 confirm the transcriptions.
       - The bound procedure and speed are deferred to their own plans.
 - **Geometry-dependent charges at a pH.** Not started, and deliberately

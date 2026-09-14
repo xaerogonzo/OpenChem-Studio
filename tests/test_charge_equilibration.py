@@ -985,5 +985,74 @@ def test_the_disiloxane_builder_reproduces_almenningen_1963():
         assert all(abs(angle(a, si, b) - p["HSiH"]) < 0.1 for a, b in itertools.combinations(hs, 2))
     mirrored = coords * np.array([-1.0, -1.0, 1.0])
     assert max(np.min(np.linalg.norm(coords - m, axis=1)) for m in mirrored) < 1e-12
+    # a twisted torsion must keep the C2 axis: +t on one silyl is -t on the other
+    for torsion in (30.0, 45.0):
+        _, twisted, _ = qeq_geometries.build_disiloxane(torsion=torsion)
+        rotated = twisted * np.array([-1.0, -1.0, 1.0])
+        assert max(np.min(np.linalg.norm(twisted - m, axis=1)) for m in rotated) < 1e-9, torsion
     axis_distance = lambda i: math.hypot(coords[i][0], coords[i][1])
     assert max(axis_distance(i) for i in groups["H1"]) < min(axis_distance(i) for i in groups["H2"])
+
+
+RAMACHANDRAN_TABLE_2_QEQ = {"O": -0.636, "Si": 0.420, "H1": -0.021, "H2": -0.040}
+DISILOXANE_TOLERANCE = {"O": 0.03, "Si": 0.02, "H1": 0.02, "H2": 0.02}
+
+
+def _disiloxane(readings=ce.ADOPTED, **geometry):
+    elements, coords, groups = qeq_geometries.build_disiloxane(**geometry)
+    result = ce.qeq_charges(elements, coords, hydrogen="experimental", readings=readings)
+    assert result.status == "converged" and not result.clamped
+    return result.charges, coords, groups
+
+
+def test_disiloxane_signs_match_ramachandran_1996_in_every_a7_geometry():
+    """A7's first test, sign before magnitude: every H negative and both Si
+    positive at the reference structure, across Si-O-Si 140-180 deg, Si-O
+    +-0.02 A, and silyl torsion 0/30/60 deg. HELD."""
+    geometries = [{}] + [{"si_o_si": a} for a in (140, 150, 160, 170, 180)] + [{"si_o": 1.614}, {"si_o": 1.654}] + [{"torsion": t} for t in (0, 30, 60)]
+    for geometry in geometries:
+        charges, _, groups = _disiloxane(**geometry)
+        assert all(charges[i] < 0 for i in groups["H1"] + groups["H2"]), geometry
+        assert all(charges[i] > 0 for i in groups["Si"]), geometry
+
+
+@pytest.mark.parametrize("label", ["O", "Si", "H2"])
+def test_disiloxane_magnitudes_at_the_reference_conformation(label):
+    """A7's second test, at the authors' non-firm conformation (in-plane H
+    nearest the 2-fold axis). Measured: O -0.6362, Si +0.4218, H2 -0.0283."""
+    charges, _, groups = _disiloxane()
+    assert all(abs(charges[i] - RAMACHANDRAN_TABLE_2_QEQ[label]) <= DISILOXANE_TOLERANCE[label] for i in groups[label])
+
+
+@pytest.mark.xfail(strict=True, reason="STOP RECORD (A7): at the reference conformation the in-plane H is -0.0472 against H1's -0.021, outside +-0.02")
+def test_disiloxane_h1_at_the_reference_conformation():
+    charges, _, groups = _disiloxane()
+    assert all(abs(charges[i] - RAMACHANDRAN_TABLE_2_QEQ["H1"]) <= DISILOXANE_TOLERANCE["H1"] for i in groups["H1"])
+
+
+def test_post_hoc_the_other_c2v_conformation_reproduces_all_of_table_2():
+    """NOT PRE-REGISTERED -- found after H1 failed, and recorded as such. With
+    the in-plane hydrogen anti (torsion 60: pointing away from the other Si,
+    the other C2v conformation), the two in-plane H give -0.0228 (H1 -0.021)
+    and the four others -0.0406 (H2 -0.040), with O -0.6361 and Si +0.4219:
+    all four within 0.002 e. Almenningen's data do not fix the conformation."""
+    charges, coords, _ = _disiloxane(torsion=60)
+    in_plane = [charges[h] for h in range(3, 9) if abs(coords[h][1]) < 1e-9]
+    out_of_plane = [charges[h] for h in range(3, 9) if abs(coords[h][1]) >= 1e-9]
+    assert len(in_plane) == 2 and len(out_of_plane) == 4
+    computed = {"O": charges[0], "Si": charges[1], "H1": float(np.mean(in_plane)), "H2": float(np.mean(out_of_plane))}
+    assert np.ptp(in_plane) < 1e-9 and np.ptp(out_of_plane) < 1e-9
+    assert all(abs(computed[k] - RAMACHANDRAN_TABLE_2_QEQ[k]) <= 0.002 for k in computed)
+
+
+def test_post_hoc_disiloxane_oxygen_and_silicon_separate_the_two_lambda_readings():
+    """NOT PRE-REGISTERED, and not used to choose anything (A6 was already
+    decided). O and Si barely move with conformation (< 0.001 e over torsion
+    0-60 deg), so they compare readings without the conformation question.
+    ADOPTED (lambda = 1/2) gives -0.636 / +0.422 against the printed -0.636 /
+    +0.420; PREREGISTERED gives -0.624 / +0.388, 0.032 e off on Si."""
+    for torsion in (0, 30, 60):
+        adopted, _, _ = _disiloxane(torsion=torsion)
+        preregistered, _, _ = _disiloxane(readings=ce.PREREGISTERED, torsion=torsion)
+        assert abs(adopted[0] - RAMACHANDRAN_TABLE_2_QEQ["O"]) <= 0.002 and abs(adopted[1] - RAMACHANDRAN_TABLE_2_QEQ["Si"]) <= 0.003
+        assert abs(preregistered[1] - RAMACHANDRAN_TABLE_2_QEQ["Si"]) >= 0.025

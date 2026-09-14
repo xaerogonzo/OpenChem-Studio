@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 8b56683fbd27e4196dac168b43286a8370ca34a5bc5f6a045a74ca1364542927 -->
+<!-- SOURCE SHA256: 008825a0fea366aa1ead96f3fa676cf669892c93204c9e7bebdce864396c489a -->
 
 # Sources
 
@@ -93,7 +93,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`allen2014`](#allen2014) | literature | reference only | citation |
 | [`allen2016`](#allen2016) | literature | reference only | citation |
 | [`allred1961`](#allred1961) | reference_table | shipped | citation |
-| [`almenningen1963`](#almenningen1963) | literature | reference only | citation |
+| [`almenningen1963`](#almenningen1963) | literature | **not shipped** | citation + claim |
 | [`alves2014`](#alves2014) | literature | reference only | citation |
 | [`aqsoldb`](#aqsoldb) | dataset | shipped | citation |
 | [`autodock_vina`](#autodock_vina) | software | shipped | citation + claim |
@@ -2106,19 +2106,23 @@ DOI and pages confirmed against Crossref.
 | | |
 | --- | --- |
 | Identifier | [10.3891/acta.chem.scand.17-2455](https://doi.org/10.3891/acta.chem.scand.17-2455) |
-| Status | reference only |
-| Verification | citation |
+| Status | **not shipped** |
+| Verification | citation + claim |
 | Verified | 2026-09-14 |
+| Local copy | `acta_vol_17_p2455-2460.pdf` (not checked) |
 
-**Why it is reference only.** NOT HELD YET; ASKED FOR. The gas-phase disiloxane structure needed to run QEq
-on Ramachandran et al. 1996's O(SiH3)2 (their Table 2), which states no
-geometry. Neither Harmony 1979 nor the 1998 Kuchitsu digest prints it (the
-digest only names it, II/7(2,292)). Amendment A7 fixes how it would be used:
-source parameters and reconstructed symmetry kept apart, sign before
-magnitude.
+**Why it is not shipped.** THE DISILOXANE GEOMETRY FOR THE QEQ SILICON CHECK. Ramachandran et al. 1996
+give O(SiH3)2 QEq charges without a geometry; this electron-diffraction
+structure (Table 1 final results: Si-H 1.486, Si-O 1.634 A, Si-O-Si 144.1,
+O-Si-H 109.9, H-Si-H 109.1 deg) supplies it, transcribed from a scan with no
+text layer into tests/fixtures/charges/almenningen1963_disiloxane.csv.
 
-Title, journal and year from Crossref's record; nothing about its contents is
-claimed here.
+The paper does NOT fix the silyl conformation: C2v with one hydrogen nearest
+the 2-fold axis is "the most obvious interpretation", "not ... a firm
+conclusion". At that conformation QEq here misses Ramachandran's H1 (the
+pre-registered test failed); at the other C2v conformation it reproduces all
+four printed charges within 0.002 e, a post-hoc finding recorded as such.
+Checksum: a C3v silyl with O-Si-H 109.9 implies H-Si-H 109.04; 109.1 printed.
 
 ### bakowies1996
 

@@ -20209,3 +20209,23 @@ SiH₄ conclusion stays "strongly supported inconsistency", not "misprint".
 seven papers recommended, one was cited as evidence for charge mixing. Its 15
 "mixing" hits are an alloy mixing index. A second claim, about a commercial
 package's defaults, could not be verified and is recorded as such.
+
+**Then the geometry arrived, and the pre-registered magnitude test failed.**
+At Almenningen 1963's disiloxane, signs held and O, Si and one hydrogen class
+matched Ramachandran's table. The other hydrogen class missed, in the
+conformation the diffraction authors called likely but not firm. The other
+C2v conformation reproduces all four printed charges to 0.002 e. That was
+found after the failure, so it is a post-hoc test beside a strict xfail, not
+a replacement for it.
+
+The O and Si charges barely depend on conformation, and they separate the two
+λ readings cleanly (0.002 against 0.032 e). That is support for A6 from data
+that played no part in it, and the only kind of support a post-hoc choice
+should be credited with.
+
+**A symmetry test at the symmetric angles cannot see the symmetry.** The
+disiloxane builder gave the two silyls opposite torsions. That is the mirror
+twin, and it is identical to C2 at 0° and 60°, the only torsions any test
+used. A mutation flipping the sign stayed green. Checking C2 at 30° failed on
+the ORIGINAL code, not the mutant. Its one affected sweep point was re-run;
+no sign changed.

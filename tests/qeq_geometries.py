@@ -200,9 +200,12 @@ def build_disiloxane(si_o: float | None = None, si_o_si: float | None = None, to
     else:
         reference1, reference2 = si2, si1
     hydrogens = []
-    for si, ref, sign in ((si1, reference1, 1.0), (si2, reference2, -1.0)):
+    # The same signed dihedral on both silyls is what the C2 rotation maps onto
+    # itself; opposite signs build the mirror (Cs) twin, which coincides with
+    # C2 only at 0 and 60 deg -- a test holds the twisted case.
+    for si, ref in ((si1, reference1), (si2, reference2)):
         for k in range(3):
-            hydrogens.append(_place(si, o, ref, p["SiH"], p["OSiH"], sign * torsion + 120.0 * k))
+            hydrogens.append(_place(si, o, ref, p["SiH"], p["OSiH"], torsion + 120.0 * k))
     elements = ["O", "Si", "Si"] + ["H"] * 6
     groups = {"O": [0], "Si": [1, 2], "H1": [3, 6], "H2": [4, 5, 7, 8]}
     return elements, np.array([o, si1, si2, *hydrogens]), groups
