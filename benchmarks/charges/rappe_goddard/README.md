@@ -23,8 +23,9 @@ uv run --no-sync python benchmarks/charges/rappe_goddard/oracle.py
     experimental column for H₂O, NH₃ and CH₄ lands within 0.002 e, as HF's did.
   - The paper's text supports R4: "Rounding off to λ = 1/2 … and hence (17)
     becomes (17′)".
-  - The pre-registration does not allow promoting a reading because it fits,
-    so this is a decision for Alex, below.
+- **R4 is ADOPTED (amendment A6, 2026-09-14), after the tables were seen.**
+  It is the solver's default; P stays in the code as `PREREGISTERED`, and
+  every P number below stays on file. QEq still does not ship.
 
 | # | Oracle | Result |
 |---|---|---|
@@ -32,8 +33,8 @@ uv run --no-sync python benchmarks/charges/rappe_goddard/oracle.py
 | O1 | against the 30-digit mpmath table (1076 rows; its two coordinate systems agree to 1.8e-22 Ha) | **worst 5.2e-14 Ha**, at the near-zero point R = 1e-6 bohr; passes |
 | O2 | eq 17 regenerates Table I's ζ | 14 elements within ±0.0001; **N misses by 2.5e-5**, within the rounding of its printed radius (amendment A3); **O misses by 0.0030**, four times its rounding, recorded before any solve |
 | O3 | Table II, 20 alkali halides, both λ columns | **passes: worst 0.0005 e** in each column, and eq 18 agrees with the general solver to 1e-8 e |
-| O4 | Table III hydrogen charges (±0.001 e diatomic, ±0.002 e polyatomic) | **STOP**: under P, HF, H₂O, NH₃ and CH₄ miss and LiH never converges |
-| O5 | Table IV at ±0.01 e: diatomics at Huber r_e, polyatomics at Harmony 1979 geometries (A4), ethane at Iijima 1973 from the 1998 Kuchitsu digest (A5) | **P misses 34 of 70 cells; R4 misses 7** (below) |
+| O4 | Table III hydrogen charges (±0.001 e diatomic, ±0.002 e polyatomic) | **STOP**: under P, HF, H₂O, NH₃ and CH₄ miss and LiH never converges; under the adopted R4, the QEq column passes except LiH, and the QEqHF column misses HF, H₂O, NH₃ and CH₄ |
+| O5 | Table IV at ±0.01 e: diatomics at Huber r_e, polyatomics at Harmony 1979 geometries (A4), ethane at Iijima 1973 from the 1998 Kuchitsu digest (A5) | **P misses 34 of 70 cells; R4, adopted, misses 7** (below) |
 | O6 | Open Babel's EEM, given Table 1 | same arithmetic to 1e-6 e (compatibility only) |
 | O7 | EEM eq 3's diatomic closed form | passes; the η-for-2η build fails, as it must |
 | O8 | EEM matrix, entry by entry | passes |
@@ -149,15 +150,12 @@ accuracy.
 
 ## The decisions this needs
 
-0. **Adopt R4 (λ = ½, eq 17′) as the reading, and say why.**
-   - It is what the text says the authors adopted.
-   - With the experimental hydrogen set it reproduces 33 of Table IV's 35
-     cells (it misses formamide's C by 0.001 past tolerance, and SiH₄) and all
-     of Table III's polyatomics. With the HF-fitted set it misses 5 of 35.
-   - The cost of adopting it now is that it was chosen after seeing the
-     tables. The record would have to say so, and P's failure stays on file.
-   - LiH, SiH₄, the QEqHF column and the bound procedure (O9) remain open
-     either way.
+0. ~~Adopt R4 (λ = ½, eq 17′) as the reading.~~ **DECIDED 2026-09-14: adopted**
+   (amendment A6). With the experimental hydrogen set it reproduces 33 of
+   Table IV's 35 polyatomic cells (it misses formamide's C by 0.001 past
+   tolerance, and SiH₄) and all of Table III's polyatomics. With the
+   HF-fitted set it misses 5 of 35. The record says it was chosen after the
+   tables were seen.
 1. **The hydrogen treatment.**
    - Ship QEq only for molecules without hydrogen? That is almost nothing
      useful.
@@ -168,6 +166,15 @@ accuracy.
 2. **The bound algorithm.** Keep the paper's never-release fixing, or
    replace it with a true constrained minimum, labelled as a departure from
    the paper.
-3. **Ethane** runs at a geometry from the 1998 digest of Landolt–Börnstein,
-   not from II/7 itself (amendment A5). Seeing II/7 would confirm or overturn
-   that inference; it changes one row.
+3. ~~Ethane's source.~~ **Not needed (measured 2026-09-14, A6).** Under R4,
+   every structure the 1998 digest prints gives Q_H within ±0.01 e of both
+   columns, and the four span 0.005 e, so what Landolt–Börnstein II/7 printed
+   cannot change the row.
+
+## Sources looked at for SiH₄, and not useful
+
+- **Rappé et al. 1992, UFF** (https://doi.org/10.1021/ja00051a040): Table I
+  holds bond, angle and van der Waals data only. The GMP electronegativities
+  are cited to Rappé & Goddard, "submitted", the same unpublished paper as
+  the 1991 references 9 and 24.
+- The GMP papers themselves have no Crossref record.

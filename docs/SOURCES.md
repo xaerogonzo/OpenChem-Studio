@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: faf34b4019434326b6016b32d45054842eb12d8fe6df370ab8dc94d30a80d75e -->
+<!-- SOURCE SHA256: 9401cb543ddb7c390e4c12c17f492c3538f678c1635ebb05a1bfcdc7dbbb04ac -->
 
 # Sources
 
@@ -199,6 +199,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`quiroga2016`](#quiroga2016) | literature | shipped | citation + claim |
 | [`ran2002`](#ran2002) | literature | reference only | citation |
 | [`rappe1991`](#rappe1991) | literature | **not shipped** | citation + claim |
+| [`rappe1992`](#rappe1992) | literature | **not shipped** | citation |
 | [`rcsb_pdb`](#rcsb_pdb) | dataset | shipped | citation |
 | [`rdkit`](#rdkit) | software | shipped | citation |
 | [`rdkit_bertz`](#rdkit_bertz) | software | shipped | citation + claim |
@@ -2028,6 +2029,34 @@ Kept on record because it is the newest experimental gas-phase structure
 compilation held, should a later check need modern reference geometries.
 
 DOI read off the PDF.
+
+### rappe1992
+
+<a id="rappe1992"></a>
+
+> A. K. Rappé, C. J. Casewit, K. S. Colwell, W. A. Goddard III & W. M. Skiff, 'UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular Dynamics Simulations', J. Am. Chem. Soc. 1992, 114, 10024-10035.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00051a040](https://doi.org/10.1021/ja00051a040) |
+| Status | **not shipped** |
+| Verification | citation |
+| Verified | 2026-09-14 |
+| Local copy | `rappe1992.pdf` (not checked) |
+
+**Why it is not shipped.** READ FOR QEQ'S SILICON, AND NOT USABLE. Opened because SiH4 is the one Table
+IV hydride QEq gets wrong in sign under every reading, and UFF is the same
+group's full-periodic-table parameterisation a year later.
+
+Its Table I ("Atomic Data") holds bond radius, angle, van der Waals distance
+and energy, scale and effective charge only. It prints no electronegativity,
+hardness or QEq radius: the GMP electronegativities are cited to Rappe &
+Goddard, J. Phys. Chem., "submitted" (its ref 13), the same unpublished paper
+the 1991 QEq paper cites, and partial charges to the 1991 paper itself.
+Amendment A6 of benchmarks/charges/rappe_goddard/preregistration.md says so.
+
+DOI and page range from Crossref's record (10024-10035); the PDF's first page
+carries a banner for the preceding article.
 
 ### mortier1986
 

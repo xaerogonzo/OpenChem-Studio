@@ -1963,10 +1963,14 @@ struck through and marked SHIPPED here, never deleted.
     - **Harmony et al. 1979 arrived, and the polyatomic rows point at one
       reading.** Against Tables III and IV at its geometries, the
       pre-registered reading misses 39 of 76 cells and the λ = ½ reading
-      (eq 17′, which the text says the authors adopted) misses 10. Promoting a
-      reading because it fits is a decision, not a fix, so it waits on Alex.
-      SiH₄ fails under every reading. Ethane, which Harmony lacks, runs at
-      Iijima 1973's structure from the 1998 Landolt–Börnstein digest.
+      (eq 17′, which the text says the authors adopted) misses 10. SiH₄ fails
+      under every reading. Ethane, which Harmony lacks, runs at Iijima 1973's
+      structure from the 1998 Landolt–Börnstein digest.
+    - **DECIDED 2026-09-14: λ = ½ adopted** (amendment A6), recorded as
+      chosen after the tables were seen; the pre-registered reading stays
+      reproducible. Ethane passes at every structure the digest prints, so
+      Landolt–Börnstein II/7 is not needed. Still open: LiH, SiH₄, the
+      HF-fitted hydrogen column, the bound procedure, and speed.
 - **Geometry-dependent charges at a pH.** Not started, and deliberately
   separate from the item above. It needs the coordinate gate recorded there:
   protonation must not move or lose the conformer's heavy atoms.

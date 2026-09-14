@@ -15,7 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stored conformer as it is, with its own hydrogens and net charge. Open
   Babel's "Bultinck" EEM file turned out to hold a different parameter set,
   so it is not used. Rappé–Goddard QEq was implemented too and is not offered:
-  it reproduces the paper's halides but not its hydrogen charges.
+  it reproduces the paper's halides but not its hydrogen charges. Its
+  solver now uses λ = ½ for every element, the rounding the paper's text
+  describes, which reproduces 66 of 76 of its polyatomic charges; the
+  choice was made after comparing, and is recorded as such.
 
 ### Fixed
 

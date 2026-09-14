@@ -2151,6 +2151,32 @@ DOI read off the PDF.
 """
 
 [[source]]
+key = "rappe1992"
+kind = "literature"
+citation = "A. K. Rappé, C. J. Casewit, K. S. Colwell, W. A. Goddard III & W. M. Skiff, 'UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular Dynamics Simulations', J. Am. Chem. Soc. 1992, 114, 10024-10035."
+identifier_type = "doi"
+identifier = "10.1021/ja00051a040"
+status = "assessed_not_shipped"
+local = "rappe1992.pdf"
+verification = "citation"
+verified_date = 2026-09-14
+reason = """
+READ FOR QEQ'S SILICON, AND NOT USABLE. Opened because SiH4 is the one Table
+IV hydride QEq gets wrong in sign under every reading, and UFF is the same
+group's full-periodic-table parameterisation a year later.
+
+Its Table I ("Atomic Data") holds bond radius, angle, van der Waals distance
+and energy, scale and effective charge only. It prints no electronegativity,
+hardness or QEq radius: the GMP electronegativities are cited to Rappe &
+Goddard, J. Phys. Chem., "submitted" (its ref 13), the same unpublished paper
+the 1991 QEq paper cites, and partial charges to the 1991 paper itself.
+Amendment A6 of benchmarks/charges/rappe_goddard/preregistration.md says so.
+
+DOI and page range from Crossref's record (10024-10035); the PDF's first page
+carries a banner for the preceding article.
+"""
+
+[[source]]
 key = "mortier1986"
 kind = "literature"
 citation = "W. J. Mortier, S. K. Ghosh & S. Shankar, 'Electronegativity Equalization Method for the Calculation of Atomic Charges in Molecules', J. Am. Chem. Soc. 1986, 108, 4315-4320."

@@ -308,8 +308,9 @@ def test_o1_symmetric_in_its_two_densities_and_coulombic_far_apart():
 @pytest.mark.parametrize("row", _rows("rappe1991_table2.csv"), ids=lambda r: r["molecule"])
 def test_o3_table_ii_at_huber_herzberg_distances(row):
     elements, coords = _diatomic(row["metal"], row["halogen"], _r_e(row["molecule"]))
-    table = ce.qeq_charges(elements, coords, 0.0)
-    eq17_prime = ce.qeq_charges(elements, coords, 0.0, readings=ce.ALTERNATES["R4"])
+    # Table II prints both readings side by side, so each column is held to its own.
+    table = ce.qeq_charges(elements, coords, 0.0, readings=ce.PREREGISTERED)
+    eq17_prime = ce.qeq_charges(elements, coords, 0.0, readings=ce.ADOPTED)
     assert table.status == eq17_prime.status == "converged"
     assert not table.clamped and not table.bound_extension_used
     assert abs(table.charges[0] - float(row["Q_QEq"])) <= 0.001, (table.charges[0], row["Q_QEq"])
@@ -325,7 +326,7 @@ def test_o3_eq18_from_the_fixture_with_the_oracle_integral_agrees_with_the_gener
     j_mx, _ = momentum_integral(int(m["n"]), float(m["zeta_au"]), int(x["n"]), float(x["zeta_au"]), distance)
     eq18 = (float(x["chi_eV"]) - float(m["chi_eV"])) / (float(m["J_eV"]) + float(x["J_eV"]) - 2 * j_mx * 27.211386)
     elements, coords = _diatomic(metal, halogen, _r_e(row["molecule"]))
-    solver = ce.qeq_charges(elements, coords, 0.0)
+    solver = ce.qeq_charges(elements, coords, 0.0, readings=ce.PREREGISTERED)  # the fixture's printed zeta
     assert abs(solver.charges[0] - eq18) <= 1e-8
     assert abs(solver.charges[0] + solver.charges[1]) < 1e-12  # eq 18: Q_X = -Q_M
 
@@ -341,7 +342,7 @@ COLUMNS = (("QEq", "experimental"), ("QEqHF", "hf"))
 
 @functools.lru_cache(maxsize=None)
 def _solved(molecule: str, hydrogen: str):
-    """(charges, Table IV printed_order -> atom indices) under P, at the geometry
+    """(charges, Table IV printed_order -> atom indices) under ADOPTED, at the geometry
     amendment A4 builds. Diatomics use Huber & Herzberg's r_e."""
     if molecule in DIATOMIC_HYDRIDES:
         elements, coords = _diatomic(*DIATOMIC_HYDRIDES[molecule], _r_e(GEOMETRY_NAME[molecule]))
@@ -352,27 +353,19 @@ def _solved(molecule: str, hydrogen: str):
     return result, mapping
 
 
-#: STOP RECORD (pre-registration section 8): the Table III and IV cells P misses,
-#: with P's value. Measured 2026-09-14. The one-at-a-time alternates are in
-#: benchmarks/charges/rappe_goddard/oracle.py -- R4 (lambda = 1/2 for every
-#: element, eq 17') misses 7 of the 68 Table IV cells, but a reading that fits
-#: is a question for Alex, never a replacement for P.
-P_MISSES_III = {
-    ("HF", "QEq"): 0.4568, ("HF", "QEqHF"): 0.4613, ("LiH", "QEq"): None, ("LiH", "QEqHF"): None,
-    ("H2O", "QEq"): 0.345, ("NH3", "QEq"): 0.230, ("NH3", "QEqHF"): 0.223, ("CH4", "QEq"): 0.134, ("CH4", "QEqHF"): 0.114,
+#: STOP RECORD (pre-registration section 8, amendment A6): the Table III and IV
+#: cells ADOPTED (lambda = 1/2, eq 17') misses, with its value. Measured
+#: 2026-09-14. The pre-registered reading missed 43 of these test cells (9 in
+#: Table III, 34 in Table IV); its values are in
+#: benchmarks/charges/rappe_goddard/README.md and oracle.py still prints them.
+ADOPTED_MISSES_III = {
+    ("HF", "QEqHF"): 0.4671, ("LiH", "QEq"): None, ("LiH", "QEqHF"): None,
+    ("H2O", "QEqHF"): 0.3536, ("NH3", "QEqHF"): 0.2354, ("CH4", "QEqHF"): 0.1292,
 }
-P_MISSES_IV = {
-    ("NH3", 1, "QEq"): 0.23, ("CH4", 1, "QEq"): 0.134, ("CH4", 1, "QEqHF"): 0.114, ("CO2", 1, "QEq"): -0.426,
-    ("CO2", 1, "QEqHF"): -0.426, ("H2CO", 1, "QEqHF"): -0.43, ("H2CO", 2, "QEqHF"): 0.219, ("H3COH", 5, "QEqHF"): 0.171,
-    ("H2NC(O)H", 1, "QEqHF"): -0.415, ("H2NC(O)H", 2, "QEq"): 0.365, ("H2NC(O)H", 2, "QEqHF"): 0.382,
-    ("H2NC(O)H", 3, "QEq"): -0.597, ("H2NC(O)H", 3, "QEqHF"): -0.585, ("H2NC(O)H", 4, "QEq"): 0.279,
-    ("HOC(O)H", 2, "QEq"): 0.524, ("HOC(O)H", 2, "QEqHF"): 0.536, ("HOC(O)H", 3, "QEqHF"): 0.158,
-    ("HOC(O)H", 4, "QEq"): -0.633, ("HOC(O)H", 4, "QEqHF"): -0.633, ("HOC(O)H", 5, "QEq"): 0.37,
-    ("H3CCN", 1, "QEqHF"): -0.238, ("H3CCN", 2, "QEq"): 0.192, ("H3CCN", 2, "QEqHF"): 0.196, ("H3CCN", 3, "QEq"): -0.331,
-    ("H3CCN", 3, "QEqHF"): -0.275, ("H2C=C=O", 1, "QEq"): -0.434, ("H2C=C=O", 1, "QEqHF"): -0.436,
-    ("H2C=C=O", 2, "QEq"): 0.394, ("H2C=C=O", 2, "QEqHF"): 0.396, ("H2C=C=O", 3, "QEq"): -0.197,
-    ("H2C=C=O", 3, "QEqHF"): -0.157, ("SiH4", 1, "QEq"): -0.042, ("SiH4", 1, "QEqHF"): -0.069,
-    ("C2H6", 1, "QEq"): 0.1426,
+ADOPTED_MISSES_IV = {
+    ("H3COH", 1, "QEqHF"): 0.3561, ("H3COH", 3, "QEqHF"): -0.104, ("H3COH", 5, "QEqHF"): 0.1737,
+    ("H2NC(O)H", 2, "QEq"): 0.4011, ("H2NC(O)H", 3, "QEqHF"): -0.6233,
+    ("SiH4", 1, "QEq"): -0.0454, ("SiH4", 1, "QEqHF"): -0.0758,
 }
 
 
@@ -381,8 +374,8 @@ def _o4_params():
     for row in _rows("rappe1991_table3.csv"):
         for column, hydrogen in COLUMNS:
             key = (row["molecule"], column)
-            marks = [pytest.mark.xfail(strict=True, reason=f"STOP RECORD: P gives {P_MISSES_III[key]} against {row[column]}" if P_MISSES_III[key] is not None
-                                       else "STOP RECORD: no reading converges; near the printed -0.767 J_Li + J_HH(Q) - 2 J_LiH is 0.28 eV under P, where 1.98 would be needed")] if key in P_MISSES_III else []
+            marks = [pytest.mark.xfail(strict=True, reason=f"STOP RECORD: ADOPTED gives {ADOPTED_MISSES_III[key]} against {row[column]}" if ADOPTED_MISSES_III[key] is not None
+                                       else "STOP RECORD: no reading converges; near the printed -0.767 J_Li + J_HH(Q) - 2 J_LiH is 0.28 eV under P, where 1.98 would be needed")] if key in ADOPTED_MISSES_III else []
             params.append(pytest.param(row, column, hydrogen, marks=marks, id=f"{row['molecule']}-{column}"))
     return params
 
@@ -404,7 +397,7 @@ def _o5_params():
             continue
         for column, hydrogen in COLUMNS:
             key = (row["molecule"], int(row["printed_order"]), column)
-            marks = [pytest.mark.xfail(strict=True, reason=f"STOP RECORD: P gives {P_MISSES_IV[key]} against {row[column]}")] if key in P_MISSES_IV else []
+            marks = [pytest.mark.xfail(strict=True, reason=f"STOP RECORD: ADOPTED gives {ADOPTED_MISSES_IV[key]} against {row[column]}")] if key in ADOPTED_MISSES_IV else []
             params.append(pytest.param(row, column, hydrogen, marks=marks, id=f"{row['molecule']}-{row['printed_order']}-{column}"))
     return params
 
@@ -696,7 +689,7 @@ def test_both_solvers_are_permutation_equivariant():
 def test_the_r1_alternate_changes_only_hydrogen_off_diagonal_entries():
     elements, coords = FORMALDEHYDE
     charges = {2: 0.11, 3: 0.12}
-    primary, _, _ = ce.qeq_hardness_matrix(elements, coords, charges, readings=ce.PRIMARY)
+    primary, _, _ = ce.qeq_hardness_matrix(elements, coords, charges, readings=ce.PREREGISTERED)
     alternate, _, _ = ce.qeq_hardness_matrix(elements, coords, charges, readings=ce.ALTERNATES["R1"])
     for i, j in itertools.product(range(4), repeat=2):
         involves_h = i != j and (elements[i] == "H" or elements[j] == "H")
@@ -704,7 +697,7 @@ def test_the_r1_alternate_changes_only_hydrogen_off_diagonal_entries():
             assert primary[i, j] != alternate[i, j]
         else:
             assert primary[i, j] == alternate[i, j]
-    at_zero_p, _, _ = ce.qeq_hardness_matrix(elements, coords, {}, readings=ce.PRIMARY)
+    at_zero_p, _, _ = ce.qeq_hardness_matrix(elements, coords, {}, readings=ce.PREREGISTERED)
     at_zero_a, _, _ = ce.qeq_hardness_matrix(elements, coords, {}, readings=ce.ALTERNATES["R1"])
     assert np.array_equal(at_zero_p, at_zero_a)
 

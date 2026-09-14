@@ -397,3 +397,47 @@ II/7 has not been seen.**
 (2019), https://doi.org/10.1007/978-3-030-29430-4. Its introduction scopes it to
 structures published 2009–2017, so nothing in it could be a geometry Rappé &
 Goddard used in 1991.
+
+### A6 (2026-09-14, AFTER every oracle had run -- a post-hoc choice, disclosed as such)
+
+**The decision.** Alex adopted R4 (eq 17′, λ = ½ for every element) as the
+reading the solver uses. `charge_equilibration.ADOPTED` is R4, and it is the
+default. P stays in the code as `PREREGISTERED`, unchanged, so the
+pre-registered result can still be reproduced.
+
+**Why it is post-hoc, and why it was made anyway.** Section 3 forbids
+promoting a reading because it fits, and R4 was chosen after the tables had
+been compared: P misses 39 of 76 polyatomic cells, and R4 misses 10. Three
+things made the choice defensible, and none of them is the fit alone:
+- the paper's text describes it: "Rounding off to λ = 1/2 … and hence (17)
+  becomes (17′)";
+- Table II prints a λ = ½ column, and R4 reproduces it to 0.0005 e, as P does
+  Table II's other column;
+- the improvement is consistent across 15 molecules, not concentrated in one.
+
+**What changed.**
+- The stop record in `tests/test_charge_equilibration.py` now lists R4's
+  misses, not P's: 6 Table III cells (HF QEqHF; LiH, both columns; the QEqHF
+  column of H₂O, NH₃ and CH₄) and 7 of 74 Table IV cells (methanol's H(O), C
+  and Ht in QEqHF; formamide's C in QEq and N in QEqHF; SiH₄ in both). P
+  missed 43 of the same test cells.
+- O3 holds each Table II column to its own reading explicitly.
+- A mutation that sets `ADOPTED = PREREGISTERED` turns 56 tests red.
+
+**What did not change.** Tolerances, fixtures and geometries. QEq still does
+not ship: LiH never converges, SiH₄ is wrong in sign, the HF-fitted hydrogen
+column misses more than the experimental one, the bound procedure misses the
+KKT optimum (O9), and a drug-sized molecule takes minutes.
+
+**Ethane's geometry, measured (A5 follow-up).** Solved under R4 at every
+structure the 1998 digest prints (Iijima 1973 r_z and r_g, Hirota 1981 r_z,
+Harmony 1990 r_m; H–C–H from C–C–H where only that is printed), Q_H is 0.150
+to 0.155 with the experimental set (printed 0.16) and 0.130 to 0.135 with the
+HF set (printed 0.13). All four pass ±0.01 e, and they span 0.005 e. Which
+determination Landolt–Börnstein II/7 printed cannot change ethane's result,
+so II/7 is not needed.
+
+**Checked and not useful.** Rappé, Casewit, Colwell, Goddard & Skiff 1992
+(UFF, https://doi.org/10.1021/ja00051a040) prints no electronegativity,
+hardness or QEq radius. It cites the same unpublished GMP paper ("submitted")
+for them, so it cannot explain SiH₄.

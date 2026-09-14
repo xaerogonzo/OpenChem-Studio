@@ -10,9 +10,12 @@ only as a compatibility benchmark (`benchmarks/charges/`).
 EVERY CHOICE THE PAPERS LEAVE OPEN IS PRE-REGISTERED, not decided here:
 `benchmarks/charges/rappe_goddard/preregistration.md`, committed before this
 file existed. The four readings of Rappé & Goddard that the paper leaves
-ambiguous are `QEqReadings`; `PRIMARY` is the one fixed in advance, and the
-others exist so they can be reported beside it -- never so the one that fits
-the tables best can be picked.
+ambiguous are `QEqReadings`. `PREREGISTERED` is the one fixed in advance, and
+the others exist so they can be reported beside it. `ADOPTED` is the one the
+solver uses by default: lambda = 1/2 for every element (eq 17'), chosen by
+Alex on 2026-09-14 AFTER the tables had been compared (amendment A6). It is
+the reading the paper's text describes, and it is recorded as a post-hoc
+choice, not as the pre-registered result.
 
 Pure by design: element symbols, coordinates in angstrom and a net charge
 in, charges out. No RDKit and no molecule model, so the solver's atoms are
@@ -358,8 +361,8 @@ def solve_bounded(
 @dataclass(frozen=True)
 class QEqReadings:
     """The four places Rappé & Goddard leave a choice open (pre-registration
-    section 3). `PRIMARY` was fixed before any solve; each alternate differs
-    from it in exactly one field."""
+    section 3). `PREREGISTERED` was fixed before any solve; each alternate
+    differs from it in exactly one field, and `ADOPTED` is alternate R4."""
 
     #: R1: does zeta_H(Q) (eq 20) enter the two-centre integrals?
     zeta_h_in_pairs: bool = True
@@ -372,15 +375,22 @@ class QEqReadings:
     zeta_source: str = "table_i"
 
 
-#: The readings fixed in advance.
-PRIMARY = QEqReadings()
-#: Each alternate differs from PRIMARY in one field, and is only ever reported beside it.
+#: The readings fixed in advance ("P" in the benchmark). Kept so the
+#: pre-registered result stays reproducible: it misses 39 of 76 Table III/IV cells.
+PREREGISTERED = QEqReadings()
+#: Each alternate differs from PREREGISTERED in one field.
 ALTERNATES = {
-    "R1": replace(PRIMARY, zeta_h_in_pairs=False),
-    "R2": replace(PRIMARY, hydrogen_self_term="eq23_gradient"),
-    "R3": replace(PRIMARY, oxygen_zeta="from_radius"),
-    "R4": replace(PRIMARY, zeta_source="eq17_prime"),
+    "R1": replace(PREREGISTERED, zeta_h_in_pairs=False),
+    "R2": replace(PREREGISTERED, hydrogen_self_term="eq23_gradient"),
+    "R3": replace(PREREGISTERED, oxygen_zeta="from_radius"),
+    "R4": replace(PREREGISTERED, zeta_source="eq17_prime"),
 }
+#: The default: R4, lambda = 1/2 for every element (eq 17'). Adopted 2026-09-14
+#: after the tables were compared, so a POST-HOC choice (amendment A6). The
+#: paper's text supports it -- "Rounding off to lambda = 1/2 ... (17) becomes
+#: (17')" -- and Table II prints a lambda = 1/2 column, which it reproduces;
+#: Table II's other column (Table I's zeta) is PREREGISTERED's.
+ADOPTED = ALTERNATES["R4"]
 
 
 def charge_bounds(element: str) -> tuple[float, float]:
@@ -391,7 +401,7 @@ def charge_bounds(element: str) -> tuple[float, float]:
     return -(8.0 - valence), float(valence)
 
 
-def valence_zeta(element: str, readings: QEqReadings = PRIMARY) -> float:
+def valence_zeta(element: str, readings: QEqReadings = ADOPTED) -> float:
     """The eq-15 exponent this reading uses for `element` at zero charge."""
     n, _chi, _j, radius, printed = QEQ_TABLE_I[element]
     radius_bohr = radius / QEQ_BOHR_ANGSTROM
@@ -436,7 +446,7 @@ def _overlap(coords: np.ndarray) -> tuple[int, int] | None:
 
 def qeq_hardness_matrix(
     elements: list[str], coords: np.ndarray, hydrogen_charges: dict[int, float],
-    hydrogen: str = "experimental", readings: QEqReadings = PRIMARY,
+    hydrogen: str = "experimental", readings: QEqReadings = ADOPTED,
 ) -> tuple[np.ndarray, np.ndarray, dict[int, tuple[float, float]]]:
     """C (eV) and chi (eV) at the given hydrogen charges, plus each hydrogen's
     (zeta_H, hardness_diag_H). Public so the R1-isolation test can compare the
@@ -487,7 +497,7 @@ def _trace_class(deltas: list[float], signed: list[float]) -> str:
 
 def qeq_charges(
     elements: list[str], coords_angstrom, net_charge: float = 0.0,
-    hydrogen: str = "experimental", readings: QEqReadings = PRIMARY,
+    hydrogen: str = "experimental", readings: QEqReadings = ADOPTED,
     max_outer: int = 50, tolerance: float = 1e-8,
 ) -> QEqResult:
     """Rappé–Goddard charge equilibration on explicit coordinates.

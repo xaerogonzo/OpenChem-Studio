@@ -20149,6 +20149,15 @@ Harmony 1979 supplied the polyatomic geometries, the pre-registered primary
 the text itself describes adopting (λ = ½, eq 17′) missed 10. The
 pre-registration made that a question rather than a quiet switch, which is the
 point of it: the fit is evidence, and choosing after the fit is still a choice.
+Alex made it the same day (amendment A6): λ = ½ is the default, the record
+says it was chosen after the tables, and the pre-registered reading stays
+reproducible beside it.
+
+**Measure whether a missing source matters before chasing it.** Ethane's
+geometry came from a 1998 digest, not the 1976 volume the paper cites, and
+getting that volume looked necessary. Solving ethane at all four structures
+the digest prints moved Q_H by 0.005 e against a ±0.01 e tolerance, so no
+edition could change the row.
 
 Also found on the way: a 3D result's conformer id was read off the live model
 AFTER the calculator returned, so a conformer search landing mid-run filed the

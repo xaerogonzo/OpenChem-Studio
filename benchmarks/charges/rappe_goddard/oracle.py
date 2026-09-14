@@ -4,9 +4,9 @@
 
 Prints, for every literature row that has a geometry (Huber & Herzberg for
 diatomics, Harmony 1979 through amendment A4 for polyatomics):
-the printed value, P (the primary reading), and each one-at-a-time alternate
-(R1-R4), for both hydrogen parameter sets. Then two diagnostics that change
-nothing in the solver:
+the printed value, P (the pre-registered reading), and each one-at-a-time
+alternate (R1-R4; R4 is the reading amendment A6 adopted), for both hydrogen
+parameter sets. Then two diagnostics that change nothing in the solver:
 
 - LiH's self-consistency residual g(Q) = Q_solved(Q) - Q on a grid of trial
   hydrogen charges: whether a self-consistent charge EXISTS where the plain
@@ -48,12 +48,12 @@ def diatomic(a, b, d):
     return [a, b], np.array([[0.0, 0.0, 0.0], [0.0, 0.0, d]])
 
 
-READINGS = [("P", ce.PRIMARY)] + list(ce.ALTERNATES.items())
+READINGS = [("P", ce.PREREGISTERED)] + list(ce.ALTERNATES.items())
 
 
 def table_ii():
     print("== Table II (O3): max |computed - printed| over 20 halides, no hydrogen")
-    for label, readings, column in (("P  vs Q_QEq", ce.PRIMARY, "Q_QEq"), ("R4 vs Q_lambda=0.5", ce.ALTERNATES["R4"], "Q_lambda_0_5")):
+    for label, readings, column in (("P  vs Q_QEq", ce.PREREGISTERED, "Q_QEq"), ("R4 vs Q_lambda=0.5", ce.ADOPTED, "Q_lambda_0_5")):
         worst = max(
             (abs(ce.qeq_charges(*diatomic(r["metal"], r["halogen"], r_e(r["molecule"])), readings=readings).charges[0] - float(r[column])), r["molecule"])
             for r in rows("rappe1991_table2.csv")
@@ -163,7 +163,7 @@ def polyatomics():
         for column, hydrogen in (("QEq", "experimental"), ("QEqHF", "hf")):
             target = float(printed[column])
             cells = []
-            for name, readings in READINGS + [("rev", ce.PRIMARY)]:
+            for name, readings in READINGS + [("rev", ce.PREREGISTERED)]:
                 result, mapping = charges(molecule, hydrogen, readings, g.REVERSED if name == "rev" else g.PREFERRED)
                 if result.charges is None:
                     cells.append(f"{'no conv':>16}")
