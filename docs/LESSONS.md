@@ -20163,3 +20163,49 @@ Also found on the way: a 3D result's conformer id was read off the live model
 AFTER the calculator returned, so a conformer search landing mid-run filed the
 result under the wrong conformer. It is now read at resolution, with a test
 that lands the search mid-run.
+
+## A PRINTED CHARGE THAT IS NOT A SOLUTION, AND A SECOND PAPER'S TABLE THAT DOES NOT SUM
+
+2026-09-14, branch `qeq-open-issues`, amendment A7 of
+`benchmarks/charges/rappe_goddard/preregistration.md`.
+
+**"It does not converge" was the wrong question.** LiH looked like an
+iteration problem: 50 iterations, no convergence, and a reviewer suggested
+charge mixing. The useful move was to separate three questions:
+- does a fixed point exist?
+- is the printed charge one?
+- does this iteration reach it?
+
+On one hydrogen charge that costs a 2001-point scan. It answered all three:
+- one root, −0.9737;
+- g(−0.767) = −0.233, so the printed charge is not a root;
+- the map's slope at the root is −14.06, so plain iteration cannot reach it,
+  and damping below α ≈ 0.13 can.
+
+Mixing would have "fixed" the non-convergence and shipped a charge 0.2 e from
+the paper's, looking like a repair. The test that no converging α lands near
+the printed value is what stops that.
+
+**A prediction taken from an unregistered number failed, and the record says
+so.** The slope was predicted as −14.24 ± 0.1 from an earlier estimate taken
+at a linearly interpolated root. The frozen procedure measured −14.06. The
+conclusion (|s| > 1) survives; the number in the test is the measured one,
+with the failed prediction in its docstring.
+
+**Sum a table before believing it: the checksum again, on a second paper.**
+Ramachandran et al. 1996 is the best silicon evidence found. Rappé's group
+prints negative silyl hydrogens, against the 1991 paper's +0.13 for SiH₄. Its
+Table 3 QEq column repeats Table 2's numbers and sums to −2.208 e, while all
+six reference columns beside it sum to zero. The same arithmetic inferred
+Table 2's unprinted multiplicities (2 × H1, 4 × H2), because only that split
+conserves charge in all four columns.
+
+**A paper's citations are a field too.** Its "follow the earlier work" cites a
+catalysis paper, and it cites aluminium's parameters to a table with no
+aluminium. So "its silicon is 1991 Table I's" stays an inference, and the
+SiH₄ conclusion stays "strongly supported inconsistency", not "misprint".
+
+**A reviewer's summary of a paper is a claim to check, not a reading.** Of the
+seven papers recommended, one was cited as evidence for charge mixing. Its 15
+"mixing" hits are an alloy mixing index. A second claim, about a commercial
+package's defaults, could not be verified and is recorded as such.

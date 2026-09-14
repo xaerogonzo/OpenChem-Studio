@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 9401cb543ddb7c390e4c12c17f492c3538f678c1635ebb05a1bfcdc7dbbb04ac -->
+<!-- SOURCE SHA256: 8b56683fbd27e4196dac168b43286a8370ca34a5bc5f6a045a74ca1364542927 -->
 
 # Sources
 
@@ -93,12 +93,14 @@ next run of `tools/build_lewis_parameters.py`.
 | [`allen2014`](#allen2014) | literature | reference only | citation |
 | [`allen2016`](#allen2016) | literature | reference only | citation |
 | [`allred1961`](#allred1961) | reference_table | shipped | citation |
+| [`almenningen1963`](#almenningen1963) | literature | reference only | citation |
 | [`alves2014`](#alves2014) | literature | reference only | citation |
 | [`aqsoldb`](#aqsoldb) | dataset | shipped | citation |
 | [`autodock_vina`](#autodock_vina) | software | shipped | citation + claim |
 | [`avdeef2007`](#avdeef2007) | literature | shipped | citation + claim |
 | [`avdeef2020`](#avdeef2020) | literature | shipped | citation + claim |
 | [`baell2010`](#baell2010) | literature | shipped | citation |
+| [`bakowies1996`](#bakowies1996) | literature | **not shipped** | citation + claim |
 | [`ballester2010`](#ballester2010) | literature | **not shipped** | citation |
 | [`bertz1981`](#bertz1981) | literature | shipped | citation |
 | [`bickerton2012`](#bickerton2012) | literature | shipped | citation |
@@ -183,6 +185,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | citation |
 | [`npscorer2015`](#npscorer2015) | software | shipped | citation |
 | [`nubase2020`](#nubase2020) | dataset | shipped | citation + claim |
+| [`oda2003`](#oda2003) | literature | reference only | citation |
 | [`ons_solubility`](#ons_solubility) | dataset | shipped | citation |
 | [`openbabel`](#openbabel) | software | shipped | citation |
 | [`opsin`](#opsin) | software | shipped | citation |
@@ -197,6 +200,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`platts1999`](#platts1999) | literature | **not shipped** | citation + claim |
 | [`pyside6`](#pyside6) | software | shipped | citation |
 | [`quiroga2016`](#quiroga2016) | literature | shipped | citation + claim |
+| [`ramachandran1996`](#ramachandran1996) | literature | **not shipped** | citation + claim |
 | [`ran2002`](#ran2002) | literature | reference only | citation |
 | [`rappe1991`](#rappe1991) | literature | **not shipped** | citation + claim |
 | [`rappe1992`](#rappe1992) | literature | **not shipped** | citation |
@@ -214,6 +218,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`su2019`](#su2019) | literature | shipped | citation + claim |
 | [`tdc_admet`](#tdc_admet) | dataset | reference only | citation |
 | [`tenbrink2009`](#tenbrink2009) | literature | shipped | citation + claim |
+| [`thompson2002`](#thompson2002) | literature | reference only | citation |
 | [`threedmol`](#threedmol) | software | shipped | citation |
 | [`tosco2014`](#tosco2014) | literature | reference only | citation |
 | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
@@ -223,9 +228,12 @@ next run of `tools/build_lewis_parameters.py`.
 | [`waasmaier1995`](#waasmaier1995) | literature | shipped | citation + claim |
 | [`wang2021`](#wang2021) | literature | reference only | citation |
 | [`wang2022`](#wang2022) | literature | reference only | citation |
+| [`wells2014`](#wells2014) | literature | reference only | citation |
 | [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
 | [`wildman1999`](#wildman1999) | literature | shipped | citation |
+| [`wilmer2012`](#wilmer2012) | literature | reference only | citation |
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
+| [`zhang2009`](#zhang2009) | literature | reference only | citation |
 | [`zhu2023`](#zhu2023) | literature | reference only | citation |
 | [`zhuang2022`](#zhuang2022) | literature | shipped | citation + claim |
 
@@ -2057,6 +2065,196 @@ Amendment A6 of benchmarks/charges/rappe_goddard/preregistration.md says so.
 
 DOI and page range from Crossref's record (10024-10035); the PDF's first page
 carries a banner for the preceding article.
+
+### ramachandran1996
+
+<a id="ramachandran1996"></a>
+
+> S. Ramachandran, T. G. Lenz, W. M. Skiff & A. K. Rappé, 'Toward an Understanding of Zeolite Y as a Cracking Catalyst with the Use of Periodic Charge Equilibration', J. Phys. Chem. 1996, 100, 5898-5907.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp952864q](https://doi.org/10.1021/jp952864q) |
+| Status | **not shipped** |
+| Verification | citation + claim |
+| Verified | 2026-09-14 |
+| Local copy | `ramachandran1996.pdf` (not checked) |
+
+**Why it is not shipped.** READ FOR QEQ'S SILICON, AND IT IS THE STRONGEST LEAD: Rappe's own group, five
+years after the QEq paper, running QEq. Its Table 2 gives O(SiH3)2 QEq
+charges O -0.636, Si +0.420, H1 -0.021, H2 -0.040 -- silyl hydrogen NEGATIVE,
+the sign this application's QEq gives SiH4 under every reading, where the
+1991 Table IV prints +0.13. Its Table 8 gives water's QEq H as 0.353 at a
+geometry it states (0.9572 A, 104.52 deg), which QEq here reproduces (0.3532).
+
+Two defects, measured: its Table 3 QEq column for Si(OH)4 repeats Table 2's
+numbers and sums to -2.208 e while every reference column conserves charge;
+and its parameter citations do not point where the text says ("follow the
+earlier work", ref 6, is a catalysis paper; aluminium's parameters are cited
+to the 1991 paper, whose Table I has no aluminium). So that its silicon is
+1991 Table I's is an inference. Transcribed into
+tests/fixtures/charges/ramachandran1996_tables.csv; amendment A7.
+
+DOI and pages confirmed against Crossref.
+
+### almenningen1963
+
+<a id="almenningen1963"></a>
+
+> A. Almenningen, O. Bastiansen, V. Ewing, K. Hedberg & M. Traetteberg, 'The Molecular Structure of Disiloxane, (SiH3)2O', Acta Chem. Scand. 1963, 17, 2455.
+
+| | |
+| --- | --- |
+| Identifier | [10.3891/acta.chem.scand.17-2455](https://doi.org/10.3891/acta.chem.scand.17-2455) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-14 |
+
+**Why it is reference only.** NOT HELD YET; ASKED FOR. The gas-phase disiloxane structure needed to run QEq
+on Ramachandran et al. 1996's O(SiH3)2 (their Table 2), which states no
+geometry. Neither Harmony 1979 nor the 1998 Kuchitsu digest prints it (the
+digest only names it, II/7(2,292)). Amendment A7 fixes how it would be used:
+source parameters and reconstructed symmetry kept apart, sign before
+magnitude.
+
+Title, journal and year from Crossref's record; nothing about its contents is
+claimed here.
+
+### bakowies1996
+
+<a id="bakowies1996"></a>
+
+> D. Bakowies & W. Thiel, 'Semiempirical Treatment of Electrostatic Potentials and Partial Charges in Combined Quantum Mechanical and Molecular Mechanical Approaches', J. Comput. Chem. 1996, 17, 87-108.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/(SICI)1096-987X(19960115)17:1<87::AID-JCC8>3.0.CO;2-X](https://doi.org/10.1002/(SICI)1096-987X(19960115)17:1<87::AID-JCC8>3.0.CO;2-X) |
+| Status | **not shipped** |
+| Verification | citation + claim |
+| Verified | 2026-09-14 |
+| Local copy | `bakowies1996.pdf` (not checked) |
+
+**Why it is not shipped.** USED AS A TRANSCRIPTION CROSS-CHECK, NOT AS A METHOD. Its QEq/PD model
+replaces Rappe-Goddard's Slater integrals with Klopman-Ohno and refits H, C, N
+and O only (no silicon), so it cannot bear on SiH4.
+
+Its Table VIII reprints Rappe-Goddard's chi and J for H, C, N, O, and its
+Table X reprints 23 comparable QEqHF charges ("exp. geometries"); every one
+agrees with this application's transcription of the 1991 tables, including
+two cells that match amendment A4's label inferences. Transcribed into
+tests/fixtures/charges/bakowies1996_table8_parameters.csv and
+bakowies1996_table10_charges.csv; amendment A7.
+
+DOI and pages confirmed against Crossref.
+
+### oda2003
+
+<a id="oda2003"></a>
+
+> A. Oda & S. Hirono, 'Geometry-dependent atomic charge calculations using charge equilibration method with empirical two-center Coulombic terms', J. Mol. Struct. THEOCHEM 2003, 634, 159-170.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/S0166-1280(03)00338-5](https://doi.org/10.1016/S0166-1280(03)00338-5) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-14 |
+| Local copy | `oda2003.pdf` (not checked) |
+
+**Why it is reference only.** BACKGROUND ON LATER QEQ VARIANTS, AND NOT EVIDENCE ABOUT SPEED. It replaces the
+two-centre Slater integrals with five empirical formulas and takes "original
+QEq" charges from ArgusLab 3.0. It reports no timings and no per-atom charges
+from the literal method, so it says nothing about why this application's
+literal QEq takes 13-202 s; that is measured to be its numerical quadrature.
+
+DOI and pages confirmed against Crossref.
+
+### zhang2009
+
+<a id="zhang2009"></a>
+
+> M. Zhang & R. Fournier, 'Self-Consistent Charge Equilibration Method and Its Application to Au13Nan (n = 1, 10) Clusters', J. Phys. Chem. A 2009, 113, 3162-3170.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp8063273](https://doi.org/10.1021/jp8063273) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-14 |
+| Local copy | `zhang2009.pdf` (not checked) |
+
+**Why it is reference only.** A HIGHER-ORDER QEQ FOR METAL CLUSTERS, NOT A SOURCE FOR THE 1991 METHOD.
+Suggested as evidence that QEq implementations use charge mixing; read, and
+every one of its "mixing" hits is an alloy mixing index (how Au and Na atoms
+mix in a cluster), not iteration mixing. Recorded so the claim is not
+repeated.
+
+DOI and pages confirmed against Crossref.
+
+### thompson2002
+
+<a id="thompson2002"></a>
+
+> J. D. Thompson, J. D. Xidos, T. M. Sonbuchner, C. J. Cramer & D. G. Truhlar, 'More reliable partial atomic charges when using diffuse basis sets', PhysChemComm 2002, 5, 117-134.
+
+| | |
+| --- | --- |
+| Identifier | [10.1039/B206369G](https://doi.org/10.1039/B206369G) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-14 |
+| Local copy | `10.1039@B206369G.pdf` (not checked) |
+
+**Why it is reference only.** CHARGE-MODEL BENCHMARKING (CM3), SILANES INCLUDED, AND NO QEQ. Suggested for the
+SiH4 sign; it shows that what an atomic charge "is" depends on the partition,
+which is true and does not bear on the question actually open here: whether
+Rappe-Goddard's own parameters and equations reproduce their own printed
+number.
+
+DOI read off the PDF; Crossref's record carries the first page only.
+
+### wells2014
+
+<a id="wells2014"></a>
+
+> B. A. Wells, C. De Bruin-Dickason & A. L. Chaffee, 'Charge Equilibration Based on Atomic Ionization in Metal-Organic Frameworks', J. Phys. Chem. C 2015, 119, 456-466.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp510415h](https://doi.org/10.1021/jp510415h) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-14 |
+| Local copy | `wells2014.pdf` (not checked) |
+
+**Why it is reference only.** LATER QEQ VARIANTS FOR MOFs, NOT A SOURCE FOR THE 1991 METHOD. It uses
+DasGupta-Huzinaga integrals, Materials Studio's QEq parameters and a new
+hydrogen treatment. Its description of Rappe-Goddard's hydrogen values does
+not match their Table I, so it is not relied on for the 1991 details.
+
+The PDF held is the December 2014 ASAP manuscript; the issue is 2015.
+DOI and pages confirmed against Crossref.
+
+### wilmer2012
+
+<a id="wilmer2012"></a>
+
+> C. E. Wilmer, K. C. Kim & R. Q. Snurr, 'An Extended Charge Equilibration Method', J. Phys. Chem. Lett. 2012, 3, 2506-2511.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jz3008485](https://doi.org/10.1021/jz3008485) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-14 |
+| Local copy | `wilmer2012.pdf` (not checked) |
+
+**Why it is reference only.** EQEQ, A DELIBERATELY NON-ITERATIVE VARIANT, NOT A SOURCE FOR THE 1991 METHOD.
+Useful context only: it notes that QEq's hydrogen term is cubic in the energy,
+which guarantees a minimum but forces iteration -- the loop whose LiH
+behaviour amendment A7 diagnoses.
+
+DOI and pages confirmed against Crossref.
 
 ### mortier1986
 

@@ -2177,6 +2177,180 @@ carries a banner for the preceding article.
 """
 
 [[source]]
+key = "ramachandran1996"
+kind = "literature"
+citation = "S. Ramachandran, T. G. Lenz, W. M. Skiff & A. K. Rappé, 'Toward an Understanding of Zeolite Y as a Cracking Catalyst with the Use of Periodic Charge Equilibration', J. Phys. Chem. 1996, 100, 5898-5907."
+identifier_type = "doi"
+identifier = "10.1021/jp952864q"
+status = "assessed_not_shipped"
+local = "ramachandran1996.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-09-14
+reason = """
+READ FOR QEQ'S SILICON, AND IT IS THE STRONGEST LEAD: Rappe's own group, five
+years after the QEq paper, running QEq. Its Table 2 gives O(SiH3)2 QEq
+charges O -0.636, Si +0.420, H1 -0.021, H2 -0.040 -- silyl hydrogen NEGATIVE,
+the sign this application's QEq gives SiH4 under every reading, where the
+1991 Table IV prints +0.13. Its Table 8 gives water's QEq H as 0.353 at a
+geometry it states (0.9572 A, 104.52 deg), which QEq here reproduces (0.3532).
+
+Two defects, measured: its Table 3 QEq column for Si(OH)4 repeats Table 2's
+numbers and sums to -2.208 e while every reference column conserves charge;
+and its parameter citations do not point where the text says ("follow the
+earlier work", ref 6, is a catalysis paper; aluminium's parameters are cited
+to the 1991 paper, whose Table I has no aluminium). So that its silicon is
+1991 Table I's is an inference. Transcribed into
+tests/fixtures/charges/ramachandran1996_tables.csv; amendment A7.
+
+DOI and pages confirmed against Crossref.
+"""
+
+[[source]]
+key = "almenningen1963"
+kind = "literature"
+citation = "A. Almenningen, O. Bastiansen, V. Ewing, K. Hedberg & M. Traetteberg, 'The Molecular Structure of Disiloxane, (SiH3)2O', Acta Chem. Scand. 1963, 17, 2455."
+identifier_type = "doi"
+identifier = "10.3891/acta.chem.scand.17-2455"
+status = "reference_only"
+verification = "citation"
+verified_date = 2026-09-14
+reason = """
+NOT HELD YET; ASKED FOR. The gas-phase disiloxane structure needed to run QEq
+on Ramachandran et al. 1996's O(SiH3)2 (their Table 2), which states no
+geometry. Neither Harmony 1979 nor the 1998 Kuchitsu digest prints it (the
+digest only names it, II/7(2,292)). Amendment A7 fixes how it would be used:
+source parameters and reconstructed symmetry kept apart, sign before
+magnitude.
+
+Title, journal and year from Crossref's record; nothing about its contents is
+claimed here.
+"""
+
+[[source]]
+key = "bakowies1996"
+kind = "literature"
+citation = "D. Bakowies & W. Thiel, 'Semiempirical Treatment of Electrostatic Potentials and Partial Charges in Combined Quantum Mechanical and Molecular Mechanical Approaches', J. Comput. Chem. 1996, 17, 87-108."
+identifier_type = "doi"
+identifier = "10.1002/(SICI)1096-987X(19960115)17:1<87::AID-JCC8>3.0.CO;2-X"
+status = "assessed_not_shipped"
+local = "bakowies1996.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-09-14
+reason = """
+USED AS A TRANSCRIPTION CROSS-CHECK, NOT AS A METHOD. Its QEq/PD model
+replaces Rappe-Goddard's Slater integrals with Klopman-Ohno and refits H, C, N
+and O only (no silicon), so it cannot bear on SiH4.
+
+Its Table VIII reprints Rappe-Goddard's chi and J for H, C, N, O, and its
+Table X reprints 23 comparable QEqHF charges ("exp. geometries"); every one
+agrees with this application's transcription of the 1991 tables, including
+two cells that match amendment A4's label inferences. Transcribed into
+tests/fixtures/charges/bakowies1996_table8_parameters.csv and
+bakowies1996_table10_charges.csv; amendment A7.
+
+DOI and pages confirmed against Crossref.
+"""
+
+[[source]]
+key = "oda2003"
+kind = "literature"
+citation = "A. Oda & S. Hirono, 'Geometry-dependent atomic charge calculations using charge equilibration method with empirical two-center Coulombic terms', J. Mol. Struct. THEOCHEM 2003, 634, 159-170."
+identifier_type = "doi"
+identifier = "10.1016/S0166-1280(03)00338-5"
+status = "reference_only"
+local = "oda2003.pdf"
+verification = "citation"
+verified_date = 2026-09-14
+reason = """
+BACKGROUND ON LATER QEQ VARIANTS, AND NOT EVIDENCE ABOUT SPEED. It replaces the
+two-centre Slater integrals with five empirical formulas and takes "original
+QEq" charges from ArgusLab 3.0. It reports no timings and no per-atom charges
+from the literal method, so it says nothing about why this application's
+literal QEq takes 13-202 s; that is measured to be its numerical quadrature.
+
+DOI and pages confirmed against Crossref.
+"""
+
+[[source]]
+key = "zhang2009"
+kind = "literature"
+citation = "M. Zhang & R. Fournier, 'Self-Consistent Charge Equilibration Method and Its Application to Au13Nan (n = 1, 10) Clusters', J. Phys. Chem. A 2009, 113, 3162-3170."
+identifier_type = "doi"
+identifier = "10.1021/jp8063273"
+status = "reference_only"
+local = "zhang2009.pdf"
+verification = "citation"
+verified_date = 2026-09-14
+reason = """
+A HIGHER-ORDER QEQ FOR METAL CLUSTERS, NOT A SOURCE FOR THE 1991 METHOD.
+Suggested as evidence that QEq implementations use charge mixing; read, and
+every one of its "mixing" hits is an alloy mixing index (how Au and Na atoms
+mix in a cluster), not iteration mixing. Recorded so the claim is not
+repeated.
+
+DOI and pages confirmed against Crossref.
+"""
+
+[[source]]
+key = "thompson2002"
+kind = "literature"
+citation = "J. D. Thompson, J. D. Xidos, T. M. Sonbuchner, C. J. Cramer & D. G. Truhlar, 'More reliable partial atomic charges when using diffuse basis sets', PhysChemComm 2002, 5, 117-134."
+identifier_type = "doi"
+identifier = "10.1039/B206369G"
+status = "reference_only"
+local = "10.1039@B206369G.pdf"
+verification = "citation"
+verified_date = 2026-09-14
+reason = """
+CHARGE-MODEL BENCHMARKING (CM3), SILANES INCLUDED, AND NO QEQ. Suggested for the
+SiH4 sign; it shows that what an atomic charge "is" depends on the partition,
+which is true and does not bear on the question actually open here: whether
+Rappe-Goddard's own parameters and equations reproduce their own printed
+number.
+
+DOI read off the PDF; Crossref's record carries the first page only.
+"""
+
+[[source]]
+key = "wells2014"
+kind = "literature"
+citation = "B. A. Wells, C. De Bruin-Dickason & A. L. Chaffee, 'Charge Equilibration Based on Atomic Ionization in Metal-Organic Frameworks', J. Phys. Chem. C 2015, 119, 456-466."
+identifier_type = "doi"
+identifier = "10.1021/jp510415h"
+status = "reference_only"
+local = "wells2014.pdf"
+verification = "citation"
+verified_date = 2026-09-14
+reason = """
+LATER QEQ VARIANTS FOR MOFs, NOT A SOURCE FOR THE 1991 METHOD. It uses
+DasGupta-Huzinaga integrals, Materials Studio's QEq parameters and a new
+hydrogen treatment. Its description of Rappe-Goddard's hydrogen values does
+not match their Table I, so it is not relied on for the 1991 details.
+
+The PDF held is the December 2014 ASAP manuscript; the issue is 2015.
+DOI and pages confirmed against Crossref.
+"""
+
+[[source]]
+key = "wilmer2012"
+kind = "literature"
+citation = "C. E. Wilmer, K. C. Kim & R. Q. Snurr, 'An Extended Charge Equilibration Method', J. Phys. Chem. Lett. 2012, 3, 2506-2511."
+identifier_type = "doi"
+identifier = "10.1021/jz3008485"
+status = "reference_only"
+local = "wilmer2012.pdf"
+verification = "citation"
+verified_date = 2026-09-14
+reason = """
+EQEQ, A DELIBERATELY NON-ITERATIVE VARIANT, NOT A SOURCE FOR THE 1991 METHOD.
+Useful context only: it notes that QEq's hydrogen term is cubic in the energy,
+which guarantees a minimum but forces iteration -- the loop whose LiH
+behaviour amendment A7 diagnoses.
+
+DOI and pages confirmed against Crossref.
+"""
+
+[[source]]
 key = "mortier1986"
 kind = "literature"
 citation = "W. J. Mortier, S. K. Ghosh & S. Shankar, 'Electronegativity Equalization Method for the Calculation of Atomic Charges in Molecules', J. Am. Chem. Soc. 1986, 108, 4315-4320."

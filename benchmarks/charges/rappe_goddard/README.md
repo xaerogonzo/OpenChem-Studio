@@ -74,10 +74,10 @@ Q_H by reading, with the difference from the printed value
   - For −0.767 to be self-consistent, that quantity would have to be about
     1.98 eV (from eq 18's form, with χ_H − χ_Li = 1.522 eV).
   - No pre-registered reading comes near it, and nothing was tuned towards it.
-- **What it could be, unmeasured:** the paper's hydrogen procedure may differ
-  from both readings of section IV and Table III's footnote. Candidates are an
-  undamped iteration that differs in some other detail, or ζ_H entering eq 21
-  in some other way. The paper gives no more than it gives.
+- **Measured since (amendment A7, below): the iteration is not the cause.**
+  Under the adopted reading LiH has exactly one self-consistent charge,
+  −0.9737, and the printed −0.767 is not one. Damped iteration converges, but
+  to −0.9737.
 
 ## The polyatomics, at Harmony 1979's geometries (A4) and ethane's (A5)
 
@@ -110,9 +110,102 @@ tolerance, of 76 (6 in Table III, 70 in Table IV):
   - Every reading gives H about −0.04 e (Si's χ, 4.168, is below hydrogen's
     4.528); the table prints +0.13.
   - It is the only hydride whose heavy atom is less electronegative than H in
-    Table I, so a different silicon parameter in the paper's own program is
-    one possibility. Not measured.
+    Table I.
+  - **Measured since (A7):** no Si–H length or tetrahedral distortion in the
+    sweep changes the sign. Ramachandran et al. 1996, from Rappé's group,
+    print QEq silyl hydrogens of −0.021 and −0.040 in O(SiH₃)₂. That strongly
+    supports the 1991 +0.13 being inconsistent with the group's later program.
+    It is not proof of a misprint, because which silicon parameters that
+    program used is an inference.
 - **LiH still converges under no reading, R4 included.**
+
+## Amendment A7: the open problems, diagnosed (2026-09-14)
+
+Everything below was pre-registered in A7 before it ran
+(`hydrogen_fixed_point.py`, `lih_g_scan.csv`, and the A7 tests). Nothing in it
+changes the solver.
+
+**LiH, as three separate questions.** F is one complete outer iteration of the
+solver; a test holds that iterating F reproduces `qeq_charges` step for step.
+
+| | experimental set | HF set | A7's prediction |
+|---|---|---|---|
+| Q-A: roots of F(Q) − Q on [−1, +1] (2001 points, bisected) | one, **−0.973740**, no tangency | one, **−0.982743** | one root, −0.973 / −0.982 ± 0.002: **held** |
+| bound state at Q\* | none active; Li is 0.026 from its +1 bound, one active set within ±1e-3 | none; 0.017 | bound-free: **held** |
+| slope of F at Q\* (h = 1e-3 … 1e-6, spread 0.001) | **−14.06** | **−14.12** | −14.24 / −14.36 ± 0.1: **FAILED** (the earlier estimate was taken at a coarser root). The instability, \|s\| > 1, holds |
+| Q-B: g(printed) | g(−0.767) = −0.233 | g(−0.679) = −0.321 | ≥ 0.05, not a fixed point: **held** |
+
+Q-C, damped iteration Q ← (1 − α)Q + αF(Q) from 0. Convergence requires both
+the step and the residual ≤ 1e-8, within 500 iterations. Stability predicts
+convergence only for α < 2/(1 − s) ≈ 0.133.
+
+| α | experimental | HF |
+|---|---|---|
+| 1.0, 0.75, 0.5, 0.25 | not converged | not converged |
+| 0.1 | converged in 133, to −0.973740 | converged in 89, to −0.982743 |
+| 0.05 | converged in 234, to −0.973740 | converged in 148, to −0.982743 |
+
+All twelve verdicts match the prediction.
+
+- **Mixing moves the path, not the fixed point.** HF, H₂O, NH₃ and CH₄, both
+  sets, agree at α = 1 and α = 0.5 to 7.5e-9 e.
+- **Conclusion:**
+  - a self-consistent LiH charge exists;
+  - the printed charge is not one under the adopted reading;
+  - plain iteration cannot reach the fixed point, and damping reaches it but
+    never the printed value.
+- **Still unexplained:** why the paper prints −0.767. Damping is not the
+  answer, and it is not added to the solver.
+
+**Water at an author-stated geometry.** Ramachandran et al. 1996 state
+0.9572 Å and 104.52° for their QEq water (H 0.353). QEq here gives 0.3532:
+**held**. It is the first oracle whose geometry the authors state, rather than
+one inferred from a compilation.
+
+**SiH₄.**
+- Si–H 1.45–1.51 Å with a D2d distortion of ±5° gives Q_H −0.046 to −0.045
+  (experimental) and −0.077 to −0.074 (HF). Geometry cannot reach +0.13:
+  **held**.
+- Ramachandran's O(SiH₃)₂ QEq hydrogens are negative, and its silicon
+  positive.
+- **Its Table 3 QEq column** (Si(OH)₄) repeats Table 2's numbers and sums to
+  −2.208 e, while all six reference columns sum to zero within 0.001. It is
+  internally inconsistent with charge conservation.
+- **Its Table 2** conserves charge in all four columns only with 2 × H1 and
+  4 × H2.
+- **Its citations do not point where its text says.** "Follow the earlier
+  work" cites ref 6, a catalysis paper. Aluminium's parameters are cited to the
+  1991 paper, whose Table I has no aluminium.
+- **Disiloxane at a real geometry** waits on Almenningen et al. 1963,
+  https://doi.org/10.3891/acta.chem.scand.17-2455. Until then SiH₄ stands as a
+  strongly supported inconsistency with the group's later program. It is not
+  called a misprint.
+
+**Transcriptions.** Bakowies & Thiel 1996 reprint Table I's H/C/N/O χ and J and
+23 comparable Table IV QEqHF cells. All agree with our fixtures, including
+formic acid's carbonyl O and acetonitrile's nitrile C, the two label
+inferences A4 made.
+
+**Both λ readings are regressions now:** 39 of 76 polyatomic cells
+(PREREGISTERED) and 10 of 76 (ADOPTED), cell for cell.
+
+**Papers checked for these problems and not used:**
+- **Oda & Hirono 2003:** empirical two-centre terms, no timings. It is not
+  evidence about this implementation's speed.
+- **Zhang & Fournier 2009:** its "mixing" is an alloy mixing index, not
+  charge mixing.
+- **Thompson et al. 2002:** charge-model benchmarking, no QEq.
+- **Wells et al. 2015:** later variants; misquotes the 1991 hydrogen values.
+- **Wilmer et al. 2012:** EQeq, non-iterative.
+- **Rappé et al. 1992 (UFF):** prints no QEq parameters.
+- **A claim that QuantumATK's QEq uses mixing = 0.5** could not be verified,
+  and nothing relies on it.
+
+**Deferred, deliberately:**
+- **The bound procedure (O9).**
+- **Speed.** The measured bottleneck is the present numerical quadrature of the
+  two-centre integrals. Any replacement must reproduce the frozen mpmath table
+  and O1, never through an approximation.
 
 ## QEq stop 2: the bounds (O9)
 

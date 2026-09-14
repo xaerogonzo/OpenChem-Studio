@@ -1971,6 +1971,14 @@ struck through and marked SHIPPED here, never deleted.
       reproducible. Ethane passes at every structure the digest prints, so
       Landolt–Börnstein II/7 is not needed. Still open: LiH, SiH₄, the
       HF-fitted hydrogen column, the bound procedure, and speed.
+    - **Diagnosed (amendment A7, 2026-09-14), not repaired.**
+      - LiH has one self-consistent charge, −0.974, and the printed −0.767 is
+        not one; damped iteration reaches −0.974, never the printed value.
+      - SiH₄'s sign is contradicted by Rappé's group's own 1996 QEq charges
+        for O(SiH₃)₂, which are negative; confirming at a real disiloxane
+        geometry waits on Almenningen 1963.
+      - Bakowies & Thiel 1996 confirm the transcriptions.
+      - The bound procedure and speed are deferred to their own plans.
 - **Geometry-dependent charges at a pH.** Not started, and deliberately
   separate from the item above. It needs the coordinate gate recorded there:
   protonation must not move or lose the conformer's heavy atoms.
