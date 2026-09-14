@@ -441,3 +441,120 @@ so II/7 is not needed.
 (UFF, https://doi.org/10.1021/ja00051a040) prints no electronegativity,
 hardness or QEq radius. It cites the same unpublished GMP paper ("submitted")
 for them, so it cannot explain SiH₄.
+
+### A7 (2026-09-14, before any output of the studies it defines)
+
+A6 does not retroactively change the original pre-registration; it records a
+post-hoc, literature-supported change of reading. **A7 changes no reading, no
+tolerance and no line of `charge_equilibration.py`.** It pre-registers
+diagnostics for three open problems (LiH, SiH₄, the transcriptions). The bound
+procedure (O9) and speed are deferred to separate plans. Nothing here fits a
+parameter: Si and H χ, J, ζ and λ are never changed to reach SiH₄'s +0.13 or
+LiH's −0.767, and mixing is never added to the solver.
+
+Background measured before A7, not under it: `oracle.py`'s LiH scan (199
+points on [−0.99, 0], centred difference h = 1e-5) found one root under
+ADOPTED, Q_H = −0.9731 with map slope −14.24 (experimental set), and −0.9819
+with −14.36 (HF set).
+
+**The map F.** For hydrogen charges q_H (one per hydrogen), F(q_H) is one
+outer iteration of `qeq_charges`, in its order:
+1. `ce.qeq_hardness_matrix(elements, coords, q_H, hydrogen, ce.ADOPTED)`, which
+   sets ζ_H = ζ° + Q (eq 20) in every hydrogen-involving `coulomb_pair`
+   (`zeta_h_in_pairs`) and hardness_diag_H = J°(1 + Q/ζ°) (eq 21);
+2. `ce.solve_bounded(C, χ, 0, lower, upper)` with eq 5's bounds from
+   `ce.charge_bounds`;
+3. the solved charges at the hydrogen indices.
+
+A test holds that iterating F from q_H = 0 reproduces `qeq_charges` on HF and
+H₂O to 1e-12 e.
+
+**Three questions, kept apart.** Q-A: does Q\* = F(Q\*) exist? Q-B: is the
+printed charge one? Q-C: does a given iteration converge to Q\*?
+
+**Root-finding (LiH, scalar), frozen.**
+- g(Q) = F(Q) − Q on a uniform grid over [−1, +1], 2001 points. The whole
+  grid is written to `lih_g_scan.csv`, both hydrogen sets.
+- A root bracket is a sign change, or an exact zero, between neighbouring
+  points. It is refined by bisection to a bracket ≤ 1e-10. It is accepted as
+  a root only if |g| ≤ 1e-8 evaluated directly at the midpoint.
+- A tangency candidate is a local minimum of |g| on the grid below 1e-3
+  without a sign change on either side. It is refined by golden-section
+  search on |g| within ±0.002 and reported with its minimum, whatever it is.
+
+**Slope, frozen.** Centred differences (F(Q\*+h) − F(Q\*−h))/2h at
+h ∈ {1e-3, 1e-4, 1e-5, 1e-6}; the reported slope is h = 1e-5; if the four
+spread by more than 0.05 the slope is reported as unstable. Inner solves are
+direct linear solves.
+
+**Bound state at Q\*.** Report the active set `solve_bounded` chose and each
+atom's distance to both bounds. If an active set differs anywhere in
+[Q\* − 1e-3, Q\* + 1e-3], the slope is reported only as one-sided differences,
+labelled active-set-adjacent.
+
+**Predictions.** Q-A: exactly one root, −0.973 ± 0.002 (experimental) and
+−0.982 ± 0.002 (HF), no bound active, no tangency candidate. Slope −14.24 ±
+0.1 and −14.36 ± 0.1. Q-B: |g(−0.767)| ≥ 0.05 (experimental) and |g(−0.679)| ≥
+0.05 (HF).
+
+**Mixing study (Q-C), diagnostic only.**
+- Q_{k+1} = (1 − α)Q_k + αF(Q_k) from Q₀ = 0, α ∈ {1.0, 0.75, 0.5, 0.25, 0.1,
+  0.05}, at most 500 iterations.
+- Converged requires BOTH |Q_{k+1} − Q_k| ≤ 1e-8 AND |F(Q_k) − Q_k| ≤ 1e-8.
+- Iteration counts are reported in bins: ≤ 50, ≤ 100, ≤ 250, ≤ 500, not
+  converged. `_trace_class` labels are descriptive and decide nothing.
+- Predicted by local stability, s_mix = 1 − α(1 − s), converging only when
+  |s_mix| < 1 (α < 2/(1 − s) ≈ 0.131): α ≥ 0.25 does not converge; α = 0.1 and
+  0.05 converge to Q\*.
+- The same α that converges is never offered as the answer to Q-B.
+
+**Mixing invariant.** Mixing moves the path, not the fixed point. HF, H₂O, NH₃
+and CH₄ (Harmony geometries, both sets), iterated with α = 1 and α = 0.5 from
+q_H = 0 under the criteria above, each independently: the two must agree to
+1e-7 e. Agreement with the stored ADOPTED charges is a separate regression.
+
+**Ramachandran et al. 1996 water.** Their Table 8 gives QEq H = 0.353 at an
+O–H of 0.9572 Å and H–O–H of 104.52°, which they state (section VIII.c). Under
+ADOPTED, experimental set, both hydrogens must be 0.353 ± 0.001. It is the
+first QEq charge in this benchmark whose geometry its authors state.
+
+**SiH₄ geometry sensitivity.** Si–H ∈ {1.45, 1.48, 1.51} Å and a D2d
+distortion of the tetrahedron: hydrogens at (±a, 0, c) and (0, ±a, −c) with
+the H–Si–H angle within each pair θ = 109.47° + δ, δ ∈ {−5, −2.5, 0, +2.5, +5}°.
+Report min and max Q_H under ADOPTED, both sets. The question is binary: does
+any reach +0.13 (experimental) or +0.11 (HF)?
+
+**Ramachandran Tables 2 and 3, source audit.** From a 300 dpi render of
+p. 5899: every QEq value, multiplicities (O 1, Si 2, H 6 for O(SiH₃)₂; Si 1,
+O 4, H 4 for Si(OH)₄), and the totals. If Table 3's QEq column sums far from
+zero, the record says "internally inconsistent with charge conservation", not
+"misprinted". Table 2's H1/H2 multiplicities are inferred from its sum; which
+hydrogens are H1 is a further inference and is labelled so.
+
+**Disiloxane (only if Almenningen et al. 1963 is obtained).**
+`almenningen1963_disiloxane.csv` carries a `provenance` column: `source` for
+every printed parameter, `reconstructed` for C2v symmetry, local C3v silyls
+and the conformation. Under ADOPTED, experimental set: the sign test first
+(every H negative, Si positive). The magnitudes second, only once H1/H2 is
+mapped: H and Si within ±0.02 e, O within ±0.03 e. The sweep is Si–O–Si 140° to
+180° in 10° steps and Si–O ±0.02 Å; report any sign change. Ramachandran
+cites no parameter source that can be followed (its "earlier work" is ref 6,
+a catalysis paper), so Si being 1991 Table I's in their program is an
+inference.
+
+**Bakowies & Thiel 1996 reprints.** Table VIII (χ, J for H, C, N, O) and Table X
+(the Rappé–Goddard column: QEqHF, "exp. geometries") are transcribed from 300
+dpi renders into two fixtures, compared with `rappe1991_table1.csv` and
+`rappe1991_table4.csv` in two tests. Only cells whose molecule, atom and column
+all correspond are compared. A mismatch is re-read against the 1991 render
+and is never corrected toward the reprint.
+
+**Both λ readings as regressions.** A test reproduces the polyatomic cell miss
+counts, 39 of 76 under PREREGISTERED and 10 of 76 under ADOPTED, and the exact
+miss sets, through the same `qeq_charges` path.
+
+**Outcomes, stated in advance.** LiH: the printed charge is a fixed point; it
+is not and Q\* lies elsewhere; a pre-registered alternate reading produces it;
+unexplained. SiH₄: reproduced; contradicted by the later Rappé-group program
+(recorded as a strongly supported inconsistency, not as a misprint);
+geometry-sensitive; a parameter-source discrepancy remains; unresolved.
