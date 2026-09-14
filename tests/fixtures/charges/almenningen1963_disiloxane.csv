@@ -1,0 +1,30 @@
+# Gas-phase disiloxane, (SiH3)2O, by electron diffraction: A. Almenningen,
+# O. Bastiansen, V. Ewing, K. Hedberg & M. Traetteberg, Acta Chem. Scand.
+# 1963, 17, 2455-2460, https://doi.org/10.3891/acta.chem.scand.17-2455.
+# A scan with no text layer: every value read from pages rendered at 200 dpi,
+# Table 1 "Final results (b)" (p. 2457), which the abstract repeats.
+#
+# provenance (amendment A7):
+#   source         printed in Table 1's final-results column
+#   reconstructed  NOT printed as a structure. The local C3v silyl and the
+#                  conformation come from the Discussion (p. 2459-2460):
+#                  "the most obvious interpretation of the distribution leads
+#                  to C2v molecular symmetry with one hydrogen on each -SiH3
+#                  group nearest the 2-fold axis. However, we do not feel the
+#                  data warrent this as a firm conclusion." That hydrogen is
+#                  placed at dihedral H-Si-O-Si = 0 deg (in the Si-O-Si
+#                  plane, toward the other silicon); the other two at +-120.
+#
+# CHECKSUM: a local C3v silyl with O-Si-H = 109.9 deg implies H-Si-H =
+# 109.04 deg; Table 1 prints 109.1 +- 1.29. The builder uses O-Si-H and the
+# three 120-deg dihedrals, and a test holds the resulting H-Si-H to 0.1 deg.
+#
+# Not a geometry Ramachandran et al. 1996 state: they give none for O(SiH3)2.
+parameter,value,unit,uncertainty,provenance
+SiH,1.486,angstrom,0.010,source
+SiO,1.634,angstrom,0.002,source
+SiOSi,144.1,degree,0.86,source
+OSiH,109.9,degree,1.26,source
+HSiH,109.1,degree,1.29,source
+silyl_symmetry,C3v,,,reconstructed
+H_nearest_C2_axis_dihedral_HSiOSi,0,degree,,reconstructed

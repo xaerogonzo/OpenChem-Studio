@@ -171,6 +171,43 @@ def build_ethane():
     return ["C", "C", "H", "H", "H", "H", "H", "H"], np.array([c1, c2, *lower, *upper]), {1: [2, 3, 4, 5, 6, 7]}, {"CC": "rz", "CH": "rz", "HCH": "theta_z"}
 
 
+DISILOXANE_FIXTURE = pathlib.Path(__file__).parent / "fixtures" / "charges" / "almenningen1963_disiloxane.csv"
+
+
+def disiloxane_parameters() -> dict[str, float]:
+    lines = [line for line in DISILOXANE_FIXTURE.read_text(encoding="utf-8").splitlines() if not line.startswith("#")]
+    return {r["parameter"]: float(r["value"]) for r in csv.DictReader(lines) if r["provenance"] == "source"}
+
+
+def build_disiloxane(si_o: float | None = None, si_o_si: float | None = None, torsion: float = 0.0):
+    """Amendment A7: O(SiH3)2 from Almenningen 1963's Table 1, C2v, each silyl
+    local C3v about Si-O (built from O-Si-H and dihedrals 0/120/240). The
+    in-plane H of each silyl sits at dihedral H-Si-O-Si = `torsion` (0 = the
+    authors' non-firm "nearest the 2-fold axis"), mirrored on the other side.
+
+    Returns (elements, coords, {"O": [..], "Si": [..], "H1": [2 in-plane],
+    "H2": [4 out-of-plane]}). H1/H2 as Ramachandran's labels is an inference
+    from Table 2's multiplicities (2 and 4)."""
+    p = disiloxane_parameters()
+    r = p["SiO"] if si_o is None else si_o
+    angle = p["SiOSi"] if si_o_si is None else si_o_si
+    half = math.radians(angle / 2)
+    o = np.zeros(3)
+    si1 = r * np.array([math.sin(half), 0.0, math.cos(half)])
+    si2 = r * np.array([-math.sin(half), 0.0, math.cos(half)])
+    if abs(angle - 180.0) < 1e-9:  # a linear skeleton leaves the dihedral undefined; take the xz plane as the reference
+        reference1 = reference2 = o + np.array([0.0, 0.0, 1.0])
+    else:
+        reference1, reference2 = si2, si1
+    hydrogens = []
+    for si, ref, sign in ((si1, reference1, 1.0), (si2, reference2, -1.0)):
+        for k in range(3):
+            hydrogens.append(_place(si, o, ref, p["SiH"], p["OSiH"], sign * torsion + 120.0 * k))
+    elements = ["O", "Si", "Si"] + ["H"] * 6
+    groups = {"O": [0], "Si": [1, 2], "H1": [3, 6], "H2": [4, 5, 7, 8]}
+    return elements, np.array([o, si1, si2, *hydrogens]), groups
+
+
 #: Table III/IV compound names -> Harmony molecule keys.
 TABLE_NAMES = {
     "H2O": "H2O", "NH3": "NH3", "CH4": "CH4", "C2H2": "C2H2", "C2H4": "C2H4", "C6H6": "C6H6",

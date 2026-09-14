@@ -69,7 +69,7 @@ def test_every_fixture_matches_the_hash_the_preregistration_recorded():
     text = PREREGISTRATION.read_text(encoding="utf-8")
     fixtures = sorted(FIXTURES.glob("*.csv"))
     hashed = [f for f in fixtures if f.name != "slater_reference.csv"]
-    assert len(hashed) == 11
+    assert len(hashed) == 12
     for fixture in hashed:
         digest = hashlib.sha256(fixture.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
         assert f"`{fixture.name}`" in text and digest in text, fixture.name
@@ -963,3 +963,27 @@ def test_ramachandran_1996_gives_silyl_hydrogen_the_sign_we_compute_for_silane()
     qeq = [row for row in _rows("ramachandran1996_tables.csv") if row["table"] == "2" and row["method"] == "QEq"]
     assert all(float(row["value"]) < 0 for row in qeq if row["atom"].startswith("H"))
     assert float(next(row["value"] for row in qeq if row["atom"] == "Si")) > 0
+
+
+def test_the_disiloxane_builder_reproduces_almenningen_1963():
+    """Every printed parameter, the C3v checksum (H-Si-H 109.04 against the
+    printed 109.1 +- 1.29), C2 symmetry, and the in-plane hydrogen as the one
+    nearest the 2-fold axis, as the authors' non-firm interpretation says."""
+    p = qeq_geometries.disiloxane_parameters()
+    elements, coords, groups = qeq_geometries.build_disiloxane()
+    assert elements.count("H") == 6 and len(groups["H1"]) == 2 and len(groups["H2"]) == 4
+
+    def angle(a, b, c):
+        u, v = coords[a] - coords[b], coords[c] - coords[b]
+        return math.degrees(math.acos(u @ v / np.linalg.norm(u) / np.linalg.norm(v)))
+
+    assert all(abs(np.linalg.norm(coords[si] - coords[0]) - p["SiO"]) < 1e-12 for si in (1, 2))
+    assert abs(angle(1, 0, 2) - p["SiOSi"]) < 1e-9
+    for si, hs in ((1, (3, 4, 5)), (2, (6, 7, 8))):
+        assert all(abs(np.linalg.norm(coords[h] - coords[si]) - p["SiH"]) < 1e-12 for h in hs)
+        assert all(abs(angle(0, si, h) - p["OSiH"]) < 1e-9 for h in hs)
+        assert all(abs(angle(a, si, b) - p["HSiH"]) < 0.1 for a, b in itertools.combinations(hs, 2))
+    mirrored = coords * np.array([-1.0, -1.0, 1.0])
+    assert max(np.min(np.linalg.norm(coords - m, axis=1)) for m in mirrored) < 1e-12
+    axis_distance = lambda i: math.hypot(coords[i][0], coords[i][1])
+    assert max(axis_distance(i) for i in groups["H1"]) < min(axis_distance(i) for i in groups["H2"])

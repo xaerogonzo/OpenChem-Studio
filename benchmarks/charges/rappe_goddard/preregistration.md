@@ -23,6 +23,7 @@ The plan behind this is `docs/ROADMAP.md`, "EEM and QEq", DECIDED 2026-09-14.
 | `bakowies1996_table8_parameters.csv` | Bakowies & Thiel 1996, Table VIII, Rappé–Goddard rows (added by amendment A7) | `8c409a309fed28fbea367163fde1e0615df5aee0de0cb99f68a7f6eabeb9e54d` |
 | `bakowies1996_table10_charges.csv` | same, Table X, Rappé–Goddard column (added by amendment A7) | `d50985432501bbb2a951d181935ea6ff8010b1821c27cf627db8727d6b340750` |
 | `ramachandran1996_tables.csv` | Ramachandran et al. 1996, Tables 2 and 3, every column (added by amendment A7) | `90d8f7e57ba5b67e5644244b25a1bf4c253e6fc4ededa6d8b45eb66a29e0b08a` |
+| `almenningen1963_disiloxane.csv` | Almenningen et al. 1963, Table 1 final results, plus labelled reconstruction (added by amendment A7) | `028b430065320a0de85ceef08d07f2b921a3005744b292b5e8bc3a95c3fdef48` |
 
 Every value was checked by eye against its page rendered at 300 dpi
 (Huber & Herzberg's rotated tables at 130 dpi). No fixture value comes from a
@@ -561,3 +562,15 @@ is not and Q\* lies elsewhere; a pre-registered alternate reading produces it;
 unexplained. SiH₄: reproduced; contradicted by the later Rappé-group program
 (recorded as a strongly supported inconsistency, not as a misprint);
 geometry-sensitive; a parameter-source discrepancy remains; unresolved.
+
+**A7 addendum (2026-09-14, after Almenningen 1963 arrived and BEFORE any
+disiloxane solve).** The paper settles the geometry and not the conformation:
+its authors call C2v "with one hydrogen on each -SiH3 group nearest the
+2-fold axis" the most obvious interpretation, "not ... a firm conclusion".
+That conformation (dihedral H-Si-O-Si = 0 for the in-plane hydrogen) is the
+reference, labelled reconstructed. Because it is not firm, one sweep is added
+to A7's, before any solve and disclosed as an addition: torsion of both silyls
+by 0, 30 and 60 deg (60 puts the other hydrogens in-plane pointing away). It
+reports signs only, like the Si-O-Si and Si-O sweeps. The H1/H2 magnitude
+comparison maps H1 to the two in-plane hydrogens of the reference
+conformation, an inference from Table 2's multiplicities.
