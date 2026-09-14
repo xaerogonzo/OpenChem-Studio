@@ -69,7 +69,7 @@ def test_every_fixture_matches_the_hash_the_preregistration_recorded():
     text = PREREGISTRATION.read_text(encoding="utf-8")
     fixtures = sorted(FIXTURES.glob("*.csv"))
     hashed = [f for f in fixtures if f.name != "slater_reference.csv"]
-    assert len(hashed) == 12
+    assert len(hashed) == 13
     for fixture in hashed:
         digest = hashlib.sha256(fixture.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
         assert f"`{fixture.name}`" in text and digest in text, fixture.name
@@ -1056,3 +1056,61 @@ def test_post_hoc_disiloxane_oxygen_and_silicon_separate_the_two_lambda_readings
         preregistered, _, _ = _disiloxane(readings=ce.PREREGISTERED, torsion=torsion)
         assert abs(adopted[0] - RAMACHANDRAN_TABLE_2_QEQ["O"]) <= 0.002 and abs(adopted[1] - RAMACHANDRAN_TABLE_2_QEQ["Si"]) <= 0.003
         assert abs(preregistered[1] - RAMACHANDRAN_TABLE_2_QEQ["Si"]) >= 0.025
+
+
+# =============================================================================
+# Amendment A9: the constrained minimum the paper's bound procedure is judged by
+# =============================================================================
+
+import qeq_bounded_qp as qp  # noqa: E402
+
+
+def test_a9_check_1_with_no_bound_active_the_qp_is_the_unconstrained_solve():
+    """On ordinary QEq matrices (no bound binds) the QP, the KKT solve and the
+    paper's procedure are one answer."""
+    cases = [_diatomic("Na", "Cl", _r_e("NaCl")), WATER, qeq_geometries.build("H3COH")[:2]]
+    for elements, coords in cases:
+        result = ce.qeq_charges(elements, coords)
+        assert result.status == "converged" and result.clamped == {}
+        q_h = {i: float(result.charges[i]) for i, e in enumerate(elements) if e == "H"}
+        hardness, chi, _ = ce.qeq_hardness_matrix(elements, coords, q_h)
+        bounds = [ce.charge_bounds(e) for e in elements]
+        lower, upper = np.array([b[0] for b in bounds]), np.array([b[1] for b in bounds])
+        assert qp.tangent_min_eigenvalue(hardness) > 0
+        minimum = qp.constrained_minimum(hardness, chi, 0.0, lower, upper)
+        unconstrained = ce.solve_bounded(hardness, chi, 0.0, np.full(len(chi), -1e9), np.full(len(chi), 1e9)).charges
+        assert minimum.active == {}
+        assert np.max(np.abs(minimum.charges - unconstrained)) <= 1e-10
+
+
+def test_a9_check_2_the_qp_is_the_brute_force_optimum_on_every_synthetic_system():
+    """Measured 3.6e-15 e worst over O9's 200 systems."""
+    for hardness, chi, net, lower, upper in SYNTHETIC:
+        minimum = qp.constrained_minimum(hardness, chi, net, lower, upper)
+        assert np.max(np.abs(minimum.charges - _kkt_optimum(hardness, chi, net, lower, upper))) <= 1e-10
+        assert qp.kkt_violation(hardness, chi, net, lower, upper, minimum.charges) <= 1e-9
+
+
+def test_a9_check_3_where_the_paper_procedure_is_optimal_it_is_the_qp():
+    """172 of the 200 synthetic systems: the paper's fixing already satisfies
+    KKT, and there it equals the QP. The other 28 are O9's recorded misses."""
+    optimal = 0
+    for hardness, chi, net, lower, upper in SYNTHETIC:
+        paper = ce.solve_bounded(hardness, chi, net, lower, upper).charges
+        if qp.kkt_violation(hardness, chi, net, lower, upper, paper) <= 1e-9:
+            optimal += 1
+            assert np.max(np.abs(paper - qp.constrained_minimum(hardness, chi, net, lower, upper).charges)) <= 1e-10
+    assert optimal == 172
+
+
+def test_a9_the_qp_releases_what_the_paper_procedure_keeps_fixed():
+    """The one behaviour that separates them: on some synthetic system the QP
+    releases an atom, and its energy is below the paper's."""
+    released = 0
+    for hardness, chi, net, lower, upper in SYNTHETIC:
+        minimum = qp.constrained_minimum(hardness, chi, net, lower, upper)
+        paper = ce.solve_bounded(hardness, chi, net, lower, upper).charges
+        if minimum.released:
+            released += 1
+        assert qp.energy(hardness, chi, minimum.charges) <= qp.energy(hardness, chi, paper) + 1e-9
+    assert released > 0
