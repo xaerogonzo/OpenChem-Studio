@@ -133,6 +133,12 @@ class _BoltzmannRun:
     total: int
     spectra: list = field(default_factory=list)
     energies: list[float] = field(default_factory=list)
+    #: The identity of the conformer SET this run was submitted with, frozen
+    #: at submission. Never recomputed from the model when the average
+    #: arrives: the conformer list can change while ORCA runs, and a
+    #: fingerprint taken then would name a set this was not computed over.
+    input_fingerprint: str = ""
+    calculation_input: str = ""
 
 
 @dataclass
@@ -181,6 +187,13 @@ class _ActiveJob:
     method_basis: str = ""  # set for both kinds -- the exact free-text
     # method_basis string the job ran with, needed to look up/write the
     # right TMS reference cache entry either way.
+    # What the job was SUBMITTED with, kept so the result is described from
+    # this snapshot alone -- never from the panel, whose controls may have
+    # changed while the job ran.
+    charge: int = 0
+    multiplicity: int = 1
+    input_fingerprint: str = ""
+    calculation_input: str = ""
     stdout_chunks: list[str] = field(default_factory=list)
     cancelled: bool = False
 
@@ -245,7 +258,18 @@ class QuantumChemistryService(QObject):
         multiplicity: int,
         method_basis: str,
         provider_id: str = "orca",
+        input_fingerprint: str = "",
+        calculation_input: str = "",
     ) -> None:
+        """Run `calc_type` on `mol`, one ORCA job.
+
+        `input_fingerprint`/`calculation_input` name the structure `mol` was
+        resolved from (`chem.calculation_input`) and are stamped on every
+        spectrum the job publishes, so the Atom Inspector can tell a shift
+        computed for this conformer from one computed for an earlier one.
+        Defaulted empty for callers with no model behind the molecule; an
+        empty identity is withheld by the inspector, never assumed current.
+        """
         provider = self._providers.get(provider_id)
         if provider is None:
             self._publish_state(molecule_uuid, CacheState.FAILED, f"Unknown quantum engine: {provider_id}")
@@ -291,6 +315,8 @@ class QuantumChemistryService(QObject):
             executable_path=executable_path,
             kind="calculation",
             molecule_uuid=molecule_uuid,
+            input_fingerprint=input_fingerprint,
+            calculation_input=calculation_input,
         )
 
     def request_boltzmann_nmr(
@@ -302,6 +328,8 @@ class QuantumChemistryService(QObject):
         multiplicity: int,
         method_basis: str,
         provider_id: str = "orca",
+        input_fingerprint: str = "",
+        calculation_input: str = "",
     ) -> None:
         """Runs `calc_type` on every conformer in `mols`, one after another,
         and publishes a single Boltzmann-averaged spectrum.
@@ -314,6 +342,10 @@ class QuantumChemistryService(QObject):
         rather than doing it silently. One conformer degrades to exactly
         `request_calculation` -- no special case needed downstream, since
         averaging one spectrum returns it unchanged.
+
+        `input_fingerprint` is the ENSEMBLE fingerprint of exactly `mols`
+        (`chem.calculation_input.resolve_ensemble`), frozen here and stamped
+        on the average -- see `_BoltzmannRun.input_fingerprint`.
         """
         if not mols:
             self._publish_state(molecule_uuid, CacheState.FAILED, "No conformers to average over.")
@@ -354,6 +386,8 @@ class QuantumChemistryService(QObject):
             provider=provider,
             executable_path=executable_path,
             total=len(mols),
+            input_fingerprint=input_fingerprint,
+            calculation_input=calculation_input,
         )
         self._boltzmann_runs[molecule_uuid] = run
         self._launch_next_conformer(run)
@@ -376,6 +410,8 @@ class QuantumChemistryService(QObject):
             executable_path=run.executable_path,
             kind="conformer",
             molecule_uuid=run.molecule_uuid,
+            input_fingerprint=run.input_fingerprint,
+            calculation_input=run.calculation_input,
         )
 
     def request_reference_calibration(self, method_basis: str, provider_id: str = "orca") -> None:
@@ -542,6 +578,8 @@ class QuantumChemistryService(QObject):
         kind: str,
         molecule_uuid: str | None = None,
         compound_name: str = "",
+        input_fingerprint: str = "",
+        calculation_input: str = "",
     ) -> None:
         """Shared QProcess launch mechanics for both `request_calculation`
         (a real molecule) and `request_reference_calibration` (TMS) --
@@ -599,6 +637,10 @@ class QuantumChemistryService(QObject):
             molecule_uuid=molecule_uuid,
             method_basis=method_basis,
             compound_name=compound_name,
+            charge=charge,
+            multiplicity=multiplicity,
+            input_fingerprint=input_fingerprint,
+            calculation_input=calculation_input,
         )
         self._active_jobs[key] = job
 
@@ -794,7 +836,10 @@ class QuantumChemistryService(QObject):
                 else:
                     if couplings is not None:
                         spectrum = dataclasses.replace(spectrum, couplings=couplings)
-                self._event_bus.publish(SpectrumComputed(spectrum=self._maybe_calibrate(spectrum, job.method_basis)))
+                self._event_bus.publish(self._stamped(
+                    self._maybe_calibrate(spectrum, job.method_basis), job, job.input_fingerprint,
+                    job.calculation_input,
+                ))
         # The vibrational spectrum is a SEPARATE parse and a separate event,
         # not folded into the branch above: an `opt_freq` job produces one
         # and no NMR spectrum, an `nmr` job the reverse, and neither should
@@ -811,7 +856,9 @@ class QuantumChemistryService(QObject):
             )
         else:
             if vibrational is not None and vibrational.modes:
-                self._event_bus.publish(SpectrumComputed(spectrum=vibrational))
+                self._event_bus.publish(
+                    self._stamped(vibrational, job, job.input_fingerprint, job.calculation_input)
+                )
         self._publish_state(molecule_uuid, CacheState.COMPLETED)
 
     def _finish_conformer_job(self, job: _ActiveJob, output_text: str) -> bool:
@@ -882,13 +929,53 @@ class QuantumChemistryService(QObject):
         # conformer: the per-conformer shifts are an intermediate, and
         # emitting them would leave the NMR view flickering through
         # geometries that are not what the experiment measures.
-        self._event_bus.publish(
-            SpectrumComputed(spectrum=self._maybe_calibrate(averaged, run.method_basis))
-        )
+        # Stamped from the RUN, never from `job`: the run is the submission
+        # snapshot for the whole set, and its fingerprint names every
+        # conformer averaged, where the last job saw only one of them.
+        self._event_bus.publish(self._stamped(
+            self._maybe_calibrate(averaged, run.method_basis), job, run.input_fingerprint,
+            run.calculation_input,
+        ))
         self._publish_state(
             molecule_uuid, CacheState.COMPLETED, f"Averaged over {run.total} conformer(s)"
         )
         return False
+
+    @staticmethod
+    def _stamped(spectrum, job: _ActiveJob, input_fingerprint: str, calculation_input: str):
+        """The `SpectrumComputed` for one finished job, stamped and described.
+
+        **THE FINGERPRINT SAYS WHICH STRUCTURE'S ATOMS; PROVENANCE SAYS WHICH
+        CALCULATION.** These spectra are never stored or replayed -- a new run
+        replaces the held one -- so the run's parameters are not a cache key
+        and do not belong in the identity. They are recorded here instead,
+        from the job's submission snapshot, so a spectrum can say what it
+        was computed with however the panel's controls have moved since. If
+        ORCA spectra ever enter the result store, their identity must gain a
+        parameters key built from exactly these fields.
+
+        Prefixed `run_` for the reason `INPUT_PREFIX` exists: these merge
+        into parameters the provider also writes.
+        """
+        provenance = spectrum.provenance
+        record = {
+            "run_calc_type": job.calc_type,
+            "run_method_basis": job.method_basis,
+            "run_charge": job.charge,
+            "run_multiplicity": job.multiplicity,
+            "run_provider": job.provider.provider_id,
+        }
+        if provenance is None:
+            provenance = Provenance(created_by="core", method=job.provider.provider_id, parameters=record)
+        else:
+            provenance = dataclasses.replace(
+                provenance, parameters={**provenance.parameters, **record}
+            )
+        return SpectrumComputed(
+            spectrum=dataclasses.replace(spectrum, provenance=provenance),
+            input_fingerprint=input_fingerprint,
+            calculation_input=calculation_input,
+        )
 
     def _finish_scaling_job(self, job: _ActiveJob, output_text: str) -> bool:
         """Files one standard's shieldings, then starts the next or fits.

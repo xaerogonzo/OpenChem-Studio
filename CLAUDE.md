@@ -112,6 +112,11 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "jobs_cancel", "row": 0}           the real button in a real row
     {"do": "screen_run",  "receptor": 0}      the REAL Run button, and the
                                               PREP DICT the service got
+    {"do": "qc_run", "calc_type": "NMR (raw shielding)", "method": "HF def2-SVP"}
+                                              REAL ORCA, and the IDENTITY
+                                              the service was handed
+    {"do": "inspector_report", "expect_spectrum": "stale"}  ASSERTS the held
+                                              spectrum carries that identity
     {"do": "save_project", "path": "..."}     the REAL save, results included
     {"do": "dock_move", "panel": "Results", "area": "top"}   as a drop
     {"do": "dock_move", "panel": "Results", "beside": "Properties"}

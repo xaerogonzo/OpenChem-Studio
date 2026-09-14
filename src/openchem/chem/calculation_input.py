@@ -24,7 +24,7 @@ from typing import NamedTuple
 from rdkit import Chem
 
 from openchem.chem.engine import ChemistryEngine
-from openchem.domain.calculator import DRAWING, GEOMETRY
+from openchem.domain.calculator import DRAWING, ENSEMBLE, GEOMETRY
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
 
@@ -80,10 +80,18 @@ class ResolvedInput(NamedTuple):
     branches that pick the molecule.
 
     `mol` is None when only the fingerprint was asked for.
+
+    `used` is the input the molecule actually CAME FROM -- DRAWING or
+    GEOMETRY -- which is not always the one asked for: a GEOMETRY request
+    with no usable 3D conformer is handed the drawing. Stated rather than
+    left to be inferred from the fingerprint matching the drawing's, which
+    is true by construction today and would stay silently true as a test
+    of fallback if the fingerprint rules below ever changed.
     """
 
     mol: Chem.Mol | None
     fingerprint: str
+    used: str
 
 
 def _fingerprint(*parts: str) -> str:
@@ -104,15 +112,87 @@ def _fingerprint(*parts: str) -> str:
 def input_fingerprint(
     engine: ChemistryEngine, model: MoleculeModel, calculation_input: str = DRAWING
 ) -> str:
-    """The fingerprint `resolve_calculation_input` would give, for comparing.
+    """The fingerprint the resolver for `calculation_input` would give, for comparing.
 
     DRAWING needs no parse. GEOMETRY does, because whether the conformer is
     used at all depends on it parsing into something 3D -- and that decision
-    is part of the input.
+    is part of the input. ENSEMBLE needs none either: a run over the set is
+    refused rather than degraded when a member is unusable, so the stored
+    text alone names the input.
+
+    **AN UNKNOWN KIND RAISES.** This used to hash anything that was not
+    GEOMETRY as the drawing, so a result stamped with a kind this function
+    did not know would have been compared against the DRAWING and could
+    read as fresh. A comparison that cannot be made must not pass.
     """
-    if calculation_input != GEOMETRY:
+    if calculation_input == DRAWING:
         return _fingerprint(DRAWING, model.molblock or "")
-    return resolve_calculation_input(engine, model, calculation_input).fingerprint
+    if calculation_input == GEOMETRY:
+        return resolve_calculation_input(engine, model, calculation_input).fingerprint
+    if calculation_input == ENSEMBLE:
+        return _ensemble_fingerprint(model.conformers)
+    raise ValueError(f"Unknown calculation input {calculation_input!r}")
+
+
+def _ensemble_fingerprint(conformers: list[ConformerModel]) -> str:
+    """SHA-256 over every conformer's id and exact molblock, IN STORED ORDER.
+
+    **ORDER IS PART OF THE IDENTITY, ON PURPOSE.** Reordering the same
+    conformers changes this and marks a result over them stale. That costs a
+    recompute in a case where the average would not have moved, and it is
+    the conservative side: sorting here would make the fingerprint claim
+    something about the chemistry (that order cannot matter to any consumer)
+    which nothing has checked. Pinned by a test so an "optimisation" that
+    sorts ids fails loudly.
+
+    Ids are part of it as well as geometry: two conformers with identical
+    coordinates and different ids are different records, and a result names
+    records.
+    """
+    parts: list[str] = [ENSEMBLE, str(len(conformers))]
+    for conformer in conformers:
+        parts.extend((conformer.conformer_id, conformer.molblock or ""))
+    return _fingerprint(*parts)
+
+
+class ResolvedEnsemble(NamedTuple):
+    """Every conformer a set-valued run is handed, and the fingerprint of that set.
+
+    The same rule as `ResolvedInput`: one read of `model.conformers` produces
+    both, so what is submitted and what is fingerprinted cannot drift apart
+    -- which they could if the fingerprint were taken again when the result
+    arrives, because the conformer list can change while a job runs.
+    """
+
+    mols: tuple[Chem.Mol, ...]
+    fingerprint: str
+
+
+def resolve_ensemble(engine: ChemistryEngine, model: MoleculeModel) -> ResolvedEnsemble:
+    """Every stored conformer as a 3D molecule, in stored order, or a refusal.
+
+    **REFUSES RATHER THAN SKIPPING.** A run over "the conformers" that
+    quietly dropped an unusable one would carry a fingerprint naming a set it
+    was not computed over, or a fingerprint over fewer conformers than the
+    project holds -- either way a name that does not match the input. So a
+    member with no molblock, one that will not parse, or one that is not 3D
+    raises `ValueError` naming it, and the caller says so.
+    """
+    conformers = list(model.conformers)
+    if not conformers:
+        raise ValueError("The molecule has no conformers to average over.")
+    mols = []
+    for position, conformer in enumerate(conformers, start=1):
+        if not conformer.molblock:
+            raise ValueError(f"Conformer {position} has no structure.")
+        try:
+            mol = engine.mol_from_molblock(conformer.molblock)
+        except Exception as exc:  # noqa: BLE001 - reported to the caller, not swallowed
+            raise ValueError(f"Conformer {position} cannot be read: {exc}") from exc
+        if mol.GetNumConformers() == 0 or not mol.GetConformer().Is3D():
+            raise ValueError(f"Conformer {position} has no 3D coordinates.")
+        mols.append(mol)
+    return ResolvedEnsemble(tuple(mols), _ensemble_fingerprint(conformers))
 
 
 def resolve_calculation_input(
@@ -154,6 +234,7 @@ def resolve_calculation_input(
                     return ResolvedInput(
                         mol,
                         _fingerprint(GEOMETRY, conformer.conformer_id, conformer.molblock or ""),
+                        GEOMETRY,
                     )
                 logger.info(
                     "Conformer %s of molecule %s is not 3D; using the drawn structure",
@@ -164,7 +245,7 @@ def resolve_calculation_input(
     # purpose: the calculator really was handed the drawing, so a result
     # computed that way is the same input as a drawing-policy one.
     molblock = model.molblock or ""
-    return ResolvedInput(engine.mol_from_model(model), _fingerprint(DRAWING, molblock))
+    return ResolvedInput(engine.mol_from_model(model), _fingerprint(DRAWING, molblock), DRAWING)
 
 
 #: Every key `geometry_provenance` adds carries this prefix.

@@ -73,6 +73,17 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 | `result_picture_export.json` | a depiction in the Results reader, exported through the real export path | nothing yet -- exporting a drawing existed in ONE dialog, so every other picture the application draws was read-only |
 | `rotate_3d_reach.json` | Rotate 3D from the Structure menu, entered and left | nothing yet -- the mode was reachable only from one button on one tab, and two designs for the menu entry's tick disagreed with the button |
 | `atom_selection_sync.json` | the Atom Inspector and the 2D canvas, on a FRESHLY LOADED structure and then on an EDITED one | the pool-id/molfile-position divergence, outbound: clicking a carbon answered "pick a heavy atom" -- this is the same trap inbound, where nothing declines |
+| `qm_shift_identity.json` | a REAL ORCA NMR run in the Atom Inspector, then a new conformer search | ORCA shifts carried no identity and showed as current after the conformers changed; and the inspector's report cache, keyed on the drawing alone, kept serving the old shift |
+
+**`qm_shift_identity.json` RUNS REAL ORCA AND ASSERTS IDENTITY, NOT A
+BANNER.** A generic "stale" line would read the same if the wrong conformer
+happened to be compared against the current one, so `qc_run` remembers the
+identity the service was handed, and `inspector_report` with
+`expect_spectrum` logs `EXPECT spectrum ... ok` only when every held spectrum
+is in that state AND carries exactly that identity (`FAILED` at error level
+otherwise). Measured 2026-09-14 on methanol at HF/def2-SVP, about 2 minutes:
+fresh with `be281a3b...`, then stale against `3e8e4d19...` after the second
+search, the held identity unchanged. Needs ORCA configured.
 
 **`lewis_partner_picker.json` PHOTOGRAPHS A DISTINCTION THE PROVENANCE ALREADY
 RECORDS**, which is the point of it: an orientation worked out from the Drago

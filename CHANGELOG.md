@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The Atom Inspector showed QM NMR shifts computed for an earlier
+  conformer.** ORCA spectra carried no record of the structure they were
+  computed on, so they were shown unchecked. Each spectrum is now stamped
+  with the conformer it was submitted with, or for a Boltzmann average the
+  exact conformer set, and is withheld once that changes, with the line
+  above the facts saying "computed for an earlier conformer". The run's
+  method, charge and multiplicity are recorded with it. A conformer with no
+  3D coordinates is now refused before ORCA runs; it used to be sent as a flat
+  geometry.
+
+- **A new conformer search did not refresh the Atom Inspector.** Its report
+  cache was keyed on the drawing alone, so anything computed on a conformer
+  kept its old value on screen until the drawing changed. The cache now
+  follows the conformers too.
+
 - **pH-dependent partial charges were on the wrong atoms.** The dominant
   protonation state came back from a SMILES round trip in the library's own
   atom order, and the charges were numbered by that order. On the reported

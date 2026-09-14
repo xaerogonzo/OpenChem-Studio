@@ -286,13 +286,15 @@ class QuantumChemistryResultReady(Event):
 
 @dataclass(frozen=True)
 class SpectrumComputed(Event):
-    """A spectrum, with the input identity when the producer has one.
+    """A spectrum, with the identity of the input its atom indices describe.
 
-    Same two fields as `PerAtomDataComputed`, for the replay envelope. NOT a
-    claim that every spectrum is structure-bound: the ORCA service publishes
-    these from a molecule object with no model behind it and leaves both
-    empty, and the Atom Inspector keeps showing those as before (a recorded
-    gap, not a verified pass).
+    Same two fields as `PerAtomDataComputed`. Both producers stamp them: the
+    descriptor service from the resolved calculation input, and the QC
+    service from what each job was SUBMITTED with -- GEOMETRY for a single
+    conformer, ENSEMBLE for a Boltzmann average over a conformer set. An
+    empty identity therefore means a producer that could not vouch for its
+    indices, and the Atom Inspector withholds it rather than assuming it
+    current.
     """
 
     spectrum: SpectrumResult

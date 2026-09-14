@@ -1175,7 +1175,14 @@ for, so the inspector holds such values back and names them in the line
 above the facts — *computed for an earlier structure; run it again to
 inspect atoms*. Undo back to that drawing and they return without anything
 being recomputed. Results still lists the old result, marked stale, if you
-want to read it. (NMR shifts from an ORCA run are not checked this way yet.)
+want to read it.
+
+**NMR shifts from an ORCA run follow the same rule, against the conformer.**
+A shift belongs to the 3D conformer it was computed on — or, for a Boltzmann
+average, to the whole set of conformers — so generating new conformers
+withholds it even though the drawing never changed, and the line says
+*computed for an earlier conformer* (or *conformer set*). Run the
+calculation again on the new conformers to inspect atoms.
 
 The atom table on the left is the primary navigation and works with no 3D
 structure at all, which is the normal state right after drawing something.

@@ -147,6 +147,14 @@ DRAWING = "drawing"
 GEOMETRY = "geometry"
 CALCULATION_INPUTS = frozenset({DRAWING, GEOMETRY})
 
+#: A conformer SET, in stored order -- what a Boltzmann-averaged ORCA run is
+#: handed. Deliberately NOT in `CALCULATION_INPUTS`: a registry calculator
+#: is handed one molecule, so no definition may declare this. It exists so a
+#: result computed over several conformers can name exactly which several,
+#: rather than borrowing the single canonical conformer's identity as a
+#: stand-in for all of them.
+ENSEMBLE = "ensemble"
+
 
 @dataclass(frozen=True, kw_only=True)
 class CalculatorDefinition:

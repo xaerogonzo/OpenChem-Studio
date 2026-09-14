@@ -622,10 +622,13 @@ view may choose how to read a result but never recompute or reinterpret it.
   per-atom consumer (charges, Hückel density, Lewis sites) inherits it.
 - **Structure-bound events carry their input's identity.**
   `PerAtomDataComputed` and `SpectrumComputed` have `input_fingerprint` and
-  `calculation_input`, stamped by `descriptor_service` and restored on replay.
-  The Atom Inspector compares them with `chem.calculation_input.input_fingerprint`
-  and withholds anything stale or unverifiable, naming it. ORCA spectra carry
-  none today and are shown as before -- a recorded gap.
+  `calculation_input`, stamped by `descriptor_service` and restored on replay,
+  and by `QuantumChemistryService` from each job's submission snapshot. The
+  Atom Inspector compares them with `chem.calculation_input.input_fingerprint`
+  and withholds anything stale or unverifiable, naming it. Three input kinds:
+  DRAWING, GEOMETRY, and ENSEMBLE -- a conformer SET, which only a Boltzmann
+  average uses and no calculator definition may declare. An unknown kind
+  cannot be fingerprinted at all, so it can never compare equal to anything.
 - **A unit is a declared rendering, not a parameter.** `ReportResult.renderings`,
   `Fact.rendering` and `LineChartAnnotation.renderings` let a producer state one
   quantity several ways; `rendering_state` decides whether a reader may offer the
@@ -670,15 +673,33 @@ label says what it is.
 document may cite a file or a test that does not exist.
 
 
-- **OPEN** -- ORCA spectra carry no input identity, so the Atom Inspector
-  cannot tell a QM NMR shift computed for an earlier drawing from a current
-  one. Per-atom datasets and registry spectra carry `input_fingerprint`
-  (see "What a per-atom index means" above) and are withheld when stale;
-  `QuantumChemistryService` publishes `SpectrumComputed` from a bare
-  molecule with no model behind it, so it has nothing to stamp. Treating
-  an empty identity as unverifiable would remove every QM shift from the
-  inspector, so those are shown unchecked instead. Closing it means passing
-  the drawing's fingerprint in at job submission.
+- **SETTLED** (2026-09-14) -- ORCA spectra carry an exact input identity.
+  They used to carry none, so the Atom Inspector showed a QM shift computed
+  for an earlier conformer as current. The Quantum Chemistry panel now
+  resolves what it submits through `chem.calculation_input`, and the service
+  stamps every spectrum from the job's submission snapshot:
+  - a single run carries its conformer's GEOMETRY fingerprint, and the
+    panel refuses outright when the resolver says it fell back to the
+    drawing (`ResolvedInput.used`);
+  - a Boltzmann run carries an ENSEMBLE fingerprint over exactly the
+    conformers it submitted -- membership, ids, geometry and order -- frozen
+    when the job starts, because the conformer list can change while ORCA
+    runs.
+
+  The inspector applies one freshness rule to spectra and per-atom data, and
+  names what moved on ("an earlier conformer", "an earlier conformer set").
+  Building it found a second defect the old gap had hidden: the inspector's
+  report cache was keyed on the DRAWING alone, so a new conformer search kept
+  serving the old report. It now keys on every held input's current
+  fingerprint and rebuilds on `ConformersChanged`.
+
+  The fingerprint says which structure's atoms; run parameters (method,
+  charge, multiplicity, provider) go into provenance, because these spectra
+  are never stored or replayed. **If ORCA spectra ever enter the result
+  store, their identity must add a parameters key built from those fields.**
+  Checked live against a real ORCA NMR run on methanol
+  (`benchmarks/visual/qm_shift_identity.json`): fresh with the submitted
+  identity, then stale against a new search with that identity unchanged.
 
 - **OPEN** -- two protonation authorities disagree on some molecules.
   pkasolver (behind logD and solubility) and Dimorphite-DL (behind the

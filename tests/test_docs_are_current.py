@@ -619,15 +619,6 @@ DEFERRALS: list[Deferral] = [
         "starting over; only a human seeing it again can close it.",
     ),
     Deferral(
-        claim="ORCA spectra carry no input identity",
-        # Closing it means the QM service stamping the fingerprint the Atom
-        # Inspector already compares; the day that name appears in the
-        # service, this entry is describing the past.
-        unbuilt=lambda: "input_fingerprint" not in (
-            _ROOT / "src/openchem/services/quantum_chemistry_service.py"
-        ).read_text(encoding="utf-8"),
-    ),
-    Deferral(
         claim="two protonation authorities disagree on some molecules",
         # Nothing reconciles them today: the microspecies is Dimorphite's
         # alone. A fix would make `dominant_microspecies` consult the pKa

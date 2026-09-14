@@ -72,6 +72,11 @@ The script is a JSON list of steps, run in order:
       {"do": "screen_run",       "receptor": 0}   the REAL Run button
       {"do": "screen_run",       "receptor": 0, "exhaustiveness": 32,
                                  "scoring_function": "vinardo", "seed": 4712},
+      {"do": "qc_run",           "calc_type": "NMR (raw shielding)",
+                                 "method": "HF-3c"}   the REAL Run button,
+                                                      and the identity the
+                                                      SERVICE was handed
+      {"do": "inspector_report", "expect_spectrum": "stale"}   asserts it
       {"do": "quit"}
     ]
 
@@ -386,6 +391,72 @@ class _Driver(QObject):
             return
         combo.setCurrentIndex(index)
         logger.warning("OPENCHEM_DRIVE: dock_receptor -> %r", combo.currentText())
+
+    def _do_qc_run(self, step: dict[str, Any]) -> None:
+        """Press the Quantum Chemistry panel's Run button, for real, and log the
+        identity the SERVICE was handed.
+
+        `{"do": "qc_run", "calc_type": "NMR (raw shielding)", "method": "HF-3c",
+        "boltzmann": false, "after_ms": 120000}`
+
+        **WHAT THE SERVICE RECEIVED, read off its own job record** --
+        `_active_jobs` or `_boltzmann_runs`, both set synchronously by the
+        request -- rather than what the panel believes it sent, the distinction
+        `screen_run` reads its prep dict for. It is also REMEMBERED, so a later
+        `inspector_report` with `expect_spectrum` can assert that the spectrum
+        it holds carries exactly this identity rather than trusting a banner:
+        a generic "stale" line would read the same if the wrong conformer
+        happened to be compared against the current one.
+
+        The panel's own combos and checkbox are SET, then the button is
+        clicked, for the reason `dock_run` sets its spin box. The panel's
+        molecule combo is pointed at the Properties selection first; nothing
+        else moves it, and without that the run computes whatever the combo
+        last held.
+
+        ORCA runs for real, so give the step an `after_ms` long enough for the
+        job to finish before any report that expects its spectrum.
+        """
+        from openchem.ui.molecule_combo import select
+
+        panel = getattr(self._window, "_quantum_chemistry_panel", None)
+        if panel is None:
+            logger.error("OPENCHEM_DRIVE: qc_run -- no Quantum Chemistry panel on this window")
+            return
+        molecule_uuid = self._window._property_panel._selected_molecule_uuid
+        if not select(panel._molecule_combo, molecule_uuid):
+            logger.error("OPENCHEM_DRIVE: qc_run -- the selected molecule is not in the panel's combo")
+            return
+        calc_type = step.get("calc_type")
+        if calc_type is not None:
+            index = panel._calc_type_combo.findText(str(calc_type))
+            if index < 0:
+                logger.error("OPENCHEM_DRIVE: qc_run -- calc_type %r matches no item", calc_type)
+                return
+            panel._calc_type_combo.setCurrentIndex(index)
+        if step.get("method") is not None:
+            panel._method_combo.setCurrentText(str(step["method"]))
+        panel._boltzmann_check.setChecked(bool(step.get("boltzmann", False)))
+        if not panel._run_button.isEnabled():
+            logger.error("OPENCHEM_DRIVE: qc_run -- the Run button is DISABLED; not clicked")
+            return
+        panel._run_button.click()
+
+        service = panel._quantum_chemistry_service
+        record = service._boltzmann_runs.get(molecule_uuid) or service._active_jobs.get(molecule_uuid)
+        if record is None:
+            logger.error(
+                "OPENCHEM_DRIVE: qc_run -- no job was started; status=%r", panel._status_label.text()
+            )
+            return
+        self._qc_submitted = (record.calculation_input, record.input_fingerprint)
+        logger.warning(
+            "OPENCHEM_DRIVE: qc_run submitted input=%s fingerprint=%s method=%r status=%r",
+            record.calculation_input,
+            record.input_fingerprint[:12],
+            record.method_basis,
+            panel._status_label.text(),
+        )
 
     def _do_dock_run(self, step: dict[str, Any]) -> None:
         """Press the Docking panel's Dock button, for real.
@@ -2215,23 +2286,69 @@ class _Driver(QObject):
         ]
         # Every HELD per-atom result and what the panel decides about it, so
         # "not on screen" can be told apart from "never arrived".
+        from openchem.chem.calculation_input import input_fingerprint
+        from openchem.domain.calculator import DRAWING
+
         model, _mol = panel._molecule()
         held = {}
+        # Spectra WITH their identities: the input kind, the fingerprint the
+        # spectrum carries and the current one for that kind, so "stale"
+        # can be checked against WHAT it is stale relative to.
+        identity: dict[str, dict[str, str]] = {}
         if model is not None:
             context = panel._context_for(model.uuid)
             cache: dict = {}
             for key in context["per_atom"]:
                 calculation_input, fingerprint = context["inputs"].get(("per_atom", key), ("", ""))
                 held[key] = panel._freshness(model, calculation_input, fingerprint, cache)
+            for key in context["spectra"]:
+                calculation_input, fingerprint = context["inputs"].get(("spectra", key), ("", ""))
+                state = panel._freshness(model, calculation_input, fingerprint, cache)
+                held[f"spectrum:{key}"] = state
+                try:
+                    current = input_fingerprint(panel._engine, model, calculation_input or DRAWING)
+                except Exception:  # noqa: BLE001 - an unresolvable input is reported as such
+                    current = ""
+                identity[key] = {
+                    "input": calculation_input,
+                    "held": fingerprint[:12],
+                    "current": current[:12],
+                    "state": state,
+                }
+        expected = step.get("expect_spectrum")
+        if expected:
+            # THE ASSERTION, logged at ERROR when it fails so a run's outcome
+            # is one grep. Every held spectrum must be in the expected state
+            # AND carry exactly the identity the last `qc_run` submitted -- a
+            # stale mark over a different identity is the failure this checks.
+            submitted = getattr(self, "_qc_submitted", None)
+            ok = (
+                bool(identity)
+                and submitted is not None
+                and all(
+                    entry["state"] == expected
+                    and entry["input"] == submitted[0]
+                    and entry["held"] == submitted[1][:12]
+                    for entry in identity.values()
+                )
+            )
+            (logger.warning if ok else logger.error)(
+                "OPENCHEM_DRIVE: EXPECT spectrum %s %s -- submitted=%s identity=%s",
+                expected,
+                "ok" if ok else "FAILED",
+                None if submitted is None else [submitted[0], submitted[1][:12]],
+                json.dumps(identity),
+            )
         # And what PROPERTIES holds, which is the other half of "never
         # arrived": a result there and not here was missed by this panel.
         properties = sorted(getattr(self._window._property_panel, "_retained_results", {}) or {})
         logger.warning(
-            "OPENCHEM_DRIVE: inspector %s title=%r pinned=%r held=%s properties=%s facts=%s",
+            "OPENCHEM_DRIVE: inspector %s title=%r pinned=%r held=%s identity=%s properties=%s facts=%s",
             step.get("tag", ""),
             panel.title_text(),
             facts._summary.text(),
             json.dumps(held),
+            json.dumps(identity),
             json.dumps(properties),
             json.dumps(rows),
         )
