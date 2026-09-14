@@ -1,0 +1,51 @@
+# Ramachandran, Lenz, Skiff & Rappe, J. Phys. Chem. 1996, 100, 5898-5907,
+# Tables 2 and 3 (p. 5899), transcribed AS PRINTED from the page rendered at
+# 300 dpi. https://doi.org/10.1021/jp952864q
+#
+# Every column of both tables, for a charge-conservation audit (amendment A7).
+# multiplicity: atoms of that label in the molecule. For O(SiH3)2 the H1/H2
+# multiplicities (2 and 4) are INFERRED: the table does not print them, and
+# they are the only split under which every one of its four columns sums to
+# zero within rounding. Which hydrogens are H1 is not inferred at all.
+#
+# Table 3's QEq column prints exactly Table 2's QEq numbers (O -0.636, Si
+# 0.420, H -0.021, the H with an ASCII hyphen where every other minus sign on
+# the page is typeset); its three reference columns are Schafer's (ref 12).
+table,molecule,atom,multiplicity,method,value
+2,O(SiH3)2,O,1,QEq,-0.636
+2,O(SiH3)2,Si,2,QEq,0.420
+2,O(SiH3)2,H1,2,QEq,-0.021
+2,O(SiH3)2,H2,4,QEq,-0.040
+2,O(SiH3)2,O,1,CHELPG 6-21G*,-0.624
+2,O(SiH3)2,Si,2,CHELPG 6-21G*,0.982
+2,O(SiH3)2,H1,2,CHELPG 6-21G*,-0.217
+2,O(SiH3)2,H2,4,CHELPG 6-21G*,-0.227
+2,O(SiH3)2,O,1,MSK 6-21G*,-1.298
+2,O(SiH3)2,Si,2,MSK 6-21G*,1.187
+2,O(SiH3)2,H1,2,MSK 6-21G*,-0.176
+2,O(SiH3)2,H2,4,MSK 6-21G*,-0.181
+2,O(SiH3)2,O,1,Mulliken 6-21G*,-0.981
+2,O(SiH3)2,Si,2,Mulliken 6-21G*,1.101
+2,O(SiH3)2,H1,2,Mulliken 6-21G*,-0.198
+2,O(SiH3)2,H2,4,Mulliken 6-21G*,-0.206
+3,Si(OH)4,O,4,QEq,-0.636
+3,Si(OH)4,Si,1,QEq,0.420
+3,Si(OH)4,H,4,QEq,-0.021
+3,Si(OH)4,O,4,CHELPG basis A,-0.935
+3,Si(OH)4,Si,1,CHELPG basis A,1.763
+3,Si(OH)4,H,4,CHELPG basis A,0.494
+3,Si(OH)4,O,4,CHELPG basis B,-0.858
+3,Si(OH)4,Si,1,CHELPG basis B,1.546
+3,Si(OH)4,H,4,CHELPG basis B,0.471
+3,Si(OH)4,O,4,CHELPG-MP2 basis A,-0.840
+3,Si(OH)4,Si,1,CHELPG-MP2 basis A,1.507
+3,Si(OH)4,H,4,CHELPG-MP2 basis A,0.463
+3,Si(OH)4,O,4,CHELPG-MP2 basis B,-0.771
+3,Si(OH)4,Si,1,CHELPG-MP2 basis B,1.306
+3,Si(OH)4,H,4,CHELPG-MP2 basis B,0.445
+3,Si(OH)4,O,4,Mulliken basis A,-0.711
+3,Si(OH)4,Si,1,Mulliken basis A,1.611
+3,Si(OH)4,H,4,Mulliken basis A,0.308
+3,Si(OH)4,O,4,Mulliken basis B,-0.881
+3,Si(OH)4,Si,1,Mulliken basis B,2.412
+3,Si(OH)4,H,4,Mulliken basis B,0.278

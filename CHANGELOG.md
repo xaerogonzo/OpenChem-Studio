@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   solver now uses λ = ½ for every element, the rounding the paper's text
   describes, which reproduces 66 of 76 of its polyatomic charges; the
   choice was made after comparing, and is recorded as such.
+  Why LiH and SiH₄ still miss is now measured rather than guessed: LiH's
+  printed charge is not a solution of the paper's equations, and a 1996
+  paper from the same group contradicts the printed silane sign. That 1996
+  paper's disiloxane charges are reproduced to 0.002 e by the adopted λ = ½.
 
 ### Fixed
 

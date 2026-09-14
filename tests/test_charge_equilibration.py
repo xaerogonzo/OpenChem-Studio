@@ -69,7 +69,7 @@ def test_every_fixture_matches_the_hash_the_preregistration_recorded():
     text = PREREGISTRATION.read_text(encoding="utf-8")
     fixtures = sorted(FIXTURES.glob("*.csv"))
     hashed = [f for f in fixtures if f.name != "slater_reference.csv"]
-    assert len(hashed) == 8
+    assert len(hashed) == 12
     for fixture in hashed:
         digest = hashlib.sha256(fixture.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
         assert f"`{fixture.name}`" in text and digest in text, fixture.name
@@ -730,3 +730,329 @@ def test_every_trace_row_names_its_iteration_and_pass():
     assert result.iterations >= 2
     assert all({"hydrogen_iteration", "active_set_pass", "dQ_H", "dzeta_H", "dhardness_diag_H"} <= set(row) for row in result.trace)
     assert result.solver_to_source == [0, 1, 2]
+
+
+# =============================================================================
+# Amendment A7: diagnostics of the open problems -- nothing here changes a result
+# =============================================================================
+
+import qeq_fixed_point as fp  # noqa: E402
+
+
+@functools.lru_cache(maxsize=None)
+def _lih_map(hydrogen: str) -> fp.HydrogenMap:
+    return fp.HydrogenMap(*_diatomic("Li", "H", _r_e("LiH")), hydrogen)
+
+
+@functools.lru_cache(maxsize=None)
+def _lih_root(hydrogen: str) -> float:
+    F = _lih_map(hydrogen)
+    found = fp.roots(F, *fp.scan(F))
+    assert [r.kind for r in found] == ["root"], found  # one root, no tangency candidate
+    return found[0].q
+
+
+def test_F_is_the_production_step():
+    """Iterating A7's map from zero IS the production solver's sequence: its
+    n-th iterate is the charge `qeq_charges` returns after n iterations."""
+    for elements, coords in (_diatomic("H", "F", _r_e("HF")), WATER):
+        F = fp.HydrogenMap(elements, coords)
+        production = ce.qeq_charges(elements, coords)
+        assert production.status == "converged"
+        # tolerance 0: run exactly as many steps as production took
+        run = fp.iterate(F, 1.0, max_iterations=production.iterations, tolerance=0.0)
+        assert len(run.history) == production.iterations + 1
+        assert np.max(np.abs(run.history[production.iterations] - production.charges[F.hydrogens])) <= 1e-12
+
+
+@pytest.mark.parametrize("hydrogen,expected", [("experimental", -0.973), ("hf", -0.982)])
+def test_lih_self_consistent_charge_exists(hydrogen, expected):
+    """Q-A. Measured 2026-09-14: -0.973740 and -0.982743, exactly one root on
+    [-1, +1] each, no tangency candidate, and no bound active near Q*."""
+    F = _lih_map(hydrogen)
+    q = _lih_root(hydrogen)
+    assert abs(fp.g(F, q)) <= 1e-8
+    assert abs(q - expected) <= 0.002
+    assert F.solve(q).passes[-1] == {}
+    assert fp.active_sets_near(F, q) == {frozenset()}
+
+
+@pytest.mark.parametrize("hydrogen,printed", [("experimental", -0.767), ("hf", -0.679)])
+def test_lih_printed_charge_is_not_self_consistent(hydrogen, printed):
+    """Q-B. g(-0.767) = -0.233 and g(-0.679) = -0.321 under ADOPTED."""
+    assert abs(fp.g(_lih_map(hydrogen), printed)) >= 0.05
+
+
+@pytest.mark.parametrize("hydrogen,measured", [("experimental", -14.0606), ("hf", -14.1175)])
+def test_lih_plain_iteration_is_locally_unstable(hydrogen, measured):
+    """Q-C's cause. A7 PREDICTED -14.24 and -14.36 +- 0.1, from an earlier
+    unregistered estimate taken at a coarser root, and that prediction FAILED:
+    the frozen difference gives the values here. The instability (|s| > 1)
+    holds either way; the value and the property are both asserted."""
+    s = fp.slopes(_lih_map(hydrogen), _lih_root(hydrogen))
+    assert max(s.values()) - min(s.values()) <= 0.05
+    assert abs(s[1e-5] - measured) <= 0.01
+    assert abs(s[1e-5]) > 1
+
+
+@pytest.mark.parametrize("hydrogen", ["experimental", "hf"])
+def test_mixing_stability_matches_its_prediction(hydrogen):
+    """Numeric slope -> analytic |1 - alpha(1 - s)| < 1 -> observed trajectory.
+    Where mixing converges it reaches Q*, never the printed charge."""
+    F = _lih_map(hydrogen)
+    q_star = _lih_root(hydrogen)
+    slope = fp.slopes(F, q_star)[1e-5]
+    for alpha in (1.0, 0.75, 0.5, 0.25, 0.1, 0.05):
+        run = fp.iterate(F, alpha)
+        assert run.converged == fp.predicted_to_converge(alpha, slope), alpha
+        if run.converged:
+            assert abs(run.q[0] - q_star) <= 1e-7 and run.residual <= 1e-8
+
+
+def test_mixing_moves_the_path_not_the_fixed_point():
+    """Independently converged at alpha = 1 and 0.5. The stored solver is a
+    separate, third comparison."""
+    cases = [_diatomic("H", "F", _r_e("HF"))] + [qeq_geometries.build(name)[:2] for name in ("H2O", "NH3", "CH4")]
+    for elements, coords in cases:
+        for hydrogen in ("experimental", "hf"):
+            F = fp.HydrogenMap(elements, coords, hydrogen)
+            plain, mixed = fp.iterate(F, 1.0), fp.iterate(F, 0.5)
+            assert plain.converged and mixed.converged
+            assert np.max(np.abs(plain.q - mixed.q)) <= 1e-7
+            assert np.max(np.abs(plain.q - ce.qeq_charges(elements, coords, hydrogen=hydrogen).charges[F.hydrogens])) <= 1e-7
+
+
+def test_a_non_fixed_point_keeps_its_residual():
+    """Mixing cannot validate a target: the printed LiH charge, or any other
+    charge that is not Q*, keeps its residual, and no converging alpha lands
+    near the printed value."""
+    F = _lih_map("experimental")
+    for fake in (-0.767, -0.9, -0.5):
+        assert abs(fp.g(F, fake)) >= 1e-3
+    for alpha in (0.1, 0.05):
+        assert abs(fp.iterate(F, alpha).q[0] - (-0.767)) > 0.2
+
+
+def test_the_convergence_test_needs_the_residual_as_well_as_the_step():
+    """A tiny step alone is not a fixed point: with a vanishing alpha the step
+    is under 1e-8 at Q = 0, where F(Q) - Q is still large."""
+    run = fp.iterate(_lih_map("experimental"), 1e-9, max_iterations=3)
+    assert run.step <= 1e-8 and run.residual > 1e-3 and not run.converged
+
+
+def test_ramachandran_1996_water_at_its_stated_geometry():
+    """Their Table 8: QEq H = 0.353 at O-H 0.9572 A and H-O-H 104.52 deg,
+    stated in their section VIII. Measured 0.3532."""
+    half = math.radians(104.52 / 2)
+    coords = np.array([[0, 0, 0], [0.9572 * math.sin(half), 0, 0.9572 * math.cos(half)], [-0.9572 * math.sin(half), 0, 0.9572 * math.cos(half)]])
+    result = ce.qeq_charges(["O", "H", "H"], coords, hydrogen="experimental")
+    assert result.status == "converged"
+    assert all(abs(q - 0.353) <= 0.001 for q in result.charges[1:])
+
+
+def test_no_silane_geometry_in_the_a7_sweep_reaches_the_printed_charge():
+    """Diagnostic, not fitting: Si-H 1.45-1.51 A with a D2d distortion of +-5
+    deg gives Q_H -0.046 to -0.045 (experimental) and -0.077 to -0.074 (hf).
+    Geometry cannot reach the printed +0.13 / +0.11, nor change the sign."""
+    for hydrogen in ("experimental", "hf"):
+        values = []
+        for bond in (1.45, 1.48, 1.51):
+            for delta in (-5.0, -2.5, 0.0, 2.5, 5.0):
+                theta = math.radians(109.4712206 + delta)
+                a, c = bond * math.sin(theta / 2), bond * math.cos(theta / 2)
+                coords = np.array([[0, 0, 0], [a, 0, c], [-a, 0, c], [0, a, -c], [0, -a, -c]])
+                values.extend(ce.qeq_charges(["Si", "H", "H", "H", "H"], coords, hydrogen=hydrogen).charges[1:])
+        assert max(values) < 0
+
+
+#: The polyatomic cells each lambda reading misses, as oracle.py counts them.
+PREREGISTERED_POLYATOMIC_MISSES = {
+    ("III", "H2O", 1, "QEq"), ("III", "NH3", 1, "QEq"), ("III", "NH3", 1, "QEqHF"), ("III", "CH4", 1, "QEq"), ("III", "CH4", 1, "QEqHF"),
+    *{("IV", m, o, c) for m, o, c in [
+        ("NH3", 1, "QEq"), ("CH4", 1, "QEq"), ("CH4", 1, "QEqHF"), ("CO2", 1, "QEq"), ("CO2", 1, "QEqHF"), ("H2CO", 1, "QEqHF"),
+        ("H2CO", 2, "QEqHF"), ("H3COH", 5, "QEqHF"), ("H2NC(O)H", 1, "QEqHF"), ("H2NC(O)H", 2, "QEq"), ("H2NC(O)H", 2, "QEqHF"),
+        ("H2NC(O)H", 3, "QEq"), ("H2NC(O)H", 3, "QEqHF"), ("H2NC(O)H", 4, "QEq"), ("HOC(O)H", 2, "QEq"), ("HOC(O)H", 2, "QEqHF"),
+        ("HOC(O)H", 3, "QEqHF"), ("HOC(O)H", 4, "QEq"), ("HOC(O)H", 4, "QEqHF"), ("HOC(O)H", 5, "QEq"), ("H3CCN", 1, "QEqHF"),
+        ("H3CCN", 2, "QEq"), ("H3CCN", 2, "QEqHF"), ("H3CCN", 3, "QEq"), ("H3CCN", 3, "QEqHF"), ("H2C=C=O", 1, "QEq"),
+        ("H2C=C=O", 1, "QEqHF"), ("H2C=C=O", 2, "QEq"), ("H2C=C=O", 2, "QEqHF"), ("H2C=C=O", 3, "QEq"), ("H2C=C=O", 3, "QEqHF"),
+        ("SiH4", 1, "QEq"), ("SiH4", 1, "QEqHF"), ("C2H6", 1, "QEq")]},
+}
+ADOPTED_POLYATOMIC_MISSES = {
+    ("III", "H2O", 1, "QEqHF"), ("III", "NH3", 1, "QEqHF"), ("III", "CH4", 1, "QEqHF"),
+    ("IV", "H3COH", 1, "QEqHF"), ("IV", "H3COH", 3, "QEqHF"), ("IV", "H3COH", 5, "QEqHF"), ("IV", "H2NC(O)H", 2, "QEq"),
+    ("IV", "H2NC(O)H", 3, "QEqHF"), ("IV", "SiH4", 1, "QEq"), ("IV", "SiH4", 1, "QEqHF"),
+}
+
+
+@functools.lru_cache(maxsize=None)
+def _polyatomic(molecule: str, hydrogen: str, reading: str):
+    elements, coords, mapping, _ = qeq_geometries.build(qeq_geometries.TABLE_NAMES[molecule])
+    readings = ce.PREREGISTERED if reading == "PREREGISTERED" else ce.ADOPTED
+    return ce.qeq_charges(elements, coords, 0.0, hydrogen=hydrogen, readings=readings), mapping
+
+
+@pytest.mark.parametrize("reading,expected", [("PREREGISTERED", PREREGISTERED_POLYATOMIC_MISSES), ("ADOPTED", ADOPTED_POLYATOMIC_MISSES)])
+def test_both_lambda_readings_reproduce_their_historical_miss_sets(reading, expected):
+    """A6 keeps both readings runnable; this keeps both RESULTS -- 39 of 76 and
+    10 of 76, cell for cell, through the same solver path."""
+    cells = [("III", r["molecule"], 1, r) for r in _rows("rappe1991_table3.csv") if r["molecule"] in ("H2O", "NH3", "CH4")]
+    cells += [("IV", r["molecule"], int(r["printed_order"]), r) for r in _rows("rappe1991_table4.csv")
+              if r["status"] == "printed" and r["molecule"] in qeq_geometries.TABLE_NAMES]
+    misses = set()
+    for table, molecule, order, row in cells:
+        tolerance = 0.002 if table == "III" else 0.01
+        for column, hydrogen in COLUMNS:
+            result, mapping = _polyatomic(molecule, hydrogen, reading)
+            if result.charges is None or any(abs(result.charges[i] - float(row[column])) > tolerance for i in mapping[order]):
+                misses.add((table, molecule, order, column))
+    assert 2 * len(cells) == 76
+    assert misses == expected
+
+
+def test_bakowies_1996_reprints_rappe_goddard_table_i_as_we_transcribed_it():
+    """A parameter mismatch would mean a transcription or source-version
+    problem, and is kept apart from the charge comparison below."""
+    ours = {row["element"]: row for row in _rows("rappe1991_table1.csv")}
+    reprint = _rows("bakowies1996_table8_parameters.csv")
+    assert [row["element"] for row in reprint] == ["H", "C", "N", "O"]
+    for row in reprint:
+        if row["element"] == "H":
+            assert (float(row["chi_eV"]), float(row["J_eV"])) == ce.HYDROGEN_SETS["experimental"]
+        assert (float(row["chi_eV"]), float(row["J_eV"])) == (float(ours[row["element"]]["chi_eV"]), float(ours[row["element"]]["J_eV"]))
+
+
+def test_bakowies_1996_reprints_rappe_goddard_table_iv_qeqhf_as_we_transcribed_it():
+    """Only cells that name their Table IV rows are compared; an averaged cell
+    (footnote b) is compared with the mean, at the reprint's two decimals."""
+    table4 = {(row["molecule"], row["printed_order"]): row for row in _rows("rappe1991_table4.csv") if row["status"] == "printed"}
+    compared = 0
+    for row in _rows("bakowies1996_table10_charges.csv"):
+        assert (row["geometry_class"], row["hydrogen_set"], row["column"]) == ("exp", "hf", "QEqHF")
+        if row["relation"] == "not_in_table4":
+            continue
+        orders = row["table4_orders"].split(";")
+        values = [float(table4[(row["table4_molecule"], order)][row["column"]]) for order in orders]
+        assert (row["relation"] == "same") == (len(orders) == 1)
+        assert abs(sum(values) / len(values) - float(row["value"])) <= 0.005 + 1e-12, row
+        compared += 1
+    assert compared == 23
+
+
+def test_ramachandran_1996_table_3_qeq_column_does_not_conserve_charge():
+    """The source audit. Every reference column of both tables sums to zero
+    within rounding, and so does Table 2's QEq column; Table 3's QEq column --
+    Table 2's numbers again -- sums to -2.208 e. Recorded as internally
+    inconsistent with charge conservation, not as a known misprint."""
+    totals: dict[tuple[str, str], float] = {}
+    for row in _rows("ramachandran1996_tables.csv"):
+        key = (row["table"], row["method"])
+        totals[key] = totals.get(key, 0.0) + int(row["multiplicity"]) * float(row["value"])
+    for (table, method), total in totals.items():
+        if (table, method) == ("3", "QEq"):
+            assert abs(total - (-2.208)) < 1e-9
+        else:
+            assert abs(total) <= 0.005, (table, method, total)
+    assert len(totals) == 11
+
+
+def test_ramachandran_1996_gives_silyl_hydrogen_the_sign_we_compute_for_silane():
+    """Independent evidence from the Rappé group's own program, five years on:
+    every silyl H in O(SiH3)2 is negative. That its silicon parameters are
+    1991 Table I's is an inference -- the paper's parameter citation (ref 6)
+    points at a catalysis paper."""
+    qeq = [row for row in _rows("ramachandran1996_tables.csv") if row["table"] == "2" and row["method"] == "QEq"]
+    assert all(float(row["value"]) < 0 for row in qeq if row["atom"].startswith("H"))
+    assert float(next(row["value"] for row in qeq if row["atom"] == "Si")) > 0
+
+
+def test_the_disiloxane_builder_reproduces_almenningen_1963():
+    """Every printed parameter, the C3v checksum (H-Si-H 109.04 against the
+    printed 109.1 +- 1.29), C2 symmetry, and the in-plane hydrogen as the one
+    nearest the 2-fold axis, as the authors' non-firm interpretation says."""
+    p = qeq_geometries.disiloxane_parameters()
+    elements, coords, groups = qeq_geometries.build_disiloxane()
+    assert elements.count("H") == 6 and len(groups["H1"]) == 2 and len(groups["H2"]) == 4
+
+    def angle(a, b, c):
+        u, v = coords[a] - coords[b], coords[c] - coords[b]
+        return math.degrees(math.acos(u @ v / np.linalg.norm(u) / np.linalg.norm(v)))
+
+    assert all(abs(np.linalg.norm(coords[si] - coords[0]) - p["SiO"]) < 1e-12 for si in (1, 2))
+    assert abs(angle(1, 0, 2) - p["SiOSi"]) < 1e-9
+    for si, hs in ((1, (3, 4, 5)), (2, (6, 7, 8))):
+        assert all(abs(np.linalg.norm(coords[h] - coords[si]) - p["SiH"]) < 1e-12 for h in hs)
+        assert all(abs(angle(0, si, h) - p["OSiH"]) < 1e-9 for h in hs)
+        assert all(abs(angle(a, si, b) - p["HSiH"]) < 0.1 for a, b in itertools.combinations(hs, 2))
+    mirrored = coords * np.array([-1.0, -1.0, 1.0])
+    assert max(np.min(np.linalg.norm(coords - m, axis=1)) for m in mirrored) < 1e-12
+    # a twisted torsion must keep the C2 axis: +t on one silyl is -t on the other
+    for torsion in (30.0, 45.0):
+        _, twisted, _ = qeq_geometries.build_disiloxane(torsion=torsion)
+        rotated = twisted * np.array([-1.0, -1.0, 1.0])
+        assert max(np.min(np.linalg.norm(twisted - m, axis=1)) for m in rotated) < 1e-9, torsion
+    axis_distance = lambda i: math.hypot(coords[i][0], coords[i][1])
+    assert max(axis_distance(i) for i in groups["H1"]) < min(axis_distance(i) for i in groups["H2"])
+
+
+RAMACHANDRAN_TABLE_2_QEQ = {"O": -0.636, "Si": 0.420, "H1": -0.021, "H2": -0.040}
+DISILOXANE_TOLERANCE = {"O": 0.03, "Si": 0.02, "H1": 0.02, "H2": 0.02}
+
+
+def _disiloxane(readings=ce.ADOPTED, **geometry):
+    elements, coords, groups = qeq_geometries.build_disiloxane(**geometry)
+    result = ce.qeq_charges(elements, coords, hydrogen="experimental", readings=readings)
+    assert result.status == "converged" and not result.clamped
+    return result.charges, coords, groups
+
+
+def test_disiloxane_signs_match_ramachandran_1996_in_every_a7_geometry():
+    """A7's first test, sign before magnitude: every H negative and both Si
+    positive at the reference structure, across Si-O-Si 140-180 deg, Si-O
+    +-0.02 A, and silyl torsion 0/30/60 deg. HELD."""
+    geometries = [{}] + [{"si_o_si": a} for a in (140, 150, 160, 170, 180)] + [{"si_o": 1.614}, {"si_o": 1.654}] + [{"torsion": t} for t in (0, 30, 60)]
+    for geometry in geometries:
+        charges, _, groups = _disiloxane(**geometry)
+        assert all(charges[i] < 0 for i in groups["H1"] + groups["H2"]), geometry
+        assert all(charges[i] > 0 for i in groups["Si"]), geometry
+
+
+@pytest.mark.parametrize("label", ["O", "Si", "H2"])
+def test_disiloxane_magnitudes_at_the_reference_conformation(label):
+    """A7's second test, at the authors' non-firm conformation (in-plane H
+    nearest the 2-fold axis). Measured: O -0.6362, Si +0.4218, H2 -0.0283."""
+    charges, _, groups = _disiloxane()
+    assert all(abs(charges[i] - RAMACHANDRAN_TABLE_2_QEQ[label]) <= DISILOXANE_TOLERANCE[label] for i in groups[label])
+
+
+@pytest.mark.xfail(strict=True, reason="STOP RECORD (A7): at the reference conformation the in-plane H is -0.0472 against H1's -0.021, outside +-0.02")
+def test_disiloxane_h1_at_the_reference_conformation():
+    charges, _, groups = _disiloxane()
+    assert all(abs(charges[i] - RAMACHANDRAN_TABLE_2_QEQ["H1"]) <= DISILOXANE_TOLERANCE["H1"] for i in groups["H1"])
+
+
+def test_post_hoc_the_other_c2v_conformation_reproduces_all_of_table_2():
+    """NOT PRE-REGISTERED -- found after H1 failed, and recorded as such. With
+    the in-plane hydrogen anti (torsion 60: pointing away from the other Si,
+    the other C2v conformation), the two in-plane H give -0.0228 (H1 -0.021)
+    and the four others -0.0406 (H2 -0.040), with O -0.6361 and Si +0.4219:
+    all four within 0.002 e. Almenningen's data do not fix the conformation."""
+    charges, coords, _ = _disiloxane(torsion=60)
+    in_plane = [charges[h] for h in range(3, 9) if abs(coords[h][1]) < 1e-9]
+    out_of_plane = [charges[h] for h in range(3, 9) if abs(coords[h][1]) >= 1e-9]
+    assert len(in_plane) == 2 and len(out_of_plane) == 4
+    computed = {"O": charges[0], "Si": charges[1], "H1": float(np.mean(in_plane)), "H2": float(np.mean(out_of_plane))}
+    assert np.ptp(in_plane) < 1e-9 and np.ptp(out_of_plane) < 1e-9
+    assert all(abs(computed[k] - RAMACHANDRAN_TABLE_2_QEQ[k]) <= 0.002 for k in computed)
+
+
+def test_post_hoc_disiloxane_oxygen_and_silicon_separate_the_two_lambda_readings():
+    """NOT PRE-REGISTERED, and not used to choose anything (A6 was already
+    decided). O and Si barely move with conformation (< 0.001 e over torsion
+    0-60 deg), so they compare readings without the conformation question.
+    ADOPTED (lambda = 1/2) gives -0.636 / +0.422 against the printed -0.636 /
+    +0.420; PREREGISTERED gives -0.624 / +0.388, 0.032 e off on Si."""
+    for torsion in (0, 30, 60):
+        adopted, _, _ = _disiloxane(torsion=torsion)
+        preregistered, _, _ = _disiloxane(readings=ce.PREREGISTERED, torsion=torsion)
+        assert abs(adopted[0] - RAMACHANDRAN_TABLE_2_QEQ["O"]) <= 0.002 and abs(adopted[1] - RAMACHANDRAN_TABLE_2_QEQ["Si"]) <= 0.003
+        assert abs(preregistered[1] - RAMACHANDRAN_TABLE_2_QEQ["Si"]) >= 0.025
