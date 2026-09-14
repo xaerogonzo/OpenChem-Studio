@@ -1,0 +1,19 @@
+# Charges on hydrogen, transcribed AS PRINTED from Rappe & Goddard,
+# J. Phys. Chem. 1991, 95, 3358-3363, Table III (p. 3361), read from the page
+# rendered at 300 dpi.
+#
+# Footnote a: "From eq 23 for chi_H(Q) and eq 7 for other atoms."
+#   (That is the gradient of eq 23. The text of section IV describes solving
+#   with eq 21 in an iterated linear system instead. The two differ: see
+#   preregistration.md, reading R2. Recorded here because the footnote is the
+#   table's own statement of how its numbers were produced.)
+# QEq    footnote b: fitted to experimental charges; chi_H = 4.5280, J_H = 13.8904
+# HF     footnote c: Reference 6 (LiH: footnote e, Cioslowski 1989)
+# QEqHF  footnote d: fitted to HF charges; chi_H = 4.7174, J_H = 13.4725
+# exptl  footnotes f, g, h: References 25, 26, 27
+molecule,exptl,QEq,HF,QEqHF
+HF,0.415,0.462,0.462,0.457
+H2O,0.325,0.353,0.398,0.346
+NH3,0.267,0.243,0.338,0.233
+CH4,0.150,0.149,0.124,0.124
+LiH,-0.768,-0.767,-0.682,-0.679

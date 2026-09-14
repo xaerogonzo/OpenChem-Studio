@@ -1,0 +1,47 @@
+# Experimental geometries for the Rappe & Goddard 1991 oracles.
+#
+# Diatomics: r_e of the ground state (X row), transcribed AS PRINTED from
+# Huber & Herzberg, "Molecular Spectra and Molecular Structure IV. Constants
+# of Diatomic Molecules" (Van Nostrand Reinhold, 1979) -- the paper's
+# reference 10 -- read from each page rendered upright at 130 dpi.
+#   book_page   the page number printed on the page
+#   pdf_page    the zero-based page index in huber1979.pdf as held
+#   entry       the isotopologue the table lists (the paper does not say which
+#               isotopologue it used; r_e is mass-independent to the
+#               precision that matters here)
+#   subscript   Huber prints the last, least certain digit as a subscript; "yes"
+#               where it does. The value below includes that digit.
+#   kind        experimental (every row; none is reconstructed)
+#
+# Two tables give a second value in a footnote, recorded here and NOT used:
+#   HCl  footnote c': "Uncorrected value from the B_e ... The internuclear
+#        distance at the minimum of the Born-Oppenheimer curve is 1.2746149 A"
+#   LiCl footnote g: r_e at the Born-Oppenheimer minimum "as 2.020700 A"
+#
+# Polyatomics need Harmony et al., J. Phys. Chem. Ref. Data 1979, 8, 619
+# (the paper's reference 15), which is NOT held. No polyatomic row exists
+# until it is, and none is taken from a modern database.
+molecule,source,book_page,pdf_page,entry,state,r_e_A,subscript,units,kind
+CsBr,huber1979,190,202,133Cs79Br,X 1Sigma+,3.072251,yes,angstrom,experimental
+CsCl,huber1979,192,204,133Cs35Cl,X 1Sigma+,2.906272,yes,angstrom,experimental
+CsF,huber1979,194,206,133Cs19F,X 1Sigma+,2.345351,no,angstrom,experimental
+CsI,huber1979,196,208,133Cs127I,X 1Sigma+,3.315192,yes,angstrom,experimental
+HCl,huber1979,286,298,1H35Cl,X 1Sigma+,1.274552,yes,angstrom,experimental
+HF,huber1979,304,316,1H19F,X 1Sigma+,0.916808,yes,angstrom,experimental
+KBr,huber1979,356,368,39K79Br,X 1Sigma+,2.82078,no,angstrom,experimental
+KCl,huber1979,358,370,39K35Cl,X 1Sigma+,2.66665,no,angstrom,experimental
+KF,huber1979,360,372,39K19F,X 1Sigma+,2.171457,yes,angstrom,experimental
+KI,huber1979,362,374,39K127I,X 1Sigma+,3.047844,yes,angstrom,experimental
+LiBr,huber1979,376,388,7Li79Br,X 1Sigma+,2.170427,no,angstrom,experimental
+LiCl,huber1979,378,390,7Li35Cl,X 1Sigma+,2.020673,no,angstrom,experimental
+LiF,huber1979,380,392,7Li19F,X 1Sigma+,1.563864,no,angstrom,experimental
+LiH,huber1979,382,394,7Li1H,X 1Sigma+,1.5957,no,angstrom,experimental
+LiI,huber1979,384,396,7Li127I,X 1Sigma+,2.391924,no,angstrom,experimental
+NaBr,huber1979,436,448,23Na79Br,X 1Sigma+,2.502038,yes,angstrom,experimental
+NaCl,huber1979,436,448,23Na35Cl,X 1Sigma+,2.360795,yes,angstrom,experimental
+NaF,huber1979,438,450,23Na19F,X 1Sigma+,1.925947,yes,angstrom,experimental
+NaI,huber1979,442,454,23Na127I,X 1Sigma+,2.711452,yes,angstrom,experimental
+RbBr,huber1979,550,562,85Rb79Br,X 1Sigma+,2.944744,yes,angstrom,experimental
+RbCl,huber1979,552,564,85Rb35Cl,X 1Sigma+,2.786736,yes,angstrom,experimental
+RbF,huber1979,552,564,85Rb19F,X 1Sigma+,2.270333,no,angstrom,experimental
+RbI,huber1979,554,566,85Rb127I,X 1Sigma+,3.176879,yes,angstrom,experimental
