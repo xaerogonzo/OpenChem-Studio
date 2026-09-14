@@ -1,0 +1,116 @@
+[
+ {
+  "do": "reset_layout",
+  "after_ms": 1500
+ },
+ {
+  "do": "smiles",
+  "smiles": "CCC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1",
+  "name": "Fentanyl",
+  "after_ms": 3000
+ },
+ {
+  "do": "select",
+  "molecule": -1,
+  "after_ms": 3000
+ },
+ {
+  "do": "calculator",
+  "id": "gasteiger_charge_at_ph",
+  "reveal": false,
+  "after_ms": 40000
+ },
+ {
+  "do": "panel",
+  "id": "Results",
+  "after_ms": 2000
+ },
+ {
+  "do": "results",
+  "focus": "gasteiger_charge_at_ph",
+  "tag": "fentanyl",
+  "after_ms": 3000
+ },
+ {
+  "do": "fact_rows_report",
+  "tag": "fentanyl-docked",
+  "after_ms": 800
+ },
+ {
+  "do": "shot",
+  "widget": "results",
+  "path": "benchmarks/visual/artifacts/results_wrapped_row_fentanyl.png",
+  "after_ms": 800
+ },
+ {
+  "do": "smiles",
+  "smiles": "O1OCN1",
+  "name": "O1OCN1",
+  "after_ms": 3000
+ },
+ {
+  "do": "select",
+  "molecule": -1,
+  "after_ms": 3000
+ },
+ {
+  "do": "calculator",
+  "id": "gasteiger_charge_at_ph",
+  "reveal": false,
+  "after_ms": 40000
+ },
+ {
+  "do": "results",
+  "focus": "gasteiger_charge_at_ph",
+  "tag": "o1ocn1",
+  "after_ms": 3000
+ },
+ {
+  "do": "fact_rows_report",
+  "tag": "o1ocn1-docked",
+  "after_ms": 800
+ },
+ {
+  "do": "shot",
+  "widget": "results",
+  "path": "benchmarks/visual/artifacts/results_wrapped_row_o1ocn1.png",
+  "after_ms": 800
+ },
+ {
+  "do": "dock_resize",
+  "panel": "Results",
+  "width": 300,
+  "after_ms": 2500
+ },
+ {
+  "do": "fact_rows_report",
+  "tag": "o1ocn1-narrowed",
+  "after_ms": 800
+ },
+ {
+  "do": "shot",
+  "widget": "results",
+  "path": "benchmarks/visual/artifacts/results_wrapped_row_narrowed.png",
+  "after_ms": 800
+ },
+ {
+  "do": "dock_resize",
+  "panel": "Results",
+  "width": 700,
+  "after_ms": 2500
+ },
+ {
+  "do": "fact_rows_report",
+  "tag": "o1ocn1-widened",
+  "after_ms": 800
+ },
+ {
+  "do": "shot",
+  "widget": "results",
+  "path": "benchmarks/visual/artifacts/results_wrapped_row_widened.png",
+  "after_ms": 800
+ },
+ {
+  "do": "quit"
+ }
+]

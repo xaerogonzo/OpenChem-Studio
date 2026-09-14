@@ -846,6 +846,98 @@ class _Driver(QObject):
             " ".join(chrome),
         )
 
+    def _do_fact_rows_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "fact_rows_report", "tag": "docked", "label": "Finding"}` --
+        each value row in the Results reader against the height its TEXT needs
+        at the width the row has. `label` and `min_chars` narrow the rows.
+
+        **THE ROW CANNOT BE ASKED.** `QLabel.heightForWidth` never answers below
+        the label's own minimum height -- measured, a label held at 1608 px
+        answers 1608 at a width where its text needs 250. Value rows held a
+        fixed height until 2026-09-14, and this step has to measure a build from
+        before that as honestly as one after, so it never takes the row's own
+        answer. `needs_h` is the row's arithmetic with that floor lifted for the
+        one call; `probe_h` is a fresh label given the same text, font and
+        margins, which never touches the row. The two agreeing is what says the
+        measurement is Qt's and not this step's.
+
+        `stated_for_w` is the widest width at which the text still needs the
+        height the row HAS. A row sized for its own width reports its width; a
+        height left over from a narrower layout reports that narrower width.
+        """
+        from PySide6.QtWidgets import QLabel
+
+        from openchem.ui.widgets.fact_view import _FACT_PROPERTY, _FactRow
+
+        reader = self._window._property_panel._attached_reader
+        if reader is None:
+            logger.error("OPENCHEM_DRIVE: fact_rows_report -- no reader")
+            return
+        wanted_label = step.get("label")
+        min_chars = int(step.get("min_chars", 0))
+        probe = QLabel()
+        probe.setWordWrap(True)
+        rows_seen = over = 0
+        try:
+            for row in reader._view._container.findChildren(_FactRow):
+                fact = row.property(_FACT_PROPERTY)
+                label = str(getattr(fact, "label", "?"))
+                # `isVisibleTo`, not `isVisible`: a row in a collapsed section
+                # has never been laid out and its geometry means nothing.
+                if not row.isVisibleTo(reader) or len(row.text()) < min_chars:
+                    continue
+                if wanted_label is not None and label != wanted_label:
+                    continue
+                rows_seen += 1
+                width, height = row.width(), row.height()
+                held = row.minimumHeight()
+                row.setMinimumHeight(0)
+                try:
+                    needs_h = row.heightForWidth(width)
+                finally:
+                    row.setMinimumHeight(held)
+                probe.setFont(row.font())
+                probe.setTextFormat(row.textFormat())
+                probe.setAlignment(row.alignment())
+                probe.setMargin(row.margin())
+                probe.setIndent(row.indent())
+                probe.setContentsMargins(row.contentsMargins())
+                probe.setText(row.text())
+                probe_h = probe.heightForWidth(width)
+                low, high, stated_for_w = 1, width, 0
+                while low <= high:
+                    middle = (low + high) // 2
+                    if probe.heightForWidth(middle) >= height:
+                        stated_for_w, low = middle, middle + 1
+                    else:
+                        high = middle - 1
+                line_h = max(1, row.fontMetrics().lineSpacing())
+                if height - needs_h >= line_h:
+                    over += 1
+                logger.warning(
+                    "OPENCHEM_DRIVE:   fact_row %r source=%r chars=%d w=%d h=%d needs_h=%d "
+                    "probe_h=%d line_h=%d lines_needed=%.1f lines_held=%.1f stated_for_w=%d",
+                    label,
+                    str(getattr(fact, "source", "")),
+                    len(row.text()),
+                    width,
+                    height,
+                    needs_h,
+                    probe_h,
+                    line_h,
+                    needs_h / line_h,
+                    height / line_h,
+                    stated_for_w,
+                )
+        finally:
+            probe.deleteLater()
+        logger.warning(
+            "OPENCHEM_DRIVE: fact_rows %s rows=%d over_by_a_line=%d",
+            step.get("tag", ""),
+            rows_seen,
+            over,
+        )
+
     def _do_align(self, step: dict[str, Any]) -> None:
         """Run the 3D Alignment panel on the project's molecules.
 

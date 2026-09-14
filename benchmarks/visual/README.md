@@ -74,6 +74,17 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 | `rotate_3d_reach.json` | Rotate 3D from the Structure menu, entered and left | nothing yet -- the mode was reachable only from one button on one tab, and two designs for the menu entry's tick disagreed with the button |
 | `atom_selection_sync.json` | the Atom Inspector and the 2D canvas, on a FRESHLY LOADED structure and then on an EDITED one | the pool-id/molfile-position divergence, outbound: clicking a carbon answered "pick a heavy atom" -- this is the same trap inbound, where nothing declines |
 | `qm_shift_identity.json` | a REAL ORCA NMR run in the Atom Inspector, then a new conformer search | ORCA shifts carried no identity and showed as current after the conformers changed; and the inspector's report cache, keyed on the drawing alone, kept serving the old shift |
+| `results_wrapped_row_height.json` | the charges result's Finding row in Results, fentanyl then O1OCN1, docked at the default width and then narrowed and widened | a wrapped value held the height its text needs at 100 px -- six lines in a 272 px row -- and could never shrink back |
+
+**`results_wrapped_row_height.json` LOGS EACH ROW AGAINST ITS TEXT, BECAUSE THE
+ROW ITSELF CANNOT BE ASKED.** `QLabel.heightForWidth` never answers below the
+label's own minimum height, so a row holding a stale height reports that height
+as what it needs. `fact_rows_report` lifts that floor for the one call, measures
+a fresh label as a cross-check, and logs `needs_h` beside `h` and
+`over_by_a_line=` per tag. Measured 2026-09-14 after the fix: 0 at 420, 300 and
+700 px, with the Finding at 6, 8, 12 and 4 lines. The O1OCN1 note's length
+comes partly from the pkasolver cross-check sentence, so read the invariant,
+`over_by_a_line=0`, rather than a line count.
 
 **`qm_shift_identity.json` RUNS REAL ORCA AND ASSERTS IDENTITY, NOT A
 BANNER.** A generic "stale" line would read the same if the wrong conformer
