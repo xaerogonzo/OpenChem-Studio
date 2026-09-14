@@ -92,6 +92,9 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
     {"do": "dialog",     "name": "HelpDialog"}   built by ui/dialogs/inventory
     {"do": "dialog",     "name": "PeriodicTableDialog", "tab": "Isotopes"}
     {"do": "dialog",     "name": "SettingsDialog", "section": "results"}
+    {"do": "control",    "name": "railHidesPanels", "value": false}  a NAMED
+                                          control of the open dialog, for real
+    {"do": "close_dialog"}                before a key that needs MainWindow active
     {"do": "shot",       "path": "...", "widget": "dialog"}
     {"do": "overlay",    "on": true, "gallery": true, "step": 1}
     {"do": "cip",        "on": true}          R/S and E/Z, through the menu
@@ -104,6 +107,9 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                               whether the PAGE is still in it
     {"do": "key", "key": "F7", "focus": "canvas"}  a REAL key, at the
     {"do": "key", "key": "Escape", "focus": "explorer"}   focus widget
+    {"do": "key", "key": "Comma", "modifiers": "ctrl", "close_modal_after_ms": 1500}
+                                          a shortcut that opens a MODAL: the
+                                          log names it, and the ACTIVE window
     {"do": "geometry_report", "tag": "flat"}   z spread AND the conformers
     {"do": "adopt"}                            the REAL "Use in 2D Editor"
     {"do": "select_atom", "atom": 4}       the inspector ROW, and
