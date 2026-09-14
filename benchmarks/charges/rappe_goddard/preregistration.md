@@ -24,6 +24,7 @@ The plan behind this is `docs/ROADMAP.md`, "EEM and QEq", DECIDED 2026-09-14.
 | `bakowies1996_table10_charges.csv` | same, Table X, Rappé–Goddard column (added by amendment A7) | `d50985432501bbb2a951d181935ea6ff8010b1821c27cf627db8727d6b340750` |
 | `ramachandran1996_tables.csv` | Ramachandran et al. 1996, Tables 2 and 3, every column (added by amendment A7) | `90d8f7e57ba5b67e5644244b25a1bf4c253e6fc4ededa6d8b45eb66a29e0b08a` |
 | `almenningen1963_disiloxane.csv` | Almenningen et al. 1963, Table 1 final results, plus labelled reconstruction (added by amendment A7) | `028b430065320a0de85ceef08d07f2b921a3005744b292b5e8bc3a95c3fdef48` |
+| `qeq_perf_conformers.csv` | Aspirin, fentanyl, n-hexadecane and atorvastatin, frozen RDKit/MMFF94 coordinates for the A8 time gate (added by amendment A8) | `6592aefb3aee17f9665604746238fc795b56ca01d180388642cddc7eb68edfae` |
 
 Every value was checked by eye against its page rendered at 300 dpi
 (Huber & Herzberg's rotated tables at 130 dpi). No fixture value comes from a

@@ -289,6 +289,153 @@ def coulomb_pair_integral(
     return total
 
 
+# -----------------------------------------------------------------------------
+# The same integral for many pairs at once (amendment A8, Stage 1)
+# -----------------------------------------------------------------------------
+#
+# A PURE OPTIMISATION OF `coulomb_pair_integral`, NOT A SECOND METHOD. Each
+# pair gets exactly the nodes the scalar routine would give it: its own panel
+# count ceil(R a_b), its own panel edges from its own R, the same Legendre and
+# Laguerre orders, and the same near-zero shell branches decided element by
+# element. Pairs are grouped only by what fixes an array's shape (n_a, n_b
+# and the panel count); every per-pair quantity (R, zeta_a, zeta_b) stays on
+# its own row, and nothing is summed across rows. The scalar routine is kept
+# as the reference a test holds this to, pair by pair.
+
+#: Nodes per flat evaluation, so one call never builds arrays much past this.
+_BATCH_NODES = 100000
+
+
+def _primitive_gammas(n: int, x: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """P(2n+1, x), Q(2n, x) and P(2n+2, x) in one pass, for the potential primitive.
+
+    Each value takes the branch its own scalar call would take: the series for
+    P(m, x) exactly where x < m + 1, and 1 - Q(m, x) elsewhere. The two series
+    share one loop because P(2n+2) is P(2n+1)'s sum without its first term,
+    accumulated separately so nothing is subtracted. The loop stops once every
+    new term is below 1e-17 of its running total, a change far under the
+    1e-11 Ha pair-by-pair gate A8 sets against the scalar routine.
+    """
+    m = 2 * n + 1
+    ex = np.exp(-x)
+    # Q(2n, x) = e^-x sum_{k<2n} x^k/k!; Q(2n+1) and Q(2n+2) add the next terms.
+    term = np.ones_like(x)
+    total = np.ones_like(x)
+    for k in range(1, 2 * n):
+        term = term * x / k
+        total = total + term
+    q_2n = ex * total
+    last = term * x / (2 * n)
+    after = last * x / m
+    p_m = 1.0 - ex * (total + last)
+    p_m1 = 1.0 - ex * (total + last + after)
+    small = x < m + 2  # the series region of P(m+1); P(m)'s is the part below m + 1
+    if np.any(small):
+        xs = x[small]
+        first = np.exp(-xs + m * np.log(np.where(xs > 0, xs, 1.0)) - math.lgamma(m + 1))
+        first = np.where(xs > 0, first, 0.0)
+        term = first * xs / (m + 1)
+        sum_m1 = term.copy()
+        sum_m = first + term
+        for k in range(m + 2, m + _SERIES_TERMS):
+            term = term * xs / k
+            sum_m = sum_m + term
+            sum_m1 = sum_m1 + term
+            if np.all(term <= 1e-17 * sum_m1):
+                break
+        idx = np.flatnonzero(small)
+        below = xs < m + 1
+        p_m[idx[below]] = sum_m[below]
+        p_m1[idx] = sum_m1
+    return p_m, q_2n, p_m1
+
+
+def _potential_primitive_batch(n: int, a: np.ndarray, r: np.ndarray) -> np.ndarray:
+    p_m, q_2n, p_m1 = _primitive_gammas(n, a * r)
+    return r * p_m + (a * r * r / (4 * n)) * q_2n - ((2 * n + 1) / (2 * a)) * p_m1
+
+
+def _slater_density_batch(n: int, a: np.ndarray, r: np.ndarray) -> np.ndarray:
+    return a ** (2 * n + 1) * r ** (2 * n - 2) * np.exp(-a * r) / (4.0 * math.pi * math.factorial(2 * n))
+
+
+def _slater_potential_batch(n: int, a: np.ndarray, r: np.ndarray) -> np.ndarray:
+    safe = np.where(r > 0, r, 1.0)
+    inner = np.where(r > 0, _lower_gamma(2 * n + 1, a * r) / safe, 0.0)
+    return inner + (a / (2 * n)) * _upper_gamma(2 * n, a * r)
+
+
+def _shell_average_flat(n: int, a: np.ndarray, s: np.ndarray, R: np.ndarray) -> np.ndarray:
+    """`shell_average` on flat, equal-length arrays: element i is one node of one pair."""
+    small_s = s < _NEAR_ZERO_RATIO * R
+    small_r = R < _NEAR_ZERO_RATIO * s
+    regular = ~(small_s | small_r)
+    if np.all(regular):
+        return (_potential_primitive_batch(n, a, R + s) - _potential_primitive_batch(n, a, np.abs(R - s))) / (2.0 * s * R)
+    out = np.empty(s.shape)
+    if np.any(regular):
+        ar, sr, rr = a[regular], s[regular], R[regular]
+        out[regular] = (_potential_primitive_batch(n, ar, rr + sr) - _potential_primitive_batch(n, ar, np.abs(rr - sr))) / (2.0 * sr * rr)
+    if np.any(small_s):
+        NEAR_ZERO_BRANCH_USES["count"] += int(np.count_nonzero(small_s))
+        ar, ss, rr = a[small_s], s[small_s], R[small_s]
+        out[small_s] = _slater_potential_batch(n, ar, rr) - (2.0 * math.pi / 3.0) * ss * ss * _slater_density_batch(n, ar, rr)
+    if np.any(small_r):
+        NEAR_ZERO_BRANCH_USES["count"] += int(np.count_nonzero(small_r))
+        ar, sr, rr = a[small_r], s[small_r], R[small_r]
+        out[small_r] = _slater_potential_batch(n, ar, sr) - (2.0 * math.pi / 3.0) * rr * rr * _slater_density_batch(n, ar, sr)
+    return out
+
+
+def coulomb_pair_integrals(n_a: int, n_b: int, zeta_a, zeta_b, R, panel_order: int = 32, tail_order: int = 64) -> np.ndarray:
+    """`coulomb_pair_integral` for arrays of pairs sharing (n_a, n_b): one
+    hartree value per pair, in input order.
+
+    Every pair's nodes are laid end to end in one flat array. Pair i
+    contributes ceil(R_i a_b,i) panels of `panel_order` nodes on its own
+    [0, R_i], with panel edges k R_i / count_i exactly as the scalar routine's
+    linspace, and then its own Laguerre tail on [R_i, inf). Values are summed
+    back per pair through a pair index, never across pairs.
+    """
+    zeta_a = np.asarray(zeta_a, dtype=float).ravel()
+    zeta_b = np.asarray(zeta_b, dtype=float).ravel()
+    R = np.asarray(R, dtype=float).ravel()
+    pairs = len(R)
+    out = np.zeros(pairs)
+    a_a, a_b = 2.0 * zeta_a, 2.0 * zeta_b
+    counts = np.where(R > 0, np.maximum(1, np.ceil(R * a_b)), 0).astype(np.int64)
+    x, w = _legendre(panel_order)
+    chunk_start = 0
+    while chunk_start < pairs:
+        nodes = np.cumsum(counts[chunk_start:] * panel_order)
+        chunk_end = chunk_start + max(1, int(np.searchsorted(nodes, _BATCH_NODES, side="right")))
+        c = counts[chunk_start:chunk_end]
+        panel_row = np.repeat(np.arange(chunk_start, chunk_end), c)
+        if len(panel_row):
+            k = np.arange(len(panel_row)) - np.repeat(np.cumsum(c) - c, c)
+            Rp = R[panel_row]
+            step = Rp / counts[panel_row]
+            lo = k * step
+            hi = np.where(k + 1 == counts[panel_row], Rp, (k + 1) * step)
+            half = (hi - lo) / 2.0
+            mid = (hi + lo) / 2.0
+            s = (mid[:, None] + half[:, None] * x[None, :]).ravel()
+            weights = (half[:, None] * w[None, :]).ravel()
+            node_row = np.repeat(panel_row, panel_order)
+            integrand = weights * 4.0 * math.pi * s * s * _slater_density_batch(n_b, a_b[node_row], s)
+            integrand = integrand * _shell_average_flat(n_a, a_a[node_row], s, R[node_row])
+            out[chunk_start:chunk_end] += np.bincount(node_row - chunk_start, weights=integrand, minlength=chunk_end - chunk_start)
+        chunk_start = chunk_end
+    t, wt = _laguerre(tail_order)
+    s = (R[:, None] + t[None, :] / a_b[:, None]).ravel()
+    node_row = np.repeat(np.arange(pairs), tail_order)
+    ab = a_b[node_row]
+    radial = ab ** (2 * n_b + 1) * s ** (2 * n_b - 2) / (4.0 * math.pi * math.factorial(2 * n_b))
+    tail = np.tile(wt, pairs) * 4.0 * math.pi * s * s * radial * _shell_average_flat(n_a, a_a[node_row], s, R[node_row])
+    out += np.bincount(node_row, weights=tail, minlength=pairs) * np.exp(-a_b * R) / a_b
+    return out
+
+
 # =============================================================================
 # Bounded linear solve: eqs 10-13, fix-and-re-solve
 # =============================================================================
@@ -424,9 +571,19 @@ class QEqResult:
     trace_class: str = ""
     bound_extension_used: bool = False
     bound_passes_max: int = 0
-    clamped: dict[int, float] = field(default_factory=dict)
+    #: The atoms fixed at a bound in the CONVERGED final solve, with their
+    #: bounds (amendment A8). This, and only this, decides a bound refusal.
+    final_active_atoms: dict[int, float] = field(default_factory=dict)
+    #: Whether any pass of any hydrogen iteration fixed an atom. An iterate
+    #: clamped mid-loop whose final solve is bound-free is still a valid result.
+    ever_clamped: bool = False
     message: str = ""
     final_metrics: dict[str, float] = field(default_factory=dict)
+
+    @property
+    def clamped(self) -> dict[int, float]:
+        """The name this field had before A8; the final active set, as it always was."""
+        return self.final_active_atoms
 
 
 def _distances_bohr(coords: np.ndarray, bohr_angstrom: float) -> np.ndarray:
@@ -444,6 +601,68 @@ def _overlap(coords: np.ndarray) -> tuple[int, int] | None:
     return (int(min(i, j)), int(max(i, j))) if dist[i, j] < OVERLAP_ANGSTROM else None
 
 
+class _QEqSystem:
+    """Everything about one molecule's QEq matrix that the hydrogen loop does
+    not change, built once; `build` adds what it does.
+
+    A pair is invariant when neither atom's zeta depends on a hydrogen charge:
+    under R1's "no" every pair is, otherwise every pair with a hydrogen varies.
+    ONLY invariant pairs are reused across iterations. Caching a
+    hydrogen-involving integral would freeze zeta_H(Q), the very quantity the
+    adopted reading says moves with the charge (amendment A8).
+    """
+
+    def __init__(self, elements: list[str], coords: np.ndarray, hydrogen: str, readings: QEqReadings):
+        self.elements = list(elements)
+        self.readings = readings
+        count = len(elements)
+        self.chi_h, self.j_h = HYDROGEN_SETS[hydrogen]
+        self.distance = _distances_bohr(np.asarray(coords, dtype=float).reshape(-1, 3), QEQ_BOHR_ANGSTROM)
+        self.shells = np.array([QEQ_TABLE_I[e][0] for e in elements], dtype=int)
+        self.zetas = np.array([valence_zeta(e, readings) for e in elements])
+        self.hydrogens = [i for i, e in enumerate(elements) if e == "H"]
+        self.chi = np.array([self.chi_h if e == "H" else QEQ_TABLE_I[e][1] for e in elements])
+        variable = set(self.hydrogens) if readings.zeta_h_in_pairs else set()
+        upper_i, upper_j = np.triu_indices(count, k=1)
+        moves = np.array([i in variable or j in variable for i, j in zip(upper_i, upper_j)], dtype=bool)
+        self.fixed = np.zeros((count, count))
+        for i in range(count):
+            if elements[i] != "H":
+                self.fixed[i, i] = QEQ_TABLE_I[elements[i]][2]
+        self._fill(self.fixed, upper_i[~moves], upper_j[~moves], self.zetas)
+        self.moving_i, self.moving_j = upper_i[moves], upper_j[moves]
+
+    def _fill(self, matrix: np.ndarray, rows: np.ndarray, cols: np.ndarray, zetas: np.ndarray) -> None:
+        # coulomb_pair(i, j), i < j with i as the scalar routine's first density:
+        # Table I's diagonal J is an atom's own idempotential; off it, the Slater integral.
+        if len(rows) == 0:
+            return
+        keys = self.shells[rows] * 10 + self.shells[cols]
+        for key in np.unique(keys):
+            sel = keys == key
+            r, c = rows[sel], cols[sel]
+            values = coulomb_pair_integrals(int(key // 10), int(key % 10), zetas[r], zetas[c], self.distance[r, c]) * HARTREE_EV
+            matrix[r, c] = values
+            matrix[c, r] = values
+
+    def build(self, hydrogen_charges: dict[int, float]) -> tuple[np.ndarray, np.ndarray, dict[int, tuple[float, float]]]:
+        hardness = self.fixed.copy()
+        zetas = self.zetas.copy()
+        factor = 1.0 if self.readings.hydrogen_self_term == "eq21" else 1.5
+        state: dict[int, tuple[float, float]] = {}
+        for i in self.hydrogens:
+            q = hydrogen_charges.get(i, 0.0)
+            # hardness_diag_H: eq 21, J_HH(Q) = (1 + Q/zeta0) J0; or the diagonal
+            # whose fixed point is eq 23's gradient, J0 (1 + 1.5 Q/1.0698).
+            hardness[i, i] = self.j_h * (1.0 + factor * q / ZETA_H0)
+            zeta_h = ZETA_H0 + q  # eq 20
+            if self.readings.zeta_h_in_pairs:
+                zetas[i] = zeta_h
+            state[i] = (zeta_h, hardness[i, i])
+        self._fill(hardness, self.moving_i, self.moving_j, zetas)
+        return hardness, self.chi.copy(), state
+
+
 def qeq_hardness_matrix(
     elements: list[str], coords: np.ndarray, hydrogen_charges: dict[int, float],
     hydrogen: str = "experimental", readings: QEqReadings = ADOPTED,
@@ -451,38 +670,7 @@ def qeq_hardness_matrix(
     """C (eV) and chi (eV) at the given hydrogen charges, plus each hydrogen's
     (zeta_H, hardness_diag_H). Public so the R1-isolation test can compare the
     matrices two readings build, not only their answers."""
-    count = len(elements)
-    chi_h, j_h = HYDROGEN_SETS[hydrogen]
-    distance = _distances_bohr(coords, QEQ_BOHR_ANGSTROM)
-    chi = np.empty(count)
-    hardness = np.zeros((count, count))
-    zetas = np.empty(count)
-    shells = np.empty(count, dtype=int)
-    hydrogen_state: dict[int, tuple[float, float]] = {}
-    for i, element in enumerate(elements):
-        n, chi_i, j_i, _radius, _printed = QEQ_TABLE_I[element]
-        shells[i] = n
-        if element == "H":
-            q = hydrogen_charges.get(i, 0.0)
-            chi[i] = chi_h
-            factor = 1.0 if readings.hydrogen_self_term == "eq21" else 1.5
-            # hardness_diag_H: eq 21, J_HH(Q) = (1 + Q/zeta0) J0; or the diagonal
-            # whose fixed point is eq 23's gradient, J0 (1 + 1.5 Q/1.0698).
-            hardness[i, i] = j_h * (1.0 + factor * q / ZETA_H0)
-            zeta_h = ZETA_H0 + q  # eq 20
-            zetas[i] = zeta_h if readings.zeta_h_in_pairs else valence_zeta("H", readings)
-            hydrogen_state[i] = (zeta_h, hardness[i, i])
-        else:
-            chi[i] = chi_i
-            hardness[i, i] = j_i
-            zetas[i] = valence_zeta(element, readings)
-    for i in range(count):
-        for j in range(i + 1, count):
-            # coulomb_pair(i, j): Table I's diagonal J is an atom's own
-            # idempotential; off the diagonal it is the Slater integral.
-            value = coulomb_pair_integral(int(shells[i]), float(zetas[i]), int(shells[j]), float(zetas[j]), float(distance[i, j]))
-            hardness[i, j] = hardness[j, i] = value * HARTREE_EV
-    return hardness, chi, hydrogen_state
+    return _QEqSystem(elements, coords, hydrogen, readings).build(hydrogen_charges)
 
 
 def _trace_class(deltas: list[float], signed: list[float]) -> str:
@@ -536,12 +724,14 @@ def qeq_charges(
     previous_active: frozenset | None = None
     deltas: list[float] = []
     signed: list[float] = []
+    system = _QEqSystem(elements, coords, hydrogen, readings)
     for outer in range(1, max_outer + 1):
-        hardness, chi, state = qeq_hardness_matrix(elements, coords, previous_q, hydrogen, readings)
+        hardness, chi, state = system.build(previous_q)
         solved = solve_bounded(hardness, chi, net_charge, lower, upper)
         charges = solved.charges
         active = frozenset(solved.passes[-1].items())
         result.bound_passes_max = max(result.bound_passes_max, len(solved.passes))
+        result.ever_clamped = result.ever_clamped or bool(solved.passes[-1])
         # The last pass always fixes nothing new. More than one pass that DID
         # fix something exceeds the paper's one-pass procedure.
         if len(solved.passes) > 2:
@@ -567,7 +757,7 @@ def qeq_charges(
         ):
             result.status = "converged"
             result.charges = charges
-            result.clamped = dict(solved.passes[-1])
+            result.final_active_atoms = dict(solved.passes[-1])
             return result
         previous_active = active
         previous_state = state

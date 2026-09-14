@@ -69,7 +69,7 @@ def test_every_fixture_matches_the_hash_the_preregistration_recorded():
     text = PREREGISTRATION.read_text(encoding="utf-8")
     fixtures = sorted(FIXTURES.glob("*.csv"))
     hashed = [f for f in fixtures if f.name != "slater_reference.csv"]
-    assert len(hashed) == 12
+    assert len(hashed) == 13
     for fixture in hashed:
         digest = hashlib.sha256(fixture.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
         assert f"`{fixture.name}`" in text and digest in text, fixture.name
@@ -1056,3 +1056,118 @@ def test_post_hoc_disiloxane_oxygen_and_silicon_separate_the_two_lambda_readings
         preregistered, _, _ = _disiloxane(readings=ce.PREREGISTERED, torsion=torsion)
         assert abs(adopted[0] - RAMACHANDRAN_TABLE_2_QEQ["O"]) <= 0.002 and abs(adopted[1] - RAMACHANDRAN_TABLE_2_QEQ["Si"]) <= 0.003
         assert abs(preregistered[1] - RAMACHANDRAN_TABLE_2_QEQ["Si"]) >= 0.025
+
+
+# =============================================================================
+# Amendment A8: the fast integrals are the same integrals
+# =============================================================================
+
+
+def _grid_rows():
+    return _rows("slater_reference.csv")
+
+
+def test_batched_integrals_equal_the_scalar_routine_pair_by_pair_on_the_o1_grid():
+    """A8, authority (3): every one of the 1076 frozen points, each pair compared
+    with its own scalar value, never a sum. Measured 9.8e-15 Ha."""
+    rows = _grid_rows()
+    groups: dict[tuple[int, int], list[int]] = {}
+    for k, row in enumerate(rows):
+        groups.setdefault((int(row["n_a"]), int(row["n_b"])), []).append(k)
+    batch = np.empty(len(rows))
+    for (n_a, n_b), idx in groups.items():
+        batch[idx] = ce.coulomb_pair_integrals(
+            n_a, n_b, [float(rows[k]["zeta_a"]) for k in idx], [float(rows[k]["zeta_b"]) for k in idx], [float(rows[k]["R_bohr"]) for k in idx]
+        )
+    for k, row in enumerate(rows):
+        scalar = ce.coulomb_pair_integral(int(row["n_a"]), float(row["zeta_a"]), int(row["n_b"]), float(row["zeta_b"]), float(row["R_bohr"]))
+        assert abs(batch[k] - scalar) <= 1e-11, row
+        assert abs(batch[k] - float(row["J_hartree"])) <= 1e-9, row
+
+
+def test_batched_integrals_take_the_near_zero_branch_where_the_scalar_routine_does():
+    rows = [r for r in _grid_rows() if 0 < float(r["R_bohr"]) < 0.01]
+    assert rows
+    before = ce.NEAR_ZERO_BRANCH_USES["count"]
+    for row in rows:
+        ce.coulomb_pair_integrals(int(row["n_a"]), int(row["n_b"]), [float(row["zeta_a"])], [float(row["zeta_b"])], [float(row["R_bohr"])])
+    assert ce.NEAR_ZERO_BRANCH_USES["count"] > before
+
+
+def test_batched_integrals_keep_each_pair_on_its_own_row():
+    """Shuffling the pairs shuffles the answers and nothing else: no pair's R,
+    zeta or panel count leaks into another's."""
+    rng = np.random.default_rng(20260914)
+    zeta_a = rng.uniform(0.3, 2.0, 40)
+    zeta_b = rng.uniform(0.3, 2.0, 40)
+    R = rng.uniform(0.2, 25.0, 40)
+    order = rng.permutation(40)
+    straight = ce.coulomb_pair_integrals(2, 1, zeta_a, zeta_b, R)
+    shuffled = ce.coulomb_pair_integrals(2, 1, zeta_a[order], zeta_b[order], R[order])
+    assert np.max(np.abs(shuffled - straight[order])) <= 1e-15
+    for k in (0, 17, 39):
+        assert abs(straight[k] - ce.coulomb_pair_integral(2, zeta_a[k], 1, zeta_b[k], R[k])) <= 1e-11
+
+
+@pytest.mark.parametrize("n", [1, 2, 3, 4, 5, 6])
+def test_the_fused_gamma_values_equal_the_scalar_gammas(n):
+    """Tested apart from the integral, so an off-by-one shows as itself: tiny
+    x, both sides of each series switch (m + 1 and m + 2), and large x."""
+    m = 2 * n + 1
+    x = np.concatenate([np.geomspace(1e-12, 1e-3, 40), np.linspace(0.1, m + 3, 400), np.array([m + 1 - 1e-9, m + 1, m + 2 - 1e-9, m + 2]), np.linspace(m + 3, 200, 60)])
+    p_m, q_2n, p_m1 = ce._primitive_gammas(n, x)
+    for fused, scalar in ((p_m, ce._lower_gamma(m, x)), (q_2n, ce._upper_gamma(2 * n, x)), (p_m1, ce._lower_gamma(m + 1, x))):
+        relative = np.abs(fused - scalar) / np.maximum(np.abs(scalar), 1e-300)
+        assert np.all((relative <= 1e-12) | (np.abs(fused - scalar) <= 1e-15)), (n, x[np.argmax(relative)])
+
+
+def test_the_fixed_pairs_are_computed_once_and_the_hydrogen_pairs_every_iteration(monkeypatch):
+    """A8: only pairs whose zeta never moves may be reused. Every build must
+    re-evaluate every hydrogen-involving pair; none may re-evaluate a fixed one."""
+    elements, coords = WATER[0] + ["C"], np.vstack([WATER[1], [[0.0, 0.0, 2.5]]])
+    seen: list[int] = []
+    real = ce.coulomb_pair_integrals
+
+    def counting(n_a, n_b, zeta_a, zeta_b, R, *args, **kwargs):
+        seen.append(len(np.atleast_1d(R)))
+        return real(n_a, n_b, zeta_a, zeta_b, R, *args, **kwargs)
+
+    monkeypatch.setattr(ce, "coulomb_pair_integrals", counting)
+    system = ce._QEqSystem(elements, coords, "experimental", ce.ADOPTED)
+    fixed_pairs = sum(seen)
+    assert fixed_pairs == 1  # O-C, the one pair without a hydrogen
+    seen.clear()
+    system.build({1: 0.1, 2: 0.1})
+    assert sum(seen) == 5  # O-H, O-H, H-H, H-C, H-C
+    seen.clear()
+    system.build({1: 0.2, 2: 0.2})
+    assert sum(seen) == 5
+
+
+def test_final_active_atoms_and_ever_clamped_are_different_facts():
+    """A8's result contract. On a system that clamps mid-loop and ends bound-free,
+    ever_clamped is true while final_active_atoms is empty; `clamped` is the
+    final set under its old name."""
+    result = ce.qeq_charges(*WATER)
+    assert result.final_active_atoms == {} and result.clamped is result.final_active_atoms
+    early = ce.qeq_charges(*_diatomic("Li", "H", _r_e("LiH")), max_outer=6)
+    assert early.status == ce.REFUSE_NOT_CONVERGED and not early.ever_clamped and early.final_active_atoms == {}
+    # Measured: LiH's undamped trajectory reaches H = -1 only later in its 50 iterations (A7).
+    lih = ce.qeq_charges(*_diatomic("Li", "H", _r_e("LiH")))
+    assert lih.status == ce.REFUSE_NOT_CONVERGED and lih.ever_clamped and lih.final_active_atoms == {}
+
+
+def test_hydrogen_pair_entries_use_the_charge_dependent_zeta():
+    """Each hydrogen-involving entry of the built matrix is the scalar integral
+    at zeta_H(Q) = zeta0 + Q (eq 20), not at zeta0: a cache that froze them
+    would pass every test that builds both sides through the same code."""
+    elements, coords = WATER
+    distance = np.linalg.norm(coords[:, None, :] - coords[None, :, :], axis=-1) / ce.QEQ_BOHR_ANGSTROM
+    system = ce._QEqSystem(elements, coords, "experimental", ce.ADOPTED)
+    for q in (0.0, 0.3, -0.4):
+        hardness, _, _ = system.build({1: q, 2: q})
+        zeta_o = ce.valence_zeta("O", ce.ADOPTED)
+        zeta_h = ce.ZETA_H0 + q
+        o_h = ce.coulomb_pair_integral(2, zeta_o, 1, zeta_h, float(distance[0, 1])) * ce.HARTREE_EV
+        h_h = ce.coulomb_pair_integral(1, zeta_h, 1, zeta_h, float(distance[1, 2])) * ce.HARTREE_EV
+        assert abs(hardness[0, 1] - o_h) <= 1e-9 and abs(hardness[1, 2] - h_h) <= 1e-9, q
