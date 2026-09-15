@@ -792,6 +792,36 @@ charge column and no SQE charge in existence, and disclosed as such.
   one row. For the other 32, the scramble is not a rotation, and whether any
   atom is truly missing is not known.
 
+**Amendment 2.7-A3 (2026-09-15): A2's uniqueness test restores Step 2's
+symmetry classes.** It is made AFTER A2's recovery was run, with no SQE charge
+in existence, and disclosed as such.
+- **The measurement.** A2 as written gives 4 RECOVERED-BY-ROTATION (26, 33,
+  34, 38), 5 AMBIGUOUS and 32 BLOCKED. Among the five:
+  - molecules 29, 32 and 41: the second rotation moves heavy atoms, by up to
+    5.50, 2.58 and 2.42 Å. These are genuinely ambiguous.
+  - SiH4 (6) and CH4 (35): the second rotation (the reversal) moves only the
+    four hydrogens, among the same four points. All four are identical in all
+    five printed columns. The distance matrices differ by 0.0074 and 0.0152 Å,
+    because the printed geometry is not exactly regular.
+- **Why that is not ambiguity.** A2 required distance-matrix equality because
+  equal matrices mean identical per-atom SQE charges. Here a stronger thing
+  holds: each element carries the same set of points under both rotations, so
+  the SQE solution on those points is the same. The two rotations differ only
+  in which label a hydrogen gets, and every label in play prints the same
+  value in every column. So every per-atom comparison is identical under both.
+  A2 replaced Step 2 and dropped its symmetry-class rule; this restores it.
+- **The amended uniqueness test.** A second consistent rotation is equivalent
+  to the one-row rotation when, for every symmetry class (same element and
+  identical printed values in ESP, i, ii, iii and iv, Step 2's definition), it
+  places the class on the same set of printed points. Equivalent rotations are
+  not ambiguity, and no tolerance is involved. Otherwise A2's distance-matrix
+  test applies unchanged.
+- **Effect:** 6 RECOVERED-BY-ROTATION (6, 26, 33, 34, 35, 38), 3 AMBIGUOUS, 32
+  BLOCKED. The A2 counts are reported beside them. The GO bar is still
+  unreachable.
+- Mutation added: "symmetry classes ignoring the ESP column" now applies to
+  this test.
+
 ## 3. Results
 
 ### 3.1 Nistor supplement extraction (2026-09-14)
