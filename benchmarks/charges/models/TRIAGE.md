@@ -60,8 +60,12 @@ None of them should inherit QEq's solver. Each needs its own abstraction:
 - **Licence of the supplement:** "All information is licenced under the GNU:
   Reproduction by nonprofit organizations or for academic use." The numbers
   are transcribed with attribution, and this line is recorded with the source.
-- **Verdict: GO-CANDIDATE, oracle COMPLETE pending check 2.1.** First
-  implementation PR after this triage.
+- **Verdict (after check 2.1): HOLD on geometry.** The charges are complete.
+  The last hydrogen of every one of the 41 molecules has lost its coordinates
+  in the archived pages (section 3). The site links each table to
+  `molecules/Mnnn.xyz`, which would restore the geometry; the Internet Archive
+  was offline when this was checked. Once those files are found, it is the
+  first implementation PR.
 
 ### SQE: Mathieu 2007
 
@@ -177,7 +181,7 @@ None of them should inherit QEq's solver. Each needs its own abstraction:
 
 `nistor_extract.py` reads the 41 molecule pages positionally
 (`get_text("words")`, grouped by row) into
-`tests/fixtures/charges/nistor2006_si_molecules.csv`. That file is hashed in
+`tests/fixtures/charge_models/nistor2006_si_molecules.csv`. That file is hashed in
 the same commit as its checks, and records molecule, index, Z, x, y, z, ESP,
 and methods i to iv.
 1. **Count:** 41 molecule tables, each atom count consistent with the formula
@@ -211,7 +215,7 @@ and methods i to iv.
 ### 2.2 Mathieu Table I, the EEM EQ row, against the shipped EEM
 
 `mathieu_eem_check.py` freezes `mathieu2007_si/A6.11.108.EPAPS/EQ/*.xyz` into
-`tests/fixtures/charges/mathieu2007_eq.csv` (molecule, index, element, x, y, z,
+`tests/fixtures/charge_models/mathieu2007_eq.csv` (molecule, index, element, x, y, z,
 Mulliken charge), hashed in the same commit.
 1. **Identity first, then metrics.** Section II's EEM energy is transcribed:
    the Coulomb kernel, whether any κ applies to the EEM rows, the η versus 2η
@@ -258,4 +262,32 @@ Frozen before any quantum-chemistry run.
 
 ## 3. Results
 
-Filled in by the checks above, each with its commit.
+### 3.1 Nistor supplement extraction (2026-09-14)
+
+`nistor_extract.py`, run once, wrote three fixtures. Their LF-normalised
+SHA-256 values are recorded here:
+- `nistor2006_si_molecules.csv` (689 atom rows):
+  `ca72f18a0f67c882dbb0ca336282b1321fffcd60beb1d1c4e0bf552ceff0468f`
+- `nistor2006_si_sigma.csv` (41 rows):
+  `923d67e86953d9f1e7f139600d729c00a490cbf0b18c0f736b6ea5f567751197`
+- `nistor2006_table4.csv` (27 rows):
+  `e12e338042fd8aa95ccab8c145288f27505fb59104ed68c68026ef428e6fa5b8`
+
+The checks live in `tests/test_charge_models_triage.py`. Every failed check is
+a strict xfail, and its contents are pinned by
+`test_nistor_the_measured_departures_are_exactly_these`.
+
+| Check | Result |
+|---|---|
+| 1. 41 tables, atom counts match the index formula | **FAILED on one name.** All 41 tables are present, and 40 match. Molecule 28 is printed "SiH(CH2)3" (SiC₃H₇), but its table holds C₄H₁₀Si; the site's label is wrong, not the extraction. |
+| 2. every charge column sums to 0 within n × 0.5e-4 | **FAILED on 4 of 205 columns**, all fitted methods: molecule 5 ii (−0.0012 against 0.0009), 5 iv (+0.0011), 14 ii (−0.0012 against 0.00105), 18 ii (−0.0016 against 0.0012). Every ESP column passes. |
+| 3. Sigma is one form of eq 18 | **PASSED: Sigma = 100·Δ_n** on all 164 molecule × method cells. 100·Δ_n² misses all 164. |
+| 4. atoms at (0, 0, 0) | **Wider than expected.** The last atom of **all 41** tables is at exactly (0, 0, 0), always a hydrogen. The frozen rule calls 31 SUSPECT and 10 VALID; the 10 are coincidences of where the origin falls (molecule 16's "hydrogen" sits 1.166 Å from two oxygens at once). **A page-export artifact: every geometry is missing one hydrogen.** |
+| 5. hexamethyldisiloxane equals the paper's Table IV | **FAILED on 1 of 135 cells.** Atom 15, method i: 0.0929 in the paper, 0.0930 in the supplement. The other 134 match exactly. |
+
+**What it means for SQE:**
+- Per-atom charges for all 41 molecules and all four methods are usable as an
+  oracle, with the four sum departures and the one Table IV cell recorded as
+  source inconsistencies at the 1e-3 e level.
+- The geometries are not usable as they stand. Rebuilding a hydrogen position
+  would be a reconstruction, not the source, so it is not done here.
