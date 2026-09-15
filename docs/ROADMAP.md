@@ -2029,6 +2029,10 @@ struck through and marked SHIPPED here, never deleted.
       periodic table.
     - Periodic EQeq is kept separate from any molecular EQeq, which would
       need a molecular oracle of its own.
+    - SQE for charged frameworks (Krykunov 2017, `krykunov2017`). The
+      original split-charge formulation cannot hold a net charge, and this
+      paper recasts it in an atomic-charge basis. The held copy is the
+      accepted manuscript, and its supporting information is not held.
   - **External reference data, not a QEq oracle:** the Materials Cloud
     archive cited by Ongari et al. 2019 holds DDEC charges for MOFs. DDEC is
     a different partitioning.

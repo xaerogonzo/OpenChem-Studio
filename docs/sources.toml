@@ -2487,9 +2487,120 @@ charges.
 ITS EPAPS (E-JCPSA6-127-509743) IS HELD as the `mathieu2007_si` folder: a
 README and 194 EQ plus 55 TS .xyz files, each atom's coordinates followed by
 its Mulliken charge. The deposit is exactly those files; there is no
-supplement PDF.
+supplement PDF. The README lists the deposit as "README.TXT,
+A6.11.108.EPAPS.ZIP"; the ZIP itself is not held, only its extracted EQ and
+TS directories. The deposit number is deposit metadata, not a second DOI.
+TRIAGE.md's manifests hash every extracted file and the README.
+
+CHECK 2.4 USES BOTH DIRECTORIES, AND EQ 13 CONTRADICTS EQ 8. Differentiating
+eq 8's energy (with eqs 6 and 10) gives a kernel whose eta and Coulomb block
+is the negative of eq 13's as printed, while eq 13 keeps +K_ij. The check
+builds its system from eq 8 and keeps the literal eq 13 as a diagnostic.
 
 DOI and article number confirmed against Crossref.
+"""
+
+[[source]]
+key = "verstraelen2011"
+kind = "literature"
+citation = "T. Verstraelen, P. Bultinck, V. Van Speybroeck, P. W. Ayers, D. Van Neck & M. Waroquier, 'The Significance of Parameters in Charge Equilibration Models', J. Chem. Theory Comput. 2011, 7, 1750-1764."
+identifier_type = "doi"
+identifier = "10.1021/ct200006e"
+status = "reference_only"
+local = "verstraelen2011.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-09-15
+reason = """
+PARAMETER IDENTIFIABILITY, NOT AN ORACLE. It compares six EEM/SQE calibrations
+(two training sets, three procedures) and states that the conventional
+least-squares cost function based solely on atomic charges "is in general
+ill-conditioned and not capable of fixing all parameters". Section II notes
+the charges are invariant to shifting every electronegativity by the same
+amount, and eq 10 writes the SQE energy in split charges with the
+nonnegative kernel U^T J U + J'. Context for A10's non-unique refits and for
+check 2.4's use of chi differences; its SQE is the bond-hardness form of
+Nistor et al., not Mathieu's, and its supplement is not held.
+
+DOI, pages and authors confirmed against Crossref.
+"""
+
+[[source]]
+key = "verstraelen2009"
+kind = "literature"
+citation = "T. Verstraelen, V. Van Speybroeck & M. Waroquier, 'The electronegativity equalization method and the split charge equilibration applied to organic systems: Parametrization, validation, and comparison', J. Chem. Phys. 2009, 131, 044127."
+identifier_type = "doi"
+identifier = "10.1063/1.3187034"
+status = "reference_only"
+local = "verstraelen2009.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-09-15
+reason = """
+EEM AGAINST SQE ON ORGANIC MOLECULES, NOT AN ORACLE. It describes SQE as
+introduced by Nistor et al., combining the EEM and atom-atom charge transfer
+models. Its EPAPS supplement (not held) lists atom and bond types, the
+training molecules, the optimised parameters and Z-matrices only for the chain
+molecules of its applications, so it gives no geometry set to reproduce.
+
+DOI and article number confirmed against Crossref.
+"""
+
+[[source]]
+key = "muser2012"
+kind = "literature"
+citation = "M. H. Muser, 'The chemical hardness of molecules and the band gap of solids within charge equilibration formalisms. Toward force field-based simulations of redox reactions', Eur. Phys. J. B 2012, 85, 135."
+identifier_type = "doi"
+identifier = "10.1140/epjb/e2012-21081-8"
+status = "reference_only"
+local = "10.1140@epjb@e2012-21081-8.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-09-15
+reason = """
+WHY SPLIT CHARGES, NOT AN ORACLE. Its abstract compares regular charge
+equilibration, atom-atom charge transfer and SQE: in QE the hardness of
+molecules and the band gap of solids approach zero with size, AACT can give
+negative hardness, and SQE reproduces the generic behaviour of dielectrics.
+It cites Mathieu 2007. The local filename is the DOI as downloaded; it is on
+the deferred renaming list.
+
+DOI and article number confirmed against Crossref.
+"""
+
+[[source]]
+key = "krykunov2017"
+kind = "literature"
+citation = "M. Krykunov, C. Demone, J. W.-H. Lo & T. K. Woo, 'A New Split Charge Equilibration Model and REPEAT Electrostatic Potential Fitted Charges for Periodic Frameworks with a Net Charge', J. Chem. Theory Comput. 2017, 13, 2858-2869."
+identifier_type = "doi"
+identifier = "10.1021/acs.jctc.6b00998"
+status = "reference_only"
+local = "krykunov2017.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-09-15
+reason = """
+PERIODIC SQE WITH A NET CHARGE, FOR THE DEFERRED ROADMAP ENTRY. Its abstract
+states the original SQE formulation cannot be applied to systems with a net
+charge, and reformulates it by transforming split charges into an atomic
+charge basis. THE HELD COPY IS THE "JUST ACCEPTED" MANUSCRIPT (39 pages, no
+journal pagination); the citation's pages come from Crossref, not the file.
+
+DOI, pages and authors confirmed against Crossref.
+"""
+
+[[source]]
+key = "chelli1999"
+kind = "literature"
+citation = "R. Chelli, P. Procacci, R. Righini & S. Califano, 'Electrical response in chemical potential equalization schemes', J. Chem. Phys. 1999, 111, 8569-8575."
+identifier_type = "doi"
+identifier = "10.1063/1.480198"
+status = "reference_only"
+local = "chelli1999.pdf"
+verification = "citation"
+verified_date = 2026-09-15
+reason = """
+RESPONSE AND POLARIZABILITY IN EQUALIZATION SCHEMES, HELD FOR LATER. Only the
+title page has been read, so no claim is recorded; it bears on Mathieu's eq
+18 polarizabilities, which check 2.4 leaves out of scope.
+
+DOI, pages and authors confirmed against Crossref.
 """
 
 [[source]]
