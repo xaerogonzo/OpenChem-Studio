@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 008825a0fea366aa1ead96f3fa676cf669892c93204c9e7bebdce864396c489a -->
+<!-- SOURCE SHA256: 132a9e82977bd761335244a5ac9528e56d3838294fbb71c5a351551d5c4db233 -->
 
 # Sources
 
@@ -114,6 +114,8 @@ next run of `tools/build_lewis_parameters.py`.
 | [`brown2006`](#brown2006) | literature | **not shipped** | citation |
 | [`bultinck2002a`](#bultinck2002a) | literature | shipped | citation + claim |
 | [`cao2004`](#cao2004) | literature | shipped | citation + claim |
+| [`cioslowski1989`](#cioslowski1989) | literature | reference only | citation |
+| [`cioslowski1989prl`](#cioslowski1989prl) | literature | reference only | citation + claim |
 | [`claesen2023`](#claesen2023) | literature | reference only | citation |
 | [`cod`](#cod) | dataset | shipped | citation |
 | [`coppens2006`](#coppens2006) | literature | **not shipped** | citation |
@@ -180,12 +182,14 @@ next run of `tools/build_lewis_parameters.py`.
 | [`molstar`](#molstar) | software | shipped | citation |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`mortier1986`](#mortier1986) | literature | reference only | citation |
+| [`naserifar2017`](#naserifar2017) | literature | reference only | citation + claim |
 | [`neudert2011`](#neudert2011) | literature | **not shipped** | citation |
 | [`nguyen2020`](#nguyen2020) | literature | shipped | citation + claim |
 | [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | citation |
 | [`npscorer2015`](#npscorer2015) | software | shipped | citation |
 | [`nubase2020`](#nubase2020) | dataset | shipped | citation + claim |
 | [`oda2003`](#oda2003) | literature | reference only | citation |
+| [`ongari2018`](#ongari2018) | literature | reference only | citation + claim |
 | [`ons_solubility`](#ons_solubility) | dataset | shipped | citation |
 | [`openbabel`](#openbabel) | software | shipped | citation |
 | [`opsin`](#opsin) | software | shipped | citation |
@@ -202,7 +206,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`quiroga2016`](#quiroga2016) | literature | shipped | citation + claim |
 | [`ramachandran1996`](#ramachandran1996) | literature | **not shipped** | citation + claim |
 | [`ran2002`](#ran2002) | literature | reference only | citation |
-| [`rappe1991`](#rappe1991) | literature | **not shipped** | citation + claim |
+| [`rappe1991`](#rappe1991) | literature | shipped | citation + claim |
 | [`rappe1992`](#rappe1992) | literature | **not shipped** | citation |
 | [`rcsb_pdb`](#rcsb_pdb) | dataset | shipped | citation |
 | [`rdkit`](#rdkit) | software | shipped | citation |
@@ -1928,26 +1932,31 @@ DOI and title read off the PDF.
 | | |
 | --- | --- |
 | Identifier | [10.1021/j100161a070](https://doi.org/10.1021/j100161a070) |
-| Status | **not shipped** |
+| Status | shipped |
 | Verification | citation + claim |
 | Verified | 2026-09-14 |
 | Local copy | `rappe1991.pdf` (not checked) |
+| Used by | `src/openchem/chem/charge_equilibration.py`, `src/openchem/chem/geometry_charges.py` |
 
-**Why it is not shipped.** QEQ IS IMPLEMENTED AND NOT SHIPPED: it stopped at its pre-registered gate.
-`src/openchem/chem/charge_equilibration.py` implements the paper -- exact ns
-Slater Coulomb integrals, the bounds of eq 5 and the fixing of eq 13, and
-hydrogen's charge-dependent exponent (eqs 20-21) -- and no calculator offers
-it.
+SHIPPED UNDER A NARROWER, RECORDED SCOPE (amendment A8), AFTER ITS ORIGINAL
+GATE FAILED. The original O4/O5 gate stays failed, with its strict xfails
+kept. "Partial Charge (3D)" offers QEq as
+`qeq_rg1991_lambda_half_h_experimental`: the lambda = 1/2 reading (eq 17'),
+the experimental hydrogen set only, and a refusal whenever the loop does not
+converge or a bound is active in the final solution. EEM stays the default.
 
 Checked against the paper's own tables, transcribed from 300 dpi renders into
 `tests/fixtures/charges/rappe1991_table1..4.csv`:
 - Table II (20 alkali halides, no hydrogen) is reproduced in both lambda
-  columns to 0.0005 e. That validates the integrals, the linear system and
-  the heavy-atom parameters.
-- Table III's HF is missed under every pre-registered reading of the
-  hydrogen treatment, and LiH converges under none.
-- The never-release bound fixing misses the constrained optimum in 28 of 200
-  synthetic systems.
+  columns to 0.0005 e.
+- Under the adopted reading with the experimental set, 36 of 38 polyatomic
+  cells pass; the misses are formamide C (0.001 past tolerance) and SiH4, whose
+  printed row is inconsistent with Rappe's group's later program (Ramachandran
+  1996).
+- LiH's printed charge is not a fixed point of the equations (A7), and the
+  HF-fitted hydrogen set misses seven cells. Amendment A10 repeats the paper's
+  own hydrogen fit (section IV; weights in its ref 20) to test readings that
+  might explain both.
 
 Also recorded from the page: oxygen's printed zeta (0.9745) does not follow
 from its printed radius; Table III's footnote and section IV's text describe
@@ -2148,6 +2157,111 @@ agrees with this application's transcription of the 1991 tables, including
 two cells that match amendment A4's label inferences. Transcribed into
 tests/fixtures/charges/bakowies1996_table8_parameters.csv and
 bakowies1996_table10_charges.csv; amendment A7.
+
+DOI and pages confirmed against Crossref.
+
+### cioslowski1989prl
+
+<a id="cioslowski1989prl"></a>
+
+> J. Cioslowski, 'General and Unique Partitioning of Molecular Electronic Properties into Atomic Contributions', Phys. Rev. Lett. 1989, 62, 1469-1471.
+
+| | |
+| --- | --- |
+| Identifier | [10.1103/PhysRevLett.62.1469](https://doi.org/10.1103/PhysRevLett.62.1469) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-09-14 |
+| Local copy | `cioslowski1989(General and Unique Partitioning of Molecular Electronic Properties into Atomic Contributions).pdf` (not checked) |
+
+**Why it is reference only.** THE SOURCE OF RAPPE-GODDARD TABLE III'S LIH HF CHARGE, identified. Their
+footnote e cites this paper, and its Table I prints LiH Q_H = -0.6819 (APT
+charge, RHF/6-31++G** at an optimised geometry), which is Table III's -0.682.
+It is one of the targets amendment A10's refit fits the HF-set hydrogen
+parameters to.
+
+It prints no LiH bond length, so it cannot supply a geometry variant, and A10
+has none. The text also gives LiH's APT charge in two smaller basis sets
+(0.6513 for 4-31G, 0.6470 for 6-31G**).
+
+DOI and pages confirmed against Crossref.
+
+### cioslowski1989
+
+<a id="cioslowski1989"></a>
+
+> J. Cioslowski, 'A New Population Analysis Based on Atomic Polar Tensors', J. Am. Chem. Soc. 1989, 111, 8333-8336.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ja00204a001](https://doi.org/10.1021/ja00204a001) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-14 |
+| Local copy | `cioslowski1989.pdf` (not checked) |
+
+**Why it is reference only.** REQUESTED BY MISTAKE, AND NOT THE PAPER RAPPE-GODDARD CITE. Their Table III
+footnote e is Phys. Rev. Lett. 1989, 62, 1469 (`cioslowski1989prl`); this JACS
+paper was found by a web search and requested before the footnote was read.
+Kept on record so the mix-up is not repeated.
+
+Its Table II gives LiH GAPT charges at optimised geometries (H -0.4578,
+-0.6513, -0.6470 for STO-3G, 4-31G, 6-31G**). None is the -0.682 Table III
+prints, which is consistent with that value being the PRL's 6-31++G** result.
+
+DOI and pages confirmed against Crossref.
+
+### ongari2018
+
+<a id="ongari2018"></a>
+
+> D. Ongari, P. G. Boyd, O. Kadioglu, A. K. Mace, S. Keskin & B. Smit, 'Evaluating Charge Equilibration Methods To Generate Electrostatic Fields in Nanoporous Materials', J. Chem. Theory Comput. 2019, 15, 382-401.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jctc.8b00669](https://doi.org/10.1021/acs.jctc.8b00669) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-09-14 |
+| Local copy | `ongari2018.pdf` (not checked) |
+
+**Why it is reference only.** A REVIEW THAT RESTATES QEQ'S HYDROGEN PROCEDURE, and nothing it computes is
+used. It states that chi_H and J_HH "were fitted to reproduce the experimental
+partial charge of five small molecules (HF, H2O, NH3, CH4, and LiH)", that the
+exponent comes from lambda = 0.5, and that Q_H is iterated "starting from the
+initial guess of null partial charge". The last is why amendment A10's
+truncated-iteration variants start at zero.
+
+It prints no LiH charge and compares QEq variants on metal-organic frameworks,
+so it is not an oracle for anything here.
+
+Online 2018; the volume is 2019. DOI and pages confirmed against Crossref.
+
+### naserifar2017
+
+<a id="naserifar2017"></a>
+
+> S. Naserifar, D. J. Brooks, W. A. Goddard III & V. Cvicek, 'Polarizable Charge Equilibration Model for Predicting Accurate Electrostatic Interactions in Molecules and Solids', J. Chem. Phys. 2017, 146, 124117.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.4978891](https://doi.org/10.1063/1.4978891) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-09-14 |
+| Local copy | `naserifar2017.pdf` (not checked) |
+
+**Why it is reference only.** GODDARD'S GROUP ON THE 1991 HYDROGEN TREATMENT, and a different model. It says
+the original QEq's charge-dependent hydrogen "leads to a nonharmonic
+dependence of energy, which in our experience can lead to unstable systems, so
+PQEq eschews this complication". That is independent support for the
+instability amendment A7 measured in LiH (map slope -14). PQEq's own
+parameters and shell model are not implemented here.
+
+Six papers downloaded from its "articles you might be interested in" list
+(Vitale, Xiao, Pastorczak, Nocito, Sieradzan and Sundararaman, all J. Chem.
+Phys. 2017) were searched in full text and contain nothing on LiH or QEq's
+hydrogen; they are not registered.
 
 DOI and pages confirmed against Crossref.
 
