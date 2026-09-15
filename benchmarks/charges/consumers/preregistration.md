@@ -92,7 +92,9 @@ Each of these was read in the code, not assumed.
     search and MMFF94 optimisation;
   - the conformer `canonical_conformer` would pick, with explicit hydrogens;
   - molblocks written to `tests/fixtures/charges/gasteiger1985_conformers.csv`,
-    SHA-256 recorded here after freezing.
+    SHA-256 recorded here after freezing: `dfc34dfabd1bf9126850aa5bb7a0b9e42eee0678885d3a555089f5a5c4e6e4e1`
+    (frozen 2026-09-15 with `search_conformers` and default `GenerationOptions`,
+    committed before any dipole was computed on it).
 - **Oracle:** the experimental column (2 dp). **Metric:** mean absolute error
   over the molecules each model covers, with n.
   - EEM refuses chlorobenzene (Cl), so its n is 14, reported as
