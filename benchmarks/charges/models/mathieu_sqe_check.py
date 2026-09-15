@@ -977,8 +977,9 @@ def main_causes() -> None:
         qu, vu, ru = pu.solve(C_EV, LAMBDA)
         qs, vs, rs = ps.solve(C_EV, LAMBDA)
         with_s = sorted(set(common) | {i})
-        charges, _ = Objective(ps if vs else pu, with_s).charges(C_EV, LAMBDA)
-        rows = _rows_for(ps if vs else pu, with_s, charges)
+        valid_arm = arms["V0-scaled" if vs else "V0-unscaled"]["prepared"]  # the whole population, not member i
+        charges, _ = Objective(valid_arm, with_s).charges(C_EV, LAMBDA)
+        rows = _rows_for(valid_arm, with_s, charges)
         values = metric_values(rows, "sqe")
         base = cross["V0-scaled" if vs else "V0-unscaled"]["pooled"]
         differing.append({"file": pu.key[1], "set": pu.key[0], "unscaled_valid": vu, "scaled_valid": vs, "residual_unscaled": ru,
