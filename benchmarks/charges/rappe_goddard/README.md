@@ -392,30 +392,52 @@ now has a measured reason beyond O4: no tested reading reproduces its fit.
 
 ## Amendment A11: Cioslowski's LiH geometry (2026-09-15)
 
-Pre-registered after A10's output, and disclosed as such.
-`cioslowski_apt.py`; fixture `cioslowski_lih_orca.csv`.
+Pre-registered after A10's output, and disclosed as such. Code:
+`cioslowski_apt.py` (analysis, and the ORCA run) and `cioslowski_apt_psi4.py`
+(the Psi4 run). Fixtures: `cioslowski_lih_psi4.csv` for A and
+`cioslowski_lih_orca.csv` for B.
 
-**Experiment A, the historical reproduction that could gate H-e: BLOCKED.**
-It needs Cartesian (6d) d functions, and ORCA 6.1.1 rejects them
-(`PureD false`: "Unknown identifier"). H-e is therefore not run.
+**Experiment A, the historical reproduction: PASSED.** ORCA 6.1.1 cannot use
+Cartesian d functions, so A ran in Psi4 1.11, with Alex's approval, in a
+throwaway conda environment.
+- **Cross-check first:** Psi4's spherical LiH single point equals ORCA's to
+  1e-10 hartree.
+- **Geometry:** with Cartesian d, RHF/6-31++G(d,p) optimises LiH to
+  **1.632817 Å**.
+- **Charge:** the trace charge (eq 9) is **Li +0.681846** at every h from
+  0.0005 to 0.004 Å, agreeing to 1e-6. Cioslowski prints +0.6819, a
+  difference of 5e-5, inside A11's ±0.0005.
+- **The trace matters:** the axial derivative alone would give 0.48.
 
-**Experiment B: the same protocol, spherical 5d, in ORCA.** A diagnostic that
-gates nothing.
-- **Bond length:** RHF/6-31++G(d,p) optimises LiH to **1.63279 Å**, against
-  Huber's r_e of 1.5957 used by A10.
-- **Charge:** Li's APT charge (eq 9, the trace of three dipole derivatives) is
-  **+0.68215** at every h from 0.0005 to 0.004 Å, all agreeing to 1e-6 e.
-  That is 0.00025 from Cioslowski's +0.6819.
-- **The trace matters:** the axial derivative alone is 0.4801, and each
-  perpendicular one is 0.7832.
-- **The 4-31G cross-check is not run:** ORCA 6.1.1 has no built-in 4-31G.
+**Experiment B, spherical d in ORCA (a diagnostic):** 1.63279 Å and +0.68215,
+2.5e-4 away. The 4-31G cross-check is not run, because ORCA has no built-in
+4-31G.
 
-**What it means.** The PRL's definition and level of theory reproduce its
-number to within the 5d/6d difference one would expect. So the −0.682 target is
-understood, and its geometry is about 0.037 Å longer than the one A10 used.
-Whether that longer bond changes the HF-column refit is H-e's question. H-e
-waits on a program with Cartesian basis functions (for example Psi4), which
-is not installed.
+**H-e, run because A passed:** A10's V0 refit of the HF column, with LiH at
+1.632817 Å (A10 used Huber's 1.5957) and every other molecule unchanged. The
+output is in `hydrogen_refit_he/`: 1 of 1 jobs complete, symmetry check passed.
+
+| | V0 (LiH at 1.5957 Å) | H-e (LiH at 1.632817 Å) |
+|---|---|---|
+| LiH Q_H at the printed HF pair | −0.9827 | −0.9826 |
+| LiH against the paper's QEqHF (−0.679) | −0.3037 | −0.3036 |
+| S at the printed pair | 0.030747 | 0.030730 |
+| refit (χ, J) | (4.8644, 12.3662) | (4.8642, 12.3673) |
+| refit − printed | (+0.147, −1.106) | (+0.147, −1.105) |
+| inside the rounding envelope? | no | no |
+| program check at the printed pair | fails | fails |
+
+**What it means.**
+- **Cioslowski's −0.682 target is understood exactly:** its definition, level
+  of theory and geometry are all reproduced.
+- **Its 0.037 Å longer bond changes nothing that matters.** LiH's
+  self-consistent charge moves by 1e-4, and the refit moves by ≤ 0.001 eV.
+- **So geometry does not explain LiH or the HF-fitted set;** the difference
+  lies in the hydrogen treatment, as A10 already showed.
+- **Classification:** H-e fits one column, so A10's two-column classification
+  gives no verdict ("NO VERDICT" in its CSV). That column meets neither of
+  A10's conditions: its refit is outside the envelope, and it fails the
+  program check.
 
 ## Amendment A12: Table IV geometry sensitivity (2026-09-15)
 

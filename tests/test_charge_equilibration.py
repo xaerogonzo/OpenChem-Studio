@@ -1745,3 +1745,16 @@ def test_a11_experiment_a_cartesian_d_reproduces_cioslowski_and_accepts_the_geom
     assert report["Q_Li"] == pytest.approx(0.681845, abs=5e-6)
     assert report["within"] and report["bound"] == 0.0005
 
+
+def test_a11_h_e_moves_nothing_that_matters():
+    """Cioslowski's longer LiH bond, in A10's HF-column refit: LiH's charge and
+    the refit barely move, and the column still misses both of A10's conditions."""
+    lines = [l for l in (_REFIT_PATH.parent / "hydrogen_refit_he" / "hydrogen_refit.csv").read_text(encoding="utf-8").splitlines() if not l.startswith("#")]
+    he = next(csv.DictReader(lines))
+    v0 = _refit_rows()[("V0", "hf")]
+    assert he["variant"] == "H-e" and he["job_status"] == "COMPLETE" and he["symmetry_check"] == "PASSED"
+    assert abs(float(he["Q_LiH_printed"]) - float(v0["Q_LiH_printed"])) < 2e-4
+    assert abs(float(he["fit_chi"]) - float(v0["fit_chi"])) < 1e-3 and abs(float(he["fit_J"]) - float(v0["fit_J"])) < 2e-3
+    assert he["within_envelope"] == "False" and he["program_pass"] == "False"
+    assert _refit_molecule("LiH", "H-e").coords[1][2] == pytest.approx(1.632817, abs=1e-6)
+
