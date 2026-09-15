@@ -1,0 +1,43 @@
+# TRIAGE 2.7: Nistor SQE on geometries recovered by the one-row rotation (amendment A2), all-41 parameters.
+index,molecule,family,class,consistent_rotations,reason
+1,Si3H8,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+2,H3SiOSiH3,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+3,(HO)3SiOSiH3,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+4,(H3Si)3SiH,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+5,[(HO)2SiO]3,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+6,SiH4,Si-O-H,RECOVERED-BY-ROTATION,"[(0, True), (1, False)]",
+7,Si2H6,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+8,Si6H12,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+9,(H3SiO)2SiH2,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+10,Si4O4H8,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+11,(OSiH2)3,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+12,Si5O5H10,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+13,(HO)3SiSiH3,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+14,((HO)3SiO)2Si(OH)2,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+15,Si4O3(OH)8,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+16,Si2(OH)6,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+17,Si3(OH)8,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+18,[(HO)2SiO]4,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+19,[(HO)3SiO](HO)2SiSi(OH)3,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+20,Si4O2(OH)8,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+21,Si4O(OH)8,Si-O-H,BLOCKED,[],no one-row rotation consistent with valence
+22,(CH3)3-SiH,Si-C-O-H,BLOCKED,[],no one-row rotation consistent with valence
+23,(CH3)3Si)2O,Si-C-O-H,BLOCKED,[],no one-row rotation consistent with valence
+24,(CH3)3Si)2,Si-C-O-H,BLOCKED,[],no one-row rotation consistent with valence
+25,(CH3)2SiHC2H5,Si-C-O-H,BLOCKED,[],no one-row rotation consistent with valence
+26,(CH3)3SiC2H5,Si-C-O-H,RECOVERED-BY-ROTATION,"[(1, False)]",
+27,(CH3)2Si(CH2)2Si(CH3)2,Si-C-O-H,BLOCKED,[],no one-row rotation consistent with valence
+28,SiH(CH2)3,Si-C-O-H,BLOCKED,[],no one-row rotation consistent with valence
+29,(CH3)2Si)6,Si-C-O-H,AMBIGUOUS,"[(1, False), (2, False)]","rotations [(2, False)] give a different structure"
+30,(CH3)2Si)5,Si-C-O-H,BLOCKED,[],no one-row rotation consistent with valence
+31,C5H12,C-O-H,BLOCKED,[],no one-row rotation consistent with valence
+32,C3H8,C-O-H,AMBIGUOUS,"[(1, False), (2, True)]","rotations [(2, True)] give a different structure"
+33,HO-CH2-OH,C-O-H,RECOVERED-BY-ROTATION,"[(1, False)]",
+34,CH3OH,C-O-H,RECOVERED-BY-ROTATION,"[(1, False)]",
+35,CH4,C-O-H,RECOVERED-BY-ROTATION,"[(0, True), (1, False)]",
+36,CH3CH(CH3)2,C-O-H,BLOCKED,[],no one-row rotation consistent with valence
+37,CH(OH)3,C-O-H,BLOCKED,[],no one-row rotation consistent with valence
+38,C(OH)2(CH3)2,C-O-H,RECOVERED-BY-ROTATION,"[(1, False)]",
+39,CH3-C(OH)3,C-O-H,BLOCKED,[],no one-row rotation consistent with valence
+40,C(OH)4,C-O-H,BLOCKED,[],no one-row rotation consistent with valence
+41,C(CH3)3(OH),C-O-H,AMBIGUOUS,"[(1, False), (4, True)]","rotations [(4, True)] give a different structure"

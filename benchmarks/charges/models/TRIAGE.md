@@ -79,6 +79,12 @@ saved as `nistor2006_si.pdf.pdf`, the name the fixture headers keep).
   coordinates is exhausted**, so the geometry HOLD stands until a new source
   appears. Rebuilding the hydrogens would be a reconstruction, not the
   source.
+- **Revised by check 2.7 (2026-09-15): PARTIAL.** No hydrogen is known to be
+  missing: the coordinate column is displaced against the atom rows. One-row
+  rotation recovers 6 molecules, and on them no method reproduces the printed
+  charges (section 3.7).
+  - Method i and iii R_eq10 come within 2e-3 e on SiH4 and CH4.
+  - The larger molecules miss by up to 0.18 e.
 
 ### SQE: Mathieu 2007
 
@@ -853,6 +859,93 @@ a strict xfail, and its contents are pinned by
   source inconsistencies at the 1e-3 e level.
 - The geometries are not usable as they stand. Rebuilding a hydrogen position
   would be a reconstruction, not the source, so it is not done here.
+
+**Correction (2026-09-15, check 2.7):** check 4's last sentence is wrong. The
+coordinate column is displaced against the atom rows; nothing is known to be
+missing. See 2.7's measurements and section 3.7.
+
+### 3.7 Check 2.7: Nistor SQE on recovered correspondence (2026-09-15)
+
+Claim kind: IMPLEMENTATION REPRODUCTION, on geometry recovered by the one-row
+rotation (amendments A2 and A3). Run order in git: A3 and the module 216aecf,
+instrument tests 4a9faca, then this run.
+
+**Instrument, before the run.**
+- **Kernel:** equals an independent Fourier-space integral (the exact
+  transform of an ns Slater density, numpy Gauss–Legendre) to 5.4e-13 eV
+  worst case over H–H, C–O, Si–Si and H–Si at R = 0.5–6 Å, against the 1e-9 eV
+  gate. mpmath is not installed, and this route shares nothing with the
+  gamma-function closed form, so it replaces the registered mpmath integral.
+  R = 0 intercepts: 20.83 (H–H), 8.99 (C–O) and 6.76 (Si–Si) eV, matching the
+  figure.
+- **Normalisation checksum:** H, O and Si reproduce the printed A. Carbon
+  computes to 1.0847 against a printed 1.084; ζ = 1.6175, which also prints as
+  1.618, gives 1.0839. The printed A is therefore inside ζ's rounding.
+- **Parameter sets:** all five pages, 206 rows, re-parsed from a fresh text
+  dump and compared in order, with 0 mismatches.
+- **Tests:** `tests/test_nistor_sqe_instrument.py`, 19 tests.
+  - The split-charge solve equals a brute-force minimisation of eq 4, written
+    in loops with re-transcribed parameters, for i, iii and iv under both
+    readings.
+  - Method i equals an atomic QE solve.
+- **Mutations: 6 of 6 red.** They cover the pair sign, ζ left in Å⁻¹,
+  symmetry classes without ESP, symmetric Δ, the readings exchanged, and a
+  two-row rotation accepted. The registered "S_real branch" mutation has
+  nothing to test, since A2 removed that branch.
+
+**Step 1 and Step 2.**
+- **Parameter set:** the all-41 set's method ii reproduces every atom of all 6
+  recovered molecules. No other set reproduces any.
+- **Recovery:** 6 RECOVERED-BY-ROTATION, 3 AMBIGUOUS (29, 32, 41) and 32
+  BLOCKED.
+  - The recovered molecules are SiH4 (6, Si–O–H), (CH3)3SiC2H5 (26, Si–C–O–H),
+    and HO–CH2–OH, CH3OH, CH4 and C(OH)2(CH3)2 (33, 34, 35, 38; all C–O–H).
+  - Under A2 as written: 4, 5 and 32.
+  - Sensitivity (f = 1.15 / 1.35): 4 / 7 recovered.
+
+**Step 3: nothing reproduces.** Every molecule × method × reading is PARTIAL.
+
+| Method | Atoms reproduced (\|Δ\| ≤ 5e-5) | Molecules reproduced | Max \|Δ\| range over molecules |
+|---|---|---|---|
+| i | 2 / 56 (both on SiH4) | 0 / 6 | 0.0006 (SiH4) to 0.185 (38) |
+| iii R_eq10 | 0 / 56 | 0 / 6 | 0.0008 (SiH4) to 0.182 (38) |
+| iii R_eq14 | 0 / 56 | 0 / 6 | 0.22 (SiH4) to 4.46 (38) |
+| iv R_eq10 | 0 / 56 | 0 / 6 | 0.0013 (CH4) to 0.158 (38) |
+| iv R_eq14 | 0 / 56 | 0 / 6 | 0.12 (SiH4) to 8.31 (26) |
+
+- **Readings:** R_eq14's largest miss exceeds R_eq10's on every molecule and
+  method, by a factor of 3.1 (38, iv) to 1,800 (CH4, iii). This is reported,
+  not used to choose a reading.
+- **Sigma** (model, then printed): CH4 i 3.16 / 3.41; CH3OH i 35.30 / 37.99;
+  molecule 38 iii R_eq10 28.03 / 10.93. Every value is in
+  `nistor_sqe_molecules.csv`.
+- **A post-hoc diagnostic, not a class change:** coordinate rounding cannot
+  explain the misses.
+  - The fixture prints coordinates to 4 dp (1,477 of 2,067 have a nonzero
+    last digit).
+  - The linear envelope of each charge over ±5e-5 Å on every coordinate is at
+    most 8e-6 e (SiH4), 3e-5 e (CH4) and 3e-4 e (the larger molecules).
+  - Each molecule's largest miss is 68 to 2,900 times its largest envelope.
+- **What it says:**
+  - SiH4 and CH4 come within 2e-3 e under method i and iii R_eq10 (CH4 also
+    iv R_eq10; SiH4 iv misses by 0.023), but not within the printed precision.
+  - The four larger molecules miss by 0.02–0.18 e under method i and both
+    R_eq10 readings. That includes method i, which has no bond-hardness term.
+  - So a difference that method i already shows lies in the atomic model, the
+    kernel convention or the recovered geometry. Which of these is not tested
+    here, and nothing was refit.
+
+**Program verdict: PARTIAL**, universal status PARTIAL. GO was unreachable
+before the run (A2). No molecule is REPRODUCED-ON-RECOVERED-CORRESPONDENCE,
+so no SQE src pre-registration follows from this check.
+
+Result files (LF-normalised SHA-256):
+- `nistor_recovery.csv`:
+  `1679f036c3d451255853c2d3ab7d78958c6129ca55dda0dde8927659b16216f4`
+- `nistor_sqe_molecules.csv`:
+  `e085f61942b56c888ef8e3cc9c3a33771745eff7626b975cded59e45de1c607c`
+- `nistor_sqe_atoms.csv`:
+  `be80290213ed8119e91b64ae8125b7574de5a778b8bf91407e0aa926fd17f4d6`
 
 ### 3.2 Mathieu Table I, the EEM (EQ) row (2026-09-14)
 

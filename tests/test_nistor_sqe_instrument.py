@@ -246,3 +246,20 @@ def test_recovery_classes_on_the_corpus_are_the_amended_counts():
     assert sorted(i for i, c in classes.items() if c == "RECOVERED-BY-ROTATION") == [6, 26, 33, 34, 35, 38]
     assert sorted(i for i, c in classes.items() if c == "AMBIGUOUS") == [29, 32, 41]
     assert list(classes.values()).count("BLOCKED") == 32
+
+
+# --- result pins (section 3.7) --------------------------------------------------------------------
+
+
+def test_result_pin_no_recovered_molecule_reproduces_under_any_method_or_reading():
+    mols = ns.molecules()
+    params = ns.PARAMETER_SETS["all41"]
+    reproduced = {}
+    for index in (6, 26, 33, 34, 35, 38):
+        recovered = ns.recover(mols[index], params["ii"])
+        for method, reading in (("i", "R_eq10"), ("iii", "R_eq10"), ("iii", "R_eq14"), ("iv", "R_eq10"), ("iv", "R_eq14")):
+            q = ns.solve(mols[index]["elements"], recovered["coords"], recovered["bonds"], params, method, reading)
+            hits = int(np.sum(np.abs(q - np.array(mols[index]["charges"][method])) <= ns.TOLERANCE))
+            reproduced[(method, reading)] = reproduced.get((method, reading), 0) + hits
+            assert hits < len(q), (index, method, reading)
+    assert reproduced == {("i", "R_eq10"): 2, ("iii", "R_eq10"): 0, ("iii", "R_eq14"): 0, ("iv", "R_eq10"): 0, ("iv", "R_eq14"): 0}
