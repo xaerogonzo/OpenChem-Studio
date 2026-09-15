@@ -740,6 +740,58 @@ runs over all atom pairs, bonded or not. Method iv's perturbations are read
 per bonded neighbour: χ_i = χ⁰_i + Σ_j Δχ(Z_i–Z_j) using the ordered-pair row
 ("H-C" for an H bonded to C), and likewise κ.
 
+**Amendment 2.7-A2 (2026-09-15): recovery narrowed to a one-row rotation.**
+It is made AFTER a measurement on coordinates and elements only, with no
+charge column and no SQE charge in existence, and disclosed as such.
+- **Why the pre-registered general solve cannot deliver what it promised.**
+  Its constraints are valence, the bonding rule and method ii charges, and
+  method ii gives every hydrogen a value set only by its parent's element
+  (H–C, H–O, H–Si).
+  - So no topology-only constraint distinguishes a table hydrogen on one
+    carbon from a table hydrogen on another carbon, or two hydrogens on the
+    same carbon. The only columns that differ are the geometry-dependent ones
+    (ESP, i, iii, iv), and choosing a correspondence by them would fit to the
+    oracle.
+  - A general solve would therefore return many solutions for every molecule
+    with non-equivalent hydrogens, which is nearly all of them. That is a
+    property of the constraints, argued here, not run.
+- **The measurement.**
+  - Every cyclic rotation of the coordinate column (and of its reversal) was
+    tested per molecule with Step 2's registered bonding rule (Lange radii,
+    f = 1.25).
+  - 32 of 41 molecules have no consistent rotation.
+  - **9 do, and all 9 are consistent at the same one: the column rotated down
+    one row**, so the origin row belongs to table atom 1. They are molecules
+    6 (SiH4), 26, 29, 32, 33, 34, 35, 38 and 41.
+  - Five of them also have a second consistent rotation (SiH4, 29, 32, 35,
+    41); these are the most symmetric molecules.
+- **The amended Step 2.**
+  - A molecule is RECOVERED-BY-ROTATION when the one-row rotation is
+    consistent with the bonding rule at f = 1.25, AND with valence, AND every
+    heavy atom's method ii charge recomputes to the printed value within 5e-5
+    per bond.
+  - Hydrogens are placed by the rotation itself, not chosen.
+  - **Uniqueness:** every other consistent rotation must give the same
+    structure. Their interatomic distance matrices, taken atom for atom in
+    table order, must agree within 5e-3 Å (distances fix both the bonding and
+    V_C, so equal matrices mean identical SQE charges per atom). A second
+    rotation that differs is AMBIGUOUS.
+  - Molecules with no consistent rotation are BLOCKED on correspondence. The
+    general solve is not run, for the reason above.
+  - f = 1.15 and 1.35 are reported as sensitivity on the rotation test only.
+- **What stays unchanged:**
+  - Step 1 (parameter identification), Step 3 (the oracle, tolerances,
+    Sigma), both bond-hardness readings, the status mapping, and the
+    mutations (plus: "rotation by two rows accepted as recovery").
+  - **The GO bar stays at ten recovered molecules across three families.**
+    With nine recoverable at most, Track 4 cannot reach GO. Its verdict is at
+    best PARTIAL, and that is stated here, before any SQE number, rather than
+    discovered afterwards.
+- **This corrects check 2.1's record** ("every geometry is missing one
+  hydrogen"). For these nine, nothing is missing: the column is displaced by
+  one row. For the other 32, the scramble is not a rotation, and whether any
+  atom is truly missing is not known.
+
 ## 3. Results
 
 ### 3.1 Nistor supplement extraction (2026-09-14)
