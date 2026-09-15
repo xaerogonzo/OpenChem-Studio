@@ -1132,3 +1132,18 @@ giving it.
 - **geometry-insensitive:** range < 0.01 and never within tolerance.
 
 None of the three explains the discrepancy or adopts a geometry.
+
+**A11 note (2026-09-15, before experiment A ran).** Alex approved installing Psi4
+1.11 (conda-forge, a throwaway `psi4-a11` environment), so experiment A runs
+there with `puream false`.
+- **Cross-check before anything else:** at LiH 1.6 Å with the spherical basis,
+  Psi4 and ORCA agree (E −7.9824488736 against −7.982448873568 hartree; μ_z
+  −2.387129 against −2.387130 a.u.). The Cartesian basis has 25 functions.
+- **Keyword mapping:** ORCA's `TightSCF TightOpt` becomes
+  `e_convergence 1e-10`, `d_convergence 1e-10`, `scf_type pk` and
+  `g_convergence gau_tight`.
+- **Unchanged:** the geometry, displacements, stability rule and acceptance of
+  A11.
+- **Fixture:** `tests/fixtures/charges/cioslowski_lih_psi4.csv`, added to the
+  hash table.
+- If A passes, H-e runs exactly as A11 states.
