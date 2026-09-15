@@ -6,7 +6,8 @@ pymupdf is deliberately not a project dependency (see LESSONS, "`Read` cannot
 open a PDF here"), so this runs from a throwaway venv; the functions the tests
 import need nothing but the standard library.
 
-Reads `nistor2006_si.pdf.pdf` (the archived UWO Müser group pages) and
+Reads `nistor2006_si.pdf` (the archived UWO Müser group pages; the fixture headers keep
+the name it had when extracted, `nistor2006_si.pdf.pdf`) and
 `nistor2006.pdf` from Alex's Sci Downloads folder, and writes:
 
 - tests/fixtures/charge_models/nistor2006_si_molecules.csv  every atom row
@@ -98,7 +99,7 @@ def rows_by_y(page) -> list[list[str]]:
 def main() -> None:
     import pymupdf
 
-    si = pymupdf.open(SCI / "nistor2006_si.pdf.pdf")
+    si = pymupdf.open(SCI / "nistor2006_si.pdf")
     atoms, sigmas = [], []
     for page in si:
         lines = rows_by_y(page)

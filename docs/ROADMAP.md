@@ -2002,11 +2002,17 @@ struck through and marked SHIPPED here, never deleted.
   plan is pre-registered, the way EEM and QEq were.
   [benchmarks/charges/models/TRIAGE.md](../benchmarks/charges/models/TRIAGE.md)
   holds the per-model records.
-  - Split-charge equilibration (Nistor 2006) is the first candidate: its
-    supplement prints coordinates, reference charges and all four methods'
-    charges for 41 molecules.
-  - Mathieu 2007's deposited geometries give the shipped EEM an external
-    check.
+  - Split-charge equilibration (Nistor 2006) is held on geometry. Its
+    supplement prints charges for 41 molecules, but every table has lost a
+    hydrogen's coordinates. Neither the publisher's supplementary download
+    nor the Internet Archive holds the original geometry files.
+  - Mathieu 2007's SQE (check 2.4) is held too. Built from its energy
+    expression (its printed linear system has a sign error), it reproduces 7
+    of Table I's 12 SQE correlations, and the parameters' printed rounding
+    cannot explain the misses.
+  - Mathieu's deposited structures give the shipped EEM an external check. It
+    reproduces all six equilibrium correlations and five of six on
+    transition states, where fluorine has five atoms.
   - QTPIE, PQEq and Oda–Hirono are held on missing oracles. ACKS2 is not
     pursued as a molecular calculator.
 - **Periodic charge equilibration (deferred).** Not started, and recorded so
@@ -2029,6 +2035,10 @@ struck through and marked SHIPPED here, never deleted.
       periodic table.
     - Periodic EQeq is kept separate from any molecular EQeq, which would
       need a molecular oracle of its own.
+    - SQE for charged frameworks (Krykunov 2017, `krykunov2017`). The
+      original split-charge formulation cannot hold a net charge, and this
+      paper recasts it in an atomic-charge basis. The held copy is the
+      accepted manuscript, and its supporting information is not held.
   - **External reference data, not a QEq oracle:** the Materials Cloud
     archive cited by Ongari et al. 2019 holds DDEC charges for MOFs. DDEC is
     a different partitioning.
