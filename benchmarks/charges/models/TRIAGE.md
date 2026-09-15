@@ -85,6 +85,11 @@ None of them should inherit QEq's solver. Each needs its own abstraction:
 - **Scope fit:** molecular, C/H/N/O/F, including transition states.
 - **Verdict: GO-CANDIDATE** for SQE model B with the aggregate oracle. Check 2.2
   also gives the **shipped EEM** an external test.
+- **Checks 2.4 and 2.5** run the SQE rows and the EEM (TS) row. Its eq 13 as
+  printed contradicts eq 8 (2.4a).
+- **Identifiability context:** `verstraelen2011` shows a charge-only
+  least-squares fit is in general ill-conditioned, so reproducing Mathieu's
+  metrics validates his parameters in use, not their uniqueness.
 
 ### Oda & Hirono 2003
 
@@ -278,6 +283,271 @@ Frozen before any quantum-chemistry run.
 
   Otherwise it may serve only as a ranking and sign oracle. Either way, the
   outcome is recorded here.
+
+### 2.4 Mathieu SQE model B against Table I's SQE EQ and SQE TS rows
+
+Pre-registered 2026-09-15, before any SQE charge or corpus metric exists. The
+reproduction is `mathieu_sqe_check.py`; its instrument tests are
+`tests/test_mathieu_sqe_instrument.py`. Nothing here touches `src/`.
+
+**Order, frozen:**
+1. source audit (below);
+2. instrument tests pass;
+3. EEM baseline;
+4. fixtures and check 2.5;
+5. SQE corpus metrics;
+6. verdict.
+
+A corpus match cannot rescue a failing instrument test.
+
+#### 2.4a Source audit (kept; results are appended in section 3, never here)
+
+Transcribed from the rendered pages of `mathieu2007.pdf`.
+- **Eq 2 (p. 2):** E_i = E_i° + χ_i Q_i + η_i Q_i².
+- **Eq 6 (p. 4):** Q_k = Σ_{i<k} q_ik − Σ_{j>k} q_kj, with q_ij ≠ 0 only for
+  i < j.
+- **Eq 7 (p. 4):** E^p_ij = C_ij Θ(r_ij − λ_ij r^C_ij) ((r_ij − λ_ij r^C_ij) /
+  (r_ij − r^W_ij))² q_ij².
+- **Eq 8 (p. 4):** E = Σ_i E_i + Σ_{i<j} J_ij Q_i Q_j + Σ_{i…j} E^p_ij, where
+  i…j runs over "only the N_p atom pairs such that r_ij < r^W_ij".
+- **Eqs 9–11 (p. 4):** ∂E/∂q_ij = 0; ∂Q_k/∂q_ij = δ_kj − δ_ki; **Jq = B**.
+- **Eq 12 (p. 4):** B_ij = χ_j − χ_i.
+- **Eq 13 (p. 4):** J_ij,kl = 2η_i(δ_il − δ_ik) − 2η_j(δ_jl − δ_jk) +
+  (J_il + J_jk − J_jl − J_ik) + K_ij × δ_ij,kl.
+- **Eq 14 (p. 4):** K_ij = 2C_ij Θ(r_ij − λ_ij r^C_ij) ((r_ij − λ_ij r^C_ij) /
+  (r_ij − r^W_ij))².
+- **Sec. III (p. 5):** C_ij = C and λ_ij = λ for every pair.
+- **Table I caption (p. 5):** C = 115 eV and λ = 0.816, with Bultinck et al.'s
+  atomic parameters.
+- **Table II caption (p. 6):** r^C_ij = r^C_i + r^C_j and r^W_ij = r^W_i +
+  r^W_j. χ differences are relative to H, in eV; η is in eV.
+  - Model B: χ − χ_H is C 4.25, H 0.00, N 7.80, O 13.72, F 14.00; η is
+    C 9.00, H 17.95, N 9.39, O 14.34, F 19.77.
+  - r^C: C 0.77, H 0.37, N 0.75, O 0.73, F 0.71 Å.
+  - r^W: C 1.70, H 1.20, N 1.55, O 1.52, F 1.47 Å.
+- **Table I (p. 5)**, R² to 2 dp (C, H, N, O, F, All) and Δq to 4 dp:
+
+  | Row | C | H | N | O | F | All | Δq |
+  |---|---|---|---|---|---|---|---|
+  | EEM (EQ) | 0.96 | 0.81 | 0.95 | 0.66 | 0.36 | 0.97 | 0.0668 |
+  | EEM (TS) | 0.96 | 0.86 | 0.93 | 0.86 | 0.36 | 0.96 | 0.0847 |
+  | SQE (EQ) | 0.97 | 0.85 | 0.96 | 0.67 | 0.35 | 0.98 | 0.0650 |
+  | SQE (TS) | 0.96 | 0.88 | 0.95 | 0.89 | 0.16 | 0.97 | 0.0952 |
+
+- **The R² definition, verbatim (Sec. III.B, p. 5):** "a squared correlation
+  coefficient R²q between the Qi and QiM data sets".
+- **Prose values, a diagnostic and never an oracle (Sec. III.B, p. 5):** "fair
+  atomic charges for EQ+TS, with Δq=0.0695 and a squared correlation
+  coefficient R²q=0.97". This Δq equals Table I's EEM (NL) Δq.
+
+**Eq 13 contradicts eq 8.** Write H for the Hessian of eq 8's first two terms
+in atomic charges: H_aa = 2η_a (from eq 2), H_ab = J_ab for a ≠ b. By eq 10
+and the chain rule:
+- ∂E/∂q_ij = (χ_j − χ_i) + Σ_a (HQ)_a (δ_aj − δ_ai) + K_ij q_ij;
+- ∂²E/∂q_ij∂q_kl = H_jl − H_jk − H_il + H_ik + K_ij δ_ij,kl.
+
+Setting the gradient to zero gives **A q = χ_i − χ_j**, with that A. Expanding
+H, the η part of A is 2η_j(δ_jl − δ_jk) − 2η_i(δ_il − δ_ik), and the Coulomb
+part is J_jl − J_jk − J_il + J_ik. **Both are exactly the negatives of the
+printed eq 13's**, while the printed K term keeps its + sign. Eq 12 is also the
+negative of −∂E/∂q at q = 0. So the printed pair (eq 12, eq 13) equals
+(−b, −A + 2K δ) and is not the stationarity condition of eq 8. Its diagonal,
+−2η_i − 2η_j + 2J_ij + K_ij, is negative whenever K is small.
+
+**Rule:** eq 8, the model's definition, governs. The literal eq 13 and eq 12
+are kept as `literal_eq13_diagnostic` and are never on the solver path. The
+rule is confirmed or overturned by instrument test 1 (finite differences of
+eq 8), whose outcome is appended in section 3. Verstraelen 2011 eq 10
+(`verstraelen2011`) writes the SQE energy with the kernel U^T J U + J′. That
+corroborates the positive form; it is not evidence about Mathieu's print.
+
+**Δq is not gated.** Check 2.2 measured eq 15 as printed at 0.004453 against
+0.0668, and its square root at 6.6e-5 from it. Both forms are reported.
+
+**Mulliken charges are a source limit:** 4 dp as deposited, and the underlying
+B3LYP values are unknown. Per-atom errors are read with that in mind.
+
+#### 2.4b The model as run
+
+- **Energy:** eq 8 exactly. The stored parameter is η\*, the energy
+  coefficient is η\*, and the Hessian diagonal is 2η\* (the shipped EEM's
+  convention, eq 3 of Bultinck part I). The Coulomb sum runs over i < j.
+- **J_ij = 1/R in atomic units.** Mathieu never writes the kernel and cites
+  Bultinck; the shipped EEM uses 1/R and reproduced EEM (EQ) in 2.2.
+- **χ and η** come from `ce.EEM_BULTINCK2002_PART1`. Only differences of χ
+  enter (Verstraelen 2011, section II), and the relative values are asserted
+  equal to Table II's.
+- **Pairs:** i < j with r_ij < r^W_i + r^W_j, strictly (text above eq 8).
+  - As r → r^W from below, K → +∞.
+  - At r ≥ r^W the pair does not exist: eq 14 is never evaluated there.
+- **Penalty:** eq 14 with Θ(0) = 0, because the text says only pairs with
+  r_ij > λr^C are hampered.
+- **Units, all inside the module:** coordinates in Å; R in bohr through
+  `ce.EEM_BOHR_ANGSTROM`; A, b and K in Hartree per e², with χ, η and C
+  divided by `ce.HARTREE_EV`; charges in e.
+- **System:** M is N × N_p, and pair p = (i, j) has −1 in row i and +1 in
+  row j. A = MᵀHM + diag(K) and b = −Mᵀχ.
+  - Asymmetry ≤ 1e-14 is asserted, then A is symmetrised.
+- **Solve:** `np.linalg.lstsq(A, b, rcond=1e-10)`. This is an implementation
+  numerical policy, and instrument test 10 shows Q does not depend on it.
+  - **The scientific output is Q = Mq.** When A has a null space, q is not
+    unique, but Q is unique whenever H is positive definite on the neutral
+    subspace of each pair-graph component.
+- **Recorded per structure:** σ_max; σ_min of the retained singular values;
+  condition = σ_max/σ_min(retained), never divided by a discarded value; the
+  discarded count; the cycle dimension N_p − N + components; whether H is
+  positive definite on each component's neutral subspace; ‖Aq − b‖∞ in
+  Hartree/e and eV/e; the component count and each component's charge sum.
+- **Valid** means residual ≤ 1e-9 Hartree/e, every component sum ≤ 1e-12 e,
+  and H positive definite on the neutral subspaces.
+  - **The expected invalid count is 0 in EQ and 0 in TS.**
+  - An invalid structure is a recorded event with its reason, and is removed
+    from the SQE and EEM populations alike.
+  - The metrics then show the source, excluded and included populations.
+
+#### 2.4c Metrics
+
+- **R²** is `np.corrcoef(Q, Q^M)[0, 1]²`, which equals 1 − SSE/SST of a
+  least-squares line with intercept. Instrument test 8 shows the two
+  definitions agree.
+  - Computed over atoms: each element over its own atoms, and "All" pooling
+    every included atom of the set once.
+  - Metric IDs are the fixed tuple (C, H, N, O, F, All), and "All" is not an
+    element.
+  - A subset with zero variance is undefined and fails its gate.
+- **Population:** one builder, `population(fixture)`, serves EEM and SQE
+  alike. Its rows are keyed (set, file, atom index in source order), and the
+  keys are unique.
+- **`mathieu_sqe_atoms.csv`**, one row per atom: set, file, atom index,
+  element, Mulliken, EEM, SQE, and included with a reason. Every metric can be
+  recomputed from it alone.
+- **`mathieu_sqe_metrics.csv`**, per set and metric: n; printed SQE and its
+  rounding interval [p − 0.005, p + 0.005); printed EEM; reconstructed SQE;
+  recomputed EEM; |recon − printed SQE|; |recon − printed EEM|; and the
+  discrimination class.
+- **Non-gating per-atom diagnostics** (per element and All): mean signed
+  error, MAE, RMS, max |error|, charge-sum error per structure, Δq as
+  printed, and √Δq.
+- **Small subgroups:** every element × set cell with n < 30 (TS F, n = 5, and
+  TS N, n = 15) also reports the reference range, SSE, SST and the
+  leave-one-out R² range. They still gate.
+
+#### 2.4d Acceptance
+
+- **Tolerance:** ±0.005, half a unit of Table I's second decimal.
+- **EEM baseline first:** the shipped `ce.eem_charges`, run through
+  `population()`, must return the six EEM (EQ) R² values pinned by 2.2
+  (C 0.9619, H 0.8139, N 0.9535, O 0.6641, F 0.3574, All 0.9727, each to
+  1e-4). If it does not, 2.4 stops.
+- **Per set (EQ, TS), in order:**
+  1. **Gate:** each of the six reconstructed R² lies in the printed SQE
+     value's rounding interval.
+  2. **Printed-value discrimination,** only where printed SQE and printed EEM
+     differ by ≥ 0.01:
+     - **STRICT** if |recon − SQE| < |recon − EEM| and recon lies outside
+       the EEM value's rounding interval;
+     - **AMBIGUOUS** otherwise, including a tie.
+  3. **Model discrimination, reported and not gated:** reconstructed SQE minus
+     recomputed EEM, on the same population.
+- **Set verdict:**
+  - **REPRODUCED:** all six gates pass, every applicable discrimination is
+    STRICT, the invalid count is 0, and the manifest checks pass.
+  - **AMBIGUOUS:** all six gates pass, but a discrimination is AMBIGUOUS.
+  - **PARTIAL:** one to five gates pass. The failing metrics are listed; the
+    count carries no scientific weight.
+  - **NOT REPRODUCED:** no gate passes.
+- **Model verdict:** REPRODUCED needs every instrument test passing, the
+  baseline holding, and both EQ and TS REPRODUCED. It means **GO to a separate
+  pre-registration and design stage for an SQE calculator**, not `src/` code.
+  Anything less is HOLD, with strict-xfail stop records.
+
+**Non-gating diagnostics:**
+- **Rounding sensitivity, one parameter at a time** with every other value as
+  published:
+  - each relative χ (C, N, O, F) and each η (C, H, N, O, F) at ±0.005 eV;
+  - λ at ±0.0005 and C at ±0.5 eV;
+  - then the four λ × C corners.
+
+  Each row gives parameter, baseline, perturbed value, set, metric and ΔR².
+- **`literal_eq13_diagnostic`,** per set: the negative-eigenvalue count, the
+  smallest and largest eigenvalues, the condition estimate, and the
+  stationarity residual of its q under eq 8. It is not judged on whether its
+  charges look plausible.
+- **The prose EQ+TS values,** recomputed for the shipped EEM on the pooled
+  population.
+
+#### 2.4e Instrument tests, before any corpus metric
+
+`energy_eq8` lives in the test file. It selects pairs, evaluates eq 7, builds
+Q from eq 6 and sums eqs 2 and 8 with explicit loops, and calls none of the
+module's `pairs`, `penalty`, `assemble` or `solve`.
+1. **Finite differences at q = 0 and at a fixed nonzero q.** Central
+   differences at h = 1e-3, 1e-4 and 1e-5 must converge. The acceptance step
+   is h = 1e-4 (relative ≤ 1e-6). The gradient must equal Aq − b and the
+   Hessian must equal A. The literal eq 13 matrix and B must differ from them.
+2. **Two atoms, built through M** (column [−1, +1]ᵀ): q\* =
+   (χ_A − χ_B)/(2η_A + 2η_B − 2J + K) with K > 0, and with K = 0 (which is
+   `ce.eem_charges` for the pair), both to 1e-14.
+3. **EEM limit through an explicit `penalty=None` branch** (K = 0, all pairs
+   connected, eq 14 never evaluated): Q equals `ce.eem_charges` to 1e-10, and
+   the energies agree.
+4. **`test_k_zero_cycle_unique_atomic_charges_not_bond_charges`:** a K = 0
+   triangle and z with Mz = 0 give Q(q + z) = Q(q) and E(q + z) = E(q), with
+   one discarded singular value.
+5. **Pair graph:** a four-atom geometry with exactly one pair beyond the
+   cutoff. Its edges, components and each K are asserted.
+6. **Cutoff and activation:**
+   - K rises monotonically and stays finite at r^W − 1e-2, −1e-3, −1e-4 and
+     −1e-5, and the solve is valid at each.
+   - At r^W and r^W + 1e-6 the pair is absent and the component count changes.
+   - At λr^C − 1e-9, λr^C and λr^C + 1e-9, K is 0, 0 and positive.
+7. **Dissociation:** methanol from the EQ fixture, with its file and its C, O
+   and H(O) indices recorded and their elements asserted. OH is translated
+   rigidly along C→O in 1 Å steps until every inter-fragment distance exceeds
+   its r^W sum by 1 Å; the charges are recorded at every step.
+   - At the last step there are two components, each summing to ≤ 1e-12.
+   - EEM's fragment sum there is > 0.01, reported as "EEM violates fragment
+     neutrality at the separated geometry".
+8. **R² definition:** `r_squared` equals 1 − SSE/SST with intercept and a
+   hand-computed five-point value.
+9. **χ shift:** adding c to every χ leaves Q, q and A unchanged.
+10. **rcond policy:** on a well-conditioned case and on the cycle case, rcond
+    1e-8, 1e-10, 1e-12 and 1e-14 give the same Q to ≤ 1e-12.
+11. **Permutation:** permuting atoms and coordinates together gives the same Q
+    per atom to ≤ 1e-12.
+12. **Two molecules in one input:** each component sums to ≤ 1e-12.
+
+**Mutations, each of which must turn a test red:**
+- the literal eq 13 as the solver;
+- Θ removed;
+- η in place of 2η;
+- `<=` at the cutoff;
+- M's signs flipped.
+
+A sixth mutation shows why independence is required: a planted `<=` cutoff
+bug inside `pairs` must go uncaught by test 1 when `energy_eq8` is allowed to
+call `pairs`, and be caught when it is not.
+
+### 2.5 Mathieu Table I, the EEM TS row, against the shipped EEM
+
+Pre-registered 2026-09-15, before the TS fixture is frozen. This is an
+**external validation of shipped code, independent of 2.4**: neither verdict
+feeds the other.
+- **Population:** the EPAPS TS directory frozen as
+  `tests/fixtures/charge_models/mathieu2007_ts.csv` in source atom order,
+  with the expected counts 55 files and 1,085 atoms (C 327, H 592, N 15,
+  O 146, F 5).
+  - Manifests for EQ and TS record README.TXT's SHA-256 and, per source file,
+    its SHA-256, atom and element counts, and its Mulliken-sum, coordinate and
+    charge checksums.
+  - The deposit's ZIP is not held and is recorded as such.
+  - The EQ CSV must stay byte-identical.
+- **Metrics and tolerance:** as 2.4c, ±0.005 against EEM (TS): C 0.96,
+  H 0.86, N 0.93, O 0.86, F 0.36, All 0.96. Δq in both forms is reported and
+  not gated, for 2.4a's reason.
+- **Verdict:** REPRODUCED (all six gates pass), PARTIAL (the failing metrics
+  are named), or NOT REPRODUCED. A miss is a strict-xfail stop record against
+  the shipped EEM's external validation. It does not change 2.2 or 2.4.
 
 ## 3. Results
 
