@@ -1344,3 +1344,140 @@ def test_a9_the_one_bound_active_corpus_molecule_has_a_unique_kkt_point_the_pape
 def test_a9_the_one_corpus_molecule_that_does_not_converge_is_the_dication_methanediylium():
     elements, coords, net = _o9_corpus_molecule("methanediylium")
     assert ce.qeq_charges(elements, coords, net).status == ce.REFUSE_NOT_CONVERGED
+
+
+# =============================================================================
+# A10: the hydrogen refit instrument, checked before it judges anything
+# =============================================================================
+
+import importlib.util  # noqa: E402
+
+_REFIT_PATH = pathlib.Path(__file__).parent.parent / "benchmarks" / "charges" / "rappe_goddard" / "hydrogen_refit.py"
+_spec = importlib.util.spec_from_file_location("hydrogen_refit", _REFIT_PATH)
+hr = importlib.util.module_from_spec(_spec)
+sys.modules["hydrogen_refit"] = hr
+_spec.loader.exec_module(hr)
+
+
+@functools.lru_cache(maxsize=None)
+def _refit_molecule(name: str, variant: str):
+    return hr.Molecule(name, hr.VARIANTS_BY_NAME[variant])
+
+
+@pytest.mark.parametrize("variant", ["V0", "H-b", "H-c"])
+def test_a10_instrument_matrices_are_the_shipped_build_at_both_printed_pairs(variant):
+    """The refit sets only hydrogen's chi and diagonal; everything else must be
+    the shipped `qeq_hardness_matrix`, or the refit is of a different model."""
+    readings = hr.VARIANTS_BY_NAME[variant].readings
+    for name in hr.MOLECULES:
+        m = _refit_molecule(name, variant)
+        for column in hr.COLUMNS:
+            for q in (-0.9, -0.3, 0.0, 0.4):
+                C, chi = m.system(np.array([q]), *hr.PRINTED[column])
+                ref_C, ref_chi, _ = ce.qeq_hardness_matrix(m.elements, m.coords, {h: q for h in m.hydrogens}, column, readings)
+                assert np.max(np.abs(C[0] - ref_C)) <= 1e-12
+                assert np.max(np.abs(chi - ref_chi)) <= 1e-12
+
+
+@pytest.mark.parametrize("column", ["experimental", "hf"])
+def test_a10_v0_root_is_the_production_charge_and_a7s_lih_root(column):
+    for name in hr.MOLECULES:
+        m = _refit_molecule(name, "V0")
+        root = m.root(*hr.PRINTED[column])
+        if name == "LiH":
+            expected = {"experimental": -0.973740, "hf": -0.982743}[column]
+            assert abs(root - expected) <= 5e-7
+        else:
+            production = ce.qeq_charges(m.elements, m.coords, hydrogen=column)
+            assert abs(root - production.charges[m.hydrogens[0]]) <= 1e-9
+
+
+def test_a10_h_a_iterates_are_plain_iteration_from_zero():
+    for name in ("LiH", "CH4"):
+        m = _refit_molecule(name, "H-a8")
+        F = fp.HydrogenMap(m.elements, m.coords, "experimental")
+        history = fp.iterate(F, 1.0, max_iterations=8, tolerance=0.0).history
+        trace = m.trace(*hr.PRINTED["experimental"])
+        assert len(trace) == 9
+        assert max(abs(a - float(b[0])) for a, b in zip(trace, history)) <= 1e-12
+
+
+def test_a10_h_b_diagonal_is_eq_23s_gradient_and_differs_from_v0_only_there():
+    q, j_h = 0.3, 13.8904
+    hb, _ = _refit_molecule("HF", "H-b").system(np.array([q]), 4.528, j_h)
+    v0, _ = _refit_molecule("HF", "V0").system(np.array([q]), 4.528, j_h)
+    assert hb[0, 0, 0] == pytest.approx(j_h * (1.0 + 0.45 / 1.0698), abs=1e-12)
+    assert v0[0, 0, 0] == pytest.approx(j_h * (1.0 + 0.3 / 1.0698), abs=1e-12)
+    difference = hb[0] - v0[0]
+    difference[0, 0] = 0.0
+    assert np.max(np.abs(difference)) == 0.0
+
+
+def test_a10_h_d_clamps_only_the_charge_entering_hydrogens_diagonal():
+    hc, hd = _refit_molecule("LiH", "H-c"), _refit_molecule("LiH", "H-d")
+    inside = np.array([-0.9, 0.0, 0.9])
+    assert np.array_equal(hc.system(inside, 4.528, 13.8904)[0], hd.system(inside, 4.528, 13.8904)[0])
+    C, _ = hd.system(np.array([-0.97]), 4.528, 13.8904)
+    assert C[0, 1, 1] == pytest.approx(13.8904 * (1.0 - 0.95 / 1.0698), abs=1e-12)
+    ref, _ = hc.system(np.array([-0.97]), 4.528, 13.8904)
+    assert C[0, 0, 1] == ref[0, 0, 1]
+    # The solved charge itself is never clamped: F can return below -0.95.
+    loose = hr.Variant("H-d-wide", hd.variant.readings, clamp=10.0)
+    assert hr.Molecule("LiH", loose).system(np.array([-0.97]), 4.528, 13.8904)[0][0, 1, 1] == pytest.approx(ref[0, 1, 1])
+
+
+def test_a10_nelder_mead_finds_a_quadratic_and_rosenbrock():
+    x, s, _, converged = hr.nelder_mead(lambda x: (1 - x[0]) ** 2 + 100 * (x[1] - x[0] ** 2) ** 2, (-1.2, 1.0))
+    assert converged and np.max(np.abs(x - [1.0, 1.0])) <= 1e-6
+    x, s, _, converged = hr.nelder_mead(lambda x: (x[0] - 4.7) ** 2 + 3 * (x[1] - 13.2) ** 2 + (x[0] - 4.7) * (x[1] - 13.2), (4.0, 12.0))
+    assert converged and np.max(np.abs(x - [4.7, 13.2])) <= 1e-6
+
+
+def test_a10_the_box_rejects_rather_than_clips(monkeypatch):
+    """With every charge finite, only the box can make S infinite -- an earlier
+    version of this test passed a clipping box because the point it probed had
+    no unique root anyway."""
+    fit = hr.Fit(hr.VARIANTS_BY_NAME["H-c"], {m: 0.0 for m in hr.MOLECULES})
+    for molecule in fit.molecules.values():
+        monkeypatch.setattr(molecule, "charge", lambda chi_h, j_h: 0.1)
+    assert math.isfinite(fit.objective((4.0, 12.0))) and math.isfinite(fit.objective((5.5, 15.0)))
+    for outside in ((3.999, 13.0), (5.501, 13.0), (4.6, 11.999), (4.6, 15.001)):
+        assert fit.objective(outside) == math.inf
+
+
+def test_a10_nelder_mead_shrinks_when_contraction_fails_against_a_wall():
+    """Rosenbrock and a quadratic never reach the shrink step; a minimum in a
+    corner whose outside is infinite does, and without it the simplex sticks."""
+    walled = lambda x: (x[0] - 1) ** 2 + (x[1] - 1) ** 2 if (x[0] <= 1.0 and x[1] <= 1.0) else math.inf
+    x, _, _, converged = hr.nelder_mead(walled, (0.98, 0.98))
+    assert converged and np.max(np.abs(x - [1.0, 1.0])) <= 1e-5
+
+
+def test_a10_a_sign_change_across_a_bound_switch_is_not_a_root():
+    """H-c's HF at the experimental printed pair: g changes sign three times on
+    A7's grid, but one is a jump where the bounded solve switches active set and
+    one is a fixed point pinned at a bound. Exactly one bound-free root remains."""
+    m = _refit_molecule("HF", "H-c")
+    g = m.residual(hr.GRID_Q, *hr.PRINTED["experimental"])
+    assert int(np.sum(g == 0.0)) + len(np.flatnonzero(g[:-1] * g[1:] < 0)) >= 3
+    free, pinned = m.fixed_points(*hr.PRINTED["experimental"])
+    assert len(free) == 1 and free[0] > 0 and len(pinned) == 1
+    for q in free + pinned:
+        assert abs(float(m.residual(q, *hr.PRINTED["experimental"])[0])) <= hr.ROOT_RESIDUAL
+    assert m.root(*hr.PRINTED["experimental"]) == free[0]
+
+
+def test_a10_several_bound_free_roots_make_the_charge_undefined():
+    """V0's LiH at (4.528, 15.0): three bound-free fixed points, so no Q_H."""
+    m = _refit_molecule("LiH", "V0")
+    free, _ = m.fixed_points(4.528, 15.0)
+    assert len(free) == 3 and m.root(4.528, 15.0) is None
+
+
+def test_a10_weights_are_the_papers_and_multiply_squared_residuals():
+    assert hr.WEIGHTS == {"HF": 1.0, "H2O": 1.0, "NH3": 1.0, "CH4": 5.0, "LiH": 0.2}
+    charges = {m: 0.1 for m in hr.MOLECULES}
+    targets = {"HF": 0.0, "H2O": 0.0, "NH3": 0.0, "CH4": 0.2, "LiH": -0.9}
+    assert hr.objective_from_charges(charges, targets) == pytest.approx(0.01 * 3 + 5 * 0.01 + 0.2 * 1.0)
+    assert hr.objective_from_charges(charges, targets, {m: 1.0 for m in hr.MOLECULES}) != hr.objective_from_charges(charges, targets)
+    assert hr.objective_from_charges(charges, targets, {m: w * w for m, w in hr.WEIGHTS.items()}) != hr.objective_from_charges(charges, targets)

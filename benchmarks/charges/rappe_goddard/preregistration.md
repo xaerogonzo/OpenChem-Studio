@@ -945,3 +945,43 @@ here.
 
 **Test pins.** Verdicts, basin counts, S to 1e-9 relative, and refit pairs to
 1e-4 eV. Optimiser digits beyond those are not pinned.
+
+**A10 corrections (2026-09-14, before any objective value, refit, control draw
+or grid existed; disclosed with what had been seen).**
+
+1. **The root rule was wrong for this map.** "Exactly one sign change" assumed
+   g is continuous. It is not: the bounded solve switches active set, so g
+   jumps. The rule now reads:
+   - every sign change is refined as above, and kept only if exact
+     |g| ≤ 1e-11 at the refined point (a jump never passes);
+   - an exact zero on a grid point is kept on the same test;
+   - a kept root whose bounded solve has an active bound is **pinned**, and is
+     not a charge, because A8 refuses such answers;
+   - Q_H is the unique **bound-free** root, and zero or several make S = +∞;
+   - bound-free and pinned counts per molecule are reported at the printed
+     pairs.
+
+   **How it was found.** An instrument probe of the sign changes and the
+   active set beside each, with no S computed, at (4.528, 15.0),
+   (4.528, 13.8904), (4.7174, 13.4725) and (5.0, 12.5), for V0 and H-c. What
+   it showed:
+   - **V0 at both printed pairs:** one sign change per molecule, bound-free,
+     where production and A7 already put the charges.
+   - **V0 LiH at (4.528, 15.0):** three bound-free sign changes (near −0.970,
+     −0.473 and −0.258).
+   - **H-c at both printed pairs:** a bound-free sign change near +0.440,
+     +0.325, +0.218 and +0.130 (experimental pair) and near +0.444, +0.324,
+     +0.212 and +0.113 (HF pair) for HF, H₂O, NH₃ and CH₄. Beside them, jumps
+     with bounds active, and further bound-free sign changes at negative Q for
+     H₂O, NH₃ and CH₄. For LiH, only a sign change with Li and H at their
+     bounds.
+
+   That is the extent of what was seen. A test now holds the corrected rule on
+   H-c's HF (three sign changes, one bound-free root, one pinned root) and on
+   V0's LiH at (4.528, 15.0) (three bound-free roots, so no charge).
+2. **H-c and H-d's fixed hydrogen exponent is the shipped one.** With
+   `zeta_h_in_pairs=False` the shipped build keeps eq 17′'s ζ_H = 1.069751
+   (λ = ½, R = 0.371 Å). A10 wrote "ζ° = 1.0698", the rounded constant that
+   eq 20 and eq 21 use. The instrument uses the shipped 1.069751, since it is
+   also cheq's λ = 0.5 radius rule; the difference is 5e-5 bohr⁻¹. The
+   diagonal still divides by ζ° = 1.0698, as the shipped build does.
