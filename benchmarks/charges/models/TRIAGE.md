@@ -238,6 +238,25 @@ Mulliken charge), hashed in the same commit.
    - A pass is recorded under the identity label from step 1.
    - A miss is recorded as found. It never adjusts the shipped EEM.
 
+**2.2 corrected before any metric was computed (2026-09-14).** Section II of
+the paper was transcribed from the rendered pages.
+- **EEM energy (eqs 1–2).** E = Σ_i (χ_i Q_i + η_i Q_i²) + Σ J_ij Q_i Q_j.
+  The diagonal is therefore 2η, the same convention as the shipped EEM.
+- **The pair term J_ij is never given an explicit form**; the text calls it
+  "the Coulomb interaction" and cites Bultinck et al.
+- **0.816 is not a Coulomb κ.** It is λ in the SQE pair penalty (eqs 7
+  and 14).
+- **Identity label, by the rule as frozen.** The kernel cannot be established
+  from Mathieu's own text, so the label is **RELATED EEM IMPLEMENTATION**
+  (Bultinck's kernel by citation). The shipped EEM uses 1/R, per Bultinck eq 3.
+- **Table I's last column is Δq, eq 15:**
+  Δq = (1/N_el) Σ_Z (1/N_Z) Σ_{i∈Z} (Q_i − Q_i^M)². That is the mean squared
+  deviation per element, averaged over elements, **with no square root**. Step
+  3's "unweighted RMS over every atom" was a wrong guess.
+
+  Acceptance now uses eq 15's Δq (±0.00005). √Δq and the all-atom RMS are
+  reported as diagnostics only.
+
 ### 2.3 Oda–Hirono geometry pre-flight (ORCA)
 
 Frozen before any quantum-chemistry run.
