@@ -27,11 +27,15 @@ from openchem.chem import charge_equilibration as ce
 from openchem.chem import geometry_charges as gc
 from openchem.domain.calculator import DRAWING, GEOMETRY
 
+#: Stable charge-model codes. They are stored in result keys, so they never change and are never display text.
 GASTEIGER = "gasteiger"
+#: The shipped Bultinck 2002 EEM set, under the key geometry_charges already uses.
 EEM = gc.EEM_BULTINCK2002_PART1
+#: The shipped QEq (A8, lambda 1/2, experimental hydrogen), under the key geometry_charges already uses.
 QEQ = gc.QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL
 #: Stable codes, in the order a user is offered them. Gasteiger first and the default.
 CHARGE_MODELS = (GASTEIGER, EEM, QEQ)
+#: What the user reads for each code; never stored.
 CHARGE_MODEL_LABELS = {
     GASTEIGER: "Gasteiger (PEOE)",
     EEM: gc.GEOMETRY_CHARGE_METHOD_LABELS[EEM],
@@ -42,6 +46,7 @@ CHARGE_MODEL_LABELS = {
 INPUT_REQUIREMENT = {GASTEIGER: DRAWING, EEM: GEOMETRY, QEQ: GEOMETRY}
 #: Where each parameter set comes from (docs/sources.toml keys).
 SOURCE_KEYS = {GASTEIGER: "gasteiger1980", EEM: "bultinck2002a", QEQ: "rappe1991"}
+#: Charges consumed by a dipole or ESP are an application, not a reproduction of any source.
 CLAIM_KIND = "APPLICATION"
 
 

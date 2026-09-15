@@ -26,7 +26,7 @@ from openchem.chem.charge_evaluation import CHARGE_MODELS, CHARGE_MODEL_LABELS  
 from openchem.chem.conformer_providers import GenerationOptions, RDKitConformerProvider, search_conformers  # noqa: E402
 from openchem.chem.dipole import ChargesRefused, dipole_vector  # noqa: E402
 
-FIXTURES = ROOT / "tests" / "fixtures" / "charges"
+FIXTURES = ROOT / "tests" / "fixtures" / "charges" / "consumers"
 TABLE = FIXTURES / "gasteiger1985_dipoles.csv"
 CONFORMERS = FIXTURES / "gasteiger1985_conformers.csv"
 OUTPUT = pathlib.Path(__file__).resolve().parent / "dipole_benchmark.csv"

@@ -15,16 +15,24 @@ from rdkit import Chem
 #: Refusal codes a projection can return. Each is shown to the user with its
 #: reason; a projection never falls back to reading the index as-is.
 REFUSE_CONFORMER_GONE = "REFUSE_CONFORMER_GONE"
+#: No graph correspondence exists between the two structures (not the same molecule).
 REFUSE_NO_CORRESPONDENCE = "REFUSE_NO_CORRESPONDENCE"
+#: Several correspondences exist, and the dataset differs between them at display precision.
 REFUSE_AMBIGUOUS_IDENTITY = "REFUSE_AMBIGUOUS_IDENTITY"
+#: The isomorphism enumeration passed SEARCH_LIMIT before it finished.
 REFUSE_IDENTITY_SEARCH_LIMIT = "REFUSE_IDENTITY_SEARCH_LIMIT"
 
 #: How the correspondence was established, recorded on every projection.
 POLICY_SAME_SPACE = "same_space"
+#: The conformer carries the drawing atom ids stored when it was made, checked against its fingerprint.
 POLICY_RECORDED = "recorded_at_creation"
+#: No record, and the graph search found exactly one correspondence.
 POLICY_GRAPH_UNIQUE = "conformer_of_drawing:unique_isomorphism"
+#: Several correspondences, but this dataset is the same under all of them; a property of the projection only.
 POLICY_GRAPH_VALUE_INVARIANT = "conformer_of_drawing:value_invariant"
+#: Bumped whenever the rules above change, so a stored projection says which rules made it.
 MAPPING_VERSION = 1
+#: Isomorphisms enumerated before refusing; symmetric molecules reach thousands, a runaway never ends.
 SEARCH_LIMIT = 10_000
 #: Two projections agree when every shown value is equal to this.
 VALUE_TOLERANCE = 1e-9

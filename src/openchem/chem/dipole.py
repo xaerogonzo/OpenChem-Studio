@@ -40,6 +40,7 @@ from openchem.chem.report_adapter import report_from_fields
 #: from its measured output of 2026-09-15 and pinned by a test against that
 #: CSV. Reported, never used to choose a default.
 _BENCHMARK_SCOPE = "15 molecules of gasteiger1985 Table I on OpenChem conformers"
+#: The sentences themselves, keyed by charge-model code (see the note above _BENCHMARK_SCOPE).
 DIPOLE_BENCHMARK: dict[str, str] = {
     "gasteiger": f"Against experiment ({_BENCHMARK_SCOPE}): mean absolute error 0.79 D over 15.",
     "eem_bultinck2002_part1": (f"Against experiment ({_BENCHMARK_SCOPE}): mean absolute error 1.79 D over the 14 it "
@@ -48,8 +49,8 @@ DIPOLE_BENCHMARK: dict[str, str] = {
                                               "over 15; it overestimates polar molecules."),
 }
 
-# elementary charge * angstrom -> Debye. 1 D = 3.33564e-30 C*m;
-# e*A = 1.602176634e-19 * 1e-10 C*m.
+#: elementary charge * angstrom -> Debye. 1 D = 3.33564e-30 C*m;
+#: e*A = 1.602176634e-19 * 1e-10 C*m.
 _E_ANGSTROM_TO_DEBYE = 1.602176634e-19 * 1e-10 / 3.33564e-30
 
 

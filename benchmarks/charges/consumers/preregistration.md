@@ -87,11 +87,11 @@ Each of these was read in the code, not assumed.
   0.164 D mean absolute error is quoted, never compared.
 - **B:** the same 15 molecules on OpenChem conformers, frozen before any
   dipole is computed:
-  - SMILES as in `tests/fixtures/charges/gasteiger1985_dipoles.csv`;
+  - SMILES as in `tests/fixtures/charges/consumers/gasteiger1985_dipoles.csv`;
   - `RDKitConformerProvider(random_seed=20260915)` with the app's default
     search and MMFF94 optimisation;
   - the conformer `canonical_conformer` would pick, with explicit hydrogens;
-  - molblocks written to `tests/fixtures/charges/gasteiger1985_conformers.csv`,
+  - molblocks written to `tests/fixtures/charges/consumers/gasteiger1985_conformers.csv`,
     SHA-256 recorded here after freezing: `dfc34dfabd1bf9126850aa5bb7a0b9e42eee0678885d3a555089f5a5c4e6e4e1`
     (frozen 2026-09-15 with `search_conformers` and default `GenerationOptions`,
     committed before any dipole was computed on it).

@@ -472,7 +472,7 @@ being reverted later because a number did not move.
 dipoles and no geometries, so its own 0.164 D is quoted, never compared.
 
 **Set-up.** The same 15 molecules on OpenChem conformers frozen before any
-dipole was computed (`tests/fixtures/charges/gasteiger1985_conformers.csv`:
+dipole was computed (`tests/fixtures/charges/consumers/gasteiger1985_conformers.csv`:
 pinned seed, the app's default search, lowest MMFF94 energy). Record and
 pre-registration: `benchmarks/charges/consumers/`.
 
