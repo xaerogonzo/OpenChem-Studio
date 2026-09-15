@@ -348,3 +348,29 @@ refuses none. Atoms: C 965, H 1,812, N 92, O 133, F 62.
 - **Mutation check:** η in place of 2η on the diagonal turns seven of these
   tests red.
 
+### 3.3 Oda–Hirono pre-flight: BLOCKED before any ORCA run (2026-09-14)
+
+The source-method identity half of the decision rule was settled first, from
+the paper, and it decides the outcome by itself.
+- **Atom labels: established.** Fig. 1 (rendered) draws α- and β-D-idose with
+  every label on a chair:
+  - C-1…C-6, ring O-18 (C1–O18–C5);
+  - O-14/15/16/17/19 on C1/C2/C3/C4/C6;
+  - H-7…H-13 on carbon, H-20…H-24 on the hydroxyls.
+
+  Numbering follows Merz, J. Comput. Chem. 1992, 13, 749. The stereo agrees
+  with PubChem's records: CID 7098664 α-D-idopyranose (2S,3S,4R,5R,6R) and
+  CID 7018164 β (2R,3S,4R,5R,6R).
+- **Charge scheme: not what 2.3 froze.** The "HF-ESP" charges are cited to
+  ref 1, Singh & Kollman, J. Comput. Chem. 1984, 5, 129: Merz–Kollman point
+  shells. Check 2.3 pre-registered CHELPG, a different fitting grid, so a
+  CHELPG run cannot establish identity.
+- **Verdict under the frozen rule:** Table 9 cannot be a per-atom oracle, and
+  the conformer spread cannot change that. The pre-flight is **not run**, and
+  would have cost hours of HF optimisations. Oda–Hirono stays **HOLD**.
+- **What would unblock it:** a Singh–Kollman fit, meaning Merz–Kollman shells
+  (1.4/1.6/1.8/2.0 × van der Waals radii) with the ESP evaluated from the HF
+  density (for example ORCA's `orca_vpot`) and a constrained least-squares fit.
+  That fit is a method of its own, and would need its own pre-registered check
+  against a published Singh–Kollman example before it could judge Table 9.
+
