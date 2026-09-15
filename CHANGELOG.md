@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   printed charge is not a solution of the paper's equations, and a 1996
   paper from the same group contradicts the printed silane sign. That 1996
   paper's disiloxane charges are reproduced to 0.002 e by the adopted λ = ½.
+  The EEM has also been checked against a study it was never fitted to:
+  Mathieu 2007's correlations on 194 molecules are all reproduced, and on 55
+  reaction transition states five of six are. The miss is fluorine, which
+  that set has only five atoms of.
 
 ### Fixed
 

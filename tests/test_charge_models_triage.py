@@ -13,6 +13,7 @@ import pathlib
 import sys
 from collections import defaultdict
 
+import numpy as np
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -308,3 +309,107 @@ def test_25_the_measured_values_and_verdict_are_exactly_these(eem_ts):
     assert eem_ts["values"]["dq"]["sqrt"] == pytest.approx(0.084425, abs=5e-7)
     fluorine = sqc.small_subgroup(eem_ts["rows"], "eem", "F")
     assert (fluorine["n"], round(fluorine["loo_r2_min"], 4), round(fluorine["loo_r2_max"], 4)) == (5, 0.2566, 0.6145)
+
+
+# 2.4: the SQE corpus result ---------------------------------------------------------------------
+
+_MODELS = ROOT / "benchmarks" / "charges" / "models"
+
+
+def _csv(name: str) -> list[dict[str, str]]:
+    return list(csv.DictReader(l for l in (_MODELS / name).read_text(encoding="utf-8").splitlines() if not l.startswith("#")))
+
+
+@pytest.fixture(scope="module")
+def sqe_live():
+    return {s: sqc.sqe_check(s) for s in ("EQ", "TS")}
+
+
+def test_24_every_metric_recomputes_from_the_atoms_csv_alone():
+    atoms = _csv("mathieu_sqe_atoms.csv")
+    metrics = {(r["set"], r["metric"]): r for r in _csv("mathieu_sqe_metrics.csv")}
+    for set_name in ("EQ", "TS"):
+        rows = [{"element": r["element"], "mulliken": float(r["mulliken"]), "eem": float(r["eem"]), "sqe": float(r["sqe"]),
+                 "included": r["included"] == "True"} for r in atoms if r["set"] == set_name]
+        for arm in ("sqe", "eem"):
+            values = sqc.metric_values(rows, arm)
+            for m in sqc.METRICS:
+                assert values[m]["r2"] == pytest.approx(float(metrics[(set_name, m)][f"{arm}_r2"]), abs=2e-6), (set_name, arm, m)
+                assert values[m]["n"] == int(metrics[(set_name, m)]["n"])
+
+
+def test_24_the_committed_csvs_are_what_the_code_produces(sqe_live):
+    metrics = {(r["set"], r["metric"]): r for r in _csv("mathieu_sqe_metrics.csv")}
+    for set_name, res in sqe_live.items():
+        for m in sqc.METRICS:
+            assert res["sqe"][m]["r2"] == pytest.approx(float(metrics[(set_name, m)]["sqe_r2"]), abs=5e-7)
+            assert res["classes"][m] == metrics[(set_name, m)]["discrimination"]
+
+
+def test_24_gates_and_verdicts_rederive_from_the_metrics_csv():
+    metrics = _csv("mathieu_sqe_metrics.csv")
+    failing = {}
+    for set_name in ("EQ", "TS"):
+        rows = {r["metric"]: r for r in metrics if r["set"] == set_name}
+        gate = {m: float(rows[m]["interval_low"]) <= float(rows[m]["sqe_r2"]) < float(rows[m]["interval_high"]) for m in sqc.METRICS}
+        assert gate == {m: rows[m]["gate"] == "True" for m in sqc.METRICS}
+        failing[set_name] = sorted(m for m, ok in gate.items() if not ok)
+        classes = {m: rows[m]["discrimination"] for m in sqc.METRICS}
+        assert sqc.set_verdict(gate, classes, 1) == "PARTIAL"
+    assert failing == {"EQ": ["F", "H"], "TS": ["F", "H", "O"]}
+
+
+def test_24_populations_source_excluded_included_are_exactly_these(sqe_live):
+    counted = {}
+    for set_name, res in sqe_live.items():
+        excluded = [s for s in res["structures"] if s["invalid_reason"]]
+        counted[set_name] = (len(res["structures"]), len(res["rows"]), [(s["file"], s["atoms"]) for s in excluded],
+                             sum(1 for r in res["rows"] if r["included"]))
+    assert counted == {"EQ": (194, 3064, [("pentylamine", 19)], 3045),
+                       "TS": (55, 1085, [("JPCA_2004_108_5197.txt-ts33", 30)], 1055)}
+
+
+@pytest.mark.xfail(strict=True, reason="STOP RECORD 2.4: expected 0 invalid structures; pentylamine (EQ) and ts33 (TS) fail the residual limit under rcond 1e-10")
+def test_24_no_structure_is_invalid(sqe_live):
+    assert all(res["invalid"] == 0 for res in sqe_live.values())
+
+
+GATE_MISSES = [("EQ", "H"), ("EQ", "F"), ("TS", "H"), ("TS", "O"), ("TS", "F")]
+
+
+@pytest.mark.parametrize("set_name,metric", [(s, m) for s in ("EQ", "TS") for m in sqc.METRICS if (s, m) not in GATE_MISSES])
+def test_24_sqe_reproduces_table_i(sqe_live, set_name, metric):
+    assert sqe_live[set_name]["gates"][metric]
+
+
+@pytest.mark.xfail(strict=True, reason="STOP RECORD 2.4: SQE R^2 outside Table I's rounding interval (EQ H 0.8686, EQ F 0.3359, TS H 0.8933, TS O 0.8793, TS F 0.3460)")
+@pytest.mark.parametrize("set_name,metric", GATE_MISSES)
+def test_24_sqe_reproduces_table_i_misses(sqe_live, set_name, metric):
+    assert sqe_live[set_name]["gates"][metric]
+
+
+def test_24_the_relative_rcond_discards_real_modes_when_one_k_diverges():
+    """Pinned post hoc diagnostic: pentylamine's sigma_max is 6e9 from one near-cutoff pair, so
+    rcond 1e-10 cuts at 0.6 and drops three genuine modes; rcond 1e-14 moves a charge by 0.0174."""
+    s = {x["file"]: x for x in sqc.population(sqc.SETS["EQ"])}["pentylamine"]
+    policy, fine = sqc.solve(s["elements"], s["coords"]), sqc.solve(s["elements"], s["coords"], rcond=1e-14)
+    assert not policy.valid and policy.diagnostics["discarded"] == 3 and policy.diagnostics["sigma_max"] > 1e9
+    assert float(np.abs(fine.charges - policy.charges).max()) == pytest.approx(0.01739, abs=1e-5)
+
+
+def test_24_the_literal_eq13_system_is_indefinite_on_every_set():
+    rows = {r["set"]: r for r in _csv("mathieu_sqe_eq13.csv")}
+    assert (int(rows["EQ"]["negative_eigenvalues"]), int(rows["TS"]["negative_eigenvalues"])) == (2833, 1004)
+    assert float(rows["EQ"]["eq8_stationarity_max"]) > 1.0 and float(rows["TS"]["eq8_stationarity_max"]) > 1.0
+
+
+def test_24_no_single_rounding_perturbation_moves_r_squared_by_more_than_0_0022():
+    rounding = _csv("mathieu_sqe_rounding.csv")
+    assert len(rounding) == 312
+    assert max(abs(float(r["delta_r2"])) for r in rounding) == pytest.approx(0.002104, abs=5e-7)
+
+
+def test_24_the_prose_eq_ts_values_are_consistent_with_the_pooled_eem_under_a_square_root():
+    prose = sqc.prose_eq_ts()
+    assert prose["n"] == 4149 and round(prose["r2"], 4) == 0.9687
+    assert prose["sqrt"] == pytest.approx(0.069395, abs=5e-7) and prose["eq15_as_printed"] == pytest.approx(0.004816, abs=5e-7)

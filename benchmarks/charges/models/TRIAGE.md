@@ -63,9 +63,17 @@ None of them should inherit QEq's solver. Each needs its own abstraction:
 - **Verdict (after check 2.1): HOLD on geometry.** The charges are complete.
   The last hydrogen of every one of the 41 molecules has lost its coordinates
   in the archived pages (section 3). The site links each table to
-  `molecules/Mnnn.xyz`, which would restore the geometry; the Internet Archive
-  was offline when this was checked. Once those files are found, it is the
-  first implementation PR.
+  `molecules/Mnnn.xyz`, which would restore the geometry. Once those files are
+  found, it is a candidate for its own pre-registration.
+- **The Internet Archive does not hold them** (CDX index queried 2026-09-15):
+  - it lists 24 distinct URLs under `publish.uwo.ca/~mmuser/`, none an SQE
+    page or an `.xyz` file;
+  - the local supplement is itself a 2006 Acrobat Web Capture of the site.
+
+  This is provenance only. The local supplement stays the primary source for
+  the charges, and **no further hunting is planned**. The one open route is
+  whether AIP's supplementary material for the paper (EPAPS
+  E-JCPSA6-125-520627) is a file folder, as Mathieu's turned out to be.
 
 ### SQE: Mathieu 2007
 
@@ -83,10 +91,17 @@ None of them should inherit QEq's solver. Each needs its own abstraction:
   EQ, TS and NL. It is an aggregate oracle, not per-atom.
 - **Runnable reference:** none found.
 - **Scope fit:** molecular, C/H/N/O/F, including transition states.
-- **Verdict: GO-CANDIDATE** for SQE model B with the aggregate oracle. Check 2.2
-  also gives the **shipped EEM** an external test.
-- **Checks 2.4 and 2.5** run the SQE rows and the EEM (TS) row. Its eq 13 as
-  printed contradicts eq 8 (2.4a).
+- **Verdict (after check 2.4): HOLD.**
+  - SQE model B, built from eq 8 with Table II's parameters, reproduces 7 of
+    Table I's 12 SQE correlations. It misses H and F on EQ, and H, O and F on
+    TS (section 3.5).
+  - Its eq 13 as printed contradicts eq 8 and is indefinite on every
+    structure.
+  - Printed-parameter rounding moves R² by at most 0.0021, so it cannot
+    explain the misses.
+  - What does is not known.
+- **The shipped EEM,** by contrast, reproduces all six EEM (EQ) values
+  (2.2) and five of six EEM (TS) values (2.5; fluorine, n = 5, misses).
 - **Identifiability context:** `verstraelen2011` shows a charge-only
   least-squares fit is in general ill-conditioned, so reproducing Mathieu's
   metrics validates his parameters in use, not their uniqueness.
@@ -702,3 +717,138 @@ values exactly.
 - The one miss is a five-atom statistic, which one atom can move by ±0.2.
   It stays a recorded miss, not a pass.
 - Check 2.5 does not feed 2.4.
+
+### 3.5 Check 2.4: Mathieu SQE model B (2026-09-15)
+
+The frozen order was followed: sources, pre-registration (commit b6704eb),
+instrument, EEM baseline and 2.5 (section 3.4), then the corpus.
+Outputs, all written by `mathieu_sqe_check.py`:
+- `mathieu_sqe_atoms.csv`: 4,149 rows, one per deposited atom;
+- `mathieu_sqe_metrics.csv`;
+- `mathieu_sqe_structures.csv`;
+- `mathieu_sqe_eq13.csv`;
+- `mathieu_sqe_rounding.csv`.
+
+**Instrument (2.4e): all 21 tests pass; every mutation is caught.**
+- **Test 1 confirms 2.4a's derivation numerically.** The assembled A and b
+  equal the finite-difference Hessian and gradient of the independent eq 8
+  energy. **The literal eq 13 matrix equals −(that Hessian) + 2 diag(K)**,
+  and eq 12's B equals the gradient itself rather than its negative. Eq 8
+  governs, as pre-registered.
+- **Mutations** (literal eq 13 as solver, Θ removed, η for 2η, `<=` at the
+  cutoff, M's sign flipped): each turns a test red.
+- **Independence:** a planted 0.5× cutoff in `pairs` is caught by test 1
+  while `energy_eq8` keeps its own pair rule. When `energy_eq8` is made to
+  call `pairs`, test 1 passes with the bug in place.
+- **Two departures from 2.4e, recorded rather than hidden:**
+  - **Dissociation uses nitramide.** The EQ set has no methanol, so test 7
+    uses H2N–NO2 with NO2 moved along N–N. The NO2 fragment's charge:
+
+    | Step | SQE | EEM | Pair-graph components |
+    |---|---|---|---|
+    | 0 Å | −0.1731 | −0.1851 | 1 |
+    | 1 Å | −0.0100 | −0.2310 | 1 |
+    | 2 Å | 0.0000 | −0.2264 | 2 |
+    | 3 Å | 0.0000 | −0.2207 | 2 |
+
+    SQE goes to zero continuously, through the penalty, before the graph
+    splits. EEM violates fragment neutrality at the separated geometry.
+  - **The step study cannot show convergence.** Eq 8 is exactly quadratic in
+    q, so central differences carry no truncation error. The step study
+    therefore shows agreement at every step, not convergence toward the
+    analytic value.
+
+**Corpus (2.4d): PARTIAL on EQ and on TS, so the model verdict is HOLD.**
+
+| Set | Metric | n | SQE R² | Table I SQE | Interval | Gate | EEM R² (same atoms) | Table I EEM | Discrimination |
+|---|---|---|---|---|---|---|---|---|---|
+| EQ | C | 960 | 0.9676 | 0.97 | [0.965, 0.975) | pass | 0.9620 | 0.96 | STRICT |
+| EQ | H | 1,799 | 0.8686 | 0.85 | [0.845, 0.855) | **miss** | 0.8118 | 0.81 | STRICT |
+| EQ | N | 91 | 0.9621 | 0.96 | [0.955, 0.965) | pass | 0.9534 | 0.95 | STRICT |
+| EQ | O | 133 | 0.6663 | 0.67 | [0.665, 0.675) | pass | 0.6641 | 0.66 | STRICT |
+| EQ | F | 62 | 0.3359 | 0.35 | [0.345, 0.355) | **miss** | 0.3574 | 0.36 | STRICT |
+| EQ | All | 3,045 | 0.9770 | 0.98 | [0.975, 0.985) | pass | 0.9727 | 0.97 | STRICT |
+| TS | C | 317 | 0.9601 | 0.96 | [0.955, 0.965) | pass | 0.9565 | 0.96 | not applicable |
+| TS | H | 575 | 0.8933 | 0.88 | [0.875, 0.885) | **miss** | 0.8616 | 0.86 | STRICT |
+| TS | N | 15 | 0.9538 | 0.95 | [0.945, 0.955) | pass | 0.9282 | 0.93 | STRICT |
+| TS | O | 143 | 0.8793 | 0.89 | [0.885, 0.895) | **miss** | 0.8617 | 0.86 | STRICT |
+| TS | F | 5 | 0.3460 | 0.16 | [0.155, 0.165) | **miss** | 0.3499 | 0.36 | AMBIGUOUS |
+| TS | All | 1,055 | 0.9708 | 0.97 | [0.965, 0.975) | pass | 0.9578 | 0.96 | STRICT |
+
+- **Seven of twelve gates pass.** Every miss is a strict-xfail stop record.
+- **The misses are not all in one direction.**
+  - Hydrogen comes out more correlated than printed, on both sets: 0.8686
+    against 0.85, and 0.8933 against 0.88.
+  - EQ fluorine and TS oxygen come out less correlated than printed.
+  - TS fluorine is nowhere near its printed 0.16; it sits beside the EEM
+    value. On five atoms its leave-one-out R² runs from 0.003 to 0.786.
+- **Discrimination is STRICT wherever it applies, except TS F.** The model
+  moves every other metric from the EEM value toward Table I's SQE value,
+  even where it overshoots.
+- **Model discrimination** (SQE − EEM on the same atoms): EQ H +0.0568, EQ F
+  −0.0214, TS H +0.0316, TS O +0.0176, TS N +0.0256.
+
+**Two structures were invalid, against an expected 0.** That is a
+strict-xfail stop record in its own right. Both fail the frozen residual
+limit, and each is excluded from both arms:
+- **EQ pentylamine (19 atoms).** One pair close to its van der Waals cutoff
+  has a K that makes σ_max 6.0e9. The relative `rcond=1e-10` then cuts at 0.6
+  Hartree and **discards three genuine modes**, leaving a residual of 2.5e-2
+  Hartree/e. With rcond 1e-14 the residual falls to 2.5e-6, and a charge
+  moves by 0.0174.
+- **TS ts33 (30 atoms).** Residual 2.7e-9 Hartree/e with σ_max 5.3e7. This
+  is roundoff, just over the limit; no mode is discarded.
+- **Instrument test 10 did not cover this.** It passed on synthetic cases,
+  but a relative cutoff is relative to the largest singular value, which here
+  is a diverging penalty rather than chemistry.
+- **Post hoc diagnostic, not adopted:** a Jacobi-scaled solve (D^−½ A D^−½,
+  condition numbers 4.3 and 10) gives residuals below 1e-11 for both. With
+  both structures included that way, the EQ and TS gate outcomes are
+  unchanged: EQ H 0.8704, TS O 0.8814. The two exclusions do not drive any
+  miss.
+
+**Diagnostics, non-gating.**
+- **Δq:** EQ 0.004275 as printed and √Δq 0.065385, against 0.0650. TS
+  0.010726 and √Δq 0.103568, against 0.0952.
+- **Per-atom errors:** All MAE 0.0287 (EQ) and 0.0362 (TS); RMS 0.0447 and
+  0.0528; max 0.3670 and 0.3782.
+- **TS nitrogen (n = 15):** leave-one-out 0.9460–0.9755.
+- **Rounding sensitivity:** 312 rows (26 variants × 2 sets × 6 metrics).
+  - The largest |ΔR²| is 0.0021, from η_C + 0.005 on TS O. The λ × C corners
+    reach 0.0017 on TS F.
+  - No perturbation closes any miss: the smallest miss, TS O, needs +0.0057.
+- **Literal eq 13, as a source record:**
+  - EQ: 2,833 negative eigenvalues over 194 structures, minimum −2.16
+    Hartree; its q leaves eq 8's gradient as large as 2.49.
+  - TS: 1,004 negative eigenvalues, minimum −2.52, gradient up to 5.41.
+
+  It is not a usable system on any structure.
+- **Prose EQ+TS values (Sec. III.B), for the shipped EEM on all 4,149 atoms
+  pooled:** R² 0.9687 against "0.97", and √Δq 0.069395 against "0.0695"
+  (Δq as printed is 0.004816).
+  - The prose figure is consistent with a pooled EQ+TS value under the square
+    root.
+  - It matching the NL row's 0.0695 looks like coincidence, not a copy.
+  - Diagnostic only, as pre-registered.
+
+**What it means.**
+- **This is not a reproduction of Mathieu's SQE,** so SQE is not a GO. It
+  stays HOLD, and there is no implementation stage.
+- **What is established:**
+  - eq 8 defines a well-posed model once eq 13's sign is fixed;
+  - the model does what the paper claims qualitatively: neutral fragments on
+    dissociation, and better correlations than EEM on most metrics;
+  - Table II's printed precision cannot account for the gap.
+- **What is not known:** why hydrogen and three other correlations differ.
+  Candidates include:
+  - a different Coulomb kernel (Mathieu never writes it);
+  - a different pair rule or radii in his code;
+  - a different solver treatment of near-cutoff pairs;
+  - a Table I that does not correspond to the printed parameters.
+
+  None has been tested, and none is adopted. `verstraelen2011`'s point that
+  charge-only fits are ill-conditioned is a reason not to go looking for
+  parameters that fit.
+- **The solver policy failed on two real structures.** Any future SQE
+  calculator needs a scaled or penalty-aware solve, with its own
+  pre-registration.

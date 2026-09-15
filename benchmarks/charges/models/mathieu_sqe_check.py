@@ -357,3 +357,130 @@ def eem_check(set_name: str) -> dict:
 
 def baseline_holds(values: dict) -> bool:
     return all(abs(values[m]["r2"] - EEM_EQ_BASELINE[m]) <= 1e-4 for m in METRICS)
+
+
+def prose_eq_ts() -> dict:
+    """Sec. III.B's "EQ+TS, Delta-q=0.0695, R^2=0.97", recomputed for the shipped EEM: a diagnostic, never an oracle."""
+    rows = [r for set_name in ("EQ", "TS") for r in atom_rows(set_name, with_sqe=False)[0]]
+    values = metric_values(rows, "eem")
+    return {"n": values["All"]["n"], "r2": values["All"]["r2"], **values["dq"]}
+
+
+def sqe_check(set_name: str, params: Parameters | None = None) -> dict:
+    rows, structures = atom_rows(set_name, params)
+    sqe_values, eem_values = metric_values(rows, "sqe"), metric_values(rows, "eem")
+    printed_sqe, printed_eem = PRINTED[("SQE", set_name)], PRINTED[("EEM", set_name)]
+    gate = gates(sqe_values, printed_sqe)
+    classes = {m: discrimination(sqe_values[m]["r2"], printed_sqe[m], printed_eem[m]) for m in METRICS}
+    invalid = sum(1 for s in structures if s["invalid_reason"])
+    return {"rows": rows, "structures": structures, "sqe": sqe_values, "eem": eem_values, "gates": gate,
+            "classes": classes, "invalid": invalid, "verdict": set_verdict(gate, classes, invalid)}
+
+
+def literal_eq13_summary(set_name: str) -> dict:
+    negative, minimum, maximum, condition, stationarity, structures = 0, math.inf, -math.inf, 0.0, 0.0, 0
+    for s in population(SETS[set_name]):
+        report = literal_eq13_diagnostic(s["elements"], s["coords"])
+        if "negative_eigenvalues" not in report:
+            continue
+        structures += 1
+        negative += report["negative_eigenvalues"]
+        minimum, maximum = min(minimum, report["eigenvalue_min"]), max(maximum, report["eigenvalue_max"])
+        condition, stationarity = max(condition, report["condition"]), max(stationarity, report["eq8_stationarity"])
+    return {"set": set_name, "structures": structures, "negative_eigenvalues": negative, "eigenvalue_min": minimum,
+            "eigenvalue_max": maximum, "condition_max": condition, "eq8_stationarity_max": stationarity}
+
+
+def rounding_variants() -> list[tuple[str, float, float, Parameters]]:
+    base = Parameters()
+    out = []
+    for e in ("C", "N", "O", "F"):
+        for d in (-0.005, 0.005):
+            chi = dict(base.chi_ev); chi[e] += d
+            out.append((f"chi_{e}-chi_H", TABLE_II_CHI_RELATIVE[e], TABLE_II_CHI_RELATIVE[e] + d, Parameters(chi_ev=chi)))
+    for e in ELEMENTS:
+        for d in (-0.005, 0.005):
+            eta = dict(base.eta_ev); eta[e] += d
+            out.append((f"eta_{e}", TABLE_II_ETA[e], TABLE_II_ETA[e] + d, Parameters(eta_ev=eta)))
+    for d in (-0.0005, 0.0005):
+        out.append(("lambda", LAMBDA, LAMBDA + d, Parameters(lam=LAMBDA + d)))
+    for d in (-0.5, 0.5):
+        out.append(("C", C_EV, C_EV + d, Parameters(c_ev=C_EV + d)))
+    for dl in (-0.0005, 0.0005):
+        for dc in (-0.5, 0.5):
+            out.append(("lambda,C", float("nan"), float("nan"), Parameters(lam=LAMBDA + dl, c_ev=C_EV + dc)))
+    return out
+
+
+def _write(path: pathlib.Path, header: str, columns: list[str], rows: list[list]) -> None:
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(columns)
+    writer.writerows(rows)
+    path.write_text(f"# {header}\n" + buffer.getvalue(), encoding="utf-8", newline="\n")
+
+
+def _f(x: float) -> str:
+    return "" if x is None or (isinstance(x, float) and math.isnan(x)) else f"{x + 0.0:.6f}".replace("-0.000000", "0.000000")
+
+
+def main() -> None:
+    eq_eem = eem_check("EQ")
+    print("EEM baseline holds:", baseline_holds(eq_eem["values"]))
+    if not baseline_holds(eq_eem["values"]):
+        raise SystemExit("2.4 stops: the EEM baseline does not reproduce 2.2")
+    results = {s: sqe_check(s) for s in ("EQ", "TS")}
+    _write(HERE / "mathieu_sqe_atoms.csv", "TRIAGE 2.4: one row per deposited atom; every metric recomputes from this file alone.",
+           ["set", "file", "atom", "element", "mulliken", "eem", "sqe", "included", "reason"],
+           [[r["set"], r["file"], r["atom"], r["element"], r["raw_mulliken"], f"{r['eem']:.8f}", f"{r['sqe']:.8f}", r["included"], r["reason"]]
+            for s in results.values() for r in s["rows"]])
+    metric_rows = []
+    for set_name, res in results.items():
+        for m in METRICS:
+            p_sqe, p_eem = PRINTED[("SQE", set_name)][m], PRINTED[("EEM", set_name)][m]
+            v, e = res["sqe"][m], res["eem"][m]
+            metric_rows.append([set_name, m, v["n"], p_sqe, f"{p_sqe - TOLERANCE:.3f}", f"{p_sqe + TOLERANCE:.3f}", p_eem,
+                                _f(v["r2"]), _f(e["r2"]), _f(abs(v["r2"] - p_sqe)), _f(abs(v["r2"] - p_eem)),
+                                res["gates"][m], res["classes"][m], _f(v["r2"] - e["r2"]),
+                                _f(v["mean_signed_error"]), _f(v["mae"]), _f(v["rms"]), _f(v["max_abs_error"])])
+    _write(HERE / "mathieu_sqe_metrics.csv", "TRIAGE 2.4: per set and metric. Interval is [low, high); gates on R^2 only.",
+           ["set", "metric", "n", "printed_sqe", "interval_low", "interval_high", "printed_eem", "sqe_r2", "eem_r2",
+            "abs_to_printed_sqe", "abs_to_printed_eem", "gate", "discrimination", "sqe_minus_eem", "mean_signed_error", "mae", "rms", "max_abs_error"],
+           metric_rows)
+    _write(HERE / "mathieu_sqe_structures.csv", "TRIAGE 2.4: per-structure solver diagnostics (Hartree/e residuals; singular values in Hartree).",
+           ["set", "file", "atoms", "pairs", "components", "sigma_max", "sigma_min_retained", "condition", "discarded", "cycle_dimension",
+            "residual_hartree", "max_component_sum", "h_positive_on_neutral_subspace", "invalid_reason"],
+           [[s["set"], s["file"], s["atoms"], s["pairs"], s["components"], f"{s['sigma_max']:.6e}", f"{s['sigma_min_retained']:.6e}",
+             f"{s['condition']:.6e}", s["discarded"], s["cycle_dimension"], f"{s['residual_hartree']:.3e}", f"{s['max_component_sum']:.3e}",
+             s["h_positive_on_neutral_subspace"], s["invalid_reason"]] for res in results.values() for s in res["structures"]])
+    for set_name, res in results.items():
+        print(f"\n{set_name}: verdict {res['verdict']}, invalid {res['invalid']}")
+        for m in METRICS:
+            v = res["sqe"][m]
+            print(f"  {m:3} n={v['n']:5} SQE {v['r2']:.4f} (printed {PRINTED[('SQE', set_name)][m]}) EEM {res['eem'][m]['r2']:.4f} "
+                  f"gate {res['gates'][m]} {res['classes'][m]}")
+        print("  dq", res["sqe"]["dq"], "printed", PRINTED[("SQE", set_name)]["dq"])
+        for e in ELEMENTS:
+            if res["sqe"][e]["n"] < SMALL_N:
+                print("  small", e, small_subgroup(res["rows"], "sqe", e))
+    eq13 = [literal_eq13_summary(s) for s in ("EQ", "TS")]
+    _write(HERE / "mathieu_sqe_eq13.csv", "TRIAGE 2.4: the literal eq 12/13 system per set (Hartree). A source record, not a model.",
+           list(eq13[0]), [[_f(v) if isinstance(v, float) else v for v in row.values()] for row in eq13])
+    print("\nliteral eq 13:", eq13)
+    rounding = []
+    baseline = {s: {m: results[s]["sqe"][m]["r2"] for m in METRICS} for s in results}
+    for name, base, perturbed, params in rounding_variants():
+        for set_name in ("EQ", "TS"):
+            rows, _ = atom_rows(set_name, params)
+            values = metric_values(rows, "sqe")
+            for m in METRICS:
+                rounding.append([name, _f(base), _f(perturbed), f"lambda {params.lam:.4f} C {params.c_ev:.1f}" if name == "lambda,C" else "",
+                                 set_name, m, _f(values[m]["r2"] - baseline[set_name][m])])
+    _write(HERE / "mathieu_sqe_rounding.csv", "TRIAGE 2.4: one parameter at a time at its printed rounding, then the lambda x C corners.",
+           ["parameter", "baseline", "perturbed", "corner", "set", "metric", "delta_r2"], rounding)
+    worst = max(abs(float(r[-1])) for r in rounding)
+    print(f"rounding: {len(rounding)} rows, max |delta R^2| {worst:.5f}")
+
+
+if __name__ == "__main__":
+    main()

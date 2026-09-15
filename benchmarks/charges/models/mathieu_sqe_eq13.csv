@@ -1,0 +1,4 @@
+# TRIAGE 2.4: the literal eq 12/13 system per set (Hartree). A source record, not a model.
+set,structures,negative_eigenvalues,eigenvalue_min,eigenvalue_max,condition_max,eq8_stationarity_max
+EQ,194,2833,-2.158600,6048745507.543277,344335468261.780029,2.492262
+TS,55,1004,-2.520296,53901473.507270,1657565356.619803,5.413109
