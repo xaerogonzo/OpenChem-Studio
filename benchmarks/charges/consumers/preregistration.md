@@ -205,3 +205,113 @@ an application and rendering regression. It is never charge validation.
 - EEM on chlorobenzene shows its refusal;
 - QEq on the bound-active dianion shows its refusal;
 - `save_project`, a relaunch, and `report`.
+
+## Results (2026-09-15)
+
+Appended after the runs. Nothing above this heading was changed by them, apart
+from the E2 fixture hash, which was recorded before any dipole existed.
+
+### E1: measured, then fixed
+
+- **Driven before the fix** (`restructure` on ethanol, erase-and-redraw shaped):
+  - SMILES unchanged, conformer kept, the result READY;
+  - the Atom Inspector showed the oxygen with **−0.4258 e, carbon C1's EEM 3D
+    charge** (the oxygen's own is −0.5818), while the drawing-based Gasteiger
+    row beside it was correct.
+  - **The prediction held in every part.**
+- **Driven after the fix:**
+  - ethanol uses the unique graph correspondence, and every atom shows its
+    own value;
+  - reordered isopropanol, whose methyls differ, shows "not shown" with
+    `REFUSE_AMBIGUOUS_IDENTITY`.
+- **Tests:**
+  - `tests/test_atom_identity.py` covers the recorded map, the stale map with
+    elements aligned, graph uniqueness, ambiguity, printed-precision
+    uniqueness, isotopes both ways, stereo and unwedged drawings, a gone
+    conformer, and round-tripping;
+  - `tests/test_atom_inspector_panel.py` covers the real panel after a
+    reorder;
+  - a project saved by master's code opens with its results fresh and
+    projected.
+
+### E2: dipoles (application benchmark)
+
+- **A:** BLOCKED as pre-registered (no geometries printed).
+- **B** (`dipole_benchmark.csv`):
+
+  | Model | MAE | n |
+  |---|---|---|
+  | Gasteiger | 0.794 D | 15 |
+  | EEM | 1.786 D | 14 (chlorobenzene refused) |
+  | QEq | 1.689 D | 15 |
+
+  - Gasteiger equals the earlier unfrozen reference, 0.794 D.
+  - Both 3D models overestimate polar molecules.
+  - Each dipole result quotes its model's figure; a test ties the quotes to
+    the CSV.
+
+### E3: Ionescu 2013 (application benchmark)
+
+- **Populations:** 43 source structures, 1 applicable, 35 excluded for S,
+  7 for Ca, 0 for order or charge.
+- **Ubiquitin** against MPA/6-31G\*/gas: R² 0.95 pooled; C 0.97, H 0.74,
+  N 0.36, O 0.03; RMSD 0.12 e pooled.
+- **PARTIAL-COVERAGE.** Its main finding is that coverage, not agreement,
+  limits the shipped EEM on protein data.
+
+### E4: ESP
+
+- Covered by widget tests (the comparison pane) and the dialog's own-charges
+  path.
+- **Not driven:** the comparison pane appears only after a completed ORCA
+  job, and no ORCA run was made for this track.
+
+### Live check
+
+- **Driven:**
+  - salicylic acid's dipole under Gasteiger, EEM and QEq (2.30, 5.95 and
+    4.90 D), each named and quoting its benchmark;
+  - EEM on chlorobenzene INAPPLICABLE with `REFUSE_ELEMENT_NOT_PARAMETERISED`
+    ("Not applicable" in the magnified Properties shot);
+  - a save.
+- **Not driven:** QEq's bound-active dianion, which is covered by
+  `tests/test_charge_consumers.py` through the calculator, and a relaunch
+  after the save, which is covered by the master-project fixture test.
+
+### Mutations
+
+- **11 of 11 turn the tests red.**
+- **The first run left four green:**
+  - key-by-drawing-index;
+  - a stale recorded map;
+  - stereo dropped;
+  - isotopes dropped.
+- Each exposed a test that did not test its claim, and each was fixed:
+  - a panel-level test;
+  - a 1-propanol stale map whose elements still align;
+  - both stereo checks removed together;
+  - the isotope case in the unlabelled-drawing direction.
+
+### Departures from this pre-registration, stated
+
+1. **Stereo in identity:** CIP labels are compared only where the DRAWING
+   states a configuration. Comparing them everywhere refused ordinary
+   unwedged drawings, since a 3D conformer always has a hand. Found by the
+   mutation run.
+2. **Value-observational uniqueness** is judged at the consumer's printed
+   precision (`atom_report.per_atom_display`), as written above. The first
+   implementation used 1e-9 and was corrected to match this document.
+3. **Placement is at display time,** not in `resolve_calculation_input` as
+   the old Known TODO proposed, for the reason E1 measured.
+4. **Gasteiger's recorded `parameters_key`** gains `charge_model` and is not
+   byte-identical, as stated above. Its charge vector, dipole, facts
+   (bar the benchmark sentence), freshness and association are identical,
+   and are tested against a project master saved.
+5. **The ORCA optimised geometry does not inherit a recorded map.** E1 said
+   it would. It was not built: an ORCA-optimised conformer records no map,
+   so its values are placed by the graph policy, and refused where
+   symmetry-equivalent atoms differ. Tracked as an open edge, not claimed.
+6. **E4's per-model re-run of the vertex-colour correlation test was not
+   done.** The ESP views are covered by widget tests (the model choice, the
+   caption, a refusal leaving the pane empty) and by the dialog's
+   own-charges path, not by a per-model rendering correlation.

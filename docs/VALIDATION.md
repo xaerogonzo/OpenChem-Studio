@@ -466,6 +466,44 @@ being reverted later because a number did not move.
 
 ---
 
+## Dipoles from three charge models — an application benchmark, 2026-09-15
+
+**Not a reproduction.** [source:gasteiger1985] Table I prints 15 experimental
+dipoles and no geometries, so its own 0.164 D is quoted, never compared.
+
+**Set-up.** The same 15 molecules on OpenChem conformers frozen before any
+dipole was computed (`tests/fixtures/charges/gasteiger1985_conformers.csv`:
+pinned seed, the app's default search, lowest MMFF94 energy). Record and
+pre-registration: `benchmarks/charges/consumers/`.
+
+| charge model | mean absolute error vs experiment | molecules |
+|---|---|---|
+| Gasteiger (PEOE) | 0.794 D | 15 |
+| EEM, Bultinck 2002 | 1.786 D | 14 (chlorobenzene refused: no Cl parameters) |
+| QEq, Rappé–Goddard 1991 | 1.689 D | 15 |
+
+- Gasteiger's figure equals this project's earlier measurement on unfrozen
+  conformers.
+- The two 3D models overestimate polar molecules (nitrobenzene: EEM 10.05 D
+  against 4.16). That agrees with Mathieu 2007's remark (p. 8) that EEM and
+  SQE dipoles run high for polar compounds; the agreement is context, not
+  validation.
+- **The numbers choose nothing:** Gasteiger stays the default by the
+  pre-registered product rule, and each dipole result states its own
+  model's figure.
+
+**The shipped EEM on deposited protein fragments.** [source:ionescu2013]'s
+supporting information holds 43 structures with MPA/6-31G\*/gas charges, and
+the shipped EEM applies to only one of them (35 contain sulfur, 7 calcium).
+On that one, ubiquitin (998 atoms), R² against those charges is:
+
+| pooled | C | H | N | O |
+|---|---|---|---|---|
+| 0.95 | 0.97 | 0.74 | 0.36 | 0.03 |
+
+It is an application benchmark in a protein domain, at a different QM level
+from Bultinck's fit, with no gate.
+
 ## Partial charges — the paper's own Table 3, and a species chosen by the hash seed
 
 **Method.** Gasteiger & Marsili's Table 3 ([source:gasteiger1980], p3224)
