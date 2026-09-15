@@ -2497,7 +2497,12 @@ class _Driver(QObject):
         failure, so a run's outcome is one grep); `"expect_refusal": ""`
         asserts a computed result.
         """
-        retained = getattr(self._window._property_panel, "_retained_results", {}) or {}
+        panel = self._window._property_panel
+        # BOTH HOLDINGS. Per-atom datasets and spectra are retained in
+        # `_retained_results`; a `ReportResult` (the dipole, every
+        # fact-list calculator) lives in `_reports`. Reading only the first
+        # made a computed dipole and a missing one log alike: `{}`.
+        retained = {**(getattr(panel, "_reports", {}) or {}), **(getattr(panel, "_retained_results", {}) or {})}
         calculator = str(step.get("calculator", ""))
         matching = {key: result for key, result in retained.items() if calculator and calculator in key}
         rows = {}
@@ -2506,11 +2511,15 @@ class _Driver(QObject):
             parameters = dict(getattr(provenance, "parameters", {}) or {})
             rows[key] = {
                 "name": getattr(result, "name", ""),
-                "method": getattr(result, "method", ""),
+                "method": getattr(result, "method", "") or getattr(provenance, "method", ""),
                 "state": str(getattr(result, "cache_state", "")),
+                "inapplicable": bool(getattr(result, "inapplicable", False)),
                 "refusal": parameters.get("refusal", ""),
+                "charge_model": parameters.get("charge_model", ""),
                 "summary": getattr(result, "error_summary", "") or "",
                 "error": getattr(result, "error", "") or "",
+                "facts": [f"{f.label}={f.display_value}" for f in (getattr(result, "facts", ()) or ())][:1]
+                + [f.display_value for f in (getattr(result, "facts", ()) or ()) if "mean absolute error" in f.display_value],
             }
         if "expect_refusal" in step:
             wanted = str(step["expect_refusal"])
