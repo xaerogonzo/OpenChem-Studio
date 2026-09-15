@@ -1026,3 +1026,108 @@ threshold must not become a wall inside the function being optimised.
    - A variant gets a verdict only when both of its columns are COMPLETE and
      neither failed the symmetry check.
    - No overall conclusion is written unless all 18 jobs are COMPLETE.
+
+### A11 (2026-09-15, AFTER A10's output was seen, disclosed as such): Cioslowski's LiH geometry
+
+**Why this comes after A10.** A10's variant H-e was dropped because
+Cioslowski's PRL prints no LiH bond length. A10's stop rule allows a new
+variant only from a new source. Reproducing Cioslowski's own calculation is
+that source. A10's verdicts, all UNEXPLAINED, were known when this was
+written.
+
+**Transcribed from the PRL first.**
+- **Definition, eq 9:** Q_A = Z_A − (1/3) tr ∂⟨r⟩/∂R_A. In terms of the total
+  dipole μ (nuclei plus electrons), this is Q_A = (1/3)(∂μ_x/∂x_A + ∂μ_y/∂y_A
+  + ∂μ_z/∂z_A): a trace over three Cartesian displacements, never a single
+  axial derivative.
+- **Method:** SCF (RHF), 6-31++G\*\*, "optimized geometries at the RHF,
+  6-31++G\*\* level" (Table I caption).
+- **Value and sign:** Li +0.6819 and H −0.6819. The text also gives 0.6513
+  (4-31G) and 0.6470 (6-31G\*\*).
+
+**Two experiments, never conflated.**
+- **A: historical reproduction** (the only one that can gate H-e).
+  - It needs Cartesian (6d) d functions, as 1989 Gaussian 6-31++G\*\* used.
+  - **Measured before any study run:** ORCA 6.1.1 rejects `PureD false`
+    ("Unknown identifier in BASIS block"), so it runs this basis spherical
+    only, with 24 functions for LiH.
+  - A is therefore **BLOCKED in ORCA**. It runs only if a program with
+    Cartesian basis support is made available (for example Psi4 with
+    `puream false`), under exactly the rules below.
+- **B: the same protocol with spherical 5d in ORCA,** a **diagnostic only**. It
+  gates nothing.
+
+**Protocol, for A and for B.**
+- **Optimisation:** LiH, RHF/6-31++G(d,p), `TightSCF TightOpt`. Report the
+  bond length beside Huber r_e (1.5957 Å, A10's).
+- **Displacements:** Li is displaced by ±h along x, y and z, with h ∈ {0.00025,
+  0.0005, 0.001, 0.002, 0.004} Å, as RHF single points (`TightSCF`). The total
+  dipole is read in atomic units, and the displacements are converted with
+  0.52917721 Å/bohr.
+- **Q_Li(h)** is (1/3) Σ_p [μ_p(+h) − μ_p(−h)] / (2h).
+- **Stable region:** the displacements whose Q_Li agrees with the next smaller
+  h to within 1e-5 e. The h used is the largest one inside it. If there is no
+  such region, the method is BLOCKED.
+- **Acceptance (A only):** Q_Li at that h reproduces +0.6819 within the larger
+  of ±0.0005 e and twice the stable-region spread; the bound used is
+  reported. The same protocol at RHF/4-31G is reported against 0.6513 as a
+  cross-check, which also gates nothing.
+- **Every SCF must print "SCF CONVERGED".** A run that does not is repeated
+  once with `VeryTightSCF`, and otherwise reported as failed.
+
+**H-e, only if A passes.** A10's V0 refit of the HF column, with LiH at A's
+bond length and every other molecule unchanged: same instrument, rules and
+classification.
+
+**Fixtures.** Bond lengths, energies and dipoles are parsed from ORCA's output
+into `tests/fixtures/charges/cioslowski_lih_orca.csv`, and the preregistration
+hash table gains it. The tests read the fixture, never ORCA.
+
+### A12 (2026-09-15, AFTER A10's output, disclosed; a diagnostic only): Table IV geometry sensitivity
+
+**Question.** Do the adopted reading's remaining Table IV misses move into
+tolerance within a small, physically plausible geometry change? Nothing here
+adopts a geometry or changes the solver.
+
+**Cells.** Adopted reading, O5 tolerance ±0.01 e:
+- formamide C (QEq column, printed order 2);
+- methanol H(O), C and Ht (QEqHF, orders 1, 3 and 5);
+- formamide N (QEqHF, order 3).
+
+SiH₄ is excluded; A7 swept it.
+
+**Base geometries.** For each molecule, every structure type
+`harmony1979_structures.csv` prints. Each is built once by
+`qeq_geometries.build(molecule, order=(type,) + PREFERRED)`, so a parameter the
+type lacks falls back to A4's order, and the types actually used are reported.
+
+**Perturbations: deterministic Cartesian operations on the base, one internal
+coordinate at a time, never a rebuild.**
+- **Bonds.** Every bonded pair, with connectivity from the base (distance
+  ≤ 1.2 × the sum of RDKit covalent radii). Cut the bond, and move the
+  fragment containing the second atom along the bond vector by δ.
+- **Angles.** Every a–v–b with a and b bonded to v. Rotate b's fragment
+  (cutting v–b) about n = (a − v) × (b − v) through v by δ.
+- **Torsion.** Methanol's H–O–C–H: rotate the hydroxyl H about the C–O axis.
+- **Grid:** δ ∈ {−0.010, −0.005, 0, +0.005, +0.010} Å for bonds, and
+  {−1.0, −0.5, 0, +0.5, +1.0}° for angles and the torsion.
+- **Side effects:** after each operation, any other bond length or angle that
+  changed by more than 1e-6 (Å or °) is reported. A bond in a ring would
+  make the fragment undefined; none exists in these two molecules, and the
+  script asserts that.
+
+**Charges.** `ce.qeq_charges(elements, coords, 0, hydrogen=<column's set>,
+readings=ADOPTED)`. The cell value is the mean over the cell's atoms. A
+geometry that does not converge, or is refused, is reported and excluded from
+the ranges.
+
+**Reported per cell and base:** the nominal value, the printed target, the
+full range over the grid, the minimum |value − target|, and the perturbation
+giving it.
+
+**Classes, fixed now.**
+- **geometry-compatible:** min |error| ≤ 0.01 somewhere in the grid;
+- **geometry-sensitive:** range ≥ 0.01 but never within tolerance;
+- **geometry-insensitive:** range < 0.01 and never within tolerance.
+
+None of the three explains the discrepancy or adopts a geometry.
