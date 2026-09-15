@@ -1448,7 +1448,7 @@ E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,447,C,0.401327,0.697468,-0
 E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,448,N,-0.290386,-0.696821,+0.406435,2.05e-02,False
 E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,449,H,0.186270,0.316366,-0.130096,4.27e-03,False
 E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,450,C,0.112014,0.039379,+0.072635,6.41e-03,False
-E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,451,H,0.150323,0.130318,+0.020005,8.66e-04,False
+E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,451,H,0.150323,0.130318,+0.020005,8.76e-04,False
 E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,452,C,-0.023419,-0.243125,+0.219706,1.13e-02,False
 E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,453,H,0.104166,0.124142,-0.019976,1.12e-03,False
 E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,454,H,0.087482,0.106724,-0.019242,1.41e-03,False
@@ -1851,7 +1851,7 @@ E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,850,H,0.144003,0.112089,+0
 E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,851,C,0.021344,-0.287719,+0.309063,1.47e-02,False
 E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,852,H,0.122046,0.138413,-0.016367,1.86e-03,False
 E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,853,H,0.116376,0.131907,-0.015531,2.34e-03,False
-E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,854,C,0.117590,0.300917,-0.183327,8.11e-04,False
+E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,854,C,0.117590,0.300917,-0.183327,8.21e-04,False
 E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,855,N,-0.293322,-0.622364,+0.329042,1.61e-02,False
 E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,856,H,0.166822,0.235718,-0.068896,2.04e-03,False
 E-HiI/6-31G**/PCM,R_bohr,ubiquitin,QM_EEM_q_ubiquitin,857,C,0.114834,0.085113,+0.029721,3.56e-03,False

@@ -1,4 +1,4 @@
 # TRIAGE 2.8: Ionescu 2013 E models reproduced from Table S1. EX models are BLOCKED on typing.
-model,reading,dataset,molecules,excluded,atoms,atoms_reproduced,max_abs_delta,worst_molecule,envelope_over_linear,R_sample,R2_sample,R_population,R2_population,RMSD_avg,D_avg,printed_R_avg,printed_RMSD_avg,printed_D_avg,verdict
-E-HiI/6-31G**/PCM,R_angstrom,ubiquitin,1,0,998,998,0.000000,QM_EEM_q_ubiquitin,110.1,0.9823,0.9649,0.9823,0.9649,0.1162,0.0840,0.965,0.116,0.084,REPRODUCED
-E-HiI/6-31G**/PCM,R_bohr,ubiquitin,1,0,998,34,0.625004,QM_EEM_q_ubiquitin,2.9,0.7984,0.6374,0.7984,0.6374,0.3060,0.2255,0.965,0.116,0.084,PARTIAL
+model,reading,dataset,molecules,excluded,atoms,atoms_reproduced,max_abs_delta,worst_molecule,median_abs_delta,within_1e-5,within_1e-4,within_1e-3,envelope_over_linear,R_sample,R2_sample,R_population,R2_population,RMSD_avg,D_avg,printed_R_avg,printed_RMSD_avg,printed_D_avg,verdict
+E-HiI/6-31G**/PCM,R_angstrom,ubiquitin,1,0,998,998,0.000000,QM_EEM_q_ubiquitin,2.25e-07,1.0000,1.0000,1.0000,110.1,0.9823,0.9649,0.9823,0.9649,0.1162,0.0840,0.965,0.116,0.084,REPRODUCED
+E-HiI/6-31G**/PCM,R_bohr,ubiquitin,1,0,998,34,0.625004,QM_EEM_q_ubiquitin,1.04e-01,0.0000,0.0000,0.0080,3.0,0.7984,0.6374,0.7984,0.6374,0.3060,0.2255,0.965,0.116,0.084,PARTIAL

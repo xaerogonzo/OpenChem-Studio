@@ -319,7 +319,7 @@ def main() -> None:
             sizes = sorted(range(len(members)), key=lambda i: len(members[i]["elements"]))
             subset = {sizes[0], sizes[len(sizes) // 2], sizes[-1]}
             for reading in ("R_angstrom", "R_bohr"):
-                pairs, reproduced, atoms, ratios, worst = [], 0, 0, [], (0.0, "")
+                pairs, reproduced, atoms, ratios, worst, all_deltas = [], 0, 0, [], (0.0, ""), []
                 for index, molecule in enumerate(members):
                     elements, coords = molecule["elements"], molecule["coords"]
                     total = total_charge(molecule, scheme)
@@ -337,20 +337,27 @@ def main() -> None:
                     if delta.max() > worst[0]:
                         worst = (float(delta.max()), molecule["id"])
                     pairs.append((reference, q))
+                    all_deltas.append(delta)
                     if index in subset:
                         for k in range(len(elements)):
                             atom_rows.append([model, reading, name, molecule["id"], k + 1, elements[k], f"{q[k]:.6f}",
                                               f"{reference[k]:.6f}", f"{q[k] - reference[k]:+.6f}", f"{tolerance[k]:.2e}",
                                               bool(delta[k] <= tolerance[k])])
+                # 2.8-A1: the gate is wide because k prints to 3 decimals, so the DISTRIBUTION of |delta| is
+                # what says whether the parameters are the source's, not the pass count alone.
+                spread = np.concatenate(all_deltas)
+                within = [float(np.mean(spread <= bound)) for bound in (1e-5, 1e-4, 1e-3)]
                 metrics = metric_set([(np.array(m["qm"][scheme]), q) for m, (ref, q) in zip(members, pairs)])
                 against_printed = {key: printed.get((model, scheme, name, key)) for key in ("R_avg", "RMSD_avg", "D_avg")}
                 verdict = "REPRODUCED" if reproduced == atoms else "PARTIAL"
                 model_rows.append([model, reading, name, len(members), len(excluded), atoms, reproduced,
-                                   f"{worst[0]:.6f}", worst[1], f"{max(ratios):.1f}" if ratios else "",
+                                   f"{worst[0]:.6f}", worst[1], f"{np.median(spread):.2e}",
+                                   *[f"{value:.4f}" for value in within], f"{max(ratios):.1f}" if ratios else "",
                                    *[f"{metrics[k]:.4f}" for k in ("R_sample", "R2_sample", "R_population", "R2_population", "RMSD_avg", "D_avg")],
                                    against_printed["R_avg"], against_printed["RMSD_avg"], against_printed["D_avg"], verdict])
                 print(f"{model:20} {reading:11} {name:13} {len(members):3} molecules, {reproduced}/{atoms} atoms within tau, "
                       f"max|d| {worst[0]:.4f} ({worst[1]}), envelope/linear {max(ratios):.1f}x")
+                print(f"    |delta|: median {np.median(spread):.1e}, within 1e-5 {within[0]:.3f}, 1e-4 {within[1]:.3f}, 1e-3 {within[2]:.3f}")
                 print(f"    R sample {metrics['R_sample']:.4f} r2 {metrics['R2_sample']:.4f} population {metrics['R_population']:.4f} "
                       f"r2 {metrics['R2_population']:.4f} | printed R {against_printed['R_avg']}; "
                       f"RMSD {metrics['RMSD_avg']:.4f} vs {against_printed['RMSD_avg']}; D {metrics['D_avg']:.4f} vs {against_printed['D_avg']}")
@@ -361,7 +368,7 @@ def main() -> None:
          ["model", "reading", "dataset", "molecule", "atom", "element", "model_charge", "printed_charge", "delta", "tau", "reproduced"], atom_rows),
         ("ionescu_eem_models.csv",
          ["model", "reading", "dataset", "molecules", "excluded", "atoms", "atoms_reproduced", "max_abs_delta", "worst_molecule",
-          "envelope_over_linear", "R_sample", "R2_sample", "R_population", "R2_population", "RMSD_avg", "D_avg",
+          "median_abs_delta", "within_1e-5", "within_1e-4", "within_1e-3", "envelope_over_linear", "R_sample", "R2_sample", "R_population", "R2_population", "RMSD_avg", "D_avg",
           "printed_R_avg", "printed_RMSD_avg", "printed_D_avg", "verdict"], model_rows),
     ):
         buffer = io.StringIO()
