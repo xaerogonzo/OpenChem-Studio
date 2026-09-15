@@ -1094,6 +1094,11 @@ they are, and are not:
     envelopes near 0.02 eV. The validated scope
     above is what the shipped model reproduces; how the 1991 program treated
     hydrogen remains unknown.
+    - Geometry is not the explanation (amendments A11 and A12). Cioslowski's
+      HF value for LiH is reproduced exactly (Cartesian RHF/6-31++G\*\*,
+      Li +0.6818 at a 1.6328 Å bond). Running the refit at that bond leaves
+      LiH's charge within 1e-4 e. No small change of structure brings the
+      HF-fitted methanol or formamide cells into tolerance.
   - The whole record is `benchmarks/charges/rappe_goddard/README.md`.
 - **A result filed by a build is not re-run by a fix.** The method code in a
   result's identity names the scientific method and parameter set; which

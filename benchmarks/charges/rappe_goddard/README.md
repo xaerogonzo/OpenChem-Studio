@@ -390,6 +390,88 @@ now has a measured reason beyond O4: no tested reading reproduces its fit.
 - **Still open:** the LiH geometry route, amendment A11, which reproduces
   Cioslowski's geometry first.
 
+## Amendment A11: Cioslowski's LiH geometry (2026-09-15)
+
+Pre-registered after A10's output, and disclosed as such. Code:
+`cioslowski_apt.py` (analysis, and the ORCA run) and `cioslowski_apt_psi4.py`
+(the Psi4 run). Fixtures: `cioslowski_lih_psi4.csv` for A and
+`cioslowski_lih_orca.csv` for B.
+
+**Experiment A, the historical reproduction: PASSED.** ORCA 6.1.1 cannot use
+Cartesian d functions, so A ran in Psi4 1.11, with Alex's approval, in a
+throwaway conda environment.
+- **Cross-check first:** Psi4's spherical LiH single point equals ORCA's to
+  1e-10 hartree.
+- **Geometry:** with Cartesian d, RHF/6-31++G(d,p) optimises LiH to
+  **1.632817 Å**.
+- **Charge:** the trace charge (eq 9) is **Li +0.681846** at every h from
+  0.0005 to 0.004 Å, agreeing to 1e-6. Cioslowski prints +0.6819, a
+  difference of 5e-5, inside A11's ±0.0005.
+- **The trace matters:** the axial derivative alone would give 0.48.
+
+**Experiment B, spherical d in ORCA (a diagnostic):** 1.63279 Å and +0.68215,
+2.5e-4 away. The 4-31G cross-check is not run, because ORCA has no built-in
+4-31G.
+
+**H-e, run because A passed:** A10's V0 refit of the HF column, with LiH at
+1.632817 Å (A10 used Huber's 1.5957) and every other molecule unchanged. The
+output is in `hydrogen_refit_he/`: 1 of 1 jobs complete, symmetry check passed.
+
+| | V0 (LiH at 1.5957 Å) | H-e (LiH at 1.632817 Å) |
+|---|---|---|
+| LiH Q_H at the printed HF pair | −0.9827 | −0.9826 |
+| LiH against the paper's QEqHF (−0.679) | −0.3037 | −0.3036 |
+| S at the printed pair | 0.030747 | 0.030730 |
+| refit (χ, J) | (4.8644, 12.3662) | (4.8642, 12.3673) |
+| refit − printed | (+0.147, −1.106) | (+0.147, −1.105) |
+| inside the rounding envelope? | no | no |
+| program check at the printed pair | fails | fails |
+
+**What it means.**
+- **Cioslowski's −0.682 target is understood exactly:** its definition, level
+  of theory and geometry are all reproduced.
+- **Its 0.037 Å longer bond changes nothing that matters.** LiH's
+  self-consistent charge moves by 1e-4, and the refit moves by ≤ 0.001 eV.
+- **So geometry does not explain LiH or the HF-fitted set;** the difference
+  lies in the hydrogen treatment, as A10 already showed.
+- **Classification:** H-e fits one column, so A10's two-column classification
+  gives no verdict ("NO VERDICT" in its CSV). That column meets neither of
+  A10's conditions: its refit is outside the envelope, and it fails the
+  program check.
+
+## Amendment A12: Table IV geometry sensitivity (2026-09-15)
+
+A diagnostic, pre-registered after A10's output; nothing is adopted.
+`table_iv_geometry.py`; outputs `table_iv_geometry.csv` (500 evaluations, all
+converged) and `table_iv_geometry_summary.csv`.
+- **Grid:** one internal coordinate at a time, ±0.005/±0.010 Å on every bond
+  and ±0.5/±1.0° on every angle (plus methanol's H–O–C–H torsion), applied as
+  fixed Cartesian operations on each Harmony structure type.
+- **Side effects:** coupled angles in planar formamide and around the methyl
+  group move with their neighbour, and each one is listed in the CSV.
+
+| cell (adopted reading) | base | printed | nominal | range over grid | closest | class |
+|---|---|---|---|---|---|---|
+| formamide C, QEq | substitution | 0.39 | 0.4011 | 0.3994 – 0.4027 | 0.0094 away (C–N–H1 −1°) | **geometry-compatible** |
+| formamide N, QEqHF | substitution | −0.61 | −0.6233 | −0.6246 – −0.6220 | 0.0120 | geometry-insensitive |
+| methanol H(O), QEqHF | substitution | 0.34 | 0.3561 | 0.3535 – 0.3586 | 0.0135 | geometry-insensitive |
+| methanol C, QEqHF | substitution | −0.09 | −0.1040 | −0.1080 – −0.1000 | 0.0100 | geometry-insensitive |
+| methanol Ht, QEqHF | substitution | 0.16 | 0.1737 | 0.1709 – 0.1766 | 0.0109 | geometry-insensitive |
+| methanol H(O), QEqHF | effective | 0.34 | 0.3608 | 0.3583 – 0.3633 | 0.0183 | geometry-insensitive |
+| methanol C, QEqHF | effective | −0.09 | −0.1065 | −0.1105 – −0.1025 | 0.0125 | geometry-insensitive |
+| methanol Ht, QEqHF | effective | 0.16 | 0.1747 | 0.1718 – 0.1775 | 0.0118 | geometry-insensitive |
+
+**What it means.**
+- **Formamide's C was 0.001 past tolerance, and a one-degree angle change
+  closes that.** That is all "geometry-compatible" can say. It does not
+  explain the miss.
+- **The four QEqHF cells cannot reach tolerance within the grid,** and each
+  moves by less than 0.01 across it. Their misses are not a geometry effect of
+  this size, which is consistent with A10: the HF-fitted set's problem is in
+  the hydrogen treatment.
+- Methanol C at the substitution structure reaches 0.010011 in its closest
+  case, missing tolerance by 1.1e-5.
+
 ## QEq stop 2: the bounds (O9)
 
 - **The paper's procedure never releases a fixed atom.** It is: solve; fix

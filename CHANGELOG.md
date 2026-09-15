@@ -36,6 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   equations and eight other pre-registered readings of them, neither
   published hydrogen parameter pair comes back. So the reason for LiH and
   the HF-fitted set is still not found, and nothing shipped changes.
+  Nor is geometry the reason. Cioslowski's LiH reference charge was
+  recomputed to 5e-5 from his own definition and basis. His slightly
+  longer LiH bond leaves the fit unchanged, and a sweep of methanol and
+  formamide structures brings only one near-miss into tolerance.
 
 ### Fixed
 
