@@ -339,11 +339,17 @@ def test_24_every_metric_recomputes_from_the_atoms_csv_alone():
 
 
 def test_24_the_committed_csvs_are_what_the_code_produces(sqe_live):
+    """Gates and discrimination classes must match the committed run exactly. The R^2 values
+    are held to 1e-3, not 5e-7: which near-limit structures pass the 1e-9 residual limit
+    depends on the OpenBLAS kernel (ts33 measured 1.6e-9 to 2.7e-9 across forced kernels, and
+    one CI runner produced a different EQ population), and one structure moves R^2 by ~1e-4."""
     metrics = {(r["set"], r["metric"]): r for r in _csv("mathieu_sqe_metrics.csv")}
     for set_name, res in sqe_live.items():
         for m in sqc.METRICS:
-            assert res["sqe"][m]["r2"] == pytest.approx(float(metrics[(set_name, m)]["sqe_r2"]), abs=5e-7)
-            assert res["classes"][m] == metrics[(set_name, m)]["discrimination"]
+            row = metrics[(set_name, m)]
+            assert res["sqe"][m]["r2"] == pytest.approx(float(row["sqe_r2"]), abs=1e-3), (set_name, m)
+            assert res["gates"][m] == (row["gate"] == "True"), (set_name, m)
+            assert res["classes"][m] == row["discrimination"], (set_name, m)
 
 
 def test_24_gates_and_verdicts_rederive_from_the_metrics_csv():
@@ -360,13 +366,21 @@ def test_24_gates_and_verdicts_rederive_from_the_metrics_csv():
 
 
 def test_24_populations_source_excluded_included_are_exactly_these(sqe_live):
-    counted = {}
+    """The source populations are exact. The exclusions are pinned where they are robust
+    (pentylamine's residual is 2.5e-2, seven orders over the limit); any other exclusion must
+    be a structure the committed run measured within a factor of 10 of the 1e-9 limit."""
+    committed = {(r["set"], r["file"]): r for r in _csv("mathieu_sqe_structures.csv")}
     for set_name, res in sqe_live.items():
-        excluded = [s for s in res["structures"] if s["invalid_reason"]]
-        counted[set_name] = (len(res["structures"]), len(res["rows"]), [(s["file"], s["atoms"]) for s in excluded],
-                             sum(1 for r in res["rows"] if r["included"]))
-    assert counted == {"EQ": (194, 3064, [("pentylamine", 19)], 3045),
-                       "TS": (55, 1085, [("JPCA_2004_108_5197.txt-ts33", 30)], 1055)}
+        assert (len(res["structures"]), len(res["rows"])) == {"EQ": (194, 3064), "TS": (55, 1085)}[set_name]
+        excluded = {s["file"] for s in res["structures"] if s["invalid_reason"]}
+        if set_name == "EQ":
+            assert "pentylamine" in excluded, excluded
+        for name in excluded - {"pentylamine"}:
+            assert float(committed[(set_name, name)]["residual_hartree"]) > 1e-10, (set_name, name, excluded)
+    local = {s: sorted(r["file"] for r in _csv("mathieu_sqe_structures.csv") if r["set"] == s and r["invalid_reason"]) for s in ("EQ", "TS")}
+    assert local == {"EQ": ["pentylamine"], "TS": ["JPCA_2004_108_5197.txt-ts33"]}
+    included = {s: sum(1 for r in _csv("mathieu_sqe_atoms.csv") if r["set"] == s and r["included"] == "True") for s in ("EQ", "TS")}
+    assert included == {"EQ": 3045, "TS": 1055}
 
 
 @pytest.mark.xfail(strict=True, reason="STOP RECORD 2.4: expected 0 invalid structures; pentylamine (EQ) and ts33 (TS) fail the residual limit under rcond 1e-10")

@@ -806,6 +806,21 @@ limit, and each is excluded from both arms:
 - **Instrument test 10 did not cover this.** It passed on synthetic cases,
   but a relative cutoff is relative to the largest singular value, which here
   is a diverging penalty rather than chemistry.
+- **The 1e-9 limit is at roundoff for this unscaled system, so which
+  near-limit structures pass depends on the machine** (measured after the run,
+  2026-09-15).
+  - Many structures have condition numbers of 1e7–1e9 and residuals of
+    1e-10 to 3e-9: ts29 4.4e-10, isopropylpropylamine 3.5e-10.
+  - Forcing different OpenBLAS kernels on one machine gives ts33 a residual
+    of 1.6e-9 (Prescott), 2.0e-9 (Sandybridge) and 2.7e-9 (Zen and the
+    default).
+  - #108's second CI run produced a different EQ population from this
+    machine and from its first CI run.
+  - In every case the gate pattern and both verdicts were the same, and
+    pentylamine (2.5e-2) was always excluded.
+  - The tests therefore pin the gates, the classes and pentylamine exactly,
+    and the R² values to 1e-3.
+  - Scaling the system, as below, removes the dependence. It is not adopted.
 - **Post hoc diagnostic, not adopted:** a Jacobi-scaled solve (D^−½ A D^−½,
   condition numbers 4.3 and 10) gives residuals below 1e-11 for both. With
   both structures included that way, the EQ and TS gate outcomes are
