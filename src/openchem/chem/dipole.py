@@ -25,14 +25,28 @@ import dataclasses
 from typing import Any
 
 import numpy as np
+import rdkit
 from rdkit import Chem
-from rdkit.Chem import rdPartialCharges
 
+from openchem.chem.charge_evaluation import CHARGE_MODEL_LABELS, GASTEIGER, ChargeEvaluation, evaluate_charges
 from openchem.chem.geometry_analysis import NoConformerError, _require_conformer
 from openchem.chem.calculator_options import decimals
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.report import ArrowAnnotation, ReportResult, valid_spatial_annotation
 from openchem.chem.report_adapter import report_from_fields
+
+#: The application benchmark's sentence per charge model
+#: (benchmarks/charges/consumers/dipole_benchmark.py, experiment E2 B), copied
+#: from its measured output of 2026-09-15 and pinned by a test against that
+#: CSV. Reported, never used to choose a default.
+_BENCHMARK_SCOPE = "15 molecules of gasteiger1985 Table I on OpenChem conformers"
+DIPOLE_BENCHMARK: dict[str, str] = {
+    "gasteiger": f"Against experiment ({_BENCHMARK_SCOPE}): mean absolute error 0.79 D over 15.",
+    "eem_bultinck2002_part1": (f"Against experiment ({_BENCHMARK_SCOPE}): mean absolute error 1.79 D over the 14 it "
+                               "covers; it overestimates polar molecules."),
+    "qeq_rg1991_lambda_half_h_experimental": (f"Against experiment ({_BENCHMARK_SCOPE}): mean absolute error 1.69 D "
+                                              "over 15; it overestimates polar molecules."),
+}
 
 # elementary charge * angstrom -> Debye. 1 D = 3.33564e-30 C*m;
 # e*A = 1.602176634e-19 * 1e-10 C*m.
@@ -52,33 +66,49 @@ def centre_of_mass(mol: Chem.Mol) -> np.ndarray:
     return (positions * masses[:, None]).sum(axis=0) / masses.sum()
 
 
-def dipole_vector(mol: Chem.Mol) -> tuple[np.ndarray, float, bool]:
-    """Returns (vector in Debye, magnitude, origin_independent).
+def dipole_from_charges(mol: Chem.Mol, charges: dict[int, float]) -> tuple[np.ndarray, float, bool]:
+    """(vector in Debye, magnitude, origin_independent) from charges keyed by `mol`'s atoms.
 
-    `origin_independent` is False for a charged species, where the value
-    depends on where the origin is placed.
+    EVERY ATOM must have a charge, for the reason `electrostatic_potential_for_conformer`
+    gives: a missing one is a net charge the molecule does not have, not a
+    smaller effect.
     """
     conformer = _require_conformer(mol)
-    charged = Chem.Mol(mol)
-    rdPartialCharges.ComputeGasteigerCharges(charged)
-
+    missing = [i for i in range(mol.GetNumAtoms()) if i not in charges]
+    if missing:
+        raise ValueError(f"no charge for {len(missing)} of {mol.GetNumAtoms()} atoms (first: index {missing[0]})")
     positions = conformer.GetPositions()
-    charges = np.array(
-        [
-            atom.GetDoubleProp("_GasteigerCharge") if atom.HasProp("_GasteigerCharge") else 0.0
-            for atom in charged.GetAtoms()
-        ]
-    )
-    # NaNs appear for atoms Gasteiger has no parameters for; treating them
-    # as zero is wrong but silent, so they are zeroed AND flagged by the
-    # caller through a total-charge mismatch.
-    charges = np.nan_to_num(charges)
-
-    relative = positions - centre_of_mass(charged)
-
-    vector = (charges[:, None] * relative).sum(axis=0) * _E_ANGSTROM_TO_DEBYE
+    values = np.array([charges[i] for i in range(mol.GetNumAtoms())])
+    relative = positions - centre_of_mass(mol)
+    vector = (values[:, None] * relative).sum(axis=0) * _E_ANGSTROM_TO_DEBYE
     total_charge = Chem.GetFormalCharge(mol)
     return vector, float(np.linalg.norm(vector)), total_charge == 0
+
+
+def dipole_vector(mol: Chem.Mol, charge_model: str = GASTEIGER) -> tuple[np.ndarray, float, bool]:
+    """Returns (vector in Debye, magnitude, origin_independent) under `charge_model`.
+
+    `origin_independent` is False for a charged species, where the value
+    depends on where the origin is placed. Raises `ChargesRefused` when the
+    model declines the molecule; it never substitutes another model.
+
+    Gasteiger's charges are exactly the ones this function computed before
+    other models existed (NaN for an unparameterised atom as zero), which
+    `tests/test_charge_consumers.py` pins.
+    """
+    _require_conformer(mol)
+    evaluation = evaluate_charges(mol, charge_model)
+    if evaluation.charges is None:
+        raise ChargesRefused(evaluation)
+    return dipole_from_charges(mol, evaluation.charges)
+
+
+class ChargesRefused(Exception):
+    """The chosen charge model declined this molecule; carries its own evaluation."""
+
+    def __init__(self, evaluation: ChargeEvaluation) -> None:
+        super().__init__(evaluation.message or evaluation.refusal)
+        self.evaluation = evaluation
 
 
 def compute_dipole_moment(
@@ -87,8 +117,14 @@ def compute_dipole_moment(
     """The "charge" category's Dipole Moment calculator. Needs a conformer:
     a dipole is a property of a 3D arrangement, and computing one from flat
     2D coordinates would produce a confident, meaningless number."""
+    charge_model = str((parameters or {}).get("charge_model", GASTEIGER))
+    label = CHARGE_MODEL_LABELS.get(charge_model, charge_model)
     try:
-        vector, magnitude, origin_independent = dipole_vector(mol)
+        _require_conformer(mol)
+        evaluation = evaluate_charges(mol, charge_model, molecule_uuid)
+        if evaluation.charges is None:
+            raise ChargesRefused(evaluation)
+        vector, magnitude, origin_independent = dipole_from_charges(mol, evaluation.charges)
     except NoConformerError as exc:
         return report_from_fields(
             alert_id="dipole_moment",
@@ -98,8 +134,24 @@ def compute_dipole_moment(
             category="charge",
             cache_state=CacheState.FAILED,
             error=str(exc),
-            provenance=Provenance(created_by="core", method="rdkit"),
+            provenance=Provenance(created_by="core", method="rdkit", parameters={"charge_model": charge_model}),
         )
+    except ChargesRefused as refused:
+        # THE MODEL'S OWN REFUSAL, NAMED, AND NOT A FAULT. Never Gasteiger's
+        # dipole under an EEM or QEq heading, which is the one thing a
+        # charge-model choice must not do quietly.
+        result = report_from_fields(
+            alert_id="dipole_moment",
+            name=f"Dipole Moment ({label})",
+            molecule_uuid=molecule_uuid,
+            matched=[],
+            category="charge",
+            cache_state=CacheState.FAILED,
+            error=f"{label} declined this molecule: {refused.evaluation.message or refused.evaluation.refusal}",
+            provenance=Provenance(created_by="core", method=charge_model,
+                                  parameters={"charge_model": charge_model, "refusal": refused.evaluation.refusal}),
+        )
+        return dataclasses.replace(result, inapplicable=True)
 
     places = decimals(parameters)
     lines = [
@@ -113,23 +165,38 @@ def compute_dipole_moment(
             "This species carries a net charge, so its dipole depends on the choice of "
             "origin -- computed here about the centre of mass."
         )
-    lines.append(
-        "From Gasteiger (PEOE) partial charges and this conformer's geometry. Direction and "
-        "symmetry are reliable; the magnitude inherits the charge model's accuracy."
-    )
+    if charge_model == GASTEIGER:
+        lines.append(
+            "From Gasteiger (PEOE) partial charges and this conformer's geometry. Direction and "
+            "symmetry are reliable; the magnitude inherits the charge model's accuracy."
+        )
+    else:
+        lines.append(
+            f"From {label} partial charges on this conformer's geometry. Direction and symmetry are "
+            "reliable; the magnitude inherits the charge model's accuracy."
+        )
+        lines.extend(evaluation.notes)
+    benchmark = DIPOLE_BENCHMARK.get(charge_model)
+    if benchmark is not None:
+        lines.append(benchmark)
     result = report_from_fields(
         alert_id="dipole_moment",
-        name="Dipole Moment",
+        name="Dipole Moment" if charge_model == GASTEIGER else f"Dipole Moment ({label})",
         molecule_uuid=molecule_uuid,
         matched=lines,
         category="charge",
         provenance=Provenance(
             created_by="core",
-            method="rdkit",
+            method="rdkit" if charge_model == GASTEIGER else charge_model,
             parameters={
                 "debye": magnitude,
                 "vector": [float(v) for v in vector],
                 "origin_independent": origin_independent,
+                "charge_model": charge_model,
+                "charge_parameter_checksum": evaluation.parameter_checksum,
+                "charge_source": evaluation.source_key,
+                "claim_kind": evaluation.claim_kind,
+                "rdkit_version": rdkit.__version__,
             },
         ),
     )

@@ -36,7 +36,13 @@ EARLIER_GASTEIGER_MAE = 0.794
 
 
 def _read(path: pathlib.Path) -> list[dict]:
-    return list(csv.DictReader(line for line in path.read_text(encoding="utf-8").splitlines() if not line.startswith("#")))
+    """Rows after the leading `#` lines. NOT `splitlines()` into csv: a molblock is a
+    quoted field with newlines inside it, and splitting first strips them."""
+    text = path.read_text(encoding="utf-8")
+    body = "".join(line for line in text.splitlines(keepends=True) if not (line.startswith("#") and text.startswith(line)))
+    while body.startswith("#"):
+        body = body.split("\n", 1)[1]
+    return list(csv.DictReader(io.StringIO(body)))
 
 
 def freeze() -> None:

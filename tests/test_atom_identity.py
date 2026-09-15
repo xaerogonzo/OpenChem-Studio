@@ -172,14 +172,20 @@ def test_a_conformer_with_hydrogens_first_and_no_record_projects_by_graph(engine
     assert all(int(v // 10) == drawn.GetAtomWithIdx(i).GetAtomicNum() for i, v in projection.values.items())
 
 
-def test_a_stale_recorded_map_is_not_trusted_even_if_its_length_fits(engine):
-    """Mutation guard for trusting the map after the drawing changed."""
-    model = _model(engine, "CCO")
+def test_a_stale_recorded_map_is_not_trusted_even_when_every_element_still_fits(engine):
+    """Mutation guard for trusting the map after the drawing changed. 1-propanol with its
+    terminal and middle carbons swapped: the recorded map still pairs C with C atom for
+    atom, so only the fingerprint can say it is stale -- and the values must follow the atoms."""
+    model = _model(engine, "CCCO")
     conformer = _conformer_via_provider(engine, model)
     model.conformers = [conformer]
-    model.molblock = ai.renumbered_molblock(model.molblock, "reverse")
-    projection = ai.project_to_drawing(engine, model, _dataset_on(conformer, _values_by_element(engine, conformer)))
-    assert projection.policy != ai.POLICY_RECORDED
+    values = _values_by_element(engine, conformer)
+    model.molblock = ai.renumbered_molblock(model.molblock, [1, 0, 2, 3])
+    assert ai.element_order(model.molblock)[:3] == ["C", "C", "C"]
+    projection = ai.project_to_drawing(engine, model, _dataset_on(conformer, values))
+    assert projection.policy == ai.POLICY_GRAPH_UNIQUE
+    # New position 0 holds old atom 1 (the middle carbon), position 1 the terminal one.
+    assert projection.values[0] == values[1] and projection.values[1] == values[0]
 
 
 def test_opposite_stereo_has_no_correspondence(engine):
@@ -191,12 +197,43 @@ def test_opposite_stereo_has_no_correspondence(engine):
     assert projection.values is None and projection.refusal == ai.REFUSE_NO_CORRESPONDENCE
 
 
-def test_an_isotope_label_is_part_of_identity(engine):
-    model = _model(engine, "[13CH3]CO")
-    conformer = _conformer_via_provider(engine, _model(engine, "CCO"), record=False)
+@pytest.mark.parametrize("drawn,generated", [("[13CH3]CO", "CCO"), ("CCO", "[13CH3]CO")], ids=["labelled-drawing", "labelled-conformer"])
+def test_an_isotope_label_is_part_of_identity_in_both_directions(engine, drawn, generated):
+    """Both directions: a labelled drawing's query atom already demands the isotope, but an
+    unlabelled one matches any, so only the atom signature catches the second case."""
+    model = _model(engine, drawn)
+    conformer = _conformer_via_provider(engine, _model(engine, generated), record=False)
     model.conformers = [conformer]
     projection = ai.project_to_drawing(engine, model, _dataset_on(conformer, _values_by_element(engine, conformer)))
     assert projection.refusal == ai.REFUSE_NO_CORRESPONDENCE
+
+
+def test_an_unwedged_drawing_projects_onto_a_conformer_that_has_a_configuration(engine):
+    """A 3D conformer always has a hand; a drawing without wedges claims neither, so it is not a mismatch."""
+    model = _model(engine, "CC(O)CC")
+    conformer = _conformer_via_provider(engine, _model(engine, "C[C@@H](O)CC"), record=False)
+    model.conformers = [conformer]
+    projection = ai.project_to_drawing(engine, model, _dataset_on(conformer, _values_by_element(engine, conformer)))
+    assert projection.values is not None
+
+
+def test_the_inspector_report_places_each_value_through_the_projection(engine):
+    """Through `collect_per_atom_data`, the function that builds what the Atom Inspector shows,
+    with the projector the panel supplies -- not through `project_to_drawing` alone."""
+    from openchem.chem.atom_report import collect_per_atom_data, per_atom_display
+
+    model = _model(engine, "CCO")
+    conformer = _conformer_via_provider(engine, model)
+    model.conformers = [conformer]
+    values = _values_by_element(engine, conformer)
+    dataset = _dataset_on(conformer, values)
+    model.molblock = ai.renumbered_molblock(model.molblock, "reverse")
+    drawn = engine.mol_from_model(model)
+    context = {"per_atom": {dataset.property_id: dataset},
+               "project": lambda d: ai.project_to_drawing(engine, model, d, display=per_atom_display)}
+    oxygen = next(a.GetIdx() for a in drawn.GetAtoms() if a.GetSymbol() == "O")
+    (fact,) = collect_per_atom_data(drawn, oxygen, context)
+    assert int(fact.value // 10) == 8, fact.value
 
 
 def test_a_conformer_that_is_no_longer_stored_is_named(engine):

@@ -138,7 +138,10 @@ def graph_correspondences(drawing: Chem.Mol, conformer: Chem.Mol, limit: int = S
         pairs = dict(enumerate(match))
         if any(_atom_signature(drawing.GetAtomWithIdx(d)) != _atom_signature(conformer.GetAtomWithIdx(c)) for d, c in pairs.items()):
             continue
-        if any(drawn_cip.get(d) != conformer_cip.get(c) for d, c in pairs.items() if d in drawn_cip or c in conformer_cip):
+        # Only where the DRAWING states a configuration. A conformer always
+        # has one (it is 3D), and an unwedged drawing is a claim about neither
+        # hand -- refusing it would refuse every ordinary drawing after a reorder.
+        if any(drawn_cip[d] != conformer_cip.get(c) for d, c in pairs.items() if d in drawn_cip):
             continue
         out.append(pairs)
     return out
