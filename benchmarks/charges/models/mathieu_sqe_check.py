@@ -256,3 +256,104 @@ def population(fixture: pathlib.Path) -> list[dict]:
 
 def r_squared(predicted, reference) -> float:
     return mec.r_squared(list(predicted), list(reference))
+
+
+#: 2.2's pinned EEM (EQ) values: the baseline 2.4 requires before any discrimination.
+EEM_EQ_BASELINE = {"C": 0.9619, "H": 0.8139, "N": 0.9535, "O": 0.6641, "F": 0.3574, "All": 0.9727}
+SMALL_N = 30
+
+
+def atom_rows(set_name: str, params: Parameters | None = None, *, with_sqe: bool = True) -> tuple[list[dict], list[dict]]:
+    """Per-atom rows (both arms on one population) and per-structure diagnostics."""
+    rows, structures = [], []
+    for s in population(SETS[set_name]):
+        eem = ce.eem_charges(s["elements"], s["coords"], 0.0)
+        reasons = [] if eem.status == "converged" else [f"EEM {eem.status}"]
+        sqe = solve(s["elements"], s["coords"], params) if with_sqe else None
+        if sqe is not None and not sqe.valid:
+            reasons.append(f"SQE {sqe.reason}")
+        structures.append({"set": set_name, "file": s["file"], "atoms": len(s["elements"]),
+                           **({k: v for k, v in sqe.diagnostics.items() if k != "component_sums"} if sqe else {}),
+                           "max_component_sum": max(abs(x) for x in sqe.diagnostics["component_sums"]) if sqe else 0.0,
+                           "invalid_reason": "; ".join(reasons)})
+        for k, atom in enumerate(s["atoms"]):
+            rows.append({"set": set_name, "file": s["file"], "atom": atom, "element": s["elements"][k],
+                         "mulliken": s["mulliken"][k], "raw_mulliken": s["raw_mulliken"][k],
+                         "eem": float(eem.charges[k]) if eem.charges is not None else math.nan,
+                         "sqe": float(sqe.charges[k]) if sqe is not None else math.nan,
+                         "included": not reasons, "reason": "; ".join(reasons)})
+    return rows, structures
+
+
+def metric_values(rows: list[dict], arm: str) -> dict:
+    """R^2 per metric ID over included atoms, plus the non-gating per-atom diagnostics."""
+    included = [r for r in rows if r["included"]]
+    out = {}
+    for metric in METRICS:
+        subset = included if metric == "All" else [r for r in included if r["element"] == metric]
+        pred = np.array([r[arm] for r in subset])
+        ref = np.array([r["mulliken"] for r in subset])
+        err = pred - ref
+        defined = len(subset) > 2 and np.std(pred) > 0 and np.std(ref) > 0
+        out[metric] = {"n": len(subset), "r2": r_squared(pred, ref) if defined else math.nan,
+                       "mean_signed_error": float(err.mean()), "mae": float(np.abs(err).mean()),
+                       "rms": float(np.sqrt((err ** 2).mean())), "max_abs_error": float(np.abs(err).max())}
+    present = [e for e in ELEMENTS if out[e]["n"]]
+    dq = sum(out[e]["rms"] ** 2 for e in present) / len(present)
+    out["dq"] = {"eq15_as_printed": dq, "sqrt": math.sqrt(dq)}
+    return out
+
+
+def small_subgroup(rows: list[dict], arm: str, element: str) -> dict:
+    subset = [r for r in rows if r["included"] and r["element"] == element]
+    pred = np.array([r[arm] for r in subset])
+    ref = np.array([r["mulliken"] for r in subset])
+    slope, intercept = np.polyfit(pred, ref, 1)
+    loo = [r_squared(np.delete(pred, i), np.delete(ref, i)) for i in range(len(subset))]
+    return {"n": len(subset), "reference_min": float(ref.min()), "reference_max": float(ref.max()),
+            "sse": float(np.sum((ref - slope * pred - intercept) ** 2)), "sst": float(np.sum((ref - ref.mean()) ** 2)),
+            "loo_r2_min": float(min(loo)), "loo_r2_max": float(max(loo))}
+
+
+def in_interval(value: float, printed: float) -> bool:
+    """Table I's two-decimal rounding interval [p - 0.005, p + 0.005)."""
+    return (not math.isnan(value)) and printed - TOLERANCE <= value < printed + TOLERANCE
+
+
+def gates(values: dict, printed: dict) -> dict[str, bool]:
+    return {m: in_interval(values[m]["r2"], printed[m]) for m in METRICS}
+
+
+def discrimination(recon: float, sqe_printed: float, eem_printed: float) -> str:
+    if round(abs(sqe_printed - eem_printed), 6) < 0.01:
+        return "not applicable"
+    if abs(recon - sqe_printed) < abs(recon - eem_printed) and not in_interval(recon, eem_printed):
+        return "STRICT"
+    return "AMBIGUOUS"
+
+
+def set_verdict(gate: dict[str, bool], classes: dict[str, str], invalid: int) -> str:
+    passed = sum(gate.values())
+    if passed == len(METRICS):
+        if invalid or any(c == "AMBIGUOUS" for c in classes.values()):
+            return "AMBIGUOUS" if not invalid else "PARTIAL"
+        return "REPRODUCED"
+    return "PARTIAL" if passed else "NOT REPRODUCED"
+
+
+def eem_verdict(gate: dict[str, bool]) -> str:
+    passed = sum(gate.values())
+    return "REPRODUCED" if passed == len(METRICS) else ("PARTIAL" if passed else "NOT REPRODUCED")
+
+
+def eem_check(set_name: str) -> dict:
+    """The shipped EEM through `population()`: the 2.4 baseline on EQ, check 2.5 on TS."""
+    rows, structures = atom_rows(set_name, with_sqe=False)
+    values = metric_values(rows, "eem")
+    gate = gates(values, PRINTED[("EEM", set_name)])
+    return {"rows": rows, "structures": structures, "values": values, "gates": gate, "verdict": eem_verdict(gate),
+            "excluded": [s["file"] for s in structures if s["invalid_reason"]]}
+
+
+def baseline_holds(values: dict) -> bool:
+    return all(abs(values[m]["r2"] - EEM_EQ_BASELINE[m]) <= 1e-4 for m in METRICS)

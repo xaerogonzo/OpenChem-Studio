@@ -220,3 +220,91 @@ def test_mathieu_delta_q_diagnostics_are_exactly_these(mathieu_report):
     assert mathieu_report["metrics"]["dq"] == pytest.approx(0.004453, abs=5e-7)
     assert mathieu_report["diagnostics"]["sqrt_dq"] == pytest.approx(0.066734, abs=5e-7)
     assert mathieu_report["diagnostics"]["all_atom_rms"] == pytest.approx(0.043558, abs=5e-7)
+
+
+# 2.4 / 2.5: fixtures, manifests and the EEM arm -------------------------------------------------
+
+_sspec = importlib.util.spec_from_file_location("mathieu_sqe_check", ROOT / "benchmarks" / "charges" / "models" / "mathieu_sqe_check.py")
+sqc = importlib.util.module_from_spec(_sspec)
+sys.modules["mathieu_sqe_check"] = sqc
+_sspec.loader.exec_module(sqc)
+
+#: LF-normalised SHA-256, as recorded in TRIAGE.md 3.4.
+MATHIEU_HASHES = {
+    "mathieu2007_eq.csv": "c63f1dd1f5f0195917377118ce1abca9e3ae5dee84d79a69d6c1674f605c28f7",
+    "mathieu2007_eq_manifest.csv": "d932da7a8166cc57c20eda4fa8b38c86636eb835f978658abadee97892b1e0af",
+    "mathieu2007_ts.csv": "c17f74d0d0e8e99c059ad1941356bb7361cb981afefff1f798a29e5dc603c40d",
+    "mathieu2007_ts_manifest.csv": "37f75e9c6f1ced540112bd60550a46444b0f3452478d94ce889f813251b887c7",
+}
+MATHIEU_COUNTS = {"EQ": (194, 3064, {"C": 965, "H": 1812, "N": 92, "O": 133, "F": 62}),
+                  "TS": (55, 1085, {"C": 327, "H": 592, "N": 15, "O": 146, "F": 5})}
+
+
+@pytest.mark.parametrize("name", sorted(MATHIEU_HASHES))
+def test_mathieu_fixture_and_manifest_hashes_are_the_recorded_ones(name):
+    import hashlib
+    data = (FIXTURES / name).read_bytes().replace(b"\r\n", b"\n")
+    assert hashlib.sha256(data).hexdigest() == MATHIEU_HASHES[name]
+    assert MATHIEU_HASHES[name] in (ROOT / "benchmarks" / "charges" / "models" / "TRIAGE.md").read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("set_name", ["EQ", "TS"])
+def test_mathieu_csv_agrees_with_its_source_manifest(set_name):
+    _, fixture, manifest = mec.SETS[set_name]
+    rows = [r for r in csv.DictReader(l for l in manifest.read_text(encoding="utf-8").splitlines() if not l.startswith("#"))]
+    assert [(r["kind"], r["file"]) for r in rows[:2]] == [("readme", "README.TXT"), ("archive", "A6.11.108.EPAPS.ZIP")]
+    assert rows[1]["sha256"] == "NOT HELD" and len(rows[0]["sha256"]) == 64
+    molecules = mec.molecules(fixture)
+    sources = rows[2:]
+    assert [r["file"] for r in sources] == [f"{name}.xyz" for name in molecules]
+    for source in sources:
+        atoms = molecules[source["file"][:-4]]
+        assert int(source["atoms"]) == len(atoms)
+        for element in mec.ELEMENTS:
+            assert int(source[element]) == sum(1 for a in atoms if a["element"] == element)
+        strings = [[a["element"], a["x"], a["y"], a["z"], a["mulliken"]] for a in atoms]
+        assert mec.checksums(strings) == {k: source[k] for k in ("mulliken_sum", "coordinate_sum", "abs_charge_sum")}
+
+
+@pytest.mark.parametrize("set_name", ["EQ", "TS"])
+def test_mathieu_population_counts_supported_elements_and_unique_keys(set_name):
+    population = sqc.population(sqc.SETS[set_name])
+    files, atoms, counts = MATHIEU_COUNTS[set_name]
+    assert len(population) == files and sum(len(s["elements"]) for s in population) == atoms
+    elements = [e for s in population for e in s["elements"]]
+    assert {e: elements.count(e) for e in counts} == counts and set(elements) <= set(sqc.ELEMENTS)
+    keys = [(s["file"], a) for s in population for a in s["atoms"]]
+    assert len(keys) == len(set(keys))
+
+
+@pytest.fixture(scope="module")
+def eem_eq():
+    return sqc.eem_check("EQ")
+
+
+@pytest.fixture(scope="module")
+def eem_ts():
+    return sqc.eem_check("TS")
+
+
+def test_24_baseline_the_shipped_eem_through_population_still_gives_22s_values(eem_eq):
+    assert eem_eq["excluded"] == [] and sqc.baseline_holds(eem_eq["values"])
+
+
+@pytest.mark.parametrize("metric", ["C", "H", "N", "O", "All"])
+def test_25_the_shipped_eem_reproduces_the_eem_ts_row(eem_ts, metric):
+    assert eem_ts["gates"][metric]
+
+
+@pytest.mark.xfail(strict=True, reason="STOP RECORD 2.5: TS fluorine (n = 5) gives R^2 0.3499, outside Table I's [0.355, 0.365)")
+def test_25_the_shipped_eem_reproduces_the_eem_ts_fluorine_r_squared(eem_ts):
+    assert eem_ts["gates"]["F"]
+
+
+def test_25_the_measured_values_and_verdict_are_exactly_these(eem_ts):
+    measured = {m: round(eem_ts["values"][m]["r2"], 4) for m in sqc.METRICS}
+    assert measured == {"C": 0.9574, "H": 0.8597, "N": 0.9282, "O": 0.8639, "F": 0.3499, "All": 0.9581}
+    assert eem_ts["verdict"] == "PARTIAL" and eem_ts["excluded"] == []
+    assert eem_ts["values"]["dq"]["sqrt"] == pytest.approx(0.084425, abs=5e-7)
+    fluorine = sqc.small_subgroup(eem_ts["rows"], "eem", "F")
+    assert (fluorine["n"], round(fluorine["loo_r2_min"], 4), round(fluorine["loo_r2_max"], 4)) == (5, 0.2566, 0.6145)

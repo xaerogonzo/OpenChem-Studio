@@ -644,3 +644,61 @@ the paper, and it decides the outcome by itself.
   That fit is a method of its own, and would need its own pre-registered check
   against a published Singh–Kollman example before it could judge Table 9.
 
+
+### 3.4 Fixtures, the EEM baseline, and check 2.5: the shipped EEM on TS (2026-09-15)
+
+**Fixtures.** `mathieu_eem_check.py --freeze` read both EPAPS directories. The
+EQ CSV came out byte-identical to 2.2's. SHA-256 values (LF):
+- `mathieu2007_eq.csv`:
+  `c63f1dd1f5f0195917377118ce1abca9e3ae5dee84d79a69d6c1674f605c28f7`
+- `mathieu2007_eq_manifest.csv`:
+  `d932da7a8166cc57c20eda4fa8b38c86636eb835f978658abadee97892b1e0af`
+- `mathieu2007_ts.csv` (55 files, 1,085 atoms):
+  `c17f74d0d0e8e99c059ad1941356bb7361cb981afefff1f798a29e5dc603c40d`
+- `mathieu2007_ts_manifest.csv`:
+  `37f75e9c6f1ced540112bd60550a46444b0f3452478d94ce889f813251b887c7`
+
+Each manifest lists:
+- README.TXT with its SHA-256;
+- the deposit's ZIP as NOT HELD;
+- for every .xyz, its SHA-256, atom and element counts, and exact decimal
+  sums of its Mulliken, coordinate and absolute-charge strings.
+
+The tests check every CSV against its manifest. The population is exactly as
+pre-registered: every element is supported, every (file, atom) key is unique,
+and **nothing is excluded in either set**.
+
+**EEM baseline (2.4d): holds.** Through `population()`, the shipped EEM on EQ
+gives C 0.9619, H 0.8139, N 0.9535, O 0.6641, F 0.3574 and All 0.9727, 2.2's
+values exactly.
+
+**Check 2.5, EEM (TS): PARTIAL, fluorine the only miss.**
+
+| Metric | n | Reconstructed R² | Table I | Interval | Gate |
+|---|---|---|---|---|---|
+| C | 327 | 0.9574 | 0.96 | [0.955, 0.965) | pass |
+| H | 592 | 0.8597 | 0.86 | [0.855, 0.865) | pass |
+| N | 15 | 0.9282 | 0.93 | [0.925, 0.935) | pass |
+| O | 146 | 0.8639 | 0.86 | [0.855, 0.865) | pass |
+| F | 5 | 0.3499 | 0.36 | [0.355, 0.365) | **miss by 0.0051** (strict-xfail stop record) |
+| All | 1,085 | 0.9581 | 0.96 | [0.955, 0.965) | pass |
+
+**Diagnostics, non-gating.**
+- **Δq:** 0.007128 as printed and √Δq 0.084425, against 0.0847. That is
+  2.8e-4 off, a larger gap than EQ's 6.6e-5.
+- **Per-atom errors:** All MAE 0.0382, RMS 0.0549, max 0.2484.
+- **TS fluorine is five atoms:**
+  - reference charges −0.5012 to −0.1318;
+  - SSE 0.05225 and SST 0.08038;
+  - **leave-one-out R² from 0.2566 to 0.6145**.
+
+  Removing any single atom moves the value across a range fifty times the gate
+  width.
+- **TS nitrogen (n = 15):** leave-one-out 0.9137–0.9495.
+
+**What it means.**
+- The shipped EEM reproduces five of Mathieu's six EEM (TS) values on 1,085
+  transition-state atoms it was never fitted to.
+- The one miss is a five-atom statistic, which one atom can move by ±0.2.
+  It stays a recorded miss, not a pass.
+- Check 2.5 does not feed 2.4.
