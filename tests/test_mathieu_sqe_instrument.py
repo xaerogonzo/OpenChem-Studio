@@ -323,3 +323,205 @@ def test_12_two_molecules_in_one_input_are_each_neutral():
     assert solution.valid and solution.diagnostics["components"] == 2
     assert abs(solution.charges[:6].sum()) <= 1e-12 and abs(solution.charges[6:].sum()) <= 1e-12
     assert np.abs(solution.charges).max() > 0.05
+
+
+# TRIAGE.md 2.6g: the named-cause instrument ------------------------------------------------------
+
+
+@pytest.mark.parametrize("elements,coords", [(NITRAMIDE_ELEMENTS, NITRAMIDE), (CH2F2_ELEMENTS, CH2F2), (TRIANGLE_ELEMENTS, TRIANGLE)],
+                         ids=["nitramide", "ch2f2", "cycle"])
+def test_26_1_the_scaled_arm_equals_the_unscaled_arm_on_well_conditioned_systems(elements, coords):
+    plain, scaled = sq.solve(elements, coords), sq.solve(elements, coords, scaled=True)
+    assert plain.valid and scaled.valid
+    assert np.allclose(plain.charges, scaled.charges, atol=1e-12)
+
+
+def test_26_1_the_scaled_arm_actually_rescales():
+    """Mutation guard: a scaled arm that silently runs the plain solve fails here, where the
+    unscaled relative rcond discards a real mode and the scaled one does not."""
+    a = np.diag([1e12, 1.0, 1.0])
+    a[1, 2] = a[2, 1] = 0.5
+    b = np.array([1e12, 1.0, 1.0])
+    q_plain, _ = sq._linear_solve(a, b, 1e-10, scaled=False)
+    q_scaled, _ = sq._linear_solve(a, b, 1e-10, scaled=True)
+    assert np.abs(a @ q_scaled - b).max() < 1e-9
+    assert np.abs(a @ q_plain - b).max() > 1e-3
+
+
+def _synthetic_params():
+    return [sq.Parameters(), sq.Parameters(c_ev=40.0, lam=0.7), sq.model_c(), sq.Parameters(kernel="ohno_klopman")]
+
+
+@pytest.mark.parametrize("scaled", [False, True])
+def test_26_2_the_prepared_evaluator_equals_solve_exactly_on_synthetic_systems(scaled):
+    for params in _synthetic_params():
+        for elements, coords in [(NITRAMIDE_ELEMENTS, NITRAMIDE), (CH2F2_ELEMENTS, CH2F2), (TRIANGLE_ELEMENTS, TRIANGLE)]:
+            prepared = sq.Prepared(elements, coords, params, scaled=scaled)
+            for c_ev, lam in [(params.c_ev, params.lam), (90.0, 0.9), (150.0, 0.62)]:
+                probe = sq.Parameters(**{**params.__dict__, "c_ev": c_ev, "lam": lam})
+                expected = sq.solve(elements, coords, probe, scaled=scaled)
+                charges, valid, _ = prepared.solve(c_ev, lam)
+                assert np.array_equal(charges, expected.charges), (params, c_ev, lam)
+                assert valid == expected.valid
+
+
+def test_26_2_the_prepared_evaluator_rebuilds_k_for_every_point():
+    """Mutation guard for a stale K: moving C must move the charges of a penalised system."""
+    prepared = sq.Prepared(NITRAMIDE_ELEMENTS, NITRAMIDE, sq.Parameters(), scaled=True)
+    one, _, _ = prepared.solve(115.0, 0.816)
+    two, _, _ = prepared.solve(30.0, 0.816)
+    assert np.abs(one - two).max() > 1e-4
+
+
+def test_26_2_the_prepared_evaluator_equals_solve_on_three_corpus_structures():
+    structures = sorted(sq.population(sq.SETS["EQ"]), key=lambda s: s["file"])
+    chosen = [s for s in structures if s["file"] in ("CO", "trifluoroacetamide", "guanine")]
+    assert len(chosen) == 3
+    for s in chosen:
+        for scaled in (False, True):
+            expected = sq.solve(s["elements"], s["coords"], scaled=scaled)
+            charges, valid, _ = sq.Prepared(s["elements"], s["coords"], sq.Parameters(), scaled=scaled).solve(sq.C_EV, sq.LAMBDA)
+            assert np.allclose(charges, expected.charges, atol=1e-12) and valid == expected.valid
+
+
+def test_26_3_eq15_by_hand():
+    elements = ["C", "C", "H"]
+    predicted, reference = [0.10, -0.20, 0.10], [0.05, -0.10, 0.02]
+    # C: ((0.05)^2 + (0.10)^2) / 2 = 0.00625; H: (0.08)^2 = 0.0064; then the mean over 2 elements.
+    assert sq.delta_q(elements, predicted, reference) == pytest.approx((0.00625 + 0.0064) / 2, abs=1e-15)
+
+
+def test_26_4_the_square_root_does_not_move_the_argmin():
+    """A property, green by design: eq 15 is nonnegative and the square root is monotone."""
+    grid = [(c, l) for c in np.linspace(80, 150, 36) for l in np.linspace(0.7, 0.95, 26)]
+
+    def f(c, l):
+        return 0.004 + 1e-6 * (c - 118.0) ** 2 + 0.3 * (l - 0.83) ** 2 + 1e-5 * (c - 118.0) * (l - 0.83)
+
+    assert min(grid, key=lambda p: f(*p)) == min(grid, key=lambda p: math.sqrt(f(*p)))
+
+
+def test_26_5_delta_and_the_prose_classes():
+    p = 0.0670
+    assert sq.rounding_delta(p) == pytest.approx(max(0.06705 ** 2 - p ** 2, p ** 2 - 0.06695 ** 2), abs=1e-18)
+    assert sq.rounding_delta(p) == pytest.approx(2 * p * 5e-5 + 2.5e-9, abs=1e-15)
+    classes = [sq.prose_class(v, 0.0695) for v in (0.069450, 0.069549, 0.069395, 0.069389, 0.0697)]
+    assert classes == ["PASS", "PASS", "NEAR", "MISS", "MISS"]
+
+
+def test_26_6_the_chain_rule_to_scaled_coordinates_on_an_analytic_quadratic():
+    s = np.array([115.0, 0.816])
+    hess_u = np.array([[2.0, 0.3], [0.3, 5.0]])
+    centre_u = np.array([1.02, 0.97])
+
+    def f(c, l):
+        d = np.array([c, l]) / s - centre_u
+        return 0.5 * d @ hess_u @ d
+
+    point = (115.0, 0.816)
+    g, hess = sq.fd_derivatives(f, point, 0.5, 1e-3)
+    gs, hs = sq.to_scaled(g, hess)
+    assert np.allclose(hs, hess_u, rtol=1e-6)
+    assert np.allclose(gs, hess_u @ (np.array(point) / s - centre_u), rtol=1e-6)
+
+
+def test_26_6_stationarity_classifies_a_minimum_a_slope_and_a_singular_surface():
+    s = np.array([115.0, 0.816])
+    hess_u = np.array([[2e-3, 0.0], [0.0, 5e-3]])
+    delta = sq.rounding_delta(0.0670)
+
+    def at_min(c, l):
+        d = np.array([c, l]) / s - 1.0
+        return 0.0045 + 0.5 * d @ hess_u @ d
+
+    assert sq.stationarity(at_min, (115.0, 0.816), delta)["class"] == "STATIONARY-AT-POINT"
+    # g_tol here is sqrt(2 delta * 2e-3) = 1.6e-4 in scaled units: a 1e-4 slope is inside it, 1e-3 is not.
+    assert sq.stationarity(lambda c, l: at_min(c, l) + 1e-4 * (c / 115.0), (115.0, 0.816), delta)["class"] == "STATIONARY-AT-POINT"
+    assert sq.stationarity(lambda c, l: at_min(c, l) + 1e-3 * (c / 115.0), (115.0, 0.816), delta)["class"] == "NON-STATIONARY-AT-POINT"
+    assert sq.stationarity(lambda c, l: 0.0045 + 1e-3 * (c / 115.0 - 1.0) ** 2, (115.0, 0.816), delta)["class"] == "UNRELIABLE"
+
+
+def _two_well(c, l):
+    u, v = c / 115.0, l / 0.816
+    return (u - 0.7) ** 2 * (u - 1.3) ** 2 + 0.5 * (v - 1.0) ** 2
+
+
+def test_26_7_powell_ends_at_a_minimum_in_physical_units_and_stays_in_the_box():
+    """Measured while writing this: SciPy's bounded Powell line search brackets along the whole
+    segment inside the box, so from (70, 0.9) it crosses the barrier into the OTHER well. A Powell
+    end point is therefore not "the nearest basin", which is why 2.6d never classifies from one
+    end alone: grid minima and VERIFIED-NEARBY-MINIMUM carry that."""
+    for start in [(70.0, 0.9), (160.0, 0.7)]:
+        run = sq.powell(_two_well, start)
+        assert run["start"] == start
+        assert min(abs(run["end"][0] - 0.7 * 115.0), abs(run["end"][0] - 1.3 * 115.0)) <= 1e-6 * 115.0
+        assert run["end"][1] == pytest.approx(0.816, abs=1e-6)
+        assert run["value"] == pytest.approx(0.0, abs=1e-12)
+    boxed = sq.powell(lambda c, l: (c - 1000.0) ** 2 + (l - 0.8) ** 2, (100.0, 0.8))
+    assert boxed["end"][0] == pytest.approx(sq.BOX[0][1], abs=1e-6)
+
+
+def test_26_7_powell_on_a_badly_scaled_quadratic_reports_physical_units():
+    end = sq.powell(lambda c, l: ((c - 120.0) / 50.0) ** 2 + ((l - 0.8) / 0.001) ** 2, (90.0, 0.85))["end"]
+    assert end[0] == pytest.approx(120.0, abs=1e-4) and end[1] == pytest.approx(0.8, abs=1e-7)
+
+
+def test_26_8_basin_labelling():
+    ends = [(80.5, 0.816), (80.50005, 0.8160002), (149.5, 0.816), (149.49999, 0.816), (80.5, 0.9)]
+    assert sq.label_basins(ends) == [0, 0, 1, 1, 2]
+
+
+def test_26_9_the_v1_bond_graph_and_its_valence_check():
+    ethanol = ["C", "C", "O", "H", "H", "H", "H", "H", "H"]
+    coords = np.array([[0.0, 0.0, 0.0], [1.52, 0.0, 0.0], [2.03, 1.33, 0.0], [-0.39, 1.02, 0.0], [-0.39, -0.51, 0.88],
+                       [-0.39, -0.51, -0.88], [1.91, -0.51, 0.88], [1.91, -0.51, -0.88], [2.99, 1.30, 0.0]])
+    params = sq.Parameters(pair_rule="bond_graph")
+    bonds = sq.pairs(ethanol, coords, params)
+    assert len(bonds) == 8 and sq.valence_problems(ethanol, bonds) == []
+    assert len(sq.pairs(ethanol, coords, sq.Parameters())) > 8
+    squeezed = coords.copy()
+    squeezed[8] = [2.20, 0.40, 0.0]
+    assert sq.valence_problems(ethanol, sq.pairs(ethanol, squeezed, params))
+    # These bonds are shorter than the covalent sums, so the factor shows only below 1.
+    assert len(sq.pairs(ethanol, coords, sq.Parameters(pair_rule="bond_graph", bond_factor=0.9))) < len(bonds)
+
+
+def test_26_10_the_ohno_klopman_limits():
+    eta_c, eta_o = 9.00 / HARTREE_EV, 14.34 / HARTREE_EV
+    assert sq.ohno_klopman(1e6, eta_c, eta_o) == pytest.approx(1e-6, rel=1e-9)
+    assert sq.ohno_klopman(0.0, eta_c, eta_o) == pytest.approx(4 * eta_c * eta_o / (eta_c + eta_o), rel=1e-12)
+    assert sq.ohno_klopman(0.0, eta_c, eta_c) == pytest.approx(2 * eta_c, rel=1e-12)
+
+
+def test_26_10_the_assembled_hessian_uses_the_ohno_klopman_kernel_in_hartree():
+    """Through `atomic_hessian`, where the unit conversion actually happens."""
+    elements, coords = ["C", "O"], np.array([[0.0, 0.0, 0.0], [1e-7, 0.0, 0.0]])
+    h = sq.atomic_hessian(elements, coords, sq.Parameters(kernel="ohno_klopman"))
+    eta_c, eta_o = 9.00 / HARTREE_EV, 14.34 / HARTREE_EV
+    assert h[0, 1] == pytest.approx(4 * eta_c * eta_o / (eta_c + eta_o), rel=1e-6)
+    far = sq.atomic_hessian(elements, np.array([[0.0, 0.0, 0.0], [500.0, 0.0, 0.0]]), sq.Parameters(kernel="ohno_klopman"))
+    assert far[0, 1] == pytest.approx(BOHR / 500.0, rel=1e-6)
+
+
+def test_26_10_ohno_klopman_given_eta_in_ev_fails_the_short_range_limit():
+    """The unit mutation: eV where Hartree belongs moves the R -> 0 value by a factor of 27.2."""
+    assert sq.ohno_klopman(0.0, 9.00, 9.00) != pytest.approx(2 * 9.00 / HARTREE_EV, rel=1e-3)
+
+
+def test_26_the_model_c_parameters_are_table_ii():
+    params = sq.model_c()
+    assert params.c_ev == 8.03 and params.lam == 0.695
+    assert params.chi_ev == {"C": 5.44, "H": 0.00, "N": 10.48, "O": 22.37, "F": 29.80}
+    assert params.eta_ev == {"C": 8.93, "H": 18.86, "N": 10.06, "O": 20.55, "F": 45.74}
+
+
+def test_26_the_surface_contains_the_printed_point_exactly():
+    assert sq.C_EV in sq.GRID_C and sq.LAMBDA in sq.GRID_LAMBDA
+
+
+def test_26_the_verdict_table_is_evaluated_top_to_bottom():
+    assert sq.verdict_26("STATIONARY", True, True, True, "NEAR") == ("COMPATIBLE", "REPRODUCED")
+    assert sq.verdict_26("NON-STATIONARY", True, True, True, "PASS") == ("G-compatible, S-incompatible", "PARTIAL")
+    assert sq.verdict_26("STATIONARY", False, True, False, "MISS") == ("S-stationary, G-incompatible", "PARTIAL")
+    assert sq.verdict_26("NON-STATIONARY", False, False, False, "MISS") == ("INCOMPATIBLE", "INCOMPATIBLE")
+    assert sq.verdict_26("INCONCLUSIVE", False, False, False, "MISS") == ("INCONCLUSIVE", "INCONCLUSIVE")
