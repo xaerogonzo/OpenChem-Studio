@@ -784,3 +784,164 @@ study run stopped while reading the file, with no molecule solved. The
 builder now uses `csv.writer`. Regenerated with the same seed, it holds the
 same 174 molecules and coordinates, correctly quoted, and the hash above is
 updated.
+
+### A10 (2026-09-14, the hydrogen refit; before any output it defines)
+
+**The question.** Can the published hydrogen parameter pairs be reproduced by
+repeating the paper's own fit? Section IV fits χ°_H and J°_H to "the charges on
+H in the molecules LiH, CH₄, NH₃, H₂O, and HF", and ref 20 states the weights:
+"In this fit we weighted CH₄ as 5, LiH as 0.2, and the others as 1." Table III
+prints both target columns and both results: the exptl column, fitted to
+(4.5280, 13.8904), and the HF column, fitted to (4.7174, 13.4725). This is
+evidence only. Nothing here changes the solver, a calculator, a default, an
+identity or a shipped claim, and any later proposal is a separate amendment
+with a complete new gate.
+
+**Sources read for it (2026-09-14).**
+- **Cioslowski, Phys. Rev. Lett. 1989, 62, 1469** (Table III footnote e). Its
+  Table I prints LiH Q_H = −0.6819 (APT, RHF/6-31++G\*\*, optimised geometry).
+  That is Table III's HF value −0.682, identified. It prints no bond length, so
+  there is no geometry variant to test.
+- **Cioslowski, J. Am. Chem. Soc. 1989, 111, 8333** was requested first by
+  mistake and is not the cited paper.
+- **Ongari et al. 2019** confirms the five-molecule fit and the iteration
+  "starting from the initial guess of null partial charge".
+- **caltechmsc/cheq v0.5.1** (MIT) is an implementation reference only, the
+  source of H-c and H-d below.
+
+**Targets and observations.**
+- One observation per molecule: its Table III row (`rappe1991_table3.csv`).
+- Every hydrogen in these symmetric molecules carries the same charge. The
+  instrument asserts equality to 1e-10 e and uses that value, so multiplicity
+  never enters.
+- Geometries are O4's: Huber r_e for HF and LiH, and A4's builders for H₂O, NH₃
+  and CH₄.
+
+**Objective.** S(χ, J) = Σᵢ wᵢ (Qᵢ(χ, J) − Tᵢ)², summed over the five
+molecules.
+- T is the exptl column for the experimental-set fit and the HF column for the
+  HF-set fit.
+- w = 5 (CH₄), 0.2 (LiH), 1 (HF, H₂O, NH₃). These are the weights themselves,
+  never their squares or square roots.
+
+**Variants.** The list is complete, and each differs from V0 in one rule.
+
+1. **V0, the shipped A8 model** (ADOPTED):
+   - ζ from eq 17′ with λ = ½;
+   - ζ_H = ζ° + Q (eq 20) in every hydrogen-involving pair, both H–heavy and
+     H–H;
+   - hydrogen's diagonal D = J°(1 + Q/ζ°) (eq 21), with ζ° = 1.0698;
+   - eq 5's bounds and eq 13's fixing, through `ce.solve_bounded`.
+
+   Q_H is the self-consistent charge: the unique root of g(Q) = F(Q·1)_H − Q on
+   [−1, +1]. F is one outer build and solve at all hydrogens set to Q. Mixing
+   does not move a fixed point (A7), so this is the converged answer wherever
+   plain iteration converges, and LiH's where it does not.
+2. **H-a6, H-a7, H-a8, H-a9, H-a10**, five separate variants. V0's equations,
+   with Q_H = F^k(0), where F^k is k plain outer iterations from all hydrogens
+   at zero.
+   - k is fixed per variant, and the same for all five molecules and both
+     columns. The optimiser never chooses it.
+   - Every molecule's trace Q₀…Q_k is written at the printed pairs.
+   - A pass shows only that a k-iteration reading reproduces the fit, not that
+     the 1991 program stopped at k.
+3. **H-b.** V0 with D = J°(1 + 1.5 Q/ζ°), the diagonal whose fixed point
+   satisfies eq 23's gradient. From E_H(Q) = χ°Q + ½J°Q²(1 + Q/ζ°), dE_H/dQ =
+   χ° + J°Q + (3/2)J°Q²/ζ° (section 3, R2). Built as ADOPTED with
+   `hydrogen_self_term="eq23_gradient"`. Q_H is defined as in V0.
+4. **H-c.** V0 with ζ_H = ζ° = 1.0698 in every hydrogen-involving pair, both
+   H–heavy and H–H. D is still eq 21 and moves with Q. Built as ADOPTED with
+   `zeta_h_in_pairs=False`. Q_H is defined as in V0.
+5. **H-d.** H-c with D = J°(1 + clamp(Q, −0.95, +0.95)/ζ°).
+   - The clamp is applied only to the Q entering D, as cheq's
+     `run_single_solve` applies it.
+   - Pair ζ is already fixed.
+   - The solved charges are never clamped.
+
+   Q_H is defined as in V0.
+
+χ°_H and J°_H enter nothing but hydrogen's χ entry and diagonal. The instrument
+sets those two directly and takes everything else from the shipped build. A
+test holds its matrices equal to `ce.qeq_hardness_matrix` at both printed pairs
+under V0, H-b and H-c.
+
+**Root finding (V0, H-b, H-c, H-d).**
+1. g is evaluated on A7's grid of 2001 points over [−1, +1]. Pair integrals on
+   that grid do not depend on χ or J, so they are computed once per molecule.
+2. **Exactly one sign change** is required. Zero or several (or an exact zero on
+   a grid point beside a sign change) make S = +∞ at that (χ, J). The count of
+   such evaluations is reported.
+3. The bracket is refined by two exact batched evaluations of 9 equally spaced
+   points each.
+4. A cubic through the four points nearest the sign change gives the root.
+5. The root is accepted only if exact |g| ≤ 1e-11 there; otherwise S = +∞ and
+   the failure is counted.
+
+Integrals that are identical by symmetry (same shells, same exponents, distance
+equal to 1e-12 Å) are computed once.
+
+**Optimiser, fixed.**
+- **Box:** χ ∈ [4.0, 5.5] eV, J ∈ [12.0, 15.0] eV. Outside the box S = +∞, so
+  the point is rejected, never clipped or reflected.
+- **Global structure:** S on a 61 × 61 grid over the box. Local minima (a finite
+  S no larger than any of its eight neighbours) are reported as grid basins.
+- **Local search:** Nelder–Mead in the script, since scipy is not in the
+  environment:
+  - reflection 1, expansion 2, contraction ½, shrink ½;
+  - initial simplex x₀, x₀ + (0.05, 0), x₀ + (0, 0.05);
+  - stop when every vertex is within 1e-6 eV of the best (max-norm) and every
+    S within 1e-10 of the best, or after 4000 iterations;
+  - a test holds it to the minima of a quadratic and of Rosenbrock's function
+    within 1e-6;
+  - it starts from the 25 points of the 5 × 5 grid over the box (the corners
+    included) and from the printed pair.
+- **Basins:** every endpoint is recorded, and endpoints within 1e-3 eV
+  (max-norm) share a basin. The best fit is the lowest-S endpoint. When another
+  basin lies within ΔS < 1e-8 of it, all such basins are reported and none is
+  selected.
+- **No-optimiser check:** S on a 41 × 41 grid spanning ±0.05 eV around the best
+  fit. Its minimum must lie within one grid step (0.0025 eV) of the best fit.
+
+**Rounding recovery control, per variant and column, before that variant's
+real refit.**
+1. Draw 200 samples, seeded with numpy `default_rng(20260915)`.
+2. For each, add U(−5e-5, +5e-5) eV to each printed parameter (four-decimal
+   printing) and compute every molecule's Q_H there.
+3. Add U(−0.0005, +0.0005) e to each charge (three-decimal printing).
+4. Refit by Nelder–Mead from the printed pair.
+5. The envelope is the 95th percentile of |χ_fit − χ_printed| and of
+   |J_fit − J_printed|. Draws with no finite S are counted and excluded.
+
+The fixed ±0.01 eV is reported beside it, as a reference and not a gate.
+
+**Reported per variant and column,** at the printed pair first:
+- **at the printed pair:** each molecule's Q_H and residual against the target;
+  S; max |residual|; the LiH residual; RMS and max over the four non-LiH
+  molecules; and centred ∂S/∂χ, ∂S/∂J (h = 1e-4 eV, diagnostic);
+- **at the refit:** the pair, S, ΔS = S(printed) − S(refit), the same residual
+  set, the basins, the fine-grid check, and the local elongation. A quadratic is
+  fitted to the fine grid, and the square root of its Hessian's eigenvalue
+  ratio is reported;
+- **the program-output check:** each molecule's Q_H at the printed pair against
+  the paper's own QEq (or QEqHF) column, with O4's tolerance of ±0.001 e for
+  diatomics and ±0.002 e for polyatomics;
+- **ordering:** per molecule, whether sign(Q_exp-set − Q_HF-set) at the two
+  printed pairs matches sign(QEq − QEqHF) in Table III. It is reported as a
+  count of inverted molecules.
+
+**Classification, per variant, with no combined score.**
+- **FIT-REPRODUCED** needs, for both columns: the refit within the rounding
+  envelope of the printed pair (both parameters), **and** every program-output
+  check within tolerance. Each condition must hold on its own.
+- **PARTIAL:** one column meets both conditions.
+- **UNEXPLAINED:** neither does.
+- PROGRAM-CONFIRMED is not reachable here; it would need a source stating how
+  the 1991 program worked.
+
+**Stop rule.** No variant is added after any output exists. If every variant is
+UNEXPLAINED, the record says that the published pairs are not reproduced, under
+the documented fit protocol, by the shipped equations or by any reading tested
+here.
+
+**Test pins.** Verdicts, basin counts, S to 1e-9 relative, and refit pairs to
+1e-4 eV. Optimiser digits beyond those are not pinned.
