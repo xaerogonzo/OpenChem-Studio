@@ -1063,6 +1063,12 @@ they are, and are not:
   charges whose sum is the net charge; no atom keeps its formal charge. No
   protonation is applied. Hydrogens must be atoms with positions: a conformer
   without them is refused, and none are placed for it.
+- **EEM has been checked against a study it was never fitted to.** Mathieu
+  2007 used the same parameters and published correlations with B3LYP
+  Mulliken charges. On his 194 equilibrium molecules all six per-element
+  correlations reproduce. On his 55 reaction transition states, five of six
+  do; fluorine misses, and that set has only five fluorine atoms. The record
+  is `benchmarks/charges/models/TRIAGE.md`, checks 2.2 and 2.5.
 - **Open Babel's "Bultinck" EEM file is a different parameter set.** Its
   carbon and oxygen values appear in no table of either Bultinck paper, and it
   gives unlisted elements hydrogen's parameters. It is used only to check that
@@ -1076,9 +1082,11 @@ they are, and are not:
   - **Refused, computationally:** molecules whose hydrogen iteration does not
     settle (LiH is one, and its printed charge is not a solution of the
     equations), and any molecule whose final solution holds a charge at its
-    bound. That second domain is deliberately incomplete: the paper's bound
-    procedure misses the constrained optimum in synthetic cases, and it is
-    under separate study.
+    bound. That second domain is deliberately conservative. The paper's bound
+    procedure misses the constrained optimum in synthetic cases, but on 174
+    real molecules (amendment A9) it was the optimum wherever it converged.
+    The one bound activation was a molecule whose energy has no minimum
+    without the bounds, which is exactly what this refusal is for.
   - **A source discrepancy, not a refusal:** silicon. The result carries a
     note that it does not reproduce the 1991 SiH₄ row, whose sign the same
     group's 1996 calculations contradict.
