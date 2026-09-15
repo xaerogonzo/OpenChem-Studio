@@ -2004,8 +2004,8 @@ struck through and marked SHIPPED here, never deleted.
   holds the per-model records.
   - Split-charge equilibration (Nistor 2006) is held on geometry. Its
     supplement prints charges for 41 molecules, but every table has lost a
-    hydrogen's coordinates, and the Internet Archive does not hold the
-    originals.
+    hydrogen's coordinates. Neither the publisher's supplementary download
+    nor the Internet Archive holds the original geometry files.
   - Mathieu 2007's SQE (check 2.4) is held too. Built from its energy
     expression (its printed linear system has a sign error), it reproduces 7
     of Table I's 12 SQE correlations, and the parameters' printed rounding

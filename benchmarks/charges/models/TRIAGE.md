@@ -43,7 +43,8 @@ None of them should inherit QEq's solver. Each needs its own abstraction:
 
 ### SQE: Nistor, Polihronov, Müser & Mosey 2006
 
-`nistor2006.pdf` plus `nistor2006_si.pdf.pdf` (the archived UWO group site).
+`nistor2006.pdf` plus `nistor2006_si.pdf` (the archived UWO group site; first
+saved as `nistor2006_si.pdf.pdf`, the name the fixture headers keep).
 - **Evidence basis:** PDF plus supplement.
 - **Equations:** complete; eq 4 gives methods i–iv, and the supplement's "SQE
   Methods" page restates them.
@@ -71,9 +72,13 @@ None of them should inherit QEq's solver. Each needs its own abstraction:
   - the local supplement is itself a 2006 Acrobat Web Capture of the site.
 
   This is provenance only. The local supplement stays the primary source for
-  the charges, and **no further hunting is planned**. The one open route is
-  whether AIP's supplementary material for the paper (EPAPS
-  E-JCPSA6-125-520627) is a file folder, as Mathieu's turned out to be.
+  the charges, and **no further hunting is planned**.
+- **AIP's supplementary material holds no geometry files either** (checked by
+  Alex, 2026-09-15). The publisher's download is this same PDF: 50 pages,
+  Acrobat Web Capture dated 2006-05-23. **Every known route to the missing
+  coordinates is exhausted**, so the geometry HOLD stands until a new source
+  appears. Rebuilding the hydrogens would be a reconstruction, not the
+  source.
 
 ### SQE: Mathieu 2007
 

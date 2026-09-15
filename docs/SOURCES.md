@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: bc226f74719f71fa38f65852b362ad530cf8c057e4110ef50f43f5617ae921d4 -->
+<!-- SOURCE SHA256: 3a05c6fe8298f91478a69aa8fc562cc3c706e19cf1469bb6d4aa9e848d20bacc -->
 
 # Sources
 
@@ -2387,13 +2387,20 @@ of eq 4, fitted to B3LYP/6-31G(d,p) ESP charges "constrained ... to have net
 zero charge" over 41 H/C/O/Si molecules; Table IV lists hexamethyldisiloxane's
 charges under all four methods.
 
-ITS SUPPLEMENT IS HELD as `nistor2006_si.pdf.pdf`: its reference 39 names EPAPS
+ITS SUPPLEMENT IS HELD as `nistor2006_si.pdf` (first saved as `nistor2006_si.pdf.pdf`;
+same 50-page capture): its reference 39 names EPAPS
 E-JCPSA6-125-520627 and the group site, and the held file is that site
 archived (50 pp): every parameter list, Slater orbital exponents (H 2.315,
 C 1.618, O 1.842, Si 1.818 per angstrom, credited to Sefcik et al. 2002), and
 per-molecule tables of coordinates, ESP charges and methods i-iv charges. Its
 pages state: "All information is licenced under the GNU: Reproduction by
 nonprofit organizations or for academic use."
+
+THE PUBLISHER'S SUPPLEMENT HOLDS NO GEOMETRY FILES. Alex downloaded the
+supplementary material from the AIP article page (2026-09-15): it is this same
+PDF (Acrobat Web Capture, 2006-05-23), and nothing else. The site's
+`molecules/Mnnn.xyz` files are not in the Internet Archive either, so every
+known route to the missing hydrogen coordinates is exhausted.
 
 DOI and article number confirmed against Crossref.
 
