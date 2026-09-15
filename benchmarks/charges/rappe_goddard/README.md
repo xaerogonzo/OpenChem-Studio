@@ -284,6 +284,112 @@ Disabling its release step turns the tests red.
   case, where the paper's procedure and the optimum might differ. The QP and
   the study script are in place for that.
 
+## Amendment A10: repeating the paper's hydrogen fit (2026-09-14/15)
+
+**The question.** Rappé & Goddard fitted hydrogen's χ and J to five molecules:
+- HF, H₂O, NH₃ and CH₄ at weight 1, except CH₄ at 5;
+- LiH at weight 0.2 (section IV and ref 20);
+- once to the experimental charges, giving (4.5280, 13.8904), and once to HF
+  charges, giving (4.7174, 13.4725).
+
+Refitting under a candidate reading tests whether that reading can reproduce
+the published fit. The readings tested:
+- **V0:** the shipped model;
+- **H-a6 to H-a10:** k plain iterations from zero;
+- **H-b:** eq 23's gradient;
+- **H-c:** ζ° fixed in the pair integrals;
+- **H-d:** H-c with cheq's ±0.95 clamp.
+
+All were pre-registered in A10, with three corrections disclosed before any
+output. The LiH HF target is Cioslowski's PRL 1989 APT value, −0.6819.
+
+**The run.** `hydrogen_refit.py`, one JSON per job in `hydrogen_refit_jobs/`,
+summaries in `hydrogen_refit*.csv`.
+- **Jobs: 18 expected / 18 complete / 0 failed / 0 not run.**
+- **Symmetry check passed everywhere.** The spread at every reported point is
+  ≤ 1.1e-16 e. The largest spread seen anywhere in V0's control is 6.1e-10:
+  the noise that crashed the first run, and harmless.
+- **Geometry symmetry** is exact to 4e-14°.
+
+| variant | column | S at printed pair | LiH residual there | refit (χ, J) | refit − printed | rounding envelope | verdict |
+|---|---|---|---|---|---|---|---|
+| V0 | experimental | 0.01216 | -0.206 | (4.4845, 14.2602) | (-0.0435, +0.3698) | (±0.0056, ±0.0207) | UNEXPLAINED |
+| V0 | hf | 0.03075 | -0.301 | (4.8644, 12.3662) | (+0.1470, -1.1063) | (±0.0045, ±0.0181) | UNEXPLAINED |
+| H-a6 | experimental | 0.03048 | 0.367 | (4.6026, 13.6853) | (+0.0746, -0.2051) | (±0.0015, ±0.0058) | UNEXPLAINED |
+| H-a6 | hf | 0.01440 | -0.093 | (4.6767, 13.2256) | (-0.0407, -0.2469) | (±0.0021, ±0.0083) | UNEXPLAINED |
+| H-a7 | experimental | 0.02426 | 0.320 | (4.5803, 13.8206) | (+0.0523, -0.0698) | (±0.0015, ±0.0058) | UNEXPLAINED |
+| H-a7 | hf | 0.03288 | -0.318 | (4.6464, 13.4050) | (-0.0710, -0.0675) | (±0.0045, ±0.0182) | UNEXPLAINED |
+| H-a8 | experimental | 0.01492 | 0.237 | (4.5615, 13.9052) | (+0.0335, +0.0148) | (±0.0015, ±0.0058) | UNEXPLAINED |
+| H-a8 | hf | 0.01439 | -0.093 | (4.8799, 12.1760) | (+0.1625, -1.2965) | (±0.0021, ±0.0083) | UNEXPLAINED |
+| H-a9 | experimental | 0.00371 | 0.005 | (4.5489, 13.9715) | (+0.0209, +0.0811) | (±0.0015, ±0.0058) | UNEXPLAINED |
+| H-a9 | hf | 0.03288 | -0.318 | (4.6460, 13.4033) | (-0.0714, -0.0692) | (±0.0045, ±0.0184) | UNEXPLAINED |
+| H-a10 | experimental | 0.01445 | -0.232 | (4.5388, 14.0198) | (+0.0108, +0.1294) | (±0.0052, ±0.0187) | UNEXPLAINED |
+| H-a10 | hf | 0.01439 | -0.093 | (4.7555, 12.9512) | (+0.0381, -0.5213) | (±0.0021, ±0.0083) | UNEXPLAINED |
+| H-b | experimental | +∞ | no Q_H | none: every one of 3,804 evaluations is +∞ | — | — | UNEXPLAINED |
+| H-b | hf | +∞ | no Q_H | none: every one of 3,804 evaluations is +∞ | — | — | UNEXPLAINED |
+| H-c | experimental | +∞ | no Q_H | none: every one of 3,804 evaluations is +∞ | — | — | UNEXPLAINED |
+| H-c | hf | +∞ | no Q_H | none: every one of 3,804 evaluations is +∞ | — | — | UNEXPLAINED |
+| H-d | experimental | +∞ | no Q_H | none: every one of 3,804 evaluations is +∞ | — | — | UNEXPLAINED |
+| H-d | hf | +∞ | no Q_H | none: every one of 3,804 evaluations is +∞ | — | — | UNEXPLAINED |
+
+**Verdict: every tested reading is UNEXPLAINED.** Under the documented fit
+protocol, neither published hydrogen pair is reproduced by the shipped
+equations or by any of the eight other readings. This is A10's pre-registered
+statement, and it is not softened.
+
+**What the numbers say.**
+- **V0 is not the 1991 program, and the miss is far outside rounding.**
+  - Refitting the experimental column moves J by +0.37 eV against a rounding
+    envelope of ±0.021.
+  - Refitting the HF column moves χ by +0.147 and J by −1.106.
+  - At the printed experimental pair, every V0 cell except LiH is within O4's
+    tolerance. LiH is off by −0.207, because V0's only self-consistent LiH
+    charge is −0.974 (A7).
+  - The refit cannot absorb LiH either: its best residual is still −0.20 at a
+    weight of 0.2.
+  - **The experimental refit sits on a boundary, not at an interior minimum**
+    (measured after the run, on the job file's full-precision pair).
+    - Raising J by 1e-3 eV, or lowering χ by 1e-4, gives LiH two more
+      bound-free self-consistent charges (near −0.35). A10's uniqueness rule
+      then makes S infinite.
+    - The optimiser stopped where the rule does, so +0.37 eV is the smallest
+      move that still keeps one LiH charge, not the free optimum.
+    - The HF-column refit is interior: all four perturbations keep every
+      charge unique.
+  - The objective surface is a long valley, with elongation 11–13.
+- **The same pattern holds for truncated iteration.** No k gives a refit
+  inside its envelope in either column. H-a9's experimental column is the
+  closest (S = 0.0037 at the printed pair) but still moves J by +0.081 against
+  ±0.006.
+- **H-b, H-c and H-d have no charge to fit.**
+  - At the printed pairs, LiH has **no** bound-free self-consistent charge
+    under any of them. Under H-c, water, ammonia and methane each have two; under
+    H-d, ammonia and methane do.
+  - Across the whole box, every evaluation is +∞. All 200 control draws fail
+    at generation.
+  - As defined, those readings cannot be the 1991 program.
+- **Ordering.** At the printed pairs, V0 and H-a6–H-a9 invert the paper's
+  QEq − QEqHF sign for 3 of the 5 molecules, and H-a10 for 2. The HF-fitted
+  set's inversion (O4) is therefore not a rounding effect.
+
+**Post hoc, and not used for anything.** H-a9 at the printed experimental pair
+puts LiH at −0.7632, 0.004 from the printed −0.767. That looks suggestive, but:
+- the same nine iterations put LiH at the −1 bound in the HF column;
+- the refit leaves its envelope;
+- the stop rule forbids adding a variant around it;
+- the map oscillates with slope −14 (A7), so some iterate lands near any value
+  in its range.
+
+It is recorded here so nobody rediscovers it as a finding.
+
+**What changes.** Nothing shipped changes: QEq stays under A8, with the
+experimental set only and LiH refused. The HF-fitted set stays unoffered, and
+now has a measured reason beyond O4: no tested reading reproduces its fit.
+- **Still unexplained:** what the 1991 program did for hydrogen.
+- **What was ruled out:** eight readings.
+- **Still open:** the LiH geometry route, amendment A11, which reproduces
+  Cioslowski's geometry first.
+
 ## QEq stop 2: the bounds (O9)
 
 - **The paper's procedure never releases a fixed atom.** It is: solve; fix

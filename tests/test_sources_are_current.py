@@ -421,6 +421,81 @@ def test_every_shipped_data_table_declares_its_source(path):
         assert extra in keys, f"{path.name}: supplementary key {extra!r} names no registry entry"
 
 
+#: A provenance `"source"` string CLAIMS a registry key when it opens with a
+#: key-shaped token followed by a space, a parenthesis or nothing:
+#: "rappe1991 (J. Phys. Chem. ...)". "RCSB Protein Data Bank" and "Pauling
+#: electronegativities; ..." are labels, not claims, and do not match.
+PROVENANCE_KEY_CLAIM_RE = re.compile(r"^([a-z][a-z0-9_]*)(?:\s|\(|$)")
+
+
+def _declared_shipping_keys() -> dict[str, list[str]]:
+    """Source key -> where shipped code DECLARES that it uses it.
+
+    Three declared surfaces, and deliberately not the `[source:key]` markers:
+    - a data table's primary `_source_key` (its supplementary keys may be
+      corroboration, as `mayer1975` is for `gutmann_solvents.json`);
+    - a `source_key=` keyword with a literal key (help and panel links);
+    - a result provenance dict's `"source"` string that opens with a key.
+    """
+    out: dict[str, list[str]] = {}
+    for path in _data_tables():
+        key = json.loads(_read(path)).get(SOURCE_KEY_FIELD)
+        if key:
+            out.setdefault(key, []).append(f"{path.name}: {SOURCE_KEY_FIELD}")
+    for rel in sorted(_tracked_files()):
+        if not (rel.startswith("src/openchem/") and rel.endswith(".py")) or "/vendor/" in rel:
+            continue
+        tree = ast.parse(_read(ROOT / rel))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                for kw in node.keywords:
+                    if kw.arg == "source_key" and isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
+                        out.setdefault(kw.value.value, []).append(f"{rel}:{node.lineno} source_key=")
+            elif isinstance(node, ast.Dict):
+                for k, v in zip(node.keys, node.values):
+                    if isinstance(k, ast.Constant) and k.value == "source" and isinstance(v, ast.Constant) and isinstance(v.value, str):
+                        claim = PROVENANCE_KEY_CLAIM_RE.match(v.value)
+                        if claim:
+                            out.setdefault(claim.group(1), []).append(f"{rel}:{node.lineno} provenance source")
+    return out
+
+
+def test_the_shipping_declaration_walk_sees_all_three_surfaces():
+    """Assert the setup, so the guard below cannot pass by finding nothing."""
+    declared = _declared_shipping_keys()
+    assert any("provenance source" in w for w in declared.get("rappe1991", []))
+    assert any("source_key=" in w for w in declared.get("nubase2020", []))
+    assert sum(1 for ws in declared.values() for w in ws if SOURCE_KEY_FIELD in w) >= 7
+
+
+def test_what_shipped_code_declares_it_uses_is_a_shipped_source():
+    """A SOURCE THE APPLICATION HANDS TO USERS CANNOT BE RECORDED AS UNSHIPPED.
+
+    Found 2026-09-14: `rappe1991` still read "QEQ IS IMPLEMENTED AND NOT
+    SHIPPED", with status `assessed_not_shipped`, weeks after #103 shipped
+    QEq -- while `geometry_charges.py` wrote "rappe1991 (...)" into every QEq
+    result's provenance. Nothing compared the two.
+
+    **The `[source:key]` markers cannot carry this rule, measured the same
+    day.** Ten markers in `src/` name non-shipped sources, and every one is
+    legitimate: background (`mortier1986`), what a module deliberately does NOT
+    do (four in `mass_spectrum.py`), why something was deferred
+    (`gutmann_frontiers2022`). A citation is not a use. The surfaces walked
+    here are declarations of use, so a mismatch on them is always an error.
+    """
+    registry = {e["key"]: e for e in _entries()}
+    problems = []
+    for key, where in sorted(_declared_shipping_keys().items()):
+        if key not in registry:
+            problems.append(f"{key}: not in the registry, declared at {where}")
+        elif registry[key]["status"] != "shipped":
+            problems.append(f"{key}: status {registry[key]['status']!r}, but declared as used at {where}")
+    assert not problems, (
+        "shipped code declares these sources as used, and the registry disagrees -- "
+        "update the entry's status (and its text) or the declaration:\n  " + "\n  ".join(problems)
+    )
+
+
 # ---------------------------------------------------------------------------
 # 5  operational paths
 # ---------------------------------------------------------------------------

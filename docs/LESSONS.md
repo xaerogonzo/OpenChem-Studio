@@ -20289,3 +20289,38 @@ molecules did not reproduce them. Two process slips on the way: the corpus CSV
 was written without quoting and split fourteen names, and the correction note
 first said "eight" before the names were counted.
 
+## A QA ASSERT INSIDE AN OPTIMISER DISCARDED 18 JOBS, AND A SIGN CHANGE WAS NOT A ROOT
+
+**Measured 2026-09-14/15, amendment A10.** Four ways the instrument for
+repeating Rappé–Goddard's hydrogen fit could have produced a wrong or empty
+answer. Each was caught before any number was published.
+
+1. **A symmetry assert inside the objective killed every job.**
+   - The instrument asserted that equivalent hydrogens' charges agree to
+     1e-10 e.
+   - One CH₄ evaluation in an ill-conditioned corner gave 2.05e-10, and
+     `pool.map` threw away all 18 jobs after hours of work, before any result
+     was written.
+   - The rerun measured that noise across a whole control phase: at most
+     6.1e-10. **A QA threshold belongs at the reported points, calibrated
+     against the run's own noise, never inside the function being optimised.**
+   - Each job now writes its own file and has an explicit
+     COMPLETE / FAILED / NOT_RUN state.
+2. **"Exactly one sign change" was not "exactly one root".**
+   - The bounded solve switches its active set, so g(Q) = F(Q) − Q jumps.
+   - A probe found three sign changes for HF, where one was a jump, one a
+     fixed point pinned at a bound, and one the real charge.
+   - The rule became: refine each sign change, keep it only if |g| ≤ 1e-11,
+     and count only bound-free roots.
+3. **A test passed for the wrong reason.** "The box rejects rather than
+   clips" probed a point where no unique root existed, so S was infinite
+   anyway. A clipping box stayed green until the test stubbed the charges.
+   Break a guard before believing it.
+4. **The verdict was worth the run.** Every reading was UNEXPLAINED, including
+   the shipped model, whose refit moves J by 0.37 and 1.1 eV against
+   ~0.02 eV rounding.
+   - One iterate count (nine) lands near the printed LiH charge in one column.
+     It is at the charge bound in the other, and an oscillating map lands near
+     anything.
+   - It is recorded as post hoc so that it is not rediscovered as a finding.
+

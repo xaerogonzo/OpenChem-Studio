@@ -1344,3 +1344,299 @@ def test_a9_the_one_bound_active_corpus_molecule_has_a_unique_kkt_point_the_pape
 def test_a9_the_one_corpus_molecule_that_does_not_converge_is_the_dication_methanediylium():
     elements, coords, net = _o9_corpus_molecule("methanediylium")
     assert ce.qeq_charges(elements, coords, net).status == ce.REFUSE_NOT_CONVERGED
+
+
+# =============================================================================
+# A10: the hydrogen refit instrument, checked before it judges anything
+# =============================================================================
+
+import importlib.util  # noqa: E402
+
+_REFIT_PATH = pathlib.Path(__file__).parent.parent / "benchmarks" / "charges" / "rappe_goddard" / "hydrogen_refit.py"
+_spec = importlib.util.spec_from_file_location("hydrogen_refit", _REFIT_PATH)
+hr = importlib.util.module_from_spec(_spec)
+sys.modules["hydrogen_refit"] = hr
+_spec.loader.exec_module(hr)
+
+
+@functools.lru_cache(maxsize=None)
+def _refit_molecule(name: str, variant: str):
+    return hr.Molecule(name, hr.VARIANTS_BY_NAME[variant])
+
+
+@pytest.mark.parametrize("variant", ["V0", "H-b", "H-c"])
+def test_a10_instrument_matrices_are_the_shipped_build_at_both_printed_pairs(variant):
+    """The refit sets only hydrogen's chi and diagonal; everything else must be
+    the shipped `qeq_hardness_matrix`, or the refit is of a different model."""
+    readings = hr.VARIANTS_BY_NAME[variant].readings
+    for name in hr.MOLECULES:
+        m = _refit_molecule(name, variant)
+        for column in hr.COLUMNS:
+            for q in (-0.9, -0.3, 0.0, 0.4):
+                C, chi = m.system(np.array([q]), *hr.PRINTED[column])
+                ref_C, ref_chi, _ = ce.qeq_hardness_matrix(m.elements, m.coords, {h: q for h in m.hydrogens}, column, readings)
+                assert np.max(np.abs(C[0] - ref_C)) <= 1e-12
+                assert np.max(np.abs(chi - ref_chi)) <= 1e-12
+
+
+@pytest.mark.parametrize("column", ["experimental", "hf"])
+def test_a10_v0_root_is_the_production_charge_and_a7s_lih_root(column):
+    for name in hr.MOLECULES:
+        m = _refit_molecule(name, "V0")
+        root = m.root(*hr.PRINTED[column])
+        if name == "LiH":
+            expected = {"experimental": -0.973740, "hf": -0.982743}[column]
+            assert abs(root - expected) <= 5e-7
+        else:
+            production = ce.qeq_charges(m.elements, m.coords, hydrogen=column)
+            assert abs(root - production.charges[m.hydrogens[0]]) <= 1e-9
+
+
+def test_a10_h_a_iterates_are_plain_iteration_from_zero():
+    for name in ("LiH", "CH4"):
+        m = _refit_molecule(name, "H-a8")
+        F = fp.HydrogenMap(m.elements, m.coords, "experimental")
+        history = fp.iterate(F, 1.0, max_iterations=8, tolerance=0.0).history
+        trace = m.trace(*hr.PRINTED["experimental"])
+        assert len(trace) == 9
+        assert max(abs(a - float(b[0])) for a, b in zip(trace, history)) <= 1e-12
+
+
+def test_a10_h_b_diagonal_is_eq_23s_gradient_and_differs_from_v0_only_there():
+    q, j_h = 0.3, 13.8904
+    hb, _ = _refit_molecule("HF", "H-b").system(np.array([q]), 4.528, j_h)
+    v0, _ = _refit_molecule("HF", "V0").system(np.array([q]), 4.528, j_h)
+    assert hb[0, 0, 0] == pytest.approx(j_h * (1.0 + 0.45 / 1.0698), abs=1e-12)
+    assert v0[0, 0, 0] == pytest.approx(j_h * (1.0 + 0.3 / 1.0698), abs=1e-12)
+    difference = hb[0] - v0[0]
+    difference[0, 0] = 0.0
+    assert np.max(np.abs(difference)) == 0.0
+
+
+def test_a10_h_d_clamps_only_the_charge_entering_hydrogens_diagonal():
+    hc, hd = _refit_molecule("LiH", "H-c"), _refit_molecule("LiH", "H-d")
+    inside = np.array([-0.9, 0.0, 0.9])
+    assert np.array_equal(hc.system(inside, 4.528, 13.8904)[0], hd.system(inside, 4.528, 13.8904)[0])
+    C, _ = hd.system(np.array([-0.97]), 4.528, 13.8904)
+    assert C[0, 1, 1] == pytest.approx(13.8904 * (1.0 - 0.95 / 1.0698), abs=1e-12)
+    ref, _ = hc.system(np.array([-0.97]), 4.528, 13.8904)
+    assert C[0, 0, 1] == ref[0, 0, 1]
+    # The solved charge itself is never clamped: F can return below -0.95.
+    loose = hr.Variant("H-d-wide", hd.variant.readings, clamp=10.0)
+    assert hr.Molecule("LiH", loose).system(np.array([-0.97]), 4.528, 13.8904)[0][0, 1, 1] == pytest.approx(ref[0, 1, 1])
+
+
+def test_a10_nelder_mead_finds_a_quadratic_and_rosenbrock():
+    x, s, _, converged = hr.nelder_mead(lambda x: (1 - x[0]) ** 2 + 100 * (x[1] - x[0] ** 2) ** 2, (-1.2, 1.0))
+    assert converged and np.max(np.abs(x - [1.0, 1.0])) <= 1e-6
+    x, s, _, converged = hr.nelder_mead(lambda x: (x[0] - 4.7) ** 2 + 3 * (x[1] - 13.2) ** 2 + (x[0] - 4.7) * (x[1] - 13.2), (4.0, 12.0))
+    assert converged and np.max(np.abs(x - [4.7, 13.2])) <= 1e-6
+
+
+def test_a10_the_box_rejects_rather_than_clips(monkeypatch):
+    """With every charge finite, only the box can make S infinite -- an earlier
+    version of this test passed a clipping box because the point it probed had
+    no unique root anyway."""
+    fit = hr.Fit(hr.VARIANTS_BY_NAME["H-c"], {m: 0.0 for m in hr.MOLECULES})
+    for molecule in fit.molecules.values():
+        monkeypatch.setattr(molecule, "charge", lambda chi_h, j_h: 0.1)
+    assert math.isfinite(fit.objective((4.0, 12.0))) and math.isfinite(fit.objective((5.5, 15.0)))
+    for outside in ((3.999, 13.0), (5.501, 13.0), (4.6, 11.999), (4.6, 15.001)):
+        assert fit.objective(outside) == math.inf
+
+
+def test_a10_nelder_mead_shrinks_when_contraction_fails_against_a_wall():
+    """Rosenbrock and a quadratic never reach the shrink step; a minimum in a
+    corner whose outside is infinite does, and without it the simplex sticks."""
+    walled = lambda x: (x[0] - 1) ** 2 + (x[1] - 1) ** 2 if (x[0] <= 1.0 and x[1] <= 1.0) else math.inf
+    x, _, _, converged = hr.nelder_mead(walled, (0.98, 0.98))
+    assert converged and np.max(np.abs(x - [1.0, 1.0])) <= 1e-5
+
+
+def test_a10_a_sign_change_across_a_bound_switch_is_not_a_root():
+    """H-c's HF at the experimental printed pair: g changes sign three times on
+    A7's grid, but one is a jump where the bounded solve switches active set and
+    one is a fixed point pinned at a bound. Exactly one bound-free root remains."""
+    m = _refit_molecule("HF", "H-c")
+    g = m.residual(hr.GRID_Q, *hr.PRINTED["experimental"])
+    assert int(np.sum(g == 0.0)) + len(np.flatnonzero(g[:-1] * g[1:] < 0)) >= 3
+    free, pinned = m.fixed_points(*hr.PRINTED["experimental"])
+    assert len(free) == 1 and free[0] > 0 and len(pinned) == 1
+    for q in free + pinned:
+        assert abs(float(m.residual(q, *hr.PRINTED["experimental"])[0])) <= hr.ROOT_RESIDUAL
+    assert m.root(*hr.PRINTED["experimental"]) == free[0]
+
+
+def test_a10_several_bound_free_roots_make_the_charge_undefined():
+    """V0's LiH at (4.528, 15.0): three bound-free fixed points, so no Q_H."""
+    m = _refit_molecule("LiH", "V0")
+    free, _ = m.fixed_points(4.528, 15.0)
+    assert len(free) == 3 and m.root(4.528, 15.0) is None
+
+
+def test_a10_weights_are_the_papers_and_multiply_squared_residuals():
+    assert hr.WEIGHTS == {"HF": 1.0, "H2O": 1.0, "NH3": 1.0, "CH4": 5.0, "LiH": 0.2}
+    charges = {m: 0.1 for m in hr.MOLECULES}
+    targets = {"HF": 0.0, "H2O": 0.0, "NH3": 0.0, "CH4": 0.2, "LiH": -0.9}
+    assert hr.objective_from_charges(charges, targets) == pytest.approx(0.01 * 3 + 5 * 0.01 + 0.2 * 1.0)
+    assert hr.objective_from_charges(charges, targets, {m: 1.0 for m in hr.MOLECULES}) != hr.objective_from_charges(charges, targets)
+    assert hr.objective_from_charges(charges, targets, {m: w * w for m, w in hr.WEIGHTS.items()}) != hr.objective_from_charges(charges, targets)
+
+
+# A10 correction 3: the harness that crashed, repaired without touching the science
+
+
+def test_a10_a_symmetry_spread_is_recorded_and_never_makes_s_infinite(monkeypatch):
+    """The first run died on a 2.05e-10 CH4 spread asserted INSIDE the optimised
+    function. A spread is data: S stays finite, Q_H is the group mean."""
+    fit = hr.Fit(hr.VARIANTS_BY_NAME["V0"], {m: 0.0 for m in hr.MOLECULES})
+    ch4 = fit.molecules["CH4"]
+    q = np.array([0.15])
+    clean = float(ch4.image(q, *hr.PRINTED["experimental"])[0])
+    original = hr.Molecule._solve
+
+    def lopsided(self, C, chi):
+        charges = original(self, C, chi)
+        if len(self.group) > 1:
+            charges[:, self.group[0]] += 2e-10
+        return charges
+
+    monkeypatch.setattr(hr.Molecule, "_solve", lopsided)
+    fit.recorder.phase = "control"
+    assert math.isfinite(fit.objective(hr.PRINTED["experimental"]))
+    assert fit.recorder.phases["control"]["max"] >= 1.9e-10
+    shifted = float(ch4.image(q, *hr.PRINTED["experimental"])[0])
+    assert shifted - clean == pytest.approx(2e-10 / 4, abs=1e-13)
+
+
+def test_a10_the_symmetry_check_applies_at_reported_points_and_blocks_the_verdict():
+    recorder = hr.SpreadRecorder()
+    recorder.phase = "control"
+    recorder.add(np.full(990, 2e-9))
+    recorder.add(np.full(10, 1e-6))
+    # The 99th percentile lands in the [1e-8.7, 1e-8.6) bin; its upper edge, times 10.
+    assert hr.symmetry_threshold(recorder) == pytest.approx(10 * 10 ** -8.6)
+    floored = hr.SpreadRecorder()
+    floored.phase = "control"
+    floored.add(np.full(100, 1e-13))
+    assert hr.symmetry_threshold(floored) == 1e-10
+    assert hr.symmetry_threshold(hr.SpreadRecorder()) == 1e-10
+    assert hr.symmetry_status(5e-11, 5e-11, 1e-10) == "PASSED"
+    assert hr.symmetry_status(2e-10, math.nan, 1e-10) == "SYMMETRY-CHECK-FAILED"
+    results = {("V0", c): _fake_refit_result("V0", c) for c in hr.COLUMNS}
+    assert hr.classify(results, "V0") == "UNEXPLAINED"
+    results[("V0", "hf")]["symmetry_check"] = "SYMMETRY-CHECK-FAILED"
+    assert hr.classify(results, "V0") is None
+
+
+def _fake_refit_result(variant: str, column: str) -> dict:
+    q = {m: 0.1 for m in hr.MOLECULES}
+    residuals = {"max_abs": 0.1, "lih": 0.1, "non_lih_rms": 0.1, "non_lih_max": 0.1}
+    return {
+        "variant": variant, "column": column, "status": "COMPLETE", "q_printed": q, "spread_printed": 0.0,
+        "S_printed": 1.0, "dS_dchi": 0.0, "dS_dJ": 0.0, "res_printed": residuals, "program_diff": q, "program_pass": False,
+        "roots_printed": "", "control": [[0, 4.5, 13.9, 0.1]], "control_excluded": 0, "env_chi": 0.01, "env_J": 0.01,
+        "symmetry_threshold": 1e-10, "grid_basins": [[4.5, 13.9, 0.1]], "endpoints": [[4.0, 12.0, 4.5, 13.9, 0.1, 10, True]],
+        "nm_basins": [[4.5, 13.9, 0.1, 1]], "ambiguous": [], "fit": [4.5, 13.9], "S_fit": 0.1, "delta_S": 0.9, "q_fit": q,
+        "spread_fit": 0.0, "res_fit": residuals, "fine_min": [4.5, 13.9, 0.1], "fine_ok": True, "elongation": 2.0,
+        "within_envelope": False, "symmetry_check": "PASSED", "evaluations": 1, "infinite_evaluations": 0,
+    }
+
+
+def _failing_runner(variant, column):
+    if variant == "H-b":
+        raise RuntimeError("an ill-conditioned evaluation")
+    return _fake_refit_result(variant, column)
+
+
+def test_a10_a_failed_job_is_recorded_and_the_others_still_finish(tmp_path):
+    jobs = [("V0", "experimental"), ("H-b", "experimental"), ("H-c", "experimental")]
+    states = hr.run_jobs(jobs, tmp_path, workers=1, runner=_failing_runner)
+    assert states == {("V0", "experimental"): "COMPLETE", ("H-b", "experimental"): "FAILED", ("H-c", "experimental"): "COMPLETE"}
+    failed = json.loads(hr.job_path(tmp_path, "H-b", "experimental").read_text(encoding="utf-8"))
+    assert "an ill-conditioned evaluation" in failed["traceback"]
+    assert failed["settings"]["sha256"]["preregistration.md"]
+
+
+def test_a10_a_missing_job_is_not_run_and_gets_no_verdict(tmp_path):
+    hr.run_jobs([("V0", "experimental")], tmp_path, workers=1, runner=_failing_runner)
+    results, states = hr.collect(tmp_path, ["V0"])
+    assert states == {("V0", "experimental"): "COMPLETE", ("V0", "hf"): "NOT_RUN"}
+    assert hr.classify(results, "V0") is None
+    assert hr.summary_line(states) == "2 expected / 1 complete / 0 failed / 1 not run"
+
+
+def test_a10_the_summary_does_not_depend_on_completion_order(tmp_path):
+    keys = [(v, c) for v in ("V0", "H-a6", "H-b") for c in hr.COLUMNS]
+    results = {k: _fake_refit_result(*k) for k in keys}
+    states = {k: "COMPLETE" for k in keys}
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    hr.write(results, states, tmp_path / "a")
+    hr.write(dict(reversed(list(results.items()))), dict(reversed(list(states.items()))), tmp_path / "b")
+    for name in ("hydrogen_refit.csv", "hydrogen_refit_basins.csv", "hydrogen_refit_control.csv"):
+        assert (tmp_path / "a" / name).read_bytes() == (tmp_path / "b" / name).read_bytes()
+    lines = (tmp_path / "a" / "hydrogen_refit.csv").read_text(encoding="utf-8").splitlines()
+    assert [line.split(",")[0] for line in lines[3:]] == ["V0", "V0", "H-a6", "H-a6", "H-b", "H-b"]
+
+
+# A10: the complete run's results, pinned and re-derived
+
+_REFIT_CSV = _REFIT_PATH.parent / "hydrogen_refit.csv"
+
+
+def _refit_rows() -> dict[tuple[str, str], dict[str, str]]:
+    lines = [l for l in _REFIT_CSV.read_text(encoding="utf-8").splitlines() if not l.startswith("#")]
+    return {(r["variant"], r["column"]): r for r in csv.DictReader(lines)}
+
+
+def test_a10_the_run_is_complete_and_every_reading_is_unexplained():
+    header = _REFIT_CSV.read_text(encoding="utf-8").splitlines()[1]
+    assert header == "# 18 expected / 18 complete / 0 failed / 0 not run"
+    rows = _refit_rows()
+    assert len(rows) == 18 and all(r["job_status"] == "COMPLETE" and r["symmetry_check"] == "PASSED" for r in rows.values())
+    assert {r["verdict"] for r in rows.values()} == {"UNEXPLAINED"}
+
+
+def test_a10_verdicts_follow_from_the_recorded_fields():
+    """Re-derive each verdict from the CSV rather than trusting the column."""
+    rows = _refit_rows()
+    for variant in {v for v, _ in rows}:
+        met = [rows[(variant, c)]["within_envelope"] == "True" and rows[(variant, c)]["program_pass"] == "True" for c in hr.COLUMNS]
+        expected = "FIT-REPRODUCED" if all(met) else "PARTIAL" if any(met) else "UNEXPLAINED"
+        assert rows[(variant, "experimental")]["verdict"] == expected
+
+
+@pytest.mark.parametrize("column", ["experimental", "hf"])
+def test_a10_v0_objective_recomputes_at_the_printed_and_refit_pairs(column):
+    """S recomputed now, from the fixtures, at both pairs the CSV records."""
+    row = _refit_rows()[("V0", column)]
+    table = hr.table_iii()
+    fit = hr.Fit(hr.VARIANTS_BY_NAME["V0"], {m: table[m][hr.TARGET_COLUMN[column]] for m in hr.MOLECULES})
+    assert fit.objective(hr.PRINTED[column]) == pytest.approx(float(row["S_printed"]), rel=1e-9)
+    job = json.loads((_REFIT_PATH.parent / "hydrogen_refit_jobs" / f"V0_{column}.json").read_text(encoding="utf-8"))
+    refit = tuple(job["result"]["fit"])  # full precision: the CSV's 8 digits can cross the uniqueness boundary
+    assert fit.objective(refit) == pytest.approx(float(row["S_fit"]), rel=1e-6)
+    pinned = {"experimental": (4.4845, 14.2602), "hf": (4.8644, 12.3662)}[column]
+    assert refit == pytest.approx(pinned, abs=1e-4)
+    assert abs(refit[1] - hr.PRINTED[column][1]) > 10 * float(row["env_J"])
+
+
+def test_a10_h_b_h_c_h_d_have_no_bound_free_lih_charge_at_the_printed_pairs():
+    for variant in ("H-b", "H-c", "H-d"):
+        for column in hr.COLUMNS:
+            assert _refit_molecule("LiH", variant).root(*hr.PRINTED[column]) is None
+
+
+def test_a10_the_v0_experimental_refit_stops_at_the_lih_uniqueness_boundary():
+    """Measured after the run: one small step up in J or down in chi gives LiH
+    two more bound-free fixed points, so A10's rule makes S infinite there.
+    The HF-column refit is interior."""
+    lih = _refit_molecule("LiH", "V0")
+    for column, crosses in (("experimental", True), ("hf", False)):
+        job = json.loads((_REFIT_PATH.parent / "hydrogen_refit_jobs" / f"V0_{column}.json").read_text(encoding="utf-8"))
+        chi, j = job["result"]["fit"]
+        assert len(lih.fixed_points(chi, j)[0]) == 1
+        assert (len(lih.fixed_points(chi, j + 1e-3)[0]) == 3) is crosses
+        assert (len(lih.fixed_points(chi - 1e-4, j)[0]) == 3) is crosses
+
