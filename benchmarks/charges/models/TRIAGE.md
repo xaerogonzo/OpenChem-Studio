@@ -714,7 +714,31 @@ section 3.1.
 - the S_real branch allowed to place the unplaced atom anywhere;
 - symmetry classes ignoring the ESP column;
 - Δ perturbations made symmetric;
-- κ^(s) entering without its ½.
+- the two bond-hardness readings below exchanged.
+
+**Amendment 2.7-A1 (2026-09-15, before any SQE charge or recovery number):
+the bond-hardness factor is ambiguous in the source, so both readings run.**
+The model above wrote the bond term as ½κ^(s)q̄². Reading the equations again
+for the solver:
+- **Eq 4** sums ½(κ^(s)_ij q̄_ij + …)q̄_ij over ORDERED pairs, so each bond
+  contributes κ^(s)q̄². **Eq 10** differentiates to 2κ^(s)q̄, which agrees.
+- **Eq 14's** stated solution q̄ = −χ̄/κ^(s) implies ½κ^(s)q̄² instead.
+
+The paper contradicts itself by a factor of two in exactly the term methods iii
+and iv add. So both run and both are reported, the way QEq's λ readings were:
+- **R_eq10:** bond term κ^(s)q̄² per bond (eqs 4 and 10);
+- **R_eq14:** bond term ½κ^(s)q̄² per bond (eq 14's solution).
+
+Methods i and ii are unaffected: method i has no κ^(s), and method ii's q̄ is
+printed directly. A method's class is assigned per reading. "Reproduced" under
+one reading only is recorded with the reading named, and the reading is never
+chosen by which one matches. Both are reported side by side.
+
+The χ and atomic-κ terms are unambiguous, because eq 4 under the QE rules
+equals eq 2's atomic form ½κ_iQ_i² + χ_iQ_i, and V_C = Σ_{i<j} Q_iQ_jJ_ij
+runs over all atom pairs, bonded or not. Method iv's perturbations are read
+per bonded neighbour: χ_i = χ⁰_i + Σ_j Δχ(Z_i–Z_j) using the ordered-pair row
+("H-C" for an H bonded to C), and likewise κ.
 
 ## 3. Results
 
