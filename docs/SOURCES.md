@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 3a05c6fe8298f91478a69aa8fc562cc3c706e19cf1469bb6d4aa9e848d20bacc -->
+<!-- SOURCE SHA256: e57ff17e14f66d4513612f5d2a6bb140df079d80804fe7e10d7a510e7bc336f1 -->
 
 # Sources
 
@@ -150,6 +150,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | [`huber1979`](#huber1979) | literature | reference only | citation + claim |
 | [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
+| [`ionescu2013`](#ionescu2013) | literature | reference only | citation |
 | [`ipsen2014`](#ipsen2014) | literature | reference only | citation |
 | [`iupac2013`](#iupac2013) | standard | shipped | citation |
 | [`iupac_namer`](#iupac_namer) | software | shipped | citation |
@@ -2688,6 +2689,39 @@ periodic oracles, so EQeq is recorded under ROADMAP's periodic charge
 equilibration, not as a molecular calculator.
 
 DOI and pages confirmed against Crossref.
+
+### ionescu2013
+
+<a id="ionescu2013"></a>
+
+> C.-M. Ionescu, S. Geidl, R. Svobodová Vařeková & J. Koča, 'Rapid Calculation of Accurate Atomic Charges for Proteins via the Electronegativity Equalization Method', J. Chem. Inf. Model. 2013, 53, 2548-2558.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ci400448n](https://doi.org/10.1021/ci400448n) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-15 |
+| Local copy | `ionescu2013.pdf` (not checked) |
+
+**Why it is reference only.** AN EXTERNAL APPLICATION BENCHMARK FOR THE SHIPPED EEM, AND A CANDIDATE FOR
+ELEMENT COVERAGE. Its supporting information (held as `ionescu2013_si/`)
+deposits 41 protein fragments as PDB MODELs plus insulin 3E7Y and ubiquitin
+1UBQ, per-atom QM charges for 12 schemes (MPA, NPA and Hirshfeld; 6-31G* and
+6-31G**; gas and PCM), each scheme's EEM charges under two atom-typing
+classifications ("E" and "EX", 24 models), and Table S1's parameters for all
+24. READ IN FULL for TRIAGE check 2.8: eqs 1-3 (the EEM form with A, B and k),
+the E and EX atom-type classifications, the reference-structure and QM-scheme
+sections, eqs 7-9 (the validation metrics), and Tables S1 and S2, both frozen
+as fixtures under tests/fixtures/charges/ionescu2013.
+
+TWO THINGS THE PAPER SAYS INCONSISTENTLY, both recorded in 2.8: its prose
+calls R_avg the squared Pearson coefficient while its eq 7 prints the
+unsquared form (the reproduction identifies the squared one), and the
+training-set CSV's 12 scheme blocks are not all complete (three hold 40 or 38
+of the 41 fragments). Authors, title, journal, volume and pages confirmed against
+Crossref and the PDF's first page (a machine summary of the Crossref record
+misspelt Koča; the PDF settles it).
 
 ### mortier1986
 
