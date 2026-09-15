@@ -985,3 +985,44 @@ or grid existed; disclosed with what had been seen).**
    eq 20 and eq 21 use. The instrument uses the shipped 1.069751, since it is
    also cheq's λ = 0.5 radius rule; the difference is 5e-5 bohr⁻¹. The
    diagonal still divides by ζ° = 1.0698, as the shipped build does.
+
+**A10 correction 3 (2026-09-14, after a crashed run that wrote no output;
+before any rerun).**
+
+**What happened.** The first full run crashed inside the rounding control. One
+CH₄ evaluation in an ill-conditioned region gave a hydrogen charge spread of
+2.05e-10 e, against the instrument's `assert spread <= 1e-10`. Because the jobs
+were collected with an all-or-nothing `pool.map`, that one assertion discarded
+all 18 jobs. **No objective value, refit, control envelope, basin or verdict
+was ever written or seen**; the traceback is the only output.
+
+**What changes, and why the change is not tuned to anything.** A numerical QA
+threshold must not become a wall inside the function being optimised.
+1. **Symmetry groups.** In all five fit molecules, every hydrogen is equivalent
+   under the point group as built: HF and LiH have one H; H₂O (C2v) two; NH₃
+   (C3v) three; CH₄ (Td) four. The group is read from the builder's own atom
+   mapping (Table IV printed order 1 for the polyatomics) and asserted, when the
+   molecule is constructed, to be every hydrogen. That is a setup check, not
+   one the optimiser can reach.
+2. **Q_H is the mean over the group.** The spread (max − min) is recorded for
+   every evaluation, into a log₁₀ histogram with 0.1-decade bins, per phase:
+   printed pair, control, grid and Nelder–Mead. **The spread never makes S
+   infinite and never raises.**
+3. **Geometry symmetry is measured separately.** For each built molecule, the
+   spread of heavy-atom–H distances and of H–X–H angles is reported, so
+   asymmetry in the fixture is not blamed on the solver.
+4. **The check at reported points.** Spread is measured at the solved charge,
+   at the printed pair and at the refit pair. It must be ≤ 10 × the 99th
+   percentile of spreads in that column's control phase (the upper edge of the
+   histogram bin holding the 99th percentile, which is conservative), floored
+   at 1e-10 e. The control histogram is reported first. A violation marks the
+   column SYMMETRY-CHECK-FAILED, and that variant gets no verdict.
+5. **Each job writes its own self-contained file**
+   (`hydrogen_refit_jobs/<variant>_<column>.json`): settings, fixture and
+   preregistration SHA-256s, git commit, symmetry statistics, the result, or the
+   traceback.
+6. **Job states are COMPLETE, FAILED or NOT_RUN,** and the summary is sorted by
+   (variant, column).
+   - A variant gets a verdict only when both of its columns are COMPLETE and
+     neither failed the symmetry check.
+   - No overall conclusion is written unless all 18 jobs are COMPLETE.
