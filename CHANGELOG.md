@@ -32,6 +32,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   printed charge is not a solution of the paper's equations, and a 1996
   paper from the same group contradicts the printed silane sign. That 1996
   paper's disiloxane charges are reproduced to 0.002 e by the adopted λ = ½.
+  Repeating the paper's own hydrogen fit also failed. Under the shipped
+  equations and eight other pre-registered readings of them, neither
+  published hydrogen parameter pair comes back. So the reason for LiH and
+  the HF-fitted set is still not found, and nothing shipped changes.
+  Nor is geometry the reason. Cioslowski's LiH reference charge was
+  recomputed to 5e-5 from his own definition and basis. His slightly
+  longer LiH bond leaves the fit unchanged, and a sweep of methanol and
+  formamide structures brings only one near-miss into tolerance.
   The EEM has also been checked against a study it was never fitted to:
   Mathieu 2007's correlations on 194 molecules are all reproduced, and on 55
   reaction transition states five of six are. The miss is fluorine, which

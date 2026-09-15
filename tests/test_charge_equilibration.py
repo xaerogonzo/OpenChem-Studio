@@ -69,7 +69,7 @@ def test_every_fixture_matches_the_hash_the_preregistration_recorded():
     text = PREREGISTRATION.read_text(encoding="utf-8")
     fixtures = sorted(FIXTURES.glob("*.csv"))
     hashed = [f for f in fixtures if f.name != "slater_reference.csv"]
-    assert len(hashed) == 14
+    assert len(hashed) == 16
     for fixture in hashed:
         digest = hashlib.sha256(fixture.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
         assert f"`{fixture.name}`" in text and digest in text, fixture.name
@@ -1578,4 +1578,183 @@ def test_a10_the_summary_does_not_depend_on_completion_order(tmp_path):
         assert (tmp_path / "a" / name).read_bytes() == (tmp_path / "b" / name).read_bytes()
     lines = (tmp_path / "a" / "hydrogen_refit.csv").read_text(encoding="utf-8").splitlines()
     assert [line.split(",")[0] for line in lines[3:]] == ["V0", "V0", "H-a6", "H-a6", "H-b", "H-b"]
+
+
+# A10: the complete run's results, pinned and re-derived
+
+_REFIT_CSV = _REFIT_PATH.parent / "hydrogen_refit.csv"
+
+
+def _refit_rows() -> dict[tuple[str, str], dict[str, str]]:
+    lines = [l for l in _REFIT_CSV.read_text(encoding="utf-8").splitlines() if not l.startswith("#")]
+    return {(r["variant"], r["column"]): r for r in csv.DictReader(lines)}
+
+
+def test_a10_the_run_is_complete_and_every_reading_is_unexplained():
+    header = _REFIT_CSV.read_text(encoding="utf-8").splitlines()[1]
+    assert header == "# 18 expected / 18 complete / 0 failed / 0 not run"
+    rows = _refit_rows()
+    assert len(rows) == 18 and all(r["job_status"] == "COMPLETE" and r["symmetry_check"] == "PASSED" for r in rows.values())
+    assert {r["verdict"] for r in rows.values()} == {"UNEXPLAINED"}
+
+
+def test_a10_verdicts_follow_from_the_recorded_fields():
+    """Re-derive each verdict from the CSV rather than trusting the column."""
+    rows = _refit_rows()
+    for variant in {v for v, _ in rows}:
+        met = [rows[(variant, c)]["within_envelope"] == "True" and rows[(variant, c)]["program_pass"] == "True" for c in hr.COLUMNS]
+        expected = "FIT-REPRODUCED" if all(met) else "PARTIAL" if any(met) else "UNEXPLAINED"
+        assert rows[(variant, "experimental")]["verdict"] == expected
+
+
+@pytest.mark.parametrize("column", ["experimental", "hf"])
+def test_a10_v0_objective_recomputes_at_the_printed_and_refit_pairs(column):
+    """S recomputed now, from the fixtures, at both pairs the CSV records."""
+    row = _refit_rows()[("V0", column)]
+    table = hr.table_iii()
+    fit = hr.Fit(hr.VARIANTS_BY_NAME["V0"], {m: table[m][hr.TARGET_COLUMN[column]] for m in hr.MOLECULES})
+    assert fit.objective(hr.PRINTED[column]) == pytest.approx(float(row["S_printed"]), rel=1e-9)
+    job = json.loads((_REFIT_PATH.parent / "hydrogen_refit_jobs" / f"V0_{column}.json").read_text(encoding="utf-8"))
+    refit = tuple(job["result"]["fit"])  # full precision: the CSV's 8 digits can cross the uniqueness boundary
+    assert fit.objective(refit) == pytest.approx(float(row["S_fit"]), rel=1e-6)
+    pinned = {"experimental": (4.4845, 14.2602), "hf": (4.8644, 12.3662)}[column]
+    assert refit == pytest.approx(pinned, abs=1e-4)
+    assert abs(refit[1] - hr.PRINTED[column][1]) > 10 * float(row["env_J"])
+
+
+def test_a10_h_b_h_c_h_d_have_no_bound_free_lih_charge_at_the_printed_pairs():
+    for variant in ("H-b", "H-c", "H-d"):
+        for column in hr.COLUMNS:
+            assert _refit_molecule("LiH", variant).root(*hr.PRINTED[column]) is None
+
+
+def test_a10_the_v0_experimental_refit_stops_at_the_lih_uniqueness_boundary():
+    """Measured after the run: one small step up in J or down in chi gives LiH
+    two more bound-free fixed points, so A10's rule makes S infinite there.
+    The HF-column refit is interior."""
+    lih = _refit_molecule("LiH", "V0")
+    for column, crosses in (("experimental", True), ("hf", False)):
+        job = json.loads((_REFIT_PATH.parent / "hydrogen_refit_jobs" / f"V0_{column}.json").read_text(encoding="utf-8"))
+        chi, j = job["result"]["fit"]
+        assert len(lih.fixed_points(chi, j)[0]) == 1
+        assert (len(lih.fixed_points(chi, j + 1e-3)[0]) == 3) is crosses
+        assert (len(lih.fixed_points(chi - 1e-4, j)[0]) == 3) is crosses
+
+
+# A11: Cioslowski's LiH APT charge (experiment B: spherical, ORCA; gates nothing)
+
+_apt_spec = importlib.util.spec_from_file_location("cioslowski_apt", _REFIT_PATH.parent / "cioslowski_apt.py")
+capt = importlib.util.module_from_spec(_apt_spec)
+sys.modules["cioslowski_apt"] = capt
+_apt_spec.loader.exec_module(capt)
+
+
+def test_a11_apt_charge_is_the_trace_of_the_dipole_derivatives():
+    """A synthetic polar tensor diag(a, a, b): eq 9 gives (2a + b)/3, not b."""
+    a, b, h = 0.78, 0.48, 0.001
+    hb = h / capt.BOHR
+    dipoles = {}
+    for p, slope in enumerate((a, a, b)):
+        for sign in (+1, -1):
+            mu = [0.0, 0.0, -2.4]
+            mu[p] += sign * slope * hb
+            dipoles["xyz"[p] + ("+" if sign > 0 else "-")] = tuple(mu)
+    assert capt.apt_charge(dipoles, h) == pytest.approx((2 * a + b) / 3, abs=1e-12)
+
+
+def test_a11_experiment_b_is_converged_stable_and_pinned():
+    report = capt.analyse()["6-31++G(d,p)"]
+    assert report["all_converged"]
+    assert report["r"] == pytest.approx(1.63279, abs=1e-5)
+    assert report["stable"] == [0.0005, 0.001, 0.002, 0.004] and report["h"] == 0.004
+    assert report["Q_Li"] == pytest.approx(0.68215, abs=5e-6)
+    assert report["within"]  # 0.00025 from Cioslowski's 0.6819 -- a diagnostic, never a gate
+
+
+def test_a11_the_axial_derivative_alone_is_not_the_charge():
+    rows = capt.rows()
+    d = {r["displacement"]: tuple(float(r[f"dipole_{k}_au"]) for k in "xyz")
+         for r in rows if r["kind"] == "displaced" and math.isclose(float(r["h_angstrom"]), 0.004)}
+    hb = 0.004 / capt.BOHR
+    axial = (d["z+"][2] - d["z-"][2]) / (2 * hb)
+    perpendicular = (d["x+"][0] - d["x-"][0]) / (2 * hb)
+    assert axial == pytest.approx(0.4801, abs=1e-4) and perpendicular == pytest.approx(0.7832, abs=1e-4)
+
+
+# A12: Table IV geometry sensitivity (diagnostic only; nothing adopted)
+
+_geo_spec = importlib.util.spec_from_file_location("table_iv_geometry", _REFIT_PATH.parent / "table_iv_geometry.py")
+tivg = importlib.util.module_from_spec(_geo_spec)
+sys.modules["table_iv_geometry"] = tivg
+_geo_spec.loader.exec_module(tivg)
+
+A12_PINNED = {
+    # (molecule, order, column, base): (nominal, min, max, class)
+    ("H2NC(O)H", 2, "QEq", "substitution"): (0.401066, 0.399414, 0.402691, "geometry-compatible"),
+    ("H2NC(O)H", 3, "QEqHF", "substitution"): (-0.623290, -0.624599, -0.621960, "geometry-insensitive"),
+    ("H3COH", 1, "QEqHF", "substitution"): (0.356053, 0.353544, 0.358571, "geometry-insensitive"),
+    ("H3COH", 3, "QEqHF", "substitution"): (-0.104011, -0.108017, -0.100011, "geometry-insensitive"),
+    ("H3COH", 5, "QEqHF", "substitution"): (0.173731, 0.170883, 0.176599, "geometry-insensitive"),
+    ("H3COH", 1, "QEqHF", "effective"): (0.360809, 0.358286, 0.363340, "geometry-insensitive"),
+    ("H3COH", 3, "QEqHF", "effective"): (-0.106525, -0.110529, -0.102528, "geometry-insensitive"),
+    ("H3COH", 5, "QEqHF", "effective"): (0.174676, 0.171826, 0.177547, "geometry-insensitive"),
+}
+
+
+def test_a12_the_committed_summary_holds_the_pinned_classes():
+    lines = [l for l in (_REFIT_PATH.parent / "table_iv_geometry_summary.csv").read_text(encoding="utf-8").splitlines() if not l.startswith("#")]
+    rows = list(csv.reader(lines))[1:]
+    got = {(r[0], int(r[1]), r[2], r[3]): (float(r[6]), float(r[7]), float(r[8]), r[13]) for r in rows}
+    assert set(got) == set(A12_PINNED)
+    for key, (nominal, lo, hi, klass) in A12_PINNED.items():
+        assert got[key][:3] == pytest.approx((nominal, lo, hi), abs=2e-6), key
+        assert got[key][3] == klass, key
+
+
+def test_a12_a_bond_move_translates_one_fragment_and_changes_nothing_else():
+    elements, coords, _, _ = qeq_geometries.build("H3COH")
+    coords = np.asarray(coords, dtype=float)
+    bond_list = tivg.bonds(elements, coords)
+    before = tivg.internal_coordinates(bond_list, coords)
+    for label, step, new in tivg.perturbations("H3COH", elements, coords):
+        if label == "r1-2" and step == 0.010:
+            after = tivg.internal_coordinates(bond_list, new)
+            assert after["r1-2"] - before["r1-2"] == pytest.approx(0.010, abs=1e-12)
+            assert all(abs(after[k] - before[k]) <= 1e-9 for k in before if k != "r1-2")
+            break
+    else:
+        raise AssertionError("r1-2 +0.010 not generated")
+
+
+def test_a12_formamide_recomputes_to_the_committed_values():
+    """The two formamide cells, recomputed live (the methanol ones take ~30 s)."""
+    evaluations, summary = tivg.run(tuple(c for c in tivg.CELLS if c[0] == "H2NC(O)H"))
+    assert all(row[6] == "converged" for row in evaluations)
+    for r in summary:
+        nominal, lo, hi, klass = A12_PINNED[(r[0], r[1], r[2], r[3])]
+        assert (float(r[6]), float(r[7]), float(r[8])) == pytest.approx((nominal, lo, hi), abs=2e-6)
+        assert r[13] == klass
+
+
+def test_a11_experiment_a_cartesian_d_reproduces_cioslowski_and_accepts_the_geometry():
+    """Psi4, puream false: the historical basis. Gates H-e, and passes."""
+    report = capt.analyse(capt.FIXTURE_A)["6-31++G(d,p)"]
+    assert report["all_converged"]
+    assert report["r"] == pytest.approx(1.632817, abs=2e-6)
+    assert report["stable"] == [0.0005, 0.001, 0.002, 0.004] and report["h"] == 0.004
+    assert report["Q_Li"] == pytest.approx(0.681845, abs=5e-6)
+    assert report["within"] and report["bound"] == 0.0005
+
+
+def test_a11_h_e_moves_nothing_that_matters():
+    """Cioslowski's longer LiH bond, in A10's HF-column refit: LiH's charge and
+    the refit barely move, and the column still misses both of A10's conditions."""
+    lines = [l for l in (_REFIT_PATH.parent / "hydrogen_refit_he" / "hydrogen_refit.csv").read_text(encoding="utf-8").splitlines() if not l.startswith("#")]
+    he = next(csv.DictReader(lines))
+    v0 = _refit_rows()[("V0", "hf")]
+    assert he["variant"] == "H-e" and he["job_status"] == "COMPLETE" and he["symmetry_check"] == "PASSED"
+    assert abs(float(he["Q_LiH_printed"]) - float(v0["Q_LiH_printed"])) < 2e-4
+    assert abs(float(he["fit_chi"]) - float(v0["fit_chi"])) < 1e-3 and abs(float(he["fit_J"]) - float(v0["fit_J"])) < 2e-3
+    assert he["within_envelope"] == "False" and he["program_pass"] == "False"
+    assert _refit_molecule("LiH", "H-e").coords[1][2] == pytest.approx(1.632817, abs=1e-6)
 
