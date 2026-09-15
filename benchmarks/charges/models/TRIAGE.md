@@ -310,3 +310,41 @@ a strict xfail, and its contents are pinned by
   source inconsistencies at the 1e-3 e level.
 - The geometries are not usable as they stand. Rebuilding a hydrogen position
   would be a reconstruction, not the source, so it is not done here.
+
+### 3.2 Mathieu Table I, the EEM (EQ) row (2026-09-14)
+
+**Fixture.** `mathieu2007_eq.csv` holds 194 molecules and 3,064 atoms. SHA-256
+(LF): `c63f1dd1f5f0195917377118ce1abca9e3ae5dee84d79a69d6c1674f605c28f7`.
+
+**Population.** All 194 molecules are in scope: every one is H/C/N/O/F, and
+every Mulliken sum is 0 within 0.01. None is excluded, and the shipped EEM
+refuses none. Atoms: C 965, H 1,812, N 92, O 133, F 62.
+
+| Metric | Reconstructed with `ce.eem_charges` | Table I | Within the pre-registered bound? |
+|---|---|---|---|
+| R² C | 0.9619 | 0.96 | **yes** |
+| R² H | 0.8139 | 0.81 | **yes** |
+| R² N | 0.9535 | 0.95 | **yes** |
+| R² O | 0.6641 | 0.66 | **yes** |
+| R² F | 0.3574 | 0.36 | **yes** |
+| R² All | 0.9727 | 0.97 | **yes** |
+| Δq, eq 15 as printed | 0.004453 | 0.0668 | **no** (strict-xfail stop record) |
+
+**Diagnostics.**
+- **√Δq = 0.066734,** 6.6e-5 from the printed 0.0668, just outside the
+  ±0.00005 rounding bound. So the table's number is almost certainly eq 15
+  **with** a square root, which the printed equation lacks. That is inferred,
+  and not adopted.
+- **The all-atom RMS first guessed in step 3 is 0.043558,** nowhere near the
+  table, which confirms the correction was needed.
+
+**What it means.**
+- The shipped EEM reproduces all six of Mathieu's R² values on 3,064 atoms of
+  an independent 194-molecule set.
+- The label stays **RELATED EEM IMPLEMENTATION**, as the frozen rule requires,
+  because Mathieu's text never states the Coulomb kernel. But the
+  reproduction is itself evidence that his EEM and the shipped one are the
+  same model.
+- **Mutation check:** η in place of 2η on the diagonal turns seven of these
+  tests red.
+

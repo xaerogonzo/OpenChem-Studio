@@ -181,3 +181,42 @@ def test_nistor_supplement_hexamethyldisiloxane_equals_the_papers_table_iv():
         assert SYMBOL[int(extracted["Z"])] == printed["element"]
         for paper_col, si_col in (("ab_initio", "esp"), ("i", "i"), ("ii", "ii"), ("iii", "iii"), ("iv", "iv")):
             assert printed[paper_col] == extracted[si_col], (printed["atom"], paper_col)
+
+
+# 2.2 -------------------------------------------------------------------------
+
+_mspec = importlib.util.spec_from_file_location("mathieu_eem_check", ROOT / "benchmarks" / "charges" / "models" / "mathieu_eem_check.py")
+mec = importlib.util.module_from_spec(_mspec)
+sys.modules["mathieu_eem_check"] = mec
+_mspec.loader.exec_module(mec)
+
+
+@pytest.fixture(scope="module")
+def mathieu_report():
+    return mec.evaluate()
+
+
+def test_mathieu_population_is_all_194_neutral_molecules_with_nothing_refused(mathieu_report):
+    assert mathieu_report["molecules"] == 194
+    assert mathieu_report["excluded"] == [] and mathieu_report["refused"] == []
+    assert mathieu_report["nonzero_mulliken_sum"] == []
+    assert mathieu_report["counts"] == {"C": 965, "H": 1812, "N": 92, "O": 133, "F": 62}
+
+
+@pytest.mark.parametrize("key", ["C", "H", "N", "O", "F", "All"])
+def test_the_shipped_eem_reproduces_mathieus_table_i_r_squared(mathieu_report, key):
+    """Six printed R^2 values, reproduced by `ce.eem_charges` unchanged."""
+    assert mec.verdict(mathieu_report)[key]
+
+
+@pytest.mark.xfail(strict=True, reason="STOP RECORD 2.2: eq 15's Delta-q as printed (no root) gives 0.0045 against Table I's 0.0668")
+def test_the_shipped_eem_reproduces_mathieus_table_i_delta_q(mathieu_report):
+    assert mec.verdict(mathieu_report)["dq"]
+
+
+def test_mathieu_delta_q_diagnostics_are_exactly_these(mathieu_report):
+    """Pinned: the square root of eq 15 lands 6.6e-5 from the printed 0.0668,
+    just outside the rounding bound; the all-atom RMS first guessed is far off."""
+    assert mathieu_report["metrics"]["dq"] == pytest.approx(0.004453, abs=5e-7)
+    assert mathieu_report["diagnostics"]["sqrt_dq"] == pytest.approx(0.066734, abs=5e-7)
+    assert mathieu_report["diagnostics"]["all_atom_rms"] == pytest.approx(0.043558, abs=5e-7)
