@@ -69,7 +69,7 @@ def test_every_fixture_matches_the_hash_the_preregistration_recorded():
     text = PREREGISTRATION.read_text(encoding="utf-8")
     fixtures = sorted(FIXTURES.glob("*.csv"))
     hashed = [f for f in fixtures if f.name != "slater_reference.csv"]
-    assert len(hashed) == 14
+    assert len(hashed) == 15
     for fixture in hashed:
         digest = hashlib.sha256(fixture.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
         assert f"`{fixture.name}`" in text and digest in text, fixture.name
@@ -1639,4 +1639,44 @@ def test_a10_the_v0_experimental_refit_stops_at_the_lih_uniqueness_boundary():
         assert len(lih.fixed_points(chi, j)[0]) == 1
         assert (len(lih.fixed_points(chi, j + 1e-3)[0]) == 3) is crosses
         assert (len(lih.fixed_points(chi - 1e-4, j)[0]) == 3) is crosses
+
+
+# A11: Cioslowski's LiH APT charge (experiment B: spherical, ORCA; gates nothing)
+
+_apt_spec = importlib.util.spec_from_file_location("cioslowski_apt", _REFIT_PATH.parent / "cioslowski_apt.py")
+capt = importlib.util.module_from_spec(_apt_spec)
+sys.modules["cioslowski_apt"] = capt
+_apt_spec.loader.exec_module(capt)
+
+
+def test_a11_apt_charge_is_the_trace_of_the_dipole_derivatives():
+    """A synthetic polar tensor diag(a, a, b): eq 9 gives (2a + b)/3, not b."""
+    a, b, h = 0.78, 0.48, 0.001
+    hb = h / capt.BOHR
+    dipoles = {}
+    for p, slope in enumerate((a, a, b)):
+        for sign in (+1, -1):
+            mu = [0.0, 0.0, -2.4]
+            mu[p] += sign * slope * hb
+            dipoles["xyz"[p] + ("+" if sign > 0 else "-")] = tuple(mu)
+    assert capt.apt_charge(dipoles, h) == pytest.approx((2 * a + b) / 3, abs=1e-12)
+
+
+def test_a11_experiment_b_is_converged_stable_and_pinned():
+    report = capt.analyse()["6-31++G(d,p)"]
+    assert report["all_converged"]
+    assert report["r"] == pytest.approx(1.63279, abs=1e-5)
+    assert report["stable"] == [0.0005, 0.001, 0.002, 0.004] and report["h"] == 0.004
+    assert report["Q_Li"] == pytest.approx(0.68215, abs=5e-6)
+    assert report["within"]  # 0.00025 from Cioslowski's 0.6819 -- a diagnostic, never a gate
+
+
+def test_a11_the_axial_derivative_alone_is_not_the_charge():
+    rows = capt.rows()
+    d = {r["displacement"]: tuple(float(r[f"dipole_{k}_au"]) for k in "xyz")
+         for r in rows if r["kind"] == "displaced" and math.isclose(float(r["h_angstrom"]), 0.004)}
+    hb = 0.004 / capt.BOHR
+    axial = (d["z+"][2] - d["z-"][2]) / (2 * hb)
+    perpendicular = (d["x+"][0] - d["x-"][0]) / (2 * hb)
+    assert axial == pytest.approx(0.4801, abs=1e-4) and perpendicular == pytest.approx(0.7832, abs=1e-4)
 

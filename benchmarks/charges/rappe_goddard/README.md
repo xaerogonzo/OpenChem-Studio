@@ -390,6 +390,33 @@ now has a measured reason beyond O4: no tested reading reproduces its fit.
 - **Still open:** the LiH geometry route, amendment A11, which reproduces
   Cioslowski's geometry first.
 
+## Amendment A11: Cioslowski's LiH geometry (2026-09-15)
+
+Pre-registered after A10's output, and disclosed as such.
+`cioslowski_apt.py`; fixture `cioslowski_lih_orca.csv`.
+
+**Experiment A, the historical reproduction that could gate H-e: BLOCKED.**
+It needs Cartesian (6d) d functions, and ORCA 6.1.1 rejects them
+(`PureD false`: "Unknown identifier"). H-e is therefore not run.
+
+**Experiment B: the same protocol, spherical 5d, in ORCA.** A diagnostic that
+gates nothing.
+- **Bond length:** RHF/6-31++G(d,p) optimises LiH to **1.63279 Å**, against
+  Huber's r_e of 1.5957 used by A10.
+- **Charge:** Li's APT charge (eq 9, the trace of three dipole derivatives) is
+  **+0.68215** at every h from 0.0005 to 0.004 Å, all agreeing to 1e-6 e.
+  That is 0.00025 from Cioslowski's +0.6819.
+- **The trace matters:** the axial derivative alone is 0.4801, and each
+  perpendicular one is 0.7832.
+- **The 4-31G cross-check is not run:** ORCA 6.1.1 has no built-in 4-31G.
+
+**What it means.** The PRL's definition and level of theory reproduce its
+number to within the 5d/6d difference one would expect. So the −0.682 target is
+understood, and its geometry is about 0.037 Å longer than the one A10 used.
+Whether that longer bond changes the HF-column refit is H-e's question. H-e
+waits on a program with Cartesian basis functions (for example Psi4), which
+is not installed.
+
 ## QEq stop 2: the bounds (O9)
 
 - **The paper's procedure never releases a fixed atom.** It is: solve; fix

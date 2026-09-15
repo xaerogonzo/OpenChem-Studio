@@ -26,6 +26,7 @@ The plan behind this is `docs/ROADMAP.md`, "EEM and QEq", DECIDED 2026-09-14.
 | `almenningen1963_disiloxane.csv` | Almenningen et al. 1963, Table 1 final results, plus labelled reconstruction (added by amendment A7) | `028b430065320a0de85ceef08d07f2b921a3005744b292b5e8bc3a95c3fdef48` |
 | `qeq_perf_conformers.csv` | Aspirin, fentanyl, n-hexadecane and atorvastatin, frozen RDKit/MMFF94 coordinates for the A8 time gate (added by amendment A8) | `6592aefb3aee17f9665604746238fc795b56ca01d180388642cddc7eb68edfae` |
 | `o9_corpus_conformers.csv` | The naming corpus restricted to Table I elements, 174 molecules, frozen RDKit/MMFF94 coordinates (added by amendment A9) | `d4641f3b7ee7a2d014d5b5c0f427b0de8bc21567470a86d0cbc11dd7e47491f1` |
+| `cioslowski_lih_orca.csv` | ORCA 6.1.1 RHF/6-31++G(d,p) (spherical) LiH optimisation and ±h dipoles for Cioslowski's APT charge (added by amendment A11, experiment B) | `307801261e70731fff45b02ced62620ca447347f9a0a74c3ffb74409b21fa238` |
 
 Every value was checked by eye against its page rendered at 300 dpi
 (Huber & Herzberg's rotated tables at 130 dpi). No fixture value comes from a
