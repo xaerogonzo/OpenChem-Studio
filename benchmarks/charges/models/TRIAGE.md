@@ -1059,13 +1059,26 @@ only).
 
 | Source | Kind | Charges | Population | Evidence available |
 |---|---|---|---|---|
-| `jiroušková2009` | element extension (S, Br, Cl, Zn) | B3LYP and HF/6-31G\* MK | **unavailable**: the held SI is 3 pp of histograms; the paper says the molecules were stored as SDF, but no file is held | none without the SDFs |
+| `jiroušková2009` | element extension (S, Br, Cl, Zn) | B3LYP and HF/6-31G\* MK | **unavailable**, searched 2026-09-15 (below) | none |
 | `bultinck2004` | same equations, AIM charges | B3LYP AIM, CHNOF | **partial**: the SI is a drawn list of molecule identities with no coordinates | identities only; AIM needs a tool not held |
 | `ouyang2009`, `chaves2006`, `njo1998` | modified models / other elements | NPA, Mulliken, STO-3G+MK | not assessed; context only | context |
 | `ionescu2012` | application (Bax/Bak profiles) | — | the fragment archive is not held | none |
 | `verstraelen2009` | EEM and SQE on 500 molecules (H, C, N, O, F, S, Cl, Br) | its own | data not held | context for Tracks 1 and 5, never a gate |
 
-**Jiroušková 2009 is "not found in the publisher's SI", not "unavailable",**
-until the targeted search the round 3 plan registered is done: the Masaryk
-NCBR page the paper cites, that page in the Internet Archive, and any author
-repository. That search has not been run in this round.
+**The Jiroušková 2009 search, run 2026-09-15, and its result: UNAVAILABLE.**
+The round 3 plan required this before the record could say "unavailable".
+- The paper's own data statement: 380 training, 116 validation and 111
+  comparative molecules (16,841 atoms in the training set), "stored in SDF
+  format". **It prints no molecule identities** -- no NSC numbers, no CSD
+  refcodes, no names -- so even a recovered file could not be checked against
+  a membership list, and no list can be rebuilt from the paper.
+- The held SI is 3 pp of histograms.
+- The page the paper cites for its software,
+  `http://ncbr.chemi.muni.cz/~n19n/eem_abeem`, does not respond (connection
+  failure on http and https).
+- The Internet Archive holds **4 URLs** under that path, all captured in 2007
+  and 2008, before this paper: the redirect itself, `email.htm`, `licence.htm`
+  and `manual.htm`. None is data.
+
+So the status is unavailable, on a search rather than on an assumption. It is
+not reopened without a new source.
