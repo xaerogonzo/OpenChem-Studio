@@ -47,6 +47,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Three records said the EQeq paper's supplement held data it does not.**
+  `docs/sources.toml`, the model triage and the roadmap each stated that
+  Wilmer 2012's supporting information gives the ionisation table (S2) and
+  the 12 MOFs' per-atom charges (S5). The held PDF shows S2 only as plots and
+  S5 as a one-line pointer to a zip; the table, the structures, the charges
+  and the source code are accompanying files, and none is held. The periodic
+  feasibility check that found this is at
+  `benchmarks/charges/periodic/FEASIBILITY.md`, and its outcome is BLOCKED.
+
 - **A 3D result could name a conformer it was not computed on.** Which
   conformer a calculation used was read after the calculation finished, so a
   conformer search landing mid-run filed the result under the new conformer
