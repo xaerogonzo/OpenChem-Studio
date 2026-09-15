@@ -571,6 +571,151 @@ feeds the other.
   are named), or NOT REPRODUCED. A miss is a strict-xfail stop record against
   the shipped EEM's external validation. It does not change 2.2 or 2.4.
 
+### 2.7 Nistor SQE: recover the geometry's atom correspondence, then test methods i, iii and iv
+
+Pre-registered 2026-09-15, before any recovery or SQE charge exists. It
+replaces the round 3 plan's "rebuild the missing hydrogen" design, because
+three measurements made while writing it show that premise is wrong. Those
+measurements use only coordinates and elements from
+`nistor2006_si_molecules.csv`, no charge column, and are recorded here because
+they motivate the design. The correction to check 2.1's record is appended to
+section 3.1.
+
+**What was measured (2026-09-15).**
+1. **As printed, no molecule is chemically consistent.** 0 of 41 molecules
+   give every atom its valence. That measurement used ad hoc radii (H 0.31,
+   C 0.76, O 0.66, Si 1.11 Å, f = 1.25), not the registered rule below, which
+   Step 2 applies.
+2. **The real rows are self-consistent as a point set.** No two printed
+   non-origin rows lie closer than 0.85 Å in any molecule.
+3. **The origin row is not a hydrogen that lost its coordinates.**
+   - It lies within 0.85 Å of a real row in 10 molecules (2, 3, 4, 12, 13,
+     23, 31, 36, 37, 40): a fake point.
+   - In the other 31 it sits at a chemically plausible distance.
+   - Rotating the coordinate column down one row, so the origin belongs to
+     atom 1, makes 6 molecules fully consistent, including SiH4, CH4 and
+     CH3OH.
+   - **So the coordinate column is misaligned against the element and charge
+     columns** by a permutation that differs between molecules. That, not a
+     lost hydrogen, is the defect. The raw PDF text shows the same rows, so
+     the misalignment is in the archived page, not in `nistor_extract.py`.
+
+**The model, from `nistor2006` pp. 2–5 and supplement pp. 3 and 8 (rendered).**
+- **Energy:** V = Σ_i (½κ_iQ_i² + χ_iQ_i) + V_C, with Q_i = Σ_j q̄_ij over
+  covalently bonded neighbours (eq 1), and V_C = Σ_{i<j} Q_iQ_jJ_ij(R_ij).
+- **Kernel:** J_ij is the two-centre Coulomb integral of normalised ns Slater
+  densities φ = A R^(n−1) e^(−ζR), A = √((2ζ)^(2n+1)/(4π(2n)!)), with n and ζ
+  (Å⁻¹) of H 1/2.315, C 2/1.618, O 2/1.842 and Si 3/1.818. Energies are in eV.
+  - The printed A values (H 1.987, C 1.084, O 1.500, Si 0.964) are a checksum
+    on that transcription.
+- **Method i** (eq 13): κ and χ per atom, QE rules.
+- **Method ii** (eq 14): a fixed q̄ per bond type with no V_C. A pair
+  "A–B v" puts +v on A and −v on B, checked by hand on CH3OH.
+- **Method iii** (eq 16): method i plus a bond hardness κ^(s)_ij, with
+  energy term ½κ^(s)_ij q̄_ij².
+- **Method iv** (eq 17): method iii with χ_i = χ⁰_i + Σ_j Δχ_ij and
+  κ_i = κ⁰_i + Σ_j Δκ_ij over bonded j, the Δ asymmetric.
+- **The split-charge solve:** eq 9, ∂V/∂q̄_ij = 0 for i < j, with q̄_ji = −q̄_ij.
+  The system can be singular on rings, and the atomic charges are the output
+  (as in 2.4).
+
+**Step 1: parameter set identification (topology only, no fit).**
+- Method ii's charges depend on bonding alone. The supplement prints five sets:
+  all-41 (p. 3), Si–O–H (p. 4), C–O–H (p. 5), ESP-fitted (p. 6),
+  Mulliken-fitted (p. 7).
+- The set used for the molecule tables is the one whose method ii q̄ values
+  reproduce every printed method ii charge, given the recovered bonding, within
+  n_bonds × 5e-5.
+- A molecule matched by no set is BLOCKED on parameters. If more than one set
+  matches, the all-41 set (the tables' own page) is used and the tie is
+  recorded.
+
+**Step 2: correspondence recovery, a constraint solve.**
+- **Bonded rule:** d < f × (r_i + r_j) with Lange 15th ed. Table 4.7
+  single-bond radii (`langes15`, already shipped in `tsei_radii.json`): H 0.30,
+  C 0.772, O 0.66, Si 1.17 Å. f = 1.25 is an engineering choice; f = 1.15 and
+  1.35 are reported as sensitivity.
+- **Point sets tried:** S_all (all n rows, the origin included) and S_real (the
+  n − 1 non-origin rows, one table atom left unplaced).
+- **An assignment** maps table atoms to points one to one, and is valid when:
+  - every placed atom's bonded-neighbour count equals its valence (H 1, C 4,
+    O 2, Si 4, since every C and Si is tetracoordinate and every O
+    bicoordinate, per the paper);
+  - every bond joins two placed atoms under the rule;
+  - every placed atom's method ii charge, recomputed from its neighbours'
+    elements with the Step 1 set, matches the printed method ii value within
+    5e-5 per bond. For S_real, the unplaced atom's missing bond is allowed to
+    its parent only.
+- **Symmetry classes:** table atoms with the same element and identical printed
+  values in all five columns (ESP, i–iv) are interchangeable. Assignments
+  differing only within a class are one solution.
+- **Outcomes per molecule:**
+  - **RECOVERED-UNIQUE:** exactly one solution on S_all, the origin row a real
+    atom.
+  - **RECOVERED-UNIQUE-ONE-UNPLACED:** no S_all solution and exactly one on
+    S_real. The unplaced atom has no coordinates, so the molecule goes to
+    INCONCLUSIVE for V_C methods; placing it would be a reconstruction, not
+    done here.
+  - **AMBIGUOUS:** more than one solution (count reported).
+  - **UNRECOVERABLE:** none.
+  - **BLOCKED:** parameters, or the solver's search limit of 10⁶ nodes.
+- **What this is:** a recovery of which printed coordinate belongs to which
+  printed atom, using only coordinates, elements and the topology-only method
+  ii column. No coordinate is invented. **Method ii is used to recover, so it
+  is never reported as an independent reproduction afterwards.**
+
+**Step 3: methods i, iii and iv on RECOVERED-UNIQUE molecules.**
+- **Kernel first, before any corpus run:** the ns Slater closed form in
+  `charge_equilibration.py` (ζ converted to bohr⁻¹, result to eV) must equal
+  an independent mpmath double integral of these normalised densities, for
+  H–H, C–O and Si–Si at R = 0.5–6 Å, to 1e-9 eV.
+  - It must also reproduce the supplement figure's R = 0 intercepts to plotting
+    precision (H–H about 21, C–O about 9, Si–Si about 6.8 eV; a sanity check,
+    not a gate).
+  - If it fails, a separate kernel is written.
+- **Oracle:** each atom's printed method charge, to 4 dp.
+  - **Per atom:** reproduced if |Δ| ≤ 5e-5 (the half-unit), else failed.
+  - **Per molecule × method:** REPRODUCED-ON-RECOVERED-CORRESPONDENCE when every
+    atom is reproduced, else PARTIAL with the failing atoms and the largest |Δ|.
+  - **Sigma = 100·Δ_n** (check 2.1's identified form) against the printed
+    Sigma, reported.
+- **Source inconsistencies already on record** are carried as expected
+  departures, not failures: the method ii sum departures of molecules 5, 14
+  and 18, and Table IV atom 15 method i. They do not touch methods i, iii and
+  iv otherwise.
+- **Program verdict:**
+  - counts per class;
+  - **GO-CANDIDATE** for a separate SQE pre-registration only if all three
+    methods reproduce on at least 10 recovered molecules spanning the three
+    families;
+  - otherwise PARTIAL, INCONCLUSIVE or BLOCKED, with the reason.
+
+**Universal status mapping:**
+- REPRODUCED-ON-RECOVERED-CORRESPONDENCE → REPRODUCED (claim kind:
+  implementation reproduction);
+- PARTIAL → PARTIAL;
+- AMBIGUOUS and ONE-UNPLACED → INCONCLUSIVE;
+- UNRECOVERABLE → INCOMPATIBLE;
+- BLOCKED → BLOCKED.
+
+**Instrument tests, before any corpus run:**
+- **Solver:** on a synthetic molecule with its rows permuted it recovers the
+  permutation; it reports AMBIGUOUS on a constructed symmetric case where
+  classes differ; it returns UNRECOVERABLE on scrambled coordinates.
+- **Method ii recomputation:** reproduces CH3OH's printed column exactly.
+- **Kernel checks** as above.
+- **Split-charge solver:** equals a brute-force minimisation of V on a 3-atom
+  toy for each method; method i equals an atomic QE solve with the same J on a
+  connected molecule (eq 4's isomorphism).
+
+**Mutations:**
+- the pair sign convention flipped;
+- ζ left in Å⁻¹;
+- the S_real branch allowed to place the unplaced atom anywhere;
+- symmetry classes ignoring the ESP column;
+- Δ perturbations made symmetric;
+- κ^(s) entering without its ½.
+
 ## 3. Results
 
 ### 3.1 Nistor supplement extraction (2026-09-14)
