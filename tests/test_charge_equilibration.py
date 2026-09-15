@@ -69,7 +69,7 @@ def test_every_fixture_matches_the_hash_the_preregistration_recorded():
     text = PREREGISTRATION.read_text(encoding="utf-8")
     fixtures = sorted(FIXTURES.glob("*.csv"))
     hashed = [f for f in fixtures if f.name != "slater_reference.csv"]
-    assert len(hashed) == 15
+    assert len(hashed) == 16
     for fixture in hashed:
         digest = hashlib.sha256(fixture.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
         assert f"`{fixture.name}`" in text and digest in text, fixture.name
@@ -1734,4 +1734,14 @@ def test_a12_formamide_recomputes_to_the_committed_values():
         nominal, lo, hi, klass = A12_PINNED[(r[0], r[1], r[2], r[3])]
         assert (float(r[6]), float(r[7]), float(r[8])) == pytest.approx((nominal, lo, hi), abs=2e-6)
         assert r[13] == klass
+
+
+def test_a11_experiment_a_cartesian_d_reproduces_cioslowski_and_accepts_the_geometry():
+    """Psi4, puream false: the historical basis. Gates H-e, and passes."""
+    report = capt.analyse(capt.FIXTURE_A)["6-31++G(d,p)"]
+    assert report["all_converged"]
+    assert report["r"] == pytest.approx(1.632817, abs=2e-6)
+    assert report["stable"] == [0.0005, 0.001, 0.002, 0.004] and report["h"] == 0.004
+    assert report["Q_Li"] == pytest.approx(0.681845, abs=5e-6)
+    assert report["within"] and report["bound"] == 0.0005
 

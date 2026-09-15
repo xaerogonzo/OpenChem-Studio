@@ -23,6 +23,8 @@ import subprocess
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent.parent.parent
 FIXTURE = ROOT / "tests" / "fixtures" / "charges" / "cioslowski_lih_orca.csv"
+#: Experiment A (Cartesian d), written by cioslowski_apt_psi4.py in the psi4-a11 environment.
+FIXTURE_A = ROOT / "tests" / "fixtures" / "charges" / "cioslowski_lih_psi4.csv"
 ORCA = pathlib.Path(r"D:\ORCA\orca.exe")
 WORK = pathlib.Path(r"D:\oc-orca-a11")
 BOHR = 0.52917721
@@ -89,8 +91,8 @@ def run() -> None:
                        + buffer.getvalue(), encoding="utf-8", newline="\n")
 
 
-def rows() -> list[dict[str, str]]:
-    lines = [l for l in FIXTURE.read_text(encoding="utf-8").splitlines() if not l.startswith("#")]
+def rows(fixture: pathlib.Path = FIXTURE) -> list[dict[str, str]]:
+    lines = [l for l in fixture.read_text(encoding="utf-8").splitlines() if not l.startswith("#")]
     return list(csv.DictReader(lines))
 
 
@@ -100,8 +102,8 @@ def apt_charge(dipoles: dict[str, tuple[float, float, float]], h_angstrom: float
     return sum((dipoles["xyz"[p] + "+"][p] - dipoles["xyz"[p] + "-"][p]) / (2 * h) for p in range(3)) / 3.0
 
 
-def analyse() -> dict[str, dict]:
-    data = rows()
+def analyse(fixture: pathlib.Path = FIXTURE) -> dict[str, dict]:
+    data = rows(fixture)
     report = {}
     for basis in BASES:
         mine = [r for r in data if r["basis"] == basis]
@@ -128,12 +130,16 @@ def main() -> None:
     parser.add_argument("--run", action="store_true")
     if parser.parse_args().run:
         run()
-    for basis, rep in analyse().items():
+    for label, fixture in (("A (Cartesian d, Psi4; gates H-e)", FIXTURE_A), ("B (spherical d, ORCA; diagnostic)", FIXTURE)):
+      if not fixture.exists():
+        continue
+      print(f"experiment {label}")
+      for basis, rep in analyse(fixture).items():
         print(f"{basis}: r = {rep['r']:.5f} A (Huber r_e 1.5957), converged {rep['all_converged']}")
         for h, q in rep["charges"].items():
             print(f"   h {h:<8} Q_Li {q:+.6f}")
         print(f"   stable {rep['stable']}, h used {rep['h']}, Q_Li {rep['Q_Li']:+.5f} vs printed {rep['printed']} "
-              f"(bound {rep['bound']:.5f}): {'within' if rep['within'] else 'OUTSIDE'} -- experiment B, gates nothing")
+              f"(bound {rep['bound']:.5f}): {'within' if rep['within'] else 'OUTSIDE'}")
 
 
 if __name__ == "__main__":
