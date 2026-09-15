@@ -656,6 +656,22 @@ comparison made).** These motivate the design and are recorded as such.
   - the subset, the ratio and the scale are printed in the result, so the
     approximation is visible wherever it is used.
 
+**Amendment 2.8-A1 (2026-09-15): the sample count drops from 500 to 100,
+on a measurement, before any model verdict exists.** The envelope on
+fragment 1000023 (546 atoms, E-MPA/6-31G\*/gas, R_angstrom) is **identical at
+25, 50, 100, 250 and 500 draws**: max envelope 2.346e-01 e, max ratio 25.0 in
+every case. The maximum comes from the single-parameter ± corners, which are
+always evaluated, and not from the random draws, so the draw count cannot
+change a τ. 100 is kept (four times the count at which it had already
+saturated) because that measurement is on one fragment. The seed is unchanged.
+
+**What that envelope says about the gate, recorded with it:** τ is dominated
+by **k's printed precision**. k is given to 3 decimals, so k = 0.006 ± 0.0005
+is an 8% uncertainty, while A and B carry 6. A gate of this width is therefore
+weak on its own, and the result must report the **distribution of |Δ|**
+beside the pass count: an agreement far inside τ is the evidence that the
+parameters are the source's, and an agreement merely inside τ is not.
+
 **Oracle and classes.**
 - Per atom: **reproduced** if |q_model − q_printed| ≤ τ_i, else **failed**.
 - Per fragment × model: **REPRODUCED** when every applicable atom is

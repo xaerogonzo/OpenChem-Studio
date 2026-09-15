@@ -297,7 +297,7 @@ def applicable(molecule: dict, parameters: dict, scheme: str, model: str) -> str
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--models", type=int, default=12, help="how many E models to run (12 = all)")
-    parser.add_argument("--samples", type=int, default=500, help="rounding-box draws per subset fragment")
+    parser.add_argument("--samples", type=int, default=100, help="rounding-box draws per subset fragment (2.8-A1)")
     parser.add_argument("--datasets", default="training_set,insulin,ubiquitin")
     args = parser.parse_args()
 
