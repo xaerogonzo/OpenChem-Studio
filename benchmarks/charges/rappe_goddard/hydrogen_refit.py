@@ -72,6 +72,8 @@ class Variant:
     iterations: int | None = None
     #: H-d: the Q entering hydrogen's diagonal is clamped to +-clamp.
     clamp: float | None = None
+    #: H-e (amendment A11): LiH's bond length in angstrom instead of Huber r_e.
+    lih_bond: float | None = None
 
     @property
     def self_factor(self) -> float:
@@ -86,7 +88,17 @@ VARIANTS = (
     Variant("H-c", replace(ce.ADOPTED, zeta_h_in_pairs=False)),
     Variant("H-d", replace(ce.ADOPTED, zeta_h_in_pairs=False), clamp=0.95),
 )
-VARIANTS_BY_NAME = {v.name: v for v in VARIANTS}
+
+
+def _cioslowski_bond() -> float:
+    """A11 experiment A's Cartesian-d RHF/6-31++G(d,p) optimum, from its fixture."""
+    lines = [l for l in (FIXTURES / "cioslowski_lih_psi4.csv").read_text(encoding="utf-8").splitlines() if not l.startswith("#")]
+    return float(next(r["r_LiH_angstrom"] for r in csv.DictReader(lines) if r["kind"] == "optimised"))
+
+
+#: Not part of A10's nine: A11's H-e, run only because experiment A passed.
+EXTRA_VARIANTS = (Variant("H-e", ce.ADOPTED, lih_bond=_cioslowski_bond()),)
+VARIANTS_BY_NAME = {v.name: v for v in VARIANTS + EXTRA_VARIANTS}
 
 
 def _rows(name: str) -> list[dict[str, str]]:
@@ -98,12 +110,14 @@ def table_iii() -> dict[str, dict[str, float]]:
     return {r["molecule"]: {k: float(v) for k, v in r.items() if k != "molecule"} for r in _rows("rappe1991_table3.csv")}
 
 
-def structure(name: str) -> tuple[list[str], np.ndarray, list[int]]:
+def structure(name: str, lih_bond: float | None = None) -> tuple[list[str], np.ndarray, list[int]]:
     """O4's geometries: Huber r_e for the diatomics, A4's builders otherwise,
     plus the hydrogen symmetry group read off the builder's atom roles
     (Table IV printed order 1) -- correction 3, item 1."""
     if name in DIATOMICS:
         r_e = next(float(r["r_e_A"]) for r in _rows("geometries.csv") if r["molecule"] == name)
+        if name == "LiH" and lih_bond is not None:
+            r_e = lih_bond
         elements = ["H", "F"] if name == "HF" else ["Li", "H"]
         return elements, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, r_e]]), [elements.index("H")]
     elements, coords, mapping, _ = geo.build(name)
@@ -186,7 +200,7 @@ class Molecule:
         self.name = name
         self.variant = variant
         self.recorder = recorder or SpreadRecorder()
-        self.elements, self.coords, self.group = structure(name)
+        self.elements, self.coords, self.group = structure(name, variant.lih_bond)
         n = self.n = len(self.elements)
         self.hydrogens = [i for i, e in enumerate(self.elements) if e == "H"]
         # A setup check, unreachable from the optimiser: every fit molecule's
@@ -841,12 +855,19 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=min(18, os.cpu_count() or 1))
     parser.add_argument("--variants", default=",".join(v.name for v in VARIANTS))
     parser.add_argument("--collect-only", action="store_true", help="rebuild the CSVs from existing job files")
+    parser.add_argument("--columns", default=",".join(COLUMNS))
+    parser.add_argument("--out", default=str(HERE), help="directory for the CSVs and hydrogen_refit_jobs/ (H-e uses its own)")
     args = parser.parse_args()
     names = args.variants.split(",")
+    columns = args.columns.split(",")
+    out = pathlib.Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    jobs_dir = out / "hydrogen_refit_jobs"
     if not args.collect_only:
-        run_jobs([(v, c) for v in names for c in COLUMNS], JOBS_DIR, args.workers)
-    results, states = collect(JOBS_DIR, names)
-    write(results, states)
+        run_jobs([(v, c) for v in names for c in columns], jobs_dir, args.workers)
+    results, states = collect(jobs_dir, names)
+    states = {k: v for k, v in states.items() if k[1] in columns}
+    write(results, states, out)
     print(summary_line(states))
     for v in names:
         print(f"{v:6} {classify(results, v) or 'NO VERDICT'}")
