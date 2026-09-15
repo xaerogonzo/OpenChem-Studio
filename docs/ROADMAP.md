@@ -1997,6 +1997,46 @@ struck through and marked SHIPPED here, never deleted.
       bounds bind where the model has no minimum, and the answer is
       unphysical. The refusal stays, and replacing the procedure is not
       recommended on this evidence.
+- **Further charge models: triage, not implementation (2026-09-14).** Each
+  model becomes a calculator only after a numeric oracle is in hand and a
+  plan is pre-registered, the way EEM and QEq were.
+  [benchmarks/charges/models/TRIAGE.md](../benchmarks/charges/models/TRIAGE.md)
+  holds the per-model records.
+  - Split-charge equilibration (Nistor 2006) is the first candidate: its
+    supplement prints coordinates, reference charges and all four methods'
+    charges for 41 molecules.
+  - Mathieu 2007's deposited geometries give the shipped EEM an external
+    check.
+  - QTPIE, PQEq and Oda–Hirono are held on missing oracles. ACKS2 is not
+    pursued as a molecular calculator.
+- **Periodic charge equilibration (deferred).** Not started, and recorded so
+  the requirements are not rediscovered. Charges for crystals and frameworks,
+  read through the existing `chem/cif.py` path.
+  - **Candidate electrostatic treatments:** Ewald summation, or a damped
+    shifted-force (Wolf-type) sum, each with Slater or Gaussian shielding.
+    They differ in convergence and boundary semantics, so choosing one is a
+    scientific decision, not an implementation detail.
+  - **A result's identity must include more than the atoms:** lattice
+    vectors, periodicity, total cell charge, the summation method and its
+    parameters (cutoffs, Ewald splitting and k-space), and the boundary
+    convention. The molecular result store's identity must not be reused
+    as is.
+  - **Methods, each with its own oracle:**
+    - EQeq (Wilmer 2012). Its supporting information gives the parameters
+      (S3) and per-atom charges for 12 MOFs (S5); numat/EQeq (GPL-2.0) is a
+      runnable reference.
+    - PQEq (Naserifar 2017). Its supplement's parameter files cover the whole
+      periodic table.
+    - Periodic EQeq is kept separate from any molecular EQeq, which would
+      need a molecular oracle of its own.
+  - **External reference data, not a QEq oracle:** the Materials Cloud
+    archive cited by Ongari et al. 2019 holds DDEC charges for MOFs. DDEC is
+    a different partitioning.
+    - The archive has not been opened, so it is not registered.
+    - The DOI the paper prints, which has no version suffix, does not resolve
+      (checked 2026-09-14). The `/v1` and `/v2` records do.
+  - **Why deferred:** no calculator handles periodic boundaries, and this is
+    a different product surface from molecular charges.
 - **Geometry-dependent charges at a pH.** Not started, and deliberately
   separate from the item above. It needs the coordinate gate recorded there:
   protonation must not move or lose the conformer's heavy atoms.
