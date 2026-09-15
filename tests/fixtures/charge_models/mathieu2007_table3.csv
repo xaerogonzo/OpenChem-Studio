@@ -1,0 +1,27 @@
+# D. Mathieu, J. Chem. Phys. 2007, 127, 224103, Table III (p. 8), rendered at 300 dpi.
+# Atoms identified from deposited Mulliken charges only (TRIAGE.md 2.6a); a pair row gates both atoms.
+set,printed_molecule,bold_glyph,qm_printed,q_printed,dev_printed,file,atom,element,qm_deposited,note
+EQ,NNO,N,0.615,0.247,-0.367,N2O,2,N,0.6145,
+EQ,F3C-CN,C,0.892,0.540,-0.352,F3C-CN,2,C,0.8922,
+EQ,(NO2)2-CF-CF2-(NO2),C,0.788,0.481,-0.307,trifluorotrinitroethane,2,C,0.7883,same molecule as O2N-CF2-CF-(NO2)2
+EQ,F3C-CO-NH2,C,0.797,0.498,-0.299,trifluoroacetamide,2,C,0.7968,
+EQ,F3C-CO-OCH3,C,0.803,0.509,-0.294,methyltrifluoroacetate,8,C,0.8034,
+EQ,O2N-CF2-CF2-NO2,C,0.725,0.460,-0.266,O2N-CF2-CF2-NO2,2,C,0.7252,
+EQ,O2N-CF2-CF2-NO2,C,0.725,0.460,-0.266,O2N-CF2-CF2-NO2,4,C,0.7252,
+EQ,(NO2)2-CF-CF-(NO2)2,C,0.601,0.338,-0.263,difluorotetranitroethane,2,C,0.6013,
+EQ,(NO2)2-CF-CF-(NO2)2,C,0.601,0.338,-0.263,difluorotetranitroethane,4,C,0.6014,
+EQ,CO,O,-0.180,-0.442,-0.262,CO,1,O,-0.1796,
+EQ,FCCF,F,-0.029,-0.269,-0.240,FCCF,1,F,-0.0289,
+EQ,FCCF,F,-0.029,-0.269,-0.240,FCCF,4,F,-0.0289,
+EQ,O2N-CF2-CF-(NO2)2,C,0.535,0.315,-0.220,trifluorotrinitroethane,4,C,0.5354,same molecule as (NO2)2-CF-CF2-(NO2)
+EQ,Guanine,C,0.259,0.054,-0.205,guanine,4,C,0.2592,caption: the carbon alpha to the carbonyl
+EQ,N2O,O,-0.492,-0.253,0.238,N2O,3,O,-0.4916,
+EQ,FCCF,C,0.029,0.269,0.240,FCCF,2,C,0.0289,
+EQ,FCCF,C,0.029,0.269,0.240,FCCF,3,C,0.0289,
+EQ,CO,C,0.180,0.442,0.262,CO,2,C,0.1796,
+EQ,F3C-CN,C,-0.421,-0.144,0.277,F3C-CN,6,N,-0.4211,"no carbon of F3C-CN is within 5e-4 of -0.421; N6 is (-0.4211): identified by value, glyph and number disagree"
+TS,H3NO+HONO (Ref. 53),N,-0.425,-0.650,-0.225,JPCA2003-107-5798-TS17,1,N,-0.4253,
+TS,HCO+OH (Ref. 52),H,0.387,0.183,-0.204,JPCA_2000_104_10526-ts1,5,H,0.3868,
+TS,H3NO+HONO (Ref. 53),O,-0.547,-0.306,0.241,JPCA2003-107-5798-TS17,2,O,-0.5471,
+TS,HCO+OH (Ref. 52),O,-0.780,-0.494,0.285,JPCA_2000_104_10526-ts1,3,O,-0.7796,
+TS,F+FNH+C4H9N (Ref. 55),F,-0.501,-0.161,0.340,JPCA_2005_109_4829-TS1,17,F,-0.5012,
