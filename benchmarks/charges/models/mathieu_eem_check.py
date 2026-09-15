@@ -53,8 +53,8 @@ def freeze() -> None:
     print(f"froze {len(files)} molecules into {FIXTURE}")
 
 
-def molecules() -> dict[str, list[dict[str, str]]]:
-    lines = [l for l in FIXTURE.read_text(encoding="utf-8").splitlines() if not l.startswith("#")]
+def molecules(fixture: pathlib.Path = FIXTURE) -> dict[str, list[dict[str, str]]]:
+    lines = [l for l in fixture.read_text(encoding="utf-8").splitlines() if not l.startswith("#")]
     out: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in csv.DictReader(lines):
         out[row["molecule"]].append(row)
