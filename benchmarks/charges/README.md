@@ -4,7 +4,12 @@ Step 5a of the "EEM and QEq on the stored conformer" plan (ROADMAP, "Next
 up"). The plan had findings committed whatever they showed, and a stop rule
 fixed before measuring. **The stop rule fired for QEq.** EEM passed it, but
 its parameter file only partly matches the paper it is labelled with.
-Nothing in the application changed.
+Nothing in the application changed at the time.
+
+**Since then (2026-09-14):** both decisions at the end of this page were
+taken. EEM and QEq are implemented in-house, without Open Babel. The record
+is [`rappe_goddard/README.md`](rappe_goddard/README.md); models beyond those
+two are triaged in [`models/TRIAGE.md`](models/TRIAGE.md).
 
 ```bash
 uv run --no-sync python benchmarks/charges/datadir_arms.py
@@ -124,10 +129,12 @@ Beyond those five elements:
   ships such sets and prints no values, so none of the six has been checked
   against a source.
 
-**Bultinck et al. 2002 part I** (J. Phys. Chem. A 106, 7887) is not held, and
-C and O may come from it. That is unchecked, not settled.
+**Bultinck et al. 2002 part I** (J. Phys. Chem. A 106, 7887) was not held when
+this was written. It has been read since (`bultinck2002a`). Its Table 1 gives
+C as η\* 9.00 and χ\*−χ\*H 4.25 (part II: 9.00, 4.26), and O as 14.34 and
+13.72 (part II: the same). So `eem.txt`'s C and O come from neither paper.
 
-## What this leaves for a decision
+## What this left for a decision (both since taken)
 
 - **QEq:** implement it here (Rappé–Goddard with Slater integrals and
   hydrogen's charge dependence, checked against Table IV), or leave it out.

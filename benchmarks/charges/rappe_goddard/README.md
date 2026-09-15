@@ -14,8 +14,8 @@ uv run --no-sync python benchmarks/charges/rappe_goddard/oracle.py
 
 - **EEM passes its gate.** It ships with Bultinck part I Table 1's parameters
   (Phase B).
-- **QEq stopped at the pre-registered stop rule, twice.** The next decision is
-  Alex's.
+- **QEq stopped at the pre-registered stop rule, twice** (O4 hydrogen, O9
+  bounds). The decisions that followed are A6, A8 and A9, below.
 - **Harmony et al. 1979 arrived, and the polyatomic rows point at one reading.**
   - **Under the pre-registered primary P** (Table I's printed ζ), 39 of 76
     Table III/IV cells miss.
@@ -357,6 +357,11 @@ statement, and it is not softened.
     - The HF-column refit is interior: all four perturbations keep every
       charge unique.
   - The objective surface is a long valley, with elongation 11–13.
+  - **A refit that wanders along a valley is expected of charge-only fits.**
+    Verstraelen et al. 2011 (`verstraelen2011`) find the least-squares
+    objective on atomic charges "in general ill-conditioned" for EEM and SQE
+    parameters. That is context for why a refit need not land on one pair; it
+    changes none of A10's verdicts.
 - **The same pattern holds for truncated iteration.** No k gives a refit
   inside its envelope in either column. H-a9's experimental column is the
   closest (S = 0.0037 at the printed pair) but still moves J by +0.081 against
@@ -387,8 +392,8 @@ experimental set only and LiH refused. The HF-fitted set stays unoffered, and
 now has a measured reason beyond O4: no tested reading reproduces its fit.
 - **Still unexplained:** what the 1991 program did for hydrogen.
 - **What was ruled out:** eight readings.
-- **Still open:** the LiH geometry route, amendment A11, which reproduces
-  Cioslowski's geometry first.
+- **Checked since:** the LiH geometry route, amendment A11 below. Cioslowski's
+  geometry is reproduced, and it does not explain the miss.
 
 ## Amendment A11: Cioslowski's LiH geometry (2026-09-15)
 
@@ -483,10 +488,13 @@ converged) and `table_iv_geometry_summary.csv`.
   feasible charge set with lower energy exists. The worst case is 2.0 e.
 - In several of them the paper's literal one pass is the whole procedure, so
   this is not about repeating it.
-- **These matrices are not molecules.** Whether a real molecule reaches such a
-  case has not been measured.
+- **These matrices are not molecules.** At the time, whether a real molecule
+  reaches such a case had not been measured.
 - The pre-registration does not allow swapping in a proper active-set method
-  silently, so this is recorded and goes to Alex.
+  silently, so this was recorded for a decision.
+- **Measured since (A9, above):** on 174 real molecules the paper's procedure
+  is the constrained optimum on every converged one. The procedure and A8's
+  refusal of a final active bound both stay.
 
 ## Cost
 
@@ -539,16 +547,14 @@ their iteration counts differ from B3's.
    tolerance, and SiH₄) and all of Table III's polyatomics. With the
    HF-fitted set it misses 5 of 35. The record says it was chosen after the
    tables were seen.
-1. **The hydrogen treatment.**
-   - Ship QEq only for molecules without hydrogen? That is almost nothing
-     useful.
-   - Or look for Rappé & Goddard's own later clarification? Their references
-     9 and 24, "Generalized Mulliken–Pauling Electronegativities", were
-     "submitted" and may never have appeared.
-   - Or accept a documented reading that does not reproduce Table III?
-2. **The bound algorithm.** Keep the paper's never-release fixing, or
-   replace it with a true constrained minimum, labelled as a departure from
-   the paper.
+1. ~~The hydrogen treatment.~~ **DECIDED 2026-09-14 (A8):** ship the
+   experimental hydrogen set under a stated scope, refuse LiH-like cases, and
+   leave the HF-fitted set unoffered. Rappé & Goddard's "submitted" references
+   9 and 24 were looked for and have no record (below). A10–A12 later tested
+   why the hydrogen fit does not come back; it is still unexplained.
+2. ~~The bound algorithm.~~ **DECIDED 2026-09-14 (A9):** keep the paper's
+   never-release fixing. On a real corpus it is the constrained optimum
+   everywhere, and the one bound activation is a non-convex case A8 refuses.
 3. ~~Ethane's source.~~ **Not needed (measured 2026-09-14, A6).** Under R4,
    every structure the 1998 digest prints gives Q_H within ±0.01 e of both
    columns, and the four span 0.005 e, so what Landolt–Börnstein II/7 printed

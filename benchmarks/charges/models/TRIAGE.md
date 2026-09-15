@@ -85,15 +85,17 @@ saved as `nistor2006_si.pdf.pdf`, the name the fixture headers keep).
 `mathieu2007.pdf` plus the `mathieu2007_si/` EPAPS folder (README.TXT plus
 194 EQ and 55 TS `.xyz` files).
 - **Evidence basis:** PDF plus supplement.
-- **Equations:** complete (eqs 10–14: split charges, the hardness kernel, the
-  energy penalty).
+- **Equations:** complete (eqs 6–14: split charges, the energy, the hardness
+  kernel, the penalty). Eq 13 is printed with a sign error, and the model is
+  defined by eq 8 (2.4a).
 - **Parameters:** Table II, models A–D, for C, H, N, O and F. Model B's χ and
   η are Bultinck et al.'s, identical to this application's shipped EEM table
   (measured: χ relative to H is C 4.25, N 7.80, O 13.72, F 14.00; η is
   C 9.00, H 17.95, N 9.39, O 14.34, F 19.77).
 - **Numeric oracle:** the deposited geometries with B3LYP/6-31G\* Mulliken
-  charges. Table I prints R² per element and σ_q for the EEM and SQE rows on
-  EQ, TS and NL. It is an aggregate oracle, not per-atom.
+  charges. Table I prints R² per element and Δq (eq 15) for the EEM and SQE
+  rows on EQ, TS and NL. The NL structures are not deposited. It is an
+  aggregate oracle, not per-atom.
 - **Runnable reference:** none found.
 - **Scope fit:** molecular, C/H/N/O/F, including transition states.
 - **Verdict (after check 2.4): HOLD.**
