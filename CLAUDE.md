@@ -287,6 +287,7 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- A QA ASSERT INSIDE AN OPTIMISER DISCARDED 18 JOBS, AND A SIGN CHANGE WAS NOT A ROOT
 - A GATE THAT FAILED STAYS FAILED, AND QEQ SHIPPED UNDER A NARROWER CLAIM
 - A PRINTED CHARGE THAT IS NOT A SOLUTION, AND A SECOND PAPER'S TABLE THAT DOES NOT SUM
 - A TABLE CAN CHECK ITS OWN TRANSCRIPTION, AND QEQ'S HYDROGEN NEVER CAME BACK

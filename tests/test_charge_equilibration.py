@@ -1579,3 +1579,64 @@ def test_a10_the_summary_does_not_depend_on_completion_order(tmp_path):
     lines = (tmp_path / "a" / "hydrogen_refit.csv").read_text(encoding="utf-8").splitlines()
     assert [line.split(",")[0] for line in lines[3:]] == ["V0", "V0", "H-a6", "H-a6", "H-b", "H-b"]
 
+
+# A10: the complete run's results, pinned and re-derived
+
+_REFIT_CSV = _REFIT_PATH.parent / "hydrogen_refit.csv"
+
+
+def _refit_rows() -> dict[tuple[str, str], dict[str, str]]:
+    lines = [l for l in _REFIT_CSV.read_text(encoding="utf-8").splitlines() if not l.startswith("#")]
+    return {(r["variant"], r["column"]): r for r in csv.DictReader(lines)}
+
+
+def test_a10_the_run_is_complete_and_every_reading_is_unexplained():
+    header = _REFIT_CSV.read_text(encoding="utf-8").splitlines()[1]
+    assert header == "# 18 expected / 18 complete / 0 failed / 0 not run"
+    rows = _refit_rows()
+    assert len(rows) == 18 and all(r["job_status"] == "COMPLETE" and r["symmetry_check"] == "PASSED" for r in rows.values())
+    assert {r["verdict"] for r in rows.values()} == {"UNEXPLAINED"}
+
+
+def test_a10_verdicts_follow_from_the_recorded_fields():
+    """Re-derive each verdict from the CSV rather than trusting the column."""
+    rows = _refit_rows()
+    for variant in {v for v, _ in rows}:
+        met = [rows[(variant, c)]["within_envelope"] == "True" and rows[(variant, c)]["program_pass"] == "True" for c in hr.COLUMNS]
+        expected = "FIT-REPRODUCED" if all(met) else "PARTIAL" if any(met) else "UNEXPLAINED"
+        assert rows[(variant, "experimental")]["verdict"] == expected
+
+
+@pytest.mark.parametrize("column", ["experimental", "hf"])
+def test_a10_v0_objective_recomputes_at_the_printed_and_refit_pairs(column):
+    """S recomputed now, from the fixtures, at both pairs the CSV records."""
+    row = _refit_rows()[("V0", column)]
+    table = hr.table_iii()
+    fit = hr.Fit(hr.VARIANTS_BY_NAME["V0"], {m: table[m][hr.TARGET_COLUMN[column]] for m in hr.MOLECULES})
+    assert fit.objective(hr.PRINTED[column]) == pytest.approx(float(row["S_printed"]), rel=1e-9)
+    job = json.loads((_REFIT_PATH.parent / "hydrogen_refit_jobs" / f"V0_{column}.json").read_text(encoding="utf-8"))
+    refit = tuple(job["result"]["fit"])  # full precision: the CSV's 8 digits can cross the uniqueness boundary
+    assert fit.objective(refit) == pytest.approx(float(row["S_fit"]), rel=1e-6)
+    pinned = {"experimental": (4.4845, 14.2602), "hf": (4.8644, 12.3662)}[column]
+    assert refit == pytest.approx(pinned, abs=1e-4)
+    assert abs(refit[1] - hr.PRINTED[column][1]) > 10 * float(row["env_J"])
+
+
+def test_a10_h_b_h_c_h_d_have_no_bound_free_lih_charge_at_the_printed_pairs():
+    for variant in ("H-b", "H-c", "H-d"):
+        for column in hr.COLUMNS:
+            assert _refit_molecule("LiH", variant).root(*hr.PRINTED[column]) is None
+
+
+def test_a10_the_v0_experimental_refit_stops_at_the_lih_uniqueness_boundary():
+    """Measured after the run: one small step up in J or down in chi gives LiH
+    two more bound-free fixed points, so A10's rule makes S infinite there.
+    The HF-column refit is interior."""
+    lih = _refit_molecule("LiH", "V0")
+    for column, crosses in (("experimental", True), ("hf", False)):
+        job = json.loads((_REFIT_PATH.parent / "hydrogen_refit_jobs" / f"V0_{column}.json").read_text(encoding="utf-8"))
+        chi, j = job["result"]["fit"]
+        assert len(lih.fixed_points(chi, j)[0]) == 1
+        assert (len(lih.fixed_points(chi, j + 1e-3)[0]) == 3) is crosses
+        assert (len(lih.fixed_points(chi - 1e-4, j)[0]) == 3) is crosses
+

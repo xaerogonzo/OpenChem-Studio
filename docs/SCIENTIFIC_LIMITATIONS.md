@@ -1084,6 +1084,16 @@ they are, and are not:
     group's 1996 calculations contradict.
   - **Not offered:** the paper's HF-fitted hydrogen set, which misses more
     cells and orders the two sets the opposite way to the paper.
+  - **The shipped equations are not the 1991 program's (amendment A10).**
+    Repeating the paper's own five-molecule hydrogen fit, with its stated
+    weights, does not recover either published parameter pair. It fails under
+    the shipped model and under eight other pre-registered readings. The
+    shipped model's refit moves hydrogen's J by at least 0.37 eV
+    (experimental, where it stops at the edge of the region in which LiH has
+    one self-consistent charge) and by 1.1 eV (HF), against rounding
+    envelopes near 0.02 eV. The validated scope
+    above is what the shipped model reproduces; how the 1991 program treated
+    hydrogen remains unknown.
   - The whole record is `benchmarks/charges/rappe_goddard/README.md`.
 - **A result filed by a build is not re-run by a fix.** The method code in a
   result's identity names the scientific method and parameter set; which

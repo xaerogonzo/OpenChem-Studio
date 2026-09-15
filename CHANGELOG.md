@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   printed charge is not a solution of the paper's equations, and a 1996
   paper from the same group contradicts the printed silane sign. That 1996
   paper's disiloxane charges are reproduced to 0.002 e by the adopted λ = ½.
+  Repeating the paper's own hydrogen fit also failed. Under the shipped
+  equations and eight other pre-registered readings of them, neither
+  published hydrogen parameter pair comes back. So the reason for LiH and
+  the HF-fitted set is still not found, and nothing shipped changes.
 
 ### Fixed
 
