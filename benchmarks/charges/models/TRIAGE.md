@@ -571,6 +571,132 @@ feeds the other.
   are named), or NOT REPRODUCED. A miss is a strict-xfail stop record against
   the shipped EEM's external validation. It does not change 2.2 or 2.4.
 
+### 2.8 Ionescu 2013: implementation reproduction of the published EEM models
+
+Pre-registered 2026-09-15, before any EEM charge is computed from Table S1.
+Claim kind: **IMPLEMENTATION REPRODUCTION** (the source's own model charges,
+from its own parameters, structures and reference data), in the domain of
+protein fragments only. It says nothing about small molecules.
+
+Source: `ionescu2013` (doi 10.1021/ci400448n) and its supporting information.
+
+**What was measured first (input side only; no EEM charge computed, no
+comparison made).** These motivate the design and are recorded as such.
+1. **Table S1 holds all 24 models**, read positionally by
+   `ionescu_extract.py`: 180 rows, 12 E models with 6 atom types (H, C, N, O,
+   S, Ca) and 12 EX models with 9 (H1, C1, C2, N1, N2, O1, O2, S1, Ca0), each
+   with k and per-type A and B.
+   - **Calcium is parameterised.** The round 3 plan left Ca conditional on
+     this; it is decided here as INCLUDED, for every model.
+2. **The QM/EEM CSV holds 12 scheme blocks.** Molecules per block: 41, except
+   three blocks with 40 and one with 38. **The source population is therefore
+   scheme-dependent**, and each scheme's own block defines it.
+3. **Every fragment's total charge is an integer**, and the QM, E-EEM and
+   EX-EEM columns all sum to the same one (measured on block 1: −9, −8, −4,
+   −3, −2, −1, +1, −3, 0, +1, −3, −4, …). So the constraint is source-given
+   and is never fitted.
+4. **The PDB models and the CSV rows correspond atom for atom.** All 41
+   fragments match in count and element, 0 mismatches, once the element is
+   read as: a HETATM whose residue is `CA` is calcium (" CA " in an ATOM
+   record is an alpha carbon), otherwise the atom name's first letter after
+   any leading digit. Element totals then equal the paper's Table 1 exactly
+   (H 19879, C 11912, N 3188, O 4954, S 148, Ca 61).
+5. **One solve costs about 80 ms** for a fragment of ~1000 atoms; one pass
+   over all 41 is 3.5 s.
+
+**The model, transcribed (paper eqs 1–3).**
+- X_i = A_i + B_i q_i + k Σ_{j≠i} q_j / r_ij, with A_i = X⁰_i + ΔX_i and
+  B_i = 2(η⁰_i + Δη_i).
+- Equalisation X_1 = X_2 = … = X̄ with Σ_i q_i = Q gives one linear system:
+  rows B_i q_i + k Σ_{j≠i} q_j/r_ij − X̄ = −A_i, plus the charge row.
+- **X̄ is an unknown of that system, not an input.** The paper's harmonic mean
+  of Pauling electronegativities belongs to the *parametrisation* step
+  (fitting A and B), which is not reproduced here.
+- **Two distance readings, both run, neither chosen by agreement** (the
+  units of k are not printed):
+  - **R_angstrom:** r_ij in ångström, the PDB's own unit;
+  - **R_bohr:** r_ij in bohr.
+
+  A failure whose ratio is 1.889 would name the other reading, so both are
+  reported side by side.
+
+**Typing.**
+- **E models need only the chemical element**, which measurement 4 fixes
+  exactly. There is no typing inference, so no typing gate applies.
+- **EX models need maximum bond multiplicity per atom**, so they need bond
+  orders perceived from a PDB. That perception is not attempted in this
+  round: the EX models are recorded **BLOCKED on typing**, not run, and no
+  best-effort typing is ever compared as if it were the paper's.
+
+**Population, per model.**
+- `SOURCE_<scheme>`: the fragments present in that scheme's CSV block.
+- `APPLICABLE`: those whose total charge is an integer within 1e-3 of its
+  column sum and whose atoms all have a Table S1 type. Anything else is
+  excluded and listed with its reason; a denominator never shrinks silently.
+
+**Tolerance, computed and not judged.**
+- `tau_linearized_i` = 5e-7 (the CSV's 6 dp half-unit) + Σ_p |∂q_i/∂p| · ½ ·
+  10^(−d_p), over every Table S1 parameter p with d_p its printed decimals
+  (A and B 6 dp, k 3 dp). It is a first-order estimate and is called that.
+  - The sensitivities are exact, not finite differences: the system is
+    solved once with one right-hand side per parameter.
+- `envelope_i` = max |q_i(p′) − q_i(p)| + 5e-7 over samples p′ drawn in the
+  full rounding box, plus every single-parameter ± corner.
+- **The gate is τ_i = max(tau_linearized_i, 1.1 × envelope_i)**, and the
+  ratio envelope/linear is reported with its maximum and median.
+- **Amendment, cost-driven, registered now rather than discovered later.**
+  The round 3 plan asked for 2000 samples on every fragment. At the measured
+  3.5 s per pass that is about 2 h per model and 48 h for 24, which is not
+  run. Instead:
+  - the sample is 500 draws (seed 20260915) on a stratified subset: the
+    smallest, the median-sized and the largest fragment;
+  - every single-parameter ± corner is evaluated on those three;
+  - for fragments outside the subset, τ_i uses the subset's measured maximum
+    ratio envelope/linear as a scale on `tau_linearized_i`;
+  - the subset, the ratio and the scale are printed in the result, so the
+    approximation is visible wherever it is used.
+
+**Oracle and classes.**
+- Per atom: **reproduced** if |q_model − q_printed| ≤ τ_i, else **failed**.
+- Per fragment × model: **REPRODUCED** when every applicable atom is
+  reproduced, else **PARTIAL** with the failing count and the largest |Δ|.
+- Per model: REPRODUCED when every applicable fragment is; else PARTIAL;
+  INCONCLUSIVE if the applicable population is empty.
+- Universal mapping: REPRODUCED → REPRODUCED, PARTIAL → PARTIAL, the EX
+  models → BLOCKED, an excluded fragment population → PARTIAL-COVERAGE.
+
+**Scheme agreement, reported beside it and never a gate.** R_avg, RMSD_avg
+and D_avg per model against its own QM scheme's column, compared with Table
+S2's printed values (3 dp; internal validation is the grey diagonal, e.g.
+E-MPA/6-31G\*/gas against MPA/6-31G\*/gas is 0.975).
+- **The paper contradicts itself on R_avg:** the prose calls it "the squared
+  Pearson's correlation coefficient", and its eq 7 prints the unsquared
+  form. So the definition is **identified, not assumed**, from a closed list
+  fixed now: {Pearson r, r²} × {σ with ddof 0, ddof 1}, per molecule then
+  averaged over molecules. Whichever reproduces Table S2's printed values is
+  recorded as the source's convention, and all four are printed.
+- Every row names the exact QM scheme ("MPA/6-31G\*/gas"), never "QM charge".
+
+**Instrument tests, before the corpus run.**
+- The system reproduces a hand-solved two-atom case.
+- Total charge is conserved to 1e-9 on every solve.
+- Exact sensitivities agree with central differences on one fragment to 1e-6.
+- The PDB reader's element rule reproduces Table 1's element counts, and the
+  CSV alignment check (measurement 4) is a test.
+- A permuted atom order gives the same charges, per atom.
+
+**Mutations:** k applied in bohr while distances are in ångström; the B sign
+flipped; X̄ fixed to the harmonic mean instead of solved; the total charge
+forced to zero; τ using only the linearised term; the Ca type dropped to
+carbon's parameters.
+
+**Verdict:** counts per class per model, plus the reading (R_angstrom or
+R_bohr) that reproduces, if either. **GO-CANDIDATE** (a separate src
+pre-registration for per-model keys such as
+`eem_ionescu2013_e_mpa_631gs_gas`) only if a reading reproduces every
+applicable fragment of at least one model; otherwise PARTIAL, INCONCLUSIVE or
+BLOCKED with the reason.
+
 ## 3. Results
 
 ### 3.1 Nistor supplement extraction (2026-09-14)
