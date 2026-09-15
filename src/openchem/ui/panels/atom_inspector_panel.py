@@ -43,7 +43,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from openchem.chem.atom_report import build_atom_report
+from openchem.chem.atom_identity import project_to_drawing
+from openchem.chem.atom_report import build_atom_report, per_atom_display
 from openchem.chem.bond_report import bond_label, build_bond_report
 from openchem.chem.molecule_report import build_molecule_report
 from openchem.chem.calculation_input import input_fingerprint
@@ -661,7 +662,21 @@ class AtomInspectorPanel(QWidget):
                 else:
                     withheld.append((getattr(result, "name", key), state, calculation_input))
         self._withheld = tuple(withheld)
-        return {**held, **kept}
+        # FRESH IS NOT PLACED. A GEOMETRY result stays fresh while its
+        # conformer does, and the conformer survives edits that reorder the
+        # drawing's atoms, so every per-atom value is put on a drawn atom
+        # through `project_to_drawing` rather than by reading its index.
+        # Memoised per dataset for this context only: the drawing it
+        # projects onto is the one this context was built for.
+        projections: dict[int, object] = {}
+
+        def project(dataset, _model=model):
+            key = id(dataset)
+            if key not in projections:
+                projections[key] = project_to_drawing(self._engine, _model, dataset, display=per_atom_display)
+            return projections[key]
+
+        return {**held, **kept, "project": project}
 
     def _on_row_selected(self) -> None:
         items = self._atom_table.selectedItems()

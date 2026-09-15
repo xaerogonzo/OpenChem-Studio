@@ -2344,6 +2344,93 @@ class _Driver(QObject):
             % json.dumps(element)
         )
 
+    def _do_restructure(self, step: dict[str, Any]) -> None:
+        """`{"do": "restructure", "order": "reverse"}` -- the same structure with
+        its molfile atoms renumbered, through the REAL `EditStructureCommand`.
+
+        **WHAT AN ERASE-AND-REDRAW EMITS, WITHOUT DRAWING.** No step can add
+        an atom on the canvas, and the command is where the conformers are
+        kept or cleared, so the command is what is driven: canonical SMILES is
+        unchanged, so `_invalidate_stale_conformers` keeps every conformer
+        while the drawing's atom order moves. Logged: SMILES and conformer
+        count either side, and both element orders.
+        """
+        from openchem.chem.atom_identity import element_order, renumbered_molblock
+        from openchem.commands.molecule_commands import EditStructureCommand
+
+        window = self._window
+        molecule = window._session.project.find_molecule(window._property_panel._selected_molecule_uuid)
+        if molecule is None or not molecule.molblock:
+            logger.error("OPENCHEM_DRIVE: restructure needs a selected molecule with a drawing")
+            return
+        before = (molecule.canonical_smiles, len(molecule.conformers), element_order(molecule.molblock))
+        renumbered = renumbered_molblock(molecule.molblock, step.get("order", "reverse"))
+        window._undo_stack.push(
+            EditStructureCommand(window._services.chemistry_engine, molecule, renumbered, window._services.event_bus)
+        )
+        window._editor.set_molecule(molecule)
+        logger.warning(
+            "OPENCHEM_DRIVE: restructure smiles %r -> %r conformers %d -> %d elements %s -> %s",
+            before[0], molecule.canonical_smiles, before[1], len(molecule.conformers),
+            "".join(before[2]), "".join(element_order(molecule.molblock)),
+        )
+
+    def _do_per_atom_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "per_atom_report", "property": "geometry_partial_charge"}` --
+        for every DRAWN atom: its element, the value the Atom Inspector would
+        show for it, and the element of the conformer atom that value was
+        computed for.
+
+        **THE INSPECTOR'S OWN LOOKUP, NOT A RECONSTRUCTION.** Values come
+        from the panel's context through `atom_report.collect_per_atom_data`,
+        the function that builds the facts a user reads. A drawn O paired
+        with a conformer H is a wrong-atom display whatever the screenshot
+        looks like, and `freshness` says whether the panel would show it.
+        """
+        from openchem.chem.atom_identity import element_order
+        from openchem.chem.atom_report import collect_per_atom_data
+        from openchem.chem.calculation_input import canonical_conformer
+
+        panel = self._window._atom_inspector_panel
+        prop = str(step.get("property", "geometry_partial_charge"))
+        model, mol = panel._molecule()
+        if model is None:
+            logger.error("OPENCHEM_DRIVE: per_atom_report has no molecule")
+            return
+        held = panel._context_for(model.uuid)
+        dataset = held["per_atom"].get(prop)
+        calculation_input, fingerprint = held["inputs"].get(("per_atom", prop), ("", ""))
+        freshness = panel._freshness(model, calculation_input, fingerprint, {}) if dataset is not None else "absent"
+        # The panel's OWN context, projector included -- what a user reads.
+        context = panel._current_context(model)
+        drawn = element_order(model.molblock or "")
+        conformer = canonical_conformer(model)
+        computed_on = element_order(conformer.molblock) if conformer is not None else []
+        # Which conformer atom a shown number came from, found by the NUMBER,
+        # so the check does not share the projection's own index logic.
+        origin = {}
+        for c, v in (dataset.values.items() if dataset is not None else ()):
+            origin.setdefault(round(v, 12), set()).add(computed_on[c] if c < len(computed_on) else "-")
+        rows, mismatches = [], 0
+        projection = context["project"](dataset) if dataset is not None else None
+        for index, element in enumerate(drawn):
+            facts = [f for f in collect_per_atom_data(mol, index, {"per_atom": {prop: dataset}, "project": context["project"]})
+                     if f.source == prop] if dataset is not None else []
+            shown = facts[0].value if facts else None
+            sources = origin.get(round(shown, 12), {"?"}) if shown is not None else {"-"}
+            mismatches += int(shown is not None and element not in sources)
+            rows.append(f"{index}:{element}<-{'/'.join(sorted(sources))}={'' if shown is None else f'{shown:+.4f}'}"
+                        + ("" if not facts or facts[0].value is not None else "(not shown)"))
+        ok_state = step.get("expect_mismatches")
+        message = (f"OPENCHEM_DRIVE: per-atom {step.get('tag', '')} {prop} freshness={freshness} "
+                   f"policy={getattr(projection, 'policy', '')} refusal={getattr(projection, 'refusal', '')} "
+                   f"mismatches={mismatches} rows={' '.join(rows)}")
+        if ok_state is not None:
+            ok = (mismatches > 0) == bool(ok_state)
+            (logger.warning if ok else logger.error)("%s EXPECT mismatches=%s %s", message, bool(ok_state), "ok" if ok else "FAILED")
+        else:
+            logger.warning(message)
+
     def _do_select_atom(self, step: dict[str, Any]) -> None:
         """Pick an Atom Inspector ROW, and ask the canvas what it selected.
 
