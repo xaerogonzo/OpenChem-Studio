@@ -1481,3 +1481,101 @@ def test_a10_weights_are_the_papers_and_multiply_squared_residuals():
     assert hr.objective_from_charges(charges, targets) == pytest.approx(0.01 * 3 + 5 * 0.01 + 0.2 * 1.0)
     assert hr.objective_from_charges(charges, targets, {m: 1.0 for m in hr.MOLECULES}) != hr.objective_from_charges(charges, targets)
     assert hr.objective_from_charges(charges, targets, {m: w * w for m, w in hr.WEIGHTS.items()}) != hr.objective_from_charges(charges, targets)
+
+
+# A10 correction 3: the harness that crashed, repaired without touching the science
+
+
+def test_a10_a_symmetry_spread_is_recorded_and_never_makes_s_infinite(monkeypatch):
+    """The first run died on a 2.05e-10 CH4 spread asserted INSIDE the optimised
+    function. A spread is data: S stays finite, Q_H is the group mean."""
+    fit = hr.Fit(hr.VARIANTS_BY_NAME["V0"], {m: 0.0 for m in hr.MOLECULES})
+    ch4 = fit.molecules["CH4"]
+    q = np.array([0.15])
+    clean = float(ch4.image(q, *hr.PRINTED["experimental"])[0])
+    original = hr.Molecule._solve
+
+    def lopsided(self, C, chi):
+        charges = original(self, C, chi)
+        if len(self.group) > 1:
+            charges[:, self.group[0]] += 2e-10
+        return charges
+
+    monkeypatch.setattr(hr.Molecule, "_solve", lopsided)
+    fit.recorder.phase = "control"
+    assert math.isfinite(fit.objective(hr.PRINTED["experimental"]))
+    assert fit.recorder.phases["control"]["max"] >= 1.9e-10
+    shifted = float(ch4.image(q, *hr.PRINTED["experimental"])[0])
+    assert shifted - clean == pytest.approx(2e-10 / 4, abs=1e-13)
+
+
+def test_a10_the_symmetry_check_applies_at_reported_points_and_blocks_the_verdict():
+    recorder = hr.SpreadRecorder()
+    recorder.phase = "control"
+    recorder.add(np.full(990, 2e-9))
+    recorder.add(np.full(10, 1e-6))
+    # The 99th percentile lands in the [1e-8.7, 1e-8.6) bin; its upper edge, times 10.
+    assert hr.symmetry_threshold(recorder) == pytest.approx(10 * 10 ** -8.6)
+    floored = hr.SpreadRecorder()
+    floored.phase = "control"
+    floored.add(np.full(100, 1e-13))
+    assert hr.symmetry_threshold(floored) == 1e-10
+    assert hr.symmetry_threshold(hr.SpreadRecorder()) == 1e-10
+    assert hr.symmetry_status(5e-11, 5e-11, 1e-10) == "PASSED"
+    assert hr.symmetry_status(2e-10, math.nan, 1e-10) == "SYMMETRY-CHECK-FAILED"
+    results = {("V0", c): _fake_refit_result("V0", c) for c in hr.COLUMNS}
+    assert hr.classify(results, "V0") == "UNEXPLAINED"
+    results[("V0", "hf")]["symmetry_check"] = "SYMMETRY-CHECK-FAILED"
+    assert hr.classify(results, "V0") is None
+
+
+def _fake_refit_result(variant: str, column: str) -> dict:
+    q = {m: 0.1 for m in hr.MOLECULES}
+    residuals = {"max_abs": 0.1, "lih": 0.1, "non_lih_rms": 0.1, "non_lih_max": 0.1}
+    return {
+        "variant": variant, "column": column, "status": "COMPLETE", "q_printed": q, "spread_printed": 0.0,
+        "S_printed": 1.0, "dS_dchi": 0.0, "dS_dJ": 0.0, "res_printed": residuals, "program_diff": q, "program_pass": False,
+        "roots_printed": "", "control": [[0, 4.5, 13.9, 0.1]], "control_excluded": 0, "env_chi": 0.01, "env_J": 0.01,
+        "symmetry_threshold": 1e-10, "grid_basins": [[4.5, 13.9, 0.1]], "endpoints": [[4.0, 12.0, 4.5, 13.9, 0.1, 10, True]],
+        "nm_basins": [[4.5, 13.9, 0.1, 1]], "ambiguous": [], "fit": [4.5, 13.9], "S_fit": 0.1, "delta_S": 0.9, "q_fit": q,
+        "spread_fit": 0.0, "res_fit": residuals, "fine_min": [4.5, 13.9, 0.1], "fine_ok": True, "elongation": 2.0,
+        "within_envelope": False, "symmetry_check": "PASSED", "evaluations": 1, "infinite_evaluations": 0,
+    }
+
+
+def _failing_runner(variant, column):
+    if variant == "H-b":
+        raise RuntimeError("an ill-conditioned evaluation")
+    return _fake_refit_result(variant, column)
+
+
+def test_a10_a_failed_job_is_recorded_and_the_others_still_finish(tmp_path):
+    jobs = [("V0", "experimental"), ("H-b", "experimental"), ("H-c", "experimental")]
+    states = hr.run_jobs(jobs, tmp_path, workers=1, runner=_failing_runner)
+    assert states == {("V0", "experimental"): "COMPLETE", ("H-b", "experimental"): "FAILED", ("H-c", "experimental"): "COMPLETE"}
+    failed = json.loads(hr.job_path(tmp_path, "H-b", "experimental").read_text(encoding="utf-8"))
+    assert "an ill-conditioned evaluation" in failed["traceback"]
+    assert failed["settings"]["sha256"]["preregistration.md"]
+
+
+def test_a10_a_missing_job_is_not_run_and_gets_no_verdict(tmp_path):
+    hr.run_jobs([("V0", "experimental")], tmp_path, workers=1, runner=_failing_runner)
+    results, states = hr.collect(tmp_path, ["V0"])
+    assert states == {("V0", "experimental"): "COMPLETE", ("V0", "hf"): "NOT_RUN"}
+    assert hr.classify(results, "V0") is None
+    assert hr.summary_line(states) == "2 expected / 1 complete / 0 failed / 1 not run"
+
+
+def test_a10_the_summary_does_not_depend_on_completion_order(tmp_path):
+    keys = [(v, c) for v in ("V0", "H-a6", "H-b") for c in hr.COLUMNS]
+    results = {k: _fake_refit_result(*k) for k in keys}
+    states = {k: "COMPLETE" for k in keys}
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    hr.write(results, states, tmp_path / "a")
+    hr.write(dict(reversed(list(results.items()))), dict(reversed(list(states.items()))), tmp_path / "b")
+    for name in ("hydrogen_refit.csv", "hydrogen_refit_basins.csv", "hydrogen_refit_control.csv"):
+        assert (tmp_path / "a" / name).read_bytes() == (tmp_path / "b" / name).read_bytes()
+    lines = (tmp_path / "a" / "hydrogen_refit.csv").read_text(encoding="utf-8").splitlines()
+    assert [line.split(",")[0] for line in lines[3:]] == ["V0", "V0", "H-a6", "H-a6", "H-b", "H-b"]
+

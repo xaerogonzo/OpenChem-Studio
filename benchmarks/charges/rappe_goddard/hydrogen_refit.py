@@ -10,6 +10,9 @@ and writes beside this file:
 - hydrogen_refit_basins.csv   every grid basin and Nelder-Mead endpoint
 - hydrogen_refit_control.csv  every control draw's refit
 - hydrogen_refit_traces.csv   H-a's iterates at the printed pairs
+- hydrogen_refit_jobs/        one self-contained JSON per job, written as it
+                              finishes (COMPLETE or FAILED with a traceback);
+                              `--collect-only` rebuilds the CSVs from these
 
 Changes nothing in the solver and ships nothing. The instrument's matrices are
 the shipped build's, with only hydrogen's chi entry and diagonal set from the
@@ -20,12 +23,16 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
+import json
 import math
 import os
 import pathlib
+import subprocess
 import sys
 import time
-from concurrent.futures import ProcessPoolExecutor
+import traceback
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, replace
 
 import numpy as np
@@ -52,7 +59,6 @@ PROGRAM_COLUMN = {"experimental": "QEq", "hf": "QEqHF"}
 
 BOX = ((4.0, 5.5), (12.0, 15.0))
 GRID_Q = np.linspace(-1.0, 1.0, 2001)
-SYMMETRY_TOLERANCE = 1e-10
 ROOT_RESIDUAL = 1e-11
 CONTROL_DRAWS = 200
 CONTROL_SEED = 20260915
@@ -92,26 +98,102 @@ def table_iii() -> dict[str, dict[str, float]]:
     return {r["molecule"]: {k: float(v) for k, v in r.items() if k != "molecule"} for r in _rows("rappe1991_table3.csv")}
 
 
-def structure(name: str) -> tuple[list[str], np.ndarray]:
-    """O4's geometries: Huber r_e for the diatomics, A4's builders otherwise."""
+def structure(name: str) -> tuple[list[str], np.ndarray, list[int]]:
+    """O4's geometries: Huber r_e for the diatomics, A4's builders otherwise,
+    plus the hydrogen symmetry group read off the builder's atom roles
+    (Table IV printed order 1) -- correction 3, item 1."""
     if name in DIATOMICS:
         r_e = next(float(r["r_e_A"]) for r in _rows("geometries.csv") if r["molecule"] == name)
         elements = ["H", "F"] if name == "HF" else ["Li", "H"]
-        return elements, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, r_e]])
-    elements, coords, _, _ = geo.build(name)
-    return list(elements), np.asarray(coords, dtype=float)
+        return elements, np.array([[0.0, 0.0, 0.0], [0.0, 0.0, r_e]]), [elements.index("H")]
+    elements, coords, mapping, _ = geo.build(name)
+    return list(elements), np.asarray(coords, dtype=float), sorted(int(i) for i in mapping[1])
+
+
+class SpreadRecorder:
+    """Hydrogen symmetry spreads per phase, as a log10 histogram (0.1-decade
+    bins) plus exact zero count and maximum -- correction 3, item 2."""
+
+    EDGES = np.round(np.arange(-20.0, 0.0001, 0.1), 1)
+
+    def __init__(self):
+        self.phase = "setup"
+        self.phases: dict[str, dict] = {}
+
+    def add(self, spreads: np.ndarray) -> None:
+        entry = self.phases.setdefault(self.phase, {"zeros": 0, "counts": [0] * (len(self.EDGES) - 1), "above": 0, "max": 0.0, "n": 0})
+        spreads = np.asarray(spreads, dtype=float).ravel()
+        entry["n"] += int(spreads.size)
+        entry["zeros"] += int(np.sum(spreads <= 0.0))
+        positive = spreads[spreads > 0.0]
+        if positive.size:
+            entry["max"] = max(entry["max"], float(positive.max()))
+            logs = np.log10(positive)
+            entry["above"] += int(np.sum(logs >= self.EDGES[-1]))
+            hist, _ = np.histogram(np.clip(logs, self.EDGES[0], self.EDGES[-1] - 1e-9), bins=self.EDGES)
+            entry["counts"] = [a + int(b) for a, b in zip(entry["counts"], hist)]
+
+    def percentile_upper(self, phase: str, percent: float = 99.0) -> float:
+        """Upper edge of the bin holding the percentile; 0 when it falls in the zeros."""
+        entry = self.phases.get(phase)
+        if not entry or entry["n"] == 0:
+            return math.nan
+        rank = percent / 100.0 * entry["n"]
+        seen = entry["zeros"]
+        if seen >= rank:
+            return 0.0
+        for k, count in enumerate(entry["counts"]):
+            seen += count
+            if seen >= rank:
+                return float(10.0 ** self.EDGES[k + 1])
+        return 1.0
+
+    def to_json(self) -> dict:
+        return {"edges_log10": [float(e) for e in self.EDGES], "phases": self.phases}
+
+
+def symmetry_threshold(recorder: SpreadRecorder) -> float:
+    """Correction 3, item 4: 10 x the control's 99th percentile, floored at 1e-10."""
+    p99 = recorder.percentile_upper("control")
+    return max(1e-10, 10.0 * p99) if math.isfinite(p99) else 1e-10
+
+
+def symmetry_status(spread_printed: float, spread_fit: float, threshold: float) -> str:
+    """Correction 3, item 4: the check applies at the reported points only."""
+    checked = [v for v in (spread_printed, spread_fit) if math.isfinite(v)]
+    return "SYMMETRY-CHECK-FAILED" if any(v > threshold for v in checked) else "PASSED"
+
+
+def geometry_symmetry(elements: list[str], coords: np.ndarray, group: list[int]) -> dict[str, float]:
+    """Spread of heavy-atom-H distances and H-X-H angles within the group, for
+    the one heavy atom every polyatomic fit molecule has (item 3)."""
+    heavy = [i for i, e in enumerate(elements) if e != "H"]
+    if len(group) < 2 or len(heavy) != 1:
+        return {"bond_spread_A": 0.0, "angle_spread_deg": 0.0}
+    centre = coords[heavy[0]]
+    vectors = [coords[h] - centre for h in group]
+    lengths = [float(np.linalg.norm(v)) for v in vectors]
+    angles = [math.degrees(math.acos(np.clip(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)), -1, 1)))
+              for k, a in enumerate(vectors) for b in vectors[k + 1:]]
+    return {"bond_spread_A": max(lengths) - min(lengths), "angle_spread_deg": (max(angles) - min(angles)) if len(angles) > 1 else 0.0}
 
 
 class Molecule:
     """One fit molecule under one variant's pair rule. Pair integrals over A7's
     Q grid do not depend on chi or J, so they are computed once here."""
 
-    def __init__(self, name: str, variant: Variant):
+    def __init__(self, name: str, variant: Variant, recorder: SpreadRecorder | None = None):
         self.name = name
         self.variant = variant
-        self.elements, self.coords = structure(name)
+        self.recorder = recorder or SpreadRecorder()
+        self.elements, self.coords, self.group = structure(name)
         n = self.n = len(self.elements)
         self.hydrogens = [i for i, e in enumerate(self.elements) if e == "H"]
+        # A setup check, unreachable from the optimiser: every fit molecule's
+        # hydrogens form one symmetry group (correction 3, item 1).
+        if self.group != self.hydrogens:
+            raise ValueError(f"{name}: symmetry group {self.group} is not every hydrogen {self.hydrogens}")
+        self.geometry_symmetry = geometry_symmetry(self.elements, self.coords, self.group)
         bounds = [ce.charge_bounds(e) for e in self.elements]
         self.lower = np.array([b[0] for b in bounds])
         self.upper = np.array([b[1] for b in bounds])
@@ -177,8 +259,22 @@ class Molecule:
         return C, chi
 
     def image(self, q: np.ndarray, chi_h: float, j_h: float, pair_rows: np.ndarray | None = None) -> np.ndarray:
-        """F(Q): hydrogen's charge after one build and bounded solve at every H = Q."""
+        """F(Q): the group-mean hydrogen charge after one build and bounded
+        solve at every H = Q. The spread is recorded, never enforced here: a
+        QA threshold inside the optimised function crashed the first run."""
+        h = self.hydrogen_charges(q, chi_h, j_h, pair_rows)
+        self.recorder.add(np.max(h, axis=1) - np.min(h, axis=1))
+        return np.mean(h, axis=1)
+
+    def spread_at(self, q: float, chi_h: float, j_h: float) -> float:
+        h = self.hydrogen_charges(np.array([q]), chi_h, j_h)
+        return float(np.max(h) - np.min(h))
+
+    def hydrogen_charges(self, q: np.ndarray, chi_h: float, j_h: float, pair_rows: np.ndarray | None = None) -> np.ndarray:
         C, chi = self.system(q, chi_h, j_h, pair_rows)
+        return self._solve(C, chi)[:, self.group]
+
+    def _solve(self, C: np.ndarray, chi: np.ndarray) -> np.ndarray:
         m, n = C.shape[0], self.n
         M = np.zeros((m, n + 1, n + 1))
         M[:, :n, :n] = C
@@ -190,10 +286,7 @@ class Molecule:
         crossed = np.any((charges > self.upper) | (charges < self.lower), axis=1)
         for row in np.flatnonzero(crossed):
             charges[row] = ce.solve_bounded(C[row], chi, 0.0, self.lower, self.upper).charges
-        h = charges[:, self.hydrogens]
-        spread = np.max(h, axis=1) - np.min(h, axis=1)
-        assert np.all(spread <= SYMMETRY_TOLERANCE), (self.name, float(spread.max()))
-        return h[:, 0]
+        return charges
 
     def residual(self, q, chi_h, j_h, pair_rows=None) -> np.ndarray:
         q = np.atleast_1d(np.asarray(q, dtype=float))
@@ -207,6 +300,16 @@ class Molecule:
                 q = float(self.image(np.array([q]), chi_h, j_h)[0])
             return q
         return self.root(chi_h, j_h)
+
+    def charge_and_spread(self, chi_h: float, j_h: float) -> tuple[float | None, float]:
+        q = self.charge(chi_h, j_h)
+        if q is None:
+            return None, math.nan
+        if self.variant.iterations is not None:
+            # H-a's charge is F(Q_{k-1}); its spread is that last solve's.
+            trace = self.trace(chi_h, j_h)
+            return q, self.spread_at(trace[-2], chi_h, j_h)
+        return q, self.spread_at(q, chi_h, j_h)
 
     def trace(self, chi_h: float, j_h: float) -> list[float]:
         q, out = 0.0, [0.0]
@@ -274,7 +377,8 @@ class Fit:
         self.variant = variant
         self.targets = dict(targets)
         self.weights = dict(weights)
-        self.molecules = {name: Molecule(name, variant) for name in MOLECULES}
+        self.recorder = SpreadRecorder()
+        self.molecules = {name: Molecule(name, variant, self.recorder) for name in MOLECULES}
         self.evaluations = 0
         self.infinite = 0
 
@@ -404,19 +508,33 @@ def elongation(surface: np.ndarray, chis: np.ndarray, js: np.ndarray, centre: np
     return math.sqrt(eig[1] / eig[0]) if eig[0] > 0 else math.inf
 
 
+def _pairs(points) -> list[list[float]]:
+    return [[float(p[0]), float(p[1])] for p in points]
+
+
+def _num(value):
+    """JSON-friendly float: nan and inf survive as Python's json does."""
+    return None if value is None else float(value)
+
+
 def run_job(variant_name: str, column: str, draws: int = CONTROL_DRAWS) -> dict:
-    """Everything A10 reports for one variant and column, in its order."""
+    """Everything A10 reports for one variant and column, in its order, as a
+    JSON-ready dict (correction 3, item 5)."""
     started = time.perf_counter()
     variant = VARIANTS_BY_NAME[variant_name]
     table = table_iii()
     targets = {m: table[m][TARGET_COLUMN[column]] for m in MOLECULES}
     fit = Fit(variant, targets)
+    rec = fit.recorder
     printed = np.array(PRINTED[column])
-    out: dict = {"variant": variant_name, "column": column}
+    out: dict = {"variant": variant_name, "column": column, "status": "COMPLETE"}
 
     # 1. At the printed pair, first.
-    q_printed = fit.charges(*printed)
+    rec.phase = "printed"
+    solved = {m: fit.molecules[m].charge_and_spread(*printed) for m in MOLECULES}
+    q_printed = {m: _num(solved[m][0]) for m in MOLECULES}
     out["q_printed"] = q_printed
+    out["spread_printed"] = max((s for _, s in solved.values() if math.isfinite(s)), default=math.nan)
     out["S_printed"] = fit.objective(printed)
     h = 1e-4
     out["dS_dchi"] = (fit.objective(printed + [h, 0]) - fit.objective(printed - [h, 0])) / (2 * h)
@@ -436,6 +554,7 @@ def run_job(variant_name: str, column: str, draws: int = CONTROL_DRAWS) -> dict:
         out["roots_printed"] = ";".join(f"{m}:{len(f)}/{len(p)}" for m, (f, p) in counts.items())
 
     # 2. Rounding recovery control, before the real refit.
+    rec.phase = "control"
     rng = np.random.default_rng(CONTROL_SEED)
     control = []
     excluded = 0
@@ -445,68 +564,175 @@ def run_job(variant_name: str, column: str, draws: int = CONTROL_DRAWS) -> dict:
         generated = fit.charges(*(printed + dp))
         if any(v is None for v in generated.values()):
             excluded += 1
-            control.append((draw, math.nan, math.nan, math.inf))
+            control.append([draw, math.nan, math.nan, math.inf])
             continue
         noisy = {m: generated[m] + dq[k] for k, m in enumerate(MOLECULES)}
         x, s, _, _ = nelder_mead(lambda x: fit.objective(x, noisy), printed)
         if not math.isfinite(s):
             excluded += 1
-        control.append((draw, float(x[0]), float(x[1]), s))
+        control.append([draw, float(x[0]), float(x[1]), float(s)])
     finite = [c for c in control if math.isfinite(c[3])]
     out["control"] = control
     out["control_excluded"] = excluded
     out["env_chi"] = float(np.percentile([abs(c[1] - printed[0]) for c in finite], 95)) if finite else math.nan
     out["env_J"] = float(np.percentile([abs(c[2] - printed[1]) for c in finite], 95)) if finite else math.nan
+    out["symmetry_threshold"] = symmetry_threshold(rec)
 
     # 3. Global structure.
+    rec.phase = "grid"
     chis = np.linspace(*BOX[0], 61)
     js = np.linspace(*BOX[1], 61)
     surface = np.array([[fit.objective((c, j)) for j in js] for c in chis])
-    grid = grid_basins(surface, chis, js)
-    out["grid_basins"] = grid
+    out["grid_basins"] = [[float(x[0]), float(x[1]), s] for x, s in grid_basins(surface, chis, js)]
 
     # 4. Nelder-Mead from the 5 x 5 starts and the printed pair.
+    rec.phase = "nelder_mead"
     starts = [np.array([c, j]) for c in np.linspace(*BOX[0], 5) for j in np.linspace(*BOX[1], 5)] + [printed]
     endpoints = []
     for start in starts:
         x, s, iterations, converged = nelder_mead(fit.objective, start)
-        endpoints.append((start, x, s, iterations, converged))
+        endpoints.append([float(start[0]), float(start[1]), float(x[0]), float(x[1]), float(s), int(iterations), bool(converged)])
     out["endpoints"] = endpoints
-    basins = group_basins([(e[1], e[2]) for e in endpoints])
-    out["nm_basins"] = basins
+    basins = group_basins([(np.array(e[2:4]), e[4]) for e in endpoints])
+    out["nm_basins"] = [[float(x[0]), float(x[1]), float(s), int(n)] for x, s, n in basins]
     if basins:
         best_x, best_s, _ = basins[0]
-        out["ambiguous"] = [b for b in basins[1:] if b[1] - best_s < 1e-8]
-        out["fit"] = best_x
-        out["S_fit"] = best_s
+        out["ambiguous"] = [[float(b[0][0]), float(b[0][1]), float(b[1])] for b in basins[1:] if b[1] - best_s < 1e-8]
+        out["fit"] = [float(best_x[0]), float(best_x[1])]
+        out["S_fit"] = float(best_s)
         out["delta_S"] = out["S_printed"] - best_s
-        q_fit = fit.charges(*best_x)
+        rec.phase = "fit"
+        solved_fit = {m: fit.molecules[m].charge_and_spread(*best_x) for m in MOLECULES}
+        q_fit = {m: _num(solved_fit[m][0]) for m in MOLECULES}
         out["q_fit"] = q_fit
+        out["spread_fit"] = max((s for _, s in solved_fit.values() if math.isfinite(s)), default=math.nan)
         out["res_fit"] = residual_summary(q_fit, targets)
         # 5. The no-optimiser check.
+        rec.phase = "fine_grid"
         fc = np.linspace(best_x[0] - 0.05, best_x[0] + 0.05, 41)
         fj = np.linspace(best_x[1] - 0.05, best_x[1] + 0.05, 41)
         fine = np.array([[fit.objective((c, j)) for j in fj] for c in fc])
         a, b = np.unravel_index(np.argmin(np.where(np.isfinite(fine), fine, np.inf)), fine.shape)
-        out["fine_min"] = (float(fc[a]), float(fj[b]), float(fine[a, b]))
-        out["fine_ok"] = max(abs(fc[a] - best_x[0]), abs(fj[b] - best_x[1])) <= 0.0025 + 1e-12
+        out["fine_min"] = [float(fc[a]), float(fj[b]), float(fine[a, b])]
+        out["fine_ok"] = bool(max(abs(fc[a] - best_x[0]), abs(fj[b] - best_x[1])) <= 0.0025 + 1e-12)
         out["elongation"] = elongation(fine, fc, fj, best_x)
-        out["within_envelope"] = (not out["ambiguous"]) and abs(best_x[0] - printed[0]) <= out["env_chi"] and abs(best_x[1] - printed[1]) <= out["env_J"]
+        out["within_envelope"] = bool((not out["ambiguous"]) and abs(best_x[0] - printed[0]) <= out["env_chi"]
+                                      and abs(best_x[1] - printed[1]) <= out["env_J"])
     else:
-        out.update(fit=None, S_fit=math.inf, delta_S=math.nan, ambiguous=[], q_fit=None, res_fit=None,
+        out.update(fit=None, S_fit=math.inf, delta_S=math.nan, ambiguous=[], q_fit=None, res_fit=None, spread_fit=math.nan,
                    fine_min=None, fine_ok=False, elongation=math.nan, within_envelope=False)
+    out["symmetry_check"] = symmetry_status(out["spread_printed"], out["spread_fit"], out["symmetry_threshold"])
+    out["spread_histogram"] = rec.to_json()
+    out["geometry_symmetry"] = {m: fit.molecules[m].geometry_symmetry for m in MOLECULES}
     out["evaluations"] = fit.evaluations
     out["infinite_evaluations"] = fit.infinite
     out["seconds"] = time.perf_counter() - started
     return out
 
 
-def classify(results: dict[tuple[str, str], dict], variant: str) -> str:
-    met = [results[(variant, c)]["within_envelope"] and results[(variant, c)]["program_pass"] for c in COLUMNS]
+def _sha256(path: pathlib.Path) -> str:
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
+
+def job_settings(variant_name: str, column: str) -> dict:
+    """What another reader needs to reproduce this job without today's code."""
+    try:
+        commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    except OSError:
+        commit = ""
+    return {
+        "variant": variant_name,
+        "column": column,
+        "printed_pair": list(PRINTED[column]),
+        "weights": WEIGHTS,
+        "targets_column": TARGET_COLUMN[column],
+        "program_column": PROGRAM_COLUMN[column],
+        "box": BOX,
+        "grid_q_points": len(GRID_Q),
+        "root_residual": ROOT_RESIDUAL,
+        "control": {"draws": CONTROL_DRAWS, "seed": CONTROL_SEED},
+        "nelder_mead": {"step": 0.05, "xatol": 1e-6, "fatol": 1e-10, "maxiter": 4000},
+        "git_commit": commit,
+        "sha256": {name: _sha256(p) for name, p in (
+            ("preregistration.md", HERE / "preregistration.md"),
+            ("geometries.csv", FIXTURES / "geometries.csv"),
+            ("harmony1979_structures.csv", FIXTURES / "harmony1979_structures.csv"),
+            ("rappe1991_table3.csv", FIXTURES / "rappe1991_table3.csv"),
+        )},
+    }
+
+
+def job_path(out_dir: pathlib.Path, variant_name: str, column: str) -> pathlib.Path:
+    return out_dir / f"{variant_name}_{column}.json"
+
+
+def run_and_store(variant_name: str, column: str, out_dir: str, runner=None) -> str:
+    """Run one job and write its own file, success or failure. Returns the state."""
+    runner = runner or run_job
+    record = {"settings": job_settings(variant_name, column)}
+    try:
+        record["result"] = runner(variant_name, column)
+        record["status"] = "COMPLETE"
+    except Exception:  # noqa: BLE001 -- a failed job is data, recorded with its traceback
+        record["status"] = "FAILED"
+        record["traceback"] = traceback.format_exc()
+    path = job_path(pathlib.Path(out_dir), variant_name, column)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(record, indent=1), encoding="utf-8")
+    return record["status"]
+
+
+def run_jobs(jobs: list[tuple[str, str]], out_dir: pathlib.Path, workers: int, runner=None) -> dict[tuple[str, str], str]:
+    """Each job finishes on its own; one failure cannot discard another's
+    result (the first run's `pool.map` did exactly that)."""
+    states: dict[tuple[str, str], str] = {}
+    if workers <= 1:
+        for v, c in jobs:
+            states[(v, c)] = run_and_store(v, c, str(out_dir), runner)
+            print(f"{v:6} {c:12} {states[(v, c)]}", flush=True)
+        return states
+    with ProcessPoolExecutor(max_workers=workers) as pool:
+        futures = {pool.submit(run_and_store, v, c, str(out_dir), runner): (v, c) for v, c in jobs}
+        for future in as_completed(futures):
+            key = futures[future]
+            try:
+                states[key] = future.result()
+            except Exception:  # noqa: BLE001 -- the worker process itself died
+                states[key] = "FAILED"
+                job_path(out_dir, *key).write_text(json.dumps({"status": "FAILED", "traceback": traceback.format_exc()}), encoding="utf-8")
+            print(f"{key[0]:6} {key[1]:12} {states[key]}", flush=True)
+    return states
+
+
+def collect(out_dir: pathlib.Path, variants: list[str]) -> tuple[dict[tuple[str, str], dict], dict[tuple[str, str], str]]:
+    """(results of COMPLETE jobs, state of every expected job)."""
+    results, states = {}, {}
+    for v in variants:
+        for c in COLUMNS:
+            path = job_path(out_dir, v, c)
+            if not path.exists():
+                states[(v, c)] = "NOT_RUN"
+                continue
+            record = json.loads(path.read_text(encoding="utf-8"))
+            states[(v, c)] = record.get("status", "FAILED")
+            if states[(v, c)] == "COMPLETE":
+                results[(v, c)] = record["result"]
+    return results, states
+
+
+def classify(results: dict[tuple[str, str], dict], variant: str) -> str | None:
+    """None when A10 allows no verdict: a column not COMPLETE, or one that
+    failed the symmetry check (correction 3, items 4 and 6)."""
+    columns = [results.get((variant, c)) for c in COLUMNS]
+    if any(r is None or r["symmetry_check"] != "PASSED" for r in columns):
+        return None
+    met = [r["within_envelope"] and r["program_pass"] for r in columns]
     return "FIT-REPRODUCED" if all(met) else "PARTIAL" if any(met) else "UNEXPLAINED"
 
 
 def ordering_inverted(results: dict[tuple[str, str], dict], variant: str) -> int | None:
+    if any((variant, c) not in results for c in COLUMNS):
+        return None
     table = table_iii()
     count = 0
     for m in MOLECULES:
@@ -529,53 +755,73 @@ def _f(value, digits: int = 6) -> str:
     return "nan" if math.isnan(value) else ("inf" if math.isinf(value) else f"{value:.{digits}g}")
 
 
-def write(results: dict[tuple[str, str], dict]) -> None:
-    variants = sorted({v for v, _ in results}, key=lambda v: [x.name for x in VARIANTS].index(v))
-    with open(HERE / "hydrogen_refit.csv", "w", newline="", encoding="utf-8") as handle:
+def summary_line(states: dict[tuple[str, str], str]) -> str:
+    counts = {s: sum(1 for v in states.values() if v == s) for s in ("COMPLETE", "FAILED", "NOT_RUN")}
+    return f"{len(states)} expected / {counts['COMPLETE']} complete / {counts['FAILED']} failed / {counts['NOT_RUN']} not run"
+
+
+def write(results: dict[tuple[str, str], dict], states: dict[tuple[str, str], str], target: pathlib.Path = HERE) -> None:
+    """Every table sorted by (variant, column) in VARIANTS order, never by completion."""
+    order = [v.name for v in VARIANTS]
+    keys = sorted(states, key=lambda k: (order.index(k[0]) if k[0] in order else len(order), k[0], COLUMNS.index(k[1])))
+    complete_all = all(s == "COMPLETE" for s in states.values())
+    with open(target / "hydrogen_refit.csv", "w", newline="", encoding="utf-8") as handle:
         handle.write("# Amendment A10: Rappé–Goddard's hydrogen fit repeated per variant and column. Printed-pair columns first.\n")
+        handle.write(f"# {summary_line(states)}" + ("" if complete_all else " -- INCOMPLETE: no overall conclusion") + "\n")
         writer = csv.writer(handle, lineterminator="\n")
-        header = ["variant", "column", "printed_chi", "printed_J", "S_printed", "dS_dchi", "dS_dJ", "max_abs_res_printed",
+        header = ["variant", "column", "job_status", "printed_chi", "printed_J", "S_printed", "dS_dchi", "dS_dJ", "max_abs_res_printed",
                   "lih_res_printed", "non_lih_rms_printed", "non_lih_max_printed"]
         header += [f"Q_{m}_printed" for m in MOLECULES] + ["roots_free_pinned_printed"] + [f"program_diff_{m}" for m in MOLECULES] + ["program_pass"]
         header += ["fit_chi", "fit_J", "S_fit", "delta_S", "max_abs_res_fit", "lih_res_fit", "non_lih_rms_fit", "non_lih_max_fit",
                    "grid_basins", "nm_basins", "ambiguous_basins", "fine_grid_ok", "elongation", "env_chi", "env_J",
-                   "control_excluded", "within_envelope", "infinite_evaluations", "evaluations", "ordering_inverted", "verdict"]
+                   "control_excluded", "within_envelope", "spread_printed", "spread_fit", "symmetry_threshold", "symmetry_check",
+                   "infinite_evaluations", "evaluations", "ordering_inverted", "verdict"]
         writer.writerow(header)
-        for v in variants:
+        for v, c in keys:
+            r = results.get((v, c))
+            if r is None:
+                writer.writerow([v, c, states[(v, c)]] + [""] * (len(header) - 3))
+                continue
             verdict = classify(results, v)
             inverted = ordering_inverted(results, v)
-            for c in COLUMNS:
-                r = results[(v, c)]
-                rp, rf = r["res_printed"], r["res_fit"] or {}
-                fit = r["fit"] if r["fit"] is not None else (math.nan, math.nan)
-                writer.writerow([v, c, *PRINTED[c], _f(r["S_printed"], 10), _f(r["dS_dchi"]), _f(r["dS_dJ"]), _f(rp["max_abs"]),
-                                 _f(rp["lih"]), _f(rp["non_lih_rms"]), _f(rp["non_lih_max"]),
-                                 *[_f(r["q_printed"][m], 8) for m in MOLECULES], r["roots_printed"],
-                                 *[_f(r["program_diff"][m]) for m in MOLECULES],
-                                 _f(r["program_pass"]), _f(fit[0], 8), _f(fit[1], 8), _f(r["S_fit"], 10), _f(r["delta_S"]),
-                                 _f(rf.get("max_abs")), _f(rf.get("lih")), _f(rf.get("non_lih_rms")), _f(rf.get("non_lih_max")),
-                                 len(r["grid_basins"]), len(r["nm_basins"]), len(r["ambiguous"]), _f(r["fine_ok"]), _f(r["elongation"]),
-                                 _f(r["env_chi"]), _f(r["env_J"]), r["control_excluded"], _f(r["within_envelope"]),
-                                 r["infinite_evaluations"], r["evaluations"], "" if inverted is None else inverted, verdict])
-    with open(HERE / "hydrogen_refit_basins.csv", "w", newline="", encoding="utf-8") as handle:
+            rp, rf = r["res_printed"], r["res_fit"] or {}
+            fit = r["fit"] if r["fit"] is not None else (math.nan, math.nan)
+            writer.writerow([v, c, states[(v, c)], *PRINTED[c], _f(r["S_printed"], 10), _f(r["dS_dchi"]), _f(r["dS_dJ"]), _f(rp["max_abs"]),
+                             _f(rp["lih"]), _f(rp["non_lih_rms"]), _f(rp["non_lih_max"]),
+                             *[_f(r["q_printed"][m], 8) for m in MOLECULES], r["roots_printed"],
+                             *[_f(r["program_diff"][m]) for m in MOLECULES],
+                             _f(r["program_pass"]), _f(fit[0], 8), _f(fit[1], 8), _f(r["S_fit"], 10), _f(r["delta_S"]),
+                             _f(rf.get("max_abs")), _f(rf.get("lih")), _f(rf.get("non_lih_rms")), _f(rf.get("non_lih_max")),
+                             len(r["grid_basins"]), len(r["nm_basins"]), len(r["ambiguous"]), _f(r["fine_ok"]), _f(r["elongation"]),
+                             _f(r["env_chi"]), _f(r["env_J"]), r["control_excluded"], _f(r["within_envelope"]),
+                             _f(r["spread_printed"]), _f(r["spread_fit"]), _f(r["symmetry_threshold"]), r["symmetry_check"],
+                             r["infinite_evaluations"], r["evaluations"], "" if inverted is None else inverted, verdict or "NO VERDICT"])
+    with open(target / "hydrogen_refit_basins.csv", "w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle, lineterminator="\n")
         writer.writerow(["variant", "column", "source", "start_chi", "start_J", "chi", "J", "S", "iterations", "converged", "members"])
-        for (v, c), r in sorted(results.items()):
-            for x, s in r["grid_basins"]:
-                writer.writerow([v, c, "grid", "", "", _f(x[0], 8), _f(x[1], 8), _f(s, 10), "", "", ""])
-            for start, x, s, it, ok in r["endpoints"]:
-                writer.writerow([v, c, "nelder_mead", _f(start[0]), _f(start[1]), _f(x[0], 8), _f(x[1], 8), _f(s, 10), it, ok, ""])
-            for x, s, members in r["nm_basins"]:
-                writer.writerow([v, c, "nm_basin", "", "", _f(x[0], 8), _f(x[1], 8), _f(s, 10), "", "", members])
-    with open(HERE / "hydrogen_refit_control.csv", "w", newline="", encoding="utf-8") as handle:
+        for key in keys:
+            r = results.get(key)
+            if r is None:
+                continue
+            v, c = key
+            for x, y, s in r["grid_basins"]:
+                writer.writerow([v, c, "grid", "", "", _f(x, 8), _f(y, 8), _f(s, 10), "", "", ""])
+            for sx, sy, x, y, s, it, ok in r["endpoints"]:
+                writer.writerow([v, c, "nelder_mead", _f(sx), _f(sy), _f(x, 8), _f(y, 8), _f(s, 10), it, ok, ""])
+            for x, y, s, members in r["nm_basins"]:
+                writer.writerow([v, c, "nm_basin", "", "", _f(x, 8), _f(y, 8), _f(s, 10), "", "", members])
+    with open(target / "hydrogen_refit_control.csv", "w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle, lineterminator="\n")
         writer.writerow(["variant", "column", "draw", "fit_chi", "fit_J", "S"])
-        for (v, c), r in sorted(results.items()):
+        for key in keys:
+            r = results.get(key)
+            if r is None:
+                continue
             for draw, x, y, s in r["control"]:
-                writer.writerow([v, c, draw, _f(x, 8), _f(y, 8), _f(s, 6)])
-    traced = [(k, r) for k, r in sorted(results.items()) if "traces" in r]
+                writer.writerow([key[0], key[1], draw, _f(x, 8), _f(y, 8), _f(s, 6)])
+    traced = [(k, results[k]) for k in keys if k in results and "traces" in results[k]]
     if traced:
-        with open(HERE / "hydrogen_refit_traces.csv", "w", newline="", encoding="utf-8") as handle:
+        with open(target / "hydrogen_refit_traces.csv", "w", newline="", encoding="utf-8") as handle:
             writer = csv.writer(handle, lineterminator="\n")
             writer.writerow(["variant", "column", "molecule", "k", "Q_H"])
             for (v, c), r in traced:
@@ -584,8 +830,7 @@ def write(results: dict[tuple[str, str], dict]) -> None:
                         writer.writerow([v, c, m, k, _f(q, 10)])
 
 
-def _job(args):
-    return run_job(*args)
+JOBS_DIR = HERE / "hydrogen_refit_jobs"
 
 
 def main() -> None:
@@ -595,17 +840,16 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--workers", type=int, default=min(18, os.cpu_count() or 1))
     parser.add_argument("--variants", default=",".join(v.name for v in VARIANTS))
+    parser.add_argument("--collect-only", action="store_true", help="rebuild the CSVs from existing job files")
     args = parser.parse_args()
     names = args.variants.split(",")
-    jobs = [(v, c) for v in names for c in COLUMNS]
-    results = {}
-    with ProcessPoolExecutor(max_workers=args.workers) as pool:
-        for (v, c), result in zip(jobs, pool.map(_job, jobs)):
-            results[(v, c)] = result
-            print(f"{v:6} {c:12} done in {result['seconds']:.0f} s", flush=True)
-    write(results)
+    if not args.collect_only:
+        run_jobs([(v, c) for v in names for c in COLUMNS], JOBS_DIR, args.workers)
+    results, states = collect(JOBS_DIR, names)
+    write(results, states)
+    print(summary_line(states))
     for v in names:
-        print(f"{v:6} {classify(results, v)}")
+        print(f"{v:6} {classify(results, v) or 'NO VERDICT'}")
 
 
 if __name__ == "__main__":
