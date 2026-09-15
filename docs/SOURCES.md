@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 3a05c6fe8298f91478a69aa8fc562cc3c706e19cf1469bb6d4aa9e848d20bacc -->
+<!-- SOURCE SHA256: 62f6caa306492c4936f1dd188823e5a7844604d38f7b96696055e6e65497878e -->
 
 # Sources
 
@@ -2682,10 +2682,17 @@ Useful context only: it notes that QEq's hydrogen term is cubic in the energy,
 which guarantees a minimum but forces iteration -- the loop whose LiH
 behaviour amendment A7 diagnoses.
 
-ITS SUPPORTING INFORMATION IS HELD (`wilmer2012_si.pdf`, 24 pp): S2 ionization
-energies to Z = 84, S3 EQeq inputs, S5 partial charges for 12 MOFs. Those are
-periodic oracles, so EQeq is recorded under ROADMAP's periodic charge
-equilibration, not as a molecular calculator.
+ITS SUPPORTING INFORMATION IS HELD (`wilmer2012_si.pdf`, 24 pp): the full
+derivation (S1), the EQeq inputs used for the 12 MOFs (S3), and the VASP and
+GCMC details. EQeq is recorded under ROADMAP's periodic charge equilibration,
+not as a molecular calculator.
+
+WHAT THE HELD PDF DOES NOT CONTAIN (corrected 2026-09-15; the earlier wording
+here claimed S2 and S5 held data): S2 shows the ionization energies only as
+plots, S5 is a one-line pointer to a zip, and S8 is a paragraph pointing at
+the source file. The ionization table, the 12 MOF structures, their per-atom
+charges and the v1.00 source are all ACCOMPANYING FILES, and none is held.
+benchmarks/charges/periodic/FEASIBILITY.md records what that blocks.
 
 DOI and pages confirmed against Crossref.
 

@@ -187,11 +187,19 @@ saved as `nistor2006_si.pdf.pdf`, the name the fixture headers keep).
 
 `wilmer2012.pdf`, `wilmer2012_si.pdf`.
 - **Evidence basis:** PDF plus supplement.
-- **Parameters:** SI S2 (ionisation energies to Z = 84) and S3 (inputs).
-- **Numeric oracle:** SI S5 gives per-atom charges for 12 MOFs, periodic only.
-- **Runnable reference:** numat/EQeq (GPL-2.0, deprecated, crystals).
+- **Parameters:** SI S3 gives the run inputs. **S2 shows the ionisation
+  energies only as plots**; the table itself is an accompanying file and is
+  not held (corrected 2026-09-15).
+- **Numeric oracle:** none held. S5 is a one-line pointer to a zip of the 12
+  MOF structures and charges, which is not held. The paper's Table 2 gives
+  per-MOF mean deviations only.
+- **Runnable reference:** numat/EQeq (GitHub reports GPL-2.0, archived as
+  deprecated). It is a later fork, not the 2012 v1.00 code, and GPL-2.0 is not
+  vendored here.
 - **Verdict: NO as a molecular calculator.** The periodic version is recorded
-  on the roadmap.
+  on the roadmap, and Track 6's feasibility check
+  (`benchmarks/charges/periodic/FEASIBILITY.md`, 2026-09-15) is **BLOCKED** on
+  those accompanying files.
 
 ### Context, not a model: Sefcik, Demiralp, Çağın & Goddard 2002
 

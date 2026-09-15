@@ -2028,9 +2028,13 @@ struck through and marked SHIPPED here, never deleted.
     convention. The molecular result store's identity must not be reused
     as is.
   - **Methods, each with its own oracle:**
-    - EQeq (Wilmer 2012). Its supporting information gives the parameters
-      (S3) and per-atom charges for 12 MOFs (S5); numat/EQeq (GPL-2.0) is a
-      runnable reference.
+    - EQeq (Wilmer 2012). **Feasibility checked 2026-09-15 and BLOCKED**, in
+      `benchmarks/charges/periodic/FEASIBILITY.md`: the held SI gives the
+      equations and the run inputs (S3), but the ionisation table, the 12 MOF
+      structures and their charges are accompanying files that are not held,
+      and `expand()` has no disorder-resolution rule to feed a charge model.
+      That document also transcribes EQeq's electrostatics and the identity
+      fields below.
     - PQEq (Naserifar 2017). Its supplement's parameter files cover the whole
       periodic table.
     - Periodic EQeq is kept separate from any molecular EQeq, which would
