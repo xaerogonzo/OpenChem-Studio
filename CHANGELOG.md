@@ -40,6 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   recomputed to 5e-5 from his own definition and basis. His slightly
   longer LiH bond leaves the fit unchanged, and a sweep of methanol and
   formamide structures brings only one near-miss into tolerance.
+  The EEM has also been checked against a study it was never fitted to:
+  Mathieu 2007's correlations on 194 molecules are all reproduced, and on 55
+  reaction transition states five of six are. The miss is fluorine, which
+  that set has only five atoms of.
 
 ### Fixed
 

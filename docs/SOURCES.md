@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 132a9e82977bd761335244a5ac9528e56d3838294fbb71c5a351551d5c4db233 -->
+<!-- SOURCE SHA256: 3a05c6fe8298f91478a69aa8fc562cc3c706e19cf1469bb6d4aa9e848d20bacc -->
 
 # Sources
 
@@ -114,6 +114,10 @@ next run of `tools/build_lewis_parameters.py`.
 | [`brown2006`](#brown2006) | literature | **not shipped** | citation |
 | [`bultinck2002a`](#bultinck2002a) | literature | shipped | citation + claim |
 | [`cao2004`](#cao2004) | literature | shipped | citation + claim |
+| [`chelli1999`](#chelli1999) | literature | reference only | citation |
+| [`chen2007`](#chen2007) | literature | reference only | citation + claim |
+| [`chen2008erratum`](#chen2008erratum) | literature | reference only | citation + claim |
+| [`chen2008framework`](#chen2008framework) | literature | reference only | citation |
 | [`cioslowski1989`](#cioslowski1989) | literature | reference only | citation |
 | [`cioslowski1989prl`](#cioslowski1989prl) | literature | reference only | citation + claim |
 | [`claesen2023`](#claesen2023) | literature | reference only | citation |
@@ -163,6 +167,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`koes2013`](#koes2013) | literature | **not shipped** | citation |
 | [`kruszewski1972`](#kruszewski1972) | literature | shipped | citation |
 | [`krygowski1993`](#krygowski1993) | literature | shipped | citation + claim |
+| [`krykunov2017`](#krykunov2017) | literature | reference only | citation + claim |
 | [`kuchitsu1998`](#kuchitsu1998) | literature | reference only | citation + claim |
 | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
 | [`langes15`](#langes15) | reference_table | shipped | citation + claim |
@@ -173,6 +178,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`lovering2009`](#lovering2009) | literature | shipped | citation |
 | [`mann1947`](#mann1947) | literature | shipped | citation + claim |
 | [`marsili1980`](#marsili1980) | literature | shipped | citation + claim |
+| [`mathieu2007`](#mathieu2007) | literature | reference only | citation + claim |
 | [`mayer1975`](#mayer1975) | literature | reference only | citation |
 | [`mayo1990`](#mayo1990) | literature | shipped | citation + claim |
 | [`mcnutt2021`](#mcnutt2021) | literature | **not shipped** | citation |
@@ -182,9 +188,11 @@ next run of `tools/build_lewis_parameters.py`.
 | [`molstar`](#molstar) | software | shipped | citation |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`mortier1986`](#mortier1986) | literature | reference only | citation |
+| [`muser2012`](#muser2012) | literature | reference only | citation + claim |
 | [`naserifar2017`](#naserifar2017) | literature | reference only | citation + claim |
 | [`neudert2011`](#neudert2011) | literature | **not shipped** | citation |
 | [`nguyen2020`](#nguyen2020) | literature | shipped | citation + claim |
+| [`nistor2006`](#nistor2006) | literature | reference only | citation + claim |
 | [`nmrshiftdb2`](#nmrshiftdb2) | dataset | shipped | citation |
 | [`npscorer2015`](#npscorer2015) | software | shipped | citation |
 | [`nubase2020`](#nubase2020) | dataset | shipped | citation + claim |
@@ -214,6 +222,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`ruttkies2016`](#ruttkies2016) | literature | reference only | citation |
 | [`schott1989`](#schott1989) | literature | shipped | citation + claim |
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
+| [`sefcik2002`](#sefcik2002) | literature | reference only | citation + claim |
 | [`shannon1976`](#shannon1976) | literature | shipped | citation + claim |
 | [`snider2007`](#snider2007) | literature | reference only | citation |
 | [`souvignier2016`](#souvignier2016) | literature | shipped | citation |
@@ -227,6 +236,9 @@ next run of `tools/build_lewis_parameters.py`.
 | [`tosco2014`](#tosco2014) | literature | reference only | citation |
 | [`trott_olson2010`](#trott_olson2010) | literature | shipped | citation + claim |
 | [`tsei`](#tsei) | reference_table | reference only | citation |
+| [`verstraelen2009`](#verstraelen2009) | literature | reference only | citation + claim |
+| [`verstraelen2011`](#verstraelen2011) | literature | reference only | citation + claim |
+| [`verstraelen2013`](#verstraelen2013) | literature | reference only | citation + claim |
 | [`vogel_drago1996`](#vogel_drago1996) | literature | shipped | citation + claim |
 | [`vogt2019`](#vogt2019) | literature | **not shipped** | citation |
 | [`waasmaier1995`](#waasmaier1995) | literature | shipped | citation + claim |
@@ -2263,6 +2275,304 @@ Six papers downloaded from its "articles you might be interested in" list
 Phys. 2017) were searched in full text and contain nothing on LiH or QEq's
 hydrogen; they are not registered.
 
+ITS SUPPLEMENTARY MATERIAL IS HELD (`SupplementaryMaterial-PQEq.pdf`, 76 pp,
+plus `SupplementaryMaterial-PQEq-par.txt` and `-PQEq1-par.txt`). Tables S1
+and S2 give PQEq and PQEq1 parameters for the whole periodic table; hydrogen
+has J = 12.98410 eV and no charge dependence. The 30 test structures (S5) are
+schematic images and every charge and energy comparison (S6-S8) is a plot, so
+no numeric oracle was found. See benchmarks/charges/models/TRIAGE.md.
+
+DOI and pages confirmed against Crossref.
+
+### chen2007
+
+<a id="chen2007"></a>
+
+> J. Chen & T. J. Martinez, 'QTPIE: Charge transfer with polarization current equalization. A fluctuating charge model with correct asymptotics', Chem. Phys. Lett. 2007, 438, 315-320.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.cplett.2007.02.065](https://doi.org/10.1016/j.cplett.2007.02.065) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-09-14 |
+| Local copy | `chen2007.pdf` (not checked) |
+
+**Why it is reference only.** QTPIE, TRIAGED AND HELD (benchmarks/charges/models/TRIAGE.md). Charge-transfer
+variables attenuated by the ns Slater overlap (eqs 5-10), with Rappe-Goddard's
+parameters unchanged and no hydrogen correction ("QEq(-H)"). Table 1 gives
+polarizability eigenvalues for NaCl, water and phenol; ITS QTPIE COLUMN IS
+RETRACTED by `chen2008erratum` and must never be a benchmark. Charges appear
+only in figures, so no charge-level numeric oracle was found.
+
+DOI and pages confirmed against Crossref.
+
+### chen2008erratum
+
+<a id="chen2008erratum"></a>
+
+> J. Chen & T. J. Martinez, 'Erratum to QTPIE: Charge transfer with polarization current equalization. A fluctuating charge model with correct asymptotics', Chem. Phys. Lett. 2008, 463, 288.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.cplett.2008.08.060](https://doi.org/10.1016/j.cplett.2008.08.060) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-09-14 |
+| Local copy | `chen2008.pdf` (not checked) |
+
+**Why it is reference only.** THE CURRENT AUTHORITY ON QTPIE'S TABLE 1. One page: the QTPIE polarizability
+eigenvalues "are incorrect due to a programming error"; QEq(-H) and QTPIE
+"should have identical polarizabilities given the same parameters"; the
+charge distributions are unaffected.
+
+DOI and page confirmed against Crossref.
+
+### chen2008framework
+
+<a id="chen2008framework"></a>
+
+> J. Chen, D. Hundertmark & T. J. Martinez, 'A unified theoretical framework for fluctuating-charge models in atom-space and in bond-space', J. Chem. Phys. 2008, 129, 214113.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.3021400](https://doi.org/10.1063/1.3021400) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-14 |
+| Local copy | `chen2008framework.pdf` (not checked) |
+
+**Why it is reference only.** THEORY ONLY. Relates atom-space and bond-space fluctuating-charge models; no
+numeric table, and its EPAPS concerns the combinatorics of the bond-space
+hardness matrix.
+
+DOI and article number confirmed against Crossref.
+
+### verstraelen2013
+
+<a id="verstraelen2013"></a>
+
+> T. Verstraelen, P. W. Ayers, V. Van Speybroeck & M. Waroquier, 'ACKS2: Atom-condensed Kohn-Sham DFT approximated to second order', J. Chem. Phys. 2013, 138, 074108.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.4791569](https://doi.org/10.1063/1.4791569) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-09-14 |
+| Local copy | `verstraelen2013.pdf` (not checked) |
+
+**Why it is reference only.** ACKS2, NOT PURSUED AS A MOLECULAR CALCULATOR. Its only parameters are a pair
+fitted to H-F dissociation (Table I), and its comparison is a figure, so there
+are neither transferable parameters nor a numeric oracle.
+
+DOI and article number confirmed against Crossref.
+
+### nistor2006
+
+<a id="nistor2006"></a>
+
+> R. A. Nistor, J. G. Polihronov, M. H. Muser & N. J. Mosey, 'A generalization of the charge equilibration method for nonmetallic materials', J. Chem. Phys. 2006, 125, 094108.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.2346671](https://doi.org/10.1063/1.2346671) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-09-14 |
+| Local copy | `nistor2006.pdf` (not checked) |
+
+**Why it is reference only.** SPLIT-CHARGE EQUILIBRATION, THE FIRST GO-CANDIDATE (TRIAGE.md). Methods i-iv
+of eq 4, fitted to B3LYP/6-31G(d,p) ESP charges "constrained ... to have net
+zero charge" over 41 H/C/O/Si molecules; Table IV lists hexamethyldisiloxane's
+charges under all four methods.
+
+ITS SUPPLEMENT IS HELD as `nistor2006_si.pdf` (first saved as `nistor2006_si.pdf.pdf`;
+same 50-page capture): its reference 39 names EPAPS
+E-JCPSA6-125-520627 and the group site, and the held file is that site
+archived (50 pp): every parameter list, Slater orbital exponents (H 2.315,
+C 1.618, O 1.842, Si 1.818 per angstrom, credited to Sefcik et al. 2002), and
+per-molecule tables of coordinates, ESP charges and methods i-iv charges. Its
+pages state: "All information is licenced under the GNU: Reproduction by
+nonprofit organizations or for academic use."
+
+THE PUBLISHER'S SUPPLEMENT HOLDS NO GEOMETRY FILES. Alex downloaded the
+supplementary material from the AIP article page (2026-09-15): it is this same
+PDF (Acrobat Web Capture, 2006-05-23), and nothing else. The site's
+`molecules/Mnnn.xyz` files are not in the Internet Archive either, so every
+known route to the missing hydrogen coordinates is exhausted.
+
+DOI and article number confirmed against Crossref.
+
+### mathieu2007
+
+<a id="mathieu2007"></a>
+
+> D. Mathieu, 'Split charge equilibration method with correct dissociation limits', J. Chem. Phys. 2007, 127, 224103.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.2803060](https://doi.org/10.1063/1.2803060) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-09-14 |
+| Local copy | `mathieu2007.pdf` (not checked) |
+
+**Why it is reference only.** SPLIT-CHARGE EQUILIBRATION WITH A PAIR PENALTY, A GO-CANDIDATE (TRIAGE.md),
+AND AN EXTERNAL TEST OF THE SHIPPED EEM. Table II's model B uses Bultinck et
+al.'s chi and eta, identical to `bultinck2002a`'s table (measured); Table I
+prints R^2 per element and sigma_q for "EEM EQ" against B3LYP/6-31G* Mulliken
+charges.
+
+ITS EPAPS (E-JCPSA6-127-509743) IS HELD as the `mathieu2007_si` folder: a
+README and 194 EQ plus 55 TS .xyz files, each atom's coordinates followed by
+its Mulliken charge. The deposit is exactly those files; there is no
+supplement PDF. The README lists the deposit as "README.TXT,
+A6.11.108.EPAPS.ZIP"; the ZIP itself is not held, only its extracted EQ and
+TS directories. The deposit number is deposit metadata, not a second DOI.
+TRIAGE.md's manifests hash every extracted file and the README.
+
+CHECK 2.4 USES BOTH DIRECTORIES, AND EQ 13 CONTRADICTS EQ 8. Differentiating
+eq 8's energy (with eqs 6 and 10) gives a kernel whose eta and Coulomb block
+is the negative of eq 13's as printed, while eq 13 keeps +K_ij. The check
+builds its system from eq 8 and keeps the literal eq 13 as a diagnostic.
+
+DOI and article number confirmed against Crossref.
+
+### verstraelen2011
+
+<a id="verstraelen2011"></a>
+
+> T. Verstraelen, P. Bultinck, V. Van Speybroeck, P. W. Ayers, D. Van Neck & M. Waroquier, 'The Significance of Parameters in Charge Equilibration Models', J. Chem. Theory Comput. 2011, 7, 1750-1764.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ct200006e](https://doi.org/10.1021/ct200006e) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-09-15 |
+| Local copy | `verstraelen2011.pdf` (not checked) |
+
+**Why it is reference only.** PARAMETER IDENTIFIABILITY, NOT AN ORACLE. It compares six EEM/SQE calibrations
+(two training sets, three procedures) and states that the conventional
+least-squares cost function based solely on atomic charges "is in general
+ill-conditioned and not capable of fixing all parameters". Section II notes
+the charges are invariant to shifting every electronegativity by the same
+amount, and eq 10 writes the SQE energy in split charges with the
+nonnegative kernel U^T J U + J'. Context for A10's non-unique refits and for
+check 2.4's use of chi differences; its SQE is the bond-hardness form of
+Nistor et al., not Mathieu's, and its supplement is not held.
+
+DOI, pages and authors confirmed against Crossref.
+
+### verstraelen2009
+
+<a id="verstraelen2009"></a>
+
+> T. Verstraelen, V. Van Speybroeck & M. Waroquier, 'The electronegativity equalization method and the split charge equilibration applied to organic systems: Parametrization, validation, and comparison', J. Chem. Phys. 2009, 131, 044127.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.3187034](https://doi.org/10.1063/1.3187034) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-09-15 |
+| Local copy | `verstraelen2009.pdf` (not checked) |
+
+**Why it is reference only.** EEM AGAINST SQE ON ORGANIC MOLECULES, NOT AN ORACLE. It describes SQE as
+introduced by Nistor et al., combining the EEM and atom-atom charge transfer
+models. Its EPAPS supplement (not held) lists atom and bond types, the
+training molecules, the optimised parameters and Z-matrices only for the chain
+molecules of its applications, so it gives no geometry set to reproduce.
+
+DOI and article number confirmed against Crossref.
+
+### muser2012
+
+<a id="muser2012"></a>
+
+> M. H. Muser, 'The chemical hardness of molecules and the band gap of solids within charge equilibration formalisms. Toward force field-based simulations of redox reactions', Eur. Phys. J. B 2012, 85, 135.
+
+| | |
+| --- | --- |
+| Identifier | [10.1140/epjb/e2012-21081-8](https://doi.org/10.1140/epjb/e2012-21081-8) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-09-15 |
+| Local copy | `10.1140@epjb@e2012-21081-8.pdf` (not checked) |
+
+**Why it is reference only.** WHY SPLIT CHARGES, NOT AN ORACLE. Its abstract compares regular charge
+equilibration, atom-atom charge transfer and SQE: in QE the hardness of
+molecules and the band gap of solids approach zero with size, AACT can give
+negative hardness, and SQE reproduces the generic behaviour of dielectrics.
+It cites Mathieu 2007. The local filename is the DOI as downloaded; it is on
+the deferred renaming list.
+
+DOI and article number confirmed against Crossref.
+
+### krykunov2017
+
+<a id="krykunov2017"></a>
+
+> M. Krykunov, C. Demone, J. W.-H. Lo & T. K. Woo, 'A New Split Charge Equilibration Model and REPEAT Electrostatic Potential Fitted Charges for Periodic Frameworks with a Net Charge', J. Chem. Theory Comput. 2017, 13, 2858-2869.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jctc.6b00998](https://doi.org/10.1021/acs.jctc.6b00998) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-09-15 |
+| Local copy | `krykunov2017.pdf` (not checked) |
+
+**Why it is reference only.** PERIODIC SQE WITH A NET CHARGE, FOR THE DEFERRED ROADMAP ENTRY. Its abstract
+states the original SQE formulation cannot be applied to systems with a net
+charge, and reformulates it by transforming split charges into an atomic
+charge basis. THE HELD COPY IS THE "JUST ACCEPTED" MANUSCRIPT (39 pages, no
+journal pagination); the citation's pages come from Crossref, not the file.
+
+DOI, pages and authors confirmed against Crossref.
+
+### chelli1999
+
+<a id="chelli1999"></a>
+
+> R. Chelli, P. Procacci, R. Righini & S. Califano, 'Electrical response in chemical potential equalization schemes', J. Chem. Phys. 1999, 111, 8569-8575.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.480198](https://doi.org/10.1063/1.480198) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-15 |
+| Local copy | `chelli1999.pdf` (not checked) |
+
+**Why it is reference only.** RESPONSE AND POLARIZABILITY IN EQUALIZATION SCHEMES, HELD FOR LATER. Only the
+title page has been read, so no claim is recorded; it bears on Mathieu's eq
+18 polarizabilities, which check 2.4 leaves out of scope.
+
+DOI, pages and authors confirmed against Crossref.
+
+### sefcik2002
+
+<a id="sefcik2002"></a>
+
+> J. Sefcik, E. Demiralp, T. Cagin & W. A. Goddard III, 'Dynamic Charge Equilibration-Morse Stretch Force Field: Application to Energetics of Pure Silica Zeolites', J. Comput. Chem. 2002, 23, 1507-1514.
+
+| | |
+| --- | --- |
+| Identifier | [10.1002/jcc.10130](https://doi.org/10.1002/jcc.10130) |
+| Status | reference only |
+| Verification | citation + claim |
+| Verified | 2026-09-14 |
+| Local copy | `sefcik2002.pdf` (not checked) |
+
+**Why it is reference only.** CONTEXT FOR THE SILANE DISCREPANCY, NOT AN ORACLE. Goddard's group re-fitted
+QEq's silicon and hydrogen to B3LYP ESP charges over a training set including
+SiH4, replacing the iterated hydrogen with a quadratic one (Table 1: Si chi
+5.204, J/2 3.876, R 0.9455; H chi 5.580, J/2 6.923, R 0.3184). It prints no
+SiH4 charge (Figure 2 is a plot). Nistor et al. 2006 take their Si and H
+Slater parameters from it.
+
 DOI and pages confirmed against Crossref.
 
 ### oda2003
@@ -2371,6 +2681,11 @@ DOI and pages confirmed against Crossref.
 Useful context only: it notes that QEq's hydrogen term is cubic in the energy,
 which guarantees a minimum but forces iteration -- the loop whose LiH
 behaviour amendment A7 diagnoses.
+
+ITS SUPPORTING INFORMATION IS HELD (`wilmer2012_si.pdf`, 24 pp): S2 ionization
+energies to Z = 84, S3 EQeq inputs, S5 partial charges for 12 MOFs. Those are
+periodic oracles, so EQeq is recorded under ROADMAP's periodic charge
+equilibration, not as a molecular calculator.
 
 DOI and pages confirmed against Crossref.
 
