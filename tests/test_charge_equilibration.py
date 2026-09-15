@@ -1680,3 +1680,58 @@ def test_a11_the_axial_derivative_alone_is_not_the_charge():
     perpendicular = (d["x+"][0] - d["x-"][0]) / (2 * hb)
     assert axial == pytest.approx(0.4801, abs=1e-4) and perpendicular == pytest.approx(0.7832, abs=1e-4)
 
+
+# A12: Table IV geometry sensitivity (diagnostic only; nothing adopted)
+
+_geo_spec = importlib.util.spec_from_file_location("table_iv_geometry", _REFIT_PATH.parent / "table_iv_geometry.py")
+tivg = importlib.util.module_from_spec(_geo_spec)
+sys.modules["table_iv_geometry"] = tivg
+_geo_spec.loader.exec_module(tivg)
+
+A12_PINNED = {
+    # (molecule, order, column, base): (nominal, min, max, class)
+    ("H2NC(O)H", 2, "QEq", "substitution"): (0.401066, 0.399414, 0.402691, "geometry-compatible"),
+    ("H2NC(O)H", 3, "QEqHF", "substitution"): (-0.623290, -0.624599, -0.621960, "geometry-insensitive"),
+    ("H3COH", 1, "QEqHF", "substitution"): (0.356053, 0.353544, 0.358571, "geometry-insensitive"),
+    ("H3COH", 3, "QEqHF", "substitution"): (-0.104011, -0.108017, -0.100011, "geometry-insensitive"),
+    ("H3COH", 5, "QEqHF", "substitution"): (0.173731, 0.170883, 0.176599, "geometry-insensitive"),
+    ("H3COH", 1, "QEqHF", "effective"): (0.360809, 0.358286, 0.363340, "geometry-insensitive"),
+    ("H3COH", 3, "QEqHF", "effective"): (-0.106525, -0.110529, -0.102528, "geometry-insensitive"),
+    ("H3COH", 5, "QEqHF", "effective"): (0.174676, 0.171826, 0.177547, "geometry-insensitive"),
+}
+
+
+def test_a12_the_committed_summary_holds_the_pinned_classes():
+    lines = [l for l in (_REFIT_PATH.parent / "table_iv_geometry_summary.csv").read_text(encoding="utf-8").splitlines() if not l.startswith("#")]
+    rows = list(csv.reader(lines))[1:]
+    got = {(r[0], int(r[1]), r[2], r[3]): (float(r[6]), float(r[7]), float(r[8]), r[13]) for r in rows}
+    assert set(got) == set(A12_PINNED)
+    for key, (nominal, lo, hi, klass) in A12_PINNED.items():
+        assert got[key][:3] == pytest.approx((nominal, lo, hi), abs=2e-6), key
+        assert got[key][3] == klass, key
+
+
+def test_a12_a_bond_move_translates_one_fragment_and_changes_nothing_else():
+    elements, coords, _, _ = qeq_geometries.build("H3COH")
+    coords = np.asarray(coords, dtype=float)
+    bond_list = tivg.bonds(elements, coords)
+    before = tivg.internal_coordinates(bond_list, coords)
+    for label, step, new in tivg.perturbations("H3COH", elements, coords):
+        if label == "r1-2" and step == 0.010:
+            after = tivg.internal_coordinates(bond_list, new)
+            assert after["r1-2"] - before["r1-2"] == pytest.approx(0.010, abs=1e-12)
+            assert all(abs(after[k] - before[k]) <= 1e-9 for k in before if k != "r1-2")
+            break
+    else:
+        raise AssertionError("r1-2 +0.010 not generated")
+
+
+def test_a12_formamide_recomputes_to_the_committed_values():
+    """The two formamide cells, recomputed live (the methanol ones take ~30 s)."""
+    evaluations, summary = tivg.run(tuple(c for c in tivg.CELLS if c[0] == "H2NC(O)H"))
+    assert all(row[6] == "converged" for row in evaluations)
+    for r in summary:
+        nominal, lo, hi, klass = A12_PINNED[(r[0], r[1], r[2], r[3])]
+        assert (float(r[6]), float(r[7]), float(r[8])) == pytest.approx((nominal, lo, hi), abs=2e-6)
+        assert r[13] == klass
+

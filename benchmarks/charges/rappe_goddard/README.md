@@ -417,6 +417,39 @@ Whether that longer bond changes the HF-column refit is H-e's question. H-e
 waits on a program with Cartesian basis functions (for example Psi4), which
 is not installed.
 
+## Amendment A12: Table IV geometry sensitivity (2026-09-15)
+
+A diagnostic, pre-registered after A10's output; nothing is adopted.
+`table_iv_geometry.py`; outputs `table_iv_geometry.csv` (500 evaluations, all
+converged) and `table_iv_geometry_summary.csv`.
+- **Grid:** one internal coordinate at a time, ±0.005/±0.010 Å on every bond
+  and ±0.5/±1.0° on every angle (plus methanol's H–O–C–H torsion), applied as
+  fixed Cartesian operations on each Harmony structure type.
+- **Side effects:** coupled angles in planar formamide and around the methyl
+  group move with their neighbour, and each one is listed in the CSV.
+
+| cell (adopted reading) | base | printed | nominal | range over grid | closest | class |
+|---|---|---|---|---|---|---|
+| formamide C, QEq | substitution | 0.39 | 0.4011 | 0.3994 – 0.4027 | 0.0094 away (C–N–H1 −1°) | **geometry-compatible** |
+| formamide N, QEqHF | substitution | −0.61 | −0.6233 | −0.6246 – −0.6220 | 0.0120 | geometry-insensitive |
+| methanol H(O), QEqHF | substitution | 0.34 | 0.3561 | 0.3535 – 0.3586 | 0.0135 | geometry-insensitive |
+| methanol C, QEqHF | substitution | −0.09 | −0.1040 | −0.1080 – −0.1000 | 0.0100 | geometry-insensitive |
+| methanol Ht, QEqHF | substitution | 0.16 | 0.1737 | 0.1709 – 0.1766 | 0.0109 | geometry-insensitive |
+| methanol H(O), QEqHF | effective | 0.34 | 0.3608 | 0.3583 – 0.3633 | 0.0183 | geometry-insensitive |
+| methanol C, QEqHF | effective | −0.09 | −0.1065 | −0.1105 – −0.1025 | 0.0125 | geometry-insensitive |
+| methanol Ht, QEqHF | effective | 0.16 | 0.1747 | 0.1718 – 0.1775 | 0.0118 | geometry-insensitive |
+
+**What it means.**
+- **Formamide's C was 0.001 past tolerance, and a one-degree angle change
+  closes that.** That is all "geometry-compatible" can say. It does not
+  explain the miss.
+- **The four QEqHF cells cannot reach tolerance within the grid,** and each
+  moves by less than 0.01 across it. Their misses are not a geometry effect of
+  this size, which is consistent with A10: the HF-fitted set's problem is in
+  the hydrogen treatment.
+- Methanol C at the substitution structure reaches 0.010011 in its closest
+  case, missing tolerance by 1.1e-5.
+
 ## QEq stop 2: the bounds (O9)
 
 - **The paper's procedure never releases a fixed atom.** It is: solve; fix

@@ -1,0 +1,10 @@
+# Amendment A12: one row per cell and Harmony base structure type. Diagnostic only; nothing is adopted.
+molecule,printed_order,column,base_type,types_used,printed,nominal,min,max,range,min_abs_error,best_coordinate,best_step,class
+H2NC(O)H,2,QEq,substitution,substitution,0.39,0.401066,0.399414,0.402691,0.003277,0.009414,a1-2-3,-1.0,geometry-compatible
+H2NC(O)H,3,QEqHF,substitution,substitution,-0.61,-0.623290,-0.624599,-0.621960,0.002640,0.011960,r2-3,0.01,geometry-insensitive
+H3COH,1,QEqHF,substitution,substitution,0.34,0.356053,0.353544,0.358571,0.005027,0.013544,r0-1,0.01,geometry-insensitive
+H3COH,3,QEqHF,substitution,substitution,-0.09,-0.104011,-0.108017,-0.100011,0.008006,0.010011,a1-2-3,1.0,geometry-insensitive
+H3COH,5,QEqHF,substitution,substitution,0.16,0.173731,0.170883,0.176599,0.005716,0.010883,a1-2-3,1.0,geometry-insensitive
+H3COH,1,QEqHF,effective,effective,0.34,0.360809,0.358286,0.363340,0.005054,0.018286,r0-1,0.01,geometry-insensitive
+H3COH,3,QEqHF,effective,effective,-0.09,-0.106525,-0.110529,-0.102528,0.008001,0.012528,a1-2-3,1.0,geometry-insensitive
+H3COH,5,QEqHF,effective,effective,0.16,0.174676,0.171826,0.177547,0.005720,0.011826,a1-2-3,1.0,geometry-insensitive
