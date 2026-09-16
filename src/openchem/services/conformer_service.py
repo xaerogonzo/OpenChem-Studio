@@ -19,7 +19,10 @@ from openchem.chem.conformer_providers import (
     select_for_return,
 )
 from openchem.chem.alignment import align_conformers_for_display
+from openchem.chem.atom_identity import recorded_drawing_ids, tag_drawing_atoms
+from openchem.chem.calculation_input import input_fingerprint
 from openchem.chem.engine import ChemistryEngine
+from openchem.domain.calculator import DRAWING
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.conformer import ConformerModel
 from openchem.domain.molecule import MoleculeModel
@@ -98,6 +101,12 @@ class _ConformerGenerationTask(QRunnable):
         )
         try:
             mol = self._engine.mol_from_model(self._model)
+            # WHICH DRAWING ATOM EACH CONFORMER ATOM IS, recorded at creation
+            # against the drawing as it is NOW. See
+            # `ConformerModel.drawing_atom_ids` for why the map carries its
+            # fingerprint: conformers outlive some edits that reorder atoms.
+            tag_drawing_atoms(mol)
+            drawing_fingerprint = input_fingerprint(self._engine, self._model, DRAWING)
             # **ASKED, NOT ASSUMED.** `options` is new on the provider
             # interface and `ConformerProvider` is a published plugin API,
             # so a provider written against the earlier signature is
@@ -273,16 +282,20 @@ class _ConformerGenerationTask(QRunnable):
             },
             timestamp=now,
         )
-        conformers = [
-            ConformerModel(
-                molblock=self._engine.mol_to_molblock(conf_mol),
-                energy=energy,
-                method=method,
-                timestamp=now,
-                provenance=provenance,
+        conformers = []
+        for conf_mol, energy in results:
+            ids = recorded_drawing_ids(conf_mol)
+            conformers.append(
+                ConformerModel(
+                    molblock=self._engine.mol_to_molblock(conf_mol),
+                    energy=energy,
+                    method=method,
+                    timestamp=now,
+                    provenance=provenance,
+                    drawing_atom_ids=ids,
+                    drawing_fingerprint=drawing_fingerprint if ids is not None else None,
+                )
             )
-            for conf_mol, energy in results
-        ]
         self._event_bus.publish(ConformersReady(molecule_uuid=self._model.uuid, conformers=conformers))
         # Say so when fewer came back than were asked for, rather than
         # leaving the user to notice "Conformer 1/1" after requesting ten

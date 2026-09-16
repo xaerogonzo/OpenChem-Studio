@@ -349,6 +349,38 @@ def test_the_point_charge_caption_names_its_method_and_its_limits(compare):
     assert "sigma hole" in caption
 
 
+def test_the_point_charge_pane_offers_the_3d_models_and_captions_the_one_used(compare):
+    """Round 3 Track 2: the left pane's charges are a choice, stored by code."""
+    from openchem.chem.charge_evaluation import CHARGE_MODELS, EEM
+
+    widget, _, left, _, molblock = compare
+    widget.set_molecule("mol-1", molblock)
+    combo = widget._charge_model_combo
+    assert [combo.itemData(i) for i in range(combo.count())] == list(CHARGE_MODELS)
+    combo.setCurrentIndex(list(CHARGE_MODELS).index(EEM))
+    assert widget.selected_charge_model() == EEM
+    assert left.surfaces[-1] is not None
+    assert "EEM" in widget._point_charge_caption.text() and "Gasteiger" not in widget._point_charge_caption.text()
+
+
+def test_a_declining_model_leaves_the_pane_empty_and_says_why(compare):
+    """No Gasteiger surface under a QEq label: LiH never settles under QEq."""
+    from rdkit import Chem
+
+    from openchem.chem.charge_evaluation import CHARGE_MODELS, QEQ
+
+    widget, _, left, _, _ = compare
+    lih = Chem.AddHs(Chem.MolFromSmiles("[LiH]"))
+    conformer = Chem.Conformer(lih.GetNumAtoms())
+    conformer.Set3D(True)
+    conformer.SetAtomPosition(1, (1.5957, 0.0, 0.0))
+    lih.AddConformer(conformer, assignId=True)
+    widget._charge_model_combo.setCurrentIndex(list(CHARGE_MODELS).index(QEQ))
+    widget.set_molecule("lih", Chem.MolToMolBlock(lih))
+    assert left.surfaces[-1] is None
+    assert "declined" in widget._point_charge_caption.text()
+
+
 def test_an_orbital_is_requested_by_name_not_by_index(compare):
     """The index is basis-set dependent; only the job that produced the
     wavefunction knows it."""

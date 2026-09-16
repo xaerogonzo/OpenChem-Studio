@@ -1459,6 +1459,30 @@ back to the geometry it came from even after the list is re-sorted. A
 molecule with no conformers is unchanged: those calculators say they need
 one, as they always did.
 
+**The dipole and the ESP comparison can use EEM or QEq charges, and none of
+the three is accurate for magnitudes.**
+- Against 15 experimental dipoles on this application's own conformers, the
+  mean absolute error is 0.79 D for Gasteiger, 1.79 D for EEM (14 molecules;
+  chlorine has no parameters) and 1.69 D for QEq. The two 3D models
+  overestimate polar molecules. Each dipole result states its model's figure
+  (docs/VALIDATION.md).
+- A model that declines a molecule is reported as declining, and no other
+  model's charges stand in.
+- EEM and QEq were fitted to Mulliken charges, which is why a better dipole
+  is not what they offer.
+
+**A 3D per-atom value is placed on its atom, or not shown.** A 3D result is
+computed on a conformer's atoms, and the drawing's atom order can change
+while the conformer is kept (an atom erased and redrawn). Values are placed
+through:
+- the correspondence recorded when the conformer was made, while the drawing
+  is unchanged;
+- otherwise the structures' own correspondence.
+
+When symmetry-equivalent atoms carry values that print differently and the
+drawing has changed, which is which cannot be known, and the atom says "not
+shown" with that reason.
+
 **And the 3D viewer's shape overlay answers a DIFFERENT question, so its
 number can differ from the panel's.** Ticking "Show shapes" recomputes a
 shape-valued result — the dipole vector, a ligand cone, the principal

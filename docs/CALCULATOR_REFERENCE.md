@@ -73,11 +73,12 @@ Reports the IUPAC name from every configured source, each labelled with its orig
 <!-- help:calc-dipole-moment -->
 ### Dipole Moment
 
-Net molecular dipole as a vector and magnitude in Debye, from Gasteiger partial charges and this conformer's geometry. Needs a conformer. Direction and symmetry are reliable; the magnitude inherits the charge model's accuracy.
+Net molecular dipole as a vector and magnitude in Debye, from partial charges and this conformer's geometry: Gasteiger by default, or the 3D EEM or QEq charges of the same conformer. Needs a conformer. A charge model that declines the molecule is reported as such, never replaced by another. Direction and symmetry are reliable; the magnitude inherits the charge model's accuracy.
 
 - Produces a list of facts, each with its own units, basis and evidence.
 - Runs on a real 3D conformer -- generate one first.
 - Options:
+  - `charge_model` -- Charge model (gasteiger, eem_bultinck2002_part1, qeq_rg1991_lambda_half_h_experimental) default `gasteiger`
   - `decimal_places` -- Decimal places default `2` range 0 to 8
 
 <!-- help:calc-isoelectric-point -->
