@@ -240,7 +240,10 @@ left as written**; this section says what changed.
 - `jz3008485_si_002/CrystalStructuresWithCharges/` — **48 structure files**,
   12 MOFs × 4 charge sets (EQeq, REPEAT, ChelpG, AMSQeq);
 - `jz3008485_si_002/2012_Mar21_JPCLett_EQeq_AllIsothermsData_Submitted.xlsx` —
-  the adsorption isotherms behind the paper's Figure 3.
+  the simulated and experimental CO2 isotherms, per MOF, one column per charge
+  scheme (REPEAT, EQeq, AMS, ChelpG, experiment, and the no-charge cases), in
+  excess mg/g against pressure. Read from the sheet itself, not inferred from
+  its name.
 
 **Their format**, read rather than assumed. Despite the `.mol` extension these
 are not MDL molfiles; they are the RASPA-style listing the EQeq code emits:
