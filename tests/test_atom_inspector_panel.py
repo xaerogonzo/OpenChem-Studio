@@ -353,6 +353,40 @@ def test_undo_back_to_the_computed_structure_makes_it_current_again(panel):
     assert _has_charge(widget, 0), "undoing back to the computed structure did not restore it"
 
 
+def test_a_3d_value_stays_on_its_own_atom_after_the_drawing_is_reordered(panel):
+    """Round 3 Track 2 E1, through the REAL panel. Measured in the app first: after an edit that
+    kept canonical SMILES and the conformer, ethanol's oxygen showed carbon C1's EEM 3D charge
+    while the result read fresh. The panel must place values through `project_to_drawing`."""
+    from openchem.chem import atom_identity as ai
+    from openchem.chem.conformer_providers import RDKitConformerProvider
+    from openchem.domain.calculator import GEOMETRY
+    from openchem.domain.conformer import ConformerModel
+
+    widget, bus = panel
+    engine = ChemistryEngine()
+    model = MoleculeModel(display_name="ethanol")
+    engine.set_structure_from_smiles(model, "CCO")
+    tagged = ai.tag_drawing_atoms(engine.mol_from_model(model))
+    conf_mol, _ = RDKitConformerProvider(random_seed=20260915).generate_conformers(tagged, 1, optimize=True)[0]
+    conformer = ConformerModel(molblock=engine.mol_to_molblock(conf_mol), energy=0.0, drawing_atom_ids=ai.recorded_drawing_ids(conf_mol),
+                               drawing_fingerprint=input_fingerprint(engine, model, DRAWING))
+    model.conformers = [conformer]
+    values = {a.GetIdx(): 10.0 * a.GetAtomicNum() + a.GetIdx() / 100.0 for a in conf_mol.GetAtoms()}
+    dataset = PerAtomDataset(property_id="geometry_partial_charge", name="Partial Charge (3D)", units="e", method="eem",
+                             molecule_uuid=model.uuid, values=values,
+                             provenance=Provenance(created_by="core", method="eem", parameters={
+                                 "input_source": "automatic_lowest_energy", "input_conformer_id": conformer.conformer_id}))
+    showing(widget, model, 0)
+    bus.publish(PerAtomDataComputed(dataset=dataset, input_fingerprint=input_fingerprint(engine, model, GEOMETRY),
+                                    calculation_input=GEOMETRY))
+    QCoreApplication.processEvents()
+
+    model.molblock = ai.renumbered_molblock(model.molblock, "reverse")  # O, C, C; conformer and fingerprint kept
+    showing(widget, model, 0)
+    (fact,) = [f for f in widget._report_for(0).facts if f.label == "Partial Charge (3D)"]
+    assert int(fact.value // 10) == 8, f"drawn atom 0 is O and shows {fact.value}"
+
+
 def test_a_dataset_with_no_identity_is_unverifiable_and_says_so(panel):
     """Not "computed for an earlier structure" -- nobody knows that."""
     widget, bus = panel

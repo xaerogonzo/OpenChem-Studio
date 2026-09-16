@@ -1,0 +1,19 @@
+# J. Gasteiger & H. Saller, Angew. Chem. Int. Ed. Engl. 1985, 24, 687 (sources.toml: gasteiger1985), Table I, rendered at 320 dpi.
+# Experimental and PEPE-calculated dipole moments in Debye, as printed. The paper prints no geometries (preregistration.md E2 A).
+# SMILES are this fixture's transcription of the printed formulas; the paper gives formulas only.
+molecule_printed,smiles,mu_exp_debye,mu_calcd_pepe_debye
+H2C=O,C=O,2.34,2.48
+H2C=CHF,C=CF,1.46,1.61
+H2C=CF2,C=C(F)F,1.39,1.63
+H2C=CH-CH3,C=CC,0.37,0.09
+H2C=CH-CH=O,C=CC=O,3.11,3.75
+C6H5OH,Oc1ccccc1,1.28,1.16
+C6H5F,Fc1ccccc1,1.60,1.63
+C6H5Cl,Clc1ccccc1,1.58,1.49
+C6H5NH2,Nc1ccccc1,1.15,1.18
+C6H5C#N,N#Cc1ccccc1,3.93,3.77
+C6H5CH=O,O=Cc1ccccc1,3.21,3.54
+C6H5NO2,[O-][N+](=O)c1ccccc1,4.16,4.11
+p-H2N-C6H4NO2,Nc1ccc(cc1)[N+](=O)[O-],6.91,6.83
+Pyridine,c1ccncc1,2.19,2.20
+Pyrrole,c1cc[nH]c1,1.80,1.69

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import logging
 import weakref
 from collections.abc import Callable
@@ -17,6 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.chem.atom_identity import dataset_conformer_id, depiction_values
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.descriptor_providers import compute_gasteiger_charges
 from openchem.chem.scalar_field import electrostatic_potential_for_conformer
@@ -155,9 +157,36 @@ class _CalculatorResultView(QWidget):
         self._engine = engine
         self._molecule = molecule
         self._layer = layer
+        # TWO ATOM SPACES, AND THEY WERE ONE LAYER. A dataset computed on a
+        # stored conformer is keyed by THAT conformer's atoms: its 3D view
+        # must show that conformer (the panel passes the canonical one, which
+        # a later search can replace), and the 2D pane must place each value
+        # through `depiction_values`, because the drawing's atom order can
+        # change while the conformer is kept. Measured 2026-09-15: ethanol's
+        # oxygen showed carbon's 3D charge before this existed.
+        self._conformer_id = dataset_conformer_id(result) if isinstance(result, PerAtomDataset) else None
+        if self._conformer_id is not None:
+            own = next((c for c in molecule.conformers if c.conformer_id == self._conformer_id), None)
+            conformer_molblock = own.molblock if own is not None else None
         self._conformer_molblock = conformer_molblock
         self._surface_result = result if isinstance(result, PerAtomDataset) else None
         self._depiction_molblock = self._depiction_for(result)
+        self._layer_2d = layer
+        self._values_2d = self._surface_result.values if self._surface_result is not None else {}
+        placement_note = ""
+        if self._conformer_id is not None:
+            values_2d, projection = depiction_values(
+                engine, molecule, result, self._depiction_molblock, display=lambda v, p=places: f"{v:.{p}f}"
+            )
+            if values_2d is None:
+                self._layer_2d, self._values_2d = None, {}
+                placement_note = f"2D: not shown. {projection.detail}"
+            else:
+                self._values_2d = values_2d
+                self._layer_2d = build_visualization_layer(dataclasses.replace(result, values=values_2d), include_labels=True)
+        self._placement_label = QLabel(placement_note, self)
+        self._placement_label.setWordWrap(True)
+        self._placement_label.setVisible(bool(placement_note))
 
         self._svg_widget = QSvgWidget(self)
         self._render_2d()
@@ -251,6 +280,7 @@ class _CalculatorResultView(QWidget):
         layout.addWidget(note_label)
         layout.addWidget(balance_label)
         layout.addLayout(views_row)
+        layout.addWidget(self._placement_label)
         layout.addLayout(surface_row)
         layout.addWidget(self._legend_label)
 
@@ -320,17 +350,23 @@ class _CalculatorResultView(QWidget):
         """
         if not self._depiction_molblock or self._layer is None:
             return
+        if self._layer_2d is None:
+            # Refused placement: the structure, uncoloured, beside the note
+            # saying why. Never the conformer-keyed layer read as drawing indices.
+            svg = self._engine.render_2d_svg(self._depiction_molblock, {}, {})
+            self._svg_widget.load(svg.encode("utf-8"))
+            return
         combo = getattr(self, "_map_combo", None)
         if combo is not None and combo.currentData() == "heatmap" and self._surface_result:
             svg = self._engine.render_2d_heatmap_svg(
                 self._depiction_molblock,
-                self._surface_result.values,
+                self._values_2d,
                 colour_map=DIVERGING_COLOUR_MAP,
-                atom_labels=self._layer.atom_labels,
+                atom_labels=self._layer_2d.atom_labels,
             )
         else:
             svg = self._engine.render_2d_svg(
-                self._depiction_molblock, self._layer.atom_colors, self._layer.atom_labels
+                self._depiction_molblock, self._layer_2d.atom_colors, self._layer_2d.atom_labels
             )
         self._svg_widget.load(svg.encode("utf-8"))
 
@@ -360,11 +396,25 @@ class _CalculatorResultView(QWidget):
             # geometry to describe the SAME molecule; only recomputing
             # on the conformer guarantees that.
             mol = self._engine.mol_from_molblock(self._conformer_molblock)
-            charges = compute_gasteiger_charges(mol)
+            # A DATASET COMPUTED ON THIS CONFORMER ALREADY IS THE CHARGE AND
+            # GEOMETRY OF THE SAME MOLECULE, every atom included, so its own
+            # charges make the field: an EEM or QEq result must not show a
+            # Gasteiger potential under its own name. Anything else keeps the
+            # recompute-on-the-conformer rule described below.
+            own_charges = (
+                self._conformer_id is not None
+                and len(self._surface_result.values) == mol.GetNumAtoms()
+            )
+            charges = dict(self._surface_result.values) if own_charges else compute_gasteiger_charges(mol)
             field = electrostatic_potential_for_conformer(mol, charges)
             layer = build_scalar_field_surface_layer(field, representation=representation)
             self._viewer3d.apply_surface(layer)
             low, high = layer.scalar_field_range
+            if own_charges:
+                self._legend_label.setText(
+                    f"{low:.1f} to {high:.1f} {field.units} - {self._surface_result.name} on the 3D conformer it was computed on"
+                )
+                return
             # The units come from the FIELD, not from the dataset that fed
             # it: charges are in e, the potential they produce is not.
             #

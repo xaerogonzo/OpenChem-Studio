@@ -114,7 +114,8 @@ The honest version of a comparison table: this one is about our own software.
 
 | Does, with stated caveats | The caveat |
 |---|---|
-| Electrostatic potential surfaces | two methods, side by side and labelled: point charges (instant, no ORCA) still have no lone-pair directionality or sigma holes; the ab initio surface has both, [benchmarks/esp/](benchmarks/esp/) |
+| Electrostatic potential surfaces | two methods, side by side and labelled: point charges (instant, no ORCA; Gasteiger, EEM or QEq) still have no lone-pair directionality or sigma holes; the ab initio surface has both, [benchmarks/esp/](benchmarks/esp/) |
+| Dipole moments from Gasteiger, EEM or QEq charges | none is accurate for magnitude: mean absolute error 0.79, 1.79 and 1.69 D against 15 experimental dipoles; a model that declines a molecule says so, [benchmarks/charges/consumers/](benchmarks/charges/consumers/) |
 | ADMET predictions | tiered Basic/Advanced/Research; accuracy is the vendor's held-out figure, not ours — the shipped model trained on all of TDC ([benchmarks/admet/](benchmarks/admet/)) |
 | pKa (optional sidecar) | no solvent model |
 | Interaction energy decomposition (LED) | only the total energy is an observable — ORCA's own words — and the split into electrostatics/dispersion/charge transfer is scheme-dependent. No counterpoise correction, so binding is over-estimated (BH₃·CO: −36.6 kcal/mol against ~−25 experimental). Aromatic partners cost ~3× their size, and nothing drug-sized is a candidate |

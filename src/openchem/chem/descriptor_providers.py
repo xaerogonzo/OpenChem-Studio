@@ -59,6 +59,7 @@ from openchem.chem.alignment import (
     DEFAULT_ACCURACY,
     compute_3d_alignment,
 )
+from openchem.chem.charge_evaluation import CHARGE_MODEL_LABELS, CHARGE_MODELS, GASTEIGER
 from openchem.chem.dipole import compute_dipole_moment
 from openchem.chem.electronic_properties import (
     POLARIZABILITY_METHODS,
@@ -2819,13 +2820,23 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         display_name="Dipole Moment",
         category="charge",
         description=(
-            "Net molecular dipole as a vector and magnitude in Debye, from Gasteiger partial "
-            "charges and this conformer's geometry. Needs a conformer. Direction and symmetry "
-            "are reliable; the magnitude inherits the charge model's accuracy."
+            "Net molecular dipole as a vector and magnitude in Debye, from partial charges and this "
+            "conformer's geometry: Gasteiger by default, or the 3D EEM or QEq charges of the same "
+            "conformer. Needs a conformer. A charge model that declines the molecule is reported as "
+            "such, never replaced by another. Direction and symmetry are reliable; the magnitude "
+            "inherits the charge model's accuracy."
         ),
         execution=RegistryExecution(compute=compute_dipole_moment),
-        tags=["charge", "3d", "polarity"],
+        tags=["charge", "3d", "polarity", "eem", "qeq"],
         parameters=[
+            CalculatorParameter(
+                name="charge_model",
+                label="Charge model",
+                kind="choice",
+                default=GASTEIGER,
+                choices=list(CHARGE_MODELS),
+                choice_labels=[CHARGE_MODEL_LABELS[m] for m in CHARGE_MODELS],
+            ),
             decimal_places_parameter(),
         ],
     ),

@@ -234,6 +234,17 @@ def collect_oxidation_state(mol: Any, index: int, _context: dict) -> list[AtomFa
     ]
 
 
+def per_atom_display(value: float) -> str:
+    """How the Atom Inspector prints a per-atom value.
+
+    ONE FUNCTION because `atom_identity.project_to_drawing` judges whether
+    symmetry-equivalent atoms "carry the same value" at exactly this
+    precision: two numbers that print alike cannot be put on the wrong atom
+    in any way a reader could see, and two that print differently can.
+    """
+    return f"{value:.4g}"
+
+
 def collect_per_atom_data(mol: Any, index: int, context: dict) -> list[AtomFact]:
     """Whatever per-atom results have already arrived by event.
 
@@ -242,11 +253,27 @@ def collect_per_atom_data(mol: Any, index: int, context: dict) -> list[AtomFact]
     which is a different statement from zero.
     """
     datasets: Iterable[PerAtomDataset] = context.get("per_atom", {}).values()
+    # `project` places a dataset's values on DRAWING atoms (`atom_identity`).
+    # Absent only for callers with no structure history, where a dataset's
+    # index is its drawing index by construction.
+    project = context.get("project")
     facts: list[AtomFact] = []
     for dataset in datasets:
-        if index not in dataset.values:
+        values = dataset.values
+        if project is not None:
+            projection = project(dataset)
+            if projection.values is None:
+                # REFUSED, AND SAID ON THE ATOM. Reading the index as-is is
+                # exactly the wrong-atom display this exists to prevent.
+                facts.append(
+                    _fact(_PROPERTY_CATEGORY.get(dataset.property_id, FactCategory.ELECTRONIC), dataset.name, None,
+                          dataset.property_id, display="not shown", limitations=(projection.detail,))
+                )
+                continue
+            values = projection.values
+        if index not in values:
             continue
-        value = dataset.values[index]
+        value = values[index]
         facts.append(
             _fact(
                 _PROPERTY_CATEGORY.get(dataset.property_id, FactCategory.ELECTRONIC),
@@ -256,7 +283,7 @@ def collect_per_atom_data(mol: Any, index: int, context: dict) -> list[AtomFact]
                 # The number alone: `units` is its own field and
                 # `Fact.value_with_units` joins them. Both fields carried it,
                 # and the inspector showed "-0.1394 e e".
-                display=f"{value:.4g}",
+                display=per_atom_display(value),
                 units=dataset.units,
                 link=FactLink(
                     target="calculator_inspector",

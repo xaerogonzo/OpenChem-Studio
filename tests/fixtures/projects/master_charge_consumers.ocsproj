@@ -1,0 +1,436 @@
+{
+  "uuid": "6457c00d-4934-4d07-ba99-fc340773b73c",
+  "name": "master-saved charge consumers fixture",
+  "molecules": [
+    {
+      "uuid": "00000000-0000-4000-8000-00000000e70a",
+      "display_name": "ethanol",
+      "molblock": "\n     RDKit          2D\n\n  3  2  0  0  0  0  0  0  0  0999 V2000\n    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    1.2990    0.7500    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n    2.5981   -0.0000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  1  0\n  2  3  1  0\nM  END\n",
+      "canonical_smiles": "CCO",
+      "inchi": "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3",
+      "inchikey": "LFQSCWFLJHTTHZ-UHFFFAOYSA-N",
+      "metadata": {},
+      "tags": [],
+      "favorite": false,
+      "notes": "",
+      "conformers": [
+        {
+          "conformer_id": "00000000-0000-4000-8000-0000000c0f01",
+          "molblock": "\n     RDKit          3D\n\n  9  8  0  0  0  0  0  0  0  0999 V2000\n   -0.9003    0.0802    0.0262 C   0  0  0  0  0  0  0  0  0  0  0  0\n    0.5160   -0.4515    0.0994 C   0  0  0  0  0  0  0  0  0  0  0  0\n    1.3836    0.3720   -0.6661 O   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.2424    0.1233   -1.0131 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -1.5846   -0.5531    0.5977 H   0  0  0  0  0  0  0  0  0  0  0  0\n   -0.9518    1.1002    0.4208 H   0  0  0  0  0  0  0  0  0  0  0  0\n    0.5651   -1.4669   -0.3044 H   0  0  0  0  0  0  0  0  0  0  0  0\n    0.8740   -0.4735    1.1332 H   0  0  0  0  0  0  0  0  0  0  0  0\n    1.3403    1.2693   -0.2937 H   0  0  0  0  0  0  0  0  0  0  0  0\n  1  2  1  0\n  2  3  1  0\n  1  4  1  0\n  1  5  1  0\n  1  6  1  0\n  2  7  1  0\n  2  8  1  0\n  3  9  1  0\nM  END\n",
+          "energy": -1.3368570638903678,
+          "method": "rdkit+MMFF94/UFF",
+          "timestamp": 1789430000.0,
+          "provenance": null
+        }
+      ]
+    }
+  ],
+  "macromolecules": [],
+  "crystals": [],
+  "formulations": [],
+  "docking_results": [],
+  "notes": "",
+  "tags": [],
+  "folders": [],
+  "history": [],
+  "created_at": 1789509582.1840546,
+  "modified_at": 1789509582.1840549,
+  "project_version": 1,
+  "application_version": "0.1.0",
+  "schema_version": 1,
+  "calculation_results": {
+    "envelope_version": 1,
+    "project_uuid": "6457c00d-4934-4d07-ba99-fc340773b73c",
+    "molecules": {
+      "00000000-0000-4000-8000-00000000e70a": {
+        "bundle": {
+          "bundle_id": "automatic/v1",
+          "parts": []
+        },
+        "results": [
+          {
+            "result_id": "dipole_moment",
+            "calculation_input": "geometry",
+            "input_fingerprint": "8cd7c31e4fd8227f0ceb4a608cd764e24fac73872c86cde1555adfaa8bba30e6",
+            "producer": "dipole_moment",
+            "parameters_key": "36054c8b715901c6fb839fc7ffcde4f6",
+            "application_version": "master-62e2c18",
+            "result": {
+              "__type__": "report.ReportResult",
+              "__version__": 1,
+              "provenance": {
+                "__type__": "common.Provenance",
+                "__version__": 1,
+                "created_by": "core",
+                "method": "rdkit",
+                "parameters": {
+                  "input_source": "automatic_lowest_energy",
+                  "input_conformer_id": "00000000-0000-4000-8000-0000000c0f01",
+                  "input_conformer_index": 0,
+                  "input_conformer_energy": -1.3368570638903678,
+                  "input_force_field": null,
+                  "input_parameters": {
+                    "decimal_places": 2
+                  },
+                  "debye": 1.6201816962833744,
+                  "vector": [
+                    -1.076401705185948,
+                    0.027474073025177417,
+                    1.210616897848309
+                  ],
+                  "origin_independent": true
+                },
+                "timestamp": 1789509582.3692524
+              },
+              "timestamp": 1789509582.3692946,
+              "cache_state": {
+                "__enum__": "common.CacheState",
+                "name": "COMPLETED"
+              },
+              "error": null,
+              "error_summary": null,
+              "inapplicable": false,
+              "molecule_uuid": "00000000-0000-4000-8000-00000000e70a",
+              "structure_version": 0,
+              "facts": {
+                "__tuple__": [
+                  {
+                    "__type__": "report.Fact",
+                    "__version__": 1,
+                    "category": {
+                      "__enum__": "report.FactCategory",
+                      "name": "ELECTRONIC"
+                    },
+                    "label": "Dipole",
+                    "value": "1.62",
+                    "display_value": "1.62",
+                    "source": "Dipole Moment",
+                    "basis": {
+                      "__enum__": "structure_issue.Basis",
+                      "name": "HEURISTIC"
+                    },
+                    "evidence": {
+                      "__tuple__": []
+                    },
+                    "limitations": {
+                      "__tuple__": []
+                    },
+                    "link": null,
+                    "units": "Debye",
+                    "origin": "",
+                    "detail": {
+                      "__enum__": "report.Detail",
+                      "name": "STANDARD"
+                    },
+                    "highlight": {
+                      "__tuple__": []
+                    },
+                    "help_id": "",
+                    "rendering": ""
+                  },
+                  {
+                    "__type__": "report.Fact",
+                    "__version__": 1,
+                    "category": {
+                      "__enum__": "report.FactCategory",
+                      "name": "ELECTRONIC"
+                    },
+                    "label": "Dipole X",
+                    "value": "-1.08",
+                    "display_value": "-1.08",
+                    "source": "Dipole Moment",
+                    "basis": {
+                      "__enum__": "structure_issue.Basis",
+                      "name": "HEURISTIC"
+                    },
+                    "evidence": {
+                      "__tuple__": []
+                    },
+                    "limitations": {
+                      "__tuple__": []
+                    },
+                    "link": null,
+                    "units": "Debye",
+                    "origin": "",
+                    "detail": {
+                      "__enum__": "report.Detail",
+                      "name": "STANDARD"
+                    },
+                    "highlight": {
+                      "__tuple__": []
+                    },
+                    "help_id": "",
+                    "rendering": ""
+                  },
+                  {
+                    "__type__": "report.Fact",
+                    "__version__": 1,
+                    "category": {
+                      "__enum__": "report.FactCategory",
+                      "name": "ELECTRONIC"
+                    },
+                    "label": "Dipole Y",
+                    "value": "+0.03",
+                    "display_value": "+0.03",
+                    "source": "Dipole Moment",
+                    "basis": {
+                      "__enum__": "structure_issue.Basis",
+                      "name": "HEURISTIC"
+                    },
+                    "evidence": {
+                      "__tuple__": []
+                    },
+                    "limitations": {
+                      "__tuple__": []
+                    },
+                    "link": null,
+                    "units": "Debye",
+                    "origin": "",
+                    "detail": {
+                      "__enum__": "report.Detail",
+                      "name": "STANDARD"
+                    },
+                    "highlight": {
+                      "__tuple__": []
+                    },
+                    "help_id": "",
+                    "rendering": ""
+                  },
+                  {
+                    "__type__": "report.Fact",
+                    "__version__": 1,
+                    "category": {
+                      "__enum__": "report.FactCategory",
+                      "name": "ELECTRONIC"
+                    },
+                    "label": "Dipole Z",
+                    "value": "+1.21",
+                    "display_value": "+1.21",
+                    "source": "Dipole Moment",
+                    "basis": {
+                      "__enum__": "structure_issue.Basis",
+                      "name": "HEURISTIC"
+                    },
+                    "evidence": {
+                      "__tuple__": []
+                    },
+                    "limitations": {
+                      "__tuple__": []
+                    },
+                    "link": null,
+                    "units": "Debye",
+                    "origin": "",
+                    "detail": {
+                      "__enum__": "report.Detail",
+                      "name": "STANDARD"
+                    },
+                    "highlight": {
+                      "__tuple__": []
+                    },
+                    "help_id": "",
+                    "rendering": ""
+                  },
+                  {
+                    "__type__": "report.Fact",
+                    "__version__": 1,
+                    "category": {
+                      "__enum__": "report.FactCategory",
+                      "name": "ELECTRONIC"
+                    },
+                    "label": "Dipole Moment",
+                    "value": "From Gasteiger (PEOE) partial charges and this conformer's geometry. Direction and symmetry are reliable; the magnitude inherits the charge model's accuracy.",
+                    "display_value": "From Gasteiger (PEOE) partial charges and this conformer's geometry. Direction and symmetry are reliable; the magnitude inherits the charge model's accuracy.",
+                    "source": "Dipole Moment",
+                    "basis": {
+                      "__enum__": "structure_issue.Basis",
+                      "name": "HEURISTIC"
+                    },
+                    "evidence": {
+                      "__tuple__": []
+                    },
+                    "limitations": {
+                      "__tuple__": []
+                    },
+                    "link": null,
+                    "units": "",
+                    "origin": "",
+                    "detail": {
+                      "__enum__": "report.Detail",
+                      "name": "STANDARD"
+                    },
+                    "highlight": {
+                      "__tuple__": []
+                    },
+                    "help_id": "",
+                    "rendering": ""
+                  }
+                ]
+              },
+              "assumptions": {
+                "__tuple__": []
+              },
+              "limitations": {
+                "__tuple__": []
+              },
+              "report_id": "dipole_moment",
+              "name": "Dipole Moment",
+              "category": "charge",
+              "severity": {
+                "__enum__": "structure_issue.Severity",
+                "name": "INFO"
+              },
+              "spatial": {
+                "__tuple__": [
+                  {
+                    "__type__": "report.ArrowAnnotation",
+                    "__version__": 1,
+                    "anchor": {
+                      "__tuple__": [
+                        0.35844046755953024,
+                        0.03236966506761598,
+                        -0.18675309427163603
+                      ]
+                    },
+                    "vector": {
+                      "__tuple__": [
+                        -1.076401705185948,
+                        0.027474073025177417,
+                        1.210616897848309
+                      ]
+                    },
+                    "units": "D",
+                    "label": "1.62 D"
+                  }
+                ]
+              },
+              "charts": {
+                "__tuple__": []
+              },
+              "renderings": {
+                "__tuple__": []
+              }
+            }
+          },
+          {
+            "result_id": "geometry_partial_charge",
+            "calculation_input": "geometry",
+            "input_fingerprint": "8cd7c31e4fd8227f0ceb4a608cd764e24fac73872c86cde1555adfaa8bba30e6",
+            "producer": "geometry_partial_charge",
+            "parameters_key": "c8a6d189021bbd3d35d4621f5b102f37",
+            "application_version": "master-62e2c18",
+            "result": {
+              "__type__": "scientific_result.PerAtomDataset",
+              "__version__": 1,
+              "provenance": {
+                "__type__": "common.Provenance",
+                "__version__": 1,
+                "created_by": "core",
+                "method": "eem_bultinck2002_part1",
+                "parameters": {
+                  "input_source": "automatic_lowest_energy",
+                  "input_conformer_id": "00000000-0000-4000-8000-0000000c0f01",
+                  "input_conformer_index": 0,
+                  "input_conformer_energy": -1.3368570638903678,
+                  "input_force_field": null,
+                  "input_parameters": {
+                    "method": "eem_bultinck2002_part1",
+                    "include_hydrogens": false,
+                    "decimal_places": 2
+                  },
+                  "method": "eem_bultinck2002_part1",
+                  "parameter_set": "bultinck_2002_part_I_table_1",
+                  "source": "bultinck2002a (J. Phys. Chem. A 2002, 106, 7887; doi:10.1021/jp0205463)",
+                  "equation_convention": "bultinck2002_eq3_atomic_units",
+                  "kappa": "1 hartree bohr",
+                  "hartree_ev": 27.211386,
+                  "bohr_angstrom": 0.529177210903,
+                  "equalized_electronegativity_ev": 3.683617130625745,
+                  "species": "The stored conformer's atoms, explicit hydrogens and coordinates, with its net formal charge. Per-atom formal charges are not kept: the net charge is redistributed, so only the sum equals it. No protonation is applied.",
+                  "net_charge": 0.0,
+                  "include_hydrogens": false,
+                  "hydrogen_aggregation": "separate",
+                  "solver_to_source": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8
+                  ],
+                  "decimal_places": 2,
+                  "not_applied": "protonation at a pH",
+                  "atom_basis": "explicit_h",
+                  "total": {
+                    "declared": true,
+                    "value": 5.204170427930421e-17,
+                    "label": "Net calculated charge",
+                    "units": "e",
+                    "basis": "explicit_h"
+                  }
+                },
+                "timestamp": 1789509582.3697476
+              },
+              "timestamp": 1789509582.369751,
+              "cache_state": {
+                "__enum__": "common.CacheState",
+                "name": "COMPLETED"
+              },
+              "error": null,
+              "error_summary": null,
+              "inapplicable": false,
+              "property_id": "geometry_partial_charge",
+              "name": "Partial Charge (EEM, Bultinck 2002, 3D)",
+              "units": "e",
+              "method": "eem_bultinck2002_part1",
+              "molecule_uuid": "00000000-0000-4000-8000-00000000e70a",
+              "values": {
+                "__dict__": [
+                  [
+                    0,
+                    -0.42579534154666354
+                  ],
+                  [
+                    1,
+                    -0.017351071822987344
+                  ],
+                  [
+                    2,
+                    -0.5818239515520812
+                  ],
+                  [
+                    3,
+                    0.17404801438372597
+                  ],
+                  [
+                    4,
+                    0.15566005234855027
+                  ],
+                  [
+                    5,
+                    0.16340104325746274
+                  ],
+                  [
+                    6,
+                    0.13383330881999744
+                  ],
+                  [
+                    7,
+                    0.12174424323659924
+                  ],
+                  [
+                    8,
+                    0.2762837028753965
+                  ]
+                ]
+              },
+              "category": ""
+            }
+          }
+        ]
+      }
+    }
+  }
+}

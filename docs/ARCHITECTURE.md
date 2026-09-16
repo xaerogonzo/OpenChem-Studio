@@ -642,6 +642,29 @@ view may choose how to read a result but never recompute or reinterpret it.
   a declared point (ties to the lower x, clamped at the ends) and a click keeps
   it. LogD samples the chosen pH, so the kept reading there is the scalar.
 
+Added 2026-09-15 by the charge-consumer work (round 3, Track 2):
+
+- **A 3D per-atom value is placed when it is shown.** `chem/atom_identity.py`
+  projects a conformer-keyed dataset onto drawn atoms at display time. See the
+  settled Known TODO below for why display time, and for the policy order.
+- **Three kinds of sameness,** named so code says which it means:
+  - **byte equality:** `input_fingerprint` is exact stored text, and a
+    projection trusts a recorded map only on it;
+  - **structural equivalence:** a graph correspondence under a named policy
+    (`atom_identity.graph_correspondences`);
+  - **scientific equivalence:** method-specific, e.g. two charge requests
+    whose effective structure and charges agree.
+- **One producer of charges for consumers** (`chem/charge_evaluation.py`).
+  - The dipole and the ESP comparison take a charge model by stable code.
+  - Each model declares its own input requirement: Gasteiger DRAWING, EEM
+    and QEq GEOMETRY.
+  - A model's refusal comes back as that refusal; the module has no path to
+    another model's charges.
+  - **The result store does not partition by parameters** (measured):
+    `parameters_key` is saved and read by nothing, so a later run under
+    another model replaces the earlier one, as a pH or method change already
+    did. What protects a reader is that every result names its model.
+
 ### Docking: the rail manages panels, the user places them
 
 `_show_only_right_dock` gives the chosen right-hand panel the column by
@@ -814,19 +837,31 @@ document may cite a file or a test that does not exist.
   it. docs/LESSONS.md compares the three repairs measured and records the
   mutation run.
 
-- **OPEN** -- GEOMETRY per-atom datasets assume heavy atoms come first.
-  `atom_sasa` and `geometry_partial_charge` key their values by the
-  conformer's own atom indices, and the
-  Atom Inspector reads per-atom values by the drawing's. The two agree only
-  because `AddHs` appends hydrogens after the atoms it was given. Measured
-  2026-09-14, the two first-party routes that create a conformer --
-  `ConformerService` and ORCA's optimized geometry, which copies the job
-  molecule's order -- both keep heavy atoms first, so a conformer with
-  hydrogens interleaved can only arrive from a plugin conformer provider or
-  a project file written elsewhere. Latent, not reached today. Closing it
-  means the GEOMETRY branch of `resolve_calculation_input` checking the
-  conformer's heavy atoms against the drawing's, element for element, before
-  handing the conformer to anything that keys values by index.
+- **SETTLED 2026-09-15** -- GEOMETRY per-atom datasets assumed heavy atoms
+  come first. `atom_sasa` and `geometry_partial_charge` key their values by
+  the conformer's own atoms, and the Atom Inspector read them by the
+  drawing's.
+  - **It was not latent.** This entry called it reachable only through
+    plugins, which was wrong. `EditStructureCommand` keeps conformers
+    through any edit that preserves canonical SMILES, so an erase-and-redraw
+    reorders the drawing under a kept conformer. Measured in the running app:
+    ethanol's oxygen showed carbon C1's EEM 3D charge while the result read
+    fresh.
+  - **The fix is `chem/atom_identity.py`,** which projects at DISPLAY time:
+    1. a map recorded when the conformer was made
+       (`ConformerModel.drawing_atom_ids`), trusted only while the drawing is
+       byte-identical to that one;
+    2. otherwise a graph correspondence respecting isotopes and any stereo
+       the drawing states;
+    3. symmetry-equivalent atoms accepted only when their values print alike;
+    4. otherwise refused, with the reason shown on the atom.
+  - A dataset's atom space comes from the `input_source` and
+    `input_conformer_id` every GEOMETRY result already records, so saved
+    projects' results project too.
+  - The resolver-side check this entry once proposed was not built: a value
+    has to be placed when it is SHOWN, because the drawing can change after
+    the result is computed while the result stays fresh.
+  - The record is `benchmarks/charges/consumers/preregistration.md` (E1).
 
 - **OPEN** -- the External Tools pages carry no help contracts. Their
   controls were never walked: the dialog needed settings, so the bare-context
