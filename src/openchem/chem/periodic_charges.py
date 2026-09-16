@@ -38,6 +38,9 @@ import numpy as np
 
 from openchem.domain.crystal import POSITION_TOLERANCE, Crystal
 
+#: Where the two shipped tables live, resolved relative to this module so a frozen build finds them.
+#: They are listed individually in `packaging/openchem.spec`; miss that and this raises
+#: FileNotFoundError the first time anybody opens a CIF, having worked from a checkout.
 _DATA = Path(__file__).resolve().parent / "data"
 
 #: The published code's constants, which the article does not state (TRIAGE 2.9-A2).
@@ -69,6 +72,12 @@ REFUSE_NO_AFFINITY = "REFUSE_NO_AFFINITY"
 #: A structure with no unit cell is not what this method computes.
 REFUSE_NO_CELL = "REFUSE_NO_CELL"
 
+#: What each refusal SAYS, keyed by its code, with `{detail}` filled in per structure.
+#:
+#: Separated from the codes above because a code is an identity a caller matches on and a message is
+#: prose a reader reads: rewording one must not change the other. Every message names what would
+#: resolve it where anything can -- a charge centre for an element with no affinity, for instance --
+#: rather than only reporting that it stopped.
 REFUSAL_MESSAGES = {
     REFUSE_DISORDERED_STRUCTURE: (
         "This structure has {detail}. EQeq charges are computed for a definite set of atoms, and "
