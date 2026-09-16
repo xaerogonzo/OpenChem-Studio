@@ -320,3 +320,23 @@ def test_the_added_hydrogen_is_minimised_and_not_left_where_addhs_guessed(monkey
         np.array(placed.mol.GetConformer().GetPositions())[list(placed.placed_hydrogens)]
         - np.array(unplaced.mol.GetConformer().GetPositions())[list(unplaced.placed_hydrogens)], axis=1).max()
     assert moved > 0.01, f"the placement did not move the added hydrogen ({moved:.4f} A)"
+
+
+def test_the_two_calculators_produce_datasets_under_DIFFERENT_property_ids():
+    """**FOUND BY DRIVING THE APP, WITH EVERY UNIT TEST GREEN.** The Properties panel keys retained
+    results by `dataset.property_id`, not by calculator id, so while both calculators emitted the
+    same id the pH result overwrote the as-drawn one: `result_report` for the pH calculator came
+    back `{}` and the Atom Inspector held one result where two had been computed."""
+    from openchem.chem import geometry_charges as gc
+
+    source = conformer_for("NCC(=O)O")
+    drawn = gc.compute_geometry_charges(source, "u", {})
+    at_ph = gc.compute_geometry_charges_at_ph(source, "u", {"pH": 7.4})
+    assert drawn.property_id == "geometry_partial_charge"
+    assert at_ph.property_id == "geometry_partial_charge_at_ph"
+    assert drawn.property_id != at_ph.property_id
+
+    # A refusal must carry the same id as the result it replaces, or the panel files it elsewhere.
+    refused = gc._refusal(pg.REFUSE_H_PLACEMENT, "n", gc.EEM_BULTINCK2002_PART1, 4, "u",
+                          property_id=gc.PROPERTY_ID_AT_PH)
+    assert refused.property_id == "geometry_partial_charge_at_ph"

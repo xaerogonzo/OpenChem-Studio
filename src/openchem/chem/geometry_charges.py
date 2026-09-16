@@ -52,6 +52,10 @@ from openchem.domain.scientific_result import PerAtomDataset
 
 #: The dataset id, and the calculator id it is registered under.
 PROPERTY_ID = "geometry_partial_charge"
+#: The pH calculator's OWN dataset id. **The panel keys results by property_id, not by calculator
+#: id**, so sharing one id made the pH result overwrite the as-drawn result instead of appearing
+#: beside it -- found by driving the app, with every unit test green.
+PROPERTY_ID_AT_PH = "geometry_partial_charge_at_ph"
 
 #: The stored method codes. Each names its parameter set and reading, not just
 #: the model, so another parameterisation is another code, never a reinterpretation.
@@ -178,11 +182,11 @@ AS_DRAWN = (
 
 def _refusal(
     code: str, name: str, method: str, places: int, molecule_uuid: str,
-    message: str | None = None, diagnostics: dict | None = None,
+    message: str | None = None, diagnostics: dict | None = None, property_id: str = PROPERTY_ID,
 ) -> PerAtomDataset:
     parameters = {"refusal": code, "decimal_places": places, **(diagnostics or {})}
     return PerAtomDataset(
-        property_id=PROPERTY_ID,
+        property_id=property_id,
         name=name,
         units="e",
         method=method,
@@ -218,6 +222,7 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
         raise ValueError(f"Unknown geometry charge method {method!r}; expected one of {GEOMETRY_CHARGE_METHODS}")
     include_hydrogens = bool(parameters.get("include_hydrogens", False))
     mode = str(parameters.get("protonation", AS_DRAWN_MODE))
+    property_id = PROPERTY_ID_AT_PH if mode == AT_PH_MODE else PROPERTY_ID
     if mode not in PROTONATION_MODES:
         raise ValueError(f"Unknown protonation mode {mode!r}; expected one of {PROTONATION_MODES}")
     ph = float(parameters.get("pH", 7.4))
@@ -227,7 +232,7 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
         name = f"Partial Charge ({label}, 3D, pH {ph:g}){' incl. H' if include_hydrogens else ''}"
 
     def refuse(code: str, message: str | None = None, diagnostics: dict | None = None) -> PerAtomDataset:
-        return _refusal(code, name, method, places, molecule_uuid, message, diagnostics)
+        return _refusal(code, name, method, places, molecule_uuid, message, diagnostics, property_id)
 
     try:
         conformer = _require_conformer(mol)
@@ -357,7 +362,7 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
             "equalized_electronegativity_ev": result.equalized_electronegativity_ev,
         }
     return PerAtomDataset(
-        property_id=PROPERTY_ID,
+        property_id=property_id,
         name=name,
         units="e",
         method=method,
