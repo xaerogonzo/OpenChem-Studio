@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 2814d47abcf35b2594e6d678caac5710c8a0a103ed8f03d4e45945541e5347a9 -->
+<!-- SOURCE SHA256: 22bb846105ea9b883220799f98f282fe5e2304a666cb3a73732cd618040d0288 -->
 
 # Sources
 
@@ -95,6 +95,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`allred1961`](#allred1961) | reference_table | shipped | citation |
 | [`almenningen1963`](#almenningen1963) | literature | **not shipped** | citation + claim |
 | [`alves2014`](#alves2014) | literature | reference only | citation |
+| [`andersen1999`](#andersen1999) | literature | reference only | citation |
 | [`aqsoldb`](#aqsoldb) | dataset | shipped | citation |
 | [`autodock_vina`](#autodock_vina) | software | shipped | citation + claim |
 | [`avdeef2007`](#avdeef2007) | literature | shipped | citation + claim |
@@ -187,6 +188,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`miller1990`](#miller1990) | literature | shipped | citation + claim |
 | [`miller_polarizability`](#miller_polarizability) | reference_table | reference only | citation |
 | [`molstar`](#molstar) | software | shipped | citation |
+| [`moore1970`](#moore1970) | literature | reference only | citation |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`mortier1986`](#mortier1986) | literature | reference only | citation |
 | [`muser2012`](#muser2012) | literature | reference only | citation + claim |
@@ -2735,6 +2737,63 @@ training-set CSV's 12 scheme blocks are not all complete (three hold 40 or 38
 of the 41 fragments). Authors, title, journal, volume and pages confirmed against
 Crossref and the PDF's first page (a machine summary of the Crossref record
 misspelt Koča; the PDF settles it).
+
+### andersen1999
+
+<a id="andersen1999"></a>
+
+> T. Andersen, H. K. Haugen & H. Hotop, 'Binding Energies in Atomic Negative Ions: III', J. Phys. Chem. Ref. Data 1999, 28, 1511-1533.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.556047](https://doi.org/10.1063/1.556047) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-15 |
+| Local copy | `andersen1999.pdf` (not checked) |
+
+**Why it is reference only.** ONE OF THE TWO SOURCES EQEQ'S PARAMETER TABLE WOULD HAVE TO BE REBUILT FROM.
+Wilmer 2012's `ionizationData.dat` is not in the ACS package, and its SI S2
+cites this review for the electron affinities and Moore 1970 for the ionization
+potentials. Recommended electron affinities for the elements to Z = 94.
+
+Held and readable: the PDF carries a text layer and its recommended values
+extract (spot-checked 2026-09-15: C 1.262 118 eV, O 1.461 112, Cl 3.612 724).
+
+A TABLE BUILT FROM THIS IS A RECONSTRUCTION, NOT WILMER'S FILE, and any
+periodic EQeq comparison must say so: otherwise a per-atom mismatch has two
+candidate causes at once. See benchmarks/charges/periodic/FEASIBILITY.md.
+
+Authors, title, journal, volume, pages and year confirmed against Crossref;
+the DOI resolves to the AIP record. Wilmer's own reference list prints
+"Haugenc" and omits Hotop, which the article's first page settles.
+
+### moore1970
+
+<a id="moore1970"></a>
+
+> C. E. Moore, 'Ionization Potentials and Ionization Limits Derived from the Analyses of Optical Spectra', NSRDS-NBS 34, National Bureau of Standards, 1970.
+
+| | |
+| --- | --- |
+| Identifier | [10.6028/NBS.NSRDS.34](https://doi.org/10.6028/NBS.NSRDS.34) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-15 |
+| Local copy | `Moore1970.pdf` (not checked) |
+
+**Why it is reference only.** THE OTHER SOURCE FOR A REBUILT EQEQ PARAMETER TABLE (see `andersen1999`).
+Ionization potentials, in eV, for the elements and their successive ionization
+stages, from optical spectra.
+
+Held and readable: 30 pages with an OCR text layer, and Table I extracts as
+Z, element, then the first through fifth ionization potentials (verified on the
+page carrying Po 8.42, Rn 10.748, Ra 5.279/10.147, Th 11.5/20.0/28.8). Cells
+arrive one per line, so a positional read is required -- the trap
+docs/LESSONS and the PDF notes already record for multi-column tables.
+
+Title, author, series number and year confirmed against Crossref; the DOI
+resolves to the free NIST PDF at nvlpubs.nist.gov.
 
 ### mortier1986
 
