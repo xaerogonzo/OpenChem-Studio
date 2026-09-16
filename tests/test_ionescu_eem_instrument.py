@@ -219,3 +219,19 @@ def test_calcium_uses_its_own_table_s1_row_and_not_carbons():
     as_carbon = ie.eem_charges(["C", "O", "H"], coords, 2.0, parameters)
     assert parameters["types"]["Ca"] != parameters["types"]["C"]
     assert abs(as_calcium[0] - as_carbon[0]) > 1e-4
+
+
+@needs_si
+def test_result_pin_every_e_model_reproduces_its_own_scheme_on_the_test_proteins():
+    """Section 3.8's headline, on the two small datasets so the test stays quick: all 12 E models, both
+    test proteins, every atom at the charge CSV's own printing precision."""
+    parameters_by_model = ie.table_s1()
+    for name in ("insulin", "ubiquitin"):
+        molecule = ie.dataset(name)[0]
+        for model in sorted(m for m in parameters_by_model if m.startswith("E-")):
+            scheme = model.split("-", 1)[1]
+            q = ie.eem_charges(molecule["elements"], molecule["coords"], ie.total_charge(molecule, scheme),
+                               parameters_by_model[model], "R_angstrom")
+            delta = np.abs(q - np.array(molecule["eem"][model]))
+            assert np.median(delta) < 5e-7, (model, name, float(np.median(delta)))
+            assert delta.max() < 1e-4, (model, name, float(delta.max()))

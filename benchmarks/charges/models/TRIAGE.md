@@ -1098,3 +1098,70 @@ The round 3 plan required this before the record could say "unavailable".
 
 So the status is unavailable, on a search rather than on an assumption. It is
 not reopened without a new source.
+
+### 3.8 Check 2.8: Ionescu 2013's E models reproduce (2026-09-15)
+
+Claim kind: **IMPLEMENTATION REPRODUCTION**, in the domain of protein
+fragments. Run order in git: pre-registration a7563cd, fixtures 7a69e33 and
+b545044, implementation and mutations eb6563e, amendment 2.8-A1 735172b, then
+this run.
+
+**Verdict: REPRODUCED**, universal status REPRODUCED, for all 12 E models.
+
+| Reading | Model × dataset rows reproduced | Verdicts |
+|---|---|---|
+| **R_angstrom** | **36 / 36** | REPRODUCED ×36 |
+| R_bohr | 0 / 36 | PARTIAL ×36 |
+
+- **Every applicable atom of every applicable fragment** is within τ under
+  R_angstrom: 40,142 atoms on a full training set, 802 on insulin, 998 on
+  ubiquitin, for each of the 12 models.
+- **The distribution, which is the real evidence** (2.8-A1: τ is wide because
+  k prints to 3 decimals, so the pass count alone proves little):
+  - the two test proteins agree at the charge CSV's own printing precision —
+    **median |Δ| 2.2e-07 to 2.6e-07**, against a 5e-7 half-unit;
+  - the training sets agree less exactly but still far inside τ: median |Δ|
+    5.3e-06 to 6.4e-05, **max |Δ| 0.0004** over all 36 rows.
+  - **That difference between the test proteins and the training set is
+    real, scheme-dependent (PCM rows are tighter than gas), and is not
+    explained here.** Nothing was refit, and no mechanism is adopted.
+- **R_bohr fails outright** — 34 of 998 atoms on ubiquitin, median |Δ| 0.1 —
+  so the distance unit is ångström. It was not chosen; both readings ran.
+
+**Populations, per scheme (the CSV's own blocks):** 41, 40 or 38 fragments,
+with 0, 1 or 3 excluded as "absent from that scheme's block". No fragment was
+excluded for any other reason: **calcium and sulfur are parameterised and were
+included**, so there is no PARTIAL-COVERAGE here.
+
+**The metric convention, identified and not assumed.** The paper's prose calls
+R_avg the squared Pearson coefficient; its own eq 7 prints the unsquared form.
+Computed both ways on all 36 rows, **R² matches Table S2's printed R_avg in
+every row** (0 rows differ by more than 0.0015), as do RMSD_avg and D_avg.
+Example (E-HiI/6-31G\*\*/PCM, training set): R² 0.9625 against 0.962, RMSD
+0.1281 against 0.128, D 0.0949 against 0.094. So Table S2 prints the squared
+coefficient, and the paper contradicts itself.
+
+**Instrument:** 18 tests, all six registered mutations red. The calcium
+mutation survived its first run because no test had a calcium atom in it; a
+synthetic case was added rather than the mutation retired.
+
+**EX models: BLOCKED on typing**, as registered. They need maximum bond
+multiplicity per atom, so they need bond-order perception from a PDB; no
+best-effort typing was compared.
+
+**Program verdict: GO-CANDIDATE.** A reading reproduces every applicable
+fragment of all 12 E models, which is the registered condition. A src
+pre-registration would carry per-model keys (e.g.
+`eem_ionescu2013_e_mpa_631gs_gas`), the protein-fragment domain limit, and
+the fact that these parameters are fitted to QM charges of *protein
+fragments* — not a small-molecule claim.
+
+Result files (LF-normalised SHA-256):
+- `ionescu_eem_models.csv` (72 rows):
+  `daf4cee368f80087c2d127b6f4059b052962921cc9a00f1a97f9969b14b48347`
+- `ionescu_eem_atoms.csv` (109,646 rows; the subset fragments):
+  `2fe90adac0de67387c13cad1f71695ac12d80b5ba06105666f9324e1f1e937ce`
+- `tests/fixtures/charges/ionescu2013/table_s1.csv`:
+  `f6f687d8d4906b7052055700d83c835d4803c3fc42ebb0dc985a4064f14829f3`
+- `tests/fixtures/charges/ionescu2013/table_s2.csv`:
+  `4896075257d422abbd9fb251f8eb43e1e552822a7e67387779edac98f9b183da`
