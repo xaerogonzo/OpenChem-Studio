@@ -1,0 +1,8 @@
+# preregistration.md E3: shipped EEM (Bultinck 2002 part I) against Ionescu 2013's "MPA/6-31G*/gas" charges. An application benchmark, no gate.
+# Source SHA-256: ci400448n_si_005/training_set.pdb f2d143c45f35bdc10d0920715af08c2726327ddd3e2d8e988badda4aa727368f; ci400448n_si_006/QM_EEM_q_training_set.csv 164596362be4a8496c31ca10f1f9e899b292b6ea68638dfa7028becef27f9748; ci400448n_si_005/test_insulin_3E7Y.pdb aaf6bb65f9631cb56112488ac0dae97fde433f91557e33434691a04a58d137ee; ci400448n_si_006/QM_EEM_q_insulin.csv bcb1ee78653ed00d1423faae21a890bc793ec306cf7f95ae4340032a05f2b2b7; ci400448n_si_005/test_ubiquitin_1UBQ.pdb 7943b6f9fda42418cfdd86d871660865c9fc1c8609273f7ead5464db55b42988; ci400448n_si_006/QM_EEM_q_ubiquitin.csv cabb30547e32801e3ae10f4cb092351200569af1c0b841ebb32c2340c3df501b
+set,element,n,r2,rmsd
+ubiquitin,H,505,0.7427,0.0681
+ubiquitin,C,306,0.9654,0.1558
+ubiquitin,N,88,0.3623,0.0953
+ubiquitin,O,99,0.0254,0.1944
+ubiquitin,All,998,0.9515,0.1197

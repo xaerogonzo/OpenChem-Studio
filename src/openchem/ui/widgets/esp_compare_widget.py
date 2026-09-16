@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from openchem.chem.charge_evaluation import CHARGE_MODEL_LABELS, CHARGE_MODELS, GASTEIGER, evaluate_charges
 from openchem.chem.descriptor_providers import compute_gasteiger_charges
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.scalar_field import electrostatic_potential_for_conformer
@@ -95,7 +96,18 @@ class EspCompareWidget(QWidget):
         self._compute_button.setEnabled(False)
         self._compute_button.clicked.connect(self._on_compute_clicked)
 
+        # The LEFT pane's charges. Stored by code (`charge_evaluation.CHARGE_MODELS`),
+        # shown by label, Gasteiger first because it is instant and was the only
+        # choice before; EEM and QEq are the 3D models computed on this conformer.
+        self._charge_model_combo = QComboBox(self)
+        self._charge_model_combo.setObjectName("espChargeModel")
+        for model in CHARGE_MODELS:
+            self._charge_model_combo.addItem(CHARGE_MODEL_LABELS[model], model)
+        self._charge_model_combo.currentIndexChanged.connect(self._on_charge_model_changed)
+
         controls = QHBoxLayout()
+        controls.addWidget(QLabel("Point charges:", self))
+        controls.addWidget(self._charge_model_combo)
         controls.addWidget(QLabel("QM surface:", self))
         controls.addWidget(self._surface_combo)
         controls.addWidget(self._orbital_combo)
@@ -142,19 +154,39 @@ class EspCompareWidget(QWidget):
         if not self._conformer_molblock:
             return
         mol = self._engine.mol_from_molblock(self._conformer_molblock)
+        self._point_charge_backend.load_conformer(self._conformer_molblock)
+        model = self._charge_model_combo.currentData() or GASTEIGER
         # Recomputed on the CONFORMER, never reused from a per-atom dataset
         # on screen. `CalculatorInspectorDialog` documents why at length:
         # a heavy-atom-only charge map gives neutral acetic acid a net
         # -0.40 e and paints the whole surface red.
-        charges = compute_gasteiger_charges(mol)
+        if model == GASTEIGER:
+            charges = compute_gasteiger_charges(mol)
+            caption = _POINT_CHARGE_CAPTION
+        else:
+            evaluation = evaluate_charges(mol, model, self._molecule_uuid)
+            if evaluation.charges is None:
+                # THE MODEL DECLINED, AND THE PANE SAYS SO. An empty surface
+                # with its reason, never a Gasteiger surface under this label.
+                self._point_charge_backend.apply_surface(None)
+                self._point_charge_caption.setText(
+                    f"{evaluation.label} declined this molecule: {evaluation.message or evaluation.refusal}"
+                )
+                return
+            charges = evaluation.charges
+            caption = (f"Point charges ({evaluation.label}) on this conformer. Cannot represent lone-pair "
+                       "directionality or a sigma hole.")
         field = electrostatic_potential_for_conformer(mol, charges)
-        self._point_charge_backend.load_conformer(self._conformer_molblock)
         layer = build_scalar_field_surface_layer(field)
         self._point_charge_backend.apply_surface(layer)
         low, high = layer.scalar_field_range
-        self._point_charge_caption.setText(
-            f"{low:.1f} to {high:.1f} {field.units} — {_POINT_CHARGE_CAPTION}"
-        )
+        self._point_charge_caption.setText(f"{low:.1f} to {high:.1f} {field.units} — {caption}")
+
+    def _on_charge_model_changed(self, _index: int) -> None:
+        self._render_point_charge()
+
+    def selected_charge_model(self) -> str:
+        return self._charge_model_combo.currentData()
 
     # -- QM --------------------------------------------------------------
 

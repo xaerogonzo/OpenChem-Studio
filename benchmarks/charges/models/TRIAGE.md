@@ -79,6 +79,12 @@ saved as `nistor2006_si.pdf.pdf`, the name the fixture headers keep).
   coordinates is exhausted**, so the geometry HOLD stands until a new source
   appears. Rebuilding the hydrogens would be a reconstruction, not the
   source.
+- **Revised by check 2.7 (2026-09-15): PARTIAL.** No hydrogen is known to be
+  missing: the coordinate column is displaced against the atom rows. One-row
+  rotation recovers 6 molecules, and on them no method reproduces the printed
+  charges (section 3.7).
+  - Method i and iii R_eq10 come within 2e-3 e on SiH4 and CH4.
+  - The larger molecules miss by up to 0.18 e.
 
 ### SQE: Mathieu 2007
 
@@ -579,6 +585,257 @@ feeds the other.
   are named), or NOT REPRODUCED. A miss is a strict-xfail stop record against
   the shipped EEM's external validation. It does not change 2.2 or 2.4.
 
+### 2.7 Nistor SQE: recover the geometry's atom correspondence, then test methods i, iii and iv
+
+Pre-registered 2026-09-15, before any recovery or SQE charge exists. It
+replaces the round 3 plan's "rebuild the missing hydrogen" design, because
+three measurements made while writing it show that premise is wrong. Those
+measurements use only coordinates and elements from
+`nistor2006_si_molecules.csv`, no charge column, and are recorded here because
+they motivate the design. The correction to check 2.1's record is appended to
+section 3.1.
+
+**What was measured (2026-09-15).**
+1. **As printed, no molecule is chemically consistent.** 0 of 41 molecules
+   give every atom its valence. That measurement used ad hoc radii (H 0.31,
+   C 0.76, O 0.66, Si 1.11 Å, f = 1.25), not the registered rule below, which
+   Step 2 applies.
+2. **The real rows are self-consistent as a point set.** No two printed
+   non-origin rows lie closer than 0.85 Å in any molecule.
+3. **The origin row is not a hydrogen that lost its coordinates.**
+   - It lies within 0.85 Å of a real row in 10 molecules (2, 3, 4, 12, 13,
+     23, 31, 36, 37, 40): a fake point.
+   - In the other 31 it sits at a chemically plausible distance.
+   - Rotating the coordinate column down one row, so the origin belongs to
+     atom 1, makes 6 molecules fully consistent, including SiH4, CH4 and
+     CH3OH.
+   - **So the coordinate column is misaligned against the element and charge
+     columns** by a permutation that differs between molecules. That, not a
+     lost hydrogen, is the defect. The raw PDF text shows the same rows, so
+     the misalignment is in the archived page, not in `nistor_extract.py`.
+
+**The model, from `nistor2006` pp. 2–5 and supplement pp. 3 and 8 (rendered).**
+- **Energy:** V = Σ_i (½κ_iQ_i² + χ_iQ_i) + V_C, with Q_i = Σ_j q̄_ij over
+  covalently bonded neighbours (eq 1), and V_C = Σ_{i<j} Q_iQ_jJ_ij(R_ij).
+- **Kernel:** J_ij is the two-centre Coulomb integral of normalised ns Slater
+  densities φ = A R^(n−1) e^(−ζR), A = √((2ζ)^(2n+1)/(4π(2n)!)), with n and ζ
+  (Å⁻¹) of H 1/2.315, C 2/1.618, O 2/1.842 and Si 3/1.818. Energies are in eV.
+  - The printed A values (H 1.987, C 1.084, O 1.500, Si 0.964) are a checksum
+    on that transcription.
+- **Method i** (eq 13): κ and χ per atom, QE rules.
+- **Method ii** (eq 14): a fixed q̄ per bond type with no V_C. A pair
+  "A–B v" puts +v on A and −v on B, checked by hand on CH3OH.
+- **Method iii** (eq 16): method i plus a bond hardness κ^(s)_ij, with
+  energy term ½κ^(s)_ij q̄_ij².
+- **Method iv** (eq 17): method iii with χ_i = χ⁰_i + Σ_j Δχ_ij and
+  κ_i = κ⁰_i + Σ_j Δκ_ij over bonded j, the Δ asymmetric.
+- **The split-charge solve:** eq 9, ∂V/∂q̄_ij = 0 for i < j, with q̄_ji = −q̄_ij.
+  The system can be singular on rings, and the atomic charges are the output
+  (as in 2.4).
+
+**Step 1: parameter set identification (topology only, no fit).**
+- Method ii's charges depend on bonding alone. The supplement prints five sets:
+  all-41 (p. 3), Si–O–H (p. 4), C–O–H (p. 5), ESP-fitted (p. 6),
+  Mulliken-fitted (p. 7).
+- The set used for the molecule tables is the one whose method ii q̄ values
+  reproduce every printed method ii charge, given the recovered bonding, within
+  n_bonds × 5e-5.
+- A molecule matched by no set is BLOCKED on parameters. If more than one set
+  matches, the all-41 set (the tables' own page) is used and the tie is
+  recorded.
+
+**Step 2: correspondence recovery, a constraint solve.**
+- **Bonded rule:** d < f × (r_i + r_j) with Lange 15th ed. Table 4.7
+  single-bond radii (`langes15`, already shipped in `tsei_radii.json`): H 0.30,
+  C 0.772, O 0.66, Si 1.17 Å. f = 1.25 is an engineering choice; f = 1.15 and
+  1.35 are reported as sensitivity.
+- **Point sets tried:** S_all (all n rows, the origin included) and S_real (the
+  n − 1 non-origin rows, one table atom left unplaced).
+- **An assignment** maps table atoms to points one to one, and is valid when:
+  - every placed atom's bonded-neighbour count equals its valence (H 1, C 4,
+    O 2, Si 4, since every C and Si is tetracoordinate and every O
+    bicoordinate, per the paper);
+  - every bond joins two placed atoms under the rule;
+  - every placed atom's method ii charge, recomputed from its neighbours'
+    elements with the Step 1 set, matches the printed method ii value within
+    5e-5 per bond. For S_real, the unplaced atom's missing bond is allowed to
+    its parent only.
+- **Symmetry classes:** table atoms with the same element and identical printed
+  values in all five columns (ESP, i–iv) are interchangeable. Assignments
+  differing only within a class are one solution.
+- **Outcomes per molecule:**
+  - **RECOVERED-UNIQUE:** exactly one solution on S_all, the origin row a real
+    atom.
+  - **RECOVERED-UNIQUE-ONE-UNPLACED:** no S_all solution and exactly one on
+    S_real. The unplaced atom has no coordinates, so the molecule goes to
+    INCONCLUSIVE for V_C methods; placing it would be a reconstruction, not
+    done here.
+  - **AMBIGUOUS:** more than one solution (count reported).
+  - **UNRECOVERABLE:** none.
+  - **BLOCKED:** parameters, or the solver's search limit of 10⁶ nodes.
+- **What this is:** a recovery of which printed coordinate belongs to which
+  printed atom, using only coordinates, elements and the topology-only method
+  ii column. No coordinate is invented. **Method ii is used to recover, so it
+  is never reported as an independent reproduction afterwards.**
+
+**Step 3: methods i, iii and iv on RECOVERED-UNIQUE molecules.**
+- **Kernel first, before any corpus run:** the ns Slater closed form in
+  `charge_equilibration.py` (ζ converted to bohr⁻¹, result to eV) must equal
+  an independent mpmath double integral of these normalised densities, for
+  H–H, C–O and Si–Si at R = 0.5–6 Å, to 1e-9 eV.
+  - It must also reproduce the supplement figure's R = 0 intercepts to plotting
+    precision (H–H about 21, C–O about 9, Si–Si about 6.8 eV; a sanity check,
+    not a gate).
+  - If it fails, a separate kernel is written.
+- **Oracle:** each atom's printed method charge, to 4 dp.
+  - **Per atom:** reproduced if |Δ| ≤ 5e-5 (the half-unit), else failed.
+  - **Per molecule × method:** REPRODUCED-ON-RECOVERED-CORRESPONDENCE when every
+    atom is reproduced, else PARTIAL with the failing atoms and the largest |Δ|.
+  - **Sigma = 100·Δ_n** (check 2.1's identified form) against the printed
+    Sigma, reported.
+- **Source inconsistencies already on record** are carried as expected
+  departures, not failures: the method ii sum departures of molecules 5, 14
+  and 18, and Table IV atom 15 method i. They do not touch methods i, iii and
+  iv otherwise.
+- **Program verdict:**
+  - counts per class;
+  - **GO-CANDIDATE** for a separate SQE pre-registration only if all three
+    methods reproduce on at least 10 recovered molecules spanning the three
+    families;
+  - otherwise PARTIAL, INCONCLUSIVE or BLOCKED, with the reason.
+
+**Universal status mapping:**
+- REPRODUCED-ON-RECOVERED-CORRESPONDENCE → REPRODUCED (claim kind:
+  implementation reproduction);
+- PARTIAL → PARTIAL;
+- AMBIGUOUS and ONE-UNPLACED → INCONCLUSIVE;
+- UNRECOVERABLE → INCOMPATIBLE;
+- BLOCKED → BLOCKED.
+
+**Instrument tests, before any corpus run:**
+- **Solver:** on a synthetic molecule with its rows permuted it recovers the
+  permutation; it reports AMBIGUOUS on a constructed symmetric case where
+  classes differ; it returns UNRECOVERABLE on scrambled coordinates.
+- **Method ii recomputation:** reproduces CH3OH's printed column exactly.
+- **Kernel checks** as above.
+- **Split-charge solver:** equals a brute-force minimisation of V on a 3-atom
+  toy for each method; method i equals an atomic QE solve with the same J on a
+  connected molecule (eq 4's isomorphism).
+
+**Mutations:**
+- the pair sign convention flipped;
+- ζ left in Å⁻¹;
+- the S_real branch allowed to place the unplaced atom anywhere;
+- symmetry classes ignoring the ESP column;
+- Δ perturbations made symmetric;
+- the two bond-hardness readings below exchanged.
+
+**Amendment 2.7-A1 (2026-09-15, before any SQE charge or recovery number):
+the bond-hardness factor is ambiguous in the source, so both readings run.**
+The model above wrote the bond term as ½κ^(s)q̄². Reading the equations again
+for the solver:
+- **Eq 4** sums ½(κ^(s)_ij q̄_ij + …)q̄_ij over ORDERED pairs, so each bond
+  contributes κ^(s)q̄². **Eq 10** differentiates to 2κ^(s)q̄, which agrees.
+- **Eq 14's** stated solution q̄ = −χ̄/κ^(s) implies ½κ^(s)q̄² instead.
+
+The paper contradicts itself by a factor of two in exactly the term methods iii
+and iv add. So both run and both are reported, the way QEq's λ readings were:
+- **R_eq10:** bond term κ^(s)q̄² per bond (eqs 4 and 10);
+- **R_eq14:** bond term ½κ^(s)q̄² per bond (eq 14's solution).
+
+Methods i and ii are unaffected: method i has no κ^(s), and method ii's q̄ is
+printed directly. A method's class is assigned per reading. "Reproduced" under
+one reading only is recorded with the reading named, and the reading is never
+chosen by which one matches. Both are reported side by side.
+
+The χ and atomic-κ terms are unambiguous, because eq 4 under the QE rules
+equals eq 2's atomic form ½κ_iQ_i² + χ_iQ_i, and V_C = Σ_{i<j} Q_iQ_jJ_ij
+runs over all atom pairs, bonded or not. Method iv's perturbations are read
+per bonded neighbour: χ_i = χ⁰_i + Σ_j Δχ(Z_i–Z_j) using the ordered-pair row
+("H-C" for an H bonded to C), and likewise κ.
+
+**Amendment 2.7-A2 (2026-09-15): recovery narrowed to a one-row rotation.**
+It is made AFTER a measurement on coordinates and elements only, with no
+charge column and no SQE charge in existence, and disclosed as such.
+- **Why the pre-registered general solve cannot deliver what it promised.**
+  Its constraints are valence, the bonding rule and method ii charges, and
+  method ii gives every hydrogen a value set only by its parent's element
+  (H–C, H–O, H–Si).
+  - So no topology-only constraint distinguishes a table hydrogen on one
+    carbon from a table hydrogen on another carbon, or two hydrogens on the
+    same carbon. The only columns that differ are the geometry-dependent ones
+    (ESP, i, iii, iv), and choosing a correspondence by them would fit to the
+    oracle.
+  - A general solve would therefore return many solutions for every molecule
+    with non-equivalent hydrogens, which is nearly all of them. That is a
+    property of the constraints, argued here, not run.
+- **The measurement.**
+  - Every cyclic rotation of the coordinate column (and of its reversal) was
+    tested per molecule with Step 2's registered bonding rule (Lange radii,
+    f = 1.25).
+  - 32 of 41 molecules have no consistent rotation.
+  - **9 do, and all 9 are consistent at the same one: the column rotated down
+    one row**, so the origin row belongs to table atom 1. They are molecules
+    6 (SiH4), 26, 29, 32, 33, 34, 35, 38 and 41.
+  - Five of them also have a second consistent rotation (SiH4, 29, 32, 35,
+    41); these are the most symmetric molecules.
+- **The amended Step 2.**
+  - A molecule is RECOVERED-BY-ROTATION when the one-row rotation is
+    consistent with the bonding rule at f = 1.25, AND with valence, AND every
+    heavy atom's method ii charge recomputes to the printed value within 5e-5
+    per bond.
+  - Hydrogens are placed by the rotation itself, not chosen.
+  - **Uniqueness:** every other consistent rotation must give the same
+    structure. Their interatomic distance matrices, taken atom for atom in
+    table order, must agree within 5e-3 Å (distances fix both the bonding and
+    V_C, so equal matrices mean identical SQE charges per atom). A second
+    rotation that differs is AMBIGUOUS.
+  - Molecules with no consistent rotation are BLOCKED on correspondence. The
+    general solve is not run, for the reason above.
+  - f = 1.15 and 1.35 are reported as sensitivity on the rotation test only.
+- **What stays unchanged:**
+  - Step 1 (parameter identification), Step 3 (the oracle, tolerances,
+    Sigma), both bond-hardness readings, the status mapping, and the
+    mutations (plus: "rotation by two rows accepted as recovery").
+  - **The GO bar stays at ten recovered molecules across three families.**
+    With nine recoverable at most, Track 4 cannot reach GO. Its verdict is at
+    best PARTIAL, and that is stated here, before any SQE number, rather than
+    discovered afterwards.
+- **This corrects check 2.1's record** ("every geometry is missing one
+  hydrogen"). For these nine, nothing is missing: the column is displaced by
+  one row. For the other 32, the scramble is not a rotation, and whether any
+  atom is truly missing is not known.
+
+**Amendment 2.7-A3 (2026-09-15): A2's uniqueness test restores Step 2's
+symmetry classes.** It is made AFTER A2's recovery was run, with no SQE charge
+in existence, and disclosed as such.
+- **The measurement.** A2 as written gives 4 RECOVERED-BY-ROTATION (26, 33,
+  34, 38), 5 AMBIGUOUS and 32 BLOCKED. Among the five:
+  - molecules 29, 32 and 41: the second rotation moves heavy atoms, by up to
+    5.50, 2.58 and 2.42 Å. These are genuinely ambiguous.
+  - SiH4 (6) and CH4 (35): the second rotation (the reversal) moves only the
+    four hydrogens, among the same four points. All four are identical in all
+    five printed columns. The distance matrices differ by 0.0074 and 0.0152 Å,
+    because the printed geometry is not exactly regular.
+- **Why that is not ambiguity.** A2 required distance-matrix equality because
+  equal matrices mean identical per-atom SQE charges. Here a stronger thing
+  holds: each element carries the same set of points under both rotations, so
+  the SQE solution on those points is the same. The two rotations differ only
+  in which label a hydrogen gets, and every label in play prints the same
+  value in every column. So every per-atom comparison is identical under both.
+  A2 replaced Step 2 and dropped its symmetry-class rule; this restores it.
+- **The amended uniqueness test.** A second consistent rotation is equivalent
+  to the one-row rotation when, for every symmetry class (same element and
+  identical printed values in ESP, i, ii, iii and iv, Step 2's definition), it
+  places the class on the same set of printed points. Equivalent rotations are
+  not ambiguity, and no tolerance is involved. Otherwise A2's distance-matrix
+  test applies unchanged.
+- **Effect:** 6 RECOVERED-BY-ROTATION (6, 26, 33, 34, 35, 38), 3 AMBIGUOUS, 32
+  BLOCKED. The A2 counts are reported beside them. The GO bar is still
+  unreachable.
+- Mutation added: "symmetry classes ignoring the ESP column" now applies to
+  this test.
+
 ## 3. Results
 
 ### 3.1 Nistor supplement extraction (2026-09-14)
@@ -610,6 +867,93 @@ a strict xfail, and its contents are pinned by
   source inconsistencies at the 1e-3 e level.
 - The geometries are not usable as they stand. Rebuilding a hydrogen position
   would be a reconstruction, not the source, so it is not done here.
+
+**Correction (2026-09-15, check 2.7):** check 4's last sentence is wrong. The
+coordinate column is displaced against the atom rows; nothing is known to be
+missing. See 2.7's measurements and section 3.7.
+
+### 3.7 Check 2.7: Nistor SQE on recovered correspondence (2026-09-15)
+
+Claim kind: IMPLEMENTATION REPRODUCTION, on geometry recovered by the one-row
+rotation (amendments A2 and A3). Run order in git: A3 and the module 216aecf,
+instrument tests 4a9faca, then this run.
+
+**Instrument, before the run.**
+- **Kernel:** equals an independent Fourier-space integral (the exact
+  transform of an ns Slater density, numpy Gauss–Legendre) to 5.4e-13 eV
+  worst case over H–H, C–O, Si–Si and H–Si at R = 0.5–6 Å, against the 1e-9 eV
+  gate. mpmath is not installed, and this route shares nothing with the
+  gamma-function closed form, so it replaces the registered mpmath integral.
+  R = 0 intercepts: 20.83 (H–H), 8.99 (C–O) and 6.76 (Si–Si) eV, matching the
+  figure.
+- **Normalisation checksum:** H, O and Si reproduce the printed A. Carbon
+  computes to 1.0847 against a printed 1.084; ζ = 1.6175, which also prints as
+  1.618, gives 1.0839. The printed A is therefore inside ζ's rounding.
+- **Parameter sets:** all five pages, 206 rows, re-parsed from a fresh text
+  dump and compared in order, with 0 mismatches.
+- **Tests:** `tests/test_nistor_sqe_instrument.py`, 19 tests.
+  - The split-charge solve equals a brute-force minimisation of eq 4, written
+    in loops with re-transcribed parameters, for i, iii and iv under both
+    readings.
+  - Method i equals an atomic QE solve.
+- **Mutations: 6 of 6 red.** They cover the pair sign, ζ left in Å⁻¹,
+  symmetry classes without ESP, symmetric Δ, the readings exchanged, and a
+  two-row rotation accepted. The registered "S_real branch" mutation has
+  nothing to test, since A2 removed that branch.
+
+**Step 1 and Step 2.**
+- **Parameter set:** the all-41 set's method ii reproduces every atom of all 6
+  recovered molecules. No other set reproduces any.
+- **Recovery:** 6 RECOVERED-BY-ROTATION, 3 AMBIGUOUS (29, 32, 41) and 32
+  BLOCKED.
+  - The recovered molecules are SiH4 (6, Si–O–H), (CH3)3SiC2H5 (26, Si–C–O–H),
+    and HO–CH2–OH, CH3OH, CH4 and C(OH)2(CH3)2 (33, 34, 35, 38; all C–O–H).
+  - Under A2 as written: 4, 5 and 32.
+  - Sensitivity (f = 1.15 / 1.35): 4 / 7 recovered.
+
+**Step 3: nothing reproduces.** Every molecule × method × reading is PARTIAL.
+
+| Method | Atoms reproduced (\|Δ\| ≤ 5e-5) | Molecules reproduced | Max \|Δ\| range over molecules |
+|---|---|---|---|
+| i | 2 / 56 (both on SiH4) | 0 / 6 | 0.0006 (SiH4) to 0.185 (38) |
+| iii R_eq10 | 0 / 56 | 0 / 6 | 0.0008 (SiH4) to 0.182 (38) |
+| iii R_eq14 | 0 / 56 | 0 / 6 | 0.22 (SiH4) to 4.46 (38) |
+| iv R_eq10 | 0 / 56 | 0 / 6 | 0.0013 (CH4) to 0.158 (38) |
+| iv R_eq14 | 0 / 56 | 0 / 6 | 0.12 (SiH4) to 8.31 (26) |
+
+- **Readings:** R_eq14's largest miss exceeds R_eq10's on every molecule and
+  method, by a factor of 3.1 (38, iv) to 1,800 (CH4, iii). This is reported,
+  not used to choose a reading.
+- **Sigma** (model, then printed): CH4 i 3.16 / 3.41; CH3OH i 35.30 / 37.99;
+  molecule 38 iii R_eq10 28.03 / 10.93. Every value is in
+  `nistor_sqe_molecules.csv`.
+- **A post-hoc diagnostic, not a class change:** coordinate rounding cannot
+  explain the misses.
+  - The fixture prints coordinates to 4 dp (1,477 of 2,067 have a nonzero
+    last digit).
+  - The linear envelope of each charge over ±5e-5 Å on every coordinate is at
+    most 8e-6 e (SiH4), 3e-5 e (CH4) and 3e-4 e (the larger molecules).
+  - Each molecule's largest miss is 68 to 2,900 times its largest envelope.
+- **What it says:**
+  - SiH4 and CH4 come within 2e-3 e under method i and iii R_eq10 (CH4 also
+    iv R_eq10; SiH4 iv misses by 0.023), but not within the printed precision.
+  - The four larger molecules miss by 0.02–0.18 e under method i and both
+    R_eq10 readings. That includes method i, which has no bond-hardness term.
+  - So a difference that method i already shows lies in the atomic model, the
+    kernel convention or the recovered geometry. Which of these is not tested
+    here, and nothing was refit.
+
+**Program verdict: PARTIAL**, universal status PARTIAL. GO was unreachable
+before the run (A2). No molecule is REPRODUCED-ON-RECOVERED-CORRESPONDENCE,
+so no SQE src pre-registration follows from this check.
+
+Result files (LF-normalised SHA-256):
+- `nistor_recovery.csv`:
+  `1679f036c3d451255853c2d3ab7d78958c6129ca55dda0dde8927659b16216f4`
+- `nistor_sqe_molecules.csv`:
+  `e085f61942b56c888ef8e3cc9c3a33771745eff7626b975cded59e45de1c607c`
+- `nistor_sqe_atoms.csv`:
+  `be80290213ed8119e91b64ae8125b7574de5a778b8bf91407e0aa926fd17f4d6`
 
 ### 3.2 Mathieu Table I, the EEM (EQ) row (2026-09-14)
 

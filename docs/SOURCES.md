@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 62f6caa306492c4936f1dd188823e5a7844604d38f7b96696055e6e65497878e -->
+<!-- SOURCE SHA256: 4a43d5963a8f3686a81e22694be9c76d7a2407cb1b87a2c22b83ddd9d72ac9c2 -->
 
 # Sources
 
@@ -150,6 +150,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`hopfinger2009`](#hopfinger2009) | dataset | shipped | citation |
 | [`huber1979`](#huber1979) | literature | reference only | citation + claim |
 | [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
+| [`ionescu2013`](#ionescu2013) | literature | reference only | citation |
 | [`ipsen2014`](#ipsen2014) | literature | reference only | citation |
 | [`iupac2013`](#iupac2013) | standard | shipped | citation |
 | [`iupac_namer`](#iupac_namer) | software | shipped | citation |
@@ -2438,6 +2439,35 @@ is the negative of eq 13's as printed, while eq 13 keeps +K_ij. The check
 builds its system from eq 8 and keeps the literal eq 13 as a diagnostic.
 
 DOI and article number confirmed against Crossref.
+
+### ionescu2013
+
+<a id="ionescu2013"></a>
+
+> C.-M. Ionescu, S. Geidl, R. Svobodová Vařeková & J. Koča, 'Rapid Calculation of Accurate Atomic Charges for Proteins via the Electronegativity Equalization Method', J. Chem. Inf. Model. 2013, 53, 2548-2558.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/ci400448n](https://doi.org/10.1021/ci400448n) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-15 |
+| Local copy | `ionescu2013.pdf` (not checked) |
+
+**Why it is reference only.** AN EXTERNAL APPLICATION BENCHMARK FOR THE SHIPPED EEM, AND A CANDIDATE FOR
+ELEMENT COVERAGE. Its supporting information (held as `ionescu2013_si/`)
+deposits 41 protein fragments as PDB MODELs plus insulin 3E7Y and ubiquitin
+1UBQ, per-atom QM charges for 12 schemes (MPA, NPA and Hirshfeld; 6-31G* and
+6-31G**; gas and PCM), each scheme's EEM charges under two atom-typing
+classifications ("E" and "EX", 24 models), and Table S1's parameters for all
+24. Used by benchmarks/charges/consumers (E3): the shipped Bultinck EEM covers
+only ubiquitin, because 35 structures contain sulfur and 7 calcium.
+
+Only the first page, the SI file inventory and the CSV/PDB layout were read;
+claims about its equations and atom typing wait for the full read Track 5
+pre-registers. Authors, title, journal, volume and pages confirmed against
+Crossref and the PDF's first page (a machine summary of the Crossref record
+misspelt Koča; the PDF settles it).
 
 ### verstraelen2011
 

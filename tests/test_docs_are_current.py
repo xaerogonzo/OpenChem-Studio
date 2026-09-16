@@ -633,18 +633,6 @@ DEFERRALS: list[Deferral] = [
         "'Measure, then unify protonation' changes, and this entry with it.",
     ),
     Deferral(
-        claim="GEOMETRY per-atom datasets assume heavy atoms come first",
-        # The entry names where the check belongs: the GEOMETRY branch of the
-        # resolver, which today looks only at whether the conformer parses and
-        # is 3D. Any heavy-atom-order check has to compare ELEMENTS, so the
-        # day an atomic number is read in that function, this entry is
-        # describing the past.
-        unbuilt=lambda: "GetAtomicNum" not in re.search(
-            r"def resolve_calculation_input\b(?:.|\n)*?(?=\n(?:def |#: |[A-Z_]+ = ))",
-            (_ROOT / "src/openchem/chem/calculation_input.py").read_text(encoding="utf-8"),
-        ).group(0),
-    ),
-    Deferral(
         claim="the External Tools pages carry no help contracts",
         # A contract is attached through `apply_help_tooltip` and nothing
         # else, so the day either file holding the tool tabs calls it, the
