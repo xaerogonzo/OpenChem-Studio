@@ -359,3 +359,56 @@ E-HiI/6-31G\*/PCM did not make the shipped set free of blow-ups;** that conclusi
 a property of one corpus.
 
 **As §7.4 registered:** α is not the guard, and the decision returns to Alex.
+
+## 8. HF/6-31G* reference check — REGISTERED BEFORE IT RUNS
+
+Decided by Alex on §7-R: ship with a refusal on the solved charges, and **check against a
+reference before setting its bound**. Also decided: document all of this so it can be worked
+on further (§9).
+
+### 8.1 Why a reference, and what it can and cannot settle
+
+The only measured bound so far is **2.051, the in-domain maximum |q|** — taken from protein
+fragments, which contain **no hypervalent sulfur**. In quantum-chemical population analyses a
+high-oxidation-state sulfur can genuinely carry a large positive charge, so a protein-anchored
+bound might refuse real chemistry. **No reference value is quoted here from memory**; that is
+what the run is for.
+
+**Ionescu's protocol, from the paper:** HF single points on crystal-derived geometries; MPA in
+Gaussian 09, NPA with NBO 3.1, iterative Hirshfeld (HiI) with HiPart. The PCM solvent is not
+stated.
+
+**What the installed tools can reproduce, established before registering:**
+
+| scheme | reference available | like-for-like? |
+|---|---|---|
+| Mulliken ↔ E-MPA models | ORCA 6.1.1 | **yes**, one recorded difference: ORCA uses spherical 5d functions, Gaussian 09's 6-31G\* default is Cartesian 6d, and Mulliken charges depend on the basis |
+| standard Hirshfeld ↔ E-HiI models | ORCA 6.1.1 | **no** — non-iterative Hirshfeld, characteristically smaller charges; an indicator only |
+| NPA ↔ E-NPA models | **none: NBO is not installed** | — |
+
+So **the shipped blow-ups of §7-R — sulfuric acid under two NPA models (4.28, 4.18) and under
+HiI (2.84), and CO₂ under HiI (2.15) — cannot be adjudicated by a reference here.** This check
+tests the hypervalent-sulfur concern for the Mulliken scheme only.
+
+### 8.2 The run
+
+- **Molecules:** sulfuric acid and carbon dioxide (the §7-R shipped-model positives) and
+  nitrobenzene (the excluded model's 74 e blow-up, a known-absurd anchor). **Three molecules;
+  nothing here is a population estimate.**
+- **Geometry: identical to the §4 probe** — RDKit AddHs, ETKDGv3 seed 20260916, MMFF94 — so the
+  method is the only thing that differs from the model charges.
+- **Level:** ORCA 6.1.1, RHF/6-31G\*, gas phase, single point. Mulliken and Hirshfeld charges.
+- **Compared with:** E-MPA/6-31G\*/gas (Mulliken, like-for-like) and E-HiI/6-31G\*/gas
+  (Hirshfeld, indicator only), on the same atoms.
+
+### 8.3 The question, and what each answer licenses
+
+**Does RHF/6-31G\* Mulliken put |q| > 2.051 on any atom of the three molecules?**
+
+- **YES** → a bound anchored at the protein maximum refuses real chemistry, at least in the
+  Mulliken scheme. **2.051 cannot be the shipped bound**, and the decision returns to Alex with
+  the reference values.
+- **NO** → 2.051 is **not contradicted** by this reference. It is proposed to Alex as the bound,
+  with the NPA and HiI cases recorded as **unadjudicated**, not passed.
+
+Reported either way: every atom's reference and model charge, and |Δq| between them.
