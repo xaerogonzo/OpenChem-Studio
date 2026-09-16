@@ -4024,6 +4024,18 @@ class _Driver(QObject):
             len(report.facts),
             len(charts),
         )
+        # **THE CHARGE ROWS BY NAME, BECAUSE THEY ARE THE ONE SECTION THAT
+        # CAN BE ABSENT FOR FOUR DIFFERENT REASONS** -- computed, refused
+        # for disorder, refused for an element, or skipped over the report's
+        # atom budget -- and a screenshot of a scrolled report shows the
+        # same nothing for the last three. `value=None` separates a refusal
+        # from a result; the display string says which refusal.
+        for fact in report.facts:
+            if "EQeq" in fact.label or fact.label in ("  Charge balance",):
+                logger.warning(
+                    "OPENCHEM_DRIVE:   charges label=%r value=%r %s",
+                    fact.label, fact.value, fact.display_value,
+                )
         for chart in charts:
             logger.warning(
                 "OPENCHEM_DRIVE:   chart valid=%s sticks=%d x=%r desc=%s title=%r",
@@ -4037,6 +4049,35 @@ class _Driver(QObject):
         dialog = self._window.crystal_report_dialog(report, path.name)
         dialog.show()
         self._dialog = dialog
+
+        # **A SECTION THE READER WOULD HAVE TO CLICK, OPENED SO A SHOT CAN
+        # SEE IT.** The crystal report opens with Identity expanded and
+        # Structure -- 35 facts, the charges among them -- collapsed, which
+        # is exactly the state `FactView`'s own comment records four facts
+        # hiding behind. Driven through `set_expanded` on the real section
+        # the real dialog built, so what is photographed is the widget a
+        # click would have opened.
+        wanted = step.get("expand")
+        text = step.get("filter")
+        if wanted or text:
+            from openchem.ui.widgets.fact_view import FactView
+
+            view = dialog.findChild(FactView)
+            # THE FILTER BOX ITSELF, not `_render` behind it: typing is what a
+            # reader does to reach one row of a 59-fact report, and the
+            # rendering that follows is the thing a shot is being taken of.
+            if text:
+                view.search_box().setText(str(text))
+                logger.warning("OPENCHEM_DRIVE:   filtered %r", text)
+            sections = getattr(view, "_sections", {})
+            section = sections.get(str(wanted)) if wanted else None
+            if wanted and section is None:
+                logger.error("OPENCHEM_DRIVE: no report section %r; have %s",
+                             wanted, sorted(sections))
+            elif section is not None:
+                section.set_expanded(True)
+                logger.warning("OPENCHEM_DRIVE:   expanded %r -> %s",
+                               wanted, section.is_expanded())
 
     def _do_dialog(self, step: dict[str, Any]) -> None:
         """Open any dialog by name, for a screenshot.

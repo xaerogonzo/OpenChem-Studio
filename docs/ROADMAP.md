@@ -2015,9 +2015,27 @@ struck through and marked SHIPPED here, never deleted.
     transition states, where fluorine has five atoms.
   - QTPIE, PQEq and Oda–Hirono are held on missing oracles. ACKS2 is not
     pursued as a molecular calculator.
-- **Periodic charge equilibration (deferred).** Not started, and recorded so
-  the requirements are not rediscovered. Charges for crystals and frameworks,
-  read through the existing `chem/cif.py` path.
+- **Periodic charge equilibration. EQeq SHIPPED 2026-09-16**, as a section of
+  the crystal report (`chem/periodic_charges.py`), reproducing all 3,452 atoms
+  of Wilmer 2012's twelve MOFs; the entry below is kept for the methods still
+  deferred and for the requirements this one had to meet.
+  - **What shipping it settled**, none of it guessed in advance:
+    - it is **not a registered calculator**, because `CalculationRequest`
+      carries a `molecule_uuid` and nothing else, so a crystal cannot be
+      addressed to one at all. Crystal-side science goes where the powder
+      pattern goes;
+    - the truncated direct sum is **conditionally convergent and not
+      invariant to moving one atom by a lattice vector**, so a published
+      charge can depend on representatives a CIF does not carry. Amendment
+      4-A1 of `benchmarks/charges/periodic/calculator_preregistration.md`
+      measures it;
+    - **disorder, not size or elements, is what stops this on real files**:
+      four of the six committed CIF fixtures refuse for partial occupancy.
+      `expand()` still has no disorder-resolution rule, and the calculator
+      refuses rather than choosing one.
+- **The rest of it (deferred).** Recorded so the requirements are not
+  rediscovered. Charges for crystals and frameworks, read through the existing
+  `chem/cif.py` path.
   - **Candidate electrostatic treatments:** Ewald summation, or a damped
     shifted-force (Wolf-type) sum, each with Slater or Gaussian shielding.
     They differ in convergence and boundary semantics, so choosing one is a
@@ -2028,10 +2046,10 @@ struck through and marked SHIPPED here, never deleted.
     convention. The molecular result store's identity must not be reused
     as is.
   - **Methods, each with its own oracle:**
-    - EQeq (Wilmer 2012). **Feasibility checked 2026-09-15:
-      `benchmarks/charges/periodic/FEASIBILITY.md`.** It transcribes EQeq's
-      electrostatics and the identity fields below, and its outcome is
-      **FEASIBLE with one named substitution** (section 8): the 12 MOF
+    - EQeq (Wilmer 2012). **DONE -- see above.** Feasibility was checked
+      2026-09-15 in `benchmarks/charges/periodic/FEASIBILITY.md`; it
+      transcribes EQeq's electrostatics and the identity fields below, and its
+      outcome was **FEASIBLE with one named substitution** (section 8): the 12 MOF
       structures and their per-atom EQeq, REPEAT, ChelpG and AMS Qeq charges
       are held, with cells, atom counts matching the paper's Table 1 and
       neutral charge sums -- an exact oracle -- but the ionisation table is

@@ -66,6 +66,7 @@ by `tests/test_layering.py`.
 - `src/openchem/ui/widgets/ketcher_editor_backend.py` — the embedded 2D editor, behind the `EditorBackend` interface
 - `src/openchem/chem/naming_providers.py` — structure <-> name; the only entry point to the vendored nomenclature engine
 - `src/openchem/net.py` — every outbound HTTP request, so each one identifies the app (a missing User-Agent is a 403 on some hosts)
+- `src/openchem/chem/periodic_charges.py` — EQeq charges for a crystal; the only calculation here about a periodic solid, reached through `crystal_report.py` rather than the calculator registry (a `CalculationRequest` cannot name a crystal)
 
 ---
 

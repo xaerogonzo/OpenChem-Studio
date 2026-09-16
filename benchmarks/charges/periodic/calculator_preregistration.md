@@ -110,6 +110,67 @@ value was moved by the published rounding rule.
 5. **The crystal report's inapplicable list shrinks by exactly this
    calculator**, which is the measurable consequence of §1.2.
 
+## 4-A1. Amendment, 2026-09-15, after gate 1 ran: the sum is not invariant to translating ONE atom
+
+Gate 1 was run on all twelve. **Ten reproduce every atom exactly; Ni-MOF74 and Zn-MOF74 do not**,
+by up to 0.159 e and 0.008 e. The pre-registration says a difference between the paths is a defect
+in this one, so the cause was measured rather than argued:
+
+- **The two implementations are identical on identical atoms.** Feeding check 2.9's benchmark solver
+  the coordinates the src path actually used — the expanded, wrapped ones — returns *byte-identical*
+  charges to `compute_periodic_charges` on all twelve, Ni-MOF74 and Zn-MOF74 included. **The
+  difference is the input, not the code.**
+- **It is the deposited representatives.** `Crystal.expand()` wraps every atom into the cell, and the
+  deposited files place atoms up to 26 Å outside it: 106 of Ni-MOF74's 162 atoms and 108 of
+  Zn-MOF74's move, against 0 for the ten that reproduce.
+- **A direct sum truncated at L cells is invariant to translating the WHOLE structure and not to
+  translating one atom.** Measured on the shipped NaCl positions: a rigid shift by (1, 2, 0) cells
+  changes no pair term by more than 0, and moving a single sodium by one cell edge changes a pair
+  term by **3.23 eV**. Co-MOF74 is the control in the corpus — all 162 of its atoms move under
+  wrapping, uniformly, and every charge still reproduces exactly.
+- **It does not converge away.** At L = 8 the Ni-MOF74 wrapped-against-deposited difference is still
+  0.155 e. The lattice sum of a 1/r kernel is conditionally convergent, so the answer depends on the
+  region summed, and moving one atom by a cell moves that region for every pair it belongs to.
+
+**Gate 1 is therefore narrowed, and the narrowing is a statement about the source, not a weakening
+of the test:**
+
+> On the ten structures whose deposited coordinates lie inside their unit cell, every atom of the
+> src path reproduces the published charge at 3 dp. On Ni-MOF74 and Zn-MOF74 the published charges
+> depend on unwrapped representatives that **a CIF cannot carry**, and the src path reproduces them
+> only when handed those coordinates. Both halves are tested.
+
+**This is a property of EQeq, and it is reported rather than hidden.** The src path wraps, so its
+answer is well defined and reproducible for any input representative — which the published
+convention is not. The result carries `wrapped_sites`, the number of input sites the expansion moved
+into the cell, because that count is exactly the condition under which the two diverge, and is
+otherwise invisible to a reader.
+
+## 4-A2. Amendment, 2026-09-15: it ships as a crystal-report section, not a registry entry
+
+§1.1 measured that no calculator declares `CRYSTAL` and concluded "a crystal calculator therefore
+changes that list the moment it is registered". **Measured since, before writing the registration:
+the registry cannot carry one.** `CalculationRequest` has `calculator_id`, `molecule_uuid` and
+parameters, and `RegistryExecution` hands a `Chem.Mol` to a function — there is no route from a
+crystal to a registered calculator, and
+`test_a_calculation_cannot_even_be_ADDRESSED_to_a_crystal` keeps it that way *on purpose*, naming
+itself as the place that would have to change first.
+
+So this follows the precedent the same file already sets for crystal-side science: **the powder
+pattern is not a registered calculator either**, it is a section of `build_crystal_report`. The
+charges ship the same way, per element with the spread beside the mean, plus the balance row.
+
+Consequences, each tested:
+- **Gate 5 is replaced.** The inapplicable list is *unchanged*, because nothing molecular changed,
+  and a test asserts no `EQeq` entry appears in `CALCULATOR_DEFINITIONS`.
+- **A new reporting cap, `CHARGE_MAX_ATOMS = 500`.** `build_crystal_report` runs synchronously on
+  the UI thread at import and on every selection, and the solve is O(N²) over 125 cells — 0.46 s at
+  276 atoms, 3.46 s at 624. The cap stops the *work*, not just the printing, and the module itself
+  has no cap.
+- **Measured over the six committed CIF fixtures: one computes, one is over the cap, and four refuse
+  for partial occupancy.** §1.5 said disorder would be the binding constraint on real files rather
+  than anything about the model, and that is what the numbers say.
+
 ## 5. Tests and mutations
 
 **Tests:** the four refusals; NaCl by hand; the parameter table's checksums;

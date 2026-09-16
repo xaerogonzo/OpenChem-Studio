@@ -466,6 +466,61 @@ being reverted later because a number did not move.
 
 ---
 
+## Periodic charges (EQeq) — 3,452 of 3,452 atoms, and why two structures cannot be reached
+
+**An implementation reproduction**, on the twelve MOFs [source:wilmer2012]
+deposited with the method. Its accompanying files carry every atom's charge,
+so the oracle is per-atom rather than aggregate. Pre-registration and
+amendments: `benchmarks/charges/periodic/calculator_preregistration.md`.
+
+| | |
+|---|---|
+| atoms reproduced at the printed 3 dp, benchmark path | **3,452 of 3,452** |
+| structures reproduced through the shipped `chem/periodic_charges.py` | **10 of 12** |
+| the other two | the input, not the code — below |
+
+**The oracle validated itself first.** Reproducing every cell of the paper's
+Table 2 (mean |EQeq − REPEAT| per MOF) exposed that the four charge files per
+MOF do **not** share an atom order: read index-wise, MIL-47 gives 0.47 against
+a printed 0.11, and position-matched it gives 0.112.
+
+**Four things only the source code states**, none of them in the article: the
+orbital term's leading `2a` where eq 64 prints `a`; k = 14.4 with λ = 1.2 (so
+8.64 eV Å per pair, against 8.6226 from the article alone); direct summation;
+and the rounding rule. Read as printed, the orbital term contributes −0.235 at
+a bonded 1.5 Å where the code's contributes −0.0004 — a spurious short-range
+term on every bonded pair.
+
+**The shipped table is a reconstruction, and it agrees.** `ionizationData.dat`
+is not in the package, so the potentials come from [source:moore1970] and the
+affinities from [source:andersen1999], as the SI says they were. Every value
+was then shown identical to the table the published code ships.
+
+**Ni-MOF74 and Zn-MOF74 measure a property of the method, not a defect here.**
+Handed the coordinates the shipped path actually uses, the benchmark solver
+returns byte-identical charges on all twelve — so the two paths agree and the
+inputs differ. A `1/r` lattice sum truncated at 5×5×5 cells is conditionally
+convergent: translating the whole structure changes nothing, translating one
+atom by a cell edge changes its pair terms by 3.2 eV. Those two files place
+atoms up to 26 Å outside their cell; a CIF's coordinates are read into it.
+
+| | Ni-MOF74 | Zn-MOF74 | Co-MOF74 (control) |
+|---|---|---|---|
+| atoms moved by reading them into the cell | 106 of 162 | 108 of 162 | **all 162, uniformly** |
+| largest change in a charge | 0.159 e | 0.008 e | **0** |
+| still there at 8×8×8 cells | 0.155 e | — | — |
+
+**The lattice sum is not converged, and the published setting is the one that
+reproduces.** From 5×5×5 to 7×7×7, 10 of MIL-47's 72 atoms and 78 of ZIF-8's
+276 change in the third decimal; IRMOF-1 moves by 8 × 10⁻¹⁰ and none of its do.
+
+**On real files, disorder is what stops it.** Over the six committed CIF
+fixtures: one computes, one is over the report's atom budget, and **four
+refuse for partial occupancy**. The validating corpus was fully ordered, and
+the pre-registration said in advance that this would be the binding case.
+
+---
+
 ## Dipoles from three charge models — an application benchmark, 2026-09-15
 
 **Not a reproduction.** [source:gasteiger1985] Table I prints 15 experimental
