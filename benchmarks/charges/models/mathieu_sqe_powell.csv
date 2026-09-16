@@ -1,0 +1,49 @@
+# TRIAGE 2.6d: scipy 1.18.0 Powell in scaled coordinates, bounded; physical units here.
+arm,start_kind,start_c_ev,start_lambda,end_c_ev,end_lambda,end_dq,nit,nfev,success,message,basin,within_preregistered_neighbourhood,verified_minimum,population_violation
+V0-unscaled,printed,115.000000,0.816000,56.219435,0.814733,4.496487374825e-03,4,242,True,Optimization terminated successfully.,0,False,False,True
+V0-unscaled,grid minimum,57.000000,0.816000,377.429451,1.389319,4.826132074380e-03,5,307,True,Optimization terminated successfully.,1,False,False,True
+V0-unscaled,grid minimum,76.000000,0.768000,56.219350,0.814733,4.496487374822e-03,8,566,True,Optimization terminated successfully.,0,False,False,True
+V0-unscaled,grid minimum,75.000000,0.830400,299.533877,1.391653,4.826132023910e-03,4,280,True,Optimization terminated successfully.,2,False,False,True
+V0-unscaled,grid minimum,85.000000,0.835200,74.935351,1.415687,4.826131325533e-03,1,65,True,Optimization terminated successfully.,3,False,False,True
+V0-unscaled,grid minimum,90.000000,0.696000,169.966852,1.389377,4.826132074374e-03,3,196,True,Optimization terminated successfully.,4,False,False,True
+V0-unscaled,grid minimum,106.000000,0.744000,56.219457,0.814733,4.496487374821e-03,6,416,True,Optimization terminated successfully.,0,False,False,True
+V0-unscaled,grid minimum,105.000000,0.849600,93.085850,1.391652,4.826132058684e-03,1,65,True,Optimization terminated successfully.,5,False,False,True
+V0-unscaled,grid minimum,124.000000,0.624000,177.571526,1.389320,4.826132074368e-03,3,200,True,Optimization terminated successfully.,6,False,False,True
+V0-unscaled,grid minimum,125.000000,0.859200,108.755764,1.396921,4.826132074375e-03,1,69,True,Optimization terminated successfully.,7,False,False,True
+V0-unscaled,grid minimum,130.000000,0.816000,56.219389,0.814733,4.496487374821e-03,4,210,True,Optimization terminated successfully.,0,False,False,True
+V0-unscaled,grid minimum,137.000000,0.720000,153.803172,1.402024,4.826132074374e-03,3,195,True,Optimization terminated successfully.,8,False,False,True
+V0-unscaled,grid minimum,146.000000,0.864000,117.981819,1.405978,4.826132074377e-03,1,61,True,Optimization terminated successfully.,9,False,False,True
+V0-unscaled,grid minimum,145.000000,0.936000,117.576964,1.396351,4.826132074379e-03,3,206,True,Optimization terminated successfully.,10,False,False,True
+V0-unscaled,grid minimum,153.000000,0.720000,190.020424,1.444070,4.826132074375e-03,3,218,True,Optimization terminated successfully.,11,False,False,True
+V0-unscaled,grid minimum,157.000000,0.619200,173.584587,1.398826,4.826132074371e-03,3,201,True,Optimization terminated successfully.,12,False,False,True
+V0-unscaled,grid minimum,156.000000,0.792000,399.999995,1.340376,4.826420746772e-03,7,658,True,Optimization terminated successfully.,13,False,False,True
+V0-unscaled,grid minimum,166.000000,0.672000,297.991918,1.447933,4.826132074358e-03,3,217,True,Optimization terminated successfully.,14,False,False,True
+V0-unscaled,grid minimum,168.000000,0.720000,178.587190,1.442298,4.826132074381e-03,3,214,True,Optimization terminated successfully.,15,False,False,True
+V0-unscaled,grid minimum,165.000000,0.868800,128.313433,1.452345,4.826132074273e-03,1,64,True,Optimization terminated successfully.,16,False,False,True
+V0-unscaled,grid minimum,171.000000,0.624000,153.404438,1.391631,4.826132074370e-03,5,369,True,Optimization terminated successfully.,17,False,False,True
+V0-unscaled,grid minimum,181.000000,0.744000,56.219323,0.814733,4.496487374818e-03,7,467,True,Optimization terminated successfully.,0,False,False,True
+V0-unscaled,grid minimum,181.000000,0.672000,94.098971,1.389942,4.826132074384e-03,5,365,True,Optimization terminated successfully.,18,False,False,True
+V0-unscaled,grid minimum,181.000000,0.912000,322.255861,1.390660,4.826132074371e-03,1,61,True,Optimization terminated successfully.,19,False,False,True
+V0-unscaled,grid minimum,186.000000,0.787200,56.219388,0.814733,4.496487374823e-03,7,501,True,Optimization terminated successfully.,0,False,False,True
+V0-unscaled,grid minimum,194.000000,0.672000,263.124068,1.407708,4.826132074383e-03,3,228,True,Optimization terminated successfully.,20,False,False,True
+V0-unscaled,grid minimum,192.000000,0.720000,159.742445,1.398315,4.826132074362e-03,3,216,True,Optimization terminated successfully.,21,False,False,True
+V0-unscaled,distant,60.000000,0.600000,164.394615,1.457390,4.826132074379e-03,3,226,True,Optimization terminated successfully.,22,False,False,True
+V0-unscaled,distant,200.000000,0.600000,144.342494,1.395936,4.826132074372e-03,3,238,True,Optimization terminated successfully.,23,False,False,True
+V0-unscaled,distant,60.000000,1.000000,309.092859,1.396007,4.826132074377e-03,6,374,True,Optimization terminated successfully.,24,False,False,True
+V0-unscaled,distant,200.000000,1.000000,332.897932,1.431715,4.826132074379e-03,6,415,True,Optimization terminated successfully.,25,False,False,True
+V0-scaled,printed,115.000000,0.816000,56.774170,0.814737,4.477003557531e-03,4,172,True,Optimization terminated successfully.,0,False,False,False
+V0-scaled,grid minimum,58.000000,0.816000,56.774171,0.814737,4.477003557531e-03,4,254,True,Optimization terminated successfully.,0,False,False,False
+V0-scaled,grid minimum,75.000000,0.830400,238.918835,1.396674,4.815705005552e-03,4,231,True,Optimization terminated successfully.,1,False,True,False
+V0-scaled,grid minimum,115.000000,0.854400,101.522328,1.448943,4.815705005552e-03,1,62,True,Optimization terminated successfully.,2,False,True,False
+V0-scaled,distant,60.000000,0.600000,156.739776,1.420815,4.815705005552e-03,3,198,True,Optimization terminated successfully.,3,False,True,False
+V0-scaled,distant,200.000000,0.600000,154.094830,1.416532,4.815705005552e-03,3,172,True,Optimization terminated successfully.,4,False,True,False
+V0-scaled,distant,60.000000,1.000000,56.774171,0.814737,4.477003557531e-03,7,359,True,Optimization terminated successfully.,0,False,False,False
+V0-scaled,distant,200.000000,1.000000,284.421537,1.395506,4.815705005552e-03,5,242,True,Optimization terminated successfully.,5,False,True,False
+V2-scaled,printed,115.000000,0.816000,29.200558,1.062832,1.068654155257e-02,2,93,True,Optimization terminated successfully.,0,False,False,False
+V2-scaled,grid minimum,65.000000,0.873600,73.728825,1.151376,1.069000736985e-02,1,31,True,Optimization terminated successfully.,1,False,False,False
+V2-scaled,grid minimum,95.000000,0.883200,91.538826,1.169974,1.069077022905e-02,1,42,True,Optimization terminated successfully.,2,False,False,False
+V2-scaled,grid minimum,185.000000,0.902400,146.609934,1.207800,1.069213415357e-02,1,38,True,Optimization terminated successfully.,3,False,False,False
+V2-scaled,distant,60.000000,0.600000,95.242064,1.170749,1.069091766359e-02,10,516,True,Optimization terminated successfully.,4,False,False,False
+V2-scaled,distant,200.000000,0.600000,69.117960,1.141929,1.068979434041e-02,9,473,True,Optimization terminated successfully.,5,False,False,False
+V2-scaled,distant,60.000000,1.000000,32.326387,1.055130,1.068662005357e-02,2,82,True,Optimization terminated successfully.,6,False,False,False
+V2-scaled,distant,200.000000,1.000000,32.326388,1.055130,1.068662005370e-02,2,66,True,Optimization terminated successfully.,6,False,False,False

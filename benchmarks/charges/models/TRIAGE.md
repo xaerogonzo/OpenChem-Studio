@@ -588,6 +588,279 @@ feeds the other.
   are named), or NOT REPRODUCED. A miss is a strict-xfail stop record against
   the shipped EEM's external validation. It does not change 2.2 or 2.4.
 
+### 2.6 Mathieu SQE: a named-cause test of 2.4's HOLD
+
+Pre-registered 2026-09-15, after 2.4's results (section 3.5) and before any
+number below exists. It asks one question: **is the model 2.4 built the model
+Mathieu ran?** It fits nothing. χ and η are never refit (`verstraelen2011`).
+The code is `mathieu_sqe_check.py` (extended); its outputs are
+`mathieu_sqe_population.csv`, `mathieu_sqe_causes.csv`,
+`mathieu_sqe_surface.csv`, `mathieu_sqe_powell.csv` and
+`mathieu_sqe_stationarity.csv`.
+
+#### 2.6a What pp. 6–8 add (rendered at 300 dpi, 2026-09-15)
+
+Transcribed before any run, quoted where it matters.
+- **The fit (Sec. III.C, p. 6).** "the parameters are varied until they
+  minimize the scoring function [eq 15]"; "only local minimizations have been
+  carried out using the Powell algorithm". Model B is "straightforwardly
+  obtained using available values for χ_i and η_i and adding E^p_ij", and the
+  fitted C and λ are Table II's.
+- **Model B's objective at its optimum (p. 6):** introducing C and λ "yields
+  only a slight improvement of the charges, with Δq decreasing from 0.0695 to
+  0.0670". Both are on EQ+TS, the training set. In the form 2.5 measured
+  (Table I's Δq is eq 15 under a square root), 0.0695 is EEM and **0.0670 is
+  SQE model B at (115 eV, 0.816)**.
+- **Model C (p. 7):** "a global optimization of all parameters yielded … R²_q
+  = 0.98 and Δq = 0.0583". Table II model C, eV: χ − χ_H is C 5.44, H 0.00,
+  N 10.48, O 22.37, F 29.80; η is C 8.93, H 18.86, N 10.06, O 20.55,
+  F 45.74; λ is 0.695 and C is 8.03. Italics mark derived values.
+- **Model D:** η C 27.08, H 13.39, N 18.97, O 16.40, F 14.62; λ 0.551;
+  C 4.22.
+  - Fitted to polarisabilities, which are not deposited. Its χ are not
+    printed.
+  - **Not usable.**
+- **Model A:** Pearson's parameters, with no metric printed for them. **Not
+  usable.**
+- **Table III (p. 8)** lists the atoms whose SQE charge deviates from Mulliken
+  by more than 0.2, with Q^M, the SQE Q_i and the deviation, each to 3 dp.
+  - It is a **partial per-atom numerical oracle** (20 atoms), not a complete
+    table and not categorical.
+  - The paper's Sec. IV "focuses on model B", so Table III is read as model
+    B.
+- **Dipoles and polarisabilities (p. 8):** the B3LYP references are not
+  deposited. Not usable.
+- **No alternative Coulomb kernel or pair rule is named anywhere in the
+  paper, so V3 = NONE.**
+
+**Table III atoms, identified from deposited Mulliken charges only** (the
+printed molecule name restricts the search, and |deposited Q^M − printed| ≤
+5e-4). Frozen as `tests/fixtures/charge_models/mathieu2007_table3.csv`.
+- 19 of the 20 rows identify one atom, or one symmetric pair whose deposited
+  values round alike:
+  - O2N-CF2-CF2-NO2 atoms 2 and 4;
+  - difluorotetranitroethane atoms 2 and 4;
+  - FCCF atoms 1 and 4, and atoms 2 and 3.
+
+  Every atom of a pair is gated.
+- **The last EQ row, printed "F3C-CN" at Q^M −0.421, matches no carbon.** It
+  matches N6 (−0.4211), the only atom of that molecule within 5e-4. The row
+  is identified by its value and recorded as a disagreement between the bold
+  glyph and the printed number.
+- The two "(NO2)2-CF-CF2-(NO2)" and "O2N-CF2-CF-(NO2)2" rows are one molecule
+  (`trifluorotrinitroethane`), carbons 2 and 4.
+- The TS rows cite references 52, 53 and 55. They identify
+  `JPCA_2000_104_10526-ts1` (HCO+OH, O3 and H5), `JPCA2003-107-5798-TS17`
+  (H3NO+HONO, N1 and O2) and `JPCA_2005_109_4829-TS1` (F17).
+
+#### 2.6b Populations, frozen
+
+- **Canonical order:** EQ then TS, file name in lexical order, source atom
+  index. Every CSV row carries set, file, atom, element and `population_id`.
+- **`SOURCE_POPULATION`:** all 249 deposited structures (EQ 194 and 3,064
+  atoms; TS 55 and 1,085 atoms), from the manifests and never from a solver.
+  Mathieu's own exclusions, if any, are unprinted.
+- **`VALID_<arm>@<point>`:** structures passing 2.4b's validity predicate
+  (residual ≤ 1e-9 Hartree/e **in the original, unscaled system**, component
+  sums ≤ 1e-12 e, H positive definite on every neutral subspace) under that
+  arm at that parameter point.
+- **`COMMON_VALID`:** VALID_V0-unscaled@printed ∩ VALID_V0-scaled@printed.
+  **Every cross-arm statement is made on it.**
+- **Denominator rule:** a structure outside a population contributes no atom
+  rows, and N_Z is recomputed. A failed structure never contributes zero
+  error or NaN. The count of valid structures is a diagnostic, never an
+  acceptance condition.
+- **Fixed objective populations:** the stationarity and Powell objectives use
+  the population fixed at the printed point, so they cannot jump as structures
+  enter or leave.
+  - An evaluation at which any structure of that population fails the
+    predicate is flagged `population_violation`, never silently dropped.
+  - A flagged point is never used to classify stationarity or a minimum.
+- **Weighting, stated:** eq 15 averages atoms within each element, then
+  elements. Molecules carry no weight of their own, so a large molecule
+  counts through its many atoms. "Pooled EQ+TS" is not molecule-level
+  weighting.
+
+#### 2.6c Numerical arms
+
+- **V0-unscaled:** exactly 2.4's solve (`lstsq`, rcond 1e-10). The historical
+  reproduction baseline.
+- **V0-scaled:** with D = diag(A), solve (D^−½AD^−½)y = D^−½b by the same
+  `lstsq` and rcond, then q = D^−½y; validity is judged in the original
+  system. The numerically stabilised baseline.
+- Both are permanent records. For pentylamine, ts33 and any other structure
+  whose validity differs between arms, the report gives status, charge
+  difference, Δq difference and metric difference.
+- A material difference between the arms opens a numerical investigation and
+  is never read as evidence about Mathieu.
+- **Every result row names its arm.**
+
+#### 2.6d Oracles
+
+- **G (Table I):** the 12 SQE gates, with 2.4c's definitions and 2.4d's
+  intervals, per arm on that arm's VALID population.
+- **T (Table III):** each identified atom's model charge within ±5e-4 of the
+  printed Q_i (the 3 dp half-unit).
+  - T passes if every identified atom passes, and the failing atoms are
+    named.
+  - An atom in a structure outside the arm's population is "not evaluable"
+    and listed.
+- **P_B (the p. 6 optimum value):** the pooled EQ+TS √Δq for model B at the
+  printed point, against 0.0670.
+  - **Known before running:** the shipped EEM's pooled √Δq on all 4,149 atoms
+    is 0.069395 (section 3.5), against the printed 0.0695. Under half-up
+    rounding [0.06945, 0.06955) that is outside by 5.5e-5, for a model that
+    reproduces all six EQ correlations.
+  - So P has three classes, fixed now:
+    - **PASS:** within [p − 5e-5, p + 5e-5);
+    - **NEAR:** within 1.1e-4 of p (twice the EEM analogue's miss);
+    - **MISS:** otherwise.
+  - The EEM analogue is recomputed in the same run and must reproduce
+    0.069395 to 1e-6. Otherwise the run stops.
+- **P_C (p. 7, diagnostic):** model C's parameters under each V0 arm give the
+  pooled √Δq against 0.0583 (with P's classes) and the pooled R² All against
+  0.98 (2 dp interval). **Diagnostic only**; it cannot change a verdict.
+- **S (stationarity of the printed point), per V0 arm, on that arm's fixed
+  population at the printed point.** The objective is pooled eq 15, as
+  printed (no square root; its argmin equals the square root's, which is
+  asserted as a property test).
+  1. Δq at (115, 0.816): the core forensic datum, reported whatever else
+     happens.
+  2. **Step study:** central differences in physical units, ∂Δq/∂C per eV
+     with h_C ∈ {1, 0.5, 0.25} eV, and ∂Δq/∂λ with h_λ ∈ {2e-3, 1e-3, 5e-4}.
+     The middle step is used. If the three estimates of a component disagree
+     by more than 1% relative (absolute floor 1e-12), the gradient is
+     UNRELIABLE.
+  3. The physical Hessian by central differences at the middle steps (4-point
+     mixed term), with its eigenvalues. This is the forensic output.
+  4. **Dimensionless coordinates for every gate:** c = C/115 eV and
+     l = λ/0.816. g̃ and H̃ come from the physical ones by the chain rule.
+     **Trusted:** H̃ positive definite and cond(H̃) ≤ 1e8.
+  5. **δ from the p. 6 value:** p = 0.0670 printed to 4 dp, half-up, so
+     δ = max((p + 5e-5)² − p², p² − (p − 5e-5)²).
+  6. **g_tol = √(2δ·λ_min(H̃))**: the gradient at which H̃'s softest curvature
+     would improve Δq by δ.
+  - **Classes:**
+    - **STATIONARY-AT-PRINTED:** trusted, ‖g̃‖₂ ≤ g_tol, and
+      ½g̃ᵀH̃⁻¹g̃ < δ.
+    - **NON-STATIONARY-AT-PRINTED:** trusted, and either test fails.
+    - **UNRELIABLE:** the gradient or H̃ is untrusted.
+  - **Surface:** C 60–200 eV in steps of 5 × λ 0.600–1.000 in steps of 0.024.
+    Both axes contain the printed point exactly, which is its own CSV row.
+    - Each grid local minimum (8-neighbour, unflagged) is refined on an 11 × 11
+      subgrid spanning ±1 cell.
+  - **Powell:** `scipy.optimize.minimize(method="Powell")` (SciPy, dev
+    dependency group; the version is recorded in the output).
+    - It runs in the scaled coordinates, with initial directions along the c
+      and l axes.
+    - Bounds are the box C ∈ [1, 400] eV and λ ∈ [0.3, 1.5], passed as
+      `bounds`.
+    - xtol 1e-8 and ftol 1e-12, maxfev 2000.
+    - `success`, `message`, `nit` and `nfev` are recorded.
+    - **Starts:** the printed point, every refined grid minimum, and
+      (60, 0.6), (200, 0.6), (60, 1.0), (200, 1.0).
+    - **Each row:** start C, start λ, end C, end λ, end Δq, iterations,
+      status, basin id. End points closer than 1e-3 in both scaled
+      coordinates share a basin.
+  - **WITHIN-PREREGISTERED-NEIGHBOURHOOD:** an end point within C ±2 eV and
+    λ ±0.01. A reporting convention.
+  - **VERIFIED-NEARBY-MINIMUM:** such an end point whose own H̃ is trusted
+    and positive definite with ‖g̃‖₂ ≤ g_tol.
+  - **The S verdict:**
+    - **STATIONARY:** stationary-at-printed and a verified nearby minimum;
+    - **NON-STATIONARY:** non-stationary-at-printed and no verified nearby
+      minimum;
+    - **INCONCLUSIVE:** otherwise, including two or more verified basins
+      within δ of each other anywhere on the surface.
+
+#### 2.6e Variants, a closed list
+
+- **V0:** 2.4's model, under both arms.
+- **V1 (OpenChem reconstruction: bond-graph splits).**
+  - Informed by Nistor's split-bond idea; not his rule, and never called it.
+  - Pairs are r < 1.3 × (r^C_i + r^C_j) with Table II's r^C. The penalty is
+    eq 14 on those pairs, the kernel as V0, the V0-scaled solve.
+  - 1.3 is an engineering choice; 1.2 and 1.4 are reported as sensitivity.
+  - **Valence check** on the graph: H 1, C 4, N 3, O 2, F 1. A structure
+    failing it is V1-inapplicable, with its reason.
+  - **EQ only:** TS structures contain partial bonds by construction, so V1 on
+    TS is NOT APPLICABLE.
+  - S and P are defined on EQ+TS, so they are NOT APPLICABLE to V1.
+  - **Populations:** source EQ, V1-applicable, V1-inapplicable.
+  - **V1 against V0 is reported on the V1-applicable population** with V0
+    (scaled) recomputed there, and gates labelled as subpopulation gates. The
+    V1-only figure is shown beside it.
+- **V2 (Ohno–Klopman kernel), V0-scaled solve, V0 pair rule and penalty.**
+  - Transcribed from `oda2003` **eq 17** (p. 162; eq 16 is the plain Ohno
+    form): J_IJ = 1/√(R_IJ² + (1/(2J_II) + 1/(2J_JJ))²).
+  - **Oda's convention (eqs 2–4):** E_I = E⁰ + q·χ⁰ + ½q²J_II, so J_II =
+    ∂²E/∂q² is the full second derivative. Bultinck's and Mathieu's energy is
+    χ\*Q + η\*Q², so **J_II = 2η\*** and the kernel here is J_IJ = 1/√(R² +
+    (1/(4η\*_I) + 1/(4η\*_J))²).
+  - The pair term is Oda's sum of halves, not a mean. Atomic units: R in
+    bohr, η\* in Hartree.
+  - Oda uses it for QEq's two-centre integrals. Here it is a diagnostic inside
+    SQE.
+  - **Instrument tests:**
+    - R → ∞ gives 1/R;
+    - R → 0 gives 4η\*_Iη\*_J/(η\*_I + η\*_J), which equals 2η\* for I = J;
+    - η\* passed in eV must fail the R → 0 test.
+  - S and P are evaluated for V2 exactly as for V0-scaled.
+- **V3: NONE** (2.6a). No variant is added after any result exists.
+
+#### 2.6f Verdicts
+
+Per variant and arm, S, G, T and P are each reported, and **none rescues
+another**. The rows are evaluated top to bottom, and the first match is the
+class.
+
+| Local class | Condition | Universal status |
+|---|---|---|
+| COMPATIBLE | S STATIONARY, all 12 G, T pass, P PASS or NEAR | REPRODUCED (claim: a reading consistent with Table I, III and p. 6) |
+| G-compatible, S-incompatible | all G, S not STATIONARY | PARTIAL |
+| S-stationary, G-incompatible | S STATIONARY, some G miss | PARTIAL |
+| PARTIAL | anything else with at least one oracle passing | PARTIAL |
+| INCOMPATIBLE | S NON-STATIONARY, no P PASS/NEAR, and T fails | INCOMPATIBLE |
+| INCONCLUSIVE | S INCONCLUSIVE or UNRELIABLE, and nothing else passes | INCONCLUSIVE |
+| V1 on TS, S or P | — | NOT APPLICABLE |
+
+- Variants whose results agree within these oracles' own tolerances are
+  reported as "no discrimination".
+- Arms that disagree give INCONCLUSIVE for the model as a whole.
+- Even a COMPATIBLE variant leaves SQE HOLD until its own GO pre-registration.
+
+#### 2.6g Instrument tests, before any corpus run
+
+1. V0-scaled equals V0-unscaled to 1e-12 on well-conditioned synthetic
+   systems.
+2. The prepared fast evaluator (pairs, MᵀHM and b cached; K rebuilt per
+   (C, λ)) equals `solve` exactly on every synthetic case, and to 1e-12 on
+   three corpus structures.
+3. The eq 15 hand value on a 3-atom, 2-element toy.
+4. argmin of Δq equals argmin of √Δq on a toy objective (a property, green
+   by design).
+5. δ and g_tol arithmetic.
+6. Physical-to-scaled chain rule on an analytic quadratic.
+7. The Powell wrapper (scaling, bounds, record fields) reaches the minimum of
+   a quadratic in physical units with very different axis scales, and of
+   both wells of a two-well function from starts in each basin, within 1e-6,
+   and never leaves the box.
+8. Basin labelling on the two-well function.
+9. The V1 graph and valence check on synthetic ethanol and an over-bonded
+   fragment.
+10. Both V2 limits, and the eV mutation.
+
+**Mutations (each must turn a test red):**
+- scaling removed from the scaled arm;
+- N_el wrong;
+- the V1 factor not applied;
+- V2's η left in eV;
+- the fast evaluator using a stale K;
+- a Powell start mislabelled as the printed one;
+- the Powell wrapper reporting its end point in scaled rather than physical
+  units;
+- δ computed without the square root's rounding.
+
 ### 2.7 Nistor SQE: recover the geometry's atom correspondence, then test methods i, iii and iv
 
 Pre-registered 2026-09-15, before any recovery or SQE charge exists. It
@@ -1289,6 +1562,82 @@ limit, and each is excluded from both arms:
   calculator needs a scaled or penalty-aware solve, with its own
   pre-registration.
 
+
+### 3.6 Check 2.6: the named-cause study for SQE (2026-09-15)
+
+Claim kind: SOURCE REPRODUCTION of Table I's aggregates, under each variant.
+Run order in git: 2.6's pre-registration and instrument first, the driver fix
+(46d44a2) after a crash that produced no numbers, then this run.
+
+**Verdict per arm** (local / universal):
+
+| Arm | Population | √Δq at printed vs 0.067 | S | G gates | Verdict |
+|---|---|---|---|---|---|
+| V0-unscaled | 247 / 249 | 0.068364 MISS | INCONCLUSIVE | EQ 4/6, TS 3/6 | PARTIAL / PARTIAL |
+| V0-scaled | 249 / 249 | 0.068210 MISS | INCONCLUSIVE | EQ 4/6, TS 3/6 | PARTIAL / PARTIAL |
+| V2-scaled (Ohno–Klopman) | 249 / 249 | 0.105699 MISS | INCONCLUSIVE | EQ 0/6, TS 0/6 | INCONCLUSIVE / INCONCLUSIVE |
+
+**Oracle S, the point of the whole check.** Mathieu p. 6 says C and λ came from
+a Powell minimisation of eq 15, so if our model were his, (115, 0.816) would be
+stationary for our Δq.
+
+- **At the printed point the scaled Hessian is INDEFINITE:** eigenvalues
+  −7.37e-04 and +0.1999, condition infinite. The registered trust gate
+  therefore fails and the class is **UNRELIABLE**, so neither "stationary" nor
+  "not stationary" is claimed there. (Its scaled gradient is ‖g̃‖ = 7.28e-03,
+  and Δq = 4.6527e-03.)
+- **Powell from the printed point walks away and downhill**, to
+  **C = 56.77 eV, λ = 0.81474**, where Δq = 4.4770e-03 — 3.8% below the
+  printed point's. That end point is outside the pre-registered neighbourhood
+  (±2 eV, ±0.01), so it is not "near" the printed point by the registered rule.
+- **λ is what agrees.** The end point's λ differs from the printed 0.816 by
+  0.16%, while C differs by 51%. Whatever separates our model from his is
+  therefore in the C term rather than in λ — a narrowing, not a diagnosis.
+- **The lowest point found is itself not certifiable:** at (56.77, 0.81474) the
+  finite-difference gradient estimates disagree across the registered step
+  study, so it too classes UNRELIABLE.
+- **Five end points ARE verified minima** (positive definite, trusted, ‖g̃‖
+  below g_tol), all at λ ≈ 1.40–1.45 with Δq = 4.81570e-03 and eigenvalues of
+  order 1e-13 — a flat plateau, and **worse** than the printed point.
+- Registered S verdict: **INCONCLUSIVE** for every arm.
+
+**What the study rules OUT as the cause.**
+- **Not the numerical arm.** Scaling changes the validity of exactly 2 of 249
+  structures (pentylamine, one TS); on COMMON_VALID the pooled Δq differs by
+  1.6e-05 and R²(All) by 6.4e-05.
+- **Not the Coulomb kernel form.** V2's Ohno–Klopman kernel is much worse:
+  √Δq 0.1057 and 0 of 12 gates.
+- **Not model B's parameters alone.** The model C diagnostic misses as well:
+  √Δq 0.0808 against the printed 0.0583, R²(All) 0.9688 against 0.98. A second
+  printed model failing the same way points at something systematic in the
+  implementation or in what the paper leaves unwritten, not at one parameter
+  set.
+- **V1 (the OpenChem bond-graph reconstruction) does not discriminate.** On its
+  applicable EQ subpopulation (90 of 194 structures) **both** V1 and V0 score
+  0 of 6 gates, so the comparison says nothing about splits: INCONCLUSIVE, and
+  TS remains structurally undefined (NOT APPLICABLE).
+
+**Oracle G, unchanged from 2.4** (V0-scaled): EQ C 0.9676/0.97 pass, H
+0.8686/0.85 miss, N 0.9621/0.96 pass, O 0.6663/0.67 pass, F 0.3359/0.35 miss,
+All 0.9770/0.98 pass; TS C 0.9601/0.96 pass, H 0.8933/0.88 miss, N 0.9538/0.95
+pass, O 0.8793/0.89 miss, F 0.3460/0.16 miss, All 0.9708/0.97 pass.
+
+**Oracle T (Table III's 24 atoms): 3 pass, 21 fail** at ±5e-4, on every arm.
+The failures are dominated by fluorine and nitro compounds, which is where G's
+fluorine correlation also misses.
+
+**What is established, and what is not.** Δq at the printed point is a real
+number on a stated population, and the printed point is not where our Δq is
+minimised. Because the Hessian there is indefinite, the registered instrument
+declines to certify *why*, and no parameter was refit to close the gap. The
+cause is narrowed to the C term and to something shared by models B and C.
+
+Result files (LF-normalised SHA-256, first 32 hex):
+- `mathieu_sqe_population.csv` (1,439 rows): `b82038cd2341cab73ea0e5918a74b6dd`
+- `mathieu_sqe_surface.csv` (5,351 rows): `f869bbb3aa1648a14a3ce65262cd5e3f`
+- `mathieu_sqe_powell.csv` (47 rows): `b03133e8bf5a45f9c5d1ea5b7a27171f`
+- `mathieu_sqe_stationarity.csv` (50 rows): `9713f62bed6407cac55685a60c285929`
+- `mathieu_sqe_causes.csv` (203 rows): `75734d823bc9332dbc82fb9fb1962be6`
 ### 3.7 Check 2.7: Nistor SQE on recovered correspondence (2026-09-15)
 
 Claim kind: IMPLEMENTATION REPRODUCTION, on geometry recovered by the one-row
@@ -1520,4 +1869,5 @@ The round 3 plan required this before the record could say "unavailable".
 
 So the status is unavailable, on a search rather than on an assumption. It is
 not reopened without a new source.
+
 
