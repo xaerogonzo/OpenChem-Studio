@@ -194,3 +194,35 @@ way.
   absent from the naming corpus.
 
 Nothing in this section changes the model, the parameters or the 36/36 reproduction.
+
+## 6-R. Guard feasibility — RESULT (2026-09-16, run after commit 97dc03c)
+
+Run exactly as §6 registered: `scratchpad/guard_feasibility.py`.
+
+| | count | κ_R |
+|---|---|---|
+| negatives: in-domain × 11 shipped models | 473 | **max 474.1** (E-HiI/6-31G\*\*/gas, a training-set fragment) |
+| positives: extrapolation, max \|q\| > 2.051, all 12 models | 8 | **min 8.6** (1H-tetrazole), max 230.7 (nitrobenzene) |
+| unlabelled extrapolation | 1120 | 1002 of them ≥ the smallest positive's κ_R |
+
+**VERDICT: NOT-SEPARABLE.** min κ_R over positives / max κ_R over negatives = **0.018**.
+Not marginal: the worst blow-up, nitrobenzene at 74 e, is *better* conditioned than
+hundreds of validated protein fragments.
+
+**The registered hypothesis is refuted.** §6 proposed that Finding 4's full-system
+number was inflated by constraint mixing and that the reduced Hessian would isolate
+the physics. It does not; it fails by a factor of ~55 in the wrong direction.
+
+**One pattern, recorded as a HYPOTHESIS and not measured.** The secondary quantity
+min|λ(R)| is smallest for the two extreme blow-ups (1.1–1.3 × 10⁻⁴) but the six mild
+positives (1.1–2.3 × 10⁻³) sit *above* the in-domain negatives (6.1–7.7 × 10⁻⁴) — the
+proteins have near-zero eigenvalues too, and do not blow up. That is consistent with a
+blow-up needing a near-zero eigenvalue **and** a right-hand side aligned with its
+eigenvector, which no property of H alone can see. Consistent with the data is not
+the same as established; it is not relied on below.
+
+**As §6 registered for this outcome:** κ_R cannot be the guard, no larger study of κ_R
+is run, and the decision returns to Alex with these numbers.
+
+**One fact that bears on that decision:** all 8 positives are the **excluded** model.
+On this corpus the **11 shipped models produced no solve beyond the in-domain maximum**.
