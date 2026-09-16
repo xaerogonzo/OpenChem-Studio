@@ -1523,6 +1523,34 @@ def test_every_chem_module_is_named_in_the_package_map():
     )
 
 
+def test_every_committed_drive_script_has_a_row_in_its_readme():
+    """A committed script nobody documented is one nobody re-runs.
+
+    **`benchmarks/visual/README.md` says driving the app was the most productive
+    technique in the project and the least repeatable, and that this directory
+    exists to fix that.** Measured 2026-09-16: its table held 12 rows against 36
+    committed scripts, so two thirds of them were exactly what the directory was
+    built to stop -- written once, run once, invisible.
+
+    Rows only. Whether the history in the third column is right cannot be
+    checked mechanically, which is why that column says `not recorded here`
+    rather than guessing.
+    """
+    scripts = sorted(
+        path.name for path in (_ROOT / "benchmarks" / "visual").glob("*.json")
+    )
+    assert len(scripts) > 20, f"found {len(scripts)} scripts, so it is not walking the directory"
+
+    readme = (_ROOT / "benchmarks" / "visual" / "README.md").read_text(encoding="utf-8")
+    missing = [name for name in scripts if name not in readme]
+    assert not missing, (
+        f"{len(missing)} of {len(scripts)} committed drive scripts have no row in "
+        f"benchmarks/visual/README.md: " + ", ".join(missing)
+        + ". Add one naming the surface it drives. Leave the history column as "
+        "`not recorded here` rather than inventing it."
+    )
+
+
 def test_a_doc_whose_counts_are_history_is_excused_for_a_written_reason():
     """An exemption set with no reasons rots into a blocklist.
 

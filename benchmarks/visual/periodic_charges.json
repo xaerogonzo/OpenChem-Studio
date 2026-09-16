@@ -1,0 +1,15 @@
+[
+  {"do": "crystal_report", "path": "tests/fixtures/cif/1504676.cif", "tag": "computed", "filter": "charge", "expand": "structure", "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/periodic_charges_computed.png", "widget": "dialog", "after_ms": 800},
+  {"do": "close_dialog"},
+
+  {"do": "crystal_report", "path": "tests/fixtures/cif/1569411.cif", "tag": "disordered", "filter": "charge", "expand": "structure", "after_ms": 800},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/periodic_charges_refused.png", "widget": "dialog", "after_ms": 800},
+  {"do": "close_dialog"},
+
+  {"do": "crystal_report", "path": "tests/fixtures/cif/1502211.cif", "tag": "over-the-budget", "filter": "charge", "expand": "structure", "after_ms": 1500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/periodic_charges_over_budget.png", "widget": "dialog", "after_ms": 800},
+  {"do": "close_dialog"},
+
+  {"do": "quit"}
+]

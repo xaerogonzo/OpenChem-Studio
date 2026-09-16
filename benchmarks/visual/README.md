@@ -77,6 +77,30 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 | `qm_shift_identity.json` | a REAL ORCA NMR run in the Atom Inspector, then a new conformer search | ORCA shifts carried no identity and showed as current after the conformers changed; and the inspector's report cache, keyed on the drawing alone, kept serving the old shift |
 | `results_wrapped_row_height.json` | the charges result's Finding row in Results, fentanyl then O1OCN1, docked at the default width and then narrowed and widened | a wrapped value held the height its text needs at 100 px -- six lines in a 272 px row -- and could never shrink back |
 
+| `charge_identity_after_edit.json` | the Atom Inspector's 3D charge through an erase, an edit and an undo | ethanol's oxygen showed carbon C1's EEM 3D charge while the result read fresh -- GEOMETRY datasets keyed by the conformer's atoms, read by the drawing's |
+| `charge_species_and_refusals.json` | EEM and QEq on species each model declines | not recorded here |
+| `docked_pose_in_6wgt.json` | a real Vina run, the pose shown in Mol* | the pose was retargeted and the receptor left on assembly 1 -- the viewer and the docking showed different chains |
+| `docking_replicates.json` | repeated real docking runs from one panel | not recorded here |
+| `docking_rescore.json` | a pose scored again with Vinardo | not recorded here |
+| `docking_search_controls.json` | the docking panel's search controls at their defaults | not recorded here |
+| `geometry_charges.json` | 3D charges on a fresh conformer and after a new search, plus QEq on LiH | not recorded here |
+| `lewis_site_depiction.json` | the Lewis acid/base site depiction, two donors and mixed roles | not recorded here |
+| `logd_curve_cursor.json` | the LogD curve in Results, with a real click on the chart | not recorded here |
+| `mass_spectrum_and_merged_details.json` | one, then three calculators in Results, then an edit | not recorded here |
+| `periodic_charges.json` | the crystal report's EQeq charges: computed, refused for disorder, and over the atom budget | `units="e"` composed onto a sentence whose value is an atom count, painting "... C +0.062 e"; and the refusal row marked ADVANCED, so a disordered CIF showed NO charge row at all |
+| `powder_pattern_chart.json` | the crystal report's powder chart, truncated and at Cu radiation | a declared chart reached the report and no renderer drew it; seven guards on the builder passed first |
+| `properties_launcher_after_2c2.json` | the Properties launcher after stage 2c2, at 900 and 1600 px | not recorded here |
+| `properties_launcher_stage2.json` | the Properties panel before stage 2c, at 900 and 1600 px | not recorded here |
+| `results_dock_stage2.json` | Details with the reader hidden, visible, and popped out | not recorded here |
+| `results_layout_narrow_and_short.json` | the Results dock moved beside and on top, resized | a very short dock scrolled: 234 px needed against a 162 px viewport, 72 of it chrome |
+| `results_reader_memory.json` | the reader's remembered selection across close, reopen and an edit | a reader's position had never had to survive anything |
+| `results_reader_stage1.json` | every result kind reaching the reader, and the selector's search | not recorded here |
+| `screening_search_controls.json` | the screening dialog's controls | not recorded here |
+| `screening_strips_the_pocket.json` | a real screening run, and what the service was handed | not recorded here |
+| `solubility_units_live.json` | the reader's Units combo, switched and remembered | not recorded here |
+
+**THE THIRD COLUMN IS A CLAIM, AND `not recorded here` MEANS NOBODY WROTE THE HISTORY DOWN -- NOT THAT NOTHING BROKE.** Twenty of these scripts were committed without a row at all (found 2026-09-16: the table held 12 of 36), so their surfaces are stated from what the script actually drives and the history is left blank where it cannot be supported. Filling one in is worth doing when you know the answer; inventing one is worse than the blank.
+
 **`results_wrapped_row_height.json` LOGS EACH ROW AGAINST ITS TEXT, BECAUSE THE
 ROW ITSELF CANNOT BE ASKED.** `QLabel.heightForWidth` never answers below the
 label's own minimum height, so a row holding a stale height reports that height
