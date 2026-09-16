@@ -193,11 +193,22 @@ saved as `nistor2006_si.pdf.pdf`, the name the fixture headers keep).
 
 `wilmer2012.pdf`, `wilmer2012_si.pdf`.
 - **Evidence basis:** PDF plus supplement.
-- **Parameters:** SI S2 (ionisation energies to Z = 84) and S3 (inputs).
-- **Numeric oracle:** SI S5 gives per-atom charges for 12 MOFs, periodic only.
-- **Runnable reference:** numat/EQeq (GPL-2.0, deprecated, crystals).
+- **Parameters:** SI S3 gives the run inputs. **S2 shows the ionisation
+  energies only as plots**; the table itself is an accompanying file and is
+  still not held (corrected 2026-09-15).
+- **Numeric oracle: HELD since 2026-09-15.** The accompanying zip is now on
+  disk: 12 MOFs x 4 charge sets, each file carrying its unit cell and its
+  per-atom charges. All 12 atom counts match the paper's Table 1 and every
+  EQeq set sums to zero. (Before it arrived this row read "none held".)
+- **Runnable reference:** numat/EQeq (GitHub reports GPL-2.0, archived as
+  deprecated). It is a later fork, not the 2012 v1.00 code, and GPL-2.0 is not
+  vendored here.
 - **Verdict: NO as a molecular calculator.** The periodic version is recorded
-  on the roadmap.
+  on the roadmap. Track 6's feasibility check
+  (`benchmarks/charges/periodic/FEASIBILITY.md`) was **BLOCKED** when it ran
+  and is **FEASIBLE** after the structures arrived (its section 8), with the
+  ionisation table as a named substitution: it must be rebuilt from Andersen
+  1999 and Moore 1970 and labelled a reconstruction.
 
 ### Context, not a model: Sefcik, Demiralp, Çağın & Goddard 2002
 
@@ -1101,6 +1112,148 @@ in existence, and disclosed as such.
 - Mutation added: "symmetry classes ignoring the ESP column" now applies to
   this test.
 
+### 2.8 Ionescu 2013: implementation reproduction of the published EEM models
+
+Pre-registered 2026-09-15, before any EEM charge is computed from Table S1.
+Claim kind: **IMPLEMENTATION REPRODUCTION** (the source's own model charges,
+from its own parameters, structures and reference data), in the domain of
+protein fragments only. It says nothing about small molecules.
+
+Source: `ionescu2013` (doi 10.1021/ci400448n) and its supporting information.
+
+**What was measured first (input side only; no EEM charge computed, no
+comparison made).** These motivate the design and are recorded as such.
+1. **Table S1 holds all 24 models**, read positionally by
+   `ionescu_extract.py`: 180 rows, 12 E models with 6 atom types (H, C, N, O,
+   S, Ca) and 12 EX models with 9 (H1, C1, C2, N1, N2, O1, O2, S1, Ca0), each
+   with k and per-type A and B.
+   - **Calcium is parameterised.** The round 3 plan left Ca conditional on
+     this; it is decided here as INCLUDED, for every model.
+2. **The QM/EEM CSV holds 12 scheme blocks.** Molecules per block: 41, except
+   three blocks with 40 and one with 38. **The source population is therefore
+   scheme-dependent**, and each scheme's own block defines it.
+3. **Every fragment's total charge is an integer**, and the QM, E-EEM and
+   EX-EEM columns all sum to the same one (measured on block 1: −9, −8, −4,
+   −3, −2, −1, +1, −3, 0, +1, −3, −4, …). So the constraint is source-given
+   and is never fitted.
+4. **The PDB models and the CSV rows correspond atom for atom.** All 41
+   fragments match in count and element, 0 mismatches, once the element is
+   read as: a HETATM whose residue is `CA` is calcium (" CA " in an ATOM
+   record is an alpha carbon), otherwise the atom name's first letter after
+   any leading digit. Element totals then equal the paper's Table 1 exactly
+   (H 19879, C 11912, N 3188, O 4954, S 148, Ca 61).
+5. **One solve costs about 80 ms** for a fragment of ~1000 atoms; one pass
+   over all 41 is 3.5 s.
+
+**The model, transcribed (paper eqs 1–3).**
+- X_i = A_i + B_i q_i + k Σ_{j≠i} q_j / r_ij, with A_i = X⁰_i + ΔX_i and
+  B_i = 2(η⁰_i + Δη_i).
+- Equalisation X_1 = X_2 = … = X̄ with Σ_i q_i = Q gives one linear system:
+  rows B_i q_i + k Σ_{j≠i} q_j/r_ij − X̄ = −A_i, plus the charge row.
+- **X̄ is an unknown of that system, not an input.** The paper's harmonic mean
+  of Pauling electronegativities belongs to the *parametrisation* step
+  (fitting A and B), which is not reproduced here.
+- **Two distance readings, both run, neither chosen by agreement** (the
+  units of k are not printed):
+  - **R_angstrom:** r_ij in ångström, the PDB's own unit;
+  - **R_bohr:** r_ij in bohr.
+
+  A failure whose ratio is 1.889 would name the other reading, so both are
+  reported side by side.
+
+**Typing.**
+- **E models need only the chemical element**, which measurement 4 fixes
+  exactly. There is no typing inference, so no typing gate applies.
+- **EX models need maximum bond multiplicity per atom**, so they need bond
+  orders perceived from a PDB. That perception is not attempted in this
+  round: the EX models are recorded **BLOCKED on typing**, not run, and no
+  best-effort typing is ever compared as if it were the paper's.
+
+**Population, per model.**
+- `SOURCE_<scheme>`: the fragments present in that scheme's CSV block.
+- `APPLICABLE`: those whose total charge is an integer within 1e-3 of its
+  column sum and whose atoms all have a Table S1 type. Anything else is
+  excluded and listed with its reason; a denominator never shrinks silently.
+
+**Tolerance, computed and not judged.**
+- `tau_linearized_i` = 5e-7 (the CSV's 6 dp half-unit) + Σ_p |∂q_i/∂p| · ½ ·
+  10^(−d_p), over every Table S1 parameter p with d_p its printed decimals
+  (A and B 6 dp, k 3 dp). It is a first-order estimate and is called that.
+  - The sensitivities are exact, not finite differences: the system is
+    solved once with one right-hand side per parameter.
+- `envelope_i` = max |q_i(p′) − q_i(p)| + 5e-7 over samples p′ drawn in the
+  full rounding box, plus every single-parameter ± corner.
+- **The gate is τ_i = max(tau_linearized_i, 1.1 × envelope_i)**, and the
+  ratio envelope/linear is reported with its maximum and median.
+- **Amendment, cost-driven, registered now rather than discovered later.**
+  The round 3 plan asked for 2000 samples on every fragment. At the measured
+  3.5 s per pass that is about 2 h per model and 48 h for 24, which is not
+  run. Instead:
+  - the sample is 500 draws (seed 20260915) on a stratified subset: the
+    smallest, the median-sized and the largest fragment;
+  - every single-parameter ± corner is evaluated on those three;
+  - for fragments outside the subset, τ_i uses the subset's measured maximum
+    ratio envelope/linear as a scale on `tau_linearized_i`;
+  - the subset, the ratio and the scale are printed in the result, so the
+    approximation is visible wherever it is used.
+
+**Amendment 2.8-A1 (2026-09-15): the sample count drops from 500 to 100,
+on a measurement, before any model verdict exists.** The envelope on
+fragment 1000023 (546 atoms, E-MPA/6-31G\*/gas, R_angstrom) is **identical at
+25, 50, 100, 250 and 500 draws**: max envelope 2.346e-01 e, max ratio 25.0 in
+every case. The maximum comes from the single-parameter ± corners, which are
+always evaluated, and not from the random draws, so the draw count cannot
+change a τ. 100 is kept (four times the count at which it had already
+saturated) because that measurement is on one fragment. The seed is unchanged.
+
+**What that envelope says about the gate, recorded with it:** τ is dominated
+by **k's printed precision**. k is given to 3 decimals, so k = 0.006 ± 0.0005
+is an 8% uncertainty, while A and B carry 6. A gate of this width is therefore
+weak on its own, and the result must report the **distribution of |Δ|**
+beside the pass count: an agreement far inside τ is the evidence that the
+parameters are the source's, and an agreement merely inside τ is not.
+
+**Oracle and classes.**
+- Per atom: **reproduced** if |q_model − q_printed| ≤ τ_i, else **failed**.
+- Per fragment × model: **REPRODUCED** when every applicable atom is
+  reproduced, else **PARTIAL** with the failing count and the largest |Δ|.
+- Per model: REPRODUCED when every applicable fragment is; else PARTIAL;
+  INCONCLUSIVE if the applicable population is empty.
+- Universal mapping: REPRODUCED → REPRODUCED, PARTIAL → PARTIAL, the EX
+  models → BLOCKED, an excluded fragment population → PARTIAL-COVERAGE.
+
+**Scheme agreement, reported beside it and never a gate.** R_avg, RMSD_avg
+and D_avg per model against its own QM scheme's column, compared with Table
+S2's printed values (3 dp; internal validation is the grey diagonal, e.g.
+E-MPA/6-31G\*/gas against MPA/6-31G\*/gas is 0.975).
+- **The paper contradicts itself on R_avg:** the prose calls it "the squared
+  Pearson's correlation coefficient", and its eq 7 prints the unsquared
+  form. So the definition is **identified, not assumed**, from a closed list
+  fixed now: {Pearson r, r²} × {σ with ddof 0, ddof 1}, per molecule then
+  averaged over molecules. Whichever reproduces Table S2's printed values is
+  recorded as the source's convention, and all four are printed.
+- Every row names the exact QM scheme ("MPA/6-31G\*/gas"), never "QM charge".
+
+**Instrument tests, before the corpus run.**
+- The system reproduces a hand-solved two-atom case.
+- Total charge is conserved to 1e-9 on every solve.
+- Exact sensitivities agree with central differences on one fragment to 1e-6.
+- The PDB reader's element rule reproduces Table 1's element counts, and the
+  CSV alignment check (measurement 4) is a test.
+- A permuted atom order gives the same charges, per atom.
+
+**Mutations:** k applied in bohr while distances are in ångström; the B sign
+flipped; X̄ fixed to the harmonic mean instead of solved; the total charge
+forced to zero; τ using only the linearised term; the Ca type dropped to
+carbon's parameters.
+
+**Verdict:** counts per class per model, plus the reading (R_angstrom or
+R_bohr) that reproduces, if either. **GO-CANDIDATE** (a separate src
+pre-registration for per-model keys such as
+`eem_ionescu2013_e_mpa_631gs_gas`) only if a reading reproduces every
+applicable fragment of at least one model; otherwise PARTIAL, INCONCLUSIVE or
+BLOCKED with the reason.
+
 ## 3. Results
 
 ### 3.1 Nistor supplement extraction (2026-09-14)
@@ -1409,6 +1562,7 @@ limit, and each is excluded from both arms:
   calculator needs a scaled or penalty-aware solve, with its own
   pre-registration.
 
+
 ### 3.6 Check 2.6: the named-cause study for SQE (2026-09-15)
 
 Claim kind: SOURCE REPRODUCTION of Table I's aggregates, under each variant.
@@ -1566,4 +1720,154 @@ Result files (LF-normalised SHA-256):
   `e085f61942b56c888ef8e3cc9c3a33771745eff7626b975cded59e45de1c607c`
 - `nistor_sqe_atoms.csv`:
   `be80290213ed8119e91b64ae8125b7574de5a778b8bf91407e0aa926fd17f4d6`
+
+### 3.8 Check 2.8: Ionescu 2013's E models reproduce (2026-09-15)
+
+Claim kind: **IMPLEMENTATION REPRODUCTION**, in the domain of protein
+fragments. Run order in git: pre-registration a7563cd, fixtures 7a69e33 and
+b545044, implementation and mutations eb6563e, amendment 2.8-A1 735172b, then
+this run.
+
+**Verdict: REPRODUCED**, universal status REPRODUCED, for all 12 E models.
+
+| Reading | Model × dataset rows reproduced | Verdicts |
+|---|---|---|
+| **R_angstrom** | **36 / 36** | REPRODUCED ×36 |
+| R_bohr | 0 / 36 | PARTIAL ×36 |
+
+- **Every applicable atom of every applicable fragment** is within τ under
+  R_angstrom: 40,142 atoms on a full training set, 802 on insulin, 998 on
+  ubiquitin, for each of the 12 models.
+- **The distribution, which is the real evidence** (2.8-A1: τ is wide because
+  k prints to 3 decimals, so the pass count alone proves little):
+  - the two test proteins agree at the charge CSV's own printing precision —
+    **median |Δ| 2.2e-07 to 2.6e-07**, against a 5e-7 half-unit;
+  - the training sets agree less exactly but still far inside τ: median |Δ|
+    5.3e-06 to 6.4e-05, **max |Δ| 0.0004** over all 36 rows.
+  - **That difference between the test proteins and the training set is
+    real, scheme-dependent (PCM rows are tighter than gas), and is not
+    explained here.** Nothing was refit, and no mechanism is adopted.
+- **R_bohr fails outright** — 34 of 998 atoms on ubiquitin, median |Δ| 0.1 —
+  so the distance unit is ångström. It was not chosen; both readings ran.
+
+**Populations, per scheme (the CSV's own blocks):** 41, 40 or 38 fragments,
+with 0, 1 or 3 excluded as "absent from that scheme's block". No fragment was
+excluded for any other reason: **calcium and sulfur are parameterised and were
+included**, so there is no PARTIAL-COVERAGE here.
+
+**The metric convention, identified and not assumed.** The paper's prose calls
+R_avg the squared Pearson coefficient; its own eq 7 prints the unsquared form.
+Computed both ways on all 36 rows, **R² matches Table S2's printed R_avg in
+every row** (0 rows differ by more than 0.0015), as do RMSD_avg and D_avg.
+Example (E-HiI/6-31G\*\*/PCM, training set): R² 0.9625 against 0.962, RMSD
+0.1281 against 0.128, D 0.0949 against 0.094. So Table S2 prints the squared
+coefficient, and the paper contradicts itself.
+
+**Instrument:** 18 tests, all six registered mutations red. The calcium
+mutation survived its first run because no test had a calcium atom in it; a
+synthetic case was added rather than the mutation retired.
+
+**EX models: BLOCKED on typing**, as registered. They need maximum bond
+multiplicity per atom, so they need bond-order perception from a PDB; no
+best-effort typing was compared.
+
+**Program verdict: GO-CANDIDATE.** A reading reproduces every applicable
+fragment of all 12 E models, which is the registered condition. A src
+pre-registration would carry per-model keys (e.g.
+`eem_ionescu2013_e_mpa_631gs_gas`), the protein-fragment domain limit, and
+the fact that these parameters are fitted to QM charges of *protein
+fragments* — not a small-molecule claim.
+
+Result files (LF-normalised SHA-256):
+- `ionescu_eem_models.csv` (72 rows):
+  `daf4cee368f80087c2d127b6f4059b052962921cc9a00f1a97f9969b14b48347`
+- `ionescu_eem_atoms.csv` (109,646 rows; the subset fragments):
+  `2fe90adac0de67387c13cad1f71695ac12d80b5ba06105666f9324e1f1e937ce`
+- `tests/fixtures/charges/ionescu2013/table_s1.csv`:
+  `f6f687d8d4906b7052055700d83c835d4803c3fc42ebb0dc985a4064f14829f3`
+- `tests/fixtures/charges/ionescu2013/table_s2.csv`:
+  `4896075257d422abbd9fb251f8eb43e1e552822a7e67387779edac98f9b183da`
+
+## 4. EEM beyond H/C/N/O/F: the source taxonomy (2026-09-15)
+
+Each record carries the same fields: **kind**, what its charges are, whether
+its **source population is recoverable** (exact / partial / independent
+substitute only / unavailable), and **what evidence its oracle could give**
+(implementation reproduction, scheme reproduction, or independent usability
+only).
+
+### 4.1 Ionescu et al. 2013 — the one exact route
+
+- **Kind:** element extension (adds S and Ca) plus 24 published models.
+- **Charges:** MPA, NPA and iterative Hirshfeld at HF/6-31G\* and 6-31G\*\*,
+  in gas phase and PCM, on 41 protein fragments plus insulin and ubiquitin.
+- **Population recoverable: exact.** The structures (PDB), the per-atom QM and
+  EEM charges (CSV) and the parameters (Table S1) are all held.
+- **Evidence:** implementation reproduction. Check 2.8 runs it; see 3.8.
+
+### 4.2 Vařeková et al. 2007 — NCI DIS: independent substitute only
+
+- **Kind:** element extension (S, F, Cl, Br, I, Fe, Zn) with the κ kernel.
+- **Charges:** HF/STO-3G Mulliken, computed by the authors.
+- **The sets, transcribed from its Table 1** (NCI DIS half only; the CSD half
+  needs a licensed database and is unavailable):
+
+  | Set | Molecules | Elements | Printed position |
+  |---|---|---|---|
+  | nbeg | 2000 | C, O, N, H, S | ID between 1 and 3162 |
+  | nmid | 2000 | C, O, N, H, S | ID between 300 000 and 314 026 |
+  | nend | 2000 | C, O, N, H, S | ID between 705 000 and 712 703 |
+  | nall | 6000 | C, O, N, H, S | nbeg + nmid + nend |
+  | nhal | 4000 | + Br, Cl, F, I | ID between 106 498 and 114 688 |
+
+- **Population recoverable: independent substitute only**, for two measured
+  reasons, neither of which is about availability:
+  1. **The membership is not printed.** Each 2000-molecule set is drawn from a
+     wider id range (nbeg: 2000 of 3162), and the paper does not say which
+     ids. No list of members can be recovered from what is printed.
+  2. **The geometry source is gone.** The paper's structures are NCI DIS 3D
+     coordinates predicted by CHEM-X. The public NCI Open Database's 3D
+     coordinates are generated by CORINA (release notes for the 1999, 2000,
+     2003 and 2012 releases, read 2026-09-15). A CORINA structure for the same
+     NSC number is a different geometry, so byte identity is not demonstrable
+     even for a molecule that is certainly the right compound.
+- **Availability, sampled 2026-09-15** (metadata only, nothing downloaded):
+  8 ids evenly spaced across each printed range, queried against PubChem's
+  `DTP.NCI` substance source: nbeg 8/8, nmid 4/8, nend 5/8, nhal 6/8 present
+  (23 of 32). Presence there is an identity cross-reference, not the 2007
+  geometry.
+  - The CACTUS resolver returned HTTP 500 for two NSC probes the same day.
+    That is a server fault and is recorded as evidence of nothing.
+- **Evidence:** independent usability only. Its STO-3G Mulliken oracle would
+  have to be recomputed by us, on structures we generate, and could never be
+  called a reproduction of the paper.
+
+### 4.3 The rest, recorded without new work
+
+| Source | Kind | Charges | Population | Evidence available |
+|---|---|---|---|---|
+| `jiroušková2009` | element extension (S, Br, Cl, Zn) | B3LYP and HF/6-31G\* MK | **unavailable**, searched 2026-09-15 (below) | none |
+| `bultinck2004` | same equations, AIM charges | B3LYP AIM, CHNOF | **partial**: the SI is a drawn list of molecule identities with no coordinates | identities only; AIM needs a tool not held |
+| `ouyang2009`, `chaves2006`, `njo1998` | modified models / other elements | NPA, Mulliken, STO-3G+MK | not assessed; context only | context |
+| `ionescu2012` | application (Bax/Bak profiles) | — | the fragment archive is not held | none |
+| `verstraelen2009` | EEM and SQE on 500 molecules (H, C, N, O, F, S, Cl, Br) | its own | data not held | context for Tracks 1 and 5, never a gate |
+
+**The Jiroušková 2009 search, run 2026-09-15, and its result: UNAVAILABLE.**
+The round 3 plan required this before the record could say "unavailable".
+- The paper's own data statement: 380 training, 116 validation and 111
+  comparative molecules (16,841 atoms in the training set), "stored in SDF
+  format". **It prints no molecule identities** -- no NSC numbers, no CSD
+  refcodes, no names -- so even a recovered file could not be checked against
+  a membership list, and no list can be rebuilt from the paper.
+- The held SI is 3 pp of histograms.
+- The page the paper cites for its software,
+  `http://ncbr.chemi.muni.cz/~n19n/eem_abeem`, does not respond (connection
+  failure on http and https).
+- The Internet Archive holds **4 URLs** under that path, all captured in 2007
+  and 2008, before this paper: the redirect itself, `email.htm`, `licence.htm`
+  and `manual.htm`. None is data.
+
+So the status is unavailable, on a search rather than on an assumption. It is
+not reopened without a new source.
+
 
