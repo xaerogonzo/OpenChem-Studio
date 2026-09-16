@@ -171,6 +171,28 @@ Consequences, each tested:
   for partial occupancy.** §1.5 said disorder would be the binding constraint on real files rather
   than anything about the model, and that is what the numbers say.
 
+## 4-A3. Amendment, 2026-09-16: §3's identity fields are for a STORED result, and nothing stores this
+
+§3 asked the result to carry cell vectors, fractional coordinates, checksums of
+both tables, the claim kind and the rest, so that "the molecular result store's
+identity is not reused". **Measured: it is not reused, because this result never
+enters a store.** `build_crystal_report` recomputes on every selection and
+returns a `ReportResult` with `molecule_uuid=""`; there is no retained record
+for an identity to key, and nothing to go stale against.
+
+So the fields ship where they can be acted on rather than as a payload nobody
+reads: **the settings that change the answer and are in neither the article nor
+the structure** — direct summation at 5×5×5, k = 14.4, λ = 1.2, hydrogen's I₀ of
+−2 eV, the charge centre used per element, and the table's reconstruction note —
+are printed as the result's own evidence, and a test asserts each is there. The
+checksums are dropped: a hash with nothing to compare against is ceremony, and
+`tests/test_sources_are_current.py` already guards the shipped tables' provenance
+in the place that catches an edit.
+
+**If a crystal result is ever persisted, §3 comes back in full**, and the first
+thing it will need is what 4-A2 says does not exist yet: a request that can name
+a crystal.
+
 ## 5. Tests and mutations
 
 **Tests:** the four refusals; NaCl by hand; the parameter table's checksums;

@@ -308,6 +308,9 @@ def test_the_crystal_report_carries_the_charges_and_says_whose_method_they_are()
     assert any("3,452 atoms" in line for line in summary.evidence)
     assert any("Charge centres used" in line for line in summary.evidence)
     assert any("0.11 to 0.24 e" in line for line in summary.limitations)
+    # The settings that change the answer and are in neither the article nor the structure.
+    assert any("5x5x5 cells, k = 14.4 eV A, lambda = 1.2" in line for line in summary.evidence)
+    assert any("RECONSTRUCTION from Moore 1970 and Andersen 1999" in line for line in summary.evidence)
 
     assert rows["  F"].display_value.startswith("mean -0.371, -0.437 to -0.318 over 10 atoms")
     assert rows["  Charge balance"].display_value.startswith("sums to zero by construction")

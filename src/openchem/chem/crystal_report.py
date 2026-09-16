@@ -131,7 +131,14 @@ def _charge_facts(crystal: Crystal) -> list[Fact]:
     the spread within an element is what tells a reader whether the equilibration did anything, and
     it is printed beside the mean rather than summarised away.
     """
-    from openchem.chem.periodic_charges import MODEL_SCOPE, compute_periodic_charges
+    from openchem.chem.periodic_charges import (
+        COULOMB_EV_ANGSTROM,
+        COULOMB_SCALING,
+        HYDROGEN_AFFINITY_EV,
+        LATTICE_SHELLS,
+        MODEL_SCOPE,
+        compute_periodic_charges,
+    )
 
     atoms = crystal.expand()
     if len(atoms) > CHARGE_MAX_ATOMS:
@@ -203,6 +210,18 @@ def _charge_facts(crystal: Crystal) -> list[Fact]:
                 "data file disagree about palladium.",
                 "Validated against the twelve MOFs published with the method: every one of their "
                 "3,452 atoms reproduces at the printed precision.",
+                # **THE SETTINGS, BECAUSE TWO OF THEM CHANGE THE ANSWER AND NEITHER IS IN THE
+                # ARTICLE.** k and lambda come from the accompanying code (the article alone gives
+                # 8.6226 per pair against 8.64), and the shell count is the paper's own -- at
+                # 7x7x7 ten of MIL-47's 72 charges move in their third decimal, so it is a stated
+                # setting rather than a converged limit.
+                f"Direct lattice sum over {2 * LATTICE_SHELLS + 1}x{2 * LATTICE_SHELLS + 1}x"
+                f"{2 * LATTICE_SHELLS + 1} cells, k = {COULOMB_EV_ANGSTROM} eV A, "
+                f"lambda = {COULOMB_SCALING}, hydrogen's I0 set to "
+                f"{HYDROGEN_AFFINITY_EV} eV by the paper's own ad hoc choice.",
+                "The ionisation potentials and electron affinities are OUR RECONSTRUCTION from "
+                "Moore 1970 and Andersen 1999, the two sources the method's SI cites; every value "
+                "was then shown identical to the table its published code ships.",
             ),
             limitations=tuple(limitations),
             detail=Detail.STANDARD,
