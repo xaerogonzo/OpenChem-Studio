@@ -99,6 +99,16 @@ datas += [(str(PKG / "chem" / "data" / "elements.json"), "openchem/chem/data")]
 # anyone chose.
 datas += [(str(PKG / "chem" / "data" / "lewis_parameters.json"), "openchem/chem/data")]
 
+# EQeq's two inputs: the ionisation potentials and electron affinities the
+# periodic charge model is built from, and the charge centres. NOT optional
+# like the file above -- `periodic_charges` reads both unconditionally, so a
+# frozen build without them raises FileNotFoundError the first time anybody
+# opens a CIF, having worked from a checkout. The charge centres are a
+# separate file because they are an INPUT the source's own text and data file
+# disagree about, and the shipped table records which said what.
+datas += [(str(PKG / "chem" / "data" / "eqeq_ionization.json"), "openchem/chem/data")]
+datas += [(str(PKG / "chem" / "data" / "eqeq_charge_centres.json"), "openchem/chem/data")]
+
 # Scripts that are never imported -- they are handed as argv to a *sidecar*
 # interpreter (the pkasolver and ADMET environments, which run their own
 # Python, not ours). PyInstaller's import analysis therefore never sees them,

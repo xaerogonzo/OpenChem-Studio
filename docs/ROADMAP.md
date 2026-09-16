@@ -2015,9 +2015,27 @@ struck through and marked SHIPPED here, never deleted.
     transition states, where fluorine has five atoms.
   - QTPIE, PQEq and Oda–Hirono are held on missing oracles. ACKS2 is not
     pursued as a molecular calculator.
-- **Periodic charge equilibration (deferred).** Not started, and recorded so
-  the requirements are not rediscovered. Charges for crystals and frameworks,
-  read through the existing `chem/cif.py` path.
+- **Periodic charge equilibration. EQeq SHIPPED 2026-09-16**, as a section of
+  the crystal report (`chem/periodic_charges.py`), reproducing all 3,452 atoms
+  of Wilmer 2012's twelve MOFs; the entry below is kept for the methods still
+  deferred and for the requirements this one had to meet.
+  - **What shipping it settled**, none of it guessed in advance:
+    - it is **not a registered calculator**, because `CalculationRequest`
+      carries a `molecule_uuid` and nothing else, so a crystal cannot be
+      addressed to one at all. Crystal-side science goes where the powder
+      pattern goes;
+    - the truncated direct sum is **conditionally convergent and not
+      invariant to moving one atom by a lattice vector**, so a published
+      charge can depend on representatives a CIF does not carry. Amendment
+      4-A1 of `benchmarks/charges/periodic/calculator_preregistration.md`
+      measures it;
+    - **disorder, not size or elements, is what stops this on real files**:
+      four of the six committed CIF fixtures refuse for partial occupancy.
+      `expand()` still has no disorder-resolution rule, and the calculator
+      refuses rather than choosing one.
+- **The rest of it (deferred).** Recorded so the requirements are not
+  rediscovered. Charges for crystals and frameworks, read through the existing
+  `chem/cif.py` path.
   - **Candidate electrostatic treatments:** Ewald summation, or a damped
     shifted-force (Wolf-type) sum, each with Slater or Gaussian shielding.
     They differ in convergence and boundary semantics, so choosing one is a
@@ -2028,10 +2046,10 @@ struck through and marked SHIPPED here, never deleted.
     convention. The molecular result store's identity must not be reused
     as is.
   - **Methods, each with its own oracle:**
-    - EQeq (Wilmer 2012). **Feasibility checked 2026-09-15:
-      `benchmarks/charges/periodic/FEASIBILITY.md`.** It transcribes EQeq's
-      electrostatics and the identity fields below, and its outcome is
-      **FEASIBLE with one named substitution** (section 8): the 12 MOF
+    - EQeq (Wilmer 2012). **DONE -- see above.** Feasibility was checked
+      2026-09-15 in `benchmarks/charges/periodic/FEASIBILITY.md`; it
+      transcribes EQeq's electrostatics and the identity fields below, and its
+      outcome was **FEASIBLE with one named substitution** (section 8): the 12 MOF
       structures and their per-atom EQeq, REPEAT, ChelpG and AMS Qeq charges
       are held, with cells, atom counts matching the paper's Table 1 and
       neutral charge sums -- an exact oracle -- but the ionisation table is
@@ -2056,6 +2074,91 @@ struck through and marked SHIPPED here, never deleted.
       (checked 2026-09-14). The `/v1` and `/v2` records do.
   - **Why deferred:** no calculator handles periodic boundaries, and this is
     a different product surface from molecular charges.
+- **Getting a CIF into the app without leaving it.** Today the only route is
+  `File > Import Crystal Structure...` and a file the user found and
+  downloaded by hand. Three things were **measured 2026-09-16 before any of
+  this was scoped**, and the third inverts the obvious order of work.
+  - **An RCSB fetcher with a disk cache already exists** and is not the
+    blocker: `services/receptor_library_service.py` fetches
+    `files.rcsb.org/download/{id}.pdb` with a `.cif` fallback, writes to a
+    cache directory, and `ui/dialogs/receptor_library_dialog.py` already
+    drives it. 49 structures are cached on the development machine.
+  - **`read_cif` REFUSES a real RCSB mmCIF, and it was tried rather than
+    assumed.** On the mmCIF the receptor cache holds for RCSB entry 7B6W:
+    *"no usable unit cell:
+    `_cell_length_a`/b/c are missing or non-positive"*. mmCIF spells its tags
+    with a dot -- `_cell.length_a` -- and the reader looks for the classic
+    underscore form. Past that it would refuse again, by name, because
+    coordinates arrive as `_atom_site.Cartn_x` and it wants
+    `_atom_site_fract_x`. The file DOES carry
+    `_atom_sites.fract_transf_matrix`, so the conversion is recoverable. So
+    the RCSB route is **two reader features**, not a download button.
+  - **COD has no client at all, and its files are the dialect the reader
+    already reads.** All six committed CIF fixtures came from COD: classic
+    underscore tags, fractional coordinates, a symmetry-operation loop. The
+    parse chain is already validated against them, including each one's own
+    stated volume and density.
+  - **So COD first.** In order, each shippable on its own:
+    1. **Fetch a COD entry by its ID.** A number the user pastes, a cached
+       file, the existing import path, and the report they already get. The
+       download URL pattern must be CONFIRMED against the live service before
+       it is written down -- it is not recorded here from memory.
+    2. **Search COD by formula or name**, which needs its query interface
+       read first, and a decision about what a result row can honestly show
+       before the file is fetched.
+    3. **RCSB into the crystal path**, which is the two reader features
+       above -- and **the weakest of the three**, for a reason worth stating
+       so it is not re-argued. RCSB structures already enter this app through
+       a different door: Import Macromolecule and the receptor library fetch
+       them and show them in the Mol* viewer, as `MacromoleculeModel`, not as
+       `Crystal`. So this item is not "let PDB files in"; it is "read one AS
+       A PERIODIC SOLID" -- cell, symmetry expansion, powder pattern, EQeq
+       charges. The PDB is overwhelmingly proteins, where the cell and
+       symmetry are real (it is how they were solved) but every downstream
+       crystal feature here is aimed at small-molecule and inorganic
+       structures: a protein unit cell is far past the charge budget, and a
+       coordination shell is not what anybody opens a PDB entry for. Two
+       reader features for a use case that mostly is not there.
+  - **DECIDED 2026-09-16, with Alex:** roadmap only for now, and the order
+    above stands. **Fetch-by-ID alone was judged not worth shipping** --
+    "having to know the COD number kind of defeats the purpose of casual
+    importing" -- so the first thing built here should be **1 and 2
+    together**, search included, or nothing. The network approach is settled
+    in advance so it is not re-litigated: through `net.py`, cached to disk
+    like the receptor library, and no test on the network.
+  - **Constraints that apply to all three:**
+    - every outbound request goes through `net.py`, so it identifies the app
+      -- a missing User-Agent is a 403 on some hosts;
+    - **no test may reach the network.** The receptor library's own tests are
+      the pattern to copy;
+    - a fetched file is cached and the cache is what later runs read, for the
+      reason the receptor cache exists: a diagnostic that depends on a
+      third-party service being up is not a diagnostic;
+    - a structure that arrives is still only as good as its deposition, and
+      nothing here refines it.
+- **Building a crystal in the app, and what that can honestly mean.** Asked
+  for directly, and worth splitting because one half is impossible and the
+  other half is ordinary.
+  - **NOT from a drawing or a SMILES.** That is crystal structure prediction:
+    an open research problem where real polymorphs sit under 1 kJ/mol apart,
+    below the error of the methods ranking them. `docs/SCIENTIFIC_LIMITATIONS.md`
+    leads its crystal section with this, and nothing here should erode it.
+  - **But entering a measured structure by hand is data entry, not
+    prediction**, and everything downstream already exists -- `expand()`, the
+    report, the powder pattern, EQeq charges. A builder taking a cell, a
+    space group and a few site coordinates would reach all of it, and is the
+    honest form of "I want to make one myself".
+  - **And a prototype library is the same thing with the packing supplied:**
+    rock salt, fluorite, wurtzite, perovskite, each with its sites fixed and
+    the element and lattice parameter chosen by the user. That is how simple
+    inorganics are actually built by hand. It is **not** a prediction, and a
+    result built this way must say which prototype it came from, because the
+    answer is only as right as the assumption that the compound takes that
+    structure.
+  - **Either one needs a refusal it cannot be talked out of:** a structure
+    the user typed is not a measured one, and every number derived from it
+    inherits that. The provenance has to travel with it, the way a
+    reconstruction label travels with the EQeq parameter table.
 - **Geometry-dependent charges at a pH.** Not started, and deliberately
   separate from the item above. It needs the coordinate gate recorded there:
   protonation must not move or lose the conformer's heavy atoms.

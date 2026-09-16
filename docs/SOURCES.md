@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: d9e0289a83201fd2ba9867aab36d83fab4639d429c128ec1093e49185abcada1 -->
+<!-- SOURCE SHA256: a474d6de43c95bd0915ae7053a44390e8ac899585b30aa90a9c8a9d6521f03ef -->
 
 # Sources
 
@@ -95,7 +95,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`allred1961`](#allred1961) | reference_table | shipped | citation |
 | [`almenningen1963`](#almenningen1963) | literature | **not shipped** | citation + claim |
 | [`alves2014`](#alves2014) | literature | reference only | citation |
-| [`andersen1999`](#andersen1999) | literature | reference only | citation |
+| [`andersen1999`](#andersen1999) | literature | shipped | citation + claim |
 | [`aqsoldb`](#aqsoldb) | dataset | shipped | citation |
 | [`autodock_vina`](#autodock_vina) | software | shipped | citation + claim |
 | [`avdeef2007`](#avdeef2007) | literature | shipped | citation + claim |
@@ -188,7 +188,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`miller1990`](#miller1990) | literature | shipped | citation + claim |
 | [`miller_polarizability`](#miller_polarizability) | reference_table | reference only | citation |
 | [`molstar`](#molstar) | software | shipped | citation |
-| [`moore1970`](#moore1970) | literature | reference only | citation |
+| [`moore1970`](#moore1970) | literature | shipped | citation + claim |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`mortier1986`](#mortier1986) | literature | reference only | citation |
 | [`muser2012`](#muser2012) | literature | reference only | citation + claim |
@@ -251,7 +251,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
 | [`wildman1999`](#wildman1999) | literature | shipped | citation |
 | [`wilmer2011`](#wilmer2011) | literature | reference only | citation |
-| [`wilmer2012`](#wilmer2012) | literature | reference only | citation |
+| [`wilmer2012`](#wilmer2012) | literature | shipped | citation + claim |
 | [`wilmer2012_correction`](#wilmer2012_correction) | literature | reference only | citation |
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
 | [`zhang2009`](#zhang2009) | literature | reference only | citation |
@@ -2677,35 +2677,10 @@ DOI and pages confirmed against Crossref.
 | | |
 | --- | --- |
 | Identifier | [10.1021/jz3008485](https://doi.org/10.1021/jz3008485) |
-| Status | reference only |
-| Verification | citation |
-| Verified | 2026-09-14 |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-09-16 |
 | Local copy | `wilmer2012.pdf` (not checked) |
-
-**Why it is reference only.** EQEQ, A DELIBERATELY NON-ITERATIVE VARIANT, NOT A SOURCE FOR THE 1991 METHOD.
-Useful context only: it notes that QEq's hydrogen term is cubic in the energy,
-which guarantees a minimum but forces iteration -- the loop whose LiH
-behaviour amendment A7 diagnoses.
-
-ITS SUPPORTING INFORMATION IS HELD (`wilmer2012_si.pdf`, 24 pp): the full
-derivation (S1), the EQeq inputs used for the 12 MOFs (S3), and the VASP and
-GCMC details. EQeq is recorded under ROADMAP's periodic charge equilibration,
-not as a molecular calculator.
-
-WHAT THE PDF ITSELF DOES NOT CONTAIN (corrected 2026-09-15): S2 shows the
-ionization energies only as plots, S5 is a one-line pointer to a zip, and S8 is
-a paragraph pointing at the source file. Those are ACCOMPANYING FILES.
-
-THE ACCOMPANYING STRUCTURES AND CHARGES ARE NOW HELD (same day), as
-`wilmer2012_si/jz3008485_si_002/`: 12 MOFs x 4 charge sets (EQeq, REPEAT,
-ChelpG, AMS Qeq), each file carrying its unit cell and per-atom charges. All 12
-atom counts match the paper's Table 1 and every EQeq set sums to zero, so this
-is an exact per-atom oracle. STILL NOT HELD: ionizationData.dat and
-EQeq_v1_00.cpp. benchmarks/charges/periodic/FEASIBILITY.md section 8 records
-the revision, and the outcome is now FEASIBLE with the parameter table as a
-named substitution.
-
-DOI and pages confirmed against Crossref.
 
 ### ionescu2013
 
@@ -2749,26 +2724,10 @@ misspelt Koča; the PDF settles it).
 | | |
 | --- | --- |
 | Identifier | [10.1063/1.556047](https://doi.org/10.1063/1.556047) |
-| Status | reference only |
-| Verification | citation |
-| Verified | 2026-09-15 |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-09-16 |
 | Local copy | `andersen1999.pdf` (not checked) |
-
-**Why it is reference only.** ONE OF THE TWO SOURCES EQEQ'S PARAMETER TABLE WOULD HAVE TO BE REBUILT FROM.
-Wilmer 2012's `ionizationData.dat` is not in the ACS package, and its SI S2
-cites this review for the electron affinities and Moore 1970 for the ionization
-potentials. Recommended electron affinities for the elements to Z = 94.
-
-Held and readable: the PDF carries a text layer and its recommended values
-extract (spot-checked 2026-09-15: C 1.262 118 eV, O 1.461 112, Cl 3.612 724).
-
-A TABLE BUILT FROM THIS IS A RECONSTRUCTION, NOT WILMER'S FILE, and any
-periodic EQeq comparison must say so: otherwise a per-atom mismatch has two
-candidate causes at once. See benchmarks/charges/periodic/FEASIBILITY.md.
-
-Authors, title, journal, volume, pages and year confirmed against Crossref;
-the DOI resolves to the AIP record. Wilmer's own reference list prints
-"Haugenc" and omits Hotop, which the article's first page settles.
 
 ### moore1970
 
@@ -2779,23 +2738,10 @@ the DOI resolves to the AIP record. Wilmer's own reference list prints
 | | |
 | --- | --- |
 | Identifier | [10.6028/NBS.NSRDS.34](https://doi.org/10.6028/NBS.NSRDS.34) |
-| Status | reference only |
-| Verification | citation |
-| Verified | 2026-09-15 |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-09-16 |
 | Local copy | `Moore1970.pdf` (not checked) |
-
-**Why it is reference only.** THE OTHER SOURCE FOR A REBUILT EQEQ PARAMETER TABLE (see `andersen1999`).
-Ionization potentials, in eV, for the elements and their successive ionization
-stages, from optical spectra.
-
-Held and readable: 30 pages with an OCR text layer, and Table I extracts as
-Z, element, then the first through fifth ionization potentials (verified on the
-page carrying Po 8.42, Rn 10.748, Ra 5.279/10.147, Th 11.5/20.0/28.8). Cells
-arrive one per line, so a positional read is required -- the trap
-docs/LESSONS and the PDF notes already record for multi-column tables.
-
-Title, author, series number and year confirmed against Crossref; the DOI
-resolves to the free NIST PDF at nvlpubs.nist.gov.
 
 ### wilmer2011
 

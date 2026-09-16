@@ -99,6 +99,160 @@ def inapplicable_calculators(registry: Any = None) -> list[str]:
     )
 
 
+#: Above this many atoms the report does not equilibrate charges, and says so.
+#:
+#: **A REPORTING CHOICE, NOT A LIMIT OF THE METHOD**, for the reason the powder caps below are:
+#: `build_crystal_report` runs synchronously on the UI thread, at import and again on every
+#: selection, so what it can afford is a budget rather than a physical bound. The solve is O(N^2)
+#: over 125 cells -- measured on Wilmer's twelve MOFs: 276 atoms 0.46 s, 424 atoms 1.38 s, 624 atoms
+#: 3.46 s -- so 500 buys about 2 s, and covers nine of those twelve; the largest committed CIF
+#: fixture has 1,488 atoms and would be 20 s. `chem/periodic_charges.py` itself has no cap; a caller
+#: who wants HKUST-1's 624 atoms gets them.
+#:
+#: **SIZE IS NOT WHAT ACTUALLY STOPS THIS ON REAL FILES.** Measured over the six committed CIF
+#: fixtures: one computes, one is over the cap, and **four refuse for partial occupancy** -- which is
+#: pre-registration 1.5's concern, arriving exactly where it said it would.
+CHARGE_MAX_ATOMS = 500
+
+
+#: **A REFUSAL IS STANDARD, NOT ADVANCED, AND DRIVING THE APP IS WHAT SAID SO.** The row was written
+#: ADVANCED, copying the powder pattern's "not calculated" row -- and the default detail hides
+#: ADVANCED facts, so a disordered CIF opened in the real dialog showed no charge row whatever:
+#: "0 of 45 facts match 'charge'". Four of the six committed CIF fixtures take that path, so the
+#: common case for this feature was the invisible one. It is the same finding the powder summary
+#: already carries one block down, arriving at the refusal instead of the result.
+_REFUSAL_DETAIL = Detail.STANDARD
+
+
+def _charge_facts(crystal: Crystal) -> list[Fact]:
+    """EQeq partial charges per element, or a row saying why there are none.
+
+    **PER ELEMENT RATHER THAN PER ATOM.** HKUST-1 is 624 atoms and this report is read, not mined;
+    the spread within an element is what tells a reader whether the equilibration did anything, and
+    it is printed beside the mean rather than summarised away.
+    """
+    from openchem.chem.periodic_charges import (
+        COULOMB_EV_ANGSTROM,
+        COULOMB_SCALING,
+        HYDROGEN_AFFINITY_EV,
+        LATTICE_SHELLS,
+        MODEL_SCOPE,
+        compute_periodic_charges,
+    )
+
+    atoms = crystal.expand()
+    if len(atoms) > CHARGE_MAX_ATOMS:
+        return [
+            _fact(
+                FactCategory.STRUCTURE,
+                "Partial charges (EQeq)",
+                None,
+                f"not calculated here -- {len(atoms)} atoms in the cell, and this report "
+                f"equilibrates up to {CHARGE_MAX_ATOMS}",
+                limitations=(
+                    "A budget for a report that is rebuilt on every selection, not a limit of the "
+                    "method: the solve grows with the square of the atom count.",
+                ),
+                detail=_REFUSAL_DETAIL,
+            )
+        ]
+
+    result = compute_periodic_charges(crystal)
+    if result.refusal:
+        return [
+            _fact(
+                FactCategory.STRUCTURE,
+                "Partial charges (EQeq)",
+                None,
+                f"not calculated -- {result.message}",
+                detail=_REFUSAL_DETAIL,
+            )
+        ]
+
+    by_element: dict[str, list[float]] = {}
+    for charge, element in zip(result.charges, result.elements):
+        by_element.setdefault(element, []).append(charge)
+    ordered = sorted(by_element, key=lambda element: -abs(sum(by_element[element]) / len(by_element[element])))
+
+    headline = "; ".join(
+        f"{element} {sum(by_element[element]) / len(by_element[element]):+.3f}" for element in ordered[:4]
+    )
+    if len(ordered) > 4:
+        headline += f"; {len(ordered) - 4} more"
+    centres = ", ".join(f"{element} {centre:+d}" for element, centre in sorted(result.centres.items()))
+
+    limitations = [MODEL_SCOPE]
+    if result.wrapped_sites:
+        limitations.append(
+            f"{result.wrapped_sites} site(s) of this file are written outside the unit cell and were "
+            "read into it. A lattice sum truncated at 5x5x5 cells is invariant to translating the "
+            "whole structure and not to translating one atom of it, so charges computed from the "
+            "file's own representatives would differ."
+        )
+
+    facts = [
+        _fact(
+            FactCategory.STRUCTURE,
+            "Partial charges (EQeq)",
+            len(result.charges),
+            f"{len(result.charges)} atoms; {headline}",
+            # **NO `units`, FOR THE REASON THE POWDER LINES BELOW CARRY NONE**, and found the same
+            # way -- by looking at the row. `Fact.units` belongs to `value`, and a consumer composes
+            # it onto `display_value`; with units="e" this painted
+            # "60 atoms; F -0.371; H +0.122; C +0.062 e", which labels the last element's mean and
+            # not the others. Worse here than there: `value` is the ATOM COUNT, which is not in e at
+            # all. The per-element rows below are sentences too, and carry none for the same reason.
+            basis=Basis.HEURISTIC,
+            evidence=(
+                "Wilmer, Kim & Snurr, J. Phys. Chem. Lett. 2012, 3, 2506, with the corrected "
+                "eq 64 and the constants its accompanying code carries.",
+                f"Charge centres used: {centres}. They are an INPUT, and the paper's own text and "
+                "data file disagree about palladium.",
+                "Validated against the twelve MOFs published with the method: every one of their "
+                "3,452 atoms reproduces at the printed precision.",
+                # **THE SETTINGS, BECAUSE TWO OF THEM CHANGE THE ANSWER AND NEITHER IS IN THE
+                # ARTICLE.** k and lambda come from the accompanying code (the article alone gives
+                # 8.6226 per pair against 8.64), and the shell count is the paper's own -- at
+                # 7x7x7 ten of MIL-47's 72 charges move in their third decimal, so it is a stated
+                # setting rather than a converged limit.
+                f"Direct lattice sum over {2 * LATTICE_SHELLS + 1}x{2 * LATTICE_SHELLS + 1}x"
+                f"{2 * LATTICE_SHELLS + 1} cells, k = {COULOMB_EV_ANGSTROM} eV A, "
+                f"lambda = {COULOMB_SCALING}, hydrogen's I0 set to "
+                f"{HYDROGEN_AFFINITY_EV} eV by the paper's own ad hoc choice.",
+                "The ionisation potentials and electron affinities are OUR RECONSTRUCTION from "
+                "Moore 1970 and Andersen 1999, the two sources the method's SI cites; every value "
+                "was then shown identical to the table its published code ships.",
+            ),
+            limitations=tuple(limitations),
+            detail=Detail.STANDARD,
+        )
+    ]
+    for element in ordered:
+        values = by_element[element]
+        mean = sum(values) / len(values)
+        facts.append(
+            _fact(
+                FactCategory.STRUCTURE,
+                f"  {element}",
+                round(mean, 4),
+                f"mean {mean:+.3f}, {min(values):+.3f} to {max(values):+.3f} over {len(values)} atoms",
+                basis=Basis.HEURISTIC,
+                detail=Detail.ADVANCED,
+            )
+        )
+    facts.append(
+        _fact(
+            FactCategory.STRUCTURE,
+            "  Charge balance",
+            result.adjusted_atoms,
+            f"sums to zero by construction; the 3-decimal rounding moved {result.adjusted_atoms} atom(s) "
+            "by 0.001 e to keep it there",
+            detail=Detail.ADVANCED,
+        )
+    )
+    return facts
+
+
 #: How many powder lines the crystal report carries, and how far out.
 #:
 #: **BOTH ARE REPORTING CHOICES, NOT PHYSICS**, which is why they live
@@ -475,6 +629,12 @@ def build_crystal_report(crystal: Crystal, *, report_id: str = "crystal") -> Rep
                     ),
                 )
             )
+
+    # The first calculation in this application that is ABOUT a periodic solid rather than about a
+    # molecule, so it lives here beside the powder pattern rather than in the calculator registry --
+    # `CalculationRequest` carries a `molecule_uuid` and nothing else, and
+    # `test_a_calculation_cannot_even_be_ADDRESSED_to_a_crystal` keeps it that way on purpose.
+    facts.extend(_charge_facts(crystal))
 
     # **Say what was NOT run.** This was computed and thrown away before:
     # `inapplicable_calculators` existed, had a guard test, and had no

@@ -2097,7 +2097,9 @@ and a molecular atom that share index 7 are not the same object.
 Every calculator declares the structure kinds it applies to, and the
 default is molecule-only. Today **none of the 60 registered calculators
 declares a crystal**, so the crystal report says so outright rather than
-implying some subset applies. That is not a gap being admitted — a
+implying some subset applies. (The one calculation that *is* about a periodic
+solid — EQeq partial charges, below — is a section of that report rather than
+a registry entry, because a `CalculationRequest` cannot name a crystal.) That is not a gap being admitted — a
 molecular weight, a logP or a rotatable-bond count is a property of a
 discrete molecule, and running one on a single arbitrary formula unit
 would give an arithmetically correct number about a species that does
@@ -2289,6 +2291,83 @@ worse than none.
   protects. A species absent from the table **entirely** is a different
   case and does refuse the intensities, naming the element — a pattern
   computed while skipping an atom is a pattern of the other atoms.
+
+### Partial charges for a crystal (EQeq)
+
+**File → Import Crystal Structure** reports a partial charge on every atom
+of the unit cell, by element, with the spread beside the mean. It is the
+first calculation here that is about the periodic solid rather than about a
+molecule — and it is **not a registered calculator either**, for a structural
+reason: `CalculationRequest` carries a `molecule_uuid` and nothing else, so a
+crystal cannot be addressed to one at all. It ships as a section of the
+crystal report, where the powder pattern already lives.
+
+**What the number is.** The charges Wilmer, Kim & Snurr's extended charge
+equilibration assigns to this structure — never "the charges of this
+material". EQeq is an empirical equilibration built on measured ionization
+potentials and electron affinities, solved once rather than iterated.
+
+**Validated against the source's own numbers.** Every one of the 3,452 atoms
+of the twelve MOFs published with the method reproduces its published charge
+at the printed precision. Ten of the twelve reproduce again through the
+application's own path.
+
+**The other two are the interesting ones, and they are a property of the
+method.** A lattice sum of a `1/r` kernel truncated at 5×5×5 cells is
+conditionally convergent: its value depends on the region summed. Translating
+the *whole* structure changes nothing; translating **one atom** by a cell edge
+changes its pair terms by electronvolts. The deposited Ni-MOF74 and Zn-MOF74
+files place atoms up to 26 Å outside their cell, and their published charges
+are what those coordinates give. A CIF's fractional coordinates are read into
+the cell, so this application computes the in-cell answer — well defined for
+any file, which the published convention is not — and the report says how many
+sites it moved. At 5×5×5 cells the difference reaches 0.16 e, and it does not
+shrink at 8×8×8.
+
+**It is not converged, and the published setting is the one that reproduces.**
+Going from 5×5×5 to 7×7×7 changes the third decimal of 10 of MIL-47's 72 atoms
+and 78 of ZIF-8's 276. The shipped setting is the paper's own, because that is
+what its charges are; it is not a claim that the sum has converged.
+
+**What it refuses, rather than approximating:**
+
+- **any site with partial occupancy, or any two atoms closer than 0.5 Å** —
+  choosing between disorder alternatives is not something the file does. This
+  is the binding constraint on real structures rather than anything about the
+  model: **four of the six CIFs shipped as test fixtures refuse here**, and
+  the corpus that validated the method was fully ordered;
+- **an element with no entry**, or one whose charge centre is deeper than the
+  ionization potentials printed;
+- **an element at a neutral charge centre whose sources print no bound
+  electron affinity** (magnesium and zinc print "<0"). Never substituted with
+  zero;
+- **a structure with no unit cell**, which is not what this method computes.
+
+**The charge centres are an input, and the paper's two artifacts disagree
+about them.** Its data file lists Mg, Co, Ni, Cu and Zn at +2, V and Zr at +4,
+and no palladium; its text names "Pd: +2". Measured on Pd(2-pymo)₂: with Pd at
++2 every atom reproduces, and with Pd at 0 — what the file implies — 2.4% do.
+The shipped table is the union, each entry recording which artifact it came
+from, and the result names the centre used for every element. An element
+outside the table takes 0, which for a metal is a different model, so that is
+stated rather than assumed harmless.
+
+**These are not DFT charges.** The method's own paper reports a mean
+|q − q_REPEAT| of 0.11 to 0.24 e per atom against DFT-derived ESP charges on
+those twelve MOFs, and that number travels with every result.
+
+**The report will not equilibrate an arbitrarily large cell.** It is rebuilt
+synchronously whenever a crystal is selected and the solve grows with the
+square of the atom count — 0.46 s at 276 atoms, 3.46 s at 624 — so above 500
+atoms the report says it did not run rather than freezing. That cap is a
+budget for a report, not a limit of the method: `chem/periodic_charges.py`
+itself has none.
+
+**One last order dependence, inherited deliberately.** After rounding to three
+decimals the cell need not still be neutral, and the source restores it by
+moving the first atoms by 0.001 e. Which atoms carry that therefore depends on
+the order the file writes them in. The count of atoms it moved is reported
+beside the charges rather than left silent.
 
 ## Where this is enforced
 

@@ -1,0 +1,1012 @@
+{
+ "_source_key": "moore1970",
+ "_supplementary_source_keys": [
+  "andersen1999",
+  "wilmer2012",
+  "wilmer2012_correction"
+ ],
+ "_note": "EQeq's parameter table, RECONSTRUCTED. This is NOT Wilmer 2012's ionizationData.dat, which was missing from the ACS package when this was built; TRIAGE check 2.9 showed the two agree value for value.",
+ "_ionization_potentials": "Moore 1970, NSRDS-NBS 34 Table I [source:moore1970]",
+ "_electron_affinities": "Andersen, Haugen & Hotop 1999 Table 3 [source:andersen1999]",
+ "_affinity_absent": "null means the source prints no bound value (\"<0\"); it is never read as zero",
+ "elements": {
+  "H": {
+   "z": 1,
+   "electron_affinity_eV": 0.754204,
+   "affinity_as_printed": "6083.06 cm-1 = 0.754204 eV",
+   "ionization_potentials_eV": [
+    13.598
+   ]
+  },
+  "He": {
+   "z": 2,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    24.587,
+    54.416
+   ]
+  },
+  "Li": {
+   "z": 3,
+   "electron_affinity_eV": 0.618049,
+   "affinity_as_printed": "4984.9 cm-1 = 0.618049 eV",
+   "ionization_potentials_eV": [
+    5.392,
+    75.638,
+    122.451
+   ]
+  },
+  "Be": {
+   "z": 4,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    9.322,
+    18.211,
+    153.893,
+    217.713
+   ]
+  },
+  "B": {
+   "z": 5,
+   "electron_affinity_eV": 0.279723,
+   "affinity_as_printed": "2256.12 cm-1 = 0.279723 eV",
+   "ionization_potentials_eV": [
+    8.298,
+    25.154,
+    37.93,
+    259.368,
+    340.217
+   ]
+  },
+  "C": {
+   "z": 6,
+   "electron_affinity_eV": 1.262118,
+   "affinity_as_printed": "10179.7 cm-1 = 1.26212 eV",
+   "ionization_potentials_eV": [
+    11.26,
+    24.383,
+    47.887,
+    64.492,
+    392.077,
+    489.981
+   ]
+  },
+  "N": {
+   "z": 7,
+   "electron_affinity_eV": -0.07,
+   "affinity_as_printed": "-560 cm-1 = -0.07 eV",
+   "ionization_potentials_eV": [
+    14.534,
+    29.601,
+    47.448,
+    77.472,
+    97.888,
+    552.057,
+    667.029
+   ]
+  },
+  "O": {
+   "z": 8,
+   "electron_affinity_eV": 1.461112,
+   "affinity_as_printed": "11784.7 cm-1 = 1.46111 eV",
+   "ionization_potentials_eV": [
+    13.618,
+    35.116,
+    54.934,
+    77.412,
+    113.896,
+    138.116,
+    739.315,
+    871.387
+   ]
+  },
+  "F": {
+   "z": 9,
+   "electron_affinity_eV": 3.401189,
+   "affinity_as_printed": "27432.4 cm-1 = 3.40119 eV",
+   "ionization_potentials_eV": [
+    17.422,
+    34.97,
+    62.707,
+    87.138,
+    114.24,
+    157.161,
+    185.182,
+    953.886,
+    1103.09
+   ]
+  },
+  "Ne": {
+   "z": 10,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    21.564,
+    40.962,
+    63.45,
+    97.11,
+    126.21,
+    157.93,
+    207.27,
+    239.09,
+    1195.8,
+    1362.16
+   ]
+  },
+  "Na": {
+   "z": 11,
+   "electron_affinity_eV": 0.547926,
+   "affinity_as_printed": "4419.32 cm-1 = 0.547926 eV",
+   "ionization_potentials_eV": [
+    5.139,
+    47.286,
+    71.64,
+    98.91,
+    138.39,
+    172.15,
+    208.47,
+    264.18,
+    299.87,
+    1465.09
+   ]
+  },
+  "Mg": {
+   "z": 12,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    7.646,
+    15.035,
+    80.143,
+    109.24,
+    141.26,
+    186.5,
+    224.94,
+    265.9,
+    327.95,
+    367.53
+   ]
+  },
+  "Si": {
+   "z": 14,
+   "electron_affinity_eV": 1.389521,
+   "affinity_as_printed": "11207.2 cm-1 = 1.38952 eV",
+   "ionization_potentials_eV": [
+    8.151,
+    16.345,
+    33.492,
+    45.141,
+    166.77,
+    205.05,
+    246.52,
+    303.17,
+    351.1,
+    401.43
+   ]
+  },
+  "P": {
+   "z": 15,
+   "electron_affinity_eV": 0.7465,
+   "affinity_as_printed": "6021 cm-1 = 0.7465 eV",
+   "ionization_potentials_eV": [
+    10.486,
+    19.725,
+    30.18,
+    51.37,
+    65.023,
+    220.43,
+    263.22,
+    309.41,
+    371.73,
+    424.5
+   ]
+  },
+  "S": {
+   "z": 16,
+   "electron_affinity_eV": 2.077103,
+   "affinity_as_printed": "16753 cm-1 = 2.0771 eV",
+   "ionization_potentials_eV": [
+    10.36,
+    23.33,
+    34.83,
+    47.3,
+    72.68,
+    88.049,
+    280.93,
+    328.23,
+    379.1,
+    447.09
+   ]
+  },
+  "Cl": {
+   "z": 17,
+   "electron_affinity_eV": 3.612724,
+   "affinity_as_printed": "29138.6 cm-1 = 3.61272 eV",
+   "ionization_potentials_eV": [
+    12.967,
+    23.81,
+    39.61,
+    53.46,
+    67.8,
+    97.03,
+    114.193,
+    348.28,
+    400.05,
+    455.62
+   ]
+  },
+  "Ar": {
+   "z": 18,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    15.759,
+    27.629,
+    40.74,
+    59.81,
+    75.02,
+    91.007,
+    124.319,
+    143.456,
+    422.44,
+    478.68
+   ]
+  },
+  "K": {
+   "z": 19,
+   "electron_affinity_eV": 0.501459,
+   "affinity_as_printed": "4044.54 cm-1 = 0.501459 eV",
+   "ionization_potentials_eV": [
+    4.341,
+    31.625,
+    45.72,
+    60.91,
+    82.66,
+    100.0,
+    117.56,
+    154.86,
+    175.814,
+    503.44
+   ]
+  },
+  "Ca": {
+   "z": 20,
+   "electron_affinity_eV": 0.02455,
+   "affinity_as_printed": "198 cm-1 = 0.02455 eV",
+   "ionization_potentials_eV": [
+    6.113,
+    11.871,
+    50.908,
+    67.1,
+    84.41,
+    108.78,
+    127.7,
+    147.24,
+    188.54,
+    211.27
+   ]
+  },
+  "Sc": {
+   "z": 21,
+   "electron_affinity_eV": 0.188,
+   "affinity_as_printed": "1520 cm-1 = 0.188 eV",
+   "ionization_potentials_eV": [
+    6.54,
+    12.8,
+    24.76,
+    73.47,
+    91.66,
+    111.1,
+    138.0,
+    158.7,
+    180.02,
+    225.32
+   ]
+  },
+  "Ti": {
+   "z": 22,
+   "electron_affinity_eV": 0.084,
+   "affinity_as_printed": "680 cm-1 = 0.084 eV",
+   "ionization_potentials_eV": [
+    6.82,
+    13.58,
+    27.491,
+    43.266,
+    99.22,
+    119.36,
+    140.8,
+    168.5,
+    193.2,
+    215.91
+   ]
+  },
+  "V": {
+   "z": 23,
+   "electron_affinity_eV": 0.525,
+   "affinity_as_printed": "4230 cm-1 = 0.525 eV",
+   "ionization_potentials_eV": [
+    6.74,
+    14.65,
+    29.31,
+    46.707,
+    65.23,
+    128.12,
+    150.17,
+    173.7,
+    205.8,
+    230.5
+   ]
+  },
+  "Cr": {
+   "z": 24,
+   "electron_affinity_eV": 0.67584,
+   "affinity_as_printed": "5451 cm-1 = 0.67584 eV",
+   "ionization_potentials_eV": [
+    6.766,
+    16.5,
+    30.96,
+    49.1,
+    69.3,
+    90.56,
+    161.1,
+    184.7,
+    209.3,
+    244.4
+   ]
+  },
+  "Mn": {
+   "z": 25,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    7.435,
+    15.64,
+    33.667,
+    51.2,
+    72.4
+   ]
+  },
+  "Fe": {
+   "z": 26,
+   "electron_affinity_eV": 0.151,
+   "affinity_as_printed": "1220 cm-1 = 0.151 eV",
+   "ionization_potentials_eV": [
+    7.87,
+    16.18,
+    30.651,
+    54.8,
+    75.0
+   ]
+  },
+  "Co": {
+   "z": 27,
+   "electron_affinity_eV": 0.6633,
+   "affinity_as_printed": "5350 cm-1 = 0.6633 eV",
+   "ionization_potentials_eV": [
+    7.86,
+    17.06,
+    33.5,
+    51.3,
+    79.5
+   ]
+  },
+  "Ni": {
+   "z": 28,
+   "electron_affinity_eV": 1.15716,
+   "affinity_as_printed": "9333.1 cm-1 = 1.15716 eV",
+   "ionization_potentials_eV": [
+    7.635,
+    18.168,
+    35.17,
+    54.9,
+    75.5
+   ]
+  },
+  "Cu": {
+   "z": 29,
+   "electron_affinity_eV": 1.23578,
+   "affinity_as_printed": "9967.2 cm-1 = 1.23578 eV",
+   "ionization_potentials_eV": [
+    7.726,
+    20.292,
+    36.83,
+    55.2,
+    79.9
+   ]
+  },
+  "Zn": {
+   "z": 30,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    9.394,
+    17.964,
+    39.722,
+    59.4,
+    82.6
+   ]
+  },
+  "Ga": {
+   "z": 31,
+   "electron_affinity_eV": 0.41,
+   "affinity_as_printed": "3300 cm-1 = 0.41 eV",
+   "ionization_potentials_eV": [
+    5.999,
+    20.51,
+    30.71
+   ]
+  },
+  "Ge": {
+   "z": 32,
+   "electron_affinity_eV": 1.232712,
+   "affinity_as_printed": "9942.49 cm-1 = 1.23271 eV",
+   "ionization_potentials_eV": [
+    7.899,
+    15.934,
+    34.22,
+    45.71,
+    93.5
+   ]
+  },
+  "As": {
+   "z": 33,
+   "electron_affinity_eV": 0.814,
+   "affinity_as_printed": "6570 cm-1 = 0.814 eV",
+   "ionization_potentials_eV": [
+    9.81,
+    18.633,
+    28.351,
+    50.13,
+    62.63,
+    127.6
+   ]
+  },
+  "Se": {
+   "z": 34,
+   "electron_affinity_eV": 2.02067,
+   "affinity_as_printed": "16297.8 cm-1 = 2.02067 eV",
+   "ionization_potentials_eV": [
+    9.752,
+    21.19,
+    30.82,
+    42.944,
+    68.3,
+    81.7,
+    155.4
+   ]
+  },
+  "Br": {
+   "z": 35,
+   "electron_affinity_eV": 3.363588,
+   "affinity_as_printed": "27129.2 cm-1 = 3.36359 eV",
+   "ionization_potentials_eV": [
+    11.814,
+    21.8
+   ]
+  },
+  "Kr": {
+   "z": 36,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    13.999,
+    24.359,
+    36.95,
+    52.5,
+    64.7,
+    78.5,
+    111.0
+   ]
+  },
+  "Rb": {
+   "z": 37,
+   "electron_affinity_eV": 0.485916,
+   "affinity_as_printed": "3919.18 cm-1 = 0.485916 eV",
+   "ionization_potentials_eV": [
+    4.177,
+    27.28
+   ]
+  },
+  "Sr": {
+   "z": 38,
+   "electron_affinity_eV": 0.05206,
+   "affinity_as_printed": "419.9 cm-1 = 0.05206 eV",
+   "ionization_potentials_eV": [
+    5.695,
+    11.03,
+    43.6
+   ]
+  },
+  "Y": {
+   "z": 39,
+   "electron_affinity_eV": 0.307,
+   "affinity_as_printed": "2480 cm-1 = 0.307 eV",
+   "ionization_potentials_eV": [
+    6.38,
+    12.24,
+    20.52,
+    61.8,
+    77.0,
+    93.0
+   ]
+  },
+  "Zr": {
+   "z": 40,
+   "electron_affinity_eV": 0.426,
+   "affinity_as_printed": "3440 cm-1 = 0.426 eV",
+   "ionization_potentials_eV": [
+    6.84,
+    13.13,
+    22.99,
+    34.34,
+    81.5
+   ]
+  },
+  "Nb": {
+   "z": 41,
+   "electron_affinity_eV": 0.893,
+   "affinity_as_printed": "7200 cm-1 = 0.893 eV",
+   "ionization_potentials_eV": [
+    6.88,
+    14.32,
+    25.04,
+    38.3,
+    50.55,
+    102.6
+   ]
+  },
+  "Mo": {
+   "z": 42,
+   "electron_affinity_eV": 0.7472,
+   "affinity_as_printed": "6027 cm-1 = 0.7472 eV",
+   "ionization_potentials_eV": [
+    7.099,
+    16.15,
+    27.16,
+    46.4,
+    61.2
+   ]
+  },
+  "Tc": {
+   "z": 43,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    7.28,
+    15.26,
+    29.54
+   ]
+  },
+  "Ru": {
+   "z": 44,
+   "electron_affinity_eV": 1.04638,
+   "affinity_as_printed": "8439.6 cm-1 = 1.04638 eV",
+   "ionization_potentials_eV": [
+    7.37,
+    16.76,
+    28.47
+   ]
+  },
+  "Rh": {
+   "z": 45,
+   "electron_affinity_eV": 1.14289,
+   "affinity_as_printed": "9218 cm-1 = 1.14289 eV",
+   "ionization_potentials_eV": [
+    7.46,
+    18.08,
+    31.06
+   ]
+  },
+  "Pd": {
+   "z": 46,
+   "electron_affinity_eV": 0.56214,
+   "affinity_as_printed": "4534 cm-1 = 0.56214 eV",
+   "ionization_potentials_eV": [
+    8.34,
+    19.43,
+    32.93
+   ]
+  },
+  "Ag": {
+   "z": 47,
+   "electron_affinity_eV": 1.30447,
+   "affinity_as_printed": "10521.3 cm-1 = 1.30447 eV",
+   "ionization_potentials_eV": [
+    7.576,
+    21.49,
+    34.83
+   ]
+  },
+  "Cd": {
+   "z": 48,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    8.993,
+    16.908,
+    37.48
+   ]
+  },
+  "In": {
+   "z": 49,
+   "electron_affinity_eV": 0.404,
+   "affinity_as_printed": "3260 cm-1 = 0.404 eV",
+   "ionization_potentials_eV": [
+    5.786,
+    18.869,
+    28.03
+   ]
+  },
+  "Sn": {
+   "z": 50,
+   "electron_affinity_eV": 1.112066,
+   "affinity_as_printed": "8969.42 cm-1 = 1.11207 eV",
+   "ionization_potentials_eV": [
+    7.344,
+    14.632,
+    30.502,
+    40.734,
+    72.28
+   ]
+  },
+  "Sb": {
+   "z": 51,
+   "electron_affinity_eV": 1.047401,
+   "affinity_as_printed": "8447.86 cm-1 = 1.0474 eV",
+   "ionization_potentials_eV": [
+    8.641,
+    16.53,
+    25.3,
+    44.2
+   ]
+  },
+  "Te": {
+   "z": 52,
+   "electron_affinity_eV": 1.970875,
+   "affinity_as_printed": "15896.2 cm-1 = 1.97087 eV",
+   "ionization_potentials_eV": [
+    9.009,
+    18.6,
+    27.96,
+    37.41,
+    58.75
+   ]
+  },
+  "I": {
+   "z": 53,
+   "electron_affinity_eV": 3.059038,
+   "affinity_as_printed": "24672.8 cm-1 = 3.05904 eV",
+   "ionization_potentials_eV": [
+    10.451,
+    19.131
+   ]
+  },
+  "Xe": {
+   "z": 54,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    12.13,
+    21.21,
+    32.1
+   ]
+  },
+  "Cs": {
+   "z": 55,
+   "electron_affinity_eV": 0.471626,
+   "affinity_as_printed": "3803.92 cm-1 = 0.471626 eV",
+   "ionization_potentials_eV": [
+    3.894,
+    25.1
+   ]
+  },
+  "Ba": {
+   "z": 56,
+   "electron_affinity_eV": 0.14462,
+   "affinity_as_printed": "1166.4 cm-1 = 0.14462 eV",
+   "ionization_potentials_eV": [
+    5.212,
+    10.004
+   ]
+  },
+  "La": {
+   "z": 57,
+   "electron_affinity_eV": 0.47,
+   "affinity_as_printed": "3790 cm-1 = 0.47 eV",
+   "ionization_potentials_eV": [
+    5.577,
+    11.06,
+    19.175
+   ]
+  },
+  "Ce": {
+   "z": 58,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    5.47,
+    10.85,
+    20.2,
+    36.72
+   ]
+  },
+  "Pr": {
+   "z": 59,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    5.42,
+    10.55,
+    21.62,
+    38.95,
+    57.45
+   ]
+  },
+  "Nd": {
+   "z": 60,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    5.49,
+    10.72
+   ]
+  },
+  "Pm": {
+   "z": 61,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    5.55,
+    10.9
+   ]
+  },
+  "Sm": {
+   "z": 62,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    5.63,
+    11.07
+   ]
+  },
+  "Eu": {
+   "z": 63,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    5.67,
+    11.25
+   ]
+  },
+  "Gd": {
+   "z": 64,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    6.14,
+    12.1
+   ]
+  },
+  "Tb": {
+   "z": 65,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    5.85,
+    11.52
+   ]
+  },
+  "Dy": {
+   "z": 66,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    5.93,
+    11.67
+   ]
+  },
+  "Ho": {
+   "z": 67,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    6.02,
+    11.8
+   ]
+  },
+  "Er": {
+   "z": 68,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    6.1,
+    11.93
+   ]
+  },
+  "Tm": {
+   "z": 69,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    6.18,
+    12.05,
+    23.71
+   ]
+  },
+  "Yb": {
+   "z": 70,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    6.254,
+    12.17,
+    25.2
+   ]
+  },
+  "Lu": {
+   "z": 71,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    5.426,
+    13.9
+   ]
+  },
+  "Hf": {
+   "z": 72,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    7.0,
+    14.9,
+    23.3,
+    33.3
+   ]
+  },
+  "Ta": {
+   "z": 73,
+   "electron_affinity_eV": 0.322,
+   "affinity_as_printed": "2600 cm-1 = 0.322 eV",
+   "ionization_potentials_eV": [
+    7.89
+   ]
+  },
+  "W": {
+   "z": 74,
+   "electron_affinity_eV": 0.815,
+   "affinity_as_printed": "6570 cm-1 = 0.815 eV",
+   "ionization_potentials_eV": [
+    7.98
+   ]
+  },
+  "Re": {
+   "z": 75,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    7.88
+   ]
+  },
+  "Os": {
+   "z": 76,
+   "electron_affinity_eV": 1.0778,
+   "affinity_as_printed": "8693 cm-1 = 1.0778 eV",
+   "ionization_potentials_eV": [
+    8.7
+   ]
+  },
+  "Ir": {
+   "z": 77,
+   "electron_affinity_eV": 1.56436,
+   "affinity_as_printed": "12617.4 cm-1 = 1.56436 eV",
+   "ionization_potentials_eV": [
+    9.1
+   ]
+  },
+  "Au": {
+   "z": 79,
+   "electron_affinity_eV": 2.30861,
+   "affinity_as_printed": "18620.2 cm-1 = 2.30861 eV",
+   "ionization_potentials_eV": [
+    9.225,
+    20.5
+   ]
+  },
+  "Hg": {
+   "z": 80,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    10.437,
+    18.756,
+    34.2
+   ]
+  },
+  "Pb": {
+   "z": 82,
+   "electron_affinity_eV": 0.364,
+   "affinity_as_printed": "2940 cm-1 = 0.364 eV",
+   "ionization_potentials_eV": [
+    7.416,
+    15.032,
+    31.937,
+    42.32,
+    68.8
+   ]
+  },
+  "Bi": {
+   "z": 83,
+   "electron_affinity_eV": 0.942363,
+   "affinity_as_printed": "7600.68 cm-1 = 0.942363 eV",
+   "ionization_potentials_eV": [
+    7.289,
+    16.69,
+    25.56,
+    45.3,
+    56.0
+   ]
+  },
+  "Po": {
+   "z": 84,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    8.42
+   ]
+  },
+  "Rn": {
+   "z": 86,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    10.748
+   ]
+  },
+  "Ra": {
+   "z": 88,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    5.279,
+    10.147
+   ]
+  },
+  "Ac": {
+   "z": 89,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    6.9,
+    12.1
+   ]
+  },
+  "Th": {
+   "z": 90,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    11.5,
+    20.0,
+    28.8
+   ]
+  },
+  "Pu": {
+   "z": 94,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    5.8
+   ]
+  },
+  "Am": {
+   "z": 95,
+   "electron_affinity_eV": null,
+   "affinity_as_printed": "<0",
+   "ionization_potentials_eV": [
+    6.0
+   ]
+  }
+ }
+}

@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Partial charges for a crystal (EQeq).** Opening a CIF now reports the
+  charge on every atom of the unit cell, by element, with the spread beside
+  the mean. It is the first calculation in the application that is about a
+  periodic solid rather than a molecule.
+  - Validated against the twelve MOFs the method was published with: every one
+    of their 3,452 atoms reproduces the published charge. Ten of the twelve do
+    so again through the application's own path; the other two depend on atoms
+    written outside their unit cell, which a CIF does not carry, and the report
+    says when a file does that.
+  - A disordered structure, an element the sources do not parameterise, and a
+    cell over the report's size budget are each refused with the reason rather
+    than approximated. Four of the six CIFs shipped as test fixtures refuse for
+    partial occupancy, which is the honest state of this method on real files.
+  - **Not DFT charges**: the method's own paper puts them 0.11 to 0.24 e per
+    atom away from ESP-derived ones, and that number travels with every result.
+
 - **Dipole Moment and the ESP comparison can use EEM or QEq charges.**
   - Gasteiger stays the default.
   - A model that declines a molecule (EEM on chlorine, QEq on LiH) is shown
