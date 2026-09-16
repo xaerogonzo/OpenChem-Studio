@@ -294,3 +294,68 @@ license shipping a threshold.
   populations' numbers.
 - **GUARD-NOT-CONTRADICTED** → not shipped as validated; returns to Alex.
 - **Anything else** → α is not the guard, and the decision returns to Alex.
+
+## 7-R. Alignment guard — RESULT (2026-09-16, run after commit 25c5d84)
+
+Run as §7 registered: `scratchpad/alignment_study.py`, `PY_EXIT=0`.
+
+**Built-in check:** the §7.1 reduced solve reproduces the benchmark's full solve to
+**6.9 × 10⁻¹¹ e**, so the decomposition below is of the actual charges.
+
+**Validation population: 53 kept, as registered** — 14 dropped as present in the
+naming corpus, 0 as charged, 0 at embedding. (The registered 53 was counted before the
+neutral filter was applied; applying it removed nothing.)
+
+### Question 1 — the mechanism: H1 REFUTED
+
+| calibration positive | max \|q\| | dominant mode, \|λ\|-rank | share of ‖y‖² |
+|---|---|---|---|
+| nitrobenzene | 74.16 | 1 | 0.999 |
+| 1,2,3-triazole | 34.78 | 1 | 1.000 |
+| 1H-1,2,3-triazole | 5.05 | 1 | 0.993 |
+| 2H-tetrazole | 4.20 | 1 | 0.988 |
+| 4H-1,2,4-triazole | 2.74 | 1 | 0.980 |
+| 1H-tetrazole | 2.48 | 1 | 0.962 |
+| **sulfamethoxazole** | 2.48 | **6** | **0.726** |
+| diazomethane | 2.46 | 1 | 0.964 |
+
+- **Positive half FAILS:** sulfamethoxazole's dominant mode is rank 6, outside the
+  registered rank ≤ 3.
+- Negative half holds: the smallest-|λ| mode carries < 0.5 of ‖y‖² in **473 / 473**
+  in-domain solves — **median 0.000, max 0.001**.
+
+**Verdict: REFUTED, as the registered rule defines it.** Recorded without softening:
+seven of eight blow-ups are driven almost entirely by the single smallest mode, and in
+every protein that mode carries essentially nothing, so the data are *largely*
+consistent with the hypothesis. A registered gate that one case fails is failed.
+
+### Question 2 — the scale-free guard α: NOT-VIABLE
+
+- τ_α = **2.126** (smallest over the 8 calibration positives); max α over in-domain
+  negatives = **1.948**.
+- Criterion 1, τ_α > max in-domain negative: **PASS**.
+- Criterion 2, every validation positive ≥ τ_α: **PASS** — 6 positives, α 2.21 – 11.6.
+- Criterion 3, no sound shipped-model validation solve refused: **FAIL — 40 refused**,
+  among them **cyclohexane at max |q| 0.158**, ethylamine 0.601 and 2-butanone 0.752,
+  all under E-HiI/6-31G\*\*/PCM.
+
+**Verdict: NOT-VIABLE.** α catches every blow-up and refuses ordinary molecules with
+modest charges.
+
+### A finding outside both questions, and it bears on §5
+
+§6-R recorded that the 11 shipped models produced no solve above 2.051 **on the naming
+corpus**. **On the independent regulatory corpus they do:**
+
+| molecule | shipped model | max \|q\| |
+|---|---|---|
+| sulfuric acid | E-NPA/6-31G\*/PCM | **4.28** |
+| sulfuric acid | E-NPA/6-31G\*\*/PCM | **4.18** |
+| sulfuric acid | E-HiI/6-31G\*\*/gas | 2.84 |
+| carbon dioxide | E-HiI/6-31G\*\*/PCM | 2.15 |
+
+(And nitroethane reaches 7.79 under the excluded model.) **Excluding
+E-HiI/6-31G\*/PCM did not make the shipped set free of blow-ups;** that conclusion was
+a property of one corpus.
+
+**As §7.4 registered:** α is not the guard, and the decision returns to Alex.
