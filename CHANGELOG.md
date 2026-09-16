@@ -80,6 +80,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Three records said the EQeq paper's supplement held data it does not.**
+  `docs/sources.toml`, the model triage and the roadmap each stated that
+  Wilmer 2012's supporting information gives the ionisation table (S2) and
+  the 12 MOFs' per-atom charges (S5). The held PDF shows S2 only as plots and
+  S5 as a one-line pointer to a zip; the table, the structures, the charges
+  and the source code are accompanying files. The periodic feasibility check
+  that found this is at `benchmarks/charges/periodic/FEASIBILITY.md`. The
+  structures and their per-atom charges have since been fetched, so its outcome
+  is now FEASIBLE with the ionisation table as a named substitution; what the
+  PDF alone contains is unchanged.
+
+- **The EEM element triage now has one exactly reproducible source.** Ionescu
+  et al. 2013's twelve element-typed EEM models were reproduced from their
+  published parameters on their own structures: every atom of the training set
+  and of both test proteins, with the test proteins agreeing to the charge
+  file's own printing precision. Two conventions the paper leaves ambiguous
+  were identified by that reproduction rather than assumed — its distances are
+  in angstrom, and the correlation it prints is the squared Pearson
+  coefficient, which its own equation 7 contradicts. The record is TRIAGE
+  check 2.8, and the models are a candidate for shipping under their own keys,
+  in the protein-fragment domain they were fitted for.
+
+- **SQE's misses now have a measured cause, and it is not where it was
+  looked for.** Mathieu 2007 says its C and λ came from minimising its own
+  error measure, so that point should sit at the bottom of ours. Measured: it
+  does not. Our error falls 3.8% by moving to C = 56.8 eV while λ barely moves
+  (0.8147 against the paper's 0.816), and the curvature at the printed point
+  is indefinite, so the instrument declines to certify stationarity either
+  way. Three candidate causes are ruled out — the numerical solver, the
+  Coulomb kernel's form, and the parameter set, since the paper's second
+  printed model misses in the same direction. The record is TRIAGE check 2.6.
+
 - **A 3D result could name a conformer it was not computed on.** Which
   conformer a calculation used was read after the calculation finished, so a
   conformer search landing mid-run filed the result under the new conformer

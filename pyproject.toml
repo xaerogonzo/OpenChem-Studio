@@ -45,6 +45,9 @@ docking = [
 [dependency-groups]
 dev = [
     "pytest>=8.0",
+    # Benchmarks and their tests only (TRIAGE.md 2.6's Powell minimisation):
+    # nothing in `src/` imports it, so it stays out of the shipped app.
+    "scipy>=1.14",
 ]
 # Not in `dev`: freezing is a release activity, PyInstaller pulls in
 # pefile/pywin32 that nothing else needs, and a test run should not have to

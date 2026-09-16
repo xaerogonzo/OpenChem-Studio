@@ -79,6 +79,12 @@ saved as `nistor2006_si.pdf.pdf`, the name the fixture headers keep).
   coordinates is exhausted**, so the geometry HOLD stands until a new source
   appears. Rebuilding the hydrogens would be a reconstruction, not the
   source.
+- **Revised by check 2.7 (2026-09-15): PARTIAL.** No hydrogen is known to be
+  missing: the coordinate column is displaced against the atom rows. One-row
+  rotation recovers 6 molecules, and on them no method reproduces the printed
+  charges (section 3.7).
+  - Method i and iii R_eq10 come within 2e-3 e on SiH4 and CH4.
+  - The larger molecules miss by up to 0.18 e.
 
 ### SQE: Mathieu 2007
 
@@ -187,11 +193,22 @@ saved as `nistor2006_si.pdf.pdf`, the name the fixture headers keep).
 
 `wilmer2012.pdf`, `wilmer2012_si.pdf`.
 - **Evidence basis:** PDF plus supplement.
-- **Parameters:** SI S2 (ionisation energies to Z = 84) and S3 (inputs).
-- **Numeric oracle:** SI S5 gives per-atom charges for 12 MOFs, periodic only.
-- **Runnable reference:** numat/EQeq (GPL-2.0, deprecated, crystals).
+- **Parameters:** SI S3 gives the run inputs. **S2 shows the ionisation
+  energies only as plots**; the table itself is an accompanying file and is
+  still not held (corrected 2026-09-15).
+- **Numeric oracle: HELD since 2026-09-15.** The accompanying zip is now on
+  disk: 12 MOFs x 4 charge sets, each file carrying its unit cell and its
+  per-atom charges. All 12 atom counts match the paper's Table 1 and every
+  EQeq set sums to zero. (Before it arrived this row read "none held".)
+- **Runnable reference:** numat/EQeq (GitHub reports GPL-2.0, archived as
+  deprecated). It is a later fork, not the 2012 v1.00 code, and GPL-2.0 is not
+  vendored here.
 - **Verdict: NO as a molecular calculator.** The periodic version is recorded
-  on the roadmap.
+  on the roadmap. Track 6's feasibility check
+  (`benchmarks/charges/periodic/FEASIBILITY.md`) was **BLOCKED** when it ran
+  and is **FEASIBLE** after the structures arrived (its section 8), with the
+  ionisation table as a named substitution: it must be rebuilt from Andersen
+  1999 and Moore 1970 and labelled a reconstruction.
 
 ### Context, not a model: Sefcik, Demiralp, Çağın & Goddard 2002
 
@@ -571,6 +588,672 @@ feeds the other.
   are named), or NOT REPRODUCED. A miss is a strict-xfail stop record against
   the shipped EEM's external validation. It does not change 2.2 or 2.4.
 
+### 2.6 Mathieu SQE: a named-cause test of 2.4's HOLD
+
+Pre-registered 2026-09-15, after 2.4's results (section 3.5) and before any
+number below exists. It asks one question: **is the model 2.4 built the model
+Mathieu ran?** It fits nothing. χ and η are never refit (`verstraelen2011`).
+The code is `mathieu_sqe_check.py` (extended); its outputs are
+`mathieu_sqe_population.csv`, `mathieu_sqe_causes.csv`,
+`mathieu_sqe_surface.csv`, `mathieu_sqe_powell.csv` and
+`mathieu_sqe_stationarity.csv`.
+
+#### 2.6a What pp. 6–8 add (rendered at 300 dpi, 2026-09-15)
+
+Transcribed before any run, quoted where it matters.
+- **The fit (Sec. III.C, p. 6).** "the parameters are varied until they
+  minimize the scoring function [eq 15]"; "only local minimizations have been
+  carried out using the Powell algorithm". Model B is "straightforwardly
+  obtained using available values for χ_i and η_i and adding E^p_ij", and the
+  fitted C and λ are Table II's.
+- **Model B's objective at its optimum (p. 6):** introducing C and λ "yields
+  only a slight improvement of the charges, with Δq decreasing from 0.0695 to
+  0.0670". Both are on EQ+TS, the training set. In the form 2.5 measured
+  (Table I's Δq is eq 15 under a square root), 0.0695 is EEM and **0.0670 is
+  SQE model B at (115 eV, 0.816)**.
+- **Model C (p. 7):** "a global optimization of all parameters yielded … R²_q
+  = 0.98 and Δq = 0.0583". Table II model C, eV: χ − χ_H is C 5.44, H 0.00,
+  N 10.48, O 22.37, F 29.80; η is C 8.93, H 18.86, N 10.06, O 20.55,
+  F 45.74; λ is 0.695 and C is 8.03. Italics mark derived values.
+- **Model D:** η C 27.08, H 13.39, N 18.97, O 16.40, F 14.62; λ 0.551;
+  C 4.22.
+  - Fitted to polarisabilities, which are not deposited. Its χ are not
+    printed.
+  - **Not usable.**
+- **Model A:** Pearson's parameters, with no metric printed for them. **Not
+  usable.**
+- **Table III (p. 8)** lists the atoms whose SQE charge deviates from Mulliken
+  by more than 0.2, with Q^M, the SQE Q_i and the deviation, each to 3 dp.
+  - It is a **partial per-atom numerical oracle** (20 atoms), not a complete
+    table and not categorical.
+  - The paper's Sec. IV "focuses on model B", so Table III is read as model
+    B.
+- **Dipoles and polarisabilities (p. 8):** the B3LYP references are not
+  deposited. Not usable.
+- **No alternative Coulomb kernel or pair rule is named anywhere in the
+  paper, so V3 = NONE.**
+
+**Table III atoms, identified from deposited Mulliken charges only** (the
+printed molecule name restricts the search, and |deposited Q^M − printed| ≤
+5e-4). Frozen as `tests/fixtures/charge_models/mathieu2007_table3.csv`.
+- 19 of the 20 rows identify one atom, or one symmetric pair whose deposited
+  values round alike:
+  - O2N-CF2-CF2-NO2 atoms 2 and 4;
+  - difluorotetranitroethane atoms 2 and 4;
+  - FCCF atoms 1 and 4, and atoms 2 and 3.
+
+  Every atom of a pair is gated.
+- **The last EQ row, printed "F3C-CN" at Q^M −0.421, matches no carbon.** It
+  matches N6 (−0.4211), the only atom of that molecule within 5e-4. The row
+  is identified by its value and recorded as a disagreement between the bold
+  glyph and the printed number.
+- The two "(NO2)2-CF-CF2-(NO2)" and "O2N-CF2-CF-(NO2)2" rows are one molecule
+  (`trifluorotrinitroethane`), carbons 2 and 4.
+- The TS rows cite references 52, 53 and 55. They identify
+  `JPCA_2000_104_10526-ts1` (HCO+OH, O3 and H5), `JPCA2003-107-5798-TS17`
+  (H3NO+HONO, N1 and O2) and `JPCA_2005_109_4829-TS1` (F17).
+
+#### 2.6b Populations, frozen
+
+- **Canonical order:** EQ then TS, file name in lexical order, source atom
+  index. Every CSV row carries set, file, atom, element and `population_id`.
+- **`SOURCE_POPULATION`:** all 249 deposited structures (EQ 194 and 3,064
+  atoms; TS 55 and 1,085 atoms), from the manifests and never from a solver.
+  Mathieu's own exclusions, if any, are unprinted.
+- **`VALID_<arm>@<point>`:** structures passing 2.4b's validity predicate
+  (residual ≤ 1e-9 Hartree/e **in the original, unscaled system**, component
+  sums ≤ 1e-12 e, H positive definite on every neutral subspace) under that
+  arm at that parameter point.
+- **`COMMON_VALID`:** VALID_V0-unscaled@printed ∩ VALID_V0-scaled@printed.
+  **Every cross-arm statement is made on it.**
+- **Denominator rule:** a structure outside a population contributes no atom
+  rows, and N_Z is recomputed. A failed structure never contributes zero
+  error or NaN. The count of valid structures is a diagnostic, never an
+  acceptance condition.
+- **Fixed objective populations:** the stationarity and Powell objectives use
+  the population fixed at the printed point, so they cannot jump as structures
+  enter or leave.
+  - An evaluation at which any structure of that population fails the
+    predicate is flagged `population_violation`, never silently dropped.
+  - A flagged point is never used to classify stationarity or a minimum.
+- **Weighting, stated:** eq 15 averages atoms within each element, then
+  elements. Molecules carry no weight of their own, so a large molecule
+  counts through its many atoms. "Pooled EQ+TS" is not molecule-level
+  weighting.
+
+#### 2.6c Numerical arms
+
+- **V0-unscaled:** exactly 2.4's solve (`lstsq`, rcond 1e-10). The historical
+  reproduction baseline.
+- **V0-scaled:** with D = diag(A), solve (D^−½AD^−½)y = D^−½b by the same
+  `lstsq` and rcond, then q = D^−½y; validity is judged in the original
+  system. The numerically stabilised baseline.
+- Both are permanent records. For pentylamine, ts33 and any other structure
+  whose validity differs between arms, the report gives status, charge
+  difference, Δq difference and metric difference.
+- A material difference between the arms opens a numerical investigation and
+  is never read as evidence about Mathieu.
+- **Every result row names its arm.**
+
+#### 2.6d Oracles
+
+- **G (Table I):** the 12 SQE gates, with 2.4c's definitions and 2.4d's
+  intervals, per arm on that arm's VALID population.
+- **T (Table III):** each identified atom's model charge within ±5e-4 of the
+  printed Q_i (the 3 dp half-unit).
+  - T passes if every identified atom passes, and the failing atoms are
+    named.
+  - An atom in a structure outside the arm's population is "not evaluable"
+    and listed.
+- **P_B (the p. 6 optimum value):** the pooled EQ+TS √Δq for model B at the
+  printed point, against 0.0670.
+  - **Known before running:** the shipped EEM's pooled √Δq on all 4,149 atoms
+    is 0.069395 (section 3.5), against the printed 0.0695. Under half-up
+    rounding [0.06945, 0.06955) that is outside by 5.5e-5, for a model that
+    reproduces all six EQ correlations.
+  - So P has three classes, fixed now:
+    - **PASS:** within [p − 5e-5, p + 5e-5);
+    - **NEAR:** within 1.1e-4 of p (twice the EEM analogue's miss);
+    - **MISS:** otherwise.
+  - The EEM analogue is recomputed in the same run and must reproduce
+    0.069395 to 1e-6. Otherwise the run stops.
+- **P_C (p. 7, diagnostic):** model C's parameters under each V0 arm give the
+  pooled √Δq against 0.0583 (with P's classes) and the pooled R² All against
+  0.98 (2 dp interval). **Diagnostic only**; it cannot change a verdict.
+- **S (stationarity of the printed point), per V0 arm, on that arm's fixed
+  population at the printed point.** The objective is pooled eq 15, as
+  printed (no square root; its argmin equals the square root's, which is
+  asserted as a property test).
+  1. Δq at (115, 0.816): the core forensic datum, reported whatever else
+     happens.
+  2. **Step study:** central differences in physical units, ∂Δq/∂C per eV
+     with h_C ∈ {1, 0.5, 0.25} eV, and ∂Δq/∂λ with h_λ ∈ {2e-3, 1e-3, 5e-4}.
+     The middle step is used. If the three estimates of a component disagree
+     by more than 1% relative (absolute floor 1e-12), the gradient is
+     UNRELIABLE.
+  3. The physical Hessian by central differences at the middle steps (4-point
+     mixed term), with its eigenvalues. This is the forensic output.
+  4. **Dimensionless coordinates for every gate:** c = C/115 eV and
+     l = λ/0.816. g̃ and H̃ come from the physical ones by the chain rule.
+     **Trusted:** H̃ positive definite and cond(H̃) ≤ 1e8.
+  5. **δ from the p. 6 value:** p = 0.0670 printed to 4 dp, half-up, so
+     δ = max((p + 5e-5)² − p², p² − (p − 5e-5)²).
+  6. **g_tol = √(2δ·λ_min(H̃))**: the gradient at which H̃'s softest curvature
+     would improve Δq by δ.
+  - **Classes:**
+    - **STATIONARY-AT-PRINTED:** trusted, ‖g̃‖₂ ≤ g_tol, and
+      ½g̃ᵀH̃⁻¹g̃ < δ.
+    - **NON-STATIONARY-AT-PRINTED:** trusted, and either test fails.
+    - **UNRELIABLE:** the gradient or H̃ is untrusted.
+  - **Surface:** C 60–200 eV in steps of 5 × λ 0.600–1.000 in steps of 0.024.
+    Both axes contain the printed point exactly, which is its own CSV row.
+    - Each grid local minimum (8-neighbour, unflagged) is refined on an 11 × 11
+      subgrid spanning ±1 cell.
+  - **Powell:** `scipy.optimize.minimize(method="Powell")` (SciPy, dev
+    dependency group; the version is recorded in the output).
+    - It runs in the scaled coordinates, with initial directions along the c
+      and l axes.
+    - Bounds are the box C ∈ [1, 400] eV and λ ∈ [0.3, 1.5], passed as
+      `bounds`.
+    - xtol 1e-8 and ftol 1e-12, maxfev 2000.
+    - `success`, `message`, `nit` and `nfev` are recorded.
+    - **Starts:** the printed point, every refined grid minimum, and
+      (60, 0.6), (200, 0.6), (60, 1.0), (200, 1.0).
+    - **Each row:** start C, start λ, end C, end λ, end Δq, iterations,
+      status, basin id. End points closer than 1e-3 in both scaled
+      coordinates share a basin.
+  - **WITHIN-PREREGISTERED-NEIGHBOURHOOD:** an end point within C ±2 eV and
+    λ ±0.01. A reporting convention.
+  - **VERIFIED-NEARBY-MINIMUM:** such an end point whose own H̃ is trusted
+    and positive definite with ‖g̃‖₂ ≤ g_tol.
+  - **The S verdict:**
+    - **STATIONARY:** stationary-at-printed and a verified nearby minimum;
+    - **NON-STATIONARY:** non-stationary-at-printed and no verified nearby
+      minimum;
+    - **INCONCLUSIVE:** otherwise, including two or more verified basins
+      within δ of each other anywhere on the surface.
+
+#### 2.6e Variants, a closed list
+
+- **V0:** 2.4's model, under both arms.
+- **V1 (OpenChem reconstruction: bond-graph splits).**
+  - Informed by Nistor's split-bond idea; not his rule, and never called it.
+  - Pairs are r < 1.3 × (r^C_i + r^C_j) with Table II's r^C. The penalty is
+    eq 14 on those pairs, the kernel as V0, the V0-scaled solve.
+  - 1.3 is an engineering choice; 1.2 and 1.4 are reported as sensitivity.
+  - **Valence check** on the graph: H 1, C 4, N 3, O 2, F 1. A structure
+    failing it is V1-inapplicable, with its reason.
+  - **EQ only:** TS structures contain partial bonds by construction, so V1 on
+    TS is NOT APPLICABLE.
+  - S and P are defined on EQ+TS, so they are NOT APPLICABLE to V1.
+  - **Populations:** source EQ, V1-applicable, V1-inapplicable.
+  - **V1 against V0 is reported on the V1-applicable population** with V0
+    (scaled) recomputed there, and gates labelled as subpopulation gates. The
+    V1-only figure is shown beside it.
+- **V2 (Ohno–Klopman kernel), V0-scaled solve, V0 pair rule and penalty.**
+  - Transcribed from `oda2003` **eq 17** (p. 162; eq 16 is the plain Ohno
+    form): J_IJ = 1/√(R_IJ² + (1/(2J_II) + 1/(2J_JJ))²).
+  - **Oda's convention (eqs 2–4):** E_I = E⁰ + q·χ⁰ + ½q²J_II, so J_II =
+    ∂²E/∂q² is the full second derivative. Bultinck's and Mathieu's energy is
+    χ\*Q + η\*Q², so **J_II = 2η\*** and the kernel here is J_IJ = 1/√(R² +
+    (1/(4η\*_I) + 1/(4η\*_J))²).
+  - The pair term is Oda's sum of halves, not a mean. Atomic units: R in
+    bohr, η\* in Hartree.
+  - Oda uses it for QEq's two-centre integrals. Here it is a diagnostic inside
+    SQE.
+  - **Instrument tests:**
+    - R → ∞ gives 1/R;
+    - R → 0 gives 4η\*_Iη\*_J/(η\*_I + η\*_J), which equals 2η\* for I = J;
+    - η\* passed in eV must fail the R → 0 test.
+  - S and P are evaluated for V2 exactly as for V0-scaled.
+- **V3: NONE** (2.6a). No variant is added after any result exists.
+
+#### 2.6f Verdicts
+
+Per variant and arm, S, G, T and P are each reported, and **none rescues
+another**. The rows are evaluated top to bottom, and the first match is the
+class.
+
+| Local class | Condition | Universal status |
+|---|---|---|
+| COMPATIBLE | S STATIONARY, all 12 G, T pass, P PASS or NEAR | REPRODUCED (claim: a reading consistent with Table I, III and p. 6) |
+| G-compatible, S-incompatible | all G, S not STATIONARY | PARTIAL |
+| S-stationary, G-incompatible | S STATIONARY, some G miss | PARTIAL |
+| PARTIAL | anything else with at least one oracle passing | PARTIAL |
+| INCOMPATIBLE | S NON-STATIONARY, no P PASS/NEAR, and T fails | INCOMPATIBLE |
+| INCONCLUSIVE | S INCONCLUSIVE or UNRELIABLE, and nothing else passes | INCONCLUSIVE |
+| V1 on TS, S or P | — | NOT APPLICABLE |
+
+- Variants whose results agree within these oracles' own tolerances are
+  reported as "no discrimination".
+- Arms that disagree give INCONCLUSIVE for the model as a whole.
+- Even a COMPATIBLE variant leaves SQE HOLD until its own GO pre-registration.
+
+#### 2.6g Instrument tests, before any corpus run
+
+1. V0-scaled equals V0-unscaled to 1e-12 on well-conditioned synthetic
+   systems.
+2. The prepared fast evaluator (pairs, MᵀHM and b cached; K rebuilt per
+   (C, λ)) equals `solve` exactly on every synthetic case, and to 1e-12 on
+   three corpus structures.
+3. The eq 15 hand value on a 3-atom, 2-element toy.
+4. argmin of Δq equals argmin of √Δq on a toy objective (a property, green
+   by design).
+5. δ and g_tol arithmetic.
+6. Physical-to-scaled chain rule on an analytic quadratic.
+7. The Powell wrapper (scaling, bounds, record fields) reaches the minimum of
+   a quadratic in physical units with very different axis scales, and of
+   both wells of a two-well function from starts in each basin, within 1e-6,
+   and never leaves the box.
+8. Basin labelling on the two-well function.
+9. The V1 graph and valence check on synthetic ethanol and an over-bonded
+   fragment.
+10. Both V2 limits, and the eV mutation.
+
+**Mutations (each must turn a test red):**
+- scaling removed from the scaled arm;
+- N_el wrong;
+- the V1 factor not applied;
+- V2's η left in eV;
+- the fast evaluator using a stale K;
+- a Powell start mislabelled as the printed one;
+- the Powell wrapper reporting its end point in scaled rather than physical
+  units;
+- δ computed without the square root's rounding.
+
+### 2.7 Nistor SQE: recover the geometry's atom correspondence, then test methods i, iii and iv
+
+Pre-registered 2026-09-15, before any recovery or SQE charge exists. It
+replaces the round 3 plan's "rebuild the missing hydrogen" design, because
+three measurements made while writing it show that premise is wrong. Those
+measurements use only coordinates and elements from
+`nistor2006_si_molecules.csv`, no charge column, and are recorded here because
+they motivate the design. The correction to check 2.1's record is appended to
+section 3.1.
+
+**What was measured (2026-09-15).**
+1. **As printed, no molecule is chemically consistent.** 0 of 41 molecules
+   give every atom its valence. That measurement used ad hoc radii (H 0.31,
+   C 0.76, O 0.66, Si 1.11 Å, f = 1.25), not the registered rule below, which
+   Step 2 applies.
+2. **The real rows are self-consistent as a point set.** No two printed
+   non-origin rows lie closer than 0.85 Å in any molecule.
+3. **The origin row is not a hydrogen that lost its coordinates.**
+   - It lies within 0.85 Å of a real row in 10 molecules (2, 3, 4, 12, 13,
+     23, 31, 36, 37, 40): a fake point.
+   - In the other 31 it sits at a chemically plausible distance.
+   - Rotating the coordinate column down one row, so the origin belongs to
+     atom 1, makes 6 molecules fully consistent, including SiH4, CH4 and
+     CH3OH.
+   - **So the coordinate column is misaligned against the element and charge
+     columns** by a permutation that differs between molecules. That, not a
+     lost hydrogen, is the defect. The raw PDF text shows the same rows, so
+     the misalignment is in the archived page, not in `nistor_extract.py`.
+
+**The model, from `nistor2006` pp. 2–5 and supplement pp. 3 and 8 (rendered).**
+- **Energy:** V = Σ_i (½κ_iQ_i² + χ_iQ_i) + V_C, with Q_i = Σ_j q̄_ij over
+  covalently bonded neighbours (eq 1), and V_C = Σ_{i<j} Q_iQ_jJ_ij(R_ij).
+- **Kernel:** J_ij is the two-centre Coulomb integral of normalised ns Slater
+  densities φ = A R^(n−1) e^(−ζR), A = √((2ζ)^(2n+1)/(4π(2n)!)), with n and ζ
+  (Å⁻¹) of H 1/2.315, C 2/1.618, O 2/1.842 and Si 3/1.818. Energies are in eV.
+  - The printed A values (H 1.987, C 1.084, O 1.500, Si 0.964) are a checksum
+    on that transcription.
+- **Method i** (eq 13): κ and χ per atom, QE rules.
+- **Method ii** (eq 14): a fixed q̄ per bond type with no V_C. A pair
+  "A–B v" puts +v on A and −v on B, checked by hand on CH3OH.
+- **Method iii** (eq 16): method i plus a bond hardness κ^(s)_ij, with
+  energy term ½κ^(s)_ij q̄_ij².
+- **Method iv** (eq 17): method iii with χ_i = χ⁰_i + Σ_j Δχ_ij and
+  κ_i = κ⁰_i + Σ_j Δκ_ij over bonded j, the Δ asymmetric.
+- **The split-charge solve:** eq 9, ∂V/∂q̄_ij = 0 for i < j, with q̄_ji = −q̄_ij.
+  The system can be singular on rings, and the atomic charges are the output
+  (as in 2.4).
+
+**Step 1: parameter set identification (topology only, no fit).**
+- Method ii's charges depend on bonding alone. The supplement prints five sets:
+  all-41 (p. 3), Si–O–H (p. 4), C–O–H (p. 5), ESP-fitted (p. 6),
+  Mulliken-fitted (p. 7).
+- The set used for the molecule tables is the one whose method ii q̄ values
+  reproduce every printed method ii charge, given the recovered bonding, within
+  n_bonds × 5e-5.
+- A molecule matched by no set is BLOCKED on parameters. If more than one set
+  matches, the all-41 set (the tables' own page) is used and the tie is
+  recorded.
+
+**Step 2: correspondence recovery, a constraint solve.**
+- **Bonded rule:** d < f × (r_i + r_j) with Lange 15th ed. Table 4.7
+  single-bond radii (`langes15`, already shipped in `tsei_radii.json`): H 0.30,
+  C 0.772, O 0.66, Si 1.17 Å. f = 1.25 is an engineering choice; f = 1.15 and
+  1.35 are reported as sensitivity.
+- **Point sets tried:** S_all (all n rows, the origin included) and S_real (the
+  n − 1 non-origin rows, one table atom left unplaced).
+- **An assignment** maps table atoms to points one to one, and is valid when:
+  - every placed atom's bonded-neighbour count equals its valence (H 1, C 4,
+    O 2, Si 4, since every C and Si is tetracoordinate and every O
+    bicoordinate, per the paper);
+  - every bond joins two placed atoms under the rule;
+  - every placed atom's method ii charge, recomputed from its neighbours'
+    elements with the Step 1 set, matches the printed method ii value within
+    5e-5 per bond. For S_real, the unplaced atom's missing bond is allowed to
+    its parent only.
+- **Symmetry classes:** table atoms with the same element and identical printed
+  values in all five columns (ESP, i–iv) are interchangeable. Assignments
+  differing only within a class are one solution.
+- **Outcomes per molecule:**
+  - **RECOVERED-UNIQUE:** exactly one solution on S_all, the origin row a real
+    atom.
+  - **RECOVERED-UNIQUE-ONE-UNPLACED:** no S_all solution and exactly one on
+    S_real. The unplaced atom has no coordinates, so the molecule goes to
+    INCONCLUSIVE for V_C methods; placing it would be a reconstruction, not
+    done here.
+  - **AMBIGUOUS:** more than one solution (count reported).
+  - **UNRECOVERABLE:** none.
+  - **BLOCKED:** parameters, or the solver's search limit of 10⁶ nodes.
+- **What this is:** a recovery of which printed coordinate belongs to which
+  printed atom, using only coordinates, elements and the topology-only method
+  ii column. No coordinate is invented. **Method ii is used to recover, so it
+  is never reported as an independent reproduction afterwards.**
+
+**Step 3: methods i, iii and iv on RECOVERED-UNIQUE molecules.**
+- **Kernel first, before any corpus run:** the ns Slater closed form in
+  `charge_equilibration.py` (ζ converted to bohr⁻¹, result to eV) must equal
+  an independent mpmath double integral of these normalised densities, for
+  H–H, C–O and Si–Si at R = 0.5–6 Å, to 1e-9 eV.
+  - It must also reproduce the supplement figure's R = 0 intercepts to plotting
+    precision (H–H about 21, C–O about 9, Si–Si about 6.8 eV; a sanity check,
+    not a gate).
+  - If it fails, a separate kernel is written.
+- **Oracle:** each atom's printed method charge, to 4 dp.
+  - **Per atom:** reproduced if |Δ| ≤ 5e-5 (the half-unit), else failed.
+  - **Per molecule × method:** REPRODUCED-ON-RECOVERED-CORRESPONDENCE when every
+    atom is reproduced, else PARTIAL with the failing atoms and the largest |Δ|.
+  - **Sigma = 100·Δ_n** (check 2.1's identified form) against the printed
+    Sigma, reported.
+- **Source inconsistencies already on record** are carried as expected
+  departures, not failures: the method ii sum departures of molecules 5, 14
+  and 18, and Table IV atom 15 method i. They do not touch methods i, iii and
+  iv otherwise.
+- **Program verdict:**
+  - counts per class;
+  - **GO-CANDIDATE** for a separate SQE pre-registration only if all three
+    methods reproduce on at least 10 recovered molecules spanning the three
+    families;
+  - otherwise PARTIAL, INCONCLUSIVE or BLOCKED, with the reason.
+
+**Universal status mapping:**
+- REPRODUCED-ON-RECOVERED-CORRESPONDENCE → REPRODUCED (claim kind:
+  implementation reproduction);
+- PARTIAL → PARTIAL;
+- AMBIGUOUS and ONE-UNPLACED → INCONCLUSIVE;
+- UNRECOVERABLE → INCOMPATIBLE;
+- BLOCKED → BLOCKED.
+
+**Instrument tests, before any corpus run:**
+- **Solver:** on a synthetic molecule with its rows permuted it recovers the
+  permutation; it reports AMBIGUOUS on a constructed symmetric case where
+  classes differ; it returns UNRECOVERABLE on scrambled coordinates.
+- **Method ii recomputation:** reproduces CH3OH's printed column exactly.
+- **Kernel checks** as above.
+- **Split-charge solver:** equals a brute-force minimisation of V on a 3-atom
+  toy for each method; method i equals an atomic QE solve with the same J on a
+  connected molecule (eq 4's isomorphism).
+
+**Mutations:**
+- the pair sign convention flipped;
+- ζ left in Å⁻¹;
+- the S_real branch allowed to place the unplaced atom anywhere;
+- symmetry classes ignoring the ESP column;
+- Δ perturbations made symmetric;
+- the two bond-hardness readings below exchanged.
+
+**Amendment 2.7-A1 (2026-09-15, before any SQE charge or recovery number):
+the bond-hardness factor is ambiguous in the source, so both readings run.**
+The model above wrote the bond term as ½κ^(s)q̄². Reading the equations again
+for the solver:
+- **Eq 4** sums ½(κ^(s)_ij q̄_ij + …)q̄_ij over ORDERED pairs, so each bond
+  contributes κ^(s)q̄². **Eq 10** differentiates to 2κ^(s)q̄, which agrees.
+- **Eq 14's** stated solution q̄ = −χ̄/κ^(s) implies ½κ^(s)q̄² instead.
+
+The paper contradicts itself by a factor of two in exactly the term methods iii
+and iv add. So both run and both are reported, the way QEq's λ readings were:
+- **R_eq10:** bond term κ^(s)q̄² per bond (eqs 4 and 10);
+- **R_eq14:** bond term ½κ^(s)q̄² per bond (eq 14's solution).
+
+Methods i and ii are unaffected: method i has no κ^(s), and method ii's q̄ is
+printed directly. A method's class is assigned per reading. "Reproduced" under
+one reading only is recorded with the reading named, and the reading is never
+chosen by which one matches. Both are reported side by side.
+
+The χ and atomic-κ terms are unambiguous, because eq 4 under the QE rules
+equals eq 2's atomic form ½κ_iQ_i² + χ_iQ_i, and V_C = Σ_{i<j} Q_iQ_jJ_ij
+runs over all atom pairs, bonded or not. Method iv's perturbations are read
+per bonded neighbour: χ_i = χ⁰_i + Σ_j Δχ(Z_i–Z_j) using the ordered-pair row
+("H-C" for an H bonded to C), and likewise κ.
+
+**Amendment 2.7-A2 (2026-09-15): recovery narrowed to a one-row rotation.**
+It is made AFTER a measurement on coordinates and elements only, with no
+charge column and no SQE charge in existence, and disclosed as such.
+- **Why the pre-registered general solve cannot deliver what it promised.**
+  Its constraints are valence, the bonding rule and method ii charges, and
+  method ii gives every hydrogen a value set only by its parent's element
+  (H–C, H–O, H–Si).
+  - So no topology-only constraint distinguishes a table hydrogen on one
+    carbon from a table hydrogen on another carbon, or two hydrogens on the
+    same carbon. The only columns that differ are the geometry-dependent ones
+    (ESP, i, iii, iv), and choosing a correspondence by them would fit to the
+    oracle.
+  - A general solve would therefore return many solutions for every molecule
+    with non-equivalent hydrogens, which is nearly all of them. That is a
+    property of the constraints, argued here, not run.
+- **The measurement.**
+  - Every cyclic rotation of the coordinate column (and of its reversal) was
+    tested per molecule with Step 2's registered bonding rule (Lange radii,
+    f = 1.25).
+  - 32 of 41 molecules have no consistent rotation.
+  - **9 do, and all 9 are consistent at the same one: the column rotated down
+    one row**, so the origin row belongs to table atom 1. They are molecules
+    6 (SiH4), 26, 29, 32, 33, 34, 35, 38 and 41.
+  - Five of them also have a second consistent rotation (SiH4, 29, 32, 35,
+    41); these are the most symmetric molecules.
+- **The amended Step 2.**
+  - A molecule is RECOVERED-BY-ROTATION when the one-row rotation is
+    consistent with the bonding rule at f = 1.25, AND with valence, AND every
+    heavy atom's method ii charge recomputes to the printed value within 5e-5
+    per bond.
+  - Hydrogens are placed by the rotation itself, not chosen.
+  - **Uniqueness:** every other consistent rotation must give the same
+    structure. Their interatomic distance matrices, taken atom for atom in
+    table order, must agree within 5e-3 Å (distances fix both the bonding and
+    V_C, so equal matrices mean identical SQE charges per atom). A second
+    rotation that differs is AMBIGUOUS.
+  - Molecules with no consistent rotation are BLOCKED on correspondence. The
+    general solve is not run, for the reason above.
+  - f = 1.15 and 1.35 are reported as sensitivity on the rotation test only.
+- **What stays unchanged:**
+  - Step 1 (parameter identification), Step 3 (the oracle, tolerances,
+    Sigma), both bond-hardness readings, the status mapping, and the
+    mutations (plus: "rotation by two rows accepted as recovery").
+  - **The GO bar stays at ten recovered molecules across three families.**
+    With nine recoverable at most, Track 4 cannot reach GO. Its verdict is at
+    best PARTIAL, and that is stated here, before any SQE number, rather than
+    discovered afterwards.
+- **This corrects check 2.1's record** ("every geometry is missing one
+  hydrogen"). For these nine, nothing is missing: the column is displaced by
+  one row. For the other 32, the scramble is not a rotation, and whether any
+  atom is truly missing is not known.
+
+**Amendment 2.7-A3 (2026-09-15): A2's uniqueness test restores Step 2's
+symmetry classes.** It is made AFTER A2's recovery was run, with no SQE charge
+in existence, and disclosed as such.
+- **The measurement.** A2 as written gives 4 RECOVERED-BY-ROTATION (26, 33,
+  34, 38), 5 AMBIGUOUS and 32 BLOCKED. Among the five:
+  - molecules 29, 32 and 41: the second rotation moves heavy atoms, by up to
+    5.50, 2.58 and 2.42 Å. These are genuinely ambiguous.
+  - SiH4 (6) and CH4 (35): the second rotation (the reversal) moves only the
+    four hydrogens, among the same four points. All four are identical in all
+    five printed columns. The distance matrices differ by 0.0074 and 0.0152 Å,
+    because the printed geometry is not exactly regular.
+- **Why that is not ambiguity.** A2 required distance-matrix equality because
+  equal matrices mean identical per-atom SQE charges. Here a stronger thing
+  holds: each element carries the same set of points under both rotations, so
+  the SQE solution on those points is the same. The two rotations differ only
+  in which label a hydrogen gets, and every label in play prints the same
+  value in every column. So every per-atom comparison is identical under both.
+  A2 replaced Step 2 and dropped its symmetry-class rule; this restores it.
+- **The amended uniqueness test.** A second consistent rotation is equivalent
+  to the one-row rotation when, for every symmetry class (same element and
+  identical printed values in ESP, i, ii, iii and iv, Step 2's definition), it
+  places the class on the same set of printed points. Equivalent rotations are
+  not ambiguity, and no tolerance is involved. Otherwise A2's distance-matrix
+  test applies unchanged.
+- **Effect:** 6 RECOVERED-BY-ROTATION (6, 26, 33, 34, 35, 38), 3 AMBIGUOUS, 32
+  BLOCKED. The A2 counts are reported beside them. The GO bar is still
+  unreachable.
+- Mutation added: "symmetry classes ignoring the ESP column" now applies to
+  this test.
+
+### 2.8 Ionescu 2013: implementation reproduction of the published EEM models
+
+Pre-registered 2026-09-15, before any EEM charge is computed from Table S1.
+Claim kind: **IMPLEMENTATION REPRODUCTION** (the source's own model charges,
+from its own parameters, structures and reference data), in the domain of
+protein fragments only. It says nothing about small molecules.
+
+Source: `ionescu2013` (doi 10.1021/ci400448n) and its supporting information.
+
+**What was measured first (input side only; no EEM charge computed, no
+comparison made).** These motivate the design and are recorded as such.
+1. **Table S1 holds all 24 models**, read positionally by
+   `ionescu_extract.py`: 180 rows, 12 E models with 6 atom types (H, C, N, O,
+   S, Ca) and 12 EX models with 9 (H1, C1, C2, N1, N2, O1, O2, S1, Ca0), each
+   with k and per-type A and B.
+   - **Calcium is parameterised.** The round 3 plan left Ca conditional on
+     this; it is decided here as INCLUDED, for every model.
+2. **The QM/EEM CSV holds 12 scheme blocks.** Molecules per block: 41, except
+   three blocks with 40 and one with 38. **The source population is therefore
+   scheme-dependent**, and each scheme's own block defines it.
+3. **Every fragment's total charge is an integer**, and the QM, E-EEM and
+   EX-EEM columns all sum to the same one (measured on block 1: −9, −8, −4,
+   −3, −2, −1, +1, −3, 0, +1, −3, −4, …). So the constraint is source-given
+   and is never fitted.
+4. **The PDB models and the CSV rows correspond atom for atom.** All 41
+   fragments match in count and element, 0 mismatches, once the element is
+   read as: a HETATM whose residue is `CA` is calcium (" CA " in an ATOM
+   record is an alpha carbon), otherwise the atom name's first letter after
+   any leading digit. Element totals then equal the paper's Table 1 exactly
+   (H 19879, C 11912, N 3188, O 4954, S 148, Ca 61).
+5. **One solve costs about 80 ms** for a fragment of ~1000 atoms; one pass
+   over all 41 is 3.5 s.
+
+**The model, transcribed (paper eqs 1–3).**
+- X_i = A_i + B_i q_i + k Σ_{j≠i} q_j / r_ij, with A_i = X⁰_i + ΔX_i and
+  B_i = 2(η⁰_i + Δη_i).
+- Equalisation X_1 = X_2 = … = X̄ with Σ_i q_i = Q gives one linear system:
+  rows B_i q_i + k Σ_{j≠i} q_j/r_ij − X̄ = −A_i, plus the charge row.
+- **X̄ is an unknown of that system, not an input.** The paper's harmonic mean
+  of Pauling electronegativities belongs to the *parametrisation* step
+  (fitting A and B), which is not reproduced here.
+- **Two distance readings, both run, neither chosen by agreement** (the
+  units of k are not printed):
+  - **R_angstrom:** r_ij in ångström, the PDB's own unit;
+  - **R_bohr:** r_ij in bohr.
+
+  A failure whose ratio is 1.889 would name the other reading, so both are
+  reported side by side.
+
+**Typing.**
+- **E models need only the chemical element**, which measurement 4 fixes
+  exactly. There is no typing inference, so no typing gate applies.
+- **EX models need maximum bond multiplicity per atom**, so they need bond
+  orders perceived from a PDB. That perception is not attempted in this
+  round: the EX models are recorded **BLOCKED on typing**, not run, and no
+  best-effort typing is ever compared as if it were the paper's.
+
+**Population, per model.**
+- `SOURCE_<scheme>`: the fragments present in that scheme's CSV block.
+- `APPLICABLE`: those whose total charge is an integer within 1e-3 of its
+  column sum and whose atoms all have a Table S1 type. Anything else is
+  excluded and listed with its reason; a denominator never shrinks silently.
+
+**Tolerance, computed and not judged.**
+- `tau_linearized_i` = 5e-7 (the CSV's 6 dp half-unit) + Σ_p |∂q_i/∂p| · ½ ·
+  10^(−d_p), over every Table S1 parameter p with d_p its printed decimals
+  (A and B 6 dp, k 3 dp). It is a first-order estimate and is called that.
+  - The sensitivities are exact, not finite differences: the system is
+    solved once with one right-hand side per parameter.
+- `envelope_i` = max |q_i(p′) − q_i(p)| + 5e-7 over samples p′ drawn in the
+  full rounding box, plus every single-parameter ± corner.
+- **The gate is τ_i = max(tau_linearized_i, 1.1 × envelope_i)**, and the
+  ratio envelope/linear is reported with its maximum and median.
+- **Amendment, cost-driven, registered now rather than discovered later.**
+  The round 3 plan asked for 2000 samples on every fragment. At the measured
+  3.5 s per pass that is about 2 h per model and 48 h for 24, which is not
+  run. Instead:
+  - the sample is 500 draws (seed 20260915) on a stratified subset: the
+    smallest, the median-sized and the largest fragment;
+  - every single-parameter ± corner is evaluated on those three;
+  - for fragments outside the subset, τ_i uses the subset's measured maximum
+    ratio envelope/linear as a scale on `tau_linearized_i`;
+  - the subset, the ratio and the scale are printed in the result, so the
+    approximation is visible wherever it is used.
+
+**Amendment 2.8-A1 (2026-09-15): the sample count drops from 500 to 100,
+on a measurement, before any model verdict exists.** The envelope on
+fragment 1000023 (546 atoms, E-MPA/6-31G\*/gas, R_angstrom) is **identical at
+25, 50, 100, 250 and 500 draws**: max envelope 2.346e-01 e, max ratio 25.0 in
+every case. The maximum comes from the single-parameter ± corners, which are
+always evaluated, and not from the random draws, so the draw count cannot
+change a τ. 100 is kept (four times the count at which it had already
+saturated) because that measurement is on one fragment. The seed is unchanged.
+
+**What that envelope says about the gate, recorded with it:** τ is dominated
+by **k's printed precision**. k is given to 3 decimals, so k = 0.006 ± 0.0005
+is an 8% uncertainty, while A and B carry 6. A gate of this width is therefore
+weak on its own, and the result must report the **distribution of |Δ|**
+beside the pass count: an agreement far inside τ is the evidence that the
+parameters are the source's, and an agreement merely inside τ is not.
+
+**Oracle and classes.**
+- Per atom: **reproduced** if |q_model − q_printed| ≤ τ_i, else **failed**.
+- Per fragment × model: **REPRODUCED** when every applicable atom is
+  reproduced, else **PARTIAL** with the failing count and the largest |Δ|.
+- Per model: REPRODUCED when every applicable fragment is; else PARTIAL;
+  INCONCLUSIVE if the applicable population is empty.
+- Universal mapping: REPRODUCED → REPRODUCED, PARTIAL → PARTIAL, the EX
+  models → BLOCKED, an excluded fragment population → PARTIAL-COVERAGE.
+
+**Scheme agreement, reported beside it and never a gate.** R_avg, RMSD_avg
+and D_avg per model against its own QM scheme's column, compared with Table
+S2's printed values (3 dp; internal validation is the grey diagonal, e.g.
+E-MPA/6-31G\*/gas against MPA/6-31G\*/gas is 0.975).
+- **The paper contradicts itself on R_avg:** the prose calls it "the squared
+  Pearson's correlation coefficient", and its eq 7 prints the unsquared
+  form. So the definition is **identified, not assumed**, from a closed list
+  fixed now: {Pearson r, r²} × {σ with ddof 0, ddof 1}, per molecule then
+  averaged over molecules. Whichever reproduces Table S2's printed values is
+  recorded as the source's convention, and all four are printed.
+- Every row names the exact QM scheme ("MPA/6-31G\*/gas"), never "QM charge".
+
+**Instrument tests, before the corpus run.**
+- The system reproduces a hand-solved two-atom case.
+- Total charge is conserved to 1e-9 on every solve.
+- Exact sensitivities agree with central differences on one fragment to 1e-6.
+- The PDB reader's element rule reproduces Table 1's element counts, and the
+  CSV alignment check (measurement 4) is a test.
+- A permuted atom order gives the same charges, per atom.
+
+**Mutations:** k applied in bohr while distances are in ångström; the B sign
+flipped; X̄ fixed to the harmonic mean instead of solved; the total charge
+forced to zero; τ using only the linearised term; the Ca type dropped to
+carbon's parameters.
+
+**Verdict:** counts per class per model, plus the reading (R_angstrom or
+R_bohr) that reproduces, if either. **GO-CANDIDATE** (a separate src
+pre-registration for per-model keys such as
+`eem_ionescu2013_e_mpa_631gs_gas`) only if a reading reproduces every
+applicable fragment of at least one model; otherwise PARTIAL, INCONCLUSIVE or
+BLOCKED with the reason.
+
 ## 3. Results
 
 ### 3.1 Nistor supplement extraction (2026-09-14)
@@ -602,6 +1285,10 @@ a strict xfail, and its contents are pinned by
   source inconsistencies at the 1e-3 e level.
 - The geometries are not usable as they stand. Rebuilding a hydrogen position
   would be a reconstruction, not the source, so it is not done here.
+
+**Correction (2026-09-15, check 2.7):** check 4's last sentence is wrong. The
+coordinate column is displaced against the atom rows; nothing is known to be
+missing. See 2.7's measurements and section 3.7.
 
 ### 3.2 Mathieu Table I, the EEM (EQ) row (2026-09-14)
 
@@ -874,3 +1561,313 @@ limit, and each is excluded from both arms:
 - **The solver policy failed on two real structures.** Any future SQE
   calculator needs a scaled or penalty-aware solve, with its own
   pre-registration.
+
+
+### 3.6 Check 2.6: the named-cause study for SQE (2026-09-15)
+
+Claim kind: SOURCE REPRODUCTION of Table I's aggregates, under each variant.
+Run order in git: 2.6's pre-registration and instrument first, the driver fix
+(46d44a2) after a crash that produced no numbers, then this run.
+
+**Verdict per arm** (local / universal):
+
+| Arm | Population | √Δq at printed vs 0.067 | S | G gates | Verdict |
+|---|---|---|---|---|---|
+| V0-unscaled | 247 / 249 | 0.068364 MISS | INCONCLUSIVE | EQ 4/6, TS 3/6 | PARTIAL / PARTIAL |
+| V0-scaled | 249 / 249 | 0.068210 MISS | INCONCLUSIVE | EQ 4/6, TS 3/6 | PARTIAL / PARTIAL |
+| V2-scaled (Ohno–Klopman) | 249 / 249 | 0.105699 MISS | INCONCLUSIVE | EQ 0/6, TS 0/6 | INCONCLUSIVE / INCONCLUSIVE |
+
+**Oracle S, the point of the whole check.** Mathieu p. 6 says C and λ came from
+a Powell minimisation of eq 15, so if our model were his, (115, 0.816) would be
+stationary for our Δq.
+
+- **At the printed point the scaled Hessian is INDEFINITE:** eigenvalues
+  −7.37e-04 and +0.1999, condition infinite. The registered trust gate
+  therefore fails and the class is **UNRELIABLE**, so neither "stationary" nor
+  "not stationary" is claimed there. (Its scaled gradient is ‖g̃‖ = 7.28e-03,
+  and Δq = 4.6527e-03.)
+- **Powell from the printed point walks away and downhill**, to
+  **C = 56.77 eV, λ = 0.81474**, where Δq = 4.4770e-03 — 3.8% below the
+  printed point's. That end point is outside the pre-registered neighbourhood
+  (±2 eV, ±0.01), so it is not "near" the printed point by the registered rule.
+- **λ is what agrees.** The end point's λ differs from the printed 0.816 by
+  0.16%, while C differs by 51%. Whatever separates our model from his is
+  therefore in the C term rather than in λ — a narrowing, not a diagnosis.
+- **The lowest point found is itself not certifiable:** at (56.77, 0.81474) the
+  finite-difference gradient estimates disagree across the registered step
+  study, so it too classes UNRELIABLE.
+- **Five end points ARE verified minima** (positive definite, trusted, ‖g̃‖
+  below g_tol), all at λ ≈ 1.40–1.45 with Δq = 4.81570e-03 and eigenvalues of
+  order 1e-13 — a flat plateau, and **worse** than the printed point.
+- Registered S verdict: **INCONCLUSIVE** for every arm.
+
+**What the study rules OUT as the cause.**
+- **Not the numerical arm.** Scaling changes the validity of exactly 2 of 249
+  structures (pentylamine, one TS); on COMMON_VALID the pooled Δq differs by
+  1.6e-05 and R²(All) by 6.4e-05.
+- **Not the Coulomb kernel form.** V2's Ohno–Klopman kernel is much worse:
+  √Δq 0.1057 and 0 of 12 gates.
+- **Not model B's parameters alone.** The model C diagnostic misses as well:
+  √Δq 0.0808 against the printed 0.0583, R²(All) 0.9688 against 0.98. A second
+  printed model failing the same way points at something systematic in the
+  implementation or in what the paper leaves unwritten, not at one parameter
+  set.
+- **V1 (the OpenChem bond-graph reconstruction) does not discriminate.** On its
+  applicable EQ subpopulation (90 of 194 structures) **both** V1 and V0 score
+  0 of 6 gates, so the comparison says nothing about splits: INCONCLUSIVE, and
+  TS remains structurally undefined (NOT APPLICABLE).
+
+**Oracle G, unchanged from 2.4** (V0-scaled): EQ C 0.9676/0.97 pass, H
+0.8686/0.85 miss, N 0.9621/0.96 pass, O 0.6663/0.67 pass, F 0.3359/0.35 miss,
+All 0.9770/0.98 pass; TS C 0.9601/0.96 pass, H 0.8933/0.88 miss, N 0.9538/0.95
+pass, O 0.8793/0.89 miss, F 0.3460/0.16 miss, All 0.9708/0.97 pass.
+
+**Oracle T (Table III's 24 atoms): 3 pass, 21 fail** at ±5e-4, on every arm.
+The failures are dominated by fluorine and nitro compounds, which is where G's
+fluorine correlation also misses.
+
+**What is established, and what is not.** Δq at the printed point is a real
+number on a stated population, and the printed point is not where our Δq is
+minimised. Because the Hessian there is indefinite, the registered instrument
+declines to certify *why*, and no parameter was refit to close the gap. The
+cause is narrowed to the C term and to something shared by models B and C.
+
+Result files (LF-normalised SHA-256, first 32 hex):
+- `mathieu_sqe_population.csv` (1,439 rows): `b82038cd2341cab73ea0e5918a74b6dd`
+- `mathieu_sqe_surface.csv` (5,351 rows): `f869bbb3aa1648a14a3ce65262cd5e3f`
+- `mathieu_sqe_powell.csv` (47 rows): `b03133e8bf5a45f9c5d1ea5b7a27171f`
+- `mathieu_sqe_stationarity.csv` (50 rows): `9713f62bed6407cac55685a60c285929`
+- `mathieu_sqe_causes.csv` (203 rows): `75734d823bc9332dbc82fb9fb1962be6`
+### 3.7 Check 2.7: Nistor SQE on recovered correspondence (2026-09-15)
+
+Claim kind: IMPLEMENTATION REPRODUCTION, on geometry recovered by the one-row
+rotation (amendments A2 and A3). Run order in git: A3 and the module 216aecf,
+instrument tests 4a9faca, then this run.
+
+**Instrument, before the run.**
+- **Kernel:** equals an independent Fourier-space integral (the exact
+  transform of an ns Slater density, numpy Gauss–Legendre) to 5.4e-13 eV
+  worst case over H–H, C–O, Si–Si and H–Si at R = 0.5–6 Å, against the 1e-9 eV
+  gate. mpmath is not installed, and this route shares nothing with the
+  gamma-function closed form, so it replaces the registered mpmath integral.
+  R = 0 intercepts: 20.83 (H–H), 8.99 (C–O) and 6.76 (Si–Si) eV, matching the
+  figure.
+- **Normalisation checksum:** H, O and Si reproduce the printed A. Carbon
+  computes to 1.0847 against a printed 1.084; ζ = 1.6175, which also prints as
+  1.618, gives 1.0839. The printed A is therefore inside ζ's rounding.
+- **Parameter sets:** all five pages, 206 rows, re-parsed from a fresh text
+  dump and compared in order, with 0 mismatches.
+- **Tests:** `tests/test_nistor_sqe_instrument.py`, 19 tests.
+  - The split-charge solve equals a brute-force minimisation of eq 4, written
+    in loops with re-transcribed parameters, for i, iii and iv under both
+    readings.
+  - Method i equals an atomic QE solve.
+- **Mutations: 6 of 6 red.** They cover the pair sign, ζ left in Å⁻¹,
+  symmetry classes without ESP, symmetric Δ, the readings exchanged, and a
+  two-row rotation accepted. The registered "S_real branch" mutation has
+  nothing to test, since A2 removed that branch.
+
+**Step 1 and Step 2.**
+- **Parameter set:** the all-41 set's method ii reproduces every atom of all 6
+  recovered molecules. No other set reproduces any.
+- **Recovery:** 6 RECOVERED-BY-ROTATION, 3 AMBIGUOUS (29, 32, 41) and 32
+  BLOCKED.
+  - The recovered molecules are SiH4 (6, Si–O–H), (CH3)3SiC2H5 (26, Si–C–O–H),
+    and HO–CH2–OH, CH3OH, CH4 and C(OH)2(CH3)2 (33, 34, 35, 38; all C–O–H).
+  - Under A2 as written: 4, 5 and 32.
+  - Sensitivity (f = 1.15 / 1.35): 4 / 7 recovered.
+
+**Step 3: nothing reproduces.** Every molecule × method × reading is PARTIAL.
+
+| Method | Atoms reproduced (\|Δ\| ≤ 5e-5) | Molecules reproduced | Max \|Δ\| range over molecules |
+|---|---|---|---|
+| i | 2 / 56 (both on SiH4) | 0 / 6 | 0.0006 (SiH4) to 0.185 (38) |
+| iii R_eq10 | 0 / 56 | 0 / 6 | 0.0008 (SiH4) to 0.182 (38) |
+| iii R_eq14 | 0 / 56 | 0 / 6 | 0.22 (SiH4) to 4.46 (38) |
+| iv R_eq10 | 0 / 56 | 0 / 6 | 0.0013 (CH4) to 0.158 (38) |
+| iv R_eq14 | 0 / 56 | 0 / 6 | 0.12 (SiH4) to 8.31 (26) |
+
+- **Readings:** R_eq14's largest miss exceeds R_eq10's on every molecule and
+  method, by a factor of 3.1 (38, iv) to 1,800 (CH4, iii). This is reported,
+  not used to choose a reading.
+- **Sigma** (model, then printed): CH4 i 3.16 / 3.41; CH3OH i 35.30 / 37.99;
+  molecule 38 iii R_eq10 28.03 / 10.93. Every value is in
+  `nistor_sqe_molecules.csv`.
+- **A post-hoc diagnostic, not a class change:** coordinate rounding cannot
+  explain the misses.
+  - The fixture prints coordinates to 4 dp (1,477 of 2,067 have a nonzero
+    last digit).
+  - The linear envelope of each charge over ±5e-5 Å on every coordinate is at
+    most 8e-6 e (SiH4), 3e-5 e (CH4) and 3e-4 e (the larger molecules).
+  - Each molecule's largest miss is 68 to 2,900 times its largest envelope.
+- **What it says:**
+  - SiH4 and CH4 come within 2e-3 e under method i and iii R_eq10 (CH4 also
+    iv R_eq10; SiH4 iv misses by 0.023), but not within the printed precision.
+  - The four larger molecules miss by 0.02–0.18 e under method i and both
+    R_eq10 readings. That includes method i, which has no bond-hardness term.
+  - So a difference that method i already shows lies in the atomic model, the
+    kernel convention or the recovered geometry. Which of these is not tested
+    here, and nothing was refit.
+
+**Program verdict: PARTIAL**, universal status PARTIAL. GO was unreachable
+before the run (A2). No molecule is REPRODUCED-ON-RECOVERED-CORRESPONDENCE,
+so no SQE src pre-registration follows from this check.
+
+Result files (LF-normalised SHA-256):
+- `nistor_recovery.csv`:
+  `1679f036c3d451255853c2d3ab7d78958c6129ca55dda0dde8927659b16216f4`
+- `nistor_sqe_molecules.csv`:
+  `e085f61942b56c888ef8e3cc9c3a33771745eff7626b975cded59e45de1c607c`
+- `nistor_sqe_atoms.csv`:
+  `be80290213ed8119e91b64ae8125b7574de5a778b8bf91407e0aa926fd17f4d6`
+
+### 3.8 Check 2.8: Ionescu 2013's E models reproduce (2026-09-15)
+
+Claim kind: **IMPLEMENTATION REPRODUCTION**, in the domain of protein
+fragments. Run order in git: pre-registration a7563cd, fixtures 7a69e33 and
+b545044, implementation and mutations eb6563e, amendment 2.8-A1 735172b, then
+this run.
+
+**Verdict: REPRODUCED**, universal status REPRODUCED, for all 12 E models.
+
+| Reading | Model × dataset rows reproduced | Verdicts |
+|---|---|---|
+| **R_angstrom** | **36 / 36** | REPRODUCED ×36 |
+| R_bohr | 0 / 36 | PARTIAL ×36 |
+
+- **Every applicable atom of every applicable fragment** is within τ under
+  R_angstrom: 40,142 atoms on a full training set, 802 on insulin, 998 on
+  ubiquitin, for each of the 12 models.
+- **The distribution, which is the real evidence** (2.8-A1: τ is wide because
+  k prints to 3 decimals, so the pass count alone proves little):
+  - the two test proteins agree at the charge CSV's own printing precision —
+    **median |Δ| 2.2e-07 to 2.6e-07**, against a 5e-7 half-unit;
+  - the training sets agree less exactly but still far inside τ: median |Δ|
+    5.3e-06 to 6.4e-05, **max |Δ| 0.0004** over all 36 rows.
+  - **That difference between the test proteins and the training set is
+    real, scheme-dependent (PCM rows are tighter than gas), and is not
+    explained here.** Nothing was refit, and no mechanism is adopted.
+- **R_bohr fails outright** — 34 of 998 atoms on ubiquitin, median |Δ| 0.1 —
+  so the distance unit is ångström. It was not chosen; both readings ran.
+
+**Populations, per scheme (the CSV's own blocks):** 41, 40 or 38 fragments,
+with 0, 1 or 3 excluded as "absent from that scheme's block". No fragment was
+excluded for any other reason: **calcium and sulfur are parameterised and were
+included**, so there is no PARTIAL-COVERAGE here.
+
+**The metric convention, identified and not assumed.** The paper's prose calls
+R_avg the squared Pearson coefficient; its own eq 7 prints the unsquared form.
+Computed both ways on all 36 rows, **R² matches Table S2's printed R_avg in
+every row** (0 rows differ by more than 0.0015), as do RMSD_avg and D_avg.
+Example (E-HiI/6-31G\*\*/PCM, training set): R² 0.9625 against 0.962, RMSD
+0.1281 against 0.128, D 0.0949 against 0.094. So Table S2 prints the squared
+coefficient, and the paper contradicts itself.
+
+**Instrument:** 18 tests, all six registered mutations red. The calcium
+mutation survived its first run because no test had a calcium atom in it; a
+synthetic case was added rather than the mutation retired.
+
+**EX models: BLOCKED on typing**, as registered. They need maximum bond
+multiplicity per atom, so they need bond-order perception from a PDB; no
+best-effort typing was compared.
+
+**Program verdict: GO-CANDIDATE.** A reading reproduces every applicable
+fragment of all 12 E models, which is the registered condition. A src
+pre-registration would carry per-model keys (e.g.
+`eem_ionescu2013_e_mpa_631gs_gas`), the protein-fragment domain limit, and
+the fact that these parameters are fitted to QM charges of *protein
+fragments* — not a small-molecule claim.
+
+Result files (LF-normalised SHA-256):
+- `ionescu_eem_models.csv` (72 rows):
+  `daf4cee368f80087c2d127b6f4059b052962921cc9a00f1a97f9969b14b48347`
+- `ionescu_eem_atoms.csv` (109,646 rows; the subset fragments):
+  `2fe90adac0de67387c13cad1f71695ac12d80b5ba06105666f9324e1f1e937ce`
+- `tests/fixtures/charges/ionescu2013/table_s1.csv`:
+  `f6f687d8d4906b7052055700d83c835d4803c3fc42ebb0dc985a4064f14829f3`
+- `tests/fixtures/charges/ionescu2013/table_s2.csv`:
+  `4896075257d422abbd9fb251f8eb43e1e552822a7e67387779edac98f9b183da`
+
+## 4. EEM beyond H/C/N/O/F: the source taxonomy (2026-09-15)
+
+Each record carries the same fields: **kind**, what its charges are, whether
+its **source population is recoverable** (exact / partial / independent
+substitute only / unavailable), and **what evidence its oracle could give**
+(implementation reproduction, scheme reproduction, or independent usability
+only).
+
+### 4.1 Ionescu et al. 2013 — the one exact route
+
+- **Kind:** element extension (adds S and Ca) plus 24 published models.
+- **Charges:** MPA, NPA and iterative Hirshfeld at HF/6-31G\* and 6-31G\*\*,
+  in gas phase and PCM, on 41 protein fragments plus insulin and ubiquitin.
+- **Population recoverable: exact.** The structures (PDB), the per-atom QM and
+  EEM charges (CSV) and the parameters (Table S1) are all held.
+- **Evidence:** implementation reproduction. Check 2.8 runs it; see 3.8.
+
+### 4.2 Vařeková et al. 2007 — NCI DIS: independent substitute only
+
+- **Kind:** element extension (S, F, Cl, Br, I, Fe, Zn) with the κ kernel.
+- **Charges:** HF/STO-3G Mulliken, computed by the authors.
+- **The sets, transcribed from its Table 1** (NCI DIS half only; the CSD half
+  needs a licensed database and is unavailable):
+
+  | Set | Molecules | Elements | Printed position |
+  |---|---|---|---|
+  | nbeg | 2000 | C, O, N, H, S | ID between 1 and 3162 |
+  | nmid | 2000 | C, O, N, H, S | ID between 300 000 and 314 026 |
+  | nend | 2000 | C, O, N, H, S | ID between 705 000 and 712 703 |
+  | nall | 6000 | C, O, N, H, S | nbeg + nmid + nend |
+  | nhal | 4000 | + Br, Cl, F, I | ID between 106 498 and 114 688 |
+
+- **Population recoverable: independent substitute only**, for two measured
+  reasons, neither of which is about availability:
+  1. **The membership is not printed.** Each 2000-molecule set is drawn from a
+     wider id range (nbeg: 2000 of 3162), and the paper does not say which
+     ids. No list of members can be recovered from what is printed.
+  2. **The geometry source is gone.** The paper's structures are NCI DIS 3D
+     coordinates predicted by CHEM-X. The public NCI Open Database's 3D
+     coordinates are generated by CORINA (release notes for the 1999, 2000,
+     2003 and 2012 releases, read 2026-09-15). A CORINA structure for the same
+     NSC number is a different geometry, so byte identity is not demonstrable
+     even for a molecule that is certainly the right compound.
+- **Availability, sampled 2026-09-15** (metadata only, nothing downloaded):
+  8 ids evenly spaced across each printed range, queried against PubChem's
+  `DTP.NCI` substance source: nbeg 8/8, nmid 4/8, nend 5/8, nhal 6/8 present
+  (23 of 32). Presence there is an identity cross-reference, not the 2007
+  geometry.
+  - The CACTUS resolver returned HTTP 500 for two NSC probes the same day.
+    That is a server fault and is recorded as evidence of nothing.
+- **Evidence:** independent usability only. Its STO-3G Mulliken oracle would
+  have to be recomputed by us, on structures we generate, and could never be
+  called a reproduction of the paper.
+
+### 4.3 The rest, recorded without new work
+
+| Source | Kind | Charges | Population | Evidence available |
+|---|---|---|---|---|
+| `jiroušková2009` | element extension (S, Br, Cl, Zn) | B3LYP and HF/6-31G\* MK | **unavailable**, searched 2026-09-15 (below) | none |
+| `bultinck2004` | same equations, AIM charges | B3LYP AIM, CHNOF | **partial**: the SI is a drawn list of molecule identities with no coordinates | identities only; AIM needs a tool not held |
+| `ouyang2009`, `chaves2006`, `njo1998` | modified models / other elements | NPA, Mulliken, STO-3G+MK | not assessed; context only | context |
+| `ionescu2012` | application (Bax/Bak profiles) | — | the fragment archive is not held | none |
+| `verstraelen2009` | EEM and SQE on 500 molecules (H, C, N, O, F, S, Cl, Br) | its own | data not held | context for Tracks 1 and 5, never a gate |
+
+**The Jiroušková 2009 search, run 2026-09-15, and its result: UNAVAILABLE.**
+The round 3 plan required this before the record could say "unavailable".
+- The paper's own data statement: 380 training, 116 validation and 111
+  comparative molecules (16,841 atoms in the training set), "stored in SDF
+  format". **It prints no molecule identities** -- no NSC numbers, no CSD
+  refcodes, no names -- so even a recovered file could not be checked against
+  a membership list, and no list can be rebuilt from the paper.
+- The held SI is 3 pp of histograms.
+- The page the paper cites for its software,
+  `http://ncbr.chemi.muni.cz/~n19n/eem_abeem`, does not respond (connection
+  failure on http and https).
+- The Internet Archive holds **4 URLs** under that path, all captured in 2007
+  and 2008, before this paper: the redirect itself, `email.htm`, `licence.htm`
+  and `manual.htm`. None is data.
+
+So the status is unavailable, on a search rather than on an assumption. It is
+not reopened without a new source.
+
+
