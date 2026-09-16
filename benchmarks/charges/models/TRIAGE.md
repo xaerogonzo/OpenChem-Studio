@@ -1978,3 +1978,96 @@ So the status is unavailable, on a search rather than on an assumption. It is
 not reopened without a new source.
 
 
+
+### 3.9 Check 2.9: EQeq on its own 12 MOFs (2026-09-15)
+
+Claim kind: IMPLEMENTATION REPRODUCTION under a named parameter substitution.
+**Verdict: PARTIAL**, universal status PARTIAL, on every reading — and the
+substitution turned out not to be the reason.
+
+**The oracle is confirmed, independently of our model.** Matching atoms by
+minimum-image position, the mean |EQeq − REPEAT| computed from the deposited
+files reproduces **every cell of the paper's Table 2**: MIL-47 0.112 (printed
+0.11), UMCM-150 0.110 (0.11), Co-MOF-74 0.137 (0.14), HKUST-1 0.149 (0.15),
+Ni-MOF-74 0.146 (0.15), Zn-MOF-74 0.141 (0.14), ZIF-8 0.163 (0.16), IRMOF-1
+0.162 (0.16), Mg-MOF-74 0.193 (0.19), IRMOF-3 0.238 (0.24), Pd(2-pymo)₂ 0.240
+(0.24), UMCM-150(N₂) 0.151 (0.15). So these files are the paper's own charges.
+- **The four charge files of a MOF do NOT share an atom order**, and their
+  coordinate lists are permutations. Compared index by index, MIL-47's
+  EQeq-vs-REPEAT deviation is 0.47 against the printed 0.11. The position match
+  is an exact bijection (worst residual 0.000 Å), and that is what makes the
+  Table 2 agreement above meaningful.
+
+**THE PARAMETER SUBSTITUTION IS NOT THE CAUSE, which the check could not have
+assumed.** The public EQeq code's own `ionizationdata.dat` (read 2026-09-15,
+metadata only, nothing vendored) holds the same values this reconstruction
+produced: H 0.75420, C 1.26212, **N −0.07000**, O 1.46111, and Moore's
+potentials verbatim (13.598; 24.587, 54.416; …). Elements with no bound anion
+carry 0.00000 there. So 2.9-A1's three OCR conventions were read correctly, and
+the remaining gap is in the implementation.
+
+**What reproduces already:** the metals, to about their printed precision.
+
+| | median \|Δq\| |
+|---|---|
+| Zn (94), Ni (18), Co (18), Pd (12), Mg (18), V (4), Cu (84) | **0.001 – 0.010** |
+| N (144) | 0.050 |
+| O (804) | 0.093 |
+| C (1520) | 0.132 |
+| H (736) | 0.017 |
+
+Over all 3,452 atoms the correlation is 0.948 and ours ≈ 0.823 × theirs. The
+metals sit at positive charge centres and far from their neighbours; the light
+atoms are bonded, so **the miss is where a short-range term acts**.
+
+**The short-range term is the open question, and five readings of it were
+tried.** SI eq 64's orbital-overlap damping, as printed, makes agreement
+*worse*; the closest result comes from leaving it out, which cannot be the
+paper's model because the paper states the term is there.
+
+| Reading of eq 64 | IRMOF-1 median / max | MIL-47 median / max |
+|---|---|---|
+| as printed | 0.008 / 0.216 | 0.032 / 0.274 |
+| **omitted** | **0.009 / 0.030** | **0.009 / 0.033** |
+| K unscreened inside E_O | 0.071 / 0.537 | 0.091 / 0.634 |
+| arithmetic mean hardness | 0.009 / 0.214 | 0.033 / 0.271 |
+| middle term's sign flipped | 0.409 / 0.642 | 0.689 / 1.073 |
+| no K prefactor | 0.014 / 0.045 | 0.021 / 0.055 |
+
+**Settled by the same run, and reported rather than tuned:**
+- **The lattice sum is converged:** L = 2 and L = 3 agree to 3e-4 e per atom
+  everywhere, which matches the paper's own statement about 5 × 5 × 5 versus
+  7 × 7 × 7 and retires the Ewald-versus-direct question for this corpus.
+- **Hydrogen's ad hoc I₀ = −2 eV is confirmed:** using the measured +0.754
+  instead moves IRMOF-1's median from 0.008 to 0.102.
+- **The Ewald self term** (−2K/(η√π) on the diagonal at η = 50 Å) makes
+  agreement worse, so it is not silently present in the published numbers.
+- **c = 1 beats c = ½** on every MOF (mean |q − q_REPEAT| 0.236 against 0.306),
+  so eq 62's printed K/2 is not the derivative that produced these charges.
+- Charge conservation holds to 4e-16 per cell.
+
+**What this establishes, and what it does not.** Our solver reproduces EQeq's
+metal charges to their printed precision on all 12 MOFs, from a table proven
+identical to the shipped one, with the lattice sum converged and two of the
+three printed ambiguities resolved. It does **not** reproduce the published
+charges: the best reading leaves max |Δq| ≈ 0.03 e, and it is a reading the
+paper contradicts. **No parameter was fitted to close the gap**, and the
+verdict stays PARTIAL rather than being rescued by the variant that agrees
+best.
+
+**GO is not reached.** A periodic calculator is not opened on this: shipping
+"EQeq-like" charges that differ from the published ones by up to 0.03 e, under
+a short-range term we cannot read, is exactly the kind of plausible-looking
+number this triage exists to keep out.
+
+**What would unblock it**, in order of directness:
+1. **`EQeq_v1_00.cpp`**, the version the paper ran, which is not in the ACS
+   package.
+2. **Wilmer & Snurr 2011** (Chem. Eng. J. 171, 775) — the "prior report" that
+   SI eq 64 says the orbital form was taken from. A second, independent
+   printing of the same formula would settle its typography.
+
+Result files (LF-normalised SHA-256, first 32 hex):
+- `eqeq_mofs.csv` (48 rows): `dd1d743fef3233d525634a7e0ab16537`
+- `eqeq_atoms.csv` (3,452 rows, L = 2 and c = 1):
+  `f9848325e9d1c48a2ce9a75fa81067f6`
