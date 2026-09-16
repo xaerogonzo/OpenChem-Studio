@@ -237,6 +237,10 @@ _MAX_CORRESPONDENCES = 5000
 def restore_heavy_atom_order(original: Chem.Mol, protonated: Chem.Mol) -> Chem.Mol:
     """`protonated`, renumbered into `original`'s atom order.
 
+    The correspondence itself is `heavy_correspondence`, which this wraps: a caller that needs to
+    know WHICH source atom each microspecies atom is -- to carry coordinates across, say -- asks for
+    the map instead of re-deriving it from the rebuilt molecule.
+
     **THE CONTRACT:** for every atom index i of `original`, atom i of the
     result is the same atom. A heavy atom carries the protonated state
     (charge, hydrogen count, aromaticity); a hydrogen `original` holds as an
@@ -279,6 +283,18 @@ def restore_heavy_atom_order(original: Chem.Mol, protonated: Chem.Mol) -> Chem.M
     phenolates, N-heterocycles, nitro groups, symmetric diamines, both
     reported rings and trimesic acid, and a Kekulé-versus-aromatic form with
     no proton moved is the identity.
+    """
+    heavy, match = heavy_correspondence(original, protonated)
+    return _rebuild_in_original_order(original, protonated, heavy, match)
+
+
+def heavy_correspondence(original: Chem.Mol, protonated: Chem.Mol) -> tuple[list[int], tuple[int, ...]]:
+    """Which microspecies atom each of `original`'s heavy atoms is: `(heavy indices, match)`.
+
+    `match[p]` is the protonated index of `heavy[p]`. This is the body `restore_heavy_atom_order`
+    used to hold privately; it is a separate function because a consumer that carries COORDINATES
+    across needs the map itself, and re-deriving one from the rebuilt molecule would be a second,
+    weaker answer to a question already settled here.
     """
     heavy = [atom.GetIdx() for atom in original.GetAtoms() if atom.GetAtomicNum() != 1]
     if any(atom.GetAtomicNum() == 1 for atom in protonated.GetAtoms()):
@@ -358,7 +374,7 @@ def restore_heavy_atom_order(original: Chem.Mol, protonated: Chem.Mol) -> Chem.M
             "Symmetry-equivalent atoms receive different protonation states, so "
             "which drawn atom carries the change cannot be established"
         )
-    return _rebuild_in_original_order(original, protonated, heavy, best[0])
+    return heavy, best[0]
 
 
 def _skeleton(mol: Chem.Mol, keep: list[int]) -> tuple[Chem.Mol, list[tuple[int, int]]]:

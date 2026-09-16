@@ -31,6 +31,7 @@ from openchem.chem.mass_spectrum import (
 )
 from openchem.chem.geometry_analysis import compute_geometry_analysis
 from openchem.chem.geometry_charges import (
+    compute_geometry_charges_at_ph,
     EEM_BULTINCK2002_PART1,
     GEOMETRY_CHARGE_METHOD_LABELS,
     GEOMETRY_CHARGE_METHODS,
@@ -1931,6 +1932,44 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             decimal_places_parameter(),
         ],
         tags=["charge", "3d", "per-atom", "eem", "electronegativity equalization", "partial charge", "bultinck", "qeq", "charge equilibration", "rappe"],
+    ),
+    CalculatorDefinition(
+        # A SEPARATE CALCULATOR, not a parameter on the one above, for the same reason
+        # `gasteiger_charge_at_ph` sits beside the plain Gasteiger: the 3D calculator's stored
+        # results are keyed by its parameter defaults, and adding a parameter there would change
+        # that key and orphan every EEM result saved before this existed.
+        calculator_id="geometry_partial_charge_at_ph",
+        calculation_input=GEOMETRY,
+        display_name="Partial Charge (3D, pH-dependent)",
+        category="charge",
+        description=(
+            "The same geometry-dependent charges, computed on the dominant ionization state at a "
+            "given pH instead of the structure as drawn. The state is carried onto the stored "
+            "conformer: every heavy atom and every hydrogen it keeps holds its coordinates exactly, "
+            "and only hydrogens the state adds are placed (MMFF94, with every other atom held "
+            "fixed). Ionization states only, never tautomers. It refuses rather than choose when a "
+            "proton leaves an atom whose hydrogens are not equivalent."
+        ),
+        execution=RegistryExecution(compute=compute_geometry_charges_at_ph),
+        parameters=[
+            CalculatorParameter(
+                name="method",
+                label="Method",
+                kind="choice",
+                default=EEM_BULTINCK2002_PART1,
+                choices=list(GEOMETRY_CHARGE_METHODS),
+                choice_labels=[GEOMETRY_CHARGE_METHOD_LABELS[m] for m in GEOMETRY_CHARGE_METHODS],
+            ),
+            CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0),
+            CalculatorParameter(
+                name="include_hydrogens",
+                label="Increment of Hs (fold hydrogen charges onto their atom)",
+                kind="bool",
+                default=False,
+            ),
+            decimal_places_parameter(),
+        ],
+        tags=["charge", "3d", "ph", "per-atom", "eem", "qeq", "protonation", "ionization", "partial charge"],
     ),
     CalculatorDefinition(
         calculator_id="crippen_logp_contrib",
