@@ -74,9 +74,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Wilmer 2012's supporting information gives the ionisation table (S2) and
   the 12 MOFs' per-atom charges (S5). The held PDF shows S2 only as plots and
   S5 as a one-line pointer to a zip; the table, the structures, the charges
-  and the source code are accompanying files, and none is held. The periodic
-  feasibility check that found this is at
-  `benchmarks/charges/periodic/FEASIBILITY.md`, and its outcome is BLOCKED.
+  and the source code are accompanying files. The periodic feasibility check
+  that found this is at `benchmarks/charges/periodic/FEASIBILITY.md`. The
+  structures and their per-atom charges have since been fetched, so its outcome
+  is now FEASIBLE with the ionisation table as a named substitution; what the
+  PDF alone contains is unchanged.
 
 - **A 3D result could name a conformer it was not computed on.** Which
   conformer a calculation used was read after the calculation finished, so a

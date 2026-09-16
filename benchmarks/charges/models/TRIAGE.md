@@ -195,17 +195,20 @@ saved as `nistor2006_si.pdf.pdf`, the name the fixture headers keep).
 - **Evidence basis:** PDF plus supplement.
 - **Parameters:** SI S3 gives the run inputs. **S2 shows the ionisation
   energies only as plots**; the table itself is an accompanying file and is
-  not held (corrected 2026-09-15).
-- **Numeric oracle:** none held. S5 is a one-line pointer to a zip of the 12
-  MOF structures and charges, which is not held. The paper's Table 2 gives
-  per-MOF mean deviations only.
+  still not held (corrected 2026-09-15).
+- **Numeric oracle: HELD since 2026-09-15.** The accompanying zip is now on
+  disk: 12 MOFs x 4 charge sets, each file carrying its unit cell and its
+  per-atom charges. All 12 atom counts match the paper's Table 1 and every
+  EQeq set sums to zero. (Before it arrived this row read "none held".)
 - **Runnable reference:** numat/EQeq (GitHub reports GPL-2.0, archived as
   deprecated). It is a later fork, not the 2012 v1.00 code, and GPL-2.0 is not
   vendored here.
 - **Verdict: NO as a molecular calculator.** The periodic version is recorded
-  on the roadmap, and Track 6's feasibility check
-  (`benchmarks/charges/periodic/FEASIBILITY.md`, 2026-09-15) is **BLOCKED** on
-  those accompanying files.
+  on the roadmap. Track 6's feasibility check
+  (`benchmarks/charges/periodic/FEASIBILITY.md`) was **BLOCKED** when it ran
+  and is **FEASIBLE** after the structures arrived (its section 8), with the
+  ionisation table as a named substitution: it must be rebuilt from Andersen
+  1999 and Moore 1970 and labelled a reconstruction.
 
 ### Context, not a model: Sefcik, Demiralp, Çağın & Goddard 2002
 

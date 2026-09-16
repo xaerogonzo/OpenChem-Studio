@@ -4,7 +4,10 @@ Written 2026-09-15. **This is a feasibility record only.** No periodic charge
 code exists or is written here. `git diff master -- src/` is empty on this
 branch.
 
-**Outcome: BLOCKED**, on source data that is not held:
+**Outcome: BLOCKED as first written; REVISED TO FEASIBLE the same evening —
+see section 8.** The accompanying files arrived after this was written, so the
+paragraph below records what was true when the check ran, and section 8 records
+what changed. Originally blocked on source data that is not held:
 - the 2012 accompanying files: the 12 MOF structures with their charges, the
   ionisation table, and the v1.00 source;
 - a disorder-resolution rule, which is missing from the input path.
@@ -199,7 +202,10 @@ result store's identity is not reused as is:
 here: EQeq's own published setting (η = 50 Å, L = 2) is the reproduction
 target, and a Wolf sum would be an application choice with its own oracle.
 
-**Outcome:** BLOCKED, universal status BLOCKED. It stops here, per the plan.
+**Outcome (as first written):** BLOCKED, universal status BLOCKED. **Superseded
+by section 8:** the structures and their per-atom charges are now held, and the
+outcome is FEASIBLE with the parameter table as a named substitution. Either
+way it stops at feasibility, per the plan.
 
 ## 7. Probe script (as run)
 
@@ -221,3 +227,87 @@ for path in sorted(pathlib.Path(sys.argv[1]).glob("*.cif")):
         min_cart = min(min_cart, math.dist((0, 0, 0), crystal.lattice.to_cartesian(*d)))
     print(path.name, len(crystal.sites), len(crystal.operations), special, len(atoms), same, cross, round(min_cart, 3))
 ```
+
+## 8. Update, 2026-09-15 evening: the accompanying files arrived
+
+Alex fetched the ACS supporting information and reorganised it, so most of
+section 6's unblocking condition is met. **Everything above this section is
+left as written**; this section says what changed.
+
+**What is held now**, at `Sci Downloads/wilmer2012_si/`:
+- `jz3008485_si_001.pdf` — the supporting-information PDF (the file this
+  document calls `wilmer2012_si.pdf` above), under its publisher name;
+- `jz3008485_si_002/CrystalStructuresWithCharges/` — **48 structure files**,
+  12 MOFs × 4 charge sets (EQeq, REPEAT, ChelpG, AMSQeq);
+- `jz3008485_si_002/2012_Mar21_JPCLett_EQeq_AllIsothermsData_Submitted.xlsx` —
+  the adsorption isotherms behind the paper's Figure 3.
+
+**Their format**, read rather than assumed. Despite the `.mol` extension these
+are not MDL molfiles; they are the RASPA-style listing the EQeq code emits:
+
+    Molecule_name: hypotheticalMOF
+      Coord_Info: Listed Cartesian None
+          424                                  <- atom count
+       1  7.5791  5.3369  5.3369  Mof_Zn  1.211  0  0   <- index, x, y, z, label, CHARGE
+       ...
+          90.0000  90.0000  90.0000            <- cell angles, at the END of the file
+          0.00000  0.00000  0.00000            <- origin
+          25.8320  25.8320  25.8320            <- cell lengths
+
+So each file carries the **unit cell and the per-atom charges together**, which
+is exactly what section 5's identity fields need.
+
+**Two checksums, measured on the EQeq set (2026-09-15):**
+
+| MOF | atoms | paper Table 1 | Σq | cell (Å) |
+|---|---|---|---|---|
+| HKUST-1 | 624 | 624 | −0.0000 | 26.3430³ |
+| Pd(2-pymo)₂ | 252 | 252 | +0.0000 | 16.3418³ |
+| IRMOF-1 | 424 | 424 | +0.0000 | 25.8320³ |
+| IRMOF-3 | 472 | 472 | −0.0000 | 25.7465³ |
+| Zn-MOF-74 | 162 | 162 | +0.0000 | 25.9322, 25.9322, 6.8365 |
+| Ni-MOF-74 | 162 | 162 | +0.0000 | 25.7856, 25.7856, 6.7701 |
+| Co-MOF-74 | 162 | 162 | −0.0000 | 25.8850, 25.8850, 6.8058 |
+| Mg-MOF-74 | 162 | 162 | −0.0000 | 25.8765, 25.8765, 6.7856 |
+| ZIF-8 | 276 | 276 | −0.0000 | 16.9910³ |
+| MIL-47 | 72 | 72 | −0.0000 | 6.8179, 16.1430, 13.9390 |
+| UMCM-150 | 354 | 354 | −0.0000 | 18.3532, 18.3532, 40.6670 |
+| UMCM-150(N₂) | 330 | 330 | +0.0000 | 18.4456, 18.4456, 39.5369 |
+
+**All 12 atom counts match the paper's Table 1 exactly**, and every EQeq charge
+set sums to zero as a periodic cell must. That is the corpus identified, not
+merely a set of files with plausible names.
+
+**What is still NOT held:** `ionizationData.dat` (the ionisation and
+electron-affinity table the method runs on) and `EQeq_v1_00.cpp`. Neither is in
+the ACS package; the SI's first page lists them as accompanying files, and S8
+points at the source rather than printing it.
+
+**Revised oracle table:**
+
+| Item | Held? | Status |
+|---|---|---|
+| 12 MOF structures with cells | **yes** | exact source structures |
+| Per-atom EQeq, REPEAT, ChelpG, AMS Qeq charges | **yes** | **an exact per-atom oracle** |
+| Adsorption isotherms | **yes** | context for the paper's Figure 3 |
+| Ionisation/electron-affinity table | no | external required, or **substitutable** (section 3) |
+| EQeq v1.00 source | no | external required |
+
+**Revised outcome: FEASIBLE, with one named substitution.** A periodic EQeq
+implementation can now be tested against the source's own charges on the
+source's own structures. What it cannot yet do is use the source's own
+parameter table: that would have to be rebuilt from the two references SI S2
+cites (Andersen & Haugen 1999; Moore 1970), and **any such table is an
+independent reconstruction and must be labelled one** — a per-atom mismatch
+would then have two candidate causes, the implementation and the table, which
+is precisely the ambiguity a pre-registration has to settle in advance.
+
+**Still open, unchanged by the new files:** section 2's two conventions (the
+2π convention at η = 50 Å, and the pair-vector form of the reciprocal sum) and
+section 4's disorder rule. The structures here are ordered and fully occupied,
+so the disorder question does not arise for *this* corpus — it returns the
+moment any other CIF is used.
+
+**This does not start an implementation.** Track 6 was scoped to feasibility,
+and shipping periodic charges needs its own pre-registration, which would now
+have a real oracle to state.
