@@ -1878,14 +1878,6 @@ synthetic case was added rather than the mutation retired.
 multiplicity per atom, so they need bond-order perception from a PDB; no
 best-effort typing was compared.
 
-**The 2011 prior report does not settle eq 64 either** (`wilmer2011`, Chem.
-Eng. J. 171, 775, read 2026-09-15). It gives the two-centre Coulomb integral in
-two *alternative* forms — a 1s Slater solution (its eq 6) and a Gaussian one
-(eq 7) — and not the 2012 SI's eq 64; the code's own comment beside the term
-says "other functional forms are OK too". So the published source is the
-operative definition of this model, and that is now recorded rather than
-inferred.
-
 **Program verdict: GO-CANDIDATE.** A reading reproduces every applicable
 fragment of all 12 E models, which is the registered condition. A src
 pre-registration would carry per-model keys (e.g.
@@ -2063,6 +2055,16 @@ not J; the stated property holds only at lambda = 1.
 - c = 1 beats c = ½ on every MOF, so eq 62's printed K/2 is not the derivative
   behind these charges;
 - charge conservation holds to 4e-16 per cell.
+
+**The shipped charge-centre file does NOT reproduce the published charges, and
+the paper's prose does.** `chargecenters.dat` lists Mg 2, V 4, Co 2, Ni 2,
+Cu 2, Zn 2 and **Zr 4 — with no palladium**, while the article's text names
+"Pd: +2". Measured on Pd(2-pymo)₂: with Pd at +2 every atom matches; with Pd
+at 0, which is what the file implies, **2.4% do** (its palladium reads +0.591
+against a printed +0.780). So the charge centres are an input that the paper's
+two artifacts state differently, and any calculator built on this must show
+which centre each element was given rather than implying the structure
+determines it.
 
 **The 2011 prior report does not settle eq 64 either** (`wilmer2011`, Chem.
 Eng. J. 171, 775, read 2026-09-15). It gives the two-centre Coulomb integral in
