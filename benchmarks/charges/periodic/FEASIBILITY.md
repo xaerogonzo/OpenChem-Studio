@@ -333,3 +333,29 @@ moment any other CIF is used.
 **This does not start an implementation.** Track 6 was scoped to feasibility,
 and shipping periodic charges needs its own pre-registration, which would now
 have a real oracle to state.
+
+## 9. It shipped, 2026-09-16 — and three of this document's open questions got answers
+
+`calculator_preregistration.md` was written next, `chem/periodic_charges.py`
+implements it, and the crystal report shows the charges. What this document
+left open, closed:
+
+- **The parameter table's substitution held.** Rebuilt from Andersen 1999 and
+  Moore 1970 as §8 required, labelled a reconstruction throughout — and then
+  shown value-for-value identical to the table the published code ships, once
+  the correction's SI supplied that code. The ambiguity §8 worried about never
+  had to be resolved, because the table turned out not to be a variable.
+- **Section 2's two conventions never arose.** The published code sums
+  DIRECTLY, not by Ewald, so the 2π convention at η = 50 Å and the reciprocal
+  sum's pair-vector form are both questions about a route EQeq does not take.
+  They stay open for any future Ewald-based periodic method, which is where
+  they belong.
+- **Section 4's disorder rule is now a REFUSAL, not a gap.** Measured on the
+  six committed CIF fixtures: four refuse for partial occupancy. That is the
+  binding constraint on real files, as §4 predicted, and the calculator
+  declines to choose an alternative rather than picking the majority occupant.
+
+**And one this document did not anticipate:** the truncated direct sum is not
+invariant to translating a single atom by a lattice vector, so two of the
+twelve structures' published charges depend on coordinates a CIF cannot carry.
+Pre-registration amendment 4-A1 measures it.

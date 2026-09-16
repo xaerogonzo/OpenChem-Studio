@@ -2717,20 +2717,29 @@ kind = "literature"
 citation = "C. E. Wilmer, K. C. Kim & R. Q. Snurr, 'An Extended Charge Equilibration Method', J. Phys. Chem. Lett. 2012, 3, 2506-2511."
 identifier_type = "doi"
 identifier = "10.1021/jz3008485"
-status = "reference_only"
+status = "shipped"
 local = "wilmer2012.pdf"
-verification = "citation"
-verified_date = 2026-09-14
+verification = "citation_and_claim"
+verified_date = 2026-09-16
 reason = """
-EQEQ, A DELIBERATELY NON-ITERATIVE VARIANT, NOT A SOURCE FOR THE 1991 METHOD.
-Useful context only: it notes that QEq's hydrogen term is cubic in the energy,
-which guarantees a minimum but forces iteration -- the loop whose LiH
-behaviour amendment A7 diagnoses.
+**IT NOW BACKS A SHIPPED CALCULATION.** `chem/periodic_charges.py` computes
+EQeq charges for a periodic structure and the crystal report shows them --
+written from the equations and never ported, so the repository stays
+GPL-3.0-or-later. `citation_and_claim` because the numbers this project
+produces were checked against the source's own: all 3,452 atoms of its twelve
+deposited MOFs reproduce at the printed precision (TRIAGE 2.9), and ten of the
+twelve do so again through the application's own path
+(benchmarks/charges/periodic/calculator_preregistration.md gate 1, whose
+amendment 4-A1 measures why the other two cannot).
+
+IT IS ALSO A DELIBERATELY NON-ITERATIVE VARIANT AND NOT A SOURCE FOR THE 1991
+QEQ METHOD. It notes that QEq's hydrogen term is cubic in the energy, which
+guarantees a minimum but forces iteration -- the loop whose LiH behaviour
+amendment A7 diagnoses.
 
 ITS SUPPORTING INFORMATION IS HELD (`wilmer2012_si.pdf`, 24 pp): the full
 derivation (S1), the EQeq inputs used for the 12 MOFs (S3), and the VASP and
-GCMC details. EQeq is recorded under ROADMAP's periodic charge equilibration,
-not as a molecular calculator.
+GCMC details.
 
 WHAT THE PDF ITSELF DOES NOT CONTAIN (corrected 2026-09-15): S2 shows the
 ionization energies only as plots, S5 is a one-line pointer to a zip, and S8 is
@@ -2785,15 +2794,20 @@ kind = "literature"
 citation = "T. Andersen, H. K. Haugen & H. Hotop, 'Binding Energies in Atomic Negative Ions: III', J. Phys. Chem. Ref. Data 1999, 28, 1511-1533."
 identifier_type = "doi"
 identifier = "10.1063/1.556047"
-status = "reference_only"
+status = "shipped"
 local = "andersen1999.pdf"
-verification = "citation"
-verified_date = 2026-09-15
+verification = "citation_and_claim"
+verified_date = 2026-09-16
 reason = """
-ONE OF THE TWO SOURCES EQEQ'S PARAMETER TABLE WOULD HAVE TO BE REBUILT FROM.
-Wilmer 2012's `ionizationData.dat` is not in the ACS package, and its SI S2
-cites this review for the electron affinities and Moore 1970 for the ionization
-potentials. Recommended electron affinities for the elements to Z = 94.
+**THE ELECTRON AFFINITIES IN `chem/data/eqeq_ionization.json`, WHICH THE
+SHIPPED PERIODIC CHARGE CALCULATOR READS.** Wilmer 2012's `ionizationData.dat`
+is not in the ACS package, and its SI S2 cites this review for the electron
+affinities and Moore 1970 for the ionization potentials, so the shipped table
+is rebuilt from both. `citation_and_claim` because the reconstruction was
+checked back against the source's own output: all 3,452 atoms of its twelve
+deposited MOFs reproduce (TRIAGE 2.9).
+
+Recommended electron affinities for the elements to Z = 94.
 
 Held and readable: the PDF carries a text layer and its recommended values
 extract (spot-checked 2026-09-15: C 1.262 118 eV, O 1.461 112, Cl 3.612 724).
@@ -2813,12 +2827,18 @@ kind = "literature"
 citation = "C. E. Moore, 'Ionization Potentials and Ionization Limits Derived from the Analyses of Optical Spectra', NSRDS-NBS 34, National Bureau of Standards, 1970."
 identifier_type = "doi"
 identifier = "10.6028/NBS.NSRDS.34"
-status = "reference_only"
+status = "shipped"
 local = "Moore1970.pdf"
-verification = "citation"
-verified_date = 2026-09-15
+verification = "citation_and_claim"
+verified_date = 2026-09-16
 reason = """
-THE OTHER SOURCE FOR A REBUILT EQEQ PARAMETER TABLE (see `andersen1999`).
+**THE IONIZATION POTENTIALS IN `chem/data/eqeq_ionization.json`, WHICH THE
+SHIPPED PERIODIC CHARGE CALCULATOR READS.** Rebuilt from this table by the
+committed extractor rather than taken from EQeq's own `ionizationData.dat`,
+which is not held; the electron affinities beside them are `andersen1999`.
+`citation_and_claim` because the values were checked back: the reconstruction
+reproduces all 3,452 atoms of Wilmer 2012's twelve deposited MOFs (TRIAGE 2.9).
+
 Ionization potentials, in eV, for the elements and their successive ionization
 stages, from optical spectra.
 

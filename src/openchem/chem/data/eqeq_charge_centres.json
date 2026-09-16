@@ -1,0 +1,42 @@
+{
+ "_source_key": "wilmer2012",
+ "_supplementary_source_keys": [
+  "wilmer2012_correction"
+ ],
+ "_note": "EQeq's charge centres: the Taylor-series centre Q* per element. AN INPUT, not a property of the structure, and the paper's two artifacts disagree -- its chargecenters.dat lists Zr 4 and no palladium, its text names Pd +2. This table is the union, and each entry says which artifact it came from. TRIAGE 3.9: with Pd at +2 every atom of Pd(2-pymo)2 reproduces; at 0, 2.4% do.",
+ "_default": "0 for any element not listed, which for a metal is a DIFFERENT model and is reported",
+ "centres": {
+  "Mg": {
+   "centre": 2,
+   "from": "chargecenters.dat"
+  },
+  "V": {
+   "centre": 4,
+   "from": "chargecenters.dat"
+  },
+  "Co": {
+   "centre": 2,
+   "from": "chargecenters.dat"
+  },
+  "Ni": {
+   "centre": 2,
+   "from": "chargecenters.dat"
+  },
+  "Cu": {
+   "centre": 2,
+   "from": "chargecenters.dat"
+  },
+  "Zn": {
+   "centre": 2,
+   "from": "chargecenters.dat"
+  },
+  "Zr": {
+   "centre": 4,
+   "from": "chargecenters.dat"
+  },
+  "Pd": {
+   "centre": 2,
+   "from": "the paper's text (absent from chargecenters.dat)"
+  }
+ }
+}

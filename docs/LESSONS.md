@@ -20324,3 +20324,65 @@ answer. Each was caught before any number was published.
      anything.
    - It is recorded as post hoc so that it is not rediscovered as a finding.
 
+
+## A TRUNCATED LATTICE SUM IS NOT INVARIANT TO MOVING ONE ATOM, AND THE CIF CANNOT CARRY WHAT THE SOURCE USED
+
+2026-09-16, branch `periodic-charge-calculator`, amendments 4-A1 and 4-A2.
+
+**The pre-registration's gate was "all twelve MOFs reproduce through the src
+path, and a difference between the paths is a defect in THIS one". Ten did.
+The other two were a property of the method, and it took a measurement rather
+than an argument to say so.**
+
+The decisive test was not on the model at all. Feeding the benchmark solver
+**the coordinates the src path actually used** -- expanded and wrapped into the
+cell -- returned byte-identical charges on all twelve. The code agreed; the
+inputs differed.
+
+1. **A `1/r` lattice sum truncated at 5x5x5 cells is conditionally
+   convergent, so its value depends on the region summed.** Translating the
+   whole structure moves the region with it and changes nothing; translating
+   ONE atom by a cell edge moves the window for every pair it belongs to.
+   Measured on eight rock-salt atoms: a rigid shift by (1, 2, 0) cells changes
+   no pair term at all, and moving a single sodium by one edge changes one by
+   **3.23 eV**.
+2. **Two deposited files place atoms up to 26 A outside their cell**, and
+   their published charges are what those representatives give. 106 of
+   Ni-MOF74's 162 atoms move when read into the cell, and 108 of Zn-MOF74's;
+   the charges then differ by up to 0.159 e and 0.008 e.
+3. **Co-MOF74 is the corpus's own control, and it is what made the cause
+   certain.** All 162 of its atoms are written outside the cell too -- and by
+   the SAME vector. Every charge reproduces exactly. Without it, "wrapping
+   breaks it" would have been the obvious and wrong conclusion.
+4. **It does not converge away.** At 8x8x8 cells the Ni-MOF74 difference is
+   still 0.155 e. Conditional convergence is not a truncation error that
+   shrinks; it is an answer that depends on the summation region's shape.
+5. **A CIF cannot carry the choice**, because fractional coordinates are read
+   into the cell. So the shipped calculator computes the in-cell answer --
+   well defined for every input representative, which the published
+   convention is not -- and reports how many sites it moved.
+
+**The same run found that the registry could not hold the calculator**, which
+one `grep` before writing the registration would have shown and the
+pre-registration had asserted the opposite of. `CalculationRequest` carries a
+`molecule_uuid` and nothing else, and `test_a_calculation_cannot_even_be_`
+`ADDRESSED_to_a_crystal` keeps it that way deliberately, naming itself as the
+place that would have to change first. Crystal-side science goes where the
+powder pattern goes: a section of `build_crystal_report`.
+
+**And two defects the driven app found with the tests green**, both invisible
+to an assertion over `report.facts`:
+- `units="e"` on a row whose `display_value` is a sentence and whose `value`
+  is an ATOM COUNT painted "60 atoms; F -0.371; H +0.122; C +0.062 e". The
+  powder rows one block up carry a comment explaining exactly this, written
+  after the same mistake.
+- The refusal row was `Detail.ADVANCED`, which the default filter hides, so a
+  disordered CIF showed **no charge row whatever**: "0 of 45 facts match
+  'charge'". Four of the six committed CIF fixtures take that path, so the
+  invisible case was the common one. The powder SUMMARY carries this lesson
+  already; it had never been applied to a refusal.
+
+**What the six fixtures then said about the feature's real reach:** one
+computes, one is over the report's atom budget, and four refuse for partial
+occupancy. The corpus that validated the method was fully ordered. A model can
+be exactly reproduced and still meet almost nothing a user has.
