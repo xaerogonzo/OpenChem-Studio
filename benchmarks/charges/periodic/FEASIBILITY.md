@@ -295,10 +295,22 @@ is exactly what section 5's identity fields need.
 set sums to zero as a periodic cell must. That is the corpus identified, not
 merely a set of files with plausible names.
 
-**What is still NOT held:** `ionizationData.dat` (the ionisation and
-electron-affinity table the method runs on) and `EQeq_v1_00.cpp`. Neither is in
-the ACS package; the SI's first page lists them as accompanying files, and S8
-points at the source rather than printing it.
+**What was still NOT held when this section was written:** `ionizationData.dat`
+(the ionisation and electron-affinity table the method runs on) and
+`EQeq_v1_00.cpp`. Neither is in the ACS package; the SI's first page lists them
+as accompanying files, and S8 points at the source rather than printing it.
+
+> **SUPERSEDED 2026-09-16, AND THE SENTENCE ABOVE IS KEPT BECAUSE THE
+> SUBSTITUTION IT JUSTIFIES IS STILL WHAT SHIPPED.** All four are held, in the
+> SI of the paper's own CORRECTION (`wilmer2012_correction`, doi
+> 10.1021/jz301439a): `EQeq_v1_00.cpp`, `ionizationdata.dat`,
+> `chargecenters.dat` and a sample `NaCl.cif`. The correction's entire content
+> is that those files "should have been included in the original paper".
+> **Check 2.9 could not have reproduced the published charges without it** --
+> four things the article does not state are settled only there. The shipped
+> table is still the reconstruction from Andersen 1999 and Moore 1970 rather
+> than that file, and was then shown identical to it value for value, which is
+> a stronger position than either alone. See section 9.
 
 **But the two sources that table was built FROM are now held** (Andersen 1999
 and Moore 1970, section 3), so the parameter half is substitutable rather than

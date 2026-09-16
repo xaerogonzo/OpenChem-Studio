@@ -2612,9 +2612,10 @@ periodic solid does not have them — the Na–Cl contact in halite is an
 ionic association, not a bond.
 
 The report gives the cell, the space group, the atoms per unit cell
-(fractional where a site is partly occupied), the X-ray density, and a
+(fractional where a site is partly occupied), the X-ray density, a
 coordination number per crystallographic site with the distances it was
-derived from.
+derived from, a calculated powder pattern, and a partial charge on every
+atom. The last two have sections of their own below.
 
 The cell is fitted to the viewer when it is drawn. It sits a little above
 centre in the panel; scroll to zoom and drag to rotate as with any
@@ -2707,6 +2708,49 @@ A few things worth knowing when reading the list:
   never 100 or 110.
 - **The list is capped at twelve lines and says how many it dropped.** A
   large organic cell with molybdenum radiation genuinely has thousands.
+
+### Partial charges on the atoms
+
+The report also gives a **partial charge on every atom of the unit cell**,
+grouped by element, with the range beside the mean so you can see whether the
+equalisation did anything. It is the only calculation in the app that is about
+the periodic solid itself rather than about a molecule.
+
+The method is **EQeq** (Wilmer, Kim & Snurr 2012), and the report names it,
+because the number means "the charge EQeq assigns to this atom" and not "the
+charge of this atom". Two things worth reading off it:
+
+- **These are not DFT charges.** The method's own paper puts them 0.11 to
+  0.24 e per atom away from charges derived from a quantum electrostatic
+  potential, and the report carries that figure with every result. Use them for
+  what empirical charges are good for — a feel for where the charge sits, an
+  input to an electrostatic model — not as a measured quantity.
+- **The charge centres are an input, not a property of your structure.** For
+  a metal, EQeq equalises about an assumed oxidation state, and the report
+  lists the centre each element was given. An element the table does not cover
+  gets 0, which for a metal is a different model, so the report says so rather
+  than letting it pass.
+
+**When it declines, and why.** This is worth knowing in advance, because the
+most common real-world answer is a refusal rather than a number:
+
+- **any site with partial occupancy** — the commonest case by far. Four of the
+  six CIFs used as test structures here refuse for exactly this. Choosing
+  between disorder alternatives is not something the file does, and the
+  calculator will not pick one for you;
+- **an element the source tables do not parameterise**, named in the refusal;
+- **an element whose sources give no bound electron affinity** where the method
+  would need one. It is never replaced with a zero;
+- **a cell over 500 atoms**, which is a limit on this report rather than on the
+  method: the report is rebuilt every time you select the crystal, and the
+  calculation grows with the square of the atom count.
+
+**If your file writes atoms outside the cell, the report says how many it read
+back in.** That line is not cosmetic. The method sums over a finite block of
+neighbouring cells, and that sum is not invariant to moving a single atom by
+one cell edge — so charges computed from a file's own out-of-cell coordinates
+can differ from these. Two of the twelve structures the method was published
+with are exactly that case.
 
 <!-- help:formulations -->
 ## Stating an energetic formulation

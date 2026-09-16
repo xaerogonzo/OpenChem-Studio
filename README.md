@@ -116,6 +116,7 @@ The honest version of a comparison table: this one is about our own software.
 |---|---|
 | Electrostatic potential surfaces | two methods, side by side and labelled: point charges (instant, no ORCA; Gasteiger, EEM or QEq) still have no lone-pair directionality or sigma holes; the ab initio surface has both, [benchmarks/esp/](benchmarks/esp/) |
 | Dipole moments from Gasteiger, EEM or QEq charges | none is accurate for magnitude: mean absolute error 0.79, 1.79 and 1.69 D against 15 experimental dipoles; a model that declines a molecule says so, [benchmarks/charges/consumers/](benchmarks/charges/consumers/) |
+| Crystal structures from a CIF: cell, symmetry, density, coordination shells, powder pattern, EQeq partial charges | a crystal must be **measured** — see the "does not" row below. The charges reproduce every one of the 3,452 atoms of the method's own twelve MOFs, and are still not DFT charges (0.11–0.24 e per atom from ESP-derived ones, carried on every result). Disorder is refused rather than resolved, and that is the common case: 4 of the 6 CIFs used as test structures decline, [benchmarks/charges/periodic/](benchmarks/charges/periodic/) |
 | ADMET predictions | tiered Basic/Advanced/Research; accuracy is the vendor's held-out figure, not ours — the shipped model trained on all of TDC ([benchmarks/admet/](benchmarks/admet/)) |
 | pKa (optional sidecar) | no solvent model |
 | Interaction energy decomposition (LED) | only the total energy is an observable — ORCA's own words — and the split into electrostatics/dispersion/charge transfer is scheme-dependent. No counterpoise correction, so binding is over-estimated (BH₃·CO: −36.6 kcal/mol against ~−25 experimental). Aromatic partners cost ~3× their size, and nothing drug-sized is a candidate |
@@ -131,6 +132,7 @@ The honest version of a comparison table: this one is about our own software.
 | Solvent-dependent pKa | needs a QM/COSMO-RS-scale undertaking |
 | Missing-residue repair | measured and rejected — unsafe near a binding site |
 | macOS / Linux packaging | untested; source install may work, unverified |
+| Crystal structure prediction — a lattice from a drawing or a SMILES | an open research problem, not a missing menu item: real polymorphs sit under 1 kJ/mol apart, below the error of the methods ranking them. A crystal enters only as a measured structure |
 
 ## Why this is built differently
 
