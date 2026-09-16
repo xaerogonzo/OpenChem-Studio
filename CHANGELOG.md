@@ -31,6 +31,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Charge ▸ Partial Charge (3D, pH-dependent).** The geometry-dependent
+  charges, computed on the dominant ionization state at a pH instead of the
+  structure as drawn. The state is carried onto the stored conformer rather
+  than rebuilt: every heavy atom and every hydrogen it keeps holds its
+  coordinates exactly, and only hydrogens the state adds are placed, by MMFF94
+  with every other atom held fixed. Ionization states only, never tautomers.
+  It refuses instead of choosing when a proton leaves an atom whose hydrogens
+  are not equivalent — a CH₂ next to a stereocentre, say — because which one
+  goes is not determined by the structure. It is a separate calculator from
+  the plain 3D one so that results saved under that one keep their identity.
+
 - **Charge ▸ Partial Charge (3D): QEq beside EEM.** Rappé–Goddard charge
   equilibration can now be chosen as the method. It ships under a stated
   scope rather than the gate it originally failed: λ = ½ with the
