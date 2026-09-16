@@ -1449,6 +1449,48 @@ def test_the_docs_that_state_a_live_calculator_count_still_do():
     )
 
 
+#: `chem` is the largest package and ARCHITECTURE states its module count.
+#:
+#: **IT ROTTED EXACTLY LIKE THE CALCULATOR COUNTS DID BEFORE THEIRS WAS
+#: GUARDED**: found by hand 2026-09-16 reading "83 modules" against 115 on
+#: disk, a 39% error nothing could catch. A count in prose with no guard is a
+#: claim that gets less true every week.
+#:
+#: Narrow on purpose -- one document, one sentence -- because the wide version
+#: ("no doc states a wrong module count") would sweep every number followed by
+#: the word "modules" across the tree, and most of those are measurements of a
+#: moment rather than claims about today.
+_CHEM_MODULE_COUNT = re.compile(r"largest package \(\*\*(\d+) modules")
+
+
+def test_the_architecture_module_count_is_live():
+    """Both directions, for the reason the calculator-count pair records: a
+    reword that deletes the sentence would satisfy "states no wrong count"."""
+    architecture = (_ROOT / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    live = len(
+        [
+            path
+            for path in (_ROOT / "src" / "openchem" / "chem").glob("*.py")
+            if path.stem != "__init__"
+        ]
+    )
+    assert live > 50, f"the walk found {live} modules, so it is not walking chem"
+
+    match = _CHEM_MODULE_COUNT.search(architecture)
+    assert match, (
+        "docs/ARCHITECTURE.md no longer states chem's module count in the form "
+        "this guard reads. If that is a deliberate reword, reword the pattern "
+        "with it; if the sentence was deleted, the claim left the documentation "
+        "and the guard is what noticed."
+    )
+    assert int(match.group(1)) == live, (
+        f"docs/ARCHITECTURE.md says {match.group(1)} modules in chem and there "
+        f"are {live}. Update the number AND check whether the new modules are "
+        "described -- the package map names them individually, so a count that "
+        "moved usually means a module nobody documented."
+    )
+
+
 def test_a_doc_whose_counts_are_history_is_excused_for_a_written_reason():
     """An exemption set with no reasons rots into a blocklist.
 
