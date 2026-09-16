@@ -80,6 +80,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is now FEASIBLE with the ionisation table as a named substitution; what the
   PDF alone contains is unchanged.
 
+- **The EEM element triage now has one exactly reproducible source.** Ionescu
+  et al. 2013's twelve element-typed EEM models were reproduced from their
+  published parameters on their own structures: every atom of the training set
+  and of both test proteins, with the test proteins agreeing to the charge
+  file's own printing precision. Two conventions the paper leaves ambiguous
+  were identified by that reproduction rather than assumed — its distances are
+  in angstrom, and the correlation it prints is the squared Pearson
+  coefficient, which its own equation 7 contradicts. The record is TRIAGE
+  check 2.8, and the models are a candidate for shipping under their own keys,
+  in the protein-fragment domain they were fitted for.
+
 - **A 3D result could name a conformer it was not computed on.** Which
   conformer a calculation used was read after the calculation finished, so a
   conformer search landing mid-run filed the result under the new conformer
