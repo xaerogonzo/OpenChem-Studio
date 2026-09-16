@@ -1147,3 +1147,79 @@ limit, and each is excluded from both arms:
 - **The solver policy failed on two real structures.** Any future SQE
   calculator needs a scaled or penalty-aware solve, with its own
   pre-registration.
+
+### 3.6 Check 2.6: the named-cause study for SQE (2026-09-15)
+
+Claim kind: SOURCE REPRODUCTION of Table I's aggregates, under each variant.
+Run order in git: 2.6's pre-registration and instrument first, the driver fix
+(46d44a2) after a crash that produced no numbers, then this run.
+
+**Verdict per arm** (local / universal):
+
+| Arm | Population | √Δq at printed vs 0.067 | S | G gates | Verdict |
+|---|---|---|---|---|---|
+| V0-unscaled | 247 / 249 | 0.068364 MISS | INCONCLUSIVE | EQ 4/6, TS 3/6 | PARTIAL / PARTIAL |
+| V0-scaled | 249 / 249 | 0.068210 MISS | INCONCLUSIVE | EQ 4/6, TS 3/6 | PARTIAL / PARTIAL |
+| V2-scaled (Ohno–Klopman) | 249 / 249 | 0.105699 MISS | INCONCLUSIVE | EQ 0/6, TS 0/6 | INCONCLUSIVE / INCONCLUSIVE |
+
+**Oracle S, the point of the whole check.** Mathieu p. 6 says C and λ came from
+a Powell minimisation of eq 15, so if our model were his, (115, 0.816) would be
+stationary for our Δq.
+
+- **At the printed point the scaled Hessian is INDEFINITE:** eigenvalues
+  −7.37e-04 and +0.1999, condition infinite. The registered trust gate
+  therefore fails and the class is **UNRELIABLE**, so neither "stationary" nor
+  "not stationary" is claimed there. (Its scaled gradient is ‖g̃‖ = 7.28e-03,
+  and Δq = 4.6527e-03.)
+- **Powell from the printed point walks away and downhill**, to
+  **C = 56.77 eV, λ = 0.81474**, where Δq = 4.4770e-03 — 3.8% below the
+  printed point's. That end point is outside the pre-registered neighbourhood
+  (±2 eV, ±0.01), so it is not "near" the printed point by the registered rule.
+- **λ is what agrees.** The end point's λ differs from the printed 0.816 by
+  0.16%, while C differs by 51%. Whatever separates our model from his is
+  therefore in the C term rather than in λ — a narrowing, not a diagnosis.
+- **The lowest point found is itself not certifiable:** at (56.77, 0.81474) the
+  finite-difference gradient estimates disagree across the registered step
+  study, so it too classes UNRELIABLE.
+- **Five end points ARE verified minima** (positive definite, trusted, ‖g̃‖
+  below g_tol), all at λ ≈ 1.40–1.45 with Δq = 4.81570e-03 and eigenvalues of
+  order 1e-13 — a flat plateau, and **worse** than the printed point.
+- Registered S verdict: **INCONCLUSIVE** for every arm.
+
+**What the study rules OUT as the cause.**
+- **Not the numerical arm.** Scaling changes the validity of exactly 2 of 249
+  structures (pentylamine, one TS); on COMMON_VALID the pooled Δq differs by
+  1.6e-05 and R²(All) by 6.4e-05.
+- **Not the Coulomb kernel form.** V2's Ohno–Klopman kernel is much worse:
+  √Δq 0.1057 and 0 of 12 gates.
+- **Not model B's parameters alone.** The model C diagnostic misses as well:
+  √Δq 0.0808 against the printed 0.0583, R²(All) 0.9688 against 0.98. A second
+  printed model failing the same way points at something systematic in the
+  implementation or in what the paper leaves unwritten, not at one parameter
+  set.
+- **V1 (the OpenChem bond-graph reconstruction) does not discriminate.** On its
+  applicable EQ subpopulation (90 of 194 structures) **both** V1 and V0 score
+  0 of 6 gates, so the comparison says nothing about splits: INCONCLUSIVE, and
+  TS remains structurally undefined (NOT APPLICABLE).
+
+**Oracle G, unchanged from 2.4** (V0-scaled): EQ C 0.9676/0.97 pass, H
+0.8686/0.85 miss, N 0.9621/0.96 pass, O 0.6663/0.67 pass, F 0.3359/0.35 miss,
+All 0.9770/0.98 pass; TS C 0.9601/0.96 pass, H 0.8933/0.88 miss, N 0.9538/0.95
+pass, O 0.8793/0.89 miss, F 0.3460/0.16 miss, All 0.9708/0.97 pass.
+
+**Oracle T (Table III's 24 atoms): 3 pass, 21 fail** at ±5e-4, on every arm.
+The failures are dominated by fluorine and nitro compounds, which is where G's
+fluorine correlation also misses.
+
+**What is established, and what is not.** Δq at the printed point is a real
+number on a stated population, and the printed point is not where our Δq is
+minimised. Because the Hessian there is indefinite, the registered instrument
+declines to certify *why*, and no parameter was refit to close the gap. The
+cause is narrowed to the C term and to something shared by models B and C.
+
+Result files (LF-normalised SHA-256, first 32 hex):
+- `mathieu_sqe_population.csv` (1,439 rows): `b82038cd2341cab73ea0e5918a74b6dd`
+- `mathieu_sqe_surface.csv` (5,351 rows): `f869bbb3aa1648a14a3ce65262cd5e3f`
+- `mathieu_sqe_powell.csv` (47 rows): `b03133e8bf5a45f9c5d1ea5b7a27171f`
+- `mathieu_sqe_stationarity.csv` (50 rows): `9713f62bed6407cac55685a60c285929`
+- `mathieu_sqe_causes.csv` (203 rows): `75734d823bc9332dbc82fb9fb1962be6`

@@ -525,3 +525,31 @@ def test_26_the_verdict_table_is_evaluated_top_to_bottom():
     assert sq.verdict_26("STATIONARY", False, True, False, "MISS") == ("S-stationary, G-incompatible", "PARTIAL")
     assert sq.verdict_26("NON-STATIONARY", False, False, False, "MISS") == ("INCOMPATIBLE", "INCOMPATIBLE")
     assert sq.verdict_26("INCONCLUSIVE", False, False, False, "MISS") == ("INCONCLUSIVE", "INCONCLUSIVE")
+
+
+# --- result pins (section 3.6) --------------------------------------------------------------------
+
+
+def test_result_pin_the_printed_point_is_not_where_our_delta_q_is_minimised():
+    """3.6's headline. Cheap enough to run here: one objective build, then two evaluations.
+
+    The Hessian at the printed point is INDEFINITE, so the registered instrument declines to certify
+    stationarity either way -- that is the recorded outcome, not a pass."""
+    prepared = sq.prepare_population(sq.Parameters(), scaled=True)
+    members = sq.valid_members(prepared, sq.C_EV, sq.LAMBDA)
+    objective = sq.Objective(prepared, members)
+    at_printed = objective(sq.C_EV, sq.LAMBDA)[0]
+    lower = objective(56.774170, 0.814737)[0]
+    assert at_printed == pytest.approx(4.65266009e-03, rel=1e-6)
+    assert lower < at_printed
+    assert (at_printed - lower) / at_printed == pytest.approx(0.038, abs=0.003)
+
+
+def test_result_pin_the_step_study_finds_an_indefinite_hessian_at_the_printed_point():
+    prepared = sq.prepare_population(sq.Parameters(), scaled=True)
+    members = sq.valid_members(prepared, sq.C_EV, sq.LAMBDA)
+    report = sq._stationarity_at(sq.Objective(prepared, members), (sq.C_EV, sq.LAMBDA),
+                                 sq.rounding_delta(sq.PROSE_MODEL_B_DQ))
+    assert report["class"] == "UNRELIABLE"
+    assert report["trusted"] is False
+    assert report["eigenvalues_scaled"][0] < 0 < report["eigenvalues_scaled"][1]

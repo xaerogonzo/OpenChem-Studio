@@ -1,0 +1,205 @@
+# TRIAGE 2.6: every oracle, per variant, arm and population. Long format.
+variant_arm,population_id,oracle,item,value,printed,result
+V0-unscaled,VALID_V0-unscaled@printed,G,EQ C,0.967644,0.97,pass
+V0-unscaled,VALID_V0-unscaled@printed,G,EQ H,0.868593,0.85,miss
+V0-unscaled,VALID_V0-unscaled@printed,G,EQ N,0.962068,0.96,pass
+V0-unscaled,VALID_V0-unscaled@printed,G,EQ O,0.666344,0.67,pass
+V0-unscaled,VALID_V0-unscaled@printed,G,EQ F,0.335918,0.35,miss
+V0-unscaled,VALID_V0-unscaled@printed,G,EQ All,0.977019,0.98,pass
+V0-unscaled,VALID_V0-unscaled@printed,G,TS C,0.960110,0.96,pass
+V0-unscaled,VALID_V0-unscaled@printed,G,TS H,0.893252,0.88,miss
+V0-unscaled,VALID_V0-unscaled@printed,G,TS N,0.953791,0.95,pass
+V0-unscaled,VALID_V0-unscaled@printed,G,TS O,0.879326,0.89,miss
+V0-unscaled,VALID_V0-unscaled@printed,G,TS F,0.346047,0.16,miss
+V0-unscaled,VALID_V0-unscaled@printed,G,TS All,0.970818,0.97,pass
+V0-unscaled,VALID_V0-unscaled@printed,T,N2O N2,0.247513,0.247,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,F3C-CN C2,0.542475,0.540,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,trifluorotrinitroethane C2,0.469114,0.481,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,trifluoroacetamide C2,0.509548,0.498,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,methyltrifluoroacetate C8,0.520685,0.509,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,O2N-CF2-CF2-NO2 C2,0.449167,0.460,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,O2N-CF2-CF2-NO2 C4,0.449167,0.460,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,difluorotetranitroethane C2,0.326442,0.338,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,difluorotetranitroethane C4,0.326442,0.338,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,CO O1,-0.441706,-0.442,pass
+V0-unscaled,VALID_V0-unscaled@printed,T,FCCF F1,-0.272140,-0.269,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,FCCF F4,-0.272140,-0.269,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,trifluorotrinitroethane C4,0.304710,0.315,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,guanine C4,0.052994,0.054,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,N2O O3,-0.253425,-0.253,pass
+V0-unscaled,VALID_V0-unscaled@printed,T,FCCF C2,0.272140,0.269,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,FCCF C3,0.272140,0.269,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,CO C2,0.441706,0.442,pass
+V0-unscaled,VALID_V0-unscaled@printed,T,F3C-CN N6,-0.146943,-0.144,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,JPCA2003-107-5798-TS17 N1,-0.643432,-0.650,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,JPCA_2000_104_10526-ts1 H5,0.168612,0.183,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,JPCA2003-107-5798-TS17 O2,-0.295066,-0.306,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,JPCA_2000_104_10526-ts1 O3,-0.474124,-0.494,fail
+V0-unscaled,VALID_V0-unscaled@printed,T,JPCA_2005_109_4829-TS1 F17,-0.123050,-0.161,fail
+V0-unscaled,VALID_V0-unscaled@printed,P,pooled sqrt(dq),0.068364,0.067,MISS
+V0-unscaled,VALID_V0-unscaled@printed,S,printed point,4.673638981441e-03,,UNRELIABLE
+V0-unscaled,VALID_V0-unscaled@printed,S,verdict,,,INCONCLUSIVE
+V0-unscaled,VALID_V0-unscaled@printed,verdict,local / universal,,,PARTIAL / PARTIAL
+V0-scaled,VALID_V0-scaled@printed,G,EQ C,0.967596,0.97,pass
+V0-scaled,VALID_V0-scaled@printed,G,EQ H,0.870393,0.85,miss
+V0-scaled,VALID_V0-scaled@printed,G,EQ N,0.962231,0.96,pass
+V0-scaled,VALID_V0-scaled@printed,G,EQ O,0.666344,0.67,pass
+V0-scaled,VALID_V0-scaled@printed,G,EQ F,0.335918,0.35,miss
+V0-scaled,VALID_V0-scaled@printed,G,EQ All,0.977098,0.98,pass
+V0-scaled,VALID_V0-scaled@printed,G,TS C,0.960940,0.96,pass
+V0-scaled,VALID_V0-scaled@printed,G,TS H,0.892484,0.88,miss
+V0-scaled,VALID_V0-scaled@printed,G,TS N,0.953791,0.95,pass
+V0-scaled,VALID_V0-scaled@printed,G,TS O,0.881358,0.89,miss
+V0-scaled,VALID_V0-scaled@printed,G,TS F,0.346047,0.16,miss
+V0-scaled,VALID_V0-scaled@printed,G,TS All,0.971172,0.97,pass
+V0-scaled,VALID_V0-scaled@printed,T,N2O N2,0.247513,0.247,fail
+V0-scaled,VALID_V0-scaled@printed,T,F3C-CN C2,0.542475,0.540,fail
+V0-scaled,VALID_V0-scaled@printed,T,trifluorotrinitroethane C2,0.469114,0.481,fail
+V0-scaled,VALID_V0-scaled@printed,T,trifluoroacetamide C2,0.509548,0.498,fail
+V0-scaled,VALID_V0-scaled@printed,T,methyltrifluoroacetate C8,0.520685,0.509,fail
+V0-scaled,VALID_V0-scaled@printed,T,O2N-CF2-CF2-NO2 C2,0.449167,0.460,fail
+V0-scaled,VALID_V0-scaled@printed,T,O2N-CF2-CF2-NO2 C4,0.449167,0.460,fail
+V0-scaled,VALID_V0-scaled@printed,T,difluorotetranitroethane C2,0.326442,0.338,fail
+V0-scaled,VALID_V0-scaled@printed,T,difluorotetranitroethane C4,0.326442,0.338,fail
+V0-scaled,VALID_V0-scaled@printed,T,CO O1,-0.441706,-0.442,pass
+V0-scaled,VALID_V0-scaled@printed,T,FCCF F1,-0.272140,-0.269,fail
+V0-scaled,VALID_V0-scaled@printed,T,FCCF F4,-0.272140,-0.269,fail
+V0-scaled,VALID_V0-scaled@printed,T,trifluorotrinitroethane C4,0.304710,0.315,fail
+V0-scaled,VALID_V0-scaled@printed,T,guanine C4,0.052994,0.054,fail
+V0-scaled,VALID_V0-scaled@printed,T,N2O O3,-0.253425,-0.253,pass
+V0-scaled,VALID_V0-scaled@printed,T,FCCF C2,0.272140,0.269,fail
+V0-scaled,VALID_V0-scaled@printed,T,FCCF C3,0.272140,0.269,fail
+V0-scaled,VALID_V0-scaled@printed,T,CO C2,0.441706,0.442,pass
+V0-scaled,VALID_V0-scaled@printed,T,F3C-CN N6,-0.146943,-0.144,fail
+V0-scaled,VALID_V0-scaled@printed,T,JPCA2003-107-5798-TS17 N1,-0.643432,-0.650,fail
+V0-scaled,VALID_V0-scaled@printed,T,JPCA_2000_104_10526-ts1 H5,0.168612,0.183,fail
+V0-scaled,VALID_V0-scaled@printed,T,JPCA2003-107-5798-TS17 O2,-0.295066,-0.306,fail
+V0-scaled,VALID_V0-scaled@printed,T,JPCA_2000_104_10526-ts1 O3,-0.474124,-0.494,fail
+V0-scaled,VALID_V0-scaled@printed,T,JPCA_2005_109_4829-TS1 F17,-0.123050,-0.161,fail
+V0-scaled,VALID_V0-scaled@printed,P,pooled sqrt(dq),0.068210,0.067,MISS
+V0-scaled,VALID_V0-scaled@printed,S,printed point,4.652660092547e-03,,UNRELIABLE
+V0-scaled,VALID_V0-scaled@printed,S,verdict,,,INCONCLUSIVE
+V0-scaled,VALID_V0-scaled@printed,verdict,local / universal,,,PARTIAL / PARTIAL
+V2-scaled,VALID_V2-scaled@printed,G,EQ C,0.940594,0.97,miss
+V2-scaled,VALID_V2-scaled@printed,G,EQ H,0.821468,0.85,miss
+V2-scaled,VALID_V2-scaled@printed,G,EQ N,0.950050,0.96,miss
+V2-scaled,VALID_V2-scaled@printed,G,EQ O,0.701405,0.67,miss
+V2-scaled,VALID_V2-scaled@printed,G,EQ F,0.335811,0.35,miss
+V2-scaled,VALID_V2-scaled@printed,G,EQ All,0.952792,0.98,miss
+V2-scaled,VALID_V2-scaled@printed,G,TS C,0.924622,0.96,miss
+V2-scaled,VALID_V2-scaled@printed,G,TS H,0.903745,0.88,miss
+V2-scaled,VALID_V2-scaled@printed,G,TS N,0.970790,0.95,miss
+V2-scaled,VALID_V2-scaled@printed,G,TS O,0.868150,0.89,miss
+V2-scaled,VALID_V2-scaled@printed,G,TS F,0.405738,0.16,miss
+V2-scaled,VALID_V2-scaled@printed,G,TS All,0.934160,0.97,miss
+V2-scaled,VALID_V2-scaled@printed,T,N2O N2,0.182423,0.247,fail
+V2-scaled,VALID_V2-scaled@printed,T,F3C-CN C2,0.486609,0.540,fail
+V2-scaled,VALID_V2-scaled@printed,T,trifluorotrinitroethane C2,0.459484,0.481,fail
+V2-scaled,VALID_V2-scaled@printed,T,trifluoroacetamide C2,0.489821,0.498,fail
+V2-scaled,VALID_V2-scaled@printed,T,methyltrifluoroacetate C8,0.495068,0.509,fail
+V2-scaled,VALID_V2-scaled@printed,T,O2N-CF2-CF2-NO2 C2,0.457750,0.460,fail
+V2-scaled,VALID_V2-scaled@printed,T,O2N-CF2-CF2-NO2 C4,0.457750,0.460,fail
+V2-scaled,VALID_V2-scaled@printed,T,difluorotetranitroethane C2,0.371717,0.338,fail
+V2-scaled,VALID_V2-scaled@printed,T,difluorotetranitroethane C4,0.371717,0.338,fail
+V2-scaled,VALID_V2-scaled@printed,T,CO O1,-0.382515,-0.442,fail
+V2-scaled,VALID_V2-scaled@printed,T,FCCF F1,-0.263552,-0.269,fail
+V2-scaled,VALID_V2-scaled@printed,T,FCCF F4,-0.263552,-0.269,fail
+V2-scaled,VALID_V2-scaled@printed,T,trifluorotrinitroethane C4,0.370741,0.315,fail
+V2-scaled,VALID_V2-scaled@printed,T,guanine C4,0.118809,0.054,fail
+V2-scaled,VALID_V2-scaled@printed,T,N2O O3,-0.233151,-0.253,fail
+V2-scaled,VALID_V2-scaled@printed,T,FCCF C2,0.263552,0.269,fail
+V2-scaled,VALID_V2-scaled@printed,T,FCCF C3,0.263552,0.269,fail
+V2-scaled,VALID_V2-scaled@printed,T,CO C2,0.382515,0.442,fail
+V2-scaled,VALID_V2-scaled@printed,T,F3C-CN N6,-0.118913,-0.144,fail
+V2-scaled,VALID_V2-scaled@printed,T,JPCA2003-107-5798-TS17 N1,-0.425727,-0.650,fail
+V2-scaled,VALID_V2-scaled@printed,T,JPCA_2000_104_10526-ts1 H5,0.187628,0.183,fail
+V2-scaled,VALID_V2-scaled@printed,T,JPCA2003-107-5798-TS17 O2,-0.321316,-0.306,fail
+V2-scaled,VALID_V2-scaled@printed,T,JPCA_2000_104_10526-ts1 O3,-0.433844,-0.494,fail
+V2-scaled,VALID_V2-scaled@printed,T,JPCA_2005_109_4829-TS1 F17,-0.120629,-0.161,fail
+V2-scaled,VALID_V2-scaled@printed,P,pooled sqrt(dq),0.105699,0.067,MISS
+V2-scaled,VALID_V2-scaled@printed,S,printed point,1.117221962308e-02,,UNRELIABLE
+V2-scaled,VALID_V2-scaled@printed,S,verdict,,,INCONCLUSIVE
+V2-scaled,VALID_V2-scaled@printed,verdict,local / universal,,,INCONCLUSIVE / INCONCLUSIVE
+V0-unscaled,COMMON_VALID,G,EQ C,0.967644,0.97,pass
+V0-unscaled,COMMON_VALID,G,EQ H,0.868593,0.85,miss
+V0-unscaled,COMMON_VALID,G,EQ N,0.962068,0.96,pass
+V0-unscaled,COMMON_VALID,G,EQ O,0.666344,0.67,pass
+V0-unscaled,COMMON_VALID,G,EQ F,0.335918,0.35,miss
+V0-unscaled,COMMON_VALID,G,EQ All,0.977019,0.98,pass
+V0-unscaled,COMMON_VALID,G,TS C,0.960110,0.96,pass
+V0-unscaled,COMMON_VALID,G,TS H,0.893252,0.88,miss
+V0-unscaled,COMMON_VALID,G,TS N,0.953791,0.95,pass
+V0-unscaled,COMMON_VALID,G,TS O,0.879326,0.89,miss
+V0-unscaled,COMMON_VALID,G,TS F,0.346047,0.16,miss
+V0-unscaled,COMMON_VALID,G,TS All,0.970818,0.97,pass
+V0-unscaled,COMMON_VALID,P,pooled sqrt(dq),0.068364,0.067,MISS
+V0-scaled,COMMON_VALID,G,EQ C,0.967644,0.97,pass
+V0-scaled,COMMON_VALID,G,EQ H,0.868593,0.85,miss
+V0-scaled,COMMON_VALID,G,EQ N,0.962068,0.96,pass
+V0-scaled,COMMON_VALID,G,EQ O,0.666344,0.67,pass
+V0-scaled,COMMON_VALID,G,EQ F,0.335918,0.35,miss
+V0-scaled,COMMON_VALID,G,EQ All,0.977019,0.98,pass
+V0-scaled,COMMON_VALID,G,TS C,0.960110,0.96,pass
+V0-scaled,COMMON_VALID,G,TS H,0.893252,0.88,miss
+V0-scaled,COMMON_VALID,G,TS N,0.953791,0.95,pass
+V0-scaled,COMMON_VALID,G,TS O,0.879326,0.89,miss
+V0-scaled,COMMON_VALID,G,TS F,0.346047,0.16,miss
+V0-scaled,COMMON_VALID,G,TS All,0.970818,0.97,pass
+V0-scaled,COMMON_VALID,P,pooled sqrt(dq),0.068364,0.067,MISS
+V0 arms,differing validity,numerical,EQ pentylamine,,,unscaled valid False (2.51e-02); scaled valid True (1.14e-11); max |dq_atom| 1.74e-02; pooled dq diff -1.64e-05; R2 All diff +6.40e-05
+V0 arms,differing validity,numerical,TS JPCA_2004_108_5197.txt-ts33,,,unscaled valid False (2.73e-09); scaled valid True (9.99e-15); max |dq_atom| 1.18e-09; pooled dq diff -4.58e-06; R2 All diff +5.81e-05
+model C V0-unscaled,VALID_V0-unscaled@model C,P_C diagnostic,pooled sqrt(dq),0.080761,0.0583,MISS
+model C V0-unscaled,VALID_V0-unscaled@model C,P_C diagnostic,pooled R2 All,0.968746,0.98,outside
+model C V0-scaled,VALID_V0-scaled@model C,P_C diagnostic,pooled sqrt(dq),0.080850,0.0583,MISS
+model C V0-scaled,VALID_V0-scaled@model C,P_C diagnostic,pooled R2 All,0.968848,0.98,outside
+V1 x1.2,V1-applicable@1.2 (EQ),population,applicable / source,90,194,
+V1 on V1-applicable@1.2 (EQ),V1-applicable@1.2 (EQ),G (subpopulation),EQ C,0.977365,0.97,miss
+V1 on V1-applicable@1.2 (EQ),V1-applicable@1.2 (EQ),G (subpopulation),EQ H,0.889495,0.85,miss
+V1 on V1-applicable@1.2 (EQ),V1-applicable@1.2 (EQ),G (subpopulation),EQ N,0.986677,0.96,miss
+V1 on V1-applicable@1.2 (EQ),V1-applicable@1.2 (EQ),G (subpopulation),EQ O,0.955241,0.67,miss
+V1 on V1-applicable@1.2 (EQ),V1-applicable@1.2 (EQ),G (subpopulation),EQ F,0.865554,0.35,miss
+V1 on V1-applicable@1.2 (EQ),V1-applicable@1.2 (EQ),G (subpopulation),EQ All,0.991768,0.98,miss
+V1 on V1-applicable@1.2 (EQ),V1-applicable@1.2 (EQ),T (EQ rows),all identified,,,passed False; failures 0; not evaluable 19
+V0-scaled on V1-applicable@1.2 (EQ),V1-applicable@1.2 (EQ),G (subpopulation),EQ C,0.977275,0.97,miss
+V0-scaled on V1-applicable@1.2 (EQ),V1-applicable@1.2 (EQ),G (subpopulation),EQ H,0.888985,0.85,miss
+V0-scaled on V1-applicable@1.2 (EQ),V1-applicable@1.2 (EQ),G (subpopulation),EQ N,0.986588,0.96,miss
+V0-scaled on V1-applicable@1.2 (EQ),V1-applicable@1.2 (EQ),G (subpopulation),EQ O,0.955276,0.67,miss
+V0-scaled on V1-applicable@1.2 (EQ),V1-applicable@1.2 (EQ),G (subpopulation),EQ F,0.865116,0.35,miss
+V0-scaled on V1-applicable@1.2 (EQ),V1-applicable@1.2 (EQ),G (subpopulation),EQ All,0.991724,0.98,miss
+V0-scaled on V1-applicable@1.2 (EQ),V1-applicable@1.2 (EQ),T (EQ rows),all identified,,,passed False; failures 0; not evaluable 19
+V1 x1.2,V1-applicable@1.2 (EQ),"S, P, TS",,,,NOT APPLICABLE
+V1 x1.2,V1-applicable@1.2 (EQ),verdict,local / universal,,,INCONCLUSIVE / INCONCLUSIVE
+V1 x1.3,V1-applicable@1.3 (EQ),population,applicable / source,90,194,
+V1 on V1-applicable@1.3 (EQ),V1-applicable@1.3 (EQ),G (subpopulation),EQ C,0.977365,0.97,miss
+V1 on V1-applicable@1.3 (EQ),V1-applicable@1.3 (EQ),G (subpopulation),EQ H,0.889495,0.85,miss
+V1 on V1-applicable@1.3 (EQ),V1-applicable@1.3 (EQ),G (subpopulation),EQ N,0.986677,0.96,miss
+V1 on V1-applicable@1.3 (EQ),V1-applicable@1.3 (EQ),G (subpopulation),EQ O,0.955241,0.67,miss
+V1 on V1-applicable@1.3 (EQ),V1-applicable@1.3 (EQ),G (subpopulation),EQ F,0.865554,0.35,miss
+V1 on V1-applicable@1.3 (EQ),V1-applicable@1.3 (EQ),G (subpopulation),EQ All,0.991768,0.98,miss
+V1 on V1-applicable@1.3 (EQ),V1-applicable@1.3 (EQ),T (EQ rows),all identified,,,passed False; failures 0; not evaluable 19
+V0-scaled on V1-applicable@1.3 (EQ),V1-applicable@1.3 (EQ),G (subpopulation),EQ C,0.977275,0.97,miss
+V0-scaled on V1-applicable@1.3 (EQ),V1-applicable@1.3 (EQ),G (subpopulation),EQ H,0.888985,0.85,miss
+V0-scaled on V1-applicable@1.3 (EQ),V1-applicable@1.3 (EQ),G (subpopulation),EQ N,0.986588,0.96,miss
+V0-scaled on V1-applicable@1.3 (EQ),V1-applicable@1.3 (EQ),G (subpopulation),EQ O,0.955276,0.67,miss
+V0-scaled on V1-applicable@1.3 (EQ),V1-applicable@1.3 (EQ),G (subpopulation),EQ F,0.865116,0.35,miss
+V0-scaled on V1-applicable@1.3 (EQ),V1-applicable@1.3 (EQ),G (subpopulation),EQ All,0.991724,0.98,miss
+V0-scaled on V1-applicable@1.3 (EQ),V1-applicable@1.3 (EQ),T (EQ rows),all identified,,,passed False; failures 0; not evaluable 19
+V1 x1.3,V1-applicable@1.3 (EQ),"S, P, TS",,,,NOT APPLICABLE
+V1 x1.3,V1-applicable@1.3 (EQ),verdict,local / universal,,,INCONCLUSIVE / INCONCLUSIVE
+V1 x1.4,V1-applicable@1.4 (EQ),population,applicable / source,88,194,
+V1 on V1-applicable@1.4 (EQ),V1-applicable@1.4 (EQ),G (subpopulation),EQ C,0.978415,0.97,miss
+V1 on V1-applicable@1.4 (EQ),V1-applicable@1.4 (EQ),G (subpopulation),EQ H,0.890219,0.85,miss
+V1 on V1-applicable@1.4 (EQ),V1-applicable@1.4 (EQ),G (subpopulation),EQ N,0.986677,0.96,miss
+V1 on V1-applicable@1.4 (EQ),V1-applicable@1.4 (EQ),G (subpopulation),EQ O,0.961290,0.67,miss
+V1 on V1-applicable@1.4 (EQ),V1-applicable@1.4 (EQ),G (subpopulation),EQ F,0.865554,0.35,miss
+V1 on V1-applicable@1.4 (EQ),V1-applicable@1.4 (EQ),G (subpopulation),EQ All,0.992030,0.98,miss
+V1 on V1-applicable@1.4 (EQ),V1-applicable@1.4 (EQ),T (EQ rows),all identified,,,passed False; failures 0; not evaluable 19
+V0-scaled on V1-applicable@1.4 (EQ),V1-applicable@1.4 (EQ),G (subpopulation),EQ C,0.978343,0.97,miss
+V0-scaled on V1-applicable@1.4 (EQ),V1-applicable@1.4 (EQ),G (subpopulation),EQ H,0.889717,0.85,miss
+V0-scaled on V1-applicable@1.4 (EQ),V1-applicable@1.4 (EQ),G (subpopulation),EQ N,0.986588,0.96,miss
+V0-scaled on V1-applicable@1.4 (EQ),V1-applicable@1.4 (EQ),G (subpopulation),EQ O,0.961202,0.67,miss
+V0-scaled on V1-applicable@1.4 (EQ),V1-applicable@1.4 (EQ),G (subpopulation),EQ F,0.865116,0.35,miss
+V0-scaled on V1-applicable@1.4 (EQ),V1-applicable@1.4 (EQ),G (subpopulation),EQ All,0.991988,0.98,miss
+V0-scaled on V1-applicable@1.4 (EQ),V1-applicable@1.4 (EQ),T (EQ rows),all identified,,,passed False; failures 0; not evaluable 19
+V1 x1.4,V1-applicable@1.4 (EQ),"S, P, TS",,,,NOT APPLICABLE
+V1 x1.4,V1-applicable@1.4 (EQ),verdict,local / universal,,,INCONCLUSIVE / INCONCLUSIVE
