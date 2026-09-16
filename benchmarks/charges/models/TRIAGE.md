@@ -1337,6 +1337,30 @@ exchanged; the electron affinity's sign flipped.
 - Otherwise PARTIAL or INCONCLUSIVE, naming which of the two causes the
   evidence can and cannot separate.
 
+**Amendment 2.9-A1 (2026-09-15): three scan conventions, and what happens to an
+element with no bound negative ion.** Found while building the table, before any
+EQeq charge was computed.
+1. **Moore prints oxygen's symbol as the digit "0".** A symbol-matching parse
+   drops the row silently, and oxygen is in all 12 MOFs. The table is therefore
+   keyed on the atomic number, with the symbol taken from Z and the printed
+   token only checked against it.
+2. **This typesetting renders a minus sign as "2"** — "cm21" is cm⁻¹, "Pm2" is
+   Pm⁻. **Nitrogen's affinity prints as "20.07", meaning −0.07 eV**, and read
+   literally it would make nitrogen bind an electron it does not bind. Nitrogen
+   appears in 4 of the 12 MOFs.
+3. **The parse validates itself.** Andersen prints every affinity twice, in
+   cm⁻¹ and in eV, related by the conversion on its own page
+   (1 eV = 8065.544 77 cm⁻¹). A row is accepted only when the two agree to
+   1e-3 eV, and that check is what decides whether a leading "2" was a minus
+   sign rather than a digit. Extracted values for the corpus: H 0.754204,
+   C 1.262120, N −0.07, O 1.461110, V 0.525, Co 0.6633, Ni 1.157160,
+   Cu 1.235780, Pd 0.562140 eV.
+4. **Magnesium and zinc print "<0"** — no bound negative ion, so no number. In
+   this corpus both are used only at a positive charge centre (+2), where the
+   affinity is never read. **If a structure ever needs an affinity the source
+   does not give, the check REFUSES for that structure** rather than
+   substituting zero, and says which element.
+
 ## 3. Results
 
 ### 3.1 Nistor supplement extraction (2026-09-14)
