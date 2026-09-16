@@ -94,7 +94,7 @@ checking the parameter table. They motivated §5 and §6. They are exploratory, 
 registered test**, and are recorded so nothing below is read as having been
 predicted.
 
-Probe: `scratchpad/ionescu_convexity_probe.py`, all 12 E models, `R_angstrom`, on
+Probe: `benchmarks/charges/models/ionescu_stability.py convexity`, all 12 E models, `R_angstrom`, on
 
 - **IN-DOMAIN** — the SI's training set, insulin and ubiquitin: 43 structures, the
   population that reproduces;
@@ -126,6 +126,13 @@ the only model with both N and O negative,** on nitrogen-rich molecules: nitrobe
 solutions that reproduce have median condition numbers **1.5 – 4.7 × 10⁴**;
 nitrobenzene's blow-up is **3.5 × 10⁴**. A threshold on it would refuse the validated
 population or miss the blow-ups.
+
+> **How these scripts reached the repository, so nothing here is taken on trust.** §4, §6 and §7
+> were first run from a scratch directory. `ionescu_stability.py` was then assembled from **exactly
+> that source** — the function bodies extracted programmatically, only imports and paths changed —
+> and all three commands re-run. **Every recorded figure reproduced exactly**: 487/516 and 380/1128
+> saddles; NOT-SEPARABLE at 0.018; the 6.87 × 10⁻¹¹ solve check, 53 kept, H1 REFUTED, 40 refused,
+> NOT-VIABLE. Each run exited 0.
 
 ## 5. Decisions taken on those findings (Alex, 2026-09-16)
 
@@ -197,7 +204,7 @@ Nothing in this section changes the model, the parameters or the 36/36 reproduct
 
 ## 6-R. Guard feasibility — RESULT (2026-09-16, run after commit 97dc03c)
 
-Run exactly as §6 registered: `scratchpad/guard_feasibility.py`.
+Run exactly as §6 registered: `benchmarks/charges/models/ionescu_stability.py guard`.
 
 | | count | κ_R |
 |---|---|---|
@@ -297,7 +304,7 @@ license shipping a threshold.
 
 ## 7-R. Alignment guard — RESULT (2026-09-16, run after commit 25c5d84)
 
-Run as §7 registered: `scratchpad/alignment_study.py`, `PY_EXIT=0`.
+Run as §7 registered: `benchmarks/charges/models/ionescu_stability.py alignment`, `PY_EXIT=0`.
 
 **Built-in check:** the §7.1 reduced solve reproduces the benchmark's full solve to
 **6.9 × 10⁻¹¹ e**, so the decomposition below is of the actual charges.
@@ -412,3 +419,42 @@ tests the hypervalent-sulfur concern for the Mulliken scheme only.
   with the NPA and HiI cases recorded as **unadjudicated**, not passed.
 
 Reported either way: every atom's reference and model charge, and |Δq| between them.
+
+## 8-R. HF/6-31G* reference check — RESULT (2026-09-16, run after commit 11652ce)
+
+Run as §8 registered: `benchmarks/charges/models/ionescu_reference.py`, `PY_EXIT=0`. Every SCF
+converged; every Mulliken and Hirshfeld sum is zero to ±1.2 × 10⁻⁵, which confirms the parse.
+
+### The registered question: NO
+
+RHF/6-31G\* Mulliken's largest |q| over the three molecules is **+1.855, on sulfur in sulfuric
+acid** — below 2.051. **2.051 is not contradicted by this reference.** As registered, the NPA and
+HiI cases stay **unadjudicated**.
+
+**The hypervalent-sulfur concern was right in direction and not in crossing:** sulfur does carry a
+large positive Mulliken charge, and the margin to the protein anchor is thin, 1.855 against 2.051.
+
+### What the per-atom table shows beyond the registered question
+
+This is reported, not registered, and it does not change §8.3's answer.
+
+| molecule, atom | reference | model | \|Δq\| | comparison |
+|---|---|---|---|---|
+| sulfuric acid, **S** | Mulliken **+1.855** | E-MPA/6-31G\*/gas **+0.096** | **1.759** | like-for-like |
+| nitrobenzene, **N** | Mulliken **+0.524** | E-MPA/6-31G\*/gas **−0.464** | 0.988 — **sign** | like-for-like |
+| carbon dioxide, C | Mulliken +1.018 | E-MPA/6-31G\*/gas +0.985 | 0.033 | like-for-like |
+| sulfuric acid, **every atom** | Hirshfeld S +0.714, O −0.218/−0.356, H +0.217 | E-HiI/6-31G\*/gas S **−0.666**, O **+0.642/+1.451**, H **−1.761** | up to 1.98 — **every sign inverted** | indicator only |
+
+**A second failure mode, which a magnitude refusal cannot see.** The models can be badly wrong at
+ordinary magnitudes: the like-for-like MPA model under-charges hypervalent sulfur by 1.76 e and
+gives the nitro nitrogen the wrong sign, and the HiI model inverts every sign on sulfuric acid.
+**Their largest charges are 0.717, 0.478 and 1.761 — none would trip a 2.051 refusal.**
+
+On the HiI row, recorded with its limit: standard and iterative Hirshfeld are different schemes and
+this comparison adjudicates nothing. **A scheme difference changes magnitudes; it does not invert
+every sign in a molecule**, and acidic hydrogens at −1.76 e are chemically untenable on any scheme.
+
+**Consequence for §5:** a charge-magnitude refusal protects against runaway solves only. **Off the
+protein domain, the domain caveat is the protection that matters**, and the scope sentence has to
+say so in words — that these models can be wrong in sign and by more than 1.5 e on molecules unlike
+proteins, without any refusal firing.
