@@ -340,3 +340,25 @@ def test_the_two_calculators_produce_datasets_under_DIFFERENT_property_ids():
     refused = gc._refusal(pg.REFUSE_H_PLACEMENT, "n", gc.EEM_BULTINCK2002_PART1, 4, "u",
                           property_id=gc.PROPERTY_ID_AT_PH)
     assert refused.property_id == "geometry_partial_charge_at_ph"
+
+
+def test_the_ph_charges_follow_the_geometry():
+    """The standard `tests/test_calculation_input.py` holds every GEOMETRY calculator to: it refuses a
+    drawing, and flattening the conformer moves the answer. Both, on the same molecule."""
+    from openchem.chem import geometry_charges as gc
+
+    source = conformer_for("NCC(=O)O")
+    upright = gc.compute_geometry_charges_at_ph(source, "u", {"pH": 7.4})
+
+    flattened = Chem.Mol(source)
+    conformer = flattened.GetConformer()
+    for index in range(flattened.GetNumAtoms()):
+        position = conformer.GetAtomPosition(index)
+        conformer.SetAtomPosition(index, (position.x, position.y, 0.0))
+    flat = gc.compute_geometry_charges_at_ph(flattened, "u", {"pH": 7.4})
+    assert set(upright.values) == set(flat.values)
+    assert max(abs(upright.values[k] - flat.values[k]) for k in upright.values) > 1e-3
+
+    drawing = Chem.AddHs(Chem.MolFromSmiles("NCC(=O)O"))  # no conformer at all
+    refused = gc.compute_geometry_charges_at_ph(drawing, "u", {"pH": 7.4})
+    assert refused.provenance.parameters["refusal"] == gc.REFUSE_NO_3D_GEOMETRY
