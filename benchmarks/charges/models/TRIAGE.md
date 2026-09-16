@@ -194,8 +194,11 @@ saved as `nistor2006_si.pdf.pdf`, the name the fixture headers keep).
 `wilmer2012.pdf`, `wilmer2012_si.pdf`.
 - **Evidence basis:** PDF plus supplement.
 - **Parameters:** SI S3 gives the run inputs. **S2 shows the ionisation
-  energies only as plots**; the table itself is an accompanying file and is
-  still not held (corrected 2026-09-15).
+  energies only as plots**; the table itself is an accompanying file, not held
+  on 2026-09-15 and **held since 2026-09-16** -- it is in the SI of the paper's
+  own correction (`wilmer2012_correction`), along with the source, the charge
+  centres and a sample CIF. The shipped table is still the reconstruction from
+  Moore and Andersen, and was then shown identical to it.
 - **Numeric oracle: HELD since 2026-09-15.** The accompanying zip is now on
   disk: 12 MOFs x 4 charge sets, each file carrying its unit cell and its
   per-atom charges. All 12 atom counts match the paper's Table 1 and every
@@ -1284,10 +1287,16 @@ affinities). The electrostatics are transcribed in
 **The parameter table, and why it is a substitution.** EQeq's χ and J come from
 successive ionisation energies about a chosen charge centre (SI eqs 57–58):
 χ_Q\* = (I_{Q\*+1} + I_{Q\*})/2 and J_Q\* = I_{Q\*+1} − I_{Q\*}, with I_0 the
-electron affinity. `ionizationData.dat` is not held, so the table is rebuilt
-from Moore and Andersen and **labelled a reconstruction in every row of the
-result**. A per-atom miss therefore has two candidate causes — the
-implementation and the table — and the design below is what separates them.
+electron affinity. `ionizationData.dat` was not held when this was designed, so
+the table is rebuilt from Moore and Andersen and **labelled a reconstruction in
+every row of the result**. A per-atom miss therefore has two candidate causes —
+the implementation and the table — and the design below is what separates them.
+
+**The file arrived later (2026-09-16, in the correction's SI) and the
+substitution was kept**, because it is now the stronger position: the
+reconstruction was shown identical to the shipped table value for value, so the
+table is no longer one of the two candidate causes rather than merely being
+labelled as one.
 
 **Settings, from the paper and its S3, not chosen here:** ε_R = 1.67 (so
 K = 14.4/ε_R eV·Å), hydrogen's I_0 set to −2 eV rather than its measured
