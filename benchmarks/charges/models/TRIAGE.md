@@ -1254,6 +1254,113 @@ pre-registration for per-model keys such as
 applicable fragment of at least one model; otherwise PARTIAL, INCONCLUSIVE or
 BLOCKED with the reason.
 
+### 2.9 EQeq (Wilmer 2012) on its own 12 MOFs, under a reconstructed parameter table
+
+Pre-registered 2026-09-15, **before any EQeq charge is computed here**. Claim
+kind: **IMPLEMENTATION REPRODUCTION under a named parameter substitution** —
+the source's own charges, on the source's own structures, from its equations,
+but with a parameter table we rebuild rather than the one it shipped.
+
+Source: `wilmer2012` plus its supporting information; the substitute parameter
+sources are `moore1970` (ionisation potentials) and `andersen1999` (electron
+affinities). The electrostatics are transcribed in
+`benchmarks/charges/periodic/FEASIBILITY.md` §2 and are not restated here.
+
+**Measured first (input side only; no EQeq charge computed, nothing compared).**
+1. **The corpus is held and identified.** 12 MOFs × 4 charge sets, each file
+   carrying its cell and per-atom charges. All 12 atom counts equal the paper's
+   Table 1 and every EQeq column sums to zero (FEASIBILITY §8).
+2. **Charges print to 3 decimals** (e.g. `1.211`, `-0.968`), so the printed
+   half-unit is **5e-4 e**.
+3. **Both substitute tables extract.** Moore's Table I comes out in reading
+   order as Z, element, then successive potentials in eV (H 13.598; C 11.260,
+   24.383, 47.887, 64.492, …), integers being Z and decimals being potentials,
+   so the parse is unambiguous. Andersen's **Table 3** (pp. 16–17) is
+   "Summary of recommended atomic electron affinities" with EA in cm⁻¹ and eV.
+4. **Moore's five printed stages are exactly enough** for the paper's charge
+   centres: a centre at Q\* needs I(Q\*) and I(Q\*+1), and the deepest centre
+   used is V(+4).
+
+**The parameter table, and why it is a substitution.** EQeq's χ and J come from
+successive ionisation energies about a chosen charge centre (SI eqs 57–58):
+χ_Q\* = (I_{Q\*+1} + I_{Q\*})/2 and J_Q\* = I_{Q\*+1} − I_{Q\*}, with I_0 the
+electron affinity. `ionizationData.dat` is not held, so the table is rebuilt
+from Moore and Andersen and **labelled a reconstruction in every row of the
+result**. A per-atom miss therefore has two candidate causes — the
+implementation and the table — and the design below is what separates them.
+
+**Settings, from the paper and its S3, not chosen here:** ε_R = 1.67 (so
+K = 14.4/ε_R eV·Å), hydrogen's I_0 set to −2 eV rather than its measured
++0.754, no spherical cutoffs, and charge centres neutral except the metals at
+their oxidation states (Mg +2, V +4, Co +2, Ni +2, Cu +2, Zn +2, Pd +2).
+
+**Readings, all run, none chosen by agreement.**
+- **The lattice sum:** direct summation over L = 2 (the paper's 5 × 5 × 5) and
+  L = 3 (7 × 7 × 7). **Ewald is deliberately not implemented**: its 2π
+  convention is unresolved (FEASIBILITY §2), and the paper states that at
+  7 × 7 × 7 "charges from both Ewald and direct summation methods were
+  identical", so the direct sum at L = 3 is the paper's own bridge between them.
+- **The derivative factor c** on the pair terms: SI eq 62 prints K/2 while
+  differentiating the ½ΣΣ energy of eq 12 gives K. Both **c = 1** and
+  **c = ½** run, as A1's two bond-hardness readings did for Nistor.
+
+**Oracle and classes.** The EQeq column of each structure file, to its printed
+3 dp.
+- Per atom: **reproduced** if |Δq| ≤ 5e-4.
+- Per MOF × reading: **REPRODUCED** if every atom is, else **PARTIAL** with the
+  failing count and the largest |Δ|.
+- **The distribution is reported beside the count** (median, and the fraction
+  within 5e-4, 5e-3, 5e-2), because a reconstructed table cannot be expected to
+  land on the printed precision and the shape of the miss is the evidence.
+- **Two independent diagnostics that do not depend on our table being theirs:**
+  - the per-MOF mean |Q − Q_REPEAT| against the paper's **Table 2** (EQeq
+    column, 0.11–0.24): computed from the REPEAT file beside each EQeq file;
+  - charge conservation (Σq = 0) and the correlation against their EQeq column.
+
+**Instrument tests, before the corpus run.**
+- The extracted table reproduces printed values (H 13.598, C 11.260, Zn's
+  first two, and Andersen's C 1.262 118 eV).
+- A two-atom cell solved by hand.
+- Σq = 0 to 1e-9 on every solve.
+- The lattice sum converges: L = 1, 2, 3, 4 on one MOF, reported.
+- The orbital-overlap term vanishes at long range and is finite at r → 0.
+
+**Mutations:** ε_R dropped to 1; hydrogen left at its measured +0.754; every
+charge centre forced to 0; the lattice sum reduced to the home cell; c
+exchanged; the electron affinity's sign flipped.
+
+**Verdict.** Counts per class per reading, with the distribution.
+- **GO-CANDIDATE** for a src pre-registration of a periodic charge calculator
+  only if some reading reproduces the printed charges of at least one MOF, or
+  agrees at a level the parameter substitution can account for **and** matches
+  Table 2's independent mean deviations.
+- Otherwise PARTIAL or INCONCLUSIVE, naming which of the two causes the
+  evidence can and cannot separate.
+
+**Amendment 2.9-A1 (2026-09-15): three scan conventions, and what happens to an
+element with no bound negative ion.** Found while building the table, before any
+EQeq charge was computed.
+1. **Moore prints oxygen's symbol as the digit "0".** A symbol-matching parse
+   drops the row silently, and oxygen is in all 12 MOFs. The table is therefore
+   keyed on the atomic number, with the symbol taken from Z and the printed
+   token only checked against it.
+2. **This typesetting renders a minus sign as "2"** — "cm21" is cm⁻¹, "Pm2" is
+   Pm⁻. **Nitrogen's affinity prints as "20.07", meaning −0.07 eV**, and read
+   literally it would make nitrogen bind an electron it does not bind. Nitrogen
+   appears in 4 of the 12 MOFs.
+3. **The parse validates itself.** Andersen prints every affinity twice, in
+   cm⁻¹ and in eV, related by the conversion on its own page
+   (1 eV = 8065.544 77 cm⁻¹). A row is accepted only when the two agree to
+   1e-3 eV, and that check is what decides whether a leading "2" was a minus
+   sign rather than a digit. Extracted values for the corpus: H 0.754204,
+   C 1.262120, N −0.07, O 1.461110, V 0.525, Co 0.6633, Ni 1.157160,
+   Cu 1.235780, Pd 0.562140 eV.
+4. **Magnesium and zinc print "<0"** — no bound negative ion, so no number. In
+   this corpus both are used only at a positive charge centre (+2), where the
+   affinity is never read. **If a structure ever needs an affinity the source
+   does not give, the check REFUSES for that structure** rather than
+   substituting zero, and says which element.
+
 ## 3. Results
 
 ### 3.1 Nistor supplement extraction (2026-09-14)
@@ -1771,6 +1878,14 @@ synthetic case was added rather than the mutation retired.
 multiplicity per atom, so they need bond-order perception from a PDB; no
 best-effort typing was compared.
 
+**The 2011 prior report does not settle eq 64 either** (`wilmer2011`, Chem.
+Eng. J. 171, 775, read 2026-09-15). It gives the two-centre Coulomb integral in
+two *alternative* forms — a 1s Slater solution (its eq 6) and a Gaussian one
+(eq 7) — and not the 2012 SI's eq 64; the code's own comment beside the term
+says "other functional forms are OK too". So the published source is the
+operative definition of this model, and that is now recorded rather than
+inferred.
+
 **Program verdict: GO-CANDIDATE.** A reading reproduces every applicable
 fragment of all 12 E models, which is the registered condition. A src
 pre-registration would carry per-model keys (e.g.
@@ -1871,3 +1986,101 @@ So the status is unavailable, on a search rather than on an assumption. It is
 not reopened without a new source.
 
 
+
+### 3.9 Check 2.9: EQeq REPRODUCED on all 12 MOFs (2026-09-15)
+
+Claim kind: IMPLEMENTATION REPRODUCTION. **Verdict: REPRODUCED** — every atom
+of all 12 MOFs, identical to the published charge at its printed precision.
+
+| | |
+|---|---|
+| MOFs reproduced | **12 / 12** |
+| Atoms identical at 3 dp | **3,452 / 3,452** |
+| median \|Δq\| before rounding | 1.6e-04 to 3.5e-04 |
+| max \|Δq\| before rounding | 0.0015 |
+| mean \|q − q_REPEAT\| | equals the paper's Table 2 on all 12 |
+
+**The oracle was confirmed first, independently of our model.** Matching atoms
+by minimum-image position, the deposited files' own mean |EQeq − REPEAT|
+reproduces every cell of the paper's Table 2 (MIL-47 0.112 against 0.11,
+IRMOF-3 0.238 against 0.24, all twelve).
+- **The four charge files of a MOF do not share an atom order**, and their
+  coordinate lists are permutations. Index-by-index, MIL-47 reads 0.47 against
+  a printed 0.11; position-matched (an exact bijection, worst residual 0.000 Å)
+  it reads 0.112.
+
+**The parameter substitution was never the cause.** The shipped
+`ionizationdata.dat` holds the values this reconstruction produced — H 0.75420,
+C 1.26212, N −0.07000, O 1.46111, Moore's potentials verbatim — so 2.9-A1's
+three OCR conventions were read correctly, including the one where the scan
+prints a minus sign as "2".
+
+**What the first run found, and why it mattered.** Before the source code was
+held, the check ran against the equations as printed and came out PARTIAL:
+metals reproduced to 0.001–0.010 but bonded light atoms missed by up to 0.3,
+and **SI eq 64 as printed made agreement worse than omitting the term
+entirely** (IRMOF-1 max 0.216 against 0.030). Five readings of it were tried
+and none reproduced. That is what the ambiguity was worth: the check refused to
+adopt the best-agreeing variant, reported PARTIAL, and named the one formula it
+could not read.
+
+**Amendment 2.9-A2 (2026-09-15): the published source code settled it.** It
+arrived in the SI of the paper's own *Correction* (doi 10.1021/jz301439a),
+whose entire content is that these files "should have been included in the
+original paper". Four things it fixes, none of which is derivable from the
+article:
+1. **The orbital term's first coefficient is 2a, not a**, with a = J_km/k —
+   the article's eq 64 prints J_km/K. This alone moved IRMOF-1's max |Δq| from
+   0.216 to 0.0012.
+2. **The constants are k = 14.4 exactly and a "Coulomb scaling parameter"
+   λ = 1.2**, so every pair term carries λk/2 = 8.64 eV·Å. Reading the article
+   alone gives 14.399645/1.67 = 8.6226, which is 0.2% different.
+3. **Direct summation is the default**, not Ewald, which retires the 2π
+   question for these numbers.
+4. **The published charges are post-processed**: rounded to 3 digits, and if
+   the rounded set no longer sums to zero, the FIRST |Σq|×1000 atoms in file
+   order are shifted by 0.001. Replicating that is what takes the agreement
+   from "99% of atoms identical" to all of them; without it, 2 of 12 MOFs
+   reproduce exactly and the rest sit at 79–99.4%.
+
+**A discrepancy between the article's prose and its own code, recorded:** the
+paper says two overlapped atoms of one element interact with an energy "equal
+to the chemical hardness". With the code's lambda = 1.2 that limit is 1.2 J,
+not J; the stated property holds only at lambda = 1.
+
+**Settled by the run itself, and reported rather than tuned:**
+- **the lattice sum is NOT fully converged, and the published charges are the
+  paper's own L = 2 (5 x 5 x 5)**: MIL-47 moves by up to 5.4e-04 going to
+  L = 3, which changes the third decimal of 10 of its 72 atoms, so only 86% of
+  them still match at L = 3; IRMOF-1 moves by 8e-10 and none change. The paper
+  calls that step negligible, and for MIL-47 it is visible at the precision the
+  charges are printed to. (This corrects a "converged" reading taken before the
+  source code was held, on the model that misread eq 64.);
+- hydrogen's ad hoc I₀ = −2 eV is confirmed (IRMOF-1 median 0.008 against
+  0.102 with the measured +0.754);
+- the Ewald self term at η = 50 Å makes agreement worse, so it is not silently
+  present in the published numbers;
+- c = 1 beats c = ½ on every MOF, so eq 62's printed K/2 is not the derivative
+  behind these charges;
+- charge conservation holds to 4e-16 per cell.
+
+**The 2011 prior report does not settle eq 64 either** (`wilmer2011`, Chem.
+Eng. J. 171, 775, read 2026-09-15). It gives the two-centre Coulomb integral in
+two *alternative* forms — a 1s Slater solution (its eq 6) and a Gaussian one
+(eq 7) — and not the 2012 SI's eq 64; the code's own comment beside the term
+says "other functional forms are OK too". So the published source is the
+operative definition of this model, and that is now recorded rather than
+inferred.
+
+**Program verdict: GO-CANDIDATE.** A periodic charge calculator now has an
+exact oracle and a fully resolved model. Shipping one is a separate src
+pre-registration, and it must carry: the reconstruction's provenance (the
+parameter table is ours, from Moore and Andersen, even though it agrees with
+theirs value for value), the identity fields in
+`benchmarks/charges/periodic/FEASIBILITY.md` §5, the disorder-resolution rule
+that corpus never needed, and the charge-centre table, which is an input and
+not a property of the structure.
+
+Result files (LF-normalised SHA-256, first 32 hex):
+- `eqeq_mofs.csv`: `1ee2d60c401b8854a9b8be2412050697`
+- `eqeq_atoms.csv` (3,452 rows): `ee74343ee5e8bd46744ed62730e88718`

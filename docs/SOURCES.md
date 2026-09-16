@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 2814d47abcf35b2594e6d678caac5710c8a0a103ed8f03d4e45945541e5347a9 -->
+<!-- SOURCE SHA256: d9e0289a83201fd2ba9867aab36d83fab4639d429c128ec1093e49185abcada1 -->
 
 # Sources
 
@@ -95,6 +95,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`allred1961`](#allred1961) | reference_table | shipped | citation |
 | [`almenningen1963`](#almenningen1963) | literature | **not shipped** | citation + claim |
 | [`alves2014`](#alves2014) | literature | reference only | citation |
+| [`andersen1999`](#andersen1999) | literature | reference only | citation |
 | [`aqsoldb`](#aqsoldb) | dataset | shipped | citation |
 | [`autodock_vina`](#autodock_vina) | software | shipped | citation + claim |
 | [`avdeef2007`](#avdeef2007) | literature | shipped | citation + claim |
@@ -187,6 +188,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`miller1990`](#miller1990) | literature | shipped | citation + claim |
 | [`miller_polarizability`](#miller_polarizability) | reference_table | reference only | citation |
 | [`molstar`](#molstar) | software | shipped | citation |
+| [`moore1970`](#moore1970) | literature | reference only | citation |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`mortier1986`](#mortier1986) | literature | reference only | citation |
 | [`muser2012`](#muser2012) | literature | reference only | citation + claim |
@@ -248,7 +250,9 @@ next run of `tools/build_lewis_parameters.py`.
 | [`wells2014`](#wells2014) | literature | reference only | citation |
 | [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
 | [`wildman1999`](#wildman1999) | literature | shipped | citation |
+| [`wilmer2011`](#wilmer2011) | literature | reference only | citation |
 | [`wilmer2012`](#wilmer2012) | literature | reference only | citation |
+| [`wilmer2012_correction`](#wilmer2012_correction) | literature | reference only | citation |
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
 | [`zhang2009`](#zhang2009) | literature | reference only | citation |
 | [`zhu2023`](#zhu2023) | literature | reference only | citation |
@@ -2735,6 +2739,122 @@ training-set CSV's 12 scheme blocks are not all complete (three hold 40 or 38
 of the 41 fragments). Authors, title, journal, volume and pages confirmed against
 Crossref and the PDF's first page (a machine summary of the Crossref record
 misspelt Koča; the PDF settles it).
+
+### andersen1999
+
+<a id="andersen1999"></a>
+
+> T. Andersen, H. K. Haugen & H. Hotop, 'Binding Energies in Atomic Negative Ions: III', J. Phys. Chem. Ref. Data 1999, 28, 1511-1533.
+
+| | |
+| --- | --- |
+| Identifier | [10.1063/1.556047](https://doi.org/10.1063/1.556047) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-15 |
+| Local copy | `andersen1999.pdf` (not checked) |
+
+**Why it is reference only.** ONE OF THE TWO SOURCES EQEQ'S PARAMETER TABLE WOULD HAVE TO BE REBUILT FROM.
+Wilmer 2012's `ionizationData.dat` is not in the ACS package, and its SI S2
+cites this review for the electron affinities and Moore 1970 for the ionization
+potentials. Recommended electron affinities for the elements to Z = 94.
+
+Held and readable: the PDF carries a text layer and its recommended values
+extract (spot-checked 2026-09-15: C 1.262 118 eV, O 1.461 112, Cl 3.612 724).
+
+A TABLE BUILT FROM THIS IS A RECONSTRUCTION, NOT WILMER'S FILE, and any
+periodic EQeq comparison must say so: otherwise a per-atom mismatch has two
+candidate causes at once. See benchmarks/charges/periodic/FEASIBILITY.md.
+
+Authors, title, journal, volume, pages and year confirmed against Crossref;
+the DOI resolves to the AIP record. Wilmer's own reference list prints
+"Haugenc" and omits Hotop, which the article's first page settles.
+
+### moore1970
+
+<a id="moore1970"></a>
+
+> C. E. Moore, 'Ionization Potentials and Ionization Limits Derived from the Analyses of Optical Spectra', NSRDS-NBS 34, National Bureau of Standards, 1970.
+
+| | |
+| --- | --- |
+| Identifier | [10.6028/NBS.NSRDS.34](https://doi.org/10.6028/NBS.NSRDS.34) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-15 |
+| Local copy | `Moore1970.pdf` (not checked) |
+
+**Why it is reference only.** THE OTHER SOURCE FOR A REBUILT EQEQ PARAMETER TABLE (see `andersen1999`).
+Ionization potentials, in eV, for the elements and their successive ionization
+stages, from optical spectra.
+
+Held and readable: 30 pages with an OCR text layer, and Table I extracts as
+Z, element, then the first through fifth ionization potentials (verified on the
+page carrying Po 8.42, Rn 10.748, Ra 5.279/10.147, Th 11.5/20.0/28.8). Cells
+arrive one per line, so a positional read is required -- the trap
+docs/LESSONS and the PDF notes already record for multi-column tables.
+
+Title, author, series number and year confirmed against Crossref; the DOI
+resolves to the free NIST PDF at nvlpubs.nist.gov.
+
+### wilmer2011
+
+<a id="wilmer2011"></a>
+
+> C. E. Wilmer & R. Q. Snurr, 'Towards rapid computational screening of metal-organic frameworks for carbon dioxide capture: Calculation of framework charges via charge equilibration', Chem. Eng. J. 2011, 171, 775-781.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.cej.2010.10.035](https://doi.org/10.1016/j.cej.2010.10.035) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-15 |
+| Local copy | `wilmer2011.pdf` (not checked) |
+
+**Why it is reference only.** THE PRIOR REPORT WILMER 2012's SI CITES FOR ITS ORBITAL-OVERLAP TERM. Read for
+TRIAGE check 2.9 to resolve that term's printed form, and it does NOT resolve
+it: it gives the two-centre Coulomb integral in two ALTERNATIVE forms -- a 1s
+Slater solution (its eq 6) and a Gaussian one (eq 7) -- neither of which is the
+2012 SI's eq 64. The published source code settles the model instead (3.9).
+
+It also states the hydrogen treatment the later paper replaced: chi_H = 4.528
+eV and J_H = 13.8904 eV with a charge-dependent idempotential, iterated.
+
+DOI VERIFIED AGAINST CROSSREF AFTER A WRONG ONE WAS CIRCULATED: an earlier
+note in this session gave 10.1016/j.cej.2011.02.023, which is Mariz, Leiza and
+de la Cal on latex particle growth, Chem. Eng. J. 168, 938 -- a different
+paper entirely. The identifier here resolves to the title above.
+
+### wilmer2012_correction
+
+<a id="wilmer2012_correction"></a>
+
+> C. E. Wilmer, K. C. Kim & R. Q. Snurr, 'Correction to 'An Extended Charge Equilibration Method'', J. Phys. Chem. Lett. 2012, 3, 2897.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jz301439a](https://doi.org/10.1021/jz301439a) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-15 |
+| Local copy | `wilmer2012_si/jz301439a_si_001/` (not checked) |
+
+**Why it is reference only.** THE CORRECTION THAT CARRIES EQEQ'S SOURCE CODE. Its entire content is that
+"additional Supporting Information files should have been included in the
+original paper", and its SI holds what the 2012 paper's own SI page 1 listed
+but did not ship: EQeq_v1_00.cpp, ionizationdata.dat, chargecenters.dat and a
+sample NaCl.cif.
+
+WITHOUT IT, CHECK 2.9 COULD NOT HAVE REPRODUCED THE PUBLISHED CHARGES. Four
+things it settles that the article does not state: the orbital term's first
+coefficient is 2J/k where eq 64 prints J/K; the constants are k = 14.4 with a
+scaling lambda = 1.2 (so 8.64 eV A per pair, not 14.399645/1.67 = 8.6226);
+direct summation is the default rather than Ewald; and the published charges
+are rounded to three digits with the first |sum| x 1000 atoms nudged to restore
+neutrality. Section 3.9 records the reproduction those four made possible.
+
+The code is read, never vendored: it carries the publisher's SI terms, and
+this repository is GPL-3.0-or-later.
 
 ### mortier1986
 
