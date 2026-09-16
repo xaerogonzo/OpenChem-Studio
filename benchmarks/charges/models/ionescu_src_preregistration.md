@@ -226,3 +226,71 @@ is run, and the decision returns to Alex with these numbers.
 
 **One fact that bears on that decision:** all 8 positives are the **excluded** model.
 On this corpus the **11 shipped models produced no solve beyond the in-domain maximum**.
+
+## 7. Alignment guard — REGISTERED BEFORE IT RUNS
+
+Decided by Alex on §6-R: study a guard built on the hypothesis that a blow-up needs a
+near-zero eigenvalue **and** a right-hand side aligned with its eigenvector.
+
+### 7.1 An equivalence that shapes the study (derivation, not a measurement)
+
+On {Σq = Q} write q = q₀ + Zy, with q₀ = (Q/N)·1 and Z an orthonormal basis of the
+constraint's null space. Stationarity gives R y = g, with R = ZᵀHZ and
+g = −Zᵀ(A + Hq₀). With R = VΛVᵀ:
+
+    ‖q − q₀‖² = ‖y‖² = Σₖ cₖ²,   cₖ = (vₖᵀ g) / λₖ
+
+**So the exact alignment decomposition sums to the solved charge deviation.** A raw
+alignment "predictor" costs a solve and carries no information beyond |q|. Two
+consequences are registered here:
+
+- **Raw max|q| is not an admissible baseline.** Positives are *defined* by
+  max|q| > 2.051, which is the in-domain maximum, so |q| separates them by
+  construction. No result below is framed as "as good as |q|".
+- The study therefore tests **the mechanism** and **a scale-free guard**, and the
+  guard is judged on a population it was **not** calibrated on.
+
+### 7.2 Question 1 — is the mechanism real?
+
+Per solve, the **dominant-mode share** s = maxₖ cₖ² / Σₖ cₖ², and the |λ|-rank of
+the dominant mode (1 = the smallest |λ|).
+
+**H1, registered:** in every positive, the dominant mode is among the three
+smallest-|λ| modes **and** s ≥ 0.5; in the in-domain negatives, the mode with the
+smallest |λ| carries **less than 0.5** of ‖y‖² in a majority of solves.
+
+**Outcome:** H1 SUPPORTED if both halves hold, REFUTED if the positive half fails,
+PARTIAL if only the positive half holds. Reported with the full distributions.
+
+### 7.3 Question 2 — a scale-free guard
+
+**α = ‖y‖ · median|λ(R)| / ‖g‖** — the solution's size relative to what a typical mode
+would give it. It is dimensionless, so it does not depend on the unknown units.
+
+- **Calibration population:** the §4 extrapolation set (naming corpus, 94 molecules)
+  plus the in-domain negatives.
+- **Validation population, independent:** `benchmarks/regulatory/corpus.json`,
+  filtered by the §4 rule (neutral, ≥ 3 heavy atoms, the six elements), **excluding
+  every molecule also present in the naming corpus** by canonical SMILES. ETKDGv3,
+  seed 20260916, MMFF94. Registered size: 53.
+- **Labels in both:** positive when max|q| > 2.051; all 12 models, the excluded one
+  included, since it is the only source of positives.
+- **Threshold:** τ_α = the smallest α over calibration positives. Chosen on
+  calibration only, then frozen.
+
+**Criterion, GUARD-VIABLE only if all three hold:**
+1. on calibration: τ_α > max α over in-domain negatives (× 11 shipped models);
+2. on validation: every positive has α ≥ τ_α;
+3. on validation: no solve under the **11 shipped models** with max|q| ≤ 2.051 has
+   α ≥ τ_α — the guard must not refuse sound solves on unseen molecules.
+
+**If the validation set yields no positives,** criterion 2 is **UNTESTED**, not
+passed, and the verdict can be at most **GUARD-NOT-CONTRADICTED** — which does not
+license shipping a threshold.
+
+### 7.4 What each outcome licenses
+
+- **GUARD-VIABLE** → α with τ_α is proposed to Alex as the shipped refusal, with both
+  populations' numbers.
+- **GUARD-NOT-CONTRADICTED** → not shipped as validated; returns to Alex.
+- **Anything else** → α is not the guard, and the decision returns to Alex.
