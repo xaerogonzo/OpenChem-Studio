@@ -1491,6 +1491,38 @@ def test_the_architecture_module_count_is_live():
     )
 
 
+def test_every_chem_module_is_named_in_the_package_map():
+    """The count guard above says HOW MANY; this says WHICH.
+
+    **Both were needed, and the count is what found it.** Measured 2026-09-16:
+    the map said 83 modules against 115, and 37 were named nowhere in the
+    document -- whole families, including every Lewis-diagram module and the
+    one that computes periodic charges. A package map that silently omits a
+    third of its package is worse than no map, because a reader concludes the
+    module does not exist.
+
+    Names only. Whether each DESCRIPTION is any good is not mechanically
+    checkable, and a guard that pretends otherwise would pass on a list of
+    filenames with no prose -- which is why the count guard's failure message
+    says to check that new modules are described, not merely counted.
+    """
+    architecture = (_ROOT / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    modules = [
+        path.stem
+        for path in (_ROOT / "src" / "openchem" / "chem").glob("*.py")
+        if path.stem != "__init__"
+    ]
+    assert len(modules) > 50, f"found {len(modules)} modules, so it is not walking chem"
+
+    missing = sorted(stem for stem in modules if stem not in architecture)
+    assert not missing, (
+        f"{len(missing)} of chem's {len(modules)} modules are named nowhere in "
+        f"docs/ARCHITECTURE.md: " + ", ".join(missing)
+        + ". Add each to the group it belongs to in the package map. A new module is "
+        "the cheapest moment to describe it; nobody comes back."
+    )
+
+
 def test_a_doc_whose_counts_are_history_is_excused_for_a_written_reason():
     """An exemption set with no reasons rots into a blocklist.
 
