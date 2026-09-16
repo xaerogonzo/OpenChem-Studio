@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: fa213ea4aa8fde1e74fa0d23a4770de214c896133fff119d769b405d92e02eae -->
+<!-- SOURCE SHA256: e2baf1a22d68a6b3008d9694a2ca1fbe7279e279d172bbf9f96b54366c9a1f51 -->
 
 # Sources
 
@@ -2712,10 +2712,23 @@ Useful context only: it notes that QEq's hydrogen term is cubic in the energy,
 which guarantees a minimum but forces iteration -- the loop whose LiH
 behaviour amendment A7 diagnoses.
 
-ITS SUPPORTING INFORMATION IS HELD (`wilmer2012_si.pdf`, 24 pp): S2 ionization
-energies to Z = 84, S3 EQeq inputs, S5 partial charges for 12 MOFs. Those are
-periodic oracles, so EQeq is recorded under ROADMAP's periodic charge
-equilibration, not as a molecular calculator.
+ITS SUPPORTING INFORMATION IS HELD (`wilmer2012_si.pdf`, 24 pp): the full
+derivation (S1), the EQeq inputs used for the 12 MOFs (S3), and the VASP and
+GCMC details. EQeq is recorded under ROADMAP's periodic charge equilibration,
+not as a molecular calculator.
+
+WHAT THE PDF ITSELF DOES NOT CONTAIN (corrected 2026-09-15): S2 shows the
+ionization energies only as plots, S5 is a one-line pointer to a zip, and S8 is
+a paragraph pointing at the source file. Those are ACCOMPANYING FILES.
+
+THE ACCOMPANYING STRUCTURES AND CHARGES ARE NOW HELD (same day), as
+`wilmer2012_si/jz3008485_si_002/`: 12 MOFs x 4 charge sets (EQeq, REPEAT,
+ChelpG, AMS Qeq), each file carrying its unit cell and per-atom charges. All 12
+atom counts match the paper's Table 1 and every EQeq set sums to zero, so this
+is an exact per-atom oracle. STILL NOT HELD: ionizationData.dat and
+EQeq_v1_00.cpp. benchmarks/charges/periodic/FEASIBILITY.md section 8 records
+the revision, and the outcome is now FEASIBLE with the parameter table as a
+named substitution.
 
 DOI and pages confirmed against Crossref.
 
