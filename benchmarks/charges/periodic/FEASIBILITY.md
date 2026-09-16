@@ -108,12 +108,26 @@ The paper reports that charges changed "only negligibly" from 5 × 5 × 5 to
 - A CoRE-MOF or CSD structure of the same framework would be an independent
   substitute, never Wilmer's structure.
 
-**The ionisation table is the one substitutable item.** SI S2 cites its two
-sources: Andersen & Haugen 1999 (electron affinities, J. Phys. Chem. Ref. Data
-28, 1511) and Moore 1970 (ionisation potentials, NSRDS-NBS 34). A table built
-from those is an independent reconstruction, not Wilmer's file, and any
-difference would move the charges; it would have to be labelled that way and
-checked against SI S2's plots.
+**The ionisation table is the one substitutable item, and BOTH SUBSTITUTE
+SOURCES ARE NOW HELD** (2026-09-15, registered as `andersen1999` and
+`moore1970`). SI S2 cites them for the two halves of its table:
+- **Andersen, Haugen & Hotop 1999** (doi 10.1063/1.556047), recommended
+  electron affinities to Z = 94. Wilmer's reference list prints "Haugenc" and
+  omits Hotop; the article settles the authorship.
+- **Moore 1970**, NSRDS-NBS 34 (doi 10.6028/NBS.NSRDS.34), ionisation
+  potentials from optical spectra. The DOI resolves to a free NIST scan.
+
+Both carry text layers and their tables extract, spot-checked 2026-09-15:
+Andersen's recommended values come out as printed (C 1.262 118 eV, O
+1.461 112, Cl 3.612 724), and Moore's Table I reads as Z, element, then the
+first through fifth potentials (Po 8.42; Rn 10.748; Ra 5.279, 10.147; Th 11.5,
+20.0, 28.8). Moore is a scan, so its cells arrive one per line and need a
+positional read with per-cell checking.
+
+**A table built from them is still an independent reconstruction, not Wilmer's
+file**, and any difference moves the charges. It must be labelled that way, and
+checked against SI S2's plots, or a per-atom mismatch has two candidate causes
+at once.
 
 **numat/EQeq**, checked 2026-09-15 with GitHub metadata only, nothing
 downloaded:
@@ -285,6 +299,11 @@ merely a set of files with plausible names.
 electron-affinity table the method runs on) and `EQeq_v1_00.cpp`. Neither is in
 the ACS package; the SI's first page lists them as accompanying files, and S8
 points at the source rather than printing it.
+
+**But the two sources that table was built FROM are now held** (Andersen 1999
+and Moore 1970, section 3), so the parameter half is substitutable rather than
+missing. That is the difference between "cannot be attempted" and "can be
+attempted under a named substitution".
 
 **Revised oracle table:**
 
