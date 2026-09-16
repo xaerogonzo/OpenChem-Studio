@@ -561,3 +561,97 @@ sulfur was: pyridine N-oxide, 4-methylpyridine N-oxide, isonicotinic acid N-oxid
 
 Nothing on its own. It returns to Alex with these rates, the control beside them, and every
 molecule listed.
+
+## 10. Decisions on §9-R, and a record for rework
+
+### 10.1 What ships "for now" (Alex, 2026-09-16)
+
+1. **Two models only: E-MPA/6-31G\*/gas and E-MPA/6-31G\*\*/gas** — the only two whose off-domain
+   behaviour was measured (§9). The other nine reproduce in-domain (TRIAGE 3.8) with off-domain
+   behaviour **unmeasured**: deferred, not discarded.
+2. **Two refusals, both returning a reason and never a number:**
+   - **any sulfur bonded to oxygen** — 6 / 6 silent errors in §9-R, and sulfuric acid out-of-sample
+     in §8-R;
+   - **any solve with max |q| > 2.051** — the in-domain maximum, not contradicted by §8's reference.
+3. **The nitrogen classes are documented, not refused** — N-oxides, nitro, tetrazoles and
+   triazoles, diazo — because that grouping has not been checked the way sulfur's was.
+4. **Calcium ships untested off-domain**, and says so.
+
+Alex's words on it: *"let's go with 1 for now, but write this all down, maybe for later rework,
+this is getting pretty patchwork in my opinion."* The rest of this section is that record.
+
+### 10.2 Why it is patchwork: one root cause, four patches
+
+**The root cause.** The published E parameters contain **negative effective hardnesses** — 17 of
+the 72 B values, on N, O, S and Ca — so the EEM energy is **non-convex for any structure containing
+one of those elements** (§4 Finding 2, 1644 / 1644 exactly). A non-convex quadratic under a linear
+constraint still has a unique stationary point, but it can be nearly singular. The parameters were
+also fitted only to protein fragments. Together those produce three symptoms:
+
+- **runaway solves** — nitrobenzene 74 e (§4), sulfuric acid 4.28 e under a shipped-at-the-time
+  model (§7-R);
+- **saddle points** — 94% of the model's own validation set (§4);
+- **silent errors off-domain** — oxidised sulfur wrong by up to 1.75 e, with sign flips, at ordinary
+  magnitudes (§8-R, §9-R).
+
+**The four patches, each aimed at one symptom:**
+
+| patch | symptom it treats | where it came from |
+|---|---|---|
+| exclude E-HiI/6-31G\*/PCM | runaways | §4 Finding 3 |
+| refuse max \|q\| > 2.051 | runaways in the models that remain | §7-R, §8-R |
+| refuse S bonded to O | silent errors | §9-R |
+| ship only the two MPA gas models | unmeasured off-domain behaviour | §9.1 |
+
+**Three system-level guards were tried first and each failed a registered test** — the full
+condition number (§4 Finding 4), the reduced condition number κ_R (§6-R, margin 0.018) and the
+scale-free α (§7-R, 40 false refusals). The surviving patches are the ones that did not.
+
+### 10.3 The question a rework has to answer first
+
+**One artifact is being asked to meet two goals that pull apart:**
+
+- **(G1) reproduce Ionescu 2013 faithfully** — which it does: 36 / 36 in-domain;
+- **(G2) give good 3D charges on drug-like molecules** — which the published model does not do
+  off-domain.
+
+Every patch is a compromise between those two. **Decide which one this feature is for, and most
+of the patchwork follows or falls away:**
+
+- **If G1:** the patches are the honest cost of a flawed published model, and the rework tidies
+  them — options A and B below.
+- **If G2:** faithful reproduction stops being the constraint, Ionescu provenance can be dropped,
+  and the problem is fixed at the source — options C and D.
+
+### 10.4 Options, recorded, not chosen
+
+**A — one applicability-domain mechanism instead of hand rules (G1).** Replace the S–O rule, the
+nitrogen-class list and the model exclusion with one measure of distance from the protein-fragment
+training population (for example fingerprint similarity), derived and validated once. One mechanism
+refuses anything outside the validated domain, instead of a rule per failure found.
+
+**B — complete the reference coverage (G1).** Obtain NBO (for NPA) and an iterative Hirshfeld
+implementation (HiPart, which the paper used, or an equivalent), so the nine unmeasured models can
+be surveyed the way §9 surveyed two. Until then, model choice among the eleven is not evidence-based.
+
+**C — a convex refit, which is a new model (G2).** Refit EEM parameters with the effective hardness
+constrained positive — or the reduced Hessian positive-definite — so runaways and saddles cannot
+occur by construction. It needs a reference charge set spanning the target chemistry (oxidised
+sulfur, N-oxides, drug-like molecules) and its own pre-registered validation. **It would be an
+OpenChem-fitted model, not Ionescu 2013**, and has to say so.
+
+**D — ask whether an EEM-class model can represent oxidised sulfur at all (G2).** Equalisation with
+fixed per-element parameters may be structurally unable to capture hypervalent sulfur; a split-charge
+or bond-aware form might. Round 3 is a caution here, not a recommendation: Mathieu's SQE was
+INCONCLUSIVE and Nistor's PARTIAL.
+
+### 10.5 Everything needed to pick this up again
+
+- **Instruments, all committed and reproducible:** `ionescu_stability.py` (§4, §6, §7),
+  `ionescu_reference.py` (§8), `ionescu_survey.py` with its two result JSONs (§9).
+- **The benchmark it all rests on:** `ionescu_eem_check.py` and TRIAGE 3.8.
+- **Populations:** `benchmarks/naming/corpus.json` (calibration and survey), the regulatory corpus
+  (independent validation), the Ionescu SI in Sci Downloads (in-domain).
+- **Open questions, each named where it was found:** the nitrogen grouping (§9-R); whether H1's
+  alignment mechanism holds once sulfamethoxazole is explained (§7-R); calcium off-domain (§9-R);
+  the nine unmeasured models (§9.1); the NPA and HiI blow-ups no installed tool can adjudicate (§8.1).
