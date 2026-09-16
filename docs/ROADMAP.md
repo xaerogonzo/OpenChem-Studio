@@ -2159,9 +2159,18 @@ struck through and marked SHIPPED here, never deleted.
     the user typed is not a measured one, and every number derived from it
     inherits that. The provenance has to travel with it, the way a
     reconstruction label travels with the EQeq parameter table.
-- **Geometry-dependent charges at a pH.** Not started, and deliberately
-  separate from the item above. It needs the coordinate gate recorded there:
-  protonation must not move or lose the conformer's heavy atoms.
+- ~~**Geometry-dependent charges at a pH.** Not started.~~ **SHIPPED**
+  (PR #115): `chem/protonation_geometry.py` plus `compute_geometry_charges_at_ph`,
+  under its own calculator id rather than new parameters on
+  `geometry_partial_charge` -- adding them there would have orphaned every saved
+  result, which a pinned-key test caught.
+  - **The coordinate gate held**, which was the condition recorded here:
+    heavy atoms and retained hydrogens are bit-identical after protonation, and
+    only the newly added hydrogens move under an H-only MMFF94 minimisation.
+  - Two things it cost: prochiral CH2 hydrogens are judged equivalent by
+    canonical ranking AND by isotope labelling, so `FindPotentialStereo` is what
+    separates them; and **the driven app found `result_report` returning `{}`**
+    because both calculators emitted one `property_id`. Both are pinned.
 - **Measure, then unify protonation.** Not started. A pre-registered benchmark
   of both models against measured pKa values is the only thing that may make
   one of them the authority, and it is what the cross-check's DECISION waits
