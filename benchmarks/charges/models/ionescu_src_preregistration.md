@@ -458,3 +458,58 @@ every sign in a molecule**, and acidic hydrogens at −1.76 e are chemically unt
 protein domain, the domain caveat is the protection that matters**, and the scope sentence has to
 say so in words — that these models can be wrong in sign and by more than 1.5 e on molecules unlike
 proteins, without any refusal firing.
+
+## 9. Silent-error survey — REGISTERED BEFORE IT RUNS
+
+Decided by Alex on §8-R: before deciding ship or hold, measure whether the silent errors §8-R found
+— wrong sign, or more than 1.5 e off, with no refusal firing — are **common or confined to extremes
+like sulfuric acid**. §8-R rested on one sulfur molecule and one nitro compound.
+
+### 9.1 Only the like-for-like comparison
+
+RHF Mulliken ↔ E-MPA gas models, the one pairing §8.1 established as like-for-like (bar spherical
+5d against Gaussian 09's Cartesian 6d; §8-R's CO₂ agreed to 0.033 e, which suggests but does not
+prove that difference is small). **Both shipped MPA gas models:** E-MPA/6-31G\*/gas against
+RHF/6-31G\*, and E-MPA/6-31G\*\*/gas against RHF/6-31G\*\*. PCM models are excluded: the paper names
+no solvent, so no PCM reference is like-for-like.
+
+### 9.2 The population, with no size cap
+
+The §4 extrapolation set — the naming corpus filtered to neutral molecules of ≥ 3 heavy atoms within
+the six elements — at its §4 geometries. **All 94, uncapped**, because any size cap is a selection.
+Measured before registering: the largest has 50 atoms, and §8's timings (CO₂ 1.3 s, nitrobenzene
+19 s) make that affordable. **Stratified, and every rate reported per stratum:**
+
+| stratum | rule | molecules |
+|---|---|---|
+| S | contains sulfur | **11** — small; no stratum rate is read as a population estimate |
+| N | contains nitrogen, no sulfur | 44 |
+| **CHO — the control** | neither | 39 |
+
+**The control exists so a rate can be read:** if plain C/H/O molecules show the same errors, the
+problem is not about sulfur or nitrogen.
+
+A molecule whose SCF does not converge, or which is open-shell, is **excluded and listed**, never
+silently dropped.
+
+### 9.3 Definitions, fixed now
+
+Declared conventions, chosen before the run, not fitted to it:
+
+- **sign error** (atom): reference and model charges of opposite sign, with **|q_ref| ≥ 0.10 e** —
+  so sign noise on a near-neutral atom does not count;
+- **magnitude error** (atom): **|q_ref − q_model| ≥ 0.50 e**, half an electron;
+- **silent error** (molecule, per model): at least one atom with a sign or magnitude error, **and**
+  the model's max |q| ≤ 2.051 — the refusal would not fire;
+- **stratum rate:** the fraction of the stratum's molecules with a silent error.
+
+**Primary classification, per stratum and model:** **CONFINED** at ≤ 10%, **COMMON** at ≥ 50%,
+**INTERMEDIATE** between.
+
+**Sensitivity, reported and not primary:** the same rates at sign ≥ 0.05 / magnitude ≥ 1.0 e, and
+the full per-molecule distribution of max |Δq|, so the thresholds can be re-read by anyone.
+
+### 9.4 What it licenses
+
+**Nothing on its own.** It is the evidence for Alex's ship-or-hold decision, which returns to Alex
+with the per-stratum rates, the control's rate beside them, and every molecule listed.
