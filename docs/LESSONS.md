@@ -20386,3 +20386,53 @@ to an assertion over `report.facts`:
 computes, one is over the report's atom budget, and four refuse for partial
 occupancy. The corpus that validated the method was fully ordered. A model can
 be exactly reproduced and still meet almost nothing a user has.
+
+## A GREEN PYTEST SUMMARY AND A NON-ZERO EXIT: THE SAME WINDOWS CRASH, WEARING THE ONE SHAPE NO DIAGNOSTIC CATCHES
+
+2026-09-16, PR #118, a markdown-only change.
+
+**The suite printed `4409 passed, 18 skipped, 11 xfailed` and the step failed.**
+That is the whole finding. Everything a reader reaches for says the run was
+green, and the only disagreeing signal is the step's exit code.
+
+    2026-09-16T06:18:55Z  4409 passed, 18 skipped, 11 xfailed, 2 warnings in 917.85s
+    2026-09-16T06:18:58Z  ##[error]Process completed with exit code 1.
+
+pytest returns 0 when nothing failed, so the 1 is the interpreter dying AFTER
+the summary is written -- a Qt/QWebEngine teardown crash with no faulthandler
+output, because faulthandler is gone by then too.
+
+**Four attempts over two SHAs, and the same crash class wore two different
+faces:**
+
+| attempt | SHA | what the log showed |
+|---|---|---|
+| 1 | `7fbe907` | `Windows fatal exception: access violation`, traceback through `batch_panel.py:632 _rebuild_molecule_list` from `test_redraw_in_2d.py:169`, and **no summary line for the shard at all** |
+| 2 | `7fbe907`, re-run | passed |
+| 3 | `02d4b9f` (markdown only) | **every test passed**, then exit 1 |
+
+Two failures in four attempts, which is what the disposal-flush experiment's
+measured fixed-tree rate of 0.54 predicts. **The diff between those two SHAs is
+prose in one `.md` file**, so neither failure is attributable to the change --
+the PR before it went green on the same code.
+
+**Why this shape is worse than the mid-run one.** Every recorded technique for
+reading a red Windows run comes up empty:
+
+- `gh run view --log-failed` returns the step's log with no failure in it;
+- grepping for `FAILED` finds nothing, and grepping for `assert` finds nothing;
+- grepping for `Windows fatal exception` finds nothing -- *that* is the
+  mid-run signature, and this crash is past the point where it can be printed;
+- the `short test summary info` block, which is the thing this project already
+  learned to look for, says the suite passed.
+
+So the rule that was enough before -- "a crashed suite has no FAILED lines, so
+check for a summary line" -- is necessary and NOT sufficient. **Add: check
+whether the step's exit code agrees with pytest's summary.** A green summary
+plus a failing step is a teardown crash, not a test failure, and re-running is
+the correct response rather than hunting for a defect in the diff.
+
+**What NOT to conclude.** A green summary does not license merging past the red
+check by itself; it licenses saying *which* of the two things went wrong. The
+tests passing and the process crashing are both true, and the second is still a
+real defect in the harness even when it is nobody's change that caused it.
