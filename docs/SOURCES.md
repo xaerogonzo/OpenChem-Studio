@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 22bb846105ea9b883220799f98f282fe5e2304a666cb3a73732cd618040d0288 -->
+<!-- SOURCE SHA256: d9e0289a83201fd2ba9867aab36d83fab4639d429c128ec1093e49185abcada1 -->
 
 # Sources
 
@@ -250,7 +250,9 @@ next run of `tools/build_lewis_parameters.py`.
 | [`wells2014`](#wells2014) | literature | reference only | citation |
 | [`westwell1995`](#westwell1995) | literature | **not shipped** | citation |
 | [`wildman1999`](#wildman1999) | literature | shipped | citation |
+| [`wilmer2011`](#wilmer2011) | literature | reference only | citation |
 | [`wilmer2012`](#wilmer2012) | literature | reference only | citation |
+| [`wilmer2012_correction`](#wilmer2012_correction) | literature | reference only | citation |
 | [`yalkowsky_banerjee1992`](#yalkowsky_banerjee1992) | dataset | shipped | citation |
 | [`zhang2009`](#zhang2009) | literature | reference only | citation |
 | [`zhu2023`](#zhu2023) | literature | reference only | citation |
@@ -2794,6 +2796,65 @@ docs/LESSONS and the PDF notes already record for multi-column tables.
 
 Title, author, series number and year confirmed against Crossref; the DOI
 resolves to the free NIST PDF at nvlpubs.nist.gov.
+
+### wilmer2011
+
+<a id="wilmer2011"></a>
+
+> C. E. Wilmer & R. Q. Snurr, 'Towards rapid computational screening of metal-organic frameworks for carbon dioxide capture: Calculation of framework charges via charge equilibration', Chem. Eng. J. 2011, 171, 775-781.
+
+| | |
+| --- | --- |
+| Identifier | [10.1016/j.cej.2010.10.035](https://doi.org/10.1016/j.cej.2010.10.035) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-15 |
+| Local copy | `wilmer2011.pdf` (not checked) |
+
+**Why it is reference only.** THE PRIOR REPORT WILMER 2012's SI CITES FOR ITS ORBITAL-OVERLAP TERM. Read for
+TRIAGE check 2.9 to resolve that term's printed form, and it does NOT resolve
+it: it gives the two-centre Coulomb integral in two ALTERNATIVE forms -- a 1s
+Slater solution (its eq 6) and a Gaussian one (eq 7) -- neither of which is the
+2012 SI's eq 64. The published source code settles the model instead (3.9).
+
+It also states the hydrogen treatment the later paper replaced: chi_H = 4.528
+eV and J_H = 13.8904 eV with a charge-dependent idempotential, iterated.
+
+DOI VERIFIED AGAINST CROSSREF AFTER A WRONG ONE WAS CIRCULATED: an earlier
+note in this session gave 10.1016/j.cej.2011.02.023, which is Mariz, Leiza and
+de la Cal on latex particle growth, Chem. Eng. J. 168, 938 -- a different
+paper entirely. The identifier here resolves to the title above.
+
+### wilmer2012_correction
+
+<a id="wilmer2012_correction"></a>
+
+> C. E. Wilmer, K. C. Kim & R. Q. Snurr, 'Correction to 'An Extended Charge Equilibration Method'', J. Phys. Chem. Lett. 2012, 3, 2897.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jz301439a](https://doi.org/10.1021/jz301439a) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-15 |
+| Local copy | `wilmer2012_si/jz301439a_si_001/` (not checked) |
+
+**Why it is reference only.** THE CORRECTION THAT CARRIES EQEQ'S SOURCE CODE. Its entire content is that
+"additional Supporting Information files should have been included in the
+original paper", and its SI holds what the 2012 paper's own SI page 1 listed
+but did not ship: EQeq_v1_00.cpp, ionizationdata.dat, chargecenters.dat and a
+sample NaCl.cif.
+
+WITHOUT IT, CHECK 2.9 COULD NOT HAVE REPRODUCED THE PUBLISHED CHARGES. Four
+things it settles that the article does not state: the orbital term's first
+coefficient is 2J/k where eq 64 prints J/K; the constants are k = 14.4 with a
+scaling lambda = 1.2 (so 8.64 eV A per pair, not 14.399645/1.67 = 8.6226);
+direct summation is the default rather than Ewald; and the published charges
+are rounded to three digits with the first |sum| x 1000 atoms nudged to restore
+neutrality. Section 3.9 records the reproduction those four made possible.
+
+The code is read, never vendored: it carries the publisher's SI terms, and
+this repository is GPL-3.0-or-later.
 
 ### mortier1986
 

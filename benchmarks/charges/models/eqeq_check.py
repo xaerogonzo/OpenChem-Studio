@@ -44,8 +44,12 @@ DIELECTRIC = 1.67
 HYDROGEN_I0 = -2.0
 #: Charge centres: neutral except the metals, at their oxidation states.
 CHARGE_CENTRES = {"Mg": 2, "V": 4, "Co": 2, "Ni": 2, "Cu": 2, "Zn": 2, "Pd": 2}
-#: K = 1/(4 pi eps_r eps_0) in eV angstrom.
-COULOMB_EV_ANGSTROM = 14.399645
+#: The code's own constants (EQeq_v1_00.cpp, from the correction's SI): k = 14.4 exactly, and a
+#: "Coulomb scaling parameter" lambda = 1.2, which is the 2/eps_R the SI quotes. Every pair term is
+#: lambda * (k/2) = 8.64 eV angstrom -- not 14.399645/1.67 = 8.6226, which is what reading the paper
+#: alone gives.
+COULOMB_EV_ANGSTROM = 14.4
+COULOMB_SCALING = 1.2
 #: The printed charges carry 3 decimals.
 TOLERANCE = 5e-4
 
@@ -127,11 +131,17 @@ def cell_vectors(lengths, angles) -> np.ndarray:
 
 
 def orbital_overlap(hardness_pair: np.ndarray, distance: np.ndarray, coulomb: float) -> np.ndarray:
-    """SI eq 64's damping, E_O(r), with J_km the geometric mean of the two hardnesses."""
+    """The damping, with a = J_km/k and J_km the geometric mean of the two hardnesses:
+
+        exp(-(a r)^2) * (2a - a^2 r - 1/r)
+
+    **THE FIRST COEFFICIENT IS 2a, AND SI EQ 64 PRINTS a.** Measured before the code was held: read
+    as printed, the term makes agreement WORSE than leaving it out (IRMOF-1 max 0.216 against 0.030),
+    which is what sent check 2.9 looking for it. `EQeq_v1_00.cpp` settles it.
+    """
     safe = np.where(np.isfinite(distance), distance, 1.0)  # the home-cell self pair is masked by the caller
-    scaled = hardness_pair * safe / coulomb
-    return np.exp(-(scaled ** 2)) * (hardness_pair / coulomb - hardness_pair ** 2 * safe / coulomb ** 2
-                                     - 1.0 / safe)
+    a = hardness_pair / coulomb
+    return np.exp(-((a * safe) ** 2)) * (2.0 * a - a * a * safe - 1.0 / safe)
 
 
 def pair_matrix(structure: dict, hardness: np.ndarray, shells: int, coulomb: float) -> np.ndarray:
@@ -151,7 +161,9 @@ def pair_matrix(structure: dict, hardness: np.ndarray, shells: int, coulomb: flo
         distance = np.linalg.norm(delta, axis=-1)
         if u == v == w == 0:
             np.fill_diagonal(distance, np.inf)  # an atom does not interact with itself in the home cell
-        contribution = coulomb / distance + coulomb * orbital_overlap(geometric_mean, distance, coulomb)
+        # Jab = lambda (k/2) [1/r + E_O(r)], exactly as the code assembles it.
+        contribution = (COULOMB_SCALING * coulomb / 2.0) * (1.0 / distance
+                                                            + orbital_overlap(geometric_mean, distance, coulomb))
         total += np.where(np.isfinite(distance), contribution, 0.0)
     return total
 
@@ -169,7 +181,7 @@ def solve(structure: dict, table: dict[str, dict], shells: int, factor: float,
                   for element, centre in zip(elements, centres)]
     chi = np.array([value[0] for value in parameters])
     hardness = np.array([value[1] for value in parameters])
-    coulomb = COULOMB_EV_ANGSTROM / DIELECTRIC
+    coulomb = COULOMB_EV_ANGSTROM
     count = len(elements)
 
     matrix = np.zeros((count + 1, count + 1))
@@ -180,6 +192,26 @@ def solve(structure: dict, table: dict[str, dict], shells: int, factor: float,
     rhs = np.zeros(count + 1)
     rhs[:count] = -chi + hardness * centres
     return np.linalg.solve(matrix, rhs)[:count]
+
+
+def round_charges(charges: np.ndarray, digits: int = 3) -> np.ndarray:
+    """The published post-processing (`RoundCharges` in EQeq_v1_00.cpp), replicated to compare like
+    with like: round every charge to `digits`, then, if the rounded set no longer sums to zero, shift
+    the FIRST |qsum * 10^digits| atoms in file order by one unit of the last digit.
+
+    Their printed charges already carry this, so comparing raw solver output against them charges us
+    for their rounding rather than for our model.
+    """
+    factor = 10.0 ** digits
+    rounded = np.round(charges * factor) / factor
+    total = rounded.sum()
+    if abs(total) < 0.5 / factor:
+        return rounded
+    count = int(abs(total * factor) + 0.5)
+    sign = -1.0 if total > 0 else 1.0
+    rounded = rounded.copy()
+    rounded[:count] += sign / factor
+    return np.round(rounded * factor) / factor
 
 
 # --- the check ------------------------------------------------------------------------------------
@@ -243,7 +275,7 @@ def main() -> None:
                         centres = [CHARGE_CENTRES.get(element, 0) for element in structure["elements"]]
                         hardness = np.array([electronegativity_and_hardness(element, centre, table)[1]
                                              for element, centre in zip(structure["elements"], centres)])
-                        cached = pair_matrix(structure, hardness, shells, COULOMB_EV_ANGSTROM / DIELECTRIC)
+                        cached = pair_matrix(structure, hardness, shells, COULOMB_EV_ANGSTROM)
                     charges = solve(structure, table, shells, factor, cached)
                 except KeyError as exc:
                     rows.append([name, shells, factor, len(printed), "", "", "", "", "", f"REFUSED: {exc}"])
@@ -251,15 +283,19 @@ def main() -> None:
                     continue
                 delta = np.abs(charges - printed)
                 within = [float(np.mean(delta <= bound)) for bound in (TOLERANCE, 5e-3, 5e-2)]
-                verdict = "REPRODUCED" if np.all(delta <= TOLERANCE) else "PARTIAL"
+                # The code prints charges rounded to 3 digits and then nudges a few to restore
+                # neutrality (RoundCharges), so the exact comparison is OUR value rounded against
+                # THEIRS as printed.
+                identical = float(np.mean(round_charges(charges) == printed))
+                verdict = "REPRODUCED" if identical == 1.0 else "PARTIAL"
                 ours = reference_deviation(structure["name"], charges)
                 theirs = reference_deviation(structure["name"], printed)
                 rows.append([name, shells, factor, len(printed), f"{float(np.median(delta)):.2e}",
-                             f"{float(delta.max()):.4f}", *[f"{value:.4f}" for value in within],
+                             f"{float(delta.max()):.4f}", f"{identical:.4f}", *[f"{value:.4f}" for value in within],
                              "" if ours is None else f"{ours:.3f}", "" if theirs is None else f"{theirs:.3f}",
                              f"{float(np.sum(charges)):+.2e}", verdict])
                 print(f"{name:14} L={shells} c={factor:<4} median |dq| {np.median(delta):.2e} max {delta.max():.4f} "
-                      f"within 5e-4 {within[0]:.3f} | mean|q-REPEAT| ours {ours:.3f} theirs {theirs:.3f} -> {verdict}")
+                      f"identical(3dp) {identical:.3f} | mean|q-REPEAT| ours {ours:.3f} theirs {theirs:.3f} -> {verdict}")
                 if shells == 2 and factor == 1.0:
                     for index in range(len(printed)):
                         atom_rows.append([name, index + 1, structure["elements"][index], f"{charges[index]:.6f}",
@@ -269,7 +305,8 @@ def main() -> None:
               "# (Moore 1970 + Andersen 1999; his ionizationData.dat is not held). Direct lattice sum.\n")
     for filename, columns, data in (
         ("eqeq_mofs.csv", ["mof", "shells", "factor", "atoms", "median_abs_delta", "max_abs_delta",
-                           "within_5e-4", "within_5e-3", "within_5e-2", "mean_abs_vs_repeat_ours",
+                           "identical_when_rounded", "within_5e-4", "within_5e-3", "within_5e-2",
+                           "mean_abs_vs_repeat_ours",
                            "mean_abs_vs_repeat_theirs", "charge_sum", "verdict"], rows),
         ("eqeq_atoms.csv", ["mof", "atom", "element", "model_charge", "printed_charge", "delta"], atom_rows),
     ):
