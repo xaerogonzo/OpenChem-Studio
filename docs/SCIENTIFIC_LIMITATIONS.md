@@ -1069,6 +1069,25 @@ they are, and are not:
   correlations reproduce. On his 55 reaction transition states, five of six
   do; fluorine misses, and that set has only five fluorine atoms. The record
   is `benchmarks/charges/models/TRIAGE.md`, checks 2.2 and 2.5.
+- **Charges at a pH have no oracle, and the calculator claims none.** *Partial
+  Charge (3D, pH-dependent)* answers "what would these charges be on the
+  dominant ionization state at this pH", and nothing published gives the right
+  answer to that for a given conformer. What is guaranteed is narrower and is
+  what the tests check: the state comes from Dimorphite-DL (ionization only,
+  never tautomers — `ropp2019` says so itself), the atom correspondence is the
+  provider's own rather than a fresh search, every heavy atom and every
+  retained hydrogen keeps its coordinates to the bit, and only added hydrogens
+  are placed. The pH does not make the charge model more accurate; it changes
+  which molecule is being asked about.
+  - **It refuses rather than choose.** When a proton leaves an atom carrying
+    several hydrogens that are not equivalent — a CH₂ next to a stereocentre —
+    which one goes is not determined by the structure, so no charges are
+    returned. Equivalent hydrogens (an ammonium's three) are allowed, and the
+    one the rule picked is recorded.
+  - **Prochirality is the test, not canonical ranking.** RDKit's canonical
+    ranking gives a prochiral CH₂'s two hydrogens the same rank, so a rank
+    test would have picked one silently. Measured while building this.
+
 - **Open Babel's "Bultinck" EEM file is a different parameter set.** Its
   carbon and oxygen values appear in no table of either Bultinck paper, and it
   gives unlisted elements hydrogen's parameters. It is used only to check that
@@ -2076,7 +2095,7 @@ and a molecular atom that share index 7 are not the same object.
 ### Which calculators a crystal is offered, and why it is none of them
 
 Every calculator declares the structure kinds it applies to, and the
-default is molecule-only. Today **none of the 59 registered calculators
+default is molecule-only. Today **none of the 60 registered calculators
 declares a crystal**, so the crystal report says so outright rather than
 implying some subset applies. That is not a gap being admitted — a
 molecular weight, a logP or a rotatable-bond count is a property of a
