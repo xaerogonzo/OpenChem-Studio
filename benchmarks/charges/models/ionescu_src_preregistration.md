@@ -513,3 +513,51 @@ the full per-molecule distribution of max |Δq|, so the thresholds can be re-rea
 
 **Nothing on its own.** It is the evidence for Alex's ship-or-hold decision, which returns to Alex
 with the per-stratum rates, the control's rate beside them, and every molecule listed.
+
+## 9-R. Silent-error survey — RESULT (2026-09-16, run after commit e489910)
+
+Run as §9 registered: `ionescu_survey.py run 6-31G*`, `run 6-31G**`, `summarize`. Every run
+`PY_EXIT=0`; **94 / 94 assessed at each basis, none excluded** (no open-shell molecule, every SCF
+converged). Per-molecule reference and model charges are committed beside the script as
+`ionescu_survey_6-31Gs.json` and `ionescu_survey_6-31Gss.json`.
+
+### Primary classification, per §9.3
+
+| stratum | E-MPA/6-31G\*/gas | E-MPA/6-31G\*\*/gas | class |
+|---|---|---|---|
+| **S** (11) | 7 / 11 = **63.6%** | 7 / 11 = **63.6%** | **COMMON** |
+| N (44) | 7 / 44 = 15.9% | 8 / 44 = 18.2% | INTERMEDIATE |
+| **CHO control** (39) | 2 / 39 = 5.1% | 3 / 39 = 7.7% | **CONFINED** |
+
+Sensitivity (sign ≥ 0.05, magnitude ≥ 1.0 e): S 45.5% at both bases; N 15.9%; CHO 5.1% / 12.8%.
+max |Δq| over all 94: median 0.167 / 0.141, 90th percentile 0.545 / 0.780, max 1.682 / 1.747.
+
+**The control makes the rates readable: the errors are about sulfur and nitrogen, not a general
+failure of the model.** Every control-stratum silent error is a sign flip on an atom just above the
+0.10 e threshold, with max |Δq| 0.15 – 0.22.
+
+### The sulfur split, measured after the registered analysis
+
+Not part of §9's registered questions; checked because a pattern read off a list is not a finding.
+S–O bonds counted from each molecule's SMILES; **identical at both bases.**
+
+| sulfur class | molecules | silent | max \|Δq\| |
+|---|---|---|---|
+| **S bonded to O** — sulfamethoxazole, sulfanilamide, benzenesulfonamide, dimethyl sulfone (2 O); omeprazole, DMSO (1 O) | 6 | **6 / 6** | **0.84 – 1.75** |
+| no S–O bond — thiophene, thiophenol, dimethyl disulfide, carbon disulfide | 4 | 0 / 4 | 0.12 – 0.31 |
+| thiourea — C=S, no oxygen | 1 | 1 | **0.531 / 0.505** — at the 0.50 threshold |
+
+**Every sulfur bonded to oxygen is a silent error, and every sulfur without one is within 0.31 e
+except thiourea, which sits on the threshold.** One case outside the survey agrees: sulfuric acid
+(§8-R), an S–O molecule the survey never saw, under-charged at sulfur by 1.76 e.
+
+**Nitrogen's silent errors are also chemically grouped**, reported and not yet checked the way
+sulfur was: pyridine N-oxide, 4-methylpyridine N-oxide, isonicotinic acid N-oxide; nitrobenzene;
+1H- and 2H-tetrazole, 1H-1,2,3-triazole; diazomethane.
+
+**Not tested at all:** calcium. The survey population contains none.
+
+### What it licenses, as §9.4 registered
+
+Nothing on its own. It returns to Alex with these rates, the control beside them, and every
+molecule listed.
