@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Dipole Moment and the ESP comparison can use EEM or QEq charges.**
+  - Gasteiger stays the default.
+  - A model that declines a molecule (EEM on chlorine, QEq on LiH) is shown
+    as not applicable with its reason, never computed with another model.
+  - Each dipole states its model's error against 15 experimental dipoles on
+    the application's own conformers: Gasteiger 0.79 D, EEM 1.79 D, QEq
+    1.69 D. Both 3D models overestimate polar molecules.
+
+### Fixed
+
+- **A 3D per-atom value could appear on the wrong atom.**
+  - After an edit that keeps the molecule but renumbers its atoms (erasing
+    and redrawing one), the Atom Inspector could show one atom's 3D charge
+    or surface area on another. Ethanol's oxygen showed a carbon's charge.
+  - Values are now placed on the atom they were computed for, and when that
+    cannot be known the atom says so.
+  - The Calculator Inspector also shows 3D values on the conformer they came
+    from, and colours an EEM or QEq result's potential surface with its own
+    charges.
+
+### Added
+
 - **Charge ▸ Partial Charge (3D): QEq beside EEM.** Rappé–Goddard charge
   equilibration can now be chosen as the method. It ships under a stated
   scope rather than the gate it originally failed: λ = ½ with the

@@ -1,0 +1,46 @@
+# preregistration.md E3: shipped EEM (Bultinck 2002 part I) against Ionescu 2013's "MPA/6-31G*/gas" charges. An application benchmark, no gate.
+# Source SHA-256: ci400448n_si_005/training_set.pdb f2d143c45f35bdc10d0920715af08c2726327ddd3e2d8e988badda4aa727368f; ci400448n_si_006/QM_EEM_q_training_set.csv 164596362be4a8496c31ca10f1f9e899b292b6ea68638dfa7028becef27f9748; ci400448n_si_005/test_insulin_3E7Y.pdb aaf6bb65f9631cb56112488ac0dae97fde433f91557e33434691a04a58d137ee; ci400448n_si_006/QM_EEM_q_insulin.csv bcb1ee78653ed00d1423faae21a890bc793ec306cf7f95ae4340032a05f2b2b7; ci400448n_si_005/test_ubiquitin_1UBQ.pdb 7943b6f9fda42418cfdd86d871660865c9fc1c8609273f7ead5464db55b42988; ci400448n_si_006/QM_EEM_q_ubiquitin.csv cabb30547e32801e3ae10f4cb092351200569af1c0b841ebb32c2340c3df501b
+set,fragment,atoms,net_charge,r2,rmsd,excluded
+training,1000001,906,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000002,1156,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000003,982,,,,contains Ca
+training,1000004,1091,,,,contains Ca
+training,1000005,1015,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000006,1056,,,,contains Ca
+training,1000007,649,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000008,934,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000009,1089,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000010,1088,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000011,587,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000012,1056,,,,contains Ca
+training,1000013,564,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000014,622,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000015,1075,,,,contains Ca
+training,1000016,1067,,,,contains Ca
+training,1000017,730,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000018,681,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000019,1077,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000020,1081,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000021,1102,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000022,1099,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000023,546,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000024,972,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000025,1080,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000026,1062,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000027,1098,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000028,1097,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000029,1013,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000030,1087,,,,contains Ca
+training,1000031,1134,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000032,1033,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000033,1082,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000034,1109,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000035,1043,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000036,1074,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000037,1045,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000038,1083,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000039,695,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000040,1078,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+training,1000041,1104,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+insulin,1,802,,,,"contains S (EEM part I parameterises H, C, N, O, F)"
+ubiquitin,1,998,-1,0.9515,0.1197,
