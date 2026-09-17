@@ -1,0 +1,112 @@
+{
+ "B1": {
+  "R_minus": {
+   "agree_within_1e-6": 4443,
+   "computed_by_both": 4443,
+   "fraction": 1.0,
+   "worst_abs_diff": 3.9968028886505635e-15,
+   "worst_molecule": "2YB"
+  },
+  "R_plus": {
+   "agree_within_1e-6": 0,
+   "computed_by_both": 4443,
+   "fraction": 0.0,
+   "worst_abs_diff": 4.889685401216067,
+   "worst_molecule": "2WN"
+  }
+ },
+ "B2": {
+  "R_minus": {
+   "test": {
+    "R2": 0.9939322036366447,
+    "RMSD": 0.027023634932365505,
+    "RMSDat": 0.04810833539337599,
+    "RMSDat_sensitivity_per_molecule_mean": 0.03653529981456091,
+    "RMSDat_type": "S/2",
+    "covered": 889,
+    "matches": {
+     "R2": false,
+     "RMSD": false,
+     "RMSDat": true
+    },
+    "molecules": 889,
+    "of": 889,
+    "r2_undefined": 0
+   },
+   "train": {
+    "R2": 0.9938118685495096,
+    "RMSD": 0.027255372480550627,
+    "RMSDat": 0.04140247821604436,
+    "RMSDat_sensitivity_per_molecule_mean": 0.03661890022881165,
+    "RMSDat_type": "S/1",
+    "covered": 3554,
+    "matches": {
+     "R2": false,
+     "RMSD": false,
+     "RMSDat": true
+    },
+    "molecules": 3554,
+    "of": 3554,
+    "r2_undefined": 0
+   },
+   "values_matching": 2,
+   "verdict": "PARTIAL"
+  },
+  "R_plus": {
+   "test": {
+    "R2": 0.9939322036366447,
+    "RMSD": 0.7882906510404634,
+    "RMSDat": 4.580962097192382,
+    "RMSDat_sensitivity_per_molecule_mean": 4.5551699632151434,
+    "RMSDat_type": "P/2",
+    "covered": 889,
+    "matches": {
+     "R2": false,
+     "RMSD": false,
+     "RMSDat": false
+    },
+    "molecules": 889,
+    "of": 889,
+    "r2_undefined": 0
+   },
+   "train": {
+    "R2": 0.9938118685495096,
+    "RMSD": 0.7980692941758543,
+    "RMSDat": 4.560755371972703,
+    "RMSDat_sensitivity_per_molecule_mean": 4.518240952746991,
+    "RMSDat_type": "P/2",
+    "covered": 3554,
+    "matches": {
+     "R2": false,
+     "RMSD": false,
+     "RMSDat": false
+    },
+    "molecules": 3554,
+    "of": 3554,
+    "r2_undefined": 0
+   },
+   "values_matching": 0,
+   "verdict": "NOT-REPRODUCED"
+  }
+ },
+ "chargefw2_commit": "19e73b248cc3983853892d3b42ca0e967a09954a",
+ "conditioning": {
+  "condition_max": 3172.075484161393,
+  "condition_median": 1519.4473239513081,
+  "condition_p90": 1626.8971934967947,
+  "not_positive_definite": 0,
+  "not_positive_definite_names": [],
+  "of": 4443,
+  "smallest_eigenvalue_min": 0.23737419555823647
+ },
+ "model_reading": "undetermined",
+ "molecules": 4443,
+ "numpy": "2.5.1",
+ "parameter_choice": "s7_values_via_par_file",
+ "refused_by_us": 0,
+ "refused_by_us_reasons": [],
+ "refused_only_by_chargefw2": [],
+ "refused_only_by_us": [],
+ "stage": "B",
+ "strata": {}
+}
