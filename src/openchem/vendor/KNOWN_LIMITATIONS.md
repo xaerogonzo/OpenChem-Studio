@@ -37,10 +37,11 @@ Two of those fall-through reasons now raise instead of neutralizing — see
 
 ## Open defects (severity A — wrong molecule)
 
-**None.** Every severity-A defect found by the sweeps, the benchmark and the
-corpus extension has been fixed; the table in
-`tests/test_namer_known_defects.py` holds 66 of them plus 33 non-regression
-rows guarding the paths those fixes could have stolen from.
+**None.** Every severity-A defect found by the sweeps, the benchmark, the
+corpus extension and the held-out corpus has been fixed; the table in
+`tests/test_namer_known_defects.py` holds 86 of them plus 50 non-regression
+rows guarding the paths those fixes could have stolen from, over 26 distinct
+defect numbers.
 
 That is a statement about what has been *looked for*, not a claim that none
 exists. The instrument that found most of them is still in the box: set
@@ -48,6 +49,52 @@ exists. The instrument that found most of them is still in the box: set
 corpus. The `OPEN` list in the defect table is deliberately kept, empty, so a
 newly found defect can be added as `xfail(strict=True)` — fixing it then FAILS
 the suite and forces this document and that table to be updated together.
+
+**AND THAT CAVEAT WAS EARNED, IMMEDIATELY.** A held-out corpus was added in
+naming round 3 — 40 rows drawn by a fixed CID stride, admitted by a filter
+settled in advance, with the engine never consulted during selection
+(`benchmarks/naming/build_heldout.py`). Its FIRST run found a severity-A
+defect, D-030:
+
+```
+CNC(C)CC12CC3CC(CC(C3)C1C1CCCCC1)C2
+  emitted  1-(2-cyclohexyladamantan-5-yl)-N-methylpropan-2-amine
+           -> HQMBUZVFGUDZCC-UHFFFAOYSA-N
+  correct  1-(2-cyclohexyladamantan-1-yl)-N-methylpropan-2-amine
+           -> RNYOSRZCHQLRMT-UHFFFAOYSA-N
+```
+
+In adamantane numbering locant 2 is adjacent to 1 and 3 but not to 5, so the
+emitted name is a constitutional isomer rather than a non-preferred name. The
+187-row regression corpus scores 187/187 both before and after the fix and
+could not have caught it: it carries adamantane and norbornane as whole
+molecules, never as substituents, and the defect needs a SECOND ring
+substituent to appear at all. Bare adamantyl was always correct.
+
+The rule is the one D-029 already fixed once — a substituent's free valence
+takes the lowest locant consistent with the ring numbering (P-31.1.4.2.4) —
+and D-030 is its third ring class. D-029 fixed monocyclic heterocycles by
+FILTERING the candidate numberings; bridged rings kept an older branch that
+only SORTED them so the wanted one landed last and won on "later-generated
+wins a tie". Any competing ring prefix outscores a tie-break. The fix was to
+delete that branch, so bridged rings take the same filter as everything else.
+
+Correcting the locant then exposed a second latent defect, which is why this
+is worth reading rather than just counting: the `-yl` suffix elided locant 1
+on stems that cannot absorb it, giving `adamantan-yl`. Elision is only well
+formed where the stem contracts (`cyclohexan` → `cyclohexyl`), and that was
+decided by a DIFFERENT predicate from the one performing the elision, so the
+two could disagree. They are now one decision
+(`assembly.render_free_valence_suffix(stem_contracts=...)`). It had never
+surfaced because D-030 meant a bridged substituent never reached locant 1.
+Fixing it also corrected five organoelement names in the regression corpus
+that were quietly malformed the same way (`(trimethylsilan-yl)benzene` →
+`(trimethylsilan-1-yl)benzene`, and four like it) — still not the preferred
+names, which are `trimethyl(phenyl)silane` and friends, but well formed.
+
+The remaining instance of the same rule is naproxen's
+`2-methoxynaphthalen-6-yl` for `6-methoxynaphthalen-2-yl`, a fused
+carbocycle, which is severity B because both names denote the molecule.
 
 The last one to go, D-024, is worth keeping as a worked example because the
 two obvious fixes were both wrong:

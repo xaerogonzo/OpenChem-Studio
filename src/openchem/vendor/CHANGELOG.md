@@ -475,3 +475,68 @@ three `stereo_wrong`) -> 187/187 after (exact 87)**. The scorer gained a
 `stereo_wrong` class for the same reason the app's verifier did: a name
 carrying the OPPOSITE descriptor was being reported as "silently flattened".
 Vendored suite: 3,255 passing, 16 skipped, 0 failing.
+
+## 2026-09-17 — a bridged free valence, found by a held-out corpus (D-030)
+
+The third ring class to show the D-029 rule, and the first to produce a
+**wrong molecule** from it.
+
+* **How it was found matters as much as what it was.** The 187-row
+  regression corpus scores 187/187 both before and after this fix, so it
+  could not have found this. A held-out corpus was added instead — 40 rows
+  by a fixed PubChem CID stride, admitted by a filter settled in advance,
+  with the engine never consulted during selection
+  (`benchmarks/naming/build_heldout.py`). It found the defect on its first
+  run, scoring 39/40 where the curated corpus scored 187/187.
+
+* **D-030, severity A.** `CNC(C)CC12CC3CC(CC(C3)C1C1CCCCC1)C2` was named
+  `1-(2-cyclohexyladamantan-5-yl)-N-methylpropan-2-amine`, which is
+  `HQMBUZVFGUDZCC` and not the `RNYOSRZCHQLRMT` it was given. Locant 2 is
+  adjacent to 1 and 3 but not to 5 in adamantane numbering, so the pair
+  `(2-substituted, 5-yl)` describes a constitutional isomer rather than a
+  non-preferred name. Bare adamantyl was always correct; the defect needs a
+  second ring substituent to exist at all, which is why nothing had hit it.
+
+* **The cause was a tie-break doing a rule's job.** D-029 fixed monocyclic
+  heterocycles by FILTERING the candidate numberings. Bridged rings kept an
+  older branch that only SORTED them, so the numbering giving the free
+  valence the lowest locant merely landed last and won on "later-generated
+  wins a tie" — which holds only while the scores tie. Any competing ring
+  prefix outscores it, and P-31.1.4.2.4 ranks the free valence AHEAD of
+  detachable prefixes. The fix deletes the branch: bridged rings now take
+  the same filter as every other ring substituent, so the answer no longer
+  depends on how ties are broken. That is what
+  `_lowest_free_valence_numberings` already said when D-029 added it.
+
+* **And the fix exposed a second latent defect**, which is the part worth
+  reading. With the locant corrected to 1, three names became
+  `adamantan-yl`: the `-yl` suffix elides locant 1, and elision is only well
+  formed where the stem contracts to absorb it (`cyclohexan` →
+  `cyclohexyl`). Whether the stem contracted was decided by a *different*
+  predicate from the one performing the elision, so the two could disagree.
+  They are one decision now —
+  `assembly.render_free_valence_suffix(stem_contracts=...)` — and on a
+  bridged ring the locant is load-bearing anyway, since adamantane 1 and 2
+  are not equivalent and a bare `adamantyl` would be ambiguous between them.
+  PubChem writes `1-adamantyl` for the same reason.
+
+  A first attempt at this refused elision for ANY ring attachment, which
+  regressed the pinned `4-(2-methylcyclohexyl)benzoic acid` to
+  `...cyclohexan-1-yl`. A monocyclic carbocycle DOES contract, so the
+  premise was wrong; coupling elision to the contraction is what handles
+  both.
+
+* **Five organoelement names in the regression corpus were malformed the
+  same way** and are now well formed: `(trimethylsilan-yl)benzene` →
+  `(trimethylsilan-1-yl)benzene`, and likewise for the phosphane, the
+  siloxane, the phosphane oxide and betaine's `azanium-yl`. These are still
+  not the preferred names — P-44.1.2 makes the silicon the parent, giving
+  `trimethyl(phenyl)silane` — but a cited locant is the difference between a
+  non-preferred name and a malformed one.
+
+Benchmark: regression corpus **187/187 before and after**, with nothing
+structurally regressed and 5 names reworded as above; held-out corpus
+**39/40 → 40/40**. The defect table gains 8 rows (4 defect, 4 non-regression), and
+D-030d pins the emitted `{...}` braces rather than correcting them, because
+the enclosing-mark nesting is a separate serialization defect (P-16.3.2) and
+both forms parse back to the same structure.

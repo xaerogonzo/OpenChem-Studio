@@ -506,6 +506,68 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "4-(2-methylfuran-5-yl)benzoic acid", "furan: free valence 5, found while writing this table"),
     ("D-029z", "OC(=O)c1ccc(cc1)c1ccncc1", "4-(pyridin-4-yl)benzoic acid",
      "4-(pyridin-4-yl)benzoic acid", "unchanged: aromatic N ring"),
+
+    # --- D-030: a BRIDGED free valence numbered by plan order -------------
+    # The third ring class to show the same rule, and the first to produce a
+    # WRONG MOLECULE from it. D-029 fixed monocyclic heterocycles by
+    # FILTERING the numberings; bridged rings kept a separate branch that
+    # only SORTED them, so the lowest free-valence locant merely landed last
+    # and won on "later-generated wins a tie". Any competing ring prefix
+    # outscores that, and P-31.1.4.2.4 ranks the free valence AHEAD of
+    # detachable prefixes.
+    #
+    # Bare adamantyl was always right, which is why nothing caught this: the
+    # defect needs a second ring substituent to exist. Found by the held-out
+    # corpus (cid 36000), not by the 187-row regression corpus, which scores
+    # 187/187 both before and after the fix.
+    #
+    # In adamantane numbering locant 2 is adjacent to 1 and 3 but NOT to 5,
+    # so "2-substituted...-5-yl" is not a non-preferred name for the input --
+    # it denotes a constitutional isomer. Three of these four rows changed
+    # InChIKey, which is what makes them severity A.
+    ("D-030a", "CNC(C)CC12CC3CC(CC(C3)C1C1CCCCC1)C2",
+     "1-(2-cyclohexyladamantan-1-yl)-N-methylpropan-2-amine",
+     "1-(2-cyclohexyladamantan-5-yl)-N-methylpropan-2-amine",
+     "HQMBUZVFGUDZCC emitted for RNYOSRZCHQLRMT; held-out cid 36000"),
+    ("D-030b", "CNC(C)CC12CC3CC(CC(C3)C1C)C2",
+     "N-methyl-1-(2-methyladamantan-1-yl)propan-2-amine",
+     "N-methyl-1-(2-methyladamantan-5-yl)propan-2-amine",
+     "WDPWWLGUBBHNPQ emitted for UXKZZZWEQVOJDT"),
+    ("D-030c", "OCC12CC3CC(CC(C3)C1C)C2", "(2-methyladamantan-1-yl)methanol",
+     "(2-methyladamantan-5-yl)methanol",
+     "IFNZKCYIMQCMBL emitted for QIYMDQBSEMTZPK; a different parent context"),
+    # Severity B, kept here because it is the SAME cause: the two
+    # bicyclo[2.2.1]heptane bridgeheads are equivalent in this molecule, so
+    # both names denote it (NYBSCAFHRVFOLB either way) and only
+    # P-31.1.4.2.4 chooses. It is the control that says the fix is about the
+    # rule and not about adamantane.
+    # The BRACES are a second, separate defect and are pinned as emitted
+    # rather than corrected here: P-16.3.2 nests ( ) then [ ] then { }, so an
+    # innermost brace is wrong, but it is a serialization choice with nothing
+    # to do with the locant this row is about. Both forms parse back to
+    # NYBSCAFHRVFOLB, so nothing is being hidden. When the enclosing-mark
+    # rule is fixed this row FAILS, which is the intended way to find it.
+    ("D-030d", "CNC(C)CC12CCC(C)(CC1)C2",
+     "N-methyl-1-{4-methylbicyclo[2.2.1]heptan-1-yl}propan-2-amine",
+     "N-methyl-1-{1-methylbicyclo[2.2.1]heptan-4-yl}propan-2-amine",
+     "same molecule, non-preferred locant: free valence after the prefix"),
+    # Non-regression: bare bridged substituents, which were ALREADY correct
+    # and are what the removed branch was written for. If the filter ever
+    # drops the locant-1 numbering these go first.
+    ("D-030e", "OCC12CC3CC(C1)CC(C3)C2", "(adamantan-1-yl)methanol",
+     "(adamantan-1-yl)methanol", "unchanged: no competing prefix"),
+    ("D-030f", "CNC(C)CC12CC3CC(C1)CC(C3)C2",
+     "1-(adamantan-1-yl)-N-methylpropan-2-amine",
+     "1-(adamantan-1-yl)-N-methylpropan-2-amine", "unchanged"),
+    # Non-regression for the ELISION half. Correcting the locant to 1
+    # exposed a second latent defect: the "-yl" suffix elided locant 1 on a
+    # ring stem, which has no alkan->alk contraction to absorb it, giving
+    # "adamantan-yl". A ring under method ALKYL ignores that flag entirely,
+    # so these two prove the narrowed predicate did not reach them.
+    ("D-030g", "OCC1CCCCC1", "cyclohexylmethanol", "cyclohexylmethanol",
+     "unchanged: ALKYL method, contracted ring stem"),
+    ("D-030h", "OCc1ccccc1", "phenylmethanol", "phenylmethanol",
+     "unchanged: ALKYL method"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

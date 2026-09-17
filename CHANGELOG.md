@@ -60,6 +60,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A substituted adamantane was named as a different compound**, and it was
+  found by a corpus chosen before the engine was consulted.
+  `1-(2-cyclohexyladamantan-5-yl)-N-methylpropan-2-amine` denotes
+  `HQMBUZVFGUDZCC`, not the `RNYOSRZCHQLRMT` it was given: in adamantane
+  numbering locant 2 is adjacent to 1 and 3, never to 5, so that pair of
+  locants describes a constitutional isomer rather than a non-preferred
+  name. Bare adamantyl was always right — the defect needs a second ring
+  substituent to appear — which is why the 187-molecule regression corpus
+  scores 187/187 both before and after the fix. The new held-out corpus
+  (40 molecules drawn by a fixed PubChem CID stride, admitted by a filter
+  settled in advance, engine never consulted) found it on its first run and
+  now scores 40/40. A substituent's free valence takes the lowest locant
+  consistent with the ring numbering, and bridged rings were the one ring
+  class still deciding that by a tie-break rather than by the rule.
+  Correcting it exposed a second defect underneath: the `-yl` suffix dropped
+  locant 1 from stems that cannot absorb it, which also leaves five
+  organoelement names better formed than before.
+
 - **Names for substituents: a wrong stereodescriptor, a wrong prefix order and
   a wrong locant.** All three were reported from one screenshot and none was
   visible to the naming benchmark, which scores by parsing a name back.

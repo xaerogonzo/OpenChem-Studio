@@ -109,3 +109,14 @@ benchmarks/free_energy/results/
 # measuring locally. The ANALYSIS is committed (`tools/suite_timings.py`);
 # a single run of one machine is a measurement, not a fact about the repo.
 suite-timings*.xml
+
+# py2opsin writes its input here, in the CURRENT WORKING DIRECTORY, and
+# overwrites it per call. It was committed by accident in b743e0a, which made
+# every OPSIN-touching test run dirty the working tree -- and worse, made a
+# `git stash` during an attribution experiment silently delete it.
+#
+# The shared filename is also the mechanism behind the known collision: two
+# OPSIN callers in one directory clobber each other's input, so the benchmark
+# runs from a separate cwd. Measured 2026-09-17: the same four-file test
+# combination passed, passed, then failed on an unchanged tree.
+py2opsin_temp_input.txt

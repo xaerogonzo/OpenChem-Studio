@@ -12192,25 +12192,26 @@ class SubstitutivePath:
                     yield from filtered
                 else:
                     yield from ring_numberings
-            elif (
-                is_bridged_ring
-                and output_form == OutputForm.SUBSTITUENT
-                and free_valence is not None
-                and free_valence.attachment_atoms_in_fragment
-            ):
-                # For bridged (VB) ring substituents: yield numberings sorted so
-                # the one giving the lowest locant to the attachment atom comes
-                # LAST. Equal-score plans are ranked by generation order (later
-                # wins), so this ensures the plan with the lowest attachment locant
-                # wins tie-breaks without requiring a full strategy re-score.
-                attachment_atom = free_valence.attachment_atoms_in_fragment[0]
-
-                def _att_locant_val(nb: Numbering) -> int:
-                    loc = nb.atom_to_locant.get(attachment_atom)
-                    return loc._numeric_value if loc is not None else 9999
-
-                sorted_nbs = sorted(ring_numberings, key=_att_locant_val, reverse=True)
-                yield from sorted_nbs
+            # A BRIDGED SUBSTITUENT USED TO GET ITS OWN BRANCH HERE, and it
+            # sorted the numberings so the lowest attachment locant came LAST,
+            # relying on "later-generated wins a tie" to select it without a
+            # re-score. That works only while the scores actually tie.
+            #
+            # Measured 2026-09-17: bare 1-adamantylmethanol is correct, and
+            # adding ANY ring substituent breaks it, because the prefix-locant
+            # band then decides -- which P-31.1.4.2.4 puts AFTER the free
+            # valence. `(2-methyladamantan-5-yl)methanol` is not a
+            # non-preferred name for the input, it is a different compound
+            # (IFNZKCYIMQCMBL vs QIYMDQBSEMTZPK), because locant 2 is not
+            # adjacent to locant 5 in adamantane numbering. Same shape on
+            # bicyclo[2.2.1]heptane, where the two bridgeheads are equivalent
+            # so it costs only a non-preferred locant.
+            #
+            # So bridged rings now take the same filter as every other ring
+            # substituent. `_lowest_free_valence_numberings` FILTERS instead of
+            # sorting, so the answer no longer depends on how ties are broken --
+            # which is what that function's own docstring said when round 2
+            # added it for the monocyclic case.
             elif (
                 output_form == OutputForm.SUBSTITUENT
                 and free_valence is not None

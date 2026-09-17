@@ -1019,6 +1019,7 @@ def render_free_valence_suffix(
     fv: FreeValenceInfo,
     numbering: Numbering,
     has_unsaturation: bool = False,
+    stem_contracts: bool = True,
 ) -> str:
     """Render -yl, -ylidene, -diyl etc.
 
@@ -1031,6 +1032,24 @@ def render_free_valence_suffix(
     name preserves the locant relationship.  E.g. ``but-3-en-1-yl`` not
     ``but-3-enyl``.  The caller passes True iff ``tree.unsaturation`` is
     populated.
+
+    ``stem_contracts`` COUPLES ELISION TO THE STEM, which is the only thing
+    that makes elision well formed. Dropping the locant is safe exactly when
+    the stem absorbs it: ``cyclohexan`` becomes ``cyclohex`` and the suffix
+    abuts as ``cyclohexyl``. Where the caller cannot contract the stem, the
+    same elision emits ``adamantan-yl``.
+
+    Elision and contraction used to be decided by two predicates that could
+    disagree -- this function's own conditions, and the
+    ``stem == alkyl_stem + "an"`` gate in ``assemble`` -- so a parent whose
+    stem the caller could not contract still lost its locant. Measured
+    2026-09-17 on adamantane; it had never surfaced because the bridged
+    free-valence defect (D-030) meant a bridged substituent never reached
+    locant 1 in the first place.
+
+    On a bridged ring the locant is load-bearing anyway: adamantane positions
+    1 and 2 are not equivalent, so a bare ``adamantyl`` would be ambiguous
+    between them. PubChem writes ``1-adamantyl`` for the same reason.
     """
     n = len(fv.bond_orders)
     sig = tuple(sorted(fv.bond_orders, reverse=True))
@@ -1063,6 +1082,7 @@ def render_free_valence_suffix(
         if (str(loc) == "1"
                 and suffix == "yl"
                 and fv.elide_locant_one
+                and stem_contracts
                 and not has_unsaturation):
             return f"-{suffix}"  # locant 1 elided for alkan-1-yl in most contexts
         return f"-{loc}-{suffix}"
@@ -2583,6 +2603,9 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             fv_rendered = render_free_valence_suffix(
                 fv, tree.numbering,
                 has_unsaturation=bool(tree.unsaturation) or _stem_has_baked_unsat,
+                # The stem was contracted above, or it was not. Eliding the
+                # locant is only well formed in the first case.
+                stem_contracts=contracted_alkyl_form,
             )
             if contracted_alkyl_form and fv_rendered.startswith("-"):
                 # Strip the leading hyphen: "prop" + "-yl" → "propyl",
