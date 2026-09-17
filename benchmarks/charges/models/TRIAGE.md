@@ -2345,10 +2345,18 @@ hold a different status in each: PQEq is G1 HOLD and a G2 candidate at once.
   declares **no licence**, so it can be read but not vendored, and running it is a LAMMPS build.
   `msc-caltech/PQEq` is an empty repository. Two parameter extensions were found
   ([source:oppenheim2018], [source:kwon2018]).
-- **Bultinck: our shipped set and ChargeFW2's differ by one digit.** Every ChargeFW2 Bultinck 2002
-  file cites **Part II** ([source:bultinck2002b]); ours is Part I's Table 1
-  ([source:bultinck2002a]). Its Mulliken set equals ours for F, H, N and O, and gives carbon
-  χ\* 5.26 eV against our 5.25. Part II is not held.
+- **Bultinck: the two papers print different carbon values, and the shipped one stands.** Every
+  ChargeFW2 Bultinck 2002 file cites **Part II** ([source:bultinck2002b]); ours is Part I's Table 1
+  ([source:bultinck2002a]). ChargeFW2's Mulliken set equals ours for F, H, N and O and gives
+  carbon χ\* 5.26 eV against our 5.25. **Resolved the same day, from both rendered pages:** Part I's
+  Table 1 prints **5.25**, Part II's Table 2 Mulliken column prints **5.26**, with identical per-element
+  atom counts (930, 602, 105, 101, 65). So it is a discrepancy between the two papers, not a
+  transcription error by either us or ChargeFW2.
+  - **Measured effect:** substituting 5.26 moves EEM charges by at most **0.0017 e** (mean at most
+    0.0009 e) on six drug-like molecules, below the default two-decimal display.
+  - **The shipped Part I value stays.** It is the one Mathieu's published EEM correlations were
+    reproduced with (checks 2.2 and 2.5).
+  - Part II was added to Sci Downloads as `bultinck2002_II.pdf`.
 - **Ionescu EX has a possible route.** ChargeFW2's `EEM_65_Ionescu2013_mpa_gas.json` is the
   EX-MPA/6-31G\*/gas row of our Table S1 fixture, value for value (its metadata note says
   6-31G\*\*, which is wrong). The paper's label for its third scheme is its own "iterative
@@ -2381,7 +2389,8 @@ hold a different status in each: PQEq is G1 HOLD and a G2 candidate at once.
    cost, and an install.
 
 **G1, reproduction:**
-1. **Bultinck Part II.** Low cost, and it settles whether the shipped carbon χ\* is the paper's.
+1. ~~**Bultinck Part II.**~~ Done the same day (5.1): the papers disagree by 0.01 eV, and nothing
+   changes.
 2. **The Ionescu nitrogen-class and calcium survey** (a validation extension). Medium cost, ORCA is
    held.
 
@@ -2394,13 +2403,12 @@ Everything else in the inventory is *no* or TERMINAL.
   needed to read their parameters, which is done.
 - Whether transcribing Chen's printed QTPIE Fortran is acceptable as a labelled reconstruction.
 
-**Paper requested:**
-- Bultinck et al. 2002, Part II, https://doi.org/10.1021/jp020547v, proposed filename
-  `bultinck2002_part2.pdf`. The existing `bultinck2002.pdf` is Part I.
+**Paper requested, and received:** Bultinck et al. 2002 Part II
+(https://doi.org/10.1021/jp020547v), added by Alex as `bultinck2002_II.pdf`.
 
-**Files to move into Sci Downloads:** this session could not write there. `geidl2015.pdf`,
-`schindler2021.pdf` and `schindler2021_correction.pdf`, with the supplements, are in the session
-scratchpad.
+**Files now in Sci Downloads:** `geidl2015.pdf`, `schindler2021.pdf`, `schindler2021_correction.pdf`,
+and the supplements in `geidl2015_si/` and `schindler2021_si/`, copied with matching hashes. The
+session's bash sandbox could not write there, but PowerShell could.
 
 ### 5.4 Terminal, stated once
 

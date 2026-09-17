@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: ccae4ce9da1ef7d13a897ab304a827ffb34c2b0ce7ed6879f46c90a51f2158d9 -->
+<!-- SOURCE SHA256: 95204f3bfcc589dc2ee078dbbfac6b87f069bf296e39f9e4a9c405b68e6dad48 -->
 
 # Sources
 
@@ -114,7 +114,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`brenk2008`](#brenk2008) | literature | shipped | citation |
 | [`brown2006`](#brown2006) | literature | **not shipped** | citation |
 | [`bultinck2002a`](#bultinck2002a) | literature | shipped | citation + claim |
-| [`bultinck2002b`](#bultinck2002b) | literature | reference only | citation |
+| [`bultinck2002b`](#bultinck2002b) | literature | reference only | citation + claim |
 | [`cao2004`](#cao2004) | literature | shipped | citation + claim |
 | [`chelli1999`](#chelli1999) | literature | reference only | citation |
 | [`chen2007`](#chen2007) | literature | reference only | citation + claim |
@@ -3818,6 +3818,7 @@ experimental geometry been measured."
 | Status | reference only |
 | Verification | citation |
 | Verified | 2026-09-17 |
+| Local copy | `geidl2015.pdf` (not checked) |
 
 **Why it is reference only.** A DRUG-LIKE (G2) EEM CANDIDATE, ASSESSED FOR WHAT WOULD UNBLOCK IT AND NOT
 IMPLEMENTED. Open access (CC BY). Read 2026-09-17 with its additional files 1,
@@ -3831,8 +3832,8 @@ IMPLEMENTED. Open access (CC BY). Read 2026-09-17 with its additional files 1,
   hold per-atom QM and EEM charges for 691 molecules, also without coordinates.
   So a source reproduction cannot use the paper's exact structures.
 The record is `benchmarks/charges/models/unblock_inventory.csv` and TRIAGE §5.
-The PDF and additional files were fetched into the session scratchpad, not yet
-into Sci Downloads, so no `local` is recorded.
+The PDF is in Sci Downloads; additional files 1, 2, 3 and 6 are in
+`geidl2015_si/`.
 
 ### schindler2021
 
@@ -3846,6 +3847,7 @@ into Sci Downloads, so no `local` is recorded.
 | Status | reference only |
 | Verification | citation |
 | Verified | 2026-09-17 |
+| Local copy | `schindler2021.pdf` (not checked) |
 
 **Why it is reference only.** A DRUG-LIKE (G2) SQE CANDIDATE, AND THE MOST REPRODUCIBLE ROUTE FOUND. Open
 access (CC BY). Read 2026-09-17 with additional files 2, 3, 4 and 7; identity
@@ -3858,8 +3860,8 @@ from the PDF's own DOI line and Crossref.
 - Measured, not concluded: 9 X–H bond hardnesses sit near −33 against a
   hydrogen hardness of 36.3, so the solve's conditioning is the first thing any
   study must measure. The 7 negative widths enter the kernel squared.
-See also `schindler2021_correction`, TRIAGE §5 and the unblock inventory. Fetched
-into the session scratchpad, not yet Sci Downloads, so no `local`.
+See also `schindler2021_correction`, TRIAGE §5 and the unblock inventory.
+Additional files 2, 3, 4 and 7 are in Sci Downloads under `schindler2021_si/`.
 
 ### schindler2021_correction
 
@@ -3873,6 +3875,7 @@ into the session scratchpad, not yet Sci Downloads, so no `local`.
 | Status | reference only |
 | Verification | citation |
 | Verified | 2026-09-17 |
+| Local copy | `schindler2021_correction.pdf` (not checked) |
 
 **Why it is reference only.** Read in full 2026-09-17. It corrects the misaligned heading of Table 2, which is
 a table of fit metrics (R², RMSD, RMSDat, parameterisation time), NOT a
@@ -3889,15 +3892,22 @@ including CCD_gen's chlorine row, which the parameter file prints as it is.
 | --- | --- |
 | Identifier | [10.1021/jp020547v](https://doi.org/10.1021/jp020547v) |
 | Status | reference only |
-| Verification | citation |
+| Verification | citation + claim |
 | Verified | 2026-09-17 |
+| Local copy | `bultinck2002_II.pdf` (not checked) |
 
-**Why it is reference only.** NOT HELD; checked on Crossref only. Part II, distinct from `bultinck2002a`
-(Part I, which the shipped EEM uses). Every ChargeFW2 Bultinck 2002 parameter
-file cites this paper. Its Mulliken file equals the shipped Part I Table 1 for
-F, H, N and O but gives carbon chi* 5.26 eV where the shipped set has 5.25.
-Which one Part II prints is unknown until the paper is read; it is a request
-in TRIAGE §5.
+**Why it is reference only.** Part II, distinct from `bultinck2002a` (Part I, which the shipped EEM uses).
+Held since 2026-09-17; identity from the PDF's own DOI line, authors and pages.
+Every ChargeFW2 Bultinck 2002 parameter file cites this paper.
+
+THE CLAIM CHECKED: Table 2 (p 7898, read from the rendered page), Mulliken
+column, prints carbon chi* 5.26 eV. Part I's Table 1 prints 5.25 for what its
+atom counts (930, 602, 105, 101, 65) show is the same training set. So the two
+papers disagree by 0.01 eV; ChargeFW2 transcribed Part II correctly, and the
+shipped fixture transcribed Part I correctly. Substituting 5.26 moves EEM
+charges by at most 0.0017 e on six drug-like molecules. The shipped Part I
+value stays, since it is the one Mathieu's published correlations were
+reproduced with. TRIAGE §5.1.
 
 ### oppenheim2018
 

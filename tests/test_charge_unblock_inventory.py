@@ -28,8 +28,8 @@ VOCABULARY = {
     "g1_status": {"REPRODUCED", "SHIPPED", "PARTIAL", "INCONCLUSIVE", "HOLD", "BLOCKED", "NO", "UNEXPLAINED",
                   "NOT-ASSESSED", "n/a"},
     "g2_status": {"CANDIDATE", "NOT-ASSESSED", "n/a"},
-    "evidence_state": {"AVAILABLE-UNASSESSED", "AVAILABLE-PARTIAL", "MISSING", "TERMINAL"},
-    "primary_blocker": {"source", "data", "tool", "decision", "none-terminal"},
+    "evidence_state": {"AVAILABLE-UNASSESSED", "AVAILABLE-PARTIAL", "MISSING", "TERMINAL", "RESOLVED"},
+    "primary_blocker": {"source", "data", "tool", "decision", "none-terminal", "none-resolved"},
     "owner": {"me", "alex", "none"},
     "install_required": {"yes", "no"},
     "cost": {"low", "medium", "high"},
@@ -73,6 +73,11 @@ def test_each_row_keeps_its_vocabulary_and_consistency(row):
         assert row["worth_chasing"] == "no", f"{item}: a terminal row cannot be worth chasing"
     else:
         assert not row["terminal_reason"] and not row["reopen_condition"], f"{item}: terminal fields on a live row"
+    # RESOLVED means the question was answered: nothing blocks and nothing is left to chase.
+    resolved = row["evidence_state"] == "RESOLVED"
+    assert resolved == (row["primary_blocker"] == "none-resolved"), f"{item}: RESOLVED and none-resolved disagree"
+    if resolved:
+        assert row["worth_chasing"] == "no" and row["owner"] == "none", f"{item}: a resolved row still has work"
 
     # A G2 row must say how it would be judged, or that the oracle is not yet selected.
     if row["family"] in {"G2", "both"}:
