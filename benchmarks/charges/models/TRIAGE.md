@@ -1370,6 +1370,82 @@ EQeq charge was computed.
    does not give, the check REFUSES for that structure** rather than
    substituting zero, and says which element.
 
+### 2.10 QTPIE: the LAMMPS fingerprint, and the Table 2.2 exponent recomputation
+
+Plan Track B (2026-09-16). **Read-only: nothing is installed or run from
+LAMMPS.** Two parts, registered here before either result exists.
+
+**Part 1: pinned retrieval.** The LAMMPS commit is chosen first, and the docs,
+source and example `gfile` are read *from that commit*:
+`lammps/lammps` develop `c8bd2ae5927ee236a8892dbd51c18a92cc9c33cf`
+(2026-09-15). The newest commit touching the fix is `1ef4515` (2026-08-24).
+SHA-256 as retrieved:
+- `src/REAXFF/fix_qtpie_reaxff.cpp` (1,264 lines):
+  `1877aa3ffb95b3417775f930def67aa5868ecdc0d5a37b985b0e3087f4354502`
+- `src/REAXFF/fix_qtpie_reaxff.h`:
+  `48230d9ca7686ff4b22a7265a2dd20ace19264c085a732fad83a17b731a7be51`
+- `doc/src/fix_qtpie_reaxff.rst`:
+  `ad5fdfc0db6b2a49a5c2d4ab8a5b4b206cc9ccce614d103092cf2348e371bc00`
+- `examples/reaxff/water/gauss_exp.txt`:
+  `b2c416b00d611d8a811a4b1b163bcc0e724eb776208697514f9385660ff1e2c1`
+- For comparison only, `fix_qtpie_reaxff.cpp` at `stable_22Jul2025_update6`:
+  `a1170527e471dbb8c17453e29e2dcde718f122d0e620df4ad0f069f996d55163`
+  (it differs; the pinned develop commit is the one classified).
+
+Each fingerprint row (plan B.2) is classified **same / different / not stated**
+against a named source, from those files and the thesis, and the component and
+model verdicts are derived from the rows, never asserted beside them.
+
+**Part 2: the exponent recomputation, registered because of a discrepancy
+found while reading.** Chen's thesis prints two versions of the same numbers:
+- Table 2.2 (p 69): 16 Gaussian exponents to 4 decimals, H **0.5434**;
+- Appendix A (p 201, `GaussianExponent`): the same 16 in the same element
+  order to 15 digits, H **0.534337523756312**.
+
+The other 15 round from the appendix to the table exactly. Hydrogen does not:
+0.5343 against 0.5434, the pattern of a transposition. LAMMPS's example gfile
+uses 0.5434. **Which one is Chen's fit is not assumed. It is recomputed from
+§2.4's own definition:**
+
+- **The fit (eqs 2.13 and 2.16):** for each element, α* minimises
+  ∫₀^∞ (J_G(R; α) − J_S(R; ζ, n))² dR.
+  - J_S is the Coulomb integral between two normalised ns Slater densities
+    with Table 2.2's Slater exponent. Evaluated with the shipped
+    `charge_equilibration.coulomb_pair_integrals`, in hartree and bohr.
+  - J_G is taken from Appendix A's `sGTOCoulInt(a, b, R)`,
+    erf(√(ab/(a+b)) R)/R with a = b = α, because the printed eq 2.14 does not
+    survive text extraction.
+  - n is Table I's principal quantum number (Chen's "From Ref. 20" Slater
+    exponents are, value for value, the ζ column of Rappé–Goddard Table I as
+    shipped in `QEQ_TABLE_I`).
+- **The error column (eq 2.17):** MAE = max over R ≥ 0 of |J_G − J_S|,
+  evaluated at the appendix exponent and at the table exponent.
+
+**Reading gate, decided on the 15 non-hydrogen elements before hydrogen is
+read.** The reading is VALIDATED only if all 15 of these hold:
+(a) α* agrees with the appendix value to a relative 1e-4;
+(b) α* rounds to Table 2.2's 4 decimals;
+(c) the MAE at the appendix value rounds to the table's error column (5 decimals).
+If any fail, the result is **READING-NOT-VALIDATED** and hydrogen is reported
+without a verdict.
+
+**Hydrogen verdict, only under a validated reading:**
+- **TABLE-TRANSPOSITION:** α*_H is within a relative 1e-4 of the appendix value
+  0.534337523756312, and not of 0.5434. The table's H exponent is then a
+  misprint, and LAMMPS's example gfile inherits it.
+- **APPENDIX-DIFFERS:** α*_H is within a relative 1e-4 of 0.5434 and not of
+  the appendix value.
+- **NEITHER:** otherwise, reported with α*_H.
+
+Hydrogen's error column (0.01696) is about ten times every other element's. It
+is reported beside both exponents' MAE and is **not** used to decide the
+verdict, since which exponent it was computed at is exactly what is unknown.
+
+**What it licenses.** It is a statement about a source table and one example
+file. It does not change a shipped number (nothing ships QTPIE), and it does
+not by itself make LAMMPS's model "not source-equivalent": the gfile is user
+input, and the fix reads whatever exponent it is given.
+
 ## 3. Results
 
 ### 3.1 Nistor supplement extraction (2026-09-14)
