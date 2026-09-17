@@ -521,8 +521,16 @@ def compute_fragment_group_alert(mol: Chem.Mol, molecule_uuid: str) -> AlertResu
     # bigger decision than changing a call, and it is in none of stage 3's
     # merge candidates.
     return AlertResult(
-        alert_id="functional_groups",
-        name="Functional Groups",
+        # **RENAMED FROM `functional_groups`, WHICH THE REGISTERED CALCULATOR
+        # OF THAT ID ALSO USED.** `SessionResultStore` keys a result by
+        # (result id, calculation input, fingerprint), so the fragment counts
+        # and the per-atom annotation were the SAME slot: whichever ran last
+        # replaced the other, in the session and in a saved project. That is
+        # what made the panel show fragment counts once and never again.
+        # `result_store.migrate_legacy_result_id` re-files an old stored
+        # entry; `test_result_ids_are_unique` stops the next collision.
+        alert_id="fragment_counts",
+        name="Fragment Counts",
         molecule_uuid=molecule_uuid,
         matched=matched,
         provenance=Provenance(created_by="core", method="rdkit"),
@@ -979,7 +987,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
         return {
             "pains": "PAINS",
             "brenk": "BRENK (Reactive/Unstable Groups)",
-            "functional_groups": "Functional Groups (fragment counts)",
+            "fragment_counts": "Fragment Counts",
             "herg_risk_factors": _HERG_RISK_NAME,
             "mutagenicity_alerts": MUTAGENICITY_ALERT_NAME,
         }
@@ -2411,11 +2419,16 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         display_name="Functional Groups",
         category="substructure",
         description=(
-            "Every functional group the naming engine recognises, coloured by type and "
-            "labelled at its anchor atom -- the same detection that decides which group "
-            "becomes a name's suffix. Note that ring carbonyls next to a ring nitrogen "
-            "(lactams, uracil, caffeine) are claimed by no group, so an empty result "
-            "means nothing was matched rather than that the molecule is unfunctionalised."
+            "Functional groups, ring systems and structural features, coloured by kind "
+            "and labelled at the atom each belongs to. Three detectors feed it and every "
+            "row says which one found it: the naming engine's own groups (the detection "
+            "that decides a name's suffix), the engine's ring amines and aromatic N-H, "
+            "and a pattern catalogue for what nomenclature has no group for at all "
+            "(ether, thioether, ammonium). A ring system is reported as a ring system -- "
+            "benzene, 1H-indole -- not as a group. Ring carbonyls next to a ring nitrogen "
+            "(lactams, uracil, caffeine) are still claimed by no GROUP, so a molecule "
+            "can show its rings and no functional group at all. Tick "
+            "\"Suffix-eligible groups only\" to narrow it back to the naming vocabulary."
         ),
         execution=RegistryExecution(compute=compute_functional_groups),
         parameters=[

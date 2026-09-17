@@ -623,3 +623,129 @@ def test_a_result_arriving_for_a_previous_project_is_not_kept(window, qapp):
     stranger = _stored("not-in-this-project", "x", DRAWING, "fp")
     window._services.event_bus.publish(ResultRecorded(stored=stranger))
     assert "not-in-this-project" not in window._services.result_store_service.store.molecule_uuids()
+
+
+# ---------------------------------------------------------------------------
+# The `functional_groups` -> `fragment_counts` rename
+#
+# Two producers shared one id: the RDKit fragment counter's AlertResult and
+# the naming-engine annotation's PerAtomDataset. The store keys a result by
+# (result id, calculation input, fingerprint), so for one molecule and one
+# drawing they were THE SAME SLOT and whichever ran last replaced the other.
+# ---------------------------------------------------------------------------
+
+
+def _legacy_alert_entry(result_id: str = "functional_groups") -> dict:
+    """A saved entry as the old build wrote it: an AlertResult under the id
+    the per-atom calculator also used."""
+    from openchem.domain.scientific_result import AlertResult
+
+    alert = AlertResult(
+        alert_id=result_id,
+        name="Functional Groups",
+        molecule_uuid="m",
+        matched=["Amide (1)", "Tertiary Amine (2)", "Benzene Ring (2)"],
+        category="substructure",
+    )
+    return {
+        "result_id": result_id,
+        "calculation_input": DRAWING,
+        "input_fingerprint": "fp",
+        "producer": "core",
+        "parameters_key": "",
+        "result": result_codec.encode(alert),
+    }
+
+
+def _saved_block(entries: list[dict]) -> dict:
+    return {
+        "envelope_version": 1,
+        "project_uuid": "project",
+        "molecules": {"m": {"bundle": {"bundle_id": "automatic", "parts": []}, "results": entries}},
+    }
+
+
+def test_a_legacy_fragment_count_result_is_migrated_not_dropped():
+    store = SessionResultStore.from_dict(_saved_block([_legacy_alert_entry()]), "project")
+
+    ids = {s.identity.result_id for s in store.fresh_results("m", {DRAWING: "fp"})}
+    assert ids == {"fragment_counts"}, "the alert did not move to its new id"
+    assert store.load_problems["migrated"] == 1
+    # The PAYLOAD moved too: an entry whose own id disagrees with its slot is
+    # dropped as unaddressable, so a half-migration would lose the result.
+    (restored,) = store.fresh_results("m", {DRAWING: "fp"})
+    assert result_id_of(restored.result) == "fragment_counts"
+    assert restored.result.matched[0] == "Amide (1)"
+
+
+def test_after_the_rename_both_producers_coexist():
+    """The defect was that they could not. Both under one molecule and one
+    fingerprint, distinct, neither overwriting the other -- through a real
+    save and reload."""
+    from openchem.domain.scientific_result import AlertResult
+
+    store = SessionResultStore("project")
+    alert = AlertResult(
+        alert_id="fragment_counts", name="Fragment Counts", molecule_uuid="m",
+        matched=["Amide (1)"], category="substructure",
+    )
+    dataset = PerAtomDataset(
+        property_id="functional_groups", name="Functional Groups", units="",
+        method="iupac-namer-perception", molecule_uuid="m", values={0: 1.0},
+    )
+    for result in (alert, dataset):
+        store.put(StoredResult(
+            identity=ResultIdentity("m", result_id_of(result), DRAWING, "fp", "core"),
+            result=result,
+        ))
+
+    reloaded = SessionResultStore.from_dict(store.to_dict(), "project")
+
+    by_id = {s.identity.result_id: s.result for s in reloaded.fresh_results("m", {DRAWING: "fp"})}
+    assert set(by_id) == {"fragment_counts", "functional_groups"}
+    assert by_id["fragment_counts"].matched == ["Amide (1)"]
+    assert by_id["functional_groups"].values == {0: 1.0}
+
+
+def test_no_two_result_producers_declare_the_same_id():
+    """The guard for the next collision, built from the STORE's own key
+    function over every producer family that writes into it.
+
+    Not a hand-maintained list of ids: `result_id_of` is what the store
+    files by, so anything it can name has to be unique here.
+    """
+    from rdkit import Chem
+
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS, RDKitDescriptorProvider
+
+    # A molecule with enough groups that every always-on catalog answers.
+    mol = Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O")
+    seen: dict[str, str] = {}
+
+    def claim(result_id: str, owner: str) -> None:
+        assert result_id not in seen, (
+            f"{result_id!r} is declared by both {seen[result_id]} and {owner}; "
+            "the store keys results by this id, so they would overwrite each other"
+        )
+        seen[result_id] = owner
+
+    for definition in CALCULATOR_DEFINITIONS:
+        claim(definition.calculator_id, f"calculator {definition.calculator_id}")
+    for alert in RDKitDescriptorProvider().compute_alerts(mol, "m"):
+        claim(result_id_of(alert), f"always-on alert {alert.name}")
+    from openchem.domain.result_store import MIGRATED_RESULT_IDS, RETIRED_RESULT_IDS
+
+    for retired in RETIRED_RESULT_IDS:
+        claim(retired, "RETIRED_RESULT_IDS")
+    for (old_id, payload_type), new_id in MIGRATED_RESULT_IDS.items():
+        assert new_id in seen, f"{new_id!r} is a migration target that nothing produces"
+        # The old id may legitimately still be produced -- by the OTHER
+        # producer that shared it, which is why the migration is keyed by the
+        # payload type. What must not happen is the old id still being
+        # produced BY THAT PAYLOAD TYPE, which would mean the rename did not
+        # take. `functional_groups` is exactly this case: the per-atom
+        # calculator keeps the id, the AlertResult moved away.
+        owner = seen.get(old_id, "")
+        assert not (payload_type == "AlertResult" and "alert" in owner), (
+            f"{old_id!r} is still produced as an {payload_type} by {owner}"
+        )

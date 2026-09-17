@@ -320,5 +320,5 @@ def test_only_a_real_catalogue_still_uses_the_alert_shape():
 
     assert still_alerts == {
         "pains", "brenk", "mutagenicity_alerts", "herg_risk_factors",
-        "admet_ml", "functional_groups",
+        "admet_ml", "fragment_counts",
     }, sorted(still_alerts)

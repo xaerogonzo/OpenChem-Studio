@@ -97,16 +97,42 @@ purinones, barbiturates, and anionic acids. Across the naming corpus it is
 An empty group list therefore means "the detector claimed nothing here",
 NOT "this molecule has no functional groups", and anything rendering it
 should say so rather than let a chemist read caffeine as unfunctionalised.
+
+AND `groups` IS NOT THE WHOLE VOCABULARY, which is what the reported
+"Functional Groups shows nothing" turned out to be. The detector answers a
+NOMENCLATURE question, so a ring nitrogen is absent by design (it is named
+by its ring; every amine SMARTS in the engine's table carries `!R`) and an
+ether is absent entirely (it has no group form at all). Three fields now
+carry the three different answers, and `compute_functional_groups` merges
+them into one result whose every row says which detector found it:
+
+    groups     the naming vocabulary (suffix candidates and prefixes)
+    features   the engine's `structural_groups` table -- ring amines,
+               aromatic N-H -- which nothing in the naming pipeline reads
+    rings      ring systems, as they always were
+
+`chem/functional_group_patterns.py` holds the fourth source (ether,
+thioether, ammonium) and the identity the four are merged on.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from enum import Enum
 from typing import Any
 
 from rdkit import Chem
 
+from openchem.chem.functional_group_patterns import (
+    ENGINE_FEATURE_LABELS,
+    VOCABULARY_VERSION,
+    FeatureCategory,
+    FeatureInstance,
+    FeatureSource,
+    match_patterns,
+    merge_features,
+)
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import PerAtomDataset
 
@@ -169,6 +195,15 @@ class AnnotatedRing:
     kind: str
     aromatic: bool
     size: int
+    #: The ring SYSTEM's own name -- "benzene", "1H-indole", "piperidine",
+    #: "bicyclo[2.2.1]heptane" -- or None when neither the curated table nor
+    #: the engine can name the extracted skeleton (measured: caffeine's
+    #: purine needs the table, whose phantom-[nH] rule the extraction cannot
+    #: reproduce on its own).
+    #:
+    #: THE SKELETON'S NAME, NOT THE MOLECULE'S. Sulfolane's ring system is
+    #: named "thiolane" here: the two exocyclic oxygens are not ring atoms.
+    name: str | None = None
     #: Atoms shared between two rings of a fused system, which are the
     #: positions that carry "a"-suffixed locants (4a, 8a) and the ones a
     #: ring explorer most wants to mark.
@@ -177,6 +212,25 @@ class AnnotatedRing:
     #: norbornane. Empty for every other kind.
     bridge_sizes: tuple[int, ...] = ()
     spiro_sizes: tuple[int, ...] = ()
+
+
+@dataclass(frozen=True)
+class AnnotatedFeature:
+    """Something a chemist calls a functional group that nomenclature names
+    another way: a ring amine, an indole N-H.
+
+    Separate from `AnnotatedGroup` on purpose. That type means "the
+    detector claimed this as a naming group", and widening it would make
+    every consumer of `groups` inherit a vocabulary the namer never sees.
+    The engine matches these in its own `structural_groups` table, which
+    nothing in the naming pipeline reads.
+    """
+
+    type: str
+    #: One of `FeatureCategory`'s values, as the engine declared it.
+    category: str
+    atoms: frozenset[int]
+    anchor: int
 
 
 @dataclass(frozen=True)
@@ -205,6 +259,11 @@ class StructureAnnotation:
     locants: tuple[AnnotatedLocant, ...] = ()
     groups: tuple[AnnotatedGroup, ...] = ()
     rings: tuple[AnnotatedRing, ...] = ()
+    #: Chemist-facing groups nomenclature names another way. Empty for most
+    #: molecules; never overlapping-deconflicted against `groups`, because a
+    #: ring amine's nitrogen legitimately belongs to both its amine and its
+    #: ring system.
+    features: tuple[AnnotatedFeature, ...] = ()
     stereocenters: tuple[AnnotatedStereocenter, ...] = ()
     #: The engine's own record of the forks it took, as plain strings.
     #: Thin by design on the engine's side -- typically one entry naming the
@@ -289,7 +348,8 @@ def annotate(mol: Chem.Mol) -> StructureAnnotation:
     try:
         perception = Perception(mol)
         groups = _groups(perception)
-        rings = _rings(perception)
+        rings = _rings(perception, mol)
+        features = _features(perception)
         stereocenters = _stereocenters(perception)
     except Exception as exc:  # noqa: BLE001
         return StructureAnnotation(
@@ -309,6 +369,7 @@ def annotate(mol: Chem.Mol) -> StructureAnnotation:
         locants=locants,
         groups=groups,
         rings=rings,
+        features=features,
         stereocenters=stereocenters,
         decisions=decisions,
     )
@@ -950,42 +1011,59 @@ def compute_functional_groups(
             ),
         )
 
-    groups = [
-        group
-        for group in annotation.groups
-        if group.suffix_eligible or not only_suffix_eligible
-    ]
+    features = collect_features(mol, annotation, label_mode=label_mode)
+    if only_suffix_eligible:
+        suffix_atoms = {
+            tuple(sorted(group.atoms))
+            for group in annotation.groups
+            if group.suffix_eligible
+        }
+        features = [
+            feature
+            for feature in features
+            if tuple(sorted(feature.atoms)) in suffix_atoms
+        ]
 
-    # Sorted by type so the mapping is deterministic for a given molecule.
-    types = sorted({group.type for group in groups})
-    category_of = {name: position + 1 for position, name in enumerate(types)}
+    # Sorted by (category, key) so the colour mapping is deterministic for a
+    # given molecule and two molecules sharing a feature agree on its colour.
+    kinds = sorted({(feature.category.value, feature.key) for feature in features})
+    category_of = {kind: position + 1 for position, kind in enumerate(kinds)}
 
     values: dict[int, float] = {}
     atom_notes: dict[int, str] = {}
     category_labels: dict[int, str] = {}
 
-    for group in groups:
-        category = category_of[group.type]
-        category_labels[category] = _describe_group(group, label_mode)
-        for atom_index in group.atoms:
+    for feature in features:
+        category = category_of[(feature.category.value, feature.key)]
+        category_labels[category] = feature.label
+        for atom_index in feature.atoms:
             values[atom_index] = float(category)
-        # Only the ANCHOR is labelled, not every atom the group covers.
+        # Only the ANCHOR is labelled, not every atom the feature covers.
         # Repeating "carboxylic acid" on all three of its atoms is noise on
         # a small depiction, and the anchor is the atom the name belongs to.
-        atom_notes[group.anchor] = _describe_group(group, label_mode)
+        atom_notes[feature.anchor] = feature.label
 
     provenance_parameters["atom_notes"] = atom_notes
     provenance_parameters["category_labels"] = category_labels
-    provenance_parameters["groups_detected"] = len(groups)
-    provenance_parameters["summary"] = (
-        f"{len(groups)} functional group{'' if len(groups) == 1 else 's'}."
-        if groups
-        else (
-            "No functional groups matched. Note that ring carbonyls next to "
-            "a ring nitrogen (lactams, uracil, caffeine) are claimed by no "
-            "group, so this does not always mean the structure has none."
-        )
-    )
+    provenance_parameters["groups_detected"] = len(features)
+    provenance_parameters["vocabulary_version"] = VOCABULARY_VERSION
+    # EVERY INSTANCE, WITH ITS PROVENANCE. A view that shows "tertiary amine"
+    # cannot otherwise say which detector claimed it or on which atoms, and
+    # "the right label on the wrong atoms" is the failure mode a merged
+    # vocabulary invites.
+    provenance_parameters["features"] = [
+        {
+            "key": feature.key,
+            "category": feature.category.value,
+            "label": feature.label,
+            "source": feature.source.value,
+            "found_by": [source.value for source in feature.found_by],
+            "atoms": sorted(feature.atoms),
+            "anchor": feature.anchor,
+        }
+        for feature in features
+    ]
+    provenance_parameters["summary"] = _feature_summary(features)
 
     return PerAtomDataset(
         property_id="functional_groups",
@@ -1000,6 +1078,127 @@ def compute_functional_groups(
             parameters=provenance_parameters,
         ),
     )
+
+
+def collect_features(
+    mol: Chem.Mol,
+    annotation: StructureAnnotation,
+    label_mode: str = "name",
+) -> list[FeatureInstance]:
+    """Every feature of `mol`, from all three sources, merged.
+
+    THREE SOURCES, ONE VOCABULARY:
+
+        annotation.groups     the naming engine's detector (the suffix
+                              candidates and the prefixes it emits)
+        annotation.features   the engine's `structural_groups` table -- ring
+                              amines, aromatic N-H
+        annotation.rings      ring systems, which `AnnotatedRing` already
+                              models; NOT re-detected here, so there is one
+                              place that says what a ring system is
+        `functional_group_patterns.PATTERNS`   the chemist's vocabulary that
+                              nomenclature has no group for at all (ether,
+                              thioether, ammonium)
+
+    Identical identities merge with the naming engine canonical; features
+    that merely share atoms all survive. See `merge_features`.
+    """
+    candidates: list[FeatureInstance] = []
+    for group in annotation.groups:
+        candidates.append(
+            FeatureInstance(
+                key=group.type,
+                category=FeatureCategory.FUNCTIONAL_GROUP,
+                atoms=frozenset(group.atoms),
+                anchor=group.anchor,
+                label=_describe_group(group, label_mode),
+                source=FeatureSource.NAMING_ENGINE,
+                found_by=(FeatureSource.NAMING_ENGINE,),
+            )
+        )
+    for feature in annotation.features:
+        candidates.append(
+            FeatureInstance(
+                key=feature.type,
+                category=_FEATURE_CATEGORIES.get(
+                    feature.category, FeatureCategory.FUNCTIONAL_GROUP
+                ),
+                atoms=frozenset(feature.atoms),
+                anchor=feature.anchor,
+                label=ENGINE_FEATURE_LABELS.get(
+                    feature.type, feature.type.replace("_", " ")
+                ),
+                source=FeatureSource.NAMING_ENGINE,
+                found_by=(FeatureSource.NAMING_ENGINE,),
+            )
+        )
+    for ring in annotation.rings:
+        candidates.append(
+            FeatureInstance(
+                # The ring's NAME is the key when there is one, so two
+                # benzene rings are two instances of one key rather than two
+                # unrelated "monocyclic" blobs.
+                key=ring.name or ring.kind,
+                category=FeatureCategory.RING_SYSTEM,
+                atoms=frozenset(ring.atoms),
+                anchor=min(ring.atoms) if ring.atoms else 0,
+                label=ring.name or f"{ring.kind} ring system",
+                source=FeatureSource.NAMING_ENGINE,
+                found_by=(FeatureSource.NAMING_ENGINE,),
+            )
+        )
+    for match in match_patterns(mol):
+        candidates.append(
+            FeatureInstance(
+                key=match.spec.key,
+                category=match.spec.category,
+                atoms=frozenset(match.atoms),
+                anchor=match.anchor,
+                label=match.spec.label,
+                source=FeatureSource.STRUCTURAL_PATTERN,
+                found_by=(FeatureSource.STRUCTURAL_PATTERN,),
+            )
+        )
+    return merge_features(candidates)
+
+
+#: The engine declares its structural groups' category as a plain string.
+_FEATURE_CATEGORIES: dict[str, FeatureCategory] = {
+    "functional_group": FeatureCategory.FUNCTIONAL_GROUP,
+    "structural_feature": FeatureCategory.STRUCTURAL_FEATURE,
+    "ring_system": FeatureCategory.RING_SYSTEM,
+}
+
+#: What each category is called in the summary line, singular and plural.
+_CATEGORY_WORDS: dict[FeatureCategory, tuple[str, str]] = {
+    FeatureCategory.FUNCTIONAL_GROUP: ("functional group", "functional groups"),
+    FeatureCategory.STRUCTURAL_FEATURE: ("structural feature", "structural features"),
+    FeatureCategory.RING_SYSTEM: ("ring system", "ring systems"),
+}
+
+
+def _feature_summary(features: list[FeatureInstance]) -> str:
+    """One sentence saying what was found, BY KIND.
+
+    The kinds are kept apart because they are different claims: "3 features"
+    over an amide, a benzene ring and an indole N-H would invite reading all
+    three as functional groups.
+    """
+    if not features:
+        return (
+            "Nothing matched. Note that ring carbonyls next to a ring "
+            "nitrogen (lactams, uracil, caffeine) are claimed by no group, "
+            "so this does not always mean the structure has none."
+        )
+    counts: dict[FeatureCategory, int] = {}
+    for feature in features:
+        counts[feature.category] = counts.get(feature.category, 0) + 1
+    parts = []
+    for category, (singular, plural) in _CATEGORY_WORDS.items():
+        count = counts.get(category, 0)
+        if count:
+            parts.append(f"{count} {singular if count == 1 else plural}")
+    return ", ".join(parts) + "."
 
 
 def _describe_group(group: AnnotatedGroup, label_mode: str) -> str:
@@ -1267,7 +1466,24 @@ def _groups(perception) -> tuple[AnnotatedGroup, ...]:
     return tuple(sorted(out, key=lambda g: g.anchor))
 
 
-def _rings(perception) -> tuple[AnnotatedRing, ...]:
+def _features(perception) -> tuple[AnnotatedFeature, ...]:
+    """The engine's structural features, flattened out of its own type."""
+    try:
+        detected = perception.fgs.structural_features
+    except AttributeError:  # pragma: no cover - an older vendored engine
+        return ()
+    return tuple(
+        AnnotatedFeature(
+            type=f.type,
+            category=f.category,
+            atoms=frozenset(f.atoms),
+            anchor=f.anchor,
+        )
+        for f in detected
+    )
+
+
+def _rings(perception, mol: Chem.Mol) -> tuple[AnnotatedRing, ...]:
     """Ring systems. Works for every molecule, unlike locants."""
     out = []
     for rs in perception.rings.ring_systems:
@@ -1281,12 +1497,58 @@ def _rings(perception) -> tuple[AnnotatedRing, ...]:
                 kind=rs.type,
                 aromatic=bool(rs.aromatic),
                 size=rs.ring_size,
+                name=_ring_system_name(rs, mol),
                 fusion_atoms=frozenset(fusion_atoms),
                 bridge_sizes=tuple(rs.bridge_sizes or ()),
                 spiro_sizes=tuple(rs.spiro_sizes or ()),
             )
         )
     return tuple(sorted(out, key=lambda r: min(r.atoms) if r.atoms else 0))
+
+
+@lru_cache(maxsize=512)
+def _name_ring_skeleton(ring_smiles: str) -> str | None:
+    """A ring skeleton's name, from its extracted SMILES.
+
+    Two sources, in this order:
+
+      1. The curated ring table, whose entries carry the name AND handle the
+         rings the extraction alone cannot key -- caffeine's purine among
+         them, which needs the engine's documented phantom-[nH] rule.
+      2. The engine, naming the skeleton as a molecule in its own right.
+         This is what supplies "pyrrolidine" (absent from the curated SMILES
+         index, measured), "bicyclo[2.2.1]heptane" and "spiro[4.5]decane".
+
+    Cached on the SMILES: a project full of one scaffold names it once.
+    """
+    try:
+        from openchem.vendor.iupac_namer.data_loader import _RING_CURATED_SMILES
+    except Exception:  # noqa: BLE001
+        _RING_CURATED_SMILES = {}
+    entry = _RING_CURATED_SMILES.get(ring_smiles) or {}
+    curated = entry.get("name")
+    if curated:
+        return str(curated)
+    try:
+        from openchem.vendor.iupac_namer import name_smiles
+
+        named = name_smiles(ring_smiles)
+    except Exception:  # noqa: BLE001 - an unnameable skeleton is not fatal
+        return None
+    return str(named) if named else None
+
+
+def _ring_system_name(ring_system, mol: Chem.Mol) -> str | None:
+    """`_name_ring_skeleton` for a perceived ring system."""
+    try:
+        from openchem.vendor.iupac_namer.ring_naming.common import (
+            get_ring_canonical_smiles,
+        )
+
+        key = get_ring_canonical_smiles(ring_system, mol)
+    except Exception:  # noqa: BLE001
+        return None
+    return _name_ring_skeleton(key) if key else None
 
 
 def _stereocenters(perception) -> tuple[AnnotatedStereocenter, ...]:
