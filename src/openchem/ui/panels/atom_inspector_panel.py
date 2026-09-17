@@ -79,7 +79,7 @@ STALE = "stale"
 #: nobody knows that; withheld all the same.
 UNVERIFIABLE = "unverifiable"
 
-_ATOM_COLUMNS = ("#", "Element", "Facts")
+_ATOM_COLUMNS = ("#", "Locant", "Element", "Facts")
 _BOND_COLUMNS = ("#", "Bond", "Facts")
 
 #: What the report is ABOUT. A molecule has exactly one subject, so it
@@ -157,6 +157,24 @@ _HELP: dict[str, HelpTooltip] = {
         ),
         tier=3,
         help_id="inspector.row_number",
+        topic="atom-inspector",
+    ),
+    "Locant": HelpTooltip(
+        text=(
+            "The IUPAC locant of this atom, where the naming engine assigns "
+            "one -- 3 for C-3, N1 for a ring nitrogen, 4a for a fusion "
+            "position.\n\n"
+            "BLANK means this atom has no locant, which is a fact about the "
+            "numbering rather than a gap: a structure named by a retained "
+            "name carries no derived numbering, and over the naming corpus "
+            "the engine numbers about a third of heavy atoms. A “?” "
+            "means the numbering could not be computed at all, which is a "
+            "different thing; hover the cell for the reason.\n\n"
+            "The same numbers View ▸ 2D Structure Display ▸ Atom "
+            "Numbers ▸ IUPAC locants draws on the canvas."
+        ),
+        tier=3,
+        help_id="inspector.locant",
         topic="atom-inspector",
     ),
     "Element": HelpTooltip(
@@ -479,6 +497,7 @@ class AtomInspectorPanel(QWidget):
         self._atom_table.setHorizontalHeaderLabels(_ATOM_COLUMNS)
         self._document_columns(_ATOM_COLUMNS)
         self._atom_table.setRowCount(mol.GetNumAtoms())
+        locants, locant_error = self._locant_labels(mol)
         for row, atom in enumerate(mol.GetAtoms()):
             index = atom.GetIdx()
             # 1-based for display, 0-based in the data -- the whole app
@@ -487,11 +506,45 @@ class AtomInspectorPanel(QWidget):
             number.setData(Qt.ItemDataRole.DisplayRole, index + 1)
             number.setData(Qt.ItemDataRole.UserRole, index)
             self._atom_table.setItem(row, 0, number)
-            self._atom_table.setItem(row, 1, QTableWidgetItem(atom.GetSymbol()))
+            # **READ FROM THE ATOM INDEX, never from the row position.** The
+            # table sorts, so row 0 is not atom 0 after a click on a header,
+            # and a locant placed by row would then describe another atom.
+            locant = QTableWidgetItem("?" if locant_error else locants.get(index, ""))
+            if locant_error:
+                locant.setToolTip(locant_error)
+            locant.setData(Qt.ItemDataRole.UserRole, index)
+            self._atom_table.setItem(row, 1, locant)
+            self._atom_table.setItem(row, 2, QTableWidgetItem(atom.GetSymbol()))
             count = QTableWidgetItem()
             count.setData(Qt.ItemDataRole.DisplayRole, len(self._report_for(index).facts))
-            self._atom_table.setItem(row, 2, count)
+            self._atom_table.setItem(row, 3, count)
         self._atom_table.setSortingEnabled(True)
+
+    def _locant_labels(self, mol) -> tuple[dict[int, str], str]:
+        """`({atom index: locant}, error)` for the structure in the table.
+
+        The SAME annotation the canvas numbering draws from
+        (`chem.atom_numbering`), so the column and the overlay cannot
+        disagree about which atom is C-3.
+
+        The error is returned rather than swallowed because "no locant" and
+        "could not be numbered" are different facts that both render as an
+        empty cell otherwise -- the distinction `StructureAnnotation.error`
+        exists for.
+        """
+        from openchem.chem.atom_numbering import LOCANTS, labels_for_molblock
+
+        try:
+            # Through the ENGINE, because `ui/` must not import rdkit --
+            # tests/test_layering.py enforces that, and this panel is handed
+            # Mol objects without ever naming the library.
+            molblock = self._engine.mol_to_molblock(mol)
+        except Exception as exc:  # noqa: BLE001 - a column must not take the panel down
+            return {}, f"IUPAC numbering failed: {type(exc).__name__}: {exc}"
+        labels, status = labels_for_molblock(molblock, LOCANTS)
+        if status.startswith("IUPAC numbering failed") or status.startswith("This structure"):
+            return {}, status
+        return labels, ""
 
     def _index_is_addressable(self, mol, index: int) -> bool:
         """Does `index` name something in `mol`, for the current subject?

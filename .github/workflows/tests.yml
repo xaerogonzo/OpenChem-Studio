@@ -371,7 +371,7 @@ jobs:
       # job -- but the regulatory benchmark below is a second OPSIN
       # caller, and `naming_gate.py` owns that choice rather than the
       # workflow, so it holds either way.
-      - name: Naming benchmark (must stay 181/181)
+      - name: Naming benchmark (must stay 187/187)
         run: uv run --no-sync python .github/scripts/naming_gate.py
 
       # Pure RDKit and OPSIN, no external tools, so it genuinely runs here.

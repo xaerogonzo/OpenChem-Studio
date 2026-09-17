@@ -1361,3 +1361,218 @@ def test_a_selection_before_ketcher_is_ready_is_DROPPED_not_queued(qapp):
     backend.select_atoms([0])
 
     assert calls == [], f"a selection reached the page before it was ready: {calls}"
+
+
+# ---------------------------------------------------------------------------
+# Atom numbers
+#
+# Ketcher's own `showAtomIds` draws POOL IDS, so the numbers come from Python
+# keyed by MOLFILE POSITION. Both halves of that boundary are checked here:
+# the payload the backend sends, and what the real page does with it.
+# ---------------------------------------------------------------------------
+
+
+def test_atom_numbers_set_before_ketcher_is_ready_are_queued_not_dropped(qapp):
+    """A dropped payload leaves the View menu claiming a numbering the canvas
+    is not showing -- the same reasoning as `set_cip_labels`."""
+    backend = KetcherEditorBackend()
+    assert not backend._ketcher_ready
+
+    calls = _record_page_calls(
+        backend,
+        lambda: backend.set_atom_numbers(
+            {"generation": 1, "fingerprint": "fp", "labels": {"0": "1"}}
+        ),
+    )
+
+    assert calls == [], "the payload reached an unready page"
+    assert backend._pending_atom_numbers is not None, "the payload was dropped"
+
+
+def test_the_queued_payload_is_replayed_once_ketcher_is_ready(qapp):
+    backend = _ready_backend(qapp)
+    backend._ketcher_ready = False
+    backend.set_atom_numbers({"generation": 2, "fingerprint": "fp", "labels": {"0": "7"}})
+
+    calls = _record_page_calls(backend, backend._on_ketcher_ready)
+
+    assert any("openchemAtomNumbers" in script and '"7"' in script for script in calls), calls
+    assert backend._pending_atom_numbers is None
+    backend.widget().hide()
+
+
+def test_the_atom_number_api_the_page_exposes_is_the_one_python_calls(qapp):
+    """The FAIL-CLOSED half of the bundle-currency guard, as for CIP: the
+    bundle scan proves the NAME reached the dist, not that the functions
+    hanging off it survived the build."""
+    backend = _ready_backend(qapp, shown=True)
+
+    shape = _run_js_json(qapp, backend, """
+      var api = window.openchemAtomNumbers;
+      if (!api) return {missing: true};
+      var out = {};
+      ['show', 'clear', 'report'].forEach(function (n) { out[n] = typeof api[n]; });
+      return out;
+    """)
+
+    assert shape == {"show": "function", "clear": "function", "report": "function"}, shape
+    backend.widget().hide()
+
+
+def test_the_numbers_are_drawn_ON_SCREEN_at_the_positions_python_named(qapp):
+    """**DRAWN IS NOT VISIBLE, and that cost a driven run.** The page reported
+    7 labels with `dropped: 0` while the canvas showed none: `pp.y` was
+    negated, so every label was mirrored off the visible area. So this asserts
+    the label's own screen box lies inside the canvas, which is the fact the
+    count could not carry.
+    """
+    import json
+
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_CHIRAL_ALKENE)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+
+    from openchem.chem.atom_numbering import structure_key
+
+    backend.set_atom_numbers({
+        "generation": 1, "fingerprint": "fp",
+        "structure": structure_key(_get_molblock_sync(qapp, backend)),
+        "labels": {"0": "1", "2": "3"},
+    })
+
+    def report():
+        raw = _run_js(qapp, backend, "window.openchemAtomNumbers.report()")
+        return json.loads(raw) if raw else {}
+
+    assert _wait_until(qapp, lambda: report().get("drawn") == 2)
+    drawn = report()
+    assert drawn["onscreen"] == 2, drawn
+    assert sorted((box["position"], box["text"]) for box in drawn["screen"]) == [(0, "1"), (2, "3")]
+    assert all(box["width"] > 0 and box["height"] > 0 for box in drawn["screen"]), drawn
+    backend.widget().hide()
+
+
+def test_a_label_for_an_atom_that_does_not_exist_draws_NOTHING(qapp):
+    """FAILS CLOSED. A molecule wearing most of a numbering reads as an
+    answer, and the atom that was dropped is invisible -- so one unresolvable
+    position discards the whole overlay and the report says why."""
+    import json
+
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_CHIRAL_ALKENE)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+
+    from openchem.chem.atom_numbering import structure_key
+
+    backend.set_atom_numbers({
+        "generation": 1, "fingerprint": "fp",
+        "structure": structure_key(_get_molblock_sync(qapp, backend)),
+        "labels": {"0": "1", "99": "100"},
+    })
+
+    def report():
+        raw = _run_js(qapp, backend, "window.openchemAtomNumbers.report()")
+        return json.loads(raw) if raw else {}
+
+    assert _wait_until(qapp, lambda: bool(report().get("reason")))
+    drawn = report()
+    assert drawn["drawn"] == 0 and drawn["screen"] == [], drawn
+    assert "99" in drawn["reason"], drawn
+    backend.widget().hide()
+
+
+def test_a_payload_for_a_DIFFERENT_structure_draws_nothing(qapp):
+    """THE STALE PAYLOAD THE POSITION CHECK CANNOT CATCH.
+
+    Labels computed before an edit resolve perfectly well against the
+    structure after it whenever the atom count did not shrink -- so every
+    number lands on a plausible wrong atom, and a generation counter cannot
+    see it either, because a later payload is not necessarily a payload for
+    what is on screen.
+
+    So the payload carries a structure key both sides can compute (elements
+    in molfile-position order plus the bond count) and the page refuses one
+    that does not describe the canvas.
+    """
+    import json
+
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_CHIRAL_ALKENE)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+
+    def report():
+        raw = _run_js(qapp, backend, "window.openchemAtomNumbers.report()")
+        return json.loads(raw) if raw else {}
+
+    # The structure really is the one the good payload names: assert the
+    # setup, or a refusal for the wrong reason would look like a pass.
+    live = _run_js(qapp, backend, """
+      (function () {
+        var s = window.ketcher.editor.struct();
+        var parts = [];
+        s.atoms.forEach(function (a) { parts.push(a.label || '*'); });
+        return parts.join(',') + '|b' + s.bonds.size;
+      })()
+    """)
+    assert live and live.count(",") > 0, live
+
+    backend.set_atom_numbers(
+        {"generation": 1, "fingerprint": "fp", "structure": live, "labels": {"0": "1"}}
+    )
+    assert _wait_until(qapp, lambda: report().get("drawn") == 1)
+
+    # Now a payload for a DIFFERENT structure whose positions all resolve.
+    backend.set_atom_numbers(
+        {"generation": 2, "fingerprint": "fp2", "structure": "C,C|b1", "labels": {"0": "1"}}
+    )
+
+    assert _wait_until(qapp, lambda: "different structure" in report().get("reason", ""))
+    stale = report()
+    assert stale["drawn"] == 0 and stale["screen"] == [], stale
+    backend.widget().hide()
+
+
+def test_the_structure_key_is_the_one_the_page_computes(qapp):
+    """Both sides must compute the SAME key or the guard above refuses every
+    payload -- a fail-closed guard that always fires is an outage, not a
+    guard. Asserted against the real page rather than against a copy of the
+    formula."""
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_CHIRAL_ALKENE)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+
+    from openchem.chem.atom_numbering import structure_key
+
+    page = _run_js(qapp, backend, """
+      (function () {
+        var s = window.ketcher.editor.struct();
+        var parts = [];
+        s.atoms.forEach(function (a) { parts.push(a.label || '*'); });
+        return parts.join(',') + '|b' + s.bonds.size;
+      })()
+    """)
+    molblock = _get_molblock_sync(qapp, backend)
+
+    assert page == structure_key(molblock), (page, structure_key(molblock))
+    backend.widget().hide()
+
+
+def test_a_payload_that_does_not_say_which_structure_is_refused(qapp):
+    """An ABSENT key must not disable the check -- that is how a fail-closed
+    guard quietly stops being one. Every payload the application sends
+    carries it."""
+    import json
+
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_CHIRAL_ALKENE)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+
+    backend.set_atom_numbers({"generation": 1, "fingerprint": "fp", "labels": {"0": "1"}})
+
+    def report():
+        raw = _run_js(qapp, backend, "window.openchemAtomNumbers.report()")
+        return json.loads(raw) if raw else {}
+
+    assert _wait_until(qapp, lambda: "does not say" in report().get("reason", ""))
+    assert report()["drawn"] == 0
+    backend.widget().hide()

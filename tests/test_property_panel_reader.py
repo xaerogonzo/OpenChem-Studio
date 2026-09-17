@@ -156,8 +156,10 @@ def test_an_alert_derived_report_is_not_born_stale(panel):
     bus.publish(
         AlertComputed(
             alert=AlertResult(
-                alert_id="functional_groups",
-                name="Functional Groups",
+                # The fragment counter's real id; see
+                # test_the_functional_groups_alert_arrives_under_the_section...
+                alert_id="fragment_counts",
+                name="Fragment Counts",
                 molecule_uuid=molecule.uuid,
                 matched=["Carboxylic acid: 1"],
                 category="substructure",
@@ -578,8 +580,8 @@ def test_an_informational_alert_still_reaches_it_too(panel):
 
     widget, bus, molecule, _project, _versions = panel
     info = AlertResult(
-        alert_id="functional_groups",
-        name="Functional Groups",
+        alert_id="fragment_counts",
+        name="Fragment Counts",
         molecule_uuid=molecule.uuid,
         matched=["carboxylic acid"],
         provenance=Provenance(created_by="core", method="rdkit"),
@@ -588,7 +590,7 @@ def test_an_informational_alert_still_reaches_it_too(panel):
     )
     bus.publish(AlertComputed(alert=info))
     QCoreApplication.processEvents()
-    assert widget._attached_reader.merged().report_for("functional_groups") is not None
+    assert widget._attached_reader.merged().report_for("fragment_counts") is not None
 
 
 # --- what the alert ROWS used to say, now the panel has none -------------
@@ -818,7 +820,13 @@ def test_the_functional_groups_alert_arrives_under_the_section_ITS_PRODUCER_name
     )
     _land_alert(bus, alert)
 
-    report = widget._attached_reader.merged().report_for("functional_groups")
+    # `fragment_counts` since 2026-09-17: this alert and the per-atom
+    # calculator both declared `functional_groups`, and the result store keys
+    # by id -- so each overwrote the other. READ OFF THE PRODUCER rather than
+    # typed, for the same reason the category is: a literal here could drift
+    # from the id the producer actually files under, which is the shape of
+    # the defect this test already exists for.
+    report = widget._attached_reader.merged().report_for(alert.alert_id)
     assert report is not None
     assert report.category == alert.category
     rendered = " ".join(f"{f.label}: {f.display_value}" for f in report.facts)

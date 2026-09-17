@@ -373,8 +373,14 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "1,2,3,4-tetrahydronaphthalene", "unchanged"),
     # Pre-composed retained stems that are still PIN-eligible and must keep
     # their retained names, including in substituent position.
-    ("D-022z", "O=S1(=O)CC=CC1CCN", "2-(sulfol-3-en-5-yl)ethanamine",
-     "2-(sulfol-3-en-5-yl)ethanamine", "unchanged"),
+    # The free-valence locant here MOVED with D-029, and the new one is
+    # right: sulfolene's S is locant 1 either way round and both directions
+    # give "en-3", so the choice falls to the free valence, which P-31.1.4
+    # ranks (d) above the ene ending (e). Both names round-trip to this
+    # structure on canonical SMILES and InChIKey (checked before editing a
+    # pinned row), so this is a preferred-name change, not a wrong molecule.
+    ("D-022z", "O=S1(=O)CC=CC1CCN", "2-(sulfol-3-en-2-yl)ethanamine",
+     "2-(sulfol-3-en-5-yl)ethanamine", "free valence took the higher locant"),
     ("D-022w", "O=c1[nH][nH]c(=O)[nH]1", "urazol", "urazol", "unchanged"),
     # 4-pyrazolone changed as a consequence of the D-023 curated entries,
     # and the change is kept rather than worked around. Adding a curated
@@ -422,6 +428,84 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "unchanged"),
     ("D-005m", "[CH3+]", "methylium", "methylium", "unchanged"),
     ("D-005n", "[CH3-]", "methanide", "methanide", "unchanged"),
+
+    # --- D-027: a descriptor inside a substituent recomputed on the fragment --
+    # Carving replaces the cut side with H, which reorders CIP priorities at
+    # any centre or double bond whose ranking depended on that side. The
+    # first carve already inherited the parent's descriptors; a NESTED carve
+    # started from the first fragment and recomputed, and E/Z never
+    # inherited at all. Every E/Z measured inside a substituent was inverted.
+    # MPMI's R centre (named (5S)) is pinned with its locant in D-028.
+    ("D-027a", "C/C=C(/C)c1ccc(cc1)C(=O)O", "4-[(2Z)-but-2-en-2-yl]benzoic acid",
+     "4-[(2E)-but-2-en-2-yl]benzoic acid", "E/Z inverted on the attachment carbon"),
+    ("D-027b", "C/C=C(\\C)c1ccc(cc1)C(=O)O", "4-[(2E)-but-2-en-2-yl]benzoic acid",
+     "4-[(2Z)-but-2-en-2-yl]benzoic acid", "E/Z inverted, other isomer"),
+    ("D-027c", "OC(=O)c1ccc(cc1)/C(C)=C/Cc1ccccc1",
+     "4-[(2E)-4-phenylbut-2-en-2-yl]benzoic acid",
+     "4-[(2Z)-4-phenylbut-2-en-2-yl]benzoic acid", "E/Z inverted, nested phenyl"),
+    # non-regression: descriptors that were already right must stay right
+    ("D-027x", "OC(=O)c1ccc(cc1)/C=C/C", "4-[(1E)-prop-1-en-1-yl]benzoic acid",
+     "4-[(1E)-prop-1-en-1-yl]benzoic acid", "unchanged"),
+    ("D-027y", "OC(=O)c1ccc(cc1)[C@H](C)CC", "4-[(2R)-butan-2-yl]benzoic acid",
+     "4-[(2R)-butan-2-yl]benzoic acid", "unchanged"),
+    ("D-027z", "N[C@@H](C)C(=O)N[C@@H](Cc1ccccc1)C(=O)O",
+     "(2S)-2-[(2S)-2-aminopropanoylamino]-3-phenylpropanoic acid",
+     "(2S)-2-[(2S)-2-aminopropanoylamino]-3-phenylpropanoic acid", "unchanged"),
+
+    # --- D-028: prefixes cited out of alphanumerical order ---------------
+    # SEVERITY B, not A: the right molecule, cited in the wrong order, so it
+    # round-trips and the naming benchmark scores it "equivalent". The sort
+    # key kept nested brackets (which sort before every letter) and filed
+    # "dimethylamino" under m. See `assembly.derive_sort_name`.
+    ("D-028a", "CC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1",
+     "N-phenyl-N-[1-(2-phenylethyl)piperidin-4-yl]acetamide",
+     "N-[1-(2-phenylethyl)piperidin-4-yl]-N-phenylacetamide", "compound prefix cited first"),
+    ("D-028b", "CCCC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1",
+     "N-phenyl-N-[1-(2-phenylethyl)piperidin-4-yl]butanamide",
+     "N-[1-(2-phenylethyl)piperidin-4-yl]-N-phenylbutanamide", "compound prefix cited first"),
+    ("D-028c", "CN(C)c1ccc(C(=O)O)c(CC)c1", "4-(dimethylamino)-2-ethylbenzoic acid",
+     "2-ethyl-4-(dimethylamino)benzoic acid", "dimethylamino filed under m"),
+
+    # --- D-029: a heterocyclyl free valence numbered by plan order ---------
+    # SEVERITY B. P-31.1.4.2.4 ranks free valences with suffixes, ahead of
+    # every prefix; the engine scored the free valence nowhere, so on a ring
+    # whose heteroatom numbering has two equal directions the tie decided.
+    # The carved fragment 1-methylpyrrolidine has C2 == C5 by symmetry, so
+    # which of them was the attachment depended on the input's atom order.
+    # Fixed by `engine._lowest_free_valence_numberings`.
+    # The three tryptamines also pin D-027 (their R centre was named S) and
+    # D-028 (methoxy was cited after the compound prefix).
+    ("D-029a", "CN1CCC[C@@H]1Cc1c[nH]c2ccccc12",
+     "3-{[(2R)-1-methylpyrrolidin-2-yl]methyl}-1H-indole",
+     "3-{[(5S)-1-methylpyrrolidin-5-yl]methyl}-1H-indole", "MPMI: locant 5, and S for R"),
+    ("D-029b", "CN1CCC[C@@H]1Cc1c[nH]c2cccc(O)c12",
+     "3-{[(2R)-1-methylpyrrolidin-2-yl]methyl}-1H-indol-4-ol",
+     "3-{[(5S)-1-methylpyrrolidin-5-yl]methyl}-1H-indol-4-ol", "4-HO-MPMI: locant 5, and S for R"),
+    ("D-029c", "CN1CCC[C@@H]1Cc1c[nH]c2ccc(OC)cc12",
+     "5-methoxy-3-{[(2R)-1-methylpyrrolidin-2-yl]methyl}-1H-indole",
+     "3-{[(2S)-1-methylpyrrolidin-2-yl]methyl}-5-methoxy-1H-indole", "5-MeO-MPMI: S for R, order"),
+    ("D-029d", "CN1CCCC1CO", "(1-methylpyrrolidin-2-yl)methanol",
+     "(1-methylpyrrolidin-5-yl)methanol", "tie broken by atom order"),
+    ("D-029e", "OC(=O)c1ccc(cc1)C1CCC(C)N1C", "4-(1,5-dimethylpyrrolidin-2-yl)benzoic acid",
+     "4-(1,2-dimethylpyrrolidin-5-yl)benzoic acid", "prefix locants ranked above the free valence"),
+    ("D-029f", "C[C@@H]1CCCN1C", "(2R)-1,2-dimethylpyrrolidine",
+     "(2R)-1,2-dimethylpyrrolidine", "unchanged: a PARENT ring, no free valence"),
+    # Across ring kinds. v and y were meant as non-regression rows and turned
+    # out to be the same defect -- checked against the pre-fix engine rather
+    # than assumed "unchanged". u is the one where the PARENT's numbering
+    # changes (the chloro) while the substituent's must not.
+    ("D-029u", "Clc1cc(ccc1C(=O)O)C1CCCN1C", "2-chloro-4-(1-methylpyrrolidin-2-yl)benzoic acid",
+     "2-chloro-4-(1-methylpyrrolidin-2-yl)benzoic acid", "unchanged"),
+    ("D-029v", "OC(=O)c1ccc(cc1)C1CC(C)CCN1", "4-(4-methylpiperidin-2-yl)benzoic acid",
+     "4-(4-methylpiperidin-6-yl)benzoic acid", "piperidine: free valence 6, found while writing this table"),
+    ("D-029w", "OC(=O)c1ccc(cc1)N1CCOCC1", "4-(morpholin-4-yl)benzoic acid",
+     "4-(morpholin-4-yl)benzoic acid", "unchanged: O outranks the attached N"),
+    ("D-029x", "OC(=O)c1ccc(cc1)C1CCCCC1C", "4-(2-methylcyclohexyl)benzoic acid",
+     "4-(2-methylcyclohexyl)benzoic acid", "unchanged: carbocycle"),
+    ("D-029y", "OC(=O)c1ccc(cc1)c1ccc(C)o1", "4-(5-methylfuran-2-yl)benzoic acid",
+     "4-(2-methylfuran-5-yl)benzoic acid", "furan: free valence 5, found while writing this table"),
+    ("D-029z", "OC(=O)c1ccc(cc1)c1ccncc1", "4-(pyridin-4-yl)benzoic acid",
+     "4-(pyridin-4-yl)benzoic acid", "unchanged: aromatic N ring"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

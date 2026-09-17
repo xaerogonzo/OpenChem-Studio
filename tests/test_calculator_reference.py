@@ -248,10 +248,16 @@ def test_an_anchor_key_is_the_calculator_id_with_hyphens(registry):
 
 def test_the_locant_coverage_is_recorded_with_its_denominator(text):
     """**A PERCENTAGE WITHOUT ITS POPULATION IS NOT A MEASUREMENT.** The
-    number is 34.8%, and what makes it usable is that it is 105 of 181
-    molecules from a named corpus -- and that 95 of them name to a retained
-    string with no atom indices at all, which is why "None found" is an
-    ordinary answer rather than a failure."""
-    assert "34.8%" in text
-    assert "105 of 181" in text
+    number is 38.4%, and what makes it usable is that it is 111 of 187
+    molecules from a named corpus -- and that 76 of them get no locants at
+    all, every one named by a retained string with no atom indices to map,
+    which is why "None found" is an ordinary answer rather than a failure.
+
+    The figures moved when the corpus grew from 181 to 187 (2026-09-17). A
+    percentage that outlives its denominator is what this guards against, so
+    the DATE is asserted too -- re-measure and re-date rather than bumping
+    the number."""
+    assert "38.4%" in text
+    assert "111 of 187" in text
+    assert "2026-09-17" in text
     assert "benchmarks/naming" in text

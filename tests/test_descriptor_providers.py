@@ -111,7 +111,7 @@ def test_compute_alerts_flags_a_known_pains_scaffold():
 
     alerts_by_id = {a.alert_id: a for a in alerts}
     assert {
-        "pains", "brenk", "functional_groups", "herg_risk_factors",
+        "pains", "brenk", "fragment_counts", "herg_risk_factors",
         "mutagenicity_alerts",
     } <= set(alerts_by_id)
     pains = alerts_by_id["pains"]
@@ -264,7 +264,7 @@ def test_functional_groups_on_aspirin():
     provider = RDKitDescriptorProvider()
 
     alerts = {a.alert_id: a for a in provider.compute_alerts(aspirin, "mol-1")}
-    groups = alerts["functional_groups"]
+    groups = alerts["fragment_counts"]
 
     # **DERIVED FROM THE REGISTRY, NOT TYPED.** This said `"admet"`, which was
     # the third place pinning a divergence rather than a fact: the calculator
@@ -276,6 +276,9 @@ def test_functional_groups_on_aspirin():
     from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
 
     registered = {d.calculator_id: d.category for d in CALCULATOR_DEFINITIONS}
+    # The fragment counter and the per-atom calculator no longer SHARE an id
+    # (they overwrote each other in the result store), but they are still the
+    # same subject and must still be filed in the same section.
     assert groups.category == registered["functional_groups"]
     assert any(g.startswith("Ester") for g in groups.matched)
     assert any(g.startswith("Carboxylic Acid") for g in groups.matched)
@@ -290,7 +293,7 @@ def test_functional_groups_empty_for_a_bare_alkane():
 
     alerts = {a.alert_id: a for a in provider.compute_alerts(ethane, "mol-1")}
 
-    assert alerts["functional_groups"].matched == []
+    assert alerts["fragment_counts"].matched == []
 
 
 def test_herg_risk_factors_all_present_for_verapamil():

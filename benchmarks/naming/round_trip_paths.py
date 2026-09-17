@@ -25,6 +25,15 @@ The single `MISMATCH` is metformin, which ROADMAP.md already carries as a
 known `gate_disagreement` -- canonical SMILES and InChIKey disagreeing over
 a tautomer. That is exactly the case withholding exists for.
 
+**A DIFFERENT SPLIT WAS MADE ON 2026-09-17, and it was made because an input
+reached it.** `STEREO_OMITTED` used to absorb every stereo difference over a
+matching skeleton, so a name carrying the OPPOSITE descriptor was shown with
+a note saying it merely left something out -- measured on MPMI, whose R
+centre the engine named (S). That verdict is now three: omitted, added and
+CONTRADICTED, the last withheld like a skeleton mismatch. The contrast with
+the MISMATCH split above is the point: one had a real input and one had
+none, and that is what decided each.
+
 NEEDS JAVA. OPSIN is a Java library reached through py2opsin, and it needs
 both `JAVA_HOME` and `java` on PATH -- they are different requirements and
 CLAUDE.md records the measurement that separated them:

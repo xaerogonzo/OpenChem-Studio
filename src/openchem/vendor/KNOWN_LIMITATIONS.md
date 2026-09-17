@@ -207,6 +207,46 @@ returning `(azanylidyne)(methyl)azanium`. On the benchmark diazomethane moved
 `wrong_structure -> no_prediction`; the score is unchanged at 120/124 because
 both are failures, but one of them was lying.
 
+## Substituent locants the tree cannot supply (open, 2026-09-17)
+
+A ring system inside a SUBSTITUENT gets no locants on the depiction, so
+fentanyl's piperidine and both its phenyls are unnumbered while its acetyl
+chain is numbered. Three measured reasons, and they are separate:
+
+* The nested prefix subtree DOES carry a numbering, and it is FRAGMENT-LOCAL.
+  Measured on acetyl fentanyl: the piperidinyl subtree numbers its own atoms
+  `{13: 1, 9: 2, 6: 3, 5: 4, 7: 5, 10: 6}`, and those indices belong to the
+  carved fragment, not to the molecule.
+* The tree exposes NO fragment-to-parent map. `named_parent.candidate`
+  carries fragment-local atom indices too, and nothing on the node holds the
+  carved mol, so the mapping would have to be re-derived by inference.
+* The curated ring table cannot fill the gap either: 302 of its 371 entries
+  carry an `atom_locants` map, and PIPERIDINE and BENZENE are not among them
+  (pyrrolidine has no entry keyed by its ring SMILES at all). For benzene a
+  skeleton numbering would be arbitrary anyway -- every position is
+  equivalent until a substituent breaks the tie.
+
+Not guessed at, deliberately: `structure_annotation._retained_ring_locants`
+records what happened the last time locants were inferred from an assumed
+atom order -- a full set of confident, WRONG numbers with nothing raised.
+Fixing it properly means having the carve return its map, which is a change
+inside the engine's extraction layer rather than in the annotation.
+
+Indole is a smaller instance of the same shape: its table entry numbers 7 of
+9 ring atoms, so 3a and 7a are missing from the depiction even though the
+fusion positions are exactly what a reader looks for. That one IS a data gap
+in `atom_locants` rather than an algorithm.
+
+## An indicated hydrogen dropped from a substituent name (open, 2026-09-17)
+
+`OC(=O)c1ccc(cc1)c1cc2ccccc2[nH]1` is named `4-(indol-2-yl)benzoic acid`,
+where the PIN carries the indicated hydrogen: `4-(1H-indol-2-yl)benzoic acid`.
+Severity B -- OPSIN resolves a bare `indol-2-yl` to the 1H form, so the name
+round-trips and denotes the right molecule. The N-substituted case is already
+correct (`4-(1-methyl-1H-indol-2-yl)benzoic acid`), which places the gap in
+the unsubstituted-N path rather than in the indicated-hydrogen machinery.
+Found while checking D-029; predates it.
+
 ## Not limitations
 
 * The five tests that shipped red are not engine defects. They asserted a

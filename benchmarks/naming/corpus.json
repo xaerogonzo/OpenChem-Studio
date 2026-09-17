@@ -1446,5 +1446,71 @@
   "kekule_smiles": "C1=NNN=N1",
   "has_stereo": false,
   "pubchem_name": "2H-tetrazole"
+ },
+ {
+  "label": "acetyl fentanyl",
+  "category": "substituent_naming",
+  "smiles": "CC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1",
+  "kekule_smiles": "CC(=O)N(C1=CC=CC=C1)C1CCN(CCC2=CC=CC=C2)CC1",
+  "has_stereo": false,
+  "pubchem_name": "N-phenyl-N-[1-(2-phenylethyl)piperidin-4-yl]acetamide",
+  "pubchem_cid": 527015,
+  "pubchem_retrieved": "2026-09-17",
+  "pubchem_name_kind": "PubChem IUPACName property"
+ },
+ {
+  "label": "butyryl fentanyl",
+  "category": "substituent_naming",
+  "smiles": "CCCC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1",
+  "kekule_smiles": "CCCC(=O)N(C1=CC=CC=C1)C1CCN(CCC2=CC=CC=C2)CC1",
+  "has_stereo": false,
+  "pubchem_name": "N-phenyl-N-[1-(2-phenylethyl)piperidin-4-yl]butanamide",
+  "pubchem_cid": 621174,
+  "pubchem_retrieved": "2026-09-17",
+  "pubchem_name_kind": "PubChem IUPACName property"
+ },
+ {
+  "label": "fentanyl",
+  "category": "substituent_naming",
+  "smiles": "CCC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1",
+  "kekule_smiles": "CCC(=O)N(C1=CC=CC=C1)C1CCN(CCC2=CC=CC=C2)CC1",
+  "has_stereo": false,
+  "pubchem_name": "N-phenyl-N-[1-(2-phenylethyl)piperidin-4-yl]propanamide",
+  "pubchem_cid": 3345,
+  "pubchem_retrieved": "2026-09-17",
+  "pubchem_name_kind": "PubChem IUPACName property"
+ },
+ {
+  "label": "(R)-MPMI",
+  "category": "substituent_naming",
+  "smiles": "CN1CCC[C@@H]1Cc1c[nH]c2ccccc12",
+  "kekule_smiles": "CN1CCC[C@@H]1CC1=CNC2=CC=CC=C12",
+  "has_stereo": true,
+  "pubchem_name": "3-[[(2R)-1-methylpyrrolidin-2-yl]methyl]-1H-indole",
+  "pubchem_cid": 44397420,
+  "pubchem_retrieved": "2026-09-17",
+  "pubchem_name_kind": "PubChem IUPACName property"
+ },
+ {
+  "label": "(R)-4-HO-MPMI",
+  "category": "substituent_naming",
+  "smiles": "CN1CCC[C@@H]1Cc1c[nH]c2cccc(O)c12",
+  "kekule_smiles": "CN1CCC[C@@H]1CC1=CNC2=CC=CC(O)=C12",
+  "has_stereo": true,
+  "pubchem_name": "3-[[(2R)-1-methylpyrrolidin-2-yl]methyl]-1H-indol-4-ol",
+  "pubchem_cid": 10466404,
+  "pubchem_retrieved": "2026-09-17",
+  "pubchem_name_kind": "PubChem IUPACName property"
+ },
+ {
+  "label": "(R)-5-MeO-MPMI",
+  "category": "substituent_naming",
+  "smiles": "COc1ccc2[nH]cc(C[C@H]3CCCN3C)c2c1",
+  "kekule_smiles": "COC1=CC=C2NC=C(C[C@H]3CCCN3C)C2=C1",
+  "has_stereo": true,
+  "pubchem_name": "5-methoxy-3-[[(2R)-1-methylpyrrolidin-2-yl]methyl]-1H-indole",
+  "pubchem_cid": 9881324,
+  "pubchem_retrieved": "2026-09-17",
+  "pubchem_name_kind": "PubChem IUPACName property"
  }
 ]

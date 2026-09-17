@@ -1130,5 +1130,29 @@
             "smarts": "[NX3H1][SX4](=O)(=O)[OX1-]",
             "_comment": "R-NH-S(=O)(=O)[O-] sulfamate anion; prefix: sulfonatoamino"
         }
+    ],
+    "_structural_comment": "STRUCTURAL GROUPS ARE NEVER NAMED. Added 2026-09-17. Everything above is nomenclature: a suffix candidate or a prefix the engine emits. These are things a CHEMIST calls a functional group which nomenclature expresses some other way -- a ring nitrogen is named by its ring (pyrrolidine), not as an amine, which is why every amine SMARTS above carries !R. They are reported through FGDetection.structural_features and are deliberately NOT part of detected_fgs: a group in that list becomes a suffix or a prefix, so an entry here could otherwise put 'amino' into the name of a piperidine. category is 'functional_group' (a group in the chemist's sense) or 'structural_feature' (neither a group nor a ring system).",
+    "structural_groups": [
+        {
+            "name": "ring_tertiary_amine",
+            "category": "functional_group",
+            "smarts": "[NX3;H0;R;!$(NC=[O,S,N]);!$(N=*);!$(NS(=O)=O);!$([N+]);!a]([#6])([#6])[#6]",
+            "anchor_index": 0,
+            "_comment": "The piperidine N of fentanyl, the pyrrolidine N of nicotine. Exclusions mirror the acyclic amine patterns: an amide/thioamide/amidine N, an imine, a sulfonamide, a charged N and an aromatic N are each something else."
+        },
+        {
+            "name": "ring_secondary_amine",
+            "category": "functional_group",
+            "smarts": "[NX3;H1;R;!$(NC=[O,S,N]);!$(N=*);!$(NS(=O)=O);!$([N+]);!a]([#6])[#6]",
+            "anchor_index": 0,
+            "_comment": "Piperidine, pyrrolidine, morpholine as drawn with an N-H. A RING N cannot be a primary amine (two ring bonds already), so there is no ring_primary_amine entry."
+        },
+        {
+            "name": "aromatic_amine_nh",
+            "category": "structural_feature",
+            "smarts": "[nX3;H1;R;!$([n+])]",
+            "anchor_index": 0,
+            "_comment": "The indole/pyrrole N-H. A structural_feature rather than a functional_group: it is part of the aromatic ring system, and pyridine's N (no H) must not match."
+        }
     ]
 }

@@ -24,8 +24,31 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from dataclasses import dataclass
+
 from openchem.vendor.iupac_namer.data_loader import get_functional_groups
 from openchem.vendor.iupac_namer.types import AmbiguityPoint, DetectedFG, FGFraming
+
+
+@dataclass(frozen=True)
+class StructuralFeature:
+    """Something a chemist calls a functional group that nomenclature names
+    another way -- a ring amine, an indole N-H.
+
+    **DELIBERATELY NOT A DetectedFG.** Everything in ``detected_fgs``
+    competes for the suffix and otherwise becomes a prefix, so a ring
+    nitrogen added there would put "amino" into the name of a piperidine.
+    These are matched in their own pass, from the ``structural_groups``
+    table, and reach nothing in the naming pipeline. See that table's
+    ``_structural_comment``.
+    """
+
+    type: str
+    #: "functional_group" (a group in the chemist's sense) or
+    #: "structural_feature" (neither a group nor a ring system).
+    category: str
+    atoms: frozenset[int]
+    anchor: int
 
 # Registration marker for the ``perception.fg`` sub-package (Stage 6 R1-F).
 # The ``acid_infix_composition`` module layers a table-driven fallback for
@@ -379,6 +402,9 @@ class FGDetection:
         AmbiguityPoint instances for unknown FG overlaps.
     additive_groups:
         N-oxide / P-oxide additive group info dicts.
+    structural_features:
+        Chemist-facing groups that nomenclature names another way, from the
+        ``structural_groups`` table. Never part of ``detected_fgs``.
     """
 
     def __init__(
@@ -396,6 +422,7 @@ class FGDetection:
             self._ambiguity_points,
             self._additive_groups,
         ) = self._analyze()
+        self._structural_features = self._detect_structural_features()
 
     # ------------------------------------------------------------------
     # Properties
@@ -415,6 +442,46 @@ class FGDetection:
     def additive_groups(self) -> list[dict]:
         """N-oxide / P-oxide additive group info dicts."""
         return self._additive_groups
+
+    @property
+    def structural_features(self) -> tuple[StructuralFeature, ...]:
+        """Chemist-facing groups nomenclature names another way.
+
+        Matched separately from the naming vocabulary and NOT deconflicted
+        against it: a ring amine's nitrogen is a legitimate member of both
+        its ring system and its amine, and whoever displays them decides
+        what to do with an overlap. Nothing in the naming pipeline reads
+        this.
+        """
+        return self._structural_features
+
+    def _detect_structural_features(self) -> tuple[StructuralFeature, ...]:
+        """Run the ``structural_groups`` SMARTS. Never raises on a bad
+        pattern -- a malformed entry is logged and skipped, as in the
+        naming passes."""
+        from rdkit import Chem
+
+        out: list[StructuralFeature] = []
+        for definition in get_functional_groups().get("structural_groups", []):
+            smarts = definition.get("smarts", "")
+            pattern = Chem.MolFromSmarts(smarts)
+            if pattern is None:
+                logger.warning(
+                    "Invalid SMARTS for structural group %r: %r",
+                    definition.get("name"), smarts,
+                )
+                continue
+            anchor_index = int(definition.get("anchor_index", 0))
+            for match in self._mol.GetSubstructMatches(pattern):  # type: ignore[attr-defined]
+                out.append(
+                    StructuralFeature(
+                        type=definition["name"],
+                        category=definition.get("category", "functional_group"),
+                        atoms=frozenset(match),
+                        anchor=match[anchor_index] if anchor_index < len(match) else match[0],
+                    )
+                )
+        return tuple(sorted(out, key=lambda f: (f.anchor, f.type)))
 
     # ------------------------------------------------------------------
     # Convenience accessors

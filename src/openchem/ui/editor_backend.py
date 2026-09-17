@@ -119,6 +119,26 @@ class EditorBackend(QObject):
         double to declare that would be noise.
         """
 
+    def set_atom_numbers(self, payload: dict | None) -> None:
+        """Draw a number beside each atom, or take them off with `None`.
+
+        `payload` is `{"generation": int, "fingerprint": str, "labels":
+        {molfile position: text}}`. **MOLFILE POSITIONS, never pool ids** --
+        the editor's own ids are a different space, and reading one as the
+        other puts a number on the wrong atom; `select_atoms` records what
+        that cost when it happened.
+
+        CALCULATED ANNOTATION STATE, exactly like `set_cip_labels`: the
+        labels are derived from the current graph, so they must be
+        recomputed when it changes, and a payload arriving before the editor
+        is ready is QUEUED rather than dropped.
+
+        The generation and the fingerprint travel WITH the labels so the
+        page can refuse a stale set rather than trusting arrival order.
+        Concrete and a no-op by default, like `set_electron_overlay`: an
+        editor that cannot draw an overlay is not broken.
+        """
+
     def set_cip_labels(self, on: bool) -> None:
         """Show CIP stereo descriptors -- (R)/(S), (E)/(Z) -- or take them off.
 

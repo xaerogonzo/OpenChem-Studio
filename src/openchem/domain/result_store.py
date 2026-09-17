@@ -30,7 +30,7 @@ from __future__ import annotations
 import enum
 import logging
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from openchem.domain.calculator import DRAWING, GEOMETRY
@@ -76,6 +76,23 @@ RETIRED_RESULT_IDS: dict[str, str] = {
     ),
 }
 
+#: Saved result ids that MOVED, as (old id, payload type) -> new id, with the
+#: payload's own id field rewritten to match.
+#:
+#: Keyed by the PAYLOAD TYPE, not the id alone, because the collision this
+#: exists for is two producers sharing one id: `functional_groups` was both
+#: the RDKit fragment counter's `AlertResult` and the naming-engine
+#: annotation's `PerAtomDataset`. Only the alert moved.
+#:
+#: **A SAVED PROJECT CAN ONLY EVER HOLD ONE OF THE TWO.** The store keys a
+#: result by (result id, calculation input, fingerprint), so for one molecule
+#: and one drawing they were the same slot and whichever ran last replaced the
+#: other. So this migration re-files one entry; it does not, and could not,
+#: recover a second one that was never stored.
+MIGRATED_RESULT_IDS: dict[tuple[str, str], str] = {
+    ("functional_groups", "AlertResult"): "fragment_counts",
+}
+
 #: Replay order. Drawing results first, geometry on top: the geometry
 #: descriptor run publishes the SAME descriptor ids as the drawing run, and
 #: the panel keeps the latest, which must be the one a conformer produced.
@@ -87,6 +104,21 @@ class BundleState(str, enum.Enum):
     PARTIAL = "partial"    # recorded for this input, but something is missing
     COMPLETE = "complete"  # every expected part, every result it produced
     STALE = "stale"        # recorded, but for a different input
+
+
+def _renamed_result(result: object, new_id: str) -> object:
+    """A copy of `result` carrying `new_id` in its OWN id field.
+
+    The field differs per result type, and `result_id_of` is the one place
+    that knows which -- so this mirrors it rather than guessing. A type
+    without a known id field is returned unchanged, which then fails the
+    id check below and is dropped as unaddressable rather than stored under
+    a name it does not agree with.
+    """
+    for field_name in ("alert_id", "report_id", "property_id", "spectrum_type"):
+        if hasattr(result, field_name):
+            return replace(result, **{field_name: new_id})  # type: ignore[type-var]
+    return result
 
 
 def result_id_of(result: object) -> str:
@@ -505,6 +537,17 @@ class SessionResultStore:
             logger.warning("Dropping malformed saved result for %s: %s", molecule_uuid, exc)
             self.load_problems[result_codec.MALFORMED] += 1
             return
+        migrated_to = MIGRATED_RESULT_IDS.get(
+            (identity.result_id, type(result).__name__)
+        )
+        if migrated_to is not None:
+            result = _renamed_result(result, migrated_to)
+            logger.info(
+                "Migrating saved result %s for %s to %s",
+                identity.result_id, molecule_uuid, migrated_to,
+            )
+            identity = replace(identity, result_id=migrated_to)
+            self.load_problems["migrated"] += 1
         try:
             if result_id_of(result) != identity.result_id:
                 raise TypeError("result id does not match its entry")

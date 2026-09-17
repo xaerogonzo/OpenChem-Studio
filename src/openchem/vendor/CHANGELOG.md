@@ -409,3 +409,69 @@ category; the new rows guard the 1,2,4-triazole and tetrazole pairs that were
 already correct. Worth stating plainly: adding rows to a corpus does not by
 itself mean the corpus can see the defect they were added for.
 
+## 2026-09-17 — substituent naming: stereo, order, locants
+
+Three defects, all in SUBSTITUENTS, all found from one user report (a fentanyl
+and three tryptamines). None of them was visible to the naming benchmark,
+which scores by OPSIN round trip: two produce a valid name for the right
+molecule, and the third produces a name OPSIN parses perfectly into the wrong
+enantiomer.
+
+* **D-027 — a descriptor recomputed on the carved fragment.** Carving replaces
+  the cut side with H, which reorders CIP priorities at any centre or double
+  bond whose ranking depended on that side. The first carve already inherited
+  the parent's ATOM descriptors; a NESTED carve started from the first
+  fragment and recomputed there, and bonds never inherited at all. Measured on
+  MPMI (`CN1CCC[C@@H]1Cc1c[nH]c2ccccc12`, an R centre): the first carve
+  inherited R, the second recomputed S from `C[C@H]1CCCN1C`, and the name said
+  `(5S)`. Every E/Z measured inside a substituent was inverted --
+  `C/C=C(/C)c1ccc(cc1)C(=O)O` (Z) was named `4-[(2E)-but-2-en-2-yl]benzoic
+  acid`. `_context_cip_maps` now reads each atom's and bond's descriptor as it
+  holds in the molecule being named, inherited beating recomputed, and
+  `_stamp_context_cip` copies both through the `GetMolFrags` map after
+  checking it is injective and element-preserving. `StereoAnalysis` prefers an
+  inherited E/Z the way it already preferred an inherited R/S.
+
+* **D-028 — prefixes cited out of alphanumerical order.** `derive_sort_name`
+  stripped only the OUTER bracket and the leading locant, so a nested bracket
+  reached the key and `(` and `[` sort before every letter: acetyl fentanyl
+  came out `N-[1-(2-phenylethyl)piperidin-4-yl]-N-phenylacetamide`. It also
+  stripped any leading `di`/`tri`, filing `dimethylamino` under m against
+  P-14.5.2 (`2-ethyl-4-(dimethylamino)benzoic acid`) and `diazenyl` under a.
+  The key is now the letters of the complete name with locants, indicated
+  hydrogen, italic heteroatom locants, stereodescriptors, `lambdaN` and
+  `tert`/`sec` removed at every depth, and a leading multiplier removed only
+  where it multiplies. Every other sorter -- the three first-alpha helpers,
+  the ester, phosphite and anhydride class words, the acetamido handcraft --
+  now reads that one key instead of sorting raw strings.
+
+* **D-029 — a heterocyclyl free valence numbered by plan order.** P-31.1.4
+  numbers a ring substituent by heteroatoms (b), indicated hydrogen (c), then
+  the FREE VALENCE (d), ahead of the ene ending (e) and every detachable
+  prefix (f). The free valence was scored nowhere, so the two N=1 directions
+  of 1-methylpyrrolidine tied and plan order decided -- and since the carved
+  fragment's C2 and C5 are symmetry-equivalent, which one was the attachment
+  depended on the input's atom order. Hence `(1-methylpyrrolidin-5-yl)methanol`
+  and, with prefixes deciding instead,
+  `4-(1,2-dimethylpyrrolidin-5-yl)benzoic acid`.
+  `_lowest_free_valence_numberings` keeps the heteroatom-optimal numberings
+  and among them those giving the free valences the lowest locants.
+  Three more instances turned up while writing the regression table, each
+  measured against the pre-fix engine rather than assumed unchanged:
+  `4-methylpiperidin-6-yl`, `2-methylfuran-5-yl`, and the pinned sulfolene row
+  (now `sulfol-3-en-2-yl`; both names round-trip, so that one is a
+  preferred-name change rather than a wrong molecule).
+
+* **Structural perception, which is NOT naming.** A new `structural_groups`
+  table (`data/functional_groups.json`) holds ring amines and the aromatic
+  N-H, matched in their own pass and reachable only through
+  `FGDetection.structural_features`. They are deliberately absent from
+  `detected_fgs`, because everything there becomes a suffix or a prefix and a
+  ring nitrogen added to it would put `amino` into piperidine's name. Every
+  name in the 187-row corpus is unchanged.
+
+Benchmark, on the corpus extended to 187 rows: **184/187 before (exact 82,
+three `stereo_wrong`) -> 187/187 after (exact 87)**. The scorer gained a
+`stereo_wrong` class for the same reason the app's verifier did: a name
+carrying the OPPOSITE descriptor was being reported as "silently flattened".
+Vendored suite: 3,255 passing, 16 skipped, 0 failing.

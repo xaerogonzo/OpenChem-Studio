@@ -529,7 +529,11 @@ def test_each_group_type_gets_its_own_colour_within_a_molecule():
     layer = build_atom_color_layer(
         compute_functional_groups(_mol(ASPIRIN), "u", {})
     )
-    assert len(set(layer.atom_colors.values())) == 2
+    # Three kinds now: the ester, the carboxylic acid, and the benzene RING
+    # SYSTEM. The ring was always perceived (`annotation.rings`) and this
+    # result simply did not read it, which is half of why a fentanyl showed
+    # one group -- see tests/test_functional_group_features.py.
+    assert len(set(layer.atom_colors.values())) == 3
 
 
 def test_group_colours_are_deterministic_for_a_given_molecule():
@@ -557,7 +561,7 @@ def test_the_suffix_eligible_filter_narrows_to_the_naming_candidates():
     narrowed = compute_functional_groups(
         _mol(ASPIRIN), "u", {"only_suffix_eligible": True}
     )
-    assert everything.provenance.parameters["groups_detected"] == 2
+    assert everything.provenance.parameters["groups_detected"] == 3  # + the ring
     assert narrowed.provenance.parameters["groups_detected"] == 1
     assert list(narrowed.provenance.parameters["category_labels"].values()) == [
         "carboxylic acid"
@@ -583,18 +587,37 @@ def test_a_lactam_carbonyl_is_claimed_by_no_group_at_all():
 
     The contrast is the point: a plain cyclic ketone IS claimed, and an
     acyclic amide IS claimed. Only the combination falls through."""
-    assert compute_functional_groups(_mol(CYCLOHEXANONE), "u", {}).values
-    assert compute_functional_groups(_mol("CC(=O)NC"), "u", {}).values
+    def functional_groups(smiles):
+        """The FUNCTIONAL-GROUP features only.
 
-    assert compute_functional_groups(_mol(PYRROLIDINONE), "u", {}).values == {}
-    assert compute_functional_groups(_mol(CAFFEINE), "u", {}).values == {}
+        The result now also carries ring systems and structural features, so
+        `values` alone no longer answers this question: caffeine's purine is
+        a ring system and would make a lactam look claimed.
+        """
+        dataset = compute_functional_groups(_mol(smiles), "u", {})
+        return [
+            f for f in dataset.provenance.parameters["features"]
+            if f["category"] == "functional_group"
+        ]
+
+    assert functional_groups(CYCLOHEXANONE)
+    assert functional_groups("CC(=O)NC")
+
+    assert functional_groups(PYRROLIDINONE) == []
+    assert functional_groups(CAFFEINE) == []
 
 
 def test_a_molecule_with_no_groups_reports_that_it_found_none():
     """So a view can say 'none found' rather than leave a molecule silently
     bare and let a chemist read caffeine as unfunctionalised."""
-    dataset = compute_functional_groups(_mol(CAFFEINE), "u", {})
+    # Ethane, which has nothing of any kind. Caffeine no longer qualifies:
+    # its purine IS reported, as a ring system, which is the point of the
+    # wider vocabulary -- but it still has no functional group, and
+    # `test_a_lactam_carbonyl_is_claimed_by_no_group_at_all` pins that.
+    dataset = compute_functional_groups(_mol("CC"), "u", {})
     assert dataset.provenance.parameters["groups_detected"] == 0
+    assert "Nothing matched" in dataset.provenance.parameters["summary"]
+    assert "lactams" in dataset.provenance.parameters["summary"]
     assert dataset.error is None
     assert dataset.cache_state is not CacheState.FAILED
 
@@ -603,8 +626,14 @@ def test_penicillin_reports_its_exocyclic_amide_and_acid():
     """Its beta-lactam is endocyclic and falls through as above; the side
     chain amide and the carboxylic acid are both claimed."""
     dataset = compute_functional_groups(_mol(PENICILLIN_G), "u", {})
-    labels = set(dataset.provenance.parameters["category_labels"].values())
-    assert labels == {"secondary amide", "carboxylic acid"}
+    features = dataset.provenance.parameters["features"]
+    groups = {f["label"] for f in features if f["category"] == "functional_group"}
+    # Its thiazolidine SULFUR is a ring thioether, which is a real feature of
+    # the molecule and was found while updating this test rather than
+    # predicted -- the same widening that gives THF an ether.
+    assert groups == {"secondary amide", "carboxylic acid", "thioether (sulfide)"}
+    # And its rings are reported as ring systems rather than as groups.
+    assert [f["category"] for f in features if f["key"] == "benzene"] == ["ring_system"]
 
 
 def test_group_colours_actually_reach_the_2d_depiction():
@@ -627,7 +656,7 @@ def test_group_colours_actually_reach_the_2d_depiction():
     )
     drawn = {found.upper() for found in re.findall(r"fill:(#[0-9a-fA-F]{6})", svg)}
     expected = {colour.upper() for colour in layer.atom_colors.values()}
-    assert len(expected) == 2
+    assert len(expected) == 3  # ester, acid, benzene ring system
     assert expected <= drawn
 
 
@@ -739,7 +768,9 @@ def test_every_annotation_calculator_explains_an_empty_result():
     cases = [
         (compute_ring_systems, "CCO"),
         (compute_stereocenters, "CCO"),
-        (compute_functional_groups, CAFFEINE),
+        # Ethane rather than caffeine: caffeine's purine ring system is
+        # reported now, so it is no longer an empty result.
+        (compute_functional_groups, "CC"),
         (compute_locants, CAMPHOR),
     ]
     for compute, smiles in cases:

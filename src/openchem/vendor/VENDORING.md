@@ -8,7 +8,8 @@
 | commit | `c3eac17ffd110c7c5dd37aaad2955e06cf8c9303` |
 | licence | MIT — see `LICENSE.open-iupac-namer` (copyright retained) |
 | vendored | 2026-08-01 |
-| fork | https://github.com/xaerogonzo/open-iupac-namer (this project's fixes, standalone) |
+| fork | https://github.com/xaerogonzo/open-iupac-namer (this project's fixes, standalone) |
+| fork commit | `d9b5ab7` — synced 2026-09-17 from `db4e3ed`, corresponding to this repository's `naming-round-2` |
 | offered upstream | https://github.com/leehiufung911/open-iupac-namer/pull/1 |
 
 ### Why vendored rather than depended on
@@ -123,6 +124,42 @@ re.sub(r"\b(from|import) iupac_namer\b", r"\1 openchem.vendor.iupac_namer", text
 and its exact inverse to go the other way. That is still the whole transform;
 nothing else diverges. Then re-run `benchmarks/naming` before accepting the
 change — the benchmark, not the diff, is what says whether it got better.
+
+### Pushing a change OUT to the fork: merge, never copy
+
+**A STRAIGHT COPY OF THE REWRITTEN FILE CLOBBERS THE FORK'S OWN PROSE**, and
+it did on 2026-09-17: `tests/test_namer_known_defects.py` explains OpenChem's
+default-versus-vendored suite split here and its SINGLE suite there, and the
+copy replaced three of its sentences with ours. The diff showed it (deletions
+of prose nobody had edited), which is the only reason it was caught.
+
+So port each file as a THREE-WAY MERGE, with `git merge-file`:
+
+    ours    the fork's committed file
+    base    the repo's file BEFORE the change, import-rewritten
+    theirs  the repo's file at the new commit, import-rewritten
+
+The rewrite for `base` and `theirs` is the inverse import substitution above
+plus the two other deliberate differences that touch file CONTENT
+(`OPENCHEM_NAMER_DEBUG` -> `IUPAC_NAMER_DEBUG`, and the repo-relative path to
+`KNOWN_LIMITATIONS.md`). `tools/` holds no script for this; the one used is
+recorded in the PR.
+
+Then AUDIT before pushing, because "it merged" is not "only the intended
+changes crossed":
+
+* `git diff --numstat <pinned fork commit>` in the fork must list exactly the
+  files the OpenChem branch touched under `vendor/`, and nothing else.
+* `git grep openchem -- iupac_namer data tests` must be empty.
+* The deletions in that diff must all be real code changes. Prose
+  disappearing is the clobber above.
+* Install it standalone and run its own suite: `uv venv`,
+  `uv pip install -e ".[test]"`, `pytest -q` with a JRE on PATH (py2opsin
+  shells out to a bare `java`, so the managed runtime under the app's data
+  directory is invisible to it unless PATH says otherwise).
+
+The fork's CHANGELOG and KNOWN_LIMITATIONS are WRITTEN, not copied: they
+describe a package with one suite, its own paths and no application around it.
 
 Three things in the fork differ from what is here, and they are deliberate, so
 do not "fix" them on the way back in:

@@ -279,6 +279,9 @@ class KetcherEditorBackend(EditorBackend):
         #: only the second should spend a call on a canvas that has never
         #: shown a label.
         self._pending_cip: bool | None = None
+        #: The last atom-number payload, replayed once the page is ready --
+        #: same reason as `_pending_cip`, one row down.
+        self._pending_atom_numbers: tuple[dict | None] | None = None
         #: Non-None while one of OUR loads is settling; see
         #: `_on_structure_edited`.
         self._loading_token: str | None = None
@@ -370,6 +373,13 @@ class KetcherEditorBackend(EditorBackend):
             # keeps only the last one and it is applied above this.
             self._run_set_cip_labels(self._pending_cip)
             self._pending_cip = None
+        if self._pending_atom_numbers is not None:
+            # AFTER the structure, for the reason the two above give: the
+            # labels are keyed to ATOMS, and a payload replayed onto a canvas
+            # with none loaded resolves nothing, fails closed, and is never
+            # asked again.
+            self._run_set_atom_numbers(self._pending_atom_numbers[0])
+            self._pending_atom_numbers = None
 
     def _on_structure_edited(self, molblock: str) -> None:
         if self._loading_token is not None:
@@ -587,6 +597,49 @@ class KetcherEditorBackend(EditorBackend):
         }})();
         """
         self._page.runJavaScript(script)
+
+    def set_atom_numbers(self, payload: dict | None) -> None:
+        """Numbers beside the atoms, per `EditorBackend.set_atom_numbers`.
+
+        Queued when Ketcher is not ready, for the reason `set_cip_labels`
+        gives: a dropped payload leaves the View menu claiming a numbering
+        the canvas is not showing.
+        """
+        if not self._ketcher_ready:
+            self._pending_atom_numbers = (payload,)
+            return
+        self._run_set_atom_numbers(payload)
+
+    def _run_set_atom_numbers(self, payload: dict | None) -> None:
+        # Guarded on the global rather than assumed, like the CIP call: a
+        # dist built before this feature existed has no `openchemAtomNumbers`,
+        # and a call reaching an older page should warn rather than throw
+        # into a dead callback.
+        argument = "null" if payload is None else json.dumps(payload)
+        script = f"""
+        (function() {{
+          if (!window.openchemAtomNumbers) {{
+            console.warn('[ketcher-host] openchemAtomNumbers is missing -- stale dist?');
+            return;
+          }}
+          window.openchemAtomNumbers.show({argument});
+        }})();
+        """
+        self._page.runJavaScript(script)
+
+    def atom_number_report(self, callback) -> None:
+        """What the PAGE drew, by molfile position.
+
+        Exists for the same reason `selection_report` does: the labels and
+        the atoms they sit on are a few pixels of text, and the failure this
+        guards against -- a number on the atom one position over -- is
+        invisible in a screenshot. `runJavaScript` cannot return an object
+        in this Qt build, so the page hands back a JSON string.
+        """
+        self._page.runJavaScript(
+            "window.openchemAtomNumbers ? window.openchemAtomNumbers.report() : ''",
+            callback,
+        )
 
     def set_atom_tool(
         self, symbol: str, mass_number: int | None = None

@@ -67,6 +67,102 @@ def _canonical_renumber(mol: object, attachment_idxs: list[int]) -> tuple:
     return reordered, new_attachment
 
 
+#: Property carrying a stereodescriptor as it holds in the ORIGINAL molecule,
+#: on fragment atoms and bonds.  See `_context_cip_maps`.
+_PARENT_CIP = "_ParentCIPCode"
+
+
+def _context_cip_maps(mol: object) -> "tuple[dict[int, str], dict[tuple[int, int], str]]":
+    """Every CIP descriptor of *mol*, as it holds in the molecule being NAMED.
+
+    Returns ``(atom_idx -> code, (lo_atom, hi_atom) -> code)``.
+
+    **AN INHERITED DESCRIPTOR BEATS A RECOMPUTED ONE, and that is the whole
+    fix.**  Carving is recursive: ``{[(2R)-1-methylpyrrolidin-2-yl]methyl}`` is
+    a pyrrolidinyl carved out of a methyl that was itself carved out of the
+    parent.  The second carve starts from the FIRST fragment, where the
+    indolyl side is already an H, so recomputing CIP there ranks the
+    exocyclic CH3 (H,H,H) below the ring CH2 (C,H,H) and flips the centre.
+    Measured on MPMI ``CN1CCC[C@@H]1Cc1c[nH]c2ccccc12``: first carve
+    inherited R correctly, second carve recomputed S from
+    ``C[C@H]1CCCN1C`` and stamped THAT, and the name said (5S) for an R
+    centre.
+
+    **BONDS TOO.**  The same truncation reorders the two groups on a double
+    bond carbon when the cut side is one of them: every E/Z measured inside a
+    substituent was inverted, e.g. ``C/C=C(/C)c1ccc(cc1)C(=O)O`` (Z) named
+    ``4-[(2E)-but-2-en-2-yl]benzoic acid``.  Keyed by the sorted endpoint
+    pair rather than the bond index, because fragmenting renumbers bonds.
+    """
+    from rdkit import Chem
+
+    try:
+        Chem.AssignStereochemistry(mol, cleanIt=False, force=False)  # type: ignore[attr-defined]
+        # The legacy call seeds the flags the modern labeller reads; the
+        # modern one is authoritative (pseudoasymmetric r/s, meso).
+        try:
+            from rdkit.Chem import rdCIPLabeler  # type: ignore[attr-defined]
+            rdCIPLabeler.AssignCIPLabels(mol)
+        except Exception:  # pragma: no cover — defensive only
+            pass
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.debug("Failed to assign CIP codes before carving: %s", exc)
+
+    atoms: "dict[int, str]" = {}
+    for atom in mol.GetAtoms():
+        if atom.HasProp(_PARENT_CIP):
+            atoms[atom.GetIdx()] = atom.GetProp(_PARENT_CIP)
+        elif atom.HasProp("_CIPCode"):
+            atoms[atom.GetIdx()] = atom.GetProp("_CIPCode")
+    bonds: "dict[tuple[int, int], str]" = {}
+    for bond in mol.GetBonds():
+        key = tuple(sorted((bond.GetBeginAtomIdx(), bond.GetEndAtomIdx())))
+        if bond.HasProp(_PARENT_CIP):
+            bonds[key] = bond.GetProp(_PARENT_CIP)
+        elif bond.HasProp("_CIPCode"):
+            bonds[key] = bond.GetProp("_CIPCode")
+    return atoms, bonds
+
+
+def _stamp_context_cip(
+    rw: object,
+    parent: object,
+    local_to_parent: "dict[int, int]",
+    atom_codes: "dict[int, str]",
+    bond_codes: "dict[tuple[int, int], str]",
+) -> None:
+    """Copy *parent*'s context descriptors onto the fragment *rw*, in place.
+
+    The map comes from ``GetMolFrags``, which is authoritative, and is
+    CHECKED rather than trusted: a descriptor landing on the wrong atom is a
+    name for a different stereoisomer, and nothing downstream could tell.
+    Called BEFORE dummy->H replacement, sanitising and renumbering, all of
+    which carry atom and bond properties through.
+    """
+    seen: "set[int]" = set()
+    for local_idx, parent_idx in local_to_parent.items():
+        if parent_idx in seen:
+            raise ValueError(f"fragment map is not injective at parent atom {parent_idx}")
+        seen.add(parent_idx)
+        if rw.GetAtomWithIdx(local_idx).GetAtomicNum() != parent.GetAtomWithIdx(parent_idx).GetAtomicNum():
+            raise ValueError(
+                f"fragment atom {local_idx} maps to parent atom {parent_idx} of a different element"
+            )
+        code = atom_codes.get(parent_idx)
+        if code is not None:
+            rw.GetAtomWithIdx(local_idx).SetProp(_PARENT_CIP, code)
+    if not bond_codes:
+        return
+    for bond in rw.GetBonds():
+        begin = local_to_parent.get(bond.GetBeginAtomIdx())
+        end = local_to_parent.get(bond.GetEndAtomIdx())
+        if begin is None or end is None:
+            continue
+        code = bond_codes.get(tuple(sorted((begin, end))))
+        if code is not None:
+            bond.SetProp(_PARENT_CIP, code)
+
+
 def _replace_dummy_with_hydrogen(rw: object) -> None:
     """In-place: replace all dummy atoms (atomic number 0) with hydrogen."""
     for atom in rw.GetAtoms():
@@ -199,29 +295,11 @@ def carve_substituent(
     # implementation: inherit the parent's CIP descriptor for every atom in
     # the carved fragment.  StereoAnalysis prefers _ParentCIPCode over the
     # locally-recomputed _CIPCode.
-    parent_cip = None
-    parent_cip_map: "dict[int, str]" = {}  # parent_atom_idx → CIP code
-    try:
-        Chem.AssignStereochemistry(mol, cleanIt=False, force=False)  # type: ignore[attr-defined]
-        # Refresh CIP labels using the modern labeller so that
-        # pseudoasymmetric (lowercase ``r`` / ``s``) and meso descriptors are
-        # correct.  The legacy ``AssignStereochemistry`` above seeds chiral
-        # tags / bond stereo flags that ``rdCIPLabeler`` reads; the modern
-        # call overwrites the ``_CIPCode`` properties with authoritative
-        # values.
-        try:
-            from rdkit.Chem import rdCIPLabeler  # type: ignore[attr-defined]
-            rdCIPLabeler.AssignCIPLabels(mol)
-        except Exception:  # pragma: no cover — defensive only
-            pass
-        sub_atom = mol.GetAtomWithIdx(sub_atom_idx)
-        if sub_atom.HasProp("_CIPCode"):
-            parent_cip = sub_atom.GetProp("_CIPCode")
-        for parent_atom in mol.GetAtoms():
-            if parent_atom.HasProp("_CIPCode"):
-                parent_cip_map[parent_atom.GetIdx()] = parent_atom.GetProp("_CIPCode")
-    except Exception as exc:  # pragma: no cover - defensive
-        logger.debug("Failed to read parent CIP code at attachment: %s", exc)
+    #
+    # When *mol* is itself a carved fragment, its own inherited codes are the
+    # ones to pass on -- see `_context_cip_maps`, which also covers E/Z.
+    parent_cip_map, parent_bond_cip_map = _context_cip_maps(mol)
+    parent_cip = parent_cip_map.get(sub_atom_idx)
 
     # FragmentOnBonds inserts dummy atoms (*) at the cut points.
     fragmented = Chem.FragmentOnBonds(
@@ -265,11 +343,7 @@ def carve_substituent(
     # over the locally-recomputed _CIPCode on the carved fragment so internal
     # stereocenters whose CIP priorities flip after carving still get the
     # correct (parent-context) descriptor.
-    if parent_cip_map:
-        for local_idx, orig_idx in raw_local_to_parent.items():
-            cip = parent_cip_map.get(orig_idx)
-            if cip is not None:
-                rw.GetAtomWithIdx(local_idx).SetProp("_ParentCIPCode", cip)
+    _stamp_context_cip(rw, mol, raw_local_to_parent, parent_cip_map, parent_bond_cip_map)
     _replace_dummy_with_hydrogen(rw)
     try:
         Chem.SanitizeMol(rw)
@@ -318,7 +392,7 @@ def carve_substituent(
     # property survives the renumbering (RDKit copies atom props).
     if parent_cip is not None:
         rw_cip = Chem.RWMol(sanitized)
-        rw_cip.GetAtomWithIdx(local_sub_idx).SetProp("_ParentCIPCode", parent_cip)
+        rw_cip.GetAtomWithIdx(local_sub_idx).SetProp(_PARENT_CIP, parent_cip)
         sanitized = rw_cip.GetMol()
 
     # v13 G1: canonical renumbering.
@@ -414,6 +488,18 @@ def carve_bridging_substituent(
     raw_frag = frag_mols[target_frag_idx]
 
     rw = Chem.RWMol(raw_frag)
+    # A bridge can carry stereo of its own (-CH(CH3)-, -CH=CH-), and cutting
+    # it out on BOTH sides changes its CIP ranking at least as much as a
+    # one-sided carve does -- so it inherits the same way `carve_substituent`
+    # does, rather than being the one carve that recomputes.
+    parent_n_atoms = mol.GetNumAtoms()
+    raw_local_to_parent = {
+        local_idx: orig_idx
+        for local_idx, orig_idx in enumerate(frag_atom_lists[target_frag_idx])
+        if orig_idx < parent_n_atoms
+    }
+    atom_codes, bond_codes = _context_cip_maps(mol)
+    _stamp_context_cip(rw, mol, raw_local_to_parent, atom_codes, bond_codes)
     _replace_dummy_with_hydrogen(rw)
     try:
         Chem.SanitizeMol(rw)
