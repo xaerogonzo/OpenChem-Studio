@@ -766,10 +766,11 @@ calculator declares), and then a **Calculator Inspector** showing:
   row and that atom is highlighted in both pictures
 
 The colour scale is computed once and drives both panes, so the 2D and 3D
-views always agree. Numbers are printed on heavy atoms and on hydrogens bonded
-to N, O or S; the hydrogens on carbon keep theirs in the table and appear when
-you **hover** over an atom in the 3D view. The panes and the table can be
-resized by dragging the dividers between them.
+views always agree. In 2D, numbers are printed on heavy atoms and on hydrogens
+bonded to N, O or S; in 3D, on heavy atoms only, with the molecule turned to
+face you. Every other value is in the table, and appears when you **hover**
+over an atom in the 3D view. The panes and the table can be resized by
+dragging the dividers between them, and the Inspector can be maximised.
 
 When a result was computed on a structure other than the one you drew, the
 Inspector shows that structure. Partial Charge (3D) with **pH-dependent**

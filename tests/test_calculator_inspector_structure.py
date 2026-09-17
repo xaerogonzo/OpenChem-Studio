@@ -72,9 +72,19 @@ def test_the_3d_pane_shows_the_protonated_microspecies_not_the_stored_conformer(
 
     assert view._structure_source == EFFECTIVE_STRUCTURE
     (loaded,) = recorded_viewer["loaded"]
-    assert loaded == result.structure_molblock != molecule.conformers[0].molblock
     shown = Chem.MolFromMolBlock(loaded, removeHs=False)
-    assert shown.GetNumAtoms() == 57 and Chem.GetFormalCharge(shown) == 1
+    structure = Chem.MolFromMolBlock(result.structure_molblock, removeHs=False)
+    stored = Chem.MolFromMolBlock(molecule.conformers[0].molblock, removeHs=False)
+    assert shown.GetNumAtoms() == 57 != stored.GetNumAtoms() and Chem.GetFormalCharge(shown) == 1
+    # The computed structure, turned face-on: same atoms in the same order, same internal geometry.
+    assert [a.GetSymbol() for a in shown.GetAtoms()] == [a.GetSymbol() for a in structure.GetAtoms()]
+    import numpy as np
+
+    def distances(m):
+        p = np.array(m.GetConformer().GetPositions())
+        return np.linalg.norm(p[:, None] - p[None], axis=-1)
+
+    assert np.abs(distances(shown) - distances(structure)).max() < 2e-3  # molblock precision
 
 
 def test_the_2d_pane_labels_every_heavy_atom_and_draws_the_n_h(qapp, recorded_viewer):
@@ -109,20 +119,21 @@ def test_a_result_without_a_structure_still_uses_its_stored_conformer(qapp, reco
     )
     _dialog, view = _inspect(engine, molecule, legacy, qapp)
     assert view._structure_source == LEGACY_STORED_CONFORMER
-    assert recorded_viewer["loaded"] == [molecule.conformers[0].molblock]
+    (loaded,) = recorded_viewer["loaded"]  # that conformer, turned face-on
+    assert loaded == engine.face_on(molecule.conformers[0].molblock)
 
 
-def test_3d_labels_go_on_heavy_atoms_and_polar_hydrogens_and_every_value_reaches_hover(qapp, recorded_viewer):
+def test_3d_labels_go_on_heavy_atoms_only_and_every_value_reaches_hover(qapp, recorded_viewer):
+    """Heavy atoms only in 3D: in depth a polar hydrogen's label sat on its parent's. The 2D pane,
+    which has room, keeps polar hydrogens (the 2D test above)."""
     engine, molecule, mol = _molecule_with_conformer(BUTYRYL_FENTANYL)
     result = _registry().compute("geometry_partial_charge", mol, molecule.uuid, PH)
     _inspect(engine, molecule, result, qapp)
 
     (layer,) = recorded_viewer["layers"]
     structure = Chem.MolFromMolBlock(result.structure_molblock, removeHs=False)
-    labelled = set(layer.atom_labels)
-    for atom in structure.GetAtoms():
-        on_carbon = atom.GetAtomicNum() == 1 and atom.GetNeighbors()[0].GetSymbol() == "C"
-        assert (atom.GetIdx() in labelled) != on_carbon, (atom.GetIdx(), atom.GetSymbol())
+    heavy = {a.GetIdx() for a in structure.GetAtoms() if a.GetAtomicNum() > 1}
+    assert set(layer.atom_labels) == heavy
     assert len(layer.atom_colors) == 57  # every atom is still coloured
     ((values, elements), keywords) = recorded_viewer["hover"][0]
     assert values == result.values and len(elements) == 57 and keywords["units"] == "e"
@@ -175,10 +186,53 @@ def test_copy_all_includes_the_value_table(qapp, recorded_viewer):
     assert copied.count("\n") >= len(result.values)
 
 
-def test_the_inspector_opens_large_and_stays_resizable(qapp, recorded_viewer):
+def test_the_inspector_opens_large_stays_resizable_and_can_be_maximised(qapp, recorded_viewer):
     dialog, _view, _result = _acid_view(qapp)
     assert dialog.width() >= 640 and dialog.height() >= 480
     assert dialog.minimumSize() != dialog.maximumSize()
+    flags = dialog.windowFlags()
+    assert flags & Qt.WindowType.WindowMaximizeButtonHint and flags & Qt.WindowType.WindowMinimizeButtonHint
+
+
+def test_the_3d_pane_gets_half_the_width_once_shown(qapp, recorded_viewer):
+    """`setSizes` before the first show left the web view 4 px wide, measured in a driven run."""
+    dialog, view, _result = _acid_view(qapp)
+    dialog.show()
+    qapp.processEvents()
+    left, right = view._views_splitter.sizes()
+    assert right >= 320 and abs(left - right) <= 2
+    dialog.close()
+
+
+def test_face_on_is_a_proper_rotation_with_the_narrowest_direction_along_z():
+    import numpy as np
+
+    engine = ChemistryEngine()
+    mol = Chem.AddHs(Chem.MolFromSmiles("C[C@H](N)c1ccccc1"))
+    assert AllChem.EmbedMolecule(mol, randomSeed=7) == 0
+    before = engine.mol_from_molblock(Chem.MolToMolBlock(mol))
+    after = engine.mol_from_molblock(engine.face_on(Chem.MolToMolBlock(mol)))
+    p, q = (np.array(m.GetConformer().GetPositions()) for m in (before, after))
+    assert [a.GetSymbol() for a in before.GetAtoms()] == [a.GetSymbol() for a in after.GetAtoms()]
+    dist = lambda x: np.linalg.norm(x[:, None] - x[None], axis=-1)  # noqa: E731
+    assert np.abs(dist(p) - dist(q)).max() < 2e-3
+    spread = q.var(axis=0)
+    assert spread[0] >= spread[1] >= spread[2]
+    # No mirror image: the stereocentre keeps its label.
+    for m in (before, after):
+        Chem.AssignStereochemistryFrom3D(m)
+    assert Chem.FindMolChiralCenters(before) == Chem.FindMolChiralCenters(after) == [(1, "S")]
+
+
+def test_the_2d_depiction_asserts_no_configuration_on_a_protonated_amine(qapp):
+    """The pH 7.4 butyryl fentanyl depiction drew a hashed bond on its N+ -- an invertible centre."""
+    engine, molecule, mol = _molecule_with_conformer(BUTYRYL_FENTANYL)
+    result = _registry().compute("geometry_partial_charge", mol, molecule.uuid, PH)
+    depiction, _kept = engine.depiction_of(result.structure_molblock, molecule.molblock)
+    drawn = Chem.MolFromMolBlock(depiction, removeHs=False)
+    assert all(a.GetChiralTag() == Chem.ChiralType.CHI_UNSPECIFIED for a in drawn.GetAtoms() if a.GetSymbol() == "N")
+    assert not [b for b in drawn.GetBonds() if b.GetBondDir() in (Chem.BondDir.BEGINWEDGE, Chem.BondDir.BEGINDASH)]
+    assert Chem.FindMolChiralCenters(drawn, includeUnassigned=False, useLegacyImplementation=False) == []
 
 
 # --- the page: labels, hover and highlight on a real 3Dmol viewer -------------------------------

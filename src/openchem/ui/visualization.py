@@ -396,6 +396,8 @@ LABEL_ALL_ATOMS = "all_atoms"
 #: keep their values in the inspector's table and on hover; labelling them too
 #: is what made the 3D pane unreadable (Alex, butyryl fentanyl, 57 atoms).
 LABEL_HEAVY_AND_POLAR_H = "heavy_and_polar_h"
+#: Heavy atoms only: the 3D pane's choice, where a polar hydrogen's label sits on its parent's.
+LABEL_HEAVY_ATOMS = "heavy_atoms"
 
 
 def label_policy_atoms(rows: list[tuple[str, bool]], policy: str = LABEL_HEAVY_AND_POLAR_H) -> set[int]:
@@ -405,6 +407,8 @@ def label_policy_atoms(rows: list[tuple[str, bool]], policy: str = LABEL_HEAVY_A
     """
     if policy == LABEL_ALL_ATOMS:
         return set(range(len(rows)))
+    if policy == LABEL_HEAVY_ATOMS:
+        return {index for index, (symbol, _polar) in enumerate(rows) if symbol != "H"}
     if policy != LABEL_HEAVY_AND_POLAR_H:
         raise ValueError(f"Unknown label policy {policy!r}")
     return {index for index, (symbol, polar_hydrogen) in enumerate(rows) if symbol != "H" or polar_hydrogen}

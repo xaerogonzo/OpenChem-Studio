@@ -16,10 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pH calculator are not restored (rerun it; it takes under a second), and
   results from the plain 3D calculator are unaffected.
 - **The Calculator Inspector is easier to read, for every per-atom
-  calculator.** It opens larger with draggable dividers, labels heavy atoms and
-  N/O/S hydrogens in larger, backed text, shows any atom's value on hover in 3D,
-  and adds a sortable, filterable table of every value whose rows highlight
-  their atom in both pictures. Copy All includes the table.
+  calculator.** It opens larger, with draggable dividers and maximise and
+  minimise buttons; turns the 3D molecule to face you; labels heavy atoms in 3D
+  (and N/O/S hydrogens too in 2D) in larger text; shows any atom's value on
+  hover in 3D; and adds a sortable, filterable table of every value whose rows
+  highlight their atom in both pictures. Copy All includes the table.
+- **The 2D depiction no longer marks an ammonium nitrogen as a stereocentre.**
+  A protonated amine inverts; the hashed bond it was drawn with said otherwise.
 
 ### Fixed
 

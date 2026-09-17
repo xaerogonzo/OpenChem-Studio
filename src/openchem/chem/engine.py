@@ -272,6 +272,18 @@ class ChemistryEngine:
         if mol is None:
             raise InvalidStructureError("Could not parse the computed structure")
         Chem.AssignStereochemistryFrom3D(mol)
+        # NOT ON NITROGEN. From 3D coordinates RDKit gives a protonated amine
+        # N+ a configuration, and the depiction drew it as a hashed bond --
+        # measured on butyryl fentanyl at pH 7.4, where it also made the
+        # piperidine carbon opposite look pseudo-asymmetric. An amine's proton
+        # exchanges and its nitrogen inverts, so no drawing should assert
+        # either; stereo is re-perceived without them.
+        if any(atom.GetSymbol() == "N" and atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED
+               for atom in mol.GetAtoms()):
+            for atom in mol.GetAtoms():
+                if atom.GetSymbol() == "N":
+                    atom.SetChiralTag(Chem.ChiralType.CHI_UNSPECIFIED)
+            Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
         polar = {i for i, (_, is_polar) in enumerate(self.atom_rows(structure_molblock)) if is_polar}
         for index in polar:
             mol.GetAtomWithIdx(index).SetIsotope(2)
@@ -288,6 +300,33 @@ class ChemistryEngine:
         else:
             rdDepictor.Compute2DCoords(flat)
         return Chem.MolToMolBlock(flat), kept
+
+    def face_on(self, molblock: str) -> str:
+        """The same conformer turned so its two widest directions lie in the screen plane.
+
+        A VIEW TRANSFORMATION: a proper rotation about the centroid (det +1, so
+        no mirror image), atoms and their order untouched, so every per-atom
+        index still addresses the same atom. 3Dmol looks down z, and fitting
+        the camera without turning the molecule showed butyryl fentanyl
+        edge-on with its labels piled on each other (Alex, 2026-09-17).
+        Everything one pane draws -- sticks, labels, surface, potential grid --
+        must come from this same molblock, or they stop lining up.
+        """
+        import numpy as np
+
+        mol = self.mol_from_molblock(molblock)
+        if mol.GetNumConformers() == 0 or mol.GetNumAtoms() < 3:
+            return molblock
+        conformer = mol.GetConformer()
+        positions = np.array(conformer.GetPositions(), dtype=float)
+        centred = positions - positions.mean(axis=0)
+        _u, _s, axes = np.linalg.svd(centred, full_matrices=False)
+        rotation = axes.copy()  # rows: widest, second, narrowest direction -> x, y, z
+        if np.linalg.det(rotation) < 0:
+            rotation[2] = -rotation[2]
+        for index, (x, y, z) in enumerate(centred @ rotation.T):
+            conformer.SetAtomPosition(index, Point3D(float(x), float(y), float(z)))
+        return Chem.MolToMolBlock(mol)
 
     def drawing_from_conformer(
         self,

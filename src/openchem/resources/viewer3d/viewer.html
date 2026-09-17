@@ -295,11 +295,12 @@
           // (`ui/visualization.label_policy_atoms`); this only draws them.
           viewer.addLabel(currentLabels[atomIndexStr], {
             position: { x: atom.x, y: atom.y, z: atom.z },
+            // No backing box: Alex found the white boxes worse than the
+            // clutter they were meant to cut through (2026-09-17).
             fontSize: 13,
-            fontColor: 'black',
-            showBackground: true,
-            backgroundColor: 'white',
-            backgroundOpacity: 0.6,
+            font: 'Arial',
+            fontColor: '#111111',
+            showBackground: false,
             inFront: true,
           });
         });

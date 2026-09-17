@@ -1583,6 +1583,25 @@ class _Driver(QObject):
             "window.openchemViewer.labelState()",
             lambda state: logger.warning("OPENCHEM_DRIVE: inspect_report[%s] page=%s", tag, state),
         )
+        if step.get("png"):
+            # THE PAGE'S OWN RENDERING. A Qt grab of the dialog came back with
+            # the 3D pane blank, and the 3D pane was exactly what needed looking
+            # at: 3Dmol draws its labels into the WebGL canvas, so this has them.
+            target = Path(str(step["png"]))
+
+            def save(data_url: str) -> None:
+                import base64
+
+                size, _, data_url = (data_url or "").partition("|")
+                logger.warning("OPENCHEM_DRIVE: inspect_report[%s] container=%s", tag, size)
+                if not data_url or "," not in data_url:
+                    logger.error("OPENCHEM_DRIVE: inspect_report[%s] no canvas image", tag)
+                    return
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(base64.b64decode(data_url.split(",", 1)[1]))
+                logger.warning("OPENCHEM_DRIVE: inspect_report[%s] wrote %s", tag, target)
+
+            view._viewer3d._page.runJavaScript("viewer.resize(); viewer.render(); JSON.stringify([document.getElementById('viewer-container').clientWidth, document.getElementById('viewer-container').clientHeight]) + '|' + viewer.pngURI()", save)
 
     def _do_shot(self, step: dict[str, Any]) -> None:
         """Save a picture of the window from inside Qt.

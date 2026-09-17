@@ -52,6 +52,7 @@ from openchem.ui.visualization import (
     build_visualization_layer,
     data_range,
     declared_total,
+    LABEL_HEAVY_ATOMS,
     label_decimals,
     label_policy_atoms,
     summary_note,
@@ -199,6 +200,14 @@ class _CalculatorResultView(QWidget):
                 conformer_molblock = own_molblock
             elif self._conformer_id is not None:
                 conformer_molblock = None  # its conformer is gone; never another one's atoms
+        if conformer_molblock:
+            # Face-on for the 3D pane, and for EVERYTHING it draws (surface and
+            # potential grid read this same attribute), so they stay aligned.
+            # A rotation only: atom order, and so every index, is untouched.
+            try:
+                conformer_molblock = engine.face_on(conformer_molblock)
+            except Exception:  # noqa: BLE001 - an unparsable molblock keeps its own view
+                pass
         self._conformer_molblock = conformer_molblock
         self._surface_result = result if isinstance(result, PerAtomDataset) else None
         self._depiction_molblock = self._depiction_for(result)
@@ -244,7 +253,9 @@ class _CalculatorResultView(QWidget):
         self._rows = self._atom_rows(self._index_molblock)
         depiction_rows = self._atom_rows(self._depiction_molblock)
         self._layer_2d = with_labels_on(self._layer_2d, label_policy_atoms(depiction_rows) if depiction_rows else None)
-        layer_3d = with_labels_on(layer, label_policy_atoms(self._rows) if self._rows else None)
+        # 3D labels HEAVY ATOMS ONLY: in depth a polar hydrogen's label lands on
+        # its parent's, which the 2D pane does not suffer. Its value is on hover.
+        layer_3d = with_labels_on(layer, label_policy_atoms(self._rows, LABEL_HEAVY_ATOMS) if self._rows else None)
 
         self._svg_widget = QSvgWidget(self)
         self._emphasised: int | None = None
@@ -318,12 +329,19 @@ class _CalculatorResultView(QWidget):
             self._legend_label.setText("No conformer generated yet -- 3D view is empty.")
 
         # SPLITTERS, so the panes can be given the room a crowded molecule
-        # needs. Initial sizes are fixed (50/50, then 70/30) so a driven
+        # needs. Initial proportions are fixed (50/50, then 70/30) so a driven
         # screenshot is comparable run to run; nothing is persisted yet.
+        #
+        # STRETCH FACTORS, NOT setSizes. `setSizes([1, 1])` before the dialog
+        # was shown left the 3D pane 4 px wide -- measured through the page's
+        # own container width in a driven run -- because the 2D pane has a
+        # minimum size and the web view had none. Both panes have one now.
         self._views_splitter = QSplitter(Qt.Orientation.Horizontal, self)
         self._views_splitter.addWidget(self._svg_widget)
         self._views_splitter.addWidget(self._viewer3d.widget())
-        self._views_splitter.setSizes([1, 1])
+        self._viewer3d.widget().setMinimumSize(320, 280)
+        self._views_splitter.setStretchFactor(0, 1)
+        self._views_splitter.setStretchFactor(1, 1)
         self._views_splitter.setChildrenCollapsible(False)
 
         # The 2D counterpart of the 3D surface control beside it: the same
@@ -354,7 +372,9 @@ class _CalculatorResultView(QWidget):
         self._main_splitter.addWidget(self._views_splitter)
         if self._table_area is not None:
             self._main_splitter.addWidget(self._table_area)
-            self._main_splitter.setSizes([7, 3])
+            self._main_splitter.setStretchFactor(0, 7)
+            self._main_splitter.setStretchFactor(1, 3)
+            self._table_area.setMinimumHeight(120)
         self._main_splitter.setChildrenCollapsible(False)
 
         layout = QVBoxLayout(self)
@@ -366,6 +386,21 @@ class _CalculatorResultView(QWidget):
         layout.addWidget(self._placement_label)
         layout.addLayout(surface_row)
         layout.addWidget(self._legend_label)
+
+    def showEvent(self, event) -> None:  # noqa: N802 - Qt override
+        """Split the panes 50/50 once there is a real width to split.
+
+        Stretch factors alone still gave the 3D pane only its 320 px minimum:
+        the SVG widget's size hint claimed the rest (measured, container 320 of
+        ~1150 px). Sizes set before the first show are ignored the same way.
+        """
+        super().showEvent(event)
+        if getattr(self, "_split_done", False):
+            return
+        self._split_done = True
+        width = self._views_splitter.width()
+        if width > 0:
+            self._views_splitter.setSizes([width // 2, width - width // 2])
 
     # --- the value table ----------------------------------------------------
 
@@ -878,6 +913,13 @@ class CalculatorInspectorDialog(QDialog):
             width, height = min(width, available.width()), min(height, available.height())
         self.resize(width, height)
         self.setMinimumSize(640, 480)
+        # Maximise and minimise, which a QDialog does not get by default: with
+        # two panes and a value table there is more to read than any fixed size.
+        self.setWindowFlags(
+            self.windowFlags()
+            | Qt.WindowType.WindowMaximizeButtonHint
+            | Qt.WindowType.WindowMinimizeButtonHint
+        )
         self._engine = engine
         self._result = result
         self._on_add_structure = on_add_structure
