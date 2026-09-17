@@ -83,6 +83,9 @@ The script is a JSON list of steps, run in order:
                                                       and the identity the
                                                       SERVICE was handed
       {"do": "inspector_report", "expect_spectrum": "stale"}   asserts it
+      {"do": "atom_numbers",     "mode": "locants", "tag": "on"}  the View
+                                              menu's mode, and what the PAGE
+                                              drew, by molfile position
       {"do": "process_report",   "modules": ["openchem.chem.engine"]}  pid,
                                               HEAD, and where each module
                                               was imported from
@@ -4347,6 +4350,34 @@ class _Driver(QObject):
             "OPENCHEM_DRIVE: no centre tab %r (have %s)",
             wanted,
             [tabs.tabText(i) for i in range(tabs.count())],
+        )
+
+    def _do_atom_numbers(self, step: dict[str, Any]) -> None:
+        """`{"do": "atom_numbers", "mode": "locants"}` -- the View menu's
+        Atom Numbers mode, then what the PAGE drew.
+
+        The mode is set through `MoleculeEditorWidget.set_atom_number_mode`,
+        which is what the menu action calls, and the report comes from the
+        page rather than from Python: the failure this guards against is a
+        number drawn on the atom one position over, which no screenshot
+        shows and which Python's own view of the labels cannot see. The two
+        id spaces agree on a freshly loaded structure and diverge after an
+        edit, so the interesting run is the one with an `erase` in it.
+        """
+        window = self._window
+        editor = window._editor
+        mode = str(step.get("mode", "off"))
+        editor.set_atom_number_mode(mode)
+        tag = step.get("tag", mode)
+        backend = editor._backend
+        report = getattr(backend, "atom_number_report", None)
+        if report is None:
+            logger.error("OPENCHEM_DRIVE: this backend cannot report atom numbers")
+            return
+        report(
+            lambda state: logger.warning(
+                "OPENCHEM_DRIVE: atom_numbers[%s] mode=%s page=%s", tag, mode, state
+            )
         )
 
     def _do_process_report(self, step: dict[str, Any]) -> None:

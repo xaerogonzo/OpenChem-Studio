@@ -152,13 +152,58 @@ class LocantSource(str, Enum):
     RETAINED_RING = "retained_ring"
 
 
+class LocantKind(str, Enum):
+    """What KIND of label a locant is -- a different question from where it
+    came from.
+
+    `LocantSource` answers "who assigned this number" (the molecule's own
+    numbering, or a ring skeleton's conventional one). This answers "what is
+    this string": 3a is a FUSION locant and N is a HETEROATOM locant, and
+    both can come from either source. Overloading one enum with both would
+    make "PARENT" mean two things.
+
+    Load-bearing for a view: the editor's numbering overlay draws these on
+    the canvas, where `3a` and `N` read as different kinds of position, and
+    a reader comparing `4` with `4a` needs to know the second is not the
+    fifth atom of anything.
+    """
+
+    #: A plain position on the parent chain or ring: 1, 2, 17.
+    CHAIN_OR_RING = "chain_or_ring"
+    #: An interior atom of a fused system: 3a, 7a, 11b.
+    FUSION = "fusion"
+    #: An italic heteroatom locant: N, N', O, S.
+    HETEROATOM = "heteroatom"
+
+
+def classify_locant(label: str) -> LocantKind:
+    """Which kind of locant `label` is.
+
+    Read off the LABEL rather than taken from the engine, because the engine
+    does not report a kind -- `Locant` carries `is_numeric` and a suffix, and
+    the three cases are exactly distinguishable from the string: digits then
+    a letter is a fusion locant, no leading digit is a heteroatom locant,
+    plain digits are a position.
+    """
+    stripped = label.strip()
+    if not stripped:
+        return LocantKind.CHAIN_OR_RING
+    if not stripped[0].isdigit():
+        return LocantKind.HETEROATOM
+    trailing = stripped.rstrip("'")
+    if trailing and trailing[-1].isalpha():
+        return LocantKind.FUSION
+    return LocantKind.CHAIN_OR_RING
+
+
 @dataclass(frozen=True)
 class AnnotatedLocant:
-    """One atom's IUPAC locant, and where it came from."""
+    """One atom's IUPAC locant, where it came from, and what kind it is."""
 
     atom_index: int
     label: str
     source: LocantSource
+    kind: LocantKind = LocantKind.CHAIN_OR_RING
 
 
 @dataclass(frozen=True)
@@ -1594,6 +1639,7 @@ def _locants_and_decisions(
                 atom_index=atom_idx,
                 label=locant.label,
                 source=LocantSource.PARENT,
+                kind=classify_locant(locant.label),
             )
 
     for atom_idx, label in _retained_ring_locants(mol, ring_systems).items():
@@ -1605,6 +1651,7 @@ def _locants_and_decisions(
                 atom_index=atom_idx,
                 label=label,
                 source=LocantSource.RETAINED_RING,
+                kind=classify_locant(label),
             ),
         )
 

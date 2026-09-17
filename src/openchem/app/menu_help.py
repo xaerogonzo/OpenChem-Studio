@@ -477,6 +477,36 @@ MENU_HELP: dict[str, HelpTooltip] = {
         tier=2, help_id="view.stereo_label_style_off", topic=_M,
         help_anchor="surprises",
     ),
+    "atom_numbers_off": HelpTooltip(
+        text="Draws no numbers beside the atoms.",
+        tier=1, help_id="view.atom_numbers_off", topic=_M,
+        help_anchor="centre-tabs",
+    ),
+    "atom_numbers_index": HelpTooltip(
+        text=(
+            "Numbers every atom by its position in the DRAWING, from 1.\n\n"
+            "The same number the Atom Inspector's # column shows. It is a "
+            "position, not a stable identifier: deleting an atom renumbers "
+            "everything after it, and the number means nothing to another "
+            "program. Drawn by this application on top of the editor; it adds "
+            "nothing to the undo stack."
+        ),
+        tier=3, help_id="view.atom_numbers_index", topic=_M,
+        help_anchor="centre-tabs",
+    ),
+    "atom_numbers_locants": HelpTooltip(
+        text=(
+            "Numbers the atoms the naming engine numbers -- C-3 of the parent, "
+            "N1 of a ring.\n\n"
+            "A CHEMICAL claim rather than a position, and sparse by nature: a "
+            "structure named by a retained name carries no derived numbering, so "
+            "some molecules get none at all. The status bar says how many atoms "
+            "were numbered and where the numbering came from. Recomputed when the "
+            "structure changes; it adds nothing to the undo stack."
+        ),
+        tier=3, help_id="view.atom_numbers_locants", topic=_M,
+        help_anchor="centre-tabs",
+    ),
     "electron_display_off": HelpTooltip(
         text="Draws no electron annotation on the canvas.",
         tier=1, help_id="view.electron_display_off", topic=_M,

@@ -522,6 +522,7 @@ class MainWindow(QMainWindow):
         self._editor.editor_action_requested.connect(self._on_editor_action)
         self._editor.geometry_requested.connect(self._on_geometry_requested)
         self._editor.electron_status.connect(self._on_electron_status)
+        self._editor.atom_number_status.connect(self._on_atom_number_status)
         # The way back from the 3D viewer -- see `_adopt_conformer`.
         self._viewer3d.conformer_adopted.connect(self._adopt_conformer)
         self._jobs_panel = JobsPanel(services.job_manager, self)
@@ -1898,6 +1899,7 @@ class MainWindow(QMainWindow):
         structure_display_menu.addSeparator()
         self._add_stereo_display_items(structure_display_menu)
         self._add_electron_display_items(structure_display_menu)
+        self._add_atom_number_items(structure_display_menu)
         structure_display_menu.addSeparator()
         # These two are real Ketcher toolbar buttons, not render options --
         # "explicit hydrogens" actually adds/removes atoms (confirmed live:
@@ -2278,6 +2280,60 @@ class MainWindow(QMainWindow):
         lewis.setStatusTip(
             "Every electron pair as dots, with explicit hydrogens, in its own window."
         )
+
+    #: The Atom Numbers modes, taken from `chem.atom_numbering`, so the
+    #: menu cannot offer a mode the computation does not implement.
+    _ATOM_NUMBER_MODES = (
+        ("Off", "off", "atom_numbers_off"),
+        ("Drawing atom numbers", "index", "atom_numbers_index"),
+        ("IUPAC locants", "locants", "atom_numbers_locants"),
+    )
+
+    def _add_atom_number_items(self, menu: QMenu) -> None:
+        """Numbers beside the atoms, which Ketcher itself cannot draw usefully.
+
+        Its `showAtomIds` debug option draws POOL IDS -- 0-based, and a
+        different index space from the one every other part of this
+        application speaks, so a number from it does not match the Atom
+        Inspector's row. These are drawn in the overlay OpenChem owns, from
+        labels Python computes.
+
+        TWO MODES BECAUSE THEY ARE TWO CLAIMS. "Drawing atom numbers" is the
+        atom's position in the drawing (what MarvinSketch shows, and what a
+        chemist counts along a chain with); "IUPAC locants" is the naming
+        engine's numbering, which is a chemical claim and covers only the
+        atoms it can name -- the status bar says how many. The first is
+        deliberately not called an index: it follows the molfile, so it is
+        not a stable id.
+        """
+        number_menu = menu.addMenu("Atom Numbers")
+        group = QActionGroup(self)
+        group.setExclusive(True)
+        for label, mode, help_key in self._ATOM_NUMBER_MODES:
+            action = self._document(QAction(label, self), help_key)
+            action.setCheckable(True)
+            action.setData(mode)
+            action.setChecked(mode == "off")
+            action.triggered.connect(self._on_atom_number_mode_chosen)
+            group.addAction(action)
+            number_menu.addAction(action)
+
+    def _on_atom_number_mode_chosen(self, checked: bool) -> None:
+        action = self.sender()
+        if action is None or not checked:
+            return
+        self._editor.set_atom_number_mode(action.data())
+
+    def _on_atom_number_status(self, message: str) -> None:
+        """What the numbering covers, in the status bar.
+
+        Shown rather than swallowed because two of its states draw NOTHING
+        on the canvas and mean different things: a structure the engine
+        numbers no atom of (a retained name) and a structure it could not
+        read at all.
+        """
+        if message:
+            self.statusBar().showMessage(message, 15000)
 
     def _on_electron_mode_chosen(self, checked: bool) -> None:
         action = self.sender()

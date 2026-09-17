@@ -1361,3 +1361,113 @@ def test_a_selection_before_ketcher_is_ready_is_DROPPED_not_queued(qapp):
     backend.select_atoms([0])
 
     assert calls == [], f"a selection reached the page before it was ready: {calls}"
+
+
+# ---------------------------------------------------------------------------
+# Atom numbers
+#
+# Ketcher's own `showAtomIds` draws POOL IDS, so the numbers come from Python
+# keyed by MOLFILE POSITION. Both halves of that boundary are checked here:
+# the payload the backend sends, and what the real page does with it.
+# ---------------------------------------------------------------------------
+
+
+def test_atom_numbers_set_before_ketcher_is_ready_are_queued_not_dropped(qapp):
+    """A dropped payload leaves the View menu claiming a numbering the canvas
+    is not showing -- the same reasoning as `set_cip_labels`."""
+    backend = KetcherEditorBackend()
+    assert not backend._ketcher_ready
+
+    calls = _record_page_calls(
+        backend,
+        lambda: backend.set_atom_numbers(
+            {"generation": 1, "fingerprint": "fp", "labels": {"0": "1"}}
+        ),
+    )
+
+    assert calls == [], "the payload reached an unready page"
+    assert backend._pending_atom_numbers is not None, "the payload was dropped"
+
+
+def test_the_queued_payload_is_replayed_once_ketcher_is_ready(qapp):
+    backend = _ready_backend(qapp)
+    backend._ketcher_ready = False
+    backend.set_atom_numbers({"generation": 2, "fingerprint": "fp", "labels": {"0": "7"}})
+
+    calls = _record_page_calls(backend, backend._on_ketcher_ready)
+
+    assert any("openchemAtomNumbers" in script and '"7"' in script for script in calls), calls
+    assert backend._pending_atom_numbers is None
+    backend.widget().hide()
+
+
+def test_the_atom_number_api_the_page_exposes_is_the_one_python_calls(qapp):
+    """The FAIL-CLOSED half of the bundle-currency guard, as for CIP: the
+    bundle scan proves the NAME reached the dist, not that the functions
+    hanging off it survived the build."""
+    backend = _ready_backend(qapp, shown=True)
+
+    shape = _run_js_json(qapp, backend, """
+      var api = window.openchemAtomNumbers;
+      if (!api) return {missing: true};
+      var out = {};
+      ['show', 'clear', 'report'].forEach(function (n) { out[n] = typeof api[n]; });
+      return out;
+    """)
+
+    assert shape == {"show": "function", "clear": "function", "report": "function"}, shape
+    backend.widget().hide()
+
+
+def test_the_numbers_are_drawn_ON_SCREEN_at_the_positions_python_named(qapp):
+    """**DRAWN IS NOT VISIBLE, and that cost a driven run.** The page reported
+    7 labels with `dropped: 0` while the canvas showed none: `pp.y` was
+    negated, so every label was mirrored off the visible area. So this asserts
+    the label's own screen box lies inside the canvas, which is the fact the
+    count could not carry.
+    """
+    import json
+
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_CHIRAL_ALKENE)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+
+    backend.set_atom_numbers(
+        {"generation": 1, "fingerprint": "fp", "labels": {"0": "1", "2": "3"}}
+    )
+
+    def report():
+        raw = _run_js(qapp, backend, "window.openchemAtomNumbers.report()")
+        return json.loads(raw) if raw else {}
+
+    assert _wait_until(qapp, lambda: report().get("drawn") == 2)
+    drawn = report()
+    assert drawn["onscreen"] == 2, drawn
+    assert sorted((box["position"], box["text"]) for box in drawn["screen"]) == [(0, "1"), (2, "3")]
+    assert all(box["width"] > 0 and box["height"] > 0 for box in drawn["screen"]), drawn
+    backend.widget().hide()
+
+
+def test_a_label_for_an_atom_that_does_not_exist_draws_NOTHING(qapp):
+    """FAILS CLOSED. A molecule wearing most of a numbering reads as an
+    answer, and the atom that was dropped is invisible -- so one unresolvable
+    position discards the whole overlay and the report says why."""
+    import json
+
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_CHIRAL_ALKENE)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+
+    backend.set_atom_numbers(
+        {"generation": 1, "fingerprint": "fp", "labels": {"0": "1", "99": "100"}}
+    )
+
+    def report():
+        raw = _run_js(qapp, backend, "window.openchemAtomNumbers.report()")
+        return json.loads(raw) if raw else {}
+
+    assert _wait_until(qapp, lambda: bool(report().get("reason")))
+    drawn = report()
+    assert drawn["drawn"] == 0 and drawn["screen"] == [], drawn
+    assert "99" in drawn["reason"], drawn
+    backend.widget().hide()

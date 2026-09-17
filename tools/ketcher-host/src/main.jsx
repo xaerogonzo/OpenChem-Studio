@@ -1202,6 +1202,253 @@ function setElectronOverlay(payload) {
   watchElectronViewport()
 }
 
+// --- Atom numbers ---------------------------------------------------------
+//
+// Ketcher's own `showAtomIds` debug option draws POOL IDS, 0-based, which is
+// the wrong index space -- see molfilePosition above for what reading one as
+// the other costs. So the numbers come from Python, keyed by molfile
+// position, and this draws them.
+//
+// PRESENTATION ONLY, like the CIP labels and the electron dots: nothing is
+// written to the struct, no `change` fires, Ketcher's history does not grow,
+// and nothing here reaches serialisation or the dirty flag.
+//
+// It reuses the electron overlay's machinery rather than a second coordinate
+// path: the same derived affine (`electronTransform`), the same "position the
+// layer at the canvas" step, and the same rAF viewport watch. Labels are
+// COMPUTED by Python only when the structure changes; a pan or a zoom
+// rewrites one transform attribute and nothing else.
+const ATOM_NUMBER_STYLES = `
+.openchem-numbers { position:absolute; pointer-events:none; z-index:16; overflow:visible; }
+.openchem-numbers text {
+  font:0.34px system-ui, sans-serif; fill:#00695c; text-anchor:middle; }
+`
+
+let numberLayer = null
+let numberGroup = null
+let numberWatching = false
+const numberState = {
+  generation: 0,
+  fingerprint: null,
+  labels: null,
+  transform: null,
+  topology: null,
+  drawn: 0,
+  dropped: 0,
+  reason: '',
+}
+
+function ensureNumberStyles() {
+  if (document.getElementById('openchem-number-styles')) return
+  const style = document.createElement('style')
+  style.id = 'openchem-number-styles'
+  style.textContent = ATOM_NUMBER_STYLES
+  document.head.appendChild(style)
+}
+
+// ONE layer for the life of the editor, hidden and shown -- never rebuilt,
+// for the reason ensureElectronLayer gives.
+function ensureNumberLayer() {
+  if (numberLayer && numberLayer.isConnected) return numberLayer
+  ensureNumberStyles()
+  const host = document.querySelector('.Ketcher-root') || document.body
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('class', 'openchem-numbers')
+  svg.style.pointerEvents = 'none'
+  numberGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  svg.appendChild(numberGroup)
+  host.appendChild(svg)
+  numberLayer = svg
+  return svg
+}
+
+// WHICH ATOMS EXIST AND WHAT THEY ARE, with no coordinates in it: a drag
+// moves atoms without invalidating a numbering, an edit invalidates it.
+// Insertion order, never sorted -- undo re-inserts a deleted atom under its
+// original id at the END of the Map.
+function atomTopologyKey(struct) {
+  if (!struct) return null
+  const parts = []
+  struct.atoms.forEach(function (atom, id) {
+    parts.push(id + ':' + (atom.label || ''))
+  })
+  parts.push('b' + struct.bonds.size)
+  return parts.join('|')
+}
+
+function clearAtomNumbers() {
+  if (numberLayer) {
+    numberLayer.style.display = 'none'
+    while (numberGroup.firstChild) numberGroup.removeChild(numberGroup.firstChild)
+  }
+  numberState.labels = null
+  numberState.topology = null
+  numberState.fingerprint = null
+  numberState.drawn = 0
+  numberState.dropped = 0
+  numberState.reason = ''
+  return 1
+}
+
+// FAILS CLOSED. Every label must resolve to exactly one atom of the CURRENT
+// struct; if one does not, NOTHING is drawn. A partial overlay is the
+// dangerous outcome -- a molecule wearing most of a numbering reads as an
+// answer, and the atom that was dropped is invisible.
+function showAtomNumbers(payload) {
+  const struct = ketcherInstance ? ketcherInstance.editor.struct() : null
+  if (!payload || !struct) return clearAtomNumbers()
+  const labels = payload.labels || {}
+  const positions = Object.keys(labels)
+  const resolved = []
+  for (let i = 0; i < positions.length; i++) {
+    const position = parseInt(positions[i], 10)
+    const poolId = poolIdAt(struct.atoms, position)
+    const atom = poolId === undefined ? undefined : struct.atoms.get(poolId)
+    if (!atom) {
+      const reason =
+        'position ' + position + ' does not exist in a struct of ' + struct.atoms.size + ' atoms'
+      clearAtomNumbers()
+      numberState.dropped = positions.length
+      numberState.reason = reason
+      return 0
+    }
+    resolved.push({ position: position, atom: atom, text: String(labels[positions[i]]) })
+  }
+  numberState.generation = payload.generation || 0
+  numberState.fingerprint = payload.fingerprint || null
+  numberState.labels = resolved
+  numberState.topology = atomTopologyKey(struct)
+  numberState.dropped = 0
+  numberState.reason = ''
+  renderAtomNumbers()
+  applyNumberTransform(electronTransform())
+  watchNumberViewport()
+  return 1
+}
+
+function renderAtomNumbers() {
+  const layer = ensureNumberLayer()
+  while (numberGroup.firstChild) numberGroup.removeChild(numberGroup.firstChild)
+  const labels = numberState.labels || []
+  labels.forEach(function (entry) {
+    const node = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    // Up and to the right of the atom, in MODEL units, so the offset grows
+    // with the drawing exactly as the glyph does. Ketcher's own labels sit
+    // ON the atom, and a number stacked there is unreadable.
+    //
+    // **`pp.y` AS IT IS, NOT NEGATED**, which cost a driven run: the model's
+    // y already grows downward, the same way the electron dots use it. With
+    // the sign flipped the page reported 7 labels drawn, `dropped: 0`, and
+    // the canvas showed none -- every label was mirrored off the visible
+    // area. Hence `screen` in the report below.
+    node.setAttribute('x', entry.atom.pp.x + 0.22)
+    node.setAttribute('y', entry.atom.pp.y - 0.2)
+    node.setAttribute('data-atom', String(entry.position))
+    node.textContent = entry.text
+    numberGroup.appendChild(node)
+  })
+  layer.style.display = labels.length ? '' : 'none'
+  numberState.drawn = labels.length
+  return layer
+}
+
+function applyNumberTransform(transform) {
+  if (!numberLayer || !transform) return
+  const canvas = ketcherCanvas()
+  if (canvas) {
+    const host = numberLayer.parentNode.getBoundingClientRect()
+    const rect = canvas.getBoundingClientRect()
+    numberLayer.style.left = rect.left - host.left + 'px'
+    numberLayer.style.top = rect.top - host.top + 'px'
+    numberLayer.style.width = rect.width + 'px'
+    numberLayer.style.height = rect.height + 'px'
+  }
+  const rect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 }
+  numberGroup.setAttribute(
+    'transform',
+    'translate(' + (transform.tx - rect.left) + ',' + (transform.ty - rect.top) +
+      ') scale(' + transform.sx + ',' + transform.sy + ')'
+  )
+  numberState.transform = transform
+}
+
+// Pan and zoom are announced by nothing (see watchElectronViewport), and an
+// EDIT must drop the labels at once rather than leave the previous
+// structure's numbers on the new one -- Python sends the next set when it
+// has recomputed them.
+function watchNumberViewport() {
+  if (numberWatching) return
+  numberWatching = true
+  const tick = function () {
+    if (numberState.labels && ketcherInstance) {
+      const struct = ketcherInstance.editor.struct()
+      if (atomTopologyKey(struct) !== numberState.topology) {
+        clearAtomNumbers()
+        numberState.reason = 'the structure changed'
+      } else {
+        const transform = electronTransform()
+        if (transform && !sameTransform(transform, numberState.transform)) {
+          applyNumberTransform(transform)
+        }
+      }
+    }
+    window.requestAnimationFrame(tick)
+  }
+  window.requestAnimationFrame(tick)
+}
+
+// WHAT THE PAGE DREW, by molfile position, for a driven check: a screenshot
+// cannot say whether a number landed on the atom Python meant, and the two
+// id spaces agree on a freshly loaded structure and diverge after an edit.
+function atomNumberReport() {
+  // WHERE THE LABELS ARE, not merely that they exist. A count of 7 with
+  // `dropped: 0` was reported while the canvas showed nothing, because the
+  // labels were drawn off the visible area -- so the report carries the
+  // canvas rect and each label's own screen box, and `onscreen` counts the
+  // ones actually inside it.
+  const canvas = ketcherCanvas()
+  const bounds = canvas ? canvas.getBoundingClientRect() : null
+  const boxes = []
+  let onscreen = 0
+  if (numberGroup) {
+    const nodes = numberGroup.childNodes
+    for (let i = 0; i < nodes.length; i++) {
+      const box = nodes[i].getBoundingClientRect()
+      const inside =
+        !!bounds &&
+        box.width > 0 &&
+        box.height > 0 &&
+        box.left >= bounds.left - 1 &&
+        box.right <= bounds.right + 1 &&
+        box.top >= bounds.top - 1 &&
+        box.bottom <= bounds.bottom + 1
+      if (inside) onscreen++
+      boxes.push({
+        position: parseInt(nodes[i].getAttribute('data-atom'), 10),
+        text: nodes[i].textContent,
+        left: Math.round(box.left),
+        top: Math.round(box.top),
+        width: Math.round(box.width),
+        height: Math.round(box.height),
+        inside: inside,
+      })
+    }
+  }
+  return JSON.stringify({
+    generation: numberState.generation,
+    fingerprint: numberState.fingerprint,
+    drawn: numberState.drawn,
+    onscreen: onscreen,
+    dropped: numberState.dropped,
+    reason: numberState.reason,
+    canvas: bounds
+      ? { left: Math.round(bounds.left), top: Math.round(bounds.top),
+          width: Math.round(bounds.width), height: Math.round(bounds.height) }
+      : null,
+    screen: boxes,
+  })
+}
+
 // --- CIP stereo descriptors ----------------------------------------------
 //
 // R/S and E/Z, as CALCULATED ANNOTATION STATE rather than as a one-shot
@@ -1415,9 +1662,14 @@ function handleKetcherInit(ketcher) {
       return 1
     },
   }
-  // Fourth global, same reason as the three above: without a reference
+  // Fifth global, same reason as the four above: without a reference
   // reachable from the entry point vite tree-shakes the whole thing away
   // and the feature is silently absent.
+  window.openchemAtomNumbers = {
+    show: showAtomNumbers,
+    clear: clearAtomNumbers,
+    report: atomNumberReport,
+  }
   window.openchemSelection = {
     set: selectAtomsByPosition,
     report: selectionReport,
