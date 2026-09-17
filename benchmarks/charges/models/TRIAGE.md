@@ -161,6 +161,9 @@ saved as `nistor2006_si.pdf.pdf`, the name the fixture headers keep).
   identity. Charges appear only in figures.
 - **Runnable reference:** LAMMPS `fix qtpie/reaxff` (since 19Nov2024). Whether
   it uses the 2007 overlap form is unverified.
+  **Checked 2026-09-16 (3.10): it does not.** Its overlap is Chen's own Gaussian
+  one from the thesis appendix, and its electrostatics are ReaxFF's, so it is
+  NOT-SOURCE-EQUIVALENT and is not an oracle for QTPIE's charges.
 - **Verdict: HOLD**, on a charge-level numeric oracle.
 - `chen2008framework.pdf` is theory (atom-space and bond-space); its EPAPS is
   combinatorics. No oracle.
@@ -1370,6 +1373,82 @@ EQeq charge was computed.
    does not give, the check REFUSES for that structure** rather than
    substituting zero, and says which element.
 
+### 2.10 QTPIE: the LAMMPS fingerprint, and the Table 2.2 exponent recomputation
+
+Plan Track B (2026-09-16). **Read-only: nothing is installed or run from
+LAMMPS.** Two parts, registered here before either result exists.
+
+**Part 1: pinned retrieval.** The LAMMPS commit is chosen first, and the docs,
+source and example `gfile` are read *from that commit*:
+`lammps/lammps` develop `c8bd2ae5927ee236a8892dbd51c18a92cc9c33cf`
+(2026-09-15). The newest commit touching the fix is `1ef4515` (2026-08-24).
+SHA-256 as retrieved:
+- `src/REAXFF/fix_qtpie_reaxff.cpp` (1,264 lines):
+  `1877aa3ffb95b3417775f930def67aa5868ecdc0d5a37b985b0e3087f4354502`
+- `src/REAXFF/fix_qtpie_reaxff.h`:
+  `48230d9ca7686ff4b22a7265a2dd20ace19264c085a732fad83a17b731a7be51`
+- `doc/src/fix_qtpie_reaxff.rst`:
+  `ad5fdfc0db6b2a49a5c2d4ab8a5b4b206cc9ccce614d103092cf2348e371bc00`
+- `examples/reaxff/water/gauss_exp.txt`:
+  `b2c416b00d611d8a811a4b1b163bcc0e724eb776208697514f9385660ff1e2c1`
+- For comparison only, `fix_qtpie_reaxff.cpp` at `stable_22Jul2025_update6`:
+  `a1170527e471dbb8c17453e29e2dcde718f122d0e620df4ad0f069f996d55163`
+  (it differs; the pinned develop commit is the one classified).
+
+Each fingerprint row (plan B.2) is classified **same / different / not stated**
+against a named source, from those files and the thesis, and the component and
+model verdicts are derived from the rows, never asserted beside them.
+
+**Part 2: the exponent recomputation, registered because of a discrepancy
+found while reading.** Chen's thesis prints two versions of the same numbers:
+- Table 2.2 (p 69): 16 Gaussian exponents to 4 decimals, H **0.5434**;
+- Appendix A (p 201, `GaussianExponent`): the same 16 in the same element
+  order to 15 digits, H **0.534337523756312**.
+
+The other 15 round from the appendix to the table exactly. Hydrogen does not:
+0.5343 against 0.5434, the pattern of a transposition. LAMMPS's example gfile
+uses 0.5434. **Which one is Chen's fit is not assumed. It is recomputed from
+§2.4's own definition:**
+
+- **The fit (eqs 2.13 and 2.16):** for each element, α* minimises
+  ∫₀^∞ (J_G(R; α) − J_S(R; ζ, n))² dR.
+  - J_S is the Coulomb integral between two normalised ns Slater densities
+    with Table 2.2's Slater exponent. Evaluated with the shipped
+    `charge_equilibration.coulomb_pair_integrals`, in hartree and bohr.
+  - J_G is taken from Appendix A's `sGTOCoulInt(a, b, R)`,
+    erf(√(ab/(a+b)) R)/R with a = b = α, because the printed eq 2.14 does not
+    survive text extraction.
+  - n is Table I's principal quantum number (Chen's "From Ref. 20" Slater
+    exponents are, value for value, the ζ column of Rappé–Goddard Table I as
+    shipped in `QEQ_TABLE_I`).
+- **The error column (eq 2.17):** MAE = max over R ≥ 0 of |J_G − J_S|,
+  evaluated at the appendix exponent and at the table exponent.
+
+**Reading gate, decided on the 15 non-hydrogen elements before hydrogen is
+read.** The reading is VALIDATED only if all 15 of these hold:
+(a) α* agrees with the appendix value to a relative 1e-4;
+(b) α* rounds to Table 2.2's 4 decimals;
+(c) the MAE at the appendix value rounds to the table's error column (5 decimals).
+If any fail, the result is **READING-NOT-VALIDATED** and hydrogen is reported
+without a verdict.
+
+**Hydrogen verdict, only under a validated reading:**
+- **TABLE-TRANSPOSITION:** α*_H is within a relative 1e-4 of the appendix value
+  0.534337523756312, and not of 0.5434. The table's H exponent is then a
+  misprint, and LAMMPS's example gfile inherits it.
+- **APPENDIX-DIFFERS:** α*_H is within a relative 1e-4 of 0.5434 and not of
+  the appendix value.
+- **NEITHER:** otherwise, reported with α*_H.
+
+Hydrogen's error column (0.01696) is about ten times every other element's. It
+is reported beside both exponents' MAE and is **not** used to decide the
+verdict, since which exponent it was computed at is exactly what is unknown.
+
+**What it licenses.** It is a statement about a source table and one example
+file. It does not change a shipped number (nothing ships QTPIE), and it does
+not by itself make LAMMPS's model "not source-equivalent": the gfile is user
+input, and the fix reads whatever exponent it is given.
+
 ## 3. Results
 
 ### 3.1 Nistor supplement extraction (2026-09-14)
@@ -2119,3 +2198,105 @@ not a property of the structure.
 Result files (LF-normalised SHA-256, first 32 hex):
 - `eqeq_mofs.csv`: `1ee2d60c401b8854a9b8be2412050697`
 - `eqeq_atoms.csv` (3,452 rows): `ee74343ee5e8bd46744ed62730e88718`
+
+### 3.10 Check 2.10: the LAMMPS fingerprint, and Table 2.2 does not recompute (2026-09-16)
+
+Run order in git: registration 3ac8fb6, then this. Nothing from LAMMPS was
+installed or executed.
+
+#### Part 2 first: READING-NOT-VALIDATED, and why no reading could pass
+
+`qtpie_exponent_check.py` writes `qtpie_exponents.json`. **The reading gate
+passed 0 of 15**, so hydrogen gets no verdict, as registered. Every fitted
+exponent is far from both printed versions, and every recomputed error column
+is 4 to 160 times the printed one (O: 0.0236 against 0.00167).
+
+**A property of the instrument then explains the failure without a second
+arm.** J_S(R; ζ, n) = ζ·f_n(ζR) and J_G(R; α) = √α·g(√α R), so the eq 2.13
+minimiser must satisfy **α\*/ζ² = c_n, one constant per n**, under *any*
+reading of these forms: printed eq 2.14 (erf √α R) or the appendix routine
+(erf √(α/2) R), density exponent 2ζ or ζ. Measured, it holds to six digits
+(n = 2: 0.206263 for Li, C, N, O and F alike). **Table 2.2 does not have this
+property:** α/ζ² for n = 2 runs Li 0.957, C 0.282, N 0.268, O 0.236, F 0.273;
+for n = 3, Na 0.504 down to Cl 0.136. So no reading of §2.4 as written, with
+Table I's ζ and n, can produce Table 2.2. Whatever did (a finite R range in
+fixed units, another ζ or n, a weighting) is not stated in §2.4. **No
+alternative arm was run**, because the argument covers every reading the
+rendered page suggested, and running them anyway would be fishing.
+
+Read from the rendered page (p 67), because the registration relied on
+extracted text:
+- eq 2.14 prints J_G = erf(√α R)/R, which is **not** the appendix's
+  `sGTOCoulInt` at a = b (erf(√(α/2) R)/R). The thesis text and its own code
+  differ by a factor of two in the exponent convention.
+- eq 2.15's integrand prints |r|ⁿ e^(−ζ|r|) per centre, while its prefactor
+  (2ζ)^(4n+2)/((2n)!)² normalises r^(2n−2) e^(−2ζr) densities. The printed
+  formula is not self-consistent either.
+
+**Hydrogen stays unresolved.** The table prints 0.5434 and the appendix holds
+0.534337523756312, while the other 15 agree. That is a fact about two
+printings, not a finding about which is the fit. LAMMPS's example gfile uses
+the table's value.
+
+#### Part 1: the component fingerprint
+
+Three sources: Chen's QTPIE **as published** (2007; thesis eq 2.9, "a scaled
+overlap integral of the ns-type orbitals which are used to represent the
+screened Coulomb interaction ... as was used in the QEq model"); **Chen's own
+Gaussian implementation**, thesis Appendix A (`qtpie.f`, `DosGTOIntegrals`);
+and **LAMMPS** at the pinned commit (source, docs, `gauss_exp.txt`) with Lalli
+& Giusti 2025.
+
+| component | Chen 2007 as published | Chen Appendix A (Gaussian) | LAMMPS `fix qtpie/reaxff` | LAMMPS vs Appendix A |
+|---|---|---|---|---|
+| effective electronegativity, zero field | Σⱼ(χᵢ−χⱼ)Sᵢⱼ / Σₘ Sᵢₘ | same (`OvNorm` = 1/row sum; diagonal S = 1) | same (`calc_chi_eff`; j = i included with S = 1) | **same** |
+| external-field term β(φᵢ−φⱼ) | not in eq 2.9 | not in the listed routine | present; β = `scale`, default 1.0; the field must apply to all atoms | **different** (an extension; the comparison is at zero field) |
+| overlap kernel | ns **Slater** overlap over QEq orbitals | normalised 1s **Gaussian**, (4ab/(a+b)²)^¾ exp(−ab/(a+b) R²), bohr | the same formula (`init_olap`, Lalli A1); R in Å, α converted by `ANGSTROM_TO_BOHRRADIUS_SQ` = 3.571064831 = 1/0.529177² | **same formula** |
+| which exponent the overlap uses | Slater ζ | the **same** `Basis%zeta` its Gaussian Coulomb integral uses | the gfile's, one per atom **type** | same role; the values are user input |
+| exponent values | — | `GaussianExponent`, 16 elements, H 0.534337523756312 | example gfile: O 0.2240, H 0.5434 (Table 2.2 to 4 dp) | **H differs** (0.5434 against 0.5343); O agrees to 4 dp |
+| what the exponents were fitted for | — | §2.4: the **Coulomb** integral J, not S | — | fitted to J; Chen's code and LAMMPS both also apply them to S |
+| electrostatic kernel | Slater Coulomb integrals (QEq) | Gaussian Coulomb, erf(√(ab/(a+b)) R)/R | shielded and tapered: Tap(r)·14.4 / (r³ + (γᵢγⱼ)^(−3/2))^(1/3) eV (`calculate_H`, Lalli eq 3) | **different** |
+| parameters | QEq χ, J and radii, unmodified (§2.5) | read from a parameter file in eV | χ (eV), η = 2 × ReaxFF η (eV), γ (Å⁻¹), from ReaxFF or a file | **different** source |
+| overlap cutoff | — | computed while R < √(ln((π/2α_min)³ / 10⁻¹⁸) / α_min) (threshold 10⁻⁹) | neglected beyond √(2·10·ln 10 / α_min), i.e. S < 10⁻¹⁰ (Lalli A2) | **different** rule |
+| Coulomb cutoff | none | erf replaced by 1/R beyond 2√(−ln 10⁻⁹ / α_min) | seventh-order taper to `cuthi` (typically 10 Å), zero beyond | **different** |
+| total-charge constraint | not read | not read | q = s − u·t with u = Σs/Σt, so **Σq = 0** over the local atoms; warns when the group's initial Σq exceeds 1e-5 | code and docs say **zero**; Lalli eq 2's q_net is not what runs (their runs used q_net = 0) |
+| group vs molecule | one molecule | one molecule | χ̃ sums over **all** atoms inside the overlap cutoff, ghosts and atoms outside the fix group included; no molecule boundary | **not stated** by Chen for several molecules |
+| solver | pseudoinverse in charge-transfer space | linear algebra in atom space | conjugate gradient to relative residual < `tolerance`, `maxiter` default 200 | **different** (numerics, not model) |
+| naming | — | — | "the same as in `fix qeq/reaxff`", which Lalli call EEM-like; not the Rappé–Goddard QEq shipped here | recorded collision |
+| boundaries | molecule | molecule | periodic, with several images of one atom mishandled (docs) | **different** |
+| 2019 (Kritikos) → 2024 (Lalli) | — | — | both named as contributing authors; Lalli's Appendix A describes the implementation, **not what the rewrite changed** | **not stated** (the plan assumed Appendix A recorded it) |
+
+#### Verdicts, derived from the rows
+
+- **OVERLAP-KERNEL: EQUIVALENT** to Chen's Appendix A Gaussian implementation
+  (same formula, same unit handling, same role for the exponents), and
+  **DIFFERENT** from QTPIE as published in 2007 (Slater). The exponent values
+  are user input, and the shipped example's hydrogen differs from Chen's code.
+- **ELECTROSTATIC-KERNEL: DIFFERENT** from both of Chen's, Slater and
+  Gaussian: LAMMPS uses ReaxFF's shielded, tapered Coulomb.
+- **Model verdict: NOT-SOURCE-EQUIVALENT**, naming the electrostatic kernel,
+  the parameters (ReaxFF's, which by the authors' own caveat are not fitted for
+  QTPIE), the cutoffs and taper, and the zero-sum constraint. The conditional
+  "same formalism, Chen Gaussian overlap" verdict needed the exponent test to
+  pass, and it did not.
+- **QTPIE's own record is unchanged: HOLD**, on a charge-level numeric oracle.
+  LAMMPS implements Chen's attenuation of electronegativity on a different
+  electrostatic model, so its charges cannot stand in for QTPIE's.
+
+**Run inventory, recorded and not executed:** commit `c8bd2ae`; the REAXFF
+package; `gauss_exp.txt` (type 1 O 0.2240, type 2 H 0.5434); χ, η, γ from
+`qeq_ff.water` via `params reaxff`; `cutlo` 0.0, `cuthi` 10.0, `tolerance`
+1e-6 as in the example; `maxiter` 200; β 1.0; `pair_style reaxff`. Installing
+it is Alex's decision.
+
+#### Thesis read (plan B.4)
+
+- **CHARGE_ORACLE: NOT_FOUND** in what was read: §§2.3–2.5, the chapter 3
+  reformulation around eq 3.22, and Appendix A's integral, basis and parameter
+  routines, plus a search for "overlap" over all 245 pages. A caption scan of
+  every table and figure was **not** done in this check, so this is not yet
+  the permanent "full read" the plan defines.
+- **PRINTED-NUMERICAL-IDENTITY:** Table 2.1 (QEq(-H) and QTPIE
+  polarizabilities identical to four decimals), unchanged and not generalised.
+- **SUPPORTING-NON-ORACLE-EVIDENCE:** Appendix A's source, which settled the
+  overlap row; Table 2.2's exponents, now known not to recompute from §2.4.
