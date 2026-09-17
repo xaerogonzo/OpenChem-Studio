@@ -447,3 +447,69 @@ class TestCarveBridgingSubstituent:
         mol = mol_from_smiles("COC")
         with pytest.raises(ValueError):
             carve_bridging_substituent(mol, frozenset(), ())
+
+
+# ---------------------------------------------------------------------------
+# D-027: a descriptor is the PARENT's, however deep the carve
+# ---------------------------------------------------------------------------
+
+
+def _atom_by_cip_source(frag):
+    return {
+        a.GetIdx(): a.GetProp("_ParentCIPCode") for a in frag.GetAtoms() if a.HasProp("_ParentCIPCode")
+    }
+
+
+class TestSubstituentStereoInheritance:
+    """The mechanism, on its own, without naming anything.
+
+    MPMI (``CN1CCC[C@@H]1Cc1c[nH]c2ccccc12``) has one centre, R in the whole
+    molecule. The engine carves the substituent at C7-C6 (methyl +
+    pyrrolidinyl), then carves the pyrrolidinyl out of THAT fragment. In the
+    first fragment ``C[C@H]1CCCN1C`` the indolyl side is already an H, so the
+    exocyclic carbon is CH3 (H,H,H) and ranks BELOW the ring CH2 (C,H,H):
+    recomputed CIP there is S. The second carve used to read that S.
+    """
+
+    MPMI = "CN1CCC[C@@H]1Cc1c[nH]c2ccccc12"
+
+    def test_fragment_cip_really_disagrees_with_the_parent(self):
+        """Assert the premise, or the next test proves nothing."""
+        from rdkit.Chem import rdCIPLabeler
+
+        parent = Chem.MolFromSmiles(self.MPMI)
+        rdCIPLabeler.AssignCIPLabels(parent)
+        assert parent.GetAtomWithIdx(5).GetProp("_CIPCode") == "R"
+        capped = Chem.MolFromSmiles("C[C@H]1CCCN1C")  # the first fragment, as carved
+        rdCIPLabeler.AssignCIPLabels(capped)
+        assert [a.GetProp("_CIPCode") for a in capped.GetAtoms() if a.HasProp("_CIPCode")] == ["S"]
+
+    def test_a_nested_carve_keeps_the_parent_descriptor(self):
+        parent = mol_from_smiles(self.MPMI)
+        # Carve 1: cut indole C7 from CH2 C6.
+        first, first_attach, _ = carve_substituent(parent, frozenset(), (7, 6))
+        assert set(_atom_by_cip_source(first).values()) == {"R"}
+        # Carve 2: cut the CH2 (the first fragment's attachment) from the ring.
+        ring_atom = next(
+            n.GetIdx() for n in first.GetAtomWithIdx(first_attach).GetNeighbors() if n.IsInRing()
+        )
+        second, second_attach, _ = carve_substituent(first, frozenset(), (first_attach, ring_atom))
+        assert _atom_by_cip_source(second).get(second_attach) == "R", (
+            "the nested carve recomputed CIP on the capped fragment instead of inheriting"
+        )
+
+    def test_a_double_bond_inherits_its_descriptor(self):
+        """``C/C=C(/C)Ar`` is Z in the parent; carved at the attachment carbon,
+        the aryl side becomes H and the fragment alone would call it E."""
+        parent = mol_from_smiles("C/C=C(/C)c1ccc(cc1)C(=O)O")
+        frag, _, _ = carve_substituent(parent, frozenset(), (4, 2))  # aryl C4 | C2=
+        inherited = {b.GetProp("_ParentCIPCode") for b in frag.GetBonds() if b.HasProp("_ParentCIPCode")}
+        assert inherited == {"Z"}
+
+    def test_a_map_onto_a_different_element_is_refused(self):
+        from openchem.vendor.iupac_namer.perception.extraction import _stamp_context_cip
+
+        parent = Chem.MolFromSmiles("CO")
+        rw = Chem.RWMol(Chem.MolFromSmiles("CC"))
+        with pytest.raises(ValueError, match="different element"):
+            _stamp_context_cip(rw, parent, {0: 0, 1: 1}, {}, {})

@@ -351,12 +351,22 @@ def derived_name_for_structure(mol: Chem.Mol) -> NameResult:
             "A name was derived but did not parse back to this structure, so it is "
             "being withheld rather than shown."
         )
+    if verified is RoundTrip.STEREO_CONTRADICTED:
+        # WITHHELD, like a skeleton mismatch: a name for the other
+        # stereoisomer is a name for a different compound, and a note under
+        # it would not stop it being copied.
+        raise NamingError(
+            "A name was derived but its stereodescriptors contradict this structure "
+            "(it describes a different stereoisomer), so it is being withheld."
+        )
     if verified is RoundTrip.STEREO_OMITTED:
         # SHOWN, with what it leaves out. The name is right about the
         # skeleton and silent about stereochemistry the structure carries
         # -- which is a fact worth having, and withholding it reads as
         # the namer having failed.
         note = "This name does not express stereochemistry present in the structure."
+    elif verified is RoundTrip.STEREO_ADDED:
+        note = "This name specifies stereochemistry the structure leaves undefined."
     elif verified is RoundTrip.UNVERIFIED:
         note = "Not verified: no offline parser available to check it."
     else:
@@ -475,6 +485,13 @@ class RoundTrip(str, Enum):
     #: Parsed, same skeleton, but the structure carries stereochemistry
     #: the name does not express.
     STEREO_OMITTED = "stereo_omitted"
+    #: Parsed, same skeleton, and the name specifies a feature that IS
+    #: stereogenic in the structure but left undefined there. More specific
+    #: than the structure, not contradicting it.
+    STEREO_ADDED = "stereo_added"
+    #: Parsed, same skeleton, and a feature defined on BOTH sides has the
+    #: opposite descriptor: the name is for a different stereoisomer.
+    STEREO_CONTRADICTED = "stereo_contradicted"
     MISMATCH = "mismatch"
     #: No offline parser available. Honestly different from a failure.
     UNVERIFIED = "unverified"
@@ -533,7 +550,7 @@ def verify_name_round_trip(name: str, original: Chem.Mol) -> RoundTrip:
     if Chem.MolToSmiles(candidate) == Chem.MolToSmiles(original):
         return RoundTrip.MATCH
     if _skeleton(candidate) == _skeleton(original):
-        return RoundTrip.STEREO_OMITTED
+        return _stereo_verdict(candidate, original)
     return RoundTrip.MISMATCH
 
 
@@ -542,6 +559,121 @@ def _skeleton(mol: Chem.Mol) -> str:
     flat = Chem.Mol(mol)
     Chem.RemoveStereochemistry(flat)
     return Chem.MolToSmiles(flat)
+
+
+#: Correspondences enumerated before giving up on a symmetric molecule.
+_STEREO_MATCH_LIMIT = 1000
+
+#: Least severe first. Across several correspondences the LEAST severe wins:
+#: a name is wrong only if it is wrong under every way of identifying its
+#: atoms with the structure's, and one identification under which it agrees
+#: is a valid reading of it.
+_STEREO_SEVERITY = (
+    RoundTrip.STEREO_OMITTED,
+    RoundTrip.STEREO_ADDED,
+    RoundTrip.STEREO_CONTRADICTED,
+)
+
+
+def _stereo_verdict(candidate: Chem.Mol, original: Chem.Mol) -> RoundTrip:
+    """Same skeleton, different stereo: omitted, added, or contradicted?
+
+    **THIS WAS ONE VERDICT, AND IT SHOWED WRONG NAMES.** Any stereo
+    difference over a matching skeleton was `STEREO_OMITTED`, so a name
+    carrying the OPPOSITE descriptor was shown with a note saying it merely
+    left something out. Measured 2026-09-17 on MPMI, an R centre: the engine
+    wrote `(5S)` (a carving defect, since fixed), OPSIN parsed that back to
+    the enantiomer, and the app displayed it.
+
+    Features are compared by CIP label through an ATOM CORRESPONDENCE found
+    on the stereo-stripped graphs -- never by index position, because OPSIN's
+    atom order has nothing to do with the structure's. Each candidate atom
+    maps to an original atom; a bond maps through both of its ends.
+
+    Per correspondence:
+
+        defined on both, labels differ          STEREO_CONTRADICTED
+        structure leaves a feature undefined,
+          candidate defines it                  STEREO_ADDED
+        structure defines it, candidate not     STEREO_OMITTED
+
+    There is no "the name invents a stereocentre the structure cannot have"
+    verdict, because it cannot arise here: a candidate carries a label only
+    where its graph is stereogenic, and the graphs were just shown equal.
+    RDKit also strips a chiral tag from a non-stereogenic atom on parse, so
+    no input could exercise such a branch.
+
+    **A LIMIT OF CIP LABELS, STATED.** A feature RDKit's labeller gives no
+    label -- ring cis/trans without a CIP descriptor, atropisomers -- cannot
+    be compared this way, and a difference confined to one lands in
+    `STEREO_OMITTED` exactly as before this split.
+    """
+    from rdkit.Chem import rdCIPLabeler
+
+    cand = Chem.RemoveHs(candidate)
+    orig = Chem.RemoveHs(original)
+    for mol in (cand, orig):
+        Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
+        rdCIPLabeler.AssignCIPLabels(mol)
+
+    flat_cand = Chem.Mol(cand)
+    Chem.RemoveStereochemistry(flat_cand)
+    flat_orig = Chem.Mol(orig)
+    Chem.RemoveStereochemistry(flat_orig)
+    # Built on the FLAT graphs, so stereo cannot veto an identification;
+    # uniquify=False because two correspondences over the same atom set can
+    # pair stereocentres differently, and that difference is the point.
+    correspondences = flat_orig.GetSubstructMatches(
+        flat_cand, uniquify=False, useChirality=False, maxMatches=_STEREO_MATCH_LIMIT
+    )
+    if not correspondences:
+        return RoundTrip.MISMATCH
+
+    def label(obj) -> str | None:
+        return obj.GetProp("_CIPCode") if obj.HasProp("_CIPCode") else None
+
+    orig_atom_labels = {a.GetIdx(): label(a) for a in orig.GetAtoms()}
+    orig_bond_labels = {
+        tuple(sorted((b.GetBeginAtomIdx(), b.GetEndAtomIdx()))): label(b) for b in orig.GetBonds()
+    }
+
+    verdicts: set[RoundTrip] = set()
+    for mapping in correspondences:
+        worst: RoundTrip | None = None
+
+        def note(verdict: RoundTrip) -> None:
+            nonlocal worst
+            if worst is None or _STEREO_SEVERITY.index(verdict) > _STEREO_SEVERITY.index(worst):
+                worst = verdict
+
+        for cand_atom in cand.GetAtoms():
+            o = mapping[cand_atom.GetIdx()]
+            c_label, o_label = label(cand_atom), orig_atom_labels.get(o)
+            if c_label and o_label:
+                if c_label != o_label:
+                    note(RoundTrip.STEREO_CONTRADICTED)
+            elif c_label:
+                note(RoundTrip.STEREO_ADDED)
+            elif o_label:
+                note(RoundTrip.STEREO_OMITTED)
+        for cand_bond in cand.GetBonds():
+            key = tuple(sorted((mapping[cand_bond.GetBeginAtomIdx()], mapping[cand_bond.GetEndAtomIdx()])))
+            c_label, o_label = label(cand_bond), orig_bond_labels.get(key)
+            if c_label and o_label:
+                if c_label != o_label:
+                    note(RoundTrip.STEREO_CONTRADICTED)
+            elif c_label:
+                note(RoundTrip.STEREO_ADDED)
+            elif o_label:
+                note(RoundTrip.STEREO_OMITTED)
+        verdicts.add(worst or RoundTrip.STEREO_OMITTED)
+
+    best = min(verdicts, key=_STEREO_SEVERITY.index)
+    if best is RoundTrip.STEREO_CONTRADICTED and len(correspondences) >= _STEREO_MATCH_LIMIT:
+        # Not every identification was tried, so "contradicted under all of
+        # them" is not established.
+        return RoundTrip.UNVERIFIED
+    return best
 
 
 def compute_iupac_name(
@@ -589,6 +721,10 @@ def compute_iupac_name(
                 line += "  -- round-trips back to this structure"
             elif verified is RoundTrip.STEREO_OMITTED:
                 line += "  -- does not express stereochemistry present in the structure"
+            elif verified is RoundTrip.STEREO_ADDED:
+                line += "  -- specifies stereochemistry the structure leaves undefined"
+            elif verified is RoundTrip.STEREO_CONTRADICTED:
+                line += "  -- WARNING: its stereodescriptors contradict this structure"
             elif verified is RoundTrip.MISMATCH:
                 line += "  -- WARNING: does not round-trip back to this structure"
             # UNVERIFIED means no parser was available to check with,

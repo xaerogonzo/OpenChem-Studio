@@ -222,16 +222,27 @@ class StereoAnalysis:
 
         for bond in self._mol.GetBonds():  # type: ignore[attr-defined]
             stereo = bond.GetStereo()
-            if stereo == Chem.BondStereo.STEREONONE:
+            props = bond.GetPropsAsDict()
+            inherited = props.get("_ParentCIPCode", None)
+            if stereo == Chem.BondStereo.STEREONONE and inherited is None:
                 continue
 
             begin_idx = bond.GetBeginAtomIdx()
 
-            # Prefer the CIP code stored on the bond if available; fall back to
-            # STEREOE / STEREOZ flags which are the pre-CIP geometric designators.
+            # The inherited descriptor first, for the reason the tetrahedral
+            # branch gives: carving replaces the cut side with H, which
+            # reorders the two groups on a double-bond carbon whenever the cut
+            # side was one of them -- every E/Z measured inside a substituent
+            # came out inverted before this.  A bond that stops being
+            # stereogenic once carved (-CH=CH-CH3 cut at the first CH leaves
+            # CH2=) still carries its parent descriptor here, the way an
+            # inherited tetrahedral centre does below.
+            # Then the CIP code stored on the bond; then STEREOE / STEREOZ
+            # flags, which are the pre-CIP geometric designators.
             ez: str | None = None
-            props = bond.GetPropsAsDict()
-            if "_CIPCode" in props:
+            if inherited is not None:
+                ez = inherited
+            elif "_CIPCode" in props:
                 ez = props["_CIPCode"]
             elif stereo == Chem.BondStereo.STEREOE:
                 ez = "E"

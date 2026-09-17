@@ -422,6 +422,29 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "unchanged"),
     ("D-005m", "[CH3+]", "methylium", "methylium", "unchanged"),
     ("D-005n", "[CH3-]", "methanide", "methanide", "unchanged"),
+
+    # --- D-027: a descriptor inside a substituent recomputed on the fragment --
+    # Carving replaces the cut side with H, which reorders CIP priorities at
+    # any centre or double bond whose ranking depended on that side. The
+    # first carve already inherited the parent's descriptors; a NESTED carve
+    # started from the first fragment and recomputed, and E/Z never
+    # inherited at all. Every E/Z measured inside a substituent was inverted.
+    # MPMI's R centre (named (5S)) is pinned with its locant in D-028.
+    ("D-027a", "C/C=C(/C)c1ccc(cc1)C(=O)O", "4-[(2Z)-but-2-en-2-yl]benzoic acid",
+     "4-[(2E)-but-2-en-2-yl]benzoic acid", "E/Z inverted on the attachment carbon"),
+    ("D-027b", "C/C=C(\\C)c1ccc(cc1)C(=O)O", "4-[(2E)-but-2-en-2-yl]benzoic acid",
+     "4-[(2Z)-but-2-en-2-yl]benzoic acid", "E/Z inverted, other isomer"),
+    ("D-027c", "OC(=O)c1ccc(cc1)/C(C)=C/Cc1ccccc1",
+     "4-[(2E)-4-phenylbut-2-en-2-yl]benzoic acid",
+     "4-[(2Z)-4-phenylbut-2-en-2-yl]benzoic acid", "E/Z inverted, nested phenyl"),
+    # non-regression: descriptors that were already right must stay right
+    ("D-027x", "OC(=O)c1ccc(cc1)/C=C/C", "4-[(1E)-prop-1-en-1-yl]benzoic acid",
+     "4-[(1E)-prop-1-en-1-yl]benzoic acid", "unchanged"),
+    ("D-027y", "OC(=O)c1ccc(cc1)[C@H](C)CC", "4-[(2R)-butan-2-yl]benzoic acid",
+     "4-[(2R)-butan-2-yl]benzoic acid", "unchanged"),
+    ("D-027z", "N[C@@H](C)C(=O)N[C@@H](Cc1ccccc1)C(=O)O",
+     "(2S)-2-[(2S)-2-aminopropanoylamino]-3-phenylpropanoic acid",
+     "(2S)-2-[(2S)-2-aminopropanoylamino]-3-phenylpropanoic acid", "unchanged"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

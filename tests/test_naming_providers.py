@@ -204,6 +204,86 @@ def test_round_trip_is_STEREO_OMITTED_when_the_name_cannot_express_the_stereo():
     assert verdict is RoundTrip.STEREO_OMITTED
 
 
+def _verdict_for(monkeypatch, candidate_smiles: str, original_smiles: str):
+    """The verdict when OPSIN parses the name to `candidate_smiles`."""
+    from openchem.chem.naming_providers import StructureResult
+
+    monkeypatch.setattr(naming_providers, "opsin_available", lambda: True)
+    monkeypatch.setattr(
+        naming_providers,
+        "opsin_structure_for_name",
+        lambda name: StructureResult(smiles=candidate_smiles, source="OPSIN", kind=PARSED),
+    )
+    return verify_name_round_trip("a-name", Chem.MolFromSmiles(original_smiles))
+
+
+def test_a_name_for_the_other_stereoisomer_is_CONTRADICTED_not_omitted(monkeypatch):
+    """THE DEFECT THE SPLIT EXISTS FOR, with the real data.
+
+    MPMI's centre is R. The engine named it `(5S)` (a carving defect, fixed
+    in `perception/extraction.py`), and this is the SMILES OPSIN parsed that
+    name back to, copied from a live run on 2026-09-17. Before the split
+    this was `STEREO_OMITTED` and the name was shown with a soft note.
+    """
+    verdict = _verdict_for(
+        monkeypatch, "CN1CCC[C@H]1CC1=CNC2=CC=CC=C12", "CN1CCC[C@@H]1Cc1c[nH]c2ccccc12"
+    )
+    assert verdict is naming_providers.RoundTrip.STEREO_CONTRADICTED
+
+
+def test_an_inverted_double_bond_is_CONTRADICTED(monkeypatch):
+    """E/Z inside a substituent was inverted by the same carving defect."""
+    verdict = _verdict_for(monkeypatch, "C/C=C(\\C)c1ccc(cc1)C(=O)O", "C/C=C(/C)c1ccc(cc1)C(=O)O")
+    assert verdict is naming_providers.RoundTrip.STEREO_CONTRADICTED
+
+
+def test_a_name_more_specific_than_the_structure_is_STEREO_ADDED(monkeypatch):
+    verdict = _verdict_for(monkeypatch, "C[C@@H](N)C(=O)O", "CC(N)C(=O)O")
+    assert verdict is naming_providers.RoundTrip.STEREO_ADDED
+
+
+def test_a_symmetric_molecule_is_judged_under_EVERY_correspondence(monkeypatch):
+    """The first substructure match is not the identification.
+
+    Tartaric acid's two centres are equivalent on the flat graph, so the
+    candidate's two atoms can be paired with the structure's either way.
+    The structure defines ONE centre (R) and leaves the other undefined; the
+    candidate is meso, (R,S). Paired one way the candidate's R meets the
+    structure's R and its S meets an undefined centre -- more specific, not
+    wrong. Paired the other way its S meets the structure's R. A verifier
+    that took whichever pairing RDKit listed first could call a consistent
+    name contradicted.
+    """
+    original = "O[C@@H](C(=O)O)C(O)C(=O)O"  # atom 1 R, atom 4 undefined
+    candidate = "O[C@H](C(=O)O)[C@@H](O)C(=O)O"  # atom 1 S, atom 5 R: meso
+    # ASSERT THE SETUP, INCLUDING THE ORDER. Written so RDKit lists the
+    # CONTRADICTING pairing first -- measured, and the reason this string and
+    # not its mirror writing: with the other writing a first-match-only
+    # verifier passed this test (mutation run, 2026-09-17).
+    flat_o = Chem.MolFromSmiles(original)
+    flat_c = Chem.MolFromSmiles(candidate)
+    Chem.RemoveStereochemistry(flat_o)
+    Chem.RemoveStereochemistry(flat_c)
+    pairings = flat_o.GetSubstructMatches(flat_c, uniquify=False, useChirality=False)
+    assert len(pairings) == 2
+    assert pairings[0][1] == 1, "the first pairing no longer meets the candidate's S with the R"
+
+    verdict = _verdict_for(monkeypatch, candidate, original)
+    assert verdict is naming_providers.RoundTrip.STEREO_ADDED
+
+
+def test_a_contradicted_name_is_WITHHELD(monkeypatch):
+    """Withheld like a skeleton mismatch: a note under a name for the other
+    stereoisomer would not stop it being copied."""
+    monkeypatch.setattr(
+        naming_providers,
+        "verify_name_round_trip",
+        lambda name, mol: naming_providers.RoundTrip.STEREO_CONTRADICTED,
+    )
+    with pytest.raises(naming_providers.NamingError, match="stereoisomer"):
+        naming_providers.derived_name_for_structure(Chem.MolFromSmiles("C[C@@H](N)C(=O)O"))
+
+
 def test_a_name_that_only_omits_stereo_is_SHOWN_with_what_it_omits(monkeypatch):
     """Shown rather than withheld -- withholding it reads as the namer
     being broken, which is exactly how this was reported. The caveat is
