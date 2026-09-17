@@ -109,6 +109,13 @@ datas += [(str(PKG / "chem" / "data" / "lewis_parameters.json"), "openchem/chem/
 datas += [(str(PKG / "chem" / "data" / "eqeq_ionization.json"), "openchem/chem/data")]
 datas += [(str(PKG / "chem" / "data" / "eqeq_charge_centres.json"), "openchem/chem/data")]
 
+# Ionescu 2013's two shipped EEM parameterisations, built by
+# tools/build_ionescu_parameters.py. Read on first use of either Ionescu
+# method, so a frozen build without it raises FileNotFoundError only when
+# someone picks that method -- the other charge methods keep working and hide
+# the omission.
+datas += [(str(PKG / "chem" / "data" / "eem_ionescu2013.json"), "openchem/chem/data")]
+
 # Scripts that are never imported -- they are handed as argv to a *sidecar*
 # interpreter (the pkasolver and ADMET environments, which run their own
 # Python, not ours). PyInstaller's import analysis therefore never sees them,
