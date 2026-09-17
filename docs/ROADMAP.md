@@ -2035,6 +2035,10 @@ struck through and marked SHIPPED here, never deleted.
       two test proteins, 36 of 36 rows with r in ångström (check 2.8). The EX
       models are blocked on bond-order typing. Whether and how any of them
       ships is recorded in TRIAGE 3.8.
+  - **2026-09-17: what would unblock each failure** is inventoried in TRIAGE section 5
+    and `benchmarks/charges/models/unblock_inventory.csv`. No verdict changed. Two
+    drug-like candidates were verified (Schindler 2021 SQE, Geidl 2015 EEM), and a
+    second, labelled family of drug-like models is now a stated goal.
 - **Periodic charge equilibration. EQeq SHIPPED 2026-09-16**, as a section of
   the crystal report (`chem/periodic_charges.py`), reproducing all 3,452 atoms
   of Wilmer 2012's twelve MOFs; the entry below is kept for the methods still
