@@ -1,0 +1,88 @@
+{
+ "E_app/K_code": {
+  "H2O": {
+   "abs_diff_max": 7.5307537983349e-12,
+   "predicted_QTPIE_H2": [
+    0.4055667959135774
+   ],
+   "printed": 0.40556679590604666,
+   "solutions_r1_r2_theta": [
+    [
+     0.969999992362553,
+     0.9687329647955844,
+     100.35340561828431
+    ]
+   ],
+   "status": "PASS"
+  },
+  "NaCl": {
+   "abs_diff": 1.2446872976745738e-08,
+   "predicted_QTPIE_Na": 0.7252289943437186,
+   "printed": 0.7252290067905915,
+   "roots_angstrom": [
+    2.3610000298229616
+   ],
+   "status": "PASS"
+  },
+  "verdict": "REPRODUCED"
+ },
+ "E_app/K_print": {
+  "H2O": {
+   "predicted_QTPIE_H2": [],
+   "printed": 0.40556679590604666,
+   "solutions_r1_r2_theta": [],
+   "status": "UNDETERMINED"
+  },
+  "NaCl": {
+   "roots_angstrom": [
+    1.7082725574497752,
+    2.725808825285299
+   ],
+   "status": "UNDETERMINED"
+  },
+  "verdict": "UNDETERMINED"
+ },
+ "E_tab/K_code": {
+  "H2O": {
+   "abs_diff_max": 1.2623602353434293e-06,
+   "predicted_QTPIE_H2": [
+    0.405568058266282
+   ],
+   "printed": 0.40556679590604666,
+   "solutions_r1_r2_theta": [
+    [
+     0.9592406858786096,
+     0.9580341450996829,
+     98.2747895376888
+    ]
+   ],
+   "status": "FAIL"
+  },
+  "NaCl": {
+   "abs_diff": 2.4418978800455626e-05,
+   "predicted_QTPIE_Na": 0.725253425769392,
+   "printed": 0.7252290067905915,
+   "roots_angstrom": [
+    2.360981977438243
+   ],
+   "status": "FAIL"
+  },
+  "verdict": "NOT-REPRODUCED"
+ },
+ "E_tab/K_print": {
+  "H2O": {
+   "predicted_QTPIE_H2": [],
+   "printed": 0.40556679590604666,
+   "solutions_r1_r2_theta": [],
+   "status": "UNDETERMINED"
+  },
+  "NaCl": {
+   "roots_angstrom": [
+    1.708260367632,
+    2.7258057172801373
+   ],
+   "status": "UNDETERMINED"
+  },
+  "verdict": "UNDETERMINED"
+ }
+}

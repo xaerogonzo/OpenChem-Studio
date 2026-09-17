@@ -23,3 +23,6 @@ src/openchem/chem/data/regulatory/sources/*.xml -text
 tests/fixtures/charges/schindler2021/SQE_CCD_gen_parameters.json -text
 tests/fixtures/charges/geidl2015/B3LYP_6-311G_NPA.par -text
 benchmarks/charges/models/schindler_sqe_results/*.json -text
+
+# Clean-room QTPIE result files, whose hashes the pre-registration records.
+benchmarks/charges/models/qtpie_cleanroom_results*.json -text
