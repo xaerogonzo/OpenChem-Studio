@@ -60,6 +60,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Naproxen is now named exactly as PubChem names it**, and so is every
+  other substituent on a fused ring. The engine said
+  `2-(2-methoxynaphthalen-6-yl)propanoic acid` where the preferred name is
+  `2-(6-methoxynaphthalen-2-yl)propanoic acid`: both denote naproxen, which
+  is why the benchmark accepted it for months. A substituent's attachment
+  point takes the lowest available locant, ahead of any substituent prefix,
+  and on a fused ring the usual answer of 1 is not available at all — the
+  code asked for 1, found nothing, and then stopped applying the rule
+  instead of applying it to the positions that were available. Checked
+  across naphthalene, anthracene, phenanthrene and quinoline, where the
+  right locant differs per skeleton.
+
 - **A substituted adamantane was named as a different compound**, and it was
   found by a corpus chosen before the engine was consulted.
   `1-(2-cyclohexyladamantan-5-yl)-N-methylpropan-2-amine` denotes

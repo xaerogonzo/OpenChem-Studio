@@ -540,3 +540,38 @@ structurally regressed and 5 names reworded as above; held-out corpus
 D-030d pins the emitted `{...}` braces rather than correcting them, because
 the enclosing-mark nesting is a separate serialization defect (P-16.3.2) and
 both forms parse back to the same structure.
+
+## 2026-09-17 — a fused free valence, where locant 1 is unreachable (D-031)
+
+The third ring class, completing the rule D-029 and D-030 fixed for
+monocyclic and bridged rings.
+
+* **The plan predicted the wrong cause, and measuring it first is the only
+  reason that cost nothing.** The prediction was that a ring numbered from
+  the curated table exposes one canonical `atom_locants` map, leaving
+  nothing to filter between — so the fix would have to generate
+  symmetry-equivalent orientations. Measured: naphthalene already offers
+  FOUR numberings, placing the attachment at 2, 3, 7 or 6, and the correct
+  one is yielded first.
+
+* **The cause was a fallback that abandoned the rule.** The branch filtered
+  for "attachment at locant 1" and, finding none, yielded EVERY numbering.
+  Locant 1 is simply not reachable on a fused ring, so that fallback handed
+  the decision to the prefix band, which prefers the numbering giving
+  methoxy the lower locant — the opposite of P-31.1.4.2.4, which ranks the
+  free valence ahead of detachable prefixes. It now falls back to the same
+  rule applied to what IS reachable: the lowest free-valence locant among
+  the candidates.
+
+* Generalised across five ring systems, each verified on canonical SMILES
+  and full InChIKey, with the locant checked per skeleton rather than
+  assumed constant: `naphthalen-2-yl`, `anthracen-2-yl`,
+  `phenanthren-3-yl`, `quinolin-2-yl` (its nitrogen holds 1), and
+  `4-methylnaphthalen-2-yl`. A substituted monocyclic phenyl still reaches
+  locant 1 and is pinned unchanged, as is the ester case where the PARENT
+  changes and the substituent numbering must not.
+
+Benchmark: regression corpus **187/187, exact 87 → 89** (both naproxen rows
+`equivalent` → `exact`, and no other name moved); held-out corpus 40/40
+unchanged. Vendored suite: 3271 passing, 16 skipped, 0 failing. The defect
+table gains 10 rows (3 defect, 7 generalisation and non-regression).

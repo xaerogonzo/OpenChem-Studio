@@ -92,9 +92,23 @@ that were quietly malformed the same way (`(trimethylsilan-yl)benzene` →
 `(trimethylsilan-1-yl)benzene`, and four like it) — still not the preferred
 names, which are `trimethyl(phenyl)silane` and friends, but well formed.
 
-The remaining instance of the same rule is naproxen's
-`2-methoxynaphthalen-6-yl` for `6-methoxynaphthalen-2-yl`, a fused
-carbocycle, which is severity B because both names denote the molecule.
+The third and last ring class went the same way, as D-031, and it is worth
+recording that the plan for it predicted the wrong cause. The prediction was
+that a ring numbered from the curated table exposes a single canonical map,
+so there would be nothing to choose between; measured, naphthalene offers
+FOUR numberings placing the attachment at 2, 3, 7 or 6, and the correct one
+is offered first. The branch filtered for "attachment at locant 1", found
+none -- locant 1 is not reachable on a fused ring -- and fell back to
+yielding every numbering, which is falling back to no rule at all. The
+prefix band then chose, giving naproxen `2-methoxynaphthalen-6-yl` instead
+of `6-methoxynaphthalen-2-yl`. The fallback now applies the same rule to
+what is reachable, and both naproxen rows moved from `equivalent` to
+`exact`.
+
+Generalised across five ring systems with the locant verified per skeleton
+rather than assumed constant: naphthalene and anthracene take 2,
+phenanthrene 3, quinoline 2 because its nitrogen holds 1. A substituted
+monocyclic phenyl still reaches locant 1 and is unchanged.
 
 The last one to go, D-024, is worth keeping as a worked example because the
 two obvious fixes were both wrong:

@@ -12187,11 +12187,26 @@ class SubstitutivePath:
                     nb for nb in ring_numberings
                     if nb.atom_to_locant.get(attachment_atom, object()) == Locant.numeric(1)
                 ]
-                # If no numbering places attachment at 1, yield all (fallback)
                 if filtered:
                     yield from filtered
                 else:
-                    yield from ring_numberings
+                    # FALLING BACK TO EVERY NUMBERING IS FALLING BACK TO NO
+                    # RULE. Locant 1 is the usual answer but not an
+                    # available one on a fused ring: naphthalene offers the
+                    # attachment 2, 3, 7 or 6 and never 1, so this branch
+                    # yielded all four and the prefix band chose -- giving
+                    # `2-methoxynaphthalen-6-yl` where P-31.1.4.2.4 ranks
+                    # the free valence ahead of a detachable prefix and asks
+                    # for `6-methoxynaphthalen-2-yl`.
+                    #
+                    # So the fallback is the same rule applied to what IS
+                    # reachable: the lowest free-valence locant among the
+                    # candidates, which is what the branch below already does
+                    # for the cases that never had a locant-1 option.
+                    yield from _lowest_free_valence_numberings(
+                        ring_numberings, named_parent, mol,
+                        free_valence.attachment_atoms_in_fragment,
+                    )
             # A BRIDGED SUBSTITUENT USED TO GET ITS OWN BRANCH HERE, and it
             # sorted the numberings so the lowest attachment locant came LAST,
             # relying on "later-generated wins a tie" to select it without a

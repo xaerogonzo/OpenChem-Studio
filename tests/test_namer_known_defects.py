@@ -568,6 +568,64 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "unchanged: ALKYL method, contracted ring stem"),
     ("D-030h", "OCc1ccccc1", "phenylmethanol", "phenylmethanol",
      "unchanged: ALKYL method"),
+
+    # --- D-031: a FUSED free valence, when locant 1 is not on offer --------
+    # The last of the three ring classes, and the one my own plan predicted
+    # wrongly. The prediction was that a ring numbered from the curated table
+    # exposes a single canonical map, leaving nothing to choose between.
+    # Measured: naphthalene offers FOUR numberings, putting the attachment at
+    # 2, 3, 7 or 6 -- the correct one exists and is offered first.
+    #
+    # The branch filtered for "attachment at locant 1" and, finding none,
+    # fell back to yielding EVERY numbering. Falling back to every numbering
+    # is falling back to no rule: the prefix band then chose, and it prefers
+    # the numbering that gives methoxy the lower locant, which P-31.1.4.2.4
+    # puts after the free valence. Locant 1 is simply not reachable on a
+    # fused ring, so the fallback now applies the same rule to what IS
+    # reachable -- the lowest free-valence locant among the candidates.
+    #
+    # Severity B: both names denote naproxen, which is why the round-trip
+    # benchmark scored the old one as a success for months.
+    ("D-031a", "COc1ccc2cc([C@@H](C)C(=O)O)ccc2c1",
+     "(2R)-2-(6-methoxynaphthalen-2-yl)propanoic acid",
+     "(2R)-2-(2-methoxynaphthalen-6-yl)propanoic acid",
+     "free valence took 6 so methoxy could take 2"),
+    ("D-031b", "COc1ccc2cc([C@H](C)C(=O)O)ccc2c1",
+     "(2S)-2-(6-methoxynaphthalen-2-yl)propanoic acid",
+     "(2S)-2-(2-methoxynaphthalen-6-yl)propanoic acid",
+     "the other enantiomer, same locant defect"),
+    ("D-031c", "COc1ccc2cc(ccc2c1)C(C)C(=O)OC",
+     "methyl 2-(6-methoxynaphthalen-2-yl)propanoate",
+     "methyl 2-(2-methoxynaphthalen-6-yl)propanoate",
+     "the PARENT changes (acid -> ester) and the substituent must not"),
+    # Generalisation across ring systems, each verified on both gates. The
+    # locant differs per skeleton -- 2 for naphthalene and anthracene, 3 for
+    # phenanthrene -- which is the point: the rule is "lowest reachable", not
+    # a constant.
+    ("D-031d", "OC(=O)c1ccc(cc1)c1cc2ccccc2c(C)c1",
+     "4-(4-methylnaphthalen-2-yl)benzoic acid",
+     "4-(4-methylnaphthalen-2-yl)benzoic acid",
+     "naphthalene with a distal methyl"),
+    ("D-031e", "OC(=O)c1ccc(cc1)c1ccc2cc3ccccc3cc2c1",
+     "4-(anthracen-2-yl)benzoic acid", "4-(anthracen-2-yl)benzoic acid",
+     "anthracene: unchanged, no competing prefix"),
+    ("D-031f", "OC(=O)c1ccc(cc1)c1ccc2ccc3ccccc3c2c1",
+     "4-(phenanthren-3-yl)benzoic acid", "4-(phenanthren-3-yl)benzoic acid",
+     "phenanthrene: lowest reachable is 3, not 2"),
+    ("D-031g", "OC(=O)c1ccc(cc1)c1ccc2ccccc2n1",
+     "4-(quinolin-2-yl)benzoic acid", "4-(quinolin-2-yl)benzoic acid",
+     "fused heterocycle: N holds locant 1, so 2 is lowest reachable"),
+    # Non-regression for the branch that still WANTS locant 1 and can get it.
+    # If the fallback ever swallows the locant-1 case these go first.
+    ("D-031h", "OC(=O)c1ccc(cc1)c1ccccc1C",
+     "4-(2-methylphenyl)benzoic acid", "4-(2-methylphenyl)benzoic acid",
+     "unchanged: monocyclic, attachment reachable at 1"),
+    ("D-031i", "OC(=O)c1ccc(cc1)c1ccccc1", "4-phenylbenzoic acid",
+     "4-phenylbenzoic acid", "unchanged: unsubstituted phenyl, no locant"),
+    ("D-031j", "OC(=O)C(C)c1ccc2ccccc2c1",
+     "2-(naphthalen-2-yl)propanoic acid",
+     "2-(naphthalen-2-yl)propanoic acid",
+     "unchanged: naphthalene with no competing prefix was already right"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names
