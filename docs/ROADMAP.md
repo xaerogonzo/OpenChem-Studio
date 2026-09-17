@@ -2015,6 +2015,26 @@ struck through and marked SHIPPED here, never deleted.
     transition states, where fluorine has five atoms.
   - QTPIE, PQEq and Oda–Hirono are held on missing oracles. ACKS2 is not
     pursued as a molecular calculator.
+  - **Correction (2026-09-16): three of the lines above predate round 3 and are
+    stale.** They are kept as written; what the checks since found is below,
+    and TRIAGE is the record.
+    - **Nistor is no longer only "held on geometry".** Six of the 41 molecules'
+      geometry was recovered by a one-row rotation (check 2.7). On those six,
+      no method and reading reproduces a single molecule (0 of 56 atoms under
+      the split-charge methods, 2 under method i), so the verdict is PARTIAL
+      and no calculator follows. TRIAGE 3.7.
+    - **Mathieu's misses are no longer "unexplained" in the same sense.** The
+      named-cause study (check 2.6) found that the printed parameters are not
+      where this implementation's error is minimised, and that the Hessian
+      there is indefinite. It ruled out the numerics, the Coulomb kernel and
+      model B's parameters alone, and narrowed the cause to the C term and
+      something models B and C share. Its verdict is INCONCLUSIVE, not a
+      cause. TRIAGE 3.5 and 3.6.
+    - **Ionescu 2013 was missing from this list.** All 12 of its E-typing EEM
+      models reproduce the paper's own charges on its protein fragments and
+      two test proteins, 36 of 36 rows with r in ångström (check 2.8). The EX
+      models are blocked on bond-order typing. Whether and how any of them
+      ships is recorded in TRIAGE 3.8.
 - **Periodic charge equilibration. EQeq SHIPPED 2026-09-16**, as a section of
   the crystal report (`chem/periodic_charges.py`), reproducing all 3,452 atoms
   of Wilmer 2012's twelve MOFs; the entry below is kept for the methods still
