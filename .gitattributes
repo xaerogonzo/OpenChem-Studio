@@ -22,3 +22,4 @@ src/openchem/chem/data/regulatory/sources/*.xml -text
 # their READMEs record the supplement's own SHA-256, which CRLF expansion would change.
 tests/fixtures/charges/schindler2021/SQE_CCD_gen_parameters.json -text
 tests/fixtures/charges/geidl2015/B3LYP_6-311G_NPA.par -text
+benchmarks/charges/models/schindler_sqe_results/*.json -text
