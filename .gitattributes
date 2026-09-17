@@ -17,3 +17,6 @@
 # This file is not ours. Its digest answers "is this the document we read",
 # so it has to be the document's own bytes.
 src/openchem/chem/data/regulatory/sources/*.xml -text
+
+# Clean-room QTPIE result files, whose hashes the pre-registration records.
+benchmarks/charges/models/qtpie_cleanroom_results*.json -text

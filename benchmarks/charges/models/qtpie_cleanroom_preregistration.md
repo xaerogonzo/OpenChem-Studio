@@ -190,3 +190,29 @@ four* exponents, not only hydrogen's.
 - **Reported beside the verdict:** |Δ|, and the recovered r₁, because a round r₁ is the same kind of
   corroboration as above.
 - **This cannot change run 1's verdict.**
+
+### Q-A1 result (2026-09-17): the program used the appendix hydrogen exponent
+
+`qtpie_cleanroom_results_qa1.json` (sha256 `60e2d5ab89fdc048723e86ff9affba23ace29d9d8c4d7c456f2abe73c70cba84`), exit 0.
+
+| arm | H exponent | water solution (r₁, r₂, θ) | predicted QTPIE H(2) | \|Δ\| | status |
+|---|---|---|---|---|---|
+| E_app / K_code (run 1) | 0.534337523756312 | (**0.9699999924**, 0.9687329648, 100.35341°) | +0.4055667959 | 7.5e-12 | PASS |
+| E_mix / K_code | 0.5434 | (0.9593152853, 0.9581079531, 98.30869°) | +0.4055680450 | 1.249e-6 | **FAIL** |
+
+**By Q-A1's rule, the program that produced the printed test charges used hydrogen exponent
+0.534337523756312, the appendix value, not Table 2.2's 0.5434.**
+
+Stated plainly, because the margin looks small:
+- **E_mix misses by only 1.25 times the tolerance.**
+- **The contrast is larger than that margin suggests:**
+  - E_app matches to 7.5e-12, five orders of magnitude inside the tolerance;
+  - E_app's geometry is round (r₁ = 0.9700000 Å), and E_mix's is not.
+- **What remains open:** which value is Chen's *fit*. TRIAGE 3.10 showed §2.4 cannot recompute
+  Table 2.2 at all.
+- **What follows for LAMMPS:** its example gfile uses 0.5434, which is not the value the thesis's own
+  program ran with.
+
+**Records to update once #123 merges.** TRIAGE §1 (QTPIE) and 3.10, and the unblock-inventory row for
+QTPIE: the G1 charge oracle is no longer missing, and HOLD stays for the reasons in section 5. They are
+not edited on this branch, to avoid conflicting with #123's changes to the same sections.
