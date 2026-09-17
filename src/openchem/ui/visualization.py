@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import re
 
 from dataclasses import dataclass
@@ -387,6 +388,33 @@ def build_visualization_layer(result: ScientificResult, include_labels: bool = F
     if no adapter is registered for that result kind."""
     adapter = _VISUALIZATION_ADAPTERS.get(type(result))
     return adapter(result, include_labels=include_labels) if adapter else None
+
+
+#: Every atom with a value gets a permanent label -- the behaviour before 2026-09-17.
+LABEL_ALL_ATOMS = "all_atoms"
+#: Heavy atoms and hydrogens on N, O or S. The dozens of hydrogens on carbon
+#: keep their values in the inspector's table and on hover; labelling them too
+#: is what made the 3D pane unreadable (Alex, butyryl fentanyl, 57 atoms).
+LABEL_HEAVY_AND_POLAR_H = "heavy_and_polar_h"
+
+
+def label_policy_atoms(rows: list[tuple[str, bool]], policy: str = LABEL_HEAVY_AND_POLAR_H) -> set[int]:
+    """Which atoms of a structure get a permanent label, from `ChemistryEngine.atom_rows`.
+
+    A policy, not a charge rule: any per-atom calculator's inspector uses it.
+    """
+    if policy == LABEL_ALL_ATOMS:
+        return set(range(len(rows)))
+    if policy != LABEL_HEAVY_AND_POLAR_H:
+        raise ValueError(f"Unknown label policy {policy!r}")
+    return {index for index, (symbol, polar_hydrogen) in enumerate(rows) if symbol != "H" or polar_hydrogen}
+
+
+def with_labels_on(layer: VisualizationLayer | None, atoms: set[int] | None) -> VisualizationLayer | None:
+    """`layer` with permanent labels kept only on `atoms`; colours untouched. None keeps them all."""
+    if layer is None or atoms is None or not layer.atom_labels:
+        return layer
+    return dataclasses.replace(layer, atom_labels={i: t for i, t in layer.atom_labels.items() if i in atoms})
 
 
 # Binding-site interaction colours. Distinct hues rather than a scale:

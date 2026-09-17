@@ -79,6 +79,9 @@ OPENCHEM_DRIVE=/path/to/script.json uv run --no-sync python -m openchem.main
                                           Inspector -- see below
     {"do": "inspector_report", "tag": "after-edit"}  the Atom Inspector's
                                           pinned line, HELD results and state
+    {"do": "inspect", "id": "geometry_partial_charge", "parameters": {"ph_dependent": true}}
+    {"do": "inspect_report", "tag": "ph", "filter": "N", "select_row": 0}  the
+                                          structure the panes draw, labels, table
     {"do": "result_report", "calculator": "geometry_partial_charge",
      "expect_refusal": "REFUSE_NOT_CONVERGED"}  WHICH refusal Properties
                                           holds; "Not applicable" names none
@@ -287,6 +290,7 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- THE MICROSPECIES WAS COMPUTED AND DISCARDED, AND A REGISTERED FIELD WAS NEVER WRITTEN
 - A GREEN PYTEST SUMMARY AND A NON-ZERO EXIT: THE SAME WINDOWS CRASH, WEARING THE ONE SHAPE NO DIAGNOSTIC CATCHES
 - A TRUNCATED LATTICE SUM IS NOT INVARIANT TO MOVING ONE ATOM, AND THE CIF CANNOT CARRY WHAT THE SOURCE USED
 - A QA ASSERT INSIDE AN OPTIMISER DISCARDED 18 JOBS, AND A SIGN CHANGE WAS NOT A ROOT

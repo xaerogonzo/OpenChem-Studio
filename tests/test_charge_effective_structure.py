@@ -277,6 +277,42 @@ def test_every_refusal_round_trips_through_the_codec(smiles, parameters):
     _assert_saveable(result)
 
 
+def test_a_v1_dataset_from_a_saved_project_decodes_with_no_structure(monkeypatch):
+    """The fixture project master saved before this change: its 3D charge result is v1."""
+    import json
+    import pathlib
+
+    path = pathlib.Path(__file__).resolve().parent / "fixtures" / "projects" / "master_charge_consumers.ocsproj"
+    text = path.read_text(encoding="utf-8")
+    assert '"__type__": "scientific_result.PerAtomDataset"' in text
+
+    def datasets(node):
+        if isinstance(node, dict):
+            if node.get("__type__") == "scientific_result.PerAtomDataset":
+                yield node
+            for value in node.values():
+                yield from datasets(value)
+        elif isinstance(node, list):
+            for value in node:
+                yield from datasets(value)
+
+    (raw,) = [d for d in datasets(json.loads(text)) if d.get("property_id") == gc.PROPERTY_ID]
+    assert raw["__version__"] == 1
+    decoded = result_codec.decode(raw)
+    assert decoded.structure_molblock == "" and decoded.structure_fingerprint == "" and decoded.values
+
+
+def test_a_build_that_reads_only_v1_refuses_a_dataset_that_carries_a_structure(monkeypatch):
+    """What an older build does with a new project: refuse the dataset, never read its indices
+    without the structure they refer to."""
+    encoded = result_codec.encode(gc.compute_geometry_charges(_conformer("OC(=O)C"), "u", PH))
+    assert encoded["__version__"] == 2
+    monkeypatch.setitem(result_codec.TYPE_VERSIONS, "scientific_result.PerAtomDataset", 1)
+    with pytest.raises(result_codec.CodecError) as refused:
+        result_codec.decode(encoded)
+    assert refused.value.problem == result_codec.UNSUPPORTED_VERSION
+
+
 def test_a_drawing_refusal_round_trips_through_the_codec():
     result = gc.compute_geometry_charges(Chem.AddHs(Chem.MolFromSmiles("CCO")), "u", PH)
     assert result.provenance.parameters["refusal"] == gc.REFUSE_NO_3D_GEOMETRY

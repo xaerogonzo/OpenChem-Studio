@@ -1367,6 +1367,11 @@ CALCULATOR_COUNTS_ARE_HISTORY = {
         "tree that no longer exists, which reads as current"
     ),
     "docs/NAVIGATION_AUDIT.md": "a dated audit of one moment, kept as a record",
+    "benchmarks/charges/periodic/calculator_preregistration.md": (
+        "a pre-registration: its count is a dated measurement (section 1, "
+        "2026-09-15) taken before the design, and a registered document is "
+        "not edited afterwards"
+    ),
     "docs/ROADMAP.md": "its batch paragraph is ONE measurement, dated in place",
     "docs/ARCHITECTURE.md": (
         "its counts are findings from specific investigations -- the panel "
