@@ -27,7 +27,8 @@ VOCABULARY = {
     "family": {"G1", "G2", "both"},
     "g1_status": {"REPRODUCED", "SHIPPED", "PARTIAL", "INCONCLUSIVE", "HOLD", "BLOCKED", "NO", "UNEXPLAINED",
                   "NOT-ASSESSED", "n/a"},
-    "g2_status": {"CANDIDATE", "NOT-ASSESSED", "n/a"},
+    #: CANDIDATE is an unassessed candidate; G2-CANDIDATE and NOT-G2-CANDIDATE are a registered study's verdicts.
+    "g2_status": {"CANDIDATE", "G2-CANDIDATE", "NOT-G2-CANDIDATE", "NOT-ASSESSED", "n/a"},
     "evidence_state": {"AVAILABLE-UNASSESSED", "AVAILABLE-PARTIAL", "MISSING", "TERMINAL", "RESOLVED"},
     "primary_blocker": {"source", "data", "tool", "decision", "none-terminal", "none-resolved"},
     "owner": {"me", "alex", "none"},
@@ -82,6 +83,8 @@ def test_each_row_keeps_its_vocabulary_and_consistency(row):
     # A G2 row must say how it would be judged, or that the oracle is not yet selected.
     if row["family"] in {"G2", "both"}:
         assert row["g2_status"] != "n/a", f"{item}: a G2 row with no G2 status"
+        if row["g2_status"] == "NOT-G2-CANDIDATE":
+            assert row["worth_chasing"] == "no", f"{item}: a failed G2 study cannot be worth chasing"
         assert row["g2_oracle_options"].strip(), f"{item}: a G2 row with no oracle options"
     else:
         assert row["g2_status"] == "n/a" and row["worth_chasing"] != "g2-only", f"{item}: G2 fields on a G1-only row"
