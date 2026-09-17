@@ -482,12 +482,42 @@ def stage_b(parameter_choice: str, chargefw2_json: pathlib.Path) -> dict:
     return result
 
 
+def stage_b_a1() -> dict:
+    """Amendment B-A1: MACH's two aggregations (`modules/comparison.py`), under R_minus."""
+    atoms, bonds = load_sqe_parameters()
+    split = load_split()
+    by_name = {m.name: (m, q) for m, q in load_dataset("CCD_gen")}
+    out = {"stage": "B-A1", "reading": "R_minus"}
+    for subset, key in (("train", "CCD_gen training set"), ("test", "CCD_gen test set")):
+        refs, emps, rounded_rmsd, rounded_r2 = [], [], [], []
+        for name in split[key]:
+            molecule, ref = by_name[name]
+            emp = sqe_charges(molecule, atoms, bonds, "R_minus")
+            refs.append(ref)
+            emps.append(emp)
+            rounded_rmsd.append(round(float(np.sqrt(np.mean((ref - emp) ** 2))), 4))
+            pearson = round(float(np.corrcoef(ref, emp)[0, 1]), 4)
+            rounded_r2.append(round(pearson ** 2, 4))
+        ref_all, emp_all = np.concatenate(refs), np.concatenate(emps)
+        out[subset] = {
+            "A1_pooled": {"RMSD": float(np.sqrt(np.mean((ref_all - emp_all) ** 2))), "R2": float(np.corrcoef(ref_all, emp_all)[0, 1] ** 2)},
+            "A1_rounded_mean": {"RMSD": round(float(np.mean(rounded_rmsd)), 4), "R2": round(float(np.mean(rounded_r2)), 4)},
+            "printed": {"RMSD": ORACLE[subset]["RMSD"], "R2": ORACLE[subset]["R2"]},
+        }
+        for arm in ("A1_pooled", "A1_rounded_mean"):
+            out[subset][arm]["matches"] = {k: abs(v - ORACLE[subset][k]) <= PRINTED_TOLERANCE for k, v in out[subset][arm].items() if k in ("RMSD", "R2")}
+    save("b_a1", out)
+    return out
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 3 and not (len(sys.argv) == 2 and sys.argv[1] == "c"):
+    if len(sys.argv) < 3 and not (len(sys.argv) == 2 and sys.argv[1] in ("c", "b-a1")):
         sys.exit("usage: schindler_sqe_check.py a4 <chargefw2-ccd_gen.json> | b <chargefw2-ccd_gen.json> | c")
     stage = sys.argv[1]
     if stage == "a4":
         print(json.dumps({k: v for k, v in stage_a4(pathlib.Path(sys.argv[2])).items() if k != "per_molecule_max_abs_diff"}, indent=1))
+    elif stage == "b-a1":
+        print(json.dumps(stage_b_a1(), indent=1))
     elif stage == "b":
         choice = json.loads((RESULTS / "a4.json").read_text(encoding="utf-8"))["runs_for_part_b"]
         out = stage_b(choice, pathlib.Path(sys.argv[2]))

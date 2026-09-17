@@ -272,3 +272,26 @@ MACH's `SQE.py` is the same model as ChargeFW2's, with −χ.
   values are pooled statistics, and the paper's own sentence ("computed for each molecule and then
   averaged") contradicts its tables. That is a source finding, recorded as such.
 - **If neither aggregation matches,** the misses stay unexplained, and nothing further is tried.
+
+### B-A1 result (2026-09-17): the printed RMSD and R² are pooled statistics
+
+`schindler_sqe_results/b_a1.json` (sha256 `ae738d1bd62f9169d006a01d89eac6a01abe5be01655146c4e2d9e29bfea51ae`), exit 0, R_minus.
+
+| split | statistic | printed | A1-pooled | A1-rounded-mean |
+|---|---|---|---|---|
+| train | RMSD | 0.0282 | **0.02822** | 0.0273 |
+| train | R² | 0.9953 | **0.99532** | 0.9938 |
+| test | RMSD | 0.0279 | **0.02794** | 0.0270 |
+| test | R² | 0.9952 | **0.99523** | 0.9939 |
+
+- **All four match under A1-pooled; none under MACH's rounded per-molecule means.** With B.2's two
+  RMSDat values, **every printed S6 seed-5 value reproduces under R_minus** once RMSD and R² are
+  pooled over atoms.
+- **A source finding, recorded as one:** the paper's sentence "the values of R² and RMSD are computed
+  for each molecule and then averaged over the whole set" does not describe the numbers it prints.
+- **The registered B.2 verdict is unchanged: PARTIAL.** The amendment said it could not be changed.
+- **What this does establish:** the published parameters, our SQE and ChargeFW2 are one model, with
+  the right-hand side −χ (the paper's printed +χ is wrong in sign). The paper's metrics are recovered
+  exactly with that model.
+- **Part C still uses the registered per-molecule averages for its threshold,** and reports pooled
+  values beside them.
