@@ -45,12 +45,13 @@ EQUIVALENT = "equivalent"            # round-trips; different valid wording
 TAUTOMER = "tautomer"                # same compound, different tautomer drawn
 GATE_DISAGREE = "gate_disagreement"  # SMILES and InChIKey gates disagree
 STEREO_LOST = "stereo_lost"          # right skeleton, stereochemistry dropped
+STEREO_WRONG = "stereo_wrong"        # right skeleton, a descriptor CONTRADICTS it
 WRONG_STRUCTURE = "wrong_structure"  # parses, but to a different molecule
 UNPARSABLE = "unparsable"            # OPSIN cannot read it at all
 NO_PREDICTION = "no_prediction"      # the engine returned nothing
 
 SUCCESS = {EXACT, EQUIVALENT, TAUTOMER}
-ORDER = [EXACT, EQUIVALENT, TAUTOMER, GATE_DISAGREE, STEREO_LOST,
+ORDER = [EXACT, EQUIVALENT, TAUTOMER, GATE_DISAGREE, STEREO_LOST, STEREO_WRONG,
          WRONG_STRUCTURE, UNPARSABLE, NO_PREDICTION]
 
 
@@ -170,6 +171,13 @@ def classify(row: dict, predicted: str | None) -> str:
             return EXACT
         return EQUIVALENT
     if _flat(parsed.smiles) == _flat(row["smiles"]):
+        # "Lost" was the only stereo outcome, so a name carrying the OPPOSITE
+        # descriptor was reported as flattened. Measured 2026-09-17 on three
+        # tryptamines named (5S)/(2S) for an R centre. The verdict is the
+        # app's own (`naming_providers._stereo_verdict`), so the benchmark
+        # and the displayed name cannot disagree about what "wrong" means.
+        if n._stereo_verdict(got, want) is n.RoundTrip.STEREO_CONTRADICTED:
+            return STEREO_WRONG
         return STEREO_LOST
     return WRONG_STRUCTURE
 
@@ -213,8 +221,9 @@ def report(label: str, rows: list[dict], predictions: list[str]) -> dict:
     if stereo_rows:
         got = sum(o in SUCCESS for _, o in stereo_rows)
         lost = sum(o == STEREO_LOST for _, o in stereo_rows)
+        wrong = sum(o == STEREO_WRONG for _, o in stereo_rows)
         print(f"\n  stereochemistry: {got}/{len(stereo_rows)} correct, "
-              f"{lost} silently flattened")
+              f"{lost} silently flattened, {wrong} contradicted")
 
     worst = [(r, o, p) for r, o, p in zip(rows, outcomes, predictions) if o not in SUCCESS]
     if worst:

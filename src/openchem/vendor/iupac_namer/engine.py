@@ -12211,6 +12211,15 @@ class SubstitutivePath:
 
                 sorted_nbs = sorted(ring_numberings, key=_att_locant_val, reverse=True)
                 yield from sorted_nbs
+            elif (
+                output_form == OutputForm.SUBSTITUENT
+                and free_valence is not None
+                and free_valence.attachment_atoms_in_fragment
+            ):
+                yield from _lowest_free_valence_numberings(
+                    ring_numberings, named_parent, mol,
+                    free_valence.attachment_atoms_in_fragment,
+                )
             else:
                 yield from ring_numberings
 
@@ -15749,6 +15758,72 @@ def _find_parent_neighbor(anchor_idx: int, parent_atoms: frozenset[int], mol) ->
 
 
 _INDICATED_H_RE = __import__("re").compile(r"^(\d+)[a-z]?H-")
+
+
+def _lowest_free_valence_numberings(
+    ring_numberings,
+    named_parent,
+    mol,
+    attachment_atoms,
+) -> tuple:
+    """The ring numberings a heterocyclyl SUBSTITUENT may use (P-31.1.4).
+
+    Heteroatoms first (P-31.1.4.2.2: lowest locants to all heteroatoms
+    together, then in the order O, S, Se, Te, N, ...), then the free
+    valence (P-31.1.4.2.4, which ranks free valences with suffixes -- ahead
+    of every detachable prefix).
+
+    **THE FREE VALENCE WAS SCORED NOWHERE**, so on a ring whose heteroatom
+    numbering has two equal directions the choice fell to plan order.
+    Measured 2026-09-17: ``CN1CCCC1CO`` named ``(1-methylpyrrolidin-5-yl)
+    methanol`` and MPMI ``...(1-methylpyrrolidin-5-yl)methyl...``, while
+    near-identical shapes came out ``-2-yl``. The carved fragment is
+    1-methylpyrrolidine, whose C2 and C5 are symmetry-equivalent, so which
+    of them is the attachment after canonical renumbering depends on the
+    input's atom order -- and with both directions scoring -0.4101 the
+    tie decided the locant. ``4-(1,2-dimethylpyrrolidin-5-yl)benzoic acid``
+    shows the other half: with the free valence unscored, the prefix band
+    decided instead, which P-31.1.4.2.4 puts after it.
+
+    The bridged branch above solves the same gap by generation order; this
+    one filters, so the answer does not depend on how ties are broken.
+    Falls back to every numbering rather than to none.
+    """
+    from openchem.vendor.iupac_namer.strategy import _HETERO_ELEMENT_PRIORITY
+
+    ring_atoms = named_parent.candidate.atom_indices
+    heteroatoms = [
+        idx for idx in ring_atoms
+        if mol.GetAtomWithIdx(idx).GetAtomicNum() not in (1, 6)
+    ]
+    missing = Locant.numeric(9999)
+
+    def hetero_key(nb):
+        a2l = nb.atom_to_locant
+        together = tuple(sorted(a2l.get(idx, missing) for idx in heteroatoms))
+        by_priority = tuple(
+            tuple(sorted(
+                a2l.get(idx, missing) for idx in heteroatoms
+                if _HETERO_ELEMENT_PRIORITY.get(mol.GetAtomWithIdx(idx).GetSymbol(), 99) == prio
+            ))
+            for prio in sorted({
+                _HETERO_ELEMENT_PRIORITY.get(mol.GetAtomWithIdx(idx).GetSymbol(), 99)
+                for idx in heteroatoms
+            })
+        )
+        return together, by_priority
+
+    def free_valence_key(nb):
+        return tuple(sorted(nb.atom_to_locant.get(idx, missing) for idx in attachment_atoms))
+
+    numberings = tuple(ring_numberings)
+    if not numberings:
+        return numberings
+    best_hetero = min(hetero_key(nb) for nb in numberings)
+    hetero_best = [nb for nb in numberings if hetero_key(nb) == best_hetero]
+    best_fv = min(free_valence_key(nb) for nb in hetero_best)
+    chosen = tuple(nb for nb in hetero_best if free_valence_key(nb) == best_fv)
+    return chosen or numberings
 
 
 def _filter_indicated_h_numberings(

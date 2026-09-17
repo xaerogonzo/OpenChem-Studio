@@ -213,6 +213,22 @@ CORPUS: dict[str, list[tuple[str, str]]] = {
         ("azide", "[N-]=[N+]=[N-]"),
         ("tetrafluoroborate", "[B-](F)(F)(F)F"),
     ],
+    # Added 2026-09-17 from a user report. Every one of these ROUND-TRIPPED
+    # while wrong, so this category's score could not have caught them: a
+    # prefix cited out of alphanumerical order (the fentanyls), a pyrrolidinyl
+    # free valence numbered 5 instead of 2, and an R centre named (S) inside
+    # the substituent (the tryptamines -- that one fails the round trip, but
+    # only once the verifier separates contradicted from omitted stereo). The
+    # EXACT column is what moves here, which is why the PubChem name matters
+    # more than usual for these rows.
+    "substituent_naming": [
+        ("acetyl fentanyl", "CC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1"),
+        ("butyryl fentanyl", "CCCC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1"),
+        ("fentanyl", "CCC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1"),
+        ("(R)-MPMI", "CN1CCC[C@@H]1Cc1c[nH]c2ccccc12"),
+        ("(R)-4-HO-MPMI", "CN1CCC[C@@H]1Cc1c[nH]c2cccc(O)c12"),
+        ("(R)-5-MeO-MPMI", "CN1CCC[C@@H]1Cc1c[nH]c2ccc(OC)cc12"),
+    ],
 }
 
 
@@ -293,14 +309,25 @@ def main() -> None:
             except Exception:
                 pass
             truth = _trusted_pubchem_name(mol)
-            rows.append({
+            row = {
                 "label": label,
                 "category": category,
                 "smiles": Chem.MolToSmiles(mol),
                 "kekule_smiles": kekule_smiles,
                 "has_stereo": _has_stereo(mol),
                 "pubchem_name": truth,
-            })
+            }
+            if truth:
+                # WHERE THE STRING CAME FROM AND WHEN, so the reference can be
+                # re-fetched and compared rather than trusted as timeless.
+                # Rows from before 2026-09-17 do not carry these.
+                try:
+                    row["pubchem_cid"] = n.pubchem_identify(mol).cid
+                except Exception:
+                    row["pubchem_cid"] = None
+                row["pubchem_retrieved"] = time.strftime("%Y-%m-%d")
+                row["pubchem_name_kind"] = "PubChem IUPACName property"
+            rows.append(row)
             added += 1
             print(f"  {'ok ' if truth else '-- '} {category:20} {label}")
             time.sleep(0.25)  # NCBI asks for no more than 5 requests/second
