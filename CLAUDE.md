@@ -290,6 +290,7 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- ADDING A TEST FILE RE-BALANCES THE SHARDS, SO MASTER'S GREEN HISTORY IS NOT YOUR SHARD'S
 - A NAME THAT PARSES BACK IS NOT A NAME THAT IS RIGHT, AND FOUR DEFECTS SAT BEHIND THAT
 - TWO PRODUCERS, ONE RESULT ID, AND A PANEL THAT ANSWERED ONCE
 - DRAWN IS NOT ON SCREEN, AND THE PAGE'S OWN REPORT SAID DRAWN

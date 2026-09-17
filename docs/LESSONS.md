@@ -20630,3 +20630,65 @@ absent key would have disabled the check silently, which is how a fail-closed
 guard usually stops being one. That needed a test of its own, plus a test
 that the two sides' keys AGREE -- a fail-closed guard that always fires is an
 outage, not a guard.
+
+## ADDING A TEST FILE RE-BALANCES THE SHARDS, SO MASTER'S GREEN HISTORY IS NOT YOUR SHARD'S
+
+PR #129's Windows `test suite 2/2` crashed -- access violation, no FAILED
+lines, 4343 tests in and nothing to grep for. The suite that reports nothing
+is the one this project already reads as a PAIR (summary line present AND
+zero crash markers), and that is what caught it.
+
+**The victim was in the Qt disposal path**, not in anything the branch wrote:
+
+    conftest.py:202 in dispose
+      test_result_presentation.py:64 in _dispose
+        test_result_presentation.py:280 in test_the_dialog_and_the_panel_row_...   (CI)
+        test_result_presentation.py:368 in test_one_dataset_renders_at_one_...    (local)
+
+Same file, same `_dispose` frame, ADJACENT tests, 77% both times -- the shape
+`MASTER CRASHES IN THE SAME TWO TESTS` already records for the Linux job.
+
+**MASTER'S LAST 12 CI RUNS WERE GREEN, AND THAT PROVED LESS THAN IT LOOKED.**
+`tools/suite_shards.py` splits by committed timings, so ADDING TEST FILES
+MOVES OTHER FILES BETWEEN SHARDS. Measured on this branch: shard 2 went from
+180 files to 181, and `test_calculator_inspector_structure.py` -- a
+WebEngine-heavy file -- moved INTO it from shard 1, along with about a dozen
+other shifts. So master had never run this shard's combination, and "master
+is green" was not the comparison it appeared to be. Worth knowing in the
+other direction too: the branch's own new WebEngine tests
+(`test_ketcher_editor_backend.py`) landed in shard 1, which passed, so the
+obvious "your new Qt tests raised the pressure" story was wrong.
+
+**WHAT SETTLED IT, and what could not.** Four measurements:
+
+    branch code + branch shard-2 list (181)    CRASHED at 77%, locally
+    master code + the same list (180 shared)   no crash, 4305 passed
+                                               ... and ONE different
+                                               WebEngine failure
+                                               (test_the_3d_view_grabs_a_real_png)
+    branch code + whole suite                  9056 passed clean (run 2),
+                                               crashed at 7% (run 1),
+                                               different victim
+    CI shard 2 re-run, SAME SHA                SUCCESS
+
+The A/B looks decisive and is not: one leg per arm, on a machine whose
+WebEngine layer failed in a SECOND way during the control leg. The disposal
+experiment already measured this class at 13/20 against 11/20 on a
+byte-identical tree (p=0.75) -- a fixed tree crashes differently run to run,
+so n=1 comparisons here establish nothing. The re-run passing on the same SHA
+is what the project's own precedent asks for, and the honest verdict is "the
+known flake class, exposed in an arrangement master has not run", not "the
+branch caused it" and not "master does it too".
+
+The practical rules this leaves:
+
+* A crashed CI job has no FAILED lines. Read `--log-failed` AND grep for
+  `Windows fatal exception`; the run can even report success at levels the
+  REST API exposes.
+* Before comparing a branch's shard against master's, check whether the
+  SPLIT changed: `uv run --no-sync python tools/suite_shards.py --splits=2
+  --group=N` on both trees and diff the lists.
+* A local reproduction of a CI shard needs that shard's file list, and the
+  splitter prints it with CRLF -- pytest takes `tests/test_abraham.py\r` as a
+  missing file and "no tests ran" looks like a broken invocation rather than
+  a quoting bug. `tr -d '\r'`.
