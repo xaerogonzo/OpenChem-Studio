@@ -9,7 +9,7 @@ everything after it, and it means nothing to another program.
 
 `locants` is IUPAC numbering, from the naming engine. It is a chemical claim
 -- C-3 of the parent -- and it is SPARSE by nature: over the 187-molecule
-naming corpus the engine numbers 34.8% of heavy atoms and leaves 76 molecules
+naming corpus the engine numbers 38.4% of heavy atoms and leaves 76 molecules
 with none at all, because a retained name carries no derived numbering. So
 this module returns a status line beside the labels, and the three states it
 must keep apart are:
@@ -23,6 +23,8 @@ calculator read as broken, which this project has now recorded several times.
 """
 
 from __future__ import annotations
+
+from functools import lru_cache
 
 from rdkit import Chem
 
@@ -54,7 +56,22 @@ def labels_for_molblock(molblock: str, mode: str) -> tuple[dict[int, str], str]:
     page speaks and the same one `structure_annotation` uses -- so a label
     computed here and a locant shown in the Atom Inspector are about the
     same atom by construction rather than by coincidence.
+
+    **CACHED ON (molblock, mode)**, because TWO readers ask the same question
+    about the same structure: the canvas overlay when the molecule changes,
+    and the Atom Inspector when its table rebuilds. The locant mode runs the
+    naming engine (12.1 ms mean, 86 ms worst over the 187-molecule corpus),
+    and computing it twice for one edit is pure waste. Pure function of its
+    arguments, so the cache cannot go stale -- a changed structure is a
+    different molblock.
     """
+    labels, status = _labels_cached(molblock, mode)
+    # A COPY, so a caller that mutates what it gets cannot poison the cache.
+    return dict(labels), status
+
+
+@lru_cache(maxsize=8)
+def _labels_cached(molblock: str, mode: str) -> tuple[dict[int, str], str]:
     if mode == OFF or not molblock:
         return {}, ""
     mol = Chem.MolFromMolBlock(molblock, sanitize=False, removeHs=False)
