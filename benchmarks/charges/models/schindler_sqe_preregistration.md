@@ -216,3 +216,59 @@ so the run is reproducible.
 - **As registered, S7 is authoritative:** part B runs ChargeFW2 with S7's values through `--par-file`.
 - **As expected:** ChargeFW2 rounds κ values near −33 to 4 decimals.
 
+### B. Source reproduction (2026-09-17): PARTIAL, reading undetermined
+
+`schindler_sqe_results/b.json` (sha256 `7046c7c5460f0166e31d9113f8762305df99bfc3287a296816abf80b082980b0`). Exit 0; 4,443 molecules; none refused by either
+implementation.
+
+**B.1, cross-implementation.**
+- **R_minus** (c = −χ) agrees with ChargeFW2 on **4,443 of 4,443** molecules, worst difference
+  **4.0e-15 e**.
+- **R_plus** agrees on 0, worst difference 4.89 e.
+- So ChargeFW2's convention is −χ, as its source says.
+
+**B.2, the registered verdicts.**
+
+| reading | train R² | train RMSD | train RMSDat | test R² | test RMSD | test RMSDat | matching | verdict |
+|---|---|---|---|---|---|---|---|---|
+| printed (S6, seed 5) | 0.9953 | 0.0282 | 0.0414 | 0.9952 | 0.0279 | 0.0481 | | |
+| R_minus | 0.99381 | 0.02726 | **0.04140** | 0.99393 | 0.02702 | **0.04811** | 2 / 6 | **PARTIAL** |
+| R_plus | 0.99381 | 0.79807 | 4.56076 | 0.99393 | 0.78829 | 4.58096 | 0 / 6 | NOT-REPRODUCED |
+
+- **No reading gives REPRODUCED, so the model reading is undetermined by the registered rule.**
+- **Part C runs under ChargeFW2's convention (R_minus),** labelled so.
+- **R² cannot separate the readings:** a sign flip leaves r² unchanged.
+- **RMSDat reproduces to the printed digit on both splits under R_minus,** with per-type pooling (the
+  primary rule).
+- **The per-molecule-averaged R² and RMSD miss:** 0.0282 printed against 0.0273, and 0.9953 against
+  0.9938.
+
+**B.3, conditioning.**
+- The split matrix is positive definite on **4,443 of 4,443** molecules. The smallest eigenvalue over
+  the whole set is 0.237.
+- Condition numbers: median 1,519, 90th percentile 1,627, maximum 3,172.
+- **TRIAGE §5.1's concern is answered:** the κ near −33 does not make any deposited molecule's system
+  indefinite.
+- The charged/neutral strata were not computed, because the reading is undetermined. They follow in
+  part C under R_minus.
+
+### Amendment B-A1: the aggregation the printed RMSD and R² use (registered after B.2, before computing it)
+
+**Why.** RMSDat reproduced exactly with per-type **pooling**, while the per-molecule averages the paper's
+text describes did not. The authors' parameterisation code, MACH (`dargen3/MACH`, `modules/comparison.py`,
+cited by the paper as ref 31), computes both kinds of statistic:
+- **all-atom pooled** RMSD and R² (`all_ats`);
+- **per-molecule** RMSD and R², each rounded to 4 decimals and then averaged.
+
+MACH's `SQE.py` is the same model as ChargeFW2's, with −χ.
+
+**What runs:**
+- **A1-pooled:** RMSD and R² over every atom of the split pooled together.
+- **A1-rounded-mean:** MACH's per-molecule values rounded to 4 decimals before averaging.
+
+**What it can and cannot do:**
+- **It cannot change B.2's verdict.** PARTIAL stands whatever this shows.
+- **What it can establish:** if A1-pooled matches all four printed RMSD and R² values, then the printed
+  values are pooled statistics, and the paper's own sentence ("computed for each molecule and then
+  averaged") contradicts its tables. That is a source finding, recorded as such.
+- **If neither aggregation matches,** the misses stay unexplained, and nothing further is tried.
