@@ -1,0 +1,67 @@
+{
+ "_source_key": "ionescu2013",
+ "_note": "Ionescu et al. 2013 Table S1, the two E-typing Mulliken gas-phase models this application ships (preregistration section 10). A and B are the paper's A_i and B_i = 2(eta0 + delta eta), in the paper's units, which nobody here has established; r_ij is in angstrom, the reading that reproduces 36/36. B is NEGATIVE for some elements, which is the published model and makes its energy non-convex for any structure containing one (section 4).",
+ "_built_by": "tools/build_ionescu_parameters.py",
+ "_fixture": "tests/fixtures/charges/ionescu2013/table_s1.csv",
+ "_fixture_sha256": "0f06c44e7cbfad2789daecba88c6344e912007cd4c9269f38432fc277233d700",
+ "models": {
+  "E-MPA/6-31G*/gas": {
+   "kappa": 0.006,
+   "types": {
+    "H": [
+     2.460543,
+     0.014021
+    ],
+    "C": [
+     2.462933,
+     0.007752
+    ],
+    "N": [
+     2.473051,
+     0.018647
+    ],
+    "O": [
+     2.470163,
+     0.014123
+    ],
+    "S": [
+     2.47517,
+     -0.066856
+    ],
+    "Ca": [
+     2.455161,
+     0.008636
+    ]
+   }
+  },
+  "E-MPA/6-31G**/gas": {
+   "kappa": 0.008,
+   "types": {
+    "H": [
+     2.461108,
+     0.023369
+    ],
+    "C": [
+     2.463745,
+     0.009848
+    ],
+    "N": [
+     2.493679,
+     0.051375
+    ],
+    "O": [
+     2.481258,
+     0.029078
+    ],
+    "S": [
+     2.472306,
+     -0.052656
+    ],
+    "Ca": [
+     2.489717,
+     -0.014589
+    ]
+   }
+  }
+ }
+}

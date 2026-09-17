@@ -59,8 +59,12 @@ def test_registered_on_geometry_offering_eem_first_and_qeq_under_its_a8_code():
     assert definition.calculation_input == GEOMETRY
     assert definition.category == "charge"
     (method,) = [p for p in definition.parameters if p.name == "method"]
-    assert method.choices == ["eem_bultinck2002_part1", "qeq_rg1991_lambda_half_h_experimental"]
-    assert method.choice_labels == ["EEM, Bultinck 2002", "QEq, Rappé–Goddard 1991"]
+    # Ionescu 2013's two shipped models are APPENDED (preregistration §10), so the default and
+    # every stored result's identity are unchanged -- which the next test pins.
+    assert method.choices == ["eem_bultinck2002_part1", "qeq_rg1991_lambda_half_h_experimental",
+                              "eem_ionescu2013_e_mpa_631gs_gas", "eem_ionescu2013_e_mpa_631gss_gas"]
+    assert method.choice_labels == ["EEM, Bultinck 2002", "QEq, Rappé–Goddard 1991",
+                                    "EEM, Ionescu 2013, Mulliken 6-31G*", "EEM, Ionescu 2013, Mulliken 6-31G**"]
     assert method.default == "eem_bultinck2002_part1"
     # A8: neither the HF-fitted hydrogen set nor the pre-registered reading is offered.
     assert not any("hf" in choice or "preregistered" in choice for choice in method.choices)

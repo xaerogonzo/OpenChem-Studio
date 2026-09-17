@@ -84,6 +84,7 @@ Every one is a surface with a *recorded* history of breaking, not a guess.
 | `docking_rescore.json` | a pose scored again with Vinardo | not recorded here |
 | `docking_search_controls.json` | the docking panel's search controls at their defaults | not recorded here |
 | `geometry_charges.json` | 3D charges on a fresh conformer and after a new search, plus QEq on LiH | not recorded here |
+| `ionescu_charges.json` | Ionescu 2013 EEM on captopril (computed, labelled an extrapolation, a saddle), sulfamethoxazole (refused: sulfur bonded to oxygen) and chlorobenzene (refused: no Cl parameters). No in-domain protein fragment: those structures are ACS supporting information outside the repository, and a committed script builds its own state | not recorded here |
 | `lewis_site_depiction.json` | the Lewis acid/base site depiction, two donors and mixed roles | not recorded here |
 | `logd_curve_cursor.json` | the LogD curve in Results, with a real click on the chart | not recorded here |
 | `mass_spectrum_and_merged_details.json` | one, then three calculators in Results, then an edit | not recorded here |

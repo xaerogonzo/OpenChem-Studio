@@ -2517,6 +2517,9 @@ class _Driver(QObject):
                 "refusal": parameters.get("refusal", ""),
                 "charge_model": parameters.get("charge_model", ""),
                 "summary": getattr(result, "error_summary", "") or "",
+                # The producer's own sentence, which the reader shows as its "Finding" row -- how an
+                # Ionescu result says it is an extrapolation, logged so a run can grep for it.
+                "finding": parameters.get("summary", ""),
                 "error": getattr(result, "error", "") or "",
                 "facts": [f"{f.label}={f.display_value}" for f in (getattr(result, "facts", ()) or ())][:1]
                 + [f.display_value for f in (getattr(result, "facts", ()) or ()) if "mean absolute error" in f.display_value],

@@ -63,15 +63,61 @@ EEM_BULTINCK2002_PART1 = "eem_bultinck2002_part1"
 #: Rappé–Goddard 1991 QEq, lambda = 1/2 (eq 17'), experimental hydrogen set:
 #: the one QEq reading amendment A8 ships.
 QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL = "qeq_rg1991_lambda_half_h_experimental"
+#: Ionescu et al. 2013's E-typing Mulliken model at 6-31G*, gas phase -- one of the two of its 24
+#: parameterisations that ship (`benchmarks/charges/models/ionescu_src_preregistration.md` §10).
+EEM_IONESCU2013_E_MPA_631GS_GAS = "eem_ionescu2013_e_mpa_631gs_gas"
+#: The same at 6-31G**. See `EEM_IONESCU2013_E_MPA_631GS_GAS`.
+EEM_IONESCU2013_E_MPA_631GSS_GAS = "eem_ionescu2013_e_mpa_631gss_gas"
+#: Each Ionescu code's scheme name in the paper and in `data/eem_ionescu2013.json`.
+IONESCU_SCHEMES = {
+    EEM_IONESCU2013_E_MPA_631GS_GAS: "E-MPA/6-31G*/gas",
+    EEM_IONESCU2013_E_MPA_631GSS_GAS: "E-MPA/6-31G**/gas",
+}
 #: Every method offered, in combo order; EEM first and the default. Anything else raises.
-GEOMETRY_CHARGE_METHODS = (EEM_BULTINCK2002_PART1, QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL)
+#: **Ionescu's models are appended, never inserted**, so the default and every existing result's
+#: identity stay what they were.
+GEOMETRY_CHARGE_METHODS = (
+    EEM_BULTINCK2002_PART1, QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL,
+    EEM_IONESCU2013_E_MPA_631GS_GAS, EEM_IONESCU2013_E_MPA_631GSS_GAS,
+)
 #: What each stored code is called on screen.
 GEOMETRY_CHARGE_METHOD_LABELS = {
     EEM_BULTINCK2002_PART1: "EEM, Bultinck 2002",
     QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL: "QEq, Rappé–Goddard 1991",
+    EEM_IONESCU2013_E_MPA_631GS_GAS: "EEM, Ionescu 2013, Mulliken 6-31G*",
+    EEM_IONESCU2013_E_MPA_631GSS_GAS: "EEM, Ionescu 2013, Mulliken 6-31G**",
 }
 #: The short name each refusal message speaks of.
-_METHOD_SHORT = {EEM_BULTINCK2002_PART1: "EEM", QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL: "QEq"}
+_METHOD_SHORT = {
+    EEM_BULTINCK2002_PART1: "EEM",
+    QEQ_RG1991_LAMBDA_HALF_H_EXPERIMENTAL: "QEq",
+    EEM_IONESCU2013_E_MPA_631GS_GAS: "Ionescu EEM",
+    EEM_IONESCU2013_E_MPA_631GSS_GAS: "Ionescu EEM",
+}
+
+#: A stable identifier for how an Ionescu result was validated, persisted with every result and
+#: resolved to wording by the help layer -- the same reasoning as stable method codes: an English
+#: sentence stored per result would drift from the one the help shows.
+IONESCU_SCOPE_ID = "ionescu2013_protein_fragment_validation_v1"
+#: What `IONESCU_SCOPE_ID` means, for the help layer and the user guide.
+IONESCU_VALIDATION_SCOPE = (
+    "Ionescu et al. 2013's EEM, as the paper parameterised it, reproduced exactly on the protein "
+    "fragments it was fitted and tested on (36 of 36 model-by-dataset rows). This application ships 2 "
+    "of its 24 parameterisations: the E-typing Mulliken gas-phase models, the only two whose behaviour "
+    "on other molecules was measured. On molecules unlike proteins it is an extrapolation, and it can "
+    "be wrong in sign and by more than 1.5 e without any refusal firing; molecules with a sulfur bonded "
+    "to oxygen are refused because every one measured was. For any molecule containing an element whose "
+    "effective hardness is negative in the model, the charges are the model's unique stationary point "
+    "and not an energy minimum."
+)
+
+#: What the reader shows beside every computed Ionescu result.
+IONESCU_EXTRAPOLATION_NOTE = (
+    "An extrapolation: Ionescu's model was validated on protein fragments, and nothing here checks "
+    "whether this molecule is like one. It can be wrong in sign without refusing."
+)
+#: Added when an element with a negative effective hardness is present (preregistration §4).
+IONESCU_SADDLE_NOTE = "These charges are the model's stationary point, not an energy minimum."
 
 #: A8's validation scope, verbatim. Recorded beside a QEq result as how the
 #: method was validated; it is not part of what was computed.
@@ -99,6 +145,10 @@ REFUSE_MISSING_H_COORDINATES = "REFUSE_MISSING_H_COORDINATES"
 #: QEq only: the converged final solution has an atom fixed at a charge bound.
 #: The paper's bound procedure is unresolved (O9), so that domain is refused.
 REFUSE_BOUND_ACTIVE = "REFUSE_BOUND_ACTIVE"
+#: Ionescu only: a sulfur bonded to oxygen. Every such molecule measured -- the sulfonamides, dimethyl
+#: sulfone, and the sulfoxides -- came back wrong by 0.84 to 1.75 e, several with the sign flipped, at
+#: magnitudes no charge bound catches (preregistration §9-R, and sulfuric acid in §8-R).
+REFUSE_OXIDISED_SULFUR = "REFUSE_OXIDISED_SULFUR"
 
 #: What each refusal says, with {method} the method's short name. Stable,
 #: because help and the user guide quote them.
@@ -135,6 +185,11 @@ REFUSAL_MESSAGES = {
     REFUSE_PROTONATION_FAILED: (
         "The dominant ionization state at this pH could not be determined for this structure."
     ),
+    REFUSE_OXIDISED_SULFUR: (
+        "This molecule has a sulfur bonded to oxygen ({atoms}). Ionescu's model was wrong on every such "
+        "molecule it was checked against -- sulfonamides, sulfones and sulfoxides, by up to 1.75 e and "
+        "sometimes in sign -- so no charges are returned rather than numbers that look plausible."
+    ),
 }
 #: The table-cell form of each refusal; the full sentence is the error.
 _SHORT = {
@@ -149,6 +204,8 @@ _SHORT = {
     REFUSE_NOT_IONISATION_ONLY: "Not an ionisation",
     REFUSE_H_PLACEMENT: "Hydrogen placement failed",
     REFUSE_PROTONATION_FAILED: "Protonation state unavailable",
+    REFUSE_OXIDISED_SULFUR: "Sulfur bonded to oxygen",
+    ce.REFUSE_CHARGE_BOUND_EXCEEDED: "Runaway charge",
 }
 
 #: Sigma q must equal the net charge to this. A necessary check, never evidence
@@ -300,6 +357,20 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
                 "iterations": result.iterations,
                 "ever_clamped": result.ever_clamped,
             })
+    elif method in IONESCU_SCHEMES:
+        # Refused BEFORE any solve, from the bonds, because this is a failure no charge magnitude
+        # reveals: the wrong answers came back at ordinary sizes (preregistration §9-R).
+        oxidised = sorted(
+            atom.GetIdx() for atom in mol.GetAtoms()
+            if atom.GetSymbol() == "S" and any(n.GetSymbol() == "O" for n in atom.GetNeighbors())
+        )
+        if oxidised:
+            atoms = ", ".join(f"S{i}" for i in oxidised)
+            return refuse(REFUSE_OXIDISED_SULFUR, REFUSAL_MESSAGES[REFUSE_OXIDISED_SULFUR].format(atoms=atoms),
+                          {"oxidised_sulfur_atoms": oxidised})
+        result = ce.ionescu_charges(elements, positions, IONESCU_SCHEMES[method], net_charge)
+        if result.status != "converged":
+            return refuse(result.status, result.message)
     else:
         result = ce.eem_charges(elements, positions, net_charge)
         if result.status != "converged":
@@ -351,6 +422,31 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
         }
         if "Si" in elements:
             computed["source_discrepancy"] = QEQ_SILICON_NOTE
+    elif method in IONESCU_SCHEMES:
+        scheme = IONESCU_SCHEMES[method]
+        model = ce.ionescu_parameters()[scheme]
+        stationary = ce.ionescu_stationary_point(elements, scheme)
+        computed = {
+            "parameter_set": f"ionescu_2013_table_S1_{scheme}",
+            "scheme": scheme,
+            "source": "ionescu2013 (J. Chem. Inf. Model. 2013, 53, 2548; doi:10.1021/ci400448n)",
+            "equation_convention": "ionescu2013_eqs_3_4_kappa_over_r_angstrom",
+            "kappa": model["kappa"],
+            "units": "the paper's own; not eV, and not established here",
+            "parameter_checksum": ce.payload_checksum(model),
+            "equalized_electronegativity_paper_units": result.equalized_electronegativity_paper_units,
+            # Exact, not estimated: preregistration §4 checked it on 1644 solves.
+            "stationary_point": stationary,
+            # No detector can say "this is a protein fragment" (§10.4 option A is deferred), so every
+            # computed result is labelled an extrapolation rather than claiming a domain it cannot test.
+            "applicability": "extrapolation",
+            "charge_bound": ce.IONESCU_CHARGE_BOUND,
+            # The reader's "Finding" row: the one channel a provenance field reaches the screen by, so
+            # the extrapolation is read beside the numbers rather than only stored with them.
+            "summary": IONESCU_EXTRAPOLATION_NOTE + (f" {IONESCU_SADDLE_NOTE}" if stationary == "saddle" else ""),
+            "validation": {"preregistration": "benchmarks/charges/models/ionescu_src_preregistration.md",
+                           "scope_id": IONESCU_SCOPE_ID},
+        }
     else:
         computed = {
             "parameter_set": "bultinck_2002_part_I_table_1",

@@ -1904,11 +1904,14 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         display_name="Partial Charge (3D)",
         category="charge",
         description=(
-            "Partial charges that depend on the 3D geometry, by one of two methods. EEM: Bultinck's "
+            "Partial charges that depend on the 3D geometry, by one of three models. EEM: Bultinck's "
             "electronegativity equalization (2002, part I) with that paper's own parameters for H, C, "
             "N, O and F. QEq: Rappé and Goddard's charge equilibration (1991) with lambda = 1/2 and "
             "its experimental hydrogen parameters, for the 16 elements of its Table I; it refuses "
-            "molecules where its iteration does not settle or a charge reaches its bound. Computed on "
+            "molecules where its iteration does not settle or a charge reaches its bound. Ionescu EEM: "
+            "Ionescu et al.'s 2013 protein-fragment models (Mulliken, 6-31G* or 6-31G**, gas phase) for "
+            "H, C, N, O, S and Ca, reported as an extrapolation on anything else; it refuses a sulfur "
+            "bonded to oxygen and any charge beyond 2.051 e. Computed on "
             "the stored conformer as it is: its own hydrogens and its net charge, with no protonation, "
             "and only the sum of the charges equals the net charge. Needs a conformer with explicit "
             "hydrogens; an element the chosen method has no parameters for is refused."
@@ -1931,7 +1934,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             ),
             decimal_places_parameter(),
         ],
-        tags=["charge", "3d", "per-atom", "eem", "electronegativity equalization", "partial charge", "bultinck", "qeq", "charge equilibration", "rappe"],
+        tags=["charge", "3d", "per-atom", "eem", "electronegativity equalization", "partial charge", "bultinck", "qeq", "charge equilibration", "rappe", "ionescu"],
     ),
     CalculatorDefinition(
         # A SEPARATE CALCULATOR, not a parameter on the one above, for the same reason

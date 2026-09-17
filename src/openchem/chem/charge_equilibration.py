@@ -1,4 +1,4 @@
-"""Geometry-dependent partial charges: Rappé–Goddard QEq and Bultinck EEM.
+"""Geometry-dependent partial charges: Rappé–Goddard QEq, Bultinck EEM, and Ionescu 2013 EEM.
 
 Both are implemented here from their papers, in numpy, on explicit
 coordinates. Open Babel ships both, and neither of its implementations could
@@ -30,8 +30,12 @@ formalism [source:mortier1986], which Bultinck re-parameterised.
 
 from __future__ import annotations
 
+import functools
+import hashlib
+import json
 import math
 from dataclasses import dataclass, field, replace
+from pathlib import Path
 
 import numpy as np
 
@@ -887,6 +891,8 @@ class EEMResult:
     solver_to_source: list[int] = field(default_factory=list)
     equalized_electronegativity_ev: float | None = None
     message: str = ""
+    #: Ionescu's X in the paper's own units, which are not eV; None for Bultinck, whose X is in eV above.
+    equalized_electronegativity_paper_units: float | None = None
 
 
 def eem_system(elements: list[str], coords_angstrom, net_charge: float = 0.0) -> tuple[np.ndarray, np.ndarray]:
@@ -935,4 +941,124 @@ def eem_charges(elements: list[str], coords_angstrom, net_charge: float = 0.0) -
     result.status = "converged"
     result.charges = solution[:count]
     result.equalized_electronegativity_ev = float(solution[count] * HARTREE_EV)
+    return result
+
+
+# =============================================================================
+# Ionescu et al. 2013 E-model EEM -- benchmarks/charges/models/ionescu_src_preregistration.md
+# =============================================================================
+#
+# **A DIFFERENT EQUATION FROM BULTINCK'S, NOT A REPARAMETERISATION.** Ionescu eq 3 carries an
+# adjusting factor k on the Coulomb term, one k per model, with r_ij in angstrom (the reading that
+# reproduces 36/36; bohr reproduces 0/36). Bultinck's `eem_system` above has no k. So it is its own
+# system, written from the paper's eqs 3 and 4 -- NOT from eq 5 as printed, which carries two
+# typesetting errors (r_2,3 for r_2,1, and A_N for -A_N; preregistration section 2).
+#
+# **ITS ENERGY IS NOT CONVEX, AND THAT IS THE PUBLISHED MODEL.** Some effective hardnesses B are
+# negative, and a structure containing any such element has a saddle point where a minimum would be
+# expected -- exactly then and never otherwise (section 4, 1644 of 1644). The solve below still has a
+# unique answer; `ionescu_stationary_point` says which kind it is.
+
+def payload_checksum(payload) -> str:
+    """SHA-256 of a parameter payload as sorted JSON, so a silent edit to a shipped number changes it.
+
+    Shared by `charge_evaluation` and the 3D calculator's provenance: one formula, not two that could
+    drift apart.
+    """
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+#: Where the shipped parameter table lives; built by `tools/build_ionescu_parameters.py`.
+IONESCU_PARAMETERS_PATH = Path(__file__).resolve().parent / "data" / "eem_ionescu2013.json"
+
+#: Any charge larger than this is refused rather than returned. **2.051 is the largest |q| over all
+#: 12 E models on the protein fragments the model was fitted and validated on**, so it can never
+#: refuse that population; RHF/6-31G* Mulliken did not contradict it (preregistration section 8-R).
+#: It catches runaway solves and NOTHING ELSE: silent errors at ordinary magnitudes -- oxidised
+#: sulfur off by 1.75 e -- pass under it, which is why the calculator refuses S-O separately.
+IONESCU_CHARGE_BOUND = 2.051
+
+#: A solve produced a charge beyond `IONESCU_CHARGE_BOUND`; nothing is returned.
+REFUSE_CHARGE_BOUND_EXCEEDED = "REFUSE_CHARGE_BOUND_EXCEEDED"
+
+
+@functools.lru_cache(maxsize=1)
+def ionescu_parameters() -> dict:
+    """The shipped models, keyed by the paper's scheme name: {"kappa": k, "types": {el: [A, B]}}."""
+    return json.loads(IONESCU_PARAMETERS_PATH.read_text(encoding="utf-8"))["models"]
+
+
+def ionescu_system(elements: list[str], coords_angstrom, scheme: str, net_charge: float = 0.0) -> tuple[np.ndarray, np.ndarray]:
+    """Ionescu eqs 3 and 4 as an (N+1)x(N+1) system in the paper's units.
+
+    Unknowns (q_1 .. q_N, X): B_i on the diagonal, k / r_ij off it with r in angstrom, -1 in the last
+    column, a row of ones and a zero in the last row; right-hand side (-A_1 .. -A_N, Q). Every row's
+    right-hand side is -A_i, including the last atom's, which eq 5 misprints.
+    """
+    model = ionescu_parameters()[scheme]
+    coords = np.asarray(coords_angstrom, dtype=float).reshape(-1, 3)
+    count = len(elements)
+    distance = np.linalg.norm(coords[:, None, :] - coords[None, :, :], axis=-1)
+    matrix = np.zeros((count + 1, count + 1))
+    rhs = np.zeros(count + 1)
+    for i, element in enumerate(elements):
+        a, b = model["types"][element]
+        matrix[i, i] = b
+        rhs[i] = -a
+        for j in range(count):
+            if j != i:
+                matrix[i, j] = model["kappa"] / distance[i, j]
+    matrix[:count, count] = -1.0
+    matrix[count, :count] = 1.0
+    rhs[count] = net_charge
+    return matrix, rhs
+
+
+def ionescu_stationary_point(elements: list[str], scheme: str) -> str:
+    """"minimum" or "saddle" -- decided by whether any element's B is negative in this model.
+
+    Not an approximation: section 4 checked it against the constrained Hessian's smallest eigenvalue on
+    1644 solves and it agreed on every one.
+    """
+    types = ionescu_parameters()[scheme]["types"]
+    return "saddle" if any(types[e][1] < 0 for e in set(elements)) else "minimum"
+
+
+def ionescu_charges(elements: list[str], coords_angstrom, scheme: str, net_charge: float = 0.0) -> EEMResult:
+    """Ionescu et al. 2013 EEM for one shipped E model.
+
+    Refuses, in this order and each by name: an element the model has no parameters for, two
+    overlapping atoms, and a solve whose largest charge exceeds `IONESCU_CHARGE_BOUND`. The
+    equalised electronegativity is returned in the paper's units, which are not eV.
+    """
+    coords = np.asarray(coords_angstrom, dtype=float).reshape(-1, 3)
+    count = len(elements)
+    result = EEMResult(status="", solver_to_source=list(range(count)))
+    types = ionescu_parameters()[scheme]["types"]
+    missing = sorted({e for e in elements if e not in types})
+    if missing:
+        result.status = REFUSE_ELEMENT_NOT_PARAMETERISED
+        result.message = f"Ionescu et al. 2013 ({scheme}) has no parameters for {', '.join(missing)}."
+        return result
+    pair = _overlap(coords)
+    if pair is not None:
+        result.status = REFUSE_OVERLAPPING_ATOMS
+        result.message = f"Atoms {pair[0]} and {pair[1]} are closer than {OVERLAP_ANGSTROM} A."
+        return result
+    matrix, rhs = ionescu_system(elements, coords, scheme, net_charge)
+    solution = np.linalg.solve(matrix, rhs)
+    charges = solution[:count]
+    worst = int(np.argmax(np.abs(charges)))
+    if abs(charges[worst]) > IONESCU_CHARGE_BOUND:
+        result.status = REFUSE_CHARGE_BOUND_EXCEEDED
+        result.message = (
+            f"This model put {charges[worst]:+.2f} e on atom {worst} ({elements[worst]}), beyond the "
+            f"{IONESCU_CHARGE_BOUND} e it ever reaches on the proteins it was validated on. That is a "
+            "runaway solve, so no charges are returned."
+        )
+        return result
+    result.status = "converged"
+    result.charges = charges
+    result.equalized_electronegativity_ev = None  # the paper's units, not eV; recorded by the caller
+    result.equalized_electronegativity_paper_units = float(solution[count])
     return result

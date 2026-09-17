@@ -2768,12 +2768,25 @@ kind = "literature"
 citation = "C.-M. Ionescu, S. Geidl, R. Svobodová Vařeková & J. Koča, 'Rapid Calculation of Accurate Atomic Charges for Proteins via the Electronegativity Equalization Method', J. Chem. Inf. Model. 2013, 53, 2548-2558."
 identifier_type = "doi"
 identifier = "10.1021/ci400448n"
-status = "reference_only"
+status = "shipped"
+used_by = ["src/openchem/chem/charge_equilibration.py", "src/openchem/chem/geometry_charges.py", "src/openchem/chem/data/eem_ionescu2013.json"]
 local = "ionescu2013.pdf"
-verification = "citation"
-verified_date = 2026-09-15
+verification = "citation_and_claim"
+verified_date = 2026-09-16
 reason = """
-AN EXTERNAL APPLICATION BENCHMARK FOR THE SHIPPED EEM, AND A CANDIDATE FOR
+SHIPPED 2026-09-16: TWO OF ITS 24 PARAMETERISATIONS, E-MPA/6-31G*/gas AND
+E-MPA/6-31G**/gas, as `eem_ionescu2013.json`, built by
+`tools/build_ionescu_parameters.py` from the Table S1 fixture below with every
+number the printed string. The CLAIM checked is the charges: under eqs 3-4 with
+r in angstrom, all 12 E models reproduce the SI's EEM charges on the training
+fragments, insulin and ubiquitin within tolerance, 36 of 36 rows (bohr: 0 of
+36). Why only two, the sulfur-oxygen refusal, the 2.051 e bound and the
+non-convexity (17 of 72 B values negative) are in
+`benchmarks/charges/models/ionescu_src_preregistration.md` sections 4-10,
+which also records why this is a patch stack and what a rework would start
+from.
+
+ORIGINALLY AN EXTERNAL APPLICATION BENCHMARK FOR THE SHIPPED EEM, AND A CANDIDATE FOR
 ELEMENT COVERAGE. Its supporting information (held as `ionescu2013_si/`)
 deposits 41 protein fragments as PDB MODELs plus insulin 3E7Y and ubiquitin
 1UBQ, per-atom QM charges for 12 schemes (MPA, NPA and Hirshfeld; 6-31G* and

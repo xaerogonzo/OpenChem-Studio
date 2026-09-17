@@ -1904,6 +1904,30 @@ Result files (LF-normalised SHA-256):
 - `tests/fixtures/charges/ionescu2013/table_s2.csv`:
   `4896075257d422abbd9fb251f8eb43e1e552822a7e67387779edac98f9b183da`
 
+### 3.8-S Shipped: two of the twelve (2026-09-16)
+
+**Status: SHIPPED, narrowed.** The GO-CANDIDATE above did not ship as twelve
+models. E-MPA/6-31G\*/gas and E-MPA/6-31G\*\*/gas ship as
+`eem_ionescu2013_e_mpa_631gs_gas` and `eem_ionescu2013_e_mpa_631gss_gas`, the
+only two whose behaviour off the protein domain was measured. Decided with
+Alex step by step, each step on a registered measurement, all recorded in
+`ionescu_src_preregistration.md`:
+
+- §4 — 17 of 72 E-model B values are negative; the energy is a saddle exactly
+  when such an element is present. Shipped as a stated source property.
+- §6-R, §7-R — a conditioning guard and an alignment guard were each
+  registered and each failed; neither ships.
+- §8-R — an RHF/6-31G\* check did not contradict a 2.051 e bound (the largest
+  |q| on the validation proteins); it ships as a runaway refusal.
+- §9-R — silent errors are COMMON for sulfur (every S bonded to O wrong by
+  0.84–1.75 e), INTERMEDIATE for nitrogen, CONFINED for the CHO control.
+  S–O is refused from the bonds before any solve.
+- §10 — why this is a patch stack on one root cause, and what a rework would
+  start from.
+
+The shipped path is held to the instrument by atom identity in
+`tests/test_ionescu_charges.py`; 13 mutations were tried and all were killed.
+
 ## 4. EEM beyond H/C/N/O/F: the source taxonomy (2026-09-15)
 
 Each record carries the same fields: **kind**, what its charges are, whether

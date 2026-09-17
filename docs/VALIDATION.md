@@ -559,6 +559,17 @@ On that one, ubiquitin (998 atoms), R² against those charges is:
 It is an application benchmark in a protein domain, at a different QM level
 from Bultinck's fit, with no gate.
 
+**Ionescu 2013's own models, two of 24 shipped.** Reproduction, not accuracy:
+all 12 E models reproduce the SI's EEM charges within tolerance on every
+applicable atom (40,142 training, 802 insulin, 998 ubiquitin per model), 36 of
+36 rows with r in ångström and 0 of 36 in bohr; the two test proteins agree to
+the CSVs' printing precision (median |Δ| about 2.5e-7 e). Off that domain, a
+survey against RHF Mulliken charges on 94 small molecules found sulfur bonded
+to oxygen wrong in 6 of 6 (now refused), and an atom with the wrong sign (where |q| ≥ 0.10 e) or off by 0.5 e or more in
+16–18% of the nitrogen molecules and 5–8% of the CHO ones (still computed,
+labelled an extrapolation). Record: `benchmarks/charges/models/TRIAGE.md` 3.8
+and `ionescu_src_preregistration.md` §§8–10.
+
 ## Partial charges — the paper's own Table 3, and a species chosen by the hash seed
 
 **Method.** Gasteiger & Marsili's Table 3 ([source:gasteiger1980], p3224)

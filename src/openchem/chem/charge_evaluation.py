@@ -14,8 +14,6 @@ molecule. Placing values on DRAWN atoms is `atom_identity`'s job.
 
 from __future__ import annotations
 
-import hashlib
-import json
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -50,8 +48,9 @@ SOURCE_KEYS = {GASTEIGER: "gasteiger1980", EEM: "bultinck2002a", QEQ: "rappe1991
 CLAIM_KIND = "APPLICATION"
 
 
-def _payload_checksum(payload: Any) -> str:
-    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
+#: The one checksum formula, now in `charge_equilibration` so the 3D calculator's provenance can use it
+#: too without importing this module, which imports that calculator.
+_payload_checksum = ce.payload_checksum
 
 
 def parameter_payload(model_key: str) -> Any:
