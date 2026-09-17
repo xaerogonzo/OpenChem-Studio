@@ -220,21 +220,22 @@ def _registry():
     return build_service_container().calculator_registry
 
 
-def test_the_ph_calculator_is_registered_beside_the_plain_one_and_keeps_its_identity():
-    """A separate calculator id, deliberately: the plain 3D calculator's stored results are keyed by
-    its parameter defaults, so adding a parameter there would orphan every EEM result saved before."""
+def test_the_ph_mode_is_an_option_of_the_one_3d_charge_calculator():
+    """One calculator since 2026-09-17. The separate pH calculator was justified by stored results
+    being keyed by parameters, which nothing reads back; what it did cause was two answers side by
+    side in Results."""
     registry = _registry()
     plain = registry.get("geometry_partial_charge")
-    at_ph = registry.get("geometry_partial_charge_at_ph")
-    assert {p.name for p in plain.parameters} == {"method", "include_hydrogens", "decimal_places"}
-    assert {p.name for p in at_ph.parameters} == {"method", "pH", "include_hydrogens", "decimal_places"}
-    assert at_ph.calculation_input == plain.calculation_input
-    assert at_ph.category == "charge"
+    assert registry.get("geometry_partial_charge_at_ph") is None
+    by_name = {p.name: p for p in plain.parameters}
+    assert set(by_name) == {"method", "ph_dependent", "pH", "include_hydrogens", "decimal_places"}
+    assert by_name["ph_dependent"].kind == "bool" and by_name["ph_dependent"].default is False
+    assert by_name["pH"].enabled_by == "ph_dependent" and by_name["pH"].default == 7.4
 
 
 def test_the_registered_ph_calculator_computes_the_zwitterion_and_records_both_sites():
-    dataset = _registry().get("geometry_partial_charge_at_ph").execution.compute(
-        conformer_for("NCC(=O)O"), "uuid-glycine", {"pH": 7.4})
+    dataset = _registry().get("geometry_partial_charge").execution.compute(
+        conformer_for("NCC(=O)O"), "uuid-glycine", {"ph_dependent": True, "pH": 7.4})
     parameters = dataset.provenance.parameters
     assert parameters["protonation"] == "at_ph" and parameters["pH"] == 7.4
     assert parameters["state_changed"] is True
@@ -245,13 +246,13 @@ def test_the_registered_ph_calculator_computes_the_zwitterion_and_records_both_s
     assert abs(sum(dataset.values.values())) < 1e-8  # the zwitterion is neutral overall
 
 
-def test_with_nothing_to_ionise_the_values_equal_the_as_drawn_calculator_under_a_distinct_identity():
-    """Scientific equivalence, separate request: the charges ARE the as-drawn ones, and the result is
-    still a different calculator's, so the store keeps both rather than treating one as the other."""
+def test_with_nothing_to_ionise_the_values_equal_the_as_drawn_run_and_the_record_says_which_was_asked():
+    """Scientific equivalence, separate request: the charges ARE the as-drawn ones, and the name and
+    provenance still say the pH mode was asked for."""
     source = conformer_for("CCO")
     registry = _registry()
     drawn = registry.get("geometry_partial_charge").execution.compute(source, "u", {})
-    at_ph = registry.get("geometry_partial_charge_at_ph").execution.compute(source, "u", {"pH": 7.4})
+    at_ph = registry.get("geometry_partial_charge").execution.compute(source, "u", {"ph_dependent": True, "pH": 7.4})
     assert set(drawn.values) == set(at_ph.values)
     assert all(abs(drawn.values[k] - at_ph.values[k]) < 1e-12 for k in drawn.values)
     assert drawn.provenance.parameters["species"] != at_ph.provenance.parameters["species"]
@@ -268,7 +269,7 @@ def test_every_protonation_refusal_has_a_sentence_and_a_cell(monkeypatch):
 
     monkeypatch.setattr(gc, "protonate_conformer",
                         lambda mol, ph: pg.ProtonatedConformer(refusal=pg.REFUSE_AMBIGUOUS_H_IDENTITY, message="x"))
-    dataset = gc.compute_geometry_charges_at_ph(conformer_for("CC(=O)O"), "u", {"pH": 7.4})
+    dataset = gc.compute_geometry_charges(conformer_for("CC(=O)O"), "u", {"ph_dependent": True, "pH": 7.4})
     assert dataset.values == {}
     assert dataset.provenance.parameters["refusal"] == pg.REFUSE_AMBIGUOUS_H_IDENTITY
 
@@ -322,24 +323,22 @@ def test_the_added_hydrogen_is_minimised_and_not_left_where_addhs_guessed(monkey
     assert moved > 0.01, f"the placement did not move the added hydrogen ({moved:.4f} A)"
 
 
-def test_the_two_calculators_produce_datasets_under_DIFFERENT_property_ids():
-    """**FOUND BY DRIVING THE APP, WITH EVERY UNIT TEST GREEN.** The Properties panel keys retained
-    results by `dataset.property_id`, not by calculator id, so while both calculators emitted the
-    same id the pH result overwrote the as-drawn one: `result_report` for the pH calculator came
-    back `{}` and the Atom Inspector held one result where two had been computed."""
+def test_both_modes_produce_datasets_under_ONE_property_id():
+    """REVERSED 2026-09-17, deliberately. The Properties panel keys retained results by
+    `dataset.property_id`, so while the pH mode was its own calculator it needed its own id to avoid
+    overwriting the as-drawn result -- and that put two answers for one molecule side by side in
+    Results (0.00 e and 1.00 e, with nothing relating them). One calculator, one id: the latest run
+    is the result, as for every other calculator."""
     from openchem.chem import geometry_charges as gc
 
     source = conformer_for("NCC(=O)O")
     drawn = gc.compute_geometry_charges(source, "u", {})
-    at_ph = gc.compute_geometry_charges_at_ph(source, "u", {"pH": 7.4})
-    assert drawn.property_id == "geometry_partial_charge"
-    assert at_ph.property_id == "geometry_partial_charge_at_ph"
-    assert drawn.property_id != at_ph.property_id
+    at_ph = gc.compute_geometry_charges(source, "u", {"ph_dependent": True, "pH": 7.4})
+    assert drawn.property_id == at_ph.property_id == "geometry_partial_charge"
 
     # A refusal must carry the same id as the result it replaces, or the panel files it elsewhere.
-    refused = gc._refusal(pg.REFUSE_H_PLACEMENT, "n", gc.EEM_BULTINCK2002_PART1, 4, "u",
-                          property_id=gc.PROPERTY_ID_AT_PH)
-    assert refused.property_id == "geometry_partial_charge_at_ph"
+    refused = gc.compute_geometry_charges(Chem.AddHs(Chem.MolFromSmiles("NCC(=O)O")), "u", {"ph_dependent": True})
+    assert refused.property_id == "geometry_partial_charge"
 
 
 def test_the_ph_charges_follow_the_geometry():
@@ -348,17 +347,17 @@ def test_the_ph_charges_follow_the_geometry():
     from openchem.chem import geometry_charges as gc
 
     source = conformer_for("NCC(=O)O")
-    upright = gc.compute_geometry_charges_at_ph(source, "u", {"pH": 7.4})
+    upright = gc.compute_geometry_charges(source, "u", {"ph_dependent": True, "pH": 7.4})
 
     flattened = Chem.Mol(source)
     conformer = flattened.GetConformer()
     for index in range(flattened.GetNumAtoms()):
         position = conformer.GetAtomPosition(index)
         conformer.SetAtomPosition(index, (position.x, position.y, 0.0))
-    flat = gc.compute_geometry_charges_at_ph(flattened, "u", {"pH": 7.4})
+    flat = gc.compute_geometry_charges(flattened, "u", {"ph_dependent": True, "pH": 7.4})
     assert set(upright.values) == set(flat.values)
     assert max(abs(upright.values[k] - flat.values[k]) for k in upright.values) > 1e-3
 
     drawing = Chem.AddHs(Chem.MolFromSmiles("NCC(=O)O"))  # no conformer at all
-    refused = gc.compute_geometry_charges_at_ph(drawing, "u", {"pH": 7.4})
+    refused = gc.compute_geometry_charges(drawing, "u", {"ph_dependent": True, "pH": 7.4})
     assert refused.provenance.parameters["refusal"] == gc.REFUSE_NO_3D_GEOMETRY

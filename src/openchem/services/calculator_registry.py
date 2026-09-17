@@ -4,7 +4,7 @@ from typing import Any
 
 from rdkit import Chem
 
-from openchem.domain.calculator import CalculatorDefinition, RegistryExecution
+from openchem.domain.calculator import CalculatorDefinition, RegistryExecution, active_parameters
 from openchem.domain.common import ScientificResult
 
 
@@ -59,7 +59,8 @@ class CalculatorRegistry:
                 f"CalculatorRegistry.compute(); run it through its own "
                 f"service/panel ({execution.panel_name}) instead."
             )
-        return execution.compute(mol, molecule_uuid, parameters)
+        # A greyed-out parameter never reaches the calculator, whichever route asked.
+        return execution.compute(mol, molecule_uuid, active_parameters(definition, parameters))
 
     def by_category(self, category: str) -> list[CalculatorDefinition]:
         return [d for d in self._definitions.values() if d.category == category]

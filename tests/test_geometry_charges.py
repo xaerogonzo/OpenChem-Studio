@@ -70,12 +70,52 @@ def test_registered_on_geometry_offering_eem_first_and_qeq_under_its_a8_code():
     assert not any("hf" in choice or "preregistered" in choice for choice in method.choices)
 
 
-def test_the_eem_default_identity_is_the_one_recorded_before_qeq_was_offered():
-    """A stored EEM result from before A8 must still be found: its identity is
-    parameters_key of the defaults, pinned here at its pre-A8 value."""
+#: The key of this calculator's defaults before the pH option was merged in (2026-09-17).
+_PRE_MERGE_KEY = "c8a6d189021bbd3d35d4621f5b102f37"
+
+
+def _pre_merge_defaults() -> dict:
     definition = _registry().get(CALCULATOR)
     defaults = {p.name: p.default for p in definition.parameters}
-    assert parameters_key(defaults) == "c8a6d189021bbd3d35d4621f5b102f37"
+    old = {k: v for k, v in defaults.items() if k in ("method", "include_hydrogens", "decimal_places")}
+    assert parameters_key(old) == _PRE_MERGE_KEY  # reconstructed exactly, and the recipe has not moved
+    return old
+
+
+def test_a_stored_eem_result_from_before_the_merge_is_still_found():
+    """A stored EEM result from before A8, or before the pH option, must still be found.
+
+    THIS PINNED `parameters_key(defaults)` UNTIL 2026-09-17, on the belief that the key is how a
+    stored result is found. It is not: `SessionResultStore` files and replays a result by (dataset
+    id, input, fingerprint), and the key is written to the file but never read back. So adding
+    `ph_dependent` changed the key and orphaned nothing -- the claim, measured here through a save
+    and a reload rather than assumed from a hash.
+    """
+    from openchem.domain.result_store import ResultIdentity, SessionResultStore, StoredResult
+
+    old = _pre_merge_defaults()
+    definition = _registry().get(CALCULATOR)
+    assert parameters_key({p.name: p.default for p in definition.parameters}) != _PRE_MERGE_KEY
+
+    result = gc.compute_geometry_charges(_conformer("CCO"), "m", old)
+    store = SessionResultStore("p")
+    store.put(StoredResult(
+        identity=ResultIdentity(molecule_uuid="m", result_id=gc.PROPERTY_ID, calculation_input=GEOMETRY,
+                                input_fingerprint="f", producer=CALCULATOR, parameters_key=_PRE_MERGE_KEY),
+        result=result,
+    ))
+    reloaded = SessionResultStore.from_dict(store.to_dict(), "p")
+    (found,) = reloaded.fresh_results("m", {GEOMETRY: "f"})
+    assert found.result.values == result.values and found.identity.parameters_key == _PRE_MERGE_KEY
+
+
+def test_the_defaults_compute_what_the_pre_merge_defaults_computed():
+    definition = _registry().get(CALCULATOR)
+    defaults = {p.name: p.default for p in definition.parameters}
+    mol = _conformer("CCO")
+    now = _registry().compute(CALCULATOR, mol, "u", defaults)
+    before = gc.compute_geometry_charges(mol, "u", _pre_merge_defaults())
+    assert now.values == before.values and "pH" not in now.provenance.parameters
 
 
 def test_eem_output_is_unchanged_by_adding_qeq():

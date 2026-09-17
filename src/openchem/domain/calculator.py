@@ -92,6 +92,12 @@ class CalculatorParameter:
     #: Display text per entry of `choices`, positionally. None keeps the
     #: legacy behaviour where the choice IS its own label.
     choice_labels: list[str] | None = None
+    #: The name of a `"bool"` parameter of the same calculator that must be
+    #: True for this one to mean anything -- the pH under "pH-dependent".
+    #: While it is False the dialog greys this control out AND the value is
+    #: not dispatched (`active_parameters`), so an irrelevant setting can
+    #: neither change the computation nor be recorded as part of it.
+    enabled_by: str | None = None
 
     def __post_init__(self) -> None:
         # AT CONSTRUCTION, so a mismatch is a failing import rather than a
@@ -225,6 +231,43 @@ class CalculatorDefinition:
     # been ceremony. Plain strings for the same reason `category` is:
     # a new tag needs no code change.
     tags: list[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        # At construction, so a dangling or circular dependency is a failing
+        # import rather than a control that is greyed out forever.
+        by_name = {p.name: p for p in self.parameters}
+        for parameter in self.parameters:
+            seen = {parameter.name}
+            controller_name = parameter.enabled_by
+            while controller_name is not None:
+                controller = by_name.get(controller_name)
+                if controller is None:
+                    raise ValueError(f"{self.calculator_id}.{parameter.name}: enabled_by names no parameter {controller_name!r}")
+                if controller.kind != "bool":
+                    raise ValueError(f"{self.calculator_id}.{parameter.name}: enabled_by {controller_name!r} is not a bool")
+                if controller_name in seen:
+                    raise ValueError(f"{self.calculator_id}.{parameter.name}: enabled_by forms a cycle through {controller_name!r}")
+                seen.add(controller_name)
+                controller_name = controller.enabled_by
+
+
+def active_parameters(definition: CalculatorDefinition, values: dict[str, Any] | None) -> dict[str, Any]:
+    """`values` without every declared parameter whose controller is off.
+
+    A controller's value is read from `values`, or its default when absent,
+    and must itself be active. Keys no parameter declares pass through
+    untouched: callers may hand a calculator internal settings.
+    """
+    values = dict(values or {})
+    by_name = {p.name: p for p in definition.parameters}
+
+    def active(name: str) -> bool:
+        controller_name = by_name[name].enabled_by
+        if controller_name is None:
+            return True
+        return active(controller_name) and bool(values.get(controller_name, by_name[controller_name].default))
+
+    return {key: value for key, value in values.items() if key not in by_name or active(key)}
 
 
 @dataclass(frozen=True, kw_only=True)

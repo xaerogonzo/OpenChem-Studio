@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from openchem.domain.calculator import CalculatorDefinition, CalculatorParameter
+from openchem.domain.calculator import CalculatorDefinition, CalculatorParameter, active_parameters
 from openchem.ui.widgets.help_tooltip import HelpTooltip, apply_help_tooltip
 
 
@@ -266,6 +266,12 @@ class CalculatorSettingsDialog(QDialog):
             self._widgets[parameter.name] = widget
             form.addRow(parameter.label, widget)
         layout.addLayout(form)
+        self._definition = definition
+        for parameter in definition.parameters:
+            controller = self._widgets.get(parameter.enabled_by or "")
+            if isinstance(controller, QCheckBox):
+                controller.toggled.connect(self._sync_enabled)
+        self._sync_enabled()
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
         buttons.accepted.connect(self.accept)
@@ -327,10 +333,21 @@ class CalculatorSettingsDialog(QDialog):
             return widget
         raise ValueError(f"Unknown CalculatorParameter.kind: {parameter.kind!r}")
 
+    def _sync_enabled(self, _checked: bool = False) -> None:
+        """Grey out every control whose `enabled_by` chain is off, from the current values."""
+        values = self._all_values()
+        active = active_parameters(self._definition, values)
+        for parameter in self._parameters:
+            self._widgets[parameter.name].setEnabled(parameter.name in active)
+
     def parameters(self) -> dict[str, Any]:
-        """Current values of every parameter's widget, keyed by
+        """Current values of every ACTIVE parameter's widget, keyed by
         `CalculatorParameter.name` -- call after `exec()` returns
-        `QDialog.DialogCode.Accepted`."""
+        `QDialog.DialogCode.Accepted`. A greyed-out control is left out, so
+        its value is neither computed with nor recorded."""
+        return active_parameters(self._definition, self._all_values())
+
+    def _all_values(self) -> dict[str, Any]:
         values: dict[str, Any] = {}
         for parameter in self._parameters:
             widget = self._widgets[parameter.name]
