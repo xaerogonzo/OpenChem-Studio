@@ -476,7 +476,7 @@ Topological polar surface area, for the structure as drawn and for the dominant 
 <!-- help:calc-functional-groups -->
 ### Functional Groups
 
-Every functional group the naming engine recognises, coloured by type and labelled at its anchor atom -- the same detection that decides which group becomes a name's suffix. Note that ring carbonyls next to a ring nitrogen (lactams, uracil, caffeine) are claimed by no group, so an empty result means nothing was matched rather than that the molecule is unfunctionalised.
+Functional groups, ring systems and structural features, coloured by kind and labelled at the atom each belongs to. Three detectors feed it and every row says which one found it: the naming engine's own groups (the detection that decides a name's suffix), the engine's ring amines and aromatic N-H, and a pattern catalogue for what nomenclature has no group for at all (ether, thioether, ammonium). A ring system is reported as a ring system -- benzene, 1H-indole -- not as a group. Ring carbonyls next to a ring nitrogen (lactams, uracil, caffeine) are still claimed by no GROUP, so a molecule can show its rings and no functional group at all. Tick "Suffix-eligible groups only" to narrow it back to the naming vocabulary.
 
 - Produces one value per atom, with a depiction coloured by them.
 - Runs on the 2D drawing, so no conformer is needed.
@@ -953,6 +953,6 @@ Measured over the 187-molecule naming corpus in `benchmarks/naming` (2026-09-17)
 | structural features (ring amines, aromatic N-H) | 4.4% | every molecule |
 | IUPAC locants | 38.4% | 111 of 187 molecules |
 
-The asymmetry is the point. Naming dispatches to several tree shapes and only one carries a numbering: 76 of the 187 get no locants at all -- every molecule named by a retained string, caffeine and camphor among them, has no atom indices to map. Even a substitutive name numbers only its parent, which is why naproxen's covers 3 of its 17 atoms, and why fentanyl's piperidine is unnumbered while its acetyl chain is not (see `vendor/KNOWN_LIMITATIONS.md`).
+The asymmetry is the point. Naming dispatches to several tree shapes and only one carries a numbering: 76 of the 187 get no locants at all -- every molecule named by a retained string, caffeine and camphor among them, has no atom indices to map. Even a substitutive name numbers only its parent, which is why naproxen's covers 3 of its 17 atoms, and why a fentanyl's piperidine is unnumbered while its acetyl chain is not (see `vendor/KNOWN_LIMITATIONS.md`).
 
-A retained-ring lookup is the mitigation, and lifts coverage from 22.4% to 34.8%. "None found" is therefore an ordinary answer here, not a failure.
+A retained-ring lookup is the mitigation: on the 181-row revision it lifted coverage from 22.4% to 34.8%, and PIPERIDINE and BENZENE are not among the 302 table entries that carry a locant map. "None found" is therefore an ordinary answer here, not a failure.
