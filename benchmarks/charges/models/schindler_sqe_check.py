@@ -297,7 +297,8 @@ def chargefw2_parameter_file(atoms: dict, bonds: dict, out: pathlib.Path) -> pat
                           "value": [value]})
     payload = {
         "metadata": {"name": "Schindler 2021 (CCD_gen), S7 full precision", "method": "sqe",
-                     "publication": "10.1186/s13321-021-00528-w"},
+                     "publication": "10.1186/s13321-021-00528-w",
+                     "notes": "Parameterised to reproduce B3LYP/6-311G/NPA charges; values from Additional file 7"},
         "atom": {"names": ["electronegativity", "hardness", "width"], "data": atom_rows},
         "bond": {"names": ["kappa"], "data": bond_rows},
     }
@@ -305,19 +306,191 @@ def chargefw2_parameter_file(atoms: dict, bonds: dict, out: pathlib.Path) -> pat
     return out
 
 
+#: Runs inside the WSL environment. The CLI prints charges to 5 decimals, which cannot test a 1e-6 gate,
+#: so the authors' own Python bindings are used instead: they return the solver's doubles.
+_CHARGEFW2_DRIVER = """
+import json, sys, chargefw2
+molecules = chargefw2.Molecules(sys.argv[1], True, False, False)  # read_hetatm, ignore_water, permissive_types=False
+charges = chargefw2.calculate_charges(molecules, sys.argv[2], sys.argv[3], sys.argv[5])  # chg_out_dir: it writes files, keep them out of the tree
+json.dump({name: list(values) for name, values in charges.items()}, open(sys.argv[4], "w"))
+"""
+
+
 def run_chargefw2(sdf: pathlib.Path, method: str, par_file: pathlib.Path, out_dir: pathlib.Path) -> dict[str, np.ndarray]:
+    """ChargeFW2's `calculate_charges` at full precision, with permissive types off.
+
+    The binding looks a parameter NAME up as `<install>/share/parameters/<name>.json`; an absolute path
+    replaces that directory (std::filesystem semantics), so the file is given without its extension.
+    """
+    if par_file.suffix != ".json":
+        raise ValueError(f"{par_file} must be a .json parameter file")
     out_dir.mkdir(parents=True, exist_ok=True)
+    driver = out_dir / "driver.py"
+    driver.write_bytes(_CHARGEFW2_DRIVER.encode("utf-8"))
+    result = out_dir / "charges.json"
     command = (
-        f"export MAMBA_ROOT_PREFIX=~/tools/mamba; ~/tools/bin/micromamba run -n chargefw2 ~/tools/chargefw2/bin/chargefw2 "
-        f"--mode charges --method {method} --par-file '{to_wsl_path(par_file)}' "
-        f"--input-file '{to_wsl_path(sdf)}' --chg-out-dir '{to_wsl_path(out_dir)}'"
+        "export MAMBA_ROOT_PREFIX=~/tools/mamba PYTHONPATH=~/tools/chargefw2/lib CHARGEFW2_INSTALL_DIR=~/tools/chargefw2/; "
+        f"~/tools/bin/micromamba run -n chargefw2 python '{to_wsl_path(driver)}' '{to_wsl_path(sdf)}' {method} "
+        f"'{to_wsl_path(par_file.with_suffix(''))}' '{to_wsl_path(result)}' '{to_wsl_path(out_dir)}'"
     )
     done = subprocess.run(["wsl.exe", "-e", "bash", "-lc", command], capture_output=True, text=True)
-    if done.returncode != 0:
+    if done.returncode != 0 or not result.exists():
         raise RuntimeError(f"ChargeFW2 exited {done.returncode}: {done.stderr[-2000:]}")
-    (chg,) = list(out_dir.glob("*.chg"))
-    return {name: q for name, (_, q) in parse_chg(chg.read_text(encoding="utf-8")).items()}
+    return {name: np.array(values) for name, values in json.loads(result.read_text(encoding="utf-8")).items()}
+
+
+# --- stages ---------------------------------------------------------------------------------------------------
+
+#: A space-free working directory both Windows and WSL can reach.
+WORK = pathlib.Path(os.environ.get("TEMP", "/tmp")) / "schindler_sqe_work"
+RESULTS = HERE / "schindler_sqe_results"
+SEED = 20260917
+#: S6 Table 2 (CCD_gen), SQE, seed 5 -- the registered oracle.
+ORACLE = {"train": {"R2": 0.9953, "RMSD": 0.0282, "RMSDat": 0.0414}, "test": {"R2": 0.9952, "RMSD": 0.0279, "RMSDat": 0.0481}}
+#: Half a unit of the fourth printed decimal, plus the registered solver allowance.
+PRINTED_TOLERANCE = 5e-5 + 1e-6
+
+
+def sdf_records(text: str) -> dict[str, str]:
+    """Each record's raw text, keyed by its title, so subsets are written without re-serialising."""
+    out = {}
+    for chunk in text.split("$$$$"):
+        body = chunk.lstrip("\r\n")
+        if body.strip():
+            out[body.splitlines()[0].strip()] = body.rstrip("\r\n") + "\n$$$$\n"
+    return out
+
+
+def write_sdf(path: pathlib.Path, records: list[str]) -> pathlib.Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(records), encoding="utf-8", newline="\n")
+    return path
+
+
+def sha256(path: pathlib.Path) -> str:
+    import hashlib
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def save(name: str, payload: dict) -> pathlib.Path:
+    RESULTS.mkdir(exist_ok=True)
+    path = RESULTS / f"{name}.json"
+    path.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
+    print(f"wrote {path.relative_to(ROOT)} sha256 {sha256(path)}")
+    return path
+
+
+def stage_a4(chargefw2_json: pathlib.Path) -> dict:
+    """A.4: ChargeFW2's own CCD_gen file against S7's published values, on 20 molecules."""
+    if sha256(chargefw2_json) != "ca68bc7e2bff6753a23f831c588947c219021ccd31082c696eb0ea6e80eb1134":
+        raise ValueError("that is not ChargeFW2's CCD_gen parameter file at the pinned commit")
+    records = sdf_records(zipfile.ZipFile(SI / "schindler2021_S3.zip").read("CCD_gen.sdf").decode("utf-8"))
+    names = sorted(np.random.default_rng(SEED).choice(sorted(records), size=20, replace=False).tolist())
+    subset = write_sdf(WORK / "a4" / "subset.sdf", [records[n] for n in names])
+    atoms, bonds = load_sqe_parameters()
+    s7_file = chargefw2_parameter_file(atoms, bonds, WORK / "a4" / "s7_params.json")
+    own = run_chargefw2(subset, "sqe", chargefw2_json, WORK / "a4" / "own")
+    s7 = run_chargefw2(subset, "sqe", s7_file, WORK / "a4" / "s7")
+    diffs = {n: float(np.max(np.abs(own[n] - s7[n]))) for n in names if n in own and n in s7}
+    result = {
+        "stage": "A.4", "molecules": names, "computed_by_both": len(diffs),
+        "refused": sorted(set(names) - set(diffs)), "max_abs_diff": max(diffs.values()) if diffs else None,
+        "per_molecule_max_abs_diff": diffs, "agree_within_1e-6": bool(diffs) and max(diffs.values()) <= AGREE and len(diffs) == 20,
+        "chargefw2_commit": CHARGEFW2_COMMIT, "own_parameter_sha256": sha256(chargefw2_json), "s7_parameter_sha256": sha256(SQE_PARAMETERS),
+    }
+    result["runs_for_part_b"] = "chargefw2_own_file" if result["agree_within_1e-6"] else "s7_values_via_par_file"
+    save("a4", result)
+    return result
+
+
+def stage_b(parameter_choice: str, chargefw2_json: pathlib.Path) -> dict:
+    atoms, bonds = load_sqe_parameters()
+    split = load_split()
+    data = load_dataset("CCD_gen")
+    records = sdf_records(zipfile.ZipFile(SI / "schindler2021_S3.zip").read("CCD_gen.sdf").decode("utf-8"))
+    full = write_sdf(WORK / "b" / "CCD_gen.sdf", [records[m.name] for m, _ in data])
+    par = chargefw2_json if parameter_choice == "chargefw2_own_file" else chargefw2_parameter_file(atoms, bonds, WORK / "b" / "s7_params.json")
+    theirs = run_chargefw2(full, "sqe", par, WORK / "b" / "chargefw2")
+
+    ours: dict[str, dict[str, np.ndarray]] = {r: {} for r in READINGS}
+    refused_ours: dict[str, str] = {}
+    smallest_eigenvalue, condition = {}, {}
+    for molecule, _ in data:
+        built = sqe_matrix(molecule, atoms, bonds)
+        if isinstance(built, str):
+            refused_ours[molecule.name] = built
+            continue
+        T, _, split_matrix = built
+        if T.shape[0]:
+            eig = np.linalg.eigvalsh(split_matrix)
+            smallest_eigenvalue[molecule.name] = float(eig[0])
+            condition[molecule.name] = float(np.abs(eig).max() / np.abs(eig).min())
+        for reading in READINGS:
+            ours[reading][molecule.name] = sqe_charges(molecule, atoms, bonds, reading)
+
+    b1 = {}
+    for reading in READINGS:
+        both = [n for n in ours[reading] if n in theirs]
+        agree = [n for n in both if np.max(np.abs(ours[reading][n] - theirs[n])) <= AGREE]
+        worst = max(both, key=lambda n: float(np.max(np.abs(ours[reading][n] - theirs[n])))) if both else None
+        b1[reading] = {"computed_by_both": len(both), "agree_within_1e-6": len(agree),
+                       "fraction": len(agree) / len(both) if both else None,
+                       "worst_molecule": worst, "worst_abs_diff": float(np.max(np.abs(ours[reading][worst] - theirs[worst]))) if worst else None}
+    only_ours_refused = sorted(n for n in refused_ours if n in theirs)
+    only_theirs_refused = sorted(n for n in ours["R_plus"] if n not in theirs)
+
+    by_name = {m.name: (m, q) for m, q in data}
+    b2 = {}
+    for reading in READINGS:
+        b2[reading] = {}
+        for subset, key in (("train", "CCD_gen training set"), ("test", "CCD_gen test set")):
+            pairs = [(hbo_types(by_name[n][0]), by_name[n][1], ours[reading][n]) for n in split[key] if n in ours[reading]]
+            computed = metrics(pairs)
+            computed["covered"] = len(pairs)
+            computed["of"] = len(split[key])
+            computed["matches"] = {k: abs(round(computed[k], 4) - v) <= 1e-9 or abs(computed[k] - v) <= PRINTED_TOLERANCE
+                                   for k, v in ORACLE[subset].items()}
+            b2[reading][subset] = computed
+        hits = sum(sum(b2[reading][s]["matches"].values()) for s in ("train", "test"))
+        b2[reading]["values_matching"] = hits
+        b2[reading]["verdict"] = "REPRODUCED" if hits == 6 else ("PARTIAL" if hits else "NOT-REPRODUCED")
+    reproduced = [r for r in READINGS if b2[r]["verdict"] == "REPRODUCED"]
+    reading_is = reproduced[0] if len(reproduced) == 1 else "undetermined"
+
+    charged = {m.name for m, _ in data if m.total_charge != 0}
+    strata = {}
+    if reading_is != "undetermined":
+        for label, selector in (("charged", lambda n: n in charged), ("neutral", lambda n: n not in charged)):
+            pairs = [(hbo_types(by_name[n][0]), by_name[n][1], ours[reading_is][n]) for n in ours[reading_is] if selector(n)]
+            strata[label] = metrics(pairs)
+    eig_values = np.array(list(smallest_eigenvalue.values()))
+    cond_values = np.array(list(condition.values()))
+    result = {
+        "stage": "B", "parameter_choice": parameter_choice, "molecules": len(data),
+        "refused_by_us": len(refused_ours), "refused_by_us_reasons": sorted(set(refused_ours.values())),
+        "refused_only_by_us": only_ours_refused, "refused_only_by_chargefw2": only_theirs_refused,
+        "B1": b1, "B2": b2, "model_reading": reading_is, "strata": strata,
+        "conditioning": {
+            "not_positive_definite": int(np.sum(eig_values <= 0)), "of": int(eig_values.size),
+            "not_positive_definite_names": sorted(n for n, v in smallest_eigenvalue.items() if v <= 0)[:50],
+            "condition_median": float(np.median(cond_values)), "condition_p90": float(np.percentile(cond_values, 90)),
+            "condition_max": float(cond_values.max()), "smallest_eigenvalue_min": float(eig_values.min()),
+        },
+        "chargefw2_commit": CHARGEFW2_COMMIT, "numpy": np.__version__,
+    }
+    save("b", result)
+    return result
 
 
 if __name__ == "__main__":
-    sys.exit("run a stage: a4, b or c (see the pre-registration)") if len(sys.argv) < 2 else None
+    if len(sys.argv) < 3 and not (len(sys.argv) == 2 and sys.argv[1] == "c"):
+        sys.exit("usage: schindler_sqe_check.py a4 <chargefw2-ccd_gen.json> | b <chargefw2-ccd_gen.json> | c")
+    stage = sys.argv[1]
+    if stage == "a4":
+        print(json.dumps({k: v for k, v in stage_a4(pathlib.Path(sys.argv[2])).items() if k != "per_molecule_max_abs_diff"}, indent=1))
+    elif stage == "b":
+        choice = json.loads((RESULTS / "a4.json").read_text(encoding="utf-8"))["runs_for_part_b"]
+        out = stage_b(choice, pathlib.Path(sys.argv[2]))
+        print(json.dumps({k: out[k] for k in ("B1", "B2", "model_reading", "strata", "conditioning", "refused_by_us")}, indent=1))
+    else:
+        sys.exit(f"unknown stage {stage}")

@@ -191,4 +191,28 @@ A committed script, `benchmarks/charges/models/schindler_sqe_check.py`, plus
 
 ## Results
 
-*None yet.*
+### A. Instrument (2026-09-17, commit 43e3c87)
+
+- 11 tests pass, including every deposited CCD_gen and DTP_small molecule pairing with its charges and
+  the split resolving exactly.
+- **All 7 registered mutations are red.**
+
+**Four plumbing fixes before A.4 produced any number.** None changes a registered rule; each is recorded
+so the run is reproducible.
+1. **ChargeFW2's command line prints charges to 5 decimals** (`formats/txt.cpp`, `{:.5f}`), which
+   cannot test a 1e-6 gate. The runs use its own Python bindings (`chargefw2.calculate_charges`), which
+   return the solver's doubles.
+2. **The bindings' `Molecules` defaults to `permissive_types=True`.** It is passed as `False`, as
+   section 2 requires.
+3. **A parameter file is named without `.json`,** and `CHARGEFW2_INSTALL_DIR` must be set, as in its
+   Dockerfile.
+4. **Its parser requires `metadata.notes`,** so the converted S7 file carries one.
+
+### A.4. Which parameter file runs: S7's values (2026-09-17)
+
+`schindler_sqe_results/a4.json` (sha256 `6656553e8e749473989319a4e7d1f0e07e2ec2ac265ec2f81ab1cfaf33f229bb`).
+- **20 molecules, seed 20260917,** all computed by both files. ChargeFW2's own 4-decimal CCD_gen file and
+  S7's full-precision values differ by up to **2.65e-4 e**, against the 1e-6 gate.
+- **As registered, S7 is authoritative:** part B runs ChargeFW2 with S7's values through `--par-file`.
+- **As expected:** ChargeFW2 rounds κ values near −33 to 4 decimals.
+
