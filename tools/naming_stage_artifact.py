@@ -29,9 +29,9 @@ distinguishable from the artifact alone.
 
     python tools/naming_stage_artifact.py --stage baseline
     python tools/naming_stage_artifact.py --stage 2-budget \
-        --compare benchmarks/naming/artifacts/baseline.json
+        --compare benchmarks/naming/stages/baseline.json
 
-Written to `benchmarks/naming/artifacts/<stage>.json`. `--compare` prints
+Written to `benchmarks/naming/stages/<stage>.json`. `--compare` prints
 every row whose name changed, which is the review a stage's commit message
 quotes.
 
@@ -55,7 +55,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 BENCH = ROOT / "benchmarks" / "naming"
-ARTIFACTS = BENCH / "artifacts"
+STAGES = BENCH / "stages"
 
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(BENCH))
@@ -325,8 +325,8 @@ def main() -> None:
     args = parser.parse_args()
 
     artifact = build(args.stage, allow_no_java=args.allow_no_java)
-    ARTIFACTS.mkdir(parents=True, exist_ok=True)
-    out = ARTIFACTS / f"{args.stage}.json"
+    STAGES.mkdir(parents=True, exist_ok=True)
+    out = STAGES / f"{args.stage}.json"
     out.write_text(json.dumps(artifact, indent=1), encoding="utf-8")
 
     print(f"stage {args.stage}  sha {artifact['git_sha'][:7]}"
