@@ -16,7 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   were numbered and where the numbering came from; a structure named by a
   retained name gets none, which it says rather than leaving a blank canvas.
   The numbers are recomputed when the structure changes and add nothing to the
-  undo stack.
+  undo stack, and a set of labels is drawn only if it is for the structure on
+  the canvas -- the payload carries a structure key the page checks, so labels
+  computed just before an edit are refused rather than drawn on the wrong
+  atoms.
 - **The Atom Inspector has a Locant column**, filled from the same numbering
   the canvas draws. Blank means the atom has no locant; "?" means the
   numbering could not be computed, with the reason on the cell.

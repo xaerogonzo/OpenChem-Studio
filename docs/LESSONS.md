@@ -20611,3 +20611,22 @@ canvas. Re-negating the sign fails that test; before it, the same mutation
 passed everything. The pair is the point -- the report answers "on the right
 atom" (molfile positions Python named) and "where on screen", and only
 together do they mean the numbering works.
+
+**AND THE FAIL-CLOSED CHECK WAS ONLY CHECKING THE EASY HALF.** It refused a
+payload whose position did not resolve -- an index past the end of the
+struct. But a payload computed BEFORE an edit resolves perfectly well against
+the structure after it whenever the atom count did not shrink, so every label
+lands on a plausible wrong atom and nothing declines. The generation counter
+cannot see that either: a LATER payload is not necessarily a payload for what
+is on screen.
+
+The fix is an identity both sides can compute, which took a moment's thought
+because the obvious one is unusable -- the page's own topology key is made of
+pool ids Python has never seen, and Python's input fingerprint is a hash of a
+molblock the page does not have. Elements in molfile-position order plus the
+bond count is the overlap. The page refuses a payload whose key does not
+match the canvas, **and refuses one that does not carry a key at all**: an
+absent key would have disabled the check silently, which is how a fail-closed
+guard usually stops being one. That needed a test of its own, plus a test
+that the two sides' keys AGREE -- a fail-closed guard that always fires is an
+outage, not a guard.
