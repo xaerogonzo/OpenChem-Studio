@@ -149,3 +149,16 @@ Each must turn the tests red:
 - drop the per-site records, keeping only the total (must fail glycine);
 - skip H placement silently;
 - fall back to another force field.
+
+## Implementation notes (appended; the sections above are unchanged)
+
+- **2026-09-17: section 3's `effective_structure_fingerprint` was not written by
+  the shipped calculator until this date.** It now is, beside the structure
+  itself (`PerAtomDataset.structure_molblock`), after the pH result was found
+  drawn on the stored conformer: for an acid, every value after the removed
+  hydrogen sat on the next atom.
+- **2026-09-17: two departures from section 3, recorded rather than silent.**
+  The mode is the `ph_dependent` option of `geometry_partial_charge` rather
+  than a separate calculator; and the store keeps one result per dataset id
+  and input (the latest run), as it does for every calculator, rather than
+  both the as-drawn and the pH result.

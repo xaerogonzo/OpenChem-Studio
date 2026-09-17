@@ -31,7 +31,6 @@ from openchem.chem.mass_spectrum import (
 )
 from openchem.chem.geometry_analysis import compute_geometry_analysis
 from openchem.chem.geometry_charges import (
-    compute_geometry_charges_at_ph,
     EEM_BULTINCK2002_PART1,
     GEOMETRY_CHARGE_METHOD_LABELS,
     GEOMETRY_CHARGE_METHODS,
@@ -1899,6 +1898,12 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         tags=["charge", "ph", "per-atom", "gasteiger", "mmff94", "partial charge"],
     ),
     CalculatorDefinition(
+        # ONE CALCULATOR FOR BOTH MODES since 2026-09-17; the pH mode was once its own entry,
+        # "Partial Charge (3D, pH-dependent)". That split was justified as protecting stored results
+        # keyed by this calculator's parameters, but nothing reads that key back: the result store
+        # keys a result by (dataset id, input, fingerprint) alone (`SessionResultStore.put`), so a
+        # parameter orphans nothing. What the split did cause was two answers for one molecule side by
+        # side in Results. Old pH results are dropped on load (`result_store.RETIRED_RESULT_IDS`).
         calculator_id="geometry_partial_charge",
         calculation_input=GEOMETRY,
         display_name="Partial Charge (3D)",
@@ -1911,9 +1916,14 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             "molecules where its iteration does not settle or a charge reaches its bound. Ionescu EEM: "
             "Ionescu et al.'s 2013 protein-fragment models (Mulliken, 6-31G* or 6-31G**, gas phase) for "
             "H, C, N, O, S and Ca, reported as an extrapolation on anything else; it refuses a sulfur "
-            "bonded to oxygen and any charge beyond 2.051 e. Computed on "
-            "the stored conformer as it is: its own hydrogens and its net charge, with no protonation, "
-            "and only the sum of the charges equals the net charge. Needs a conformer with explicit "
+            "bonded to oxygen and any charge beyond 2.051 e. By default the charges are computed on "
+            "the stored conformer as it is, with its own hydrogens and net charge. Tick pH-dependent "
+            "to compute them on the dominant ionization state at that pH instead: the state is carried "
+            "onto the conformer, every heavy atom and every kept hydrogen holds its coordinates "
+            "exactly, and only added hydrogens are placed (MMFF94, everything else fixed). Ionization "
+            "states only, never tautomers, and it refuses rather than choose when a proton leaves an "
+            "atom whose hydrogens are not equivalent. The result shows the structure it was computed "
+            "on. Only the sum of the charges equals the net charge. Needs a conformer with explicit "
             "hydrogens; an element the chosen method has no parameters for is refused."
         ),
         execution=RegistryExecution(compute=compute_geometry_charges),
@@ -1927,43 +1937,15 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
                 choice_labels=[GEOMETRY_CHARGE_METHOD_LABELS[m] for m in GEOMETRY_CHARGE_METHODS],
             ),
             CalculatorParameter(
-                name="include_hydrogens",
-                label="Increment of Hs (fold hydrogen charges onto their atom)",
+                name="ph_dependent",
+                label="pH-dependent (dominant ionization state)",
                 kind="bool",
                 default=False,
             ),
-            decimal_places_parameter(),
-        ],
-        tags=["charge", "3d", "per-atom", "eem", "electronegativity equalization", "partial charge", "bultinck", "qeq", "charge equilibration", "rappe", "ionescu"],
-    ),
-    CalculatorDefinition(
-        # A SEPARATE CALCULATOR, not a parameter on the one above, for the same reason
-        # `gasteiger_charge_at_ph` sits beside the plain Gasteiger: the 3D calculator's stored
-        # results are keyed by its parameter defaults, and adding a parameter there would change
-        # that key and orphan every EEM result saved before this existed.
-        calculator_id="geometry_partial_charge_at_ph",
-        calculation_input=GEOMETRY,
-        display_name="Partial Charge (3D, pH-dependent)",
-        category="charge",
-        description=(
-            "The same geometry-dependent charges, computed on the dominant ionization state at a "
-            "given pH instead of the structure as drawn. The state is carried onto the stored "
-            "conformer: every heavy atom and every hydrogen it keeps holds its coordinates exactly, "
-            "and only hydrogens the state adds are placed (MMFF94, with every other atom held "
-            "fixed). Ionization states only, never tautomers. It refuses rather than choose when a "
-            "proton leaves an atom whose hydrogens are not equivalent."
-        ),
-        execution=RegistryExecution(compute=compute_geometry_charges_at_ph),
-        parameters=[
             CalculatorParameter(
-                name="method",
-                label="Method",
-                kind="choice",
-                default=EEM_BULTINCK2002_PART1,
-                choices=list(GEOMETRY_CHARGE_METHODS),
-                choice_labels=[GEOMETRY_CHARGE_METHOD_LABELS[m] for m in GEOMETRY_CHARGE_METHODS],
+                name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0,
+                enabled_by="ph_dependent",
             ),
-            CalculatorParameter(name="pH", label="pH", kind="float", default=7.4, minimum=0.0, maximum=14.0),
             CalculatorParameter(
                 name="include_hydrogens",
                 label="Increment of Hs (fold hydrogen charges onto their atom)",
@@ -1972,7 +1954,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
             ),
             decimal_places_parameter(),
         ],
-        tags=["charge", "3d", "ph", "per-atom", "eem", "qeq", "protonation", "ionization", "partial charge"],
+        tags=["charge", "3d", "per-atom", "eem", "electronegativity equalization", "partial charge", "bultinck", "qeq", "charge equilibration", "rappe", "ionescu", "ph", "protonation", "ionization"],
     ),
     CalculatorDefinition(
         calculator_id="crippen_logp_contrib",

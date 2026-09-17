@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from rdkit import Chem
-from rdkit.Chem import AllChem, rdMolTransforms
+from rdkit.Chem import AllChem, rdDepictor, rdMolTransforms
 from rdkit.Geometry import Point3D
 
 from openchem.chem.camera_orientation import camera_to_model_transform, rotate
@@ -86,6 +86,9 @@ READABLE_LAYOUT_FRACTION = 0.6
 #: hard to tell apart. Reported to the user rather than repaired -- see
 #: `ConformerDrawing.crowded`.
 _CROWDED_APPROACH = 0.5
+
+#: What a hydrogen is bonded to for it to count as polar (`ChemistryEngine.atom_rows`).
+_POLAR_HYDROGEN_PARENTS = frozenset({"N", "O", "S"})
 
 
 @dataclass(frozen=True)
@@ -228,6 +231,102 @@ class ChemistryEngine:
         """
         mol = self.mol_from_molblock(molblock)
         return Chem.MolToMolBlock(Chem.AddHs(mol, addCoords=True))
+
+    def atom_rows(self, molblock: str) -> list[tuple[str, bool]]:
+        """Per atom of `molblock`, in its own order: (element symbol, is a polar hydrogen).
+
+        A polar hydrogen is one bonded to N, O or S -- the hydrogens whose
+        charge a reader looks for (an N-H+, an O-H), as against the dozens on
+        carbon. The inspector's label policy and value table read this, and
+        `ui/` may not import RDKit to find out itself.
+        """
+        mol = self.mol_from_molblock(molblock)
+        return [
+            (atom.GetSymbol(),
+             atom.GetAtomicNum() == 1 and any(n.GetSymbol() in _POLAR_HYDROGEN_PARENTS for n in atom.GetNeighbors()))
+            for atom in mol.GetAtoms()
+        ]
+
+    def depiction_of(self, structure_molblock: str, template_molblock: str | None = None) -> tuple[str, list[int]]:
+        """A 2D depiction of a COMPUTED structure, and which of its atoms each depicted atom is.
+
+        For a result that carries its own structure (`PerAtomDataset.structure_molblock`):
+        drawing that structure, instead of the user's drawing, is what makes every
+        value's placement exact -- no correspondence is searched, so two symmetric
+        phenyl carbons can never trade values. Returns the depiction and `kept`,
+        where depiction atom k is structure atom `kept[k]`.
+
+        - **Hydrogens on carbon are dropped, polar hydrogens kept** (on N, O, S), so
+          an added N-H+ is visible and a 57-atom structure is not drawn as 57.
+          `RemoveHs` keeps the remaining atoms in order and handles stereo through
+          the removal; the polar ones are shielded from it by a temporary isotope.
+        - **Stereo is taken from the 3D coordinates** before anything is removed.
+        - **Laid out to match `template_molblock`** (the user's drawing) where it
+          matches; `acceptFailure` falls back to a fresh layout. Measured
+          2026-09-17: butyryl fentanyl at pH 7.4 kept all 26 heavy atoms at the
+          drawing's coordinates, and both CIP labels. Which of two symmetric
+          positions an atom is drawn at is a layout choice, never an identity:
+          `kept` comes from the structure, not from the match.
+        """
+        mol = Chem.MolFromMolBlock(structure_molblock, removeHs=False)
+        if mol is None:
+            raise InvalidStructureError("Could not parse the computed structure")
+        Chem.AssignStereochemistryFrom3D(mol)
+        # NOT ON NITROGEN. From 3D coordinates RDKit gives a protonated amine
+        # N+ a configuration, and the depiction drew it as a hashed bond --
+        # measured on butyryl fentanyl at pH 7.4, where it also made the
+        # piperidine carbon opposite look pseudo-asymmetric. An amine's proton
+        # exchanges and its nitrogen inverts, so no drawing should assert
+        # either; stereo is re-perceived without them.
+        if any(atom.GetSymbol() == "N" and atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED
+               for atom in mol.GetAtoms()):
+            for atom in mol.GetAtoms():
+                if atom.GetSymbol() == "N":
+                    atom.SetChiralTag(Chem.ChiralType.CHI_UNSPECIFIED)
+            Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
+        polar = {i for i, (_, is_polar) in enumerate(self.atom_rows(structure_molblock)) if is_polar}
+        for index in polar:
+            mol.GetAtomWithIdx(index).SetIsotope(2)
+        kept = [atom.GetIdx() for atom in mol.GetAtoms() if atom.GetAtomicNum() != 1 or atom.GetIdx() in polar]
+        flat = Chem.RemoveHs(mol)  # isotopic hydrogens are kept by default
+        for atom in flat.GetAtoms():
+            if atom.GetAtomicNum() == 1:
+                atom.SetIsotope(0)
+        if [a.GetSymbol() for a in flat.GetAtoms()] != [mol.GetAtomWithIdx(i).GetSymbol() for i in kept]:
+            raise InvalidStructureError("Removing hydrogens reordered the computed structure")
+        template = Chem.MolFromMolBlock(template_molblock) if template_molblock else None
+        if template is not None:
+            rdDepictor.GenerateDepictionMatching2DStructure(flat, template, acceptFailure=True)
+        else:
+            rdDepictor.Compute2DCoords(flat)
+        return Chem.MolToMolBlock(flat), kept
+
+    def face_on(self, molblock: str) -> str:
+        """The same conformer turned so its two widest directions lie in the screen plane.
+
+        A VIEW TRANSFORMATION: a proper rotation about the centroid (det +1, so
+        no mirror image), atoms and their order untouched, so every per-atom
+        index still addresses the same atom. 3Dmol looks down z, and fitting
+        the camera without turning the molecule showed butyryl fentanyl
+        edge-on with its labels piled on each other (Alex, 2026-09-17).
+        Everything one pane draws -- sticks, labels, surface, potential grid --
+        must come from this same molblock, or they stop lining up.
+        """
+        import numpy as np
+
+        mol = self.mol_from_molblock(molblock)
+        if mol.GetNumConformers() == 0 or mol.GetNumAtoms() < 3:
+            return molblock
+        conformer = mol.GetConformer()
+        positions = np.array(conformer.GetPositions(), dtype=float)
+        centred = positions - positions.mean(axis=0)
+        _u, _s, axes = np.linalg.svd(centred, full_matrices=False)
+        rotation = axes.copy()  # rows: widest, second, narrowest direction -> x, y, z
+        if np.linalg.det(rotation) < 0:
+            rotation[2] = -rotation[2]
+        for index, (x, y, z) in enumerate(centred @ rotation.T):
+            conformer.SetAtomPosition(index, Point3D(float(x), float(y), float(z)))
+        return Chem.MolToMolBlock(mol)
 
     def drawing_from_conformer(
         self,
@@ -480,6 +579,7 @@ class ChemistryEngine:
         atom_labels: dict[int, str] | None = None,
         width: int = 360,
         height: int = 320,
+        emphasised_atom: int | None = None,
     ) -> str:
         """Renders `molblock`'s existing 2D layout (never recomputed --
         this must match what's drawn in the 2D editor) as an SVG string,
@@ -534,10 +634,17 @@ class ChemistryEngine:
                     mol.GetAtomWithIdx(idx).SetProp("atomNote", label)
         drawer = rdMolDraw2D.MolDraw2DSVG(width, height)
         highlighted = {idx: color for idx, color in (atom_colors or {}).items() if drawable(idx)}
+        # The atom picked in the Calculator Inspector's value table: drawn with a
+        # wider highlight, keeping its own colour when it has one.
+        radii = {}
+        if emphasised_atom is not None and drawable(emphasised_atom):
+            highlighted.setdefault(emphasised_atom, "#ffc107")
+            radii = {emphasised_atom: 0.65}
         highlight_atoms = list(highlighted)
         highlight_colors = {idx: self._hex_to_rgb_fraction(color) for idx, color in highlighted.items()}
         rdMolDraw2D.PrepareAndDrawMolecule(
-            drawer, mol, highlightAtoms=highlight_atoms, highlightAtomColors=highlight_colors
+            drawer, mol, highlightAtoms=highlight_atoms, highlightAtomColors=highlight_colors,
+            highlightAtomRadii=radii,
         )
         drawer.FinishDrawing()
         return drawer.GetDrawingText()

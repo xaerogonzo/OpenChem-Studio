@@ -62,6 +62,20 @@ ENVELOPE_VERSION = 1
 #: default of the "Revisions kept" setting, which can change it.
 MAX_REVISIONS = 8
 
+#: Result ids no current producer makes, each with why, dropped on load and
+#: counted as `load_problems["retired"]`. A NAMED list, not "any producer the
+#: registry does not know": an unknown id may be a plugin that is not loaded
+#: today, and those are still restored.
+RETIRED_RESULT_IDS: dict[str, str] = {
+    # Not migrated onto the merged id: these results carry no computed
+    # structure, and drawing them on the stored conformer puts every value
+    # after a removed proton on the next atom (measured on OC(=O)C).
+    "geometry_partial_charge_at_ph": (
+        "merged into geometry_partial_charge (pH-dependent option) on 2026-09-17; "
+        "rerun it, which takes under a second"
+    ),
+}
+
 #: Replay order. Drawing results first, geometry on top: the geometry
 #: descriptor run publishes the SAME descriptor ids as the drawing run, and
 #: the panel keeps the latest, which must be the one a conformer produced.
@@ -475,6 +489,13 @@ class SessionResultStore:
                 producer=str(raw.get("producer", "")),
                 parameters_key=str(raw.get("parameters_key", "")),
             )
+            if identity.result_id in RETIRED_RESULT_IDS:
+                # Before decoding: a retired entry is dropped for what it IS,
+                # whether or not this build could still read it.
+                logger.info("Dropping retired saved result %s for %s: %s", identity.result_id,
+                            molecule_uuid, RETIRED_RESULT_IDS[identity.result_id])
+                self.load_problems["retired"] += 1
+                return
             result = result_codec.decode(raw["result"])
         except result_codec.CodecError as exc:
             logger.warning("Dropping saved result for %s: %s", molecule_uuid, exc)

@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Partial Charge (3D) has a pH-dependent option; the separate
+  "Partial Charge (3D, pH-dependent)" calculator is gone.** Tick it to compute
+  the charges on the dominant ionization state at the pH beside it; the pH box
+  is greyed out, and ignored, while the option is off. Results saved by the old
+  pH calculator are not restored (rerun it; it takes under a second), and
+  results from the plain 3D calculator are unaffected.
+- **The Calculator Inspector is easier to read, for every per-atom
+  calculator.** It opens larger, with draggable dividers and maximise and
+  minimise buttons; turns the 3D molecule to face you; labels heavy atoms in 3D
+  (and N/O/S hydrogens too in 2D) in larger text; shows any atom's value on
+  hover in 3D; and adds a sortable, filterable table of every value whose rows
+  highlight their atom in both pictures. Copy All includes the table.
+- **The 2D depiction no longer marks an ammonium nitrogen as a stereocentre.**
+  A protonated amine inverts; the hashed bond it was drawn with said otherwise.
+
+### Fixed
+
+- **The pH-dependent 3D charges were drawn on the wrong structure.** Both
+  pictures showed the conformer as drawn, so a protonated amine's N-H never
+  appeared, and for an acid whose removed hydrogen was not the last atom every
+  later value was drawn on the next atom. The result now carries the structure
+  it was computed on, and the Inspector draws that, in 2D as well as 3D -- so
+  the 2D pane no longer refuses a molecule with two symmetric rings.
+- **QEq results were never saved in a project.** A numpy number in their
+  record was refused by the project file's encoder, logged as "Not saving",
+  and the result was recomputed on every open.
+
 ### Added
 
 - **Charge ▸ Partial Charge (3D): Ionescu 2013's EEM, two of its 24 models.**

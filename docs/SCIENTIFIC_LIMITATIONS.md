@@ -1070,7 +1070,7 @@ they are, and are not:
   do; fluorine misses, and that set has only five fluorine atoms. The record
   is `benchmarks/charges/models/TRIAGE.md`, checks 2.2 and 2.5.
 - **Charges at a pH have no oracle, and the calculator claims none.** *Partial
-  Charge (3D, pH-dependent)* answers "what would these charges be on the
+  Charge (3D)* with *pH-dependent* ticked answers "what would these charges be on the
   dominant ionization state at this pH", and nothing published gives the right
   answer to that for a given conformer. What is guaranteed is narrower and is
   what the tests check: the state comes from Dimorphite-DL (ionization only,
@@ -2122,7 +2122,7 @@ and a molecular atom that share index 7 are not the same object.
 ### Which calculators a crystal is offered, and why it is none of them
 
 Every calculator declares the structure kinds it applies to, and the
-default is molecule-only. Today **none of the 60 registered calculators
+default is molecule-only. Today **none of the 59 registered calculators
 declares a crystal**, so the crystal report says so outright rather than
 implying some subset applies. (The one calculation that *is* about a periodic
 solid — EQeq partial charges, below — is a section of that report rather than

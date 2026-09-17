@@ -20436,3 +20436,40 @@ the correct response rather than hunting for a defect in the diff.
 check by itself; it licenses saying *which* of the two things went wrong. The
 tests passing and the process crashing are both true, and the second is still a
 real defect in the harness even when it is nobody's change that caused it.
+
+## THE MICROSPECIES WAS COMPUTED AND DISCARDED, AND A REGISTERED FIELD WAS NEVER WRITTEN
+
+Reported 2026-09-17 by Alex, on butyryl fentanyl at pH 7.4: the nitrogen was
+not protonated, the 2D pane said "not shown", and the 3D labels could not be
+read. The charges were right -- the header said +1.00 e -- and every unit test
+was green.
+
+- **The structure the numbers described was thrown away.** The calculator built
+  the protonated microspecies, solved on it, and returned only the values; the
+  Calculator Inspector drew them on the STORED conformer. For a base the added
+  N-H was simply missing. For an acid it was worse and invisible: removing a
+  hydrogen that is not the last atom renumbers every atom after it, so on
+  `OC(=O)C` the value at index 4 was a methyl hydrogen's, drawn on the acidic
+  hydrogen that had left. A per-atom result now carries the structure its
+  indices refer to (`PerAtomDataset.structure_molblock`), and the codec version
+  is bumped so an older build refuses it rather than reading the indices bare.
+- **The pre-registration had asked for it.** Section 3 of
+  `benchmarks/charges/protonation/preregistration.md` promised
+  `effective_structure_fingerprint` on every result. No file under `src/`
+  contained the string. A registered field is a test nobody wrote: grep for it.
+- **A guard pinned a key nothing read.** `parameters_key` of the 3D
+  calculator's defaults was pinned "so a stored result must still be found",
+  and the separate pH calculator existed to protect it. The store files a
+  result by (dataset id, input, fingerprint); the key is written and never read
+  back. The pin was replaced by a save-and-reload of an old result, which is
+  what it claimed to protect.
+- **The 2D refusal was a symptom of drawing the wrong structure.** Matching the
+  user's drawing to a conformer with two phenyls finds several answers that
+  disagree, and refusing was correct. Drawing the COMPUTED structure, laid out
+  on the drawing as a template, makes the indices identical and leaves nothing
+  to match.
+- **Two mutations survived my own new tests, and both were my code's fault.**
+  A numpy cast was redundant with an outer one, and a "freeze" copy protected
+  against nothing that could happen; both were removed rather than tested. A
+  third survived because the first oxygen was atom 0 in row 0 -- a table test
+  must pick a row whose atom cannot be its row number.

@@ -71,6 +71,21 @@ class PerAtomDataset(ScientificResult):
     #: only occupant of. Measured in the running app: 21 sections where
     #: every enumeration of the categories says 20.
     category: str = ""
+    #: THE STRUCTURE WHOSE ATOMS `values` IS KEYED BY, when that is not simply
+    #: the molecule's drawing or stored conformer. Empty for every producer
+    #: that describes one of those.
+    #:
+    #: A payload, not provenance: the indices mean nothing without it. It
+    #: exists because the pH-dependent 3D charges were computed on a selected
+    #: microspecies and then drawn on the stored conformer, whose atoms are
+    #: renumbered wherever a proton leaves -- every later value landed on the
+    #: next atom (measured 2026-09-17 on CH3COOH drawn as OC(=O)C).
+    #:
+    #: Invariant, asserted by the producer: every key of `values` is an atom
+    #: index of this molblock, and `structure_fingerprint` is
+    #: `chem.result_structure.structure_fingerprint` of it.
+    structure_molblock: str = ""
+    structure_fingerprint: str = ""
 
 
 @dataclass(frozen=True, kw_only=True)

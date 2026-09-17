@@ -393,10 +393,9 @@ def test_geometry_is_opt_in_and_the_default_is_the_drawing():
     # flattening z moves every 1/R and every charge with it --
     # `tests/test_geometry_charges.py::test_the_charges_follow_the_geometry`.
     #
-    # `geometry_partial_charge_at_ph` is the same calculation on the dominant
-    # ionization state at a pH, so it meets the same standard by construction:
-    # it refuses a drawing through the same guard, and its charges follow the
-    # coordinates it was handed --
+    # Its pH-dependent option (once the separate `geometry_partial_charge_at_ph`)
+    # meets the same standard by construction: it refuses a drawing through the
+    # same guard, and its charges follow the coordinates it was handed --
     # `tests/test_protonation_geometry.py::test_the_ph_charges_follow_the_geometry`.
     assert declared == {
         "atom_sasa",
@@ -404,7 +403,6 @@ def test_geometry_is_opt_in_and_the_default_is_the_drawing():
         "dipole_moment",
         "geometry_analysis",
         "geometry_partial_charge",
-        "geometry_partial_charge_at_ph",
         "homa_aromaticity",
         "interaction_analysis",
         "molecular_dynamics",

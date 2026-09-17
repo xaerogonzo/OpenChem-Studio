@@ -35,7 +35,8 @@ _bspec = importlib.util.spec_from_file_location("build_ionescu_parameters", ROOT
 builder = importlib.util.module_from_spec(_bspec)
 _bspec.loader.exec_module(builder)
 
-CALCULATORS = ("geometry_partial_charge", "geometry_partial_charge_at_ph")
+#: One calculator since 2026-09-17: the pH mode is its `ph_dependent` option.
+CALCULATORS = ("geometry_partial_charge",)
 SHIPPED = {
     "eem_ionescu2013_e_mpa_631gs_gas": "E-MPA/6-31G*/gas",
     "eem_ionescu2013_e_mpa_631gss_gas": "E-MPA/6-31G**/gas",
@@ -235,12 +236,12 @@ def test_the_scope_and_units_survive_the_codec():
     assert back.method == "eem_ionescu2013_e_mpa_631gss_gas" and back.values == result.values
 
 
-def test_the_at_ph_calculator_carries_the_same_model_identity():
-    result = _registry().compute("geometry_partial_charge_at_ph", _conformer("CC(=O)O"), "u",
-                                 {"method": "eem_ionescu2013_e_mpa_631gs_gas", "pH": 7.4})
+def test_the_ph_dependent_option_carries_the_same_model_identity():
+    result = _registry().compute("geometry_partial_charge", _conformer("CC(=O)O"), "u",
+                                 {"method": "eem_ionescu2013_e_mpa_631gs_gas", "ph_dependent": True, "pH": 7.4})
     assert result.cache_state == CacheState.COMPLETED, result.error
     parameters = result.provenance.parameters
-    assert result.property_id == gc.PROPERTY_ID_AT_PH and parameters["scheme"] == "E-MPA/6-31G*/gas"
+    assert result.property_id == gc.PROPERTY_ID and parameters["scheme"] == "E-MPA/6-31G*/gas"
     assert parameters["net_charge"] == -1.0 and parameters["validation"]["scope_id"] == gc.IONESCU_SCOPE_ID
 
 

@@ -1512,8 +1512,16 @@ class _Driver(QObject):
             return
         parameters = {p.name: p.default for p in definition.parameters}
         parameters.update(step.get("parameters") or {})
-        mol = window._services.chemistry_engine.mol_from_model(molecule)
-        result = definition.execution.compute(mol, molecule.uuid, parameters)
+        # THE INPUT THE CALCULATOR DECLARES, through the registry. This read
+        # the drawing for every calculator, so a 3D one was handed a flat
+        # structure and the inspector photographed its refusal; and calling
+        # `execution.compute` directly skipped the registry's dropping of
+        # greyed-out parameters.
+        from openchem.chem.calculation_input import resolve_calculation_input
+
+        engine = window._services.chemistry_engine
+        mol = resolve_calculation_input(engine, molecule, definition.calculation_input).mol
+        result = window._services.calculator_registry.compute(calculator_id, mol, molecule.uuid, parameters)
         best = canonical_conformer(molecule)
         self._inspector = CalculatorInspectorDialog(
             window._services.chemistry_engine,
@@ -1531,6 +1539,69 @@ class _Driver(QObject):
         logger.warning(
             "OPENCHEM_DRIVE: inspect %s -> %r", calculator_id, getattr(result, "name", "")
         )
+
+    def _do_inspect_report(self, step: dict[str, Any]) -> None:
+        """What the open Calculator Inspector is drawing, in words a screenshot cannot give.
+
+        `{"do": "inspect_report", "tag": "ph", "select_row": 0, "filter": "N"}`
+
+        Logs which structure the panes use (`structure=effective_structure`
+        or the legacy stored conformer), its atom count and net charge, the
+        2D pane's placement note and label count, the table's rows, and the
+        dialog's size. `filter` and `select_row` drive the REAL table widgets,
+        then report the atom the selection stands for. The 3D page's own
+        label state arrives asynchronously in a second log line.
+        """
+        dialog = getattr(self, "_inspector", None)
+        view = getattr(dialog, "_view", None)
+        if view is None or not hasattr(view, "_structure_source"):
+            logger.error("OPENCHEM_DRIVE: inspect_report needs an `inspect` step on a per-atom result")
+            return
+        tag = step.get("tag", "")
+        if "filter" in step:
+            view._table_filter.setText(str(step["filter"]))
+        if "select_row" in step and getattr(view, "_table", None) is not None:
+            view._table.selectRow(int(step["select_row"]))
+        engine = self._window._services.chemistry_engine
+        shown = view._conformer_molblock
+        atoms = charge = None
+        if shown:
+            try:
+                mol = engine.mol_from_molblock(shown)
+                atoms, charge = mol.GetNumAtoms(), sum(a.GetFormalCharge() for a in mol.GetAtoms())
+            except Exception:  # noqa: BLE001 - a report must not stop the run
+                pass
+        labels_2d = len(view._layer_2d.atom_labels or {}) if view._layer_2d is not None else 0
+        rows = view._table_proxy.rowCount() if getattr(view, "_table_proxy", None) is not None else None
+        logger.warning(
+            "OPENCHEM_DRIVE: inspect_report[%s] structure=%s atoms=%s formal_charge=%s placement=%r "
+            "labels_2d=%d table_rows=%s selected_atom=%s emphasised_2d=%s size=%dx%d",
+            tag, view._structure_source, atoms, charge, view._placement_label.text(), labels_2d, rows,
+            view.selected_atom(), view._emphasised, dialog.width(), dialog.height(),
+        )
+        view._viewer3d._page.runJavaScript(
+            "window.openchemViewer.labelState()",
+            lambda state: logger.warning("OPENCHEM_DRIVE: inspect_report[%s] page=%s", tag, state),
+        )
+        if step.get("png"):
+            # THE PAGE'S OWN RENDERING. A Qt grab of the dialog came back with
+            # the 3D pane blank, and the 3D pane was exactly what needed looking
+            # at: 3Dmol draws its labels into the WebGL canvas, so this has them.
+            target = Path(str(step["png"]))
+
+            def save(data_url: str) -> None:
+                import base64
+
+                size, _, data_url = (data_url or "").partition("|")
+                logger.warning("OPENCHEM_DRIVE: inspect_report[%s] container=%s", tag, size)
+                if not data_url or "," not in data_url:
+                    logger.error("OPENCHEM_DRIVE: inspect_report[%s] no canvas image", tag)
+                    return
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(base64.b64decode(data_url.split(",", 1)[1]))
+                logger.warning("OPENCHEM_DRIVE: inspect_report[%s] wrote %s", tag, target)
+
+            view._viewer3d._page.runJavaScript("viewer.resize(); viewer.render(); JSON.stringify([document.getElementById('viewer-container').clientWidth, document.getElementById('viewer-container').clientHeight]) + '|' + viewer.pngURI()", save)
 
     def _do_shot(self, step: dict[str, Any]) -> None:
         """Save a picture of the window from inside Qt.

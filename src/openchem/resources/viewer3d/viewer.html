@@ -204,7 +204,72 @@
             viewer.setStyle({ index: atomIndex }, styleSpecWithColor(currentStyle, color));
           });
         }
+        // The atom picked in the inspector's value table: a translucent
+        // halo ADDED over the style, so its colour still reads through.
+        if (highlightIndex !== null && currentModel) {
+          viewer.addStyle({ index: highlightIndex }, {
+            sphere: { radius: 0.55, color: '#ffc107', opacity: 0.55 },
+          });
+        }
         viewer.render();
+      }
+
+      // ---- Hover readout ----------------------------------------------
+      //
+      // ONE label, created on hover and removed by its own handle. Never
+      // via removeAllLabels(), which would take every value label and every
+      // shape caption with it (see applyLabels). The page formats the text
+      // from numbers Python sent, so no display string is stored anywhere.
+      var currentHover = null;  // {values: {i: number}, elements: {i: 'C'}, units: 'e', places: 2}
+      var hoverLabel = null;
+      var hoverLabelsCreated = 0;  // test mirror: how many were ever made
+      var highlightIndex = null;
+
+      function hoverText(index) {
+        if (!currentHover) return null;
+        var key = String(index);
+        var element = currentHover.elements[key] || '';
+        var value = currentHover.values[key];
+        var shown = (typeof value === 'number' && isFinite(value))
+          ? value.toFixed(currentHover.places) + (currentHover.units ? ' ' + currentHover.units : '')
+          : 'no value';
+        return element + (index + 1) + '  ' + shown;
+      }
+
+      // 3Dmol keeps a label's text on its stylespec in this build.
+      function labelText(label) {
+        return String((label.stylespec && label.stylespec.text) || label.text || '');
+      }
+
+      function removeHover() {
+        if (hoverLabel) {
+          viewer.removeLabel(hoverLabel);
+          hoverLabel = null;
+          viewer.render();
+        }
+      }
+
+      function showHover(atom) {
+        var text = hoverText(atom.index);
+        removeHover();
+        if (text === null) return;
+        hoverLabel = viewer.addLabel(text, {
+          position: { x: atom.x, y: atom.y, z: atom.z },
+          fontSize: 14,
+          fontColor: 'white',
+          showBackground: true,
+          backgroundColor: '#102a43',
+          backgroundOpacity: 0.9,
+          inFront: true,
+        });
+        hoverLabelsCreated += 1;
+        viewer.render();
+      }
+
+      function installHover() {
+        if (!currentModel) return;
+        viewer.setHoverDuration(120);
+        currentModel.setHoverable({}, true, function (atom) { showHover(atom); }, function () { removeHover(); });
       }
 
       // Phase 18: numeric per-atom labels alongside the existing color
@@ -213,6 +278,7 @@
       // property like color is.
       function applyLabels() {
         viewer.removeAllLabels();
+        hoverLabel = null;  // it went with the rest; its handle is dead
         if (!currentLabels || !currentModel) {
           return;
         }
@@ -223,10 +289,19 @@
             return;
           }
           var atom = atoms[0];
+          // Readable at the inspector's real size: 10 px bare text on every
+          // atom, hydrogens included, was what Alex could not read
+          // (2026-09-17). WHICH atoms get a label is decided in Python
+          // (`ui/visualization.label_policy_atoms`); this only draws them.
           viewer.addLabel(currentLabels[atomIndexStr], {
             position: { x: atom.x, y: atom.y, z: atom.z },
-            fontSize: 10,
+            // No backing box: Alex found the white boxes worse than the
+            // clutter they were meant to cut through (2026-09-17).
+            fontSize: 13,
+            font: 'Arial',
+            fontColor: '#111111',
             showBackground: false,
+            inFront: true,
           });
         });
         // **removeAllLabels() above takes the SHAPE labels with it**, and
@@ -569,6 +644,9 @@
           // stale coloring/labels must not carry over.
           currentVisualization = null;
           currentLabels = null;
+          currentHover = null;
+          hoverLabel = null;
+          highlightIndex = null;
           // Shape coordinates belong to the OLD conformer's frame -- an
           // arrow kept across a load would sit plausibly on the wrong
           // molecule, which is worse than no arrow.
@@ -699,11 +777,13 @@
           currentShapes = null;
           drawShapes();
         },
-        applyVisualization: function (atomColors, atomLabels) {
+        applyVisualization: function (atomColors, atomLabels, hover) {
           currentVisualization = atomColors;
           currentLabels = atomLabels || null;
+          currentHover = hover || null;
           applyStyle();
           applyLabels();
+          installHover();
           // A surface showing per-atom colours must follow the layer it is
           // showing -- otherwise changing the property would recolour the
           // sticks and leave the surface painted with the previous one.
@@ -712,9 +792,38 @@
             applySurface();
           }
         },
+        // The inspector's value-table selection. By atom INDEX of the loaded
+        // structure, which the table stores per row -- never a row number.
+        highlightAtom: function (index) {
+          highlightIndex = (typeof index === 'number' && index >= 0) ? index : null;
+          applyStyle();
+        },
+        clearHighlight: function () {
+          highlightIndex = null;
+          applyStyle();
+        },
+        // Test hooks: hover without a mouse, and what the page actually holds.
+        simulateHover: function (index) {
+          var atoms = currentModel ? currentModel.selectedAtoms({ index: index }) : [];
+          if (atoms.length) showHover(atoms[0]);
+          return hoverLabel ? labelText(hoverLabel) : '';
+        },
+        simulateUnhover: function () {
+          removeHover();
+        },
+        labelState: function () {
+          return JSON.stringify({
+            texts: (viewer.labels || []).map(labelText),
+            hover: hoverLabel ? labelText(hoverLabel) : null,
+            hoverLabelsCreated: hoverLabelsCreated,
+            highlight: highlightIndex,
+          });
+        },
         clearVisualization: function () {
           currentVisualization = null;
           currentLabels = null;
+          currentHover = null;
+          hoverLabel = null;
           applyStyle();
           viewer.removeAllLabels();
           if (currentSurface && currentSurface.atomColors) {

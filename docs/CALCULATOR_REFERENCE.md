@@ -107,24 +107,13 @@ Oxidation state per atom, by the IUPAC electronegativity-partition rule: each bo
 <!-- help:calc-geometry-partial-charge -->
 ### Partial Charge (3D)
 
-Partial charges that depend on the 3D geometry, by one of three models. EEM: Bultinck's electronegativity equalization (2002, part I) with that paper's own parameters for H, C, N, O and F. QEq: Rappé and Goddard's charge equilibration (1991) with lambda = 1/2 and its experimental hydrogen parameters, for the 16 elements of its Table I; it refuses molecules where its iteration does not settle or a charge reaches its bound. Ionescu EEM: Ionescu et al.'s 2013 protein-fragment models (Mulliken, 6-31G* or 6-31G**, gas phase) for H, C, N, O, S and Ca, reported as an extrapolation on anything else; it refuses a sulfur bonded to oxygen and any charge beyond 2.051 e. Computed on the stored conformer as it is: its own hydrogens and its net charge, with no protonation, and only the sum of the charges equals the net charge. Needs a conformer with explicit hydrogens; an element the chosen method has no parameters for is refused.
+Partial charges that depend on the 3D geometry, by one of three models. EEM: Bultinck's electronegativity equalization (2002, part I) with that paper's own parameters for H, C, N, O and F. QEq: Rappé and Goddard's charge equilibration (1991) with lambda = 1/2 and its experimental hydrogen parameters, for the 16 elements of its Table I; it refuses molecules where its iteration does not settle or a charge reaches its bound. Ionescu EEM: Ionescu et al.'s 2013 protein-fragment models (Mulliken, 6-31G* or 6-31G**, gas phase) for H, C, N, O, S and Ca, reported as an extrapolation on anything else; it refuses a sulfur bonded to oxygen and any charge beyond 2.051 e. By default the charges are computed on the stored conformer as it is, with its own hydrogens and net charge. Tick pH-dependent to compute them on the dominant ionization state at that pH instead: the state is carried onto the conformer, every heavy atom and every kept hydrogen holds its coordinates exactly, and only added hydrogens are placed (MMFF94, everything else fixed). Ionization states only, never tautomers, and it refuses rather than choose when a proton leaves an atom whose hydrogens are not equivalent. The result shows the structure it was computed on. Only the sum of the charges equals the net charge. Needs a conformer with explicit hydrogens; an element the chosen method has no parameters for is refused.
 
 - Produces one value per atom, with a depiction coloured by them.
 - Runs on a real 3D conformer -- generate one first.
 - Options:
   - `method` -- Charge method (eem_bultinck2002_part1, qeq_rg1991_lambda_half_h_experimental, eem_ionescu2013_e_mpa_631gs_gas, eem_ionescu2013_e_mpa_631gss_gas) default `eem_bultinck2002_part1`
-  - `include_hydrogens` -- Increment of Hs (fold hydrogen charges onto their atom) default `False`
-  - `decimal_places` -- Decimal places default `2` range 0 to 8
-
-<!-- help:calc-geometry-partial-charge-at-ph -->
-### Partial Charge (3D, pH-dependent)
-
-The same geometry-dependent charges, computed on the dominant ionization state at a given pH instead of the structure as drawn. The state is carried onto the stored conformer: every heavy atom and every hydrogen it keeps holds its coordinates exactly, and only hydrogens the state adds are placed (MMFF94, with every other atom held fixed). Ionization states only, never tautomers. It refuses rather than choose when a proton leaves an atom whose hydrogens are not equivalent.
-
-- Produces one value per atom, with a depiction coloured by them.
-- Runs on a real 3D conformer -- generate one first.
-- Options:
-  - `method` -- Method (eem_bultinck2002_part1, qeq_rg1991_lambda_half_h_experimental, eem_ionescu2013_e_mpa_631gs_gas, eem_ionescu2013_e_mpa_631gss_gas) default `eem_bultinck2002_part1`
+  - `ph_dependent` -- pH-dependent (dominant ionization state) default `False`
   - `pH` -- pH default `7.4` range 0.0 to 14.0
   - `include_hydrogens` -- Increment of Hs (fold hydrogen charges onto their atom) default `False`
   - `decimal_places` -- Decimal places default `2` range 0 to 8

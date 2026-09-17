@@ -47,14 +47,17 @@ from openchem.chem.protonation_geometry import (
     REFUSE_PROTONATION_FAILED,
     protonate_conformer,
 )
+from openchem.chem.result_structure import structure_fingerprint
 from openchem.domain.common import ATOM_BASIS, EXPLICIT_H, HEAVY_ATOMS, TOTAL, CacheState, Provenance, declare_total
 from openchem.domain.scientific_result import PerAtomDataset
 
-#: The dataset id, and the calculator id it is registered under.
+#: The dataset id, and the calculator id it is registered under -- for BOTH modes.
 PROPERTY_ID = "geometry_partial_charge"
-#: The pH calculator's OWN dataset id. **The panel keys results by property_id, not by calculator
-#: id**, so sharing one id made the pH result overwrite the as-drawn result instead of appearing
-#: beside it -- found by driving the app, with every unit test green.
+#: RETIRED 2026-09-17. The pH mode was once its own calculator with its own dataset id, so both
+#: results sat side by side in Results (0.00 e and 1.00 e for one molecule, with nothing relating
+#: them). It is now a parameter of `PROPERTY_ID`; one result per molecule and input, the latest run,
+#: which is the rule every other calculator already follows. Kept only so stored results carrying
+#: it can be recognised and dropped (`result_store.RETIRED_RESULT_IDS`).
 PROPERTY_ID_AT_PH = "geometry_partial_charge_at_ph"
 
 #: The stored method codes. Each names its parameter set and reading, not just
@@ -214,7 +217,7 @@ _CONSERVATION_TOLERANCE = 1e-8
 
 #: The structure as the conformer holds it. The default, and the mode the plain 3D calculator uses.
 AS_DRAWN_MODE = "as_drawn"
-#: The dominant ionization state at a pH, carried onto that conformer (`geometry_partial_charge_at_ph`).
+#: The dominant ionization state at a pH, carried onto that conformer (the `ph_dependent` option).
 AT_PH_MODE = "at_ph"
 #: Every mode `compute_geometry_charges` accepts; anything else is a ValueError, never a default.
 PROTONATION_MODES = (AS_DRAWN_MODE, AT_PH_MODE)
@@ -241,7 +244,7 @@ def _refusal(
     code: str, name: str, method: str, places: int, molecule_uuid: str,
     message: str | None = None, diagnostics: dict | None = None, property_id: str = PROPERTY_ID,
 ) -> PerAtomDataset:
-    parameters = {"refusal": code, "decimal_places": places, **(diagnostics or {})}
+    parameters = _plain({"refusal": code, "decimal_places": places, **(diagnostics or {})})
     return PerAtomDataset(
         property_id=property_id,
         name=name,
@@ -256,13 +259,24 @@ def _refusal(
     )
 
 
-def compute_geometry_charges_at_ph(mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None) -> PerAtomDataset:
-    """`compute_geometry_charges` on the dominant ionization state at a pH.
+def _plain(value: Any) -> Any:
+    """`value` with every numpy scalar made a Python number, recursively.
 
-    Its own calculator id, so the plain 3D calculator's stored results keep the identity they were
-    saved under; the mode is not a user-facing parameter here, it is what this calculator IS.
+    The result codec's allowlist refuses numpy types, and it should: a project
+    file is emailed, and the codec is its security boundary. So the conversion
+    happens HERE, at the producer. Measured 2026-09-17: QEq's `final_metrics`
+    carried `dQ_H` and `dhardness_diag_H` as float64, so every QEq result was
+    logged "Not saving ... unknown_type" and silently absent from the project.
     """
-    return compute_geometry_charges(mol, molecule_uuid, {**(parameters or {}), "protonation": AT_PH_MODE})
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, dict):
+        return {k: _plain(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_plain(v) for v in value]
+    if isinstance(value, tuple):
+        return tuple(_plain(v) for v in value)
+    return value
 
 
 def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict[str, Any] | None = None) -> PerAtomDataset:
@@ -278,8 +292,10 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
     if method not in GEOMETRY_CHARGE_METHODS:
         raise ValueError(f"Unknown geometry charge method {method!r}; expected one of {GEOMETRY_CHARGE_METHODS}")
     include_hydrogens = bool(parameters.get("include_hydrogens", False))
-    mode = str(parameters.get("protonation", AS_DRAWN_MODE))
-    property_id = PROPERTY_ID_AT_PH if mode == AT_PH_MODE else PROPERTY_ID
+    # `ph_dependent` is the registered, user-facing switch; `protonation` is the internal mode it
+    # selects, still accepted so a caller can name the mode directly.
+    mode = str(parameters.get("protonation", AT_PH_MODE if parameters.get("ph_dependent") else AS_DRAWN_MODE))
+    property_id = PROPERTY_ID
     if mode not in PROTONATION_MODES:
         raise ValueError(f"Unknown protonation mode {mode!r}; expected one of {PROTONATION_MODES}")
     ph = float(parameters.get("pH", 7.4))
@@ -324,6 +340,9 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
             "selection_policy_version": PROTONATION_SELECTION_POLICY_VERSION,
             "tautomers": "not enumerated (ropp2019: Dimorphite-DL computes ionization states only)",
         }
+    # From here `mol` is the structure every number below is computed from -- the selected
+    # microspecies, or the input as drawn -- and the result records exactly it, as a molblock string
+    # written after the solve, so nothing that later edits a molecule can change what was recorded.
     positions = np.array(conformer.GetPositions(), dtype=float)
     elements = [atom.GetSymbol() for atom in mol.GetAtoms()]
     finite = np.all(np.isfinite(positions), axis=1)
@@ -457,6 +476,11 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
             "bohr_angstrom": ce.EEM_BOHR_ANGSTROM,
             "equalized_electronegativity_ev": result.equalized_electronegativity_ev,
         }
+    structure_molblock = Chem.MolToMolBlock(mol)
+    fingerprint = structure_fingerprint(structure_molblock)
+    atom_count = mol.GetNumAtoms()
+    if any(not 0 <= index < atom_count for index in values):
+        raise ValueError("A charge is keyed to an atom the computed structure does not have")
     return PerAtomDataset(
         property_id=property_id,
         name=name,
@@ -464,14 +488,19 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
         method=method,
         molecule_uuid=molecule_uuid,
         values=values,
+        structure_molblock=structure_molblock,
+        structure_fingerprint=fingerprint,
         provenance=Provenance(
             created_by="core",
             method=method,
-            parameters={
+            parameters=_plain({
                 "method": method,
                 **computed,
                 "species": species,
                 **protonation,
+                # Preregistration (benchmarks/charges/protonation) section 3: what was EVALUATED, kept
+                # apart from what was requested. Registered there and, until 2026-09-17, never written.
+                "effective_structure_fingerprint": fingerprint,
                 "net_charge": net_charge,
                 "include_hydrogens": include_hydrogens,
                 "hydrogen_aggregation": "folded" if include_hydrogens else "separate",
@@ -480,6 +509,6 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
                 **({"not_applied": "protonation at a pH"} if mode == AS_DRAWN_MODE else {}),
                 ATOM_BASIS: basis,
                 TOTAL: declare_total(every_atom, "Net calculated charge", units="e", basis=basis),
-            },
+            }),
         ),
     )

@@ -182,6 +182,13 @@ class Mol3DViewerBackend(ViewerBackend):
         # molecule, one ensemble, or one unit cell, never a mixture.
         self._pending_crystal: dict | None = None
         self._pending_layer: VisualizationLayer | None = None
+        #: What hovering an atom reads out, sent with every layer. Runtime
+        #: only and deliberately NOT a `VisualizationLayer` field: that type
+        #: is persisted inside reports, and this is a view of numbers the
+        #: result already stores.
+        self._hover: dict | None = None
+        #: The atom the inspector's value table selected, replayed after a load.
+        self._highlight: int | None = None
         #: Shape payloads applied before the page was ready. Replayed
         #: AFTER the molblock like `_pending_layer` -- and unlike it,
         #: DROPPED by a new load: shape coordinates are in one conformer's
@@ -603,6 +610,33 @@ class Mol3DViewerBackend(ViewerBackend):
             return
         self._run_apply_visualization(layer)
 
+    def set_hover(self, values: dict[int, float] | None, elements: dict[int, str] | None = None,
+                  units: str = "", places: int = 2) -> None:
+        """What hovering an atom shows -- element, 1-based number, value -- for later layers.
+
+        By atom index of the LOADED structure, the same space the layer uses.
+        The page formats the text, so no display string is stored anywhere.
+        Takes effect with the next `apply_visualization`, deferred or not.
+        """
+        self._hover = None if values is None else {
+            "values": {str(k): float(v) for k, v in values.items()},
+            "elements": {str(k): str(e) for k, e in (elements or {}).items()},
+            "units": units,
+            "places": int(places),
+        }
+
+    def highlight_atom(self, index: int | None) -> None:
+        """Halo one atom of the loaded structure, or clear it with None."""
+        self._highlight = index
+        if self._page_ready:
+            self._run_highlight()
+
+    def _run_highlight(self) -> None:
+        if self._highlight is None:
+            self._page.runJavaScript("window.openchemViewer.clearHighlight();")
+        else:
+            self._page.runJavaScript(f"window.openchemViewer.highlightAtom({int(self._highlight)});")
+
     def apply_shapes(self, annotations: tuple[SpatialAnnotation, ...] | list[SpatialAnnotation]) -> None:
         """Draw spatial annotations on the loaded conformer, or clear with ().
 
@@ -718,8 +752,10 @@ class Mol3DViewerBackend(ViewerBackend):
         # viewer.html's applyVisualization already treats as "no labels".
         self._page.runJavaScript(
             f"window.openchemViewer.applyVisualization("
-            f"{json.dumps(layer.atom_colors)}, {json.dumps(layer.atom_labels)});"
+            f"{json.dumps(layer.atom_colors)}, {json.dumps(layer.atom_labels)}, {json.dumps(self._hover)});"
         )
+        if self._highlight is not None:
+            self._run_highlight()
 
     def widget(self):
         return self._view

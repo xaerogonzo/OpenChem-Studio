@@ -2,23 +2,30 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import math
 import weakref
 from collections.abc import Callable
 
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtCore import QSortFilterProxyModel, Qt
+from PySide6.QtGui import QGuiApplication, QStandardItem, QStandardItemModel
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QComboBox,
     QDialog,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPlainTextEdit,
     QPushButton,
+    QSplitter,
+    QTableView,
     QVBoxLayout,
     QWidget,
 )
 
 from openchem.chem.atom_identity import dataset_conformer_id, depiction_values
+from openchem.chem.result_structure import EFFECTIVE_STRUCTURE, NO_STRUCTURE, display_structure
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.descriptor_providers import compute_gasteiger_charges
 from openchem.chem.scalar_field import electrostatic_potential_for_conformer
@@ -45,14 +52,28 @@ from openchem.ui.visualization import (
     build_visualization_layer,
     data_range,
     declared_total,
+    LABEL_HEAVY_ATOMS,
     label_decimals,
+    label_policy_atoms,
     summary_note,
+    with_labels_on,
 )
 from openchem.ui.widgets.mol3d_viewer_backend import Mol3DViewerBackend
 from openchem.ui.widgets.ph_curve_widget import PhCurveWidget
 from openchem.ui.widgets.structure_grid_widget import StructureGridWidget
 
 logger = logging.getLogger("openchem.ui")
+
+#: The value table's sort key per cell: numbers sort as numbers, not as text.
+SORT_ROLE = Qt.ItemDataRole.UserRole + 1
+#: The atom index a table row stands for, on its first cell. Selection reads
+#: this, never the row number, which sorting and filtering change.
+ATOM_INDEX_ROLE = Qt.ItemDataRole.UserRole + 2
+
+
+def _provenance(result) -> dict:
+    provenance = getattr(result, "provenance", None)
+    return dict(getattr(provenance, "parameters", None) or {})
 
 
 class _CalculatorResultView(QWidget):
@@ -157,6 +178,7 @@ class _CalculatorResultView(QWidget):
         self._engine = engine
         self._molecule = molecule
         self._layer = layer
+        self._places = places
         # TWO ATOM SPACES, AND THEY WERE ONE LAYER. A dataset computed on a
         # stored conformer is keyed by THAT conformer's atoms: its 3D view
         # must show that conformer (the panel passes the canonical one, which
@@ -164,17 +186,51 @@ class _CalculatorResultView(QWidget):
         # through `depiction_values`, because the drawing's atom order can
         # change while the conformer is kept. Measured 2026-09-15: ethanol's
         # oxygen showed carbon's 3D charge before this existed.
+        #
+        # AND A THIRD SPACE: a result computed on a structure the molecule does
+        # not store carries that structure itself (`display_structure`). The
+        # pH-dependent 3D charges were drawn on the stored conformer, so the
+        # protonated nitrogen never appeared and an acid's values after its
+        # removed hydrogen sat one atom along (measured 2026-09-17).
         self._conformer_id = dataset_conformer_id(result) if isinstance(result, PerAtomDataset) else None
-        if self._conformer_id is not None:
-            own = next((c for c in molecule.conformers if c.conformer_id == self._conformer_id), None)
-            conformer_molblock = own.molblock if own is not None else None
+        self._structure_source = NO_STRUCTURE
+        if isinstance(result, PerAtomDataset):
+            own_molblock, self._structure_source = display_structure(molecule, result)
+            if self._structure_source != NO_STRUCTURE:
+                conformer_molblock = own_molblock
+            elif self._conformer_id is not None:
+                conformer_molblock = None  # its conformer is gone; never another one's atoms
+        if conformer_molblock:
+            # Face-on for the 3D pane, and for EVERYTHING it draws (surface and
+            # potential grid read this same attribute), so they stay aligned.
+            # A rotation only: atom order, and so every index, is untouched.
+            try:
+                conformer_molblock = engine.face_on(conformer_molblock)
+            except Exception:  # noqa: BLE001 - an unparsable molblock keeps its own view
+                pass
         self._conformer_molblock = conformer_molblock
         self._surface_result = result if isinstance(result, PerAtomDataset) else None
         self._depiction_molblock = self._depiction_for(result)
         self._layer_2d = layer
         self._values_2d = self._surface_result.values if self._surface_result is not None else {}
+        #: result atom index -> depicted atom index, where they differ.
+        self._to_depiction: dict[int, int] | None = None
         placement_note = ""
-        if self._conformer_id is not None:
+        if self._structure_source == EFFECTIVE_STRUCTURE:
+            # The computed structure itself, flattened: its indices ARE the
+            # dataset's, so nothing is matched and nothing can be refused.
+            try:
+                depiction, kept = engine.depiction_of(conformer_molblock, molecule.molblock or None)
+            except Exception:  # noqa: BLE001 - a depiction that cannot be built must not lose the dialog
+                logger.exception("Could not depict the computed structure")
+                self._layer_2d, self._values_2d, self._depiction_molblock = None, {}, ""
+                placement_note = "2D: not shown. The computed structure could not be drawn in 2D."
+            else:
+                self._depiction_molblock = depiction
+                self._to_depiction = {source: k for k, source in enumerate(kept)}
+                self._values_2d = {k: result.values[source] for k, source in enumerate(kept) if source in result.values}
+                self._layer_2d = build_visualization_layer(dataclasses.replace(result, values=self._values_2d), include_labels=True)
+        elif self._conformer_id is not None:
             values_2d, projection = depiction_values(
                 engine, molecule, result, self._depiction_molblock, display=lambda v, p=places: f"{v:.{p}f}"
             )
@@ -183,19 +239,40 @@ class _CalculatorResultView(QWidget):
                 placement_note = f"2D: not shown. {projection.detail}"
             else:
                 self._values_2d = values_2d
+                self._to_depiction = dict(projection.mapping)
                 self._layer_2d = build_visualization_layer(dataclasses.replace(result, values=values_2d), include_labels=True)
         self._placement_label = QLabel(placement_note, self)
         self._placement_label.setWordWrap(True)
         self._placement_label.setVisible(bool(placement_note))
 
+        # WHICH ATOMS CARRY A PERMANENT LABEL: heavy atoms and polar
+        # hydrogens, in both panes. Every value is still in the table and on
+        # hover. Unknown rows (a structure that does not parse) keep them all.
+        self._index_molblock = conformer_molblock if self._conformer_id is not None or self._structure_source != NO_STRUCTURE \
+            else self._depiction_molblock
+        self._rows = self._atom_rows(self._index_molblock)
+        depiction_rows = self._atom_rows(self._depiction_molblock)
+        self._layer_2d = with_labels_on(self._layer_2d, label_policy_atoms(depiction_rows) if depiction_rows else None)
+        # 3D labels HEAVY ATOMS ONLY: in depth a polar hydrogen's label lands on
+        # its parent's, which the 2D pane does not suffer. Its value is on hover.
+        layer_3d = with_labels_on(layer, label_policy_atoms(self._rows, LABEL_HEAVY_ATOMS) if self._rows else None)
+
         self._svg_widget = QSvgWidget(self)
+        self._emphasised: int | None = None
         self._render_2d()
-        self._svg_widget.setMinimumSize(360, 320)
+        self._svg_widget.setMinimumSize(320, 280)
 
         self._viewer3d = Mol3DViewerBackend(self)
         if conformer_molblock and layer is not None:
+            if self._surface_result is not None:
+                self._viewer3d.set_hover(
+                    self._surface_result.values,
+                    {i: symbol for i, (symbol, _polar) in enumerate(self._rows)},
+                    units=units,
+                    places=places,
+                )
             self._viewer3d.load_conformer(conformer_molblock)
-            self._viewer3d.apply_visualization(layer)
+            self._viewer3d.apply_visualization(layer_3d)
 
         # Phase 25b: the same per-atom data, optionally painted onto a
         # molecular surface -- the Marvin charge/LogP screenshots show the
@@ -251,9 +328,21 @@ class _CalculatorResultView(QWidget):
         elif not conformer_molblock:
             self._legend_label.setText("No conformer generated yet -- 3D view is empty.")
 
-        views_row = QHBoxLayout()
-        views_row.addWidget(self._svg_widget)
-        views_row.addWidget(self._viewer3d.widget())
+        # SPLITTERS, so the panes can be given the room a crowded molecule
+        # needs. Initial proportions are fixed (50/50, then 70/30) so a driven
+        # screenshot is comparable run to run; nothing is persisted yet.
+        #
+        # STRETCH FACTORS, NOT setSizes. `setSizes([1, 1])` before the dialog
+        # was shown left the 3D pane 4 px wide -- measured through the page's
+        # own container width in a driven run -- because the 2D pane has a
+        # minimum size and the web view had none. Both panes have one now.
+        self._views_splitter = QSplitter(Qt.Orientation.Horizontal, self)
+        self._views_splitter.addWidget(self._svg_widget)
+        self._views_splitter.addWidget(self._viewer3d.widget())
+        self._viewer3d.widget().setMinimumSize(320, 280)
+        self._views_splitter.setStretchFactor(0, 1)
+        self._views_splitter.setStretchFactor(1, 1)
+        self._views_splitter.setChildrenCollapsible(False)
 
         # The 2D counterpart of the 3D surface control beside it: the same
         # data as either discrete atom highlights or a continuous field.
@@ -274,15 +363,141 @@ class _CalculatorResultView(QWidget):
         surface_row.addWidget(self._colouring_combo)
         surface_row.addStretch()
 
+        self._table_area = self._build_table(result, units) if self._surface_result is not None else None
+
+        # The controls stay direct children of this view, below the splitter:
+        # moving them into a container reparents them and reorders
+        # `findChildren`, which callers and tests address the combos by.
+        self._main_splitter = QSplitter(Qt.Orientation.Vertical, self)
+        self._main_splitter.addWidget(self._views_splitter)
+        if self._table_area is not None:
+            self._main_splitter.addWidget(self._table_area)
+            self._main_splitter.setStretchFactor(0, 7)
+            self._main_splitter.setStretchFactor(1, 3)
+            self._table_area.setMinimumHeight(120)
+        self._main_splitter.setChildrenCollapsible(False)
+
         layout = QVBoxLayout(self)
         layout.addWidget(name_label)
         layout.addWidget(summary_label)
         layout.addWidget(note_label)
         layout.addWidget(balance_label)
-        layout.addLayout(views_row)
+        layout.addWidget(self._main_splitter, 1)
         layout.addWidget(self._placement_label)
         layout.addLayout(surface_row)
         layout.addWidget(self._legend_label)
+
+    def showEvent(self, event) -> None:  # noqa: N802 - Qt override
+        """Split the panes 50/50 once there is a real width to split.
+
+        Stretch factors alone still gave the 3D pane only its 320 px minimum:
+        the SVG widget's size hint claimed the rest (measured, container 320 of
+        ~1150 px). Sizes set before the first show are ignored the same way.
+        """
+        super().showEvent(event)
+        if getattr(self, "_split_done", False):
+            return
+        self._split_done = True
+        width = self._views_splitter.width()
+        if width > 0:
+            self._views_splitter.setSizes([width // 2, width - width // 2])
+
+    # --- the value table ----------------------------------------------------
+
+    def _atom_rows(self, molblock: str | None) -> list[tuple[str, bool]]:
+        if not molblock:
+            return []
+        try:
+            return self._engine.atom_rows(molblock)
+        except Exception:  # noqa: BLE001 - a structure that does not parse labels everything, as before
+            return []
+
+    def _build_table(self, result: PerAtomDataset, units: str) -> QWidget:
+        """Every value, one row per atom the result has a value for.
+
+        EACH ROW CARRIES ITS ATOM INDEX (`ATOM_INDEX_ROLE`), and selection is
+        read back through the proxy, so a sorted or filtered table never
+        highlights the atom that happens to be at that row number. The table
+        shows the dataset exactly as computed: with hydrogens folded, that is
+        heavy-atom rows holding folded values, and the header says so.
+        """
+        area = QWidget(self)
+        self._table_model = QStandardItemModel(0, 3, area)
+        value_header = f"Value ({units})" if units else "Value"
+        if _provenance(result).get("hydrogen_aggregation") == "folded":
+            value_header += " - hydrogens folded"
+        self._table_model.setHorizontalHeaderLabels(["#", "Element", value_header])
+        for index in sorted(result.values):
+            value = result.values[index]
+            symbol = self._rows[index][0] if 0 <= index < len(self._rows) else "?"
+            number = QStandardItem(str(index + 1))
+            number.setData(index + 1, SORT_ROLE)
+            number.setData(index, ATOM_INDEX_ROLE)
+            element = QStandardItem(symbol)
+            element.setData(symbol, SORT_ROLE)
+            finite = isinstance(value, (int, float)) and math.isfinite(value)
+            shown = QStandardItem(f"{value:.{self._places}f}" if finite else "n/a")
+            shown.setData(float(value) if finite else float("-inf"), SORT_ROLE)
+            shown.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            for item in (number, element, shown):
+                item.setEditable(False)
+            self._table_model.appendRow([number, element, shown])
+
+        self._table_proxy = QSortFilterProxyModel(area)
+        self._table_proxy.setSourceModel(self._table_model)
+        self._table_proxy.setSortRole(SORT_ROLE)
+        self._table_proxy.setFilterKeyColumn(-1)
+        self._table_proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+
+        self._table = QTableView(area)
+        self._table.setModel(self._table_proxy)
+        self._table.setSortingEnabled(True)
+        self._table.sortByColumn(0, Qt.SortOrder.AscendingOrder)
+        self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self._table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self._table.verticalHeader().setVisible(False)
+        self._table.horizontalHeader().setStretchLastSection(True)
+        self._table.selectionModel().currentRowChanged.connect(self._on_table_row)
+
+        self._table_filter = QLineEdit(area)
+        self._table_filter.setPlaceholderText("Filter by element or atom number")
+        self._table_filter.textChanged.connect(self._table_proxy.setFilterFixedString)
+
+        box = QVBoxLayout(area)
+        box.setContentsMargins(0, 0, 0, 0)
+        box.addWidget(self._table_filter)
+        box.addWidget(self._table, 1)
+        return area
+
+    def selected_atom(self) -> int | None:
+        """The atom index the table's current row stands for, or None."""
+        table = getattr(self, "_table", None)
+        if table is None:
+            return None
+        current = table.selectionModel().currentIndex()
+        if not current.isValid():
+            return None
+        source = self._table_proxy.mapToSource(current)
+        return self._table_model.item(source.row(), 0).data(ATOM_INDEX_ROLE)
+
+    def _on_table_row(self, _current, _previous) -> None:
+        atom = self.selected_atom()
+        self._viewer3d.highlight_atom(atom)
+        if atom is None or self._to_depiction is None:
+            self._emphasised = atom if self._to_depiction is None else None
+        else:
+            self._emphasised = self._to_depiction.get(atom)
+        self._render_2d()
+
+    def table_text(self) -> str:
+        """The table as tab-separated text, in atom order, for Copy All."""
+        if getattr(self, "_table_model", None) is None:
+            return ""
+        header = [self._table_model.horizontalHeaderItem(c).text() for c in range(3)]
+        lines = ["\t".join(header)]
+        for row in range(self._table_model.rowCount()):
+            lines.append("\t".join(self._table_model.item(row, c).text() for c in range(3)))
+        return "\n".join(lines)
 
     @staticmethod
     def _balance_text(result, total: dict | None, places: int) -> str:
@@ -366,7 +581,8 @@ class _CalculatorResultView(QWidget):
             )
         else:
             svg = self._engine.render_2d_svg(
-                self._depiction_molblock, self._layer_2d.atom_colors, self._layer_2d.atom_labels
+                self._depiction_molblock, self._layer_2d.atom_colors, self._layer_2d.atom_labels,
+                emphasised_atom=getattr(self, "_emphasised", None),
             )
         self._svg_widget.load(svg.encode("utf-8"))
 
@@ -687,7 +903,23 @@ class CalculatorInspectorDialog(QDialog):
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"Calculator Inspector — {molecule.display_name}")
-        self.resize(820, 460)
+        # Room for two panes and a value table. 820 x 460 left the 3D labels
+        # unreadable on a 57-atom molecule (2026-09-17). An initial size only:
+        # the dialog stays resizable, and never larger than the screen.
+        width, height = 1200, 800
+        screen = QGuiApplication.primaryScreen()
+        if screen is not None:
+            available = screen.availableGeometry()
+            width, height = min(width, available.width()), min(height, available.height())
+        self.resize(width, height)
+        self.setMinimumSize(640, 480)
+        # Maximise and minimise, which a QDialog does not get by default: with
+        # two panes and a value table there is more to read than any fixed size.
+        self.setWindowFlags(
+            self.windowFlags()
+            | Qt.WindowType.WindowMaximizeButtonHint
+            | Qt.WindowType.WindowMinimizeButtonHint
+        )
         self._engine = engine
         self._result = result
         self._on_add_structure = on_add_structure
@@ -761,7 +993,9 @@ class CalculatorInspectorDialog(QDialog):
         self._set_status(f"{what} copied.")
 
     def _on_copy_all(self) -> None:
-        self._copy(result_to_text(self._result), "Result")
+        text = result_to_text(self._result)
+        table = self._view.table_text() if hasattr(self._view, "table_text") else ""
+        self._copy(text + "\n\n" + table if table else text, "Result")
 
     def _selected_entry(self) -> StructureEntry | None:
         return self._view.selected_entry() if isinstance(self._view, StructureGridWidget) else None

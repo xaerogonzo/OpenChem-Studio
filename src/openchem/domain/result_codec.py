@@ -67,11 +67,20 @@ MALFORMED = "malformed"
 PROBLEMS = (UNKNOWN_TYPE, UNSUPPORTED_VERSION, MALFORMED)
 
 #: Layout version per type name. Absent means 1.
-TYPE_VERSIONS: dict[str, int] = {}
+TYPE_VERSIONS: dict[str, int] = {
+    # v2 (2026-09-17) added `structure_molblock` and `structure_fingerprint`, which change
+    # what `values`' indices MEAN when present. An older build that dropped them as unknown
+    # would draw an acid's pH charges on the wrong atoms, so it must refuse instead.
+    "scientific_result.PerAtomDataset": 2,
+}
 
 #: (type name, version found) -> a function rewriting that version's field
 #: dict into the next version's. Applied repeatedly until current.
-MIGRATIONS: dict[tuple[str, int], Callable[[dict[str, Any]], dict[str, Any]]] = {}
+MIGRATIONS: dict[tuple[str, int], Callable[[dict[str, Any]], dict[str, Any]]] = {
+    # A v1 dataset describes the drawing or its stored conformer; the new fields' empty
+    # defaults say exactly that.
+    ("scientific_result.PerAtomDataset", 1): lambda fields: dict(fields),
+}
 
 #: Key naming a dataclass, by `module.QualName` under `_MODULES`.
 _TYPE = "__type__"

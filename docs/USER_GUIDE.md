@@ -739,7 +739,7 @@ the thing that needs the room.
 
 The Properties panel is where a calculation is **started**, and the
 [Results](#results) panel is where one is **read**. It has **20 collapsible
-categories** covering **60 registered calculators**; Identity is open by
+categories** covering **59 registered calculators**; Identity is open by
 default.
 
 Each calculator gets a row: a tick box that adds it to a batch run, a
@@ -762,9 +762,20 @@ calculator declares), and then a **Calculator Inspector** showing:
 - the overall molecular value, where summing one is meaningful
 - a 2D depiction coloured by the per-atom values, with numbers on the atoms
 - the same colouring on the 3D structure, optionally painted onto a surface
+- a **table of every value**, one row per atom, that sorts and filters; click a
+  row and that atom is highlighted in both pictures
 
 The colour scale is computed once and drives both panes, so the 2D and 3D
-views always agree.
+views always agree. In 2D, numbers are printed on heavy atoms and on hydrogens
+bonded to N, O or S; in 3D, on heavy atoms only, with the molecule turned to
+face you. Every other value is in the table, and appears when you **hover**
+over an atom in the 3D view. The panes and the table can be resized by
+dragging the dividers between them, and the Inspector can be maximised.
+
+When a result was computed on a structure other than the one you drew, the
+Inspector shows that structure. Partial Charge (3D) with **pH-dependent**
+ticked is the case: both pictures show the dominant ionization state at that
+pH, so a protonated amine is drawn as N⁺ with its extra hydrogen.
 
 ### Reading a result: what the colours mean
 
