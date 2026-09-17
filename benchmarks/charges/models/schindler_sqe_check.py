@@ -510,6 +510,192 @@ def stage_b_a1() -> dict:
     return out
 
 
+#: Ionescu section 9.3's silent-error definitions, unchanged (section 5.4).
+SIGN_Q, MAGNITUDE = 0.10, 0.50
+#: The registered G2 criteria (section 5.5).
+G2_COVERAGE, G2_RMSD, G2_SILENT, G2_NOT_PD = 0.90, 0.05, 0.10, 0.01
+
+
+def _geidl_training_ids() -> set[str]:
+    """Column A of Geidl's Additional file 1, read from the xlsx's own XML (no spreadsheet library)."""
+    import xml.etree.ElementTree as ET
+
+    ns = {"s": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+    book = zipfile.ZipFile(SI.parent / "geidl2015_si" / "geidl2015_S1.xlsx")
+    shared = [si.findtext("s:t", default="", namespaces=ns) or "".join(r.findtext("s:t", default="", namespaces=ns) for r in si.findall("s:r", ns))
+              for si in ET.fromstring(book.read("xl/sharedStrings.xml")).findall("s:si", ns)]
+    ids = set()
+    for cell in ET.fromstring(book.read("xl/worksheets/sheet1.xml")).iter(f"{{{ns['s']}}}c"):
+        if re.fullmatch(r"A\d+", cell.get("r", "")) and cell.get("r") != "A1":
+            value = cell.findtext("s:v", namespaces=ns)
+            ids.add(shared[int(value)] if cell.get("t") == "s" else value)
+    return ids
+
+
+def _inchikey(record: str) -> str | None:
+    from rdkit import Chem, RDLogger
+
+    RDLogger.DisableLog("rdApp.*")
+    mol = Chem.MolFromMolBlock(record, removeHs=False)
+    return Chem.MolToInchiKey(mol) if mol is not None else None
+
+
+def _gasteiger(record: str, n: int) -> np.ndarray | str:
+    from rdkit import Chem, RDLogger
+    from rdkit.Chem import rdPartialCharges
+
+    RDLogger.DisableLog("rdApp.*")
+    mol = Chem.MolFromMolBlock(record, removeHs=False)
+    if mol is None or mol.GetNumAtoms() != n:
+        return "RDKit could not read the record with its atoms intact"
+    rdPartialCharges.ComputeGasteigerCharges(mol)
+    q = np.array([a.GetDoubleProp("_GasteigerCharge") for a in mol.GetAtoms()])
+    return "Gasteiger returned NaN" if not np.all(np.isfinite(q)) else q
+
+
+def _bultinck(molecule: Molecule) -> np.ndarray | str:
+    """The application's shipped Bultinck Part I EEM, called as the application calls it."""
+    if str(ROOT / "src") not in sys.path:
+        sys.path.insert(0, str(ROOT / "src"))
+    from openchem.chem import charge_equilibration as ce
+
+    elements = [e[0] + e[1:].lower() for e in molecule.elements]
+    result = ce.eem_charges(elements, molecule.coords, float(molecule.total_charge))
+    return np.asarray(result.charges) if result.status == "converged" else result.status
+
+
+def _not_positive_definite(molecule: Molecule, model: str, sqe_params, geidl) -> bool:
+    if model == "schindler_sqe":
+        T, _, split_matrix = sqe_matrix(molecule, *sqe_params)
+        return bool(T.shape[0]) and float(np.linalg.eigvalsh(split_matrix)[0]) <= 0
+    kappa, parameters = geidl
+    types = hbo_types(molecule)
+    with np.errstate(divide="ignore"):
+        block = kappa / distances(molecule.coords)
+    block[np.diag_indices(len(types))] = [parameters[t][1] for t in types]
+    return float(np.linalg.eigvalsh(block)[0]) <= 0
+
+
+def _evaluate(population, model: str, sqe_params, geidl) -> dict:
+    pairs, refused, silent, not_pd = [], {}, 0, 0
+    charged_pairs, neutral_pairs = [], []
+    for molecule, ref, record in population:
+        if model == "schindler_sqe":
+            q = sqe_charges(molecule, *sqe_params, "R_minus")
+        elif model == "geidl_eem_npa":
+            q = eem_charges(molecule, *geidl)
+        elif model == "bultinck_part1_eem":
+            q = _bultinck(molecule)
+        else:
+            q = _gasteiger(record, len(molecule.elements))
+        if isinstance(q, str):
+            refused[q] = refused.get(q, 0) + 1
+            continue
+        types = hbo_types(molecule)
+        pairs.append((types, ref, q))
+        (charged_pairs if molecule.total_charge else neutral_pairs).append((types, ref, q))
+        sign = np.any((np.abs(ref) >= SIGN_Q) & (np.sign(ref) != np.sign(q)))
+        if sign or np.any(np.abs(ref - q) >= MAGNITUDE):
+            silent += 1
+        if model in ("schindler_sqe", "geidl_eem_npa") and _not_positive_definite(molecule, model, sqe_params, geidl):
+            not_pd += 1
+    covered = len(pairs)
+    out = {"population": len(population), "covered": covered,
+           "coverage": covered / len(population) if population else None,
+           "refused": refused, "silent_error_molecules": silent,
+           "silent_error_rate": silent / covered if covered else None, "not_positive_definite": not_pd}
+    if covered:
+        m = metrics(pairs)
+        out["per_molecule_average"] = {"R2": m["R2"], "RMSD": m["RMSD"], "r2_undefined": m["r2_undefined"]}
+        out["RMSDat_pooled_per_type"] = m["RMSDat"]
+        out["RMSDat_type"] = m["RMSDat_type"]
+        ref_all = np.concatenate([r for _, r, _ in pairs])
+        emp_all = np.concatenate([q for _, _, q in pairs])
+        out["pooled"] = {"RMSD": float(np.sqrt(np.mean((ref_all - emp_all) ** 2))),
+                         "R2": float(np.corrcoef(ref_all, emp_all)[0, 1] ** 2)}
+        for label, subset in (("charged", charged_pairs), ("neutral", neutral_pairs)):
+            if subset:
+                sm = metrics(subset)
+                out[f"stratum_{label}"] = {"molecules": len(subset), "per_molecule_RMSD": sm["RMSD"], "per_molecule_R2": sm["R2"]}
+    return out
+
+
+def _g2_verdict(result: dict) -> dict:
+    failed = []
+    if result["coverage"] is None or result["coverage"] < G2_COVERAGE:
+        failed.append(f"coverage {result['coverage']} < {G2_COVERAGE}")
+    if result["covered"]:
+        if result["per_molecule_average"]["RMSD"] > G2_RMSD:
+            failed.append(f"per-molecule RMSD {result['per_molecule_average']['RMSD']:.4f} > {G2_RMSD}")
+        if result["silent_error_rate"] > G2_SILENT:
+            failed.append(f"silent-error rate {result['silent_error_rate']:.3f} > {G2_SILENT}")
+        if result["not_positive_definite"] / result["covered"] > G2_NOT_PD:
+            failed.append(f"not positive definite on {result['not_positive_definite']} of {result['covered']}")
+    return {"verdict": "G2-CANDIDATE" if not failed else "NOT-G2-CANDIDATE", "failed": failed}
+
+
+def stage_c() -> dict:
+    sqe_params = load_sqe_parameters()
+    geidl = load_geidl()
+    split = load_split()
+    geidl_training = _geidl_training_ids()
+    archive = zipfile.ZipFile(SI / "schindler2021_S3.zip")
+    ccd = {m.name: (m, q) for m, q in load_dataset("CCD_gen")}
+    ccd_records = sdf_records(archive.read("CCD_gen.sdf").decode("utf-8"))
+    dtp = load_dataset("DTP_small")
+    dtp_records = sdf_records(archive.read("DTP_small.sdf").decode("utf-8"))
+
+    training_keys, unreadable_training = set(), 0
+    for name in split["CCD_gen training set"]:
+        key = _inchikey(ccd_records[name])
+        if key is None:
+            unreadable_training += 1
+        else:
+            training_keys.add(key)
+    primary, excluded, unreadable_dtp = [], [], 0
+    for molecule, ref in dtp:
+        key = _inchikey(dtp_records[molecule.name])
+        if key is None:
+            unreadable_dtp += 1
+        elif key in training_keys:
+            excluded.append(molecule.name)
+            continue
+        primary.append((molecule, ref, dtp_records[molecule.name]))
+    geidl_primary = [item for item in primary if item[0].name not in geidl_training]
+    secondary = [(ccd[n][0], ccd[n][1], ccd_records[n]) for n in split["CCD_gen test set"]]
+
+    models = {
+        "schindler_sqe": _evaluate(primary, "schindler_sqe", sqe_params, geidl),
+        "schindler_sqe_without_geidl_overlap": _evaluate(geidl_primary, "schindler_sqe", sqe_params, geidl),
+        "geidl_eem_npa": _evaluate(geidl_primary, "geidl_eem_npa", sqe_params, geidl),
+        "context_bultinck_part1_eem": _evaluate(primary, "bultinck_part1_eem", sqe_params, geidl),
+        "context_gasteiger": _evaluate(primary, "gasteiger", sqe_params, geidl),
+    }
+    result = {
+        "stage": "C",
+        "reading": "R_minus (ChargeFW2's convention; B.2 left the reading undetermined)",
+        "C_primary": {
+            "population": "DTP_small", "molecules": len(dtp),
+            "excluded_identical_to_CCD_gen_training": sorted(excluded),
+            "inchikey_unreadable_dtp": unreadable_dtp, "inchikey_unreadable_ccd_training": unreadable_training,
+            "evaluated": len(primary), "geidl_training_overlap_removed": len(primary) - len(geidl_primary),
+            "models": models,
+            "verdicts": {"schindler_sqe": _g2_verdict(models["schindler_sqe"]), "geidl_eem_npa": _g2_verdict(models["geidl_eem_npa"])},
+        },
+        "C_secondary": {
+            "population": "CCD_gen test split", "molecules": len(secondary),
+            "models": {
+                "schindler_sqe": _evaluate(secondary, "schindler_sqe", sqe_params, geidl),
+                "geidl_eem_npa_overlap_unmeasured": _evaluate(secondary, "geidl_eem_npa", sqe_params, geidl),
+                "context_bultinck_part1_eem": _evaluate(secondary, "bultinck_part1_eem", sqe_params, geidl),
+                "context_gasteiger": _evaluate(secondary, "gasteiger", sqe_params, geidl),
+            },
+        },
+    }
+    save("c", result)
+    return result
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 3 and not (len(sys.argv) == 2 and sys.argv[1] in ("c", "b-a1")):
         sys.exit("usage: schindler_sqe_check.py a4 <chargefw2-ccd_gen.json> | b <chargefw2-ccd_gen.json> | c")
@@ -522,5 +708,9 @@ if __name__ == "__main__":
         choice = json.loads((RESULTS / "a4.json").read_text(encoding="utf-8"))["runs_for_part_b"]
         out = stage_b(choice, pathlib.Path(sys.argv[2]))
         print(json.dumps({k: out[k] for k in ("B1", "B2", "model_reading", "strata", "conditioning", "refused_by_us")}, indent=1))
+    elif stage == "c":
+        out = stage_c()
+        slim = {k: v for k, v in out["C_primary"].items() if k != "excluded_identical_to_CCD_gen_training"}
+        print(json.dumps({"C_primary": slim, "C_secondary": out["C_secondary"]}, indent=1))
     else:
         sys.exit(f"unknown stage {stage}")

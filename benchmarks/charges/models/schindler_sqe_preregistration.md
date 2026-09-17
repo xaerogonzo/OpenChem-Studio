@@ -291,7 +291,7 @@ MACH's `SQE.py` is the same model as ChargeFW2's, with −χ.
   for each molecule and then averaged over the whole set" does not describe the numbers it prints.
 - **The registered B.2 verdict is unchanged: PARTIAL.** The amendment said it could not be changed.
 - **What this does establish:** the published parameters, our SQE and ChargeFW2 are one model, with
-  the right-hand side −χ (the paper's printed +χ is wrong in sign). The paper's metrics are recovered
+  the right-hand side −χ. **Corrected the same day, before part C:** this sentence first said the paper's printed +χ "is wrong in sign". What is established is narrower: with the published parameter values, only −χ reproduces the paper's own numbers. The paper's metrics are recovered
   exactly with that model.
 - **Part C still uses the registered per-molecule averages for its threshold,** and reports pooled
   values beside them.
