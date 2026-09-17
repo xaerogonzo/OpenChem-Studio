@@ -24,7 +24,7 @@ from openchem.vendor.iupac_namer.perception.extraction import (
     carve_substituent, carve_bridging_substituent, strip_additive_atoms,
     carve_fc_fragments,
 )
-from openchem.vendor.iupac_namer.assembly import assemble
+from openchem.vendor.iupac_namer.assembly import assemble, derive_sort_name
 from openchem.vendor.iupac_namer.data_loader import (
     get_chain_stem, get_multiplier, lookup_retained_name,
     suffix_elides_terminal_e,
@@ -1209,7 +1209,7 @@ def _name_urea_functional_parent(
     def _first_alpha(named: list[tuple[str, int]]) -> str:
         if not named:
             return "\uffff"  # sorts last
-        return min(s for s, _ in named)
+        return min(derive_sort_name(s) for s, _ in named)
     n1_first = _first_alpha(n1_named)
     n2_first = _first_alpha(n2_named)
     if n2_first < n1_first:
@@ -1427,7 +1427,7 @@ def _name_sulfamide_functional_parent(
     def _first_alpha(named: list[tuple[str, int]]) -> str:
         if not named:
             return "\uffff"
-        return min(s for s, _ in named)
+        return min(derive_sort_name(s) for s, _ in named)
     n1_first = _first_alpha(n1_named)
     n2_first = _first_alpha(n2_named)
     if n2_first < n1_first:
@@ -2208,7 +2208,7 @@ def _name_sulfite_ester_functional_parent(
         final_name = f"di{r1_name} {parent_name}"
         choice_detail = f"R1={r1_name} R2={r2_name} (symmetric di-ester)"
     else:
-        first, second = sorted([r1_name, r2_name])
+        first, second = sorted([r1_name, r2_name], key=derive_sort_name)
         final_name = f"{first} {second} {parent_name}"
         choice_detail = f"R1={r1_name} R2={r2_name}"
 
@@ -2433,7 +2433,7 @@ def _name_phosphite_ester_functional_parent(
             else:
                 r_segment = f"bis({r1})"
         else:
-            ordered = sorted(r_names)
+            ordered = sorted(r_names, key=derive_sort_name)
             r_segment = " ".join(ordered)
 
     # Assemble final name per arity.
@@ -2669,7 +2669,7 @@ def _name_dichalcogen_fc(
         else:
             final_name = f"bis({r1_name}) {parent_name}"
     else:
-        first, second = sorted([r1_name, r2_name])
+        first, second = sorted([r1_name, r2_name], key=derive_sort_name)
         # Wrap compound R names in parens for clarity / OPSIN parsing.
         first_r = first if _is_simple(first) else f"({first})"
         second_r = second if _is_simple(second) else f"({second})"
@@ -2957,7 +2957,7 @@ def _name_sulfonic_anhydride_functional_parent(
     if adj1 == adj2:
         final_name = f"{adj1} anhydride"
     else:
-        first, second = sorted([adj1, adj2])
+        first, second = sorted([adj1, adj2], key=derive_sort_name)
         final_name = f"{first} {second} anhydride"
 
     return LeafTree(
@@ -3433,7 +3433,7 @@ def _name_carboxylic_anhydride_functional_parent(
     if adj1 == adj2:
         final_name = f"{adj1} anhydride"
     else:
-        first, second = sorted([adj1, adj2])
+        first, second = sorted([adj1, adj2], key=derive_sort_name)
         final_name = f"{first} {second} anhydride"
 
     return LeafTree(
@@ -3641,7 +3641,7 @@ def _name_biguanide_functional_parent(
     def _first_alpha(named: list[tuple[str, int]]) -> str:
         if not named:
             return "\uffff"
-        return min(s for s, _ in named)
+        return min(derive_sort_name(s) for s, _ in named)
     a_first = _first_alpha(side_a_named)
     b_first = _first_alpha(side_b_named)
     if b_first < a_first:
@@ -3856,7 +3856,7 @@ def _handcraft_alpha_substituted_acetamido(
             return f"({sub})"
         return sub
 
-    tagged = sorted(substituent_names, key=lambda s: s.lstrip("(").lower())
+    tagged = sorted(substituent_names, key=derive_sort_name)
     prefix_parts = [f"2-{_wrap(s)}" for s in tagged]
     prefix = "-".join(prefix_parts)
     # The acyl parent is "acetyl"; "acetyl" + "amino" → "acetylamino"

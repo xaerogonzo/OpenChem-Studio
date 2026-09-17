@@ -227,6 +227,49 @@ class TestDeriveSortName:
         assert derive_sort_name("[2-chloroethyl]") == "chloroethyl"
 
 
+# D-028: THE KEY IS THE COMPLETE NAME'S LETTERS, AT EVERY DEPTH.
+# (display name, exact key, Blue Book rule). The key is asserted directly, not
+# only the order it produces: a key can put two names in the right order while
+# being wrong in a way the next pair exposes.
+SORT_KEY_TABLE = [
+    ("1-(2-phenylethyl)piperidin-4-yl", "phenylethylpiperidinyl",
+     "P-14.5.2 compound prefix: first letter of the complete name; nested locants and marks ignored"),
+    ("[(5R)-1-methylpyrrolidin-5-yl]methyl", "methylpyrrolidinylmethyl",
+     "P-14.5.2 plus P-91: stereodescriptors are not alphabetised"),
+    ("dimethylamino", "dimethylamino",
+     "P-14.5.2: a multiplying prefix INSIDE a compound prefix is part of its name"),
+    ("dimethyl", "methyl", "P-14.5.1: a multiplying prefix of a simple prefix is ignored"),
+    ("bis(2-chloroethyl)", "chloroethyl", "P-14.5.1: bis multiplies the whole compound prefix"),
+    ("1H-indol-3-yl", "indolyl", "P-14.5.1: indicated hydrogen is not alphabetised"),
+    ("3aH-inden-2-yl", "indenyl", "P-14.5.1: fusion-locant indicated hydrogen"),
+    ("N-methylamino", "methylamino", "P-14.5.3: italic heteroatom locants are ignored"),
+    ("tert-butyl", "butyl", "P-14.5.3: italic tert- is ignored"),
+    ("isopropyl", "isopropyl", "P-14.5.3: iso is NOT italic and is alphabetised"),
+    ("diazenyl", "diazenyl", "a name that merely begins with di- is not multiplied"),
+    ("amino(dioxo)-lambda6-sulfanyl", "aminodioxosulfanyl", "P-14.1.4: the lambda convention is a locant"),
+]
+
+
+@pytest.mark.parametrize("display,key,rule", SORT_KEY_TABLE, ids=[row[0] for row in SORT_KEY_TABLE])
+def test_sort_key_table(display, key, rule):
+    assert derive_sort_name(display) == key, rule
+
+
+@pytest.mark.parametrize(
+    "first,second,rule",
+    [
+        ("phenyl", "[1-(2-phenylethyl)piperidin-4-yl]",
+         "P-14.5.2: 'phenyl' precedes 'phenylethylpiperidinyl' (fentanyl)"),
+        ("methoxy", "{[(2R)-1-methylpyrrolidin-2-yl]methyl}",
+         "P-14.5.2: 'metho' precedes 'methyl' (5-MeO-MPMI)"),
+        ("dimethylamino", "ethyl", "P-14.5.2: d precedes e"),
+        ("chloro", "(2-chloroethyl)", "P-14.5.2: 'chloro' is a prefix of 'chloroethyl'"),
+    ],
+)
+def test_sort_key_orders_pairs(first, second, rule):
+    assert derive_sort_name(first) < derive_sort_name(second), rule
+
+
 # ---------------------------------------------------------------------------
 # 4. merge_identical_prefixes
 # ---------------------------------------------------------------------------

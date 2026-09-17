@@ -238,55 +238,90 @@ _MULT_PREFIXES = [
     "tri",      "di",
 ]
 
-# Pattern for leading locant-hyphen: digits/letters used as locants, then hyphen
-_LOCANT_HYPHEN_RE = re.compile(r"^[0-9NOPSH,'^]+(?:,[0-9NOPSH,'^]+)*-")
-# Pattern to strip a leading stereodescriptor: "(2R,3S)-" or "(E)-"
-_STEREO_PREFIX_RE = re.compile(r"^\([^)]*\)-")
+# A parenthesised stereodescriptor group anywhere in a name: "(2R,3S)-",
+# "(E)-", "(5R)", "(1r,4s)".  Removed whole, before tokenising, so its letters
+# never reach the key.
+_STEREO_GROUP_RE = re.compile(
+    r"\((?:[0-9]+[a-z]?'*)?(?:[RSEZrs]\*?|rel|rac)"
+    r"(?:,(?:[0-9]+[a-z]?'*)?(?:[RSEZrs]\*?))*\)-?"
+)
+# What separates the tokens of a name.  None of these characters is ever part
+# of a letter the alphabetisation reads.
+_SORT_TOKEN_SPLIT_RE = re.compile(r"[-,()\[\]{}\s]+")
+# A token that is NOT alphabetised (P-14.5.1, P-14.5.3): a locant, an
+# indicated hydrogen, an italic heteroatom locant, a lambda convention, a
+# stray stereodescriptor, or an italic prefix such as tert-/sec-.
+_UNALPHABETISED_TOKEN_RE = re.compile(
+    r"^(?:"
+    r"[0-9]+[a-z]?'*"                       # 2   4a   1'
+    r"|[0-9]+[a-z]?H"                       # 1H  3aH  (indicated hydrogen)
+    r"|(?:N|O|S|P|B|Se|Te|As|Sb|Si|Ge|Sn)'*[0-9]*"  # N  N'  O  S  (italic locants)
+    r"|lambda[0-9]+|λ[0-9]+"
+    r"|[RSEZ]\*?|[rs]\*?"
+    r"|tert|sec|cis|trans|rel|rac|endo|exo|syn|anti"
+    r")$"
+)
 
 
 def derive_sort_name(prefix_name: str) -> str:
-    """Derive the alphabetical sort key for a prefix name (P-14.5).
+    """The alphanumerical-ordering KEY for a substituent prefix (P-14.5).
 
-    Rules applied in order:
-    1. Strip outermost enclosing brackets ( (), [], {} ).
-    2. Strip multiplicative prefix (di, tri, bis, tris, ...).
-    3. Strip stereodescriptor prefix "(2R,3S)-".
-    4. Strip leading locant-hyphen pattern.
-    5. Lowercase.
+    A key, never a display string: the letters of the complete substituent
+    name that IUPAC alphabetises, in order, lowercased.  Every sorter in the
+    engine that orders substituent names goes through this one function.
+
+    **P-14.5.2: A COMPOUND SUBSTITUENT IS ALPHABETISED UNDER THE FIRST LETTER
+    OF ITS COMPLETE NAME**, and this used to strip only the outer bracket and
+    the leading locant.  Nested marks survived into the key, and ``(`` and
+    ``[`` sort before every letter, so any compound prefix with a nested
+    bracket was cited first:
+
+        [1-(2-phenylethyl)piperidin-4-yl]   key "(2-phenylethyl)piperidin-4-yl"
+        phenyl                              key "phenyl"
+        -> N-[1-(2-phenylethyl)piperidin-4-yl]-N-phenylacetamide   (wrong)
+
+    Measured on acetyl fentanyl and 5-MeO-MPMI (``methoxy`` cited after
+    ``{[(5R)-1-methylpyrrolidin-5-yl]methyl}``) on 2026-09-17.  Neither is
+    visible to the naming benchmark, which scores by OPSIN round trip, and a
+    mis-ordered name parses perfectly.
+
+    **A MULTIPLYING PREFIX INSIDE A COMPOUND SUBSTITUENT IS PART OF ITS NAME**
+    (P-14.5.2: ``dimethylamino`` is alphabetised under d).  The old code
+    stripped any leading ``di``/``tri`` and so filed ``dimethylamino`` under
+    m -- ``2-ethyl-4-(dimethylamino)benzoic acid``.  A leading multiplier is
+    now removed only when it multiplies: ``bis(``/``tris(`` before a bracket,
+    or ``di``/``tri`` before a SIMPLE prefix (``dimethyl`` -> methyl).
+
+    Removed at every depth: enclosing marks, locants (``2``, ``4a``, ``1'``),
+    indicated hydrogen (``1H``), italic heteroatom locants (``N``, ``O``),
+    stereodescriptors (``(2R,3S)``), ``lambdaN``, and italic prefixes
+    (``tert``, ``sec``).  ``iso``, ``neo`` and ``cyclo`` are part of the name
+    and stay (P-14.5.1).
     """
     s = prefix_name.strip()
 
-    # Step 1: strip outermost brackets
-    while len(s) >= 2 and (
-        (s[0] == "(" and s[-1] == ")")
-        or (s[0] == "[" and s[-1] == "]")
-        or (s[0] == "{" and s[-1] == "}")
-    ):
-        s = s[1:-1]
-
-    # Step 2: strip multiplicative prefixes (longest first)
-    for m in _MULT_PREFIXES:
-        if s.startswith(m):
-            rest = s[len(m):]
-            if rest and (rest[0].isalpha() or rest[0] in "([{"):
-                s = rest
-                # strip the brackets that may wrap the remainder
-                if len(s) >= 2 and (
-                    (s[0] == "(" and s[-1] == ")")
-                    or (s[0] == "[" and s[-1] == "]")
-                    or (s[0] == "{" and s[-1] == "}")
-                ):
-                    s = s[1:-1]
+    # A leading multiplier that multiplies a whole prefix, e.g. "bis(2-chloroethyl)".
+    for m in ("tetrakis", "pentakis", "hexakis", "heptakis", "octakis", "nonakis",
+              "decakis", "tris", "bis"):
+        if s.startswith(m) and s[len(m):len(m) + 1] in ("(", "[", "{"):
+            s = s[len(m):]
+            break
+    else:
+        # "dimethyl" multiplies methyl; "dimethylamino" is a name of its own.
+        for m in _MULT_PREFIXES:
+            if m.endswith("kis") or m in ("bis", "tris"):
+                continue
+            if s.startswith(m) and not _is_compound_prefix(s[len(m):]):
+                s = s[len(m):]
                 break
 
-    # Step 3: strip stereodescriptor prefix
-    s = _STEREO_PREFIX_RE.sub("", s)
-
-    # Step 4: strip leading locant-hyphen
-    s = _LOCANT_HYPHEN_RE.sub("", s)
-
-    # Step 5: lowercase
-    return s.lower()
+    s = _STEREO_GROUP_RE.sub("-", s)
+    tokens = [
+        token
+        for token in _SORT_TOKEN_SPLIT_RE.split(s)
+        if token and not _UNALPHABETISED_TOKEN_RE.match(token)
+    ]
+    return "".join(tokens).lower()
 
 
 # ---------------------------------------------------------------------------

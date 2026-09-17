@@ -445,6 +445,20 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-027z", "N[C@@H](C)C(=O)N[C@@H](Cc1ccccc1)C(=O)O",
      "(2S)-2-[(2S)-2-aminopropanoylamino]-3-phenylpropanoic acid",
      "(2S)-2-[(2S)-2-aminopropanoylamino]-3-phenylpropanoic acid", "unchanged"),
+
+    # --- D-028: prefixes cited out of alphanumerical order ---------------
+    # SEVERITY B, not A: the right molecule, cited in the wrong order, so it
+    # round-trips and the naming benchmark scores it "equivalent". The sort
+    # key kept nested brackets (which sort before every letter) and filed
+    # "dimethylamino" under m. See `assembly.derive_sort_name`.
+    ("D-028a", "CC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1",
+     "N-phenyl-N-[1-(2-phenylethyl)piperidin-4-yl]acetamide",
+     "N-[1-(2-phenylethyl)piperidin-4-yl]-N-phenylacetamide", "compound prefix cited first"),
+    ("D-028b", "CCCC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1",
+     "N-phenyl-N-[1-(2-phenylethyl)piperidin-4-yl]butanamide",
+     "N-[1-(2-phenylethyl)piperidin-4-yl]-N-phenylbutanamide", "compound prefix cited first"),
+    ("D-028c", "CN(C)c1ccc(C(=O)O)c(CC)c1", "4-(dimethylamino)-2-ethylbenzoic acid",
+     "2-ethyl-4-(dimethylamino)benzoic acid", "dimethylamino filed under m"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names
