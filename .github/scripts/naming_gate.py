@@ -30,10 +30,12 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO / "src"))
 
-#: What the benchmark has scored since the corpus reached 181 molecules.
+#: What the benchmark has scored since the corpus reached 187 molecules
+#: (2026-09-17: six `substituent_naming` rows added from a user report,
+#: three of which the engine then failed on stereochemistry).
 #: Anything else -- higher or lower -- means the naming engine changed and
 #: somebody needs to look, so this is an equality check rather than a floor.
-EXPECTED = "181/181"
+EXPECTED = "187/187"
 
 
 def main() -> int:

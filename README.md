@@ -33,7 +33,9 @@ sizes are in [docs/VALIDATION.md](docs/VALIDATION.md).
 
 **Offline IUPAC naming.** A vendored deterministic engine names structures
 nothing has ever registered, with no model and no network. Every generated
-name is parsed back with OPSIN before it is shown. **181/181** on the naming
+name is parsed back with OPSIN before it is shown -- and withheld when its
+stereodescriptors contradict the structure, which is separate from a name that
+merely leaves stereochemistry out. **187/187** on the naming
 benchmark, scored by structural round-trip rather than string equality, with
 stereochemistry **11/11 and nothing silently flattened** — the best ML
 alternative managed 5/11 and quietly dropped three. Known
@@ -82,7 +84,8 @@ IR-silent band came back at **0.00**.
 **Structural annotation from the naming engine.** The IUPAC engine works out
 ring systems, functional groups, stereocentres and atom numbering on the way
 to a name, and all of it was discarded. Now surfaced as per-atom colouring on
-2D and 3D, plus a derivation tree showing how a name was built and an AI tool
+2D and 3D, as IUPAC locants drawn beside the atoms in the editor and in the
+Atom Inspector, plus a derivation tree showing how a name was built and an AI tool
 that answers "why is this carbon numbered 4?" from the engine's own record
 rather than from recollection.
 
@@ -104,7 +107,7 @@ The honest version of a comparison table: this one is about our own software.
 
 | Does | Evidence |
 |---|---|
-| Deterministic offline IUPAC naming | 181/181, [benchmarks/naming/](benchmarks/naming/) |
+| Deterministic offline IUPAC naming | 187/187, [benchmarks/naming/](benchmarks/naming/) |
 | NMR shift prediction with per-band error | 24,280 held-out carbons |
 | Docking with validated binding-site boxes | 49 curated receptors; redocking 7 of them, 0.16–0.71 Å |
 | 2D editing, 3D visualisation, macromolecules | Ketcher, 3Dmol, Mol\* |

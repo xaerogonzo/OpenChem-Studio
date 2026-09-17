@@ -944,14 +944,15 @@ Hovering a name in that panel shows the same definition given here.
 <!-- help:locant-coverage -->
 ## What the locants cover
 
-Measured over the 181-molecule naming corpus in `benchmarks/naming`, and the reason IUPAC Locants reports **None found** for most drug-like structures rather than failing:
+Measured over the 187-molecule naming corpus in `benchmarks/naming` (2026-09-17), and the reason IUPAC Locants reports **None found** for most drug-like structures rather than failing:
 
 | | coverage | |
 |---|---|---|
-| ring systems | 45.3% of heavy atoms | every molecule |
-| functional groups | 19.7% | every molecule |
-| IUPAC locants | 34.8% | 105 of 181 molecules |
+| ring systems | 59.3% of heavy atoms | every molecule |
+| functional groups | 18.9% | every molecule |
+| structural features (ring amines, aromatic N-H) | 4.4% | every molecule |
+| IUPAC locants | 38.4% | 111 of 187 molecules |
 
-The asymmetry is the point. Naming dispatches to several tree shapes and only one carries a numbering: 95 of the 181 name to a retained string with no atom indices at all -- caffeine and camphor among them -- so there is nothing to map. Even a substitutive name numbers only its parent, which is why naproxen's covers 3 of its 17 atoms.
+The asymmetry is the point. Naming dispatches to several tree shapes and only one carries a numbering: 76 of the 187 get no locants at all -- every molecule named by a retained string, caffeine and camphor among them, has no atom indices to map. Even a substitutive name numbers only its parent, which is why naproxen's covers 3 of its 17 atoms, and why fentanyl's piperidine is unnumbered while its acetyl chain is not (see `vendor/KNOWN_LIMITATIONS.md`).
 
 A retained-ring lookup is the mitigation, and lifts coverage from 22.4% to 34.8%. "None found" is therefore an ordinary answer here, not a failure.

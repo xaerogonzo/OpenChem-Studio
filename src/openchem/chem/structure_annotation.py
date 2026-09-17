@@ -21,13 +21,18 @@ NO VENDOR TYPES ESCAPE. Callers get the plain dataclasses below, never
 moving subtree with its own 3,200-test suite; pinning the rest of the
 application to its dataclasses would make it un-upgradable.
 
-MEASURED COVERAGE, over the 181-molecule `benchmarks/naming` corpus. These
-numbers are the reason this module is shaped the way it is, and a UI built
-on it must not promise more than they support:
+MEASURED COVERAGE, over the `benchmarks/naming` corpus -- 187 molecules as
+of 2026-09-17, when six reported ones were added. These numbers are the
+reason this module is shaped the way it is, and a UI built on it must not
+promise more than they support:
 
-    ring systems       45.3% of heavy atoms     every molecule
-    functional groups  19.7%                    every molecule
-    IUPAC locants      34.8%                    105 of 181 molecules
+    ring systems       59.3% of heavy atoms     every molecule
+    functional groups  18.9%                    every molecule
+    structural feat.    4.4%                    every molecule
+    IUPAC locants      38.4%                    111 of 187 molecules
+
+(The earlier figures, over the 181-row revision, were 45.3 / 19.7 / 34.8 and
+105 of 181. A corpus change moves them, so they are dated.)
 
 The locant asymmetry is the important one. Naming dispatches to several tree
 shapes, and only one of them carries a numbering:
@@ -48,8 +53,10 @@ exactly that reason) and mean nothing against the parent molecule.
 371 entries, 302 carrying an `atom_locants` map keyed by the canonical
 SMILES of the ISOLATED ring system, so a ring can be extracted, looked up,
 and matched back onto the parent to recover its conventional numbering.
-Measured over the corpus it lifts coverage from 22.4% to **34.8%** and is
-the ONLY source of locants for 24 molecules.
+Measured over the 181-row revision it lifted coverage from 22.4% to 34.8%
+and was the ONLY source of locants for 24 molecules. **PIPERIDINE AND
+BENZENE ARE NOT AMONG THE 302**, which is why fentanyl's rings are
+unnumbered while its acetyl chain is not -- see `KNOWN_LIMITATIONS.md`.
 
 THIS USED TO CARVE THE RING OUT ITSELF AND FAILED ON SUBSTITUTED
 HETEROCYCLES. `MolFragmentToSmiles` on a ring whose aromatic nitrogens are
@@ -68,7 +75,7 @@ Caffeine now resolves to `9H-purine` and takes all nine ring locants,
 verified against the fact that it is 1,3,7-trimethylxanthine: the
 methylated nitrogens come back N1, N3 and N7 and the bare one N9.
 
-76 of 181 molecules still end up with no locants at all. `LocantSource`
+76 of 187 molecules still end up with no locants at all. `LocantSource`
 exists so a UI can say which mechanism produced a number rather than
 implying the two are equally authoritative, and `locant_coverage()` exists
 so it can decline to offer a numbering view instead of rendering a blank

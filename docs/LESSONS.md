@@ -20473,3 +20473,141 @@ was green.
   against nothing that could happen; both were removed rather than tested. A
   third survived because the first oxygen was atom 0 in row 0 -- a table test
   must pick a row whose atom cannot be its row number.
+
+## A NAME THAT PARSES BACK IS NOT A NAME THAT IS RIGHT, AND FOUR DEFECTS SAT BEHIND THAT
+
+One screenshot of a fentanyl and three tryptamines, reported as "the name
+generator kind of works but isn't quite the IUPAC name". Four separate
+defects, and the reason none had been caught before is the same for three of
+them: **this project's naming gate is the OPSIN round trip**, and a name can
+round-trip perfectly while being wrong about the things a round trip cannot
+see. The 181-row benchmark had scored 181/181 for six weeks with all four
+present.
+
+What the round trip cannot see:
+
+    prefix ORDER          the same substituents, cited in the wrong order,
+                          parse to the same molecule
+    a LOCANT inside a
+    substituent           pyrrolidin-5-yl and pyrrolidin-2-yl denote the
+                          same attachment on a symmetric ring
+    an indicated hydrogen  OPSIN resolves a bare `indol-2-yl` to the 1H form
+
+And the one it CAN see, which was being reported as something else:
+
+    a WRONG stereodescriptor  OPSIN parsed `(5S)` back to the enantiomer, and
+                              `verify_name_round_trip` filed any stereo
+                              difference over a matching skeleton as
+                              STEREO_OMITTED -- "does not express
+                              stereochemistry present in the structure" --
+                              so the app SHOWED a name for the other
+                              enantiomer with a soft note under it
+
+**The stereo defect: a nested carve recomputed CIP on the capped fragment.**
+Carving a substituent replaces the cut side with H, which reorders CIP
+priorities at any centre or double bond whose ranking depended on that side.
+The engine already knew this for ATOMS on the first carve -- it stamps
+`_ParentCIPCode` -- but carving is recursive, and the second carve started
+from the FIRST fragment and recomputed there. Measured on MPMI, an R centre:
+carve 1 inherited R correctly, carve 2 recomputed S from `C[C@H]1CCCN1C`
+(where the indolyl side is already an H, so the exocyclic carbon is CH3 and
+ranks below the ring CH2), and stamped that. Bonds never inherited at all, so
+**every E/Z measured inside a substituent was inverted**.
+
+**The order defect: the sort key kept its brackets.** `derive_sort_name`
+stripped the outer bracket and the leading locant and stopped, so a nested
+bracket reached the key -- and `(` and `[` sort before every letter, which
+cites every compound prefix first. It also stripped any leading `di`/`tri`,
+filing `dimethylamino` under m (P-14.5.2 says d) and `diazenyl` under a.
+
+**The locant defect: nothing scored the free valence.** P-31.1.4 numbers a
+ring substituent by heteroatoms, then indicated hydrogen, then the FREE
+VALENCE -- ahead of the ene ending and every detachable prefix. The strategy's
+bands were heteroatoms, suffixes, unsaturation, prefixes, with the free
+valence nowhere. So the two N=1 directions of 1-methylpyrrolidine tied at
+-0.4101 and PLAN ORDER decided; and since the carved fragment's C2 and C5 are
+symmetry-equivalent, which one was the attachment depended on the input's
+atom order. That is why it looked unreproducible: `CN1CCCC1CO` came out
+`-5-yl` and `OC(=O)c1ccc(cc1)C1CCCN1C` came out `-2-yl`, from the same ring.
+
+Three things worth keeping from the repair:
+
+- **Measure a "non-regression" row against the pre-fix engine.** Writing the
+  D-029 table, three rows I had labelled "unchanged" turned out to be the same
+  defect (`4-methylpiperidin-6-yl`, `2-methylfuran-5-yl`, and a PINNED
+  sulfolene row). Assuming they were unchanged would have shipped three more
+  wrong locants with a comment claiming they were checked.
+- **A pinned expectation can be the wrong one.** That sulfolene row failed
+  after the fix. Both names round-trip to the same structure on canonical
+  SMILES and InChIKey, and P-31.1.4 ranks the free valence above the `ene`
+  ending, so the NEW answer is right and the pin was wrong. Changing a pinned
+  row needs that check first, not after.
+- **One key, and every sorter reads it.** The engine had a real
+  alphabetisation function and six other places sorting raw name strings
+  (three copies of one urea helper, the ester and phosphite class words, two
+  anhydride paths, an acetamido handcraft). Fixing the key alone would have
+  left those.
+
+The benchmark now carries the six reported molecules and the scorer has a
+`stereo_wrong` class of its own, taking the verdict from the app's verifier so
+the two cannot disagree about what "wrong" means. On the 187-row corpus:
+master 184/187 (exact 82, three `stereo_wrong`) against 187/187 (exact 87).
+`D-028`'s whole point is still invisible to the score -- four corpus names
+moved to the correct order and the number did not budge -- which is why the
+order and locant defects are pinned by exact-name rows instead.
+
+## TWO PRODUCERS, ONE RESULT ID, AND A PANEL THAT ANSWERED ONCE
+
+The other half of the same report: "Functional Groups gave information the
+first time and now refuses to run." It was not refusing. Two producers
+declared `functional_groups` -- the always-on RDKit fragment counter
+(`AlertResult`) and the registered per-atom calculator (`PerAtomDataset`) --
+and `SessionResultStore` keys a result by `(result id, calculation input,
+input fingerprint)`. For one molecule and one drawing that is THE SAME SLOT,
+so whichever ran last replaced the other, in the session and in the saved
+project. The screenshot showing "Amide (1), Tertiary Amine (2), Benzene Ring
+(2)" and the screenshot showing "1 functional group" were two different
+producers answering under one name.
+
+What makes this worth writing down is that **nothing in either producer reads
+as wrong**, and the file already carried a comment about a previous collision
+on the same id (a shadowed import that bound the wrong function). The id is
+declared in two places 2,000 lines apart, and the store's key is in a third.
+
+The guard is built from the store's own key function (`result_id_of`) over
+every producer family that writes into it, rather than from a list of ids
+somebody maintains. The migration is keyed by `(old id, payload type)`,
+because only ONE of the two producers moved -- and it says in its own
+docstring that a saved project can never have held both, so it re-files one
+entry rather than pretending to recover two.
+
+And the vocabulary half, which is a design lesson rather than a bug: the
+engine's detector answers **which group becomes the suffix**, so a ring
+nitrogen is absent from it BY DESIGN (it is named by its ring; every amine
+SMARTS carries `!R`) and an ether is absent entirely. "Functional groups"
+in the chemist's sense is a different question from the nomenclature one, and
+the fix was to say so in the data model -- a category on every feature, a
+source on every instance, ring systems read from the ring perception that
+already existed rather than re-detected -- not to widen the engine's naming
+vocabulary until piperidine started being called an amine in its own name.
+
+## DRAWN IS NOT ON SCREEN, AND THE PAGE'S OWN REPORT SAID DRAWN
+
+The atom-numbering overlay reported exactly what it should: `drawn: 7`,
+`dropped: 0`, seven labels with the right text at the right molfile
+positions. The canvas showed none of them. `pp.y` was negated -- the model's
+y already grows downward, as the electron-dot overlay in the same file uses
+it -- so every label was mirrored off the visible area.
+
+This is the "harness said the opposite of the app" shape again, with a new
+twist: the harness WAS the app, and it was telling the truth. The labels
+existed, were attached, carried the right text, and were nowhere a person
+could see them. A count of drawn elements cannot answer "is it visible", and
+neither can a screenshot answer "is it on the right atom".
+
+So the page's report now carries the canvas rect, each label's own
+`getBoundingClientRect`, and an `onscreen` count of the ones inside the
+canvas. Re-negating the sign fails that test; before it, the same mutation
+passed everything. The pair is the point -- the report answers "on the right
+atom" (molfile positions Python named) and "where on screen", and only
+together do they mean the numbering works.

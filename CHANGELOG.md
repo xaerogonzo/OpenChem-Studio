@@ -7,7 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Atom numbers on the 2D editor.** View ▸ 2D Structure Display ▸ Atom
+  Numbers offers *Drawing atom numbers* (the atom's position in the drawing,
+  from 1 — the same number the Atom Inspector's `#` column shows) and *IUPAC
+  locants* (the naming engine's numbering). The status bar says how many atoms
+  were numbered and where the numbering came from; a structure named by a
+  retained name gets none, which it says rather than leaving a blank canvas.
+  The numbers are recomputed when the structure changes and add nothing to the
+  undo stack.
+- **The Atom Inspector has a Locant column**, filled from the same numbering
+  the canvas draws. Blank means the atom has no locant; "?" means the
+  numbering could not be computed, with the reason on the cell.
+
 ### Changed
+
+- **Functional Groups reports ring amines, ring systems and structural
+  features, each labelled with the detector that found it.** A fentanyl used
+  to show one group and a tryptamine none, because the naming engine's
+  detector answers a nomenclature question: a ring nitrogen is named by its
+  ring, and an ether has no group form at all. It now merges that detector
+  with the engine's new ring-amine and aromatic-N-H perception, a pattern
+  catalogue (ether, thioether, ammonium, quaternary ammonium) and the ring
+  systems already perceived — so fentanyl shows its amide, its piperidine
+  amine and both phenyl rings, and MPMI its pyrrolidine amine, its indole N-H
+  and both rings. Tick "Suffix-eligible groups only" for the old, narrower
+  list.
+- **The always-on RDKit fragment counter is now "Fragment Counts"**
+  (`fragment_counts`). It shared the id `functional_groups` with the
+  calculator above, and results are stored by id — so each overwrote the
+  other, in the session and in saved projects. Projects saved with the old id
+  are migrated on load.
 
 - **Partial Charge (3D) has a pH-dependent option; the separate
   "Partial Charge (3D, pH-dependent)" calculator is gone.** Tick it to compute
@@ -25,6 +56,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A protonated amine inverts; the hashed bond it was drawn with said otherwise.
 
 ### Fixed
+
+- **Names for substituents: a wrong stereodescriptor, a wrong prefix order and
+  a wrong locant.** All three were reported from one screenshot and none was
+  visible to the naming benchmark, which scores by parsing a name back.
+  MPMI's R centre was named (S) — and every E/Z inside a substituent was
+  inverted — because a nested carve recomputed CIP on the capped fragment.
+  Acetyl fentanyl was named
+  `N-[1-(2-phenylethyl)piperidin-4-yl]-N-phenylacetamide`, because a nested
+  bracket reached the alphabetisation key and sorts before every letter;
+  `dimethylamino` was filed under m. And a pyrrolidinyl substituent was
+  numbered `-5-yl` instead of `-2-yl`, because the free valence was scored
+  nowhere and a symmetry tie decided it. Nicotine, in the benchmark corpus,
+  had the same locant defect.
+- **A name whose stereochemistry contradicts the structure is now withheld.**
+  Any stereo difference over a matching skeleton was reported as "does not
+  express stereochemistry present in the structure", so a name for the other
+  enantiomer was shown with a soft note. Omitted, added and contradicted
+  stereochemistry are now separate verdicts.
 
 - **The pH-dependent 3D charges were drawn on the wrong structure.** Both
   pictures showed the conformer as drawn, so a protonated amine's N-H never

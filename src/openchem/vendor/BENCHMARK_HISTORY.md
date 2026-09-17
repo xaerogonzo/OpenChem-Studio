@@ -130,3 +130,34 @@ extended corpus. `score.py` now refuses them rather than letting `zip()`
 silently truncate and report a model's 88/124 as "88/181". Those files remain
 valid against the corpus revision they were made for. This now applies to the
 165-row revision as well.
+
+## The 187-row revision (2026-09-17)
+
+Six molecules added as `substituent_naming`, from a user report: three
+fentanyls and three MPMI tryptamines. Every one of them ROUND-TRIPPED while
+wrong, which is why the EXACT column is what moves here.
+
+| date | change | correct | exact | equiv | stereo_wrong | vendored suite |
+|---|---|---|---|---|---|---|
+| 2026-09-17 | master 8be42b6, 187-row corpus | 184/187 | 82 | 101 | 3 | 3209 P / 0 F / 16 S |
+| 2026-09-17 | D-027 substituent stereo inheritance | 187/187 | 82 | 104 | 0 | 3209 P / 0 F / 16 S |
+| 2026-09-17 | D-028 alphanumerical order | 187/187 | 82 | 104 | 0 | — |
+| 2026-09-17 | D-029 free-valence numbering | 187/187 | 87 | 99 | 0 | 3255 P / 0 F / 16 S |
+
+On the OLD 181-row revision, for comparison with the rows above: 181/181
+throughout, exact 82 -> 84 (the two nicotine rows, whose `-5-yl` locant D-029
+fixed).
+
+`stereo_wrong` is new in `score.py`. A name whose descriptor CONTRADICTS the
+structure was scored `stereo_lost` -- "silently flattened" -- which is the
+same conflation the app's own round-trip verifier had. It now asks that
+verifier (`naming_providers._stereo_verdict`), so the benchmark and the
+displayed name cannot disagree about what "wrong" means.
+
+**D-028's whole point is invisible here**, and that is the lesson of this
+revision rather than a gap in it: four corpus names changed to the correct
+prefix order (chloroquine, atenolol, omeprazole's sulfoxide, the biaryl urea's
+N/N') and the score did not move, because a mis-ordered name parses to the
+right molecule. Those defects are pinned by exact-name rows in
+`tests/test_namer_known_defects.py` and by the sort-key table in
+`tests/vendor/iupac_namer/test_assembly.py`.

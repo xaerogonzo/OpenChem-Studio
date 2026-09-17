@@ -108,7 +108,7 @@ about 2 launches in 5 for an unrelated scheduling reason, so a single
 screenshot could not tell a fix from luck — and several conclusions
 reached that way were wrong.
 
-`benchmarks/naming/` is the arbiter for naming quality: 181 molecules scored
+`benchmarks/naming/` is the arbiter for naming quality: 187 molecules scored
 by OPSIN round-trip rather than string equality. It has twice overturned a
 conclusion reached without it, and it is what justified adopting this engine
 over a 1.1 GB ML alternative that scored 26 points lower.
