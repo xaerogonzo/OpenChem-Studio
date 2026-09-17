@@ -147,4 +147,46 @@ For a molecule of N atoms, in atomic units:
 
 ## Results
 
-*None yet.*
+### Run 1 (2026-09-17, instrument commit c62889e): E_app / K_code REPRODUCED
+
+`qtpie_cleanroom_results.json` (sha256 `b9307e5dd6b888e50682895268413f5915a21bc398853254436a8682544be92e`),
+exit 0. Instrument: 11 tests pass; all 6 registered mutations red.
+
+| arm | NaCl roots (Å) | predicted QTPIE Na (printed +0.72522900679) | H₂O solutions (r₁, r₂, θ) | predicted QTPIE H(2) (printed +0.40556679591) | verdict |
+|---|---|---|---|---|---|
+| **E_app / K_code** | 2.3610000298 | +0.7252289943, \|Δ\| **1.2e-8** | (0.9699999924, 0.9687329648, 100.35341°) | +0.4055667959, \|Δ\| **7.5e-12** | **REPRODUCED** |
+| E_tab / K_code | 2.3609819774 | +0.7252534258, \|Δ\| 2.4e-5 | (0.9592406859, 0.9580341451, 98.27479°) | +0.4055680583, \|Δ\| 1.26e-6 | NOT-REPRODUCED |
+| E_app / K_print | 1.7082726 and 2.7258088 (two roots) | — | none in range | — | UNDETERMINED |
+| E_tab / K_print | 1.7082604 and 2.7258057 (two roots) | — | none in range | — | UNDETERMINED |
+
+**By the registered rule,** an independent implementation of the thesis's equations reproduces the
+author's own printed QTPIE charges on both test molecules. The conditions are the appendix exponent
+array (E_app) and the Coulomb kernel erf(√(αβ/(α+β)) R)/R (K_code), not eq 2.14's printed convention.
+QTPIE gains the implementation-level charge check TRIAGE 1 recorded as missing. HOLD stays (section 5).
+
+**Reported, not gated: the recovered geometries are round numbers under the reproducing arm only.**
+- **E_app / K_code:** NaCl R = 2.3610000 Å, and water's first O–H = 0.9700000 Å. That is to 7 digits,
+  as a hand-written xyz file would be.
+- **E_tab / K_code:** 2.3609820 and 0.9592407, which are not round.
+- This is independent corroboration that the reproducing arm's geometry is the test's actual geometry.
+
+**A limit on section 5's first clause, stated before going further.** E_tab differs from E_app in *all
+four* exponents, not only hydrogen's.
+- NaCl contains no hydrogen, so its decisive miss (2.4e-5) comes from the Na and Cl rounding.
+- Water's miss under E_tab, 1.26e-6, is only just over the tolerance.
+- **So run 1 identifies the exponent *set* the program used. It does not cleanly isolate hydrogen's
+  exponent.**
+
+### Amendment Q-A1: isolate hydrogen (registered after run 1, before computing it)
+
+- **Arm E_mix:** E_app with hydrogen alone set to Table 2.2's 0.5434, under K_code.
+- **Run:** the water recovery and prediction exactly as in section 4. NaCl is unaffected.
+- **Rule:**
+  - if E_mix water is determined and FAILS while E_app passes, the program's hydrogen exponent was the
+    appendix value 0.534337523756312;
+  - if E_mix water PASSES, water cannot distinguish the two hydrogen printings at this tolerance, and
+    the question stays open;
+  - if UNDETERMINED, it is recorded as undetermined.
+- **Reported beside the verdict:** |Δ|, and the recovered r₁, because a round r₁ is the same kind of
+  corroboration as above.
+- **This cannot change run 1's verdict.**
