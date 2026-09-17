@@ -85,6 +85,7 @@ saved as `nistor2006_si.pdf.pdf`, the name the fixture headers keep).
   charges (section 3.7).
   - Method i and iii R_eq10 come within 2e-3 e on SiH4 and CH4.
   - The larger molecules miss by up to 0.18 e.
+- **2026-09-17, see section 5:** ChargeFW2's SQE cannot express this model (Gaussian kernel), so no same-model implementation is identified.
 
 ### SQE: Mathieu 2007
 
@@ -118,6 +119,7 @@ saved as `nistor2006_si.pdf.pdf`, the name the fixture headers keep).
 - **Identifiability context:** `verstraelen2011` shows a charge-only
   least-squares fit is in general ill-conditioned, so reproducing Mathieu's
   metrics validates his parameters in use, not their uniqueness.
+- **2026-09-17, see section 5:** ChargeFW2's SQE splits over bonds with constant kappa, so it cannot hold Mathieu's pair splits and distance-dependent penalty.
 
 ### Oda & Hirono 2003
 
@@ -167,6 +169,7 @@ saved as `nistor2006_si.pdf.pdf`, the name the fixture headers keep).
 - **Verdict: HOLD**, on a charge-level numeric oracle.
 - `chen2008framework.pdf` is theory (atom-space and bond-space); its EPAPS is
   combinatorics. No oracle.
+- **2026-09-17, see section 5:** G1 HOLD stands; as a G2 model it is not assessed, and transcribing the thesis's Fortran is a decision for Alex.
 
 ### ACKS2: Verstraelen, Ayers, Van Speybroeck & Waroquier 2013
 
@@ -178,6 +181,7 @@ saved as `nistor2006_si.pdf.pdf`, the name the fixture headers keep).
 - **Runnable reference:** LAMMPS `fix acks2/reaxff` (ReaxFF-parameterised).
 - **Verdict: NO** as a molecular calculator now: there are no transferable
   parameters.
+- **2026-09-17, see section 5:** two recorded Crossref queries found no transferable molecular set.
 
 ### PQEq: Naserifar, Brooks, Goddard & Cvicek 2017
 
@@ -191,6 +195,7 @@ saved as `nistor2006_si.pdf.pdf`, the name the fixture headers keep).
   plots.
 - **Runnable reference:** none found.
 - **Verdict: HOLD** on a numeric oracle or a runnable implementation.
+- **2026-09-17, see section 5:** a runnable implementation exists (RexPoN, unlicensed LAMMPS code), so PQEq is a G2 candidate while G1 stays HOLD.
 
 ### EQeq: Wilmer, Kim & Snurr 2012
 
@@ -2300,3 +2305,113 @@ it is Alex's decision.
   polarizabilities identical to four decimals), unchanged and not generalised.
 - **SUPPORTING-NON-ORACLE-EVIDENCE:** Appendix A's source, which settled the
   overlap row; Table 2.2's exponents, now known not to recompute from §2.4.
+
+## 5. What would unblock each failure (2026-09-17)
+
+Alex asked, after round 4, whether anything more could *theoretically* be needed for the models
+that failed, and whether any of it is worth chasing. This section answers that. **No model verdict
+changes here; evidence states do.** The per-model record is
+`benchmarks/charges/models/unblock_inventory.csv` (16 rows, schema held by
+`tests/test_charge_unblock_inventory.py`). This is the brief.
+
+**Two families, decided with Alex the same day.** *G1* reproduces a published model in its own
+domain. *G2* serves drug-like molecules and is judged on held-out ordinary molecules. A model can
+hold a different status in each: PQEq is G1 HOLD and a G2 candidate at once.
+
+**Definitions used in the inventory.**
+- **TERMINAL:** the published record plus bounded, recorded searches show that what the stated goal
+  needs is unavailable, and no identified public alternative fills the same evidence role. Each
+  terminal row names its reopening condition.
+- **tool:** a blocker only when a named calculation needs an executable. A program that would merely
+  be convenient to compare against is not one.
+- **A G2 candidate needs all five:** transferable parameters for ordinary organic molecules; explicit
+  element and typing coverage; a published parameter source; a public implementation or explicit
+  equations; some evidence on a drug-like population. **Training-set reproduction is implementation
+  verification; only a held-out result is a G2 benchmark**, and the oracle is chosen in a
+  pre-registration, never after seeing numbers.
+
+### 5.1 What changed in the evidence
+
+- **A maintained runnable reference exists.** ChargeFW2 (`sb-ncbr/ChargeFW2`, MIT), pinned at
+  `19e73b248cc3983853892d3b42ca0e967a09954a`, implements EEM, SQE, QEq, EQeq, PEOE and more, with
+  parameter files. This record said "runnable reference: none found" for SQE. **But it is not a
+  second implementation of Nistor's or Mathieu's model**, read from its source:
+  - its SQE (`src/methods/sqe.cpp`) hard-codes a Gaussian erf kernel with per-atom widths, so
+    Nistor's ns Slater kernel cannot be expressed as a parameter file;
+  - it splits charge over bonds only, with one κ per bond type, while Mathieu splits over every
+    pair with r < r^W under a distance-dependent penalty (C, λ).
+- **A PQEq implementation exists:** `sabernaserifar/RexPoN` (pinned
+  `35845c983a60d93a158c903ecaa1b4847b155091`) carries LAMMPS `USER-PQEQ` and parameter files. It
+  declares **no licence**, so it can be read but not vendored, and running it is a LAMMPS build.
+  `msc-caltech/PQEq` is an empty repository. Two parameter extensions were found
+  ([source:oppenheim2018], [source:kwon2018]).
+- **Bultinck: our shipped set and ChargeFW2's differ by one digit.** Every ChargeFW2 Bultinck 2002
+  file cites **Part II** ([source:bultinck2002b]); ours is Part I's Table 1
+  ([source:bultinck2002a]). Its Mulliken set equals ours for F, H, N and O, and gives carbon
+  χ\* 5.26 eV against our 5.25. Part II is not held.
+- **Ionescu EX has a possible route.** ChargeFW2's `EEM_65_Ionescu2013_mpa_gas.json` is the
+  EX-MPA/6-31G\*/gas row of our Table S1 fixture, value for value (its metadata note says
+  6-31G\*\*, which is wrong). The paper's label for its third scheme is its own "iterative
+  Hirshfeld analysis (HiI)", computed with HiPart, so this record's wording stands.
+- **Two drug-like candidates, verified from their open-access papers and supplements:**
+  - [source:schindler2021]: SQE, B3LYP/6-311G/NPA, with 3D SDF datasets (CCD_gen 4443 molecules,
+    DTP_small 1956, PUB_pept 60), QM charge files, the train/test split and every parameter set
+    deposited. ChargeFW2's CCD_gen file equals the published one to 4 decimals (15 atom rows, 66
+    bond rows). The correction ([source:schindler2021_correction]) fixes a metrics table's
+    heading, not the parameters, so CCD_gen's chlorine row (hardness 73.952, width −1.8454) is the
+    published value. **Measured, not concluded:** 9 X–H bond hardnesses sit near −33 against a
+    hydrogen hardness of 36.3; the solve's conditioning is the first thing a study must measure.
+    The negative widths enter squared and do not matter.
+  - [source:geidl2015]: six EEM sets, HBO typing, **every hardness positive** (minimum 0.1508), all
+    six equal to ChargeFW2's files. Its structures are **not** deposited (NSC numbers, CORINA 3.60),
+    so it cannot be reproduced on its own population.
+
+### 5.2 Buildable next, ranked by value over cost
+
+**G2, drug-like:**
+1. **Schindler 2021 SQE, CCD_gen.** The one end-to-end source route found in four rounds: deposited
+   structures → HBO typing → published parameters → charges → deposited QM charges on the published
+   test split. Cost: an SQE solver with an erf kernel and bond-type κ, plus HBO typing. First step:
+   conditioning.
+2. **Geidl 2015 EEM, B3LYP/6-311G/NPA set.** Convex, and the shipped EEM solver form plus HBO typing
+   runs it. **Schindler's CCD_gen test split is computed at the same QM scheme** and drawn from
+   wwPDB's chemical component dictionary, not NCI, so it is a candidate held-out oracle. Overlap with
+   Geidl's NCI training set has to be measured before that is claimed.
+3. **PQEq.** Parameters held and an implementation exists, but it is unlicensed LAMMPS code: high
+   cost, and an install.
+
+**G1, reproduction:**
+1. **Bultinck Part II.** Low cost, and it settles whether the shipped carbon χ\* is the paper's.
+2. **The Ionescu nitrogen-class and calcium survey** (a validation extension). Medium cost, ORCA is
+   held.
+
+Everything else in the inventory is *no* or TERMINAL.
+
+### 5.3 Alex's decisions
+
+- Whether to pre-register a G2 study, and whether it starts with Schindler (5.2 G2-1).
+- Whether ChargeFW2 may be installed as a second implementation for the G2 candidates. It is not
+  needed to read their parameters, which is done.
+- Whether transcribing Chen's printed QTPIE Fortran is acceptable as a labelled reconstruction.
+
+**Paper requested:**
+- Bultinck et al. 2002, Part II, https://doi.org/10.1021/jp020547v, proposed filename
+  `bultinck2002_part2.pdf`. The existing `bultinck2002.pdf` is Part I.
+
+**Files to move into Sci Downloads:** this session could not write there. `geidl2015.pdf`,
+`schindler2021.pdf` and `schindler2021_correction.pdf`, with the supplements, are in the session
+scratchpad.
+
+### 5.4 Terminal, stated once
+
+Each reopens only on the named condition:
+- **Oda–Hirono:** the original structures.
+- **QEq A10 hydrogen:** the 1991 program.
+- **Vařeková 2007 and Jiroušková 2009:** an author deposit.
+- **EQeq's two out-of-cell MOFs:** structures that keep those positions.
+
+**Not terminal, but not worth chasing:**
+- **Nistor and Mathieu:** no same-model implementation exists, and ChargeFW2 cannot be one.
+- **ACKS2:** two recorded queries found no transferable molecular set.
+- **Bultinck 2004 AIM:** no deposited structures.
+- **Ionescu EX:** low value now that E ships.

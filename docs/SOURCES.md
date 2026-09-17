@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: bbfae71779410995497e673dff124b8f26f39f951f54cac4682952be63e6f109 -->
+<!-- SOURCE SHA256: ccae4ce9da1ef7d13a897ab304a827ffb34c2b0ce7ed6879f46c90a51f2158d9 -->
 
 # Sources
 
@@ -114,6 +114,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`brenk2008`](#brenk2008) | literature | shipped | citation |
 | [`brown2006`](#brown2006) | literature | **not shipped** | citation |
 | [`bultinck2002a`](#bultinck2002a) | literature | shipped | citation + claim |
+| [`bultinck2002b`](#bultinck2002b) | literature | reference only | citation |
 | [`cao2004`](#cao2004) | literature | shipped | citation + claim |
 | [`chelli1999`](#chelli1999) | literature | reference only | citation |
 | [`chen2007`](#chen2007) | literature | reference only | citation + claim |
@@ -139,6 +140,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`feinstein2015`](#feinstein2015) | literature | shipped | citation + claim |
 | [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation + claim |
 | [`gasteiger1985`](#gasteiger1985) | literature | **not shipped** | citation |
+| [`geidl2015`](#geidl2015) | literature | reference only | citation |
 | [`glasser1995`](#glasser1995) | literature | shipped | citation |
 | [`guo2006`](#guo2006) | literature | reference only | citation + claim |
 | [`gutmann1976`](#gutmann1976) | literature | shipped | citation + claim |
@@ -171,6 +173,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`krygowski1993`](#krygowski1993) | literature | shipped | citation + claim |
 | [`krykunov2017`](#krykunov2017) | literature | reference only | citation + claim |
 | [`kuchitsu1998`](#kuchitsu1998) | literature | reference only | citation + claim |
+| [`kwon2018`](#kwon2018) | literature | reference only | citation |
 | [`kwon2023`](#kwon2023) | dataset | shipped | citation + claim |
 | [`langes15`](#langes15) | reference_table | shipped | citation + claim |
 | [`llinas2008`](#llinas2008) | dataset | shipped | citation |
@@ -203,6 +206,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`ongari2018`](#ongari2018) | literature | reference only | citation + claim |
 | [`ons_solubility`](#ons_solubility) | dataset | shipped | citation |
 | [`openbabel`](#openbabel) | software | shipped | citation |
+| [`oppenheim2018`](#oppenheim2018) | literature | reference only | citation |
 | [`opsin`](#opsin) | software | shipped | citation |
 | [`orca`](#orca) | software | shipped | citation |
 | [`osha_1910_1000`](#osha_1910_1000) | legal | shipped | citation + claim |
@@ -223,6 +227,8 @@ next run of `tools/build_lewis_parameters.py`.
 | [`rdkit`](#rdkit) | software | shipped | citation |
 | [`rdkit_bertz`](#rdkit_bertz) | software | shipped | citation + claim |
 | [`ruttkies2016`](#ruttkies2016) | literature | reference only | citation |
+| [`schindler2021`](#schindler2021) | literature | reference only | citation |
+| [`schindler2021_correction`](#schindler2021_correction) | literature | reference only | citation |
 | [`schott1989`](#schott1989) | literature | shipped | citation + claim |
 | [`sci_downloads_note`](#sci_downloads_note) | reference_table | reference only | citation |
 | [`sefcik2002`](#sefcik2002) | literature | reference only | citation + claim |
@@ -3799,6 +3805,132 @@ dozens of five-membered rings; transcribing it is a validation-expansion
 task, not a prerequisite. This paper also states the problem that made it
 necessary: "Only for a limited number of compounds has a precisely defined
 experimental geometry been measured."
+
+### geidl2015
+
+<a id="geidl2015"></a>
+
+> S. Geidl, T. Bouchal, T. Raček, R. Svobodová Vařeková, V. Hejret, A. Křenek, R. Abagyan & J. Koča, 'High-quality and universal empirical atomic charges for chemoinformatics applications', J. Cheminform. 2015, 7, 59.
+
+| | |
+| --- | --- |
+| Identifier | [10.1186/s13321-015-0107-1](https://doi.org/10.1186/s13321-015-0107-1) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-17 |
+
+**Why it is reference only.** A DRUG-LIKE (G2) EEM CANDIDATE, ASSESSED FOR WHAT WOULD UNBLOCK IT AND NOT
+IMPLEMENTED. Open access (CC BY). Read 2026-09-17 with its additional files 1,
+2, 3 and 6; identity from the PDF's own DOI line and Crossref.
+- Six EEM parameter sets (B3LYP and HF / 6-311G / MPA, NPA, AIM), 17 atom
+  types by highest bond order, every B positive (minimum 0.1508). All six are
+  value-for-value equal to ChargeFW2's EEM_10_Cheminf parameter files at commit
+  19e73b248cc3983853892d3b42ca0e967a09954a.
+- The training set is 4475 NSC numbers with summary formulas; its 3D
+  structures came from CORINA 3.60 and are not deposited. The charge details
+  hold per-atom QM and EEM charges for 691 molecules, also without coordinates.
+  So a source reproduction cannot use the paper's exact structures.
+The record is `benchmarks/charges/models/unblock_inventory.csv` and TRIAGE §5.
+The PDF and additional files were fetched into the session scratchpad, not yet
+into Sci Downloads, so no `local` is recorded.
+
+### schindler2021
+
+<a id="schindler2021"></a>
+
+> O. Schindler, T. Raček, A. Maršavelski, J. Koča, K. Berka & R. Svobodová, 'Optimized SQE atomic charges for peptides accessible via a web application', J. Cheminform. 2021, 13, 45.
+
+| | |
+| --- | --- |
+| Identifier | [10.1186/s13321-021-00528-w](https://doi.org/10.1186/s13321-021-00528-w) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-17 |
+
+**Why it is reference only.** A DRUG-LIKE (G2) SQE CANDIDATE, AND THE MOST REPRODUCIBLE ROUTE FOUND. Open
+access (CC BY). Read 2026-09-17 with additional files 2, 3, 4 and 7; identity
+from the PDF's own DOI line and Crossref.
+- Deposited: 3D SDF for CCD_gen (4443 molecules), DTP_small (1956) and
+  PUB_pept (60); QM charge files; the train/test split; every parameter set.
+- ChargeFW2's SQE_10_Schindler2021_CCD_gen parameter file (commit
+  19e73b248cc3983853892d3b42ca0e967a09954a) equals the published CCD_gen set to
+  4 decimals, 15 atom rows and 66 bond rows.
+- Measured, not concluded: 9 X–H bond hardnesses sit near −33 against a
+  hydrogen hardness of 36.3, so the solve's conditioning is the first thing any
+  study must measure. The 7 negative widths enter the kernel squared.
+See also `schindler2021_correction`, TRIAGE §5 and the unblock inventory. Fetched
+into the session scratchpad, not yet Sci Downloads, so no `local`.
+
+### schindler2021_correction
+
+<a id="schindler2021_correction"></a>
+
+> O. Schindler, T. Raček, A. Maršavelski, J. Koča, K. Berka & R. Svobodová, 'Correction to: Optimized SQE atomic charges for peptides accessible via a web application', J. Cheminform. 2021, 13, 52.
+
+| | |
+| --- | --- |
+| Identifier | [10.1186/s13321-021-00531-1](https://doi.org/10.1186/s13321-021-00531-1) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-17 |
+
+**Why it is reference only.** Read in full 2026-09-17. It corrects the misaligned heading of Table 2, which is
+a table of fit metrics (R², RMSD, RMSDat, parameterisation time), NOT a
+parameter table. So it does not bear on the published parameter values,
+including CCD_gen's chlorine row, which the parameter file prints as it is.
+
+### bultinck2002b
+
+<a id="bultinck2002b"></a>
+
+> P. Bultinck, W. Langenaeker, P. Lahorte, F. De Proft, P. Geerlings, C. Van Alsenoy & J. P. Tollenaere, 'The Electronegativity Equalization Method II: Applicability of Different Atomic Charge Schemes', J. Phys. Chem. A 2002, 106, 7895-7901.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/jp020547v](https://doi.org/10.1021/jp020547v) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-17 |
+
+**Why it is reference only.** NOT HELD; checked on Crossref only. Part II, distinct from `bultinck2002a`
+(Part I, which the shipped EEM uses). Every ChargeFW2 Bultinck 2002 parameter
+file cites this paper. Its Mulliken file equals the shipped Part I Table 1 for
+F, H, N and O but gives carbon chi* 5.26 eV where the shipped set has 5.25.
+Which one Part II prints is unknown until the paper is read; it is a request
+in TRIAGE §5.
+
+### oppenheim2018
+
+<a id="oppenheim2018"></a>
+
+> J. J. Oppenheim, S. Naserifar & W. A. Goddard, 'Extension of the Polarizable Charge Equilibration Model to Higher Oxidation States with Applications to Ge, As, Se, Br, Sn, Sb, Te, I, Pb, Bi, Po, and At Elements', J. Phys. Chem. A 2018, 122, 639-645.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jpca.7b06612](https://doi.org/10.1021/acs.jpca.7b06612) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-17 |
+
+**Why it is reference only.** NOT HELD; checked on Crossref only (published online 2017-11-28, volume 122).
+A PQEq parameter extension found by the bounded search recorded in the charge
+unblock inventory. Context for PQEq's G2 feasibility, not read.
+
+### kwon2018
+
+<a id="kwon2018"></a>
+
+> S. Kwon, S. Naserifar, H. M. Lee & W. A. Goddard, 'Polarizable Charge Equilibration Model for Transition-Metal Elements', J. Phys. Chem. A 2018, 122, 9350-9358.
+
+| | |
+| --- | --- |
+| Identifier | [10.1021/acs.jpca.8b07290](https://doi.org/10.1021/acs.jpca.8b07290) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-17 |
+
+**Why it is reference only.** NOT HELD; checked on Crossref only. A PQEq parameter extension found by the
+same bounded search. Context for PQEq's G2 feasibility, not read.
 
 ### glasser1995
 
