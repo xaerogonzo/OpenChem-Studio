@@ -83,6 +83,9 @@ The script is a JSON list of steps, run in order:
                                                       and the identity the
                                                       SERVICE was handed
       {"do": "inspector_report", "expect_spectrum": "stale"}   asserts it
+      {"do": "process_report",   "modules": ["openchem.chem.engine"]}  pid,
+                                              HEAD, and where each module
+                                              was imported from
       {"do": "quit"}
     ]
 
@@ -4345,6 +4348,42 @@ class _Driver(QObject):
             wanted,
             [tabs.tabText(i) for i in range(tabs.count())],
         )
+
+    def _do_process_report(self, step: dict[str, Any]) -> None:
+        """`{"do": "process_report", "modules": ["openchem.chem.engine"]}` --
+        which process this is, and which source tree each named module came from.
+
+        **A MIXED-MODULE PROCESS LOOKS EXACTLY LIKE A CODE BUG.** Measured
+        2026-09-17: an app left running across a merge raised
+        `render_2d_svg() got an unexpected keyword argument 'emphasised_atom'`,
+        because `engine.py` was imported before the merge and the inspector
+        dialog after it. The traceback named a real call and a real
+        signature; only the module paths and the commit say whether the
+        process and the checkout agree. Modules not yet imported are imported
+        here, which is what the dialog's own lazy import would do.
+        """
+        import importlib
+        import subprocess
+        import sys
+
+        head = ""
+        try:
+            head = subprocess.run(
+                ["git", "rev-parse", "HEAD"], capture_output=True, text=True, timeout=10,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            ).stdout.strip()
+        except Exception:  # noqa: BLE001 - a report must not stop the run
+            pass
+        logger.warning(
+            "OPENCHEM_DRIVE: process_report pid=%d cwd=%s head=%s python=%s",
+            os.getpid(), os.getcwd(), head or "?", sys.executable,
+        )
+        for name in step.get("modules") or []:
+            try:
+                module = importlib.import_module(str(name))
+                logger.warning("OPENCHEM_DRIVE: process_report module %s -> %s", name, module.__file__)
+            except Exception as exc:  # noqa: BLE001
+                logger.error("OPENCHEM_DRIVE: process_report module %s failed: %s", name, exc)
 
     def _do_wait(self, step: dict[str, Any]) -> None:
         """Nothing; the pause is `after_ms`. Present so a script can say
