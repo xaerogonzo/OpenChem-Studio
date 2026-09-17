@@ -8,7 +8,8 @@
 | commit | `c3eac17ffd110c7c5dd37aaad2955e06cf8c9303` |
 | licence | MIT — see `LICENSE.open-iupac-namer` (copyright retained) |
 | vendored | 2026-08-01 |
-| fork | https://github.com/xaerogonzo/open-iupac-namer (this project's fixes, standalone) |
+| fork | https://github.com/xaerogonzo/open-iupac-namer (this project's fixes, standalone) |
+| fork commit | `d9b5ab7` — synced 2026-09-17 from `db4e3ed`, corresponding to this repository's `naming-round-2` |
 | offered upstream | https://github.com/leehiufung911/open-iupac-namer/pull/1 |
 
 ### Why vendored rather than depended on
