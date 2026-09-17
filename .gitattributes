@@ -17,3 +17,8 @@
 # This file is not ours. Its digest answers "is this the document we read",
 # so it has to be the document's own bytes.
 src/openchem/chem/data/regulatory/sources/*.xml -text
+
+# Published parameter files copied byte for byte from a paper's supplement, for the same reason:
+# their READMEs record the supplement's own SHA-256, which CRLF expansion would change.
+tests/fixtures/charges/schindler2021/SQE_CCD_gen_parameters.json -text
+tests/fixtures/charges/geidl2015/B3LYP_6-311G_NPA.par -text
