@@ -497,6 +497,11 @@ class MoleculeEditorWidget(QWidget):
                 # a payload and a stored result agree on what "this drawing"
                 # means.
                 "fingerprint": input_fingerprint(self._engine, self._molecule, DRAWING),
+                # WHAT THE PAGE CHECKS. The fingerprint is for a person and a
+                # log; this is the one identity both sides can compute, so a
+                # payload for the previous structure is refused rather than
+                # drawn on a plausible wrong atom.
+                "structure": atom_numbering.structure_key(molblock),
                 "labels": {str(position): text for position, text in labels.items()},
             }
         )

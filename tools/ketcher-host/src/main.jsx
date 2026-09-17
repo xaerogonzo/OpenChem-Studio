@@ -1276,6 +1276,27 @@ function atomTopologyKey(struct) {
   return parts.join('|')
 }
 
+// THE KEY PYTHON CAN ALSO COMPUTE, which the one above is not: it carries
+// pool ids, and Python has never seen them. Elements in MOLFILE POSITION
+// order plus the bond count, so the two sides can compare what they are
+// each holding.
+//
+// **WITHOUT THIS THE PAGE CANNOT SPOT A STALE PAYLOAD.** Labels computed for
+// the structure before an edit resolve perfectly well against the structure
+// after it whenever the atom count did not shrink -- every number then lands
+// on a plausible wrong atom, which is the failure the fail-closed check was
+// supposed to prevent and did not. The generation counter cannot see it
+// either: a later payload is not necessarily a payload for what is on
+// screen.
+function atomElementKey(struct) {
+  if (!struct) return null
+  const parts = []
+  struct.atoms.forEach(function (atom) {
+    parts.push(atom.label || '*')
+  })
+  return parts.join(',') + '|b' + struct.bonds.size
+}
+
 function clearAtomNumbers() {
   if (numberLayer) {
     numberLayer.style.display = 'none'
@@ -1298,6 +1319,21 @@ function showAtomNumbers(payload) {
   const struct = ketcherInstance ? ketcherInstance.editor.struct() : null
   if (!payload || !struct) return clearAtomNumbers()
   const labels = payload.labels || {}
+  // The payload says which structure it is FOR. Refuse it whole if that is
+  // not the structure on the canvas -- and refuse it if it does not say,
+  // because an ABSENT key would disable this check silently, which is the
+  // way a fail-closed guard usually stops being one. Every payload the
+  // application sends carries it.
+  const live = atomElementKey(struct)
+  if (!payload.structure || payload.structure !== live) {
+    const reason = payload.structure
+      ? 'payload is for a different structure (' + payload.structure + ' vs ' + live + ')'
+      : 'payload does not say which structure it is for'
+    clearAtomNumbers()
+    numberState.dropped = Object.keys(labels).length
+    numberState.reason = reason
+    return 0
+  }
   const positions = Object.keys(labels)
   const resolved = []
   for (let i = 0; i < positions.length; i++) {

@@ -1432,9 +1432,13 @@ def test_the_numbers_are_drawn_ON_SCREEN_at_the_positions_python_named(qapp):
     backend.load_molblock(_CHIRAL_ALKENE)
     assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
 
-    backend.set_atom_numbers(
-        {"generation": 1, "fingerprint": "fp", "labels": {"0": "1", "2": "3"}}
-    )
+    from openchem.chem.atom_numbering import structure_key
+
+    backend.set_atom_numbers({
+        "generation": 1, "fingerprint": "fp",
+        "structure": structure_key(_get_molblock_sync(qapp, backend)),
+        "labels": {"0": "1", "2": "3"},
+    })
 
     def report():
         raw = _run_js(qapp, backend, "window.openchemAtomNumbers.report()")
@@ -1458,9 +1462,13 @@ def test_a_label_for_an_atom_that_does_not_exist_draws_NOTHING(qapp):
     backend.load_molblock(_CHIRAL_ALKENE)
     assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
 
-    backend.set_atom_numbers(
-        {"generation": 1, "fingerprint": "fp", "labels": {"0": "1", "99": "100"}}
-    )
+    from openchem.chem.atom_numbering import structure_key
+
+    backend.set_atom_numbers({
+        "generation": 1, "fingerprint": "fp",
+        "structure": structure_key(_get_molblock_sync(qapp, backend)),
+        "labels": {"0": "1", "99": "100"},
+    })
 
     def report():
         raw = _run_js(qapp, backend, "window.openchemAtomNumbers.report()")
@@ -1470,4 +1478,101 @@ def test_a_label_for_an_atom_that_does_not_exist_draws_NOTHING(qapp):
     drawn = report()
     assert drawn["drawn"] == 0 and drawn["screen"] == [], drawn
     assert "99" in drawn["reason"], drawn
+    backend.widget().hide()
+
+
+def test_a_payload_for_a_DIFFERENT_structure_draws_nothing(qapp):
+    """THE STALE PAYLOAD THE POSITION CHECK CANNOT CATCH.
+
+    Labels computed before an edit resolve perfectly well against the
+    structure after it whenever the atom count did not shrink -- so every
+    number lands on a plausible wrong atom, and a generation counter cannot
+    see it either, because a later payload is not necessarily a payload for
+    what is on screen.
+
+    So the payload carries a structure key both sides can compute (elements
+    in molfile-position order plus the bond count) and the page refuses one
+    that does not describe the canvas.
+    """
+    import json
+
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_CHIRAL_ALKENE)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+
+    def report():
+        raw = _run_js(qapp, backend, "window.openchemAtomNumbers.report()")
+        return json.loads(raw) if raw else {}
+
+    # The structure really is the one the good payload names: assert the
+    # setup, or a refusal for the wrong reason would look like a pass.
+    live = _run_js(qapp, backend, """
+      (function () {
+        var s = window.ketcher.editor.struct();
+        var parts = [];
+        s.atoms.forEach(function (a) { parts.push(a.label || '*'); });
+        return parts.join(',') + '|b' + s.bonds.size;
+      })()
+    """)
+    assert live and live.count(",") > 0, live
+
+    backend.set_atom_numbers(
+        {"generation": 1, "fingerprint": "fp", "structure": live, "labels": {"0": "1"}}
+    )
+    assert _wait_until(qapp, lambda: report().get("drawn") == 1)
+
+    # Now a payload for a DIFFERENT structure whose positions all resolve.
+    backend.set_atom_numbers(
+        {"generation": 2, "fingerprint": "fp2", "structure": "C,C|b1", "labels": {"0": "1"}}
+    )
+
+    assert _wait_until(qapp, lambda: "different structure" in report().get("reason", ""))
+    stale = report()
+    assert stale["drawn"] == 0 and stale["screen"] == [], stale
+    backend.widget().hide()
+
+
+def test_the_structure_key_is_the_one_the_page_computes(qapp):
+    """Both sides must compute the SAME key or the guard above refuses every
+    payload -- a fail-closed guard that always fires is an outage, not a
+    guard. Asserted against the real page rather than against a copy of the
+    formula."""
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_CHIRAL_ALKENE)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+
+    from openchem.chem.atom_numbering import structure_key
+
+    page = _run_js(qapp, backend, """
+      (function () {
+        var s = window.ketcher.editor.struct();
+        var parts = [];
+        s.atoms.forEach(function (a) { parts.push(a.label || '*'); });
+        return parts.join(',') + '|b' + s.bonds.size;
+      })()
+    """)
+    molblock = _get_molblock_sync(qapp, backend)
+
+    assert page == structure_key(molblock), (page, structure_key(molblock))
+    backend.widget().hide()
+
+
+def test_a_payload_that_does_not_say_which_structure_is_refused(qapp):
+    """An ABSENT key must not disable the check -- that is how a fail-closed
+    guard quietly stops being one. Every payload the application sends
+    carries it."""
+    import json
+
+    backend = _ready_backend(qapp, shown=True)
+    backend.load_molblock(_CHIRAL_ALKENE)
+    assert _wait_until(qapp, lambda: (_get_molblock_sync(qapp, backend) or "").strip() != "")
+
+    backend.set_atom_numbers({"generation": 1, "fingerprint": "fp", "labels": {"0": "1"}})
+
+    def report():
+        raw = _run_js(qapp, backend, "window.openchemAtomNumbers.report()")
+        return json.loads(raw) if raw else {}
+
+    assert _wait_until(qapp, lambda: "does not say" in report().get("reason", ""))
+    assert report()["drawn"] == 0
     backend.widget().hide()

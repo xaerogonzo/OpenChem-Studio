@@ -97,6 +97,26 @@ def _labels_cached(molblock: str, mode: str) -> tuple[dict[int, str], str]:
     return labels, _locant_status(annotation)
 
 
+def structure_key(molblock: str) -> str:
+    """The structure identity the PAGE can check a payload against.
+
+    Elements in molfile-position order plus the bond count -- the one thing
+    both sides can compute, since the editor's own key is made of pool ids
+    Python has never seen.
+
+    **A PAYLOAD WITHOUT THIS CANNOT BE REFUSED WHEN IT IS STALE.** Labels
+    computed before an edit resolve perfectly against the structure after it
+    whenever the atom count did not shrink, so every number lands on a
+    plausible wrong atom -- and a generation counter cannot see that, because
+    a later payload is not necessarily a payload for what is on screen.
+    """
+    mol = Chem.MolFromMolBlock(molblock, sanitize=False, removeHs=False)
+    if mol is None:
+        return ""
+    elements = ",".join(atom.GetSymbol() for atom in mol.GetAtoms())
+    return f"{elements}|b{mol.GetNumBonds()}"
+
+
 def _locant_status(annotation) -> str:
     """The status line for a successful annotation, numbered or not."""
     total = annotation.atom_count
