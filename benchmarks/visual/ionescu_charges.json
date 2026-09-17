@@ -1,0 +1,29 @@
+[
+  {"do": "smiles", "smiles": "C[C@H](CS)C(=O)N1CCC[C@H]1C(=O)O", "name": "Captopril", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 1, "after_ms": 15000},
+  {"do": "calculator", "id": "geometry_partial_charge", "parameters": {"method": "eem_ionescu2013_e_mpa_631gs_gas"}, "reveal": false, "after_ms": 6000},
+  {"do": "result_report", "tag": "captopril-ionescu", "calculator": "geometry_partial_charge", "expect_refusal": "", "after_ms": 500},
+  {"do": "panel", "id": "Properties", "after_ms": 2000},
+  {"do": "expand", "section": "charge", "after_ms": 1500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/ionescu_captopril.png", "after_ms": 1000},
+  {"do": "results", "focus": "geometry_partial_charge", "tag": "captopril-reader", "after_ms": 1500},
+  {"do": "fact_rows_report", "tag": "captopril-finding", "label": "Finding", "after_ms": 500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/ionescu_captopril_reader.png", "widget": "results", "after_ms": 1000},
+
+  {"do": "smiles", "smiles": "Cc1cc(NS(=O)(=O)c2ccc(N)cc2)no1", "name": "Sulfamethoxazole", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 1, "after_ms": 15000},
+  {"do": "calculator", "id": "geometry_partial_charge", "parameters": {"method": "eem_ionescu2013_e_mpa_631gs_gas"}, "reveal": false, "after_ms": 6000},
+  {"do": "result_report", "tag": "sulfamethoxazole-ionescu", "calculator": "geometry_partial_charge", "expect_refusal": "REFUSE_OXIDISED_SULFUR", "after_ms": 500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/ionescu_sulfamethoxazole_refused.png", "after_ms": 1000},
+
+  {"do": "smiles", "smiles": "Clc1ccccc1", "name": "Chlorobenzene", "after_ms": 3000},
+  {"do": "select", "molecule": -1, "after_ms": 3000},
+  {"do": "conformers", "count": 1, "after_ms": 10000},
+  {"do": "calculator", "id": "geometry_partial_charge", "parameters": {"method": "eem_ionescu2013_e_mpa_631gss_gas"}, "reveal": false, "after_ms": 6000},
+  {"do": "result_report", "tag": "chlorobenzene-ionescu", "calculator": "geometry_partial_charge", "expect_refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED", "after_ms": 500},
+  {"do": "shot", "path": "benchmarks/visual/artifacts/ionescu_chlorobenzene_refused.png", "after_ms": 1000},
+
+  {"do": "quit"}
+]

@@ -111,6 +111,14 @@ IONESCU_VALIDATION_SCOPE = (
     "and not an energy minimum."
 )
 
+#: What the reader shows beside every computed Ionescu result.
+IONESCU_EXTRAPOLATION_NOTE = (
+    "An extrapolation: Ionescu's model was validated on protein fragments, and nothing here checks "
+    "whether this molecule is like one. It can be wrong in sign without refusing."
+)
+#: Added when an element with a negative effective hardness is present (preregistration §4).
+IONESCU_SADDLE_NOTE = "These charges are the model's stationary point, not an energy minimum."
+
 #: A8's validation scope, verbatim. Recorded beside a QEq result as how the
 #: method was validated; it is not part of what was computed.
 QEQ_VALIDATION_SCOPE = (
@@ -417,6 +425,7 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
     elif method in IONESCU_SCHEMES:
         scheme = IONESCU_SCHEMES[method]
         model = ce.ionescu_parameters()[scheme]
+        stationary = ce.ionescu_stationary_point(elements, scheme)
         computed = {
             "parameter_set": f"ionescu_2013_table_S1_{scheme}",
             "scheme": scheme,
@@ -427,11 +436,14 @@ def compute_geometry_charges(mol: Chem.Mol, molecule_uuid: str, parameters: dict
             "parameter_checksum": ce.payload_checksum(model),
             "equalized_electronegativity_paper_units": result.equalized_electronegativity_paper_units,
             # Exact, not estimated: preregistration §4 checked it on 1644 solves.
-            "stationary_point": ce.ionescu_stationary_point(elements, scheme),
+            "stationary_point": stationary,
             # No detector can say "this is a protein fragment" (§10.4 option A is deferred), so every
             # computed result is labelled an extrapolation rather than claiming a domain it cannot test.
             "applicability": "extrapolation",
             "charge_bound": ce.IONESCU_CHARGE_BOUND,
+            # The reader's "Finding" row: the one channel a provenance field reaches the screen by, so
+            # the extrapolation is read beside the numbers rather than only stored with them.
+            "summary": IONESCU_EXTRAPOLATION_NOTE + (f" {IONESCU_SADDLE_NOTE}" if stationary == "saddle" else ""),
             "validation": {"preregistration": "benchmarks/charges/models/ionescu_src_preregistration.md",
                            "scope_id": IONESCU_SCOPE_ID},
         }

@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Charge ▸ Partial Charge (3D): Ionescu 2013's EEM, two of its 24 models.**
+  The Mulliken gas-phase models at 6-31G\* and 6-31G\*\*, for H, C, N, O, S
+  and Ca. The implementation reproduces the paper's own EEM charges on its
+  protein fragments and two test proteins (36 of 36 model-by-dataset rows),
+  and that is the whole of its validation.
+  - **On anything that is not a protein fragment it is an extrapolation**, and
+    every result says so on screen. It can be wrong in sign without refusing.
+  - **Two refusals, both from measurements.** A sulfur bonded to oxygen is
+    refused: every sulfoxide, sulfone and sulfonamide checked came back wrong
+    by 0.84 to 1.75 e. A charge beyond 2.051 e, the most the model reaches on
+    its own validation proteins, is refused as a runaway solve.
+  - **Its energy has no minimum when sulfur is present**, because the paper's
+    sulfur hardness is negative; the result says when that is the case.
+  - The other 22 models are not offered: only these two were measured off
+    their protein domain. Why, and why the guards above amount to a patch
+    stack worth reworking, is in
+    `benchmarks/charges/models/ionescu_src_preregistration.md`.
+
 - **Partial charges for a crystal (EQeq).** Opening a CIF now reports the
   charge on every atom of the unit cell, by element, with the spread beside
   the mean. It is the first calculation in the application that is about a

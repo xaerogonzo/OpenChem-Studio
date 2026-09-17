@@ -294,3 +294,18 @@ def test_the_drawing_is_refused_as_for_every_other_method():
     result = gc.compute_geometry_charges(mol, "u", {"method": "eem_ionescu2013_e_mpa_631gs_gas"})
     assert result.provenance.parameters["refusal"] == gc.REFUSE_NO_3D_GEOMETRY
     assert "Ionescu EEM needs 3D coordinates" in result.error
+
+
+def test_the_reader_is_told_it_is_an_extrapolation_and_when_it_is_a_saddle():
+    """`summary` is the provenance field the reader shows as its "Finding" row; nothing else reaches the screen."""
+    from openchem.ui.result_adapters import _producer_finding  # the reader's own projection
+    from openchem.domain.report import FactCategory
+
+    saddle = gc.compute_geometry_charges(_conformer("CSC"), "u", {"method": "eem_ionescu2013_e_mpa_631gs_gas"})
+    minimum = gc.compute_geometry_charges(_conformer("CCO"), "u", {"method": "eem_ionescu2013_e_mpa_631gs_gas"})
+    for result, saddle_expected in ((saddle, True), (minimum, False)):
+        (finding,) = _producer_finding(result, next(iter(FactCategory)))
+        assert gc.IONESCU_EXTRAPOLATION_NOTE in finding.display_value
+        assert (gc.IONESCU_SADDLE_NOTE in finding.display_value) is saddle_expected
+    bultinck = gc.compute_geometry_charges(_conformer("CCO"), "u", {})
+    assert "summary" not in bultinck.provenance.parameters

@@ -1127,6 +1127,33 @@ they are, and are not:
       LiH's charge within 1e-4 e. No small change of structure brings the
       HF-fitted methanol or formamide cells into tolerance.
   - The whole record is `benchmarks/charges/rappe_goddard/README.md`.
+- **Ionescu's EEM ships two of its 24 models, validated on proteins only.**
+  E-MPA/6-31G\*/gas and E-MPA/6-31G\*\*/gas, which Ionescu et al. 2013 fitted to
+  HF Mulliken charges on protein fragments. What is established is an
+  implementation reproduction: all 12 of the paper's E models give its own EEM
+  charges on its training fragments, insulin and ubiquitin (36 of 36 rows, r in
+  ångström; the bohr reading fails all 36). The EX models are not offered: they
+  need bond orders the deposited PDB fragments do not carry.
+  - **Everything else is an extrapolation, and it is labelled one.** Nothing
+    here tests whether a molecule resembles a protein fragment, so every
+    computed result says it is an extrapolation.
+  - **It can be wrong without refusing.** Against RHF Mulliken charges on 94
+    small molecules, an atom with the wrong sign (where |q| ≥ 0.10 e) or off by 0.5 e or more appeared in 16–18% of
+    the nitrogen compounds and 5–8% of the CHO ones. Sulfur bonded to oxygen
+    failed every time (0.84–1.75 e), so it is refused; other sulfur stayed
+    within 0.31 e except thiourea (0.53).
+  - **A charge beyond 2.051 e is refused.** That is the largest the 12 models
+    reach on their own validation proteins, so it cannot refuse that
+    population. It catches runaway solves and nothing else.
+  - **The published energy is not convex.** Seventeen of the paper's 72 E-model
+    hardness values are negative, sulfur's in both shipped models, and exactly
+    the structures containing such an element have a saddle point where a
+    minimum would be (checked on 1,644 solves). The charges are still unique;
+    the result records which kind of point they are.
+  - **These guards treat symptoms of one cause**, the negative hardnesses, and
+    are recorded as such for a later rework in
+    `benchmarks/charges/models/ionescu_src_preregistration.md` §10.
+  - Not offered to the dipole or ESP views.
 - **A result filed by a build is not re-run by a fix.** The method code in a
   result's identity names the scientific method and parameter set; which
   build computed it is the application version, and today that invalidates
