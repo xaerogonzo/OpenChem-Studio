@@ -1,0 +1,48 @@
+{
+ "reading": "R_minus",
+ "stage": "B-A1",
+ "test": {
+  "A1_pooled": {
+   "R2": 0.9952315779680927,
+   "RMSD": 0.02794269986131189,
+   "matches": {
+    "R2": true,
+    "RMSD": true
+   }
+  },
+  "A1_rounded_mean": {
+   "R2": 0.9939,
+   "RMSD": 0.027,
+   "matches": {
+    "R2": false,
+    "RMSD": false
+   }
+  },
+  "printed": {
+   "R2": 0.9952,
+   "RMSD": 0.0279
+  }
+ },
+ "train": {
+  "A1_pooled": {
+   "R2": 0.9953156505749886,
+   "RMSD": 0.02822057815031008,
+   "matches": {
+    "R2": true,
+    "RMSD": true
+   }
+  },
+  "A1_rounded_mean": {
+   "R2": 0.9938,
+   "RMSD": 0.0273,
+   "matches": {
+    "R2": false,
+    "RMSD": false
+   }
+  },
+  "printed": {
+   "R2": 0.9953,
+   "RMSD": 0.0282
+  }
+ }
+}
