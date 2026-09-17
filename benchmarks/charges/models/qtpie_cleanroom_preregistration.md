@@ -216,3 +216,5 @@ Stated plainly, because the margin looks small:
 **Records to update once #123 merges.** TRIAGE §1 (QTPIE) and 3.10, and the unblock-inventory row for
 QTPIE: the G1 charge oracle is no longer missing, and HOLD stays for the reasons in section 5. They are
 not edited on this branch, to avoid conflicting with #123's changes to the same sections.
+
+**Records updated, 2026-09-17, after #123, #124 and #125 merged:** TRIAGE section 1 (QTPIE), 3.10 (the hydrogen addendum, and a correction to the thesis-read line: the charge oracle was found in the unread test program) and 5.3, plus the unblock-inventory QTPIE row. The row keeps G1 HOLD, with the primary blocker now data: a population-level oracle.

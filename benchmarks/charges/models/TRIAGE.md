@@ -170,6 +170,16 @@ saved as `nistor2006_si.pdf.pdf`, the name the fixture headers keep).
 - `chen2008framework.pdf` is theory (atom-space and bond-space); its EPAPS is
   combinatorics. No oracle.
 - **2026-09-17, see section 5:** G1 HOLD stands; as a G2 model it is not assessed, and transcribing the thesis's Fortran is a decision for Alex.
+- **2026-09-17, later: a charge-level check now exists, and HOLD stands on narrower grounds.**
+  - **The source:** Chen's thesis test program (Appendix A) prints per-atom QEq(-H) and QTPIE charges
+    for NaCl and water.
+  - **The check** (`qtpie_cleanroom_preregistration.md`). An independent implementation of the thesis's
+    atom-space equations (3.21 and 3.25), with the geometries recovered from the printed QEq charges,
+    **reproduces both QTPIE predictions**: 1.2e-8 e for NaCl and 7.5e-12 e for water. It needs the
+    appendix Gaussian exponents and the kernel erf(√(αβ/(α+β)) R)/R.
+  - **Why HOLD stays:** two molecules at test geometries are not a population, and the parameters are
+    QEq's, unfitted for QTPIE.
+  - **Not transcribed:** the Fortran itself, because the thesis is under arXiv's non-exclusive licence.
 
 ### ACKS2: Verstraelen, Ayers, Van Speybroeck & Waroquier 2013
 
@@ -2243,6 +2253,18 @@ extracted text:
 printings, not a finding about which is the fit. LAMMPS's example gfile uses
 the table's value.
 
+**Addendum, 2026-09-17: which printing the thesis's own program ran with is now
+known; which is the fit is not.**
+- The clean-room check (`qtpie_cleanroom_preregistration.md`, amendment Q-A1) changed only
+  hydrogen's exponent, to 0.5434, and water's printed QTPIE charge then fails
+  (1.25e-6 against a 1e-6 tolerance), with a non-round recovered geometry.
+- The appendix value reproduces it to 7.5e-12 e, at a round 0.9700000 Å.
+- So the program behind Chen's printed test charges used **0.534337523756312**.
+- LAMMPS's example gfile therefore uses a hydrogen exponent the thesis's own
+  program did not.
+- Eq 2.14's printed kernel convention was not the one used either: no geometry
+  fits under it.
+
 #### Part 1: the component fingerprint
 
 Three sources: Chen's QTPIE **as published** (2007; thesis eq 2.9, "a scaled
@@ -2301,6 +2323,10 @@ it is Alex's decision.
   routines, plus a search for "overlap" over all 245 pages. A caption scan of
   every table and figure was **not** done in this check, so this is not yet
   the permanent "full read" the plan defines.
+  - **Corrected 2026-09-17: FOUND, in a part that had not been read.** Appendix A's
+    test program prints per-atom QEq(-H) and QTPIE charges for NaCl and water, to
+    12 or more digits. The clean-room check reproduces them (see the section 1
+    record).
 - **PRINTED-NUMERICAL-IDENTITY:** Table 2.1 (QEq(-H) and QTPIE
   polarizabilities identical to four decimals), unchanged and not generalised.
 - **SUPPORTING-NON-ORACLE-EVIDENCE:** Appendix A's source, which settled the
@@ -2402,6 +2428,14 @@ Everything else in the inventory is *no* or TERMINAL.
 - Whether ChargeFW2 may be installed as a second implementation for the G2 candidates. It is not
   needed to read their parameters, which is done.
 - Whether transcribing Chen's printed QTPIE Fortran is acceptable as a labelled reconstruction.
+
+**All three were decided on 2026-09-17:**
+- **G2 study:** pre-registered and run as `schindler_sqe_preregistration.md` (#124). Schindler SQE is
+  a G2-CANDIDATE; Geidl's NPA EEM is not.
+- **ChargeFW2:** installed in WSL at the pinned commit, with gfortran alongside.
+- **Transcription: approved, and not done.** The thesis's arXiv licence grants no redistribution, so
+  a clean-room check was pre-registered instead (#125). It reproduces Chen's printed QTPIE test
+  charges.
 
 **Paper requested, and received:** Bultinck et al. 2002 Part II
 (https://doi.org/10.1021/jp020547v), added by Alex as `bultinck2002_II.pdf`.
