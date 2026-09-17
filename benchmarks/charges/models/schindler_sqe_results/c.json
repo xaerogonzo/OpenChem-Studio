@@ -1,0 +1,321 @@
+{
+ "C_primary": {
+  "evaluated": 1923,
+  "excluded_identical_to_CCD_gen_training": [
+   "NSC_1026",
+   "NSC_1258",
+   "NSC_1267",
+   "NSC_1538",
+   "NSC_1589",
+   "NSC_1737",
+   "NSC_1765",
+   "NSC_1901",
+   "NSC_1941",
+   "NSC_1942",
+   "NSC_1981",
+   "NSC_2044",
+   "NSC_2083",
+   "NSC_2121",
+   "NSC_2122",
+   "NSC_2127",
+   "NSC_2215",
+   "NSC_2440",
+   "NSC_2760",
+   "NSC_2765",
+   "NSC_2819",
+   "NSC_2821",
+   "NSC_2831",
+   "NSC_2916",
+   "NSC_295",
+   "NSC_33",
+   "NSC_346",
+   "NSC_474",
+   "NSC_511",
+   "NSC_535",
+   "NSC_621",
+   "NSC_749",
+   "NSC_756"
+  ],
+  "geidl_training_overlap_removed": 44,
+  "inchikey_unreadable_ccd_training": 0,
+  "inchikey_unreadable_dtp": 0,
+  "models": {
+   "context_bultinck_part1_eem": {
+    "RMSDat_pooled_per_type": 0.15763595641869604,
+    "RMSDat_type": "N/1",
+    "coverage": 0.9292771710868435,
+    "covered": 1787,
+    "not_positive_definite": 0,
+    "per_molecule_average": {
+     "R2": 0.9588452062295141,
+     "RMSD": 0.09082562039361095,
+     "r2_undefined": 0
+    },
+    "pooled": {
+     "R2": 0.9504868307520856,
+     "RMSD": 0.09116111223034788
+    },
+    "population": 1923,
+    "refused": {
+     "REFUSE_ELEMENT_NOT_PARAMETERISED": 136
+    },
+    "silent_error_molecules": 123,
+    "silent_error_rate": 0.06883044208170118,
+    "stratum_charged": {
+     "molecules": 2,
+     "per_molecule_R2": 0.9616586362718211,
+     "per_molecule_RMSD": 0.07288729484745057
+    },
+    "stratum_neutral": {
+     "molecules": 1785,
+     "per_molecule_R2": 0.9588420539269457,
+     "per_molecule_RMSD": 0.09084571935780829
+    }
+   },
+   "context_gasteiger": {
+    "RMSDat_pooled_per_type": 0.37701922352834755,
+    "RMSDat_type": "C/1",
+    "coverage": 1.0,
+    "covered": 1923,
+    "not_positive_definite": 0,
+    "per_molecule_average": {
+     "R2": 0.6848500418880007,
+     "RMSD": 0.229182144263794,
+     "r2_undefined": 0
+    },
+    "pooled": {
+     "R2": 0.6565048938401868,
+     "RMSD": 0.23323460760373654
+    },
+    "population": 1923,
+    "refused": {},
+    "silent_error_molecules": 1663,
+    "silent_error_rate": 0.8647945917836714,
+    "stratum_charged": {
+     "molecules": 3,
+     "per_molecule_R2": 0.48011637738426466,
+     "per_molecule_RMSD": 0.2976290024283737
+    },
+    "stratum_neutral": {
+     "molecules": 1920,
+     "per_molecule_R2": 0.6851699382387878,
+     "per_molecule_RMSD": 0.22907519604791188
+    }
+   },
+   "geidl_eem_npa": {
+    "RMSDat_pooled_per_type": 0.09178599132130581,
+    "RMSDat_type": "N/1",
+    "coverage": 1.0,
+    "covered": 1879,
+    "not_positive_definite": 0,
+    "per_molecule_average": {
+     "R2": 0.9704035322898623,
+     "RMSD": 0.05637866789216433,
+     "r2_undefined": 0
+    },
+    "pooled": {
+     "R2": 0.9705286744895256,
+     "RMSD": 0.057498736565085085
+    },
+    "population": 1879,
+    "refused": {},
+    "silent_error_molecules": 118,
+    "silent_error_rate": 0.06279936136242682,
+    "stratum_charged": {
+     "molecules": 3,
+     "per_molecule_R2": 0.9734993932543854,
+     "per_molecule_RMSD": 0.0647546401770759
+    },
+    "stratum_neutral": {
+     "molecules": 1876,
+     "per_molecule_R2": 0.9703985815527123,
+     "per_molecule_RMSD": 0.056365273480194863
+    }
+   },
+   "schindler_sqe": {
+    "RMSDat_pooled_per_type": 0.06718140576827557,
+    "RMSDat_type": "S/1",
+    "coverage": 1.0,
+    "covered": 1923,
+    "not_positive_definite": 0,
+    "per_molecule_average": {
+     "R2": 0.9939910218893947,
+     "RMSD": 0.02358224180015192,
+     "r2_undefined": 0
+    },
+    "pooled": {
+     "R2": 0.994863415438139,
+     "RMSD": 0.024050349672585458
+    },
+    "population": 1923,
+    "refused": {},
+    "silent_error_molecules": 20,
+    "silent_error_rate": 0.010400416016640665,
+    "stratum_charged": {
+     "molecules": 3,
+     "per_molecule_R2": 0.9361140157946825,
+     "per_molecule_RMSD": 0.1111333427323782
+    },
+    "stratum_neutral": {
+     "molecules": 1920,
+     "per_molecule_R2": 0.9940814547114177,
+     "per_molecule_RMSD": 0.023445443204945318
+    }
+   },
+   "schindler_sqe_without_geidl_overlap": {
+    "RMSDat_pooled_per_type": 0.07206868056395163,
+    "RMSDat_type": "S/1",
+    "coverage": 1.0,
+    "covered": 1879,
+    "not_positive_definite": 0,
+    "per_molecule_average": {
+     "R2": 0.9940316735680602,
+     "RMSD": 0.023548600734399107,
+     "r2_undefined": 0
+    },
+    "pooled": {
+     "R2": 0.9948778571091863,
+     "RMSD": 0.024021659809129927
+    },
+    "population": 1879,
+    "refused": {},
+    "silent_error_molecules": 19,
+    "silent_error_rate": 0.010111761575306013,
+    "stratum_charged": {
+     "molecules": 3,
+     "per_molecule_R2": 0.9361140157946825,
+     "per_molecule_RMSD": 0.1111333427323782
+    },
+    "stratum_neutral": {
+     "molecules": 1876,
+     "per_molecule_R2": 0.9941242924237745,
+     "per_molecule_RMSD": 0.023408539846342634
+    }
+   }
+  },
+  "molecules": 1956,
+  "population": "DTP_small",
+  "verdicts": {
+   "geidl_eem_npa": {
+    "failed": [
+     "per-molecule RMSD 0.0564 > 0.05"
+    ],
+    "verdict": "NOT-G2-CANDIDATE"
+   },
+   "schindler_sqe": {
+    "failed": [],
+    "verdict": "G2-CANDIDATE"
+   }
+  }
+ },
+ "C_secondary": {
+  "models": {
+   "context_bultinck_part1_eem": {
+    "RMSDat_pooled_per_type": 0.14547308932215441,
+    "RMSDat_type": "N/1",
+    "coverage": 0.5646794150731158,
+    "covered": 502,
+    "not_positive_definite": 0,
+    "per_molecule_average": {
+     "R2": 0.9534016429752903,
+     "RMSD": 0.09364249120919572,
+     "r2_undefined": 0
+    },
+    "pooled": {
+     "R2": 0.943741954826163,
+     "RMSD": 0.09308366154713701
+    },
+    "population": 889,
+    "refused": {
+     "REFUSE_ELEMENT_NOT_PARAMETERISED": 387
+    },
+    "silent_error_molecules": 76,
+    "silent_error_rate": 0.15139442231075698,
+    "stratum_neutral": {
+     "molecules": 502,
+     "per_molecule_R2": 0.9534016429752903,
+     "per_molecule_RMSD": 0.09364249120919572
+    }
+   },
+   "context_gasteiger": {
+    "RMSDat_pooled_per_type": 1.8409495418558888,
+    "RMSDat_type": "P/2",
+    "coverage": 1.0,
+    "covered": 889,
+    "not_positive_definite": 0,
+    "per_molecule_average": {
+     "R2": 0.7307137080834049,
+     "RMSD": 0.26915854875435546,
+     "r2_undefined": 0
+    },
+    "pooled": {
+     "R2": 0.7028357637827132,
+     "RMSD": 0.2838669719431353
+    },
+    "population": 889,
+    "refused": {},
+    "silent_error_molecules": 841,
+    "silent_error_rate": 0.9460067491563554,
+    "stratum_neutral": {
+     "molecules": 889,
+     "per_molecule_R2": 0.7307137080834049,
+     "per_molecule_RMSD": 0.26915854875435546
+    }
+   },
+   "geidl_eem_npa_overlap_unmeasured": {
+    "RMSDat_pooled_per_type": 0.23357359066760577,
+    "RMSDat_type": "S/2",
+    "coverage": 1.0,
+    "covered": 889,
+    "not_positive_definite": 0,
+    "per_molecule_average": {
+     "R2": 0.9740703805858387,
+     "RMSD": 0.060955326741105285,
+     "r2_undefined": 0
+    },
+    "pooled": {
+     "R2": 0.9767026400496189,
+     "RMSD": 0.061896066983011776
+    },
+    "population": 889,
+    "refused": {},
+    "silent_error_molecules": 82,
+    "silent_error_rate": 0.0922384701912261,
+    "stratum_neutral": {
+     "molecules": 889,
+     "per_molecule_R2": 0.9740703805858387,
+     "per_molecule_RMSD": 0.060955326741105285
+    }
+   },
+   "schindler_sqe": {
+    "RMSDat_pooled_per_type": 0.04810833539337599,
+    "RMSDat_type": "S/2",
+    "coverage": 1.0,
+    "covered": 889,
+    "not_positive_definite": 0,
+    "per_molecule_average": {
+     "R2": 0.9939322036366447,
+     "RMSD": 0.027023634932365505,
+     "r2_undefined": 0
+    },
+    "pooled": {
+     "R2": 0.9952315779680927,
+     "RMSD": 0.02794269986131189
+    },
+    "population": 889,
+    "refused": {},
+    "silent_error_molecules": 16,
+    "silent_error_rate": 0.01799775028121485,
+    "stratum_neutral": {
+     "molecules": 889,
+     "per_molecule_R2": 0.9939322036366447,
+     "per_molecule_RMSD": 0.027023634932365505
+    }
+   }
+  },
+  "molecules": 889,
+  "population": "CCD_gen test split"
+ },
+ "reading": "R_minus (ChargeFW2's convention; B.2 left the reading undetermined)",
+ "stage": "C"
+}

@@ -295,3 +295,51 @@ MACH's `SQE.py` is the same model as ChargeFW2's, with −χ.
   exactly with that model.
 - **Part C still uses the registered per-molecule averages for its threshold,** and reports pooled
   values beside them.
+
+### C. Held-out benchmark (2026-09-17): Schindler SQE is a G2-CANDIDATE, Geidl EEM is not
+
+`schindler_sqe_results/c.json` (sha256 `c50ec5feb30d3539a62c421a12088f8c650d46aaf8cb89cda7086781e9d69553`), exit 0.
+- **Reading:** R_minus, ChargeFW2's convention (B.2 left it undetermined; B-A1 reproduced every
+  printed value with it).
+- **Run order:** the part C code was committed in 32911fc *while the run was already going*. A chained
+  command's guard failed before its commit step. The file was not edited between loading and
+  committing (sha256 `8fe6dac7…4866` at commit), so the committed code is the code that ran.
+
+**Population, C-primary (DTP_small).**
+- 1,956 molecules. **33 excluded** as InChIKey-identical to a CCD_gen training molecule; every InChIKey
+  was readable on both sides.
+- **1,923 evaluated.** Geidl is evaluated on 1,879, after removing the 44 molecules in its own
+  training list.
+- Only 3 of the 1,923 carry a net charge, so the charged stratum is too small to read.
+
+| model (C-primary) | coverage | per-molecule RMSD | per-molecule R² | pooled RMSD | RMSDat (type) | silent-error molecules | not PD |
+|---|---|---|---|---|---|---|---|
+| **Schindler SQE** | 1923 / 1923 | **0.0236** | 0.9940 | 0.0241 | 0.0672 (S/1) | 20 (**1.0 %**) | 0 |
+| Schindler SQE, Geidl overlap removed | 1879 / 1879 | 0.0235 | 0.9940 | 0.0240 | 0.0721 (S/1) | 19 (1.0 %) | 0 |
+| **Geidl 2015 EEM, B3LYP/6-311G/NPA** | 1879 / 1879 | **0.0564** | 0.9704 | 0.0575 | 0.0918 (N/1) | 118 (**6.3 %**) | 0 |
+| *context:* shipped Bultinck Part I EEM (a Mulliken target) | 1787 / 1923 | 0.0908 | 0.9588 | 0.0912 | 0.1576 (N/1) | 123 (6.9 %) | — |
+| *context:* RDKit Gasteiger (a different target) | 1923 / 1923 | 0.2292 | 0.6849 | 0.2332 | 0.3770 (C/1) | 1663 (86.5 %) | — |
+
+**Registered verdicts (section 5.5):**
+- **Schindler SQE: G2-CANDIDATE.** It meets all four criteria.
+- **Geidl 2015 NPA EEM: NOT-G2-CANDIDATE.** Its per-molecule RMSD, 0.0564, exceeds 0.05; it meets
+  the other three.
+
+**C-secondary (CCD_gen test split, 889 molecules), reported and not gated.**
+- **Schindler SQE:** coverage 100 %, per-molecule RMSD 0.0270, pooled RMSD 0.0279, silent errors 1.8 %.
+- **Geidl NPA EEM (overlap with its training set unmeasured):** coverage 100 %, per-molecule RMSD
+  0.0610, silent errors 9.2 %, RMSDat 0.2336 (S/2).
+- **Context, Bultinck Part I EEM:** refused 387 molecules for elements outside H, C, N, O and F.
+- **Context, Gasteiger:** 94.6 % silent errors against this target.
+
+**What this licenses, and what it does not.**
+- **Eligible for a `src` pre-registration:** Schindler SQE, on the deposited geometries, against a
+  B3LYP/6-311G NPA target. Whether to write one is Alex's decision.
+- **Not measured:**
+  - charges on conformers OpenChem generates, which is the application path;
+  - any target other than NPA;
+  - molecules with a net charge, which SQE cannot represent by construction.
+- **No "better model" is declared from one population** (section 5.6). The two candidates' numbers
+  sit side by side here.
+- **The context rows are different targets,** so they place the candidates rather than rank the
+  shipped models.
