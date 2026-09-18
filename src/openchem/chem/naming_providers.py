@@ -43,6 +43,7 @@ from enum import Enum
 import json
 import logging
 import os
+import tempfile
 import urllib.error
 import urllib.parse
 from collections.abc import Sequence
@@ -374,6 +375,41 @@ def derived_name_for_structure(mol: Chem.Mol) -> NameResult:
     return NameResult(name=str(name), source="Nomenclature engine", kind=DERIVED, note=note)
 
 
+@contextmanager
+def _opsin_scratch():
+    """An input file private to one OPSIN call.
+
+    **py2opsin WRITES ITS INPUT TO A FIXED RELATIVE FILENAME.** `tmp_fpath`
+    defaults to `py2opsin_temp_input.txt`, resolved against the current
+    working directory, with no lock and no per-call uniqueness -- so two
+    overlapping calls clobber each other's input and the loser parses the
+    WRONG NAME, or none at all.
+
+    That is not theoretical here. Descriptor computation is asynchronous, so
+    two naming calculations can be in flight together, and the symptom is the
+    round-trip check reporting MISMATCH for a name that is perfectly correct
+    -- which `derived_name_for_structure` then turns into withholding it. A
+    collision makes the app look like it cannot name a structure it names
+    fine.
+
+    Measured 2026-09-17, 16 concurrent calls over 4 threads alternating two
+    names: the shared default path got 5 of 16 back correctly, a private file
+    per call 16 of 16. The losers return an empty string or raise
+    `FileNotFoundError`, because py2opsin removes `tmp_fpath` in a `finally`
+    -- so one caller deletes the file another is still using.
+    """
+    handle, path = tempfile.mkstemp(prefix="opsin-", suffix=".txt")
+    os.close(handle)
+    try:
+        yield path
+    finally:
+        try:
+            os.unlink(path)
+        except OSError:
+            # Losing a temp file is not worth failing a naming call over.
+            pass
+
+
 def opsin_structure_for_name(name: str) -> StructureResult:
     """Parse an IUPAC name into a structure, offline and deterministically.
 
@@ -386,7 +422,8 @@ def opsin_structure_for_name(name: str) -> StructureResult:
     with _java_on_path():
         from py2opsin import py2opsin as run_opsin
 
-        result = run_opsin(name.strip())
+        with _opsin_scratch() as scratch:
+            result = run_opsin(name.strip(), tmp_fpath=scratch)
     # py2opsin returns an empty string for an unparseable name.
     if not result:
         raise NamingError(f"OPSIN could not parse {name.strip()!r} as an IUPAC name.")
@@ -446,7 +483,10 @@ def opsin_structures_for_names(names: Sequence[str]) -> list[StructureResult | N
         sendable = [(i, n) for i, n in enumerate(askable) if n and "\n" not in n and "\r" not in n]
         parsed: list[str] = []
         if sendable:
-            answer = run_opsin([n for _, n in sendable])
+            with _opsin_scratch() as scratch:
+                answer = run_opsin(
+                    [n for _, n in sendable], tmp_fpath=scratch
+                )
             if answer is False or answer is None:
                 # A failed JVM is not 390 unparseable names, and reporting
                 # it as one would read as the table being bad rather than

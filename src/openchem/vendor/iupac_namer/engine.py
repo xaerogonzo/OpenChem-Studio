@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
+import tempfile
 from bisect import insort
 from typing import Iterator
 
@@ -7705,13 +7707,28 @@ def _opsin_can_parse(name: str) -> bool:
     except ImportError:
         # OPSIN unavailable — be conservative: keep the name (no strip).
         return True
+    # A PRIVATE INPUT FILE PER CALL. py2opsin's `tmp_fpath` defaults to the
+    # relative name `py2opsin_temp_input.txt`, so every caller in the process
+    # shares one file in the current working directory with no lock, and it
+    # removes that file in a `finally` -- one caller deletes what another is
+    # still reading. Measured: 5 of 16 concurrent calls came back correct on
+    # the shared path, 16 of 16 with a private one. A lost call here would
+    # read as "OPSIN cannot parse this name" and silently STRIP
+    # stereodescriptors that were fine.
+    handle, scratch = tempfile.mkstemp(prefix="opsin-", suffix=".txt")
+    os.close(handle)
     try:
         import warnings as _warnings
         with _warnings.catch_warnings():
             _warnings.simplefilter("ignore")
-            result = py2opsin(name)
+            result = py2opsin(name, tmp_fpath=scratch)
     except Exception:
         return False
+    finally:
+        try:
+            os.unlink(scratch)
+        except OSError:
+            pass
     if not result:
         return False
     if isinstance(result, str):
