@@ -21,6 +21,7 @@
 #   source_file    BlueBookV2.pdf
 #   source_sha256  6b607a40430b95b4370c474d7b7afc5c9906b68c683192fb0c07f9aed3fb563f
 #   published      IUPAC, openly at https://iupac.qmul.ac.uk/BlueBook/
+#   registry       [source:iupac2013] in docs/sources.toml
 #
 # VERDICTS
 #   ENGINE_WRONG                a cited paragraph and the violation
@@ -43,6 +44,7 @@
 [meta]
 schema_version = 1
 source_id = "BLUEBOOK_2013_CORRECTED_2022"
+source_key = "iupac2013"
 source_sha256 = "6b607a40430b95b4370c474d7b7afc5c9906b68c683192fb0c07f9aed3fb563f"
 adjudicated = "2026-09-17"
 classes_complete = ["retained_name_vs_pin"]

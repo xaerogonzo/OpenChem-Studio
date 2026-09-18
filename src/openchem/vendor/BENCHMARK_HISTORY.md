@@ -161,3 +161,21 @@ N/N') and the score did not move, because a mis-ordered name parses to the
 right molecule. Those defects are pinned by exact-name rows in
 `tests/test_namer_known_defects.py` and by the sort-key table in
 `tests/vendor/iupac_namer/test_assembly.py`.
+
+## 2026-09-17 -- naming round 3: 187/187, exact 87 -> 98; held-out 39/40 -> 40/40
+
+| stage | regression exact | held-out | what moved |
+|---|---|---|---|
+| baseline | 87 | 39/40, one wrong_structure | -- |
+| D-030 bridged free valence | 87 | 40/40 | the held-out adamantane; 5 malformed organoelement suffixes became well formed |
+| D-031 fused free valence | 89 | 40/40 | both naproxen rows |
+| D-032 plan budget | 92 | 40/40 | Si, P and I parents finally proposed |
+| D-033 mononuclear locant | 93 | 40/40 | betaine; silyl prefixes |
+| D-034 nesting order | 93 | 40/40 | 6 names re-bracketed; PubChem uses brackets throughout, so none can become exact |
+| D-035 isotope hyphen | 93 | 40/40 | PubChem discards the isotope on both rows |
+| D-036 retained names | 97 | 40/40 | +5 exact, and chloroform exact -> equivalent because PubChem's own string is the non-preferred one |
+| D-037 ring names | 98 | 40/40 | benzofuran |
+
+Stage records for every row are in `benchmarks/naming/stages/`. The held-out
+PubChem-verbatim count stayed at 14/40 throughout, which is the honest
+generalisation signal: every fix here was made on the regression corpus.

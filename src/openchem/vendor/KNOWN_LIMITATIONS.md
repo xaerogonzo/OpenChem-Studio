@@ -317,3 +317,34 @@ Found while checking D-029; predates it.
 * The five tests that shipped red are not engine defects. They asserted a
   non-minimal lambda numbering and three general-nomenclature-only acylium
   names; the engine's output is correct in every case. See `CHANGELOG.md`.
+
+## Open after naming round 3 (2026-09-17)
+
+Each of these is adjudicated -- the target is known and quoted in
+`benchmarks/naming/adjudication.toml` -- and not yet implemented. They are
+listed by LAYER, because the round's main finding was that defects which
+all look like "the comparator picked wrong" live in different places.
+
+| layer | case | emits | preferred | note |
+|---|---|---|---|---|
+| candidate generation | chloroquine | `...quinolin-4-amine` | `...pentane-1,4-diamine` | no candidate carries two PCGs, so the diamine parent is never proposed (P-44.1.1) |
+| PCG assignment | warfarin | `4-(4-hydroxycoumarin-3-yl)-...butan-2-one` | `4-hydroxy-3-(...)chromen-2-one` | the ring is offered with a `phenol` suffix, never its ring ketone |
+| PCG assignment | caffeine | `1,3,7-trimethyl-2,6-dioxo-1H-purine` | `1,3,7-trimethylpurine-2,6-dione` | exposed by demoting the retained name (D-036): ring ketones become `oxo` prefixes |
+| data | p-xylene | `1,4-dimethylbenzene` | `1,4-xylene` | P-22.1.3 names the xylene isomers PINs; the registry needs an entry ADDED |
+| functional class | dimethyl sulfoxide, dimethyl sulfone, omeprazole | `dimethyl sulfoxide` | `(methanesulfinyl)methane` | P-63.6: the class names are not preferred, and neither is PubChem's alkylsulfinyl prefix |
+| additive | trimethylamine N-oxide | `N,N-dimethylmethanamine oxide` | `N,N-dimethylmethanamine N-oxide` | the book's PIN carries the `N-` locant |
+| serialization | hexamethyldisiloxane | `trimethyl(trimethylsiloxy)silane` | `...silyloxy...` | the O-bridge assembly drops the `yl` of a contracted stem |
+| serialization | cid14000 | `4-{[(ethyl)][...]amino}butyl ...` | `4-{ethyl[...]amino}butyl ...` | a tertiary-amine prefix path wraps a simple prefix twice |
+
+Architecture, deliberately deferred rather than half-done:
+
+* **The preference cascade is still a float with hand-tuned bands.** None of
+  the four flagship defects turned out to be a ranking error, so replacing it
+  with a lexicographic key is hygiene rather than a fix -- still worth doing,
+  and planned as its own change with an ordering-equivalence proof.
+* **The strategy is not in the session cache key**, and `IUPACCanonical()` is
+  still hard-constructed at 11 sites, so `name_smiles(strategy=...)` cannot
+  yet change what those sites decide. Latent rather than live: the app only
+  ever runs the default strategy, and a session lasts one top-level call.
+* **274 retained-name registry entries have no audited status.** They behave
+  exactly as before; `tools/retained_name_audit.py` reports the backlog.
