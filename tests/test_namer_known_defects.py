@@ -541,14 +541,14 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # both names denote it (NYBSCAFHRVFOLB either way) and only
     # P-31.1.4.2.4 chooses. It is the control that says the fix is about the
     # rule and not about adamantane.
-    # The BRACES are a second, separate defect and are pinned as emitted
-    # rather than corrected here: P-16.3.2 nests ( ) then [ ] then { }, so an
-    # innermost brace is wrong, but it is a serialization choice with nothing
-    # to do with the locant this row is about. Both forms parse back to
-    # NYBSCAFHRVFOLB, so nothing is being hidden. When the enclosing-mark
-    # rule is fixed this row FAILS, which is the intended way to find it.
+    # THE BRACES WERE PINNED AS EMITTED HERE, AND THE MECHANISM WORKED.
+    # This row deliberately held the wrong enclosing mark with a note that
+    # fixing the nesting rule would make it fail -- and it did, in the same
+    # branch, which is how D-034 got found rather than forgotten. The
+    # von Baeyer bracket is exempt from the nesting order (P-16.5.4.1.2), so
+    # the prefix takes parentheses.
     ("D-030d", "CNC(C)CC12CCC(C)(CC1)C2",
-     "N-methyl-1-{4-methylbicyclo[2.2.1]heptan-1-yl}propan-2-amine",
+     "N-methyl-1-(4-methylbicyclo[2.2.1]heptan-1-yl)propan-2-amine",
      "N-methyl-1-{1-methylbicyclo[2.2.1]heptan-4-yl}propan-2-amine",
      "same molecule, non-preferred locant: free valence after the prefix"),
     # Non-regression: bare bridged substituents, which were ALREADY correct

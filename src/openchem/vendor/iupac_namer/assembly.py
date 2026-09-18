@@ -476,28 +476,96 @@ def _render_locants(locants: tuple[Locant, ...]) -> str:
     return ",".join(str(loc) for loc in locants) + "-"
 
 
-def _choose_brackets(inner_name: str) -> tuple[str, str]:
-    """Choose the correct enclosing bracket pair for a compound prefix (P-16.3.3).
+# THE NESTING ORDER CYCLES; THERE IS NO DEEPEST LEVEL. P-16.5.4
+# (BlueBookV2.pdf p. 134): "When multiple types of enclosing marks are
+# required, the nesting order is as follows: {[({[( )]})]}". Read from the
+# inside out that is ( ) then [ ] then { } then ( ) again, repeating.
+#
+# This function used to return {} for anything already containing {},
+# commenting "already at the deepest level IUPAC defines" -- which produced
+# `{...{...}...}`. Measured 2026-09-17: 7 of 227 benchmark names, including
+# atenolol and three held-out rows. P-16.5.4.1.5 is explicit that consecutive
+# marks of the same level escalate rather than repeat.
+#
+# The Blue Book supplies its own six-step test vector for the cycle in
+# Fig. 1.3, and its step (e) is exactly the case that was wrong: a {...}
+# prefix is enclosed in ( ), not in another { }. See
+# tests/test_namer_enclosing_marks.py, which pins all six steps.
+_NESTING_CYCLE = (("(", ")"), ("[", "]"), ("{", "}"))
+_NESTING_LEVELS = {"(": 0, "[": 1, "{": 2}
+_NESTING_CLOSERS = {")": "(", "]": "[", "}": "{"}
 
-    IUPAC requires a nesting sequence so that the enclosing brackets are always
-    one level "higher" than the deepest bracket already present inside the name:
+# Square-bracket spans the nesting order IGNORES because they belong to a
+# parent structure (P-16.5.4.1.2): ring fusion `[b,d]`, von Baeyer `[2.2.1]`,
+# ring assembly `[1,1'-biphenyl]`, annulene `[10]`. Getting this wrong in the
+# other direction is just as bad -- counting a von Baeyer descriptor as a
+# level would push a simple prefix straight to braces.
+_EXEMPT_BRACKET_BODY = re.compile(
+    "^(?:"
+    "[0-9,.:'\u2032\u2033\u2034+^{}\\- ]*"
+    "|[a-z]['\u2032]?(?:,[a-z]['\u2032]?)*"
+    "|\\d+(?:,\\d+)*['\u2032]?-[a-z]+"
+    ")$"
+)
+# Added indicated hydrogen, e.g. quinolin-1(2H)-yl (P-16.5.4.1.1).
+_ADDED_H_BODY = re.compile(r"^\d+[A-Za-z]?H$")
 
-        no brackets inside          → (  )
-        contains ( but not [        → [  ]
-        contains [ but not {        → {  }
-        contains { (very rare)      → {  }  (log limitation — not seen in practice)
 
-    The check uses simple character membership so it works regardless of whether
-    the inner brackets are balanced or partially assembled.
+def _nesting_exempt(body: str, opener: str) -> bool:
+    """Is this span invisible to the nesting order?
+
+    Square brackets belonging to a parent structure are ignored
+    (P-16.5.4.1.2), as are the parentheses of added indicated hydrogen
+    (P-16.5.4.1.1).
     """
-    if "{" in inner_name:
-        # Already at the deepest level IUPAC defines; reuse {} and document
-        return ("{", "}")
-    if "[" in inner_name:
-        return ("{", "}")
-    if "(" in inner_name:
-        return ("[", "]")
-    return ("(", ")")
+    if opener == "[":
+        return bool(_EXEMPT_BRACKET_BODY.match(body))
+    if opener == "(":
+        return bool(_ADDED_H_BODY.match(body))
+    return False
+
+
+def _outermost_nesting_level(inner_name: str) -> int | None:
+    """The cycle level of the outermost enclosing mark already present.
+
+    None when there is none, so the caller starts the cycle at parentheses.
+    Unbalanced input -- a partially assembled name -- degrades to treating
+    whatever was opened as present, which is the conservative direction: it
+    can only push the level outward, never reuse one.
+    """
+    stack: list[tuple[int, str]] = []
+    top_levels: list[int] = []
+    skip_until = -1
+    for index, char in enumerate(inner_name):
+        if index <= skip_until:
+            continue
+        if char in _NESTING_LEVELS:
+            # A brace introduced by a superscript marker is notation, not an
+            # enclosing mark: von Baeyer superscripts render as `0^{3,8}`.
+            # Three benchmark names depend on this exemption.
+            if char == "{" and index and inner_name[index - 1] == "^":
+                close = inner_name.find("}", index)
+                skip_until = close if close != -1 else len(inner_name)
+                continue
+            stack.append((index, char))
+        elif char in _NESTING_CLOSERS and stack:
+            start, opener = stack.pop()
+            if not stack and not _nesting_exempt(
+                inner_name[start + 1 : index], opener
+            ):
+                top_levels.append(_NESTING_LEVELS[opener])
+    for _start, opener in stack:
+        top_levels.append(_NESTING_LEVELS[opener])
+    return max(top_levels) if top_levels else None
+
+
+def _choose_brackets(inner_name: str) -> tuple[str, str]:
+    """The enclosing mark one level out from whatever `inner_name` already
+    uses, cycling ( ) -> [ ] -> { } -> ( ) per P-16.5.4."""
+    level = _outermost_nesting_level(inner_name)
+    if level is None:
+        return _NESTING_CYCLE[0]
+    return _NESTING_CYCLE[(level + 1) % len(_NESTING_CYCLE)]
 
 
 def render_merged_prefixes(merged_list: list[MergedPrefix]) -> str:

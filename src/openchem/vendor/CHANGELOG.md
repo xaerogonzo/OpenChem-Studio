@@ -713,3 +713,64 @@ that would need understanding first, not a defect to patch blind.
 
 Benchmark: regression corpus **187/187, exact 92 -> 93**; held-out 40/40
 unchanged; nothing structurally regressed.
+
+## 2026-09-17 - the nesting order of enclosing marks cycles (D-034)
+
+P-16.5.4 (BlueBookV2.pdf p. 134), verbatim: "When multiple types of
+enclosing marks are required, the nesting order is as follows:
+{[({[( )]})]}". Read from the inside out that is ( ) then [ ] then { } then
+( ) AGAIN -- there is no deepest level.
+
+* `_choose_brackets` returned braces for anything that already contained
+  braces, commenting "already at the deepest level IUPAC defines", which
+  produced `{...{...}...}`. P-16.5.4.1.5 addresses exactly that: when the
+  order "results in consecutive enclosing marks of the same level, the next
+  level of enclosing mark is used".
+
+* **The Blue Book ships its own test vector**, Fig. 1.3: a six-step chain
+  built one enclosure at a time, whose step (e) encloses a `{...}` prefix in
+  PARENTHESES. That single row is the whole defect, and it is now pinned in
+  `tests/test_namer_enclosing_marks.py` along with the other five.
+
+* **The exemptions matter as much as the order.** P-16.5.4.1.2 ignores
+  square brackets that are part of a parent structure -- ring fusion, spiro
+  fusion, ring assembly, von Baeyer -- and P-16.5.4.1.1 ignores the
+  parentheses of added indicated hydrogen. The old code used plain character
+  membership, so `1,4-dioxaspiro[4.5]decan-8-yl` counted as a level and came
+  out `N-{1,4-dioxaspiro[4.5]decan-8-yl}-...` when it should be parentheses.
+  Von Baeyer SUPERSCRIPT locants render as `0^{3,8}`, whose braces are
+  notation rather than marks; three benchmark names contain them.
+
+Six names fixed, three in each corpus:
+
+    atenolol      2-{4-{...}phenyl}acetamide -> 2-(4-{...}phenyl)acetamide
+    novel triazole sulfonamide, novel spiro amide
+    cid55000, cid56000, cid58000
+
+Conformance over the 227 benchmark names went from 8 violations to 2. The
+two survivors come from other assemblers and are recorded rather than
+patched here: omeprazole's two-word `... sulfoxide` form, which is a
+functional-class-versus-substitutive defect (P-66) and wrong for a bigger
+reason; and a tertiary-amine prefix path that emits `[(ethyl)]` -- a simple
+prefix wrapped twice, where it needs no marks at all.
+
+GETTING THIS WRONG TWICE IS THE PART WORTH READING. Two ad-hoc conformance
+checkers written while fixing this were both subtly wrong, in opposite
+directions. The first asked for a monotonically increasing level, which
+flags the correct `(` around a `{`. The second compared each mark with its
+ENCLOSING mark, which flags an `(oxo)` sitting several levels deep that
+encloses nothing and is therefore correctly a parenthesis. The rule is about
+how deep a mark's CONTENTS nest, not about what surrounds it. Either version
+would have sent someone off to "fix" names that were already right, which
+is why the committed test pins the book's examples rather than a checker's
+output -- and why the stage-3 linter gets a frozen acceptance corpus before
+it is allowed to gate anything.
+
+D-030d earned its keep here. That row deliberately pinned the wrong
+enclosing mark with a note that fixing the nesting rule would break it; it
+broke, in this branch, which is how the follow-up was found rather than
+forgotten.
+
+Benchmark: regression corpus **187/187, exact 93**, held-out 40/40, nothing
+structurally regressed and no name's meaning changed -- PubChem writes these
+with brackets throughout, so its own strings cannot become exact matches.

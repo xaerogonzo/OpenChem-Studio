@@ -60,6 +60,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Nested substituent names use the right kind of bracket.** Atenolol was
+  `2-{4-{2-hydroxy-...}phenyl}acetamide`, with a brace directly inside a
+  brace; IUPAC's nesting order cycles through parentheses, square brackets
+  and braces and then starts again, so the outer one should be a
+  parenthesis. Six names were affected. The same fix stops a spiro or
+  bicyclo descriptor -- `[4.5]`, `[2.2.1]` -- from being counted as a level
+  it was never part of.
 - **Silyl groups are named `silyl`, and a single-atom parent no longer
   invents a locant.** `(trimethylsilan-1-yl)methanamine` becomes
   `(trimethylsilyl)methanamine` -- the prefix every chemist writes for a TMS
