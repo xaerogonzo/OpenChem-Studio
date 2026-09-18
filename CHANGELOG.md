@@ -60,6 +60,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`isoxazole` and `benzofuran` are named as IUPAC prefers.** They become
+  `1,2-oxazole` and `1-benzofuran`, which is also what sulfamethoxazole's
+  name now uses. Both were inconsistent with their own neighbours in the
+  same table -- plain oxazole was already `1,3-oxazole`, and
+  `1-benzothiophene` sits beside benzofuran with its locant -- and the `1-`
+  is what distinguishes 1-benzofuran from 2-benzofuran.
 - **Trivial names are no longer shown as the IUPAC name when they are not
   one.** `butyraldehyde` becomes `butanal`, `triethylamine` becomes
   `N,N-diethylethanamine`, and camphor, caffeine and ibuprofen now get their

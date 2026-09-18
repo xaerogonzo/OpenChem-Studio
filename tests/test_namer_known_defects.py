@@ -788,6 +788,38 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-036o", "Cn1cnc2c1c(=O)n(C)c(=O)n2C",
      "1,3,7-trimethyl-2,6-dioxo-1H-purine", "caffeine",
      "systematic now, but oxo-prefix instead of the dione suffix"),
+
+    # --- D-037: two curated ring names that were not the preferred ones ---
+    # Both verbatim, and both single-entry data changes:
+    #   p. 150 (Table 2.2) and p. 449:  "1,2-oxazole (PIN)  isoxazole"
+    #   p. 208:                         "1-benzofuran (PIN)  benzofuran"
+    # p. 211 adds that isoxazole, isothiazole, thiazole and oxazole,
+    # "although permitted in general nomenclature, are not retained" as
+    # fusion parent components, and p. 376 uses
+    # `(1-benzofuran-2-yl)phosphane (PIN)`.
+    #
+    # Both were inconsistent with their own neighbours rather than with a
+    # rule nobody had applied: the plain-oxazole entry already said
+    # `1,3-oxazole`, and `1-benzothiophene` and `1,3-benzothiazole` sit
+    # either side of benzofuran in the same table carrying their locants.
+    ("D-037a", "c1cnoc1", "1,2-oxazole", "isoxazole", "Table 2.2 / P-52.2.3"),
+    # The sulfur twin, from the same table line. Fixing only the oxygen one
+    # would leave the same inconsistency it was fixing.
+    ("D-037g", "c1cnsc1", "1,2-thiazole", "isothiazole",
+     "Table 2.2: `isothiazole  1,2-thiazole (PIN)`"),
+    ("D-037b", "c1ccc2occc2c1", "1-benzofuran", "benzofuran",
+     "p. 208; the `1-` is what distinguishes it from 2-benzofuran"),
+    ("D-037c", "Cc1cc(NS(=O)(=O)c2ccc(N)cc2)no1",
+     "4-amino-N-(5-methyl-1,2-oxazol-3-yl)benzene-1-sulfonamide",
+     "4-amino-N-(5-methylisoxazol-3-yl)benzene-1-sulfonamide",
+     "sulfamethoxazole, through the substituent form"),
+    # The other half of p. 208, which came along for free.
+    ("D-037d", "c1ccc2cocc2c1", "2-benzofuran", "isobenzofuran",
+     "p. 208: `2-benzofuran (PIN)  isobenzofuran  benzo[c]furan`"),
+    # Non-regression: the entries that were already right.
+    ("D-037e", "c1cocn1", "1,3-oxazole", "1,3-oxazole", "unchanged"),
+    ("D-037f", "c1ccc2sccc2c1", "1-benzothiophene", "1-benzothiophene",
+     "unchanged: already carried its locant"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

@@ -1788,7 +1788,11 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # heteroatom positions for the SUBSTITUENT-form path.
     "c1cscn1":         {"name": "1,3-thiazole",        "substituent_form": "1,3-thiazolyl",        "alkyl_stem_ok": False,
                         "atom_locants": {2: 1, 3: 2, 4: 3, 0: 4, 1: 5}},
-    "c1cnsc1":         {"name": "isothiazole",          "substituent_form": "isothiazolyl",     "alkyl_stem_ok": False},
+    # `isothiazole` is the 1,2-isomer, and the same Table 2.2 line that gives
+    # "1,3-thiazole (PIN)" for thiazole gives "1,2-thiazole (PIN)" here. The
+    # comment above already knew the Hantzsch-Widman names are the preferred
+    # forms for the 1,3-isomers; it just was not applied to the 1,2- ones.
+    "c1cnsc1":         {"name": "1,2-thiazole",        "substituent_form": "1,2-thiazolyl",   "alkyl_stem_ok": False},
     # 1,2,5-thiadiazole: S flanked by both N atoms (c1cnsn1 in RDKit canonical SMILES)
     "c1cnsn1":         {"name": "1,2,5-thiadiazole",   "substituent_form": "1,2,5-thiadiazolyl", "alkyl_stem_ok": False},
     # O,N
@@ -1797,8 +1801,15 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # Map: idx2=O=L1, idx3=C(between O and N)=L2, idx4=N=L3, idx0=C(N-adj)=L4, idx1=C(O-adj)=L5.
     "c1cocn1":         {"name": "1,3-oxazole",         "substituent_form": "1,3-oxazolyl",         "alkyl_stem_ok": False,
                         "atom_locants": {2: 1, 3: 2, 4: 3, 0: 4, 1: 5}},
-    # isoxazole: O(3)=1, N(2)=2, C(1)=3, C(0)=4, C(4)=5 (verified via OPSIN 3/4/5-methyl probing)
-    "c1cnoc1":         {"name": "isoxazole",            "substituent_form": "isoxazolyl",       "alkyl_stem_ok": False,
+    # 1,2-oxazole: O(3)=1, N(2)=2, C(1)=3, C(0)=4, C(4)=5 (verified via OPSIN 3/4/5-methyl probing)
+    #
+    # `isoxazole` IS NOT THE PREFERRED NAME. BlueBookV2.pdf p. 150 (Table 2.2)
+    # and p. 449 both print "1,2-oxazole (PIN)  isoxazole", and p. 211 adds
+    # that isoxazole, isothiazole, thiazole and oxazole, "although permitted in
+    # general nomenclature, are not retained" as fusion parent components. The
+    # entry for plain oxazole in this same table already says `1,3-oxazole`, so
+    # this was inconsistent with its own neighbours.
+    "c1cnoc1":         {"name": "1,2-oxazole",          "substituent_form": "1,2-oxazolyl",     "alkyl_stem_ok": False,
                         "atom_locants": {3: 1, 2: 2, 1: 3, 0: 4, 4: 5}},
 
     # Three heteroatoms
@@ -1868,7 +1879,12 @@ _RING_CURATED_SMILES: dict[str, dict] = {
                            "atom_locants": {4: 1, 5: 2, 6: 3, 8: 4, 0: 5, 1: 6, 2: 7}},
     "c1ccc2scnc2c1":     {"name": "1,3-benzothiazole", "substituent_form": "benzothiazolyl",   "alkyl_stem_ok": False,
                            "atom_locants": {4: 1, 5: 2, 6: 3, 8: 4, 0: 5, 1: 6, 2: 7}},
-    "c1ccc2occc2c1":     {"name": "benzofuran",         "substituent_form": "benzofuranyl",     "alkyl_stem_ok": False,
+    # `benzofuran` needs its locant: BlueBookV2.pdf p. 208 prints "1-benzofuran
+    # (PIN)  benzofuran" beside "2-benzofuran (PIN)  isobenzofuran", so the `1-`
+    # is what distinguishes the two. p. 376 uses `(1-benzofuran-2-yl)phosphane
+    # (PIN)`. The `1-benzothiophene` and `1,3-benzothiazole` entries either side
+    # of this one already carry theirs.
+    "c1ccc2occc2c1":     {"name": "1-benzofuran",       "substituent_form": "1-benzofuranyl",   "alkyl_stem_ok": False,
                            "atom_locants": {4: 1, 5: 2, 6: 3, 8: 4, 0: 5, 1: 6, 2: 7}},
     "c1ccc2sccc2c1":     {"name": "1-benzothiophene",  "substituent_form": "benzothienyl",     "alkyl_stem_ok": False,
                            "atom_locants": {4: 1, 5: 2, 6: 3, 8: 4, 0: 5, 1: 6, 2: 7}},

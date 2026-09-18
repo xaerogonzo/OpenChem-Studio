@@ -898,3 +898,29 @@ unchanged; nothing structurally regressed. Seven names changed, five of them
 to exact. The eighth change is chloroform going exact -> equivalent, because
 PubChem's own string for that row is the non-preferred one -- the single
 clearest reason this benchmark cannot be scored on PubChem agreement alone.
+
+## 2026-09-17 - two curated ring names were not the preferred ones (D-037)
+
+Both verbatim, and both one-line data changes:
+
+    p. 150 (Table 2.2) and p. 449   "1,2-oxazole (PIN)  isoxazole"
+    p. 208                          "1-benzofuran (PIN)  benzofuran"
+
+p. 211 adds that isoxazole, isothiazole, thiazole and oxazole, "although
+permitted in general nomenclature, are not retained" as fusion parent
+components, and p. 376 uses `(1-benzofuran-2-yl)phosphane (PIN)`.
+
+Both were inconsistent with their own neighbours rather than with a rule
+nobody had applied. The plain-oxazole entry in the same table already said
+`1,3-oxazole`; `1-benzothiophene` and `1,3-benzothiazole` sit either side of
+benzofuran carrying their locants. The `1-` is not decoration -- it is what
+distinguishes 1-benzofuran from 2-benzofuran, and p. 208 lists both.
+
+`isobenzofuran` came along for free and is now `2-benzofuran`, the other half
+of that same line.
+
+Benchmark: regression corpus **187/187, exact 97 -> 98** (benzofuran becomes
+exact; sulfamethoxazole moves to the right ring name through the substituent
+form, and its remaining difference from PubChem is the `benzene-1-sulfonamide`
+locant, where the ENGINE is right -- p. 104 and p. 513 cite the locant
+whenever another substituent is present). Held-out 40/40 unchanged.
