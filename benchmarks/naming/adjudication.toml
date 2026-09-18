@@ -817,6 +817,32 @@ evidence_basis = "explicit"
 note = "SUCCINIMIDE IS NOT A PIN, and KNOWN_LIMITATIONS said the opposite ('a genuine PIN with a correct P-66.2 citation and must not be corrected'). The same paragraph gives pyrrolidine-2,5-dione (PIN) and says substitution is not allowed on succinimide."
 
 [[row]]
+corpus_row_id = "methylammonium"
+smiles = "C[NH3+]"
+engine_name = "methylazanium"
+pubchem_name = "methylazanium"
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "FIXED"
+preferred_name = "methanaminium"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-73.1-aminium"]
+evidence_basis = "derived"
+note = "The book prints 'methanaminium chloride (PIN)' with 'methylazanium chloride' as the alternative (p. 530). Emitting the PIN costs this row its PubChem verbatim match, which is recorded here rather than counted as a regression."
+
+[[row]]
+corpus_row_id = "ethylenediammonium"
+smiles = "[NH3+]CC[NH3+]"
+engine_name = "[2-(azaniumyl)ethyl]azanium"
+pubchem_name = "2-azaniumylethylazanium"
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "FIXED"
+preferred_name = "ethane-1,2-bis(aminium)"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-73.1-aminium"]
+evidence_basis = "derived"
+note = "Derived from the book's multiplied forms, 'propane-1,2-bis(aminium)' and 'pentane-1,5-bis(aminium)' (pp. 833-834), and the aminium method of P-73.1.1.2."
+
+[[row]]
 corpus_row_id = "tetramethylammonium"
 smiles = "C[N+](C)(C)C"
 engine_name = "tetramethylammonium"
