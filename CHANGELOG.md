@@ -60,6 +60,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Silyl groups are named `silyl`, and a single-atom parent no longer
+  invents a locant.** `(trimethylsilan-1-yl)methanamine` becomes
+  `(trimethylsilyl)methanamine` -- the prefix every chemist writes for a TMS
+  group -- and betaine's `2-(trimethylazanium-1-yl)acetate` becomes
+  `2-(trimethylazaniumyl)acetate`. One rule governs both directions: a
+  single-atom parent must not cite the locant, while a polycyclic one like
+  adamantane must, and the engine had each of them the wrong way round.
 - **Organosilicon, phosphorus and iodine compounds get the right parent.**
   `trimethyl(phenyl)silane`, `triphenylphosphane` and `diphenyliodanium`
   replace `(trimethylsilan-yl)benzene`, `(diphenylphosphan-yl)benzene` and

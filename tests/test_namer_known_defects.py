@@ -655,6 +655,53 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "(triethylsilan-yl)benzene", "not specific to methyl"),
     ("D-032f", "c1ccccc1[As](c1ccccc1)c1ccccc1", "triphenylarsane",
      "triphenylarsane", "unchanged: arsenic was already reached"),
+
+    # --- D-033: a mononuclear parent must NOT cite locant 1 ---------------
+    # The counterpart to D-030, from the same paragraph. P-29.2 method (2):
+    # the free-valence locants "are as low as is consistent with any
+    # established numbering of the parent hydride and, EXCEPT FOR MONONUCLEAR
+    # PARENT HYDRIDES or the suffix 'ylidyne', the locant '1' must be cited"
+    # (BlueBookV2.pdf p. 301).
+    #
+    # So the same rule requires `adamantan-1-yl` to carry its locant (D-030)
+    # and forbids `azanium-1-yl` from carrying one. Both were wrong, in
+    # opposite directions, and the D-030 fix made the second visible.
+    #
+    # A mononuclear parent also has nothing to contract -- the engine stores
+    # `alkyl_stem == stem` for these, measured as 'silan' and 'azanium' -- so
+    # the chain test the contraction used could never match.
+    ("D-033a", "C[N+](C)(C)CC(=O)[O-]", "2-(trimethylazaniumyl)acetate",
+     "2-(trimethylazanium-1-yl)acetate",
+     "mononuclear N cited a locant the rule forbids; = PubChem now"),
+    # Method (1) is restricted BY NAME to four elements: "recommended
+    # primarily for saturated acyclic and monocyclic hydrocarbon substituent
+    # groups and for the mononuclear hydrides of silicon, germanium, tin,
+    # and lead". It replaces the "ane" ending, so silane gives `silyl` --
+    # the universal TMS prefix -- where the engine had `silan-1-yl`.
+    ("D-033b", "NC[Si](C)(C)C", "(trimethylsilyl)methanamine",
+     "(trimethylsilan-1-yl)methanamine", "method (1) contraction for Si"),
+    ("D-033c", "OCC[Si](C)(C)C", "2-(trimethylsilyl)ethanol",
+     "2-(trimethylsilan-1-yl)ethanol", "same, on a longer chain"),
+    ("D-033d", "OC(=O)C[Si](C)(C)C", "(trimethylsilyl)acetic acid",
+     "(trimethylsilan-1-yl)acetic acid", "same, retained-name parent"),
+    ("D-033e", "Nc1ccc(cc1)[Si](C)(C)C", "4-(trimethylsilyl)benzen-1-amine",
+     "4-(trimethylsilan-1-yl)benzen-1-amine", "same, on a ring parent"),
+    # Phosphorus is deliberately absent from method (1)'s element list, so
+    # `phosphanyl` keeps its "an": the mononuclear exception drops the
+    # LOCANT, not the ending. This row is what stops the contraction being
+    # applied to every mononuclear heteroatom.
+    ("D-033f", "CNC(=O)CSP(=O)(OC)OC",
+     "2-{[di(methoxy)(oxo)phosphanyl]sulfanyl}-N-methylacetamide",
+     "2-{[di(methoxy)(oxo)phosphanyl]sulfanyl}-N-methylacetamide",
+     "unchanged: P takes method (2), so phosphanyl not phosphyl"),
+    # Non-regression for the other side of the same rule: a POLYCYCLIC parent
+    # must keep its locant. If the mononuclear exception ever widens, these
+    # go first.
+    ("D-033g", "OCC12CC3CC(C1)CC(C3)C2", "(adamantan-1-yl)methanol",
+     "(adamantan-1-yl)methanol", "unchanged: not mononuclear, locant required"),
+    ("D-033h", "OCC1CCCCC1", "cyclohexylmethanol", "cyclohexylmethanol",
+     "unchanged: monocyclic hydrocarbon, method (1)"),
+    ("D-033i", "CO", "methanol", "methanol", "unchanged: mononuclear carbon parent"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

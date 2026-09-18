@@ -664,3 +664,52 @@ costing one to eight spurious failures per run.
 `tests/test_namer_plan_budget.py` pins the mechanism rather than the names,
 and was mutation-tested -- collapsing every plan into one bucket kills 6 of
 its 14 assertions.
+
+## 2026-09-17 - a mononuclear parent must not cite locant 1 (D-033)
+
+The counterpart to D-030, out of the same paragraph, and only visible
+because D-030 was fixed first.
+
+P-29.2 method (2) (BlueBookV2.pdf p. 301): the free-valence locants "are as
+low as is consistent with any established numbering of the parent hydride
+and, EXCEPT FOR MONONUCLEAR PARENT HYDRIDES or the suffix 'ylidyne', the
+locant '1' must be cited". So one rule requires `adamantan-1-yl` to carry
+its locant and forbids `azanium-1-yl` from carrying one. The engine had both
+wrong, in opposite directions.
+
+* **`2-(trimethylazanium-1-yl)acetate` -> `2-(trimethylazaniumyl)acetate`**,
+  which is PubChem's string exactly. A mononuclear parent also has nothing
+  to contract -- the engine stores `alkyl_stem == stem` for these, measured
+  as `silan` and `azanium` -- so the chain test the contraction used,
+  `stem == alkyl_stem + "an"`, could never match and the locant was cited
+  by default.
+
+* **Method (1) is restricted BY NAME to four elements**, which is why this
+  is a short element list rather than a guess: "recommended primarily for
+  saturated acyclic and monocyclic hydrocarbon substituent groups and for
+  the mononuclear hydrides of silicon, germanium, tin, and lead". It
+  replaces the "ane" ending, so silane gives `silyl`:
+
+        NC[Si](C)(C)C          (trimethylsilyl)methanamine
+        OCC[Si](C)(C)C         2-(trimethylsilyl)ethanol
+        OC(=O)C[Si](C)(C)C     (trimethylsilyl)acetic acid
+        Nc1ccc(cc1)[Si](C)(C)C 4-(trimethylsilyl)benzen-1-amine
+
+  all previously `trimethylsilan-1-yl`. `silyl` is also the universal
+  chemical prefix for a TMS group, so this is the one every reader expects.
+
+  Phosphorus is deliberately absent from that list and keeps `phosphanyl`:
+  it takes method (2), where the mononuclear exception drops the LOCANT and
+  not the ending. The same page notes method (1) "is no longer applicable
+  to boron prefixes". A pinned row holds the phosphorus case precisely so
+  the contraction cannot spread to every mononuclear heteroatom.
+
+Still not preferred, and recorded rather than forced: hexamethyldisiloxane
+comes out `trimethyl(trimethylsiloxy)silane` where PubChem writes
+`trimethyl(trimethylsilyloxy)silane`. The O-bridge assembly combines the
+contracted stem with `oxy` and drops the `yl` between them. All three forms
+round-trip on both gates, so this is a preference difference in a code path
+that would need understanding first, not a defect to patch blind.
+
+Benchmark: regression corpus **187/187, exact 92 -> 93**; held-out 40/40
+unchanged; nothing structurally regressed.

@@ -979,6 +979,55 @@ def render_suffixes(
 # Free-valence suffix rendering
 # ---------------------------------------------------------------------------
 
+# P-29.2 METHOD (1) IS RESTRICTED TO FOUR ELEMENTS BY NAME, and the list is
+# not a guess: "This method is recommended primarily for saturated acyclic
+# and monocyclic hydrocarbon substituent groups and for the mononuclear
+# hydrides of silicon, germanium, tin, and lead" (BlueBookV2.pdf p. 301).
+# Method (1) replaces the "ane" ending, so silane gives `silyl`.
+#
+# Phosphorus is deliberately absent, which is why `phosphanyl` keeps its
+# "an": it takes method (2), where the mononuclear exception drops only the
+# LOCANT and not the ending. The same page adds that method (1) "is no
+# longer applicable to boron prefixes".
+_METHOD_ONE_MONONUCLEAR_ELEMENTS = frozenset({"Si", "Ge", "Sn", "Pb"})
+
+
+def _mononuclear_method_one_stem(named_parent) -> str | None:
+    """The contracted prefix stem for a mononuclear Si/Ge/Sn/Pb parent.
+
+    Returns None when the parent is not one of those, so everything else
+    keeps the stem it already had. The engine stores `alkyl_stem == stem`
+    for these (measured: both are 'silan'), so without this the method-(1)
+    contraction has nothing to work from and the prefix comes out
+    `silanyl` -- well formed, but not the preferred `silyl`.
+    """
+    candidate = getattr(named_parent, "candidate", None)
+    if candidate is None or getattr(candidate, "length", 0) != 1:
+        return None
+    element = (getattr(candidate, "element", None) or "").rstrip("+-")
+    if element not in _METHOD_ONE_MONONUCLEAR_ELEMENTS:
+        return None
+    stem = named_parent.stem or ""
+    return stem[:-2] if stem.endswith("an") else None
+
+def _parent_is_mononuclear(named_parent) -> bool:
+    """One skeletal atom, which P-29.2 exempts from citing locant 1.
+
+    Method (2) of P-29.2 says the free-valence locants "are as low as is
+    consistent with any established numbering of the parent hydride and,
+    EXCEPT FOR MONONUCLEAR PARENT HYDRIDES or the suffix 'ylidyne', the
+    locant '1' must be cited" (BlueBookV2.pdf p. 301). So `adamantan-1-yl`
+    needs its locant and `azaniumyl` must not have one.
+
+    A mononuclear parent also has nothing to contract: its `alkyl_stem` and
+    `stem` are the same string (measured: silane gives 'silan' for both,
+    azanium 'azanium'), so the chain test `stem == alkyl_stem + "an"`
+    cannot match and the caller would cite a locant the rule forbids. That
+    is what produced `2-(trimethylazanium-1-yl)acetate`.
+    """
+    candidate = getattr(named_parent, "candidate", None)
+    return candidate is not None and getattr(candidate, "length", 0) == 1
+
 def _free_valence_locant_will_elide(fv: FreeValenceInfo, numbering: Numbering) -> bool:
     """Predict whether render_free_valence_suffix will produce a locant-less
     suffix for a monovalent ALKANYL free valence.
@@ -2370,7 +2419,8 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             and not tree.suffix_groups
             and not tree.unsaturation
             and tree.named_parent.alkyl_stem is not None
-            and tree.named_parent.stem == tree.named_parent.alkyl_stem + "an"
+            and (tree.named_parent.stem == tree.named_parent.alkyl_stem + "an"
+                 or _parent_is_mononuclear(tree.named_parent))
             and _free_valence_locant_will_elide(fv, tree.numbering)):
         # P-29.2 contracted-alkyl form: when ALKANYL's free-valence locant
         # ends up elided (attachment at C1 with no other locant constraint),
@@ -2383,7 +2433,13 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         # parents whose unsaturation is baked into the stem
         # (e.g. "cyclohex-3-en"/"cyclohex"), where dropping back to
         # alkyl_stem would silently lose the unsaturation locant.
-        stem_part = tree.named_parent.alkyl_stem
+        # A mononuclear Si/Ge/Sn/Pb parent contracts further than
+        # `alkyl_stem` records: P-29.2 method (1) drops the "ane", giving
+        # `silyl` rather than `silanyl`.
+        stem_part = (
+            _mononuclear_method_one_stem(tree.named_parent)
+            or tree.named_parent.alkyl_stem
+        )
         contracted_alkyl_form = True
     elif tree.unsaturation and tree.named_parent.alkyl_stem is not None:
         # IUPAC P-31.1.2.1: when a chain has unsaturation (double/triple bonds),
