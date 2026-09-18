@@ -924,3 +924,16 @@ exact; sulfamethoxazole moves to the right ring name through the substituent
 form, and its remaining difference from PubChem is the `benzene-1-sulfonamide`
 locant, where the ENGINE is right -- p. 104 and p. 513 cite the locant
 whenever another substituent is present). Held-out 40/40 unchanged.
+
+## 2026-09-17 - the stereo-validation cache remembered two wrong things
+
+`_validate_stereo_via_opsin` caches whether an R/S-bearing name parses, for
+the life of the process. It was keyed on the name alone, while the answer
+also depends on `strip_modes`; and it cached INCONCLUSIVE results. When
+nothing parses, the pass cannot tell "no stripping rescues this name" from
+"OPSIN cannot run" -- no JRE on PATH looks identical -- so one call made
+without Java stripped the stereodescriptors and remembered it, and every
+later call in the process returned the stripped name after Java became
+available. Keyed on `(name, strip_modes)` now, and only a verdict OPSIN
+confirmed is cached. Found by auditing every cache on the naming path; the
+test that pins it fails under the old behaviour.

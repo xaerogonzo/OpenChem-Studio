@@ -7736,10 +7736,21 @@ def _opsin_can_parse(name: str) -> bool:
     return True
 
 
-# Process-level cache keyed by candidate name string.  Maps the assembled
-# name to a (possibly different) validated-or-stripped name.  Keeps the
-# OPSIN-validation pass's amortised cost low across the eval set.
-_STEREO_OPSIN_VALIDATION_CACHE: dict[str, str] = {}
+# Process-level cache of the stereo-validation verdict. Keeps the OPSIN pass's
+# amortised cost low across a batch.
+#
+# THE KEY IS (name, strip_modes), NOT THE NAME ALONE. The verdict is a function
+# of both -- the strip modes decide which descriptors may be dropped -- so a
+# name-only key returned one caller's answer to another that asked a different
+# question. Found 2026-09-17 while auditing every cache on the naming path.
+#
+# AND AN INCONCLUSIVE RESULT IS NOT CACHED. When nothing parses, the pass cannot
+# tell "no stripping rescues this name" from "OPSIN cannot run at all" -- no
+# JRE on PATH looks identical to an unparseable name from here. Caching that
+# made an absent JRE PERMANENT for the process: one call without Java, and the
+# stereodescriptors stayed stripped for the rest of the session even after Java
+# became available. Only a verdict OPSIN actually confirmed is remembered.
+_STEREO_OPSIN_VALIDATION_CACHE: dict[tuple[str, tuple[str, ...]], str] = {}
 
 
 def _validate_stereo_via_opsin(tree, name: str, *, strip_modes: tuple[str, ...]) -> str:
@@ -7759,14 +7770,15 @@ def _validate_stereo_via_opsin(tree, name: str, *, strip_modes: tuple[str, ...])
     re-assembled name OPSIN parses (or the union when none parses) is
     returned.
 
-    Cached on the candidate name string; OPSIN dominates the cost of the
-    pass and most calls hit the cache.
+    Cached on ``(name, strip_modes)``, and only when OPSIN confirmed the
+    result; see ``_STEREO_OPSIN_VALIDATION_CACHE`` for why both matter.
     """
-    cached = _STEREO_OPSIN_VALIDATION_CACHE.get(name)
+    key = (name, tuple(strip_modes))
+    cached = _STEREO_OPSIN_VALIDATION_CACHE.get(key)
     if cached is not None:
         return cached
     if _opsin_can_parse(name):
-        _STEREO_OPSIN_VALIDATION_CACHE[name] = name
+        _STEREO_OPSIN_VALIDATION_CACHE[key] = name
         return name
     # Apply each strip mode in sequence, accumulating into a single tree.
     # If any intermediate result OPSIN-parses, return it; otherwise return
@@ -7780,9 +7792,9 @@ def _validate_stereo_via_opsin(tree, name: str, *, strip_modes: tuple[str, ...])
             # No descriptors of this mode were present; nothing changed.
             continue
         if _opsin_can_parse(cur_name):
-            _STEREO_OPSIN_VALIDATION_CACHE[name] = cur_name
+            _STEREO_OPSIN_VALIDATION_CACHE[key] = cur_name
             return cur_name
-    _STEREO_OPSIN_VALIDATION_CACHE[name] = cur_name
+    # Nothing parsed: inconclusive, so returned but deliberately not cached.
     return cur_name
 
 
