@@ -323,10 +323,12 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # the book prints all three forms on one line saying so. The additive
     # `... oxide` construction this row exists to guard is still in use, now
     # on the systematic parent.
-    ("D-024z", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine oxide",
+    # Expected moved in round 4 (A10): the N locant is cited (D-065h).
+    ("D-024z", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine N-oxide",
      "trimethylamine oxide", "additive path unchanged; the PARENT is now the PIN"),
-    ("D-024w", "CS(C)=O", "dimethyl sulfoxide", "dimethyl sulfoxide",
-     "unchanged"),
+    # Expected moved in round 4 (A10): the substitutive PIN (D-065a).
+    ("D-024w", "CS(C)=O", "(methanesulfinyl)methane", "dimethyl sulfoxide",
+     "the class name is the book's second form, p. 912"),
 
     # --- D-025: more than one N-substituent on guanidinium --------------
     # Guanidine numbers the charged (imino) nitrogen 2 and the two amino
@@ -785,7 +787,7 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "P-61.2.1 verbatim: isobutane is `no longer recommended`"),
     ("D-036d", "CCN(CC)CC", "N,N-diethylethanamine", "triethylamine",
      "not retained anywhere; amines are substitutive (P-66.4.1)"),
-    ("D-036e", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine oxide",
+    ("D-036e", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine N-oxide",
      "trimethylamine oxide",
      "the book gives all three forms and labels trimethylamine traditional"),
     ("D-036f", "CC1(C)C2CCC1(C)C(=O)C2",
@@ -1372,6 +1374,31 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "carbamic acid has one substitutable atom (P-16.5.1.3.2)"),
     ("D-064g", "CN(C)C(=O)OCC", "ethyl dimethylcarbamate", "ethyl N,N-dimethylcarbamate",
      "as D-064f"),
+    # --- D-065: round 3's carry-overs (A10), each the book's printed PIN ---
+    ("D-065a", "CS(C)=O", "(methanesulfinyl)methane", "dimethyl sulfoxide",
+     "p. 912; the class name is the book's SECOND form"),
+    ("D-065b", "CS(C)(=O)=O", "(methanesulfonyl)methane", "dimethyl sulfone", "as D-065a"),
+    ("D-065c", "CS(=O)(=O)c1ccccc1", "(methanesulfonyl)benzene", "methyl phenyl sulfone",
+     "and 'benzenesulfonyl (preferred prefix) phenylsulfonyl', p. 611"),
+    ("D-065d", "CCOOC", "(methylperoxy)ethane", "ethyl methyl peroxide", "P-63.3.1, p. 546"),
+    ("D-065e", "CSSC", "(methyldisulfanyl)methane", "1,2-dimethyldisulfane",
+     "p. 546: 'Names formed by substituting the parent hydrides ... disulfane ... are "
+     "not recommended'"),
+    ("D-065f", "ClC(=O)C(=O)Cl", "oxalyl dichloride", "ethane-1,2-dioyl chloride",
+     "P-65.5.1, p. 615"),
+    ("D-065g", "ClC(=O)CC(=O)Cl", "propanedioyl dichloride", "propane-1,3-dioyl chloride",
+     "p. 615: no locants, and the class word multiplied"),
+    ("D-065h", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine N-oxide",
+     "N,N-dimethylmethanamine oxide", "the N locant, as p. 842's 'N-oxide'"),
+    ("D-065i", "CC[Se](C)=O", "ethyl methyl selenoxide", "ethyl methyl selenoxide",
+     "control, NOT a target: Se keeps the class name until a substitutive plan exists"),
+    ("D-065j", "COc1ccc2[nH]c(nc2c1)S(=O)Cc1ncc(C)c(OC)c1C",
+     "5-methoxy-2-[(4-methoxy-3,5-dimethylpyridin-2-yl)methanesulfinyl]-1H-benzimidazole",
+     "(5-methoxy-1H-benzimidazol-2-yl) ((4-methoxy-3,5-dimethylpyridin-2-yl)methyl) sulfoxide",
+     "omeprazole: substitutive, and a substituted methanesulfinyl (P-65.3.2.3)"),
+    ("D-065k", "O=S(=O)(Cc1ccccc1)c1ccccc1C(=O)O", "2-(phenylmethanesulfonyl)benzoic acid",
+     "(2-carboxyphenyl) (phenylmethyl) sulfone",
+     "the former put the acid inside a sulfone class name"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

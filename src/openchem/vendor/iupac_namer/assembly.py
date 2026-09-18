@@ -441,7 +441,10 @@ def _is_simple_by_form(name: str) -> bool:
     if any(w != candidate and candidate.startswith(w)
            for w in _LEADING_PREFIX_WORDS for candidate in (name, bare)):
         return False  # a prefix on a stem: "hydroxymethyl", "trifluoromethyl"
-    if re.search(r".(?:carboxamido|sulfonamido|carbonyl|sulfonyl)$", name) and name not in _SIMPLE_PREFIXES:
+    if re.search(
+        r".(?:carboxamido|sulfonamido|carbonyl|sulfonyl|sulfinyl|selenonyl|seleninyl"
+        r"|telluronyl|tellurinyl)$", name,
+    ) and name not in _SIMPLE_PREFIXES:
         return False  # a stem plus a group: "cyclohexanecarboxamido"
     return "yl" not in name[:-2]
 
@@ -450,6 +453,16 @@ def _is_simple_by_form(name: str) -> bool:
 # Prefix merging and rendering
 # ---------------------------------------------------------------------------
 
+_HYDRIDE_OF = {"methyl": "methane", "ethyl": "ethane", "propyl": "propane",
+               "butyl": "butane", "phenyl": "benzene"}
+_HYDRIDE_ACYL = re.compile(
+    r"^(methyl|ethyl|propyl|butyl|phenyl)(sulfonyl|sulfinyl|selenonyl|seleninyl|telluronyl|tellurinyl)$"
+)
+_SUBSTITUTED_HYDRIDE_ACYL = re.compile(
+    r"^(\(.+\)|[a-z]+yl)(methyl|ethyl|propyl|butyl)(sulfonyl|sulfinyl)$"
+)
+_PEROXY = re.compile(r"^\(([a-z]+?)oxy\)oxy$")
+_DICHALCOGENYL = re.compile(r"^\(([a-z]+yl)(sulfanyl|selanyl|tellanyl)\)\2$")
 _ANILINO = re.compile(r"^\((\d[^()\[\]{}]*phenyl)\)amino$")
 _CARBAMOYL = re.compile(r"^[\(\[\{](.+)amino[\)\]\}]\(oxo\)methyl$")
 
@@ -476,6 +489,28 @@ def _preferred_prefix_spelling(name: str) -> str:
         return m.group(1)[: -len("phenyl")] + "anilino"
     if name == "amino(oxo)methyl":
         return "carbamoyl"
+    # "benzenesulfonyl (preferred prefix) phenylsulfonyl", "methaneseleninyl
+    # (preferred prefix) methylseleninyl" (P-65.3.2.3, pdf p. 611): the acyl
+    # prefix is named on the acid, "(methanesulfinyl)methane (PIN)" (p. 912).
+    m = _HYDRIDE_ACYL.match(name)
+    if m:
+        return _HYDRIDE_OF[m.group(1)] + m.group(2)
+    # Substituted, likewise: "(1-cyclohexylmethanesulfonamido)" (p. 653), so
+    # "(pyridin-2-yl)methylsulfinyl" is "(pyridin-2-yl)methanesulfinyl".
+    m = _SUBSTITUTED_HYDRIDE_ACYL.match(name)
+    if m and m.group(1).count("(") == m.group(1).count(")"):
+        return m.group(1) + _HYDRIDE_OF[m.group(2)] + m.group(3)
+    # P-63.3.1 (pdf p. 546): R-OO- is "R-peroxy (not R-dioxy)" and R-SS-
+    # "R-disulfanyl" -- "(methylperoxy)ethane (PIN)", "(methyldisulfanyl)
+    # methane (PIN)" -- where the engine nested "(methyloxy)oxy" and
+    # "(methylsulfanyl)sulfanyl".
+    m = _PEROXY.match(name)
+    if m:
+        stem = m.group(1) if m.group(1).endswith("yl") else m.group(1) + "yl"
+        return stem + "peroxy"
+    m = _DICHALCOGENYL.match(name)
+    if m:
+        return m.group(1) + "di" + m.group(2)
     m = _CARBAMOYL.match(name)
     if m and m.group(1).count("(") == m.group(1).count(")"):
         return m.group(1) + "carbamoyl"
@@ -872,6 +907,12 @@ _AMIDE_FAMILY_CHAIN_TERMINAL_SUFFIXES: frozenset[str] = frozenset({
     "thial",
     "selenal",
     "tellural",
+    # Acyl halides: the chain-terminus carbonyl, as the acid -- "propanedioyl
+    # dichloride (PIN)" (pdf p. 615), where the engine wrote locants.
+    "oyl chloride",
+    "oyl bromide",
+    "oyl fluoride",
+    "oyl iodide",
     # Amide / hydrazide family (chain-terminus C with the C-N attachment)
     "amide",
     "thioamide",
@@ -1116,6 +1157,14 @@ def render_suffixes(
                 and base_form == "ohydrazide"):
             rendered_form = rendered_form[1:]  # drop leading 'o'
 
+        # An acyl halide multiplies its class word too: "propanedioyl
+        # dichloride (PIN)", "benzene-1,4-dicarbonyl dichloride (PIN)" (pdf
+        # pp. 615-616); the engine wrote "...dioyl chloride" (naming round 4).
+        if count > 1 and re.fullmatch(
+            r"(?:oyl|carbonyl) (?:chloride|bromide|fluoride|iodide)", rendered_form
+        ):
+            _acyl, _halide = rendered_form.split(" ", 1)
+            rendered_form = f"{_acyl} {mult}{_halide}"
         # "propane-1,2-bis(aminium) (PIN)", "pentane-1,5-bis(aminium)" (pdf
         # pp. 833-834): a multiplied aminium takes bis/tris and enclosing
         # marks, not "diaminium". Naming round 4.
@@ -1835,7 +1884,13 @@ def _assemble_additive(tree: AdditiveTree) -> str:
             addition_parts.append(f"{loc_str}{mult}{typ}")
         else:
             for ag in ags:
-                loc_str = f"{ag.locant}-" if ag.locant.is_numeric else ""
+                # An N locant is cited: "N-methylpropan-2-imine N-oxide (PIN)"
+                # (pdf p. 842); a phosphane's is not, "triphenylphosphane
+                # oxide" (naming round 4).
+                loc_str = (
+                    f"{ag.locant}-"
+                    if ag.locant.is_numeric or str(ag.locant) == "N" else ""
+                )
                 mult_str = ag.multiplier or ""
                 addition_parts.append(f"{loc_str}{mult_str}{typ}")
     return f"{parent_name} {' '.join(addition_parts)}"
@@ -2143,6 +2198,12 @@ def _apply_retained_acyl_pin(result: str, tree: SubstitutiveTree) -> str:
     position 1, and the retained name implies that locant.
     """
     parent = tree.named_parent.name
+    # "oxalyl dichloride (PIN) ethanedioyl dichloride" (P-65.5.1, pdf p. 615):
+    # oxalic acid's retained acyl name, for its two-group dihalides.
+    if parent == "ethane" and len(tree.suffix_groups) == 2:
+        return re.sub(
+            r"ethanedioyl di(chloride|bromide|fluoride|iodide)$", r"oxalyl di\1", result
+        )
     if parent not in ("benzene", "ethane", "methane"):
         return result
     if parent == "methane" and any(

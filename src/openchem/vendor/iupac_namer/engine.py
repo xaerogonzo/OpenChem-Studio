@@ -9040,12 +9040,16 @@ def name(
     # names "selenoxide"/"selenone" (Se, central atom 34) and
     # "telluroxide"/"tellurone" (Te, central atom 52), formed exactly as the
     # sulfoxide/sulfone case (R-Se(=O)-R' / R-Se(=O)(=O)-R', etc.).
+    #
+    # NOT for the peroxide, sulfoxide and sulfone (naming round 4). The book
+    # lists those class names SECOND: "(1) (methylperoxy)ethane (PIN) (2)
+    # ethyl methyl peroxide" (P-63.3.1, pdf p. 546), "(methanesulfinyl)
+    # methane (PIN)" (p. 912); substitution now reaches both. The Se/Te
+    # families stay here because the substitutive path cannot yet name
+    # them ("C[SeH]=O" has no plan).
     if (output_form == OutputForm.STANDALONE
             and free_valence is None):
         for _params in (
-            ("peroxide",    8, 8,    0),
-            ("sulfoxide",  16, None, 1),
-            ("sulfone",    16, None, 2),
             ("selenoxide", 34, None, 1),
             ("selenone",   34, None, 2),
             ("telluroxide", 52, None, 1),
