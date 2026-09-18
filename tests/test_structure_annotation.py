@@ -26,7 +26,16 @@ from openchem.domain.common import CacheState
 
 # Named because several tests share them and the shapes matter:
 CAFFEINE = "Cn1cnc2c1c(=O)n(C)c(=O)n2C"      # retained name -> bare LeafTree
-CAMPHOR = "CC1(C)C2CCC1(C)C(=O)C2"           # retained name, bridged ring
+CAMPHOR = "CC1(C)C2CCC1(C)C(=O)C2"           # systematic since D-036; HAS locants
+# CAMPHOR AND CAFFEINE ARE NO LONGER RETAINED-NAME EXAMPLES. D-036 audited
+# the retained-name registry and demoted both -- `camphor` is not in the Blue
+# Book's retained lists and `caffeine` appears nowhere in it -- so they name
+# systematically and carry derived numbering. Tests that need "a retained
+# name, therefore no numbering" use TOLUENE_RETAINED (a retained PIN by
+# P-22.1.3, no rings) or BENZENE_RETAINED (a retained PIN WITH a ring and no
+# atom_locants map, which is the "skeleton could not be matched" branch).
+TOLUENE_RETAINED = "Cc1ccccc1"               # retained PIN, no rings numbered
+BENZENE_RETAINED = "c1ccccc1"                # retained PIN, ring, no locant map
 ASPIRIN = "CC(=O)Oc1ccccc1C(=O)O"            # substitutive, two FGs
 D_ALANINE = "C[C@@H](N)C(=O)O"               # (R)-alanine: one centre, two FGs
 NAPHTHALENE = "c1ccc2ccccc2c1"               # bare ring in the retained table
@@ -201,11 +210,16 @@ def test_caffeine_takes_its_purine_numbering():
     assert methylated == {"1", "3", "7"}
 
 
-def test_a_bridged_retained_skeleton_still_has_no_numbering():
-    """The limit that remains. Camphor names to a retained string and its
-    bridged skeleton is not a numbered entry in the ring table, so there is
-    nothing to recover -- 76 of the 181 corpus molecules are like this."""
-    result = annotate(_mol(CAMPHOR))
+def test_a_retained_skeleton_with_no_locant_map_has_no_numbering():
+    """The limit that remains, now shown on benzene.
+
+    Camphor used to be this example and is not one any more: D-036 demoted the
+    retained name, so it numbers systematically. Benzene is the better case
+    anyway -- it is a retained PIN whose ring carries no `atom_locants` map
+    because every position is equivalent, so a skeleton numbering would be
+    ARBITRARY rather than merely missing.
+    """
+    result = annotate(_mol(BENZENE_RETAINED))
     assert result.locants == ()
     assert result.locant_coverage() == 0.0
 
@@ -213,7 +227,7 @@ def test_a_bridged_retained_skeleton_still_has_no_numbering():
 def test_locant_coverage_lets_a_caller_decline_to_show_a_numbering_view():
     """Half of all molecules produce no numbering. A UI needs to ask before
     offering the view, rather than rendering a blank one."""
-    assert annotate(_mol(CAMPHOR)).locant_coverage() == 0.0
+    assert annotate(_mol(BENZENE_RETAINED)).locant_coverage() == 0.0
     assert annotate(_mol(D_ALANINE)).locant_coverage() > 0.0
 
 
@@ -300,7 +314,11 @@ def test_a_bridged_system_reports_its_bridgeheads():
     rather than endpoints."""
     dataset = compute_ring_systems(_mol(CAMPHOR), "uuid", {})
     notes = dataset.provenance.parameters["atom_notes"]
-    assert sorted(notes.values()) == ["bridgehead", "bridgehead"]
+    # The note now carries the LOCANT as well, because camphor numbers
+    # systematically since D-036 -- "1 bridgehead" rather than "bridgehead".
+    # The subject is which atoms are identified, so the assertion is on that.
+    bridgeheads = [note for note in notes.values() if "bridgehead" in note]
+    assert len(bridgeheads) == 2, notes
 
 
 def test_a_spiro_centre_keeps_its_role_even_once_it_has_a_locant():
@@ -695,7 +713,7 @@ def test_a_molecule_with_no_numbering_explains_itself():
     unless told why."""
     from openchem.ui.visualization import summary_note
 
-    dataset = compute_locants(_mol(CAMPHOR), "u", {})
+    dataset = compute_locants(_mol(BENZENE_RETAINED), "u", {})
     assert dataset.values == {}
     assert dataset.error is None
     assert dataset.cache_state is not CacheState.FAILED
@@ -771,7 +789,9 @@ def test_every_annotation_calculator_explains_an_empty_result():
         # Ethane rather than caffeine: caffeine's purine ring system is
         # reported now, so it is no longer an empty result.
         (compute_functional_groups, "CC"),
-        (compute_locants, CAMPHOR),
+        # Benzene rather than camphor: camphor's retained name was demoted in
+        # D-036, so it now produces locants and is no longer an empty result.
+        (compute_locants, BENZENE_RETAINED),
     ]
     for compute, smiles in cases:
         dataset = compute(_mol(smiles), "u", {})
@@ -866,12 +886,17 @@ def test_a_substituent_subtree_can_be_expanded_like_its_own_molecule():
 
 
 def test_a_retained_name_derives_to_a_single_leaf():
-    """Caffeine's whole derivation is one node. That is not a failure of the
-    debugger, it is what the engine did -- and a view must not present it as
-    a missing explanation."""
-    root = name_derivation(_mol(CAFFEINE))
+    """A retained name's whole derivation is one node. That is not a failure
+    of the debugger, it is what the engine did -- and a view must not present
+    it as a missing explanation.
+
+    Caffeine was the example until D-036 established that the book never
+    retains it. Toluene is a retained PIN in as many words (P-22.1.3), so it
+    will not move under a later audit.
+    """
+    root = name_derivation(_mol(TOLUENE_RETAINED))
     assert root is not None
-    assert root.name == "caffeine"
+    assert root.name == "toluene"
     assert root.children == ()
     assert "retained" in root.detail
 

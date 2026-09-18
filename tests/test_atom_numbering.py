@@ -22,6 +22,11 @@ from openchem.chem.atom_numbering import (
 MPMI = "CN1CCC[C@@H]1Cc1c[nH]c2ccccc12"
 CAFFEINE = "Cn1cnc2c1c(=O)n(C)c(=O)n2C"
 CAMPHOR = "CC1(C)C2CCC1(C)C(=O)C2"
+# D-036 demoted camphor's and caffeine's retained names, so both now number
+# systematically. TOLUENE is the retained-name example (a PIN by P-22.1.3)
+# and NAPHTHALENE the ring-table one.
+TOLUENE = "Cc1ccccc1"
+NAPHTHALENE = "c1ccc2ccccc2c1"
 
 
 def _molblock(smiles: str) -> str:
@@ -53,9 +58,13 @@ def test_the_locants_are_the_engines_and_cover_only_what_it_names():
 
 
 def test_a_retained_name_numbers_nothing_and_explains_itself():
-    """Camphor's name carries no derived numbering. Zero labels and a
-    sentence saying why -- NOT a failure, and not silence."""
-    labels, status = labels_for_molblock(_molblock(CAMPHOR), LOCANTS)
+    """A retained name carries no derived numbering. Zero labels and a
+    sentence saying why -- NOT a failure, and not silence.
+
+    Camphor was the example until D-036 demoted it; toluene is a retained PIN
+    (P-22.1.3) and will not move.
+    """
+    labels, status = labels_for_molblock(_molblock(TOLUENE), LOCANTS)
     assert labels == {}
     assert status.startswith("0 of")
     assert "retained name" in status
@@ -63,10 +72,15 @@ def test_a_retained_name_numbers_nothing_and_explains_itself():
 
 
 def test_a_ring_skeletons_numbering_says_that_it_is_one():
-    """Caffeine gets its purine numbering from the ring table rather than
-    from its own name, and the status line distinguishes the two sources --
-    they have different standing (`LocantSource`)."""
-    _labels, status = labels_for_molblock(_molblock(CAFFEINE), LOCANTS)
+    """Naphthalene gets its numbering from the ring table rather than from
+    its own name, and the status line distinguishes the two sources -- they
+    have different standing (`LocantSource`).
+
+    Caffeine was the example until D-036: with the retained name gone it now
+    derives its own numbering, which is the OTHER source and so no longer
+    exercises this.
+    """
+    _labels, status = labels_for_molblock(_molblock(NAPHTHALENE), LOCANTS)
     assert "ring skeleton" in status
 
 
