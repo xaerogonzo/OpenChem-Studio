@@ -21,5 +21,8 @@
  "rows": 40,
  "heldout_sha256": "dddfae173cf9094dba37441eb253042ccdc899d6e9ca46c798408a009d086902",
  "pubchem_property": "SMILES,IUPACName",
- "rdkit_version": "2025.09.6"
+ "rdkit_version": "2025.09.6",
+ "status": "USED_FOR_TUNING",
+ "status_since": "naming round 4, 2026-09-18",
+ "status_note": "Round 4 uses rows of this set as fix targets (cid4000, cid14000, cid16000, cid19000, cid32000, cid45000, cid55000 and others), so from round 4 on it measures fitting, not generalisation, and is reported as 'historical held-out, used'. The whole set is declared used rather than row by row: 26 of its 40 names differ from their reference, and any of them may be diagnosed. heldout2.json replaces it as the fresh population."
 }
