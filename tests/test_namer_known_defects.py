@@ -302,12 +302,14 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # substitutive path already knew how: "1-(oxido)pyridin-1-ium-4-yl".
     # Standalone output is untouched, so "pyridine 1-oxide" and
     # "pyridine-4-carboxylate 1-oxide" keep the additive form correct for them.
+    # Expected moved in round 4 (A9): "oxido" is a simple prefix and takes no
+    # enclosing marks of its own (P-16.5.1); both forms round-trip.
     ("D-024", "[CH2+]c1cc[n+]([O-])cc1",
-     "[1-(oxido)pyridin-1-ium-4-yl]methan-1-ylium",
+     "(1-oxidopyridin-1-ium-4-yl)methan-1-ylium",
      "(pyridin-4-yl)methan-1-ylium 1-oxide", "unparsable; oxide wrapped a cation"),
     # Expected moved in round 4: P-14.3.4 (a), naming round 4 (D-039).
     ("D-024b", "[CH2-]c1cc[n+]([O-])cc1",
-     "[1-(oxido)pyridin-1-ium-4-yl]methanide",
+     "(1-oxidopyridin-1-ium-4-yl)methanide",
      "(unclaimed)", "same shape, anion"),
 
     # --- non-regression: additive names that MUST keep the two-word form
@@ -1260,6 +1262,46 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "p. 823, '(not didiazonium)' (p. 128)"),
     ("D-058e", "N#[N+]c1ccccc1", "benzenediazonium", "benzenediazonium",
      "control: a bare parent keeps the whole-molecule route"),
+    # --- D-059: enclosing marks and alkoxy spellings (A9) ------------------
+    # Every prefix not on an allowlist was enclosed as though compound, and
+    # every acyclic "...yl" was contracted to "...oxy". P-16.5.1 encloses a
+    # SUBSTITUTED substituent or one qualified by locants; P-63.2.2.2 (pdf
+    # p. 541) contracts only methoxy, ethoxy, propoxy, butoxy and phenoxy,
+    # the last "fully substitutable".
+    ("D-059a", "C=Cc1ccccc1", "ethenylbenzene", "(ethenyl)benzene", "a simple prefix"),
+    ("D-059b", "OC(=O)COc1ccccc1", "phenoxyacetic acid", "(phenoxy)acetic acid",
+     "as D-059a"),
+    ("D-059c", "CCCCOCCOCCCO", "3-(2-butoxyethoxy)propan-1-ol",
+     "3-[2-(butoxy)ethoxy]propan-1-ol", "the heldout cid16000 tail"),
+    ("D-059d", "CCCCCCCOc1ccccc1N", "2-(heptyloxy)aniline", "2-(heptoxy)aniline",
+     "no 'heptoxy': not one of the retained contractions"),
+    ("D-059e", "CC(=O)Oc1ccccc1C(=O)O", "2-(acetyloxy)benzoic acid",
+     "2-(acetoxy)benzoic acid", "aspirin; adjudicated as P-65.6-acetyloxy"),
+    ("D-059f", "CC(C)Oc1ccccc1", "[(propan-2-yl)oxy]benzene", "(propan-2-oxy)benzene",
+     "'(propan-2-yl)oxy (preferred prefix)', p. 541, and P-16.5.1.3's locant rule"),
+    ("D-059g", "OC(=O)COc1cc(Cl)c(Cl)cc1Cl", "(2,4,5-trichlorophenoxy)acetic acid",
+     "(2,4,5-trichlorophenyloxy)acetic acid", "phenoxy, substituted"),
+    ("D-059h", "FC(F)(F)c1ccccc1", "(trifluoromethyl)benzene", "(trifluoromethyl)benzene",
+     "converse: a substituted substituent keeps its marks"),
+    ("D-059i", "OCc1ccc(O)cc1", "4-(hydroxymethyl)phenol", "4-(hydroxymethyl)phenol",
+     "converse: as D-059h"),
+    # --- D-060: an amino prefix's N-substituents, as the book writes them ---
+    # Alphabetical; the first enclosed only if compound, every later one
+    # enclosed (pdf pp. 521-665). Two builders pre-wrapped every name and let
+    # the merge wrap the wrapped ones again.
+    ("D-060a", "CCN(CCO)CCc1ccccc1", "2-[ethyl(2-phenylethyl)amino]ethan-1-ol",
+     "2-{[(ethyl)][(2-phenylethyl)]amino}ethan-1-ol", "doubled marks"),
+    ("D-060b", "CN(c1ccccc1)c1cccc(O)c1", "3-[methyl(phenyl)amino]phenol",
+     "3-(methylphenylamino)phenol", "the book's own example, p. 521"),
+    ("D-060c", "CN(Cc1nc2ccccc2cn1)CCO", "2-{methyl[(quinazolin-2-yl)methyl]amino}ethan-1-ol",
+     "2-{[(methyl)][(quinazolin-2-yl)methyl]amino}ethan-1-ol",
+     "FDA-0033's grouping still unambiguous: the later substituent is enclosed"),
+    ("D-060d", "CC(C)N(C(C)C)CCO", "2-[di(propan-2-yl)amino]ethan-1-ol",
+     "2-[bis(propan-2-yl)amino]ethan-1-ol",
+     "a locant-qualified SIMPLE prefix takes di (P-16.5.1.3; 'di(butan-2-yl)amino', p. 554)"),
+    ("D-060e", "CC(C)CN(CC(C)C)CCO", "2-[bis(2-methylpropyl)amino]ethan-1-ol",
+     "2-[bis(2-methylpropyl)amino]ethan-1-ol",
+     "converse: a substituted one keeps bis ('bis(2-methylpropyl)', p. 811)"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

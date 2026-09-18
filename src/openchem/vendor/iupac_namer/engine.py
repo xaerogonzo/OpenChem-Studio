@@ -444,27 +444,7 @@ def _name_amine_fg_substituent(
             logger.warning("Amine compound-prefix: N-sub carve failed: %s", e)
             return None
 
-    # Assemble "dimethylamino", "methylamino", etc.
-    # Disambiguate when 2+ N-substituents are present and any is complex
-    # (locant-bearing or already bracketed).  Without grouping, e.g.
-    # "(quinazolin-2-yl)methylamino" is mis-parsed by OPSIN as
-    # "[(quinazolin-2-yl)methyl]amino".  See FDA-0033.
-    def _is_complex_nsub(nm: str) -> bool:
-        if not nm:
-            return False
-        if nm[0] in "([{":
-            return True
-        return "-" in nm
-    _distinct = set(n_sub_names)
-    _any_complex = any(_is_complex_nsub(nm) for nm in _distinct)
-    if len(_distinct) >= 2 and _any_complex:
-        n_sub_names = [
-            nm if (nm and nm[0] in "([{") else f"({nm})"
-            for nm in n_sub_names
-        ]
-    merged = merge_identical_prefixes([(n, ()) for n in n_sub_names])
-    merged.sort(key=lambda m: m.sort_name)
-    n_prefix_str = render_merged_prefixes(merged).rstrip("-")
+    n_prefix_str = _compose_n_substituents(n_sub_names)
     compound_prefix = n_prefix_str + "amino"
 
     return LeafTree(
@@ -9706,6 +9686,45 @@ def _preference_key(strategy, plan, mol):
     return strategy.preference_key(plan)
 
 
+def _compose_n_substituents(n_sub_names: list[str]) -> str:
+    """The N-substituent part of an amino prefix, as the book writes it.
+
+    Cited alphabetically; the first is enclosed only if it is compound, every
+    later one is enclosed: "methyl(phenyl)amino", "acetyl(methyl)amino",
+    "(carboxymethyl)(2-hydroxyethyl)amino" (pdf pp. 521-665). Enclosing the
+    later ones also keeps OPSIN from reading "(quinazolin-2-yl)methylamino"
+    as "[(quinazolin-2-yl)methyl]amino" (FDA-0033), which is why two call
+    sites once pre-wrapped every name -- and then let the merge wrap the
+    wrapped ones again: "{[(ethyl)][(2-phenylethyl)]amino}" (naming round 4).
+    """
+    from openchem.vendor.iupac_namer.assembly import _choose_brackets, merge_identical_prefixes
+
+    merged = merge_identical_prefixes([(n, ()) for n in n_sub_names])
+    merged.sort(key=lambda m: m.sort_name)
+    pieces: list[str] = []
+    for position, entry in enumerate(merged):
+        core = entry.name
+        if entry.needs_brackets or (position > 0 and not entry.multiplier):
+            ob, cb = _choose_brackets(core)
+            core = f"{ob}{core}{cb}"
+        pieces.append(f"{entry.multiplier or ''}{core}")
+    return "".join(pieces)
+
+
+def _contracts_to_alkoxy(alkyl_name: str) -> bool:
+    """Whether "<alkyl>yl" + "oxy" contracts to "<alkyl>oxy" (P-63.2.2.2).
+
+    The book retains only methoxy, ethoxy, propoxy and butoxy (and phenoxy,
+    tert-butoxy), "fully substitutable": "2-methylpropoxy (PIN)",
+    "2-chloroethoxy". Every other group keeps its "yl": "heptyloxy",
+    "(propan-2-yl)oxy" -- the engine contracted every acyclic "...yl" and
+    wrote "heptoxy" and "propan-2-oxy" (naming round 4; pdf p. 541).
+    """
+    return re.search(r"(?:meth|eth|prop|but)yl$", alkyl_name) is not None and not re.search(
+        r"(?:hept|pent|hex|oct|non|dec)yl$|-\d+-yl$|an-\d+-yl$", alkyl_name
+    )
+
+
 def _generate_from_handler(
     handler_name, decomp, interpretation,
     perception, mol, output_form, free_valence, strategy, session,
@@ -14412,51 +14431,8 @@ class SubstitutivePath:
                                         n_sub_names.append("?")
 
                                 if n_sub_names:
-                                    # Assemble compound amino prefix:
-                                    # "(methylamino)", "(dimethylamino)", etc.
-                                    from openchem.vendor.iupac_namer.assembly import merge_identical_prefixes, render_merged_prefixes
-                                    # When the compound amino carries two or more
-                                    # distinct N-substituent names and at least one
-                                    # is complex (already bracketed), parsers (e.g.
-                                    # OPSIN) can mis-group adjacent simple + complex
-                                    # prefixes as a single larger substituent — e.g.
-                                    # "(quinazolin-2-yl)methylamino" would be read
-                                    # as "[(quinazolin-2-yl)methyl]amino" (a benzyl-
-                                    # like CH2 bridge).  To disambiguate, wrap each
-                                    # simple N-sub name in parentheses so the result
-                                    # becomes e.g. "(methyl)(quinazolin-2-yl)amino".
-                                    # Disambiguate compound amino prefixes when 2+
-                                    # N-substituents are present.  Without grouping,
-                                    # the rendered "(X)Y-amino" form can be mis-parsed
-                                    # (e.g. OPSIN reads "(4-amino-...-quinazolin-2-yl)
-                                    # methylamino" as a benzyl-style "[...methyl]amino"
-                                    # linker rather than "(...)(methyl)amino").  If
-                                    # any N-sub name carries a locant/hyphen or is
-                                    # already bracketed, wrap every simple N-sub in
-                                    # parentheses to make the grouping unambiguous.
-                                    # See FDA-0033.
-                                    def _is_complex_nsub(nm: str) -> bool:
-                                        if not nm:
-                                            return False
-                                        if nm[0] in "([{":
-                                            return True
-                                        # Locant hyphen like "4-amino-..." or "quinazolin-2-yl".
-                                        return "-" in nm
-                                    _distinct_n_sub_names = set(n_sub_names)
-                                    _any_complex = any(_is_complex_nsub(nm) for nm in _distinct_n_sub_names)
-                                    if len(_distinct_n_sub_names) >= 2 and _any_complex:
-                                        n_sub_names = [
-                                            nm if (nm and nm[0] in "([{") else f"({nm})"
-                                            for nm in n_sub_names
-                                        ]
-                                    # Use the same dedup/multiplier logic as main prefixes
-                                    merged = merge_identical_prefixes(
-                                        [(n, ()) for n in n_sub_names]
-                                    )
-                                    merged.sort(key=lambda m: m.sort_name)
-                                    n_prefix_str = render_merged_prefixes(merged)
-                                    # Strip trailing hyphen if present (e.g. "dimethyl-")
-                                    n_prefix_str = n_prefix_str.rstrip("-")
+                                    # "(methylamino)", "methyl(phenyl)amino", ...
+                                    n_prefix_str = _compose_n_substituents(n_sub_names)
                                     compound_prefix = n_prefix_str + "amino"
                                     sub_tree = LeafTree(
                                         output_form=OutputForm.SUBSTITUENT,
@@ -14896,12 +14872,16 @@ class SubstitutivePath:
                                     frag_mol_ac.GetRingInfo().NumRings() > 0
                                 )
                                 _ac_contract = (
-                                    alkyl_name_ac.endswith("yl")
-                                    and not alkyl_name_ac.endswith("nyl")
+                                    _contracts_to_alkoxy(alkyl_name_ac)
                                     and not _ac_frag_has_ring
                                 )
                                 if _ac_contract:
                                     alkoxy_part = alkyl_name_ac[:-2] + "oxy"
+                                elif (re.search(r"\d-", alkyl_name_ac)
+                                        and "(" not in alkyl_name_ac
+                                        and "[" not in alkyl_name_ac):
+                                    # P-16.5.1.3, as for the ether prefix below.
+                                    alkoxy_part = "(" + alkyl_name_ac + ")oxy"
                                 else:
                                     alkoxy_part = alkyl_name_ac + "oxy"
                                 # Wrap in parens if complex (contains space, dash, or parens)
@@ -14999,6 +14979,7 @@ class SubstitutivePath:
                                 )
                                 _is_contracted_oxy = (
                                     ether_suffix == "oxy"
+                                    and _contracts_to_alkoxy(alkyl_name)
                                     and alkyl_name.endswith("yl")
                                     and not alkyl_name.endswith("nyl")  # sulfonyl, sulfinyl, carbonyl
                                     and not alkyl_name.endswith("xyl")  # no such group but safe
@@ -15013,12 +14994,15 @@ class SubstitutivePath:
                                 # contracted retained PIN for the C6H5-O-
                                 # substituent (overrides the general
                                 # "ring substituent uses yloxy" rule).
+                                # "Fully substitutable" (P-63.2.2.2, p. 541), so a
+                                # substituted phenyl contracts too: "2,4,5-
+                                # trichlorophenoxy", not "(2,4,5-trichlorophenyl)oxy".
                                 _is_phenoxy_special = (
                                     ether_suffix == "oxy"
-                                    and alkyl_name == "phenyl"
+                                    and alkyl_name.endswith("phenyl")
                                 )
                                 if _is_phenoxy_special:
-                                    ether_prefix_name = "phenoxy"
+                                    ether_prefix_name = alkyl_name[:-2] + "oxy"
                                 elif _is_contracted_oxy:
                                     ether_prefix_name = alkyl_name[:-2] + "oxy"
                                 else:
@@ -15038,7 +15022,20 @@ class SubstitutivePath:
                                         or "[" in alkyl_name
                                     )
                                     if _alkyl_has_inner_parens:
-                                        ether_prefix_name = "[" + alkyl_name + "]" + ether_suffix
+                                        # The next nesting level, not always "[":
+                                        # "{[(4-chlorophenyl)sulfanyl]methyl}sulfanyl"
+                                        # came out "[[(...)sulfanyl]methyl]sulfanyl".
+                                        from openchem.vendor.iupac_namer.assembly import _choose_brackets
+                                        _ob, _cb = _choose_brackets(alkyl_name)
+                                        ether_prefix_name = _ob + alkyl_name + _cb + ether_suffix
+                                    elif re.search(r"\d-", alkyl_name):
+                                        # P-16.5.1.3 (pdf p. 130): "Parentheses are
+                                        # placed also around prefixes denoting simple
+                                        # substituent groups qualified by locants" --
+                                        # "(propan-2-yl)oxy", "(pyridin-2-yl)oxy" (65
+                                        # pages of the book; the comment above that
+                                        # wanted "pyridin-4-yloxy" was mistaken).
+                                        ether_prefix_name = "(" + alkyl_name + ")" + ether_suffix
                                     else:
                                         ether_prefix_name = alkyl_name + ether_suffix
                                 sub_tree = LeafTree(

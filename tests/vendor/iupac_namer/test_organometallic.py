@@ -444,7 +444,8 @@ METAL_ORGANYL_PROBES = [
     ("[CH3][Cu]", "methylcopper"),
     ("[Cu]c1ccccc1", "phenylcopper"),
     ("[Cu]C#CC", "(prop-1-yn-1-yl)copper"),
-    ("C#C[Cu]", "(ethynyl)copper"),
+    # round 4: "ethynyl" is a simple prefix, unenclosed like "methyl" here.
+    ("C#C[Cu]", "ethynylcopper"),
     ("[CH3][Ag]", "methylsilver"),
     ("[CH3][Au]", "methylgold"),
     ("[CH3][Mn]", "methylmanganese"),

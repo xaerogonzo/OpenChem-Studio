@@ -311,7 +311,11 @@ def derive_sort_name(prefix_name: str) -> str:
         for m in _MULT_PREFIXES:
             if m.endswith("kis") or m in ("bis", "tris"):
                 continue
-            if s.startswith(m) and not _is_compound_prefix(s[len(m):]):
+            # The remainder must be a KNOWN simple prefix: "dimethyl" files
+            # under m, but "diazenyl" is a word, not di + "azenyl". This read
+            # "not compound", which meant "on the list" until naming round 4
+            # made simple-by-form prefixes non-compound too.
+            if s.startswith(m) and s[len(m):] in _SIMPLE_PREFIXES:
                 s = s[len(m):]
                 break
 
@@ -399,8 +403,45 @@ def _is_compound_prefix(name: str) -> bool:
     # Check allowlist
     if name in _SIMPLE_PREFIXES:
         return False
+    # P-16.5.1: a SIMPLE prefix names one unsubstituted substituent group --
+    # one stem, "yl" if any only at its end ("ethenyl", "azaniumyl"), or a
+    # contracted form ("phenoxy", "butoxy"). A compound prefix joins a "...yl"
+    # stem to another prefix ("methylamino", "heptyloxy", "acetyloxy"), and
+    # the book encloses exactly those: "3-(2-butoxyethoxy)propyl" beside
+    # "[2-(heptyloxy)phenyl]". Defaulting everything unlisted to compound
+    # gave "(ethenyl)benzene" and "(phenoxy)acetic acid" (naming round 4).
+    if _is_simple_by_form(name):
+        return False
     # Default: treat as compound (safe)
     return True
+
+
+# Simple by form, but their enclosing marks are load-bearing in OPSIN (see
+# the note at the end of _SIMPLE_PREFIXES): unenclosed they merge with the
+# next stem, or an "-idene" ending triggers a spurious elision.
+_ENCLOSE_ANYWAY = ("hydrazinyl", "silyl", "ylidene", "ylidyne", "idene", "idyne")
+
+
+# Detachable prefixes that, LEADING a longer word, make it a substituted
+# substituent: "hydroxymethyl", "aminomethyl", "chloroethyl", "oxopropyl".
+_LEADING_PREFIX_WORDS = (
+    "hydroxy", "amino", "imino", "oxo", "thioxo", "carboxy", "sulfo", "sulfanyl",
+    "fluoro", "chloro", "bromo", "iodo", "nitro", "nitroso", "cyano", "isocyano",
+    "azido", "methoxy", "ethoxy", "propoxy", "butoxy", "phenoxy", "formyl",
+    "acetyl", "carbamoyl", "hydroperoxy", "phosphono", "diazo",
+)
+
+
+def _is_simple_by_form(name: str) -> bool:
+    if not re.fullmatch(r"[a-z]+", name):
+        return False
+    if any(token in name for token in _ENCLOSE_ANYWAY):
+        return False
+    bare = re.sub(r"^(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)", "", name)
+    if any(w != candidate and candidate.startswith(w)
+           for w in _LEADING_PREFIX_WORDS for candidate in (name, bare)):
+        return False  # a prefix on a stem: "hydroxymethyl", "trifluoromethyl"
+    return "yl" not in name[:-2]
 
 
 # ---------------------------------------------------------------------------
@@ -439,6 +480,11 @@ def merge_identical_prefixes(
 
         count = len(group)
         compound = _is_compound_prefix(name)
+        # "tri(decyl)", not "tridecyl" (P-16.5.1.2): a multiplied simple
+        # prefix whose name begins a numeral stem keeps its marks, or the
+        # multiplier and the stem read as one longer numeral.
+        if not compound and count > 1 and re.match(r"(?:dec|icos|cos|triacont)", name):
+            compound = True
         sort_name = derive_sort_name(name)
 
         if not compound:
@@ -455,7 +501,16 @@ def merge_identical_prefixes(
                 multiplier = None
                 needs_brackets = True
             else:
-                multiplier = get_multiplier(count, complex=True)
+                # A SIMPLE prefix that is compound only because it carries
+                # locants takes di/tri, enclosed: "di(propan-2-yl)" (three
+                # times in the book, "bis(propan-2-yl)" never), "di(butan-2-
+                # yl)amino" (p. 554) -- while a substituted one keeps bis:
+                # "bis(2-methylpropyl)" (P-16.5.1.3, naming round 4).
+                locant_only = (
+                    re.fullmatch(r"[a-z]+(?:-\d+[a-z]?(?:,\d+[a-z]?)*-[a-z]+)+", name)
+                    and _is_simple_by_form(re.sub(r"-\d+[a-z]?(?:,\d+[a-z]?)*-", "", name))
+                )
+                multiplier = get_multiplier(count, complex=not locant_only)
                 needs_brackets = True
 
         result.append(MergedPrefix(
