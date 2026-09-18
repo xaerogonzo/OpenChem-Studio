@@ -141,18 +141,18 @@ def test_group_by_atom_maps_every_claimed_atom():
     assert set(result.group_by_atom) == claimed
 
 
-def test_caffeine_detects_no_functional_groups_at_all():
-    """Both of caffeine's carbonyls are ring-embedded lactams and neither is
-    claimed, so a molecule that plainly has functional groups annotates as
-    having none. Measured at 4 of 181 corpus molecules.
-
-    `test_a_lactam_carbonyl_is_claimed_by_no_group_at_all` below pins down
-    WHY, which turns out to be half deliberate. This test just holds the
-    consequence at the annotation level, so that a detector that later
-    learns to claim these is noticed rather than silently improving a number
-    no one was watching."""
+def test_caffeine_ring_carbonyls_are_claimed_as_ring_ketones():
+    """Caffeine used to annotate as having no groups at all: both carbonyls
+    are ring-embedded and nothing claimed them. This test was written to be
+    noticed when that changed, and it did: naming round 4 (A5) encoded the
+    P-31.1.4.2.4 conditions under which a ring C=O on a mancude ring is the
+    "-one" suffix, so the engine now claims both as ring ketones, the way it
+    names them ("...purine-2,6-dione"). Whether a lactam should ALSO be shown
+    as a lactam is a feature question for the app vocabulary (round 4 branch
+    B), not a naming one."""
     result = annotate(_mol(CAFFEINE))
-    assert result.groups == ()
+    claimed = {(g.type, g.anchor) for g in result.groups}
+    assert claimed == {("ketone", 6), ("ketone", 10)}
 
 
 # --- Locants, and their honest limits -----------------------------------
@@ -622,7 +622,9 @@ def test_a_lactam_carbonyl_is_claimed_by_no_group_at_all():
     assert functional_groups("CC(=O)NC")
 
     assert functional_groups(PYRROLIDINONE) == []
-    assert functional_groups(CAFFEINE) == []
+    # Caffeine left this list in naming round 4 (A5): its carbonyls sit on a
+    # mancude ring and are claimed as ring ketones now (see the test above).
+    # A saturated lactam like pyrrolidinone is still claimed by nothing.
 
 
 def test_a_molecule_with_no_groups_reports_that_it_found_none():
@@ -862,11 +864,12 @@ def test_an_empty_or_invalid_selection_reports_rather_than_raises():
 
 
 def test_the_derivation_exposes_parent_suffix_and_substituents():
-    """Aspirin: benzene parent, carboxylic acid in the suffix slot, acetoxy
-    as a substituent at position 2."""
+    """Aspirin: benzene parent, carboxylic acid in the suffix slot, acetyloxy
+    as a substituent at position 2 ("4-(acetyloxy)benzoic acid (PIN)", Blue
+    Book p. 628; round 4 stopped contracting acyloxy to "acetoxy")."""
     root = name_derivation(_mol(ASPIRIN))
     assert root is not None
-    assert root.name == "2-(acetoxy)benzoic acid"
+    assert root.name == "2-(acetyloxy)benzoic acid"
     roles = {child.role for child in root.children}
     assert {"parent hydride", "principal characteristic group", "substituent"} <= roles
 

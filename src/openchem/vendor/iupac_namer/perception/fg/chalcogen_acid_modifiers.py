@@ -459,8 +459,8 @@ def compute_name(mol, strategy=None, session=None, depth: int = 0) -> str | None
         return None
 
     if strategy is None:
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-        strategy = IUPACCanonical()
+        from openchem.vendor.iupac_namer.strategy import active_strategy
+        strategy = active_strategy()
 
     try:
         return _compose(mol, centre, strategy, session, depth)

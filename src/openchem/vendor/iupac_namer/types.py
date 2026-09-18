@@ -2265,8 +2265,12 @@ class NamingSession:
         attachment_indices are in CANONICAL atom ordering of the fragment
         (guaranteed by carve_substituent's canonical index normalization).
         """
-        return (smiles, output_form, fv_bond_orders,
-                attachment_indices or ())
+        # The strategy's identity is part of the key (round 4, A11): two
+        # strategies are two sets of naming decisions, and a cached tree from
+        # one must never answer for the other.
+        from openchem.vendor.iupac_namer.strategy import active_strategy
+        return (active_strategy().cache_key(), smiles, output_form,
+                fv_bond_orders, attachment_indices or ())
 
     def cache_lookup(self, smiles: str, output_form: OutputForm,
                      fv_bond_orders: tuple[int, ...],

@@ -342,9 +342,11 @@ Architecture, deliberately deferred rather than half-done:
   the four flagship defects turned out to be a ranking error, so replacing it
   with a lexicographic key is hygiene rather than a fix -- still worth doing,
   and planned as its own change with an ordering-equivalence proof.
-* **The strategy is not in the session cache key**, and `IUPACCanonical()` is
-  still hard-constructed at 11 sites, so `name_smiles(strategy=...)` cannot
-  yet change what those sites decide. Latent rather than live: the app only
-  ever runs the default strategy, and a session lasts one top-level call.
+* ~~The strategy is not in the session cache key, and `IUPACCanonical()` is
+  hard-constructed at 11 sites.~~ Closed in naming round 4 (A11): a
+  top-level call binds its strategy, every helper reads `active_strategy()`,
+  the cache key carries `cache_key()`, strategies refuse attribute
+  assignment, and `tests/test_namer_strategy_propagation.py` guards all of
+  it, including a source scan against a new construction site.
 * **274 retained-name registry entries have no audited status.** They behave
   exactly as before; `tools/retained_name_audit.py` reports the backlog.

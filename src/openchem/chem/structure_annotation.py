@@ -655,7 +655,7 @@ def name_fragment(mol: Chem.Mol, atom_indices: set[int] | frozenset[int]) -> Fra
     try:
         from openchem.vendor.iupac_namer import name as build_name_tree
         from openchem.vendor.iupac_namer.assembly import assemble
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
+        from openchem.vendor.iupac_namer.strategy import default_strategy
         from openchem.vendor.iupac_namer.types import (
             FreeValenceInfo,
             OutputForm,
@@ -665,7 +665,7 @@ def name_fragment(mol: Chem.Mol, atom_indices: set[int] | frozenset[int]) -> Fra
         if attachment is None:
             # A whole disconnected molecule was selected: there is no free
             # valence, so it gets its ordinary standalone name.
-            tree = build_name_tree(fragment, IUPACCanonical())
+            tree = build_name_tree(fragment, default_strategy())
         else:
             free_valence = FreeValenceInfo(
                 bond_orders=(1,),
@@ -675,7 +675,7 @@ def name_fragment(mol: Chem.Mol, atom_indices: set[int] | frozenset[int]) -> Fra
             )
             tree = build_name_tree(
                 fragment,
-                IUPACCanonical(),
+                default_strategy(),
                 output_form=OutputForm.SUBSTITUENT,
                 free_valence=free_valence,
             )
@@ -759,9 +759,9 @@ def name_derivation(mol: Chem.Mol) -> DerivationNode | None:
         return None
     try:
         from openchem.vendor.iupac_namer import name as build_name_tree
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
+        from openchem.vendor.iupac_namer.strategy import default_strategy
 
-        tree = build_name_tree(mol, IUPACCanonical())
+        tree = build_name_tree(mol, default_strategy())
     except Exception:  # noqa: BLE001 - a derivation is an explanation, never fatal
         return None
     return _derivation_node(tree)
@@ -1631,9 +1631,9 @@ def _locants_and_decisions(
     """
     try:
         from openchem.vendor.iupac_namer import name as build_name_tree
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
+        from openchem.vendor.iupac_namer.strategy import default_strategy
 
-        tree = build_name_tree(mol, IUPACCanonical())
+        tree = build_name_tree(mol, default_strategy())
     except Exception:  # noqa: BLE001 - locants are optional, groups are not
         return (), ()
 

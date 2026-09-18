@@ -1296,3 +1296,61 @@ class IUPACCanonical(NamingStrategy):
         if getattr(rs, "type", None) != "bridged":
             return 0.0
         return self._RETAINED_RING_SENIORITY_CREDIT
+
+
+# ---------------------------------------------------------------------------
+# The active strategy (naming round 4, A11)
+# ---------------------------------------------------------------------------
+#
+# Eleven helpers used to build their own ``IUPACCanonical()`` when they were
+# not handed a strategy, so ``name_smiles(smiles, strategy=X)`` could change
+# the main search while those helpers still decided with the default. The
+# session cache had the same blind spot: its key held no strategy, so two
+# strategies sharing a session would have shared answers. The strategy a
+# top-level call was given is now bound for the whole call, every helper asks
+# ``active_strategy()``, and the cache key carries ``cache_key()``.
+# ``tests/test_namer_strategy_propagation.py`` guards both, and forbids a new
+# construction site outside this module.
+
+import contextvars as _contextvars
+from contextlib import contextmanager as _contextmanager
+
+_ACTIVE_STRATEGY: _contextvars.ContextVar = _contextvars.ContextVar(
+    "iupac_namer_active_strategy", default=None,
+)
+_DEFAULT_STRATEGY: NamingStrategy | None = None
+
+
+def default_strategy() -> NamingStrategy:
+    """The one shared IUPACCanonical. Strategies hold no state (and refuse
+    attribute assignment), so a single instance serves every caller."""
+    global _DEFAULT_STRATEGY
+    if _DEFAULT_STRATEGY is None:
+        _DEFAULT_STRATEGY = IUPACCanonical()
+    return _DEFAULT_STRATEGY
+
+
+def active_strategy() -> NamingStrategy:
+    """The strategy of the naming call in progress, else the default."""
+    strategy = _ACTIVE_STRATEGY.get()
+    return strategy if strategy is not None else default_strategy()
+
+
+@_contextmanager
+def using_strategy(strategy: NamingStrategy | None):
+    """Bind *strategy* (None: keep the active one) for the enclosed call."""
+    token = _ACTIVE_STRATEGY.set(strategy if strategy is not None else active_strategy())
+    try:
+        yield _ACTIVE_STRATEGY.get()
+    finally:
+        _ACTIVE_STRATEGY.reset(token)
+
+
+def _refuse_setattr(self, name, value):
+    raise AttributeError(
+        f"{type(self).__name__} is immutable: a strategy's decisions are keyed "
+        f"by cache_key(), so changing one after creation would reuse stale names"
+    )
+
+
+NamingStrategy.__setattr__ = _refuse_setattr  # type: ignore[method-assign]

@@ -760,7 +760,7 @@ def _carve_and_name_organyl(mol, n_idx: int, c_idx: int) -> str | None:
         name as engine_name,
     )
     from openchem.vendor.iupac_namer.types import FreeValenceInfo, OutputForm
-    from openchem.vendor.iupac_namer.strategy import IUPACCanonical
+    from openchem.vendor.iupac_namer.strategy import active_strategy
     from openchem.vendor.iupac_namer.assembly import assemble
 
     # Flood-fill the organyl fragment from c_idx, never crossing back to N.
@@ -785,7 +785,7 @@ def _carve_and_name_organyl(mol, n_idx: int, c_idx: int) -> str | None:
         elide_locant_one=_fvi_elide_locant_one(sub_mol, sub_att),
     )
     sub_tree = engine_name(
-        sub_mol, IUPACCanonical(), OutputForm.SUBSTITUENT, free_valence=fv,
+        sub_mol, active_strategy(), OutputForm.SUBSTITUENT, free_valence=fv,
     )
     sub_name = assemble(sub_tree)
     if not sub_name or "[NAMING ERROR" in sub_name or "NAMING ERROR" in sub_name:

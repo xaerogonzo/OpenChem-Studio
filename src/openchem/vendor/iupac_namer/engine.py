@@ -6060,8 +6060,8 @@ def _name_ring_imino_amide(mol, strategy=None) -> str | None:
             mol, ring_atoms, (exo_n, ring_c)
         )
         if strategy is None:
-            from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-            strategy = IUPACCanonical()
+            from openchem.vendor.iupac_namer.strategy import active_strategy
+            strategy = active_strategy()
         sub_session = NamingSession()
         sub_fv = FreeValenceInfo(
             bond_orders=(2,),
@@ -6203,8 +6203,8 @@ def _name_lambda_locant_chain(mol, strategy=None) -> str | None:
         return None
     try:
         if strategy is None:
-            from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-            strategy = IUPACCanonical()
+            from openchem.vendor.iupac_namer.strategy import active_strategy
+            strategy = active_strategy()
         session = NamingSession()
         tree = name(new_mol, strategy, _session=session, _depth=0)
     except Exception:
@@ -6549,8 +6549,8 @@ def _name_simple_alkyl_x_radical(mol, strategy=None, session=None) -> str | None
     attachment_bond = (cut_neighbor_idx, parent_for_carve.GetIdx())
     try:
         if strategy is None:
-            from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-            strategy = IUPACCanonical()
+            from openchem.vendor.iupac_namer.strategy import active_strategy
+            strategy = active_strategy()
         if session is None:
             session = NamingSession()
         frag_mol, att_idx_sub, bo = carve_substituent(
@@ -6654,8 +6654,8 @@ def _name_trisubstituted_metalloid_radical(mol, strategy=None, session=None) -> 
     suffix = _METALLOID_RADICAL_SUFFIX[centre.GetSymbol()]
     # Carve each substituent and name it.
     if strategy is None:
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-        strategy = IUPACCanonical()
+        from openchem.vendor.iupac_namer.strategy import active_strategy
+        strategy = active_strategy()
     if session is None:
         session = NamingSession()
     sub_names: list[str] = []
@@ -6816,8 +6816,8 @@ def _name_undersubstituted_metalloid_radical(mol, strategy=None, session=None) -
         return None
     # Carve each substituent.
     if strategy is None:
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-        strategy = IUPACCanonical()
+        from openchem.vendor.iupac_namer.strategy import active_strategy
+        strategy = active_strategy()
     if session is None:
         session = NamingSession()
     sub_names: list[str] = []
@@ -7042,8 +7042,8 @@ def _name_carbon_radical_via_yl(mol, strategy=None, session=None) -> str | None:
     yl_mol = rw.GetMol()
     # Route through the regular pipeline as a SUBSTITUENT.
     if strategy is None:
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-        strategy = IUPACCanonical()
+        from openchem.vendor.iupac_namer.strategy import active_strategy
+        strategy = active_strategy()
     if session is None:
         session = NamingSession()
     try:
@@ -8087,7 +8087,15 @@ def _validate_stereo_via_opsin(tree, name: str, *, strip_modes: tuple[str, ...])
 
 
 def name_smiles(smiles: str, strategy=None) -> str:
-    """Name a molecule from SMILES. Convenience wrapper.
+    """Name a molecule from SMILES, with *strategy* bound for the whole call
+    (every helper reads it through ``active_strategy()``)."""
+    from openchem.vendor.iupac_namer.strategy import using_strategy
+    with using_strategy(strategy) as bound:
+        return _name_smiles_bound(smiles, bound)
+
+
+def _name_smiles_bound(smiles: str, strategy) -> str:
+    """Name a molecule from SMILES, *strategy* already bound (never None).
 
     Returns the final name string.
     """
@@ -8275,9 +8283,6 @@ def name_smiles(smiles: str, strategy=None) -> str:
     # returns None when the molecule does not match the simple shape so
     # the regular pipeline still handles e.g. metallocenes (already
     # caught above) and complex coordination compounds.
-    if strategy is None:
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-        strategy = IUPACCanonical()
     _organomet_session = NamingSession()
     organomet_tree = _detect_simple_organometallic(
         mol, strategy=strategy, session=_organomet_session, depth=0,
@@ -8367,9 +8372,6 @@ def name_smiles(smiles: str, strategy=None) -> str:
     # radical electrons.  The classifier explicitly claims those
     # electrons (and the formal charge) so no silent free-valence
     # drop occurs; if no claim matches the guard runs as before.
-    if strategy is None:
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-        strategy = IUPACCanonical()
     from openchem.vendor.iupac_namer.perception.charge_perception import (
         detect_pre_validation as _detect_radical_cation,
     )
@@ -8562,9 +8564,6 @@ def name_smiles(smiles: str, strategy=None) -> str:
     if skeletal_chain_name is not None:
         return skeletal_chain_name
     _validate_no_open_valences(mol)
-    if strategy is None:
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-        strategy = IUPACCanonical()
     tree = name(mol, strategy)
     final_name = assemble(tree)
     # Stage 22 R22-C / R22-D: post-assembly OPSIN-validation pass for
@@ -8656,6 +8655,26 @@ def _retained_ring_atom_to_locant(parent_mol) -> "list[dict[int, Locant]]":
 
 
 def name(
+    mol,
+    strategy,
+    output_form: OutputForm = OutputForm.STANDALONE,
+    free_valence: FreeValenceInfo | None = None,
+    decision_ctx: DecisionContext | None = None,
+    _session: NamingSession | None = None,
+    _depth: int = 0,
+) -> NameTree:
+    """Core naming function; see ``_name_bound``. A top-level call (no
+    session yet) binds *strategy* for everything beneath it."""
+    if _session is not None:
+        return _name_bound(mol, strategy, output_form, free_valence,
+                           decision_ctx, _session, _depth)
+    from openchem.vendor.iupac_namer.strategy import using_strategy
+    with using_strategy(strategy) as bound:
+        return _name_bound(mol, bound, output_form, free_valence,
+                           decision_ctx, _session, _depth)
+
+
+def _name_bound(
     mol,
     strategy,
     output_form: OutputForm = OutputForm.STANDALONE,
