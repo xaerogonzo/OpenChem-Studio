@@ -77,8 +77,8 @@ def test_fully_esterified_diacid_not_demoted():
     # OPSIN-verified: 3-amino-3-oxopropanoic acid → NC(=O)CC(=O)O ✓
     ("NC(=O)CC(=O)O", "3-amino-3-oxopropanoic acid"),
     # N-phenyl case: phenylamino + oxo
-    # OPSIN-verified: 3-oxo-3-(phenylamino)propanoic acid → O=C(O)CC(=O)Nc1ccccc1 ✓
-    ("O=C(O)CC(=O)Nc1ccccc1", "3-oxo-3-(phenylamino)propanoic acid"),
+    # OPSIN-verified: 3-anilino-3-oxopropanoic acid → O=C(O)CC(=O)Nc1ccccc1 ✓
+    ("O=C(O)CC(=O)Nc1ccccc1", "3-anilino-3-oxopropanoic acid"),
 ])
 def test_demoted_amide_anchor_in_parent(smi, expected):
     """Demoted amide with anchor C in parent: decompose as oxo + amino/phenylamino."""

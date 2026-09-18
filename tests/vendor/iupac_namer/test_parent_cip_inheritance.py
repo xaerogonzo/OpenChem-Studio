@@ -74,7 +74,7 @@ class TestParentCIPAtAttachmentAtom:
         name = name_smiles(smi)
         assert "(2S)" in name, f"expected (2S) CIP on alanyl in {name!r}"
         assert name == (
-            "2-methylpropan-2-yl N-[(2S)-1-(methylamino)-1-oxopropan-2-yl]"
+            "2-methylpropan-2-yl [(2S)-1-(methylamino)-1-oxopropan-2-yl]"
             "carbamate"
         )
         if HAVE_OPSIN:

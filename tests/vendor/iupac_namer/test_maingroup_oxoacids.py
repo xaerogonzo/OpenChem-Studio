@@ -222,7 +222,7 @@ def test_substituted_n_oxoacid_acids(smi: str, expected: str) -> None:
     ("C(CCCC)[N+]([O-])([O-])[O-]", "pentylazonate"),
     ("CC(C)(C)[N+]([O-])([O-])[O-]", "(2-methylpropan-2-yl)azonate"),
     ("[O-][N+]([O-])([O-])c1ccccc1", "phenylazonate"),
-    ("[O-][N+]([O-])([O-])Cc1ccccc1", "(phenylmethyl)azonate"),
+    ("[O-][N+]([O-])([O-])Cc1ccccc1", "benzylazonate"),
     ("[O-][N+]([O-])([O-])C1CCCCC1", "cyclohexylazonate"),
     ("C1(=CC=CC2=CC=CC=C12)[N+]([O-])([O-])[O-]", "(naphthalen-1-yl)azonate"),
     ("C=C[N+]([O-])([O-])[O-]", "ethenylazonate"),

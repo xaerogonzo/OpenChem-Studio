@@ -1355,6 +1355,23 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "p. 131"),
     ("D-063g", "O=CC(O)C1CC1", "cyclopropyl(hydroxy)acetaldehyde",
      "cyclopropylhydroxyacetaldehyde", "p. 889"),
+    # --- D-064: preferred prefixes the engine spelled longhand, and the
+    #     carbamate's N locant ------------------------------------------------
+    ("D-064a", "c1ccncc1Cc1ccccc1", "3-benzylpyridine", "3-(phenylmethyl)pyridine",
+     "'2-benzylpyridine (PIN)' (pdf p. 313)"),
+    ("D-064b", "Brc1ccc(Cc2ccccn2)cc1", "2-[(4-bromophenyl)methyl]pyridine",
+     "2-[(4-bromophenyl)methyl]pyridine",
+     "converse: benzyl is 'not to be substituted' (P-29.6.1), the book's own PIN"),
+    ("D-064c", "OC(=O)c1ccccc1Nc1ccc(Cl)cc1", "2-(4-chloroanilino)benzoic acid",
+     "2-[(4-chlorophenyl)amino]benzoic acid", "anilino: 'full substitution' (p. 352)"),
+    ("D-064d", "CNC(=O)c1ccccc1C(=O)O", "2-(methylcarbamoyl)benzoic acid",
+     "2-[(methylamino)(oxo)methyl]benzoic acid", "carbamoyl: 'full substitution' (p. 352)"),
+    ("D-064e", "CC(O)COC(=O)NCCN", "2-hydroxypropyl (2-aminoethyl)carbamate",
+     "2-hydroxypropyl N-(2-aminoethyl)carbamate", "the book's own PIN, p. 601"),
+    ("D-064f", "CCOC(=O)Nc1ccccc1", "ethyl phenylcarbamate", "ethyl N-phenylcarbamate",
+     "carbamic acid has one substitutable atom (P-16.5.1.3.2)"),
+    ("D-064g", "CN(C)C(=O)OCC", "ethyl dimethylcarbamate", "ethyl N,N-dimethylcarbamate",
+     "as D-064f"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

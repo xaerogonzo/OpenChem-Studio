@@ -450,6 +450,38 @@ def _is_simple_by_form(name: str) -> bool:
 # Prefix merging and rendering
 # ---------------------------------------------------------------------------
 
+_ANILINO = re.compile(r"^\((\d[^()\[\]{}]*phenyl)\)amino$")
+_CARBAMOYL = re.compile(r"^[\(\[\{](.+)amino[\)\]\}]\(oxo\)methyl$")
+
+
+def _preferred_prefix_spelling(name: str) -> str:
+    """The book's preferred spelling of three prefixes the engine builds longhand.
+
+    - "benzyl (preferred prefix)" (pdf p. 61), but "not to be substituted"
+      (P-29.6.1, p. 312): "2-benzylpyridine (PIN)" beside
+      "2-[(4-bromophenyl)methyl]pyridine (PIN)" -- only the bare word.
+    - "anilino (preferred prefix) (full substitution ...) phenylamino"
+      (p. 352), so "(4-chlorophenyl)amino" is "4-chloroanilino".
+    - "carbamoyl (preferred prefix) (full substitution ...) aminocarbonyl"
+      (p. 352): "(methylamino)(oxo)methyl" is "methylcarbamoyl", as the
+      adjudicated "{[2-(azocan-1-yl)ethyl]carbamoyl}".
+    (Naming round 4.)
+    """
+    if name == "phenylmethyl":
+        return "benzyl"
+    if name == "phenylamino":
+        return "anilino"
+    m = _ANILINO.match(name)
+    if m:
+        return m.group(1)[: -len("phenyl")] + "anilino"
+    if name == "amino(oxo)methyl":
+        return "carbamoyl"
+    m = _CARBAMOYL.match(name)
+    if m and m.group(1).count("(") == m.group(1).count(")"):
+        return m.group(1) + "carbamoyl"
+    return name
+
+
 def merge_identical_prefixes(
     entries: list[tuple[str, tuple[Locant, ...]]]
 ) -> list[MergedPrefix]:
@@ -470,6 +502,7 @@ def merge_identical_prefixes(
     # Group by name
     groups: dict[str, list[tuple[str, tuple[Locant, ...]]]] = defaultdict(list)
     for name, locants in entries:
+        name = _preferred_prefix_spelling(name)
         groups[name].append((name, locants))
 
     result: list[MergedPrefix] = []
@@ -1483,50 +1516,23 @@ def format_for_output_form(text: str, output_form: OutputForm) -> str:
 # ---------------------------------------------------------------------------
 
 def _carbamic_n_subs_to_prefix(n_sub_names: list[str]) -> str:
-    """Convert a list of N-substituent names to a carbamate N-locant prefix.
+    """The N-substituents of a carbamate, as the book writes them.
 
-    Each element in n_sub_names is a substituent name produced by naming one
-    N-substituent as SUBSTITUENT (e.g. "phenyl", "methyl", "(3-chlorophenyl)").
-
-    Rules:
-      []             → "" (no N-prefix: "ethyl carbamate")
-      ["phenyl"]     → "N-phenyl"
-      ["methyl"]     → "N-methyl"
-      ["methyl","methyl"] → "N,N-dimethyl"
-      ["(3-chlorophenyl)"] → "N-(3-chlorophenyl)"
+    Carbamic acid has one substitutable atom, so its substituents take no
+    locant and, from the second on, enclosing marks (P-16.5.1.3.2, pdf p.
+    131): "2-hydroxypropyl (2-aminoethyl)carbamate (PIN)" (p. 601), and so
+    "phenylcarbamate", "dimethylcarbamate", "ethyl(methyl)carbamate". This
+    wrote "N-phenyl", "N,N-dimethyl", "N-ethyl-N-methyl" (naming round 4).
     """
     if not n_sub_names:
         return ""
+    import dataclasses as _dc
 
-    # Count occurrences of each unique N-substituent name
-    from collections import Counter as _Counter
-    name_counts = _Counter(n_sub_names)
-    from openchem.vendor.iupac_namer.data_loader import get_multiplier as _get_mult
-    n_parts: list[str] = []
-    for sub_name in sorted(set(n_sub_names), key=lambda s: derive_sort_name(s)):
-        count = name_counts[sub_name]
-        # Determine N-locant string: "N-" for 1, "N,N-" for 2, etc.
-        n_locant_str = ",".join(["N"] * count) + "-"
-        # Determine if sub_name needs brackets (compound prefix rules).
-        is_compound = _is_compound_prefix(sub_name)
-        if count > 1:
-            if is_compound:
-                mult = _get_mult(count, complex=True) or ""
-                open_b, close_b = _choose_brackets(sub_name)
-                sub_str = f"{mult}{open_b}{sub_name}{close_b}"
-            else:
-                mult = _get_mult(count, complex=False) or ""
-                sub_str = f"{mult}{sub_name}"
-        else:
-            if is_compound:
-                open_b, close_b = _choose_brackets(sub_name)
-                sub_str = f"{open_b}{sub_name}{close_b}"
-            else:
-                sub_str = sub_name
-        n_parts.append(f"{n_locant_str}{sub_str}")
-
-    # Join multiple unique substituents: "N-methyl-N-phenyl" style (IUPAC 2013 P-16.3)
-    return "-".join(n_parts)
+    merged = merge_identical_prefixes([(n, ()) for n in n_sub_names])
+    merged.sort(key=lambda m: m.sort_name)
+    if len(merged) > 1:
+        merged = [merged[0]] + [_dc.replace(m, needs_brackets=True) for m in merged[1:]]
+    return render_merged_prefixes(merged)
 
 
 def _acid_to_adjective(acid_name: str) -> tuple[str, str | None]:
