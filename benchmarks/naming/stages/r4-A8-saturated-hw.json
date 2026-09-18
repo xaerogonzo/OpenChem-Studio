@@ -1,0 +1,3715 @@
+{
+ "artifact_schema_version": 2,
+ "stage": "r4-A8-saturated-hw",
+ "recorded_at": "2026-09-18T08:27:55-0400",
+ "git_sha": "85905b3e038e0982b0183b1adaf3fd65334a527b",
+ "git_branch": "naming-round-4",
+ "git_dirty": true,
+ "python": "3.13.7",
+ "platform": "Windows-11-10.0.26200-SP0",
+ "rdkit": "2025.09.6",
+ "opsin_jar": "opsin-cli-2.9.0-jar-with-dependencies.jar",
+ "java": "openjdk version \"21.0.12\" 2026-07-21 LTS",
+ "comparator_spec_id": "nomenclature-preference-v1",
+ "strategy_id": "IUPACCanonical(default)",
+ "linter_spec_id": null,
+ "final_evaluation": false,
+ "populations": {
+  "regression": {
+   "source_file": "corpus.json",
+   "source_sha256": "3a2c7856013b41f1394415d9f02a18a137bf0d5abe1675c610f30542d400d74c",
+   "rows": 187,
+   "outcomes": {
+    "exact": 100,
+    "equivalent": 86,
+    "tautomer": 1
+   },
+   "pubchem_verbatim_exact": 100,
+   "adjudicated_preferred_exact": null,
+   "records": [
+    {
+     "label": "methanol",
+     "category": "simple_aliphatic",
+     "smiles": "CO",
+     "pubchem_name": "methanol",
+     "name": "methanol",
+     "error": null,
+     "seconds": 0.028,
+     "top_level_plans": 4,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=alcohol/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=1/elem=-/pcg=alcohol/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "ethanol",
+     "category": "simple_aliphatic",
+     "smiles": "CCO",
+     "pubchem_name": "ethanol",
+     "name": "ethanol",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 4,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=alcohol/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=2/elem=-/pcg=alcohol/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "propan-2-ol",
+     "category": "simple_aliphatic",
+     "smiles": "CC(C)O",
+     "pubchem_name": "propan-2-ol",
+     "name": "propan-2-ol",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 4,
+     "top_level_hypotheses": [
+      "chain/len=3/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=alcohol/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=alcohol/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "acetic acid",
+     "category": "simple_aliphatic",
+     "smiles": "CC(=O)O",
+     "pubchem_name": "acetic acid",
+     "name": "acetic acid",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:acetic acid"
+     ],
+     "winning_hypothesis": "retained:acetic acid",
+     "outcome": "exact"
+    },
+    {
+     "label": "acetone",
+     "category": "simple_aliphatic",
+     "smiles": "CC(C)=O",
+     "pubchem_name": "propan-2-one",
+     "name": "propan-2-one",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 4,
+     "top_level_hypotheses": [
+      "chain/len=3/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=ketone/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=ketone/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "butanal",
+     "category": "simple_aliphatic",
+     "smiles": "CCCC=O",
+     "pubchem_name": "butanal",
+     "name": "butanal",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 4,
+     "top_level_hypotheses": [
+      "chain/len=4/elem=-/pcg=-/n_pcg=0",
+      "chain/len=4/elem=-/pcg=aldehyde/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=4/elem=-/pcg=aldehyde/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "diethyl ether",
+     "category": "simple_aliphatic",
+     "smiles": "CCOCC",
+     "pubchem_name": "ethoxyethane",
+     "name": "ethoxyethane",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": 4,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=2/elem=-/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "butyl propanoate",
+     "category": "simple_aliphatic",
+     "smiles": "CCCCOC(=O)CC",
+     "pubchem_name": "butyl propanoate",
+     "name": "butyl propanoate",
+     "error": null,
+     "seconds": 0.01,
+     "top_level_plans": 5,
+     "top_level_hypotheses": [
+      "FunctionalClassPlan",
+      "chain/len=3/elem=-/pcg=-/n_pcg=0",
+      "chain/len=4/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "FunctionalClassPlan",
+     "outcome": "exact"
+    },
+    {
+     "label": "triethylamine",
+     "category": "simple_aliphatic",
+     "smiles": "CCN(CC)CC",
+     "pubchem_name": "N,N-diethylethanamine",
+     "name": "N,N-diethylethanamine",
+     "error": null,
+     "seconds": 0.01,
+     "top_level_plans": 12,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=tertiary_amine/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=2/elem=-/pcg=tertiary_amine/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "acetonitrile",
+     "category": "simple_aliphatic",
+     "smiles": "CC#N",
+     "pubchem_name": "acetonitrile",
+     "name": "acetonitrile",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:acetonitrile"
+     ],
+     "winning_hypothesis": "retained:acetonitrile",
+     "outcome": "exact"
+    },
+    {
+     "label": "urea",
+     "category": "simple_aliphatic",
+     "smiles": "NC(N)=O",
+     "pubchem_name": "urea",
+     "name": "urea",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:urea"
+     ],
+     "winning_hypothesis": "retained:urea",
+     "outcome": "exact"
+    },
+    {
+     "label": "glycerol",
+     "category": "simple_aliphatic",
+     "smiles": "OCC(O)CO",
+     "pubchem_name": "propane-1,2,3-triol",
+     "name": "propane-1,2,3-triol",
+     "error": null,
+     "seconds": 0.005,
+     "top_level_plans": 10,
+     "top_level_hypotheses": [
+      "chain/len=3/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=alcohol/n_pcg=1",
+      "chain/len=3/elem=-/pcg=alcohol/n_pcg=3"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=alcohol/n_pcg=3",
+     "outcome": "exact"
+    },
+    {
+     "label": "benzene",
+     "category": "aromatic",
+     "smiles": "c1ccccc1",
+     "pubchem_name": "benzene",
+     "name": "benzene",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:benzene"
+     ],
+     "winning_hypothesis": "retained:benzene",
+     "outcome": "exact"
+    },
+    {
+     "label": "toluene",
+     "category": "aromatic",
+     "smiles": "Cc1ccccc1",
+     "pubchem_name": "toluene",
+     "name": "toluene",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:toluene"
+     ],
+     "winning_hypothesis": "retained:toluene",
+     "outcome": "exact"
+    },
+    {
+     "label": "phenol",
+     "category": "aromatic",
+     "smiles": "Oc1ccccc1",
+     "pubchem_name": "phenol",
+     "name": "phenol",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:phenol"
+     ],
+     "winning_hypothesis": "retained:phenol",
+     "outcome": "exact"
+    },
+    {
+     "label": "aniline",
+     "category": "aromatic",
+     "smiles": "Nc1ccccc1",
+     "pubchem_name": "aniline",
+     "name": "aniline",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:aniline"
+     ],
+     "winning_hypothesis": "retained:aniline",
+     "outcome": "exact"
+    },
+    {
+     "label": "benzoic acid",
+     "category": "aromatic",
+     "smiles": "O=C(O)c1ccccc1",
+     "pubchem_name": "benzoic acid",
+     "name": "benzoic acid",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:benzoic acid"
+     ],
+     "winning_hypothesis": "retained:benzoic acid",
+     "outcome": "exact"
+    },
+    {
+     "label": "styrene",
+     "category": "aromatic",
+     "smiles": "C=Cc1ccccc1",
+     "pubchem_name": "styrene",
+     "name": "ethenylbenzene",
+     "error": null,
+     "seconds": 0.012,
+     "top_level_plans": 26,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "nitrobenzene",
+     "category": "aromatic",
+     "smiles": "O=[N+]([O-])c1ccccc1",
+     "pubchem_name": "nitrobenzene",
+     "name": "nitrobenzene",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": 24,
+     "top_level_hypotheses": [
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "p-xylene",
+     "category": "aromatic",
+     "smiles": "Cc1ccc(C)cc1",
+     "pubchem_name": "1,4-xylene",
+     "name": "1,4-xylene",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:1,4-xylene"
+     ],
+     "winning_hypothesis": "retained:1,4-xylene",
+     "outcome": "exact"
+    },
+    {
+     "label": "benzaldehyde",
+     "category": "aromatic",
+     "smiles": "O=Cc1ccccc1",
+     "pubchem_name": "benzaldehyde",
+     "name": "benzaldehyde",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:benzaldehyde"
+     ],
+     "winning_hypothesis": "retained:benzaldehyde",
+     "outcome": "exact"
+    },
+    {
+     "label": "mesitylene",
+     "category": "aromatic",
+     "smiles": "Cc1cc(C)cc(C)c1",
+     "pubchem_name": "1,3,5-trimethylbenzene",
+     "name": "1,3,5-trimethylbenzene",
+     "error": null,
+     "seconds": 0.011,
+     "top_level_plans": 30,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "pyridine",
+     "category": "heterocycle",
+     "smiles": "c1ccncc1",
+     "pubchem_name": "pyridine",
+     "name": "pyridine",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:pyridine"
+     ],
+     "winning_hypothesis": "retained:pyridine",
+     "outcome": "exact"
+    },
+    {
+     "label": "pyrrole",
+     "category": "heterocycle",
+     "smiles": "c1cc[nH]c1",
+     "pubchem_name": "1H-pyrrole",
+     "name": "1H-pyrrole",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:1H-pyrrole"
+     ],
+     "winning_hypothesis": "retained:1H-pyrrole",
+     "outcome": "exact"
+    },
+    {
+     "label": "furan",
+     "category": "heterocycle",
+     "smiles": "c1ccoc1",
+     "pubchem_name": "furan",
+     "name": "furan",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:furan"
+     ],
+     "winning_hypothesis": "retained:furan",
+     "outcome": "exact"
+    },
+    {
+     "label": "thiophene",
+     "category": "heterocycle",
+     "smiles": "c1ccsc1",
+     "pubchem_name": "thiophene",
+     "name": "thiophene",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:thiophene"
+     ],
+     "winning_hypothesis": "retained:thiophene",
+     "outcome": "exact"
+    },
+    {
+     "label": "imidazole",
+     "category": "heterocycle",
+     "smiles": "c1c[nH]cn1",
+     "pubchem_name": "1H-imidazole",
+     "name": "1H-imidazole",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:1H-imidazole"
+     ],
+     "winning_hypothesis": "retained:1H-imidazole",
+     "outcome": "exact"
+    },
+    {
+     "label": "pyrimidine",
+     "category": "heterocycle",
+     "smiles": "c1cncnc1",
+     "pubchem_name": "pyrimidine",
+     "name": "pyrimidine",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:pyrimidine"
+     ],
+     "winning_hypothesis": "retained:pyrimidine",
+     "outcome": "exact"
+    },
+    {
+     "label": "piperidine",
+     "category": "heterocycle",
+     "smiles": "C1CCNCC1",
+     "pubchem_name": "piperidine",
+     "name": "piperidine",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:piperidine"
+     ],
+     "winning_hypothesis": "retained:piperidine",
+     "outcome": "exact"
+    },
+    {
+     "label": "morpholine",
+     "category": "heterocycle",
+     "smiles": "C1COCCN1",
+     "pubchem_name": "morpholine",
+     "name": "morpholine",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:morpholine"
+     ],
+     "winning_hypothesis": "retained:morpholine",
+     "outcome": "exact"
+    },
+    {
+     "label": "oxazole",
+     "category": "heterocycle",
+     "smiles": "c1cocn1",
+     "pubchem_name": "1,3-oxazole",
+     "name": "1,3-oxazole",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:1,3-oxazole"
+     ],
+     "winning_hypothesis": "retained:1,3-oxazole",
+     "outcome": "exact"
+    },
+    {
+     "label": "1,2,3-triazole",
+     "category": "heterocycle",
+     "smiles": "c1cn[nH]n1",
+     "pubchem_name": "2H-triazole",
+     "name": "2H-1,2,3-triazole",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:2H-1,2,3-triazole"
+     ],
+     "winning_hypothesis": "retained:2H-1,2,3-triazole",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "tetrahydrofuran",
+     "category": "heterocycle",
+     "smiles": "C1CCOC1",
+     "pubchem_name": "oxolane",
+     "name": "oxolane",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:oxolane"
+     ],
+     "winning_hypothesis": "retained:oxolane",
+     "outcome": "exact"
+    },
+    {
+     "label": "piperazine",
+     "category": "heterocycle",
+     "smiles": "C1CNCCN1",
+     "pubchem_name": "piperazine",
+     "name": "piperazine",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:piperazine"
+     ],
+     "winning_hypothesis": "retained:piperazine",
+     "outcome": "exact"
+    },
+    {
+     "label": "naphthalene",
+     "category": "fused_polycyclic",
+     "smiles": "c1ccc2ccccc2c1",
+     "pubchem_name": "naphthalene",
+     "name": "naphthalene",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:naphthalene"
+     ],
+     "winning_hypothesis": "retained:naphthalene",
+     "outcome": "exact"
+    },
+    {
+     "label": "anthracene",
+     "category": "fused_polycyclic",
+     "smiles": "c1ccc2cc3ccccc3cc2c1",
+     "pubchem_name": "anthracene",
+     "name": "anthracene",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:anthracene"
+     ],
+     "winning_hypothesis": "retained:anthracene",
+     "outcome": "exact"
+    },
+    {
+     "label": "quinoline",
+     "category": "fused_polycyclic",
+     "smiles": "c1ccc2ncccc2c1",
+     "pubchem_name": "quinoline",
+     "name": "quinoline",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:quinoline"
+     ],
+     "winning_hypothesis": "retained:quinoline",
+     "outcome": "exact"
+    },
+    {
+     "label": "indole",
+     "category": "fused_polycyclic",
+     "smiles": "c1ccc2[nH]ccc2c1",
+     "pubchem_name": "1H-indole",
+     "name": "1H-indole",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:1H-indole"
+     ],
+     "winning_hypothesis": "retained:1H-indole",
+     "outcome": "exact"
+    },
+    {
+     "label": "purine",
+     "category": "fused_polycyclic",
+     "smiles": "c1ncc2nc[nH]c2n1",
+     "pubchem_name": "7H-purine",
+     "name": "9H-purine",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:9H-purine"
+     ],
+     "winning_hypothesis": "retained:9H-purine",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "carbazole",
+     "category": "fused_polycyclic",
+     "smiles": "c1ccc2c(c1)[nH]c1ccccc12",
+     "pubchem_name": "9H-carbazole",
+     "name": "9H-carbazole",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:9H-carbazole"
+     ],
+     "winning_hypothesis": "retained:9H-carbazole",
+     "outcome": "exact"
+    },
+    {
+     "label": "phenanthrene",
+     "category": "fused_polycyclic",
+     "smiles": "c1ccc2c(c1)ccc1ccccc12",
+     "pubchem_name": "phenanthrene",
+     "name": "phenanthrene",
+     "error": null,
+     "seconds": 0.06,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "fused/len=14/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "fused/len=14/elem=-/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "benzofuran",
+     "category": "fused_polycyclic",
+     "smiles": "c1ccc2occc2c1",
+     "pubchem_name": "1-benzofuran",
+     "name": "1-benzofuran",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:1-benzofuran"
+     ],
+     "winning_hypothesis": "retained:1-benzofuran",
+     "outcome": "exact"
+    },
+    {
+     "label": "acridine",
+     "category": "fused_polycyclic",
+     "smiles": "c1ccc2nc3ccccc3cc2c1",
+     "pubchem_name": "acridine",
+     "name": "acridine",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:acridine"
+     ],
+     "winning_hypothesis": "retained:acridine",
+     "outcome": "exact"
+    },
+    {
+     "label": "indazole",
+     "category": "fused_polycyclic",
+     "smiles": "c1ccc2[nH]ncc2c1",
+     "pubchem_name": "1H-indazole",
+     "name": "1H-indazole",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:1H-indazole"
+     ],
+     "winning_hypothesis": "retained:1H-indazole",
+     "outcome": "exact"
+    },
+    {
+     "label": "norbornane",
+     "category": "bridged_bicyclic",
+     "smiles": "C1CC2CCC1C2",
+     "pubchem_name": "bicyclo[2.2.1]heptane",
+     "name": "bicyclo[2.2.1]heptane",
+     "error": null,
+     "seconds": 0.007,
+     "top_level_plans": 4,
+     "top_level_hypotheses": [
+      "bridged/len=7/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "bridged/len=7/elem=-/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "bicyclo[2.2.2]octane",
+     "category": "bridged_bicyclic",
+     "smiles": "C1CC2CCC1CC2",
+     "pubchem_name": "bicyclo[2.2.2]octane",
+     "name": "bicyclo[2.2.2]octane",
+     "error": null,
+     "seconds": 0.007,
+     "top_level_plans": 12,
+     "top_level_hypotheses": [
+      "bridged/len=8/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "bridged/len=8/elem=-/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "adamantane",
+     "category": "bridged_bicyclic",
+     "smiles": "C1C2CC3CC1CC(C2)C3",
+     "pubchem_name": "adamantane",
+     "name": "adamantane",
+     "error": null,
+     "seconds": 0.005,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:adamantane"
+     ],
+     "winning_hypothesis": "retained:adamantane",
+     "outcome": "exact"
+    },
+    {
+     "label": "camphor (flat)",
+     "category": "bridged_bicyclic",
+     "smiles": "CC12CCC(CC1=O)C2(C)C",
+     "pubchem_name": "1,7,7-trimethylbicyclo[2.2.1]heptan-2-one",
+     "name": "1,7,7-trimethylbicyclo[2.2.1]heptan-2-one",
+     "error": null,
+     "seconds": 0.012,
+     "top_level_plans": 14,
+     "top_level_hypotheses": [
+      "bridged/len=7/elem=-/pcg=-/n_pcg=0",
+      "bridged/len=7/elem=-/pcg=ketone/n_pcg=1",
+      "chain/len=1/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "bridged/len=7/elem=-/pcg=ketone/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "quinuclidine",
+     "category": "bridged_bicyclic",
+     "smiles": "C1CN2CCC1CC2",
+     "pubchem_name": "1-azabicyclo[2.2.2]octane",
+     "name": "1-azabicyclo[2.2.2]octane",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "bridged/len=8/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "bridged/len=8/elem=-/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "cubane",
+     "category": "bridged_bicyclic",
+     "smiles": "C12C3C4C1C1C2C3C41",
+     "pubchem_name": "cubane",
+     "name": "cubane",
+     "error": null,
+     "seconds": 0.013,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:cubane"
+     ],
+     "winning_hypothesis": "retained:cubane",
+     "outcome": "exact"
+    },
+    {
+     "label": "acetate",
+     "category": "charged_zwitterion",
+     "smiles": "CC(=O)[O-]",
+     "pubchem_name": "acetate",
+     "name": "acetate",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "exact"
+    },
+    {
+     "label": "ammonium",
+     "category": "charged_zwitterion",
+     "smiles": "[NH4+]",
+     "pubchem_name": "azanium",
+     "name": "azanium",
+     "error": null,
+     "seconds": 0.0,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "exact"
+    },
+    {
+     "label": "tetramethylammonium",
+     "category": "charged_zwitterion",
+     "smiles": "C[N+](C)(C)C",
+     "pubchem_name": "tetramethylazanium",
+     "name": "N,N,N-trimethylmethanaminium",
+     "error": null,
+     "seconds": 0.008,
+     "top_level_plans": 17,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=aminium/n_pcg=1",
+      "heteroatom_center/len=1/elem=N+/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=1/elem=-/pcg=aminium/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "glycine zwitterion",
+     "category": "charged_zwitterion",
+     "smiles": "[NH3+]CC(=O)[O-]",
+     "pubchem_name": "2-azaniumylacetate",
+     "name": "azaniumylacetate",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "betaine",
+     "category": "charged_zwitterion",
+     "smiles": "C[N+](C)(C)CC(=O)[O-]",
+     "pubchem_name": "2-(trimethylazaniumyl)acetate",
+     "name": "(trimethylazaniumyl)acetate",
+     "error": null,
+     "seconds": 0.01,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "methanesulfonate",
+     "category": "charged_zwitterion",
+     "smiles": "CS(=O)(=O)[O-]",
+     "pubchem_name": "methanesulfonate",
+     "name": "methanesulfonate",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "exact"
+    },
+    {
+     "label": "pyridinium",
+     "category": "charged_zwitterion",
+     "smiles": "c1cc[nH+]cc1",
+     "pubchem_name": "pyridin-1-ium",
+     "name": "pyridin-1-ium",
+     "error": null,
+     "seconds": 0.005,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "exact"
+    },
+    {
+     "label": "diazomethane",
+     "category": "charged_zwitterion",
+     "smiles": "[CH2-][N+]#N",
+     "pubchem_name": "diazomethane",
+     "name": "methanidyldiazonium",
+     "error": null,
+     "seconds": 0.001,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "deuterated methanol",
+     "category": "isotopic",
+     "smiles": "[2H]CO",
+     "pubchem_name": "deuteriomethanol",
+     "name": "(1-2H)methanol",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 4,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=alcohol/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=1/elem=-/pcg=alcohol/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "deuterated water",
+     "category": "isotopic",
+     "smiles": "[2H]O[2H]",
+     "pubchem_name": "deuterated water",
+     "name": "(2H2)water",
+     "error": null,
+     "seconds": 0.0,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "N-15 ammonia",
+     "category": "isotopic",
+     "smiles": "[15NH3]",
+     "pubchem_name": "azane",
+     "name": "(15N)ammonia",
+     "error": null,
+     "seconds": 0.0,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "carbon-13 methane",
+     "category": "isotopic",
+     "smiles": "[13CH4]",
+     "pubchem_name": "carbane",
+     "name": "(1-13C)methane",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=1/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "(R)-naproxen",
+     "category": "stereochemistry",
+     "smiles": "COc1ccc2cc([C@@H](C)C(=O)O)ccc2c1",
+     "pubchem_name": "(2R)-2-(6-methoxynaphthalen-2-yl)propanoic acid",
+     "name": "(2R)-2-(6-methoxynaphthalen-2-yl)propanoic acid",
+     "error": null,
+     "seconds": 0.015,
+     "top_level_plans": 10,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "fused/len=10/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "(S)-naproxen",
+     "category": "stereochemistry",
+     "smiles": "COc1ccc2cc([C@H](C)C(=O)O)ccc2c1",
+     "pubchem_name": "(2S)-2-(6-methoxynaphthalen-2-yl)propanoic acid",
+     "name": "(2S)-2-(6-methoxynaphthalen-2-yl)propanoic acid",
+     "error": null,
+     "seconds": 0.016,
+     "top_level_plans": 10,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "fused/len=10/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "(R)-ibuprofen",
+     "category": "stereochemistry",
+     "smiles": "CC(C)Cc1ccc([C@@H](C)C(=O)O)cc1",
+     "pubchem_name": "(2R)-2-[4-(2-methylpropyl)phenyl]propanoic acid",
+     "name": "(2R)-2-[4-(2-methylpropyl)phenyl]propanoic acid",
+     "error": null,
+     "seconds": 0.018,
+     "top_level_plans": 34,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "(R)-alanine",
+     "category": "stereochemistry",
+     "smiles": "C[C@@H](N)C(=O)O",
+     "pubchem_name": "(2R)-2-aminopropanoic acid",
+     "name": "(2R)-2-aminopropanoic acid",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 6,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=amine/n_pcg=1",
+      "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "(S)-alanine",
+     "category": "stereochemistry",
+     "smiles": "C[C@H](N)C(=O)O",
+     "pubchem_name": "(2S)-2-aminopropanoic acid",
+     "name": "(2S)-2-aminopropanoic acid",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 6,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=amine/n_pcg=1",
+      "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "(E)-but-2-ene",
+     "category": "stereochemistry",
+     "smiles": "C/C=C/C",
+     "pubchem_name": null,
+     "name": "(2E)-but-2-ene",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=4/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=4/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "(Z)-but-2-ene",
+     "category": "stereochemistry",
+     "smiles": "C/C=C\\C",
+     "pubchem_name": null,
+     "name": "(2Z)-but-2-ene",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=4/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=4/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "(S)-nicotine",
+     "category": "stereochemistry",
+     "smiles": "CN1CCC[C@H]1c1cccnc1",
+     "pubchem_name": "3-[(2S)-1-methylpyrrolidin-2-yl]pyridine",
+     "name": "3-[(2S)-1-methylpyrrolidin-2-yl]pyridine",
+     "error": null,
+     "seconds": 0.032,
+     "top_level_plans": 28,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=5/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "(S)-lactic acid",
+     "category": "stereochemistry",
+     "smiles": "C[C@H](O)C(=O)O",
+     "pubchem_name": "(2S)-2-hydroxypropanoic acid",
+     "name": "(2S)-2-hydroxypropanoic acid",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 6,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=alcohol/n_pcg=1",
+      "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "(S,R)-ephedrine",
+     "category": "stereochemistry",
+     "smiles": "CN[C@@H](C)[C@H](O)c1ccccc1",
+     "pubchem_name": "(1R,2S)-2-(methylamino)-1-phenylpropan-1-ol",
+     "name": "(1R,2S)-2-(methylamino)-1-phenylpropan-1-ol",
+     "error": null,
+     "seconds": 0.016,
+     "top_level_plans": 58,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=secondary_amine/n_pcg=1",
+      "chain/len=3/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=alcohol/n_pcg=1",
+      "chain/len=3/elem=-/pcg=secondary_amine/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=alcohol/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=alcohol/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "(S,S)-tartaric acid",
+     "category": "stereochemistry",
+     "smiles": "O=C(O)[C@@H](O)[C@H](O)C(=O)O",
+     "pubchem_name": "(2S,3S)-2,3-dihydroxybutanedioic acid",
+     "name": "(2S,3S)-2,3-dihydroxybutanedioic acid",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": 14,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=alcohol/n_pcg=1",
+      "chain/len=2/elem=-/pcg=alcohol/n_pcg=2",
+      "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "chain/len=4/elem=-/pcg=carboxylic_acid/n_pcg=2"
+     ],
+     "winning_hypothesis": "chain/len=4/elem=-/pcg=carboxylic_acid/n_pcg=2",
+     "outcome": "exact"
+    },
+    {
+     "label": "trans-decalin",
+     "category": "stereochemistry",
+     "smiles": "C1CC[C@H]2CCCC[C@@H]2C1",
+     "pubchem_name": "1,2,3,4,4a,5,6,7,8,8a-decahydronaphthalene",
+     "name": "trans-decalin",
+     "error": null,
+     "seconds": 0.939,
+     "top_level_plans": 8,
+     "top_level_hypotheses": [
+      "bridged/len=10/elem=-/pcg=-/n_pcg=0",
+      "fused/len=10/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "fused/len=10/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "tetramethylsilane",
+     "category": "organosilicon",
+     "smiles": "C[Si](C)(C)C",
+     "pubchem_name": "tetramethylsilane",
+     "name": "tetramethylsilane",
+     "error": null,
+     "seconds": 0.008,
+     "top_level_plans": 9,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "heteroatom_center/len=1/elem=Si/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "heteroatom_center/len=1/elem=Si/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "trimethylsilanol",
+     "category": "organosilicon",
+     "smiles": "C[Si](C)(C)O",
+     "pubchem_name": "hydroxy(trimethyl)silane",
+     "name": "(hydroxy)tri(methyl)silane",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": 7,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "heteroatom_center/len=1/elem=Si/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "heteroatom_center/len=1/elem=Si/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "phenyltrimethylsilane",
+     "category": "organosilicon",
+     "smiles": "C[Si](C)(C)c1ccccc1",
+     "pubchem_name": "trimethyl(phenyl)silane",
+     "name": "trimethyl(phenyl)silane",
+     "error": null,
+     "seconds": 0.011,
+     "top_level_plans": 31,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "heteroatom_center/len=1/elem=Si/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "heteroatom_center/len=1/elem=Si/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "hexamethyldisiloxane",
+     "category": "organosilicon",
+     "smiles": "C[Si](C)(C)O[Si](C)(C)C",
+     "pubchem_name": "trimethyl(trimethylsilyloxy)silane",
+     "name": "trimethyl(trimethylsilyloxy)silane",
+     "error": null,
+     "seconds": 0.01,
+     "top_level_plans": 14,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "heteroatom_center/len=1/elem=Si/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "heteroatom_center/len=1/elem=Si/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "triethoxysilane",
+     "category": "organosilicon",
+     "smiles": "CCO[SiH](OCC)OCC",
+     "pubchem_name": "triethoxysilane",
+     "name": "triethoxysilane",
+     "error": null,
+     "seconds": 0.009,
+     "top_level_plans": 7,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "heteroatom_center/len=1/elem=Si/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "heteroatom_center/len=1/elem=Si/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "boric acid",
+     "category": "organoboron",
+     "smiles": "OB(O)O",
+     "pubchem_name": "boric acid",
+     "name": "boric acid",
+     "error": null,
+     "seconds": 0.0,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "exact"
+    },
+    {
+     "label": "phenylboronic acid",
+     "category": "organoboron",
+     "smiles": "OB(O)c1ccccc1",
+     "pubchem_name": "phenylboronic acid",
+     "name": "benzeneboronic acid",
+     "error": null,
+     "seconds": 0.007,
+     "top_level_plans": 48,
+     "top_level_hypotheses": [
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=boronic_acid/n_pcg=1"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=boronic_acid/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "trimethylborane",
+     "category": "organoboron",
+     "smiles": "CB(C)C",
+     "pubchem_name": "trimethylborane",
+     "name": "trimethylborane",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "exact"
+    },
+    {
+     "label": "pinacol phenylboronate",
+     "category": "organoboron",
+     "smiles": "CC1(C)OB(c2ccccc2)OC1(C)C",
+     "pubchem_name": "4,4,5,5-tetramethyl-2-phenyl-1,3,2-dioxaborolane",
+     "name": "(4,4,5,5-tetramethyl-1,3,2-dioxaborolan-2-yl)benzene",
+     "error": null,
+     "seconds": 0.017,
+     "top_level_plans": 34,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=5/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "borohydride anion",
+     "category": "organoboron",
+     "smiles": "[BH4-]",
+     "pubchem_name": "boranuide",
+     "name": "boranuide",
+     "error": null,
+     "seconds": 0.0,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "exact"
+    },
+    {
+     "label": "dimethyl sulfoxide",
+     "category": "sulfur_rich",
+     "smiles": "CS(C)=O",
+     "pubchem_name": "methylsulfinylmethane",
+     "name": "(methanesulfinyl)methane",
+     "error": null,
+     "seconds": 0.008,
+     "top_level_plans": 4,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=1/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "dimethyl sulfone",
+     "category": "sulfur_rich",
+     "smiles": "CS(C)(=O)=O",
+     "pubchem_name": "methylsulfonylmethane",
+     "name": "(methanesulfonyl)methane",
+     "error": null,
+     "seconds": 0.008,
+     "top_level_plans": 4,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=1/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "thiophenol",
+     "category": "sulfur_rich",
+     "smiles": "Sc1ccccc1",
+     "pubchem_name": "benzenethiol",
+     "name": "benzenethiol",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": 48,
+     "top_level_hypotheses": [
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=thiol/n_pcg=1"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=thiol/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "methanethiol",
+     "category": "sulfur_rich",
+     "smiles": "CS",
+     "pubchem_name": "methanethiol",
+     "name": "methanethiol",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 4,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=thiol/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=1/elem=-/pcg=thiol/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "benzenesulfonamide",
+     "category": "sulfur_rich",
+     "smiles": "NS(=O)(=O)c1ccccc1",
+     "pubchem_name": "benzenesulfonamide",
+     "name": "benzenesulfonamide",
+     "error": null,
+     "seconds": 0.008,
+     "top_level_plans": 48,
+     "top_level_hypotheses": [
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=sulfonamide/n_pcg=1"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=sulfonamide/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "carbon disulfide",
+     "category": "sulfur_rich",
+     "smiles": "S=C=S",
+     "pubchem_name": "methanedithione",
+     "name": "dithioxomethane",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=1/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "thiourea",
+     "category": "sulfur_rich",
+     "smiles": "NC(N)=S",
+     "pubchem_name": "thiourea",
+     "name": "thiourea",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:thiourea"
+     ],
+     "winning_hypothesis": "retained:thiourea",
+     "outcome": "exact"
+    },
+    {
+     "label": "dimethyl disulfide",
+     "category": "sulfur_rich",
+     "smiles": "CSSC",
+     "pubchem_name": "(methyldisulfanyl)methane",
+     "name": "(methyldisulfanyl)methane",
+     "error": null,
+     "seconds": 0.01,
+     "top_level_plans": 4,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=1/elem=-/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "sulfanilamide",
+     "category": "sulfur_rich",
+     "smiles": "Nc1ccc(S(N)(=O)=O)cc1",
+     "pubchem_name": "4-aminobenzenesulfonamide",
+     "name": "4-aminobenzene-1-sulfonamide",
+     "error": null,
+     "seconds": 0.01,
+     "top_level_plans": 72,
+     "top_level_hypotheses": [
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=amine/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=sulfonamide/n_pcg=1"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=sulfonamide/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "trimethyl phosphate",
+     "category": "phosphorus",
+     "smiles": "COP(=O)(OC)OC",
+     "pubchem_name": "trimethyl phosphate",
+     "name": "trimethyl phosphate",
+     "error": null,
+     "seconds": 0.008,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "exact"
+    },
+    {
+     "label": "triphenylphosphine",
+     "category": "phosphorus",
+     "smiles": "c1ccc(P(c2ccccc2)c2ccccc2)cc1",
+     "pubchem_name": "triphenylphosphane",
+     "name": "triphenylphosphane",
+     "error": null,
+     "seconds": 0.019,
+     "top_level_plans": 73,
+     "top_level_hypotheses": [
+      "heteroatom_center/len=1/elem=P/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "heteroatom_center/len=1/elem=P/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "phosphoric acid",
+     "category": "phosphorus",
+     "smiles": "O=P(O)(O)O",
+     "pubchem_name": "phosphoric acid",
+     "name": "phosphoric acid",
+     "error": null,
+     "seconds": 0.0,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "exact"
+    },
+    {
+     "label": "trimethylphosphine",
+     "category": "phosphorus",
+     "smiles": "CP(C)C",
+     "pubchem_name": "trimethylphosphane",
+     "name": "trimethylphosphane",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": 7,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "heteroatom_center/len=1/elem=P/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "heteroatom_center/len=1/elem=P/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "dimethyl methylphosphonate",
+     "category": "phosphorus",
+     "smiles": "COP(C)(=O)OC",
+     "pubchem_name": "[methoxy(methyl)phosphoryl]oxymethane",
+     "name": "dimethyl methylphosphonate",
+     "error": null,
+     "seconds": 0.007,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "triphenylphosphine oxide",
+     "category": "phosphorus",
+     "smiles": "O=P(c1ccccc1)(c1ccccc1)c1ccccc1",
+     "pubchem_name": "diphenylphosphorylbenzene",
+     "name": "oxotri(phenyl)phosphane",
+     "error": null,
+     "seconds": 0.018,
+     "top_level_plans": 73,
+     "top_level_hypotheses": [
+      "heteroatom_center/len=1/elem=P/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "heteroatom_center/len=1/elem=P/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "chloroform",
+     "category": "halogenated",
+     "smiles": "ClC(Cl)Cl",
+     "pubchem_name": "chloroform",
+     "name": "trichloromethane",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=1/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "carbon tetrachloride",
+     "category": "halogenated",
+     "smiles": "ClC(Cl)(Cl)Cl",
+     "pubchem_name": "tetrachloromethane",
+     "name": "tetrachloromethane",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=1/elem=-/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "chlorobenzene",
+     "category": "halogenated",
+     "smiles": "Clc1ccccc1",
+     "pubchem_name": "chlorobenzene",
+     "name": "chlorobenzene",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": 24,
+     "top_level_hypotheses": [
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "trifluoromethylbenzene",
+     "category": "halogenated",
+     "smiles": "FC(F)(F)c1ccccc1",
+     "pubchem_name": "trifluoromethylbenzene",
+     "name": "(trifluoromethyl)benzene",
+     "error": null,
+     "seconds": 0.011,
+     "top_level_plans": 26,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "iodomethane",
+     "category": "halogenated",
+     "smiles": "CI",
+     "pubchem_name": "iodomethane",
+     "name": "iodomethane",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=1/elem=-/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "1,2-dibromoethane",
+     "category": "halogenated",
+     "smiles": "BrCCBr",
+     "pubchem_name": "1,2-dibromoethane",
+     "name": "1,2-dibromoethane",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=2/elem=-/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "aspirin",
+     "category": "medicinal_scaffold",
+     "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+     "pubchem_name": "2-acetyloxybenzoic acid",
+     "name": "2-(acetyloxy)benzoic acid",
+     "error": null,
+     "seconds": 0.015,
+     "top_level_plans": 54,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=carboxylic_acid/n_pcg=1"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=carboxylic_acid/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "paracetamol",
+     "category": "medicinal_scaffold",
+     "smiles": "CC(=O)Nc1ccc(O)cc1",
+     "pubchem_name": "N-(4-hydroxyphenyl)acetamide",
+     "name": "N-(4-hydroxyphenyl)acetamide",
+     "error": null,
+     "seconds": 0.014,
+     "top_level_plans": 52,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=secondary_amide/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=phenol/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=2/elem=-/pcg=secondary_amide/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "caffeine",
+     "category": "medicinal_scaffold",
+     "smiles": "Cn1c(=O)c2c(ncn2C)n(C)c1=O",
+     "pubchem_name": "1,3,7-trimethylpurine-2,6-dione",
+     "name": "1,3,7-trimethyl-3,7-dihydro-1H-purine-2,6-dione",
+     "error": null,
+     "seconds": 0.082,
+     "top_level_plans": 10,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "fused/len=9/elem=-/pcg=-/n_pcg=0",
+      "fused/len=9/elem=-/pcg=ketone/n_pcg=1",
+      "fused/len=9/elem=-/pcg=ketone/n_pcg=2"
+     ],
+     "winning_hypothesis": "fused/len=9/elem=-/pcg=ketone/n_pcg=2",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "ibuprofen (flat)",
+     "category": "medicinal_scaffold",
+     "smiles": "CC(C)Cc1ccc(C(C)C(=O)O)cc1",
+     "pubchem_name": "2-[4-(2-methylpropyl)phenyl]propanoic acid",
+     "name": "2-[4-(2-methylpropyl)phenyl]propanoic acid",
+     "error": null,
+     "seconds": 0.018,
+     "top_level_plans": 34,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "diazepam",
+     "category": "medicinal_scaffold",
+     "smiles": "CN1C(=O)CN=C(c2ccccc2)c2cc(Cl)ccc21",
+     "pubchem_name": "7-chloro-1-methyl-5-phenyl-3H-1,4-benzodiazepin-2-one",
+     "name": "7-chloro-1-methyl-5-phenyl-1,3-dihydro-2H-1,4-benzodiazepin-2-one",
+     "error": null,
+     "seconds": 0.019,
+     "top_level_plans": 30,
+     "top_level_hypotheses": [
+      "bridged/len=11/elem=-/pcg=-/n_pcg=0",
+      "bridged/len=11/elem=-/pcg=ketone/n_pcg=1",
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "fused/len=11/elem=-/pcg=-/n_pcg=0",
+      "fused/len=11/elem=-/pcg=ketone/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "fused/len=11/elem=-/pcg=ketone/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "nicotine (flat)",
+     "category": "medicinal_scaffold",
+     "smiles": "CN1CCCC1c1cccnc1",
+     "pubchem_name": "3-(1-methylpyrrolidin-2-yl)pyridine",
+     "name": "3-(1-methylpyrrolidin-2-yl)pyridine",
+     "error": null,
+     "seconds": 0.013,
+     "top_level_plans": 28,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=5/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "salicylic acid",
+     "category": "medicinal_scaffold",
+     "smiles": "O=C(O)c1ccccc1O",
+     "pubchem_name": "2-hydroxybenzoic acid",
+     "name": "2-hydroxybenzoic acid",
+     "error": null,
+     "seconds": 0.011,
+     "top_level_plans": 76,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=phenol/n_pcg=1"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=carboxylic_acid/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "metformin",
+     "category": "medicinal_scaffold",
+     "smiles": "CN(C)C(=N)N=C(N)N",
+     "pubchem_name": "2-carbamimidoyl-1,1-dimethylguanidine",
+     "name": "1,1-dimethylbiguanide",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "tautomer"
+    },
+    {
+     "label": "phenobarbital",
+     "category": "medicinal_scaffold",
+     "smiles": "CCC1(c2ccccc2)C(=O)NC(=O)NC1=O",
+     "pubchem_name": "5-ethyl-5-phenyl-1,3-diazinane-2,4,6-trione",
+     "name": "5-ethyl-5-phenyl-1,3-diazinane-2,4,6-trione",
+     "error": null,
+     "seconds": 0.019,
+     "top_level_plans": 36,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=ketone/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=ketone/n_pcg=3"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=ketone/n_pcg=3",
+     "outcome": "exact"
+    },
+    {
+     "label": "sulfamethoxazole",
+     "category": "medicinal_scaffold",
+     "smiles": "Cc1cc(NS(=O)(=O)c2ccc(N)cc2)no1",
+     "pubchem_name": "4-amino-N-(5-methyl-1,2-oxazol-3-yl)benzenesulfonamide",
+     "name": "4-amino-N-(5-methyl-1,2-oxazol-3-yl)benzene-1-sulfonamide",
+     "error": null,
+     "seconds": 0.023,
+     "top_level_plans": 75,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=5/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=amine/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=sulfonamide/n_pcg=1"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=sulfonamide/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "warfarin (flat)",
+     "category": "medicinal_scaffold",
+     "smiles": "CC(=O)CC(c1ccccc1)c1c(O)c2ccccc2oc1=O",
+     "pubchem_name": "4-hydroxy-3-(3-oxo-1-phenylbutyl)chromen-2-one",
+     "name": "4-hydroxy-3-(3-oxo-1-phenylbutyl)-2H-1-benzopyran-2-one",
+     "error": null,
+     "seconds": 0.027,
+     "top_level_plans": 34,
+     "top_level_hypotheses": [
+      "chain/len=4/elem=-/pcg=-/n_pcg=0",
+      "chain/len=4/elem=-/pcg=ketone/n_pcg=1",
+      "chain/len=4/elem=-/pcg=ketone/n_pcg=2",
+      "fused/len=10/elem=-/pcg=-/n_pcg=0",
+      "fused/len=10/elem=-/pcg=ketone/n_pcg=1",
+      "fused/len=10/elem=-/pcg=ketone/n_pcg=2",
+      "fused/len=10/elem=-/pcg=phenol/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "fused/len=10/elem=-/pcg=ketone/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "chloroquine (flat)",
+     "category": "medicinal_scaffold",
+     "smiles": "CCN(CC)CCCC(C)Nc1ccnc2cc(Cl)ccc12",
+     "pubchem_name": "4-N-(7-chloroquinolin-4-yl)-1-N,1-N-diethylpentane-1,4-diamine",
+     "name": "N4-(7-chloroquinolin-4-yl)-N1,N1-diethylpentane-1,4-diamine",
+     "error": null,
+     "seconds": 0.027,
+     "top_level_plans": 23,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=secondary_amine/n_pcg=2",
+      "chain/len=2/elem=-/pcg=tertiary_amine/n_pcg=1",
+      "chain/len=5/elem=-/pcg=-/n_pcg=0",
+      "chain/len=5/elem=-/pcg=secondary_amine/n_pcg=1",
+      "chain/len=5/elem=-/pcg=secondary_amine/n_pcg=2",
+      "chain/len=5/elem=-/pcg=tertiary_amine/n_pcg=1",
+      "fused/len=10/elem=-/pcg=-/n_pcg=0",
+      "fused/len=10/elem=-/pcg=secondary_amine/n_pcg=1",
+      "fused/len=10/elem=-/pcg=secondary_amine/n_pcg=2"
+     ],
+     "winning_hypothesis": "chain/len=5/elem=-/pcg=secondary_amine/n_pcg=2",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "indomethacin",
+     "category": "medicinal_scaffold",
+     "smiles": "COc1ccc2c(c1)c(CC(=O)O)c(C)n2C(=O)c1ccc(Cl)cc1",
+     "pubchem_name": "2-[1-(4-chlorobenzoyl)-5-methoxy-2-methylindol-3-yl]acetic acid",
+     "name": "[1-(4-chlorobenzoyl)-5-methoxy-2-methyl-1H-indol-3-yl]acetic acid",
+     "error": null,
+     "seconds": 0.036,
+     "top_level_plans": 35,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "fused/len=9/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=2/elem=-/pcg=carboxylic_acid/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "atenolol",
+     "category": "medicinal_scaffold",
+     "smiles": "CC(C)NCC(O)COc1ccc(CC(N)=O)cc1",
+     "pubchem_name": "2-[4-[2-hydroxy-3-(propan-2-ylamino)propoxy]phenyl]acetamide",
+     "name": "2-(4-{2-hydroxy-3-[(propan-2-yl)amino]propoxy}phenyl)acetamide",
+     "error": null,
+     "seconds": 0.023,
+     "top_level_plans": 38,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=amide/n_pcg=1",
+      "chain/len=3/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=alcohol/n_pcg=1",
+      "chain/len=3/elem=-/pcg=secondary_amine/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=2/elem=-/pcg=amide/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "omeprazole (flat)",
+     "category": "medicinal_scaffold",
+     "smiles": "COc1ccc2[nH]c(S(=O)Cc3ncc(C)c(OC)c3C)nc2c1",
+     "pubchem_name": "6-methoxy-2-[(4-methoxy-3,5-dimethyl-2-pyridinyl)methylsulfinyl]-1H-benzimidazole",
+     "name": "5-methoxy-2-[(4-methoxy-3,5-dimethylpyridin-2-yl)methanesulfinyl]-1H-benzimidazole",
+     "error": null,
+     "seconds": 0.029,
+     "top_level_plans": 25,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "fused/len=9/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "fused/len=9/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "novel pyrazolone",
+     "category": "novel_unregistered",
+     "smiles": "CC1=NN(c2ccc(Br)cc2)C(=O)C1CCNC(=O)c1cccc(OC(F)(F)F)c1",
+     "pubchem_name": null,
+     "name": "N-{2-[1-(4-bromophenyl)-3-methyl-5-oxo-4,5-dihydro-1H-pyrazol-4-yl]ethyl}-3-(trifluoromethoxy)benzamide",
+     "error": null,
+     "seconds": 0.047,
+     "top_level_plans": 84,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=secondary_amide/n_pcg=1",
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=5/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=secondary_amide/n_pcg=1"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=secondary_amide/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "novel triazole sulfonamide",
+     "category": "novel_unregistered",
+     "smiles": "O=C(NCCn1cc(-c2ccc(C(F)(F)F)cc2)nn1)C1CCN(S(=O)(=O)c2ccccc2)CC1",
+     "pubchem_name": null,
+     "name": "1-(benzenesulfonyl)-N-(2-{4-[4-(trifluoromethyl)phenyl]-1H-1,2,3-triazol-1-yl}ethyl)piperidine-4-carboxamide",
+     "error": null,
+     "seconds": 0.06,
+     "top_level_plans": 100,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=secondary_amide/n_pcg=1",
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=5/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=secondary_amide/n_pcg=1"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=secondary_amide/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "novel spiro amide",
+     "category": "novel_unregistered",
+     "smiles": "O=C(NC1CCC2(CC1)OCCO2)c1ccc(N2CCOCC2)nc1",
+     "pubchem_name": null,
+     "name": "N-(1,4-dioxaspiro[4.5]decan-8-yl)-6-(morpholin-4-yl)pyridine-3-carboxamide",
+     "error": null,
+     "seconds": 0.027,
+     "top_level_plans": 47,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=secondary_amide/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=secondary_amide/n_pcg=1",
+      "spiro/len=10/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=secondary_amide/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "novel biaryl urea",
+     "category": "novel_unregistered",
+     "smiles": "O=C(Nc1ccc(-c2ccncc2)cc1)Nc1cccc(C(F)(F)F)c1",
+     "pubchem_name": null,
+     "name": "N-[4-(pyridin-4-yl)phenyl]-N'-[3-(trifluoromethyl)phenyl]urea",
+     "error": null,
+     "seconds": 0.017,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "methylium",
+     "category": "carbocation",
+     "smiles": "[CH3+]",
+     "pubchem_name": "carbanylium",
+     "name": "methylium",
+     "error": null,
+     "seconds": 0.0,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "ethan-1-ylium",
+     "category": "carbocation",
+     "smiles": "[CH2+]C",
+     "pubchem_name": null,
+     "name": "ethan-1-ylium",
+     "error": null,
+     "seconds": 0.005,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=2/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "propan-2-ylium",
+     "category": "carbocation",
+     "smiles": "C[CH+]C",
+     "pubchem_name": null,
+     "name": "propan-2-ylium",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=3/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "tert-butyl cation",
+     "category": "carbocation",
+     "smiles": "C[C+](C)C",
+     "pubchem_name": null,
+     "name": "2-methylpropan-2-ylium",
+     "error": null,
+     "seconds": 0.01,
+     "top_level_plans": 6,
+     "top_level_hypotheses": [
+      "chain/len=3/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cyclohexan-1-ylium",
+     "category": "carbocation",
+     "smiles": "[CH+]1CCCCC1",
+     "pubchem_name": null,
+     "name": "cyclohexan-1-ylium",
+     "error": null,
+     "seconds": 0.062,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:cyclohexane"
+     ],
+     "winning_hypothesis": "retained:cyclohexane",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "benzyl cation",
+     "category": "carbocation",
+     "smiles": "[CH2+]c1ccccc1",
+     "pubchem_name": null,
+     "name": "phenylmethan-1-ylium",
+     "error": null,
+     "seconds": 0.01,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:toluene"
+     ],
+     "winning_hypothesis": "retained:toluene",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "allyl cation",
+     "category": "carbocation",
+     "smiles": "C=C[CH2+]",
+     "pubchem_name": null,
+     "name": "prop-2-en-1-ylium",
+     "error": null,
+     "seconds": 0.007,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=3/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "vinyl cation",
+     "category": "carbocation",
+     "smiles": "[CH+]=C",
+     "pubchem_name": null,
+     "name": "ethen-1-ylium",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=2/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "phenylium",
+     "category": "carbocation",
+     "smiles": "[C+]1=CC=CC=C1",
+     "pubchem_name": null,
+     "name": "phenylium",
+     "error": null,
+     "seconds": 0.005,
+     "top_level_plans": 13,
+     "top_level_hypotheses": [
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "tropylium",
+     "category": "carbocation",
+     "smiles": "c1ccc[cH+]cc1",
+     "pubchem_name": null,
+     "name": "cyclohepta-2,4,6-trien-1-ylium",
+     "error": null,
+     "seconds": 0.002,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "acetylium",
+     "category": "carbocation",
+     "smiles": "C[C+]=O",
+     "pubchem_name": null,
+     "name": "acetylium",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:acetic acid"
+     ],
+     "winning_hypothesis": "retained:acetic acid",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "benzoylium",
+     "category": "carbocation",
+     "smiles": "O=[C+]c1ccccc1",
+     "pubchem_name": null,
+     "name": "benzoylium",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:benzoic acid"
+     ],
+     "winning_hypothesis": "retained:benzoic acid",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "methanide",
+     "category": "carbanion",
+     "smiles": "[CH3-]",
+     "pubchem_name": "carbanide",
+     "name": "methanide",
+     "error": null,
+     "seconds": 0.0,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "ethan-1-ide",
+     "category": "carbanion",
+     "smiles": "[CH2-]C",
+     "pubchem_name": null,
+     "name": "ethan-1-ide",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=2/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "propan-2-ide",
+     "category": "carbanion",
+     "smiles": "C[CH-]C",
+     "pubchem_name": null,
+     "name": "propan-2-ide",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=3/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "benzyl anion",
+     "category": "carbanion",
+     "smiles": "[CH2-]c1ccccc1",
+     "pubchem_name": "methanidylbenzene",
+     "name": "phenylmethanide",
+     "error": null,
+     "seconds": 0.01,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:toluene"
+     ],
+     "winning_hypothesis": "retained:toluene",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "allyl anion",
+     "category": "carbanion",
+     "smiles": "C=C[CH2-]",
+     "pubchem_name": null,
+     "name": "prop-2-en-1-ide",
+     "error": null,
+     "seconds": 0.007,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=3/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "acetylide",
+     "category": "carbanion",
+     "smiles": "[C-]#C",
+     "pubchem_name": null,
+     "name": "ethyn-1-ide",
+     "error": null,
+     "seconds": 0.001,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cyclopentadienide",
+     "category": "carbanion",
+     "smiles": "c1cc[cH-]c1",
+     "pubchem_name": null,
+     "name": "cyclopentadienide",
+     "error": null,
+     "seconds": 0.005,
+     "top_level_plans": 20,
+     "top_level_hypotheses": [
+      "monocyclic/len=5/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "monocyclic/len=5/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "phenyl anion",
+     "category": "carbanion",
+     "smiles": "[c-]1ccccc1",
+     "pubchem_name": null,
+     "name": "benzen-1-ide",
+     "error": null,
+     "seconds": 0.007,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:benzene"
+     ],
+     "winning_hypothesis": "retained:benzene",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "methylammonium",
+     "category": "onium_ion",
+     "smiles": "C[NH3+]",
+     "pubchem_name": "methylazanium",
+     "name": "methanaminium",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 5,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=aminium/n_pcg=1",
+      "heteroatom_center/len=1/elem=N+/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=1/elem=-/pcg=aminium/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "trimethylsulfonium",
+     "category": "onium_ion",
+     "smiles": "C[S+](C)C",
+     "pubchem_name": "trimethylsulfanium",
+     "name": "trimethylsulfanium",
+     "error": null,
+     "seconds": 0.007,
+     "top_level_plans": 7,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "heteroatom_center/len=1/elem=S+/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "heteroatom_center/len=1/elem=S+/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "tetramethylphosphonium",
+     "category": "onium_ion",
+     "smiles": "C[P+](C)(C)C",
+     "pubchem_name": "tetramethylphosphanium",
+     "name": "tetramethylphosphanium",
+     "error": null,
+     "seconds": 0.008,
+     "top_level_plans": 9,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "heteroatom_center/len=1/elem=P+/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "heteroatom_center/len=1/elem=P+/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "N-methylpyridinium",
+     "category": "onium_ion",
+     "smiles": "C[n+]1ccccc1",
+     "pubchem_name": "1-methylpyridin-1-ium",
+     "name": "1-methylpyridin-1-ium",
+     "error": null,
+     "seconds": 0.008,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "exact"
+    },
+    {
+     "label": "pyrylium",
+     "category": "onium_ion",
+     "smiles": "c1cc[o+]cc1",
+     "pubchem_name": "pyrylium",
+     "name": "pyrylium",
+     "error": null,
+     "seconds": 0.005,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "exact"
+    },
+    {
+     "label": "thiopyrylium",
+     "category": "onium_ion",
+     "smiles": "c1cc[s+]cc1",
+     "pubchem_name": "thiopyrylium",
+     "name": "thiopyrylium",
+     "error": null,
+     "seconds": 0.005,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "exact"
+    },
+    {
+     "label": "guanidinium",
+     "category": "onium_ion",
+     "smiles": "NC(N)=[NH2+]",
+     "pubchem_name": "diaminomethylideneazanium",
+     "name": "guanidinium",
+     "error": null,
+     "seconds": 0.001,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "diphenyliodonium",
+     "category": "onium_ion",
+     "smiles": "c1ccc([I+]c2ccccc2)cc1",
+     "pubchem_name": "diphenyliodanium",
+     "name": "diphenyliodanium",
+     "error": null,
+     "seconds": 0.015,
+     "top_level_plans": 49,
+     "top_level_hypotheses": [
+      "heteroatom_center/len=1/elem=I+/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "heteroatom_center/len=1/elem=I+/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "benzenediazonium",
+     "category": "onium_ion",
+     "smiles": "N#[N+]c1ccccc1",
+     "pubchem_name": "benzenediazonium",
+     "name": "benzenediazonium",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:benzene"
+     ],
+     "winning_hypothesis": "retained:benzene",
+     "outcome": "exact"
+    },
+    {
+     "label": "propane-1,3-diylium",
+     "category": "polycharged",
+     "smiles": "[CH2+]C[CH2+]",
+     "pubchem_name": null,
+     "name": "propane-1,3-diylium",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=3/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "methanediylium",
+     "category": "polycharged",
+     "smiles": "[CH2+2]",
+     "pubchem_name": null,
+     "name": "methanediylium",
+     "error": null,
+     "seconds": 0.001,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "propane-1,3-diide",
+     "category": "polycharged",
+     "smiles": "[CH2-]C[CH2-]",
+     "pubchem_name": null,
+     "name": "propane-1,3-diide",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=3/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "ethylenediammonium",
+     "category": "polycharged",
+     "smiles": "[NH3+]CC[NH3+]",
+     "pubchem_name": "2-azaniumylethylazanium",
+     "name": "ethane-1,2-bis(aminium)",
+     "error": null,
+     "seconds": 0.005,
+     "top_level_plans": 10,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=aminium/n_pcg=1",
+      "chain/len=2/elem=-/pcg=aminium/n_pcg=2",
+      "heteroatom_center/len=1/elem=N+/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=2/elem=-/pcg=aminium/n_pcg=2",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "malonate",
+     "category": "polycharged",
+     "smiles": "O=C([O-])CC(=O)[O-]",
+     "pubchem_name": "propanedioate",
+     "name": "propanedioate",
+     "error": null,
+     "seconds": 0.005,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "exact"
+    },
+    {
+     "label": "phthalate",
+     "category": "polycharged",
+     "smiles": "O=C([O-])c1ccccc1C(=O)[O-]",
+     "pubchem_name": "phthalate",
+     "name": "benzene-1,2-dicarboxylate",
+     "error": null,
+     "seconds": 0.017,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "oxalylium",
+     "category": "polycharged",
+     "smiles": "O=[C+][C+]=O",
+     "pubchem_name": null,
+     "name": "oxalylium",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:oxalic acid"
+     ],
+     "winning_hypothesis": "retained:oxalic acid",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "propanedioylium",
+     "category": "polycharged",
+     "smiles": "O=[C+]C[C+]=O",
+     "pubchem_name": null,
+     "name": "propanedioylium",
+     "error": null,
+     "seconds": 0.005,
+     "top_level_plans": 8,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=2"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=2",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "benzene-1,2-dicarbonylium",
+     "category": "polycharged",
+     "smiles": "O=[C+]c1ccccc1[C+]=O",
+     "pubchem_name": null,
+     "name": "benzene-1,2-dicarbonylium",
+     "error": null,
+     "seconds": 0.019,
+     "top_level_plans": 108,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "chain/len=1/elem=-/pcg=carboxylic_acid/n_pcg=2",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=carboxylic_acid/n_pcg=2"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=carboxylic_acid/n_pcg=2",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "benzene-1,3,5-tricarbonylium",
+     "category": "polycharged",
+     "smiles": "O=[C+]c1cc([C+]=O)cc([C+]=O)c1",
+     "pubchem_name": null,
+     "name": "benzene-1,3,5-tricarbonylium",
+     "error": null,
+     "seconds": 0.025,
+     "top_level_plans": 138,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "chain/len=1/elem=-/pcg=carboxylic_acid/n_pcg=3",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=carboxylic_acid/n_pcg=3"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=carboxylic_acid/n_pcg=3",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "azide",
+     "category": "polycharged",
+     "smiles": "[N-]=[N+]=[N-]",
+     "pubchem_name": "azide",
+     "name": "azide",
+     "error": null,
+     "seconds": 0.001,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "exact"
+    },
+    {
+     "label": "tetrafluoroborate",
+     "category": "polycharged",
+     "smiles": "F[B-](F)(F)F",
+     "pubchem_name": "tetrafluoroborate",
+     "name": "tetrafluoroborate",
+     "error": null,
+     "seconds": 0.001,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "exact"
+    },
+    {
+     "label": "pyridine N-oxide",
+     "category": "n_oxide",
+     "smiles": "[O-][n+]1ccccc1",
+     "pubchem_name": "1-oxidopyridin-1-ium",
+     "name": "pyridine 1-oxide",
+     "error": null,
+     "seconds": 0.007,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:pyridine"
+     ],
+     "winning_hypothesis": "retained:pyridine",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "4-methylpyridine N-oxide",
+     "category": "n_oxide",
+     "smiles": "Cc1cc[n+]([O-])cc1",
+     "pubchem_name": "4-methyl-1-oxidopyridin-1-ium",
+     "name": "4-methylpyridine 1-oxide",
+     "error": null,
+     "seconds": 0.012,
+     "top_level_plans": 16,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "isonicotinic acid N-oxide",
+     "category": "n_oxide",
+     "smiles": "O=C(O)c1cc[n+]([O-])cc1",
+     "pubchem_name": "1-oxidopyridin-1-ium-4-carboxylic acid",
+     "name": "pyridine-4-carboxylic acid 1-oxide",
+     "error": null,
+     "seconds": 0.014,
+     "top_level_plans": 32,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=carboxylic_acid/n_pcg=1"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=carboxylic_acid/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "(N-oxidopyridinyl)methylium",
+     "category": "n_oxide",
+     "smiles": "[CH2+]c1cc[n+]([O-])cc1",
+     "pubchem_name": null,
+     "name": "(1-oxidopyridin-1-ium-4-yl)methan-1-ylium",
+     "error": null,
+     "seconds": 0.02,
+     "top_level_plans": 16,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "(N-oxidopyridinyl)methanide",
+     "category": "n_oxide",
+     "smiles": "[CH2-]c1cc[n+]([O-])cc1",
+     "pubchem_name": null,
+     "name": "(1-oxidopyridin-1-ium-4-yl)methanide",
+     "error": null,
+     "seconds": 0.021,
+     "top_level_plans": 16,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "trimethylamine N-oxide",
+     "category": "n_oxide",
+     "smiles": "C[N+](C)(C)[O-]",
+     "pubchem_name": "N,N-dimethylmethanamine oxide",
+     "name": "N,N-dimethylmethanamine N-oxide",
+     "error": null,
+     "seconds": 0.009,
+     "top_level_plans": 12,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=tertiary_amine/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=1/elem=-/pcg=tertiary_amine/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "methylguanidinium",
+     "category": "guanidinium",
+     "smiles": "CNC(N)=[NH2+]",
+     "pubchem_name": null,
+     "name": "methylguanidinium",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "1,3-dimethylguanidinium",
+     "category": "guanidinium",
+     "smiles": "CNC(=[NH2+])NC",
+     "pubchem_name": null,
+     "name": "1,3-dimethylguanidinium",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "1,1-dimethylguanidinium",
+     "category": "guanidinium",
+     "smiles": "CN(C)C(N)=[NH2+]",
+     "pubchem_name": null,
+     "name": "1,1-dimethylguanidinium",
+     "error": null,
+     "seconds": 0.003,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "1,1,3-trimethylguanidinium",
+     "category": "guanidinium",
+     "smiles": "CNC(=[NH2+])N(C)C",
+     "pubchem_name": null,
+     "name": "1,1,3-trimethylguanidinium",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "phenylguanidinium",
+     "category": "guanidinium",
+     "smiles": "NC(=[NH2+])Nc1ccccc1",
+     "pubchem_name": null,
+     "name": "phenylguanidinium",
+     "error": null,
+     "seconds": 0.004,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "equivalent"
+    },
+    {
+     "label": "1H-1,2,3-triazole",
+     "category": "tautomer",
+     "smiles": "c1c[nH]nn1",
+     "pubchem_name": null,
+     "name": "1H-1,2,3-triazole",
+     "error": null,
+     "seconds": 0.005,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:1H-1,2,3-triazole"
+     ],
+     "winning_hypothesis": "retained:1H-1,2,3-triazole",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "1H-1,2,4-triazole",
+     "category": "tautomer",
+     "smiles": "c1nc[nH]n1",
+     "pubchem_name": "1H-1,2,4-triazole",
+     "name": "1H-1,2,4-triazole",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:1H-1,2,4-triazole"
+     ],
+     "winning_hypothesis": "retained:1H-1,2,4-triazole",
+     "outcome": "exact"
+    },
+    {
+     "label": "4H-1,2,4-triazole",
+     "category": "tautomer",
+     "smiles": "c1nnc[nH]1",
+     "pubchem_name": null,
+     "name": "4H-1,2,4-triazole",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:4H-1,2,4-triazole"
+     ],
+     "winning_hypothesis": "retained:4H-1,2,4-triazole",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "1H-tetrazole",
+     "category": "tautomer",
+     "smiles": "c1nnn[nH]1",
+     "pubchem_name": null,
+     "name": "1H-tetrazole",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:1H-tetrazole"
+     ],
+     "winning_hypothesis": "retained:1H-tetrazole",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "2H-tetrazole",
+     "category": "tautomer",
+     "smiles": "c1nn[nH]n1",
+     "pubchem_name": "2H-tetrazole",
+     "name": "2H-tetrazole",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": 1,
+     "top_level_hypotheses": [
+      "retained:2H-tetrazole"
+     ],
+     "winning_hypothesis": "retained:2H-tetrazole",
+     "outcome": "exact"
+    },
+    {
+     "label": "acetyl fentanyl",
+     "category": "substituent_naming",
+     "smiles": "CC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1",
+     "pubchem_name": "N-phenyl-N-[1-(2-phenylethyl)piperidin-4-yl]acetamide",
+     "name": "N-phenyl-N-[1-(2-phenylethyl)piperidin-4-yl]acetamide",
+     "error": null,
+     "seconds": 0.044,
+     "top_level_plans": 68,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=tertiary_amide/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=2/elem=-/pcg=tertiary_amide/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "butyryl fentanyl",
+     "category": "substituent_naming",
+     "smiles": "CCCC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1",
+     "pubchem_name": "N-phenyl-N-[1-(2-phenylethyl)piperidin-4-yl]butanamide",
+     "name": "N-phenyl-N-[1-(2-phenylethyl)piperidin-4-yl]butanamide",
+     "error": null,
+     "seconds": 0.036,
+     "top_level_plans": 68,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=4/elem=-/pcg=-/n_pcg=0",
+      "chain/len=4/elem=-/pcg=tertiary_amide/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=4/elem=-/pcg=tertiary_amide/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "fentanyl",
+     "category": "substituent_naming",
+     "smiles": "CCC(=O)N(c1ccccc1)C1CCN(CCc2ccccc2)CC1",
+     "pubchem_name": "N-phenyl-N-[1-(2-phenylethyl)piperidin-4-yl]propanamide",
+     "name": "N-phenyl-N-[1-(2-phenylethyl)piperidin-4-yl]propanamide",
+     "error": null,
+     "seconds": 0.035,
+     "top_level_plans": 68,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=tertiary_amide/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=tertiary_amide/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "(R)-MPMI",
+     "category": "substituent_naming",
+     "smiles": "CN1CCC[C@@H]1Cc1c[nH]c2ccccc12",
+     "pubchem_name": "3-[[(2R)-1-methylpyrrolidin-2-yl]methyl]-1H-indole",
+     "name": "3-{[(2R)-1-methylpyrrolidin-2-yl]methyl}-1H-indole",
+     "error": null,
+     "seconds": 0.019,
+     "top_level_plans": 17,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "fused/len=9/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=5/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "fused/len=9/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "(R)-4-HO-MPMI",
+     "category": "substituent_naming",
+     "smiles": "CN1CCC[C@@H]1Cc1c[nH]c2cccc(O)c12",
+     "pubchem_name": "3-[[(2R)-1-methylpyrrolidin-2-yl]methyl]-1H-indol-4-ol",
+     "name": "3-{[(2R)-1-methylpyrrolidin-2-yl]methyl}-1H-indol-4-ol",
+     "error": null,
+     "seconds": 0.021,
+     "top_level_plans": 18,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "fused/len=9/elem=-/pcg=-/n_pcg=0",
+      "fused/len=9/elem=-/pcg=phenol/n_pcg=1",
+      "monocyclic/len=5/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "fused/len=9/elem=-/pcg=phenol/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "(R)-5-MeO-MPMI",
+     "category": "substituent_naming",
+     "smiles": "COc1ccc2[nH]cc(C[C@H]3CCCN3C)c2c1",
+     "pubchem_name": "5-methoxy-3-[[(2R)-1-methylpyrrolidin-2-yl]methyl]-1H-indole",
+     "name": "5-methoxy-3-{[(2R)-1-methylpyrrolidin-2-yl]methyl}-1H-indole",
+     "error": null,
+     "seconds": 0.022,
+     "top_level_plans": 19,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "fused/len=9/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=5/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "fused/len=9/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    }
+   ]
+  },
+  "heldout": {
+   "source_file": "heldout.json",
+   "source_sha256": "c0f8276673c3a8069e115c04daea1b377c1d91d002276e146551e97c10c3bba6",
+   "rows": 40,
+   "outcomes": {
+    "equivalent": 25,
+    "exact": 15
+   },
+   "pubchem_verbatim_exact": 15,
+   "adjudicated_preferred_exact": null,
+   "records": [
+    {
+     "label": "cid1000",
+     "category": "heldout",
+     "smiles": "NCC(O)c1ccccc1",
+     "pubchem_name": "2-amino-1-phenylethanol",
+     "name": "2-amino-1-phenylethan-1-ol",
+     "error": null,
+     "seconds": 0.033,
+     "top_level_plans": 54,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=alcohol/n_pcg=1",
+      "chain/len=2/elem=-/pcg=amine/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=alcohol/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=2/elem=-/pcg=alcohol/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid2000",
+     "category": "heldout",
+     "smiles": "CC(=O)NC(Cc1ccccc1)C(=O)O",
+     "pubchem_name": "2-acetamido-3-phenylpropanoic acid",
+     "name": "2-acetamido-3-phenylpropanoic acid",
+     "error": null,
+     "seconds": 0.044,
+     "top_level_plans": 32,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=secondary_amide/n_pcg=1",
+      "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "cid3000",
+     "category": "heldout",
+     "smiles": "CC1CC2C3CCC4=CC(=O)C=CC4(C)C3(F)C(O)CC2(C)C1C(=O)CO",
+     "pubchem_name": "9-fluoro-11-hydroxy-17-(2-hydroxyacetyl)-10,13,16-trimethyl-7,8,11,12,14,15,16,17-octahydro-6H-cyclopenta[a]phenanthren-3-one",
+     "name": "9-fluoro-11-hydroxy-17-(hydroxyacetyl)-10,13,16-trimethyl-6,7,8,9,10,11,12,13,14,15,16,17-dodecahydro-3H-cyclopenta[a]phenanthren-3-one",
+     "error": null,
+     "seconds": 1.068,
+     "top_level_plans": 22,
+     "top_level_hypotheses": [
+      "bridged/len=17/elem=-/pcg=-/n_pcg=0",
+      "bridged/len=17/elem=-/pcg=alcohol/n_pcg=1",
+      "bridged/len=17/elem=-/pcg=ketone/n_pcg=1",
+      "bridged/len=17/elem=-/pcg=ketone/n_pcg=2",
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=ketone/n_pcg=1",
+      "chain/len=2/elem=-/pcg=ketone/n_pcg=2",
+      "fused/len=17/elem=-/pcg=-/n_pcg=0",
+      "fused/len=17/elem=-/pcg=alcohol/n_pcg=1",
+      "fused/len=17/elem=-/pcg=ketone/n_pcg=1",
+      "fused/len=17/elem=-/pcg=ketone/n_pcg=2"
+     ],
+     "winning_hypothesis": "fused/len=17/elem=-/pcg=ketone/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid4000",
+     "category": "heldout",
+     "smiles": "CC(C)=CCCC(C)=CCc1c(O)c(C)cc2c1[nH]c1ccccc12",
+     "pubchem_name": "1-(3,7-dimethylocta-2,6-dienyl)-3-methyl-9H-carbazol-2-ol",
+     "name": "1-(3,7-dimethylocta-2,6-dien-1-yl)-3-methyl-9H-carbazol-2-ol",
+     "error": null,
+     "seconds": 0.03,
+     "top_level_plans": 10,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=8/elem=-/pcg=-/n_pcg=0",
+      "fused/len=13/elem=-/pcg=-/n_pcg=0",
+      "fused/len=13/elem=-/pcg=phenol/n_pcg=1"
+     ],
+     "winning_hypothesis": "fused/len=13/elem=-/pcg=phenol/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid5000",
+     "category": "heldout",
+     "smiles": "CC1C(=O)N=C2Nc3cccc(Cl)c3CN21",
+     "pubchem_name": "6-chloro-3-methyl-5,10-dihydro-3H-imidazo[2,1-b]quinazolin-2-one",
+     "name": "4-chloro-13-methyl-1,9,11-triazatricyclo[8.3.0.0^{3,8}]trideca-3,5,7,10-tetraen-12-one",
+     "error": null,
+     "seconds": 0.085,
+     "top_level_plans": 4,
+     "top_level_hypotheses": [
+      "bridged/len=13/elem=-/pcg=-/n_pcg=0",
+      "bridged/len=13/elem=-/pcg=ketone/n_pcg=1",
+      "chain/len=1/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "bridged/len=13/elem=-/pcg=ketone/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid7000",
+     "category": "heldout",
+     "smiles": "COc1ccccc1N",
+     "pubchem_name": "2-methoxyaniline",
+     "name": "2-methoxyaniline",
+     "error": null,
+     "seconds": 0.013,
+     "top_level_plans": 50,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=amine/n_pcg=1"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=amine/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "cid10000",
+     "category": "heldout",
+     "smiles": "FC(F)(F)CCCl",
+     "pubchem_name": "3-chloro-1,1,1-trifluoropropane",
+     "name": "3-chloro-1,1,1-trifluoropropane",
+     "error": null,
+     "seconds": 0.005,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=3/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "cid11000",
+     "category": "heldout",
+     "smiles": "C1=CC=CCC=C1",
+     "pubchem_name": "cyclohepta-1,3,5-triene",
+     "name": "cyclohepta-1,3,5-triene",
+     "error": null,
+     "seconds": 0.006,
+     "top_level_plans": 14,
+     "top_level_hypotheses": [
+      "monocyclic/len=7/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "monocyclic/len=7/elem=-/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "cid12000",
+     "category": "heldout",
+     "smiles": "Nc1cc(Cl)ccc1S",
+     "pubchem_name": "2-amino-4-chlorobenzenethiol",
+     "name": "2-amino-4-chlorobenzene-1-thiol",
+     "error": null,
+     "seconds": 0.012,
+     "top_level_plans": 72,
+     "top_level_hypotheses": [
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=amine/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=thiol/n_pcg=1"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=thiol/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid13000",
+     "category": "heldout",
+     "smiles": "CCCCCCCCCCCCCBr",
+     "pubchem_name": "1-bromotridecane",
+     "name": "1-bromotridecane",
+     "error": null,
+     "seconds": 0.007,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=13/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=13/elem=-/pcg=-/n_pcg=0",
+     "outcome": "exact"
+    },
+    {
+     "label": "cid14000",
+     "category": "heldout",
+     "smiles": "CCN(CCCCOC(=O)c1cc(OC)c(OC)c(OC)c1)CCc1c[nH]c2ccccc12",
+     "pubchem_name": "4-[ethyl-[2-(1H-indol-3-yl)ethyl]amino]butyl 3,4,5-trimethoxybenzoate",
+     "name": "4-{ethyl[2-(1H-indol-3-yl)ethyl]amino}butyl 3,4,5-trimethoxybenzoate",
+     "error": null,
+     "seconds": 0.066,
+     "top_level_plans": 46,
+     "top_level_hypotheses": [
+      "FunctionalClassPlan",
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=tertiary_amine/n_pcg=1",
+      "chain/len=4/elem=-/pcg=-/n_pcg=0",
+      "chain/len=4/elem=-/pcg=tertiary_amine/n_pcg=1",
+      "fused/len=9/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "FunctionalClassPlan",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid16000",
+     "category": "heldout",
+     "smiles": "CCCCOCCOCCCOC(=O)COc1cc(Cl)c(Cl)cc1Cl",
+     "pubchem_name": "3-(2-butoxyethoxy)propyl 2-(2,4,5-trichlorophenoxy)acetate",
+     "name": "3-(2-butoxyethoxy)propyl (2,4,5-trichlorophenoxy)acetate",
+     "error": null,
+     "seconds": 0.05,
+     "top_level_plans": 33,
+     "top_level_hypotheses": [
+      "FunctionalClassPlan",
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=-/n_pcg=0",
+      "chain/len=4/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "FunctionalClassPlan",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid17000",
+     "category": "heldout",
+     "smiles": "CC1CCCC(C)(C)C1=O",
+     "pubchem_name": "2,2,6-trimethylcyclohexan-1-one",
+     "name": "2,2,6-trimethylcyclohexan-1-one",
+     "error": null,
+     "seconds": 0.013,
+     "top_level_plans": 30,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=ketone/n_pcg=1"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=ketone/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "cid19000",
+     "category": "heldout",
+     "smiles": "CO[C@@H]1CCC2(C)C3CCC4(C)C(CC[C@]4(C)O)C3CC[C@H]2C1",
+     "pubchem_name": "(3R,5S,17S)-3-methoxy-10,13,17-trimethyl-1,2,3,4,5,6,7,8,9,11,12,14,15,16-tetradecahydrocyclopenta[a]phenanthren-17-ol",
+     "name": "(3R,5S,17S)-3-methoxy-10,13,17-trimethylhexadecahydro-1H-cyclopenta[a]phenanthren-17-ol",
+     "error": null,
+     "seconds": 0.253,
+     "top_level_plans": 14,
+     "top_level_hypotheses": [
+      "bridged/len=17/elem=-/pcg=-/n_pcg=0",
+      "bridged/len=17/elem=-/pcg=alcohol/n_pcg=1",
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=alcohol/n_pcg=1",
+      "fused/len=17/elem=-/pcg=-/n_pcg=0",
+      "fused/len=17/elem=-/pcg=alcohol/n_pcg=1"
+     ],
+     "winning_hypothesis": "fused/len=17/elem=-/pcg=alcohol/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid21000",
+     "category": "heldout",
+     "smiles": "Cc1ccc(NC(=O)OCc2ccncc2)cc1",
+     "pubchem_name": "pyridin-4-ylmethyl N-(4-methylphenyl)carbamate",
+     "name": "(pyridin-4-yl)methyl (4-methylphenyl)carbamate",
+     "error": null,
+     "seconds": 0.045,
+     "top_level_plans": 61,
+     "top_level_hypotheses": [
+      "FunctionalClassPlan",
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=carbamate/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=carbamate/n_pcg=1"
+     ],
+     "winning_hypothesis": "FunctionalClassPlan",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid22000",
+     "category": "heldout",
+     "smiles": "C[n+]1c2ccccc2cc2ccccc21",
+     "pubchem_name": "10-methylacridin-10-ium",
+     "name": "10-methylacridin-10-ium",
+     "error": null,
+     "seconds": 0.02,
+     "top_level_plans": null,
+     "top_level_hypotheses": null,
+     "winning_hypothesis": null,
+     "outcome": "exact"
+    },
+    {
+     "label": "cid23000",
+     "category": "heldout",
+     "smiles": "CCNc1nc(NC(C)C)nc(Oc2ccccc2)n1",
+     "pubchem_name": "4-N-ethyl-6-phenoxy-2-N-propan-2-yl-1,3,5-triazine-2,4-diamine",
+     "name": "N2-ethyl-6-phenoxy-N4-(propan-2-yl)-1,3,5-triazine-2,4-diamine",
+     "error": null,
+     "seconds": 0.04,
+     "top_level_plans": 84,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=secondary_amine/n_pcg=1",
+      "chain/len=2/elem=-/pcg=secondary_amine/n_pcg=2",
+      "chain/len=3/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=secondary_amine/n_pcg=1",
+      "chain/len=3/elem=-/pcg=secondary_amine/n_pcg=2",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=secondary_amine/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=secondary_amine/n_pcg=2"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=secondary_amine/n_pcg=2",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid27000",
+     "category": "heldout",
+     "smiles": "COC(=O)c1cccc(C)c1C",
+     "pubchem_name": "methyl 2,3-dimethylbenzoate",
+     "name": "methyl 2,3-dimethylbenzoate",
+     "error": null,
+     "seconds": 0.023,
+     "top_level_plans": 33,
+     "top_level_hypotheses": [
+      "FunctionalClassPlan",
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "FunctionalClassPlan",
+     "outcome": "exact"
+    },
+    {
+     "label": "cid29000",
+     "category": "heldout",
+     "smiles": "COc1cc(C=O)c(Cl)cc1O",
+     "pubchem_name": "2-chloro-4-hydroxy-5-methoxybenzaldehyde",
+     "name": "2-chloro-4-hydroxy-5-methoxybenzaldehyde",
+     "error": null,
+     "seconds": 0.022,
+     "top_level_plans": 78,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=aldehyde/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=aldehyde/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=phenol/n_pcg=1"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=aldehyde/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "cid30000",
+     "category": "heldout",
+     "smiles": "CCN1C(=O)C(Cl)=C(Cl)C1=O",
+     "pubchem_name": "3,4-dichloro-1-ethylpyrrole-2,5-dione",
+     "name": "3,4-dichloro-1-ethyl-1H-pyrrole-2,5-dione",
+     "error": null,
+     "seconds": 0.038,
+     "top_level_plans": 50,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=5/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=5/elem=-/pcg=ketone/n_pcg=1",
+      "monocyclic/len=5/elem=-/pcg=ketone/n_pcg=2"
+     ],
+     "winning_hypothesis": "monocyclic/len=5/elem=-/pcg=ketone/n_pcg=2",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid32000",
+     "category": "heldout",
+     "smiles": "Cc1ccc(N=C(N)c2cccc3ccccc23)cc1Cl",
+     "pubchem_name": "N'-(3-chloro-4-methylphenyl)naphthalene-1-carboximidamide",
+     "name": "(3-chloro-4-methylphenylimino)(naphthalen-1-yl)methanamine",
+     "error": null,
+     "seconds": 0.044,
+     "top_level_plans": 34,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=amine/n_pcg=1",
+      "fused/len=10/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=1/elem=-/pcg=amine/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid33000",
+     "category": "heldout",
+     "smiles": "CCCCC=CCC=O",
+     "pubchem_name": "oct-3-enal",
+     "name": "oct-3-enal",
+     "error": null,
+     "seconds": 0.009,
+     "top_level_plans": 4,
+     "top_level_hypotheses": [
+      "chain/len=8/elem=-/pcg=-/n_pcg=0",
+      "chain/len=8/elem=-/pcg=aldehyde/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=8/elem=-/pcg=aldehyde/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "cid34000",
+     "category": "heldout",
+     "smiles": "CCOC(C(=O)OCC(C)N(C)C)(c1ccccc1)c1ccccc1",
+     "pubchem_name": "2-(dimethylamino)propyl 2-ethoxy-2,2-diphenylacetate",
+     "name": "2-(dimethylamino)propyl ethoxydi(phenyl)acetate",
+     "error": null,
+     "seconds": 0.094,
+     "top_level_plans": 65,
+     "top_level_hypotheses": [
+      "FunctionalClassPlan",
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=tertiary_amine/n_pcg=1",
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=tertiary_amine/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "FunctionalClassPlan",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid35000",
+     "category": "heldout",
+     "smiles": "Nc1nc(CCl)nc(C(Cl)(Cl)Cl)n1",
+     "pubchem_name": "4-(chloromethyl)-6-(trichloromethyl)-1,3,5-triazin-2-amine",
+     "name": "4-(chloromethyl)-6-(trichloromethyl)-1,3,5-triazin-2-amine",
+     "error": null,
+     "seconds": 0.038,
+     "top_level_plans": 28,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=amine/n_pcg=1"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=amine/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "cid36000",
+     "category": "heldout",
+     "smiles": "CNC(C)CC12CC3CC(CC(C3)C1C1CCCCC1)C2",
+     "pubchem_name": "1-(2-cyclohexyl-1-adamantyl)-N-methylpropan-2-amine",
+     "name": "1-(2-cyclohexyladamantan-1-yl)-N-methylpropan-2-amine",
+     "error": null,
+     "seconds": 0.076,
+     "top_level_plans": 45,
+     "top_level_hypotheses": [
+      "bridged/len=10/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=secondary_amine/n_pcg=1",
+      "chain/len=3/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=secondary_amine/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=3/elem=-/pcg=secondary_amine/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid38000",
+     "category": "heldout",
+     "smiles": "O=C(CNC(=O)c1ccc(Cl)cc1)NO",
+     "pubchem_name": "4-chloro-N-[2-(hydroxyamino)-2-oxoethyl]benzamide",
+     "name": "4-chloro-N-[(hydroxycarbamoyl)methyl]benzamide",
+     "error": null,
+     "seconds": 0.052,
+     "top_level_plans": 84,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=secondary_amide/n_pcg=1",
+      "chain/len=1/elem=-/pcg=secondary_amide/n_pcg=2",
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=hydroxamic_acid/n_pcg=1",
+      "chain/len=2/elem=-/pcg=secondary_amide/n_pcg=2",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=secondary_amide/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=secondary_amide/n_pcg=2"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=secondary_amide/n_pcg=2",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid40000",
+     "category": "heldout",
+     "smiles": "CCC[C@@H]1O[C@@H]2C[C@H]3[C@@H]4CCC5=CC(=O)C=C[C@]5(C)[C@H]4[C@@H](O)C[C@]3(C)[C@]2(C(=O)CO)O1",
+     "pubchem_name": "(1S,2S,4R,6R,8S,9S,11S,12S,13R)-11-hydroxy-8-(2-hydroxyacetyl)-9,13-dimethyl-6-propyl-5,7-dioxapentacyclo[10.8.0.02,9.04,8.013,18]icosa-14,17-dien-16-one",
+     "name": "(1S,2S,4S,5S,6R,14S,15S,17R,19R)-4-hydroxy-1-(hydroxyacetyl)-2,6-dimethyl-19-propyl-18,20-dioxapentacyclo[15.3.0.0^{2,15}.0^{5,14}.0^{6,11}]icosa-7,10-dien-9-one",
+     "error": null,
+     "seconds": 4.38,
+     "top_level_plans": 17,
+     "top_level_hypotheses": [
+      "bridged/len=20/elem=-/pcg=-/n_pcg=0",
+      "bridged/len=20/elem=-/pcg=alcohol/n_pcg=1",
+      "bridged/len=20/elem=-/pcg=ketone/n_pcg=1",
+      "bridged/len=20/elem=-/pcg=ketone/n_pcg=2",
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=ketone/n_pcg=1",
+      "chain/len=2/elem=-/pcg=ketone/n_pcg=2",
+      "chain/len=3/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "bridged/len=20/elem=-/pcg=ketone/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid43000",
+     "category": "heldout",
+     "smiles": "Nc1c(Nc2ccccc2)c2ccccc2oc1=O",
+     "pubchem_name": "3-amino-4-anilinochromen-2-one",
+     "name": "3-amino-4-anilino-2H-1-benzopyran-2-one",
+     "error": null,
+     "seconds": 0.067,
+     "top_level_plans": 77,
+     "top_level_hypotheses": [
+      "fused/len=10/elem=-/pcg=-/n_pcg=0",
+      "fused/len=10/elem=-/pcg=amine/n_pcg=1",
+      "fused/len=10/elem=-/pcg=amine/n_pcg=2",
+      "fused/len=10/elem=-/pcg=ketone/n_pcg=1",
+      "fused/len=10/elem=-/pcg=secondary_amine/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=amine/n_pcg=2",
+      "monocyclic/len=6/elem=-/pcg=secondary_amine/n_pcg=1"
+     ],
+     "winning_hypothesis": "fused/len=10/elem=-/pcg=ketone/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid44000",
+     "category": "heldout",
+     "smiles": "COc1cc2c(Cc3ccc(Cl)cc3)cnc(C(C)C)c2cc1OC",
+     "pubchem_name": "4-[(4-chlorophenyl)methyl]-6,7-dimethoxy-1-propan-2-ylisoquinoline",
+     "name": "4-[(4-chlorophenyl)methyl]-6,7-dimethoxy-1-(propan-2-yl)isoquinoline",
+     "error": null,
+     "seconds": 0.045,
+     "top_level_plans": 33,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=-/n_pcg=0",
+      "fused/len=10/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "fused/len=10/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid45000",
+     "category": "heldout",
+     "smiles": "NC(N)=NCCCCCCCCCCCCCCN=C(N)N",
+     "pubchem_name": "2-[14-(diaminomethylideneamino)tetradecyl]guanidine",
+     "name": "1,14-bis[(diaminomethylidene)amino]tetradecane",
+     "error": null,
+     "seconds": 0.013,
+     "top_level_plans": 2,
+     "top_level_hypotheses": [
+      "chain/len=14/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "chain/len=14/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid47000",
+     "category": "heldout",
+     "smiles": "CC1CCCCN1CCCCOC(=O)c1ccccc1",
+     "pubchem_name": "4-(2-methylpiperidin-1-yl)butyl benzoate",
+     "name": "4-(2-methylpiperidin-1-yl)butyl benzoate",
+     "error": null,
+     "seconds": 0.05,
+     "top_level_plans": 45,
+     "top_level_hypotheses": [
+      "FunctionalClassPlan",
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=4/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "FunctionalClassPlan",
+     "outcome": "exact"
+    },
+    {
+     "label": "cid49000",
+     "category": "heldout",
+     "smiles": "CC1CCCN(CCC(C)OC(=O)c2ccccc2)C1",
+     "pubchem_name": "4-(3-methylpiperidin-1-yl)butan-2-yl benzoate",
+     "name": "4-(3-methylpiperidin-1-yl)butan-2-yl benzoate",
+     "error": null,
+     "seconds": 0.046,
+     "top_level_plans": 45,
+     "top_level_hypotheses": [
+      "FunctionalClassPlan",
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=4/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "FunctionalClassPlan",
+     "outcome": "exact"
+    },
+    {
+     "label": "cid50000",
+     "category": "heldout",
+     "smiles": "CCOc1c(N(CCO)CC(=O)O)cnn(C)c1=O",
+     "pubchem_name": "2-[(5-ethoxy-1-methyl-6-oxopyridazin-4-yl)-(2-hydroxyethyl)amino]acetic acid",
+     "name": "[(5-ethoxy-1-methyl-6-oxopyridazin-4-yl)(2-hydroxyethyl)amino]acetic acid",
+     "error": null,
+     "seconds": 0.048,
+     "top_level_plans": 58,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=tertiary_amine/n_pcg=1",
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=alcohol/n_pcg=1",
+      "chain/len=2/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "chain/len=2/elem=-/pcg=tertiary_amine/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=ketone/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=tertiary_amine/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=2/elem=-/pcg=carboxylic_acid/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid52000",
+     "category": "heldout",
+     "smiles": "COc1ccccc1Nc1ncnc2nc[nH]c12",
+     "pubchem_name": "N-(2-methoxyphenyl)-7H-purin-6-amine",
+     "name": "N-(2-methoxyphenyl)-7H-purin-6-amine",
+     "error": null,
+     "seconds": 0.031,
+     "top_level_plans": 52,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "fused/len=9/elem=-/pcg=-/n_pcg=0",
+      "fused/len=9/elem=-/pcg=secondary_amine/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=secondary_amine/n_pcg=1"
+     ],
+     "winning_hypothesis": "fused/len=9/elem=-/pcg=secondary_amine/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "cid55000",
+     "category": "heldout",
+     "smiles": "O=C(NNCc1ccccc1)C(=O)NNCc1ccccc1",
+     "pubchem_name": "1-N',2-N'-dibenzylethanedihydrazide",
+     "name": "({2-[(2-benzylhydrazinyl)(oxo)acetyl]hydrazinyl}methyl)benzene",
+     "error": null,
+     "seconds": 0.077,
+     "top_level_plans": 58,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "heteroatom_chain/len=2/elem=N/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid56000",
+     "category": "heldout",
+     "smiles": "O=C(O)c1ccc(NCN2C(=O)C(=Cc3ccc(O)cc3)SC2=S)cc1",
+     "pubchem_name": "4-[[5-[(4-hydroxyphenyl)methylidene]-4-oxo-2-sulfanylidene-1,3-thiazolidin-3-yl]methylamino]benzoic acid",
+     "name": "4-[({5-[(4-hydroxyphenyl)methylidene]-4-oxo-2-(sulfanylidene)-1,3-thiazolidin-3-yl}methyl)amino]benzoic acid",
+     "error": null,
+     "seconds": 0.089,
+     "top_level_plans": 132,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=1/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "chain/len=1/elem=-/pcg=secondary_amine/n_pcg=1",
+      "monocyclic/len=5/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=carboxylic_acid/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=phenol/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=secondary_amine/n_pcg=1"
+     ],
+     "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=carboxylic_acid/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid57000",
+     "category": "heldout",
+     "smiles": "CCN1CC(c2ccccc2)N(Cc2ccccc2)C1=O",
+     "pubchem_name": "3-benzyl-1-ethyl-4-phenylimidazolidin-2-one",
+     "name": "3-benzyl-1-ethyl-4-phenylimidazolidin-2-one",
+     "error": null,
+     "seconds": 0.058,
+     "top_level_plans": 76,
+     "top_level_hypotheses": [
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=5/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=5/elem=-/pcg=ketone/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "monocyclic/len=5/elem=-/pcg=ketone/n_pcg=1",
+     "outcome": "exact"
+    },
+    {
+     "label": "cid58000",
+     "category": "heldout",
+     "smiles": "CCOC(=O)C(CC)(C(=O)NCCN1CCCCCCC1)c1ccccc1",
+     "pubchem_name": "ethyl 2-[2-(azocan-1-yl)ethylcarbamoyl]-2-phenylbutanoate",
+     "name": "ethyl 2-{[2-(azocan-1-yl)ethyl]carbamoyl}-2-phenylbutanoate",
+     "error": null,
+     "seconds": 0.102,
+     "top_level_plans": 39,
+     "top_level_hypotheses": [
+      "FunctionalClassPlan",
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=4/elem=-/pcg=-/n_pcg=0",
+      "chain/len=4/elem=-/pcg=secondary_amide/n_pcg=1",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=8/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "FunctionalClassPlan",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid59000",
+     "category": "heldout",
+     "smiles": "CC(=O)c1ccc2[nH]cc(C(C)CN)c2c1",
+     "pubchem_name": "1-[3-(1-aminopropan-2-yl)-1H-indol-5-yl]ethanone",
+     "name": "1-[3-(1-aminopropan-2-yl)-1H-indol-5-yl]ethan-1-one",
+     "error": null,
+     "seconds": 0.036,
+     "top_level_plans": 10,
+     "top_level_hypotheses": [
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=ketone/n_pcg=1",
+      "chain/len=3/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=amine/n_pcg=1",
+      "fused/len=9/elem=-/pcg=-/n_pcg=0",
+      "fused/len=9/elem=-/pcg=ketone/n_pcg=1"
+     ],
+     "winning_hypothesis": "chain/len=2/elem=-/pcg=ketone/n_pcg=1",
+     "outcome": "equivalent"
+    },
+    {
+     "label": "cid60000",
+     "category": "heldout",
+     "smiles": "CCCCCCCOc1ccccc1NC(=O)OC(CN(CC)CC)CN1CCCC1",
+     "pubchem_name": "[1-(diethylamino)-3-pyrrolidin-1-ylpropan-2-yl] N-(2-heptoxyphenyl)carbamate",
+     "name": "1-(diethylamino)-3-(pyrrolidin-1-yl)propan-2-yl [2-(heptyloxy)phenyl]carbamate",
+     "error": null,
+     "seconds": 0.085,
+     "top_level_plans": 55,
+     "top_level_hypotheses": [
+      "FunctionalClassPlan",
+      "chain/len=1/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=-/n_pcg=0",
+      "chain/len=2/elem=-/pcg=tertiary_amine/n_pcg=1",
+      "chain/len=3/elem=-/pcg=-/n_pcg=0",
+      "chain/len=3/elem=-/pcg=carbamate/n_pcg=1",
+      "chain/len=3/elem=-/pcg=tertiary_amine/n_pcg=1",
+      "chain/len=7/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=5/elem=-/pcg=-/n_pcg=0",
+      "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+     ],
+     "winning_hypothesis": "FunctionalClassPlan",
+     "outcome": "equivalent"
+    }
+   ]
+  }
+ }
+}

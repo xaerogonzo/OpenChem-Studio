@@ -639,9 +639,9 @@ class IUPACCanonical(NamingStrategy):
             self._pcg_on_parent_count(plan),
             float(self._parent_selection_score(plan, include_substituent_count=False)),
             float(self._retained_ring_seniority_score(plan.named_parent)),
-            float(self._fusion_method_rank(
+            float(self._saturated_hydro_demotion(plan.named_parent, mol, self._fusion_method_rank(
                 plan.named_parent, self._naming_method_score(plan.named_parent)
-            )),
+            ))),
             len(plan.prefix_assignments),
             hetero,
             suffix,
@@ -1132,6 +1132,50 @@ class IUPACCanonical(NamingStrategy):
     _FUSION_ALLOWED_RANK = 3.0
     #: Below von Baeyer, when P-52.2.4.1 forbids the fusion name.
     _FUSION_FORBIDDEN_RANK = 1.1
+
+    def _saturated_hydro_demotion(self, named_parent, mol, rank: float) -> float:
+        """A hydro name for a fully saturated heteromonocycle ranks below its
+        saturated name.
+
+        P-31.1.4.2.4 (pdf p. 336): "names for the fully saturated
+        heteromonocycles that have retained names or Hantzsch-Widman names are
+        preferred to those expressed by 'hydro' prefixes, for example, oxolane
+        and piperidine are preferred to tetrahydrofuran and hexahydropyridine".
+        "2,3,4,5-tetrahydro-1,3-thiazole" was labelled "retained" -- its
+        mancude parent is -- and outranked "1,3-thiazolidine (PIN)" (Table 2.3)
+        on the method tier (naming round 4). Exocyclic C=O does not count:
+        only a ring double bond makes the ring less than saturated.
+        """
+        rs = named_parent.candidate.ring_system
+        name = named_parent.name or ""
+        # A MANCUDE retained name on a saturated ring is the same mistake
+        # without the hydro prefix: cid56000's ring, every ring bond single,
+        # came out "...-1,3-thiazol-3-yl" beside the adjudicated
+        # "...-1,3-thiazolidin-3-yl". Table 2.3's saturated retained names
+        # (piperidine, pyrrolidine, ...) are the exception.
+        mancude_retained = (
+            named_parent.naming_method == "retained"
+            and name.split("-")[-1] not in self._SATURATED_RETAINED_RINGS
+        )
+        if (mol is None or rs is None or rs.type != "monocyclic"
+                or ("hydro" not in name and not mancude_retained)):
+            return rank
+        ring = named_parent.candidate.atom_indices
+        if all(mol.GetAtomWithIdx(i).GetAtomicNum() == 6 for i in ring):
+            return rank
+        for bond in mol.GetBonds():
+            a, b = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+            if a in ring and b in ring and bond.GetBondTypeAsDouble() > 1.0:
+                return rank
+        return min(rank, self._HYDRO_BELOW_SATURATED_RANK)
+
+    # Below "hantzsch_widman" (50) in _naming_method_score.
+    _HYDRO_BELOW_SATURATED_RANK = 40.0
+    # Table 2.3 (pdf p. 151): retained names of saturated heteromonocycles.
+    _SATURATED_RETAINED_RINGS = frozenset({
+        "piperidine", "piperazine", "pyrrolidine", "pyrazolidine", "imidazolidine",
+        "morpholine", "thiomorpholine", "selenomorpholine", "telluromorpholine",
+    })
 
     def _fusion_method_rank(self, named_parent, rank: float) -> float:
         """The naming-method rank as an ORDERING, for the preference key only.

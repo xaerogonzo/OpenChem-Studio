@@ -1399,6 +1399,24 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-065k", "O=S(=O)(Cc1ccccc1)c1ccccc1C(=O)O", "2-(phenylmethanesulfonyl)benzoic acid",
      "(2-carboxyphenyl) (phenylmethyl) sulfone",
      "the former put the acid inside a sulfone class name"),
+    # --- D-066: a saturated heteromonocycle takes its saturated name (A8) ---
+    # P-31.1.4.2.4 (pdf p. 336): saturated retained / Hantzsch-Widman names
+    # "are preferred to those expressed by 'hydro' prefixes"; Table 2.3 gives
+    # "1,3-thiazolidine (PIN)". The tetrahydro name ranked as "retained".
+    ("D-066a", "C1CSCN1", "1,3-thiazolidine", "2,3,4,5-tetrahydro-1,3-thiazole", "Table 2.3"),
+    ("D-066b", "C1COCN1", "1,3-oxazolidine", "2,3,4,5-tetrahydro-1,3-oxazole", "Table 2.3"),
+    ("D-066c", "O=C1CSC(=O)N1", "1,3-thiazolidine-2,4-dione",
+     "2,3,4,5-tetrahydro-1,3-thiazole-2,4-dione", "adjudicated; exo C=O does not count"),
+    ("D-066d", "O=C(O)c1ccc(NCN2C(=O)C(=Cc3ccc(O)cc3)SC2=S)cc1",
+     "4-[({5-[(4-hydroxyphenyl)methylidene]-4-oxo-2-(sulfanylidene)-1,3-thiazolidin-3-yl}"
+     "methyl)amino]benzoic acid",
+     "4-[({5-[(4-hydroxyphenyl)methylidene]-4-oxo-2-(sulfanylidene)-1,3-thiazol-3-yl}"
+     "methyl)amino]benzoic acid",
+     "cid56000: a MANCUDE retained name on a ring with no ring double bond"),
+    ("D-066e", "O=C1CCCN1", "pyrrolidin-2-one", "pyrrolidin-2-one",
+     "converse: Table 2.3's own saturated retained names keep their rank"),
+    ("D-066f", "C1=CCNC1", "2,5-dihydro-1H-pyrrole", "2,5-dihydro-1H-pyrrole",
+     "converse: a ring double bond keeps the hydro name"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names
