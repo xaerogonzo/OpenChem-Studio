@@ -3,7 +3,17 @@
     "COc1ccccc1": {
       "name": "anisole",
       "source": "iupac_p34",
-      "rule": "P-34.1.1.4 / P-15.1.8.2.2 retain 'anisole' as the PIN for bare CH3-O-C6H5 (methoxybenzene). Substituted anisoles fall back to the systematic methoxybenzene/{...} form; this entry is a whole-molecule retained-name match."
+      "rule": "P-34.1.1.4 / P-15.1.8.2.2 retain 'anisole' as the PIN for bare CH3-O-C6H5 (methoxybenzene). Substituted anisoles fall back to the systematic methoxybenzene/{...} form; this entry is a whole-molecule retained-name match.",
+      "pin_status": "PIN",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-34.1.1.4",
+      "pin_evidence": "anisole (PIN) (no substitution on anisole for PINs)",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "may_be_parent": false,
+      "may_be_substituted": false,
+      "substitution_scope": "none",
+      "whole_molecule_only": true
     },
     "O=C(/C=C/c1ccccc1)c1ccccc1": {
       "name": "chalcone",
@@ -18,23 +28,49 @@
     "O=C1CCC(=O)N1": {
       "name": "succinimide",
       "source": "iupac_p66",
-      "rule": "P-66.2 retains 'succinimide' as the PIN for the cyclic imide of succinic acid (1H-pyrrole-2,5-dione, fully reduced ring). Engine otherwise emits the substitutive '2,5-dioxopyrrolidine' form; whole-molecule canonical-SMILES match. OPSIN round-trips: succinimide -> O=C1CCC(=O)N1 (canonical match)."
+      "rule": "P-66.2 retains 'succinimide' as the PIN for the cyclic imide of succinic acid (1H-pyrrole-2,5-dione, fully reduced ring). Engine otherwise emits the substitutive '2,5-dioxopyrrolidine' form; whole-molecule canonical-SMILES match. OPSIN round-trips: succinimide -> O=C1CCC(=O)N1 (canonical match).",
+      "pin_status": "RETAINED_NOT_PIN",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-66.2.1",
+      "pin_evidence": "pyrrolidine-2,5-dione (PIN) succinimide ... (not N-bromosuccinimide; substitution is not allowed on succinimide)",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "may_be_parent": false,
+      "may_be_substituted": false,
+      "substitution_scope": "none",
+      "whole_molecule_only": true
     },
     "CC(=O)O": {
       "name": "acetic acid",
       "source": "algorithm.py",
       "rule": "various",
       "pin_status": "PIN",
-      "pin_evidence": "P-65.1.1.1: retained as a PIN.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_evidence": "acetic acid (PIN); 'In some cases, such as acetic acid, alkyl substituents are not allowed as the resulting compound requires a different parent structure'",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-65.1.1.1 / P-16.5.1.3.2",
+      "may_be_parent": true,
+      "may_be_substituted": true,
+      "substitution_scope": "limited",
+      "whole_molecule_only": false,
+      "locant_model": "suffix_group_at_1"
     },
     "O=C(O)c1ccccc1": {
       "name": "benzoic acid",
       "source": "algorithm.py",
       "rule": "various",
       "pin_status": "PIN",
-      "pin_evidence": "P-65.1.1.1: retained as a PIN.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_evidence": "benzoic acid is retained as a preferred IUPAC name",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-65.1.1.1",
+      "may_be_parent": true,
+      "may_be_substituted": true,
+      "substitution_scope": "full",
+      "whole_molecule_only": false,
+      "locant_model": "suffix_group_at_1"
     },
     "O=CO": {
       "name": "formic acid",
@@ -47,7 +83,10 @@
       "rule": "various",
       "pin_status": "PIN",
       "pin_evidence": "P-65.1.1.1: retained as a PIN.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-65.1.1.1"
     },
     "O=C(O)O": {
       "name": "carbonic acid",
@@ -62,15 +101,34 @@
     "CC=O": {
       "name": "acetaldehyde",
       "source": "algorithm.py",
-      "rule": "various"
+      "rule": "various",
+      "pin_status": "PIN",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-66.6.1.1",
+      "pin_evidence": "with substitution allowed for acetaldehyde and benzaldehyde; p. 695: phenoxyacetaldehyde (PIN)",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "may_be_parent": true,
+      "may_be_substituted": true,
+      "substitution_scope": "full",
+      "whole_molecule_only": false,
+      "locant_model": "suffix_group_at_1"
     },
     "O=Cc1ccccc1": {
       "name": "benzaldehyde",
       "source": "algorithm.py",
       "rule": "various",
       "pin_status": "PIN",
-      "pin_evidence": "P-66.6.1: retained as a PIN.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_evidence": "with substitution allowed for acetaldehyde and benzaldehyde",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-66.6.1.1",
+      "may_be_parent": true,
+      "may_be_substituted": true,
+      "substitution_scope": "full",
+      "whole_molecule_only": false,
+      "locant_model": "suffix_group_at_1"
     },
     "CCCC=O": {
       "name": "butyraldehyde",
@@ -78,7 +136,10 @@
       "rule": "various",
       "pin_status": "RETAINED_NOT_PIN",
       "pin_evidence": "P-66.6.1: aldehyde PINs are systematic; the book writes '3-oxobutanal (PIN) (not 3-oxobutyraldehyde)'. The PIN is butanal.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-66.6.1"
     },
     "O=CC=O": {
       "name": "oxalaldehyde",
@@ -93,12 +154,34 @@
     "CC(N)=O": {
       "name": "acetamide",
       "source": "algorithm.py",
-      "rule": "various"
+      "rule": "various",
+      "pin_status": "PIN",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-66.1.1.1.2.1",
+      "pin_evidence": "Only the following four retained names are preferred IUPAC names and can be substituted ... acetamide (PIN) benzamide (PIN) oxamide (PIN) cyanamide (PIN)",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "may_be_parent": true,
+      "may_be_substituted": true,
+      "substitution_scope": "full",
+      "whole_molecule_only": false,
+      "locant_model": "suffix_group_at_1"
     },
     "NC(=O)c1ccccc1": {
       "name": "benzamide",
       "source": "algorithm.py",
-      "rule": "various"
+      "rule": "various",
+      "pin_status": "PIN",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-66.1.1.1.2.1",
+      "pin_evidence": "Only the following four retained names are preferred IUPAC names and can be substituted ... benzamide (PIN); p. 648: N-methylbenzamide (PIN)",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "may_be_parent": true,
+      "may_be_substituted": true,
+      "substitution_scope": "full",
+      "whole_molecule_only": false,
+      "locant_model": "suffix_group_at_1"
     },
     "NC=O": {
       "name": "formamide",
@@ -131,12 +214,26 @@
       "rule": "various",
       "pin_status": "PIN",
       "pin_evidence": "P-66.5.1.1: retained as a PIN.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-66.5.1.1"
     },
     "N#Cc1ccccc1": {
       "name": "benzonitrile",
       "source": "algorithm.py",
-      "rule": "various"
+      "rule": "various",
+      "pin_status": "PIN",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-66.5.1.1",
+      "pin_evidence": "p. 65: 2,2'-methylenedibenzonitrile (PIN)",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "may_be_parent": true,
+      "may_be_substituted": true,
+      "substitution_scope": "full",
+      "whole_molecule_only": false,
+      "locant_model": "suffix_group_at_1"
     },
     "CCC#N": {
       "name": "propiononitrile",
@@ -148,23 +245,61 @@
       "source": "algorithm.py",
       "rule": "various",
       "pin_status": "PIN",
-      "pin_evidence": "P-22.1.1 / Table 28.1: retained as a PIN.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_evidence": "phenol (PIN) (substitution allowed; P-63.1.1.1)",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-34.1.1.3",
+      "may_be_parent": true,
+      "may_be_substituted": true,
+      "substitution_scope": "full",
+      "whole_molecule_only": false,
+      "locant_model": "suffix_group_at_1"
     },
     "Oc1ccccc1O": {
       "name": "pyrocatechol",
       "source": "algorithm.py",
-      "rule": "various"
+      "rule": "various",
+      "pin_status": "RETAINED_NOT_PIN",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-63.1.1.2",
+      "pin_evidence": "pyrocatehol benzene-1,2-diol (PIN) [sic, p. 533]",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "may_be_parent": false,
+      "may_be_substituted": false,
+      "substitution_scope": "none",
+      "whole_molecule_only": true
     },
     "Oc1cccc(O)c1": {
       "name": "resorcinol",
       "source": "algorithm.py",
-      "rule": "various"
+      "rule": "various",
+      "pin_status": "RETAINED_NOT_PIN",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-63.1.1.2",
+      "pin_evidence": "resorcinol benzene-1,3-diol (PIN)",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "may_be_parent": false,
+      "may_be_substituted": false,
+      "substitution_scope": "none",
+      "whole_molecule_only": true
     },
     "Oc1ccc(O)cc1": {
       "name": "hydroquinone",
       "source": "algorithm.py",
-      "rule": "various"
+      "rule": "various",
+      "pin_status": "RETAINED_NOT_PIN",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-63.1.1.2",
+      "pin_evidence": "hydroquinone benzene-1,4-diol (PIN)",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "may_be_parent": false,
+      "may_be_substituted": false,
+      "substitution_scope": "none",
+      "whole_molecule_only": true
     },
     "C=CO": {
       "name": "ethenol",
@@ -186,8 +321,16 @@
       "source": "algorithm.py",
       "rule": "various",
       "pin_status": "PIN",
-      "pin_evidence": "P-22.1.3 / Table 28.1: retained as a PIN.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_evidence": "aniline (PIN); (full substitution, see P-62.2.1.1.1); p. 516: N-methylaniline (PIN), 4-chloroaniline (PIN)",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-34.1.1.5",
+      "may_be_parent": true,
+      "may_be_substituted": true,
+      "substitution_scope": "full",
+      "whole_molecule_only": false,
+      "locant_model": "suffix_group_at_1"
     },
     "CN(C)C": {
       "name": "trimethylamine",
@@ -195,7 +338,10 @@
       "rule": "various",
       "pin_status": "RETAINED_NOT_PIN",
       "pin_evidence": "p. 98, verbatim: '(CH3)3NO  N,N-dimethylmethanamine N-oxide (PIN) / trimethylazane N-oxide / trimethylamine N-oxide (traditional name, but cannot be substituted)'.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-62.2.1 (p. 98)"
     },
     "CCN(CC)CC": {
       "name": "triethylamine",
@@ -203,7 +349,10 @@
       "rule": "various",
       "pin_status": "RETAINED_NOT_PIN",
       "pin_evidence": "Not retained anywhere in the book; amines take substitutive names (P-66.4.1). The PIN is N,N-diethylethanamine.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "ABSENT_FROM_SOURCE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": ""
     },
     "NCCCNCCCCNCCCN": {
       "name": "spermine",
@@ -225,8 +374,15 @@
       "source": "algorithm.py",
       "rule": "various",
       "pin_status": "PIN",
-      "pin_evidence": "P-22.1.3, verbatim: 'Toluene and xylene are preferred IUPAC names, but are not freely substitutable', and the example line 'toluene (PIN) (no substitution ...)'. Substitution is what is restricted, not the bare name.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_evidence": "toluene (PIN) (no substitution; for general nomenclature substitution is permitted only by groups listed in P-15.1.8.2.2)",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-22.1.3",
+      "may_be_parent": false,
+      "may_be_substituted": false,
+      "substitution_scope": "none",
+      "whole_molecule_only": true
     },
     "CC(C)C": {
       "name": "isobutane",
@@ -234,12 +390,25 @@
       "rule": "various",
       "pin_status": "RETAINED_NOT_PIN",
       "pin_evidence": "P-61.2.1, verbatim: \"The names 'isobutane', 'isopentane' and 'neopentane' are no longer recommended\", with '2-methylpropane (PIN) (not isobutane)'.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-61.2.1"
     },
     "Cc1ccc(C(C)C)cc1": {
       "name": "p-cymene",
       "source": "algorithm.py",
-      "rule": "various"
+      "rule": "various",
+      "pin_status": "RETAINED_NOT_PIN",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-22.1.3",
+      "pin_evidence": "The names cumene and cymene are not retained.",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "may_be_parent": false,
+      "may_be_substituted": false,
+      "substitution_scope": "none",
+      "whole_molecule_only": true
     },
     "N": {
       "name": "ammonia",
@@ -261,8 +430,16 @@
       "source": "algorithm.py",
       "rule": "various",
       "pin_status": "PIN",
-      "pin_evidence": "P-66.1.6.1.1: retained as a PIN.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_evidence": "P-66.1.6.1.1: retained as a PIN. p. 351: 'urea (PIN) (substitution allowed; see P-66.1.6.1.1)'.",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-66.1.6.1.1",
+      "may_be_parent": true,
+      "may_be_substituted": true,
+      "substitution_scope": "full",
+      "whole_molecule_only": false,
+      "locant_model": "suffix_group_at_1"
     },
     "NC(=O)NC(N)=O": {
       "name": "carbamoylurea",
@@ -279,8 +456,16 @@
       "source": "algorithm.py",
       "rule": "various",
       "pin_status": "PIN",
-      "pin_evidence": "P-66.1.6.1.1: retained as a PIN.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_evidence": "P-66.1.6.1.1: retained as a PIN. p. 351: 'urea (PIN) (substitution allowed; see P-66.1.6.1.1)'.",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-66.1.6.1.1",
+      "may_be_parent": true,
+      "may_be_substituted": true,
+      "substitution_scope": "full",
+      "whole_molecule_only": false,
+      "locant_model": "suffix_group_at_1"
     },
     "N=C(N)N": {
       "name": "guanidine",
@@ -303,7 +488,10 @@
       "rule": "various",
       "pin_status": "RETAINED_NOT_PIN",
       "pin_evidence": "P-61.3.4, verbatim: \"The retained names 'bromoform' for HCBr3, 'chloroform' for HCCl3, and 'iodoform' for HCI3 are acceptable in general nomenclature. Preferred IUPAC names are substitutive names.\" The PIN is trichloromethane.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-61.3.4"
     },
     "FC(F)F": {
       "name": "fluoroform",
@@ -521,7 +709,10 @@
       "rule": "P-31.1.3",
       "pin_status": "RETAINED_NOT_PIN",
       "pin_evidence": "The book does not retain 'caffeine' anywhere. Its recorded citation P-31.1.3 is about indicated hydrogen and establishes nothing about retention -- a citation that merely exists is not evidence.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "ABSENT_FROM_SOURCE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": ""
     },
     "Cn1c(=O)c2[nH]cnc2n(C)c1=O": {
       "name": "theophylline",
@@ -601,12 +792,32 @@
     "O=C1CC(=O)NC(=O)N1": {
       "name": "barbituric acid",
       "source": "manual",
-      "rule": "IUPAC retained"
+      "rule": "IUPAC retained",
+      "pin_status": "RETAINED_NOT_PIN",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-64.2.1",
+      "pin_evidence": "1,3-diazinane-2,4,6-trione (PIN) pyrimidine-2,4,6(1H,3H,5H)-trione",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "may_be_parent": false,
+      "may_be_substituted": false,
+      "substitution_scope": "none",
+      "whole_molecule_only": true
     },
     "c1ccc2c(c1)CC2": {
       "name": "benzocyclobutene",
       "source": "opsin",
-      "rule": "various"
+      "rule": "various",
+      "pin_status": "RETAINED_NOT_PIN",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-52.2.4.1",
+      "pin_evidence": "When fusion names are not allowed, unsaturated von Baeyer ring system names are preferred IUPAC names ... cyclobutabenzene bicyclo[4.2.0]octa-1,3,5,7-tetraene (PIN)",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "may_be_parent": false,
+      "may_be_substituted": false,
+      "substitution_scope": "none",
+      "whole_molecule_only": true
     },
     "C=C(CC)CC/C=C(\\C)CCC=C(C)C": {
       "name": "beta-farnesene",
@@ -964,7 +1175,10 @@
       "rule": "various",
       "pin_status": "RETAINED_NOT_PIN",
       "pin_evidence": "An INN, absent from the book. Harvested from OPSIN's parsing dictionary, where presence means only that the name can be read.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "ABSENT_FROM_SOURCE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": ""
     },
     "O=C(NCNC(=O)NC1(CO)NC(=O)NC1=O)NC1(CO)NC(=O)NC1=O": {
       "name": "imidazolidinylurea",
@@ -1433,7 +1647,17 @@
     "NCCc1c[nH]c2ccccc12": {
       "name": "tryptamine",
       "source": "opsin_data",
-      "rule": "various"
+      "rule": "various",
+      "pin_status": "RETAINED_NOT_PIN",
+      "evidence_kind": "ABSENT_FROM_SOURCE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "",
+      "pin_evidence": "tryptamine does not occur in the book; the systematic name is the PIN",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "may_be_parent": false,
+      "may_be_substituted": false,
+      "substitution_scope": "none",
+      "whole_molecule_only": true
     },
     "NCCc1c[nH]cn1": {
       "name": "histamine",
@@ -1496,7 +1720,10 @@
       "rule": "various",
       "pin_status": "RETAINED_NOT_PIN",
       "pin_evidence": "Not retained as a ketone PIN; the book names the camphor skeleton systematically (e.g. p. 641 gives '1,8,8-trimethyl-3-oxabicyclo[3.2.1]octane-2,4-dione (PIN) (also known as camphoric anhydride)'). The PIN is 1,7,7-trimethylbicyclo[2.2.1]heptan-2-one.",
-      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "evidence_kind": "ABSENT_FROM_SOURCE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": ""
     },
     "C(=Cc1ccccc1)c1ccccc1": {
       "name": "stilbene",
@@ -1507,6 +1734,51 @@
       "name": "bibenzyl",
       "source": "opsin_data",
       "rule": "various"
+    },
+    "Cc1ccccc1C": {
+      "name": "1,2-xylene",
+      "source": "bluebook",
+      "rule": "P-22.1.3",
+      "pin_status": "PIN",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-22.1.3",
+      "pin_evidence": "xylene (1,2-, 1,3-, and 1,4-isomers, PINs) (no substitution)",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "may_be_parent": false,
+      "may_be_substituted": false,
+      "substitution_scope": "none",
+      "whole_molecule_only": true
+    },
+    "Cc1cccc(C)c1": {
+      "name": "1,3-xylene",
+      "source": "bluebook",
+      "rule": "P-22.1.3",
+      "pin_status": "PIN",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-22.1.3",
+      "pin_evidence": "xylene (1,2-, 1,3-, and 1,4-isomers, PINs) (no substitution)",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "may_be_parent": false,
+      "may_be_substituted": false,
+      "substitution_scope": "none",
+      "whole_molecule_only": true
+    },
+    "Cc1ccc(C)cc1": {
+      "name": "1,4-xylene",
+      "source": "bluebook",
+      "rule": "P-22.1.3",
+      "pin_status": "PIN",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-22.1.3",
+      "pin_evidence": "xylene (1,2-, 1,3-, and 1,4-isomers, PINs) (no substitution)",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "may_be_parent": false,
+      "may_be_substituted": false,
+      "substitution_scope": "none",
+      "whole_molecule_only": true
     }
   },
   "acid_stems": {

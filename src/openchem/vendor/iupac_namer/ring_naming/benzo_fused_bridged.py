@@ -201,6 +201,18 @@ def _pick_cycle_stem(size: int) -> str | None:
     benzocyclodecene, benzocycloundecene, etc.  Uses the chain stem with
     an "ene" suffix.  Returns the stem, e.g. "decen" (for -ene before '-3-ol').
     """
+    # A FIVE- OR SIX-MEMBERED PARTNER HAS A RETAINED FUSION PARENT. Benzene
+    # fused to a six-membered ring is naphthalene, and to a five-membered one
+    # indene, so "benzocyclohexene" and "benzocyclopentene" are not fusion
+    # names at all -- the book writes 1,4-methanonaphthalene (PIN) and
+    # 9,10-ethanoanthracene (PIN) for such bridged systems. This builder
+    # produced 5,6,7,8-tetrahydro-5,8-ethanobenzocyclohexene for
+    # 1,4-ethanotetralin; the ranking float hid it behind the von Baeyer name
+    # until naming round 4 ranked fusion names above von Baeyer (D-041).
+    # Declining leaves the valid von Baeyer name until a bridged-naphthalene
+    # builder exists.
+    if size in (5, 6):
+        return None
     s = get_chain_stem(size)
     if s is None:
         return None

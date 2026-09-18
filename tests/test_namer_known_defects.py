@@ -400,7 +400,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # ranks (d) above the ene ending (e). Both names round-trip to this
     # structure on canonical SMILES and InChIKey (checked before editing a
     # pinned row), so this is a preferred-name change, not a wrong molecule.
-    ("D-022z", "O=S1(=O)CC=CC1CCN", "2-(sulfol-3-en-2-yl)ethanamine",
+    # Expected moved in round 4: a two-atom chain with a prefix keeps locant 1 (D-042).
+    ("D-022z", "O=S1(=O)CC=CC1CCN", "2-(sulfol-3-en-2-yl)ethan-1-amine",
      "2-(sulfol-3-en-5-yl)ethanamine", "free valence took the higher locant"),
     ("D-022w", "O=c1[nH][nH]c(=O)[nH]1", "urazol", "urazol", "unchanged"),
     # 4-pyrazolone changed as a consequence of the D-023 curated entries,
@@ -701,11 +702,13 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # the universal TMS prefix -- where the engine had `silan-1-yl`.
     ("D-033b", "NC[Si](C)(C)C", "(trimethylsilyl)methanamine",
      "(trimethylsilan-1-yl)methanamine", "method (1) contraction for Si"),
-    ("D-033c", "OCC[Si](C)(C)C", "2-(trimethylsilyl)ethanol",
+    # Expected moved in round 4: as D-042.
+    ("D-033c", "OCC[Si](C)(C)C", "2-(trimethylsilyl)ethan-1-ol",
      "2-(trimethylsilan-1-yl)ethanol", "same, on a longer chain"),
     ("D-033d", "OC(=O)C[Si](C)(C)C", "(trimethylsilyl)acetic acid",
      "(trimethylsilan-1-yl)acetic acid", "same, retained-name parent"),
-    ("D-033e", "Nc1ccc(cc1)[Si](C)(C)C", "4-(trimethylsilyl)benzen-1-amine",
+    # Expected moved in round 4: aniline takes full substitution (D-043).
+    ("D-033e", "Nc1ccc(cc1)[Si](C)(C)C", "4-(trimethylsilyl)aniline",
      "4-(trimethylsilan-1-yl)benzen-1-amine", "same, on a ring parent"),
     # Phosphorus is deliberately absent from method (1)'s element list, so
     # `phosphanyl` keeps its "an": the mononuclear exception drops the
@@ -932,6 +935,71 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "10,13,17-trimethylhexadecahydro-1H-cyclopenta[a]phenanthren-17-ol",
      "1,5,6-trimethyltetracyclo[11.4.0.0^{2,10}.0^{5,9}]heptadecan-6-ol",
      "the steroid class (cid19000's shape); the exact hydro form is stage A7's"),
+    # --- D-042: locant 1 omitted on a two-atom chain that has a prefix ------
+    # P-14.3.4 (b) omits it only for a MONOSUBSTITUTED two-atom chain, and
+    # p. 70 says it outright: "the omission of the locant '1' in
+    # 2-chloroethanol, while permissible in general usage, is not allowed in
+    # preferred IUPAC names, thus the name 2-chloroethan-1-ol is the PIN".
+    ("D-042a", "ClCCO", "2-chloroethan-1-ol", "2-chloroethanol", "p. 70, verbatim"),
+    ("D-042b", "NCCO", "2-aminoethan-1-ol", "2-aminoethanol",
+     "p. 553: '2-aminoethan-1-ol (PIN) (not ethanolamine)'"),
+    ("D-042c", "NCCc1ccccc1", "2-phenylethan-1-amine", "2-phenylethanamine",
+     "as p. 518's '2-chloroethan-1-amine (PIN)'"),
+    ("D-042d", "OCCc1ccccc1", "2-phenylethan-1-ol", "2-phenylethanol", ""),
+    ("D-042e", "NCC(O)c1ccccc1", "2-amino-1-phenylethan-1-ol", "2-amino-1-phenylethanol",
+     "held-out cid1000; PubChem drops the locant too"),
+    # Converses: (a) a mononuclear parent omits it whatever the substitution;
+    # (b) a monosubstituted chain omits it; N-substituents are not on the chain.
+    ("D-042f", "CCO", "ethanol", "ethanol", "converse: monosubstituted"),
+    ("D-042g", "ClCO", "chloromethanol", "chloromethanol", "converse: mononuclear"),
+    ("D-042h", "CCN(CC)CC", "N,N-diethylethanamine", "N,N-diethylethanamine",
+     "converse: N-substituents are on the nitrogen, the chain is monosubstituted"),
+    # --- D-043: retained PINs the book lets you substitute -----------------
+    # phenol (P-34.1.1.3, "substitution allowed"), aniline (P-34.1.1.5, "full
+    # substitution"; p. 516 prints N-methylaniline and 4-chloroaniline),
+    # benzaldehyde and acetaldehyde (P-66.6.1, "substitution allowed"). The
+    # assembler already did this for benzoic acid; these were never added.
+    ("D-043a", "Cc1ccc(O)cc1", "4-methylphenol", "4-methylbenzen-1-ol", ""),
+    ("D-043b", "Oc1ccc(Cl)cc1Br", "2-bromo-4-chlorophenol", "2-bromo-4-chlorobenzen-1-ol", ""),
+    ("D-043c", "Cc1ccc(N)cc1", "4-methylaniline", "4-methylbenzen-1-amine", ""),
+    ("D-043d", "CNc1ccccc1", "N-methylaniline", "N-methylbenzen-1-amine", "p. 516, verbatim"),
+    ("D-043e", "COc1ccccc1N", "2-methoxyaniline", "2-methoxybenzen-1-amine", "held-out cid7000"),
+    ("D-043f", "Cc1ccc(C=O)cc1", "4-methylbenzaldehyde", "4-methylbenzene-1-carbaldehyde", ""),
+    ("D-043g", "COc1cc(C=O)c(Cl)cc1O", "2-chloro-4-hydroxy-5-methoxybenzaldehyde",
+     "2-chloro-4-hydroxy-5-methoxybenzene-1-carbaldehyde", "held-out cid29000"),
+    ("D-043h", "O=CCc1ccccc1", "phenylacetaldehyde", "2-phenylethanal",
+     "as p. 695's 'phenoxyacetaldehyde (PIN)'; the vendored guard that pinned "
+     "2-phenylethanal claimed the book had no such PIN"),
+    ("D-043i", "OCC=O", "hydroxyacetaldehyde", "2-hydroxyethanal", ""),
+    # Negatives: anisole takes NO substitution in a PIN (P-34.1.1.4), toluene
+    # is "not freely substitutable" (P-22.1.3), and two suffix groups keep
+    # the systematic diamine.
+    ("D-043j", "COc1ccc(C)cc1", "1-methoxy-4-methylbenzene", "1-methoxy-4-methylbenzene",
+     "negative: anisole"),
+    ("D-043k", "Cc1ccc(Cl)cc1", "1-chloro-4-methylbenzene", "1-chloro-4-methylbenzene",
+     "negative: toluene"),
+    ("D-043l", "Nc1ccccc1N", "benzene-1,2-diamine", "benzene-1,2-diamine",
+     "negative: two suffix groups"),
+    # --- D-044: registry names the book does not prefer, and ones it does --
+    # Each demotion's systematic replacement was named and verified BEFORE
+    # the registry changed; uracil and theophylline wait for stage A5, since
+    # their systematic path still writes ring ketones as oxo prefixes.
+    ("D-044a", "Oc1ccccc1O", "benzene-1,2-diol", "pyrocatechol", "p. 533"),
+    ("D-044b", "Oc1cccc(O)c1", "benzene-1,3-diol", "resorcinol", "p. 533"),
+    ("D-044c", "Oc1ccc(O)cc1", "benzene-1,4-diol", "hydroquinone", "p. 533"),
+    ("D-044d", "Cc1ccc(C(C)C)cc1", "1-methyl-4-(propan-2-yl)benzene", "p-cymene",
+     "P-22.1.3: 'The names cumene and cymene are not retained.'"),
+    ("D-044e", "O=C1CCC(=O)N1", "pyrrolidine-2,5-dione", "succinimide",
+     "P-66.2.1 -- KNOWN_LIMITATIONS called succinimide a genuine PIN"),
+    ("D-044f", "O=C1CC(=O)NC(=O)N1", "1,3-diazinane-2,4,6-trione", "barbituric acid", "p. 566"),
+    ("D-044g", "c1ccc2c(c1)CC2", "bicyclo[4.2.0]octa-1,3,5-triene", "benzocyclobutene",
+     "P-52.2.4.1: a four-membered partner forbids a fusion PIN"),
+    ("D-044h", "NCCc1c[nH]c2ccccc12", "2-(1H-indol-3-yl)ethan-1-amine", "tryptamine",
+     "absent from the book; and D-042's locant, and D-040's 1H"),
+    ("D-044i", "Cc1ccc(C)cc1", "1,4-xylene", "1,4-dimethylbenzene",
+     "P-22.1.3: 'xylene (1,2-, 1,3-, and 1,4-isomers, PINs)'; the entry was ADDED"),
+    ("D-044j", "Cc1ccccc1C", "1,2-xylene", "1,2-dimethylbenzene", "as D-044i"),
+    ("D-044k", "Cc1cccc(C)c1", "1,3-xylene", "1,3-dimethylbenzene", "as D-044i"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

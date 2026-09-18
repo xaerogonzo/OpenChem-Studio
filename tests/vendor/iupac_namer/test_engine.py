@@ -682,17 +682,31 @@ class TestRingSubstituentOnChainFG:
         )
 
     def test_alcohol_still_works(self):
-        """CC(O)c1ccccc1: 1-phenylethanol (regression guard)."""
+        """CC(O)c1ccccc1: 1-phenylethan-1-ol (regression guard).
+
+        Was pinned as "1-phenylethanol". P-14.3.4 (b) omits locant 1 only on
+        a MONOsubstituted two-atom chain, and p. 70 of the 2013 recommendations
+        says so directly: "the omission of the locant '1' in 2-chloroethanol,
+        while permissible in general usage, is not allowed in preferred IUPAC
+        names" (naming round 4, D-042).
+        """
         result = _name("CC(O)c1ccccc1")
-        assert result == "1-phenylethanol", (
-            f"Expected '1-phenylethanol', got {result!r}"
+        assert result == "1-phenylethan-1-ol", (
+            f"Expected '1-phenylethan-1-ol', got {result!r}"
         )
 
     def test_aldehyde_with_phenyl_still_works(self):
-        """O=CCc1ccccc1: 2-phenylethanal (regression guard)."""
+        """O=CCc1ccccc1: phenylacetaldehyde (regression guard).
+
+        Was pinned as "2-phenylethanal", on the premise that the book prints
+        no substituted two-carbon aldehyde PIN. It prints two --
+        "phenoxyacetaldehyde (PIN)" (p. 695) and
+        "(S)-cyclopropyl(hydroxy)acetaldehyde (PIN)" (p. 889) -- and P-66.6.1
+        allows substitution on acetaldehyde (naming round 4, D-043h).
+        """
         result = _name("O=CCc1ccccc1")
-        assert result == "2-phenylethanal", (
-            f"Expected '2-phenylethanal', got {result!r}"
+        assert result == "phenylacetaldehyde", (
+            f"Expected 'phenylacetaldehyde', got {result!r}"
         )
 
 

@@ -794,12 +794,22 @@ _AMIDE_FAMILY_CHAIN_TERMINAL_SUFFIXES: frozenset[str] = frozenset({
 })
 
 
+def _has_chain_locant_prefixes(prefixes) -> bool:
+    """Does any prefix sit on a numbered skeletal atom (not on an N, O, ...)?"""
+    for entry in prefixes or ():
+        for locant in getattr(entry, "locants", ()) or ():
+            if getattr(locant, "_numeric_value", None) is not None:
+                return True
+    return False
+
+
 def _strip_locant_1_if_omissible(
     suffix_groups: tuple[SuffixGroup, ...],
     parent_length: int,
     parent_has_indicated_h: bool = False,
     is_monosubstituted_homogeneous_monocycle: bool = False,
     single_suffix_symmetry_forced: bool = False,
+    has_chain_prefixes: bool = False,
 ) -> tuple[SuffixGroup, ...]:
     """Return suffix_groups with locant '1' stripped where P-14.6 applies.
 
@@ -901,8 +911,21 @@ def _strip_locant_1_if_omissible(
                 # Rule 1: terminal-always-C1 suffix, and only ONE such group.
                 # (For dinitrile/diacid, base_form_counts > 1 → do NOT omit.)
                 omit = True
-            elif len(suffix_groups) == 1 and parent_length <= 2:
-                # Rule 2: single suffix total, short chain (length 1 or 2) — unambiguous
+            elif len(suffix_groups) == 1 and (
+                parent_length == 1
+                or (parent_length == 2 and not has_chain_prefixes)
+            ):
+                # Rule 2, as P-14.3.4 states it: "'1' is omitted: (a) in
+                # substituted mononuclear parent hydrides; (b) in
+                # MONOSUBSTITUTED homogeneous chains consisting of only two
+                # identical atoms". A two-atom chain carrying a prefix is not
+                # monosubstituted, and p. 70 says so outright: "the omission
+                # of the locant '1' in 2-chloroethanol, while permissible in
+                # general usage, is not allowed in preferred IUPAC names, thus
+                # the name 2-chloroethan-1-ol is the PIN". This rule used to
+                # cover every chain of length <= 2 (naming round 4, D-042).
+                # N-locant prefixes do not count: triethylamine's chain is
+                # still monosubstituted, so N,N-diethylethanamine keeps none.
                 omit = True
             elif (len(suffix_groups) == 1
                     and is_monosubstituted_homogeneous_monocycle):
@@ -1963,6 +1986,23 @@ _BENZENE_RETAINED_TAIL: dict[tuple[str, OutputForm], tuple[str, str]] = {
         (r"benzene(?:-\d+)?-?carboxamide$",         "benzamide"),
     ("carbonitrile", OutputForm.STANDALONE):
         (r"benzene(?:-\d+)?-?carbonitrile$",        "benzonitrile"),
+    # SUBSTITUTABLE RETAINED PARENTS beyond the acyl family (naming round 4,
+    # A4). Each is a PIN whose substitution the book allows, quoted in
+    # benchmarks/naming/adjudication.toml:
+    #   phenol        P-34.1.1.3 "phenol (PIN) (substitution allowed)"
+    #   aniline       P-34.1.1.5 "aniline (PIN); (full substitution ...)",
+    #                 and p. 516: "N-methylaniline (PIN)", "4-chloroaniline (PIN)"
+    #   benzaldehyde  P-66.6.1 "with substitution allowed for acetaldehyde
+    #                 and benzaldehyde"
+    # anisole is NOT here: "no substitution on anisole for PINs" (P-34.1.1.4).
+    # Only the "-1-" / unlocanted tail matches, and only with ONE suffix
+    # group, so benzene-1,2-diol and benzene-1,4-diamine are untouched.
+    ("ol", OutputForm.STANDALONE):
+        (r"benzen(?:-1-)?ol$",                        "phenol"),
+    ("amine", OutputForm.STANDALONE):
+        (r"benzen(?:-1-)?amine$",                     "aniline"),
+    ("carbaldehyde", OutputForm.STANDALONE):
+        (r"benzene(?:-1-)?carbaldehyde$",             "benzaldehyde"),
 }
 
 _ETHANE_RETAINED_TAIL: dict[tuple[str, OutputForm], tuple[str, str]] = {
@@ -1986,6 +2026,11 @@ _ETHANE_RETAINED_TAIL: dict[tuple[str, OutputForm], tuple[str, str]] = {
     # retained acid stem ("acet-") survives the derivation.
     ("amide", OutputForm.STANDALONE):
         (r"ethanamide$",        "acetamide"),
+    # P-66.6.1: "substitution allowed for acetaldehyde". The book's own PINs
+    # are phenoxyacetaldehyde (p. 695) and cyclopropyl(hydroxy)acetaldehyde
+    # (p. 889); the forced C2 locant is dropped by the 2-carbon rule below.
+    ("al", OutputForm.STANDALONE):
+        (r"ethanal$",           "acetaldehyde"),
 }
 
 
@@ -2212,14 +2257,16 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         #  prefix locant equals "2"; an N-locant or any non-C2 prefix locant
         #  aborts the rule so genuinely-needed locants survive.
         #
-        # Scoped to the ACID family only.  The aldehyde / amide / nitrile
-        # families are deliberately excluded: a load-bearing regression guard
-        # asserts "2-phenylethanal" (test_aldehyde_with_phenyl_still_works), and
-        # the Blue Book worklist contains no 2-carbon aldehyde/amide/nitrile
-        # PINs that omit the C2 locant — so the broader set would add no PIN
-        # value while breaking that test.
+        # Scoped to the ACID family and the ALDEHYDE. The aldehyde was
+        # excluded on the claim that "the Blue Book worklist contains no
+        # 2-carbon aldehyde ... PINs that omit the C2 locant", guarded by a
+        # test asserting "2-phenylethanal". The book prints two:
+        # phenoxyacetaldehyde (PIN) (p. 695) and cyclopropyl(hydroxy)-
+        # acetaldehyde (PIN) (p. 889), and P-66.6.1 allows substitution on
+        # acetaldehyde (naming round 4, A4). Amide and nitrile stay out: not
+        # adjudicated.
         _SINGLE_ATOM_C1_SUFFIXES = frozenset({
-            "oic acid", "thioic O-acid", "thioic S-acid", "dithioic acid",
+            "oic acid", "thioic O-acid", "thioic S-acid", "dithioic acid", "al",
         })
         # Restricted to STANDALONE whole-molecule names with no free valence
         # and no stereo descriptor.  In SUBSTITUENT / ACYL contexts (e.g.
@@ -2665,6 +2712,7 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                 tree.single_substituent_positions_all_equivalent
                 and not tree.prefixes
             ),
+            has_chain_prefixes=_has_chain_locant_prefixes(tree.prefixes),
         )
         rendered_suf = render_suffixes(suffix_groups, tree.output_form)
         # IUPAC elision rule: when the rendered suffix (after multiplier application)
