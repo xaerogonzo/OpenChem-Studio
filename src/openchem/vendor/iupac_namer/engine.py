@@ -9155,7 +9155,7 @@ def name(
 
     # --- Execute best plan; retry on child failure ---
     best_tree = None
-    best_score = float("-inf")
+    best_score = None
 
     for score, _seq, plan in reversed(ranked_plans):
         tree = _execute_plan(
@@ -9165,7 +9165,7 @@ def name(
         if not _has_error_children(tree):
             _session.cache_store(smiles, output_form, fv_bond_orders, tree, attachment_indices)
             return tree
-        if score > best_score:
+        if best_score is None or score > best_score:
             best_score = score
             best_tree = tree
 
@@ -9279,15 +9279,25 @@ class _PlanBudget:
 
 
 def _search_plans(perception, mol, output_form, free_valence, query, strategy, session):
-    """Search for plans; return sorted list of (score, seq, plan) triples."""
+    """Search for plans; return a sorted list of (key, seq, plan) triples.
+
+    `key` is whatever `strategy.preference_key` returns -- a typed, comparable
+    value, never a bare float (see `preference.py`). The early stop is a
+    `SearchBound`, a different type, so the threshold cannot be ranked as
+    though it were a plan.
+
+    Ties on the key fall to `seq`, so the LATER-generated plan sorts last and
+    is tried first. That is a compatibility policy inherited from `insort`
+    plus `reversed`, not a nomenclature rule, and it is named as one here.
+    """
     ranked_plans = []
-    good_enough = strategy.good_enough_score()
+    bound = strategy.search_bound()
 
     for score, seq, plan in _generate_all_plans(
         perception, mol, output_form, free_valence, query, strategy, session
     ):
         insort(ranked_plans, (score, seq, plan))
-        if score >= good_enough:
+        if bound.reached_by(score):
             break   # found a good-enough plan; stop immediately
 
     return ranked_plans
@@ -9578,7 +9588,7 @@ def _generate_retained_plans(perception, mol, output_form, free_valence, strateg
             match=rm,
         )
         if strategy.accept_plan(plan):
-            score = strategy.score_plan(plan)
+            score = strategy.preference_key(plan)
             yield (score, session.next_seq(), plan)
 
 
@@ -9604,7 +9614,7 @@ def _generate_from_handler(
         ):
             if not strategy.accept_plan(plan):
                 continue
-            score = strategy.score_plan(plan)
+            score = strategy.preference_key(plan)
             yield (score, session.next_seq(), plan)
     except Exception as e:
         logger.warning("Plan generation error in %s: %s", handler_name, e)

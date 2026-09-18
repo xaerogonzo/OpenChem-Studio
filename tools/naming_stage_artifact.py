@@ -168,10 +168,16 @@ def _provenance(stage: str) -> dict:
         # Filled in by the stages that introduce them; declared here from the
         # start so an early artifact and a late one have the same field
         # semantics rather than differing by absence.
-        "comparator_spec_id": None,
+        "comparator_spec_id": _comparator_spec_id(),
         "strategy_id": "IUPACCanonical(default)",
         "linter_spec_id": None,
     }
+
+
+def _comparator_spec_id() -> str:
+    from openchem.vendor.iupac_namer.strategy import IUPACCanonical
+
+    return IUPACCanonical().comparator_spec_id()
 
 
 def _digest(path: Path) -> str:

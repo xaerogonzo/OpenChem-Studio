@@ -255,6 +255,30 @@ class NamingStrategy:
         """
         return 1_000_000.0   # stop if we found a retained name
 
+    def preference_key(self, plan: NamingPlan):
+        """The comparable key the search ranks plans by. Higher is preferred.
+
+        The default wraps `score_plan` exactly, so a strategy that only
+        overrides the float keeps its behaviour. See `preference.py` for why
+        the engine ranks keys rather than floats.
+        """
+        from openchem.vendor.iupac_namer.preference import LegacyScoreKey
+
+        return LegacyScoreKey(self.score_plan(plan))
+
+    def comparator_spec_id(self) -> str:
+        """Which comparator ranks this strategy's plans; stamped into stage records."""
+        return "legacy-float"
+
+    def search_bound(self):
+        """When a plan is good enough to stop the search. Not a key."""
+        from openchem.vendor.iupac_namer.preference import SearchBound
+
+        return SearchBound(
+            legacy_threshold=self.good_enough_score(),
+            plan_kind_at_least=5,  # a retained plan; see TIER_SPECS "plan_kind"
+        )
+
     def retained_name_policy(self) -> str:
         """DEPRECATED, and it never had a reader.
 
