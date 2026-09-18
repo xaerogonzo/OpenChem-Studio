@@ -800,11 +800,25 @@ def _name_heteroatom_fv_substituent(
                 or (len(sub_names) >= 2 and _any_acyl_sn)
                 or (len(sub_names) >= 2 and _any_het_prefix_sn)
             )
-            if _wrap_for_disambig:
-                sub_names = [
-                    nm if (nm and nm[0] in "([{") else f"({nm})"
-                    for nm in sub_names
-                ]
+            if _wrap_for_disambig or len(set(sub_names)) >= 2:
+                # Every ambiguity above comes from two names touching. The
+                # book's form never lets them: the first enclosed only if
+                # compound, every later one enclosed -- "methyl(propanoyl)
+                # amino", "hydroxy(methyl)amino" (see _compose_n_substituents).
+                # Pre-wrapping here and letting the merge wrap again gave
+                # "{[(methyl)][(propanoyl)]amino}" (naming round 4).
+                compound_prefix = _compose_n_substituents(list(sub_names)) + suffix
+                return LeafTree(
+                    output_form=output_form,
+                    free_valence=free_valence,
+                    choices_made=(Choice(
+                        type="heteroatom_fv_substituent",
+                        detail=f"element={att_atom.GetSymbol()}, suffix={suffix}, prefix={compound_prefix}",
+                    ),),
+                    decision_ctx=decision_ctx,
+                    validity_warnings=None,
+                    text=compound_prefix,
+                )
 
         # Combine: alphabetical sort, multiplier-merge identical names.
         merged = merge_identical_prefixes([(n, ()) for n in sub_names])
@@ -4506,7 +4520,7 @@ def _name_single_fg_substituent(
                 if acid_name and "[NAMING ERROR" not in acid_name:
                     acyl_name = _acid_name_to_acyl(acid_name)
                     if acyl_name:
-                        amino_prefix = acyl_name + "amino"
+                        amino_prefix = _acid_name_to_amido(acid_name) or acyl_name + "amino"
                         return LeafTree(
                             output_form=output_form,
                             free_valence=free_valence,
@@ -4569,7 +4583,7 @@ def _name_single_fg_substituent(
                         # For complex names: "(...)carboxylic acid" -> "(...)carbonyl"
                         acyl_name = _acid_name_to_acyl(acid_name)
                         if acyl_name:
-                            amino_prefix = acyl_name + "amino"
+                            amino_prefix = _acid_name_to_amido(acid_name) or acyl_name + "amino"
                             return LeafTree(
                                 output_form=output_form,
                                 free_valence=free_valence,
@@ -9684,6 +9698,26 @@ def _preference_key(strategy, plan, mol):
     if _TAKES_MOL[kind]:
         return strategy.preference_key(plan, mol=mol)
     return strategy.preference_key(plan)
+
+
+def _acid_name_to_amido(acid_name: str) -> str | None:
+    """The amide prefix for R-CO-NH-, by P-66.1.1.4.3 method (1), or None.
+
+    "changing the final letter 'e' in the complete name of the amide to 'o'
+    ... Method (1) generates preferred IUPAC names": "4-formamidobenzoic acid
+    (PIN)", "4-benzamidobenzene-1-sulfonic acid (PIN)" (pdf pp. 652-653).
+    The engine wrote the acylamino form, method (2), everywhere. None where
+    the amide name is not derivable here, so the caller keeps "acylamino".
+    """
+    for retained, amido in (("formic acid", "formamido"), ("acetic acid", "acetamido"),
+                            ("benzoic acid", "benzamido")):
+        if acid_name.endswith(retained):
+            return acid_name[: -len(retained)] + amido
+    if acid_name.endswith("carboxylic acid"):
+        return acid_name[: -len("carboxylic acid")] + "carboxamido"
+    if acid_name.endswith("oic acid") and " " not in acid_name[: -len(" acid")]:
+        return acid_name[: -len("oic acid")] + "amido"
+    return None
 
 
 def _compose_n_substituents(n_sub_names: list[str]) -> str:
@@ -15184,12 +15218,9 @@ class SubstitutivePath:
                                 )
                                 _amide_n_names.append("?")
                         if _amide_n_names:
-                            from openchem.vendor.iupac_namer.assembly import merge_identical_prefixes, render_merged_prefixes
-                            _merged = merge_identical_prefixes(
-                                [(_n, ()) for _n in _amide_n_names]
-                            )
-                            _merged.sort(key=lambda m: m.sort_name)
-                            _n_prefix_str = render_merged_prefixes(_merged).rstrip("-")
+                            # "2-[methyl(propanoyl)amino]benzene-1-sulfonic
+                            # acid" (pdf p. 653), not "(methylpropanoylamino)".
+                            _n_prefix_str = _compose_n_substituents(_amide_n_names)
                             _compound_amino = _n_prefix_str + "amino"
                             _sub_tree = LeafTree(
                                 output_form=OutputForm.SUBSTITUENT,

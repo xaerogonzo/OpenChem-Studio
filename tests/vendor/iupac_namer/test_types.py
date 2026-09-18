@@ -44,12 +44,15 @@ class TestLocant:
         loc = Locant.numeric(1, "'")
         assert str(loc) == "1'"
 
-    def test_numeric_lt_hetero(self):
-        """Numeric locants sort before heteroatom locants (P-14.4)."""
+    def test_hetero_lt_numeric(self):
+        """P-14.3.5 (BlueBookV2 pdf p. 74): "Italic capital and lower-case
+        letter locants are lower than Greek letter locants, which, in turn,
+        are lower than numerals" -- "N,2-dimethylpropanamide (PIN)". This test
+        asserted the reverse, citing P-14.4, until naming round 4."""
         num = Locant.numeric(2)
         het = Locant.hetero("N")
-        assert num < het
-        assert not (het < num)
+        assert het < num
+        assert not (num < het)
 
     def test_numeric_ordering(self):
         loc1 = Locant.numeric(1)

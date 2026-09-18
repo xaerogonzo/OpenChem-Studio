@@ -482,9 +482,11 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "4-[(1E)-prop-1-en-1-yl]benzoic acid", "unchanged"),
     ("D-027y", "OC(=O)c1ccc(cc1)[C@H](C)CC", "4-[(2R)-butan-2-yl]benzoic acid",
      "4-[(2R)-butan-2-yl]benzoic acid", "unchanged"),
+    # Expected moved in round 4 (A9): the amido prefix, P-66.1.1.4.3 method (1)
+    # (pdf p. 652); both descriptors unchanged, which is what this row guards.
     ("D-027z", "N[C@@H](C)C(=O)N[C@@H](Cc1ccccc1)C(=O)O",
-     "(2S)-2-[(2S)-2-aminopropanoylamino]-3-phenylpropanoic acid",
-     "(2S)-2-[(2S)-2-aminopropanoylamino]-3-phenylpropanoic acid", "unchanged"),
+     "(2S)-2-[(2S)-2-aminopropanamido]-3-phenylpropanoic acid",
+     "(2S)-2-[(2S)-2-aminopropanoylamino]-3-phenylpropanoic acid", "descriptors unchanged"),
 
     # --- D-028: prefixes cited out of alphanumerical order ---------------
     # SEVERITY B, not A: the right molecule, cited in the wrong order, so it
@@ -704,7 +706,9 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # A mononuclear parent also has nothing to contract -- the engine stores
     # `alkyl_stem == stem` for these, measured as 'silan' and 'azanium' -- so
     # the chain test the contraction used could never match.
-    ("D-033a", "C[N+](C)(C)CC(=O)[O-]", "2-(trimethylazaniumyl)acetate",
+    # Expected moved in round 4: an acetate takes no C2 locant, as the book's
+    # "(N,N-dimethylmethanaminiumyl)acetate (PIN)" (pdf p. 837).
+    ("D-033a", "C[N+](C)(C)CC(=O)[O-]", "(trimethylazaniumyl)acetate",
      "2-(trimethylazanium-1-yl)acetate",
      "mononuclear N cited a locant the rule forbids; = PubChem now"),
     # Method (1) is restricted BY NAME to four elements: "recommended
@@ -1209,7 +1213,7 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "p. 621: a cation outranks the ester, so the ester becomes a prefix"),
     ("D-055g", "[NH3+]CC([NH3+])C", "propane-1,2-bis(aminium)",
      "[1-(azaniumyl)propan-2-yl]azanium", "p. 833: multiplied as bis(aminium)"),
-    ("D-055h", "C[N+](C)(C)CC(=O)[O-]", "2-(trimethylazaniumyl)acetate",
+    ("D-055h", "C[N+](C)(C)CC(=O)[O-]", "(trimethylazaniumyl)acetate",
      "2-(trimethylazaniumyl)acetate",
      "converse: a zwitterion (class 5) keeps the cation as a prefix; taken as "
      "the principal group it lost the anion, '1-carboxy-...methanaminium'"),
@@ -1302,6 +1306,55 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-060e", "CC(C)CN(CC(C)C)CCO", "2-[bis(2-methylpropyl)amino]ethan-1-ol",
      "2-[bis(2-methylpropyl)amino]ethan-1-ol",
      "converse: a substituted one keeps bis ('bis(2-methylpropyl)', p. 811)"),
+    # --- D-061: italic locants are lower than numerals (P-14.3.5, p. 74) ---
+    # Locant.__lt__ put numerals first and cited P-14.4 for it; every mixed
+    # set came out "4,N". Each target below is the book's own printed PIN.
+    ("D-061a", "CNC(=O)C(C)C", "N,2-dimethylpropanamide", "2,N-dimethylpropanamide",
+     "p. 415"),
+    ("D-061b", "CN(C(=O)c1ccc(C)cc1)c1cccc(C)c1",
+     "N,4-dimethyl-N-(3-methylphenyl)benzamide",
+     "4,N-dimethyl-N-(3-methylphenyl)benzamide", "p. 650"),
+    ("D-061c", "CC(C)(N)CC(C)NC", "N4,2-dimethylpentane-2,4-diamine",
+     "2,N4-dimethylpentane-2,4-diamine", "p. 522, a superscripted N"),
+    ("D-061d", "Clc1ccc(cc1)C=Nc1ccc(Cl)cc1", "N,1-bis(4-chlorophenyl)methanimine",
+     "1,N-bis(4-chlorophenyl)methanimine", "p. 526"),
+    ("D-061e", "CNc1ccc(C)cc1", "N,4-dimethylaniline", "4,N-dimethylaniline",
+     "as D-061b"),
+    # --- D-062: R-CO-NH- is an amido prefix (P-66.1.1.4.3, pdf p. 652) -----
+    # "changing the final letter 'e' in the complete name of the amide to
+    # 'o' ... Method (1) generates preferred IUPAC names"; the engine used
+    # method (2), acylamino, everywhere. An N-substituted one is cited as
+    # acyl(R)amino in the book's enclosing style.
+    ("D-062a", "O=CNc1ccc(C(=O)O)cc1", "4-formamidobenzoic acid",
+     "4-(formylamino)benzoic acid", "the book's own PIN"),
+    ("D-062b", "O=C(Nc1ccc(cc1)S(=O)(=O)O)c1ccccc1", "4-benzamidobenzene-1-sulfonic acid",
+     "4-(benzoylamino)benzene-1-sulfonic acid", "the book's own PIN"),
+    ("D-062c", "O=C(NCC(=O)O)C1CCCCC1", "(cyclohexanecarboxamido)acetic acid",
+     "(cyclohexanecarbonylamino)acetic acid", "carboxamido, enclosed: a stem plus a group"),
+    ("D-062d", "CCC(=O)N(C)c1ccccc1S(=O)(=O)O",
+     "2-[methyl(propanoyl)amino]benzene-1-sulfonic acid",
+     "2-{[(methyl)][(propanoyl)]amino}benzene-1-sulfonic acid", "the book's own example, p. 653"),
+    ("D-062e", "CC(=O)N(C)c1ccc(C(=O)O)cc1", "4-[acetyl(methyl)amino]benzoic acid",
+     "4-(acetylmethylamino)benzoic acid", "as D-062d"),
+    # --- D-063: an acetate takes no C2 locant, as acetic acid does ---------
+    # The omission ran for the acid only; the anion and an ester's acid stem
+    # are whole names too (adjudicated: glycine zwitterion, heldout cid16000).
+    ("D-063a", "[NH3+]CC(=O)[O-]", "azaniumylacetate", "2-azaniumylacetate",
+     "adjudicated; PubChem's '2-' is the one lost verbatim match"),
+    ("D-063b", "CCCCOCCOCCCOC(=O)COc1cc(Cl)c(Cl)cc1Cl",
+     "3-(2-butoxyethoxy)propyl (2,4,5-trichlorophenoxy)acetate",
+     "3-(2-butoxyethoxy)propyl 2-(2,4,5-trichlorophenoxy)acetate", "adjudicated"),
+    ("D-063c", "COC(=O)CCl", "methyl chloroacetate", "methyl 2-chloroacetate", "an ester"),
+    ("D-063d", "C[C@H](N)C(=O)O", "(2S)-2-aminopropanoic acid", "(2S)-2-aminopropanoic acid",
+     "converse: a stereodescriptor citing C2 keeps its locant"),
+    # P-16.5.1.3.2 (pdf p. 131): with the locants gone, the second and
+    # further prefixes are each enclosed. Each target is the book's own PIN.
+    ("D-063e", "OC(=O)C(Br)([N+](=O)[O-])c1ccccc1", "bromo(nitro)(phenyl)acetic acid",
+     "bromonitrophenylacetic acid", "p. 131; the former ran the names together"),
+    ("D-063f", "OC(=O)C(Cl)Br", "bromo(chloro)acetic acid", "bromochloroacetic acid",
+     "p. 131"),
+    ("D-063g", "O=CC(O)C1CC1", "cyclopropyl(hydroxy)acetaldehyde",
+     "cyclopropylhydroxyacetaldehyde", "p. 889"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

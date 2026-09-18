@@ -441,6 +441,8 @@ def _is_simple_by_form(name: str) -> bool:
     if any(w != candidate and candidate.startswith(w)
            for w in _LEADING_PREFIX_WORDS for candidate in (name, bare)):
         return False  # a prefix on a stem: "hydroxymethyl", "trifluoromethyl"
+    if re.search(r".(?:carboxamido|sulfonamido|carbonyl|sulfonyl)$", name) and name not in _SIMPLE_PREFIXES:
+        return False  # a stem plus a group: "cyclohexanecarboxamido"
     return "yl" not in name[:-2]
 
 
@@ -2363,6 +2365,7 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         # acetaldehyde (PIN) (p. 889), and P-66.6.1 allows substitution on
         # acetaldehyde (naming round 4, A4). Amide and nitrile stay out: not
         # adjudicated.
+        _single_position_locants_omitted = False
         _SINGLE_ATOM_C1_SUFFIXES = frozenset({
             "oic acid", "thioic O-acid", "thioic S-acid", "dithioic acid", "al",
         })
@@ -2375,7 +2378,12 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         if (tree.named_parent.candidate.type == "chain"
                 and tree.named_parent.candidate.length == 2
                 and tree.suffix_groups
-                and tree.output_form == OutputForm.STANDALONE
+                # The anion and an ester's acid stem are whole names too:
+                # "azaniumylacetate", "(2,4,5-trichlorophenoxy)acetate"
+                # (adjudicated, naming round 4).
+                and tree.output_form in (
+                    OutputForm.STANDALONE, OutputForm.ANION, OutputForm.ACID_STEM,
+                )
                 and tree.free_valence is None
                 and not tree.stereo_descriptors
                 and all(sg.base_form in _SINGLE_ATOM_C1_SUFFIXES
@@ -2386,6 +2394,7 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                 and all(loc and all(str(l) == "2" for l in loc)
                         for _name, loc in assembled_prefixes)):
             assembled_prefixes = [(name, ()) for name, _loc in assembled_prefixes]
+            _single_position_locants_omitted = True
 
         # P-14.3.4.4 (forced-locant omission by COMPLETE SATURATION on a
         # ≥3-carbon acid chain):  the saturation analogue of the 2-carbon acid
@@ -2558,6 +2567,19 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         #     oxoacid-ester names, matching the established PINs there; none of
         #     the simple-prefix PINs that this rule targets has an "-oxy" lead.
         # All non-leading prefixes remain bracketed so a boundary always exists.
+        # P-16.5.1.3.2 (pdf p. 131): with the locants omitted on a parent that
+        # has one substitutable position, "the second and further substituents
+        # are each enclosed" as for a mononuclear parent -- "bromo(nitro)
+        # (phenyl)acetic acid (PIN)". Without it the names ran together:
+        # "ethoxydiphenylacetate" (naming round 4).
+        if _single_position_locants_omitted and len(merged) > 1:
+            import dataclasses as _dc
+            merged = (
+                [merged[0] if not _is_compound_prefix(merged[0].name)
+                 else _dc.replace(merged[0], needs_brackets=True)]
+                + [_dc.replace(mp, needs_brackets=True) for mp in merged[1:]]
+            )
+
         if is_heteroatom_center and len(merged) > 1:
             import dataclasses as _dc
             lead = merged[0]

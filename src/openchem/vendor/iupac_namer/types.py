@@ -94,9 +94,13 @@ class Locant:
         return self.label
 
     def __lt__(self, other: Locant) -> bool:
-        # Numeric locants sort before heteroatom locants (P-14.4)
+        # P-14.3.5 (BlueBookV2 pdf p. 74): "Italic capital and lower-case
+        # letter locants are lower than Greek letter locants, which, in turn,
+        # are lower than numerals" -- so a set reads "N,4" ("N,4-dimethyl-
+        # N-(3-methylphenyl)benzamide (PIN)", p. 650). This said the reverse
+        # and cited P-14.4, and every mixed set came out "4,N" (round 4).
         if self.is_numeric != other.is_numeric:
-            return self.is_numeric  # numeric < heteroatom
+            return not self.is_numeric  # heteroatom (italic) < numeric
         if self.is_numeric:
             if self._numeric_value != other._numeric_value:
                 return self._numeric_value < other._numeric_value  # type: ignore[operator]
