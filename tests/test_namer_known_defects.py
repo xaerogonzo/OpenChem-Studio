@@ -409,7 +409,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # Expected moved in round 4: a two-atom chain with a prefix keeps locant 1 (D-042).
     ("D-022z", "O=S1(=O)CC=CC1CCN", "2-(sulfol-3-en-2-yl)ethan-1-amine",
      "2-(sulfol-3-en-5-yl)ethanamine", "free valence took the higher locant"),
-    ("D-022w", "O=c1[nH][nH]c(=O)[nH]1", "urazol", "urazol", "unchanged"),
+    # Expected moved in round 4: urazol is not in the book; the saturated
+    # Hantzsch-Widman name is the PIN, as imidazolidine-2,4-dione (p. 566).
+    ("D-022w", "O=c1[nH][nH]c(=O)[nH]1", "1,2,4-triazolidine-3,5-dione", "urazol",
+     "a retained name the book does not have"),
     # 4-pyrazolone changed as a consequence of the D-023 curated entries,
     # and the change is kept rather than worked around. Adding a curated
     # ring entry for the 2,3-dihydro-1H-pyrazole skeleton gives it priority
@@ -1209,6 +1212,38 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "converse: a zwitterion (class 5) keeps the cation as a prefix; taken as "
      "the principal group it lost the anion, '1-carboxy-...methanaminium'"),
     ("D-055i", "[NH4+]", "azanium", "azanium", "negative: no carbon to carry a suffix"),
+    # --- D-056: an alcohol and a phenol are one class, "-ol" (P-63.1) -----
+    # Detected as two types, they became two principal-group options, and
+    # the parent could take only one of them as its suffix.
+    ("D-056a", "CC12CCC3c4ccc(O)cc4CCC3C1CCC2O",
+     "13-methyl-6,7,8,9,11,12,13,14,15,16-decahydro-17H-cyclopenta[a]phenanthrene-3,17-diol",
+     "17-hydroxy-13-methyl-6,7,8,9,11,12,13,14,15,16-decahydro-17H-cyclopenta[a]phenanthren-3-ol",
+     "estradiol, flat: the round-4 plan's 'same-class suffix' item"),
+    ("D-056b", "OC1CCc2cc(O)ccc21", "2,3-dihydro-1H-indene-1,5-diol",
+     "5-hydroxy-2,3-dihydro-1H-inden-1-ol", "the smallest case"),
+    ("D-056c", "OC1CCCc2cc(O)ccc21", "1,2,3,4-tetrahydronaphthalene-1,6-diol",
+     "6-hydroxy-1,2,3,4-tetrahydronaphthalen-1-ol", "as D-056b"),
+    ("D-056d", "OCc1ccc(O)cc1", "4-(hydroxymethyl)phenol", "4-(hydroxymethyl)phenol",
+     "converse: one -ol per parent either way, and the ring is senior"),
+    # --- D-057: the most principal groups on the parent, FIRST (P-44.1.1) --
+    # The count was a band inside a blended float that scored a ring's exo
+    # group 2.0 and a chain's 1.0, so one amine on a ring tied two on a
+    # chain; it is its own tier now, and the amine types are one option.
+    # "N1-(4-aminophenyl)-N4-phenylbenzene-1,4-diamine (PIN)" (pdf p. 524)
+    # takes its parent the same way.
+    ("D-057a", "CCN(CC)CCCC(C)Nc1ccnc2cc(Cl)ccc12",
+     "N4-(7-chloroquinolin-4-yl)-N1,N1-diethylpentane-1,4-diamine",
+     "7-chloro-N-[5-(diethylamino)pentan-2-yl]quinolin-4-amine",
+     "chloroquine: the round-3 multi-PCG item"),
+    ("D-057b", "CN(C)CCNc1ccccc1", "N1,N1-dimethyl-N2-phenylethane-1,2-diamine",
+     "N-[2-(dimethylamino)ethyl]aniline", "the smallest case"),
+    ("D-057c", "Nc1ccc(CCN)cc1", "4-(2-aminoethyl)aniline", "4-(2-aminoethyl)aniline",
+     "converse: one amine each, so rings over chains decides"),
+    ("D-057d", "CN1C(=O)CN=C(c2ccccc2)c2cc(Cl)ccc21",
+     "7-chloro-1-methyl-5-phenyl-1,3-dihydro-2H-1,4-benzodiazepin-2-one",
+     "7-chloro-1-methyl-5-phenyl-1,3-dihydro-2H-1,4-benzodiazepin-2-one",
+     "control: a C=O a precomposed parent already spells still counts, or a "
+     "von Baeyer name carrying it as a suffix wins"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

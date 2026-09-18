@@ -595,7 +595,7 @@ class IUPACCanonical(NamingStrategy):
         )
 
         empty = locant_set_tier(())
-        blank = (0, 0.0, 0.0, 0.0, 0.0, 0, 0.0, empty, empty, empty, empty, 0)
+        blank = (0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, empty, empty, empty, empty, 0)
         match plan:
             case RetainedPlan():
                 return NomenclaturePreferenceKey((5,) + blank[1:])
@@ -636,6 +636,7 @@ class IUPACCanonical(NamingStrategy):
         return NomenclaturePreferenceKey((
             kind,
             float(self._pcg_seniority_score(plan.pcg_type, plan.pcg_instances)),
+            self._pcg_on_parent_count(plan),
             float(self._parent_selection_score(plan, include_substituent_count=False)),
             float(self._retained_ring_seniority_score(plan.named_parent)),
             float(self._fusion_method_rank(
@@ -698,6 +699,34 @@ class IUPACCanonical(NamingStrategy):
             return 20.0 + seniority_bonus
         except Exception:
             return 20.0  # default: any PCG is strongly preferred
+
+    def _pcg_on_parent_count(self, plan: SubstitutivePlan) -> int:
+        """P-44.1.1: how many principal characteristic groups the parent expresses.
+
+        A suffix with a locant counts. So does a group a retained name ALREADY
+        spells -- "urazol", a precomposed "...benzodiazepin-2-one" -- which has
+        no suffix group but is expressed all the same; counted as the band-4
+        branch of `_parent_selection_score` credits it, or those parents lose
+        to von Baeyer names that carry the C=O as a suffix.
+        """
+        reachable = sum(1 for sg in plan.suffix_groups if sg.locants)
+        if reachable or plan.suffix_groups:
+            return reachable
+        candidate = plan.named_parent.candidate
+        if not (
+            plan.named_parent.naming_method == "retained"
+            and plan.pcg_type
+            and plan.pcg_instances
+            and candidate.ring_system is not None
+        ):
+            return 0
+        parent_atoms = candidate.atom_indices
+        ring_atoms = candidate.ring_system.atom_indices
+        precomposed = getattr(plan.named_parent, "precomposed_retained_no_suffix", False)
+        return sum(
+            1 for fg in plan.pcg_instances
+            if fg.atoms <= parent_atoms or (precomposed and fg.atoms & ring_atoms)
+        )
 
     def _parent_selection_score(
         self, plan: SubstitutivePlan, *, include_substituent_count: bool = True

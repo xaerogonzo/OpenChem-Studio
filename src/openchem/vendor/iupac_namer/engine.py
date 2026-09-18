@@ -11546,6 +11546,25 @@ class SubstitutivePath:
                                 key=lambda _t: (_counts[_t], _t == primary_t),
                             )
                         pcg_options.append((chosen_t, tuple(merged_instances)))
+            # Alcohols and phenols are ONE class with one suffix, "-ol"
+            # (P-63.1); detection types them apart by the carbon they sit
+            # on, and the per-type grouping then split them between suffix
+            # and prefix -- estradiol's "17-hydroxy-...-3-ol", and
+            # "5-hydroxy-2,3-dihydro-1H-inden-1-ol" for the 1,5-diol. The
+            # merged option lets both reach the suffix (naming round 4).
+            if "alcohol" in type_groups and "phenol" in type_groups:
+                _hydroxy = tuple(type_groups["alcohol"]) + tuple(type_groups["phenol"])
+                pcg_options.append(("alcohol", _hydroxy))
+            # The same split, for amines: "-amine" is one suffix whether the N
+            # is primary, secondary or tertiary, and P-44.1.1 wants the parent
+            # with the most of them. Chloroquine's two amine N (one NH, one
+            # NEt2) were two options, so pentane-1,4-diamine was never tried.
+            _amine_family = [
+                t for t in ("amine", "secondary_amine", "tertiary_amine") if t in type_groups
+            ]
+            if len(_amine_family) >= 2:
+                _amines = tuple(fg for t in _amine_family for fg in type_groups[t])
+                pcg_options.append((_amine_family[0], _amines))
             # When the molecule has a ring-embedded [N+] in CATION mode,
             # the cation suffix (P-73) outranks any FG-based PCG for parent
             # selection.  Prepend the no-PCG option so candidates that

@@ -66,6 +66,12 @@ TIER_SPECS: tuple[TierSpec, ...] = (
              "the order the legacy constants produced, now declared"),
     TierSpec("pcg_seniority", "P-41 / P-43", "higher",
              "the principal characteristic group's class seniority"),
+    TierSpec("pcg_count", "P-44.1.1", "higher",
+             "the number of principal characteristic groups the parent expresses as "
+             "suffixes -- the FIRST parent criterion, before rings over chains. It "
+             "lived inside parent_selection as a weighted band that scored a ring's "
+             "exocyclic group 2.0 and a chain's 1.0, so one amine on benzene tied "
+             "two on a chain and chloroquine lost its pentane-1,4-diamine (round 4)"),
     TierSpec("parent_selection", "P-44", "higher",
              "LEGACY BLENDED TIER: the P-44 cascade is still one float inside this "
              "tier (see strategy._parent_selection_score). It can no longer overflow "

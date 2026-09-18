@@ -284,6 +284,13 @@ _DATAFILE_PIN_INELIGIBLE_NAMES: frozenset[str] = frozenset({
     # Declining the stem outright sidesteps that: the systematic path states
     # the saturation explicitly and is correct in both positions.
     "5-pyrazolone",
+    # urazol is absent from the book (the only hits for the string are
+    # inside "tellurazole", pdf p. 150). Its ring is saturated apart from the
+    # two C=O, so the PIN is the saturated Hantzsch-Widman name, as
+    # "imidazolidine-2,4-dione (PIN)" (p. 566): 1,2,4-triazolidine-3,5-dione.
+    # It survived only because P-44.1.1's count ranked it level with the
+    # suffix form (naming round 4, D-057d).
+    "urazol",
 })
 
 

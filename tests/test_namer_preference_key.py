@@ -38,7 +38,7 @@ def _key(**overrides) -> NomenclaturePreferenceKey:
     """A key with every tier neutral, and the named tiers overridden."""
     empty = locant_set_tier(())
     values = {
-        "plan_kind": 0, "pcg_seniority": 0.0, "parent_selection": 0.0,
+        "plan_kind": 0, "pcg_seniority": 0.0, "pcg_count": 0, "parent_selection": 0.0,
         "retained_ring": 0.0, "naming_method": 0.0, "substituent_count": 0,
         "heteroatom_locants": 0.0,
         "suffix_locants": empty, "added_hydrogen_locants": empty,
