@@ -41,8 +41,10 @@ from openchem.vendor.iupac_namer.engine import name_smiles
     ("B", "borane"),
 
     # --- Regression: PCG-bearing carbon chain beats N-N parent ---
-    ("NNC=O", "methanohydrazide"),         # hydrazide PCG on methane chain wins
-    ("NNC(=O)C", "ethanohydrazide"),       # propanohydrazide pattern
+    # round 4: the retained acid stems, "formohydrazide (PIN)" and
+    # "acetohydrazide (PIN)" (P-66.3.1, pdf p. 668)
+    ("NNC=O", "formohydrazide"),           # hydrazide PCG on methane chain wins
+    ("NNC(=O)C", "acetohydrazide"),        # propanohydrazide pattern
 
     # --- Regression: standard chain/ring naming unaffected ---
     ("CCO", "ethanol"),

@@ -716,7 +716,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # which have no H to substitute for direct probing).
     # Covers FDA-1310 (tetracycline), FDA-1329 (tigecycline).
     "O=C1C2=CC3C(=O)C=CCC3CC2Cc2ccccc21": {
-        "name": "1,4,4a,5,5a,6,11,12a-octahydrotetracene-1,11-dione",
+        "name": "4a,5a,6,12a-tetrahydrotetracene-1,11(4H,5H)-dione",
         "substituent_form": "1,4,4a,5,5a,6,11,12a-octahydrotetracene-1,11-dion-yl",
         "alkyl_stem_ok": False,
         "atom_locants": {1: 11, 2: "11a", 3: 12, 4: "12a", 5: 1, 7: 2, 8: 3,
@@ -744,7 +744,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     #   idx18=C(pos5), idx19=C(pos4a, sp3 junction C/D), idx20=C(pos4).
     # Covers FDA-0841 (methacycline).
     "O=C1CC(=O)C2C=C3C(=O)c4ccccc4CC3CC2C1": {
-        "name": "1,2,3,4,4a,5,5a,6,11,12a-decahydrotetracene-1,3,11-trione",
+        "name": "4a,5a,6,12a-tetrahydrotetracene-1,3,11(2H,4H,5H)-trione",
         "substituent_form": "1,2,3,4,4a,5,5a,6,11,12a-decahydrotetracene-1,3,11-trion-yl",
         "alkyl_stem_ok": False,
         "atom_locants": {1: 1, 2: 2, 3: 3, 5: "12a", 6: 12, 7: "11a", 8: 11,
@@ -2210,7 +2210,14 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     #   C(idx1)=pos6, C(idx2)=pos7, C(idx3)=pos7a (junction adjacent to CH2,pos1).
     # Topology: benzo ring 3a(idx4)-4(idx5)-5(idx0)-6(idx1)-7(idx2)-7a(idx3), 5-ring 3a(idx4)-3(idx6)-N(idx7)-1(idx8)-7a(idx3).
     # Verified: 1-Cl->idx8, 3-Cl->idx6, 4-Cl->idx5, 5-Cl->idx0, 6-Cl->idx1, 7-Cl->idx2 (all round-trip via OPSIN).
+    # isoindoline is general nomenclature only: Table 3.1 (BlueBookV2 pdf
+    # p. 334) gives "2,3-dihydro-1H-isoindole (PIN)". Without the alias the
+    # P-58.2 rewrite cannot see a mancude parent, and phthalimide stayed
+    # "isoindoline-1,3-dione" where the book prints
+    # "2-phenyl-1H-isoindole-1,3(2H)-dione (PIN)" (p. 666).
     "c1ccc2c(c1)CNC2":   {"name": "isoindoline", "substituent_form": "isoindolinyl", "alkyl_stem_ok": False,
+                           "pin_eligible": False, "pin_name": "2,3-dihydro-1H-isoindole",
+                           "pin_substituent_form": "2,3-dihydro-1H-isoindol-N-yl",
                            "atom_locants": {8: 1, 7: 2, 6: 3, 4: "3a", 5: 4, 0: 5, 1: 6, 2: 7, 3: "7a"}},
     # octahydro-1H-isoindole (fully saturated cyclohexane fused to pyrrolidine, N at pos 2):
     # atom_locants verified via OPSIN chloro-probing.  Canonical 'C1CCC2CNCC2C1':
@@ -2306,6 +2313,12 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     "c1ccc2c(c1)OCO2":   {"name": "1,3-benzodioxole", "substituent_form": "1,3-benzodioxolyl", "alkyl_stem_ok": False,
                            "atom_locants": {6: 1, 7: 2, 8: 3, 3: "3a", 2: 4, 1: 5, 0: 6, 5: 7, 4: "7a"}},
 
+    # The chromene family below is general nomenclature only: 'Systematic
+    # "benzo" names, for example 2H-1-benzopyran, are preferred IUPAC names
+    # for chromene, isochromene, chromane, isochromane' (BlueBookV2 pdf p. 45,
+    # the introduction's changes to fusion nomenclature, item (d)). The
+    # coumarin / chromone / isocoumarin keys carry the C=O, so
+    # their PINs do too; naming round 4 added the pin_* aliases.
     # coumarin (2H-1-benzopyran-2-one = 2H-chromen-2-one):
     # The retained name 'coumarin' ALREADY encodes the C2 lactone carbonyl
     # (coumarin IS 2H-chromen-2-one). We therefore key the entry on the
@@ -2322,6 +2335,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     #   idx10=O(pos1,ring O).
     # Verified by OPSIN chloro probing of positions 3,4,5,6,7,8.
     "O=c1ccc2ccccc2o1":  {"name": "coumarin", "substituent_form": "coumarinyl", "alkyl_stem_ok": False,
+                           "pin_eligible": False, "pin_name": "2H-1-benzopyran-2-one", "pin_substituent_form": "2-oxo-2H-1-benzopyran-N-yl",
                            "atom_locants": {10: 1, 1: 2, 2: 3, 3: 4, 4: "4a", 5: 5, 6: 6, 7: 7, 8: 8, 9: "8a"}},
 
     # chromone (4H-chromen-4-one / 4H-1-benzopyran-4-one):
@@ -2332,6 +2346,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # idx7=C(pos7), idx8=C(pos6), idx9=C(pos5), idx10=C(pos4a,junction).
     # Verified by OPSIN chloro probing of positions 2,3,5,6,7,8.
     "O=c1ccoc2ccccc12":  {"name": "chromone", "substituent_form": "chromonyl", "alkyl_stem_ok": False,
+                           "pin_eligible": False, "pin_name": "4H-1-benzopyran-4-one", "pin_substituent_form": "4-oxo-4H-1-benzopyran-N-yl",
                            "atom_locants": {4: 1, 3: 2, 2: 3, 1: 4, 10: "4a", 9: 5, 8: 6, 7: 7, 6: 8, 5: "8a"}},
 
     # isocoumarin (1H-isochromen-1-one / 1H-2-benzopyran-1-one):
@@ -2342,18 +2357,21 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # idx7=C(pos6), idx8=C(pos7), idx9=C(pos8), idx10=C(pos8a,junction).
     # Verified by OPSIN chloro probing of positions 3,4,5,6,7,8.
     "O=c1occc2ccccc12":  {"name": "isocoumarin", "substituent_form": "isocoumarinyl", "alkyl_stem_ok": False,
+                           "pin_eligible": False, "pin_name": "1H-2-benzopyran-1-one", "pin_substituent_form": "1-oxo-1H-2-benzopyran-N-yl",
                            "atom_locants": {1: 1, 2: 2, 3: 3, 4: 4, 5: "4a", 6: 5, 7: 6, 8: 7, 9: 8, 10: "8a"}},
 
     # 2H-chromene (2H-1-benzopyran):
     # atom_locants: canonical 'C1=Cc2ccccc2OC1', probed via OPSIN 1-(2H-chromen-N-yl)ethan-1-one
     # idx8=pos1(O), idx9=pos2(CH2), idx0=pos3, idx1=pos4, idx2=pos4a, idx3=pos5, idx4=pos6, idx5=pos7, idx6=pos8, idx7=pos8a
     "C1=Cc2ccccc2OC1":   {"name": "2H-chromene", "substituent_form": "2H-chromenyl", "alkyl_stem_ok": False,
+                           "pin_eligible": False, "pin_name": "2H-1-benzopyran", "pin_substituent_form": "2H-1-benzopyran-N-yl",
                            "atom_locants": {8: 1, 9: 2, 0: 3, 1: 4, 2: "4a", 3: 5, 4: 6, 5: 7, 6: 8, 7: "8a"}},
 
     # 4H-chromene (4H-1-benzopyran):
     # atom_locants: canonical 'C1=COc2ccccc2C1', probed via OPSIN 1-(4H-chromen-N-yl)ethan-1-one
     # idx2=pos1(O), idx1=pos2, idx0=pos3, idx9=pos4(CH2), idx8=pos4a, idx7=pos5, idx6=pos6, idx5=pos7, idx4=pos8, idx3=pos8a
     "C1=COc2ccccc2C1":   {"name": "4H-chromene", "substituent_form": "4H-chromenyl", "alkyl_stem_ok": False,
+                           "pin_eligible": False, "pin_name": "4H-1-benzopyran", "pin_substituent_form": "4H-1-benzopyran-N-yl",
                            "atom_locants": {2: 1, 1: 2, 0: 3, 9: 4, 8: "4a", 7: 5, 6: 6, 5: 7, 4: 8, 3: "8a"}},
 
     # Chromenylium / thiochromenylium / selenochromenylium / tellurochromenylium
@@ -2529,7 +2547,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # Locants verified by OPSIN methyl-probing positions 2,3,5,7,8,10 and
     # N-ethyl-probing position 9.  FDA-0938 (acronine/acronycine-type diacid) is
     # 9-ethyl-4,6-dioxo-10-propyl-9H-pyrano[3,2-g]quinoline-2,8-dicarboxylic acid.
-    "O=c1cc[nH]c2cc3occc(=O)c3cc12": {"name": "9H-pyrano[3,2-g]quinoline-4,6-dione",
+    "O=c1cc[nH]c2cc3occc(=O)c3cc12": {"name": "4H-pyrano[3,2-g]quinoline-4,6(9H)-dione",
                                        "substituent_form": "4,6-dioxo-9H-pyrano[3,2-g]quinolin-yl",
                                        "alkyl_stem_ok": False,
                                        "atom_locants": {1: 6, 2: 7, 3: 8, 4: 9, 5: "9a",
@@ -2560,7 +2578,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     #   pos1=N(idx11), pos2=C=O(idx1), pos3=idx2, pos4=idx3, pos5=idx4,
     #   pos5a=idx5 (ring junction), pos6=idx6, pos7=idx7, pos8=idx8, pos9=idx9,
     #   pos9a=idx10 (ring junction).
-    "O=C1CCCc2ccccc2N1": {"name": "2,3,4,5-tetrahydro-1H-1-benzazepin-2-one", "substituent_form": "2,3,4,5-tetrahydro-1H-1-benzazepin-2-onyl", "alkyl_stem_ok": False,
+    "O=C1CCCc2ccccc2N1": {"name": "1,3,4,5-tetrahydro-2H-1-benzazepin-2-one", "substituent_form": "1,3,4,5-tetrahydro-2H-1-benzazepin-2-onyl", "alkyl_stem_ok": False,
                           "atom_locants": {11: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: "5a", 6: 6, 7: 7, 8: 8, 9: 9, 10: "9a"}},
 
     # 2,3-dihydro-1H-1,4-benzodiazepin-2-one  (Cluster 4 — diazepam/lorazepam/nitrazepam family).
@@ -2571,7 +2589,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # mapping back via SubstructMatch onto the bare canonical:
     #   pos1=N(idx11), pos2=C=O(idx1), pos3=CH2(idx2), pos4=N(idx3), pos5=CH(idx4),
     #   pos5a=C(idx5, ring junction), pos6..9=idx6..9, pos9a=C(idx10, ring junction).
-    "O=C1CN=Cc2ccccc2N1": {"name": "2,3-dihydro-1H-1,4-benzodiazepin-2-one", "substituent_form": "2,3-dihydro-1H-1,4-benzodiazepin-2-onyl", "alkyl_stem_ok": False,
+    "O=C1CN=Cc2ccccc2N1": {"name": "1,3-dihydro-2H-1,4-benzodiazepin-2-one", "substituent_form": "1,3-dihydro-2H-1,4-benzodiazepin-2-onyl", "alkyl_stem_ok": False,
                             "atom_locants": {11: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: "5a", 6: 6, 7: 7, 8: 8, 9: 9, 10: "9a"}},
 
     # 1,2,4-benzothiadiazine — three indicated-hydrogen tautomers.
@@ -3194,7 +3212,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     #   exocyclic =O claimed via extra_atom_indices.
     #
     # Key 1 (OPSIN-canonical of the IUPAC name): NH at idx 2 (N6) and idx 8 (N1).
-    "O=c1[nH]cnc2cn[nH]c12": {"name": "1H-pyrazolo[4,3-d]pyrimidin-7(6H)-one",
+    "O=c1[nH]cnc2cn[nH]c12": {"name": "1,6-dihydro-7H-pyrazolo[4,3-d]pyrimidin-7-one",
                               "substituent_form": "1H-pyrazolo[4,3-d]pyrimidin-7(6H)-on-yl",
                               "alkyl_stem_ok": False,
                               "atom_locants": {1: 7, 2: 6, 3: 5, 4: 4, 5: "3a",
@@ -3203,7 +3221,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # NH at idx 4 (= N4 in this canon) and idx 7 (= N2 in this canon); RDKit
     # picks this perception when the input SMILES uses ``c1nn(C)...[nH]c12``
     # form before the N1-methyl is stripped during ring extraction.
-    "O=c1nc[nH]c2c[nH]nc12":  {"name": "1H-pyrazolo[4,3-d]pyrimidin-7(6H)-one",
+    "O=c1nc[nH]c2c[nH]nc12":  {"name": "2,4-dihydro-7H-pyrazolo[4,3-d]pyrimidin-7-one",
                                 "substituent_form": "1H-pyrazolo[4,3-d]pyrimidin-7(6H)-on-yl",
                                 "alkyl_stem_ok": False,
                                 "atom_locants": {1: 7, 2: 6, 3: 5, 4: 4, 5: "3a",
@@ -3233,7 +3251,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
                            "alkyl_stem_ok": False,
                            "atom_locants": {1: 4, 2: 3, 3: 2, 4: 1, 5: "8a",
                                             6: 7, 7: 6, 8: 5, 9: "4a"}},
-    "O=c1nc[nH]n2cncc12":  {"name": "imidazo[5,1-f][1,2,4]triazin-4(3H)-one",
+    "O=c1nc[nH]n2cncc12":  {"name": "imidazo[5,1-f][1,2,4]triazin-4(1H)-one",
                             "substituent_form": "imidazo[5,1-f][1,2,4]triazin-4(3H)-on-yl",
                             "alkyl_stem_ok": False,
                             "atom_locants": {1: 4, 2: 3, 3: 2, 4: 1, 5: "8a",
@@ -3653,7 +3671,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # Verified via OPSIN chloro-probing positions 3,5,6,7,8.
     # Covers FDA-0318 (clotiazepam).
     "O=C1CN=Cc2ccsc2N1": {
-        "name": "1H-thieno[2,3-e][1,4]diazepin-2(3H)-one",
+        "name": "1,3-dihydro-2H-thieno[2,3-e][1,4]diazepin-2-one",
         "substituent_form": "1H-thieno[2,3-e][1,4]diazepin-2(3H)-on-yl",
         "alkyl_stem_ok": False,
         "atom_locants": {10: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: "5a",
@@ -3774,7 +3792,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # pos5→idx6, pos6→idx7, pos7→idx8, pos7a→idx9.
     # Covers ZT-2525 (4,7-dimethyl-5,6,7,7a-tetrahydro-4aH-cyclopenta[c]pyran-1-one).
     "O=C1OC=CC2CCCC12": {
-        "name": "5,6,7,7a-tetrahydro-4aH-cyclopenta[c]pyran-1-one",
+        "name": "5,6,7,7a-tetrahydrocyclopenta[c]pyran-1(4aH)-one",
         "substituent_form": "5,6,7,7a-tetrahydro-4aH-cyclopenta[c]pyran-1-on-yl",
         "alkyl_stem_ok": False,
         "atom_locants": {1: 1, 2: 2, 3: 3, 4: 4, 5: "4a", 6: 5, 7: 6, 8: 7, 9: "7a"}},
@@ -3814,7 +3832,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # pos6→idx6, pos7→idx7, pos7a→idx8; junction pos3a→idx3 derived from
     # topology (sp2 junction adjacent to both pos3 and pos4).
     "O=C1C=C2CCCCC2O1": {
-        "name": "4,5,6,7-tetrahydrobenzofuran-2(7aH)-one",
+        "name": "5,6,7,7a-tetrahydrobenzofuran-2(4H)-one",
         "substituent_form": "4,5,6,7-tetrahydrobenzofuran-2(7aH)-on-yl",
         "alkyl_stem_ok": False,
         "atom_locants": {1: 2, 2: 3, 3: "3a", 4: 4, 5: 5, 6: 6, 7: 7, 8: "7a", 9: 1}},
@@ -4258,7 +4276,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     #   idx11 = O(pos 3, ring O)
     # Locants verified via OPSIN chloro-probing of L=5..8 and 1-methyl probe.
     "O=c1[nH]c2ccccc2c(=O)o1": {
-        "name": "1H-3,1-benzoxazine-2,4-dione",
+        "name": "2H-3,1-benzoxazine-2,4(1H)-dione",
         "substituent_form": "2,4-dioxo-1H-3,1-benzoxazin-N-yl",
         "alkyl_stem_ok": False,
         "atom_locants": {1: 2, 2: 1, 3: "8a", 4: 8, 5: 7, 6: 6, 7: 5,
@@ -4344,7 +4362,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     #   idx9 = C(pos 3a, junction adj to C3 and C4)
     # Locants verified via OPSIN chloro-probing positions 1, 2, 3, 6.
     "O=c1ncnc2[nH][nH]cc1-2": {
-        "name": "pyrazolo[3,4-d]pyrimidin-4(1H)-one",
+        "name": "1,2-dihydro-4H-pyrazolo[3,4-d]pyrimidin-4-one",
         "substituent_form": "4-oxo-1,4-dihydropyrazolo[3,4-d]pyrimidin-N-yl",
         "alkyl_stem_ok": False,
         "atom_locants": {1: 4, 2: 5, 3: 6, 4: 7, 5: "7a", 6: 1, 7: 2,
@@ -4543,7 +4561,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # (the CH positions) plus 4a, 8a (junctions) and 1 (N-methyl).  For
     # efavirenz, Cl on idx 6 → pos 6, sp3 substituent on idx 9 → pos 4.
     "O=C1Nc2ccccc2CO1": {
-        "name": "1H-3,1-benzoxazin-2(4H)-one",
+        "name": "1,4-dihydro-2H-3,1-benzoxazin-2-one",
         "substituent_form": "2-oxo-1H-3,1-benzoxazin-N-yl",
         "alkyl_stem_ok": False,
         "atom_locants": {1: 2, 2: 1, 3: "8a", 4: 8, 5: 7, 6: 6, 7: 5,
@@ -4585,7 +4603,7 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # IUPAC selects the lowest locant (pos 6 over pos 7 for an inner
     # methyl).
     "O=c1sc2nc3ccccc3nc2s1": {
-        "name": "[1,3]dithiolo[4,5-b]quinoxalin-2(1H)-one",
+        "name": "2H-[1,3]dithiolo[4,5-b]quinoxalin-2-one",
         "substituent_form": "2-oxo-1H-[1,3]dithiolo[4,5-b]quinoxalin-N-yl",
         "alkyl_stem_ok": False,
         "atom_locants": {1: 2, 2: 3, 3: "3a", 4: 4, 5: "4a", 6: 5,

@@ -1667,7 +1667,8 @@ def _classify_acidic_anion(mol) -> Iterable[ChargeClassification]:
     kinds = set(site_kinds.values())
     if len(kinds) != 1:
         return
-    is_carboxylate = kinds == {"carboxylate"}
+    # A sulfonate takes the same "-ate" anion route as a carboxylate.
+    is_carboxylate = kinds in ({"carboxylate"}, {"sulfonate"})
     site_indices = sorted(site_kinds)
     # Scope-narrowing gate: only fire when the deprotonation sites are the
     # ONLY acid-derived functional groups on the molecule.  Mixed
@@ -1723,6 +1724,11 @@ def _acidic_anion_site_kind(mol, a) -> str | None:
     if len(heavy_nbs) != 1:
         return None
     nb = heavy_nbs[0]
+    if a.GetSymbol() == "O" and nb.GetSymbol() == "S" and _is_c_sulfonyl(mol, nb, a):
+        # R-SO2-O(-): "benzenesulfonate (PIN)" (BlueBookV2 pdf p. 807).
+        # The same re-protonate-and-ANION pivot as a carboxylate; before
+        # naming round 4 this fell through to "(oxidosulfonyl)methane".
+        return "sulfonate"
     if nb.GetAtomicNum() != 6:
         return None
     bond = mol.GetBondBetweenAtoms(a.GetIdx(), nb.GetIdx())
@@ -1740,6 +1746,22 @@ def _acidic_anion_site_kind(mol, a) -> str | None:
             if b2 is not None and b2.GetBondTypeAsDouble() == 2.0:
                 return "carboxylate"
     return "olate"
+
+
+def _is_c_sulfonyl(mol, s_atom, o_minus) -> bool:
+    """S with two =O, the charged O, and one carbon: a C-sulfonate site."""
+    double_o = carbon = other = 0
+    for nb in s_atom.GetNeighbors():
+        if nb.GetIdx() == o_minus.GetIdx():
+            continue
+        bond = mol.GetBondBetweenAtoms(s_atom.GetIdx(), nb.GetIdx())
+        if nb.GetAtomicNum() == 8 and bond.GetBondTypeAsDouble() == 2.0:
+            double_o += 1
+        elif nb.GetAtomicNum() == 6 and bond.GetBondTypeAsDouble() == 1.0:
+            carbon += 1
+        else:
+            other += 1
+    return double_o == 2 and carbon == 1 and other == 0
 
 
 def _classify_substituted_boranuide(mol) -> Iterable[ChargeClassification]:

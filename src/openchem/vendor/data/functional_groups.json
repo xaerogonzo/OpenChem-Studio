@@ -755,7 +755,7 @@
         },
         {
             "name": "hydrazide",
-            "smarts": "[CX3](=O)[NX3H1][NX3H2]",
+            "smarts": "[CX3;!R;!$([CX3](=O)([NX3])[!#6;!#1])](=O)[NX3;!R][NX3H2;!R]",
             "seniority": 1200,
             "bluebook_class": "12",
             "suffix_terminal": "-ohydrazide",
@@ -821,6 +821,17 @@
             "name": "ketone",
             "smarts": "[#6][cX3](=O)[#6]",
             "anchor_index": 1,
+            "seniority": 1600,
+            "bluebook_class": "16",
+            "suffix": "-one",
+            "prefix": "oxo",
+            "elision": true
+        },
+        {
+            "_comment": "PSEUDOKETONE (P-64.1.2): an aromatic ring C=O bonded to a ring N, O or S. The two ketone patterns above need a carbon on BOTH sides, so 2-pyridone, quinolin-2(1H)-one, uracil and caffeine had their C=O claimed by nothing and named as an oxo prefix ('2-oxo-1H-pyridine'); the added-indicated-hydrogen machinery that already names pyridin-4(1H)-one was never reached. Recursive SMARTS so a carbon between two heteroatoms matches once. Naming round 4, A5.",
+            "name": "ketone",
+            "smarts": "[cX3;R;$(c~[n,o,s])](=O)",
+            "anchor_index": 0,
             "seniority": 1600,
             "bluebook_class": "16",
             "suffix": "-one",
@@ -989,6 +1000,16 @@
             "bluebook_class": "20",
             "suffix": "-imine",
             "prefix": "imino",
+            "elision": true
+        },
+        {
+            "_comment": "An N-substituted imine, including an oxime (N-hydroxy): P-68.3.1.1.1 names both as imines with an N-prefix, 'N-hydroxypropan-1-imine (PIN)' (BlueBookV2 pdf p. 98). Suffix only: as a prefix the substituent must stay in a compound prefix ('(hydroxyimino)'), which the structural carve already builds. The C=N is exocyclic, not N-N (hydrazone/azo), not on a cumulated C (carbodiimide), and not on a C carrying N/O/S (amidine, imidate: senior classes). Naming round 4.",
+            "name": "substituted_imine",
+            "smarts": "[#6;!$([#6](=*)=*);!$([#6](=[#7])[#7,#8,#16])]=!@[NX2;H0;!$([NX2][#7])]",
+            "seniority": 2000,
+            "bluebook_class": "20",
+            "suffix": "-imine",
+            "prefix": null,
             "elision": true
         },
         {

@@ -129,7 +129,8 @@ class TestDoesNotRegressExistingBehavior:
             # Retained PIN per P-66.6.1 (acetyl chloride > ethanoyl chloride).
             ("CC(=O)Cl",    "acetyl chloride"),
             ("CC(=O)N",     "acetamide"),
-            ("CC(=O)NN",    "ethanohydrazide"),
+            # round 4: "acetohydrazide (PIN)" (P-66.3.1, pdf p. 668)
+            ("CC(=O)NN",    "acetohydrazide"),
             ("CC(=O)S",     "ethanethioic S-acid"),
             # P-66.1: retained acetamide PIN propagates under N-substitution
             # (acet- stem retained even when the amide nitrogen is substituted).

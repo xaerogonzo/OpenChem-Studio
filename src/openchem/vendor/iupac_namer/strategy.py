@@ -255,7 +255,7 @@ class NamingStrategy:
         """
         return 1_000_000.0   # stop if we found a retained name
 
-    def preference_key(self, plan: NamingPlan):
+    def preference_key(self, plan: NamingPlan, mol=None):
         """The comparable key the search ranks plans by. Higher is preferred.
 
         The default wraps `score_plan` exactly, so a strategy that only
@@ -565,7 +565,7 @@ class IUPACCanonical(NamingStrategy):
 
         return COMPARATOR_SPEC_ID
 
-    def preference_key(self, plan: NamingPlan):
+    def preference_key(self, plan: NamingPlan, mol=None):
         """The declared tiers of `preference.TIER_SPECS`, built from the SAME
         components `score_plan` sums -- so every difference from the legacy
         ranking is a difference in how they are COMBINED, never in what is
@@ -577,7 +577,7 @@ class IUPACCanonical(NamingStrategy):
         )
 
         empty = locant_set_tier(())
-        blank = (0, 0.0, 0.0, 0.0, 0.0, 0, 0.0, empty, empty, empty, 0)
+        blank = (0, 0.0, 0.0, 0.0, 0.0, 0, 0.0, empty, empty, empty, empty, 0)
         match plan:
             case RetainedPlan():
                 return NomenclaturePreferenceKey((5,) + blank[1:])
@@ -600,6 +600,13 @@ class IUPACCanonical(NamingStrategy):
 
         kind = 4 if self._cation_band_applies(plan) else 0
         numbering = self._numbering_components(plan)
+        from openchem.vendor.iupac_namer.ring_naming.indicated_hydrogen_p58 import (
+            added_hydrogen_tier,
+        )
+
+        added = locant_set_tier(added_hydrogen_tier(
+            mol, plan.named_parent, plan.numbering, plan.suffix_groups,
+        ))
         if numbering is None:
             hetero, suffix, unsat, prefix, primes = 0.0, empty, empty, empty, 0
         else:
@@ -619,6 +626,7 @@ class IUPACCanonical(NamingStrategy):
             len(plan.prefix_assignments),
             hetero,
             suffix,
+            added,
             unsat,
             prefix,
             primes,

@@ -9686,6 +9686,26 @@ def _generate_retained_plans(perception, mol, output_form, free_valence, strateg
             yield (score, session.next_seq(), plan)
 
 
+_TAKES_MOL: dict[type, bool] = {}
+
+
+def _preference_key(strategy, plan, mol):
+    """`strategy.preference_key`, given the molecule when it can take it.
+
+    The added-hydrogen tier (P-31.1.4.2.4 (d)) reads the structure, which a
+    plan does not carry. A strategy written against the one-argument
+    signature keeps working unchanged; it simply never sees the molecule.
+    """
+    kind = type(strategy)
+    if kind not in _TAKES_MOL:
+        import inspect
+
+        _TAKES_MOL[kind] = "mol" in inspect.signature(strategy.preference_key).parameters
+    if _TAKES_MOL[kind]:
+        return strategy.preference_key(plan, mol=mol)
+    return strategy.preference_key(plan)
+
+
 def _generate_from_handler(
     handler_name, decomp, interpretation,
     perception, mol, output_form, free_valence, strategy, session,
@@ -9708,7 +9728,7 @@ def _generate_from_handler(
         ):
             if not strategy.accept_plan(plan):
                 continue
-            score = strategy.preference_key(plan)
+            score = _preference_key(strategy, plan, mol)
             yield (score, session.next_seq(), plan)
     except Exception as e:
         logger.warning("Plan generation error in %s: %s", handler_name, e)
@@ -10055,6 +10075,8 @@ def _heteroaryl_substituent_with_locant(
                     _existing = _re3.search(r"-(\d\w*)-yl$", _sub_form)
                     if _existing:
                         _base = _sub_form[:_sub_form.rfind("-" + _existing.group(1) + "-yl")]
+                    elif _sub_form.endswith("-N-yl"):
+                        _base = _sub_form[:-5]  # the locant slot, as below
                     else:
                         _base = _sub_form[:-2]
                     if _base.endswith("-"):
@@ -10115,6 +10137,12 @@ def _heteroaryl_substituent_with_locant(
                     if _existing:
                         # Replace the existing locant with the correct one
                         _base = substituent_form[:substituent_form.rfind("-" + _existing.group(1) + "-yl")]
+                    elif substituent_form.endswith("-N-yl"):
+                        # A curated "-N-yl" form names the locant's slot.
+                        # Stripping only "yl" left the placeholder in:
+                        # "imidazo[1,2-a]pyridin-N-2-yl", which OPSIN
+                        # rejects (naming round 4).
+                        _base = substituent_form[:-5]
                     else:
                         _base = substituent_form[:-2]  # strip trailing "yl"
                     # Strip trailing dash if present
@@ -10248,6 +10276,18 @@ def _heteroaryl_substituent_with_locant(
         if fv_suffix != "yl":
             return substituent_form[:-2] + fv_suffix
         return substituent_form
+
+    # A curated "-N-yl" form names the slot the locant goes in
+    # ("imidazo[1,2-a]pyridin-N-yl", "3,4-dihydro-2H-1-benzopyran-N-yl").
+    # Stripping only the "yl" left the placeholder in the name --
+    # "imidazo[1,2-a]pyridin-N-2-yl", which OPSIN rejects -- for every such
+    # entry that reached this path (found in naming round 4).
+    if substituent_form.endswith("-N-yl"):
+        base = substituent_form[:-5]
+        if re.match(r"^\d+[a-z]?H-", base):
+            return f"{base}-{loc_str}-{fv_suffix}"
+        ih_match = re.match(r"^(\d+H-)", ring_name)
+        return f"{ih_match.group(1) if ih_match else ''}{base}-{loc_str}-{fv_suffix}"
 
     base = substituent_form[:-2]   # strip "yl"
     # Add indicated hydrogen from the ring name if present
@@ -12737,6 +12777,10 @@ class SubstitutivePath:
             "secondary_amide", "tertiary_amide", "sulfonamide",
             # Phase 4 — thioamide N-substitution mirrors amide.
             "secondary_thioamide", "tertiary_thioamide",
+            # An N-substituted imine carries its substituent on the N, which
+            # is carved as an N-prefix: "N-hydroxypropan-1-imine" (p. 98).
+            "substituted_imine",
+            "hydrazide",
         })
         # P-66.6.1: when hydroxamic_acid is bundled into a merged
         # amide-family PCG group, treat it as an N-bearing amide so the
@@ -12847,12 +12891,19 @@ class SubstitutivePath:
         # alkyl tail), so when FC decomposition is rejected, the substitutive
         # path must see the ester atoms as ordinary ether+oxo so they can be
         # carved as "alkoxy" + "oxo" prefixes.
+        #
+        # An N-substituted imine is the same case (naming round 4): it has a
+        # suffix ("N-hydroxypropan-1-imine") but no simple prefix -- its
+        # substituent belongs INSIDE a compound one, "(hydroxyimino)" -- and
+        # an FG left here with no prefix form was dropped whole, atoms and
+        # all ("4-(hydroxyimino)pentanoic acid" became "pentanoic acid").
         non_pcg_fgs = [
             fg for fg in interpretation.fgs
             if fg not in pcg_instances and fg.type not in (
                 "ester", "carbamate",
                 "thioester", "thionoester", "dithioester",
                 "thionocarbamate", "dithiocarbamate",
+                "substituted_imine",
             )
         ]
 
@@ -15511,20 +15562,35 @@ class SubstitutivePath:
                             mol, _parent_atom_idxs, _attach, _remove,
                         )
 
+        # P-58.2: a ring C=X suffix decides where the ring's hydrogens are
+        # cited -- indicated, added "(1H)", or hydro -- and the parent-naming
+        # routes each guessed at it separately (maleimide came out
+        # "2,5-dihydro-1H-pyrrole-2,5-dione", caffeine lost its hydro block).
+        # One procedure, run on the chosen numbering; it declines, leaving
+        # the route's own text, whenever it cannot account for that text.
+        _named_parent = plan.named_parent
+        _suffix_groups = plan.suffix_groups
+        from openchem.vendor.iupac_namer.ring_naming.indicated_hydrogen_p58 import (
+            apply_to_parent as _p58_apply,
+        )
+        _p58 = _p58_apply(mol, _named_parent, plan.numbering, _suffix_groups)
+        if _p58 is not None:
+            _named_parent, _suffix_groups = _p58
+
         return SubstitutiveTree(
             output_form=output_form,
             free_valence=free_valence,
             choices_made=(
                 Choice(
                     type="substitutive",
-                    detail=f"parent={plan.named_parent.name}, pcg={plan.pcg_type}",
+                    detail=f"parent={_named_parent.name}, pcg={plan.pcg_type}",
                 ),
             ),
             decision_ctx=decision_ctx,
             validity_warnings=None,
-            named_parent=plan.named_parent,
+            named_parent=_named_parent,
             numbering=plan.numbering,
-            suffix_groups=plan.suffix_groups,
+            suffix_groups=_suffix_groups,
             unsaturation=plan.unsaturation,
             prefixes=tuple(prefixes),
             stereo_descriptors=plan.stereo_descriptors,

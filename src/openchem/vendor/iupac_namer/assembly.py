@@ -1986,6 +1986,10 @@ _BENZENE_RETAINED_TAIL: dict[tuple[str, OutputForm], tuple[str, str]] = {
         (r"benzene(?:-\d+)?-?carboxamide$",         "benzamide"),
     ("carbonitrile", OutputForm.STANDALONE):
         (r"benzene(?:-\d+)?-?carbonitrile$",        "benzonitrile"),
+    # P-66.3.1 (pdf p. 668): "benzohydrazide (PIN)", substituted as in
+    # "N'-benzoylbenzohydrazide (PIN)" (p. 671). Naming round 4.
+    ("carbohydrazide", OutputForm.STANDALONE):
+        (r"benzene(?:-\d+)?-?carbohydrazide$",      "benzohydrazide"),
     # SUBSTITUTABLE RETAINED PARENTS beyond the acyl family (naming round 4,
     # A4). Each is a PIN whose substitution the book allows, quoted in
     # benchmarks/naming/adjudication.toml:
@@ -2026,11 +2030,30 @@ _ETHANE_RETAINED_TAIL: dict[tuple[str, OutputForm], tuple[str, str]] = {
     # retained acid stem ("acet-") survives the derivation.
     ("amide", OutputForm.STANDALONE):
         (r"ethanamide$",        "acetamide"),
+    # P-66.3.1 (pdf p. 668): "acetohydrazide (PIN)", substituted on N and C
+    # alike -- "N-methylacetohydrazide (PIN)",
+    # "2-hydrazinyl-2-sulfanylideneacetohydrazide (PIN)" (pp. 671-672).
+    ("ohydrazide", OutputForm.STANDALONE):
+        (r"ethanohydrazide$",   "acetohydrazide"),
     # P-66.6.1: "substitution allowed for acetaldehyde". The book's own PINs
     # are phenoxyacetaldehyde (p. 695) and cyclopropyl(hydroxy)acetaldehyde
     # (p. 889); the forced C2 locant is dropped by the 2-carbon rule below.
     ("al", OutputForm.STANDALONE):
         (r"ethanal$",           "acetaldehyde"),
+}
+
+
+# P-66.1.1.1.2.2 (pdf p. 646): "The traditional name 'formamide' is retained
+# for HCO-NH2 and is the preferred IUPAC name" -- N-substituted
+# ("N-phenylformamide (PIN)", p. 649) but NOT on carbon ("not
+# 1-chloroformamide"), so the methane rewrite requires every prefix to sit
+# on a heteroatom. And P-66.3.1 (p. 668): "formohydrazide (PIN)". Naming
+# round 4; formyl halides are not rewritten, the book printing no PIN for one.
+_METHANE_RETAINED_TAIL: dict[tuple[str, OutputForm], tuple[str, str]] = {
+    ("amide", OutputForm.STANDALONE):
+        (r"methanamide$",       "formamide"),
+    ("ohydrazide", OutputForm.STANDALONE):
+        (r"methanohydrazide$",  "formohydrazide"),
 }
 
 
@@ -2045,8 +2068,12 @@ def _apply_retained_acyl_pin(result: str, tree: SubstitutiveTree) -> str:
     position 1, and the retained name implies that locant.
     """
     parent = tree.named_parent.name
-    if parent not in ("benzene", "ethane"):
+    if parent not in ("benzene", "ethane", "methane"):
         return result
+    if parent == "methane" and any(
+        loc.is_numeric for pe in tree.prefixes for loc in pe.locants
+    ):
+        return result  # a substituent on the formyl carbon (see the table)
     if len(tree.suffix_groups) != 1:
         return result
     if tree.unsaturation:
@@ -2059,7 +2086,11 @@ def _apply_retained_acyl_pin(result: str, tree: SubstitutiveTree) -> str:
     if tree.ring_cation_locants or tree.ring_anion_locants:
         return result
     base_form = tree.suffix_groups[0].base_form
-    table = _BENZENE_RETAINED_TAIL if parent == "benzene" else _ETHANE_RETAINED_TAIL
+    table = {
+        "benzene": _BENZENE_RETAINED_TAIL,
+        "ethane": _ETHANE_RETAINED_TAIL,
+        "methane": _METHANE_RETAINED_TAIL,
+    }[parent]
     entry = table.get((base_form, tree.output_form))
     if entry is None:
         return result

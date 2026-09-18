@@ -41,7 +41,8 @@ def _key(**overrides) -> NomenclaturePreferenceKey:
         "plan_kind": 0, "pcg_seniority": 0.0, "parent_selection": 0.0,
         "retained_ring": 0.0, "naming_method": 0.0, "substituent_count": 0,
         "heteroatom_locants": 0.0,
-        "suffix_locants": empty, "unsaturation_locants": empty,
+        "suffix_locants": empty, "added_hydrogen_locants": empty,
+        "unsaturation_locants": empty,
         "prefix_locants": empty, "primes": 0,
     }
     values.update(overrides)

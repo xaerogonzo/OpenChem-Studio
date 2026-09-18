@@ -90,6 +90,10 @@ TIER_SPECS: tuple[TierSpec, ...] = (
              "legacy weighted heteroatom locant score, as before"),
     TierSpec("suffix_locants", "P-31.1.4.2.3", "lower",
              "stored as (-count, -l1, -l2, ...): the locant SET, first point of difference"),
+    TierSpec("added_hydrogen_locants", "P-31.1.4.2.4 (d) / P-58.2", "lower",
+             "'added indicated hydrogen', after the principal group and before hydro "
+             "prefixes (pdf p. 76): pyrimidine-4,6(1H,5H)-dione, not (3H,5H). Stored as "
+             "suffix_locants, a fusion letter as +1..26 on number x 100"),
     TierSpec("unsaturation_locants", "P-31.1.4.2.4", "lower", "as suffix_locants"),
     TierSpec("prefix_locants", "P-45.2.2 / P-14.4 (f)", "lower",
              "all detachable prefixes together, as suffix_locants"),
