@@ -42,12 +42,12 @@
 # are named at the bottom so the gap is visible rather than implied.
 
 [meta]
-schema_version = 1
+schema_version = 2
 source_id = "BLUEBOOK_2013_CORRECTED_2022"
 source_key = "iupac2013"
 source_sha256 = "6b607a40430b95b4370c474d7b7afc5c9906b68c683192fb0c07f9aed3fb563f"
-adjudicated = "2026-09-17"
-classes_complete = ["retained_name_vs_pin"]
+adjudicated = "2026-09-17; round 4: 2026-09-18"
+classes_complete = ["retained_name_vs_pin", "alphanumerical_numbering", "retained_parents_substitution", "locant_omission", "new_pcg_classes", "prefix_vocabulary"]
 
 # ---------------------------------------------------------------------------
 # The retained-name class
@@ -307,20 +307,1124 @@ evidence_quote = "acetic acid is retained as a preferred IUPAC name"
 note = "As above."
 
 # ---------------------------------------------------------------------------
-# NOT YET ADJUDICATED. Named so the gap is visible.
+# NOT YET ADJUDICATED after round 4 (2026-09-18). Named so the gap is visible.
 #
-#   parent selection      warfarin, chloroquine, omeprazole, pinacol boronate
-#   PCG assignment        caffeine's `2,6-dioxo` vs `-2,6-dione`
-#   functional class      dimethyl sulfoxide/sulfone, dimethyl methylphosphonate,
-#                         carbon disulfide, dimethyl disulfide
-#   locants               benzofuran (`1-`), sulfanilamide (`-1-`),
-#                         indomethacin (`2-`), benzenediazonium
-#   ring names            isoxazole vs 1,2-oxazole, coumarin, biguanide
-#   charged species       methanesulfonate, diazomethane, phthalate,
-#                         tetramethylammonium, guanidinium, glycine zwitterion
-#   isotopes              deuteriomethanol, carbane, azane, deuterated water
-#   tautomers             2H-triazole, 7H-purine
-#   stereo/other          trans-decalin, diazepam, metformin, styrene,
-#                         trifluoromethylbenzene, aspirin's `acetoxy`,
-#                         phenylboronic acid, atenolol
+#   added hydrogen     caffeine, diazepam, uracil, cid50000 -- P-58.2's
+#                      conditions, read in full when stage A5 encodes them
+#   fusion             cid3000, cid19000 (exact hydro/indicated-H form),
+#                      cid5000, cid40000 (general fusion construction)
+#   N-locant style     chloroquine, cid23000 (N4 vs 4-N), cid55000
+#   charged species    ethylenediammonium, guanidinium, phthalate,
+#                      pyridine N-oxides, diazomethane
+#   heteroatom chains  hexamethyldisiloxane (disiloxane parent?)
+#   other              omeprazole, dimethyl methylphosphonate, cid38000,
+#                      trifluoromethylbenzene, indomethacin, atenolol
+#   isotopes           deuteriomethanol, carbane, azane, deuterated water
+#   tautomers          2H-triazole, 7H-purine, metformin
 # ---------------------------------------------------------------------------
+
+# ===========================================================================
+# NAMING ROUND 4 (2026-09-18). Schema 2: each paragraph is quoted ONCE as a
+# [[rule]] and rows reference it by `rule_ref`, so one rule cannot drift into
+# five slightly different quotations. `pdf_page` is the 1-based page of
+# BlueBookV2.pdf the quotation was read from.
+# ===========================================================================
+
+[[rule]]
+rule_id = "P-14.4g"
+paragraph = "P-14.4 (g)"
+pdf_page = 77
+evidence_basis = "explicit"
+quote = "(g) lowest locants for the substituent cited first as a prefix in the name; ... 1-methyl-4-nitronaphthalene (PIN) (not 4-methyl-1-nitronaphthalene)"
+
+[[rule]]
+rule_id = "P-14.5.1"
+paragraph = "P-14.5.1"
+pdf_page = 80
+evidence_basis = "explicit"
+quote = "Simple prefixes (i.e., those describing atoms and unsubstituted substituents) are arranged alphabetically ... 1-ethyl-4-methylcyclohexane (PIN) [for numbering, see P-14.4 (g)]"
+
+[[rule]]
+rule_id = "P-14.3.4-omit1"
+paragraph = "P-14.3.4"
+pdf_page = 71
+evidence_basis = "explicit"
+quote = "'1' is omitted: (a) in substituted mononuclear parent hydrides; ... chloromethane (PIN) ... (b) in monosubstituted homogeneous chains consisting of only two identical atoms; ... ethanol (PIN) ... chlorohydrazine ... (c) in monosubstituted homogeneous monocyclic rings; Examples: cyclohexanethiol (PIN) bromobenzene (PIN)"
+
+[[rule]]
+rule_id = "P-25.3.3-special-numbering"
+paragraph = "P-25.3.3; P-25.2.1.4"
+pdf_page = 221
+evidence_basis = "explicit"
+quote = "Anthracene, phenanthrene, acridine, carbazole, xanthene and its chalcogen analogues, purine, and cyclopenta[a]phenanthrene are exceptions; traditional numberings are retained. [p. 202: carbazole (special numbering; 9H-isomer shown; the PIN is 9H-carbazole)]"
+
+[[rule]]
+rule_id = "P-34.1.1.3-phenol"
+paragraph = "P-34.1.1.3"
+pdf_page = 350
+evidence_basis = "explicit"
+quote = "phenol (PIN) (substitution allowed; P-63.1.1.1) benzenol"
+
+[[rule]]
+rule_id = "P-34.1.1.4-anisole"
+paragraph = "P-34.1.1.4"
+pdf_page = 350
+evidence_basis = "explicit"
+quote = "anisole (PIN) (no substitution on anisole for PINs; for general nomenclature substitution is permitted on the ring and on the alpha-methoxy group only by groups listed in P-15.1.8.2.2; see also P-63.2.3) methoxybenzene"
+
+[[rule]]
+rule_id = "P-34.1.1.5-aniline"
+paragraph = "P-34.1.1.5"
+pdf_page = 350
+evidence_basis = "explicit"
+quote = "aniline (PIN); (full substitution, see P-62.2.1.1.1) benzenamine"
+
+[[rule]]
+rule_id = "P-66.6.1-benzaldehyde"
+paragraph = "P-66.6.1.1"
+pdf_page = 692
+evidence_basis = "explicit"
+quote = "IUPAC names, with substitution allowed for acetaldehyde and benzaldehyde. ... C6H5-CHO benzaldehyde (PIN) benzenecarbaldehyde"
+
+[[rule]]
+rule_id = "P-73-diazonium"
+paragraph = "P-73.2"
+pdf_page = 823
+evidence_basis = "explicit"
+quote = "The use of the suffix 'diazonium' results in preferred IUPAC names. Examples: CH3-N2+ methanediazonium (PIN) ... benzene-1,4-bis(diazonium) (PIN)"
+
+[[rule]]
+rule_id = "P-72-anide"
+paragraph = "P-72.2.2"
+pdf_page = 805
+evidence_basis = "explicit"
+quote = "H3C- methyl anion methanide (PIN) ... phenyl anion benzenide (PIN)"
+
+[[rule]]
+rule_id = "P-68.3-oxime-hydrazone"
+paragraph = "P-15.6 / P-68.3.1"
+pdf_page = 98
+evidence_basis = "explicit"
+quote = "CH3-CH2-CH=N-OH propanal oxime ... N-hydroxypropan-1-imine (PIN) CH3-CH2-CH=N-NH2 propanal hydrazone propylidenehydrazine (PIN)"
+
+[[rule]]
+rule_id = "P-62.3-imine"
+paragraph = "P-74.2.2.1.9 (imine suffix in a PIN)"
+pdf_page = 842
+evidence_basis = "explicit"
+quote = "N-methylpropan-2-imine N-oxide (PIN)"
+
+[[rule]]
+rule_id = "P-66.4.1-amidine"
+paragraph = "P-66.4.1.1"
+pdf_page = 674
+evidence_basis = "explicit"
+quote = "hexanimidamide (PIN) (no longer hexanamidine) cyclohexanecarboximidamide (PIN) ... ethanimidamide (PIN) acetimidamide (no longer acetamidine)"
+
+[[rule]]
+rule_id = "P-34-guanidine"
+paragraph = "P-34.1.1.5 / P-66.4.1.2.1"
+pdf_page = 351
+evidence_basis = "explicit"
+quote = "guanidine (PIN) (substitution allowed; see P-66.4.1.2.1) carbonimidic diamide"
+
+[[rule]]
+rule_id = "P-66.3-hydrazide"
+paragraph = "P-15.3.2.2.2"
+pdf_page = 106
+evidence_basis = "explicit"
+quote = "N',N'''-methylenediacetohydrazide (PIN)"
+
+[[rule]]
+rule_id = "P-65.3-sulfonate"
+paragraph = "P-13.4.2; P-65.6.3.2"
+pdf_page = 62
+evidence_basis = "explicit"
+quote = "C6H5-SO2- benzenesulfonate (PIN; the ending 'ate' indicates loss of a hydron from an 'ic acid') [p. 621: methyl 4-ethylbenzene-1-sulfonate (PIN)]"
+
+[[rule]]
+rule_id = "P-64.6-thione"
+paragraph = "P-64.6.1"
+pdf_page = 572
+evidence_basis = "explicit"
+quote = "butane-2-thione (PIN) hexane-3-selone (PIN) pentane-2,4-dithione (PIN) propane-2-thione (PIN) (not thioacetone)"
+
+[[rule]]
+rule_id = "P-68.3.1.3-diazene"
+paragraph = "P-68.3.1.3.1"
+pdf_page = 762
+evidence_basis = "explicit"
+quote = "CH3-N=N-CH3 dimethyldiazene (PIN) azomethane C6H5-N=N-C6H5 diphenyldiazene (PIN) azobenzene"
+
+[[rule]]
+rule_id = "P-62.3.1.4-carbodiimide"
+paragraph = "P-62.3.1.4"
+pdf_page = 529
+evidence_basis = "explicit"
+quote = "The hypothetical compound HN=C=NH is named systematically 'methanediimine'. ... C6H11-N=C=N-C6H11 dicyclohexylmethanediimine (PIN)"
+
+[[rule]]
+rule_id = "P-73.1-aminium"
+paragraph = "P-73.1.1.2"
+pdf_page = 530
+evidence_basis = "explicit"
+quote = "(CH3)4N+ I- (1) N,N,N-trimethylmethanaminium iodide (PIN) (2) tetramethylazanium iodide (3) tetramethylammonium iodide"
+
+[[rule]]
+rule_id = "P-66.2-imides"
+paragraph = "P-66.2.1"
+pdf_page = 666
+evidence_basis = "explicit"
+quote = "pyrrolidine-2,5-dione (PIN) succinimide 1H-pyrrole-2,5-dione (PIN) pyrrole-2,5-dione 1-bromopyrrolidine-2,5-dione (PIN) (not N-bromosuccinimide; substitution is not allowed on succinimide)"
+
+[[rule]]
+rule_id = "P-64.2-ring-ketones"
+paragraph = "P-64.2.1 / P-64.2.2"
+pdf_page = 566
+evidence_basis = "explicit"
+quote = "quinolin-2(1H)-one (PIN) (not 1,2-dihydroquinolin-2-one) ... 1,2-dihydro-3H-indol-3-one (PIN) (not 1H-indol-3(2H)-one; see P-58.2) 1,3-diazinane-2,4,6-trione (PIN) pyrimidine-2,4,6(1H,3H,5H)-trione"
+
+[[rule]]
+rule_id = "P-44.4.1h-pyridinone"
+paragraph = "P-44.4.1 (h)"
+pdf_page = 407
+evidence_basis = "explicit"
+quote = "(1) pyridin-2(1H)-one (PIN) > pyridin-4(1H)-one (PIN)"
+
+[[rule]]
+rule_id = "Table-2.3-saturated-HW"
+paragraph = "Table 2.3"
+pdf_page = 151
+evidence_basis = "explicit"
+quote = "Table 2.3 Retained names of saturated heteromonocyclic parent hydrides ... thiazolidine (S instead of O) 1,3-thiazolidine (PIN) [p. 572: 2-sulfanylidene-1,3-thiazolidin-4-one (PIN) 2-thioxo-1,3-thiazolidin-4-one]"
+
+[[rule]]
+rule_id = "P-25.2.2.4-benzopyran"
+paragraph = "P-25.2.2.4 (d)"
+pdf_page = 45
+evidence_basis = "explicit"
+quote = "Systematic 'benzo' names, for example 2H-1-benzopyran, are preferred IUPAC names for chromene, isochromene, chromane, isochromane, and their chalcogen analogues"
+
+[[rule]]
+rule_id = "P-68.2-silanol"
+paragraph = "P-68.2 (introduction)"
+pdf_page = 43
+evidence_basis = "explicit"
+quote = "Suffixes and prefixes are attached in the same way as for alkanes, for example ... 'trimethylsilanol' for (CH3)3Si-OH"
+
+[[rule]]
+rule_id = "P-68.1-boronic"
+paragraph = "P-67.1.1.2"
+pdf_page = 737
+evidence_basis = "explicit"
+quote = "CH3-B(OH)2 methylboronic acid (PIN) (not methylboranediol)"
+
+[[rule]]
+rule_id = "P-44.2.1a-heterocycle"
+paragraph = "P-44.2.1"
+pdf_page = 378
+evidence_basis = "explicit"
+quote = "The senior ring or ring system: (a) is a heterocycle; (b) has at least one nitrogen atom; ..."
+
+[[rule]]
+rule_id = "P-44.1.2-not-between-rings"
+paragraph = "P-44.1.2"
+pdf_page = 375
+evidence_basis = "explicit"
+quote = "This criterion is applied to select the senior atom in parents and to choose between rings and chains. It is not used to choose between rings"
+
+[[rule]]
+rule_id = "P-31.1.4-decahydronaphthalene"
+paragraph = "P-31.1.4.2.4"
+pdf_page = 73
+evidence_basis = "explicit"
+quote = "decahydronaphthalene (PIN)"
+
+[[rule]]
+rule_id = "P-31.1.3.4-ethenylbenzene"
+paragraph = "P-31.1.3.4"
+pdf_page = 53
+evidence_basis = "explicit"
+quote = "The name 'ethenylbenzene' is the preferred IUPAC name (PIN). ... styrene (a retained name; P-31.1.3.4)"
+
+[[rule]]
+rule_id = "P-34.2-phenoxy-anilino"
+paragraph = "P-34.2.1.2 / P-34.2.1.3"
+pdf_page = 352
+evidence_basis = "explicit"
+quote = "phenoxy (preferred prefix) (full substitution; see P-63.2.2.2) ... anilino (preferred prefix) (full substitution; see P-62.2.1.1.1) phenylamino"
+
+[[rule]]
+rule_id = "P-63.2.2.2-alkoxy"
+paragraph = "P-63.2.2.2"
+pdf_page = 541
+evidence_basis = "explicit"
+quote = "Some contracted names are retained for R-O- substituent groups. ... methoxy ... ethoxy ... propoxy ... butoxy ... phenoxy (preferred prefix) ... tert-butoxy (preferred prefix) (no substitution)"
+
+[[rule]]
+rule_id = "P-66.1-acetamido"
+paragraph = "P-66.1.1.4.x"
+pdf_page = 653
+evidence_basis = "explicit"
+quote = "(1) (4-acetamido-3-methylphenyl)arsonic acid (PIN) (2) [4-(acetylamino)-3-methylphenyl]arsonic acid"
+
+[[rule]]
+rule_id = "P-57.1.2-benzyl"
+paragraph = "P-57.1.2"
+pdf_page = 470
+evidence_basis = "explicit"
+quote = "C6H5-CH2- benzyl (preferred prefix) phenylmethyl ... For preferred prefixes, the names 'benzyl', 'benzylidene', and 'benzylidyne' cannot be substituted."
+
+[[rule]]
+rule_id = "P-65.6-acetyloxy"
+paragraph = "P-65.6.3.2.3"
+pdf_page = 612
+evidence_basis = "explicit"
+quote = "CH3-CO-O-SO2- (acetyloxy)sulfonyl (preferred prefix) acetoxysulfonyl"
+
+[[rule]]
+rule_id = "P-29.6-carbamoyl"
+paragraph = "P-29.6 (prefix construction)"
+pdf_page = 476
+evidence_basis = "explicit"
+quote = "(CH3)2N-CO-NH-N= (dimethylcarbamoyl)hydrazinylidene (preferred prefix) [not [(dimethylamino)carbonyl]hydrazinylidene]"
+
+[[rule]]
+rule_id = "P-16.5.1.3-locant-qualified"
+paragraph = "P-16.5.1.3"
+pdf_page = 130
+evidence_basis = "explicit"
+quote = "Parentheses are placed also around prefixes denoting simple substituent groups qualified by locants."
+
+[[rule]]
+rule_id = "P-16.5.1.3.1-mononuclear"
+paragraph = "P-16.5.1.3.1"
+pdf_page = 130
+evidence_basis = "explicit"
+quote = "For mononuclear parent hydrides with two or more substituents the first cited substituent never has enclosing marks unless it includes a locant. The second and further substituents are each enclosed with parentheses even for simple substituents. When the simple substituent groups are accompanied by multiplicative prefixes such as 'di' and 'tri', the multiplicative prefixes are not included in the parentheses."
+
+[[rule]]
+rule_id = "P-16.5.1.3.2-acetic"
+paragraph = "P-16.5.1.3.2"
+pdf_page = 131
+evidence_basis = "explicit"
+quote = "Simple substituents of a parent where only one possible position can be substituted do not require locants. ... bromo(nitro)(phenyl)acetic acid (PIN) ... bromo(chloro)acetic acid (PIN)"
+
+[[rule]]
+rule_id = "P-74.2.1.4-phosphanone"
+paragraph = "P-74.2.1.4 / P-68.3.2.3.1"
+pdf_page = 769
+evidence_basis = "explicit"
+quote = "(C6H5)3P=O triphenyl-lambda5-phosphanone (PIN) triphenylphosphane oxide (not oxotriphenyl-lambda5-phosphane)"
+
+[[rule]]
+rule_id = "P-63.3-peroxide-disulfide"
+paragraph = "P-63.3.1"
+pdf_page = 546
+evidence_basis = "explicit"
+quote = "CH3-CH2-OO-CH3 (1) (methylperoxy)ethane (PIN) (2) ethyl methyl peroxide ... CH3-SS-CH3 (1) (methyldisulfanyl)methane (PIN) (2) dimethyl disulfide"
+
+[[rule]]
+rule_id = "P-63.6-sulfoxide"
+paragraph = "P-93.3.3 (example) / P-63.6"
+pdf_page = 912
+evidence_basis = "explicit"
+quote = "(methanesulfinyl)methane (PIN)"
+
+[[rule]]
+rule_id = "P-65.2-oxalyl"
+paragraph = "P-65.5.1"
+pdf_page = 615
+evidence_basis = "explicit"
+quote = "Cl-CO-CO-Cl oxalyl dichloride (PIN) ethanedioyl dichloride"
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "CCc1ccc(C)cc1"
+engine_name = "4-ethyl-1-methylbenzene"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "1-ethyl-4-methylbenzene"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-14.4g", "P-14.5.1"]
+evidence_basis = "explicit"
+note = "The alphanumerical tie-break keys every carbon substituent as 'z' (strategy.py), so ethyl and methyl tie."
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "CC1CCCC(CC)C1"
+engine_name = "3-ethyl-1-methylcyclohexane"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "1-ethyl-3-methylcyclohexane"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-14.4g", "P-14.5.1"]
+evidence_basis = "explicit"
+note = "Same defect on a saturated ring; the chain case 3-ethyl-5-methylheptane is already right."
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "COc1ccc(C)cc1"
+engine_name = "4-methoxy-1-methylbenzene"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "1-methoxy-4-methylbenzene"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-14.4g", "P-34.1.1.4-anisole"]
+evidence_basis = "explicit"
+note = "anisole takes no substitution in a PIN, so methoxybenzene is the right form; only the numbering is wrong."
+
+[[row]]
+corpus_row_id = "cid4000"
+smiles = "CC(C)=CCCC(C)=CCc1c(O)c(C)cc2c1[nH]c1ccccc12"
+engine_name = "8-(3,7-dimethylocta-2,6-dien-1-yl)-6-methyl-9H-carbazol-7-ol"
+pubchem_name = "1-(3,7-dimethylocta-2,6-dienyl)-3-methyl-9H-carbazol-2-ol"
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "1-(3,7-dimethylocta-2,6-dien-1-yl)-3-methyl-9H-carbazol-2-ol"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-25.3.3-special-numbering", "P-14.4g"]
+evidence_basis = "derived"
+note = "Carbazole keeps its traditional numbering; within it the suffix takes the lowest locant. N-H carbazole is numbered backwards (8/7/6 for 1/2/3) while 9-methylcarbazole is right."
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "Oc1cccc2c1[nH]c1ccccc12"
+engine_name = "9H-carbazol-8-ol"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "9H-carbazol-1-ol"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-25.3.3-special-numbering"]
+evidence_basis = "derived"
+note = "The minimal N-H case of the cid4000 defect."
+
+[[row]]
+corpus_row_id = "benzenediazonium"
+smiles = "N#[N+]c1ccccc1"
+engine_name = "benzene-1-diazonium"
+pubchem_name = "benzenediazonium"
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "benzenediazonium"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-14.3.4-omit1", "P-73-diazonium"]
+evidence_basis = "derived"
+note = "Monosubstituted homogeneous monocycle: locant 1 omitted (P-14.3.4 (c))."
+
+[[row]]
+corpus_row_id = "benzyl anion"
+smiles = "[CH2-]c1ccccc1"
+engine_name = "phenylmethan-1-ide"
+pubchem_name = "methanidylbenzene"
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "OPEN"
+preferred_name = "phenylmethanide"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-14.3.4-omit1", "P-72-anide"]
+evidence_basis = "derived"
+note = "Substituted mononuclear parent: locant 1 omitted (P-14.3.4 (a)); the D-033 rule, for anions."
+
+[[row]]
+corpus_row_id = "cid7000"
+smiles = "COc1ccccc1N"
+engine_name = "2-methoxybenzen-1-amine"
+pubchem_name = "2-methoxyaniline"
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "2-methoxyaniline"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-34.1.1.5-aniline"]
+evidence_basis = "explicit"
+note = "aniline is a PIN with full substitution."
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "Cc1ccc(N)cc1"
+engine_name = "4-methylbenzen-1-amine"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "4-methylaniline"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-34.1.1.5-aniline"]
+evidence_basis = "explicit"
+note = ""
+
+[[row]]
+corpus_row_id = "cid29000"
+smiles = "COc1cc(C=O)c(Cl)cc1O"
+engine_name = "2-chloro-4-hydroxy-5-methoxybenzene-1-carbaldehyde"
+pubchem_name = "2-chloro-4-hydroxy-5-methoxybenzaldehyde"
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "2-chloro-4-hydroxy-5-methoxybenzaldehyde"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-66.6.1-benzaldehyde"]
+evidence_basis = "explicit"
+note = "benzaldehyde is a PIN with substitution allowed."
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "Oc1ccc(Cl)cc1Br"
+engine_name = "2-bromo-4-chlorobenzen-1-ol"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "2-bromo-4-chlorophenol"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-34.1.1.3-phenol"]
+evidence_basis = "explicit"
+note = "phenol is a PIN with substitution allowed."
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "O=C1CCC(=O)N1"
+engine_name = "succinimide"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "pyrrolidine-2,5-dione"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-66.2-imides"]
+evidence_basis = "explicit"
+note = "SUCCINIMIDE IS NOT A PIN, and KNOWN_LIMITATIONS said the opposite ('a genuine PIN with a correct P-66.2 citation and must not be corrected'). The same paragraph gives pyrrolidine-2,5-dione (PIN) and says substitution is not allowed on succinimide."
+
+[[row]]
+corpus_row_id = "tetramethylammonium"
+smiles = "C[N+](C)(C)C"
+engine_name = "tetramethylammonium"
+pubchem_name = "tetramethylazanium"
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "OPEN"
+preferred_name = "N,N,N-trimethylmethanaminium"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-73.1-aminium"]
+evidence_basis = "explicit"
+note = "tetramethylammonium and tetramethylazanium are both listed as non-PIN alternatives."
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "O=c1ccc2ccccc2o1"
+engine_name = "coumarin"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "2H-1-benzopyran-2-one"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-25.2.2.4-benzopyran", "P-64.2-ring-ketones"]
+evidence_basis = "derived"
+note = "coumarin does not occur in the book; chromene-type names are replaced by benzo names."
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "O=C1CC(=O)NC(=O)N1"
+engine_name = "barbituric acid"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "1,3-diazinane-2,4,6-trione"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-64.2-ring-ketones"]
+evidence_basis = "explicit"
+note = "barbituric acid; the saturated Hantzsch-Widman name is the PIN, not pyrimidine-2,4,6(1H,3H,5H)-trione."
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "NCCc1c[nH]c2ccccc12"
+engine_name = "tryptamine"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "2-(1H-indol-3-yl)ethan-1-amine"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-14.3.4-omit1"]
+evidence_basis = "derived"
+note = "tryptamine does not occur in the book. The ethan-1-amine locant stays because the chain carries a second substituent (P-14.3.4 (b) applies only to monosubstitution)."
+
+[[row]]
+corpus_row_id = "trans-decalin"
+smiles = "C1CC[C@H]2CCCC[C@@H]2C1"
+engine_name = "trans-decalin"
+pubchem_name = "1,2,3,4,4a,5,6,7,8,8a-decahydronaphthalene"
+verdict = "UNDECIDED"
+fix_status = "OPEN"
+preferred_name = ""
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-31.1.4-decahydronaphthalene"]
+evidence_basis = "explicit"
+note = "decalin is not in the book and decahydronaphthalene is the PIN, so the engine's 'trans-decalin' is wrong. The stereodescriptor form for the trans isomer (RDKit's CIP labeler gives r,r pseudoasymmetric) is not adjudicated here."
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "CC(C)=NC"
+engine_name = "2-(methylimino)propane"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "N-methylpropan-2-imine"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-62.3-imine"]
+evidence_basis = "explicit"
+note = ""
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "CC(C)=NO"
+engine_name = "2-(hydroxyimino)propane"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "N-hydroxypropan-2-imine"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-68.3-oxime-hydrazone"]
+evidence_basis = "explicit"
+note = ""
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "CC(C)=NN"
+engine_name = "1-(propan-2-ylidene)hydrazine"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "(propan-2-ylidene)hydrazine"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-68.3-oxime-hydrazone", "P-14.3.4-omit1", "P-16.5.1.3-locant-qualified"]
+evidence_basis = "derived"
+note = "Locant 1 on hydrazine is omitted for a monosubstituted two-atom chain."
+
+[[row]]
+corpus_row_id = "cid32000"
+smiles = "Cc1ccc(N=C(N)c2cccc3ccccc23)cc1Cl"
+engine_name = "(3-chloro-4-methylphenylimino)(naphthalen-1-yl)methanamine"
+pubchem_name = "N'-(3-chloro-4-methylphenyl)naphthalene-1-carboximidamide"
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "N'-(3-chloro-4-methylphenyl)naphthalene-1-carboximidamide"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-66.4.1-amidine"]
+evidence_basis = "derived"
+note = "The amidine is the principal characteristic group; the engine names a methanamine with an imino prefix."
+
+[[row]]
+corpus_row_id = "cid45000"
+smiles = "NC(N)=NCCCCCCCCCCCCCCN=C(N)N"
+engine_name = "1,14-bis[(diaminomethylidene)amino]tetradecane"
+pubchem_name = "2-[14-(diaminomethylideneamino)tetradecyl]guanidine"
+verdict = "UNDECIDED"
+fix_status = "OPEN"
+preferred_name = ""
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-34-guanidine"]
+evidence_basis = "explicit"
+note = "The parent is guanidine (a PIN, substitution allowed), not tetradecane; the multiplicative versus substitutive form of the bis-guanidine is not adjudicated."
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "CC(=O)NN"
+engine_name = "ethanohydrazide"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "acetohydrazide"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-66.3-hydrazide"]
+evidence_basis = "explicit"
+note = "The retained acid stem carries into the hydrazide."
+
+[[row]]
+corpus_row_id = "cid55000"
+smiles = "O=C(NNCc1ccccc1)C(=O)NNCc1ccccc1"
+engine_name = "[(2-{oxo[2-(phenylmethyl)hydrazinyl]acetyl}hydrazinyl)methyl]benzene"
+pubchem_name = "1-N',2-N'-dibenzylethanedihydrazide"
+verdict = "UNDECIDED"
+fix_status = "OPEN"
+preferred_name = ""
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-66.3-hydrazide"]
+evidence_basis = "derived"
+note = "A dihydrazide of oxalic acid; the engine names it on a benzene. Exact PIN form (N-locants of the dihydrazide) not adjudicated."
+
+[[row]]
+corpus_row_id = "methanesulfonate"
+smiles = "CS(=O)(=O)[O-]"
+engine_name = "(oxidosulfonyl)methane"
+pubchem_name = "methanesulfonate"
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "methanesulfonate"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-65.3-sulfonate"]
+evidence_basis = "derived"
+note = ""
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "CS(=O)(=O)OC"
+engine_name = "(methyloxysulfonyl)methane"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "methyl methanesulfonate"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-65.3-sulfonate"]
+evidence_basis = "derived"
+note = "The engine emits (methyloxysulfonyl)methane -- also carrying the non-preferred 'methyloxy'."
+
+[[row]]
+corpus_row_id = "carbon disulfide"
+smiles = "S=C=S"
+engine_name = "dithioxomethane"
+pubchem_name = "methanedithione"
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "methanedithione"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-64.6-thione"]
+evidence_basis = "derived"
+note = ""
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "c1ccccc1N=Nc1ccccc1"
+engine_name = "(phenyldiazenyl)benzene"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "diphenyldiazene"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-68.3.1.3-diazene"]
+evidence_basis = "explicit"
+note = ""
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "CN=C=NC"
+engine_name = "[((methylimino)methylidene)amino]methane"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "dimethylmethanediimine"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-62.3.1.4-carbodiimide"]
+evidence_basis = "derived"
+note = ""
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "O=c1cccc[nH]1"
+engine_name = "2-oxo-1H-pyridine"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "pyridin-2(1H)-one"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-44.4.1h-pyridinone", "P-64.2-ring-ketones"]
+evidence_basis = "explicit"
+note = ""
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "O=C1C=CC(=O)N1"
+engine_name = "2,5-dihydro-1H-pyrrole-2,5-dione"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "1H-pyrrole-2,5-dione"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-66.2-imides"]
+evidence_basis = "explicit"
+note = "maleimide."
+
+[[row]]
+corpus_row_id = "cid30000"
+smiles = "CCN1C(=O)C(Cl)=C(Cl)C1=O"
+engine_name = "3,4-dichloro-1-ethyl-2,5-dihydro-1H-pyrrole-2,5-dione"
+pubchem_name = "3,4-dichloro-1-ethylpyrrole-2,5-dione"
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "OPEN"
+preferred_name = "3,4-dichloro-1-ethyl-1H-pyrrole-2,5-dione"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-66.2-imides"]
+evidence_basis = "derived"
+note = "PubChem drops the indicated hydrogen the PIN carries."
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "O=C1CSC(=O)N1"
+engine_name = "2,3,4,5-tetrahydro-1,3-thiazole-2,4-dione"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "1,3-thiazolidine-2,4-dione"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["Table-2.3-saturated-HW"]
+evidence_basis = "explicit"
+note = ""
+
+[[row]]
+corpus_row_id = "cid56000"
+smiles = "O=C(O)c1ccc(NCN2C(=O)C(=Cc3ccc(O)cc3)SC2=S)cc1"
+engine_name = "4-[({5-[(4-hydroxyphenyl)methylidene]-4-oxo-2-(sulfanylidene)-1,3-thiazol-3-yl}methyl)amino]benzoic acid"
+pubchem_name = "4-[[5-[(4-hydroxyphenyl)methylidene]-4-oxo-2-sulfanylidene-1,3-thiazolidin-3-yl]methylamino]benzoic acid"
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "4-[({5-[(4-hydroxyphenyl)methylidene]-4-oxo-2-sulfanylidene-1,3-thiazolidin-3-yl}methyl)amino]benzoic acid"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["Table-2.3-saturated-HW", "P-16.5.1.3-locant-qualified"]
+evidence_basis = "derived"
+note = "The ring is a thiazolidine; the engine calls it a 1,3-thiazole. Both parse back, so only the book can say which is right."
+
+[[row]]
+corpus_row_id = "cid43000"
+smiles = "Nc1c(Nc2ccccc2)c2ccccc2oc1=O"
+engine_name = "4-(phenylamino)coumarin-3-amine"
+pubchem_name = "3-amino-4-anilinochromen-2-one"
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "3-amino-4-anilino-2H-1-benzopyran-2-one"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-25.2.2.4-benzopyran", "P-34.2-phenoxy-anilino", "P-64.2-ring-ketones"]
+evidence_basis = "derived"
+note = "The lactone carbonyl is the principal characteristic group; the engine names a 3-amine on 'coumarin'."
+
+[[row]]
+corpus_row_id = "warfarin (flat)"
+smiles = "CC(=O)CC(c1ccccc1)c1c(O)c2ccccc2oc1=O"
+engine_name = "4-(4-hydroxycoumarin-3-yl)-4-phenylbutan-2-one"
+pubchem_name = "4-hydroxy-3-(3-oxo-1-phenylbutyl)chromen-2-one"
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "OPEN"
+preferred_name = "4-hydroxy-3-(3-oxo-1-phenylbutyl)-2H-1-benzopyran-2-one"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-25.2.2.4-benzopyran", "P-64.2-ring-ketones"]
+evidence_basis = "derived"
+note = "Round 3's target with the ring named by its PIN; PubChem's 'chromen-2-one' is the old chromene name."
+
+[[row]]
+corpus_row_id = "diazepam"
+smiles = "CN1C(=O)CN=C(c2ccccc2)c2cc(Cl)ccc21"
+engine_name = "7-chloro-1-methyl-5-phenyl-2,3-dihydro-1H-1,4-benzodiazepin-2-one"
+pubchem_name = "7-chloro-1-methyl-5-phenyl-3H-1,4-benzodiazepin-2-one"
+verdict = "UNDECIDED"
+fix_status = "OPEN"
+preferred_name = ""
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-64.2-ring-ketones"]
+evidence_basis = "derived"
+note = "Hydro prefixes versus added hydrogen follow P-58.2's conditions, read in full when stage A5 encodes them."
+
+[[row]]
+corpus_row_id = "trimethylsilanol"
+smiles = "C[Si](C)(C)O"
+engine_name = "(hydroxy)tri(methyl)silane"
+pubchem_name = "hydroxy(trimethyl)silane"
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "OPEN"
+preferred_name = "trimethylsilanol"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-68.2-silanol"]
+evidence_basis = "explicit"
+note = ""
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "O[SiH2]c1ccccc1"
+engine_name = "(hydroxy)(phenyl)silane"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "phenylsilanol"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-68.2-silanol"]
+evidence_basis = "derived"
+note = ""
+
+[[row]]
+corpus_row_id = "phenylboronic acid"
+smiles = "OB(O)c1ccccc1"
+engine_name = "benzeneboronic acid"
+pubchem_name = "phenylboronic acid"
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "phenylboronic acid"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-68.1-boronic"]
+evidence_basis = "derived"
+note = ""
+
+[[row]]
+corpus_row_id = "pinacol phenylboronate"
+smiles = "CC1(C)OB(c2ccccc2)OC1(C)C"
+engine_name = "(4,4,5,5-tetramethyl-1,3,2-dioxaborolan-2-yl)benzene"
+pubchem_name = "4,4,5,5-tetramethyl-2-phenyl-1,3,2-dioxaborolane"
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "4,4,5,5-tetramethyl-2-phenyl-1,3,2-dioxaborolane"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-44.2.1a-heterocycle", "P-44.1.2-not-between-rings"]
+evidence_basis = "derived"
+note = "RING AGAINST RING, so the element order of P-44.1.2 does not decide it -- the book says so. P-44.2.1 (a), 'is a heterocycle', does."
+
+[[row]]
+corpus_row_id = "triphenylphosphine oxide"
+smiles = "O=P(c1ccccc1)(c1ccccc1)c1ccccc1"
+engine_name = "oxotri(phenyl)phosphane"
+pubchem_name = "diphenylphosphorylbenzene"
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "OPEN"
+preferred_name = "triphenyl-lambda5-phosphanone"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-74.2.1.4-phosphanone"]
+evidence_basis = "explicit"
+note = "The book prints the Greek lambda; the engine's own lambda spelling is used for the round trip."
+
+[[row]]
+corpus_row_id = "styrene"
+smiles = "C=Cc1ccccc1"
+engine_name = "(ethenyl)benzene"
+pubchem_name = "styrene"
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "OPEN"
+preferred_name = "ethenylbenzene"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-31.1.3.4-ethenylbenzene"]
+evidence_basis = "explicit"
+note = "styrene is retained for general nomenclature only; the engine's '(ethenyl)' adds marks the PIN does not have."
+
+[[row]]
+corpus_row_id = "aspirin"
+smiles = "CC(=O)Oc1ccccc1C(=O)O"
+engine_name = "2-(acetoxy)benzoic acid"
+pubchem_name = "2-acetyloxybenzoic acid"
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "OPEN"
+preferred_name = "2-(acetyloxy)benzoic acid"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-65.6-acetyloxy"]
+evidence_basis = "explicit"
+note = "'acetoxy' is not the preferred prefix; 'acetyloxy' is, and as a compound prefix it is enclosed."
+
+[[row]]
+corpus_row_id = "cid2000"
+smiles = "CC(=O)NC(Cc1ccccc1)C(=O)O"
+engine_name = "2-(acetylamino)-3-phenylpropanoic acid"
+pubchem_name = "2-acetamido-3-phenylpropanoic acid"
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "2-acetamido-3-phenylpropanoic acid"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-66.1-acetamido"]
+evidence_basis = "explicit"
+note = ""
+
+[[row]]
+corpus_row_id = "cid16000"
+smiles = "CCCCOCCOCCCOC(=O)COc1cc(Cl)c(Cl)cc1Cl"
+engine_name = "3-[2-(butoxy)ethoxy]propyl 2-(2,4,5-trichlorophenyloxy)acetate"
+pubchem_name = "3-(2-butoxyethoxy)propyl 2-(2,4,5-trichlorophenoxy)acetate"
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "OPEN"
+preferred_name = "3-(2-butoxyethoxy)propyl (2,4,5-trichlorophenoxy)acetate"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-63.2.2.2-alkoxy", "P-34.2-phenoxy-anilino", "P-16.5.1.3.2-acetic"]
+evidence_basis = "derived"
+note = "phenoxy is fully substitutable; butoxy is simple; acetic acid takes no locant."
+
+[[row]]
+corpus_row_id = "cid60000"
+smiles = "CCCCCCCOc1ccccc1NC(=O)OC(CN(CC)CC)CN1CCCC1"
+engine_name = "1-(diethylamino)-3-(pyrrolidin-1-yl)propan-2-yl N-[2-(heptoxy)phenyl]carbamate"
+pubchem_name = "[1-(diethylamino)-3-pyrrolidin-1-ylpropan-2-yl] N-(2-heptoxyphenyl)carbamate"
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "OPEN"
+preferred_name = "1-(diethylamino)-3-(pyrrolidin-1-yl)propan-2-yl [2-(heptyloxy)phenyl]carbamate"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-63.2.2.2-alkoxy"]
+evidence_basis = "explicit"
+note = "Only methoxy to butoxy, phenoxy and tert-butoxy are contracted; heptyloxy is not. Both engines write 'heptoxy'. The N-locant on the carbamate is carried as the engine emits it; not adjudicated separately."
+
+[[row]]
+corpus_row_id = "cid57000"
+smiles = "CCN1CC(c2ccccc2)N(Cc2ccccc2)C1=O"
+engine_name = "1-ethyl-4-phenyl-3-(phenylmethyl)imidazolidin-2-one"
+pubchem_name = "3-benzyl-1-ethyl-4-phenylimidazolidin-2-one"
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "3-benzyl-1-ethyl-4-phenylimidazolidin-2-one"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-57.1.2-benzyl"]
+evidence_basis = "explicit"
+note = "benzyl is the preferred prefix for an unsubstituted benzyl group."
+
+[[row]]
+corpus_row_id = "cid58000"
+smiles = "CCOC(=O)C(CC)(C(=O)NCCN1CCCCCCC1)c1ccccc1"
+engine_name = "ethyl 2-({[2-(azocan-1-yl)ethyl]amino}(oxo)methyl)-2-phenylbutanoate"
+pubchem_name = "ethyl 2-[2-(azocan-1-yl)ethylcarbamoyl]-2-phenylbutanoate"
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "ethyl 2-{[2-(azocan-1-yl)ethyl]carbamoyl}-2-phenylbutanoate"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-29.6-carbamoyl"]
+evidence_basis = "explicit"
+note = ""
+
+[[row]]
+corpus_row_id = "cid14000"
+smiles = "CCN(CCCCOC(=O)c1cc(OC)c(OC)c(OC)c1)CCc1c[nH]c2ccccc12"
+engine_name = "4-{[(ethyl)][(2-(indol-3-yl)ethyl)]amino}butyl 3,4,5-trimethoxybenzoate"
+pubchem_name = "4-[ethyl-[2-(1H-indol-3-yl)ethyl]amino]butyl 3,4,5-trimethoxybenzoate"
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "4-{ethyl[2-(1H-indol-3-yl)ethyl]amino}butyl 3,4,5-trimethoxybenzoate"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-16.5.1.3-locant-qualified"]
+evidence_basis = "derived"
+note = "Two defects: the doubled wrapping of the tertiary-amine prefix, and the indicated hydrogen dropped from indol-3-yl -- the round-2 open item."
+
+[[row]]
+corpus_row_id = "glycine zwitterion"
+smiles = "[NH3+]CC(=O)[O-]"
+engine_name = "2-(azaniumyl)acetate"
+pubchem_name = "2-azaniumylacetate"
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "OPEN"
+preferred_name = "azaniumylacetate"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-16.5.1.3.2-acetic"]
+evidence_basis = "explicit"
+note = "Acetic acid takes no locant for a substituent."
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "OC(=O)COc1ccccc1"
+engine_name = "(phenoxy)acetic acid"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "phenoxyacetic acid"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-16.5.1.3.2-acetic", "P-34.2-phenoxy-anilino"]
+evidence_basis = "derived"
+note = "A simple first-cited prefix with no locant takes no enclosing marks."
+
+[[row]]
+corpus_row_id = "cid12000"
+smiles = "Nc1cc(Cl)ccc1S"
+engine_name = "2-amino-4-chlorobenzene-1-thiol"
+pubchem_name = "2-amino-4-chlorobenzenethiol"
+verdict = "PUBCHEM_NOT_PREFERRED"
+fix_status = "NOT_APPLICABLE"
+preferred_name = "2-amino-4-chlorobenzene-1-thiol"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-65.3-sulfonate", "P-14.3.4-omit1"]
+evidence_basis = "derived"
+note = "The ENGINE is right: with another substituent present the locant is cited (the book's own 'methyl 4-ethylbenzene-1-sulfonate (PIN)'), which is round 3's sulfanilamide finding."
+
+[[row]]
+corpus_row_id = "cid21000"
+smiles = "Cc1ccc(NC(=O)OCc2ccncc2)cc1"
+engine_name = "(pyridin-4-yl)methyl N-(4-methylphenyl)carbamate"
+pubchem_name = "pyridin-4-ylmethyl N-(4-methylphenyl)carbamate"
+verdict = "PUBCHEM_NOT_PREFERRED"
+fix_status = "NOT_APPLICABLE"
+preferred_name = "(pyridin-4-yl)methyl N-(4-methylphenyl)carbamate"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-16.5.1.3-locant-qualified"]
+evidence_basis = "explicit"
+note = "The engine is right: a simple prefix qualified by a locant is enclosed."
+
+[[row]]
+corpus_row_id = "cid44000"
+smiles = "COc1cc2c(Cc3ccc(Cl)cc3)cnc(C(C)C)c2cc1OC"
+engine_name = "4-[(4-chlorophenyl)methyl]-6,7-dimethoxy-1-(propan-2-yl)isoquinoline"
+pubchem_name = "4-[(4-chlorophenyl)methyl]-6,7-dimethoxy-1-propan-2-ylisoquinoline"
+verdict = "PUBCHEM_NOT_PREFERRED"
+fix_status = "NOT_APPLICABLE"
+preferred_name = "4-[(4-chlorophenyl)methyl]-6,7-dimethoxy-1-(propan-2-yl)isoquinoline"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-16.5.1.3-locant-qualified"]
+evidence_basis = "explicit"
+note = "As cid21000."
+
+[[row]]
+corpus_row_id = "dimethyl sulfoxide"
+smiles = "CS(C)=O"
+engine_name = "dimethyl sulfoxide"
+pubchem_name = "methylsulfinylmethane"
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "OPEN"
+preferred_name = "(methanesulfinyl)methane"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-63.6-sulfoxide"]
+evidence_basis = "explicit"
+note = "PubChem's 'methylsulfinylmethane' uses the alkylsulfinyl prefix, which is not the preferred one either."
+
+[[row]]
+corpus_row_id = "dimethyl disulfide"
+smiles = "CSSC"
+engine_name = "1,2-dimethyldisulfane"
+pubchem_name = "(methyldisulfanyl)methane"
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "(methyldisulfanyl)methane"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-63.3-peroxide-disulfide"]
+evidence_basis = "explicit"
+note = ""
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "COOC"
+engine_name = "dimethyl peroxide"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "(methylperoxy)methane"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-63.3-peroxide-disulfide"]
+evidence_basis = "derived"
+note = ""
+
+[[row]]
+corpus_row_id = ""
+case_origin = "naming round 4 probe, 2026-09-18"
+smiles = "ClC(=O)C(=O)Cl"
+engine_name = "ethane-1,2-dioyl chloride"
+pubchem_name = ""
+verdict = "ENGINE_WRONG"
+fix_status = "OPEN"
+preferred_name = "oxalyl dichloride"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-65.2-oxalyl"]
+evidence_basis = "explicit"
+note = "Carried from KNOWN_LIMITATIONS severity B."

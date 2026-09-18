@@ -51,6 +51,12 @@ def rows(table) -> list[dict]:
 
 
 @pytest.fixture(scope="module")
+def rules(table) -> dict[str, dict]:
+    """Schema 2: each paragraph quoted once, referenced by `rule_ref`."""
+    return {rule["rule_id"]: rule for rule in table.get("rule", [])}
+
+
+@pytest.fixture(scope="module")
 def corpus_labels() -> set[str]:
     labels: set[str] = set()
     for filename in ("corpus.json", "heldout.json"):
@@ -75,16 +81,37 @@ def test_every_row_carries_a_verdict_from_the_declared_set(rows):
     assert not unknown, f"verdicts not in the declared set: {unknown}"
 
 
-def test_every_row_cites_a_rule_and_quotes_its_evidence(rows):
+def test_every_row_cites_a_rule_and_quotes_its_evidence(rows, rules):
     """The quotation is the part a reader can check. `caffeine` carried a
     P-number for months that had nothing to do with retaining it, which is
-    exactly what a citation without a quotation permits."""
-    thin = [
-        r["corpus_row_id"] or r.get("case_origin", "?")
-        for r in rows
-        if not r.get("rule") or not r.get("evidence_quote", "").strip()
-    ]
+    exactly what a citation without a quotation permits.
+
+    A row satisfies this either inline (schema 1: `rule` + `evidence_quote`)
+    or through `rule_ref`, every one of which must name a quoted rule."""
+    def quoted(r):
+        if r.get("rule_ref"):
+            return all(rules.get(ref, {}).get("quote", "").strip() for ref in r["rule_ref"])
+        return bool(r.get("rule")) and bool(r.get("evidence_quote", "").strip())
+
+    thin = [r["corpus_row_id"] or r.get("case_origin", "?") for r in rows if not quoted(r)]
     assert not thin, f"rows with no rule or no quotation: {thin}"
+
+
+def test_rule_ids_are_unique_and_every_reference_resolves(table, rows, rules):
+    """One quotation per paragraph is the point of schema 2; a duplicate id
+    would be two quotations again, and a dangling reference cites nothing."""
+    ids = [rule["rule_id"] for rule in table.get("rule", [])]
+    assert len(ids) == len(set(ids)), "duplicate rule_id"
+    dangling = {ref for r in rows for ref in r.get("rule_ref", []) if ref not in rules}
+    assert not dangling, f"rule_refs naming no rule: {dangling}"
+
+
+def test_every_rule_says_where_in_the_book_it_was_read(rules):
+    """A paragraph number is not enough to find a quotation in a 1,500-page
+    PDF, and round 3's lookups were slowed by exactly that."""
+    unlocated = [rid for rid, rule in rules.items() if not isinstance(rule.get("pdf_page"), int)]
+    assert not unlocated, f"rules with no pdf_page: {unlocated}"
+    assert all(rule.get("evidence_basis") in ("explicit", "derived") for rule in rules.values())
 
 
 def test_evidence_is_labelled_explicit_or_derived(rows):
@@ -173,7 +200,14 @@ def test_the_smiles_matches_the_corpus_row_it_claims(rows, corpus_labels):
 def test_the_completed_classes_are_declared(table):
     """So partial coverage reads as partial. The file adjudicates one class so
     far, and the classes still open are listed at its foot."""
-    assert table["meta"]["classes_complete"] == ["retained_name_vs_pin"]
+    assert table["meta"]["classes_complete"] == [
+        "retained_name_vs_pin",
+        "alphanumerical_numbering",
+        "retained_parents_substitution",
+        "locant_omission",
+        "new_pcg_classes",
+        "prefix_vocabulary",
+    ]
 
 
 def test_an_engine_wrong_row_names_a_target_different_from_the_engine(rows):
