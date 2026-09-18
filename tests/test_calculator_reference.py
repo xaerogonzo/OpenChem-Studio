@@ -256,8 +256,13 @@ def test_the_locant_coverage_is_recorded_with_its_denominator(text):
     The figures moved when the corpus grew from 181 to 187 (2026-09-17). A
     percentage that outlives its denominator is what this guards against, so
     the DATE is asserted too -- re-measure and re-date rather than bumping
-    the number."""
-    assert "38.4%" in text
-    assert "111 of 187" in text
-    assert "2026-09-17" in text
+    the number.
+
+    Re-measured 2026-09-18 when substituent numbering reached the drawing
+    (naming round 4, A12): 734 of 1546 heavy atoms, 47.5%, 113 of 187
+    molecules numbered and 74 with none."""
+    assert "47.5%" in text
+    assert "113 of 187" in text
+    assert "74 of the 187" in text
+    assert "2026-09-18" in text
     assert "benchmarks/naming" in text

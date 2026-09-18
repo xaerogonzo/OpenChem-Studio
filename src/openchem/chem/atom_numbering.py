@@ -65,24 +65,37 @@ def labels_for_molblock(molblock: str, mode: str) -> tuple[dict[int, str], str]:
     arguments, so the cache cannot go stale -- a changed structure is a
     different molblock.
     """
-    labels, status = _labels_cached(molblock, mode)
+    labels, status, _notes = _labels_cached(molblock, mode)
     # A COPY, so a caller that mutates what it gets cannot poison the cache.
     return dict(labels), status
 
 
+def locant_provenance(molblock: str) -> dict[int, str]:
+    """`{molfile position: where that atom's IUPAC locant came from}`.
+
+    From the SAME cached annotation as the labels, so a view shows the
+    engine's own account -- "2 of 6-methoxynaphthalen-2-yl (the substituent's
+    own numbering)" -- rather than re-deriving it (round 4, A12). A
+    substituent's "2" and the parent's "2" are different positions, and this
+    is the only place that says which is which.
+    """
+    return dict(_labels_cached(molblock, LOCANTS)[2])
+
+
 @lru_cache(maxsize=8)
-def _labels_cached(molblock: str, mode: str) -> tuple[dict[int, str], str]:
+def _labels_cached(molblock: str, mode: str) -> tuple[dict[int, str], str, dict[int, str]]:
     if mode == OFF or not molblock:
-        return {}, ""
+        return {}, "", {}
     mol = Chem.MolFromMolBlock(molblock, sanitize=False, removeHs=False)
     if mol is None:
-        return {}, "This structure could not be read."
+        return {}, "This structure could not be read.", {}
 
     if mode == INDEX:
         total = mol.GetNumAtoms()
         return (
             {index: str(index + 1) for index in range(total)},
             f"{total} atoms numbered by drawing position.",
+            {},
         )
 
     # IUPAC locants. `annotate` never raises; it reports.
@@ -90,11 +103,21 @@ def _labels_cached(molblock: str, mode: str) -> tuple[dict[int, str], str]:
         mol = Chem.MolFromMolBlock(molblock)
         annotation = annotate(mol)
     except Exception as exc:  # noqa: BLE001 - a display must not take the app down
-        return {}, f"IUPAC numbering failed: {type(exc).__name__}: {exc}"
+        return {}, f"IUPAC numbering failed: {type(exc).__name__}: {exc}", {}
     if annotation.error:
-        return {}, f"IUPAC numbering failed: {annotation.error}"
+        return {}, f"IUPAC numbering failed: {annotation.error}", {}
     labels = {locant.atom_index: locant.label for locant in annotation.locants}
-    return labels, _locant_status(annotation)
+    notes = {locant.atom_index: _provenance_note(locant) for locant in annotation.locants}
+    return labels, _locant_status(annotation), notes
+
+
+def _provenance_note(locant) -> str:
+    source = locant.source.value
+    if source == "substituent":
+        return f"{locant.label} of {locant.prefix} (the substituent's own numbering)"
+    if source == "retained_ring":
+        return f"{locant.label} in the ring skeleton's conventional numbering"
+    return f"{locant.label} in this structure's parent numbering"
 
 
 def structure_key(molblock: str) -> str:
@@ -127,11 +150,13 @@ def _locant_status(annotation) -> str:
             "name, which carries no derived numbering."
         )
     sources = {locant.source.value for locant in annotation.locants}
-    where = (
-        "from this structure's own numbering"
-        if sources == {"parent"}
-        else "from a ring skeleton's conventional numbering"
-        if sources == {"retained_ring"}
-        else "from this structure's numbering and a ring skeleton's"
-    )
-    return f"{numbered} of {total} atoms numbered, {where}."
+    parts = [
+        phrase for value, phrase in (
+            ("parent", "this structure's own numbering"),
+            ("substituent", "its substituents' own numbering"),
+            ("retained_ring", "a ring skeleton's conventional numbering"),
+        )
+        if value in sources
+    ]
+    where = parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
+    return f"{numbered} of {total} atoms numbered, from {where}."

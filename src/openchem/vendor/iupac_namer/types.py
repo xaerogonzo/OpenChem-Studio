@@ -2049,6 +2049,12 @@ class PrefixEntry:
     Created during execution (after recursive naming produces the tree)."""
     tree: Any               # NameTree -- typed as Any to avoid circularity
     locants: tuple[Locant, ...]       # always tuple, even for single locant
+    # ((subtree's fragment atom, atom of the molecule named at THIS level), ...)
+    # from extraction.fragment_origin (round 4, A12). Level-local, so a cached
+    # subtree reused for an identical fragment stays correct: carving renumbers
+    # canonically, so identical fragments have identical indices. Not part of
+    # equality -- two identical prefixes at different positions still merge.
+    atom_origin: tuple[tuple[int, int], ...] = field(default=(), compare=False)
     # multiplier is NOT stored here -- it's computed during assembly's
     # merge_identical_prefixes step.
 

@@ -24,7 +24,7 @@ from openchem.vendor.iupac_namer.types import (
 from openchem.vendor.iupac_namer.perception import Perception
 from openchem.vendor.iupac_namer.perception.extraction import (
     carve_substituent, carve_bridging_substituent, strip_additive_atoms,
-    carve_fc_fragments,
+    carve_fc_fragments, fragment_origin,
 )
 from openchem.vendor.iupac_namer.assembly import assemble, derive_sort_name
 from openchem.vendor.iupac_namer.data_loader import (
@@ -15663,6 +15663,7 @@ class SubstitutivePath:
                     prefixes.append(PrefixEntry(
                         tree=sub_tree,
                         locants=(pa.locant,) if pa.locant is not None else (),
+                        atom_origin=fragment_origin(fragment_mol),
                     ))
                 except Exception as e:
                     logger.warning("Failed to carve substituent: %s", e)
@@ -15706,6 +15707,7 @@ class SubstitutivePath:
                     prefixes.append(PrefixEntry(
                         tree=sub_tree,
                         locants=pa.locants,
+                        atom_origin=fragment_origin(fragment_mol),
                     ))
                 except Exception as e:
                     logger.warning("Failed to carve bridging substituent: %s", e)

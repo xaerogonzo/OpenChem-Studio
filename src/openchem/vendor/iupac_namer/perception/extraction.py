@@ -70,6 +70,12 @@ def _canonical_renumber(mol: object, attachment_idxs: list[int]) -> tuple:
 #: Property carrying a stereodescriptor as it holds in the ORIGINAL molecule,
 #: on fragment atoms and bonds.  See `_context_cip_maps`.
 _PARENT_CIP = "_ParentCIPCode"
+# The index, in the molecule a fragment was carved FROM, of each fragment atom
+# (naming round 4, A12). Stamped with the CIP codes, from the same checked
+# map, and carried through sanitising and canonical renumbering as a property,
+# so a prefix subtree's numbering -- keyed by fragment indices -- can be
+# carried back onto the structure: naproxen's "6-methoxynaphthalen-2-yl".
+_ORIGIN_ATOM = "_OcsOriginAtom"
 
 
 def _context_cip_maps(mol: object) -> "tuple[dict[int, str], dict[tuple[int, int], str]]":
@@ -124,6 +130,24 @@ def _context_cip_maps(mol: object) -> "tuple[dict[int, str], dict[tuple[int, int
     return atoms, bonds
 
 
+def fragment_origin(fragment: object) -> "tuple[tuple[int, int], ...]":
+    """``((fragment atom, atom it was carved from), ...)`` for a carved
+    fragment, from the stamp ``_stamp_context_cip`` leaves; empty for a
+    molecule that was not carved. The stamp is written from a map already
+    checked injective and element-preserving, and is checked again here,
+    because a locant carried onto the wrong atom is a confident wrong
+    number on the drawing."""
+    pairs = tuple(
+        (atom.GetIdx(), atom.GetIntProp(_ORIGIN_ATOM))
+        for atom in fragment.GetAtoms()
+        if atom.HasProp(_ORIGIN_ATOM)
+    )
+    origins = [origin for _local, origin in pairs]
+    if len(set(origins)) != len(origins):
+        raise ValueError("fragment origin map is not injective")
+    return pairs
+
+
 def _stamp_context_cip(
     rw: object,
     parent: object,
@@ -148,6 +172,7 @@ def _stamp_context_cip(
             raise ValueError(
                 f"fragment atom {local_idx} maps to parent atom {parent_idx} of a different element"
             )
+        rw.GetAtomWithIdx(local_idx).SetIntProp(_ORIGIN_ATOM, parent_idx)
         code = atom_codes.get(parent_idx)
         if code is not None:
             rw.GetAtomWithIdx(local_idx).SetProp(_PARENT_CIP, code)
