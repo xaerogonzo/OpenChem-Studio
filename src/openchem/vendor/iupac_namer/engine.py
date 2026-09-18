@@ -10120,6 +10120,26 @@ def _heteroaryl_substituent_with_locant(
                     # Strip trailing dash if present
                     if _base.endswith("-"):
                         _base = _base[:-1]
+                    # CARRY THE INDICATED HYDROGEN of an N-H ring, as the
+                    # tautomer branch above already does. This branch built
+                    # `indol-2-yl` from the substituent form "indolyl" and
+                    # dropped the "1H-" of the ring's name, where the PIN is
+                    # `1H-indol-2-yl` (naming round 2's open item, and
+                    # cid14000's `2-(indol-3-yl)ethyl`). Gated on an [nH] in
+                    # the curated key: that is the case where the hydrogen is
+                    # a fact of the fragment rather than a choice among
+                    # tautomers, and it keeps carbocyclic indicated-H rings
+                    # (indene and friends) out of a change not measured on
+                    # them.
+                    import re as _re_ih
+                    _curated_name = str(_curated.get("name", ""))
+                    _ih_match = _re_ih.match(r"^(\d+[a-z]?H-)", _curated_name)
+                    if (
+                        _ih_match
+                        and "[nH]" in _frag_smiles
+                        and not _re_ih.match(r"^\d+[a-z]?H-", _base)
+                    ):
+                        _base = _ih_match.group(1) + _base
                     return f"{_base}-{_loc_str}-{fv_suffix}"
     except Exception:
         pass  # fall through to generic path

@@ -3307,6 +3307,15 @@ def _render_simple_carbon(
     group = _name_as_substituent(mol, c_idx, strategy, session, depth)
     locant, group_stem = _split_substituent_locant(group)
     if group_stem is not None and locant is not None:
+        # P-14.3.4 (a): "'1' is omitted ... in substituted mononuclear parent
+        # hydrides" -- methanide (PIN), and so phenylmethanide, where this
+        # emitted phenylmethan-1-ide (naming round 4, A3). The uncontracted
+        # substituent form states the locant on purpose (see above), so it
+        # is removed here, for a methane parent only: a longer chain keeps
+        # it (propan-1-ide), and the other omission cases were not
+        # adjudicated for these suffixes.
+        if suffix == "ide" and locant == 1 and group_stem.endswith("methan-1-"):
+            return f"{group_stem[:-len('-1-')]}{suffix}"
         return f"{group_stem}{suffix}"
 
     # A multi-word parent is a functional-class or additive name -- "pyridine
@@ -3713,7 +3722,41 @@ def _render_diazonium(
     if parent_name is None:
         return None
     locant = 1
+    if _locant_one_omitted(parent_smiles):
+        # P-14.3.4 (a)-(c): methanediazonium (PIN); a monosubstituted
+        # homogeneous monocycle or two-atom chain omits it too, so
+        # benzenediazonium, where this emitted benzene-1-diazonium.
+        return f"{parent_name}diazonium"
     return _splice_diazonium(parent_name, locant)
+
+
+def _locant_one_omitted(parent_smiles: str) -> bool:
+    """P-14.3.4: is locant 1 omitted for a single suffix on this parent?
+
+    Decided on the parent SKELETON the suffix replaces a hydrogen of, which
+    for this renderer carries no other substituent when it is one of:
+
+      (a) a mononuclear parent hydride            methane
+      (b) a homogeneous chain of two atoms        ethane
+      (c) a homogeneous monocycle                 benzene, cyclohexane
+
+    Anything else -- a substituted ring, a longer chain -- keeps its locant.
+    """
+    from rdkit import Chem
+
+    parent = Chem.MolFromSmiles(parent_smiles)
+    if parent is None:
+        return False
+    atoms = list(parent.GetAtoms())
+    elements = {a.GetSymbol() for a in atoms}
+    if len(elements) != 1:
+        return False
+    if len(atoms) == 1:
+        return True
+    ring_info = parent.GetRingInfo()
+    if len(atoms) == 2 and ring_info.NumRings() == 0:
+        return True
+    return ring_info.NumRings() == 1 and all(a.IsInRing() for a in atoms)
 
 
 def _splice_diazonium(parent_name: str, locant: int) -> str:

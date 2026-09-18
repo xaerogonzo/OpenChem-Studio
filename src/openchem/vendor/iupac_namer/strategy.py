@@ -613,7 +613,9 @@ class IUPACCanonical(NamingStrategy):
             float(self._pcg_seniority_score(plan.pcg_type, plan.pcg_instances)),
             float(self._parent_selection_score(plan, include_substituent_count=False)),
             float(self._retained_ring_seniority_score(plan.named_parent)),
-            float(self._naming_method_score(plan.named_parent)),
+            float(self._fusion_method_rank(
+                plan.named_parent, self._naming_method_score(plan.named_parent)
+            )),
             len(plan.prefix_assignments),
             hetero,
             suffix,
@@ -1064,6 +1066,45 @@ class IUPACCanonical(NamingStrategy):
             # P-14.4 (g) is applied on executed names instead.
             "alpha_first_score": alpha_first_score,
         }
+
+    #: Ring-naming methods that produce FUSION names (P-25), including bridged
+    #: fused names (P-25.4). See `_fusion_method_rank`.
+    _FUSION_FAMILY_METHODS = frozenset({
+        "systematic", "fused_hetero_hydro", "benzo_fused_bridged", "methylenedioxy_bridge",
+    })
+    #: Above von Baeyer (1.2) and below every monocyclic method that could
+    #: compete for the same atoms (Hantzsch-Widman 50, replacement 40, ...).
+    _FUSION_ALLOWED_RANK = 3.0
+    #: Below von Baeyer, when P-52.2.4.1 forbids the fusion name.
+    _FUSION_FORBIDDEN_RANK = 1.1
+
+    def _fusion_method_rank(self, named_parent, rank: float) -> float:
+        """The naming-method rank as an ORDERING, for the preference key only.
+
+        P-52.2.4.1 (p. 450): "Fusion nomenclature gives preferred IUPAC names
+        only to compounds having at least two rings of at least five or more
+        members ... When fusion names are not allowed, unsaturated von Baeyer
+        ring system names are preferred IUPAC names" -- the book's own example
+        is bicyclo[4.1.0]hepta-1,3,5-triene (PIN) for cyclopropabenzene.
+
+        The rank table below was calibrated for the legacy float, where a
+        method counted x0.01 and the table was a nudge: fused `systematic` at
+        0.9 sat below `von_baeyer` at 1.2 harmlessly, and
+        `benzo_fused_bridged` was missing and defaulted to 0.5. Read as a
+        lexicographic tier those numbers put von Baeyer ahead of fusion
+        (10 vendored tests, naming round 4). So a fusion-family method is
+        re-ranked here by the rule, not by nudging the table -- and only
+        here, which keeps `score_plan` and `LegacyScoreKey` exact.
+        """
+        if named_parent.naming_method not in self._FUSION_FAMILY_METHODS:
+            return rank
+        rs = named_parent.candidate.ring_system
+        if rs is None or len(rs.rings) < 2:
+            return rank
+        big_rings = sum(1 for ring in rs.rings if len(ring) >= 5)
+        if big_rings >= 2:
+            return max(rank, self._FUSION_ALLOWED_RANK)
+        return min(rank, self._FUSION_FORBIDDEN_RANK)
 
     def _naming_method_score(self, named_parent) -> float:
         """Preference ordering for naming methods (Band 1, × 0.01).

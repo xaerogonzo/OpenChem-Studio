@@ -73,7 +73,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "isobutan-1-ylium", "charge moved to a methyl carbon"),
     ("D-005d", "[CH2+]C1CCCCC1", "cyclohexylmethan-1-ylium",
      "methylcyclohexan-1-ylium", "charge moved onto the ring"),
-    ("D-005e", "[CH2-]C1CCCCC1", "cyclohexylmethan-1-ide",
+    # Expected moved in round 4: P-14.3.4 (a), naming round 4 (D-039).
+    ("D-005e", "[CH2-]C1CCCCC1", "cyclohexylmethanide",
      "methylcyclohexan-1-ide", "charge moved onto the ring"),
     ("D-005f", "[CH2+]CC(C)C", "3-methylbutan-1-ylium",
      "2-methylbutan-1-ylium", "branch locant numbered from the wrong end"),
@@ -93,7 +94,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # well (phenylmethan-1-yl, prop-2-en-1-yl, ethen-1-yl).
     ("D-002", "[CH2+]c1ccccc1", "phenylmethan-1-ylium",
      "methylbenzene", "charge dropped; toluene"),
-    ("D-011", "[CH2-]c1ccccc1", "phenylmethan-1-ide",
+    # Expected moved in round 4: P-14.3.4 (a), naming round 4 (D-039).
+    ("D-011", "[CH2-]c1ccccc1", "phenylmethanide",
      "methylbenzene", "charge dropped; toluene"),
     ("D-009", "[CH2+]C=C", "prop-2-en-1-ylium",
      "prop-1-ene", "charge dropped; propene"),
@@ -182,7 +184,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # skeleton unclaimed, and unclaimed means neutralized.
     ("D-018", "[CH2+]c1ccncc1", "(pyridin-4-yl)methan-1-ylium",
      "4-methylpyridine", "charge dropped"),
-    ("D-018b", "[CH2-]c1ccncc1", "(pyridin-4-yl)methan-1-ide",
+    # Expected moved in round 4: P-14.3.4 (a), naming round 4 (D-039).
+    ("D-018b", "[CH2-]c1ccncc1", "(pyridin-4-yl)methanide",
      "4-methylpyridine", "charge dropped"),
     ("D-018c", "[CH2+]c1ccco1", "(furan-2-yl)methan-1-ylium",
      "2-methylfuran", "charge dropped"),
@@ -219,7 +222,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # the fused azolide was ALREADY correct as "1H-indol-1-ide". Routing it
     # through the ring-anion classifier changed it to "indol-1-ide", which
     # round-trips just as well. One right name replaced another.
-    ("D-015e", "[n-]1ccc2ccccc21", "indol-1-ide",
+    # Expected moved in round 4: the anion keeps its parent's indicated H, as the book's '1H-inden-1-ido' (p. 787); naming round 4 (D-040).
+    ("D-015e", "[n-]1ccc2ccccc21", "1H-indol-1-ide",
      "1H-indol-1-ide", "was already correct; wording changed"),
 
     # --- D-019: diazoalkane ylide ---------------------------------------
@@ -238,7 +242,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # C1, giving the 1-diazonio-2-ide -- a different molecule.
     ("D-019c", "C[C-](C)[N+]#N", "propan-2-id-2-yldiazonium",
      "<raised: partial_claim>", "attachment locant must be cited"),
-    ("D-019d", "[CH-](c1ccccc1)[N+]#N", "phenylmethan-1-id-1-yldiazonium",
+    # Expected moved in round 4: P-14.3.4 (a), as the unsubstituted methanidyldiazonium; OPSIN round-trips it.
+    ("D-019d", "[CH-](c1ccccc1)[N+]#N", "phenylmethanidyldiazonium",
      "<raised: partial_claim>", "as above"),
 
     # --- D-020: N-substituted guanidinium -------------------------------
@@ -297,8 +302,9 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-024", "[CH2+]c1cc[n+]([O-])cc1",
      "[1-(oxido)pyridin-1-ium-4-yl]methan-1-ylium",
      "(pyridin-4-yl)methan-1-ylium 1-oxide", "unparsable; oxide wrapped a cation"),
+    # Expected moved in round 4: P-14.3.4 (a), naming round 4 (D-039).
     ("D-024b", "[CH2-]c1cc[n+]([O-])cc1",
-     "[1-(oxido)pyridin-1-ium-4-yl]methan-1-ide",
+     "[1-(oxido)pyridin-1-ium-4-yl]methanide",
      "(unclaimed)", "same shape, anion"),
 
     # --- non-regression: additive names that MUST keep the two-word form
@@ -340,7 +346,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # --- non-regression: motifs the relaxed gate must NOT steal ---------
     ("D-013x", "[C+](C)=O", "acetylium", "acetylium", "unchanged"),
     ("D-013y", "CC(=[NH2+])N", "acetamidinium", "acetamidinium", "unchanged"),
-    ("D-013z", "CC[N+]#N", "ethane-1-diazonium", "ethane-1-diazonium",
+    # Expected moved in round 4: P-14.3.4 (b), naming round 4 (D-039).
+    ("D-013z", "CC[N+]#N", "ethanediazonium", "ethane-1-diazonium",
      "unchanged"),
     ("D-015x", "c1cc[nH]c1", "1H-pyrrole", "1H-pyrrole", "unchanged"),
     ("D-015y", "[O-][n+]1ccccc1", "pyridine 1-oxide", "pyridine 1-oxide",
@@ -846,6 +853,85 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "unchanged; P-15.1.7.1.5's own example"),
     ("D-038h", "Fc1cc(Cl)cc(Br)c1", "1-bromo-3-chloro-5-fluorobenzene",
      "1-bromo-3-chloro-5-fluorobenzene", "unchanged: three prefixes, symmetric set"),
+    # --- D-039: locant 1 cited where P-14.3.4 omits it -----------------------
+    # "'1' is omitted: (a) in substituted mononuclear parent hydrides; ...
+    # (b) in monosubstituted homogeneous chains consisting of only two
+    # identical atoms; ... (c) in monosubstituted homogeneous monocyclic
+    # rings". The charged-species renderers never applied it: the diazonium
+    # one hard-coded locant 1, the -ide one kept the uncontracted form.
+    ("D-039a", "N#[N+]c1ccccc1", "benzenediazonium", "benzene-1-diazonium", "(c)"),
+    ("D-039b", "C[N+]#N", "methanediazonium", "methane-1-diazonium",
+     "(a); the book's own example, 'methanediazonium (PIN)'"),
+    ("D-039c", "CC[N+]#N", "ethanediazonium", "ethane-1-diazonium", "(b)"),
+    ("D-039d", "N#[N+]C1CCCCC1", "cyclohexanediazonium", "cyclohexane-1-diazonium", "(c)"),
+    ("D-039e", "[CH2-]c1ccccc1", "phenylmethanide", "phenylmethan-1-ide",
+     "(a); 'methanide (PIN)'"),
+    ("D-039f", "[CH-](c1ccccc1)c1ccccc1", "diphenylmethanide", "diphenylmethan-1-ide",
+     "(a); the book prints diphenylmethanediide for the dianion"),
+    # Converses: where the locant is required, it stays.
+    ("D-039g", "CCC[N+]#N", "propane-1-diazonium", "propane-1-diazonium",
+     "converse: a three-atom chain keeps its locant"),
+    ("D-039h", "[CH2-]CC", "propan-1-ide", "propan-1-ide", "converse"),
+    # NOT adjudicated: the cation. Pinned as emitted so any change to it is a
+    # decision, not a side effect of the anion fix (which is scoped to -ide).
+    ("D-039i", "[CH2+]c1ccccc1", "phenylmethan-1-ylium", "phenylmethan-1-ylium",
+     "unadjudicated; pinned deliberately"),
+    # --- D-040: an N-H on a symmetry axis, and an indicated H dropped ------
+    # One family, one fix each, measured on the whole matrix. An [nH] in the
+    # curated ring's query pins the TAUTOMER, not the orientation, and the
+    # match was uniquified -- which collapses mirror orientations over the
+    # same atom set, so 9H-carbazole kept one numbering and read 1 as 8.
+    # N-methylcarbazole had no [nH] in its query and was always right. The
+    # substituent branch dropped the ring's "1H-" (indol-2-yl), where the
+    # tautomer branch beside it already carried it.
+    ("D-040a", "Oc1cccc2c1[nH]c1ccccc12", "9H-carbazol-1-ol", "9H-carbazol-8-ol", ""),
+    ("D-040b", "Oc1ccc2c(c1)[nH]c1ccccc12", "9H-carbazol-2-ol", "9H-carbazol-7-ol", ""),
+    ("D-040c", "Oc1ccc2[nH]c3ccccc3c2c1", "9H-carbazol-3-ol", "9H-carbazol-6-ol", ""),
+    ("D-040d", "Oc1cccc2[nH]c3ccccc3c12", "9H-carbazol-4-ol", "9H-carbazol-5-ol", ""),
+    ("D-040e", "CC(C)=CCCC(C)=CCc1c(O)c(C)cc2c1[nH]c1ccccc12",
+     "1-(3,7-dimethylocta-2,6-dien-1-yl)-3-methyl-9H-carbazol-2-ol",
+     "8-(3,7-dimethylocta-2,6-dien-1-yl)-6-methyl-9H-carbazol-7-ol",
+     "held-out cid4000; now its adjudicated target exactly"),
+    ("D-040f", "OC(=O)c1ccc(cc1)c1cc2ccccc2[nH]1", "4-(1H-indol-2-yl)benzoic acid",
+     "4-(indol-2-yl)benzoic acid", "naming round 2's open item"),
+    ("D-040g", "OC(=O)c1ccc(cc1)-c1n[nH]c2ccccc12", "4-(1H-indazol-3-yl)benzoic acid",
+     "4-(indazol-3-yl)benzoic acid", "generalisation, found by the matrix"),
+    # Non-regression: N-substituted forms, a substituent on the other ring,
+    # and the tautomer-sensitive rings that the un-uniquify must not un-pin.
+    ("D-040h", "Oc1cccc2c1n(C)c1ccccc12", "9-methyl-9H-carbazol-1-ol",
+     "9-methyl-9H-carbazol-1-ol", "unchanged"),
+    ("D-040i", "OC(=O)c1ccc(cc1)c1cc2ccccc2n1C", "4-(1-methyl-1H-indol-2-yl)benzoic acid",
+     "4-(1-methyl-1H-indol-2-yl)benzoic acid", "unchanged"),
+    ("D-040j", "OC(=O)c1ccc(cc1)-c1ccc2[nH]c3ccccc3c2c1", "4-(9H-carbazol-3-yl)benzoic acid",
+     "4-(9H-carbazol-3-yl)benzoic acid", "unchanged"),
+    ("D-040k", "Clc1ccc2[nH]cnc2c1", "5-chloro-1H-benzimidazole",
+     "5-chloro-1H-benzimidazole", "unchanged: the tautomer stays pinned"),
+    ("D-040l", "Clc1ccc2nc[nH]c2c1", "6-chloro-1H-benzimidazole",
+     "6-chloro-1H-benzimidazole", "unchanged: and its other tautomer stays distinct"),
+    ("D-040m", "OC(=O)c1ccc(cc1)-c1c[nH]cn1", "4-(1H-imidazol-4-yl)benzoic acid",
+     "4-(1H-imidazol-4-yl)benzoic acid", "unchanged"),
+    # --- D-041: fusion names versus von Baeyer, by P-52.2.4.1 ---------------
+    # "Fusion nomenclature gives preferred IUPAC names only to compounds
+    # having at least two rings of at least five or more members ... When
+    # fusion names are not allowed, unsaturated von Baeyer ring system names
+    # are preferred". The naming-method ranks were a x0.01 nudge in the
+    # ranking float; read as a lexicographic tier they put von Baeyer (1.2)
+    # ahead of fused `systematic` (0.9) and unlisted `benzo_fused_bridged`
+    # (0.5). Found by the vendored suite, not the benchmark.
+    ("D-041a", "c1ccc2cc3c(cc2c1)SCS3", "[1,3]dithiolo[4,5-b]naphthalene",
+     "4,6-dithiatricyclo[7.4.0.0^{3,7}]trideca-1(13),2,7,9,11-pentaene",
+     "fusion allowed, so the fusion name (the pre-5b answer, restored)"),
+    ("D-041b", "OC1=CC=C2C(=C1)C1CCCCCC2C1",
+     "5,6,7,8,9,10,11-heptahydro-5,11-methanobenzocyclononen-2-ol",
+     "tricyclo[6.5.1.0^{2,7}]tetradeca-2,4,6-trien-4-ol",
+     "a bridged fused name is a fusion name (P-25.4)"),
+    ("D-041c", "C1=CC=C2CC2=C1", "bicyclo[4.1.0]hepta-1,3,5-triene",
+     "bicyclo[4.1.0]hepta-1,3,5-triene",
+     "the converse, and the book's own PIN: a three-membered partner forbids fusion"),
+    ("D-041d", "CC12CCC3C(CCC4CCCCC34C)C1CCC2(C)O",
+     "10,13,17-trimethylhexadecahydro-1H-cyclopenta[a]phenanthren-17-ol",
+     "1,5,6-trimethyltetracyclo[11.4.0.0^{2,10}.0^{5,9}]heptadecan-6-ol",
+     "the steroid class (cid19000's shape); the exact hydro form is stage A7's"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

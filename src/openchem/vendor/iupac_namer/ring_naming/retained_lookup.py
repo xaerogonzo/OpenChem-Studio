@@ -3610,8 +3610,23 @@ def _build_numbering_from_atom_locants(
             a.GetAtomicNum() not in (1, 6) for a in ring_mol.GetAtoms()
         )
         ring_has_explicit_nh = "[nH]" in ring_smi if ring_smi else False
-        # uniquify=True only when heteroatoms AND an [nH] anchor pin the match
-        use_uniquify = ring_has_heteroatoms and ring_has_explicit_nh
+        # AN [nH] PINS THE TAUTOMER, NOT THE ORIENTATION. This used
+        # uniquify=True whenever the query had an [nH], on the premise that
+        # the anchor leaves a single match. uniquify collapses matches that
+        # cover the same ATOM SET, and a mirror orientation covers the same
+        # set: when the N-H lies on the ring system's symmetry axis (9H-
+        # carbazole's N9) the anchor fixes the tautomer and both mirrors
+        # survive it, so uniquify discarded one -- and 9H-carbazol-1-ol came
+        # out 9H-carbazol-8-ol (naming round 4, A3). N-methylcarbazole has no
+        # [nH] in its query and always got both. Every match the SMARTS
+        # returns maps the query's [nH] onto an N-H of the molecule, so all of
+        # them are legitimate numberings of the SAME tautomer.
+        use_uniquify = False
+        # The bond-generic supplement below matches element and degree only,
+        # so it would map the [nH] onto a bare ring N and un-pin the tautomer.
+        # It stays off for [nH] rings, which is what the old uniquify gate
+        # achieved as a side effect.
+        pinned_by_nh = ring_has_heteroatoms and ring_has_explicit_nh
 
         # Tautomer-tolerant fallback query: replace [nH] with n in the canonical
         # SMILES so the SMARTS doesn't enforce a specific NH location on aromatic
@@ -3691,7 +3706,7 @@ def _build_numbering_from_atom_locants(
             # are added.  Skipped when uniquify pinned a single NH-anchored
             # orientation (heterocycles with explicit [nH] have a unique
             # tautomer numbering and must not be loosened).
-            if ring_query_generic is not None and not use_uniquify:
+            if ring_query_generic is not None and not pinned_by_nh:
                 try:
                     generic_matches = list(
                         mol.GetSubstructMatches(ring_query_generic, uniquify=False)
