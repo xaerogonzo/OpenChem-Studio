@@ -39,9 +39,10 @@ Two of those fall-through reasons now raise instead of neutralizing — see
 
 **None.** Every severity-A defect found by the sweeps, the benchmark, the
 corpus extension and the held-out corpus has been fixed; the table in
-`tests/test_namer_known_defects.py` holds 86 of them plus 50 non-regression
-rows guarding the paths those fixes could have stolen from, over 26 distinct
-defect numbers.
+`tests/test_namer_known_defects.py` holds 491 rows over 77 distinct defect
+numbers (measured 2026-09-18, after naming round 4): each defect's own rows,
+and the converse and non-regression rows guarding the paths its fix could
+have stolen from.
 
 That is a statement about what has been *looked for*, not a claim that none
 exists. The instrument that found most of them is still in the box: set
@@ -272,7 +273,23 @@ returning `(azanylidyne)(methyl)azanium`. On the benchmark diazomethane moved
 `wrong_structure -> no_prediction`; the score is unchanged at 120/124 because
 both are failures, but one of them was lying.
 
-## Substituent locants the tree cannot supply (open, 2026-09-17)
+## Substituent locants the tree cannot supply (CLOSED in round 4, A12)
+
+The carve now stamps each fragment atom with the index it was carved from
+(`extraction.fragment_origin`, checked injective and element-preserving),
+every `PrefixEntry` carries that map, and `structure_annotation` composes the
+maps down the tree, so a prefix subtree's own numbering lands on the drawing
+as `LocantSource.SUBSTITUENT`, with the prefix it numbers. Over the
+187-molecule corpus heavy-atom locant coverage went from 38.5% to 47.5%, and
+naproxen's naphthalene -- which the ring table had numbered as its mirror
+image, methoxy carbon "2" and attachment "6", against "6-methoxynaphthalen-
+2-yl" -- is now numbered as its name says (the only relabelled atoms, in two
+rows). The ring-table path reads the engine's built table, which fills
+indole's 3a/7a. What remains: special-shape prefixes built as bare strings
+(the amide N-substituent compound "amino" forms) carry no numbering, and a
+one-atom substituent's "1" is deliberately not drawn. The record of the
+problem as it stood follows.
+
 
 A ring system inside a SUBSTITUENT gets no locants on the depiction, so
 fentanyl's piperidine and both its phenyls are unnumbered while its acetyl
@@ -318,6 +335,57 @@ Found while checking D-029; predates it.
   non-minimal lambda numbering and three general-nomenclature-only acylium
   names; the engine's output is correct in every case. See `CHANGELOG.md`.
 
+## Open after naming round 4 (2026-09-18)
+
+Round 3's table below is closed except for one row: chloroquine, warfarin,
+caffeine, 1,4-xylene, the sulfoxides, the N-oxide locant and cid14000's double
+wrapping are all fixed, each with a `D-0xx` row in
+`tests/test_namer_known_defects.py` (D-038..D-082 are round 4's). The float
+comparator is gone too (stage 5, `NomenclaturePreferenceKey`), and so is the
+strategy that the cache key ignored (A11). What remains, by layer. Every
+target here was checked against the book on the page cited; none is guessed.
+
+| layer | case | emits | preferred | note |
+|---|---|---|---|---|
+| candidate generation | heterofused systems not in the ring table | von Baeyer names | fusion names | cid5000, cid40000, the book's 2-benzazepine: general fusion construction (P-25.3), round 5 |
+| candidate generation | multiplicative names | `N''-{14-[(diaminomethylidene)amino]tetradecyl}guanidine` | a multiplicative bis-guanidine | also methylenebis(phosphonic acid) and N'-acyl hydrazides (`N'-benzoylbenzohydrazide (PIN)`, p. 671). Admitting an acylated N' into the hydrazide pattern named a WRONG molecule, so it is held out |
+| candidate generation | hydrazine as a parent hydride | `1-(hydrazinyl)methanamide` | `hydrazinecarboxamide (PIN)` (p. 645) | and the carbazates, `ethyl hydrazinecarboxylate` |
+| candidate generation | N-substituted nitrogen oxoacids | `[(hydroxysulfonyl)amino]methane` | `methylsulfamic acid` | the oxoacid composers decline and the general path names a hydride |
+| retained parents | oxamide, oxalohydrazide | `ethanediamide`, `ethanedihydrazide` | `oxamide (PIN)`, `oxalohydrazide (PIN)` (pp. 351, 668) | substitution allowed on both |
+| retained parents | silicic acid, disiloxane | `tetrahydroxysilane`, `trimethyl(trimethylsilyloxy)silane` | `silicic acid`, `hexamethyldisiloxane` | the second is round 3's last open row |
+| PCG seniority | an amide on a urea N | `N-benzoylurea` | `N-carbamoylbenzamide (PIN)` (p. 661) | the engine ranks urea's carbonic amide WITH carboxylic amides; declining the urea route produced `1-amino-N-benzoylmethanamide`, so the urea gate stops at acids (D-078k holds it) |
+| PCG assignment | a chain-terminal amidine carbon | `4-carbamimidoylbutanoic acid` | amino + imino prefixes, as "methyl 4-(dimethylamino)-4-(ethylimino)butanoate (PIN)" (P-66.4.1.3.2, p. 677) | when the amidine carbon terminates a chain |
+| PCG assignment | a silanol with an alcohol elsewhere | `2-[(hydroxy)di(methyl)silyl]ethan-1-ol` | a silanol parent (P-44.1.2, Si before C) | the single-centre route declines on any same-class group rather than count them |
+| PCG assignment | hydroxamic acids | `cyclohexanecarbohydroxamic acid` | `N-hydroxycyclohexanecarboxamide (PIN)` (p. 587) | |
+| numbering | tetrahydropyridines | `1,2,5,6-` | `1,2,3,6-tetrahydropyridine-4-carboxylic acid` | ranks ring double bonds, not hydro locants |
+| numbering | `pyridin-1(6H)-yl` | the old name | its lowest orientation | the free valence is not in the preference key, so the P-58.2 route declines |
+| data | 32 ring-table entries | -- | -- | they number only some positions; a substituent elsewhere had an empty locant. Guarded (the plan is refused), not repaired |
+| serialization | thioacyl amino prefixes | `4-(ethanethioylamino)benzamide` | `4-(ethanethioamido)benzamide (PIN)` (p. 657) | a compound thioacyl is also left unenclosed |
+| serialization | phosphoryl prefixes | `[diethyl(oxo)phosphanyl]acetic acid` | `(diethylphosphoryl)acetic acid` | "phosphoryl (preselected prefix)" for -PO< (p. 357), substituted as in "[(dimethoxyphosphoryl)oxy]carbonothioyl (preferred prefix)" (p. 359) |
+| serialization | tert-butyl | `dimethyl(2-methylpropan-2-yl)silanol` | `tert-butyldi(methyl)...` (pp. 313, 375) | the book prints tert-butyl in PINs |
+
+Also open, and not a name defect:
+
+* **The atom-drop invariant has gaps.** Twice this round a change made the
+  engine drop atoms and still return a name, and the plan-level atom-drop
+  invariant caught neither: an FG with no prefix form that was not the
+  principal group vanished with its atoms ("pentanoic acid" for an oxime acid),
+  and an Si-OH suffix class (abandoned) named trimethylsilanol
+  "hydroxymethane". Both were caught by a round trip, after the fact. A check
+  that the finished tree accounts for every atom would catch the next one.
+* **The registry.** `tools/retained_name_audit.py` now fails closed on
+  impossible claims, and 18 PINs, 26 non-PIN retained names and 15 book-absent
+  names are typed; 251 entries still have no audited status. Separately,
+  `data/opsin_extracted/retained_names_from_opsin.json` holds 1,824 names taken
+  from OPSIN's parse dictionary that feed whole-molecule naming unaudited
+  (fluorouracil among them): a parser's vocabulary is not evidence of a PIN.
+* **The book contradicts itself once, and the rule was followed.** Its prefix
+  list prints `2,3-dihydro-1H-isoindol-2-yl` (p. 344); P-58.2.3.1.1 and the
+  worked analysis on p. 499 give `2H-isoindol-2-yl`. The engine emits the
+  latter; the test row says why.
+* **Depiction.** Substituent numbering now reaches the drawing (A12), except
+  from compound amino prefixes assembled as strings, which carry no tree.
+
 ## Open after naming round 3 (2026-09-17)
 
 Each of these is adjudicated -- the target is known and quoted in
@@ -338,10 +406,12 @@ all look like "the comparator picked wrong" live in different places.
 
 Architecture, deliberately deferred rather than half-done:
 
-* **The preference cascade is still a float with hand-tuned bands.** None of
-  the four flagship defects turned out to be a ranking error, so replacing it
-  with a lexicographic key is hygiene rather than a fix -- still worth doing,
-  and planned as its own change with an ordering-equivalence proof.
+* ~~The preference cascade is still a float with hand-tuned bands.~~ Closed
+  in naming round 4 (stage 5): `LegacyScoreKey` first, proved decision-
+  identical on both corpora, then `NomenclaturePreferenceKey`, whose every
+  reorder was enumerated. It was not only hygiene after all: it found
+  cid19000's fusion candidate generated and outranked by locant sums, and the
+  alphanumerical tie-break keyed on FG type rather than names (D-038).
 * ~~The strategy is not in the session cache key, and `IUPACCanonical()` is
   hard-constructed at 11 sites.~~ Closed in naming round 4 (A11): a
   top-level call binds its strategy, every helper reads `active_strategy()`,

@@ -277,6 +277,45 @@ def _classify(rows: list[dict], named: list[dict]) -> None:
         record["outcome"] = score.classify(row, record["name"])
 
 
+def _adjudicated_targets() -> dict[str, str]:
+    """{canonical SMILES: adjudicated preferred name} for every row of
+    `adjudication.toml` whose preferred name is settled. Keyed by canonical
+    SMILES so a row matches however either file happens to write it."""
+    import tomllib
+
+    from rdkit import Chem
+
+    path = BENCH / "adjudication.toml"
+    if not path.exists():
+        return {}
+    targets: dict[str, str] = {}
+    for row in tomllib.loads(path.read_text(encoding="utf-8")).get("row", []):
+        preferred = row.get("preferred_name")
+        mol = Chem.MolFromSmiles(row.get("smiles", "")) if preferred else None
+        if mol is not None:
+            targets[Chem.MolToSmiles(mol)] = preferred
+    return targets
+
+
+def _preferred_scores(named: list[dict], targets: dict[str, str]) -> dict:
+    """The two agreements a PubChem-verbatim count cannot show: the engine
+    against the adjudicated preferred name, and PubChem against it (round 4,
+    A13). Counted over the rows that HAVE a settled target, which is the
+    denominator; an evaluation-only population has none by construction."""
+    from rdkit import Chem
+
+    rows = engine = pubchem = 0
+    for record in named:
+        mol = Chem.MolFromSmiles(record["smiles"])
+        target = targets.get(Chem.MolToSmiles(mol)) if mol is not None else None
+        if target is None:
+            continue
+        rows += 1
+        engine += record["name"] == target
+        pubchem += record["pubchem_name"] == target
+    return {"adjudicated_rows": rows, "engine": engine, "pubchem": pubchem}
+
+
 def build(stage: str, *, allow_no_java: bool, final_evaluation: bool = False) -> dict:
     provenance = _provenance(stage)
     if provenance["java"] == "ABSENT" and not allow_no_java:
@@ -288,6 +327,7 @@ def build(stage: str, *, allow_no_java: bool, final_evaluation: bool = False) ->
         )
 
     provenance["final_evaluation"] = final_evaluation
+    targets = _adjudicated_targets()
     populations = {}
     for key in active_populations(final_evaluation=final_evaluation):
         filename, rows = load_population(key, final_evaluation=final_evaluation)
@@ -314,7 +354,7 @@ def build(stage: str, *, allow_no_java: bool, final_evaluation: bool = False) ->
             # IUPAC Name is generated, not curated. The adjudicated count is a
             # separate field, added once adjudication exists.
             "pubchem_verbatim_exact": verbatim,
-            "adjudicated_preferred_exact": None,
+            "adjudicated_preferred_exact": _preferred_scores(named, targets),
             "records": named,
         }
     return {**provenance, "populations": populations}
@@ -415,6 +455,13 @@ def main() -> None:
             f"  {key:11s} verbatim={population['pubchem_verbatim_exact']:3d}/{n}  "
             + "  ".join(f"{k}={v}/{n}" for k, v in sorted(population["outcomes"].items()))
         )
+        preferred = population["adjudicated_preferred_exact"]
+        if preferred and preferred["adjudicated_rows"]:
+            m = preferred["adjudicated_rows"]
+            print(
+                f"  {'':11s} preferred: engine={preferred['engine']}/{m}  "
+                f"pubchem={preferred['pubchem']}/{m}  (rows with a settled target)"
+            )
     print(f"-> {out}")
 
     if args.compare:

@@ -101,3 +101,23 @@ def test_the_freeze_record_says_what_the_policy_is():
     assert meta["engine_consulted"] is False
     assert meta["rows"] == 40
     assert "evaluation only" in meta["inspection_policy"]
+
+
+def test_the_preferred_score_counts_only_rows_with_a_settled_target():
+    """Round 4 (A13): the engine and PubChem are each scored against the
+    adjudicated preferred name, over the rows that have one. A row with no
+    settled target is not in the denominator, so a population nobody
+    adjudicated (the evaluation-only one) reports zero rows, not zero right."""
+    import naming_stage_artifact as tool
+
+    targets = {"CCO": "ethanol", "C[Si](C)(C)O": "trimethylsilanol"}
+    named = [
+        {"smiles": "OCC", "name": "ethanol", "pubchem_name": "ethanol"},
+        {"smiles": "C[Si](C)(C)O", "name": "trimethylsilanol",
+         "pubchem_name": "hydroxy(trimethyl)silane"},
+        {"smiles": "CC", "name": "ethane", "pubchem_name": "ethane"},
+    ]
+    assert tool._preferred_scores(named, targets) == {
+        "adjudicated_rows": 2, "engine": 2, "pubchem": 1,
+    }
+    assert tool._preferred_scores(named, {})["adjudicated_rows"] == 0

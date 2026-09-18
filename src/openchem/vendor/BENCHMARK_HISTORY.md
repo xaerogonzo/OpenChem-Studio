@@ -179,3 +179,53 @@ right molecule. Those defects are pinned by exact-name rows in
 Stage records for every row are in `benchmarks/naming/stages/`. The held-out
 PubChem-verbatim count stayed at 14/40 throughout, which is the honest
 generalisation signal: every fix here was made on the regression corpus.
+
+## 2026-09-18 -- naming round 4: 187/187 throughout; verbatim 98 -> 101; the fresh held-out set 9 -> 15
+
+Three populations, and only the last one is a generalisation number
+(`benchmarks/naming/README.md`). Round-trip correctness never moved from
+187/187 and 40/40 on the two active sets; what moved is agreement with a
+name, which the round trip cannot see.
+
+| stage | regression verbatim | heldout_v1 verbatim | what moved |
+|---|---|---|---|
+| baseline (99b6281) | 98/187 | 14/40 | -- |
+| stage 5a/5b comparator | 98 | 14 | decisions identical under 5a; 5b's two reorders enumerated |
+| A3 N-H numbering, locant omission | 99 | 14 | benzenediazonium; cid4000 at its target |
+| A4 retained parents | 100 | 14 | 1,4-xylene |
+| A5 P-58.2 hydrogens | 101 | 14 | |
+| A5b esters, aminium | 100 | 14 | methylammonium LOST verbatim to the book's `methanaminium` |
+| A5c/A5d | 100 | 14 | chloroquine to its adjudicated name |
+| A9a enclosing marks, alkoxy | 102 | 15 | |
+| A9b locants, amido | 100 | 14 | four acetate-locant losses where PubChem keeps "2-" and the book drops it |
+| A9c preferred prefixes | 100 | 15 | |
+| A10, A8, A7 | 100 | 15 | no corpus row at their targets; the defect table carries them |
+| A6 heteroatom parents | 101 | 16 | trimethylsilanol, phenylboronic acid, cid32000; cid55000's dihydrazide |
+| A11, A12 | 101 | 16 | no names changed (0/187, 0/40) |
+
+Every stage's record is in `benchmarks/naming/stages/r4-*.json`, including
+the count of changed winning hypotheses, so a stage that changed decisions
+without changing text is visible too.
+
+### The final evaluation (`--final-evaluation`, stage r4-final)
+
+| population | round trip | PubChem verbatim | engine = adjudicated PIN | PubChem = adjudicated PIN |
+|---|---|---|---|---|
+| regression (187) | 187/187 | 98 -> **101** | **28/30** | 15/30 |
+| heldout_v1, used for tuning (40) | 40/40 | 14 -> **16** | **14/16** | 5/16 |
+| heldout_v2, fresh (40) | 40/40 -> 40/40 | **9 -> 15** | not adjudicated | not adjudicated |
+
+The v2 "before" is the baseline commit scored on the same frozen set after
+the round (`r4-baseline-v2-final.json`), in aggregate: nothing in v2 was
+looked at row by row, before or after. Its +6 is larger than either set the
+round was tuned on, which is the evidence the fixes are rules rather than
+rows.
+
+The preferred-name columns are over rows with a SETTLED target in
+`adjudication.toml`. PubChem agreeing with the adjudicated PIN on only half of
+them is why the verbatim column is reported but not optimised: A5b and A9b
+each LOST verbatim matches by moving to the book's form.
+
+heldout_v2's round-5 candidates: no structural failure (0 wrong structures,
+0 unparsable); 25 rows differ from PubChem and are unadjudicated, so they are
+candidates for round 5's adjudication, not defects yet.

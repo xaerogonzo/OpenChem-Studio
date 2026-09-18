@@ -937,3 +937,104 @@ later call in the process returned the stripped name after Java became
 available. Keyed on `(name, strip_modes)` now, and only a verdict OPSIN
 confirmed is cached. Found by auditing every cache on the naming path; the
 test that pins it fails under the old behaviour.
+
+## 2026-09-18 - naming round 4: preference by the book's criteria, and parents the engine could not reach
+
+Every target was settled against BlueBookV2.pdf BEFORE its code changed
+(`benchmarks/naming/adjudication.toml`, schema 2: each rule quoted once with
+its page, rows referencing it), and every fix carries a `D-0xx` row set in
+`tests/test_namer_known_defects.py` -- the defect, generalisation rows, a
+converse, and a negative control -- mutation-checked by reverting the fix and
+watching the rows go red. D-038 to D-082. The commit messages carry the
+detail; this is the map.
+
+**Evaluation discipline.** The round-3 held-out set is now USED (its rows were
+fix targets) and says so in `heldout.meta.json`. A fresh one, `heldout2.json`,
+was drawn by the same filter before anything in the round was looked at,
+hashed, and LOCKED: the stage tool refuses to load it outside
+`--final-evaluation`, and a test fails if another script names it. Its first
+draw admitted 15 rows because PubChem's 503s were skipped as missing records;
+503s are now retried, and that draw was discarded unseen.
+
+**The comparator (stage 5, D-038, D-041).** Plans are ranked by a typed key.
+`LegacyScoreKey` wrapped the old float and was proved decision-identical on
+both corpora (0 names and 0 winning hypotheses changed) before
+`NomenclaturePreferenceKey` replaced it: declared tiers built from the same
+components the float summed. Every reorder was enumerated. It found the
+alphanumerical tie-break keyed on FG TYPE (every carbon prefix was "z", so
+P-14.5.1's own printed example came out wrong), numbering compared as locant
+SUMS, cid19000's fusion candidate generated and outranked, and naming methods
+ranked by guesswork where P-52.2.4.1 decides fusion versus von Baeyer.
+
+**Numbering (D-039..D-041).** An `[nH]` pins the tautomer, not the orientation:
+uniquifying the ring match dropped carbazole's mirror numbering (held-out
+cid4000 was numbered from the far ring) and the `1H-` of indol-2-yl. P-14.3.4's
+locant-1 omissions applied to the charged renderers.
+
+**Retained parents and the registry (D-042..D-044).** Phenol, aniline,
+benzaldehyde and acetaldehyde are substitutable PINs; the xylenes were ADDED.
+The registry gains typed evidence and applicability fields, and
+`tools/retained_name_audit.py` FAILS CLOSED on impossible claims (a PIN backed
+only by a parser, a whole-molecule-only name used as a parent). Eight names
+were demoted, SUCCINIMIDE among them: this file had called it "a genuine PIN
+with a correct P-66.2 citation"; the cited paragraph prints
+`pyrrolidine-2,5-dione (PIN)` and forbids substituting succinimide.
+
+**Principal groups (A5, D-045..D-058).** P-58.2's procedure for indicated,
+added and hydro hydrogen, one planner instead of a guess per route (maleimide,
+caffeine's `3,7-dihydro-1H-purine-2,6-dione`, pyrimidine-4,6(1H,5H)-dione);
+15 hand-written ring-ketone entries corrected to it. Sulfonic esters by
+functional class, C-bound N+ as the aminium suffix, P-44.1.1's count of
+principal groups as its own tier (chloroquine's pentane-1,4-diamine), the
+alcohol/phenol and amine families merged, diazonium as a suffix on its
+carbon parent ("toluene-1-diazonium" did not parse).
+
+**Serialization (A9, D-059..D-064).** Enclosing marks by form rather than an
+allowlist; alkoxy contracted only for methoxy..butoxy and phenoxy
+(`(acetyloxy)`, never acetoxy); locant order italic before numeral
+(P-14.3.5 -- the code said the reverse and cited another rule); amido prefixes
+by method (1); the one-substitutable-position rule; benzyl, anilino and
+carbamoyl as preferred prefixes; carbamic acid's substituents unlocanted.
+
+**Round 3's carry-overs (A10, D-065) and saturated rings (A8, D-066).**
+Peroxides and disulfides by substitutive method (1); sulfoxides and sulfones
+as `(methanesulfinyl)methane`; diacyl dihalides; the amine oxide's `N-`
+locant. A saturated heteromonocycle takes its Hantzsch-Widman or retained
+saturated name over a hydro form (P-31.1.4.2.4).
+
+**Fused saturated parents (A7, D-067..D-074).** P-58.2 extended to
+single-bonded suffixes and free valences, but only on atoms with no hydrogen
+in the lowest-indicated-hydrogen mancude parent; P-14.3.4.5's omission of
+hydro locants; anthrone; ring `carbo-` suffixes keep locant 1. A new
+`ring_naming/fusion_locants.py` fills fusion carbons the ring table leaves
+out (161 of 186 complete entries reproduced; the rest are table errors or
+special numberings, which it declines). ELEVEN table locant maps were stored
+inverted -- the dihydrofuran and dihydropyrrole named a different molecule --
+and are fixed under a shape guard.
+
+**Nitrogen cores and heteroatom centres (A6, D-075..D-082).** Substituted
+hydrazides, amidines and guanidines take N/N'/N'' by role; one shared namer
+for urea, thiourea, guanidine, carbamic acid and single-centre parents, with
+a seniority gate and lowest-locant prime order; condensed guanidines as
+imidodicarbonimidic diamides (metformin's relative had been a different
+molecule); silanols, boron and pnictogen oxoacids, phosphanones (additive
+"phosphane oxide" declined: P-74.2.1.4 makes the lambda5-phosphanone the PIN)
+and diazenes. A primed numbered locant is `N'1`: OPSIN reads `N1'` as another
+position, and held-out cid55000 came back a different molecule.
+
+**Architecture (A11, A12).** One active strategy per call, in the cache key,
+with every fallback construction site gone and a source scan against new
+ones. The carve stamps each fragment atom with its origin and every prefix
+entry carries that map, so a substituent's own numbering reaches a caller's
+atoms (`fragment_origin`, `PrefixEntry.atom_origin`).
+
+**Tests that were wrong, not the engine.** 25 vendored test files changed
+this round (433 lines in, 87 out, most of it new rows); every expectation
+that MOVED was moved to the form the book prints on a cited page, and
+several had been written from a code comment's claim rather than from the
+book. The vendored suite ended the round with 0 failures.
+
+Benchmark: regression **187/187 round-trip throughout; PubChem verbatim 98 ->
+101/187**; the used held-out set 40/40, verbatim 14 -> 16/40. The fresh
+held-out result is in `BENCHMARK_HISTORY.md`. What is still open is in
+`KNOWN_LIMITATIONS.md`, "Open after naming round 4".

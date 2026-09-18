@@ -393,8 +393,12 @@ def annotate(mol: Chem.Mol) -> StructureAnnotation:
     not take down the panel showing it. This mirrors how
     `QuantumChemistryService` treats a spectrum it cannot parse.
 
-    Costs one `Perception` construction plus one naming pass. Measured over
-    the 181-molecule naming corpus: **8.0 ms mean, 59.3 ms worst case**.
+    Costs one `Perception` construction plus one naming pass. Measured
+    2026-09-18 over the 187-molecule naming corpus, two runs on an idle
+    machine: **11.8-13.7 ms mean, 7-9 ms median, 75-79 ms worst** (naproxen
+    and a triazole amide). The earlier 8.0 / 59.3 ms was the 181-row corpus
+    before naming round 4 added work per call; a run beside the vendored
+    suite read 45 ms mean, which is contention, not the code.
     Cheap once per edit, far too expensive per repaint -- cache it against
     the structure, and never call it from a paint path.
     """

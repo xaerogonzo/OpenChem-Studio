@@ -23,8 +23,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The Atom Inspector has a Locant column**, filled from the same numbering
   the canvas draws. Blank means the atom has no locant; "?" means the
   numbering could not be computed, with the reason on the cell.
+- **IUPAC locants now number the rings inside substituents too**, as each
+  substituent's own name cites them: naproxen's naphthalene is numbered as
+  "6-methoxynaphthalen-2-yl" says. Before, only a ring-table guess was
+  available, and for naproxen it was the mirror image (the methoxy carbon
+  labelled 2). Over the naming corpus coverage rose from 38.5% to 47.5% of
+  heavy atoms. The Atom Inspector's locant cell says where each number came
+  from, since a substituent's 2 and the parent's 2 are different atoms, and
+  fused rings numbered from the table now show their 3a/7a positions.
 
 ### Changed
+
+- **Naming round 4: many names move to the Blue Book's preferred forms.**
+  Every change was checked against the page it cites. Among them: substituted
+  hydrazides, amidines and guanidines are named on their own parent
+  (`N'-methylbenzohydrazide`, `N-methylguanidine`); silanols, boronic acids and
+  phosphine oxides take the book's forms (`trimethylsilanol`,
+  `phenylboronic acid`, `triphenyl-lambda5-phosphanone`); ring ketones cite
+  their hydrogens as the book does (caffeine is
+  `1,3,7-trimethyl-3,7-dihydro-1H-purine-2,6-dione`); `(acetyloxy)` rather
+  than `acetoxy`; substituent order and locant order follow P-14.4/P-14.3.5.
+  Several names that denoted a DIFFERENT molecule were found and fixed on the
+  way (two dihydrofurans, a biguanide, a dihydrazide). The full account is in
+  `src/openchem/vendor/CHANGELOG.md`.
 
 - **Functional Groups reports ring amines, ring systems and structural
   features, each labelled with the detector that found it.** A fentanyl used

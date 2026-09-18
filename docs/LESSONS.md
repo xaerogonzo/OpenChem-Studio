@@ -20817,3 +20817,71 @@ both reasons share, and briefly suggested a whole failure mode had gone.
 **A checker is a claim, and it gets tested against the source before its
 count is quoted** -- the stage-3 linter gets a frozen acceptance corpus of
 hand-adjudicated examples before it may gate anything.
+
+
+## A TEST FILE THAT CONSUMES NAMES SAT RED FOR SIX STAGES, BECAUSE EACH STAGE RAN ONLY THE NAMING TESTS
+
+Naming round 4 ran a fixed routine per stage: probe, book, fix, defect rows,
+the naming tests, a stage record, mutation checks, the vendored suite, an
+adjudication sweep, commit. Every step passed at every stage. At A11,
+`tests/test_structure_annotation.py` turned out to have been failing since A5:
+caffeine's ring carbonyls were now claimed as ring ketones (A5 names them
+`-dione`), and aspirin's derivation read `2-(acetyloxy)benzoic acid` (A9a).
+Both changes were right -- the tests had been written to be noticed when
+exactly this happened -- but nobody saw them go red, because the routine's
+"fast tests" were `tests/test_namer_*.py tests/test_naming_*.py` and the
+vendored suite, and the app code that CONSUMES names was in neither.
+
+The fix is in the routine, not the code: the annotation and functional-group
+tests run with the naming tests now. The general shape is the one this file
+keeps recording -- a green check scoped to the component under change says
+nothing about the components that read its output -- and the full app suite
+at the end of a branch is where it is caught if the routine misses it. Six
+stages later is late.
+
+## A RING TABLE AND A DRAWING BOTH GAVE MIRROR-IMAGE NUMBERS, CONFIDENTLY, AND NOTHING RAISED
+
+Two in one round, both in numbering, both silent.
+
+Eleven curated ring entries stored their `atom_locants` map INVERTED. For
+most rings that just misnumbers a symmetric position; for 2,3-dihydrofuran
+and the dihydropyrroles it named a DIFFERENT MOLECULE -- `3-fluoro-2,3-
+dihydrofuran` for the 4-fluoro compound -- and the round trip passed, because
+the wrong name parses cleanly to a real isomer. They were found by probing
+every mancude fused parent in its saturated form, not by any benchmark row,
+and a shape guard now checks each map against its SMILES.
+
+Then the drawing. A ring inside a substituent could only be numbered from the
+ring table, which matches a SKELETON and so cannot know where the substituents
+are. For naproxen it picked the mirror image: the canvas labelled the methoxy
+carbon 2 and the attachment carbon 6, against the name's own
+`6-methoxynaphthalen-2-yl`. Every atom had a confident number, nothing was
+blank, nothing raised. The fix carried the substituent's own numbering back
+through the carve (`fragment_origin`), and the relabel was measured over the
+whole corpus before shipping: exactly two rows, both naproxen, changed an
+existing label -- the rest was new coverage.
+
+**A table lookup that assigns an orientation is a guess about symmetry.** When
+the thing being numbered is not symmetric, the guess has to be checked against
+something that knows the orientation -- here, the name.
+
+## A FALLBACK NOBODY TAKES CANNOT BE TESTED THROUGH THE PIPELINE, AND THE SOURCE SCAN HID THAT
+
+A11 replaced eleven `IUPACCanonical()` fallbacks with the call's active
+strategy. The first behavioural test ran six kinds of molecule through the
+pipeline with a probe strategy and asserted it was the only one seen. It
+passed. Reverting each site in turn, it still passed -- every mutation turned
+exactly ONE test red, and that test was the source scan, which matches the
+mutated text itself.
+
+Instrumented, the fallbacks were reached by 0 of 248 corpus molecules: every
+caller passes a strategy, so the `strategy is None` branches never run, and a
+pipeline test cannot reach them however it is written. The behavioural test
+that works calls each fallback-bearing helper DIRECTLY, with no strategy,
+inside a bound probe -- the way the next careless caller would.
+
+Two things to keep. Run the mutation check with the textual guard DESELECTED,
+or the guard will take credit for a behavioural test that tests nothing. And
+a defensive default that nothing exercises is not dead code to be tested
+through the front door; it is a trap for a caller who does not exist yet, and
+it is tested by being that caller.
