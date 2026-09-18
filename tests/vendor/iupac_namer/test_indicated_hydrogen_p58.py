@@ -171,7 +171,11 @@ def _table_disagreements():
             return [str(x) for x in sorted(locant_of[a] for a in atoms)]
 
         base = split[0]
-        expected = p58._hydrogen_prefix(labels(plan.indicated), labels(plan.hydro), base) + base
+        described = plan.indicated | plan.added | plan.hydro | frozenset(groups)
+        complete = not (p58._pi_capable(mol, ring) - described)
+        expected = p58._hydrogen_prefix(
+            labels(plan.indicated), labels(plan.hydro), base, complete=complete,
+        ) + base
         expected += "-" + ",".join(str(x) for x in sorted(locant_of[g] for g in groups))
         added = labels(plan.added)
         if added:

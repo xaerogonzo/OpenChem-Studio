@@ -835,14 +835,22 @@ def render_unsaturation(infixes: tuple[UnsaturationInfix, ...]) -> str:
 
 # Suffixes whose attachment point is always C1 by IUPAC convention.
 # For these, the locant "1" is never cited.
+#
+# Only the CHAIN-TERMINUS forms belong here. The "carbo..." forms
+# (-carboxylic acid, -carboxamide, -carbonitrile, -carbohydrazide, ...) name
+# a carbon ADDED to a ring at an arbitrary position, so a locant 1 is chosen,
+# not defined: "naphthalene-1-carboxylic acid", "piperidine-1-carboxamide
+# (PIN)", "piperidine-1-carbonitrile (PIN)", "pyrrolidine-1-carboxylic acid
+# (PIN)" (pdf pp. 580, 645, 687), and "naphthalenecarbo..." occurs nowhere in
+# the book. They sat in this set from the vendored original and emitted
+# "naphthalenecarboxylic acid" and "piperidinecarboxylic acid" (naming round
+# 4). A single one on a homogeneous monocycle still loses its locant, by
+# P-14.3.4.2(c) ("cyclohexanecarboxylic acid"), through the rules below.
 _TERMINAL_ALWAYS_C1_SUFFIXES: frozenset[str] = frozenset({
     "al",               # aldehyde: C1 by definition (it IS the chain-end carbonyl)
     "oic acid",         # carboxylic acid: C1 by definition
-    "carboxylic acid",  # carboxylic acid (nonterminal form)
-    "amide",            # carboxamide: C1 by definition
-    "carboxamide",      # same
+    "amide",            # amide: C1 by definition
     "nitrile",          # nitrile: C1 by definition
-    "carbonitrile",     # same
     "oyl",              # acyl derived from oic acid: C1
     # Acyl halide terminal forms: C1 by definition
     "oyl chloride",
@@ -856,21 +864,14 @@ _TERMINAL_ALWAYS_C1_SUFFIXES: frozenset[str] = frozenset({
     # P-66.1.4 / P-66.3 amide-family terminal forms: C1 by definition
     # (chain-terminus C-N attachment) — locant '1' never cited.
     "thioamide",
-    "carbothioamide",
     "selenoamide",
-    "carboselenoamide",
     "tellanoamide",
-    "carbotellanoamide",
     # Hydrazide terminal forms (P-66.3): emitted base_form is the
-    # leading-hyphen-stripped form of -ohydrazide / -carbohydrazide etc.
+    # leading-hyphen-stripped form of -ohydrazide etc.
     "ohydrazide",
-    "carbohydrazide",
     "thiohydrazide",
-    "carbothiohydrazide",
     "selenohydrazide",
-    "carboselenohydrazide",
     "tellurohydrazide",
-    "carbotellurohydrazide",
 })
 
 # Chain-terminal di-suffix base_forms.  For these, when a chain carries TWO (or
@@ -1311,8 +1312,13 @@ def render_free_valence_suffix(
     numbering: Numbering,
     has_unsaturation: bool = False,
     stem_contracts: bool = True,
+    added_hydrogen: tuple = (),
 ) -> str:
     """Render -yl, -ylidene, -diyl etc.
+
+    ``added_hydrogen``: P-58.2.2 'added indicated hydrogen' locants, cited
+    in parentheses after the free-valence locant ("pyridin-1(2H)-yl"). Such a
+    locant is never elided -- it anchors the parenthesis.
 
     Method ALKYL (1): suffix only, locant 1 omitted.
     Method ALKANYL (2): locants cited + suffix.
@@ -1367,6 +1373,14 @@ def render_free_valence_suffix(
     if not attachment_locants:
         return f"-{suffix}"
 
+    if added_hydrogen:
+        added = "(" + ",".join(f"{h}H" for h in sorted(added_hydrogen)) + ")"
+        locant_str = ",".join(str(loc) for loc in attachment_locants) + added
+        mult = ""
+        if len(attachment_locants) > 1:
+            mult = get_multiplier(len(attachment_locants), complex=False) or ""
+        return f"-{locant_str}-{mult}{suffix}"
+
     # For monovalent: single locant; omit if locant is "1" and suffix is "yl"
     if len(attachment_locants) == 1:
         loc = attachment_locants[0]
@@ -1419,8 +1433,12 @@ def terminal_vowel(named_parent: NamedParent, output_form: OutputForm) -> str:
 # Also strips an optional added-IH parenthetical "(NH)" / "(NH,MH)" between
 # the locant block and the suffix tail (e.g. "-1(2H)-one"), so the actual
 # suffix tail (e.g. "one", "imine") is what gets consonant-tested.
+# A fusion locant carries a letter ("-4a(2H)-ol"); without it the block did
+# not match, the tail read as starting with "-", and the parent kept its 'e'
+# ("naphthalene-4a(2H)-ol", naming round 4).
 _RENDERED_SUFFIX_LOCANT_RE = re.compile(
-    r"^-[0-9NOPSH,\'^]+(?:,[0-9NOPSH,\'^]+)*(?:\(\d+[a-z]?H(?:,\d+[a-z]?H)*\))?-"
+    r"^-(?:\d+[a-h]?|[NOPSH])[0-9NOPSH\'^]*(?:,(?:\d+[a-h]?|[NOPSH])[0-9NOPSH\'^]*)*"
+    r"(?:\(\d+[a-z]?H(?:,\d+[a-z]?H)*\))?-"
 )
 
 
@@ -2879,7 +2897,7 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         # locant-1 is load-bearing and must NOT be omitted.
         _ring_system = tree.named_parent.candidate.ring_system
         _stem_has_baked_unsat_locant = bool(
-            _re_asm.search(r"-\d+(?:,\d+)*-(?:en|yn)$", parts[stem_idx])
+            _re_asm.search(r"-\d+(?:,\d+)*-(?:di|tri|tetra)?(?:en|yn)$", parts[stem_idx])
         )
         _is_mono_hom_monocycle = (
             _ring_system is not None
@@ -2966,7 +2984,7 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             # still cited (cyclohex-1-en-1-yl, not cyclohex-1-en-yl).
             _stem_text = parts[stem_idx]
             _stem_has_baked_unsat = bool(
-                _re_asm.search(r"-\d+(?:,\d+)*-(?:en|yn)$", _stem_text)
+                _re_asm.search(r"-\d+(?:,\d+)*-(?:di|tri|tetra)?(?:en|yn)$", _stem_text)
             )
             fv_rendered = render_free_valence_suffix(
                 fv, tree.numbering,
@@ -2974,6 +2992,7 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                 # The stem was contracted above, or it was not. Eliding the
                 # locant is only well formed in the first case.
                 stem_contracts=contracted_alkyl_form,
+                added_hydrogen=getattr(tree, "free_valence_added_hydrogen", ()),
             )
             if contracted_alkyl_form and fv_rendered.startswith("-"):
                 # Strip the leading hyphen: "prop" + "-yl" → "propyl",

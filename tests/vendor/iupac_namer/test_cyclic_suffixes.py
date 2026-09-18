@@ -212,7 +212,9 @@ def test_classifier_is_none_for_non_ring_fg(smiles: str) -> None:
         # round 4: isoindoline is not a PIN (Table 3.1, p. 334); the book
         # prints "2-phenyl-1H-isoindole-1,3(2H)-dione (PIN)" (p. 666).
         ("O=C1NC(=O)c2ccccc12",  "1H-isoindole-1,3(2H)-dione"),
-        ("O=C1NC(=O)C2CCCCC12",  "octahydro-1H-isoindole-1,3-dione"),
+        # The book's own PIN, same page: "hexahydro-1H-isoindole-1,3(2H)-
+        # dione (PIN)", not "hexahydro-2H-isoindole-1,3-dione" (round 4, A7).
+        ("O=C1NC(=O)C2CCCCC12",  "hexahydro-1H-isoindole-1,3(2H)-dione"),
         # Lactams — preferred ``-one`` ring suffix (P-66.6.3).
         ("O=C1CCCN1",            "pyrrolidin-2-one"),
         ("O=C1CCCCN1",           "piperidin-2-one"),

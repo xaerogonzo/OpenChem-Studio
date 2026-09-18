@@ -32,6 +32,16 @@ Ties are broken by lowest locants in that order: indicated hydrogen, then
 added (rule (4): "indicated hydrogen ... has seniority over 'added indicated
 hydrogen' for lower locants"), then hydro.
 
+A suffix or free valence joined by a SINGLE bond (-ol, -amine, -yl) enters
+the same procedure only where its ring atom has no hydrogen in the mancude
+parent -- a fusion carbon, a ring N -- which is what the book's own examples
+separate: "naphthalen-4a(2H)-amine" and "pyridin-1(2H)-yl", against
+"1,2,3,4-tetrahydronaphthalen-1-amine" and "2,3-dihydro-1H-inden-2-yl".
+A fully hydrogenated fused parent is re-described too, with its hydro
+locants omitted when every position is hydro or indicated (P-14.3.4.5).
+A whole-ring substituent the retained route wrote as text goes through
+`rewrite_leaf_substituent`.
+
 Returns None whenever the structure is outside what this models (charged or
 radical ring atoms, a ring atom that is neither pi-capable nor a divalent
 chalcogen, an odd number of hydro positions), so the caller keeps the
@@ -97,19 +107,39 @@ def plan_hydrogens(
     ring_atoms: Iterable[int],
     group_carbons: Iterable[int],
     locant_of: dict[int, object],
+    saturated_groups: Iterable[int] = (),
 ) -> HydrogenPlan | None:
-    """Indicated / added / hydro atoms for ring-C=X suffixes, per P-58.2.
+    """Indicated / added / hydro atoms for ring suffixes, per P-58.2.
 
     `mol` is the whole molecule; `ring_atoms` the parent ring system;
     `group_carbons` the ring carbons whose exocyclic double bond is expressed
     as a suffix; `locant_of` maps ring atoms to their locants in the chosen
     numbering (anything with a sensible ordering, e.g. the engine's Locant).
+
+    `saturated_groups` are ring atoms carrying a suffix or free valence by a
+    single bond (-ol, -carboxylic acid, -amine, -yl) and in no double bond.
+    Such a group needs accommodating only where its atom has NO hydrogen in
+    the mancude parent -- a fusion carbon, or a ring N not bearing the
+    parent's indicated hydrogen -- and is then treated exactly like a C=X
+    group: "1,4-dihydro-3aH-indene-3a-carboxylic acid" (p. 481),
+    "naphthalen-4a(2H)-amine", "pyridin-1(2H)-yl", "1-(3,4-dihydroquinolin-
+    1(2H)-yl)ethan-1-one" (all PIN or preferred prefix). On a CH it simply
+    substitutes the hydro parent: "1,2,3,4-tetrahydronaphthalen-1-amine
+    (PIN)", "2,3-dihydro-1H-inden-2-yl (preferred prefix)", not 1,3-dihydro-
+    2H-inden-2-yl. "The mancude parent" is the one with its indicated
+    hydrogen at the lowest locants (1H-indene), per P-31.1.4.2.4.
     """
     from rdkit import Chem
 
     ring = frozenset(ring_atoms)
     groups = frozenset(group_carbons)
-    if not groups or not groups <= ring or any(a not in locant_of for a in ring):
+    sat_groups = frozenset(saturated_groups)
+    # With no groups at all this describes a plain hydro parent: indicated
+    # hydrogen at the lowest consistent locants (P-31.1.4.2.4), hydro for
+    # the rest -- "dodecahydro-1H-carbazole".
+    if not (groups | sat_groups) <= ring:
+        return None
+    if any(a not in locant_of for a in ring):
         return None
 
     kek = Chem.Mol(mol)
@@ -136,7 +166,7 @@ def plan_hydrogens(
             continue
         return None
     pi = frozenset(pi_capable)
-    if not groups <= pi:
+    if not (groups | sat_groups) <= pi:
         return None
 
     adjacency = {
@@ -159,9 +189,33 @@ def plan_hydrogens(
     for carbon in groups:
         if in_ring_double_bond(carbon):
             return None  # a "group carbon" that is also in a ring double bond is not C=X
-    saturated = frozenset(idx for idx in pi - groups if not in_ring_double_bond(idx))
-
     h0 = len(pi) - 2 * _max_matching_size(pi, adjacency)
+
+    if sat_groups:
+        if any(in_ring_double_bond(a) for a in sat_groups):
+            return None  # a single-bonded suffix on an unsaturated ring atom is not this case
+        # The reference mancude parent: indicated hydrogen at the lowest
+        # locants that leave a full set of double bonds.
+        reference = None
+        for cand in combinations(sorted(pi, key=lambda a: locant_of[a]), h0):
+            if _perfect_matching_exists(pi - frozenset(cand), adjacency):
+                reference = frozenset(cand)
+                break
+        if reference is None:
+            return None
+
+        def bears_hydrogen(idx: int) -> bool:
+            if idx in reference:
+                return True  # CH2 / NH of the parent
+            atom = kek.GetAtomWithIdx(idx)
+            ring_degree = sum(1 for nb in atom.GetNeighbors() if nb.GetIdx() in ring)
+            return atom.GetSymbol() == "C" and ring_degree == 2  # an aromatic CH
+
+        # With nothing to accommodate the suffixes substitute the hydro
+        # parent, and the plan is that parent's own description.
+        groups = groups | frozenset(a for a in sat_groups if not bears_hydrogen(a))
+
+    saturated = frozenset(idx for idx in pi - groups if not in_ring_double_bond(idx))
 
     def key(atoms: Iterable[int]) -> tuple:
         return tuple(sorted(locant_of[a] for a in atoms))
@@ -221,7 +275,7 @@ _RING_CX_SUFFIXES = frozenset({"one", "thione", "selone", "tellurone"})
 # The engine bakes both into NamedParent.name/.stem, so they are read back
 # off the text; a parent whose text does not match is left alone.
 _HYDRO_IH = re.compile(
-    r"^(?:(?P<hloc>\d+[a-z]?(?:,\d+[a-z]?)*)-(?P<mult>di|tetra|hexa|octa|deca|dodeca|tetradeca|hexadeca|octadeca)hydro-?)?"
+    r"^(?:(?:(?P<hloc>\d+[a-z]?(?:,\d+[a-z]?)*)-)?(?P<mult>di|tetra|hexa|octa|deca|dodeca|tetradeca|hexadeca|octadeca)hydro-?)?"
     r"(?:(?P<ih>\d+[a-z]?H(?:,\d+[a-z]?H)*)-)?"
     r"(?P<base>[a-z\[\d].*)$"
 )
@@ -243,7 +297,12 @@ _HYDRO_MULT = {2: "di", 4: "tetra", 6: "hexa", 8: "octa", 10: "deca", 12: "dodec
 
 
 def _split_hydrogen_prefix(text: str) -> tuple[str, list[str]] | None:
-    """(ring name without its hydro / indicated-H block, the old locants)."""
+    """(ring name without its hydro / indicated-H block, the old locants).
+
+    An unlocanted hydro block ("decahydronaphthalene", "octahydro-1H-indene")
+    means every position (P-14.3.4.5); its old locants are then the single
+    marker ``"*"``, which `_resolve` checks against the structure instead.
+    """
     m = _HYDRO_IH.match(text)
     if m is None or "hydro" in m.group("base"):
         return None  # a hydro block this pattern did not consume
@@ -252,15 +311,25 @@ def _split_hydrogen_prefix(text: str) -> tuple[str, list[str]] | None:
         old += m.group("hloc").split(",")
         if _HYDRO_MULT.get(len(old)) != m.group("mult"):
             return None
+    elif m.group("mult"):
+        old.append("*")
     if m.group("ih"):
         old += [s[:-1] for s in m.group("ih").split(",")]
     return m.group("base"), old
 
 
-def _hydrogen_prefix(indicated: list[str], hydro: list[str], base: str) -> str:
+def _hydrogen_prefix(indicated: list[str], hydro: list[str], base: str, *, complete: bool = False) -> str:
+    """The hydro / indicated-hydrogen block in front of ``base``.
+
+    ``complete``: every position of the ring system is hydro or indicated,
+    so the hydro locants are omitted -- P-14.3.4.5, "all locants are omitted
+    in compounds ... in which all substitutable positions are completely ...
+    modified, for example, by hydro" ("decahydronaphthalene (PIN)", p. 73;
+    "hexadecahydro-1H-8,12-methanobenzo[13]annulene (PIN)", p. 455).
+    """
     text = ""
     if hydro:
-        text = f"{','.join(hydro)}-{_HYDRO_MULT[len(hydro)]}hydro"
+        text = f"{'' if complete else ','.join(hydro) + '-'}{_HYDRO_MULT[len(hydro)]}hydro"
     if indicated:
         text += ("-" if text else "") + ",".join(f"{loc}H" for loc in indicated) + "-"
     elif text and (base[0].isdigit() or base[0] == "["):
@@ -268,7 +337,7 @@ def _hydrogen_prefix(indicated: list[str], hydro: list[str], base: str) -> str:
     return text
 
 
-def _resolve(mol, named_parent, numbering, suffix_groups):
+def _resolve(mol, named_parent, numbering, suffix_groups, free_valence=None):
     """The P-58.2 plan for a named parent, or None where this module declines.
 
     Declines when:
@@ -282,18 +351,54 @@ def _resolve(mol, named_parent, numbering, suffix_groups):
       would mean the text and the structure are not about the same atoms;
     - the plan puts a hydrogen on an atom the numbering gives no locant.
     """
-    if not suffix_groups or getattr(named_parent, "precomposed_retained_no_suffix", False):
+    fv_atoms: tuple[int, ...] = ()
+    if free_valence is not None:
+        # Only single-bond free valences: an "-ylidene" parent atom loses its
+        # double bond to the carve, so the structure no longer shows it.
+        if any(order != 1 for order in free_valence.bond_orders):
+            return None
+        fv_atoms = tuple(free_valence.attachment_atoms_in_fragment or ())
+        if not fv_atoms:
+            return None
+    if not (suffix_groups or fv_atoms) or getattr(named_parent, "precomposed_retained_no_suffix", False):
         return None
     if named_parent.candidate.ring_system is None:
         return None
     ring = frozenset(named_parent.candidate.atom_indices)
-    if any(sg.base_form not in _RING_CX_SUFFIXES for sg in suffix_groups):
-        return None
-    groups = []
+    ring_double = _ring_double_bond_atoms(mol, ring)
+    atom_at = {}
+    for a in ring:
+        loc = numbering.atom_to_locant.get(a)
+        if loc is not None:
+            atom_at[str(loc)] = a
+    groups, sat_groups = [], []
     for sg in suffix_groups:
-        if sg.fg.anchor not in ring:
+        if sg.base_form in _RING_CX_SUFFIXES and sg.fg.anchor in ring:
+            groups.append(sg.fg.anchor)
+            continue
+        # A suffix joined by a single bond: it constrains the hydrogens only
+        # when the ring atom it sits on is saturated. On an unsaturated one
+        # (a phenol's C) it is a free position of the mancude parent.
+        for loc in sg.locants:
+            atom = atom_at.get(str(loc))
+            if atom is None:
+                return None
+            if atom in ring_double:
+                continue  # an unsaturated ring atom (aromatic bonds count here)
+            if any(b.GetBondTypeAsDouble() >= 2.0 for b in mol.GetAtomWithIdx(atom).GetBonds()):
+                return None  # an exocyclic double bond this module does not model
+            sat_groups.append(atom)
+    # A free valence is accommodated exactly as a single-bonded suffix is
+    # (P-58.2.3.1: "principal characteristic groups or free valences"):
+    # "2-(1,3,4,5-tetrahydro-2H-2-benzazepin-2-yl)ethan-1-ol (PIN)", p. 481.
+    for atom in fv_atoms:
+        if atom not in ring:
             return None
-        groups.append(sg.fg.anchor)
+        if atom in ring_double:
+            continue
+        if any(b.GetBondTypeAsDouble() >= 2.0 for b in mol.GetAtomWithIdx(atom).GetBonds()):
+            return None
+        sat_groups.append(atom)
 
     name_split = _split_hydrogen_prefix(named_parent.name or "")
     stem_split = _split_hydrogen_prefix(named_parent.stem or "")
@@ -304,8 +409,20 @@ def _resolve(mol, named_parent, numbering, suffix_groups):
         return None
     if base_name in _hydro_ring_names():
         return None  # "isoindoline" is 2,3-dihydroisoindole, not a mancude parent
-    if not _ring_double_bond_atoms(mol, ring):
+    if not groups and not sat_groups:
         return None
+    if not ring_double and _is_monocycle(mol, ring):
+        # A fully saturated monocycle takes its saturated name ("piperidin-
+        # 2-one", "imidazolidine-2,4-dione", pdf pp. 556, 566); a tetrahydro-
+        # mancude rewrite would be the wrong direction. A saturated FUSED
+        # system is named by hydro prefixes (P-31.2.3.3.2, "decahydro-
+        # naphthalene (PIN)", p. 335), so it goes on.
+        return None
+    if "*" in old:
+        # The text said "every position"; hold it to that.
+        if ring_double:
+            return None
+        old = [label for label in old if label != "*"]
 
     # Fusion atoms can be missing from `atom_to_locant` (round 2's indole
     # 3a/7a gap). They only need to sort; a plan that puts a hydrogen on one
@@ -321,17 +438,24 @@ def _resolve(mol, named_parent, numbering, suffix_groups):
             unnamed.add(a)
         locant_of[a] = loc
 
-    plan = plan_hydrogens(mol, ring, groups, locant_of)
+    plan = plan_hydrogens(mol, ring, groups, locant_of, sat_groups)
     if plan is None or (plan.indicated | plan.added | plan.hydro) & unnamed:
         return None
-    described = plan.indicated | plan.added | plan.hydro | frozenset(groups)
+    if fv_atoms and _better_orientation_exists(mol, ring, groups, sat_groups, locant_of, plan):
+        # A substituent's numbering is chosen before this runs, without the
+        # free valence's hydrogen in view (the preference key sees suffixes
+        # only). Where it went the wrong way round ("pyridin-1(6H)-yl" for
+        # the book's "pyridin-1(2H)-yl", p. 479) the plan cannot renumber, so
+        # it declines rather than write the wrong direction.
+        return None
+    described = plan.indicated | plan.added | plan.hydro | frozenset(groups) | frozenset(sat_groups)
     by_label = {str(locant_of[a]): a for a in ring}
     old_atoms = {by_label.get(label) for label in old} | set(named_parent.added_indicated_h_atoms or ())
     if None in old_atoms or not old_atoms <= described:
         return None
     if plan.hydro and len(plan.hydro) not in _HYDRO_MULT:
         return None
-    return plan, locant_of, base_name, stem_split[0]
+    return plan, locant_of, base_name, stem_split[0], described
 
 
 def added_hydrogen_tier(mol, named_parent, numbering, suffix_groups) -> tuple[int, ...]:
@@ -348,7 +472,7 @@ def added_hydrogen_tier(mol, named_parent, numbering, suffix_groups) -> tuple[in
     resolved = _resolve(mol, named_parent, numbering, suffix_groups)
     if resolved is None:
         return ()
-    plan, locant_of, _, _ = resolved
+    plan, locant_of, _, _, _ = resolved
     values = []
     for a in plan.added:
         loc = locant_of[a]
@@ -359,39 +483,109 @@ def added_hydrogen_tier(mol, named_parent, numbering, suffix_groups) -> tuple[in
     return tuple(values)
 
 
-def apply_to_parent(mol, named_parent, numbering, suffix_groups):
-    """Re-describe the hydrogens of a ring parent carrying ring C=X suffixes.
+def apply_to_parent(mol, named_parent, numbering, suffix_groups, free_valence=None):
+    """Re-describe the hydrogens of a ring parent carrying suffixes or a free valence.
 
-    Returns ``(named_parent, suffix_groups)`` rewritten by P-58.2, or None to
+    Returns ``(named_parent, suffix_groups, free_valence_added_hydrogen)``
+    rewritten by P-58.2, or None to
     keep the engine's own description (see `_resolve` for when). The
     numbering is the engine's; only the hydro prefixes, the indicated
     hydrogen and the added hydrogen change, so the structure the name
     denotes cannot move -- only how it is said.
     """
-    resolved = _resolve(mol, named_parent, numbering, suffix_groups)
+    resolved = _resolve(mol, named_parent, numbering, suffix_groups, free_valence)
     if resolved is None:
         return None
-    plan, locant_of, base_name, base_stem = resolved
+    plan, locant_of, base_name, base_stem, described = resolved
 
     def labels(atoms):
         return [str(loc) for loc in sorted(locant_of[a] for a in atoms)]
 
     indicated, hydro = labels(plan.indicated), labels(plan.hydro)
+    # "Completely modified" counts every way a position is described --
+    # hydro, indicated, added, or the group itself: "hexahydro-1H-isoindole-
+    # 1,3(2H)-dione (PIN)" (pdf p. 666) cites no hydro locants.
+    complete = not (_pi_capable(mol, locant_of) - described)
     new_parent = dataclasses.replace(
         named_parent,
-        name=_hydrogen_prefix(indicated, hydro, base_name) + base_name,
-        stem=_hydrogen_prefix(indicated, hydro, base_stem) + base_stem,
+        name=_hydrogen_prefix(indicated, hydro, base_name, complete=complete) + base_name,
+        stem=_hydrogen_prefix(indicated, hydro, base_stem, complete=complete) + base_stem,
         added_indicated_h_atoms=None,
     )
     # The rendered "(1H,5H)" block pairs added hydrogens with suffix locants
-    # in suffix order, so the whole sorted block rides on the lowest suffix.
+    # in suffix order, so the whole sorted block rides on the lowest suffix;
+    # with no suffix it rides on the free valence ("pyridin-1(2H)-yl").
     added = tuple(sorted(locant_of[a] for a in plan.added))
+    if not suffix_groups:
+        return new_parent, (), added
     first = min(range(len(suffix_groups)), key=lambda i: min(suffix_groups[i].locants))
     new_groups = tuple(
         dataclasses.replace(sg, added_indicated_h=added if i == first else ())
         for i, sg in enumerate(suffix_groups)
     )
-    return new_parent, new_groups
+    return new_parent, new_groups, ()
+
+
+def _ring_automorphisms(mol, ring: frozenset[int]):
+    """Element-preserving automorphisms of the ring skeleton, as atom maps."""
+    from rdkit import Chem
+
+    bonds = [
+        b.GetIdx() for b in mol.GetBonds()
+        if b.GetBeginAtomIdx() in ring and b.GetEndAtomIdx() in ring
+    ]
+    if not bonds:
+        return []
+    atom_map: dict[int, int] = {}
+    sub = Chem.PathToSubmol(mol, bonds, atomMap=atom_map)
+    back = {v: k for k, v in atom_map.items()}
+    skeleton = _skeleton(sub)
+    return [
+        {back[i]: back[j] for i, j in enumerate(match)}
+        for match in skeleton.GetSubstructMatches(skeleton, uniquify=False, maxMatches=2000)
+    ]
+
+
+def _better_orientation_exists(mol, ring, groups, sat_groups, locant_of, plan) -> bool:
+    """Whether renumbering the ring by a symmetry that keeps every group's
+    locant would give lower indicated, then added, hydrogen locants."""
+
+    def rank(p, lo):
+        return (
+            tuple(sorted(lo[a] for a in p.indicated)),
+            len(p.added),
+            tuple(sorted(lo[a] for a in p.added)),
+        )
+
+    fixed = set(groups) | set(sat_groups)
+    current = rank(plan, locant_of)
+    for image in _ring_automorphisms(mol, ring):
+        relabelled = {a: locant_of[image[a]] for a in ring}
+        if any(str(relabelled[a]) != str(locant_of[a]) for a in fixed):
+            continue
+        other = plan_hydrogens(mol, ring, groups, relabelled, sat_groups)
+        if other is not None and rank(other, relabelled) < current:
+            return True
+    return False
+
+
+def _pi_capable(mol, ring) -> frozenset[int]:
+    """Ring atoms that take part in the mancude parent's double bonds: C and
+    N, less a neutral bridgehead N (as `plan_hydrogens` counts them)."""
+    out = set()
+    ring = frozenset(ring)
+    for idx in ring:
+        atom = mol.GetAtomWithIdx(idx)
+        degree = sum(1 for nb in atom.GetNeighbors() if nb.GetIdx() in ring)
+        if atom.GetSymbol() == "C" or (atom.GetSymbol() == "N" and degree < 3):
+            out.add(idx)
+    return frozenset(out)
+
+
+def _is_monocycle(mol, ring: frozenset[int]) -> bool:
+    """Whether the ring system is a single ring (every SSSR ring the same set)."""
+    rings = [frozenset(r) for r in mol.GetRingInfo().AtomRings() if set(r) <= ring]
+    return len(rings) == 1
 
 
 def _ring_double_bond_atoms(mol, ring: frozenset[int]) -> frozenset[int]:
@@ -458,3 +652,143 @@ def _hydro_ring_names() -> frozenset[str]:
         if saturated > h0:
             names.add(rec["name"])
     return frozenset(names)
+
+
+# ---------------------------------------------------------------------------
+# A whole-ring substituent named straight from the ring table
+# ---------------------------------------------------------------------------
+
+_LEAF_SUBSTITUENT = re.compile(r"^(?P<ring>.+?)-(?P<loc>\d+[a-z]?)-yl$")
+
+
+@lru_cache(maxsize=1)
+def _mancude_bases() -> dict[str, tuple[str, dict]]:
+    """Mancude ring-table names without their indicated hydrogen, each with
+    its key SMILES and atom locants: "indene" -> ("C1=Cc2ccccc2C1", {...})."""
+    # The table the hydro route itself derives from (retained_lookup's
+    # _CURATED), which holds indene and the benzopyrans; the data_loader
+    # ring table alone does not.
+    from openchem.vendor.iupac_namer.ring_naming import retained_lookup
+
+    hydro = _hydro_ring_names()
+    out: dict[str, tuple[str, dict]] = {}
+    for smi, (name, _sub, _alkyl, atom_locants) in retained_lookup._CURATED.items():
+        name = name or ""
+        if name in hydro or not atom_locants or "hydro" in name:
+            continue
+        split = _split_hydrogen_prefix(name)
+        if split is None or not split[0]:
+            continue
+        out.setdefault(split[0], (smi, atom_locants))
+    return out
+
+
+def _skeleton(mol):
+    from rdkit import Chem
+
+    rw = Chem.RWMol(mol)
+    for bond in rw.GetBonds():
+        bond.SetBondType(Chem.BondType.SINGLE)
+        bond.SetIsAromatic(False)
+    for atom in rw.GetAtoms():
+        atom.SetIsAromatic(False)
+        atom.SetNoImplicit(True)
+    return rw.GetMol()
+
+
+def rewrite_leaf_substituent(mol, attachment_atoms, text: str) -> str | None:
+    """P-58.2 for a ring substituent the retained path wrote as text.
+
+    ``text`` is e.g. "1,2,3,4-tetrahydroisoquinolin-2-yl"; the fragment
+    ``mol`` is that ring with its attachment atom. A single-bonded free
+    valence is accommodated like a suffix (P-58.2.3.1): by an indicated
+    hydrogen when the mancude parent has one ("1,3,4,5-tetrahydro-2H-2-
+    benzazepin-2-yl", p. 481), else by added hydrogen ("pyridin-1(2H)-yl",
+    p. 479). Returns the rewritten text, or None to keep ``text``.
+
+    Every substructure orientation of the mancude parent that puts the
+    attachment at the cited locant is tried, and the lowest-locant plan is
+    kept, so a symmetric ring cannot pick its hydro locants by atom order.
+    """
+    from rdkit import Chem
+
+    from openchem.vendor.iupac_namer.types import Locant
+
+    if len(attachment_atoms) != 1:
+        return None
+    m = _LEAF_SUBSTITUENT.match(text)
+    if m is None:
+        return None
+    split = _split_hydrogen_prefix(m.group("ring"))
+    if split is None:
+        return None
+    base, old = split
+    if _NOT_MANCUDE_BASE.search(base) or base in _hydro_ring_names():
+        return None
+    # The text carries the substituent STEM ("isoquinolin"); the table the
+    # name ("isoquinoline").
+    entry = _mancude_bases().get(base) or _mancude_bases().get(base + "e")
+    if entry is None:
+        return None
+    key_smiles, atom_locants = entry
+    key = Chem.MolFromSmiles(key_smiles)
+    if key is None:
+        return None
+    ring = frozenset(a.GetIdx() for a in mol.GetAtoms() if a.IsInRing())
+    if key.GetNumAtoms() != len(ring):
+        return None
+    attach = attachment_atoms[0]
+    wanted = m.group("loc")
+
+    def as_locant(value) -> Locant | None:
+        lm = re.match(r"^(\d+)([a-z]?)$", str(value))
+        return Locant.numeric(int(lm.group(1)), lm.group(2)) if lm else None
+
+    best = None
+    for match in _skeleton(mol).GetSubstructMatches(_skeleton(key), uniquify=False, useChirality=False):
+        if frozenset(match) != ring:
+            continue
+        locant_of, unnamed = {}, set()
+        for key_idx, frag_idx in enumerate(match):
+            loc = as_locant(atom_locants.get(key_idx, ""))
+            if loc is None:
+                # Fusion atoms can be missing from a table entry (round 2's
+                # 4a/8a gap); they only need to sort, and a plan that puts a
+                # hydrogen on one is refused below.
+                loc = Locant.numeric(10**6 + frag_idx)
+                unnamed.add(frag_idx)
+            locant_of[frag_idx] = loc
+        if True:
+            if str(locant_of[attach]) != wanted:
+                continue
+            plan = plan_hydrogens(mol, ring, (), locant_of, (attach,))
+            if plan is None or (plan.indicated | plan.added | plan.hydro) & unnamed:
+                continue
+            described = plan.indicated | plan.added | plan.hydro | {attach}
+            by_label = {str(locant_of[a]): a for a in ring}
+            if "*" in old:
+                if _ring_double_bond_atoms(mol, ring):
+                    continue
+                old_atoms = {by_label.get(x) for x in old if x != "*"}
+            else:
+                old_atoms = {by_label.get(x) for x in old}
+            if None in old_atoms or not old_atoms <= described:
+                continue
+
+            def k(atoms):
+                return tuple(sorted(locant_of[a] for a in atoms))
+
+            rank = (k(plan.indicated), len(plan.added), k(plan.added), k(plan.hydro))
+            if best is None or rank < best[0]:
+                best = (rank, plan, locant_of)
+    if best is None:
+        return None
+    _, plan, locant_of = best
+
+    def labels(atoms):
+        return [str(loc) for loc in sorted(locant_of[a] for a in atoms)]
+
+    complete = not (_pi_capable(mol, ring) - (plan.indicated | plan.added | plan.hydro | {attach}))
+    head = _hydrogen_prefix(labels(plan.indicated), labels(plan.hydro), base, complete=complete)
+    added = "(" + ",".join(f"{x}H" for x in labels(plan.added)) + ")" if plan.added else ""
+    return f"{head}{base}-{wanted}{added}-yl"

@@ -3874,11 +3874,14 @@ def _acid_name_to_amidinium(acid_name: str) -> str | None:
         stem = acid_name[: -len("oic acid")]
         return stem + "amidinium"
     if acid_name.endswith("carboxylic acid"):
-        # Drop the carboxylic suffix and append ``-1-amidinium``.
-        stem = acid_name[: -len("carboxylic acid")].rstrip("-").rstrip()
+        # Drop the carboxylic suffix and append ``-<locant>-amidinium``,
+        # carrying the acid's own locant (see _acid_name_to_amidylium).
+        head = acid_name[: -len("carboxylic acid")].rstrip()
+        m = re.match(r"^(?P<stem>.+?)-(?P<loc>\d+[a-z]?)-$", head)
+        stem, loc = (m.group("stem"), m.group("loc")) if m else (head.rstrip("-"), "1")
         if stem.endswith("e"):
             stem = stem[:-1]
-        return f"{stem}-1-amidinium"
+        return f"{stem}-{loc}-amidinium"
     return None
 
 
@@ -4448,10 +4451,15 @@ def _acid_name_to_amidylium(acid_name: str) -> str | None:
             stem = stem[:-1]
         return f"{stem}-1-amidylium"
     if acid_name.endswith("carboxylic acid"):
-        stem = acid_name[: -len("carboxylic acid")].rstrip("-").rstrip()
+        # A ring "-carboxylic acid" now keeps its locant ("naphthalene-1-
+        # carboxylic acid", naming round 4); carry it across instead of
+        # assuming 1, which printed "naphthalene-1-1-amidylium".
+        head = acid_name[: -len("carboxylic acid")].rstrip()
+        m = re.match(r"^(?P<stem>.+?)-(?P<loc>\d+[a-z]?)-$", head)
+        stem, loc = (m.group("stem"), m.group("loc")) if m else (head.rstrip("-"), "1")
         if stem.endswith("e"):
             stem = stem[:-1]
-        return f"{stem}-1-amidylium"
+        return f"{stem}-{loc}-amidylium"
     return None
 
 

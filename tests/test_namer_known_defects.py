@@ -1126,8 +1126,14 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-050b", "O=C1NC(=O)c2ccccc12", "1H-isoindole-1,3(2H)-dione",
      "isoindoline-1,3-dione", "phthalimide"),
     ("D-050c", "c1ccc2c(c1)CNC2", "2,3-dihydro-1H-isoindole", "isoindoline", "Table 3.1"),
+    # The book contradicts itself here. Its retained-prefix list (p. 344)
+    # prints "2,3-dihydro-1H-isoindol-2-yl (preferred prefix) (also 1-, 4- and
+    # 5-isomers)", one mechanical line for every isomer; P-58.2.3.1.1 and the
+    # worked analysis on p. 499 give the free valence the indicated hydrogen
+    # -- "Parent hydride with free valence: 2H-isoindol-2-yl" -- as in "1,3,4,5-
+    # tetrahydro-2H-2-benzazepin-2-yl" (p. 481). The rule wins (A7).
     ("D-050d", "OC(=O)c1ccc(cc1)N1Cc2ccccc2C1",
-     "4-(2,3-dihydro-1H-isoindol-2-yl)benzoic acid",
+     "4-(1,3-dihydro-2H-isoindol-2-yl)benzoic acid",
      "4-(isoindolin-2-yl)benzoic acid", "the alias as a substituent (D-047's path)"),
     # --- D-051: an N-substituted imine is still an imine (P-68.3.1.1.1) ----
     # The class matched only [NX2H1], so an oxime or an N-alkyl imine lost its
@@ -1223,8 +1229,13 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # --- D-056: an alcohol and a phenol are one class, "-ol" (P-63.1) -----
     # Detected as two types, they became two principal-group options, and
     # the parent could take only one of them as its suffix.
+    # The indicated hydrogen is 6H, not the 17H this row first pinned: C17 is
+    # a CH of 1H-cyclopenta[a]phenanthrene, so the -ol needs no accommodating
+    # (P-58.2.3.1 only places indicated hydrogen where a group needs it, cf.
+    # "2,3-dihydro-1H-inden-2-yl", p. 343) and the lowest-locant rule for
+    # indicated hydrogen applies (P-31.1.4.2.4 (c)).
     ("D-056a", "CC12CCC3c4ccc(O)cc4CCC3C1CCC2O",
-     "13-methyl-6,7,8,9,11,12,13,14,15,16-decahydro-17H-cyclopenta[a]phenanthrene-3,17-diol",
+     "13-methyl-7,8,9,11,12,13,14,15,16,17-decahydro-6H-cyclopenta[a]phenanthrene-3,17-diol",
      "17-hydroxy-13-methyl-6,7,8,9,11,12,13,14,15,16-decahydro-17H-cyclopenta[a]phenanthren-3-ol",
      "estradiol, flat: the round-4 plan's 'same-class suffix' item"),
     ("D-056b", "OC1CCc2cc(O)ccc21", "2,3-dihydro-1H-indene-1,5-diol",
@@ -1417,6 +1428,137 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "converse: Table 2.3's own saturated retained names keep their rank"),
     ("D-066f", "C1=CCNC1", "2,5-dihydro-1H-pyrrole", "2,5-dihydro-1H-pyrrole",
      "converse: a ring double bond keeps the hydro name"),
+    # --- D-067: a saturated FUSED parent's hydrogens, by P-58.2 (A7) --------
+    # A single-bonded suffix needs indicated or added hydrogen only on an atom
+    # with none in the mancude parent: "1,4-dihydro-3aH-indene-3a-carboxylic
+    # acid" and "naphthalen-4a(2H)-amine" (pp. 481, 526), but "1,2,3,4-tetra-
+    # hydronaphthalen-1-amine (PIN)" (p. 526). Complete hydrogenation drops
+    # the hydro locants (P-14.3.4.5, "decahydronaphthalene (PIN)", p. 73).
+    ("D-067a", "OC12CCCC1CCCC2", "octahydro-3aH-inden-3a-ol", "octahydro-4H-inden-3a-ol",
+     "a fusion carbon carries the -ol"),
+    ("D-067b", "OC12CCCCC1CCCC2", "octahydronaphthalen-4a(2H)-ol",
+     "decahydronaphthalen-4a-ol", "p. 535, 'naphthalen-4a(2H)-ol (PIN)', fully hydrogenated"),
+    ("D-067c", "CC1(O)C2CCCCC2CC2CCCCC21", "9-methyltetradecahydroanthracen-9-ol",
+     "9-methyl-1,2,3,4,4a,5,6,7,8,8a,9,9a,10,10a-tetradecahydroanthracen-9-ol",
+     "P-14.3.4.5; 'tetradecahydroanthracene (PIN)', p. 336"),
+    # Every position is hydro, added or the group, so no hydro locants:
+    # "hexahydro-1H-isoindole-1,3(2H)-dione (PIN)", p. 666 (D-071i).
+    ("D-067d", "O=C1CCCC2CCCCC12C", "8a-methyloctahydronaphthalen-1(2H)-one",
+     "8a-methyldecahydronaphthalen-1-one", "the saturated form of p. 479's naphthalen-1(2H)-one"),
+    ("D-067e", "C1CCC2CCCC2C1", "octahydro-1H-indene", "octahydro-4H-indene",
+     "a table name; indicated hydrogen at the lowest locant"),
+    ("D-067f", "CC1(O)CCC2C3CCC4CCCCC4(C)C3CCC12C",
+     "10,13,17-trimethylhexadecahydro-1H-cyclopenta[a]phenanthren-17-ol",
+     "10,13,17-trimethylhexadecahydro-1H-cyclopenta[a]phenanthren-17-ol",
+     "converse: C17 is a CH of the 1H parent, so the -ol takes no indicated H"),
+    ("D-067g", "NC1Cc2ccccc2C1", "2,3-dihydro-1H-inden-2-amine", "2,3-dihydro-1H-inden-2-amine",
+     "converse: 'indan-2-yl ... 2,3-dihydro-1H-inden-2-yl (preferred prefix)', p. 343"),
+    ("D-067h", "OC1CCOc2ccccc21", "3,4-dihydro-2H-1-benzopyran-4-ol",
+     "3,4-dihydro-2H-1-benzopyran-4-ol", "converse: a CH of 2H-1-benzopyran"),
+    # --- D-068: a free valence is accommodated like a suffix (A7) -----------
+    # "pyridin-1(2H)-yl (preferred prefix)", "1,3-thiazol-3(2H)-yl (PIN)"
+    # (pp. 479, 797). The retained route wrote the table's hydro text.
+    ("D-068a", "OC(=O)CN1CCc2ccccc2C1", "(3,4-dihydroisoquinolin-2(1H)-yl)acetic acid",
+     "(1,2,3,4-tetrahydroisoquinolin-2-yl)acetic acid",
+     "cf. '1-(3,4-dihydroquinolin-1(2H)-yl)ethan-1-one (PIN)', p. 567"),
+    ("D-068b", "OC(=O)CN1CSC=C1", "(1,3-thiazol-3(2H)-yl)acetic acid",
+     "(2,3-dihydro-1,3-thiazol-3-yl)acetic acid", "the book's own prefix"),
+    ("D-068c", "OC(=O)CC1Cc2ccccc2C1", "(2,3-dihydro-1H-inden-2-yl)acetic acid",
+     "(2,3-dihydro-1H-inden-2-yl)acetic acid", "converse: a CH free valence, p. 343"),
+    ("D-068d", "OC(=O)CC1CCOc2ccccc21", "(3,4-dihydro-2H-1-benzopyran-4-yl)acetic acid",
+     "(3,4-dihydro-2H-1-benzopyran-4-yl)acetic acid", "converse, as D-067h"),
+    # --- D-069: anthrone had no anthracene parent (A7) ----------------------
+    # The single-hydro route required the saturated atom to sit next to the
+    # C=O; in anthrone it is para. The book prints anthrone nowhere; the form
+    # is P-58.2.2's, as in "anthracen-9(10H)-yl-10-ylidene" (p. 479).
+    ("D-069a", "O=C1c2ccccc2Cc2ccccc21", "anthracen-9(10H)-one",
+     "tricyclo[8.4.0.0^{3,8}]tetradeca-1(14),3,5,7,10,12-hexaen-2-one", "anthrone"),
+    ("D-069b", "O=C1c2ccccc2C(C)c2ccccc21", "10-methylanthracen-9(10H)-one",
+     "9-methyltricyclo[8.4.0.0^{3,8}]tetradeca-1(14),3,5,7,10,12-hexaen-2-one",
+     "the suffix, not the hydrogen, takes the low locant"),
+    ("D-069c", "O=C1CCCc2ccccc21", "3,4-dihydronaphthalen-1(2H)-one",
+     "3,4-dihydronaphthalen-1(2H)-one", "converse: the adjacent case is unchanged"),
+    # --- D-070: a ring "carbo-" suffix keeps its locant 1 (A7) --------------
+    # The vendored set of "C1 by definition" suffixes held -carboxylic acid,
+    # -carboxamide and -carbonitrile, which are added-carbon RING forms:
+    # "piperidine-1-carboxamide (PIN)", "piperidine-1-carbonitrile (PIN)",
+    # "pyrrolidine-1-carboxylic acid (PIN)" (pp. 645, 687, 580).
+    ("D-070a", "OC(=O)c1cccc2ccccc12", "naphthalene-1-carboxylic acid",
+     "naphthalenecarboxylic acid", "p. 564"),
+    ("D-070b", "NC(=O)N1CCCCC1", "piperidine-1-carboxamide", "piperidinecarboxamide", "p. 645"),
+    ("D-070c", "N#CN1CCCCC1", "piperidine-1-carbonitrile", "piperidinecarbonitrile", "p. 687"),
+    ("D-070d", "OC(=O)N1CCCc2ccccc21", "3,4-dihydroquinoline-1(2H)-carboxylic acid",
+     "1,2,3,4-tetrahydroquinolinecarboxylic acid",
+     "'quinoline-1(2H)-carboxylic acid (PIN)', p. 479; the former did not parse back"),
+    ("D-070e", "OC(=O)C1=CC=CCC1", "cyclohexa-1,3-diene-1-carboxylic acid",
+     "cyclohexa-1,3-dienecarboxylic acid", "a multiplied '-dien' hid the ring's unsaturation"),
+    ("D-070f", "OC(=O)C1CCCCC1", "cyclohexanecarboxylic acid", "cyclohexanecarboxylic acid",
+     "converse: P-14.3.4.2(c) still omits it on a homogeneous monocycle"),
+    ("D-070g", "OC(=O)c1cnccn1", "pyrazinecarboxylic acid", "pyrazinecarboxylic acid",
+     "converse: P-14.3.4.4, unique by symmetry"),
+    # --- D-071: a saturated HETEROfused ring kept no fusion name (A7) -------
+    # P-31.2.3.3.2 names a hydrogenated mancude ring system by hydro prefixes
+    # (p. 335). The hydro route re-aromatized the ring to find its parent; the
+    # first mode that sanitized won even when it was the wrong tautomer (a
+    # 1,4-dihydroquinoxaline), an azole N never got its H back, and an odd
+    # saturated count had nowhere to put the parent's own indicated hydrogen.
+    ("D-071a", "OC1CCC2C(C1)NC1CCCCC12", "dodecahydro-1H-carbazol-2-ol",
+     "2-azatricyclo[7.4.0.0^{3,8}]tridecan-12-ol", "and 2, not 7: both orientations offered"),
+    ("D-071b", "C1CCC2C(C1)NC1CCCCC12", "dodecahydro-1H-carbazole",
+     "2-azatricyclo[7.4.0.0^{3,8}]tridecane", "perhydrocarbazole"),
+    ("D-071c", "OC1CCC2NNCC2C1", "octahydro-1H-indazol-5-ol",
+     "7,8-diazabicyclo[4.3.0]nonan-3-ol", "the NH put back on one N"),
+    ("D-071d", "OC1CCC2NCCNC2C1", "decahydroquinoxalin-6-ol",
+     "2,5-diazabicyclo[4.4.0]decan-8-ol", "the wrong tautomer sanitized first"),
+    ("D-071e", "C1CCC2NCCNC2C1", "decahydroquinoxaline", "2,5-diazabicyclo[4.4.0]decane",
+     "P-14.3.4.5, no hydro locants"),
+    ("D-071f", "C1CCC2C(C1)OC1CCCCC12", "dodecahydrodibenzofuran",
+     "1,2,3,4,4a,5a,6,7,8,9,9a,9b-dodecahydrodibenzofuran", "P-14.3.4.5"),
+    ("D-071g", "OC1CCC2CNCCC2C1", "decahydroisoquinolin-6-ol", "3-azabicyclo[4.4.0]decan-8-ol",
+     "the table entry numbered 1-4 only"),
+    ("D-071h", "CC1CCC2CNCCC2C1", "6-methyldecahydroisoquinoline", "methyldecahydroisoquinoline",
+     "the former did not parse back"),
+    ("D-071i", "O=C1NC(=O)C2CCCCC12", "hexahydro-1H-isoindole-1,3(2H)-dione",
+     "octahydro-1H-isoindole-1,3-dione", "the book's PIN, p. 666"),
+    ("D-071j", "O=C1CCC2CCCC2C1", "octahydro-5H-inden-5-one", "octahydro-4H-inden-5-one",
+     "P-58.2.3.1.1; cf. 'tetrahydro-4H-pyran-4-one', p. 481"),
+    ("D-071k", "OC1CCC2NCCC2C1", "octahydro-1H-indol-5-ol", "octahydro-1H-indol-5-ol",
+     "converse: a table entry already covered it"),
+    # --- D-072: eleven ring-table locant maps were stored inverted (A7) -----
+    # locant -> atom instead of atom -> locant ("4: 0", "5: 1"), so one ring
+    # atom had no locant and the rest were misplaced; for the dihydrofuran and
+    # dihydropyrrole that named a DIFFERENT molecule. All eleven re-checked by
+    # OPSIN chloro probing of every locant.
+    ("D-072a", "FC1=COCC1", "4-fluoro-2,3-dihydrofuran", "3-fluoro-2,3-dihydrofuran",
+     "a different molecule"),
+    ("D-072b", "OC(=O)C1=COCC1", "2,3-dihydrofuran-4-carboxylic acid",
+     "2,3-dihydrofuran-3-carboxylic acid", "a different molecule"),
+    ("D-072c", "FC1=CNCC1", "4-fluoro-2,3-dihydro-1H-pyrrole", "3-fluoro-2,3-dihydro-1H-pyrrole",
+     "a different molecule"),
+    ("D-072d", "FC1=CCOCC1", "4-fluoro-3,6-dihydro-2H-pyran", "4-fluoro-3,6-dihydro-2H-pyran",
+     "converse: right by another route before, and still"),
+    ("D-072e", "CC1=CCOC1", "3-methyl-2,5-dihydrofuran", "3-methyl-2,5-dihydrofuran",
+     "converse, as D-072d"),
+    # --- D-073: a prefix with no locant is refused, not emitted (A7) --------
+    # A ring-table entry that numbers only some positions gave a substituent
+    # elsewhere an empty locant, and the name went out as "fluoro-...": 32
+    # entries were measured with such a gap. The substitutive builder now
+    # refuses the plan and another parent is chosen.
+    ("D-073a", "Fc1ccc2ssc2c1", "5-fluoro-1,2-benzodithiete", "fluoro-1,2-benzodithiete",
+     "the former did not parse back"),
+    ("D-073b", "Cc1ccncc1", "4-methylpyridine", "4-methylpyridine",
+     "converse: a complete entry is untouched"),
+    # --- D-074: a ring acid's locant carried into its cation (A7) -----------
+    # The amidylium/amidinium renderers stripped "carboxylic acid" and
+    # appended "-1-", so any other position printed "naphthalene-2-1-
+    # amidylium", which does not parse; with D-070 the 1-isomer would have
+    # broken the same way.
+    ("D-074a", "c1ccc2cc(C(=O)[NH+])ccc2c1", "naphthalen-2-amidylium",
+     "naphthalene-2-1-amidylium", "the former did not parse back"),
+    ("D-074b", "NC(=[NH2+])c1ccc2ccccc2c1", "naphthalen-2-amidinium",
+     "naphthalene-2-1-amidinium", "as D-074a"),
+    ("D-074c", "C1(=CC=CC2=CC=CC=C12)C(=O)[NH+]", "naphthalen-1-amidylium",
+     "naphthalen-1-amidylium", "converse: position 1 unchanged"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

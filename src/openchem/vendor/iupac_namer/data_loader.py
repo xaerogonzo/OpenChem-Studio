@@ -1108,10 +1108,13 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # OPSIN 'decahydroisoquinoline' -> C1NCCC2CCCCC12; canonical: C1CCC2CNCCC2C1.
     # Atoms: idx5=N(pos2), junctions=idx8(4a),idx3(8a).
     # OPSIN chloro probing: 1-Cl->idx4, 2-Cl->idx5(N), 3-Cl->idx6, 4-Cl->idx7,
-    #   4a-Cl->idx8, 8a-Cl->idx3.
+    #   4a-Cl->idx8, 8a-Cl->idx3; and (naming round 4) 5-Cl->idx9, 6-Cl->idx0,
+    #   7-Cl->idx1, 8-Cl->idx2. Without 5-8 a substituent there had no locant:
+    #   "methyldecahydroisoquinoline", which does not parse back, and an -ol
+    #   there fell to "3-azabicyclo[4.4.0]decan-8-ol".
     "C1CCC2CNCCC2C1":  {"name": "decahydroisoquinoline", "substituent_form": "decahydroisoquinolinyl",
                         "alkyl_stem_ok": False,
-                        "atom_locants": {4: 1, 5: 2, 6: 3, 7: 4, 8: "4a", 3: "8a"}},
+                        "atom_locants": {4: 1, 5: 2, 6: 3, 7: 4, 8: "4a", 9: 5, 0: 6, 1: 7, 2: 8, 3: "8a"}},
 
     # -----------------------------------------------------------------------
     # Benzo-fused saturated S-heterocycles
@@ -1562,22 +1565,30 @@ _RING_CURATED_SMILES: dict[str, dict] = {
                         "atom_locants": {2: 1, 3: 2, 4: 3, 5: 4, 0: 5, 1: 6}},
     # 3,6-dihydro-2H-pyran: canonical C1=CCOCC1
     # idx3=O=1, idx2=2(sp3), idx1=3(sp2), idx0=4(sp2), idx5=5(sp3 alt), idx4=... we use: 1=3,2=4,3=5,4=0,5=1,6=2
+    # atom_locants were stored INVERTED (locant -> atom); fixed in naming
+    # round 4 and checked by OPSIN chloro probing of every locant.
     "C1=CCOCC1":       {"name": "3,6-dihydro-2H-pyran", "substituent_form": "3,6-dihydro-2H-pyranyl", "alkyl_stem_ok": False,
-                        "atom_locants": {1: 3, 2: 4, 3: 5, 4: 0, 5: 1, 6: 2}},
+                        "atom_locants": {3: 1, 4: 2, 5: 3, 0: 4, 1: 5, 2: 6}},
     # 2H-pyran: canonical C1=CCOC=C1
     # idx3=O=1, idx2=2(sp3), idx1=3, idx0=4, idx5=5, idx4=6
+    # atom_locants were stored INVERTED (locant -> atom); fixed in naming
+    # round 4 and checked by OPSIN chloro probing of every locant.
     "C1=CCOC=C1":      {"name": "2H-pyran", "substituent_form": "2H-pyranyl", "alkyl_stem_ok": False,
-                        "atom_locants": {1: 3, 2: 2, 3: 1, 4: 0, 5: 5, 6: 4}},
+                        "atom_locants": {3: 1, 2: 2, 1: 3, 0: 4, 5: 5, 4: 6}},
     # 4H-pyran: canonical C1=COC=CC1
     # idx2=O=1, idx1=2, idx0=3, idx5=4(sp3), idx4=5, idx3=6
+    # atom_locants were stored INVERTED (locant -> atom); fixed in naming
+    # round 4 and checked by OPSIN chloro probing of every locant.
     "C1=COC=CC1":      {"name": "4H-pyran", "substituent_form": "4H-pyranyl", "alkyl_stem_ok": False,
-                        "atom_locants": {1: 2, 2: 1, 3: 0, 4: 5, 5: 4, 6: 3}},
+                        "atom_locants": {2: 1, 1: 2, 0: 3, 5: 4, 4: 5, 3: 6}},
     # 4H-thiopyran: canonical C1=CSC=CC1 (S analogue of 4H-pyran; same topology).
     # P-25.2.1 / P-22.2.1.1 favour the retained "thiopyran" over HW "thiine" for
     # 6-rings with 1 S.  Atom layout: idx2=S(pos1), idx1=C(pos2), idx0=C(pos3),
     # idx5=C(pos4,sp3 CH2), idx4=C(pos5), idx3=C(pos6).  Mirrors 4H-pyran.
+    # atom_locants were stored INVERTED (locant -> atom); fixed in naming
+    # round 4 and checked by OPSIN chloro probing of every locant.
     "C1=CSC=CC1":      {"name": "4H-thiopyran", "substituent_form": "4H-thiopyranyl", "alkyl_stem_ok": False,
-                        "atom_locants": {1: 2, 2: 1, 3: 0, 4: 5, 5: 4, 6: 3}},
+                        "atom_locants": {2: 1, 1: 2, 0: 3, 5: 4, 4: 5, 3: 6}},
     # 2H-thiopyran / 2H-selenopyran / 2H-telluropyran: the 2H tautomers of
     # the thio/seleno/telluro pyran family.  Canonical SMILES mirror 2H-pyran
     # ``C1=CCOC=C1`` with S/Se/Te in place of O.  Atom layout: the sp3 CH2
@@ -1589,12 +1600,18 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # in the OPSIN arylGroups.xml name ``thiopyran`` (stem form), and the
     # numbering falls through to the generic monocyclic traversal where the
     # indicated-H atom and substituent locants are NOT coherently pinned.
+    # atom_locants were stored INVERTED (locant -> atom); fixed in naming
+    # round 4 and checked by OPSIN chloro probing of every locant.
     "C1=CCSC=C1":      {"name": "2H-thiopyran", "substituent_form": "2H-thiopyranyl", "alkyl_stem_ok": False,
-                        "atom_locants": {1: 3, 2: 2, 3: 1, 4: 0, 5: 5, 6: 4}},
+                        "atom_locants": {3: 1, 2: 2, 1: 3, 0: 4, 5: 5, 4: 6}},
+    # atom_locants were stored INVERTED (locant -> atom); fixed in naming
+    # round 4 and checked by OPSIN chloro probing of every locant.
     "C1=CC[Se]C=C1":   {"name": "2H-selenopyran", "substituent_form": "2H-selenopyranyl", "alkyl_stem_ok": False,
-                        "atom_locants": {1: 3, 2: 2, 3: 1, 4: 0, 5: 5, 6: 4}},
+                        "atom_locants": {3: 1, 2: 2, 1: 3, 0: 4, 5: 5, 4: 6}},
+    # atom_locants were stored INVERTED (locant -> atom); fixed in naming
+    # round 4 and checked by OPSIN chloro probing of every locant.
     "C1=CC[Te]C=C1":   {"name": "2H-telluropyran", "substituent_form": "2H-telluropyranyl", "alkyl_stem_ok": False,
-                        "atom_locants": {1: 3, 2: 2, 3: 1, 4: 0, 5: 5, 6: 4}},
+                        "atom_locants": {3: 1, 2: 2, 1: 3, 0: 4, 5: 5, 4: 6}},
     # 4H-pyran-4-one (4-pyrone): canonical O=c1ccocc1 — the aromatic 6-ring
     # with 1 O and an exocyclic carbonyl on the opposite carbon.  IUPAC
     # P-25.2.1 / P-22.2.1.1 forbids HW "oxine" for 6-rings with 1 O; the
@@ -1651,20 +1668,30 @@ _RING_CURATED_SMILES: dict[str, dict] = {
                         "atom_locants": {2: 1, 3: 2, 4: 3, 5: 4, 0: 5, 1: 6}},
     # 1,2,3,6-tetrahydropyridine: canonical C1=CCNCC1 (same topology as 3,6-dihydro-2H-pyran with N)
     # idx3=N=1, idx2=6, idx1=5, idx0=4, idx5=3, idx4=2 -- use: 1=3,2=4,3=5,4=0,5=1,6=2
+    # atom_locants were stored INVERTED (locant -> atom); fixed in naming
+    # round 4 and checked by OPSIN chloro probing of every locant.
     "C1=CCNCC1":       {"name": "1,2,3,6-tetrahydropyridine", "substituent_form": "1,2,3,6-tetrahydropyridinyl", "alkyl_stem_ok": False,
-                        "atom_locants": {1: 3, 2: 4, 3: 5, 4: 0, 5: 1, 6: 2}},
+                        "atom_locants": {3: 1, 4: 2, 5: 3, 0: 4, 1: 5, 2: 6}},
     # 3,4,5,6-tetrahydropyridine: canonical C1=NCCCC1 (cyclic imine, C=N)
     # idx1=N=1, idx0=2(C=N), idx5=3, idx4=4, idx3=5, idx2=6
+    # atom_locants were stored INVERTED (locant -> atom); fixed in naming
+    # round 4 and checked by OPSIN chloro probing of every locant.
     "C1=NCCCC1":       {"name": "3,4,5,6-tetrahydropyridine", "substituent_form": "3,4,5,6-tetrahydropyridinyl", "alkyl_stem_ok": False,
-                        "atom_locants": {1: 1, 2: 0, 3: 5, 4: 4, 5: 3, 6: 2}},
+                        "atom_locants": {1: 1, 0: 2, 5: 3, 4: 4, 3: 5, 2: 6}},
     # 2,5-dihydro-1H-pyrrole (3-pyrroline): canonical C1=CCNC1
     # idx3=N=1, idx2=2(sp3), idx1=3(sp2), idx0=4(sp2), idx4=5(sp3)
+    # atom_locants were stored INVERTED (locant -> atom); fixed in naming
+    # round 4 and checked by OPSIN chloro probing of every locant.
     "C1=CCNC1":        {"name": "2,5-dihydro-1H-pyrrole", "substituent_form": "2,5-dihydro-1H-pyrrolyl", "alkyl_stem_ok": False,
-                        "atom_locants": {1: 3, 2: 2, 3: 1, 4: 0, 5: 4}},
+                        "atom_locants": {3: 1, 2: 2, 1: 3, 0: 4, 4: 5}},
     # 2,3-dihydro-1H-pyrrole (2-pyrroline): canonical C1=CNCC1
     # idx2=N=1, idx3=2(sp3), idx4=3(sp3), idx0=4(sp2), idx1=5(sp2)
+    # The map was stored INVERTED (locant -> atom: "5: 1", "4: 0"), so atom 0
+    # had no locant and the rest were misplaced: a 4-substituent came out
+    # "3-...-2,3-dihydro-1H-pyrrole", a different molecule (naming round 4). Atom -> locant,
+    # verified by OPSIN chloro probing 2..5.
     "C1=CNCC1":        {"name": "2,3-dihydro-1H-pyrrole", "substituent_form": "2,3-dihydro-1H-pyrrolyl", "alkyl_stem_ok": False,
-                        "atom_locants": {1: 2, 2: 3, 3: 4, 4: 0, 5: 1}},
+                        "atom_locants": {2: 1, 3: 2, 4: 3, 0: 4, 1: 5}},
     # 3,4-dihydro-2H-pyrrole (1-pyrroline): canonical C1=NCCC1.  Cyclic imine
     # with C=N at L1-L5 and three sp3 C (L2-L4).  Atom_locants verified via
     # OPSIN chloro probing: 2-Cl->ClC1CCC=N1, 3-Cl->ClC1CC=NC1, 4-Cl->ClC1C=NCC1,
@@ -1673,12 +1700,18 @@ _RING_CURATED_SMILES: dict[str, dict] = {
                         "atom_locants": {0: 5, 1: 1, 2: 2, 3: 3, 4: 4}},
     # 2,3-dihydrofuran: canonical C1=COCC1 — analogous to 2,3-dihydropyrrole with O
     # idx2=O=1, idx3=2(sp3), idx4=3(sp3), idx0=4(sp2), idx1=5(sp2)
+    # The map was stored INVERTED (locant -> atom: "5: 1", "4: 0"), so atom 0
+    # had no locant and the rest were misplaced: a 4-substituent came out
+    # "3-...-2,3-dihydrofuran", a different molecule (naming round 4). Atom -> locant,
+    # verified by OPSIN chloro probing 2..5.
     "C1=COCC1":        {"name": "2,3-dihydrofuran", "substituent_form": "2,3-dihydrofuranyl", "alkyl_stem_ok": False,
-                        "atom_locants": {1: 2, 2: 3, 3: 4, 4: 0, 5: 1}},
+                        "atom_locants": {2: 1, 3: 2, 4: 3, 0: 4, 1: 5}},
     # 2,5-dihydrofuran: canonical C1=CCOC1 — analogous to 2,5-dihydropyrrole with O
     # idx3=O=1, idx2=2(sp3), idx1=3(sp2), idx0=4(sp2), idx4=5(sp3)
+    # atom_locants were stored INVERTED (locant -> atom); fixed in naming
+    # round 4 and checked by OPSIN chloro probing of every locant.
     "C1=CCOC1":        {"name": "2,5-dihydrofuran", "substituent_form": "2,5-dihydrofuranyl", "alkyl_stem_ok": False,
-                        "atom_locants": {1: 3, 2: 2, 3: 1, 4: 0, 5: 4}},
+                        "atom_locants": {3: 1, 2: 2, 1: 3, 0: 4, 4: 5}},
 
     # -----------------------------------------------------------------------
     # Small Si/Ge rings with cumulenic / sp ring atoms (Phase 9)
@@ -2235,8 +2268,12 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # minimization (GetSubstructMatches(uniquify=False) in _build_numbering_from_atom_locants)
     # enumerates all orientations and picks the one giving lowest substituent locants
     # per P-14.5.  Covers FDA-0188 (calcipotriol), FDA-0189 (calcitriol), FDA-0417
-    # (dihydrotachysterol) — all carry a 7a-methyl-octahydro-4H-inden-1-yl CD-ring core.
-    "C1CCC2CCCC2C1":     {"name": "octahydro-4H-indene", "substituent_form": "octahydro-4H-inden-yl", "alkyl_stem_ok": False,
+    # (dihydrotachysterol) — all carry a 7a-methyloctahydro-1H-inden-1-yl CD-ring core.
+    # The indicated hydrogen is 1H, not the 4H this entry used to carry:
+    # P-31.1.4.2.4 gives indicated hydrogen the lowest locant, and a fully
+    # saturated ring has no structural reason to put it anywhere else
+    # (compare "(3aR,7aS)-octahydro-1H-indole (PIN)", pdf p. 945).
+    "C1CCC2CCCC2C1":     {"name": "octahydro-1H-indene", "substituent_form": "octahydro-1H-inden-yl", "alkyl_stem_ok": False,
                            "atom_locants": {4: 1, 5: 2, 6: 3, 7: "3a", 8: 4, 0: 5, 1: 6, 2: 7, 3: "7a"}},
     # 3a,4,7,7a-tetrahydro-2H-isoindole (isoindole with cyclohexene fused to pyrrolidine,
     # N at pos 2, C=C at pos 5-6). Canonical 'C1=CCC2CNCC2C1' has the double bond at
@@ -3772,7 +3809,12 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # pos5→idx2, pos7→idx9, pos7a→idx8.  pos1=O and pos6=C=O from topology.
     # Covers FDA-0794 (7-{2-(1,1-difluoropentyl)-2-hydroxy-6-oxooctahydrocyclopenta[b]pyran-5-yl}heptanoic acid).
     "O=C1CC2CCCOC2C1": {
-        "name": "octahydrocyclopenta[b]pyran-6-one",
+        # P-58.2.2: the ring C=O of a mancude parent with no indicated
+        # hydrogen takes ADDED hydrogen, so the name is not "octahydro...-6-
+        # one"; every position is then described, so no hydro locants, as in
+        # "hexahydro-1H-isoindole-1,3(2H)-dione (PIN)", p. 666 (checked by
+        # test_indicated_hydrogen_p58's table guard).
+        "name": "hexahydrocyclopenta[b]pyran-6(2H)-one",
         "substituent_form": "octahydrocyclopenta[b]pyran-6-on-yl",
         "alkyl_stem_ok": False,
         "atom_locants": {7: 1, 6: 2, 5: 3, 4: 4, 3: "4a", 2: 5, 1: 6,

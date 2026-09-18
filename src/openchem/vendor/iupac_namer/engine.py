@@ -10386,6 +10386,18 @@ def _execute_retained(plan, mol, output_form, free_valence, decision_ctx) -> Nam
             plan.match.substituent_form, mol, free_valence, plan.match.name
         )
         name_text = locant_form if locant_form is not None else plan.match.substituent_form
+        # P-58.2: a hydro ring's free valence takes the indicated or added
+        # hydrogen ("1,3-dihydro-2H-inden-2-yl", "3,4-dihydroisoquinolin-
+        # 2(1H)-yl"); the table's substituent form cannot know which atom.
+        if (free_valence is not None
+                and free_valence.bond_orders == (1,)
+                and free_valence.attachment_atoms_in_fragment):
+            from openchem.vendor.iupac_namer.ring_naming.indicated_hydrogen_p58 import (
+                rewrite_leaf_substituent as _p58_leaf,
+            )
+            _rewritten = _p58_leaf(mol, free_valence.attachment_atoms_in_fragment, name_text)
+            if _rewritten is not None:
+                name_text = _rewritten
         # P-29.2 ylidene/ylidyne: if the free valence is monovalent and attaches
         # via a multi-order bond, swap the trailing "yl" for "ylidene" (bond
         # order 2) or "ylidyne" (bond order 3).  Without this, a retained
@@ -15640,9 +15652,34 @@ class SubstitutivePath:
         from openchem.vendor.iupac_namer.ring_naming.indicated_hydrogen_p58 import (
             apply_to_parent as _p58_apply,
         )
-        _p58 = _p58_apply(mol, _named_parent, plan.numbering, _suffix_groups)
+        # A substituent on a ring position the parent's numbering does not
+        # number cannot be named: the prefix is emitted with NO locant, and
+        # "fluoro-1,2-benzodithiete" or "methyldecahydroisoquinoline" name a
+        # different, or no, structure (a ring-table entry that lacks a locant
+        # for an ordinary position; naming round 4 counted 32 such entries).
+        # Refuse the plan so another parent is chosen, never emit it.
+        # (An empty tuple is the same failure: that is how a missing position
+        # arrives from the prefix builders. Omission is assembly's decision,
+        # made later, so every prefix still carries its locant here.)
+        if plan.named_parent.candidate.ring_system is not None and (
+            any(not p.locants or any(loc is None for loc in p.locants) for p in prefixes)
+            or any(loc is None for sg in _suffix_groups for loc in sg.locants)
+        ):
+            return ErrorTree(
+                output_form=output_form,
+                free_valence=free_valence,
+                choices_made=(),
+                decision_ctx=decision_ctx,
+                validity_warnings=None,
+                message=(
+                    f"parent {plan.named_parent.name!r} has no locant for a "
+                    f"substituted ring position"
+                ),
+            )
+        _fv_added_h: tuple = ()
+        _p58 = _p58_apply(mol, _named_parent, plan.numbering, _suffix_groups, free_valence)
         if _p58 is not None:
-            _named_parent, _suffix_groups = _p58
+            _named_parent, _suffix_groups, _fv_added_h = _p58
 
         return SubstitutiveTree(
             output_form=output_form,
@@ -15666,6 +15703,7 @@ class SubstitutivePath:
             ring_anion_locants=ring_anion_locants,
             isotope_labels=_isotope_labels_tuple,
             single_substituent_positions_all_equivalent=_single_sub_all_equiv,
+            free_valence_added_hydrogen=_fv_added_h,
         )
 
 

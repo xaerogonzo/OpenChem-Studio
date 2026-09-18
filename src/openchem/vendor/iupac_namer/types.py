@@ -2160,6 +2160,12 @@ class SubstitutiveTree(TreeBase):
     # RDKit mol (perception.symmetry.single_substituent_locant_forced_by_symmetry);
     # default False so untouched code paths keep their locants.
     single_substituent_positions_all_equivalent: bool = False
+    # P-58.2.2 'added indicated hydrogen' carried by a FREE VALENCE, cited
+    # after its locant: "pyridin-1(2H)-yl (preferred prefix)",
+    # "3,4-dihydroquinolin-2(1H)-ylidene" (pdf p. 479). Set by the P-58.2
+    # planner (ring_naming/indicated_hydrogen_p58.py) when a substituent has
+    # no suffix to carry it.
+    free_valence_added_hydrogen: tuple[Locant, ...] = ()
 
     def with_warnings(self, *new_warnings: str) -> SubstitutiveTree:
         existing = self.validity_warnings or ()
