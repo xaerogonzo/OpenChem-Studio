@@ -20757,8 +20757,8 @@ pinned by sha256 in `benchmarks/naming/adjudication.toml`):
 * **A citation can be real and irrelevant.** `caffeine` cited P-31.1.3, which
   is about indicated hydrogen; a careful vendored test cited P-66.6.3 for
   retaining `camphor`, and P-66.6.3 is about chalcogen analogues of
-  aldehydes. `camphor` is not in the retained-ketone list, and the book
-  names its skeleton systematically wherever it uses it.
+  aldehydes. `camphor` appears on exactly two pages of the book, 641 and
+  1000, and neither is a retained-name table.
 * **"Retained" and "not preferred" are not the same.** `toluene` is retained
   AND a PIN (P-22.1.3); `1,4-xylene` is a PIN and the engine was wrong not
   to use it. A policy sweep over retained names would have broken both. I
