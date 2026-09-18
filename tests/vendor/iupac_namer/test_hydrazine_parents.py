@@ -46,8 +46,10 @@ from openchem.vendor.iupac_namer.engine import name_smiles
 
     # --- Regression: standard chain/ring naming unaffected ---
     ("CCO", "ethanol"),
-    ("CC(=O)c1ccccc1", "1-phenylethanone"),
-    ("CC(O)c1ccccc1", "1-phenylethanol"),
+    # P-64.2 (BlueBookV2 pdf p. 558): "1-phenylethan-1-one (PIN)" -- a
+    # substituted ethane keeps its suffix locant (round 4, D-042).
+    ("CC(=O)c1ccccc1", "1-phenylethan-1-one"),
+    ("CC(O)c1ccccc1", "1-phenylethan-1-ol"),
 ])
 def test_hydrazine_parent(smi: str, expected: str) -> None:
     """Name SMILES *smi* and check the result matches *expected*."""
