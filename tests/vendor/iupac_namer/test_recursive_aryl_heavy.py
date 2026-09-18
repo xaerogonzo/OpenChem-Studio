@@ -99,21 +99,46 @@ def test_diphenylstibane_extension_roundtrips() -> None:
 # --- R21-A guards: standalone aryl-on-heavy-element ---
 
 
+# "RING BEATS HETEROATOM_CENTER" WAS THE WRONG RULE, and these three tests
+# were guarding it. R22-B's docstring above states it as design intent; it
+# inverts the Blue Book cascade.
+#
+# BlueBookV2.pdf p. 375, P-44.1.2: "The senior parent structure, whether
+# cyclic or acyclic, has the senior atom in accordance with the seniority of
+# classes ... N > P > As > Sb > Bi > Si > Ge > Sn > Pb > B > Al > Ga > In >
+# Tl > O > S > Se > Te > C. This criterion is applied to select the senior
+# atom in parents and TO CHOOSE BETWEEN RINGS AND CHAINS."
+#
+# Carbon is last. The senior ATOM is decided at P-44.1.2, BEFORE any
+# ring-specific criterion (P-44.1.3), and the ring-over-chain rule at
+# P-44.1.2.2 applies only "when a ring and a chain contain the same senior
+# element" -- which a phenyl-plumbane does not. So Pb, Bi and Sb take the
+# parent and the names are the standard ones. Each still round-trips, which
+# is why the old form survived: a round trip cannot see preference.
+#
+# What these tests are really for -- that a Pb/Bi/Sb-rooted fragment can be
+# named AT ALL, where it used to emit "{[NAMING ERROR: ...]}benzene" -- is
+# unaffected, and is what the assertions check for explicitly now.
+
+
 def test_phenylplumbane_standalone_unchanged() -> None:
-    """R21-A path: standalone ``[PbH3][c]1ccccc1`` still emits
-    ``(plumbyl)benzene`` (ring beats heteroatom_center)."""
+    """R21-A path: standalone ``[PbH3][c]1ccccc1`` is named, and the lead
+    carries the senior atom (P-44.1.2) rather than the ring."""
     name = name_smiles("[PbH3][c]1ccccc1")
-    assert name == "(plumbyl)benzene", f"R21-A regression: got {name!r}"
+    assert "NAMING ERROR" not in name, f"R22-B regression: got {name!r}"
+    assert name == "phenylplumbane", f"got {name!r}"
 
 
 def test_phenylbismuthane_standalone_unchanged() -> None:
     name = name_smiles("[BiH2][c]1ccccc1")
-    assert name == "(bismuthanyl)benzene", f"R21-A regression: got {name!r}"
+    assert "NAMING ERROR" not in name, f"R22-B regression: got {name!r}"
+    assert name == "phenylbismuthane", f"got {name!r}"
 
 
 def test_phenylstibane_standalone_unchanged() -> None:
     name = name_smiles("[SbH2][c]1ccccc1")
-    assert name == "(stibanyl)benzene", f"R21-A regression: got {name!r}"
+    assert "NAMING ERROR" not in name, f"R22-B regression: got {name!r}"
+    assert name == "phenylstibane", f"got {name!r}"
 
 
 # --- R18-A guards: methyl-on-heavy-element (no ring → no R22-B activation) ---

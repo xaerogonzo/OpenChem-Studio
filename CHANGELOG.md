@@ -60,6 +60,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Organosilicon, phosphorus and iodine compounds get the right parent.**
+  `trimethyl(phenyl)silane`, `triphenylphosphane` and `diphenyliodanium`
+  replace `(trimethylsilan-yl)benzene`, `(diphenylphosphan-yl)benzene` and
+  `(phenyliodaniumyl)benzene`. The rule was never in doubt -- silicon
+  outranks carbon, so the silane is the parent -- but the engine never got
+  to apply it: the plan search spent its whole budget enumerating numberings
+  of the benzene ring, and no silicon candidate was ever proposed. A third
+  of the benchmark was naming from a truncated search like this. The budget
+  is now split so one candidate parent cannot consume what another needs,
+  and naming the whole 227-molecule benchmark still takes about seven
+  seconds.
+
+- **A correct name is no longer withheld when two calculations overlap.**
+  The name verifier shells out to OPSIN, which wrote its input to one fixed
+  filename shared by every caller, so two naming calculations in flight
+  together clobbered each other -- 5 of 16 concurrent calls came back
+  correct. A lost call reads as "this name does not parse", which the app
+  correctly treats as grounds to withhold the name, so the failure looked
+  like the namer being unable to name something it names fine.
 - **Naproxen is now named exactly as PubChem names it**, and so is every
   other substituent on a fused ring. The engine said
   `2-(2-methoxynaphthalen-6-yl)propanoic acid` where the preferred name is

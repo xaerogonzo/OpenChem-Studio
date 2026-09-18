@@ -62,21 +62,45 @@ def _canon(s: str | None) -> str | None:
     return Chem.MolToSmiles(m) if m else None
 
 
+# THE PARENT IN THESE TWO NAMES CHANGED IN NAMING ROUND 3, and the strings
+# below were updated rather than the engine.
+#
+# R21-A is about RING PERCEPTION: the carved ring must come back as benzene
+# and not as cyclohexane. It asserted the whole emitted name to check that,
+# so it also pinned the parent choice incidentally -- and that choice was
+# wrong. `(silyl)benzene` makes the carbocycle the parent; BlueBookV2.pdf
+# p. 375 P-44.1.2 reads "The senior parent structure, whether cyclic or
+# acyclic, has the senior atom in accordance with the seniority of classes
+# ... N > P > As > Sb > Bi > Si > Ge > Sn > Pb > B > Al > Ga > In > Tl > O >
+# S > Se > Te > C. This criterion is applied to select the senior atom in
+# parents AND TO CHOOSE BETWEEN RINGS AND CHAINS." Carbon is last in that
+# order, and P-44.1.2.1 adds that "a single senior atom is sufficient". The
+# same page gives Si(CH3)4 -> tetramethylsilane (PIN) "(Si is senior to C)".
+#
+# So the silane is the parent and `phenylsilane` is the name. Both forms
+# round-trip, which is why nothing caught it: the round trip cannot see
+# preference. The assertions now name the subject (the ring was perceived as
+# benzene, not cyclohexane) separately from the full string, so a future
+# parent change is not mistaken for an R21-A regression.
+
+
 def test_phenylbismuthane_roundtrips() -> None:
     """The exact audit row: ``[BiH2][c]1ccccc1``."""
     smi = "[BiH2][c]1ccccc1"
     name = name_smiles(smi)
-    assert name == "(bismuthanyl)benzene", f"got {name!r}"
+    assert name == "phenylbismuthane", f"got {name!r}"
+    assert "cyclohex" not in name, "R21-A regression: the ring became cyclohexane"
     rt = _opsin_rt(name)
     assert _canon(rt) == _canon(smi)
 
 
 def test_phenylsilane_unaffected() -> None:
-    """Control: phenylsilane was already working via the standard path
-    (RDKit canonicalises Si-attached aromatic C as ``c``, no brackets,
-    so the [c] normalisation is a no-op for this case)."""
+    """Control: phenylsilane reaches the standard path (RDKit canonicalises
+    Si-attached aromatic C as ``c``, no brackets, so the [c] normalisation is
+    a no-op here)."""
     name = name_smiles("[SiH3]c1ccccc1")
-    assert name == "(silyl)benzene", f"got {name!r}"
+    assert name == "phenylsilane", f"got {name!r}"
+    assert "cyclohex" not in name, "R21-A regression: the ring became cyclohexane"
 
 
 def test_benzene_unaffected() -> None:

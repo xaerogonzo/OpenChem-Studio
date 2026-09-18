@@ -575,3 +575,92 @@ Benchmark: regression corpus **187/187, exact 87 → 89** (both naproxen rows
 `equivalent` → `exact`, and no other name moved); held-out corpus 40/40
 unchanged. Vendored suite: 3271 passing, 16 skipped, 0 failing. The defect
 table gains 10 rows (3 defect, 7 generalisation and non-regression).
+
+## 2026-09-17 - the plan budget is two budgets (D-032)
+
+Not a ranking defect, and that distinction is the whole entry. The
+seniority logic scored the silicon parent at 5000 against benzene's 561 and
+would have preferred it instantly -- but no silicon plan was ever generated,
+because the plan search had already spent its entire 20-plan budget on
+benzene's NUMBERING variants. A candidate that does not exist cannot lose on
+the merits, and the output looks like a considered choice.
+
+* **Measured first, with the cap lifted so the real counts are visible:**
+
+        plans for ONE parent hypothesis    median 4   p90 36   max 96
+        total plans per molecule           median 7   p90 65   max 138
+        distinct hypotheses per molecule   median 1            max 10
+
+  The single counter capped at 20 was REACHED by 67 of the 189 molecules
+  that produce a top-level trace -- a third of the corpus naming from a
+  truncated search. In the worst cases every slot went to one parent:
+  nitrobenzene, thiophenol, triphenylphosphine and phenylboronic acid each
+  spend 20 plans on benzene numberings and propose a single hypothesis.
+
+* **It bought nothing.** Runtime is not driven by the plan count: the
+  slowest molecule in the corpus (a steroid, 2.2 s) produces 17 plans, while
+  the 138-plan molecule takes 0.02 s. After the change the whole
+  227-molecule set still names in about 7 s.
+
+* **Two budgets now** (`_PlanBudget`): `_TOTAL_PLAN_BUDGET = 512` as the
+  work bound, against a measured maximum of 138, and
+  `_PLANS_PER_HYPOTHESIS = 128` as the anti-starvation bound, against a
+  measured maximum of 96. Both sized with headroom rather than at the
+  observed maximum, because a threshold fitted to the cases in hand is not a
+  validated threshold. `_parent_hypothesis_key` defines what counts as the
+  same hypothesis -- parent type, element, atom set, PCG and naming method,
+  deliberately NOT the emitted name, object identity or canonical SMILES,
+  and deliberately not the numbering, which is the thing being expanded.
+
+  The tier ordering already encoded this insight for a different starvation
+  -- decomposition handlers run before substitutive so a small substitutive
+  space cannot starve a functional-class plan -- and ordering cannot solve
+  this one, because the competing parents come from the same handler.
+
+* **Four names, three of them now exact:** `trimethyl(phenyl)silane`,
+  `triphenylphosphane` and `diphenyliodanium` match PubChem verbatim, and
+  triphenylphosphine oxide moves to `oxotri(phenyl)phosphane` -- right
+  parent, with the `tri(phenyl)` enclosing marks still to fix as a separate
+  serialization defect.
+
+* **Eight vendored tests pinned the pre-fix parent, and the ENGINE was right
+  rather than the tests.** `test_recursive_aryl_heavy` states "ring beats
+  heteroatom_center" as design intent and guards it with three tests named
+  `_unchanged`. That inverts the Blue Book cascade. BlueBookV2.pdf p. 375,
+  P-44.1.2, verbatim: "The senior parent structure, whether cyclic or
+  acyclic, has the senior atom in accordance with the seniority of classes
+  (see P-41) expressed by the following decreasing element order: N > P >
+  As > Sb > Bi > Si > Ge > Sn > Pb > B > Al > Ga > In > Tl > O > S > Se >
+  Te > C. This criterion is applied to select the senior atom in parents and
+  to choose between rings and chains."
+
+  Carbon is last. P-44.1.2.1 adds that "a single senior atom is sufficient
+  to give seniority to the parent hydride", and the same page gives
+  Si(CH3)4 -> tetramethylsilane (PIN) "(Si is senior to C)" and
+  [silanediyldi(ethane-2,1-diyl)]bis(silane) (PIN) "(Si is senior to C, see
+  P-44.1.2)". The ring-over-chain rule at P-44.1.2.2 applies only "when a
+  ring and a chain contain the same senior element", which a phenylsilane
+  does not.
+
+  So `(silyl)benzene` became `phenylsilane`, and likewise
+  `phenylbismuthane`, `phenylplumbane` and `phenylstibane`. Every one
+  round-trips on canonical SMILES and full InChIKey, which is why the old
+  forms survived: a round trip cannot see preference. The updated tests keep
+  their real subject -- R21-A is about the carved ring coming back as
+  benzene rather than cyclohexane, R22-B about a Pb/Bi/Sb fragment being
+  nameable at all -- and assert it separately from the full string.
+
+  The three phosphane bracketing rows moved to inputs carrying a principal
+  characteristic group, because P-44.1.1 outranks the senior-atom criterion
+  and keeps the parent on the carbon chain. That makes the phosphanyl
+  substituent appear deliberately instead of incidentally, and exercises two
+  steps of the cascade instead of one.
+
+Benchmark: regression corpus **187/187, exact 89 -> 92**; held-out corpus
+40/40 unchanged; nothing structurally regressed. Vendored suite 3306
+passing, 0 failing -- the first entirely clean run of this branch, because
+the OPSIN input-file collision fixed in the previous commit had been
+costing one to eight spurious failures per run.
+`tests/test_namer_plan_budget.py` pins the mechanism rather than the names,
+and was mutation-tested -- collapsing every plan into one bucket kills 6 of
+its 14 assertions.

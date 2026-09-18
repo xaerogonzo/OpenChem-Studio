@@ -9179,6 +9179,93 @@ def name(
 # Plan Search
 # ---------------------------------------------------------------------------
 
+# THE PLAN BUDGET IS TWO BUDGETS, and conflating them starved the search.
+#
+# Measured over the 227 benchmark molecules on 2026-09-17, with the cap
+# lifted so the true counts are visible rather than the truncated ones:
+#
+#     plans for ONE parent hypothesis    median 4   p90 36   max 96
+#     total plans per molecule           median 7   p90 65   max 138
+#     distinct hypotheses per molecule   median 1            max 10
+#
+# A single counter capped at 20 was REACHED by 67 of the 189 molecules that
+# produce a top-level trace -- a third of the corpus naming from a truncated
+# search -- and in the worst cases all 20 slots went to one parent's
+# numbering variants: nitrobenzene, thiophenol, triphenylphosphine and
+# phenylboronic acid all spend the entire budget on benzene numberings. For
+# phenyltrimethylsilane that meant the SILICON parent was never proposed, so
+# P-44.1.2 never got the chance to prefer it and the name came out
+# `(trimethylsilan-yl)benzene` rather than `trimethyl(phenyl)silane`. The
+# seniority logic was correct all along; the candidate did not exist.
+#
+# The cap bought nothing measurable. Runtime is not driven by the plan
+# count: the slowest molecule in the corpus (a steroid, 2.2 s) produces 17
+# plans, while the 138-plan molecule takes 0.02 s.
+#
+# So the two things worth bounding are bounded separately. The tier ORDER
+# above already encodes the same insight for a different starvation -- it
+# runs decomposition handlers before substitutive so a small substitutive
+# space cannot starve a functional-class plan -- and ordering cannot solve
+# this one, because the competing parents come from the same handler.
+_TOTAL_PLAN_BUDGET = 512
+# The work bound: 512 against a measured maximum of 138, so it truncates
+# nothing in this corpus while still bounding a pathological molecule.
+
+_PLANS_PER_HYPOTHESIS = 128
+# The anti-starvation bound: 128 against a measured maximum of 96. One
+# parent cannot consume the budget another parent needs, which is the actual
+# defect. Sized with headroom rather than at the observed maximum, because a
+# threshold fitted to the cases in hand is not a validated threshold.
+
+
+def _parent_hypothesis_key(plan) -> tuple:
+    """What makes two plans the SAME parent hypothesis, for budgeting.
+
+    Deliberately NOT the emitted name, object identity or canonical SMILES:
+    two plans can share a parent and differ only in numbering, and that is
+    exactly the pair this has to group. Equally deliberately it does not
+    include the numbering, which is the thing being expanded.
+
+    It does include the naming METHOD, because the same atoms named a
+    different way are a different hypothesis and must not starve each other."""
+    if isinstance(plan, RetainedPlan):
+        return ("retained", plan.match.name)
+    if not isinstance(plan, SubstitutivePlan):
+        return (type(plan).__name__,)
+    candidate = plan.named_parent.candidate
+    return (
+        type(plan).__name__,
+        candidate.type,
+        getattr(candidate, "element", None),
+        candidate.atom_indices,
+        plan.pcg_type,
+        getattr(plan.named_parent, "naming_method", None),
+    )
+
+
+class _PlanBudget:
+    """Two budgets over one plan stream. See the constants above."""
+
+    def __init__(self, total_budget: int) -> None:
+        self.total_budget = total_budget
+        self.total = 0
+        self.per_hypothesis: dict[tuple, int] = {}
+
+    def admits(self, plan) -> bool:
+        """Charge this plan to its hypothesis, or refuse it."""
+        key = _parent_hypothesis_key(plan)
+        spent = self.per_hypothesis.get(key, 0)
+        if spent >= _PLANS_PER_HYPOTHESIS:
+            return False
+        self.per_hypothesis[key] = spent + 1
+        self.total += 1
+        return True
+
+    @property
+    def exhausted(self) -> bool:
+        return self.total >= self.total_budget
+
+
 def _search_plans(perception, mol, output_form, free_valence, query, strategy, session):
     """Search for plans; return sorted list of (score, seq, plan) triples."""
     ranked_plans = []
@@ -9204,23 +9291,29 @@ def _generate_all_plans(
               Substitutive + Replacement (stub)
     Tier 2 — Decomposition-based path handlers per interpretation
     """
-    max_plans = _DEFAULT_MAX_PLANS
-    plan_count = 0
+    budget = _PlanBudget(_TOTAL_PLAN_BUDGET)
 
     # Tier 0: Retained names
     for item in _generate_retained_plans(perception, mol, output_form, free_valence, strategy, session):
-        plan_count += 1
+        if not budget.admits(item[2]):
+            continue
         yield item
-        if plan_count >= max_plans:
+        if budget.exhausted:
             return
 
     # Tier 1 + 2: per-interpretation
     for i, interpretation in enumerate(perception.interpretations(query)):
 
-        # Compute complexity lazily on first interpretation (v13 B2)
+        # Compute complexity lazily on first interpretation (v13 B2).
+        # The strategy hint is the TOTAL budget; it can lower it but never
+        # raise it past the work bound, and it no longer decides how the
+        # budget is divided between competing parents.
         if i == 0:
             complexity = _estimate_complexity(interpretation, perception)
-            max_plans = strategy.max_plans_hint(complexity)
+            budget.total_budget = min(
+                _TOTAL_PLAN_BUDGET,
+                max(strategy.max_plans_hint(complexity), _TOTAL_PLAN_BUDGET),
+            )
 
         # Tier 2 (first): decomposition-based (FC, multiplicative, ring assembly).
         # These are high-priority structural decompositions; we run them
@@ -9231,9 +9324,10 @@ def _generate_all_plans(
                 decomp.type, decomp, interpretation,
                 perception, mol, output_form, free_valence, strategy, session,
             ):
-                plan_count += 1
+                if not budget.admits(item[2]):
+                    continue
                 yield item
-                if plan_count >= max_plans:
+                if budget.exhausted:
                     return
 
         # Tier 1a: Substitutive
@@ -9241,9 +9335,10 @@ def _generate_all_plans(
             "substitutive", None, interpretation,
             perception, mol, output_form, free_valence, strategy, session,
         ):
-            plan_count += 1
+            if not budget.admits(item[2]):
+                continue
             yield item
-            if plan_count >= max_plans:
+            if budget.exhausted:
                 return
 
         # Tier 1b: Replacement (stub — returns nothing for now)
@@ -9251,9 +9346,10 @@ def _generate_all_plans(
             "replacement", None, interpretation,
             perception, mol, output_form, free_valence, strategy, session,
         ):
-            plan_count += 1
+            if not budget.admits(item[2]):
+                continue
             yield item
-            if plan_count >= max_plans:
+            if budget.exhausted:
                 return
 
 

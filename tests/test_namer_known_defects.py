@@ -626,6 +626,35 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "2-(naphthalen-2-yl)propanoic acid",
      "2-(naphthalen-2-yl)propanoic acid",
      "unchanged: naphthalene with no competing prefix was already right"),
+
+    # --- D-032: the senior parent was never PROPOSED ----------------------
+    # Not a ranking defect. The seniority logic was correct all along and
+    # scored the silicon parent at 5000 against benzene's 561 -- but the
+    # plan search had already spent its whole 20-plan budget on benzene's
+    # NUMBERING variants, so no silicon plan existed to rank. Measured: 20
+    # of 20 top-level plans were benzene numberings or methyls, and 67 of
+    # 189 corpus molecules were hitting that cap.
+    #
+    # The budget is two budgets now (see `_PlanBudget`): a work bound, and a
+    # per-hypothesis bound so one parent cannot consume what another needs.
+    # The winner trace moves from `monocyclic/len=6` to
+    # `heteroatom_center/elem=Si`, which is the shape of the evidence: a
+    # candidate appeared, and P-44.1.2 preferred it unchanged.
+    ("D-032a", "C[Si](C)(C)c1ccccc1", "trimethyl(phenyl)silane",
+     "(trimethylsilan-yl)benzene", "Si parent starved out by benzene numberings"),
+    ("D-032b", "c1ccccc1P(c1ccccc1)c1ccccc1", "triphenylphosphane",
+     "(diphenylphosphan-yl)benzene", "same, phosphorus"),
+    ("D-032c", "c1ccc(cc1)[I+]c1ccccc1", "diphenyliodanium",
+     "(phenyliodaniumyl)benzene", "same, iodine cation"),
+    ("D-032d", "O=P(c1ccccc1)(c1ccccc1)c1ccccc1", "oxotri(phenyl)phosphane",
+     "[oxodi(phenyl)phosphan-yl]benzene",
+     "right parent now; the tri(phenyl) enclosing marks are a separate defect"),
+    # Generalisation past the corpus rows, both verified on canonical SMILES
+    # and full InChIKey.
+    ("D-032e", "CC[Si](CC)(CC)c1ccccc1", "triethyl(phenyl)silane",
+     "(triethylsilan-yl)benzene", "not specific to methyl"),
+    ("D-032f", "c1ccccc1[As](c1ccccc1)c1ccccc1", "triphenylarsane",
+     "triphenylarsane", "unchanged: arsenic was already reached"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names
