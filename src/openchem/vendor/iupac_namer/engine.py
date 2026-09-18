@@ -9385,10 +9385,40 @@ def _is_valid_retained_name_for_standalone(match: dict) -> bool:
     return True
 
 
+def _retained_match_is_usable(match, strategy) -> bool:
+    """May this retained name occupy the preferred slot?
+
+    A retained name is not automatically non-preferred: `toluene`, `phenol`
+    and `acetic acid` ARE preferred IUPAC names. What disqualifies an entry is
+    the registry recording that it is not, in `pin_status` -- which carries
+    its evidence alongside it.
+
+    `UNKNOWN` is treated as usable, deliberately. 274 of the 292 registry
+    entries have no audited status because the table was largely harvested
+    from OPSIN's parsing dictionary, where presence means only that a name can
+    be READ. Refusing all of those would demote hundreds of names on no
+    evidence, which is the mirror image of the defect: the fix for "asserted
+    without evidence" is not "denied without evidence". They are reported by
+    `tools/retained_name_audit.py` instead, so the backlog is visible.
+    """
+    if not match:
+        return True
+    if getattr(strategy, "preferred_name_policy", None) is None:
+        return True
+    if strategy.preferred_name_policy() != "PIN":
+        return True
+    return match.get("pin_status") != "RETAINED_NOT_PIN"
+
+
 def _generate_retained_plans(perception, mol, output_form, free_valence, strategy, session):
     """Tier 0: check retained name tables."""
     smiles = Chem.MolToSmiles(mol)
     match = lookup_retained_name(smiles)
+    if not _retained_match_is_usable(match, strategy):
+        # Audited as not preferred. Fall through to the systematic paths
+        # rather than returning nothing: the molecule still needs a name, and
+        # the whole point is that the systematic one is the preferred one.
+        match = None
     # Canonical-key fallback for the curated inorganic table (P-65.3 salts):
     # a few partially-deprotonated oxoacid-anion entries (dihydrogen phosphate,
     # hydrogen phosphate, hydrogen carbonate, ...) are stored under

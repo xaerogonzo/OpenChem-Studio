@@ -801,3 +801,100 @@ candidates for the adjudication table.
 
 Benchmark: 187/187 and 40/40 unchanged, exact 93, nothing structurally
 regressed.
+
+## 2026-09-17 - a retained name is not automatically a preferred name (D-036)
+
+`retained_pins` asserted PIN status for 292 names while citing a rule for
+31. 161 of the entries were harvested from OPSIN's name-to-structure
+dictionary, where presence means a name can be READ -- a different fact
+from IUPAC preferring it. This is the shape `KNOWN_LIMITATIONS.md` already
+records for the triazole entry, where a test written from the table agreed
+with the table.
+
+Entries now carry `pin_status` with the evidence beside it, and
+`benchmarks/naming/adjudication.toml` holds the quotations. The container
+keeps its name for now; what changed is that it no longer asserts by
+omission.
+
+### Audited only where it matters, and only 22 entries
+
+Instrumenting which names a retained plan actually WINS gave the scope: 55
+of the 227 benchmark names come from a retained plan, but 33 of those come
+from the ring table -- benzene, pyridine, furan, naphthalene, 1H-indole,
+morpholine, oxolane, 9H-purine and the rest, nearly all genuine retained
+PINs that must not be touched. Only 22 come from this registry.
+
+The other 274 entries stay UNKNOWN and behave exactly as before. Refusing
+them on no evidence is the mirror image of the original defect: the answer
+to "asserted without evidence" is not "denied without evidence".
+`tools/retained_name_audit.py` reports that backlog so it stays visible.
+
+### Demoted, with the quotation that settles each
+
+    butyraldehyde   -> butanal                       P-66.6.1
+    chloroform      -> trichloromethane              P-61.3.4
+    isobutane       -> 2-methylpropane               P-61.2.1
+    triethylamine   -> N,N-diethylethanamine         P-66.4.1 (derived)
+    trimethylamine  -> N,N-dimethylmethanamine ...   p. 98
+    camphor         -> 1,7,7-trimethylbicyclo[...]   P-101.8.4
+    caffeine        -> systematic                    (absent from the book)
+    ibuprofen       -> systematic                    (an INN, absent)
+
+P-61.3.4 is the cleanest of them, verbatim: "The retained names 'bromoform'
+for HCBr3, 'chloroform' for HCCl3, and 'iodoform' for HCI3 are acceptable in
+general nomenclature. Preferred IUPAC names are substitutive names."
+
+### Two names I had filed the wrong way round
+
+P-22.1.3 settles both, and neither matches intuition:
+
+* **`toluene` IS a preferred IUPAC name** -- "Toluene and xylene are
+  preferred IUPAC names, but are not freely substitutable". What is
+  restricted is SUBSTITUTION, not the bare name. A sweep that demoted every
+  retained name would have broken it, which is the argument for auditing
+  entry by entry.
+* **`1,4-xylene` is the PIN**, not `1,4-dimethylbenzene`: "xylene (1,2-,
+  1,3-, and 1,4-isomers, PINs)". So PubChem is right on that row and the
+  engine is not. Left OPEN: the registry has no xylene entry, so this needs
+  one ADDED rather than a status changed -- the opposite direction from
+  everything else here.
+
+`mesitylene` sits in the same paragraph with a third status again -- general
+nomenclature only, `1,3,5-trimethylbenzene (PIN)` -- and both engines
+already give the PIN.
+
+### Two vendored tests asserted camphor was a PIN, on a citation that is not
+### about ketones
+
+`test_retained_terpenes.py` is a careful module: it probed a dozen terpene
+names, found that bornane, pinane and p-menthane are NOT PINs, and kept
+them out of the curated ring table for exactly that reason. It made one
+exception, for camphor, citing "Chapter P-66.6.3 and Table 28.1".
+
+Checked: **P-66.6.3 is "Chalcogen analogues of aldehydes"**, and `camphor`
+appears on exactly two pages of the entire book -- 641 and 1000 -- so it is
+not in Table 28.1 either. Page 641 uses it as an alias for a systematic
+PIN; page 1000, in P-101 (natural products, semisystematic by construction),
+prints three names for this very structure:
+
+    (1R,4R)-bornan-2-one / (+)-camphor /
+    (1R,4R)-1,7,7-trimethylbicyclo[2.2.1]heptan-2-one
+
+The third is what the engine now emits. The module's central finding stands;
+its one exception rested on a citation that does not support it -- the same
+failure as caffeine's P-31.1.3, in a different file.
+
+### And dropping caffeine exposed the next defect
+
+With the retained name gone, the systematic path emits
+`1,3,7-trimethyl-2,6-dioxo-1H-purine`: the ring ketones become `oxo`
+PREFIXES where the principal characteristic group should take the `-dione`
+SUFFIX, which is why it is not PubChem's `1,3,7-trimethylpurine-2,6-dione`.
+That is PCG assignment, the same layer as warfarin, and is pinned as
+emitted (D-036o) rather than patched here.
+
+Benchmark: regression corpus **187/187, exact 93 -> 97**; held-out 40/40
+unchanged; nothing structurally regressed. Seven names changed, five of them
+to exact. The eighth change is chloroform going exact -> equivalent, because
+PubChem's own string for that row is the non-preferred one -- the single
+clearest reason this benchmark cannot be scored on PubChem agreement alone.

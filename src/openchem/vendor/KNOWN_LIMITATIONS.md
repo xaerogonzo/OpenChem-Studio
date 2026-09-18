@@ -216,7 +216,11 @@ signal either of them gives about its own blind spot.
 | input | emits | preferred | rule |
 |---|---|---|---|
 | `ClC(=O)C(=O)Cl` | `ethane-1,2-dioyl chloride` | `oxalyl dichloride` | `oxalyl` IS the PIN acyl group (P-65.1.7.2.1); the `di` multiplier is also missing |
-| `CC(C)C` | `isobutane` | `2-methylpropane` | retained, not a PIN |
+The `isobutane` row that stood here is FIXED (D-036c). P-61.2.1 says in as
+many words that "the names 'isobutane', 'isopentane' and 'neopentane' are
+no longer recommended", and gives `2-methylpropane (PIN) (not isobutane)`.
+It survived because `CC(C)C` is not in the benchmark corpus at all, so
+nothing measured it -- the defect table now carries it.
 
 The acyl-halide case is **not** a matter of adding a table entry. Instrumenting
 `_acid_name_to_acyl` over 200+ molecules showed only two distinct acid names

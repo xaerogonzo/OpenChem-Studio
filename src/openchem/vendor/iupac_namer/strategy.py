@@ -256,8 +256,40 @@ class NamingStrategy:
         return 1_000_000.0   # stop if we found a retained name
 
     def retained_name_policy(self) -> str:
-        """ALWAYS_IF_AVAILABLE, NEVER, or PREFER."""
+        """DEPRECATED, and it never had a reader.
+
+        This predates the engine knowing whether a retained name is actually
+        preferred, and its three values do not describe anything cleanly --
+        "PREFER" is ambiguous four ways over (all retained names? only
+        retained PINs? prefer over what?). Grepped 2026-09-17: one
+        definition, zero call sites.
+
+        `preferred_name_policy` replaces it. The mapping, for anyone who
+        finds a caller of this in a fork:
+
+            ALWAYS_IF_AVAILABLE, PREFER  ->  RETAINED_PREFERRED
+            NEVER                        ->  PIN
+
+        Kept rather than deleted so a fork that reads it still gets an
+        answer, and so the mapping is written down somewhere.
+        """
         return "ALWAYS_IF_AVAILABLE"
+
+    def preferred_name_policy(self) -> str:
+        """Which name takes the PREFERRED slot: "PIN" or "RETAINED_PREFERRED".
+
+        The distinction the old enum could not express: a retained name may
+        BE the preferred IUPAC name. `toluene` is one -- P-22.1.3 says so in
+        as many words -- while `caffeine` is not. So this policy is not
+        "use retained names or don't"; it is "may a retained name that is
+        NOT a PIN occupy the preferred slot".
+
+        Whether a given name is a PIN is a fact about the name, recorded in
+        the registry as `pin_status` with its evidence, and is deliberately
+        not decided here: a configuration object is the wrong place for
+        normative chemistry.
+        """
+        return "PIN"
 
     def cache_key(self) -> str:
         """Identity string for memoisation. Same key = same naming decisions."""

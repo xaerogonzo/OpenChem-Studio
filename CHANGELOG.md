@@ -60,6 +60,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Trivial names are no longer shown as the IUPAC name when they are not
+  one.** `butyraldehyde` becomes `butanal`, `triethylamine` becomes
+  `N,N-diethylethanamine`, and camphor, caffeine and ibuprofen now get their
+  systematic names. The table these came from asserted that all 292 of its
+  names were preferred IUPAC names while citing a rule for 31 of them -- 161
+  were harvested from a name PARSER's dictionary, which only establishes
+  that a name can be read. Each entry now records whether it is preferred
+  and why, with the quotation, in `benchmarks/naming/adjudication.toml`.
+
+  Only the names the benchmark actually depends on were audited, and the
+  remaining 274 entries behave exactly as before: denying them on no
+  evidence would be the same mistake in the other direction.
+  `tools/retained_name_audit.py` shows what is still unaudited.
+
+  Two went the other way on reading the source. `toluene` IS a preferred
+  IUPAC name and keeps it; and `1,4-xylene` turns out to be preferred over
+  the engine's `1,4-dimethylbenzene`, which is still to fix.
 - **Nested substituent names use the right kind of bracket.** Atenolol was
   `2-{4-{2-hydroxy-...}phenyl}acetamide`, with a brace directly inside a
   brace; IUPAC's nesting order cycles through parentheses, square brackets

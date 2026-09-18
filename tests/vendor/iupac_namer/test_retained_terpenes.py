@@ -137,27 +137,68 @@ class TestCamphorRetainedEmission:
     ``data/retained_names_expanded.json``) so a future refactor of the
     retained-name lookup pipeline cannot silently drop the entry."""
 
-    def test_achiral_camphor_emits_retained_name(self):
-        """The achiral parent SMILES emits ``camphor``."""
+    # THE CLAIM ABOVE THAT CAMPHOR IS A PIN DOES NOT HOLD, and these two
+    # tests were guarding it. The module docstring cites "Chapter P-66.6.3
+    # and Table 28.1"; checked against BlueBookV2.pdf in naming round 3:
+    #
+    #   * P-66.6.3 is "Chalcogen analogues of aldehydes". It has nothing to
+    #     do with ketones, let alone with retaining `camphor`.
+    #   * `camphor` appears on exactly two pages of the whole book, 641 and
+    #     1000, so it is not in Table 28.1 either.
+    #   * p. 641 uses it only as an alias: "1,8,8-trimethyl-3-oxabicyclo
+    #     [3.2.1]octane-2,4-dione (PIN) (also known as camphoric anhydride)".
+    #   * p. 1000, in P-101 (natural products, i.e. semisystematic rather
+    #     than preferred nomenclature), prints three names for this very
+    #     structure: "(1R,4R)-bornan-2-one / (+)-camphor /
+    #     (1R,4R)-1,7,7-trimethylbicyclo[2.2.1]heptan-2-one".
+    #
+    # That last line is the book naming this structure systematically, and
+    # it is what the engine now emits. The registry records camphor as
+    # RETAINED_NOT_PIN with that evidence; see
+    # benchmarks/naming/adjudication.toml.
+    #
+    # The rest of the module stands, and its central finding is unaffected:
+    # bornane, pinane and p-menthane are NOT PINs and were rightly kept out
+    # of the curated ring table. Camphor was the one case it made an
+    # exception for, on a citation that does not support it.
+
+    def test_achiral_camphor_emits_the_systematic_name(self):
+        """The achiral parent SMILES emits the systematic PIN.
+
+        Was ``camphor``; see the note above for why that changed.
+        """
         smi = "CC12CCC(CC1=O)C2(C)C"
         name = name_smiles(smi)
-        assert name == "camphor", (
-            f"expected 'camphor' for achiral camphor SMILES, got {name!r}"
+        assert name == "1,7,7-trimethylbicyclo[2.2.1]heptan-2-one", (
+            f"expected the systematic PIN for achiral camphor, got {name!r}"
         )
 
     def test_camphor_round_trips_through_opsin(self):
-        """``camphor`` parses back to the same canonical SMILES via OPSIN."""
+        """Both spellings parse back to the same structure.
+
+        Kept BOTH ways round deliberately. That `camphor` round-trips is why
+        the old name survived so long: the round trip cannot see preference,
+        and this test is the demonstration of that rather than a defect.
+        """
         smi = "CC12CCC(CC1=O)C2(C)C"
         assert _round_trip_matches(smi, "camphor")
+        assert _round_trip_matches(smi, "1,7,7-trimethylbicyclo[2.2.1]heptan-2-one")
 
-    def test_reordered_achiral_camphor_emits_camphor(self):
-        """A non-canonical input SMILES of the same molecule still emits
-        ``camphor`` after canonicalisation."""
+    def test_reordered_achiral_camphor_emits_one_stable_name(self):
+        """A non-canonical input SMILES of the same molecule gives the same
+        name after canonicalisation.
+
+        The subject here is INPUT-ORDER INDEPENDENCE, which is why this test
+        is worth keeping even though the expected string changed: it is
+        asserting that two spellings of one molecule agree, not which name
+        they agree on.
+        """
         smi = "O=C1CC2CCC1(C)C2(C)C"
         name = name_smiles(smi)
-        assert name == "camphor", (
-            f"expected 'camphor' for re-ordered SMILES, got {name!r}"
+        assert name == "1,7,7-trimethylbicyclo[2.2.1]heptan-2-one", (
+            f"expected the systematic PIN for re-ordered SMILES, got {name!r}"
         )
+        assert name == name_smiles("CC12CCC(CC1=O)C2(C)C")
 
     def test_audit_stereo_probe_falls_back_to_systematic(self):
         """The audit's primary stereo probe

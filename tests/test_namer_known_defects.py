@@ -269,8 +269,16 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "unchanged"),
     ("D-026z", "c1nnn[nH]1", "1H-tetrazole", "1H-tetrazole", "unchanged"),
     ("D-026w", "c1nn[nH]n1", "2H-tetrazole", "2H-tetrazole", "unchanged"),
-    ("D-026v", "Cn1cnc2c1c(=O)n(C)c(=O)n2C", "caffeine", "caffeine",
-     "unchanged"),
+    # SUPERSEDED BY D-036o. This row belonged to the indicated-hydrogen work
+    # (D-026) and used caffeine only as a non-regression witness that the
+    # xanthine tautomers were not disturbed. The witness still holds -- the
+    # structure is named correctly -- but `caffeine` is not a PIN, so the
+    # string moved. Its citation in the registry was `P-31.1.3`, which is
+    # about indicated hydrogen and says nothing about retaining the name:
+    # the row and the bad citation came from the same neighbourhood.
+    ("D-026v", "Cn1cnc2c1c(=O)n(C)c(=O)n2C",
+     "1,3,7-trimethyl-2,6-dioxo-1H-purine", "caffeine",
+     "tautomer handling unchanged; the retained name was never a PIN"),
     # Purine deliberately normalises all four tautomers to 9H-purine, the
     # IUPAC preferred parent, with atom_locants built so N9 gets locant 9
     # whatever the canonical SMILES does. Documented in data_loader.py and
@@ -298,8 +306,14 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "unchanged"),
     ("D-024y", "[O-]C(=O)c1cc[n+]([O-])cc1", "pyridine-4-carboxylate 1-oxide",
      "pyridine-4-carboxylate 1-oxide", "unchanged"),
-    ("D-024z", "C[N+](C)(C)[O-]", "trimethylamine oxide",
-     "trimethylamine oxide", "unchanged"),
+    # SUPERSEDED BY D-036e. This row pinned the additive form as unchanged,
+    # and the additive PATH is indeed untouched -- what changed underneath it
+    # is the parent: `trimethylamine` is a traditional name, not a PIN, and
+    # the book prints all three forms on one line saying so. The additive
+    # `... oxide` construction this row exists to guard is still in use, now
+    # on the systematic parent.
+    ("D-024z", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine oxide",
+     "trimethylamine oxide", "additive path unchanged; the PARENT is now the PIN"),
     ("D-024w", "CS(C)=O", "dimethyl sulfoxide", "dimethyl sulfoxide",
      "unchanged"),
 
@@ -724,6 +738,56 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # Non-regression for labels with no locant at all, which never had one.
     ("D-035e", "[2H]O[2H]", "(2H2)water", "(2H2)water", "unchanged"),
     ("D-035f", "[15NH3]", "(15N)ammonia", "(15N)ammonia", "unchanged"),
+
+    # --- D-036: a retained name is not automatically a preferred name -----
+    # `retained_pins` asserted PIN status for 292 names while citing a rule
+    # for 31, because 161 of them were harvested from OPSIN's name-to-
+    # structure dictionary -- where presence means a name can be READ, not
+    # that IUPAC prefers it. Entries now carry `pin_status` with the evidence
+    # beside it; see benchmarks/naming/adjudication.toml for the quotations.
+    #
+    # Only entries a benchmark name DEPENDS ON were audited: 22 of 292,
+    # established by instrumenting which names a retained plan wins. The
+    # other 274 stay UNKNOWN and keep working exactly as before, because
+    # the answer to "asserted without evidence" is not "denied without
+    # evidence". tools/retained_name_audit.py reports that backlog.
+    ("D-036a", "CCCC=O", "butanal", "butyraldehyde",
+     "P-66.6.1; the book writes `3-oxobutanal (PIN) (not 3-oxobutyraldehyde)`"),
+    ("D-036b", "ClC(Cl)Cl", "trichloromethane", "chloroform",
+     "P-61.3.4 verbatim: chloroform is `acceptable in general nomenclature`"),
+    ("D-036c", "CC(C)C", "2-methylpropane", "isobutane",
+     "P-61.2.1 verbatim: isobutane is `no longer recommended`"),
+    ("D-036d", "CCN(CC)CC", "N,N-diethylethanamine", "triethylamine",
+     "not retained anywhere; amines are substitutive (P-66.4.1)"),
+    ("D-036e", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine oxide",
+     "trimethylamine oxide",
+     "the book gives all three forms and labels trimethylamine traditional"),
+    ("D-036f", "CC1(C)C2CCC1(C)C(=O)C2",
+     "1,7,7-trimethylbicyclo[2.2.1]heptan-2-one", "camphor",
+     "not retained as a ketone PIN"),
+    ("D-036g", "CC(C)Cc1ccc(cc1)C(C)C(=O)O",
+     "2-[4-(2-methylpropyl)phenyl]propanoic acid", "ibuprofen",
+     "an INN, absent from the book; harvested from OPSIN"),
+    # RETAINED NAMES THAT ARE GENUINELY PREFERRED. These are the reason the
+    # audit could not be a sweep: `toluene` is a PIN in as many words
+    # (P-22.1.3), and demoting every retained name would have broken it.
+    ("D-036h", "Cc1ccccc1", "toluene", "toluene",
+     "unchanged: P-22.1.3 says toluene is a PIN"),
+    ("D-036i", "Oc1ccccc1", "phenol", "phenol", "unchanged: retained PIN"),
+    ("D-036j", "CC(=O)O", "acetic acid", "acetic acid", "unchanged: retained PIN"),
+    ("D-036k", "NC(N)=O", "urea", "urea", "unchanged: retained PIN"),
+    ("D-036l", "Nc1ccccc1", "aniline", "aniline", "unchanged: retained PIN"),
+    ("D-036m", "O=Cc1ccccc1", "benzaldehyde", "benzaldehyde",
+     "unchanged: retained PIN"),
+    ("D-036n", "CC#N", "acetonitrile", "acetonitrile", "unchanged: retained PIN"),
+    # Dropping caffeine's retained name exposed a DIFFERENT defect, pinned
+    # as emitted: the ring ketones come out as `oxo` prefixes where the
+    # principal characteristic group should take the `-dione` suffix. That is
+    # PCG assignment, the same layer as warfarin. When it is fixed this row
+    # FAILS, which is the intended way to find it.
+    ("D-036o", "Cn1cnc2c1c(=O)n(C)c(=O)n2C",
+     "1,3,7-trimethyl-2,6-dioxo-1H-purine", "caffeine",
+     "systematic now, but oxo-prefix instead of the dione suffix"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names
