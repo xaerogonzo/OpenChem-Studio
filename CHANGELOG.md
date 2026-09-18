@@ -60,6 +60,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A retained name is shown beside the preferred IUPAC name.** Where a
+  compound is widely known by a name IUPAC keeps only for general use --
+  caffeine, camphor, ibuprofen, chloroform -- the IUPAC Name result now
+  gives the preferred name first and that name second, labelled as not the
+  preferred one. Without it those names would have disappeared from the app
+  entirely, since PubChem answers with the systematic string too. A name
+  that IS both, like `toluene`, is shown once.
+
 - **`isoxazole` and `benzofuran` are named as IUPAC prefers.** They become
   `1,2-oxazole` and `1-benzofuran`, which is also what sulfamethoxazole's
   name now uses. Both were inconsistent with their own neighbours in the
