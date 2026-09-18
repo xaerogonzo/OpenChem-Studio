@@ -590,7 +590,7 @@
         {
             "_comment": "P-56.3 (IUPAC 2013): the amidine R-C(=NH)-NH2 PIN suffix is now '-imidamide' (terminal) / '-carboximidamide' (nonterminal). Replaces the older 'amidine' general-nomenclature form. Anchor is the central C so the suffix locant cites that carbon's parent-stem position. Subsumes the imine (C=NH) + amine (NH2) at the same C.",
             "name": "imidamide",
-            "smarts": "[CX3;!$([CX3](=[NX2])[OX2])](=[NX2;H1])[NX3H2]",
+            "smarts": "[CX3;!$([CX3](=[NX2])[OX2]);!$([CX3](~[#7])(~[#7])~[#7])](=[NX2;!R;!$([NX2]-[#7])])[NX3;!R;!$([NX3]-[#7])]",
             "anchor_index": 0,
             "seniority": 1099,
             "bluebook_class": "11",
@@ -788,7 +788,7 @@
         },
         {
             "name": "hydrazide",
-            "smarts": "[CX3;!R;!$([CX3](=O)([NX3])[!#6;!#1])](=O)[NX3;!R][NX3H2;!R]",
+            "smarts": "[CX3;!R;!$([CX3](=O)([!#6;!#1;!R])[!#6;!#1;!R])](=O)[NX3;!R][NX3;!R;!$([NX3][CX3]=[O,S,N])]",
             "seniority": 1200,
             "bluebook_class": "12",
             "suffix_terminal": "-ohydrazide",

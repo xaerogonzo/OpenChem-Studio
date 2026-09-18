@@ -174,6 +174,10 @@ SUBSUMPTION_TABLE: dict[tuple[str, str], bool] = {
     ("imidamide", "imine"): True,
     ("imidamide", "amine"): True,
     ("imidamide", "secondary_amine"): True,
+    # Round 4 (A6): a substituted amidine, "N'-methylethanimidamide", also
+    # matches the N-substituted imine and a tertiary amine at the same atoms.
+    ("imidamide", "tertiary_amine"): True,
+    ("imidamide", "substituted_imine"): True,
     # Phase 4: sulfinic_acid (anchor on S) overlaps with the C-anchored
     # imidamide FG when an amidino C is bonded directly to S of -S(=O)-OH,
     # e.g. N=C(N)S(=O)O.  Sulfinic acid has higher seniority (703) so it

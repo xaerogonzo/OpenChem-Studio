@@ -360,51 +360,22 @@ class IUPACCanonical(NamingStrategy):
     }
 
     def accept_additive(self, additive_groups) -> bool:
-        """Gate P-oxide additive nomenclature.
+        """Gate additive nomenclature: N-oxides only, never P-oxides.
 
-        Per IUPAC P-64.4, ``phosphane oxide`` (additive) is the PIN for
-        trialkyl P=O — e.g. ``trimethylphosphane oxide`` for
-        ``CP(=O)(C)C``.  But for phosphate-style P=O where every
-        non-``=O`` neighbour is an O/N/S linker (ester / amide / thio
-        family), the substitutive form ``tri(methoxy)(oxo)phosphane``
-        and friends is the PIN — additive would compete with the
-        phosphoric-acid retained ester family and OPSIN's parsing of
-        ``trimethoxyphosphane oxide`` is fragile when P is a substituent
-        on an organic parent.
+        This used to accept "trimethylphosphane oxide" as the PIN, citing
+        P-64.4. The book says the opposite: phosphane oxides are named "(3)
+        substitutively, as heterones, by using the suffix '-one' and
+        lambda5-phosphane as the parent hydride. Method (3) leads to preferred
+        IUPAC names", "triphenyl-lambda5-phosphanone (PIN) / (2)
+        triphenylphosphane oxide" (P-74.2.1.4, pp. 768-769 and 839). Its
+        phosphate-style exclusion and the aryl exclusion (which sent
+        triphenylphosphine oxide to "[(oxo)diphenylphosphanyl]benzene") go with
+        it; engine._name_single_centre_parent names these now (round 4, A6).
 
-        Rule: accept P-oxide additive only when ALL non-``=O`` heavy
-        neighbours of the P centre are *acyclic* carbons.  Aryl-/ring-
-        bound P falls back to the substitutive form because the ring
-        would win as parent (the trailing "oxide" otherwise attaches
-        to the wrong stem).  Phosphate / phosphoric-amide / thio
-        analogues stay substitutive because at least one neighbour is
-        non-carbon.
-
-        N-oxide additive nomenclature is always accepted (pyridine
-        1-oxide, trimethylamine N-oxide, etc.).
+        N-oxide additive nomenclature is always accepted (pyridine 1-oxide,
+        trimethylamine N-oxide, etc.).
         """
-        for ag in additive_groups:
-            if ag.get("center_element") != "P":
-                continue
-            non_oxide = ag.get("non_oxide_neighbor_elements")
-            if non_oxide is None:
-                # Backwards-compat: detection didn't enrich this group;
-                # fall back to the conservative reject.
-                return False
-            # Only accept additive if every non-oxide neighbour is carbon.
-            if not all(elem == "C" for elem in non_oxide):
-                return False
-            # And only when none of those carbon neighbours sit inside
-            # a ring — otherwise the ring will win as parent and the
-            # trailing "oxide" would attach to the wrong scaffold (e.g.
-            # triphenylphosphine oxide must take the substitutive form
-            # ``[(oxo)diphenylphosphanyl]benzene`` because benzene is
-            # the parent).
-            if ag.get("non_oxide_neighbor_aromatic"):
-                return False
-            if ag.get("non_oxide_neighbor_in_ring"):
-                return False
-        return True
+        return not any(ag.get("center_element") == "P" for ag in additive_groups)
 
     def accept_plan(self, plan: NamingPlan) -> bool:
         """Hard structural reject for FC plans that violate IUPAC rules."""

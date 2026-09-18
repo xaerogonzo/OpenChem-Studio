@@ -872,6 +872,10 @@ _TERMINAL_ALWAYS_C1_SUFFIXES: frozenset[str] = frozenset({
     "thiohydrazide",
     "selenohydrazide",
     "tellurohydrazide",
+    # "names of amidines correspond to preferred names of amides" (P-66.4.1.1,
+    # p. 674): "hexanimidamide (PIN)" as hexanamide, and two terminal
+    # amidines take "diimidamide" as a diamide takes "diamide" (round 4, A6).
+    "imidamide",
 })
 
 # Chain-terminal di-suffix base_forms.  For these, when a chain carries TWO (or
@@ -923,6 +927,10 @@ _AMIDE_FAMILY_CHAIN_TERMINAL_SUFFIXES: frozenset[str] = frozenset({
     "thiohydrazide",
     "selenohydrazide",
     "tellurohydrazide",
+    # "names of amidines correspond to preferred names of amides" (P-66.4.1.1,
+    # p. 674): "hexanimidamide (PIN)" as hexanamide, and two terminal
+    # amidines take "diimidamide" as a diamide takes "diamide" (round 4, A6).
+    "imidamide",
 })
 
 
@@ -2896,6 +2904,15 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         # an explicit locant that ranks the ring positions, so the suffix
         # locant-1 is load-bearing and must NOT be omitted.
         _ring_system = tree.named_parent.candidate.ring_system
+        # A prefix on the suffix's own nitrogen (N-, N'-) does not occupy a
+        # parent position, so it leaves the ring positions equivalent: the book
+        # prints "N-hydroxycyclohexanecarboxamide (PIN)" (p. 587) and
+        # "N-carbamoylbenzenesulfonamide (PIN)" (p. 661). Counting it as a ring
+        # substituent gave "N-methylcyclohexane-1-carboxamide" (round 4, A6).
+        _parent_prefixes = [
+            pe for pe in tree.prefixes
+            if not pe.locants or any(loc.is_numeric for loc in pe.locants)
+        ]
         _stem_has_baked_unsat_locant = bool(
             _re_asm.search(r"-\d+(?:,\d+)*-(?:di|tri|tetra)?(?:en|yn)$", parts[stem_idx])
         )
@@ -2903,7 +2920,7 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             _ring_system is not None
             and _ring_system.type == "monocyclic"
             and not _ring_system.heteroatoms
-            and not tree.prefixes
+            and not _parent_prefixes
             and not tree.unsaturation
             and not _stem_has_baked_unsat_locant
             and not tree.indicated_hydrogen
@@ -2915,7 +2932,7 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             is_monosubstituted_homogeneous_monocycle=_is_mono_hom_monocycle,
             single_suffix_symmetry_forced=(
                 tree.single_substituent_positions_all_equivalent
-                and not tree.prefixes
+                and not _parent_prefixes
             ),
             has_chain_prefixes=_has_chain_locant_prefixes(tree.prefixes),
         )

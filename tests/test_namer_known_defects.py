@@ -684,9 +684,12 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "(diphenylphosphan-yl)benzene", "same, phosphorus"),
     ("D-032c", "c1ccc(cc1)[I+]c1ccccc1", "diphenyliodanium",
      "(phenyliodaniumyl)benzene", "same, iodine cation"),
-    ("D-032d", "O=P(c1ccccc1)(c1ccccc1)c1ccccc1", "oxotri(phenyl)phosphane",
+    # Round 4 (A6): the book names P=O substitutively as a heterone, "triphenyl-
+    # λ5-phosphanone (PIN) ... (not oxotriphenyl-λ5-phosphane)" (p. 769),
+    # so the parent this row fixed stays and the -one suffix replaces "oxo".
+    ("D-032d", "O=P(c1ccccc1)(c1ccccc1)c1ccccc1", "triphenyl-lambda5-phosphanone",
      "[oxodi(phenyl)phosphan-yl]benzene",
-     "right parent now; the tri(phenyl) enclosing marks are a separate defect"),
+     "right parent now, and the heterone the book prefers (round 4, A6)"),
     # Generalisation past the corpus rows, both verified on canonical SMILES
     # and full InChIKey.
     ("D-032e", "CC[Si](CC)(CC)c1ccccc1", "triethyl(phenyl)silane",
@@ -1142,8 +1145,12 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "the book's own example, p. 98"),
     ("D-051b", "CC(C)=NC", "N-methylpropan-2-imine", "2-(methylimino)propane",
      "p. 842, 'N-methylpropan-2-imine N-oxide (PIN)'"),
-    ("D-051c", "ON=C1CCCCC1", "N-hydroxycyclohexan-1-imine",
-     "(hydroxyimino)cyclohexane", "p. 934 prints 'cyclohexan-1-imine (PIN)'"),
+    # Round 4 (A6): p. 934's "(1seqCis,4R)-N-hydroxy-4-methylcyclohexan-1-imine
+    # (PIN)" needs its 1 for the 4-methyl. With only the N-hydroxy, the ring is
+    # monosubstituted and P-14.3.4.2(c) omits the 1, as in "N-hydroxy-
+    # cyclohexanecarboxamide (PIN)" (p. 587).
+    ("D-051c", "ON=C1CCCCC1", "N-hydroxycyclohexanimine",
+     "(hydroxyimino)cyclohexane", "P-14.3.4.2(c); an N-prefix is not a ring substituent"),
     ("D-051d", "CC(C)=NOC", "N-(methyloxy)propan-2-imine", "2-(methyloxyimino)propane",
      "an O-alkyl oxime; 'methyloxy' itself is A9's"),
     ("D-051e", "OC(=O)CCC(C)=NO", "4-(hydroxyimino)pentanoic acid",
@@ -1166,9 +1173,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "p. 671, 'N-methylacetohydrazide (PIN)': the class needed an N-H"),
     ("D-052e", "NNC=O", "formohydrazide", "methanohydrazide", "p. 668"),
     ("D-052f", "O=CNc1ccccc1", "N-phenylformamide", "N-phenylmethanamide", "p. 649"),
-    ("D-052g", "CNNC(C)=O", "1-acetyl-2-methylhydrazine", "1-acetyl-2-methylhydrazine",
-     "control, NOT a target: N'-substitution needs N' locants the engine lacks; "
-     "the pattern is held to N'H2 so this keeps a round-tripping name"),
+    # Round 4 (A6) gave the hydrazide its N' locants, so this former control is
+    # now named by P-66.3 ("N'-benzoylbenzohydrazide (PIN)", p. 671).
+    ("D-052g", "CNNC(C)=O", "N'-methylacetohydrazide", "1-acetyl-2-methylhydrazine",
+     "hydrazide N' locants (round 4, A6); was the control for their absence"),
     ("D-052h", "ClC(N)=O", "aminomethanoyl chloride", "aminomethanoyl chloride",
      "negative: a substituent on the formyl CARBON is not formamide "
      "('not 1-chloroformamide', p. 646)"),
@@ -1559,6 +1567,130 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "naphthalene-2-1-amidinium", "as D-074a"),
     ("D-074c", "C1(=CC=CC2=CC=CC=C12)C(=O)[NH+]", "naphthalen-1-amidylium",
      "naphthalen-1-amidylium", "converse: position 1 unchanged"),
+    # --- D-075: hydrazide nitrogens take N and N' (A6) --------------------
+    # P-66.3: the acyl-side N is N and the terminal one N' ('N'-benzoylbenzo-
+    # hydrazide (PIN)', p. 671). The pattern needed a bare N'H2, so any N'
+    # substituent broke the suffix, and N primes came from atom order.
+    ("D-075a", "CNNC(=O)c1ccccc1", "N'-methylbenzohydrazide",
+     "[(2-methylhydrazinyl)(oxo)methyl]benzene", "the terminal N is N' (p. 671)"),
+    ("D-075b", "CC(=O)NNc1ccccc1", "N'-phenylacetohydrazide",
+     "(2-acetylhydrazinyl)benzene", "as D-075a"),
+    ("D-075c", "CN(C)NC(=O)c1ccccc1", "N',N'-dimethylbenzohydrazide",
+     "[(2,2-dimethylhydrazinyl)(oxo)methyl]benzene", "two on N'"),
+    ("D-075d", "CN(N)C(=O)c1ccccc1", "N-methylbenzohydrazide",
+     "N-methylbenzohydrazide", "converse: the acyl-side N stays unprimed"),
+    ("D-075e", "NNC(=O)N1CCCCC1", "piperidine-1-carbohydrazide",
+     "1-[(hydrazinyl)(oxo)methyl]piperidine", "p. 667, 'piperidine-1-carbohydrazide (PIN)'"),
+    ("D-075f", "O=C(NNC(=O)c1ccccc1)c1ccccc1", "[(2-benzoylhydrazinyl)(oxo)methyl]benzene",
+     "[(2-benzoylhydrazinyl)(oxo)methyl]benzene", "control, NOT a target: an acylated N' is kept out of the hydrazide pattern; letting it in named '1,2-dibenzoylhydrazine-1,2-dicarbohydrazide', a different molecule"),
+    # --- D-076: amidine nitrogens take N and N' by role (A6) ---------------
+    # P-66.4.1.4.1 (p. 678): 'the locant N refers to the amino group and N'
+    # refers to the imino group'. The pattern needed =NH and NH2.
+    ("D-076a", "CNC(C)=N", "N-methylethanimidamide",
+     "1-imino-N-methylethan-1-amine", "the amino N is N (p. 678)"),
+    ("D-076b", "CN=C(C)N", "N'-methylethanimidamide",
+     "1-(methylimino)ethan-1-amine", "the imino N is N' (p. 678)"),
+    ("D-076c", "CCN=C(NC)c1ccccc1", "N'-ethyl-N-methylbenzenecarboximidamide",
+     "1-(ethylimino)-N-methyl-1-phenylmethanamine", "p. 678, verbatim"),
+    ("D-076d", "CN=C(N(c1ccccc1)c1ccccc1)c1ccccc1", "N'-methyl-N,N-diphenylbenzenecarboximidamide",
+     "N-[(methylimino)phenylmethyl]-N-phenylaniline", "p. 678, verbatim"),
+    ("D-076e", "NC(=N)c1ccccc1", "benzenecarboximidamide",
+     "benzenecarboximidamide", "converse: unsubstituted"),
+    ("D-076f", "CCCCCC(N)=N", "hexanimidamide",
+     "hexan-1-imidamide", "p. 674, verbatim; amidines follow the amide rules"),
+    ("D-076g", "NC(=N)CCC(N)=N", "butanediimidamide",
+     "butane-1,4-diimidamide", "two terminal amidines take 'diimidamide' (p. 674)"),
+    ("D-076h", "CN=C(N)CCC(N)=NC", "N'1,N'4-dimethylbutanediimidamide",
+     "1,4-bis(methylimino)butane-1,4-diamine", "the prime before the numeral, as D-082a"),
+    # --- D-077: an N-prefix does not block P-14.3.4.2(c) (A6) --------------
+    # 'N-hydroxycyclohexanecarboxamide (PIN)' (p. 587): a prefix on the
+    # suffix's nitrogen is not a ring substituent, so the 1 is omitted.
+    ("D-077a", "CNC(=O)C1CCCCC1", "N-methylcyclohexanecarboxamide",
+     "N-methylcyclohexane-1-carboxamide", "an N-prefix leaves the ring monosubstituted (p. 587)"),
+    ("D-077b", "CNS(=O)(=O)c1ccccc1", "N-methylbenzenesulfonamide",
+     "N-methylbenzene-1-sulfonamide", "as D-077a (p. 661)"),
+    ("D-077c", "CNC(=O)C1CCCCC1C", "N,2-dimethylcyclohexane-1-carboxamide",
+     "N,2-dimethylcyclohexane-1-carboxamide", "converse: a ring prefix keeps the 1"),
+    # --- D-078: guanidine and urea as N-core parents (A6) -----------------
+    # Substituted guanidines had no parent at all. The urea route also
+    # claimed molecules whose acid outranks urea, primed by atom order, and
+    # the acylamino builder spelled 'carbamyl' and dropped enclosing marks.
+    ("D-078a", "CNC(N)=N", "N-methylguanidine",
+     "guanidinomethane", "guanidine as parent (p. 676)"),
+    ("D-078b", "CN(C)C(N)=N", "N,N-dimethylguanidine",
+     "(dimethylamino)methanimidamide", "as D-078a"),
+    ("D-078c", "c1ccccc1N=C(N(C)C)N(C)C", "N,N,N',N'-tetramethyl-N''-phenylguanidine",
+     "N,N,N',N'-tetramethyl-1-(phenylimino)methane-1,1-diamine", "p. 676, verbatim: the imino N is N''"),
+    ("D-078d", "CNC(=O)N(C)C", "N,N,N'-trimethylurea",
+     "N,N',N'-trimethylurea", "lowest locants for all prefixes decide which N is unprimed"),
+    ("D-078e", "NC(=O)NCC(=O)O", "(carbamoylamino)acetic acid",
+     "N-(carboxymethyl)urea", "the acid outranks urea; 'carbamoyl', not 'carbamyl' (p. 660)"),
+    ("D-078f", "OC(=O)c1c(NC(=O)NC)ccc2ccccc12", "2-[(methylcarbamoyl)amino]naphthalene-1-carboxylic acid",
+     "N-(1-carboxynaphthalen-2-yl)-N'-methylurea", "p. 660, verbatim"),
+    ("D-078g", "NC(=N)NCCCC(=O)O", "4-(carbamimidoylamino)butanoic acid",
+     "4-guanidinobutanoic acid", "'carbamimidoylamino (preferred prefix)', p. 676"),
+    ("D-078h", "NC(=N)NC(C)=O", "N-carbamimidoylacetamide",
+     "N-carbamimidoylacetamide", "converse: p. 676, an amide outranks guanidine"),
+    ("D-078i", "CN(C)C(=O)Nc1ccccc1", "N,N-dimethyl-N'-phenylurea",
+     "N,N-dimethyl-N'-phenylurea", "converse: unchanged"),
+    ("D-078j", "NC(N)=NCCCCCCCCCCCCCCN=C(N)N", "N''-{14-[(diaminomethylidene)amino]tetradecyl}guanidine",
+     "1,14-bis[(diaminomethylidene)amino]tetradecane", "cid45000's shape: a guanidine carbon is not an amidine ('amino...methanimidamide' was the widened pattern's name); the book's multiplicative form is not reached"),
+    ("D-078k", "NC(=O)NC(=O)c1ccccc1", "N-benzoylurea",
+     "N-benzoylurea", "control, NOT a target: the book has N-carbamoylbenzamide (PIN), p. 661, "
+     "but the engine ranks urea's amide with benzamide and the general path gave "
+     "'1-amino-N-benzoylmethanamide'; the urea gate stops at acids"),
+    # --- D-079: condensed guanidines are imidodicarbonimidic diamides (A6) --
+    # 'biguanide ... no longer recommended' (p. 677); the page's figure
+    # numbers N1 1 N'1 2 3 N'3 N3. The former of D-079b named a DIFFERENT
+    # molecule (the ethyl on an amino N).
+    ("D-079a", "CN(C)C(=N)NC(N)=N", "N1,N1-dimethylimidodicarbonimidic diamide",
+     "1,1-dimethylbiguanide", "metformin; 'biguanide' is no longer recommended (p. 677)"),
+    ("D-079b", "NC(=N)NC(=NCC)N(c1ccccc1)c1ccccc1", "N'1-ethyl-N1,N1-diphenylimidodicarbonimidic diamide",
+     "1-ethyl-1,1-diphenylbiguanide", "p. 677, verbatim"),
+    ("D-079c", "NC(=N)NC(N)=N", "imidodicarbonimidic diamide",
+     "guanidinomethanimidamide", "the bare parent (p. 677)"),
+    # --- D-080: carbamic acid substituted on N (A6) -----------------------
+    ("D-080a", "c1ccccc1NC(=O)O", "phenylcarbamic acid",
+     "anilinomethanoic acid", "p. 120"),
+    ("D-080b", "CN(C)C(=O)O", "dimethylcarbamic acid",
+     "(dimethylamino)methanoic acid", "p. 601"),
+    ("D-080c", "NC(=O)NC(=O)O", "carbamoylcarbamic acid",
+     "N-carboxyurea", "p. 661"),
+    # --- D-081: single heteroatom-centre parents (A6) ---------------------
+    # Silanols, boron and pnictogen oxoacids, phosphanones and diazenes take
+    # prefixes on the centre with no locant (P-63.1.4, P-67.1.1.2, P-68.1.4,
+    # P-68.3.1.3, P-74.2.1.4). Each steps aside for a senior group elsewhere.
+    ("D-081a", "C[Si](C)(C)O", "trimethylsilanol",
+     "(hydroxy)tri(methyl)silane", "p. 537"),
+    ("D-081b", "CB(O)O", "methylboronic acid",
+     "methaneboronic acid", "p. 737, 'not methylboranediol'"),
+    ("D-081c", "OB(O)c1ccc(cc1)C(=O)O", "4-boronobenzoic acid",
+     "4-boronobenzoic acid", "converse: the carboxylic acid outranks it"),
+    ("D-081d", "O=Pc1ccccc1", "phenylphosphanone",
+     "oxo(phenyl)phosphane", "p. 769, 'not oxo(phenyl)phosphane'"),
+    ("D-081e", "CP(C)(C)=O", "trimethyl-lambda5-phosphanone",
+     "trimethylphosphane oxide", "p. 769 and p. 839: method (3) is the PIN"),
+    ("D-081f", "CN=NC", "dimethyldiazene",
+     "1,2-dimethyldiazene", "p. 761"),
+    ("D-081g", "c1ccc(cc1)N=Nc1ccccc1", "diphenyldiazene",
+     "(phenyldiazenyl)benzene", "p. 761"),
+    ("D-081h", "Clc1cccc(c1)N=Nc1ccc(Cl)cc1", "(3-chlorophenyl)(4-chlorophenyl)diazene",
+     "1-chloro-3-(4-chlorophenyldiazenyl)benzene", "p. 761, verbatim"),
+    ("D-081i", "Oc1ccc(cc1)N=Nc1ccccc1", "4-(phenyldiazenyl)phenol",
+     "4-(phenyldiazenyl)phenol", "converse: a suffix group outranks diazene"),
+    ("D-081j", "CCP(=O)(O)O", "ethylphosphonic acid",
+     "ethanephosphonic acid", "p. 700, 'not ethanephosphonic acid'"),
+    ("D-081k", "CCP(=O)(O)CC", "diethylphosphinic acid",
+     "diethyl(hydroxy)(oxo)phosphane", "p. 700"),
+    ("D-081l", "O[As](c1ccccc1)c1ccccc1", "diphenylarsinous acid",
+     "(hydroxy)di(phenyl)arsane", "p. 700"),
+    ("D-081m", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine N-oxide",
+     "N,N-dimethylmethanamine N-oxide", "converse: N-oxides stay additive"),
+    # --- D-082: a primed N locant with a numeral is N'1, not N1' (A6) -------
+    ("D-082a", "O=C(NNCc1ccccc1)C(=O)NNCc1ccccc1", "N'1,N'2-dibenzylethanedihydrazide",
+     "({2-[(2-benzylhydrazinyl)(oxo)acetyl]hydrazinyl}methyl)benzene", "'N'1', not 'N1'': OPSIN reads N1' as another position, and the heldout cid55000 name came back a different molecule (oxalohydrazide itself is open)"),
+    ("D-082b", "CNC(=O)CC(=O)NC", "N1,N3-dimethylpropanediamide",
+     "N1,N3-dimethylpropanediamide", "converse: no prime, unchanged"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names
