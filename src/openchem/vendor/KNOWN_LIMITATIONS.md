@@ -319,7 +319,13 @@ Indole is a smaller instance of the same shape: its table entry numbers 7 of
 fusion positions are exactly what a reader looks for. That one IS a data gap
 in `atom_locants` rather than an algorithm.
 
-## An indicated hydrogen dropped from a substituent name (open, 2026-09-17)
+## An indicated hydrogen dropped from a substituent name (CLOSED in round 4, D-040)
+
+Fixed with the carbazole numbering: an `[nH]` pins the tautomer, not the
+orientation, and the substituent branch that uniquified on it also dropped the
+ring's `1H-`. The example below now names `4-(1H-indol-2-yl)benzoic acid`.
+The record as it stood follows.
+
 
 `OC(=O)c1ccc(cc1)c1cc2ccccc2[nH]1` is named `4-(indol-2-yl)benzoic acid`,
 where the PIN carries the indicated hydrogen: `4-(1H-indol-2-yl)benzoic acid`.
