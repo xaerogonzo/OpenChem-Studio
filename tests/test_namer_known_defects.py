@@ -820,6 +820,32 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-037e", "c1cocn1", "1,3-oxazole", "1,3-oxazole", "unchanged"),
     ("D-037f", "c1ccc2sccc2c1", "1-benzothiophene", "1-benzothiophene",
      "unchanged: already carried its locant"),
+    # --- D-038: the alphanumerical criterion keyed every carbon prefix "z" ---
+    # P-14.4 (g): "lowest locants for the substituent cited first as a prefix
+    # in the name"; P-14.5.1 prints 1-ethyl-4-methylcyclohexane (PIN). The
+    # tie-break was a x0.0001 term of the ranking float, keyed on the FG type,
+    # and every carbon substituent fell back to "z" -- so ethyl, methyl and
+    # methoxy tied and plan order decided. Fixed by applying P-14.4 (g) on the
+    # EXECUTED names of plans that tie on every other tier (stage 5b).
+    ("D-038a", "CCc1ccc(C)cc1", "1-ethyl-4-methylbenzene", "4-ethyl-1-methylbenzene",
+     "P-14.4 (g) on an arene"),
+    ("D-038b", "CC1CCCC(CC)C1", "1-ethyl-3-methylcyclohexane", "3-ethyl-1-methylcyclohexane",
+     "the same on a saturated ring; P-14.5.1's own example is its 1,4 isomer"),
+    ("D-038c", "CCC1CCC(C)CC1", "1-ethyl-4-methylcyclohexane", "4-ethyl-1-methylcyclohexane",
+     "P-14.5.1's own printed example, which the engine had wrong"),
+    ("D-038d", "COc1ccc(C)cc1", "1-methoxy-4-methylbenzene", "4-methoxy-1-methylbenzene",
+     "anisole takes no substitution in a PIN, so this is numbering only"),
+    ("D-038e", "CC(C)c1ccc(CC)cc1", "1-ethyl-4-(propan-2-yl)benzene",
+     "1-ethyl-4-(propan-2-yl)benzene",
+     "non-regression: a compound prefix against a simple one, right before and after"),
+    # Non-regression: halogens were keyed by their FG type and were already
+    # right; the chain case never went through the ring tie-break.
+    ("D-038f", "Clc1ccc(Br)cc1", "1-bromo-4-chlorobenzene", "1-bromo-4-chlorobenzene",
+     "unchanged"),
+    ("D-038g", "CCC(C)CC(CC)CC", "3-ethyl-5-methylheptane", "3-ethyl-5-methylheptane",
+     "unchanged; P-15.1.7.1.5's own example"),
+    ("D-038h", "Fc1cc(Cl)cc(Br)c1", "1-bromo-3-chloro-5-fluorobenzene",
+     "1-bromo-3-chloro-5-fluorobenzene", "unchanged: three prefixes, symmetric set"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

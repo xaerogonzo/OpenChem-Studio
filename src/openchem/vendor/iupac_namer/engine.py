@@ -9153,6 +9153,15 @@ def name(
         _session.cache_store(smiles, output_form, fv_bond_orders, err, attachment_indices)
         return err
 
+    # --- P-14.4 (g): break a full tie between numberings on executed names ---
+    tied_winner = _break_alphanumerical_tie(
+        ranked_plans, mol, strategy, output_form, free_valence,
+        decision_ctx, _session, _depth,
+    )
+    if tied_winner is not None:
+        _session.cache_store(smiles, output_form, fv_bond_orders, tied_winner, attachment_indices)
+        return tied_winner
+
     # --- Execute best plan; retry on child failure ---
     best_tree = None
     best_score = None
@@ -9276,6 +9285,91 @@ class _PlanBudget:
     @property
     def exhausted(self) -> bool:
         return self.total >= self.total_budget
+
+
+def _alphanumerical_locant_key(tree) -> tuple | None:
+    """P-14.4 (g) as a comparable value: each prefix's locants, in citation order.
+
+    Citation order is alphanumerical (P-14.5) by `derive_sort_name`, the same
+    key assembly sorts by -- the `SORT_NORMALIZATION_ID` in `preference.py`.
+    Lower is better: "lowest locants for the substituent cited first as a
+    prefix in the name", then the next one cited, and so on. None when the
+    tree is not a substitutive name with prefixes, which is never a tie this
+    criterion can decide.
+    """
+    from openchem.vendor.iupac_namer.assembly import assemble, merge_identical_prefixes
+
+    if not isinstance(tree, SubstitutiveTree) or not tree.prefixes:
+        return None
+    try:
+        entries = [(assemble(entry.tree), tuple(entry.locants)) for entry in tree.prefixes]
+        merged = merge_identical_prefixes(entries)
+    except Exception:  # noqa: BLE001 - an unassemblable tie is left to the fallback
+        return None
+    cited = sorted(merged, key=lambda m: (m.sort_name, m.name))
+    return tuple(tuple(m.locants) for m in cited)
+
+
+def _break_alphanumerical_tie(
+    ranked_plans, mol, strategy, output_form, free_valence, decision_ctx, session, depth,
+):
+    """Choose between numberings that tie on EVERY tier of the preference key.
+
+    P-14.4 (g) -- "lowest locants for the substituent cited first as a prefix
+    in the name" -- needs the prefixes' complete names (P-14.5.2), and a plan
+    carries atoms, not names: the substituents are carved and named only when
+    a plan is executed. So the criterion cannot be a tier. It was a ×0.0001
+    term of the old float instead, keyed on the functional-group type, with
+    EVERY carbon substituent falling back to "z" -- so ethyl and methyl tied
+    and plan order decided: `4-ethyl-1-methylbenzene` (P-14.5.1 prints
+    `1-ethyl-4-methylcyclohexane (PIN)`).
+
+    Here the tied plans are executed and compared on their real names.
+    Scoped tightly, on purpose:
+
+      * only a `NomenclaturePreferenceKey` tie -- a legacy float key keeps its
+        old behaviour exactly;
+      * only plans of ONE parent hypothesis, since P-14.4 is a numbering rule
+        and two different parents tying is not what it decides;
+      * a residual tie falls to the later-generated plan, the declared
+        compatibility policy of `_search_plans`.
+
+    Returns the winning tree, or None to fall through to the normal loop.
+    """
+    from openchem.vendor.iupac_namer.preference import NomenclaturePreferenceKey
+
+    if len(ranked_plans) < 2:
+        return None
+    top_key, _seq, top_plan = ranked_plans[-1]
+    if not isinstance(top_key, NomenclaturePreferenceKey):
+        return None
+    if not isinstance(top_plan, SubstitutivePlan):
+        return None
+    hypothesis = _parent_hypothesis_key(top_plan)
+    tied = []
+    for key, seq, plan in reversed(ranked_plans):
+        if key != top_key:
+            break
+        if isinstance(plan, SubstitutivePlan) and _parent_hypothesis_key(plan) == hypothesis:
+            tied.append((seq, plan))
+    if len(tied) < 2:
+        return None
+
+    candidates = []
+    for seq, plan in tied:
+        tree = _execute_plan(
+            plan, mol, strategy, output_form, free_valence, decision_ctx, session, depth,
+        )
+        if _has_error_children(tree):
+            continue
+        locant_key = _alphanumerical_locant_key(tree)
+        if locant_key is None:
+            return None
+        candidates.append((locant_key, -seq, tree))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda c: (c[0], c[1]))
+    return candidates[0][2]
 
 
 def _search_plans(perception, mol, output_form, free_valence, query, strategy, session):

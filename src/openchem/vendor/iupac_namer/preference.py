@@ -73,16 +73,27 @@ TIER_SPECS: tuple[TierSpec, ...] = (
              "are the remaining float to decompose"),
     TierSpec("retained_ring", "P-31.1.3", "higher",
              "a retained ring name over a systematic construction of the same ring"),
+    TierSpec("naming_method", "P-31.1.3 / P-52", "higher",
+             "how the parent is named (retained > Hantzsch-Widman > ... > systematic). "
+             "BEFORE the locant tiers: the method chooses the parent's name, and "
+             "numbering is chosen within it. The old ×0.01 band put it after them "
+             "for small rank gaps and before them for large ones -- its own "
+             "comment relied on the large gaps -- which is not an ordering at all"),
+    TierSpec("substituent_count", "P-45.2.1", "higher",
+             "'the maximum number of substituent groups cited as prefixes' (p. 415), "
+             "which the book applies BEFORE P-45.2.2's lower locant set -- its first "
+             "example is 4-methoxy-N-phenylaniline (PIN) [not "
+             "N-(4-methoxyphenyl)aniline]. Split out of parent_selection and placed "
+             "AFTER the naming method: between two namings of the same ring it "
+             "only counts notation (D-022w, D-022z)"),
     TierSpec("heteroatom_locants", "P-31.1.4.2.1", "higher",
              "legacy weighted heteroatom locant score, as before"),
     TierSpec("suffix_locants", "P-31.1.4.2.3", "lower",
              "stored as (-count, -l1, -l2, ...): the locant SET, first point of difference"),
     TierSpec("unsaturation_locants", "P-31.1.4.2.4", "lower", "as suffix_locants"),
-    TierSpec("prefix_locants", "P-31.1.4.3 / P-14.4 (f)", "lower",
+    TierSpec("prefix_locants", "P-45.2.2 / P-14.4 (f)", "lower",
              "all detachable prefixes together, as suffix_locants"),
     TierSpec("primes", "P-14.3", "lower", "unprimed ring-assembly locants before primed"),
-    TierSpec("naming_method", "P-31.1.3", "higher",
-             "retained > Hantzsch-Widman > systematic; the old ×0.01 band"),
 )
 
 

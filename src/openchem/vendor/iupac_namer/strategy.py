@@ -560,6 +560,82 @@ class IUPACCanonical(NamingStrategy):
     def good_enough_score(self) -> float:
         return 1_000_000.0   # stop on retained name
 
+    def comparator_spec_id(self) -> str:
+        from openchem.vendor.iupac_namer.preference import COMPARATOR_SPEC_ID
+
+        return COMPARATOR_SPEC_ID
+
+    def preference_key(self, plan: NamingPlan):
+        """The declared tiers of `preference.TIER_SPECS`, built from the SAME
+        components `score_plan` sums -- so every difference from the legacy
+        ranking is a difference in how they are COMBINED, never in what is
+        measured. The stage records enumerate those differences.
+        """
+        from openchem.vendor.iupac_namer.preference import (
+            NomenclaturePreferenceKey,
+            locant_set_tier,
+        )
+
+        empty = locant_set_tier(())
+        blank = (0, 0.0, 0.0, 0.0, 0.0, 0, 0.0, empty, empty, empty, 0)
+        match plan:
+            case RetainedPlan():
+                return NomenclaturePreferenceKey((5,) + blank[1:])
+            case MultiplicativePlan():
+                return NomenclaturePreferenceKey((3,) + blank[1:])
+            case RingAssemblyPlan():
+                return NomenclaturePreferenceKey((2,) + blank[1:])
+            case FunctionalClassPlan():
+                return NomenclaturePreferenceKey((1,) + blank[1:])
+            case ReplacementPlan():
+                pcg = self._pcg_seniority_score(
+                    plan.pcg.type if plan.pcg else None,
+                    (plan.pcg,) if plan.pcg else (),
+                )
+                return NomenclaturePreferenceKey((0, float(pcg)) + blank[2:])
+            case SubstitutivePlan():
+                pass
+            case _:
+                return NomenclaturePreferenceKey(blank)
+
+        kind = 4 if self._cation_band_applies(plan) else 0
+        numbering = self._numbering_components(plan)
+        if numbering is None:
+            hetero, suffix, unsat, prefix, primes = 0.0, empty, empty, empty, 0
+        else:
+            hetero = float(numbering["heteroatom_score"])
+            suffix = locant_set_tier(numbering["suffix_locants"])
+            unsat = locant_set_tier(numbering["unsat_locants"])
+            prefix = locant_set_tier(numbering["prefix_locants"])
+            primes = -int(numbering["prefix_prime_count"])
+        return NomenclaturePreferenceKey((
+            kind,
+            float(self._pcg_seniority_score(plan.pcg_type, plan.pcg_instances)),
+            float(self._parent_selection_score(plan, include_substituent_count=False)),
+            float(self._retained_ring_seniority_score(plan.named_parent)),
+            float(self._naming_method_score(plan.named_parent)),
+            len(plan.prefix_assignments),
+            hetero,
+            suffix,
+            unsat,
+            prefix,
+            primes,
+        ))
+
+    def _cation_band_applies(self, plan: SubstitutivePlan) -> bool:
+        """The +500,000 band of `score_plan`, as a yes/no. See its comment."""
+        if not plan.parent_ring_cation_atoms:
+            return False
+        interp = plan.interpretation
+        has_senior_acid_pcg = (
+            interp is not None
+            and any(
+                fg.suffix_eligible and fg.get_property("seniority", 9999) < 800
+                for fg in interp.fgs
+            )
+        )
+        return not has_senior_acid_pcg
+
     def cache_key(self) -> str:
         return "iupac"
 
@@ -595,7 +671,9 @@ class IUPACCanonical(NamingStrategy):
         except Exception:
             return 20.0  # default: any PCG is strongly preferred
 
-    def _parent_selection_score(self, plan: SubstitutivePlan) -> float:
+    def _parent_selection_score(
+        self, plan: SubstitutivePlan, *, include_substituent_count: bool = True
+    ) -> float:
         """P-44 criteria in strict priority order. Returns 0.0–99.0.
 
         Priority order (each band dominates all lower bands):
@@ -788,11 +866,36 @@ class IUPACCanonical(NamingStrategy):
 
         # Band 1: number of substituents (P-44.3d)
         # Max ~10 substituents → max 0.001 pts.
-        score += len(plan.prefix_assignments) * 0.0001
+        #
+        # EXCLUDED FROM THE PREFERENCE KEY'S parent_selection TIER, which
+        # carries it as its own later tier instead. The criterion chooses
+        # between DIFFERENT parent skeletons; between two namings of the SAME
+        # ring it counts notation -- a Hantzsch-Widman plan writes the ring's
+        # oxo groups as two prefixes where a retained stem encodes them -- and
+        # as part of this tier it outranked the naming method (D-022w, D-022z).
+        if include_substituent_count:
+            score += len(plan.prefix_assignments) * 0.0001
 
         return min(99.0, score)
 
     def _numbering_score(self, plan: SubstitutivePlan) -> float:
+        """The legacy numbering float, rebuilt from `_numbering_components`.
+
+        Kept EXACT so `LegacyScoreKey` and the stage-5a acceptance still mean
+        what they meant. The preference key reads the components directly and
+        never this sum.
+        """
+        c = self._numbering_components(plan)
+        if c is None:
+            return 0.0
+        return (c["heteroatom_score"]
+                - sum(c["suffix_locants"]) * 0.1
+                - sum(c["unsat_locants"]) * 0.05
+                - sum(c["prefix_locants"]) * 0.01
+                - c["prefix_prime_count"] * 0.00001
+                + c["alpha_first_score"])
+
+    def _numbering_components(self, plan: SubstitutivePlan) -> dict | None:
         """Reward numberings that give lower locants (P-14.5, P-14.4).
 
         Priority order (IUPAC P-31.1.2.2 + P-14.5):
@@ -904,19 +1007,7 @@ class IUPACCanonical(NamingStrategy):
         prefix_locants = sorted(prefix_locants_raw)
 
         if not suffix_locants and not unsat_locants and not prefix_locants and not heteroatom_score:
-            return 0.0
-
-        # Suffix: ×0.1 per locant unit (max single locant ~40 → -4.0)
-        suffix_score = -sum(suffix_locants) * 0.1
-        # Unsaturation: ×0.05 per locant unit — after suffix, before prefix
-        unsat_score = -sum(unsat_locants) * 0.05
-        # Prefix: ×0.01 per locant unit (max sum ~100 → -1.0)
-        prefix_score = -sum(prefix_locants) * 0.01
-        # Prime tiebreak: when the numeric locant is equal (e.g. 2 vs 2'),
-        # unprimed ring-assembly locants are preferred (P-14.5 first-point-of-
-        # difference: unprimed is lower than primed).  Weight is well below
-        # any other sub-band so it only breaks ties.
-        prefix_prime_score = -prefix_prime_count * 0.00001
+            return None
 
         # P-45.5 alphanumerical-locant tiebreak: when the prefix-locant set
         # is symmetric (both numbering directions give the same sorted
@@ -962,12 +1053,17 @@ class IUPACCanonical(NamingStrategy):
         except Exception:
             alpha_first_score = 0.0
 
-        return (heteroatom_score
-                + suffix_score
-                + unsat_score
-                + prefix_score
-                + prefix_prime_score
-                + alpha_first_score)
+        return {
+            "heteroatom_score": heteroatom_score,
+            "suffix_locants": suffix_locants,
+            "unsat_locants": unsat_locants,
+            "prefix_locants": prefix_locants,
+            "prefix_prime_count": prefix_prime_count,
+            # LEGACY ONLY. The "z" fallback this is built from is the defect
+            # naming round 4 found; the preference key does not read it, and
+            # P-14.4 (g) is applied on executed names instead.
+            "alpha_first_score": alpha_first_score,
+        }
 
     def _naming_method_score(self, named_parent) -> float:
         """Preference ordering for naming methods (Band 1, × 0.01).
