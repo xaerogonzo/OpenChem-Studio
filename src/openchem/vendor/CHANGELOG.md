@@ -774,3 +774,30 @@ forgotten.
 Benchmark: regression corpus **187/187, exact 93**, held-out 40/40, nothing
 structurally regressed and no name's meaning changed -- PubChem writes these
 with brackets throughout, so its own strings cannot become exact matches.
+
+## 2026-09-17 - the isotope hyphen depends on what follows (D-035)
+
+P-82.2.1 (BlueBookV2.pdf p. 852): "Immediately after the parentheses there
+is neither space nor hyphen, except that when the name, or a part of a name,
+includes a preceding locant, a hyphen is inserted." The book's own PIN for
+the plain case is `1,2-di[(13C)methyl]benzene`.
+
+The engine keyed the hyphen off whether the ISOTOPE LABEL carried a locant,
+which is a different question entirely, so any locanted label got a hyphen:
+`(1-2H)-methanol`, `(1-13C)-methane`. The decision now looks at the part
+that follows, and because that part does not exist yet where the label is
+appended, it is deferred until the name is assembled.
+
+The exception is why this is not just "delete the hyphen": an
+indicated-hydrogen marker IS a preceding locant, so `(2-13C)-1H-indole`
+keeps its hyphen and has a pinned row saying so.
+
+Neither of the two corpus rows can become an exact match, and that is a
+fact about the reference rather than the names: PubChem answers
+`deuteriomethanol` and `carbane`, both of which discard the isotope
+altogether -- which `build_corpus._trusted_pubchem_name` already documents
+as a reason it drops ground truth. They are `PUBCHEM_NOT_PREFERRED`
+candidates for the adjudication table.
+
+Benchmark: 187/187 and 40/40 unchanged, exact 93, nothing structurally
+regressed.

@@ -702,6 +702,28 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-033h", "OCC1CCCCC1", "cyclohexylmethanol", "cyclohexylmethanol",
      "unchanged: monocyclic hydrocarbon, method (1)"),
     ("D-033i", "CO", "methanol", "methanol", "unchanged: mononuclear carbon parent"),
+
+    # --- D-035: the isotope hyphen depends on what FOLLOWS ----------------
+    # P-82.2.1 (BlueBookV2.pdf p. 852): "Immediately after the parentheses
+    # there is neither space nor hyphen, except that when the name, or a part
+    # of a name, includes a preceding locant, a hyphen is inserted." The
+    # book's own PIN for the plain case is `1,2-di[(13C)methyl]benzene`.
+    #
+    # The engine keyed the hyphen off whether the ISOTOPE LABEL carried a
+    # locant, which is a different question, so a locanted label always got
+    # one even when the parent name had no preceding locant.
+    ("D-035a", "[2H]CO", "(1-2H)methanol", "(1-2H)-methanol",
+     "no preceding locant on `methanol`, so no hyphen"),
+    ("D-035b", "[13CH4]", "(1-13C)methane", "(1-13C)-methane", "same, carbon-13"),
+    ("D-035c", "CC([2H])O", "(1-2H)ethanol", "(1-2H)-ethanol",
+     "same, and the parent locant is internal rather than preceding"),
+    # THE EXCEPTION, which is why this is not simply "delete the hyphen": an
+    # indicated-hydrogen marker IS a preceding locant, so the hyphen stays.
+    ("D-035d", "[13cH]1cc2ccccc2[nH]1", "(2-13C)-1H-indole", "(2-13C)-1H-indole",
+     "unchanged: `1H-` is a preceding locant, so the hyphen is required"),
+    # Non-regression for labels with no locant at all, which never had one.
+    ("D-035e", "[2H]O[2H]", "(2H2)water", "(2H2)water", "unchanged"),
+    ("D-035f", "[15NH3]", "(15N)ammonia", "(15N)ammonia", "unchanged"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

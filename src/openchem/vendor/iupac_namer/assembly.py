@@ -491,6 +491,10 @@ def _render_locants(locants: tuple[Locant, ...]) -> str:
 # Fig. 1.3, and its step (e) is exactly the case that was wrong: a {...}
 # prefix is enclosed in ( ), not in another { }. See
 # tests/test_namer_enclosing_marks.py, which pins all six steps.
+# What counts as "a preceding locant" for P-82.2.1: a numeric locant, an
+# indicated-hydrogen marker (`1H-`), or an italic element locant (`N-`).
+_ISOTOPE_NEEDS_HYPHEN = re.compile(r"^(?:\d|[NOSP]-)")
+
 _NESTING_CYCLE = (("(", ")"), ("[", "]"), ("{", "}"))
 _NESTING_LEVELS = {"(": 0, "[": 1, "{": 2}
 _NESTING_CLOSERS = {")": "(", "]": "[", "}": "{"}
@@ -2037,20 +2041,25 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
 
     # 1b. Isotope labels (Stage 6 R1-D)
     # IUPAC P-82 "Isotopically Modified Compounds" — the bracketed element
-    # prefix sits between the stereo descriptor and the indicated-H
-    # marker.  When any label carries a locant we add a trailing hyphen
-    # so subsequent tokens read "(1-¹³C)-1H-indole" / "(1-²H)-ethan-1-ol".
-    # When every label is whole-molecule (no locant, e.g. "(²H₄)methanol")
-    # the bracket is written immediately before the parent name without
-    # a hyphen, matching canonical IUPAC usage.
+    # prefix sits between the stereo descriptor and the indicated-H marker.
+    #
+    # THE HYPHEN DEPENDS ON WHAT FOLLOWS, NOT ON THE LABEL. P-82.2.1
+    # (BlueBookV2.pdf p. 852): "Immediately after the parentheses there is
+    # neither space nor hyphen, except that when the name, or a part of a
+    # name, includes a preceding locant, a hyphen is inserted." The book's
+    # own PIN for the plain case is `1,2-di[(13C)methyl]benzene` -- no hyphen.
+    #
+    # This used to key off whether the ISOTOPE LABEL carried a locant, which
+    # is a different question and gave `(1-2H)-methanol` and `(1-13C)-methane`
+    # where the parent name has no preceding locant at all. The decision is
+    # therefore deferred: the following part does not exist yet here.
+    _iso_index: int | None = None
     if tree.isotope_labels:
         from openchem.vendor.iupac_namer.isotope import render_isotope_labels as _render_iso
         iso_str = _render_iso(tree.isotope_labels)
         if iso_str:
-            any_locanted = any(
-                lbl.locant is not None for lbl in tree.isotope_labels
-            )
-            parts.append(iso_str + "-" if any_locanted else iso_str)
+            parts.append(iso_str)
+            _iso_index = len(parts) - 1
 
     # 2. Indicated hydrogen
     if tree.indicated_hydrogen:
@@ -2857,6 +2866,15 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             elif parts[stem_idx].endswith("e"):
                 parts[stem_idx] = parts[stem_idx][:-1]
         parts.append(ra_suffix)
+
+    # P-82.2.1's exception, resolved now that the following part exists: a
+    # hyphen goes in only when what follows the nuclide parentheses starts
+    # with a locant -- an indicated-hydrogen marker like `1H-`, a numeric
+    # locant, or an italic element locant.
+    if _iso_index is not None and _iso_index + 1 < len(parts):
+        following = parts[_iso_index + 1]
+        if _ISOTOPE_NEEDS_HYPHEN.match(following):
+            parts[_iso_index] = parts[_iso_index] + "-"
 
     result = elide_at_boundaries(parts)
     # P-66.6 retained-acyl-PIN rewrite — must run AFTER elision so the
