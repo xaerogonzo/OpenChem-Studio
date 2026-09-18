@@ -37,10 +37,11 @@ Two of those fall-through reasons now raise instead of neutralizing — see
 
 ## Open defects (severity A — wrong molecule)
 
-**None.** Every severity-A defect found by the sweeps, the benchmark and the
-corpus extension has been fixed; the table in
-`tests/test_namer_known_defects.py` holds 66 of them plus 33 non-regression
-rows guarding the paths those fixes could have stolen from.
+**None.** Every severity-A defect found by the sweeps, the benchmark, the
+corpus extension and the held-out corpus has been fixed; the table in
+`tests/test_namer_known_defects.py` holds 86 of them plus 50 non-regression
+rows guarding the paths those fixes could have stolen from, over 26 distinct
+defect numbers.
 
 That is a statement about what has been *looked for*, not a claim that none
 exists. The instrument that found most of them is still in the box: set
@@ -48,6 +49,66 @@ exists. The instrument that found most of them is still in the box: set
 corpus. The `OPEN` list in the defect table is deliberately kept, empty, so a
 newly found defect can be added as `xfail(strict=True)` — fixing it then FAILS
 the suite and forces this document and that table to be updated together.
+
+**AND THAT CAVEAT WAS EARNED, IMMEDIATELY.** A held-out corpus was added in
+naming round 3 — 40 rows drawn by a fixed CID stride, admitted by a filter
+settled in advance, with the engine never consulted during selection
+(`benchmarks/naming/build_heldout.py`). Its FIRST run found a severity-A
+defect, D-030:
+
+```
+CNC(C)CC12CC3CC(CC(C3)C1C1CCCCC1)C2
+  emitted  1-(2-cyclohexyladamantan-5-yl)-N-methylpropan-2-amine
+           -> HQMBUZVFGUDZCC-UHFFFAOYSA-N
+  correct  1-(2-cyclohexyladamantan-1-yl)-N-methylpropan-2-amine
+           -> RNYOSRZCHQLRMT-UHFFFAOYSA-N
+```
+
+In adamantane numbering locant 2 is adjacent to 1 and 3 but not to 5, so the
+emitted name is a constitutional isomer rather than a non-preferred name. The
+187-row regression corpus scores 187/187 both before and after the fix and
+could not have caught it: it carries adamantane and norbornane as whole
+molecules, never as substituents, and the defect needs a SECOND ring
+substituent to appear at all. Bare adamantyl was always correct.
+
+The rule is the one D-029 already fixed once — a substituent's free valence
+takes the lowest locant consistent with the ring numbering (P-31.1.4.2.4) —
+and D-030 is its third ring class. D-029 fixed monocyclic heterocycles by
+FILTERING the candidate numberings; bridged rings kept an older branch that
+only SORTED them so the wanted one landed last and won on "later-generated
+wins a tie". Any competing ring prefix outscores a tie-break. The fix was to
+delete that branch, so bridged rings take the same filter as everything else.
+
+Correcting the locant then exposed a second latent defect, which is why this
+is worth reading rather than just counting: the `-yl` suffix elided locant 1
+on stems that cannot absorb it, giving `adamantan-yl`. Elision is only well
+formed where the stem contracts (`cyclohexan` → `cyclohexyl`), and that was
+decided by a DIFFERENT predicate from the one performing the elision, so the
+two could disagree. They are now one decision
+(`assembly.render_free_valence_suffix(stem_contracts=...)`). It had never
+surfaced because D-030 meant a bridged substituent never reached locant 1.
+Fixing it also corrected five organoelement names in the regression corpus
+that were quietly malformed the same way (`(trimethylsilan-yl)benzene` →
+`(trimethylsilan-1-yl)benzene`, and four like it) — still not the preferred
+names, which are `trimethyl(phenyl)silane` and friends, but well formed.
+
+The third and last ring class went the same way, as D-031, and it is worth
+recording that the plan for it predicted the wrong cause. The prediction was
+that a ring numbered from the curated table exposes a single canonical map,
+so there would be nothing to choose between; measured, naphthalene offers
+FOUR numberings placing the attachment at 2, 3, 7 or 6, and the correct one
+is offered first. The branch filtered for "attachment at locant 1", found
+none -- locant 1 is not reachable on a fused ring -- and fell back to
+yielding every numbering, which is falling back to no rule at all. The
+prefix band then chose, giving naproxen `2-methoxynaphthalen-6-yl` instead
+of `6-methoxynaphthalen-2-yl`. The fallback now applies the same rule to
+what is reachable, and both naproxen rows moved from `equivalent` to
+`exact`.
+
+Generalised across five ring systems with the locant verified per skeleton
+rather than assumed constant: naphthalene and anthracene take 2,
+phenanthrene 3, quinoline 2 because its nitrogen holds 1. A substituted
+monocyclic phenyl still reaches locant 1 and is unchanged.
 
 The last one to go, D-024, is worth keeping as a worked example because the
 two obvious fixes were both wrong:
@@ -155,7 +216,11 @@ signal either of them gives about its own blind spot.
 | input | emits | preferred | rule |
 |---|---|---|---|
 | `ClC(=O)C(=O)Cl` | `ethane-1,2-dioyl chloride` | `oxalyl dichloride` | `oxalyl` IS the PIN acyl group (P-65.1.7.2.1); the `di` multiplier is also missing |
-| `CC(C)C` | `isobutane` | `2-methylpropane` | retained, not a PIN |
+The `isobutane` row that stood here is FIXED (D-036c). P-61.2.1 says in as
+many words that "the names 'isobutane', 'isopentane' and 'neopentane' are
+no longer recommended", and gives `2-methylpropane (PIN) (not isobutane)`.
+It survived because `CC(C)C` is not in the benchmark corpus at all, so
+nothing measured it -- the defect table now carries it.
 
 The acyl-halide case is **not** a matter of adding a table entry. Instrumenting
 `_acid_name_to_acyl` over 200+ molecules showed only two distinct acid names
@@ -252,3 +317,34 @@ Found while checking D-029; predates it.
 * The five tests that shipped red are not engine defects. They asserted a
   non-minimal lambda numbering and three general-nomenclature-only acylium
   names; the engine's output is correct in every case. See `CHANGELOG.md`.
+
+## Open after naming round 3 (2026-09-17)
+
+Each of these is adjudicated -- the target is known and quoted in
+`benchmarks/naming/adjudication.toml` -- and not yet implemented. They are
+listed by LAYER, because the round's main finding was that defects which
+all look like "the comparator picked wrong" live in different places.
+
+| layer | case | emits | preferred | note |
+|---|---|---|---|---|
+| candidate generation | chloroquine | `...quinolin-4-amine` | `...pentane-1,4-diamine` | no candidate carries two PCGs, so the diamine parent is never proposed (P-44.1.1) |
+| PCG assignment | warfarin | `4-(4-hydroxycoumarin-3-yl)-...butan-2-one` | `4-hydroxy-3-(...)chromen-2-one` | the ring is offered with a `phenol` suffix, never its ring ketone |
+| PCG assignment | caffeine | `1,3,7-trimethyl-2,6-dioxo-1H-purine` | `1,3,7-trimethylpurine-2,6-dione` | exposed by demoting the retained name (D-036): ring ketones become `oxo` prefixes |
+| data | p-xylene | `1,4-dimethylbenzene` | `1,4-xylene` | P-22.1.3 names the xylene isomers PINs; the registry needs an entry ADDED |
+| functional class | dimethyl sulfoxide, dimethyl sulfone, omeprazole | `dimethyl sulfoxide` | `(methanesulfinyl)methane` | P-63.6: the class names are not preferred, and neither is PubChem's alkylsulfinyl prefix |
+| additive | trimethylamine N-oxide | `N,N-dimethylmethanamine oxide` | `N,N-dimethylmethanamine N-oxide` | the book's PIN carries the `N-` locant |
+| serialization | hexamethyldisiloxane | `trimethyl(trimethylsiloxy)silane` | `...silyloxy...` | the O-bridge assembly drops the `yl` of a contracted stem |
+| serialization | cid14000 | `4-{[(ethyl)][...]amino}butyl ...` | `4-{ethyl[...]amino}butyl ...` | a tertiary-amine prefix path wraps a simple prefix twice |
+
+Architecture, deliberately deferred rather than half-done:
+
+* **The preference cascade is still a float with hand-tuned bands.** None of
+  the four flagship defects turned out to be a ranking error, so replacing it
+  with a lexicographic key is hygiene rather than a fix -- still worth doing,
+  and planned as its own change with an ordering-equivalence proof.
+* **The strategy is not in the session cache key**, and `IUPACCanonical()` is
+  still hard-constructed at 11 sites, so `name_smiles(strategy=...)` cannot
+  yet change what those sites decide. Latent rather than live: the app only
+  ever runs the default strategy, and a session lasts one top-level call.
+* **274 retained-name registry entries have no audited status.** They behave
+  exactly as before; `tools/retained_name_audit.py` reports the backlog.

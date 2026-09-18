@@ -24,9 +24,12 @@ from openchem.vendor.iupac_namer.engine import name_smiles
     ("c1nc[nH]n1",  "1H-1,2,4-triazole"),
     ("c1nnn[nH]1",  "1H-tetrazole"),
     ("c1cscn1",     "1,3-thiazole"),
-    ("c1cnsc1",     "isothiazole"),
+    # The 1,2-isomers take their Hantzsch-Widman names too (Table 2.2:
+    # "isoxazole  1,2-oxazole (PIN)", "isothiazole  1,2-thiazole (PIN)").
+    # The 1,3- rows below always had theirs; D-037 made the 1,2- ones match.
+    ("c1cnsc1",     "1,2-thiazole"),
     ("c1cocn1",     "1,3-oxazole"),
-    ("c1cnoc1",     "isoxazole"),
+    ("c1cnoc1",     "1,2-oxazole"),
     ("c1nncs1",     "1,3,4-thiadiazole"),
     ("c1ncsn1",     "1,2,4-thiadiazole"),
     ("c1nnco1",     "1,3,4-oxadiazole"),
@@ -41,7 +44,9 @@ from openchem.vendor.iupac_namer.engine import name_smiles
     ("c1ccc2[nH]cnc2c1",  "1H-benzimidazole"),
     ("c1ccc2ocnc2c1",     "1,3-benzoxazole"),
     ("c1ccc2scnc2c1",     "1,3-benzothiazole"),
-    ("c1ccc2occc2c1",     "benzofuran"),
+    # p. 208 lists "1-benzofuran (PIN)" beside "2-benzofuran (PIN)"; the
+    # `2-benzofuran` row below already had its locant.
+    ("c1ccc2occc2c1",     "1-benzofuran"),
     ("c1ccc2sccc2c1",     "1-benzothiophene"),
     ("c1ccc2[nH]ncc2c1",  "1H-indazole"),
     ("c1ccc2c[nH]cc2c1",  "2H-isoindole"),

@@ -60,6 +60,100 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A retained name is shown beside the preferred IUPAC name.** Where a
+  compound is widely known by a name IUPAC keeps only for general use --
+  caffeine, camphor, ibuprofen, chloroform -- the IUPAC Name result now
+  gives the preferred name first and that name second, labelled as not the
+  preferred one. Without it those names would have disappeared from the app
+  entirely, since PubChem answers with the systematic string too. A name
+  that IS both, like `toluene`, is shown once.
+
+- **`isoxazole` and `benzofuran` are named as IUPAC prefers.** They become
+  `1,2-oxazole` and `1-benzofuran`, which is also what sulfamethoxazole's
+  name now uses. Both were inconsistent with their own neighbours in the
+  same table -- plain oxazole was already `1,3-oxazole`, and
+  `1-benzothiophene` sits beside benzofuran with its locant -- and the `1-`
+  is what distinguishes 1-benzofuran from 2-benzofuran.
+- **Trivial names are no longer shown as the IUPAC name when they are not
+  one.** `butyraldehyde` becomes `butanal`, `triethylamine` becomes
+  `N,N-diethylethanamine`, and camphor, caffeine and ibuprofen now get their
+  systematic names. The table these came from asserted that all 292 of its
+  names were preferred IUPAC names while citing a rule for 31 of them -- 161
+  were harvested from a name PARSER's dictionary, which only establishes
+  that a name can be read. Each entry now records whether it is preferred
+  and why, with the quotation, in `benchmarks/naming/adjudication.toml`.
+
+  Only the names the benchmark actually depends on were audited, and the
+  remaining 274 entries behave exactly as before: denying them on no
+  evidence would be the same mistake in the other direction.
+  `tools/retained_name_audit.py` shows what is still unaudited.
+
+  Two went the other way on reading the source. `toluene` IS a preferred
+  IUPAC name and keeps it; and `1,4-xylene` turns out to be preferred over
+  the engine's `1,4-dimethylbenzene`, which is still to fix.
+- **Nested substituent names use the right kind of bracket.** Atenolol was
+  `2-{4-{2-hydroxy-...}phenyl}acetamide`, with a brace directly inside a
+  brace; IUPAC's nesting order cycles through parentheses, square brackets
+  and braces and then starts again, so the outer one should be a
+  parenthesis. Six names were affected. The same fix stops a spiro or
+  bicyclo descriptor -- `[4.5]`, `[2.2.1]` -- from being counted as a level
+  it was never part of.
+- **Silyl groups are named `silyl`, and a single-atom parent no longer
+  invents a locant.** `(trimethylsilan-1-yl)methanamine` becomes
+  `(trimethylsilyl)methanamine` -- the prefix every chemist writes for a TMS
+  group -- and betaine's `2-(trimethylazanium-1-yl)acetate` becomes
+  `2-(trimethylazaniumyl)acetate`. One rule governs both directions: a
+  single-atom parent must not cite the locant, while a polycyclic one like
+  adamantane must, and the engine had each of them the wrong way round.
+- **Organosilicon, phosphorus and iodine compounds get the right parent.**
+  `trimethyl(phenyl)silane`, `triphenylphosphane` and `diphenyliodanium`
+  replace `(trimethylsilan-yl)benzene`, `(diphenylphosphan-yl)benzene` and
+  `(phenyliodaniumyl)benzene`. The rule was never in doubt -- silicon
+  outranks carbon, so the silane is the parent -- but the engine never got
+  to apply it: the plan search spent its whole budget enumerating numberings
+  of the benzene ring, and no silicon candidate was ever proposed. A third
+  of the benchmark was naming from a truncated search like this. The budget
+  is now split so one candidate parent cannot consume what another needs,
+  and naming the whole 227-molecule benchmark still takes about seven
+  seconds.
+
+- **A correct name is no longer withheld when two calculations overlap.**
+  The name verifier shells out to OPSIN, which wrote its input to one fixed
+  filename shared by every caller, so two naming calculations in flight
+  together clobbered each other -- 5 of 16 concurrent calls came back
+  correct. A lost call reads as "this name does not parse", which the app
+  correctly treats as grounds to withhold the name, so the failure looked
+  like the namer being unable to name something it names fine.
+- **Naproxen is now named exactly as PubChem names it**, and so is every
+  other substituent on a fused ring. The engine said
+  `2-(2-methoxynaphthalen-6-yl)propanoic acid` where the preferred name is
+  `2-(6-methoxynaphthalen-2-yl)propanoic acid`: both denote naproxen, which
+  is why the benchmark accepted it for months. A substituent's attachment
+  point takes the lowest available locant, ahead of any substituent prefix,
+  and on a fused ring the usual answer of 1 is not available at all — the
+  code asked for 1, found nothing, and then stopped applying the rule
+  instead of applying it to the positions that were available. Checked
+  across naphthalene, anthracene, phenanthrene and quinoline, where the
+  right locant differs per skeleton.
+
+- **A substituted adamantane was named as a different compound**, and it was
+  found by a corpus chosen before the engine was consulted.
+  `1-(2-cyclohexyladamantan-5-yl)-N-methylpropan-2-amine` denotes
+  `HQMBUZVFGUDZCC`, not the `RNYOSRZCHQLRMT` it was given: in adamantane
+  numbering locant 2 is adjacent to 1 and 3, never to 5, so that pair of
+  locants describes a constitutional isomer rather than a non-preferred
+  name. Bare adamantyl was always right — the defect needs a second ring
+  substituent to appear — which is why the 187-molecule regression corpus
+  scores 187/187 both before and after the fix. The new held-out corpus
+  (40 molecules drawn by a fixed PubChem CID stride, admitted by a filter
+  settled in advance, engine never consulted) found it on its first run and
+  now scores 40/40. A substituent's free valence takes the lowest locant
+  consistent with the ring numbering, and bridged rings were the one ring
+  class still deciding that by a tie-break rather than by the rule.
+  Correcting it exposed a second defect underneath: the `-yl` suffix dropped
+  locant 1 from stems that cannot absorb it, which also leaves five
+  organoelement names better formed than before.
+
 - **Names for substituents: a wrong stereodescriptor, a wrong prefix order and
   a wrong locant.** All three were reported from one screenshot and none was
   visible to the naming benchmark, which scores by parsing a name back.

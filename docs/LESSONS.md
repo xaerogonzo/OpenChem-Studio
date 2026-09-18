@@ -20692,3 +20692,128 @@ The practical rules this leaves:
   splitter prints it with CRLF -- pytest takes `tests/test_abraham.py\r` as a
   missing file and "no tests ran" looks like a broken invocation rather than
   a quoting bug. `tr -d '\r'`.
+
+## FOUR DEFECTS THAT LOOKED LIKE ONE WERE IN FOUR LAYERS, AND THE REFACTOR THAT WOULD HAVE FIXED THEM FIXED NONE
+
+Naming round 3 opened with 60 names that round-trip but differ from
+PubChem, and four flagship defects that all looked like "the preference
+comparator picked the wrong candidate": organosilicon parents, chloroquine,
+warfarin and naproxen. The comparator is a float with hand-tuned magnitude
+bands, so the plan had one stage replacing it and claiming all four.
+
+Instrumenting `_search_plans` -- which carries `output_form`, so a top-level
+candidate can be told from a substituent sub-call -- said otherwise, one per
+layer:
+
+    Si/P/I parent  BUDGET      20 of 20 plan slots went to benzene numbering
+                               variants and methyls; no Si plan existed to rank
+    chloroquine    GENERATION  no candidate carried two PCGs
+    warfarin       ASSIGNMENT  the ring was offered with a phenol suffix only
+    naproxen       NUMBERING   four numberings offered; a fallback dropped the rule
+
+A comparator rewrite fixes none of those. The first probe had instrumented
+`score_plan` instead, which every nested substituent call also passes
+through, so it mixed the substituent being named into the top-level
+ranking -- a false lead into the one function that was already right.
+
+**Before fixing a "wrong choice", establish whether the right option was
+ever on the table.** "Existed but lost" and "never existed" need different
+fixes, and the stage artifacts now record the winning hypothesis so the two
+can be told apart after the fact.
+
+## A HELD-OUT SET FOUND A WRONG MOLECULE ON ITS FIRST RUN, BECAUSE A CORPUS CANNOT TEST WHAT IT WAS BUILT FROM
+
+The 187-row naming corpus is deliberately enriched with families the engine
+has got wrong. That makes it a good regression corpus and useless as
+evidence that a fix generalises. So a second, 40-row set was selected by a
+rule stated before any naming -- PubChem CIDs at a fixed stride, admitted by
+a filter about structure only -- because whoever wrote it had already seen
+the 60 disagreements and could not claim an unconditioned judgement.
+
+Its first run found a WRONG MOLECULE: a substituted adamantane named as a
+constitutional isomer. The regression corpus scores 187/187 both before and
+after the fix, and could not have found it -- the defect needs a second ring
+substituent on a bridged substituent, and the corpus only ever carried
+adamantane as a whole molecule.
+
+Two cautions that came with it. Only 2 of the 40 carry stereochemistry,
+recorded rather than fixed, because re-drawing the sample after seeing it is
+exactly the conditioning the rule exists to prevent. And held-out PubChem
+agreement stayed at 14/40 through all eight stages -- every fix was made on the
+regression corpus, and that flat line is the honest generalisation number.
+
+## A TABLE NAMED `retained_pins` WAS A PARSER'S VOCABULARY, AND A CITATION IS NOT EVIDENCE
+
+The vendored registry of retained names held 292 entries under a key
+asserting every one was a preferred IUPAC name. 31 cited a rule. 161 had
+been harvested from OPSIN's name-to-structure dictionary, where presence
+establishes that a name can be READ -- a different fact from IUPAC
+preferring it. So `caffeine`, `ibuprofen` and `camphor` were emitted as the
+IUPAC name.
+
+Two further traps, both found only by reading the book (BlueBookV2.pdf,
+pinned by sha256 in `benchmarks/naming/adjudication.toml`):
+
+* **A citation can be real and irrelevant.** `caffeine` cited P-31.1.3, which
+  is about indicated hydrogen; a careful vendored test cited P-66.6.3 for
+  retaining `camphor`, and P-66.6.3 is about chalcogen analogues of
+  aldehydes. `camphor` appears on exactly two pages of the book, 641 and
+  1000, and neither is a retained-name table.
+* **"Retained" and "not preferred" are not the same.** `toluene` is retained
+  AND a PIN (P-22.1.3); `1,4-xylene` is a PIN and the engine was wrong not
+  to use it. A policy sweep over retained names would have broken both. I
+  had both filed the wrong way round before reading the paragraph.
+
+The audit therefore went entry by entry, starting with the entries a
+benchmark name actually reaches (`tools/retained_name_audit.py
+--reachable`). 18 carry a status now; the other 274 stay UNKNOWN and behave as
+before -- "asserted without evidence" is not answered by "denied without
+evidence". Where the source ruled against PubChem instead (`chloroform`),
+fixing the engine LOST an exact match, which is the plainest argument that
+agreement with a second engine is not the target.
+
+## A SHARED TEMP FILE MADE CORRECT NAMES LOOK UNPARSEABLE, AND IT WAS THE FLAKE ALL SESSION
+
+py2opsin writes its input to `tmp_fpath`, whose default is a bare relative
+filename resolved against the current working directory, and removes it in
+a `finally`. Every caller in a process shared that one file. Measured with
+16 concurrent calls over 4 threads: 5 came back correct on the shared path,
+16 with a private file per call.
+
+The losers return an empty string, which the name verifier reads as "does
+not parse" -- and a name that does not round-trip is correctly WITHHELD. So
+the symptom was the app declining to name structures it names perfectly
+well. It was also the "flake" behind the noisy runs earlier in the round:
+naming tests that failed on one run and passed on the next over an
+unchanged tree, which I put down to other causes before finding it.
+
+Two corrections worth keeping. A stray `py2opsin_temp_input.txt` in the
+checkout was NOT a symptom of the shared name, as I first wrote: py2opsin
+does clean up, and that copy came from an interrupted run. And the guard asserts the
+structural hazard -- the default is a bare relative filename -- rather than
+re-running the race, because a test that passes 5 times in 16 proves
+nothing either way.
+
+## A CONFORMANCE CHECKER WAS WRONG TWICE, IN OPPOSITE DIRECTIONS, BEFORE IT AGREED WITH THE BOOK
+
+Fixing the enclosing-mark nesting order (P-16.5.4: `{[({[( )]})]}`, which
+CYCLES) needed a conformance count, and the first two checkers written for
+it were wrong in opposite directions:
+
+1. "inner level < outer level" flags the correct `(` around a `{` -- the
+   order is not monotonic.
+2. "each mark is one step past its ENCLOSING mark" flags an `(oxo)` nested
+   three deep that encloses nothing and is therefore correctly `( )`.
+
+The rule is about how deep a mark's CONTENTS nest, not what surrounds it.
+The first checker flagged 17 correct names and missed the 3 real ones.
+What resolved it was the book's own Fig. 1.3 (p. 134), a six-step chain
+whose step (e) is exactly the case that had been wrong, which is now the test.
+
+An earlier checker in the same round had flagged `(2R)-` as an isotope
+hyphen eleven times -- a stereodescriptor DOES take the hyphen. And a corpus
+sweep of the "no locants" reasons bucketed by the first 58 characters, which
+both reasons share, and briefly suggested a whole failure mode had gone.
+**A checker is a claim, and it gets tested against the source before its
+count is quoted** -- the stage-3 linter gets a frozen acceptance corpus of
+hand-adjudicated examples before it may gate anything.

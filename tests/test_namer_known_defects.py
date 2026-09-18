@@ -269,8 +269,16 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "unchanged"),
     ("D-026z", "c1nnn[nH]1", "1H-tetrazole", "1H-tetrazole", "unchanged"),
     ("D-026w", "c1nn[nH]n1", "2H-tetrazole", "2H-tetrazole", "unchanged"),
-    ("D-026v", "Cn1cnc2c1c(=O)n(C)c(=O)n2C", "caffeine", "caffeine",
-     "unchanged"),
+    # SUPERSEDED BY D-036o. This row belonged to the indicated-hydrogen work
+    # (D-026) and used caffeine only as a non-regression witness that the
+    # xanthine tautomers were not disturbed. The witness still holds -- the
+    # structure is named correctly -- but `caffeine` is not a PIN, so the
+    # string moved. Its citation in the registry was `P-31.1.3`, which is
+    # about indicated hydrogen and says nothing about retaining the name:
+    # the row and the bad citation came from the same neighbourhood.
+    ("D-026v", "Cn1cnc2c1c(=O)n(C)c(=O)n2C",
+     "1,3,7-trimethyl-2,6-dioxo-1H-purine", "caffeine",
+     "tautomer handling unchanged; the retained name was never a PIN"),
     # Purine deliberately normalises all four tautomers to 9H-purine, the
     # IUPAC preferred parent, with atom_locants built so N9 gets locant 9
     # whatever the canonical SMILES does. Documented in data_loader.py and
@@ -298,8 +306,14 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "unchanged"),
     ("D-024y", "[O-]C(=O)c1cc[n+]([O-])cc1", "pyridine-4-carboxylate 1-oxide",
      "pyridine-4-carboxylate 1-oxide", "unchanged"),
-    ("D-024z", "C[N+](C)(C)[O-]", "trimethylamine oxide",
-     "trimethylamine oxide", "unchanged"),
+    # SUPERSEDED BY D-036e. This row pinned the additive form as unchanged,
+    # and the additive PATH is indeed untouched -- what changed underneath it
+    # is the parent: `trimethylamine` is a traditional name, not a PIN, and
+    # the book prints all three forms on one line saying so. The additive
+    # `... oxide` construction this row exists to guard is still in use, now
+    # on the systematic parent.
+    ("D-024z", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine oxide",
+     "trimethylamine oxide", "additive path unchanged; the PARENT is now the PIN"),
     ("D-024w", "CS(C)=O", "dimethyl sulfoxide", "dimethyl sulfoxide",
      "unchanged"),
 
@@ -506,6 +520,306 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "4-(2-methylfuran-5-yl)benzoic acid", "furan: free valence 5, found while writing this table"),
     ("D-029z", "OC(=O)c1ccc(cc1)c1ccncc1", "4-(pyridin-4-yl)benzoic acid",
      "4-(pyridin-4-yl)benzoic acid", "unchanged: aromatic N ring"),
+
+    # --- D-030: a BRIDGED free valence numbered by plan order -------------
+    # The third ring class to show the same rule, and the first to produce a
+    # WRONG MOLECULE from it. D-029 fixed monocyclic heterocycles by
+    # FILTERING the numberings; bridged rings kept a separate branch that
+    # only SORTED them, so the lowest free-valence locant merely landed last
+    # and won on "later-generated wins a tie". Any competing ring prefix
+    # outscores that, and P-31.1.4.2.4 ranks the free valence AHEAD of
+    # detachable prefixes.
+    #
+    # Bare adamantyl was always right, which is why nothing caught this: the
+    # defect needs a second ring substituent to exist. Found by the held-out
+    # corpus (cid 36000), not by the 187-row regression corpus, which scores
+    # 187/187 both before and after the fix.
+    #
+    # In adamantane numbering locant 2 is adjacent to 1 and 3 but NOT to 5,
+    # so "2-substituted...-5-yl" is not a non-preferred name for the input --
+    # it denotes a constitutional isomer. Three of these four rows changed
+    # InChIKey, which is what makes them severity A.
+    ("D-030a", "CNC(C)CC12CC3CC(CC(C3)C1C1CCCCC1)C2",
+     "1-(2-cyclohexyladamantan-1-yl)-N-methylpropan-2-amine",
+     "1-(2-cyclohexyladamantan-5-yl)-N-methylpropan-2-amine",
+     "HQMBUZVFGUDZCC emitted for RNYOSRZCHQLRMT; held-out cid 36000"),
+    ("D-030b", "CNC(C)CC12CC3CC(CC(C3)C1C)C2",
+     "N-methyl-1-(2-methyladamantan-1-yl)propan-2-amine",
+     "N-methyl-1-(2-methyladamantan-5-yl)propan-2-amine",
+     "WDPWWLGUBBHNPQ emitted for UXKZZZWEQVOJDT"),
+    ("D-030c", "OCC12CC3CC(CC(C3)C1C)C2", "(2-methyladamantan-1-yl)methanol",
+     "(2-methyladamantan-5-yl)methanol",
+     "IFNZKCYIMQCMBL emitted for QIYMDQBSEMTZPK; a different parent context"),
+    # Severity B, kept here because it is the SAME cause: the two
+    # bicyclo[2.2.1]heptane bridgeheads are equivalent in this molecule, so
+    # both names denote it (NYBSCAFHRVFOLB either way) and only
+    # P-31.1.4.2.4 chooses. It is the control that says the fix is about the
+    # rule and not about adamantane.
+    # THE BRACES WERE PINNED AS EMITTED HERE, AND THE MECHANISM WORKED.
+    # This row deliberately held the wrong enclosing mark with a note that
+    # fixing the nesting rule would make it fail -- and it did, in the same
+    # branch, which is how D-034 got found rather than forgotten. The
+    # von Baeyer bracket is exempt from the nesting order (P-16.5.4.1.2), so
+    # the prefix takes parentheses.
+    ("D-030d", "CNC(C)CC12CCC(C)(CC1)C2",
+     "N-methyl-1-(4-methylbicyclo[2.2.1]heptan-1-yl)propan-2-amine",
+     "N-methyl-1-{1-methylbicyclo[2.2.1]heptan-4-yl}propan-2-amine",
+     "same molecule, non-preferred locant: free valence after the prefix"),
+    # Non-regression: bare bridged substituents, which were ALREADY correct
+    # and are what the removed branch was written for. If the filter ever
+    # drops the locant-1 numbering these go first.
+    ("D-030e", "OCC12CC3CC(C1)CC(C3)C2", "(adamantan-1-yl)methanol",
+     "(adamantan-1-yl)methanol", "unchanged: no competing prefix"),
+    ("D-030f", "CNC(C)CC12CC3CC(C1)CC(C3)C2",
+     "1-(adamantan-1-yl)-N-methylpropan-2-amine",
+     "1-(adamantan-1-yl)-N-methylpropan-2-amine", "unchanged"),
+    # Non-regression for the ELISION half. Correcting the locant to 1
+    # exposed a second latent defect: the "-yl" suffix elided locant 1 on a
+    # ring stem, which has no alkan->alk contraction to absorb it, giving
+    # "adamantan-yl". A ring under method ALKYL ignores that flag entirely,
+    # so these two prove the narrowed predicate did not reach them.
+    ("D-030g", "OCC1CCCCC1", "cyclohexylmethanol", "cyclohexylmethanol",
+     "unchanged: ALKYL method, contracted ring stem"),
+    ("D-030h", "OCc1ccccc1", "phenylmethanol", "phenylmethanol",
+     "unchanged: ALKYL method"),
+
+    # --- D-031: a FUSED free valence, when locant 1 is not on offer --------
+    # The last of the three ring classes, and the one my own plan predicted
+    # wrongly. The prediction was that a ring numbered from the curated table
+    # exposes a single canonical map, leaving nothing to choose between.
+    # Measured: naphthalene offers FOUR numberings, putting the attachment at
+    # 2, 3, 7 or 6 -- the correct one exists and is offered first.
+    #
+    # The branch filtered for "attachment at locant 1" and, finding none,
+    # fell back to yielding EVERY numbering. Falling back to every numbering
+    # is falling back to no rule: the prefix band then chose, and it prefers
+    # the numbering that gives methoxy the lower locant, which P-31.1.4.2.4
+    # puts after the free valence. Locant 1 is simply not reachable on a
+    # fused ring, so the fallback now applies the same rule to what IS
+    # reachable -- the lowest free-valence locant among the candidates.
+    #
+    # Severity B: both names denote naproxen, which is why the round-trip
+    # benchmark scored the old one as a success for months.
+    ("D-031a", "COc1ccc2cc([C@@H](C)C(=O)O)ccc2c1",
+     "(2R)-2-(6-methoxynaphthalen-2-yl)propanoic acid",
+     "(2R)-2-(2-methoxynaphthalen-6-yl)propanoic acid",
+     "free valence took 6 so methoxy could take 2"),
+    ("D-031b", "COc1ccc2cc([C@H](C)C(=O)O)ccc2c1",
+     "(2S)-2-(6-methoxynaphthalen-2-yl)propanoic acid",
+     "(2S)-2-(2-methoxynaphthalen-6-yl)propanoic acid",
+     "the other enantiomer, same locant defect"),
+    ("D-031c", "COc1ccc2cc(ccc2c1)C(C)C(=O)OC",
+     "methyl 2-(6-methoxynaphthalen-2-yl)propanoate",
+     "methyl 2-(2-methoxynaphthalen-6-yl)propanoate",
+     "the PARENT changes (acid -> ester) and the substituent must not"),
+    # Generalisation across ring systems, each verified on both gates. The
+    # locant differs per skeleton -- 2 for naphthalene and anthracene, 3 for
+    # phenanthrene -- which is the point: the rule is "lowest reachable", not
+    # a constant.
+    ("D-031d", "OC(=O)c1ccc(cc1)c1cc2ccccc2c(C)c1",
+     "4-(4-methylnaphthalen-2-yl)benzoic acid",
+     "4-(4-methylnaphthalen-2-yl)benzoic acid",
+     "naphthalene with a distal methyl"),
+    ("D-031e", "OC(=O)c1ccc(cc1)c1ccc2cc3ccccc3cc2c1",
+     "4-(anthracen-2-yl)benzoic acid", "4-(anthracen-2-yl)benzoic acid",
+     "anthracene: unchanged, no competing prefix"),
+    ("D-031f", "OC(=O)c1ccc(cc1)c1ccc2ccc3ccccc3c2c1",
+     "4-(phenanthren-3-yl)benzoic acid", "4-(phenanthren-3-yl)benzoic acid",
+     "phenanthrene: lowest reachable is 3, not 2"),
+    ("D-031g", "OC(=O)c1ccc(cc1)c1ccc2ccccc2n1",
+     "4-(quinolin-2-yl)benzoic acid", "4-(quinolin-2-yl)benzoic acid",
+     "fused heterocycle: N holds locant 1, so 2 is lowest reachable"),
+    # Non-regression for the branch that still WANTS locant 1 and can get it.
+    # If the fallback ever swallows the locant-1 case these go first.
+    ("D-031h", "OC(=O)c1ccc(cc1)c1ccccc1C",
+     "4-(2-methylphenyl)benzoic acid", "4-(2-methylphenyl)benzoic acid",
+     "unchanged: monocyclic, attachment reachable at 1"),
+    ("D-031i", "OC(=O)c1ccc(cc1)c1ccccc1", "4-phenylbenzoic acid",
+     "4-phenylbenzoic acid", "unchanged: unsubstituted phenyl, no locant"),
+    ("D-031j", "OC(=O)C(C)c1ccc2ccccc2c1",
+     "2-(naphthalen-2-yl)propanoic acid",
+     "2-(naphthalen-2-yl)propanoic acid",
+     "unchanged: naphthalene with no competing prefix was already right"),
+
+    # --- D-032: the senior parent was never PROPOSED ----------------------
+    # Not a ranking defect. The seniority logic was correct all along and
+    # scored the silicon parent at 5000 against benzene's 561 -- but the
+    # plan search had already spent its whole 20-plan budget on benzene's
+    # NUMBERING variants, so no silicon plan existed to rank. Measured: 20
+    # of 20 top-level plans were benzene numberings or methyls, and 67 of
+    # 189 corpus molecules were hitting that cap.
+    #
+    # The budget is two budgets now (see `_PlanBudget`): a work bound, and a
+    # per-hypothesis bound so one parent cannot consume what another needs.
+    # The winner trace moves from `monocyclic/len=6` to
+    # `heteroatom_center/elem=Si`, which is the shape of the evidence: a
+    # candidate appeared, and P-44.1.2 preferred it unchanged.
+    ("D-032a", "C[Si](C)(C)c1ccccc1", "trimethyl(phenyl)silane",
+     "(trimethylsilan-yl)benzene", "Si parent starved out by benzene numberings"),
+    ("D-032b", "c1ccccc1P(c1ccccc1)c1ccccc1", "triphenylphosphane",
+     "(diphenylphosphan-yl)benzene", "same, phosphorus"),
+    ("D-032c", "c1ccc(cc1)[I+]c1ccccc1", "diphenyliodanium",
+     "(phenyliodaniumyl)benzene", "same, iodine cation"),
+    ("D-032d", "O=P(c1ccccc1)(c1ccccc1)c1ccccc1", "oxotri(phenyl)phosphane",
+     "[oxodi(phenyl)phosphan-yl]benzene",
+     "right parent now; the tri(phenyl) enclosing marks are a separate defect"),
+    # Generalisation past the corpus rows, both verified on canonical SMILES
+    # and full InChIKey.
+    ("D-032e", "CC[Si](CC)(CC)c1ccccc1", "triethyl(phenyl)silane",
+     "(triethylsilan-yl)benzene", "not specific to methyl"),
+    ("D-032f", "c1ccccc1[As](c1ccccc1)c1ccccc1", "triphenylarsane",
+     "triphenylarsane", "unchanged: arsenic was already reached"),
+
+    # --- D-033: a mononuclear parent must NOT cite locant 1 ---------------
+    # The counterpart to D-030, from the same paragraph. P-29.2 method (2):
+    # the free-valence locants "are as low as is consistent with any
+    # established numbering of the parent hydride and, EXCEPT FOR MONONUCLEAR
+    # PARENT HYDRIDES or the suffix 'ylidyne', the locant '1' must be cited"
+    # (BlueBookV2.pdf p. 301).
+    #
+    # So the same rule requires `adamantan-1-yl` to carry its locant (D-030)
+    # and forbids `azanium-1-yl` from carrying one. Both were wrong, in
+    # opposite directions, and the D-030 fix made the second visible.
+    #
+    # A mononuclear parent also has nothing to contract -- the engine stores
+    # `alkyl_stem == stem` for these, measured as 'silan' and 'azanium' -- so
+    # the chain test the contraction used could never match.
+    ("D-033a", "C[N+](C)(C)CC(=O)[O-]", "2-(trimethylazaniumyl)acetate",
+     "2-(trimethylazanium-1-yl)acetate",
+     "mononuclear N cited a locant the rule forbids; = PubChem now"),
+    # Method (1) is restricted BY NAME to four elements: "recommended
+    # primarily for saturated acyclic and monocyclic hydrocarbon substituent
+    # groups and for the mononuclear hydrides of silicon, germanium, tin,
+    # and lead". It replaces the "ane" ending, so silane gives `silyl` --
+    # the universal TMS prefix -- where the engine had `silan-1-yl`.
+    ("D-033b", "NC[Si](C)(C)C", "(trimethylsilyl)methanamine",
+     "(trimethylsilan-1-yl)methanamine", "method (1) contraction for Si"),
+    ("D-033c", "OCC[Si](C)(C)C", "2-(trimethylsilyl)ethanol",
+     "2-(trimethylsilan-1-yl)ethanol", "same, on a longer chain"),
+    ("D-033d", "OC(=O)C[Si](C)(C)C", "(trimethylsilyl)acetic acid",
+     "(trimethylsilan-1-yl)acetic acid", "same, retained-name parent"),
+    ("D-033e", "Nc1ccc(cc1)[Si](C)(C)C", "4-(trimethylsilyl)benzen-1-amine",
+     "4-(trimethylsilan-1-yl)benzen-1-amine", "same, on a ring parent"),
+    # Phosphorus is deliberately absent from method (1)'s element list, so
+    # `phosphanyl` keeps its "an": the mononuclear exception drops the
+    # LOCANT, not the ending. This row is what stops the contraction being
+    # applied to every mononuclear heteroatom.
+    ("D-033f", "CNC(=O)CSP(=O)(OC)OC",
+     "2-{[di(methoxy)(oxo)phosphanyl]sulfanyl}-N-methylacetamide",
+     "2-{[di(methoxy)(oxo)phosphanyl]sulfanyl}-N-methylacetamide",
+     "unchanged: P takes method (2), so phosphanyl not phosphyl"),
+    # Non-regression for the other side of the same rule: a POLYCYCLIC parent
+    # must keep its locant. If the mononuclear exception ever widens, these
+    # go first.
+    ("D-033g", "OCC12CC3CC(C1)CC(C3)C2", "(adamantan-1-yl)methanol",
+     "(adamantan-1-yl)methanol", "unchanged: not mononuclear, locant required"),
+    ("D-033h", "OCC1CCCCC1", "cyclohexylmethanol", "cyclohexylmethanol",
+     "unchanged: monocyclic hydrocarbon, method (1)"),
+    ("D-033i", "CO", "methanol", "methanol", "unchanged: mononuclear carbon parent"),
+
+    # --- D-035: the isotope hyphen depends on what FOLLOWS ----------------
+    # P-82.2.1 (BlueBookV2.pdf p. 852): "Immediately after the parentheses
+    # there is neither space nor hyphen, except that when the name, or a part
+    # of a name, includes a preceding locant, a hyphen is inserted." The
+    # book's own PIN for the plain case is `1,2-di[(13C)methyl]benzene`.
+    #
+    # The engine keyed the hyphen off whether the ISOTOPE LABEL carried a
+    # locant, which is a different question, so a locanted label always got
+    # one even when the parent name had no preceding locant.
+    ("D-035a", "[2H]CO", "(1-2H)methanol", "(1-2H)-methanol",
+     "no preceding locant on `methanol`, so no hyphen"),
+    ("D-035b", "[13CH4]", "(1-13C)methane", "(1-13C)-methane", "same, carbon-13"),
+    ("D-035c", "CC([2H])O", "(1-2H)ethanol", "(1-2H)-ethanol",
+     "same, and the parent locant is internal rather than preceding"),
+    # THE EXCEPTION, which is why this is not simply "delete the hyphen": an
+    # indicated-hydrogen marker IS a preceding locant, so the hyphen stays.
+    ("D-035d", "[13cH]1cc2ccccc2[nH]1", "(2-13C)-1H-indole", "(2-13C)-1H-indole",
+     "unchanged: `1H-` is a preceding locant, so the hyphen is required"),
+    # Non-regression for labels with no locant at all, which never had one.
+    ("D-035e", "[2H]O[2H]", "(2H2)water", "(2H2)water", "unchanged"),
+    ("D-035f", "[15NH3]", "(15N)ammonia", "(15N)ammonia", "unchanged"),
+
+    # --- D-036: a retained name is not automatically a preferred name -----
+    # `retained_pins` asserted PIN status for 292 names while citing a rule
+    # for 31, because 161 of them were harvested from OPSIN's name-to-
+    # structure dictionary -- where presence means a name can be READ, not
+    # that IUPAC prefers it. Entries now carry `pin_status` with the evidence
+    # beside it; see benchmarks/naming/adjudication.toml for the quotations.
+    #
+    # Only entries a benchmark name DEPENDS ON were audited: 22 of 292,
+    # established by instrumenting which names a retained plan wins. The
+    # other 274 stay UNKNOWN and keep working exactly as before, because
+    # the answer to "asserted without evidence" is not "denied without
+    # evidence". tools/retained_name_audit.py reports that backlog.
+    ("D-036a", "CCCC=O", "butanal", "butyraldehyde",
+     "P-66.6.1; the book writes `3-oxobutanal (PIN) (not 3-oxobutyraldehyde)`"),
+    ("D-036b", "ClC(Cl)Cl", "trichloromethane", "chloroform",
+     "P-61.3.4 verbatim: chloroform is `acceptable in general nomenclature`"),
+    ("D-036c", "CC(C)C", "2-methylpropane", "isobutane",
+     "P-61.2.1 verbatim: isobutane is `no longer recommended`"),
+    ("D-036d", "CCN(CC)CC", "N,N-diethylethanamine", "triethylamine",
+     "not retained anywhere; amines are substitutive (P-66.4.1)"),
+    ("D-036e", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine oxide",
+     "trimethylamine oxide",
+     "the book gives all three forms and labels trimethylamine traditional"),
+    ("D-036f", "CC1(C)C2CCC1(C)C(=O)C2",
+     "1,7,7-trimethylbicyclo[2.2.1]heptan-2-one", "camphor",
+     "not retained as a ketone PIN"),
+    ("D-036g", "CC(C)Cc1ccc(cc1)C(C)C(=O)O",
+     "2-[4-(2-methylpropyl)phenyl]propanoic acid", "ibuprofen",
+     "an INN, absent from the book; harvested from OPSIN"),
+    # RETAINED NAMES THAT ARE GENUINELY PREFERRED. These are the reason the
+    # audit could not be a sweep: `toluene` is a PIN in as many words
+    # (P-22.1.3), and demoting every retained name would have broken it.
+    ("D-036h", "Cc1ccccc1", "toluene", "toluene",
+     "unchanged: P-22.1.3 says toluene is a PIN"),
+    ("D-036i", "Oc1ccccc1", "phenol", "phenol", "unchanged: retained PIN"),
+    ("D-036j", "CC(=O)O", "acetic acid", "acetic acid", "unchanged: retained PIN"),
+    ("D-036k", "NC(N)=O", "urea", "urea", "unchanged: retained PIN"),
+    ("D-036l", "Nc1ccccc1", "aniline", "aniline", "unchanged: retained PIN"),
+    ("D-036m", "O=Cc1ccccc1", "benzaldehyde", "benzaldehyde",
+     "unchanged: retained PIN"),
+    ("D-036n", "CC#N", "acetonitrile", "acetonitrile", "unchanged: retained PIN"),
+    # Dropping caffeine's retained name exposed a DIFFERENT defect, pinned
+    # as emitted: the ring ketones come out as `oxo` prefixes where the
+    # principal characteristic group should take the `-dione` suffix. That is
+    # PCG assignment, the same layer as warfarin. When it is fixed this row
+    # FAILS, which is the intended way to find it.
+    ("D-036o", "Cn1cnc2c1c(=O)n(C)c(=O)n2C",
+     "1,3,7-trimethyl-2,6-dioxo-1H-purine", "caffeine",
+     "systematic now, but oxo-prefix instead of the dione suffix"),
+
+    # --- D-037: two curated ring names that were not the preferred ones ---
+    # Both verbatim, and both single-entry data changes:
+    #   p. 150 (Table 2.2) and p. 449:  "1,2-oxazole (PIN)  isoxazole"
+    #   p. 208:                         "1-benzofuran (PIN)  benzofuran"
+    # p. 211 adds that isoxazole, isothiazole, thiazole and oxazole,
+    # "although permitted in general nomenclature, are not retained" as
+    # fusion parent components, and p. 376 uses
+    # `(1-benzofuran-2-yl)phosphane (PIN)`.
+    #
+    # Both were inconsistent with their own neighbours rather than with a
+    # rule nobody had applied: the plain-oxazole entry already said
+    # `1,3-oxazole`, and `1-benzothiophene` and `1,3-benzothiazole` sit
+    # either side of benzofuran in the same table carrying their locants.
+    ("D-037a", "c1cnoc1", "1,2-oxazole", "isoxazole", "Table 2.2 / P-52.2.3"),
+    # The sulfur twin, from the same table line. Fixing only the oxygen one
+    # would leave the same inconsistency it was fixing.
+    ("D-037g", "c1cnsc1", "1,2-thiazole", "isothiazole",
+     "Table 2.2: `isothiazole  1,2-thiazole (PIN)`"),
+    ("D-037b", "c1ccc2occc2c1", "1-benzofuran", "benzofuran",
+     "p. 208; the `1-` is what distinguishes it from 2-benzofuran"),
+    ("D-037c", "Cc1cc(NS(=O)(=O)c2ccc(N)cc2)no1",
+     "4-amino-N-(5-methyl-1,2-oxazol-3-yl)benzene-1-sulfonamide",
+     "4-amino-N-(5-methylisoxazol-3-yl)benzene-1-sulfonamide",
+     "sulfamethoxazole, through the substituent form"),
+    # The other half of p. 208, which came along for free.
+    ("D-037d", "c1ccc2cocc2c1", "2-benzofuran", "isobenzofuran",
+     "p. 208: `2-benzofuran (PIN)  isobenzofuran  benzo[c]furan`"),
+    # Non-regression: the entries that were already right.
+    ("D-037e", "c1cocn1", "1,3-oxazole", "1,3-oxazole", "unchanged"),
+    ("D-037f", "c1ccc2sccc2c1", "1-benzothiophene", "1-benzothiophene",
+     "unchanged: already carried its locant"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

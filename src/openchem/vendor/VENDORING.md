@@ -9,7 +9,7 @@
 | licence | MIT — see `LICENSE.open-iupac-namer` (copyright retained) |
 | vendored | 2026-08-01 |
 | fork | https://github.com/xaerogonzo/open-iupac-namer (this project's fixes, standalone) |
-| fork commit | `d9b5ab7` — synced 2026-09-17 from `db4e3ed`, corresponding to this repository's `naming-round-2` |
+| fork commit | `055f927` — synced 2026-09-18 from `d9b5ab7`, corresponding to this repository's `naming-round-3` |
 | offered upstream | https://github.com/leehiufung911/open-iupac-namer/pull/1 |
 
 ### Why vendored rather than depended on
@@ -26,8 +26,8 @@ with stereochemistry 11/11** as vendored, beating the leading ML alternative by
 corpus has since grown to 181 with charged species, ring N-oxides,
 substituted guanidiniums and tautomer pairs the original set could not see;
 on the 165-row revision the engine as vendored scored 148 and now scores 164,
-and on the current 181-row revision it scores **181/181** —
-see `BENCHMARK_HISTORY.md`.) That
+and on the current 187-row revision it scores **187/187**, 98 of them
+PubChem's string exactly (measured 2026-09-17) — see `BENCHMARK_HISTORY.md`.) That
 benchmark was built before this engine was found, so the result is independent
 of anything upstream chose to measure.
 
@@ -67,7 +67,8 @@ name is right when parsing it back yields the structure it came from. Writing
 it fixed **7 of the 12 failures** — those tests were failing because of the
 missing module, not on their merits.
 
-Current state: **3,300 passing, 0 failing, 17 skipped** in ~8 minutes.
+Current state: **3,380 passing, 0 failing, 16 skipped** in ~10 minutes
+(measured 2026-09-18, naming round 3).
 
 The five that were still failing turned out not to be engine defects: they
 asserted a non-minimal lambda numbering and three general-nomenclature-only
@@ -78,17 +79,19 @@ Investigating them exposed something worse than a red test, which is now the
 main reason this directory carries its own documentation: inputs that name
 *successfully* but to the **wrong molecule**. The benzyl cation was named
 `methylbenzene` (toluene); the phthaloyl dication `1,2-bis(oxomethyl)benzene`
-(phthalaldehyde). **Sixty-six** such cases have been fixed and are pinned in
-`tests/test_namer_known_defects.py`, alongside 33 non-regression rows guarding
-the paths the fixes could have stolen from. It runs in the DEFAULT suite,
+(phthalaldehyde). **Sixty-six** such cases were fixed by the end of naming
+round 2, and round 3's held-out corpus found one more (D-030, a substituted
+adamantane). All are pinned in `tests/test_namer_known_defects.py` -- 189 rows
+as of round 3, counting the preference fixes and the non-regression rows
+guarding the paths each fix could have stolen from. It runs in the DEFAULT suite,
 because a wrong-molecule regression must not wait for the 7-minute run.
 **None remain open** -- which says what has been looked for, not that none
 exists; `KNOWN_LIMITATIONS.md` explains how to look for more.
 
-The benchmark now reports **zero wrong structures** across its 181 molecules,
-and nothing refused or unparsable. The single remaining failure is metformin,
-where the engine and the corpus depict the same substance differently; see
-`KNOWN_LIMITATIONS.md`.
+The benchmark reports **zero wrong structures** across its 187 molecules, and
+nothing refused or unparsable. Metformin is scored `tautomer` rather than
+`exact`: the engine and the corpus depict the same substance as different
+tautomers; see `KNOWN_LIMITATIONS.md`.
 
 Set `OPENCHEM_NAMER_DEBUG=1` to instrument the fall-through that used to cause
 this class of failure (`iupac_namer/diagnostics.py`).

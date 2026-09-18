@@ -684,18 +684,22 @@ def test_the_reason_an_empty_result_gives_is_the_PRODUCERS_and_not_one_sentence(
     WHICH**, which is why this is carried rather than written here.
 
     Measured on the real producer: urea names to a retained name and carries
-    no derived numbering at all, while camphor's ring skeleton COULD have
-    been numbered -- the tables hold it -- and the match is what failed.
-    Both render an unmarked molecule; one hardcoded sentence would be wrong
-    about one of them, and would send anyone investigating camphor to look
-    for a missing table entry that is already there.
+    no derived numbering at all, while benzene HAS a ring whose skeleton the
+    match could not resolve to a numbered entry. Both render an unmarked
+    molecule; one hardcoded sentence would be wrong about one of them, and
+    would send anyone investigating benzene to look for a missing table entry.
+
+    Camphor was the second case until D-036 demoted its retained name and it
+    began numbering systematically. Benzene is the better example: its ring
+    genuinely has no `atom_locants` map, because every position is equivalent
+    and a skeleton numbering would be arbitrary.
     """
     from rdkit import Chem
 
     from openchem.chem.structure_annotation import compute_locants
 
     reasons = {}
-    for name, smiles in (("urea", "NC(N)=O"), ("camphor", "CC1(C)C2CCC1(C)C(=O)C2")):
+    for name, smiles in (("urea", "NC(N)=O"), ("benzene", "c1ccccc1")):
         result = compute_locants(Chem.MolFromSmiles(smiles), MOLECULE)
         assert not result.values, f"{name} unexpectedly produced locants"
         view = _view(result, result_id="locants", name="IUPAC Locants", category="naming")
@@ -703,11 +707,11 @@ def test_the_reason_an_empty_result_gives_is_the_PRODUCERS_and_not_one_sentence(
         assert finding is not None, f"{name} explained nothing"
         reasons[name] = finding.display_value
 
-    assert reasons["urea"] != reasons["camphor"], (
+    assert reasons["urea"] != reasons["benzene"], (
         f"both empty answers gave the same reason, so the reader is not "
         f"carrying the producer's: {reasons}"
     )
-    assert "could not be matched" in reasons["camphor"], reasons["camphor"]
+    assert "could not be matched" in reasons["benzene"], reasons["benzene"]
     assert "carries no derived numbering" in reasons["urea"], reasons["urea"]
 
 

@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 95204f3bfcc589dc2ee078dbbfac6b87f069bf296e39f9e4a9c405b68e6dad48 -->
+<!-- SOURCE SHA256: bb5e6a48989324349fdee6bfae5e2cc0b41477bbe88b27d4ef0daab560268f26 -->
 
 # Sources
 
@@ -155,7 +155,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`ich_m9`](#ich_m9) | standard | shipped | citation + claim |
 | [`ionescu2013`](#ionescu2013) | literature | shipped | citation + claim |
 | [`ipsen2014`](#ipsen2014) | literature | reference only | citation |
-| [`iupac2013`](#iupac2013) | standard | shipped | citation |
+| [`iupac2013`](#iupac2013) | standard | shipped | citation + claim |
 | [`iupac_namer`](#iupac_namer) | software | shipped | citation |
 | [`jenkins1999`](#jenkins1999) | literature | shipped | citation + claim |
 | [`joback1987`](#joback1987) | literature | shipped | citation + claim |
@@ -5383,14 +5383,38 @@ gets `NON_AQUEOUS_SOLVENT` rather than an authoritative-looking number.
 | --- | --- |
 | Identifier | IUPAC Recommendations and Preferred Names 2013 |
 | Status | shipped |
-| Verification | citation |
-| Verified | 2026-08-16 |
-| Used by | `src/openchem/chem/data/hypervalent_rules.json`, `src/openchem/vendor/iupac_namer` |
+| Verification | citation + claim |
+| Verified | 2026-09-17 |
+| Local copy | `BlueBookV2.pdf` (not checked) |
+| Used by | `benchmarks/naming/adjudication.toml`, `src/openchem/chem/data/hypervalent_rules.json`, `src/openchem/vendor/iupac_namer` |
 
 P-14.1 is the lambda-convention that `hypervalent_rules.json` follows: a
 hypervalent centre gains ligands in pairs, so the halogens step 1, 3, 5, 7
 and never reach an even count. The vendored naming engine implements the
 2013 recommendations more broadly ([source:iupac_namer]).
+
+THE REVISION IN USE IS THE 2022-CORRECTED ONLINE TEXT, not the 2014 print:
+IUPAC publishes it openly at https://iupac.qmul.ac.uk/BlueBook/, and the
+copy the naming adjudication was decided against is BlueBookV2.pdf,
+sha256 6b607a40430b95b4370c474d7b7afc5c9906b68c683192fb0c07f9aed3fb563f.
+A P-number outlives the text it points into, so the hash is what says which
+text a verdict was checked against.
+
+Verification moved from citation to citation_and_claim in naming round 3,
+because specific claims were checked against quoted text rather than the
+work being cited as a whole: P-44.1.2 (the senior-atom order that puts
+carbon last and "is applied ... to choose between rings and chains"),
+P-29.2 (the mononuclear exception to citing locant 1), P-16.5.4 (the
+enclosing-mark order, which cycles), P-82.2.1 (the isotope hyphen),
+P-22.1.3 (toluene and xylene ARE preferred names; mesitylene is not),
+P-61.3.4 (chloroform is general nomenclature only) and P-63.6 (the
+"sulfoxide" class name is not a preferred form). Each quotation is in
+benchmarks/naming/adjudication.toml beside the verdict it supports.
+
+Checking also caught two citations that did not say what they were used
+for: the vendored registry cited P-31.1.3 for retaining `caffeine`, and a
+vendored test cited P-66.6.3 for retaining `camphor`. P-31.1.3 is about
+indicated hydrogen and P-66.6.3 about chalcogen analogues of aldehydes.
 
 ## Reference tables
 

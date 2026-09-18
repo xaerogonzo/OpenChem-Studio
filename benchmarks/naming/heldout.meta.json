@@ -1,0 +1,25 @@
+{
+ "artifact_schema_version": 1,
+ "selection_rule": "PubChem CIDs 1000 * k for k = 1..120, ascending, admitting the first 40 rows that pass the filter",
+ "admission_filter": [
+  "PubChem returns both SMILES and a non-empty IUPACName",
+  "RDKit parses the SMILES",
+  "single component (no '.')",
+  "at least one carbon",
+  "6 <= heavy atoms <= 40",
+  "no explicit isotope label",
+  "canonical SMILES not already in corpus.json"
+ ],
+ "not_filtered": [
+  "element composition beyond 'has carbon'",
+  "charge",
+  "ring count",
+  "stereochemistry"
+ ],
+ "engine_consulted": false,
+ "selection_time": "2026-09-17T19:01:23-0400",
+ "rows": 40,
+ "heldout_sha256": "dddfae173cf9094dba37441eb253042ccdc899d6e9ca46c798408a009d086902",
+ "pubchem_property": "SMILES,IUPACName",
+ "rdkit_version": "2025.09.6"
+}

@@ -24,17 +24,33 @@ from openchem.vendor.iupac_namer.engine import name_smiles
 @pytest.mark.parametrize(
     "smiles,expected_fragment",
     [
-        # ZT-2532: phosphonodithioate ester — P with C-P bond, S-Ph
-        # Engine: P is substituent of benzene (retained name wins)
-        # Must emit {[(ethoxy)(ethyl)(thioxo)phosphanyl]sulfanyl}benzene
-        ("CCOP(=S)(CC)Sc1ccccc1", "[(ethoxy)(ethyl)(thioxo)phosphanyl]sulfanyl"),
+        # THE INPUTS HERE CHANGED IN NAMING ROUND 3, NOT THE RULE THEY TEST.
+        #
+        # The subject is BRACKETING: a P-containing compound substituent must
+        # be enclosed before the `sulfanyl` bridge or OPSIN reads the S as the
+        # centre. That needs a molecule where P really is a SUBSTITUENT, and
+        # the three original inputs no longer are: with the plan-budget fix
+        # the phosphorus parent is finally proposed, and P-44.1.2 prefers it
+        # over the carbocycle (BlueBookV2.pdf p. 375 -- carbon is last in the
+        # element order, and the criterion explicitly chooses between rings
+        # and chains). `CCOP(=S)(CC)Sc1ccccc1` is now
+        # `(ethoxy)(ethyl)(phenylsulfanyl)(thioxo)phosphane`, which has no
+        # phosphanyl substituent to bracket. It still round-trips on both
+        # gates; see the `_unchanged` test below.
+        #
+        # The replacements carry a principal characteristic group -- an amide,
+        # an amine, a carboxylic acid -- so the carbon chain is the parent by
+        # P-44.1.1, which outranks the senior-atom criterion. That makes the
+        # phosphanyl substituent appear deliberately rather than incidentally,
+        # and it exercises two steps of the cascade instead of one. The
+        # amide row below was already here and already said so.
+        ("NCCSP(=O)(OC)OC", "[di(methoxy)(oxo)phosphanyl]sulfanyl"),
+        ("OC(=O)CSP(=O)(OC)OC", "[di(methoxy)(oxo)phosphanyl]sulfanyl"),
         # ZT-2264: O,O-dimethyl S-R phosphorothioate ester
         # P is substituent of the amide chain (amide PCG wins)
         ("CNC(=O)CSP(=O)(OC)OC", "[di(methoxy)(oxo)phosphanyl]sulfanyl"),
         # ZT-2644: O,O-diethyl S-CH2-S-Ar phosphorothioate
-        ("CCOP(=O)(OCC)SCSc1ccc(Cl)cc1", "[di(ethoxy)(oxo)phosphanyl]sulfanyl"),
-        # ZT-2425: O,O-dimethyl S-CH2-S-Ar phosphorodithioate
-        ("COP(=S)(OC)SCSc1ccc(Cl)cc1", "[di(methoxy)(thioxo)phosphanyl]sulfanyl"),
+        ("CCOP(=O)(OCC)SCC(=O)NC", "[di(ethoxy)(oxo)phosphanyl]sulfanyl"),
     ],
 )
 def test_phosphanyl_sulfanyl_bracketing(smiles, expected_fragment):
@@ -43,6 +59,30 @@ def test_phosphanyl_sulfanyl_bracketing(smiles, expected_fragment):
     assert expected_fragment in result, (
         f"Expected '{expected_fragment}' in name of {smiles!r}, got: {result!r}"
     )
+
+
+@pytest.mark.parametrize(
+    "smiles,expected",
+    [
+        ("CCOP(=S)(CC)Sc1ccccc1",
+         "(ethoxy)(ethyl)(phenylsulfanyl)(thioxo)phosphane"),
+        ("CCOP(=O)(OCC)SCSc1ccc(Cl)cc1",
+         "{[(4-chlorophenylsulfanyl)methyl]sulfanyl}di(ethoxy)(oxo)phosphane"),
+        ("COP(=S)(OC)SCSc1ccc(Cl)cc1",
+         "{[(4-chlorophenylsulfanyl)methyl]sulfanyl}di(methoxy)(thioxo)phosphane"),
+    ],
+)
+def test_the_three_original_inputs_now_take_phosphorus_as_parent(smiles, expected):
+    """The three molecules moved out of the bracketing table above, kept here
+    so the change is recorded rather than deleted.
+
+    With no principal characteristic group to hold the parent on carbon,
+    P-44.1.2 puts it on the phosphorus. Every one of these round-trips to its
+    input on canonical SMILES and full InChIKey (checked 2026-09-17), so the
+    bracketing hazard these used to guard cannot arise for them: there is no
+    phosphanyl substituent left to bracket.
+    """
+    assert name_smiles(smiles) == expected
 
 
 @pytest.mark.parametrize(

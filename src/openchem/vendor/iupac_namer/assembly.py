@@ -476,28 +476,100 @@ def _render_locants(locants: tuple[Locant, ...]) -> str:
     return ",".join(str(loc) for loc in locants) + "-"
 
 
-def _choose_brackets(inner_name: str) -> tuple[str, str]:
-    """Choose the correct enclosing bracket pair for a compound prefix (P-16.3.3).
+# THE NESTING ORDER CYCLES; THERE IS NO DEEPEST LEVEL. P-16.5.4
+# (BlueBookV2.pdf p. 134): "When multiple types of enclosing marks are
+# required, the nesting order is as follows: {[({[( )]})]}". Read from the
+# inside out that is ( ) then [ ] then { } then ( ) again, repeating.
+#
+# This function used to return {} for anything already containing {},
+# commenting "already at the deepest level IUPAC defines" -- which produced
+# `{...{...}...}`. Measured 2026-09-17: 7 of 227 benchmark names, including
+# atenolol and three held-out rows. P-16.5.4.1.5 is explicit that consecutive
+# marks of the same level escalate rather than repeat.
+#
+# The Blue Book supplies its own six-step test vector for the cycle in
+# Fig. 1.3, and its step (e) is exactly the case that was wrong: a {...}
+# prefix is enclosed in ( ), not in another { }. See
+# tests/test_namer_enclosing_marks.py, which pins all six steps.
+# What counts as "a preceding locant" for P-82.2.1: a numeric locant, an
+# indicated-hydrogen marker (`1H-`), or an italic element locant (`N-`).
+_ISOTOPE_NEEDS_HYPHEN = re.compile(r"^(?:\d|[NOSP]-)")
 
-    IUPAC requires a nesting sequence so that the enclosing brackets are always
-    one level "higher" than the deepest bracket already present inside the name:
+_NESTING_CYCLE = (("(", ")"), ("[", "]"), ("{", "}"))
+_NESTING_LEVELS = {"(": 0, "[": 1, "{": 2}
+_NESTING_CLOSERS = {")": "(", "]": "[", "}": "{"}
 
-        no brackets inside          → (  )
-        contains ( but not [        → [  ]
-        contains [ but not {        → {  }
-        contains { (very rare)      → {  }  (log limitation — not seen in practice)
+# Square-bracket spans the nesting order IGNORES because they belong to a
+# parent structure (P-16.5.4.1.2): ring fusion `[b,d]`, von Baeyer `[2.2.1]`,
+# ring assembly `[1,1'-biphenyl]`, annulene `[10]`. Getting this wrong in the
+# other direction is just as bad -- counting a von Baeyer descriptor as a
+# level would push a simple prefix straight to braces.
+_EXEMPT_BRACKET_BODY = re.compile(
+    "^(?:"
+    "[0-9,.:'\u2032\u2033\u2034+^{}\\- ]*"
+    "|[a-z]['\u2032]?(?:,[a-z]['\u2032]?)*"
+    "|\\d+(?:,\\d+)*['\u2032]?-[a-z]+"
+    ")$"
+)
+# Added indicated hydrogen, e.g. quinolin-1(2H)-yl (P-16.5.4.1.1).
+_ADDED_H_BODY = re.compile(r"^\d+[A-Za-z]?H$")
 
-    The check uses simple character membership so it works regardless of whether
-    the inner brackets are balanced or partially assembled.
+
+def _nesting_exempt(body: str, opener: str) -> bool:
+    """Is this span invisible to the nesting order?
+
+    Square brackets belonging to a parent structure are ignored
+    (P-16.5.4.1.2), as are the parentheses of added indicated hydrogen
+    (P-16.5.4.1.1).
     """
-    if "{" in inner_name:
-        # Already at the deepest level IUPAC defines; reuse {} and document
-        return ("{", "}")
-    if "[" in inner_name:
-        return ("{", "}")
-    if "(" in inner_name:
-        return ("[", "]")
-    return ("(", ")")
+    if opener == "[":
+        return bool(_EXEMPT_BRACKET_BODY.match(body))
+    if opener == "(":
+        return bool(_ADDED_H_BODY.match(body))
+    return False
+
+
+def _outermost_nesting_level(inner_name: str) -> int | None:
+    """The cycle level of the outermost enclosing mark already present.
+
+    None when there is none, so the caller starts the cycle at parentheses.
+    Unbalanced input -- a partially assembled name -- degrades to treating
+    whatever was opened as present, which is the conservative direction: it
+    can only push the level outward, never reuse one.
+    """
+    stack: list[tuple[int, str]] = []
+    top_levels: list[int] = []
+    skip_until = -1
+    for index, char in enumerate(inner_name):
+        if index <= skip_until:
+            continue
+        if char in _NESTING_LEVELS:
+            # A brace introduced by a superscript marker is notation, not an
+            # enclosing mark: von Baeyer superscripts render as `0^{3,8}`.
+            # Three benchmark names depend on this exemption.
+            if char == "{" and index and inner_name[index - 1] == "^":
+                close = inner_name.find("}", index)
+                skip_until = close if close != -1 else len(inner_name)
+                continue
+            stack.append((index, char))
+        elif char in _NESTING_CLOSERS and stack:
+            start, opener = stack.pop()
+            if not stack and not _nesting_exempt(
+                inner_name[start + 1 : index], opener
+            ):
+                top_levels.append(_NESTING_LEVELS[opener])
+    for _start, opener in stack:
+        top_levels.append(_NESTING_LEVELS[opener])
+    return max(top_levels) if top_levels else None
+
+
+def _choose_brackets(inner_name: str) -> tuple[str, str]:
+    """The enclosing mark one level out from whatever `inner_name` already
+    uses, cycling ( ) -> [ ] -> { } -> ( ) per P-16.5.4."""
+    level = _outermost_nesting_level(inner_name)
+    if level is None:
+        return _NESTING_CYCLE[0]
+    return _NESTING_CYCLE[(level + 1) % len(_NESTING_CYCLE)]
 
 
 def render_merged_prefixes(merged_list: list[MergedPrefix]) -> str:
@@ -979,6 +1051,55 @@ def render_suffixes(
 # Free-valence suffix rendering
 # ---------------------------------------------------------------------------
 
+# P-29.2 METHOD (1) IS RESTRICTED TO FOUR ELEMENTS BY NAME, and the list is
+# not a guess: "This method is recommended primarily for saturated acyclic
+# and monocyclic hydrocarbon substituent groups and for the mononuclear
+# hydrides of silicon, germanium, tin, and lead" (BlueBookV2.pdf p. 301).
+# Method (1) replaces the "ane" ending, so silane gives `silyl`.
+#
+# Phosphorus is deliberately absent, which is why `phosphanyl` keeps its
+# "an": it takes method (2), where the mononuclear exception drops only the
+# LOCANT and not the ending. The same page adds that method (1) "is no
+# longer applicable to boron prefixes".
+_METHOD_ONE_MONONUCLEAR_ELEMENTS = frozenset({"Si", "Ge", "Sn", "Pb"})
+
+
+def _mononuclear_method_one_stem(named_parent) -> str | None:
+    """The contracted prefix stem for a mononuclear Si/Ge/Sn/Pb parent.
+
+    Returns None when the parent is not one of those, so everything else
+    keeps the stem it already had. The engine stores `alkyl_stem == stem`
+    for these (measured: both are 'silan'), so without this the method-(1)
+    contraction has nothing to work from and the prefix comes out
+    `silanyl` -- well formed, but not the preferred `silyl`.
+    """
+    candidate = getattr(named_parent, "candidate", None)
+    if candidate is None or getattr(candidate, "length", 0) != 1:
+        return None
+    element = (getattr(candidate, "element", None) or "").rstrip("+-")
+    if element not in _METHOD_ONE_MONONUCLEAR_ELEMENTS:
+        return None
+    stem = named_parent.stem or ""
+    return stem[:-2] if stem.endswith("an") else None
+
+def _parent_is_mononuclear(named_parent) -> bool:
+    """One skeletal atom, which P-29.2 exempts from citing locant 1.
+
+    Method (2) of P-29.2 says the free-valence locants "are as low as is
+    consistent with any established numbering of the parent hydride and,
+    EXCEPT FOR MONONUCLEAR PARENT HYDRIDES or the suffix 'ylidyne', the
+    locant '1' must be cited" (BlueBookV2.pdf p. 301). So `adamantan-1-yl`
+    needs its locant and `azaniumyl` must not have one.
+
+    A mononuclear parent also has nothing to contract: its `alkyl_stem` and
+    `stem` are the same string (measured: silane gives 'silan' for both,
+    azanium 'azanium'), so the chain test `stem == alkyl_stem + "an"`
+    cannot match and the caller would cite a locant the rule forbids. That
+    is what produced `2-(trimethylazanium-1-yl)acetate`.
+    """
+    candidate = getattr(named_parent, "candidate", None)
+    return candidate is not None and getattr(candidate, "length", 0) == 1
+
 def _free_valence_locant_will_elide(fv: FreeValenceInfo, numbering: Numbering) -> bool:
     """Predict whether render_free_valence_suffix will produce a locant-less
     suffix for a monovalent ALKANYL free valence.
@@ -1019,6 +1140,7 @@ def render_free_valence_suffix(
     fv: FreeValenceInfo,
     numbering: Numbering,
     has_unsaturation: bool = False,
+    stem_contracts: bool = True,
 ) -> str:
     """Render -yl, -ylidene, -diyl etc.
 
@@ -1031,6 +1153,24 @@ def render_free_valence_suffix(
     name preserves the locant relationship.  E.g. ``but-3-en-1-yl`` not
     ``but-3-enyl``.  The caller passes True iff ``tree.unsaturation`` is
     populated.
+
+    ``stem_contracts`` COUPLES ELISION TO THE STEM, which is the only thing
+    that makes elision well formed. Dropping the locant is safe exactly when
+    the stem absorbs it: ``cyclohexan`` becomes ``cyclohex`` and the suffix
+    abuts as ``cyclohexyl``. Where the caller cannot contract the stem, the
+    same elision emits ``adamantan-yl``.
+
+    Elision and contraction used to be decided by two predicates that could
+    disagree -- this function's own conditions, and the
+    ``stem == alkyl_stem + "an"`` gate in ``assemble`` -- so a parent whose
+    stem the caller could not contract still lost its locant. Measured
+    2026-09-17 on adamantane; it had never surfaced because the bridged
+    free-valence defect (D-030) meant a bridged substituent never reached
+    locant 1 in the first place.
+
+    On a bridged ring the locant is load-bearing anyway: adamantane positions
+    1 and 2 are not equivalent, so a bare ``adamantyl`` would be ambiguous
+    between them. PubChem writes ``1-adamantyl`` for the same reason.
     """
     n = len(fv.bond_orders)
     sig = tuple(sorted(fv.bond_orders, reverse=True))
@@ -1063,6 +1203,7 @@ def render_free_valence_suffix(
         if (str(loc) == "1"
                 and suffix == "yl"
                 and fv.elide_locant_one
+                and stem_contracts
                 and not has_unsaturation):
             return f"-{suffix}"  # locant 1 elided for alkan-1-yl in most contexts
         return f"-{loc}-{suffix}"
@@ -1900,20 +2041,25 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
 
     # 1b. Isotope labels (Stage 6 R1-D)
     # IUPAC P-82 "Isotopically Modified Compounds" — the bracketed element
-    # prefix sits between the stereo descriptor and the indicated-H
-    # marker.  When any label carries a locant we add a trailing hyphen
-    # so subsequent tokens read "(1-¹³C)-1H-indole" / "(1-²H)-ethan-1-ol".
-    # When every label is whole-molecule (no locant, e.g. "(²H₄)methanol")
-    # the bracket is written immediately before the parent name without
-    # a hyphen, matching canonical IUPAC usage.
+    # prefix sits between the stereo descriptor and the indicated-H marker.
+    #
+    # THE HYPHEN DEPENDS ON WHAT FOLLOWS, NOT ON THE LABEL. P-82.2.1
+    # (BlueBookV2.pdf p. 852): "Immediately after the parentheses there is
+    # neither space nor hyphen, except that when the name, or a part of a
+    # name, includes a preceding locant, a hyphen is inserted." The book's
+    # own PIN for the plain case is `1,2-di[(13C)methyl]benzene` -- no hyphen.
+    #
+    # This used to key off whether the ISOTOPE LABEL carried a locant, which
+    # is a different question and gave `(1-2H)-methanol` and `(1-13C)-methane`
+    # where the parent name has no preceding locant at all. The decision is
+    # therefore deferred: the following part does not exist yet here.
+    _iso_index: int | None = None
     if tree.isotope_labels:
         from openchem.vendor.iupac_namer.isotope import render_isotope_labels as _render_iso
         iso_str = _render_iso(tree.isotope_labels)
         if iso_str:
-            any_locanted = any(
-                lbl.locant is not None for lbl in tree.isotope_labels
-            )
-            parts.append(iso_str + "-" if any_locanted else iso_str)
+            parts.append(iso_str)
+            _iso_index = len(parts) - 1
 
     # 2. Indicated hydrogen
     if tree.indicated_hydrogen:
@@ -2350,7 +2496,8 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             and not tree.suffix_groups
             and not tree.unsaturation
             and tree.named_parent.alkyl_stem is not None
-            and tree.named_parent.stem == tree.named_parent.alkyl_stem + "an"
+            and (tree.named_parent.stem == tree.named_parent.alkyl_stem + "an"
+                 or _parent_is_mononuclear(tree.named_parent))
             and _free_valence_locant_will_elide(fv, tree.numbering)):
         # P-29.2 contracted-alkyl form: when ALKANYL's free-valence locant
         # ends up elided (attachment at C1 with no other locant constraint),
@@ -2363,7 +2510,13 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         # parents whose unsaturation is baked into the stem
         # (e.g. "cyclohex-3-en"/"cyclohex"), where dropping back to
         # alkyl_stem would silently lose the unsaturation locant.
-        stem_part = tree.named_parent.alkyl_stem
+        # A mononuclear Si/Ge/Sn/Pb parent contracts further than
+        # `alkyl_stem` records: P-29.2 method (1) drops the "ane", giving
+        # `silyl` rather than `silanyl`.
+        stem_part = (
+            _mononuclear_method_one_stem(tree.named_parent)
+            or tree.named_parent.alkyl_stem
+        )
         contracted_alkyl_form = True
     elif tree.unsaturation and tree.named_parent.alkyl_stem is not None:
         # IUPAC P-31.1.2.1: when a chain has unsaturation (double/triple bonds),
@@ -2583,6 +2736,9 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             fv_rendered = render_free_valence_suffix(
                 fv, tree.numbering,
                 has_unsaturation=bool(tree.unsaturation) or _stem_has_baked_unsat,
+                # The stem was contracted above, or it was not. Eliding the
+                # locant is only well formed in the first case.
+                stem_contracts=contracted_alkyl_form,
             )
             if contracted_alkyl_form and fv_rendered.startswith("-"):
                 # Strip the leading hyphen: "prop" + "-yl" → "propyl",
@@ -2710,6 +2866,15 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             elif parts[stem_idx].endswith("e"):
                 parts[stem_idx] = parts[stem_idx][:-1]
         parts.append(ra_suffix)
+
+    # P-82.2.1's exception, resolved now that the following part exists: a
+    # hyphen goes in only when what follows the nuclide parentheses starts
+    # with a locant -- an indicated-hydrogen marker like `1H-`, a numeric
+    # locant, or an italic element locant.
+    if _iso_index is not None and _iso_index + 1 < len(parts):
+        following = parts[_iso_index + 1]
+        if _ISOTOPE_NEEDS_HYPHEN.match(following):
+            parts[_iso_index] = parts[_iso_index] + "-"
 
     result = elide_at_boundaries(parts)
     # P-66.6 retained-acyl-PIN rewrite — must run AFTER elision so the

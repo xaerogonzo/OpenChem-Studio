@@ -51,11 +51,13 @@ def test_explain_naming_warns_the_model_off_inventing_locants():
     """Slightly over half of all molecules get no numbering at all. Left
     unsaid, that is exactly the gap a model fills with a confident
     fabrication -- so the tool output says so in as many words."""
-    # Camphor, not caffeine: caffeine used to be the example here and now
-    # takes its purine numbering from the ring table, so it no longer
-    # exercises the warning. Camphor's bridged skeleton is not a numbered
-    # table entry, which is the case 76 of 181 corpus molecules are in.
-    report = explain_naming("CC1(C)C2CCC1(C)C(=O)C2")
+    # Benzene, after two moves. Caffeine was the original example and took
+    # its purine numbering from the ring table; camphor replaced it and then
+    # D-036 demoted its retained name, so camphor numbers systematically now.
+    # Benzene is a retained PIN whose ring has no `atom_locants` map at all,
+    # because every position is equivalent -- so the numbering is arbitrary
+    # rather than missing, and it cannot drift the way the other two did.
+    report = explain_naming("c1ccccc1")
     assert "No atom numbering is available" in report
     assert "Do NOT supply locants from memory" in report
 

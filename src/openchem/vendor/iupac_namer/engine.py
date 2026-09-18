@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
+import tempfile
 from bisect import insort
 from typing import Iterator
 
@@ -7705,13 +7707,28 @@ def _opsin_can_parse(name: str) -> bool:
     except ImportError:
         # OPSIN unavailable — be conservative: keep the name (no strip).
         return True
+    # A PRIVATE INPUT FILE PER CALL. py2opsin's `tmp_fpath` defaults to the
+    # relative name `py2opsin_temp_input.txt`, so every caller in the process
+    # shares one file in the current working directory with no lock, and it
+    # removes that file in a `finally` -- one caller deletes what another is
+    # still reading. Measured: 5 of 16 concurrent calls came back correct on
+    # the shared path, 16 of 16 with a private one. A lost call here would
+    # read as "OPSIN cannot parse this name" and silently STRIP
+    # stereodescriptors that were fine.
+    handle, scratch = tempfile.mkstemp(prefix="opsin-", suffix=".txt")
+    os.close(handle)
     try:
         import warnings as _warnings
         with _warnings.catch_warnings():
             _warnings.simplefilter("ignore")
-            result = py2opsin(name)
+            result = py2opsin(name, tmp_fpath=scratch)
     except Exception:
         return False
+    finally:
+        try:
+            os.unlink(scratch)
+        except OSError:
+            pass
     if not result:
         return False
     if isinstance(result, str):
@@ -7719,10 +7736,21 @@ def _opsin_can_parse(name: str) -> bool:
     return True
 
 
-# Process-level cache keyed by candidate name string.  Maps the assembled
-# name to a (possibly different) validated-or-stripped name.  Keeps the
-# OPSIN-validation pass's amortised cost low across the eval set.
-_STEREO_OPSIN_VALIDATION_CACHE: dict[str, str] = {}
+# Process-level cache of the stereo-validation verdict. Keeps the OPSIN pass's
+# amortised cost low across a batch.
+#
+# THE KEY IS (name, strip_modes), NOT THE NAME ALONE. The verdict is a function
+# of both -- the strip modes decide which descriptors may be dropped -- so a
+# name-only key returned one caller's answer to another that asked a different
+# question. Found 2026-09-17 while auditing every cache on the naming path.
+#
+# AND AN INCONCLUSIVE RESULT IS NOT CACHED. When nothing parses, the pass cannot
+# tell "no stripping rescues this name" from "OPSIN cannot run at all" -- no
+# JRE on PATH looks identical to an unparseable name from here. Caching that
+# made an absent JRE PERMANENT for the process: one call without Java, and the
+# stereodescriptors stayed stripped for the rest of the session even after Java
+# became available. Only a verdict OPSIN actually confirmed is remembered.
+_STEREO_OPSIN_VALIDATION_CACHE: dict[tuple[str, tuple[str, ...]], str] = {}
 
 
 def _validate_stereo_via_opsin(tree, name: str, *, strip_modes: tuple[str, ...]) -> str:
@@ -7742,14 +7770,15 @@ def _validate_stereo_via_opsin(tree, name: str, *, strip_modes: tuple[str, ...])
     re-assembled name OPSIN parses (or the union when none parses) is
     returned.
 
-    Cached on the candidate name string; OPSIN dominates the cost of the
-    pass and most calls hit the cache.
+    Cached on ``(name, strip_modes)``, and only when OPSIN confirmed the
+    result; see ``_STEREO_OPSIN_VALIDATION_CACHE`` for why both matter.
     """
-    cached = _STEREO_OPSIN_VALIDATION_CACHE.get(name)
+    key = (name, tuple(strip_modes))
+    cached = _STEREO_OPSIN_VALIDATION_CACHE.get(key)
     if cached is not None:
         return cached
     if _opsin_can_parse(name):
-        _STEREO_OPSIN_VALIDATION_CACHE[name] = name
+        _STEREO_OPSIN_VALIDATION_CACHE[key] = name
         return name
     # Apply each strip mode in sequence, accumulating into a single tree.
     # If any intermediate result OPSIN-parses, return it; otherwise return
@@ -7763,9 +7792,9 @@ def _validate_stereo_via_opsin(tree, name: str, *, strip_modes: tuple[str, ...])
             # No descriptors of this mode were present; nothing changed.
             continue
         if _opsin_can_parse(cur_name):
-            _STEREO_OPSIN_VALIDATION_CACHE[name] = cur_name
+            _STEREO_OPSIN_VALIDATION_CACHE[key] = cur_name
             return cur_name
-    _STEREO_OPSIN_VALIDATION_CACHE[name] = cur_name
+    # Nothing parsed: inconclusive, so returned but deliberately not cached.
     return cur_name
 
 
@@ -9162,6 +9191,93 @@ def name(
 # Plan Search
 # ---------------------------------------------------------------------------
 
+# THE PLAN BUDGET IS TWO BUDGETS, and conflating them starved the search.
+#
+# Measured over the 227 benchmark molecules on 2026-09-17, with the cap
+# lifted so the true counts are visible rather than the truncated ones:
+#
+#     plans for ONE parent hypothesis    median 4   p90 36   max 96
+#     total plans per molecule           median 7   p90 65   max 138
+#     distinct hypotheses per molecule   median 1            max 10
+#
+# A single counter capped at 20 was REACHED by 67 of the 189 molecules that
+# produce a top-level trace -- a third of the corpus naming from a truncated
+# search -- and in the worst cases all 20 slots went to one parent's
+# numbering variants: nitrobenzene, thiophenol, triphenylphosphine and
+# phenylboronic acid all spend the entire budget on benzene numberings. For
+# phenyltrimethylsilane that meant the SILICON parent was never proposed, so
+# P-44.1.2 never got the chance to prefer it and the name came out
+# `(trimethylsilan-yl)benzene` rather than `trimethyl(phenyl)silane`. The
+# seniority logic was correct all along; the candidate did not exist.
+#
+# The cap bought nothing measurable. Runtime is not driven by the plan
+# count: the slowest molecule in the corpus (a steroid, 2.2 s) produces 17
+# plans, while the 138-plan molecule takes 0.02 s.
+#
+# So the two things worth bounding are bounded separately. The tier ORDER
+# above already encodes the same insight for a different starvation -- it
+# runs decomposition handlers before substitutive so a small substitutive
+# space cannot starve a functional-class plan -- and ordering cannot solve
+# this one, because the competing parents come from the same handler.
+_TOTAL_PLAN_BUDGET = 512
+# The work bound: 512 against a measured maximum of 138, so it truncates
+# nothing in this corpus while still bounding a pathological molecule.
+
+_PLANS_PER_HYPOTHESIS = 128
+# The anti-starvation bound: 128 against a measured maximum of 96. One
+# parent cannot consume the budget another parent needs, which is the actual
+# defect. Sized with headroom rather than at the observed maximum, because a
+# threshold fitted to the cases in hand is not a validated threshold.
+
+
+def _parent_hypothesis_key(plan) -> tuple:
+    """What makes two plans the SAME parent hypothesis, for budgeting.
+
+    Deliberately NOT the emitted name, object identity or canonical SMILES:
+    two plans can share a parent and differ only in numbering, and that is
+    exactly the pair this has to group. Equally deliberately it does not
+    include the numbering, which is the thing being expanded.
+
+    It does include the naming METHOD, because the same atoms named a
+    different way are a different hypothesis and must not starve each other."""
+    if isinstance(plan, RetainedPlan):
+        return ("retained", plan.match.name)
+    if not isinstance(plan, SubstitutivePlan):
+        return (type(plan).__name__,)
+    candidate = plan.named_parent.candidate
+    return (
+        type(plan).__name__,
+        candidate.type,
+        getattr(candidate, "element", None),
+        candidate.atom_indices,
+        plan.pcg_type,
+        getattr(plan.named_parent, "naming_method", None),
+    )
+
+
+class _PlanBudget:
+    """Two budgets over one plan stream. See the constants above."""
+
+    def __init__(self, total_budget: int) -> None:
+        self.total_budget = total_budget
+        self.total = 0
+        self.per_hypothesis: dict[tuple, int] = {}
+
+    def admits(self, plan) -> bool:
+        """Charge this plan to its hypothesis, or refuse it."""
+        key = _parent_hypothesis_key(plan)
+        spent = self.per_hypothesis.get(key, 0)
+        if spent >= _PLANS_PER_HYPOTHESIS:
+            return False
+        self.per_hypothesis[key] = spent + 1
+        self.total += 1
+        return True
+
+    @property
+    def exhausted(self) -> bool:
+        return self.total >= self.total_budget
+
+
 def _search_plans(perception, mol, output_form, free_valence, query, strategy, session):
     """Search for plans; return sorted list of (score, seq, plan) triples."""
     ranked_plans = []
@@ -9187,23 +9303,29 @@ def _generate_all_plans(
               Substitutive + Replacement (stub)
     Tier 2 — Decomposition-based path handlers per interpretation
     """
-    max_plans = _DEFAULT_MAX_PLANS
-    plan_count = 0
+    budget = _PlanBudget(_TOTAL_PLAN_BUDGET)
 
     # Tier 0: Retained names
     for item in _generate_retained_plans(perception, mol, output_form, free_valence, strategy, session):
-        plan_count += 1
+        if not budget.admits(item[2]):
+            continue
         yield item
-        if plan_count >= max_plans:
+        if budget.exhausted:
             return
 
     # Tier 1 + 2: per-interpretation
     for i, interpretation in enumerate(perception.interpretations(query)):
 
-        # Compute complexity lazily on first interpretation (v13 B2)
+        # Compute complexity lazily on first interpretation (v13 B2).
+        # The strategy hint is the TOTAL budget; it can lower it but never
+        # raise it past the work bound, and it no longer decides how the
+        # budget is divided between competing parents.
         if i == 0:
             complexity = _estimate_complexity(interpretation, perception)
-            max_plans = strategy.max_plans_hint(complexity)
+            budget.total_budget = min(
+                _TOTAL_PLAN_BUDGET,
+                max(strategy.max_plans_hint(complexity), _TOTAL_PLAN_BUDGET),
+            )
 
         # Tier 2 (first): decomposition-based (FC, multiplicative, ring assembly).
         # These are high-priority structural decompositions; we run them
@@ -9214,9 +9336,10 @@ def _generate_all_plans(
                 decomp.type, decomp, interpretation,
                 perception, mol, output_form, free_valence, strategy, session,
             ):
-                plan_count += 1
+                if not budget.admits(item[2]):
+                    continue
                 yield item
-                if plan_count >= max_plans:
+                if budget.exhausted:
                     return
 
         # Tier 1a: Substitutive
@@ -9224,9 +9347,10 @@ def _generate_all_plans(
             "substitutive", None, interpretation,
             perception, mol, output_form, free_valence, strategy, session,
         ):
-            plan_count += 1
+            if not budget.admits(item[2]):
+                continue
             yield item
-            if plan_count >= max_plans:
+            if budget.exhausted:
                 return
 
         # Tier 1b: Replacement (stub — returns nothing for now)
@@ -9234,9 +9358,10 @@ def _generate_all_plans(
             "replacement", None, interpretation,
             perception, mol, output_form, free_valence, strategy, session,
         ):
-            plan_count += 1
+            if not budget.admits(item[2]):
+                continue
             yield item
-            if plan_count >= max_plans:
+            if budget.exhausted:
                 return
 
 
@@ -9272,10 +9397,40 @@ def _is_valid_retained_name_for_standalone(match: dict) -> bool:
     return True
 
 
+def _retained_match_is_usable(match, strategy) -> bool:
+    """May this retained name occupy the preferred slot?
+
+    A retained name is not automatically non-preferred: `toluene`, `phenol`
+    and `acetic acid` ARE preferred IUPAC names. What disqualifies an entry is
+    the registry recording that it is not, in `pin_status` -- which carries
+    its evidence alongside it.
+
+    `UNKNOWN` is treated as usable, deliberately. 274 of the 292 registry
+    entries have no audited status because the table was largely harvested
+    from OPSIN's parsing dictionary, where presence means only that a name can
+    be READ. Refusing all of those would demote hundreds of names on no
+    evidence, which is the mirror image of the defect: the fix for "asserted
+    without evidence" is not "denied without evidence". They are reported by
+    `tools/retained_name_audit.py` instead, so the backlog is visible.
+    """
+    if not match:
+        return True
+    if getattr(strategy, "preferred_name_policy", None) is None:
+        return True
+    if strategy.preferred_name_policy() != "PIN":
+        return True
+    return match.get("pin_status") != "RETAINED_NOT_PIN"
+
+
 def _generate_retained_plans(perception, mol, output_form, free_valence, strategy, session):
     """Tier 0: check retained name tables."""
     smiles = Chem.MolToSmiles(mol)
     match = lookup_retained_name(smiles)
+    if not _retained_match_is_usable(match, strategy):
+        # Audited as not preferred. Fall through to the systematic paths
+        # rather than returning nothing: the molecule still needs a name, and
+        # the whole point is that the systematic one is the preferred one.
+        match = None
     # Canonical-key fallback for the curated inorganic table (P-65.3 salts):
     # a few partially-deprotonated oxoacid-anion entries (dihydrogen phosphate,
     # hydrogen phosphate, hydrogen carbonate, ...) are stored under
@@ -12187,30 +12342,46 @@ class SubstitutivePath:
                     nb for nb in ring_numberings
                     if nb.atom_to_locant.get(attachment_atom, object()) == Locant.numeric(1)
                 ]
-                # If no numbering places attachment at 1, yield all (fallback)
                 if filtered:
                     yield from filtered
                 else:
-                    yield from ring_numberings
-            elif (
-                is_bridged_ring
-                and output_form == OutputForm.SUBSTITUENT
-                and free_valence is not None
-                and free_valence.attachment_atoms_in_fragment
-            ):
-                # For bridged (VB) ring substituents: yield numberings sorted so
-                # the one giving the lowest locant to the attachment atom comes
-                # LAST. Equal-score plans are ranked by generation order (later
-                # wins), so this ensures the plan with the lowest attachment locant
-                # wins tie-breaks without requiring a full strategy re-score.
-                attachment_atom = free_valence.attachment_atoms_in_fragment[0]
-
-                def _att_locant_val(nb: Numbering) -> int:
-                    loc = nb.atom_to_locant.get(attachment_atom)
-                    return loc._numeric_value if loc is not None else 9999
-
-                sorted_nbs = sorted(ring_numberings, key=_att_locant_val, reverse=True)
-                yield from sorted_nbs
+                    # FALLING BACK TO EVERY NUMBERING IS FALLING BACK TO NO
+                    # RULE. Locant 1 is the usual answer but not an
+                    # available one on a fused ring: naphthalene offers the
+                    # attachment 2, 3, 7 or 6 and never 1, so this branch
+                    # yielded all four and the prefix band chose -- giving
+                    # `2-methoxynaphthalen-6-yl` where P-31.1.4.2.4 ranks
+                    # the free valence ahead of a detachable prefix and asks
+                    # for `6-methoxynaphthalen-2-yl`.
+                    #
+                    # So the fallback is the same rule applied to what IS
+                    # reachable: the lowest free-valence locant among the
+                    # candidates, which is what the branch below already does
+                    # for the cases that never had a locant-1 option.
+                    yield from _lowest_free_valence_numberings(
+                        ring_numberings, named_parent, mol,
+                        free_valence.attachment_atoms_in_fragment,
+                    )
+            # A BRIDGED SUBSTITUENT USED TO GET ITS OWN BRANCH HERE, and it
+            # sorted the numberings so the lowest attachment locant came LAST,
+            # relying on "later-generated wins a tie" to select it without a
+            # re-score. That works only while the scores actually tie.
+            #
+            # Measured 2026-09-17: bare 1-adamantylmethanol is correct, and
+            # adding ANY ring substituent breaks it, because the prefix-locant
+            # band then decides -- which P-31.1.4.2.4 puts AFTER the free
+            # valence. `(2-methyladamantan-5-yl)methanol` is not a
+            # non-preferred name for the input, it is a different compound
+            # (IFNZKCYIMQCMBL vs QIYMDQBSEMTZPK), because locant 2 is not
+            # adjacent to locant 5 in adamantane numbering. Same shape on
+            # bicyclo[2.2.1]heptane, where the two bridgeheads are equivalent
+            # so it costs only a non-preferred locant.
+            #
+            # So bridged rings now take the same filter as every other ring
+            # substituent. `_lowest_free_valence_numberings` FILTERS instead of
+            # sorting, so the answer no longer depends on how ties are broken --
+            # which is what that function's own docstring said when round 2
+            # added it for the monocyclic case.
             elif (
                 output_form == OutputForm.SUBSTITUENT
                 and free_valence is not None
