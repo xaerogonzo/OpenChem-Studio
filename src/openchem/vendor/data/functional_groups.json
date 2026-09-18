@@ -12,6 +12,17 @@
             "elision": true
         },
         {
+            "_comment": "A diazonium group on carbon, R-N2+, named by the -diazonium suffix on the carbon parent: 'benzenediazonium', and substituted, '4-methylbenzene-1-diazonium'. Before naming round 4 only a whole-molecule renderer existed, which named the parent WITHOUT the group and appended the suffix -- 'toluene-1-diazonium', which does not parse back. Cation class (6).",
+            "name": "diazonium",
+            "smarts": "[NX2+;!R](#[NX1])[#6]",
+            "anchor_index": 0,
+            "seniority": 651,
+            "bluebook_class": "6",
+            "suffix": "-diazonium",
+            "prefix": "diazonio",
+            "elision": false
+        },
+        {
             "_comment": "An acyclic ammonium cation on carbon, named by the aminium suffix: 'methanaminium chloride (PIN)', 'N,N,N-trimethylmethanaminium (PIN)', 'N,N,N-trimethylanilinium (PIN)' (BlueBookV2 pdf pp. 530, 816, 819); 'methylazanium' and 'tetramethylazanium' are the book's non-preferred alternatives. Cations (class 6) outrank acids (class 7, Table 4.1, p. 360), hence 650. Only C and H on the N: an N-oxide or an N-N+ is another class. Naming round 4.",
             "name": "aminium",
             "smarts": "[NX4+;!R;!$([NX4+]~[!#6;!#1]);$([NX4+][#6])]",

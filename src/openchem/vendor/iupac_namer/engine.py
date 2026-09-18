@@ -11721,7 +11721,8 @@ class SubstitutivePath:
                 # An aminium names the cation's N by SUFFIX on a carbon parent
                 # ("methanaminium", p. 530); the N+ itself as parent would put
                 # the suffix on its own anchor ("azaniumaminium").
-                if pcg_type == "aminium" and candidate.type == "heteroatom_center":
+                if (pcg_type in ("aminium", "diazonium")
+                        and candidate.type == "heteroatom_center"):
                     continue
 
                 # P-29.2 (SUBSTITUENT mode): the parent MUST include the

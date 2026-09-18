@@ -897,6 +897,17 @@ def _classify_diazonium(mol) -> Iterable[ChargeClassification]:
         if triple_n is None or parent_c is None:
             continue
         site = (atom.GetIdx(), triple_n)
+        # Claim only a bare parent ("benzenediazonium", "methanediazonium").
+        # Anything else is left to the substitutive path, where "diazonium"
+        # is a suffix class (naming round 4): this renderer names the parent
+        # WITHOUT the group, so a substituted ring lost the attachment
+        # position and took a retained name -- "toluene-1-diazonium",
+        # "anisole-1-diazonium", neither of which parses back.
+        parent_smiles = _neutral_skeleton_smiles(
+            mol, {atom.GetIdx(): {"delete": True}, triple_n: {"delete": True}},
+        )
+        if parent_smiles is None or not _locant_one_omitted(parent_smiles):
+            continue
         yield ChargeClassification(
             site_atom_indices=site,
             charge_sign="+",

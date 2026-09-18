@@ -1244,6 +1244,22 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "7-chloro-1-methyl-5-phenyl-1,3-dihydro-2H-1,4-benzodiazepin-2-one",
      "control: a C=O a precomposed parent already spells still counts, or a "
      "von Baeyer name carrying it as a suffix wins"),
+    # --- D-058: a diazonium is a suffix on its carbon parent (p. 823) -----
+    # A whole-molecule renderer named the parent WITHOUT the group and
+    # appended "-1-diazonium": a retained name and a lost position for any
+    # substituted parent, and the book's own 3-substituted example on C1.
+    ("D-058a", "CC(=O)C([N+]#N)C(C)=O", "2,4-dioxopentane-3-diazonium",
+     "pentane-2,4-dione-1-diazonium",
+     "the book's own PIN; the former put the group on C1 -- another molecule"),
+    ("D-058b", "N#[N+]c1ccc(C)cc1", "4-methylbenzene-1-diazonium",
+     "toluene-1-diazonium", "did not parse back"),
+    ("D-058c", "COc1ccc([N+]#N)cc1", "4-methoxybenzene-1-diazonium",
+     "anisole-1-diazonium", "as D-058b"),
+    ("D-058d", "N#[N+]c1ccc(cc1)[N+]#N", "benzene-1,4-bis(diazonium)",
+     "(azanylidyne){4-[(azanylidyne)azaniumyl]phenyl}azanium",
+     "p. 823, '(not didiazonium)' (p. 128)"),
+    ("D-058e", "N#[N+]c1ccccc1", "benzenediazonium", "benzenediazonium",
+     "control: a bare parent keeps the whole-molecule route"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

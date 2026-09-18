@@ -1029,9 +1029,10 @@ def render_suffixes(
         # "propane-1,2-bis(aminium) (PIN)", "pentane-1,5-bis(aminium)" (pdf
         # pp. 833-834): a multiplied aminium takes bis/tris and enclosing
         # marks, not "diaminium". Naming round 4.
-        if count > 1 and rendered_form == "aminium":
+        # And "benzene-1,4-bis(diazonium) (PIN)" (p. 823; "not didiazonium").
+        if count > 1 and rendered_form in ("aminium", "diazonium"):
             mult = get_multiplier(count, complex=True) or mult
-            rendered_form = "(aminium)"
+            rendered_form = f"({rendered_form})"
 
         # P-58.2.2 added-indicated-H rendering: when present, the parenthetical
         # (NH) — or (NH,MH) for multiple — sits between the suffix-locant block
