@@ -1172,6 +1172,43 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "1-methyl-4-(oxidosulfonyl)benzene", "as p. 620's 4-ethylbenzene-1-sulfonate"),
     ("D-053g", "COS(=O)(=O)[O-]", "(sulfonatooxy)methane", "(sulfonatooxy)methane",
      "negative: O-sulfonate (a sulfate half-ester) is not a C-sulfonate"),
+    # --- D-054: a sulfonic ester is named by functional class -------------
+    # "methyl 4-ethylbenzene-1-sulfonate (PIN)" (pdf p. 620). Only the
+    # carboxylic ester had a decomposition, so the ester O became a prefix.
+    ("D-054a", "COS(=O)(=O)c1ccc(CC)cc1", "methyl 4-ethylbenzene-1-sulfonate",
+     "1-ethyl-4-(methyloxysulfonyl)benzene", "the book's own example"),
+    ("D-054b", "COS(=O)(=O)C", "methyl methanesulfonate", "(methyloxysulfonyl)methane",
+     "an alkanesulfonate"),
+    ("D-054c", "CS(=O)(=O)Oc1ccccc1", "phenyl methanesulfonate",
+     "(methylsulfonyloxy)benzene", "an aryl ester"),
+    ("D-054d", "COC(=O)c1ccc(cc1)S(=O)(=O)OC", "methyl 4-(methyloxysulfonyl)benzoate",
+     "methyl 4-(methyloxysulfonyl)benzoate",
+     "converse: a carboxylic ester outranks a sulfonic one, as its acid does"),
+    ("D-054e", "COS(=O)(=O)OC", "dimethyl sulfate", "dimethyl sulfate",
+     "negative: a sulfate diester is not a C-sulfonate"),
+    # --- D-055: an ammonium cation is named by the aminium suffix ----------
+    # The book's PINs use "-aminium" on a carbon parent; the azanium and
+    # "tetramethylammonium" spellings are its NON-preferred alternatives
+    # (pdf pp. 530, 816-849). Cations (class 6) outrank acids (Table 4.1).
+    ("D-055a", "[Cl-].C[NH3+]", "methanaminium chloride", "methylazanium chloride",
+     "p. 530, the book's own example"),
+    ("D-055b", "CC[NH2+]C", "N-methylethanaminium", "ethyl(methyl)azanium",
+     "p. 530, 'N-methylethanaminium bromide (PIN)'"),
+    ("D-055c", "[I-].C[N+](C)(C)C", "N,N,N-trimethylmethanaminium iodide",
+     "tetramethylammonium iodide", "p. 530"),
+    ("D-055d", "C[N+](C)(C)c1ccccc1", "N,N,N-trimethylanilinium",
+     "trimethyl(phenyl)ammonium", "p. 819"),
+    ("D-055e", "[NH3+]c1ccccc1", "anilinium", "phenylazanium", "p. 848"),
+    ("D-055f", "CCOC(=O)CC[N+](C)(C)C", "3-ethoxy-N,N,N-trimethyl-3-oxopropan-1-aminium",
+     "ethyl 3-(trimethylazaniumyl)propanoate",
+     "p. 621: a cation outranks the ester, so the ester becomes a prefix"),
+    ("D-055g", "[NH3+]CC([NH3+])C", "propane-1,2-bis(aminium)",
+     "[1-(azaniumyl)propan-2-yl]azanium", "p. 833: multiplied as bis(aminium)"),
+    ("D-055h", "C[N+](C)(C)CC(=O)[O-]", "2-(trimethylazaniumyl)acetate",
+     "2-(trimethylazaniumyl)acetate",
+     "converse: a zwitterion (class 5) keeps the cation as a prefix; taken as "
+     "the principal group it lost the anion, '1-carboxy-...methanaminium'"),
+    ("D-055i", "[NH4+]", "azanium", "azanium", "negative: no carbon to carry a suffix"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

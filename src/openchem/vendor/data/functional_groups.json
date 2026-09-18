@@ -12,6 +12,17 @@
             "elision": true
         },
         {
+            "_comment": "An acyclic ammonium cation on carbon, named by the aminium suffix: 'methanaminium chloride (PIN)', 'N,N,N-trimethylmethanaminium (PIN)', 'N,N,N-trimethylanilinium (PIN)' (BlueBookV2 pdf pp. 530, 816, 819); 'methylazanium' and 'tetramethylazanium' are the book's non-preferred alternatives. Cations (class 6) outrank acids (class 7, Table 4.1, p. 360), hence 650. Only C and H on the N: an N-oxide or an N-N+ is another class. Naming round 4.",
+            "name": "aminium",
+            "smarts": "[NX4+;!R;!$([NX4+]~[!#6;!#1]);$([NX4+][#6])]",
+            "anchor_index": 0,
+            "seniority": 650,
+            "bluebook_class": "6",
+            "suffix": "-aminium",
+            "prefix": null,
+            "elision": false
+        },
+        {
             "_comment": "P-43 / P-65.3.1.2: peroxy carboxylic acid R-C(=O)-O-O-H ('peroxy{acid name}' / '{stem}peroxoic acid'). Same seniority class (7a) as the parent carboxylic acid but distinct SMARTS \u00e2\u20ac\u201d the second oxygen is bonded to the carbonyl O, not to C \u00e2\u20ac\u201d so no overlap with carboxylic_acid. Subsumes peroxol + oxo at the same R-C(=O)-OO-H site so the suffix wins.",
             "name": "peroxy_acid",
             "smarts": "[CX3](=O)[OX2][OX2H1]",
@@ -390,6 +401,17 @@
             "suffix_nonterminal": "-carboxylate",
             "prefix": "oxycarbonyl",
             "elision": true
+        },
+        {
+            "_comment": "A C-sulfonic ester, R-SO2-O-R': named by functional class like a carboxylic ester, 'methyl 4-ethylbenzene-1-sulfonate (PIN)' (BlueBookV2 pdf p. 620). Reaches the ester decomposition; never a substitutive suffix or a claimed prefix. Naming round 4.",
+            "name": "sulfonate_ester",
+            "smarts": "[#6][SX4;!R](=O)(=O)[OX2;!R][#6;!$([CX3]=[OX1])]",
+            "anchor_index": 1,
+            "seniority": 802,
+            "bluebook_class": "8",
+            "suffix": "-sulfonate",
+            "prefix": "oxysulfonyl",
+            "elision": false
         },
         {
             "name": "thioester",

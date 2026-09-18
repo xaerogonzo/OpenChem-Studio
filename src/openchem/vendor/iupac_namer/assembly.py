@@ -1026,6 +1026,13 @@ def render_suffixes(
                 and base_form == "ohydrazide"):
             rendered_form = rendered_form[1:]  # drop leading 'o'
 
+        # "propane-1,2-bis(aminium) (PIN)", "pentane-1,5-bis(aminium)" (pdf
+        # pp. 833-834): a multiplied aminium takes bis/tris and enclosing
+        # marks, not "diaminium". Naming round 4.
+        if count > 1 and rendered_form == "aminium":
+            mult = get_multiplier(count, complex=True) or mult
+            rendered_form = "(aminium)"
+
         # P-58.2.2 added-indicated-H rendering: when present, the parenthetical
         # (NH) — or (NH,MH) for multiple — sits between the suffix-locant block
         # and the suffix tail, with a closing hyphen before the tail.
@@ -2005,6 +2012,10 @@ _BENZENE_RETAINED_TAIL: dict[tuple[str, OutputForm], tuple[str, str]] = {
         (r"benzen(?:-1-)?ol$",                        "phenol"),
     ("amine", OutputForm.STANDALONE):
         (r"benzen(?:-1-)?amine$",                     "aniline"),
+    # "anilinium choride (PIN)", "N,N,N-trimethylanilinium (PIN)" (pdf pp.
+    # 848, 819): the aminium cation keeps aniline's stem. Naming round 4.
+    ("aminium", OutputForm.STANDALONE):
+        (r"benzen(?:-1-)?aminium$",                   "anilinium"),
     ("carbaldehyde", OutputForm.STANDALONE):
         (r"benzene(?:-1-)?carbaldehyde$",             "benzaldehyde"),
 }

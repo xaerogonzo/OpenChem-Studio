@@ -505,9 +505,15 @@ def _build_ester_decomposition(fg: DetectedFG, mol: Any) -> Decomposition | None
 
     for a_idx in atoms:
         atom = mol.GetAtomWithIdx(a_idx)
-        if atom.GetSymbol() != "C":
-            continue
-        if atom.GetHybridization().__str__() != "SP2":
+        # The acyl atom is a carbonyl C, or (naming round 4) the S of a
+        # C-sulfonic ester: the same cut, "alkyl ...sulfonate" (p. 620).
+        if atom.GetSymbol() == "S":
+            if sum(
+                1 for b in atom.GetBonds()
+                if b.GetOtherAtom(atom).GetSymbol() == "O" and b.GetBondTypeAsDouble() == 2.0
+            ) != 2:
+                continue
+        elif atom.GetSymbol() != "C" or atom.GetHybridization().__str__() != "SP2":
             continue
         # Check if this is the acyl C: double-bond to O and single-bond to O
         has_double_o = False
@@ -1727,7 +1733,7 @@ class Interpretation:
         # flagged on the decomposition; strategy rejects them (Phase 2d
         # handles intermolecular only).
         for fg in self.fgs:
-            if fg.type != "ester":
+            if fg.type not in ("ester", "sulfonate_ester"):
                 continue
             decomp = _build_ester_decomposition(fg, mol)
             if decomp is not None:

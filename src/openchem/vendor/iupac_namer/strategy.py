@@ -441,9 +441,27 @@ class IUPACCanonical(NamingStrategy):
             if interp is None:
                 return False
             # Seniority of the FC-covered FG (from any instance of that type)
+            # A sulfonic ester takes the carboxylic ester's functional-class
+            # route (naming round 4), so an "ester" decomposition is judged by
+            # the ester it actually CUTS: a carboxylic ester outranks a
+            # sulfonic one as its acid does, and "methyl 4-(methoxysulfonyl)
+            # benzoate" must not lose to the sulfonate reading.
+            covered_types = {covered_fg_type}
+            if covered_fg_type == "ester" and interp is not None:
+                roots = frozenset(getattr(plan.decomposition, "root_atoms", None) or ())
+                for fg in interp.fgs:
+                    if fg.type == "sulfonate_ester" and roots and roots <= frozenset(fg.atoms):
+                        covered_types = {"sulfonate_ester"}
+                        break
+                # Esters are not suffix-eligible, so the seniority loop below
+                # never sees one; compare the two ester kinds here.
+                if covered_types == {"sulfonate_ester"} and any(
+                    fg.type == "ester" for fg in interp.fgs
+                ):
+                    return False
             covered_seniority: int | None = None
             for fg in interp.fgs:
-                if fg.type == covered_fg_type:
+                if fg.type in covered_types:
                     covered_seniority = fg.get_property("seniority", 9999)
                     break
             if covered_seniority is None:
@@ -451,7 +469,7 @@ class IUPACCanonical(NamingStrategy):
             # Reject if there is a strictly more senior FG (lower seniority
             # number) than the FC-covered type.
             for fg in interp.fgs:
-                if fg.type == covered_fg_type:
+                if fg.type in covered_types:
                     continue
                 if not fg.suffix_eligible:
                     continue

@@ -645,7 +645,7 @@ class FGDetection:
             # seniority rank used by FC decomposition) but are NOT named with a
             # substitutive suffix — esters are the canonical example; they are
             # named via the Functional Class path as "alkyl acylate".
-            substitutive_suffix_ineligible = fg_def.get("name") in {"ester"}
+            substitutive_suffix_ineligible = fg_def.get("name") in {"ester", "sulfonate_ester"}
             fg_name = fg_def["name"]
             # Carbamate-family FGs (R-O/S-C(=X)-N<) place the heteroatom-ester
             # part on the alkyl chain and the amide N at the LAST match atom.

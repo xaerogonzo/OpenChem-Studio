@@ -150,10 +150,11 @@ def test_beta_alanine_zwitterion_unaffected() -> None:
 
 
 def test_quaternary_ammonium_unaffected() -> None:
-    """Control: a plain quaternary ammonium cation (no anion) still names as
-    the ammonium parent."""
+    """Control: a plain quaternary ammonium cation (no anion) is a cation,
+    not a zwitterion. Naming round 4: by the aminium suffix, the PIN
+    "N,N,N-trimethylmethanaminium" (P-73.1.1.2, pdf p. 530)."""
     name = name_smiles("C[N+](C)(C)C")
-    assert name == "tetramethylazanium" or "ammonium" in name, f"got {name!r}"
+    assert name == "N,N,N-trimethylmethanaminium", f"got {name!r}"
 
 
 def test_open_valence_carbon_dianion_stays_rejected() -> None:

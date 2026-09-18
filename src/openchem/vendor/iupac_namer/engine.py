@@ -11594,6 +11594,15 @@ class SubstitutivePath:
         for pcg_type, pcg_instances in pcg_options:
             pcg_anchors: tuple[int, ...] = tuple(fg.anchor for fg in pcg_instances)
 
+            # A molecule carrying an anion as well is a zwitterion (class 5,
+            # senior to cations): the cation is a prefix there, and an aminium
+            # suffix would leave the anion to be rendered as a neutral group
+            # -- betaine came out "1-carboxy-...methanaminium", another molecule.
+            if pcg_type == "aminium" and any(
+                a.GetFormalCharge() < 0 for a in mol.GetAtoms()
+            ):
+                continue
+
             # Guard: sulfonamide with ring-embedded N (cyclic sulfonamide,
             # e.g. CS(=O)(=O)-N<pyrrolidine>) cannot be expressed as a
             # standard "-sulfonamide" suffix.  Generating plans for every
@@ -11690,6 +11699,11 @@ class SubstitutivePath:
                         )
                         if not bonded:
                             continue
+                # An aminium names the cation's N by SUFFIX on a carbon parent
+                # ("methanaminium", p. 530); the N+ itself as parent would put
+                # the suffix on its own anchor ("azaniumaminium").
+                if pcg_type == "aminium" and candidate.type == "heteroatom_center":
+                    continue
 
                 # P-29.2 (SUBSTITUENT mode): the parent MUST include the
                 # attachment atom.  If the free-valence is on a chain atom
@@ -12169,12 +12183,12 @@ class SubstitutivePath:
             if info is None:
                 return
             name_str, stem, alkyl_stem = info
-            # P-62.6 retained PIN: tetrasubstituted N+ — for the fully
-            # quaternary cation NR4+ where the central N carries 0 H and
-            # exactly 4 heavy substituents, the retained parent hydride
-            # name "ammonium" is the PIN (e.g. tetramethylammonium).
-            # Partially substituted forms (NH3R+, NH2R2+, NHR3+) keep
-            # "azanium" as the substitutive parent.
+            # A fully quaternary NR4+ is spelled "ammonium" here. This is NOT
+            # the PIN, whatever this comment once said: the book prints
+            # "N,N,N-trimethylmethanaminium (PIN)" with "tetramethylazanium"
+            # as the alternative (pdf p. 816), and naming round 4 made the
+            # aminium suffix the principal group for a C-bound N+. This parent
+            # is now reached only where that class stands aside (a zwitterion).
             if candidate.element == "N+" and len(candidate.atom_indices) == 1:
                 _mol = perception._mol  # type: ignore[attr-defined]
                 n_idx = next(iter(candidate.atom_indices))
@@ -12781,6 +12795,7 @@ class SubstitutivePath:
             # is carved as an N-prefix: "N-hydroxypropan-1-imine" (p. 98).
             "substituted_imine",
             "hydrazide",
+            "aminium",
         })
         # P-66.6.1: when hydroxamic_acid is bundled into a merged
         # amide-family PCG group, treat it as an N-bearing amide so the
@@ -12903,7 +12918,7 @@ class SubstitutivePath:
                 "ester", "carbamate",
                 "thioester", "thionoester", "dithioester",
                 "thionocarbamate", "dithiocarbamate",
-                "substituted_imine",
+                "substituted_imine", "sulfonate_ester", "aminium",
             )
         ]
 
