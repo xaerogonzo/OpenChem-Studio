@@ -229,3 +229,26 @@ each LOST verbatim matches by moving to the book's form.
 heldout_v2's round-5 candidates: no structural failure (0 wrong structures,
 0 unparsable); 25 rows differ from PubChem and are unadjudicated, so they are
 candidates for round 5's adjudication, not defects yet.
+
+## Naming round 5 (from 2026-09-19)
+
+### N0: the populations, fixed before any diagnosis
+
+| population | role this round | file | baseline (`r5-baseline`, ba006cb) |
+|---|---|---|---|
+| regression | tuning, per-stage invariant | `corpus.json` | 187/187 round trip, verbatim 101/187 |
+| heldout_v1 | used since round 4 | `heldout.json` | 40/40, verbatim 16/40 |
+| heldout_v2 | **used from round 5** (N1 adjudicates its 25 differing rows) | `heldout2.json` | 40/40, verbatim 15/40 |
+| heldout_v3 | **fresh, evaluation only** | locked; see the benchmark README | not scored until the final evaluation |
+
+The baseline reproduces round 4's final record row for row (0 names changed
+against `r4-final.json` in every population). heldout_v3 was drawn by the same
+filter at stride +250, excluding all three earlier files: 40 rows, 39 with a
+trusted PubChem target, 1 with stereochemistry, rejected 19 multi-component
+and 4 out of the heavy-atom range. One fragment of one row leaked through an
+OPSIN warning during the quiet draw; its meta file records exactly what, and
+the builder now suppresses those warnings on quiet runs.
+
+Every later report in this round prints four populations separately and never
+pools them: regression x/187, v1-used y/40, v2-used z/40, v3-fresh w/40 (end
+only).

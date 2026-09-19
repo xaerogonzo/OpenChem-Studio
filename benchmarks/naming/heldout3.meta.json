@@ -1,0 +1,28 @@
+{
+ "artifact_schema_version": 1,
+ "variant": "v3",
+ "selection_rule": "PubChem CIDs 1000 * k + 250 for k = 1..120, ascending, admitting the first 40 rows that pass the filter",
+ "admission_filter": [
+  "PubChem returns both SMILES and a non-empty IUPACName",
+  "RDKit parses the SMILES",
+  "single component (no '.')",
+  "at least one carbon",
+  "6 <= heavy atoms <= 40",
+  "no explicit isotope label",
+  "canonical SMILES not already in corpus.json or heldout.json or heldout2.json"
+ ],
+ "not_filtered": [
+  "element composition beyond 'has carbon'",
+  "charge",
+  "ring count",
+  "stereochemistry"
+ ],
+ "engine_consulted": false,
+ "selection_time": "2026-09-19T03:53:13-0400",
+ "rows": 40,
+ "heldout_sha256": "3b4ec48f3e0872fc540ff470c31f97b5c05adc92e186acbc22e5b09f326dc97e",
+ "pubchem_property": "SMILES,IUPACName",
+ "rdkit_version": "2025.09.6",
+ "inspection_policy": "evaluation only: selected before any naming round 5 diagnosis, never inspected row by row, loaded only by naming_stage_artifact.py --final-evaluation",
+ "history": "Drawn once, 2026-09-19, with no retries needed. ONE LEAK, recorded rather than hidden: the quiet run suppresses the script's own row output, but py2opsin's RuntimeWarning for the one UNTRUSTED row reached the log as 'Cannot find in scope fragment with atom with locant 8b' -- i.e. one PubChem string names a fused system with an 8b locant that OPSIN cannot parse. No CID, structure or engine name was printed. Future draws should run with warnings suppressed."
+}
