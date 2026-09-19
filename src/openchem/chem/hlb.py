@@ -308,6 +308,8 @@ def compute_griffin_hlb(
             molecule_uuid=molecule_uuid,
             cache_state=CacheState.FAILED,
             error=refusal_text(result),
+            # Griffin's definition excludes the structure: a limit, not a fault.
+            inapplicable=result.refusal is not HlbRefusal.NOT_A_STRUCTURE,
             provenance=provenance,
         )
 

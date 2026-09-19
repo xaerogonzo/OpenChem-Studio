@@ -1161,6 +1161,55 @@ they are, and are not:
 
 ---
 
+## Salts, hydrates and mixtures
+
+Every calculator declares which components of a drawing it describes
+(`CalculatorScope`, round 5). A **property of the compound** -- logP, polar
+surface area, pKa, logD, the drug-likeness rules, QED, the CNS and BBB
+scores, ADMET -- is computed on the **parent compound**, by ChEMBL's rule:
+listed counter-ions and solvents removed, the rest re-neutralised. The
+**formula, full molecular weight, exact mass and net charge** describe the
+whole drawing, as ChEMBL's own FULL_MWT and FULL_MOLFORMULA do. Each result
+records which components it used (`components_used`, and `parent_smiles`
+when a parent was taken). What that leaves out, measured on the panel in
+`tests/fixtures/multicomponent_panel.toml`:
+
+- **A salt with no single parent gets no compound properties.** ChEMBL strips
+  nothing when EVERY component is on its salt list, and nothing when NONE
+  is, so there is no one species to describe. On the panel that is sodium
+  acetate, potassium benzoate, lithium propanoate, calcium acetate,
+  magnesium succinate, trisodium citrate, sodium benzenesulfonate and NaCl
+  (every component listed) and choline salicylate (none listed). Those
+  properties refuse with `MULTICOMPONENT_UNSUPPORTED`; the formula and
+  weight still appear. For a metal cation beside a listed organic anion the
+  organic ion is almost certainly the species meant, and a rule for that
+  case -- or a way to name the component yourself -- is the open fix. Until
+  then, draw the species you mean (acetic acid, or acetate alone).
+- **A transition-metal structure drawn as ions has no parent either.**
+  ChEMBL's exclusion flag (a transition metal, or more than seven borons)
+  refuses it with `METAL_CONTAINING_UNSUPPORTED`; ferrocene drawn as
+  Fe2+ and two cyclopentadienides is the panel's case.
+- **Solubility, Joback and Hansen refuse anything with more than one
+  component, hydrates included.** Their reason is about salts (a salt is a
+  different substance from its parent, with its own solubility and boiling
+  point), but it also refuses caffeine drawn with its water of
+  crystallisation, where the water is a solvent and the answer wanted is
+  caffeine's.
+- **Per-atom contributions and the molecular value describe different
+  structures on a salt.** Crippen's and Jensen's per-atom increments are
+  atom-local table look-ups, so they are given for every atom drawn, the
+  counter-ion included; the logP and polarizability beside them are the
+  parent's. On a salt the contributions therefore do not sum to the value.
+- **The parent is neutralised as ChEMBL neutralises it,** which can be a
+  different tautomer from the one you would draw: metformin pamoate's parent
+  logP is -1.03, metformin drawn as the usual neutral tautomer -1.24.
+- **A single charged species is never "parented".** GetParent is applied
+  only to more than one component (Bento et al. apply it only to
+  multicomponent or isotopic compounds), so a zwitterion or an ion drawn
+  alone is computed exactly as drawn.
+
+---
+
 <!-- help:limits-structure -->
 ## Structure handling
 

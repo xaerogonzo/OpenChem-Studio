@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: 861c04826fe171e2ba3a6109b4490aaa4bfc6ace66731eb0ae61d81abecaab0e -->
+<!-- SOURCE SHA256: fc5b2c505a51d330c407de29abf1283441d616556f5944900cfc41150b73039d -->
 
 # Sources
 
@@ -103,6 +103,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`baell2010`](#baell2010) | literature | shipped | citation |
 | [`bakowies1996`](#bakowies1996) | literature | **not shipped** | citation + claim |
 | [`ballester2010`](#ballester2010) | literature | **not shipped** | citation |
+| [`bento2020`](#bento2020) | literature | shipped | citation + claim |
 | [`bertz1981`](#bertz1981) | literature | shipped | citation |
 | [`bickerton2012`](#bickerton2012) | literature | shipped | citation |
 | [`bird1985`](#bird1985) | literature | shipped | citation |
@@ -117,6 +118,8 @@ next run of `tools/build_lewis_parameters.py`.
 | [`bultinck2002b`](#bultinck2002b) | literature | reference only | citation + claim |
 | [`cao2004`](#cao2004) | literature | shipped | citation + claim |
 | [`chelli1999`](#chelli1999) | literature | reference only | citation |
+| [`chembl_schema`](#chembl_schema) | dataset | shipped | citation + claim |
+| [`chembl_structure_pipeline`](#chembl_structure_pipeline) | software | shipped | citation |
 | [`chen2007`](#chen2007) | literature | reference only | citation + claim |
 | [`chen2008erratum`](#chen2008erratum) | literature | reference only | citation + claim |
 | [`chen2008framework`](#chen2008framework) | literature | reference only | citation |
@@ -4024,6 +4027,40 @@ says "followed by the ester group (37.8%)"; the additional file gives 37.75%
 to [R]O[R], an ether, and 7.45% to the ester [R]OC([R])=O. The table is
 followed.
 
+### bento2020
+
+<a id="bento2020"></a>
+
+> A. P. Bento, A. Hersey, E. Felix, G. Landrum, A. Gaulton, F. Atkinson, L. J. Bellis, M. De Veij, A. R. Leach, 'An open source chemical structure curation pipeline using RDKit', Journal of Cheminformatics 2020, 12, 51.
+
+| | |
+| --- | --- |
+| Identifier | [10.1186/s13321-020-00456-1](https://doi.org/10.1186/s13321-020-00456-1) |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-09-19 |
+| Used by | `src/openchem/chem/components.py`, `src/openchem/vendor/chembl_structure_pipeline/getparent.py` |
+
+THE RULE A SALT'S COMPOUND PROPERTIES ARE COMPUTED UNDER (round 5, branch
+S2). Read in full from Europe PMC (PMC7458899, CC-BY 4.0), because the
+publisher's page redirects to a login. The claims this project relies on,
+each checked in the text:
+
+- GetParent "removes any salts and solvents from the compound to create its
+  parent", matching fragments against the salt and solvent lists;
+- where every component is in the salt list ("sodium chloride and sodium
+  citrate") nothing is removed, and where none is, the parent is the mixture;
+- the parent is re-neutralised, except a quaternary nitrogen, which "remains
+  as the positively charged cation";
+- a 2:1 salt's identical components collapse to one parent;
+- "The GetParent module is applied to just those compounds that match one or
+  both of these criteria" -- multicomponent or isotopic -- which is why
+  `chem/components.py` never applies it to one component (it would
+  neutralise a drawn zwitterion).
+
+The paper does NOT say which properties are computed on the parent; that is
+[source:chembl_schema] below.
+
 ### platts1999
 
 <a id="platts1999"></a>
@@ -5308,6 +5345,28 @@ The A1 finding that rests on this book -- "74% inside ESOL's own training
 set" -- remains a claim about its CONTENTS that nothing here has checked,
 which is why `verification` stops at `citation`.
 
+### chembl_schema
+
+<a id="chembl_schema"></a>
+
+> ChEMBL 37 schema documentation, table COMPOUND_PROPERTIES (EMBL-EBI).
+
+| | |
+| --- | --- |
+| Identifier | <https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/latest/schema_documentation.txt> |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-09-19 |
+| Used by | `src/openchem/chem/descriptor_providers.py`, `src/openchem/domain/calculator.py` |
+
+WHICH PROPERTIES DESCRIBE THE PARENT: "all but FULL_MWT and FULL_MOLFORMULA
+are calculated on the parent structure" (COMPOUND_PROPERTIES, read from the
+chembl_37 schema_documentation.txt on 2026-09-19). The table lists ALogP,
+HBA, HBD, PSA, RTB, the rule-of-three and rule-of-five, aromatic rings, heavy
+atoms, QED and NP-likeness on the parent, and FULL_MWT and FULL_MOLFORMULA on
+the full salt. That is the split `RDKitDescriptorProvider.compute` makes, and
+the one rule every calculator's `CalculatorScope` follows.
+
 ## Legal texts
 
 ### cwc_annex_on_chemicals
@@ -5850,6 +5909,31 @@ there is no PDF text extractor in the project venv and `pdftoppm` is not
 installed, so `Read` on a PDF fails.
 
 ## Bundled and depended-on software
+
+### chembl_structure_pipeline
+
+<a id="chembl_structure_pipeline"></a>
+
+> ChEMBL Structure Pipeline, vendored in part under `src/openchem/vendor/chembl_structure_pipeline/` -- the GetParent rule and its salt and solvent lists.
+
+| | |
+| --- | --- |
+| Identifier | <https://github.com/chembl/ChEMBL_Structure_Pipeline> |
+| Status | shipped |
+| Verification | citation |
+| Verified | 2026-09-19 |
+| Licence | MIT |
+| Version | `d252cd22d67674da4fa607b761c5b5a144cfdf07` |
+| Version source | `src/openchem/vendor/VENDORING.md` |
+| Bundled at | `src/openchem/vendor/chembl_structure_pipeline` |
+| Third-party files | `salts.smi`, `solvents.smi`, `getparent.py` |
+| Licence files | `LICENSE.chembl-structure-pipeline` |
+| Ours, in the same place | `__init__.py` |
+
+Licence verified from the repository's own LICENSE at the pinned commit
+("MIT License, Copyright (c) 2019 Greg Landrum"). `getparent.py` is three
+functions extracted verbatim with three marked edits; VENDORING.md lists
+them. Implements [source:bento2020].
 
 ### ketcher
 

@@ -457,6 +457,21 @@ def _uvvis_reference_is_unsourced() -> bool:
     return benzene_open and pyridine_open
 
 
+def _parent_refuses(smiles: str, selection: str) -> bool:
+    """Does the component selection still refuse this drawing?"""
+    from rdkit import Chem
+
+    from openchem.chem import components
+    from openchem.domain.calculator import Aggregation, CalculationRefusal, CalculatorScope, ComponentSelection
+
+    scope = CalculatorScope(ComponentSelection(selection), Aggregation.SCALAR)
+    try:
+        components.select(Chem.MolFromSmiles(smiles), scope, "deferral check")
+    except CalculationRefusal:
+        return True
+    return False
+
+
 def _plugins_registering_reactions(root: Path) -> list[str]:
     found = []
     if not root.is_dir():
@@ -476,6 +491,21 @@ def _plugins_registering_reactions(root: Path) -> list[str]:
 #: fails if a marked item arrives without an entry here, so this cannot
 #: silently fall behind the document.
 DEFERRALS: list[Deferral] = [
+    Deferral(
+        claim="a salt with no single ChEMBL parent has no compound",
+        # Unbuilt while the parent rule still refuses sodium acetate.
+        unbuilt=lambda: _parent_refuses("CC(=O)[O-].[Na+]", "chembl_parent"),
+    ),
+    Deferral(
+        claim="a hydrate is refused by the pure-component methods",
+        unbuilt=lambda: _parent_refuses("Cn1cnc2c1c(=O)n(C)c(=O)n2C.O", "refuse_multicomponent"),
+    ),
+    Deferral(
+        claim="a parent-scoped per-atom calculator cannot add hydrogens",
+        # Unbuilt while `read_back` still refuses a key past the parent.
+        unbuilt=lambda: "cannot be scoped CHEMBL_PARENT"
+        in (_ROOT / "src/openchem/chem/components.py").read_text(encoding="utf-8"),
+    ),
     Deferral(
         claim="the 3D alignment overlay has ONE pane",
         # The feature would announce itself as a SECOND viewer backend in

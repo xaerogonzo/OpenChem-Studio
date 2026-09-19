@@ -48,6 +48,7 @@ from rdkit import Chem
 from rdkit.Chem import rdPartialCharges
 
 from openchem.chem.calculator_options import atom_basis_of, decimals
+from openchem.domain.calculator import ELEMENT_OUTSIDE_PARAMETER_SET, CalculationRefusal
 from openchem.domain.common import (
     ATOM_BASIS,
     EXPLICIT_H,
@@ -265,6 +266,20 @@ def molecular_polarizability(mol: Chem.Mol) -> float | None:
     return None if values is None else sum(values.values())
 
 
+def _outside_jensen(target: Chem.Mol) -> CalculationRefusal:
+    """An element with no entry in `JENSEN_POLARIZABILITY` is outside the
+    method, which is a limit and not a fault. It used to come back as a bare
+    failure on every sodium salt (round 5 sweep), painted like a crash. The
+    covered set is READ from the table, so the sentence cannot drift from it."""
+    missing = ", ".join(_unparameterised_elements(target))
+    covered = ", ".join(JENSEN_POLARIZABILITY)
+    return CalculationRefusal(
+        ELEMENT_OUTSIDE_PARAMETER_SET,
+        "Element outside Jensen's set",
+        f"No Jensen polarizability parameter for: {missing}. The table covers {covered}.",
+    )
+
+
 def _unparameterised_elements(mol: Chem.Mol) -> list[str]:
     return sorted(
         {
@@ -325,12 +340,22 @@ def compute_polarizability(
 
     if method == "jensen":
         total = molecular_polarizability(target)
-        failure = (
-            None
-            if total is not None
-            else "No Jensen polarizability parameter for: "
-            + ", ".join(_unparameterised_elements(target))
-        )
+        if total is None:
+            refusal = _outside_jensen(target)
+            return report_from_fields(
+                alert_id="polarizability",
+                name="Polarizability",
+                molecule_uuid=molecule_uuid,
+                matched=[],
+                category="electronic",
+                cache_state=CacheState.FAILED,
+                error=refusal.detail,
+                error_summary=refusal.summary,
+                inapplicable=True,
+                provenance=Provenance(created_by="core", method=method,
+                                      parameters={"method": method, "refusal": refusal.code}),
+            )
+        failure = None
         basis = (
             "Additive atomic scheme (Jensen et al. 2002). Aromatics and halogenated "
             "compounds are accurate to about 1%; saturated hydrocarbons come out roughly "
@@ -426,6 +451,7 @@ def compute_atomic_polarizability(
     target = _maybe_microspecies(mol, parameters)
     values = atomic_polarizabilities(target)
     if values is None:
+        refusal = _outside_jensen(target)
         return PerAtomDataset(
             property_id="atomic_polarizability",
             name="Atomic Polarizability",
@@ -434,11 +460,11 @@ def compute_atomic_polarizability(
             molecule_uuid=molecule_uuid,
             values={},
             cache_state=CacheState.FAILED,
-            error=(
-                "No Jensen polarizability parameter for: "
-                + ", ".join(_unparameterised_elements(target))
-            ),
-            provenance=Provenance(created_by="core", method="jensen", parameters={"decimal_places": _places}),
+            error=refusal.detail,
+            error_summary=refusal.summary,
+            inapplicable=True,
+            provenance=Provenance(created_by="core", method="jensen",
+                                  parameters={"decimal_places": _places, "refusal": refusal.code}),
         )
     return PerAtomDataset(
         property_id="atomic_polarizability",
@@ -551,10 +577,15 @@ def compute_orbital_electronegativity(
                 else "No atom in this molecule has Gasteiger-Marsili parameters."
             ),
             error_summary=("No pi system" if component == "pi" else "No parameters"),
+            # A LIMIT OF THE METHOD, not a fault: nothing to fix in the drawing.
+            inapplicable=True,
             provenance=Provenance(
                 created_by="core",
                 method=_ORBITAL_METHOD[component],
-                parameters={"decimal_places": _places, "component": component},
+                parameters={
+                    "decimal_places": _places, "component": component,
+                    "refusal": "NO_PI_SYSTEM" if component == "pi" else ELEMENT_OUTSIDE_PARAMETER_SET,
+                },
             ),
         )
     return PerAtomDataset(

@@ -51,6 +51,30 @@ def test_classify_ionizable_centres_finds_a_carboxylic_acid():
     assert classify_ionizable_centres(Chem.MolFromSmiles(_IBUPROFEN)) == (1, 0)
 
 
+@pytest.mark.parametrize(
+    "neutral,ionised",
+    [
+        ("NCC(=O)O", "[NH3+]CC([O-])=O"),     # glycine and its zwitterion
+        ("CC(=O)O", "CC(=O)[O-]"),
+        ("CN", "C[NH3+]"),
+        ("Oc1ccccc1", "[O-]c1ccccc1"),
+        ("CS(=O)(=O)O", "CS(=O)(=O)[O-]"),
+    ],
+)
+def test_a_centre_counts_the_same_whichever_form_is_drawn(neutral, ionised):
+    """Round 5 sweep: glycine drawn as its zwitterion had NO ionizable centre,
+    so its pH curves and isoelectric point were refused."""
+    assert classify_ionizable_centres(Chem.MolFromSmiles(ionised)) == classify_ionizable_centres(
+        Chem.MolFromSmiles(neutral)
+    )
+
+
+@pytest.mark.parametrize("smiles", ["C[N+](C)(C)C", "C[N+](=O)[O-]", "CC(=O)[NH3+]"])
+def test_a_charge_that_is_not_an_ionizable_centre_is_not_counted(smiles):
+    """A quaternary N has no proton to lose; a nitro O- is not an acid's base."""
+    assert classify_ionizable_centres(Chem.MolFromSmiles(smiles)) == (0, 0)
+
+
 def test_classify_ionizable_centres_finds_a_basic_amine():
     acids, bases = classify_ionizable_centres(Chem.MolFromSmiles(_PROPRANOLOL))
     assert (acids, bases) == (0, 1)

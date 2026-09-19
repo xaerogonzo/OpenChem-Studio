@@ -1,0 +1,196 @@
+# The multicomponent / ionic robustness panel (round 5, branch S0).
+#
+# FIXED BEFORE ANY CALCULATOR WAS RUN OVER IT, and chosen for SHAPE, not
+# for what any calculator does with it. Branch B4 found by accident that one
+# descriptor raising on sodium took every result of a sodium salt with it;
+# this panel is how the other calculators get asked the same question on
+# purpose. Each row says what shape it is and why it is here.
+#
+# `control` names the row this one should be compared with, where a neutral
+# or single-component counterpart exists. Every SMILES here was checked to
+# parse, and its component count is what RDKit reports.
+
+# --- an inorganic counter-ion -------------------------------------------------
+
+[[row]]
+id = "sodium_acetate"
+smiles = "CC(=O)[O-].[Na+]"
+shape = "inorganic_counterion"
+control = "acetic_acid"
+why = "the salt B4 was found on; one monovalent metal cation"
+
+[[row]]
+id = "acetic_acid"
+smiles = "CC(=O)O"
+shape = "control"
+why = "neutral control for sodium acetate"
+
+[[row]]
+id = "potassium_benzoate"
+smiles = "[K+].[O-]C(=O)c1ccccc1"
+shape = "inorganic_counterion"
+control = "benzoic_acid"
+why = "an aromatic carboxylate; potassium is outside several element sets that sodium is also outside"
+
+[[row]]
+id = "benzoic_acid"
+smiles = "OC(=O)c1ccccc1"
+shape = "control"
+why = "neutral control for potassium benzoate"
+
+[[row]]
+id = "lithium_propanoate"
+smiles = "CCC(=O)[O-].[Li+]"
+shape = "inorganic_counterion"
+why = "a light alkali metal, which some parameter tables do carry"
+
+[[row]]
+id = "calcium_acetate"
+smiles = "[Ca+2].CC(=O)[O-].CC(=O)[O-]"
+shape = "inorganic_counterion"
+why = "three components: one divalent cation and two identical organic anions"
+
+[[row]]
+id = "magnesium_succinate"
+smiles = "[Mg+2].[O-]C(=O)CCC([O-])=O"
+shape = "inorganic_counterion"
+control = "succinic_acid"
+why = "a dicarboxylate: one organic component carrying charge -2"
+
+[[row]]
+id = "succinic_acid"
+smiles = "OC(=O)CCC(O)=O"
+shape = "control"
+why = "neutral control for magnesium succinate"
+
+[[row]]
+id = "trisodium_citrate"
+smiles = "[Na+].[Na+].[Na+].[O-]C(=O)CC(O)(CC([O-])=O)C([O-])=O"
+shape = "inorganic_counterion"
+why = "four components, three of them identical; a -3 anion"
+
+[[row]]
+id = "sodium_phenolate"
+smiles = "[Na+].[O-]c1ccccc1"
+shape = "inorganic_counterion"
+control = "phenol"
+why = "the charge sits on an aromatic system's substituent"
+
+[[row]]
+id = "phenol"
+smiles = "Oc1ccccc1"
+shape = "control"
+why = "neutral control for sodium phenolate"
+
+[[row]]
+id = "sodium_benzenesulfonate"
+smiles = "[Na+].[O-]S(=O)(=O)c1ccccc1"
+shape = "inorganic_counterion"
+why = "a sulfonate, the anion of a strong acid"
+
+[[row]]
+id = "tetramethylammonium_bromide"
+smiles = "C[N+](C)(C)C.[Br-]"
+shape = "inorganic_counterion"
+why = "the organic component is the CATION and carries a permanent charge"
+
+[[row]]
+id = "methylammonium_chloride"
+smiles = "C[NH3+].[Cl-]"
+shape = "inorganic_counterion"
+why = "an amine hydrochloride drawn ionic, protonated N-H"
+
+[[row]]
+id = "metformin_hcl"
+smiles = "CN(C)C(=N)N=C(N)N.Cl"
+shape = "inorganic_counterion"
+control = "metformin"
+why = "an amine hydrochloride drawn as a NEUTRAL pair, as PubChem draws it: two components and no formal charge"
+
+[[row]]
+id = "metformin"
+smiles = "CN(C)C(=N)N=C(N)N"
+shape = "control"
+why = "neutral control for metformin hydrochloride"
+
+# --- both components organic --------------------------------------------------
+
+[[row]]
+id = "choline_salicylate"
+smiles = "C[N+](C)(C)CCO.OC1=CC=CC=C1C([O-])=O"
+shape = "organic_counterion"
+why = "organic cation with organic anion, of similar size: a 'largest organic component' rule has no clear parent here"
+
+[[row]]
+id = "chlorphenamine_maleate"
+smiles = "CN(C)CCC(c1ccc(Cl)cc1)c1ccccn1.OC(=O)/C=C\\C(=O)O"
+shape = "organic_counterion"
+why = "a drug salt whose organic counter-ion is smaller than the drug, drawn as a neutral pair"
+
+[[row]]
+id = "metformin_pamoate"
+smiles = "CN(C)C(=N)NC(N)=[NH2+].OC(=O)c1cc2ccccc2c(Cc2c(O)c(cc3ccccc23)C([O-])=O)c1O"
+shape = "organic_counterion"
+control = "metformin"
+why = "the counter-ion (C23) is LARGER than the drug (C4): 'largest organic' picks the counter-ion"
+
+# --- stereochemistry through component handling ------------------------------
+
+[[row]]
+id = "sertraline_hcl"
+smiles = "CN[C@H]1CC[C@@H](c2ccc(Cl)c(Cl)c2)c2ccccc21.Cl"
+shape = "stereo_salt"
+control = "sertraline"
+why = "two defined stereocentres in the parent: component extraction must keep them"
+
+[[row]]
+id = "sertraline"
+smiles = "CN[C@H]1CC[C@@H](c2ccc(Cl)c(Cl)c2)c2ccccc21"
+shape = "control"
+why = "single-component control for sertraline hydrochloride"
+
+# --- other multicomponent and charged shapes ----------------------------------
+
+[[row]]
+id = "glycine_zwitterion"
+smiles = "[NH3+]CC([O-])=O"
+shape = "zwitterion"
+control = "glycine"
+why = "ONE component, net charge zero, two formal charges"
+
+[[row]]
+id = "glycine"
+smiles = "NCC(=O)O"
+shape = "control"
+why = "neutral control for the zwitterion"
+
+[[row]]
+id = "caffeine_hydrate"
+smiles = "Cn1cnc2c1c(=O)n(C)c(=O)n2C.O"
+shape = "hydrate"
+control = "caffeine"
+why = "a neutral second component that is water: no charge anywhere"
+
+[[row]]
+id = "caffeine"
+smiles = "Cn1cnc2c1c(=O)n(C)c(=O)n2C"
+shape = "control"
+why = "control for caffeine hydrate"
+
+[[row]]
+id = "sodium_chloride"
+smiles = "[Na+].[Cl-]"
+shape = "no_organic_component"
+why = "nothing organic at all"
+
+[[row]]
+id = "ionic_ferrocene"
+smiles = "[cH-]1cccc1.[cH-]1cccc1.[Fe+2]"
+shape = "metal_complex"
+why = "a metallocene drawn ionically, as the organometallic adapter's own fixture draws it"
+
+[[row]]
+id = "bonded_ferrocene"
+smiles = "C1=CC=C[CH]1[Fe]C1[CH]=CC=C1"
+shape = "metal_complex"
+why = "the same substance drawn with metal-carbon bonds: one component"

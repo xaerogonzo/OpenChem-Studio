@@ -31,6 +31,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from openchem.chem.geometry_analysis import NoConformerError, _require_conformer
+from openchem.domain.calculator import ELEMENT_OUTSIDE_PARAMETER_SET, CalculationRefusal
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import TrajectoryResult
 
@@ -118,7 +119,11 @@ def run_dynamics(
     working = Chem.Mol(mol)
     field, field_name = _force_field(working)
     if field is None:
-        raise ValueError("No MMFF or UFF parameters are available for this molecule.")
+        raise CalculationRefusal(
+            ELEMENT_OUTSIDE_PARAMETER_SET,
+            "No force-field parameters",
+            "No MMFF or UFF parameters are available for this molecule.",
+        )
 
     masses = np.array([atom.GetMass() for atom in working.GetAtoms()])
     positions = np.array(conformer.GetPositions())
@@ -204,7 +209,8 @@ def compute_molecular_dynamics(
             frame_interval=int(parameters.get("frame_interval", DEFAULT_FRAME_INTERVAL)),
             seed=int(parameters.get("seed", 0)) or None,
         )
-    except (NoConformerError, ValueError, UnstableTrajectoryError) as exc:
+    except (NoConformerError, ValueError, UnstableTrajectoryError, CalculationRefusal) as exc:
+        refused = isinstance(exc, CalculationRefusal)
         return TrajectoryResult(
             trajectory_id="molecular_dynamics",
             name="Molecular Dynamics",
@@ -212,7 +218,10 @@ def compute_molecular_dynamics(
             molecule_uuid=molecule_uuid,
             cache_state=CacheState.FAILED,
             error=str(exc),
-            provenance=Provenance(created_by="core", method="rdkit"),
+            # No force-field parameters is a limit of MMFF/UFF, not a fault.
+            inapplicable=refused,
+            provenance=Provenance(created_by="core", method="rdkit",
+                                  parameters={"refusal": exc.code} if refused else {}),
         )
 
     temperature = float(parameters.get("temperature", DEFAULT_TEMPERATURE_K))

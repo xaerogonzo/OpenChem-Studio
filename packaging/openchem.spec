@@ -47,6 +47,14 @@ datas += [(str(PKG / "resources"), "openchem/resources")]
 # during vendoring; see src/openchem/vendor/VENDORING.md.
 datas += [(str(PKG / "vendor" / "data"), "openchem/vendor/data")]
 
+# ChEMBL's salt and solvent lists, read from BESIDE `getparent.py` by path.
+# PyInstaller collects the module and not these, so miss this and every salt's
+# compound properties refuse with a FileNotFoundError dressed as a failure.
+datas += [
+    (str(PKG / "vendor" / "chembl_structure_pipeline" / name), "openchem/vendor/chembl_structure_pipeline")
+    for name in ("salts.smi", "solvents.smi", "LICENSE.chembl-structure-pipeline")
+]
+
 # The user-facing documentation, which IS the in-application help --
 # `openchem/help.py` renders docs/USER_GUIDE.md and friends directly so a
 # documentation pass updates the help window with no second copy to

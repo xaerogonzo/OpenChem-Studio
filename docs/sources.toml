@@ -4736,6 +4736,81 @@ followed.
 """
 
 [[source]]
+key = "bento2020"
+kind = "literature"
+citation = "A. P. Bento, A. Hersey, E. Felix, G. Landrum, A. Gaulton, F. Atkinson, L. J. Bellis, M. De Veij, A. R. Leach, 'An open source chemical structure curation pipeline using RDKit', Journal of Cheminformatics 2020, 12, 51."
+identifier_type = "doi"
+identifier = "10.1186/s13321-020-00456-1"
+status = "shipped"
+used_by = ["src/openchem/chem/components.py", "src/openchem/vendor/chembl_structure_pipeline/getparent.py"]
+verification = "citation_and_claim"
+verified_date = 2026-09-19
+note = """
+THE RULE A SALT'S COMPOUND PROPERTIES ARE COMPUTED UNDER (round 5, branch
+S2). Read in full from Europe PMC (PMC7458899, CC-BY 4.0), because the
+publisher's page redirects to a login. The claims this project relies on,
+each checked in the text:
+
+- GetParent "removes any salts and solvents from the compound to create its
+  parent", matching fragments against the salt and solvent lists;
+- where every component is in the salt list ("sodium chloride and sodium
+  citrate") nothing is removed, and where none is, the parent is the mixture;
+- the parent is re-neutralised, except a quaternary nitrogen, which "remains
+  as the positively charged cation";
+- a 2:1 salt's identical components collapse to one parent;
+- "The GetParent module is applied to just those compounds that match one or
+  both of these criteria" -- multicomponent or isotopic -- which is why
+  `chem/components.py` never applies it to one component (it would
+  neutralise a drawn zwitterion).
+
+The paper does NOT say which properties are computed on the parent; that is
+[source:chembl_schema] below.
+"""
+
+[[source]]
+key = "chembl_schema"
+kind = "dataset"
+citation = "ChEMBL 37 schema documentation, table COMPOUND_PROPERTIES (EMBL-EBI)."
+identifier_type = "url"
+identifier = "https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/latest/schema_documentation.txt"
+status = "shipped"
+used_by = ["src/openchem/chem/descriptor_providers.py", "src/openchem/domain/calculator.py"]
+verification = "citation_and_claim"
+verified_date = 2026-09-19
+note = """
+WHICH PROPERTIES DESCRIBE THE PARENT: "all but FULL_MWT and FULL_MOLFORMULA
+are calculated on the parent structure" (COMPOUND_PROPERTIES, read from the
+chembl_37 schema_documentation.txt on 2026-09-19). The table lists ALogP,
+HBA, HBD, PSA, RTB, the rule-of-three and rule-of-five, aromatic rings, heavy
+atoms, QED and NP-likeness on the parent, and FULL_MWT and FULL_MOLFORMULA on
+the full salt. That is the split `RDKitDescriptorProvider.compute` makes, and
+the one rule every calculator's `CalculatorScope` follows.
+"""
+
+[[source]]
+key = "chembl_structure_pipeline"
+kind = "software"
+citation = "ChEMBL Structure Pipeline, vendored in part under `src/openchem/vendor/chembl_structure_pipeline/` -- the GetParent rule and its salt and solvent lists."
+identifier_type = "url"
+identifier = "https://github.com/chembl/ChEMBL_Structure_Pipeline"
+status = "shipped"
+license = "MIT"
+version = "d252cd22d67674da4fa607b761c5b5a144cfdf07"
+package_manifest = "src/openchem/vendor/VENDORING.md"
+resource_path = "src/openchem/vendor/chembl_structure_pipeline"
+third_party_globs = ["salts.smi", "solvents.smi", "getparent.py"]
+license_files = ["LICENSE.chembl-structure-pipeline"]
+our_files = ["__init__.py"]
+verification = "citation"
+verified_date = 2026-09-19
+note = """
+Licence verified from the repository's own LICENSE at the pinned commit
+("MIT License, Copyright (c) 2019 Greg Landrum"). `getparent.py` is three
+functions extracted verbatim with three marked edits; VENDORING.md lists
+them. Implements [source:bento2020].
+"""
+
+[[source]]
 key = "crc_handbook"
 kind = "reference_table"
 citation = "CRC Handbook of Chemistry and Physics, 97th edition."

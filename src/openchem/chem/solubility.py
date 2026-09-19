@@ -66,7 +66,7 @@ binds is named on the fact.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 
 from rdkit import Chem
@@ -76,6 +76,7 @@ from openchem.chem.gutmann import donicity_for
 from openchem.chem.calculator_options import DEFAULT_PH, ph_grid_from
 from openchem.chem.logd import assign_site_polarity, classify_ionizable_centres, ionization_log_factor
 from openchem.chem.pka_providers import PKaResolution, PKaStatus
+from openchem.domain.calculator import MULTICOMPONENT_UNSUPPORTED, SIDECAR_NOT_CONFIGURED
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.report import Detail, Fact, FactCategory, Rendering, ReportResult
 from openchem.domain.scientific_result import PhCurveResult
@@ -1070,6 +1071,9 @@ class SolubilityAnalysis:
     #: Set when the analysis cannot proceed; the calculators turn it into
     #: a FAILED result carrying this text.
     refusal: str = ""
+    #: The DECLARED code of `refusal`, set by the branch that refused -- never
+    #: read back out of the sentence (round 5, branch S2).
+    refusal_code: str = ""
     #: `log Ss - log Sw` for a non-aqueous solvent, or None for water.
     shift: object = None
 
@@ -1160,11 +1164,12 @@ def analyse_solubility(
             return SolubilityAnalysis(
                 solvent=solvent, estimate=estimate, resolution=resolution,
                 ionization=ionization, molecular_weight=Descriptors.MolWt(mol),
-                pkas=[], is_acid=[], refusal=outcome,
+                pkas=[], is_acid=[], refusal=outcome, refusal_code="SOLVENT_NOT_COVERED",
             )
         shift = outcome
 
     refusal = ""
+    refusal_code = ""
     if not solvent.is_water:
         # Nothing downstream applies Henderson-Hasselbalch here, so a
         # missing pKa and an ampholyte are both irrelevant. Requiring them
@@ -1172,16 +1177,18 @@ def analyse_solubility(
         # calculation never uses.
         if estimate.status is not ModelStatus.AVAILABLE:
             refusal = estimate.reason
+            refusal_code = _model_refusal_code(estimate.status)
         return SolubilityAnalysis(
             solvent=solvent, estimate=estimate, resolution=resolution,
             ionization=ionization, molecular_weight=Descriptors.MolWt(mol),
-            pkas=[], is_acid=[], refusal=refusal, shift=shift,
+            pkas=[], is_acid=[], refusal=refusal, refusal_code=refusal_code, shift=shift,
         )
     if ionization is IonizationClass.AMPHOLYTE:
         refusal = (
             "This molecule has both acidic and basic centres, so it is an ampholyte. "
             + _ZWITTERION_NOTE
         )
+        refusal_code = "AMPHOLYTE"
     elif ionization is IonizationClass.UNSUPPORTED:
         if not is_single_component(mol):
             refusal = (
@@ -1189,16 +1196,29 @@ def analyse_solubility(
                 "species the pH correction models forming, so applying it again would answer a "
                 "different question. Draw the single parent compound instead."
             )
+            refusal_code = MULTICOMPONENT_UNSUPPORTED
         else:
             refusal = resolution.reason or "No pKa values are available for this structure."
+            refusal_code = (
+                SIDECAR_NOT_CONFIGURED if resolution.status is PKaStatus.UNAVAILABLE else "NO_PKA"
+            )
     elif estimate.status is not ModelStatus.AVAILABLE:
         refusal = estimate.reason
+        refusal_code = _model_refusal_code(estimate.status)
 
     return SolubilityAnalysis(
         solvent=solvent, estimate=estimate, resolution=resolution, ionization=ionization,
         molecular_weight=Descriptors.MolWt(mol), pkas=pkas, is_acid=is_acid, refusal=refusal,
-        shift=shift,
+        refusal_code=refusal_code, shift=shift,
     )
+
+
+#: Refusals that are a limit of the method rather than a fault.
+_INAPPLICABLE_REFUSALS = frozenset({"AMPHOLYTE", MULTICOMPONENT_UNSUPPORTED, "SOLVENT_NOT_COVERED"})
+
+
+def _model_refusal_code(status: "ModelStatus") -> str:
+    return SIDECAR_NOT_CONFIGURED if status is ModelStatus.UNAVAILABLE else "MODEL_FAILED"
 
 
 def _provenance(analysis: SolubilityAnalysis, parameters: dict) -> Provenance:
@@ -1564,7 +1584,11 @@ def compute_solubility(
             molecule_uuid=molecule_uuid,
             cache_state=CacheState.FAILED,
             error=analysis.refusal or "No solubility model could be applied.",
-            provenance=provenance,
+            # An ampholyte is outside Henderson-Hasselbalch: a limit, not a fault.
+            inapplicable=analysis.refusal_code in _INAPPLICABLE_REFUSALS,
+            provenance=replace(
+                provenance, parameters={**provenance.parameters, "refusal": analysis.refusal_code}
+            ) if analysis.refusal_code else provenance,
         )
 
     ph = float(parameters.get("pH", DEFAULT_PH))

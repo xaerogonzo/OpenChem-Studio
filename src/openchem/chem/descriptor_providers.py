@@ -4,6 +4,7 @@ import contextlib
 import io
 import sys
 import time
+from dataclasses import replace
 from importlib import import_module
 from types import ModuleType
 from typing import Any
@@ -141,10 +142,19 @@ from openchem.chem.topology_analysis import (
     compute_topology_analysis,
 )
 from openchem.domain.mass_spectrum import DEFAULT_ION, SUPPORTED_IONS
+from openchem.chem import components
+from openchem.chem.components import drawing_index
 from openchem.domain.calculator import (
+    ELEMENT_OUTSIDE_PARAMETER_SET,
     GEOMETRY,
+    SIDECAR_NOT_CONFIGURED,
+    Aggregation,
     CalculatorDefinition,
     CalculatorParameter,
+    CalculationRefusal,
+    CalculatorScope,
+    ComponentSelection,
+    MethodDomain,
     RegistryExecution,
 )
 from openchem.domain.common import (
@@ -761,6 +771,41 @@ def _gasteiger_total(mol: Chem.Mol, include_hydrogens: bool) -> dict[str, Any]:
     return total
 
 
+#: The always-on descriptors that describe the DRAWING rather than the
+#: compound: ChEMBL computes exactly these two on the full salt (FULL_MWT,
+#: FULL_MOLFORMULA), and exact mass and net charge are the same kind of
+#: statement about what was drawn.
+_WHOLE_DESCRIPTORS = frozenset({"mol_wt", "exact_mass", "formula", "formal_charge"})
+#: The always-on descriptors that describe the drawing (`_WHOLE_DESCRIPTORS`).
+_DESCRIPTOR_WHOLE_SCOPE = CalculatorScope(
+    ComponentSelection.WHOLE_STRUCTURE, Aggregation.SCALAR,
+    note="ChEMBL's FULL_MWT and FULL_MOLFORMULA: the drawing, salt and all")
+#: The always-on alerts and Gasteiger charges: a substructure alert on a
+#: counter-ion is true of the substance (maleate IS a Michael acceptor), and
+#: charge equalisation runs within each component.
+_ALERT_SCOPE = CalculatorScope(
+    ComponentSelection.EACH_COMPONENT, Aggregation.COLLECTION,
+    note="an alert on any component is true of the substance")
+#: The always-on Gasteiger charges: equalisation runs within each component.
+_GASTEIGER_SCOPE = CalculatorScope(
+    ComponentSelection.EACH_COMPONENT, Aggregation.PER_ATOM,
+    note="equalisation runs within each component")
+#: Every other always-on descriptor: a compound property, on the parent.
+_DESCRIPTOR_PARENT_SCOPE = CalculatorScope(
+    ComponentSelection.CHEMBL_PARENT, Aggregation.SCALAR,
+    note="every other descriptor is a property of the compound (ChEMBL COMPOUND_PROPERTIES)")
+
+
+def _refused_descriptor(value: DescriptorValue, refusal: CalculationRefusal) -> DescriptorValue:
+    provenance = value.provenance
+    parameters = {**(provenance.parameters if provenance else {}), "refusal": refusal.code}
+    return replace(
+        value, value=None, cache_state=CacheState.FAILED, error=refusal.detail,
+        error_summary=refusal.summary, inapplicable=refusal.inapplicable,
+        provenance=replace(provenance, parameters=parameters) if provenance else None,
+    )
+
+
 class RDKitDescriptorProvider(DescriptorProvider):
     """Computes the built-in descriptor set using RDKit only."""
 
@@ -775,6 +820,37 @@ class RDKitDescriptorProvider(DescriptorProvider):
         return categories
 
     def compute(self, mol: Chem.Mol, molecule_uuid: str) -> list[DescriptorValue]:
+        """The descriptor set, each on the structure its scope names.
+
+        `_WHOLE_DESCRIPTORS` describe the drawing -- ChEMBL's FULL_MWT and
+        FULL_MOLFORMULA -- and everything else the ChEMBL parent, which for
+        a single component IS the drawing. A salt whose parent is refused
+        (sodium acetate: every component a listed salt) gets those
+        descriptors as coded, inapplicable refusals rather than numbers
+        about Na+ and acetate together.
+        """
+        whole = [
+            components.as_drawn(value, _DESCRIPTOR_WHOLE_SCOPE, mol)
+            if value.descriptor_id in _WHOLE_DESCRIPTORS else value
+            for value in self._compute_all(mol, molecule_uuid)
+        ]
+        try:
+            selection = components.select(mol, _DESCRIPTOR_PARENT_SCOPE, "This descriptor")
+        except CalculationRefusal as refusal:
+            return [
+                value if value.descriptor_id in _WHOLE_DESCRIPTORS
+                else _refused_descriptor(value, refusal)
+                for value in whole
+            ]
+        on_parent = whole if selection.drawing_atoms is None else self._compute_all(selection.mol, molecule_uuid)
+        by_id = {value.descriptor_id: value for value in on_parent}
+        return [
+            value if value.descriptor_id in _WHOLE_DESCRIPTORS
+            else components.read_back(by_id[value.descriptor_id], _DESCRIPTOR_PARENT_SCOPE, selection)
+            for value in whole
+        ]
+
+    def _compute_all(self, mol: Chem.Mol, molecule_uuid: str) -> list[DescriptorValue]:
         now = time.time()
         provenance = Provenance(created_by="core", method=self.provider_id, timestamp=now)
         chiral_centers = Chem.FindMolChiralCenters(
@@ -840,11 +916,18 @@ class RDKitDescriptorProvider(DescriptorProvider):
         # `describe_failure` reads. A producer writing only one gets today's
         # behaviour, so this carries both deliberately.
         refusals: dict[str, tuple[str, str]] = {}
+        #: The declared code of each refusal, for `provenance.parameters`.
+        refusal_codes: dict[str, str] = {}
         if np_result.confidence == 0.0:
             refusals["np_likeness"] = (
                 _NP_NO_KNOWN_FRAGMENTS_SUMMARY,
                 _NP_NO_KNOWN_FRAGMENTS_ERROR,
             )
+            refusal_codes["np_likeness"] = "NO_KNOWN_FRAGMENTS"
+            # Nothing in the drawing to fix: the corpus has none of it.
+            inapplicable_np = True
+        else:
+            inapplicable_np = False
         #: Refusals that are a LIMIT OF THE METHOD rather than a fault
         #: (`DescriptorValue.inapplicable`): nothing the user can fix.
         inapplicable: set[str] = set()
@@ -859,7 +942,10 @@ class RDKitDescriptorProvider(DescriptorProvider):
         except ValueError as exc:
             mcgowan = None
             refusals["mcgowan_volume"] = (_MCGOWAN_OUTSIDE_SET_SUMMARY, str(exc))
+            refusal_codes["mcgowan_volume"] = ELEMENT_OUTSIDE_PARAMETER_SET
             inapplicable.add("mcgowan_volume")
+        if inapplicable_np:
+            inapplicable.add("np_likeness")
 
         raw_values = {
             "mol_wt": mol_wt,
@@ -916,7 +1002,10 @@ class RDKitDescriptorProvider(DescriptorProvider):
                     refusals[descriptor_id][0] if descriptor_id in refusals else None
                 ),
                 inapplicable=descriptor_id in inapplicable,
-                provenance=provenance,
+                provenance=(
+                    replace(provenance, parameters={"refusal": refusal_codes[descriptor_id]})
+                    if descriptor_id in refusal_codes else provenance
+                ),
             )
             for descriptor_id, name, units, category in _DESCRIPTOR_SPECS
         ]
@@ -940,7 +1029,9 @@ class RDKitDescriptorProvider(DescriptorProvider):
                     cache_state=CacheState.FAILED,
                     error=_NEEDS_CONFORMER_ERROR,
                     error_summary=_NEEDS_CONFORMER_SUMMARY,
-                    provenance=provenance,
+                    # A fault with a remedy (generate a conformer), coded so
+                    # a view need not read it out of the sentence.
+                    provenance=replace(provenance, parameters={"refusal": "NEEDS_CONFORMER"}),
                 )
                 for descriptor_id, name, units in _SHAPE_DESCRIPTOR_SPECS
             ]
@@ -987,6 +1078,10 @@ class RDKitDescriptorProvider(DescriptorProvider):
         }
 
     def compute_alerts(self, mol: Chem.Mol, molecule_uuid: str) -> list[AlertResult]:
+        """The five catalogs, each recorded as read over every component."""
+        return [components.as_drawn(alert, _ALERT_SCOPE, mol) for alert in self._compute_alerts(mol, molecule_uuid)]
+
+    def _compute_alerts(self, mol: Chem.Mol, molecule_uuid: str) -> list[AlertResult]:
         pains_catalog = _load_pains_catalog()
         pains_matched = [entry.GetDescription() for entry in pains_catalog.GetMatches(mol)]
         brenk_catalog = _load_brenk_catalog()
@@ -1036,6 +1131,11 @@ class RDKitDescriptorProvider(DescriptorProvider):
         """
         # Wildman-Crippen atom typing [source:wildman1999] -- 68 atomic
         # logP contributions and a separate MR set, via RDKit.
+        #
+        # On EVERY component, as atom-local table look-ups (round 5 scope,
+        # `_EACH_CONTRIBUTION`): each atom's type is defined wherever it is
+        # drawn. The scalar logP beside them is the parent's; on a salt the two
+        # therefore describe different structures, and each says which.
         contribs = rdMolDescriptors._CalcCrippenContribs(mol)
         logp_contrib = {idx: logp for idx, (logp, _mr) in enumerate(contribs)}
         mr_contrib = {idx: mr for idx, (_logp, mr) in enumerate(contribs)}
@@ -1052,12 +1152,22 @@ class RDKitDescriptorProvider(DescriptorProvider):
             "visible_basis": "heavy-atom contributions",
             "explanation": "implicit hydrogens",
         }
+        gasteiger = components.as_drawn(PerAtomDataset(
+            property_id="gasteiger_charge",
+            name="Partial Charge (Gasteiger)",
+            category="charge",
+            units="e",
+            method=self.provider_id,
+            molecule_uuid=molecule_uuid,
+            values=gasteiger_charge,
+            provenance=batch_provenance(_gasteiger_total(mol, include_hydrogens=False)),
+        ), _GASTEIGER_SCOPE, mol)
         logp_total = declare_total(Crippen.MolLogP(mol), "LogP (Crippen)")
         logp_total["balance"] = heavy_atom_balance
         mr_total = declare_total(Crippen.MolMR(mol), "Molar refractivity (Crippen)")
         mr_total["balance"] = heavy_atom_balance
 
-        return [
+        return [components.as_drawn(dataset, _EACH_CONTRIBUTION, mol) for dataset in (
             PerAtomDataset(
                 property_id="crippen_logp_contrib",
                 name="LogP Contribution (Crippen)",
@@ -1078,17 +1188,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
                 values=mr_contrib,
                 provenance=batch_provenance(mr_total),
             ),
-            PerAtomDataset(
-                property_id="gasteiger_charge",
-                name="Partial Charge (Gasteiger)",
-                category="charge",
-                units="e",
-                method=self.provider_id,
-                molecule_uuid=molecule_uuid,
-                values=gasteiger_charge,
-                provenance=batch_provenance(_gasteiger_total(mol, include_hydrogens=False)),
-            ),
-        ]
+        )] + [gasteiger]
 
 
 # --- Phase 18: CalculatorRegistry-registered calculators --------------------
@@ -1504,7 +1604,8 @@ def compute_pka_dataset(
             molecule_uuid=molecule_uuid,
             matched=[],
             category="pka",
-            provenance=Provenance(created_by="core", method="pkasolver"),
+            provenance=Provenance(created_by="core", method="pkasolver",
+                                  parameters={"refusal": SIDECAR_NOT_CONFIGURED}),
             cache_state=CacheState.FAILED,
             error=_PKA_NOT_INSTALLED_MESSAGE,
             error_summary=_PKA_NOT_INSTALLED_SUMMARY,
@@ -1560,7 +1661,10 @@ def _pka_line(prediction, parameters: dict[str, Any] | None, mol: Chem.Mol | Non
     if prediction.atom_index is not None and mol is not None:
         if prediction.atom_index < mol.GetNumAtoms():
             atom = mol.GetAtomWithIdx(prediction.atom_index)
-            site = f" at {atom.GetSymbol()}{prediction.atom_index}"
+            # The DRAWING's number: on a salt the pKa is computed on the
+            # ChEMBL parent, whose atoms are renumbered once a counter-ion
+            # drawn before it is removed (`chem/components.py`).
+            site = f" at {atom.GetSymbol()}{drawing_index(atom)}"
     line = f"pKa {value}{site}"
     if not prediction.stddev:
         return line
@@ -1840,7 +1944,8 @@ def compute_admet_endpoints(
             matched=[describe_admet_status(interpreter_path)],
             molecule_uuid=molecule_uuid, cache_state=CacheState.FAILED,
             error="ADMET-AI is not configured.",
-            provenance=Provenance(created_by="admet_ai", method="chemprop multi-task"),
+            provenance=Provenance(created_by="admet_ai", method="chemprop multi-task",
+                                  parameters={"refusal": SIDECAR_NOT_CONFIGURED}),
         )
 
     lines = endpoint_lines(endpoints, parameters)
@@ -1869,9 +1974,92 @@ def compute_admet_endpoints(
         ),
     )
 
+# --- which components each calculator is handed (round 5, branch S2) -------
+#
+# ONE RULE, from ChEMBL: a PROPERTY OF THE COMPOUND (logP, polar surface
+# area, pKa, drug-likeness, a model's prediction) is computed on the parent
+# compound, and a DESCRIPTION OF WHAT WAS DRAWN (formula, mass, name,
+# perception, the given 3D geometry) on the whole structure. ChEMBL 37's
+# schema documentation says of its own calculated properties: "all but
+# FULL_MWT and FULL_MOLFORMULA are calculated on the parent structure".
+# Measured before this (tests/fixtures/multicomponent_matrix_s1.json):
+# metformin pamoate failed Lipinski on its counter-ion, sodium acetate's logD
+# was -4.24 with "0 ionizable centres", and the distance indices printed
+# RDKit's unreachable-pair sentinel (Wiener index 400000009 for NaOAc).
+
+#: A compound property reported as a set of facts, on the ChEMBL parent.
+_PARENT_PROPERTY = CalculatorScope(
+    ComponentSelection.CHEMBL_PARENT, Aggregation.COLLECTION,
+    note="a property of the compound, so of its ChEMBL parent")
+#: The molecular polarizability: a compound property, within Jensen's element set.
+_PARENT_POLARIZABILITY = CalculatorScope(
+    ComponentSelection.CHEMBL_PARENT, Aggregation.SCALAR, MethodDomain.METHOD_SPECIFIC,
+    note="a property of the compound; Jensen's additive table covers a fixed element set")
+#: A protonation curve or microspecies set, of the parent only.
+_PARENT_CURVE = CalculatorScope(
+    ComponentSelection.CHEMBL_PARENT, Aggregation.COLLECTION,
+    note="the parent's protonation states over pH; a counter-ion is not a microspecies")
+#: Charges equilibrated over the parent, mapped back onto the drawing's atoms.
+_PARENT_PER_ATOM = CalculatorScope(
+    ComponentSelection.CHEMBL_PARENT, Aggregation.PER_ATOM,
+    note="charges of the compound, equilibrated over its parent and reported on the drawing's atoms")
+#: ATOM-LOCAL table look-ups (Crippen's atom types, Jensen's increments): each
+#: atom's value is defined wherever the atom is, so each component answers.
+#: Also the only honest scope for a calculator that ADDS hydrogens, which a
+#: parent's atoms cannot be mapped back through (`components.read_back`).
+_EACH_CONTRIBUTION = CalculatorScope(
+    ComponentSelection.EACH_COMPONENT, Aggregation.PER_ATOM,
+    note="an atom-local table look-up, defined for every atom drawn")
+#: Jensen's per-atom increments: atom-local, within his element set.
+_EACH_ATOMIC_POLARIZABILITY = CalculatorScope(
+    ComponentSelection.EACH_COMPONENT, Aggregation.PER_ATOM, MethodDomain.METHOD_SPECIFIC,
+    note="Jensen's atom-additive increments, each atom's own")
+#: Solubility refuses a salt: its own pH correction models the salt forming.
+_PURE_SOLUBILITY = CalculatorScope(
+    ComponentSelection.REFUSE_MULTICOMPONENT, Aggregation.COLLECTION, MethodDomain.METHOD_SPECIFIC,
+    note=("A salt or mixture is already the species the pH correction models forming, so applying "
+          "it again would answer a different question. Draw the single parent compound instead."))
+#: Joback refuses a salt: a pure component's properties, which a salt is not.
+_PURE_JOBACK = CalculatorScope(
+    ComponentSelection.REFUSE_MULTICOMPONENT, Aggregation.COLLECTION, MethodDomain.METHOD_SPECIFIC,
+    note="Joback estimates properties of a pure component; a salt's boiling point is not its parent's.")
+#: Hansen refuses a salt: group contributions for a pure liquid.
+_PURE_HANSEN = CalculatorScope(
+    ComponentSelection.REFUSE_MULTICOMPONENT, Aggregation.COLLECTION, MethodDomain.METHOD_SPECIFIC,
+    note="Stefanis-Panayiotou group contributions describe a pure liquid.")
+#: What the drawn substance is: formula, mass, name, regulatory status.
+_WHOLE_SUBSTANCE = CalculatorScope(
+    ComponentSelection.WHOLE_STRUCTURE, Aggregation.COLLECTION,
+    note="describes the substance as drawn, counter-ions included")
+#: An energetic formulation's composition, counter-ions and all.
+_WHOLE_ENERGETIC = CalculatorScope(
+    ComponentSelection.WHOLE_STRUCTURE, Aggregation.SCALAR, MethodDomain.METHOD_SPECIFIC,
+    note="a formulation's composition is the whole drawing (ammonium nitrate is a salt); C/H/N/O only")
+#: Griffin's HLB, whose own definition decides what it covers.
+_WHOLE_SURFACTANT = CalculatorScope(
+    ComponentSelection.WHOLE_STRUCTURE, Aggregation.SCALAR, MethodDomain.METHOD_SPECIFIC,
+    note="Griffin's HLB is defined for nonionic polyoxyethylene surfactants")
+#: A description of the given 3D coordinates, which may be a real ion pair.
+_WHOLE_GEOMETRY = CalculatorScope(
+    ComponentSelection.WHOLE_STRUCTURE, Aggregation.COLLECTION,
+    note="describes the given coordinates, which may be a real ion pair")
+#: The given coordinates, atom by atom (solvent-accessible area).
+_WHOLE_GEOMETRY_PER_ATOM = CalculatorScope(
+    ComponentSelection.WHOLE_STRUCTURE, Aggregation.PER_ATOM,
+    note="describes the given coordinates, atom by atom")
+#: Atom-local perception or values, answered by each component.
+_EACH_PER_ATOM = CalculatorScope(
+    ComponentSelection.EACH_COMPONENT, Aggregation.PER_ATOM,
+    note="atom-local, so each component answers for itself")
+#: Perception each component answers for itself (isomers, rings, sites).
+_EACH_COLLECTION = CalculatorScope(
+    ComponentSelection.EACH_COMPONENT, Aggregation.COLLECTION,
+    note="perception that each component answers for itself")
+
 CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     CalculatorDefinition(
         calculator_id="gasteiger_charge_at_ph",
+        scope=_PARENT_PER_ATOM,
         display_name="Partial Charge (pH-dependent)",
         category="charge",
         description=(
@@ -1907,6 +2095,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         # parameter orphans nothing. What the split did cause was two answers for one molecule side by
         # side in Results. Old pH results are dropped on load (`result_store.RETIRED_RESULT_IDS`).
         calculator_id="geometry_partial_charge",
+        scope=_PARENT_PER_ATOM,
         calculation_input=GEOMETRY,
         display_name="Partial Charge (3D)",
         category="charge",
@@ -1960,6 +2149,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="crippen_logp_contrib",
+        scope=_EACH_CONTRIBUTION,
         tags=['logp', 'lipophilicity', 'partition', 'crippen', 'per-atom'],
         display_name="LogP Contribution",
         category="lipophilicity",
@@ -1978,6 +2168,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="crippen_mr_contrib",
+        scope=_EACH_CONTRIBUTION,
         tags=['refractivity', 'polarizability', 'crippen', 'per-atom'],
         display_name="Molar Refractivity Contribution",
         category="electronic",
@@ -1994,6 +2185,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="admet_ml",
+        scope=_PARENT_PROPERTY,
         tags=['admet', 'toxicity', 'herg', 'cyp', 'ames', 'absorption', 'metabolism'],
         parameters=[
             decimal_places_parameter(),
@@ -2025,6 +2217,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="pka",
+        scope=_PARENT_PROPERTY,
         tags=['pka', 'acidity', 'basicity', 'ionisation', 'ionization', 'ph'],
         parameters=[decimal_places_parameter()],
         display_name="pKa",
@@ -2038,6 +2231,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="logd",
+        scope=_PARENT_PROPERTY,
         tags=['logd', 'lipophilicity', 'partition', 'ph', 'distribution', 'curve', 'logd vs ph'],
         display_name="LogD (pH-dependent)",
         category="lipophilicity",
@@ -2060,6 +2254,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     # ---- Phase 26 ----------------------------------------------------
     CalculatorDefinition(
         calculator_id="elemental_analysis",
+        scope=_WHOLE_SUBSTANCE,
         display_name="Elemental Analysis",
         category="identity",
         description=(
@@ -2076,6 +2271,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="mass_spectrum",
+        scope=_WHOLE_SUBSTANCE,
         display_name="Mass Spectrum",
         # **IDENTITY, NOT A SECTION OF ITS OWN.** A category holding one
         # calculator is the shape this panel was measured in and moved
@@ -2129,6 +2325,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="substance_analysis",
+        scope=_WHOLE_SUBSTANCE,
         display_name="Substance & Bonding",
         category="identity",
         description=(
@@ -2157,6 +2354,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="topology_analysis",
+        scope=_PARENT_PROPERTY,
         display_name="Topology Analysis",
         category="topology",
         description=(
@@ -2176,6 +2374,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="topology_eccentricity",
+        scope=_EACH_PER_ATOM,
         display_name="Eccentricity (per atom)",
         category="topology",
         description="Greatest topological distance from each atom to any other -- how peripheral each atom is.",
@@ -2187,6 +2386,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="tsei_projection",
+        scope=_EACH_PER_ATOM,
         display_name="Cao-Liu TSEI projection (per atom)",
         category="topology",
         description=(
@@ -2228,6 +2428,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="topology_distance_degree",
+        scope=_EACH_PER_ATOM,
         display_name="Distance Degree (per atom)",
         category="topology",
         description="Sum of each atom's topological distances to every other atom.",
@@ -2239,6 +2440,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="geometry_analysis",
+        scope=_WHOLE_GEOMETRY,
         calculation_input=GEOMETRY,
         display_name="Geometry",
         category="geometry",
@@ -2260,6 +2462,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="surface_analysis",
+        scope=_WHOLE_GEOMETRY,
         calculation_input=GEOMETRY,
         display_name="Molecular Surface Area (3D)",
         category="surface",
@@ -2275,6 +2478,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="atom_sasa",
+        scope=_WHOLE_GEOMETRY_PER_ATOM,
         calculation_input=GEOMETRY,
         display_name="Accessible Surface Area (per atom)",
         category="surface",
@@ -2287,6 +2491,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="polar_surface_area",
+        scope=_PARENT_PROPERTY,
         display_name="Polar Surface Area (2D)",
         category="surface",
         description="Topological polar surface area, for the structure as drawn and for the dominant microspecies at a given pH.",
@@ -2298,6 +2503,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="ring_systems",
+        scope=_EACH_PER_ATOM,
         display_name="Ring Systems",
         category="topology",
         description=(
@@ -2321,6 +2527,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="oxidation_states",
+        scope=_EACH_PER_ATOM,
         display_name="Oxidation States",
         category="charge",
         description=(
@@ -2345,6 +2552,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="regulatory_screen",
+        scope=_WHOLE_SUBSTANCE,
         display_name="Regulatory Screen",
         category="admet",
         description=(
@@ -2387,6 +2595,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="locants",
+        scope=_EACH_PER_ATOM,
         display_name="IUPAC Locants",
         category="naming",
         description=(
@@ -2410,6 +2619,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="functional_groups",
+        scope=_EACH_PER_ATOM,
         display_name="Functional Groups",
         category="substructure",
         description=(
@@ -2447,6 +2657,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="stereocenters",
+        scope=_EACH_PER_ATOM,
         display_name="Stereocentres",
         category="stereochemistry",
         description=(
@@ -2468,6 +2679,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="substructure_search",
+        scope=_EACH_PER_ATOM,
         display_name="Substructure Search",
         category="substructure",
         description=(
@@ -2490,6 +2702,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="interaction_analysis",
+        scope=_WHOLE_GEOMETRY,
         calculation_input=GEOMETRY,
         display_name="Interaction Analysis",
         category="geometry",
@@ -2507,6 +2720,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     # ---- Phase 27: structure generators ------------------------------
     CalculatorDefinition(
         calculator_id="stereoisomers",
+        scope=_EACH_COLLECTION,
         display_name="Stereoisomers",
         category="structures",
         description="Every stereoisomer, varying only the centres left unspecified by default.",
@@ -2524,6 +2738,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="tautomers",
+        scope=_EACH_COLLECTION,
         display_name="Tautomers",
         category="structures",
         description="Tautomeric forms, with the canonical tautomer flagged.",
@@ -2538,6 +2753,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="resonance_forms",
+        scope=_EACH_COLLECTION,
         display_name="Resonance Forms",
         category="structures",
         description=(
@@ -2560,6 +2776,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="markush_enumeration",
+        scope=_EACH_COLLECTION,
         display_name="Markush Enumeration",
         category="structures",
         description=(
@@ -2597,6 +2814,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     # ---- Phase 28: pH-dependent curves --------------------------------
     CalculatorDefinition(
         calculator_id="pka_microspecies",
+        scope=_PARENT_CURVE,
         parameters=ph_range_parameters(),
         display_name="Microspecies Distribution",
         category="pka",
@@ -2610,6 +2828,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="major_microspecies",
+        scope=_PARENT_CURVE,
         display_name="Major Microspecies",
         category="pka",
         description="The dominant protonation form at a given pH, via Dimorphite-DL.",
@@ -2621,6 +2840,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="isoelectric_point",
+        scope=_PARENT_PROPERTY,
         parameters=ph_range_parameters(),
         display_name="Isoelectric Point",
         category="charge",
@@ -2634,6 +2854,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="hbond_vs_ph",
+        scope=_PARENT_CURVE,
         parameters=ph_range_parameters(step=0.5),
         display_name="H-Bond Donors/Acceptors vs pH",
         category="topology",
@@ -2652,6 +2873,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     # a calculator's very existence depend on the machine.
     CalculatorDefinition(
         calculator_id="solubility",
+        scope=_PURE_SOLUBILITY,
         display_name="Solubility",
         category="solubility",
         description=(
@@ -2718,6 +2940,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     # ---- Phase 29: naming --------------------------------------------
     CalculatorDefinition(
         calculator_id="iupac_name",
+        scope=_WHOLE_SUBSTANCE,
         display_name="IUPAC Name",
         category="naming",
         description=(
@@ -2739,6 +2962,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     # ---- Lewis acid/base ---------------------------------------------
     CalculatorDefinition(
         calculator_id="lewis_sites",
+        scope=_EACH_COLLECTION,
         display_name="Lewis Sites",
         category="lewis",
         description=(
@@ -2767,6 +2991,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="lewis_adduct",
+        scope=_WHOLE_SUBSTANCE,
         display_name="Lewis Adduct",
         category="lewis",
         description=(
@@ -2813,6 +3038,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     # ---- Phase 30: quantum, dynamics, dipole, MPO --------------------
     CalculatorDefinition(
         calculator_id="huckel_analysis",
+        scope=_EACH_COLLECTION,
         display_name="Huckel Analysis",
         category="quantum",
         description=(
@@ -2838,6 +3064,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="huckel_pi_density",
+        scope=_EACH_PER_ATOM,
         display_name="Pi Electron Density (Huckel)",
         category="quantum",
         description="Per-atom pi electron density from the Huckel orbitals, projected onto 2D and 3D.",
@@ -2850,6 +3077,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="dipole_moment",
+        scope=_WHOLE_GEOMETRY,
         calculation_input=GEOMETRY,
         display_name="Dipole Moment",
         category="charge",
@@ -2876,6 +3104,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="molecular_dynamics",
+        scope=_WHOLE_GEOMETRY,
         calculation_input=GEOMETRY,
         display_name="Molecular Dynamics (vacuum)",
         category="geometry",
@@ -2911,6 +3140,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="cns_mpo",
+        scope=_PARENT_PROPERTY,
         display_name="CNS MPO Score",
         category="admet",
         description=(
@@ -2928,6 +3158,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="steric_analysis",
+        scope=_WHOLE_GEOMETRY,
         calculation_input=GEOMETRY,
         display_name="Ligand Steric Bulk",
         category="geometry",
@@ -2957,6 +3188,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="nmr_database",
+        scope=_EACH_PER_ATOM,
         display_name="NMR Shifts (experimental)",
         category="nmr",
         description=(
@@ -2979,6 +3211,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="bbb_descriptors",
+        scope=_PARENT_PROPERTY,
         display_name="BBB Score Descriptors",
         category="admet",
         description=(
@@ -2998,6 +3231,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="stereo_descriptors",
+        scope=_EACH_COLLECTION,
         parameters=[
             CalculatorParameter(
                 name="show_undefined",
@@ -3018,6 +3252,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="structural_frameworks",
+        scope=_EACH_COLLECTION,
         parameters=[
             CalculatorParameter(
                 name="include_generic",
@@ -3034,6 +3269,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="griffin_hlb",
+        scope=_WHOLE_SURFACTANT,
         display_name="HLB (Griffin)",
         category="surface",
         description=(
@@ -3052,6 +3288,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="detonation",
+        scope=_WHOLE_ENERGETIC,
         display_name="Detonation (Kamlet-Jacobs)",
         category="energetic",
         description=(
@@ -3096,6 +3333,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="oxygen_balance",
+        scope=_WHOLE_ENERGETIC,
         display_name="Oxygen Balance",
         category="energetic",
         description=(
@@ -3116,6 +3354,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="bird_aromaticity",
+        scope=_EACH_COLLECTION,
         display_name="Aromaticity (Bird)",
         category="aromaticity",
         description=(
@@ -3137,6 +3376,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="homa_aromaticity",
+        scope=_EACH_COLLECTION,
         display_name="Aromaticity (HOMA)",
         category="aromaticity",
         description=(
@@ -3158,6 +3398,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="hansen_solubility",
+        scope=_PURE_HANSEN,
         display_name="Hansen Solubility Parameters",
         category="solubility",
         description=(
@@ -3179,6 +3420,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="joback_properties",
+        scope=_PURE_JOBACK,
         display_name="Thermophysical Properties (Joback)",
         category="thermophysical",
         description=(
@@ -3219,6 +3461,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     # ---- Polarizability and orbital electronegativity ----------------
     CalculatorDefinition(
         calculator_id="polarizability",
+        scope=_PARENT_POLARIZABILITY,
         display_name="Polarizability (molecular)",
         category="electronic",
         description=(
@@ -3258,6 +3501,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="atomic_polarizability",
+        scope=_EACH_ATOMIC_POLARIZABILITY,
         display_name="Polarizability (per atom)",
         category="electronic",
         description="Per-atom polarizability contributions (Jensen et al.), projected onto 2D and 3D.",
@@ -3279,6 +3523,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     ),
     CalculatorDefinition(
         calculator_id="orbital_electronegativity",
+        scope=_EACH_PER_ATOM,
         display_name="Orbital Electronegativity",
         category="electronic",
         description=(
@@ -3334,6 +3579,7 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
     # ---- 3D alignment -------------------------------------------------
     CalculatorDefinition(
         calculator_id="alignment_3d",
+        scope=_WHOLE_SUBSTANCE,
         display_name="3D Alignment",
         category="geometry",
         description=(

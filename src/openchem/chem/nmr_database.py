@@ -656,7 +656,13 @@ def predict_spectrum(
                 "No experimental shift database has been built yet. "
                 "Build it from Tools > External Tools."
             ),
-            provenance=Provenance(created_by="core", method="hose_lookup"),
+            error_summary="Database not built",
+            # A fault with a remedy, like an unconfigured sidecar: coded so a
+            # view need not read it out of the sentence. Uncoded, it passed on
+            # every machine that had built the database and failed CI's
+            # multicomponent guard, which had not (round 5, PR #133).
+            provenance=Provenance(created_by="core", method="hose_lookup",
+                                  parameters={"refusal": "DATABASE_NOT_BUILT"}),
         )
 
     # Coded from the heavy-atom view, for the reason `heavy_atom_view`
@@ -715,7 +721,10 @@ def predict_spectrum(
                 f"No {element} environment in this molecule was found in the database. "
                 "That is a coverage gap, not a failure -- the ab initio path has no such limit."
             ),
-            provenance=Provenance(created_by="core", method="hose_lookup"),
+            # Its own sentence says it: a coverage gap, not a failure.
+            inapplicable=True,
+            provenance=Provenance(created_by="core", method="hose_lookup",
+                                  parameters={"refusal": "NO_DATABASE_ENVIRONMENT"}),
         )
 
     return NMRSpectrumResult(

@@ -20955,3 +20955,56 @@ its atom.
 **A categorical value's only readable form is its label, and a label must
 agree with what is drawn under it.** Both are now invariants with tests; the
 shot is what found that they were needed.
+
+## NO CALCULATOR HAD BEEN ASKED WHICH COMPONENT OF A SALT IT DESCRIBED
+
+Round 5, branch S. Found by accident once (a sodium salt got no results at
+all, branch B4), then asked on purpose: a panel of 29 structures, fixed and
+committed BEFORE any calculator ran over it, then all 59 registry calculators
+and the always-on set run over it through `build_service_container` -- the
+app's own service path, not the compute functions.
+
+**Every calculator got the whole drawing, and most answers were confidently
+wrong rather than refused.** Of 4116 cells, 2611 were values nobody could
+say the meaning of: metformin pamoate "failed Lipinski" on its C23
+counter-ion, sodium acetate's logP was -4.24 against acetic acid's 0.09, its
+logD reported "0 ionizable centres", eccentricity was 100000000 for every
+atom and the Wiener index 400000009 (RDKit's unreachable-pair sentinel,
+summed). Protonation dropped every inorganic ion and a heavy-atom check then
+refused the result.
+
+**The fix was a declaration, not 59 special cases.** `CalculatorScope`
+(which components, how aggregated, over what domain) on every definition,
+applied in ONE place -- `CalculatorRegistry.compute`, which Properties, Batch
+and the overlay all call -- by `chem/components.py`. And one rule, taken from
+a source rather than chosen: ChEMBL computes every property "but FULL_MWT and
+FULL_MOLFORMULA ... on the parent structure", and its GetParent rule is
+vendored verbatim. Re-deriving a salt stripper would have lost the cases that
+decide the hard rows: nothing is stripped when every component is a listed
+salt (sodium acetate) or none is (choline salicylate), and the rule applies
+only to MORE THAN ONE component, because the function also neutralises and
+would have turned a drawn zwitterion neutral.
+
+**Three traps, each a silent one:**
+
+- **ChEMBL's parent had never been ring-perceived.** It splits with
+  `sanitizeFrags=False` and only updates the property cache, so TPSA, CNS MPO
+  and the BBB inputs raised "RingInfo not initialized" on every salt the
+  first time this was wired. The parent is sanitised now.
+- **A per-atom value computed on the parent must land on the drawing's
+  atom, and hydrogens cannot.** Heavy atoms map back by component; a
+  hydrogen the calculator ADDED has no drawing atom once neutralisation has
+  changed the count, so `read_back` refuses rather than guessing, and the
+  atom-local tables (Crippen, Jensen) are scoped per component instead.
+- **The sweep wrote to the developer's real registry.** Handing the sidecar
+  interpreters to the suite, it built `PySide6.QtCore.QSettings(ORG, APP)`
+  inside pytest -- but the isolation fixture patches the name in
+  `openchem.app.settings`, not PySide's. It happened to write the two values
+  already there (the key timestamps confirmed nothing changed), and the
+  sidecars still read "not configured", which is how it was noticed. Inside
+  the suite, reach settings through `openchem.app.settings.QSettings`.
+
+**The panel is the guard now.** `tests/test_multicomponent_scope.py` runs 13
+of its rows through the real service and fails on any unscoped value, any
+uncoded refusal, or a distance sentinel; ten deliberate breaks were all
+caught.

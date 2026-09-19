@@ -40,6 +40,7 @@ from rdkit.Geometry import Point3D
 
 from openchem.chem.calculator_options import decimals
 from openchem.domain.alignment import EnsembleEntry
+from openchem.domain.calculator import INPUT_REQUIRED
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import StructureEntry, StructureSetResult
 
@@ -660,7 +661,7 @@ def align_ensemble(
     return entries
 
 
-def _failed(molecule_uuid: str, message: str) -> StructureSetResult:
+def _failed(molecule_uuid: str, message: str, code: str = "") -> StructureSetResult:
     return StructureSetResult(
         set_id="alignment_3d",
         name="3D Alignment",
@@ -669,7 +670,9 @@ def _failed(molecule_uuid: str, message: str) -> StructureSetResult:
         entries=[],
         cache_state=CacheState.FAILED,
         error=message,
-        provenance=Provenance(created_by="core", method="rdkit_o3a"),
+        # The code a view and the multicomponent guard read; an input the
+        # user must supply is INPUT_REQUIRED, a fault they can fix.
+        provenance=Provenance(created_by="core", method="rdkit_o3a", parameters={"refusal": code} if code else {}),
     )
 
 
@@ -690,6 +693,7 @@ def compute_3d_alignment(
         return _failed(
             molecule_uuid,
             "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+            INPUT_REQUIRED,
         )
     reference = Chem.MolFromSmiles(reference_smiles)
     if reference is None:

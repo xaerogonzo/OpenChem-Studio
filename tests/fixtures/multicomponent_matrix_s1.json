@@ -1,0 +1,5788 @@
+{
+ "note": "S1 matrix, measured 2026-09-19 on branch salts-sweep (from master e4249d9) through build_service_container; sidecars run in a second pass with the machine's configured interpreters. 'suspect' = a value on a multicomponent, metal or charged non-control row before any calculator declares a scope. 'answered' lists, per producer, the rows with at least one value or suspect result; every failed and inapplicable cell is kept in full.",
+ "rows": {
+  "sodium_acetate": {
+   "components": 2,
+   "metal": true,
+   "formal_charges": 2,
+   "conformer_error": ""
+  },
+  "acetic_acid": {
+   "components": 1,
+   "metal": false,
+   "formal_charges": 0,
+   "conformer_error": ""
+  },
+  "potassium_benzoate": {
+   "components": 2,
+   "metal": true,
+   "formal_charges": 2,
+   "conformer_error": ""
+  },
+  "benzoic_acid": {
+   "components": 1,
+   "metal": false,
+   "formal_charges": 0,
+   "conformer_error": ""
+  },
+  "lithium_propanoate": {
+   "components": 2,
+   "metal": true,
+   "formal_charges": 2,
+   "conformer_error": ""
+  },
+  "calcium_acetate": {
+   "components": 3,
+   "metal": true,
+   "formal_charges": 3,
+   "conformer_error": ""
+  },
+  "magnesium_succinate": {
+   "components": 2,
+   "metal": true,
+   "formal_charges": 3,
+   "conformer_error": ""
+  },
+  "succinic_acid": {
+   "components": 1,
+   "metal": false,
+   "formal_charges": 0,
+   "conformer_error": ""
+  },
+  "trisodium_citrate": {
+   "components": 4,
+   "metal": true,
+   "formal_charges": 6,
+   "conformer_error": ""
+  },
+  "sodium_phenolate": {
+   "components": 2,
+   "metal": true,
+   "formal_charges": 2,
+   "conformer_error": ""
+  },
+  "phenol": {
+   "components": 1,
+   "metal": false,
+   "formal_charges": 0,
+   "conformer_error": ""
+  },
+  "sodium_benzenesulfonate": {
+   "components": 2,
+   "metal": true,
+   "formal_charges": 2,
+   "conformer_error": ""
+  },
+  "tetramethylammonium_bromide": {
+   "components": 2,
+   "metal": false,
+   "formal_charges": 2,
+   "conformer_error": ""
+  },
+  "methylammonium_chloride": {
+   "components": 2,
+   "metal": false,
+   "formal_charges": 2,
+   "conformer_error": ""
+  },
+  "metformin_hcl": {
+   "components": 2,
+   "metal": false,
+   "formal_charges": 0,
+   "conformer_error": ""
+  },
+  "metformin": {
+   "components": 1,
+   "metal": false,
+   "formal_charges": 0,
+   "conformer_error": ""
+  },
+  "choline_salicylate": {
+   "components": 2,
+   "metal": false,
+   "formal_charges": 2,
+   "conformer_error": ""
+  },
+  "chlorphenamine_maleate": {
+   "components": 2,
+   "metal": false,
+   "formal_charges": 0,
+   "conformer_error": ""
+  },
+  "metformin_pamoate": {
+   "components": 2,
+   "metal": false,
+   "formal_charges": 2,
+   "conformer_error": ""
+  },
+  "sertraline_hcl": {
+   "components": 2,
+   "metal": false,
+   "formal_charges": 0,
+   "conformer_error": ""
+  },
+  "sertraline": {
+   "components": 1,
+   "metal": false,
+   "formal_charges": 0,
+   "conformer_error": ""
+  },
+  "glycine_zwitterion": {
+   "components": 1,
+   "metal": false,
+   "formal_charges": 2,
+   "conformer_error": ""
+  },
+  "glycine": {
+   "components": 1,
+   "metal": false,
+   "formal_charges": 0,
+   "conformer_error": ""
+  },
+  "caffeine_hydrate": {
+   "components": 2,
+   "metal": false,
+   "formal_charges": 0,
+   "conformer_error": ""
+  },
+  "caffeine": {
+   "components": 1,
+   "metal": false,
+   "formal_charges": 0,
+   "conformer_error": ""
+  },
+  "sodium_chloride": {
+   "components": 2,
+   "metal": true,
+   "formal_charges": 2,
+   "conformer_error": ""
+  },
+  "ionic_ferrocene": {
+   "components": 3,
+   "metal": true,
+   "formal_charges": 3,
+   "conformer_error": ""
+  },
+  "bonded_ferrocene": {
+   "components": 1,
+   "metal": true,
+   "formal_charges": 0,
+   "conformer_error": ""
+  }
+ },
+ "calculators": [
+  "admet_ml",
+  "alignment_3d",
+  "atom_sasa",
+  "atomic_polarizability",
+  "bbb_descriptors",
+  "bird_aromaticity",
+  "cns_mpo",
+  "crippen_logp_contrib",
+  "crippen_mr_contrib",
+  "detonation",
+  "dipole_moment",
+  "elemental_analysis",
+  "functional_groups",
+  "gasteiger_charge_at_ph",
+  "geometry_analysis",
+  "geometry_partial_charge",
+  "griffin_hlb",
+  "hansen_solubility",
+  "hbond_vs_ph",
+  "homa_aromaticity",
+  "huckel_analysis",
+  "huckel_pi_density",
+  "interaction_analysis",
+  "isoelectric_point",
+  "iupac_name",
+  "joback_properties",
+  "lewis_adduct",
+  "lewis_sites",
+  "locants",
+  "logd",
+  "major_microspecies",
+  "markush_enumeration",
+  "mass_spectrum",
+  "molecular_dynamics",
+  "nmr_database",
+  "orbital_electronegativity",
+  "oxidation_states",
+  "oxygen_balance",
+  "pka",
+  "pka_microspecies",
+  "polar_surface_area",
+  "polarizability",
+  "regulatory_screen",
+  "resonance_forms",
+  "ring_systems",
+  "solubility",
+  "stereo_descriptors",
+  "stereocenters",
+  "stereoisomers",
+  "steric_analysis",
+  "structural_frameworks",
+  "substance_analysis",
+  "substructure_search",
+  "surface_analysis",
+  "tautomers",
+  "topology_analysis",
+  "topology_distance_degree",
+  "topology_eccentricity",
+  "tsei_projection"
+ ],
+ "timeouts": [],
+ "answered": {
+  "admet_ml": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "atom_sasa": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "atomic_polarizability": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "caffeine_hydrate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "sertraline_hcl",
+    "tetramethylammonium_bromide"
+   ]
+  },
+  "bbb_descriptors": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "bird_aromaticity": {
+   "value": [
+    "benzoic_acid",
+    "caffeine",
+    "phenol",
+    "sertraline"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "ionic_ferrocene",
+    "metformin_pamoate",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_benzenesulfonate",
+    "sodium_phenolate"
+   ]
+  },
+  "cns_mpo": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "crippen_logp_contrib": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "crippen_mr_contrib": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "dipole_moment": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "elemental_analysis": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "functional_groups": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "gasteiger_charge_at_ph": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "chlorphenamine_maleate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "metformin_hcl",
+    "sertraline_hcl",
+    "sodium_chloride",
+    "tetramethylammonium_bromide"
+   ]
+  },
+  "geometry_analysis": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "geometry_partial_charge": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "caffeine_hydrate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "metformin_pamoate"
+   ]
+  },
+  "hansen_solubility": {
+   "value": [
+    "benzoic_acid",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ]
+  },
+  "hbond_vs_ph": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "homa_aromaticity": {
+   "value": [
+    "benzoic_acid",
+    "caffeine",
+    "phenol",
+    "sertraline"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "ionic_ferrocene",
+    "metformin_pamoate",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_benzenesulfonate",
+    "sodium_phenolate"
+   ]
+  },
+  "huckel_analysis": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_phenolate",
+    "trisodium_citrate"
+   ]
+  },
+  "huckel_pi_density": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_phenolate",
+    "trisodium_citrate"
+   ]
+  },
+  "interaction_analysis": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "isoelectric_point": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "sertraline_hcl"
+   ]
+  },
+  "iupac_name": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "joback_properties": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ]
+  },
+  "lewis_sites": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "locants": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "logd": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "major_microspecies": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "chlorphenamine_maleate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "metformin_hcl",
+    "sertraline_hcl",
+    "sodium_chloride",
+    "tetramethylammonium_bromide"
+   ]
+  },
+  "mass_spectrum": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "molecular_dynamics": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "nmr_database": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "orbital_electronegativity": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "oxidation_states": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "oxygen_balance": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "caffeine_hydrate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "metformin_pamoate"
+   ]
+  },
+  "pka": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "pka_microspecies": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "sertraline_hcl"
+   ]
+  },
+  "polar_surface_area": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "polarizability": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "caffeine_hydrate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "sertraline_hcl",
+    "tetramethylammonium_bromide"
+   ]
+  },
+  "rdkit": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "regulatory_screen": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "resonance_forms": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "ring_systems": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "solubility": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "glycine_zwitterion"
+   ]
+  },
+  "stereo_descriptors": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "stereocenters": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "stereoisomers": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "steric_analysis": {
+   "value": [
+    "caffeine",
+    "glycine",
+    "metformin",
+    "sertraline"
+   ],
+   "suspect": [
+    "caffeine_hydrate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "sertraline_hcl",
+    "sodium_benzenesulfonate",
+    "tetramethylammonium_bromide"
+   ]
+  },
+  "structural_frameworks": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "substance_analysis": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "substructure_search": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "surface_analysis": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "tautomers": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "topology_analysis": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "topology_distance_degree": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "topology_eccentricity": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "bonded_ferrocene",
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  },
+  "tsei_projection": {
+   "value": [
+    "acetic_acid",
+    "benzoic_acid",
+    "caffeine",
+    "glycine",
+    "metformin",
+    "phenol",
+    "sertraline",
+    "succinic_acid"
+   ],
+   "suspect": [
+    "caffeine_hydrate",
+    "calcium_acetate",
+    "chlorphenamine_maleate",
+    "choline_salicylate",
+    "glycine_zwitterion",
+    "ionic_ferrocene",
+    "lithium_propanoate",
+    "magnesium_succinate",
+    "metformin_hcl",
+    "metformin_pamoate",
+    "methylammonium_chloride",
+    "potassium_benzoate",
+    "sertraline_hcl",
+    "sodium_acetate",
+    "sodium_benzenesulfonate",
+    "sodium_chloride",
+    "sodium_phenolate",
+    "tetramethylammonium_bromide",
+    "trisodium_citrate"
+   ]
+  }
+ },
+ "refused_or_failed": [
+  {
+   "row": "acetic_acid",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "acetic_acid",
+   "producer": "bird_aromaticity",
+   "result_id": "bird_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "acetic_acid",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NO_LOADING_DENSITY",
+   "error": "Kamlet-Jacobs needs the INITIAL LOADING DENSITY of the charge, in g/cm3, and there is no source-backed way to obtain it from a structure. It is not a predicted ",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "acetic_acid",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "acetic_acid",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "TOO_FEW_CARBONS",
+   "error": "the model needs three or more carbons -- 2 carbon(s)",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "acetic_acid",
+   "producer": "homa_aromaticity",
+   "result_id": "homa_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "acetic_acid",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "acetic_acid",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "acetic_acid",
+   "producer": "steric_analysis",
+   "result_id": "steric_analysis",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No donor atom found. These measures describe a LIGAND -- the structure needs an atom that could bind a metal (P, N, As, S, or a carbene carbon).",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "benzoic_acid",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "benzoic_acid",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NO_LOADING_DENSITY",
+   "error": "Kamlet-Jacobs needs the INITIAL LOADING DENSITY of the charge, in g/cm3, and there is no source-backed way to obtain it from a structure. It is not a predicted ",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "benzoic_acid",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "benzoic_acid",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "benzoic_acid",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "benzoic_acid",
+   "producer": "steric_analysis",
+   "result_id": "steric_analysis",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No donor atom found. These measures describe a LIGAND -- the structure needs an atom that could bind a metal (P, N, As, S, or a carbene carbon).",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "atomic_polarizability",
+   "result_id": "atomic_polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Fe",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Kamlet-Jacobs is stated for C/H/N/O explosives, and this structure contains Fe.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "geometry_partial_charge",
+   "result_id": "geometry_partial_charge",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED",
+   "error": "Bultinck et al. 2002 part I Table 1 has no parameters for Fe.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "UNCOVERED_ATOM",
+   "error": "an atom belongs to no Stefanis-Panayiotou group -- Fe at index 5 (0 H, 2 connections, not in a ring)",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "isoelectric_point",
+   "result_id": "isoelectric_point",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "UNCOVERED_ATOM",
+   "error": "Joback has no group for Fe at index 5 (0 H, 2 connections, not in a ring). The method is additive over a complete decomposition, so a partial sum would be a dif",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "lewis_sites",
+   "result_id": "lewis_sites",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Fe is bonded directly to carbon. In transition-metal organometallics the metal donates electrons back to the ligand, which a two-centre model cannot see -- it g",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "molecular_dynamics",
+   "result_id": "molecular_dynamics",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No MMFF or UFF parameters are available for this molecule.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "orbital_electronegativity",
+   "result_id": "orbital_electronegativity",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No atom in this molecule has Gasteiger-Marsili parameters.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "oxygen_balance",
+   "result_id": "oxygen_balance",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Oxygen balance as published is defined for C/H/N/O substances, and this structure contains Fe. Sulfur, the halogens and metals each need their own oxidation acc",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "pka_microspecies",
+   "result_id": "pka_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "polarizability",
+   "result_id": "polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Fe",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Fe (element 26). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Fe (element 26). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "steric_analysis",
+   "result_id": "steric_analysis",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No donor atom found. These measures describe a LIGAND -- the structure needs an atom that could bind a metal (P, N, As, S, or a carbene carbon).",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "bonded_ferrocene",
+   "producer": "tsei_projection",
+   "result_id": "tsei_projection",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Lange's Handbook Table 4.7 tabulates no covalent radius for Fe, and Cao-Liu TSEI needs one. Covered: Ag, Al, As, B, Be, Br, C, Cd, Cl, Cu, F, Ga, Ge, H, Hg, I, ",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "caffeine",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NO_LOADING_DENSITY",
+   "error": "Kamlet-Jacobs needs the INITIAL LOADING DENSITY of the charge, in g/cm3, and there is no source-backed way to obtain it from a structure. It is not a predicted ",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "UNCOVERED_ATOM",
+   "error": "an atom belongs to no Stefanis-Panayiotou group -- N at index 3 (0 H, 2 connections, in a ring), and 2 more",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine",
+   "producer": "isoelectric_point",
+   "result_id": "isoelectric_point",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "UNCOVERED_ATOM",
+   "error": "Joback has no group for N at index 1 (0 H, 3 connections, in a ring), and 2 more. The method is additive over a complete decomposition, so a partial sum would b",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine",
+   "producer": "pka_microspecies",
+   "result_id": "pka_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine_hydrate",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine_hydrate",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NO_LOADING_DENSITY",
+   "error": "Kamlet-Jacobs needs the INITIAL LOADING DENSITY of the charge, in g/cm3, and there is no source-backed way to obtain it from a structure. It is not a predicted ",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine_hydrate",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine_hydrate",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine_hydrate",
+   "producer": "isoelectric_point",
+   "result_id": "isoelectric_point",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine_hydrate",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine_hydrate",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine_hydrate",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine_hydrate",
+   "producer": "pka_microspecies",
+   "result_id": "pka_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "caffeine_hydrate",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "atomic_polarizability",
+   "result_id": "atomic_polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Ca",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "bird_aromaticity",
+   "result_id": "bird_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Kamlet-Jacobs is stated for C/H/N/O explosives, and this structure contains Ca.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "gasteiger_charge_at_ph",
+   "result_id": "gasteiger_charge_at_ph",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 4 heavy atoms where the drawing has 9",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "geometry_partial_charge",
+   "result_id": "geometry_partial_charge",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED",
+   "error": "Bultinck et al. 2002 part I Table 1 has no parameters for Ca.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "homa_aromaticity",
+   "result_id": "homa_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "isoelectric_point",
+   "result_id": "isoelectric_point",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "major_microspecies",
+   "result_id": "major_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 4 heavy atoms where the drawing has 9",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "oxygen_balance",
+   "result_id": "oxygen_balance",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Oxygen balance as published is defined for C/H/N/O substances, and this structure contains Ca. Sulfur, the halogens and metals each need their own oxidation acc",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "pka_microspecies",
+   "result_id": "pka_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "polarizability",
+   "result_id": "polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Ca",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Ca (element 20). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Ca (element 20). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "calcium_acetate",
+   "producer": "steric_analysis",
+   "result_id": "steric_analysis",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No donor atom found. These measures describe a LIGAND -- the structure needs an atom that could bind a metal (P, N, As, S, or a carbene carbon).",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "chlorphenamine_maleate",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "chlorphenamine_maleate",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Kamlet-Jacobs is stated for C/H/N/O explosives, and this structure contains Cl.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "chlorphenamine_maleate",
+   "producer": "geometry_partial_charge",
+   "result_id": "geometry_partial_charge",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED",
+   "error": "Bultinck et al. 2002 part I Table 1 has no parameters for Cl.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "chlorphenamine_maleate",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "chlorphenamine_maleate",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "chlorphenamine_maleate",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "chlorphenamine_maleate",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "chlorphenamine_maleate",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "chlorphenamine_maleate",
+   "producer": "oxygen_balance",
+   "result_id": "oxygen_balance",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Oxygen balance as published is defined for C/H/N/O substances, and this structure contains Cl. Sulfur, the halogens and metals each need their own oxidation acc",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "chlorphenamine_maleate",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "choline_salicylate",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "choline_salicylate",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NO_LOADING_DENSITY",
+   "error": "Kamlet-Jacobs needs the INITIAL LOADING DENSITY of the charge, in g/cm3, and there is no source-backed way to obtain it from a structure. It is not a predicted ",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "choline_salicylate",
+   "producer": "gasteiger_charge_at_ph",
+   "result_id": "gasteiger_charge_at_ph",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 10 heavy atoms where the drawing has 17",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "choline_salicylate",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "choline_salicylate",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "choline_salicylate",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "choline_salicylate",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "choline_salicylate",
+   "producer": "major_microspecies",
+   "result_id": "major_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 10 heavy atoms where the drawing has 17",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "choline_salicylate",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "choline_salicylate",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine",
+   "producer": "bird_aromaticity",
+   "result_id": "bird_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NO_LOADING_DENSITY",
+   "error": "Kamlet-Jacobs needs the INITIAL LOADING DENSITY of the charge, in g/cm3, and there is no source-backed way to obtain it from a structure. It is not a predicted ",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "TOO_FEW_CARBONS",
+   "error": "the model needs three or more carbons -- 2 carbon(s)",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine",
+   "producer": "homa_aromaticity",
+   "result_id": "homa_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has both acidic and basic centres, so it is an ampholyte. Henderson-Hasselbalch assumes the undissolved species is the one with no site ionized. A",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine_zwitterion",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine_zwitterion",
+   "producer": "bird_aromaticity",
+   "result_id": "bird_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine_zwitterion",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NO_LOADING_DENSITY",
+   "error": "Kamlet-Jacobs needs the INITIAL LOADING DENSITY of the charge, in g/cm3, and there is no source-backed way to obtain it from a structure. It is not a predicted ",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine_zwitterion",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine_zwitterion",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "TOO_FEW_CARBONS",
+   "error": "the model needs three or more carbons -- 2 carbon(s)",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine_zwitterion",
+   "producer": "homa_aromaticity",
+   "result_id": "homa_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine_zwitterion",
+   "producer": "isoelectric_point",
+   "result_id": "isoelectric_point",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine_zwitterion",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "UNCOVERED_ATOM",
+   "error": "Joback has no group for N at index 0 (3 H, 1 connections, not in a ring). The method is additive over a complete decomposition, so a partial sum would be a diff",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine_zwitterion",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine_zwitterion",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "glycine_zwitterion",
+   "producer": "pka_microspecies",
+   "result_id": "pka_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "ionic_ferrocene",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "ionic_ferrocene",
+   "producer": "atomic_polarizability",
+   "result_id": "atomic_polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Fe",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "ionic_ferrocene",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Kamlet-Jacobs is stated for C/H/N/O explosives, and this structure contains Fe.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "ionic_ferrocene",
+   "producer": "geometry_partial_charge",
+   "result_id": "geometry_partial_charge",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED",
+   "error": "Bultinck et al. 2002 part I Table 1 has no parameters for Fe.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "ionic_ferrocene",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "ionic_ferrocene",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "ionic_ferrocene",
+   "producer": "isoelectric_point",
+   "result_id": "isoelectric_point",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "ionic_ferrocene",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "ionic_ferrocene",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "ionic_ferrocene",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "ionic_ferrocene",
+   "producer": "oxygen_balance",
+   "result_id": "oxygen_balance",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Oxygen balance as published is defined for C/H/N/O substances, and this structure contains Fe. Sulfur, the halogens and metals each need their own oxidation acc",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "ionic_ferrocene",
+   "producer": "pka_microspecies",
+   "result_id": "pka_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "ionic_ferrocene",
+   "producer": "polarizability",
+   "result_id": "polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Fe",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "ionic_ferrocene",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Fe (element 26). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "ionic_ferrocene",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Fe (element 26). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "ionic_ferrocene",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "ionic_ferrocene",
+   "producer": "steric_analysis",
+   "result_id": "steric_analysis",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No donor atom found. These measures describe a LIGAND -- the structure needs an atom that could bind a metal (P, N, As, S, or a carbene carbon).",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "atomic_polarizability",
+   "result_id": "atomic_polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Li",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "bird_aromaticity",
+   "result_id": "bird_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Kamlet-Jacobs is stated for C/H/N/O explosives, and this structure contains Li.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "gasteiger_charge_at_ph",
+   "result_id": "gasteiger_charge_at_ph",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 5 heavy atoms where the drawing has 6",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "geometry_partial_charge",
+   "result_id": "geometry_partial_charge",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED",
+   "error": "Bultinck et al. 2002 part I Table 1 has no parameters for Li.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "homa_aromaticity",
+   "result_id": "homa_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "isoelectric_point",
+   "result_id": "isoelectric_point",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "major_microspecies",
+   "result_id": "major_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 5 heavy atoms where the drawing has 6",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "oxygen_balance",
+   "result_id": "oxygen_balance",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Oxygen balance as published is defined for C/H/N/O substances, and this structure contains Li. Sulfur, the halogens and metals each need their own oxidation acc",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "pka_microspecies",
+   "result_id": "pka_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "polarizability",
+   "result_id": "polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Li",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Li (element 3). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Li (element 3). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "lithium_propanoate",
+   "producer": "steric_analysis",
+   "result_id": "steric_analysis",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No donor atom found. These measures describe a LIGAND -- the structure needs an atom that could bind a metal (P, N, As, S, or a carbene carbon).",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "atomic_polarizability",
+   "result_id": "atomic_polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Mg",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "bird_aromaticity",
+   "result_id": "bird_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Kamlet-Jacobs is stated for C/H/N/O explosives, and this structure contains Mg.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "gasteiger_charge_at_ph",
+   "result_id": "gasteiger_charge_at_ph",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 8 heavy atoms where the drawing has 9",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "geometry_partial_charge",
+   "result_id": "geometry_partial_charge",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED",
+   "error": "Bultinck et al. 2002 part I Table 1 has no parameters for Mg.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "homa_aromaticity",
+   "result_id": "homa_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "isoelectric_point",
+   "result_id": "isoelectric_point",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "major_microspecies",
+   "result_id": "major_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 8 heavy atoms where the drawing has 9",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "oxygen_balance",
+   "result_id": "oxygen_balance",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Oxygen balance as published is defined for C/H/N/O substances, and this structure contains Mg. Sulfur, the halogens and metals each need their own oxidation acc",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "pka_microspecies",
+   "result_id": "pka_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "polarizability",
+   "result_id": "polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Mg",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Mg (element 12). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Mg (element 12). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "magnesium_succinate",
+   "producer": "steric_analysis",
+   "result_id": "steric_analysis",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No donor atom found. These measures describe a LIGAND -- the structure needs an atom that could bind a metal (P, N, As, S, or a carbene carbon).",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin",
+   "producer": "bird_aromaticity",
+   "result_id": "bird_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NO_LOADING_DENSITY",
+   "error": "Kamlet-Jacobs needs the INITIAL LOADING DENSITY of the charge, in g/cm3, and there is no source-backed way to obtain it from a structure. It is not a predicted ",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "UNCOVERED_ATOM",
+   "error": "an atom belongs to no Stefanis-Panayiotou group -- N at index 7 (2 H, 1 connections, not in a ring), and 1 more",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin",
+   "producer": "homa_aromaticity",
+   "result_id": "homa_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_hcl",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_hcl",
+   "producer": "bird_aromaticity",
+   "result_id": "bird_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_hcl",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Kamlet-Jacobs is stated for C/H/N/O explosives, and this structure contains Cl.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_hcl",
+   "producer": "geometry_partial_charge",
+   "result_id": "geometry_partial_charge",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED",
+   "error": "Bultinck et al. 2002 part I Table 1 has no parameters for Cl.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_hcl",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_hcl",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_hcl",
+   "producer": "homa_aromaticity",
+   "result_id": "homa_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_hcl",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_hcl",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_hcl",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_hcl",
+   "producer": "oxygen_balance",
+   "result_id": "oxygen_balance",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Oxygen balance as published is defined for C/H/N/O substances, and this structure contains Cl. Sulfur, the halogens and metals each need their own oxidation acc",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_hcl",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_pamoate",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_pamoate",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NO_LOADING_DENSITY",
+   "error": "Kamlet-Jacobs needs the INITIAL LOADING DENSITY of the charge, in g/cm3, and there is no source-backed way to obtain it from a structure. It is not a predicted ",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_pamoate",
+   "producer": "gasteiger_charge_at_ph",
+   "result_id": "gasteiger_charge_at_ph",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 29 heavy atoms where the drawing has 38",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "metformin_pamoate",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_pamoate",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_pamoate",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_pamoate",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_pamoate",
+   "producer": "major_microspecies",
+   "result_id": "major_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 29 heavy atoms where the drawing has 38",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "metformin_pamoate",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "metformin_pamoate",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "bird_aromaticity",
+   "result_id": "bird_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Kamlet-Jacobs is stated for C/H/N/O explosives, and this structure contains Cl.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "gasteiger_charge_at_ph",
+   "result_id": "gasteiger_charge_at_ph",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 2 heavy atoms where the drawing has 3",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "geometry_partial_charge",
+   "result_id": "geometry_partial_charge",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED",
+   "error": "Bultinck et al. 2002 part I Table 1 has no parameters for Cl.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "homa_aromaticity",
+   "result_id": "homa_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "huckel_analysis",
+   "result_id": "huckel_analysis",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no conjugated pi system (needs at least two atoms in double, triple or aromatic bonds).",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "huckel_pi_density",
+   "result_id": "huckel_pi_density",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no conjugated pi system (needs at least two atoms in double, triple or aromatic bonds).",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "isoelectric_point",
+   "result_id": "isoelectric_point",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "major_microspecies",
+   "result_id": "major_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 2 heavy atoms where the drawing has 3",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "oxygen_balance",
+   "result_id": "oxygen_balance",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Oxygen balance as published is defined for C/H/N/O substances, and this structure contains Cl. Sulfur, the halogens and metals each need their own oxidation acc",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "pka_microspecies",
+   "result_id": "pka_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "methylammonium_chloride",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "phenol",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "phenol",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NO_LOADING_DENSITY",
+   "error": "Kamlet-Jacobs needs the INITIAL LOADING DENSITY of the charge, in g/cm3, and there is no source-backed way to obtain it from a structure. It is not a predicted ",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "phenol",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "phenol",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "phenol",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "phenol",
+   "producer": "steric_analysis",
+   "result_id": "steric_analysis",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No donor atom found. These measures describe a LIGAND -- the structure needs an atom that could bind a metal (P, N, As, S, or a carbene carbon).",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "atomic_polarizability",
+   "result_id": "atomic_polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: K",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Kamlet-Jacobs is stated for C/H/N/O explosives, and this structure contains K.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "gasteiger_charge_at_ph",
+   "result_id": "gasteiger_charge_at_ph",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 9 heavy atoms where the drawing has 10",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "geometry_partial_charge",
+   "result_id": "geometry_partial_charge",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED",
+   "error": "Bultinck et al. 2002 part I Table 1 has no parameters for K.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "isoelectric_point",
+   "result_id": "isoelectric_point",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "major_microspecies",
+   "result_id": "major_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 9 heavy atoms where the drawing has 10",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "oxygen_balance",
+   "result_id": "oxygen_balance",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Oxygen balance as published is defined for C/H/N/O substances, and this structure contains K. Sulfur, the halogens and metals each need their own oxidation acco",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "pka_microspecies",
+   "result_id": "pka_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "polarizability",
+   "result_id": "polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: K",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for K (element 19). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for K (element 19). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "potassium_benzoate",
+   "producer": "steric_analysis",
+   "result_id": "steric_analysis",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No donor atom found. These measures describe a LIGAND -- the structure needs an atom that could bind a metal (P, N, As, S, or a carbene carbon).",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sertraline",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sertraline",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Kamlet-Jacobs is stated for C/H/N/O explosives, and this structure contains Cl.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sertraline",
+   "producer": "geometry_partial_charge",
+   "result_id": "geometry_partial_charge",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED",
+   "error": "Bultinck et al. 2002 part I Table 1 has no parameters for Cl.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sertraline",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sertraline",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sertraline",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sertraline",
+   "producer": "oxygen_balance",
+   "result_id": "oxygen_balance",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Oxygen balance as published is defined for C/H/N/O substances, and this structure contains Cl. Sulfur, the halogens and metals each need their own oxidation acc",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sertraline_hcl",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sertraline_hcl",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Kamlet-Jacobs is stated for C/H/N/O explosives, and this structure contains Cl.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sertraline_hcl",
+   "producer": "geometry_partial_charge",
+   "result_id": "geometry_partial_charge",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED",
+   "error": "Bultinck et al. 2002 part I Table 1 has no parameters for Cl.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sertraline_hcl",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sertraline_hcl",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sertraline_hcl",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sertraline_hcl",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sertraline_hcl",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sertraline_hcl",
+   "producer": "oxygen_balance",
+   "result_id": "oxygen_balance",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Oxygen balance as published is defined for C/H/N/O substances, and this structure contains Cl. Sulfur, the halogens and metals each need their own oxidation acc",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sertraline_hcl",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "atomic_polarizability",
+   "result_id": "atomic_polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Na",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "bird_aromaticity",
+   "result_id": "bird_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Kamlet-Jacobs is stated for C/H/N/O explosives, and this structure contains Na.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "gasteiger_charge_at_ph",
+   "result_id": "gasteiger_charge_at_ph",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 4 heavy atoms where the drawing has 5",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "geometry_partial_charge",
+   "result_id": "geometry_partial_charge",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED",
+   "error": "Bultinck et al. 2002 part I Table 1 has no parameters for Na.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "homa_aromaticity",
+   "result_id": "homa_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "isoelectric_point",
+   "result_id": "isoelectric_point",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "major_microspecies",
+   "result_id": "major_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 4 heavy atoms where the drawing has 5",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "oxygen_balance",
+   "result_id": "oxygen_balance",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Oxygen balance as published is defined for C/H/N/O substances, and this structure contains Na. Sulfur, the halogens and metals each need their own oxidation acc",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "pka_microspecies",
+   "result_id": "pka_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "polarizability",
+   "result_id": "polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Na",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Na (element 11). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Na (element 11). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_acetate",
+   "producer": "steric_analysis",
+   "result_id": "steric_analysis",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No donor atom found. These measures describe a LIGAND -- the structure needs an atom that could bind a metal (P, N, As, S, or a carbene carbon).",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "atomic_polarizability",
+   "result_id": "atomic_polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Na",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Kamlet-Jacobs is stated for C/H/N/O explosives, and this structure contains Na, S.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "gasteiger_charge_at_ph",
+   "result_id": "gasteiger_charge_at_ph",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 10 heavy atoms where the drawing has 11",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "geometry_partial_charge",
+   "result_id": "geometry_partial_charge",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED",
+   "error": "Bultinck et al. 2002 part I Table 1 has no parameters for Na, S.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "isoelectric_point",
+   "result_id": "isoelectric_point",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "major_microspecies",
+   "result_id": "major_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 10 heavy atoms where the drawing has 11",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "oxygen_balance",
+   "result_id": "oxygen_balance",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Oxygen balance as published is defined for C/H/N/O substances, and this structure contains Na, S. Sulfur, the halogens and metals each need their own oxidation ",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "pka_microspecies",
+   "result_id": "pka_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "polarizability",
+   "result_id": "polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Na",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Na (element 11). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Na (element 11). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_benzenesulfonate",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "atomic_polarizability",
+   "result_id": "atomic_polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Na",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "bird_aromaticity",
+   "result_id": "bird_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Kamlet-Jacobs is stated for C/H/N/O explosives, and this structure contains Cl, Na.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "geometry_partial_charge",
+   "result_id": "geometry_partial_charge",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED",
+   "error": "Bultinck et al. 2002 part I Table 1 has no parameters for Cl, Na.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "homa_aromaticity",
+   "result_id": "homa_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "huckel_analysis",
+   "result_id": "huckel_analysis",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no conjugated pi system (needs at least two atoms in double, triple or aromatic bonds).",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "huckel_pi_density",
+   "result_id": "huckel_pi_density",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no conjugated pi system (needs at least two atoms in double, triple or aromatic bonds).",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "isoelectric_point",
+   "result_id": "isoelectric_point",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "nmr_database",
+   "result_id": "nmr_13c",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No C environment in this molecule was found in the database. That is a coverage gap, not a failure -- the ab initio path has no such limit.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "oxygen_balance",
+   "result_id": "oxygen_balance",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Oxygen balance as published is defined for C/H/N/O substances, and this structure contains Cl, Na. Sulfur, the halogens and metals each need their own oxidation",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "pka_microspecies",
+   "result_id": "pka_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "polarizability",
+   "result_id": "polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Na",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Na (element 11). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Na (element 11). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:np_likeness",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "None of this molecule's fragments appear in the NP-likeness training corpus, so no score can be given -- an unfound fragment contributes nothing to the sum, so ",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:np_likeness",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "None of this molecule's fragments appear in the NP-likeness training corpus, so no score can be given -- an unfound fragment contributes nothing to the sum, so ",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_chloride",
+   "producer": "steric_analysis",
+   "result_id": "steric_analysis",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No donor atom found. These measures describe a LIGAND -- the structure needs an atom that could bind a metal (P, N, As, S, or a carbene carbon).",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "atomic_polarizability",
+   "result_id": "atomic_polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Na",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Kamlet-Jacobs is stated for C/H/N/O explosives, and this structure contains Na.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "gasteiger_charge_at_ph",
+   "result_id": "gasteiger_charge_at_ph",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 7 heavy atoms where the drawing has 8",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "geometry_partial_charge",
+   "result_id": "geometry_partial_charge",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED",
+   "error": "Bultinck et al. 2002 part I Table 1 has no parameters for Na.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "isoelectric_point",
+   "result_id": "isoelectric_point",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "major_microspecies",
+   "result_id": "major_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 7 heavy atoms where the drawing has 8",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "oxygen_balance",
+   "result_id": "oxygen_balance",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Oxygen balance as published is defined for C/H/N/O substances, and this structure contains Na. Sulfur, the halogens and metals each need their own oxidation acc",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "pka_microspecies",
+   "result_id": "pka_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "polarizability",
+   "result_id": "polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Na",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Na (element 11). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Na (element 11). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "sodium_phenolate",
+   "producer": "steric_analysis",
+   "result_id": "steric_analysis",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No donor atom found. These measures describe a LIGAND -- the structure needs an atom that could bind a metal (P, N, As, S, or a carbene carbon).",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "succinic_acid",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "succinic_acid",
+   "producer": "bird_aromaticity",
+   "result_id": "bird_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "succinic_acid",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NO_LOADING_DENSITY",
+   "error": "Kamlet-Jacobs needs the INITIAL LOADING DENSITY of the charge, in g/cm3, and there is no source-backed way to obtain it from a structure. It is not a predicted ",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "succinic_acid",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "succinic_acid",
+   "producer": "homa_aromaticity",
+   "result_id": "homa_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "succinic_acid",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "succinic_acid",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "succinic_acid",
+   "producer": "steric_analysis",
+   "result_id": "steric_analysis",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No donor atom found. These measures describe a LIGAND -- the structure needs an atom that could bind a metal (P, N, As, S, or a carbene carbon).",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "tetramethylammonium_bromide",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "tetramethylammonium_bromide",
+   "producer": "bird_aromaticity",
+   "result_id": "bird_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "tetramethylammonium_bromide",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Kamlet-Jacobs is stated for C/H/N/O explosives, and this structure contains Br.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "tetramethylammonium_bromide",
+   "producer": "geometry_partial_charge",
+   "result_id": "geometry_partial_charge",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED",
+   "error": "Bultinck et al. 2002 part I Table 1 has no parameters for Br.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "tetramethylammonium_bromide",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "tetramethylammonium_bromide",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "tetramethylammonium_bromide",
+   "producer": "homa_aromaticity",
+   "result_id": "homa_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "tetramethylammonium_bromide",
+   "producer": "huckel_analysis",
+   "result_id": "huckel_analysis",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no conjugated pi system (needs at least two atoms in double, triple or aromatic bonds).",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "tetramethylammonium_bromide",
+   "producer": "huckel_pi_density",
+   "result_id": "huckel_pi_density",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no conjugated pi system (needs at least two atoms in double, triple or aromatic bonds).",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "tetramethylammonium_bromide",
+   "producer": "isoelectric_point",
+   "result_id": "isoelectric_point",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "tetramethylammonium_bromide",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "tetramethylammonium_bromide",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "tetramethylammonium_bromide",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "tetramethylammonium_bromide",
+   "producer": "oxygen_balance",
+   "result_id": "oxygen_balance",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Oxygen balance as published is defined for C/H/N/O substances, and this structure contains Br. Sulfur, the halogens and metals each need their own oxidation acc",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "tetramethylammonium_bromide",
+   "producer": "pka_microspecies",
+   "result_id": "pka_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "tetramethylammonium_bromide",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "alignment_3d",
+   "result_id": "alignment_3d",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Enter a reference structure as SMILES -- this molecule will be aligned onto it.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "atomic_polarizability",
+   "result_id": "atomic_polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Na",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "bird_aromaticity",
+   "result_id": "bird_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "detonation",
+   "result_id": "detonation",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Kamlet-Jacobs is stated for C/H/N/O explosives, and this structure contains Na.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "gasteiger_charge_at_ph",
+   "result_id": "gasteiger_charge_at_ph",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 13 heavy atoms where the drawing has 16",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "geometry_partial_charge",
+   "result_id": "geometry_partial_charge",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "REFUSE_ELEMENT_NOT_PARAMETERISED",
+   "error": "Bultinck et al. 2002 part I Table 1 has no parameters for Na.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "griffin_hlb",
+   "result_id": "griffin_hlb",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NO_POLYOXYETHYLENE",
+   "error": "Griffin's HLB is defined for nonionic surfactants with polyoxyethylene as the sole hydrophilic moiety, and this structure has no polyoxyethylene chain. A number",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "hansen_solubility",
+   "result_id": "hansen_solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "more than one disconnected fragment",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "homa_aromaticity",
+   "result_id": "homa_aromaticity",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "NO_RINGS",
+   "error": "the structure has no rings",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "isoelectric_point",
+   "result_id": "isoelectric_point",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "joback_properties",
+   "result_id": "joback_properties",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_A_PURE_COMPONENT",
+   "error": "Joback estimates properties of a pure component, and this structure is more than one disconnected fragment.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "lewis_adduct",
+   "result_id": "lewis_adduct",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "Choose or enter the partner molecule in this calculator's settings. An adduct needs two molecules and this one only has one.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "major_microspecies",
+   "result_id": "major_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "The protonated form has 13 heavy atoms where the drawing has 16",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "markush_enumeration",
+   "result_id": "markush_enumeration",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has no R-group attachment points. Draw them as dummy atoms with a map number -- [*:1], [*:2] -- to mark where substituents attach.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "oxygen_balance",
+   "result_id": "oxygen_balance",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "NOT_CHNO",
+   "error": "Oxygen balance as published is defined for C/H/N/O substances, and this structure contains Na. Sulfur, the halogens and metals each need their own oxidation acc",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "pka_microspecies",
+   "result_id": "pka_microspecies",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This molecule has no ionizable centre, so nothing varies with pH.",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "polarizability",
+   "result_id": "polarizability",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No Jensen polarizability parameter for: Na",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "drawing",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Na (element 11). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "rdkit",
+   "result_id": "descriptor:rdkit:mcgowan_volume",
+   "input": "geometry",
+   "outcome": "inapplicable",
+   "refusal": "",
+   "error": "No McGowan atomic volume for Na (element 11). The published set covers H, B, C, N, O, F, Si, P, S, Cl, Br and I.",
+   "fails_on_a_control_too": false
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "solubility",
+   "result_id": "solubility",
+   "input": "drawing",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "This structure has more than one component. A salt or mixture is already the species the pH correction models forming, so applying it again would answer a diffe",
+   "fails_on_a_control_too": true
+  },
+  {
+   "row": "trisodium_citrate",
+   "producer": "steric_analysis",
+   "result_id": "steric_analysis",
+   "input": "geometry",
+   "outcome": "failed",
+   "refusal": "",
+   "error": "No donor atom found. These measures describe a LIGAND -- the structure needs an atom that could bind a metal (P, N, As, S, or a carbene carbon).",
+   "fails_on_a_control_too": true
+  }
+ ]
+}

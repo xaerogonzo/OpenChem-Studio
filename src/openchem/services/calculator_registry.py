@@ -4,6 +4,7 @@ from typing import Any
 
 from rdkit import Chem
 
+from openchem.chem import components
 from openchem.domain.calculator import CalculatorDefinition, RegistryExecution, active_parameters
 from openchem.domain.common import ScientificResult
 
@@ -60,7 +61,19 @@ class CalculatorRegistry:
                 f"service/panel ({execution.panel_name}) instead."
             )
         # A greyed-out parameter never reaches the calculator, whichever route asked.
-        return execution.compute(mol, molecule_uuid, active_parameters(definition, parameters))
+        active = active_parameters(definition, parameters)
+        if definition.scope is None:
+            # Unscoped: today's behaviour, the whole drawing. The registry
+            # guard (tests/test_multicomponent_scope.py) keeps every shipped
+            # definition out of this branch; a test double may still use it.
+            return execution.compute(mol, molecule_uuid, active)
+        # WHICH COMPONENTS, decided HERE and nowhere else, so Properties,
+        # Batch and the 3D overlay cannot select differently. A refusal
+        # raises `CalculationRefusal` with its code, which each caller
+        # already catches as a calculator failure.
+        selection = components.select(mol, definition.scope, definition.display_name)
+        result = execution.compute(selection.mol, molecule_uuid, active)
+        return components.read_back(result, definition.scope, selection)
 
     def by_category(self, category: str) -> list[CalculatorDefinition]:
         return [d for d in self._definitions.values() if d.category == category]
