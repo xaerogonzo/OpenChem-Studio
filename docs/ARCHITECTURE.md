@@ -899,6 +899,32 @@ document may cite a file or a test that does not exist.
   tool tab's controls, then dropping that skip.
 
 
+- **OPEN** -- a salt with no single ChEMBL parent has no compound
+  properties. Round 5 scoped every calculator (`CalculatorScope`,
+  `chem/components.py`), and a compound property is computed on ChEMBL's
+  parent -- which does not exist when every component is a listed salt
+  (sodium acetate, NaCl, trisodium citrate) or none is (choline
+  salicylate). Those properties refuse with `MULTICOMPONENT_UNSUPPORTED`
+  rather than describe the ions together. The fix wanted is a rule for a
+  metal cation beside a listed organic anion (the organic ion is the
+  species meant), or a user-designated component; either needs a source or
+  an explicit choice, not a heuristic. See SCIENTIFIC_LIMITATIONS, "Salts,
+  hydrates and mixtures".
+
+- **OPEN** -- a hydrate is refused by the pure-component methods.
+  Solubility, Joback and Hansen are scoped `REFUSE_MULTICOMPONENT` because
+  a salt is a different substance from its parent -- a reason that does not
+  cover water of crystallisation, so caffeine hydrate is refused where
+  caffeine's answer is the one wanted. The fix is to strip listed solvents
+  (ChEMBL's solvent list is already vendored) before that refusal.
+
+- **OPEN** -- a parent-scoped per-atom calculator cannot add hydrogens.
+  `components.read_back` maps a parent's heavy atoms back onto the drawing,
+  but a hydrogen the calculator added has no drawing atom once
+  neutralisation has changed the count, so the result is refused rather
+  than mapped wrongly. No shipped calculator hits it: the two that add
+  hydrogens (Crippen and Jensen per-atom) are scoped per component instead.
+
 - **DECISION** -- the 3D alignment overlay has ONE pane with a colour
   mode, not ChemAxon's two side-by-side views. Requested from a
   MarvinSpace screenshot on 2026-08-25, showing the same overlay twice --
