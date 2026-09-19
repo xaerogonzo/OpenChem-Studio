@@ -830,7 +830,7 @@ def test_the_functional_groups_alert_arrives_under_the_section_ITS_PRODUCER_name
     assert report is not None
     assert report.category == alert.category
     rendered = " ".join(f"{f.label}: {f.display_value}" for f in report.facts)
-    assert "Ester" in rendered, rendered
+    assert "carboxylic ester (1)" in rendered, rendered
 
 
 # --- three more claims the rows were carrying ----------------------------

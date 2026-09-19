@@ -280,11 +280,9 @@ def test_functional_groups_on_aspirin():
     # (they overwrote each other in the result store), but they are still the
     # same subject and must still be filed in the same section.
     assert groups.category == registered["functional_groups"]
-    assert any(g.startswith("Ester") for g in groups.matched)
-    assert any(g.startswith("Carboxylic Acid") for g in groups.matched)
-    assert any(g.startswith("Benzene Ring") for g in groups.matched)
-    # Aspirin's phenol oxygen is esterified -- must NOT show as a free phenol.
-    assert not any(g.startswith("Phenol") for g in groups.matched)
+    # Vocabulary v2's labels, in declared order then rings. Aspirin's phenol
+    # oxygen is esterified -- it must NOT count as a free phenol.
+    assert groups.matched == ["carboxylic acid (1)", "carboxylic ester (1)", "benzene ring (1)"]
 
 
 def test_functional_groups_empty_for_a_bare_alkane():
@@ -659,3 +657,43 @@ def test_a_descriptor_that_succeeds_carries_neither():
 
     assert values["np_likeness"].error is None
     assert values["np_likeness"].error_summary is None
+
+
+@pytest.mark.parametrize(
+    "smiles,expected",
+    [
+        # The Fragment Counts PROJECTION: a lactone counted once, as a lactone
+        # (v1: "Ester (1)", "Ether (1)"); an acetal once, not two ethers; a
+        # carboxylate under its own label (v1: "Carboxylic Acid (1)"); a
+        # pyridine N as its ring, not a tertiary amine (v1 said it was one).
+        ("O=C1CCCO1", ["lactone (1)", "oxolane ring (1)"]),
+        ("CC(OC)OC", ["acetal (1)"]),
+        ("CC(=O)[O-].[Na+]", ["carboxylate (1)"]),
+        ("c1ccncc1", ["pyridine ring (1)"]),
+    ],
+)
+def test_fragment_counts_count_the_projection_not_every_detection(smiles, expected):
+    provider = RDKitDescriptorProvider()
+    alerts = {a.alert_id: a for a in provider.compute_alerts(Chem.MolFromSmiles(smiles), "m")}
+    assert alerts["fragment_counts"].matched == expected
+    assert alerts["fragment_counts"].provenance.method == "structural-features-v2"
+
+
+@pytest.mark.parametrize(
+    "smiles,element",
+    [
+        ("[Na+].[Cl-]", "Na"), ("[K+].CC(=O)[O-]", "K"), ("[Li+].[Li+].[O-]C([O-])=O", "Li"),
+        ("[Ca+2].[Cl-].[Cl-]", "Ca"), ("C[Mg]Br", "Mg"), ("[CH-]1C=CC=C1.[CH-]1C=CC=C1.[Fe+2]", "Fe"),
+        ("N[Pt](N)(Cl)Cl", "Pt"), ("C[Se]C", "Se"), ("C[As](C)C", "As"),
+    ],
+)
+def test_an_element_outside_mcgowans_set_refuses_only_the_mcgowan_volume(smiles, element):
+    """Measured over salts and metal-containing structures (2026-09-18): the
+    McGowan volume was the ONE eager descriptor that raised, and it took the
+    whole provider down. It is a limit of the method, so it is inapplicable,
+    and it names the element."""
+    values = {v.descriptor_id: v for v in RDKitDescriptorProvider().compute(Chem.MolFromSmiles(smiles), "m")}
+    mcgowan = values["mcgowan_volume"]
+    assert mcgowan.cache_state == CacheState.FAILED and mcgowan.inapplicable
+    assert mcgowan.value is None and f"for {element} (element" in mcgowan.error
+    assert values["mol_wt"].cache_state == CacheState.COMPLETED

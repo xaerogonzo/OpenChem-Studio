@@ -21,6 +21,7 @@ from __future__ import annotations
 from typing import Any, Callable, Iterable
 
 from openchem.domain.atom_report import AtomFact, AtomReport, FactCategory, FactLink
+from openchem.chem.atom_identity import POLICY_SAME_SPACE
 from openchem.domain.scientific_result import PerAtomDataset, SpectrumResult
 from openchem.domain.structure_issue import Basis, StructureIssue
 
@@ -245,6 +246,42 @@ def per_atom_display(value: float) -> str:
     return f"{value:.4g}"
 
 
+def _is_categorical(dataset: PerAtomDataset) -> bool:
+    provenance = getattr(dataset, "provenance", None)
+    return bool(provenance and (provenance.parameters or {}).get("scale") == "categorical")
+
+
+def categorical_display(dataset: PerAtomDataset, index: int, value: float, same_space: bool) -> str:
+    """What a CATEGORICAL per-atom value means at this atom, in words.
+
+    A category id is how an atom got its colour; printed, it read
+    "Functional Groups: 1" (measured 2026-09-18). The dataset already says
+    what each id is (`category_labels`).
+
+    Where it carries its feature INSTANCES (Functional Groups) and they are in
+    the drawing's index space, every feature on the atom is listed, the
+    primary ones first and the rest marked: the Atom Inspector projection of
+    vocabulary v2 hides nothing (`feature_vocabulary.PROJECTION_POLICY`), so
+    an acetal oxygen reads "acetal; ether (non-primary)". Read from the
+    result, never re-detected: the one-detection contract
+    (docs/ARCHITECTURE.md). Off the drawing's index space only the value is
+    safe to read, so only its label is shown.
+    """
+    parameters = dataset.provenance.parameters or {}
+    records = parameters.get("features") if same_space else None
+    if records:
+        here = [r for r in records if index in r.get("atoms", ())]
+        primary = [r["label"] for r in here if r.get("atom_inspector_view") != "shown_non_primary"]
+        other = [f"{r['label']} (non-primary)" for r in here
+                 if r.get("atom_inspector_view") == "shown_non_primary"]
+        if here:
+            return "; ".join(dict.fromkeys(primary + other))
+    labels = parameters.get("category_labels") or {}
+    category = int(round(value))
+    label = labels.get(category, labels.get(str(category)))
+    return str(label) if label is not None else per_atom_display(value)
+
+
 def collect_per_atom_data(mol: Any, index: int, context: dict) -> list[AtomFact]:
     """Whatever per-atom results have already arrived by event.
 
@@ -260,8 +297,10 @@ def collect_per_atom_data(mol: Any, index: int, context: dict) -> list[AtomFact]
     facts: list[AtomFact] = []
     for dataset in datasets:
         values = dataset.values
+        same_space = True
         if project is not None:
             projection = project(dataset)
+            same_space = projection.policy == POLICY_SAME_SPACE
             if projection.values is None:
                 # REFUSED, AND SAID ON THE ATOM. Reading the index as-is is
                 # exactly the wrong-atom display this exists to prevent.
@@ -283,7 +322,10 @@ def collect_per_atom_data(mol: Any, index: int, context: dict) -> list[AtomFact]
                 # The number alone: `units` is its own field and
                 # `Fact.value_with_units` joins them. Both fields carried it,
                 # and the inspector showed "-0.1394 e e".
-                display=per_atom_display(value),
+                display=(
+                    categorical_display(dataset, index, value, same_space)
+                    if _is_categorical(dataset) else per_atom_display(value)
+                ),
                 units=dataset.units,
                 link=FactLink(
                     target="calculator_inspector",

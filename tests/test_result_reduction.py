@@ -357,3 +357,20 @@ def test_the_prediction_basis_travels_onto_every_column_a_calculator_makes():
     )
     pairs = reduce_result(result, "admet_ml", "ADMET", prediction_basis="empirical")
     assert {column.prediction_basis for column, _cell in pairs} == {"empirical"}
+
+
+def test_fragment_counts_reach_a_batch_table_as_v2_with_their_method():
+    """The batch table computes Fragment Counts fresh, so a comparison holds
+    one method only; the cell carries that method in its provenance, so a
+    table exported beside an older one says which counts it holds."""
+    from rdkit import Chem
+
+    from openchem.chem.descriptor_providers import compute_fragment_group_alert
+    from openchem.chem.result_reduction import alert_catalog_columns
+
+    alert = compute_fragment_group_alert(Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O"), "m")
+    cells = {column.column_id: cell for column, cell in alert_catalog_columns(alert)}
+    matched = cells["alert:fragment_counts:matched"]
+    assert matched.text == "carboxylic acid (1); carboxylic ester (1); benzene ring (1)"
+    assert matched.provenance.method == "structural-features-v2"
+    assert cells["alert:fragment_counts:count"].value == 3.0

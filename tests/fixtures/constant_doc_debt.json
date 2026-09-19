@@ -69,7 +69,6 @@
     "src/openchem/chem/descriptor_providers.py::MUTAGENICITY_ALERT_NAME",
     "src/openchem/chem/descriptor_providers.py::_BASIC_AMINE_SMARTS",
     "src/openchem/chem/descriptor_providers.py::_DESCRIPTOR_SPECS",
-    "src/openchem/chem/descriptor_providers.py::_FUNCTIONAL_GROUP_SPECS",
     "src/openchem/chem/descriptor_providers.py::_HERG_RISK_NAME",
     "src/openchem/chem/descriptor_providers.py::_MUTAGENICITY_PATTERNS",
     "src/openchem/chem/descriptor_providers.py::_NP_NO_KNOWN_FRAGMENTS_ERROR",

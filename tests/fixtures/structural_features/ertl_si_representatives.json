@@ -1,0 +1,625 @@
+{
+ "_comment": "One representative molecule per category of Ertl 2017, Additional file 1 (the 768 ChEMBL functional groups; the article is CC BY 4.0 and, per its p. 1, its data carry the CC0 public-domain waiver), top 150 by prevalence. Built by writing R as ethyl, Cal as methyl, Car as phenyl, Nar as pyrrol-1-yl, and KEPT ONLY IF its Ertl category regenerates the listed one exactly; tests/test_ertl_crosscheck.py re-checks that. Molecules shared with the normative fixtures are dropped (plan B0: normative and Ertl-mapping fixtures are different molecules). Generated 2026-09-18.",
+ "representatives": [
+  {
+   "pseudo": "[R]N([R])C([R])=O",
+   "chembl_percent": 41.84,
+   "smiles": "CCC(=O)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]N([R])[R]",
+   "chembl_percent": 25.38,
+   "smiles": "CCN(CC)CC"
+  },
+  {
+   "pseudo": "[R]F",
+   "chembl_percent": 19.01,
+   "smiles": "CCF"
+  },
+  {
+   "pseudo": "[R]N[R]",
+   "chembl_percent": 15.28,
+   "smiles": "CCNCC"
+  },
+  {
+   "pseudo": "O[Cal]",
+   "chembl_percent": 10.23,
+   "smiles": "CO"
+  },
+  {
+   "pseudo": "[R]N([R])S([R])(=O)=O",
+   "chembl_percent": 9.81,
+   "smiles": "CCN(CC)S(=O)(=O)CC"
+  },
+  {
+   "pseudo": "[R]C(O)=O",
+   "chembl_percent": 9.39,
+   "smiles": "CCC(=O)O"
+  },
+  {
+   "pseudo": "[R]S[R]",
+   "chembl_percent": 7.52,
+   "smiles": "CCSCC"
+  },
+  {
+   "pseudo": "[R]OC([R])=O",
+   "chembl_percent": 7.45,
+   "smiles": "CCOC(=O)CC"
+  },
+  {
+   "pseudo": "[R]C([R])=O",
+   "chembl_percent": 5.31,
+   "smiles": "CCC(=O)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C(=O)N([R])[R]",
+   "chembl_percent": 4.49,
+   "smiles": "CCN(CC)C(=O)N(CC)CC"
+  },
+  {
+   "pseudo": "C=C",
+   "chembl_percent": 4.46,
+   "smiles": "C=C"
+  },
+  {
+   "pseudo": "C#N",
+   "chembl_percent": 4.18,
+   "smiles": "C#N"
+  },
+  {
+   "pseudo": "N[Cal]",
+   "chembl_percent": 4.18,
+   "smiles": "CN"
+  },
+  {
+   "pseudo": "[R]N(=O)=O",
+   "chembl_percent": 3.36,
+   "smiles": "CC[N+](=O)[O-]"
+  },
+  {
+   "pseudo": "[R]OC(=O)N([R])[R]",
+   "chembl_percent": 3.03,
+   "smiles": "CCOC(=O)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]S([R])(=O)=O",
+   "chembl_percent": 2.89,
+   "smiles": "CCS(=O)(=O)CC"
+  },
+  {
+   "pseudo": "[R]OCO[R]",
+   "chembl_percent": 2.17,
+   "smiles": "CCOCOCC"
+  },
+  {
+   "pseudo": "[R]N=C(N([R])[R])N([R])[R]",
+   "chembl_percent": 1.59,
+   "smiles": "CCN=C(N(CC)CC)N(CC)CC"
+  },
+  {
+   "pseudo": "C#C",
+   "chembl_percent": 1.44,
+   "smiles": "C#C"
+  },
+  {
+   "pseudo": "[R]N(O)C([R])=O",
+   "chembl_percent": 1.2,
+   "smiles": "CCC(=O)N(O)CC"
+  },
+  {
+   "pseudo": "[R]N(N=C)C([R])=O",
+   "chembl_percent": 1.17,
+   "smiles": "C=NN(CC)C(=O)CC"
+  },
+  {
+   "pseudo": "[R]N=CN([R])[R]",
+   "chembl_percent": 1.1,
+   "smiles": "CCN=CN(CC)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C(=O)C=C",
+   "chembl_percent": 0.9,
+   "smiles": "C=CC(=O)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]N(C([R])=O)C([R])=O",
+   "chembl_percent": 0.65,
+   "smiles": "CCC(=O)N(CC)C(=O)CC"
+  },
+  {
+   "pseudo": "[R]SC(=N[R])N([R])[R]",
+   "chembl_percent": 0.64,
+   "smiles": "CCN=C(SCC)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]N([R])N=C",
+   "chembl_percent": 0.57,
+   "smiles": "C=NN(CC)CC"
+  },
+  {
+   "pseudo": "[R]I",
+   "chembl_percent": 0.53,
+   "smiles": "CCI"
+  },
+  {
+   "pseudo": "[R]N=C",
+   "chembl_percent": 0.51,
+   "smiles": "C=NCC"
+  },
+  {
+   "pseudo": "[R]C(=O)C=C",
+   "chembl_percent": 0.46,
+   "smiles": "C=CC(=O)CC"
+  },
+  {
+   "pseudo": "[R]ON=C",
+   "chembl_percent": 0.43,
+   "smiles": "C=NOCC"
+  },
+  {
+   "pseudo": "[R]N(C([R])=O)S([R])(=O)=O",
+   "chembl_percent": 0.42,
+   "smiles": "CCC(=O)N(CC)S(=O)(=O)CC"
+  },
+  {
+   "pseudo": "[R]OC(=O)C=C",
+   "chembl_percent": 0.41,
+   "smiles": "C=CC(=O)OCC"
+  },
+  {
+   "pseudo": "[R]N([R])C(=S)N([R])C([R])=O",
+   "chembl_percent": 0.39,
+   "smiles": "CCC(=O)N(CC)C(=S)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C(=O)C([R])=O",
+   "chembl_percent": 0.37,
+   "smiles": "CCC(=O)C(=O)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]SS[R]",
+   "chembl_percent": 0.36,
+   "smiles": "CCSSCC"
+  },
+  {
+   "pseudo": "[R]N([R])N([R])C([R])=O",
+   "chembl_percent": 0.35,
+   "smiles": "CCC(=O)N(CC)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]P(O)(O)=O",
+   "chembl_percent": 0.35,
+   "smiles": "CCP(=O)(O)O"
+  },
+  {
+   "pseudo": "[R]C([Nar])=O",
+   "chembl_percent": 0.34,
+   "smiles": "CCC(=O)n1cccc1"
+  },
+  {
+   "pseudo": "[R]N([R])C(=O)N([R])C([R])=O",
+   "chembl_percent": 0.32,
+   "smiles": "CCC(=O)N(CC)C(=O)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]C=O",
+   "chembl_percent": 0.32,
+   "smiles": "CCC=O"
+  },
+  {
+   "pseudo": "[R][N+]([R])([R])[R]",
+   "chembl_percent": 0.32,
+   "smiles": "CC[N+](CC)(CC)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C(=S)N([R])[R]",
+   "chembl_percent": 0.31,
+   "smiles": "CCN(CC)C(=S)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]N([R])S(=O)(=O)N([R])[R]",
+   "chembl_percent": 0.25,
+   "smiles": "CCN(CC)S(=O)(=O)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]S([R])=O",
+   "chembl_percent": 0.25,
+   "smiles": "CCS(=O)CC"
+  },
+  {
+   "pseudo": "[R]S([Nar])(=O)=O",
+   "chembl_percent": 0.25,
+   "smiles": "CCS(=O)(=O)n1cccc1"
+  },
+  {
+   "pseudo": "[R]OP(O)(O)=O",
+   "chembl_percent": 0.24,
+   "smiles": "CCOP(=O)(O)O"
+  },
+  {
+   "pseudo": "[R]SCN([R])C([R])=O",
+   "chembl_percent": 0.22,
+   "smiles": "CCSCN(CC)C(=O)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C(=S)N([R])N=C",
+   "chembl_percent": 0.21,
+   "smiles": "C=NN(CC)C(=S)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]N([R])CN([R])C([R])=O",
+   "chembl_percent": 0.21,
+   "smiles": "CCC(=O)N(CC)CN(CC)CC"
+  },
+  {
+   "pseudo": "OC(=O)C=C",
+   "chembl_percent": 0.2,
+   "smiles": "C=CC(=O)O"
+  },
+  {
+   "pseudo": "[R]N(N([R])C([R])=O)C([R])=O",
+   "chembl_percent": 0.2,
+   "smiles": "CCC(=O)N(CC)N(CC)C(=O)CC"
+  },
+  {
+   "pseudo": "[R]N([R])[Nar]",
+   "chembl_percent": 0.18,
+   "smiles": "CCN(CC)n1cccc1"
+  },
+  {
+   "pseudo": "[R]N([R])C(=O)C(=O)N([R])[R]",
+   "chembl_percent": 0.18,
+   "smiles": "CCN(CC)C(=O)C(=O)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]OS([R])(=O)=O",
+   "chembl_percent": 0.16,
+   "smiles": "CCOS(=O)(=O)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C([Nar])=O",
+   "chembl_percent": 0.16,
+   "smiles": "CCN(CC)C(=O)n1cccc1"
+  },
+  {
+   "pseudo": "[R]S(O)(=O)=O",
+   "chembl_percent": 0.16,
+   "smiles": "CCS(=O)(=O)O"
+  },
+  {
+   "pseudo": "[R]N=N[R]",
+   "chembl_percent": 0.16,
+   "smiles": "CCN=NCC"
+  },
+  {
+   "pseudo": "[R]N([R])C=CC([R])=O",
+   "chembl_percent": 0.15,
+   "smiles": "CCC(=O)C=CN(CC)CC"
+  },
+  {
+   "pseudo": "ON=C",
+   "chembl_percent": 0.13,
+   "smiles": "C=NO"
+  },
+  {
+   "pseudo": "[R]N([R])C(=O)N([R])S([R])(=O)=O",
+   "chembl_percent": 0.13,
+   "smiles": "CCN(CC)C(=O)N(CC)S(=O)(=O)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C(=O)C(=C)C#N",
+   "chembl_percent": 0.12,
+   "smiles": "C=C(C#N)C(=O)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]P(O)([R])=O",
+   "chembl_percent": 0.11,
+   "smiles": "CCP(=O)(O)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C=S",
+   "chembl_percent": 0.11,
+   "smiles": "CCN(C=S)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C(=O)C(O)=CC([R])=O",
+   "chembl_percent": 0.1,
+   "smiles": "CCC(=O)C=C(O)C(=O)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]N(O)C(=O)C=C",
+   "chembl_percent": 0.1,
+   "smiles": "C=CC(=O)N(O)CC"
+  },
+  {
+   "pseudo": "[R]N=C(N([R])[R])N([R])C([R])=O",
+   "chembl_percent": 0.1,
+   "smiles": "CCN=C(N(CC)CC)N(CC)C(=O)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C(=NC([R])=O)N([R])[R]",
+   "chembl_percent": 0.1,
+   "smiles": "CCC(=O)N=C(N(CC)CC)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C=NS([R])(=O)=O",
+   "chembl_percent": 0.09,
+   "smiles": "CCN(C=NS(=O)(=O)CC)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C=C",
+   "chembl_percent": 0.09,
+   "smiles": "C=CN(CC)CC"
+  },
+  {
+   "pseudo": "[R]N=N#N",
+   "chembl_percent": 0.09,
+   "smiles": "CCN=[N+]=[N-]"
+  },
+  {
+   "pseudo": "[R]N(O)C=O",
+   "chembl_percent": 0.09,
+   "smiles": "CCN(O)C=O"
+  },
+  {
+   "pseudo": "[R]N([Nar])C([R])=O",
+   "chembl_percent": 0.09,
+   "smiles": "CCC(=O)N(CC)n1cccc1"
+  },
+  {
+   "pseudo": "[R]N([R])CN([R])[R]",
+   "chembl_percent": 0.09,
+   "smiles": "CCN(CC)CN(CC)CC"
+  },
+  {
+   "pseudo": "[R]OC(=CC#N)N([R])[R]",
+   "chembl_percent": 0.08,
+   "smiles": "CCOC(=CC#N)N(CC)CC"
+  },
+  {
+   "pseudo": "O[Nar]",
+   "chembl_percent": 0.08,
+   "smiles": "On1cccc1"
+  },
+  {
+   "pseudo": "C=CC(=O)C=C",
+   "chembl_percent": 0.08,
+   "smiles": "C=CC(=O)C=C"
+  },
+  {
+   "pseudo": "[R]OS(=O)(=O)N([R])[R]",
+   "chembl_percent": 0.08,
+   "smiles": "CCOS(=O)(=O)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]SC([R])=O",
+   "chembl_percent": 0.07,
+   "smiles": "CCSC(=O)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C(=O)C(=C)N([R])C([R])=O",
+   "chembl_percent": 0.07,
+   "smiles": "C=C(C(=O)N(CC)CC)N(CC)C(=O)CC"
+  },
+  {
+   "pseudo": "[R]OC(=O)C=CN([R])C(=O)N([R])[R]",
+   "chembl_percent": 0.07,
+   "smiles": "CCOC(=O)C=CN(CC)C(=O)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]SC(=N[R])N([R])C([R])=O",
+   "chembl_percent": 0.07,
+   "smiles": "CCN=C(SCC)N(CC)C(=O)CC"
+  },
+  {
+   "pseudo": "C=CC#N",
+   "chembl_percent": 0.07,
+   "smiles": "C=CC#N"
+  },
+  {
+   "pseudo": "[R]OCN([R])C([R])=O",
+   "chembl_percent": 0.07,
+   "smiles": "CCOCN(CC)C(=O)CC"
+  },
+  {
+   "pseudo": "[R]OP([R])(=O)O[R]",
+   "chembl_percent": 0.07,
+   "smiles": "CCOP(=O)(CC)OCC"
+  },
+  {
+   "pseudo": "[R]ON([R])C([R])=O",
+   "chembl_percent": 0.07,
+   "smiles": "CCON(CC)C(=O)CC"
+  },
+  {
+   "pseudo": "[R]N(N=C)S([R])(=O)=O",
+   "chembl_percent": 0.06,
+   "smiles": "C=NN(CC)S(=O)(=O)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C(=O)N([R])N([R])C([R])=O",
+   "chembl_percent": 0.06,
+   "smiles": "CCC(=O)N(CC)N(CC)C(=O)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C=O",
+   "chembl_percent": 0.06,
+   "smiles": "CCN(C=O)CC"
+  },
+  {
+   "pseudo": "[R]N(O)C(=O)N([R])[R]",
+   "chembl_percent": 0.06,
+   "smiles": "CCN(O)C(=O)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C(=O)N([R])N=C",
+   "chembl_percent": 0.06,
+   "smiles": "C=NN(CC)C(=O)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]N([R])N([R])[R]",
+   "chembl_percent": 0.06,
+   "smiles": "CCN(CC)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]SC=N[R]",
+   "chembl_percent": 0.06,
+   "smiles": "CCN=CSCC"
+  },
+  {
+   "pseudo": "[R]OS(O)(=O)=O",
+   "chembl_percent": 0.06,
+   "smiles": "CCOS(=O)(=O)O"
+  },
+  {
+   "pseudo": "[R]C(=O)C=CC=C",
+   "chembl_percent": 0.06,
+   "smiles": "C=CC=CC(=O)CC"
+  },
+  {
+   "pseudo": "[R]OC(=O)N([R])S([R])(=O)=O",
+   "chembl_percent": 0.06,
+   "smiles": "CCOC(=O)N(CC)S(=O)(=O)CC"
+  },
+  {
+   "pseudo": "[R]N(N=CC=C)C([R])=O",
+   "chembl_percent": 0.06,
+   "smiles": "C=CC=NN(CC)C(=O)CC"
+  },
+  {
+   "pseudo": "[R]ON([R])[R]",
+   "chembl_percent": 0.06,
+   "smiles": "CCON(CC)CC"
+  },
+  {
+   "pseudo": "[R]OCN([R])[R]",
+   "chembl_percent": 0.06,
+   "smiles": "CCOCN(CC)CC"
+  },
+  {
+   "pseudo": "[R]OC(=O)C=CN([R])C=CC(=O)O[R]",
+   "chembl_percent": 0.05,
+   "smiles": "CCOC(=O)C=CN(C=CC(=O)OCC)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C=CC(=O)N([R])[R]",
+   "chembl_percent": 0.05,
+   "smiles": "CCN(C=CC(=O)N(CC)CC)CC"
+  },
+  {
+   "pseudo": "[R]OC(O)=C(S[R])C([R])=O",
+   "chembl_percent": 0.05,
+   "smiles": "CCOC(O)=C(SCC)C(=O)CC"
+  },
+  {
+   "pseudo": "[R]OCO",
+   "chembl_percent": 0.05,
+   "smiles": "CCOCO"
+  },
+  {
+   "pseudo": "[R]SCN([R])[R]",
+   "chembl_percent": 0.05,
+   "smiles": "CCSCN(CC)CC"
+  },
+  {
+   "pseudo": "[R]OP(O)(=O)O[R]",
+   "chembl_percent": 0.05,
+   "smiles": "CCOP(=O)(O)OCC"
+  },
+  {
+   "pseudo": "[R]SC(=NN([R])C([R])=O)N([R])[R]",
+   "chembl_percent": 0.05,
+   "smiles": "CCSC(=NN(CC)C(=O)CC)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]OC(=N[R])N([R])[R]",
+   "chembl_percent": 0.05,
+   "smiles": "CCN=C(OCC)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C(=O)C(O)=O",
+   "chembl_percent": 0.05,
+   "smiles": "CCN(CC)C(=O)C(=O)O"
+  },
+  {
+   "pseudo": "C1CO1",
+   "chembl_percent": 0.05,
+   "smiles": "C1CO1"
+  },
+  {
+   "pseudo": "[R]N=CN([R])OC([R])=O",
+   "chembl_percent": 0.05,
+   "smiles": "CCN=CN(CC)OC(=O)CC"
+  },
+  {
+   "pseudo": "[R]N([R])C(=O)C=CC=C",
+   "chembl_percent": 0.05,
+   "smiles": "C=CC=CC(=O)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]OC(O)=CC=NC=CC(=O)O[R]",
+   "chembl_percent": 0.05,
+   "smiles": "CCOC(=O)C=CN=CC=C(O)OCC"
+  },
+  {
+   "pseudo": "[R]OC=N[R]",
+   "chembl_percent": 0.05,
+   "smiles": "CCN=COCC"
+  },
+  {
+   "pseudo": "[R]N(N([R])C(=S)N([R])C([R])=O)C([R])=O",
+   "chembl_percent": 0.04,
+   "smiles": "CCC(=O)N(CC)C(=S)N(CC)N(CC)C(=O)CC"
+  },
+  {
+   "pseudo": "[R]OP(O)([R])=O",
+   "chembl_percent": 0.04,
+   "smiles": "CCOP(=O)(O)CC"
+  },
+  {
+   "pseudo": "[R]C(=O)C(O)=O",
+   "chembl_percent": 0.04,
+   "smiles": "CCC(=O)C(=O)O"
+  },
+  {
+   "pseudo": "[R]N([R])C(=O)C=CC(O)=O",
+   "chembl_percent": 0.04,
+   "smiles": "CCN(CC)C(=O)C=CC(=O)O"
+  },
+  {
+   "pseudo": "[R]SC(=NC([R])=O)N([R])[R]",
+   "chembl_percent": 0.04,
+   "smiles": "CCSC(=NC(=O)CC)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]C(=O)OCO",
+   "chembl_percent": 0.04,
+   "smiles": "CCC(=O)OCO"
+  },
+  {
+   "pseudo": "[R]N(C(=O)C=C)S([R])(=O)=O",
+   "chembl_percent": 0.04,
+   "smiles": "C=CC(=O)N(CC)S(=O)(=O)CC"
+  },
+  {
+   "pseudo": "[R]OC([Nar])=O",
+   "chembl_percent": 0.04,
+   "smiles": "CCOC(=O)n1cccc1"
+  },
+  {
+   "pseudo": "[R]N([R])C(=NC#N)N([R])[R]",
+   "chembl_percent": 0.04,
+   "smiles": "CCN(CC)C(=NC#N)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]N=C(N=C(N([R])[R])N([R])[R])N([R])[R]",
+   "chembl_percent": 0.04,
+   "smiles": "CCN=C(N=C(N(CC)CC)N(CC)CC)N(CC)CC"
+  },
+  {
+   "pseudo": "[R]N(C([R])=O)C(=C)C(O)=O",
+   "chembl_percent": 0.04,
+   "smiles": "C=C(C(=O)O)N(CC)C(=O)CC"
+  }
+ ]
+}

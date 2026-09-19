@@ -20885,3 +20885,73 @@ or the guard will take credit for a behavioural test that tests nothing. And
 a defensive default that nothing exercises is not dead code to be tested
 through the front door; it is a trap for a caller who does not exist yet, and
 it is tested by being that caller.
+
+## A RECURSIVE SMARTS ON AN ATOM IS SATISFIED BY ITS NEIGHBOUR IN THE PATTERN, THREE TIMES IN ONE BRANCH
+
+Vocabulary v2 (branch B) needed "an ester oxygen", meaning an oxygen bonded
+to carbon on its OTHER side. Written as a property of the oxygen,
+`[#8;$([#8X2][#6])]`, it looks right and is wrong: the carbonyl carbon the
+pattern already bonds it to is a `[#6]` neighbour too, so the recursive
+test passes on the atom the pattern came from. Carbamic acid matched as a
+carbamate. Fixed as "two carbon neighbours", and then written again two
+features later for the imidate, and a third time for the hemiaminal, where
+"one non-acyl carbon" was satisfied by the central carbon itself and an
+acyloxymethylamine matched. Each was caught by a negative fixture written
+BEFORE the pattern, never by reading.
+
+**A recursive SMARTS on an atom counts every neighbour, including the one
+the enclosing pattern put there.** Say how many, or say what BOTH must be.
+
+Two neighbours of the same trap, same branch: an UPPER-CASE element in
+SMARTS is aliphatic, so deleting a `!a` beside `[OX2]` changed nothing (an
+equivalent mutant, not a hole) while `[#8X2]` is element-only; and RDKit's
+`MolToSmiles(canonical=False)` still reorders atoms around ring closures,
+which moved every index of a fixture and read as a detector bug.
+
+## THE ORACLE'S IMPLEMENTATION WAS NOT ITS PAPER, AND IT STILL FOUND TEN THINGS
+
+Branch B cross-checked the new vocabulary against Ertl 2017's
+functional-group algorithm, through the copy RDKit ships (`Contrib/IFG`).
+Read against the paper, that implementation differs where it matters: it
+marks ALIPHATIC carbons only (its own comment says so), so an aromatic ring
+C=O -- 13.64% of ChEMBL in the paper's own table -- is in no group; and it
+does not perform the paper's generalisation at all, which had to be
+rebuilt from the paper's three rules and checked against 19 rows of its
+table before any category could be trusted.
+
+With that done, the oracle found real gaps: nitrones (in Ertl's own Fig. 1),
+N-acylhydrazones (1.17% of ChEMBL), O-alkyl hydroxamates -- where the
+Gold Book says "and hydrocarbyl derivatives thereof" and my own B0 negative
+fixture said the opposite -- and eight Gold Book classes the vocabulary
+lacked. It also produced two artefacts that looked like gaps: heavy water's
+explicit `[2H]` counted as R filed it under ETHER, making the 37.75% ether
+row look uncovered; and the paper's table writes nitro pentavalent because
+it was built on neutralised structures, so nitro never joined its row until
+RDKit's own Cleanup was applied to the table side.
+
+The same paper's prose calls its second-commonest group "the ester group
+(37.8%)"; its table gives that number to the ether. The table was followed.
+
+**An oracle is two things -- a published method and an implementation --
+and they have to be read against each other before either is trusted.** The
+mismatch is where the false alarms come from, and the agreement is where the
+real findings are.
+
+## A CATEGORY ID PRINTED AS A VALUE IN TWO VIEWS, AND A LABEL OVER THE WRONG COLOUR
+
+Branch B's suite was green and the projections were each tested. Driving the
+app on caffeine and MAGNIFYING the shot found three things at once: the
+Calculator Inspector's table printed "2, 1, 1" beside a depiction labelled
+"urea, imide"; the Atom Inspector had been printing "Functional Groups: 1"
+the same way, since long before this branch; and caffeine's N1 was coloured
+urea and labelled "9H-purine", because rings were painted first and a
+group's colour went over a ring atom without removing the ring's note.
+
+None of the three could fail a test that existed: each asserted a value the
+code had computed correctly. What was wrong was the rendering of a correct
+value -- a colour index shown as a number, a note that no longer described
+its atom.
+
+**A categorical value's only readable form is its label, and a label must
+agree with what is drawn under it.** Both are now invariants with tests; the
+shot is what found that they were needed.

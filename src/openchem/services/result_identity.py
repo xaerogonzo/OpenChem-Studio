@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from openchem.domain.result_store import ResultIdentity, result_id_of
+from openchem.domain.result_store import CURRENT_METHOD_VERSIONS, ResultIdentity, result_id_of
 from openchem.services.result_cache import parameters_key
 
 
@@ -30,13 +30,16 @@ def make_identity(
     producer: str,
     parameters: dict | None = None,
 ) -> ResultIdentity:
+    result_id = result_id_of(result)
     return ResultIdentity(
         molecule_uuid=molecule_uuid,
-        result_id=result_id_of(result),
+        result_id=result_id,
         calculation_input=calculation_input,
         input_fingerprint=input_fingerprint,
         producer=producer,
         parameters_key=parameters_key(parameters),
+        # Only results whose method is part of their identity carry one.
+        method_version=CURRENT_METHOD_VERSIONS.get(result_id, ""),
     )
 
 

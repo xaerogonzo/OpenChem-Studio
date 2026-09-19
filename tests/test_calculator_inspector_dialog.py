@@ -696,3 +696,23 @@ def test_the_button_says_it_does_not_replace_what_you_have(qapp):
 
     assert "new" in tip, "the label promises the editor; the contract must say a NEW molecule"
     assert "left exactly as it is" in tip, "it never says the current molecule survives"
+
+
+def test_a_categorical_table_shows_what_each_atom_is_not_its_colour_id(qapp):
+    """The table printed "2, 1, 1" beside a depiction labelled "urea, imide"
+    (driven check on caffeine, magnified shot, 2026-09-18). A category id is
+    how an atom got its colour, not a value anyone can read."""
+    from openchem.chem.structure_annotation import compute_functional_groups
+
+    engine = ChemistryEngine()
+    molecule = MoleculeModel(display_name="Caffeine")
+    engine.set_structure_from_smiles(molecule, "Cn1c(=O)c2c(ncn2C)n(C)c1=O")
+    result = compute_functional_groups(Chem.MolFromSmiles("Cn1c(=O)c2c(ncn2C)n(C)c1=O"), "mol-1", {})
+
+    dialog = CalculatorInspectorDialog(engine, molecule, result, conformer_molblock=None)
+
+    model = dialog._view._table_model
+    by_atom = {int(model.item(r, 0).text()) - 1: model.item(r, 2).text() for r in range(model.rowCount())}
+    assert by_atom[3] == "imide; amide (non-primary); lactam (non-primary)"
+    assert by_atom[13] == "imide; urea"
+    assert not any(text.replace(".", "").isdigit() for text in by_atom.values()), by_atom

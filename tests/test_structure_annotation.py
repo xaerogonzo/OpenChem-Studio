@@ -9,6 +9,8 @@ saying what was measured.
 
 from __future__ import annotations
 
+import pytest
+
 from rdkit import Chem
 
 from openchem.chem.structure_annotation import (
@@ -594,7 +596,7 @@ def test_the_prefix_label_mode_uses_the_naming_prefix():
     assert "carboxy" in dataset.provenance.parameters["atom_notes"].values()
 
 
-def test_a_lactam_carbonyl_is_claimed_by_no_group_at_all():
+def test_a_lactam_carbonyl_is_claimed_as_a_lactam():
     """HALF DELIBERATE, and worth pinning precisely rather than as a vague
     'blind spot'.
 
@@ -622,10 +624,14 @@ def test_a_lactam_carbonyl_is_claimed_by_no_group_at_all():
     assert functional_groups(CYCLOHEXANONE)
     assert functional_groups("CC(=O)NC")
 
-    assert functional_groups(PYRROLIDINONE) == []
-    # Caffeine left this list in naming round 4 (A5): its carbonyls sit on a
-    # mancude ring and are claimed as ring ketones now (see the test above).
-    # A saturated lactam like pyrrolidinone is still claimed by nothing.
+    # CLOSED by vocabulary v2 (FG-002): the Functional Groups view no longer
+    # reads the naming engine's groups as its definition, so the carbonyl the
+    # engine's two patterns both refuse is a LACTAM (Gold Book p. 815), with
+    # its amide nested beside it.
+    keys = sorted(f["key"] for f in functional_groups(PYRROLIDINONE))
+    assert keys == ["fg:carboxamide", "fg:lactam"]
+    views = {f["key"]: f["functional_groups_view"] for f in functional_groups(PYRROLIDINONE)}
+    assert views == {"fg:lactam": "shown", "fg:carboxamide": "shown_nested"}
 
 
 def test_a_molecule_with_no_groups_reports_that_it_found_none():
@@ -638,21 +644,22 @@ def test_a_molecule_with_no_groups_reports_that_it_found_none():
     dataset = compute_functional_groups(_mol("CC"), "u", {})
     assert dataset.provenance.parameters["groups_detected"] == 0
     assert "Nothing matched" in dataset.provenance.parameters["summary"]
-    assert "lactams" in dataset.provenance.parameters["summary"]
     assert dataset.error is None
     assert dataset.cache_state is not CacheState.FAILED
 
 
-def test_penicillin_reports_its_exocyclic_amide_and_acid():
-    """Its beta-lactam is endocyclic and falls through as above; the side
-    chain amide and the carboxylic acid are both claimed."""
+def test_penicillin_reports_its_beta_lactam_amide_and_acid():
+    """Its beta-lactam used to fall through as above; under vocabulary v2 it
+    is a lactam, beside the side-chain amide and the carboxylic acid."""
     dataset = compute_functional_groups(_mol(PENICILLIN_G), "u", {})
     features = dataset.provenance.parameters["features"]
     groups = {f["label"] for f in features if f["category"] == "functional_group"}
     # Its thiazolidine SULFUR is a ring thioether, which is a real feature of
     # the molecule and was found while updating this test rather than
     # predicted -- the same widening that gives THF an ether.
-    assert groups == {"secondary amide", "carboxylic acid", "thioether (sulfide)"}
+    # "amide" is both the side chain's and the one nested in the lactam; the
+    # label is no longer "secondary amide" (Gold Book p. 69, note 1: FG-001).
+    assert groups == {"amide", "lactam", "carboxylic acid", "sulfide (thioether)"}
     # And its rings are reported as ring systems rather than as groups.
     assert [f["category"] for f in features if f["key"] == "benzene"] == ["ring_system"]
 
@@ -969,3 +976,33 @@ def test_the_carve_map_is_checked_and_survives_renumbering():
     for local, parent in origin.items():
         assert (fragment.GetAtomWithIdx(local).GetAtomicNum()
                 == mol.GetAtomWithIdx(parent).GetAtomicNum())
+
+
+@pytest.mark.parametrize(
+    "smiles,expected",
+    [
+        # The three ring systems over both naming corpora whose name carried
+        # the MOLECULE's configuration (measured 2026-09-18). Blue Book
+        # P-91.3: stereodescriptors are added to a compound's name; a
+        # skeleton has none.
+        ("C1CC[C@H]2CCCC[C@@H]2C1", "decalin"),
+        ("C[C@]12CCCC1C1CCC3CCCCC3C1CC2", None),
+        ("CCC[C@@H]1O[C@@H]2C[C@H]3[C@@H]4CCC5=CC(=O)C=C[C@]5(C)[C@H]4[C@@H](O)C[C@]3(C)"
+         "[C@]2(C(=O)CO)O1", None),
+        # Converses: a plain ring, and a ring whose name carries the RING
+        # ATOMS' own charge, which is the skeleton's and stays.
+        ("c1ccc2[nH]ccc2c1", "1H-indole"),
+        ("c1cc[o+]cc1", "pyrylium"),
+    ],
+)
+def test_a_ring_system_name_carries_no_stereodescriptor(smiles, expected):
+    from openchem.chem.structure_annotation import perceive
+
+    names = [r.name for r in perceive(_mol(smiles)).rings]
+    assert names, smiles
+    for name in names:
+        assert name is not None
+        assert not name.startswith("("), f"a configuration in a skeleton name: {name}"
+        assert "trans-" not in name and "cis-" not in name, name
+        if expected is not None:
+            assert name == expected

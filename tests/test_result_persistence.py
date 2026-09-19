@@ -707,6 +707,113 @@ def test_after_the_rename_both_producers_coexist():
     assert by_id["functional_groups"].values == {0: 1.0}
 
 
+# ---------------------------------------------------------------------------
+# Fragment Counts changed METHOD (vocabulary v2, 2026-09-18)
+#
+# Plan B2: v1 and v2 never share a slot, a v1 record stays readable and is
+# labelled as the legacy method, v2 saves and reloads with its method, and
+# nothing replays both under one id.
+# ---------------------------------------------------------------------------
+
+
+def _fragment_counts(matched, name="Fragment Counts"):
+    from openchem.domain.scientific_result import AlertResult
+
+    return AlertResult(alert_id="fragment_counts", name=name, molecule_uuid="m",
+                       matched=matched, category="substructure")
+
+
+def test_a_v1_fragment_count_loads_as_the_legacy_method_and_says_so():
+    from openchem.domain.result_store import LEGACY_METHOD_VERSIONS
+
+    entry = _legacy_alert_entry("fragment_counts")
+    store = SessionResultStore.from_dict(_saved_block([entry]), "project")
+
+    (restored,) = store.fresh_results("m", {DRAWING: "fp"})
+    legacy, label = LEGACY_METHOD_VERSIONS["fragment_counts"]
+    assert restored.identity.method_version == legacy == "legacy-rdkit-fr-v1"
+    assert restored.result.name == label and "legacy" in label
+    assert restored.result.matched[0] == "Amide (1)", "the v1 content must survive as it was"
+    assert store.load_problems["legacy_method"] == 1
+
+
+def test_a_v2_fragment_count_saves_and_reloads_with_its_method():
+    from openchem.domain.result_store import FRAGMENT_COUNTS_METHOD
+    from openchem.services.result_identity import make_identity
+
+    alert = _fragment_counts(["amide (1)"])
+    identity = make_identity(molecule_uuid="m", result=alert, calculation_input=DRAWING,
+                             input_fingerprint="fp", producer="core")
+    assert identity.method_version == FRAGMENT_COUNTS_METHOD
+    store = SessionResultStore("project")
+    store.put(StoredResult(identity=identity, result=alert))
+
+    saved = store.to_dict()
+    (entry,) = saved["molecules"]["m"]["results"]
+    assert entry["method_version"] == FRAGMENT_COUNTS_METHOD
+    (restored,) = SessionResultStore.from_dict(saved, "project").fresh_results("m", {DRAWING: "fp"})
+    assert restored.identity.method_version == FRAGMENT_COUNTS_METHOD
+    assert restored.result.name == "Fragment Counts"
+
+
+def test_v2_never_silently_replaces_v1_and_only_v2_is_replayed():
+    from openchem.services.result_identity import make_identity
+
+    store = SessionResultStore.from_dict(_saved_block([_legacy_alert_entry("fragment_counts")]), "project")
+    alert = _fragment_counts(["amide (1)"])
+    store.put(StoredResult(
+        identity=make_identity(molecule_uuid="m", result=alert, calculation_input=DRAWING,
+                               input_fingerprint="fp", producer="core"),
+        result=alert,
+    ))
+
+    methods = sorted(e["method_version"] for e in store.to_dict()["molecules"]["m"]["results"])
+    assert methods == ["legacy-rdkit-fr-v1", "structural-features-v2"], "a method overwrote the other"
+    (replayed,) = store.fresh_results("m", {DRAWING: "fp"})
+    assert replayed.result.matched == ["amide (1)"], "a view got the legacy method, or both"
+
+
+def test_a_legacy_result_cannot_vouch_for_the_automatic_set():
+    from openchem.domain.result_store import BundlePart
+
+    store = SessionResultStore.from_dict(_saved_block([_legacy_alert_entry("fragment_counts")]), "project")
+    store.record_part("m", BundlePart("rdkit-alerts", "fp", ("fragment_counts",)))
+    state, missing = store.bundle_state("m", "fp", {"rdkit-alerts"})
+    assert missing == {"rdkit-alerts"}, "a v1 count stood in for the set that now computes v2"
+
+
+def test_only_a_declared_result_id_carries_a_method():
+    """Every other result's identity -- and so every saved project's keys --
+    is unchanged by the field's existence."""
+    from openchem.services.result_identity import make_identity
+
+    dataset = PerAtomDataset(property_id="functional_groups", name="Functional Groups", units="",
+                             method="m", molecule_uuid="m", values={})
+    identity = make_identity(molecule_uuid="m", result=dataset, calculation_input=DRAWING,
+                             input_fingerprint="fp", producer="core")
+    assert identity.method_version == ""
+    store = SessionResultStore("project")
+    store.put(StoredResult(identity=identity, result=dataset))
+    (entry,) = store.to_dict()["molecules"]["m"]["results"]
+    assert "method_version" not in entry
+
+
+def test_a_v1_automatic_set_is_not_replayed_by_a_v2_build():
+    """The saved manifest names the set it vouches for; a v1 manifest cannot
+    vouch for the v2 set, so the always-on work reruns."""
+    from openchem.domain.result_store import AUTOMATIC_BUNDLE_ID
+
+    assert AUTOMATIC_BUNDLE_ID == "automatic/v2"
+    block = _saved_block([_legacy_alert_entry("fragment_counts")])
+    block["molecules"]["m"]["bundle"] = {
+        "bundle_id": "automatic/v1",
+        "parts": [{"part_id": "rdkit-alerts", "input_fingerprint": "fp", "result_ids": ["fragment_counts"]}],
+    }
+    store = SessionResultStore.from_dict(block, "project")
+    state, missing = store.bundle_state("m", "fp", {"rdkit-alerts"})
+    assert missing == {"rdkit-alerts"}
+
+
 def test_no_two_result_producers_declare_the_same_id():
     """The guard for the next collision, built from the STORE's own key
     function over every producer family that writes into it.

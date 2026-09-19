@@ -95,20 +95,25 @@ class _DescriptorComputeTask(QRunnable):
             resolved = resolve_calculation_input(self._engine, self._model, self._calculation_input)
             self._fingerprint = resolved.fingerprint
             mol = resolved.mol
-            values = self._provider.compute(mol, self._model.uuid)
         except Exception as exc:  # noqa: BLE001 - a bad provider must not kill the pool
-            logger.exception("Descriptor provider %s failed", self._provider.provider_id)
-            self._part_failed = True
-            for descriptor_id in self._provider.descriptor_ids():
-                self._publish(
-                    descriptor_id, CacheState.FAILED, error=str(exc), category=categories.get(descriptor_id, ""),
-                    record=True,
-                )
+            # No molecule, so nothing below has anything to run on.
+            self._fail_descriptors(exc, categories)
             self._finish_part()
             return
-        for value in values:
-            self._event_bus.publish(DescriptorComputed(descriptor=value))
-            self._record(value)
+        # **A DESCRIPTOR FAILURE NO LONGER TAKES THE ALERTS AND PER-ATOM DATA
+        # WITH IT.** This returned early from here too, so one descriptor
+        # raising (the McGowan volume on any sodium salt, measured) cost the
+        # structure every alert and every per-atom dataset, which do not use
+        # the descriptors at all. The two blocks below already refused to let
+        # THEIR failures drop the descriptors; the rule now runs both ways.
+        try:
+            values = self._provider.compute(mol, self._model.uuid)
+        except Exception as exc:  # noqa: BLE001 - a bad provider must not kill the pool
+            self._fail_descriptors(exc, categories)
+        else:
+            for value in values:
+                self._event_bus.publish(DescriptorComputed(descriptor=value))
+                self._record(value)
 
         try:
             alerts = self._provider.compute_alerts(mol, self._model.uuid)
@@ -134,6 +139,15 @@ class _DescriptorComputeTask(QRunnable):
                 ))
                 self._record(dataset)
         self._finish_part()
+
+    def _fail_descriptors(self, exc: Exception, categories: dict[str, str]) -> None:
+        logger.exception("Descriptor provider %s failed", self._provider.provider_id)
+        self._part_failed = True
+        for descriptor_id in self._provider.descriptor_ids():
+            self._publish(
+                descriptor_id, CacheState.FAILED, error=str(exc), category=categories.get(descriptor_id, ""),
+                record=True,
+            )
 
     def _record(self, result) -> None:
         """Hand the result, with its identity, to whoever retains results."""

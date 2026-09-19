@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: bb5e6a48989324349fdee6bfae5e2cc0b41477bbe88b27d4ef0daab560268f26 -->
+<!-- SOURCE SHA256: 861c04826fe171e2ba3a6109b4490aaa4bfc6ace66731eb0ae61d81abecaab0e -->
 
 # Sources
 
@@ -137,6 +137,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`ertl2000`](#ertl2000) | literature | shipped | citation |
 | [`ertl2008`](#ertl2008) | literature | shipped | citation |
 | [`ertl2009`](#ertl2009) | literature | shipped | citation |
+| [`ertl2017`](#ertl2017) | literature | reference only | citation |
 | [`feinstein2015`](#feinstein2015) | literature | shipped | citation + claim |
 | [`gasteiger1980`](#gasteiger1980) | literature | shipped | citation + claim |
 | [`gasteiger1985`](#gasteiger1985) | literature | **not shipped** | citation |
@@ -156,6 +157,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`ionescu2013`](#ionescu2013) | literature | shipped | citation + claim |
 | [`ipsen2014`](#ipsen2014) | literature | reference only | citation |
 | [`iupac2013`](#iupac2013) | standard | shipped | citation + claim |
+| [`iupac_goldbook`](#iupac_goldbook) | standard | shipped | citation + claim |
 | [`iupac_namer`](#iupac_namer) | software | shipped | citation |
 | [`jenkins1999`](#jenkins1999) | literature | shipped | citation + claim |
 | [`joback1987`](#joback1987) | literature | shipped | citation + claim |
@@ -194,6 +196,7 @@ next run of `tools/build_lewis_parameters.py`.
 | [`moore1970`](#moore1970) | literature | shipped | citation + claim |
 | [`moreland1974`](#moreland1974) | literature | shipped | citation |
 | [`mortier1986`](#mortier1986) | literature | reference only | citation |
+| [`moss1995`](#moss1995) | literature | reference only | citation |
 | [`muser2012`](#muser2012) | literature | reference only | citation + claim |
 | [`naserifar2017`](#naserifar2017) | literature | reference only | citation + claim |
 | [`neudert2011`](#neudert2011) | literature | **not shipped** | citation |
@@ -3968,6 +3971,59 @@ MISSED BY THE ORIGINAL SWEEP because it carries no DOI and is named only in
 prose. See [source:hopfinger2009] and [source:yalkowsky_banerjee1992], found
 the same way.
 
+### moss1995
+
+<a id="moss1995"></a>
+
+> G. P. Moss, P. A. S. Smith & D. Tavernier, 'Glossary of class names of organic compounds and reactive intermediates based on structure (IUPAC Recommendations 1995)', Pure Appl. Chem. 1995, 67, 1307-1375.
+
+| | |
+| --- | --- |
+| Identifier | [10.1351/pac199567081307](https://doi.org/10.1351/pac199567081307) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-18 |
+| Local copy | `moss1995.pdf` (not checked) |
+| Used by | `src/openchem/chem/feature_vocabulary.py` |
+
+**Why it is reference only.** THE GOLD BOOK'S OWN SOURCE FOR CLASS NAMES, READ TO CONFIRM AN ABSENCE. Most
+class-name entries in [source:iupac_goldbook] cite this glossary, so where
+the Gold Book has no entry (ureas, guanidines, carbonates, organohalides) this
+was checked too, and it has none either. That is all it backs.
+
+Not quoted from: the copy is an OCR scan ("Acrobat Paper Capture") whose text
+layer misreads on its first page ("App/. Chem.", "DMSION"). Volume, pages and
+year are off its first page; the DOI is not printed on a 1995 paper and is
+the publisher's.
+
+### ertl2017
+
+<a id="ertl2017"></a>
+
+> P. Ertl, 'An algorithm to identify functional groups in organic molecules', Journal of Cheminformatics 2017, 9, 36.
+
+| | |
+| --- | --- |
+| Identifier | [10.1186/s13321-017-0225-z](https://doi.org/10.1186/s13321-017-0225-z) |
+| Status | reference only |
+| Verification | citation |
+| Verified | 2026-09-18 |
+| Local copy | `ertl2017.pdf` (not checked) |
+| Used by | `src/openchem/chem/feature_vocabulary.py`, `tools/ertl_crosscheck.py`, `tests/fixtures/structural_features/ertl_si_representatives.json` |
+
+**Why it is reference only.** AN INDEPENDENT ORACLE, NEVER A DEFINITION. The v2 vocabulary is cross-checked
+against Ertl's algorithm both ways (every Ertl group mapped to a feature or
+justified), through the implementation RDKit ships as Contrib/IFG/ifg.py
+(sha256 92b97a341b5b0ca3a774ed89d7d2ee3b1d06f23ec30055bccb849f4cfde9ba60 in
+RDKit 2025.09.6). The paper supplies the marking rules (p. 2) and the
+three-step generalisation (p. 4) the implementation does not perform; its
+Additional file 1 (ERTL2017_si.md) lists 768 ChEMBL groups with prevalence.
+
+**THE PROSE AND THE TABLE DISAGREE ON THE SECOND GROUP.** The results section
+says "followed by the ester group (37.8%)"; the additional file gives 37.75%
+to [R]O[R], an ether, and 7.45% to the ester [R]OC([R])=O. The table is
+followed.
+
 ### platts1999
 
 <a id="platts1999"></a>
@@ -5415,6 +5471,39 @@ Checking also caught two citations that did not say what they were used
 for: the vendored registry cited P-31.1.3 for retaining `caffeine`, and a
 vendored test cited P-66.6.3 for retaining `camphor`. P-31.1.3 is about
 indicated hydrogen and P-66.6.3 about chalcogen analogues of aldehydes.
+
+### iupac_goldbook
+
+<a id="iupac_goldbook"></a>
+
+> IUPAC, Compendium of Chemical Terminology (the Gold Book), version 2.3.1, 2012-03-23.
+
+| | |
+| --- | --- |
+| Identifier | IUPAC Compendium of Chemical Terminology, version 2.3.1 |
+| Status | shipped |
+| Verification | citation + claim |
+| Verified | 2026-09-18 |
+| Local copy | `goldbook.pdf` (not checked) |
+| Used by | `src/openchem/chem/feature_vocabulary.py` |
+
+THE NORMATIVE SOURCE FOR WHAT A STRUCTURAL FEATURE IS. Every `fg:` and `sf:`
+feature in the v2 vocabulary cites a Gold Book entry by headword and page,
+with the structural formula the entry writes, unless the Gold Book has none
+(ureas, guanidines, halogen compounds), in which case it says so and cites
+[source:iupac2013].
+
+**THE PAGE NUMBER IS A HEADER, AND READING IT AS A FOOTER IS OFF BY ONE.**
+Each pdf page's text starts with "N of 1622", the page's own number. A lookup
+that took the first "N of 1622" AFTER a headword therefore reported the next
+page; measured on acyl halides, lactams, amides and imines against the pdf's
+page objects, and caught before any page was committed. Every cited page was
+then checked against the Gold Book's own index (the front matter, "term, N"):
+all 67 cited headwords agree.
+
+The pdf carries no DOI and no term codes (codes such as A00266 are the
+website's), so a citation is headword + page. The website is behind an
+interactive bot check that a script cannot pass; Alex saved the pdf.
 
 ## Reference tables
 

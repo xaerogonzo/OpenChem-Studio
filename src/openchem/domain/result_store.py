@@ -51,7 +51,29 @@ logger = logging.getLogger("openchem.result_store")
 
 #: Which always-on set a manifest describes. Bumped when what "the automatic
 #: set" CONTAINS changes, so an old manifest cannot vouch for a new set.
-AUTOMATIC_BUNDLE_ID = "automatic/v1"
+#: v2 (2026-09-18): Fragment Counts changed method (vocabulary v2), so a
+#: saved set's counts no longer describe what the set now computes.
+AUTOMATIC_BUNDLE_ID = "automatic/v2"
+
+#: The method Fragment Counts is computed by today. **Immutable once
+#: persisted**: a change of meaning is a NEW string, never a repointed one,
+#: because a saved result carries this and is interpreted by it.
+FRAGMENT_COUNTS_METHOD = "structural-features-v2"
+
+#: Result ids whose METHOD is part of their stored identity, and the method
+#: a result computed today is by. Only these carry a `method_version`, so no
+#: other result's identity (or saved project) changes.
+CURRENT_METHOD_VERSIONS: dict[str, str] = {
+    "fragment_counts": FRAGMENT_COUNTS_METHOD,
+}
+
+#: What a saved entry WITHOUT a `method_version` was computed by -- the rule
+#: for recognising a result from before methods were recorded, and the label
+#: it is shown under. A legacy result is kept, never silently replaced: it
+#: occupies its own slot beside the current method's.
+LEGACY_METHOD_VERSIONS: dict[str, tuple[str, str]] = {
+    "fragment_counts": ("legacy-rdkit-fr-v1", "Fragment Counts (legacy: RDKit fr_* counters)"),
+}
 
 #: The persisted block's own layout version.
 ENVELOPE_VERSION = 1
@@ -167,6 +189,10 @@ class ResultIdentity:
     input_fingerprint: str
     producer: str
     parameters_key: str = ""
+    #: The method, for result ids listed in `CURRENT_METHOD_VERSIONS`; "" for
+    #: every other result. Part of the slot key, so two methods never share
+    #: one. NOT the parameters key: a method is what the numbers MEAN.
+    method_version: str = ""
 
 
 @dataclass
@@ -198,8 +224,8 @@ class BundlePart:
 
 @dataclass
 class _MoleculeRecord:
-    #: (result id, calculation input, input fingerprint) -> result
-    results: dict[tuple[str, str, str], StoredResult] = field(default_factory=dict)
+    #: (result id, calculation input, input fingerprint, method version) -> result
+    results: dict[tuple[str, str, str, str], StoredResult] = field(default_factory=dict)
     #: (part id, input fingerprint) -> part
     parts: dict[tuple[str, str], BundlePart] = field(default_factory=dict)
     #: calculation input -> fingerprints seen for it, oldest first. See
@@ -228,7 +254,8 @@ class SessionResultStore:
     def put(self, stored: StoredResult) -> None:
         identity = stored.identity
         record = self._molecules.setdefault(identity.molecule_uuid, _MoleculeRecord())
-        record.results[(identity.result_id, identity.calculation_input, identity.input_fingerprint)] = stored
+        record.results[(identity.result_id, identity.calculation_input, identity.input_fingerprint,
+                        identity.method_version)] = stored
         self._touch(record, identity.calculation_input, identity.input_fingerprint)
 
     def record_part(self, molecule_uuid: str, part: BundlePart) -> None:
@@ -328,8 +355,22 @@ class SessionResultStore:
             return []
         fresh = [
             stored
-            for (_, calculation_input, fingerprint), stored in record.results.items()
+            for (_, calculation_input, fingerprint, _method), stored in record.results.items()
             if fingerprints.get(calculation_input) == fingerprint
+        ]
+        # One result per id and input: where the current method's result is
+        # here, a legacy method's result for the same slot is kept in the store
+        # (and saved) but not REPLAYED, so a view shows the current method and
+        # never both under one id.
+        current = {
+            (s.identity.result_id, s.identity.calculation_input)
+            for s in fresh
+            if s.identity.method_version == CURRENT_METHOD_VERSIONS.get(s.identity.result_id, "")
+        }
+        fresh = [
+            s for s in fresh
+            if s.identity.method_version == CURRENT_METHOD_VERSIONS.get(s.identity.result_id, "")
+            or (s.identity.result_id, s.identity.calculation_input) not in current
         ]
         fresh.sort(key=lambda s: _INPUT_ORDER.get(s.identity.calculation_input, 99))
         return fresh
@@ -370,14 +411,17 @@ class SessionResultStore:
             if part is None:
                 missing.add(part_id)
                 continue
+            # The CURRENT method's result: a legacy one (kept beside it) must
+            # not vouch for a set that now computes something else.
+            keys = [(rid, DRAWING, drawing_fingerprint, CURRENT_METHOD_VERSIONS.get(rid, ""))
+                    for rid in part.result_ids]
             held = all(
-                (rid, DRAWING, drawing_fingerprint) in record.results
+                key in record.results
                 and (
                     application_version is None
-                    or record.results[(rid, DRAWING, drawing_fingerprint)].application_version
-                    == application_version
+                    or record.results[key].application_version == application_version
                 )
-                for rid in part.result_ids
+                for key in keys
             )
             if not held:
                 missing.add(part_id)
@@ -448,6 +492,7 @@ class SessionResultStore:
                     "input_fingerprint": identity.input_fingerprint,
                     "producer": identity.producer,
                     "parameters_key": identity.parameters_key,
+                    **({"method_version": identity.method_version} if identity.method_version else {}),
                     "application_version": stored.application_version,
                     "result": encoded,
                 })
@@ -520,6 +565,7 @@ class SessionResultStore:
                 input_fingerprint=str(raw["input_fingerprint"]),
                 producer=str(raw.get("producer", "")),
                 parameters_key=str(raw.get("parameters_key", "")),
+                method_version=str(raw.get("method_version", "")),
             )
             if identity.result_id in RETIRED_RESULT_IDS:
                 # Before decoding: a retired entry is dropped for what it IS,
@@ -548,6 +594,13 @@ class SessionResultStore:
             )
             identity = replace(identity, result_id=migrated_to)
             self.load_problems["migrated"] += 1
+        if not identity.method_version and identity.result_id in LEGACY_METHOD_VERSIONS:
+            # Saved before methods were recorded: by the rule, the legacy method.
+            legacy, label = LEGACY_METHOD_VERSIONS[identity.result_id]
+            identity = replace(identity, method_version=legacy)
+            if hasattr(result, "name"):
+                result = replace(result, name=label)  # type: ignore[type-var]
+            self.load_problems["legacy_method"] += 1
         try:
             if result_id_of(result) != identity.result_id:
                 raise TypeError("result id does not match its entry")
