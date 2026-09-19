@@ -24,12 +24,14 @@ speciation is more complex than this. Stated rather than hidden.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from rdkit import Chem
 from rdkit.Chem import Crippen, Lipinski
 
 from openchem.chem.calculator_options import ph_grid_from
+from openchem.domain.calculator import SIDECAR_NOT_CONFIGURED
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.report import Basis, Fact, FactCategory
 from openchem.domain.scientific_result import (
@@ -160,9 +162,21 @@ def _fact(
     )
 
 
+@dataclass(frozen=True)
+class _Refused:
+    """Why there is no curve, with the code the producer DECLARES rather than
+    one a reader would have to sniff out of the sentence."""
+
+    code: str
+    message: str
+    #: A limit of the method (nothing ionizes) versus a fault the user can
+    #: fix (pkasolver is not set up).
+    inapplicable: bool
+
+
 def _resolve_pkas(
     mol: Chem.Mol, interpreter_path: str | None
-) -> tuple[list[float], int, int, str | None]:
+) -> tuple[list[float], int, int, _Refused | None]:
     """Predicted pKa values plus the molecule's acidic/basic centre counts.
 
     The last element is an error message when pKa is unavailable -- every
@@ -174,31 +188,41 @@ def _resolve_pkas(
 
     n_acids, n_bases = classify_ionizable_centres(mol)
     if n_acids == 0 and n_bases == 0:
-        return [], 0, 0, "This molecule has no ionizable centre, so nothing varies with pH."
+        return [], 0, 0, _Refused(
+            "NO_IONIZABLE_CENTRE", "This molecule has no ionizable centre, so nothing varies with pH.", True
+        )
     if not pka_predictor_available(interpreter_path):
         return (
             [],
             n_acids,
             n_bases,
-            "Numeric pKa is needed for pH curves. pkasolver runs out of process from its own "
-            "environment -- set it up under Tools > External Tools.",
+            _Refused(
+                SIDECAR_NOT_CONFIGURED,
+                "Numeric pKa is needed for pH curves. pkasolver runs out of process from its own "
+                "environment -- set it up under Tools > External Tools.",
+                False,
+            ),
         )
     try:
         pairs = compute_pka(mol, interpreter_path) or []
     except RuntimeError as exc:
-        return [], n_acids, n_bases, str(exc)
+        return [], n_acids, n_bases, _Refused("", str(exc), False)
     return sorted(p.value for p in pairs), n_acids, n_bases, None
 
 
-def _failed_curve(curve_id: str, name: str, molecule_uuid: str, message: str) -> PhCurveResult:
+def _failed_curve(curve_id: str, name: str, molecule_uuid: str, refused: _Refused) -> PhCurveResult:
     return PhCurveResult(
         curve_id=curve_id,
         name=name,
         method="pkasolver",
         molecule_uuid=molecule_uuid,
         cache_state=CacheState.FAILED,
-        error=message,
-        provenance=Provenance(created_by="core", method="pkasolver"),
+        error=refused.message,
+        inapplicable=refused.inapplicable,
+        provenance=Provenance(
+            created_by="core", method="pkasolver",
+            parameters={"refusal": refused.code} if refused.code else {},
+        ),
     )
 
 
@@ -326,7 +350,8 @@ def compute_logd_curve(
     values = [logd_from_pkas(mol, ph, pkas) for ph in grid]
     if any(value is None for value in values):
         return _failed_curve(
-            "logd_curve", "LogD vs pH", molecule_uuid, "No ionizable centre to vary with pH."
+            "logd_curve", "LogD vs pH", molecule_uuid,
+            _Refused("NO_IONIZABLE_CENTRE", "No ionizable centre to vary with pH.", True),
         )
 
     # Declared rather than interpolated into the name -- same migration as

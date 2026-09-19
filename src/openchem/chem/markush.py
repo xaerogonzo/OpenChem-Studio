@@ -46,6 +46,7 @@ from typing import Any, Iterator
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
+from openchem.domain.calculator import INPUT_REQUIRED
 from openchem.domain.common import CacheState, Provenance
 from openchem.domain.scientific_result import StructureEntry, StructureSetResult
 
@@ -447,6 +448,7 @@ def compute_markush_enumeration(
             molecule_uuid,
             "This structure has no R-group attachment points. Draw them as dummy atoms with a "
             "map number -- [*:1], [*:2] -- to mark where substituents attach.",
+            INPUT_REQUIRED,
         )
     if not r_groups:
         return _failed(
@@ -491,7 +493,7 @@ def compute_markush_enumeration(
     )
 
 
-def _failed(molecule_uuid: str, message: str) -> StructureSetResult:
+def _failed(molecule_uuid: str, message: str, code: str = "") -> StructureSetResult:
     return StructureSetResult(
         set_id="markush_enumeration",
         name="Markush Enumeration",
@@ -500,7 +502,9 @@ def _failed(molecule_uuid: str, message: str) -> StructureSetResult:
         entries=[],
         cache_state=CacheState.FAILED,
         error=message,
-        provenance=Provenance(created_by="core", method="rdkit"),
+        # The code a view and the multicomponent guard read; an input the
+        # user must supply is INPUT_REQUIRED, a fault they can fix.
+        provenance=Provenance(created_by="core", method="rdkit", parameters={"refusal": code} if code else {}),
     )
 
 

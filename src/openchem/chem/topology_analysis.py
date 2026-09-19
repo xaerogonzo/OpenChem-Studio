@@ -136,17 +136,36 @@ def szeged_index(mol: Chem.Mol) -> int:
     return total
 
 
+#: RDKit's distance for an UNREACHABLE pair (atoms in different components)
+#: is 1e8, not infinity. Anything at or above this is "no path".
+_UNREACHABLE = 1e7
+
+
 def eccentricity(mol: Chem.Mol) -> dict[int, float]:
-    """Per atom: the greatest topological distance to any other atom."""
+    """Per atom: the greatest topological distance to any other atom OF ITS
+    OWN COMPONENT.
+
+    Within its component because that is where the graph-theoretic
+    definition lives: across components there is no path. Taking the row
+    maximum as-is printed RDKit's 1e8 sentinel as every atom's eccentricity
+    on any salt (round 5 multicomponent sweep, sodium acetate).
+    """
     matrix = _distance_matrix(mol)
-    return {index: float(matrix[index].max()) for index in range(mol.GetNumAtoms())}
+    return {
+        index: float(max((d for d in matrix[index] if d < _UNREACHABLE), default=0.0))
+        for index in range(mol.GetNumAtoms())
+    }
 
 
 def distance_degree(mol: Chem.Mol) -> dict[int, float]:
-    """Per atom: the sum of its topological distances to every other atom
-    (its row sum in the distance matrix)."""
+    """Per atom: the sum of its topological distances to every other atom of
+    its own component (its row sum over reachable atoms), for the reason
+    `eccentricity` gives."""
     matrix = _distance_matrix(mol)
-    return {index: float(matrix[index].sum()) for index in range(mol.GetNumAtoms())}
+    return {
+        index: float(sum(d for d in matrix[index] if d < _UNREACHABLE))
+        for index in range(mol.GetNumAtoms())
+    }
 
 
 def cyclomatic_number(mol: Chem.Mol) -> int:

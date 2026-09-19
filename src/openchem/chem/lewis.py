@@ -694,7 +694,11 @@ def compute_lewis_sites(
             category="lewis",
             cache_state=CacheState.FAILED,
             error=analysis.reason,
-            provenance=provenance,
+            # Every refusal `analyse` makes is the two-centre model declining
+            # (dummy atoms, metal-carbon bonds, 3c-2e bridges): a limit of the
+            # model, and the reason says which.
+            inapplicable=True,
+            provenance=replace(provenance, parameters={"refusal": "LEWIS_MODEL_DOES_NOT_APPLY"}),
         )
 
     # Ambiphilic sites get their own heading rather than appearing under

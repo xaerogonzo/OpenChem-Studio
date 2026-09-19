@@ -14,14 +14,29 @@ _ACID_SMARTS = Chem.MolFromSmarts("[$([CX3](=O)[OX2H1]),$([OX2H1][cX3]),$([SX4](
 # 20 (matches verapamil/amitriptyline/di- and triethylamine; excludes
 # amides, sulfonamides, aromatic N, and anilines).
 _BASE_SMARTS = Chem.MolFromSmarts("[NX3;H2,H1,H0;!$(NC=[O,S]);!$(N=*);!$(NS(=O)=O);!$(Nc);!a]")
+#: **THE SAME CENTRES, DRAWN IONISED.** A carboxylate is the acid's conjugate
+#: base and an ammonium the amine's conjugate acid: one ionizable centre each,
+#: whichever form is on the page. Matching only the neutral forms read glycine
+#: drawn as its zwitterion as having NO ionizable centre, so its pH curves and
+#: isoelectric point were refused (round 5 multicomponent sweep, S1).
+_IONISED_ACID_SMARTS = Chem.MolFromSmarts(
+    "[OX1-;$([O-][CX3]=O),$([O-]c),$([O-][SX4](=O)=O),$([O-][PX4]=O)]"
+)
+#: The ammonium half: it needs an N-H, since a quaternary N has no proton to
+#: give and is not ionizable, and it keeps the neutral pattern's exclusions.
+_IONISED_BASE_SMARTS = Chem.MolFromSmarts(
+    "[NX4+;H3,H2,H1;!$(NC=[O,S]);!$(NS(=O)=O);!$(Nc);!a]"
+)
 
 
 def classify_ionizable_centres(mol: Chem.Mol) -> tuple[int, int]:
     """Returns (acidic_count, basic_count) for the molecule -- how many
-    Henderson-Hasselbalch terms of each kind apply."""
-    acids = len(mol.GetSubstructMatches(_ACID_SMARTS)) if _ACID_SMARTS is not None else 0
-    bases = len(mol.GetSubstructMatches(_BASE_SMARTS)) if _BASE_SMARTS is not None else 0
-    return acids, bases
+    Henderson-Hasselbalch terms of each kind apply, in either drawn form."""
+
+    def count(*patterns) -> int:
+        return sum(len(mol.GetSubstructMatches(p)) for p in patterns if p is not None)
+
+    return count(_ACID_SMARTS, _IONISED_ACID_SMARTS), count(_BASE_SMARTS, _IONISED_BASE_SMARTS)
 
 
 #: A pKa outside this range is not a measurement, it is a typo or a

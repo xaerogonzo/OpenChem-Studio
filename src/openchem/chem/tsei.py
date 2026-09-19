@@ -157,7 +157,7 @@ from __future__ import annotations
 
 import json
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -165,6 +165,7 @@ from typing import Any
 from rdkit import Chem
 
 from openchem.chem.calculator_options import atom_basis_of, decimals
+from openchem.domain.calculator import ELEMENT_OUTSIDE_PARAMETER_SET
 from openchem.domain.common import ATOM_BASIS, TOTAL, CacheState, Provenance, decline_total
 from openchem.domain.scientific_result import PerAtomDataset
 
@@ -484,7 +485,9 @@ def compute_tsei_projection(
             values={},
             cache_state=CacheState.FAILED,
             error=str(error),
-            provenance=provenance,
+            # Lange's table does not cover the element: a limit, not a fault.
+            inapplicable=True,
+            provenance=replace(provenance, parameters={**provenance.parameters, "refusal": ELEMENT_OUTSIDE_PARAMETER_SET}),
         )
 
     return PerAtomDataset(

@@ -681,19 +681,67 @@ def test_fragment_counts_count_the_projection_not_every_detection(smiles, expect
 
 @pytest.mark.parametrize(
     "smiles,element",
-    [
-        ("[Na+].[Cl-]", "Na"), ("[K+].CC(=O)[O-]", "K"), ("[Li+].[Li+].[O-]C([O-])=O", "Li"),
-        ("[Ca+2].[Cl-].[Cl-]", "Ca"), ("C[Mg]Br", "Mg"), ("[CH-]1C=CC=C1.[CH-]1C=CC=C1.[Fe+2]", "Fe"),
-        ("N[Pt](N)(Cl)Cl", "Pt"), ("C[Se]C", "Se"), ("C[As](C)C", "As"),
-    ],
+    [("C[Mg]Br", "Mg"), ("N[Pt](N)(Cl)Cl", "Pt"), ("C[Se]C", "Se"), ("C[As](C)C", "As")],
 )
 def test_an_element_outside_mcgowans_set_refuses_only_the_mcgowan_volume(smiles, element):
     """Measured over salts and metal-containing structures (2026-09-18): the
     McGowan volume was the ONE eager descriptor that raised, and it took the
     whole provider down. It is a limit of the method, so it is inapplicable,
-    and it names the element."""
+    and it names the element.
+
+    ONE-COMPONENT structures since round 5: a salt's compound properties are
+    now computed on its ChEMBL parent (next test), so the element reaches
+    McGowan only when it is bonded into the one molecule there is."""
     values = {v.descriptor_id: v for v in RDKitDescriptorProvider().compute(Chem.MolFromSmiles(smiles), "m")}
     mcgowan = values["mcgowan_volume"]
     assert mcgowan.cache_state == CacheState.FAILED and mcgowan.inapplicable
     assert mcgowan.value is None and f"for {element} (element" in mcgowan.error
+    assert mcgowan.provenance.parameters["refusal"] == "ELEMENT_OUTSIDE_PARAMETER_SET"
     assert values["mol_wt"].cache_state == CacheState.COMPLETED
+
+
+@pytest.mark.parametrize(
+    "smiles,refusal",
+    [
+        ("[Na+].[Cl-]", "MULTICOMPONENT_UNSUPPORTED"),
+        ("[K+].CC(=O)[O-]", "MULTICOMPONENT_UNSUPPORTED"),
+        ("[Li+].[Li+].[O-]C([O-])=O", "MULTICOMPONENT_UNSUPPORTED"),
+        ("[Ca+2].[Cl-].[Cl-]", "MULTICOMPONENT_UNSUPPORTED"),
+        ("[CH-]1C=CC=C1.[CH-]1C=CC=C1.[Fe+2]", "METAL_CONTAINING_UNSUPPORTED"),
+    ],
+)
+def test_a_salt_with_no_single_parent_keeps_what_describes_the_drawing(smiles, refusal):
+    """Every component a listed salt, or a metal ChEMBL's rule excludes: no
+    parent, so every compound property refuses with ONE code, and the
+    formula, weight, exact mass and charge -- ChEMBL's FULL_ fields --
+    still describe the drawing."""
+    values = {v.descriptor_id: v for v in RDKitDescriptorProvider().compute(Chem.MolFromSmiles(smiles), "m")}
+    for descriptor_id in ("mol_wt", "exact_mass", "formula", "formal_charge"):
+        assert values[descriptor_id].cache_state == CacheState.COMPLETED, descriptor_id
+    refused = [v for k, v in values.items() if k not in {"mol_wt", "exact_mass", "formula", "formal_charge"}]
+    assert refused and all(
+        v.cache_state == CacheState.FAILED and v.inapplicable and v.provenance.parameters["refusal"] == refusal
+        for v in refused
+    )
+
+
+@pytest.mark.parametrize(
+    "salt,parent",
+    [
+        ("CN(C)C(=N)N=C(N)N.Cl", "CN(C)C(=N)N=C(N)N"),                    # counter-ion after
+        ("Cl.CN(C)C(=N)N=C(N)N", "CN(C)C(=N)N=C(N)N"),                    # and before
+        ("[Na+].[O-]c1ccccc1", "Oc1ccccc1"),                              # re-neutralised
+        ("Cn1cnc2c1c(=O)n(C)c(=O)n2C.O", "Cn1cnc2c1c(=O)n(C)c(=O)n2C"),   # a hydrate
+    ],
+)
+def test_a_salts_compound_properties_are_its_parents(salt, parent):
+    """ChEMBL's rule (COMPOUND_PROPERTIES: all but FULL_MWT and
+    FULL_MOLFORMULA on the parent): logP, TPSA, the rule-of-five pass and the
+    rest are the parent's own numbers, while the weight is still the salt's."""
+    provider = RDKitDescriptorProvider()
+    on_salt = {v.descriptor_id: v for v in provider.compute(Chem.MolFromSmiles(salt), "m")}
+    on_parent = {v.descriptor_id: v for v in provider.compute(Chem.MolFromSmiles(parent), "m")}
+    for descriptor_id in ("mol_logp", "tpsa", "num_hbd", "num_hba", "lipinski_pass", "heavy_atom_count", "qed"):
+        assert on_salt[descriptor_id].value == pytest.approx(on_parent[descriptor_id].value), descriptor_id
+    assert on_salt["mol_wt"].value > on_parent["mol_wt"].value
+    assert on_salt["mol_logp"].provenance.parameters["parent_smiles"] == Chem.MolToSmiles(Chem.MolFromSmiles(parent))

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Callable
 
 from openchem.domain.common import ScientificResult
@@ -162,6 +163,111 @@ CALCULATION_INPUTS = frozenset({DRAWING, GEOMETRY})
 ENSEMBLE = "ensemble"
 
 
+class ComponentSelection(str, Enum):
+    """WHICH components of a drawing a calculator is handed.
+
+    Round 5's multicomponent sweep (tests/fixtures/multicomponent_matrix_s1.json)
+    found the question had never been asked: every calculator got the whole
+    drawing, so metformin pamoate "failed Lipinski" on its C23 counter-ion and
+    sodium acetate had a logP of -4.24 against acetic acid's 0.09. It is a
+    different axis from `calculation_input` (drawing vs conformer), which is
+    why it is its own field rather than a third member there.
+    """
+
+    #: The drawing as given: what the substance IS (formula, mass, name) or
+    #: a description of the given structure or geometry.
+    WHOLE_STRUCTURE = "whole_structure"
+    #: The drawing as given, by a method that is atom- or component-local, so
+    #: each component is answered on its own (perception, per-atom values).
+    EACH_COMPONENT = "each_component"
+    #: The ChEMBL parent compound (Bento et al. 2020): listed salts and
+    #: solvents removed, the rest neutralised, identical components merged,
+    #: and applied only when there is more than one component -- the paper
+    #: applies GetParent "to just those compounds" that are multicomponent or
+    #: isotopic. ChEMBL computes every calculated property on it but the full
+    #: weight and formula (ChEMBL 37 schema documentation, COMPOUND_PROPERTIES,
+    #: [source:chembl_schema]).
+    CHEMBL_PARENT = "chembl_parent"
+    #: More than one component is refused: the method is stated for a pure
+    #: single substance and a salt is a different substance.
+    REFUSE_MULTICOMPONENT = "refuse_multicomponent"
+
+
+class Aggregation(str, Enum):
+    """HOW the answer relates to the components it was computed over."""
+
+    SCALAR = "scalar"
+    PER_ATOM = "per_atom"
+    #: A set of structures, facts or points (isomers, a report, a curve).
+    COLLECTION = "collection"
+
+
+class MethodDomain(str, Enum):
+    """WHAT inputs the published method is defined for.
+
+    Declared, and enforced by the framework only where it can be decided
+    from the structure alone (`ORGANIC`); a `METHOD_SPECIFIC` calculator
+    refuses what its own source excludes, with its own code.
+    """
+
+    ANY_STRUCTURE = "any_structure"
+    ORGANIC = "organic"
+    METHOD_SPECIFIC = "method_specific"
+
+
+@dataclass(frozen=True)
+class CalculatorScope:
+    """Which components, how aggregated, and over what domain. Every
+    registered calculator declares one; `tests/test_multicomponent_scope.py`
+    refuses a definition without. An explicit `WHOLE_STRUCTURE` is a real
+    declaration, not a missing one."""
+
+    selection: ComponentSelection
+    aggregation: Aggregation
+    domain: MethodDomain = MethodDomain.ANY_STRUCTURE
+    #: Why this scope, in a sentence -- and, for `REFUSE_MULTICOMPONENT`, the
+    #: explanation the refusal shows.
+    note: str = ""
+
+
+#: Refusal codes the scope layer itself raises. A calculator's own refusals
+#: keep their own enums (`HansenRefusal`, `AromaticityRefusal`, ...); all of
+#: them reach `provenance.parameters["refusal"]`, the key
+#: `debug_drive.result_report` and the multicomponent guard read.
+MULTICOMPONENT_UNSUPPORTED = "MULTICOMPONENT_UNSUPPORTED"
+#: ChEMBL's exclusion flag: a transition metal or more than seven borons,
+#: so there is no parent molecule to hand a compound-property calculator.
+METAL_CONTAINING_UNSUPPORTED = "METAL_CONTAINING_UNSUPPORTED"
+#: A `MethodDomain.ORGANIC` calculator handed a structure with no carbon.
+NO_ORGANIC_COMPONENT = "NO_ORGANIC_COMPONENT"
+#: An element the method's own table has no parameter for (Jensen's
+#: increments, McGowan's volumes, MMFF/UFF, Lange's radii).
+ELEMENT_OUTSIDE_PARAMETER_SET = "ELEMENT_OUTSIDE_PARAMETER_SET"
+#: Not a limit of the method: the user has to supply something (a reference
+#: structure, a partner molecule). A FAULT in `ScientificResult.inapplicable`'s
+#: sense, so it is raised with `inapplicable=False`.
+INPUT_REQUIRED = "INPUT_REQUIRED"
+#: A sidecar model whose interpreter is not configured on this machine.
+SIDECAR_NOT_CONFIGURED = "SIDECAR_NOT_CONFIGURED"
+
+
+class CalculationRefusal(Exception):
+    """A calculator declining a structure, with a stable code.
+
+    Raised rather than returned so that every route into a calculator --
+    Properties, Batch, the 3D overlay -- gets the same refusal from the same
+    place; `DescriptorService` turns it into a FAILED result carrying the
+    code, both sentences and whether it is a limit of the method.
+    """
+
+    def __init__(self, code: str, summary: str, detail: str, *, inapplicable: bool = True) -> None:
+        super().__init__(detail)
+        self.code = code
+        self.summary = summary
+        self.detail = detail
+        self.inapplicable = inapplicable
+
+
 @dataclass(frozen=True, kw_only=True)
 class CalculatorDefinition:
     """Metadata for one registered calculator (`CalculatorRegistry`) —
@@ -231,6 +337,9 @@ class CalculatorDefinition:
     # been ceremony. Plain strings for the same reason `category` is:
     # a new tag needs no code change.
     tags: list[str] = field(default_factory=list)
+    #: Which components, how aggregated, over what domain. `None` is not a
+    #: scope: the guard fails on it (see `CalculatorScope`).
+    scope: CalculatorScope | None = None
 
     def __post_init__(self) -> None:
         # At construction, so a dangling or circular dependency is a failing

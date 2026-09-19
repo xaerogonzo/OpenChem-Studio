@@ -762,6 +762,12 @@ def test_every_bundled_file_is_declared_and_licensed():
             resolved = path.resolve()
             if resolved in theirs or resolved in ours:
                 continue
+            # A directory INSIDE this one that another entry declares is that
+            # entry's to classify (vendor/chembl_structure_pipeline sits in
+            # vendor/ beside the namer's files). Only a DECLARED directory is
+            # skipped, so a library dropped in undeclared is still caught.
+            if any(parent in declared_dirs and parent != base for parent in resolved.parents):
+                continue
             if any(parent in theirs for parent in resolved.parents):
                 continue
             problems.append(

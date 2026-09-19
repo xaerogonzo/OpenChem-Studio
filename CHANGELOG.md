@@ -34,6 +34,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A salt's properties are its parent compound's.** Every calculator now
+  declares which components of a drawing it describes. Properties of the
+  compound (logP, polar surface area, pKa, logD, the drug-likeness rules,
+  QED, the CNS and BBB scores, ADMET) are computed on the parent: ChEMBL's
+  rule, which strips listed counter-ions and solvents and re-neutralises what
+  is left. The molecular weight, formula, exact mass and net charge still
+  describe the whole drawing, as ChEMBL's own FULL_MWT and FULL_MOLFORMULA
+  do. So metformin hydrochloride has metformin's logP and passes the rule of
+  five, and metformin pamoate no longer "fails Lipinski" on its larger
+  counter-ion. When a salt has no single parent -- sodium acetate, where
+  every component is a listed salt, or choline salicylate, where none is --
+  those properties say so instead of giving a number for the ions together.
+  Each result records which components it was computed over.
+- **A refusal says which one, everywhere.** Calculators that decline a
+  structure record a stable code with the reason (no pi system, element
+  outside the method's parameter set, an input you have to supply, a sidecar
+  that is not set up), and the method's own limits no longer paint like
+  faults. Batch cells carry the same code as Properties.
+
 - **Functional Groups and Fragment Counts are one detection, from one
   vocabulary.** Both used to answer "what groups does this have" with their own
   definitions, and disagreed: Fragment Counts, 24 of RDKit's counters, called an
@@ -102,6 +121,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A protonated amine inverts; the hashed bond it was drawn with said otherwise.
 
 ### Fixed
+
+- **Graph-distance results on a salt were RDKit's "unreachable" sentinel.**
+  Eccentricity read 100000000 for every atom of sodium acetate and the Wiener
+  index 400000009. Distances are now taken within each component.
+- **pH-dependent charges, the major microspecies and logD failed on every
+  salt** with "the protonated form has 4 heavy atoms where the drawing has
+  5": protonation dropped the counter-ion and a check then refused the
+  result. They now run on the parent compound.
+- **Glycine drawn as its zwitterion had no ionizable centre**, so its pH
+  curves and isoelectric point were refused. A carboxylate or ammonium now
+  counts as the same centre as the acid or amine it came from.
+- **Polarizability and atomic polarizability failed outright on sodium,
+  potassium and other elements Jensen's table does not cover**; they now
+  refuse as outside the method and name the elements it does cover.
 
 - **A ring system's name carried the molecule's configuration** --
   "(5R)-hexadecahydro-1H-cyclopenta[a]phenanthrene", "trans-decalin" -- in

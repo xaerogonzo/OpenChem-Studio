@@ -38,7 +38,7 @@ from PySide6.QtCore import QRunnable, QThreadPool
 from openchem.chem.descriptor_providers import RDKitDescriptorProvider
 from openchem.chem.calculation_input import select_calculation_input
 from openchem.chem.engine import ChemistryEngine
-from openchem.domain.calculator import GEOMETRY
+from openchem.domain.calculator import GEOMETRY, CalculationRefusal
 from openchem.chem.result_reduction import (
     alert_catalog_columns,
     descriptor_cell,
@@ -55,7 +55,7 @@ from openchem.domain.batch import (
     SOURCE_CALCULATOR,
     SOURCE_DERIVED,
 )
-from openchem.domain.common import CacheState
+from openchem.domain.common import CacheState, Provenance
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.scientific_result import PerAtomDataset
 from openchem.events.base import Event, EventBus
@@ -304,14 +304,27 @@ class _BatchTask(QRunnable):
             try:
                 result = self._registry.compute(calculator_id, mol, molecule.uuid, parameters)
             except Exception as exc:  # noqa: BLE001 - one calculator must not end the run
-                logger.exception("Calculator %s failed in batch", calculator_id)
+                refused = isinstance(exc, CalculationRefusal)
+                if refused:
+                    logger.info("Calculator %s refused in batch: %s", calculator_id, exc.code)
+                else:
+                    logger.exception("Calculator %s failed in batch", calculator_id)
                 column_id = f"calculator:{calculator_id}"
                 if table.column(column_id) is None:
                     table.add_column(_failed_column(calculator_id, definition.display_name))
                 table.set_cell(
                     molecule.uuid,
                     column_id,
-                    BatchCell(text="", cache_state=CacheState.FAILED, error=str(exc)),
+                    BatchCell(
+                        text="", cache_state=CacheState.FAILED, error=str(exc),
+                        # The same code Properties records, so a batch cell
+                        # and a Properties row say WHICH refusal alike.
+                        provenance=(
+                            Provenance(created_by="core", method=calculator_id,
+                                       parameters={"refusal": exc.code})
+                            if refused else None
+                        ),
+                    ),
                 )
                 continue
             logger.debug("batch %s on %s took %.3fs", calculator_id, molecule.uuid, time.time() - started)

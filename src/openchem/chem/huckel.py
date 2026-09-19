@@ -196,7 +196,9 @@ def compute_huckel_analysis(
             category="quantum",
             cache_state=CacheState.FAILED,
             error=_NO_PI_SYSTEM,
-            provenance=Provenance(created_by="core", method="huckel"),
+            error_summary="No pi system",
+            inapplicable=True,
+            provenance=Provenance(created_by="core", method="huckel", parameters={"refusal": "NO_PI_SYSTEM"}),
         )
 
     places = decimals(parameters)
@@ -255,7 +257,12 @@ def compute_pi_electron_density(
             values={},
             cache_state=CacheState.FAILED,
             error=_NO_PI_SYSTEM,
-            provenance=Provenance(created_by="core", method="huckel", parameters={"decimal_places": _places}),
+            error_summary="No pi system",
+            inapplicable=True,
+            provenance=Provenance(
+                created_by="core", method="huckel",
+                parameters={"decimal_places": _places, "refusal": "NO_PI_SYSTEM"},
+            ),
         )
     return PerAtomDataset(
         property_id="huckel_pi_density",

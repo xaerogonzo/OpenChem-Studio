@@ -15,8 +15,8 @@ from openchem.chem.calculation_input import (
 )
 from openchem.chem.descriptor_providers import DescriptorProvider, RDKitDescriptorProvider
 from openchem.chem.engine import ChemistryEngine
-from openchem.domain.calculator import DRAWING, CalculationRequest
-from openchem.domain.common import CacheState
+from openchem.domain.calculator import DRAWING, CalculationRefusal, CalculationRequest
+from openchem.domain.common import CacheState, Provenance
 from openchem.domain.descriptor import DescriptorValue
 from openchem.domain.molecule import MoleculeModel
 from openchem.domain.report import ReportResult, StructureReport
@@ -397,6 +397,15 @@ class _CalculationTask(QRunnable):
             # plumbing was not. Stamped HERE, once, rather than in each of
             # the sixty calculators or in each panel that displays one.
             result = _with_structure_version(result, self._structure_version_of)
+        except CalculationRefusal as refusal:
+            # A DECLINE, not a crash: no traceback in the log, and the code
+            # and both sentences reach the result (round 5, branch S2).
+            logger.info("Calculator %s refused: %s", self._request.calculator_id, refusal.code)
+            self._publish_failed(
+                refusal.detail, summary=refusal.summary, code=refusal.code,
+                inapplicable=refusal.inapplicable,
+            )
+            return
         except Exception as exc:  # noqa: BLE001 - a bad calculator must not kill the pool
             logger.exception("Calculator %s failed", self._request.calculator_id)
             self._publish_failed(str(exc))
@@ -479,7 +488,9 @@ class _CalculationTask(QRunnable):
             )
         )
 
-    def _publish_failed(self, message: str) -> None:
+    def _publish_failed(
+        self, message: str, *, summary: str | None = None, code: str = "", inapplicable: bool = False
+    ) -> None:
         # Empty PerAtomDataset is the only "there was a problem" shape
         # every current consumer (PropertyPanel, Calculator Inspector)
         # already knows how to render via ScientificResult.error -- no new
@@ -493,6 +504,14 @@ class _CalculationTask(QRunnable):
             values={},
             cache_state=CacheState.FAILED,
             error=message,
+            error_summary=summary,
+            inapplicable=inapplicable,
+            # The refusal CODE where `debug_drive.result_report` and the
+            # multicomponent guard read every other calculator's.
+            provenance=(
+                Provenance(created_by="core", method=self._request.calculator_id, parameters={"refusal": code})
+                if code else None
+            ),
         )
         # The fingerprint BEFORE publishing, so the event carries it: a failure
         # is as structure-bound as a success, and a stale one must not read as

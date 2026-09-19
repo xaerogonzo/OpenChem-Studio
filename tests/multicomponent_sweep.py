@@ -105,7 +105,9 @@ def _cell(row: PanelRow, stored) -> dict[str, Any]:
         "type": type(result).__name__,
         "state": "failed" if failed else "completed",
         "inapplicable": bool(getattr(result, "inapplicable", False)),
-        "refusal": parameters.get("refusal", ""),
+        "refusal": parameters.get("refusal", "") or "",
+        "component_selection": parameters.get("component_selection", ""),
+        "components_used": parameters.get("components_used"),
         "method": getattr(result, "method", "") or getattr(provenance, "method", ""),
         "summary": (getattr(result, "error_summary", "") or "")[:120],
         "error": (getattr(result, "error", "") or "")[:240],
@@ -197,10 +199,11 @@ def run_sweep(qapp, rows: list[PanelRow], *, calculator_ids: list[str] | None = 
 def classify(sweep: dict[str, Any], rows: list[PanelRow]) -> list[dict[str, Any]]:
     """Each cell's outcome class, plus the MISSING cells nothing recorded.
 
-    Before any calculator declares a scope, a value on a multicomponent or
-    charged non-control row is `suspect` BY DEFINITION: nothing yet says
-    which components it was computed over or whether the method covers
-    them. That is the plan's rule, not a judgement of the number.
+    A value on a multicomponent or charged non-control row is `suspect`
+    unless its provenance records which components it was computed over
+    (`component_selection`, stamped by `chem.components`): before round 5's
+    scopes nothing did, so the S1 matrix is all suspects by definition --
+    the plan's rule, not a judgement of the number.
     """
     by_row = {r.id: r for r in rows}
     facts = sweep["rows"]
@@ -226,7 +229,7 @@ def classify(sweep: dict[str, Any], rows: list[PanelRow]) -> list[dict[str, Any]
         multi = f["components"] > 1 or f["metal"] or f["formal_charges"] > 0
         if cell["state"] == "failed":
             outcome = "inapplicable" if cell["inapplicable"] else "failed"
-        elif row.is_control or not multi:
+        elif row.is_control or not multi or cell.get("component_selection"):
             outcome = "value"
         else:
             outcome = "suspect"

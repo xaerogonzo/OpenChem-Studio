@@ -181,3 +181,42 @@ Known, and not ours: on **RDKit 2026.3.4** the two `test_trindene_indicated_h`
 cases fail with `Can't kekulize mol`. That reproduces on unmodified
 `c3eac17`, so it is an RDKit change rather than anything either repository did.
 This project pins 2025.9.6, where the suite is green.
+
+## `chembl_structure_pipeline` — ChEMBL's GetParent rule, and its lists
+
+| | |
+|---|---|
+| upstream | https://github.com/chembl/ChEMBL_Structure_Pipeline |
+| commit | `d252cd22d67674da4fa607b761c5b5a144cfdf07` (release 1.2.4 line) |
+| licence | MIT — see `chembl_structure_pipeline/LICENSE.chembl-structure-pipeline` (copyright retained) |
+| vendored | 2026-09-19, round 5 branch S2 |
+| files | `salts.smi` (sha256 `ee021b99…99a5`, 163 lines), `solvents.smi` (sha256 `3ff218cc…ac96`, 9 lines), and `getparent.py` |
+
+**What it is for.** Which component of a salt a compound property describes.
+ChEMBL computes every calculated property except the full weight and formula
+on the parent structure (ChEMBL 37 schema documentation, COMPOUND_PROPERTIES),
+and Bento et al. 2020 (J Cheminform 12:51, CC-BY) document the rule;
+`chem/components.py` applies it per calculator scope.
+
+**Why vendored rather than depended on.** Two list files and three functions
+are what is used; the package brings the whole standardiser with it. The
+rule is taken VERBATIM rather than re-derived because its special cases are
+the point: a fragment is a salt only if it matches a list entry atom for atom
+and bond for bond; when every fragment is a salt, nothing is stripped (sodium
+acetate, NaCl); identical fragments are merged; a transition metal or more
+than seven borons sets the exclusion flag.
+
+**What was changed.** `getparent.py` is `get_fragment_parent_mol` and
+`uncharge_mol` from `standardizer.py`, and `exclude_flag` with `METAL_LIST`
+from `exclude_flag.py`, byte-for-byte; the three edits are marked
+`OpenChem:` in the file: the data directory, the inlined `exclude_flag`, and
+the module docstring. One decision is ours and lives in `chem/components.py`,
+not here: the rule is applied only to MORE THAN ONE component, as the paper
+applies GetParent "to just those compounds", because the function also
+neutralises a single component and would turn a drawn zwitterion neutral.
+
+**Upgrading.** Fetch the three source files at the new commit, re-extract the
+same functions, and diff; then run `tests/test_multicomponent_scope.py`,
+whose panel rows (metformin pamoate, where the counter-ion is the LARGER
+component, and sodium acetate, where every component is listed) pin both
+special cases.

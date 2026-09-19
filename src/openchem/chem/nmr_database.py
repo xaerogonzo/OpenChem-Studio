@@ -715,7 +715,10 @@ def predict_spectrum(
                 f"No {element} environment in this molecule was found in the database. "
                 "That is a coverage gap, not a failure -- the ab initio path has no such limit."
             ),
-            provenance=Provenance(created_by="core", method="hose_lookup"),
+            # Its own sentence says it: a coverage gap, not a failure.
+            inapplicable=True,
+            provenance=Provenance(created_by="core", method="hose_lookup",
+                                  parameters={"refusal": "NO_DATABASE_ENVIRONMENT"}),
         )
 
     return NMRSpectrumResult(

@@ -44,7 +44,9 @@ from openchem.domain.common import TOTAL, CacheState, Provenance, decline_total
 from openchem.domain.report import Fact, FactCategory, ReportResult
 from openchem.domain.structure_issue import Basis
 
+#: HOMA's per-bond optimal lengths and alpha constants (Krygowski 1993 Table I).
 _PARAMETERS_PATH = Path(__file__).parent / "data" / "homa_parameters.json"
+#: Bird's Gordy constants and reference bond orders (Bird 1985 Table 1).
 _BIRD_PATH = Path(__file__).parent / "data" / "bird_parameters.json"
 
 
@@ -71,6 +73,11 @@ class GeometricAromaticityRefusal(Enum):
     NO_RINGS = "the structure has no rings"
     UNPARAMETRISED_BOND = "a ring bond has no parameters for this index"
     UNSUPPORTED_RING_SIZE = "this index has no reference value for this ring size"
+
+
+#: The refusals the user can do something about; every other one is a
+#: limit of the index (`ScientificResult.inapplicable`).
+_FAULTS = frozenset({GeometricAromaticityRefusal.NOT_A_STRUCTURE, GeometricAromaticityRefusal.NO_CONFORMER})
 
 
 #: The name HOMA shipped under. Kept as an alias so nothing that imports it
@@ -283,6 +290,9 @@ def compute_aromaticity(
             molecule_uuid=molecule_uuid,
             cache_state=CacheState.FAILED,
             error=refusal_text(result.refusal, result.detail),
+            # A LIMIT of the index unless the fix is the user's: a drawing
+            # that could not be read, or no 3D conformer yet.
+            inapplicable=result.refusal not in _FAULTS,
             # The CELL form. The detail is a whole sentence -- what to press,
             # or why a layout's bond lengths are not measurements -- and that
             # is exactly the half the cell used to eat.
@@ -562,6 +572,9 @@ def compute_bird_index(
             molecule_uuid=molecule_uuid,
             cache_state=CacheState.FAILED,
             error=refusal_text(result.refusal, result.detail),
+            # A LIMIT of the index unless the fix is the user's: a drawing
+            # that could not be read, or no 3D conformer yet.
+            inapplicable=result.refusal not in _FAULTS,
             error_summary=result.refusal.value if result.refusal else None,
             provenance=provenance,
         )

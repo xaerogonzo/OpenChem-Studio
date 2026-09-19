@@ -309,6 +309,9 @@ def compute_steric_analysis(
         cones = [exact_cone_angle(prepared, donor, c, metal_distance) for c in ids]
         volumes = [buried_volume(prepared, donor, c, sphere_radius, metal_distance) for c in ids]
     except (NoDonorError, NoConformerError, ValueError) as exc:
+        # No donor atom is a limit of what these measures describe (a
+        # ligand); a missing conformer is a fault the user can fix.
+        no_donor = isinstance(exc, NoDonorError)
         return report_from_fields(
             alert_id="steric_analysis",
             name="Ligand Steric Bulk",
@@ -317,7 +320,11 @@ def compute_steric_analysis(
             category="geometry",
             cache_state=CacheState.FAILED,
             error=str(exc),
-            provenance=Provenance(created_by="core", method="exact_cone_angle+vbur"),
+            inapplicable=no_donor,
+            provenance=Provenance(
+                created_by="core", method="exact_cone_angle+vbur",
+                parameters={"refusal": "NO_DONOR_ATOM"} if no_donor else {},
+            ),
         )
 
     # The MINIMUM cone over the ensemble, which is Tolman's own convention

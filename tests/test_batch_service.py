@@ -161,6 +161,29 @@ def test_one_failing_calculator_does_not_end_the_run(services):
     assert table.cell(molecules[0].uuid, "descriptor:mol_wt").value is not None
 
 
+def test_a_salt_in_a_batch_says_which_refusal_and_keeps_its_parents_numbers(services):
+    """Round 5: a batch cell carries the same refusal CODE Properties records,
+    and a calculator scoped to the ChEMBL parent answers for metformin HCl
+    with metformin's number."""
+    molecules = _molecules(services, [
+        ("sodium acetate", "CC(=O)[O-].[Na+]"),
+        ("metformin HCl", "CN(C)C(=N)N=C(N)N.Cl"),
+        ("metformin", "CN(C)C(=N)N=C(N)N"),
+    ])
+    events = _run(
+        services,
+        BatchRequest(molecule_uuids=[m.uuid for m in molecules], calculator_ids=["polar_surface_area"],
+                     descriptor_ids=["mol_logp"]),
+        molecules,
+    )
+    table = events[-1].table
+    refused = table.cell(molecules[0].uuid, "calculator:polar_surface_area")
+    assert refused.failed and refused.provenance.parameters["refusal"] == "MULTICOMPONENT_UNSUPPORTED"
+    assert table.cell(molecules[1].uuid, "descriptor:mol_logp").value == pytest.approx(
+        table.cell(molecules[2].uuid, "descriptor:mol_logp").value
+    )
+
+
 def test_alert_catalogs_are_selectable_alongside_descriptors(services):
     molecules = _molecules(services)
     events = _run(
