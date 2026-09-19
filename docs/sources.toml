@@ -4656,6 +4656,86 @@ indicated hydrogen and P-66.6.3 about chalcogen analogues of aldehydes.
 """
 
 [[source]]
+key = "iupac_goldbook"
+kind = "standard"
+citation = "IUPAC, Compendium of Chemical Terminology (the Gold Book), version 2.3.1, 2012-03-23."
+identifier_type = "standard"
+identifier = "IUPAC Compendium of Chemical Terminology, version 2.3.1"
+status = "shipped"
+used_by = ["src/openchem/chem/feature_vocabulary.py"]
+local = "goldbook.pdf"
+verification = "citation_and_claim"
+verified_date = 2026-09-18
+note = """
+THE NORMATIVE SOURCE FOR WHAT A STRUCTURAL FEATURE IS. Every `fg:` and `sf:`
+feature in the v2 vocabulary cites a Gold Book entry by headword and page,
+with the structural formula the entry writes, unless the Gold Book has none
+(ureas, guanidines, halogen compounds), in which case it says so and cites
+[source:iupac2013].
+
+**THE PAGE NUMBER IS A HEADER, AND READING IT AS A FOOTER IS OFF BY ONE.**
+Each pdf page's text starts with "N of 1622", the page's own number. A lookup
+that took the first "N of 1622" AFTER a headword therefore reported the next
+page; measured on acyl halides, lactams, amides and imines against the pdf's
+page objects, and caught before any page was committed. Every cited page was
+then checked against the Gold Book's own index (the front matter, "term, N"):
+all 67 cited headwords agree.
+
+The pdf carries no DOI and no term codes (codes such as A00266 are the
+website's), so a citation is headword + page. The website is behind an
+interactive bot check that a script cannot pass; Alex saved the pdf.
+"""
+
+[[source]]
+key = "moss1995"
+kind = "literature"
+citation = "G. P. Moss, P. A. S. Smith & D. Tavernier, 'Glossary of class names of organic compounds and reactive intermediates based on structure (IUPAC Recommendations 1995)', Pure Appl. Chem. 1995, 67, 1307-1375."
+identifier_type = "doi"
+identifier = "10.1351/pac199567081307"
+status = "reference_only"
+used_by = ["src/openchem/chem/feature_vocabulary.py"]
+local = "moss1995.pdf"
+verification = "citation"
+verified_date = 2026-09-18
+reason = """
+THE GOLD BOOK'S OWN SOURCE FOR CLASS NAMES, READ TO CONFIRM AN ABSENCE. Most
+class-name entries in [source:iupac_goldbook] cite this glossary, so where
+the Gold Book has no entry (ureas, guanidines, carbonates, organohalides) this
+was checked too, and it has none either. That is all it backs.
+
+Not quoted from: the copy is an OCR scan ("Acrobat Paper Capture") whose text
+layer misreads on its first page ("App/. Chem.", "DMSION"). Volume, pages and
+year are off its first page; the DOI is not printed on a 1995 paper and is
+the publisher's.
+"""
+
+[[source]]
+key = "ertl2017"
+kind = "literature"
+citation = "P. Ertl, 'An algorithm to identify functional groups in organic molecules', Journal of Cheminformatics 2017, 9, 36."
+identifier_type = "doi"
+identifier = "10.1186/s13321-017-0225-z"
+status = "reference_only"
+used_by = ["src/openchem/chem/feature_vocabulary.py"]
+local = "ertl2017.pdf"
+verification = "citation"
+verified_date = 2026-09-18
+reason = """
+AN INDEPENDENT ORACLE, NEVER A DEFINITION. The v2 vocabulary is cross-checked
+against Ertl's algorithm both ways (every Ertl group mapped to a feature or
+justified), through the implementation RDKit ships as Contrib/IFG/ifg.py
+(sha256 92b97a341b5b0ca3a774ed89d7d2ee3b1d06f23ec30055bccb849f4cfde9ba60 in
+RDKit 2025.09.6). The paper supplies the marking rules (p. 2) and the
+three-step generalisation (p. 4) the implementation does not perform; its
+Additional file 1 (ERTL2017_si.md) lists 768 ChEMBL groups with prevalence.
+
+**THE PROSE AND THE TABLE DISAGREE ON THE SECOND GROUP.** The results section
+says "followed by the ester group (37.8%)"; the additional file gives 37.75%
+to [R]O[R], an ether, and 7.45% to the ester [R]OC([R])=O. The table is
+followed.
+"""
+
+[[source]]
 key = "crc_handbook"
 kind = "reference_table"
 citation = "CRC Handbook of Chemistry and Physics, 97th edition."
