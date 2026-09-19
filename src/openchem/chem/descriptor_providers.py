@@ -13,7 +13,6 @@ from rdkit.Chem import (
     Crippen,
     Descriptors,
     Descriptors3D,
-    Fragments,
     GraphDescriptors,
     Lipinski,
     QED,
@@ -120,9 +119,13 @@ from openchem.chem.regulatory.calculator import (
 )
 from openchem.chem.oxidation_states import compute_oxidation_states
 from openchem.chem.report_adapter import report_from_fields
+from openchem.chem.feature_vocabulary import VOCABULARY_VERSION, ObjectTreatment, Projection
+from openchem.chem.structural_features import project
+from openchem.domain.result_store import FRAGMENT_COUNTS_METHOD
 from openchem.chem.structure_annotation import (
     FG_LABEL_MODES,
     RING_LABEL_MODES,
+    canonical_features,
     compute_functional_groups,
     compute_locants,
     compute_ring_systems,
@@ -451,103 +454,72 @@ def _load_brenk_catalog() -> FilterCatalog:
     return _brenk_catalog
 
 
-# Phase 20: a curated subset of RDKit's 85 built-in Fragments.fr_* counting
-# functions (confirmed live: 85 total, sanity-checked on aspirin --
-# fr_ester=1, fr_COO=1, fr_benzene=1, fr_phenol=0 correctly since aspirin's
-# phenol oxygen is esterified) -- not all 85, most of the rest are narrow
-# specializations (e.g. fr_Ar_COO vs fr_Al_COO vs fr_COO2) that would
-# clutter a general-purpose functional-group panel more than inform it.
-# (fr_* function, display name) pairs.
-_FUNCTIONAL_GROUP_SPECS: list[tuple[str, str]] = [
-    ("fr_amide", "Amide"),
-    ("fr_ester", "Ester"),
-    ("fr_ether", "Ether"),
-    ("fr_ketone", "Ketone"),
-    ("fr_aldehyde", "Aldehyde"),
-    ("fr_COO", "Carboxylic Acid"),
-    ("fr_Al_OH", "Aliphatic Alcohol"),
-    ("fr_phenol", "Phenol"),
-    ("fr_NH2", "Primary Amine"),
-    ("fr_NH1", "Secondary Amine"),
-    ("fr_NH0", "Tertiary Amine"),
-    ("fr_nitro", "Nitro"),
-    ("fr_nitrile", "Nitrile"),
-    ("fr_sulfonamd", "Sulfonamide"),
-    ("fr_sulfone", "Sulfone"),
-    ("fr_halogen", "Halogen"),
-    ("fr_epoxide", "Epoxide"),
-    ("fr_imidazole", "Imidazole"),
-    ("fr_pyridine", "Pyridine"),
-    ("fr_furan", "Furan"),
-    ("fr_thiophene", "Thiophene"),
-    ("fr_benzene", "Benzene Ring"),
-    ("fr_urea", "Urea"),
-    ("fr_guanido", "Guanidine"),
-]
-
-
 def compute_fragment_group_alert(mol: Chem.Mol, molecule_uuid: str) -> AlertResult:
-    """Which of a curated set of common functional groups are present
-    (and how many), via RDKit's built-in `Fragments` module -- zero new
-    dependencies, ChatGPT's "functional group intelligence" ask. Reuses
-    `AlertResult`'s shape (a categorical result, not a single scalar) even
-    though this isn't a toxicity alert -- `matched` holds formatted
-    "name (count)" strings for every group with count > 0, same "empty
-    list means checked, nothing found" convention as PAINS/BRENK.
+    """How many of each structural feature and ring system `mol` has.
 
-    NAMED FOR ITS BACKING, not for what it reports, because it used to be
-    called `compute_functional_groups` and that shadowed the same-named
-    import from `chem/structure_annotation` at the top of this file. The
-    `functional_groups` calculator registered below therefore bound THIS
-    two-argument alert instead of the intended three-argument per-atom
-    annotation, and raised `TypeError: takes 2 positional arguments but 3
-    were given` for every molecule -- the registration and the definition
-    are 1,000 lines apart, so nothing about either read as wrong. Found by
-    running all 50 registered calculators in one pass, which is what a
-    batch runner does by construction.
+    **THE FRAGMENT COUNTS PROJECTION of the canonical feature set** (vocabulary
+    v2, `chem/structure_annotation.canonical_features`) -- the same detection
+    Functional Groups draws, counted rather than drawn. A lactam is counted as
+    a lactam and not ALSO as an amide; an acetal's oxygens are not also two
+    ethers; a carboxylate is counted under its own label, not as the acid.
+
+    UNTIL 2026-09-18 THIS WAS 24 OF RDKIT'S `fr_*` COUNTERS, a second
+    definition of the same features, and measured it disagreed with the
+    first in ways a reader would take for chemistry: an imine, oxime, azo
+    group, nitro group, azide, isocyanate or pyridine N counted as a
+    "Tertiary Amine" (caffeine: four), urea's NH2 and an amide N counted as
+    amines, a lactone and an anhydride counted as esters plus an ether, an
+    acetate as a carboxylic acid, DMSO as nothing (FG-001..FG-009 in
+    `tests/test_feature_known_defects.py`). A stored result of that method
+    is kept and labelled as it (`result_store.LEGACY_METHOD_VERSIONS`).
+
+    NAMED FOR ITS HISTORY, not for what it reports: it was once called
+    `compute_functional_groups`, which shadowed the same-named import from
+    `chem/structure_annotation` so the registered `functional_groups`
+    calculator bound this two-argument alert and raised for every molecule.
     """
-    matched = []
-    for fn_name, display_name in _FUNCTIONAL_GROUP_SPECS:
-        count = getattr(Fragments, fn_name)(mol)
-        if count > 0:
-            matched.append(f"{display_name} ({count})")
-    # **STILL AN `AlertResult`, AND IT IS THE LAST ONE.** This is a report
-    # wearing an alert's clothes like the four migrated beside it -- but it
-    # is published through the ALWAYS-ON channel, and that channel is typed:
-    # `descriptor_service` sends every `compute_alerts` result out as an
+    canonical = canonical_features(mol)
+    counted: dict[tuple[str, str], int] = {}
+    for projected in project(canonical.features, Projection.FRAGMENT_COUNTS):
+        if projected.treatment is ObjectTreatment.HIDDEN:
+            continue
+        key = (projected.feature.feature_id, projected.feature.label)
+        counted[key] = counted.get(key, 0) + 1
+    rings: dict[str, int] = {}
+    for ring in canonical.rings:
+        name = f"{ring.name or ring.kind} ring"
+        rings[name] = rings.get(name, 0) + 1
+    # Declared vocabulary order (the instances arrive in it), then rings by
+    # name: deterministic whatever the atom order.
+    matched = [f"{label} ({n})" for (_fid, label), n in counted.items()]
+    matched += [f"{name} ({n})" for name, n in sorted(rings.items())]
+    # **STILL AN `AlertResult`.** This is a report wearing an alert's clothes,
+    # but it is published through the ALWAYS-ON channel, and that channel is
+    # typed: `descriptor_service` sends every `compute_alerts` result out as an
     # `AlertComputed`, and both `_on_alert_computed` and
     # `batch_service._run_alerts` read `alert_id`, which a `ReportResult`
-    # does not have. Migrating it means changing the channel, which is a
-    # bigger decision than changing a call, and it is in none of stage 3's
-    # merge candidates.
+    # does not have.
     return AlertResult(
         # **RENAMED FROM `functional_groups`, WHICH THE REGISTERED CALCULATOR
-        # OF THAT ID ALSO USED.** `SessionResultStore` keys a result by
-        # (result id, calculation input, fingerprint), so the fragment counts
-        # and the per-atom annotation were the SAME slot: whichever ran last
-        # replaced the other, in the session and in a saved project. That is
-        # what made the panel show fragment counts once and never again.
-        # `result_store.migrate_legacy_result_id` re-files an old stored
-        # entry; `test_result_ids_are_unique` stops the next collision.
+        # OF THAT ID ALSO USED**, so the two shared one store slot and each
+        # replaced the other. `result_store.migrate_legacy_result_id` re-files
+        # an old stored entry; `test_result_ids_are_unique` stops the next one.
         alert_id="fragment_counts",
         name="Fragment Counts",
         molecule_uuid=molecule_uuid,
         matched=matched,
-        provenance=Provenance(created_by="core", method="rdkit"),
-        # **`substructure`, MATCHING THE CALCULATOR OF THE SAME ID.** This
-        # said `admet`, so one `functional_groups` -- a fragment count, which
-        # is not an ADMET property by any reading -- was filed in two
-        # different sections depending on which producer answered: the
-        # registered calculator's BUTTON sat under Substructure Search while
-        # this always-on result's ROW appeared under ADMET / Regulatory,
-        # which is the button-in-one-section-answer-in-another defect
-        # `test_a_calculators_result_lands_in_its_own_section` exists for --
-        # and that guard walks the registry, so an alert declaring its own
-        # category was outside its population.
-        #
-        # Measured over every literal (id, category) pair in the tree: 41
-        # declarations, and this was the ONLY one disagreeing with its
-        # registered calculator.
+        provenance=Provenance(
+            created_by="core",
+            method=FRAGMENT_COUNTS_METHOD,
+            parameters={
+                "vocabulary_version": VOCABULARY_VERSION,
+                "counts": {f"{fid}|{label}": n for (fid, label), n in counted.items()},
+                "rings": rings,
+            },
+        ),
+        # **`substructure`, MATCHING THE CALCULATOR OF THE SAME ID.** It once
+        # said `admet`, filing one result in two sections depending on which
+        # producer answered; `test_a_calculators_result_lands_in_its_own_section`.
         category="substructure",
     )
 
@@ -2420,15 +2392,18 @@ CALCULATOR_DEFINITIONS: list[CalculatorDefinition] = [
         category="substructure",
         description=(
             "Functional groups, ring systems and structural features, coloured by kind "
-            "and labelled at the atom each belongs to. Three detectors feed it and every "
-            "row says which one found it: the naming engine's own groups (the detection "
-            "that decides a name's suffix), the engine's ring amines and aromatic N-H, "
-            "and a pattern catalogue for what nomenclature has no group for at all "
-            "(ether, thioether, ammonium). A ring system is reported as a ring system -- "
-            "benzene, 1H-indole -- not as a group. Ring carbonyls next to a ring nitrogen "
-            "(lactams, uracil, caffeine) are still claimed by no GROUP, so a molecule "
-            "can show its rings and no functional group at all. Tick "
-            "\"Suffix-eligible groups only\" to narrow it back to the naming vocabulary."
+            "and labelled at the atom each belongs to. Every feature is defined in one "
+            "vocabulary, each cited to an IUPAC definition (the Gold Book, or the Blue "
+            "Book where the Gold Book has none), and detected once: Fragment "
+            "Counts counts the same detection this draws, and the Atom Inspector lists "
+            "it per atom. Where one feature is the better description of another's "
+            "atoms, the other is hidden here (an acetal's two oxygens are not also shown "
+            "as ethers) and a more specific one is shown beside its general one (a "
+            "lactam beside its amide). Charged forms are labelled as drawn -- a "
+            "carboxylate is not called a carboxylic acid -- and nothing is inferred "
+            "about pH. A ring system is reported as a ring system -- benzene, "
+            "1H-indole -- not as a group. Tick \"Suffix-eligible groups only\" to "
+            "narrow it to the groups the naming engine would consider for a suffix."
         ),
         execution=RegistryExecution(compute=compute_functional_groups),
         parameters=[

@@ -16,7 +16,7 @@ from __future__ import annotations
 import pytest
 from rdkit import Chem
 
-from openchem.chem.atom_report import build_atom_report
+from openchem.chem.atom_report import build_atom_report, collect_per_atom_data
 from openchem.domain.atom_report import (
     CATEGORY_ORDER,
     DEFAULT_EXPANDED,
@@ -340,3 +340,45 @@ def test_limitations_come_from_the_sources_without_a_generic_restatement():
         for text in report.limitations
     )
     assert len(set(report.limitations)) == len(report.limitations), "no duplicates"
+
+
+# --- a categorical per-atom value is shown as what it MEANS ---------------------
+
+
+def _computed(calculator_id: str, smiles: str):
+    from openchem.chem.descriptor_providers import CALCULATOR_DEFINITIONS
+
+    definition = next(d for d in CALCULATOR_DEFINITIONS if d.calculator_id == calculator_id)
+    mol = Chem.MolFromSmiles(smiles)
+    return mol, definition.execution.compute(mol, "m", {p.name: p.default for p in definition.parameters})
+
+
+def test_a_functional_group_atom_lists_every_feature_on_it():
+    """Printed as its category id, it read "Functional Groups: 1" (measured
+    2026-09-18). The Atom Inspector projection of vocabulary v2 hides
+    nothing: an acetal oxygen is the acetal's, and also an ether marked
+    non-primary -- read from the result, not detected again."""
+    mol, dataset = _computed("functional_groups", "CC(OC)Oc1ccccc1")
+    facts = {i: collect_per_atom_data(mol, i, {"per_atom": {"functional_groups": dataset}})
+             for i in (1, 2, 6)}
+    assert [f.display_value for f in facts[1]] == ["acetal"]
+    assert [f.display_value for f in facts[2]] == ["acetal; ether (non-primary)"]
+    assert [f.display_value for f in facts[6]] == ["benzene"]
+
+
+def test_a_ring_system_atom_shows_its_ring_not_a_number():
+    mol, dataset = _computed("ring_systems", "c1ccccc1CC1CCCCC1")
+    (fact,) = collect_per_atom_data(mol, 0, {"per_atom": {"ring_systems": dataset}})
+    assert not fact.display_value.replace(".", "").isdigit(), fact.display_value
+
+
+def test_off_the_drawings_index_space_only_the_label_is_read():
+    """The records' atom indices are the dataset's; once a projection had to
+    re-map the values, only the value -- and so its category label -- is
+    safe to read."""
+    from openchem.chem.atom_identity import DrawingProjection
+
+    mol, dataset = _computed("functional_groups", "CC(OC)Oc1ccccc1")
+    remapped = lambda ds: DrawingProjection(dict(ds.values), "structure_match")  # noqa: E731
+    (fact,) = collect_per_atom_data(mol, 2, {"per_atom": {"functional_groups": dataset}, "project": remapped})
+    assert fact.display_value == "acetal"

@@ -41,7 +41,20 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
-from openchem.chem.functional_group_patterns import FeatureCategory
+
+class FeatureCategory(str, Enum):
+    """What KIND of thing a feature is.
+
+    A benzene ring and an amide are both worth showing and are not the same
+    kind of claim, and code downstream must not have to infer that from a
+    key's spelling. Ionic forms are NOT a category: a carboxylate is a
+    carboxylic acid in the anionic state (see `ChargeState`).
+    """
+
+    FUNCTIONAL_GROUP = "functional_group"
+    RING_SYSTEM = "ring_system"
+    STRUCTURAL_FEATURE = "structural_feature"
+
 
 #: Part of every instance's identity. Bumped when a feature's MEANING changes,
 #: so a stored result can never be reinterpreted by a later definition.

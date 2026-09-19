@@ -1027,7 +1027,7 @@ def test_a_failed_git_probe_raises_too(monkeypatch):
 #
 #     CALCULATOR_DEFINITIONS       56    registry calculators   <- asked
 #     _DESCRIPTOR_SPECS            31    eager scalar descriptors
-#     _FUNCTIONAL_GROUP_SPECS      24
+#     _FUNCTIONAL_GROUP_SPECS      24    (gone since 2026-09-18: vocabulary v2)
 #     _SHAPE_DESCRIPTOR_SPECS      10
 #     alert providers                    literals in compute_alerts
 #     the always-on per-atom batch       not registry-driven, says so

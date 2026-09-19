@@ -34,6 +34,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Functional Groups and Fragment Counts are one detection, from one
+  vocabulary.** Both used to answer "what groups does this have" with their own
+  definitions, and disagreed: Fragment Counts, 24 of RDKit's counters, called an
+  imine, an oxime, an azo or nitro group, an azide and a pyridine N a "Tertiary
+  Amine" (caffeine had four), counted urea's NH2 as primary amines, a lactone as
+  an ester AND an ether, and an acetate as a carboxylic acid. Now 92 features --
+  each defined from the IUPAC Gold Book (or the Blue Book where it has none), each
+  with a page -- are detected once per structure and projected: Functional Groups
+  draws them, Fragment Counts counts them, the Atom Inspector lists them per
+  atom. Where one feature is the better description of another's atoms the view
+  says so (an acetal's oxygens are not also two ethers; a lactam is counted once
+  and shown beside its amide). Charged forms are labelled as drawn: a carboxylate
+  is a "carboxylate", a protonated amine an "ammonium". Amides are no longer
+  called "secondary" or "tertiary" by their N-substituents, which the Gold Book
+  says those words must not mean.
+- **Fragment Counts labels changed** (from "Amide (1)", "Tertiary Amine (2)",
+  "Benzene Ring (1)" to the vocabulary's own: "amide (1)", "tertiary amine (1)",
+  "benzene ring (1)"). A project saved before this keeps its old Fragment Counts
+  result, shown as "Fragment Counts (legacy: RDKit fr_* counters)", and never
+  mixed with or overwritten by the new one; the always-on set is recomputed on
+  opening.
+
 - **Naming round 4: many names move to the Blue Book's preferred forms.**
   Every change was checked against the page it cites. Among them: substituted
   hydrazides, amidines and guanidines are named on their own parent
@@ -80,6 +102,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A protonated amine inverts; the hashed bond it was drawn with said otherwise.
 
 ### Fixed
+
+- **The Atom Inspector printed a functional group as a number.** "Functional
+  Groups: 1" on every atom of a group, and "Ring Systems: 1" likewise, because a
+  categorical value was printed as its colour id. It now says what the atom is
+  part of -- "acetal; ether (non-primary)" on an acetal oxygen.
+- **Lactams, imides, cyclic ureas and ring carbonyls were claimed by no group**
+  (caffeine, phenobarbital, pyrrolidinone, penicillin's beta-lactam), and
+  phenobarbital showed no functional group at all. They are lactams, imides and
+  ureas now.
 
 - **A retained name is shown beside the preferred IUPAC name.** Where a
   compound is widely known by a name IUPAC keeps only for general use --
