@@ -20,20 +20,21 @@ from openchem.vendor.iupac_namer.engine import name_smiles
     ("NN", "hydrazine"),                          # must still match retained name
 
     # --- Fix 2: N-N as 2-atom parent with substituents ---
-    ("CNN", "1-methylhydrazine"),                 # methyl on N1
+    # Naming round 5 (N4): "'1' is omitted ... in monosubstituted homogeneous
+    # chains consisting of only two identical atoms" (P-14.3.4 (b), pdf p. 69).
+    ("CNN", "methylhydrazine"),                   # methyl on N1
     ("CNNC", "1,2-dimethylhydrazine"),            # methyl on both N atoms
     ("CN(C)N(C)C", "1,1,2,2-tetramethylhydrazine"),  # fully substituted
 
     # --- Fix 1: N-N as substituent (hydrazinyl form) ---
-    # OPSIN accepts (hydrazinyl)benzene — benzene wins via PCG seniority
-    ("NNc1ccccc1", "(hydrazinyl)benzene"),
+    # Round 5 (N4): "phenylhydrazine (PIN)" (pdf p. 755). There is no PCG;
+    # P-44.1.2's senior atom, N over C, chooses hydrazine over the ring.
+    ("NNc1ccccc1", "phenylhydrazine"),
 
-    # --- Fix 1 + Fix 2: benzyl hydrazine — C attachment to ring ---
-    # N-N parent is not used here (attachment via C); benzene parent + hydrazinylmethyl.
-    # The methyl carbon has only one position (locant 1), so locant "1-" is redundant
-    # per P-14.3.4.5. Fix B (1-carbon SUBSTITUENT locant suppression) removes it.
-    # OPSIN round-trip confirms: [(hydrazinyl)methyl]benzene → NNCc1ccccc1 ✓
-    ("NNCc1ccccc1", "[(hydrazinyl)methyl]benzene"),
+    # --- benzyl hydrazine ---
+    # Round 5 (N4): the hydrazine parent, by the same P-44.1.2 rule as
+    # phenylhydrazine; "benzyl" is the preferred prefix. Round-trips.
+    ("NNCc1ccccc1", "benzylhydrazine"),
 
     # --- Regression: unsubstituted parent hydrides must still work ---
     ("P", "phosphane"),

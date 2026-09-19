@@ -831,6 +831,13 @@ def _build_carbamate_decomposition(fg: DetectedFG, mol: Any) -> Decomposition | 
 
     if acyl_c is None or alkyl_o is None or n_atom is None:
         return None
+    # A carbazate is an ester of "hydrazinecarboxylic acid (PIN) (not
+    # carbazic acid)" (pdf p. 756), whose parent is hydrazine (P-44.1.2),
+    # not a carbamate: "ethyl aminocarbamate" was this split (naming round
+    # 5, N4).
+    carbazate = any(
+        nb.GetAtomicNum() == 7 for nb in mol.GetAtomWithIdx(n_atom).GetNeighbors()
+    )
 
     # Find alkyl C — the non-acyl C neighbor of alkyl_o
     alkyl_c = None
@@ -896,6 +903,12 @@ def _build_carbamate_decomposition(fg: DetectedFG, mol: Any) -> Decomposition | 
     carbamic_frag = Fragment(atom_indices=carbamic_side, mol=mol, charge=0)
     alcohol_frag = Fragment(atom_indices=alcohol_side, mol=mol, charge=0)
 
+    if carbazate:
+        # The ester of hydrazinecarboxylic acid would be the PIN, but the
+        # engine cannot yet name its anion ("oxidooxomethylhydrazine"), so
+        # no functional-class plan is offered: the substitutive name on the
+        # right parent stands, "(ethoxycarbonyl)hydrazine". OPEN (D-088c).
+        return None
     return Decomposition(
         type="functional_class",
         subtype="carbamate",

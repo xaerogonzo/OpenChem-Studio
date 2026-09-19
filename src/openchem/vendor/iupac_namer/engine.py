@@ -1356,12 +1356,63 @@ def _name_carbamic_acid_functional_parent(
                 nitrogen = nb
         if oxo is None or hydroxy is None or nitrogen is None:
             continue
+        if any(nb.GetAtomicNum() == 7 for nb in nitrogen.GetNeighbors()):
+            # H2N-NH-COOH is "hydrazinecarboxylic acid (PIN) (not carbazic
+            # acid)" (pdf p. 756): hydrazine outranks the carbon parent by
+            # P-44.1.2, so the substitutive path names it. "aminocarbamic
+            # acid" was this route (naming round 5, N4).
+            continue
         core = {atom.GetIdx(), oxo.GetIdx(), hydroxy.GetIdx(), nitrogen.GetIdx()}
         return _name_n_core_parent(
             mol, core, free_ns=[nitrogen], fixed={}, parent_name="carbamic acid",
             output_form=output_form, decision_ctx=decision_ctx,
             strategy=strategy, session=session, depth=depth,
             perception=perception, seniority_limit=702, cite_locants=False,
+        )
+    return None
+
+
+def _name_sulfamic_acid_functional_parent(
+    mol, output_form, decision_ctx, strategy, session, depth, perception=None,
+) -> LeafTree | None:
+    """An N-substituted sulfamic acid, R-NH-SO2-OH (naming round 5, N4).
+
+    "sulfamic acid" is the name P-67.1.2.4.1.1 gives H2N-SO2-OH (pdf p. 703),
+    and P-67.1.2.4.1 substitutes such an acid's nonacidic hydrogens "by
+    prefixes, with a letter locant B, N, P, As or Sb", as in
+    "N,N-dimethylphosphoramidic acid (PIN)". The book prints no substituted
+    sulfamic acid, so "N-methylsulfamic acid" is derived, not quoted. The
+    generic path named the carbon parent, "[(hydroxysulfonyl)amino]methane".
+    A ring nitrogen is a ring parent's -sulfonic acid instead, as
+    "piperidine-1-carboxylic acid" is, and a more senior acid elsewhere is
+    the parent.
+    """
+    for atom in mol.GetAtoms():
+        if (atom.GetAtomicNum() != 16 or atom.GetFormalCharge() != 0
+                or atom.IsInRing() or atom.GetDegree() != 4):
+            continue
+        oxo, hydroxy, nitrogen = [], [], []
+        for nb in atom.GetNeighbors():
+            order = mol.GetBondBetweenAtoms(atom.GetIdx(), nb.GetIdx()).GetBondTypeAsDouble()
+            if nb.GetFormalCharge() != 0:
+                break
+            if nb.GetAtomicNum() == 8 and order == 2.0 and nb.GetDegree() == 1:
+                oxo.append(nb)
+            elif (nb.GetAtomicNum() == 8 and order == 1.0 and nb.GetDegree() == 1
+                    and nb.GetTotalNumHs() == 1):
+                hydroxy.append(nb)
+            elif (nb.GetAtomicNum() == 7 and order == 1.0 and not nb.IsInRing()
+                    and all(b.GetBondTypeAsDouble() == 1.0 for b in nb.GetBonds())):
+                nitrogen.append(nb)
+        if len(oxo) != 2 or len(hydroxy) != 1 or len(nitrogen) != 1:
+            continue
+        core = {atom.GetIdx(), oxo[0].GetIdx(), oxo[1].GetIdx(), hydroxy[0].GetIdx(),
+                nitrogen[0].GetIdx()}
+        return _name_n_core_parent(
+            mol, core, free_ns=[nitrogen[0]], fixed={}, parent_name="sulfamic acid",
+            output_form=output_form, decision_ctx=decision_ctx,
+            strategy=strategy, session=session, depth=depth,
+            perception=perception, seniority_limit=702, cite_locants=True,
         )
     return None
 
@@ -4954,6 +5005,10 @@ def _name_single_fg_substituent(
         "amide",
         # Primary thioamide -C(=S)NH2 at C → "thiocarbamoyl" (analogous).
         "thioamide",
+        # -C(=O)-NH-NH2 → "hydrazinecarbonyl (preferred prefix)" (pdf p.
+        # 668); the whole-fragment test above keeps a substituted hydrazide
+        # off this path. Was "(hydrazinyl)(oxo)methyl" (round 5, N4).
+        "hydrazide",
     })
     if mol.GetAtomWithIdx(fg.anchor).GetAtomicNum() == 6:
         if fg.type not in _C_INCLUDING_FG_TYPES:
@@ -8566,6 +8621,14 @@ def _name_smiles_bound(smiles: str, strategy) -> str:
         return skeletal_chain_name
     _validate_no_open_valences(mol)
     tree = name(mol, strategy)
+    # P-51.3.1: where identical parent structures are linked symmetrically,
+    # the multiplicative name is the PIN (naming round 5, N4). The module
+    # reads the decomposition off the molecule's symmetry and declines
+    # outside its built class, leaving the substitutive name to stand.
+    from openchem.vendor.iupac_namer.multiplicative import try_name as _multiplicative
+    multiplicative_name = _multiplicative(mol, tree)
+    if multiplicative_name is not None:
+        return multiplicative_name
     final_name = assemble(tree)
     # Stage 22 R22-C / R22-D: post-assembly OPSIN-validation pass for
     # tetrahedral R/S descriptors that the relaxed gate in
@@ -9200,6 +9263,18 @@ def _name_bound(
         if carbamic_tree is not None:
             _session.cache_store(smiles, output_form, fv_bond_orders, carbamic_tree, attachment_indices)
             return carbamic_tree
+
+    # --- Sulfamic acid functional parent (P-67.1.2.4.1) ---
+    if (output_form == OutputForm.STANDALONE
+            and free_valence is None):
+        sulfamic_tree = _name_sulfamic_acid_functional_parent(
+            mol, output_form, decision_ctx,
+            strategy=strategy, session=_session, depth=_depth,
+            perception=perception,
+        )
+        if sulfamic_tree is not None:
+            _session.cache_store(smiles, output_form, fv_bond_orders, sulfamic_tree, attachment_indices)
+            return sulfamic_tree
 
     # --- Guanidine functional parent (P-66.4.1.2.1.2) ---
     if (output_form == OutputForm.STANDALONE
@@ -12326,6 +12401,22 @@ class SubstitutivePath:
                         )
                     )
 
+                    if named_parent.candidate.type in (
+                            "heteroatom_chain", "heteroatom_center"):
+                        # A suffix on a heteroatom parent touches it only at
+                        # its anchor. A hydrazide whose own N-N IS the
+                        # hydrazine parent is a misreading of that parent --
+                        # as a "carbohydrazide" suffix it owned its carbonyl
+                        # twice, the ownership guard's catch once P-44.1.2
+                        # ranked hydrazine first (round 5, N4). Only that
+                        # reading goes: H2N-NH-CO-NH-NH2 keeps the OTHER
+                        # hydrazide, "hydrazinecarbohydrazide (PIN)" (p. 671).
+                        pcg_instances_kept_for_suffix = [
+                            fg for fg in pcg_instances_kept_for_suffix
+                            if not ((frozenset(fg.atoms)
+                                     - frozenset(getattr(fg, "context_atoms", ()) or ())
+                                     - {fg.anchor}) & named_parent.candidate.atom_indices)
+                        ]
                     for numbering in self._compute_numberings(
                         named_parent, pcg_instances_kept_for_suffix, interpretation.fgs, mol,
                         free_valence=free_valence,
@@ -15906,7 +15997,7 @@ class SubstitutivePath:
         #   - Shape (a) PREFIX case is restricted to ALL-CARBON parents.  On
         #     heterocycles IUPAC practice (and the engine's test guards) cite
         #     the substituent locant even on symmetry-equivalent positions
-        #     ("2-methylpyrazine", "1-methylhydrazine"); only all-carbon fused/
+        #     ("2-methylpyrazine"); only all-carbon fused/
         #     chain parents (coronene, butanedioic acid) omit it.
         #   - Shape (b) SUFFIX case is restricted to ADDED-CARBON ("carbo*")
         #     PCG suffixes (-carboxylic acid, -carbaldehyde, -carbonitrile,
@@ -16004,6 +16095,16 @@ class SubstitutivePath:
                         _single_sub_all_equiv = _sym_forced(
                             mol, _parent_atom_idxs, _attach, _remove,
                         )
+            if (not _single_sub_all_equiv
+                    and plan.named_parent.candidate.type == "heteroatom_chain"
+                    and len(_struct_prefixes) == 1 and _suffix_count == 0):
+                # P-14.3.4 (b), pdf p. 69: "'1' is omitted ... in
+                # monosubstituted homogeneous chains consisting of only two
+                # identical atoms; ... chlorohydrazine" -- and "phenylhydrazine
+                # (PIN)", "propylidenehydrazine (PIN)" (pp. 755-756). The
+                # comment above once cited "1-methylhydrazine" as practice;
+                # the book prints the opposite (naming round 5, N4).
+                _single_sub_all_equiv = True
 
         # P-58.2: a ring C=X suffix decides where the ring's hydrogens are
         # cited -- indicated, added "(1H)", or hydro -- and the parent-naming

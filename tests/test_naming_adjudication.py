@@ -42,6 +42,10 @@ VERDICTS = {
     "BOTH_NOT_PREFERRED",
     "VALID_NO_UNIQUE_PREFERENCE",
     "UNDECIDED",
+    # Round 5 (N4): a probe row, with no PubChem string to compare, whose
+    # question the book then answered in the engine's favour. BOTH_VALID
+    # would assert something about a PubChem name that does not exist.
+    "ENGINE_RIGHT",
 }
 
 

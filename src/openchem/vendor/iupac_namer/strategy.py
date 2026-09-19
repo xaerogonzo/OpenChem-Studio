@@ -127,6 +127,27 @@ def _retained_name_encodes_stereo(name: str) -> bool:
     return False
 
 
+# P-44.1.2 (pdf p. 375), most senior first; carbon last.
+_P44_1_2_ORDER = ("N", "P", "As", "Sb", "Bi", "Si", "Ge", "Sn", "Pb", "B", "Al", "Ga",
+                  "In", "Tl", "O", "S", "Se", "Te", "C")
+
+
+def _senior_atom_rank(candidate, mol) -> int:
+    """P-44.1.2: the rank of the parent's most senior skeletal atom, higher
+    is better, carbon 0. "A single senior atom is sufficient" (P-44.1.2.1).
+    Read off the atoms themselves, so a ring, a chain and a heteroatom
+    parent are measured alike. 0 when the atoms cannot be read."""
+    if candidate is None or mol is None or not candidate.atom_indices:
+        return 0
+    ranks = {sym: len(_P44_1_2_ORDER) - 1 - i for i, sym in enumerate(_P44_1_2_ORDER)}
+    best = 0
+    for idx in candidate.atom_indices:
+        if idx >= mol.GetNumAtoms():
+            return 0
+        best = max(best, ranks.get(mol.GetAtomWithIdx(idx).GetSymbol(), 0))
+    return best
+
+
 _INDICATED_H_BLOCK = None
 
 
@@ -612,7 +633,7 @@ class IUPACCanonical(NamingStrategy):
         )
 
         empty = locant_set_tier(())
-        blank = (0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, empty, empty, empty, empty, empty, 0)
+        blank = (0, 0.0, 0, 0, 0.0, 0.0, 0.0, 0, 0.0, empty, empty, empty, empty, empty, 0)
         match plan:
             case RetainedPlan():
                 return NomenclaturePreferenceKey((5,) + blank[1:])
@@ -654,6 +675,7 @@ class IUPACCanonical(NamingStrategy):
             kind,
             float(self._pcg_seniority_score(plan.pcg_type, plan.pcg_instances)),
             self._pcg_on_parent_count(plan),
+            _senior_atom_rank(plan.named_parent.candidate, mol),
             float(self._parent_selection_score(plan, include_substituent_count=False)),
             float(self._retained_ring_seniority_score(plan.named_parent)),
             float(self._saturated_hydro_demotion(plan.named_parent, mol, self._fusion_method_rank(

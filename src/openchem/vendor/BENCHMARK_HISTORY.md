@@ -333,3 +333,31 @@ scored a name with no block as the empty (best) set and turned h2cid20500
 back into "fluoren-9-imine", so a missing block ranks last. With it: 0 names
 changed in any tuning population, 9 perimidine expectations moved, the
 book's "2H-pyran-6-carboxylic acid" held as a converse, mutation-checked 2/2.
+
+### N4: candidate generation (`r5-N4-candidates`)
+
+Three constructions, measured on the book first. Multiplicative names: 22 of
+the book's P-15.3 / P-51.3 PINs exact, 9 of its substitutive converses held,
+and every built name round-trips (`test_multiplicative_round_trip.py`).
+Hydrazine as parent: the book's p. 755-758 and p. 668-671 names exact
+("phenylhydrazine", "hydrazinecarboxamide", "N-phenylhydrazinecarboxamide",
+"N,1-dimethylhydrazine-1-carboxamide", "2-(hexan-3-ylidene)-N,N-diphenyl-
+hydrazine-1-carboxamide", "hydrazinecarboxylic acid", "hydrazinecarbothioamide",
+"hydrazinecarbohydrazide", "2-(hydrazinecarbonyl)benzene-1-sulfonic acid").
+
+Stage artifact against N3: regression 1/187 changed -- the pinacol boronate
+now takes its heterocycle as parent (PubChem's string, P-44.2.1 (a); an open
+row settled). A draft had also changed hexamethyldisiloxane, to
+"oxybis[tri(methyl)silane]", until the constructor was taught that Si-O-Si is
+a chain; it is unchanged. v1 1/40 (cid45000, the multiplicative bis-guanidine,
+derived); v2 0/40; 0 structurally regressed. Vendored suite: 7 expectations
+moved (methylhydrazine, phenylhydrazine, benzylhydrazine, three
+semicarbazones to the book's hydrazine-1-carboxamide form, sulfamate), then
+green. PubChem's
+generator writes no multiplicative names, so this stage moves the
+PubChem-exact count only where the adjudicated target moves with it.
+
+Tried and reverted: admitting an acylated N' to the hydrazide pattern reached
+"N'-benzoylbenzohydrazide (PIN)" and turned 4-(2-benzoylhydrazinyl)-4-
+oxobutanoic acid into a butanedioyl name; it stays open (D-088a). Mutation-
+checked 18/18.

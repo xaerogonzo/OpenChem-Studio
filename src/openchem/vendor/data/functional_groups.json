@@ -788,12 +788,12 @@
         },
         {
             "name": "hydrazide",
-            "smarts": "[CX3;!R;!$([CX3](=O)([!#6;!#1;!R])[!#6;!#1;!R])](=O)[NX3;!R][NX3;!R;!$([NX3][CX3]=[O,S,N])]",
+            "smarts": "[CX3;!R;!$([CX3](=O)([!#6;!#1;!R])[!#6;!#1;!R;!$([NX3][NX3])])](=O)[NX3;!R][NX3;!R;!$([NX3][CX3]=[O,S,N])]",
             "seniority": 1200,
             "bluebook_class": "12",
             "suffix_terminal": "-ohydrazide",
             "suffix_nonterminal": "-carbohydrazide",
-            "prefix": "hydrazinylcarbonyl",
+            "prefix": "hydrazinecarbonyl",
             "elision": false
         },
         {

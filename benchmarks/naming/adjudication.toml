@@ -30,6 +30,8 @@
 #   BOTH_NOT_PREFERRED          neither string is the PIN
 #   VALID_NO_UNIQUE_PREFERENCE  validity established, uniqueness not
 #   UNDECIDED                   the sources do not resolve it; a legal outcome
+#   ENGINE_RIGHT                a probe row with no PubChem string, which the
+#                               book then answered in the engine's favour
 #
 # fix_status says what happened in the CODE, as a field rather than as prose:
 #   FIXED           the engine now emits the adjudicated target
@@ -550,6 +552,27 @@ evidence_basis = "explicit"
 quote = "The senior ring or ring system: (a) is a heterocycle; (b) has at least one nitrogen atom; ..."
 
 [[rule]]
+rule_id = "P-51.3.1-multiplicative"
+paragraph = "P-51.3.1"
+pdf_page = 436
+evidence_basis = "explicit"
+quote = "Multiplicative nomenclature is preferred to substitutive nomenclature for generating preferred IUPAC names to express multiple occurrences of identical parent structures, other than alkanes when"
+
+[[rule]]
+rule_id = "P-15.3.2.2.1-N-primes"
+paragraph = "P-15.3.2.2.1"
+pdf_page = 106
+evidence_basis = "explicit"
+quote = "N′,N′′′-methylenediacetohydrazide (PIN)"
+
+[[rule]]
+rule_id = "P-66.3-ring-N-carbohydrazide"
+paragraph = "P-66.3.1.1.1"
+pdf_page = 667
+evidence_basis = "explicit"
+quote = "piperidine-1-carbohydrazide (PIN) [not (piperidine-1-carbonyl)hydrazine]"
+
+[[rule]]
 rule_id = "P-44.1.2-not-between-rings"
 paragraph = "P-44.1.2"
 pdf_page = 375
@@ -968,14 +991,12 @@ smiles = "CC(C)=NN"
 engine_name = "1-(propan-2-ylidene)hydrazine"
 pubchem_name = ""
 verdict = "ENGINE_WRONG"
-fix_status = "OPEN"
-layer = "serialization"
-target_stage = "N8"
+fix_status = "FIXED"
 preferred_name = "(propan-2-ylidene)hydrazine"
 preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
 rule_ref = ["P-68.3-oxime-hydrazone", "P-14.3.4-omit1", "P-16.5.1.3-locant-qualified"]
 evidence_basis = "derived"
-note = "Locant 1 on hydrazine is omitted for a monosubstituted two-atom chain."
+note = "Locant 1 on hydrazine is omitted for a monosubstituted two-atom chain. Fixed in round 5 (N4), with the hydrazine parent."
 
 [[row]]
 corpus_row_id = "cid32000"
@@ -995,15 +1016,13 @@ corpus_row_id = "cid45000"
 smiles = "NC(N)=NCCCCCCCCCCCCCCN=C(N)N"
 engine_name = "1,14-bis[(diaminomethylidene)amino]tetradecane"
 pubchem_name = "2-[14-(diaminomethylideneamino)tetradecyl]guanidine"
-verdict = "UNDECIDED"
-fix_status = "OPEN"
-layer = "candidate_absent"
-target_stage = "N4"
-preferred_name = ""
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "FIXED"
+preferred_name = "N'',N'''''-(tetradecane-1,14-diyl)diguanidine"
 preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
-rule_ref = ["P-34-guanidine"]
-evidence_basis = "explicit"
-note = "The parent is guanidine (a PIN, substitution allowed), not tetradecane; the multiplicative versus substitutive form of the bis-guanidine is not adjudicated."
+rule_ref = ["P-34-guanidine", "P-51.3.1-multiplicative", "P-15.3.2.2.1-N-primes"]
+evidence_basis = "derived"
+note = "Settled in round 5 (N4). Guanidine is a functional parent, substitution allowed (P-15.3.1.1 (d)); two identical units on a symmetric alkane linker meet P-51.3.1, so the multiplicative name is preferred. Imino N is N'' (p. 675), and the second unit's nitrogens follow the first's three as acetohydrazide's two do. Derived: the book prints no multiplied guanidine."
 
 [[row]]
 corpus_row_id = ""
@@ -1027,12 +1046,12 @@ pubchem_name = "1-N',2-N'-dibenzylethanedihydrazide"
 verdict = "UNDECIDED"
 fix_status = "OPEN"
 layer = "candidate_absent"
-target_stage = "N4"
+target_stage = "N5"
 preferred_name = ""
 preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
 rule_ref = ["P-66.3-hydrazide"]
 evidence_basis = "derived"
-note = "A dihydrazide of oxalic acid; the engine names it on a benzene. Exact PIN form (N-locants of the dihydrazide) not adjudicated."
+note = "A dihydrazide of oxalic acid; the engine names it on a benzene. Exact PIN form (N-locants of the dihydrazide) not adjudicated. Round 5 (N4) measured 'N'1,N'2-dibenzylethanedihydrazide' -- the dihydrazide parent, PubChem's form -- and the book's parent is the retained 'oxalohydrazide (PIN)' (p. 667), an N5 retained parent."
 
 [[row]]
 corpus_row_id = "methanesulfonate"
@@ -1069,12 +1088,12 @@ pubchem_name = "methanedithione"
 verdict = "ENGINE_WRONG"
 fix_status = "OPEN"
 layer = "candidate_absent"
-target_stage = "N4"
+target_stage = "later"
 preferred_name = "methanedithione"
 preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
 rule_ref = ["P-64.6-thione"]
 evidence_basis = "derived"
-note = ""
+note = "Round 5 (N4): not taken. The thione pattern is written for R2C=S; a carbon carrying two double-bonded chalcogens matches no suffix group, so both are prefixes. Same mechanism as CN=C=NC (methanediimine)."
 
 [[row]]
 corpus_row_id = ""
@@ -1099,12 +1118,12 @@ pubchem_name = ""
 verdict = "ENGINE_WRONG"
 fix_status = "OPEN"
 layer = "candidate_absent"
-target_stage = "N4"
+target_stage = "later"
 preferred_name = "dimethylmethanediimine"
 preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
 rule_ref = ["P-62.3.1.4-carbodiimide"]
 evidence_basis = "derived"
-note = ""
+note = "Round 5 (N4): not taken. 'dicyclohexylmethanediimine (PIN)' (p. 527) confirms the target's form; the imine pattern matches no C with two =N, the CS2 mechanism."
 
 [[row]]
 corpus_row_id = ""
@@ -1263,14 +1282,12 @@ smiles = "CC1(C)OB(c2ccccc2)OC1(C)C"
 engine_name = "(4,4,5,5-tetramethyl-1,3,2-dioxaborolan-2-yl)benzene"
 pubchem_name = "4,4,5,5-tetramethyl-2-phenyl-1,3,2-dioxaborolane"
 verdict = "ENGINE_WRONG"
-fix_status = "OPEN"
-layer = "candidate_misranked"
-target_stage = "N6"
+fix_status = "FIXED"
 preferred_name = "4,4,5,5-tetramethyl-2-phenyl-1,3,2-dioxaborolane"
 preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
 rule_ref = ["P-44.2.1a-heterocycle", "P-44.1.2-not-between-rings"]
 evidence_basis = "derived"
-note = "RING AGAINST RING, so the element order of P-44.1.2 does not decide it -- the book says so. P-44.2.1 (a), 'is a heterocycle', does."
+note = "RING AGAINST RING, so the element order of P-44.1.2 does not decide it -- the book says so. P-44.2.1 (a), 'is a heterocycle', does. Fixed in round 5 (N4) by the P-44.1.2 senior-atom tier, which agrees with P-44.2.1 (a) whenever a heterocycle meets a carbocycle: any heteroatom outranks carbon in both lists."
 
 [[row]]
 corpus_row_id = "triphenylphosphine oxide"
@@ -2079,13 +2096,13 @@ pubchem_name = ""
 verdict = "ENGINE_WRONG"
 fix_status = "OPEN"
 layer = "candidate_absent"
-target_stage = "N4"
+target_stage = "later"
 preferred_name = "N-methylpropan-2-imine N-oxide"
 preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
 rule_ref = ["P-62.3-imine"]
 evidence_basis = "explicit"
 note = """
-The book's example is this exact structure. The engine has no N-oxide construction for an imine and falls back to an additive azanium name.
+The book's example is this exact structure. The engine has no N-oxide construction for an imine and falls back to an additive azanium name. Round 5 (N4): not taken; an additive N-oxide construction for imines, not candidate generation of a substitutive parent.
 """
 
 [[row]]
@@ -2097,13 +2114,13 @@ pubchem_name = ""
 verdict = "ENGINE_WRONG"
 fix_status = "OPEN"
 layer = "candidate_absent"
-target_stage = "N4"
+target_stage = "N8"
 preferred_name = "(methyldiselanyl)methane"
 preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
 rule_ref = ["P-63.3-peroxide-disulfide", "P-29-diselanyl"]
 evidence_basis = "derived"
 note = """
-The disulfide PIN is substitutive ('(methyldisulfanyl)methane'); round 4 fixed S only. 'diselanyl' is the book's substituent group. C[Te][Te]C has the same defect ('1,2-dimethylditellane').
+The disulfide PIN is substitutive ('(methyldisulfanyl)methane'); round 4 fixed S only. 'diselanyl' is the book's substituent group. C[Te][Te]C has the same defect ('1,2-dimethylditellane'). Round 5 (N4): the 'diselanyl' substituent prefix is the missing piece (the S analogue works); prefix vocabulary, N8.
 """
 
 [[row]]
@@ -2133,13 +2150,13 @@ pubchem_name = ""
 verdict = "ENGINE_WRONG"
 fix_status = "OPEN"
 layer = "candidate_absent"
-target_stage = "N4"
+target_stage = "later"
 preferred_name = "2-aminopropanoate"
 preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
 rule_ref = ["P-65.1-propanoate"]
 evidence_basis = "derived"
 note = """
-A carboxylate anion is named with the '-ate' ending of its acid (propanoic acid -> propanoate). The charge route defers on the N-H and the general path names an oxido prefix.
+A carboxylate anion is named with the '-ate' ending of its acid (propanoic acid -> propanoate). The charge route defers on the N-H and the general path names an oxido prefix. Round 5 (N4): an anion suffix the charge route does not reach; N4 found the same gap naming hydrazinecarboxylate (OPEN D-088b).
 """
 
 [[row]]
@@ -2184,14 +2201,14 @@ case_origin = "naming round 4 leftover, re-probed 2026-09-19"
 smiles = "NNC(=O)N1CCCCC1"
 engine_name = "piperidine-1-carbohydrazide"
 pubchem_name = ""
-verdict = "UNDECIDED"
-fix_status = "OPEN"
-layer = "source_unresolved"
-target_stage = "N4"
-rule_ref = ["P-65.1.2-ring-N-carbo"]
-evidence_basis = "derived"
+verdict = "ENGINE_RIGHT"
+fix_status = "NOT_APPLICABLE"
+preferred_name = "piperidine-1-carbohydrazide"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-65.1.2-ring-N-carbo", "P-66.3-ring-N-carbohydrazide"]
+evidence_basis = "explicit"
 note = """
-The engine's form follows 'piperidine-1-carbodithioic acid (PIN)'. Whether a carbonyl between a ring N and a hydrazine is named that way or on a hydrazinecarboxamide parent (p. 645) was not found in the book this round; it depends on N4's hydrazine-parent work.
+The engine's form follows 'piperidine-1-carbodithioic acid (PIN)'. Round 5 (N4) found the book printing this exact name, p. 667: 'piperidine-1-carbohydrazide (PIN) [not (piperidine-1-carbonyl)hydrazine]'. The hydrazine parent (P-44.1.2) does not take it, and a test row (D-075e) holds it.
 """
 
 [[row]]

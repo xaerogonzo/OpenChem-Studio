@@ -1100,3 +1100,38 @@ name that leaves the hydrogen out ranks below every name that states one,
 not as the empty -- lowest -- set, which would have handed "9H-fluorene"'s
 place back to the table's bare "fluorene". Nine vendored perimidine
 expectations moved; no tuning-population name changed.
+
+**Candidate generation (N4).** Three constructions the engine lacked, each
+diagnosed first as the plan asked -- the bis-guanidine, methylenebis(phosphonic
+acid) and the N'-acyl hydrazides were three mechanisms, not one:
+
+* `multiplicative.py`, P-15.3 / P-51.3. A `MultiplicativePlan` type existed and
+  nothing built one, so "phenoxybenzene" stood for 1,1'-oxydibenzene. The
+  decomposition is read off the molecule's symmetry: a class of bonds whose
+  ends fall in the same two symmetry classes is cut, and the cut must leave one
+  linker and n identical units. The units must carry the senior parent, the
+  linker no group as senior as theirs ("bis(phenyldiazenyl)methanone (PIN)
+  [not 1,1'-carbonylbis(2-phenyldiazene)]"), and no unit is an alkane. Each
+  unit is named once, carrying a marker where the linker was, so the engine's
+  own numbering gives the linker the lowest locant; the unit is then cut out
+  of the MARKED name, because reassembling it without the marker re-ran locant
+  omission and wrote "diethanol" for "di(ethan-1-ol)". 22 of the book's PINs
+  come out as printed. Declined with a reason outside the built class
+  (substituted, ring-centred or unsymmetrical linkers; double-bonded units;
+  Si-O-Si, which is a disiloxane chain).
+* The P-44.1.2 senior-atom tier, `parent_senior_atom` in the preference key:
+  "N > P > As > ... > Si > ... > C", which "is applied ... to choose between
+  rings and chains" (p. 375) before ring over chain. Without it a flat ring
+  bonus named "(hydrazinyl)benzene" for phenylhydrazine (PIN), and
+  hydrazinecarboxamide, its N-substituted forms and hydrazinecarboxylic acid
+  were all named on carbon. It also gives "2-(trimethylsilyl)pyridine" (N over
+  Si). With it: "phenylhydrazine" drops its "1" (P-14.3.4 (b)), a carbamic
+  acid or carbamate on a hydrazine N is refused ("not carbazic acid"), the
+  hydrazide pattern admits a carbonyl whose other neighbour is a hydrazine N
+  ("hydrazinecarbohydrazide (PIN)"), and "-C(=O)NHNH2" is "hydrazinecarbonyl".
+  The ownership guard caught the tier's first draft: a hydrazide's own N-N was
+  taken as the hydrazine parent of a "carbohydrazide" suffix, owning its
+  carbonyl twice. That reading is now dropped at plan generation.
+* Sulfamic acids: "sulfamic acid" (p. 703; "amidosulfuric acid" is the
+  inorganic form) and "N-methylsulfamic acid", with the N-locant P-67.1.2.4.1
+  cites -- derived, since the book prints no substituted sulfamic acid.

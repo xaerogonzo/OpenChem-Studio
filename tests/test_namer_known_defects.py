@@ -382,8 +382,15 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "3-methyl-1-phenyl-1,4-dihydro-5H-pyrazol-5-one",
      "3-methyl-1-phenyl-4,5-dihydro-1H-1,2-diazol-5-one",
      "edaravone core; stem propagates through the whole pyrazolone family"),
-    ("D-023d", "C1C=NN(c2ccccc2)C1", "(4,5-dihydro-1H-pyrazol-1-yl)benzene",
-     "(4,5-dihydro-1H-1,2-diazol-1-yl)benzene", "substituent form too"),
+    # Moved in round 5 (N4): 1-phenylpyrazoline is no longer named on the
+    # benzene -- P-44.2.1 (a), a heterocycle is senior to a carbocycle, now
+    # holds through the P-44.1.2 senior-atom tier -- so the substituent form
+    # this row guards is taken from an acid, which keeps benzene the parent.
+    ("D-023d", "OC(=O)c1ccc(N2CCC=N2)cc1", "4-(4,5-dihydro-1H-pyrazol-1-yl)benzoic acid",
+     "4-(4,5-dihydro-1H-1,2-diazol-1-yl)benzoic acid", "substituent form too"),
+    ("D-023e", "C1C=NN(c2ccccc2)C1", "1-phenyl-4,5-dihydro-1H-pyrazole",
+     "(4,5-dihydro-1H-pyrazol-1-yl)benzene",
+     "P-44.2.1 (a): the heterocycle is the parent (round 5, N4)"),
 
     # --- non-regression: sibling 5-rings the new curated entries sit
     # beside, which must keep the names they already had.
@@ -1161,8 +1168,9 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "converse: not the principal group, so the compound prefix stays"),
     ("D-051f", "CN=Cc1ccccc1O", "2-[(methylimino)methyl]phenol",
      "2-[(methylimino)methyl]phenol", "converse: a phenol outranks an imine"),
-    ("D-051g", "CC(C)=NN", "1-(propan-2-ylidene)hydrazine",
-     "1-(propan-2-ylidene)hydrazine", "negative: N-N is a hydrazone, not this class"),
+    ("D-051g", "CC(C)=NN", "(propan-2-ylidene)hydrazine",
+     "1-(propan-2-ylidene)hydrazine", "negative: N-N is a hydrazone, not this class; "
+     "round 5 (N4) dropped the '1', P-14.3.4 (b), as 'propylidenehydrazine (PIN)'"),
     ("D-051h", "CC(=N)N", "ethanimidamide", "ethanimidamide",
      "negative: C(=N)N is an amidine (p. 468)"),
     # --- D-052: hydrazides and formamides on their retained acid stems -----
@@ -1584,8 +1592,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "N-methylbenzohydrazide", "converse: the acyl-side N stays unprimed"),
     ("D-075e", "NNC(=O)N1CCCCC1", "piperidine-1-carbohydrazide",
      "1-[(hydrazinyl)(oxo)methyl]piperidine", "p. 667, 'piperidine-1-carbohydrazide (PIN)'"),
-    ("D-075f", "O=C(NNC(=O)c1ccccc1)c1ccccc1", "[(2-benzoylhydrazinyl)(oxo)methyl]benzene",
-     "[(2-benzoylhydrazinyl)(oxo)methyl]benzene", "control, NOT a target: an acylated N' is kept out of the hydrazide pattern; letting it in named '1,2-dibenzoylhydrazine-1,2-dicarbohydrazide', a different molecule"),
+    ("D-075f", "O=C(NNC(=O)c1ccccc1)c1ccccc1", "1,2-dibenzoylhydrazine",
+     "[(2-benzoylhydrazinyl)(oxo)methyl]benzene", "control, NOT a target: an acylated N' is kept out of the hydrazide pattern; letting it in named '1,2-dibenzoylhydrazine-1,2-dicarbohydrazide', a different molecule. Round 5 (N4): the hydrazine parent now outranks benzene (P-44.1.2) -- the right molecule, and still not the PIN, which is 'N'-benzoylbenzohydrazide (PIN) (not 1,2-dibenzoylhydrazine)' (p. 670); see OPEN D-088a"),
     # --- D-076: amidine nitrogens take N and N' by role (A6) ---------------
     # P-66.4.1.4.1 (p. 678): 'the locant N refers to the amino group and N'
     # refers to the imino group'. The pattern needed =NH and NH2.
@@ -1636,8 +1644,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "N-carbamimidoylacetamide", "converse: p. 676, an amide outranks guanidine"),
     ("D-078i", "CN(C)C(=O)Nc1ccccc1", "N,N-dimethyl-N'-phenylurea",
      "N,N-dimethyl-N'-phenylurea", "converse: unchanged"),
-    ("D-078j", "NC(N)=NCCCCCCCCCCCCCCN=C(N)N", "N''-{14-[(diaminomethylidene)amino]tetradecyl}guanidine",
-     "1,14-bis[(diaminomethylidene)amino]tetradecane", "cid45000's shape: a guanidine carbon is not an amidine ('amino...methanimidamide' was the widened pattern's name); the book's multiplicative form is not reached"),
+    ("D-078j", "NC(N)=NCCCCCCCCCCCCCCN=C(N)N", "N'',N'''''-(tetradecane-1,14-diyl)diguanidine",
+     "1,14-bis[(diaminomethylidene)amino]tetradecane", "cid45000's shape: a guanidine carbon is not an amidine ('amino...methanimidamide' was the widened pattern's name). Round 5 (N4) reaches the multiplicative form (P-51.3.1): imino N is N'' (p. 675), the second unit's nitrogens follow the first's three (P-15.3.2.2.1). Derived, not printed"),
     ("D-078k", "NC(=O)NC(=O)c1ccccc1", "N-benzoylurea",
      "N-benzoylurea", "control, NOT a target: the book has N-carbamoylbenzamide (PIN), p. 661, "
      "but the engine ranks urea's amide with benzamide and the general path gave "
@@ -1778,6 +1786,58 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "6-chloro-3-methyl-5,10-dihydroimidazo[2,1-b]quinazolin-2(3H)-one",
      "4-chloro-13-methyl-1,9,11-triazatricyclo[8.3.0.0^{3,8}]trideca-3,5,7,10-tetraen-12-one",
      "heldout_v1 cid5000"),
+    # --- D-087: candidate generation (round 5, N4) ------------------------
+    # P-44.1.2 (pdf p. 375): the senior ATOM chooses between a ring and a
+    # chain, N > P > ... > Si > ... > C, before ring over chain. The engine
+    # had no such tier; a flat ring bonus beat hydrazine.
+    ("D-087a", "NNc1ccccc1", "phenylhydrazine", "(hydrazinyl)benzene",
+     "'phenylhydrazine (PIN)' (p. 755); '1' omitted, P-14.3.4 (b)"),
+    ("D-087b", "NNC(N)=O", "hydrazinecarboxamide", "1-(hydrazinyl)methanamide",
+     "'hydrazinecarboxamide (PIN)' (p. 757)"),
+    ("D-087c", "NNC(=O)Nc1ccccc1", "N-phenylhydrazinecarboxamide",
+     "1-(hydrazinyl)-N-phenylmethanamide", "'N-phenylhydrazinecarboxamide (PIN)' (p. 757)"),
+    ("D-087d", "CNC(=O)N(C)N", "N,1-dimethylhydrazine-1-carboxamide",
+     "N-methyl-1-(1-methylhydrazinyl)methanamide",
+     "'N,1-dimethylhydrazine-1-carboxamide (PIN)' (p. 757)"),
+    ("D-087e", "CCCC(CC)=NNC(=O)N(c1ccccc1)c1ccccc1",
+     "2-(hexan-3-ylidene)-N,N-diphenylhydrazine-1-carboxamide",
+     "1-[2-(hexan-3-ylidene)hydrazinyl]-N,N-diphenylmethanamide",
+     "the book's semicarbazone (p. 758)"),
+    ("D-087f", "NNC(=O)O", "hydrazinecarboxylic acid", "aminocarbamic acid",
+     "'hydrazinecarboxylic acid (PIN) (not carbazic acid)' (p. 756): the carbamic "
+     "acid route declines on an N-N"),
+    ("D-087g", "NC(=S)NN", "hydrazinecarbothioamide", "hydrazinecarbothioamide",
+     "'hydrazinecarbothioamide (PIN)' (p. 758); converse, held"),
+    ("D-087h", "NNC(=O)NN", "hydrazinecarbohydrazide", "1-[(hydrazinyl)(oxo)methyl]hydrazine",
+     "'hydrazinecarbohydrazide (PIN) ... carbonic dihydrazide' (p. 671): the hydrazide "
+     "pattern admits a carbonyl whose other neighbour is a hydrazine N"),
+    ("D-087i", "O=C(NN)c1ccccc1S(=O)(=O)O", "2-(hydrazinecarbonyl)benzene-1-sulfonic acid",
+     "2-[(hydrazinyl)(oxo)methyl]benzene-1-sulfonic acid",
+     "'hydrazinecarbonyl (preferred prefix)' (p. 668); the book's example, p. 669"),
+    ("D-087j", "CN(C)N", "1,1-dimethylhydrazine", "1,1-dimethylhydrazine",
+     "converse: two substituents keep their locants (p. 755)"),
+    ("D-087k", "NNC(=O)c1ccccc1", "benzohydrazide", "benzohydrazide",
+     "converse: hydrazine present never means hydrazine parent -- the hydrazide is "
+     "the principal group (p. 667)"),
+    ("D-087l", "C[Si](C)(C)c1ccccn1", "2-(trimethylsilyl)pyridine",
+     "trimethyl(pyridin-2-yl)silane", "N is senior to Si (P-44.1.2)"),
+    ("D-087m", "NS(=O)(=O)O", "sulfamic acid", "amidosulfuric acid",
+     "'H2N-SO2-OH sulfamic acid' (p. 703); the other is the inorganic form"),
+    ("D-087n", "CNS(=O)(=O)O", "N-methylsulfamic acid", "[(hydroxysulfonyl)amino]methane",
+     "derived: P-67.1.2.4.1 substitutes a nonacidic H 'with a letter locant ... N', "
+     "as 'N,N-dimethylphosphoramidic acid (PIN)' (p. 703)"),
+    ("D-087o", "O=S(=O)(O)N1CCCCC1", "piperidine-1-sulfonic acid",
+     "piperidine-1-sulfonic acid", "converse: a ring N is the ring parent's suffix site"),
+    ("D-087p", "c1ccc(Oc2ccccc2)cc1", "1,1'-oxydibenzene", "phenoxybenzene",
+     "multiplicative, P-51.3.1 (tests/test_namer_multiplicative.py has the book's set)"),
+    ("D-087q", "OP(O)(=O)CP(O)(O)=O", "methylenebis(phosphonic acid)",
+     "methane-1,1-diphosphonic acid", "as '[azanediylbis(methylene)]bis(phosphonic acid) "
+     "(PIN)' (p. 105); a phosphonic acid is a functional parent (P-67.1.2)"),
+    ("D-087r", "CC(=O)NNCNNC(C)=O", "N',N'''-methylenediacetohydrazide",
+     "N'-[(2-acetylhydrazinyl)methyl]acetohydrazide", "p. 106, verbatim"),
+    ("D-087s", "CCOC(=O)NN", "(ethoxycarbonyl)hydrazine", "ethyl aminocarbamate",
+     "control, NOT the PIN (that is ethyl hydrazinecarboxylate, OPEN D-088b): a "
+     "carbazate is never split as a carbamate, 'not carbazic acid' (p. 756)"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names
@@ -1807,6 +1867,42 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     ("D-086c", "C1=CC2=CC=C3C=CCC4=C3N2C(=C1)C=C4", "6H-quinolizino[3,4,5,6-ija]quinoline",
      "13-azatetracyclo[10.2.2.0^{5,14}.0^{8,13}]hexadeca-1(15),2,5(14),6,8,10,12(16)-heptaene",
      "an interior heteroatom, P-25.3.3.2 (p. 223)"),
+    # Round 5 (N4): NOT wrong molecules either -- each round-trips today; the
+    # book prints the target (or it is derived, as marked).
+    ("D-088a", "O=C(NNC(=O)c1ccccc1)c1ccccc1", "N'-benzoylbenzohydrazide",
+     "1,2-dibenzoylhydrazine", "'N'-benzoylbenzohydrazide (PIN) (not "
+     "1,2-dibenzoylhydrazine)' (p. 670). Admitting an acylated N' to the hydrazide "
+     "pattern reaches it, but turned 4-(2-benzoylhydrazinyl)-4-oxobutanoic acid into "
+     "a butanedioyl name: the demoted, prefix form is not built"),
+    ("D-088b", "CCOC(=O)NN", "ethyl hydrazinecarboxylate", "(ethoxycarbonyl)hydrazine",
+     "the ester of hydrazinecarboxylic acid; its anion is not nameable yet "
+     "('oxidooxomethylhydrazine'), so no ester plan is offered"),
+    ("D-088c", "O=C(N=Nc1ccccc1)N=Nc1ccccc1", "bis(phenyldiazenyl)methanone",
+     "1-[(oxo)(phenyldiazenyl)methyl]-2-phenyldiazene",
+     "p. 110: a C=O between two N= is not perceived as a ketone"),
+    ("D-088d", "O=C(NNC)c1ccc(C(=O)O)cc1", "4-(2-methylhydrazine-1-carbonyl)benzoic acid",
+     "4-carboxy-N'-methylbenzohydrazide",
+     "derived from 'hydrazinecarbonyl (preferred prefix)' (p. 668): the acid is the "
+     "principal group, but a substituted hydrazide has no prefix form (before N4 too)"),
+    ("D-088e", "[SiH3][SiH2]C", "methyldisilane", "methyl(silyl)silane",
+     "derived: the disilane chain is the parent; the silane centre's +50 in "
+     "parent_selection outranks the heteroatom chain (before N4 too)"),
+    ("D-088f", "CN(C)ON(C)C", "N,N'-oxybis(N-methylmethanamine)",
+     "{[(dimethylamino)oxy](methyl)amino}methane", "p. 108: no marker reads this "
+     "unit's attachment N -- methyl and ethyl take over the parent, chloro and bromo "
+     "are named '[chloro(methyl)amino]methane'"),
+    ("D-088g", "OCCN(CCO)CCO", "2,2',2''-nitrilotri(ethan-1-ol)", "triethanolamine",
+     "p. 106: the whole-molecule name is an OPSIN registry entry (N5's gate)"),
+    ("D-088h", "Oc1ccc(OCC(C)COc2ccc(O)cc2)cc1",
+     "4,4'-[(2-methylpropane-1,3-diyl)bis(oxy)]diphenol",
+     "4-{[3-(4-hydroxyphenoxy)-2-methylpropyl]oxy}phenol",
+     "p. 105: a substituted linker (P-15.3.1.2.1.2) is outside the built class"),
+    ("D-088i", "[SiH3]c1cc([SiH3])cc([SiH3])c1", "(benzene-1,3,5-triyl)tris(silane)",
+     "[3,5-bis(silyl)phenyl]silane", "p. 107: a ring as the central group is not built"),
+    ("D-088j", "OC(=O)c1ccc(CC(c2ccc(C(O)=O)cc2)c2ccc(C(O)=O)cc2)cc1",
+     "4,4',4''-(ethane-1,1,2-triyl)tribenzoic acid",
+     "4-[1,2-bis(4-carboxyphenyl)ethyl]benzoic acid",
+     "p. 110: an unsymmetrical central group (P-15.3.3.1) is not built"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified

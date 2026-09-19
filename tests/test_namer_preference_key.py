@@ -40,7 +40,7 @@ def _key(**overrides) -> NomenclaturePreferenceKey:
     values = {
         "plan_kind": 0, "pcg_seniority": 0.0, "pcg_count": 0, "parent_selection": 0.0,
         "retained_ring": 0.0, "naming_method": 0.0, "substituent_count": 0,
-        "heteroatom_locants": 0.0, "indicated_hydrogen_locants": empty,
+        "heteroatom_locants": 0.0, "indicated_hydrogen_locants": empty, "parent_senior_atom": 0,
         "suffix_locants": empty, "added_hydrogen_locants": empty,
         "unsaturation_locants": empty,
         "prefix_locants": empty, "primes": 0,
