@@ -656,7 +656,13 @@ def predict_spectrum(
                 "No experimental shift database has been built yet. "
                 "Build it from Tools > External Tools."
             ),
-            provenance=Provenance(created_by="core", method="hose_lookup"),
+            error_summary="Database not built",
+            # A fault with a remedy, like an unconfigured sidecar: coded so a
+            # view need not read it out of the sentence. Uncoded, it passed on
+            # every machine that had built the database and failed CI's
+            # multicomponent guard, which had not (round 5, PR #133).
+            provenance=Provenance(created_by="core", method="hose_lookup",
+                                  parameters={"refusal": "DATABASE_NOT_BUILT"}),
         )
 
     # Coded from the heavy-atom view, for the reason `heavy_atom_view`

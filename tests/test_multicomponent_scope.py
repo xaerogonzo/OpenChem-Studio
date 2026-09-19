@@ -36,7 +36,7 @@ REGISTRY_DEFINITIONS = [d for d in CALCULATOR_DEFINITIONS if isinstance(d.execut
 #: must supply an input (a reference, a partner, R-groups), the suite's
 #: isolated settings have no sidecar interpreter, or a 3D descriptor asked
 #: of the drawing before the conformer run answered it.
-EXPECTED_FAULTS = {INPUT_REQUIRED, SIDECAR_NOT_CONFIGURED, "NEEDS_CONFORMER"}
+EXPECTED_FAULTS = {INPUT_REQUIRED, SIDECAR_NOT_CONFIGURED, "NEEDS_CONFORMER", "DATABASE_NOT_BUILT"}
 
 
 def _unscoped(definitions) -> list[str]:
@@ -129,9 +129,21 @@ GUARD_ROWS = (
 
 
 @pytest.fixture(scope="module")
-def guard_sweep(qapp):
+def guard_sweep(qapp, tmp_path_factory):
+    """With NO experimental NMR database, whatever this machine has built.
+
+    The sidecars are already unconfigured here -- the suite's settings are
+    isolated -- but the database lives at a data path, so a developer who had
+    built it saw a different panel from CI. This guard went green locally and
+    red on CI for exactly that reason (PR #133).
+    """
+    from openchem.chem import nmr_database
+
     rows = [r for r in load_panel() if r.id in GUARD_ROWS]
-    sweep = run_sweep(qapp, rows)
+    missing = tmp_path_factory.mktemp("no-nmr-db") / "absent.sqlite"
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(nmr_database, "default_database_path", lambda: missing)
+        sweep = run_sweep(qapp, rows)
     return sweep, classify(sweep, rows)
 
 
