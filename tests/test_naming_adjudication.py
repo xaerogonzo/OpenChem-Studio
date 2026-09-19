@@ -30,6 +30,11 @@ ADJUDICATION = BENCH / "adjudication.toml"
 
 EXPECTED_SHA = "6b607a40430b95b4370c474d7b7afc5c9906b68c683192fb0c07f9aed3fb563f"
 
+#: The populations whose rows may be adjudicated. heldout_v2 joined in round 5,
+#: when it stopped being the fresh population; the current fresh one is never
+#: listed here (tests/test_naming_heldout_lock.py).
+LABELLED_POPULATIONS = ("corpus.json", "heldout.json", "heldout2.json")
+
 VERDICTS = {
     "ENGINE_WRONG",
     "PUBCHEM_NOT_PREFERRED",
@@ -59,7 +64,7 @@ def rules(table) -> dict[str, dict]:
 @pytest.fixture(scope="module")
 def corpus_labels() -> set[str]:
     labels: set[str] = set()
-    for filename in ("corpus.json", "heldout.json"):
+    for filename in LABELLED_POPULATIONS:
         path = BENCH / filename
         if path.exists():
             labels |= {
@@ -177,7 +182,7 @@ def test_the_smiles_matches_the_corpus_row_it_claims(rows, corpus_labels):
     from rdkit import Chem
 
     by_label: dict[str, str] = {}
-    for filename in ("corpus.json", "heldout.json"):
+    for filename in LABELLED_POPULATIONS:
         path = BENCH / filename
         if path.exists():
             for row in json.loads(path.read_text(encoding="utf-8")):
@@ -207,7 +212,26 @@ def test_the_completed_classes_are_declared(table):
         "locant_omission",
         "new_pcg_classes",
         "prefix_vocabulary",
+        "heldout_v2_disagreements",
+        "round4_leftovers",
     ]
+
+
+def test_every_open_row_says_which_layer_it_fails_in(table, rows):
+    """Round 5, N1: "deferred" is not a class. Every row still OPEN or
+    UNDECIDED names the layer the defect lives in and the stage expected to
+    take it, so an open list can be read by layer rather than as one pile.
+
+    Breaking it: drop `layer` from any OPEN row."""
+    layers = set(table["meta"]["layers"])
+    stages = {"N2", "N3", "N4", "N5", "N6", "N7", "N8", "later"}
+    bad = [
+        (r.get("corpus_row_id") or r.get("smiles"), r.get("layer"), r.get("target_stage"))
+        for r in rows
+        if (r["fix_status"] == "OPEN" or r["verdict"] == "UNDECIDED")
+        and (r.get("layer") not in layers or r.get("target_stage") not in stages)
+    ]
+    assert not bad, bad
 
 
 def test_an_engine_wrong_row_names_a_target_different_from_the_engine(rows):

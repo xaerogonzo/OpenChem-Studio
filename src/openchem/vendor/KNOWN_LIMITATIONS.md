@@ -214,9 +214,11 @@ signal either of them gives about its own blind spot.
 
 ## Severity B — right molecule, non-preferred name
 
-| input | emits | preferred | rule |
-|---|---|---|---|
-| `ClC(=O)C(=O)Cl` | `ethane-1,2-dioyl chloride` | `oxalyl dichloride` | `oxalyl` IS the PIN acyl group (P-65.1.7.2.1); the `di` multiplier is also missing |
+No open row. The `oxalyl dichloride` row that stood here was FIXED in round 4
+(D-065f); re-measured 2026-09-19 (naming round 5, N1), the engine emits
+`oxalyl dichloride`, and the homologues `propanedioyl`/`butanedioyl`/
+`hexanedioyl dichloride`.
+
 The `isobutane` row that stood here is FIXED (D-036c). P-61.2.1 says in as
 many words that "the names 'isobutane', 'isopentane' and 'neopentane' are
 no longer recommended", and gives `2-methylpropane (PIN) (not isobutane)`.
@@ -247,10 +249,10 @@ not known to be right either, and that is the honest description.
 
 ## Severity C
 
-`_RETAINED_ACID_TO_ACYL` (`engine.py`) carries four unreachable non-PIN keys
-(`malonic`/`succinic`/`glutaric`/`adipic acid`) that the acid path never
-produces, the same dead-key pattern already removed from
-`_RETAINED_DIACID_TO_DIACYLIUM`.
+None open. The four unreachable non-PIN keys (`malonic`/`succinic`/
+`glutaric`/`adipic acid`) are gone from `_RETAINED_ACID_TO_ACYL`, with a
+comment where they stood; this entry outlived the fix and was corrected on
+re-measurement in naming round 5 (N1, 2026-09-19).
 
 ## The refusal guard (resolved 2026-08-01)
 

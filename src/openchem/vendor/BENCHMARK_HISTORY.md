@@ -252,3 +252,29 @@ the builder now suppresses those warnings on quiet runs.
 Every later report in this round prints four populations separately and never
 pools them: regression x/187, v1-used y/40, v2-used z/40, v3-fresh w/40 (end
 only).
+
+### N1: adjudication and triage
+
+heldout_v2's 25 differing rows, each read against the Blue Book (20 new
+quoted rules in `adjudication.toml`):
+
+| verdict | rows | what it means for the engine |
+|---|---|---|
+| PUBCHEM_NOT_PREFERRED | 15 | the engine's name is the book's form; PubChem's style differs (enclosing marks, dropped locants, `azanium`, `chromene`, `trans-`) |
+| ENGINE_WRONG | 3 | the phosphoryl prefix; `propoxy` is substitutable and was not contracted; an ylidene prefix enclosed and given added hydrogen |
+| BOTH_NOT_PREFERRED | 1 | `propane-2-sulfonyl`, which neither writes |
+| UNDECIDED | 6 | four need general fusion to derive the PIN (P-52.2.4.1 rules out the von Baeyer names); `tabun` and a nucleotide sugar sit on unaudited vocabulary |
+
+So of v2's 25 "misses", 15 are not engine defects at all, which is what a
+PubChem-verbatim score cannot show. Nine round-4 leftovers that existed only
+in the session record got rows too (8 with a quoted target, 1 undecided),
+and CS2 and the pinacol boronate, which already had rows, got layers.
+
+Every OPEN or UNDECIDED row (28) now names its layer and the stage expected
+to take it; "deferred" is not a class. By layer: candidate absent 11 (N3 4,
+N4 7), serialization 8 (N7 2, N8 6), candidate misranked 3 (N6),
+candidate unsupported 2 (N5), source unresolved 4. The guard
+(`test_every_open_row_says_which_layer_it_fails_in`) was mutation-checked.
+
+Two KNOWN_LIMITATIONS entries were stale and are corrected: oxalyl
+dichloride (fixed in round 4) and the four dead acyl keys (already removed).
