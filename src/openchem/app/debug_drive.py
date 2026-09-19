@@ -2601,6 +2601,12 @@ class _Driver(QObject):
                 "facts": [f"{f.label}={f.display_value}" for f in (getattr(result, "facts", ()) or ())][:1]
                 + [f.display_value for f in (getattr(result, "facts", ()) or ()) if "mean absolute error" in f.display_value],
             }
+            # `"all_facts": true` -- every fact, for a result whose facts ARE
+            # the answer (Fragment Counts: one per count). The first-fact
+            # default above logged "Tertiary Amine (4)" and nothing after it.
+            if step.get("all_facts"):
+                rows[key]["facts"] = [f.display_value for f in (getattr(result, "facts", ()) or ())]
+                rows[key]["category_labels"] = parameters.get("category_labels", {})
         if "expect_refusal" in step:
             wanted = str(step["expect_refusal"])
             ok = bool(rows) and all(row["refusal"] == wanted for row in rows.values())

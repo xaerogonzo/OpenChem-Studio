@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 )
 
 from openchem.chem.atom_identity import dataset_conformer_id, depiction_values
+from openchem.chem.atom_report import categorical_display
 from openchem.chem.result_structure import EFFECTIVE_STRUCTURE, NO_STRUCTURE, display_structure
 from openchem.chem.engine import ChemistryEngine
 from openchem.chem.descriptor_providers import compute_gasteiger_charges
@@ -427,6 +428,7 @@ class _CalculatorResultView(QWidget):
         if _provenance(result).get("hydrogen_aggregation") == "folded":
             value_header += " - hydrogens folded"
         self._table_model.setHorizontalHeaderLabels(["#", "Element", value_header])
+        categorical = _provenance(result).get("scale") == "categorical"
         for index in sorted(result.values):
             value = result.values[index]
             symbol = self._rows[index][0] if 0 <= index < len(self._rows) else "?"
@@ -436,8 +438,17 @@ class _CalculatorResultView(QWidget):
             element = QStandardItem(symbol)
             element.setData(symbol, SORT_ROLE)
             finite = isinstance(value, (int, float)) and math.isfinite(value)
-            shown = QStandardItem(f"{value:.{self._places}f}" if finite else "n/a")
-            shown.setData(float(value) if finite else float("-inf"), SORT_ROLE)
+            if finite and categorical:
+                # A category id is how the atom got its colour; the table
+                # showed "2, 1, 1" beside a depiction labelled "urea, imide"
+                # (driven check, 2026-09-18). The table is in the dataset's
+                # own index space, so the feature records apply as-is.
+                text = categorical_display(result, index, value, same_space=True)
+                shown = QStandardItem(text)
+                shown.setData(text, SORT_ROLE)
+            else:
+                shown = QStandardItem(f"{value:.{self._places}f}" if finite else "n/a")
+                shown.setData(float(value) if finite else float("-inf"), SORT_ROLE)
             shown.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             for item in (number, element, shown):
                 item.setEditable(False)

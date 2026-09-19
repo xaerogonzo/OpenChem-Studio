@@ -1184,6 +1184,7 @@ def compute_functional_groups(
 
     values: dict[int, float] = {}
     atom_notes: dict[int, str] = {}
+    note_category: dict[int, int] = {}
     category_labels: dict[int, str] = {}
     # Rings, then structural features, then groups: the last write wins, and
     # the most specific description is the one an atom should show.
@@ -1193,6 +1194,7 @@ def compute_functional_groups(
         for atom in ring.atoms:
             values[atom] = float(category)
         atom_notes[min(ring.atoms)] = _ring_label(ring)
+        note_category[min(ring.atoms)] = category
     for wanted in (FeatureCategory.STRUCTURAL_FEATURE, FeatureCategory.FUNCTIONAL_GROUP):
         for feature in shown:
             if feature.category is not wanted:
@@ -1204,6 +1206,13 @@ def compute_functional_groups(
             for atom in feature.atoms:
                 values[atom] = float(category)
             atom_notes[feature.anchor] = label(feature)
+            note_category[feature.anchor] = category
+    # A LABEL MUST AGREE WITH ITS ATOM'S COLOUR. Painted over, a ring's note
+    # stayed on its anchor: caffeine's N1 was coloured urea and labelled
+    # "9H-purine" (driven check, magnified shot, 2026-09-18). A note whose
+    # category lost the atom goes, and the atom shows its colour's name.
+    for atom in [a for a, c in note_category.items() if values.get(a) != float(c)]:
+        del atom_notes[atom]
 
     records = [
         _feature_record(f, label(f), fg_view[f.identity], inspector_view[f.identity],

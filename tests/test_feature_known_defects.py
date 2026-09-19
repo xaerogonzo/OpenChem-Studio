@@ -94,6 +94,12 @@ DEFECTS = (
            ("peroxide[1, 2]",), {"fg:peroxide": 1}, "peroxides p. 1085"),
     Defect("FG-007e", "CSSC", "a disulfide: nothing", (), (),
            ("disulfide[1, 2]",), {"fg:disulfide": 1}, "polysulfides p. 1161"),
+    Defect("FG-007f", "C[NH3+].[Cl-]",
+           "a chloride COUNTER-ION counted as a halogen substituent (found driving master "
+           "2bfc01b, not predicted); the ammonium itself counted as nothing",
+           ("aminium[1]", "ammonium[1]"), ("Halogen (1)",),
+           ("primary ammonium[1]",), {"fg:primary_amine": 1},
+           "halogen compounds P-61.3 (a halogen on carbon); a counter-ion is a component"),
     Defect("FG-008", "CC(C)=NO",
            "an oxime as a substituted imine, and counted as a tertiary amine",
            ("substituted_imine[1, 3]",), ("Tertiary Amine (1)",),

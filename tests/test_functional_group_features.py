@@ -188,3 +188,16 @@ def test_a_protonated_ring_n_is_the_amine_in_its_cationic_state():
     (amine,) = [f for f in _features("C1CC[NH2+]CC1") if f["key"] == "fg:secondary_amine"]
     assert amine["charge_state"] == "cationic"
     assert amine["label"] == "secondary ammonium"
+
+
+@pytest.mark.parametrize("smiles", ["Cn1c(=O)c2c(ncn2C)n(C)c1=O", ACETYL_FENTANYL, MPMI,
+                                    "CC(OC)Oc1ccccc1", "O=C1CCCO1"])
+def test_every_atom_label_names_the_colour_the_atom_is_painted(smiles):
+    """Rings are painted first and groups over them, so a ring's note on its
+    anchor could survive the repaint: caffeine's N1 was coloured urea and
+    labelled "9H-purine" (magnified shot, 2026-09-18)."""
+    parameters = _result(smiles).provenance.parameters
+    values = _result(smiles).values
+    labels = {int(k): v for k, v in parameters["category_labels"].items()}
+    for atom, note in parameters["atom_notes"].items():
+        assert note == labels[int(values[int(atom)])], (smiles, atom, note)
