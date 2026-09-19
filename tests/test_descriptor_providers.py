@@ -677,3 +677,23 @@ def test_fragment_counts_count_the_projection_not_every_detection(smiles, expect
     alerts = {a.alert_id: a for a in provider.compute_alerts(Chem.MolFromSmiles(smiles), "m")}
     assert alerts["fragment_counts"].matched == expected
     assert alerts["fragment_counts"].provenance.method == "structural-features-v2"
+
+
+@pytest.mark.parametrize(
+    "smiles,element",
+    [
+        ("[Na+].[Cl-]", "Na"), ("[K+].CC(=O)[O-]", "K"), ("[Li+].[Li+].[O-]C([O-])=O", "Li"),
+        ("[Ca+2].[Cl-].[Cl-]", "Ca"), ("C[Mg]Br", "Mg"), ("[CH-]1C=CC=C1.[CH-]1C=CC=C1.[Fe+2]", "Fe"),
+        ("N[Pt](N)(Cl)Cl", "Pt"), ("C[Se]C", "Se"), ("C[As](C)C", "As"),
+    ],
+)
+def test_an_element_outside_mcgowans_set_refuses_only_the_mcgowan_volume(smiles, element):
+    """Measured over salts and metal-containing structures (2026-09-18): the
+    McGowan volume was the ONE eager descriptor that raised, and it took the
+    whole provider down. It is a limit of the method, so it is inapplicable,
+    and it names the element."""
+    values = {v.descriptor_id: v for v in RDKitDescriptorProvider().compute(Chem.MolFromSmiles(smiles), "m")}
+    mcgowan = values["mcgowan_volume"]
+    assert mcgowan.cache_state == CacheState.FAILED and mcgowan.inapplicable
+    assert mcgowan.value is None and f"for {element} (element" in mcgowan.error
+    assert values["mol_wt"].cache_state == CacheState.COMPLETED

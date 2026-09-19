@@ -563,3 +563,60 @@ def test_a_service_with_no_version_counter_still_publishes_its_report(qapp):
 
     assert len(reports) == 1
     assert reports[0].structure_version == 0
+
+
+def test_a_sodium_salt_keeps_every_result_but_the_one_that_cannot_apply(qapp):
+    """Measured 2026-09-18, driving master on sodium acetate: NO result at all.
+    The McGowan volume raised for Na inside the eager provider, the service
+    returned early, and every descriptor, alert and per-atom dataset went
+    with it. Now McGowan refuses itself -- inapplicable, naming the element --
+    and nothing else is touched."""
+    bus = EventBus()
+    engine = ChemistryEngine()
+    service = DescriptorService(bus, engine)
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CC(=O)[O-].[Na+]")
+
+    final: dict[str, object] = {}
+    alerts, datasets = [], []
+    bus.subscribe(DescriptorComputed, lambda e: final.__setitem__(e.descriptor.descriptor_id, e.descriptor))
+    bus.subscribe(AlertComputed, lambda e: alerts.append(e.alert.alert_id))
+    bus.subscribe(PerAtomDataComputed, lambda e: datasets.append(e.dataset))
+    service.request_descriptors(model)
+    _drain(qapp)
+
+    mcgowan = final["mcgowan_volume"]
+    assert mcgowan.cache_state == CacheState.FAILED and mcgowan.inapplicable
+    assert "Na" in mcgowan.error
+    assert final["mol_wt"].cache_state == CacheState.COMPLETED
+    assert "fragment_counts" in alerts
+    assert datasets, "the per-atom data went with the failed descriptor"
+
+
+def test_a_descriptor_failure_does_not_drop_the_alerts_or_the_per_atom_data(qapp, monkeypatch):
+    """The converse, for whatever raises next: alerts and per-atom data do not
+    use the descriptors, so a failure computing them no longer returns early."""
+    from openchem.chem.descriptor_providers import RDKitDescriptorProvider
+
+    def boom(self, mol, molecule_uuid):
+        raise RuntimeError("a descriptor that raises")
+
+    monkeypatch.setattr(RDKitDescriptorProvider, "compute", boom)
+    bus = EventBus()
+    engine = ChemistryEngine()
+    service = DescriptorService(bus, engine)
+    model = MoleculeModel()
+    engine.set_structure_from_smiles(model, "CCO")
+
+    final: dict[str, object] = {}
+    alerts, datasets = [], []
+    bus.subscribe(DescriptorComputed, lambda e: final.__setitem__(e.descriptor.descriptor_id, e.descriptor))
+    bus.subscribe(AlertComputed, lambda e: alerts.append(e.alert.alert_id))
+    bus.subscribe(PerAtomDataComputed, lambda e: datasets.append(e.dataset))
+    service.request_descriptors(model)
+    _drain(qapp)
+
+    assert final["mol_wt"].cache_state == CacheState.FAILED
+    assert "a descriptor that raises" in final["mol_wt"].error
+    assert {"pains", "fragment_counts"} <= set(alerts)
+    assert datasets

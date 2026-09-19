@@ -103,6 +103,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A sodium salt got no results at all.** Any structure containing an element
+  outside the McGowan volume's twelve (sodium, potassium, lithium, calcium,
+  magnesium, any metal, selenium, arsenic) lost every always-on descriptor,
+  alert and per-atom result, because that one descriptor raised and took the
+  rest with it. Now the McGowan volume alone says it does not apply, naming the
+  element, and everything else is computed; a descriptor failure also no longer
+  discards the alerts and per-atom data, which never depended on it.
+
 - **The Atom Inspector printed a functional group as a number.** "Functional
   Groups: 1" on every atom of a group, and "Ring Systems: 1" likewise, because a
   categorical value was printed as its colour id. It now says what the atom is

@@ -208,9 +208,14 @@ def mcgowan_volume(mol: Chem.Mol) -> float:
             _MCGOWAN_ATOMIC_VOLUME[atom.GetAtomicNum()] for atom in with_hydrogens.GetAtoms()
         )
     except KeyError as exc:
+        # Named by SYMBOL as well: this is the sentence a user reads when a
+        # salt's McGowan volume is refused, and "element 11" is not sodium to
+        # anyone looking at a structure.
+        number = exc.args[0]
+        symbol = Chem.GetPeriodicTable().GetElementSymbol(number)
         raise ValueError(
-            f"No McGowan atomic volume for element {exc.args[0]}. The published set covers "
-            "H, B, C, N, O, F, Si, P, S, Cl, Br and I."
+            f"No McGowan atomic volume for {symbol} (element {number}). The published set "
+            "covers H, B, C, N, O, F, Si, P, S, Cl, Br and I."
         ) from exc
     return (total - _MCGOWAN_BOND_DECREMENT * with_hydrogens.GetNumBonds()) / 100.0
 

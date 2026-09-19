@@ -367,6 +367,12 @@ _NP_NO_KNOWN_FRAGMENTS_ERROR = (
     "reason."
 )
 
+#: The cell text when an element is outside McGowan's published set; the
+#: hover is the refusal's own sentence, which names the element. Its own
+#: block, not inserted above the NP pair: that is how a `#:` comment ends up
+#: documenting the wrong constant (`tests/test_constant_docs.py`).
+_MCGOWAN_OUTSIDE_SET_SUMMARY = "Element outside McGowan's set"
+
 
 def _load_npscorer() -> tuple[ModuleType, dict]:
     """Ertl's NP-likeness [source:ertl2008], via RDKit's own re-fit model.
@@ -825,6 +831,36 @@ class RDKitDescriptorProvider(DescriptorProvider):
         _npscorer, _np_fscore = _load_npscorer()
         np_result = _npscorer.scoreMolWConfidence(mol, _np_fscore)
 
+        # A descriptor whose value would be arithmetic rather than a
+        # measurement is FAILED with a reason, following the shape
+        # descriptors' `_NEEDS_CONFORMER_ERROR` path. The CONFIDENCE is
+        # still reported -- 0.000 is a real statement about the molecule,
+        # and blanking it too would hide why the score is absent.
+        # (summary for the cell, full explanation for the hover) -- the pair
+        # `describe_failure` reads. A producer writing only one gets today's
+        # behaviour, so this carries both deliberately.
+        refusals: dict[str, tuple[str, str]] = {}
+        if np_result.confidence == 0.0:
+            refusals["np_likeness"] = (
+                _NP_NO_KNOWN_FRAGMENTS_SUMMARY,
+                _NP_NO_KNOWN_FRAGMENTS_ERROR,
+            )
+        #: Refusals that are a LIMIT OF THE METHOD rather than a fault
+        #: (`DescriptorValue.inapplicable`): nothing the user can fix.
+        inapplicable: set[str] = set()
+        # **THE McGOWAN SET IS TWELVE ELEMENTS, AND ONE SODIUM TOOK EVERYTHING
+        # WITH IT.** It raised inside the dict below, so the whole provider
+        # failed and a sodium salt got no descriptor at all -- and, because the
+        # service returned early, no alert and no per-atom data either
+        # (measured 2026-09-18, driving master on sodium acetate). A method
+        # that does not cover an element refuses ITSELF.
+        try:
+            mcgowan = _mcgowan_volume(mol)
+        except ValueError as exc:
+            mcgowan = None
+            refusals["mcgowan_volume"] = (_MCGOWAN_OUTSIDE_SET_SUMMARY, str(exc))
+            inapplicable.add("mcgowan_volume")
+
         raw_values = {
             "mol_wt": mol_wt,
             "exact_mass": Descriptors.ExactMolWt(mol),
@@ -840,7 +876,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
             "num_stereocenters": len(chiral_centers),
             "molar_refractivity": molar_refractivity,
             "labute_asa": rdMolDescriptors.CalcLabuteASA(mol),
-            "mcgowan_volume": _mcgowan_volume(mol),
+            "mcgowan_volume": mcgowan,
             "qed": QED.qed(mol),
             "sa_score": _load_sascorer().calculateScore(mol),
             "np_likeness": np_result.nplikeness,
@@ -858,21 +894,6 @@ class RDKitDescriptorProvider(DescriptorProvider):
             "gsk_400_pass": gsk_400_pass,
             "rule_of_three_pass": rule_of_three_pass,
         }
-        # A descriptor whose value would be arithmetic rather than a
-        # measurement is FAILED with a reason, following the shape
-        # descriptors' `_NEEDS_CONFORMER_ERROR` path. The CONFIDENCE is
-        # still reported -- 0.000 is a real statement about the molecule,
-        # and blanking it too would hide why the score is absent.
-        # (summary for the cell, full explanation for the hover) -- the pair
-        # `describe_failure` reads. A producer writing only one gets today's
-        # behaviour, so this carries both deliberately.
-        refusals: dict[str, tuple[str, str]] = {}
-        if np_result.confidence == 0.0:
-            refusals["np_likeness"] = (
-                _NP_NO_KNOWN_FRAGMENTS_SUMMARY,
-                _NP_NO_KNOWN_FRAGMENTS_ERROR,
-            )
-
         values = [
             DescriptorValue(
                 descriptor_id=descriptor_id,
@@ -894,6 +915,7 @@ class RDKitDescriptorProvider(DescriptorProvider):
                 error_summary=(
                     refusals[descriptor_id][0] if descriptor_id in refusals else None
                 ),
+                inapplicable=descriptor_id in inapplicable,
                 provenance=provenance,
             )
             for descriptor_id, name, units, category in _DESCRIPTOR_SPECS
