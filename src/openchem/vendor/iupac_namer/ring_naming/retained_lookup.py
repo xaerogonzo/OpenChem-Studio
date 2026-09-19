@@ -213,6 +213,18 @@ def _build_curated_from_data_loader() -> tuple[
         # overriding an existing curated mapping.
         if atom_locants is None and smiles in _CURATED_ATOM_LOCANTS_AUGMENT:
             atom_locants = _CURATED_ATOM_LOCANTS_AUGMENT[smiles]
+        if atom_locants:
+            # Fill the fusion carbons an entry leaves out (4a/8a of
+            # isoquinoline): without them no saturated form of the ring could
+            # be matched. Never overwrites a locant the entry gives.
+            from openchem.vendor.iupac_namer.ring_naming.fusion_locants import (
+                derive_fusion_locants,
+            )
+            _mol = Chem.MolFromSmiles(smiles)
+            if _mol is not None:
+                _filled = derive_fusion_locants(_mol, atom_locants)
+                if _filled is not None:
+                    atom_locants = _filled
         result[smiles] = (name, sub_form, alkyl_ok, atom_locants)
         # stage2_fusion_base flag.  Default True (eligible) when absent so
         # the introduction of this field is fully backwards-compatible.
@@ -284,6 +296,13 @@ _DATAFILE_PIN_INELIGIBLE_NAMES: frozenset[str] = frozenset({
     # Declining the stem outright sidesteps that: the systematic path states
     # the saturation explicitly and is correct in both positions.
     "5-pyrazolone",
+    # urazol is absent from the book (the only hits for the string are
+    # inside "tellurazole", pdf p. 150). Its ring is saturated apart from the
+    # two C=O, so the PIN is the saturated Hantzsch-Widman name, as
+    # "imidazolidine-2,4-dione (PIN)" (p. 566): 1,2,4-triazolidine-3,5-dione.
+    # It survived only because P-44.1.1's count ranked it level with the
+    # suffix form (naming round 4, D-057d).
+    "urazol",
 })
 
 
@@ -1778,7 +1797,25 @@ def try_retained_name(
     if (
         match_name is not None
         and ring_mol is not None
-        and _re.match(r"^[\d,]+-(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)hydro", match_name)
+        and (
+            _re.match(r"^[\d,]+-(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)hydro", match_name)
+            # A name the hydro route DERIVED may be unlocanted (complete:
+            # "dodecahydro-1H-carbazole"), fusion-lettered ("4a") or above
+            # deca; without its other orientations a saturated carbazol-2-ol
+            # read "-7-ol". Not for a direct table entry: widening it to the
+            # table's own "decahydronaphthalene" offered a stereo-free rival
+            # to the trans-decalin override and the descriptor was lost.
+            or (
+                matched_curated_key is None
+                and derived_dihydro is not None
+                and _re.match(
+                    r"^(?:\d+[a-z]?(?:,\d+[a-z]?)*-)?"
+                    r"(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca|dodeca|tetradeca"
+                    r"|hexadeca|octadeca|icosa|docosa|tetracosa|hexacosa)hydro",
+                    match_name,
+                )
+            )
+        )
     ):
         all_orientations = _try_derive_hydro_retained(
             ring_system=ring_system,
@@ -1794,6 +1831,15 @@ def try_retained_name(
         # entry as the sole option in that case.
         if isinstance(all_orientations, list) and len(all_orientations) >= 2:
             derived_orientations = all_orientations
+            if not _re.match(r"^[\d,]+-(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)hydro", match_name):
+                # Reached only through the widened (derived-name) trigger:
+                # keep the orientations that share the primary name, which
+                # is all the carbazol-2-ol case needs. A differently named
+                # rival ("5,6,7,8,8a,9,10,10a-octahydroanthracene") would be
+                # ranked on ring double bonds, not hydro locants, and won.
+                derived_orientations = [
+                    o for o in all_orientations if o.get("name") == match_name
+                ]
 
     # 5c. Oxo+dihydro re-orientation (P-31.1.4.1.1 / P-31.1.4.3.4).  The
     # curated bare-skeleton match above pins a FIXED dihydro orientation in its
@@ -2010,6 +2056,34 @@ def try_retained_name(
     if derived_dihydro is not None:
         _added_ih_atoms = derived_dihydro.get("added_indicated_h_atoms")
 
+    # Orientations that come out with the SAME name (a completely hydrogen-
+    # ated symmetric ring: both mirror images are "dodecahydro-1H-carbazole")
+    # differ only in numbering, and a later dedup by name kept one of them --
+    # so a saturated carbazol-2-ol could only be "-7-ol". Their numberings
+    # join one candidate here, the primary's when the name is the same.
+    _orient_groups: dict[str, list] = {}
+    _orient_meta: dict[str, tuple] = {}
+    for orient in derived_orientations:
+        orient_name = orient.get("name")
+        if not orient_name:
+            continue
+        orient_nbs = orient.get("numbering_options", ())
+        if orient_nbs:
+            orient_name = _retag_indicated_h(
+                name=orient_name,
+                mol=mol,
+                ring_system=ring_system,
+                numbering=orient_nbs[0],
+            )
+        _orient_groups.setdefault(orient_name, []).extend(orient_nbs)
+        _orient_meta.setdefault(
+            orient_name,
+            (orient.get("substituent_form"), orient.get("added_indicated_h_atoms")),
+        )
+    if match_name in _orient_groups and numbering_options:
+        _extra = [nb for nb in _orient_groups.pop(match_name) if nb not in numbering_options]
+        numbering_options = tuple(numbering_options) + tuple(_extra)
+
     results: list[NamedParent] = [_build_named_parent(
         ring_system=ring_system,
         name_str=match_name,
@@ -2045,29 +2119,17 @@ def try_retained_name(
     # rewritten hydro-prefix + Numbering.  The downstream dedup in
     # name_ring_system collapses duplicates by name string; the strategy
     # layer scores the rest and picks lowest-locant-for-principal-group.
-    for orient in derived_orientations:
-        orient_name = orient.get("name")
-        if not orient_name:
-            continue
-        orient_sub = orient.get("substituent_form")
-        orient_nbs = orient.get("numbering_options", ())
-        orient_added_ih = orient.get("added_indicated_h_atoms")
-        # Apply indicated-H tautomer correction to orientation names too,
-        # mirroring the primary-name path above.
-        if orient_nbs:
-            orient_name = _retag_indicated_h(
-                name=orient_name,
-                mol=mol,
-                ring_system=ring_system,
-                numbering=orient_nbs[0],
-            )
+    # (The indicated-H tautomer correction was applied to each orientation's
+    # name above, mirroring the primary-name path.)
+    for orient_name, orient_nbs in _orient_groups.items():
+        orient_sub, orient_added_ih = _orient_meta[orient_name]
         results.append(_build_named_parent(
             ring_system=ring_system,
             name_str=orient_name,
             sub_form=orient_sub,
             alkyl_ok=False,
             naming_method="retained",
-            numbering_options=orient_nbs,
+            numbering_options=tuple(orient_nbs),
             extra_atom_indices=extra_atom_indices,
             added_indicated_h_atoms=orient_added_ih,
             precomposed_retained_no_suffix=precomposed_no_separable_suffix,
@@ -3050,15 +3112,24 @@ def _try_derive_hydro_retained(
     #                     clearing ALL H would wrongly de-protonate the
     #                     pyrrole N and the whole system fails to kekulize.
     #   "all"             clear H on every ring atom (last resort)
+    #   ("nh", i)         clear H on every ring atom, then give ring N ``i``
+    #                     exactly one: the pyrrole-type N of a SATURATED
+    #                     azole-fused ring (perhydrocarbazole, -indazole),
+    #                     where no reset above leaves the right N its H.
     def _try_aromatize(reset):
+        nh_atom = reset[1] if isinstance(reset, tuple) else None
         rm_copy = Chem.RWMol(ring_mol)
         for atom in rm_copy.GetAtoms():
             if atom.IsInRing():
                 was_aromatic = atom.GetIsAromatic()
                 atom.SetIsAromatic(True)
-                if reset == "all" or (reset == "saturated_only" and not was_aromatic):
+                if (reset == "all" or nh_atom is not None
+                        or (reset == "saturated_only" and not was_aromatic)):
                     atom.SetNumExplicitHs(0)
                 atom.SetNoImplicit(False)
+                if nh_atom is not None and atom.GetIdx() == nh_atom:
+                    atom.SetNumExplicitHs(1)
+                    atom.SetNoImplicit(True)
         for bond in rm_copy.GetBonds():
             if bond.GetBeginAtom().IsInRing() and bond.GetEndAtom().IsInRing():
                 bond.SetBondType(Chem.BondType.AROMATIC)
@@ -3067,14 +3138,24 @@ def _try_derive_hydro_retained(
         Chem.SanitizeMol(aromatized)
         return Chem.MolToSmiles(aromatized)
 
+    # Take the first mode whose product is IN the table, not the first that
+    # sanitizes: with the carve's explicit N-H kept, "none" sanitizes a
+    # saturated quinoxaline to the 1,4-dihydro tautomer "C1=CNc2ccccc2N1",
+    # which is no table key, and every decahydroquinoxaline fell to
+    # "2,5-diazabicyclo[4.4.0]decane" (naming round 4, A7).
     arom_smi = None
-    for _mode in ("none", "saturated_only", "all"):
+    _nh_modes = [("nh", _a.GetIdx()) for _a in ring_mol.GetAtoms()
+                 if _a.IsInRing() and _a.GetAtomicNum() == 7 and not _a.GetIsAromatic()]
+    for _mode in ("none", "saturated_only", "all", *_nh_modes):
         try:
-            arom_smi = _try_aromatize(_mode)
-            if arom_smi:
-                break
+            _candidate = _try_aromatize(_mode)
         except Exception:
-            arom_smi = None
+            continue
+        if _candidate and _lookup_curated(_candidate)[0] is not None:
+            arom_smi = _candidate
+            break
+        if arom_smi is None:
+            arom_smi = _candidate  # keep the first product, as before, if none is known
     if not arom_smi:
         return None
 
@@ -3220,8 +3301,33 @@ def _try_derive_hydro_retained(
         # without it, no ``(NH)`` form is possible — bail and let the upstream
         # path decide.
         sp3_full_idx = next(iter(sp3_full))
-        if not _sp3_eligible_for_added_ih(sp3_full_idx):
+        # The lone sp3 atom need not be NEXT to the C=X: in anthrone it is
+        # para to it. The book prints the same added hydrogen across the ring
+        # in "anthracen-9(10H)-yl-10-ylidene (preferred prefix)" (P-58.2.2,
+        # pdf p. 479); anthrone itself is not printed. Requiring adjacency left no
+        # anthracene parent at all, and the ketone fell to "tricyclo[8.4.0.
+        # 0^{3,8}]tetradeca-...-hexaen-2-one". Any ring C=X suffix makes an
+        # odd saturated atom a consequence of it; the P-58.2 planner then
+        # re-derives where the hydrogen is cited, and declines if it cannot
+        # account for this text.
+        if not (_sp3_eligible_for_added_ih(sp3_full_idx)
+                or any(_exocyclic_oxo_count(mol.GetAtomWithIdx(i)) == 1
+                       and mol.GetAtomWithIdx(i).GetAtomicNum() == 6
+                       for i in ring_atoms_full)):
             return None
+        # The suffix outranks added hydrogen for low locants (P-31.1.4.2.4):
+        # "anthracen-9(10H)-one", not the lowest-sp3 "anthracen-10(9H)-one".
+        # Pick the orientation by the C=X carbons' locants first.
+        oxo_atoms = [i for i in ring_atoms_full
+                     if mol.GetAtomWithIdx(i).GetAtomicNum() == 6
+                     and _exocyclic_oxo_count(mol.GetAtomWithIdx(i)) == 1]
+
+        def _orientation_rank(pm):
+            f2k = {full: key for key, full in enumerate(pm[1])}
+            oxo = sorted(_loc_sort_key(atom_locants.get(f2k[i], "")) for i in oxo_atoms if i in f2k)
+            return (tuple(oxo), tuple(_loc_sort_key(l) for l in pm[0]))
+
+        best_locs, best_match = min(valid_orientations, key=_orientation_rank)
         # Single-orientation result with the mancude retained name and
         # ``added_indicated_h_atoms`` carrying the sp3 full-mol atom idx.
         return _finalize_added_ih_orientation(
@@ -3245,6 +3351,64 @@ def _try_derive_hydro_retained(
     # + "(2H)" added-IH (the sp3 atom adjacent to the ring-ketone C1).  The
     # absorbed sp3 atom must be adjacent to a ring-PCG-bearing atom (exocyclic
     # C=O / C=S / C=Se / C=NR).
+    def _pi_positions() -> list[int]:
+        """Ring atoms the mancude parent's double bonds or indicated hydrogen
+        can occupy -- every ring atom but a divalent chalcogen and a neutral
+        bridgehead N (as the P-58.2 planner counts them)."""
+        out = []
+        for idx in ring_atoms_full:
+            atom = mol.GetAtomWithIdx(idx)
+            degree = sum(1 for nb in atom.GetNeighbors() if nb.GetIdx() in ring_atoms_full)
+            if atom.GetAtomicNum() == 6 or (atom.GetAtomicNum() == 7 and degree < 3):
+                out.append(idx)
+        return out
+
+    def _indicated_hydrogen_orientation(cur_match: tuple) -> "dict | None":
+        """An odd hydro count on a parent that itself needs indicated
+        hydrogen: the P-58.2 planner places it (lowest consistent locant) and
+        the rest is hydro."""
+        m_ih = _re.match(r"^(\d+[a-z]?)H-", name)
+        if m_ih is None:
+            return None
+        from openchem.vendor.iupac_namer.ring_naming.indicated_hydrogen_p58 import (
+            plan_hydrogens,
+        )
+        full_to_key = {full_idx: key_idx for key_idx, full_idx in enumerate(cur_match)}
+        locant_of = {}
+        for idx in ring_atoms_full:
+            raw = atom_locants.get(full_to_key.get(idx))
+            if raw is None:
+                return None
+            lm = _re.match(r"^(\d+)([a-z]?)$", str(raw))
+            if lm is None:
+                return None
+            locant_of[idx] = Locant.numeric(int(lm.group(1)), lm.group(2))
+        plan = plan_hydrogens(mol, ring_atoms_full, (), locant_of)
+        if (plan is None or plan.added or len(plan.indicated) != 1
+                or (plan.indicated | plan.hydro) != frozenset(sp3_full)):
+            return None
+        hydro = sorted(plan.hydro, key=lambda a: locant_of[a])
+        mult_here = get_multiplier(len(hydro))
+        if mult_here is None:
+            return None
+        indicated = str(locant_of[next(iter(plan.indicated))])
+        complete = len(hydro) + 1 == len(_pi_positions())
+        new_name = f"{indicated}H-{name[m_ih.end():]}"
+        new_sub = sub_form
+        if sub_form is not None and _re.match(r"^\d+[a-z]?H-", sub_form):
+            new_sub = f"{indicated}H-" + _re.sub(r"^\d+[a-z]?H-", "", sub_form)
+        hydro_locs = [locant_of[a] for a in hydro]
+        return _finalize_hydro_orientation(
+            name=new_name,
+            sub_form=new_sub,
+            atom_locants=atom_locants,
+            mol=mol,
+            best_locs=hydro_locs,
+            best_match=cur_match,
+            loc_str="" if complete else ",".join(str(l) for l in hydro_locs),
+            mult=mult_here,
+        )
+
     def _build_orientation_result(
         cur_locs: list, cur_match: tuple
     ) -> "dict | None":
@@ -3267,10 +3431,14 @@ def _try_derive_hydro_retained(
                     absorb_idx = full_idx
                     break
             if absorb_idx is None:
-                # No sp3 atom adjacent to a ring-PCG → cannot form a valid
-                # odd-count name.  Bail rather than emit a malformed
-                # "<n>hydro" prefix.
-                return None
+                # No ring C=X to absorb the odd atom. When the parent itself
+                # carries indicated hydrogen ("9H-carbazole", "1H-indazole"),
+                # that is where it goes: the saturated ring is "dodecahydro-
+                # 1H-carbazole", and without this every saturated azole-fused
+                # ring fell to von Baeyer ("2-azatricyclo[7.4.0.0^{3,8}]-
+                # tridecane", naming round 4, A7). Otherwise bail rather than
+                # emit a malformed "<n>hydro" prefix.
+                return _indicated_hydrogen_orientation(cur_match)
             absorbed_loc = atom_locants.get(full_to_key[absorb_idx])
             new_locs = [l for l in cur_locs if str(l) != str(absorbed_loc)]
             new_count = len(new_locs)
@@ -3296,6 +3464,9 @@ def _try_derive_hydro_retained(
         if cur_mult is None:
             return None
         cur_loc_str = ",".join(str(l) for l in cur_locs)
+        if (not _re.match(r"^\d+[a-z]?H-", name)
+                and cur_count == len(_pi_positions())):
+            cur_loc_str = ""  # complete: P-14.3.4.5 omits the locants
         return _finalize_hydro_orientation(
             name=name,
             sub_form=sub_form,
@@ -3433,11 +3604,14 @@ def _finalize_hydro_orientation(
     # ("1H-indole" -> "5,6,7-trihydro-1H-indole") and the bare locant-prefix
     # case ("1,3-thiazole" -> "4,5-dihydro-1,3-thiazole"): a hyphen always
     # separates the trailing "hydro" from a following locant digit.
+    # An empty ``loc_str`` means every position is hydro or indicated, and
+    # P-14.3.4.5 omits the locants ("decahydronaphthalene (PIN)").
+    _lead = f"{loc_str}-" if loc_str else ""
     _starts_with_locant = bool(_re.match(r"^\d", effective_name))
     if _starts_with_locant:
-        derived_name = f"{loc_str}-{mult}hydro-{effective_name}"
+        derived_name = f"{_lead}{mult}hydro-{effective_name}"
     else:
-        derived_name = f"{loc_str}-{mult}hydro{effective_name}"
+        derived_name = f"{_lead}{mult}hydro{effective_name}"
 
     # Build a substituent form mirroring the base name's substituent form.
     # For retained aromatic parents we typically have e.g. "naphthalenyl";
@@ -3446,9 +3620,9 @@ def _finalize_hydro_orientation(
     derived_sub: str | None = None
     if effective_sub is not None:
         if _re.match(r"^\d", effective_sub):
-            derived_sub = f"{loc_str}-{mult}hydro-{effective_sub}"
+            derived_sub = f"{_lead}{mult}hydro-{effective_sub}"
         else:
-            derived_sub = f"{loc_str}-{mult}hydro{effective_sub}"
+            derived_sub = f"{_lead}{mult}hydro{effective_sub}"
 
     # Build a Numbering directly from best_match + atom_locants.  We already
     # have the full→key atom mapping (best_match is indexed by curated-key
@@ -3610,8 +3784,23 @@ def _build_numbering_from_atom_locants(
             a.GetAtomicNum() not in (1, 6) for a in ring_mol.GetAtoms()
         )
         ring_has_explicit_nh = "[nH]" in ring_smi if ring_smi else False
-        # uniquify=True only when heteroatoms AND an [nH] anchor pin the match
-        use_uniquify = ring_has_heteroatoms and ring_has_explicit_nh
+        # AN [nH] PINS THE TAUTOMER, NOT THE ORIENTATION. This used
+        # uniquify=True whenever the query had an [nH], on the premise that
+        # the anchor leaves a single match. uniquify collapses matches that
+        # cover the same ATOM SET, and a mirror orientation covers the same
+        # set: when the N-H lies on the ring system's symmetry axis (9H-
+        # carbazole's N9) the anchor fixes the tautomer and both mirrors
+        # survive it, so uniquify discarded one -- and 9H-carbazol-1-ol came
+        # out 9H-carbazol-8-ol (naming round 4, A3). N-methylcarbazole has no
+        # [nH] in its query and always got both. Every match the SMARTS
+        # returns maps the query's [nH] onto an N-H of the molecule, so all of
+        # them are legitimate numberings of the SAME tautomer.
+        use_uniquify = False
+        # The bond-generic supplement below matches element and degree only,
+        # so it would map the [nH] onto a bare ring N and un-pin the tautomer.
+        # It stays off for [nH] rings, which is what the old uniquify gate
+        # achieved as a side effect.
+        pinned_by_nh = ring_has_heteroatoms and ring_has_explicit_nh
 
         # Tautomer-tolerant fallback query: replace [nH] with n in the canonical
         # SMILES so the SMARTS doesn't enforce a specific NH location on aromatic
@@ -3691,7 +3880,7 @@ def _build_numbering_from_atom_locants(
             # are added.  Skipped when uniquify pinned a single NH-anchored
             # orientation (heterocycles with explicit [nH] have a unique
             # tautomer numbering and must not be loosened).
-            if ring_query_generic is not None and not use_uniquify:
+            if ring_query_generic is not None and not pinned_by_nh:
                 try:
                     generic_matches = list(
                         mol.GetSubstructMatches(ring_query_generic, uniquify=False)

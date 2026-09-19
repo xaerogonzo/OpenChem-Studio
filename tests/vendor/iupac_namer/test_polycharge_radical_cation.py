@@ -326,7 +326,7 @@ def test_pre_validation_hook_returns_none_for_polycation() -> None:
     ("[CH3-]",          "methanide"),
     ("[CH2+]C",         "ethan-1-ylium"),
     ("[CH+]1CCCCC1",    "cyclohexan-1-ylium"),
-    ("CC[N+]#N",        "ethane-1-diazonium"),
+    ("CC[N+]#N",        "ethanediazonium"),  # P-14.3.4 (b); naming round 4, D-039
     ("[C+](C)=O",       "acetylium"),
     ("CC(=[NH2+])N",    "acetamidinium"),
     ("[BH4-]",          "boranuide"),

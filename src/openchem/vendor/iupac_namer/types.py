@@ -94,9 +94,13 @@ class Locant:
         return self.label
 
     def __lt__(self, other: Locant) -> bool:
-        # Numeric locants sort before heteroatom locants (P-14.4)
+        # P-14.3.5 (BlueBookV2 pdf p. 74): "Italic capital and lower-case
+        # letter locants are lower than Greek letter locants, which, in turn,
+        # are lower than numerals" -- so a set reads "N,4" ("N,4-dimethyl-
+        # N-(3-methylphenyl)benzamide (PIN)", p. 650). This said the reverse
+        # and cited P-14.4, and every mixed set came out "4,N" (round 4).
         if self.is_numeric != other.is_numeric:
-            return self.is_numeric  # numeric < heteroatom
+            return not self.is_numeric  # heteroatom (italic) < numeric
         if self.is_numeric:
             if self._numeric_value != other._numeric_value:
                 return self._numeric_value < other._numeric_value  # type: ignore[operator]
@@ -505,9 +509,15 @@ def _build_ester_decomposition(fg: DetectedFG, mol: Any) -> Decomposition | None
 
     for a_idx in atoms:
         atom = mol.GetAtomWithIdx(a_idx)
-        if atom.GetSymbol() != "C":
-            continue
-        if atom.GetHybridization().__str__() != "SP2":
+        # The acyl atom is a carbonyl C, or (naming round 4) the S of a
+        # C-sulfonic ester: the same cut, "alkyl ...sulfonate" (p. 620).
+        if atom.GetSymbol() == "S":
+            if sum(
+                1 for b in atom.GetBonds()
+                if b.GetOtherAtom(atom).GetSymbol() == "O" and b.GetBondTypeAsDouble() == 2.0
+            ) != 2:
+                continue
+        elif atom.GetSymbol() != "C" or atom.GetHybridization().__str__() != "SP2":
             continue
         # Check if this is the acyl C: double-bond to O and single-bond to O
         has_double_o = False
@@ -1727,7 +1737,7 @@ class Interpretation:
         # flagged on the decomposition; strategy rejects them (Phase 2d
         # handles intermolecular only).
         for fg in self.fgs:
-            if fg.type != "ester":
+            if fg.type not in ("ester", "sulfonate_ester"):
                 continue
             decomp = _build_ester_decomposition(fg, mol)
             if decomp is not None:
@@ -2039,6 +2049,12 @@ class PrefixEntry:
     Created during execution (after recursive naming produces the tree)."""
     tree: Any               # NameTree -- typed as Any to avoid circularity
     locants: tuple[Locant, ...]       # always tuple, even for single locant
+    # ((subtree's fragment atom, atom of the molecule named at THIS level), ...)
+    # from extraction.fragment_origin (round 4, A12). Level-local, so a cached
+    # subtree reused for an identical fragment stays correct: carving renumbers
+    # canonically, so identical fragments have identical indices. Not part of
+    # equality -- two identical prefixes at different positions still merge.
+    atom_origin: tuple[tuple[int, int], ...] = field(default=(), compare=False)
     # multiplier is NOT stored here -- it's computed during assembly's
     # merge_identical_prefixes step.
 
@@ -2150,6 +2166,12 @@ class SubstitutiveTree(TreeBase):
     # RDKit mol (perception.symmetry.single_substituent_locant_forced_by_symmetry);
     # default False so untouched code paths keep their locants.
     single_substituent_positions_all_equivalent: bool = False
+    # P-58.2.2 'added indicated hydrogen' carried by a FREE VALENCE, cited
+    # after its locant: "pyridin-1(2H)-yl (preferred prefix)",
+    # "3,4-dihydroquinolin-2(1H)-ylidene" (pdf p. 479). Set by the P-58.2
+    # planner (ring_naming/indicated_hydrogen_p58.py) when a substituent has
+    # no suffix to carry it.
+    free_valence_added_hydrogen: tuple[Locant, ...] = ()
 
     def with_warnings(self, *new_warnings: str) -> SubstitutiveTree:
         existing = self.validity_warnings or ()
@@ -2249,8 +2271,12 @@ class NamingSession:
         attachment_indices are in CANONICAL atom ordering of the fragment
         (guaranteed by carve_substituent's canonical index normalization).
         """
-        return (smiles, output_form, fv_bond_orders,
-                attachment_indices or ())
+        # The strategy's identity is part of the key (round 4, A11): two
+        # strategies are two sets of naming decisions, and a cached tree from
+        # one must never answer for the other.
+        from openchem.vendor.iupac_namer.strategy import active_strategy
+        return (active_strategy().cache_key(), smiles, output_form,
+                fv_bond_orders, attachment_indices or ())
 
     def cache_lookup(self, smiles: str, output_form: OutputForm,
                      fv_bond_orders: tuple[int, ...],

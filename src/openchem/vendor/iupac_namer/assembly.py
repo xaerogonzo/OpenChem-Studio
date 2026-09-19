@@ -311,7 +311,11 @@ def derive_sort_name(prefix_name: str) -> str:
         for m in _MULT_PREFIXES:
             if m.endswith("kis") or m in ("bis", "tris"):
                 continue
-            if s.startswith(m) and not _is_compound_prefix(s[len(m):]):
+            # The remainder must be a KNOWN simple prefix: "dimethyl" files
+            # under m, but "diazenyl" is a word, not di + "azenyl". This read
+            # "not compound", which meant "on the list" until naming round 4
+            # made simple-by-form prefixes non-compound too.
+            if s.startswith(m) and s[len(m):] in _SIMPLE_PREFIXES:
                 s = s[len(m):]
                 break
 
@@ -399,13 +403,119 @@ def _is_compound_prefix(name: str) -> bool:
     # Check allowlist
     if name in _SIMPLE_PREFIXES:
         return False
+    # P-16.5.1: a SIMPLE prefix names one unsubstituted substituent group --
+    # one stem, "yl" if any only at its end ("ethenyl", "azaniumyl"), or a
+    # contracted form ("phenoxy", "butoxy"). A compound prefix joins a "...yl"
+    # stem to another prefix ("methylamino", "heptyloxy", "acetyloxy"), and
+    # the book encloses exactly those: "3-(2-butoxyethoxy)propyl" beside
+    # "[2-(heptyloxy)phenyl]". Defaulting everything unlisted to compound
+    # gave "(ethenyl)benzene" and "(phenoxy)acetic acid" (naming round 4).
+    if _is_simple_by_form(name):
+        return False
     # Default: treat as compound (safe)
     return True
+
+
+# Simple by form, but their enclosing marks are load-bearing in OPSIN (see
+# the note at the end of _SIMPLE_PREFIXES): unenclosed they merge with the
+# next stem, or an "-idene" ending triggers a spurious elision.
+_ENCLOSE_ANYWAY = ("hydrazinyl", "silyl", "ylidene", "ylidyne", "idene", "idyne")
+
+
+# Detachable prefixes that, LEADING a longer word, make it a substituted
+# substituent: "hydroxymethyl", "aminomethyl", "chloroethyl", "oxopropyl".
+_LEADING_PREFIX_WORDS = (
+    "hydroxy", "amino", "imino", "oxo", "thioxo", "carboxy", "sulfo", "sulfanyl",
+    "fluoro", "chloro", "bromo", "iodo", "nitro", "nitroso", "cyano", "isocyano",
+    "azido", "methoxy", "ethoxy", "propoxy", "butoxy", "phenoxy", "formyl",
+    "acetyl", "carbamoyl", "hydroperoxy", "phosphono", "diazo",
+)
+
+
+def _is_simple_by_form(name: str) -> bool:
+    if not re.fullmatch(r"[a-z]+", name):
+        return False
+    if any(token in name for token in _ENCLOSE_ANYWAY):
+        return False
+    bare = re.sub(r"^(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)", "", name)
+    if any(w != candidate and candidate.startswith(w)
+           for w in _LEADING_PREFIX_WORDS for candidate in (name, bare)):
+        return False  # a prefix on a stem: "hydroxymethyl", "trifluoromethyl"
+    if re.search(
+        r".(?:carboxamido|sulfonamido|carbonyl|sulfonyl|sulfinyl|selenonyl|seleninyl"
+        r"|telluronyl|tellurinyl)$", name,
+    ) and name not in _SIMPLE_PREFIXES:
+        return False  # a stem plus a group: "cyclohexanecarboxamido"
+    return "yl" not in name[:-2]
 
 
 # ---------------------------------------------------------------------------
 # Prefix merging and rendering
 # ---------------------------------------------------------------------------
+
+_HYDRIDE_OF = {"methyl": "methane", "ethyl": "ethane", "propyl": "propane",
+               "butyl": "butane", "phenyl": "benzene"}
+_HYDRIDE_ACYL = re.compile(
+    r"^(methyl|ethyl|propyl|butyl|phenyl)(sulfonyl|sulfinyl|selenonyl|seleninyl|telluronyl|tellurinyl)$"
+)
+_SUBSTITUTED_HYDRIDE_ACYL = re.compile(
+    r"^(\(.+\)|[a-z]+yl)(methyl|ethyl|propyl|butyl)(sulfonyl|sulfinyl)$"
+)
+_PEROXY = re.compile(r"^\(([a-z]+?)oxy\)oxy$")
+_DICHALCOGENYL = re.compile(r"^\(([a-z]+yl)(sulfanyl|selanyl|tellanyl)\)\2$")
+_ANILINO = re.compile(r"^\((\d[^()\[\]{}]*phenyl)\)amino$")
+_CARBAMOYL = re.compile(r"^[\(\[\{](.+)amino[\)\]\}]\(oxo\)methyl$")
+
+
+def _preferred_prefix_spelling(name: str) -> str:
+    """The book's preferred spelling of three prefixes the engine builds longhand.
+
+    - "benzyl (preferred prefix)" (pdf p. 61), but "not to be substituted"
+      (P-29.6.1, p. 312): "2-benzylpyridine (PIN)" beside
+      "2-[(4-bromophenyl)methyl]pyridine (PIN)" -- only the bare word.
+    - "anilino (preferred prefix) (full substitution ...) phenylamino"
+      (p. 352), so "(4-chlorophenyl)amino" is "4-chloroanilino".
+    - "carbamoyl (preferred prefix) (full substitution ...) aminocarbonyl"
+      (p. 352): "(methylamino)(oxo)methyl" is "methylcarbamoyl", as the
+      adjudicated "{[2-(azocan-1-yl)ethyl]carbamoyl}".
+    (Naming round 4.)
+    """
+    if name == "phenylmethyl":
+        return "benzyl"
+    if name == "phenylamino":
+        return "anilino"
+    m = _ANILINO.match(name)
+    if m:
+        return m.group(1)[: -len("phenyl")] + "anilino"
+    if name == "amino(oxo)methyl":
+        return "carbamoyl"
+    # "benzenesulfonyl (preferred prefix) phenylsulfonyl", "methaneseleninyl
+    # (preferred prefix) methylseleninyl" (P-65.3.2.3, pdf p. 611): the acyl
+    # prefix is named on the acid, "(methanesulfinyl)methane (PIN)" (p. 912).
+    m = _HYDRIDE_ACYL.match(name)
+    if m:
+        return _HYDRIDE_OF[m.group(1)] + m.group(2)
+    # Substituted, likewise: "(1-cyclohexylmethanesulfonamido)" (p. 653), so
+    # "(pyridin-2-yl)methylsulfinyl" is "(pyridin-2-yl)methanesulfinyl".
+    m = _SUBSTITUTED_HYDRIDE_ACYL.match(name)
+    if m and m.group(1).count("(") == m.group(1).count(")"):
+        return m.group(1) + _HYDRIDE_OF[m.group(2)] + m.group(3)
+    # P-63.3.1 (pdf p. 546): R-OO- is "R-peroxy (not R-dioxy)" and R-SS-
+    # "R-disulfanyl" -- "(methylperoxy)ethane (PIN)", "(methyldisulfanyl)
+    # methane (PIN)" -- where the engine nested "(methyloxy)oxy" and
+    # "(methylsulfanyl)sulfanyl".
+    m = _PEROXY.match(name)
+    if m:
+        stem = m.group(1) if m.group(1).endswith("yl") else m.group(1) + "yl"
+        return stem + "peroxy"
+    m = _DICHALCOGENYL.match(name)
+    if m:
+        return m.group(1) + "di" + m.group(2)
+    m = _CARBAMOYL.match(name)
+    if m and m.group(1).count("(") == m.group(1).count(")"):
+        return m.group(1) + "carbamoyl"
+    return name
+
 
 def merge_identical_prefixes(
     entries: list[tuple[str, tuple[Locant, ...]]]
@@ -427,6 +537,7 @@ def merge_identical_prefixes(
     # Group by name
     groups: dict[str, list[tuple[str, tuple[Locant, ...]]]] = defaultdict(list)
     for name, locants in entries:
+        name = _preferred_prefix_spelling(name)
         groups[name].append((name, locants))
 
     result: list[MergedPrefix] = []
@@ -439,6 +550,11 @@ def merge_identical_prefixes(
 
         count = len(group)
         compound = _is_compound_prefix(name)
+        # "tri(decyl)", not "tridecyl" (P-16.5.1.2): a multiplied simple
+        # prefix whose name begins a numeral stem keeps its marks, or the
+        # multiplier and the stem read as one longer numeral.
+        if not compound and count > 1 and re.match(r"(?:dec|icos|cos|triacont)", name):
+            compound = True
         sort_name = derive_sort_name(name)
 
         if not compound:
@@ -455,7 +571,16 @@ def merge_identical_prefixes(
                 multiplier = None
                 needs_brackets = True
             else:
-                multiplier = get_multiplier(count, complex=True)
+                # A SIMPLE prefix that is compound only because it carries
+                # locants takes di/tri, enclosed: "di(propan-2-yl)" (three
+                # times in the book, "bis(propan-2-yl)" never), "di(butan-2-
+                # yl)amino" (p. 554) -- while a substituted one keeps bis:
+                # "bis(2-methylpropyl)" (P-16.5.1.3, naming round 4).
+                locant_only = (
+                    re.fullmatch(r"[a-z]+(?:-\d+[a-z]?(?:,\d+[a-z]?)*-[a-z]+)+", name)
+                    and _is_simple_by_form(re.sub(r"-\d+[a-z]?(?:,\d+[a-z]?)*-", "", name))
+                )
+                multiplier = get_multiplier(count, complex=not locant_only)
                 needs_brackets = True
 
         result.append(MergedPrefix(
@@ -710,14 +835,22 @@ def render_unsaturation(infixes: tuple[UnsaturationInfix, ...]) -> str:
 
 # Suffixes whose attachment point is always C1 by IUPAC convention.
 # For these, the locant "1" is never cited.
+#
+# Only the CHAIN-TERMINUS forms belong here. The "carbo..." forms
+# (-carboxylic acid, -carboxamide, -carbonitrile, -carbohydrazide, ...) name
+# a carbon ADDED to a ring at an arbitrary position, so a locant 1 is chosen,
+# not defined: "naphthalene-1-carboxylic acid", "piperidine-1-carboxamide
+# (PIN)", "piperidine-1-carbonitrile (PIN)", "pyrrolidine-1-carboxylic acid
+# (PIN)" (pdf pp. 580, 645, 687), and "naphthalenecarbo..." occurs nowhere in
+# the book. They sat in this set from the vendored original and emitted
+# "naphthalenecarboxylic acid" and "piperidinecarboxylic acid" (naming round
+# 4). A single one on a homogeneous monocycle still loses its locant, by
+# P-14.3.4.2(c) ("cyclohexanecarboxylic acid"), through the rules below.
 _TERMINAL_ALWAYS_C1_SUFFIXES: frozenset[str] = frozenset({
     "al",               # aldehyde: C1 by definition (it IS the chain-end carbonyl)
     "oic acid",         # carboxylic acid: C1 by definition
-    "carboxylic acid",  # carboxylic acid (nonterminal form)
-    "amide",            # carboxamide: C1 by definition
-    "carboxamide",      # same
+    "amide",            # amide: C1 by definition
     "nitrile",          # nitrile: C1 by definition
-    "carbonitrile",     # same
     "oyl",              # acyl derived from oic acid: C1
     # Acyl halide terminal forms: C1 by definition
     "oyl chloride",
@@ -731,21 +864,18 @@ _TERMINAL_ALWAYS_C1_SUFFIXES: frozenset[str] = frozenset({
     # P-66.1.4 / P-66.3 amide-family terminal forms: C1 by definition
     # (chain-terminus C-N attachment) — locant '1' never cited.
     "thioamide",
-    "carbothioamide",
     "selenoamide",
-    "carboselenoamide",
     "tellanoamide",
-    "carbotellanoamide",
     # Hydrazide terminal forms (P-66.3): emitted base_form is the
-    # leading-hyphen-stripped form of -ohydrazide / -carbohydrazide etc.
+    # leading-hyphen-stripped form of -ohydrazide etc.
     "ohydrazide",
-    "carbohydrazide",
     "thiohydrazide",
-    "carbothiohydrazide",
     "selenohydrazide",
-    "carboselenohydrazide",
     "tellurohydrazide",
-    "carbotellurohydrazide",
+    # "names of amidines correspond to preferred names of amides" (P-66.4.1.1,
+    # p. 674): "hexanimidamide (PIN)" as hexanamide, and two terminal
+    # amidines take "diimidamide" as a diamide takes "diamide" (round 4, A6).
+    "imidamide",
 })
 
 # Chain-terminal di-suffix base_forms.  For these, when a chain carries TWO (or
@@ -782,6 +912,12 @@ _AMIDE_FAMILY_CHAIN_TERMINAL_SUFFIXES: frozenset[str] = frozenset({
     "thial",
     "selenal",
     "tellural",
+    # Acyl halides: the chain-terminus carbonyl, as the acid -- "propanedioyl
+    # dichloride (PIN)" (pdf p. 615), where the engine wrote locants.
+    "oyl chloride",
+    "oyl bromide",
+    "oyl fluoride",
+    "oyl iodide",
     # Amide / hydrazide family (chain-terminus C with the C-N attachment)
     "amide",
     "thioamide",
@@ -791,7 +927,20 @@ _AMIDE_FAMILY_CHAIN_TERMINAL_SUFFIXES: frozenset[str] = frozenset({
     "thiohydrazide",
     "selenohydrazide",
     "tellurohydrazide",
+    # "names of amidines correspond to preferred names of amides" (P-66.4.1.1,
+    # p. 674): "hexanimidamide (PIN)" as hexanamide, and two terminal
+    # amidines take "diimidamide" as a diamide takes "diamide" (round 4, A6).
+    "imidamide",
 })
+
+
+def _has_chain_locant_prefixes(prefixes) -> bool:
+    """Does any prefix sit on a numbered skeletal atom (not on an N, O, ...)?"""
+    for entry in prefixes or ():
+        for locant in getattr(entry, "locants", ()) or ():
+            if getattr(locant, "_numeric_value", None) is not None:
+                return True
+    return False
 
 
 def _strip_locant_1_if_omissible(
@@ -800,6 +949,7 @@ def _strip_locant_1_if_omissible(
     parent_has_indicated_h: bool = False,
     is_monosubstituted_homogeneous_monocycle: bool = False,
     single_suffix_symmetry_forced: bool = False,
+    has_chain_prefixes: bool = False,
 ) -> tuple[SuffixGroup, ...]:
     """Return suffix_groups with locant '1' stripped where P-14.6 applies.
 
@@ -901,8 +1051,21 @@ def _strip_locant_1_if_omissible(
                 # Rule 1: terminal-always-C1 suffix, and only ONE such group.
                 # (For dinitrile/diacid, base_form_counts > 1 → do NOT omit.)
                 omit = True
-            elif len(suffix_groups) == 1 and parent_length <= 2:
-                # Rule 2: single suffix total, short chain (length 1 or 2) — unambiguous
+            elif len(suffix_groups) == 1 and (
+                parent_length == 1
+                or (parent_length == 2 and not has_chain_prefixes)
+            ):
+                # Rule 2, as P-14.3.4 states it: "'1' is omitted: (a) in
+                # substituted mononuclear parent hydrides; (b) in
+                # MONOSUBSTITUTED homogeneous chains consisting of only two
+                # identical atoms". A two-atom chain carrying a prefix is not
+                # monosubstituted, and p. 70 says so outright: "the omission
+                # of the locant '1' in 2-chloroethanol, while permissible in
+                # general usage, is not allowed in preferred IUPAC names, thus
+                # the name 2-chloroethan-1-ol is the PIN". This rule used to
+                # cover every chain of length <= 2 (naming round 4, D-042).
+                # N-locant prefixes do not count: triethylamine's chain is
+                # still monosubstituted, so N,N-diethylethanamine keeps none.
                 omit = True
             elif (len(suffix_groups) == 1
                     and is_monosubstituted_homogeneous_monocycle):
@@ -1002,6 +1165,22 @@ def render_suffixes(
         if (count > 1 and mult and rendered_form.startswith("o")
                 and base_form == "ohydrazide"):
             rendered_form = rendered_form[1:]  # drop leading 'o'
+
+        # An acyl halide multiplies its class word too: "propanedioyl
+        # dichloride (PIN)", "benzene-1,4-dicarbonyl dichloride (PIN)" (pdf
+        # pp. 615-616); the engine wrote "...dioyl chloride" (naming round 4).
+        if count > 1 and re.fullmatch(
+            r"(?:oyl|carbonyl) (?:chloride|bromide|fluoride|iodide)", rendered_form
+        ):
+            _acyl, _halide = rendered_form.split(" ", 1)
+            rendered_form = f"{_acyl} {mult}{_halide}"
+        # "propane-1,2-bis(aminium) (PIN)", "pentane-1,5-bis(aminium)" (pdf
+        # pp. 833-834): a multiplied aminium takes bis/tris and enclosing
+        # marks, not "diaminium". Naming round 4.
+        # And "benzene-1,4-bis(diazonium) (PIN)" (p. 823; "not didiazonium").
+        if count > 1 and rendered_form in ("aminium", "diazonium"):
+            mult = get_multiplier(count, complex=True) or mult
+            rendered_form = f"({rendered_form})"
 
         # P-58.2.2 added-indicated-H rendering: when present, the parenthetical
         # (NH) — or (NH,MH) for multiple — sits between the suffix-locant block
@@ -1141,8 +1320,13 @@ def render_free_valence_suffix(
     numbering: Numbering,
     has_unsaturation: bool = False,
     stem_contracts: bool = True,
+    added_hydrogen: tuple = (),
 ) -> str:
     """Render -yl, -ylidene, -diyl etc.
+
+    ``added_hydrogen``: P-58.2.2 'added indicated hydrogen' locants, cited
+    in parentheses after the free-valence locant ("pyridin-1(2H)-yl"). Such a
+    locant is never elided -- it anchors the parenthesis.
 
     Method ALKYL (1): suffix only, locant 1 omitted.
     Method ALKANYL (2): locants cited + suffix.
@@ -1197,6 +1381,14 @@ def render_free_valence_suffix(
     if not attachment_locants:
         return f"-{suffix}"
 
+    if added_hydrogen:
+        added = "(" + ",".join(f"{h}H" for h in sorted(added_hydrogen)) + ")"
+        locant_str = ",".join(str(loc) for loc in attachment_locants) + added
+        mult = ""
+        if len(attachment_locants) > 1:
+            mult = get_multiplier(len(attachment_locants), complex=False) or ""
+        return f"-{locant_str}-{mult}{suffix}"
+
     # For monovalent: single locant; omit if locant is "1" and suffix is "yl"
     if len(attachment_locants) == 1:
         loc = attachment_locants[0]
@@ -1249,8 +1441,12 @@ def terminal_vowel(named_parent: NamedParent, output_form: OutputForm) -> str:
 # Also strips an optional added-IH parenthetical "(NH)" / "(NH,MH)" between
 # the locant block and the suffix tail (e.g. "-1(2H)-one"), so the actual
 # suffix tail (e.g. "one", "imine") is what gets consonant-tested.
+# A fusion locant carries a letter ("-4a(2H)-ol"); without it the block did
+# not match, the tail read as starting with "-", and the parent kept its 'e'
+# ("naphthalene-4a(2H)-ol", naming round 4).
 _RENDERED_SUFFIX_LOCANT_RE = re.compile(
-    r"^-[0-9NOPSH,\'^]+(?:,[0-9NOPSH,\'^]+)*(?:\(\d+[a-z]?H(?:,\d+[a-z]?H)*\))?-"
+    r"^-(?:\d+[a-h]?|[NOPSH])[0-9NOPSH\'^]*(?:,(?:\d+[a-h]?|[NOPSH])[0-9NOPSH\'^]*)*"
+    r"(?:\(\d+[a-z]?H(?:,\d+[a-z]?H)*\))?-"
 )
 
 
@@ -1395,50 +1591,23 @@ def format_for_output_form(text: str, output_form: OutputForm) -> str:
 # ---------------------------------------------------------------------------
 
 def _carbamic_n_subs_to_prefix(n_sub_names: list[str]) -> str:
-    """Convert a list of N-substituent names to a carbamate N-locant prefix.
+    """The N-substituents of a carbamate, as the book writes them.
 
-    Each element in n_sub_names is a substituent name produced by naming one
-    N-substituent as SUBSTITUENT (e.g. "phenyl", "methyl", "(3-chlorophenyl)").
-
-    Rules:
-      []             → "" (no N-prefix: "ethyl carbamate")
-      ["phenyl"]     → "N-phenyl"
-      ["methyl"]     → "N-methyl"
-      ["methyl","methyl"] → "N,N-dimethyl"
-      ["(3-chlorophenyl)"] → "N-(3-chlorophenyl)"
+    Carbamic acid has one substitutable atom, so its substituents take no
+    locant and, from the second on, enclosing marks (P-16.5.1.3.2, pdf p.
+    131): "2-hydroxypropyl (2-aminoethyl)carbamate (PIN)" (p. 601), and so
+    "phenylcarbamate", "dimethylcarbamate", "ethyl(methyl)carbamate". This
+    wrote "N-phenyl", "N,N-dimethyl", "N-ethyl-N-methyl" (naming round 4).
     """
     if not n_sub_names:
         return ""
+    import dataclasses as _dc
 
-    # Count occurrences of each unique N-substituent name
-    from collections import Counter as _Counter
-    name_counts = _Counter(n_sub_names)
-    from openchem.vendor.iupac_namer.data_loader import get_multiplier as _get_mult
-    n_parts: list[str] = []
-    for sub_name in sorted(set(n_sub_names), key=lambda s: derive_sort_name(s)):
-        count = name_counts[sub_name]
-        # Determine N-locant string: "N-" for 1, "N,N-" for 2, etc.
-        n_locant_str = ",".join(["N"] * count) + "-"
-        # Determine if sub_name needs brackets (compound prefix rules).
-        is_compound = _is_compound_prefix(sub_name)
-        if count > 1:
-            if is_compound:
-                mult = _get_mult(count, complex=True) or ""
-                open_b, close_b = _choose_brackets(sub_name)
-                sub_str = f"{mult}{open_b}{sub_name}{close_b}"
-            else:
-                mult = _get_mult(count, complex=False) or ""
-                sub_str = f"{mult}{sub_name}"
-        else:
-            if is_compound:
-                open_b, close_b = _choose_brackets(sub_name)
-                sub_str = f"{open_b}{sub_name}{close_b}"
-            else:
-                sub_str = sub_name
-        n_parts.append(f"{n_locant_str}{sub_str}")
-
-    # Join multiple unique substituents: "N-methyl-N-phenyl" style (IUPAC 2013 P-16.3)
-    return "-".join(n_parts)
+    merged = merge_identical_prefixes([(n, ()) for n in n_sub_names])
+    merged.sort(key=lambda m: m.sort_name)
+    if len(merged) > 1:
+        merged = [merged[0]] + [_dc.replace(m, needs_brackets=True) for m in merged[1:]]
+    return render_merged_prefixes(merged)
 
 
 def _acid_to_adjective(acid_name: str) -> tuple[str, str | None]:
@@ -1741,7 +1910,13 @@ def _assemble_additive(tree: AdditiveTree) -> str:
             addition_parts.append(f"{loc_str}{mult}{typ}")
         else:
             for ag in ags:
-                loc_str = f"{ag.locant}-" if ag.locant.is_numeric else ""
+                # An N locant is cited: "N-methylpropan-2-imine N-oxide (PIN)"
+                # (pdf p. 842); a phosphane's is not, "triphenylphosphane
+                # oxide" (naming round 4).
+                loc_str = (
+                    f"{ag.locant}-"
+                    if ag.locant.is_numeric or str(ag.locant) == "N" else ""
+                )
                 mult_str = ag.multiplier or ""
                 addition_parts.append(f"{loc_str}{mult_str}{typ}")
     return f"{parent_name} {' '.join(addition_parts)}"
@@ -1963,6 +2138,31 @@ _BENZENE_RETAINED_TAIL: dict[tuple[str, OutputForm], tuple[str, str]] = {
         (r"benzene(?:-\d+)?-?carboxamide$",         "benzamide"),
     ("carbonitrile", OutputForm.STANDALONE):
         (r"benzene(?:-\d+)?-?carbonitrile$",        "benzonitrile"),
+    # P-66.3.1 (pdf p. 668): "benzohydrazide (PIN)", substituted as in
+    # "N'-benzoylbenzohydrazide (PIN)" (p. 671). Naming round 4.
+    ("carbohydrazide", OutputForm.STANDALONE):
+        (r"benzene(?:-\d+)?-?carbohydrazide$",      "benzohydrazide"),
+    # SUBSTITUTABLE RETAINED PARENTS beyond the acyl family (naming round 4,
+    # A4). Each is a PIN whose substitution the book allows, quoted in
+    # benchmarks/naming/adjudication.toml:
+    #   phenol        P-34.1.1.3 "phenol (PIN) (substitution allowed)"
+    #   aniline       P-34.1.1.5 "aniline (PIN); (full substitution ...)",
+    #                 and p. 516: "N-methylaniline (PIN)", "4-chloroaniline (PIN)"
+    #   benzaldehyde  P-66.6.1 "with substitution allowed for acetaldehyde
+    #                 and benzaldehyde"
+    # anisole is NOT here: "no substitution on anisole for PINs" (P-34.1.1.4).
+    # Only the "-1-" / unlocanted tail matches, and only with ONE suffix
+    # group, so benzene-1,2-diol and benzene-1,4-diamine are untouched.
+    ("ol", OutputForm.STANDALONE):
+        (r"benzen(?:-1-)?ol$",                        "phenol"),
+    ("amine", OutputForm.STANDALONE):
+        (r"benzen(?:-1-)?amine$",                     "aniline"),
+    # "anilinium choride (PIN)", "N,N,N-trimethylanilinium (PIN)" (pdf pp.
+    # 848, 819): the aminium cation keeps aniline's stem. Naming round 4.
+    ("aminium", OutputForm.STANDALONE):
+        (r"benzen(?:-1-)?aminium$",                   "anilinium"),
+    ("carbaldehyde", OutputForm.STANDALONE):
+        (r"benzene(?:-1-)?carbaldehyde$",             "benzaldehyde"),
 }
 
 _ETHANE_RETAINED_TAIL: dict[tuple[str, OutputForm], tuple[str, str]] = {
@@ -1986,6 +2186,30 @@ _ETHANE_RETAINED_TAIL: dict[tuple[str, OutputForm], tuple[str, str]] = {
     # retained acid stem ("acet-") survives the derivation.
     ("amide", OutputForm.STANDALONE):
         (r"ethanamide$",        "acetamide"),
+    # P-66.3.1 (pdf p. 668): "acetohydrazide (PIN)", substituted on N and C
+    # alike -- "N-methylacetohydrazide (PIN)",
+    # "2-hydrazinyl-2-sulfanylideneacetohydrazide (PIN)" (pp. 671-672).
+    ("ohydrazide", OutputForm.STANDALONE):
+        (r"ethanohydrazide$",   "acetohydrazide"),
+    # P-66.6.1: "substitution allowed for acetaldehyde". The book's own PINs
+    # are phenoxyacetaldehyde (p. 695) and cyclopropyl(hydroxy)acetaldehyde
+    # (p. 889); the forced C2 locant is dropped by the 2-carbon rule below.
+    ("al", OutputForm.STANDALONE):
+        (r"ethanal$",           "acetaldehyde"),
+}
+
+
+# P-66.1.1.1.2.2 (pdf p. 646): "The traditional name 'formamide' is retained
+# for HCO-NH2 and is the preferred IUPAC name" -- N-substituted
+# ("N-phenylformamide (PIN)", p. 649) but NOT on carbon ("not
+# 1-chloroformamide"), so the methane rewrite requires every prefix to sit
+# on a heteroatom. And P-66.3.1 (p. 668): "formohydrazide (PIN)". Naming
+# round 4; formyl halides are not rewritten, the book printing no PIN for one.
+_METHANE_RETAINED_TAIL: dict[tuple[str, OutputForm], tuple[str, str]] = {
+    ("amide", OutputForm.STANDALONE):
+        (r"methanamide$",       "formamide"),
+    ("ohydrazide", OutputForm.STANDALONE):
+        (r"methanohydrazide$",  "formohydrazide"),
 }
 
 
@@ -2000,8 +2224,18 @@ def _apply_retained_acyl_pin(result: str, tree: SubstitutiveTree) -> str:
     position 1, and the retained name implies that locant.
     """
     parent = tree.named_parent.name
-    if parent not in ("benzene", "ethane"):
+    # "oxalyl dichloride (PIN) ethanedioyl dichloride" (P-65.5.1, pdf p. 615):
+    # oxalic acid's retained acyl name, for its two-group dihalides.
+    if parent == "ethane" and len(tree.suffix_groups) == 2:
+        return re.sub(
+            r"ethanedioyl di(chloride|bromide|fluoride|iodide)$", r"oxalyl di\1", result
+        )
+    if parent not in ("benzene", "ethane", "methane"):
         return result
+    if parent == "methane" and any(
+        loc.is_numeric for pe in tree.prefixes for loc in pe.locants
+    ):
+        return result  # a substituent on the formyl carbon (see the table)
     if len(tree.suffix_groups) != 1:
         return result
     if tree.unsaturation:
@@ -2014,7 +2248,11 @@ def _apply_retained_acyl_pin(result: str, tree: SubstitutiveTree) -> str:
     if tree.ring_cation_locants or tree.ring_anion_locants:
         return result
     base_form = tree.suffix_groups[0].base_form
-    table = _BENZENE_RETAINED_TAIL if parent == "benzene" else _ETHANE_RETAINED_TAIL
+    table = {
+        "benzene": _BENZENE_RETAINED_TAIL,
+        "ethane": _ETHANE_RETAINED_TAIL,
+        "methane": _METHANE_RETAINED_TAIL,
+    }[parent]
     entry = table.get((base_form, tree.output_form))
     if entry is None:
         return result
@@ -2212,14 +2450,17 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         #  prefix locant equals "2"; an N-locant or any non-C2 prefix locant
         #  aborts the rule so genuinely-needed locants survive.
         #
-        # Scoped to the ACID family only.  The aldehyde / amide / nitrile
-        # families are deliberately excluded: a load-bearing regression guard
-        # asserts "2-phenylethanal" (test_aldehyde_with_phenyl_still_works), and
-        # the Blue Book worklist contains no 2-carbon aldehyde/amide/nitrile
-        # PINs that omit the C2 locant — so the broader set would add no PIN
-        # value while breaking that test.
+        # Scoped to the ACID family and the ALDEHYDE. The aldehyde was
+        # excluded on the claim that "the Blue Book worklist contains no
+        # 2-carbon aldehyde ... PINs that omit the C2 locant", guarded by a
+        # test asserting "2-phenylethanal". The book prints two:
+        # phenoxyacetaldehyde (PIN) (p. 695) and cyclopropyl(hydroxy)-
+        # acetaldehyde (PIN) (p. 889), and P-66.6.1 allows substitution on
+        # acetaldehyde (naming round 4, A4). Amide and nitrile stay out: not
+        # adjudicated.
+        _single_position_locants_omitted = False
         _SINGLE_ATOM_C1_SUFFIXES = frozenset({
-            "oic acid", "thioic O-acid", "thioic S-acid", "dithioic acid",
+            "oic acid", "thioic O-acid", "thioic S-acid", "dithioic acid", "al",
         })
         # Restricted to STANDALONE whole-molecule names with no free valence
         # and no stereo descriptor.  In SUBSTITUENT / ACYL contexts (e.g.
@@ -2230,7 +2471,12 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         if (tree.named_parent.candidate.type == "chain"
                 and tree.named_parent.candidate.length == 2
                 and tree.suffix_groups
-                and tree.output_form == OutputForm.STANDALONE
+                # The anion and an ester's acid stem are whole names too:
+                # "azaniumylacetate", "(2,4,5-trichlorophenoxy)acetate"
+                # (adjudicated, naming round 4).
+                and tree.output_form in (
+                    OutputForm.STANDALONE, OutputForm.ANION, OutputForm.ACID_STEM,
+                )
                 and tree.free_valence is None
                 and not tree.stereo_descriptors
                 and all(sg.base_form in _SINGLE_ATOM_C1_SUFFIXES
@@ -2241,6 +2487,7 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                 and all(loc and all(str(l) == "2" for l in loc)
                         for _name, loc in assembled_prefixes)):
             assembled_prefixes = [(name, ()) for name, _loc in assembled_prefixes]
+            _single_position_locants_omitted = True
 
         # P-14.3.4.4 (forced-locant omission by COMPLETE SATURATION on a
         # ≥3-carbon acid chain):  the saturation analogue of the 2-carbon acid
@@ -2413,6 +2660,19 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         #     oxoacid-ester names, matching the established PINs there; none of
         #     the simple-prefix PINs that this rule targets has an "-oxy" lead.
         # All non-leading prefixes remain bracketed so a boundary always exists.
+        # P-16.5.1.3.2 (pdf p. 131): with the locants omitted on a parent that
+        # has one substitutable position, "the second and further substituents
+        # are each enclosed" as for a mononuclear parent -- "bromo(nitro)
+        # (phenyl)acetic acid (PIN)". Without it the names ran together:
+        # "ethoxydiphenylacetate" (naming round 4).
+        if _single_position_locants_omitted and len(merged) > 1:
+            import dataclasses as _dc
+            merged = (
+                [merged[0] if not _is_compound_prefix(merged[0].name)
+                 else _dc.replace(merged[0], needs_brackets=True)]
+                + [_dc.replace(mp, needs_brackets=True) for mp in merged[1:]]
+            )
+
         if is_heteroatom_center and len(merged) > 1:
             import dataclasses as _dc
             lead = merged[0]
@@ -2644,14 +2904,23 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
         # an explicit locant that ranks the ring positions, so the suffix
         # locant-1 is load-bearing and must NOT be omitted.
         _ring_system = tree.named_parent.candidate.ring_system
+        # A prefix on the suffix's own nitrogen (N-, N'-) does not occupy a
+        # parent position, so it leaves the ring positions equivalent: the book
+        # prints "N-hydroxycyclohexanecarboxamide (PIN)" (p. 587) and
+        # "N-carbamoylbenzenesulfonamide (PIN)" (p. 661). Counting it as a ring
+        # substituent gave "N-methylcyclohexane-1-carboxamide" (round 4, A6).
+        _parent_prefixes = [
+            pe for pe in tree.prefixes
+            if not pe.locants or any(loc.is_numeric for loc in pe.locants)
+        ]
         _stem_has_baked_unsat_locant = bool(
-            _re_asm.search(r"-\d+(?:,\d+)*-(?:en|yn)$", parts[stem_idx])
+            _re_asm.search(r"-\d+(?:,\d+)*-(?:di|tri|tetra)?(?:en|yn)$", parts[stem_idx])
         )
         _is_mono_hom_monocycle = (
             _ring_system is not None
             and _ring_system.type == "monocyclic"
             and not _ring_system.heteroatoms
-            and not tree.prefixes
+            and not _parent_prefixes
             and not tree.unsaturation
             and not _stem_has_baked_unsat_locant
             and not tree.indicated_hydrogen
@@ -2663,8 +2932,9 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             is_monosubstituted_homogeneous_monocycle=_is_mono_hom_monocycle,
             single_suffix_symmetry_forced=(
                 tree.single_substituent_positions_all_equivalent
-                and not tree.prefixes
+                and not _parent_prefixes
             ),
+            has_chain_prefixes=_has_chain_locant_prefixes(tree.prefixes),
         )
         rendered_suf = render_suffixes(suffix_groups, tree.output_form)
         # IUPAC elision rule: when the rendered suffix (after multiplier application)
@@ -2731,7 +3001,7 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             # still cited (cyclohex-1-en-1-yl, not cyclohex-1-en-yl).
             _stem_text = parts[stem_idx]
             _stem_has_baked_unsat = bool(
-                _re_asm.search(r"-\d+(?:,\d+)*-(?:en|yn)$", _stem_text)
+                _re_asm.search(r"-\d+(?:,\d+)*-(?:di|tri|tetra)?(?:en|yn)$", _stem_text)
             )
             fv_rendered = render_free_valence_suffix(
                 fv, tree.numbering,
@@ -2739,6 +3009,7 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                 # The stem was contracted above, or it was not. Eliding the
                 # locant is only well formed in the first case.
                 stem_contracts=contracted_alkyl_form,
+                added_hydrogen=getattr(tree, "free_valence_added_hydrogen", ()),
             )
             if contracted_alkyl_form and fv_rendered.startswith("-"):
                 # Strip the leading hyphen: "prop" + "-yl" → "propyl",

@@ -655,6 +655,21 @@ class Perception:
                     element_label = "N=N"
                 else:
                     element_label = canonical_pair[0]
+                # P-63.3.1 (pdf p. 546): "Names formed by substituting the
+                # parent hydrides dioxidane, disulfane, diselane, and ditellane
+                # ... are not recommended"; R-SS-R' is "(methyldisulfanyl)
+                # methane (PIN)", R-OO-R' "(methylperoxy)ethane (PIN)". So a
+                # chalcogen pair carrying a carbon group is not a parent (the
+                # engine emitted "1,2-dimethyldisulfane"). Naming round 4.
+                # Se and Te follow the same rule in the book, but refusing
+                # them left "C[Se][SeH]" with no substituent name at all, so
+                # they keep the diselane parent until that prefix exists.
+                if element_label in ("O", "S") and any(
+                    nb.GetAtomicNum() == 6
+                    for end in (atom_info.idx, nb_idx)
+                    for nb in self._mol.GetAtomWithIdx(end).GetNeighbors()
+                ):
+                    continue
                 yield CandidateParent(
                     atom_indices=frozenset({atom_info.idx, nb_idx}),
                     type="heteroatom_chain",

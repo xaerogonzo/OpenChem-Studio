@@ -115,7 +115,6 @@ def test_round_trip(smi):
 # ---------------------------------------------------------------------------
 
 RETAINED_PRESERVED = [
-    ("c1ccc2c(c1)CC2", "benzocyclobutene"),
     ("C1=CC2=CC=CC2=C1", "pentalene"),
 ]
 
@@ -123,3 +122,13 @@ RETAINED_PRESERVED = [
 @pytest.mark.parametrize("smi,expected", RETAINED_PRESERVED)
 def test_retained_name_preserved(smi, expected):
     assert name_smiles(smi) == expected
+
+
+def test_a_four_membered_fusion_partner_takes_the_von_baeyer_pin():
+    """The converse: "benzocyclobutene" is NOT a PIN. P-52.2.4.1 (BlueBookV2
+    pdf p. 450) restricts fusion PINs to "at least two rings of five or more
+    members" and names cyclobutabenzene "bicyclo[4.2.0]octa-1,3,5,7-tetraene
+    (PIN)"; this is its 7,8-dihydro form. It was pinned here as retained until
+    round 4 gave the registry typed evidence, when its only support turned out
+    to be a parse."""
+    assert name_smiles("c1ccc2c(c1)CC2") == "bicyclo[4.2.0]octa-1,3,5-triene"

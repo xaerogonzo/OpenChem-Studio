@@ -59,6 +59,60 @@ def registry() -> dict:
     return json.loads(DATA.read_text(encoding="utf-8"))["retained_pins"]
 
 
+PIN_STATUSES = {"PIN", "RETAINED_NOT_PIN"}
+EVIDENCE_KINDS = {"NORMATIVE_RULE", "ABSENT_FROM_SOURCE", "STRUCTURE_PARSE_ONLY"}
+SCOPES = {"full", "ring_only", "limited", "none"}
+
+
+def validate(entries: dict) -> list[str]:
+    """Every impossible combination in the registry, as one message each.
+
+    FAILS CLOSED. The registry's fields are CLAIMS the generator acts on, so
+    an entry the audit cannot vouch for must not be able to assert anything:
+
+      * a PIN, or a name allowed to act as a PARENT, needs NORMATIVE evidence
+        -- "OPSIN can parse it" establishes that a name can be read, and that
+        is exactly the confusion `retained_pins` was built on;
+      * ABSENT_FROM_SOURCE can only ever support a demotion;
+      * a whole-molecule-only name cannot also be a substitutable parent.
+
+    An entry with no `pin_status` is UNKNOWN and asserts nothing, which is
+    allowed: 274 of them are the declared backlog, not an error.
+    """
+    errors: list[str] = []
+    for smiles, e in entries.items():
+        name = e.get("name", smiles)
+        status = e.get("pin_status")
+        kind = e.get("evidence_kind")
+        if status is not None and status not in PIN_STATUSES:
+            errors.append(f"{name}: unknown pin_status {status!r}")
+        if kind is not None and kind not in EVIDENCE_KINDS:
+            errors.append(f"{name}: unknown evidence_kind {kind!r}")
+        if (status == "PIN" or e.get("may_be_parent")) and kind != "NORMATIVE_RULE":
+            errors.append(f"{name}: a PIN or a parent needs NORMATIVE_RULE evidence, has {kind!r}")
+        if kind == "NORMATIVE_RULE" and not (e.get("rule_id") and e.get("evidence_source")):
+            errors.append(f"{name}: NORMATIVE_RULE without rule_id and evidence_source")
+        if kind == "ABSENT_FROM_SOURCE" and status != "RETAINED_NOT_PIN":
+            errors.append(f"{name}: ABSENT_FROM_SOURCE can only support a demotion")
+        if e.get("may_be_substituted") and not e.get("may_be_parent"):
+            errors.append(f"{name}: substitutable but not a parent")
+        scope = e.get("substitution_scope")
+        if scope is not None and scope not in SCOPES:
+            errors.append(f"{name}: unknown substitution_scope {scope!r}")
+        if e.get("whole_molecule_only") and (e.get("may_be_parent") or scope not in (None, "none")):
+            errors.append(f"{name}: whole-molecule-only yet usable as a substituted parent")
+    return errors
+
+
+def partitions(entries: dict) -> dict[str, Counter]:
+    """Machine-derived counts, each of which must sum to the total."""
+    return {
+        "pin_status": Counter(e.get("pin_status", "UNKNOWN") for e in entries.values()),
+        "evidence_kind": Counter(e.get("evidence_kind", "NONE") for e in entries.values()),
+        "may_be_parent": Counter(bool(e.get("may_be_parent")) for e in entries.values()),
+    }
+
+
 def _reachable() -> dict[str, list[str]]:
     """Retained-entry name -> corpus labels whose name it currently wins.
 
@@ -113,6 +167,10 @@ def main() -> None:
     args = parser.parse_args()
 
     entries = registry()
+    errors = validate(entries)
+    for field, counts in partitions(entries).items():
+        if sum(counts.values()) != len(entries):
+            errors.append(f"partition {field} sums to {sum(counts.values())}, not {len(entries)}")
     statuses = Counter(e.get("pin_status", "UNKNOWN") for e in entries.values())
     sources = Counter(e.get("source", "?") for e in entries.values())
     cited = sum(
@@ -140,6 +198,16 @@ def main() -> None:
         print(f"  audited ({len(audited)}):")
         for name, entry in sorted(audited.items()):
             print(f"    {entry['pin_status']:18s} {name}")
+
+    print()
+    for field, counts in partitions(entries).items():
+        print(f"  {field}: " + ", ".join(f"{k}={v}" for k, v in sorted(counts.items(), key=str)))
+    if errors:
+        print()
+        print(f"  {len(errors)} VALIDATION ERROR(S):")
+        for error in errors:
+            print(f"    {error}")
+        raise SystemExit(1)
 
     if not args.reachable:
         print()

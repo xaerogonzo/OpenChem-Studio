@@ -20,6 +20,7 @@ characterisation.
 |---|---|
 | `corpus.json` | 187 molecules, 23 categories, ground truth from PubChem. The REGRESSION corpus: deliberately enriched with families the engine has got wrong. Committed. |
 | `heldout.json` | 40 molecules selected WITHOUT consulting the engine -- a fixed PubChem CID stride and a filter settled in advance (`build_heldout.py`, frozen by hash in `heldout.meta.json`). The generalisation check the regression corpus cannot be. |
+| `heldout2.json` | A FRESH 40-row held-out set, drawn by the same filter before naming round 4 looked at anything, because round 4 spent `heldout.json` as fix targets (marked USED in its meta file). LOCKED: `tools/naming_stage_artifact.py` loads it only under `--final-evaluation`, reports it in aggregate only, and `tests/test_naming_heldout_lock.py` fails if another script names it. Its failures become the next round's candidates, never fixes in the round that measured them. |
 | `adjudication.toml` | Per-disagreement verdicts against the Blue Book, each with its rule, a quotation and the source hash. The TARGET set, since PubChem's string is a second engine's opinion. Guarded by `tests/test_naming_adjudication.py`. |
 | `stages/*.json` | One record per naming change (`tools/naming_stage_artifact.py`): every row's name and round-trip class plus the toolchain versions, so "which names moved and why" is answerable later. |
 | `build_corpus.py` | Regenerates `corpus.json`. `--append` adds only molecules not already present, so existing rows are never re-fetched. |
@@ -262,6 +263,19 @@ All checked live, not from documentation.
 3. Add a row to the results table above, and record any input requirements —
    the Kekulé discovery cost two wasted runs and would have caused a false
    rejection.
+
+## Naming round 4 (2026-09-18)
+
+**187/187 and 40/40 round trip throughout; PubChem verbatim 98 -> 101 on the
+regression corpus, 14 -> 16 on the used held-out set, and 9 -> 15 on the
+fresh one** (`heldout2.json`, scored once, in aggregate, at the end). On the
+rows with a settled Blue Book target the engine now gives the preferred name
+28/30 and 14/16 times; PubChem's string does 15/30 and 5/16. The per-stage
+table is in `src/openchem/vendor/BENCHMARK_HISTORY.md`.
+
+`tools/naming_stage_artifact.py` now prints that second agreement itself:
+each population's engine and PubChem names against `adjudication.toml`'s
+settled targets, over the rows that have one.
 
 ## Naming round 3 (2026-09-17)
 

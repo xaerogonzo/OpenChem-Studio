@@ -67,9 +67,9 @@ def test_phosphanyl_sulfanyl_bracketing(smiles, expected_fragment):
         ("CCOP(=S)(CC)Sc1ccccc1",
          "(ethoxy)(ethyl)(phenylsulfanyl)(thioxo)phosphane"),
         ("CCOP(=O)(OCC)SCSc1ccc(Cl)cc1",
-         "{[(4-chlorophenylsulfanyl)methyl]sulfanyl}di(ethoxy)(oxo)phosphane"),
+         "({[(4-chlorophenyl)sulfanyl]methyl}sulfanyl)di(ethoxy)(oxo)phosphane"),
         ("COP(=S)(OC)SCSc1ccc(Cl)cc1",
-         "{[(4-chlorophenylsulfanyl)methyl]sulfanyl}di(methoxy)(thioxo)phosphane"),
+         "({[(4-chlorophenyl)sulfanyl]methyl}sulfanyl)di(methoxy)(thioxo)phosphane"),
     ],
 )
 def test_the_three_original_inputs_now_take_phosphorus_as_parent(smiles, expected):
@@ -144,15 +144,16 @@ def test_full_phosphate_triesters_are_pins(smiles, expected):
 @pytest.mark.parametrize(
     "smiles,expected_fragment",
     [
-        # Ring O-ether: pyridin-4-yloxy (not [pyridin-4-yl]oxy)
+        # Ring O-ether: (pyridin-4-yl)oxy, never [pyridin-4-yl]oxy.
+        # P-16.5.1.3 (BlueBookV2 pdf p. 130): a simple prefix qualified by locants is enclosed -- '(pyridin-2-yl)oxy', '(propan-2-yl)oxy' (naming round 4)
         # Use a chain-PCG context (carboxylic acid / amine) so pyridine is
         # unambiguously a SUBSTITUENT.  (The previous oxane+pyridine context
         # made the parent-vs-substituent choice ambiguous: per P-44.1.2 the
         # nitrogen heterocycle outranks the oxygen heterocycle, so pyridine
         # is now correctly the parent in those — which defeated this test's
         # intent of probing the ring-yloxy substituent connector.)
-        ("OC(=O)CCOc1ccncc1", "pyridin-4-yloxy"),
-        ("NCCOc1ccncc1", "pyridin-4-yloxy"),
+        ("OC(=O)CCOc1ccncc1", "(pyridin-4-yl)oxy"),
+        ("NCCOc1ccncc1", "(pyridin-4-yl)oxy"),
     ],
 )
 def test_ring_yloxy_not_bracketed(smiles, expected_fragment):

@@ -73,7 +73,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "isobutan-1-ylium", "charge moved to a methyl carbon"),
     ("D-005d", "[CH2+]C1CCCCC1", "cyclohexylmethan-1-ylium",
      "methylcyclohexan-1-ylium", "charge moved onto the ring"),
-    ("D-005e", "[CH2-]C1CCCCC1", "cyclohexylmethan-1-ide",
+    # Expected moved in round 4: P-14.3.4 (a), naming round 4 (D-039).
+    ("D-005e", "[CH2-]C1CCCCC1", "cyclohexylmethanide",
      "methylcyclohexan-1-ide", "charge moved onto the ring"),
     ("D-005f", "[CH2+]CC(C)C", "3-methylbutan-1-ylium",
      "2-methylbutan-1-ylium", "branch locant numbered from the wrong end"),
@@ -93,7 +94,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # well (phenylmethan-1-yl, prop-2-en-1-yl, ethen-1-yl).
     ("D-002", "[CH2+]c1ccccc1", "phenylmethan-1-ylium",
      "methylbenzene", "charge dropped; toluene"),
-    ("D-011", "[CH2-]c1ccccc1", "phenylmethan-1-ide",
+    # Expected moved in round 4: P-14.3.4 (a), naming round 4 (D-039).
+    ("D-011", "[CH2-]c1ccccc1", "phenylmethanide",
      "methylbenzene", "charge dropped; toluene"),
     ("D-009", "[CH2+]C=C", "prop-2-en-1-ylium",
      "prop-1-ene", "charge dropped; propene"),
@@ -182,7 +184,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # skeleton unclaimed, and unclaimed means neutralized.
     ("D-018", "[CH2+]c1ccncc1", "(pyridin-4-yl)methan-1-ylium",
      "4-methylpyridine", "charge dropped"),
-    ("D-018b", "[CH2-]c1ccncc1", "(pyridin-4-yl)methan-1-ide",
+    # Expected moved in round 4: P-14.3.4 (a), naming round 4 (D-039).
+    ("D-018b", "[CH2-]c1ccncc1", "(pyridin-4-yl)methanide",
      "4-methylpyridine", "charge dropped"),
     ("D-018c", "[CH2+]c1ccco1", "(furan-2-yl)methan-1-ylium",
      "2-methylfuran", "charge dropped"),
@@ -219,7 +222,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # the fused azolide was ALREADY correct as "1H-indol-1-ide". Routing it
     # through the ring-anion classifier changed it to "indol-1-ide", which
     # round-trips just as well. One right name replaced another.
-    ("D-015e", "[n-]1ccc2ccccc21", "indol-1-ide",
+    # Expected moved in round 4: the anion keeps its parent's indicated H, as the book's '1H-inden-1-ido' (p. 787); naming round 4 (D-040).
+    ("D-015e", "[n-]1ccc2ccccc21", "1H-indol-1-ide",
      "1H-indol-1-ide", "was already correct; wording changed"),
 
     # --- D-019: diazoalkane ylide ---------------------------------------
@@ -238,7 +242,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # C1, giving the 1-diazonio-2-ide -- a different molecule.
     ("D-019c", "C[C-](C)[N+]#N", "propan-2-id-2-yldiazonium",
      "<raised: partial_claim>", "attachment locant must be cited"),
-    ("D-019d", "[CH-](c1ccccc1)[N+]#N", "phenylmethan-1-id-1-yldiazonium",
+    # Expected moved in round 4: P-14.3.4 (a), as the unsubstituted methanidyldiazonium; OPSIN round-trips it.
+    ("D-019d", "[CH-](c1ccccc1)[N+]#N", "phenylmethanidyldiazonium",
      "<raised: partial_claim>", "as above"),
 
     # --- D-020: N-substituted guanidinium -------------------------------
@@ -276,8 +281,11 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # string moved. Its citation in the registry was `P-31.1.3`, which is
     # about indicated hydrogen and says nothing about retaining the name:
     # the row and the bad citation came from the same neighbourhood.
+    # Expected moved in round 4: the ring C=O takes the suffix, and P-58.2
+    # places the hydrogens -- one indicated H, at N1 (P-58.2.3.1.3), the
+    # rest hydro (D-045).
     ("D-026v", "Cn1cnc2c1c(=O)n(C)c(=O)n2C",
-     "1,3,7-trimethyl-2,6-dioxo-1H-purine", "caffeine",
+     "1,3,7-trimethyl-3,7-dihydro-1H-purine-2,6-dione", "caffeine",
      "tautomer handling unchanged; the retained name was never a PIN"),
     # Purine deliberately normalises all four tautomers to 9H-purine, the
     # IUPAC preferred parent, with atom_locants built so N9 gets locant 9
@@ -294,11 +302,14 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # substitutive path already knew how: "1-(oxido)pyridin-1-ium-4-yl".
     # Standalone output is untouched, so "pyridine 1-oxide" and
     # "pyridine-4-carboxylate 1-oxide" keep the additive form correct for them.
+    # Expected moved in round 4 (A9): "oxido" is a simple prefix and takes no
+    # enclosing marks of its own (P-16.5.1); both forms round-trip.
     ("D-024", "[CH2+]c1cc[n+]([O-])cc1",
-     "[1-(oxido)pyridin-1-ium-4-yl]methan-1-ylium",
+     "(1-oxidopyridin-1-ium-4-yl)methan-1-ylium",
      "(pyridin-4-yl)methan-1-ylium 1-oxide", "unparsable; oxide wrapped a cation"),
+    # Expected moved in round 4: P-14.3.4 (a), naming round 4 (D-039).
     ("D-024b", "[CH2-]c1cc[n+]([O-])cc1",
-     "[1-(oxido)pyridin-1-ium-4-yl]methan-1-ide",
+     "(1-oxidopyridin-1-ium-4-yl)methanide",
      "(unclaimed)", "same shape, anion"),
 
     # --- non-regression: additive names that MUST keep the two-word form
@@ -312,10 +323,12 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # the book prints all three forms on one line saying so. The additive
     # `... oxide` construction this row exists to guard is still in use, now
     # on the systematic parent.
-    ("D-024z", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine oxide",
+    # Expected moved in round 4 (A10): the N locant is cited (D-065h).
+    ("D-024z", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine N-oxide",
      "trimethylamine oxide", "additive path unchanged; the PARENT is now the PIN"),
-    ("D-024w", "CS(C)=O", "dimethyl sulfoxide", "dimethyl sulfoxide",
-     "unchanged"),
+    # Expected moved in round 4 (A10): the substitutive PIN (D-065a).
+    ("D-024w", "CS(C)=O", "(methanesulfinyl)methane", "dimethyl sulfoxide",
+     "the class name is the book's second form, p. 912"),
 
     # --- D-025: more than one N-substituent on guanidinium --------------
     # Guanidine numbers the charged (imino) nitrogen 2 and the two amino
@@ -340,7 +353,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # --- non-regression: motifs the relaxed gate must NOT steal ---------
     ("D-013x", "[C+](C)=O", "acetylium", "acetylium", "unchanged"),
     ("D-013y", "CC(=[NH2+])N", "acetamidinium", "acetamidinium", "unchanged"),
-    ("D-013z", "CC[N+]#N", "ethane-1-diazonium", "ethane-1-diazonium",
+    # Expected moved in round 4: P-14.3.4 (b), naming round 4 (D-039).
+    ("D-013z", "CC[N+]#N", "ethanediazonium", "ethane-1-diazonium",
      "unchanged"),
     ("D-015x", "c1cc[nH]c1", "1H-pyrrole", "1H-pyrrole", "unchanged"),
     ("D-015y", "[O-][n+]1ccccc1", "pyridine 1-oxide", "pyridine 1-oxide",
@@ -361,8 +375,11 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "4,5-dihydro-1H-1,2-diazole", "HW stem instead of the retained PIN"),
     ("D-023b", "C1NNC=C1", "2,3-dihydro-1H-pyrazole",
      "2,3-dihydro-1H-1,2-diazole", "as above"),
+    # Expected moved in round 4: P-58.2.3.1.1 (pdf p. 481) -- as many
+    # indicated H as groups, so it sits on the group carbon, and the hydro
+    # locants "are those of the saturated positions" (D-045).
     ("D-023c", "CC1=NN(c2ccccc2)C(=O)C1",
-     "3-methyl-1-phenyl-4,5-dihydro-1H-pyrazol-5-one",
+     "3-methyl-1-phenyl-1,4-dihydro-5H-pyrazol-5-one",
      "3-methyl-1-phenyl-4,5-dihydro-1H-1,2-diazol-5-one",
      "edaravone core; stem propagates through the whole pyrazolone family"),
     ("D-023d", "C1C=NN(c2ccccc2)C1", "(4,5-dihydro-1H-pyrazol-1-yl)benzene",
@@ -393,9 +410,13 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # ranks (d) above the ene ending (e). Both names round-trip to this
     # structure on canonical SMILES and InChIKey (checked before editing a
     # pinned row), so this is a preferred-name change, not a wrong molecule.
-    ("D-022z", "O=S1(=O)CC=CC1CCN", "2-(sulfol-3-en-2-yl)ethanamine",
+    # Expected moved in round 4: a two-atom chain with a prefix keeps locant 1 (D-042).
+    ("D-022z", "O=S1(=O)CC=CC1CCN", "2-(sulfol-3-en-2-yl)ethan-1-amine",
      "2-(sulfol-3-en-5-yl)ethanamine", "free valence took the higher locant"),
-    ("D-022w", "O=c1[nH][nH]c(=O)[nH]1", "urazol", "urazol", "unchanged"),
+    # Expected moved in round 4: urazol is not in the book; the saturated
+    # Hantzsch-Widman name is the PIN, as imidazolidine-2,4-dione (p. 566).
+    ("D-022w", "O=c1[nH][nH]c(=O)[nH]1", "1,2,4-triazolidine-3,5-dione", "urazol",
+     "a retained name the book does not have"),
     # 4-pyrazolone changed as a consequence of the D-023 curated entries,
     # and the change is kept rather than worked around. Adding a curated
     # ring entry for the 2,3-dihydro-1H-pyrazole skeleton gives it priority
@@ -403,7 +424,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # systematic form -- which is exactly the treatment 5-pyrazolone was
     # given for being semi-systematic rather than a PIN. Both pyrazolone
     # stems now behave the same way. Verified to round-trip on both gates.
-    ("D-022v", "O=C1C=NNC1", "4,5-dihydro-1H-pyrazol-4-one",
+    # Expected moved in round 4: as D-023c (D-045).
+    ("D-022v", "O=C1C=NNC1", "1,5-dihydro-4H-pyrazol-4-one",
      "4-pyrazolone", "semi-systematic stem replaced by the systematic form"),
 
     # --- non-regression: delocalised aromatic anions the ring-carbanion
@@ -462,9 +484,11 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "4-[(1E)-prop-1-en-1-yl]benzoic acid", "unchanged"),
     ("D-027y", "OC(=O)c1ccc(cc1)[C@H](C)CC", "4-[(2R)-butan-2-yl]benzoic acid",
      "4-[(2R)-butan-2-yl]benzoic acid", "unchanged"),
+    # Expected moved in round 4 (A9): the amido prefix, P-66.1.1.4.3 method (1)
+    # (pdf p. 652); both descriptors unchanged, which is what this row guards.
     ("D-027z", "N[C@@H](C)C(=O)N[C@@H](Cc1ccccc1)C(=O)O",
-     "(2S)-2-[(2S)-2-aminopropanoylamino]-3-phenylpropanoic acid",
-     "(2S)-2-[(2S)-2-aminopropanoylamino]-3-phenylpropanoic acid", "unchanged"),
+     "(2S)-2-[(2S)-2-aminopropanamido]-3-phenylpropanoic acid",
+     "(2S)-2-[(2S)-2-aminopropanoylamino]-3-phenylpropanoic acid", "descriptors unchanged"),
 
     # --- D-028: prefixes cited out of alphanumerical order ---------------
     # SEVERITY B, not A: the right molecule, cited in the wrong order, so it
@@ -660,9 +684,12 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "(diphenylphosphan-yl)benzene", "same, phosphorus"),
     ("D-032c", "c1ccc(cc1)[I+]c1ccccc1", "diphenyliodanium",
      "(phenyliodaniumyl)benzene", "same, iodine cation"),
-    ("D-032d", "O=P(c1ccccc1)(c1ccccc1)c1ccccc1", "oxotri(phenyl)phosphane",
+    # Round 4 (A6): the book names P=O substitutively as a heterone, "triphenyl-
+    # λ5-phosphanone (PIN) ... (not oxotriphenyl-λ5-phosphane)" (p. 769),
+    # so the parent this row fixed stays and the -one suffix replaces "oxo".
+    ("D-032d", "O=P(c1ccccc1)(c1ccccc1)c1ccccc1", "triphenyl-lambda5-phosphanone",
      "[oxodi(phenyl)phosphan-yl]benzene",
-     "right parent now; the tri(phenyl) enclosing marks are a separate defect"),
+     "right parent now, and the heterone the book prefers (round 4, A6)"),
     # Generalisation past the corpus rows, both verified on canonical SMILES
     # and full InChIKey.
     ("D-032e", "CC[Si](CC)(CC)c1ccccc1", "triethyl(phenyl)silane",
@@ -684,7 +711,9 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # A mononuclear parent also has nothing to contract -- the engine stores
     # `alkyl_stem == stem` for these, measured as 'silan' and 'azanium' -- so
     # the chain test the contraction used could never match.
-    ("D-033a", "C[N+](C)(C)CC(=O)[O-]", "2-(trimethylazaniumyl)acetate",
+    # Expected moved in round 4: an acetate takes no C2 locant, as the book's
+    # "(N,N-dimethylmethanaminiumyl)acetate (PIN)" (pdf p. 837).
+    ("D-033a", "C[N+](C)(C)CC(=O)[O-]", "(trimethylazaniumyl)acetate",
      "2-(trimethylazanium-1-yl)acetate",
      "mononuclear N cited a locant the rule forbids; = PubChem now"),
     # Method (1) is restricted BY NAME to four elements: "recommended
@@ -694,11 +723,13 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # the universal TMS prefix -- where the engine had `silan-1-yl`.
     ("D-033b", "NC[Si](C)(C)C", "(trimethylsilyl)methanamine",
      "(trimethylsilan-1-yl)methanamine", "method (1) contraction for Si"),
-    ("D-033c", "OCC[Si](C)(C)C", "2-(trimethylsilyl)ethanol",
+    # Expected moved in round 4: as D-042.
+    ("D-033c", "OCC[Si](C)(C)C", "2-(trimethylsilyl)ethan-1-ol",
      "2-(trimethylsilan-1-yl)ethanol", "same, on a longer chain"),
     ("D-033d", "OC(=O)C[Si](C)(C)C", "(trimethylsilyl)acetic acid",
      "(trimethylsilan-1-yl)acetic acid", "same, retained-name parent"),
-    ("D-033e", "Nc1ccc(cc1)[Si](C)(C)C", "4-(trimethylsilyl)benzen-1-amine",
+    # Expected moved in round 4: aniline takes full substitution (D-043).
+    ("D-033e", "Nc1ccc(cc1)[Si](C)(C)C", "4-(trimethylsilyl)aniline",
      "4-(trimethylsilan-1-yl)benzen-1-amine", "same, on a ring parent"),
     # Phosphorus is deliberately absent from method (1)'s element list, so
     # `phosphanyl` keeps its "an": the mononuclear exception drops the
@@ -759,7 +790,7 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "P-61.2.1 verbatim: isobutane is `no longer recommended`"),
     ("D-036d", "CCN(CC)CC", "N,N-diethylethanamine", "triethylamine",
      "not retained anywhere; amines are substitutive (P-66.4.1)"),
-    ("D-036e", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine oxide",
+    ("D-036e", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine N-oxide",
      "trimethylamine oxide",
      "the book gives all three forms and labels trimethylamine traditional"),
     ("D-036f", "CC1(C)C2CCC1(C)C(=O)C2",
@@ -785,8 +816,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # principal characteristic group should take the `-dione` suffix. That is
     # PCG assignment, the same layer as warfarin. When it is fixed this row
     # FAILS, which is the intended way to find it.
+    # Expected moved in round 4, the way this row asked to be found: the
+    # dione suffix, with P-58.2's hydrogens (D-045).
     ("D-036o", "Cn1cnc2c1c(=O)n(C)c(=O)n2C",
-     "1,3,7-trimethyl-2,6-dioxo-1H-purine", "caffeine",
+     "1,3,7-trimethyl-3,7-dihydro-1H-purine-2,6-dione", "caffeine",
      "systematic now, but oxo-prefix instead of the dione suffix"),
 
     # --- D-037: two curated ring names that were not the preferred ones ---
@@ -820,6 +853,844 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-037e", "c1cocn1", "1,3-oxazole", "1,3-oxazole", "unchanged"),
     ("D-037f", "c1ccc2sccc2c1", "1-benzothiophene", "1-benzothiophene",
      "unchanged: already carried its locant"),
+    # --- D-038: the alphanumerical criterion keyed every carbon prefix "z" ---
+    # P-14.4 (g): "lowest locants for the substituent cited first as a prefix
+    # in the name"; P-14.5.1 prints 1-ethyl-4-methylcyclohexane (PIN). The
+    # tie-break was a x0.0001 term of the ranking float, keyed on the FG type,
+    # and every carbon substituent fell back to "z" -- so ethyl, methyl and
+    # methoxy tied and plan order decided. Fixed by applying P-14.4 (g) on the
+    # EXECUTED names of plans that tie on every other tier (stage 5b).
+    ("D-038a", "CCc1ccc(C)cc1", "1-ethyl-4-methylbenzene", "4-ethyl-1-methylbenzene",
+     "P-14.4 (g) on an arene"),
+    ("D-038b", "CC1CCCC(CC)C1", "1-ethyl-3-methylcyclohexane", "3-ethyl-1-methylcyclohexane",
+     "the same on a saturated ring; P-14.5.1's own example is its 1,4 isomer"),
+    ("D-038c", "CCC1CCC(C)CC1", "1-ethyl-4-methylcyclohexane", "4-ethyl-1-methylcyclohexane",
+     "P-14.5.1's own printed example, which the engine had wrong"),
+    ("D-038d", "COc1ccc(C)cc1", "1-methoxy-4-methylbenzene", "4-methoxy-1-methylbenzene",
+     "anisole takes no substitution in a PIN, so this is numbering only"),
+    ("D-038e", "CC(C)c1ccc(CC)cc1", "1-ethyl-4-(propan-2-yl)benzene",
+     "1-ethyl-4-(propan-2-yl)benzene",
+     "non-regression: a compound prefix against a simple one, right before and after"),
+    # Non-regression: halogens were keyed by their FG type and were already
+    # right; the chain case never went through the ring tie-break.
+    ("D-038f", "Clc1ccc(Br)cc1", "1-bromo-4-chlorobenzene", "1-bromo-4-chlorobenzene",
+     "unchanged"),
+    ("D-038g", "CCC(C)CC(CC)CC", "3-ethyl-5-methylheptane", "3-ethyl-5-methylheptane",
+     "unchanged; P-15.1.7.1.5's own example"),
+    ("D-038h", "Fc1cc(Cl)cc(Br)c1", "1-bromo-3-chloro-5-fluorobenzene",
+     "1-bromo-3-chloro-5-fluorobenzene", "unchanged: three prefixes, symmetric set"),
+    # --- D-039: locant 1 cited where P-14.3.4 omits it -----------------------
+    # "'1' is omitted: (a) in substituted mononuclear parent hydrides; ...
+    # (b) in monosubstituted homogeneous chains consisting of only two
+    # identical atoms; ... (c) in monosubstituted homogeneous monocyclic
+    # rings". The charged-species renderers never applied it: the diazonium
+    # one hard-coded locant 1, the -ide one kept the uncontracted form.
+    ("D-039a", "N#[N+]c1ccccc1", "benzenediazonium", "benzene-1-diazonium", "(c)"),
+    ("D-039b", "C[N+]#N", "methanediazonium", "methane-1-diazonium",
+     "(a); the book's own example, 'methanediazonium (PIN)'"),
+    ("D-039c", "CC[N+]#N", "ethanediazonium", "ethane-1-diazonium", "(b)"),
+    ("D-039d", "N#[N+]C1CCCCC1", "cyclohexanediazonium", "cyclohexane-1-diazonium", "(c)"),
+    ("D-039e", "[CH2-]c1ccccc1", "phenylmethanide", "phenylmethan-1-ide",
+     "(a); 'methanide (PIN)'"),
+    ("D-039f", "[CH-](c1ccccc1)c1ccccc1", "diphenylmethanide", "diphenylmethan-1-ide",
+     "(a); the book prints diphenylmethanediide for the dianion"),
+    # Converses: where the locant is required, it stays.
+    ("D-039g", "CCC[N+]#N", "propane-1-diazonium", "propane-1-diazonium",
+     "converse: a three-atom chain keeps its locant"),
+    ("D-039h", "[CH2-]CC", "propan-1-ide", "propan-1-ide", "converse"),
+    # NOT adjudicated: the cation. Pinned as emitted so any change to it is a
+    # decision, not a side effect of the anion fix (which is scoped to -ide).
+    ("D-039i", "[CH2+]c1ccccc1", "phenylmethan-1-ylium", "phenylmethan-1-ylium",
+     "unadjudicated; pinned deliberately"),
+    # --- D-040: an N-H on a symmetry axis, and an indicated H dropped ------
+    # One family, one fix each, measured on the whole matrix. An [nH] in the
+    # curated ring's query pins the TAUTOMER, not the orientation, and the
+    # match was uniquified -- which collapses mirror orientations over the
+    # same atom set, so 9H-carbazole kept one numbering and read 1 as 8.
+    # N-methylcarbazole had no [nH] in its query and was always right. The
+    # substituent branch dropped the ring's "1H-" (indol-2-yl), where the
+    # tautomer branch beside it already carried it.
+    ("D-040a", "Oc1cccc2c1[nH]c1ccccc12", "9H-carbazol-1-ol", "9H-carbazol-8-ol", ""),
+    ("D-040b", "Oc1ccc2c(c1)[nH]c1ccccc12", "9H-carbazol-2-ol", "9H-carbazol-7-ol", ""),
+    ("D-040c", "Oc1ccc2[nH]c3ccccc3c2c1", "9H-carbazol-3-ol", "9H-carbazol-6-ol", ""),
+    ("D-040d", "Oc1cccc2[nH]c3ccccc3c12", "9H-carbazol-4-ol", "9H-carbazol-5-ol", ""),
+    ("D-040e", "CC(C)=CCCC(C)=CCc1c(O)c(C)cc2c1[nH]c1ccccc12",
+     "1-(3,7-dimethylocta-2,6-dien-1-yl)-3-methyl-9H-carbazol-2-ol",
+     "8-(3,7-dimethylocta-2,6-dien-1-yl)-6-methyl-9H-carbazol-7-ol",
+     "held-out cid4000; now its adjudicated target exactly"),
+    ("D-040f", "OC(=O)c1ccc(cc1)c1cc2ccccc2[nH]1", "4-(1H-indol-2-yl)benzoic acid",
+     "4-(indol-2-yl)benzoic acid", "naming round 2's open item"),
+    ("D-040g", "OC(=O)c1ccc(cc1)-c1n[nH]c2ccccc12", "4-(1H-indazol-3-yl)benzoic acid",
+     "4-(indazol-3-yl)benzoic acid", "generalisation, found by the matrix"),
+    # Non-regression: N-substituted forms, a substituent on the other ring,
+    # and the tautomer-sensitive rings that the un-uniquify must not un-pin.
+    ("D-040h", "Oc1cccc2c1n(C)c1ccccc12", "9-methyl-9H-carbazol-1-ol",
+     "9-methyl-9H-carbazol-1-ol", "unchanged"),
+    ("D-040i", "OC(=O)c1ccc(cc1)c1cc2ccccc2n1C", "4-(1-methyl-1H-indol-2-yl)benzoic acid",
+     "4-(1-methyl-1H-indol-2-yl)benzoic acid", "unchanged"),
+    ("D-040j", "OC(=O)c1ccc(cc1)-c1ccc2[nH]c3ccccc3c2c1", "4-(9H-carbazol-3-yl)benzoic acid",
+     "4-(9H-carbazol-3-yl)benzoic acid", "unchanged"),
+    ("D-040k", "Clc1ccc2[nH]cnc2c1", "5-chloro-1H-benzimidazole",
+     "5-chloro-1H-benzimidazole", "unchanged: the tautomer stays pinned"),
+    ("D-040l", "Clc1ccc2nc[nH]c2c1", "6-chloro-1H-benzimidazole",
+     "6-chloro-1H-benzimidazole", "unchanged: and its other tautomer stays distinct"),
+    ("D-040m", "OC(=O)c1ccc(cc1)-c1c[nH]cn1", "4-(1H-imidazol-4-yl)benzoic acid",
+     "4-(1H-imidazol-4-yl)benzoic acid", "unchanged"),
+    # --- D-041: fusion names versus von Baeyer, by P-52.2.4.1 ---------------
+    # "Fusion nomenclature gives preferred IUPAC names only to compounds
+    # having at least two rings of at least five or more members ... When
+    # fusion names are not allowed, unsaturated von Baeyer ring system names
+    # are preferred". The naming-method ranks were a x0.01 nudge in the
+    # ranking float; read as a lexicographic tier they put von Baeyer (1.2)
+    # ahead of fused `systematic` (0.9) and unlisted `benzo_fused_bridged`
+    # (0.5). Found by the vendored suite, not the benchmark.
+    ("D-041a", "c1ccc2cc3c(cc2c1)SCS3", "[1,3]dithiolo[4,5-b]naphthalene",
+     "4,6-dithiatricyclo[7.4.0.0^{3,7}]trideca-1(13),2,7,9,11-pentaene",
+     "fusion allowed, so the fusion name (the pre-5b answer, restored)"),
+    ("D-041b", "OC1=CC=C2C(=C1)C1CCCCCC2C1",
+     "5,6,7,8,9,10,11-heptahydro-5,11-methanobenzocyclononen-2-ol",
+     "tricyclo[6.5.1.0^{2,7}]tetradeca-2,4,6-trien-4-ol",
+     "a bridged fused name is a fusion name (P-25.4)"),
+    ("D-041c", "C1=CC=C2CC2=C1", "bicyclo[4.1.0]hepta-1,3,5-triene",
+     "bicyclo[4.1.0]hepta-1,3,5-triene",
+     "the converse, and the book's own PIN: a three-membered partner forbids fusion"),
+    ("D-041d", "CC12CCC3C(CCC4CCCCC34C)C1CCC2(C)O",
+     "10,13,17-trimethylhexadecahydro-1H-cyclopenta[a]phenanthren-17-ol",
+     "1,5,6-trimethyltetracyclo[11.4.0.0^{2,10}.0^{5,9}]heptadecan-6-ol",
+     "the steroid class (cid19000's shape); the exact hydro form is stage A7's"),
+    # --- D-042: locant 1 omitted on a two-atom chain that has a prefix ------
+    # P-14.3.4 (b) omits it only for a MONOSUBSTITUTED two-atom chain, and
+    # p. 70 says it outright: "the omission of the locant '1' in
+    # 2-chloroethanol, while permissible in general usage, is not allowed in
+    # preferred IUPAC names, thus the name 2-chloroethan-1-ol is the PIN".
+    ("D-042a", "ClCCO", "2-chloroethan-1-ol", "2-chloroethanol", "p. 70, verbatim"),
+    ("D-042b", "NCCO", "2-aminoethan-1-ol", "2-aminoethanol",
+     "p. 553: '2-aminoethan-1-ol (PIN) (not ethanolamine)'"),
+    ("D-042c", "NCCc1ccccc1", "2-phenylethan-1-amine", "2-phenylethanamine",
+     "as p. 518's '2-chloroethan-1-amine (PIN)'"),
+    ("D-042d", "OCCc1ccccc1", "2-phenylethan-1-ol", "2-phenylethanol", ""),
+    ("D-042e", "NCC(O)c1ccccc1", "2-amino-1-phenylethan-1-ol", "2-amino-1-phenylethanol",
+     "held-out cid1000; PubChem drops the locant too"),
+    # Converses: (a) a mononuclear parent omits it whatever the substitution;
+    # (b) a monosubstituted chain omits it; N-substituents are not on the chain.
+    ("D-042f", "CCO", "ethanol", "ethanol", "converse: monosubstituted"),
+    ("D-042g", "ClCO", "chloromethanol", "chloromethanol", "converse: mononuclear"),
+    ("D-042h", "CCN(CC)CC", "N,N-diethylethanamine", "N,N-diethylethanamine",
+     "converse: N-substituents are on the nitrogen, the chain is monosubstituted"),
+    # --- D-043: retained PINs the book lets you substitute -----------------
+    # phenol (P-34.1.1.3, "substitution allowed"), aniline (P-34.1.1.5, "full
+    # substitution"; p. 516 prints N-methylaniline and 4-chloroaniline),
+    # benzaldehyde and acetaldehyde (P-66.6.1, "substitution allowed"). The
+    # assembler already did this for benzoic acid; these were never added.
+    ("D-043a", "Cc1ccc(O)cc1", "4-methylphenol", "4-methylbenzen-1-ol", ""),
+    ("D-043b", "Oc1ccc(Cl)cc1Br", "2-bromo-4-chlorophenol", "2-bromo-4-chlorobenzen-1-ol", ""),
+    ("D-043c", "Cc1ccc(N)cc1", "4-methylaniline", "4-methylbenzen-1-amine", ""),
+    ("D-043d", "CNc1ccccc1", "N-methylaniline", "N-methylbenzen-1-amine", "p. 516, verbatim"),
+    ("D-043e", "COc1ccccc1N", "2-methoxyaniline", "2-methoxybenzen-1-amine", "held-out cid7000"),
+    ("D-043f", "Cc1ccc(C=O)cc1", "4-methylbenzaldehyde", "4-methylbenzene-1-carbaldehyde", ""),
+    ("D-043g", "COc1cc(C=O)c(Cl)cc1O", "2-chloro-4-hydroxy-5-methoxybenzaldehyde",
+     "2-chloro-4-hydroxy-5-methoxybenzene-1-carbaldehyde", "held-out cid29000"),
+    ("D-043h", "O=CCc1ccccc1", "phenylacetaldehyde", "2-phenylethanal",
+     "as p. 695's 'phenoxyacetaldehyde (PIN)'; the vendored guard that pinned "
+     "2-phenylethanal claimed the book had no such PIN"),
+    ("D-043i", "OCC=O", "hydroxyacetaldehyde", "2-hydroxyethanal", ""),
+    # Negatives: anisole takes NO substitution in a PIN (P-34.1.1.4), toluene
+    # is "not freely substitutable" (P-22.1.3), and two suffix groups keep
+    # the systematic diamine.
+    ("D-043j", "COc1ccc(C)cc1", "1-methoxy-4-methylbenzene", "1-methoxy-4-methylbenzene",
+     "negative: anisole"),
+    ("D-043k", "Cc1ccc(Cl)cc1", "1-chloro-4-methylbenzene", "1-chloro-4-methylbenzene",
+     "negative: toluene"),
+    ("D-043l", "Nc1ccccc1N", "benzene-1,2-diamine", "benzene-1,2-diamine",
+     "negative: two suffix groups"),
+    # --- D-044: registry names the book does not prefer, and ones it does --
+    # Each demotion's systematic replacement was named and verified BEFORE
+    # the registry changed; uracil and theophylline wait for stage A5, since
+    # their systematic path still writes ring ketones as oxo prefixes.
+    ("D-044a", "Oc1ccccc1O", "benzene-1,2-diol", "pyrocatechol", "p. 533"),
+    ("D-044b", "Oc1cccc(O)c1", "benzene-1,3-diol", "resorcinol", "p. 533"),
+    ("D-044c", "Oc1ccc(O)cc1", "benzene-1,4-diol", "hydroquinone", "p. 533"),
+    ("D-044d", "Cc1ccc(C(C)C)cc1", "1-methyl-4-(propan-2-yl)benzene", "p-cymene",
+     "P-22.1.3: 'The names cumene and cymene are not retained.'"),
+    ("D-044e", "O=C1CCC(=O)N1", "pyrrolidine-2,5-dione", "succinimide",
+     "P-66.2.1 -- KNOWN_LIMITATIONS called succinimide a genuine PIN"),
+    ("D-044f", "O=C1CC(=O)NC(=O)N1", "1,3-diazinane-2,4,6-trione", "barbituric acid", "p. 566"),
+    ("D-044g", "c1ccc2c(c1)CC2", "bicyclo[4.2.0]octa-1,3,5-triene", "benzocyclobutene",
+     "P-52.2.4.1: a four-membered partner forbids a fusion PIN"),
+    ("D-044h", "NCCc1c[nH]c2ccccc12", "2-(1H-indol-3-yl)ethan-1-amine", "tryptamine",
+     "absent from the book; and D-042's locant, and D-040's 1H"),
+    ("D-044i", "Cc1ccc(C)cc1", "1,4-xylene", "1,4-dimethylbenzene",
+     "P-22.1.3: 'xylene (1,2-, 1,3-, and 1,4-isomers, PINs)'; the entry was ADDED"),
+    ("D-044j", "Cc1ccccc1C", "1,2-xylene", "1,2-dimethylbenzene", "as D-044i"),
+    ("D-044k", "Cc1cccc(C)c1", "1,3-xylene", "1,3-dimethylbenzene", "as D-044i"),
+    # --- D-045: where a ring C=O suffix puts the ring's hydrogens (P-58.2) --
+    # Each parent-naming route guessed at indicated / added / hydro on its
+    # own; one procedure (ring_naming/indicated_hydrogen_p58) now decides,
+    # and added hydrogen is a numbering criterion (P-31.1.4.2.4 (d)).
+    ("D-045a", "Cn1ccccc1=O", "1-methylpyridin-2(1H)-one", "1-methylpyridin-2-one",
+     "P-58.2.2 added hydrogen, lost when N1 carries a substituent"),
+    ("D-045b", "O=C1C=CC(=O)N1", "1H-pyrrole-2,5-dione",
+     "2,5-dihydro-1H-pyrrole-2,5-dione", "P-66.2.1 (pdf p. 666)"),
+    ("D-045c", "O=C1Nc2ccccc2C1=O", "1H-indole-2,3-dione",
+     "2,3-dihydro-1H-indole-2,3-dione", "P-58.2.3.1.3 (1): the one indicated H at N1"),
+    ("D-045d", "O=C1Cc2ccccc2N1", "1,3-dihydro-2H-indol-2-one",
+     "2,3-dihydro-1H-indol-2-one", "P-58.2.3.1.1: the indicated H on the group carbon"),
+    ("D-045e", "O=C1CNc2ccccc12", "1,2-dihydro-3H-indol-3-one",
+     "1,3-dihydro-2H-indol-3(2H)-one",
+     "p. 566, '(not 1H-indol-3(2H)-one; see P-58.2)'; the former did not round-trip"),
+    ("D-045f", "O=C1CC(=O)N=CN1", "pyrimidine-4,6(1H,5H)-dione",
+     "3,5-dihydropyrimidine-4,6-dione",
+     "p. 478; and the numbering direction is set by the added-H tier"),
+    ("D-045g", "O=C1CCCc2ccccc21", "3,4-dihydronaphthalen-1(2H)-one",
+     "3,4-dihydronaphthalen-1(2H)-one", "converse: added hydrogen still required"),
+    ("D-045h", "O=C1CCCCN1", "piperidin-2-one", "piperidin-2-one",
+     "negative: no ring double bond left, so the saturated name (p. 556)"),
+    ("D-045i", "CCC1(c2ccccc2)C(=O)NC(=O)NC1=O",
+     "5-ethyl-5-phenyl-1,3-diazinane-2,4,6-trione",
+     "5-ethyl-5-phenyl-1,3-diazinane-2,4,6-trione",
+     "negative: '1,3-diazinane-2,4,6-trione (PIN)' over the (1H,3H,5H) form, p. 566"),
+    ("D-045j", "O=C1C=CC(=O)C=C1", "cyclohexa-2,5-diene-1,4-dione",
+     "cyclohexa-2,5-diene-1,4-dione",
+     "negative: not a mancude parent name, so nothing to rewrite (p. 558)"),
+    # --- D-046: the chromene family's PINs are benzopyrans -----------------
+    # "Systematic 'benzo' names, for example 2H-1-benzopyran, are preferred
+    # IUPAC names for chromene, isochromene..." (pdf p. 45).
+    ("D-046a", "O=c1ccc2ccccc2o1", "2H-1-benzopyran-2-one", "coumarin", "p. 45"),
+    ("D-046b", "O=c1ccoc2ccccc12", "4H-1-benzopyran-4-one", "chromone", "p. 45"),
+    ("D-046c", "O=c1occc2ccccc12", "1H-2-benzopyran-1-one", "isocoumarin", "p. 45"),
+    ("D-046d", "C1=Cc2ccccc2OC1", "2H-1-benzopyran", "2H-chromene", "p. 45"),
+    ("D-046e", "C1=COc2ccccc2C1", "4H-1-benzopyran", "4H-chromene", "p. 45"),
+    ("D-046f", "CC(=O)CC(c1ccccc1)c1c(O)c2ccccc2oc1=O",
+     "4-hydroxy-3-(3-oxo-1-phenylbutyl)-2H-1-benzopyran-2-one",
+     "4-hydroxy-3-(3-oxo-1-phenylbutyl)coumarin", "warfarin, substituted"),
+    ("D-046g", "O=c1cc(-c2ccccc2)oc2ccccc12", "2-phenyl-4H-1-benzopyran-4-one",
+     "2-phenylchromone", "flavone, substituted"),
+    ("D-046h", "c1ccc2c(c1)CCCO2", "3,4-dihydro-2H-1-benzopyran",
+     "3,4-dihydro-2H-1-benzopyran", "control: chroman's alias, already in place"),
+    # --- D-047: a curated "-N-yl" form left its placeholder in the name ----
+    # Every such substituent reached "...-N-2-yl", which OPSIN rejects.
+    ("D-047a", "OC(=O)c1ccc(cc1)-c1cn2ccccc2n1",
+     "4-(imidazo[1,2-a]pyridin-2-yl)benzoic acid",
+     "4-(imidazo[1,2-a]pyridin-N-2-yl)benzoic acid", "a plain substituent_form"),
+    ("D-047b", "OC(=O)c1ccc(cc1)-c1ccc2OCCCc2c1",
+     "4-(3,4-dihydro-2H-1-benzopyran-6-yl)benzoic acid",
+     "4-(3,4-dihydro-2H-1-benzopyran-N-6-yl)benzoic acid", "a pin_substituent_form"),
+    ("D-047c", "OC(=O)c1ccc(cc1)C1CCc2ccccc21",
+     "4-(2,3-dihydro-1H-inden-1-yl)benzoic acid",
+     "4-(2,3-dihydro-1H-inden-N-1-yl)benzoic acid", "as D-047b"),
+    ("D-047d", "OC(=O)c1ccc(cc1)C1CCCc2ccccc21",
+     "4-(1,2,3,4-tetrahydronaphthalen-1-yl)benzoic acid",
+     "4-(1,2,3,4-tetrahydronaphthalen-N-1-yl)benzoic acid", "as D-047b"),
+    ("D-047e", "OC(=O)c1ccc(cc1)-c1cc2ccccc2oc1=O",
+     "4-(2-oxo-2H-1-benzopyran-3-yl)benzoic acid",
+     "4-(coumarin-3-yl)benzoic acid", "D-046's alias, as a substituent"),
+    ("D-047f", "OC(=O)c1ccc(cc1)-c1ccc2ccccc2c1", "4-(naphthalen-2-yl)benzoic acid",
+     "4-(naphthalen-2-yl)benzoic acid", "control: a form with no placeholder"),
+    # --- D-048: base names the book never uses (searched: 0 hits each) -----
+    # Held back from D-044 until their systematic names were right (D-045).
+    ("D-048a", "O=c1cc[nH]c(=O)[nH]1", "pyrimidine-2,4(1H,3H)-dione", "uracil", "absent"),
+    ("D-048b", "Cc1c[nH]c(=O)[nH]c1=O", "5-methylpyrimidine-2,4(1H,3H)-dione",
+     "thymine", "absent"),
+    ("D-048c", "Nc1cc[nH]c(=O)n1", "4-aminopyrimidin-2(1H)-one", "cytosine", "absent"),
+    ("D-048d", "Cn1c(=O)c2[nH]cnc2n(C)c1=O",
+     "1,3-dimethyl-3,7-dihydro-1H-purine-2,6-dione", "theophylline",
+     "absent; its P-31.1.3 citation is about indicated hydrogen"),
+    ("D-048e", "Cn1cnc2c1c(=O)[nH]c(=O)n2C",
+     "3,7-dimethyl-3,7-dihydro-1H-purine-2,6-dione", "theobromine", "as D-048d"),
+    # --- D-049: precomposed ring-ketone parents with hand-written hydrogens -
+    # The ring table stores some parents WITH their C=O ("...-2-one"), which
+    # the engine emits as written. 15 of 42 disagreed with P-58.2; three
+    # described a different tautomer from their own key. Guarded wholesale by
+    # test_every_precomposed_ring_ketone_name_places_its_hydrogens_by_p58.
+    ("D-049a", "CN1C(=O)CN=C(c2ccccc2)c2cc(Cl)ccc21",
+     "7-chloro-1-methyl-5-phenyl-1,3-dihydro-2H-1,4-benzodiazepin-2-one",
+     "7-chloro-1-methyl-5-phenyl-2,3-dihydro-1H-1,4-benzodiazepin-2-one",
+     "diazepam; P-58.2.3.1.1, as D-045d"),
+    ("D-049b", "OC1N=C(c2ccccc2Cl)c2cc(Cl)ccc2NC1=O",
+     "7-chloro-5-(2-chlorophenyl)-3-hydroxy-1,3-dihydro-2H-1,4-benzodiazepin-2-one",
+     "7-chloro-5-(2-chlorophenyl)-3-hydroxy-2,3-dihydro-1H-1,4-benzodiazepin-2-one",
+     "lorazepam, the same entry"),
+    ("D-049c", "O=C1CCCc2ccccc2N1", "1,3,4,5-tetrahydro-2H-1-benzazepin-2-one",
+     "2,3,4,5-tetrahydro-1H-1-benzazepin-2-one", "as D-049a"),
+    ("D-049d", "O=c1nc[nH]n2cncc12", "imidazo[5,1-f][1,2,4]triazin-4(1H)-one",
+     "imidazo[5,1-f][1,2,4]triazin-4(3H)-one",
+     "the recorded name was the OTHER tautomer's; its own key has N1-H"),
+    ("D-049e", "O=c1ccnc2ccccn12", "4H-pyrido[1,2-a]pyrimidin-4-one",
+     "4H-pyrido[1,2-a]pyrimidin-4-one",
+     "control: a bridgehead N takes no hydrogen, and the entry was right"),
+    ("D-045k", "O=C1OCc2cnccc21", "furo[3,4-c]pyridin-1(3H)-one",
+     "1,3-dihydrofuro[3,4-c]pyridin-1-one",
+     "a parent with no indicated H takes ADDED hydrogen (P-58.2.2, p. 478)"),
+    ("D-045l", "O=C1CC=CO1", "furan-2(3H)-one", "2,3-dihydrofuran-2-one", "as D-045k"),
+    # --- D-050: isoindoline is not a PIN, so phthalimide was mis-parented ---
+    # Table 3.1 (pdf p. 334): "2H-isoindoline / 2,3-dihydro-1H-isoindole (PIN)".
+    ("D-050a", "O=C1N(c3ccccc3)C(=O)c2ccccc12", "2-phenyl-1H-isoindole-1,3(2H)-dione",
+     "2-phenylisoindoline-1,3-dione", "the book's own example, p. 666"),
+    ("D-050b", "O=C1NC(=O)c2ccccc12", "1H-isoindole-1,3(2H)-dione",
+     "isoindoline-1,3-dione", "phthalimide"),
+    ("D-050c", "c1ccc2c(c1)CNC2", "2,3-dihydro-1H-isoindole", "isoindoline", "Table 3.1"),
+    # The book contradicts itself here. Its retained-prefix list (p. 344)
+    # prints "2,3-dihydro-1H-isoindol-2-yl (preferred prefix) (also 1-, 4- and
+    # 5-isomers)", one mechanical line for every isomer; P-58.2.3.1.1 and the
+    # worked analysis on p. 499 give the free valence the indicated hydrogen
+    # -- "Parent hydride with free valence: 2H-isoindol-2-yl" -- as in "1,3,4,5-
+    # tetrahydro-2H-2-benzazepin-2-yl" (p. 481). The rule wins (A7).
+    ("D-050d", "OC(=O)c1ccc(cc1)N1Cc2ccccc2C1",
+     "4-(1,3-dihydro-2H-isoindol-2-yl)benzoic acid",
+     "4-(isoindolin-2-yl)benzoic acid", "the alias as a substituent (D-047's path)"),
+    # --- D-051: an N-substituted imine is still an imine (P-68.3.1.1.1) ----
+    # The class matched only [NX2H1], so an oxime or an N-alkyl imine lost its
+    # principal group and became a substituted alkane.
+    ("D-051a", "CCC=NO", "N-hydroxypropan-1-imine", "1-(hydroxyimino)propane",
+     "the book's own example, p. 98"),
+    ("D-051b", "CC(C)=NC", "N-methylpropan-2-imine", "2-(methylimino)propane",
+     "p. 842, 'N-methylpropan-2-imine N-oxide (PIN)'"),
+    # Round 4 (A6): p. 934's "(1seqCis,4R)-N-hydroxy-4-methylcyclohexan-1-imine
+    # (PIN)" needs its 1 for the 4-methyl. With only the N-hydroxy, the ring is
+    # monosubstituted and P-14.3.4.2(c) omits the 1, as in "N-hydroxy-
+    # cyclohexanecarboxamide (PIN)" (p. 587).
+    ("D-051c", "ON=C1CCCCC1", "N-hydroxycyclohexanimine",
+     "(hydroxyimino)cyclohexane", "P-14.3.4.2(c); an N-prefix is not a ring substituent"),
+    ("D-051d", "CC(C)=NOC", "N-(methyloxy)propan-2-imine", "2-(methyloxyimino)propane",
+     "an O-alkyl oxime; 'methyloxy' itself is A9's"),
+    ("D-051e", "OC(=O)CCC(C)=NO", "4-(hydroxyimino)pentanoic acid",
+     "4-(hydroxyimino)pentanoic acid",
+     "converse: not the principal group, so the compound prefix stays"),
+    ("D-051f", "CN=Cc1ccccc1O", "2-[(methylimino)methyl]phenol",
+     "2-[(methylimino)methyl]phenol", "converse: a phenol outranks an imine"),
+    ("D-051g", "CC(C)=NN", "1-(propan-2-ylidene)hydrazine",
+     "1-(propan-2-ylidene)hydrazine", "negative: N-N is a hydrazone, not this class"),
+    ("D-051h", "CC(=N)N", "ethanimidamide", "ethanimidamide",
+     "negative: C(=N)N is an amidine (p. 468)"),
+    # --- D-052: hydrazides and formamides on their retained acid stems -----
+    # P-66.3.1 (pdf p. 668): "formohydrazide (PIN)", "acetohydrazide (PIN)",
+    # "benzohydrazide (PIN)"; P-66.1.1.1.2.2 (p. 646): formamide, N-substituted.
+    ("D-052a", "CC(=O)NN", "acetohydrazide", "ethanohydrazide", "p. 668"),
+    ("D-052b", "NNC(=O)c1ccccc1", "benzohydrazide", "benzenecarbohydrazide", "p. 668"),
+    ("D-052c", "NNC(=O)c1ccc(Cl)cc1", "4-chlorobenzohydrazide",
+     "4-chlorobenzenecarbohydrazide", "substituted, as p. 671's N'-benzoyl form"),
+    ("D-052d", "CN(N)C(C)=O", "N-methylacetohydrazide", "1-acetyl-1-methylhydrazine",
+     "p. 671, 'N-methylacetohydrazide (PIN)': the class needed an N-H"),
+    ("D-052e", "NNC=O", "formohydrazide", "methanohydrazide", "p. 668"),
+    ("D-052f", "O=CNc1ccccc1", "N-phenylformamide", "N-phenylmethanamide", "p. 649"),
+    # Round 4 (A6) gave the hydrazide its N' locants, so this former control is
+    # now named by P-66.3 ("N'-benzoylbenzohydrazide (PIN)", p. 671).
+    ("D-052g", "CNNC(C)=O", "N'-methylacetohydrazide", "1-acetyl-2-methylhydrazine",
+     "hydrazide N' locants (round 4, A6); was the control for their absence"),
+    ("D-052h", "ClC(N)=O", "aminomethanoyl chloride", "aminomethanoyl chloride",
+     "negative: a substituent on the formyl CARBON is not formamide "
+     "('not 1-chloroformamide', p. 646)"),
+    # --- D-053: a sulfonate anion is named on its acid, as a carboxylate is -
+    # "benzenesulfonate (PIN)" (pdf p. 807). The anion route re-protonates
+    # and names with the ANION suffix, but only accepted a CARBON neighbour.
+    ("D-053a", "CS(=O)(=O)[O-]", "methanesulfonate", "(oxidosulfonyl)methane", "p. 807"),
+    ("D-053b", "[O-]S(=O)(=O)c1ccccc1", "benzenesulfonate", "(oxidosulfonyl)benzene",
+     "the book's own example"),
+    ("D-053c", "[Na+].CS(=O)(=O)[O-]", "sodium methanesulfonate",
+     "sodium (oxidosulfonyl)methane", "in a salt"),
+    ("D-053d", "[O-]S(=O)(=O)CCS(=O)(=O)[O-]", "ethane-1,2-disulfonate",
+     "1,2-bis(oxidosulfonyl)ethane", "two sites"),
+    ("D-053e", "Cc1ccc(cc1)S(=O)(=O)O", "4-methylbenzene-1-sulfonic acid",
+     "hydro-p-toluenesulfonate",
+     "a registry entry from OPSIN named the ACID as a hydrogen salt; demoted"),
+    ("D-053f", "Cc1ccc(cc1)S(=O)(=O)[O-]", "4-methylbenzene-1-sulfonate",
+     "1-methyl-4-(oxidosulfonyl)benzene", "as p. 620's 4-ethylbenzene-1-sulfonate"),
+    ("D-053g", "COS(=O)(=O)[O-]", "(sulfonatooxy)methane", "(sulfonatooxy)methane",
+     "negative: O-sulfonate (a sulfate half-ester) is not a C-sulfonate"),
+    # --- D-054: a sulfonic ester is named by functional class -------------
+    # "methyl 4-ethylbenzene-1-sulfonate (PIN)" (pdf p. 620). Only the
+    # carboxylic ester had a decomposition, so the ester O became a prefix.
+    ("D-054a", "COS(=O)(=O)c1ccc(CC)cc1", "methyl 4-ethylbenzene-1-sulfonate",
+     "1-ethyl-4-(methyloxysulfonyl)benzene", "the book's own example"),
+    ("D-054b", "COS(=O)(=O)C", "methyl methanesulfonate", "(methyloxysulfonyl)methane",
+     "an alkanesulfonate"),
+    ("D-054c", "CS(=O)(=O)Oc1ccccc1", "phenyl methanesulfonate",
+     "(methylsulfonyloxy)benzene", "an aryl ester"),
+    ("D-054d", "COC(=O)c1ccc(cc1)S(=O)(=O)OC", "methyl 4-(methyloxysulfonyl)benzoate",
+     "methyl 4-(methyloxysulfonyl)benzoate",
+     "converse: a carboxylic ester outranks a sulfonic one, as its acid does"),
+    ("D-054e", "COS(=O)(=O)OC", "dimethyl sulfate", "dimethyl sulfate",
+     "negative: a sulfate diester is not a C-sulfonate"),
+    # --- D-055: an ammonium cation is named by the aminium suffix ----------
+    # The book's PINs use "-aminium" on a carbon parent; the azanium and
+    # "tetramethylammonium" spellings are its NON-preferred alternatives
+    # (pdf pp. 530, 816-849). Cations (class 6) outrank acids (Table 4.1).
+    ("D-055a", "[Cl-].C[NH3+]", "methanaminium chloride", "methylazanium chloride",
+     "p. 530, the book's own example"),
+    ("D-055b", "CC[NH2+]C", "N-methylethanaminium", "ethyl(methyl)azanium",
+     "p. 530, 'N-methylethanaminium bromide (PIN)'"),
+    ("D-055c", "[I-].C[N+](C)(C)C", "N,N,N-trimethylmethanaminium iodide",
+     "tetramethylammonium iodide", "p. 530"),
+    ("D-055d", "C[N+](C)(C)c1ccccc1", "N,N,N-trimethylanilinium",
+     "trimethyl(phenyl)ammonium", "p. 819"),
+    ("D-055e", "[NH3+]c1ccccc1", "anilinium", "phenylazanium", "p. 848"),
+    ("D-055f", "CCOC(=O)CC[N+](C)(C)C", "3-ethoxy-N,N,N-trimethyl-3-oxopropan-1-aminium",
+     "ethyl 3-(trimethylazaniumyl)propanoate",
+     "p. 621: a cation outranks the ester, so the ester becomes a prefix"),
+    ("D-055g", "[NH3+]CC([NH3+])C", "propane-1,2-bis(aminium)",
+     "[1-(azaniumyl)propan-2-yl]azanium", "p. 833: multiplied as bis(aminium)"),
+    ("D-055h", "C[N+](C)(C)CC(=O)[O-]", "(trimethylazaniumyl)acetate",
+     "2-(trimethylazaniumyl)acetate",
+     "converse: a zwitterion (class 5) keeps the cation as a prefix; taken as "
+     "the principal group it lost the anion, '1-carboxy-...methanaminium'"),
+    ("D-055i", "[NH4+]", "azanium", "azanium", "negative: no carbon to carry a suffix"),
+    # --- D-056: an alcohol and a phenol are one class, "-ol" (P-63.1) -----
+    # Detected as two types, they became two principal-group options, and
+    # the parent could take only one of them as its suffix.
+    # The indicated hydrogen is 6H, not the 17H this row first pinned: C17 is
+    # a CH of 1H-cyclopenta[a]phenanthrene, so the -ol needs no accommodating
+    # (P-58.2.3.1 only places indicated hydrogen where a group needs it, cf.
+    # "2,3-dihydro-1H-inden-2-yl", p. 343) and the lowest-locant rule for
+    # indicated hydrogen applies (P-31.1.4.2.4 (c)).
+    ("D-056a", "CC12CCC3c4ccc(O)cc4CCC3C1CCC2O",
+     "13-methyl-7,8,9,11,12,13,14,15,16,17-decahydro-6H-cyclopenta[a]phenanthrene-3,17-diol",
+     "17-hydroxy-13-methyl-6,7,8,9,11,12,13,14,15,16-decahydro-17H-cyclopenta[a]phenanthren-3-ol",
+     "estradiol, flat: the round-4 plan's 'same-class suffix' item"),
+    ("D-056b", "OC1CCc2cc(O)ccc21", "2,3-dihydro-1H-indene-1,5-diol",
+     "5-hydroxy-2,3-dihydro-1H-inden-1-ol", "the smallest case"),
+    ("D-056c", "OC1CCCc2cc(O)ccc21", "1,2,3,4-tetrahydronaphthalene-1,6-diol",
+     "6-hydroxy-1,2,3,4-tetrahydronaphthalen-1-ol", "as D-056b"),
+    ("D-056d", "OCc1ccc(O)cc1", "4-(hydroxymethyl)phenol", "4-(hydroxymethyl)phenol",
+     "converse: one -ol per parent either way, and the ring is senior"),
+    # --- D-057: the most principal groups on the parent, FIRST (P-44.1.1) --
+    # The count was a band inside a blended float that scored a ring's exo
+    # group 2.0 and a chain's 1.0, so one amine on a ring tied two on a
+    # chain; it is its own tier now, and the amine types are one option.
+    # "N1-(4-aminophenyl)-N4-phenylbenzene-1,4-diamine (PIN)" (pdf p. 524)
+    # takes its parent the same way.
+    ("D-057a", "CCN(CC)CCCC(C)Nc1ccnc2cc(Cl)ccc12",
+     "N4-(7-chloroquinolin-4-yl)-N1,N1-diethylpentane-1,4-diamine",
+     "7-chloro-N-[5-(diethylamino)pentan-2-yl]quinolin-4-amine",
+     "chloroquine: the round-3 multi-PCG item"),
+    ("D-057b", "CN(C)CCNc1ccccc1", "N1,N1-dimethyl-N2-phenylethane-1,2-diamine",
+     "N-[2-(dimethylamino)ethyl]aniline", "the smallest case"),
+    ("D-057c", "Nc1ccc(CCN)cc1", "4-(2-aminoethyl)aniline", "4-(2-aminoethyl)aniline",
+     "converse: one amine each, so rings over chains decides"),
+    ("D-057d", "CN1C(=O)CN=C(c2ccccc2)c2cc(Cl)ccc21",
+     "7-chloro-1-methyl-5-phenyl-1,3-dihydro-2H-1,4-benzodiazepin-2-one",
+     "7-chloro-1-methyl-5-phenyl-1,3-dihydro-2H-1,4-benzodiazepin-2-one",
+     "control: a C=O a precomposed parent already spells still counts, or a "
+     "von Baeyer name carrying it as a suffix wins"),
+    # --- D-058: a diazonium is a suffix on its carbon parent (p. 823) -----
+    # A whole-molecule renderer named the parent WITHOUT the group and
+    # appended "-1-diazonium": a retained name and a lost position for any
+    # substituted parent, and the book's own 3-substituted example on C1.
+    ("D-058a", "CC(=O)C([N+]#N)C(C)=O", "2,4-dioxopentane-3-diazonium",
+     "pentane-2,4-dione-1-diazonium",
+     "the book's own PIN; the former put the group on C1 -- another molecule"),
+    ("D-058b", "N#[N+]c1ccc(C)cc1", "4-methylbenzene-1-diazonium",
+     "toluene-1-diazonium", "did not parse back"),
+    ("D-058c", "COc1ccc([N+]#N)cc1", "4-methoxybenzene-1-diazonium",
+     "anisole-1-diazonium", "as D-058b"),
+    ("D-058d", "N#[N+]c1ccc(cc1)[N+]#N", "benzene-1,4-bis(diazonium)",
+     "(azanylidyne){4-[(azanylidyne)azaniumyl]phenyl}azanium",
+     "p. 823, '(not didiazonium)' (p. 128)"),
+    ("D-058e", "N#[N+]c1ccccc1", "benzenediazonium", "benzenediazonium",
+     "control: a bare parent keeps the whole-molecule route"),
+    # --- D-059: enclosing marks and alkoxy spellings (A9) ------------------
+    # Every prefix not on an allowlist was enclosed as though compound, and
+    # every acyclic "...yl" was contracted to "...oxy". P-16.5.1 encloses a
+    # SUBSTITUTED substituent or one qualified by locants; P-63.2.2.2 (pdf
+    # p. 541) contracts only methoxy, ethoxy, propoxy, butoxy and phenoxy,
+    # the last "fully substitutable".
+    ("D-059a", "C=Cc1ccccc1", "ethenylbenzene", "(ethenyl)benzene", "a simple prefix"),
+    ("D-059b", "OC(=O)COc1ccccc1", "phenoxyacetic acid", "(phenoxy)acetic acid",
+     "as D-059a"),
+    ("D-059c", "CCCCOCCOCCCO", "3-(2-butoxyethoxy)propan-1-ol",
+     "3-[2-(butoxy)ethoxy]propan-1-ol", "the heldout cid16000 tail"),
+    ("D-059d", "CCCCCCCOc1ccccc1N", "2-(heptyloxy)aniline", "2-(heptoxy)aniline",
+     "no 'heptoxy': not one of the retained contractions"),
+    ("D-059e", "CC(=O)Oc1ccccc1C(=O)O", "2-(acetyloxy)benzoic acid",
+     "2-(acetoxy)benzoic acid", "aspirin; adjudicated as P-65.6-acetyloxy"),
+    ("D-059f", "CC(C)Oc1ccccc1", "[(propan-2-yl)oxy]benzene", "(propan-2-oxy)benzene",
+     "'(propan-2-yl)oxy (preferred prefix)', p. 541, and P-16.5.1.3's locant rule"),
+    ("D-059g", "OC(=O)COc1cc(Cl)c(Cl)cc1Cl", "(2,4,5-trichlorophenoxy)acetic acid",
+     "(2,4,5-trichlorophenyloxy)acetic acid", "phenoxy, substituted"),
+    ("D-059h", "FC(F)(F)c1ccccc1", "(trifluoromethyl)benzene", "(trifluoromethyl)benzene",
+     "converse: a substituted substituent keeps its marks"),
+    ("D-059i", "OCc1ccc(O)cc1", "4-(hydroxymethyl)phenol", "4-(hydroxymethyl)phenol",
+     "converse: as D-059h"),
+    # --- D-060: an amino prefix's N-substituents, as the book writes them ---
+    # Alphabetical; the first enclosed only if compound, every later one
+    # enclosed (pdf pp. 521-665). Two builders pre-wrapped every name and let
+    # the merge wrap the wrapped ones again.
+    ("D-060a", "CCN(CCO)CCc1ccccc1", "2-[ethyl(2-phenylethyl)amino]ethan-1-ol",
+     "2-{[(ethyl)][(2-phenylethyl)]amino}ethan-1-ol", "doubled marks"),
+    ("D-060b", "CN(c1ccccc1)c1cccc(O)c1", "3-[methyl(phenyl)amino]phenol",
+     "3-(methylphenylamino)phenol", "the book's own example, p. 521"),
+    ("D-060c", "CN(Cc1nc2ccccc2cn1)CCO", "2-{methyl[(quinazolin-2-yl)methyl]amino}ethan-1-ol",
+     "2-{[(methyl)][(quinazolin-2-yl)methyl]amino}ethan-1-ol",
+     "FDA-0033's grouping still unambiguous: the later substituent is enclosed"),
+    ("D-060d", "CC(C)N(C(C)C)CCO", "2-[di(propan-2-yl)amino]ethan-1-ol",
+     "2-[bis(propan-2-yl)amino]ethan-1-ol",
+     "a locant-qualified SIMPLE prefix takes di (P-16.5.1.3; 'di(butan-2-yl)amino', p. 554)"),
+    ("D-060e", "CC(C)CN(CC(C)C)CCO", "2-[bis(2-methylpropyl)amino]ethan-1-ol",
+     "2-[bis(2-methylpropyl)amino]ethan-1-ol",
+     "converse: a substituted one keeps bis ('bis(2-methylpropyl)', p. 811)"),
+    # --- D-061: italic locants are lower than numerals (P-14.3.5, p. 74) ---
+    # Locant.__lt__ put numerals first and cited P-14.4 for it; every mixed
+    # set came out "4,N". Each target below is the book's own printed PIN.
+    ("D-061a", "CNC(=O)C(C)C", "N,2-dimethylpropanamide", "2,N-dimethylpropanamide",
+     "p. 415"),
+    ("D-061b", "CN(C(=O)c1ccc(C)cc1)c1cccc(C)c1",
+     "N,4-dimethyl-N-(3-methylphenyl)benzamide",
+     "4,N-dimethyl-N-(3-methylphenyl)benzamide", "p. 650"),
+    ("D-061c", "CC(C)(N)CC(C)NC", "N4,2-dimethylpentane-2,4-diamine",
+     "2,N4-dimethylpentane-2,4-diamine", "p. 522, a superscripted N"),
+    ("D-061d", "Clc1ccc(cc1)C=Nc1ccc(Cl)cc1", "N,1-bis(4-chlorophenyl)methanimine",
+     "1,N-bis(4-chlorophenyl)methanimine", "p. 526"),
+    ("D-061e", "CNc1ccc(C)cc1", "N,4-dimethylaniline", "4,N-dimethylaniline",
+     "as D-061b"),
+    # --- D-062: R-CO-NH- is an amido prefix (P-66.1.1.4.3, pdf p. 652) -----
+    # "changing the final letter 'e' in the complete name of the amide to
+    # 'o' ... Method (1) generates preferred IUPAC names"; the engine used
+    # method (2), acylamino, everywhere. An N-substituted one is cited as
+    # acyl(R)amino in the book's enclosing style.
+    ("D-062a", "O=CNc1ccc(C(=O)O)cc1", "4-formamidobenzoic acid",
+     "4-(formylamino)benzoic acid", "the book's own PIN"),
+    ("D-062b", "O=C(Nc1ccc(cc1)S(=O)(=O)O)c1ccccc1", "4-benzamidobenzene-1-sulfonic acid",
+     "4-(benzoylamino)benzene-1-sulfonic acid", "the book's own PIN"),
+    ("D-062c", "O=C(NCC(=O)O)C1CCCCC1", "(cyclohexanecarboxamido)acetic acid",
+     "(cyclohexanecarbonylamino)acetic acid", "carboxamido, enclosed: a stem plus a group"),
+    ("D-062d", "CCC(=O)N(C)c1ccccc1S(=O)(=O)O",
+     "2-[methyl(propanoyl)amino]benzene-1-sulfonic acid",
+     "2-{[(methyl)][(propanoyl)]amino}benzene-1-sulfonic acid", "the book's own example, p. 653"),
+    ("D-062e", "CC(=O)N(C)c1ccc(C(=O)O)cc1", "4-[acetyl(methyl)amino]benzoic acid",
+     "4-(acetylmethylamino)benzoic acid", "as D-062d"),
+    # --- D-063: an acetate takes no C2 locant, as acetic acid does ---------
+    # The omission ran for the acid only; the anion and an ester's acid stem
+    # are whole names too (adjudicated: glycine zwitterion, heldout cid16000).
+    ("D-063a", "[NH3+]CC(=O)[O-]", "azaniumylacetate", "2-azaniumylacetate",
+     "adjudicated; PubChem's '2-' is the one lost verbatim match"),
+    ("D-063b", "CCCCOCCOCCCOC(=O)COc1cc(Cl)c(Cl)cc1Cl",
+     "3-(2-butoxyethoxy)propyl (2,4,5-trichlorophenoxy)acetate",
+     "3-(2-butoxyethoxy)propyl 2-(2,4,5-trichlorophenoxy)acetate", "adjudicated"),
+    ("D-063c", "COC(=O)CCl", "methyl chloroacetate", "methyl 2-chloroacetate", "an ester"),
+    ("D-063d", "C[C@H](N)C(=O)O", "(2S)-2-aminopropanoic acid", "(2S)-2-aminopropanoic acid",
+     "converse: a stereodescriptor citing C2 keeps its locant"),
+    # P-16.5.1.3.2 (pdf p. 131): with the locants gone, the second and
+    # further prefixes are each enclosed. Each target is the book's own PIN.
+    ("D-063e", "OC(=O)C(Br)([N+](=O)[O-])c1ccccc1", "bromo(nitro)(phenyl)acetic acid",
+     "bromonitrophenylacetic acid", "p. 131; the former ran the names together"),
+    ("D-063f", "OC(=O)C(Cl)Br", "bromo(chloro)acetic acid", "bromochloroacetic acid",
+     "p. 131"),
+    ("D-063g", "O=CC(O)C1CC1", "cyclopropyl(hydroxy)acetaldehyde",
+     "cyclopropylhydroxyacetaldehyde", "p. 889"),
+    # --- D-064: preferred prefixes the engine spelled longhand, and the
+    #     carbamate's N locant ------------------------------------------------
+    ("D-064a", "c1ccncc1Cc1ccccc1", "3-benzylpyridine", "3-(phenylmethyl)pyridine",
+     "'2-benzylpyridine (PIN)' (pdf p. 313)"),
+    ("D-064b", "Brc1ccc(Cc2ccccn2)cc1", "2-[(4-bromophenyl)methyl]pyridine",
+     "2-[(4-bromophenyl)methyl]pyridine",
+     "converse: benzyl is 'not to be substituted' (P-29.6.1), the book's own PIN"),
+    ("D-064c", "OC(=O)c1ccccc1Nc1ccc(Cl)cc1", "2-(4-chloroanilino)benzoic acid",
+     "2-[(4-chlorophenyl)amino]benzoic acid", "anilino: 'full substitution' (p. 352)"),
+    ("D-064d", "CNC(=O)c1ccccc1C(=O)O", "2-(methylcarbamoyl)benzoic acid",
+     "2-[(methylamino)(oxo)methyl]benzoic acid", "carbamoyl: 'full substitution' (p. 352)"),
+    ("D-064e", "CC(O)COC(=O)NCCN", "2-hydroxypropyl (2-aminoethyl)carbamate",
+     "2-hydroxypropyl N-(2-aminoethyl)carbamate", "the book's own PIN, p. 601"),
+    ("D-064f", "CCOC(=O)Nc1ccccc1", "ethyl phenylcarbamate", "ethyl N-phenylcarbamate",
+     "carbamic acid has one substitutable atom (P-16.5.1.3.2)"),
+    ("D-064g", "CN(C)C(=O)OCC", "ethyl dimethylcarbamate", "ethyl N,N-dimethylcarbamate",
+     "as D-064f"),
+    # --- D-065: round 3's carry-overs (A10), each the book's printed PIN ---
+    ("D-065a", "CS(C)=O", "(methanesulfinyl)methane", "dimethyl sulfoxide",
+     "p. 912; the class name is the book's SECOND form"),
+    ("D-065b", "CS(C)(=O)=O", "(methanesulfonyl)methane", "dimethyl sulfone", "as D-065a"),
+    ("D-065c", "CS(=O)(=O)c1ccccc1", "(methanesulfonyl)benzene", "methyl phenyl sulfone",
+     "and 'benzenesulfonyl (preferred prefix) phenylsulfonyl', p. 611"),
+    ("D-065d", "CCOOC", "(methylperoxy)ethane", "ethyl methyl peroxide", "P-63.3.1, p. 546"),
+    ("D-065e", "CSSC", "(methyldisulfanyl)methane", "1,2-dimethyldisulfane",
+     "p. 546: 'Names formed by substituting the parent hydrides ... disulfane ... are "
+     "not recommended'"),
+    ("D-065f", "ClC(=O)C(=O)Cl", "oxalyl dichloride", "ethane-1,2-dioyl chloride",
+     "P-65.5.1, p. 615"),
+    ("D-065g", "ClC(=O)CC(=O)Cl", "propanedioyl dichloride", "propane-1,3-dioyl chloride",
+     "p. 615: no locants, and the class word multiplied"),
+    ("D-065h", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine N-oxide",
+     "N,N-dimethylmethanamine oxide", "the N locant, as p. 842's 'N-oxide'"),
+    ("D-065i", "CC[Se](C)=O", "ethyl methyl selenoxide", "ethyl methyl selenoxide",
+     "control, NOT a target: Se keeps the class name until a substitutive plan exists"),
+    ("D-065j", "COc1ccc2[nH]c(nc2c1)S(=O)Cc1ncc(C)c(OC)c1C",
+     "5-methoxy-2-[(4-methoxy-3,5-dimethylpyridin-2-yl)methanesulfinyl]-1H-benzimidazole",
+     "(5-methoxy-1H-benzimidazol-2-yl) ((4-methoxy-3,5-dimethylpyridin-2-yl)methyl) sulfoxide",
+     "omeprazole: substitutive, and a substituted methanesulfinyl (P-65.3.2.3)"),
+    ("D-065k", "O=S(=O)(Cc1ccccc1)c1ccccc1C(=O)O", "2-(phenylmethanesulfonyl)benzoic acid",
+     "(2-carboxyphenyl) (phenylmethyl) sulfone",
+     "the former put the acid inside a sulfone class name"),
+    # --- D-066: a saturated heteromonocycle takes its saturated name (A8) ---
+    # P-31.1.4.2.4 (pdf p. 336): saturated retained / Hantzsch-Widman names
+    # "are preferred to those expressed by 'hydro' prefixes"; Table 2.3 gives
+    # "1,3-thiazolidine (PIN)". The tetrahydro name ranked as "retained".
+    ("D-066a", "C1CSCN1", "1,3-thiazolidine", "2,3,4,5-tetrahydro-1,3-thiazole", "Table 2.3"),
+    ("D-066b", "C1COCN1", "1,3-oxazolidine", "2,3,4,5-tetrahydro-1,3-oxazole", "Table 2.3"),
+    ("D-066c", "O=C1CSC(=O)N1", "1,3-thiazolidine-2,4-dione",
+     "2,3,4,5-tetrahydro-1,3-thiazole-2,4-dione", "adjudicated; exo C=O does not count"),
+    ("D-066d", "O=C(O)c1ccc(NCN2C(=O)C(=Cc3ccc(O)cc3)SC2=S)cc1",
+     "4-[({5-[(4-hydroxyphenyl)methylidene]-4-oxo-2-(sulfanylidene)-1,3-thiazolidin-3-yl}"
+     "methyl)amino]benzoic acid",
+     "4-[({5-[(4-hydroxyphenyl)methylidene]-4-oxo-2-(sulfanylidene)-1,3-thiazol-3-yl}"
+     "methyl)amino]benzoic acid",
+     "cid56000: a MANCUDE retained name on a ring with no ring double bond"),
+    ("D-066e", "O=C1CCCN1", "pyrrolidin-2-one", "pyrrolidin-2-one",
+     "converse: Table 2.3's own saturated retained names keep their rank"),
+    ("D-066f", "C1=CCNC1", "2,5-dihydro-1H-pyrrole", "2,5-dihydro-1H-pyrrole",
+     "converse: a ring double bond keeps the hydro name"),
+    # --- D-067: a saturated FUSED parent's hydrogens, by P-58.2 (A7) --------
+    # A single-bonded suffix needs indicated or added hydrogen only on an atom
+    # with none in the mancude parent: "1,4-dihydro-3aH-indene-3a-carboxylic
+    # acid" and "naphthalen-4a(2H)-amine" (pp. 481, 526), but "1,2,3,4-tetra-
+    # hydronaphthalen-1-amine (PIN)" (p. 526). Complete hydrogenation drops
+    # the hydro locants (P-14.3.4.5, "decahydronaphthalene (PIN)", p. 73).
+    ("D-067a", "OC12CCCC1CCCC2", "octahydro-3aH-inden-3a-ol", "octahydro-4H-inden-3a-ol",
+     "a fusion carbon carries the -ol"),
+    ("D-067b", "OC12CCCCC1CCCC2", "octahydronaphthalen-4a(2H)-ol",
+     "decahydronaphthalen-4a-ol", "p. 535, 'naphthalen-4a(2H)-ol (PIN)', fully hydrogenated"),
+    ("D-067c", "CC1(O)C2CCCCC2CC2CCCCC21", "9-methyltetradecahydroanthracen-9-ol",
+     "9-methyl-1,2,3,4,4a,5,6,7,8,8a,9,9a,10,10a-tetradecahydroanthracen-9-ol",
+     "P-14.3.4.5; 'tetradecahydroanthracene (PIN)', p. 336"),
+    # Every position is hydro, added or the group, so no hydro locants:
+    # "hexahydro-1H-isoindole-1,3(2H)-dione (PIN)", p. 666 (D-071i).
+    ("D-067d", "O=C1CCCC2CCCCC12C", "8a-methyloctahydronaphthalen-1(2H)-one",
+     "8a-methyldecahydronaphthalen-1-one", "the saturated form of p. 479's naphthalen-1(2H)-one"),
+    ("D-067e", "C1CCC2CCCC2C1", "octahydro-1H-indene", "octahydro-4H-indene",
+     "a table name; indicated hydrogen at the lowest locant"),
+    ("D-067f", "CC1(O)CCC2C3CCC4CCCCC4(C)C3CCC12C",
+     "10,13,17-trimethylhexadecahydro-1H-cyclopenta[a]phenanthren-17-ol",
+     "10,13,17-trimethylhexadecahydro-1H-cyclopenta[a]phenanthren-17-ol",
+     "converse: C17 is a CH of the 1H parent, so the -ol takes no indicated H"),
+    ("D-067g", "NC1Cc2ccccc2C1", "2,3-dihydro-1H-inden-2-amine", "2,3-dihydro-1H-inden-2-amine",
+     "converse: 'indan-2-yl ... 2,3-dihydro-1H-inden-2-yl (preferred prefix)', p. 343"),
+    ("D-067h", "OC1CCOc2ccccc21", "3,4-dihydro-2H-1-benzopyran-4-ol",
+     "3,4-dihydro-2H-1-benzopyran-4-ol", "converse: a CH of 2H-1-benzopyran"),
+    # --- D-068: a free valence is accommodated like a suffix (A7) -----------
+    # "pyridin-1(2H)-yl (preferred prefix)", "1,3-thiazol-3(2H)-yl (PIN)"
+    # (pp. 479, 797). The retained route wrote the table's hydro text.
+    ("D-068a", "OC(=O)CN1CCc2ccccc2C1", "(3,4-dihydroisoquinolin-2(1H)-yl)acetic acid",
+     "(1,2,3,4-tetrahydroisoquinolin-2-yl)acetic acid",
+     "cf. '1-(3,4-dihydroquinolin-1(2H)-yl)ethan-1-one (PIN)', p. 567"),
+    ("D-068b", "OC(=O)CN1CSC=C1", "(1,3-thiazol-3(2H)-yl)acetic acid",
+     "(2,3-dihydro-1,3-thiazol-3-yl)acetic acid", "the book's own prefix"),
+    ("D-068c", "OC(=O)CC1Cc2ccccc2C1", "(2,3-dihydro-1H-inden-2-yl)acetic acid",
+     "(2,3-dihydro-1H-inden-2-yl)acetic acid", "converse: a CH free valence, p. 343"),
+    ("D-068d", "OC(=O)CC1CCOc2ccccc21", "(3,4-dihydro-2H-1-benzopyran-4-yl)acetic acid",
+     "(3,4-dihydro-2H-1-benzopyran-4-yl)acetic acid", "converse, as D-067h"),
+    # --- D-069: anthrone had no anthracene parent (A7) ----------------------
+    # The single-hydro route required the saturated atom to sit next to the
+    # C=O; in anthrone it is para. The book prints anthrone nowhere; the form
+    # is P-58.2.2's, as in "anthracen-9(10H)-yl-10-ylidene" (p. 479).
+    ("D-069a", "O=C1c2ccccc2Cc2ccccc21", "anthracen-9(10H)-one",
+     "tricyclo[8.4.0.0^{3,8}]tetradeca-1(14),3,5,7,10,12-hexaen-2-one", "anthrone"),
+    ("D-069b", "O=C1c2ccccc2C(C)c2ccccc21", "10-methylanthracen-9(10H)-one",
+     "9-methyltricyclo[8.4.0.0^{3,8}]tetradeca-1(14),3,5,7,10,12-hexaen-2-one",
+     "the suffix, not the hydrogen, takes the low locant"),
+    ("D-069c", "O=C1CCCc2ccccc21", "3,4-dihydronaphthalen-1(2H)-one",
+     "3,4-dihydronaphthalen-1(2H)-one", "converse: the adjacent case is unchanged"),
+    # --- D-070: a ring "carbo-" suffix keeps its locant 1 (A7) --------------
+    # The vendored set of "C1 by definition" suffixes held -carboxylic acid,
+    # -carboxamide and -carbonitrile, which are added-carbon RING forms:
+    # "piperidine-1-carboxamide (PIN)", "piperidine-1-carbonitrile (PIN)",
+    # "pyrrolidine-1-carboxylic acid (PIN)" (pp. 645, 687, 580).
+    ("D-070a", "OC(=O)c1cccc2ccccc12", "naphthalene-1-carboxylic acid",
+     "naphthalenecarboxylic acid", "p. 564"),
+    ("D-070b", "NC(=O)N1CCCCC1", "piperidine-1-carboxamide", "piperidinecarboxamide", "p. 645"),
+    ("D-070c", "N#CN1CCCCC1", "piperidine-1-carbonitrile", "piperidinecarbonitrile", "p. 687"),
+    ("D-070d", "OC(=O)N1CCCc2ccccc21", "3,4-dihydroquinoline-1(2H)-carboxylic acid",
+     "1,2,3,4-tetrahydroquinolinecarboxylic acid",
+     "'quinoline-1(2H)-carboxylic acid (PIN)', p. 479; the former did not parse back"),
+    ("D-070e", "OC(=O)C1=CC=CCC1", "cyclohexa-1,3-diene-1-carboxylic acid",
+     "cyclohexa-1,3-dienecarboxylic acid", "a multiplied '-dien' hid the ring's unsaturation"),
+    ("D-070f", "OC(=O)C1CCCCC1", "cyclohexanecarboxylic acid", "cyclohexanecarboxylic acid",
+     "converse: P-14.3.4.2(c) still omits it on a homogeneous monocycle"),
+    ("D-070g", "OC(=O)c1cnccn1", "pyrazinecarboxylic acid", "pyrazinecarboxylic acid",
+     "converse: P-14.3.4.4, unique by symmetry"),
+    # --- D-071: a saturated HETEROfused ring kept no fusion name (A7) -------
+    # P-31.2.3.3.2 names a hydrogenated mancude ring system by hydro prefixes
+    # (p. 335). The hydro route re-aromatized the ring to find its parent; the
+    # first mode that sanitized won even when it was the wrong tautomer (a
+    # 1,4-dihydroquinoxaline), an azole N never got its H back, and an odd
+    # saturated count had nowhere to put the parent's own indicated hydrogen.
+    ("D-071a", "OC1CCC2C(C1)NC1CCCCC12", "dodecahydro-1H-carbazol-2-ol",
+     "2-azatricyclo[7.4.0.0^{3,8}]tridecan-12-ol", "and 2, not 7: both orientations offered"),
+    ("D-071b", "C1CCC2C(C1)NC1CCCCC12", "dodecahydro-1H-carbazole",
+     "2-azatricyclo[7.4.0.0^{3,8}]tridecane", "perhydrocarbazole"),
+    ("D-071c", "OC1CCC2NNCC2C1", "octahydro-1H-indazol-5-ol",
+     "7,8-diazabicyclo[4.3.0]nonan-3-ol", "the NH put back on one N"),
+    ("D-071d", "OC1CCC2NCCNC2C1", "decahydroquinoxalin-6-ol",
+     "2,5-diazabicyclo[4.4.0]decan-8-ol", "the wrong tautomer sanitized first"),
+    ("D-071e", "C1CCC2NCCNC2C1", "decahydroquinoxaline", "2,5-diazabicyclo[4.4.0]decane",
+     "P-14.3.4.5, no hydro locants"),
+    ("D-071f", "C1CCC2C(C1)OC1CCCCC12", "dodecahydrodibenzofuran",
+     "1,2,3,4,4a,5a,6,7,8,9,9a,9b-dodecahydrodibenzofuran", "P-14.3.4.5"),
+    ("D-071g", "OC1CCC2CNCCC2C1", "decahydroisoquinolin-6-ol", "3-azabicyclo[4.4.0]decan-8-ol",
+     "the table entry numbered 1-4 only"),
+    ("D-071h", "CC1CCC2CNCCC2C1", "6-methyldecahydroisoquinoline", "methyldecahydroisoquinoline",
+     "the former did not parse back"),
+    ("D-071i", "O=C1NC(=O)C2CCCCC12", "hexahydro-1H-isoindole-1,3(2H)-dione",
+     "octahydro-1H-isoindole-1,3-dione", "the book's PIN, p. 666"),
+    ("D-071j", "O=C1CCC2CCCC2C1", "octahydro-5H-inden-5-one", "octahydro-4H-inden-5-one",
+     "P-58.2.3.1.1; cf. 'tetrahydro-4H-pyran-4-one', p. 481"),
+    ("D-071k", "OC1CCC2NCCC2C1", "octahydro-1H-indol-5-ol", "octahydro-1H-indol-5-ol",
+     "converse: a table entry already covered it"),
+    # --- D-072: eleven ring-table locant maps were stored inverted (A7) -----
+    # locant -> atom instead of atom -> locant ("4: 0", "5: 1"), so one ring
+    # atom had no locant and the rest were misplaced; for the dihydrofuran and
+    # dihydropyrrole that named a DIFFERENT molecule. All eleven re-checked by
+    # OPSIN chloro probing of every locant.
+    ("D-072a", "FC1=COCC1", "4-fluoro-2,3-dihydrofuran", "3-fluoro-2,3-dihydrofuran",
+     "a different molecule"),
+    ("D-072b", "OC(=O)C1=COCC1", "2,3-dihydrofuran-4-carboxylic acid",
+     "2,3-dihydrofuran-3-carboxylic acid", "a different molecule"),
+    ("D-072c", "FC1=CNCC1", "4-fluoro-2,3-dihydro-1H-pyrrole", "3-fluoro-2,3-dihydro-1H-pyrrole",
+     "a different molecule"),
+    ("D-072d", "FC1=CCOCC1", "4-fluoro-3,6-dihydro-2H-pyran", "4-fluoro-3,6-dihydro-2H-pyran",
+     "converse: right by another route before, and still"),
+    ("D-072e", "CC1=CCOC1", "3-methyl-2,5-dihydrofuran", "3-methyl-2,5-dihydrofuran",
+     "converse, as D-072d"),
+    # --- D-073: a prefix with no locant is refused, not emitted (A7) --------
+    # A ring-table entry that numbers only some positions gave a substituent
+    # elsewhere an empty locant, and the name went out as "fluoro-...": 32
+    # entries were measured with such a gap. The substitutive builder now
+    # refuses the plan and another parent is chosen.
+    ("D-073a", "Fc1ccc2ssc2c1", "5-fluoro-1,2-benzodithiete", "fluoro-1,2-benzodithiete",
+     "the former did not parse back"),
+    ("D-073b", "Cc1ccncc1", "4-methylpyridine", "4-methylpyridine",
+     "converse: a complete entry is untouched"),
+    # --- D-074: a ring acid's locant carried into its cation (A7) -----------
+    # The amidylium/amidinium renderers stripped "carboxylic acid" and
+    # appended "-1-", so any other position printed "naphthalene-2-1-
+    # amidylium", which does not parse; with D-070 the 1-isomer would have
+    # broken the same way.
+    ("D-074a", "c1ccc2cc(C(=O)[NH+])ccc2c1", "naphthalen-2-amidylium",
+     "naphthalene-2-1-amidylium", "the former did not parse back"),
+    ("D-074b", "NC(=[NH2+])c1ccc2ccccc2c1", "naphthalen-2-amidinium",
+     "naphthalene-2-1-amidinium", "as D-074a"),
+    ("D-074c", "C1(=CC=CC2=CC=CC=C12)C(=O)[NH+]", "naphthalen-1-amidylium",
+     "naphthalen-1-amidylium", "converse: position 1 unchanged"),
+    # --- D-075: hydrazide nitrogens take N and N' (A6) --------------------
+    # P-66.3: the acyl-side N is N and the terminal one N' ('N'-benzoylbenzo-
+    # hydrazide (PIN)', p. 671). The pattern needed a bare N'H2, so any N'
+    # substituent broke the suffix, and N primes came from atom order.
+    ("D-075a", "CNNC(=O)c1ccccc1", "N'-methylbenzohydrazide",
+     "[(2-methylhydrazinyl)(oxo)methyl]benzene", "the terminal N is N' (p. 671)"),
+    ("D-075b", "CC(=O)NNc1ccccc1", "N'-phenylacetohydrazide",
+     "(2-acetylhydrazinyl)benzene", "as D-075a"),
+    ("D-075c", "CN(C)NC(=O)c1ccccc1", "N',N'-dimethylbenzohydrazide",
+     "[(2,2-dimethylhydrazinyl)(oxo)methyl]benzene", "two on N'"),
+    ("D-075d", "CN(N)C(=O)c1ccccc1", "N-methylbenzohydrazide",
+     "N-methylbenzohydrazide", "converse: the acyl-side N stays unprimed"),
+    ("D-075e", "NNC(=O)N1CCCCC1", "piperidine-1-carbohydrazide",
+     "1-[(hydrazinyl)(oxo)methyl]piperidine", "p. 667, 'piperidine-1-carbohydrazide (PIN)'"),
+    ("D-075f", "O=C(NNC(=O)c1ccccc1)c1ccccc1", "[(2-benzoylhydrazinyl)(oxo)methyl]benzene",
+     "[(2-benzoylhydrazinyl)(oxo)methyl]benzene", "control, NOT a target: an acylated N' is kept out of the hydrazide pattern; letting it in named '1,2-dibenzoylhydrazine-1,2-dicarbohydrazide', a different molecule"),
+    # --- D-076: amidine nitrogens take N and N' by role (A6) ---------------
+    # P-66.4.1.4.1 (p. 678): 'the locant N refers to the amino group and N'
+    # refers to the imino group'. The pattern needed =NH and NH2.
+    ("D-076a", "CNC(C)=N", "N-methylethanimidamide",
+     "1-imino-N-methylethan-1-amine", "the amino N is N (p. 678)"),
+    ("D-076b", "CN=C(C)N", "N'-methylethanimidamide",
+     "1-(methylimino)ethan-1-amine", "the imino N is N' (p. 678)"),
+    ("D-076c", "CCN=C(NC)c1ccccc1", "N'-ethyl-N-methylbenzenecarboximidamide",
+     "1-(ethylimino)-N-methyl-1-phenylmethanamine", "p. 678, verbatim"),
+    ("D-076d", "CN=C(N(c1ccccc1)c1ccccc1)c1ccccc1", "N'-methyl-N,N-diphenylbenzenecarboximidamide",
+     "N-[(methylimino)phenylmethyl]-N-phenylaniline", "p. 678, verbatim"),
+    ("D-076e", "NC(=N)c1ccccc1", "benzenecarboximidamide",
+     "benzenecarboximidamide", "converse: unsubstituted"),
+    ("D-076f", "CCCCCC(N)=N", "hexanimidamide",
+     "hexan-1-imidamide", "p. 674, verbatim; amidines follow the amide rules"),
+    ("D-076g", "NC(=N)CCC(N)=N", "butanediimidamide",
+     "butane-1,4-diimidamide", "two terminal amidines take 'diimidamide' (p. 674)"),
+    ("D-076h", "CN=C(N)CCC(N)=NC", "N'1,N'4-dimethylbutanediimidamide",
+     "1,4-bis(methylimino)butane-1,4-diamine", "the prime before the numeral, as D-082a"),
+    # --- D-077: an N-prefix does not block P-14.3.4.2(c) (A6) --------------
+    # 'N-hydroxycyclohexanecarboxamide (PIN)' (p. 587): a prefix on the
+    # suffix's nitrogen is not a ring substituent, so the 1 is omitted.
+    ("D-077a", "CNC(=O)C1CCCCC1", "N-methylcyclohexanecarboxamide",
+     "N-methylcyclohexane-1-carboxamide", "an N-prefix leaves the ring monosubstituted (p. 587)"),
+    ("D-077b", "CNS(=O)(=O)c1ccccc1", "N-methylbenzenesulfonamide",
+     "N-methylbenzene-1-sulfonamide", "as D-077a (p. 661)"),
+    ("D-077c", "CNC(=O)C1CCCCC1C", "N,2-dimethylcyclohexane-1-carboxamide",
+     "N,2-dimethylcyclohexane-1-carboxamide", "converse: a ring prefix keeps the 1"),
+    # --- D-078: guanidine and urea as N-core parents (A6) -----------------
+    # Substituted guanidines had no parent at all. The urea route also
+    # claimed molecules whose acid outranks urea, primed by atom order, and
+    # the acylamino builder spelled 'carbamyl' and dropped enclosing marks.
+    ("D-078a", "CNC(N)=N", "N-methylguanidine",
+     "guanidinomethane", "guanidine as parent (p. 676)"),
+    ("D-078b", "CN(C)C(N)=N", "N,N-dimethylguanidine",
+     "(dimethylamino)methanimidamide", "as D-078a"),
+    ("D-078c", "c1ccccc1N=C(N(C)C)N(C)C", "N,N,N',N'-tetramethyl-N''-phenylguanidine",
+     "N,N,N',N'-tetramethyl-1-(phenylimino)methane-1,1-diamine", "p. 676, verbatim: the imino N is N''"),
+    ("D-078d", "CNC(=O)N(C)C", "N,N,N'-trimethylurea",
+     "N,N',N'-trimethylurea", "lowest locants for all prefixes decide which N is unprimed"),
+    ("D-078e", "NC(=O)NCC(=O)O", "(carbamoylamino)acetic acid",
+     "N-(carboxymethyl)urea", "the acid outranks urea; 'carbamoyl', not 'carbamyl' (p. 660)"),
+    ("D-078f", "OC(=O)c1c(NC(=O)NC)ccc2ccccc12", "2-[(methylcarbamoyl)amino]naphthalene-1-carboxylic acid",
+     "N-(1-carboxynaphthalen-2-yl)-N'-methylurea", "p. 660, verbatim"),
+    ("D-078g", "NC(=N)NCCCC(=O)O", "4-(carbamimidoylamino)butanoic acid",
+     "4-guanidinobutanoic acid", "'carbamimidoylamino (preferred prefix)', p. 676"),
+    ("D-078h", "NC(=N)NC(C)=O", "N-carbamimidoylacetamide",
+     "N-carbamimidoylacetamide", "converse: p. 676, an amide outranks guanidine"),
+    ("D-078i", "CN(C)C(=O)Nc1ccccc1", "N,N-dimethyl-N'-phenylurea",
+     "N,N-dimethyl-N'-phenylurea", "converse: unchanged"),
+    ("D-078j", "NC(N)=NCCCCCCCCCCCCCCN=C(N)N", "N''-{14-[(diaminomethylidene)amino]tetradecyl}guanidine",
+     "1,14-bis[(diaminomethylidene)amino]tetradecane", "cid45000's shape: a guanidine carbon is not an amidine ('amino...methanimidamide' was the widened pattern's name); the book's multiplicative form is not reached"),
+    ("D-078k", "NC(=O)NC(=O)c1ccccc1", "N-benzoylurea",
+     "N-benzoylurea", "control, NOT a target: the book has N-carbamoylbenzamide (PIN), p. 661, "
+     "but the engine ranks urea's amide with benzamide and the general path gave "
+     "'1-amino-N-benzoylmethanamide'; the urea gate stops at acids"),
+    # --- D-079: condensed guanidines are imidodicarbonimidic diamides (A6) --
+    # 'biguanide ... no longer recommended' (p. 677); the page's figure
+    # numbers N1 1 N'1 2 3 N'3 N3. The former of D-079b named a DIFFERENT
+    # molecule (the ethyl on an amino N).
+    ("D-079a", "CN(C)C(=N)NC(N)=N", "N1,N1-dimethylimidodicarbonimidic diamide",
+     "1,1-dimethylbiguanide", "metformin; 'biguanide' is no longer recommended (p. 677)"),
+    ("D-079b", "NC(=N)NC(=NCC)N(c1ccccc1)c1ccccc1", "N'1-ethyl-N1,N1-diphenylimidodicarbonimidic diamide",
+     "1-ethyl-1,1-diphenylbiguanide", "p. 677, verbatim"),
+    ("D-079c", "NC(=N)NC(N)=N", "imidodicarbonimidic diamide",
+     "guanidinomethanimidamide", "the bare parent (p. 677)"),
+    # --- D-080: carbamic acid substituted on N (A6) -----------------------
+    ("D-080a", "c1ccccc1NC(=O)O", "phenylcarbamic acid",
+     "anilinomethanoic acid", "p. 120"),
+    ("D-080b", "CN(C)C(=O)O", "dimethylcarbamic acid",
+     "(dimethylamino)methanoic acid", "p. 601"),
+    ("D-080c", "NC(=O)NC(=O)O", "carbamoylcarbamic acid",
+     "N-carboxyurea", "p. 661"),
+    # --- D-081: single heteroatom-centre parents (A6) ---------------------
+    # Silanols, boron and pnictogen oxoacids, phosphanones and diazenes take
+    # prefixes on the centre with no locant (P-63.1.4, P-67.1.1.2, P-68.1.4,
+    # P-68.3.1.3, P-74.2.1.4). Each steps aside for a senior group elsewhere.
+    ("D-081a", "C[Si](C)(C)O", "trimethylsilanol",
+     "(hydroxy)tri(methyl)silane", "p. 537"),
+    ("D-081b", "CB(O)O", "methylboronic acid",
+     "methaneboronic acid", "p. 737, 'not methylboranediol'"),
+    ("D-081c", "OB(O)c1ccc(cc1)C(=O)O", "4-boronobenzoic acid",
+     "4-boronobenzoic acid", "converse: the carboxylic acid outranks it"),
+    ("D-081d", "O=Pc1ccccc1", "phenylphosphanone",
+     "oxo(phenyl)phosphane", "p. 769, 'not oxo(phenyl)phosphane'"),
+    ("D-081e", "CP(C)(C)=O", "trimethyl-lambda5-phosphanone",
+     "trimethylphosphane oxide", "p. 769 and p. 839: method (3) is the PIN"),
+    ("D-081f", "CN=NC", "dimethyldiazene",
+     "1,2-dimethyldiazene", "p. 761"),
+    ("D-081g", "c1ccc(cc1)N=Nc1ccccc1", "diphenyldiazene",
+     "(phenyldiazenyl)benzene", "p. 761"),
+    ("D-081h", "Clc1cccc(c1)N=Nc1ccc(Cl)cc1", "(3-chlorophenyl)(4-chlorophenyl)diazene",
+     "1-chloro-3-(4-chlorophenyldiazenyl)benzene", "p. 761, verbatim"),
+    ("D-081i", "Oc1ccc(cc1)N=Nc1ccccc1", "4-(phenyldiazenyl)phenol",
+     "4-(phenyldiazenyl)phenol", "converse: a suffix group outranks diazene"),
+    ("D-081j", "CCP(=O)(O)O", "ethylphosphonic acid",
+     "ethanephosphonic acid", "p. 700, 'not ethanephosphonic acid'"),
+    ("D-081k", "CCP(=O)(O)CC", "diethylphosphinic acid",
+     "diethyl(hydroxy)(oxo)phosphane", "p. 700"),
+    ("D-081l", "O[As](c1ccccc1)c1ccccc1", "diphenylarsinous acid",
+     "(hydroxy)di(phenyl)arsane", "p. 700"),
+    ("D-081m", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine N-oxide",
+     "N,N-dimethylmethanamine N-oxide", "converse: N-oxides stay additive"),
+    # --- D-082: a primed N locant with a numeral is N'1, not N1' (A6) -------
+    ("D-082a", "O=C(NNCc1ccccc1)C(=O)NNCc1ccccc1", "N'1,N'2-dibenzylethanedihydrazide",
+     "({2-[(2-benzylhydrazinyl)(oxo)acetyl]hydrazinyl}methyl)benzene", "'N'1', not 'N1'': OPSIN reads N1' as another position, and the heldout cid55000 name came back a different molecule (oxalohydrazide itself is open)"),
+    ("D-082b", "CNC(=O)CC(=O)NC", "N1,N3-dimethylpropanediamide",
+     "N1,N3-dimethylpropanediamide", "converse: no prime, unchanged"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names

@@ -287,11 +287,15 @@ class TestDeferredTerpeneNames:
                 "norbornene",
                 "bicyclo[2.2.1]hept-2-ene",
             ),
-            # p-menthane: Papp3.html "named systematically by CAS"
+            # p-menthane: Papp3.html "named systematically by CAS". The
+            # numbering was pinned as 4-methyl-1-(propan-2-yl), which is what
+            # the old alphanumerical tie-break produced by plan order; P-14.4
+            # (g) gives locant 1 to the prefix cited first, and 'methyl'
+            # precedes 'propan-2-yl' (naming round 4, D-038).
             (
                 "CC1CCC(C(C)C)CC1",
                 "p-menthane",
-                "4-methyl-1-(propan-2-yl)cyclohexane",
+                "1-methyl-4-(propan-2-yl)cyclohexane",
             ),
             # carane: 3,7,7-trimethylbicyclo[4.1.0]heptane (PIN).
             (

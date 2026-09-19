@@ -34,32 +34,36 @@ from openchem.vendor.iupac_namer.engine import name_smiles
 
 
 # (input_smiles, expected_name)
+# Expected moved in naming round 4: furo[3,4-x]azines, like 2-benzofuran,
+# need no indicated hydrogen, so a ring C=O takes ADDED hydrogen -- P-58.2.2,
+# "This method is preferred over the use of nondetachable hydro prefixes"
+# (pdf p. 478; the book's naphthalen-1(2H)-one is the same case).
 _PROBES: list[tuple[str, str]] = [
     # ---- furo[3,4-c]pyridine lactone family (pyridoxolactone, the eval
     #      coverage cluster) ----
-    ("O=C1OCc2cnccc21", "1,3-dihydrofuro[3,4-c]pyridin-1-one"),
-    ("O=C1OCc2ccncc21", "1,3-dihydrofuro[3,4-c]pyridin-3-one"),
+    ("O=C1OCc2cnccc21", "furo[3,4-c]pyridin-1(3H)-one"),
+    ("O=C1OCc2ccncc21", "furo[3,4-c]pyridin-3(1H)-one"),
     # 4-pyridoxolactone: 7-hydroxy-6-methyl, carbonyl at 1
-    ("Cc1ncc2c(c1O)C(=O)OC2", "7-hydroxy-6-methyl-1,3-dihydrofuro[3,4-c]pyridin-1-one"),
+    ("Cc1ncc2c(c1O)C(=O)OC2", "7-hydroxy-6-methylfuro[3,4-c]pyridin-1(3H)-one"),
     ("Cc1ncc2c(c1O)C(=O)OC2Cl",
-     "3-chloro-7-hydroxy-6-methyl-1,3-dihydrofuro[3,4-c]pyridin-1-one"),
+     "3-chloro-7-hydroxy-6-methylfuro[3,4-c]pyridin-1(3H)-one"),
     ("Cc1nc(Cl)c2c(c1O)C(=O)OC2",
-     "4-chloro-7-hydroxy-6-methyl-1,3-dihydrofuro[3,4-c]pyridin-1-one"),
+     "4-chloro-7-hydroxy-6-methylfuro[3,4-c]pyridin-1(3H)-one"),
     # 5-pyridoxolactone: carbonyl at 3
-    ("Cc1ncc2c(c1O)COC2=O", "7-hydroxy-6-methyl-1,3-dihydrofuro[3,4-c]pyridin-3-one"),
+    ("Cc1ncc2c(c1O)COC2=O", "7-hydroxy-6-methylfuro[3,4-c]pyridin-3(1H)-one"),
     ("Cc1ncc2c(c1O)C(Cl)OC2=O",
-     "1-chloro-7-hydroxy-6-methyl-1,3-dihydrofuro[3,4-c]pyridin-3-one"),
+     "1-chloro-7-hydroxy-6-methylfuro[3,4-c]pyridin-3(1H)-one"),
     # ---- thieno[3,4-c]pyridine analog ----
-    ("O=C1SCc2cnccc21", "1,3-dihydrothieno[3,4-c]pyridin-1-one"),
+    ("O=C1SCc2cnccc21", "thieno[3,4-c]pyridin-1(3H)-one"),
     ("Cc1ncc2c(c1O)C(=O)SC2",
-     "7-hydroxy-6-methyl-1,3-dihydrothieno[3,4-c]pyridin-1-one"),
+     "7-hydroxy-6-methylthieno[3,4-c]pyridin-1(3H)-one"),
     # ---- furo/thieno[3,4-d]pyrimidine lactone (carbons 5,7) ----
-    ("O=C1OCc2ncncc21", "5,7-dihydrofuro[3,4-d]pyrimidin-5-one"),
-    ("O=C1SCc2ncncc21", "5,7-dihydrothieno[3,4-d]pyrimidin-5-one"),
-    ("O=C1OC(Cl)c2ncncc21", "7-chloro-5,7-dihydrofuro[3,4-d]pyrimidin-5-one"),
+    ("O=C1OCc2ncncc21", "furo[3,4-d]pyrimidin-5(7H)-one"),
+    ("O=C1SCc2ncncc21", "thieno[3,4-d]pyrimidin-5(7H)-one"),
+    ("O=C1OC(Cl)c2ncncc21", "7-chlorofuro[3,4-d]pyrimidin-5(7H)-one"),
     # ---- furo/thieno[3,4-b]pyrazine lactone (carbons 5,7) ----
-    ("O=C1OCc2nccnc21", "5,7-dihydrofuro[3,4-b]pyrazin-5-one"),
-    ("O=C1SCc2nccnc21", "5,7-dihydrothieno[3,4-b]pyrazin-5-one"),
+    ("O=C1OCc2nccnc21", "furo[3,4-b]pyrazin-5(7H)-one"),
+    ("O=C1SCc2nccnc21", "thieno[3,4-b]pyrazin-5(7H)-one"),
 ]
 
 

@@ -757,9 +757,11 @@ class TestAdditiveAssembly:
         assert result == "pyridine 1-oxide"
 
     def test_trimethylamine_oxide(self):
-        """trimethylamine oxide: heteroatom (N) locant -> no locant prefix."""
+        """An N locant IS cited on an amine oxide: "N-methylpropan-2-imine
+        N-oxide (PIN)" (BlueBookV2 pdf p. 842). This test asserted the
+        opposite until naming round 4; a phosphane oxide still takes none."""
         parent_leaf = _leaf("trimethylamine")
-        # Non-numeric locant N -> no locant in output
+        # N locant -> "N-oxide"
         loc = Locant.hetero("N")
         ag = AdditiveGroup(type="oxide", locant=loc, multiplier=None)
 
@@ -773,7 +775,7 @@ class TestAdditiveAssembly:
             additions=(ag,),
         )
         result = assemble(tree)
-        assert result == "trimethylamine oxide"
+        assert result == "trimethylamine N-oxide"
 
     def test_dioxide(self):
         """phosphane 1,1-dioxide: numeric locant + di multiplier."""

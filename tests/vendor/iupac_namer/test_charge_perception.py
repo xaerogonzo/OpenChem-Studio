@@ -149,10 +149,13 @@ def test_classify_returns_empty_for_none() -> None:
     ("[CH2+]CCCC",    "pentan-1-ylium"),
     ("[CH2-]CCCC",    "pentan-1-ide"),
     ("[CH+]1CCCCC1",  "cyclohexan-1-ylium"),
-    # diazonium (FG audit, Top-3 Gap 7)
-    ("CC[N+]#N",                                "ethane-1-diazonium"),
+    # diazonium (FG audit, Top-3 Gap 7). P-14.3.4 omits locant 1 on a
+    # monosubstituted two-atom chain and a monosubstituted homogeneous
+    # monocycle -- "methanediazonium (PIN)" is the book's own example
+    # (naming round 4, D-039); a longer chain keeps it (pentane-1-).
+    ("CC[N+]#N",                                "ethanediazonium"),
     ("CCCCC[N+]#N",                             "pentane-1-diazonium"),
-    ("C1(CCCCC1)[N+]#N",                        "cyclohexane-1-diazonium"),
+    ("C1(CCCCC1)[N+]#N",                        "cyclohexanediazonium"),
     ("C1(=CC=CC2=CC=CC=C12)[N+]#N",             "naphthalene-1-diazonium"),
     # acylium / carbonylium (FG audit, Top-3 Gap 13)
     ("[C+](C)=O",                  "acetylium"),

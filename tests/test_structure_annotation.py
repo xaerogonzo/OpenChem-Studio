@@ -39,6 +39,7 @@ BENZENE_RETAINED = "c1ccccc1"                # retained PIN, ring, no locant map
 ASPIRIN = "CC(=O)Oc1ccccc1C(=O)O"            # substitutive, two FGs
 D_ALANINE = "C[C@@H](N)C(=O)O"               # (R)-alanine: one centre, two FGs
 NAPHTHALENE = "c1ccc2ccccc2c1"               # bare ring in the retained table
+NAPROXEN_SMILES = "COc1ccc2cc([C@@H](C)C(=O)O)ccc2c1"   # naphthalene in a prefix
 CHOLESTEROL = (
     "C[C@H](CCCC(C)C)[C@H]1CC[C@H]2[C@@H]3CC=C4C[C@@H](O)CC[C@]4(C)[C@H]3CC[C@]12C"
 )
@@ -141,18 +142,18 @@ def test_group_by_atom_maps_every_claimed_atom():
     assert set(result.group_by_atom) == claimed
 
 
-def test_caffeine_detects_no_functional_groups_at_all():
-    """Both of caffeine's carbonyls are ring-embedded lactams and neither is
-    claimed, so a molecule that plainly has functional groups annotates as
-    having none. Measured at 4 of 181 corpus molecules.
-
-    `test_a_lactam_carbonyl_is_claimed_by_no_group_at_all` below pins down
-    WHY, which turns out to be half deliberate. This test just holds the
-    consequence at the annotation level, so that a detector that later
-    learns to claim these is noticed rather than silently improving a number
-    no one was watching."""
+def test_caffeine_ring_carbonyls_are_claimed_as_ring_ketones():
+    """Caffeine used to annotate as having no groups at all: both carbonyls
+    are ring-embedded and nothing claimed them. This test was written to be
+    noticed when that changed, and it did: naming round 4 (A5) encoded the
+    P-31.1.4.2.4 conditions under which a ring C=O on a mancude ring is the
+    "-one" suffix, so the engine now claims both as ring ketones, the way it
+    names them ("...purine-2,6-dione"). Whether a lactam should ALSO be shown
+    as a lactam is a feature question for the app vocabulary (round 4 branch
+    B), not a naming one."""
     result = annotate(_mol(CAFFEINE))
-    assert result.groups == ()
+    claimed = {(g.type, g.anchor) for g in result.groups}
+    assert claimed == {("ketone", 6), ("ketone", 10)}
 
 
 # --- Locants, and their honest limits -----------------------------------
@@ -622,7 +623,9 @@ def test_a_lactam_carbonyl_is_claimed_by_no_group_at_all():
     assert functional_groups("CC(=O)NC")
 
     assert functional_groups(PYRROLIDINONE) == []
-    assert functional_groups(CAFFEINE) == []
+    # Caffeine left this list in naming round 4 (A5): its carbonyls sit on a
+    # mancude ring and are claimed as ring ketones now (see the test above).
+    # A saturated lactam like pyrrolidinone is still claimed by nothing.
 
 
 def test_a_molecule_with_no_groups_reports_that_it_found_none():
@@ -862,11 +865,12 @@ def test_an_empty_or_invalid_selection_reports_rather_than_raises():
 
 
 def test_the_derivation_exposes_parent_suffix_and_substituents():
-    """Aspirin: benzene parent, carboxylic acid in the suffix slot, acetoxy
-    as a substituent at position 2."""
+    """Aspirin: benzene parent, carboxylic acid in the suffix slot, acetyloxy
+    as a substituent at position 2 ("4-(acetyloxy)benzoic acid (PIN)", Blue
+    Book p. 628; round 4 stopped contracting acyloxy to "acetoxy")."""
     root = name_derivation(_mol(ASPIRIN))
     assert root is not None
-    assert root.name == "2-(acetoxy)benzoic acid"
+    assert root.name == "2-(acetyloxy)benzoic acid"
     roles = {child.role for child in root.children}
     assert {"parent hydride", "principal characteristic group", "substituent"} <= roles
 
@@ -903,3 +907,65 @@ def test_a_retained_name_derives_to_a_single_leaf():
 
 def test_a_derivation_that_cannot_be_built_returns_none():
     assert name_derivation(None) is None
+
+
+# --- Substituent numbering carried onto the structure (round 4, A12) ------
+
+
+def _locants_by_atom(smiles):
+    return {loc.atom_index: loc for loc in annotate(_mol(smiles)).locants}
+
+
+def test_a_substituent_ring_is_numbered_as_its_prefix_name_says():
+    """Naproxen, "(2S)-2-(6-methoxynaphthalen-2-yl)propanoic acid". Its
+    naphthalene used to be numbered only by the ring table, which cannot know
+    where the substituents are and chose the mirror image: the methoxy carbon
+    came out 2 and the attachment carbon 6, the reverse of the name. The
+    prefix subtree's own numbering now wins, carried through the carve map."""
+    loc = _locants_by_atom(NAPROXEN_SMILES)
+    methoxy_carbon, attachment = 2, 7
+    assert (loc[methoxy_carbon].label, loc[attachment].label) == ("6", "2")
+    assert loc[attachment].source is LocantSource.SUBSTITUENT
+    assert loc[attachment].prefix == "6-methoxynaphthalen-2-yl"
+    # The parent chain keeps its own numbering, which always wins.
+    assert loc[8].label == "2" and loc[8].source is LocantSource.PARENT
+
+
+def test_identical_substituents_share_a_subtree_but_not_their_atoms():
+    """Both 4-chlorophenyl groups name to ONE cached subtree; each prefix
+    entry carries its own carve map, so each ring is numbered on its own
+    atoms (attachments 1, chlorinated carbons 4)."""
+    loc = _locants_by_atom("O=C(c1ccc(Cl)cc1)c1ccc(Cl)cc1")
+    assert {i: loc[i].label for i in (2, 5, 9, 12)} == {2: "1", 5: "4", 9: "1", 12: "4"}
+
+
+def test_a_nested_substituent_is_carried_through_every_level():
+    """DDT: the second chlorophenyl sits inside the trichloroethyl prefix, so
+    its map is composed through two carves."""
+    loc = _locants_by_atom("Clc1ccc(cc1)C(c1ccc(Cl)cc1)C(Cl)(Cl)Cl")
+    assert (loc[4].label, loc[1].label) == ("1", "4")
+    assert loc[4].prefix == "4-chlorophenyl"
+
+
+def test_a_ring_table_skeleton_includes_its_fusion_carbons():
+    """Indole's table entry ships without 3a/7a. The ring-table path reads the
+    engine's built table, which fills them, instead of the raw data."""
+    loc = _locants_by_atom("c1ccc2[nH]ccc2c1")
+    assert (loc[7].label, loc[3].label) == ("3a", "7a")
+
+
+def test_the_carve_map_is_checked_and_survives_renumbering():
+    from openchem.vendor.iupac_namer.perception.extraction import (
+        carve_substituent,
+        fragment_origin,
+    )
+
+    mol = _mol(NAPROXEN_SMILES)
+    ring = frozenset({2, 3, 4, 5, 6, 7, 13, 14, 15, 16, 1, 0})
+    fragment, attachment, _order = carve_substituent(mol, ring, (8, 7))
+    origin = dict(fragment_origin(fragment))
+    assert origin[attachment] == 7
+    assert sorted(origin.values()) == sorted(ring)
+    for local, parent in origin.items():
+        assert (fragment.GetAtomWithIdx(local).GetAtomicNum()
+                == mol.GetAtomWithIdx(parent).GetAtomicNum())

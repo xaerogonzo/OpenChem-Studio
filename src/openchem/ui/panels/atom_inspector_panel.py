@@ -498,6 +498,7 @@ class AtomInspectorPanel(QWidget):
         self._document_columns(_ATOM_COLUMNS)
         self._atom_table.setRowCount(mol.GetNumAtoms())
         locants, locant_error = self._locant_labels(mol)
+        locant_notes = {} if locant_error else self._locant_notes(mol)
         for row, atom in enumerate(mol.GetAtoms()):
             index = atom.GetIdx()
             # 1-based for display, 0-based in the data -- the whole app
@@ -512,6 +513,10 @@ class AtomInspectorPanel(QWidget):
             locant = QTableWidgetItem("?" if locant_error else locants.get(index, ""))
             if locant_error:
                 locant.setToolTip(locant_error)
+            elif index in locant_notes:
+                # The engine's own account of this number, not a re-derivation:
+                # a substituent's "2" and the parent's "2" are different atoms.
+                locant.setToolTip(locant_notes[index])
             locant.setData(Qt.ItemDataRole.UserRole, index)
             self._atom_table.setItem(row, 1, locant)
             self._atom_table.setItem(row, 2, QTableWidgetItem(atom.GetSymbol()))
@@ -519,6 +524,16 @@ class AtomInspectorPanel(QWidget):
             count.setData(Qt.ItemDataRole.DisplayRole, len(self._report_for(index).facts))
             self._atom_table.setItem(row, 3, count)
         self._atom_table.setSortingEnabled(True)
+
+    def _locant_notes(self, mol) -> dict[int, str]:
+        """Where each locant came from, from the same cached annotation as
+        `_locant_labels` (``chem.atom_numbering.locant_provenance``)."""
+        from openchem.chem.atom_numbering import locant_provenance
+
+        try:
+            return locant_provenance(self._engine.mol_to_molblock(mol))
+        except Exception:  # noqa: BLE001 - a tooltip must not take the panel down
+            return {}
 
     def _locant_labels(self, mol) -> tuple[dict[int, str], str]:
         """`({atom index: locant}, error)` for the structure in the table.

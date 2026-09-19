@@ -12,6 +12,28 @@
             "elision": true
         },
         {
+            "_comment": "A diazonium group on carbon, R-N2+, named by the -diazonium suffix on the carbon parent: 'benzenediazonium', and substituted, '4-methylbenzene-1-diazonium'. Before naming round 4 only a whole-molecule renderer existed, which named the parent WITHOUT the group and appended the suffix -- 'toluene-1-diazonium', which does not parse back. Cation class (6).",
+            "name": "diazonium",
+            "smarts": "[NX2+;!R](#[NX1])[#6]",
+            "anchor_index": 0,
+            "seniority": 651,
+            "bluebook_class": "6",
+            "suffix": "-diazonium",
+            "prefix": "diazonio",
+            "elision": false
+        },
+        {
+            "_comment": "An acyclic ammonium cation on carbon, named by the aminium suffix: 'methanaminium chloride (PIN)', 'N,N,N-trimethylmethanaminium (PIN)', 'N,N,N-trimethylanilinium (PIN)' (BlueBookV2 pdf pp. 530, 816, 819); 'methylazanium' and 'tetramethylazanium' are the book's non-preferred alternatives. Cations (class 6) outrank acids (class 7, Table 4.1, p. 360), hence 650. Only C and H on the N: an N-oxide or an N-N+ is another class. Naming round 4.",
+            "name": "aminium",
+            "smarts": "[NX4+;!R;!$([NX4+]~[!#6;!#1]);$([NX4+][#6])]",
+            "anchor_index": 0,
+            "seniority": 650,
+            "bluebook_class": "6",
+            "suffix": "-aminium",
+            "prefix": null,
+            "elision": false
+        },
+        {
             "_comment": "P-43 / P-65.3.1.2: peroxy carboxylic acid R-C(=O)-O-O-H ('peroxy{acid name}' / '{stem}peroxoic acid'). Same seniority class (7a) as the parent carboxylic acid but distinct SMARTS \u00e2\u20ac\u201d the second oxygen is bonded to the carbonyl O, not to C \u00e2\u20ac\u201d so no overlap with carboxylic_acid. Subsumes peroxol + oxo at the same R-C(=O)-OO-H site so the suffix wins.",
             "name": "peroxy_acid",
             "smarts": "[CX3](=O)[OX2][OX2H1]",
@@ -392,6 +414,17 @@
             "elision": true
         },
         {
+            "_comment": "A C-sulfonic ester, R-SO2-O-R': named by functional class like a carboxylic ester, 'methyl 4-ethylbenzene-1-sulfonate (PIN)' (BlueBookV2 pdf p. 620). Reaches the ester decomposition; never a substitutive suffix or a claimed prefix. Naming round 4.",
+            "name": "sulfonate_ester",
+            "smarts": "[#6][SX4;!R](=O)(=O)[OX2;!R][#6;!$([CX3]=[OX1])]",
+            "anchor_index": 1,
+            "seniority": 802,
+            "bluebook_class": "8",
+            "suffix": "-sulfonate",
+            "prefix": "oxysulfonyl",
+            "elision": false
+        },
+        {
             "name": "thioester",
             "smarts": "[CX3;!$([CX3](=O)[SX2][CX3](=O));!$([CX3](=O)[SX2][NX3])](=O)[SX2;!R;!H1][#6;!$([CX3]=[OX1]);!$([CX3]=[SX1])]",
             "anchor_index": 0,
@@ -557,7 +590,7 @@
         {
             "_comment": "P-56.3 (IUPAC 2013): the amidine R-C(=NH)-NH2 PIN suffix is now '-imidamide' (terminal) / '-carboximidamide' (nonterminal). Replaces the older 'amidine' general-nomenclature form. Anchor is the central C so the suffix locant cites that carbon's parent-stem position. Subsumes the imine (C=NH) + amine (NH2) at the same C.",
             "name": "imidamide",
-            "smarts": "[CX3;!$([CX3](=[NX2])[OX2])](=[NX2;H1])[NX3H2]",
+            "smarts": "[CX3;!$([CX3](=[NX2])[OX2]);!$([CX3](~[#7])(~[#7])~[#7])](=[NX2;!R;!$([NX2]-[#7])])[NX3;!R;!$([NX3]-[#7])]",
             "anchor_index": 0,
             "seniority": 1099,
             "bluebook_class": "11",
@@ -755,7 +788,7 @@
         },
         {
             "name": "hydrazide",
-            "smarts": "[CX3](=O)[NX3H1][NX3H2]",
+            "smarts": "[CX3;!R;!$([CX3](=O)([!#6;!#1;!R])[!#6;!#1;!R])](=O)[NX3;!R][NX3;!R;!$([NX3][CX3]=[O,S,N])]",
             "seniority": 1200,
             "bluebook_class": "12",
             "suffix_terminal": "-ohydrazide",
@@ -821,6 +854,17 @@
             "name": "ketone",
             "smarts": "[#6][cX3](=O)[#6]",
             "anchor_index": 1,
+            "seniority": 1600,
+            "bluebook_class": "16",
+            "suffix": "-one",
+            "prefix": "oxo",
+            "elision": true
+        },
+        {
+            "_comment": "PSEUDOKETONE (P-64.1.2): an aromatic ring C=O bonded to a ring N, O or S. The two ketone patterns above need a carbon on BOTH sides, so 2-pyridone, quinolin-2(1H)-one, uracil and caffeine had their C=O claimed by nothing and named as an oxo prefix ('2-oxo-1H-pyridine'); the added-indicated-hydrogen machinery that already names pyridin-4(1H)-one was never reached. Recursive SMARTS so a carbon between two heteroatoms matches once. Naming round 4, A5.",
+            "name": "ketone",
+            "smarts": "[cX3;R;$(c~[n,o,s])](=O)",
+            "anchor_index": 0,
             "seniority": 1600,
             "bluebook_class": "16",
             "suffix": "-one",
@@ -989,6 +1033,16 @@
             "bluebook_class": "20",
             "suffix": "-imine",
             "prefix": "imino",
+            "elision": true
+        },
+        {
+            "_comment": "An N-substituted imine, including an oxime (N-hydroxy): P-68.3.1.1.1 names both as imines with an N-prefix, 'N-hydroxypropan-1-imine (PIN)' (BlueBookV2 pdf p. 98). Suffix only: as a prefix the substituent must stay in a compound prefix ('(hydroxyimino)'), which the structural carve already builds. The C=N is exocyclic, not N-N (hydrazone/azo), not on a cumulated C (carbodiimide), and not on a C carrying N/O/S (amidine, imidate: senior classes). Naming round 4.",
+            "name": "substituted_imine",
+            "smarts": "[#6;!$([#6](=*)=*);!$([#6](=[#7])[#7,#8,#16])]=!@[NX2;H0;!$([NX2][#7])]",
+            "seniority": 2000,
+            "bluebook_class": "20",
+            "suffix": "-imine",
+            "prefix": null,
             "elision": true
         },
         {

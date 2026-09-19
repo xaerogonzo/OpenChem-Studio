@@ -49,6 +49,13 @@ because its naphthalene lives in a nested prefix subtree whose indices are
 FRAGMENT-LOCAL (`FreeValenceInfo.attachment_atoms_in_fragment`, named for
 exactly that reason) and mean nothing against the parent molecule.
 
+SUBSTITUENT NUMBERING IS CARRIED BACK since naming round 4 (A12): the carve
+records which atom each fragment atom came from, every prefix entry keeps
+that map, and `_substituent_locants` composes the maps down the tree. Over
+the 187-molecule corpus that took heavy-atom coverage from 38.5% to 47.5%,
+and corrected naproxen, whose naphthalene the ring table had numbered as its
+mirror image. (The measured table above predates it.)
+
 `_retained_ring_locants` is the mitigation. The vendored ring table holds
 371 entries, 302 carrying an `atom_locants` map keyed by the canonical
 SMILES of the ISOLATED ring system, so a ring can be extracted, looked up,
@@ -156,6 +163,11 @@ class LocantSource(str, Enum):
     """
 
     PARENT = "parent"
+    #: The numbering of a substituent's OWN parent, from its prefix subtree:
+    #: naproxen's naphthalene is numbered as "6-methoxynaphthalen-2-yl" says.
+    #: Correct, and specific to this molecule, but local to that prefix -- its
+    #: "2" and the parent chain's "2" are different positions.
+    SUBSTITUENT = "substituent"
     RETAINED_RING = "retained_ring"
 
 
@@ -211,6 +223,11 @@ class AnnotatedLocant:
     label: str
     source: LocantSource
     kind: LocantKind = LocantKind.CHAIN_OR_RING
+    #: For a `SUBSTITUENT` locant: the prefix it numbers ("6-methoxy-
+    #: naphthalen-2-yl"), and the atom's index in that carved fragment. The
+    #: provenance a view shows, so it never has to re-derive it.
+    prefix: str = ""
+    fragment_atom: int | None = None
 
 
 @dataclass(frozen=True)
@@ -376,8 +393,12 @@ def annotate(mol: Chem.Mol) -> StructureAnnotation:
     not take down the panel showing it. This mirrors how
     `QuantumChemistryService` treats a spectrum it cannot parse.
 
-    Costs one `Perception` construction plus one naming pass. Measured over
-    the 181-molecule naming corpus: **8.0 ms mean, 59.3 ms worst case**.
+    Costs one `Perception` construction plus one naming pass. Measured
+    2026-09-18 over the 187-molecule naming corpus, two runs on an idle
+    machine: **11.8-13.7 ms mean, 7-9 ms median, 75-79 ms worst** (naproxen
+    and a triazole amide). The earlier 8.0 / 59.3 ms was the 181-row corpus
+    before naming round 4 added work per call; a run beside the vendored
+    suite read 45 ms mean, which is contention, not the code.
     Cheap once per edit, far too expensive per repaint -- cache it against
     the structure, and never call it from a paint path.
     """
@@ -655,7 +676,7 @@ def name_fragment(mol: Chem.Mol, atom_indices: set[int] | frozenset[int]) -> Fra
     try:
         from openchem.vendor.iupac_namer import name as build_name_tree
         from openchem.vendor.iupac_namer.assembly import assemble
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
+        from openchem.vendor.iupac_namer.strategy import default_strategy
         from openchem.vendor.iupac_namer.types import (
             FreeValenceInfo,
             OutputForm,
@@ -665,7 +686,7 @@ def name_fragment(mol: Chem.Mol, atom_indices: set[int] | frozenset[int]) -> Fra
         if attachment is None:
             # A whole disconnected molecule was selected: there is no free
             # valence, so it gets its ordinary standalone name.
-            tree = build_name_tree(fragment, IUPACCanonical())
+            tree = build_name_tree(fragment, default_strategy())
         else:
             free_valence = FreeValenceInfo(
                 bond_orders=(1,),
@@ -675,7 +696,7 @@ def name_fragment(mol: Chem.Mol, atom_indices: set[int] | frozenset[int]) -> Fra
             )
             tree = build_name_tree(
                 fragment,
-                IUPACCanonical(),
+                default_strategy(),
                 output_form=OutputForm.SUBSTITUENT,
                 free_valence=free_valence,
             )
@@ -759,9 +780,9 @@ def name_derivation(mol: Chem.Mol) -> DerivationNode | None:
         return None
     try:
         from openchem.vendor.iupac_namer import name as build_name_tree
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
+        from openchem.vendor.iupac_namer.strategy import default_strategy
 
-        tree = build_name_tree(mol, IUPACCanonical())
+        tree = build_name_tree(mol, default_strategy())
     except Exception:  # noqa: BLE001 - a derivation is an explanation, never fatal
         return None
     return _derivation_node(tree)
@@ -859,6 +880,8 @@ def _derivation_node(tree, role: str = "") -> DerivationNode:
 _LOCANT_SOURCE_CATEGORIES: dict[LocantSource, tuple[int, str]] = {
     LocantSource.PARENT: (1, "#0072b2"),        # blue
     LocantSource.RETAINED_RING: (2, "#56b4e9"),  # sky blue
+    LocantSource.SUBSTITUENT: (3, "#3d8fc6"),    # between the two: it is this
+                                                 # molecule's numbering, of a prefix
 }
 
 
@@ -951,6 +974,8 @@ def compute_locants(
 def _describe_locant_source(source: LocantSource) -> str:
     if source is LocantSource.PARENT:
         return "Parent numbering (this structure's own)"
+    if source is LocantSource.SUBSTITUENT:
+        return "Substituent numbering (each prefix's own parent)"
     return "Ring numbering (conventional for the skeleton)"
 
 
@@ -993,6 +1018,11 @@ def _locant_summary(annotation: StructureAnnotation) -> str:
         return (
             f"{numbered} of {total} atoms numbered, combining this "
             f"structure's parent numbering with a ring skeleton's."
+        )
+    if LocantSource.SUBSTITUENT in sources:
+        return (
+            f"{numbered} of {total} atoms numbered, from the parent and from "
+            f"each substituent's own numbering, as its prefix name cites it."
         )
     return f"{numbered} of {total} atoms numbered from the parent chain."
 
@@ -1631,9 +1661,9 @@ def _locants_and_decisions(
     """
     try:
         from openchem.vendor.iupac_namer import name as build_name_tree
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
+        from openchem.vendor.iupac_namer.strategy import default_strategy
 
-        tree = build_name_tree(mol, IUPACCanonical())
+        tree = build_name_tree(mol, default_strategy())
     except Exception:  # noqa: BLE001 - locants are optional, groups are not
         return (), ()
 
@@ -1648,6 +1678,11 @@ def _locants_and_decisions(
                 source=LocantSource.PARENT,
                 kind=classify_locant(locant.label),
             )
+
+    # Before the ring table, which can only guess a substituted ring's
+    # orientation: it labelled naproxen's attachment carbon 6 and its methoxy
+    # carbon 2, the reverse of "6-methoxynaphthalen-2-yl" (round 4, A12).
+    _substituent_locants(tree, None, found)
 
     for atom_idx, label in _retained_ring_locants(mol, ring_systems).items():
         # setdefault: never overwrite the molecule's own numbering with a
@@ -1667,6 +1702,54 @@ def _locants_and_decisions(
         for choice in getattr(tree, "choices_made", ())
     )
     return tuple(sorted(found.values(), key=lambda loc: loc.atom_index)), decisions
+
+
+def _substituent_locants(tree, to_root: dict[int, int] | None, found: dict) -> None:
+    """Each prefix subtree's own numbering, carried onto the structure.
+
+    A subtree's numbering is keyed by FRAGMENT indices. The engine records,
+    per prefix, which atom of the molecule named one level up each fragment
+    atom was carved from (`PrefixEntry.atom_origin`, stamped by the carve
+    and checked injective and element-preserving there); composing those
+    maps level by level lands every locant on the caller's atom. `setdefault`
+    so the structure's own parent numbering always wins.
+    """
+    from openchem.vendor.iupac_namer.assembly import assemble
+
+    for entry in getattr(tree, "prefixes", None) or ():
+        origin = getattr(entry, "atom_origin", ())
+        if not origin:
+            continue
+        child_to_root = {
+            child: (level if to_root is None else to_root[level])
+            for child, level in origin
+            if to_root is None or level in to_root
+        }
+        subtree = entry.tree
+        numbering = getattr(subtree, "numbering", None)
+        # A one-atom substituent's "1" is cited nowhere ("methyl", "chloro")
+        # and would only clutter the drawing.
+        if numbering is not None and len(numbering.atom_to_locant) > 1:
+            try:
+                prefix = assemble(subtree)
+            except Exception:  # noqa: BLE001 - the name is provenance, not the number
+                prefix = ""
+            for fragment_atom, locant in numbering.atom_to_locant.items():
+                root = child_to_root.get(fragment_atom)
+                if root is None:
+                    continue
+                found.setdefault(
+                    root,
+                    AnnotatedLocant(
+                        atom_index=root,
+                        label=locant.label,
+                        source=LocantSource.SUBSTITUENT,
+                        kind=classify_locant(locant.label),
+                        prefix=prefix,
+                        fragment_atom=fragment_atom,
+                    ),
+                )
+        _substituent_locants(subtree, child_to_root, found)
 
 
 def _retained_ring_locants(mol: Chem.Mol, ring_systems) -> dict[int, str]:
@@ -1708,7 +1791,11 @@ def _retained_ring_locants(mol: Chem.Mol, ring_systems) -> dict[int, str]:
     which of the two it is showing.
     """
     try:
-        from openchem.vendor.iupac_namer.data_loader import _RING_CURATED_SMILES
+        # The engine's BUILT table, not the raw data: it fills the fusion
+        # carbons an entry leaves out (indole ships without 3a/7a) and adds
+        # the side-table maps, so the drawing numbers what the engine uses
+        # (round 4, A12).
+        from openchem.vendor.iupac_namer.ring_naming.retained_lookup import _CURATED
         from openchem.vendor.iupac_namer.ring_naming.common import (
             get_ring_canonical_smiles,
         )
@@ -1724,10 +1811,10 @@ def _retained_ring_locants(mol: Chem.Mol, ring_systems) -> dict[int, str]:
         if not key:
             continue
 
-        entry = _RING_CURATED_SMILES.get(key)
+        entry = _CURATED.get(key)
         if not entry:
             continue
-        atom_locants = entry.get("atom_locants")
+        atom_locants = entry[3]
         if not atom_locants:
             continue
 

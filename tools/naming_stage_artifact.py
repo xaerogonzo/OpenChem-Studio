@@ -35,6 +35,22 @@ Written to `benchmarks/naming/stages/<stage>.json`. `--compare` prints
 every row whose name changed, which is the review a stage's commit message
 quotes.
 
+## Populations, and the one that is locked
+
+    regression    corpus.json     187  tuning, adjudication, per-stage invariant
+    heldout       heldout.json     40  USED for tuning since naming round 4
+    heldout_v2    heldout2.json    40  evaluation only -- `--final-evaluation`
+
+`heldout_v2` was drawn and frozen before any round-4 diagnosis. A per-stage
+run cannot load it: `load_population` raises, and
+`tests/test_naming_heldout_lock.py` fails if any other tracked script so much
+as names the file. The final evaluation reports it as AGGREGATES only -- no
+per-row diff is printed for it even then, because a row read during the round
+becomes a row fixed during the round.
+
+Every count is printed with its denominator, so three populations can never
+collapse into one percentage.
+
 **Needs a bare `java` on PATH** for the round-trip classification; without it
 py2opsin fails and every row would classify as unparsable. The tool refuses
 to write an artifact in that state rather than recording a corpus-wide
@@ -60,7 +76,44 @@ STAGES = BENCH / "stages"
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(BENCH))
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+
+#: (key, file, final_evaluation_only). Order is report order.
+POPULATIONS: tuple[tuple[str, str, bool], ...] = (
+    ("regression", "corpus.json", False),
+    ("heldout", "heldout.json", False),
+    ("heldout_v2", "heldout2.json", True),
+)
+
+
+class FrozenPopulation(RuntimeError):
+    """An evaluation-only population was requested outside the final evaluation."""
+
+
+def load_population(key: str, *, final_evaluation: bool = False) -> tuple[str, list[dict]]:
+    """The rows of one population, refusing a frozen one unless this is the final run.
+
+    The refusal happens BEFORE the file is opened, so a mistaken call cannot
+    even put the rows in memory.
+    """
+    for name, filename, final_only in POPULATIONS:
+        if name != key:
+            continue
+        if final_only and not final_evaluation:
+            raise FrozenPopulation(
+                f"{key} ({filename}) is evaluation-only for naming round 4; "
+                "it loads only through --final-evaluation"
+            )
+        return filename, json.loads((BENCH / filename).read_text(encoding="utf-8"))
+    raise KeyError(key)
+
+
+def active_populations(*, final_evaluation: bool = False) -> list[str]:
+    return [
+        key
+        for key, filename, final_only in POPULATIONS
+        if (final_evaluation or not final_only) and (BENCH / filename).exists()
+    ]
 
 
 def _git(*args: str) -> str:
@@ -115,10 +168,16 @@ def _provenance(stage: str) -> dict:
         # Filled in by the stages that introduce them; declared here from the
         # start so an early artifact and a late one have the same field
         # semantics rather than differing by absence.
-        "comparator_spec_id": None,
+        "comparator_spec_id": _comparator_spec_id(),
         "strategy_id": "IUPACCanonical(default)",
         "linter_spec_id": None,
     }
+
+
+def _comparator_spec_id() -> str:
+    from openchem.vendor.iupac_namer.strategy import IUPACCanonical
+
+    return IUPACCanonical().comparator_spec_id()
 
 
 def _digest(path: Path) -> str:
@@ -218,7 +277,46 @@ def _classify(rows: list[dict], named: list[dict]) -> None:
         record["outcome"] = score.classify(row, record["name"])
 
 
-def build(stage: str, *, allow_no_java: bool) -> dict:
+def _adjudicated_targets() -> dict[str, str]:
+    """{canonical SMILES: adjudicated preferred name} for every row of
+    `adjudication.toml` whose preferred name is settled. Keyed by canonical
+    SMILES so a row matches however either file happens to write it."""
+    import tomllib
+
+    from rdkit import Chem
+
+    path = BENCH / "adjudication.toml"
+    if not path.exists():
+        return {}
+    targets: dict[str, str] = {}
+    for row in tomllib.loads(path.read_text(encoding="utf-8")).get("row", []):
+        preferred = row.get("preferred_name")
+        mol = Chem.MolFromSmiles(row.get("smiles", "")) if preferred else None
+        if mol is not None:
+            targets[Chem.MolToSmiles(mol)] = preferred
+    return targets
+
+
+def _preferred_scores(named: list[dict], targets: dict[str, str]) -> dict:
+    """The two agreements a PubChem-verbatim count cannot show: the engine
+    against the adjudicated preferred name, and PubChem against it (round 4,
+    A13). Counted over the rows that HAVE a settled target, which is the
+    denominator; an evaluation-only population has none by construction."""
+    from rdkit import Chem
+
+    rows = engine = pubchem = 0
+    for record in named:
+        mol = Chem.MolFromSmiles(record["smiles"])
+        target = targets.get(Chem.MolToSmiles(mol)) if mol is not None else None
+        if target is None:
+            continue
+        rows += 1
+        engine += record["name"] == target
+        pubchem += record["pubchem_name"] == target
+    return {"adjudicated_rows": rows, "engine": engine, "pubchem": pubchem}
+
+
+def build(stage: str, *, allow_no_java: bool, final_evaluation: bool = False) -> dict:
     provenance = _provenance(stage)
     if provenance["java"] == "ABSENT" and not allow_no_java:
         raise SystemExit(
@@ -228,12 +326,12 @@ def build(stage: str, *, allow_no_java: bool) -> dict:
             "--allow-no-java to record names WITHOUT round-trip classes."
         )
 
+    provenance["final_evaluation"] = final_evaluation
+    targets = _adjudicated_targets()
     populations = {}
-    for key, filename in (("regression", "corpus.json"), ("heldout", "heldout.json")):
+    for key in active_populations(final_evaluation=final_evaluation):
+        filename, rows = load_population(key, final_evaluation=final_evaluation)
         path = BENCH / filename
-        if not path.exists():
-            continue
-        rows = json.loads(path.read_text(encoding="utf-8"))
         named = _name_rows(rows)
         if provenance["java"] != "ABSENT":
             _classify(rows, named)
@@ -256,7 +354,7 @@ def build(stage: str, *, allow_no_java: bool) -> dict:
             # IUPAC Name is generated, not curated. The adjudicated count is a
             # separate field, added once adjudication exists.
             "pubchem_verbatim_exact": verbatim,
-            "adjudicated_preferred_exact": None,
+            "adjudicated_preferred_exact": _preferred_scores(named, targets),
             "records": named,
         }
     return {**provenance, "populations": populations}
@@ -271,13 +369,21 @@ def compare(previous: dict, current: dict) -> list[str]:
             continue
         was = {r["label"]: r for r in before["records"]}
         moved = 0
+        winners_moved = 0
+        # A frozen population is compared in AGGREGATE only; see the module
+        # docstring. Its per-row lines are never printed.
+        quiet = any(k == key and final for k, _f, final in POPULATIONS)
         for record in now["records"]:
             old = was.get(record["label"])
             if old is None:
                 lines.append(f"[{key}] NEW ROW {record['label']}: {record['name']}")
                 continue
+            if old.get("winning_hypothesis") != record.get("winning_hypothesis"):
+                winners_moved += 1
             if old["name"] != record["name"]:
                 moved += 1
+                if quiet:
+                    continue
                 lines.append(f"[{key}] {record['label']}")
                 lines.append(f"    was: {old['name']}")
                 lines.append(f"    now: {record['name']}")
@@ -298,11 +404,13 @@ def compare(previous: dict, current: dict) -> list[str]:
             if was.get(r["label"], {}).get("outcome") in score_success()
             and r.get("outcome") not in score_success()
         ]
+        n = now["rows"]
         lines.append(
-            f"[{key}] {moved} of {now['rows']} names changed; "
-            f"verbatim {before['pubchem_verbatim_exact']} -> "
-            f"{now['pubchem_verbatim_exact']}; "
-            f"STRUCTURALLY REGRESSED: {regressed or 'none'}"
+            f"[{key}] {moved}/{n} names changed; {winners_moved}/{n} winning "
+            f"hypotheses changed; verbatim {before['pubchem_verbatim_exact']}/{n} -> "
+            f"{now['pubchem_verbatim_exact']}/{n}; "
+            f"STRUCTURALLY REGRESSED: "
+            f"{(len(regressed) if quiet else regressed) or 'none'}"
         )
     return lines
 
@@ -318,13 +426,22 @@ def main() -> None:
     parser.add_argument("--stage", required=True, help="stage name, e.g. baseline")
     parser.add_argument("--compare", help="a previous artifact to diff against")
     parser.add_argument(
+        "--final-evaluation",
+        action="store_true",
+        help="also score the frozen evaluation-only population (end of round only)",
+    )
+    parser.add_argument(
         "--allow-no-java",
         action="store_true",
         help="record names without round-trip classes (diagnostics only)",
     )
     args = parser.parse_args()
 
-    artifact = build(args.stage, allow_no_java=args.allow_no_java)
+    artifact = build(
+        args.stage,
+        allow_no_java=args.allow_no_java,
+        final_evaluation=args.final_evaluation,
+    )
     STAGES.mkdir(parents=True, exist_ok=True)
     out = STAGES / f"{args.stage}.json"
     out.write_text(json.dumps(artifact, indent=1), encoding="utf-8")
@@ -333,11 +450,18 @@ def main() -> None:
           f"{' DIRTY' if artifact['git_dirty'] else ''}"
           f"  rdkit {artifact['rdkit']}  opsin {artifact['opsin_jar']}")
     for key, population in artifact["populations"].items():
+        n = population["rows"]
         print(
-            f"  {key:11s} {population['rows']:3d} rows  "
-            f"verbatim={population['pubchem_verbatim_exact']:3d}  "
-            f"{population['outcomes']}"
+            f"  {key:11s} verbatim={population['pubchem_verbatim_exact']:3d}/{n}  "
+            + "  ".join(f"{k}={v}/{n}" for k, v in sorted(population["outcomes"].items()))
         )
+        preferred = population["adjudicated_preferred_exact"]
+        if preferred and preferred["adjudicated_rows"]:
+            m = preferred["adjudicated_rows"]
+            print(
+                f"  {'':11s} preferred: engine={preferred['engine']}/{m}  "
+                f"pubchem={preferred['pubchem']}/{m}  (rows with a settled target)"
+            )
     print(f"-> {out}")
 
     if args.compare:

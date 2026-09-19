@@ -17,6 +17,7 @@ from openchem.chem.atom_numbering import (
     MODE_LABELS,
     OFF,
     labels_for_molblock,
+    locant_provenance,
 )
 
 MPMI = "CN1CCC[C@@H]1Cc1c[nH]c2ccccc12"
@@ -49,12 +50,23 @@ def test_the_drawing_numbers_are_every_atom_from_one():
 
 
 def test_the_locants_are_the_engines_and_cover_only_what_it_names():
-    """MPMI's indole is numbered 1-7; its pyrrolidine and the methyl are not,
-    because the engine numbers the parent and this one lives in a
-    substituent (measured, and the reason the status line exists)."""
+    """MPMI, "3-{[(2R)-1-methylpyrrolidin-2-yl]methyl}-1H-indole".
+
+    The indole is the parent and takes the parent numbering, fusion carbons
+    included (3a/7a, which the ring entry left out until round 4, A7). Since
+    round 4 (A12) the pyrrolidine takes ITS numbering too, as its prefix
+    cites it -- N1, attachment carbon 2 -- carried from the prefix subtree
+    through the carve's atom map. The N-methyl and the CH2 linker are
+    one-atom substituents whose "1" is cited nowhere, and stay bare."""
     labels, status = labels_for_molblock(_molblock(MPMI), LOCANTS)
-    assert sorted(labels.values()) == ["1", "2", "3", "4", "5", "6", "7"]
-    assert status.startswith("7 of 16 atoms numbered")
+    indole = {9: "1", 8: "2", 7: "3", 15: "3a", 14: "4", 13: "5", 12: "6", 11: "7", 10: "7a"}
+    pyrrolidine = {1: "1", 5: "2", 4: "3", 3: "4", 2: "5"}
+    assert labels == {**indole, **pyrrolidine}
+    assert status.startswith("14 of 16 atoms numbered")
+    assert "substituents' own numbering" in status
+    notes = locant_provenance(_molblock(MPMI))
+    assert notes[5] == "2 of (2R)-1-methylpyrrolidin-2-yl (the substituent's own numbering)"
+    assert notes[7] == "3 in this structure's parent numbering"
 
 
 def test_a_retained_name_numbers_nothing_and_explains_itself():

@@ -255,6 +255,30 @@ class NamingStrategy:
         """
         return 1_000_000.0   # stop if we found a retained name
 
+    def preference_key(self, plan: NamingPlan, mol=None):
+        """The comparable key the search ranks plans by. Higher is preferred.
+
+        The default wraps `score_plan` exactly, so a strategy that only
+        overrides the float keeps its behaviour. See `preference.py` for why
+        the engine ranks keys rather than floats.
+        """
+        from openchem.vendor.iupac_namer.preference import LegacyScoreKey
+
+        return LegacyScoreKey(self.score_plan(plan))
+
+    def comparator_spec_id(self) -> str:
+        """Which comparator ranks this strategy's plans; stamped into stage records."""
+        return "legacy-float"
+
+    def search_bound(self):
+        """When a plan is good enough to stop the search. Not a key."""
+        from openchem.vendor.iupac_namer.preference import SearchBound
+
+        return SearchBound(
+            legacy_threshold=self.good_enough_score(),
+            plan_kind_at_least=5,  # a retained plan; see TIER_SPECS "plan_kind"
+        )
+
     def retained_name_policy(self) -> str:
         """DEPRECATED, and it never had a reader.
 
@@ -336,51 +360,22 @@ class IUPACCanonical(NamingStrategy):
     }
 
     def accept_additive(self, additive_groups) -> bool:
-        """Gate P-oxide additive nomenclature.
+        """Gate additive nomenclature: N-oxides only, never P-oxides.
 
-        Per IUPAC P-64.4, ``phosphane oxide`` (additive) is the PIN for
-        trialkyl P=O — e.g. ``trimethylphosphane oxide`` for
-        ``CP(=O)(C)C``.  But for phosphate-style P=O where every
-        non-``=O`` neighbour is an O/N/S linker (ester / amide / thio
-        family), the substitutive form ``tri(methoxy)(oxo)phosphane``
-        and friends is the PIN — additive would compete with the
-        phosphoric-acid retained ester family and OPSIN's parsing of
-        ``trimethoxyphosphane oxide`` is fragile when P is a substituent
-        on an organic parent.
+        This used to accept "trimethylphosphane oxide" as the PIN, citing
+        P-64.4. The book says the opposite: phosphane oxides are named "(3)
+        substitutively, as heterones, by using the suffix '-one' and
+        lambda5-phosphane as the parent hydride. Method (3) leads to preferred
+        IUPAC names", "triphenyl-lambda5-phosphanone (PIN) / (2)
+        triphenylphosphane oxide" (P-74.2.1.4, pp. 768-769 and 839). Its
+        phosphate-style exclusion and the aryl exclusion (which sent
+        triphenylphosphine oxide to "[(oxo)diphenylphosphanyl]benzene") go with
+        it; engine._name_single_centre_parent names these now (round 4, A6).
 
-        Rule: accept P-oxide additive only when ALL non-``=O`` heavy
-        neighbours of the P centre are *acyclic* carbons.  Aryl-/ring-
-        bound P falls back to the substitutive form because the ring
-        would win as parent (the trailing "oxide" otherwise attaches
-        to the wrong stem).  Phosphate / phosphoric-amide / thio
-        analogues stay substitutive because at least one neighbour is
-        non-carbon.
-
-        N-oxide additive nomenclature is always accepted (pyridine
-        1-oxide, trimethylamine N-oxide, etc.).
+        N-oxide additive nomenclature is always accepted (pyridine 1-oxide,
+        trimethylamine N-oxide, etc.).
         """
-        for ag in additive_groups:
-            if ag.get("center_element") != "P":
-                continue
-            non_oxide = ag.get("non_oxide_neighbor_elements")
-            if non_oxide is None:
-                # Backwards-compat: detection didn't enrich this group;
-                # fall back to the conservative reject.
-                return False
-            # Only accept additive if every non-oxide neighbour is carbon.
-            if not all(elem == "C" for elem in non_oxide):
-                return False
-            # And only when none of those carbon neighbours sit inside
-            # a ring — otherwise the ring will win as parent and the
-            # trailing "oxide" would attach to the wrong scaffold (e.g.
-            # triphenylphosphine oxide must take the substitutive form
-            # ``[(oxo)diphenylphosphanyl]benzene`` because benzene is
-            # the parent).
-            if ag.get("non_oxide_neighbor_aromatic"):
-                return False
-            if ag.get("non_oxide_neighbor_in_ring"):
-                return False
-        return True
+        return not any(ag.get("center_element") == "P" for ag in additive_groups)
 
     def accept_plan(self, plan: NamingPlan) -> bool:
         """Hard structural reject for FC plans that violate IUPAC rules."""
@@ -417,9 +412,27 @@ class IUPACCanonical(NamingStrategy):
             if interp is None:
                 return False
             # Seniority of the FC-covered FG (from any instance of that type)
+            # A sulfonic ester takes the carboxylic ester's functional-class
+            # route (naming round 4), so an "ester" decomposition is judged by
+            # the ester it actually CUTS: a carboxylic ester outranks a
+            # sulfonic one as its acid does, and "methyl 4-(methoxysulfonyl)
+            # benzoate" must not lose to the sulfonate reading.
+            covered_types = {covered_fg_type}
+            if covered_fg_type == "ester" and interp is not None:
+                roots = frozenset(getattr(plan.decomposition, "root_atoms", None) or ())
+                for fg in interp.fgs:
+                    if fg.type == "sulfonate_ester" and roots and roots <= frozenset(fg.atoms):
+                        covered_types = {"sulfonate_ester"}
+                        break
+                # Esters are not suffix-eligible, so the seniority loop below
+                # never sees one; compare the two ester kinds here.
+                if covered_types == {"sulfonate_ester"} and any(
+                    fg.type == "ester" for fg in interp.fgs
+                ):
+                    return False
             covered_seniority: int | None = None
             for fg in interp.fgs:
-                if fg.type == covered_fg_type:
+                if fg.type in covered_types:
                     covered_seniority = fg.get_property("seniority", 9999)
                     break
             if covered_seniority is None:
@@ -427,7 +440,7 @@ class IUPACCanonical(NamingStrategy):
             # Reject if there is a strictly more senior FG (lower seniority
             # number) than the FC-covered type.
             for fg in interp.fgs:
-                if fg.type == covered_fg_type:
+                if fg.type in covered_types:
                     continue
                 if not fg.suffix_eligible:
                     continue
@@ -536,6 +549,93 @@ class IUPACCanonical(NamingStrategy):
     def good_enough_score(self) -> float:
         return 1_000_000.0   # stop on retained name
 
+    def comparator_spec_id(self) -> str:
+        from openchem.vendor.iupac_namer.preference import COMPARATOR_SPEC_ID
+
+        return COMPARATOR_SPEC_ID
+
+    def preference_key(self, plan: NamingPlan, mol=None):
+        """The declared tiers of `preference.TIER_SPECS`, built from the SAME
+        components `score_plan` sums -- so every difference from the legacy
+        ranking is a difference in how they are COMBINED, never in what is
+        measured. The stage records enumerate those differences.
+        """
+        from openchem.vendor.iupac_namer.preference import (
+            NomenclaturePreferenceKey,
+            locant_set_tier,
+        )
+
+        empty = locant_set_tier(())
+        blank = (0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, empty, empty, empty, empty, 0)
+        match plan:
+            case RetainedPlan():
+                return NomenclaturePreferenceKey((5,) + blank[1:])
+            case MultiplicativePlan():
+                return NomenclaturePreferenceKey((3,) + blank[1:])
+            case RingAssemblyPlan():
+                return NomenclaturePreferenceKey((2,) + blank[1:])
+            case FunctionalClassPlan():
+                return NomenclaturePreferenceKey((1,) + blank[1:])
+            case ReplacementPlan():
+                pcg = self._pcg_seniority_score(
+                    plan.pcg.type if plan.pcg else None,
+                    (plan.pcg,) if plan.pcg else (),
+                )
+                return NomenclaturePreferenceKey((0, float(pcg)) + blank[2:])
+            case SubstitutivePlan():
+                pass
+            case _:
+                return NomenclaturePreferenceKey(blank)
+
+        kind = 4 if self._cation_band_applies(plan) else 0
+        numbering = self._numbering_components(plan)
+        from openchem.vendor.iupac_namer.ring_naming.indicated_hydrogen_p58 import (
+            added_hydrogen_tier,
+        )
+
+        added = locant_set_tier(added_hydrogen_tier(
+            mol, plan.named_parent, plan.numbering, plan.suffix_groups,
+        ))
+        if numbering is None:
+            hetero, suffix, unsat, prefix, primes = 0.0, empty, empty, empty, 0
+        else:
+            hetero = float(numbering["heteroatom_score"])
+            suffix = locant_set_tier(numbering["suffix_locants"])
+            unsat = locant_set_tier(numbering["unsat_locants"])
+            prefix = locant_set_tier(numbering["prefix_locants"])
+            primes = -int(numbering["prefix_prime_count"])
+        return NomenclaturePreferenceKey((
+            kind,
+            float(self._pcg_seniority_score(plan.pcg_type, plan.pcg_instances)),
+            self._pcg_on_parent_count(plan),
+            float(self._parent_selection_score(plan, include_substituent_count=False)),
+            float(self._retained_ring_seniority_score(plan.named_parent)),
+            float(self._saturated_hydro_demotion(plan.named_parent, mol, self._fusion_method_rank(
+                plan.named_parent, self._naming_method_score(plan.named_parent)
+            ))),
+            len(plan.prefix_assignments),
+            hetero,
+            suffix,
+            added,
+            unsat,
+            prefix,
+            primes,
+        ))
+
+    def _cation_band_applies(self, plan: SubstitutivePlan) -> bool:
+        """The +500,000 band of `score_plan`, as a yes/no. See its comment."""
+        if not plan.parent_ring_cation_atoms:
+            return False
+        interp = plan.interpretation
+        has_senior_acid_pcg = (
+            interp is not None
+            and any(
+                fg.suffix_eligible and fg.get_property("seniority", 9999) < 800
+                for fg in interp.fgs
+            )
+        )
+        return not has_senior_acid_pcg
+
     def cache_key(self) -> str:
         return "iupac"
 
@@ -571,7 +671,37 @@ class IUPACCanonical(NamingStrategy):
         except Exception:
             return 20.0  # default: any PCG is strongly preferred
 
-    def _parent_selection_score(self, plan: SubstitutivePlan) -> float:
+    def _pcg_on_parent_count(self, plan: SubstitutivePlan) -> int:
+        """P-44.1.1: how many principal characteristic groups the parent expresses.
+
+        A suffix with a locant counts. So does a group a retained name ALREADY
+        spells -- "urazol", a precomposed "...benzodiazepin-2-one" -- which has
+        no suffix group but is expressed all the same; counted as the band-4
+        branch of `_parent_selection_score` credits it, or those parents lose
+        to von Baeyer names that carry the C=O as a suffix.
+        """
+        reachable = sum(1 for sg in plan.suffix_groups if sg.locants)
+        if reachable or plan.suffix_groups:
+            return reachable
+        candidate = plan.named_parent.candidate
+        if not (
+            plan.named_parent.naming_method == "retained"
+            and plan.pcg_type
+            and plan.pcg_instances
+            and candidate.ring_system is not None
+        ):
+            return 0
+        parent_atoms = candidate.atom_indices
+        ring_atoms = candidate.ring_system.atom_indices
+        precomposed = getattr(plan.named_parent, "precomposed_retained_no_suffix", False)
+        return sum(
+            1 for fg in plan.pcg_instances
+            if fg.atoms <= parent_atoms or (precomposed and fg.atoms & ring_atoms)
+        )
+
+    def _parent_selection_score(
+        self, plan: SubstitutivePlan, *, include_substituent_count: bool = True
+    ) -> float:
         """P-44 criteria in strict priority order. Returns 0.0–99.0.
 
         Priority order (each band dominates all lower bands):
@@ -764,11 +894,36 @@ class IUPACCanonical(NamingStrategy):
 
         # Band 1: number of substituents (P-44.3d)
         # Max ~10 substituents → max 0.001 pts.
-        score += len(plan.prefix_assignments) * 0.0001
+        #
+        # EXCLUDED FROM THE PREFERENCE KEY'S parent_selection TIER, which
+        # carries it as its own later tier instead. The criterion chooses
+        # between DIFFERENT parent skeletons; between two namings of the SAME
+        # ring it counts notation -- a Hantzsch-Widman plan writes the ring's
+        # oxo groups as two prefixes where a retained stem encodes them -- and
+        # as part of this tier it outranked the naming method (D-022w, D-022z).
+        if include_substituent_count:
+            score += len(plan.prefix_assignments) * 0.0001
 
         return min(99.0, score)
 
     def _numbering_score(self, plan: SubstitutivePlan) -> float:
+        """The legacy numbering float, rebuilt from `_numbering_components`.
+
+        Kept EXACT so `LegacyScoreKey` and the stage-5a acceptance still mean
+        what they meant. The preference key reads the components directly and
+        never this sum.
+        """
+        c = self._numbering_components(plan)
+        if c is None:
+            return 0.0
+        return (c["heteroatom_score"]
+                - sum(c["suffix_locants"]) * 0.1
+                - sum(c["unsat_locants"]) * 0.05
+                - sum(c["prefix_locants"]) * 0.01
+                - c["prefix_prime_count"] * 0.00001
+                + c["alpha_first_score"])
+
+    def _numbering_components(self, plan: SubstitutivePlan) -> dict | None:
         """Reward numberings that give lower locants (P-14.5, P-14.4).
 
         Priority order (IUPAC P-31.1.2.2 + P-14.5):
@@ -880,19 +1035,7 @@ class IUPACCanonical(NamingStrategy):
         prefix_locants = sorted(prefix_locants_raw)
 
         if not suffix_locants and not unsat_locants and not prefix_locants and not heteroatom_score:
-            return 0.0
-
-        # Suffix: ×0.1 per locant unit (max single locant ~40 → -4.0)
-        suffix_score = -sum(suffix_locants) * 0.1
-        # Unsaturation: ×0.05 per locant unit — after suffix, before prefix
-        unsat_score = -sum(unsat_locants) * 0.05
-        # Prefix: ×0.01 per locant unit (max sum ~100 → -1.0)
-        prefix_score = -sum(prefix_locants) * 0.01
-        # Prime tiebreak: when the numeric locant is equal (e.g. 2 vs 2'),
-        # unprimed ring-assembly locants are preferred (P-14.5 first-point-of-
-        # difference: unprimed is lower than primed).  Weight is well below
-        # any other sub-band so it only breaks ties.
-        prefix_prime_score = -prefix_prime_count * 0.00001
+            return None
 
         # P-45.5 alphanumerical-locant tiebreak: when the prefix-locant set
         # is symmetric (both numbering directions give the same sorted
@@ -938,12 +1081,100 @@ class IUPACCanonical(NamingStrategy):
         except Exception:
             alpha_first_score = 0.0
 
-        return (heteroatom_score
-                + suffix_score
-                + unsat_score
-                + prefix_score
-                + prefix_prime_score
-                + alpha_first_score)
+        return {
+            "heteroatom_score": heteroatom_score,
+            "suffix_locants": suffix_locants,
+            "unsat_locants": unsat_locants,
+            "prefix_locants": prefix_locants,
+            "prefix_prime_count": prefix_prime_count,
+            # LEGACY ONLY. The "z" fallback this is built from is the defect
+            # naming round 4 found; the preference key does not read it, and
+            # P-14.4 (g) is applied on executed names instead.
+            "alpha_first_score": alpha_first_score,
+        }
+
+    #: Ring-naming methods that produce FUSION names (P-25), including bridged
+    #: fused names (P-25.4). See `_fusion_method_rank`.
+    _FUSION_FAMILY_METHODS = frozenset({
+        "systematic", "fused_hetero_hydro", "benzo_fused_bridged", "methylenedioxy_bridge",
+    })
+    #: Above von Baeyer (1.2) and below every monocyclic method that could
+    #: compete for the same atoms (Hantzsch-Widman 50, replacement 40, ...).
+    _FUSION_ALLOWED_RANK = 3.0
+    #: Below von Baeyer, when P-52.2.4.1 forbids the fusion name.
+    _FUSION_FORBIDDEN_RANK = 1.1
+
+    def _saturated_hydro_demotion(self, named_parent, mol, rank: float) -> float:
+        """A hydro name for a fully saturated heteromonocycle ranks below its
+        saturated name.
+
+        P-31.1.4.2.4 (pdf p. 336): "names for the fully saturated
+        heteromonocycles that have retained names or Hantzsch-Widman names are
+        preferred to those expressed by 'hydro' prefixes, for example, oxolane
+        and piperidine are preferred to tetrahydrofuran and hexahydropyridine".
+        "2,3,4,5-tetrahydro-1,3-thiazole" was labelled "retained" -- its
+        mancude parent is -- and outranked "1,3-thiazolidine (PIN)" (Table 2.3)
+        on the method tier (naming round 4). Exocyclic C=O does not count:
+        only a ring double bond makes the ring less than saturated.
+        """
+        rs = named_parent.candidate.ring_system
+        name = named_parent.name or ""
+        # A MANCUDE retained name on a saturated ring is the same mistake
+        # without the hydro prefix: cid56000's ring, every ring bond single,
+        # came out "...-1,3-thiazol-3-yl" beside the adjudicated
+        # "...-1,3-thiazolidin-3-yl". Table 2.3's saturated retained names
+        # (piperidine, pyrrolidine, ...) are the exception.
+        mancude_retained = (
+            named_parent.naming_method == "retained"
+            and name.split("-")[-1] not in self._SATURATED_RETAINED_RINGS
+        )
+        if (mol is None or rs is None or rs.type != "monocyclic"
+                or ("hydro" not in name and not mancude_retained)):
+            return rank
+        ring = named_parent.candidate.atom_indices
+        if all(mol.GetAtomWithIdx(i).GetAtomicNum() == 6 for i in ring):
+            return rank
+        for bond in mol.GetBonds():
+            a, b = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+            if a in ring and b in ring and bond.GetBondTypeAsDouble() > 1.0:
+                return rank
+        return min(rank, self._HYDRO_BELOW_SATURATED_RANK)
+
+    # Below "hantzsch_widman" (50) in _naming_method_score.
+    _HYDRO_BELOW_SATURATED_RANK = 40.0
+    # Table 2.3 (pdf p. 151): retained names of saturated heteromonocycles.
+    _SATURATED_RETAINED_RINGS = frozenset({
+        "piperidine", "piperazine", "pyrrolidine", "pyrazolidine", "imidazolidine",
+        "morpholine", "thiomorpholine", "selenomorpholine", "telluromorpholine",
+    })
+
+    def _fusion_method_rank(self, named_parent, rank: float) -> float:
+        """The naming-method rank as an ORDERING, for the preference key only.
+
+        P-52.2.4.1 (p. 450): "Fusion nomenclature gives preferred IUPAC names
+        only to compounds having at least two rings of at least five or more
+        members ... When fusion names are not allowed, unsaturated von Baeyer
+        ring system names are preferred IUPAC names" -- the book's own example
+        is bicyclo[4.1.0]hepta-1,3,5-triene (PIN) for cyclopropabenzene.
+
+        The rank table below was calibrated for the legacy float, where a
+        method counted x0.01 and the table was a nudge: fused `systematic` at
+        0.9 sat below `von_baeyer` at 1.2 harmlessly, and
+        `benzo_fused_bridged` was missing and defaulted to 0.5. Read as a
+        lexicographic tier those numbers put von Baeyer ahead of fusion
+        (10 vendored tests, naming round 4). So a fusion-family method is
+        re-ranked here by the rule, not by nudging the table -- and only
+        here, which keeps `score_plan` and `LegacyScoreKey` exact.
+        """
+        if named_parent.naming_method not in self._FUSION_FAMILY_METHODS:
+            return rank
+        rs = named_parent.candidate.ring_system
+        if rs is None or len(rs.rings) < 2:
+            return rank
+        big_rings = sum(1 for ring in rs.rings if len(ring) >= 5)
+        if big_rings >= 2:
+            return max(rank, self._FUSION_ALLOWED_RANK)
+        return min(rank, self._FUSION_FORBIDDEN_RANK)
 
     def _naming_method_score(self, named_parent) -> float:
         """Preference ordering for naming methods (Band 1, × 0.01).
@@ -1065,3 +1296,61 @@ class IUPACCanonical(NamingStrategy):
         if getattr(rs, "type", None) != "bridged":
             return 0.0
         return self._RETAINED_RING_SENIORITY_CREDIT
+
+
+# ---------------------------------------------------------------------------
+# The active strategy (naming round 4, A11)
+# ---------------------------------------------------------------------------
+#
+# Eleven helpers used to build their own ``IUPACCanonical()`` when they were
+# not handed a strategy, so ``name_smiles(smiles, strategy=X)`` could change
+# the main search while those helpers still decided with the default. The
+# session cache had the same blind spot: its key held no strategy, so two
+# strategies sharing a session would have shared answers. The strategy a
+# top-level call was given is now bound for the whole call, every helper asks
+# ``active_strategy()``, and the cache key carries ``cache_key()``.
+# ``tests/test_namer_strategy_propagation.py`` guards both, and forbids a new
+# construction site outside this module.
+
+import contextvars as _contextvars
+from contextlib import contextmanager as _contextmanager
+
+_ACTIVE_STRATEGY: _contextvars.ContextVar = _contextvars.ContextVar(
+    "iupac_namer_active_strategy", default=None,
+)
+_DEFAULT_STRATEGY: NamingStrategy | None = None
+
+
+def default_strategy() -> NamingStrategy:
+    """The one shared IUPACCanonical. Strategies hold no state (and refuse
+    attribute assignment), so a single instance serves every caller."""
+    global _DEFAULT_STRATEGY
+    if _DEFAULT_STRATEGY is None:
+        _DEFAULT_STRATEGY = IUPACCanonical()
+    return _DEFAULT_STRATEGY
+
+
+def active_strategy() -> NamingStrategy:
+    """The strategy of the naming call in progress, else the default."""
+    strategy = _ACTIVE_STRATEGY.get()
+    return strategy if strategy is not None else default_strategy()
+
+
+@_contextmanager
+def using_strategy(strategy: NamingStrategy | None):
+    """Bind *strategy* (None: keep the active one) for the enclosed call."""
+    token = _ACTIVE_STRATEGY.set(strategy if strategy is not None else active_strategy())
+    try:
+        yield _ACTIVE_STRATEGY.get()
+    finally:
+        _ACTIVE_STRATEGY.reset(token)
+
+
+def _refuse_setattr(self, name, value):
+    raise AttributeError(
+        f"{type(self).__name__} is immutable: a strategy's decisions are keyed "
+        f"by cache_key(), so changing one after creation would reuse stale names"
+    )
+
+
+NamingStrategy.__setattr__ = _refuse_setattr  # type: ignore[method-assign]

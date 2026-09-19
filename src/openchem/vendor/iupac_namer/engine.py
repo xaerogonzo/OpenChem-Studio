@@ -24,7 +24,7 @@ from openchem.vendor.iupac_namer.types import (
 from openchem.vendor.iupac_namer.perception import Perception
 from openchem.vendor.iupac_namer.perception.extraction import (
     carve_substituent, carve_bridging_substituent, strip_additive_atoms,
-    carve_fc_fragments,
+    carve_fc_fragments, fragment_origin,
 )
 from openchem.vendor.iupac_namer.assembly import assemble, derive_sort_name
 from openchem.vendor.iupac_namer.data_loader import (
@@ -444,27 +444,7 @@ def _name_amine_fg_substituent(
             logger.warning("Amine compound-prefix: N-sub carve failed: %s", e)
             return None
 
-    # Assemble "dimethylamino", "methylamino", etc.
-    # Disambiguate when 2+ N-substituents are present and any is complex
-    # (locant-bearing or already bracketed).  Without grouping, e.g.
-    # "(quinazolin-2-yl)methylamino" is mis-parsed by OPSIN as
-    # "[(quinazolin-2-yl)methyl]amino".  See FDA-0033.
-    def _is_complex_nsub(nm: str) -> bool:
-        if not nm:
-            return False
-        if nm[0] in "([{":
-            return True
-        return "-" in nm
-    _distinct = set(n_sub_names)
-    _any_complex = any(_is_complex_nsub(nm) for nm in _distinct)
-    if len(_distinct) >= 2 and _any_complex:
-        n_sub_names = [
-            nm if (nm and nm[0] in "([{") else f"({nm})"
-            for nm in n_sub_names
-        ]
-    merged = merge_identical_prefixes([(n, ()) for n in n_sub_names])
-    merged.sort(key=lambda m: m.sort_name)
-    n_prefix_str = render_merged_prefixes(merged).rstrip("-")
+    n_prefix_str = _compose_n_substituents(n_sub_names)
     compound_prefix = n_prefix_str + "amino"
 
     return LeafTree(
@@ -820,11 +800,25 @@ def _name_heteroatom_fv_substituent(
                 or (len(sub_names) >= 2 and _any_acyl_sn)
                 or (len(sub_names) >= 2 and _any_het_prefix_sn)
             )
-            if _wrap_for_disambig:
-                sub_names = [
-                    nm if (nm and nm[0] in "([{") else f"({nm})"
-                    for nm in sub_names
-                ]
+            if _wrap_for_disambig or len(set(sub_names)) >= 2:
+                # Every ambiguity above comes from two names touching. The
+                # book's form never lets them: the first enclosed only if
+                # compound, every later one enclosed -- "methyl(propanoyl)
+                # amino", "hydroxy(methyl)amino" (see _compose_n_substituents).
+                # Pre-wrapping here and letting the merge wrap again gave
+                # "{[(methyl)][(propanoyl)]amino}" (naming round 4).
+                compound_prefix = _compose_n_substituents(list(sub_names)) + suffix
+                return LeafTree(
+                    output_form=output_form,
+                    free_valence=free_valence,
+                    choices_made=(Choice(
+                        type="heteroatom_fv_substituent",
+                        detail=f"element={att_atom.GetSymbol()}, suffix={suffix}, prefix={compound_prefix}",
+                    ),),
+                    decision_ctx=decision_ctx,
+                    validity_warnings=None,
+                    text=compound_prefix,
+                )
 
         # Combine: alphabetical sort, multiplier-merge identical names.
         merged = merge_identical_prefixes([(n, ()) for n in sub_names])
@@ -1029,6 +1023,7 @@ def _name_urea_functional_parent(
     depth: int,
     chalcogen_atomic_num: int = 8,
     parent_name: str = "urea",
+    perception=None,
 ) -> LeafTree | None:
     """IUPAC P-66.6.3 retained urea/thiourea name for substituted
     (R)2N-C(=X)-N(R)2 where X is O (urea) or S (thiourea).
@@ -1122,57 +1117,82 @@ def _name_urea_functional_parent(
     c_atom, o_atom, (n1, n2) = urea_carbon
     core_atoms = {c_atom.GetIdx(), o_atom.GetIdx(), n1.GetIdx(), n2.GetIdx()}
 
-    # All non-core heavy atoms must be reachable via the two N atoms only
-    # (i.e. the substituents hang off the N's, not off the central C or O).
-    # Connected-component check: starting from each N, walking only through
-    # non-core atoms, reach all non-core heavy atoms.
-    heavy_atoms = {a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() > 1}
-    non_core = heavy_atoms - core_atoms
-    reachable: set[int] = set()
-    for n in (n1, n2):
-        for nb in n.GetNeighbors():
-            if nb.GetIdx() in non_core:
-                comp = _reach_from(nb.GetIdx(), set(non_core), mol)
-                reachable |= comp
-    if reachable != non_core:
-        # Some atom is not connected through an N — this isn't a clean urea core.
-        return None
+    # Only groups senior to the amide class send a urea elsewhere. The book
+    # also puts other amides above it ("N-carbamoylbenzamide (PIN)", p. 661),
+    # but the engine ranks urea's carbonic amide with them, and the general
+    # path then names "1-amino-N-benzoylmethanamide": worse than the urea name.
+    return _name_n_core_parent(
+        mol, core_atoms, free_ns=[n1, n2], fixed={}, parent_name=parent_name,
+        output_form=output_form, decision_ctx=decision_ctx, strategy=strategy,
+        session=session, depth=depth, perception=perception,
+        seniority_limit=1100,
+    )
 
-    # If both N atoms are unsubstituted (only H), defer to the retained-name
-    # path which already handles bare urea via lookup_retained_name.
-    n_substituent_components: dict[int, list[frozenset[int]]] = {n1.GetIdx(): [], n2.GetIdx(): []}
-    for n in (n1, n2):
-        pool = set(non_core)
+
+# P-41 class 11 (amides) is the rank of urea and guanidine: a group of class 11
+# or higher OUTSIDE the core outranks them, because carbonic acid ranks below
+# the carboxylic and sulfonic acids whose amides the book cites as parents
+# ("N-carbamoylbenzamide (PIN)", "N-carbamoylbenzenesulfonamide (PIN)", p. 661;
+# "N-carbamimidoylacetamide (PIN)", p. 676). Hydrazides (class 12) and
+# everything after are junior. The values are functional_groups.json's.
+_N_CORE_PARENT_SENIORITY_LIMIT = 1200
+
+
+def _name_n_core_parent(
+    mol, core_atoms, free_ns, fixed, parent_name, output_form, decision_ctx,
+    strategy, session, depth, perception=None,
+    seniority_limit=_N_CORE_PARENT_SENIORITY_LIMIT, cite_locants=True,
+):
+    """Name a retained N-core parent (urea, thiourea, guanidine) substituted
+    only on its nitrogens.
+
+    ``free_ns`` take N, N', N'', ... in the order P-31.1.4 chooses: lowest
+    locants for all the prefixes together first, so the nitrogen with more
+    substituents is unprimed ("N,N,N'-trimethylguanidine (PIN)", p. 676; atom
+    order gave "N,N',N'-trimethylurea"), then the first-cited prefix.
+    ``fixed`` maps a nitrogen to the label its role fixes (guanidine's imino
+    N''). Returns None when the core is not the molecule's parent: an atom
+    not reached through a nitrogen, a senior group in a substituent, or no
+    substituent at all (the bare parent is a retained-name lookup).
+    """
+    all_ns = list(free_ns) + [mol.GetAtomWithIdx(i) for i in fixed]
+    heavy_atoms = {a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() > 1}
+    non_core = heavy_atoms - set(core_atoms)
+    components: dict[int, list[frozenset[int]]] = {n.GetIdx(): [] for n in all_ns}
+    reachable: set[int] = set()
+    for n in all_ns:
+        pool = set(non_core) - reachable
         for nb in n.GetNeighbors():
-            if nb.GetAtomicNum() == 1:
-                continue
             if nb.GetIdx() not in pool:
                 continue
             comp = _reach_from(nb.GetIdx(), pool, mol)
-            n_substituent_components[n.GetIdx()].append(frozenset(comp))
+            components[n.GetIdx()].append(frozenset(comp))
             pool -= comp
-    n1_subs = n_substituent_components[n1.GetIdx()]
-    n2_subs = n_substituent_components[n2.GetIdx()]
-    if not n1_subs and not n2_subs:
-        return None  # bare urea -- let lookup_retained_name handle it
+            reachable |= comp
+    if reachable != non_core:
+        return None  # some atom hangs off the central carbon or chalcogen
+    if not any(components.values()):
+        return None  # bare parent -- lookup_retained_name handles it
+    if perception is not None and any(
+        fg.anchor not in core_atoms
+        and fg.get_property("seniority", 9999) < seniority_limit
+        for fg in perception.fgs.detected_fgs
+    ):
+        # "N-(carboxymethyl)urea" named an acid as a urea substituent.
+        return None
 
-    # Name each substituent component as a SUBSTITUENT, with attachment to the N.
-    def _name_components(n_atom, components):
-        out: list[tuple[str, int]] = []  # (sub_name, n_idx)
-        for comp in components:
-            comp_attachment: tuple[int, int] | None = None
-            for ai in comp:
-                for nb in mol.GetAtomWithIdx(ai).GetNeighbors():
-                    if nb.GetIdx() == n_atom.GetIdx():
-                        comp_attachment = (n_atom.GetIdx(), ai)
-                        break
-                if comp_attachment is not None:
-                    break
-            if comp_attachment is None:
-                raise RuntimeError("urea substituent has no bond to N")
-            sub_mol, sub_att, _bo = carve_substituent(
-                mol, comp, comp_attachment,
+    from openchem.vendor.iupac_namer.assembly import assemble as _assemble_core
+
+    def _name_components(n_atom):
+        out: list[str] = []
+        for comp in components[n_atom.GetIdx()]:
+            att = next(
+                (n_atom.GetIdx(), nb.GetIdx()) for nb in n_atom.GetNeighbors()
+                if nb.GetIdx() in comp
             )
+            if mol.GetBondBetweenAtoms(*att).GetBondTypeAsDouble() != 1.0:
+                raise RuntimeError(f"{parent_name} substituent is not single-bonded")
+            sub_mol, sub_att, _bo = carve_substituent(mol, comp, att)
             sub_fv = FreeValenceInfo(
                 bond_orders=(1,),
                 method=_select_substituent_method(sub_mol, sub_att),
@@ -1183,62 +1203,69 @@ def _name_urea_functional_parent(
                 sub_mol, strategy, OutputForm.SUBSTITUENT,
                 free_valence=sub_fv,
                 decision_ctx=DecisionContext(
-                    role="urea_n_substituent",
+                    role=f"{parent_name}_n_substituent",
                     parent_plan=None,
                     depth=depth + 1,
                 ),
                 _session=session,
                 _depth=depth + 1,
             )
-            from openchem.vendor.iupac_namer.assembly import assemble as _assemble_urea
-            sub_name = _assemble_urea(sub_tree)
+            sub_name = _assemble_core(sub_tree)
             if not sub_name or "[NAMING ERROR" in sub_name:
-                raise RuntimeError(f"urea substituent naming failed: {sub_name!r}")
-            out.append((sub_name, n_atom.GetIdx()))
+                raise RuntimeError(f"{parent_name} substituent naming failed: {sub_name!r}")
+            out.append(sub_name)
         return out
 
     try:
-        n1_named = _name_components(n1, n1_subs)
-        n2_named = _name_components(n2, n2_subs)
-    except Exception as e_urea:
-        logger.debug("urea substituent naming failed: %s", e_urea)
+        named = {n.GetIdx(): _name_components(n) for n in all_ns}
+    except Exception as e_core:
+        logger.debug("%s substituent naming failed: %s", parent_name, e_core)
         return None
 
-    # Decide which N gets the unprimed locant and which gets prime.
-    # IUPAC P-14.5.2: the lowest locant goes to the substituent cited first
-    # alphabetically. We compare the alphabetically-first substituent name on
-    # each N; whichever N has the lower one gets the unprimed N.
-    def _first_alpha(named: list[tuple[str, int]]) -> str:
-        if not named:
-            return "\uffff"  # sorts last
-        return min(derive_sort_name(s) for s, _ in named)
-    n1_first = _first_alpha(n1_named)
-    n2_first = _first_alpha(n2_named)
-    if n2_first < n1_first:
-        unprimed_n_idx, primed_n_idx = n2.GetIdx(), n1.GetIdx()
-    else:
-        unprimed_n_idx, primed_n_idx = n1.GetIdx(), n2.GetIdx()
+    ordered = sorted(
+        (n.GetIdx() for n in free_ns),
+        key=lambda i: (
+            -len(named[i]),
+            sorted(derive_sort_name(x) for x in named[i]) or ["\uffff"],
+        ),
+    )
+    labels = {i: "N" + "'" * k for k, i in enumerate(ordered)}
+    labels.update(fixed)
 
-    # Build PrefixEntry list with N / N' heteroatom locants.
     from openchem.vendor.iupac_namer.assembly import (
+        _carbamic_n_subs_to_prefix,
         merge_identical_prefixes,
         render_merged_prefixes,
     )
+    if not cite_locants:
+        # One substitutable nitrogen: no locant, enclosing marks from the
+        # second prefix on (P-16.5.1.3.2), as the carbamate esters do.
+        prefix_str = _carbamic_n_subs_to_prefix([x for v in named.values() for x in v])
+        # "triphenyl-λ5-phosphanone (PIN)": a lambda descriptor is preceded
+        # by a hyphen, as a locant is (p. 769). Written "lambda5" as the rest
+        # of the engine does: py2opsin writes its input in cp1252, which has
+        # no Greek, so a real lambda crashed the round trip.
+        joiner = "-" if parent_name.startswith("lambda") else ""
+        return LeafTree(
+            output_form=output_form,
+            free_valence=None,
+            choices_made=(Choice(
+                type=f"{parent_name}_functional_parent",
+                detail=f"prefixes={prefix_str}",
+            ),),
+            decision_ctx=decision_ctx,
+            validity_warnings=None,
+            text=f"{prefix_str}{joiner}{parent_name}",
+        )
     entries: list[tuple[str, tuple[Locant, ...]]] = []
-    for sub_name, n_idx in n1_named + n2_named:
-        if n_idx == unprimed_n_idx:
-            loc = Locant.hetero("N")
-        else:
-            loc = Locant(label="N'", is_numeric=False, _numeric_value=None, suffix="")
-        entries.append((sub_name, (loc,)))
-
+    for n_idx, subs in named.items():
+        label = labels[n_idx]
+        loc = (Locant.hetero("N") if label == "N"
+               else Locant(label=label, is_numeric=False, _numeric_value=None, suffix=""))
+        entries.extend((sub_name, (loc,)) for sub_name in subs)
     merged = merge_identical_prefixes(entries)
-    # Sort alphabetically by sort_name (prefix ordering rule)
     merged.sort(key=lambda mp: mp.sort_name)
     prefix_str = render_merged_prefixes(merged)
-
-    final_name = f"{prefix_str}{parent_name}"
-
     return LeafTree(
         output_form=output_form,
         free_valence=None,
@@ -1248,8 +1275,243 @@ def _name_urea_functional_parent(
         ),),
         decision_ctx=decision_ctx,
         validity_warnings=None,
-        text=final_name,
+        text=f"{prefix_str}{parent_name}",
     )
+
+
+def _name_guanidine_functional_parent(
+    mol, output_form, decision_ctx, strategy, session, depth, perception=None,
+) -> LeafTree | None:
+    """P-66.4.1.2.1.2 substituted guanidines: "N,N,N',N'-tetramethyl-N''-
+    phenylguanidine (PIN)" (p. 676). The amino nitrogens take N and N', the
+    imino nitrogen N''. The generic path named these as a methanimidamide
+    ("(dimethylamino)methanimidamide") or as a guanidino prefix
+    ("guanidinomethane"), round 4 (A6).
+    """
+    for atom in mol.GetAtoms():
+        if (atom.GetAtomicNum() != 6 or atom.GetFormalCharge() != 0
+                or atom.IsInRing() or atom.GetDegree() != 3):
+            continue
+        imino, amino, ok = None, [], True
+        for nb in atom.GetNeighbors():
+            order = mol.GetBondBetweenAtoms(atom.GetIdx(), nb.GetIdx()).GetBondTypeAsDouble()
+            if (nb.GetAtomicNum() != 7 or nb.GetFormalCharge() != 0 or nb.IsInRing()
+                    or any(x.GetAtomicNum() == 7 for x in nb.GetNeighbors())):
+                ok = False  # not all-N, or an N-N bond (amidrazone, hydrazide)
+                break
+            if order == 2.0:
+                imino = nb
+            elif order == 1.0:
+                amino.append(nb)
+            else:
+                ok = False
+                break
+        if not ok or imino is None or len(amino) != 2:
+            continue
+        if any(
+            x.GetIdx() != atom.GetIdx() and x.GetAtomicNum() == 6 and any(
+                b.GetBondTypeAsDouble() == 2.0 and b.GetOtherAtom(x).GetAtomicNum() == 7
+                for b in x.GetBonds()
+            )
+            for n in (imino, *amino) for x in n.GetNeighbors()
+        ):
+            # A second amidine carbon on a core N: a condensed guanidine,
+            # "imidodicarbonimidic diamide", named by its own route below.
+            return None
+        core = {atom.GetIdx(), imino.GetIdx(), amino[0].GetIdx(), amino[1].GetIdx()}
+        return _name_n_core_parent(
+            mol, core, free_ns=amino, fixed={imino.GetIdx(): "N''"},
+            parent_name="guanidine", output_form=output_form,
+            decision_ctx=decision_ctx, strategy=strategy, session=session,
+            depth=depth, perception=perception,
+        )
+    return None
+
+
+def _name_carbamic_acid_functional_parent(
+    mol, output_form, decision_ctx, strategy, session, depth, perception=None,
+) -> LeafTree | None:
+    """P-65.2.1.1 carbamic acid, "substitution allowed" (p. 349): "phenyl-
+    carbamic acid (PIN)" (p. 120), "dimethylcarbamic acid (PIN)" (p. 601).
+    The generic path named these as methanoic acids, "(methylamino)methanoic
+    acid" and "anilinomethanoic acid", round 4 (A6). A carboxylic acid or
+    anything senior elsewhere in the molecule is the parent instead.
+    """
+    for atom in mol.GetAtoms():
+        if (atom.GetAtomicNum() != 6 or atom.GetFormalCharge() != 0
+                or atom.IsInRing() or atom.GetDegree() != 3):
+            continue
+        oxo = hydroxy = nitrogen = None
+        for nb in atom.GetNeighbors():
+            order = mol.GetBondBetweenAtoms(atom.GetIdx(), nb.GetIdx()).GetBondTypeAsDouble()
+            if nb.GetFormalCharge() != 0:
+                break
+            if nb.GetAtomicNum() == 8 and order == 2.0 and nb.GetDegree() == 1:
+                oxo = nb
+            elif (nb.GetAtomicNum() == 8 and order == 1.0 and nb.GetDegree() == 1
+                    and nb.GetTotalNumHs() == 1):
+                hydroxy = nb
+            elif nb.GetAtomicNum() == 7 and order == 1.0 and not nb.IsInRing():
+                nitrogen = nb
+        if oxo is None or hydroxy is None or nitrogen is None:
+            continue
+        core = {atom.GetIdx(), oxo.GetIdx(), hydroxy.GetIdx(), nitrogen.GetIdx()}
+        return _name_n_core_parent(
+            mol, core, free_ns=[nitrogen], fixed={}, parent_name="carbamic acid",
+            output_form=output_form, decision_ctx=decision_ctx,
+            strategy=strategy, session=session, depth=depth,
+            perception=perception, seniority_limit=702, cite_locants=False,
+        )
+    return None
+
+
+# (one OH, two substitutable positions) -> "-in-", (two OH, one) -> "-on-".
+_PNICTOGEN_ACID_STEMS = {
+    "P": ("phosphin", "phosphon"),
+    "As": ("arsin", "arson"),
+    "Sb": ("stibin", "stibon"),
+}
+
+_CENTRE_PARENT_BLOCKING_ELEMENTS = frozenset({
+    "B", "Al", "Si", "Ge", "Sn", "Pb", "P", "As", "Sb", "Bi", "Se", "Te",
+})
+
+
+def _name_single_centre_parent(
+    mol, output_form, decision_ctx, strategy, session, depth, perception=None,
+) -> LeafTree | None:
+    """One heteroatom carrying the principal group, and carbon groups:
+
+    - silanols, "trimethylsilanol (PIN)" (P-63.1.4, p. 537), were
+      "(hydroxy)tri(methyl)silane", the form the book lists second;
+    - boronic and borinic acids, "methylboronic acid (PIN) (not
+      methylboranediol)" (P-68.1.4.1, p. 737), were "methaneboronic acid",
+      the form P-67.1.1.2 sets aside;
+    - phosphanones, "phenylphosphanone (PIN) [not oxo(phenyl)phosphane]" and
+      "triphenyl-λ5-phosphanone (PIN) ... (not oxotriphenyl-λ5-phosphane)"
+      (P-74.2.1.4, p. 769), were exactly the rejected forms;
+    - diazenes, "dimethyldiazene (PIN)", "diphenyldiazene (PIN)" (P-68.3.1.3,
+      p. 761), were "1,2-dimethyldiazene" and "(phenyldiazenyl)benzene".
+
+    Each centre has one substitutable position, so its prefixes take no
+    locant. The centre steps aside (None) for a group of its own class or
+    higher elsewhere, and for a second heteroatom that could compete as the
+    parent (P-44.1.2): those molecules keep the general path. Round 4 (A6).
+    """
+    heavy = [a for a in mol.GetAtoms() if a.GetAtomicNum() > 1]
+
+    def _order(x, y):
+        return mol.GetBondBetweenAtoms(x.GetIdx(), y.GetIdx()).GetBondTypeAsDouble()
+
+    def _single_carbon(centre, nb):
+        return nb.GetAtomicNum() == 6 and _order(centre, nb) == 1.0
+
+    def _terminal_o(centre, nb, order, with_h):
+        return (nb.GetAtomicNum() == 8 and nb.GetDegree() == 1
+                and nb.GetFormalCharge() == 0
+                and _order(centre, nb) == order
+                and (nb.GetTotalNumHs() == 1) == with_h)
+
+    for centre in heavy:
+        sym = centre.GetSymbol()
+        if (centre.GetFormalCharge() != 0 or centre.GetNumRadicalElectrons()
+                or centre.IsInRing()):
+            continue
+        nbs = list(centre.GetNeighbors())
+        core = {centre.GetIdx()}
+        free = [centre]
+        if sym == "Si":
+            ohs = [nb for nb in nbs if _terminal_o(centre, nb, 1.0, True)]
+            if not (1 <= len(ohs) <= 3) or not all(
+                    nb in ohs or _single_carbon(centre, nb) for nb in nbs):
+                continue
+            core |= {nb.GetIdx() for nb in ohs}
+            parent_name = ("silanol", "silanediol", "silanetriol")[len(ohs) - 1]
+            limit = 1701  # alcohols (class 17) and above
+        elif sym == "B" and len(nbs) == 3:
+            ohs = [nb for nb in nbs if _terminal_o(centre, nb, 1.0, True)]
+            if len(ohs) not in (1, 2) or not all(
+                    nb in ohs or _single_carbon(centre, nb) for nb in nbs):
+                continue
+            core |= {nb.GetIdx() for nb in ohs}
+            parent_name = "boronic acid" if len(ohs) == 2 else "borinic acid"
+            limit = 712  # every acid of boronic rank and above
+        elif sym in _PNICTOGEN_ACID_STEMS and any(
+                _terminal_o(centre, nb, 1.0, True) for nb in nbs):
+            # P-67.1.1.2 (p. 700): "ethylphosphonic acid (PIN) (not
+            # ethanephosphonic acid)", "diethylphosphinic acid (PIN)",
+            # "diphenylarsinous acid (PIN)", "phenylstibonous acid (PIN)".
+            ohs = [nb for nb in nbs if _terminal_o(centre, nb, 1.0, True)]
+            oxo = [nb for nb in nbs if _terminal_o(centre, nb, 2.0, False)]
+            rest = [nb for nb in nbs if nb not in ohs and nb not in oxo]
+            if len(oxo) > 1 or not all(_single_carbon(centre, nb) for nb in rest):
+                continue
+            substitutable = len(rest) + centre.GetTotalNumHs()
+            if (len(ohs), substitutable) not in ((2, 1), (1, 2)):
+                continue
+            ous_or_ic = "ic" if oxo else "ous"
+            parent_name = (
+                _PNICTOGEN_ACID_STEMS[sym][len(ohs) - 1] + ous_or_ic + " acid"
+            )
+            core |= {nb.GetIdx() for nb in ohs + oxo}
+            limit = 711  # carboxylic acids and the P/As acids themselves
+        elif sym == "P":
+            oxo = [nb for nb in nbs if _terminal_o(centre, nb, 2.0, False)]
+            rest = [nb for nb in nbs if nb not in oxo]
+            if len(oxo) != 1 or not all(_single_carbon(centre, nb) for nb in rest):
+                continue
+            # Bonding number 5 takes the lambda descriptor, 3 does not:
+            # "triphenyl-λ5-phosphanone", "phenylphosphanone" (p. 769).
+            valence = len(rest) + centre.GetTotalNumHs()
+            if valence == 3:
+                parent_name = "lambda5-phosphanone"
+            elif valence == 1:
+                parent_name = "phosphanone"
+            else:
+                continue
+            core.add(oxo[0].GetIdx())
+            limit = 1601  # ketones and above
+        elif sym == "N":
+            partner = [nb for nb in nbs if nb.GetAtomicNum() == 7 and _order(centre, nb) == 2.0]
+            if (len(partner) != 1 or partner[0].IsInRing() or partner[0].GetFormalCharge()
+                    or partner[0].GetIdx() < centre.GetIdx()
+                    or centre.GetDegree() != 2 or partner[0].GetDegree() != 2):
+                continue
+            other = partner[0]
+            ends = [(x, nb) for x in (centre, other) for nb in x.GetNeighbors()
+                    if nb.GetIdx() not in (centre.GetIdx(), other.GetIdx())]
+            if len(ends) != 2 or not all(_single_carbon(x, nb) for x, nb in ends):
+                continue
+            core.add(other.GetIdx())
+            free = [centre, other]
+            parent_name = "diazene"
+            limit = 10000  # any suffix group at all outranks a parent hydride
+        else:
+            continue
+        outside = [a for a in heavy if a.GetIdx() not in core]
+        if any(a.GetSymbol() in _CENTRE_PARENT_BLOCKING_ELEMENTS for a in outside):
+            return None
+        if parent_name == "diazene" and any(
+                a.GetAtomicNum() != 6 and a.IsInRing() for a in outside):
+            return None  # a heteroring outranks the diazene chain (P-44.1.2)
+        if parent_name == "diazene" and any(
+                a.GetAtomicNum() == 7 and any(_order(a, b) == 2.0 and b.GetAtomicNum() == 7
+                                              for b in a.GetNeighbors())
+                for a in outside):
+            return None  # a second azo group: multiplicative, not this route
+        if perception is not None and any(
+                fg.anchor not in core and not (fg.atoms <= core)
+                and fg.get_property("seniority", 9999) < limit
+                and (parent_name != "diazene" or fg.suffix_eligible)
+                for fg in perception.fgs.detected_fgs):
+            return None
+        return _name_n_core_parent(
+            mol, core, free_ns=free, fixed={}, parent_name=parent_name,
+            output_form=output_form, decision_ctx=decision_ctx,
+            strategy=strategy, session=session, depth=depth,
+            perception=None, cite_locants=False,
+        )
+    return None
 
 
 def _name_sulfamide_functional_parent(
@@ -3590,8 +3852,8 @@ def _name_biguanide_functional_parent(
     if pool:
         return None  # leftover atoms not reachable through a core N → not clean biguanide
 
-    if not (side_a_subs or side_b_subs or bridge_subs):
-        return None  # bare biguanide — let retained-name path handle it if present
+    # The bare parent is named here too: nothing else knows "imidodicarbonimidic
+    # diamide (PIN)", and the generic path gave "guanidinomethanimidamide".
 
     # Name each substituent component.
     from openchem.vendor.iupac_namer.assembly import assemble as _assemble_big
@@ -3639,35 +3901,55 @@ def _name_biguanide_functional_parent(
         logger.debug("biguanide substituent naming failed: %s", e_bg)
         return None
 
-    # Assign locants 1 (side A) and 5 (side B), lowest to alphabetically first.
-    def _first_alpha(named: list[tuple[str, int]]) -> str:
-        if not named:
-            return "\uffff"
-        return min(derive_sort_name(s) for s, _ in named)
-    a_first = _first_alpha(side_a_named)
-    b_first = _first_alpha(side_b_named)
-    if b_first < a_first:
-        one_named, five_named = side_b_named, side_a_named
-    else:
-        one_named, five_named = side_a_named, side_b_named
+    # P-66.4.1.2.2 (p. 677): "The names biguanide, triguanide, etc., are no
+    # longer recommended"; the parent is imidodicarbonimidic diamide, numbered
+    # N1 1 N'1 2 3 N'3 N3 along H2N-C(=NH)-NH-C(=NH)-NH2 (the figure on that
+    # page). The amino nitrogen of each end is N1/N3, its imino nitrogen
+    # N'1/N'3, the bridge 2. Metformin was "1,1-dimethylbiguanide" (round 4).
+    def _end_labels(c_idx: int, terms: list[int], num: int) -> dict[int, str]:
+        imino = [n for n in terms
+                 if mol.GetBondBetweenAtoms(c_idx, n).GetBondTypeAsDouble() == 2.0]
+        if len(imino) != 1:
+            # The double bond is to the bridge (a tautomer the name cannot
+            # draw); the more substituted end nitrogen is the amide N.
+            def _n_subs(n):
+                return sum(1 for x in mol.GetAtomWithIdx(n).GetNeighbors()
+                           if x.GetIdx() not in core_atoms)
+            imino = [min(terms, key=lambda n: (_n_subs(n), n))]
+        return {n: (f"N'{num}" if n == imino[0] else f"N{num}") for n in terms}
+
+    def _locant_key(label: str) -> tuple[int, int]:
+        digits = "".join(ch for ch in label if ch.isdigit())
+        return (int(digits), label.count("'"))
+
+    all_named = side_a_named + side_b_named + bridge_named
+    best = None
+    for c1, t1, c3, t3 in ((c_a, a_terms, c_b, b_terms), (c_b, b_terms, c_a, a_terms)):
+        labels = {**_end_labels(c1, t1, 1), **_end_labels(c3, t3, 3), n_bridge: "2"}
+        cited = sorted(
+            (_locant_key(labels[n]), derive_sort_name(nm)) for nm, n in all_named
+        )
+        key = ([loc for loc, _ in cited],
+               [loc for _, loc in sorted((nm, loc) for loc, nm in cited)])
+        if best is None or key < best[0]:
+            best = (key, labels)
+    labels = best[1]
 
     from openchem.vendor.iupac_namer.assembly import (
         merge_identical_prefixes,
         render_merged_prefixes,
     )
     entries: list[tuple[str, tuple[Locant, ...]]] = []
-    for nm, _n in one_named:
-        entries.append((nm, (Locant.numeric(1),)))
-    for nm, _n in five_named:
-        entries.append((nm, (Locant.numeric(5),)))
-    for nm, _n in bridge_named:
-        entries.append((nm, (Locant.numeric(3),)))
+    for nm, n in all_named:
+        label = labels[n]
+        loc = Locant.numeric(2) if label == "2" else Locant.hetero(label)
+        entries.append((nm, (loc,)))
 
     merged = merge_identical_prefixes(entries)
     merged.sort(key=lambda mp: mp.sort_name)
     prefix_str = render_merged_prefixes(merged)
 
-    final_name = f"{prefix_str}biguanide"
+    final_name = f"{prefix_str}imidodicarbonimidic diamide"
 
     return LeafTree(
         output_form=output_form,
@@ -3934,7 +4216,10 @@ def _name_single_fg_substituent(
             if frag_can == "N=C(N)N" and att_symbol == "N":
                 att_Hs = mol.GetAtomWithIdx(attachment_idx).GetTotalNumHs()
                 if att_Hs >= 2:
-                    small_prefix = "guanidino"
+                    # "carbamimidoylamino (preferred prefix) ... The prefix
+                    # guanidino may be used in general nomenclature" (P-66.4.
+                    # 1.2.1.3, p. 676); round 4 (A6).
+                    small_prefix = "carbamimidoylamino"
                 else:
                     # att_Hs == 1: imino-N attachment → R-N=C(NH2)2
                     small_prefix = "(diaminomethylidene)amino"
@@ -4526,7 +4811,7 @@ def _name_single_fg_substituent(
                 if acid_name and "[NAMING ERROR" not in acid_name:
                     acyl_name = _acid_name_to_acyl(acid_name)
                     if acyl_name:
-                        amino_prefix = acyl_name + "amino"
+                        amino_prefix = _acid_name_to_amido(acid_name) or acyl_name + "amino"
                         return LeafTree(
                             output_form=output_form,
                             free_valence=free_valence,
@@ -4589,7 +4874,10 @@ def _name_single_fg_substituent(
                         # For complex names: "(...)carboxylic acid" -> "(...)carbonyl"
                         acyl_name = _acid_name_to_acyl(acid_name)
                         if acyl_name:
-                            amino_prefix = acyl_name + "amino"
+                            # A compound acyl is enclosed: "2-[(methylcarbamoyl)amino]
+                            # naphthalene-1-carboxylic acid (PIN)", p. 660. Plain
+                            # concatenation wrote "(methylcarbamoylamino)".
+                            amino_prefix = _acid_name_to_amido(acid_name) or _compose_n_substituents([acyl_name]) + "amino"
                             return LeafTree(
                                 output_form=output_form,
                                 free_valence=free_valence,
@@ -5772,8 +6060,8 @@ def _name_ring_imino_amide(mol, strategy=None) -> str | None:
             mol, ring_atoms, (exo_n, ring_c)
         )
         if strategy is None:
-            from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-            strategy = IUPACCanonical()
+            from openchem.vendor.iupac_namer.strategy import active_strategy
+            strategy = active_strategy()
         sub_session = NamingSession()
         sub_fv = FreeValenceInfo(
             bond_orders=(2,),
@@ -5915,8 +6203,8 @@ def _name_lambda_locant_chain(mol, strategy=None) -> str | None:
         return None
     try:
         if strategy is None:
-            from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-            strategy = IUPACCanonical()
+            from openchem.vendor.iupac_namer.strategy import active_strategy
+            strategy = active_strategy()
         session = NamingSession()
         tree = name(new_mol, strategy, _session=session, _depth=0)
     except Exception:
@@ -6261,8 +6549,8 @@ def _name_simple_alkyl_x_radical(mol, strategy=None, session=None) -> str | None
     attachment_bond = (cut_neighbor_idx, parent_for_carve.GetIdx())
     try:
         if strategy is None:
-            from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-            strategy = IUPACCanonical()
+            from openchem.vendor.iupac_namer.strategy import active_strategy
+            strategy = active_strategy()
         if session is None:
             session = NamingSession()
         frag_mol, att_idx_sub, bo = carve_substituent(
@@ -6366,8 +6654,8 @@ def _name_trisubstituted_metalloid_radical(mol, strategy=None, session=None) -> 
     suffix = _METALLOID_RADICAL_SUFFIX[centre.GetSymbol()]
     # Carve each substituent and name it.
     if strategy is None:
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-        strategy = IUPACCanonical()
+        from openchem.vendor.iupac_namer.strategy import active_strategy
+        strategy = active_strategy()
     if session is None:
         session = NamingSession()
     sub_names: list[str] = []
@@ -6528,8 +6816,8 @@ def _name_undersubstituted_metalloid_radical(mol, strategy=None, session=None) -
         return None
     # Carve each substituent.
     if strategy is None:
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-        strategy = IUPACCanonical()
+        from openchem.vendor.iupac_namer.strategy import active_strategy
+        strategy = active_strategy()
     if session is None:
         session = NamingSession()
     sub_names: list[str] = []
@@ -6754,8 +7042,8 @@ def _name_carbon_radical_via_yl(mol, strategy=None, session=None) -> str | None:
     yl_mol = rw.GetMol()
     # Route through the regular pipeline as a SUBSTITUENT.
     if strategy is None:
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-        strategy = IUPACCanonical()
+        from openchem.vendor.iupac_namer.strategy import active_strategy
+        strategy = active_strategy()
     if session is None:
         session = NamingSession()
     try:
@@ -7799,7 +8087,15 @@ def _validate_stereo_via_opsin(tree, name: str, *, strip_modes: tuple[str, ...])
 
 
 def name_smiles(smiles: str, strategy=None) -> str:
-    """Name a molecule from SMILES. Convenience wrapper.
+    """Name a molecule from SMILES, with *strategy* bound for the whole call
+    (every helper reads it through ``active_strategy()``)."""
+    from openchem.vendor.iupac_namer.strategy import using_strategy
+    with using_strategy(strategy) as bound:
+        return _name_smiles_bound(smiles, bound)
+
+
+def _name_smiles_bound(smiles: str, strategy) -> str:
+    """Name a molecule from SMILES, *strategy* already bound (never None).
 
     Returns the final name string.
     """
@@ -7987,9 +8283,6 @@ def name_smiles(smiles: str, strategy=None) -> str:
     # returns None when the molecule does not match the simple shape so
     # the regular pipeline still handles e.g. metallocenes (already
     # caught above) and complex coordination compounds.
-    if strategy is None:
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-        strategy = IUPACCanonical()
     _organomet_session = NamingSession()
     organomet_tree = _detect_simple_organometallic(
         mol, strategy=strategy, session=_organomet_session, depth=0,
@@ -8079,9 +8372,6 @@ def name_smiles(smiles: str, strategy=None) -> str:
     # radical electrons.  The classifier explicitly claims those
     # electrons (and the formal charge) so no silent free-valence
     # drop occurs; if no claim matches the guard runs as before.
-    if strategy is None:
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-        strategy = IUPACCanonical()
     from openchem.vendor.iupac_namer.perception.charge_perception import (
         detect_pre_validation as _detect_radical_cation,
     )
@@ -8274,9 +8564,6 @@ def name_smiles(smiles: str, strategy=None) -> str:
     if skeletal_chain_name is not None:
         return skeletal_chain_name
     _validate_no_open_valences(mol)
-    if strategy is None:
-        from openchem.vendor.iupac_namer.strategy import IUPACCanonical
-        strategy = IUPACCanonical()
     tree = name(mol, strategy)
     final_name = assemble(tree)
     # Stage 22 R22-C / R22-D: post-assembly OPSIN-validation pass for
@@ -8368,6 +8655,26 @@ def _retained_ring_atom_to_locant(parent_mol) -> "list[dict[int, Locant]]":
 
 
 def name(
+    mol,
+    strategy,
+    output_form: OutputForm = OutputForm.STANDALONE,
+    free_valence: FreeValenceInfo | None = None,
+    decision_ctx: DecisionContext | None = None,
+    _session: NamingSession | None = None,
+    _depth: int = 0,
+) -> NameTree:
+    """Core naming function; see ``_name_bound``. A top-level call (no
+    session yet) binds *strategy* for everything beneath it."""
+    if _session is not None:
+        return _name_bound(mol, strategy, output_form, free_valence,
+                           decision_ctx, _session, _depth)
+    from openchem.vendor.iupac_namer.strategy import using_strategy
+    with using_strategy(strategy) as bound:
+        return _name_bound(mol, bound, output_form, free_valence,
+                           decision_ctx, _session, _depth)
+
+
+def _name_bound(
     mol,
     strategy,
     output_form: OutputForm = OutputForm.STANDALONE,
@@ -8863,10 +9170,47 @@ def name(
         urea_tree = _name_urea_functional_parent(
             mol, output_form, decision_ctx,
             strategy=strategy, session=_session, depth=_depth,
+            perception=perception,
         )
         if urea_tree is not None:
             _session.cache_store(smiles, output_form, fv_bond_orders, urea_tree, attachment_indices)
             return urea_tree
+
+    # --- Single heteroatom-centre parents (silanol, boronic acid, ...) ---
+    if (output_form == OutputForm.STANDALONE
+            and free_valence is None):
+        centre_tree = _name_single_centre_parent(
+            mol, output_form, decision_ctx,
+            strategy=strategy, session=_session, depth=_depth,
+            perception=perception,
+        )
+        if centre_tree is not None:
+            _session.cache_store(smiles, output_form, fv_bond_orders, centre_tree, attachment_indices)
+            return centre_tree
+
+    # --- Carbamic acid functional parent (P-65.2.1.1) ---
+    if (output_form == OutputForm.STANDALONE
+            and free_valence is None):
+        carbamic_tree = _name_carbamic_acid_functional_parent(
+            mol, output_form, decision_ctx,
+            strategy=strategy, session=_session, depth=_depth,
+            perception=perception,
+        )
+        if carbamic_tree is not None:
+            _session.cache_store(smiles, output_form, fv_bond_orders, carbamic_tree, attachment_indices)
+            return carbamic_tree
+
+    # --- Guanidine functional parent (P-66.4.1.2.1.2) ---
+    if (output_form == OutputForm.STANDALONE
+            and free_valence is None):
+        guanidine_tree = _name_guanidine_functional_parent(
+            mol, output_form, decision_ctx,
+            strategy=strategy, session=_session, depth=_depth,
+            perception=perception,
+        )
+        if guanidine_tree is not None:
+            _session.cache_store(smiles, output_form, fv_bond_orders, guanidine_tree, attachment_indices)
+            return guanidine_tree
 
     # --- Thiourea functional parent (P-66.6.3) ---
     # Parallel of the urea handler for (R)2N-C(=S)-N(R)2 cores. OPSIN also
@@ -8878,6 +9222,7 @@ def name(
             mol, output_form, decision_ctx,
             strategy=strategy, session=_session, depth=_depth,
             chalcogen_atomic_num=16, parent_name="thiourea",
+            perception=perception,
         )
         if thiourea_tree is not None:
             _session.cache_store(smiles, output_form, fv_bond_orders, thiourea_tree, attachment_indices)
@@ -9046,12 +9391,16 @@ def name(
     # names "selenoxide"/"selenone" (Se, central atom 34) and
     # "telluroxide"/"tellurone" (Te, central atom 52), formed exactly as the
     # sulfoxide/sulfone case (R-Se(=O)-R' / R-Se(=O)(=O)-R', etc.).
+    #
+    # NOT for the peroxide, sulfoxide and sulfone (naming round 4). The book
+    # lists those class names SECOND: "(1) (methylperoxy)ethane (PIN) (2)
+    # ethyl methyl peroxide" (P-63.3.1, pdf p. 546), "(methanesulfinyl)
+    # methane (PIN)" (p. 912); substitution now reaches both. The Se/Te
+    # families stay here because the substitutive path cannot yet name
+    # them ("C[SeH]=O" has no plan).
     if (output_form == OutputForm.STANDALONE
             and free_valence is None):
         for _params in (
-            ("peroxide",    8, 8,    0),
-            ("sulfoxide",  16, None, 1),
-            ("sulfone",    16, None, 2),
             ("selenoxide", 34, None, 1),
             ("selenone",   34, None, 2),
             ("telluroxide", 52, None, 1),
@@ -9153,9 +9502,18 @@ def name(
         _session.cache_store(smiles, output_form, fv_bond_orders, err, attachment_indices)
         return err
 
+    # --- P-14.4 (g): break a full tie between numberings on executed names ---
+    tied_winner = _break_alphanumerical_tie(
+        ranked_plans, mol, strategy, output_form, free_valence,
+        decision_ctx, _session, _depth,
+    )
+    if tied_winner is not None:
+        _session.cache_store(smiles, output_form, fv_bond_orders, tied_winner, attachment_indices)
+        return tied_winner
+
     # --- Execute best plan; retry on child failure ---
     best_tree = None
-    best_score = float("-inf")
+    best_score = None
 
     for score, _seq, plan in reversed(ranked_plans):
         tree = _execute_plan(
@@ -9165,7 +9523,7 @@ def name(
         if not _has_error_children(tree):
             _session.cache_store(smiles, output_form, fv_bond_orders, tree, attachment_indices)
             return tree
-        if score > best_score:
+        if best_score is None or score > best_score:
             best_score = score
             best_tree = tree
 
@@ -9278,16 +9636,111 @@ class _PlanBudget:
         return self.total >= self.total_budget
 
 
+def _alphanumerical_locant_key(tree) -> tuple | None:
+    """P-14.4 (g) as a comparable value: each prefix's locants, in citation order.
+
+    Citation order is alphanumerical (P-14.5) by `derive_sort_name`, the same
+    key assembly sorts by -- the `SORT_NORMALIZATION_ID` in `preference.py`.
+    Lower is better: "lowest locants for the substituent cited first as a
+    prefix in the name", then the next one cited, and so on. None when the
+    tree is not a substitutive name with prefixes, which is never a tie this
+    criterion can decide.
+    """
+    from openchem.vendor.iupac_namer.assembly import assemble, merge_identical_prefixes
+
+    if not isinstance(tree, SubstitutiveTree) or not tree.prefixes:
+        return None
+    try:
+        entries = [(assemble(entry.tree), tuple(entry.locants)) for entry in tree.prefixes]
+        merged = merge_identical_prefixes(entries)
+    except Exception:  # noqa: BLE001 - an unassemblable tie is left to the fallback
+        return None
+    cited = sorted(merged, key=lambda m: (m.sort_name, m.name))
+    return tuple(tuple(m.locants) for m in cited)
+
+
+def _break_alphanumerical_tie(
+    ranked_plans, mol, strategy, output_form, free_valence, decision_ctx, session, depth,
+):
+    """Choose between numberings that tie on EVERY tier of the preference key.
+
+    P-14.4 (g) -- "lowest locants for the substituent cited first as a prefix
+    in the name" -- needs the prefixes' complete names (P-14.5.2), and a plan
+    carries atoms, not names: the substituents are carved and named only when
+    a plan is executed. So the criterion cannot be a tier. It was a ×0.0001
+    term of the old float instead, keyed on the functional-group type, with
+    EVERY carbon substituent falling back to "z" -- so ethyl and methyl tied
+    and plan order decided: `4-ethyl-1-methylbenzene` (P-14.5.1 prints
+    `1-ethyl-4-methylcyclohexane (PIN)`).
+
+    Here the tied plans are executed and compared on their real names.
+    Scoped tightly, on purpose:
+
+      * only a `NomenclaturePreferenceKey` tie -- a legacy float key keeps its
+        old behaviour exactly;
+      * only plans of ONE parent hypothesis, since P-14.4 is a numbering rule
+        and two different parents tying is not what it decides;
+      * a residual tie falls to the later-generated plan, the declared
+        compatibility policy of `_search_plans`.
+
+    Returns the winning tree, or None to fall through to the normal loop.
+    """
+    from openchem.vendor.iupac_namer.preference import NomenclaturePreferenceKey
+
+    if len(ranked_plans) < 2:
+        return None
+    top_key, _seq, top_plan = ranked_plans[-1]
+    if not isinstance(top_key, NomenclaturePreferenceKey):
+        return None
+    if not isinstance(top_plan, SubstitutivePlan):
+        return None
+    hypothesis = _parent_hypothesis_key(top_plan)
+    tied = []
+    for key, seq, plan in reversed(ranked_plans):
+        if key != top_key:
+            break
+        if isinstance(plan, SubstitutivePlan) and _parent_hypothesis_key(plan) == hypothesis:
+            tied.append((seq, plan))
+    if len(tied) < 2:
+        return None
+
+    candidates = []
+    for seq, plan in tied:
+        tree = _execute_plan(
+            plan, mol, strategy, output_form, free_valence, decision_ctx, session, depth,
+        )
+        if _has_error_children(tree):
+            continue
+        locant_key = _alphanumerical_locant_key(tree)
+        if locant_key is None:
+            return None
+        candidates.append((locant_key, -seq, tree))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda c: (c[0], c[1]))
+    return candidates[0][2]
+
+
 def _search_plans(perception, mol, output_form, free_valence, query, strategy, session):
-    """Search for plans; return sorted list of (score, seq, plan) triples."""
+    """Search for plans; return a sorted list of (key, seq, plan) triples.
+
+    `key` is whatever `strategy.preference_key` returns -- a typed, comparable
+    value, never a bare float (see `preference.py`). The early stop is a
+    `SearchBound`, a different type, so the threshold cannot be ranked as
+    though it were a plan.
+
+    Ties on the key fall to `seq`, so the LATER-generated plan sorts last and
+    is tried first. That is a compatibility policy inherited from `insort`
+    plus `reversed`, not a nomenclature rule, and it is named as one here.
+    """
     ranked_plans = []
-    good_enough = strategy.good_enough_score()
+    bound = strategy.search_bound()
 
     for score, seq, plan in _generate_all_plans(
         perception, mol, output_form, free_valence, query, strategy, session
     ):
         insort(ranked_plans, (score, seq, plan))
-        if score >= good_enough:
+        if bound.reached_by(score):
             break   # found a good-enough plan; stop immediately
 
     return ranked_plans
@@ -9578,8 +10031,87 @@ def _generate_retained_plans(perception, mol, output_form, free_valence, strateg
             match=rm,
         )
         if strategy.accept_plan(plan):
-            score = strategy.score_plan(plan)
+            score = strategy.preference_key(plan)
             yield (score, session.next_seq(), plan)
+
+
+_TAKES_MOL: dict[type, bool] = {}
+
+
+def _preference_key(strategy, plan, mol):
+    """`strategy.preference_key`, given the molecule when it can take it.
+
+    The added-hydrogen tier (P-31.1.4.2.4 (d)) reads the structure, which a
+    plan does not carry. A strategy written against the one-argument
+    signature keeps working unchanged; it simply never sees the molecule.
+    """
+    kind = type(strategy)
+    if kind not in _TAKES_MOL:
+        import inspect
+
+        _TAKES_MOL[kind] = "mol" in inspect.signature(strategy.preference_key).parameters
+    if _TAKES_MOL[kind]:
+        return strategy.preference_key(plan, mol=mol)
+    return strategy.preference_key(plan)
+
+
+def _acid_name_to_amido(acid_name: str) -> str | None:
+    """The amide prefix for R-CO-NH-, by P-66.1.1.4.3 method (1), or None.
+
+    "changing the final letter 'e' in the complete name of the amide to 'o'
+    ... Method (1) generates preferred IUPAC names": "4-formamidobenzoic acid
+    (PIN)", "4-benzamidobenzene-1-sulfonic acid (PIN)" (pdf pp. 652-653).
+    The engine wrote the acylamino form, method (2), everywhere. None where
+    the amide name is not derivable here, so the caller keeps "acylamino".
+    """
+    for retained, amido in (("formic acid", "formamido"), ("acetic acid", "acetamido"),
+                            ("benzoic acid", "benzamido")):
+        if acid_name.endswith(retained):
+            return acid_name[: -len(retained)] + amido
+    if acid_name.endswith("carboxylic acid"):
+        return acid_name[: -len("carboxylic acid")] + "carboxamido"
+    if acid_name.endswith("oic acid") and " " not in acid_name[: -len(" acid")]:
+        return acid_name[: -len("oic acid")] + "amido"
+    return None
+
+
+def _compose_n_substituents(n_sub_names: list[str]) -> str:
+    """The N-substituent part of an amino prefix, as the book writes it.
+
+    Cited alphabetically; the first is enclosed only if it is compound, every
+    later one is enclosed: "methyl(phenyl)amino", "acetyl(methyl)amino",
+    "(carboxymethyl)(2-hydroxyethyl)amino" (pdf pp. 521-665). Enclosing the
+    later ones also keeps OPSIN from reading "(quinazolin-2-yl)methylamino"
+    as "[(quinazolin-2-yl)methyl]amino" (FDA-0033), which is why two call
+    sites once pre-wrapped every name -- and then let the merge wrap the
+    wrapped ones again: "{[(ethyl)][(2-phenylethyl)]amino}" (naming round 4).
+    """
+    from openchem.vendor.iupac_namer.assembly import _choose_brackets, merge_identical_prefixes
+
+    merged = merge_identical_prefixes([(n, ()) for n in n_sub_names])
+    merged.sort(key=lambda m: m.sort_name)
+    pieces: list[str] = []
+    for position, entry in enumerate(merged):
+        core = entry.name
+        if entry.needs_brackets or (position > 0 and not entry.multiplier):
+            ob, cb = _choose_brackets(core)
+            core = f"{ob}{core}{cb}"
+        pieces.append(f"{entry.multiplier or ''}{core}")
+    return "".join(pieces)
+
+
+def _contracts_to_alkoxy(alkyl_name: str) -> bool:
+    """Whether "<alkyl>yl" + "oxy" contracts to "<alkyl>oxy" (P-63.2.2.2).
+
+    The book retains only methoxy, ethoxy, propoxy and butoxy (and phenoxy,
+    tert-butoxy), "fully substitutable": "2-methylpropoxy (PIN)",
+    "2-chloroethoxy". Every other group keeps its "yl": "heptyloxy",
+    "(propan-2-yl)oxy" -- the engine contracted every acyclic "...yl" and
+    wrote "heptoxy" and "propan-2-oxy" (naming round 4; pdf p. 541).
+    """
+    return re.search(r"(?:meth|eth|prop|but)yl$", alkyl_name) is not None and not re.search(
+        r"(?:hept|pent|hex|oct|non|dec)yl$|-\d+-yl$|an-\d+-yl$", alkyl_name
+    )
 
 
 def _generate_from_handler(
@@ -9604,7 +10136,7 @@ def _generate_from_handler(
         ):
             if not strategy.accept_plan(plan):
                 continue
-            score = strategy.score_plan(plan)
+            score = _preference_key(strategy, plan, mol)
             yield (score, session.next_seq(), plan)
     except Exception as e:
         logger.warning("Plan generation error in %s: %s", handler_name, e)
@@ -9951,6 +10483,8 @@ def _heteroaryl_substituent_with_locant(
                     _existing = _re3.search(r"-(\d\w*)-yl$", _sub_form)
                     if _existing:
                         _base = _sub_form[:_sub_form.rfind("-" + _existing.group(1) + "-yl")]
+                    elif _sub_form.endswith("-N-yl"):
+                        _base = _sub_form[:-5]  # the locant slot, as below
                     else:
                         _base = _sub_form[:-2]
                     if _base.endswith("-"):
@@ -10011,11 +10545,37 @@ def _heteroaryl_substituent_with_locant(
                     if _existing:
                         # Replace the existing locant with the correct one
                         _base = substituent_form[:substituent_form.rfind("-" + _existing.group(1) + "-yl")]
+                    elif substituent_form.endswith("-N-yl"):
+                        # A curated "-N-yl" form names the locant's slot.
+                        # Stripping only "yl" left the placeholder in:
+                        # "imidazo[1,2-a]pyridin-N-2-yl", which OPSIN
+                        # rejects (naming round 4).
+                        _base = substituent_form[:-5]
                     else:
                         _base = substituent_form[:-2]  # strip trailing "yl"
                     # Strip trailing dash if present
                     if _base.endswith("-"):
                         _base = _base[:-1]
+                    # CARRY THE INDICATED HYDROGEN of an N-H ring, as the
+                    # tautomer branch above already does. This branch built
+                    # `indol-2-yl` from the substituent form "indolyl" and
+                    # dropped the "1H-" of the ring's name, where the PIN is
+                    # `1H-indol-2-yl` (naming round 2's open item, and
+                    # cid14000's `2-(indol-3-yl)ethyl`). Gated on an [nH] in
+                    # the curated key: that is the case where the hydrogen is
+                    # a fact of the fragment rather than a choice among
+                    # tautomers, and it keeps carbocyclic indicated-H rings
+                    # (indene and friends) out of a change not measured on
+                    # them.
+                    import re as _re_ih
+                    _curated_name = str(_curated.get("name", ""))
+                    _ih_match = _re_ih.match(r"^(\d+[a-z]?H-)", _curated_name)
+                    if (
+                        _ih_match
+                        and "[nH]" in _frag_smiles
+                        and not _re_ih.match(r"^\d+[a-z]?H-", _base)
+                    ):
+                        _base = _ih_match.group(1) + _base
                     return f"{_base}-{_loc_str}-{fv_suffix}"
     except Exception:
         pass  # fall through to generic path
@@ -10125,6 +10685,18 @@ def _heteroaryl_substituent_with_locant(
             return substituent_form[:-2] + fv_suffix
         return substituent_form
 
+    # A curated "-N-yl" form names the slot the locant goes in
+    # ("imidazo[1,2-a]pyridin-N-yl", "3,4-dihydro-2H-1-benzopyran-N-yl").
+    # Stripping only the "yl" left the placeholder in the name --
+    # "imidazo[1,2-a]pyridin-N-2-yl", which OPSIN rejects -- for every such
+    # entry that reached this path (found in naming round 4).
+    if substituent_form.endswith("-N-yl"):
+        base = substituent_form[:-5]
+        if re.match(r"^\d+[a-z]?H-", base):
+            return f"{base}-{loc_str}-{fv_suffix}"
+        ih_match = re.match(r"^(\d+H-)", ring_name)
+        return f"{ih_match.group(1) if ih_match else ''}{base}-{loc_str}-{fv_suffix}"
+
     base = substituent_form[:-2]   # strip "yl"
     # Add indicated hydrogen from the ring name if present
     # (e.g. ring name "1H-imidazole" -> prefix "1H-" should appear before the locant-bearing name)
@@ -10165,6 +10737,18 @@ def _execute_retained(plan, mol, output_form, free_valence, decision_ctx) -> Nam
             plan.match.substituent_form, mol, free_valence, plan.match.name
         )
         name_text = locant_form if locant_form is not None else plan.match.substituent_form
+        # P-58.2: a hydro ring's free valence takes the indicated or added
+        # hydrogen ("1,3-dihydro-2H-inden-2-yl", "3,4-dihydroisoquinolin-
+        # 2(1H)-yl"); the table's substituent form cannot know which atom.
+        if (free_valence is not None
+                and free_valence.bond_orders == (1,)
+                and free_valence.attachment_atoms_in_fragment):
+            from openchem.vendor.iupac_namer.ring_naming.indicated_hydrogen_p58 import (
+                rewrite_leaf_substituent as _p58_leaf,
+            )
+            _rewritten = _p58_leaf(mol, free_valence.attachment_atoms_in_fragment, name_text)
+            if _rewritten is not None:
+                name_text = _rewritten
         # P-29.2 ylidene/ylidyne: if the free valence is monovalent and attaches
         # via a multi-order bond, swap the trailing "yl" for "ylidene" (bond
         # order 2) or "ylidyne" (bond order 3).  Without this, a retained
@@ -11382,6 +11966,25 @@ class SubstitutivePath:
                                 key=lambda _t: (_counts[_t], _t == primary_t),
                             )
                         pcg_options.append((chosen_t, tuple(merged_instances)))
+            # Alcohols and phenols are ONE class with one suffix, "-ol"
+            # (P-63.1); detection types them apart by the carbon they sit
+            # on, and the per-type grouping then split them between suffix
+            # and prefix -- estradiol's "17-hydroxy-...-3-ol", and
+            # "5-hydroxy-2,3-dihydro-1H-inden-1-ol" for the 1,5-diol. The
+            # merged option lets both reach the suffix (naming round 4).
+            if "alcohol" in type_groups and "phenol" in type_groups:
+                _hydroxy = tuple(type_groups["alcohol"]) + tuple(type_groups["phenol"])
+                pcg_options.append(("alcohol", _hydroxy))
+            # The same split, for amines: "-amine" is one suffix whether the N
+            # is primary, secondary or tertiary, and P-44.1.1 wants the parent
+            # with the most of them. Chloroquine's two amine N (one NH, one
+            # NEt2) were two options, so pentane-1,4-diamine was never tried.
+            _amine_family = [
+                t for t in ("amine", "secondary_amine", "tertiary_amine") if t in type_groups
+            ]
+            if len(_amine_family) >= 2:
+                _amines = tuple(fg for t in _amine_family for fg in type_groups[t])
+                pcg_options.append((_amine_family[0], _amines))
             # When the molecule has a ring-embedded [N+] in CATION mode,
             # the cation suffix (P-73) outranks any FG-based PCG for parent
             # selection.  Prepend the no-PCG option so candidates that
@@ -11429,6 +12032,15 @@ class SubstitutivePath:
 
         for pcg_type, pcg_instances in pcg_options:
             pcg_anchors: tuple[int, ...] = tuple(fg.anchor for fg in pcg_instances)
+
+            # A molecule carrying an anion as well is a zwitterion (class 5,
+            # senior to cations): the cation is a prefix there, and an aminium
+            # suffix would leave the anion to be rendered as a neutral group
+            # -- betaine came out "1-carboxy-...methanaminium", another molecule.
+            if pcg_type == "aminium" and any(
+                a.GetFormalCharge() < 0 for a in mol.GetAtoms()
+            ):
+                continue
 
             # Guard: sulfonamide with ring-embedded N (cyclic sulfonamide,
             # e.g. CS(=O)(=O)-N<pyrrolidine>) cannot be expressed as a
@@ -11526,6 +12138,12 @@ class SubstitutivePath:
                         )
                         if not bonded:
                             continue
+                # An aminium names the cation's N by SUFFIX on a carbon parent
+                # ("methanaminium", p. 530); the N+ itself as parent would put
+                # the suffix on its own anchor ("azaniumaminium").
+                if (pcg_type in ("aminium", "diazonium")
+                        and candidate.type == "heteroatom_center"):
+                    continue
 
                 # P-29.2 (SUBSTITUENT mode): the parent MUST include the
                 # attachment atom.  If the free-valence is on a chain atom
@@ -12005,12 +12623,12 @@ class SubstitutivePath:
             if info is None:
                 return
             name_str, stem, alkyl_stem = info
-            # P-62.6 retained PIN: tetrasubstituted N+ — for the fully
-            # quaternary cation NR4+ where the central N carries 0 H and
-            # exactly 4 heavy substituents, the retained parent hydride
-            # name "ammonium" is the PIN (e.g. tetramethylammonium).
-            # Partially substituted forms (NH3R+, NH2R2+, NHR3+) keep
-            # "azanium" as the substitutive parent.
+            # A fully quaternary NR4+ is spelled "ammonium" here. This is NOT
+            # the PIN, whatever this comment once said: the book prints
+            # "N,N,N-trimethylmethanaminium (PIN)" with "tetramethylazanium"
+            # as the alternative (pdf p. 816), and naming round 4 made the
+            # aminium suffix the principal group for a C-bound N+. This parent
+            # is now reached only where that class stands aside (a zwitterion).
             if candidate.element == "N+" and len(candidate.atom_indices) == 1:
                 _mol = perception._mol  # type: ignore[attr-defined]
                 n_idx = next(iter(candidate.atom_indices))
@@ -12613,6 +13231,12 @@ class SubstitutivePath:
             "secondary_amide", "tertiary_amide", "sulfonamide",
             # Phase 4 — thioamide N-substitution mirrors amide.
             "secondary_thioamide", "tertiary_thioamide",
+            # An N-substituted imine carries its substituent on the N, which
+            # is carved as an N-prefix: "N-hydroxypropan-1-imine" (p. 98).
+            "substituted_imine",
+            "hydrazide",
+            "imidamide",
+            "aminium",
         })
         # P-66.6.1: when hydroxamic_acid is bundled into a merged
         # amide-family PCG group, treat it as an N-bearing amide so the
@@ -12723,12 +13347,19 @@ class SubstitutivePath:
         # alkyl tail), so when FC decomposition is rejected, the substitutive
         # path must see the ester atoms as ordinary ether+oxo so they can be
         # carved as "alkoxy" + "oxo" prefixes.
+        #
+        # An N-substituted imine is the same case (naming round 4): it has a
+        # suffix ("N-hydroxypropan-1-imine") but no simple prefix -- its
+        # substituent belongs INSIDE a compound one, "(hydroxyimino)" -- and
+        # an FG left here with no prefix form was dropped whole, atoms and
+        # all ("4-(hydroxyimino)pentanoic acid" became "pentanoic acid").
         non_pcg_fgs = [
             fg for fg in interpretation.fgs
             if fg not in pcg_instances and fg.type not in (
                 "ester", "carbamate",
                 "thioester", "thionoester", "dithioester",
                 "thionocarbamate", "dithiocarbamate",
+                "substituted_imine", "sulfonate_ester", "aminium",
             )
         ]
 
@@ -13417,6 +14048,12 @@ class SubstitutivePath:
                     continue
                 for _i, _n_idx in enumerate(sorted(_ns)):
                     _n_to_prime[_n_idx] = "'" * _i
+            # A group whose nitrogens have FIXED locants overrides the index
+            # order above, and primes even a lone substituted N: P-66.3 cites
+            # the acyl-side N of a hydrazide as N and the terminal one as N'
+            # ("N'-benzoylbenzohydrazide (PIN)", p. 671). Index order named
+            # N'-methylbenzohydrazide as the N-methyl isomer (round 4, A6).
+            _n_to_prime.update(_role_primes(pcg_instances, parent_atoms, mol))
 
             # Pass 2.5a: PCG N-substituents
             for n_idx in _pcg_n_atoms:
@@ -14202,51 +14839,8 @@ class SubstitutivePath:
                                         n_sub_names.append("?")
 
                                 if n_sub_names:
-                                    # Assemble compound amino prefix:
-                                    # "(methylamino)", "(dimethylamino)", etc.
-                                    from openchem.vendor.iupac_namer.assembly import merge_identical_prefixes, render_merged_prefixes
-                                    # When the compound amino carries two or more
-                                    # distinct N-substituent names and at least one
-                                    # is complex (already bracketed), parsers (e.g.
-                                    # OPSIN) can mis-group adjacent simple + complex
-                                    # prefixes as a single larger substituent — e.g.
-                                    # "(quinazolin-2-yl)methylamino" would be read
-                                    # as "[(quinazolin-2-yl)methyl]amino" (a benzyl-
-                                    # like CH2 bridge).  To disambiguate, wrap each
-                                    # simple N-sub name in parentheses so the result
-                                    # becomes e.g. "(methyl)(quinazolin-2-yl)amino".
-                                    # Disambiguate compound amino prefixes when 2+
-                                    # N-substituents are present.  Without grouping,
-                                    # the rendered "(X)Y-amino" form can be mis-parsed
-                                    # (e.g. OPSIN reads "(4-amino-...-quinazolin-2-yl)
-                                    # methylamino" as a benzyl-style "[...methyl]amino"
-                                    # linker rather than "(...)(methyl)amino").  If
-                                    # any N-sub name carries a locant/hyphen or is
-                                    # already bracketed, wrap every simple N-sub in
-                                    # parentheses to make the grouping unambiguous.
-                                    # See FDA-0033.
-                                    def _is_complex_nsub(nm: str) -> bool:
-                                        if not nm:
-                                            return False
-                                        if nm[0] in "([{":
-                                            return True
-                                        # Locant hyphen like "4-amino-..." or "quinazolin-2-yl".
-                                        return "-" in nm
-                                    _distinct_n_sub_names = set(n_sub_names)
-                                    _any_complex = any(_is_complex_nsub(nm) for nm in _distinct_n_sub_names)
-                                    if len(_distinct_n_sub_names) >= 2 and _any_complex:
-                                        n_sub_names = [
-                                            nm if (nm and nm[0] in "([{") else f"({nm})"
-                                            for nm in n_sub_names
-                                        ]
-                                    # Use the same dedup/multiplier logic as main prefixes
-                                    merged = merge_identical_prefixes(
-                                        [(n, ()) for n in n_sub_names]
-                                    )
-                                    merged.sort(key=lambda m: m.sort_name)
-                                    n_prefix_str = render_merged_prefixes(merged)
-                                    # Strip trailing hyphen if present (e.g. "dimethyl-")
-                                    n_prefix_str = n_prefix_str.rstrip("-")
+                                    # "(methylamino)", "methyl(phenyl)amino", ...
+                                    n_prefix_str = _compose_n_substituents(n_sub_names)
                                     compound_prefix = n_prefix_str + "amino"
                                     sub_tree = LeafTree(
                                         output_form=OutputForm.SUBSTITUENT,
@@ -14686,12 +15280,16 @@ class SubstitutivePath:
                                     frag_mol_ac.GetRingInfo().NumRings() > 0
                                 )
                                 _ac_contract = (
-                                    alkyl_name_ac.endswith("yl")
-                                    and not alkyl_name_ac.endswith("nyl")
+                                    _contracts_to_alkoxy(alkyl_name_ac)
                                     and not _ac_frag_has_ring
                                 )
                                 if _ac_contract:
                                     alkoxy_part = alkyl_name_ac[:-2] + "oxy"
+                                elif (re.search(r"\d-", alkyl_name_ac)
+                                        and "(" not in alkyl_name_ac
+                                        and "[" not in alkyl_name_ac):
+                                    # P-16.5.1.3, as for the ether prefix below.
+                                    alkoxy_part = "(" + alkyl_name_ac + ")oxy"
                                 else:
                                     alkoxy_part = alkyl_name_ac + "oxy"
                                 # Wrap in parens if complex (contains space, dash, or parens)
@@ -14789,6 +15387,7 @@ class SubstitutivePath:
                                 )
                                 _is_contracted_oxy = (
                                     ether_suffix == "oxy"
+                                    and _contracts_to_alkoxy(alkyl_name)
                                     and alkyl_name.endswith("yl")
                                     and not alkyl_name.endswith("nyl")  # sulfonyl, sulfinyl, carbonyl
                                     and not alkyl_name.endswith("xyl")  # no such group but safe
@@ -14803,12 +15402,15 @@ class SubstitutivePath:
                                 # contracted retained PIN for the C6H5-O-
                                 # substituent (overrides the general
                                 # "ring substituent uses yloxy" rule).
+                                # "Fully substitutable" (P-63.2.2.2, p. 541), so a
+                                # substituted phenyl contracts too: "2,4,5-
+                                # trichlorophenoxy", not "(2,4,5-trichlorophenyl)oxy".
                                 _is_phenoxy_special = (
                                     ether_suffix == "oxy"
-                                    and alkyl_name == "phenyl"
+                                    and alkyl_name.endswith("phenyl")
                                 )
                                 if _is_phenoxy_special:
-                                    ether_prefix_name = "phenoxy"
+                                    ether_prefix_name = alkyl_name[:-2] + "oxy"
                                 elif _is_contracted_oxy:
                                     ether_prefix_name = alkyl_name[:-2] + "oxy"
                                 else:
@@ -14828,7 +15430,20 @@ class SubstitutivePath:
                                         or "[" in alkyl_name
                                     )
                                     if _alkyl_has_inner_parens:
-                                        ether_prefix_name = "[" + alkyl_name + "]" + ether_suffix
+                                        # The next nesting level, not always "[":
+                                        # "{[(4-chlorophenyl)sulfanyl]methyl}sulfanyl"
+                                        # came out "[[(...)sulfanyl]methyl]sulfanyl".
+                                        from openchem.vendor.iupac_namer.assembly import _choose_brackets
+                                        _ob, _cb = _choose_brackets(alkyl_name)
+                                        ether_prefix_name = _ob + alkyl_name + _cb + ether_suffix
+                                    elif re.search(r"\d-", alkyl_name):
+                                        # P-16.5.1.3 (pdf p. 130): "Parentheses are
+                                        # placed also around prefixes denoting simple
+                                        # substituent groups qualified by locants" --
+                                        # "(propan-2-yl)oxy", "(pyridin-2-yl)oxy" (65
+                                        # pages of the book; the comment above that
+                                        # wanted "pyridin-4-yloxy" was mistaken).
+                                        ether_prefix_name = "(" + alkyl_name + ")" + ether_suffix
                                     else:
                                         ether_prefix_name = alkyl_name + ether_suffix
                                 sub_tree = LeafTree(
@@ -14977,12 +15592,9 @@ class SubstitutivePath:
                                 )
                                 _amide_n_names.append("?")
                         if _amide_n_names:
-                            from openchem.vendor.iupac_namer.assembly import merge_identical_prefixes, render_merged_prefixes
-                            _merged = merge_identical_prefixes(
-                                [(_n, ()) for _n in _amide_n_names]
-                            )
-                            _merged.sort(key=lambda m: m.sort_name)
-                            _n_prefix_str = render_merged_prefixes(_merged).rstrip("-")
+                            # "2-[methyl(propanoyl)amino]benzene-1-sulfonic
+                            # acid" (pdf p. 653), not "(methylpropanoylamino)".
+                            _n_prefix_str = _compose_n_substituents(_amide_n_names)
                             _compound_amino = _n_prefix_str + "amino"
                             _sub_tree = LeafTree(
                                 output_form=OutputForm.SUBSTITUENT,
@@ -15051,6 +15663,7 @@ class SubstitutivePath:
                     prefixes.append(PrefixEntry(
                         tree=sub_tree,
                         locants=(pa.locant,) if pa.locant is not None else (),
+                        atom_origin=fragment_origin(fragment_mol),
                     ))
                 except Exception as e:
                     logger.warning("Failed to carve substituent: %s", e)
@@ -15094,6 +15707,7 @@ class SubstitutivePath:
                     prefixes.append(PrefixEntry(
                         tree=sub_tree,
                         locants=pa.locants,
+                        atom_origin=fragment_origin(fragment_mol),
                     ))
                 except Exception as e:
                     logger.warning("Failed to carve bridging substituent: %s", e)
@@ -15387,20 +16001,60 @@ class SubstitutivePath:
                             mol, _parent_atom_idxs, _attach, _remove,
                         )
 
+        # P-58.2: a ring C=X suffix decides where the ring's hydrogens are
+        # cited -- indicated, added "(1H)", or hydro -- and the parent-naming
+        # routes each guessed at it separately (maleimide came out
+        # "2,5-dihydro-1H-pyrrole-2,5-dione", caffeine lost its hydro block).
+        # One procedure, run on the chosen numbering; it declines, leaving
+        # the route's own text, whenever it cannot account for that text.
+        _named_parent = plan.named_parent
+        _suffix_groups = plan.suffix_groups
+        from openchem.vendor.iupac_namer.ring_naming.indicated_hydrogen_p58 import (
+            apply_to_parent as _p58_apply,
+        )
+        # A substituent on a ring position the parent's numbering does not
+        # number cannot be named: the prefix is emitted with NO locant, and
+        # "fluoro-1,2-benzodithiete" or "methyldecahydroisoquinoline" name a
+        # different, or no, structure (a ring-table entry that lacks a locant
+        # for an ordinary position; naming round 4 counted 32 such entries).
+        # Refuse the plan so another parent is chosen, never emit it.
+        # (An empty tuple is the same failure: that is how a missing position
+        # arrives from the prefix builders. Omission is assembly's decision,
+        # made later, so every prefix still carries its locant here.)
+        if plan.named_parent.candidate.ring_system is not None and (
+            any(not p.locants or any(loc is None for loc in p.locants) for p in prefixes)
+            or any(loc is None for sg in _suffix_groups for loc in sg.locants)
+        ):
+            return ErrorTree(
+                output_form=output_form,
+                free_valence=free_valence,
+                choices_made=(),
+                decision_ctx=decision_ctx,
+                validity_warnings=None,
+                message=(
+                    f"parent {plan.named_parent.name!r} has no locant for a "
+                    f"substituted ring position"
+                ),
+            )
+        _fv_added_h: tuple = ()
+        _p58 = _p58_apply(mol, _named_parent, plan.numbering, _suffix_groups, free_valence)
+        if _p58 is not None:
+            _named_parent, _suffix_groups, _fv_added_h = _p58
+
         return SubstitutiveTree(
             output_form=output_form,
             free_valence=free_valence,
             choices_made=(
                 Choice(
                     type="substitutive",
-                    detail=f"parent={plan.named_parent.name}, pcg={plan.pcg_type}",
+                    detail=f"parent={_named_parent.name}, pcg={plan.pcg_type}",
                 ),
             ),
             decision_ctx=decision_ctx,
             validity_warnings=None,
-            named_parent=plan.named_parent,
+            named_parent=_named_parent,
             numbering=plan.numbering,
-            suffix_groups=plan.suffix_groups,
+            suffix_groups=_suffix_groups,
             unsaturation=plan.unsaturation,
             prefixes=tuple(prefixes),
             stereo_descriptors=plan.stereo_descriptors,
@@ -15409,6 +16063,7 @@ class SubstitutivePath:
             ring_anion_locants=ring_anion_locants,
             isotope_labels=_isotope_labels_tuple,
             single_substituent_positions_all_equivalent=_single_sub_all_equiv,
+            free_valence_added_hydrogen=_fv_added_h,
         )
 
 
@@ -16182,10 +16837,38 @@ def _n_sub_locant(
     if needs_disambiguation and parent_nb is not None:
         loc = numbering.atom_to_locant.get(parent_nb)
         if loc is not None and loc._numeric_value is not None:
-            return Locant.hetero("N", sup=str(loc._numeric_value) + prime_suffix)
+            # The prime belongs to the N and the numeral follows it, "N'1"
+            # ("N'1-ethyl-N1,N1-diphenylimidodicarbonimidic diamide (PIN)",
+            # p. 677). OPSIN reads "N1'" as a different position: it turned
+            # N'1,N'2-dibenzyl ethanedihydrazide into an N1,N1 isomer.
+            return Locant.hetero("N", sup=prime_suffix + str(loc._numeric_value))
     if prime_suffix:
         return Locant.hetero("N", sup=prime_suffix)
     return Locant.hetero("N")
+
+
+def _role_primes(pcg_instances, parent_atoms, mol) -> dict[int, str]:
+    """Primes fixed by a nitrogen's ROLE in its suffix group, not its index.
+
+    Hydrazide (P-66.3.1): the N bonded to the acyl carbon is N, the terminal
+    one N'. Amidine (P-66.4.1.4.1): the amino N is N, the imino N is N'. Only groups with a named role scheme appear here; every other
+    group keeps the index-order primes of its caller.
+    """
+    primes: dict[int, str] = {}
+    for fg in pcg_instances:
+        if fg.type not in ("hydrazide", "imidamide"):
+            continue
+        for a in fg.atoms - set(parent_atoms):
+            if mol.GetAtomWithIdx(a).GetAtomicNum() != 7:
+                continue
+            bond = mol.GetBondBetweenAtoms(a, fg.anchor)
+            if fg.type == "hydrazide":
+                primes[a] = "" if bond is not None else "'"
+            elif bond is not None:
+                # P-66.4.1.4.1: "the locant N refers to the amino group and
+                # N' refers to the imino group" (p. 678).
+                primes[a] = "'" if bond.GetBondTypeAsDouble() == 2 else ""
+    return primes
 
 
 def _select_substituent_method(fragment_mol, attachment_idx: int) -> "SubstituentMethod":
@@ -16361,6 +17044,14 @@ def _acid_name_to_acyl(acid_name: str) -> str | None:
     # Systematic: "...oic acid" -> "...oyl"
     if acid_name.endswith("oic acid"):
         return acid_name[:-len("oic acid")] + "oyl"
+
+    # Carbamic acid's acyl is carbamoyl, not "carbamyl": "carbamoylamino
+    # (preferred prefix)" and "2-[(methylcarbamoyl)amino]naphthalene-1-
+    # carboxylic acid (PIN)", p. 660. The generic rule below gave
+    # "(carbamylamino)acetic acid" once the urea route stopped claiming acids
+    # (round 4, A6).
+    if acid_name.endswith("carbamic acid"):
+        return acid_name[:-len("carbamic acid")] + "carbamoyl"
 
     # Systematic: "...ic acid" -> "...yl" (for retained names like "benzoic" etc.)
     if acid_name.endswith("ic acid"):

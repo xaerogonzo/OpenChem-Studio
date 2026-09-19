@@ -66,7 +66,7 @@ def test_full_esters(smi: str, expected: str) -> None:
     ("CCOP(=O)(OC)Oc1ccccc1", "ethyl methyl phenyl phosphate"),
     ("CCOP(=O)(OC)OC", "ethyl dimethyl phosphate"),
     ("CC(C)(C)OP(=O)(OC)OC", "dimethyl (2-methylpropan-2-yl) phosphate"),
-    ("C=CCOP(=O)(OCC=C)OCC=C", "tris(prop-2-en-1-yl) phosphate"),
+    ("C=CCOP(=O)(OCC=C)OCC=C", "tri(prop-2-en-1-yl) phosphate"),
 ])
 def test_mixed_esters(smi: str, expected: str) -> None:
     assert _name(smi) == expected

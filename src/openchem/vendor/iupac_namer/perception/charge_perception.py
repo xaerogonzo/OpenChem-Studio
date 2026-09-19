@@ -897,6 +897,17 @@ def _classify_diazonium(mol) -> Iterable[ChargeClassification]:
         if triple_n is None or parent_c is None:
             continue
         site = (atom.GetIdx(), triple_n)
+        # Claim only a bare parent ("benzenediazonium", "methanediazonium").
+        # Anything else is left to the substitutive path, where "diazonium"
+        # is a suffix class (naming round 4): this renderer names the parent
+        # WITHOUT the group, so a substituted ring lost the attachment
+        # position and took a retained name -- "toluene-1-diazonium",
+        # "anisole-1-diazonium", neither of which parses back.
+        parent_smiles = _neutral_skeleton_smiles(
+            mol, {atom.GetIdx(): {"delete": True}, triple_n: {"delete": True}},
+        )
+        if parent_smiles is None or not _locant_one_omitted(parent_smiles):
+            continue
         yield ChargeClassification(
             site_atom_indices=site,
             charge_sign="+",
@@ -1667,7 +1678,8 @@ def _classify_acidic_anion(mol) -> Iterable[ChargeClassification]:
     kinds = set(site_kinds.values())
     if len(kinds) != 1:
         return
-    is_carboxylate = kinds == {"carboxylate"}
+    # A sulfonate takes the same "-ate" anion route as a carboxylate.
+    is_carboxylate = kinds in ({"carboxylate"}, {"sulfonate"})
     site_indices = sorted(site_kinds)
     # Scope-narrowing gate: only fire when the deprotonation sites are the
     # ONLY acid-derived functional groups on the molecule.  Mixed
@@ -1723,6 +1735,11 @@ def _acidic_anion_site_kind(mol, a) -> str | None:
     if len(heavy_nbs) != 1:
         return None
     nb = heavy_nbs[0]
+    if a.GetSymbol() == "O" and nb.GetSymbol() == "S" and _is_c_sulfonyl(mol, nb, a):
+        # R-SO2-O(-): "benzenesulfonate (PIN)" (BlueBookV2 pdf p. 807).
+        # The same re-protonate-and-ANION pivot as a carboxylate; before
+        # naming round 4 this fell through to "(oxidosulfonyl)methane".
+        return "sulfonate"
     if nb.GetAtomicNum() != 6:
         return None
     bond = mol.GetBondBetweenAtoms(a.GetIdx(), nb.GetIdx())
@@ -1740,6 +1757,22 @@ def _acidic_anion_site_kind(mol, a) -> str | None:
             if b2 is not None and b2.GetBondTypeAsDouble() == 2.0:
                 return "carboxylate"
     return "olate"
+
+
+def _is_c_sulfonyl(mol, s_atom, o_minus) -> bool:
+    """S with two =O, the charged O, and one carbon: a C-sulfonate site."""
+    double_o = carbon = other = 0
+    for nb in s_atom.GetNeighbors():
+        if nb.GetIdx() == o_minus.GetIdx():
+            continue
+        bond = mol.GetBondBetweenAtoms(s_atom.GetIdx(), nb.GetIdx())
+        if nb.GetAtomicNum() == 8 and bond.GetBondTypeAsDouble() == 2.0:
+            double_o += 1
+        elif nb.GetAtomicNum() == 6 and bond.GetBondTypeAsDouble() == 1.0:
+            carbon += 1
+        else:
+            other += 1
+    return double_o == 2 and carbon == 1 and other == 0
 
 
 def _classify_substituted_boranuide(mol) -> Iterable[ChargeClassification]:
@@ -3307,6 +3340,15 @@ def _render_simple_carbon(
     group = _name_as_substituent(mol, c_idx, strategy, session, depth)
     locant, group_stem = _split_substituent_locant(group)
     if group_stem is not None and locant is not None:
+        # P-14.3.4 (a): "'1' is omitted ... in substituted mononuclear parent
+        # hydrides" -- methanide (PIN), and so phenylmethanide, where this
+        # emitted phenylmethan-1-ide (naming round 4, A3). The uncontracted
+        # substituent form states the locant on purpose (see above), so it
+        # is removed here, for a methane parent only: a longer chain keeps
+        # it (propan-1-ide), and the other omission cases were not
+        # adjudicated for these suffixes.
+        if suffix == "ide" and locant == 1 and group_stem.endswith("methan-1-"):
+            return f"{group_stem[:-len('-1-')]}{suffix}"
         return f"{group_stem}{suffix}"
 
     # A multi-word parent is a functional-class or additive name -- "pyridine
@@ -3713,7 +3755,41 @@ def _render_diazonium(
     if parent_name is None:
         return None
     locant = 1
+    if _locant_one_omitted(parent_smiles):
+        # P-14.3.4 (a)-(c): methanediazonium (PIN); a monosubstituted
+        # homogeneous monocycle or two-atom chain omits it too, so
+        # benzenediazonium, where this emitted benzene-1-diazonium.
+        return f"{parent_name}diazonium"
     return _splice_diazonium(parent_name, locant)
+
+
+def _locant_one_omitted(parent_smiles: str) -> bool:
+    """P-14.3.4: is locant 1 omitted for a single suffix on this parent?
+
+    Decided on the parent SKELETON the suffix replaces a hydrogen of, which
+    for this renderer carries no other substituent when it is one of:
+
+      (a) a mononuclear parent hydride            methane
+      (b) a homogeneous chain of two atoms        ethane
+      (c) a homogeneous monocycle                 benzene, cyclohexane
+
+    Anything else -- a substituted ring, a longer chain -- keeps its locant.
+    """
+    from rdkit import Chem
+
+    parent = Chem.MolFromSmiles(parent_smiles)
+    if parent is None:
+        return False
+    atoms = list(parent.GetAtoms())
+    elements = {a.GetSymbol() for a in atoms}
+    if len(elements) != 1:
+        return False
+    if len(atoms) == 1:
+        return True
+    ring_info = parent.GetRingInfo()
+    if len(atoms) == 2 and ring_info.NumRings() == 0:
+        return True
+    return ring_info.NumRings() == 1 and all(a.IsInRing() for a in atoms)
 
 
 def _splice_diazonium(parent_name: str, locant: int) -> str:
@@ -3798,11 +3874,14 @@ def _acid_name_to_amidinium(acid_name: str) -> str | None:
         stem = acid_name[: -len("oic acid")]
         return stem + "amidinium"
     if acid_name.endswith("carboxylic acid"):
-        # Drop the carboxylic suffix and append ``-1-amidinium``.
-        stem = acid_name[: -len("carboxylic acid")].rstrip("-").rstrip()
+        # Drop the carboxylic suffix and append ``-<locant>-amidinium``,
+        # carrying the acid's own locant (see _acid_name_to_amidylium).
+        head = acid_name[: -len("carboxylic acid")].rstrip()
+        m = re.match(r"^(?P<stem>.+?)-(?P<loc>\d+[a-z]?)-$", head)
+        stem, loc = (m.group("stem"), m.group("loc")) if m else (head.rstrip("-"), "1")
         if stem.endswith("e"):
             stem = stem[:-1]
-        return f"{stem}-1-amidinium"
+        return f"{stem}-{loc}-amidinium"
     return None
 
 
@@ -4372,10 +4451,15 @@ def _acid_name_to_amidylium(acid_name: str) -> str | None:
             stem = stem[:-1]
         return f"{stem}-1-amidylium"
     if acid_name.endswith("carboxylic acid"):
-        stem = acid_name[: -len("carboxylic acid")].rstrip("-").rstrip()
+        # A ring "-carboxylic acid" now keeps its locant ("naphthalene-1-
+        # carboxylic acid", naming round 4); carry it across instead of
+        # assuming 1, which printed "naphthalene-1-1-amidylium".
+        head = acid_name[: -len("carboxylic acid")].rstrip()
+        m = re.match(r"^(?P<stem>.+?)-(?P<loc>\d+[a-z]?)-$", head)
+        stem, loc = (m.group("stem"), m.group("loc")) if m else (head.rstrip("-"), "1")
         if stem.endswith("e"):
             stem = stem[:-1]
-        return f"{stem}-1-amidylium"
+        return f"{stem}-{loc}-amidylium"
     return None
 
 

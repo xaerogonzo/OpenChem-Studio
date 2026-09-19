@@ -109,19 +109,25 @@ class TestBenzoFusedBridgedBicyclic:
         name = name_smiles(smi)
         assert "5,9-ethano" in name, f"expected '5,9-ethano' pin in {name!r}"
 
-    def test_without_aromatic_substituent_falls_back_to_vb(self):
-        """No substituent on the aromatic ring: the VB tricyclo[...] form
-        has lower substituent locants, so the engine picks it instead of
-        the benzofused form.  This is not a regression — the benzofused
-        form is only preferred when it yields lower substituent locants.
+    def test_without_aromatic_substituent_still_takes_the_fusion_name(self):
+        """No substituent on the aromatic ring, and the fusion name still wins.
+
+        This used to assert the OPPOSITE -- "the benzofused form is only
+        preferred when it yields lower substituent locants" -- which described
+        how the legacy ranking float behaved (a x0.01 method nudge losing to
+        locant sums), not a rule. P-52.2.4.1 (p. 450): "Fusion nomenclature
+        gives preferred IUPAC names only to compounds having at least two
+        rings of at least five or more members ... When fusion names are not
+        allowed, unsaturated von Baeyer ring system names are preferred". A
+        benzene fused to an eleven-membered ring meets the requirement, so
+        the bridged fused name (P-25.4) is preferred whatever the locants.
+        The converse -- a three-membered partner, where von Baeyer wins -- is
+        pinned in tests/test_namer_known_defects.py (D-041).
         """
         smi = "C1CCCCCC2Cc3ccccc3C1C2"
         name = name_smiles(smi)
-        # Should be VB tricyclo form
-        assert "tricyclo" in name, (
-            f"expected VB tricyclo fallback without aromatic sub, got {name!r}"
-        )
-        assert "methanobenzocyclo" not in name
+        assert "methanobenzocycloundecene" in name, name
+        assert "tricyclo" not in name
         if HAVE_OPSIN:
             assert _opsin_roundtrip(smi, name), f"round-trip failed: {name}"
 

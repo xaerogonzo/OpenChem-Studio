@@ -33,10 +33,13 @@ def test_explain_naming_reports_the_engines_real_derivation():
     wrong account of IUPAC rules; this hands it the engine's own record."""
     report = explain_naming("CC(=O)Oc1ccccc1C(=O)O")
 
-    assert "2-(acetoxy)benzoic acid" in report
+    # "(acetyloxy)", not "acetoxy": the Blue Book contracts only methoxy..
+    # butoxy and phenoxy, and prints "4-(acetyloxy)benzoic acid (PIN)"
+    # (p. 628). Naming round 4 (A9a) moved the engine to it.
+    assert "2-(acetyloxy)benzoic acid" in report
     assert "benzene" in report              # the parent it chose
     assert "carboxylic_acid" in report      # the group that took the suffix
-    assert "acetoxy" in report              # the substituent
+    assert "acetyloxy" in report            # the substituent
 
 
 def test_explain_naming_gives_the_real_atom_to_locant_map():

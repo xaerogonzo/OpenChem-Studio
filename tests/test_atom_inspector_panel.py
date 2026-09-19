@@ -1173,3 +1173,18 @@ def test_the_empty_state_and_the_status_line_use_the_same_rule(panel):
             f"the empty state reads {shown!r}"
         )
         assert noun in shown, f"the empty state stopped naming its subject: {shown!r}"
+
+
+def test_a_locant_cell_says_where_its_number_came_from(panel):
+    """Round 4 (A12). The locant column shows the substituent's own numbering
+    now, so a "2" can mean the parent's C2 or a prefix's; the tooltip carries
+    the engine's account of which, from the same cached annotation."""
+    widget, _bus = panel
+    naproxen = "COc1ccc2cc([C@@H](C)C(=O)O)ccc2c1"
+    showing(widget, molecule(naproxen, "naproxen"))
+    tips = {}
+    for row in range(widget._atom_table.rowCount()):
+        cell = widget._atom_table.item(row, 1)
+        tips[cell.data(Qt.ItemDataRole.UserRole)] = (cell.text(), cell.toolTip())
+    assert tips[7] == ("2", "2 of 6-methoxynaphthalen-2-yl (the substituent's own numbering)")
+    assert tips[8] == ("2", "2 in this structure's parent numbering")

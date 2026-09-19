@@ -1,0 +1,28 @@
+{
+ "artifact_schema_version": 1,
+ "variant": "v2",
+ "selection_rule": "PubChem CIDs 1000 * k + 500 for k = 1..120, ascending, admitting the first 40 rows that pass the filter",
+ "admission_filter": [
+  "PubChem returns both SMILES and a non-empty IUPACName",
+  "RDKit parses the SMILES",
+  "single component (no '.')",
+  "at least one carbon",
+  "6 <= heavy atoms <= 40",
+  "no explicit isotope label",
+  "canonical SMILES not already in corpus.json or heldout.json"
+ ],
+ "not_filtered": [
+  "element composition beyond 'has carbon'",
+  "charge",
+  "ring count",
+  "stereochemistry"
+ ],
+ "engine_consulted": false,
+ "selection_time": "2026-09-18T02:32:03-0400",
+ "rows": 40,
+ "heldout_sha256": "1e06b6f386b6cbb2b22558d772e8883137c613e7becdcfc0423034cd742be479",
+ "pubchem_property": "SMILES,IUPACName",
+ "rdkit_version": "2025.09.6",
+ "history": "A first v2 run on 2026-09-18 admitted 15 rows, because 503 ServerBusy responses were skipped as missing records. It was discarded before any row was inspected -- the quiet run had printed counts only -- and redrawn with 503s retried.",
+ "inspection_policy": "evaluation only: selected before any naming-round-4 diagnosis, never inspected row by row, loaded only by naming_stage_artifact.py --final-evaluation"
+}

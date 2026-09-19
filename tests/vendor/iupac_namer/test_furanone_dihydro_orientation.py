@@ -80,13 +80,14 @@ class TestExactNames:
 
     def test_furanone_2one_no_higher_pcg_unchanged(self):
         # When the ring carbonyl IS the principal group it stays the -one
-        # suffix at the lowest locant (the curated form): must NOT change.
-        assert name_smiles("O=C1CC=CO1") == "2,3-dihydrofuran-2-one"
+        # suffix at the lowest locant. Naming round 4: furan needs no
+        # indicated hydrogen, so the C=O takes added hydrogen (P-58.2.2).
+        assert name_smiles("O=C1CC=CO1") == "furan-2(3H)-one"
 
     def test_symmetric_2_5_dihydrofuranone_lowest_oxo_locant(self):
         # Symmetric 2,5-dihydro skeleton: carbonyl must stay at locant 2,
         # NOT regress to "...-5-one" (the equal-set orientations are filtered).
-        assert name_smiles("O=C1C=CCO1") == "2,5-dihydrofuran-2-one"
+        assert name_smiles("O=C1C=CCO1") == "furan-2(5H)-one"  # as above
 
 
 # ---------------------------------------------------------------------------

@@ -116,17 +116,18 @@ def test_azanium_controls_unaffected() -> None:
     azanium parent-hydride emissions: methylazanium, ethylazanium,
     azanium all should keep their existing names.
 
-    Note: tetramethylazanium was the prior name for (CH3)4N+; per
-    P-62.6 the retained PIN for the fully quaternary cation NR4+ is
-    "ammonium" (tetramethylammonium), so the case now expects the
-    retained spec PIN form.  Partially substituted N+ (NH3R+, NH2R2+,
-    NHR3+) remain on the systematic 'azanium' parent.
+    Naming round 4: a C-bound N+ is named by the aminium suffix, the
+    book's PIN -- "methanaminium chloride (PIN)", "N,N,N-trimethyl-
+    methanaminium iodide (PIN)", with methylazanium / tetramethylazanium /
+    tetramethylammonium as its non-preferred alternatives (P-73.1.1.2,
+    BlueBookV2 pdf p. 530). The "P-62.6 retained PIN" this note used to
+    cite does not say that. NH4+ keeps "azanium".
     """
     cases = [
         ("[NH4+]",        "azanium"),
-        ("C[NH3+]",       "methylazanium"),
-        ("CC[NH3+]",      "ethylazanium"),
-        ("C[N+](C)(C)C",  "tetramethylammonium"),
+        ("C[NH3+]",       "methanaminium"),
+        ("CC[NH3+]",      "ethanaminium"),
+        ("C[N+](C)(C)C",  "N,N,N-trimethylmethanaminium"),
     ]
     for smi, expected in cases:
         got = name_smiles(smi)

@@ -27,10 +27,11 @@ from openchem.vendor.iupac_namer.engine import name_smiles
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("smiles,expected_fragment", [
-    # Pyridine as ring O-ether substituent (chain-acid PCG → chain wins as parent)
-    ("OC(=O)CCOc1ccncc1", "pyridin-4-yloxy"),
+    # Pyridine as ring O-ether substituent (chain-acid PCG → chain wins as parent).
+    # P-16.5.1.3 (BlueBookV2 pdf p. 130): a simple prefix qualified by locants is enclosed -- '(pyridin-2-yl)oxy', '(propan-2-yl)oxy' (naming round 4)
+    ("OC(=O)CCOc1ccncc1", "(pyridin-4-yl)oxy"),
     # Pyridine as ring O-ether substituent (amine PCG → chain wins as parent)
-    ("NCCOc1ccncc1", "pyridin-4-yloxy"),
+    ("NCCOc1ccncc1", "(pyridin-4-yl)oxy"),
 ])
 def test_ring_yloxy_produced(smiles, expected_fragment):
     """Ring O-ether substituents must emit -yloxy, not -oxy."""
