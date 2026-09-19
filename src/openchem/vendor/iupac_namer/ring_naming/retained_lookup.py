@@ -2105,8 +2105,10 @@ def try_retained_name(
     # Carry through added-indicated-H atoms from the dihydro derivation when
     # the count==1 path produced an "added-IH" form (P-31.1.4.2.4 / P-58.2.2).
     _added_ih_atoms: tuple[int, ...] | None = None
+    _hydro_atoms: tuple[int, ...] | None = None
     if derived_dihydro is not None:
         _added_ih_atoms = derived_dihydro.get("added_indicated_h_atoms")
+        _hydro_atoms = derived_dihydro.get("hydro_atoms")
 
     # Orientations that come out with the SAME name (a completely hydrogen-
     # ated symmetric ring: both mirror images are "dodecahydro-1H-carbazole")
@@ -2130,7 +2132,8 @@ def try_retained_name(
         _orient_groups.setdefault(orient_name, []).extend(orient_nbs)
         _orient_meta.setdefault(
             orient_name,
-            (orient.get("substituent_form"), orient.get("added_indicated_h_atoms")),
+            (orient.get("substituent_form"), orient.get("added_indicated_h_atoms"),
+             orient.get("hydro_atoms")),
         )
     if match_name in _orient_groups and numbering_options:
         _extra = [nb for nb in _orient_groups.pop(match_name) if nb not in numbering_options]
@@ -2146,6 +2149,7 @@ def try_retained_name(
         extra_atom_indices=extra_atom_indices,
         added_indicated_h_atoms=_added_ih_atoms,
         precomposed_retained_no_suffix=precomposed_no_separable_suffix,
+        hydro_atoms=_hydro_atoms,
     )]
 
     # Emit per-numbering retagged variants as additional candidates (see the
@@ -2164,6 +2168,7 @@ def try_retained_name(
             extra_atom_indices=extra_atom_indices,
             added_indicated_h_atoms=_added_ih_atoms,
             precomposed_retained_no_suffix=precomposed_no_separable_suffix,
+            hydro_atoms=_hydro_atoms,
         ))
 
     # Append per-orientation NamedParents from the partial-saturation
@@ -2174,7 +2179,7 @@ def try_retained_name(
     # (The indicated-H tautomer correction was applied to each orientation's
     # name above, mirroring the primary-name path.)
     for orient_name, orient_nbs in _orient_groups.items():
-        orient_sub, orient_added_ih = _orient_meta[orient_name]
+        orient_sub, orient_added_ih, orient_hydro = _orient_meta[orient_name]
         results.append(_build_named_parent(
             ring_system=ring_system,
             name_str=orient_name,
@@ -2185,6 +2190,7 @@ def try_retained_name(
             extra_atom_indices=extra_atom_indices,
             added_indicated_h_atoms=orient_added_ih,
             precomposed_retained_no_suffix=precomposed_no_separable_suffix,
+            hydro_atoms=orient_hydro,
         ))
 
     return results
@@ -3720,10 +3726,19 @@ def _finalize_hydro_orientation(
     )
     numbering_options = (numbering,)
 
+    # The atoms the hydro prefix covers, for P-14.4 (e)(i)'s ranking of
+    # orientations (types.NamedParent.hydro_atoms).
+    _hydro_loc_strs = {str(l) for l in best_locs}
+    hydro_atoms = tuple(sorted(
+        full_idx for key_idx, full_idx in enumerate(best_match)
+        if str(atom_locants.get(key_idx)) in _hydro_loc_strs
+    ))
+
     return {
         "name": derived_name,
         "substituent_form": derived_sub,
         "numbering_options": numbering_options,
+        "hydro_atoms": hydro_atoms,
     }
 
 
@@ -4081,6 +4096,7 @@ def _build_named_parent(
     extra_atom_indices: "frozenset[int] | None" = None,
     added_indicated_h_atoms: "tuple[int, ...] | None" = None,
     precomposed_retained_no_suffix: bool = False,
+    hydro_atoms: "tuple[int, ...] | None" = None,
 ) -> "NamedParent":
     """Build a NamedParent from a retained name.
 
@@ -4128,6 +4144,7 @@ def _build_named_parent(
         numbering_options=numbering_options,
         added_indicated_h_atoms=added_indicated_h_atoms,
         precomposed_retained_no_suffix=precomposed_retained_no_suffix,
+        hydro_atoms=hydro_atoms,
     )
 
 
@@ -4140,6 +4157,7 @@ def _build_named_parent_from_candidate(
     numbering_options: "tuple[Numbering, ...]" = (),
     added_indicated_h_atoms: "tuple[int, ...] | None" = None,
     precomposed_retained_no_suffix: bool = False,
+    hydro_atoms: "tuple[int, ...] | None" = None,
 ) -> "NamedParent":
     """Build NamedParent from an existing CandidateParent and name string."""
     # stem = name without trailing 'e' (for Method 2 suffix attachment)
@@ -4168,4 +4186,5 @@ def _build_named_parent_from_candidate(
         numbering_options=numbering_options,
         added_indicated_h_atoms=added_indicated_h_atoms,
         precomposed_retained_no_suffix=precomposed_retained_no_suffix,
+        hydro_atoms=hydro_atoms,
     )

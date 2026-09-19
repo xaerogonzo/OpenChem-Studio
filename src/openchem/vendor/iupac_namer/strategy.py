@@ -1096,6 +1096,16 @@ class IUPACCanonical(NamingStrategy):
             )
             unsat_locants_raw.extend(ring_dbl)
             unsat_locants_raw.extend(ring_tri)
+        # P-14.4 (e)(i): 'low locants are given to hydro/dehydro prefixes ...
+        # and ene and yne endings' (pdf p. 75), all together. A hydro-named
+        # parent's orientations carried no hydro locants here, so they tied
+        # and the first one enumerated won: "1,2,5,6-tetrahydropyridine-4-
+        # carboxylic acid" for 1,2,3,6- (round 5, N7).
+        if np.hydro_atoms:
+            _a2l = plan.numbering.atom_to_locant
+            unsat_locants_raw.extend(
+                _a2l[a]._numeric_value or 0 for a in np.hydro_atoms if a in _a2l
+            )
 
         unsat_locants = sorted(unsat_locants_raw)
         # Prefix locants (lower priority within band 2)

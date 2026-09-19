@@ -1973,6 +1973,31 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "derived from '4H-quinolizine (PIN)' (p. 203). OPEN when N1 re-probed it; found "
      "fixed when N6 re-probed the adjudication's open rows, by an earlier round-5 "
      "stage's ring-name work (not bisected)"),
+    # --- Round 5 (N7): numbering. P-14.4 (pdf pp. 74-75) ranks (c) suffixes
+    # and free valences, (d) added hydrogen, then (e)(i) 'hydro/dehydro
+    # prefixes ... and ene and yne endings', all before detachable prefixes.
+    # A hydro-named parent's orientations carried no hydro locants to the
+    # preference key, so they tied and the first enumerated won.
+    ("D-092a", "OC(=O)C1=CCNCC1", "1,2,3,6-tetrahydropyridine-4-carboxylic acid",
+     "1,2,5,6-tetrahydropyridine-4-carboxylic acid", "derived, P-14.4 (e)(i): the "
+     "acid is at 4 either way, so the hydro set decides"),
+    ("D-092b", "CN1CCC(=CC1)c1ccccc1", "1-methyl-4-phenyl-1,2,3,6-tetrahydropyridine",
+     "1-methyl-4-phenyl-1,2,5,6-tetrahydropyridine", "derived, as D-092a: hydro "
+     "prefixes before the detachable ones (MPTP)"),
+    ("D-092c", "OC(=O)CN1CC=CC=C1", "(pyridin-1(2H)-yl)acetic acid",
+     "(1,6-dihydropyridin-1-yl)acetic acid", "'pyridin-1(2H)-yl (preferred prefix)' "
+     "(p. 479). Round 4 put this on the free valence missing from the key; the "
+     "candidate was generated all along and lost a tie"),
+    ("D-092d", "OC(=O)CN1CC=CC(Cl)=C1", "(5-chloropyridin-1(2H)-yl)acetic acid",
+     "(3-chloro-1,6-dihydropyridin-1-yl)acetic acid", "derived: P-14.4 (d), the "
+     "added hydrogen's 2H before the chlorine's 3"),
+    ("D-092e", "OC1=CCCNC1", "1,2,5,6-tetrahydropyridin-3-ol",
+     "1,2,5,6-tetrahydropyridin-3-ol", "converse: P-14.4 (c), the suffix's 3 before "
+     "the hydro set"),
+    ("D-092f", "C1=CCNCC1", "1,2,3,6-tetrahydropyridine", "1,2,3,6-tetrahydropyridine",
+     "control"),
+    ("D-092g", "OC(=O)CN1C=CC=C(Cl)C1", "(3-chloropyridin-1(2H)-yl)acetic acid",
+     "(3-chloropyridin-1(2H)-yl)acetic acid", "control: 2H and the 3-chloro agree"),
     ("D-089y", "CP(=O)(O)OP(C)(=O)O",
      "(hydroxy){[(hydroxy)(methyl)(oxo)phosphanyl]oxy}(methyl)(oxo)phosphane",
      "(hydroxy){[(hydroxy)(methyl)(oxo)phosphanyl]oxy}(methyl)(oxo)phosphane",

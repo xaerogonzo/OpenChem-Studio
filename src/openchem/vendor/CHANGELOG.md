@@ -1199,3 +1199,19 @@ measured first as candidate-absent or misassigned:
   included; the OH oxygen is the prefix's, which the ownership guard
   enforced on the first attempt.
 * Enols take the -ol suffix ("3,4-dihydronaphthalen-1-ol (PIN)", p. 535).
+
+**Numbering (N7).** A hydro-named parent's orientations reached the
+preference key with no hydro locants, so two of them tied and the first
+enumerated won -- "1,2,5,6-tetrahydropyridine-4-carboxylic acid" (and
+MPTP) for 1,2,3,6-. P-14.4 ranks '(e)(i) ... hydro/dehydro prefixes ... and
+ene and yne endings' together, after suffixes and added hydrogen and before
+detachable prefixes (pdf pp. 74-75). The retained hydro route now records
+the atoms its hydro prefix covers (`NamedParent.hydro_atoms`), and the
+strategy ranks their locants under each plan's numbering.
+
+The same tie was behind "(1,6-dihydropyridin-1-yl)acetic acid" for
+"pyridin-1(2H)-yl (preferred prefix)" (p. 479), which round 4 had put down
+to the free valence missing from the preference key. The candidate was
+generated all along; the prefix tier broke the tie in the wrong direction.
+Every N7 case is also named from shuffled atom orders, a Kekule SMILES and
+randomly rooted SMILES (`tests/test_namer_numbering.py`).

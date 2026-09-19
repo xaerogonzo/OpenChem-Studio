@@ -406,8 +406,8 @@ target here was checked against the book on the page cited; none is guessed.
 | PCG assignment | a chain-terminal amidine carbon | `4-carbamimidoylbutanoic acid` | amino + imino prefixes, as "methyl 4-(dimethylamino)-4-(ethylimino)butanoate (PIN)" (P-66.4.1.3.2, p. 677) | BUILT in round 5 (N6); it was a WRONG MOLECULE, one carbon too many (D-091f, g) |
 | PCG assignment | a silanol with an alcohol elsewhere | `2-[(hydroxy)di(methyl)silyl]ethan-1-ol` | a silanol parent (P-44.1.2, Si before C) | BUILT in round 5 (N6): P-44.1.1's count, then Si (D-091i-k) |
 | PCG assignment | hydroxamic acids | `cyclohexanecarbohydroxamic acid` | `N-hydroxycyclohexanecarboxamide (PIN)` (p. 587) | BUILT in round 5 (N6), N-substituted ones too (D-091n-p) |
-| numbering | tetrahydropyridines | `1,2,5,6-` | `1,2,3,6-tetrahydropyridine-4-carboxylic acid` | ranks ring double bonds, not hydro locants |
-| numbering | `pyridin-1(6H)-yl` | the old name | its lowest orientation | the free valence is not in the preference key, so the P-58.2 route declines |
+| numbering | tetrahydropyridines | `1,2,5,6-` | `1,2,3,6-tetrahydropyridine-4-carboxylic acid` | BUILT in round 5 (N7): the orientations tied because no hydro locant reached the preference key; P-14.4 (e)(i) now ranks them (D-092a, b) |
+| numbering | `pyridin-1(6H)-yl` | the old name | its lowest orientation | BUILT in round 5 (N7): `pyridin-1(2H)-yl` (p. 479). Not the free valence: the same hydro-locant tie as the row above (D-092c, d) |
 | data | 32 ring-table entries | -- | -- | they number only some positions; a substituent elsewhere had an empty locant. Guarded (the plan is refused), not repaired |
 | serialization | thioacyl amino prefixes | `4-(ethanethioylamino)benzamide` | `4-(ethanethioamido)benzamide (PIN)` (p. 657) | a compound thioacyl is also left unenclosed |
 | serialization | phosphoryl prefixes | `[diethyl(oxo)phosphanyl]acetic acid` | `(diethylphosphoryl)acetic acid` | "phosphoryl (preselected prefix)" for -PO< (p. 357), substituted as in "[(dimethoxyphosphoryl)oxy]carbonothioyl (preferred prefix)" (p. 359) |
@@ -438,10 +438,15 @@ Also open, and not a name defect:
   no full audit of the backlog. Only the 75 entries that are usable (not
   refused by the gate), unaudited and not from OPSIN get a typed status, at
   N9 or later; the rest stay unaudited and, where from OPSIN, gated.
-* **The book contradicts itself once, and the rule was followed.** Its prefix
-  list prints `2,3-dihydro-1H-isoindol-2-yl` (p. 344); P-58.2.3.1.1 and the
-  worked analysis on p. 499 give `2H-isoindol-2-yl`. The engine emits the
-  latter; the test row says why.
+* **The book contradicts itself twice, and the majority was followed.** Its
+  prefix list prints `2,3-dihydro-1H-isoindol-2-yl` (p. 344); P-58.2.3.1.1
+  and the worked analysis on p. 499 give `2H-isoindol-2-yl`. The engine emits
+  the latter; the test row says why. And an ylidene on a ring position keeps
+  that position's added or indicated hydrogen in '2-ethylidene-2H-indene
+  (PIN)' (pdf p. 932) and a tricyclic dione (pdf p. 642), but not in
+  '3-sulfanylidene-2-benzothiophen-1-one (PIN)' on the same page; the engine
+  keeps it (`3-propylidene-2-benzofuran-1(3H)-one`, re-adjudicated in round 5,
+  N7, h2cid28500).
 * **Depiction.** Substituent numbering now reaches the drawing (A12), except
   from compound amino prefixes assembled as strings, which carry no tree.
 

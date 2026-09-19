@@ -410,3 +410,25 @@ list: the quinolizinone, OPEN since N1, already gave 4H-quinolizin-4-one
 (pinned as D-091w; which earlier stage fixed it was not bisected), and
 h2cid10500, left for N3 to classify, is not in N3's corpus-discovered
 population, so it moves to 'later' as a von Baeyer main-ring question.
+
+### N7: numbering (`r5-N7-numbering`)
+
+No tuning-population name changed (0/187, 0/40, 0/40). The layer was proved
+before the comparator was touched: for "(5-chloropyridin-1(2H)-yl)acetic
+acid" both orientations were generated and carried their numbering, and
+their keys were identical down to the prefix tier, which chose 3-chloro-
+1,6-dihydro. The one change -- the retained hydro route records its hydro
+atoms, and their locants join P-14.4 (e)(i)'s tier -- fixed both plan cases
+(D-092a-d, with converses) and each is invariant under atom permutation,
+Kekule input and random SMILES traversal. Mutation-checked 4/5; the fifth
+(the primary orientation losing its hydro atoms) is equivalent, since that
+orientation is built as the lowest-hydro one and an empty tier ranks best.
+
+The two adjudicated N7 rows moved to N8 without an engine change. cid56000's
+thiazolidine had been right since r4-final (the row's engine name was a
+stale snapshot). h2cid28500's added hydrogen was RE-ADJUDICATED: the book
+keeps hydrogen at an ylidene position three times ('2-ethylidene-2H-indene
+(PIN)', pdf p. 932, and a tricyclic on pdf p. 642) against the bicyclic
+'3-sulfanylidene-2-benzothiophen-1-one' once, so '1(3H)' stands. Both keep
+an enclosure defect for N8. PubChem-vs-preferred on v2 moves 2 -> 1/23 for
+that reason alone.

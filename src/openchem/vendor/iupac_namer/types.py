@@ -438,6 +438,18 @@ class NamedParent:
                                         # their atom-locants metadata supports
                                         # appending suffixes like
                                         # ``cephem-4-carboxylate``.
+    hydro_atoms: tuple[int, ...] | None = None
+                                        # Full-mol atom indices the name's
+                                        # HYDRO PREFIX covers ("1,2,3,6-
+                                        # tetrahydropyridine": the four sp3
+                                        # atoms). The same atoms in every
+                                        # orientation; only their locants
+                                        # differ, and P-14.4 (e)(i) ranks
+                                        # those locants together with 'ene'
+                                        # endings (pdf p. 75). Set by the
+                                        # retained hydro route (naming round
+                                        # 5, N7); None where no hydro prefix
+                                        # is written or the route predates it.
     source: str = ""
                                         # Which route built this parent, where
                                         # a caller must tell two apart:
