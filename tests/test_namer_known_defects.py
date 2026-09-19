@@ -1646,10 +1646,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "N,N-dimethyl-N'-phenylurea", "converse: unchanged"),
     ("D-078j", "NC(N)=NCCCCCCCCCCCCCCN=C(N)N", "N'',N'''''-(tetradecane-1,14-diyl)diguanidine",
      "1,14-bis[(diaminomethylidene)amino]tetradecane", "cid45000's shape: a guanidine carbon is not an amidine ('amino...methanimidamide' was the widened pattern's name). Round 5 (N4) reaches the multiplicative form (P-51.3.1): imino N is N'' (p. 675), the second unit's nitrogens follow the first's three (P-15.3.2.2.1). Derived, not printed"),
-    ("D-078k", "NC(=O)NC(=O)c1ccccc1", "N-benzoylurea",
-     "N-benzoylurea", "control, NOT a target: the book has N-carbamoylbenzamide (PIN), p. 661, "
-     "but the engine ranks urea's amide with benzamide and the general path gave "
-     "'1-amino-N-benzoylmethanamide'; the urea gate stops at acids"),
+    ("D-078k", "NC(=O)NC(=O)c1ccccc1", "N-carbamoylbenzamide",
+     "N-benzoylurea", "p. 660, verbatim; 'amides from carboxylic acids ... are senior to "
+     "urea' (P-66.1.6.1.1.5). Round 5 (N6): a urea carbonyl is no longer a carboxamide, "
+     "so the benzoyl amide is perceived and the urea route steps aside for it"),
     # --- D-079: condensed guanidines are imidodicarbonimidic diamides (A6) --
     # 'biguanide ... no longer recommended' (p. 677); the page's figure
     # numbers N1 1 N'1 2 3 N'3 N3. The former of D-079b named a DIFFERENT
@@ -1916,6 +1916,63 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "the curated table files xanthine under two tautomer keys and the registry "
      "one, so its demotion is read by NAME; 'xanthine' also parsed back as the 7H "
      "tautomer, which this name does not"),
+    # --- Round 5 (N6): principal-group seniority and assignment. ----------
+    ("D-089t", "[SiH](O)(O)O", "silanetriol", "trihydroxysilane",
+     "derived from 'dimethylsilanediol (PIN)' (p. 748): a bare silanol had no "
+     "retained-name entry for the single-centre route to fall to (N6)"),
+    ("D-091a", "NC(=O)NS(=O)(=O)c1ccccc1", "N-carbamoylbenzenesulfonamide",
+     "N-(benzenesulfonyl)urea", "p. 660, verbatim"),
+    ("D-091b", "NC(=O)NC(=O)Cc1ccccc1", "N-carbamoyl-2-phenylacetamide",
+     "N-(phenylacetyl)urea", "p. 660, verbatim"),
+    ("D-091c", "NC(=O)NCCNC(C)=O", "N-[2-(carbamoylamino)ethyl]acetamide",
+     "N-(2-acetamidoethyl)urea", "p. 660, verbatim: the urea route let any amide stand "
+     "as its substituent (limit 1100, amides are 1100)"),
+    ("D-091d", "NC(=O)NCCCNC=O", "N-[3-(carbamoylamino)propyl]formamide",
+     "N-(3-formamidopropyl)urea", "p. 660, verbatim '[not N-(3-formamidopropyl)urea]'"),
+    ("D-091e", "NC(=O)NC(=O)NC(N)=O", "N-(carbamoylcarbamoyl)urea",
+     "N-(carbamoylcarbamoyl)urea", "control, NOT the PIN (2,4-diimidotricarbonic diamide, "
+     "OPEN D-091t): the new urea group and an amide both claimed the shared N until the "
+     "amide was made to subsume it"),
+    ("D-091f", "NC(=N)CCC(=O)O", "4-amino-4-iminobutanoic acid",
+     "4-carbamimidoylbutanoic acid", "a WRONG MOLECULE before: 'carbamimidoyl' carries its "
+     "carbon and the chain named it too. P-66.4.1.3.2 (p. 676): a chain-terminal amidine "
+     "is 'amino' + 'imino'"),
+    ("D-091g", "CN(C)C(=NCC)CCC(=O)OC", "methyl 4-(dimethylamino)-4-(ethylimino)butanoate",
+     "methyl 4-carbamimidoylbutanoate", "p. 676, verbatim; each nitrogen takes the "
+     "substituents hanging off it, which the demoted amidine held in its own atom set"),
+    ("D-091h", "NC(=N)c1ccc(C(=O)O)cc1", "4-carbamimidoylbenzoic acid",
+     "4-carbamimidoylbenzoic acid", "converse, p. 676 verbatim: off the chain, the carbon "
+     "is the prefix's"),
+    ("D-091i", "C[Si](C)(O)CCO", "(2-hydroxyethyl)di(methyl)silanol",
+     "2-[(hydroxy)di(methyl)silyl]ethan-1-ol", "derived: P-44.1.1 counts one -OH each, "
+     "then P-44.1.2 prefers Si; 'di(methyl)' is N8's enclosure defect"),
+    ("D-091j", "OC(=O)C[Si](C)(C)O", "[(hydroxy)di(methyl)silyl]acetic acid",
+     "[(hydroxy)di(methyl)silyl]acetic acid", "converse: an acid's O-H is not an alcohol "
+     "to count, so the acid stays principal"),
+    ("D-091k", "OCC(O)C[Si](C)(C)O", "3-[(hydroxy)di(methyl)silyl]propane-1,2-diol",
+     "3-[(hydroxy)di(methyl)silyl]propane-1,2-diol", "converse: two alcohols beat one "
+     "silanol on P-44.1.1's count"),
+    ("D-091l", "CN[Si](O)(O)O", "(methylamino)silanetriol",
+     "tri(hydroxy)(methylamino)silane", "p. 748, verbatim"),
+    ("D-091m", "C[Si](C)(O)O", "dimethylsilanediol", "dimethylsilanediol",
+     "control, p. 748 verbatim"),
+    ("D-091n", "ONC(=O)C1CCCCC1", "N-hydroxycyclohexanecarboxamide",
+     "cyclohexanecarbohydroxamic acid", "p. 587, verbatim '(not cyclohexanecarbohydroxamic "
+     "acid)'; the OH's O is the N-hydroxy prefix's, not the suffix's (ownership)"),
+    ("D-091o", "ONC(C)=O", "N-hydroxyacetamide", "ethanehydroxamic acid", "p. 586, verbatim"),
+    ("D-091p", "CN(O)C(C)=O", "N-hydroxy-N-methylacetamide",
+     "1-[hydroxy(methyl)amino]-1-oxoethane", "derived, as D-091o: the pattern required N-H"),
+    ("D-091q", "OC1=CC=CCC1", "cyclohexa-1,3-dien-1-ol", "1-hydroxycyclohexa-1,3-diene",
+     "an enol is an alcohol: the -ol suffix (adjudicated round-4 leftover)"),
+    ("D-091r", "OC1=CCCc2ccccc21", "3,4-dihydronaphthalen-1-ol",
+     "1-hydroxy-3,4-dihydronaphthalene", "p. 535, verbatim"),
+    ("D-091s", "C[Si](C)(OC)O", "methoxydi(methyl)silanol",
+     "(hydroxy)(methoxy)di(methyl)silane", "derived; the silanol route wrote "
+     "'methyloxy' until bare alkoxy names were contracted (P-63.2.2.2)"),
+    ("D-091w", "O=c1cccc2ccccn12", "4H-quinolizin-4-one", "[NAMING ERROR]",
+     "derived from '4H-quinolizine (PIN)' (p. 203). OPEN when N1 re-probed it; found "
+     "fixed when N6 re-probed the adjudication's open rows, by an earlier round-5 "
+     "stage's ring-name work (not bisected)"),
     ("D-089y", "CP(=O)(O)OP(C)(=O)O",
      "(hydroxy){[(hydroxy)(methyl)(oxo)phosphanyl]oxy}(methyl)(oxo)phosphane",
      "(hydroxy){[(hydroxy)(methyl)(oxo)phosphanyl]oxy}(methyl)(oxo)phosphane",
@@ -1992,6 +2049,18 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "4-[1,2-bis(4-carboxyphenyl)ethyl]benzoic acid",
      "p. 110: an unsymmetrical central group (P-15.3.3.1) is not built"),
     # Round 5 (N5): each round-trips today.
+    # Round 5 (N6), still open:
+    ("D-091t", "NC(=O)NC(=O)NC(N)=O", "2,4-diimidotricarbonic diamide",
+     "N-(carbamoylcarbamoyl)urea", "p. 662: condensed ureas are imidopolycarbonic diamides; "
+     "not built"),
+    ("D-091u", "CC(=O)NC(=O)c1ccccc1", "N-acetylbenzamide", "N-benzoylacetamide",
+     "p. 654, verbatim: of two acyls on one N only one amide is perceived, so the "
+     "senior one (ring before chain) is never offered as the parent"),
+    ("D-091v", "CCN=C(N(C)C)c1ccc(C(=O)O)cc1",
+     "4-(N'-ethyl-N,N-dimethylcarbamimidoyl)benzoic acid",
+     "4-[(dimethylamino)(ethylimino)methyl]benzoic acid", "p. 676, verbatim; today's "
+     "name is the book's second (general) form -- before N6 it was a wrong molecule, "
+     "'4-(carbamimidoylmethyl)benzoic acid'"),
     ("D-089q", "C[Si](C)(C)O[Si](C)(C)C", "hexamethyldisiloxane",
      "1,1,1,3,3,3-hexamethyldisiloxane", "P-14.3.4.5: all locants go when every "
      "substitutable position is substituted alike; engine-wide, as "
@@ -2001,8 +2070,6 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     ("D-089s", "C[Si](C)(O)O[Si](C)(C)O", "1,1,3,3-tetramethyldisiloxane-1,3-diol",
      "1,3-dihydroxy-1,1,3,3-tetramethyldisiloxane", "derived: -ol on a silicon parent "
      "(P-68.2.5); silanols reach a suffix only by a pre-plan route (N6)"),
-    ("D-089t", "[SiH](O)(O)O", "silanetriol", "trihydroxysilane",
-     "derived, P-68.2.5 suffix mode; 'methylsilanetriol' works (N6)"),
     ("D-089u", "[SiH3]N[SiH3]", "N-silylsilanamine", "disilaazane",
      "p. 145, verbatim '(not disilazane)': with N the a(ba)n rule gives way to amine "
      "names; the organometallic chain route still builds it"),

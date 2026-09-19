@@ -1126,7 +1126,6 @@ def _name_urea_functional_parent(
         mol, core_atoms, free_ns=[n1, n2], fixed={}, parent_name=parent_name,
         output_form=output_form, decision_ctx=decision_ctx, strategy=strategy,
         session=session, depth=depth, perception=perception,
-        seniority_limit=1100,
     )
 
 
@@ -1137,6 +1136,12 @@ def _name_urea_functional_parent(
 # "N-carbamimidoylacetamide (PIN)", p. 676). Hydrazides (class 12) and
 # everything after are junior. The values are functional_groups.json's.
 _N_CORE_PARENT_SENIORITY_LIMIT = 1200
+
+
+_BARE_ALKOXY = {
+    "methyloxy": "methoxy", "ethyloxy": "ethoxy", "propyloxy": "propoxy",
+    "butyloxy": "butoxy", "phenyloxy": "phenoxy",
+}
 
 
 def _name_n_core_parent(
@@ -1214,6 +1219,11 @@ def _name_n_core_parent(
             sub_name = _assemble_core(sub_tree)
             if not sub_name or "[NAMING ERROR" in sub_name:
                 raise RuntimeError(f"{parent_name} substituent naming failed: {sub_name!r}")
+            # P-63.2.2.2 retains methoxy ... butoxy and phenoxy for the BARE
+            # groups; the silanol route reaches -O-R here and got
+            # "dimethyl(methyloxy)silanol" (round 5, N6). Substituted ones
+            # ("...methyl}oxy") are N8's adjudicated row.
+            sub_name = _BARE_ALKOXY.get(sub_name, sub_name)
             out.append(sub_name)
         return out
 
@@ -1474,8 +1484,12 @@ def _name_single_centre_parent(
         free = [centre]
         if sym == "Si":
             ohs = [nb for nb in nbs if _terminal_o(centre, nb, 1.0, True)]
+            # Any singly bonded substituent, not only carbon: "(methylamino)-
+            # silanetriol (PIN)" (pdf p. 748). A siloxane bridge or a second
+            # centre-forming atom still sends the molecule elsewhere (the
+            # blocking-element check below). Round 5 (N6).
             if not (1 <= len(ohs) <= 3) or not all(
-                    nb in ohs or _single_carbon(centre, nb) for nb in nbs):
+                    nb in ohs or _order(centre, nb) == 1.0 for nb in nbs):
                 continue
             core |= {nb.GetIdx() for nb in ohs}
             parent_name = ("silanol", "silanediol", "silanetriol")[len(ohs) - 1]
@@ -1543,6 +1557,18 @@ def _name_single_centre_parent(
         outside = [a for a in heavy if a.GetIdx() not in core]
         if any(a.GetSymbol() in _CENTRE_PARENT_BLOCKING_ELEMENTS for a in outside):
             return None
+        if sym == "Si" and not outside and output_form == OutputForm.STANDALONE:
+            # The bare parent has no retained-name entry to fall to:
+            # "silanetriol", derived from "dimethylsilanediol (PIN)" (p. 748),
+            # was "trihydroxysilane". Round 5 (N6).
+            return LeafTree(
+                output_form=output_form,
+                free_valence=None,
+                choices_made=(Choice(type="single_centre_parent", detail=parent_name),),
+                decision_ctx=decision_ctx,
+                validity_warnings=None,
+                text=parent_name,
+            )
         if parent_name == "diazene" and any(
                 a.GetAtomicNum() != 6 and a.IsInRing() for a in outside):
             return None  # a heteroring outranks the diazene chain (P-44.1.2)
@@ -1551,9 +1577,21 @@ def _name_single_centre_parent(
                                               for b in a.GetNeighbors())
                 for a in outside):
             return None  # a second azo group: multiplicative, not this route
+        same_class: set[str] = set()
+        if sym == "Si" and perception is not None:
+            # P-44.1.1 counts principal groups before P-44.1.2 prefers Si to
+            # C: a silanol keeps the parent unless more alcohols sit
+            # elsewhere. It declined on ANY other alcohol, and the general
+            # path named "2-[(hydroxy)di(methyl)silyl]ethan-1-ol". Round 5
+            # (N6). The anchor is the O, so carboxylic acids never count.
+            others = [fg for fg in perception.fgs.detected_fgs
+                      if fg.type in ("alcohol", "phenol") and fg.anchor not in core]
+            if len(others) <= len(ohs):
+                same_class = {"alcohol", "phenol"}
         if perception is not None and any(
                 fg.anchor not in core and not (fg.atoms <= core)
                 and fg.get_property("seniority", 9999) < limit
+                and fg.type not in same_class
                 and (parent_name != "diazene" or fg.suffix_eligible)
                 for fg in perception.fgs.detected_fgs):
             return None
@@ -10127,6 +10165,28 @@ def _generate_retained_plans(perception, mol, output_form, free_valence, strateg
 _TAKES_MOL: dict[type, bool] = {}
 
 
+def _imidamide_side(mol, pa, anchor: int, n_idx: int) -> set[int]:
+    """One nitrogen of a demoted amidine with the substituents it carries.
+
+    A demoted 'imidamide' prefix holds its N-substituents in its own atom
+    set, not as separate prefixes; split into "amino" + "imino" (P-66.4.1.3.2)
+    each nitrogen takes what hangs off it, never crossing the anchor or the
+    other nitrogen ("4-(dimethylamino)-4-(ethylimino)", pdf p. 676).
+    """
+    others = {
+        nb.GetIdx() for nb in mol.GetAtomWithIdx(anchor).GetNeighbors()
+        if nb.GetAtomicNum() == 7 and nb.GetIdx() != n_idx
+    }
+    allowed = set(pa.substituent_atoms) - others - {anchor}
+    side, stack = {n_idx}, [n_idx]
+    while stack:
+        for nb in mol.GetAtomWithIdx(stack.pop()).GetNeighbors():
+            if nb.GetIdx() in allowed and nb.GetIdx() not in side:
+                side.add(nb.GetIdx())
+                stack.append(nb.GetIdx())
+    return side
+
+
 def _chain_path(mol, atoms) -> list[int] | None:
     """The atoms of an unbranched acyclic chain, in order from one end."""
     atoms = set(atoms)
@@ -13248,8 +13308,13 @@ class SubstitutivePath:
         # tertiary_amide), it must render as "-amide" (with N-OH carved as
         # an N-hydroxy substituent), not as "-hydroxamic acid".  Override
         # the form lookup for this case.
+        # A LONE hydroxamic acid is rendered the same way since round 5
+        # (N6): "N-hydroxycyclohexanecarboxamide (PIN) (not
+        # cyclohexanecarbohydroxamic acid)", "N-hydroxyacetamide (PIN)"
+        # (pdf pp. 586-587, 648); the "-hydroxamic acid" suffix is not a
+        # PIN form at all.
         _AMIDE_PCG_TYPES = frozenset({
-            "amide", "secondary_amide", "tertiary_amide",
+            "amide", "secondary_amide", "tertiary_amide", "hydroxamic_acid",
         })
         _has_hydroxamic_in_amide_group = (
             pcg_type in _AMIDE_PCG_TYPES
@@ -13390,7 +13455,7 @@ class SubstitutivePath:
         # N-substituent that the suffix would otherwise consume the OH for
         # the "-hydroxamic acid" form.
         _AMIDE_PCG_TYPES_FOR_HYDROXAMIC = frozenset({
-            "amide", "secondary_amide", "tertiary_amide",
+            "amide", "secondary_amide", "tertiary_amide", "hydroxamic_acid",
         })
         _hydroxamic_in_amide_group = (
             pcg_type in _AMIDE_PCG_TYPES_FOR_HYDROXAMIC
@@ -14514,6 +14579,14 @@ class SubstitutivePath:
             # adding one phantom C).  Splitting into "oxo" + "hydrazinyl"
             # mirrors the amide → "oxo" + "amino" decomposition.
             "hydrazide",
+            # Round 5 (N6), P-66.4.1.3.2 (pdf p. 676): "When the carbon atom
+            # of the H2N-C(=NH)- group terminates a chain, the groups -NH2
+            # and =NH are designated by the prefixes 'amino' and 'imino'",
+            # "methyl 4-(dimethylamino)-4-(ethylimino)butanoate (PIN)". The
+            # 'carbamimidoyl' prefix includes its carbon, which the chain
+            # already names: "4-carbamimidoylbutanoic acid" was a DIFFERENT
+            # molecule, one carbon longer.
+            "imidamide",
         })
         _consumed_pas: set[int] = set()  # indices of PAs consumed by merging
         _extra_pas: list = []            # new PAs to inject
@@ -14543,11 +14616,36 @@ class SubstitutivePath:
             for _o_idx in _pa.substituent_atoms:
                 _o_atom = mol.GetAtomWithIdx(_o_idx)
                 _o_an = _o_atom.GetAtomicNum()
-                if _o_an not in (8, 16):
-                    continue
-                # The chalcogen is double-bonded to the parent anchor C.
+                # The chalcogen is double-bonded to the parent anchor C; so is
+                # an amidine's =N ("imino"), which the N loop below skips.
                 _o_bond = mol.GetBondBetweenAtoms(_anchor_idx_pp, _o_idx)
                 _o_bo = int(_o_bond.GetBondTypeAsDouble()) if _o_bond else 2
+                if _o_an not in (8, 16) and not (_o_an == 7 and _o_bo == 2):
+                    continue
+                if _o_an == 7:
+                    # A substituted =N ("ethylimino", p. 676) takes its own
+                    # N-substituents with it: they arrive as separate prefixes
+                    # hanging off an atom no longer in any other prefix.
+                    _imino_atoms: set[int] = _imidamide_side(
+                        mol, _pa, _anchor_idx_pp, _o_idx)
+                    for _other_idx, _other_pa in enumerate(plan.prefix_assignments):
+                        if (isinstance(_other_pa, TerminalPrefix)
+                                and getattr(_other_pa, "role", None) == "demoted_fg_n_substituent"
+                                and _other_pa.attachment_bond is not None
+                                and _other_pa.attachment_bond[0] == _o_idx):
+                            _consumed_pas.add(_other_idx)
+                            _imino_atoms |= set(_other_pa.substituent_atoms)
+                    if len(_imino_atoms) > 1:
+                        _extra_pas.append(TerminalPrefix(
+                            fg=None,
+                            substituent_atoms=frozenset(_imino_atoms),
+                            attachment_bond=(_anchor_idx_pp, _o_idx),
+                            attachment_bond_order=_o_bo,
+                            locant=_pa.locant,
+                            output_form=OutputForm.SUBSTITUENT,
+                            role="substituent",
+                        ))
+                        continue
                 _extra_pas.append(TerminalPrefix(
                     fg=None,
                     substituent_atoms=frozenset({_o_idx}),
@@ -14580,9 +14678,15 @@ class SubstitutivePath:
                 # substituent atom set below.
                 if _n_idx not in _n_neighbors_of_anchor:
                     continue
+                _nb_bond = mol.GetBondBetweenAtoms(_anchor_idx_pp, _n_idx)
+                if _nb_bond is not None and _nb_bond.GetBondTypeAsDouble() == 2.0:
+                    continue  # an amidine's =N is the "imino" above
                 # Find any demoted_fg_n_substituent entries that attach from
                 # this N (attachment_bond[0] == N_idx).
-                _n_sub_atoms: set[int] = {_n_idx}
+                _n_sub_atoms: set[int] = (
+                    _imidamide_side(mol, _pa, _anchor_idx_pp, _n_idx)
+                    if _pa.fg.type == "imidamide" else {_n_idx}
+                )
                 # Fold any other FG-member N atoms into the substituent so
                 # the recursive carve names them as part of the substituent
                 # (e.g. hydrazide outer N → recursive name yields
@@ -14593,6 +14697,9 @@ class SubstitutivePath:
                         continue
                     if _other_n_idx == _n_idx:
                         continue
+                    _other_bond = mol.GetBondBetweenAtoms(_anchor_idx_pp, _other_n_idx)
+                    if _other_bond is not None and _other_bond.GetBondTypeAsDouble() == 2.0:
+                        continue  # an amidine's =N is its own "imino" prefix
                     _n_sub_atoms.add(_other_n_idx)
                 _n_sub_consumed: list[int] = []
                 for _other_idx, _other_pa in enumerate(plan.prefix_assignments):

@@ -1168,3 +1168,34 @@ because "OPSIN does not support polyborane parent hydrides"; OPSIN parses
 "tetramethyldiboroxane", the book's own PIN (p. 731). A first draft named a
 nucleotide diphosphate "1,3-dioxodiphosphoxanyl"; a P(V) is not an a-term
 atom.
+
+**Principal-group seniority and assignment (N6).** Four classes, each
+measured first as candidate-absent or misassigned:
+
+* Urea below the amides. "Amides from carboxylic acids, including formamide,
+  are senior to urea" (P-66.1.6.1.1.5, p. 660), and the engine's amide
+  patterns matched urea's carbonyl as a carboxamide, so every one of the
+  book's five examples came out as a substituted urea ("N-(3-formamidopropyl)
+  urea", which the book names only to reject). A carbonyl between two
+  acyclic nitrogens, neither bonded to another N, is now a urea group -- a
+  ring or hydrazine N keeps it a carboxamide ("piperidine-1-carboxamide",
+  "hydrazinecarboxamide") -- and the urea route steps aside for any amide.
+  The ("urea", "amine") subsumption had been in the table with no urea group
+  to act for it.
+* A chain-terminal amidine is "amino" + "imino" (P-66.4.1.3.2). The demoted
+  amidine was a "carbamimidoyl" prefix whose carbon the chain also named, so
+  "4-carbamimidoylbutanoic acid" was a WRONG MOLECULE, one carbon too long,
+  and its N-substituted relatives either that or an inverted seniority. The
+  ownership guard did not see it: the prefix claimed its nitrogens and its
+  name carried the carbon. "methyl 4-(dimethylamino)-4-(ethylimino)butanoate
+  (PIN)" is now as printed.
+* Silanols: the single-centre route counts other alcohols (P-44.1.1) before
+  preferring Si (P-44.1.2) instead of declining on any, takes any singly
+  bonded substituent ("(methylamino)silanetriol (PIN)", p. 748), and names a
+  bare silanol. Widening the alcohol pattern to Si-OH was tried first and
+  produced "2-hydroxyethan-1-ol" for a silanol-alcohol: reverted.
+* Hydroxamic acids are N-hydroxy amides ("N-hydroxycyclohexanecarboxamide
+  (PIN) (not cyclohexanecarbohydroxamic acid)", p. 587), N-substituted ones
+  included; the OH oxygen is the prefix's, which the ownership guard
+  enforced on the first attempt.
+* Enols take the -ol suffix ("3,4-dihydronaphthalen-1-ol (PIN)", p. 535).

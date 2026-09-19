@@ -1799,11 +1799,12 @@ pubchem_name = "(10S,13S,14S,16R)-6,10,19-trimethyl-24-oxa-4-azaheptacyclo[12.12
 verdict = "UNDECIDED"
 fix_status = "OPEN"
 layer = "source_unresolved"
-target_stage = "N3"
+target_stage = "later"
 rule_ref = ["P-52.2.4.1-fusion"]
 evidence_basis = "derived"
 note = """
 Both names are von Baeyer, with different main-ring divisions ([20.4.0] vs [12.12.0]). Whether this steroidal-alkaloid skeleton is ortho-/peri-fused (then P-52.2.4.1 wants a hydro-fusion name) or bridged fused (then von Baeyer, and P-23.2.5.1's 'as symmetrically as possible' would favour [12.12.0]) is N3's population classification to make.
+Round 5 (N6 re-probe): N3's corpus-discovered population (BENCHMARK_HISTORY, N3) lists 4 fused systems and not this one, so ring perception does not put it in the ortho-/ortho-and-peri-fused class; the name is unchanged and round-trips. What remains is the von Baeyer main-ring division (P-23.2.5.1), a numbering question no stage of this round took; retargeted to 'later', still UNDECIDED.
 """
 
 [[row]]
@@ -2199,7 +2200,7 @@ smiles = "O=c1cccc2ccccn12"
 engine_name = "[NAMING ERROR: No valid naming plan found for O=c1cccc2ccccn12]"
 pubchem_name = ""
 verdict = "ENGINE_WRONG"
-fix_status = "OPEN"
+fix_status = "FIXED"
 layer = "candidate_absent"
 target_stage = "N3"
 preferred_name = "4H-quinolizin-4-one"
@@ -2207,7 +2208,7 @@ preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
 rule_ref = ["P-25.2.1-quinolizine"]
 evidence_basis = "derived"
 note = """
-quinolizine is a retained PIN parent (the 4H-isomer); the ketone at 4 takes that position. The engine finds no plan at all.
+quinolizine is a retained PIN parent (the 4H-isomer); the ketone at 4 takes that position. The engine found no plan at all. Round 5: found fixed when N6 re-probed the open rows (4H-quinolizin-4-one, round-trips); pinned as D-091w.
 """
 
 [[row]]
@@ -2217,7 +2218,7 @@ smiles = "OC1=CC=CCC1"
 engine_name = "1-hydroxycyclohexa-1,3-diene"
 pubchem_name = ""
 verdict = "ENGINE_WRONG"
-fix_status = "OPEN"
+fix_status = "FIXED"
 layer = "candidate_misranked"
 target_stage = "N6"
 preferred_name = "cyclohexa-1,3-dien-1-ol"
@@ -2225,7 +2226,7 @@ preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
 rule_ref = ["P-31.1.4-cyclohexenol"]
 evidence_basis = "derived"
 note = """
-An enol is an alcohol: the hydroxy group is the suffix (cyclohex-2-en-1-ol (PIN)). The engine cites it as a prefix on a hydrocarbon.
+An enol is an alcohol: the hydroxy group is the suffix (cyclohex-2-en-1-ol (PIN)). The engine cites it as a prefix on a hydrocarbon. Fixed in round 5 (N6): the alcohol pattern admits a C=C carbon, as the book's "3,4-dihydronaphthalen-1-ol (PIN)" (p. 535) requires (D-091q, r).
 """
 
 [[row]]
@@ -2251,7 +2252,7 @@ smiles = "NC(=O)NS(=O)(=O)c1ccccc1"
 engine_name = "N-(benzenesulfonyl)urea"
 pubchem_name = ""
 verdict = "ENGINE_WRONG"
-fix_status = "OPEN"
+fix_status = "FIXED"
 layer = "candidate_misranked"
 target_stage = "N6"
 preferred_name = "N-carbamoylbenzenesulfonamide"
@@ -2259,7 +2260,7 @@ preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
 rule_ref = ["P-66.1.6-carbamoyl-amides"]
 evidence_basis = "explicit"
 note = """
-The book's example is this exact structure; the amide of the sulfonic acid is the parent and urea's carbonyl is 'carbamoyl'. The same shape as N-carbamoylbenzamide, which the urea gate holds (D-078k).
+The book's example is this exact structure; the amide of the sulfonic acid is the parent and urea's carbonyl is 'carbamoyl'. The same shape as N-carbamoylbenzamide, which the urea gate holds (D-078k). Fixed in round 5 (N6) with it: a carbonyl between two plain acyclic nitrogens is a urea, not a carboxamide, and the urea route steps aside for any amide (P-66.1.6.1.1.5, p. 660; D-091a).
 """
 
 [[row]]

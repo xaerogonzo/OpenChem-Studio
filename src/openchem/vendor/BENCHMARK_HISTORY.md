@@ -388,3 +388,25 @@ gate's (both v2) and two the new parents'. Mutation-checked 22/22. Vendored
 suite: bare xanthine's expectation moved to the systematic name, and the
 book's "N1,N2-bis(cyanomethyl)oxamide" -- which OPSIN cannot parse -- is a
 declared, checked exemption; then 4200 passed.
+
+### N6: principal-group seniority and assignment (`r5-N6-pcg`)
+
+No tuning-population name changed (0/187, 0/40, 0/40): every N6 class is
+outside the corpora, and each is pinned by a D-row with the book's page --
+the five P-66.1.6.1.1.5 urea/amide examples, the P-66.4.1.3.2 amidine, the
+p. 748 silanols, the p. 586-587 hydroxamic acids and the p. 535 enol, all
+exact. The probe found one WRONG MOLECULE the corpora never reached:
+"4-carbamimidoylbutanoic acid" for H2N-C(=NH)-CH2CH2-COOH, the prefix's
+carbon counted twice; and "4-(carbamimidoylmethyl)benzoic acid" for an
+N-substituted ring amidine, now the book's second form. The N2 ownership
+guard missed the first because a prefix's CLAIMED atoms are not the atoms
+its NAME denotes -- recorded as an audit-reach gap. Mutation-checked 19/19
+(one mutation first written as a no-op, and one guard found only once
+tests/test_feature_vocabulary.py joined the run). Vendored: one enol
+expectation moved ("1,2,5,6-tetrahydropyridin-3-ol"), then green.
+
+Re-probing every adjudication row assigned to N3-N6 closed the stage-bound
+list: the quinolizinone, OPEN since N1, already gave 4H-quinolizin-4-one
+(pinned as D-091w; which earlier stage fixed it was not bisected), and
+h2cid10500, left for N3 to classify, is not in N3's corpus-discovered
+population, so it moves to 'later' as a von Baeyer main-ring question.

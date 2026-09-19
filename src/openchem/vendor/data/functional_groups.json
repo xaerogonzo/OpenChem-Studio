@@ -579,7 +579,7 @@
         },
         {
             "name": "amide",
-            "smarts": "[CX3;!$([CX3](=O)[OX2])](=O)[NX3H2]",
+            "smarts": "[CX3;!$([CX3](=O)[OX2]);!$([CX3](=O)([NX3;!R;!$(N[#7])])[NX3;!R;!$(N[#7])])](=O)[NX3H2]",
             "seniority": 1100,
             "bluebook_class": "11",
             "suffix_terminal": "-amide",
@@ -778,7 +778,7 @@
         },
         {
             "name": "hydroxamic_acid",
-            "smarts": "[CX3](=O)[NX3H1][OX2H1]",
+            "smarts": "[CX3](=O)[NX3;!R;H1,H0][OX2H1]",
             "seniority": 1103,
             "bluebook_class": "11",
             "suffix_terminal": "-hydroxamic acid",
@@ -947,7 +947,7 @@
         },
         {
             "name": "alcohol",
-            "smarts": "[OX2H1][CX4]",
+            "smarts": "[OX2H1][CX4,$([CX3]=[CX3,CX2])]",
             "anchor_index": 1,
             "seniority": 1700,
             "bluebook_class": "17",
@@ -1047,7 +1047,7 @@
         },
         {
             "name": "secondary_amide",
-            "smarts": "[CX3;!$([CX3](=O)[OX2])](=O)[NX3H1]([#6])",
+            "smarts": "[CX3;!$([CX3](=O)[OX2]);!$([CX3](=O)([NX3;!R;!$(N[#7])])[NX3;!R;!$(N[#7])])](=O)[NX3H1]([#6])",
             "anchor_index": 0,
             "seniority": 1100,
             "bluebook_class": "11",
@@ -1058,7 +1058,7 @@
         },
         {
             "name": "tertiary_amide",
-            "smarts": "[CX3;!$([CX3](=O)[OX2])](=O)[NX3H0;!R]([#6])[#6]",
+            "smarts": "[CX3;!$([CX3](=O)[OX2]);!$([CX3](=O)([NX3;!R;!$(N[#7])])[NX3;!R;!$(N[#7])])](=O)[NX3H0;!R]([#6])[#6]",
             "anchor_index": 0,
             "seniority": 1100,
             "bluebook_class": "11",
@@ -1165,6 +1165,11 @@
         {
             "name": "iodosyl",
             "smarts": "[IX2](=O)[#6]"
+        },
+        {
+            "name": "urea",
+            "_comment": "Round 5 (N6): a C(=O) between two acyclic nitrogens, neither bonded to another N -- carbonic diamide, which the book ranks below every carboxylic and sulfonic amide (P-66.1.6.1.1.5, pdf p. 660). It is excluded from the amide patterns, so this claims its atoms instead (the (urea, amine) subsumption entries had no group to act for). A ring N or a hydrazine N is the parent's: piperidine-1-carboxamide, hydrazinecarboxamide.",
+            "smarts": "[NX3;!R;!$(N[#7])][CX3;!R](=O)[NX3;!R;!$(N[#7])]"
         },
         {
             "name": "guanidino",

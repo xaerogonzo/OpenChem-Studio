@@ -136,6 +136,14 @@ SUBSUMPTION_TABLE: dict[tuple[str, str], bool] = {
     # Urea subsumes amine
     ("urea", "amine"): True,
     ("urea", "secondary_amine"): True,
+    ("urea", "tertiary_amine"): True,
+    # An amide sharing a nitrogen with a urea is the parent, and the urea's
+    # other half its "carbamoyl" N-substituent: "N-carbamoylbenzamide (PIN)"
+    # (p. 660). Without this both claimed the N (round 5, N6: triuret's
+    # "carbamoylcarbamoyl" failed the ownership check).
+    ("amide", "urea"): True,
+    ("secondary_amide", "urea"): True,
+    ("tertiary_amide", "urea"): True,
     # Guanidino (substituent prefix) subsumes amine + imine variants:
     # H2N-C(=NH)-NH-R contains an NH2 (amine), =NH (imine), and the NH linker
     # which the secondary_amine SMARTS would otherwise claim.
@@ -623,6 +631,11 @@ class FGDetection:
                 i for i in range(pattern.GetNumAtoms())
                 if pattern.GetAtomWithIdx(i).GetSmarts() == "[#6]"
             ]
+            # A hydroxamic acid is named as an N-hydroxy AMIDE (round 5, N6;
+            # "N-hydroxycyclohexanecarboxamide (PIN)", p. 587): its -amide
+            # suffix names C, =O and N, and the N-hydroxy prefix owns the O.
+            if fg_def.get("name") == "hydroxamic_acid":
+                _context_indices.append(pattern.GetNumAtoms() - 1)
             # For carboxylic_acid on a single-fragment molecule, also include
             # -C(=O)[O-] matches (see the block comment above).
             if (
