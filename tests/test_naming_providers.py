@@ -500,6 +500,36 @@ def test_a_name_that_fails_the_round_trip_is_withheld(monkeypatch):
         naming_providers.derived_name_for_structure(Chem.MolFromSmiles("CCO"))
 
 
+def test_a_name_the_parser_cannot_read_is_shown_with_a_note(monkeypatch):
+    """The CHECKER failing is not the name being wrong: shown, and saying it
+    could not be checked. The withheld case above is a real mismatch."""
+    monkeypatch.setattr(
+        naming_providers,
+        "verify_name_round_trip",
+        lambda name, mol: naming_providers.RoundTrip.PARSER_FAILED,
+    )
+
+    result = naming_providers.derived_name_for_structure(Chem.MolFromSmiles("CCO"))
+
+    assert result.name == "ethanol"
+    assert "could not read this name back" in result.note
+
+
+def test_the_book_oxamide_opsin_cannot_parse_reaches_the_user():
+    """The input that made the split: 'N1,N2-bis(cyanomethyl)oxamide (PIN)'
+    (Blue Book p. 653). OPSIN cannot parse it; the app used to withhold it."""
+    if not naming_providers.opsin_available():
+        pytest.skip("needs OPSIN to show that OPSIN cannot parse it")
+    mol = Chem.MolFromSmiles("N#CCNC(=O)C(=O)NCC#N")
+
+    assert verify_name_round_trip("N1,N2-bis(cyanomethyl)oxamide", mol) is (
+        naming_providers.RoundTrip.PARSER_FAILED
+    )
+    result = naming_providers.derived_name_for_structure(mol)
+    assert result.name == "N1,N2-bis(cyanomethyl)oxamide"
+    assert "Not verified" in result.note
+
+
 def test_the_calculator_reports_pubchem_and_the_engine_separately():
     """Never merged into one 'the name': a curated record and a derived
     name differ in authority, and one string would erase that."""
@@ -513,14 +543,14 @@ def test_the_calculator_reports_pubchem_and_the_engine_separately():
 
 
 # ---------------------------------------------------------------------------
-# THE THREE PATHS TO `MISMATCH`
+# THE THREE FAILED PATHS
 #
-# `verify_name_round_trip` reaches MISMATCH from three places and only one is
-# evidence against the name -- OPSIN failing to parse, and RDKit failing to
-# build OPSIN's SMILES, are both the CHECKER failing. Splitting them so a
-# checker-failure showed the name with a caveat was designed and then not
-# built: over the 181-molecule corpus, ZERO inputs reach either
-# checker-failed path (benchmarks/naming/round_trip_paths.py re-measures it).
+# `verify_name_round_trip` fails in three places and only one is evidence
+# against the name -- OPSIN failing to parse, and RDKit failing to build
+# OPSIN's SMILES, are both the CHECKER failing. They were all MISMATCH until
+# an input reached the first (naming round 5: the book's N1,N2-oxamide PINs,
+# which OPSIN cannot parse, were withheld as wrong); the first two are now
+# PARSER_FAILED, shown with a note, and only the third is MISMATCH.
 #
 # These hold the three apart so a future change cannot silently collapse
 # them. **Each asserts HOW FAR THE PIPELINE GOT, not merely that the verdict
@@ -568,7 +598,7 @@ def test_mismatch_path_one_opsin_could_not_parse_our_name(monkeypatch):
 
     verdict = verify_name_round_trip("some-name", Chem.MolFromSmiles("CCO"))
 
-    assert verdict is RoundTrip.MISMATCH
+    assert verdict is RoundTrip.PARSER_FAILED
     # The distinguishing fact: OPSIN was reached and produced NOTHING, so
     # nothing downstream ever had a structure to compare.
     assert calls == ["some-name"], "OPSIN was not consulted at all"
@@ -590,7 +620,7 @@ def test_mismatch_path_two_rdkit_could_not_build_opsins_smiles(monkeypatch):
 
     verdict = verify_name_round_trip("some-name", Chem.MolFromSmiles("CCO"))
 
-    assert verdict is RoundTrip.MISMATCH
+    assert verdict is RoundTrip.PARSER_FAILED
     # The distinguishing fact: OPSIN DID return, and what it returned is
     # what RDKit could not build.
     assert len(calls) == 1 and calls[0]["returned"] == unparseable
@@ -736,3 +766,35 @@ def test_the_batch_answers_exactly_what_asking_one_at_a_time_did():
         except naming_providers.NamingError:
             expected = None
         assert (got.smiles if got else None) == expected, name
+
+
+def test_an_unreadable_retained_alternative_is_still_dropped(monkeypatch):
+    """The split is for the PREFERRED name. A secondary 'acceptable in general
+    nomenclature' line that cannot be checked adds nothing, so it stays out."""
+    caffeine = Chem.MolFromSmiles("Cn1c(=O)c2c(ncn2C)n(C)c1=O")
+    assert naming_providers.retained_name_for_structure(caffeine, "x") is not None, (
+        "the fixture no longer has an audited retained alternative"
+    )
+    monkeypatch.setattr(
+        naming_providers,
+        "verify_name_round_trip",
+        lambda name, mol: naming_providers.RoundTrip.PARSER_FAILED,
+    )
+
+    assert naming_providers.retained_name_for_structure(caffeine, "x") is None
+
+
+def test_the_report_line_carries_the_derived_names_note(monkeypatch):
+    """The note has to reach the reader: the report built each line from the
+    name alone, so 'Not verified' (and every stereo note) stopped short."""
+    monkeypatch.setattr(
+        naming_providers,
+        "verify_name_round_trip",
+        lambda name, mol: naming_providers.RoundTrip.PARSER_FAILED,
+    )
+
+    result = naming_providers.compute_iupac_name(
+        Chem.MolFromSmiles("CCO"), "uuid", {"use_pubchem": False})
+
+    line = next(x for x in result.matched if "Nomenclature engine, derived" in x)
+    assert "Not verified" in line

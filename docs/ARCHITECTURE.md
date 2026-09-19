@@ -2066,7 +2066,11 @@ document may cite a file or a test that does not exist.
   shipped, documented, and never once run. The conflation is recorded on
   the function and its three paths are held apart by tests using
   controlled dependency failures, so the split stays cheap if a real case
-  ever appears.
+  ever appears. **It did, on 2026-09-19** (naming round 5): the book's
+  "N1,N2-bis(cyanomethyl)oxamide (PIN)" is a name OPSIN cannot parse, and it
+  was withheld as wrong. Both checker-failed paths now return
+  `RoundTrip.PARSER_FAILED`, shown with an "unverified" note; only a real
+  skeleton disagreement is `MISMATCH` and withheld.
 
   IUPAC Locants on the same molecule DOES work (18 of 23 atoms numbered,
   rendered in the Calculator Inspector with both depictions).

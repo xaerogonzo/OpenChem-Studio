@@ -270,6 +270,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   express stereochemistry present in the structure", so a name for the other
   enantiomer was shown with a soft note. Omitted, added and contradicted
   stereochemistry are now separate verdicts.
+- **A name the checker cannot read is shown, marked unverified, instead of
+  withheld.** A derived name is parsed back with OPSIN; when OPSIN could not
+  parse it at all, that counted as a wrong name and it was hidden. The first
+  real case was a Blue Book PIN -- "N1,N2-bis(cyanomethyl)oxamide" -- which
+  OPSIN cannot read. A checker failure now reads "Not verified: the checking
+  parser (OPSIN) could not read this name back"; a name that parses to a
+  different structure is still withheld. The IUPAC Name report also now
+  shows a derived name's note at all: it built each line from the name
+  alone, so that note -- and the stereochemistry notes before it -- never
+  reached the screen.
 
 - **The pH-dependent 3D charges were drawn on the wrong structure.** Both
   pictures showed the conformer as drawn, so a protonated amine's N-H never

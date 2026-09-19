@@ -1926,8 +1926,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
 # table (tests/vendor/iupac_namer/test_known_defects.py) cannot check them by
 # parsing. It asserts the parse still FAILS instead: the day OPSIN reads one,
-# that test goes red and the entry has to come out. The app withholds such a
-# name, because its round trip reads a checker failure as a mismatch.
+# that test goes red and the entry has to come out. The app shows such a name
+# marked unverified (`RoundTrip.PARSER_FAILED`); it withheld it until round 5.
 OPSIN_CANNOT_PARSE: dict[str, str] = {
     "D-089e": "OPSIN reads no numbered N locant on oxamide; the book prints "
               "'N1,N2-bis(cyanomethyl)oxamide (PIN)' (p. 653)",
