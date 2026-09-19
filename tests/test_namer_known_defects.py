@@ -944,9 +944,12 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # ranking float; read as a lexicographic tier they put von Baeyer (1.2)
     # ahead of fused `systematic` (0.9) and unlisted `benzo_fused_bridged`
     # (0.5). Found by the vendored suite, not the benchmark.
-    ("D-041a", "c1ccc2cc3c(cc2c1)SCS3", "[1,3]dithiolo[4,5-b]naphthalene",
+    ("D-041a", "c1ccc2cc3c(cc2c1)SCS3", "2H-naphtho[2,3-d][1,3]dithiole",
      "4,6-dithiatricyclo[7.4.0.0^{3,7}]trideca-1(13),2,7,9,11-pentaene",
-     "fusion allowed, so the fusion name (the pre-5b answer, restored)"),
+     "fusion allowed, so the fusion name. The target was '[1,3]dithiolo[4,5-b]"
+     "naphthalene' until round 5 (N3), copied from an older engine output: "
+     "P-25.3.2.4 (a) makes the heterocycle the parent, as in the book's own "
+     "'2H-furo[2,3-d][1,3]dioxole (PIN)' (p. 218)"),
     ("D-041b", "OC1=CC=C2C(=C1)C1CCCCCC2C1",
      "5,6,7,8,9,10,11-heptahydro-5,11-methanobenzocyclononen-2-ol",
      "tricyclo[6.5.1.0^{2,7}]tetradeca-2,4,6-trien-4-ol",
@@ -1691,6 +1694,90 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "({2-[(2-benzylhydrazinyl)(oxo)acetyl]hydrazinyl}methyl)benzene", "'N'1', not 'N1'': OPSIN reads N1' as another position, and the heldout cid55000 name came back a different molecule (oxalohydrazide itself is open)"),
     ("D-082b", "CNC(=O)CC(=O)NC", "N1,N3-dimethylpropanediamide",
      "N1,N3-dimethylpropanediamide", "converse: no prime, unchanged"),
+    # --- D-083: general fusion nomenclature, P-25.3 (round 5, N3) ----------
+    # Targets are the book's own PINs, verbatim, with the page; "former" is
+    # what the engine emitted at a2eff41, measured, not guessed. 13 of the
+    # book's 125 ortho- and peri-fused examples were exact before; 78 after.
+    ("D-083a", "c1cc2ccsc2o1", "thieno[2,3-b]furan",
+     "furo[2,3-b]thiophene", "P-25.3.2.4 (a): O is senior to S, so furan is the parent (p. 222)"),
+    ("D-083b", "c1cc2cc[se]c2[se]1", "selenopheno[2,3-b]selenophene",
+     "selenolo[2,3-b]selenofuran", "retained names and 'e' -> 'o' prefixes (p. 210)"),
+    ("D-083c", "C1=Nc2ccccc2CO1", "4H-3,1-benzoxazine",
+     "[1,3]oxazino[4,5-b]benzene", "a benzo name, P-25.2.2.4 (p. 207)"),
+    ("D-083d", "C1=Cc2ccccc2C=CO1", "3-benzoxepine",
+     "4-oxabicyclo[5.4.0]undeca-1(11),2,5,7,9-pentaene", "p. 207"),
+    ("D-083e", "c1cc2ccc3ncccc3cc-2c1", "azuleno[6,5-b]pyridine",
+     "[NAMING ERROR: No valid naming plan found for c1cc2ccc3ncccc3cc-2c1]",
+     "a heterocycle is senior to a larger carbocycle (p. 217)"),
+    ("D-083f", "c1ccc2c(c1)[nH]c1cc3nccnc3cc12", "6H-pyrazino[2,3-b]carbazole",
+     "[NAMING ERROR: No valid naming plan found for c1ccc2c(c1)[nH]c1cc3nccnc3cc12]",
+     "P-25.3.2.4 (b): more rings (p. 217)"),
+    ("D-083g", "c1cn2ccsc2n1", "imidazo[2,1-b][1,3]thiazole",
+     "[NAMING ERROR: No valid naming plan found for c1cn2ccsc2n1]",
+     "a fusion N belongs to both components; [1,3]thiazole, never thiazole (p. 220)"),
+    ("D-083h", "c1cc2nc3ccoc3cc2o1", "difuro[3,2-b:2',3'-e]pyridine",
+     "[NAMING ERROR: No valid naming plan found for c1cc2nc3ccoc3cc2o1]",
+     "identical attached components, primed (p. 225)"),
+    ("D-083i", "c1cc2ccc3ccnc4ccc(c1)c2c34", "naphtho[2,1,8-def]quinoline",
+     "4-azatetracyclo[10.2.2.0^{5,14}.0^{8,13}]hexadecane",
+     "peri fusion: only the attached component's nonfused atoms are cited (p. 239)"),
+    ("D-083j", "c1ccc2c(c1)COc1ccccc1-2", "6H-dibenzo[b,d]pyran",
+     "3-oxatricyclo[8.4.0.0^{4,9}]tetradeca-1(14),4,6,8,10,12-hexaene",
+     "two benzenes on one heterocycle are dibenzo, not a benzo name (p. 234)"),
+    ("D-083k", "C1=CC=CC2=C(C=C1)C=CC2", "1H-cyclopenta[8]annulene",
+     "bicyclo[6.3.0]undeca-1(8),2,4,6,9-pentaene",
+     "two monocyclic hydrocarbons: no descriptor; lowest indicated hydrogen (p. 238)"),
+    ("D-083l", "c1poc2c1OCO2", "5H-[1,3]dioxolo[4,5-d][1,2]oxaphosphole",
+     "2,6,8-trioxa-3-phosphabicyclo[3.3.0]octa-1(5),3-diene",
+     "greater variety of heteroatoms; P now joins the P-58 planner (p. 218)"),
+    ("D-083m", "c1ccc2c(c1)ccc1ccccc12", "phenanthrene",
+     "phenanthrene", "converse: a retained system stays with the ring table"),
+    ("D-083n", "C1CC2CCC1C2", "bicyclo[2.2.1]heptane",
+     "bicyclo[2.2.1]heptane", "converse: bridged, so von Baeyer is right"),
+    # --- D-084: ring-table names repaired on the way (round 5, N3) ---------
+    # OPSIN's arylGroups stems were read as whole ring names: "quinolizin",
+    # "arsindol". A stem regains its 'e' when OPSIN's fusion prefixes show the
+    # parent has one ("quinolizino"); and the table's hydrogen-free name loses
+    # to the constructor's planned one.
+    ("D-084a", "C1=CCN2C=CC=CC2=C1", "4H-quinolizine",
+     "quinolizin", "'the PIN is 4H-quinolizine' (p. 203)"),
+    ("D-084b", "c1ccc2cc3cc4ccccc4cc3cc2c1", "tetracene",
+     "naphthacene", "'tetracene (PIN) (formerly naphthacene)' (p. 199)"),
+    ("D-084c", "C1=Cc2ccccc2[AsH]1", "1H-arsindole",
+     "arsindol", "Table 2.8's As analogue of indole"),
+    ("D-084d", "N=C1c2ccccc2-c2ccccc12", "9H-fluoren-9-imine",
+     "fluoren-9-imine", "the P-58.2 planner reaches the table's ring once its hydrogens are "
+     "planned: the indicated H goes on the group carbon (P-58.2.3.1.1, as "
+     "'1,2-dihydro-3H-indol-3-one (PIN)'); heldout_v2 h2cid20500, where PubChem "
+     "writes the same wrong form"),
+    ("D-084e", "Clc1ccc2cccc3c2c1NC=N3", "9-chloro-1H-perimidine",
+     "4-chloro-3H-perimidine", "P-14.4 (b) ranks indicated hydrogen before the "
+     "substituent (pdf p. 74), and 'the PIN is 1H-perimidine' (p. 201); the "
+     "preference key had no indicated-hydrogen tier, so the table's 3H numbering "
+     "won on the chlorine's locant. Found by the vendored suite"),
+    ("D-084f", "O=C(O)C1=CC=CCO1", "2H-pyran-6-carboxylic acid",
+     "2H-pyran-6-carboxylic acid", "the book's own P-14.4 (b) example (pdf p. 74): "
+     "the indicated hydrogen keeps 2 although the suffix could have had it. A "
+     "converse -- the new tier must not trade it for 6H-pyran-2-carboxylic acid"),
+    # --- D-085: the round's corpus population (round 5, N3) --------------
+    # Each round-trips through OPSIN; the numbering choice between mirror
+    # numberings is the substitutive machinery's once they travel together.
+    ("D-085a", "CCN(CC)C(=O)c1c2c(nc3ccccc13)CCCCC2",
+     "N,N-diethyl-7,8,9,10-tetrahydro-6H-cyclohepta[b]quinoline-11-carboxamide",
+     "N,N-diethyl-2-azatricyclo[8.5.0.0^{3,8}]pentadeca-1,3,5,7,9-pentaene-9-carboxamide",
+     "heldout_v2 h2cid23500; PubChem prints the same name"),
+    ("D-085b", "CN1CCN([C@H]2c3cc(Cl)ccc3Sc3ccccc3[C@H]2O)CC1",
+     "(10R,11S)-2-chloro-11-(4-methylpiperazin-1-yl)-10,11-dihydrodibenzo[b,f]thiepin-10-ol",
+     "(9R,10S)-13-chloro-10-(4-methylpiperazin-1-yl)-2-thiatricyclo[9.4.0.0^{3,8}]pentadeca-1(15),3,5,7,11,13-hexaen-9-ol",
+     "heldout_v2 h2cid55500; the suffix takes the lower of the mirror numberings"),
+    ("D-085c", "COc1ccc2c(c1)c1c3c(c4c5ccccc5n(C)c4c1n2CC(O)CN(C)C)C(=O)NC3=O",
+     "13-[3-(dimethylamino)-2-hydroxypropyl]-3-methoxy-12-methyl-12,13-dihydro-5H-indolo[2,3-a]pyrrolo[3,4-c]carbazole-5,7(6H)-dione",
+     "2-[3-(dimethylamino)-2-hydroxypropyl]-21-methoxy-5-methyl-2,5,15-triazahexacyclo[17.4.0.0^{3,18}.0^{4,12}.0^{6,11}.0^{13,17}]tricosa-1(23),3,6,8,10,12,17,19,21-nonaene-14,16-dione",
+     "heldout_v2 h2cid3500; prefixes {3,12,13} before {9,12,13}"),
+    ("D-085d", "CC1C(=O)N=C2Nc3cccc(Cl)c3CN21",
+     "6-chloro-3-methyl-5,10-dihydroimidazo[2,1-b]quinazolin-2(3H)-one",
+     "4-chloro-13-methyl-1,9,11-triazatricyclo[8.3.0.0^{3,8}]trideca-3,5,7,10-tetraen-12-one",
+     "heldout_v1 cid5000"),
 ]
 
 # Measured, reproduced, not yet fixed. Every one of these currently names
@@ -1706,7 +1793,21 @@ FIXED: list[tuple[str, str, str, str, str]] = [
 # added here must be checked by parsing it back
 # (tests/vendor/iupac_namer/test_known_defects.py), precisely to catch that
 # class of mistake before it becomes someone's goal.
-OPEN: list[tuple[str, str, str, str, str]] = []
+OPEN: list[tuple[str, str, str, str, str]] = [
+    # Round 5 (N3): NOT wrong molecules -- ring systems whose fusion PIN needs
+    # a construction general fusion does not build yet. The book's PIN is the
+    # target; the second column is today's output (a von Baeyer name, or none
+    # where that construction fails too).
+    ("D-086a", "c1cc2cc3cocc3cc2o1", "benzo[1,2-b:4,5-c']difuran",
+     "[NAMING ERROR: No valid naming plan found for c1cc2cc3cocc3cc2o1]",
+     "a multiparent name (P-25.3.4.1.3, p. 234)"),
+    ("D-086b", "C1=CC2=c3ccncc3=NC2=C1", "cyclopenta[4,5]pyrrolo[2,3-c]pyridine",
+     "2,5-diazatricyclo[7.3.0.0^{3,8}]dodeca-1(12),2,4,6,8,10-hexaene",
+     "a second-order attached component (p. 239)"),
+    ("D-086c", "C1=CC2=CC=C3C=CCC4=C3N2C(=C1)C=C4", "6H-quinolizino[3,4,5,6-ija]quinoline",
+     "13-azatetracyclo[10.2.2.0^{5,14}.0^{8,13}]hexadeca-1(15),2,5(14),6,8,10,12(16)-heptaene",
+     "an interior heteroatom, P-25.3.3.2 (p. 223)"),
+]
 
 # Observed but NOT tracked here, because this table requires a verified
 # target name and these have none:

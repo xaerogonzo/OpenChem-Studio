@@ -438,6 +438,17 @@ class NamedParent:
                                         # their atom-locants metadata supports
                                         # appending suffixes like
                                         # ``cephem-4-carboxylate``.
+    source: str = ""
+                                        # Which route built this parent, where
+                                        # a caller must tell two apart:
+                                        # "fusion_general" (naming round 5,
+                                        # N3) planned its hydrogens on the
+                                        # actual structure and numbered it by
+                                        # the P-25.3.3 drawing, so where the
+                                        # ring table offers the same ring name
+                                        # differing only in indicated hydrogen
+                                        # ("quinolizine" for 4H-quinolizine),
+                                        # `name_ring_system` keeps this one.
 
 
 # ---------------------------------------------------------------------------

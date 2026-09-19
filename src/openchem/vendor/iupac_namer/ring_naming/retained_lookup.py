@@ -1185,9 +1185,11 @@ def _build_lookup() -> None:
     # "anthracen") — they drop the terminal 'e' so "-yl" attaches cleanly to form
     # substituent names ("pyrrolidin-1-yl", "anthracen-9-yl"). They are NOT
     # parent-name forms. For saturated heterocycles with canonical HW saturated-
-    # ring endings we re-append 'e' to recover the parent name. For everything
-    # else we keep the stem as-is (some names like "furan", "indol", "coumarin"
-    # are real non-'e' parent names).
+    # ring endings we re-append 'e' to recover the parent name; "-in"/"-ol"
+    # stems get it back when OPSIN's fusion prefixes show the parent ends in
+    # 'e' (below). Otherwise the stem is kept ("furan" and "coumarin" are
+    # names; "indol" is NOT -- the PIN is 1H-indole -- which this comment used
+    # to say it was).
     _SAT_HW_STEM_ENDINGS = (
         "iridin", "etidin", "olidin", "olan", "iran", "etan",
         "inan", "epan", "ocan", "onan", "ecan",
@@ -1213,9 +1215,24 @@ def _build_lookup() -> None:
     # "benzyne" preserves OPSIN round-trip equivalence.
     _OPSIN_NAME_PIN_OVERRIDE: dict[str, str] = {
         "benzyn": "1,2-didehydrobenzene",
+        # P-25.1.2.1 (pdf p. 199): "tetracene (PIN) (formerly naphthacene)"
+        "naphthacene": "tetracene",
     }
     try:
         opsin_rings = get_rings_from_opsin()
+        # An arylGroups stem is its parent name less a final 'e' -- when the
+        # parent HAS one. OPSIN's own fusion-prefix list says which: a parent
+        # ending in 'e' forms its prefix by 'e' -> 'o' ("quinolizine" ->
+        # "quinolizino"). Without this "quinolizin", "arsindol" and
+        # "acridarsin" were emitted as whole ring names (naming round 5, N3),
+        # while stems that are names ("coumarin", "isatin") have no such
+        # prefix and are left alone.
+        _fusion_prefixes = {
+            variant.strip()
+            for e in opsin_rings
+            if isinstance(e, dict) and e.get("source") == "fusionComponents.xml"
+            for variant in e.get("name", "").split("|")
+        }
         for entry in opsin_rings:
             if not isinstance(entry, dict):
                 continue
@@ -1250,6 +1267,12 @@ def _build_lookup() -> None:
                     elif (
                         source == "arylGroups.xml"
                         and primary_name.endswith(_UNSAT_EN_STEM_TAIL)
+                    ):
+                        primary_name = primary_name + "e"
+                    elif (
+                        source == "arylGroups.xml"
+                        and primary_name.endswith(("in", "ol"))
+                        and primary_name + "o" in _fusion_prefixes
                     ):
                         primary_name = primary_name + "e"
                     # Apply spec-PIN overrides (P-54.4.4 et al.).

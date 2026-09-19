@@ -2347,7 +2347,15 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # 1,3-benzodioxole: O-1,O-3 bridging aromatic C-3a and C-7a
     # atom_locants: canonical 'c1ccc2c(c1)OCO2', probed via OPSIN 1-(1,3-benzodioxol-N-yl)ethan-1-one
     # idx6=pos1(O), idx7=pos2(CH2), idx8=pos3(O), idx3=pos3a(quat C), idx2=pos4, idx1=pos5, idx0=pos6, idx5=pos7, idx4=pos7a(quat C)
+    # The bare name omits the indicated hydrogen, which P-25.7.1.3.1 allows
+    # in GENERAL nomenclature only: "Omission of indicated hydrogen is also
+    # permitted in general nomenclature if no ambiguity would result, for
+    # example 1,3-benzodioxole, rather than 2H-1,3-benzodioxole" (BlueBookV2
+    # pdf p. 260). Naming round 5 (N3).
     "c1ccc2c(c1)OCO2":   {"name": "1,3-benzodioxole", "substituent_form": "1,3-benzodioxolyl", "alkyl_stem_ok": False,
+                           "pin_eligible": False,
+                           "pin_name": "2H-1,3-benzodioxole",
+                           "pin_substituent_form": "2H-1,3-benzodioxol-N-yl",
                            "atom_locants": {6: 1, 7: 2, 8: 3, 3: "3a", 2: 4, 1: 5, 0: 6, 5: 7, 4: "7a"}},
 
     # The chromene family below is general nomenclature only: 'Systematic

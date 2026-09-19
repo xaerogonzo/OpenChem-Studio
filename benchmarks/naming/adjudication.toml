@@ -1688,12 +1688,13 @@ engine_name = "2-[3-(dimethylamino)-2-hydroxypropyl]-21-methoxy-5-methyl-2,5,15-
 pubchem_name = "3-[3-(dimethylamino)-2-hydroxypropyl]-7-methoxy-23-methyl-3,13,23-triazahexacyclo[14.7.0.02,10.04,9.011,15.017,22]tricosa-1,4(9),5,7,10,15,17,19,21-nonaene-12,14-dione"
 verdict = "UNDECIDED"
 fix_status = "OPEN"
-layer = "candidate_absent"
-target_stage = "N3"
+layer = "source_unresolved"
+target_stage = "later"
 rule_ref = ["P-52.2.4.1-fusion"]
 evidence_basis = "derived"
 note = """
 Every ring has five or more members, so P-52.2.4.1 makes a fusion name the PIN and the engine's von Baeyer name is not it. The exact fusion name (an indolocarbazole-type system) is what general fusion construction (N3) has to build; PubChem's string is a von Baeyer name too and is not borrowed.
+N3 (round 5): the fusion construction is now built (indolo[2,3-a]pyrrolo[3,4-c]carbazole, first-order components on carbazole). What stays undecided is the hydrogen block -- '5H-...-5,7(6H)-dione' comes from the engine's own P-58.2 planner, and the engine may not certify its own output; no book example settles this ring system's form.
 """
 
 [[row]]
@@ -1821,14 +1822,15 @@ corpus_row_id = "h2cid23500"
 smiles = "CCN(CC)C(=O)c1c2c(nc3ccccc13)CCCCC2"
 engine_name = "N,N-diethyl-2-azatricyclo[8.5.0.0^{3,8}]pentadeca-1,3,5,7,9-pentaene-9-carboxamide"
 pubchem_name = "N,N-diethyl-7,8,9,10-tetrahydro-6H-cyclohepta[b]quinoline-11-carboxamide"
-verdict = "UNDECIDED"
-fix_status = "OPEN"
-layer = "candidate_absent"
-target_stage = "N3"
+verdict = "ENGINE_WRONG"
+fix_status = "FIXED"
+preferred_name = "N,N-diethyl-7,8,9,10-tetrahydro-6H-cyclohepta[b]quinoline-11-carboxamide"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
 rule_ref = ["P-52.2.4.1-fusion"]
 evidence_basis = "derived"
 note = """
 Rings of 6, 6 and 7 members: P-52.2.4.1 makes the fusion name (a tetrahydro-cyclohepta[b]quinoline) the PIN, not the engine's azatricyclo name. PubChem's fusion string is the likely target but its numbering and hydro locants are N3's to derive, not to copy.
+N3 (round 5): settled. The fusion name follows from P-52.2.4.1 and the P-25.3 construction, and PubChem prints the identical string -- two independent producers agree with the rule.
 """
 
 [[row]]
@@ -2007,14 +2009,15 @@ corpus_row_id = "h2cid55500"
 smiles = "CN1CCN([C@H]2c3cc(Cl)ccc3Sc3ccccc3[C@H]2O)CC1"
 engine_name = "(9R,10S)-13-chloro-10-(4-methylpiperazin-1-yl)-2-thiatricyclo[9.4.0.0^{3,8}]pentadeca-1(15),3,5,7,11,13-hexaen-9-ol"
 pubchem_name = "(5S,6R)-3-chloro-5-(4-methylpiperazin-1-yl)-5,6-dihydrobenzo[b][1]benzothiepin-6-ol"
-verdict = "UNDECIDED"
-fix_status = "OPEN"
-layer = "candidate_absent"
-target_stage = "N3"
+verdict = "ENGINE_WRONG"
+fix_status = "FIXED"
+preferred_name = "(10R,11S)-2-chloro-11-(4-methylpiperazin-1-yl)-10,11-dihydrodibenzo[b,f]thiepin-10-ol"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
 rule_ref = ["P-52.2.4.1-fusion"]
 evidence_basis = "derived"
 note = """
 Rings of 6, 7 and 6 members: a fusion name (a dihydrodibenzothiepine) is the PIN, not the engine's thiatricyclo name. PubChem's 'benzo[b][1]benzothiepin' is not the book's construction for two benzo attachments; N3 derives the name.
+N3 (round 5): settled by derivation, not by either engine: the thiepine is the parent (P-25.3.2.4 (a), S), its two benzenes are 'dibenzo' (P-25.3.5, as '6H-dibenzo[b,d]pyran (PIN)', p. 234), the system's numbering was checked against OPSIN's for dibenzo[b,f]thiepine, and of the mirror numberings the suffix takes the lower locant (P-31.1.4). PubChem's 'benzo[b][1]benzothiepin' is the construction P-25.3.5 rejects.
 """
 
 [[row]]
@@ -2207,4 +2210,24 @@ rule_ref = ["P-66.1.6-carbamoyl-amides"]
 evidence_basis = "explicit"
 note = """
 The book's example is this exact structure; the amide of the sulfonic acid is the parent and urea's carbonyl is 'carbamoyl'. The same shape as N-carbamoylbenzamide, which the urea gate holds (D-078k).
+"""
+
+[[row]]
+corpus_row_id = "h2cid20500"
+smiles = "N=C1c2ccccc2-c2ccccc12"
+engine_name = "fluoren-9-imine"
+pubchem_name = "fluoren-9-imine"
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "FIXED"
+preferred_name = "9H-fluoren-9-imine"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-58.2.3.1.3-fewer-indicated-H", "P-64.2-ring-ketones"]
+evidence_basis = "derived"
+note = """
+Found by N3's stage artifact, not by adjudication: the row had matched PubChem
+verbatim, so it was not among v2's 25 differing rows. Fluorene needs one
+indicated hydrogen and C9 carries the group, so by P-58.2.3.1.1 the indicated
+hydrogen goes on that carbon, as in "1,2-dihydro-3H-indol-3-one (PIN)" -- the
+planner reached this ring once the constructor supplied its planned
+hydrogens. Both engines' "fluoren-9-imine" leaves the hydrogen unsaid.
 """

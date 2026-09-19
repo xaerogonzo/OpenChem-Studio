@@ -352,6 +352,14 @@ its layer and target stage.
 | layer | case | note |
 |---|---|---|
 | audit reach | molecules named with no substitutive level (66/267 on the tuning populations), and the insides of functional-class, multiplicative, ring-assembly and additive nodes | N2's ownership invariant runs where a substitutive tree exists; a leaf is trusted to name its whole fragment. Extending it needs provenance on those node kinds, which do not carry atom maps today |
+| candidate generation | fusion names needing a SECOND-ORDER attached component | refused (`NEEDS_UNBUILT_CONSTRUCTION`), von Baeyer name or none | N3 builds one parent plus first-order components; 16 of the book's P-25 examples need more ("pyrido[1'',2'':1',2']imidazo[4',5':5,6]pyrazino[2,3-b]phenazine") |
+| candidate generation | multiparent systems | refused, von Baeyer name or NONE | "benzo[1,2-b:4,5-c']difuran" (p. 234): the older fusion route used to stand in with "furo[2,3-f]2-benzofuran"; it no longer may, and the von Baeyer route fails here, so the molecule has no name until multiparent names are built (D-086a) |
+| numbering | interior heteroatoms (P-25.3.3.2) | refused | 6 book examples ("6H-quinolizino[3,4,5,6-ija]quinoline", D-086c) |
+| numbering | a 7- or 8-membered ring fused on three or more sides | refused | measured: 4 of the book's 8 such systems numbered as OPSIN numbers them, 4 did not -- their drawings need a hexagon on an octagon's horizontal side, a shape the drawing model lacks |
+| numbering | rings of more than eight members; helicenes | refused | the book's distorted shapes; a helicene's own orientation rule (hexahelicene itself is retained, and named) |
+| numbering | the ring table's pyrene and phenalene | former CAS interior locants (10b, 10c) | P-25.3.3.3.1 (p. 224) numbers interior carbons 3a1, 5a1 in PINs; the table predates that and is not repaired in N3 |
+| candidate generation | hydro forms of a TRADITIONALLY numbered retained parent | von Baeyer ("tricyclo[8.4.0.0^{4,9}]tetradeca-1(14),2,10,12-tetraene" for a hexahydrophenanthrene) | general fusion leaves anthracene, phenanthrene, acridine, carbazole, xanthene and purine to the ring table, which carries their traditional numbering but cannot always derive a hydro form; the fusion-rule numbering is not theirs, so the constructor refuses rather than number them its own way |
+| data | OPSIN "arylGroups" stems read as ring names | 280 stems; those whose parent ends in 'e' by OPSIN's own fusion prefixes are repaired ("quinolizin" -> "4H-quinolizine") | the rest ("caffein", "anisol", "paracetamol") are N5's registry gate |
 
 ## Open after naming round 4 (2026-09-18)
 
@@ -365,7 +373,7 @@ target here was checked against the book on the page cited; none is guessed.
 
 | layer | case | emits | preferred | note |
 |---|---|---|---|---|
-| candidate generation | heterofused systems not in the ring table | von Baeyer names | fusion names | cid5000, cid40000, the book's 2-benzazepine: general fusion construction (P-25.3), round 5 |
+| candidate generation | heterofused systems not in the ring table | von Baeyer names | fusion names | BUILT in round 5 (N3) for one parent + first-order components: cid5000 and the v2 rows now fusion names; the book's 78 in-class P-25 examples exact. Its limits are in the round-5 list |
 | candidate generation | multiplicative names | `N''-{14-[(diaminomethylidene)amino]tetradecyl}guanidine` | a multiplicative bis-guanidine | also methylenebis(phosphonic acid) and N'-acyl hydrazides (`N'-benzoylbenzohydrazide (PIN)`, p. 671). Admitting an acylated N' into the hydrazide pattern named a WRONG molecule, so it is held out |
 | candidate generation | hydrazine as a parent hydride | `1-(hydrazinyl)methanamide` | `hydrazinecarboxamide (PIN)` (p. 645) | and the carbazates, `ethyl hydrazinecarboxylate` |
 | candidate generation | N-substituted nitrogen oxoacids | `[(hydroxysulfonyl)amino]methane` | `methylsulfamic acid` | the oxoacid composers decline and the general path names a hydride |

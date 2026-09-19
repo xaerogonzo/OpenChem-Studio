@@ -291,3 +291,45 @@ skipping the check, context not subtracted, no element rule, no component
 rule, enforce keeping the bad tree). Reach: 201 of the 267 molecules have at
 least one audited level; the rest are named by a single leaf (63), a
 pre-plan string dispatcher (2) or additively (1).
+
+### N3: general fusion nomenclature (`r5-N3-fusion`)
+
+Two populations, counted separately as the plan requires.
+
+**Source fixtures, the book's own P-25 examples** (every "(PIN)" name on pdf
+pp. 204-256 that OPSIN parses back to a structure; 125 ortho- or ortho- and
+peri-fused systems). Before N3: 13 exact. After: 79 in the supported class
+(one parent, first-order attached components, rings of 3 to 8), of which 78
+are exact end to end and the 79th differs only because the book's table
+prints quinolizine without the "4H" its PIN carries (p. 203). The other 46
+are refused with a stated reason -- 16 need a second-order attached
+component, 10 are multiparent, 8 have a 7- or 8-membered ring fused on three
+or more sides (the drawing model agreed with OPSIN on 4 of those 8, so the
+shape is refused, not guessed), 6 have interior heteroatoms, 5 need distorted
+ring shapes, and 1 is a helicene. The whole-system numbering agrees with
+OPSIN's on every in-class example that can be probed (101 of 101 by chloro
+probes, plus 40 of 40 common drug scaffolds).
+
+**Corpus-discovered** (tuning populations only, never v3): 4 fused systems
+the ring table did not name -- cid5000, h2cid3500, h2cid23500, h2cid55500.
+All 4 now carry fusion names that round-trip; h2cid23500 is identical to
+PubChem's string. The plan's other named fixtures: the book's 2-benzazepine
+is exact; budesonide (cid40000) is outside the class (its steroid would be a
+second-order component) and keeps its von Baeyer name.
+
+Stage artifact against N2: regression 0/187 names changed; v1 1/40 (cid5000);
+v2 4/40 (the three fusion rows and h2cid20500, whose "9H-fluoren-9-imine" is
+P-58.2.3.1.1's form -- the planner reached the ring once the constructor
+supplied its hydrogens); 0 structurally regressed. A draft of the whole-
+retained change took trans-decalin's stereo away (caught by this artifact,
+fixed before commit). Mutation-checked 9/9.
+
+The vendored suite then found what no corpus molecule reaches: the preference
+key had no tier for indicated hydrogen, which P-14.4 (b) ranks before the
+suffix (p. 74), so the ring table's per-numbering variants were chosen on a
+substituent's locant -- "4-chloro-3H-perimidine" for 9-chloro-1H-perimidine
+(p. 201: "the PIN is 1H-perimidine"). The tier was added; its first draft
+scored a name with no block as the empty (best) set and turned h2cid20500
+back into "fluoren-9-imine", so a missing block ranks last. With it: 0 names
+changed in any tuning population, 9 perimidine expectations moved, the
+book's "2H-pyran-6-carboxylic acid" held as a converse, mutation-checked 2/2.

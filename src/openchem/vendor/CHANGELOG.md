@@ -1056,3 +1056,47 @@ Suffix FGs now record their SMARTS context atoms (`context_atoms`: the plain
 measurement needed -- all 30 double-owned levels on the tuning corpora were a
 suffix counting its neighbours. Enforced in the app (a violating plan fails
 closed, never emitting the name), strict under test. No name changed.
+
+**General fusion nomenclature (N3).** A fused ring system with no retained
+name was named by fusion only through one narrow route (a [1,3]-dihetero or
+mono-hetero five-ring on a known base), which also chose the wrong parent
+("furo[2,3-b]thiophene" for thieno[2,3-b]furan) and invented names
+("selenolo[2,3-b]selenofuran"); everything else fell to a von Baeyer name or
+none. Measured on the book's own P-25 examples: 13 of 125 ortho- and
+peri-fused systems exact. Two new modules build the name the book's way:
+`ring_naming/fusion_general.py` (component vocabulary -- Hantzsch-Widman
+monocycles, benzo-heterocycles, the retained polycycles of Tables 2.7 and 2.8
+with their traditional numberings -- P-25.3.2.4 parent seniority, first-order
+attached components, fusion descriptors, P-25.3.8 omissions) and
+`ring_naming/fusion_orientation.py` (the P-25.3.2.3 drawing -- every permitted
+ring shape as the compass directions its sides face -- and P-25.3.3
+numbering from it). The class is stated in the module and refused outside it
+with a code; a refusal whose fusion name needs a second-order or multiparent
+construction may not be answered by the older fusion route.
+
+On the way: OPSIN "arylGroups" stems were read as whole ring names
+("quinolizin", "arsindol"); a stem regains its 'e' where OPSIN's own fusion
+prefixes show the parent has one. "naphthacene" is "tetracene" (p. 199). The
+P-58 planner treats P, As and Sb as it treats N. Mirror numberings of one
+fusion name travel together on one parent, so the suffix and prefixes choose
+between them -- found by an atom-order permutation test, when the ring
+atoms' order had been choosing.
+
+The ring table's "1,3-benzodioxole" is general nomenclature: "Omission of
+indicated hydrogen is also permitted in general nomenclature ... for example
+1,3-benzodioxole, rather than 2H-1,3-benzodioxole" (P-25.7.1.3.1, p. 260).
+It is now "2H-1,3-benzodioxole" by the table's existing pin_eligible swap. 31
+vendored expectations moved with N3, each to the book's form and each
+round-tripped: the old route's own tests pinned its names (no indicated
+hydrogen on a dioxole CH2, "[1,3]dioxolo[4,5-b]benzene" for a benzo name,
+naphthalene as parent over a dithiole), and three von Baeyer names were
+pinned for systems P-52.2.4.1 gives fusion names.
+
+The preference key gains `indicated_hydrogen_locants`, after the heteroatoms
+and before the suffix, as P-14.4 (b) orders them (p. 74). Without it the ring
+table's per-numbering variants were chosen on a substituent's locant
+("4-chloro-3H-perimidine", where the PIN is 9-chloro-1H-perimidine). A parent
+name that leaves the hydrogen out ranks below every name that states one,
+not as the empty -- lowest -- set, which would have handed "9H-fluorene"'s
+place back to the table's bare "fluorene". Nine vendored perimidine
+expectations moved; no tuning-population name changed.

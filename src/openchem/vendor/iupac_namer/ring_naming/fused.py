@@ -2189,6 +2189,26 @@ def name_fused(
     and heterocyclic systems with endocyclic unsaturation still receive a
     systematic name (P-23.2.5) instead of erroring with no plan.
     """
+    # Round 5 (N3): general fusion construction first. Inside its class it
+    # replaces the older, narrower routes below, which also produced wrong
+    # names ("furo[2,3-b]thiophene" for thieno[2,3-b]furan, "selenolo..."
+    # for selenopheno...). Outside it, it says why and the older chain runs.
+    from openchem.vendor.iupac_namer.ring_naming.fusion_general import name_fusion_parents
+    from openchem.vendor.iupac_namer.ring_naming.fusion_orientation import Unsupported
+    try:
+        general = name_fusion_parents(ring_system, candidate, mol)
+    except Unsupported as exc:
+        logger.debug("general fusion declined: %s", exc)
+        if exc.code == Unsupported.NEEDS_UNBUILT_CONSTRUCTION:
+            # A fusion name exists but needs a second-order or multiparent
+            # construction. The older fusion route would stand in with a name
+            # that is not it ("furo[2,3-f]2-benzofuran" for the multiparent
+            # benzo[1,2-b:4,5-c']difuran), so only the von Baeyer name -- a
+            # legal, non-preferred name for any ring system -- remains.
+            return _name_fused_von_baeyer_fallback(ring_system, candidate, mol)
+        general = []
+    if general:
+        return general
     results = _name_fused_hetero(ring_system, candidate, mol)
     if results:
         return results

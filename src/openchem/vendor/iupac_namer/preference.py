@@ -94,6 +94,13 @@ TIER_SPECS: tuple[TierSpec, ...] = (
              "only counts notation (D-022w, D-022z)"),
     TierSpec("heteroatom_locants", "P-31.1.4.2.1", "higher",
              "legacy weighted heteroatom locant score, as before"),
+    TierSpec("indicated_hydrogen_locants", "P-14.4 (b)", "lower",
+             "the parent's own indicated hydrogen, BEFORE the suffix (pdf p. 74): "
+             "'1H-phenalen-4-ol', '2H-pyran-6-carboxylic acid'. Missing until round 5, "
+             "so the ring table's per-numbering variants were chosen on the "
+             "substituent's locant: '4-chloro-3H-perimidine' for 9-chloro-1H-perimidine. "
+             "Stored as added_hydrogen_locants; a name with no block ranks LAST, "
+             "not as the empty set (strategy._indicated_hydrogen_tier)"),
     TierSpec("suffix_locants", "P-31.1.4.2.3", "lower",
              "stored as (-count, -l1, -l2, ...): the locant SET, first point of difference"),
     TierSpec("added_hydrogen_locants", "P-31.1.4.2.4 (d) / P-58.2", "lower",

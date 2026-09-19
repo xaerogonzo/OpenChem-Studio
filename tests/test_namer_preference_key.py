@@ -40,7 +40,7 @@ def _key(**overrides) -> NomenclaturePreferenceKey:
     values = {
         "plan_kind": 0, "pcg_seniority": 0.0, "pcg_count": 0, "parent_selection": 0.0,
         "retained_ring": 0.0, "naming_method": 0.0, "substituent_count": 0,
-        "heteroatom_locants": 0.0,
+        "heteroatom_locants": 0.0, "indicated_hydrogen_locants": empty,
         "suffix_locants": empty, "added_hydrogen_locants": empty,
         "unsaturation_locants": empty,
         "prefix_locants": empty, "primes": 0,
@@ -98,6 +98,24 @@ def test_the_naming_method_is_chosen_before_any_numbering():
     fused = _key(naming_method=5.0, suffix_locants=locant_set_tier((17,)))
     bridged = _key(naming_method=1.2, suffix_locants=locant_set_tier((6,)))
     assert fused > bridged
+
+
+def test_indicated_hydrogen_is_ranked_before_the_suffix_and_a_missing_one_last():
+    """P-14.4 (b), pdf p. 74: '2H-pyran-6-carboxylic acid (PIN)', so the
+    hydrogen keeps 2 although the suffix could have had it. A parent name that
+    leaves the hydrogen out is not the empty -- best -- set: it ranks below
+    every name that states one ('9H-fluoren-9-one (PIN)'; round 5, N3)."""
+    from openchem.vendor.iupac_namer.strategy import _indicated_hydrogen_tier
+
+    two_h = _key(indicated_hydrogen_locants=_indicated_hydrogen_tier("2H-pyran"),
+                 suffix_locants=locant_set_tier((6,)))
+    six_h = _key(indicated_hydrogen_locants=_indicated_hydrogen_tier("6H-pyran"),
+                 suffix_locants=locant_set_tier((2,)))
+    assert two_h > six_h
+    assert _indicated_hydrogen_tier("9H-fluorene") > _indicated_hydrogen_tier("fluorene")
+    assert _indicated_hydrogen_tier("3aH-indene") < _indicated_hydrogen_tier("3H-indene")
+    assert (_indicated_hydrogen_tier("4,5-dihydro-2H-pyran")
+            == _indicated_hydrogen_tier("2H-pyran"))
 
 
 def test_ordering_is_antisymmetric_and_transitive_over_a_sample():
