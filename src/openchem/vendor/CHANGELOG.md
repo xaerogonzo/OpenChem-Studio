@@ -1038,3 +1038,21 @@ Benchmark: regression **187/187 round-trip throughout; PubChem verbatim 98 ->
 101/187**; the used held-out set 40/40, verbatim 14 -> 16/40. The fresh
 held-out result is in `BENCHMARK_HISTORY.md`. What is still open is in
 `KNOWN_LIMITATIONS.md`, "Open after naming round 4".
+
+## 2026-09-19 - naming round 5
+
+**Atom ownership on the tree (N2).** The executor's plan-level "no silent
+atom drop" check asked only whether the UNION of a plan's claims covered the
+molecule, and it ran before the tree existed; round 4 dropped atoms twice past
+it. `ownership.py` checks the TREE the substitutive executor is about to
+return, at every recursion depth: every heavy atom owned by exactly one node
+(parent, suffix group or prefix), a suffix owning only elements its form names
+(round 4's "hydroxymethane" for trimethylsilanol), and nothing outside the
+parent's connected component. `PrefixEntry.claimed_atoms` carries the
+provenance, stamped from the plan assignment that produced each entry
+(`ClaimingPrefixList`, so none of the 19 construction sites had to change).
+Suffix FGs now record their SMARTS context atoms (`context_atoms`: the plain
+`[#6]` of an amine's R or a ketone's two R), which is what the first
+measurement needed -- all 30 double-owned levels on the tuning corpora were a
+suffix counting its neighbours. Enforced in the app (a violating plan fails
+closed, never emitting the name), strict under test. No name changed.

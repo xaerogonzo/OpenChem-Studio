@@ -613,6 +613,16 @@ class FGDetection:
                 continue
 
             matches = self._mol.GetSubstructMatches(pattern)  # type: ignore[attr-defined]
+            # The plain "[#6]" pattern atoms are CONTEXT -- the R of an amine,
+            # the N-R of an amide, both R of a ketone -- the same convention the
+            # prefix-only groups below read as attachment context. Recorded
+            # (as "context_atoms", which nothing else reads) so the ownership
+            # check can tell what a suffix names from what it merely matched
+            # (ownership.py, naming round 5 N2).
+            _context_indices = [
+                i for i in range(pattern.GetNumAtoms())
+                if pattern.GetAtomWithIdx(i).GetSmarts() == "[#6]"
+            ]
             # For carboxylic_acid on a single-fragment molecule, also include
             # -C(=O)[O-] matches (see the block comment above).
             if (
@@ -687,6 +697,12 @@ class FGDetection:
                     {
                         "name": fg_name,
                         "atoms": frozenset(match),
+                        # Only for a match of THIS pattern: the anion
+                        # augmentations above come from other patterns.
+                        "context_atoms": (
+                            frozenset(match[i] for i in _context_indices)
+                            if len(match) == pattern.GetNumAtoms() else frozenset()
+                        ),
                         # anchor_index selects the defining atom of the FG within the
                         # SMARTS match.  Most patterns have the FG atom at index 0,
                         # but patterns like [#6][CX3](=O)[#6] (ketone) need index 1
@@ -776,6 +792,7 @@ class FGDetection:
             ("in_ring", in_ring),
             ("elision", raw["elision"]),
             ("attachment_context", raw.get("attachment_context")),
+            ("context_atoms", raw.get("context_atoms") or frozenset()),
         )
 
         suffix_forms = tuple(raw["suffix_forms"].items()) if raw["suffix_forms"] else ()

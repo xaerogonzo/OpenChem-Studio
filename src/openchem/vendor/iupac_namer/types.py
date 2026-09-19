@@ -2055,6 +2055,10 @@ class PrefixEntry:
     # canonically, so identical fragments have identical indices. Not part of
     # equality -- two identical prefixes at different positions still merge.
     atom_origin: tuple[tuple[int, int], ...] = field(default=(), compare=False)
+    # The atoms of the molecule named at THIS level that this prefix owns,
+    # stamped from the plan assignment that produced it (round 5, N2; see
+    # ownership.py). Not part of equality, for the same reason as above.
+    claimed_atoms: frozenset[int] = field(default=frozenset(), compare=False)
     # multiplier is NOT stored here -- it's computed during assembly's
     # merge_identical_prefixes step.
 

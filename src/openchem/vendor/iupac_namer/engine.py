@@ -27,6 +27,7 @@ from openchem.vendor.iupac_namer.perception.extraction import (
     carve_fc_fragments, fragment_origin,
 )
 from openchem.vendor.iupac_namer.assembly import assemble, derive_sort_name
+from openchem.vendor.iupac_namer import ownership as _ownership
 from openchem.vendor.iupac_namer.data_loader import (
     get_chain_stem, get_multiplier, lookup_retained_name,
     suffix_elides_terminal_e,
@@ -14327,7 +14328,9 @@ class SubstitutivePath:
         decision_ctx, session, depth,
     ) -> SubstitutiveTree:
         """Execute a SubstitutivePlan, recursing on substituent fragments."""
-        prefixes: list[PrefixEntry] = []
+        # Stamps each entry with the atoms of the assignment that produced it,
+        # so the finished tree can be audited (ownership.py, round 5 N2).
+        prefixes: list[PrefixEntry] = _ownership.ClaimingPrefixList()
 
         # ------------------------------------------------------------------
         # Pre-processing: Merge demoted amide FGs (anchor-in-parent) with
@@ -14750,6 +14753,7 @@ class SubstitutivePath:
             )
 
         for pa in plan.prefix_assignments:
+            prefixes.claim = frozenset(pa.substituent_atoms)
             if isinstance(pa, TerminalPrefix):
                 # FG-directed prefix: use the FG's prefix_form directly.
                 # No recursive naming needed — the FG detection already resolved
@@ -16041,7 +16045,7 @@ class SubstitutivePath:
         if _p58 is not None:
             _named_parent, _suffix_groups, _fv_added_h = _p58
 
-        return SubstitutiveTree(
+        tree = SubstitutiveTree(
             output_form=output_form,
             free_valence=free_valence,
             choices_made=(
@@ -16064,6 +16068,19 @@ class SubstitutivePath:
             isotope_labels=_isotope_labels_tuple,
             single_substituent_positions_all_equivalent=_single_sub_all_equiv,
             free_valence_added_hydrogen=_fv_added_h,
+        )
+        # The plan-level check above sees only the union of the plan's claims;
+        # this one reads the TREE, where both round-4 atom drops happened.
+        return _ownership.enforce(
+            mol, tree,
+            lambda message: ErrorTree(
+                output_form=output_form,
+                free_valence=free_valence,
+                choices_made=(),
+                decision_ctx=decision_ctx,
+                validity_warnings=None,
+                message=message,
+            ),
         )
 
 

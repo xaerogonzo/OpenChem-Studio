@@ -278,3 +278,16 @@ candidate unsupported 2 (N5), source unresolved 4. The guard
 
 Two KNOWN_LIMITATIONS entries were stale and are corrected: oxalyl
 dichloride (fixed in round 4) and the four dead acyl keys (already removed).
+
+### N2: atom ownership on the tree (`r5-N2-ownership`)
+
+Measured in record mode before anything was enforced: 30 double-owned levels
+in 22 of 267 molecules and 0 unowned atoms; every one of the 30 was a suffix
+SMARTS counting its context neighbours, fixed by reading the pattern's
+context atoms rather than by loosening the check. After: 0 violations in
+strict mode, and the stage artifact shows 0/187, 0/40, 0/40 names changed and
+0 winning hypotheses changed. Mutation-checked 6/6 (no stamp, the executor
+skipping the check, context not subtracted, no element rule, no component
+rule, enforce keeping the bad tree). Reach: 201 of the 267 molecules have at
+least one audited level; the rest are named by a single leaf (63), a
+pre-plan string dispatcher (2) or additively (1).

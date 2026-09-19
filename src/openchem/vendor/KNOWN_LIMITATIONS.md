@@ -343,6 +343,16 @@ Found while checking D-029; predates it.
   non-minimal lambda numbering and three general-nomenclature-only acylium
   names; the engine's output is correct in every case. See `CHANGELOG.md`.
 
+## Open after naming round 5 (in progress, from 2026-09-19)
+
+Kept by layer, as round 4's list is. Filled in stage by stage; the round's
+adjudicated open rows are in `benchmarks/naming/adjudication.toml`, each with
+its layer and target stage.
+
+| layer | case | note |
+|---|---|---|
+| audit reach | molecules named with no substitutive level (66/267 on the tuning populations), and the insides of functional-class, multiplicative, ring-assembly and additive nodes | N2's ownership invariant runs where a substitutive tree exists; a leaf is trusted to name its whole fragment. Extending it needs provenance on those node kinds, which do not carry atom maps today |
+
 ## Open after naming round 4 (2026-09-18)
 
 Round 3's table below is closed except for one row: chloroquine, warfarin,
@@ -374,13 +384,16 @@ target here was checked against the book on the page cited; none is guessed.
 
 Also open, and not a name defect:
 
-* **The atom-drop invariant has gaps.** Twice this round a change made the
-  engine drop atoms and still return a name, and the plan-level atom-drop
-  invariant caught neither: an FG with no prefix form that was not the
-  principal group vanished with its atoms ("pentanoic acid" for an oxime acid),
-  and an Si-OH suffix class (abandoned) named trimethylsilanol
-  "hydroxymethane". Both were caught by a round trip, after the fact. A check
-  that the finished tree accounts for every atom would catch the next one.
+* **The atom-drop invariant has gaps.** CLOSED for substitutive trees in
+  round 5 (N2, `ownership.py`): every level's tree must own each heavy atom
+  exactly once, a suffix may own only elements its form names, and nothing
+  outside the parent's component. Both of round 4's drops, re-injected, are
+  caught. What it does NOT reach, measured over the tuning populations: 66
+  of 267 molecules are named with no substitutive level at all (63 by a
+  single leaf -- a retained name or a single-centre route --, 2 by a pre-plan
+  string dispatcher, 1 additively), and functional-class, multiplicative,
+  ring-assembly and additive nodes are not audited inside. See "Open after
+  naming round 5".
 * **The registry.** `tools/retained_name_audit.py` now fails closed on
   impossible claims, and 18 PINs, 26 non-PIN retained names and 15 book-absent
   names are typed; 251 entries still have no audited status. Separately,
