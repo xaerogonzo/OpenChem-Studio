@@ -506,7 +506,7 @@ negative = [
 
 [[feature]]
 id = "fg:sulfone"
-positive = ["C[S:1](C)(=[O:2])=[O:2]", "O=[S:1]1(=[O:2])CCCC1"]
+positive = ["C[S:1](C)(=[O:2])=[O:2]", "[O:2]=[S:1]1(=[O:2])CCCC1"]
 negative = [
   { smiles = "CS(C)=O", why = "a sulfoxide" },
   { smiles = "CS(N)(=O)=O", why = "a sulfonamide" },

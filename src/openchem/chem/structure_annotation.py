@@ -131,7 +131,7 @@ thioether, ammonium) and the identity the four are merged on.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import lru_cache
 from enum import Enum
 from typing import Any
@@ -384,7 +384,7 @@ class StructureAnnotation:
         return len(self.locants) / self.atom_count
 
 
-def annotate(mol: Chem.Mol) -> StructureAnnotation:
+def annotate(mol: Chem.Mol, *, with_naming: bool = True) -> StructureAnnotation:
     """Annotate a molecule with everything the nomenclature engine perceives.
 
     Never raises. The vendored engine is large and its failure modes are its
@@ -430,22 +430,35 @@ def annotate(mol: Chem.Mol) -> StructureAnnotation:
             error=f"Could not perceive structure: {type(exc).__name__}: {exc}",
         )
 
+    perceived = StructureAnnotation(
+        atom_count=atom_count,
+        groups=groups,
+        rings=rings,
+        features=features,
+        stereocenters=stereocenters,
+    )
+    if not with_naming:
+        return perceived
+
     # Naming is a separate, more failure-prone pass than perception, and it
     # only contributes locants and decisions. A molecule the namer chokes on
     # still gets its rings, groups and stereocentres.
     locants, decisions = _locants_and_decisions(
         mol, perception.rings.ring_systems
     )
+    return replace(perceived, locants=locants, decisions=decisions)
 
-    return StructureAnnotation(
-        atom_count=atom_count,
-        locants=locants,
-        groups=groups,
-        rings=rings,
-        features=features,
-        stereocenters=stereocenters,
-        decisions=decisions,
-    )
+
+def perceive(mol: Chem.Mol) -> StructureAnnotation:
+    """`annotate` WITHOUT the naming pass: groups, rings, structural features
+    and stereocentres, no locants and no decisions.
+
+    The naming pass is most of `annotate`'s cost (measured 2026-09-17 over
+    227 molecules: 19 ms median and 8.2 s worst for the whole thing, against
+    2.0 ms and 0.65 s for perception), and nothing that only asks WHICH
+    features a structure has needs a locant.
+    """
+    return annotate(mol, with_naming=False)
 
 
 #: How a ring atom is described when it plays a special structural role.

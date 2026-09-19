@@ -168,8 +168,10 @@ FEATURES: tuple[FeatureDefinition, ...] = (
        "halide is one. The halogen is therefore not also a halo substituent."),
     _f("fg:carboxamide", "amide", ("carbonyl_c", "carbonyl_o", "amide_n"),
        _gb("carboxamides", 214, "RC(=O)NR2"),
-       "R on the carbonyl is carbon or H (so a urea or carbamate is not one); "
-       "R on N is H or carbon (so a hydrazide or hydroxamic acid is not one). "
+       "R on the carbonyl is carbon or H (so a urea or carbamate is not one). "
+       "On N, anything but N or O (those are hydrazides and hydroxamic acids): "
+       "the amides entry generically includes N-acyl and N-sulfonyl amides, "
+       "'one, two or three acyl groups on a given nitrogen'. "
        "NOT labelled primary/secondary/tertiary: the Gold Book's amides entry "
        "(p. 69, note 1) says NH2/NHR/NR2 amides must not be distinguished by "
        "those words, which mean one, two or three ACYL groups (FG-001)."),
@@ -408,10 +410,13 @@ FEATURES: tuple[FeatureDefinition, ...] = (
     _f("fg:alkene", "alkene (C=C)", ("c",),
        _gb("olefins", 1024, "C=C, apart from the formal ones in aromatic compounds"),
        "The olefins entry, not alkenes (p. 59), which is a hydrocarbon CLASS "
-       "(acyclic CnH2n) rather than a group. Every non-aromatic C=C."),
+       "(acyclic CnH2n) rather than a group. Every non-aromatic C=C between "
+       "NEUTRAL carbons: a charged carbon is the carbocation or carbanion it "
+       "is (a vinyl cation or phenylium matched as a cationic alkene)."),
     _f("fg:alkyne", "alkyne (C#C)", ("c",),
        _gb("acetylenes", 19, "C#C"),
-       "The acetylenes entry for the same reason; every C#C."),
+       "The acetylenes entry for the same reason; every C#C between neutral "
+       "carbons (an acetylide is a carbanion)."),
     # --- charged centres -------------------------------------------------
     _f("fg:onium", {_C: "onium"}, ("onium_centre",),
        _gb("onium compounds", 1027, "sulfonium, phosphonium, oxonium, iodonium, ..."),
@@ -576,7 +581,8 @@ PROJECTION_POLICY: dict[Projection, dict[RelationKind, ObjectTreatment]] = {
 ENGINE_GROUP_MAP: dict[str, tuple[str, ...]] = {
     "carboxylic_acid": ("fg:carboxylic_acid",),
     "diazonium": ("fg:diazonium",),
-    "aminium": ("fg:primary_amine", "fg:secondary_amine", "fg:tertiary_amine"),
+    "aminium": ("fg:primary_amine", "fg:secondary_amine", "fg:tertiary_amine",
+                "fg:quaternary_ammonium"),
     "peroxy_acid": ("fg:hydroperoxide",),
     "sulfonic_acid": ("fg:sulfonic_acid",),
     "phosphonic_acid": ("fg:phosphonic_acid",),
@@ -596,12 +602,14 @@ ENGINE_GROUP_MAP: dict[str, tuple[str, ...]] = {
     "sulfonyl_bromide": ("fg:acyl_halide",),
     "sulfonyl_fluoride": ("fg:acyl_halide",),
     "sulfonyl_iodide": ("fg:acyl_halide",),
-    "amide": ("fg:carboxamide", "fg:lactam"),
-    "secondary_amide": ("fg:carboxamide", "fg:lactam"),
-    "tertiary_amide": ("fg:carboxamide", "fg:lactam"),
+    # The engine names urea as carbonic diamide, so its amide types land on
+    # ureas too (measured: NC(N)=O, and a diarylurea's secondary_amide).
+    "amide": ("fg:carboxamide", "fg:lactam", "fg:urea"),
+    "secondary_amide": ("fg:carboxamide", "fg:lactam", "fg:urea"),
+    "tertiary_amide": ("fg:carboxamide", "fg:lactam", "fg:urea"),
     "imidamide": ("fg:amidine",),
     "sulfonamide": ("fg:sulfonamide",),
-    "thioamide": ("fg:thioamide",),
+    "thioamide": ("fg:thioamide", "fg:thiourea"),
     "secondary_thioamide": ("fg:thioamide",),
     "tertiary_thioamide": ("fg:thioamide",),
     "hydroxamic_acid": ("fg:hydroxamic_acid",),
@@ -686,6 +694,26 @@ ENGINE_GROUP_FALLBACK: dict[str, str] = {
 }
 
 
+#: Where the two vocabularies DISAGREE, and the definition settles it, as
+#: (engine type, v2 feature the same atoms are, or None for "no feature") ->
+#: why. Found by running both detectors over the naming corpora; the
+#: cross-check test fails on any disagreement not listed here, so a new one
+#: is a decision someone has to write down rather than drift.
+ENGINE_DISAGREEMENTS: dict[tuple[str, str | None], str] = {
+    ("ketone", "fg:lactam"): (
+        "a ring C=O beside a ring N: the engine's oxo prefix, a lactam here "
+        "(p. 815). FG-002, the defect this vocabulary exists to fix (caffeine)"),
+    ("ketone", "fg:imide"): "a ring C=O between two acyl N bonds is an imide (p. 710); FG-002",
+    ("ketone", "fg:urea"): "caffeine's C2=O bears two N: a urea, not a ketone; FG-002",
+    ("ketone", "fg:lactone"): "a coumarin's C=O beside the ring O is a lactone (p. 817); FG-002",
+    ("amine", "fg:guanidine"): "an NH2 of a guanidine is part of the guanidine, not an amine",
+    ("secondary_amine", "fg:guanidine"): "as amine: an N of a guanidine",
+    ("tertiary_amine", "fg:guanidine"): "as amine: an N of a guanidine (metformin)",
+    ("boronic_acid", None): "boric acid B(OH)3 is not a boronic acid, RB(OH)2 with R carbon (p. 179)",
+    ("phosphonic_acid", None): "phosphoric acid is not a phosphonic acid, RP(=O)(OH)2 (p. 1100)",
+}
+
+
 def validate_vocabulary() -> list[str]:
     """Every inconsistency in the declarations above, as sentences.
 
@@ -731,6 +759,13 @@ def validate_vocabulary() -> list[str]:
         for t in targets:
             if t not in FEATURE_BY_ID:
                 problems.append(f"engine type {engine_type}: maps to unknown {t}")
+    for (engine_type, feature_id), why in ENGINE_DISAGREEMENTS.items():
+        if engine_type not in ENGINE_GROUP_MAP:
+            problems.append(f"disagreement for unmapped engine type {engine_type}")
+        if feature_id is not None and feature_id not in FEATURE_BY_ID:
+            problems.append(f"disagreement names unknown feature {feature_id}")
+        if feature_id in ENGINE_GROUP_MAP.get(engine_type, ()):
+            problems.append(f"{engine_type} -> {feature_id} is mapped, not a disagreement")
     for p, policy in PROJECTION_POLICY.items():
         missing = {RelationKind.SUPPRESSES, RelationKind.CONTAINS, RelationKind.OVERLAPS} - set(policy)
         if missing:
