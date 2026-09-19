@@ -103,6 +103,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A ring system's name carried the molecule's configuration** --
+  "(5R)-hexadecahydro-1H-cyclopenta[a]phenanthrene", "trans-decalin" -- in
+  Functional Groups, Ring Systems and now Fragment Counts. A ring system is a
+  skeleton, and a skeleton has no configuration (Blue Book P-91.3), so the
+  names are stereo-free now.
+
 - **A sodium salt got no results at all.** Any structure containing an element
   outside the McGowan volume's twelve (sodium, potassium, lithium, calcium,
   magnesium, any metal, selenium, arsenic) lost every always-on descriptor,

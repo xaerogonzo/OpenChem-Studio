@@ -275,7 +275,15 @@ class AnnotatedRing:
     #: reproduce on its own).
     #:
     #: THE SKELETON'S NAME, NOT THE MOLECULE'S. Sulfolane's ring system is
-    #: named "thiolane" here: the two exocyclic oxygens are not ring atoms.
+    #: named "thiolane" here: the two exocyclic oxygens are not ring atoms,
+    #: and no stereodescriptor is carried (`_ring_system_name`).
+    #:
+    #: ONE KNOWN EXCEPTION, measured: where the engine cannot build a single
+    #: fused parent, the skeleton's name is SUBSTITUTIVE -- budesonide's
+    #: dioxolane comes back as "16,17-methylenedioxy-...cyclopenta[a]-
+    #: phenanthrene" (1 of 192 ring systems over both naming corpora). It is
+    #: an accurate name of the skeleton, not a parent's; general fusion
+    #: construction is the naming engine's recorded open item (cid40000).
     name: str | None = None
     #: Atoms shared between two rings of a fused system, which are the
     #: positions that carry "a"-suffixed locants (4a, 8a) and the ones a
@@ -1660,7 +1668,24 @@ def _ring_system_name(ring_system, mol: Chem.Mol) -> str | None:
         key = get_ring_canonical_smiles(ring_system, mol)
     except Exception:  # noqa: BLE001
         return None
-    return _name_ring_skeleton(key) if key else None
+    if not key:
+        return None
+    # **THE SKELETON HAS NO CONFIGURATION.** The extracted SMILES kept the
+    # molecule's stereocentres, and naming it as a molecule put them in front:
+    # "(5R)-hexadecahydro-1H-cyclopenta[a]phenanthrene", "trans-decalin" (3 of
+    # 192 ring systems over both naming corpora, measured 2026-09-18). The
+    # Blue Book's P-91.3 (pdf p. 872): stereodescriptors are ADDED to a name
+    # built by the ordinary rules and "do not change the name or the numbering
+    # of a compound" -- they describe a compound, not its parent skeleton.
+    # Stripped only when present: the curated ring table is keyed by the
+    # engine's own canonical form, which a blanket re-canonicalisation could
+    # move (none of its 371 keys carries stereo, measured).
+    if any(mark in key for mark in "@/\\"):
+        skeleton = Chem.MolFromSmiles(key)
+        if skeleton is not None:
+            Chem.RemoveStereochemistry(skeleton)
+            key = Chem.MolToSmiles(skeleton)
+    return _name_ring_skeleton(key)
 
 
 def _stereocenters(perception) -> tuple[AnnotatedStereocenter, ...]:

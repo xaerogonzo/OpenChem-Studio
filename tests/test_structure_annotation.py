@@ -9,6 +9,8 @@ saying what was measured.
 
 from __future__ import annotations
 
+import pytest
+
 from rdkit import Chem
 
 from openchem.chem.structure_annotation import (
@@ -974,3 +976,33 @@ def test_the_carve_map_is_checked_and_survives_renumbering():
     for local, parent in origin.items():
         assert (fragment.GetAtomWithIdx(local).GetAtomicNum()
                 == mol.GetAtomWithIdx(parent).GetAtomicNum())
+
+
+@pytest.mark.parametrize(
+    "smiles,expected",
+    [
+        # The three ring systems over both naming corpora whose name carried
+        # the MOLECULE's configuration (measured 2026-09-18). Blue Book
+        # P-91.3: stereodescriptors are added to a compound's name; a
+        # skeleton has none.
+        ("C1CC[C@H]2CCCC[C@@H]2C1", "decalin"),
+        ("C[C@]12CCCC1C1CCC3CCCCC3C1CC2", None),
+        ("CCC[C@@H]1O[C@@H]2C[C@H]3[C@@H]4CCC5=CC(=O)C=C[C@]5(C)[C@H]4[C@@H](O)C[C@]3(C)"
+         "[C@]2(C(=O)CO)O1", None),
+        # Converses: a plain ring, and a ring whose name carries the RING
+        # ATOMS' own charge, which is the skeleton's and stays.
+        ("c1ccc2[nH]ccc2c1", "1H-indole"),
+        ("c1cc[o+]cc1", "pyrylium"),
+    ],
+)
+def test_a_ring_system_name_carries_no_stereodescriptor(smiles, expected):
+    from openchem.chem.structure_annotation import perceive
+
+    names = [r.name for r in perceive(_mol(smiles)).rings]
+    assert names, smiles
+    for name in names:
+        assert name is not None
+        assert not name.startswith("("), f"a configuration in a skeleton name: {name}"
+        assert "trans-" not in name and "cis-" not in name, name
+        if expected is not None:
+            assert name == expected
