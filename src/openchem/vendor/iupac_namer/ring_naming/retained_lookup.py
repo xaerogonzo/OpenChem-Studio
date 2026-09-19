@@ -189,9 +189,18 @@ def _build_curated_from_data_loader() -> tuple[
     Stage 2B base (naphthalene, biphenylene, 1,4-dihydronaphthalene, etc.)
     keeps that role.
     """
+    from openchem.vendor.iupac_namer.data_loader import retained_record_refusal
+
     result: dict[str, tuple[str, str | None, bool, dict | None]] = {}
     optout: set[str] = set()
     for smiles, record in _RING_CURATED_SMILES.items():
+        # The registry gate (naming round 5, N5) binds this table as well:
+        # "hypoxanthine" and "adenin-9-yl" kept reaching the output as ring
+        # PARENT and substituent names from here after the whole-molecule
+        # lookup had stopped emitting them. A record the gate refuses is left
+        # out, so the systematic ring name takes its place.
+        if retained_record_refusal({**record, "smiles": smiles, "table": "ring_curated"}):
+            continue
         # PIN-eligibility alias swap: retained names flagged pin_eligible=False
         # in data_loader.py (e.g. tetraline, indane, chroman, isochroman) are
         # general-nomenclature only.  When the record supplies pin_name /
@@ -304,6 +313,23 @@ _DATAFILE_PIN_INELIGIBLE_NAMES: frozenset[str] = frozenset({
     # suffix form (naming round 4, D-057d).
     "urazol",
 })
+
+
+def _datafile_name_ineligible(name: str) -> bool:
+    """May a ring-vocabulary record (rings_from_opsin.json) NOT name a parent?
+
+    The fixed list above, plus every name the retained-name registry audits
+    as RETAINED_NOT_PIN, read by NAME for the reason the list gives (the stem
+    "hypoxanthin" is read as "hypoxanthine"). That is the registry's typed
+    evidence, not a spelling rule: in naming round 5 (N5) guanine became
+    "2-aminohypoxanthine" from this table once the curated one was gated. The
+    table's other ~700 names are OPSIN's ring vocabulary too, and unaudited;
+    they stay usable and are reported, not guessed at.
+    """
+    from openchem.vendor.iupac_namer.data_loader import registry_demotes_name
+
+    return (name in _DATAFILE_PIN_INELIGIBLE_NAMES
+            or registry_demotes_name(name) or registry_demotes_name(name + "e"))
 
 
 def is_stage2_fusion_base_eligible(smiles: str | None) -> bool:
@@ -1488,7 +1514,7 @@ def try_retained_name(
                 # the systematic PIN (2,3-dihydro-1H-indene,
                 # 1,2,3,4-tetrahydronaphthalene, etc.) is emitted per
                 # P-25.3.1.3 / P-31.1.4.2.4 / P-32.4 / P-53 / P-54.4.3.2.
-                if record["name"] in _DATAFILE_PIN_INELIGIBLE_NAMES:
+                if _datafile_name_ineligible(record["name"]):
                     record = None
                     matched_record_key = None
             if record is not None:
@@ -1579,7 +1605,7 @@ def try_retained_name(
                 record = _smiles_to_record.get(oxo_smiles)
                 if record is None and oxo_no_stereo:
                     record = _smiles_to_record.get(oxo_no_stereo)
-                if record is not None and record["name"] in _DATAFILE_PIN_INELIGIBLE_NAMES:
+                if record is not None and _datafile_name_ineligible(record["name"]):
                     # Same PIN-eligibility gate the main data-file branch
                     # above applies.  Both read from _smiles_to_record, so a
                     # name that is general-nomenclature-only must be declined
@@ -1786,7 +1812,10 @@ def try_retained_name(
     # 1,4-dione that lands on the curated 1,4-dihydronaphthalene key).  The
     # adjacent (ortho) dione has no curated dihydro skeleton, so this
     # generative pass is required to name it on the mancude parent.
-    if match_name is None and ring_mol is not None:
+    # No ``ring_mol`` needed: the derivation re-reads the full molecule, and
+    # bare 7H-xanthine, whose ring alone does not kekulize, had no systematic
+    # name at all once its retained name was gated (naming round 5, N5).
+    if match_name is None:
         derived_oxo = _try_derive_oxo_aromatic_retained(
             ring_system=ring_system,
             mol=mol,

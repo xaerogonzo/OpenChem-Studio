@@ -361,3 +361,30 @@ Tried and reverted: admitting an acylated N' to the hydrazide pattern reached
 "N'-benzoylbenzohydrazide (PIN)" and turned 4-(2-benzoylhydrazinyl)-4-
 oxobutanoic acid into a butanedioyl name; it stays open (D-088a). Mutation-
 checked 18/18.
+
+### N5: retained parents and the OPSIN registry gate (`r5-N5-registry`)
+
+The gate refuses a retained-name RECORD from OPSIN's parse dictionary unless
+the registry types it with NORMATIVE_RULE evidence, and binds an audited
+demotion to every table that spells the name. Over the registry's 295
+entries: 174 untyped OPSIN copies and 27 audited demotions refused; 94 usable
+(19 audited PINs, 75 unaudited with no OPSIN provenance). Of the 1,824-name
+vocabulary file, the 206 names that could ever stand alone are all refused.
+
+What the tuning populations depend on (`tools/retained_name_audit.py
+--reachable`, v3 excluded): 12 registry entries win a name, all 12 audited
+after this stage typed guanidine (PIN, p. 350) and tabun (absent from the
+book); 33 more winners come from the curated ring and inorganic tables. Of
+the 44 retained RING parents that win a plan at any level, 10 exist only in
+OPSIN's ring vocabulary, and all 10 are names the book uses (purine,
+9H-fluorene, phenanthrene, pyrrolidine, imidazolidine, pyrylium, ...).
+
+Stage artifact against N4: regression 1/187 changed -- hexamethyldisiloxane
+leaves PubChem's two-silane string for the disiloxane parent, verbatim 102 ->
+101 on purpose (its locants wait for P-14.3.4.5, N8); v1 1/40 (cid55000,
+oxalohydrazide); v2 2/40 (tabun gated; the nucleotide's "adenin-9-yl" now
+"6-amino-9H-purin-9-yl"); 0 structurally regressed. Of the four, two are the
+gate's (both v2) and two the new parents'. Mutation-checked 22/22. Vendored
+suite: bare xanthine's expectation moved to the systematic name, and the
+book's "N1,N2-bis(cyanomethyl)oxamide" -- which OPSIN cannot parse -- is a
+declared, checked exemption; then 4200 passed.

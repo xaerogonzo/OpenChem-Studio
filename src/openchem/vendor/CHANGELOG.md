@@ -1135,3 +1135,36 @@ acid) and the N'-acyl hydrazides were three mechanisms, not one:
 * Sulfamic acids: "sulfamic acid" (p. 703; "amidosulfuric acid" is the
   inorganic form) and "N-methylsulfamic acid", with the N-locant P-67.1.2.4.1
   cites -- derived, since the book prints no substituted sulfamic acid.
+
+**The OPSIN registry gate and four retained parents (N5).** A name whose
+RECORD came from OPSIN's parse dictionary -- the 1,824-name
+`retained_names_from_opsin.json`, or one of the 174 registry entries copied
+from it -- is emitted only when the registry types it with NORMATIVE_RULE
+evidence (`engine.retained_gate_refusal`, the rule itself in
+`data_loader.retained_record_refusal`). "fluorouracil" became
+5-fluoropyrimidine-2,4(1H,3H)-dione, "triethanolamine" the multiplicative
+2,2',2''-nitrilotri(ethan-1-ol), "tabun" a systematic name. The gate reads
+where a record came from, never its spelling: azepane's SMILES carries
+OPSIN's "hexamethyleneimine" in the registry and the engine's own "azepane"
+is untouched. An audited demotion is a fact about a NAME, so it now binds
+every table that spells it -- ring naming's curated table was handing out
+"adenin-9-yl" and "hypoxanthine" as ring names after the whole-molecule
+lookup had stopped, and once that was gated, OPSIN's ring vocabulary offered
+"2-aminohypoxanthine" for guanine. Bare 7H-xanthine then had no name at all:
+the oxo-on-mancude derivation waited for a ring mol it never reads, and now
+gives 3,7-dihydro-1H-purine-2,6-dione.
+
+Retained parents: "oxamide (PIN)" and "oxalohydrazide (PIN)" (pp. 644, 667),
+N-substituted as "N1,N2-bis(cyanomethyl)oxamide (PIN)" (p. 653); "silicic
+acid" and "disilicic acid" (pp. 698, 720) in the main-group oxoacid table,
+with its esters and anions ("tetraethyl silicate", derived from p. 710).
+Si-O-Si is the a(ba)n parent disiloxane (P-21.2.3.1): a new candidate for
+every end-to-end alternating chain at standard valence ("chlorodisiloxane",
+"disiloxanecarboxylic acid (PIN)", "methyldiboroxane", a branched siloxane
+on its longest chain), and a heteroatom chain of an element that can also be
+a one-atom centre now competes with that centre on P-44.3's length
+("methyldisilane", "1,2-dimethyldiphosphane"). Boron had been excluded
+because "OPSIN does not support polyborane parent hydrides"; OPSIN parses
+"tetramethyldiboroxane", the book's own PIN (p. 731). A first draft named a
+nucleotide diphosphate "1,3-dioxodiphosphoxanyl"; a P(V) is not an a-term
+atom.

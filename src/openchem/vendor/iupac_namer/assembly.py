@@ -2226,7 +2226,15 @@ def _apply_retained_acyl_pin(result: str, tree: SubstitutiveTree) -> str:
     parent = tree.named_parent.name
     # "oxalyl dichloride (PIN) ethanedioyl dichloride" (P-65.5.1, pdf p. 615):
     # oxalic acid's retained acyl name, for its two-group dihalides.
+    # P-66.1.1.1.2.1 (pdf p. 644): "oxamide (PIN)", one of "only ... four
+    # retained names [that] are preferred IUPAC names and can be substituted
+    # ... substitution on the nitrogen atoms is allowed", printed as
+    # "N1,N2-bis(cyanomethyl)oxamide (PIN)" (p. 653). P-66.3.1 (p. 667):
+    # "oxalohydrazide (PIN)". Both carbons of ethanedioyl are fully used, so
+    # every prefix here is on a nitrogen. Naming round 5 (N5).
     if parent == "ethane" and len(tree.suffix_groups) == 2:
+        result = re.sub(r"ethanediamide$", "oxamide", result)
+        result = re.sub(r"ethanedihydrazide$", "oxalohydrazide", result)
         return re.sub(
             r"ethanedioyl di(chloride|bromide|fluoride|iodide)$", r"oxalyl di\1", result
         )

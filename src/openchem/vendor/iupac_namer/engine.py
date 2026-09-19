@@ -3500,7 +3500,8 @@ def _name_biaryl_ring_assembly(
     if lookup_smi is not None:
         from openchem.vendor.iupac_namer.data_loader import lookup_retained_name
         match = lookup_retained_name(lookup_smi)
-        if match is not None:
+        from openchem.vendor.iupac_namer.strategy import active_strategy
+        if match is not None and retained_gate_refusal(match, active_strategy()) is None:
             parent_hydride_name = match.get("name")
     # Choose the final stem: parent-hydride form for heteroaromatics &
     # naphthalene, "phenyl" for benzene (special), "cyclohexyl" /
@@ -9926,29 +9927,41 @@ def _is_valid_retained_name_for_standalone(match: dict) -> bool:
     return True
 
 
-def _retained_match_is_usable(match, strategy) -> bool:
-    """May this retained name occupy the preferred slot?
+def retained_gate_refusal(match, strategy) -> str | None:
+    """Why this retained-name record may not name the molecule, or None.
 
-    A retained name is not automatically non-preferred: `toluene`, `phenol`
-    and `acetic acid` ARE preferred IUPAC names. What disqualifies an entry is
-    the registry recording that it is not, in `pin_status` -- which carries
-    its evidence alongside it.
+    Two rules, both about the RECORD -- where the name came from and what the
+    registry says about exactly that name -- never about the spelling:
 
-    `UNKNOWN` is treated as usable, deliberately. 274 of the 292 registry
-    entries have no audited status because the table was largely harvested
-    from OPSIN's parsing dictionary, where presence means only that a name can
-    be READ. Refusing all of those would demote hundreds of names on no
-    evidence, which is the mirror image of the defect: the fix for "asserted
-    without evidence" is not "denied without evidence". They are reported by
-    `tools/retained_name_audit.py` instead, so the backlog is visible.
+    ``RETAINED_NOT_PIN``: the registry types this name as not preferred (with
+    its evidence), under the PIN policy. Looked up by structure AND name, so
+    the curated ring table's "adenine" is caught by the registry's audited
+    "adenine" row while its "azepane" is not caught by the unrelated
+    "hexamethyleneimine" row stored at the same SMILES.
+
+    ``OPSIN_VOCABULARY_UNTYPED`` (naming round 5, N5): a name taken from
+    OPSIN's parse dictionary -- the raw vocabulary file, or a registry entry
+    copied from it -- needs NORMATIVE_RULE evidence before it is emitted.
+    Being readable by a parser is a fact about the parser; "fluorouracil" and
+    "tabun" were reaching the output as whole-molecule names on that alone.
+
+    Names the engine CONSTRUCTS are not records and never pass through here,
+    which is why this is not a lexical blacklist: "azepane" from the
+    Hantzsch-Widman rules, or a retained stem inside a systematic name, are
+    untouched. An entry with no audited status and no OPSIN provenance stays
+    usable -- refusing it would be "denied without evidence", the mirror of
+    the defect; `tools/retained_name_audit.py` keeps that backlog visible.
     """
-    if not match:
-        return True
-    if getattr(strategy, "preferred_name_policy", None) is None:
-        return True
-    if strategy.preferred_name_policy() != "PIN":
-        return True
-    return match.get("pin_status") != "RETAINED_NOT_PIN"
+    from openchem.vendor.iupac_namer.data_loader import retained_record_refusal
+
+    policy = getattr(strategy, "preferred_name_policy", None)
+    return retained_record_refusal(match, pin_policy=policy is not None and policy() == "PIN")
+
+
+def _retained_match_is_usable(match, strategy) -> bool:
+    """May this retained name occupy the preferred slot? See
+    `retained_gate_refusal`, which says why not."""
+    return retained_gate_refusal(match, strategy) is None
 
 
 def _generate_retained_plans(perception, mol, output_form, free_valence, strategy, session):
@@ -10112,6 +10125,24 @@ def _generate_retained_plans(perception, mol, output_form, free_valence, strateg
 
 
 _TAKES_MOL: dict[type, bool] = {}
+
+
+def _chain_path(mol, atoms) -> list[int] | None:
+    """The atoms of an unbranched acyclic chain, in order from one end."""
+    atoms = set(atoms)
+    inner = {a: [n.GetIdx() for n in mol.GetAtomWithIdx(a).GetNeighbors()
+                 if n.GetIdx() in atoms] for a in atoms}
+    ends = sorted(a for a, nbs in inner.items() if len(nbs) <= 1)
+    if len(atoms) > 1 and len(ends) != 2:
+        return None
+    path, prev = [ends[0]], None
+    while len(path) < len(atoms):
+        step = [n for n in inner[path[-1]] if n != prev]
+        if len(step) != 1:
+            return None
+        prev = path[-1]
+        path.append(step[0])
+    return path
 
 
 def _preference_key(strategy, plan, mol):
@@ -12770,7 +12801,14 @@ class SubstitutivePath:
                 "Sn": ("distannane", "distannan", "distannan"),
                 "Pb": ("diplumbane", "diplumban", "diplumban"),
             }
-            info = _HETEROATOM_CHAIN_NAMES.get(candidate.element or "")
+            from openchem.vendor.iupac_namer.perception import ALTERNATING_CHAIN_TAG
+            element = candidate.element or ""
+            if element.startswith(ALTERNATING_CHAIN_TAG):
+                # a(ba)n chain (P-21.2.3.1): "disiloxane" -> "disiloxanyl".
+                name_str = element[len(ALTERNATING_CHAIN_TAG):]
+                info = (name_str, name_str[:-1], name_str[:-1])
+            else:
+                info = _HETEROATOM_CHAIN_NAMES.get(element)
             if info is None:
                 return
             name_str, stem, alkyl_stem = info
@@ -12897,6 +12935,21 @@ class SubstitutivePath:
                 attachment_atom = free_valence.attachment_atoms_in_fragment[0]
                 if attachment_atom not in named_parent.candidate.atom_indices:
                     return  # attachment not on N-N; skip this parent
+            from openchem.vendor.iupac_namer.perception import ALTERNATING_CHAIN_TAG
+            if (named_parent.candidate.element or "").startswith(ALTERNATING_CHAIN_TAG):
+                # a(ba)n chains are numbered along the chain from either end
+                # (P-31.1.4), which is the only choice they leave.
+                path = _chain_path(mol, named_parent.candidate.atom_indices)
+                if path is None:
+                    return
+                for order in (path, path[::-1]):
+                    yield Numbering(
+                        _assignments=tuple(
+                            (atom, Locant.numeric(i + 1)) for i, atom in enumerate(order)
+                        ),
+                        locant_set=tuple(Locant.numeric(i + 1) for i in range(len(order))),
+                    )
+                return
             atoms = list(named_parent.candidate.atom_indices)
             atom_a, atom_b = atoms[0], atoms[1]
             forward = Numbering(
@@ -16047,8 +16100,12 @@ class SubstitutivePath:
             from openchem.vendor.iupac_namer.perception.symmetry import (
                 single_substituent_locant_forced_by_symmetry as _sym_forced,
             )
+            # An a(ba)n chain qualifies too: "Cl-SiH2-O-SiH3 chlorodisiloxane"
+            # is P-14.3.4.3's own example, "only one kind of substitutable
+            # hydrogen" (pdf p. 71). Naming round 5 (N5).
+            _parent_aban = (plan.named_parent.candidate.element or "").startswith("a(ba)n:")
             if (len(_struct_prefixes) == 1
-                    and _parent_all_carbon
+                    and (_parent_all_carbon or _parent_aban)
                     and len(_parent_atom_idxs) >= 2
                     and (_suffix_count == 0 or _suffixes_acid_only)):
                 # Shape (a): single prefix substituent on an all-carbon parent
@@ -16097,6 +16154,7 @@ class SubstitutivePath:
                         )
             if (not _single_sub_all_equiv
                     and plan.named_parent.candidate.type == "heteroatom_chain"
+                    and plan.named_parent.candidate.length == 2
                     and len(_struct_prefixes) == 1 and _suffix_count == 0):
                 # P-14.3.4 (b), pdf p. 69: "'1' is omitted ... in
                 # monosubstituted homogeneous chains consisting of only two

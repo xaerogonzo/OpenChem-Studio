@@ -573,6 +573,34 @@ evidence_basis = "explicit"
 quote = "piperidine-1-carbohydrazide (PIN) [not (piperidine-1-carbonyl)hydrazine]"
 
 [[rule]]
+rule_id = "P-66.3.1-oxalohydrazide"
+paragraph = "P-66.3.1"
+pdf_page = 667
+evidence_basis = "explicit"
+quote = "formohydrazide (PIN) ... acetohydrazide (PIN) ... benzohydrazide (PIN) ... oxalohydrazide (PIN)"
+
+[[rule]]
+rule_id = "P-66.1.1.1.2.1-oxamide"
+paragraph = "P-66.1.1.1.2.1; P-66.1.1.4.5.2"
+pdf_page = 644
+evidence_basis = "explicit"
+quote = "Only the following four retained names are preferred IUPAC names and can be substituted. The name 'oxamide' is a contracted name from 'oxalamide' and substitution on the nitrogen atoms is allowed. [p. 653: N1,N2-bis(cyanomethyl)oxamide (PIN) (not 2,2'-[oxalylbis(azanediyl)]diacetonitrile)]"
+
+[[rule]]
+rule_id = "P-21.2.3.1-aban-parents"
+paragraph = "P-21.2.3.1; P-68.1.1.2.2"
+pdf_page = 145
+evidence_basis = "explicit"
+quote = "These parent hydrides are preselected parent hydrides (see P-12.2) and have priority to receive preferred IUPAC names, as long as they are used to name compounds containing carbon. [p. 71: chlorodisiloxane; p. 579: disiloxanecarboxylic acid (PIN); p. 731: tetramethyldiboroxane (PIN)]"
+
+[[rule]]
+rule_id = "P-67.1.2.4-cyanidic"
+paragraph = "P-67.1.2.4"
+pdf_page = 704
+evidence_basis = "explicit"
+quote = "HO-SO2-CN sulfurocyanidic acid (PIN)"
+
+[[rule]]
 rule_id = "P-44.1.2-not-between-rings"
 paragraph = "P-44.1.2"
 pdf_page = 375
@@ -1043,15 +1071,15 @@ corpus_row_id = "cid55000"
 smiles = "O=C(NNCc1ccccc1)C(=O)NNCc1ccccc1"
 engine_name = "[(2-{oxo[2-(phenylmethyl)hydrazinyl]acetyl}hydrazinyl)methyl]benzene"
 pubchem_name = "1-N',2-N'-dibenzylethanedihydrazide"
-verdict = "UNDECIDED"
-fix_status = "OPEN"
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "FIXED"
 layer = "candidate_absent"
 target_stage = "N5"
-preferred_name = ""
+preferred_name = "N'1,N'2-dibenzyloxalohydrazide"
 preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
-rule_ref = ["P-66.3-hydrazide"]
+rule_ref = ["P-66.3-hydrazide", "P-66.3.1-oxalohydrazide"]
 evidence_basis = "derived"
-note = "A dihydrazide of oxalic acid; the engine names it on a benzene. Exact PIN form (N-locants of the dihydrazide) not adjudicated. Round 5 (N4) measured 'N'1,N'2-dibenzylethanedihydrazide' -- the dihydrazide parent, PubChem's form -- and the book's parent is the retained 'oxalohydrazide (PIN)' (p. 667), an N5 retained parent."
+note = "Settled in round 5 (N5): the parent is the retained 'oxalohydrazide (PIN)' (p. 667), N'-substituted as oxamide is N-substituted (p. 653); the N'1,N'2 locants are derived. Before: A dihydrazide of oxalic acid; the engine names it on a benzene. Exact PIN form (N-locants of the dihydrazide) not adjudicated. Round 5 (N4) measured 'N'1,N'2-dibenzylethanedihydrazide' -- the dihydrazide parent, PubChem's form -- and the book's parent is the retained 'oxalohydrazide (PIN)' (p. 667), an N5 retained parent."
 
 [[row]]
 corpus_row_id = "methanesulfonate"
@@ -1734,13 +1762,17 @@ corpus_row_id = "h2cid6500"
 smiles = "CCOP(=O)(C#N)N(C)C"
 engine_name = "tabun"
 pubchem_name = "[dimethylamino(ethoxy)phosphoryl]formonitrile"
-verdict = "UNDECIDED"
-fix_status = "OPEN"
-layer = "candidate_unsupported"
-target_stage = "N5"
-rule_ref = ["P-67.1.4-phosphoryl"]
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "PARTLY_FIXED"
+layer = "candidate_absent"
+target_stage = "later"
+preferred_name = "ethyl N,N-dimethylphosphoramidocyanidate"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-67.1.4-phosphoryl", "P-67.1.2.4-cyanidic"]
 evidence_basis = "derived"
 note = """
+Round 5 (N5): the gate refuses 'tabun' (typed RETAINED_NOT_PIN, ABSENT_FROM_SOURCE: the book never prints it), so the engine now emits '(dimethylamino)(ethoxy)(oxo)phosphanecarbonitrile' -- structurally right, not preferred. The target is derived by functional replacement of phosphoric acid, on the pattern of 'sulfurocyanidic acid (PIN)' (p. 704); the engine does not build phosphoramidocyanidates (D-089v).
+Before:
 'tabun' is certainly not a PIN: it reaches the engine from retained_names_from_opsin.json (and retained_names_expanded.json), a parser's vocabulary. The PIN of a cyanophosphonamidate ester was not settled from the book this round. Target of the N5 registry gate.
 """
 
@@ -1811,12 +1843,13 @@ engine_name = "(2R,3R,4S,5S,6R)-2-[({[({[(2R,3S,4R,5R)-5-(adenin-9-yl)-3,4-dihyd
 pubchem_name = "[[(2R,3S,4R,5R)-5-(6-aminopurin-9-yl)-3,4-dihydroxyoxolan-2-yl]methoxy-hydroxyphosphoryl] [(2R,3R,4S,5S,6R)-3,4,5-trihydroxy-6-(hydroxymethyl)oxan-2-yl] hydrogen phosphate"
 verdict = "UNDECIDED"
 fix_status = "OPEN"
-layer = "candidate_unsupported"
-target_stage = "N5"
+layer = "source_unresolved"
+target_stage = "N8"
 rule_ref = ["P-67.1.4-phosphoryl"]
 evidence_basis = "derived"
 note = """
-A nucleotide sugar: which component is the parent of a diphosphate diester was not settled this round. Two things are certain and recorded: 'adenin-9-yl' is not a PIN prefix (it comes from the curated retained table in data_loader.py; the PIN for adenine is 9H-purin-6-amine), and -P(O)< is 'phosphoryl'.
+Round 5 (N5) fixed the part it owned: the gate binds ring naming's curated table, so the prefix is now '6-amino-9H-purin-9-yl'. The a(ba)n parent it opened briefly named this diphosphate '1,3-dioxodiphosphoxanyl' (a P(V) is not a standard-valence a-term atom; guarded, D-089y). The phosphoryl prefix is N8's; the parent of a diphosphate diester is still unsettled.
+Before: A nucleotide sugar: which component is the parent of a diphosphate diester was not settled this round. Two things are certain and recorded: 'adenin-9-yl' is not a PIN prefix (it comes from the curated retained table in data_loader.py; the PIN for adenine is 9H-purin-6-amine), and -P(O)< is 'phosphoryl'.
 """
 
 [[row]]
@@ -2248,3 +2281,18 @@ hydrogen goes on that carbon, as in "1,2-dihydro-3H-indol-3-one (PIN)" -- the
 planner reached this ring once the constructor supplied its planned
 hydrogens. Both engines' "fluoren-9-imine" leaves the hydrogen unsaid.
 """
+
+[[row]]
+corpus_row_id = "hexamethyldisiloxane"
+smiles = "C[Si](C)(C)O[Si](C)(C)C"
+engine_name = "1,1,1,3,3,3-hexamethyldisiloxane"
+pubchem_name = "trimethyl(trimethylsilyloxy)silane"
+verdict = "BOTH_NOT_PREFERRED"
+fix_status = "PARTLY_FIXED"
+layer = "serialization"
+target_stage = "N8"
+preferred_name = "hexamethyldisiloxane"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-21.2.3.1-aban-parents"]
+evidence_basis = "derived"
+note = "Settled in round 5 (N5). Si-O-Si is the a(ba)n parent disiloxane (P-21.2.3.1), substitutable as 'chlorodisiloxane' (p. 71) and 'tetramethyldiboroxane (PIN)' (p. 731); PubChem's name, which the engine used to match, splits it into two silanes. The engine now has the parent; P-14.3.4.5 drops all six locants when every substitutable position is substituted alike, which it does not build yet (D-089q). This row's regression verbatim match was lost on purpose."

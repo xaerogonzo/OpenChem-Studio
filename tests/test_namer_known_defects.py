@@ -1698,8 +1698,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-081m", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine N-oxide",
      "N,N-dimethylmethanamine N-oxide", "converse: N-oxides stay additive"),
     # --- D-082: a primed N locant with a numeral is N'1, not N1' (A6) -------
-    ("D-082a", "O=C(NNCc1ccccc1)C(=O)NNCc1ccccc1", "N'1,N'2-dibenzylethanedihydrazide",
-     "({2-[(2-benzylhydrazinyl)(oxo)acetyl]hydrazinyl}methyl)benzene", "'N'1', not 'N1'': OPSIN reads N1' as another position, and the heldout cid55000 name came back a different molecule (oxalohydrazide itself is open)"),
+    ("D-082a", "O=C(NNCc1ccccc1)C(=O)NNCc1ccccc1", "N'1,N'2-dibenzyloxalohydrazide",
+     "({2-[(2-benzylhydrazinyl)(oxo)acetyl]hydrazinyl}methyl)benzene", "'N'1', not 'N1'': OPSIN reads N1' as another position, and the heldout cid55000 name came back a different molecule; the retained stem 'oxalohydrazide (PIN)' (p. 667) since round 5 N5 (D-089c)"),
     ("D-082b", "CNC(=O)CC(=O)NC", "N1,N3-dimethylpropanediamide",
      "N1,N3-dimethylpropanediamide", "converse: no prime, unchanged"),
     # --- D-083: general fusion nomenclature, P-25.3 (round 5, N3) ----------
@@ -1838,7 +1838,100 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-087s", "CCOC(=O)NN", "(ethoxycarbonyl)hydrazine", "ethyl aminocarbamate",
      "control, NOT the PIN (that is ethyl hydrazinecarboxylate, OPEN D-088b): a "
      "carbazate is never split as a carbamate, 'not carbazic acid' (p. 756)"),
+    # --- Round 5 (N5): the OPSIN registry gate, retained parents, a(ba)n
+    # chains. The gate refuses a RECORD, never a spelling: the converses at
+    # the end are names the engine builds itself, one of them at a SMILES
+    # where the registry holds an OPSIN-sourced entry under another name. ----
+    ("D-088e", "[SiH3][SiH2]C", "methyldisilane", "methyl(silyl)silane",
+     "derived, P-44.3: same senior atom, so the longer chain is the parent; the "
+     "silane centre's +50 in parent_selection had outranked it"),
+    ("D-088g", "OCCN(CCO)CCO", "2,2',2''-nitrilotri(ethan-1-ol)", "triethanolamine",
+     "p. 106: 'triethanolamine' was an OPSIN-sourced registry entry, now gated"),
+    ("D-089a", "O=c1[nH]cc(F)c(=O)[nH]1", "5-fluoropyrimidine-2,4(1H,3H)-dione",
+     "fluorouracil", "an INN copied from OPSIN's dictionary into the registry; the "
+     "gate requires NORMATIVE_RULE evidence and it has none"),
+    ("D-089b", "Nc1ncnc2[nH]cnc12", "9H-purin-6-amine", "adenine",
+     "the registry's audited RETAINED_NOT_PIN now binds the curated ring table's "
+     "record of the SAME name; that table was consulted first and never audited"),
+    ("D-089c", "NNC(=O)C(=O)NN", "oxalohydrazide", "ethanedihydrazide",
+     "'oxalohydrazide (PIN)' (P-66.3.1, p. 667)"),
+    ("D-089d", "NC(=O)C(N)=O", "oxamide", "ethanediamide",
+     "'oxamide (PIN)', substitution on N allowed (P-66.1.1.1.2.1, p. 644)"),
+    ("D-089e", "N#CCNC(=O)C(=O)NCC#N", "N1,N2-bis(cyanomethyl)oxamide",
+     "N1,N2-bis(cyanomethyl)ethanediamide", "p. 653, verbatim; OPSIN cannot parse "
+     "the book's N1,N2-oxamide form, an oracle gap, not a namer defect"),
+    ("D-089f", "O[Si](O)(O)O", "silicic acid", "tetrahydroxysilane",
+     "'silicic acid (preselected name) (not orthosilicic acid)' (p. 698)"),
+    ("D-089g", "CCO[Si](OCC)(OCC)OCC", "tetraethyl silicate", "tetraethoxysilane",
+     "derived: esters are named from silicic acid (P-68.2.4, p. 748), as 'O-ethyl "
+     "S,S,S-trimethyl trithiosilicate (PIN)' (p. 710)"),
+    ("D-089h", "O[Si](O)(O)O[Si](O)(O)O", "disilicic acid",
+     "tri(hydroxy)(trihydroxysilanyloxy)silane",
+     "'disilicic acid (preselected name)' (p. 720)"),
+    ("D-089i", "Cl[SiH2]O[SiH3]", "chlorodisiloxane", "chloro(silyloxy)silane",
+     "p. 71, verbatim: an a(ba)n chain (P-21.2.3.1) is a substitutable parent"),
+    ("D-089j", "[SiH3]O[SiH2]C(=O)O", "disiloxanecarboxylic acid",
+     "(silyloxy)silanecarboxylic acid", "p. 579, verbatim"),
+    ("D-089k", "CPPC", "1,2-dimethyldiphosphane", "methyl(methylphosphanyl)phosphane",
+     "derived, P-44.3, as D-088e"),
+    ("D-089l", "C[Si](C)(C)O[Si](C)(C)O[Si](C)(C)C", "1,1,1,3,3,5,5,5-octamethyltrisiloxane",
+     "{[dimethyl(trimethylsilyloxy)silyl]oxy}tri(methyl)silane",
+     "derived: trisiloxane (P-21.2.3.1, p. 145); the locants stay until P-14.3.4.5 "
+     "is built (D-089q)"),
+    ("D-089m", "CC(=O)CCN1CCCCCC1", "4-(azepan-1-yl)butan-2-one",
+     "4-(azepan-1-yl)butan-2-one", "converse: the registry holds OPSIN's "
+     "'hexamethyleneimine' at azepane's SMILES; the engine's own 'azepane' is untouched"),
+    ("D-089n", "NCC(=O)O", "glycine", "glycine",
+     "converse: an unaudited entry without OPSIN provenance stays usable -- the gate "
+     "is not 'denied without evidence'"),
+    ("D-089o", "C[Si](C)(C)O", "trimethylsilanol", "trimethylsilanol",
+     "converse: one Si keeps the silane centre"),
+    ("D-089p", "OB(O)O", "boric acid", "boric acid",
+     "converse: B joined the a(ba)n chains; a lone boron acid is still an acid"),
+    ("D-089w", "Cl[SiH2]O[Si](C)(C)C", "3-chloro-1,1,1-trimethyldisiloxane",
+     "(chlorosilanyloxy)tri(methyl)silane", "derived: a chain is numbered from "
+     "either end, and {1,1,1,3} is lower than {1,3,3,3} (P-31.1.4)"),
+    ("D-089x", "CBOB", "methyldiboroxane", "(boryloxy)(methyl)borane",
+     "derived from 'tetramethyldiboroxane (PIN)' (p. 731); OPSIN parses boroxanes, "
+     "which the old reason for excluding boron said it could not"),
+    ("D-089z", "C[Si](O[Si](C)(C)C)(O[Si](C)(C)C)O[Si](C)(C)C",
+     "1,1,1,3,5,5,5-heptamethyl-3-(trimethylsilyloxy)trisiloxane",
+     "[(1,1,1,3,5,5,5-heptamethyltrisiloxanyl)oxy]tri(methyl)silane",
+     "derived, P-44.3: a branched siloxane offers each end-to-end chain and the "
+     "longest is the parent; the prefix's enclosure is N8's"),
+    ("D-090a", "[SiH](O[SiH3])(O[SiH3])O[SiH3]", "3-(silyloxy)trisiloxane",
+     "tris(silyloxy)silane", "derived: trisiloxane has two kinds of Si-H, so the "
+     "locant stays (P-14.3.4.3); the two-atom-chain omission must not reach it"),
+    ("D-090c", "O=c1[nH]cnc2[nH]cnc12", "1,9-dihydro-6H-purin-6-one", "hypoxanthine",
+     "registry RETAINED_NOT_PIN (absent from the book); ring naming's curated "
+     "table emitted it as a PARENT name until the gate bound that table too"),
+    ("D-090d", "Nc1nc2[nH]cnc2c(=O)[nH]1", "2-amino-1,9-dihydro-6H-purin-6-one", "guanine",
+     "as D-090c; with only the curated table gated it briefly became "
+     "'2-aminohypoxanthine' from OPSIN's ring vocabulary -- that table is gated by "
+     "the registry's demotions too"),
+    ("D-090e", "O=c1[nH]c(=O)c2[nH]cnc2[nH]1", "3,7-dihydro-1H-purine-2,6-dione", "xanthine",
+     "the systematic name KNOWN_LIMITATIONS gives; gating 'xanthine' first left NO "
+     "name, because the oxo-on-mancude derivation waited for a ring mol it never uses"),
+    ("D-090f", "O=c1[nH]c(=O)c2nc[nH]c2[nH]1", "3,9-dihydro-1H-purine-2,6-dione", "xanthine",
+     "the curated table files xanthine under two tautomer keys and the registry "
+     "one, so its demotion is read by NAME; 'xanthine' also parsed back as the 7H "
+     "tautomer, which this name does not"),
+    ("D-089y", "CP(=O)(O)OP(C)(=O)O",
+     "(hydroxy){[(hydroxy)(methyl)(oxo)phosphanyl]oxy}(methyl)(oxo)phosphane",
+     "(hydroxy){[(hydroxy)(methyl)(oxo)phosphanyl]oxy}(methyl)(oxo)phosphane",
+     "converse, NOT a PIN: a P(V) is not a standard-valence a-term atom, so no "
+     "'dioxodiphosphoxane' -- measured on a nucleotide diphosphate before the guard"),
 ]
+
+# Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
+# table (tests/vendor/iupac_namer/test_known_defects.py) cannot check them by
+# parsing. It asserts the parse still FAILS instead: the day OPSIN reads one,
+# that test goes red and the entry has to come out. The app withholds such a
+# name, because its round trip reads a checker failure as a mismatch.
+OPSIN_CANNOT_PARSE: dict[str, str] = {
+    "D-089e": "OPSIN reads no numbered N locant on oxamide; the book prints "
+              "'N1,N2-bis(cyanomethyl)oxamide (PIN)' (p. 653)",
+}
 
 # Measured, reproduced, not yet fixed. Every one of these currently names
 # the WRONG MOLECULE. The common shape is a charged carbon next to
@@ -1884,15 +1977,10 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "4-carboxy-N'-methylbenzohydrazide",
      "derived from 'hydrazinecarbonyl (preferred prefix)' (p. 668): the acid is the "
      "principal group, but a substituted hydrazide has no prefix form (before N4 too)"),
-    ("D-088e", "[SiH3][SiH2]C", "methyldisilane", "methyl(silyl)silane",
-     "derived: the disilane chain is the parent; the silane centre's +50 in "
-     "parent_selection outranks the heteroatom chain (before N4 too)"),
     ("D-088f", "CN(C)ON(C)C", "N,N'-oxybis(N-methylmethanamine)",
      "{[(dimethylamino)oxy](methyl)amino}methane", "p. 108: no marker reads this "
      "unit's attachment N -- methyl and ethyl take over the parent, chloro and bromo "
      "are named '[chloro(methyl)amino]methane'"),
-    ("D-088g", "OCCN(CCO)CCO", "2,2',2''-nitrilotri(ethan-1-ol)", "triethanolamine",
-     "p. 106: the whole-molecule name is an OPSIN registry entry (N5's gate)"),
     ("D-088h", "Oc1ccc(OCC(C)COc2ccc(O)cc2)cc1",
      "4,4'-[(2-methylpropane-1,3-diyl)bis(oxy)]diphenol",
      "4-{[3-(4-hydroxyphenoxy)-2-methylpropyl]oxy}phenol",
@@ -1903,6 +1991,28 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "4,4',4''-(ethane-1,1,2-triyl)tribenzoic acid",
      "4-[1,2-bis(4-carboxyphenyl)ethyl]benzoic acid",
      "p. 110: an unsymmetrical central group (P-15.3.3.1) is not built"),
+    # Round 5 (N5): each round-trips today.
+    ("D-089q", "C[Si](C)(C)O[Si](C)(C)C", "hexamethyldisiloxane",
+     "1,1,1,3,3,3-hexamethyldisiloxane", "P-14.3.4.5: all locants go when every "
+     "substitutable position is substituted alike; engine-wide, as "
+     "'1,1,1,2,2,2-hexachloroethane' (N8, serialization)"),
+    ("D-089r", "CB(C)OB(C)C", "tetramethyldiboroxane", "1,1,3,3-tetramethyldiboroxane",
+     "p. 731, verbatim 'tetramethyldiboroxane (PIN)'; the locants as D-089q (N8)"),
+    ("D-089s", "C[Si](C)(O)O[Si](C)(C)O", "1,1,3,3-tetramethyldisiloxane-1,3-diol",
+     "1,3-dihydroxy-1,1,3,3-tetramethyldisiloxane", "derived: -ol on a silicon parent "
+     "(P-68.2.5); silanols reach a suffix only by a pre-plan route (N6)"),
+    ("D-089t", "[SiH](O)(O)O", "silanetriol", "trihydroxysilane",
+     "derived, P-68.2.5 suffix mode; 'methylsilanetriol' works (N6)"),
+    ("D-089u", "[SiH3]N[SiH3]", "N-silylsilanamine", "disilaazane",
+     "p. 145, verbatim '(not disilazane)': with N the a(ba)n rule gives way to amine "
+     "names; the organometallic chain route still builds it"),
+    ("D-090b", "C[SiH2]O[SiH2]O[SiH3]", "1-methyltrisiloxane", "2,4-dioxa-1,3,5-trisilahexane",
+     "derived: '-SiH2-O-SiH2-, disiloxane-1,3-diyl' is ONE heterounit (p. 440), so "
+     "P-51.4.1's four are not reached; the skeletal-replacement count predates N5"),
+    ("D-089v", "CCOP(=O)(C#N)N(C)C", "ethyl N,N-dimethylphosphoramidocyanidate",
+     "(dimethylamino)(ethoxy)(oxo)phosphanecarbonitrile", "derived from functional "
+     "replacement (P-67.1.2.4, 'methylphosphonocyanatidic acid (PIN)', p. 704); was "
+     "'tabun', which the book never prints (gated, N5)"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified

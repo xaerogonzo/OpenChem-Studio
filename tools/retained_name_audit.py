@@ -31,13 +31,27 @@ many of those are reachable by the benchmark corpora, and which entries a
 corpus name currently depends on while having no audited status. It changes
 nothing.
 
-`UNKNOWN` is treated as usable by the engine, deliberately. Refusing 274
-entries on no evidence is the mirror image of the original defect -- the
-answer to "asserted without evidence" is not "denied without evidence". This
-report exists so that backlog stays visible instead of looking like a decision.
+`UNKNOWN` is treated as usable by the engine, deliberately, EXCEPT where the
+name came from OPSIN's parse dictionary. Refusing every unaudited entry on no
+evidence is the mirror image of the original defect -- the answer to
+"asserted without evidence" is not "denied without evidence". This report
+exists so that backlog stays visible instead of looking like a decision.
+
+**THE OPSIN GATE (naming round 5, N5).** A name whose record came from OPSIN
+-- the 1,824-name vocabulary file, or a registry entry whose `source` says it
+was copied from there -- is emitted only when the registry types it with
+NORMATIVE_RULE evidence. "fluorouracil" and "tabun" reached the output as
+whole-molecule names on nothing but a parser's ability to read them. The rule
+itself is `engine.retained_gate_refusal`; `--gate` prints how it partitions
+both tables, by calling that function rather than restating it.
 
     python tools/retained_name_audit.py
+    python tools/retained_name_audit.py --gate        # the gate's partitions
     python tools/retained_name_audit.py --reachable   # engine consulted
+
+`--reachable` runs the three TUNING populations (regression, v1, v2). The
+fresh held-out population is excluded by design: nothing about it may inform
+a gate or an audit decision.
 """
 
 from __future__ import annotations
@@ -113,52 +127,102 @@ def partitions(entries: dict) -> dict[str, Counter]:
     }
 
 
-def _reachable() -> dict[str, list[str]]:
-    """Retained-entry name -> corpus labels whose name it currently wins.
+TUNING_POPULATIONS = (
+    ("regression", "corpus.json"),
+    ("v1", "heldout.json"),
+    ("v2", "heldout2.json"),
+)
+
+
+def gate_partitions() -> dict[str, Counter]:
+    """How the OPSIN gate splits the registry and the OPSIN vocabulary file.
+
+    Calls the engine's own `retained_gate_refusal`, so this report cannot
+    drift from the rule it describes. Each partition sums to its table.
+    """
+    from openchem.vendor.iupac_namer.data_loader import (
+        OPSIN_VOCABULARY_TABLE,
+        get_retained_names_from_opsin,
+    )
+    from openchem.vendor.iupac_namer.engine import (
+        _is_valid_retained_name_for_standalone,
+        retained_gate_refusal,
+    )
+    from openchem.vendor.iupac_namer.strategy import default_strategy
+
+    strategy = default_strategy()
+    registry_counts: Counter = Counter()
+    for smiles, entry in registry().items():
+        record = {"smiles": smiles, **entry, "table": "retained_pins"}
+        registry_counts[retained_gate_refusal(record, strategy) or "usable"] += 1
+    vocabulary_counts: Counter = Counter()
+    for entry in get_retained_names_from_opsin():
+        record = {**entry, "table": OPSIN_VOCABULARY_TABLE}
+        if not _is_valid_retained_name_for_standalone(record):
+            vocabulary_counts["never standalone (a stem or fragment)"] += 1
+        else:
+            vocabulary_counts[retained_gate_refusal(record, strategy) or "usable"] += 1
+    return {"registry": registry_counts, "opsin_vocabulary": vocabulary_counts}
+
+
+def _reachable() -> tuple[dict[str, set[str]], dict[tuple[str, str], set[str]]]:
+    """(winners, refusals) over the tuning populations.
+
+    winners:  retained name -> row labels whose naming it won, at any level
+              (a whole molecule, a substituent, an acid stem, ...);
+    refusals: (name, refusal code) -> row labels where the gate stopped a
+              record that would otherwise have been eligible.
 
     Imports the engine, so it is behind a flag: the rest of this report is a
-    statement about the DATA and should not depend on the code.
+    statement about the DATA and should not depend on the code. A name cached
+    by an earlier row is not looked up again, so these are lower bounds.
     """
     from openchem.vendor.iupac_namer import engine as eng
     from openchem.vendor.iupac_namer import name_smiles
-    from openchem.vendor.iupac_namer.types import OutputForm, RetainedPlan
+    from openchem.vendor.iupac_namer.types import RetainedPlan
 
-    rows: list[dict] = []
-    for filename in ("corpus.json", "heldout.json"):
+    winners: dict[str, set[str]] = {}
+    refusals: dict[tuple[str, str], set[str]] = {}
+    original_search = eng._search_plans
+    original_gate = eng.retained_gate_refusal
+    for population, filename in TUNING_POPULATIONS:
         path = BENCH / filename
-        if path.exists():
-            rows.extend(json.loads(path.read_text(encoding="utf-8")))
+        if not path.exists():
+            continue
+        for row in json.loads(path.read_text(encoding="utf-8")):
+            label = f"{population}:{row['label']}"
 
-    original = eng._search_plans
-    hits: dict[str, list[str]] = {}
-    for row in rows:
-        captured: list[str] = []
+            def search(*args, _label=label):
+                ranked = original_search(*args)
+                if ranked and isinstance(ranked[-1][2], RetainedPlan):
+                    winners.setdefault(ranked[-1][2].match.name, set()).add(_label)
+                return ranked
 
-        def spy(perception, mol, output_form, free_valence, query, strategy, session):
-            ranked = original(
-                perception, mol, output_form, free_valence, query, strategy, session
-            )
-            if output_form == OutputForm.STANDALONE and not captured and ranked:
-                winner = ranked[-1][2]
-                captured.append(
-                    winner.match.name if isinstance(winner, RetainedPlan) else ""
-                )
-            return ranked
+            def gate(match, strategy, _label=label):
+                code = original_gate(match, strategy)
+                if code is not None and eng._is_valid_retained_name_for_standalone(match):
+                    refusals.setdefault((match.get("name", ""), code), set()).add(_label)
+                return code
 
-        eng._search_plans = spy
-        try:
-            name_smiles(row["smiles"])
-        except Exception:  # noqa: BLE001
-            pass
-        finally:
-            eng._search_plans = original
-        if captured and captured[0]:
-            hits.setdefault(captured[0], []).append(row["label"])
-    return hits
+            eng._search_plans = search
+            eng.retained_gate_refusal = gate
+            try:
+                name_smiles(row["smiles"])
+            except Exception:  # noqa: BLE001
+                pass
+            finally:
+                eng._search_plans = original_search
+                eng.retained_gate_refusal = original_gate
+    return winners, refusals
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Audit the retained-name registry.")
+    parser.add_argument(
+        "--gate",
+        action="store_true",
+        help="also report how the OPSIN gate partitions both tables (imports the engine)",
+    )
     parser.add_argument(
         "--reachable",
         action="store_true",
@@ -209,25 +273,39 @@ def main() -> None:
             print(f"    {error}")
         raise SystemExit(1)
 
+    if args.gate:
+        print()
+        for table, counts in gate_partitions().items():
+            total = sum(counts.values())
+            print(f"  gate over {table} ({total}):")
+            for outcome, count in sorted(counts.items()):
+                print(f"    {outcome:40s} {count}")
+
     if not args.reachable:
         print()
-        print("  (pass --reachable to see which entries the corpora depend on)")
+        print("  (pass --gate for the OPSIN gate, --reachable for what the corpora depend on)")
         return
 
-    hits = _reachable()
+    winners, refusals = _reachable()
+    by_name = {e.get("name"): e for e in entries.values()}
+    in_registry = {name: labels for name, labels in winners.items() if name in by_name}
+    unaudited = {name: labels for name, labels in in_registry.items()
+                 if not by_name[name].get("pin_status")}
     print()
-    print(f"{len(hits)} registry entries are reached by a benchmark name")
-    unaudited = {
-        name: labels
-        for name, labels in hits.items()
-        if name in {e.get("name") for e in entries.values()}
-        and not next(
-            (e for e in entries.values() if e.get("name") == name), {}
-        ).get("pin_status")
-    }
-    print(f"{len(unaudited)} of those have NO audited status:")
-    for name, labels in sorted(unaudited.items()):
-        print(f"    {name:26s} {', '.join(labels[:4])}")
+    print(f"{len(winners)} retained names win a tuning-population name "
+          f"({len(in_registry)} from the registry, {len(winners) - len(in_registry)} "
+          f"from the curated ring and inorganic tables)")
+    print(f"  registry entries reached: {len(in_registry)}, audited "
+          f"{len(in_registry) - len(unaudited)}, UNKNOWN {len(unaudited)}")
+    for name, labels in sorted(in_registry.items()):
+        status = by_name[name].get("pin_status", "UNKNOWN")
+        print(f"    {status:18s} {name:26s} {', '.join(sorted(labels)[:4])}")
+    print()
+    print(f"  {len(refusals)} record(s) refused by the gate on a tuning row:")
+    for (name, code), labels in sorted(refusals.items()):
+        print(f"    {code:26s} {name:26s} {', '.join(sorted(labels)[:4])}")
+    if unaudited:
+        raise SystemExit(f"{len(unaudited)} reached registry entries have no audited status")
 
 
 if __name__ == "__main__":

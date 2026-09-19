@@ -470,7 +470,16 @@
     "N=C(N)N": {
       "name": "guanidine",
       "source": "algorithm.py",
-      "rule": "various"
+      "rule": "various",
+      "pin_status": "PIN",
+      "evidence_kind": "NORMATIVE_RULE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "P-34.1.1",
+      "pin_evidence": "p. 350, P-34.1.1 table of retained functional parents: 'guanidine (PIN) (substitution allowed; see P-66.4.1.2.1) / carbonimidic diamide'. Audited in naming round 5 (N5): reached by heldout.json cid45000.",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "may_be_parent": true,
+      "may_be_substituted": true,
+      "substitution_scope": "full"
     },
     "N=C=O": {
       "name": "isocyanic acid",
@@ -1461,7 +1470,13 @@
     "CCOP(=O)(C#N)N(C)C": {
       "name": "tabun",
       "source": "opsin",
-      "rule": "various"
+      "rule": "various",
+      "pin_status": "RETAINED_NOT_PIN",
+      "evidence_kind": "ABSENT_FROM_SOURCE",
+      "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+      "rule_id": "",
+      "pin_evidence": "The book never names 'tabun' (searched BlueBookV2, naming round 5, N5: 0 pages). It entered from OPSIN's parse dictionary, which records what can be read. Reached by heldout2.json h2cid6500.",
+      "pin_source": "BLUEBOOK_2013_CORRECTED_2022"
     },
     "O=C([O-])C(O)C(O)C(=O)[O-]": {
       "name": "tartrate",

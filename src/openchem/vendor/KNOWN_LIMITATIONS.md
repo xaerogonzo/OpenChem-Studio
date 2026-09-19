@@ -359,18 +359,25 @@ its layer and target stage.
 | numbering | rings of more than eight members; helicenes | refused | the book's distorted shapes; a helicene's own orientation rule (hexahelicene itself is retained, and named) |
 | numbering | the ring table's pyrene and phenalene | former CAS interior locants (10b, 10c) | P-25.3.3.3.1 (p. 224) numbers interior carbons 3a1, 5a1 in PINs; the table predates that and is not repaired in N3 |
 | candidate generation | hydro forms of a TRADITIONALLY numbered retained parent | von Baeyer ("tricyclo[8.4.0.0^{4,9}]tetradeca-1(14),2,10,12-tetraene" for a hexahydrophenanthrene) | general fusion leaves anthracene, phenanthrene, acridine, carbazole, xanthene and purine to the ring table, which carries their traditional numbering but cannot always derive a hydro form; the fusion-rule numbering is not theirs, so the constructor refuses rather than number them its own way |
-| data | OPSIN "arylGroups" stems read as ring names | 280 stems; those whose parent ends in 'e' by OPSIN's own fusion prefixes are repaired ("quinolizin" -> "4H-quinolizine") | the rest ("caffein", "anisol", "paracetamol") are N5's registry gate |
+| data | OPSIN's RING vocabulary: `rings_from_opsin.json` (705 names) and `fusion_components.json` (821) | read as ring parent names, unaudited | N5 gated only what the registry types: a ring name the registry demotes is refused by name (hypoxanthine, guanine), and "quinolizin"-style stems are rehydrated. The rest is the same kind of data the gate exists for, not audited this round -- a decision for the report, since refusing it outright would drop pyridine along with paracetamol |
 | ranking | the P-44.1.2 senior-atom tier between two RINGS | the tier is compared ring against ring, which the book says it is not | agrees with P-44.2.1 wherever one ring has N, or one is a carbocycle; disagrees only for a ring whose senior atom is O/S/Se/Te against one whose is P..B (P-44.2.1 puts O first, P-44.1.2 puts P..B first). No corpus molecule has that pair |
 | candidate generation | N'-acyl hydrazides | `1,2-dibenzoylhydrazine` | `N'-benzoylbenzohydrazide (PIN) (not 1,2-dibenzoylhydrazine)` (p. 670) | admitting an acylated N' to the hydrazide pattern reaches it, and turned 4-(2-benzoylhydrazinyl)-4-oxobutanoic acid into a butanedioyl name: the demoted, prefix form of an acylated hydrazide is not built (D-088a) |
 | candidate generation | carbazate esters | `(ethoxycarbonyl)hydrazine` | `ethyl hydrazinecarboxylate` | the anion is not nameable ("oxidooxomethylhydrazine"), so no ester plan is offered; the carbamate split is refused (D-088b, D-087s) |
 | candidate generation | a C=O between two N= | `1-[(oxo)(phenyldiazenyl)methyl]-2-phenyldiazene` | `bis(phenyldiazenyl)methanone (PIN)` (p. 110) | not perceived as a ketone; the multiplicative constructor counts it as one and declines, as the book requires (D-088c) |
 | candidate generation | a substituted hydrazide as a prefix | `4-carboxy-N'-methylbenzohydrazide` | `4-(2-methylhydrazine-1-carbonyl)benzoic acid` (derived) | the acid is senior; the hydrazide stays the suffix because no prefix form exists for it (D-088d) |
-| ranking | disilane and its kin as a parent | `methyl(silyl)silane` | `methyldisilane` (derived) | the silane centre's fixed +50 in parent_selection outranks the heteroatom chain (D-088e) |
+| ranking | disilane and its kin as a parent | `methyl(silyl)silane` | `methyldisilane` (derived) | BUILT in N5: a chain of a centre-forming element (and any a(ba)n chain) competes with the one-atom centre on P-44.3's length (D-088e, D-089k) |
 | multiplicative, outside the built class | a substituted or branched linker; a ring or an unsymmetrical central group; units joined by a double bond (hydrazinediylidene, ethane-1,2-diylidene); a unit whose attachment N no marker can read | declined, substitutive name stands | book PINs D-088f, h, i, j: `N,N'-oxybis(N-methylmethanamine)`, `4,4'-[(2-methylpropane-1,3-diyl)bis(oxy)]diphenol`, `(benzene-1,3,5-triyl)tris(silane)`, `4,4',4''-(ethane-1,1,2-triyl)tribenzoic acid` |
-| multiplicative, needs another stage | `triethanolamine` | the whole-molecule OPSIN registry name wins before the constructor sees a substitutive tree | `2,2',2''-nitrilotri(ethan-1-ol) (PIN)` (p. 106) once N5's gate removes it (D-088g) |
+| multiplicative, needs another stage | `triethanolamine` | the whole-molecule OPSIN registry name wins before the constructor sees a substitutive tree | BUILT in N5: the gate refuses it and `2,2',2''-nitrilotri(ethan-1-ol) (PIN)` (p. 106) is emitted (D-088g) |
 | candidate generation | skeletal replacement with a principal group | `(2-{2-[2-(carboxymethoxy)ethoxy]ethoxy}ethoxy)acetic acid` | `3,6,9,12-tetraoxatetradecane-1,14-dioic acid (PIN)` (p. 437) | the 'a' chain route declines on a principal group; multiplication correctly declines too (four heteroatoms) |
 | serialization | hydrazide suffix on a systematic acid | `pentanohydrazide` | `pentanehydrazide (PIN)` (p. 667) | the "-ohydrazide" ending is right after a retained stem (acetohydrazide) only; N8 |
 | candidate generation | carbon with two double-bonded suffix groups | `dithioxomethane`, `bis(methylimino)methane` | `methanedithione`, `dimethylmethanediimine` (p. 527) | the thione and imine patterns are written for R2C=X |
+| serialization | full substitution (P-14.3.4.5) | `1,1,1,3,3,3-hexamethyldisiloxane`, `1,1,1,2,2,2-hexachloroethane` | `hexamethyldisiloxane`, `tetramethyldiboroxane (PIN)` (p. 731) | "All locants are omitted ... in which all substitutable positions are completely substituted"; engine-wide, N8 (D-089q, r) |
+| PCG assignment | -ol on a silicon chain or a bare silane | `1,3-dihydroxy-1,1,3,3-tetramethyldisiloxane`, `trihydroxysilane` | `...disiloxane-1,3-diol`, `silanetriol` (derived, P-68.2.5) | silanols reach a suffix only through a pre-plan single-centre route; N6 (D-089s, t) |
+| candidate generation | Si-NH-Si | `disilaazane` | `N-silylsilanamine` (p. 145, "not disilazane") | with N the a(ba)n rule gives way to amine names; the organometallic three-atom route still builds the a-term name (D-089u) |
+| candidate generation | phosphoramidocyanidate esters | `(dimethylamino)(ethoxy)(oxo)phosphanecarbonitrile` | `ethyl N,N-dimethylphosphoramidocyanidate` (derived from "sulfurocyanidic acid (PIN)", p. 704) | was `tabun`, which the gate refuses; functional replacement of phosphoric acid by -CN is not built (D-089v) |
+| candidate generation | a skeletal-replacement name for a siloxane | `2,4-dioxa-1,3,5-trisilahexane` | `1-methyltrisiloxane` (derived) | "-SiH2-O-SiH2-, disiloxane-1,3-diyl" is ONE heterounit (p. 440), so P-51.4.1's four are not reached; the heterounit count predates N5 (D-090b) |
+| serialization, oracle | dinuclear 'hypo' boron acid | `hypoboric acid` | `hypodiboric acid (preselected name)` (p. 720) | the engine drops the "di" because OPSIN cannot parse the book's form; recorded here, not as a D-row, since the D-row table requires a target OPSIN parses |
+| candidate generation | a(ba)n chains of chalcogen terminals, and cyclic siloxanes | `{[(methylsulfanyl)oxy]sulfanyl}methane`; the ring names | not built | N5 builds Si, Ge, Sn, Pb, B and P..Bi terminals at standard valence; a carbon-bearing S-O-S is a sulfenic anhydride and was not checked against the book |
 
 ## Open after naming round 4 (2026-09-18)
 
@@ -413,12 +420,16 @@ Also open, and not a name defect:
   string dispatcher, 1 additively), and functional-class, multiplicative,
   ring-assembly and additive nodes are not audited inside. See "Open after
   naming round 5".
-* **The registry.** `tools/retained_name_audit.py` now fails closed on
-  impossible claims, and 18 PINs, 26 non-PIN retained names and 15 book-absent
-  names are typed; 251 entries still have no audited status. Separately,
-  `data/opsin_extracted/retained_names_from_opsin.json` holds 1,824 names taken
-  from OPSIN's parse dictionary that feed whole-molecule naming unaudited
-  (fluorouracil among them): a parser's vocabulary is not evidence of a PIN.
+* **The registry.** `tools/retained_name_audit.py` fails closed on
+  impossible claims; 19 PINs and 27 non-PIN names are typed, 249 entries have
+  no audited status. GATED in round 5 (N5): a record that came from OPSIN's
+  parse dictionary -- the 1,824-name `retained_names_from_opsin.json`, or one
+  of the 174 registry entries copied from it -- is emitted only with
+  NORMATIVE_RULE evidence, and an audited demotion binds every table that
+  spells the name (`engine.retained_gate_refusal`, `--gate`). Every registry
+  entry a tuning-population name reaches (12) is audited. What remains
+  unaudited is the OPSIN RING vocabulary (see the round-5 table) and the
+  unreached registry backlog.
 * **The book contradicts itself once, and the rule was followed.** Its prefix
   list prints `2,3-dihydro-1H-isoindol-2-yl` (p. 344); P-58.2.3.1.1 and the
   worked analysis on p. 499 give `2H-isoindol-2-yl`. The engine emits the

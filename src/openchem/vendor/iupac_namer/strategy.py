@@ -132,6 +132,12 @@ _P44_1_2_ORDER = ("N", "P", "As", "Sb", "Bi", "Si", "Ge", "Sn", "Pb", "B", "Al",
                   "In", "Tl", "O", "S", "Se", "Te", "C")
 
 
+# Elements perception also offers as a one-atom heteroatom_center parent.
+_CENTRE_FORMING_CHAIN_ELEMENTS = frozenset(
+    {"P", "Si", "B", "As", "Ge", "Sn", "Bi", "Sb", "Pb"}
+)
+
+
 def _senior_atom_rank(candidate, mol) -> int:
     """P-44.1.2: the rank of the parent's most senior skeletal atom, higher
     is better, carbon 0. "A single senior atom is sufficient" (P-44.1.2.1).
@@ -917,6 +923,17 @@ class IUPACCanonical(NamingStrategy):
             # chain or ring with a PCG anchor ON/BONDED-TO it still wins over an
             # N-N chain where the PCG anchor is only BONDED to the N-N.
             score += 0.9
+            # A chain of an element that can also be a one-atom
+            # heteroatom_center (Si, P, ...), and every a(ba)n chain, competes
+            # with that centre: same senior atom (P-44.1.2), so P-44.3's
+            # "greater number of skeletal atoms" decides. At 0.9 against the
+            # centre's 50, "methyl(silyl)silane" beat "methyldisilane" and
+            # "trimethyl(trimethylsilyloxy)silane" beat
+            # "hexamethyldisiloxane". Naming round 5 (N5).
+            if (candidate.element or "").startswith("a(ba)n:") or (
+                candidate.element in _CENTRE_FORMING_CHAIN_ELEMENTS
+            ):
+                score += 50.0 - 0.9 + candidate.length * 0.1
         else:
             score += candidate.length * 0.1
 

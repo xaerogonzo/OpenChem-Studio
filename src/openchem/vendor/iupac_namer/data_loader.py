@@ -227,31 +227,100 @@ def lookup_retained_name(smiles: str) -> dict | None:
     2. ``retained_names_expanded.json`` (keyed by SMILES, fastest)
     3. ``retained_names_from_opsin.json`` (list, matched on 'smiles' field)
 
-    Returns the matching record dict or None.
+    Returns the matching record dict or None. Every record carries ``table``,
+    the table it came from, because the engine's registry gate (P-12.2 /
+    naming round 5) decides on where a name came from, not on its spelling.
     """
     # 1. Ring curated table (highest priority for ring systems)
     ring_match = _lookup_curated_ring(smiles)
     if ring_match is not None:
-        return ring_match
+        return {**ring_match, "table": "ring_curated"}
 
     # 1b. Inorganic / ion / parent-hydride curated table
     inorganic_match = _lookup_curated_inorganic(smiles)
     if inorganic_match is not None:
-        return inorganic_match
+        return {**inorganic_match, "table": "inorganic_curated"}
 
     # 2. retained_names_expanded: top-level is a dict of category → {smiles: record}
     expanded = get_retained_names_expanded()
-    for category_data in expanded.values():
+    for category, category_data in expanded.items():
         if isinstance(category_data, dict):
             if smiles in category_data:
                 rec = category_data[smiles]
-                return {"smiles": smiles, **rec} if isinstance(rec, dict) else {"smiles": smiles, "name": rec}
+                if isinstance(rec, dict):
+                    return {"smiles": smiles, **rec, "table": category}
+                return {"smiles": smiles, "name": rec, "table": category}
 
     # 3. retained_names_from_opsin: list of {"name": ..., "smiles": ..., "source": ...}
     for entry in get_retained_names_from_opsin():
         if isinstance(entry, dict) and entry.get("smiles") == smiles:
-            return entry
+            return {**entry, "table": OPSIN_VOCABULARY_TABLE}
 
+    return None
+
+
+#: The ``table`` of a record taken from OPSIN's parse dictionary.
+OPSIN_VOCABULARY_TABLE = "retained_names_from_opsin"
+
+#: Registry ``source`` values meaning "copied from OPSIN's data". Presence in a
+#: parser's vocabulary establishes that a name can be READ, not that IUPAC
+#: retains it, so these entries must be typed before they may be emitted.
+OPSIN_REGISTRY_SOURCES = frozenset({"opsin", "opsin_data", "opsin+bluebook"})
+
+
+def registry_entry_for(smiles: str, name: str) -> dict | None:
+    """The `retained_pins` entry for exactly this structure AND this name.
+
+    Keyed on both, deliberately: the registry holds "hexamethyleneimine" at
+    azepane's SMILES, and the curated ring table's "azepane" must not inherit
+    that entry's status. A gate on the structure alone would be a blacklist.
+    """
+    rec = get_retained_names_expanded().get("retained_pins", {}).get(smiles)
+    if isinstance(rec, dict) and rec.get("name") == name:
+        return rec
+    return None
+
+
+_DEMOTED_NAMES: frozenset[str] | None = None
+
+
+def registry_demotes_name(name: str) -> bool:
+    """Does the registry audit this NAME as not a PIN, at any structure?
+
+    A demotion is a fact about a name ("the book never names 'xanthine'"),
+    so it binds every record spelled that way -- the curated ring table files
+    xanthine under two tautomer keys where the registry has one. Provenance
+    is not: where a record came from is read off that record alone.
+    """
+    global _DEMOTED_NAMES
+    if _DEMOTED_NAMES is None:
+        _DEMOTED_NAMES = frozenset(
+            e["name"] for e in get_retained_names_expanded().get("retained_pins", {}).values()
+            if isinstance(e, dict) and e.get("pin_status") == "RETAINED_NOT_PIN" and e.get("name")
+        )
+    return name in _DEMOTED_NAMES
+
+
+def retained_record_refusal(match: dict | None, pin_policy: bool = True) -> str | None:
+    """Why this retained-name RECORD may not name anything, or None.
+
+    The registry gate's rule, in one place for every route that emits a
+    record: the engine's whole-molecule lookup, and ring naming's curated
+    table. ``pin_policy`` is whether the preferred slot is reserved for PINs.
+    The engine's `retained_gate_refusal` documents the two rules.
+    """
+    if not match:
+        return None
+    entry = match
+    if match.get("table") != "retained_pins":
+        entry = registry_entry_for(match.get("smiles", ""), match.get("name", "")) or {}
+    if pin_policy and (entry.get("pin_status") == "RETAINED_NOT_PIN"
+                       or registry_demotes_name(match.get("name", ""))):
+        return "RETAINED_NOT_PIN"
+    from_opsin = (match.get("table") == OPSIN_VOCABULARY_TABLE
+                  or entry.get("source") in OPSIN_REGISTRY_SOURCES)
+    if from_opsin and entry.get("evidence_kind") != "NORMATIVE_RULE":
+        return "OPSIN_VOCABULARY_UNTYPED"
     return None
 
 
