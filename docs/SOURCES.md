@@ -1,5 +1,5 @@
 <!-- GENERATED FROM docs/sources.toml -- do not edit -->
-<!-- SOURCE SHA256: e41224f14266434b31d4cbcbaa69e5e2e8e0853a85b749791a6f2025c1e5d495 -->
+<!-- SOURCE SHA256: 861c04826fe171e2ba3a6109b4490aaa4bfc6ace66731eb0ae61d81abecaab0e -->
 
 # Sources
 
@@ -4009,7 +4009,7 @@ the publisher's.
 | Verification | citation |
 | Verified | 2026-09-18 |
 | Local copy | `ertl2017.pdf` (not checked) |
-| Used by | `src/openchem/chem/feature_vocabulary.py` |
+| Used by | `src/openchem/chem/feature_vocabulary.py`, `tools/ertl_crosscheck.py`, `tests/fixtures/structural_features/ertl_si_representatives.json` |
 
 **Why it is reference only.** AN INDEPENDENT ORACLE, NEVER A DEFINITION. The v2 vocabulary is cross-checked
 against Ertl's algorithm both ways (every Ertl group mapped to a feature or

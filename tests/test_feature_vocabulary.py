@@ -36,6 +36,7 @@ from openchem.chem.feature_vocabulary import (
 ROOT = Path(__file__).resolve().parents[1]
 COVERAGE = ROOT / "tests" / "fixtures" / "structural_features" / "coverage.toml"
 ENGINE_GROUPS = ROOT / "src" / "openchem" / "vendor" / "data" / "functional_groups.json"
+ERTL_SI = ROOT / "tests" / "fixtures" / "structural_features" / "ertl_si_representatives.json"
 
 
 def _coverage() -> dict:
@@ -186,6 +187,12 @@ def test_normative_and_overlap_fixtures_are_different_molecules():
             normative.add(_canonical(negative["smiles"]))
     overlap = {_canonical(f["smiles"]) for f in _coverage()["overlap"]}
     assert not normative & overlap, sorted(normative & overlap)
+    ertl = {
+        _canonical(r["smiles"])
+        for r in json.loads(ERTL_SI.read_text(encoding="utf-8"))["representatives"]
+    }
+    assert not normative & ertl, sorted(normative & ertl)
+    assert not overlap & ertl, sorted(overlap & ertl)
 
 
 def test_every_engine_group_type_is_mapped_or_justified():

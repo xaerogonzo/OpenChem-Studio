@@ -206,7 +206,9 @@ FEATURES: tuple[FeatureDefinition, ...] = (
     _f("fg:hydroxamic_acid", "hydroxamic acid",
        ("carbonyl_c", "carbonyl_o", "amide_n", "hydroxy_o"),
        _gb("hydroxamic acids", 700, "RC(=O)NHOH"),
-       "And its hydrocarbyl derivatives, so the N may carry carbon."),
+       "'And hydrocarbyl derivatives thereof', so N and O may both carry "
+       "carbon. B0 excluded the O-alkyl ones; the Ertl cross-check found that "
+       "wrong against the entry's own words (N-alkoxy amides, 0.09% of ChEMBL)."),
     _f("fg:hydrazide", "hydrazide", ("carbonyl_c", "carbonyl_o", "amide_n", "terminal_n"),
        _gb("hydrazides", 693, "RC(=O)NHNH2"),
        "Carbohydrazides and sulfonohydrazides; the terminal N single-bonded."),
@@ -231,6 +233,15 @@ FEATURES: tuple[FeatureDefinition, ...] = (
        _bb("guanidine", 675, "P-66.4.1.2.1.1", "H2N-C(=NH)-NH2"),
        "The Gold Book has no guanidines entry. Carbon bearing three nitrogens, "
        "one double-bonded; cationic when protonated (delocalised, any N)."),
+    _f("fg:imidate", "imidate (imidic acid or ester)", ("imidate_c", "imino_n", "o"),
+       _gb("imidic acids", 710, "RC(=NR)(OH)"),
+       "The carboximidic acids ('tautomers of amides') and their O-hydrocarbyl "
+       "esters, which the esters entry's note names as esters though not esters "
+       "proper. Carbon bears C or H (so an isourea is not one); the drawn "
+       "tautomer is kept -- an acyclic lactim is this, the amide is a carboxamide."),
+    _f("fg:isourea", "isourea", ("isourea_c", "imino_n", "amino_n", "o"),
+       _gb("isoureas", 799, "H2NC(=NH)OH"),
+       "And its hydrocarbyl derivatives: O-alkylisoureas included."),
     _f("fg:imine", {_N: "imine", _C: "iminium"}, ("imine_c", "imine_n"),
        _gb("imines", 712, "RN=CR2 (R = H, hydrocarbyl)"),
        "Sense 1 only. N bears H or carbon, carbon bears H or carbon, so oximes, "
@@ -241,6 +252,10 @@ FEATURES: tuple[FeatureDefinition, ...] = (
        "O-substituted oximes (oxime ethers) are included: the O may carry carbon."),
     _f("fg:hydrazone", "hydrazone", ("imine_c", "imine_n", "amino_n"),
        _gb("hydrazones", 694, "R2C=NNR2"), "As written."),
+    _f("fg:nitrone", "nitrone", ("imine_c", "imine_n", "oxide_o"),
+       _gb("nitrones", 996, "R2C=N+(O-)R'"),
+       "The N-oxide of an imine; R' may be H (the entry includes it). Added "
+       "after the Ertl cross-check found chlordiazepoxide's claimed by nothing."),
     _f("fg:carbodiimide", "carbodiimide", ("central_c", "n"),
        _gb("carbodiimides", 205, "HN=C=NH"), "And hydrocarbyl derivatives."),
     _f("fg:isocyanate", "isocyanate", ("n", "c", "o"),
@@ -290,6 +305,19 @@ FEATURES: tuple[FeatureDefinition, ...] = (
     _f("fg:hemiacetal", "hemiacetal", ("acetal_c", "hydroxy_o", "ether_o"),
        _gb("hemiacetals", 667, "R2C(OH)OR'"),
        "Includes lactols and hemiketals."),
+    _f("fg:aminal", "aminal", ("aminal_c", "n"),
+       _gb("aminals", 72, "R2C(NR2)2"),
+       "Saturated carbon, two single-bonded trivalent N. Any such N, acylated "
+       "included (an amide N-CH2-N is still two N on one carbon); the N stay "
+       "the amines or amides they are."),
+    _f("fg:hemiaminal", "hemiaminal", ("aminal_c", "o", "n"),
+       _gb("hemiaminals", 667, "R2C(OH)NR2; R2C(OR')NR2"),
+       "Both: alpha-amino alcohols and the hemiaminal ethers the entry names "
+       "(R' != H, not acyl). The O is the hemiaminal's; the N stays its amine."),
+    _f("fg:thioacetal", "thioacetal", ("acetal_c", "s", "o"),
+       _gb("thioacetals", 1536, "R2C(OR')(SR'); R2C(SR')2"),
+       "Mono- and dithioacetals, R' carbon. An N,S-acetal is not one; the Gold "
+       "Book names none."),
     _f("fg:peroxide", "peroxide", ("peroxy_o",),
        _gb("peroxides", 1085, "ROOR"), "Both R organyl."),
     _f("fg:hydroperoxide", "hydroperoxide", ("peroxy_o", "hydroxy_o"),
@@ -361,11 +389,23 @@ FEATURES: tuple[FeatureDefinition, ...] = (
        "Mono- or di-esters of sulfuric acid; a monoester is often drawn as O-."),
     _f("fg:sulfonamide", "sulfonamide", ("s", "oxo_o", "amide_n"),
        _gb("sulfonamides", 1481, "RS(=O)2NR'2"), "R carbon."),
+    _f("fg:sulfamide", "sulfamide", ("s", "oxo_o", "amide_n"),
+       _gb("amides", 69, "RkE(=O)l(OH)m amide, E = S, k = 0"),
+       "Sulfuric acid is an oxoacid of the amides entry's form, so N-SO2-N is an "
+       "amide of it, as carbonic diamide is; a sulfonamide's S bears carbon."),
+    _f("fg:sulfamate", {_N: "sulfamate", _A: "sulfamate"}, ("s", "oxo_o", "amide_n", "o"),
+       _gb("sulfamic acids", 1477, "H2NS(=O)2OH"),
+       "The acid, its N-hydrocarbyl derivatives (the entry), its salts and its "
+       "O-esters (the esters entry): N-SO2-O."),
     # --- phosphorus, boron, silicon --------------------------------------
     _f("fg:phosphonic_acid", {_N: "phosphonic acid", _A: "phosphonate"},
        ("p", "oxo_o", "hydroxy_o"),
        _gb("phosphonic acids", 1100, "RP(=O)(OH)2"),
        "P-hydrocarbyl; at least one OH (or O-) and no O-carbon ester."),
+    _f("fg:phosphinic_acid", {_N: "phosphinic acid", _A: "phosphinate"},
+       ("p", "oxo_o", "hydroxy_o"),
+       _gb("phosphinic acids", 1099, "H2P(=O)OH"),
+       "Its P-hydrocarbyl derivatives: one OH (or O-) and two C, or C and H."),
     _f("fg:phosphonate_ester", "phosphonate ester", ("p", "oxo_o", "ester_o", "acid_o"),
        _gb("esters", 528, "RkE(=O)l(OH)m ester, E = P"),
        "P bearing one carbon, =O, and at least one O-carbon."),
@@ -390,7 +430,12 @@ FEATURES: tuple[FeatureDefinition, ...] = (
        _gb("silanols", 1377, "R3SiOH"), "Sense 2, the common one."),
     _f("fg:silyl_ether", "silyl ether", ("si", "ether_o"),
        _gb("ethers", 528, "R3SiOR"),
-       "The ethers entry's own parenthesis: silicon analogues of ethers."),
+       "The ethers entry's own parenthesis: silicon analogues of ethers. The "
+       "O bears carbon; the Si's R is unrestricted, so a trialkoxysilane's "
+       "three Si-O-C are three (found by the Ertl cross-check)."),
+    _f("fg:siloxane", "siloxane", ("si", "o"),
+       _gb("siloxanes", 1379, "H3Si[OSiH2]nOSiH3"),
+       "Si-O-Si; hydrocarbyl derivatives included, as the entry says."),
     # --- halogen ---------------------------------------------------------
     _f("fg:fluoro", "fluoro", ("halogen",),
        _bb("halogen compounds", 507, "P-61.3.1", "fluoro prefix"),
@@ -500,6 +545,10 @@ RELATIONS: tuple[FeatureRelation, ...] = (
     FeatureRelation("fg:hemiacetal", _S, "fg:ether", "its ether oxygen belongs to the hemiacetal"),
     FeatureRelation("fg:hemiacetal", _S, "fg:alcohol", "its OH belongs to the hemiacetal"),
     FeatureRelation("fg:enol", _S, "fg:alkene", "an enol is an alkenol; its C=C is part of it (p. 512)"),
+    FeatureRelation("fg:hemiaminal", _S, "fg:alcohol", "its OH belongs to the hemiaminal (p. 667)"),
+    FeatureRelation("fg:hemiaminal", _S, "fg:ether", "a hemiaminal ether's O belongs to it (p. 667)"),
+    FeatureRelation("fg:thioacetal", _S, "fg:sulfide", "a thioacetal's S belongs to it (p. 1536)"),
+    FeatureRelation("fg:thioacetal", _S, "fg:ether", "a monothioacetal's O belongs to it (p. 1536)"),
     *(FeatureRelation("fg:acyl_halide", _S, f"fg:{x}",
                       "the halogen of an acyl halide is not a halo substituent")
       for x in ("fluoro", "chloro", "bromo", "iodo")),
