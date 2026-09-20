@@ -154,6 +154,14 @@ FEATURES: tuple[FeatureDefinition, ...] = (
        "R is carbon or hydrogen (formic acid is one); a carbonyl carbon bearing N "
        "or O is carbamic or carbonic acid and is excluded. Anionic when the "
        "hydroxy oxygen is O-."),
+    _f("fg:thiocarboxylic_acid", {_N: "thiocarboxylic acid", _A: "thiocarboxylate"},
+       ("acyl_c", "acyl_x", "acid_x"),
+       _gb("thiocarboxylic acids", 1537, "RC(=O)SH, RC(=S)OH, RC(=S)SH"),
+       "The monothio acids (either tautomer, drawn as it is) and the dithio "
+       "acids the entry lists. R is carbon or H, as for a carboxylic acid: a "
+       "carbonyl carbon bearing N or O is a thiocarbamic or thiocarbonic acid. "
+       "Anionic when the single-bonded chalcogen is S- or O-. The esters are "
+       "fg:thioester."),
     _f("fg:carboxylic_ester", "carboxylic ester",
        ("carbonyl_c", "carbonyl_o", "ester_o"),
        _gb("esters", 528, "R'C(=O)(OR)"),
@@ -209,6 +217,19 @@ FEATURES: tuple[FeatureDefinition, ...] = (
        _gb("carbamates", 201, "R2NC(=O)OR'"),
        "Esters (R' carbon) and salts (O-) of carbamic acids. The carbonyl "
        "carbon bears exactly one N and one O."),
+    _f("fg:thiocarbamate", {_N: "thiocarbamate", _A: "thiocarbamate"},
+       ("carbonyl_c", "carbonyl_x", "amide_n", "ester_x"),
+       _bb("carbamothioic acids", 600, "P-65.2.1.2", "H2N-CS-OH; H2N-CO-SH"),
+       "The Gold Book has no thiocarbamate entry: its carbamates entry (p. 201) "
+       "names the oxygen compounds, and the chalcogen analogues of carbamic acid "
+       "are the Blue Book's, by functional replacement (O-thio, S-thio and "
+       "dithio). Esters (the single-bonded chalcogen bears carbon) and salts "
+       "(S- or O-), as carbamate; the free acids are not detected, and at least "
+       "one chalcogen is sulfur. Ring or chain: rhodanine's N-C(=S)-S is one. "
+       "The single-bonded chalcogen needs a SECOND carbon (the carbonyl carbon "
+       "satisfies a lone `bonded to carbon`), which is also why a thiuram "
+       "disulfide's S-S is not two of these: the Blue Book names it a "
+       "trithiodicarbonic diamide (p. 663)."),
     _f("fg:thioester", "thioester", ("acyl_c", "acyl_x", "ester_x"),
        _gb("esters", 528, "R'C(=S)(OR), R'C(=O)(SR)"),
        "The chalcogen esters the esters entry names: thiono (C=S)-O, thiolo "
@@ -238,6 +259,10 @@ FEATURES: tuple[FeatureDefinition, ...] = (
     _f("fg:thioketone", "thioketone", ("thiocarbonyl_c", "thiocarbonyl_s"),
        _gb("thioketones", 1537, "R2C=S"),
        "As ketone, with S."),
+    _f("fg:thioaldehyde", "thioaldehyde", ("carbonyl_c", "thiocarbonyl_s"),
+       _gb("thioaldehydes", 1536, "RC(=S)H"),
+       "As aldehyde, with S: a carbonyl-type carbon with exactly one H and one "
+       "carbon, or two H (thioformaldehyde)."),
     _f("fg:amidine", {_N: "amidine", _C: "amidinium"}, ("amidine_c", "imino_n", "amino_n"),
        _gb("carboxamidines", 214, "RC(=NR)NR2"),
        "R on carbon is carbon or H, so guanidine (three N) is excluded."),
@@ -252,9 +277,25 @@ FEATURES: tuple[FeatureDefinition, ...] = (
        "esters, which the esters entry's note names as esters though not esters "
        "proper. Carbon bears C or H (so an isourea is not one); the drawn "
        "tautomer is kept -- an acyclic lactim is this, the amide is a carboxamide."),
+    _f("fg:thioimidate", "thioimidate", ("imidate_c", "imino_n", "s"),
+       _bb("carboximidothioate", 628, "P-65.6.3.3.7.1", "C6H5-C(=NH)-S-CH3"),
+       "The Gold Book has no entry for the sulfur analogue of an imidate: its "
+       "imidic acids entry (p. 710) replaces =O by =NR in oxoacids and names "
+       "oxygen. The S-hydrocarbyl esters of carboximidothioic acids, ring or "
+       "chain (a 2-thiazoline is one). The S-H form is a thiol as drawn, "
+       "and so is not detected here. Carbon bears C or H, so an "
+       "isothiourea is not one."),
     _f("fg:isourea", "isourea", ("isourea_c", "imino_n", "amino_n", "o"),
        _gb("isoureas", 799, "H2NC(=NH)OH"),
        "And its hydrocarbyl derivatives: O-alkylisoureas included."),
+    _f("fg:isothiourea", "isothiourea",
+       ("isothiourea_c", "imino_n", "amino_n", "s"),
+       _bb("carbamimidothioic acid", 662, "P-66.1.6.1.3.2", "H2N-C(=NH)-SH"),
+       "The Gold Book has no isothiourea entry: its isoureas entry (p. 799) "
+       "names the oxygen compound. The chalcogen analogue named in the same "
+       "Blue Book section as the thiourea. S-hydrocarbyl derivatives only, ring "
+       "or chain (a 2-amino-2-thiazoline is one); the S-H form is a thiol as "
+       "drawn, the tautomer of a thiourea."),
     _f("fg:imine", {_N: "imine", _C: "iminium"}, ("imine_c", "imine_n"),
        _gb("imines", 712, "RN=CR2 (R = H, hydrocarbyl)"),
        "Sense 1 only. N bears H or carbon, carbon bears H or carbon, so oximes, "
@@ -275,10 +316,29 @@ FEATURES: tuple[FeatureDefinition, ...] = (
        _gb("isocyanates", 778, "RN=C=O"), "As written."),
     _f("fg:isothiocyanate", "isothiocyanate", ("n", "c", "s"),
        _gb("isothiocyanates", 792, "RN=C=S"), "As written."),
+    _f("fg:cyanate", "cyanate", ("cyanate_c", "cyanate_n", "ester_o"),
+       _gb("cyanates", 363, "ROCN"),
+       "The esters of cyanic acid (R carbon); the entry also names its salts, "
+       "but the cyanate ANION has no organyl group and is reported as a "
+       "component, as carbon disulfide is. The esters entry's own note "
+       "separates it from R-NCO (fg:isocyanate)."),
+    _f("fg:thiocyanate", "thiocyanate", ("thiocyanate_c", "thiocyanate_n", "ester_s"),
+       _gb("thiocyanates", 1537, "RSC#N"),
+       "The esters of thiocyanic acid, S bonded to carbon; the thiocyanate "
+       "ANION is a component, not a group. Not the isothiocyanate R-NCS."),
     _f("fg:nitrile", "nitrile", ("nitrile_c", "nitrile_n"),
        _gb("nitriles", 995, "RC#N"),
        "Both atoms: the entry notes the suffix denotes only N, but the group a "
        "chemist points at is the C#N."),
+    _f("fg:cyanamide", "cyanamide", ("cyano_c", "cyano_n", "amino_n"),
+       _bb("cyanamide", 663, "P-66.1.6.2", "NC-NH2"),
+       "The Gold Book has no cyanamides entry. The amides of cyanic acid, the "
+       "Blue Book's 'substitution is allowed on the -NH2 group': the N is "
+       "neutral, single-bonded to the cyano carbon and to nothing that makes it "
+       "aromatic. A C=N nitrogen carrying the cyano group (cyanoguanidine drawn "
+       "as the imino tautomer) is a cyano-substituted imine, not an amide of "
+       "cyanic acid, and the drawn tautomer is what is read. Not a nitrile "
+       "(fg:nitrile needs carbon on the C#N)."),
     _f("fg:isocyanide", "isocyanide", ("n", "c"),
        _gb("isocyanides", 778, "RN+#C-"), "As written."),
     # --- oxygen ----------------------------------------------------------
@@ -331,6 +391,12 @@ FEATURES: tuple[FeatureDefinition, ...] = (
        _gb("thioacetals", 1536, "R2C(OR')(SR'); R2C(SR')2"),
        "Mono- and dithioacetals, R' carbon. An N,S-acetal is not one; the Gold "
        "Book names none."),
+    _f("fg:acylal", "acylal", ("acylal_c", "ester_o", "carbonyl_c", "carbonyl_o"),
+       _gb("acylals", 34, "diesters of geminal diols, e.g. benzylidene diacetate"),
+       "Saturated carbon bearing two single-bonded O, each acylated by a "
+       "carboxylic acyl (carbon or H on the carbonyl); ring or chain, so "
+       "Meldrum's acid is the cyclic acylal of acetone. One ester and one ether O "
+       "is not a diester; a monoester (the second O bears H) is not either."),
     _f("fg:peroxide", "peroxide", ("peroxy_o",),
        _gb("peroxides", 1085, "ROOR"), "Both R organyl."),
     _f("fg:hydroperoxide", "hydroperoxide", ("peroxy_o", "hydroxy_o"),
@@ -387,8 +453,33 @@ FEATURES: tuple[FeatureDefinition, ...] = (
        _gb("polysulfides", 1161, "R-[S]n-R"),
        "n = 2 only. The entry notes some chemists exclude disulfides; this "
        "vocabulary includes them, which is the entry's primary reading."),
+    _f("fg:sulfenic_acid", {_N: "sulfenic acid", _A: "sulfenate"}, ("s", "o"),
+       _gb("sulfenic acids", 1478, "RSOH (R != H)"),
+       "R hydrocarbyl. The Blue Book discards the name for 'thioperoxol' "
+       "(P-56.2) but the Gold Book's class stands, and this vocabulary follows "
+       "the Gold Book. Anionic is the sulfenate. An O-hydrocarbyl compound "
+       "R-S-O-R' is not this: no source names it as a class."),
+    _f("fg:sulfenamide", "sulfenamide", ("s", "amide_n"),
+       _gb("sulfenamides", 1477, "RSNR2"),
+       "Sulfenic acids with -OH replaced by -NR2. The N is neutral and "
+       "trivalent and carries no double bond, and is not aromatic; an N-acyl "
+       "one (a benzisothiazolinone's N-S) is still a sulfenamide, the entry "
+       "restricting nothing on N."),
     _f("fg:sulfoxide", "sulfoxide", ("s", "o"),
        _gb("sulfoxides", 1483, "R2S=O"), "Both R carbon."),
+    _f("fg:sulfinic_acid", {_N: "sulfinic acid", _A: "sulfinate"},
+       ("s", "oxo_o", "hydroxy_o"),
+       _gb("sulfinic acids", 1480, "RS(=O)OH"),
+       "S-hydrocarbyl, the entry's own words; the parent HS(=O)OH has no organyl "
+       "group. Anionic is the sulfinate."),
+    _f("fg:sulfinic_ester", "sulfinic ester", ("s", "oxo_o", "ester_o"),
+       _gb("esters", 528, "RkE(=O)l(OH)m ester, E = S, l = 1"),
+       "Sulfinic acid has l = 1, so its esters are esters proper of the entry. "
+       "S carbon, O carbon; a sulfite (S bears no carbon) is not one."),
+    _f("fg:sulfinamide", "sulfinamide", ("s", "oxo_o", "amide_n"),
+       _gb("sulfinamides", 1480, "RS(=O)NR2"),
+       "As the entry writes it; R carbon, N not bonded to N (a sulfinohydrazide "
+       "is not in this version)."),
     _f("fg:sulfone", "sulfone", ("s", "o"),
        _gb("sulfones", 1482, "RS(=O)2R"), "Both R carbon."),
     _f("fg:sulfonic_acid", {_N: "sulfonic acid", _A: "sulfonate"},
@@ -502,6 +593,14 @@ FEATURES: tuple[FeatureDefinition, ...] = (
     _f("sf:carbocation", {_C: "carbocation"}, ("c",),
        _gb("carbocation", 205, "cation with an even-electron carbon centre"),
        "A carbon with formal charge +1.", category=_SF),
+    _f("sf:acylium_ion", {_C: "acylium ion"}, ("acyl_c", "acyl_o"),
+       _gb("acyl species", 33, "R-C+=O, R-C#O+ (acyl cations)"),
+       "The entry's acyl cations, synonym acylium ions, formally derived from an "
+       "oxoacid by removal of HO-. The entry leaves the acid-generating element "
+       "open; this version reads carbon only: a carbon with two neighbours, one "
+       "of them a terminal O, drawn as C+=O or as C#O+ (the two resonance "
+       "forms). The C+=O form is also a carbocation, and says so (CONTAINS).",
+       category=_SF),
     _f("sf:carbanion", {_A: "carbanion"}, ("c",),
        _gb("carbanion", 201, "anion with an even-electron carbon centre"),
        "A carbon with formal charge -1 (cyclopentadienide, acetylide).",
@@ -579,6 +678,12 @@ RELATIONS: tuple[FeatureRelation, ...] = (
     FeatureRelation("fg:aldehyde", _X, "fg:ketone", "one H vs none"),
     FeatureRelation("fg:carboxamide", _X, "fg:urea", "a urea's carbonyl carbon bears no carbon"),
     FeatureRelation("fg:carboxylic_ester", _X, "fg:carbamate", "a carbamate's carbonyl bears N"),
+    # v3. Each is justified by the SOURCE'S definition, not by "more specific".
+    FeatureRelation("fg:acylal", _S, "fg:carboxylic_ester",
+                    "an acylal is a diester of a geminal diol, described once as "
+                    "an acylal, as an acetal is a diether (p. 34)"),
+    FeatureRelation("sf:acylium_ion", _K, "sf:carbocation",
+                    "an acylium ion is a carbocation of a particular kind (p. 33)"),
 )
 
 #: Which (subject category, kind, object category) may be declared. Anything
@@ -588,6 +693,9 @@ RELATIONS: tuple[FeatureRelation, ...] = (
 ALLOWED_CATEGORY_RELATIONS: frozenset[tuple[FeatureCategory, RelationKind, FeatureCategory]] = frozenset({
     (FeatureCategory.RING_SYSTEM, RelationKind.CONTAINS, FeatureCategory.FUNCTIONAL_GROUP),
     (FeatureCategory.STRUCTURAL_FEATURE, RelationKind.OVERLAPS, FeatureCategory.FUNCTIONAL_GROUP),
+    # An acylium ion is a carbocation of a particular kind (v3): both are
+    # structural features, so a specific one may contain the general one.
+    (FeatureCategory.STRUCTURAL_FEATURE, RelationKind.CONTAINS, FeatureCategory.STRUCTURAL_FEATURE),
     (FeatureCategory.FUNCTIONAL_GROUP, RelationKind.SUPPRESSES, FeatureCategory.FUNCTIONAL_GROUP),
     (FeatureCategory.FUNCTIONAL_GROUP, RelationKind.CONTAINS, FeatureCategory.FUNCTIONAL_GROUP),
     (FeatureCategory.FUNCTIONAL_GROUP, RelationKind.EXCLUDES, FeatureCategory.FUNCTIONAL_GROUP),
@@ -709,6 +817,20 @@ ENGINE_GROUP_MAP: dict[str, tuple[str, ...]] = {
     "ring_tertiary_amine": ("fg:tertiary_amine",),
     "ring_secondary_amine": ("fg:secondary_amine",),
     "aromatic_amine_nh": ("sf:aromatic_nh",),
+    # v3: types that were unmapped in v2 because the vocabulary had no feature.
+    "carbothioic_O_acid": ("fg:thiocarboxylic_acid",),
+    "carbothioic_S_acid": ("fg:thiocarboxylic_acid",),
+    "carbodithioic_acid": ("fg:thiocarboxylic_acid",),
+    "thionocarbamate": ("fg:thiocarbamate",),
+    "carbamothioate": ("fg:thiocarbamate",),
+    "dithiocarbamate": ("fg:thiocarbamate",),
+    "thial": ("fg:thioaldehyde",),
+    "cyanato": ("fg:cyanate",),
+    "thiocyanato": ("fg:thiocyanate",),
+    "sulfinic_acid": ("fg:sulfinic_acid",),
+    "sulfinamide": ("fg:sulfinamide",),
+    # The engine's `sulfenate` is R-S-O-, the anion of a sulfenic acid.
+    "sulfenate": ("fg:sulfenic_acid",),
 }
 
 #: Why the selenium and tellurium engine types are unmapped.
@@ -731,10 +853,10 @@ ENGINE_GROUP_FALLBACK: dict[str, str] = {
         "seleninamide", "telluronamide", "tellurinamide", "carboselenoic_Se_acid",
         "selone", "tellone", "selenol")},
     **{t: _S_ACID for t in (
-        "sulfinic_acid", "sulfinimidic_acid", "sulfonimidic_acid",
+        "sulfinimidic_acid", "sulfonimidic_acid",
         "sulfonodiimidic_acid", "sulfinothioic_O_acid", "sulfonothioic_S_acid",
-        "sulfinohydrazonic_acid", "sulfonohydrazonic_acid", "sulfenate",
-        "sulfenothioate", "sulfinamide", "sulfonothioamide", "sulfonodithioamide",
+        "sulfinohydrazonic_acid", "sulfonohydrazonic_acid",
+        "sulfenothioate", "sulfonothioamide", "sulfonodithioamide",
         "sulfinothioamide", "sulfinimidamide", "sulfonimidamide",
         "sulfonodiimidamide", "sulfinohydrazonamide", "sulfonohydrazonamide",
         "sulfinohydrazonohydrazide", "sulfonatoamino")},
@@ -742,18 +864,59 @@ ENGINE_GROUP_FALLBACK: dict[str, str] = {
     "carboximidic_acid": ("the imidic-acid tautomer of an amide; the vocabulary "
                           "preserves the drawn tautomer but defines no feature for "
                           "this rare one"),
-    "carboximidothioic_acid": "as carboximidic_acid, with sulfur",
-    "carbothioic_O_acid": "thiocarboxylic acids (p. 1537): rare, not in this version",
-    "carbothioic_S_acid": "thiocarboxylic acids (p. 1537): rare, not in this version",
-    "carbodithioic_acid": "thiocarboxylic acids (p. 1537): rare, not in this version",
-    "thionocarbamate": "a thiocarbamate; no Gold Book entry, not in this version",
-    "carbamothioate": "a thiocarbamate; no Gold Book entry, not in this version",
-    "dithiocarbamate": "a thiocarbamate; no Gold Book entry, not in this version",
-    "thial": "thioaldehydes (p. 1536): rare, not in this version",
-    "thiocyanato": "thiocyanates (p. 1537): rare, not in this version",
-    "cyanato": "cyanates: rare, not in this version",
+    "carboximidothioic_acid": ("as carboximidic_acid, with sulfur: the S-H form is a "
+                               "thiol as drawn (fg:thioimidate reads S-hydrocarbyl "
+                               "esters only)"),
     "iodyl": "a hypervalent iodine group; not in this version",
     "iodosyl": "a hypervalent iodine group; not in this version",
+}
+
+
+#: Classes CONSIDERED for the vocabulary and refused, each with why. A structured
+#: status rather than a silence: "not detected" and "never looked at" are
+#: different claims, and the Ertl cross-check (`ertl_mapping.toml`) reports
+#: the atoms of the first two as uncovered. A class comes off this table only
+#: by getting a definition from a named source.
+EXCLUDED_CLASSES: dict[str, str] = {
+    "N,S-acetal": (
+        "R2C(NR2)(SR'), penicillin's thiazolidine carbon. No source names the "
+        "class: the Gold Book's aminals (p. 72) are N,N, its hemiaminals (p. 667) "
+        "N,O and its thioacetals (p. 1536) S,S and S,O, and neither the 1995 "
+        "glossary nor the Blue Book has an N,S entry (searched). Ertl's algorithm "
+        "marks the carbon, which is the oracle's finding and does not make it a "
+        "class; a definition written here would be this vocabulary's own. The "
+        "amine or amide and the sulfide on it are covered."),
+    "sulfenic ester (sulfenate, R-S-O-R')": (
+        "The Gold Book's sulfenic acids entry (p. 1478) is RSOH, and its esters "
+        "entry needs an oxoacid with l != 0, which a sulfenic acid lacks; the "
+        "Blue Book (P-63.4.2) names R-S-O-R' with the sulfanyloxy prefix, not "
+        "as a class."),
+    "thiuram disulfide": (
+        "R2N-C(=S)-S-S-C(=S)-NR2: the Blue Book names it a trithiodicarbonic "
+        "diamide (P-66.1.6.3, p. 663), so it is neither two thiocarbamates (each "
+        "S bears S, not carbon) nor a disulfide of two organyl groups."),
+    "sulfinohydrazide": (
+        "RS(=O)NR-NR2: the hydrazide analogue of a sulfinamide. Sulfonohydrazides "
+        "are hydrazides in v2; the sulfinic one has no Gold Book entry and does "
+        "not occur in either corpus."),
+    "selenium and tellurium analogues": (
+        "Named by the Gold Book only by extension of their oxygen and sulfur "
+        "parents, and none occurs in either naming corpus."),
+    "hypervalent iodine (iodosyl, iodyl)": (
+        "The Gold Book has no entry for the I=O or IO2 groups (searched; its "
+        "'hypervalent' entry is the bonding description, not a class). The "
+        "iodonium centre is fg:onium."),
+    "arsenic oxoacids": (
+        "The Gold Book names arsonic and arsinic acids only inside other "
+        "entries, with no headword of their own (searched), so there is no "
+        "definition to operationalise; arsenic is out of scope."),
+    "inorganic species with no organyl group": (
+        "Water, ammonia, borates, phosphoric acid, carbon disulfide, the cyanate "
+        "and thiocyanate anions, azide ion: every class here is defined on "
+        "organyl groups, so these are reported as components of the structure."),
+    "aromatic ring heteroatoms": (
+        "A ring system by design (heteroarenes, Gold Book p. 671), never a "
+        "functional group; the pyrrole-type [nH] is sf:aromatic_nh."),
 }
 
 

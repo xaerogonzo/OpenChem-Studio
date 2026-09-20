@@ -211,6 +211,19 @@ def test_every_engine_group_type_is_mapped_or_justified():
         assert len(why) > 20, f"{engine_type}: an unmapped type needs a real justification"
 
 
+def test_a_refused_class_carries_its_reason_and_is_not_also_a_feature():
+    """Plan F0: a class that stays out does so as a STRUCTURED status. A
+    refusal with no reason is a silence, and one that is also a feature is a
+    contradiction."""
+    from openchem.chem.feature_vocabulary import EXCLUDED_CLASSES
+
+    assert EXCLUDED_CLASSES, "the refused classes are the point of the table"
+    labels = {label.lower() for f in FEATURES for label in f.labels.values()}
+    for name, why in EXCLUDED_CLASSES.items():
+        assert len(why) > 60, f"{name}: a refusal needs a real reason"
+        assert name.lower() not in labels, f"{name} is refused and also a feature"
+
+
 def test_a_blue_book_definition_says_the_gold_book_has_none():
     """The Gold Book is the normative source; falling back is allowed only
     where it is silent, and the note must say it was checked."""

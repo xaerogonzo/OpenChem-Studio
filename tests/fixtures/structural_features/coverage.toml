@@ -44,6 +44,21 @@ negative = [
 charged = [{ smiles = "C[C:1](=[O:2])[O-:3]", state = "anionic", defect = "FG-003" }]
 
 [[feature]]
+id = "fg:thiocarboxylic_acid"
+positive = ["C[C:1](=[O:2])[SH:3]", "C[C:1](=[S:2])[OH:3]", "C[C:1](=[S:2])[SH:3]", "c1ccccc1[C:1](=[O:2])[SH:3]", "[CH:1](=[O:2])[SH:3]"]
+negative = [
+  { smiles = "CC(=O)SC", why = "a thioester: the single-bonded S bears carbon" },
+  { smiles = "CC(=O)O", why = "the oxygen carboxylic acid" },
+  { smiles = "CCS", why = "a thiol: no acyl carbon" },
+  { smiles = "NC(=O)S", why = "carbamothioic S-acid: the carbonyl carbon bears N" },
+  { smiles = "CC(=S)N", why = "a thioamide" },
+]
+charged = [
+  { smiles = "C[C:1](=[O:2])[S-:3]", state = "anionic" },
+  { smiles = "C[C:1](=[S:2])[O-:3]", state = "anionic" },
+]
+
+[[feature]]
 id = "fg:carboxylic_ester"
 positive = ["C[C:1](=[O:2])[O:3]CC", "[CH:1](=[O:2])[O:3]c1ccccc1"]
 negative = [
@@ -140,6 +155,24 @@ negative = [
 charged = [{ smiles = "C[NH:3][C:1](=[O:2])[O-:4]", state = "anionic" }]
 
 [[feature]]
+id = "fg:thiocarbamate"
+positive = [
+  "C[N:3](C)[C:1](=[S:2])[S:4]C",
+  "C[NH:3][C:1](=[O:2])[S:4]CC",
+  "C[NH:3][C:1](=[S:2])[O:4]CC",
+  "[S:2]=[C:1]1[S:4]CC(=O)[N:3]1",
+]
+negative = [
+  { smiles = "CNC(=O)OC", why = "a carbamate: both chalcogens are oxygen" },
+  { smiles = "CNC(=S)NC", why = "a thiourea: the carbon bears two N" },
+  { smiles = "CC(=S)SC", why = "a dithioester: the carbon bears carbon, not N" },
+  { smiles = "CNC(=O)S", why = "carbamothioic S-acid, the free acid: the single-bonded S bears H" },
+  { smiles = "CN(C)C(=S)SSC(=S)N(C)C", why = "a thiuram disulfide: each single-bonded S bears S, not a second carbon (trithiodicarbonic diamide, p. 663)" },
+  { smiles = "CSC(=S)SC", why = "a trithiocarbonate: no nitrogen" },
+]
+charged = [{ smiles = "C[N:3](C)[C:1](=[S:2])[S-:4]", state = "anionic" }]
+
+[[feature]]
 id = "fg:thioester"
 positive = ["C[C:1](=[O:2])[S:3]C", "C[C:1](=[S:2])[O:3]C", "C[C:1](=[S:2])[S:3]C"]
 negative = [
@@ -202,6 +235,15 @@ negative = [
 ]
 
 [[feature]]
+id = "fg:thioaldehyde"
+positive = ["C[CH:1]=[S:2]", "c1ccccc1[CH:1]=[S:2]", "[CH2:1]=[S:2]"]
+negative = [
+  { smiles = "CC(C)=S", why = "a thioketone" },
+  { smiles = "NC=S", why = "thioformamide: the carbon bears N" },
+  { smiles = "CC=O", why = "an aldehyde: oxygen" },
+]
+
+[[feature]]
 id = "fg:amidine"
 positive = ["C[C:1](=[NH:2])[NH2:3]", "c1ccccc1[C:1](=[N:2]C)[N:3](C)C"]
 negative = [
@@ -230,11 +272,34 @@ negative = [
 ]
 
 [[feature]]
+id = "fg:thioimidate"
+positive = ["C[C:1](=[N:2]C)[S:3]C", "CC[C:1](=[NH:2])[S:3]CC", "C[C:1]1=[N:2]CC[S:3]1"]
+negative = [
+  { smiles = "CC(=S)NC", why = "the thioamide tautomer, kept as drawn" },
+  { smiles = "CN=C(N)SC", why = "an isothiourea: the carbon bears N" },
+  { smiles = "CN=C(SC)SC", why = "a carbonimidodithioate: the carbon bears neither carbon nor H" },
+  { smiles = "CC(=NC)S", why = "the S-H form: a thiol as drawn, the tautomer of a thioamide" },
+  { smiles = "Cc1nccs1", why = "a thiazole: the C=N is aromatic and belongs to its ring" },
+  { smiles = "CC(=NC)OC", why = "an imidate: the chalcogen is oxygen" },
+]
+
+[[feature]]
 id = "fg:isourea"
 positive = ["C[N:2]=[C:1]([NH2:3])[O:4]C", "CC[O:4][C:1](=[NH:2])[N:3](C)C"]
 negative = [
   { smiles = "NC(N)=O", why = "a urea" },
   { smiles = "CC(=N)OC", why = "an imidate: the carbon bears carbon" },
+]
+
+[[feature]]
+id = "fg:isothiourea"
+positive = ["C[N:2]=[C:1]([NH2:3])[S:4]C", "CC[S:4][C:1](=[NH:2])[N:3](C)C", "[NH2:3][C:1]1=[N:2]CC[S:4]1"]
+negative = [
+  { smiles = "NC(N)=S", why = "a thiourea" },
+  { smiles = "CC(=N)SC", why = "a thioimidate: the carbon bears carbon" },
+  { smiles = "CN=C(SC)SC", why = "a carbonimidodithioate: the carbon bears two S and no N" },
+  { smiles = "NC(=N)N", why = "a guanidine" },
+  { smiles = "CN=C(N)S", why = "the S-H form: a thiol as drawn, the tautomer of a thiourea" },
 ]
 
 [[feature]]
@@ -292,9 +357,41 @@ positive = ["c1ccccc1[N:1]=[C:2]=[S:3]"]
 negative = [{ smiles = "CSC#N", why = "a thiocyanate" }]
 
 [[feature]]
+id = "fg:cyanate"
+positive = ["C[O:3][C:1]#[N:2]", "c1ccccc1[O:3][C:1]#[N:2]"]
+negative = [
+  { smiles = "CN=C=O", why = "an isocyanate: N-bound, and the esters entry's own note says 'but not R-NCO'" },
+  { smiles = "CSC#N", why = "a thiocyanate" },
+  { smiles = "CC#N", why = "a nitrile" },
+  { smiles = "[O-]C#N", why = "the cyanate anion has no organyl group: a component, not a group" },
+]
+
+[[feature]]
+id = "fg:thiocyanate"
+positive = ["C[S:3][C:1]#[N:2]", "c1ccccc1[S:3][C:1]#[N:2]"]
+negative = [
+  { smiles = "CN=C=S", why = "an isothiocyanate: N-bound" },
+  { smiles = "COC#N", why = "a cyanate" },
+  { smiles = "CC#N", why = "a nitrile" },
+  { smiles = "[S-]C#N", why = "the thiocyanate anion has no organyl group: a component, not a group" },
+]
+
+[[feature]]
 id = "fg:nitrile"
 positive = ["C[C:1]#[N:2]", "c1ccccc1[C:1]#[N:2]"]
 negative = [{ smiles = "C[N+]#[C-]", why = "an isocyanide" }]
+
+[[feature]]
+id = "fg:cyanamide"
+positive = ["[NH2:3][C:1]#[N:2]", "CC[N:3](CC)[C:1]#[N:2]", "CC(C)[NH:3][C:1]#[N:2]", "CN=C(NC)[NH:3][C:1]#[N:2]"]
+negative = [
+  { smiles = "CC#N", why = "a nitrile: the carbon bears carbon" },
+  { smiles = "N#CN=C(N)N", why = "a cyano-substituted imine (cyanoguanidine drawn as the imino tautomer): the N is double-bonded, not the substituted NH2 of an amide of cyanic acid" },
+  { smiles = "N#Cn1ccnc1", why = "an N-cyanoazole: the ring N belongs to its ring system" },
+  { smiles = "CN=C=NC", why = "a carbodiimide" },
+  { smiles = "COC#N", why = "a cyanate: the atom on the cyano carbon is O" },
+  { smiles = "C[N-]C#N", why = "the anion: this feature is neutral only" },
+]
 
 [[feature]]
 id = "fg:isocyanide"
@@ -398,6 +495,19 @@ positive = ["C[CH:1]([S:2]C)[S:2]C", "C1C[S:2][CH:1](CC)[S:2]C1", "C[O:3][CH2:1]
 negative = [
   { smiles = "CC(SC)N(C)C", why = "an N,S-acetal: the Gold Book names none" },
   { smiles = "CSCCSC", why = "the S are on different carbons" },
+]
+
+[[feature]]
+id = "fg:acylal"
+positive = [
+  "C[C:3](=[O:4])[O:2][CH:1](c1ccccc1)[O:2][C:3](C)=[O:4]",
+  "C[C:1]1(C)[O:2][C:3](=[O:4])C[C:3](=[O:4])[O:2]1",
+]
+negative = [
+  { smiles = "CC(=O)OC(C)O", why = "a monoester of a geminal diol: the second O bears H" },
+  { smiles = "CC(=O)OC(C)OC", why = "one ester and one ether O: not a diester" },
+  { smiles = "CC(=O)OCCOC(C)=O", why = "a diester of a 1,2-diol: not geminal" },
+  { smiles = "COC(OC)c1ccccc1", why = "an acetal: both O are ether O" },
 ]
 
 [[feature]]
@@ -551,11 +661,65 @@ negative = [
 ]
 
 [[feature]]
+id = "fg:sulfenic_acid"
+positive = ["C[S:1][OH:2]", "c1ccccc1[S:1][OH:2]"]
+negative = [
+  { smiles = "CSOC", why = "an O-hydrocarbyl compound: the O bears carbon, and no source names R-S-O-R' as a class" },
+  { smiles = "CS(=O)O", why = "a sulfinic acid: the S bears =O" },
+  { smiles = "CCS", why = "a thiol" },
+  { smiles = "CC(=O)SO", why = "the S bears an acyl group: not RSOH with R hydrocarbyl" },
+  { smiles = "CSC", why = "a sulfide" },
+]
+charged = [{ smiles = "C[S:1][O-:2]", state = "anionic" }]
+
+[[feature]]
+id = "fg:sulfenamide"
+positive = ["C[S:1][NH2:2]", "CC[S:1][N:2](C)C", "c1ccccc1[S:1][NH:2]C(=O)C", "O=C1[NH:2][S:1]c2ccccc12"]
+negative = [
+  { smiles = "CSN=C", why = "an S-imino compound: the N is double-bonded" },
+  { smiles = "CSC", why = "a sulfide" },
+  { smiles = "CS(=O)N", why = "a sulfinamide: the S bears =O" },
+  { smiles = "CS(N)(=O)=O", why = "a sulfonamide" },
+  { smiles = "c1ccsn1", why = "an isothiazole: the ring S-N is the ring system's" },
+]
+
+[[feature]]
 id = "fg:sulfoxide"
 positive = ["C[S:1](C)=[O:2]", "c1ccccc1[S:1](=[O:2])C"]
 negative = [
   { smiles = "CS(C)(=O)=O", why = "a sulfone" },
   { smiles = "CS(=O)O", why = "a sulfinic acid" },
+]
+
+[[feature]]
+id = "fg:sulfinic_acid"
+positive = ["C[S:1](=[O:2])[OH:3]", "CC(C)[S:1](=[O:2])[OH:3]", "c1ccccc1[S:1](=[O:2])[OH:3]"]
+negative = [
+  { smiles = "CS(=O)(=O)O", why = "a sulfonic acid" },
+  { smiles = "CS(=O)OC", why = "a sulfinic ester: the O bears carbon" },
+  { smiles = "CS(C)=O", why = "a sulfoxide" },
+  { smiles = "COS(=O)O", why = "a sulfite monoester: S bears no carbon" },
+]
+charged = [{ smiles = "C[S:1](=[O:2])[O-:3]", state = "anionic" }]
+
+[[feature]]
+id = "fg:sulfinic_ester"
+positive = ["C[S:1](=[O:2])[O:3]C", "c1ccccc1[S:1](=[O:2])[O:3]CC", "C1C[S:1](=[O:2])[O:3]C1"]
+negative = [
+  { smiles = "CS(=O)(=O)OC", why = "a sulfonic ester" },
+  { smiles = "CS(=O)O", why = "the acid: the O bears H" },
+  { smiles = "COS(=O)OC", why = "a sulfite diester: S bears no carbon" },
+  { smiles = "CS(C)=O", why = "a sulfoxide" },
+]
+
+[[feature]]
+id = "fg:sulfinamide"
+positive = ["C[S:1](=[O:2])[NH2:3]", "CC(C)(C)[S:1](=[O:2])[NH2:3]", "c1ccccc1[S:1](=[O:2])[NH:3]C"]
+negative = [
+  { smiles = "CS(N)(=O)=O", why = "a sulfonamide" },
+  { smiles = "CS(C)=O", why = "a sulfoxide" },
+  { smiles = "CS(=O)NN", why = "a sulfinohydrazide: the N bears N (excluded, see EXCLUDED_CLASSES)" },
+  { smiles = "CS(=O)OC", why = "a sulfinic ester" },
 ]
 
 [[feature]]
@@ -803,6 +967,22 @@ negative = [{ smiles = "C[N+](C)(C)C", why = "the positive centre is N" }]
 charged = [{ smiles = "C=C[CH2+:1]", state = "cationic" }]
 
 [[feature]]
+id = "sf:acylium_ion"
+positive = []
+negative = [
+  { smiles = "CC(C)=O", why = "a ketone: the carbon is neutral and has three neighbours" },
+  { smiles = "C[C+](C)C", why = "a carbocation with no O" },
+  { smiles = "C[O+]=CC", why = "an oxocarbenium: the O bears a second substituent" },
+  { smiles = "C[N+]#[C-]", why = "an isocyanide" },
+]
+charged = [
+  { smiles = "C[C+:1]=[O:2]", state = "cationic" },
+  { smiles = "C[C:1]#[O+:2]", state = "cationic" },
+  { smiles = "[CH+:1]=[O:2]", state = "cationic" },
+  { smiles = "N[C+:1]=[O:2]", state = "cationic" },
+]
+
+[[feature]]
 id = "sf:carbanion"
 positive = []
 negative = [{ smiles = "CC(=O)[O-]", why = "the negative centre is O" }]
@@ -942,4 +1122,22 @@ smiles = "CC(=O)C=CC"
 detected = ["fg:ketone", "fg:alkene", "sf:alpha_beta_unsaturated_carbonyl"]
 functional_groups = ["fg:ketone", "fg:alkene", "sf:alpha_beta_unsaturated_carbonyl"]
 fragment_counts = { "fg:ketone" = 1, "fg:alkene" = 1, "sf:alpha_beta_unsaturated_carbonyl" = 1 }
+inspector_non_primary = []
+
+# --- v3 relations --------------------------------------------------------------
+
+[[overlap]]
+relation = "fg:acylal suppresses fg:carboxylic_ester"
+smiles = "CC(C)C(OC(C)=O)OC(C)=O"
+detected = ["fg:carboxylic_ester", "fg:carboxylic_ester", "fg:acylal"]
+functional_groups = ["fg:acylal"]
+fragment_counts = { "fg:acylal" = 1 }
+inspector_non_primary = ["fg:carboxylic_ester", "fg:carboxylic_ester"]
+
+[[overlap]]
+relation = "sf:acylium_ion contains sf:carbocation"
+smiles = "CCC[C+]=O"
+detected = ["sf:carbocation", "sf:acylium_ion"]
+functional_groups = ["sf:acylium_ion", "sf:carbocation"]
+fragment_counts = { "sf:acylium_ion" = 1 }
 inspector_non_primary = []
