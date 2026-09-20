@@ -56,16 +56,36 @@ def _opsin_round_trip(name: str) -> str | None:
 # either the VB fallback or returned a NAMING ERROR).
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# NAMING ROUND 5 (N3) moved every expectation in this file, and the book says
+# why. Three rules, each with the page it is printed on:
+#
+#   * Indicated hydrogen is part of a PIN. The CH2 between the two
+#     heteroatoms cannot take a ring double bond, so the name says where that
+#     hydrogen is: "2H-furo[2,3-d][1,3]dioxole (PIN)" (pdf p. 218);
+#     "Omission of indicated hydrogen is also permitted in general
+#     nomenclature ... for example 1,3-benzodioxole, rather than
+#     2H-1,3-benzodioxole" (P-25.7.1.3.1, p. 260).
+#   * A benzene fused to a heteromonocycle is ONE component, named
+#     "benzo...": "4H-3,1-benzoxazine (PIN)", not "[1,3]oxazino[4,5-b]benzene"
+#     (P-25.2.2.4, p. 207).
+#   * The heterocycle is the parent: "2H-naphtho[2,3-d][1,3]dioxole", as the
+#     book's "2H-furo[2,3-d][1,3]dioxole (PIN)" (P-25.3.2.4 (a), p. 218).
+#
+# The round-trip tests below parse each new name back through OPSIN; all of
+# them passed when the expectations were moved.
+# ---------------------------------------------------------------------------
+
 STAGE1_CASES = [
     # (input SMILES, expected fused-ring name)
     # Same-element pair, all-carbon aromatic base
-    ("c1ccc2c(c1)SCS2", "[1,3]dithiolo[4,5-b]benzene"),
+    ("c1ccc2c(c1)SCS2", "2H-1,3-benzodithiole"),
     # Mixed-element pair, all-carbon aromatic base
-    ("c1ccc2c(c1)OCS2", "[1,3]oxathiolo[4,5-b]benzene"),
+    ("c1ccc2c(c1)OCS2", "2H-1,3-benzoxathiole"),
     # Same-element pair, single-heteroatom aromatic base
-    ("c1cnc2c(c1)OCO2", "[1,3]dioxolo[4,5-b]pyridine"),
+    ("c1cnc2c(c1)OCO2", "2H-[1,3]dioxolo[4,5-b]pyridine"),
     # Same-element pair, sulfur analogue + pyridine base
-    ("c1cnc2c(c1)SCS2", "[1,3]dithiolo[4,5-b]pyridine"),
+    ("c1cnc2c(c1)SCS2", "2H-[1,3]dithiolo[4,5-b]pyridine"),
 ]
 
 
@@ -100,7 +120,7 @@ def test_stage1_retained_still_preferred() -> None:
     parents).
     """
     got = name_smiles("c1ccc2c(c1)OCO2")
-    assert got == "1,3-benzodioxole", (
+    assert got == "2H-1,3-benzodioxole", (
         f"Retained name should win; got {got!r}"
     )
 
@@ -111,7 +131,7 @@ def test_stage2_naphthalene_base_supported() -> None:
     Stage 1 — Stage 2B adds multi-ring base coverage via the retained
     naphthalene lookup on a carved 2-ring sub-system."""
     got = name_smiles("c1ccc2cc3c(cc2c1)OCO3")
-    assert got == "[1,3]dioxolo[4,5-b]naphthalene", (
+    assert got == "2H-naphtho[2,3-d][1,3]dioxole", (
         f"Expected Stage 2B multi-ring base name; got {got!r}"
     )
 
@@ -130,17 +150,17 @@ def test_stage2_naphthalene_base_supported() -> None:
 
 STAGE2_CASES = [
     # 2A: multi-hetero base (pyrazine, pyrimidine)
-    ("c1cnc2c(n1)OCO2", "[1,3]dioxolo[4,5-b]pyrazine"),
-    ("c1cnc2c(n1)SCS2", "[1,3]dithiolo[4,5-b]pyrazine"),
-    ("c1cnc2c(n1)OCS2", "[1,3]oxathiolo[4,5-b]pyrazine"),
-    ("c1ncc2c(n1)OCO2", "[1,3]dioxolo[4,5-d]pyrimidine"),
-    ("c1ncc2c(n1)SCS2", "[1,3]dithiolo[4,5-d]pyrimidine"),
+    ("c1cnc2c(n1)OCO2", "2H-[1,3]dioxolo[4,5-b]pyrazine"),
+    ("c1cnc2c(n1)SCS2", "2H-[1,3]dithiolo[4,5-b]pyrazine"),
+    ("c1cnc2c(n1)OCS2", "2H-[1,3]oxathiolo[4,5-b]pyrazine"),
+    ("c1ncc2c(n1)OCO2", "2H-[1,3]dioxolo[4,5-d]pyrimidine"),
+    ("c1ncc2c(n1)SCS2", "2H-[1,3]dithiolo[4,5-d]pyrimidine"),
     # 2B: multi-ring base (naphthalene, quinoline)
-    ("c1ccc2cc3c(cc2c1)SCS3", "[1,3]dithiolo[4,5-b]naphthalene"),
-    ("c1ccc2nc3c(cc2c1)OCO3", "[1,3]dioxolo[4,5-b]quinoline"),
+    ("c1ccc2cc3c(cc2c1)SCS3", "2H-naphtho[2,3-d][1,3]dithiole"),
+    ("c1ccc2nc3c(cc2c1)OCO3", "2H-[1,3]dioxolo[4,5-b]quinoline"),
     # 2C: 6-ring smaller (dioxino) — benzene and pyridine bases
-    ("c1ccc2c(c1)COCO2", "[1,3]dioxino[4,5-b]benzene"),
-    ("c1cnc2c(c1)COCO2", "[1,3]dioxino[4,5-b]pyridine"),
+    ("c1ccc2c(c1)COCO2", "2H,4H-1,3-benzodioxine"),
+    ("c1cnc2c(c1)COCO2", "2H,4H-[1,3]dioxino[4,5-b]pyridine"),
 ]
 
 
@@ -180,7 +200,7 @@ def test_stage2_retained_still_preferred_for_diazine_dioxole() -> None:
     that the systematic Stage 2 name is what gets emitted for the bare
     dioxolo-pyrazine (no retained lookup hits)."""
     got = name_smiles("c1cnc2c(n1)OCO2")
-    assert got == "[1,3]dioxolo[4,5-b]pyrazine", (
+    assert got == "2H-[1,3]dioxolo[4,5-b]pyrazine", (
         f"Stage 2A name expected; got {got!r}"
     )
 

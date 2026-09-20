@@ -71,6 +71,10 @@ an inspection. So v2 runs QUIET -- counts, rejection clauses and the hash, no
 CID, name or structure -- and `naming_stage_artifact.py` refuses to load the
 file outside `--final-evaluation`.
 
+`--variant v3` repeats that for naming round 5: stride +250 (CIDs 1250,
+2250, ...), all three earlier files excluded, quiet, and locked in v2's place.
+v2 is marked used in its meta file, as v1 was before it.
+
 ## Freezing
 
 `--freeze` writes `heldout.meta.json`: the rule, the filter, the selection
@@ -118,7 +122,13 @@ VARIANTS = {
                "ServerBusy responses were skipped as missing records. It was "
                "discarded before any row was inspected -- the quiet run had "
                "printed counts only -- and redrawn with 503s retried."
-           )},
+           ), "round": "naming round 4"},
+    # Round 5 spends v2 as fix targets (its 25 differing rows are adjudicated
+    # in N1), so it needs the fresh population v2 was for round 4. The stride
+    # moves again, to +250, which no earlier draw can have touched.
+    "v3": {"offset": 250, "out": "heldout3.json", "meta": "heldout3.meta.json",
+           "exclude": ("corpus.json", "heldout.json", "heldout2.json"), "quiet": True,
+           "label": "h3cid", "round": "naming round 5"},
 }
 
 MIN_HEAVY_ATOMS = 6
@@ -231,6 +241,12 @@ def build(variant: dict) -> list[dict]:
             for row in json.loads((HERE / name).read_text(encoding="utf-8"))
         }
     quiet = variant["quiet"]
+    if quiet:
+        # py2opsin warns with OPSIN's parse error, which QUOTES part of the
+        # name -- the v3 draw leaked one fragment that way (see its meta).
+        import warnings
+
+        warnings.filterwarnings("ignore", category=RuntimeWarning)
     print(f"{len(already)} structures from {', '.join(variant['exclude'])} will be excluded\n")
 
     rows: list[dict] = []
@@ -300,7 +316,7 @@ def main() -> None:
         "--variant",
         choices=sorted(VARIANTS),
         default="v1",
-        help="which draw: v1 is the committed heldout.json, v2 is naming round 4's",
+        help="which draw: v1 is the committed heldout.json, v2 is naming round 4's, v3 round 5's",
     )
     parser.add_argument(
         "--freeze",
@@ -365,7 +381,7 @@ def main() -> None:
             meta["history"] = variant["history"]
         if variant["quiet"]:
             meta["inspection_policy"] = (
-                "evaluation only: selected before any naming-round-4 diagnosis, "
+                f"evaluation only: selected before any {variant['round']} diagnosis, "
                 "never inspected row by row, loaded only by "
                 "naming_stage_artifact.py --final-evaluation"
             )

@@ -107,7 +107,9 @@ def test_polynuclear_chains(smi: str, expected: str) -> None:
     ("O=S(=O)(O)SSSS(=O)(=O)O", "pentathionic acid"),
     ("O=S(=O)(O)OO", "peroxysulfuric acid"),
     ("O=S(=O)(O)OOS(=O)(=O)O", "peroxydisulfuric acid"),
-    ("NS(=O)(=O)O", "amidosulfuric acid"),
+    # Naming round 5 (N4): "H2N-SO2-OH sulfamic acid" (P-67.1.2.4.1.1,
+    # pdf p. 703); "amidosulfuric acid" is the inorganic additive form.
+    ("NS(=O)(=O)O", "sulfamic acid"),
     ("NS(=O)O", "amidosulfurous acid"),
 ])
 def test_thionic_peroxy_amido(smi: str, expected: str) -> None:
@@ -125,7 +127,7 @@ def test_thionic_peroxy_amido(smi: str, expected: str) -> None:
     ("O=S(=O)([O-])OS(=O)(=O)[O-]", "disulfate"),
     ("O=S([O-])OS(=O)[O-]", "disulfite"),
     ("O=S(=O)([O-])OOS(=O)(=O)[O-]", "peroxydisulfate"),
-    ("NS(=O)(=O)[O-]", "amidosulfate"),
+    ("NS(=O)(=O)[O-]", "sulfamate"),  # round 5 (N4), with sulfamic acid
 ])
 def test_anion_forms(smi: str, expected: str) -> None:
     assert _name(smi) == expected

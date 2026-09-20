@@ -76,7 +76,9 @@ def test_thp_carboxylic_acid_renumbers_to_lowest_suffix_locant(
         # Other principal-characteristic-group suffixes that exhibit the same
         # bug pattern (suffix locant pinned to a position the curated
         # hydro-prefix labels as sp3).
-        ("OC1=CCCNC1",  "3-hydroxy-1,2,5,6-tetrahydropyridine"),
+        # An enol takes the -ol suffix since round 5 (N6; "3,4-dihydronaphthalen-
+        # 1-ol (PIN)", p. 535), and numbers like the amine below.
+        ("OC1=CCCNC1",  "1,2,5,6-tetrahydropyridin-3-ol"),
         ("NC1=CCCNC1",  "1,2,5,6-tetrahydropyridin-3-amine"),
     ],
 )
@@ -149,7 +151,7 @@ def test_asymmetric_parent_keeps_curated_hydro_form() -> None:
     "smiles, expected_name",
     [
         ("N1CC(C(=O)O)=CCC1", "1,2,5,6-tetrahydropyridine-3-carboxylic acid"),
-        ("OC1=CCCNC1",        "3-hydroxy-1,2,5,6-tetrahydropyridine"),
+        ("OC1=CCCNC1",        "1,2,5,6-tetrahydropyridin-3-ol"),
         ("NC1=CCCNC1",        "1,2,5,6-tetrahydropyridin-3-amine"),
         ("O=C(O)C1=CCc2ccccc2C1", "1,4-dihydronaphthalene-2-carboxylic acid"),
     ],

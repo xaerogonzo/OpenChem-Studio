@@ -100,11 +100,15 @@ def test_substituted_xanthine_falls_back_to_systematic(smi):
 
 
 @pytest.mark.parametrize("smi,expected", [
-    ("O=c1[nH]c(=O)c2[nH]cnc2[nH]1", "xanthine"),  # bare scaffold keeps retained name
+    ("O=c1[nH]c(=O)c2[nH]cnc2[nH]1", "3,7-dihydro-1H-purine-2,6-dione"),
+    ("O=c1[nH]c(=O)c2nc[nH]c2[nH]1", "3,9-dihydro-1H-purine-2,6-dione"),
 ])
-def test_bare_xanthine_keeps_retained_name(smi, expected):
-    """The bare xanthine scaffold (no ring substituent) must still resolve to
-    its retained name — the fallback gate only fires on substituted forms."""
+def test_bare_xanthine_takes_the_systematic_name(smi, expected):
+    """The bare scaffold is named systematically too, since naming round 5
+    (N5): the registry audits 'xanthine' as not a PIN -- the book never names
+    it -- and that demotion now binds the curated ring table. It used to keep
+    the retained name here; the 9H tautomer's 'xanthine' also parsed back as
+    the 7H one."""
     result = name_smiles(smi)
     assert result == expected, (
         f"bare scaffold {smi!r} should keep retained name {expected!r}, "

@@ -39,9 +39,12 @@ quotes.
 
     regression    corpus.json     187  tuning, adjudication, per-stage invariant
     heldout       heldout.json     40  USED for tuning since naming round 4
-    heldout_v2    heldout2.json    40  evaluation only -- `--final-evaluation`
+    heldout_v2    heldout2.json    40  USED for tuning since naming round 5
+    heldout_v3    heldout3.json    40  evaluation only -- `--final-evaluation`
 
-`heldout_v2` was drawn and frozen before any round-4 diagnosis. A per-stage
+`heldout_v3` was drawn and frozen before any round-5 diagnosis, taking the
+place `heldout_v2` held in round 4; v2 was scored once, at round 4's final
+evaluation, and is a tuning population from round 5 on. A per-stage
 run cannot load it: `load_population` raises, and
 `tests/test_naming_heldout_lock.py` fails if any other tracked script so much
 as names the file. The final evaluation reports it as AGGREGATES only -- no
@@ -82,7 +85,8 @@ SCHEMA_VERSION = 2
 POPULATIONS: tuple[tuple[str, str, bool], ...] = (
     ("regression", "corpus.json", False),
     ("heldout", "heldout.json", False),
-    ("heldout_v2", "heldout2.json", True),
+    ("heldout_v2", "heldout2.json", False),
+    ("heldout_v3", "heldout3.json", True),
 )
 
 
@@ -101,7 +105,7 @@ def load_population(key: str, *, final_evaluation: bool = False) -> tuple[str, l
             continue
         if final_only and not final_evaluation:
             raise FrozenPopulation(
-                f"{key} ({filename}) is evaluation-only for naming round 4; "
+                f"{key} ({filename}) is evaluation-only for naming round 5; "
                 "it loads only through --final-evaluation"
             )
         return filename, json.loads((BENCH / filename).read_text(encoding="utf-8"))

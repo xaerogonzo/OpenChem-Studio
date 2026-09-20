@@ -419,7 +419,18 @@ def _is_compound_prefix(name: str) -> bool:
 # Simple by form, but their enclosing marks are load-bearing in OPSIN (see
 # the note at the end of _SIMPLE_PREFIXES): unenclosed they merge with the
 # next stem, or an "-idene" ending triggers a spurious elision.
-_ENCLOSE_ANYWAY = ("hydrazinyl", "silyl", "ylidene", "ylidyne", "idene", "idyne")
+_ENCLOSE_ANYWAY = ("hydrazinyl", "silyl")
+
+
+# A prefix of ONE stem ending in "ylidene"/"ylidyne" is simple, so P-16.5.1.3
+# leaves it bare: the book prints "1-ethylidene-2-propylidenedisilan-1-yl
+# (preferred prefix)" (pdf p. 72) and "3-sulfanylidene-2-benzothiophen-1-one
+# (PIN)" (pdf p. 642). That rule encloses a prefix qualified by its OWN
+# locant ("propan-2-yl"), not one carrying the parent's locant, which is what
+# the blanket "-idene" entry above used to do (round 5, N8). "phenylmethyl-
+# idene" has two stems and stays enclosed; "hydrazinyl"/"silyl" stay above,
+# where the enclosing marks are load-bearing for OPSIN.
+_SIMPLE_YLIDENE = re.compile(r"^([a-z]+)(ylidene|ylidyne)$")
 
 
 # Detachable prefixes that, LEADING a longer word, make it a substituted
@@ -437,6 +448,9 @@ def _is_simple_by_form(name: str) -> bool:
         return False
     if any(token in name for token in _ENCLOSE_ANYWAY):
         return False
+    m_ylidene = _SIMPLE_YLIDENE.fullmatch(name)
+    if m_ylidene is not None and "yl" not in m_ylidene.group(1):
+        return True  # "sulfanylidene", "propylidene" -- one stem (see above)
     bare = re.sub(r"^(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)", "", name)
     if any(w != candidate and candidate.startswith(w)
            for w in _LEADING_PREFIX_WORDS for candidate in (name, bare)):
@@ -1067,6 +1081,20 @@ def _strip_locant_1_if_omissible(
                 # N-locant prefixes do not count: triethylamine's chain is
                 # still monosubstituted, so N,N-diethylethanamine keeps none.
                 omit = True
+            elif parent_length == 1 and all(
+                len(other.locants) == 1 and str(other.locants[0]) == "1"
+                for other in suffix_groups
+            ):
+                # Rule 2b (P-14.3.4.6, pdf p. 73): "All locants are omitted
+                # for parent compounds when all substitutable hydrogen atoms
+                # have the same locant" -- on a MONONUCLEAR parent there is
+                # only one position, so several suffixes need no locants
+                # either: "dimethylsilanediol (PIN)" (p. 748), and
+                # "methanediol" rather than "methane-1,1-diol". Rule 2 above
+                # covers the single-suffix case only; a retained-name entry
+                # had been supplying "methanediol" until the N9 audit demoted
+                # it, which is how this surfaced (round 5, N9).
+                omit = True
             elif (len(suffix_groups) == 1
                     and is_monosubstituted_homogeneous_monocycle):
                 # Rule 3 (P-14.3.4.2(c)): single suffix at locant 1 on a
@@ -1089,6 +1117,36 @@ def _strip_locant_1_if_omissible(
 # ---------------------------------------------------------------------------
 # Suffix rendering
 # ---------------------------------------------------------------------------
+
+def _hydrazide_connector_dropped(rendered: str, stem: str) -> str:
+    """P-66.3, stated verbatim in the book's list of changes (pdf p. 43):
+    "The suffix '-hydrazide' rather than '-ohydrazide' ... is used for naming
+    acyclic hydrazides in accordance with the general use of suffixes added to
+    names of parent hydrides, for example pentanehydrazide ..., not
+    pentanohydrazide."
+
+    The 'o' is a connecting vowel, and it stays wherever the stem is not a
+    parent hydride's: the retained acid stems print it ("acetohydrazide
+    (PIN)", "benzohydrazide (PIN)", "formohydrazide (PIN)", pdf p. 667) and
+    so does the ring "-carbohydrazide" form, where the 'o' belongs to
+    "carbo". Hence the test is on the STEM in hand -- "pentan", "pent-2-en"
+    -- not on the parent name, which is "ethane" even when the stem is
+    "acet". The caller's own rule then restores that stem's 'e' before this
+    now consonant-initial suffix (naming round 5, N8).
+    """
+    if rendered.endswith("carbohydrazide"):
+        return rendered  # "carbo" owns this 'o': "pyridine-4-carbohydrazide"
+    # The stem reaches here with or without its terminal 'e' ("pentan",
+    # "pent-2-ene"), depending on what the unsaturation renderer already put
+    # back; either spelling is a parent hydride's.
+    if not re.search(r"(?:an|en|yn)e?$", stem):
+        return rendered
+    if rendered.endswith(("thiohydrazide", "selenohydrazide", "tellurohydrazide")):
+        return rendered  # their own connectors: "thio", "seleno", "telluro"
+    if rendered.endswith("ohydrazide"):
+        return rendered[: -len("ohydrazide")] + "hydrazide"
+    return rendered
+
 
 def render_suffixes(
     suffix_groups: tuple[SuffixGroup, ...],
@@ -1550,7 +1608,15 @@ def elide_at_boundaries(parts: list[str]) -> str:
         if idx + 1 < len(parts):
             right = parts[idx + 1]
             should_elide = False
-            if (
+            if left.endswith(("ylidene", "ylidyne")):
+                # Elision belongs at a stem/suffix junction, not between a
+                # SUBSTITUTENT prefix and the parent it sits on: the book
+                # prints "2-sulfanylideneoxolane-3-carbonitrile (PIN)" (pdf
+                # p. 631). Unenclosing these prefixes (round 5, N8) let this
+                # junction reach the rule for the first time, and it emitted
+                # "2-methylidenoxolane".
+                should_elide = False
+            elif (
                 left.endswith("e")
                 and right
                 and right[0] in "aeiouy"
@@ -1991,6 +2057,9 @@ def _assemble_replacement(tree: ReplacementTree) -> str:
             tree.suffix_groups, parent_length, parent_has_indicated_h=_has_ih
         )
         rendered_suf = render_suffixes(suffix_groups, tree.output_form)
+        rendered_suf = _hydrazide_connector_dropped(
+            rendered_suf, "".join(parts[stem_idx:]),
+        )
         # Retain terminal 'e' when rendered suffix starts with a consonant
         # (e.g. "diol", "dione", "diamine" → need "propane-..." not "propan-...")
         if _rendered_suffix_starts_with_consonant(rendered_suf):
@@ -2190,7 +2259,7 @@ _ETHANE_RETAINED_TAIL: dict[tuple[str, OutputForm], tuple[str, str]] = {
     # alike -- "N-methylacetohydrazide (PIN)",
     # "2-hydrazinyl-2-sulfanylideneacetohydrazide (PIN)" (pp. 671-672).
     ("ohydrazide", OutputForm.STANDALONE):
-        (r"ethanohydrazide$",   "acetohydrazide"),
+        (r"ethan[eo]hydrazide$", "acetohydrazide"),
     # P-66.6.1: "substitution allowed for acetaldehyde". The book's own PINs
     # are phenoxyacetaldehyde (p. 695) and cyclopropyl(hydroxy)acetaldehyde
     # (p. 889); the forced C2 locant is dropped by the 2-carbon rule below.
@@ -2209,7 +2278,7 @@ _METHANE_RETAINED_TAIL: dict[tuple[str, OutputForm], tuple[str, str]] = {
     ("amide", OutputForm.STANDALONE):
         (r"methanamide$",       "formamide"),
     ("ohydrazide", OutputForm.STANDALONE):
-        (r"methanohydrazide$",  "formohydrazide"),
+        (r"methan[eo]hydrazide$", "formohydrazide"),
 }
 
 
@@ -2226,7 +2295,15 @@ def _apply_retained_acyl_pin(result: str, tree: SubstitutiveTree) -> str:
     parent = tree.named_parent.name
     # "oxalyl dichloride (PIN) ethanedioyl dichloride" (P-65.5.1, pdf p. 615):
     # oxalic acid's retained acyl name, for its two-group dihalides.
+    # P-66.1.1.1.2.1 (pdf p. 644): "oxamide (PIN)", one of "only ... four
+    # retained names [that] are preferred IUPAC names and can be substituted
+    # ... substitution on the nitrogen atoms is allowed", printed as
+    # "N1,N2-bis(cyanomethyl)oxamide (PIN)" (p. 653). P-66.3.1 (p. 667):
+    # "oxalohydrazide (PIN)". Both carbons of ethanedioyl are fully used, so
+    # every prefix here is on a nitrogen. Naming round 5 (N5).
     if parent == "ethane" and len(tree.suffix_groups) == 2:
+        result = re.sub(r"ethanediamide$", "oxamide", result)
+        result = re.sub(r"ethanedihydrazide$", "oxalohydrazide", result)
         return re.sub(
             r"ethanedioyl di(chloride|bromide|fluoride|iodide)$", r"oxalyl di\1", result
         )
@@ -2571,6 +2648,30 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             _pname = assembled_prefixes[0][0]
             assembled_prefixes = [(_pname, ())]
 
+        # P-14.3.4.5 (pdf p. 72), the naming half of the rule whose structural
+        # half is tree.parent_has_no_free_position: every parent position is
+        # substituted, and ONE prefix name accounts for all of them, so the
+        # locants carry no information -- "hexachloroethane",
+        # "hexamethyldisiloxane", "tetramethyldiboroxane (PIN)" (p. 731), as
+        # the book's own "tetrafluorourea (PIN)" (pdf p. 73). Two different
+        # prefixes are NOT "in the same way" and keep their locants
+        # ("1,1,1-trichloro-2,2,2-trifluoroethane"), and a suffix is refused
+        # outright: the acid and aldehyde families have their own blocks
+        # above, and any other suffix adds an addressable position this test
+        # has not measured (round 5, N8).
+        if (tree.parent_has_no_free_position
+                and tree.output_form == OutputForm.STANDALONE
+                and tree.free_valence is None
+                and not tree.suffix_groups
+                and not tree.unsaturation
+                and not tree.stereo_descriptors
+                and not tree.ring_cation_locants
+                and not tree.ring_anion_locants
+                and len(assembled_prefixes) >= 2
+                and len({name for name, _loc in assembled_prefixes}) == 1
+                and all(loc for _name, loc in assembled_prefixes)):
+            assembled_prefixes = [(name, ()) for name, _loc in assembled_prefixes]
+
         merged = merge_identical_prefixes(assembled_prefixes)
         merged.sort(key=lambda m: m.sort_name)
 
@@ -2678,7 +2779,12 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             lead = merged[0]
             lead_bare = (
                 not _is_compound_prefix(lead.name)
-                and not lead.name.endswith("oxy")
+                # "hydroxy" is the O-H prefix, not an ether prefix, so the
+                # legibility exception above does not reach it and
+                # P-16.5.1.3.1's "the first cited substituent never has
+                # enclosing marks" applies: "[hydroxydi(methyl)silyl]acetic
+                # acid", not "[(hydroxy)di(methyl)silyl]..." (round 5, N8).
+                and not (lead.name.endswith("oxy") and lead.name != "hydroxy")
             )
             merged = (
                 [lead if lead_bare else _dc.replace(lead, needs_brackets=True)]
@@ -2937,6 +3043,9 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             has_chain_prefixes=_has_chain_locant_prefixes(tree.prefixes),
         )
         rendered_suf = render_suffixes(suffix_groups, tree.output_form)
+        rendered_suf = _hydrazide_connector_dropped(
+            rendered_suf, "".join(parts[stem_idx:]),
+        )
         # IUPAC elision rule: when the rendered suffix (after multiplier application)
         # starts with a consonant (e.g. "triol", "diol", "dione", "diamine"),
         # the parent stem retains its terminal 'e'.  We insert 'e' into the stem

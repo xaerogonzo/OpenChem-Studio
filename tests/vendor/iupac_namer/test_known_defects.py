@@ -98,7 +98,14 @@ def test_target_name_denotes_the_input_structure(
 
     Applies to OPEN rows too: a defect whose stated goal is a name for
     some other molecule would send whoever fixes it to the wrong answer.
+    A target OPSIN cannot read is declared in OPSIN_CANNOT_PARSE, and the
+    declaration is itself checked.
     """
+    if defect in _TABLE.OPSIN_CANNOT_PARSE:
+        assert _opsin(expected) is None, (
+            f"{defect}: OPSIN now parses {expected!r}; remove it from OPSIN_CANNOT_PARSE"
+        )
+        return
     parsed = _opsin(expected)
     assert parsed, f"{defect}: OPSIN cannot parse target name {expected!r}"
     assert _canon(parsed) == _canon(smiles), (
@@ -128,6 +135,11 @@ def test_fixed_defect_round_trips_end_to_end(
     from openchem.vendor.iupac_namer import name_smiles
 
     name = name_smiles(smiles)
+    if defect in _TABLE.OPSIN_CANNOT_PARSE:
+        assert _opsin(str(name)) is None, (
+            f"{defect}: OPSIN now parses {name!r}; remove it from OPSIN_CANNOT_PARSE"
+        )
+        return
     parsed = _opsin(str(name))
     assert parsed, f"{defect}: engine emitted unparsable name {name!r}"
     assert _canon(parsed) == _canon(smiles), (

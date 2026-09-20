@@ -144,7 +144,32 @@ def name_ring_system(
             # Upgrade to the variant that pins a numbering.
             by_name[np.name] = np
 
+    # The general fusion constructor also offers a whole retained polycycle
+    # with its hydrogens planned on the actual structure (naming round 5, N3):
+    # an OPSIN-derived table entry says "quinolizine" for 4H-quinolizine.
+    # Offered only where the table's own name differs from it in nothing but
+    # the indicated-hydrogen block, or the table has none -- elsewhere the
+    # table's handling stands: a competing "decahydronaphthalene" took the
+    # cis/trans decalin override's stereo away, measured in N3.
+    table_bases = {
+        _without_indicated_h(np.name)
+        for np in by_name.values()
+        if np.naming_method == "retained" and getattr(np, "source", "") != "fusion_general"
+    }
+    if table_bases:
+        order = [
+            n for n in order
+            if not (getattr(by_name[n], "source", "") == "fusion_general"
+                    and by_name[n].naming_method == "retained"
+                    and _without_indicated_h(n) not in table_bases)
+        ]
     return [by_name[n] for n in order]
+
+
+def _without_indicated_h(name: str) -> str:
+    import re
+
+    return re.sub(r"^(?:\d+[a-z]?\d*H,)*\d+[a-z]?\d*H-", "", name)
 
 
 def _generate_alternate(

@@ -59,29 +59,49 @@ def _opsin_round_trip(name: str) -> str | None:
 # with a hydro- prefix.  All targets are OPSIN-verified below.
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# NAMING ROUND 5 (N3) moved every expectation in this file, and the book says
+# why. Three rules, each with the page it is printed on:
+#
+#   * Indicated hydrogen is part of a PIN. The CH2 between the two
+#     heteroatoms cannot take a ring double bond, so the name says where that
+#     hydrogen is: "2H-furo[2,3-d][1,3]dioxole (PIN)" (pdf p. 218);
+#     "Omission of indicated hydrogen is also permitted in general
+#     nomenclature ... for example 1,3-benzodioxole, rather than
+#     2H-1,3-benzodioxole" (P-25.7.1.3.1, p. 260).
+#   * A benzene fused to a heteromonocycle is ONE component, named
+#     "benzo...": "4H-3,1-benzoxazine (PIN)", not "[1,3]oxazino[4,5-b]benzene"
+#     (P-25.2.2.4, p. 207).
+#   * The heterocycle is the parent: "2H-naphtho[2,3-d][1,3]dioxole", as the
+#     book's "2H-furo[2,3-d][1,3]dioxole (PIN)" (P-25.3.2.4 (a), p. 218).
+#
+# The round-trip tests below parse each new name back through OPSIN; all of
+# them passed when the expectations were moved.
+# ---------------------------------------------------------------------------
+
 STAGE3_CASES = [
     # Fully saturated mono-ring bases
     # 5-ring smaller (dioxolo) + fully-saturated 6-ring base
-    ("O1COC2C1CCCC2", "hexahydro-[1,3]dioxolo[4,5-b]benzene"),
+    ("O1COC2C1CCCC2", "hexahydro-2H-1,3-benzodioxole"),
     # 6-ring smaller (dioxino) + fully-saturated 6-ring base
-    ("O1COCC2C1CCCC2", "hexahydro-[1,3]dioxino[4,5-b]benzene"),
+    ("O1COCC2C1CCCC2", "hexahydro-2H,4H-1,3-benzodioxine"),
     # 5-ring smaller + fully-saturated pyridine base (piperidine-fused)
-    ("O1COC2NCCCC21", "hexahydro-[1,3]dioxolo[4,5-b]pyridine"),
+    ("O1COC2NCCCC21", "hexahydro-2H-[1,3]dioxolo[4,5-b]pyridine"),
     # Fully saturated 1,4-diazine base (piperazine-fused)
-    ("C1CNC2OCOC2N1", "hexahydro-[1,3]dioxolo[4,5-b]pyrazine"),
+    ("C1CNC2OCOC2N1", "hexahydro-2H-[1,3]dioxolo[4,5-b]pyrazine"),
     # Fully saturated 1,3-diazine base (imidazolidine-ring-fused):
-    ("C1NCC2OCOC2N1", "hexahydro-[1,3]dioxolo[4,5-d]pyrimidine"),
+    ("C1NCC2OCOC2N1", "hexahydro-2H-[1,3]dioxolo[4,5-d]pyrimidine"),
 
     # Partly saturated benzene bases (hydro-locants emitted explicitly)
     # All four non-fusion atoms sp3; fusion atoms stay sp2:
-    ("O1COC2=C1CCCC2", "4,5,6,7-tetrahydro-[1,3]dioxolo[4,5-b]benzene"),
+    ("O1COC2=C1CCCC2", "4,5,6,7-tetrahydro-2H-1,3-benzodioxole"),
     # Two adjacent sp3 atoms at 4,5:
-    ("O1COC2=C1C=CCC2", "4,5-dihydro-[1,3]dioxolo[4,5-b]benzene"),
+    ("O1COC2=C1C=CCC2", "4,5-dihydro-2H-1,3-benzodioxole"),
     # Two non-adjacent sp3 atoms at 4,7:
-    ("O1COC2=C1CC=CC2", "4,7-dihydro-[1,3]dioxolo[4,5-b]benzene"),
+    ("O1COC2=C1CC=CC2", "4,7-dihydro-2H-1,3-benzodioxole"),
 
     # Fully saturated multi-ring base (decalin-style):
-    ("O1COC2C1CC1CCCCC1C2", "decahydro-[1,3]dioxolo[4,5-b]naphthalene"),
+    ("O1COC2C1CC1CCCCC1C2", "decahydro-2H-naphtho[2,3-d][1,3]dioxole"),
 ]
 
 
@@ -117,13 +137,13 @@ def test_stage3_round_trip(smi: str, expected_name: str) -> None:
 def test_stage3_does_not_disturb_aromatic_retained() -> None:
     """1,3-benzodioxole must still win over the hydro-prefixed form: the
     input is fully aromatic, Stage 3's hydro logic is not triggered."""
-    assert name_smiles("c1ccc2c(c1)OCO2") == "1,3-benzodioxole"
+    assert name_smiles("c1ccc2c(c1)OCO2") == "2H-1,3-benzodioxole"
 
 
 def test_stage3_does_not_disturb_aromatic_systematic() -> None:
     """Aromatic dioxolo-pyrazine (no retained name) still resolves to the
     Stage 2A systematic form (no hydro- prefix)."""
-    assert name_smiles("c1cnc2c(n1)OCO2") == "[1,3]dioxolo[4,5-b]pyrazine"
+    assert name_smiles("c1cnc2c(n1)OCO2") == "2H-[1,3]dioxolo[4,5-b]pyrazine"
 
 
 def test_stage3_partly_saturated_fusion_atoms_kept_sp2() -> None:
@@ -131,7 +151,7 @@ def test_stage3_partly_saturated_fusion_atoms_kept_sp2() -> None:
     fusion atoms stay aromatic in the canonical parent — so the hydro-
     prefix lists only the non-fusion locants (4,5,6,7 for a benzene base)."""
     got = name_smiles("O1COC2=C1CCCC2")
-    assert got == "4,5,6,7-tetrahydro-[1,3]dioxolo[4,5-b]benzene"
+    assert got == "4,5,6,7-tetrahydro-2H-1,3-benzodioxole"
     # 3a, 7a (fusion) NOT in the hydro locants
     assert "3a" not in got and "7a" not in got
 
@@ -166,4 +186,9 @@ def test_stage3_naming_method_is_fused_hetero_hydro() -> None:
     )
     parents = name_fused(rs, cand, mol)
     assert parents, "Stage 3 should emit a NamedParent for saturated dioxolo-benzene"
-    assert parents[0].naming_method == "fused_hetero_hydro"
+    # Round 5 (N3): general fusion names this system first ("hexahydro-2H-
+    # 1,3-benzodioxole"); what this test guards -- a hydro fusion parent
+    # that outranks von Baeyer -- now holds through the "fusion" method,
+    # which the P-52.2.4.1 re-rank lifts above von Baeyer.
+    assert parents[0].naming_method in ("fused_hetero_hydro", "fusion")
+    assert parents[0].name == "hexahydro-2H-1,3-benzodioxole"

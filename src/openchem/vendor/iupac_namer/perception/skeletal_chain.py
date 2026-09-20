@@ -415,9 +415,11 @@ def _build_prefix(locant_elem: list[tuple[int, str]]) -> str | None:
 # heterogeneous chain (e.g. SiH3-NH-SiH3) is named as an amine derivative, not
 # as an ``a(ba)n`` parent hydride — declined here and left to other dispatchers.
 #
-# Boron is excluded because OPSIN does not support polyborane parent hydrides,
-# so such a name could not be round-trip verified.
-_ALTERNATING_EXCLUDED: frozenset[str] = frozenset({"N", "B"})
+# Boron was excluded here because "OPSIN does not support polyborane parent
+# hydrides". Measured in naming round 5 (N5), that is false for the a(ba)n
+# boroxanes: OPSIN parses "diboroxane" and "tetramethyldiboroxane", and the
+# book prints the latter as a PIN (P-68.1.1.2.2, pdf p. 731).
+_ALTERNATING_EXCLUDED: frozenset[str] = frozenset({"N"})
 
 
 def _compute_alternating_heterochain(elems: list[str]) -> str | None:
@@ -515,3 +517,92 @@ def _elide_join(left: str, right: str) -> str:
     if left.endswith("a") and right[:1] in "aeiou":
         return left[:-1] + right
     return left + right
+
+
+# Terminal elements an a(ba)n chain may be a SUBSTITUTABLE parent for here.
+# The book prints "chlorodisiloxane" (p. 71), "disiloxanecarboxylic acid
+# (PIN)" (p. 579) and "tetramethyldiboroxane (PIN)" (p. 731). Chalcogen
+# terminals (HS-O-SH, "dithioxane") are left out: a carbon-bearing S-O-S is
+# a sulfenic anhydride, and that route was not checked against the book.
+_SUBSTITUTABLE_TERMINALS: frozenset[str] = frozenset(
+    {"B", "Si", "Ge", "Sn", "Pb", "P", "As", "Sb", "Bi"}
+)
+
+
+def alternating_chains(mol) -> list[tuple[tuple[int, ...], str]]:
+    """Every end-to-end a(ba)n chain in *mol*, as parent candidates.
+
+    Returns (ordered atom path, parent-hydride name) pairs, e.g. the
+    Si-O-Si of hexamethyldisiloxane as ``((1, 4, 5), "disiloxane")``. Unlike
+    `compute_name`, the chain's atoms may carry substituents: P-21.2.3.1
+    makes these "preselected parent hydrides [that] have priority to receive
+    preferred IUPAC names, as long as they are used to name compounds
+    containing carbon" (pdf p. 145). Naming round 5 (N5).
+
+    A middle atom must bridge exactly two terminal atoms of one element and
+    be the more senior of the two elements. A branched siloxane yields each
+    of its end-to-end chains, and chain length (P-44.3) picks among them.
+    """
+    # Standard bonding numbers only: the a-terms name sigma^n lambda^n atoms,
+    # and a P(V) with an oxo is a phosphoric-acid unit. Measured: without
+    # this, a nucleotide diphosphate became "1,3-dioxodiphosphoxanyl".
+    def eligible(atom) -> bool:
+        return (atom.GetSymbol() in _A_PREFIX and atom.GetSymbol() in _SENIORITY
+                and atom.GetTotalValence() == _STD_BONDING.get(atom.GetSymbol())
+                and atom.GetSymbol() not in _ALTERNATING_EXCLUDED
+                and not atom.IsInRing() and atom.GetFormalCharge() == 0
+                and atom.GetNumRadicalElectrons() == 0 and atom.GetIsotope() == 0)
+
+    bridges: dict[tuple[str, str], list[tuple[int, int, int]]] = {}
+    for atom in mol.GetAtoms():
+        if not eligible(atom) or atom.GetTotalNumHs() or atom.GetDegree() != 2:
+            continue
+        ends = list(atom.GetNeighbors())
+        if any(mol.GetBondBetweenAtoms(atom.GetIdx(), e.GetIdx()).GetBondType()
+               != Chem.BondType.SINGLE for e in ends):
+            continue
+        term = ends[0].GetSymbol()
+        if (ends[1].GetSymbol() != term or term == atom.GetSymbol()
+                or term not in _SUBSTITUTABLE_TERMINALS
+                or not all(eligible(e) for e in ends)
+                or _SENIORITY[term] <= _SENIORITY[atom.GetSymbol()]):
+            continue
+        bridges.setdefault((term, atom.GetSymbol()), []).append(
+            (ends[0].GetIdx(), atom.GetIdx(), ends[1].GetIdx())
+        )
+
+    chains: list[tuple[tuple[int, ...], str]] = []
+    for links in bridges.values():
+        via: dict[int, list[tuple[int, int]]] = {}
+        for a, mid, b in links:
+            via.setdefault(a, []).append((mid, b))
+            via.setdefault(b, []).append((mid, a))
+        # The terminal atoms and their bridges form a tree (the atoms are
+        # acyclic), so each pair of its leaves bounds exactly one unbranched
+        # chain. A branched siloxane offers every such chain and P-44.3's
+        # chain length picks; the branch becomes a substituent.
+        leaves = sorted(t for t, v in via.items() if len(v) == 1)
+        for i, start in enumerate(leaves):
+            for goal in leaves[i + 1:]:
+                path = _tree_path(via, start, goal)
+                if path is None:
+                    continue
+                name = _compute_alternating_heterochain(
+                    [mol.GetAtomWithIdx(k).GetSymbol() for k in path]
+                )
+                if name is not None:
+                    chains.append((tuple(path), name))
+    return chains
+
+
+def _tree_path(via, start, goal) -> list[int] | None:
+    """The alternating atom path from *start* to *goal* in a bridge tree."""
+    stack = [(start, None, [start])]
+    while stack:
+        cur, prev, path = stack.pop()
+        if cur == goal:
+            return path
+        for mid, nxt in via[cur]:
+            if nxt != prev:
+                stack.append((nxt, cur, path + [mid, nxt]))
+    return None

@@ -704,6 +704,7 @@ ENGINE_GROUP_MAP: dict[str, tuple[str, ...]] = {
     "isocyano": ("fg:isocyanide",),
     "hydroperoxy": ("fg:hydroperoxide",),
     "guanidino": ("fg:guanidine",),
+    "urea": ("fg:urea",),
     "sulfonatooxy": ("fg:sulfate_ester",),
     "ring_tertiary_amine": ("fg:tertiary_amine",),
     "ring_secondary_amine": ("fg:secondary_amine",),

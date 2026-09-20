@@ -9,6 +9,10 @@ import weakref
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+# A naming tree that leaves an atom unowned, or owns one twice, RAISES under
+# test instead of quietly failing the plan over to the next one (naming round
+# 5, N2; vendor/iupac_namer/ownership.py). The app itself runs "enforce".
+os.environ.setdefault("OPENCHEM_NAMER_OWNERSHIP", "strict")
 
 # Bundled first-party plugins (src/openchem/plugins/ is the *loader*;
 # plugins/ at the repo root is content it loads) aren't part of the

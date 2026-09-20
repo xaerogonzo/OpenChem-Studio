@@ -38,6 +38,10 @@ if TYPE_CHECKING:
         RetainedMatch,
     )
 
+#: `CandidateParent.element` prefix of an alternating a(ba)n chain parent;
+#: the parent-hydride name follows it ("a(ba)n:disiloxane").
+ALTERNATING_CHAIN_TAG = "a(ba)n:"
+
 
 class Perception:
     """Facade over seven perception subsystems.
@@ -679,6 +683,27 @@ class Perception:
                     element=element_label,  # "N", "S", "O", or "N=N"
                     lambda_value=None,
                 )
+
+        # 5. Alternating a(ba)n chains (P-21.2.3.1): disiloxane, trisiloxane,
+        #    disilathiane, distannoxane. A substituted one keeps its chain as
+        #    the parent -- "chlorodisiloxane" (pdf p. 71), "disiloxane-
+        #    carboxylic acid (PIN)" (p. 579) -- where the engine named the
+        #    nearest silane ("trimethyl(trimethylsilyloxy)silane"). The name
+        #    rides in `element`, because it is fixed by the atoms alone.
+        #    Naming round 5 (N5).
+        from openchem.vendor.iupac_namer.perception.skeletal_chain import (
+            alternating_chains,
+        )
+        for path, chain_name in alternating_chains(self._mol):
+            yield CandidateParent(
+                atom_indices=frozenset(path),
+                type="heteroatom_chain",
+                length=len(path),
+                ring_system=None,
+                unsaturation=None,
+                element=ALTERNATING_CHAIN_TAG + chain_name,
+                lambda_value=None,
+            )
 
     # ------------------------------------------------------------------
     # Dunder helpers

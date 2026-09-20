@@ -31,6 +31,11 @@ import os
 import sys
 import time
 
+# The engine's own suite raises on an atom-ownership violation too (naming
+# round 5, N2; ownership.py), so its ~4000 molecules search for false
+# positives in the check as well as for naming regressions.
+os.environ.setdefault("OPENCHEM_NAMER_OWNERSHIP", "strict")
+
 try:
     import py2opsin as _p2o
     _HAVE_OPSIN = True

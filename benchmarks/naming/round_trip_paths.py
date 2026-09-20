@@ -25,6 +25,12 @@ The single `MISMATCH` is metformin, which ROADMAP.md already carries as a
 known `gate_disagreement` -- canonical SMILES and InChIKey disagreeing over
 a tautomer. That is exactly the case withholding exists for.
 
+**AND ON 2026-09-19 AN INPUT REACHED IT.** Naming round 5 taught the engine
+the book's "N1,N2-bis(cyanomethyl)oxamide (PIN)" (p. 653), which OPSIN cannot
+parse, and the app withheld it as wrong. The two checker-failed paths now
+return `PARSER_FAILED` -- the name is shown, saying it could not be checked --
+and only a real skeleton disagreement is `MISMATCH`.
+
 **A DIFFERENT SPLIT WAS MADE ON 2026-09-17, and it was made because an input
 reached it.** `STEREO_OMITTED` used to absorb every stereo difference over a
 matching skeleton, so a name carrying the OPPOSITE descriptor was shown with
@@ -104,7 +110,7 @@ def main() -> int:
             continue
 
         verdict = verify_name_round_trip(str(name), mol)
-        if verdict is not RoundTrip.MISMATCH:
+        if verdict not in (RoundTrip.MISMATCH, RoundTrip.PARSER_FAILED):
             tally[verdict.value] += 1
             continue
 
@@ -113,13 +119,13 @@ def main() -> int:
             parsed = opsin_structure_for_name(str(name))
             candidate = Chem.MolFromSmiles(parsed.smiles)
             if candidate is None:
-                key = "MISMATCH: RDKit could not build OPSIN's SMILES"
+                key = "PARSER_FAILED: RDKit could not build OPSIN's SMILES"
             elif _skeleton(candidate) != _skeleton(mol):
                 key = "MISMATCH: REAL skeleton disagreement"
             else:
                 key = "MISMATCH: skeletons agree -- unreachable, investigate"
         except NamingError:
-            key = "MISMATCH: OPSIN could not parse our name"
+            key = "PARSER_FAILED: OPSIN could not parse our name"
 
         tally[key] += 1
         if len(examples[key]) < 3:
@@ -134,11 +140,11 @@ def main() -> int:
     checker_failures = sum(
         count
         for key, count in tally.items()
-        if key.startswith("MISMATCH:") and "REAL skeleton" not in key
+        if key.startswith("PARSER_FAILED:")
     )
     print(
-        f"\nChecker-failed paths reached: {checker_failures}. "
-        "While this is 0, splitting MISMATCH would add an unreachable branch."
+        f"\nChecker-failed paths reached on this corpus: {checker_failures}. "
+        "(PARSER_FAILED exists for inputs outside it: the book's N1,N2-oxamides.)"
     )
     return 0
 

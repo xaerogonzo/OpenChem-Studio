@@ -24,5 +24,8 @@
  "pubchem_property": "SMILES,IUPACName",
  "rdkit_version": "2025.09.6",
  "history": "A first v2 run on 2026-09-18 admitted 15 rows, because 503 ServerBusy responses were skipped as missing records. It was discarded before any row was inspected -- the quiet run had printed counts only -- and redrawn with 503s retried.",
- "inspection_policy": "evaluation only: selected before any naming-round-4 diagnosis, never inspected row by row, loaded only by naming_stage_artifact.py --final-evaluation"
+ "inspection_policy": "evaluation only: selected before any naming-round-4 diagnosis, never inspected row by row, loaded only by naming_stage_artifact.py --final-evaluation",
+ "status": "USED_FOR_TUNING",
+ "status_since": "naming round 5, 2026-09-19",
+ "status_note": "Scored once, at naming round 4's final evaluation (r4-final.json: 15/40 verbatim, 40/40 round trip). Round 5 adjudicates its rows that differ from PubChem and may fix them, so from round 5 on it measures fitting, not generalisation, and is reported as 'historical held-out, used'. heldout3.json replaces it as the fresh population."
 }

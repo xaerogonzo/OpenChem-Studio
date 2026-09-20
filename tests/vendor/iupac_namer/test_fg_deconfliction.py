@@ -70,16 +70,21 @@ def test_semicarbazone_family_no_duplicate_fg_emission(smiles, forbidden_substri
 @pytest.mark.parametrize(
     "smiles, required_substrings",
     [
-        # Acetone thiosemicarbazone must carry -methanethioamide (one copy).
-        ("CC(C)=NNC(=S)N",       ("methanethioamide", "propan-2-ylidene")),
-        ("C(c1ccccc1)=NNC(=S)N", ("methanethioamide", "phenylmethylidene")),
+        # Naming round 5 (N4) moved the skeleton to the book's: semicarbazones
+        # are named "substitutively by using the functional parent
+        # 'hydrazinecarboxamide'", e.g. "2-(hexan-3-ylidene)-N,N-diphenyl-
+        # hydrazine-1-carboxamide (PIN)" (P-68.3.1.2.5, pdf p. 758). Still
+        # exactly one copy of the (thio)amide.
+        ("CC(C)=NNC(=S)N",       ("hydrazine-1-carbothioamide", "propan-2-ylidene")),
+        ("C(c1ccccc1)=NNC(=S)N", ("hydrazine-1-carbothioamide", "phenylmethylidene")),
         # Semicarbazone analog.
-        ("CC=NNC(=O)N",          ("methanamide", "ethylidene")),
+        ("CC=NNC(=O)N",          ("hydrazine-1-carboxamide", "ethylidene")),
     ],
 )
 def test_semicarbazone_family_emits_expected_skeleton(smiles, required_substrings):
-    """The (thio)semicarbazone skeleton should reduce to ``methan(e)-*amide``
-    with the imine-side named as an ``[(Ryl)amino]amino`` substituent."""
+    """The (thio)semicarbazone skeleton reduces to one hydrazine-1-carbo(thio)-
+    amide, the imine side an ylidene on hydrazine N2 (round 5; it was a
+    ``methan(e)-*amide`` with an ``[(Ryl)amino]amino`` substituent)."""
     name = name_smiles(smiles)
     assert name is not None, f"engine returned None for {smiles!r}"
     for required in required_substrings:

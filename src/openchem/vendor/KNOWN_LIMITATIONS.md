@@ -214,9 +214,11 @@ signal either of them gives about its own blind spot.
 
 ## Severity B — right molecule, non-preferred name
 
-| input | emits | preferred | rule |
-|---|---|---|---|
-| `ClC(=O)C(=O)Cl` | `ethane-1,2-dioyl chloride` | `oxalyl dichloride` | `oxalyl` IS the PIN acyl group (P-65.1.7.2.1); the `di` multiplier is also missing |
+No open row. The `oxalyl dichloride` row that stood here was FIXED in round 4
+(D-065f); re-measured 2026-09-19 (naming round 5, N1), the engine emits
+`oxalyl dichloride`, and the homologues `propanedioyl`/`butanedioyl`/
+`hexanedioyl dichloride`.
+
 The `isobutane` row that stood here is FIXED (D-036c). P-61.2.1 says in as
 many words that "the names 'isobutane', 'isopentane' and 'neopentane' are
 no longer recommended", and gives `2-methylpropane (PIN) (not isobutane)`.
@@ -247,10 +249,10 @@ not known to be right either, and that is the honest description.
 
 ## Severity C
 
-`_RETAINED_ACID_TO_ACYL` (`engine.py`) carries four unreachable non-PIN keys
-(`malonic`/`succinic`/`glutaric`/`adipic acid`) that the acid path never
-produces, the same dead-key pattern already removed from
-`_RETAINED_DIACID_TO_DIACYLIUM`.
+None open. The four unreachable non-PIN keys (`malonic`/`succinic`/
+`glutaric`/`adipic acid`) are gone from `_RETAINED_ACID_TO_ACYL`, with a
+comment where they stood; this entry outlived the fix and was corrected on
+re-measurement in naming round 5 (N1, 2026-09-19).
 
 ## The refusal guard (resolved 2026-08-01)
 
@@ -341,6 +343,47 @@ Found while checking D-029; predates it.
   non-minimal lambda numbering and three general-nomenclature-only acylium
   names; the engine's output is correct in every case. See `CHANGELOG.md`.
 
+## Open after naming round 5 (2026-09-20)
+
+Kept by layer, as round 4's list is. Filled in stage by stage; the round's
+adjudicated open rows are in `benchmarks/naming/adjudication.toml`, each with
+its layer and target stage.
+
+| layer | case | note |
+|---|---|---|
+| audit reach | a prefix whose NAME denotes an atom it does not CLAIM | measured in N6: "carbamimidoyl" on a chain claimed its nitrogens while the chain also named its carbon, and the guard passed a wrong molecule. The guard compares claims, and a claim is only as good as the code that set it; checking what a name denotes would need a parse, which N2 deliberately does not do |
+| audit reach | molecules named with no substitutive level (66/267 on the tuning populations), and the insides of functional-class, multiplicative, ring-assembly and additive nodes | N2's ownership invariant runs where a substitutive tree exists; a leaf is trusted to name its whole fragment. Extending it needs provenance on those node kinds, which do not carry atom maps today |
+| candidate generation | fusion names needing a SECOND-ORDER attached component | refused (`NEEDS_UNBUILT_CONSTRUCTION`), von Baeyer name or none | N3 builds one parent plus first-order components; 16 of the book's P-25 examples need more ("pyrido[1'',2'':1',2']imidazo[4',5':5,6]pyrazino[2,3-b]phenazine") |
+| candidate generation | multiparent systems | refused, von Baeyer name or NONE | "benzo[1,2-b:4,5-c']difuran" (p. 234): the older fusion route used to stand in with "furo[2,3-f]2-benzofuran"; it no longer may, and the von Baeyer route fails here, so the molecule has no name until multiparent names are built (D-086a) |
+| numbering | interior heteroatoms (P-25.3.3.2) | refused | 6 book examples ("6H-quinolizino[3,4,5,6-ija]quinoline", D-086c) |
+| numbering | a 7- or 8-membered ring fused on three or more sides | refused | measured: 4 of the book's 8 such systems numbered as OPSIN numbers them, 4 did not -- their drawings need a hexagon on an octagon's horizontal side, a shape the drawing model lacks |
+| numbering | rings of more than eight members; helicenes | refused | the book's distorted shapes; a helicene's own orientation rule (hexahelicene itself is retained, and named) |
+| numbering | the ring table's pyrene and phenalene | former CAS interior locants (10b, 10c) | P-25.3.3.3.1 (p. 224) numbers interior carbons 3a1, 5a1 in PINs; the table predates that and is not repaired in N3 |
+| candidate generation | hydro forms of a TRADITIONALLY numbered retained parent | von Baeyer ("tricyclo[8.4.0.0^{4,9}]tetradeca-1(14),2,10,12-tetraene" for a hexahydrophenanthrene) | general fusion leaves anthracene, phenanthrene, acridine, carbazole, xanthene and purine to the ring table, which carries their traditional numbering but cannot always derive a hydro form; the fusion-rule numbering is not theirs, so the constructor refuses rather than number them its own way |
+| data | OPSIN's RING vocabulary: `rings_from_opsin.json` (705 names) and `fusion_components.json` (821) | read as ring parent names, unaudited | N5 gated only what the registry types: a ring name the registry demotes is refused by name (hypoxanthine, guanine), and "quinolizin"-style stems are rehydrated. The rest is the same kind of data the gate exists for, not audited this round, since refusing it outright would drop pyridine along with paracetamol. DECIDED (Alex, 2026-09-19, on the N5 report): left ungated. Of the 44 ring parents that win on the tuning populations, 10 come only from this vocabulary, and all 10 are book names |
+| ranking | the P-44.1.2 senior-atom tier between two RINGS | the tier is compared ring against ring, which the book says it is not | agrees with P-44.2.1 wherever one ring has N, or one is a carbocycle; disagrees only for a ring whose senior atom is O/S/Se/Te against one whose is P..B (P-44.2.1 puts O first, P-44.1.2 puts P..B first). No corpus molecule has that pair |
+| candidate generation | N'-acyl hydrazides | `1,2-dibenzoylhydrazine` | `N'-benzoylbenzohydrazide (PIN) (not 1,2-dibenzoylhydrazine)` (p. 670) | admitting an acylated N' to the hydrazide pattern reaches it, and turned 4-(2-benzoylhydrazinyl)-4-oxobutanoic acid into a butanedioyl name: the demoted, prefix form of an acylated hydrazide is not built (D-088a) |
+| candidate generation | carbazate esters | `(ethoxycarbonyl)hydrazine` | `ethyl hydrazinecarboxylate` | the anion is not nameable ("oxidooxomethylhydrazine"), so no ester plan is offered; the carbamate split is refused (D-088b, D-087s) |
+| candidate generation | a C=O between two N= | `1-[(oxo)(phenyldiazenyl)methyl]-2-phenyldiazene` | `bis(phenyldiazenyl)methanone (PIN)` (p. 110) | not perceived as a ketone; the multiplicative constructor counts it as one and declines, as the book requires (D-088c) |
+| candidate generation | a substituted hydrazide as a prefix | `4-carboxy-N'-methylbenzohydrazide` | `4-(2-methylhydrazine-1-carbonyl)benzoic acid` (derived) | the acid is senior; the hydrazide stays the suffix because no prefix form exists for it (D-088d) |
+| ranking | disilane and its kin as a parent | `methyl(silyl)silane` | `methyldisilane` (derived) | BUILT in N5: a chain of a centre-forming element (and any a(ba)n chain) competes with the one-atom centre on P-44.3's length (D-088e, D-089k) |
+| multiplicative, outside the built class | a substituted or branched linker; a ring or an unsymmetrical central group; units joined by a double bond (hydrazinediylidene, ethane-1,2-diylidene); a unit whose attachment N no marker can read | declined, substitutive name stands | book PINs D-088f, h, i, j: `N,N'-oxybis(N-methylmethanamine)`, `4,4'-[(2-methylpropane-1,3-diyl)bis(oxy)]diphenol`, `(benzene-1,3,5-triyl)tris(silane)`, `4,4',4''-(ethane-1,1,2-triyl)tribenzoic acid` |
+| multiplicative, needs another stage | `triethanolamine` | the whole-molecule OPSIN registry name wins before the constructor sees a substitutive tree | BUILT in N5: the gate refuses it and `2,2',2''-nitrilotri(ethan-1-ol) (PIN)` (p. 106) is emitted (D-088g) |
+| candidate generation | skeletal replacement with a principal group | `(2-{2-[2-(carboxymethoxy)ethoxy]ethoxy}ethoxy)acetic acid` | `3,6,9,12-tetraoxatetradecane-1,14-dioic acid (PIN)` (p. 437) | the 'a' chain route declines on a principal group; multiplication correctly declines too (four heteroatoms) |
+| serialization | hydrazide suffix on a systematic acid | `pentanohydrazide` | `pentanehydrazide (PIN)` (p. 667) | BUILT in round 5 (N8): the connecting 'o' stays wherever the stem is not a parent hydride's (D-092o-r) |
+| candidate generation | carbon with two double-bonded suffix groups | `dithioxomethane`, `bis(methylimino)methane` | `methanedithione`, `dimethylmethanediimine` (p. 527) | the thione and imine patterns are written for R2C=X |
+| serialization | full substitution (P-14.3.4.5) | `1,1,1,3,3,3-hexamethyldisiloxane`, `1,1,1,2,2,2-hexachloroethane` | `hexamethyldisiloxane`, `tetramethyldiboroxane (PIN)` (p. 731) | BUILT in round 5 (N8) for an all-carbon chain or ring and for an a(ba)n chain (D-089q, r, D-092h, i). Deliberately NOT applied elsewhere, because "no atom carries a hydrogen" is not "every substitutable position is substituted": an aromatic ring N or a fusion carbon satisfies the weaker test for free, and the vendored suite measured three names it would have made ambiguous or wrong -- `1,5-dimethyl-1H-tetrazole` (2,5- is another compound), a hexamethyl cyclotriphosphazene whose positions carry different NUMBERS of methyls, and `1,1,2,2-tetramethylhydrazine`, whose locants an expectation pins and whose locant-free form the book does not print. An UNSATURATED parent (`1,1,2,2-tetrachloroethene`) is out for the same want of evidence |
+| PCG assignment | -ol on a silicon CHAIN | `1,3-dihydroxy-1,1,3,3-tetramethyldisiloxane` | `...disiloxane-1,3-diol` (derived, P-68.2.5) | silanols reach a suffix only through the pre-plan single-centre route, which N6 extended (bare silanols, N- and O-substituents, counting alcohols) but which cannot see a chain. Widening the alcohol pattern to Si-OH was tried and gave wrong molecules ("2-hydroxyethan-1-ol"): a demoted Si-OH became a bare "hydroxy" that dropped the Si (D-089s) |
+| candidate generation | two acyl groups on one N | `N-benzoylacetamide` | `N-acetylbenzamide (PIN)` (p. 654) | only one amide is perceived per shared N, so the senior acyl is never offered as the parent (D-091u) |
+| candidate generation | condensed ureas | `N-carbamoylurea`, `N-(carbamoylcarbamoyl)urea` | `2-imidodicarbonic diamide (PIN)`, `2,4-diimidotricarbonic diamide (PIN)` (p. 662) | imidopolycarbonic acids are not built (D-091t) |
+| serialization | substituted carbamimidoyl prefixes | `4-[(dimethylamino)(ethylimino)methyl]benzoic acid` | `4-(N'-ethyl-N,N-dimethylcarbamimidoyl)benzoic acid (PIN)` (p. 676) | today's name is the book's second form; before N6 it was a wrong molecule (D-091v) |
+| candidate generation | Si-NH-Si | `disilaazane` | `N-silylsilanamine` (p. 145, "not disilazane") | with N the a(ba)n rule gives way to amine names; the organometallic three-atom route still builds the a-term name (D-089u) |
+| candidate generation | phosphoramidocyanidate esters | `(dimethylamino)(ethoxy)(oxo)phosphanecarbonitrile` | `ethyl N,N-dimethylphosphoramidocyanidate` (derived from "sulfurocyanidic acid (PIN)", p. 704) | was `tabun`, which the gate refuses; functional replacement of phosphoric acid by -CN is not built (D-089v) |
+| candidate generation | a skeletal-replacement name for a siloxane | `2,4-dioxa-1,3,5-trisilahexane` | `1-methyltrisiloxane` (derived) | "-SiH2-O-SiH2-, disiloxane-1,3-diyl" is ONE heterounit (p. 440), so P-51.4.1's four are not reached; the heterounit count predates N5 (D-090b) |
+| serialization, oracle | dinuclear 'hypo' boron acid | `hypoboric acid` | `hypodiboric acid (preselected name)` (p. 720) | the engine drops the "di" because OPSIN cannot parse the book's form; recorded here, not as a D-row, since the D-row table requires a target OPSIN parses |
+| serialization | a FIRST-cited simple prefix enclosed | `[(hydroxy)di(methyl)silyl]acetic acid` | `[hydroxydi(methyl)silyl]acetic acid` | BUILT in round 5 (N8). CORRECTION to this row as written at N6: it also claimed `di(methyl)` and `(2-hydroxyethyl)di(methyl)silanol` were defects. They are not. P-16.5.1.3.1 (pdf p. 129) prints `ethyldi(methyl)phosphane (PIN)` and `ethyldi(propan-2-yl)silane (PIN)` -- only the first cited substituent goes bare, and the multiplier sits OUTSIDE the parentheses (D-091j, k) |
+| candidate generation | a(ba)n chains of chalcogen terminals, and cyclic siloxanes | `{[(methylsulfanyl)oxy]sulfanyl}methane`; the ring names | not built | N5 builds Si, Ge, Sn, Pb, B and P..Bi terminals at standard valence; a carbon-bearing S-O-S is a sulfenic anhydride and was not checked against the book |
+
 ## Open after naming round 4 (2026-09-18)
 
 Round 3's table below is closed except for one row: chloroquine, warfarin,
@@ -353,42 +396,63 @@ target here was checked against the book on the page cited; none is guessed.
 
 | layer | case | emits | preferred | note |
 |---|---|---|---|---|
-| candidate generation | heterofused systems not in the ring table | von Baeyer names | fusion names | cid5000, cid40000, the book's 2-benzazepine: general fusion construction (P-25.3), round 5 |
-| candidate generation | multiplicative names | `N''-{14-[(diaminomethylidene)amino]tetradecyl}guanidine` | a multiplicative bis-guanidine | also methylenebis(phosphonic acid) and N'-acyl hydrazides (`N'-benzoylbenzohydrazide (PIN)`, p. 671). Admitting an acylated N' into the hydrazide pattern named a WRONG molecule, so it is held out |
-| candidate generation | hydrazine as a parent hydride | `1-(hydrazinyl)methanamide` | `hydrazinecarboxamide (PIN)` (p. 645) | and the carbazates, `ethyl hydrazinecarboxylate` |
-| candidate generation | N-substituted nitrogen oxoacids | `[(hydroxysulfonyl)amino]methane` | `methylsulfamic acid` | the oxoacid composers decline and the general path names a hydride |
+| candidate generation | heterofused systems not in the ring table | von Baeyer names | fusion names | BUILT in round 5 (N3) for one parent + first-order components: cid5000 and the v2 rows now fusion names; the book's 78 in-class P-25 examples exact. Its limits are in the round-5 list |
+| candidate generation | multiplicative names | `N''-{14-[(diaminomethylidene)amino]tetradecyl}guanidine` | a multiplicative bis-guanidine | BUILT in round 5 (N4), `multiplicative.py`: the bis-guanidine, methylenebis(phosphonic acid) and N',N'''-methylenediacetohydrazide, and 22 of the book's P-15.3/P-51.3 PINs exact. N'-acyl hydrazides are a different mechanism and stay open (round-5 list) |
+| candidate generation | hydrazine as a parent hydride | `1-(hydrazinyl)methanamide` | `hydrazinecarboxamide (PIN)` (p. 645) | BUILT in round 5 (N4) through the P-44.1.2 senior-atom tier. The carbazate ESTERS stay open (round-5 list) |
+| candidate generation | N-substituted nitrogen oxoacids | `[(hydroxysulfonyl)amino]methane` | `N-methylsulfamic acid` | BUILT in round 5 (N4). The target was written `methylsulfamic acid` here; P-67.1.2.4.1 cites N-locants ("N,N-dimethylphosphoramidic acid (PIN)", p. 703), so the form is derived with them |
 | retained parents | oxamide, oxalohydrazide | `ethanediamide`, `ethanedihydrazide` | `oxamide (PIN)`, `oxalohydrazide (PIN)` (pp. 351, 668) | substitution allowed on both |
 | retained parents | silicic acid, disiloxane | `tetrahydroxysilane`, `trimethyl(trimethylsilyloxy)silane` | `silicic acid`, `hexamethyldisiloxane` | the second is round 3's last open row |
-| PCG seniority | an amide on a urea N | `N-benzoylurea` | `N-carbamoylbenzamide (PIN)` (p. 661) | the engine ranks urea's carbonic amide WITH carboxylic amides; declining the urea route produced `1-amino-N-benzoylmethanamide`, so the urea gate stops at acids (D-078k holds it) |
-| PCG assignment | a chain-terminal amidine carbon | `4-carbamimidoylbutanoic acid` | amino + imino prefixes, as "methyl 4-(dimethylamino)-4-(ethylimino)butanoate (PIN)" (P-66.4.1.3.2, p. 677) | when the amidine carbon terminates a chain |
-| PCG assignment | a silanol with an alcohol elsewhere | `2-[(hydroxy)di(methyl)silyl]ethan-1-ol` | a silanol parent (P-44.1.2, Si before C) | the single-centre route declines on any same-class group rather than count them |
-| PCG assignment | hydroxamic acids | `cyclohexanecarbohydroxamic acid` | `N-hydroxycyclohexanecarboxamide (PIN)` (p. 587) | |
-| numbering | tetrahydropyridines | `1,2,5,6-` | `1,2,3,6-tetrahydropyridine-4-carboxylic acid` | ranks ring double bonds, not hydro locants |
-| numbering | `pyridin-1(6H)-yl` | the old name | its lowest orientation | the free valence is not in the preference key, so the P-58.2 route declines |
+| PCG seniority | an amide on a urea N | `N-benzoylurea` | `N-carbamoylbenzamide (PIN)` (p. 661) | BUILT in round 5 (N6): a carbonyl between two acyclic, non-hydrazine nitrogens is a urea, not a carboxamide, and the urea route steps aside for any amide; the book's five P-66.1.6.1.1.5 examples exact (D-078k, D-091a-d) |
+| PCG assignment | a chain-terminal amidine carbon | `4-carbamimidoylbutanoic acid` | amino + imino prefixes, as "methyl 4-(dimethylamino)-4-(ethylimino)butanoate (PIN)" (P-66.4.1.3.2, p. 677) | BUILT in round 5 (N6); it was a WRONG MOLECULE, one carbon too many (D-091f, g) |
+| PCG assignment | a silanol with an alcohol elsewhere | `2-[(hydroxy)di(methyl)silyl]ethan-1-ol` | a silanol parent (P-44.1.2, Si before C) | BUILT in round 5 (N6): P-44.1.1's count, then Si (D-091i-k) |
+| PCG assignment | hydroxamic acids | `cyclohexanecarbohydroxamic acid` | `N-hydroxycyclohexanecarboxamide (PIN)` (p. 587) | BUILT in round 5 (N6), N-substituted ones too (D-091n-p) |
+| numbering | tetrahydropyridines | `1,2,5,6-` | `1,2,3,6-tetrahydropyridine-4-carboxylic acid` | BUILT in round 5 (N7): the orientations tied because no hydro locant reached the preference key; P-14.4 (e)(i) now ranks them (D-092a, b) |
+| numbering | `pyridin-1(6H)-yl` | the old name | its lowest orientation | BUILT in round 5 (N7): `pyridin-1(2H)-yl` (p. 479). Not the free valence: the same hydro-locant tie as the row above (D-092c, d) |
 | data | 32 ring-table entries | -- | -- | they number only some positions; a substituent elsewhere had an empty locant. Guarded (the plan is refused), not repaired |
+| prefix construction | `tert-butyl` in a PIN | `(2-methylpropan-2-yl)` | `tert-butyl` (`4-butyl-4-tert-butylcyclohexan-1-ol (PIN)`, pdf p. 80) | classified in N8 and left: it renames the prefix, and 'b' against 'm' moves the alphanumerical citation order (P-14.5.2/3), so it is not the ranking-neutral change N8 admits. With it go Boc (`[(tert-butoxycarbonyl)amino]`), `propane-2-sulfonyl`, `ethanethioamido`, `phosphoryl` and the substituted carbamimidoyl prefix -- each a prefix the engine does not build, not a spelling |
+| audit reach | a hydrazide beside a second acid | `OwnershipError: atom 0 owned by prefix[0] and prefix[2]` | a name | found in N8 while probing hydrazides (`NNC(=O)CCC(=O)O`, strict ownership): two prefixes claim the same atom, so N2's guard refuses the plan rather than emitting a wrong molecule. Not diagnosed |
 | serialization | thioacyl amino prefixes | `4-(ethanethioylamino)benzamide` | `4-(ethanethioamido)benzamide (PIN)` (p. 657) | a compound thioacyl is also left unenclosed |
 | serialization | phosphoryl prefixes | `[diethyl(oxo)phosphanyl]acetic acid` | `(diethylphosphoryl)acetic acid` | "phosphoryl (preselected prefix)" for -PO< (p. 357), substituted as in "[(dimethoxyphosphoryl)oxy]carbonothioyl (preferred prefix)" (p. 359) |
 | serialization | tert-butyl | `dimethyl(2-methylpropan-2-yl)silanol` | `tert-butyldi(methyl)...` (pp. 313, 375) | the book prints tert-butyl in PINs |
 
 Also open, and not a name defect:
 
-* **The atom-drop invariant has gaps.** Twice this round a change made the
-  engine drop atoms and still return a name, and the plan-level atom-drop
-  invariant caught neither: an FG with no prefix form that was not the
-  principal group vanished with its atoms ("pentanoic acid" for an oxime acid),
-  and an Si-OH suffix class (abandoned) named trimethylsilanol
-  "hydroxymethane". Both were caught by a round trip, after the fact. A check
-  that the finished tree accounts for every atom would catch the next one.
-* **The registry.** `tools/retained_name_audit.py` now fails closed on
-  impossible claims, and 18 PINs, 26 non-PIN retained names and 15 book-absent
-  names are typed; 251 entries still have no audited status. Separately,
-  `data/opsin_extracted/retained_names_from_opsin.json` holds 1,824 names taken
-  from OPSIN's parse dictionary that feed whole-molecule naming unaudited
-  (fluorouracil among them): a parser's vocabulary is not evidence of a PIN.
-* **The book contradicts itself once, and the rule was followed.** Its prefix
-  list prints `2,3-dihydro-1H-isoindol-2-yl` (p. 344); P-58.2.3.1.1 and the
-  worked analysis on p. 499 give `2H-isoindol-2-yl`. The engine emits the
-  latter; the test row says why.
+* **The atom-drop invariant has gaps.** CLOSED for substitutive trees in
+  round 5 (N2, `ownership.py`): every level's tree must own each heavy atom
+  exactly once, a suffix may own only elements its form names, and nothing
+  outside the parent's component. Both of round 4's drops, re-injected, are
+  caught. What it does NOT reach, measured over the tuning populations: 66
+  of 267 molecules are named with no substitutive level at all (63 by a
+  single leaf -- a retained name or a single-centre route --, 2 by a pre-plan
+  string dispatcher, 1 additively), and functional-class, multiplicative,
+  ring-assembly and additive nodes are not audited inside. See "Open after
+  naming round 5".
+* **The registry.** `tools/retained_name_audit.py` fails closed on
+  impossible claims; 19 PINs and 27 non-PIN names are typed, 249 entries have
+  no audited status. GATED in round 5 (N5): a record that came from OPSIN's
+  parse dictionary -- the 1,824-name `retained_names_from_opsin.json`, or one
+  of the 174 registry entries copied from it -- is emitted only with
+  NORMATIVE_RULE evidence, and an audited demotion binds every table that
+  spells the name (`engine.retained_gate_refusal`, `--gate`). Every registry
+  entry a tuning-population name reaches (12) is audited. What remains
+  unaudited is the OPSIN RING vocabulary (see the round-5 table) and the
+  unreached registry backlog. DECIDED (Alex, 2026-09-19, on the N5 report):
+  no full audit of the backlog. DONE in N9: all 75 usable, unaudited,
+  non-OPSIN entries are typed with a quoted rule -- 33 PIN, 6 demoted because
+  the book prints another name as the PIN, 36 demoted because the book never
+  prints the name. Three were removed for binding an amino-acid name to the
+  WRONG STEREOISOMER, and two new tests check name-against-structure and
+  forbid one name under two structures. 171 entries remain untyped; the gate
+  refuses every one of them that came from OPSIN.
+* **The book contradicts itself twice, and the majority was followed.** Its
+  prefix list prints `2,3-dihydro-1H-isoindol-2-yl` (p. 344); P-58.2.3.1.1
+  and the worked analysis on p. 499 give `2H-isoindol-2-yl`. The engine emits
+  the latter; the test row says why. And an ylidene on a ring position keeps
+  that position's added or indicated hydrogen in '2-ethylidene-2H-indene
+  (PIN)' (pdf p. 932) and a tricyclic dione (pdf p. 642), but not in
+  '3-sulfanylidene-2-benzothiophen-1-one (PIN)' on the same page; the engine
+  keeps it (`3-propylidene-2-benzofuran-1(3H)-one`, re-adjudicated in round 5,
+  N7, h2cid28500).
 * **Depiction.** Substituent numbering now reaches the drawing (A12), except
   from compound amino prefixes assembled as strings, which carry no tree.
 
@@ -407,8 +471,8 @@ all look like "the comparator picked wrong" live in different places.
 | data | p-xylene | `1,4-dimethylbenzene` | `1,4-xylene` | P-22.1.3 names the xylene isomers PINs; the registry needs an entry ADDED |
 | functional class | dimethyl sulfoxide, dimethyl sulfone, omeprazole | `dimethyl sulfoxide` | `(methanesulfinyl)methane` | P-63.6: the class names are not preferred, and neither is PubChem's alkylsulfinyl prefix |
 | additive | trimethylamine N-oxide | `N,N-dimethylmethanamine oxide` | `N,N-dimethylmethanamine N-oxide` | the book's PIN carries the `N-` locant |
-| serialization | hexamethyldisiloxane | `trimethyl(trimethylsiloxy)silane` | `...silyloxy...` | the O-bridge assembly drops the `yl` of a contracted stem |
-| serialization | cid14000 | `4-{[(ethyl)][...]amino}butyl ...` | `4-{ethyl[...]amino}butyl ...` | a tertiary-amine prefix path wraps a simple prefix twice |
+| serialization | hexamethyldisiloxane | `trimethyl(trimethylsiloxy)silane` | `...silyloxy...` | STALE, re-measured 2026-09-19 (N8): N5's a(ba)n parent names it `hexamethyldisiloxane` and the O-bridge assembly is not reached |
+| serialization | cid14000 | `4-{[(ethyl)][...]amino}butyl ...` | `4-{ethyl[...]amino}butyl ...` | STALE, re-measured 2026-09-19 (N8): it emits `2-({4-[(4-aminobenzoyl)oxy]butyl}(ethyl)amino)ethyl 4-aminobenzoate` |
 
 Architecture, deliberately deferred rather than half-done:
 

@@ -189,9 +189,18 @@ def _build_curated_from_data_loader() -> tuple[
     Stage 2B base (naphthalene, biphenylene, 1,4-dihydronaphthalene, etc.)
     keeps that role.
     """
+    from openchem.vendor.iupac_namer.data_loader import retained_record_refusal
+
     result: dict[str, tuple[str, str | None, bool, dict | None]] = {}
     optout: set[str] = set()
     for smiles, record in _RING_CURATED_SMILES.items():
+        # The registry gate (naming round 5, N5) binds this table as well:
+        # "hypoxanthine" and "adenin-9-yl" kept reaching the output as ring
+        # PARENT and substituent names from here after the whole-molecule
+        # lookup had stopped emitting them. A record the gate refuses is left
+        # out, so the systematic ring name takes its place.
+        if retained_record_refusal({**record, "smiles": smiles, "table": "ring_curated"}):
+            continue
         # PIN-eligibility alias swap: retained names flagged pin_eligible=False
         # in data_loader.py (e.g. tetraline, indane, chroman, isochroman) are
         # general-nomenclature only.  When the record supplies pin_name /
@@ -304,6 +313,23 @@ _DATAFILE_PIN_INELIGIBLE_NAMES: frozenset[str] = frozenset({
     # suffix form (naming round 4, D-057d).
     "urazol",
 })
+
+
+def _datafile_name_ineligible(name: str) -> bool:
+    """May a ring-vocabulary record (rings_from_opsin.json) NOT name a parent?
+
+    The fixed list above, plus every name the retained-name registry audits
+    as RETAINED_NOT_PIN, read by NAME for the reason the list gives (the stem
+    "hypoxanthin" is read as "hypoxanthine"). That is the registry's typed
+    evidence, not a spelling rule: in naming round 5 (N5) guanine became
+    "2-aminohypoxanthine" from this table once the curated one was gated. The
+    table's other ~700 names are OPSIN's ring vocabulary too, and unaudited;
+    they stay usable and are reported, not guessed at.
+    """
+    from openchem.vendor.iupac_namer.data_loader import registry_demotes_name
+
+    return (name in _DATAFILE_PIN_INELIGIBLE_NAMES
+            or registry_demotes_name(name) or registry_demotes_name(name + "e"))
 
 
 def is_stage2_fusion_base_eligible(smiles: str | None) -> bool:
@@ -1185,9 +1211,11 @@ def _build_lookup() -> None:
     # "anthracen") — they drop the terminal 'e' so "-yl" attaches cleanly to form
     # substituent names ("pyrrolidin-1-yl", "anthracen-9-yl"). They are NOT
     # parent-name forms. For saturated heterocycles with canonical HW saturated-
-    # ring endings we re-append 'e' to recover the parent name. For everything
-    # else we keep the stem as-is (some names like "furan", "indol", "coumarin"
-    # are real non-'e' parent names).
+    # ring endings we re-append 'e' to recover the parent name; "-in"/"-ol"
+    # stems get it back when OPSIN's fusion prefixes show the parent ends in
+    # 'e' (below). Otherwise the stem is kept ("furan" and "coumarin" are
+    # names; "indol" is NOT -- the PIN is 1H-indole -- which this comment used
+    # to say it was).
     _SAT_HW_STEM_ENDINGS = (
         "iridin", "etidin", "olidin", "olan", "iran", "etan",
         "inan", "epan", "ocan", "onan", "ecan",
@@ -1213,9 +1241,24 @@ def _build_lookup() -> None:
     # "benzyne" preserves OPSIN round-trip equivalence.
     _OPSIN_NAME_PIN_OVERRIDE: dict[str, str] = {
         "benzyn": "1,2-didehydrobenzene",
+        # P-25.1.2.1 (pdf p. 199): "tetracene (PIN) (formerly naphthacene)"
+        "naphthacene": "tetracene",
     }
     try:
         opsin_rings = get_rings_from_opsin()
+        # An arylGroups stem is its parent name less a final 'e' -- when the
+        # parent HAS one. OPSIN's own fusion-prefix list says which: a parent
+        # ending in 'e' forms its prefix by 'e' -> 'o' ("quinolizine" ->
+        # "quinolizino"). Without this "quinolizin", "arsindol" and
+        # "acridarsin" were emitted as whole ring names (naming round 5, N3),
+        # while stems that are names ("coumarin", "isatin") have no such
+        # prefix and are left alone.
+        _fusion_prefixes = {
+            variant.strip()
+            for e in opsin_rings
+            if isinstance(e, dict) and e.get("source") == "fusionComponents.xml"
+            for variant in e.get("name", "").split("|")
+        }
         for entry in opsin_rings:
             if not isinstance(entry, dict):
                 continue
@@ -1250,6 +1293,12 @@ def _build_lookup() -> None:
                     elif (
                         source == "arylGroups.xml"
                         and primary_name.endswith(_UNSAT_EN_STEM_TAIL)
+                    ):
+                        primary_name = primary_name + "e"
+                    elif (
+                        source == "arylGroups.xml"
+                        and primary_name.endswith(("in", "ol"))
+                        and primary_name + "o" in _fusion_prefixes
                     ):
                         primary_name = primary_name + "e"
                     # Apply spec-PIN overrides (P-54.4.4 et al.).
@@ -1465,7 +1514,7 @@ def try_retained_name(
                 # the systematic PIN (2,3-dihydro-1H-indene,
                 # 1,2,3,4-tetrahydronaphthalene, etc.) is emitted per
                 # P-25.3.1.3 / P-31.1.4.2.4 / P-32.4 / P-53 / P-54.4.3.2.
-                if record["name"] in _DATAFILE_PIN_INELIGIBLE_NAMES:
+                if _datafile_name_ineligible(record["name"]):
                     record = None
                     matched_record_key = None
             if record is not None:
@@ -1556,7 +1605,7 @@ def try_retained_name(
                 record = _smiles_to_record.get(oxo_smiles)
                 if record is None and oxo_no_stereo:
                     record = _smiles_to_record.get(oxo_no_stereo)
-                if record is not None and record["name"] in _DATAFILE_PIN_INELIGIBLE_NAMES:
+                if record is not None and _datafile_name_ineligible(record["name"]):
                     # Same PIN-eligibility gate the main data-file branch
                     # above applies.  Both read from _smiles_to_record, so a
                     # name that is general-nomenclature-only must be declined
@@ -1763,7 +1812,10 @@ def try_retained_name(
     # 1,4-dione that lands on the curated 1,4-dihydronaphthalene key).  The
     # adjacent (ortho) dione has no curated dihydro skeleton, so this
     # generative pass is required to name it on the mancude parent.
-    if match_name is None and ring_mol is not None:
+    # No ``ring_mol`` needed: the derivation re-reads the full molecule, and
+    # bare 7H-xanthine, whose ring alone does not kekulize, had no systematic
+    # name at all once its retained name was gated (naming round 5, N5).
+    if match_name is None:
         derived_oxo = _try_derive_oxo_aromatic_retained(
             ring_system=ring_system,
             mol=mol,
@@ -2053,8 +2105,10 @@ def try_retained_name(
     # Carry through added-indicated-H atoms from the dihydro derivation when
     # the count==1 path produced an "added-IH" form (P-31.1.4.2.4 / P-58.2.2).
     _added_ih_atoms: tuple[int, ...] | None = None
+    _hydro_atoms: tuple[int, ...] | None = None
     if derived_dihydro is not None:
         _added_ih_atoms = derived_dihydro.get("added_indicated_h_atoms")
+        _hydro_atoms = derived_dihydro.get("hydro_atoms")
 
     # Orientations that come out with the SAME name (a completely hydrogen-
     # ated symmetric ring: both mirror images are "dodecahydro-1H-carbazole")
@@ -2078,7 +2132,8 @@ def try_retained_name(
         _orient_groups.setdefault(orient_name, []).extend(orient_nbs)
         _orient_meta.setdefault(
             orient_name,
-            (orient.get("substituent_form"), orient.get("added_indicated_h_atoms")),
+            (orient.get("substituent_form"), orient.get("added_indicated_h_atoms"),
+             orient.get("hydro_atoms")),
         )
     if match_name in _orient_groups and numbering_options:
         _extra = [nb for nb in _orient_groups.pop(match_name) if nb not in numbering_options]
@@ -2094,6 +2149,7 @@ def try_retained_name(
         extra_atom_indices=extra_atom_indices,
         added_indicated_h_atoms=_added_ih_atoms,
         precomposed_retained_no_suffix=precomposed_no_separable_suffix,
+        hydro_atoms=_hydro_atoms,
     )]
 
     # Emit per-numbering retagged variants as additional candidates (see the
@@ -2112,6 +2168,7 @@ def try_retained_name(
             extra_atom_indices=extra_atom_indices,
             added_indicated_h_atoms=_added_ih_atoms,
             precomposed_retained_no_suffix=precomposed_no_separable_suffix,
+            hydro_atoms=_hydro_atoms,
         ))
 
     # Append per-orientation NamedParents from the partial-saturation
@@ -2122,7 +2179,7 @@ def try_retained_name(
     # (The indicated-H tautomer correction was applied to each orientation's
     # name above, mirroring the primary-name path.)
     for orient_name, orient_nbs in _orient_groups.items():
-        orient_sub, orient_added_ih = _orient_meta[orient_name]
+        orient_sub, orient_added_ih, orient_hydro = _orient_meta[orient_name]
         results.append(_build_named_parent(
             ring_system=ring_system,
             name_str=orient_name,
@@ -2133,6 +2190,7 @@ def try_retained_name(
             extra_atom_indices=extra_atom_indices,
             added_indicated_h_atoms=orient_added_ih,
             precomposed_retained_no_suffix=precomposed_no_separable_suffix,
+            hydro_atoms=orient_hydro,
         ))
 
     return results
@@ -3668,10 +3726,19 @@ def _finalize_hydro_orientation(
     )
     numbering_options = (numbering,)
 
+    # The atoms the hydro prefix covers, for P-14.4 (e)(i)'s ranking of
+    # orientations (types.NamedParent.hydro_atoms).
+    _hydro_loc_strs = {str(l) for l in best_locs}
+    hydro_atoms = tuple(sorted(
+        full_idx for key_idx, full_idx in enumerate(best_match)
+        if str(atom_locants.get(key_idx)) in _hydro_loc_strs
+    ))
+
     return {
         "name": derived_name,
         "substituent_form": derived_sub,
         "numbering_options": numbering_options,
+        "hydro_atoms": hydro_atoms,
     }
 
 
@@ -4029,6 +4096,7 @@ def _build_named_parent(
     extra_atom_indices: "frozenset[int] | None" = None,
     added_indicated_h_atoms: "tuple[int, ...] | None" = None,
     precomposed_retained_no_suffix: bool = False,
+    hydro_atoms: "tuple[int, ...] | None" = None,
 ) -> "NamedParent":
     """Build a NamedParent from a retained name.
 
@@ -4076,6 +4144,7 @@ def _build_named_parent(
         numbering_options=numbering_options,
         added_indicated_h_atoms=added_indicated_h_atoms,
         precomposed_retained_no_suffix=precomposed_retained_no_suffix,
+        hydro_atoms=hydro_atoms,
     )
 
 
@@ -4088,6 +4157,7 @@ def _build_named_parent_from_candidate(
     numbering_options: "tuple[Numbering, ...]" = (),
     added_indicated_h_atoms: "tuple[int, ...] | None" = None,
     precomposed_retained_no_suffix: bool = False,
+    hydro_atoms: "tuple[int, ...] | None" = None,
 ) -> "NamedParent":
     """Build NamedParent from an existing CandidateParent and name string."""
     # stem = name without trailing 'e' (for Method 2 suffix attachment)
@@ -4116,4 +4186,5 @@ def _build_named_parent_from_candidate(
         numbering_options=numbering_options,
         added_indicated_h_atoms=added_indicated_h_atoms,
         precomposed_retained_no_suffix=precomposed_retained_no_suffix,
+        hydro_atoms=hydro_atoms,
     )

@@ -95,7 +95,7 @@ _MULT = {
 
 # Elements eligible to be acid *centres*.  Halogens are handled by a
 # separate code path (oxo count == central formal charge).
-_PNICT_CHALC_B = frozenset({"N", "P", "As", "Sb", "B", "S", "Se", "Te"})
+_PNICT_CHALC_B = frozenset({"N", "P", "As", "Sb", "B", "Si", "S", "Se", "Te"})
 _HALOGENS = frozenset({"F", "Cl", "Br", "I"})
 _CENTRE_ELEMENTS = _PNICT_CHALC_B | _HALOGENS
 
@@ -395,9 +395,11 @@ def _mononuclear_root_and_suffix(element: str, tier: int, oxo_count: int):
         else:
             return None
         return tdata["ic"], suffix, scheme
-    if scheme == "boron":
+    if scheme in ("boron", "silicon"):
         # Boron has no lower oxidation state and bears no oxo: always the
         # -ic-form root.  Any oxo disqualifies (not a boron oxoacid form).
+        # Silicon likewise: silicic acid is Si(OH)4, with no oxo form, and
+        # its only tier is 4, so no Si-H or Si-C form ever reaches here.
         if oxo_count != 0:
             return None
         return tdata["ic"], "ic", scheme
@@ -590,6 +592,15 @@ def _apply_anion(*, mult: str, peroxy: str, acid_root: str, suffix: str,
     prefix (sulfamic family, P-67.1.2.6) leads the whole name.
     """
     amido_prefix = "amido" * amido if amido else ""
+    if amido == 1 and not (mult or peroxy) and f"{acid_root}{suffix}" == "sulfuric":
+        # "H2N-SO2-OH sulfamic acid (name derived from the preselected name
+        # sulfuric acid; contraction of sulfuramidic acid)" (P-67.1.2.4.1.1,
+        # pdf p. 703). "amidosulfuric acid" is the inorganic (additive) form
+        # (naming round 5, N4).
+        if total_oxide == 0:
+            return "sulfamic acid"
+        if total_oh == 0:
+            return "sulfamate"
 
     if total_oxide == 0:
         # Neutral acid.

@@ -438,6 +438,29 @@ class NamedParent:
                                         # their atom-locants metadata supports
                                         # appending suffixes like
                                         # ``cephem-4-carboxylate``.
+    hydro_atoms: tuple[int, ...] | None = None
+                                        # Full-mol atom indices the name's
+                                        # HYDRO PREFIX covers ("1,2,3,6-
+                                        # tetrahydropyridine": the four sp3
+                                        # atoms). The same atoms in every
+                                        # orientation; only their locants
+                                        # differ, and P-14.4 (e)(i) ranks
+                                        # those locants together with 'ene'
+                                        # endings (pdf p. 75). Set by the
+                                        # retained hydro route (naming round
+                                        # 5, N7); None where no hydro prefix
+                                        # is written or the route predates it.
+    source: str = ""
+                                        # Which route built this parent, where
+                                        # a caller must tell two apart:
+                                        # "fusion_general" (naming round 5,
+                                        # N3) planned its hydrogens on the
+                                        # actual structure and numbered it by
+                                        # the P-25.3.3 drawing, so where the
+                                        # ring table offers the same ring name
+                                        # differing only in indicated hydrogen
+                                        # ("quinolizine" for 4H-quinolizine),
+                                        # `name_ring_system` keeps this one.
 
 
 # ---------------------------------------------------------------------------
@@ -820,6 +843,13 @@ def _build_carbamate_decomposition(fg: DetectedFG, mol: Any) -> Decomposition | 
 
     if acyl_c is None or alkyl_o is None or n_atom is None:
         return None
+    # A carbazate is an ester of "hydrazinecarboxylic acid (PIN) (not
+    # carbazic acid)" (pdf p. 756), whose parent is hydrazine (P-44.1.2),
+    # not a carbamate: "ethyl aminocarbamate" was this split (naming round
+    # 5, N4).
+    carbazate = any(
+        nb.GetAtomicNum() == 7 for nb in mol.GetAtomWithIdx(n_atom).GetNeighbors()
+    )
 
     # Find alkyl C — the non-acyl C neighbor of alkyl_o
     alkyl_c = None
@@ -885,6 +915,12 @@ def _build_carbamate_decomposition(fg: DetectedFG, mol: Any) -> Decomposition | 
     carbamic_frag = Fragment(atom_indices=carbamic_side, mol=mol, charge=0)
     alcohol_frag = Fragment(atom_indices=alcohol_side, mol=mol, charge=0)
 
+    if carbazate:
+        # The ester of hydrazinecarboxylic acid would be the PIN, but the
+        # engine cannot yet name its anion ("oxidooxomethylhydrazine"), so
+        # no functional-class plan is offered: the substitutive name on the
+        # right parent stands, "(ethoxycarbonyl)hydrazine". OPEN (D-088c).
+        return None
     return Decomposition(
         type="functional_class",
         subtype="carbamate",
@@ -2055,6 +2091,10 @@ class PrefixEntry:
     # canonically, so identical fragments have identical indices. Not part of
     # equality -- two identical prefixes at different positions still merge.
     atom_origin: tuple[tuple[int, int], ...] = field(default=(), compare=False)
+    # The atoms of the molecule named at THIS level that this prefix owns,
+    # stamped from the plan assignment that produced it (round 5, N2; see
+    # ownership.py). Not part of equality, for the same reason as above.
+    claimed_atoms: frozenset[int] = field(default=frozenset(), compare=False)
     # multiplier is NOT stored here -- it's computed during assembly's
     # merge_identical_prefixes step.
 
@@ -2166,6 +2206,12 @@ class SubstitutiveTree(TreeBase):
     # RDKit mol (perception.symmetry.single_substituent_locant_forced_by_symmetry);
     # default False so untouched code paths keep their locants.
     single_substituent_positions_all_equivalent: bool = False
+    # P-14.3.4.5 (pdf p. 72): every parent skeletal atom is fully
+    # substituted -- no hydrogen is left at any parent position. Computed in
+    # the engine from the RDKit mol; assembly omits the prefix locants when
+    # ONE prefix name accounts for all of those positions ("hexachloroethane",
+    # "hexamethyldisiloxane"). Default False so untouched paths keep locants.
+    parent_has_no_free_position: bool = False
     # P-58.2.2 'added indicated hydrogen' carried by a FREE VALENCE, cited
     # after its locant: "pyridin-1(2H)-yl (preferred prefix)",
     # "3,4-dihydroquinolin-2(1H)-ylidene" (pdf p. 479). Set by the P-58.2

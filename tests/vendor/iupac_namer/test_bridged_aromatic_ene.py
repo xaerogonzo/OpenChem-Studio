@@ -98,12 +98,14 @@ class TestFusedAromaticBridgedVB:
             assert _opsin_roundtrip(smi, name), f"round-trip failed: {name}"
 
     def test_cross_bridge_pentaene(self):
-        """Fused-aromatic bridged system with a pentaene numbering that
-        requires a ``1(13)`` cross-bridge locant."""
+        """Was the von Baeyer "tricyclo[7.3.1.0^{5,13}]trideca-1(13),5,7,9,
+        11-pentaene", pinned for its "1(13)" cross-bridge locant. The system
+        is a hydro phenalene -- a retained PIN parent (Table 2.7) -- and
+        P-52.2.4.1 gives fusion names to any system with two rings of five or
+        more members, so naming round 5 (N3) names it as one."""
         smi = "C1CCC2=CC=CC3=CC=CC1=C23"
         name = name_smiles(smi)
-        assert "1(13)" in name, f"expected cross-bridge locant in {name}"
-        assert name == "tricyclo[7.3.1.0^{5,13}]trideca-1(13),5,7,9,11-pentaene"
+        assert name == "2,3-dihydro-1H-phenalene"
         if HAVE_OPSIN:
             assert _opsin_roundtrip(smi, name), f"round-trip failed: {name}"
 
@@ -114,11 +116,11 @@ class TestFusedAromaticBridgedVB:
         """
         smi = "C1CC2C3=CC=CC=C3CC12"
         name = name_smiles(smi)
-        # Principal-path enes only: 2,4,6-triene
-        assert name == "tricyclo[7.2.0.0^{2,7}]undeca-2,4,6-triene"
-        assert "(" not in name.split("-")[-2], (
-            f"principal-path enes should not carry (hi) disambiguation: {name}"
-        )
+        # Round 5 (N3): rings of 6, 5 and 4 members -- two of five or more,
+        # so P-52.2.4.1 makes the fusion name the PIN, where this test had
+        # pinned "tricyclo[7.2.0.0^{2,7}]undeca-2,4,6-triene". The von Baeyer
+        # formatting it checked is still covered by the cases around it.
+        assert name == "2,2a,7,7a-tetrahydro-1H-cyclobuta[a]indene"
         if HAVE_OPSIN:
             assert _opsin_roundtrip(smi, name), f"round-trip failed: {name}"
 
@@ -146,8 +148,9 @@ class TestOpsinVerifiedBridgedAromatic:
             "tricyclo[8.4.0.0^{4,9}]tetradeca-1(14),2,10,12-tetraene",
         ),
         (
+            # Round 5 (N3): a hydro phenalene, named by fusion (P-52.2.4.1)
             "C1CCC2=CC=CC3=CC=CC1=C23",
-            "tricyclo[7.3.1.0^{5,13}]trideca-1(13),5,7,9,11-pentaene",
+            "2,3-dihydro-1H-phenalene",
         ),
     ])
     def test_round_trip(self, smi, expected_name):

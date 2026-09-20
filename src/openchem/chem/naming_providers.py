@@ -374,7 +374,10 @@ def retained_name_for_structure(mol: Chem.Mol, preferred: str) -> NameResult | N
         return None
 
     verdict = verify_name_round_trip(name, mol)
-    if verdict in (RoundTrip.MISMATCH, RoundTrip.STEREO_CONTRADICTED):
+    # An alternative that cannot be checked is dropped too: it is the
+    # secondary line, and the preferred name above it already stands.
+    if verdict in (RoundTrip.MISMATCH, RoundTrip.STEREO_CONTRADICTED,
+                   RoundTrip.PARSER_FAILED):
         logger.info("retained name %r does not round-trip; not shown", name)
         return None
     note = (
@@ -405,7 +408,9 @@ def derived_name_for_structure(mol: Chem.Mol) -> NameResult:
     A rule engine cannot be fluently wrong the way a language model can,
     but it can still be wrong, and this is a cheap independent check --
     the engine's own author uses the same one. Without OPSIN the name is
-    still returned, flagged as unverified rather than silently trusted.
+    still returned, flagged as unverified rather than silently trusted --
+    and so is a name OPSIN is present but cannot read (`PARSER_FAILED`).
+    Only a name that parses to a DIFFERENT structure is withheld.
 
     See src/openchem/vendor/VENDORING.md for provenance and
     benchmarks/naming for the measured accuracy (120/124, stereochemistry
@@ -445,6 +450,11 @@ def derived_name_for_structure(mol: Chem.Mol) -> NameResult:
         note = "This name specifies stereochemistry the structure leaves undefined."
     elif verified is RoundTrip.UNVERIFIED:
         note = "Not verified: no offline parser available to check it."
+    elif verified is RoundTrip.PARSER_FAILED:
+        # SHOWN: the checker failing to read a name is not the name being
+        # wrong, and withholding it had hidden book PINs OPSIN cannot parse.
+        note = ("Not verified: the checking parser (OPSIN) could not read this "
+                "name back, so it could not be compared with the structure.")
     else:
         note = ""
     record = _retained_registry_record(smiles)
@@ -619,6 +629,12 @@ class RoundTrip(str, Enum):
     MISMATCH = "mismatch"
     #: No offline parser available. Honestly different from a failure.
     UNVERIFIED = "unverified"
+    #: The parser was there and could not read the name back (or RDKit could
+    #: not build what it returned): the CHECKER failed, which is not evidence
+    #: against the name. Split from MISMATCH in naming round 5 because an
+    #: input reached it: the book's "N1,N2-bis(cyanomethyl)oxamide (PIN)"
+    #: (p. 653), which OPSIN cannot parse, was being withheld as wrong.
+    PARSER_FAILED = "parser_failed"
 
 
 def verify_name_round_trip(name: str, original: Chem.Mol) -> RoundTrip:
@@ -635,9 +651,9 @@ def verify_name_round_trip(name: str, original: Chem.Mol) -> RoundTrip:
     establish that the two structures differ stereochemically, which is a
     different claim.
 
-    **`MISMATCH` IS REACHED FROM THREE PLACES AND ONLY ONE OF THEM IS
-    EVIDENCE AGAINST THE NAME.** Recorded because the distinction is real
-    and the collapse into one verdict is deliberate:
+    **THREE FAILED OUTCOMES, AND ONLY ONE OF THEM IS EVIDENCE AGAINST THE
+    NAME.** They were one verdict, `MISMATCH`, until naming round 5
+    (2026-09-19); the history below is why, and what changed it:
 
         OPSIN could not parse our name      the CHECKER failed
         RDKit could not build OPSIN's SMILES the CHECKER failed
@@ -655,8 +671,11 @@ def verify_name_round_trip(name: str, original: Chem.Mol) -> RoundTrip:
 
     `benchmarks/naming/round_trip_paths.py` re-measures that distribution;
     `tests/test_naming_providers.py` holds the three paths apart with
-    controlled dependency failures, so a future change cannot silently
-    collapse them and the split stays cheap if a real case ever appears.
+    controlled dependency failures. The real case appeared in round 5: the
+    engine learned the book's "N1,N2-...oxamide" PINs, which OPSIN cannot
+    parse, and the app began withholding book-correct names as wrong. The
+    first two paths now return `PARSER_FAILED`, shown with a note saying it
+    could not be checked; only the third is `MISMATCH`.
 
     One measurement note, because it cost a wrong reading once: OPSIN
     emits `APPEARS_AMBIGUOUS` as a WARNING while still returning a parse.
@@ -667,10 +686,10 @@ def verify_name_round_trip(name: str, original: Chem.Mol) -> RoundTrip:
     try:
         parsed = opsin_structure_for_name(name)
     except NamingError:
-        return RoundTrip.MISMATCH
+        return RoundTrip.PARSER_FAILED
     candidate = Chem.MolFromSmiles(parsed.smiles)
     if candidate is None:
-        return RoundTrip.MISMATCH
+        return RoundTrip.PARSER_FAILED
     if Chem.MolToSmiles(candidate) == Chem.MolToSmiles(original):
         return RoundTrip.MATCH
     if _skeleton(candidate) == _skeleton(original):
@@ -851,6 +870,12 @@ def compute_iupac_name(
             # NOT the IUPAC name, so it says so rather than leaving the reader
             # to infer it from the order.
             line += "  -- acceptable in general nomenclature; not the preferred IUPAC name"
+        if result.kind == DERIVED and result.note:
+            # The derived name's own verdict note ("Not verified: ...", or
+            # what its stereochemistry leaves out). Measured 2026-09-19: this
+            # loop never read it, so every such note stopped at the NameResult
+            # and the report showed the bare name.
+            line += f"  -- {result.note}"
         if result.kind == PREDICTED:
             verified = verify_name_round_trip(result.name, mol)
             if verified is RoundTrip.MATCH:
@@ -863,6 +888,8 @@ def compute_iupac_name(
                 line += "  -- WARNING: its stereodescriptors contradict this structure"
             elif verified is RoundTrip.MISMATCH:
                 line += "  -- WARNING: does not round-trip back to this structure"
+            elif verified is RoundTrip.PARSER_FAILED:
+                line += "  -- not verified: the parser could not read it back"
             # UNVERIFIED means no parser was available to check with,
             # which is not a failed check and is not claimed as one.
         lines.append(line)

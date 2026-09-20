@@ -21008,3 +21008,51 @@ would have turned a drawn zwitterion neutral.
 of its rows through the real service and fails on any unscoped value, any
 uncoded refusal, or a distance sentinel; ten deliberate breaks were all
 caught.
+
+## THREE ENTRIES NAMED THE WRONG MOLECULE, AND ONLY A DUPLICATE REVEALED THEM
+
+Round 5's N9 audited the 75 retained-name registry entries the OPSIN gate
+lets through and nothing had typed. Three of them bound a name to the wrong
+structure:
+
+    L-proline      O=C(O)[C@H]1CCCN1          (2R) -- D-proline
+    L-threonine    C[C@H](O)[C@H](N)C(=O)O    (2S,3S) -- L-allothreonine
+    L-isoleucine   CC[C@@H](C)[C@H](N)C(=O)O  (2S,3R) -- L-alloisoleucine
+
+The book states each one plainly: (2S)-proline (pdf p. 1042), "L-threonine
+... (2S,3R)-2-amino-3-hydroxybutanoic acid", "L-isoleucine ...
+(2S,3S)-2-amino-3-methylpentanoic acid" (pdf pp. 1042-1043). Two of the three
+carried `source: "bluebook"`, so the wrong structure came with a claim of
+book provenance.
+
+**They surfaced only as a side effect.** The audit keyed its work by name,
+the run touched 78 entries instead of 75, and chasing that arithmetic found
+the three names each appearing under TWO SMILES -- the second one, sourced
+from OPSIN's dictionary, correct in every case. Had the wrong entry been the
+only one, the audit would have typed it PIN with a real citation and the
+engine would then have printed "L-proline" for D-proline: a wrong molecule,
+carrying a page number.
+
+**The registry could not catch this, and neither could the round trip.** The
+registry's validator checks that claims are coherent -- a PIN needs
+normative evidence, an absent name can only support a demotion -- and every
+one of those claims was satisfied. The round-trip gate compares the engine's
+OUTPUT with its INPUT; a name never emitted is never checked. The pair
+(name, structure) inside the table was checked by nothing.
+
+**Two guards now check it, and both are cheap.** OPSIN reads a name
+independently of this registry, so it is an oracle for exactly this
+question: `test_every_registry_name_denotes_its_own_structure` parses all
+292 names in one call and compares structures, requiring an exact match
+wherever OPSIN's parse fixes the stereocentres and ignoring stereo where it
+does not (nicotine is the (S) enantiomer in nature; OPSIN's bare "nicotine"
+has none). 288 agree, three nucleobases differ by a tautomer and are listed
+as visible exemptions. `test_no_name_is_bound_to_two_structures` states the
+invariant the defect violated. Measured after the fix: 0 mismatches.
+
+**The audit's own result, for the record:** of the 75, 33 are typed PIN from
+a quoted rule, 6 are demoted because the book prints another name as the PIN
+(`pyrrolizine`, whose PIN is `1H-pyrrolizine`, is the same shape as round 3's
+quinolizine), and 36 are demoted because the book never prints the name at
+all. Nothing in the three tuning corpora changed, which is what the N5
+report predicted: those 75 entries are unreached.

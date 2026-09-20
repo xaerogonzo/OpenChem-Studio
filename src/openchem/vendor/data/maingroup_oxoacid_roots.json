@@ -61,6 +61,12 @@
                 "1": {"ic": "stibin", "ous": "stibin"}
             }
         },
+        "Si": {
+            "scheme": "silicon",
+            "_note": "P-67.1.1.1 / P-68.2.4 (pdf pp. 698, 748): 'silicic acid (preselected name) (not orthosilicic acid)' is Si(OH)4 only -- a Si bearing H or C is a silanol, named substitutively. Esters and salts are named from it ('O-ethyl S,S,S-trimethyl trithiosilicate (PIN)', p. 710); 'disilicic acid (preselected name)' (p. 720). Naming round 5 (N5).",
+            "tiers": {"4": {"ic": "silic", "ous": "silic"}},
+            "anion_root": "silic"
+        },
         "B": {
             "scheme": "boron",
             "tiers": {

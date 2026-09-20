@@ -1038,3 +1038,249 @@ Benchmark: regression **187/187 round-trip throughout; PubChem verbatim 98 ->
 101/187**; the used held-out set 40/40, verbatim 14 -> 16/40. The fresh
 held-out result is in `BENCHMARK_HISTORY.md`. What is still open is in
 `KNOWN_LIMITATIONS.md`, "Open after naming round 4".
+
+## 2026-09-19 - naming round 5
+
+**Atom ownership on the tree (N2).** The executor's plan-level "no silent
+atom drop" check asked only whether the UNION of a plan's claims covered the
+molecule, and it ran before the tree existed; round 4 dropped atoms twice past
+it. `ownership.py` checks the TREE the substitutive executor is about to
+return, at every recursion depth: every heavy atom owned by exactly one node
+(parent, suffix group or prefix), a suffix owning only elements its form names
+(round 4's "hydroxymethane" for trimethylsilanol), and nothing outside the
+parent's connected component. `PrefixEntry.claimed_atoms` carries the
+provenance, stamped from the plan assignment that produced each entry
+(`ClaimingPrefixList`, so none of the 19 construction sites had to change).
+Suffix FGs now record their SMARTS context atoms (`context_atoms`: the plain
+`[#6]` of an amine's R or a ketone's two R), which is what the first
+measurement needed -- all 30 double-owned levels on the tuning corpora were a
+suffix counting its neighbours. Enforced in the app (a violating plan fails
+closed, never emitting the name), strict under test. No name changed.
+
+**General fusion nomenclature (N3).** A fused ring system with no retained
+name was named by fusion only through one narrow route (a [1,3]-dihetero or
+mono-hetero five-ring on a known base), which also chose the wrong parent
+("furo[2,3-b]thiophene" for thieno[2,3-b]furan) and invented names
+("selenolo[2,3-b]selenofuran"); everything else fell to a von Baeyer name or
+none. Measured on the book's own P-25 examples: 13 of 125 ortho- and
+peri-fused systems exact. Two new modules build the name the book's way:
+`ring_naming/fusion_general.py` (component vocabulary -- Hantzsch-Widman
+monocycles, benzo-heterocycles, the retained polycycles of Tables 2.7 and 2.8
+with their traditional numberings -- P-25.3.2.4 parent seniority, first-order
+attached components, fusion descriptors, P-25.3.8 omissions) and
+`ring_naming/fusion_orientation.py` (the P-25.3.2.3 drawing -- every permitted
+ring shape as the compass directions its sides face -- and P-25.3.3
+numbering from it). The class is stated in the module and refused outside it
+with a code; a refusal whose fusion name needs a second-order or multiparent
+construction may not be answered by the older fusion route.
+
+On the way: OPSIN "arylGroups" stems were read as whole ring names
+("quinolizin", "arsindol"); a stem regains its 'e' where OPSIN's own fusion
+prefixes show the parent has one. "naphthacene" is "tetracene" (p. 199). The
+P-58 planner treats P, As and Sb as it treats N. Mirror numberings of one
+fusion name travel together on one parent, so the suffix and prefixes choose
+between them -- found by an atom-order permutation test, when the ring
+atoms' order had been choosing.
+
+The ring table's "1,3-benzodioxole" is general nomenclature: "Omission of
+indicated hydrogen is also permitted in general nomenclature ... for example
+1,3-benzodioxole, rather than 2H-1,3-benzodioxole" (P-25.7.1.3.1, p. 260).
+It is now "2H-1,3-benzodioxole" by the table's existing pin_eligible swap. 31
+vendored expectations moved with N3, each to the book's form and each
+round-tripped: the old route's own tests pinned its names (no indicated
+hydrogen on a dioxole CH2, "[1,3]dioxolo[4,5-b]benzene" for a benzo name,
+naphthalene as parent over a dithiole), and three von Baeyer names were
+pinned for systems P-52.2.4.1 gives fusion names.
+
+The preference key gains `indicated_hydrogen_locants`, after the heteroatoms
+and before the suffix, as P-14.4 (b) orders them (p. 74). Without it the ring
+table's per-numbering variants were chosen on a substituent's locant
+("4-chloro-3H-perimidine", where the PIN is 9-chloro-1H-perimidine). A parent
+name that leaves the hydrogen out ranks below every name that states one,
+not as the empty -- lowest -- set, which would have handed "9H-fluorene"'s
+place back to the table's bare "fluorene". Nine vendored perimidine
+expectations moved; no tuning-population name changed.
+
+**Candidate generation (N4).** Three constructions the engine lacked, each
+diagnosed first as the plan asked -- the bis-guanidine, methylenebis(phosphonic
+acid) and the N'-acyl hydrazides were three mechanisms, not one:
+
+* `multiplicative.py`, P-15.3 / P-51.3. A `MultiplicativePlan` type existed and
+  nothing built one, so "phenoxybenzene" stood for 1,1'-oxydibenzene. The
+  decomposition is read off the molecule's symmetry: a class of bonds whose
+  ends fall in the same two symmetry classes is cut, and the cut must leave one
+  linker and n identical units. The units must carry the senior parent, the
+  linker no group as senior as theirs ("bis(phenyldiazenyl)methanone (PIN)
+  [not 1,1'-carbonylbis(2-phenyldiazene)]"), and no unit is an alkane. Each
+  unit is named once, carrying a marker where the linker was, so the engine's
+  own numbering gives the linker the lowest locant; the unit is then cut out
+  of the MARKED name, because reassembling it without the marker re-ran locant
+  omission and wrote "diethanol" for "di(ethan-1-ol)". 22 of the book's PINs
+  come out as printed. Declined with a reason outside the built class
+  (substituted, ring-centred or unsymmetrical linkers; double-bonded units;
+  Si-O-Si, which is a disiloxane chain).
+* The P-44.1.2 senior-atom tier, `parent_senior_atom` in the preference key:
+  "N > P > As > ... > Si > ... > C", which "is applied ... to choose between
+  rings and chains" (p. 375) before ring over chain. Without it a flat ring
+  bonus named "(hydrazinyl)benzene" for phenylhydrazine (PIN), and
+  hydrazinecarboxamide, its N-substituted forms and hydrazinecarboxylic acid
+  were all named on carbon. It also gives "2-(trimethylsilyl)pyridine" (N over
+  Si). With it: "phenylhydrazine" drops its "1" (P-14.3.4 (b)), a carbamic
+  acid or carbamate on a hydrazine N is refused ("not carbazic acid"), the
+  hydrazide pattern admits a carbonyl whose other neighbour is a hydrazine N
+  ("hydrazinecarbohydrazide (PIN)"), and "-C(=O)NHNH2" is "hydrazinecarbonyl".
+  The ownership guard caught the tier's first draft: a hydrazide's own N-N was
+  taken as the hydrazine parent of a "carbohydrazide" suffix, owning its
+  carbonyl twice. That reading is now dropped at plan generation.
+* Sulfamic acids: "sulfamic acid" (p. 703; "amidosulfuric acid" is the
+  inorganic form) and "N-methylsulfamic acid", with the N-locant P-67.1.2.4.1
+  cites -- derived, since the book prints no substituted sulfamic acid.
+
+**The OPSIN registry gate and four retained parents (N5).** A name whose
+RECORD came from OPSIN's parse dictionary -- the 1,824-name
+`retained_names_from_opsin.json`, or one of the 174 registry entries copied
+from it -- is emitted only when the registry types it with NORMATIVE_RULE
+evidence (`engine.retained_gate_refusal`, the rule itself in
+`data_loader.retained_record_refusal`). "fluorouracil" became
+5-fluoropyrimidine-2,4(1H,3H)-dione, "triethanolamine" the multiplicative
+2,2',2''-nitrilotri(ethan-1-ol), "tabun" a systematic name. The gate reads
+where a record came from, never its spelling: azepane's SMILES carries
+OPSIN's "hexamethyleneimine" in the registry and the engine's own "azepane"
+is untouched. An audited demotion is a fact about a NAME, so it now binds
+every table that spells it -- ring naming's curated table was handing out
+"adenin-9-yl" and "hypoxanthine" as ring names after the whole-molecule
+lookup had stopped, and once that was gated, OPSIN's ring vocabulary offered
+"2-aminohypoxanthine" for guanine. Bare 7H-xanthine then had no name at all:
+the oxo-on-mancude derivation waited for a ring mol it never reads, and now
+gives 3,7-dihydro-1H-purine-2,6-dione.
+
+Retained parents: "oxamide (PIN)" and "oxalohydrazide (PIN)" (pp. 644, 667),
+N-substituted as "N1,N2-bis(cyanomethyl)oxamide (PIN)" (p. 653); "silicic
+acid" and "disilicic acid" (pp. 698, 720) in the main-group oxoacid table,
+with its esters and anions ("tetraethyl silicate", derived from p. 710).
+Si-O-Si is the a(ba)n parent disiloxane (P-21.2.3.1): a new candidate for
+every end-to-end alternating chain at standard valence ("chlorodisiloxane",
+"disiloxanecarboxylic acid (PIN)", "methyldiboroxane", a branched siloxane
+on its longest chain), and a heteroatom chain of an element that can also be
+a one-atom centre now competes with that centre on P-44.3's length
+("methyldisilane", "1,2-dimethyldiphosphane"). Boron had been excluded
+because "OPSIN does not support polyborane parent hydrides"; OPSIN parses
+"tetramethyldiboroxane", the book's own PIN (p. 731). A first draft named a
+nucleotide diphosphate "1,3-dioxodiphosphoxanyl"; a P(V) is not an a-term
+atom.
+
+**Principal-group seniority and assignment (N6).** Four classes, each
+measured first as candidate-absent or misassigned:
+
+* Urea below the amides. "Amides from carboxylic acids, including formamide,
+  are senior to urea" (P-66.1.6.1.1.5, p. 660), and the engine's amide
+  patterns matched urea's carbonyl as a carboxamide, so every one of the
+  book's five examples came out as a substituted urea ("N-(3-formamidopropyl)
+  urea", which the book names only to reject). A carbonyl between two
+  acyclic nitrogens, neither bonded to another N, is now a urea group -- a
+  ring or hydrazine N keeps it a carboxamide ("piperidine-1-carboxamide",
+  "hydrazinecarboxamide") -- and the urea route steps aside for any amide.
+  The ("urea", "amine") subsumption had been in the table with no urea group
+  to act for it.
+* A chain-terminal amidine is "amino" + "imino" (P-66.4.1.3.2). The demoted
+  amidine was a "carbamimidoyl" prefix whose carbon the chain also named, so
+  "4-carbamimidoylbutanoic acid" was a WRONG MOLECULE, one carbon too long,
+  and its N-substituted relatives either that or an inverted seniority. The
+  ownership guard did not see it: the prefix claimed its nitrogens and its
+  name carried the carbon. "methyl 4-(dimethylamino)-4-(ethylimino)butanoate
+  (PIN)" is now as printed.
+* Silanols: the single-centre route counts other alcohols (P-44.1.1) before
+  preferring Si (P-44.1.2) instead of declining on any, takes any singly
+  bonded substituent ("(methylamino)silanetriol (PIN)", p. 748), and names a
+  bare silanol. Widening the alcohol pattern to Si-OH was tried first and
+  produced "2-hydroxyethan-1-ol" for a silanol-alcohol: reverted.
+* Hydroxamic acids are N-hydroxy amides ("N-hydroxycyclohexanecarboxamide
+  (PIN) (not cyclohexanecarbohydroxamic acid)", p. 587), N-substituted ones
+  included; the OH oxygen is the prefix's, which the ownership guard
+  enforced on the first attempt.
+* Enols take the -ol suffix ("3,4-dihydronaphthalen-1-ol (PIN)", p. 535).
+
+**Numbering (N7).** A hydro-named parent's orientations reached the
+preference key with no hydro locants, so two of them tied and the first
+enumerated won -- "1,2,5,6-tetrahydropyridine-4-carboxylic acid" (and
+MPTP) for 1,2,3,6-. P-14.4 ranks '(e)(i) ... hydro/dehydro prefixes ... and
+ene and yne endings' together, after suffixes and added hydrogen and before
+detachable prefixes (pdf pp. 74-75). The retained hydro route now records
+the atoms its hydro prefix covers (`NamedParent.hydro_atoms`), and the
+strategy ranks their locants under each plan's numbering.
+
+The same tie was behind "(1,6-dihydropyridin-1-yl)acetic acid" for
+"pyridin-1(2H)-yl (preferred prefix)" (p. 479), which round 4 had put down
+to the free valence missing from the preference key. The candidate was
+generated all along; the prefix tier broke the tie in the wrong direction.
+Every N7 case is also named from shuffled atom orders, a Kekule SMILES and
+randomly rooted SMILES (`tests/test_namer_numbering.py`).
+
+**Serialization (N8).** Every candidate was classified first -- lexical
+spelling, retained-prefix status, PIN preference or prefix construction --
+and only the five lexical ones were built, because only they can leave the
+candidate, its interpretation and its ranking untouched. The stage artifact
+confirms it: 5 names changed across the three tuning populations and 0
+winning hypotheses.
+
+* A prefix of ONE stem ending in "ylidene" is simple, so P-16.5.1.3 leaves
+  it bare: "2-sulfanylidene-1,3-thiazolidin-4-one", "3-propylidene-2-
+  benzofuran-1(3H)-one". That rule encloses a prefix carrying its OWN locant
+  ("propan-2-yl"), not the parent's, which a blanket "-idene" entry had been
+  doing. "phenylmethylidene" has two stems and stays enclosed.
+* Unenclosing them let a prefix/parent junction reach the elision rule for
+  the first time, which emitted "2-methylidenoxolane". Elision belongs at a
+  stem/suffix junction: "2-sulfanylideneoxolane-3-carbonitrile (PIN)".
+* P-16.5.1.3.1: "the first cited substituent never has enclosing marks
+  unless it includes a locant" -- "[hydroxydi(methyl)silyl]acetic acid". The
+  legibility exception for ether prefixes was catching "hydroxy", which is
+  the O-H prefix, not an ether one.
+* P-14.3.4.5, built for an all-carbon chain or ring and for an a(ba)n chain:
+  "hexamethyldisiloxane", "hexachloroethane",
+  "tetramethyldiboroxane (PIN)" (p. 731), and "hexachlorobenzene" and
+  "octamethyltrisiloxane" with them. Two different substituents are not "in
+  the same way" and keep their locants. The engine supplies the structural
+  half (no parent position still carries hydrogen); assembly adds the naming
+  half (one prefix name accounts for all of them). The first draft tested only
+  "no atom carries a hydrogen", which is weaker than "every substitutable
+  position is substituted" -- an aromatic ring N or a fusion carbon passes it
+  for free -- and the vendored suite caught three names it made ambiguous or
+  wrong: 1,5-dimethyl-1H-tetrazole, a hexamethyl cyclotriphosphazene, and
+  1,1,2,2-tetramethylhydrazine. Unsaturated parents are out for want of a
+  printed example.
+* P-63.2.2.2's contracted alkoxy prefixes are "fully substitutable", and the
+  test for a ring asked whether the FRAGMENT held one anywhere rather than
+  whether the ATTACHMENT atom was in a ring -- so an acyclic chain carrying
+  a distant aryl ring was refused the contraction (h2cid53500).
+* P-66.3, verbatim: "pentanehydrazide ..., not pentanohydrazide". The
+  connecting 'o' stays wherever the stem is not a parent hydride's --
+  "acetohydrazide (PIN)", "benzohydrazide (PIN)", "pyridine-4-carbohydrazide".
+
+Classified OUT of this stage, with the reason recorded: tert-butyl (a
+retained prefix, and it moves the alphanumerical citation order, so it is
+not ranking-neutral), Boc, "propane-2-sulfonyl", "ethanethioamido",
+"phosphoryl" and the substituted carbamimidoyl prefix.
+
+**The usable registry backlog is audited (N9).** Alex's decision of
+2026-09-19 scoped it to the 75 entries the OPSIN gate lets through that
+carried no typed status. Each now has one, with the rule quoted: 33 PIN
+(azulene, 9H-fluorene, carbonic acid, formamide, hydrazine, hydroxylamine,
+ammonia, chalcone, the 20 amino acids of Table 10.4, ...), 6 demoted because
+the book prints another name as the PIN (acrylamide, butyramide,
+propiononitrile, citric acid, N,N-dinitromethanamine, and `pyrrolizine`,
+whose PIN is `1H-pyrrolizine`), and 36 demoted because the book never prints
+the name at all. 0 names changed in the three tuning corpora, as the N5
+report predicted for entries no corpus reaches.
+
+Three entries were REMOVED because they bound a name to the WRONG
+STRUCTURE: "L-proline" on D-proline, "L-threonine" on L-allothreonine,
+"L-isoleucine" on L-alloisoleucine, two of them carrying `source:
+"bluebook"`. Each name had a second, correct entry, which is the only reason
+the audit noticed. Typing the wrong one would have printed "L-proline" for
+D-proline with a page citation attached. Two tests now check what nothing
+checked: every registry name is parsed by OPSIN and must denote the
+registry's own structure (exact where OPSIN fixes the stereocentres; three
+nucleobase tautomers are listed as visible exemptions), and no name may be
+bound to two structures. The gate's vocabulary test was rewritten to state
+the rule it always meant -- a vocabulary name passes only where the registry
+types it with normative evidence, which "ammonia" now is.

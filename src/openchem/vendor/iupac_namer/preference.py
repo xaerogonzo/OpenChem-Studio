@@ -72,6 +72,16 @@ TIER_SPECS: tuple[TierSpec, ...] = (
              "lived inside parent_selection as a weighted band that scored a ring's "
              "exocyclic group 2.0 and a chain's 1.0, so one amine on benzene tied "
              "two on a chain and chloroquine lost its pentane-1,4-diamine (round 4)"),
+    TierSpec("parent_senior_atom", "P-44.1.2", "higher",
+             "the parent's senior skeletal atom, N > P > As > Sb > Bi > Si > Ge > Sn > "
+             "Pb > B > Al > Ga > In > Tl > O > S > Se > Te > C (pdf p. 375), which "
+             "'is applied to select the senior atom in parents and to choose between "
+             "rings and chains' -- BEFORE ring over chain. Missing until round 5: a "
+             "flat ring bonus in parent_selection beat the hydrazine parent, "
+             "'(hydrazinyl)benzene' for phenylhydrazine (PIN). The book says it is "
+             "not used between rings; this tier is, and agrees with P-44.2.1 except "
+             "for a ring whose senior atom is O/S/Se/Te against one whose is P..B "
+             "(KNOWN_LIMITATIONS)"),
     TierSpec("parent_selection", "P-44", "higher",
              "LEGACY BLENDED TIER: the P-44 cascade is still one float inside this "
              "tier (see strategy._parent_selection_score). It can no longer overflow "
@@ -94,6 +104,13 @@ TIER_SPECS: tuple[TierSpec, ...] = (
              "only counts notation (D-022w, D-022z)"),
     TierSpec("heteroatom_locants", "P-31.1.4.2.1", "higher",
              "legacy weighted heteroatom locant score, as before"),
+    TierSpec("indicated_hydrogen_locants", "P-14.4 (b)", "lower",
+             "the parent's own indicated hydrogen, BEFORE the suffix (pdf p. 74): "
+             "'1H-phenalen-4-ol', '2H-pyran-6-carboxylic acid'. Missing until round 5, "
+             "so the ring table's per-numbering variants were chosen on the "
+             "substituent's locant: '4-chloro-3H-perimidine' for 9-chloro-1H-perimidine. "
+             "Stored as added_hydrogen_locants; a name with no block ranks LAST, "
+             "not as the empty set (strategy._indicated_hydrogen_tier)"),
     TierSpec("suffix_locants", "P-31.1.4.2.3", "lower",
              "stored as (-count, -l1, -l2, ...): the locant SET, first point of difference"),
     TierSpec("added_hydrogen_locants", "P-31.1.4.2.4 (d) / P-58.2", "lower",

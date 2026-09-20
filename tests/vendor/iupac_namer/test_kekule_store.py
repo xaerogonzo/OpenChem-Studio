@@ -45,20 +45,23 @@ _INDENE_CASES: list[tuple[str, str]] = [
 ]
 
 _PERIMIDINE_CASES: list[tuple[str, str]] = [
-    ("C1=Nc2cccc3cccc(c23)N1", "3H-perimidine"),
-    # tautomer variants — N=CN pattern vs NC=N pattern each carry
-    # distinct round-trip locants only when 3H-perimidine numbering
-    # (our atom_locants convention) is emitted.
-    ("Clc1ccc2cccc3c2c1N=CN3", "9-chloro-3H-perimidine"),
-    ("Clc1cc2c3c(cccc3c1)NC=N2", "8-chloro-3H-perimidine"),
-    ("Clc1ccc2c3c(cccc13)NC=N2", "7-chloro-3H-perimidine"),
-    ("Clc1ccc2c3c(cccc13)N=CN2", "6-chloro-3H-perimidine"),
-    ("Clc1cc2c3c(cccc3c1)N=CN2", "5-chloro-3H-perimidine"),
-    ("Clc1ccc2cccc3c2c1NC=N3", "4-chloro-3H-perimidine"),
+    # NAMING ROUND 5 (N3) moved these from "3H-": "perimidine (1H-isomer
+    # shown; the PIN is 1H-perimidine)" (pdf p. 201), and P-14.4 (b) ranks
+    # the indicated hydrogen BEFORE the substituent (pdf p. 74), so a
+    # chlorine never buys a 3H numbering. Each name round-trips.
+    ("C1=Nc2cccc3cccc(c23)N1", "1H-perimidine"),
+    # tautomer variants — N=CN pattern vs NC=N pattern: the NH is always
+    # N1, and the chlorine's locant follows from that.
+    ("Clc1ccc2cccc3c2c1N=CN3", "4-chloro-1H-perimidine"),
+    ("Clc1cc2c3c(cccc3c1)NC=N2", "5-chloro-1H-perimidine"),
+    ("Clc1ccc2c3c(cccc13)NC=N2", "6-chloro-1H-perimidine"),
+    ("Clc1ccc2c3c(cccc13)N=CN2", "7-chloro-1H-perimidine"),
+    ("Clc1cc2c3c(cccc3c1)N=CN2", "8-chloro-1H-perimidine"),
+    ("Clc1ccc2cccc3c2c1NC=N3", "9-chloro-1H-perimidine"),
     # N-substitution variants (previously COVERED — make sure the rewrite
     # does not regress them).
-    ("ClN1C=Nc2cccc3cccc1c23", "3-chloro-3H-perimidine"),
-    ("ClC1=Nc2cccc3cccc(c23)N1", "2-chloro-3H-perimidine"),
+    ("ClN1C=Nc2cccc3cccc1c23", "1-chloro-1H-perimidine"),
+    ("ClC1=Nc2cccc3cccc(c23)N1", "2-chloro-1H-perimidine"),
 ]
 
 

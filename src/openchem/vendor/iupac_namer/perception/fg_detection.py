@@ -136,6 +136,14 @@ SUBSUMPTION_TABLE: dict[tuple[str, str], bool] = {
     # Urea subsumes amine
     ("urea", "amine"): True,
     ("urea", "secondary_amine"): True,
+    ("urea", "tertiary_amine"): True,
+    # An amide sharing a nitrogen with a urea is the parent, and the urea's
+    # other half its "carbamoyl" N-substituent: "N-carbamoylbenzamide (PIN)"
+    # (p. 660). Without this both claimed the N (round 5, N6: triuret's
+    # "carbamoylcarbamoyl" failed the ownership check).
+    ("amide", "urea"): True,
+    ("secondary_amide", "urea"): True,
+    ("tertiary_amide", "urea"): True,
     # Guanidino (substituent prefix) subsumes amine + imine variants:
     # H2N-C(=NH)-NH-R contains an NH2 (amine), =NH (imine), and the NH linker
     # which the secondary_amine SMARTS would otherwise claim.
@@ -613,6 +621,21 @@ class FGDetection:
                 continue
 
             matches = self._mol.GetSubstructMatches(pattern)  # type: ignore[attr-defined]
+            # The plain "[#6]" pattern atoms are CONTEXT -- the R of an amine,
+            # the N-R of an amide, both R of a ketone -- the same convention the
+            # prefix-only groups below read as attachment context. Recorded
+            # (as "context_atoms", which nothing else reads) so the ownership
+            # check can tell what a suffix names from what it merely matched
+            # (ownership.py, naming round 5 N2).
+            _context_indices = [
+                i for i in range(pattern.GetNumAtoms())
+                if pattern.GetAtomWithIdx(i).GetSmarts() == "[#6]"
+            ]
+            # A hydroxamic acid is named as an N-hydroxy AMIDE (round 5, N6;
+            # "N-hydroxycyclohexanecarboxamide (PIN)", p. 587): its -amide
+            # suffix names C, =O and N, and the N-hydroxy prefix owns the O.
+            if fg_def.get("name") == "hydroxamic_acid":
+                _context_indices.append(pattern.GetNumAtoms() - 1)
             # For carboxylic_acid on a single-fragment molecule, also include
             # -C(=O)[O-] matches (see the block comment above).
             if (
@@ -687,6 +710,12 @@ class FGDetection:
                     {
                         "name": fg_name,
                         "atoms": frozenset(match),
+                        # Only for a match of THIS pattern: the anion
+                        # augmentations above come from other patterns.
+                        "context_atoms": (
+                            frozenset(match[i] for i in _context_indices)
+                            if len(match) == pattern.GetNumAtoms() else frozenset()
+                        ),
                         # anchor_index selects the defining atom of the FG within the
                         # SMARTS match.  Most patterns have the FG atom at index 0,
                         # but patterns like [#6][CX3](=O)[#6] (ketone) need index 1
@@ -776,6 +805,7 @@ class FGDetection:
             ("in_ring", in_ring),
             ("elision", raw["elision"]),
             ("attachment_context", raw.get("attachment_context")),
+            ("context_atoms", raw.get("context_atoms") or frozenset()),
         )
 
         suffix_forms = tuple(raw["suffix_forms"].items()) if raw["suffix_forms"] else ()

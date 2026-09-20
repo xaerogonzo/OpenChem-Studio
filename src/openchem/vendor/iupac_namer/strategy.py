@@ -127,6 +127,79 @@ def _retained_name_encodes_stereo(name: str) -> bool:
     return False
 
 
+# P-44.1.2 (pdf p. 375), most senior first; carbon last.
+_P44_1_2_ORDER = ("N", "P", "As", "Sb", "Bi", "Si", "Ge", "Sn", "Pb", "B", "Al", "Ga",
+                  "In", "Tl", "O", "S", "Se", "Te", "C")
+
+
+# Elements perception also offers as a one-atom heteroatom_center parent.
+_CENTRE_FORMING_CHAIN_ELEMENTS = frozenset(
+    {"P", "Si", "B", "As", "Ge", "Sn", "Bi", "Sb", "Pb"}
+)
+
+
+def _senior_atom_rank(candidate, mol) -> int:
+    """P-44.1.2: the rank of the parent's most senior skeletal atom, higher
+    is better, carbon 0. "A single senior atom is sufficient" (P-44.1.2.1).
+    Read off the atoms themselves, so a ring, a chain and a heteroatom
+    parent are measured alike. 0 when the atoms cannot be read."""
+    if candidate is None or mol is None or not candidate.atom_indices:
+        return 0
+    ranks = {sym: len(_P44_1_2_ORDER) - 1 - i for i, sym in enumerate(_P44_1_2_ORDER)}
+    best = 0
+    for idx in candidate.atom_indices:
+        if idx >= mol.GetNumAtoms():
+            return 0
+        best = max(best, ranks.get(mol.GetAtomWithIdx(idx).GetSymbol(), 0))
+    return best
+
+
+_INDICATED_H_BLOCK = None
+
+
+def _indicated_hydrogen_values(parent_name: str) -> tuple[int, ...]:
+    """The parent name's own indicated-hydrogen locants, for P-14.4 (b).
+
+    Read from the leading block ("1H-", "2H,4H-", after any hydro prefix:
+    "tetrahydro-2H-") -- never from an "added" hydrogen, which sits in
+    parentheses after its suffix locant and has its own tier. A fusion letter
+    sorts after its number, as in `added_hydrogen_tier`: 3 < 3a < 4.
+    """
+    global _INDICATED_H_BLOCK
+    if _INDICATED_H_BLOCK is None:
+        import re
+
+        _INDICATED_H_BLOCK = re.compile(r"(?:^|hydro-)((?:\d+[a-z]?H,)*\d+[a-z]?H)-")
+    match = _INDICATED_H_BLOCK.search(parent_name or "")
+    if match is None:
+        return ()
+    values = []
+    for item in match.group(1).split(","):
+        body = item[:-1]
+        letter = body[-1] if body[-1].isalpha() else ""
+        number = int(body[:-1] if letter else body)
+        values.append(number * 100 + (ord(letter) - 96 if letter else 0))
+    return tuple(values)
+
+
+def _indicated_hydrogen_tier(parent_name: str) -> tuple:
+    """`_indicated_hydrogen_values` as a preference tier.
+
+    A name with NO block ranks below every name with one, rather than as the
+    empty -- and so lowest -- locant set. Two readings of one ring differ in
+    this only where one of them left the hydrogen out, and the book's names
+    carry it: "9H-fluoren-9-one (PIN)". Scored the other way, the ring
+    table's bare "fluorene" beat the planned "9H-fluorene" on h2cid20500
+    (measured in round 5, N3).
+    """
+    from openchem.vendor.iupac_namer.preference import locant_set_tier
+
+    values = _indicated_hydrogen_values(parent_name)
+    if not values:
+        return (-99,)
+    return locant_set_tier(values)
+
+
 def retained_plan_would_drop_stereo(match_name: str, mol) -> bool:
     """Return True when emitting *match_name* for *mol* would silently
     discard stereo information.
@@ -566,7 +639,7 @@ class IUPACCanonical(NamingStrategy):
         )
 
         empty = locant_set_tier(())
-        blank = (0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, empty, empty, empty, empty, 0)
+        blank = (0, 0.0, 0, 0, 0.0, 0.0, 0.0, 0, 0.0, empty, empty, empty, empty, empty, 0)
         match plan:
             case RetainedPlan():
                 return NomenclaturePreferenceKey((5,) + blank[1:])
@@ -608,6 +681,7 @@ class IUPACCanonical(NamingStrategy):
             kind,
             float(self._pcg_seniority_score(plan.pcg_type, plan.pcg_instances)),
             self._pcg_on_parent_count(plan),
+            _senior_atom_rank(plan.named_parent.candidate, mol),
             float(self._parent_selection_score(plan, include_substituent_count=False)),
             float(self._retained_ring_seniority_score(plan.named_parent)),
             float(self._saturated_hydro_demotion(plan.named_parent, mol, self._fusion_method_rank(
@@ -615,6 +689,7 @@ class IUPACCanonical(NamingStrategy):
             ))),
             len(plan.prefix_assignments),
             hetero,
+            _indicated_hydrogen_tier(plan.named_parent.name),
             suffix,
             added,
             unsat,
@@ -848,6 +923,17 @@ class IUPACCanonical(NamingStrategy):
             # chain or ring with a PCG anchor ON/BONDED-TO it still wins over an
             # N-N chain where the PCG anchor is only BONDED to the N-N.
             score += 0.9
+            # A chain of an element that can also be a one-atom
+            # heteroatom_center (Si, P, ...), and every a(ba)n chain, competes
+            # with that centre: same senior atom (P-44.1.2), so P-44.3's
+            # "greater number of skeletal atoms" decides. At 0.9 against the
+            # centre's 50, "methyl(silyl)silane" beat "methyldisilane" and
+            # "trimethyl(trimethylsilyloxy)silane" beat
+            # "hexamethyldisiloxane". Naming round 5 (N5).
+            if (candidate.element or "").startswith("a(ba)n:") or (
+                candidate.element in _CENTRE_FORMING_CHAIN_ELEMENTS
+            ):
+                score += 50.0 - 0.9 + candidate.length * 0.1
         else:
             score += candidate.length * 0.1
 
@@ -1010,6 +1096,16 @@ class IUPACCanonical(NamingStrategy):
             )
             unsat_locants_raw.extend(ring_dbl)
             unsat_locants_raw.extend(ring_tri)
+        # P-14.4 (e)(i): 'low locants are given to hydro/dehydro prefixes ...
+        # and ene and yne endings' (pdf p. 75), all together. A hydro-named
+        # parent's orientations carried no hydro locants here, so they tied
+        # and the first one enumerated won: "1,2,5,6-tetrahydropyridine-4-
+        # carboxylic acid" for 1,2,3,6- (round 5, N7).
+        if np.hydro_atoms:
+            _a2l = plan.numbering.atom_to_locant
+            unsat_locants_raw.extend(
+                _a2l[a]._numeric_value or 0 for a in np.hydro_atoms if a in _a2l
+            )
 
         unsat_locants = sorted(unsat_locants_raw)
         # Prefix locants (lower priority within band 2)
@@ -1097,6 +1193,7 @@ class IUPACCanonical(NamingStrategy):
     #: fused names (P-25.4). See `_fusion_method_rank`.
     _FUSION_FAMILY_METHODS = frozenset({
         "systematic", "fused_hetero_hydro", "benzo_fused_bridged", "methylenedioxy_bridge",
+        "fusion",
     })
     #: Above von Baeyer (1.2) and below every monocyclic method that could
     #: compete for the same atoms (Hantzsch-Widman 50, replacement 40, ...).
@@ -1233,6 +1330,10 @@ class IUPACCanonical(NamingStrategy):
                 "von_baeyer": 1.2,
                 "spiro_systematic": 1.0,
                 "systematic": 0.9,   # systematic ring name is last resort
+                # General P-25.3 fusion (round 5, N3): the P-52.2.4.1 re-rank
+                # in _fusion_method_rank lifts it above von Baeyer exactly
+                # when two rings have five or more members.
+                "fusion": 0.9,
                 "heteroatom_hydride": 0.8,
             }
         elif named_parent.candidate.type in ("heteroatom_center", "heteroatom_chain"):

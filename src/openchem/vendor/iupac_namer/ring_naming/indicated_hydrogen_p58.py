@@ -157,11 +157,11 @@ def plan_hydrogens(
         ring_degree = sum(1 for nb in atom.GetNeighbors() if nb.GetIdx() in ring)
         if symbol in ("O", "S", "Se", "Te") and ring_degree == 2:
             continue  # divalent chalcogen: never in a ring double bond
-        if symbol == "N" and ring_degree == 3:
+        if symbol in _PNICTOGENS and ring_degree == 3:
             continue  # neutral bridgehead N: three sigma bonds, no double bond
             # left to take part in -- as the chalcogen above. Treating it as
             # pi-capable invented "4aH" in pyrido[1,2-a]pyrimidin-4-one.
-        if symbol in ("C", "N") and ring_degree <= 3:
+        if (symbol == "C" or symbol in _PNICTOGENS) and ring_degree <= 3:
             pi_capable.add(idx)
             continue
         return None
@@ -284,7 +284,12 @@ _HYDRO_IH = re.compile(
 # cannot decide it; a von Baeyer, spiro, cyclo- or "-ene" name, and benzene
 # (whose quinones are "cyclohexa-2,5-diene-1,4-dione", pdf p. 558), is refused
 # on its text.
-_MANCUDE_METHODS = frozenset({"retained", "hantzsch_widman", "systematic", "fused_hetero_hydro"})
+#: Trivalent ring atoms that behave as N does in a mancude ring: a double
+#: bond at ring degree 2, none at a neutral bridgehead. P, As and Sb joined in
+#: naming round 5 (N3), when general fusion first reached phospholes and
+#: arsindoles; before that the planner refused any ring containing them.
+_PNICTOGENS = frozenset({"N", "P", "As", "Sb"})
+_MANCUDE_METHODS = frozenset({"retained", "hantzsch_widman", "systematic", "fused_hetero_hydro", "fusion"})
 _NOT_MANCUDE_BASE = re.compile(
     # benzene; a von Baeyer or spiro bracket ("bicyclo[", "spiro["); a bare
     # cycloalkane ("cyclohexane"); a locanted "-ene" ending. NOT a bare
@@ -571,13 +576,14 @@ def _better_orientation_exists(mol, ring, groups, sat_groups, locant_of, plan) -
 
 def _pi_capable(mol, ring) -> frozenset[int]:
     """Ring atoms that take part in the mancude parent's double bonds: C and
-    N, less a neutral bridgehead N (as `plan_hydrogens` counts them)."""
+    N (and its heavier congeners), less a neutral bridgehead (as
+    `plan_hydrogens` counts them)."""
     out = set()
     ring = frozenset(ring)
     for idx in ring:
         atom = mol.GetAtomWithIdx(idx)
         degree = sum(1 for nb in atom.GetNeighbors() if nb.GetIdx() in ring)
-        if atom.GetSymbol() == "C" or (atom.GetSymbol() == "N" and degree < 3):
+        if atom.GetSymbol() == "C" or (atom.GetSymbol() in _PNICTOGENS and degree < 3):
             out.add(idx)
     return frozenset(out)
 
