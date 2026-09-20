@@ -11326,6 +11326,21 @@ def _choose_salt_fragment_form(frag) -> "OutputForm":
         if all_carbon and len(charged_c) == 1:
             return OutputForm.STANDALONE
 
+    # A fragment the plan search's CARVED route owns (an acid anion beside another neutral
+    # acid or a nitro group, or an olate beside a neutral -OH/-SH) needs the ANION form
+    # requested here: the promotion in name() that would otherwise do it is gated on
+    # _depth == 0, and a salt fragment is dispatched deeper than that.
+    #
+    # Only when the charge CLASSIFIER does not own it. A pure olate is claimed by both (a
+    # declared cascade, classifier first), and asking for ANION here would take it off the
+    # classifier's path: sodium phenoxide came out 'sodium benzenolate' instead of
+    # 'sodium phenolate' until this was added.
+    if charge < 0 and _carved_acid_anion_sites(frag_mol):
+        from openchem.vendor.iupac_namer.perception.charge_perception import classify_charges
+
+        if not any(c.suffix_hint.startswith("acidic_anion") for c in classify_charges(frag_mol)):
+            return OutputForm.ANION
+
     # Multi-atom fragment: build a fresh perception and check FG anchors.
     # Late import to avoid module-load cycle.
     from openchem.vendor.iupac_namer.perception import Perception as _Perception
@@ -11828,13 +11843,28 @@ def _carved_acid_anion_sites(mol) -> frozenset[int]:
     perception (the FG detectors gate on ``FormalCharge == 0``), so the engine
     must recognise them to drive anion naming (P-72.2).
 
-    Carboxylate ``-C(=O)-O⁻`` sites are excluded here: they are handled by the
-    dedicated ``_classify_acidic_anion`` carboxylate path (and the existing FG
-    machinery), and their re-protonation builds a carboxylic acid, not a
-    plain alkoxide.
+    An ACID anion (carboxylate ``-C(=O)-O⁻``, sulfonate) is a carved site exactly when
+    ``acid_anion_route(mol) == "carved"``: another neutral acid group, or a
+    charge-separated neutral group such as nitro, is present. Otherwise the classifier
+    owns it. That single function decides for BOTH routes, so a carboxylate can be
+    claimed by one of them and never by neither (the round-7 hole: this docstring used to
+    say carboxylate was "handled by the dedicated ``_classify_acidic_anion`` path", which
+    in turn deferred every mixed case to plan search) or both.
     """
     if mol is None:
         return frozenset()
+    from openchem.vendor.iupac_namer.perception.charge_perception import (
+        _ACID_ANION_KINDS,
+        _acidic_anion_site_kind,
+        acid_anion_route,
+    )
+
+    if acid_anion_route(mol) == "carved":
+        return frozenset(
+            a.GetIdx() for a in mol.GetAtoms()
+            if a.GetFormalCharge() == -1
+            and _acidic_anion_site_kind(mol, a) in _ACID_ANION_KINDS
+        )
     sites: set[int] = set()
     for a in mol.GetAtoms():
         if a.GetFormalCharge() != -1:
@@ -11852,8 +11882,9 @@ def _carved_acid_anion_sites(mol) -> frozenset[int]:
         bond = mol.GetBondBetweenAtoms(a.GetIdx(), nb.GetIdx())
         if bond is None or bond.GetBondTypeAsDouble() != 1.0:
             continue
-        # Exclude carboxylate: a =O on the carbon neighbour means this O⁻ is
-        # one resonance oxygen of a -COO⁻ (handled by the carboxylate path).
+        # Exclude carboxylate from the OLATE sites: a =O on the carbon neighbour means
+        # this O⁻ is one resonance oxygen of a -COO⁻, an ACID anion, whose owner is decided
+        # by acid_anion_route (see the top of this function).
         if a.GetSymbol() == "O":
             is_carboxylate = False
             for nb2 in nb.GetNeighbors():
@@ -11881,6 +11912,38 @@ def _carved_acid_anion_sites(mol) -> frozenset[int]:
     return frozenset(sites)
 
 
+def _carved_acid_group_fgs(mol, sites) -> tuple:
+    """The acid-group FGs of the deprotonated sites, taken from PERCEPTION.
+
+    Perception does not see a charged carboxylate or sulfonate as a functional group, so
+    the plan search cannot make it principal. Rather than rebuild what perception builds
+    (suffix forms, seniority, terminal, prefix form, all of which differ by group), run
+    perception on the neutral view of the molecule (same atoms, same indices, the sites
+    protonated) and take the FG that contains each site, marked ``carved_acid_anion`` so the
+    PCG step restricts the acid family to the charged instances.
+    """
+    import dataclasses as _dc
+
+    from openchem.vendor.iupac_namer.perception import Perception
+    from openchem.vendor.iupac_namer.perception.charge_perception import neutral_view
+
+    view = neutral_view(mol, sites)
+    if view is None:
+        return ()
+    try:
+        detected = Perception(view).fgs.detected_fgs
+    except Exception:  # noqa: BLE001 - no perception, no carved FG: the route declines visibly
+        return ()
+    out = []
+    for fg in detected:
+        if not fg.suffix_eligible or fg.type not in _FG_TYPES_WITH_ANION_VARIANT:
+            continue
+        if not (set(fg.atoms) & set(sites)):
+            continue
+        out.append(_dc.replace(fg, properties=fg.properties + (("carved_acid_anion", True),)))
+    return tuple(out)
+
+
 def _synthesise_carved_acid_anion_fgs(interpretation, mol):
     """Return synthetic acid-class :class:`DetectedFG` instances for carved
     deprotonated-acid chalcogen anion sites (``C-O⁻`` / ``C-S⁻`` / …).
@@ -11905,6 +11968,13 @@ def _synthesise_carved_acid_anion_fgs(interpretation, mol):
     sites = _carved_acid_anion_sites(mol)
     if not sites:
         return ()
+    from openchem.vendor.iupac_namer.perception.charge_perception import (
+        _ACID_ANION_KINDS,
+        _acidic_anion_site_kind,
+    )
+
+    if any(_acidic_anion_site_kind(mol, mol.GetAtomWithIdx(i)) in _ACID_ANION_KINDS for i in sites):
+        return _carved_acid_group_fgs(mol, sites)
     # Atoms already owned by a perception-detected FG: never synthesise a
     # competing FG over them (defensive; carved anion atoms are never in a
     # detected FG because perception gates on neutral charge).
@@ -12188,8 +12258,17 @@ class SubstitutivePath:
             _CHALCOGEN_ACID_TYPES = frozenset({
                 "alcohol", "phenol", "thiol", "selenol", "tellurol",
             })
+            # A carved ACID group (carboxylate, sulfonate) outranks every neutral acid of
+            # any class (P-41: anion 4, acid 7), so the whole anion-variant family is
+            # restricted to the charged instances and the neutral acids drop to the
+            # prefix channel (carboxy, sulfo). A carved OLATE keeps the narrower family.
+            _restricted_family = (
+                _CHALCOGEN_ACID_TYPES
+                if {fg.type for fg in _carved_anion_fgs} <= _CHALCOGEN_ACID_TYPES
+                else _FG_TYPES_WITH_ANION_VARIANT
+            )
             for t, insts in list(type_groups.items()):
-                if t not in _CHALCOGEN_ACID_TYPES:
+                if t not in _restricted_family:
                     continue
                 carved = [fg for fg in insts
                           if fg.get_property("carved_acid_anion", False)]

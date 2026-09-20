@@ -67,6 +67,13 @@ _ANION_HINT_CLASS = {
 _ANION_CLASSIFIER = "_classify_acidic_anion"
 _CARVED = "carved_anion"
 _FG_ANION = "fg_anion"
+#: A WHOLE-MOLECULE route that answers before any classifier runs: ``detect`` looks the
+#: canonical SMILES up in the curated inorganic table (carbamate, thiocyanate, ...) and
+#: returns the retained name. It is a declared cascade, not an overlap: it is asked first, on
+#: purpose, so that a retained name beats a classifier's constructed one. The diagnostic did
+#: not know it until the dynamic cross-check found 'carbamate' owned by NOTHING the static
+#: claims named (naming round 7, R3).
+_CURATED = "curated_inorganic"
 
 #: Classes for which BOTH the classifier and the plan search's carved route may
 #: claim the same site, in that order: a pure alkoxide or thiolate is claimed by
@@ -104,10 +111,12 @@ class Observed:
     name: str | None
     classifier_rendered: tuple[str, ...]   # suffix hints that succeeded
     handed_back: tuple[str, ...]           # decline reasons from charge perception
-    plan_search_routes: tuple[str, ...]    # "carved_anion" / "fg_anion"
+    plan_search_routes: tuple[str, ...]    # "carved_anion" / "fg_anion" / "curated_inorganic"
 
     @property
     def route(self) -> str:
+        if _CURATED in self.plan_search_routes:
+            return _CURATED
         if self.classifier_rendered:
             return "classifier:" + "+".join(self.classifier_rendered)
         if self.plan_search_routes:
@@ -218,7 +227,23 @@ def claimants(mol) -> dict[int, tuple[str, ...]]:
         claims.setdefault(idx, []).append(_CARVED)
     for idx in _fg_anion_sites(mol):
         claims.setdefault(idx, []).append(_FG_ANION)
+    if _curated_name(mol) is not None:
+        for idx in claims:
+            claims[idx].insert(0, _CURATED)
     return {idx: tuple(v) for idx, v in claims.items()}
+
+
+def _curated_name(mol) -> str | None:
+    """The retained name the curated inorganic table gives this whole molecule, if any."""
+    from rdkit import Chem
+
+    from openchem.vendor.iupac_namer.data_loader import _lookup_curated_inorganic
+
+    try:
+        record = _lookup_curated_inorganic(Chem.MolToSmiles(mol))
+    except Exception:  # noqa: BLE001 - a lookup failure is "no curated name"
+        return None
+    return record.get("name") if record else None
 
 
 def _fg_anion_sites(mol) -> frozenset[int]:
@@ -281,6 +306,11 @@ def _verdict(structural_class: str, site_claims: tuple[str, ...], observed: Obse
     ]
     carved_owners = [c for c in site_claims if c == _CARVED]
     fg_owners = [c for c in site_claims if c == _FG_ANION]
+    if _CURATED in site_claims:
+        # A retained whole-molecule name answers first, by design: not an overlap.
+        if observed is not None and _CURATED not in observed.plan_search_routes:
+            return Verdict.INCONSISTENT
+        return Verdict.OWNED
     owners = classifier_owners + carved_owners + fg_owners
     if not owners:
         return Verdict.HOLE

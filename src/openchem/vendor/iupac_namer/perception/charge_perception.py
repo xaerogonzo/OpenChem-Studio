@@ -525,6 +525,8 @@ def detect(
         from openchem.vendor.iupac_namer.data_loader import _lookup_curated_inorganic as _lic
         _curated = _lic(_smiles_for_curated)
         if _curated is not None and "name" in _curated:
+            if _diagnostics.enabled():
+                _diagnostics.record_route("curated_inorganic", smiles=_smiles_for_curated)
             return LeafTree(
                 output_form=output_form,
                 free_valence=free_valence,
@@ -1692,26 +1694,36 @@ def _classify_acidic_anion(mol) -> Iterable[ChargeClassification]:
     # A sulfonate takes the same "-ate" anion route as a carboxylate.
     is_carboxylate = kinds in ({"carboxylate"}, {"sulfonate"})
     site_indices = sorted(site_kinds)
-    # Scope-narrowing gate: only fire when the deprotonation sites are the
-    # ONLY acid-derived functional groups on the molecule.  Mixed
-    # charged+neutral cases (a thiolate next to a neutral -SH, a
-    # carboxylate next to a -OH, …) are deferred to the standard
-    # plan-search path, which already handles them through
-    # SUFFIX_VARIANT_TABLE + the salt-dispatch _choose_salt_fragment_form
-    # gate; routing them through this fast path can produce salt-context
-    # names OPSIN cannot round-trip (e.g. complex cation + ‐oate where the
-    # cation ends in "-diol", which OPSIN parses as an ester
-    # relationship).  The plan-search form (oxido/oxo prefix on a more
-    # elaborate parent) is OPSIN-safe.
-    for other in mol.GetAtoms():
-        if other.GetIdx() in site_kinds:
-            continue
-        if other.GetSymbol() not in ("O", "S", "N"):
-            continue
-        # An -OH / -SH / -NH (neutral acidic H) is a competing FG.
-        if other.GetTotalNumHs() == 0:
-            continue
-        return
+    # Ownership gate. Which route names the molecule is decided by ONE function,
+    # shared with the plan search's carved route, so the two cannot each assume the
+    # other covers a case (naming round 7).
+    #
+    # * An ACID anion (carboxylate / sulfonate): this route owns it when the
+    #   deprotonated site is the only charge and no other neutral acid-class group is
+    #   present (acid_anion_route == "classifier"). Groups JUNIOR to an acid (OH, NH2,
+    #   SH, amide, ester) no longer defer: naming the re-protonated parent already puts
+    #   the acid first, so 2-hydroxybenzoate, glycine's anion and lactate come out
+    #   right. When another acid or a charge-separated neutral group (nitro) is
+    #   present, the carved route owns it.
+    # * An OLATE (alkoxide / thiolate) keeps the cascade it always had: this route
+    #   answers first for a pure one and DEFERS when a neutral -OH/-SH/-NH is present,
+    #   which the plan search's carved route then owns. The previous comment here
+    #   called that plan-search form "OPSIN-safe"; for an acid anion it was not (the
+    #   parent came out as the wrong molecule), and it is the reason this gate exists
+    #   only for olates now.
+    if is_carboxylate:
+        if acid_anion_route(mol) != "classifier":
+            return
+    else:
+        for other in mol.GetAtoms():
+            if other.GetIdx() in site_kinds:
+                continue
+            if other.GetSymbol() not in ("O", "S", "N"):
+                continue
+            # An -OH / -SH / -NH (neutral acidic H) is a competing FG.
+            if other.GetTotalNumHs() == 0:
+                continue
+            return
     yield ChargeClassification(
         site_atom_indices=tuple(site_indices),
         charge_sign="-",
@@ -1784,6 +1796,119 @@ def _is_c_sulfonyl(mol, s_atom, o_minus) -> bool:
         else:
             other += 1
     return double_o == 2 and carbon == 1 and other == 0
+
+
+#: The site kinds whose anion is an ACID anion (named by an "-ate" suffix on the acid's parent).
+_ACID_ANION_KINDS = frozenset({"carboxylate", "sulfonate"})
+
+
+@lru_cache(maxsize=1)
+def _neutral_acid_patterns():
+    """SMARTS for a NEUTRAL acid-class group: an acid O-H (or S-H) anywhere in the molecule.
+
+    A deprotonated site never matches (it has no H), so this counts only the OTHER acid groups.
+    """
+    from rdkit import Chem
+
+    return tuple(Chem.MolFromSmarts(text) for text in (
+        "[CX3](=[OX1])[OX2H1]",            # carboxylic acid (and carbamic)
+        "[CX3](=[OX1])[SX2H1]",            # thio- and dithiocarboxylic acids
+        "[CX3](=[SX1])[OX2H1]",
+        "[CX3](=[SX1])[SX2H1]",
+        "[SX4](=[OX1])(=[OX1])[OX2H1]",    # sulfonic acid
+        "[SX3](=[OX1])[OX2H1]",            # sulfinic acid
+        "[PX4](=[OX1])[OX2H1]",            # phosphonic / phosphoric / phosphinic acids
+        "[BX3]([OX2H1])[OX2H1]",           # boronic acid
+        "[SeX4](=[OX1])(=[OX1])[OX2H1]",   # selenonic acid
+        "[SeX3](=[OX1])[OX2H1]",           # seleninic acid
+    ))
+
+
+def _has_neutral_acid(mol) -> bool:
+    return any(mol.HasSubstructMatch(pattern) for pattern in _neutral_acid_patterns())
+
+
+def _charge_separated_neutral_atoms(mol) -> frozenset[int]:
+    """Atoms of charged groups that are NEUTRAL overall: a nitro group, an amine or
+    aromatic N-oxide (an O- on an N+). They carry formal charges but are not ions, and
+    the plan search already names them as ordinary prefixes."""
+    atoms: set[int] = set()
+    for a in mol.GetAtoms():
+        if a.GetSymbol() != "O" or a.GetFormalCharge() != -1:
+            continue
+        heavy = [n for n in a.GetNeighbors() if n.GetAtomicNum() != 1]
+        if len(heavy) == 1 and heavy[0].GetSymbol() == "N" and heavy[0].GetFormalCharge() == 1:
+            atoms.update((a.GetIdx(), heavy[0].GetIdx()))
+    return frozenset(atoms)
+
+
+def acid_anion_route(mol) -> str | None:
+    """Which route names an ACID anion: ``"classifier"``, ``"carved"``, or None.
+
+    ONE decision, asked by both routes, so ownership is exclusive by construction
+    instead of by two comments that each assumed the other route covered the rest
+    (naming round 7 found a carboxylate beside a neutral OH had no owner, because the
+    classifier deferred "mixed" cases to plan search and plan search's carved route
+    excluded carboxylate as "handled by the classifier").
+
+    The rule follows P-41 (Table 4.1, pdf p. 360): an anion (class 4) outranks an acid
+    (class 7), and every group below an acid (OH, NH2, SH, amide, ester, nitrile, halogen)
+    is a prefix on the acid's parent.
+
+    * ``classifier``: the deprotonated site(s) are the only charge, and the only neutral
+      acid-class group in the molecule is none. The classifier re-protonates the site,
+      names the NEUTRAL parent, and lets the suffix machinery emit the ``-ate``. That is
+      correct for every group junior to an acid, because the neutral parent already has
+      the acid as its principal group.
+    * ``carved``: another NEUTRAL acid group is present (the mono-anion of a diacid, an
+      acid of another class), or a charge-separated neutral group such as nitro is. The
+      neutral parent would make the OTHER acid principal and put the charge on the wrong
+      group, so the plan search must force the deprotonated site to be the principal
+      group and demote the rest to ``carboxy`` / ``sulfo`` / ``nitro`` prefixes.
+
+    None: no acid-anion site, a mix of acid classes, or a genuine other ion (a cation, an
+    olate) is present. Those keep their existing routes.
+    """
+    if mol is None:
+        return None
+    charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0]
+    if not charged:
+        return None
+    kinds: dict[int, str] = {}
+    for a in charged:
+        kind = _acidic_anion_site_kind(mol, a)
+        if kind in _ACID_ANION_KINDS:
+            kinds[a.GetIdx()] = kind
+    if not kinds or len(set(kinds.values())) != 1:
+        return None
+    separated = _charge_separated_neutral_atoms(mol)
+    if any(a.GetIdx() not in kinds and a.GetIdx() not in separated for a in charged):
+        return None
+    if separated or _has_neutral_acid(mol):
+        return "carved"
+    return "classifier"
+
+
+def neutral_view(mol, site_indices):
+    """``mol`` with the given charged atoms protonated to neutral, SAME atoms and SAME
+    indices, or None if it will not sanitise.
+
+    The classifier route names a SMILES re-parsed from this (which drops the index space);
+    the carved route needs the index space, because it takes the functional groups
+    PERCEPTION finds on the neutral parent and lays them over the charged molecule.
+    """
+    from rdkit import Chem
+
+    rw = Chem.RWMol(mol)
+    for idx in site_indices:
+        atom = rw.GetAtomWithIdx(idx)
+        atom.SetFormalCharge(0)
+        atom.SetNoImplicit(False)
+    try:
+        Chem.SanitizeMol(rw)
+    except Exception:  # noqa: BLE001 - a view that will not sanitise is "no view"
+        return None
+    return rw.GetMol()
 
 
 def _classify_substituted_boranuide(mol) -> Iterable[ChargeClassification]:

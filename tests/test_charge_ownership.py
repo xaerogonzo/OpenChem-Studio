@@ -114,10 +114,71 @@ def test_a_pure_carboxylate_is_owned_by_the_classifier():
     assert any("acidic_anion_carboxylate" in c for c in own.claimants(_mol(ACETATE))[site])
 
 
-def test_a_carboxylate_beside_a_neutral_hydroxy_had_no_owner():
-    """The defect round 7 started from, named as a verdict. When R3 lands this test
-    is REWRITTEN to OWNED, in the same commit as the fix; until then it pins the hole."""
-    assert _verdict(SALICYLATE) is own.Verdict.HOLE
+def test_a_carboxylate_beside_a_neutral_hydroxy_is_owned_by_the_classifier():
+    """The defect round 7 started from. It had NO owner (verdict HOLE); the shared decision
+    function now hands a junior group's anion to the classifier."""
+    assert _verdict(SALICYLATE) is own.Verdict.OWNED
+    (site,) = own.structural_sites(_mol(SALICYLATE))
+    assert any("acidic_anion_carboxylate" in c for c in own.claimants(_mol(SALICYLATE))[site])
+    assert own._CARVED not in own.claimants(_mol(SALICYLATE))[site]
+
+
+def test_the_mono_anion_of_a_diacid_is_owned_by_the_carved_route_and_not_the_classifier():
+    """Another NEUTRAL acid is present, so the neutral parent would make the wrong group
+    principal: the plan search must force the deprotonated site."""
+    smiles = "OC(=O)CCC(=O)[O-]"
+    (site,) = own.structural_sites(_mol(smiles))
+    claims = own.claimants(_mol(smiles))[site]
+    assert own._CARVED in claims
+    assert not any(c.startswith("classifier:") for c in claims)
+    assert _verdict(smiles) is own.Verdict.OWNED
+
+
+@pytest.mark.parametrize(
+    "smiles,route",
+    [
+        (ACETATE, "classifier"),                       # pure
+        (SALICYLATE, "classifier"),                    # a junior group: OH
+        ("Nc1ccc(cc1)C(=O)[O-]", "classifier"),        # NH2
+        ("CCOC(=O)CCC(=O)[O-]", "classifier"),         # an ester is junior to the acid
+        ("[O-]C(=O)CCC([O-])=O", "classifier"),        # a dianion, both sites the same class
+        ("OC(=O)CCC(=O)[O-]", "carved"),               # another NEUTRAL acid
+        ("OC(=O)c1ccc(cc1)S(=O)(=O)[O-]", "carved"),   # another neutral acid of a different class
+        ("[O-]C(=O)c1ccc(cc1)[N+](=O)[O-]", "carved"), # a charge-separated neutral group (nitro)
+        (GLYCINE_ZWITTERION, None),                    # a genuine cation: the FG route owns it
+        ("[O-]c1ccccc1C([O-])=O", None),               # two acid CLASSES of anion: not decided here
+        (PHENOLATE, None),                             # an olate keeps its own cascade
+        ("C[N+](C)(C)C", None),
+        ("CC", None),
+    ],
+)
+def test_the_decision_function_names_the_route(smiles, route):
+    assert cp.acid_anion_route(_mol(smiles)) == route
+
+
+def test_the_two_routes_never_both_claim_an_acid_anion():
+    """The point of ONE function: for every acid-anion molecule, exactly one of the classifier
+    and the carved route claims the site, whatever the molecule. A sweep over the shapes above
+    plus the panel's isolated ions."""
+    import tomllib
+    from pathlib import Path
+
+    panel = tomllib.loads((Path(__file__).resolve().parents[1] / "benchmarks/naming/charged_panel.toml")
+                          .read_text(encoding="utf-8"))["row"]
+    seen = 0
+    for row in panel:
+        mol = _mol(row["smiles"])
+        if cp.acid_anion_route(mol) is None:
+            continue
+        seen += 1
+        claims = own.claimants(mol)
+        for site, klass in own.structural_sites(mol).items():
+            if klass != own.ACID_ANION:
+                continue
+            by_classifier = any(c.startswith("classifier:") for c in claims[site])
+            by_carved = own._CARVED in claims[site]
+            assert by_classifier != by_carved, (row["id"], claims[site])
+    assert seen >= 40, seen
 
 
 def test_an_olate_is_a_declared_cascade_not_an_overlap():
@@ -198,7 +259,10 @@ def test_a_claim_the_engine_did_not_honour_is_inconsistent():
         (THIOLATE_BESIDE_SH, "plan_search:carved_anion"),
         (GLYCINE_ZWITTERION, "plan_search:fg_anion"),
         (SULFINATE, "plan_search:fg_anion"),
-        (SALICYLATE, "plan_search:unpromoted(unclaimed)"),
+        (SALICYLATE, "classifier:acidic_anion_carboxylate"),       # R3: it had no owner before
+        ("OC(=O)CCC(=O)[O-]", "plan_search:carved_anion"),          # R3: another neutral acid
+        ("NC(=O)[O-]", "curated_inorganic"),                        # a retained whole-molecule name
+        ("OP(=O)([O-])c1ccccc1", "plan_search:unpromoted(unclaimed)"),  # still a HOLE (R4)
     ],
 )
 def test_the_route_the_engine_takes_is_the_route_the_claim_predicts(smiles, expected_route):
@@ -207,3 +271,35 @@ def test_the_route_the_engine_takes_is_the_route_the_claim_predicts(smiles, expe
     report = own.charged_owners(_mol(smiles), smiles, measure=True)
     assert report.observed.route == expected_route
     assert report.verdict is (own.Verdict.HOLE if "unpromoted" in expected_route else own.Verdict.OWNED)
+
+
+def test_a_curated_name_answers_before_any_classifier_and_is_not_an_overlap():
+    """'carbamate' is a retained whole-molecule name. The classifier ALSO claims the site, and
+    the curated table is asked first on purpose, so this is a declared cascade: OWNED by the
+    curated route, with the observed route agreeing."""
+    smiles = "NC(=O)[O-]"
+    (site,) = own.structural_sites(_mol(smiles))
+    claims = own.claimants(_mol(smiles))[site]
+    assert claims[0] == own._CURATED
+    assert any(c.startswith("classifier:") for c in claims)
+    report = own.charged_owners(_mol(smiles), smiles, measure=True)
+    assert report.verdict is own.Verdict.OWNED
+    assert report.observed.route == own._CURATED
+
+
+@pytest.mark.parametrize(
+    "smiles,name",
+    [
+        ("[Na+].[O-]c1ccccc1", "sodium phenolate"),
+        ("[K+].CC(C)(C)[O-]", "potassium 2-methylpropan-2-olate"),
+        ("[Na+].CC(=O)[O-]", "sodium acetate"),
+    ],
+)
+def test_a_pure_anion_in_a_salt_stays_on_the_classifier_route(smiles, name):
+    """The salt path asks for the ANION form only for a fragment the CARVED route owns. A pure
+    olate is claimed by the classifier first, and taking it off that path changed
+    'sodium phenolate' to 'sodium benzenolate' during R3. (Both are non-preferred: the book's PIN
+    is 'phenoxide', a retained-name question for R4. This pins that R3 does not move it.)"""
+    from openchem.vendor.iupac_namer import name_smiles
+
+    assert name_smiles(smiles) == name
