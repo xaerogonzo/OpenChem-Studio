@@ -2328,6 +2328,18 @@
    "may_be_substituted": false,
    "substitution_scope": "none",
    "whole_molecule_only": true
+  },
+  "N#CN": {
+   "name": "cyanamide",
+   "source": "algorithm.py",
+   "rule": "various",
+   "pin_status": "PIN",
+   "evidence_kind": "NORMATIVE_RULE",
+   "evidence_source": "BLUEBOOK_2013_CORRECTED_2022",
+   "pin_evidence": "'The traditional name cyanamide is retained for NC-NH2 and is the preferred IUPAC name. Substitution is allowed on the -NH2 group' (pdf p. 663)",
+   "pin_source": "BLUEBOOK_2013_CORRECTED_2022",
+   "rule_id": "P-66.1.6.2",
+   "audited": "naming round 6, 2026-09-20"
   }
  },
  "acid_stems": {

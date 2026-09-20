@@ -262,6 +262,12 @@ _SMALL_FRAGMENT_PREFIXES_BY_ATTACHMENT: dict[tuple[str, str], str] = {
     # because two tautomers share the same canonical SMILES and attachment
     # element but differ in H-count on the attachment N.
     ("N=CN",    "C"):   "carbamimidoyl",
+    # "cyanato" for -O-CN and "thiocyanato" for -S-CN are the preferred
+    # prefixes derived from cyanic acid (P-65.2.2, p. 604: "3-(thiocyanato)
+    # propanoic acid (PIN)"). Before naming round 6 these came out "cyanooxy"
+    # and "cyanosulfanyl".
+    ("N#CO",    "O"):   "cyanato",
+    ("N#CS",    "S"):   "thiocyanato",
 }
 
 
@@ -1423,6 +1429,147 @@ def _name_sulfamic_acid_functional_parent(
             output_form=output_form, decision_ctx=decision_ctx,
             strategy=strategy, session=session, depth=depth,
             perception=perception, seniority_limit=702, cite_locants=True,
+        )
+    return None
+
+
+def _name_cyanamide_functional_parent(
+    mol, output_form, decision_ctx, strategy, session, depth, perception=None,
+) -> LeafTree | None:
+    """Substituted cyanamides, P-66.1.6.2 (pdf p. 663): "The traditional name
+    'cyanamide' is retained for NC-NH2 and is the preferred IUPAC name.
+    Substitution is allowed on the -NH2 group": "(propan-2-yl)cyanamide
+    (PIN)", "diethylcyanamide (PIN)". The generic path read the cyano group as
+    a nitrile of methane, "(diethylamino)methanenitrile" (naming round 6).
+
+    The N is the parent's only substitutable position, so its prefixes take no
+    locant, as in the book's own examples. A ring N is the ring's
+    -carbonitrile instead ("piperidine-1-carbonitrile"); an amino N that is
+    double-bonded (an N-cyanoimine) is not an amide of cyanic acid; and any
+    group of the amide class or above elsewhere is the parent instead.
+    """
+    for atom in mol.GetAtoms():
+        if (atom.GetAtomicNum() != 6 or atom.GetFormalCharge() != 0
+                or atom.IsInRing() or atom.GetDegree() != 2):
+            continue
+        cyano_n = amino = None
+        for nb in atom.GetNeighbors():
+            order = mol.GetBondBetweenAtoms(atom.GetIdx(), nb.GetIdx()).GetBondTypeAsDouble()
+            if nb.GetFormalCharge() != 0 or nb.GetAtomicNum() != 7:
+                break
+            if order == 3.0 and nb.GetDegree() == 1:
+                cyano_n = nb
+            # The single-bond test below is ALSO enforced by `_name_n_core_parent`
+            # (it raises for a substituent that is not single-bonded and the route
+            # then returns None), so removing it is an equivalent mutant; it stays
+            # so the intent reads here.
+            elif (order == 1.0 and not nb.IsInRing() and not nb.GetIsAromatic()
+                    and all(b.GetBondTypeAsDouble() == 1.0 for b in nb.GetBonds())
+                    and not any(x.GetAtomicNum() == 7 and x.GetIdx() != atom.GetIdx()
+                                for x in nb.GetNeighbors())):
+                amino = nb
+        if cyano_n is None or amino is None:
+            continue
+        core = {atom.GetIdx(), cyano_n.GetIdx(), amino.GetIdx()}
+        return _name_n_core_parent(
+            mol, core, free_ns=[amino], fixed={}, parent_name="cyanamide",
+            output_form=output_form, decision_ctx=decision_ctx,
+            strategy=strategy, session=session, depth=depth,
+            perception=perception, seniority_limit=1103, cite_locants=False,
+        )
+    return None
+
+
+def _name_cyanic_ester_functional_parent(
+    mol, output_form, decision_ctx, strategy, session, depth, perception=None,
+) -> LeafTree | None:
+    """Esters of cyanic and thiocyanic acid, R-O-CN and R-S-CN.
+
+    P-65.2.2 (pdf p. 604): cyanic acid "is classified as an acid, thus
+    generating ... esters (see P-65.6.3.2)", and P-65.6.3.3.7.2.1 (p. 629)
+    prints "propan-2-yl thiocyanate (PIN)" for (CH3)2CH-S-CN. The book prints
+    no cyanate ester, so "methyl cyanate" is derived from the same rule (the
+    Gold Book's cyanates entry, p. 363, has "PhOCN phenyl cyanate"). The
+    generic path named the pair as a nitrile, "(methylsulfanyl)methanenitrile"
+    (naming round 6).
+
+    R is a carbon that is not itself acyl or a ring-fused cyano carrier, and
+    the ester is the parent: an acid elsewhere (seniority above the esters')
+    makes the prefix form, "3-(thiocyanato)propanoic acid (PIN)", instead.
+    """
+    for atom in mol.GetAtoms():
+        if (atom.GetAtomicNum() != 6 or atom.GetFormalCharge() != 0
+                or atom.IsInRing() or atom.GetDegree() != 2):
+            continue
+        cyano_n = chalcogen = None
+        for nb in atom.GetNeighbors():
+            order = mol.GetBondBetweenAtoms(atom.GetIdx(), nb.GetIdx()).GetBondTypeAsDouble()
+            if nb.GetFormalCharge() != 0:
+                break
+            if nb.GetAtomicNum() == 7 and order == 3.0 and nb.GetDegree() == 1:
+                cyano_n = nb
+            elif (nb.GetAtomicNum() in (8, 16) and order == 1.0 and not nb.IsInRing()
+                    and nb.GetDegree() == 2):
+                chalcogen = nb
+        if cyano_n is None or chalcogen is None:
+            continue
+        anchors = [x for x in chalcogen.GetNeighbors() if x.GetIdx() != atom.GetIdx()]
+        if len(anchors) != 1 or anchors[0].GetAtomicNum() != 6:
+            continue
+        anchor = anchors[0]
+        if any(
+            mol.GetBondBetweenAtoms(anchor.GetIdx(), x.GetIdx()).GetBondTypeAsDouble() == 2.0
+            and x.GetAtomicNum() in (8, 16) for x in anchor.GetNeighbors()
+        ):
+            continue  # an acyl cyanate: not attempted here
+        parent_name = "cyanate" if chalcogen.GetAtomicNum() == 8 else "thiocyanate"
+        core = {atom.GetIdx(), cyano_n.GetIdx(), chalcogen.GetIdx()}
+        heavy_atoms = {a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() > 1}
+        non_core = heavy_atoms - core
+        if anchor.GetIdx() not in non_core:
+            continue
+        comp = _reach_from(anchor.GetIdx(), set(non_core), mol)
+        if comp != non_core:
+            continue  # a ring bridging back to the cyano group
+        if perception is not None and any(
+            fg.anchor not in core and fg.get_property("seniority", 9999) < 1000
+            for fg in perception.fgs.detected_fgs
+        ):
+            return None  # an acid or ester elsewhere is the parent
+        try:
+            sub_mol, sub_att, _bo = carve_substituent(mol, comp, (chalcogen.GetIdx(), anchor.GetIdx()))
+            sub_fv = FreeValenceInfo(
+                bond_orders=(1,),
+                method=_select_substituent_method(sub_mol, sub_att),
+                attachment_atoms_in_fragment=(sub_att,),
+                elide_locant_one=_fvi_elide_locant_one(sub_mol, sub_att),
+            )
+            sub_tree = name(
+                sub_mol, strategy, OutputForm.SUBSTITUENT,
+                free_valence=sub_fv,
+                decision_ctx=DecisionContext(
+                    role=f"{parent_name}_r_substituent", parent_plan=None, depth=depth + 1,
+                ),
+                _session=session, _depth=depth + 1,
+            )
+            from openchem.vendor.iupac_namer.assembly import assemble as _assemble_cyanic
+            r_name = _assemble_cyanic(sub_tree)
+        except Exception as e_cyanic:
+            logger.debug("%s R naming failed: %s", parent_name, e_cyanic)
+            return None
+        if not r_name or "[NAMING ERROR" in r_name:
+            return None
+        r_name = _BARE_ALKOXY.get(r_name, r_name)
+        return LeafTree(
+            output_form=output_form,
+            free_valence=None,
+            choices_made=(Choice(
+                type=f"{parent_name}_ester_functional_parent",
+                detail=f"R={r_name}",
+            ),),
+            decision_ctx=decision_ctx,
+            validity_warnings=None,
+            text=f"{r_name} {parent_name}",
         )
     return None
 
@@ -9315,6 +9462,30 @@ def _name_bound(
             _session.cache_store(smiles, output_form, fv_bond_orders, sulfamic_tree, attachment_indices)
             return sulfamic_tree
 
+    # --- Cyanamide functional parent (P-66.1.6.2) ---
+    if (output_form == OutputForm.STANDALONE
+            and free_valence is None):
+        cyanamide_tree = _name_cyanamide_functional_parent(
+            mol, output_form, decision_ctx,
+            strategy=strategy, session=_session, depth=_depth,
+            perception=perception,
+        )
+        if cyanamide_tree is not None:
+            _session.cache_store(smiles, output_form, fv_bond_orders, cyanamide_tree, attachment_indices)
+            return cyanamide_tree
+
+    # --- Cyanic / thiocyanic acid esters (P-65.2.2, P-65.6.3.3.7.2.1) ---
+    if (output_form == OutputForm.STANDALONE
+            and free_valence is None):
+        cyanic_tree = _name_cyanic_ester_functional_parent(
+            mol, output_form, decision_ctx,
+            strategy=strategy, session=_session, depth=_depth,
+            perception=perception,
+        )
+        if cyanic_tree is not None:
+            _session.cache_store(smiles, output_form, fv_bond_orders, cyanic_tree, attachment_indices)
+            return cyanic_tree
+
     # --- Guanidine functional parent (P-66.4.1.2.1.2) ---
     if (output_form == OutputForm.STANDALONE
             and free_valence is None):
@@ -15673,7 +15844,15 @@ class SubstitutivePath:
                                     ether_suffix == "oxy"
                                     and alkyl_name.endswith("phenyl")
                                 )
-                                if _is_phenoxy_special:
+                                if alkyl_name == "cyano" and ether_suffix in ("oxy", "sulfanyl"):
+                                    # -O-CN and -S-CN are the prefixes derived from
+                                    # cyanic and thiocyanic acid, "cyanato" and
+                                    # "thiocyanato" (P-65.2.2, p. 604), not
+                                    # "cyanooxy" / "cyanosulfanyl" (round 6).
+                                    ether_prefix_name = (
+                                        "cyanato" if ether_suffix == "oxy" else "thiocyanato"
+                                    )
+                                elif _is_phenoxy_special:
                                     ether_prefix_name = alkyl_name[:-2] + "oxy"
                                 elif _is_contracted_oxy:
                                     ether_prefix_name = alkyl_name[:-2] + "oxy"

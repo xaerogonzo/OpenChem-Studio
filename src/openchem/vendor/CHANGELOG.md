@@ -1284,3 +1284,31 @@ nucleobase tautomers are listed as visible exemptions), and no name may be
 bound to two structures. The gate's vocabulary test was rewritten to state
 the rule it always meant -- a vocabulary name passes only where the registry
 types it with normative evidence, which "ammonia" now is.
+
+
+## 2026-09-20 - naming round 6: amides and esters of cyanic acid
+
+Found by the functional-groups v3 cross-check, which showed the engine
+perceiving methyl thiocyanate as a plain nitrile. Measured, all before any
+change: `NC#N` was `aminomethanenitrile` where the Blue Book retains
+`cyanamide (PIN)` (P-66.1.6.2, pdf p. 663), `CCN(CC)C#N` was
+`(diethylamino)methanenitrile` for the book's `diethylcyanamide (PIN)`,
+`CC(C)SC#N` was `[(propan-2-yl)sulfanyl]methanenitrile` for the book's
+`propan-2-yl thiocyanate (PIN)` (p. 629), and `N#CSCCC(=O)O` was
+`3-(cyanosulfanyl)propanoic acid` for `3-(thiocyanato)propanoic acid (PIN)`
+(p. 604). The molecules were right in every case; the names were not the
+preferred ones.
+
+Four changes, each pinned by D-094: `cyanamide` is a registry entry typed PIN
+with the page quoted, and a substituted one is named by
+`_name_cyanamide_functional_parent` on the shared N-core builder with no
+locant (the N is the only position, as in the book's own examples); an O- or
+S-bonded cyano group is `cyanato` / `thiocyanato` (a subsumption entry over
+`nitrile`, which was logged as "Unknown FG overlap ... Treating as ambiguity"
+and won), named as an ester, `_name_cyanic_ester_functional_parent`; the
+`cyanato`/`thiocyanato` PREFIXES replace `cyanooxy`/`cyanosulfanyl`, and
+`thiocyanato` is enclosed as the book prints it, by an EXACT match because
+`isothiocyanato` contains the word and is printed bare.
+
+Stage artifact `r6-cyano`: 0 names changed on regression, heldout and
+heldout_v2, which contain no cyano compound. `heldout_v3` was not consulted.

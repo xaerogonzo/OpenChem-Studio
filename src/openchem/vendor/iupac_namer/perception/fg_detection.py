@@ -301,6 +301,14 @@ SUBSUMPTION_TABLE: dict[tuple[str, str], bool] = {
     ("phenol", "alcohol"): True,
     # Acyl isothiocyanate subsumes the isothiocyanato prefix group
     ("acyl_isothiocyanate", "isothiocyanato"): True,
+    # An O- or S-bonded cyano group is cyanato / thiocyanato, an ester of
+    # cyanic / thiocyanic acid (P-65.2.2, p. 604), and NOT a nitrile: the
+    # nitrile pattern is blind to what the cyano carbon is bonded to, so the
+    # two overlapped on the C#N atoms and the engine logged "Unknown FG
+    # overlap ... Treating as ambiguity", after which the nitrile won and
+    # methyl thiocyanate was named "(methylsulfanyl)methanenitrile" (round 6).
+    ("cyanato", "nitrile"): True,
+    ("thiocyanato", "nitrile"): True,
     # Acyl halides subsume ketone and halogen (the C=O and C-X are part of the acyl halide)
     ("acyl_chloride", "ketone"): True,
     ("acyl_chloride", "aldehyde"): True,
