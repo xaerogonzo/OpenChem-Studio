@@ -260,12 +260,15 @@ def test_the_engine_and_v2_agree_on_the_naming_corpora():
 #: molecule contains, and a wrong mapping for one passed a mutation check (the
 #: `thial` -> thioketone swap) until this existed.
 #:
-#: `cyanato` and `thiocyanato` are mapped but ABSENT here on purpose: the engine
-#: perceives methyl cyanate and methyl thiocyanate as a plain `nitrile` (its own
+#: `cyanato` and `thiocyanato` were ABSENT here until naming round 6: the engine
+#: perceived methyl cyanate and methyl thiocyanate as a plain `nitrile` (its own
 #: log: "Unknown FG overlap: 'nitrile' vs 'cyanato' ... Treating as ambiguity"),
-#: so neither type ever surfaces, and a declared nitrile-vs-cyanate disagreement
-#: could not be exercised by the corpora. A naming-engine defect, recorded there.
+#: so neither type ever surfaced and their mapping could not be exercised. Round 6
+#: subsumes the nitrile, so they can fire, and a wrong mapping for either would
+#: now fail here.
 _V3_ENGINE_EXAMPLES = {
+    "cyanato": "COC#N",
+    "thiocyanato": "CSC#N",
     "carbothioic_O_acid": "CC(=S)O",
     "carbothioic_S_acid": "CC(=O)S",
     "carbodithioic_acid": "CC(=S)S",
