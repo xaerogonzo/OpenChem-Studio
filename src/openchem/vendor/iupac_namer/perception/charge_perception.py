@@ -1866,8 +1866,9 @@ def acid_anion_route(mol) -> str | None:
       group, so the plan search must force the deprotonated site to be the principal
       group and demote the rest to ``carboxy`` / ``sulfo`` / ``nitro`` prefixes.
 
-    None: no acid-anion site, a mix of acid classes, or a genuine other ion (a cation, an
-    olate) is present. Those keep their existing routes.
+    None: no acid-anion site, a mix of acid classes, an olate, or a genuine ion that leaves the
+    net charge non-negative (a zwitterion, owned by the FG route; a cation with an internal
+    acid anion). Those keep their existing routes.
     """
     if mol is None:
         return None
@@ -1882,7 +1883,18 @@ def acid_anion_route(mol) -> str | None:
     if not kinds or len(set(kinds.values())) != 1:
         return None
     separated = _charge_separated_neutral_atoms(mol)
-    if any(a.GetIdx() not in kinds and a.GetIdx() not in separated for a in charged):
+    others = [a for a in charged if a.GetIdx() not in kinds and a.GetIdx() not in separated]
+    if others:
+        # A genuine ion beside the acid anion. With the net charge ZERO the molecule is a
+        # zwitterion, which perception already detects (it sees a charged carboxylic acid only
+        # when the charges cancel) and the FG route owns. With a NEGATIVE net charge and only
+        # cations beside the acid sites (aspartate and glutamate as drawn at pH 7: two
+        # carboxylates, one ammonium) perception sees nothing, the classifier declines any genuine
+        # cation, and no route claimed the sites: the carved route takes them, and the cation is
+        # the 'azaniumyl' prefix as it already is in a net-neutral zwitterion.
+        net = sum(a.GetFormalCharge() for a in charged)
+        if net < 0 and all(a.GetFormalCharge() > 0 for a in others):
+            return "carved"
         return None
     if separated or _has_neutral_acid(mol):
         return "carved"

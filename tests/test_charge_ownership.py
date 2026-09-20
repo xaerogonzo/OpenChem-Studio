@@ -145,7 +145,10 @@ def test_the_mono_anion_of_a_diacid_is_owned_by_the_carved_route_and_not_the_cla
         ("OC(=O)CCC(=O)[O-]", "carved"),               # another NEUTRAL acid
         ("OC(=O)c1ccc(cc1)S(=O)(=O)[O-]", "carved"),   # another neutral acid of a different class
         ("[O-]C(=O)c1ccc(cc1)[N+](=O)[O-]", "carved"), # a charge-separated neutral group (nitro)
-        (GLYCINE_ZWITTERION, None),                    # a genuine cation: the FG route owns it
+        (GLYCINE_ZWITTERION, None),                    # net charge 0: a zwitterion, the FG route owns it
+        ("[NH3+]C(CCC([O-])=O)C([O-])=O", "carved"),   # net NEGATIVE with a cation: glutamate at pH 7
+        ("[NH3+]C(CC(=O)[O-])C([O-])=O", "carved"),    # aspartate at pH 7
+        ("C[N+](C)(C)CCC(=O)[O-]", None),              # a quaternary cation with ONE carboxylate: net 0
         ("[O-]c1ccccc1C([O-])=O", None),               # two acid CLASSES of anion: not decided here
         (PHENOLATE, None),                             # an olate keeps its own cascade
         ("C[N+](C)(C)C", None),
@@ -303,3 +306,23 @@ def test_a_pure_anion_in_a_salt_stays_on_the_classifier_route(smiles, name):
     from openchem.vendor.iupac_namer import name_smiles
 
     assert name_smiles(smiles) == name
+
+
+def test_the_net_negative_zwitterion_had_no_owner_and_the_carved_route_takes_it():
+    """Glutamate as drawn at pH 7 (two carboxylates, one ammonium, net charge -1). FG perception
+    detects a charged carboxylic acid only when the charges cancel, and the classifier declines any
+    genuine cation, so nothing claimed it and the charge fell to 'oxido' prefixes on an azanium parent."""
+    smiles = "[NH3+]C(CCC([O-])=O)C([O-])=O"
+    report = own.charged_owners(_mol(smiles), smiles, measure=True)
+    assert report.verdict is own.Verdict.OWNED
+    assert report.observed.route == "plan_search:carved_anion"
+
+
+def test_the_ledger_offers_only_the_charged_instance_of_a_mixed_type():
+    """The number of anion suffixes must equal the number of deprotonated sites. A zwitterion with ONE
+    carboxylate and ONE neutral COOH offered both as the principal group and came out as the dianion."""
+    from openchem.vendor.iupac_namer import name_smiles
+
+    assert name_smiles("[NH3+]C(CCC(O)=O)C([O-])=O") == "2-azaniumyl-4-carboxybutanoate"
+    # both charged: nothing to restrict
+    assert name_smiles("[NH3+]C(CCC([O-])=O)C([O-])=O") == "2-azaniumylpentanedioate"

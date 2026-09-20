@@ -12277,6 +12277,27 @@ class SubstitutivePath:
                 else:
                     del type_groups[t]
 
+        # Charge conservation (naming round 7, R4a). In ANION mode the anion suffix must sit on
+        # the CHARGED instance(s) of a type that has both charged and neutral instances: the number
+        # of anion suffixes must equal the number of deprotonated sites. A zwitterion with one
+        # carboxylate and one neutral COOH (glutamate's mono-anion) was rendered as the DIANION,
+        # a wrong molecule from a route that did own the site, because both groups are the same FG
+        # type and were offered as the principal group together. The neutral instance drops to the
+        # prefix channel (carboxy). The carved restriction above already does this for the sites
+        # it synthesises; this is the same rule for the instances perception detected itself.
+        if output_form == OutputForm.ANION and not _carved_anion_fgs:
+            for t, insts in list(type_groups.items()):
+                if t not in _FG_TYPES_WITH_ANION_VARIANT:
+                    continue
+                charged_insts = [
+                    fg for fg in insts
+                    if any(mol.GetAtomWithIdx(a).GetFormalCharge() < 0 for a in fg.atoms)
+                ]
+                # `<` is redundant, and a mutation to `<=` is EQUIVALENT (when every instance is charged the
+                # list is reassigned to itself); kept so the intent reads as "restrict when a type is mixed".
+                if charged_insts and len(charged_insts) < len(insts):
+                    type_groups[t] = charged_insts
+
         # P-73/P-74 salt-cation acid demotion.  When this fragment is a salt
         # CATION paired with a separate counter-anion (salt_demote_acid set by
         # _name_salt) AND it carries a FREE acid-class characteristic group,

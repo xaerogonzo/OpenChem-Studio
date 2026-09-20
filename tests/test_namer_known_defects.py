@@ -2124,6 +2124,28 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-095as", "NC(=O)CCC(=O)[O-]", "4-amino-4-oxobutanoate", "4-oxido-4-oxobutanamide",
      "panel A5-3-carbamoylpropanoate (DERIVED, erratum 2): P-72.2.2.2.1.1 on '4-amino-4-oxobutanoic "
      "acid (PIN)', pdf p. 593, where '3-carbamoylpropanoic acid' is printed as a NON-PIN alternative"),
+    # --- Naming round 7 (R4a): the charge ledger. A route that OWNS a site can still get the charge wrong. ---
+    ("D-096a", "[NH3+]C(CCC(O)=O)C([O-])=O", "2-azaniumyl-4-carboxybutanoate", "2-azaniumylpentanedioate",
+     "a WRONG MOLECULE before: one deprotonated carboxylate and one NEUTRAL COOH were both rendered as anion "
+     "suffixes (the name is the dianion). DERIVED, not printed: P-72.2.2.2.1.2 (pdf p. 808) makes a neutral acid "
+     "on an anion a 'carboxy' prefix (printed '5-carboxypentanoate'), and P-74 (pdf p. 1048) puts the cation "
+     "on the anionic parent as 'azaniumyl' (printed 'azaniumylacetate'); prefixes in ALPHABETICAL order, so "
+     "azaniumyl precedes carboxy (the first draft of this row had them the other way round, an error of "
+     "the row and not of the engine). Panel E2-glutamate-monoanion"),
+    ("D-096b", "[NH3+]C(CCC([O-])=O)C([O-])=O", "2-azaniumylpentanedioate",
+     "(1,5-dioxido-1,5-dioxopentan-2-yl)azanium",
+     "a NET-NEGATIVE zwitterion (glutamate as drawn at pH 7: two carboxylates, one ammonium) had NO owning "
+     "route: FG perception detects a charged carboxylic acid only when the net charge is zero, and the "
+     "classifier declines any genuine cation, so the charge fell to 'oxido' prefixes on an azanium parent. "
+     "DERIVED: both carboxyl groups are deprotonated ('dioate'), the cation is the 'azaniumyl' prefix "
+     "(P-74, printed 'azaniumylacetate', pdf p. 1048). Found after the panel was frozen: logged R7-UNPLANNED"),
+    ("D-096c", "[NH3+]CC([O-])=O", "azaniumylacetate", "azaniumylacetate",
+     "converse: net charge zero, the FG route owns it (glycine zwitterion, printed pdf p. 1048)"),
+    ("D-096d", "[NH3+]CCC([O-])=O", "3-azaniumylpropanoate", "3-azaniumylpropanoate",
+     "converse: a longer chain, same route, same shape as D-096c"),
+    ("D-096e", "[NH3+]C(CC(=O)[O-])C([O-])=O", "2-azaniumylbutanedioate",
+     "(1,4-dioxido-1,4-dioxobutan-2-yl)azanium",
+     "aspartate as drawn at pH 7, the same net-negative hole as D-096b, DERIVED the same way"),
     ("D-092z", "CC1(C)c2c(C)c(C)c(C)c(C)c2C(C)=C1C", "octamethyl-1H-indene",
      "octamethyl-1H-indene", "P-14.3.4.5 on a carbocyclic parent that carries "
      "indicated hydrogen in its NAME: every substitutable position is a methyl"),
