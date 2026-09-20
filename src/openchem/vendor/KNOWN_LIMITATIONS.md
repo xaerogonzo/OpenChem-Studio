@@ -343,7 +343,7 @@ Found while checking D-029; predates it.
   non-minimal lambda numbering and three general-nomenclature-only acylium
   names; the engine's output is correct in every case. See `CHANGELOG.md`.
 
-## Open after naming round 5 (in progress, from 2026-09-19)
+## Open after naming round 5 (2026-09-20)
 
 Kept by layer, as round 4's list is. Filled in stage by stage; the round's
 adjudicated open rows are in `benchmarks/naming/adjudication.toml`, each with
@@ -437,9 +437,13 @@ Also open, and not a name defect:
   entry a tuning-population name reaches (12) is audited. What remains
   unaudited is the OPSIN RING vocabulary (see the round-5 table) and the
   unreached registry backlog. DECIDED (Alex, 2026-09-19, on the N5 report):
-  no full audit of the backlog. Only the 75 entries that are usable (not
-  refused by the gate), unaudited and not from OPSIN get a typed status, at
-  N9 or later; the rest stay unaudited and, where from OPSIN, gated.
+  no full audit of the backlog. DONE in N9: all 75 usable, unaudited,
+  non-OPSIN entries are typed with a quoted rule -- 33 PIN, 6 demoted because
+  the book prints another name as the PIN, 36 demoted because the book never
+  prints the name. Three were removed for binding an amino-acid name to the
+  WRONG STEREOISOMER, and two new tests check name-against-structure and
+  forbid one name under two structures. 171 entries remain untyped; the gate
+  refuses every one of them that came from OPSIN.
 * **The book contradicts itself twice, and the majority was followed.** Its
   prefix list prints `2,3-dihydro-1H-isoindol-2-yl` (p. 344); P-58.2.3.1.1
   and the worked analysis on p. 499 give `2H-isoindol-2-yl`. The engine emits

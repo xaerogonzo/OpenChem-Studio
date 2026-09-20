@@ -467,3 +467,47 @@ Two corrections to this round's own record came out of the classification.
 The N6 note that `di(methyl)` was a defect is WRONG -- P-16.5.1.3.1 prints
 `ethyldi(methyl)phosphane (PIN)` -- and two round-4 rows (cid14000's double
 wrapping, the disiloxane `silyloxy`) were stale, both already correct.
+
+### N9: the final evaluation (`r5-N9-final`)
+
+Four populations, each with its own denominator, never pooled. `heldout_v3`
+was drawn and frozen in N0, before any round-5 diagnosis, and is scored HERE
+AND ONCE, as aggregates only.
+
+| population | rows | PubChem string | equivalent | wrong molecule |
+|---|---|---|---|---|
+| regression | 187 | 101 | 85 | 0 (1 tautomer) |
+| heldout v1 (used) | 40 | 16 | 24 | 0 |
+| heldout v2 (used) | 40 | 15 | 25 | 0 |
+| **heldout v3 (fresh)** | **40** | **13** | **27** | **0** |
+
+**The fresh corpus found no wrong molecule.** All 40 names parse back to the
+structure they were built from, 13 of them matching PubChem's string exactly.
+That is the round's one unbiased measurement, and it is the same shape as
+round 3's first v1 run, which DID find one (D-030) -- so the instrument is
+known to be capable of failing.
+
+**Agreement with PubChem's strings did not move in round 5**: 101/187, 16/40
+and 15/40 are what round 4 ended with. This is the honest headline and it is
+not a surprise: the round's work was fusion names, the registry gate,
+principal-group seniority and serialization, and PubChem does not print
+preferred IUPAC names for those cases either. Where a name changed, it
+usually moved from one `equivalent` string to another.
+
+**Agreement with the ADJUDICATED preferred name is the metric that moved**,
+and it moved in every population that has one:
+
+| population | round 4 end | round 5 end |
+|---|---|---|
+| regression | 28/30 | 30/31 |
+| heldout v1 | 14/16 | 17/18 |
+| heldout v2 | not adjudicated | 20/23 |
+
+PubChem against the same targets: 15/31, 5/18, 1/23. The v2 figure fell from
+2 to 1 when N7 re-adjudicated h2cid28500 away from PubChem's form on the
+book's own majority.
+
+**The registry audit changed nothing in the corpora** -- 0 names in all three
+tuning populations -- which is what the N5 report predicted when it measured
+those 75 entries as unreached. It did find three entries that named the wrong
+molecule; see LESSONS.

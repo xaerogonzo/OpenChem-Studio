@@ -37,6 +37,20 @@ evidence is the mirror image of the original defect -- the answer to
 "asserted without evidence" is not "denied without evidence". This report
 exists so that backlog stays visible instead of looking like a decision.
 
+**THE USABLE BACKLOG IS AUDITED (naming round 5, N9; Alex's decision of
+2026-09-19).** Every entry the gate lets through now carries a typed status
+with a quoted rule: of the 75 that were usable and untyped, 33 are PIN, 6 are
+demoted because the book prints another name as the PIN, and 36 are demoted
+because the book never prints the name at all. Three entries were REMOVED:
+they bound an amino-acid name to the wrong stereoisomer (D-proline as
+"L-proline", L-allothreonine, L-alloisoleucine), which nothing was checking
+until the audit found each name under a second SMILES. Two tests in
+`tests/test_retained_registry_contract.py` now check the pair -- one parses
+every name with OPSIN and compares structures, the other forbids one name
+under two structures. What remains unaudited is the 171-entry unreached
+backlog whose source is OPSIN's dictionary (the gate refuses those) and the
+OPSIN RING vocabulary, which Alex left ungated.
+
 **THE OPSIN GATE (naming round 5, N5).** A name whose record came from OPSIN
 -- the 1,824-name vocabulary file, or a registry entry whose `source` says it
 was copied from there -- is emitted only when the registry types it with

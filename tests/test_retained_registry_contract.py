@@ -131,12 +131,25 @@ def test_every_untyped_opsin_sourced_registry_entry_is_refused(registry):
         assert retained_gate_refusal(_record(smiles, entry), strategy) is not None, entry["name"]
 
 
-def test_every_standalone_vocabulary_name_is_refused():
+def test_a_standalone_vocabulary_name_passes_only_on_book_evidence():
+    """The gate asks the registry about each vocabulary name. Until N9 nothing
+    in the registry typed one, so every name was refused and this test said
+    so flatly. The N9 audit typed "ammonia" from P-21.1.1.2, and the gate let
+    that one name through -- which is the rule working, not an escape from it.
+    What must stay true is that the ONLY names it passes are the ones the
+    registry types with NORMATIVE_RULE evidence."""
     strategy = default_strategy()
+    entries = list(get_retained_names_from_opsin())
     refused = [retained_gate_refusal({**e, "table": OPSIN_VOCABULARY_TABLE}, strategy)
-               for e in get_retained_names_from_opsin()]
-    assert None not in refused
+               for e in entries]
     assert "OPSIN_VOCABULARY_UNTYPED" in refused
+    typed_names = {
+        entry["name"]
+        for entry in audit.registry().values()
+        if entry.get("evidence_kind") == "NORMATIVE_RULE"
+    }
+    passed = {e.get("name") for e, why in zip(entries, refused) if why is None}
+    assert passed <= typed_names, f"passed the gate untyped: {passed - typed_names}"
 
 
 def test_book_evidence_opens_the_gate():
@@ -189,3 +202,62 @@ def test_a_curated_copy_of_an_opsin_entry_inherits_its_provenance(registry):
                          if e["name"] == "fluorouracil")
     copy = {"smiles": smiles, "name": entry["name"], "table": "ring_curated"}
     assert retained_gate_refusal(copy, default_strategy()) == "OPSIN_VOCABULARY_UNTYPED"
+
+
+# --- Naming round 5 (N9): the name and the structure must be the same thing --
+#
+# The audit of the usable backlog found three entries whose name was bound to
+# the WRONG STRUCTURE -- "L-proline" on D-proline, "L-threonine" on
+# L-allothreonine, "L-isoleucine" on L-alloisoleucine -- and found them only
+# because each name happened to appear under a second SMILES too. Nothing was
+# checking the pair. OPSIN reads the name independently of this registry, so
+# it can: wherever OPSIN's own parse fixes the stereocentres, the registry's
+# structure must be that structure.
+#
+# Where OPSIN returns no stereochemistry the registry may be more specific
+# ("nicotine" is the (S) enantiomer in nature), so those are compared without
+# it. The three nucleobases differ from OPSIN's parse by a TAUTOMER, not a
+# structure, and are named as the tautomer set; they are listed here so the
+# exemption is visible rather than silent.
+_TAUTOMER_EXEMPT = {"adenine", "guanine", "hypoxanthine"}
+
+
+def test_every_registry_name_denotes_its_own_structure(registry):
+    from py2opsin import py2opsin
+    from rdkit import Chem
+
+    def canonical(smiles: str, *, stereo: bool) -> str | None:
+        mol = Chem.MolFromSmiles(smiles) if smiles else None
+        if mol is None:
+            return None
+        return Chem.MolToSmiles(mol, isomericSmiles=stereo)
+
+    entries = list(registry.items())
+    parsed = py2opsin([entry["name"] for _smiles, entry in entries])
+    if isinstance(parsed, str):  # a single-name result
+        parsed = [parsed]
+    wrong = []
+    for (smiles, entry), opsin_smiles in zip(entries, parsed):
+        name = entry["name"]
+        if name in _TAUTOMER_EXEMPT or not opsin_smiles:
+            continue
+        # Compare with stereochemistry only where OPSIN fixed it.
+        stereo = canonical(opsin_smiles, stereo=True) != canonical(
+            opsin_smiles, stereo=False
+        )
+        theirs = canonical(opsin_smiles, stereo=stereo)
+        ours = canonical(smiles, stereo=stereo)
+        if theirs != ours:
+            wrong.append(f"{name}: registry {ours} but the name reads as {theirs}")
+    assert not wrong, "registry entries whose name is not their structure:\n" + "\n".join(wrong)
+
+
+def test_no_name_is_bound_to_two_structures(registry):
+    """One name, one structure. The three amino-acid defects above sat in the
+    registry as a name under two different SMILES, one of them wrong."""
+    from collections import Counter
+
+    names = Counter(entry["name"] for entry in registry.values())
+    duplicated = {name: count for name, count in names.items() if count > 1}
+    assert not duplicated, f"names bound to more than one structure: {duplicated}"
+

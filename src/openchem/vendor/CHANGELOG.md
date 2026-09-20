@@ -1260,3 +1260,27 @@ Classified OUT of this stage, with the reason recorded: tert-butyl (a
 retained prefix, and it moves the alphanumerical citation order, so it is
 not ranking-neutral), Boc, "propane-2-sulfonyl", "ethanethioamido",
 "phosphoryl" and the substituted carbamimidoyl prefix.
+
+**The usable registry backlog is audited (N9).** Alex's decision of
+2026-09-19 scoped it to the 75 entries the OPSIN gate lets through that
+carried no typed status. Each now has one, with the rule quoted: 33 PIN
+(azulene, 9H-fluorene, carbonic acid, formamide, hydrazine, hydroxylamine,
+ammonia, chalcone, the 20 amino acids of Table 10.4, ...), 6 demoted because
+the book prints another name as the PIN (acrylamide, butyramide,
+propiononitrile, citric acid, N,N-dinitromethanamine, and `pyrrolizine`,
+whose PIN is `1H-pyrrolizine`), and 36 demoted because the book never prints
+the name at all. 0 names changed in the three tuning corpora, as the N5
+report predicted for entries no corpus reaches.
+
+Three entries were REMOVED because they bound a name to the WRONG
+STRUCTURE: "L-proline" on D-proline, "L-threonine" on L-allothreonine,
+"L-isoleucine" on L-alloisoleucine, two of them carrying `source:
+"bluebook"`. Each name had a second, correct entry, which is the only reason
+the audit noticed. Typing the wrong one would have printed "L-proline" for
+D-proline with a page citation attached. Two tests now check what nothing
+checked: every registry name is parsed by OPSIN and must denote the
+registry's own structure (exact where OPSIN fixes the stereocentres; three
+nucleobase tautomers are listed as visible exemptions), and no name may be
+bound to two structures. The gate's vocabulary test was rewritten to state
+the rule it always meant -- a vocabulary name passes only where the registry
+types it with normative evidence, which "ammonia" now is.

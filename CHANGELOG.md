@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming round 5 (branch `naming-round-5`)
+
+- The vendored IUPAC namer gains general fusion nomenclature (P-25.3),
+  multiplicative names, an atom-ownership invariant on the semantic tree,
+  a gate over the 1,824 names harvested from OPSIN's parse dictionary,
+  principal-group seniority fixes (urea below amides, chain amidines,
+  silanols, hydroxamic acids), hydro-locant numbering, and five
+  serialization rules. Two WRONG MOLECULES were found and fixed, and three
+  registry entries that named the wrong molecule were removed.
+- A derived name OPSIN cannot parse is now shown, marked unverified,
+  instead of being withheld (`chem/naming_providers.py`).
+- Held-out corpus v3 (40 fresh molecules, frozen before the work): 0 wrong
+  molecules, 13 matching PubChem's string exactly.
+
+
 ### Added
 
 - **Atom numbers on the 2D editor.** View ▸ 2D Structure Display ▸ Atom
