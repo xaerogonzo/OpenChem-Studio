@@ -1068,7 +1068,7 @@ class CanonicalFeatures:
     the Atom Inspector all read THIS -- none of them runs a SMARTS of its
     own (docs/ARCHITECTURE.md, "A feature is detected once").
 
-    `features` are vocabulary v2 instances (`chem/structural_features`),
+    `features` are vocabulary v3 instances (`chem/structural_features`),
     every detection kept, suppressed ones included. `rings` are the ring
     systems the naming engine's perception names. `groups` are the engine's
     own nomenclature groups, kept only to CROSS-ATTRIBUTE: which v2 instance

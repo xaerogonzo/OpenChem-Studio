@@ -531,8 +531,9 @@ of the two came up empty.
 Structural features (functional groups, named motifs, charged centres) are
 five different things that used to be one: a chemical FEATURE, a
 nomenclature principal characteristic group, a display LABEL, a COUNT, and
-an oracle's CATEGORY. Vocabulary v2 keeps them apart, and fixes one route
-through them:
+an oracle's CATEGORY. Vocabulary v2 keeps them apart (107 features since v3,
+2026-09-20; `EXCLUDED_CLASSES` lists what was considered and refused, with why),
+and fixes one route through them:
 
     structure (as drawn, pH-selected upstream)
       -> perception                     patterns + the naming engine's groups + ring systems
