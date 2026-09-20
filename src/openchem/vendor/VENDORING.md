@@ -9,8 +9,7 @@
 | licence | MIT — see `LICENSE.open-iupac-namer` (copyright retained) |
 | vendored | 2026-08-01 |
 | fork | https://github.com/xaerogonzo/open-iupac-namer (this project's fixes, standalone) |
-
-| fork commit | `9967a62` — synced 2026-09-20 from `ea2d812`, corresponding to this repository's `naming-round-5` (standalone suite 5,012 passed / 2 failed, the two known RDKit-2026 trindene cases, which reproduce unchanged on `ea2d812` with the same RDKit) |
+| fork commit | `7a82eb0` — synced 2026-09-20, corresponding to this repository's `naming-cyano` (PR #136, master `4a9dfec`): naming round 6 on top of round 5's `9967a62` and its follow-up `dedf2e8`. Standalone suite 5,086 passed / 18 xfailed / 2 failed, the two known RDKit-2026 trindene cases, unchanged from round 5's 5,012 / 2 |
 | offered upstream | https://github.com/leehiufung911/open-iupac-namer/pull/1 |
 
 ### Why vendored rather than depended on
@@ -185,6 +184,11 @@ do not "fix" them on the way back in:
 * `tests/test_namer_known_defects.py` lives beside the vendored tests there
   rather than in the default suite, because the fork has only one suite. Here
   it stays in the default run for the reason its docstring gives.
+* `tests/test_namer_cyanic_perception.py` exists in both, and is NOT the same
+  file. Here it reads `openchem.chem.structure_annotation.perceive`; there it
+  reads the engine's own `iupac_namer.perception.Perception`, since the
+  annotation layer cannot exist standalone. Port changes to it by hand, never
+  through the merge script (which does not list it, deliberately).
 
 Known, and not ours: on **RDKit 2026.3.4** the two `test_trindene_indicated_h`
 cases fail with `Can't kekulize mol`. That reproduces on unmodified
