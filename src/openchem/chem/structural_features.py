@@ -1,4 +1,4 @@
-"""Vocabulary v2's detector, relation resolution and projections.
+"""Vocabulary v3's detector, relation resolution and projections.
 
 **WHAT A FEATURE MEANS IS NOT DECIDED HERE.** That is `feature_vocabulary.py`,
 written first; this file operationalises it. Each spec is one or more SMARTS

@@ -676,7 +676,7 @@ def test_fragment_counts_count_the_projection_not_every_detection(smiles, expect
     provider = RDKitDescriptorProvider()
     alerts = {a.alert_id: a for a in provider.compute_alerts(Chem.MolFromSmiles(smiles), "m")}
     assert alerts["fragment_counts"].matched == expected
-    assert alerts["fragment_counts"].provenance.method == "structural-features-v2"
+    assert alerts["fragment_counts"].provenance.method == "structural-features-v3"
 
 
 @pytest.mark.parametrize(

@@ -1,4 +1,4 @@
-"""The structural-feature vocabulary, v2: what each feature IS, before any pattern.
+"""The structural-feature vocabulary, v3: what each feature IS, before any pattern.
 
 **WHY THIS FILE HOLDS NO SMARTS.** A pattern says what matches; this file says
 what a match is supposed to MEAN, and it was written and committed before the
@@ -58,7 +58,10 @@ class FeatureCategory(str, Enum):
 
 #: Part of every instance's identity. Bumped when a feature's MEANING changes,
 #: so a stored result can never be reinterpreted by a later definition.
-VOCABULARY_VERSION = "openchem-structural-features-v2"
+#: v3 (2026-09-20) added fifteen features and two relations; no v2 feature's
+#: definition changed, but a saved v2 set omits what v3 would now detect, so
+#: it must not vouch for a v3 one.
+VOCABULARY_VERSION = "openchem-structural-features-v3"
 
 #: Measured page count, the denominator every Gold Book page is out of.
 GOLD_BOOK_PAGES = 1622
