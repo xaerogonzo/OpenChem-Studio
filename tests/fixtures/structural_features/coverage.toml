@@ -170,7 +170,11 @@ negative = [
   { smiles = "CN(C)C(=S)SSC(=S)N(C)C", why = "a thiuram disulfide: each single-bonded S bears S, not a second carbon (trithiodicarbonic diamide, p. 663)" },
   { smiles = "CSC(=S)SC", why = "a trithiocarbonate: no nitrogen" },
 ]
-charged = [{ smiles = "C[N:3](C)[C:1](=[S:2])[S-:4]", state = "anionic" }]
+charged = [
+  { smiles = "C[N:3](C)[C:1](=[S:2])[S-:4]", state = "anionic" },
+  { smiles = "C[NH:3][C:1](=[O:2])[S-:4]", state = "anionic" },
+  { smiles = "C[NH:3][C:1](=[S:2])[O-:4]", state = "anionic" },
+]
 
 [[feature]]
 id = "fg:thioester"
@@ -681,6 +685,7 @@ negative = [
   { smiles = "CS(=O)N", why = "a sulfinamide: the S bears =O" },
   { smiles = "CS(N)(=O)=O", why = "a sulfonamide" },
   { smiles = "c1ccsn1", why = "an isothiazole: the ring S-N is the ring system's" },
+  { smiles = "CSn1ccnc1", why = "an N-thioazole: the ring N belongs to its ring system" },
   { smiles = "O=C1NSc2ccccc12", why = "a benzisothiazolinone, which RDKit perceives aromatic: its S-N is the ring system's" },
 ]
 
