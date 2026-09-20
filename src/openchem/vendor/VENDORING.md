@@ -8,8 +8,9 @@
 | commit | `c3eac17ffd110c7c5dd37aaad2955e06cf8c9303` |
 | licence | MIT — see `LICENSE.open-iupac-namer` (copyright retained) |
 | vendored | 2026-08-01 |
-| fork | https://github.com/xaerogonzo/open-iupac-namer (this project's fixes, standalone) |
-| fork commit | `ea2d812` — synced 2026-09-18 from `055f927`, corresponding to this repository's `naming-round-4` (standalone suite 4,580 passed / 2 failed, the two known RDKit-2026 trindene cases, as before the port) |
+| fork | https://github.com/xaerogonzo/open-iupac-namer (this project's fixes, standalone) |
+
+| fork commit | `9967a62` — synced 2026-09-20 from `ea2d812`, corresponding to this repository's `naming-round-5` (standalone suite 5,012 passed / 2 failed, the two known RDKit-2026 trindene cases, which reproduce unchanged on `ea2d812` with the same RDKit) |
 | offered upstream | https://github.com/leehiufung911/open-iupac-namer/pull/1 |
 
 ### Why vendored rather than depended on
@@ -151,6 +152,14 @@ recorded in the PR.
 Then AUDIT before pushing, because "it merged" is not "only the intended
 changes crossed":
 
+* **The port must cover the test files that live in the DEFAULT suite here
+  and in the fork's single suite**, not only `tests/vendor/`. Today those are
+  `tests/test_namer_known_defects.py` and `tests/test_namer_preference_key.py`.
+  Round 5 missed the second one and the fork's stale copy failed 24 times
+  against a correctly ported engine — a 22-minute suite run to learn it.
+  Derive the list rather than trusting this sentence: for each `tests/*.py`
+  in the fork, check whether a file of that name exists in this repository's
+  `tests/`, and port the intersection.
 * `git diff --numstat <pinned fork commit>` in the fork must list exactly the
   files the OpenChem branch touched under `vendor/`, and nothing else.
 * `git grep openchem -- iupac_namer data tests` must be empty.
