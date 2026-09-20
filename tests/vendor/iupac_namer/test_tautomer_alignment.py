@@ -138,13 +138,23 @@ INDENE_PROBES = [
     ("CC1C=Cc2ccccc21",           "1-methyl-1H-indene"),
 ]
 
+# Naming round 5 (N3) moved these to the 1H numbering, and this file was not
+# updated with the other nine because every test here is skipped unless
+# JAVA_HOME is set -- PATH alone is not enough, so a local run reported them
+# as passing when they had not run at all. CI sets JAVA_HOME and caught it.
+#
+# The molecule is the same either way (each name below parses back to its own
+# input): what changed is the numbering DIRECTION. P-14.4 (b) gives the lowest
+# locant to indicated hydrogen BEFORE any detachable prefix (pdf p. 74), so
+# 1H beats 3H and the methyl takes whatever locant follows. The book prints
+# "1-methyl-1H-perimidine" inside a PIN (pdf p. 85).
 PERIMIDINE_PROBES = [
-    ("Cc1ccc2cccc3c2c1N=CN3",     "9-methyl-3H-perimidine"),
-    ("Cc1cc2c3c(cccc3c1)NC=N2",   "8-methyl-3H-perimidine"),
-    ("Cc1ccc2c3c(cccc13)NC=N2",   "7-methyl-3H-perimidine"),
-    ("Cc1ccc2c3c(cccc13)N=CN2",   "6-methyl-3H-perimidine"),
-    ("Cc1cc2c3c(cccc3c1)N=CN2",   "5-methyl-3H-perimidine"),
-    ("Cc1ccc2cccc3c2c1NC=N3",     "4-methyl-3H-perimidine"),
+    ("Cc1ccc2cccc3c2c1N=CN3",     "4-methyl-1H-perimidine"),
+    ("Cc1cc2c3c(cccc3c1)NC=N2",   "5-methyl-1H-perimidine"),
+    ("Cc1ccc2c3c(cccc13)NC=N2",   "6-methyl-1H-perimidine"),
+    ("Cc1ccc2c3c(cccc13)N=CN2",   "7-methyl-1H-perimidine"),
+    ("Cc1cc2c3c(cccc3c1)N=CN2",   "8-methyl-1H-perimidine"),
+    ("Cc1ccc2cccc3c2c1NC=N3",     "9-methyl-1H-perimidine"),
 ]
 
 
@@ -174,12 +184,13 @@ def test_indene_kekule_store_round_trips(input_smi: str, expected_name: str) -> 
 @_JAVA_REQUIRED
 @pytest.mark.parametrize("input_smi,expected_name", PERIMIDINE_PROBES)
 def test_perimidine_kekule_store_round_trips(input_smi: str, expected_name: str) -> None:
-    """Stage 6 R1-A perimidine rewrite: ``perimidine`` → ``3H-perimidine``.
+    """Stage 6 R1-A perimidine rewrite, as round 5 (N3) left it.
 
-    OPSIN's default ``perimidine`` parses to the 1H tautomer (NH at the
-    locant where our atom_locants pin the no-H N); the rewrite pins the
-    name to the 3H form so OPSIN materialises the matching Kekulé
-    partner.  6 substituted probes round-trip cleanly post-rewrite.
+    The rewrite exists so OPSIN materialises the matching Kekule partner
+    rather than its default tautomer. Round 5 added the indicated-hydrogen
+    tier to the preference key, which chooses the 1H numbering (see the
+    probe list above); the round trip this test really guards is unchanged,
+    and every probe still parses back to its own input.
     """
     from openchem.vendor.iupac_namer.engine import name_smiles
     from rdkit import Chem
