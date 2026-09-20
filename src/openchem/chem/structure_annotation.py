@@ -1068,7 +1068,7 @@ class CanonicalFeatures:
     the Atom Inspector all read THIS -- none of them runs a SMARTS of its
     own (docs/ARCHITECTURE.md, "A feature is detected once").
 
-    `features` are vocabulary v2 instances (`chem/structural_features`),
+    `features` are vocabulary v3 instances (`chem/structural_features`),
     every detection kept, suppressed ones included. `rings` are the ring
     systems the naming engine's perception names. `groups` are the engine's
     own nomenclature groups, kept only to CROSS-ATTRIBUTE: which v2 instance
@@ -1098,11 +1098,15 @@ def canonical_features(mol: Chem.Mol) -> CanonicalFeatures:
     molecule with the same key by construction. Perception only -- no naming
     pass, which is most of `annotate`'s cost.
     """
-    return _canonical_features_cached(Chem.MolToMolBlock(mol))
+    return _canonical_features_cached(VOCABULARY_VERSION, Chem.MolToMolBlock(mol))
 
 
 @lru_cache(maxsize=256)
-def _canonical_features_cached(molblock: str) -> CanonicalFeatures:
+def _canonical_features_cached(vocabulary_version: str, molblock: str) -> CanonicalFeatures:
+    # `vocabulary_version` is a KEY, not an input: the detector reads the module's
+    # own vocabulary. It is here so a cached set can never outlive the version
+    # that made it. Today that cannot happen (the cache is process-local and the
+    # version a module constant); the key makes the claim checkable.
     mol = Chem.MolFromMolBlock(molblock, removeHs=False)
     if mol is None:
         return CanonicalFeatures(perception_error="could not read the structure")
@@ -1141,7 +1145,7 @@ def compute_functional_groups(
     COLOURS ARE ASSIGNED WITHIN THE MOLECULE, not fixed per group type, and
     that is the opposite of the call `compute_stereocenters` makes. R and S
     are a closed pair whose colour carries the meaning; here the vocabulary
-    is some ninety features against a 7-colour palette, so a fixed mapping would
+    is some hundred features against a 7-colour palette, so a fixed mapping would
     collide constantly within one molecule, and the meaning is carried by the
     label. Assignment is by (category, id), sorted, so the same molecule
     always renders alike. Rings are painted first and groups last, so an

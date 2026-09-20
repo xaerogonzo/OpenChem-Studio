@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Functional groups v3 (branch `functional-groups-v3`)
+
+- **Fifteen more features, each defined from a source before it was matched.**
+  Thiocarboxylic acids, thiocarbamates (thiono, thiolo and dithio; rhodanine's
+  ring is one), thioaldehydes, thioimidates, S-alkylisothioureas, cyanates,
+  thiocyanates, cyanamides, acylals, sulfenic acids and sulfenamides, sulfinic
+  acids, esters and amides, and acylium ions: 107 in all. Each cites a Gold
+  Book headword and page, or the Blue Book rule where the Gold Book is silent.
+  Fragment Counts and Functional Groups pick them up from the one detection
+  (epalrestat's rhodanine ring and tolnaftate now read "thiocarbamate").
+- **A candidate the plan named was refused: N,S-acetals** (penicillin's
+  thiazolidine carbon). No source names the class, so a definition would have
+  been this vocabulary's own. It, sulfenic esters, thiuram disulfides and
+  sulfinohydrazides are recorded in `EXCLUDED_CLASSES` with the reason, and a
+  test requires the reason.
+- **A project saved by the previous build opens, keeps its Fragment Counts
+  (shown as "previous method: vocabulary v2"), and recomputes under the new
+  method.** The saved v2 result is never relabelled as v3. A project that
+  holds both an older and a newer earlier method now shows the newer one, not
+  both.
+
 ### Naming round 6 (branch `naming-cyano`)
 
 - **Cyanamides and cyanic / thiocyanic acid esters are named as the Blue Book

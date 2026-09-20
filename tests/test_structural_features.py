@@ -253,3 +253,49 @@ def test_the_engine_and_v2_agree_on_the_naming_corpora():
     assert used == set(ENGINE_DISAGREEMENTS), (
         f"declared disagreements that no longer occur: {set(ENGINE_DISAGREEMENTS) - used}"
     )
+
+
+#: The engine types v3 moved from the unmapped table into the map, each with
+#: one molecule that HAS it. The corpus test above cannot see a type no corpus
+#: molecule contains, and a wrong mapping for one passed a mutation check (the
+#: `thial` -> thioketone swap) until this existed.
+#:
+#: `cyanato` and `thiocyanato` were ABSENT here until naming round 6: the engine
+#: perceived methyl cyanate and methyl thiocyanate as a plain `nitrile` (its own
+#: log: "Unknown FG overlap: 'nitrile' vs 'cyanato' ... Treating as ambiguity"),
+#: so neither type ever surfaced and their mapping could not be exercised. Round 6
+#: subsumes the nitrile, so they can fire, and a wrong mapping for either would
+#: now fail here.
+_V3_ENGINE_EXAMPLES = {
+    "cyanato": "COC#N",
+    "thiocyanato": "CSC#N",
+    "carbothioic_O_acid": "CC(=S)O",
+    "carbothioic_S_acid": "CC(=O)S",
+    "carbodithioic_acid": "CC(=S)S",
+    "thionocarbamate": "CNC(=S)OC",
+    "carbamothioate": "CNC(=O)SC",
+    "dithiocarbamate": "CNC(=S)SC",
+    "thial": "CC=S",
+    "sulfinic_acid": "CS(=O)O",
+    "sulfinamide": "CS(N)=O",
+    "sulfenate": "CS[O-]",
+}
+
+
+@pytest.mark.parametrize("engine_type,smiles", sorted(_V3_ENGINE_EXAMPLES.items()))
+def test_a_v3_engine_type_lands_on_the_feature_its_map_names(engine_type, smiles):
+    from openchem.chem.feature_vocabulary import ENGINE_GROUP_MAP
+    from openchem.chem.structure_annotation import perceive
+
+    mol = Chem.MolFromSmiles(smiles)
+    annotation = perceive(mol)
+    groups = [g for g in list(annotation.groups) + list(annotation.features)
+              if g.type == engine_type]
+    assert groups, f"{smiles}: the engine perceives no {engine_type}, so the example is wrong"
+    features = detect_features(mol)
+    for group in groups:
+        touching = {f.feature_id for f in features if f.atoms & group.atoms}
+        assert touching & set(ENGINE_GROUP_MAP[engine_type]), (
+            f"{engine_type} on {smiles} touches {sorted(touching)}, "
+            f"not {ENGINE_GROUP_MAP[engine_type]}"
+        )

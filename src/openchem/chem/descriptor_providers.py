@@ -474,7 +474,7 @@ def compute_fragment_group_alert(mol: Chem.Mol, molecule_uuid: str) -> AlertResu
     """How many of each structural feature and ring system `mol` has.
 
     **THE FRAGMENT COUNTS PROJECTION of the canonical feature set** (vocabulary
-    v2, `chem/structure_annotation.canonical_features`) -- the same detection
+    v3, `chem/structure_annotation.canonical_features`) -- the same detection
     Functional Groups draws, counted rather than drawn. A lactam is counted as
     a lactam and not ALSO as an amide; an acetal's oxygens are not also two
     ethers; a carboxylate is counted under its own label, not as the acid.

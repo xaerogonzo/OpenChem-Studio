@@ -21056,3 +21056,42 @@ a quoted rule, 6 are demoted because the book prints another name as the PIN
 quinolizine), and 36 are demoted because the book never prints the name at
 all. Nothing in the three tuning corpora changed, which is what the N5
 report predicted: those 75 entries are unreached.
+
+## A RULE FOR "THE PREVIOUS METHOD" MEANT ONE PREVIOUS METHOD, AND V3 MADE TWO
+
+Vocabulary v3 changed Fragment Counts' method again, which is the second time
+a saved project can hold results from an earlier method. The store's replay
+rule (`fresh_results`) had been written for the first: "where the current
+method's result exists, hide the others; where it does not, replay whatever is
+there". With ONE earlier method that reads as "replay the old one until the new
+one lands". With two -- a project saved by v1, opened and saved by v2, opened by
+v3 -- it replays BOTH, so Fragment Counts shows twice under one id until the
+recompute arrives, and permanently if the recompute fails. Found by writing
+the test for "a project holding v1 and v2 together", not by any existing one.
+
+The rule is now a ranking (`_method_rank`: current, then superseded methods
+newest first, then the unversioned legacy one) and a slot shows one result.
+The label for an earlier method with an explicit version lives in
+`SUPERSEDED_METHOD_VERSIONS`, append-only, and a test walks a load, a
+recalculation, a save and a load to prove a v2 result still says v2: relabelling
+it would assert a detection nobody ran.
+
+**What else the branch measured, so it is not re-derived:**
+
+* **The mutation run found three real gaps in 25 mutations**, none of them
+  equivalent: a thiocarbamate SALT of two of its three forms had no charged
+  fixture; an N-thio azole had no negative; and an engine type mapped to the
+  WRONG feature passed because no corpus molecule contains it. The last is
+  the shape worth remembering -- a cross-check over two corpora cannot see a
+  mapping for a type neither contains, so each newly mapped type has its own
+  molecule (`_V3_ENGINE_EXAMPLES`).
+* **The naming engine perceives methyl cyanate and methyl thiocyanate as a
+  plain `nitrile`** (its own log: "Unknown FG overlap ... Treating as
+  ambiguity"), and names cyanamide `aminomethanenitrile` where the Blue Book
+  retains `cyanamide` (P-66.1.6.2). Two mappings can therefore never fire.
+* **The Fragment Counts budget was not re-verifiable in absolute terms.** The
+  machine read 6.1 ms median for v3 and 5.9 ms for the same run with the 15 new
+  specs removed, against a recorded 3.53 ms for v2 in round 4, at 74% CPU load.
+  What is solid is the relative cost: +0.2 ms median (4%), no change at p95 or
+  worst. A `process_time` measurement is useless on Windows here (15.6 ms
+  granularity).

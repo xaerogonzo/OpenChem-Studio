@@ -53,12 +53,14 @@ logger = logging.getLogger("openchem.result_store")
 #: set" CONTAINS changes, so an old manifest cannot vouch for a new set.
 #: v2 (2026-09-18): Fragment Counts changed method (vocabulary v2), so a
 #: saved set's counts no longer describe what the set now computes.
-AUTOMATIC_BUNDLE_ID = "automatic/v2"
+#: v3 (2026-09-20): vocabulary v3 detects fifteen more features, so a v2
+#: set's counts omit groups the set now finds.
+AUTOMATIC_BUNDLE_ID = "automatic/v3"
 
 #: The method Fragment Counts is computed by today. **Immutable once
 #: persisted**: a change of meaning is a NEW string, never a repointed one,
 #: because a saved result carries this and is interpreted by it.
-FRAGMENT_COUNTS_METHOD = "structural-features-v2"
+FRAGMENT_COUNTS_METHOD = "structural-features-v3"
 
 #: Result ids whose METHOD is part of their stored identity, and the method
 #: a result computed today is by. Only these carry a `method_version`, so no
@@ -74,6 +76,34 @@ CURRENT_METHOD_VERSIONS: dict[str, str] = {
 LEGACY_METHOD_VERSIONS: dict[str, tuple[str, str]] = {
     "fragment_counts": ("legacy-rdkit-fr-v1", "Fragment Counts (legacy: RDKit fr_* counters)"),
 }
+
+#: Methods a result id WAS computed by that carry an explicit `method_version`
+#: and are no longer current, with the label a restored one is shown under.
+#: Append-only, and every string in it once stood in `CURRENT_METHOD_VERSIONS`:
+#: a saved v2 result is NEVER upgraded by rewriting its method string, because
+#: its counts were made by a vocabulary that lacked fifteen features, and
+#: calling them v3 would assert a detection nobody ran. It is kept beside the
+#: current method's result, exactly as the legacy one is, and not replayed.
+SUPERSEDED_METHOD_VERSIONS: dict[str, dict[str, str]] = {
+    "fragment_counts": {
+        "structural-features-v2": "Fragment Counts (previous method: vocabulary v2)",
+    },
+}
+
+
+def _method_rank(result_id: str, method: str) -> int:
+    """0 for the current method, then the superseded ones newest first (each
+    table is written oldest first), then the unversioned legacy one, then
+    anything unrecognised. Lower replays in preference to higher."""
+    if method == CURRENT_METHOD_VERSIONS.get(result_id, ""):
+        return 0
+    superseded = list(SUPERSEDED_METHOD_VERSIONS.get(result_id, {}))
+    if method in superseded:
+        return 1 + superseded[::-1].index(method)
+    legacy = LEGACY_METHOD_VERSIONS.get(result_id)
+    if legacy is not None and method == legacy[0]:
+        return 1 + len(superseded)
+    return 99
 
 #: The persisted block's own layout version.
 ENVELOPE_VERSION = 1
@@ -362,16 +392,16 @@ class SessionResultStore:
         # here, a legacy method's result for the same slot is kept in the store
         # (and saved) but not REPLAYED, so a view shows the current method and
         # never both under one id.
-        current = {
-            (s.identity.result_id, s.identity.calculation_input)
-            for s in fresh
-            if s.identity.method_version == CURRENT_METHOD_VERSIONS.get(s.identity.result_id, "")
-        }
-        fresh = [
-            s for s in fresh
-            if s.identity.method_version == CURRENT_METHOD_VERSIONS.get(s.identity.result_id, "")
-            or (s.identity.result_id, s.identity.calculation_input) not in current
-        ]
+        # Where NO current-method result exists yet, the newest earlier method
+        # is replayed (labelled as such) rather than nothing; never two.
+        best: dict[tuple[str, str], tuple[int, StoredResult]] = {}
+        for s in fresh:
+            slot = (s.identity.result_id, s.identity.calculation_input)
+            rank = _method_rank(s.identity.result_id, s.identity.method_version)
+            if slot not in best or rank < best[slot][0]:
+                best[slot] = (rank, s)
+        chosen = {id(s) for _, s in best.values()}
+        fresh = [s for s in fresh if id(s) in chosen]
         fresh.sort(key=lambda s: _INPUT_ORDER.get(s.identity.calculation_input, 99))
         return fresh
 
@@ -600,6 +630,10 @@ class SessionResultStore:
             identity = replace(identity, method_version=legacy)
             if hasattr(result, "name"):
                 result = replace(result, name=label)  # type: ignore[type-var]
+            self.load_problems["legacy_method"] += 1
+        superseded = SUPERSEDED_METHOD_VERSIONS.get(identity.result_id, {}).get(identity.method_version)
+        if superseded is not None and hasattr(result, "name"):
+            result = replace(result, name=superseded)  # type: ignore[type-var]
             self.load_problems["legacy_method"] += 1
         try:
             if result_id_of(result) != identity.result_id:

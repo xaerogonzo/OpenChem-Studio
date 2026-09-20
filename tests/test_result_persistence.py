@@ -756,7 +756,8 @@ def test_a_v2_fragment_count_saves_and_reloads_with_its_method():
     assert restored.result.name == "Fragment Counts"
 
 
-def test_v2_never_silently_replaces_v1_and_only_v2_is_replayed():
+def test_the_current_method_never_silently_replaces_a_legacy_one_and_only_it_is_replayed():
+    from openchem.domain.result_store import FRAGMENT_COUNTS_METHOD
     from openchem.services.result_identity import make_identity
 
     store = SessionResultStore.from_dict(_saved_block([_legacy_alert_entry("fragment_counts")]), "project")
@@ -768,7 +769,7 @@ def test_v2_never_silently_replaces_v1_and_only_v2_is_replayed():
     ))
 
     methods = sorted(e["method_version"] for e in store.to_dict()["molecules"]["m"]["results"])
-    assert methods == ["legacy-rdkit-fr-v1", "structural-features-v2"], "a method overwrote the other"
+    assert methods == ["legacy-rdkit-fr-v1", FRAGMENT_COUNTS_METHOD], "a method overwrote the other"
     (replayed,) = store.fresh_results("m", {DRAWING: "fp"})
     assert replayed.result.matched == ["amide (1)"], "a view got the legacy method, or both"
 
@@ -798,20 +799,162 @@ def test_only_a_declared_result_id_carries_a_method():
     assert "method_version" not in entry
 
 
-def test_a_v1_automatic_set_is_not_replayed_by_a_v2_build():
-    """The saved manifest names the set it vouches for; a v1 manifest cannot
-    vouch for the v2 set, so the always-on work reruns."""
+@pytest.mark.parametrize("earlier", ["automatic/v1", "automatic/v2"])
+def test_an_earlier_automatic_set_is_not_replayed_by_the_current_build(earlier):
+    """The saved manifest names the set it vouches for; a v1 or a v2 manifest
+    cannot vouch for the v3 set (fifteen more features), so the always-on work
+    reruns."""
     from openchem.domain.result_store import AUTOMATIC_BUNDLE_ID
 
-    assert AUTOMATIC_BUNDLE_ID == "automatic/v2"
+    assert AUTOMATIC_BUNDLE_ID == "automatic/v3"
     block = _saved_block([_legacy_alert_entry("fragment_counts")])
     block["molecules"]["m"]["bundle"] = {
-        "bundle_id": "automatic/v1",
+        "bundle_id": earlier,
         "parts": [{"part_id": "rdkit-alerts", "input_fingerprint": "fp", "result_ids": ["fragment_counts"]}],
     }
     store = SessionResultStore.from_dict(block, "project")
     state, missing = store.bundle_state("m", "fp", {"rdkit-alerts"})
     assert missing == {"rdkit-alerts"}
+
+
+# ---------------------------------------------------------------------------
+# Fragment Counts changed METHOD again (vocabulary v3, 2026-09-20)
+#
+# A saved v2 project must open, keep what it held, never be upgraded by
+# rewriting a string, and be recalculated under v3 identities.
+# ---------------------------------------------------------------------------
+
+V2_METHOD = "structural-features-v2"
+
+
+def _v2_alert_entry(matched=("Amide (1)", "Tertiary Amine (2)")) -> dict:
+    """An entry as the v2 build wrote it: the method is recorded explicitly."""
+    from openchem.domain.scientific_result import AlertResult
+
+    alert = AlertResult(alert_id="fragment_counts", name="Fragment Counts", molecule_uuid="m",
+                        matched=list(matched), category="substructure")
+    return {
+        "result_id": "fragment_counts",
+        "calculation_input": DRAWING,
+        "input_fingerprint": "fp",
+        "producer": "core",
+        "parameters_key": "",
+        "method_version": V2_METHOD,
+        "result": result_codec.encode(alert),
+    }
+
+
+def _put_current_fragment_counts(store, matched):
+    from openchem.services.result_identity import make_identity
+
+    alert = _fragment_counts(matched)
+    store.put(StoredResult(
+        identity=make_identity(molecule_uuid="m", result=alert, calculation_input=DRAWING,
+                               input_fingerprint="fp", producer="core"),
+        result=alert,
+    ))
+
+
+def test_a_v2_fragment_count_is_shown_labelled_until_the_current_one_exists():
+    from openchem.domain.result_store import SUPERSEDED_METHOD_VERSIONS
+
+    store = SessionResultStore.from_dict(_saved_block([_v2_alert_entry()]), "project")
+    label = SUPERSEDED_METHOD_VERSIONS["fragment_counts"][V2_METHOD]
+    assert "previous method" in label
+
+    (shown,) = store.fresh_results("m", {DRAWING: "fp"})
+    assert shown.identity.method_version == V2_METHOD
+    assert shown.result.name == label, "an earlier method must not pass as the current one"
+    assert shown.result.matched == ["Amide (1)", "Tertiary Amine (2)"], "its content must survive as it was"
+    assert store.load_problems["legacy_method"] == 1
+
+    _put_current_fragment_counts(store, ["amide (1)", "thiocarbamate (1)"])
+    (now,) = store.fresh_results("m", {DRAWING: "fp"})
+    assert now.result.matched == ["amide (1)", "thiocarbamate (1)"], "the v2 result was replayed beside v3"
+    assert any(e["method_version"] == V2_METHOD for e in store.to_dict()["molecules"]["m"]["results"]), (
+        "the v2 result was dropped instead of kept"
+    )
+
+
+def test_a_project_holding_v1_and_v2_results_shows_the_newer_and_keeps_both():
+    """Both earlier methods are in the file (a project saved by v1, opened and
+    saved by v2, opened by v3). One slot shows ONE of them, the newer, never
+    both under one id; and the current method, once it exists, shows alone."""
+    from openchem.domain.result_store import FRAGMENT_COUNTS_METHOD
+
+    store = SessionResultStore.from_dict(
+        _saved_block([_legacy_alert_entry("fragment_counts"), _v2_alert_entry()]), "project")
+
+    (shown,) = store.fresh_results("m", {DRAWING: "fp"})
+    assert shown.identity.method_version == V2_METHOD, "the older legacy result was shown"
+
+    _put_current_fragment_counts(store, ["amide (1)", "thiocarbamate (1)"])
+    (replayed,) = store.fresh_results("m", {DRAWING: "fp"})
+    assert replayed.identity.method_version == FRAGMENT_COUNTS_METHOD
+    methods = sorted(e["method_version"] for e in store.to_dict()["molecules"]["m"]["results"])
+    assert methods == ["legacy-rdkit-fr-v1", V2_METHOD, FRAGMENT_COUNTS_METHOD]
+
+
+def test_a_v2_result_is_never_upgraded_by_rewriting_its_method():
+    """Through a load, a recalculation, a save and another load: the v2 entry
+    still says v2 and still holds v2's counts. Relabelling it would assert a
+    detection nobody ran."""
+    from openchem.domain.result_store import CURRENT_METHOD_VERSIONS, SUPERSEDED_METHOD_VERSIONS
+
+    current = CURRENT_METHOD_VERSIONS["fragment_counts"]
+    assert V2_METHOD != current and current not in SUPERSEDED_METHOD_VERSIONS["fragment_counts"], (
+        "a method cannot be both current and superseded"
+    )
+    store = SessionResultStore.from_dict(_saved_block([_v2_alert_entry()]), "project")
+    _put_current_fragment_counts(store, ["amide (1)", "thiocarbamate (1)"])
+    saved = store.to_dict()
+    by_method = {e["method_version"]: e for e in saved["molecules"]["m"]["results"]}
+    assert set(by_method) == {V2_METHOD, current}
+
+    again = SessionResultStore.from_dict(saved, "project")
+    again_methods = {e["method_version"] for e in again.to_dict()["molecules"]["m"]["results"]}
+    assert again_methods == {V2_METHOD, current}
+    v2_payload = result_codec.decode(by_method[V2_METHOD]["result"])
+    assert v2_payload.matched == ["Amide (1)", "Tertiary Amine (2)"]
+
+
+def test_a_v2_manifest_cannot_vouch_for_the_v3_set():
+    block = _saved_block([_v2_alert_entry()])
+    block["molecules"]["m"]["bundle"] = {
+        "bundle_id": "automatic/v2",
+        "parts": [{"part_id": "rdkit-alerts", "input_fingerprint": "fp", "result_ids": ["fragment_counts"]}],
+    }
+    store = SessionResultStore.from_dict(block, "project")
+    state, missing = store.bundle_state("m", "fp", {"rdkit-alerts"})
+    assert missing == {"rdkit-alerts"}, "a v2 count stood in for the set that now computes v3"
+
+
+def test_recalculation_writes_v3_identities():
+    from openchem.domain.result_store import FRAGMENT_COUNTS_METHOD
+
+    assert FRAGMENT_COUNTS_METHOD == "structural-features-v3"
+    store = SessionResultStore.from_dict(_saved_block([_v2_alert_entry()]), "project")
+    _put_current_fragment_counts(store, ["amide (1)"])
+    (current,) = store.fresh_results("m", {DRAWING: "fp"})
+    assert current.identity.method_version == "structural-features-v3"
+
+
+def test_the_canonical_feature_cache_is_keyed_by_the_vocabulary_version(monkeypatch):
+    """The cache is process-local and the version a module constant, so a stale
+    set cannot occur today; the key makes that a checked claim. Changing the
+    version must MISS, not return the set a different vocabulary made."""
+    from rdkit import Chem
+
+    from openchem.chem import structure_annotation
+
+    mol = Chem.MolFromSmiles("CC(=O)Nc1ccccc1")
+    structure_annotation._canonical_features_cached.cache_clear()
+    first = structure_annotation.canonical_features(mol)
+    assert structure_annotation.canonical_features(mol) is first, "the same version must hit"
+    monkeypatch.setattr(structure_annotation, "VOCABULARY_VERSION", "openchem-structural-features-vTEST")
+    other = structure_annotation.canonical_features(mol)
+    assert other is not first, "a different vocabulary version returned the cached set"
+    structure_annotation._canonical_features_cached.cache_clear()
 
 
 def test_no_two_result_producers_declare_the_same_id():

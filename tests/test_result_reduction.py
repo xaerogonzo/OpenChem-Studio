@@ -372,5 +372,5 @@ def test_fragment_counts_reach_a_batch_table_as_v2_with_their_method():
     cells = {column.column_id: cell for column, cell in alert_catalog_columns(alert)}
     matched = cells["alert:fragment_counts:matched"]
     assert matched.text == "carboxylic acid (1); carboxylic ester (1); benzene ring (1)"
-    assert matched.provenance.method == "structural-features-v2"
+    assert matched.provenance.method == "structural-features-v3"
     assert cells["alert:fragment_counts:count"].value == 3.0
