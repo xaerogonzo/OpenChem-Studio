@@ -15637,9 +15637,18 @@ class SubstitutivePath:
                                 # as an integral part of the ring name — stripping "-yl" would
                                 # lose that structural identity.  Detect ring vs acyclic by
                                 # checking the carved fragment directly.
-                                _frag_has_ring = (
-                                    fragment_mol.GetRingInfo().NumRings() > 0
-                                )
+                                # The question is whether the ATTACHMENT atom is
+                                # a ring atom, not whether the fragment holds a
+                                # ring anywhere: an acyclic chain carrying a
+                                # distant aryl ring still contracts, and the
+                                # book prints "(2-butoxyethoxy)methyl" in a PIN
+                                # (pdf p. 374) and calls methoxy..butoxy "fully
+                                # substitutable" (P-63.2.2.2). Measuring the
+                                # whole fragment left h2cid53500 as
+                                # "(3-{...}-2-hydroxypropyl)oxy" (round 5, N8).
+                                _frag_has_ring = fragment_mol.GetAtomWithIdx(
+                                    attachment_idx
+                                ).IsInRing()
                                 _is_contracted_oxy = (
                                     ether_suffix == "oxy"
                                     and _contracts_to_alkoxy(alkyl_name)
@@ -16271,6 +16280,49 @@ class SubstitutivePath:
                 # the book prints the opposite (naming round 5, N4).
                 _single_sub_all_equiv = True
 
+        # P-14.3.4.5 (pdf p. 72): "All locants are omitted in compounds or
+        # substituent groups in which all substitutable positions are
+        # completely substituted or modified ... in the same way."  The
+        # structural half of the test lives here, where the molecule is: no
+        # parent skeletal atom has a hydrogen left to substitute.  Assembly
+        # adds the naming half (one prefix name accounting for all of them),
+        # since only it has the rendered prefix names.  Requiring ZERO
+        # hydrogens on every parent atom is deliberately conservative: the
+        # rule's own carve-out for O-H/S-H and aldehyde hydrogens never
+        # arises, because those sit outside the parent skeleton or in a
+        # suffix, and assembly refuses the rule when a suffix is present
+        # (naming round 5, N8; D-089q, r).
+        # The shapes are restricted to the ones the book evidences, because
+        # "no atom carries a hydrogen" is NOT the same as "every substitutable
+        # position is substituted": a ring atom that never had a hydrogen (an
+        # aromatic N, a fusion carbon) satisfies the weaker test for free, and
+        # dropping the locants then makes the name ambiguous. Measured on the
+        # vendored suite: 1,5-dimethyl-1H-tetrazole (2,5- is a different
+        # compound), a hexamethyl cyclotriphosphazene whose positions carry
+        # different NUMBERS of methyls, and 1,1,2,2-tetramethylhydrazine,
+        # whose locants an existing expectation pins and for which the book
+        # prints no locant-free form. So: an all-carbon chain or ring, or an
+        # a(ba)n chain (hexamethyldisiloxane, tetramethyldiboroxane). The
+        # indicated-hydrogen condition below is belt-and-braces and is NOT
+        # what saves the tetrazole (the all-carbon test does): no measured
+        # case reaches it, since a carbocyclic parent that needs indicated
+        # hydrogen carries it in the parent NAME rather than in the plan
+        # ("octamethyl-1H-indene" is emitted, and is correct).
+        _fs_all_carbon = all(
+            mol.GetAtomWithIdx(_i).GetAtomicNum() == 6
+            for _i in plan.named_parent.candidate.atom_indices
+        )
+        _fs_aban = (plan.named_parent.candidate.element or "").startswith("a(ba)n:")
+        _parent_has_no_free_position = (
+            bool(plan.named_parent.candidate.atom_indices)
+            and (_fs_all_carbon or _fs_aban)
+            and not plan.indicated_hydrogen
+            and all(
+                mol.GetAtomWithIdx(_i).GetTotalNumHs() == 0
+                for _i in plan.named_parent.candidate.atom_indices
+            )
+        )
+
         # P-58.2: a ring C=X suffix decides where the ring's hydrogens are
         # cited -- indicated, added "(1H)", or hydro -- and the parent-naming
         # routes each guessed at it separately (maleimide came out
@@ -16333,6 +16385,7 @@ class SubstitutivePath:
             ring_anion_locants=ring_anion_locants,
             isotope_labels=_isotope_labels_tuple,
             single_substituent_positions_all_equivalent=_single_sub_all_equiv,
+            parent_has_no_free_position=_parent_has_no_free_position,
             free_valence_added_hydrogen=_fv_added_h,
         )
         # The plan-level check above sees only the union of the plan's claims;

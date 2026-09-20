@@ -98,7 +98,7 @@ CONVERSES = [
      "2,3'-locants: not identical, so substitutive (p. 106)"),
     ("N#Cc1ccc(Cl)cc1Cc1cccc(C#N)c1", "4-chloro-2-[(3-cyanophenyl)methyl]benzonitrile",
      "unequally substituted units (p. 108)"),
-    ("C[Si](C)(C)O[Si](C)(C)C", "1,1,1,3,3,3-hexamethyldisiloxane",
+    ("C[Si](C)(C)O[Si](C)(C)C", "hexamethyldisiloxane",
      "Si-O-Si is a disiloxane chain, not two silanes (P-21.2.3.1), a parent since "
      "N5; its locants go with P-14.3.4.5 (D-089q)"),
 ]

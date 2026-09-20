@@ -1215,3 +1215,48 @@ to the free valence missing from the preference key. The candidate was
 generated all along; the prefix tier broke the tie in the wrong direction.
 Every N7 case is also named from shuffled atom orders, a Kekule SMILES and
 randomly rooted SMILES (`tests/test_namer_numbering.py`).
+
+**Serialization (N8).** Every candidate was classified first -- lexical
+spelling, retained-prefix status, PIN preference or prefix construction --
+and only the five lexical ones were built, because only they can leave the
+candidate, its interpretation and its ranking untouched. The stage artifact
+confirms it: 5 names changed across the three tuning populations and 0
+winning hypotheses.
+
+* A prefix of ONE stem ending in "ylidene" is simple, so P-16.5.1.3 leaves
+  it bare: "2-sulfanylidene-1,3-thiazolidin-4-one", "3-propylidene-2-
+  benzofuran-1(3H)-one". That rule encloses a prefix carrying its OWN locant
+  ("propan-2-yl"), not the parent's, which a blanket "-idene" entry had been
+  doing. "phenylmethylidene" has two stems and stays enclosed.
+* Unenclosing them let a prefix/parent junction reach the elision rule for
+  the first time, which emitted "2-methylidenoxolane". Elision belongs at a
+  stem/suffix junction: "2-sulfanylideneoxolane-3-carbonitrile (PIN)".
+* P-16.5.1.3.1: "the first cited substituent never has enclosing marks
+  unless it includes a locant" -- "[hydroxydi(methyl)silyl]acetic acid". The
+  legibility exception for ether prefixes was catching "hydroxy", which is
+  the O-H prefix, not an ether one.
+* P-14.3.4.5, built for an all-carbon chain or ring and for an a(ba)n chain:
+  "hexamethyldisiloxane", "hexachloroethane",
+  "tetramethyldiboroxane (PIN)" (p. 731), and "hexachlorobenzene" and
+  "octamethyltrisiloxane" with them. Two different substituents are not "in
+  the same way" and keep their locants. The engine supplies the structural
+  half (no parent position still carries hydrogen); assembly adds the naming
+  half (one prefix name accounts for all of them). The first draft tested only
+  "no atom carries a hydrogen", which is weaker than "every substitutable
+  position is substituted" -- an aromatic ring N or a fusion carbon passes it
+  for free -- and the vendored suite caught three names it made ambiguous or
+  wrong: 1,5-dimethyl-1H-tetrazole, a hexamethyl cyclotriphosphazene, and
+  1,1,2,2-tetramethylhydrazine. Unsaturated parents are out for want of a
+  printed example.
+* P-63.2.2.2's contracted alkoxy prefixes are "fully substitutable", and the
+  test for a ring asked whether the FRAGMENT held one anywhere rather than
+  whether the ATTACHMENT atom was in a ring -- so an acyclic chain carrying
+  a distant aryl ring was refused the contraction (h2cid53500).
+* P-66.3, verbatim: "pentanehydrazide ..., not pentanohydrazide". The
+  connecting 'o' stays wherever the stem is not a parent hydride's --
+  "acetohydrazide (PIN)", "benzohydrazide (PIN)", "pyridine-4-carbohydrazide".
+
+Classified OUT of this stage, with the reason recorded: tert-butyl (a
+retained prefix, and it moves the alphanumerical citation order, so it is
+not ranking-neutral), Boc, "propane-2-sulfonyl", "ethanethioamido",
+"phosphoryl" and the substituted carbamimidoyl prefix.

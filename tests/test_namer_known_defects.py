@@ -1438,11 +1438,12 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-066c", "O=C1CSC(=O)N1", "1,3-thiazolidine-2,4-dione",
      "2,3,4,5-tetrahydro-1,3-thiazole-2,4-dione", "adjudicated; exo C=O does not count"),
     ("D-066d", "O=C(O)c1ccc(NCN2C(=O)C(=Cc3ccc(O)cc3)SC2=S)cc1",
-     "4-[({5-[(4-hydroxyphenyl)methylidene]-4-oxo-2-(sulfanylidene)-1,3-thiazolidin-3-yl}"
+     "4-[({5-[(4-hydroxyphenyl)methylidene]-4-oxo-2-sulfanylidene-1,3-thiazolidin-3-yl}"
      "methyl)amino]benzoic acid",
      "4-[({5-[(4-hydroxyphenyl)methylidene]-4-oxo-2-(sulfanylidene)-1,3-thiazol-3-yl}"
      "methyl)amino]benzoic acid",
-     "cid56000: a MANCUDE retained name on a ring with no ring double bond"),
+     "cid56000: a MANCUDE retained name on a ring with no ring double bond; its "
+     "adjudicated (sulfanylidene) enclosing came off in N8"),
     ("D-066e", "O=C1CCCN1", "pyrrolidin-2-one", "pyrrolidin-2-one",
      "converse: Table 2.3's own saturated retained names keep their rank"),
     ("D-066f", "C1=CCNC1", "2,5-dihydro-1H-pyrrole", "2,5-dihydro-1H-pyrrole",
@@ -1874,10 +1875,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "(silyloxy)silanecarboxylic acid", "p. 579, verbatim"),
     ("D-089k", "CPPC", "1,2-dimethyldiphosphane", "methyl(methylphosphanyl)phosphane",
      "derived, P-44.3, as D-088e"),
-    ("D-089l", "C[Si](C)(C)O[Si](C)(C)O[Si](C)(C)C", "1,1,1,3,3,5,5,5-octamethyltrisiloxane",
+    ("D-089l", "C[Si](C)(C)O[Si](C)(C)O[Si](C)(C)C", "octamethyltrisiloxane",
      "{[dimethyl(trimethylsilyloxy)silyl]oxy}tri(methyl)silane",
-     "derived: trisiloxane (P-21.2.3.1, p. 145); the locants stay until P-14.3.4.5 "
-     "is built (D-089q)"),
+     "derived: trisiloxane (P-21.2.3.1, p. 145); P-14.3.4.5 omits the locants "
+     "since N8 (D-089q)"),
     ("D-089m", "CC(=O)CCN1CCCCCC1", "4-(azepan-1-yl)butan-2-one",
      "4-(azepan-1-yl)butan-2-one", "converse: the registry holds OPSIN's "
      "'hexamethyleneimine' at azepane's SMILES; the engine's own 'azepane' is untouched"),
@@ -1916,6 +1917,66 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "the curated table files xanthine under two tautomer keys and the registry "
      "one, so its demotion is read by NAME; 'xanthine' also parsed back as the 7H "
      "tautomer, which this name does not"),
+    # --- Round 5 (N8): serialization. ------------------------------------
+    ("D-089q", "C[Si](C)(C)O[Si](C)(C)C", "hexamethyldisiloxane",
+     "1,1,1,3,3,3-hexamethyldisiloxane", "P-14.3.4.5 (pdf p. 72): 'all locants are "
+     "omitted ... in which all substitutable positions are completely substituted "
+     "... in the same way', as the book's own 'tetrafluorourea (PIN)' (pdf p. 73)"),
+    ("D-089r", "ClC(Cl)(Cl)C(Cl)(Cl)Cl", "hexachloroethane",
+     "1,1,1,2,2,2-hexachloroethane", "as D-089q"),
+    ("D-092h", "CB(C)OB(C)C", "tetramethyldiboroxane", "1,1,3,3-tetramethyldiboroxane",
+     "'tetramethyldiboroxane (PIN)' (p. 731)"),
+    ("D-092i", "ClC1=C(Cl)C(Cl)=C(Cl)C(Cl)=C1Cl", "hexachlorobenzene",
+     "1,2,3,4,5,6-hexachlorobenzene", "a ring parent under the same rule"),
+    ("D-092j", "FC(F)(F)C(Cl)(Cl)Cl", "1,1,1-trichloro-2,2,2-trifluoroethane",
+     "1,1,1-trichloro-2,2,2-trifluoroethane", "converse: TWO substituent kinds are not "
+     "'in the same way', so the locants stay"),
+    ("D-092k", "ClC(Cl)(Cl)C(Cl)Cl", "1,1,1,2,2-pentachloroethane",
+     "1,1,1,2,2-pentachloroethane", "converse: one position is still free"),
+    ("D-092l", "O=C1CSC(=S)N1", "2-sulfanylidene-1,3-thiazolidin-4-one",
+     "2-(sulfanylidene)-1,3-thiazolidin-4-one", "a one-stem ylidene prefix is simple, so "
+     "P-16.5.1.3 leaves it bare: '3-sulfanylidene-2-benzothiophen-1-one (PIN)' (pdf p. 642)"),
+    ("D-092m", "C=C1CCCO1", "2-methylideneoxolane", "2-methylidenoxolane",
+     "elision belongs at a stem/suffix junction, not between a prefix and its parent: "
+     "'2-sulfanylideneoxolane-3-carbonitrile (PIN)' (pdf p. 631). Unenclosing the "
+     "prefix let this junction reach the elision rule for the first time"),
+    ("D-092o", "CCCCC(=O)NN", "pentanehydrazide", "pentanohydrazide",
+     "verbatim (pdf p. 43): \"the suffix '-hydrazide' rather than '-ohydrazide' ... "
+     "pentanehydrazide ..., not pentanohydrazide\""),
+    ("D-092p", "CC(=O)NN", "acetohydrazide", "acetohydrazide",
+     "converse: a RETAINED acid stem keeps the connecting 'o' (PIN, p. 667)"),
+    ("D-092q", "NNC(=O)c1ccncc1", "pyridine-4-carbohydrazide", "pyridine-4-carbohydrazide",
+     "converse: in '-carbohydrazide' the 'o' belongs to 'carbo'"),
+    ("D-092r", "CCC=CC(=O)NN", "pent-2-enehydrazide", "pent-2-enohydrazide", "as D-092o"),
+    ("D-092s", "CCOC(=O)c1c(C)c2c(OCC(O)CNCCc3ccc(OC)c(OC)c3)cccc2n1C",
+     "ethyl 4-(3-{[2-(3,4-dimethoxyphenyl)ethyl]amino}-2-hydroxypropoxy)-1,3-dimethyl-"
+     "1H-indole-2-carboxylate",
+     "ethyl 4-[(3-{[2-(3,4-dimethoxyphenyl)ethyl]amino}-2-hydroxypropyl)oxy]-1,3-dimethyl-"
+     "1H-indole-2-carboxylate", "h2cid53500, adjudicated: methoxy..butoxy are 'fully "
+     "substitutable' (P-63.2.2.2), and the ring test asked about the whole fragment "
+     "rather than the ATTACHMENT atom"),
+    ("D-092t", "c1ccc(OC2CCCCC2)cc1", "phenoxycyclohexane", "phenoxycyclohexane",
+     "converse: an attachment ON a ring keeps the 'yloxy' form where it applies"),
+    ("D-092u", "O=C1SC(=Cc2ccccc2)C(=O)N1", "5-(phenylmethylidene)-1,3-thiazolidine-2,4-dione",
+     "5-(phenylmethylidene)-1,3-thiazolidine-2,4-dione", "converse to D-092l: "
+     "'phenylmethylidene' is TWO stems, a compound prefix, so it keeps its "
+     "enclosing marks"),
+    ("D-092v", "C1CCCCC1OCC(=O)O", "(cyclohexyloxy)acetic acid", "(cyclohexyloxy)acetic acid",
+     "converse to D-092s: the ATTACHMENT atom is a ring atom, so no contraction "
+     "(P-63.2.2.2 retains only methoxy..butoxy and phenoxy)"),
+    ("D-092w", "Cc1nnnn1C", "1,5-dimethyl-1H-tetrazole", "1,5-dimethyl-1H-tetrazole",
+     "converse to D-089q: an aromatic ring N carries no hydrogen to begin with, so "
+     "'no free position' is NOT 'every substitutable position substituted'. 2,5- is "
+     "another compound, so these locants stay (measured on the vendored suite)"),
+    ("D-092x", "CN(C)N(C)C", "1,1,2,2-tetramethylhydrazine", "1,1,2,2-tetramethylhydrazine",
+     "converse: the book prints no locant-free form for a fully substituted "
+     "hydrazine, so P-14.3.4.5 is not applied to it"),
+    ("D-092y", "C1CCC1OCC(=O)O", "(cyclobutyloxy)acetic acid", "(cyclobutyloxy)acetic acid",
+     "converse to D-092s, and the one that BITES: 'cyclobutyl' ends in 'butyl', so "
+     "only the attachment-atom ring test stops it contracting to 'cyclobutoxy'"),
+    ("D-092z", "CC1(C)c2c(C)c(C)c(C)c(C)c2C(C)=C1C", "octamethyl-1H-indene",
+     "octamethyl-1H-indene", "P-14.3.4.5 on a carbocyclic parent that carries "
+     "indicated hydrogen in its NAME: every substitutable position is a methyl"),
     # --- Round 5 (N6): principal-group seniority and assignment. ----------
     ("D-089t", "[SiH](O)(O)O", "silanetriol", "trihydroxysilane",
      "derived from 'dimethylsilanediol (PIN)' (p. 748): a bare silanol had no "
@@ -1946,10 +2007,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-091i", "C[Si](C)(O)CCO", "(2-hydroxyethyl)di(methyl)silanol",
      "2-[(hydroxy)di(methyl)silyl]ethan-1-ol", "derived: P-44.1.1 counts one -OH each, "
      "then P-44.1.2 prefers Si; 'di(methyl)' is N8's enclosure defect"),
-    ("D-091j", "OC(=O)C[Si](C)(C)O", "[(hydroxy)di(methyl)silyl]acetic acid",
+    ("D-091j", "OC(=O)C[Si](C)(C)O", "[hydroxydi(methyl)silyl]acetic acid",
      "[(hydroxy)di(methyl)silyl]acetic acid", "converse: an acid's O-H is not an alcohol "
      "to count, so the acid stays principal"),
-    ("D-091k", "OCC(O)C[Si](C)(C)O", "3-[(hydroxy)di(methyl)silyl]propane-1,2-diol",
+    ("D-091k", "OCC(O)C[Si](C)(C)O", "3-[hydroxydi(methyl)silyl]propane-1,2-diol",
      "3-[(hydroxy)di(methyl)silyl]propane-1,2-diol", "converse: two alcohols beat one "
      "silanol on P-44.1.1's count"),
     ("D-091l", "CN[Si](O)(O)O", "(methylamino)silanetriol",
@@ -1999,7 +2060,7 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-092g", "OC(=O)CN1C=CC=C(Cl)C1", "(3-chloropyridin-1(2H)-yl)acetic acid",
      "(3-chloropyridin-1(2H)-yl)acetic acid", "control: 2H and the 3-chloro agree"),
     ("D-089y", "CP(=O)(O)OP(C)(=O)O",
-     "(hydroxy){[(hydroxy)(methyl)(oxo)phosphanyl]oxy}(methyl)(oxo)phosphane",
+     "hydroxy{[hydroxy(methyl)(oxo)phosphanyl]oxy}(methyl)(oxo)phosphane",
      "(hydroxy){[(hydroxy)(methyl)(oxo)phosphanyl]oxy}(methyl)(oxo)phosphane",
      "converse, NOT a PIN: a P(V) is not a standard-valence a-term atom, so no "
      "'dioxodiphosphoxane' -- measured on a nucleotide diphosphate before the guard"),
@@ -2086,12 +2147,6 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "4-[(dimethylamino)(ethylimino)methyl]benzoic acid", "p. 676, verbatim; today's "
      "name is the book's second (general) form -- before N6 it was a wrong molecule, "
      "'4-(carbamimidoylmethyl)benzoic acid'"),
-    ("D-089q", "C[Si](C)(C)O[Si](C)(C)C", "hexamethyldisiloxane",
-     "1,1,1,3,3,3-hexamethyldisiloxane", "P-14.3.4.5: all locants go when every "
-     "substitutable position is substituted alike; engine-wide, as "
-     "'1,1,1,2,2,2-hexachloroethane' (N8, serialization)"),
-    ("D-089r", "CB(C)OB(C)C", "tetramethyldiboroxane", "1,1,3,3-tetramethyldiboroxane",
-     "p. 731, verbatim 'tetramethyldiboroxane (PIN)'; the locants as D-089q (N8)"),
     ("D-089s", "C[Si](C)(O)O[Si](C)(C)O", "1,1,3,3-tetramethyldisiloxane-1,3-diol",
      "1,3-dihydroxy-1,1,3,3-tetramethyldisiloxane", "derived: -ol on a silicon parent "
      "(P-68.2.5); silanols reach a suffix only by a pre-plan route (N6)"),

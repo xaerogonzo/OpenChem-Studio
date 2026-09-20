@@ -432,3 +432,38 @@ keeps hydrogen at an ylidene position three times ('2-ethylidene-2H-indene
 '3-sulfanylidene-2-benzothiophen-1-one' once, so '1(3H)' stands. Both keep
 an enclosure defect for N8. PubChem-vs-preferred on v2 moves 2 -> 1/23 for
 that reason alone.
+
+### N8: serialization (`r5-N8-serialization`)
+
+The stage the plan gates hardest: every candidate was classified before any
+code moved, and only the five LEXICAL ones were built -- a case qualifies
+only if the candidate, its interpretation and its ranking all stay put.
+Measured: 5 names changed (regression 1/187, v1 1/40, v2 3/40) and **0
+winning hypotheses changed** in any population, 0 structurally regressed.
+Engine-vs-adjudicated rose in all three: 29 -> 30/31, 16 -> 17/18, 18 ->
+20/23, which is the whole point of the stage -- the changes move names onto
+their adjudicated targets without touching what the engine decided.
+
+Built: the one-stem ylidene prefix unenclosed (P-16.5.1.3); the elision that
+exposed at a prefix/parent junction; the first-cited simple prefix bare
+(P-16.5.1.3.1); P-14.3.4.5 full-substitution locant omission, engine-wide;
+P-63.2.2.2 alkoxy contraction on a substituted chain; and P-66.3's
+"pentanehydrazide". Six candidates were classified OUT and recorded, tert-
+butyl among them: it renames a prefix and moves the alphanumerical citation
+order, so it cannot be tested as neutral.
+
+Mutation-checked 14/16. The two misses are equivalent and say so in the
+code: the indicated-hydrogen condition on the locant rule is belt-and-braces
+(the all-carbon test is what saves the tetrazole, and a carbocyclic parent
+carries indicated hydrogen in its NAME, so "octamethyl-1H-indene" is emitted
+and correct), and the hydrazide stem gate is masked for the only stems that
+reach it by the retained-PIN rewrite that follows it. Three guards were
+ADDED after the first mutation run left them uncovered: a two-stem ylidene
+(D-092u), a ring attachment whose stem ends in "butyl" (D-092y, the case
+that bites, since "cyclohexyl" could not contract anyway), and the tetrazole
+and hydrazine converses (D-092w, x).
+
+Two corrections to this round's own record came out of the classification.
+The N6 note that `di(methyl)` was a defect is WRONG -- P-16.5.1.3.1 prints
+`ethyldi(methyl)phosphane (PIN)` -- and two round-4 rows (cid14000's double
+wrapping, the disiloxane `silyloxy`) were stale, both already correct.
