@@ -47,22 +47,15 @@ BASES = {"PRINTED", "DERIVED", "NONE_VERIFIED"}
 OWNERS = {"ACID_ANION", "OLATE_ANION", "N_ANION", "ZWITTERION", "CATION", "per_component", "none"}
 CONTEXTS = {"isolated_ion", "salt_inorganic_cation", "salt_organic_cation", "hydrate"}
 
-#: The isolated-ion rows whose anion site NO route claims, as of the round-7 baseline.
-#: A ratchet, not a target list: R3 removes ids from it as it fixes them, in the same
-#: commit, and the round is done when it is empty. Sorted for a readable diff.
+#: The isolated-ion rows whose anion site NO route claims. A ratchet, not a target list: a
+#: stage removes ids from it as it fixes them, in the same commit, and the round is done when
+#: it is empty. It was 39 rows at the round-7 baseline.
 KNOWN_HOLES = frozenset({
-    "A0-4-nitrobenzoate", "A1-3-hydroxybenzoate", "A1-3-hydroxybutanoate",
-    "A1-4-hydroxybenzoate", "A1-4-hydroxybutanoate", "A1-gluconate", "A1-glycolate",
-    "A1-lactate", "A1-mandelate", "A1-salicylate", "A2-3-aminopropanoate",
-    "A2-4-aminobenzoate", "A2-N-methylglycinate", "A2-alaninate", "A2-anthranilate",
-    "A2-cysteinate", "A2-glycinate", "A2-prolinate", "A2-tyrosinate",
-    "A3-3-sulfanylpropanoate", "A3-sulfanylacetate", "A4-2-carboxybenzoate",
-    "A4-3-carboxy-2-hydroxypropanoate", "A4-3-carboxypropanoate", "A4-5-carboxypentanoate",
-    "A4-oxalate-mono", "A5-3-carbamoylpropanoate", "A5-citrate-diester-anion",
-    "A6-2-hydroxybutanedioate-dianion", "B1-2-hydroxybenzenesulfonate", "B1-isethionate",
-    "B1-sulfanilate", "B1-taurinate", "B3-hydrogen-phenylphosphonate",
-    "B3-phenyl-hydrogen-phosphate", "B4-4-carboxybenzenesulfonate", "B4-4-sulfobenzoate",
-    "D2-carbamate", "E2-glutamate-dianion",
+    # R4 (adjudicated as HOLE_PHOSPHORUS_ACID): a deprotonated phosphonic/phosphoric acid has no
+    # owning route; the book's 'hydrogen phenylphosphonate' is the 'hydrogen' method for acid
+    # esters of inorganic acids, a construction of its own. Everything else the baseline listed
+    # (37 acid-anion rows beside another group) was fixed by R3 and removed with it.
+    "B3-hydrogen-phenylphosphonate", "B3-phenyl-hydrogen-phosphate",
 })
 
 
@@ -193,15 +186,16 @@ def test_no_anion_site_is_claimed_twice_or_left_inconsistent():
     assert not bad, bad
 
 
-def test_the_baseline_recorded_the_same_holes():
-    """The committed baseline was produced by the same diagnostic; if they disagree one of
-    them is stale."""
+def test_the_baseline_recorded_the_holes_this_round_started_from():
+    """The committed baseline is the round's BEFORE and is never rewritten: it must still
+    contain every hole R3 fixed, and every hole still open must be in it."""
     recorded = json.loads(BASELINE.read_text(encoding="utf-8"))
     baseline_holes = {
         r["id"] for r in recorded["records"]
         if r["context"] == "isolated_ion" and r["ownership"]["verdict"] == "HOLE"
     }
-    assert baseline_holes == set(KNOWN_HOLES)
+    assert len(baseline_holes) == 39
+    assert KNOWN_HOLES <= baseline_holes
 
 
 def test_the_engine_takes_the_route_the_static_claim_names():

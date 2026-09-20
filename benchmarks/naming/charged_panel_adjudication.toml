@@ -26,7 +26,8 @@ layer = "CANDIDATE_ABSENT"
 target_stage = "R3"
 mechanism = "_classify_acidic_anion defers any anion whose molecule has a neutral O/S/N-H group or another charged atom to plan search; _carved_acid_anion_sites excludes carboxylate because the classifier 'handles it'. Neither claims it, so the charge falls to an 'oxido' prefix on the wrong parent. The candidate name (the -ate anion with the neutral group as a prefix) is never generated."
 sources = "P-72.2.2.2.1.1 and .1.2 (pdf pp. 807-808); P-41 Table 4.1 (pdf p. 360)"
-fix_status = "OPEN"
+fix_status = "PARTLY_FIXED"
+fix_note = "R3 (D-095): one decision function, charge_perception.acid_anion_route, now says which route owns an acid anion, so the classifier owns it beside groups junior to an acid and the carved route owns it beside another neutral acid or a nitro group. Of the 37 rows, 28 now match their target exactly and 3 more are structurally correct with no verified target; none is an ownership hole. The other 6 (five amino acids and glutamate) remain NON_PREFERRED for want of a retained anion name (ANION_RETAINED_NAMES, R4). D2-carbamate was never a hole: the curated inorganic table names it 'carbamate' (a whole-molecule route the first diagnostic did not know, found by the dynamic cross-check). Kept listed because the frozen baseline recorded it."
 rows = [
   "A0-4-nitrobenzoate",
   "A1-lactate",
@@ -74,7 +75,8 @@ layer = "CANDIDATE_ABSENT"
 target_stage = "R3"
 mechanism = "A salt fragment reaches plan search with OutputForm.ANION already chosen by _choose_salt_fragment_form, so the classifier is skipped, but the FG-anion promotion does not see a charged carboxylate beside a neutral group either; the names show the same 'oxido' prefixes. To be confirmed by the R3 diagnosis: whether the salt path needs its own fix or inherits the isolated-ion one."
 sources = "as HOLE_ACID_MIXED, plus P-65.6.2 (pdf pp. 618-619) for the salt form"
-fix_status = "OPEN"
+fix_status = "PARTLY_FIXED"
+fix_note = "R3: the classifier now owns a junior-group anion, so the salt path (which asks for STANDALONE) inherits the fix, and _choose_salt_fragment_form asks for the ANION form for a fragment the CARVED route owns (the promotion in name() is gated on _depth == 0). Six of the eight now name correctly; sodium glycinate and calcium gluconate remain for R4 (retained name; salt multiplier)."
 rows = [
   "G0-sodium-salicylate",
   "G0-sodium-lactate",
@@ -101,17 +103,24 @@ rows = [
 
 [[family]]
 id = "ANION_RETAINED_NAMES"
-summary = "The book retains methoxide, ethoxide, tert-butoxide and phenoxide as PINs; the engine emits -olate names"
+summary = "The book retains methoxide, ethoxide, tert-butoxide and phenoxide, and the amino-acid anions (glycinate, alaninate, glutamate, ...), as PINs; the engine emits systematic names"
 layer = "CANDIDATE_ABSENT"
 target_stage = "R4"
 mechanism = "The route OWNS these sites (classifier, OWNED) and produces a correct but non-preferred name: the retained anion names are not a candidate. A retained-registry question (typed PIN entries with the page), not an ownership one."
-sources = "P-72.2.2.2.2 (pdf p. 808)"
+sources = "P-72.2.2.2.2 (pdf p. 808); P-103.2.4.2 (pdf p. 1047: 'glycinate')"
 fix_status = "OPEN"
 rows = [
+  "A2-glycinate",
+  "A2-alaninate",
+  "A2-prolinate",
+  "A2-tyrosinate",
+  "A2-cysteinate",
   "C0-methoxide",
   "C0-ethoxide",
   "C0-tert-butoxide",
   "C0-phenoxide",
+  "E2-glutamate-dianion",
+  "G0-sodium-glycinate",
   "G0-sodium-phenoxide",
   "G0-potassium-tert-butoxide",
 ]

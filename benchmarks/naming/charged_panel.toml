@@ -26,6 +26,19 @@
 #   1. F0-carnitine-like: the derived target denoted a four-carbon acid for a three-carbon
 #      structure. Found by parsing every target with OPSIN and requiring it to denote its own
 #      row (tests/test_charged_panel.py keeps that check). Now NONE_VERIFIED.
+#   2. A5-3-carbamoylpropanoate (renamed A5-4-amino-4-oxobutanoate): the derived target used the
+#      'carbamoyl' prefix, which the book prints (p. 593) as a NON-PIN alternative to
+#      '4-amino-4-oxobutanoic acid (PIN)'. Corrected AFTER R3 was measured, on the evidence of
+#      that printed page, and disclosed here because the corrected target happens to equal what
+#      the engine emits; the page, not the engine, is the source.
+#
+# AUDIT OF THE DERIVED TARGETS (R3, engine-independent). A derived anion name is the printed RULE
+# (P-72.2.2.2.1.1, ic acid -> ate) applied to the neutral acid's PIN, and the neutral PIN is a
+# separate claim per row. Searching the whole Blue Book text for each neutral acid name found 22 of
+# 44; the other 22 are UNVERIFIED (not wrong: many are systematic locant forms or amino acids, which
+# follow P-103), and a name found in the book may be a non-PIN alternative, as erratum 2 showed. An
+# EXACT_PREFERRED result on a DERIVED row therefore means the engine agrees with a rule-derived target,
+# never that IUPAC printed it. tests/test_charged_panel.py checks every target denotes its own row.
 # Retained amino-acid names (alaninate, prolinate, tyrosinate, cysteinate, glutamate) denote the
 # L-isomer while the rows are drawn without stereochemistry; the comparison is on the string, and
 # the target audit allows a stereo-only difference for exactly these.
@@ -451,9 +464,9 @@ context = "isolated_ion"
 smiles = "NC(=O)CCC(=O)[O-]"
 expected_owner = "ACID_ANION"
 target_basis = "DERIVED"
-target = "3-carbamoylpropanoate"
-source = "P-72.2.2.2.1.2 (pdf p. 808) with P-41: the carboxylate takes the ending and the neutral amide is a 'carbamoyl' prefix"
-why = "an amide on an acid anion"
+target = "4-amino-4-oxobutanoate"
+source = "P-72.2.2.2.1.1 (pdf p. 807): the 'ic acid' ending of the acid's PIN becomes 'ate' on '4-amino-4-oxobutanoic acid (PIN)', pdf p. 593, where '3-carbamoylpropanoic acid' is printed as a NON-PIN alternative (ERRATUM 2: the first target was that alternative; the row keeps its original id, which names the structure and not the target)"
+why = "an amide on an acid anion; the printed ester pattern '4-ethoxy-4-oxobutanoate' (p. 808) is the same shape"
 
 [[row]]
 id = "A5-4-ethoxy-4-oxobutanoate"

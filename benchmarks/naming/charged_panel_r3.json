@@ -123,19 +123,21 @@
    "target_basis": "DERIVED",
    "target": "4-nitrobenzoate",
    "smiles": "[O-]C(=O)c1ccc(cc1)[N+](=O)[O-]",
-   "name": "1-nitro-4-oxidooxomethylbenzene",
-   "roundtrip": "MISMATCH",
-   "structural": "WRONG_MOLECULE",
-   "preference": "n/a",
-   "status": "WRONG_MOLECULE",
+   "name": "4-nitrobenzoate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C([O-])c1ccc([N+](=O)[O-])cc1",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "carved_anion"
+      ],
+      "observed_route": "plan_search:carved_anion"
      }
     ]
    }
@@ -177,19 +179,21 @@
    "target_basis": "DERIVED",
    "target": "2-hydroxypropanoate",
    "smiles": "CC(O)C(=O)[O-]",
-   "name": "1-oxido-1-oxopropan-2-ol",
+   "name": "2-hydroxypropanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "CC(O)C(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -203,19 +207,21 @@
    "target_basis": "DERIVED",
    "target": "hydroxyacetate",
    "smiles": "OCC(=O)[O-]",
-   "name": "2-oxido-2-oxoethan-1-ol",
+   "name": "hydroxyacetate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C([O-])CO",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -229,19 +235,21 @@
    "target_basis": "DERIVED",
    "target": "hydroxy(phenyl)acetate",
    "smiles": "OC(c1ccccc1)C(=O)[O-]",
-   "name": "2-oxido-2-oxo-1-phenylethan-1-ol",
+   "name": "hydroxy(phenyl)acetate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C([O-])C(O)c1ccccc1",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -255,19 +263,21 @@
    "target_basis": "DERIVED",
    "target": "2-hydroxybenzoate",
    "smiles": "Oc1ccccc1C(=O)[O-]",
-   "name": "2-oxidooxomethylphenol",
-   "roundtrip": "MISMATCH",
-   "structural": "WRONG_MOLECULE",
-   "preference": "n/a",
-   "status": "WRONG_MOLECULE",
+   "name": "2-hydroxybenzoate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C([O-])c1ccccc1O",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -281,19 +291,21 @@
    "target_basis": "DERIVED",
    "target": "3-hydroxybenzoate",
    "smiles": "Oc1cccc(c1)C(=O)[O-]",
-   "name": "3-oxidooxomethylphenol",
-   "roundtrip": "MISMATCH",
-   "structural": "WRONG_MOLECULE",
-   "preference": "n/a",
-   "status": "WRONG_MOLECULE",
+   "name": "3-hydroxybenzoate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C([O-])c1cccc(O)c1",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -307,19 +319,21 @@
    "target_basis": "DERIVED",
    "target": "4-hydroxybenzoate",
    "smiles": "Oc1ccc(cc1)C(=O)[O-]",
-   "name": "4-oxidooxomethylphenol",
-   "roundtrip": "MISMATCH",
-   "structural": "WRONG_MOLECULE",
-   "preference": "n/a",
-   "status": "WRONG_MOLECULE",
+   "name": "4-hydroxybenzoate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C([O-])c1ccc(O)cc1",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -333,19 +347,21 @@
    "target_basis": "DERIVED",
    "target": "3-hydroxybutanoate",
    "smiles": "CC(O)CC(=O)[O-]",
-   "name": "4-oxido-4-oxobutan-2-ol",
+   "name": "3-hydroxybutanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "CC(O)CC(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -359,19 +375,21 @@
    "target_basis": "DERIVED",
    "target": "4-hydroxybutanoate",
    "smiles": "OCCCC(=O)[O-]",
-   "name": "4-oxido-4-oxobutan-1-ol",
+   "name": "4-hydroxybutanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C([O-])CCCO",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -385,19 +403,21 @@
    "target_basis": "DERIVED",
    "target": "2,3,4,5,6-pentahydroxyhexanoate",
    "smiles": "OCC(O)C(O)C(O)C(O)C(=O)[O-]",
-   "name": "6-oxido-6-oxohexane-1,2,3,4,5-pentol",
+   "name": "2,3,4,5,6-pentahydroxyhexanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C([O-])C(O)C(O)C(O)C(O)CO",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -411,19 +431,21 @@
    "target_basis": "PRINTED",
    "target": "glycinate",
    "smiles": "NCC(=O)[O-]",
-   "name": "2-oxido-2-oxoethan-1-amine",
+   "name": "aminoacetate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
    "preference": "NON_PREFERRED",
    "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "NCC(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -437,19 +459,21 @@
    "target_basis": "DERIVED",
    "target": "alaninate",
    "smiles": "CC(N)C(=O)[O-]",
-   "name": "1-oxido-1-oxopropan-2-amine",
+   "name": "2-aminopropanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
    "preference": "NON_PREFERRED",
    "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "CC(N)C(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -463,19 +487,21 @@
    "target_basis": "DERIVED",
    "target": "prolinate",
    "smiles": "[O-]C(=O)C1CCCN1",
-   "name": "2-oxidooxomethylpyrrolidine",
-   "roundtrip": "MISMATCH",
-   "structural": "WRONG_MOLECULE",
-   "preference": "n/a",
-   "status": "WRONG_MOLECULE",
+   "name": "pyrrolidine-2-carboxylate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C([O-])C1CCCN1",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -489,19 +515,21 @@
    "target_basis": "DERIVED",
    "target": "tyrosinate",
    "smiles": "NC(Cc1ccc(O)cc1)C(=O)[O-]",
-   "name": "4-(2-amino-3-oxido-3-oxopropyl)phenol",
+   "name": "2-amino-3-(4-hydroxyphenyl)propanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
    "preference": "NON_PREFERRED",
    "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "NC(Cc1ccc(O)cc1)C(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -515,19 +543,21 @@
    "target_basis": "DERIVED",
    "target": "cysteinate",
    "smiles": "NC(CS)C(=O)[O-]",
-   "name": "2-amino-3-oxido-3-oxopropane-1-thiol",
+   "name": "2-amino-3-sulfanylpropanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
    "preference": "NON_PREFERRED",
    "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "NC(CS)C(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -541,19 +571,21 @@
    "target_basis": "DERIVED",
    "target": "4-aminobenzoate",
    "smiles": "Nc1ccc(cc1)C(=O)[O-]",
-   "name": "4-oxidooxomethylaniline",
-   "roundtrip": "MISMATCH",
-   "structural": "WRONG_MOLECULE",
-   "preference": "n/a",
-   "status": "WRONG_MOLECULE",
+   "name": "4-aminobenzoate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "Nc1ccc(C(=O)[O-])cc1",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -567,19 +599,21 @@
    "target_basis": "DERIVED",
    "target": "2-aminobenzoate",
    "smiles": "Nc1ccccc1C(=O)[O-]",
-   "name": "2-oxidooxomethylaniline",
-   "roundtrip": "MISMATCH",
-   "structural": "WRONG_MOLECULE",
-   "preference": "n/a",
-   "status": "WRONG_MOLECULE",
+   "name": "2-aminobenzoate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "Nc1ccccc1C(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -593,19 +627,21 @@
    "target_basis": "DERIVED",
    "target": "3-aminopropanoate",
    "smiles": "NCCC(=O)[O-]",
-   "name": "3-oxido-3-oxopropan-1-amine",
+   "name": "3-aminopropanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "NCCC(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -619,19 +655,21 @@
    "target_basis": "NONE_VERIFIED",
    "target": null,
    "smiles": "CNCC(=O)[O-]",
-   "name": "N-methyl-2-oxido-2-oxoethan-1-amine",
+   "name": "(methylamino)acetate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
    "preference": "PREFERENCE_UNKNOWN",
    "status": "STRUCTURALLY_CORRECT/PREFERENCE_UNKNOWN",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "CNCC(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -645,19 +683,21 @@
    "target_basis": "DERIVED",
    "target": "3-sulfanylpropanoate",
    "smiles": "SCCC(=O)[O-]",
-   "name": "3-oxido-3-oxopropane-1-thiol",
+   "name": "3-sulfanylpropanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C([O-])CCS",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -671,19 +711,21 @@
    "target_basis": "DERIVED",
    "target": "sulfanylacetate",
    "smiles": "SCC(=O)[O-]",
-   "name": "2-oxido-2-oxoethane-1-thiol",
+   "name": "sulfanylacetate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C([O-])CS",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -697,19 +739,21 @@
    "target_basis": "PRINTED",
    "target": "5-carboxypentanoate",
    "smiles": "OC(=O)CCCCC(=O)[O-]",
-   "name": "6-oxido-6-oxohexanoic acid",
+   "name": "5-carboxypentanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C([O-])CCCCC(=O)O",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "carved_anion"
+      ],
+      "observed_route": "plan_search:carved_anion"
      }
     ]
    }
@@ -723,19 +767,21 @@
    "target_basis": "PRINTED",
    "target": "3-carboxypropanoate",
    "smiles": "OC(=O)CCC(=O)[O-]",
-   "name": "4-oxido-4-oxobutanoic acid",
+   "name": "3-carboxypropanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C([O-])CCC(=O)O",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "carved_anion"
+      ],
+      "observed_route": "plan_search:carved_anion"
      }
     ]
    }
@@ -749,19 +795,21 @@
    "target_basis": "DERIVED",
    "target": "3-carboxy-2-hydroxypropanoate",
    "smiles": "OC(=O)CC(O)C(=O)[O-]",
-   "name": "3-hydroxy-4-oxido-4-oxobutanoic acid",
+   "name": "3-carboxy-2-hydroxypropanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C(O)CC(O)C(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "carved_anion"
+      ],
+      "observed_route": "plan_search:carved_anion"
      }
     ]
    }
@@ -775,19 +823,21 @@
    "target_basis": "DERIVED",
    "target": "2-carboxybenzoate",
    "smiles": "OC(=O)c1ccccc1C(=O)[O-]",
-   "name": "2-oxidooxomethylbenzoic acid",
-   "roundtrip": "MISMATCH",
-   "structural": "WRONG_MOLECULE",
-   "preference": "n/a",
-   "status": "WRONG_MOLECULE",
+   "name": "2-carboxybenzoate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C([O-])c1ccccc1C(=O)O",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "carved_anion"
+      ],
+      "observed_route": "plan_search:carved_anion"
      }
     ]
    }
@@ -801,19 +851,21 @@
    "target_basis": "NONE_VERIFIED",
    "target": null,
    "smiles": "OC(=O)C(=O)[O-]",
-   "name": "oxido(oxo)acetic acid",
+   "name": "carboxymethanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
    "preference": "PREFERENCE_UNKNOWN",
    "status": "STRUCTURALLY_CORRECT/PREFERENCE_UNKNOWN",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C([O-])C(=O)O",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "carved_anion"
+      ],
+      "observed_route": "plan_search:carved_anion"
      }
     ]
    }
@@ -827,19 +879,21 @@
    "target_basis": "DERIVED",
    "target": "4-amino-4-oxobutanoate",
    "smiles": "NC(=O)CCC(=O)[O-]",
-   "name": "4-oxido-4-oxobutanamide",
+   "name": "4-amino-4-oxobutanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "NC(=O)CCC(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -909,19 +963,21 @@
    "target_basis": "PRINTED",
    "target": "2-(carboxymethyl)-4-ethoxy-2-hydroxy-4-oxobutanoate",
    "smiles": "CCOC(=O)CC(O)(CC(O)=O)C([O-])=O",
-   "name": "5-ethoxy-3-hydroxy-3-oxidooxomethyl-5-oxopentanoic acid",
-   "roundtrip": "MISMATCH",
-   "structural": "WRONG_MOLECULE",
-   "preference": "n/a",
-   "status": "WRONG_MOLECULE",
+   "name": "2-(carboxymethyl)-4-ethoxy-2-hydroxy-4-oxobutanoate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "CCOC(=O)CC(O)(CC(=O)O)C(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "carved_anion"
+      ],
+      "observed_route": "plan_search:carved_anion"
      }
     ]
    }
@@ -991,19 +1047,21 @@
    "target_basis": "DERIVED",
    "target": "2-hydroxybutanedioate",
    "smiles": "[O-]C(=O)CC(O)C([O-])=O",
-   "name": "1,4-dioxido-1,4-dioxobutan-2-ol",
+   "name": "2-hydroxybutanedioate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C([O-])CC(O)C(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -1101,19 +1159,21 @@
    "target_basis": "DERIVED",
    "target": "2-hydroxybenzene-1-sulfonate",
    "smiles": "Oc1ccccc1S(=O)(=O)[O-]",
-   "name": "2-(oxidosulfonyl)phenol",
+   "name": "2-hydroxybenzene-1-sulfonate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=S(=O)([O-])c1ccccc1O",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -1127,19 +1187,21 @@
    "target_basis": "DERIVED",
    "target": "4-aminobenzene-1-sulfonate",
    "smiles": "Nc1ccc(cc1)S(=O)(=O)[O-]",
-   "name": "4-(oxidosulfonyl)aniline",
+   "name": "4-aminobenzene-1-sulfonate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "Nc1ccc(S(=O)(=O)[O-])cc1",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -1153,19 +1215,21 @@
    "target_basis": "DERIVED",
    "target": "2-aminoethane-1-sulfonate",
    "smiles": "NCCS(=O)(=O)[O-]",
-   "name": "2-(oxidosulfonyl)ethan-1-amine",
+   "name": "2-aminoethane-1-sulfonate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "NCCS(=O)(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -1179,19 +1243,21 @@
    "target_basis": "DERIVED",
    "target": "2-hydroxyethane-1-sulfonate",
    "smiles": "OCCS(=O)(=O)[O-]",
-   "name": "2-(oxidosulfonyl)ethan-1-ol",
+   "name": "2-hydroxyethane-1-sulfonate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=S(=O)([O-])CCO",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -1285,19 +1351,21 @@
    "target_basis": "DERIVED",
    "target": "4-sulfobenzoate",
    "smiles": "[O-]C(=O)c1ccc(cc1)S(O)(=O)=O",
-   "name": "4-oxidooxomethylbenzene-1-sulfonic acid",
-   "roundtrip": "MISMATCH",
-   "structural": "WRONG_MOLECULE",
-   "preference": "n/a",
-   "status": "WRONG_MOLECULE",
+   "name": "4-sulfobenzoate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C([O-])c1ccc(S(=O)(=O)O)cc1",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "carved_anion"
+      ],
+      "observed_route": "plan_search:carved_anion"
      }
     ]
    }
@@ -1311,19 +1379,21 @@
    "target_basis": "DERIVED",
    "target": "4-carboxybenzene-1-sulfonate",
    "smiles": "OC(=O)c1ccc(cc1)S(=O)(=O)[O-]",
-   "name": "4-(oxidosulfonyl)benzoic acid",
+   "name": "4-carboxybenzene-1-sulfonate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "O=C(O)c1ccc(S(=O)(=O)[O-])cc1",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "carved_anion"
+      ],
+      "observed_route": "plan_search:carved_anion"
      }
     ]
    }
@@ -1793,13 +1863,16 @@
    "preference": "PREFERENCE_UNKNOWN",
    "status": "STRUCTURALLY_CORRECT/PREFERENCE_UNKNOWN",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "NC(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "none_recorded"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate",
+       "curated_inorganic"
+      ],
+      "observed_route": "curated_inorganic"
      }
     ]
    }
@@ -2009,19 +2082,21 @@
    "target_basis": "PRINTED",
    "target": "glutamate",
    "smiles": "NC(CCC([O-])=O)C([O-])=O",
-   "name": "1,5-dioxido-1,5-dioxopentan-2-amine",
+   "name": "2-aminopentanedioate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
    "preference": "NON_PREFERRED",
    "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "NC(CCC(=O)[O-])C(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
-      "observed_route": "plan_search:unpromoted(unclaimed)"
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
      }
     ]
    }
@@ -2229,7 +2304,7 @@
       "component": "[NH4+]",
       "verdict": null,
       "owners": [],
-      "observed_route": "none_recorded"
+      "observed_route": "curated_inorganic"
      }
     ]
    }
@@ -2609,13 +2684,13 @@
    "target_basis": "DERIVED",
    "target": "sodium 2-hydroxybenzoate",
    "smiles": "[Na+].Oc1ccccc1C(=O)[O-]",
-   "name": "sodium 2-oxidooxomethylphenol",
-   "roundtrip": "MISMATCH",
-   "structural": "WRONG_MOLECULE",
-   "preference": "n/a",
-   "status": "WRONG_MOLECULE",
+   "name": "sodium 2-hydroxybenzoate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "[Na+]",
@@ -2625,8 +2700,10 @@
      },
      {
       "component": "O=C([O-])c1ccccc1O",
-      "verdict": "HOLE",
-      "owners": [],
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
       "observed_route": null
      }
     ]
@@ -2634,14 +2711,14 @@
    "permutations": {
     "reversed": {
      "smiles": "Oc1ccccc1C(=O)[O-].[Na+]",
-     "name": "sodium 2-oxidooxomethylphenol",
-     "structural": "WRONG_MOLECULE",
+     "name": "sodium 2-hydroxybenzoate",
+     "structural": "STRUCTURALLY_CORRECT",
      "same_name_as_base": true
     },
     "with_water": {
      "smiles": "[Na+].O.Oc1ccccc1C(=O)[O-]",
-     "name": "sodium 2-oxidooxomethylphenol water",
-     "structural": "WRONG_MOLECULE",
+     "name": "sodium 2-hydroxybenzoate water",
+     "structural": "STRUCTURALLY_CORRECT",
      "same_name_as_base": false
     }
    },
@@ -2657,13 +2734,13 @@
    "target_basis": "DERIVED",
    "target": "sodium 2-hydroxypropanoate",
    "smiles": "[Na+].CC(O)C(=O)[O-]",
-   "name": "sodium 1-oxido-1-oxopropan-2-ol",
+   "name": "sodium 2-hydroxypropanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "[Na+]",
@@ -2673,8 +2750,10 @@
      },
      {
       "component": "CC(O)C(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
       "observed_route": null
      }
     ]
@@ -2682,13 +2761,13 @@
    "permutations": {
     "reversed": {
      "smiles": "CC(O)C(=O)[O-].[Na+]",
-     "name": "sodium 1-oxido-1-oxopropan-2-ol",
+     "name": "sodium 2-hydroxypropanoate",
      "structural": "STRUCTURALLY_CORRECT",
      "same_name_as_base": true
     },
     "with_water": {
      "smiles": "[Na+].O.CC(O)C(=O)[O-]",
-     "name": "sodium 1-oxido-1-oxopropan-2-ol water",
+     "name": "sodium 2-hydroxypropanoate water",
      "structural": "STRUCTURALLY_CORRECT",
      "same_name_as_base": false
     }
@@ -2705,13 +2784,13 @@
    "target_basis": "DERIVED",
    "target": "sodium glycinate",
    "smiles": "[Na+].NCC(=O)[O-]",
-   "name": "sodium 2-oxido-2-oxoethan-1-amine",
+   "name": "sodium aminoacetate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
    "preference": "NON_PREFERRED",
    "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "[Na+]",
@@ -2721,8 +2800,10 @@
      },
      {
       "component": "NCC(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
       "observed_route": null
      }
     ]
@@ -2730,13 +2811,13 @@
    "permutations": {
     "reversed": {
      "smiles": "NCC(=O)[O-].[Na+]",
-     "name": "sodium 2-oxido-2-oxoethan-1-amine",
+     "name": "sodium aminoacetate",
      "structural": "STRUCTURALLY_CORRECT",
      "same_name_as_base": true
     },
     "with_water": {
      "smiles": "[Na+].O.NCC(=O)[O-]",
-     "name": "sodium 2-oxido-2-oxoethan-1-amine water",
+     "name": "sodium aminoacetate water",
      "structural": "STRUCTURALLY_CORRECT",
      "same_name_as_base": false
     }
@@ -2753,13 +2834,13 @@
    "target_basis": "DERIVED",
    "target": "potassium 3-carboxypropanoate",
    "smiles": "[K+].OC(=O)CCC(=O)[O-]",
-   "name": "potassium 4-oxido-4-oxobutanoic acid",
+   "name": "potassium 3-carboxypropanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "[K+]",
@@ -2769,8 +2850,10 @@
      },
      {
       "component": "O=C([O-])CCC(=O)O",
-      "verdict": "HOLE",
-      "owners": [],
+      "verdict": "OWNED",
+      "owners": [
+       "carved_anion"
+      ],
       "observed_route": null
      }
     ]
@@ -2778,13 +2861,13 @@
    "permutations": {
     "reversed": {
      "smiles": "OC(=O)CCC(=O)[O-].[K+]",
-     "name": "potassium 4-oxido-4-oxobutanoic acid",
+     "name": "potassium 3-carboxypropanoate",
      "structural": "STRUCTURALLY_CORRECT",
      "same_name_as_base": true
     },
     "with_water": {
      "smiles": "[K+].O.OC(=O)CCC(=O)[O-]",
-     "name": "potassium 4-oxido-4-oxobutanoic acid water",
+     "name": "potassium 3-carboxypropanoate water",
      "structural": "STRUCTURALLY_CORRECT",
      "same_name_as_base": false
     }
@@ -2801,13 +2884,13 @@
    "target_basis": "DERIVED",
    "target": "calcium bis(2,3,4,5,6-pentahydroxyhexanoate)",
    "smiles": "[Ca+2].OCC(O)C(O)C(O)C(O)C(=O)[O-].OCC(O)C(O)C(O)C(O)C(=O)[O-]",
-   "name": "calcium 6-oxido-6-oxohexane-1,2,3,4,5-pentol 6-oxido-6-oxohexane-1,2,3,4,5-pentol",
+   "name": "calcium 2,3,4,5,6-pentahydroxyhexanoate 2,3,4,5,6-pentahydroxyhexanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
    "preference": "NON_PREFERRED",
    "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "[Ca+2]",
@@ -2817,14 +2900,18 @@
      },
      {
       "component": "O=C([O-])C(O)C(O)C(O)C(O)CO",
-      "verdict": "HOLE",
-      "owners": [],
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
       "observed_route": null
      },
      {
       "component": "O=C([O-])C(O)C(O)C(O)C(O)CO",
-      "verdict": "HOLE",
-      "owners": [],
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
       "observed_route": null
      }
     ]
@@ -2832,13 +2919,13 @@
    "permutations": {
     "reversed": {
      "smiles": "OCC(O)C(O)C(O)C(O)C(=O)[O-].OCC(O)C(O)C(O)C(O)C(=O)[O-].[Ca+2]",
-     "name": "calcium 6-oxido-6-oxohexane-1,2,3,4,5-pentol 6-oxido-6-oxohexane-1,2,3,4,5-pentol",
+     "name": "calcium 2,3,4,5,6-pentahydroxyhexanoate 2,3,4,5,6-pentahydroxyhexanoate",
      "structural": "STRUCTURALLY_CORRECT",
      "same_name_as_base": true
     },
     "with_water": {
      "smiles": "[Ca+2].O.OCC(O)C(O)C(O)C(O)C(=O)[O-].OCC(O)C(O)C(O)C(O)C(=O)[O-]",
-     "name": "calcium 6-oxido-6-oxohexane-1,2,3,4,5-pentol 6-oxido-6-oxohexane-1,2,3,4,5-pentol water",
+     "name": "calcium 2,3,4,5,6-pentahydroxyhexanoate 2,3,4,5,6-pentahydroxyhexanoate water",
      "structural": "STRUCTURALLY_CORRECT",
      "same_name_as_base": false
     }
@@ -2905,13 +2992,13 @@
    "target_basis": "DERIVED",
    "target": "sodium 4-aminobenzene-1-sulfonate",
    "smiles": "[Na+].Nc1ccc(cc1)S(=O)(=O)[O-]",
-   "name": "sodium 4-(oxidosulfonyl)aniline",
+   "name": "sodium 4-aminobenzene-1-sulfonate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "[Na+]",
@@ -2921,8 +3008,10 @@
      },
      {
       "component": "Nc1ccc(S(=O)(=O)[O-])cc1",
-      "verdict": "HOLE",
-      "owners": [],
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
       "observed_route": null
      }
     ]
@@ -2930,13 +3019,13 @@
    "permutations": {
     "reversed": {
      "smiles": "Nc1ccc(cc1)S(=O)(=O)[O-].[Na+]",
-     "name": "sodium 4-(oxidosulfonyl)aniline",
+     "name": "sodium 4-aminobenzene-1-sulfonate",
      "structural": "STRUCTURALLY_CORRECT",
      "same_name_as_base": true
     },
     "with_water": {
      "smiles": "[Na+].O.Nc1ccc(cc1)S(=O)(=O)[O-]",
-     "name": "sodium 4-(oxidosulfonyl)aniline water",
+     "name": "sodium 4-aminobenzene-1-sulfonate water",
      "structural": "STRUCTURALLY_CORRECT",
      "same_name_as_base": false
     }
@@ -3055,13 +3144,13 @@
    "target_basis": "DERIVED",
    "target": "2-hydroxy-N,N,N-trimethylethan-1-aminium 2-hydroxybenzoate",
    "smiles": "C[N+](C)(C)CCO.Oc1ccccc1C(=O)[O-]",
-   "name": "2-hydroxy-N,N,N-trimethylethan-1-aminium 2-oxidooxomethylphenol",
-   "roundtrip": "MISMATCH",
-   "structural": "WRONG_MOLECULE",
-   "preference": "n/a",
-   "status": "WRONG_MOLECULE",
+   "name": "2-hydroxy-N,N,N-trimethylethan-1-aminium 2-hydroxybenzoate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "C[N+](C)(C)CCO",
@@ -3071,8 +3160,10 @@
      },
      {
       "component": "O=C([O-])c1ccccc1O",
-      "verdict": "HOLE",
-      "owners": [],
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
       "observed_route": null
      }
     ]
@@ -3080,14 +3171,14 @@
    "permutations": {
     "reversed": {
      "smiles": "Oc1ccccc1C(=O)[O-].C[N+](C)(C)CCO",
-     "name": "2-hydroxy-N,N,N-trimethylethan-1-aminium 2-oxidooxomethylphenol",
-     "structural": "WRONG_MOLECULE",
+     "name": "2-hydroxy-N,N,N-trimethylethan-1-aminium 2-hydroxybenzoate",
+     "structural": "STRUCTURALLY_CORRECT",
      "same_name_as_base": true
     },
     "with_water": {
      "smiles": "C[N+](C)(C)CCO.O.Oc1ccccc1C(=O)[O-]",
-     "name": "2-hydroxy-N,N,N-trimethylethan-1-aminium 2-oxidooxomethylphenol water",
-     "structural": "WRONG_MOLECULE",
+     "name": "2-hydroxy-N,N,N-trimethylethan-1-aminium 2-hydroxybenzoate water",
+     "structural": "STRUCTURALLY_CORRECT",
      "same_name_as_base": false
     }
    },
@@ -3203,13 +3294,13 @@
    "target_basis": "DERIVED",
    "target": "2-hydroxy-N,N,N-trimethylethan-1-aminium 2-hydroxypropanoate",
    "smiles": "C[N+](C)(C)CCO.CC(O)C(=O)[O-]",
-   "name": "2-hydroxy-N,N,N-trimethylethan-1-aminium 1-oxido-1-oxopropan-2-ol",
+   "name": "2-hydroxy-N,N,N-trimethylethan-1-aminium 2-hydroxypropanoate",
    "roundtrip": "MATCH",
    "structural": "STRUCTURALLY_CORRECT",
-   "preference": "NON_PREFERRED",
-   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
    "ownership": {
-    "verdict": "HOLE",
+    "verdict": "OWNED",
     "components": [
      {
       "component": "C[N+](C)(C)CCO",
@@ -3219,8 +3310,10 @@
      },
      {
       "component": "CC(O)C(=O)[O-]",
-      "verdict": "HOLE",
-      "owners": [],
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
       "observed_route": null
      }
     ]
@@ -3228,13 +3321,13 @@
    "permutations": {
     "reversed": {
      "smiles": "CC(O)C(=O)[O-].C[N+](C)(C)CCO",
-     "name": "2-hydroxy-N,N,N-trimethylethan-1-aminium 1-oxido-1-oxopropan-2-ol",
+     "name": "2-hydroxy-N,N,N-trimethylethan-1-aminium 2-hydroxypropanoate",
      "structural": "STRUCTURALLY_CORRECT",
      "same_name_as_base": true
     },
     "with_water": {
      "smiles": "C[N+](C)(C)CCO.O.CC(O)C(=O)[O-]",
-     "name": "2-hydroxy-N,N,N-trimethylethan-1-aminium 1-oxido-1-oxopropan-2-ol water",
+     "name": "2-hydroxy-N,N,N-trimethylethan-1-aminium 2-hydroxypropanoate water",
      "structural": "STRUCTURALLY_CORRECT",
      "same_name_as_base": false
     }
