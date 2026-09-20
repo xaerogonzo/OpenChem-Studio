@@ -1312,3 +1312,41 @@ and won), named as an ester, `_name_cyanic_ester_functional_parent`; the
 
 Stage artifact `r6-cyano`: 0 names changed on regression, heldout and
 heldout_v2, which contain no cyano compound. `heldout_v3` was not consulted.
+
+
+## 2026-09-20 - naming round 7: acid anions, and the charged classes the corpora never contained
+
+Found by the round-5 integration run, not by any corpus: a carboxylate or sulfonate beside a neutral OH, NH2 or
+SH was named as if that group were principal. Salicylate was `2-oxidooxomethylphenol` (a different molecule,
+withheld by the round-trip gate); lactate was `1-oxido-1-oxopropan-2-ol` (round-trips, wrong, nothing catches it).
+
+**The cause was a missing owner between two guards.** `_classify_acidic_anion` deferred every "mixed charged +
+neutral" case to plan search, and plan search's `_carved_acid_anion_sites` excluded carboxylate as "handled by the
+dedicated path". Nothing claimed it. `charge_perception.acid_anion_route` is now the one function both routes ask
+(P-41: anions outrank acids, and everything below an acid is a prefix): `classifier` for a pure anion or one beside
+groups junior to an acid, `carved` for another neutral acid or a nitro group, None for a genuine other ion. The
+carved route's acid FG is taken from perception on an index-preserving neutral view, and its PCG restriction now
+covers the whole anion-variant family for an acid FG.
+
+**Also fixed, all from a 108-row panel of charged species built by class** (`benchmarks/naming/charged_panel.toml`,
+frozen, with its baseline and adjudication beside it):
+
+* a zwitterion with one carboxylate and one NEUTRAL COOH was named as the dianion, a wrong molecule from a route
+  that owned the site: in ANION mode the suffix now sits only on the charged instances of a type that has both;
+* a zwitterion with a NEGATIVE net charge (glutamate and aspartate at pH 7) had no owner, because perception sees a
+  charged carboxylic acid only when the charges cancel: the carved route takes it (`2-azaniumylpentanedioate`);
+* the retained anion names the book prints (`methoxide`, `ethoxide`, `propoxide`, `butoxide`, `tert-butoxide`,
+  `phenoxide`, `glycinate`), in the curated whole-molecule table; the chiral amino acids are deliberately NOT there;
+* an amide anion is an acyl group on the parent anion `azanide` (`acetylazanide`, pdf p. 810);
+* identical organic `-ate` anions in a salt take a multiplying prefix (`calcium diacetate`, `bis(...)` for a
+  substituted one), while `disulfate` and `diphosphate` stay unmultiplied because they are different ions.
+
+**Measured against the frozen baseline:** wrong molecules 13 to 0, non-preferred names 42 to 9, exact 45 to 90,
+ownership holes 47 to 0 (two phosphorus-acid rows are a DECLARED unsupported edge). The stage artifact changes 0 of
+307 names against the round baseline at every stage; the vendored suite is 4,515 passed, the default naming set
+2,907 passed. D-095 to D-099 hold 79 rows, each red before its fix, with converses that differ by reason.
+
+Two instrumentation hooks, neither of which changes a result: `classify_charges(claims_out=...)` and
+`diagnostics.record_route`, which is what let `perception/charge_ownership.py` compare the routes that would claim a
+site with the route the engine actually took. That comparison found a fourth owner the static model had not heard of
+(the curated inorganic table answers first, so `carbamate` was never a hole).
