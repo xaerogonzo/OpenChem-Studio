@@ -674,13 +674,14 @@ charged = [{ smiles = "C[S:1][O-:2]", state = "anionic" }]
 
 [[feature]]
 id = "fg:sulfenamide"
-positive = ["C[S:1][NH2:2]", "CC[S:1][N:2](C)C", "c1ccccc1[S:1][NH:2]C(=O)C", "O=C1[NH:2][S:1]c2ccccc12"]
+positive = ["C[S:1][NH2:2]", "CC[S:1][N:2](C)C", "c1ccccc1[S:1][NH:2]C(=O)C", "C1CC[S:1][NH:2]1"]
 negative = [
   { smiles = "CSN=C", why = "an S-imino compound: the N is double-bonded" },
   { smiles = "CSC", why = "a sulfide" },
   { smiles = "CS(=O)N", why = "a sulfinamide: the S bears =O" },
   { smiles = "CS(N)(=O)=O", why = "a sulfonamide" },
   { smiles = "c1ccsn1", why = "an isothiazole: the ring S-N is the ring system's" },
+  { smiles = "O=C1NSc2ccccc12", why = "a benzisothiazolinone, which RDKit perceives aromatic: its S-N is the ring system's" },
 ]
 
 [[feature]]

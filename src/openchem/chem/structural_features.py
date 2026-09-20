@@ -93,6 +93,8 @@ _ACYL_C = f"[#6X3;{_R_C_OR_H}:1]"
 #: vocabulary's, so a feature cannot exist without a detector or vice versa.
 SPECS: dict[str, FeatureSpec] = {s.feature_id: s for s in (
     _s("fg:carboxylic_acid", f"{_ACYL_C}(=[OX1:2])[OX2H1,OX1-:3]"),
+    _s("fg:thiocarboxylic_acid", f"{_ACYL_C}(=[OX1:2])[SX2H1,SX1-:3]",
+       f"{_ACYL_C}(=[SX1:2])[OX2H1,OX1-:3]", f"{_ACYL_C}(=[SX1:2])[SX2H1,SX1-:3]"),
     _s("fg:carboxylic_ester", f"{_ACYL_C}(=[OX1:2])[#8X2:3]{_HC}"),
     _s("fg:lactone", f"{_ACYL_C}(=[OX1:2])@[#8X2:3]@{_HC}"),
     _s("fg:carbonate_ester", "[#6X3:1](=[OX1:2])([#8X2:3][#6])[#8;X2,X1-:3]"),
@@ -108,6 +110,13 @@ SPECS: dict[str, FeatureSpec] = {s.feature_id: s for s in (
     # The ester O needs a SECOND carbon: `$([#8X2][#6])` is satisfied by the
     # carbonyl carbon itself, and matched carbamic acid (measured).
     _s("fg:carbamate", "[#7:3][#6X3:1](=[OX1:2])[#8;$([#8X2](-[#6])-[#6]),$([#8X1-]):4]"),
+    # Both the single-bonded chalcogen's neighbours must be carbon: `[#16][#6]`
+    # alone is satisfied by the carbonyl carbon itself (the carbamate lesson),
+    # and a thiuram disulfide's S-S would then read as two of these.
+    _s("fg:thiocarbamate",
+       "[#7:3][#6X3:1](=[SX1:2])[#8;$([#8X2](-[#6])-[#6]),$([#8X1-]):4]",
+       "[#7:3][#6X3:1](=[OX1:2])[#16;$([#16X2](-[#6])-[#6]),$([#16X1-]):4]",
+       "[#7:3][#6X3:1](=[SX1:2])[#16;$([#16X2](-[#6])-[#6]),$([#16X1-]):4]"),
     _s("fg:thioester", f"{_ACYL_C}(=[OX1:2])[SX2:3][#6]",
        f"{_ACYL_C}(=[SX1:2])[OX2:3][#6]", f"{_ACYL_C}(=[SX1:2])[SX2:3][#6]"),
     _s("fg:thioamide", f"{_ACYL_C}(=[SX1:2]){_AMIDE_N}:3]"),
@@ -120,6 +129,7 @@ SPECS: dict[str, FeatureSpec] = {s.feature_id: s for s in (
     _s("fg:aldehyde", "[#6X3;$([#6H1][#6]),$([#6H2]):1]=[OX1:2]"),
     _s("fg:ketone", "[#6X3;$([#6]([#6])([#6])=[OX1]):1]=[OX1:2]"),
     _s("fg:thioketone", "[#6X3;$([#6]([#6])([#6])=[SX1]):1]=[SX1:2]"),
+    _s("fg:thioaldehyde", "[#6X3;$([#6H1][#6]),$([#6H2]):1]=[SX1:2]"),
     _s("fg:amidine",
        f"[#6X3;{_R_C_OR_H}:1](=[#7;!$([#7]-[#8]);!$([#7]-[#7]):2])[#7;!$([#7]-[#8]):3]"),
     _s("fg:guanidine", "[#6X3:1](=[#7:2])([#7:3])[#7:3]"),
@@ -127,7 +137,13 @@ SPECS: dict[str, FeatureSpec] = {s.feature_id: s for s in (
     # itself (the carbamic-acid lesson).
     _s("fg:imidate",
        f"[#6X3;{_R_C_OR_H}:1](=[#7;!$([#7]-[#8]);!$([#7]-[#7]):2])-[OX2;$([OH1]),$([#8](-[#6])-[#6]):3]"),
+    # S-hydrocarbyl only, and two carbons on S for the same reason as above: an
+    # S-H form is a thiol as drawn (`thiol` does not exclude C=N).
+    _s("fg:thioimidate",
+       f"[#6X3;{_R_C_OR_H}:1](=[#7;!$([#7]-[#8]);!$([#7]-[#7]):2])"
+       "-[SX2;$([#16](-[#6])-[#6]):3]"),
     _s("fg:isourea", "[#7:3]-[#6X3:1](=[#7:2])-[OX2;$([OH1]),$([#8](-[#6])-[#6]):4]"),
+    _s("fg:isothiourea", "[#7:3]-[#6X3:1](=[#7:2])-[SX2;$([#16](-[#6])-[#6]):4]"),
     _s("fg:imine", "[#6X3;!$([#6]-[!#6;!#1]):1]=[#7;!$([#7]-[!#6;!#1]):2]"),
     _s("fg:oxime", "[#6X3;!$([#6]-[!#6;!#1]):1]=[#7X2:2]-[#8X2;$([#8H1]),$([#8][#6]):3]"),
     _s("fg:hydrazone", "[#6X3;!$([#6]-[!#6;!#1]):1]=[#7X2:2]-[#7X3;!$([#7]=*):3]"),
@@ -135,7 +151,12 @@ SPECS: dict[str, FeatureSpec] = {s.feature_id: s for s in (
     _s("fg:carbodiimide", "[#7:2]=[#6X2:1]=[#7:2]"),
     _s("fg:isocyanate", "[#7X2:1]=[#6X2:2]=[OX1:3]"),
     _s("fg:isothiocyanate", "[#7X2:1]=[#6X2:2]=[SX1:3]"),
+    _s("fg:cyanate", "[#6][OX2:3]-[#6X2:1]#[#7X1:2]"),
+    _s("fg:thiocyanate", "[#6][SX2:3]-[#6X2:1]#[#7X1:2]"),
     _s("fg:nitrile", "[#6X2;$([#6][#6]),$([#6H1]):1]#[#7X1:2]"),
+    # A neutral, single-bonded, non-aromatic N on the cyano carbon. The
+    # nitrile spec needs a CARBON on the C#N, so the two never share atoms.
+    _s("fg:cyanamide", "[#7;+0;!a;!$([#7]=*):3]-[#6X2:1]#[#7X1:2]"),
     _s("fg:isocyanide", "[#7X2+:1]#[#6X1-:2]"),
     _s("fg:alcohol", "[OX2H1,OX1-;$([#8][CX4]):1]"),
     _s("fg:phenol", "[OX2H1,OX1-;$([#8]c):1]", predicate=_carbocyclic_smallest_ring),
@@ -153,6 +174,11 @@ SPECS: dict[str, FeatureSpec] = {s.feature_id: s for s in (
        "-[NX3;!$([#7]=*):3]"),
     _s("fg:thioacetal", "[CX4:1](-[SX2:2]-[#6])-[SX2:2]-[#6]",
        "[CX4:1](-[SX2:2]-[#6])-[OX2:3]-[#6;!$([#6]=[O,S])]"),
+    # `_R_C_OR_H` is a property of the carbonyl carbon, so it cannot be satisfied
+    # by the acylal carbon a few atoms away.
+    _s("fg:acylal",
+       f"[CX4:1](-[OX2:2]-[#6X3;{_R_C_OR_H}:3]=[OX1:4])"
+       f"-[OX2:2]-[#6X3;{_R_C_OR_H}:3]=[OX1:4]"),
     _s("fg:peroxide", "[#6][OX2:1]-[OX2:1][#6]"),
     _s("fg:hydroperoxide", "[#6][OX2:1]-[OX2H1:2]"),
     _s("fg:primary_amine", f"[NX3;H2;{_AMINE_EXCL}:1]", f"[NX4+;H3;{_AMINE_EXCL}:1]"),
@@ -173,7 +199,12 @@ SPECS: dict[str, FeatureSpec] = {s.feature_id: s for s in (
     _s("fg:thiol", "[SX2H1,SX1-;$([#16][#6;!$([#6]=[O,S])]):1]"),
     _s("fg:sulfide", f"[SX2;!a:1]({_HC}){_HC}"),
     _s("fg:disulfide", "[#6][SX2:1]-[SX2:1][#6]"),
+    _s("fg:sulfenic_acid", f"{_HC}[SX2:1]-[OX2H1,OX1-:2]"),
+    _s("fg:sulfenamide", f"{_HC}[SX2:1]-[#7X3;+0;!a;!$([#7]=*):2]"),
     _s("fg:sulfoxide", "[#6][SX3:1](=[OX1:2])[#6]", "[#6][SX3+:1](-[OX1-:2])[#6]"),
+    _s("fg:sulfinic_acid", "[#6][SX3:1](=[OX1:2])[OX2H1,OX1-:3]"),
+    _s("fg:sulfinic_ester", "[#6][SX3:1](=[OX1:2])[OX2:3][#6]"),
+    _s("fg:sulfinamide", "[#6][SX3:1](=[OX1:2])[#7;!$([#7]-[#7]):3]"),
     _s("fg:sulfone", "[#6][SX4:1](=[OX1:2])(=[OX1:2])[#6]"),
     _s("fg:sulfonic_acid", "[#6][SX4:1](=[OX1:2])(=[OX1:2])[OX2H1,OX1-:3]"),
     _s("fg:sulfonic_ester", "[#6][SX4:1](=[OX1:2])(=[OX1:2])[OX2:3][#6]"),
@@ -213,6 +244,9 @@ SPECS: dict[str, FeatureSpec] = {s.feature_id: s for s in (
     _s("sf:heteroarene_n_oxide", "[n+:1]-[OX1-:2]"),
     _s("sf:alpha_beta_unsaturated_carbonyl", "[#6X3:4]=[#6X3:3]-[#6X3:1]=[OX1:2]"),
     _s("sf:carbocation", "[#6+1;!$([#6]~[#8-,#7-]):1]"),
+    # Both resonance forms of R-C+=O <-> R-C#O+; the C+=O form is also matched
+    # by `sf:carbocation`, which the declared CONTAINS relation accounts for.
+    _s("sf:acylium_ion", "[CX2+:1]=[OX1:2]", "[CX2:1]#[OX1+:2]"),
     _s("sf:carbanion", "[#6-1;!$([#6]~[#7+]):1]"),
 )}
 

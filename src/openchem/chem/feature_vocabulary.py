@@ -462,9 +462,10 @@ FEATURES: tuple[FeatureDefinition, ...] = (
     _f("fg:sulfenamide", "sulfenamide", ("s", "amide_n"),
        _gb("sulfenamides", 1477, "RSNR2"),
        "Sulfenic acids with -OH replaced by -NR2. The N is neutral and "
-       "trivalent and carries no double bond, and is not aromatic; an N-acyl "
-       "one (a benzisothiazolinone's N-S) is still a sulfenamide, the entry "
-       "restricting nothing on N."),
+       "trivalent and carries no double bond; an N-acyl one is still a "
+       "sulfenamide, the entry restricting nothing on N. Neither S nor N is "
+       "aromatic: an aromatic S-N (isothiazole, and the benzisothiazolinone "
+       "RDKit perceives aromatic) is the ring system's."),
     _f("fg:sulfoxide", "sulfoxide", ("s", "o"),
        _gb("sulfoxides", 1483, "R2S=O"), "Both R carbon."),
     _f("fg:sulfinic_acid", {_N: "sulfinic acid", _A: "sulfinate"},
