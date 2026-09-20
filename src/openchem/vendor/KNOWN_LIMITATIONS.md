@@ -343,6 +343,20 @@ Found while checking D-029; predates it.
   non-minimal lambda numbering and three general-nomenclature-only acylium
   names; the engine's output is correct in every case. See `CHANGELOG.md`.
 
+## Naming round 6: open after the cyanic acid work (2026-09-20)
+
+* **Cyanamide as a PREFIX** (`3-(cyanoamino)propanoic acid`): the Blue Book
+  prints no name for it (searched: no `cyanoamino`, `cyanamido` or `N-cyano`
+  prefix), so none is targeted.
+* **`cyanato` is not enclosed** (`3-cyanatopropanoic acid`) while `thiocyanato`
+  is: the book prints only the latter's enclosure (`3-(thiocyanato)propanoic
+  acid (PIN)`), and a cyanate ester is derived from the rule, not printed.
+* **The two new functional-parent routes return a leaf**, so they share the
+  ownership blind spot recorded for round 5: the leaf is trusted to name its
+  whole fragment.
+* **Acyl cyanates and thiocyanates** (`CC(=O)SC#N`, named `acetyl
+  thiocyanate` by the acyl route) are not attempted by the ester route.
+
 ## Open after naming round 5 (2026-09-20)
 
 Kept by layer, as round 4's list is. Filled in stage by stage; the round's

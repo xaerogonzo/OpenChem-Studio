@@ -448,6 +448,11 @@ def _is_simple_by_form(name: str) -> bool:
         return False
     if any(token in name for token in _ENCLOSE_ANYWAY):
         return False
+    if name == "thiocyanato":
+        # The book encloses it: "3-(thiocyanato)propanoic acid (PIN)" (P-65.2.2,
+        # pdf p. 604) and "S-ethyl 3-(thiocyanato)propanethioate (PIN)" (p. 629).
+        # An EXACT match: "isothiocyanato" contains the word and is printed bare.
+        return False
     m_ylidene = _SIMPLE_YLIDENE.fullmatch(name)
     if m_ylidene is not None and "yl" not in m_ylidene.group(1):
         return True  # "sulfanylidene", "propylidene" -- one stem (see above)

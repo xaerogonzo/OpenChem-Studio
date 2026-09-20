@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming round 6 (branch `naming-cyano`)
+
+- **Cyanamides and cyanic / thiocyanic acid esters are named as the Blue Book
+  names them.** `NC#N` is `cyanamide` (was `aminomethanenitrile`),
+  `CCN(CC)C#N` is `diethylcyanamide`, `CC(C)SC#N` is `propan-2-yl thiocyanate`,
+  and `3-(thiocyanato)propanoic acid` replaces `3-(cyanosulfanyl)propanoic
+  acid`. The molecules were right before; the names were not the preferred
+  ones. Nothing in the three tuning populations changed.
+
 ### Naming round 5 (branch `naming-round-5`)
 
 - The vendored IUPAC namer gains general fusion nomenclature (P-25.3),

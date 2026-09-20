@@ -1987,6 +1987,47 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-093d", "CC(O)O", "ethane-1,1-diol", "ethane-1,1-diol",
      "converse: two carbons, so 1,1 and 1,2 are different compounds"),
     ("D-093e", "OCCO", "ethane-1,2-diol", "ethane-1,2-diol", "converse, as D-093d"),
+    # --- Naming round 6: amides and esters of cyanic and thiocyanic acid. ---
+    # Found by the functional-groups v3 cross-check. The generic path read the
+    # cyano group as a nitrile of methane and named the ester's carbon parent.
+    ("D-094a", "NC#N", "cyanamide", "aminomethanenitrile",
+     "P-66.1.6.2 (pdf p. 663), verbatim: 'cyanamide' is retained for NC-NH2 and is the PIN"),
+    ("D-094b", "CC(C)NC#N", "(propan-2-yl)cyanamide", "[(propan-2-yl)amino]methanenitrile",
+     "p. 663, verbatim '(propan-2-yl)cyanamide (PIN)'"),
+    ("D-094c", "CCN(CC)C#N", "diethylcyanamide", "(diethylamino)methanenitrile",
+     "p. 663, verbatim 'diethylcyanamide (PIN)'"),
+    ("D-094d", "CN(C)C#N", "dimethylcyanamide", "(dimethylamino)methanenitrile",
+     "derived from D-094c: 'substitution is allowed on the -NH2 group'"),
+    ("D-094e", "CCN(C)C#N", "ethyl(methyl)cyanamide", "[ethyl(methyl)amino]methanenitrile",
+     "derived: two different substituents cited alphabetically, no locants (one position)"),
+    ("D-094f", "OCCNC#N", "(2-hydroxyethyl)cyanamide", "[(2-hydroxyethyl)amino]methanenitrile",
+     "derived: the amide class is senior to the alcohol (P-41)"),
+    ("D-094g", "CC(C)SC#N", "propan-2-yl thiocyanate", "[(propan-2-yl)sulfanyl]methanenitrile",
+     "P-65.6.3.3.7.2.1 (p. 629), verbatim '(CH3)2CH-S-CN propan-2-yl thiocyanate (PIN)'"),
+    ("D-094h", "CSC#N", "methyl thiocyanate", "(methylsulfanyl)methanenitrile",
+     "derived from D-094g; also the Gold Book's own example (thiocyanates, p. 1537)"),
+    ("D-094i", "c1ccccc1OC#N", "phenyl cyanate", "phenoxymethanenitrile",
+     "derived: P-65.2.2 (p. 604) makes cyanic acid an acid that 'generat[es] ... esters'; "
+     "the Gold Book prints 'PhOCN phenyl cyanate' (p. 363)"),
+    ("D-094j", "COC#N", "methyl cyanate", "methoxymethanenitrile", "as D-094i"),
+    ("D-094k", "N#CSCCC(=O)O", "3-(thiocyanato)propanoic acid", "3-(cyanosulfanyl)propanoic acid",
+     "P-65.2.2 (p. 604), verbatim '3-(thiocyanato)propanoic acid (PIN)': the prefix "
+     "derived from thiocyanic acid, ENCLOSED as the book prints it"),
+    ("D-094l", "CCSC(=O)CCSC#N", "S-ethyl 3-(thiocyanato)propanethioate",
+     "2-[(ethylsulfanyl)(oxo)methyl]ethyl thiocyanate",
+     "p. 629, verbatim: the thioester outranks the thiocyanate ester, so this is the "
+     "converse that keeps the new ester route from stealing a molecule with a senior group"),
+    ("D-094m", "N#CN1CCCCC1", "piperidine-1-carbonitrile", "piperidine-1-carbonitrile",
+     "control: a ring N is the ring parent's -carbonitrile, not a cyanamide"),
+    ("D-094n", "N#CNC(C)=O", "N-cyanoacetamide", "N-cyanoacetamide",
+     "control: an amide elsewhere is the parent"),
+    ("D-094o", "N#CN=C(N)N", "N''-cyanoguanidine", "N''-cyanoguanidine",
+     "control: an N-cyanoimine is not an amide of cyanic acid; the guanidine is the parent"),
+    ("D-094p", "S=C=NCCC(=O)O", "3-isothiocyanatopropanoic acid", "3-isothiocyanatopropanoic acid",
+     "converse to D-094k, and the one that BITES: 'isothiocyanato' CONTAINS the word "
+     "'thiocyanato', which the book encloses, and is printed bare (pdf p. 615)"),
+    ("D-094q", "O=C=NCCC(=O)O", "3-isocyanatopropanoic acid", "3-isocyanatopropanoic acid",
+     "control: an isocyanate is N-bound and is not touched by the cyanate routes"),
     ("D-092z", "CC1(C)c2c(C)c(C)c(C)c(C)c2C(C)=C1C", "octamethyl-1H-indene",
      "octamethyl-1H-indene", "P-14.3.4.5 on a carbocyclic parent that carries "
      "indicated hydrogen in its NAME: every substitutable position is a methyl"),
