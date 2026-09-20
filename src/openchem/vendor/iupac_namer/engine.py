@@ -9246,6 +9246,7 @@ def _name_bound(
                         idx in neg_indices for idx in fg.atoms
                     ):
                         output_form = OutputForm.ANION
+                        _record_plan_search_route("fg_anion", mol)
                         break
             # P-72.2 mixed charged + neutral acid: a carved deprotonated
             # chalcogen anion site (C-O⁻ / C-S⁻ / C-Se⁻ / C-Te⁻ with no H)
@@ -9262,6 +9263,7 @@ def _name_bound(
             # ANION mode) selects it as the principal characteristic group.
             if output_form != OutputForm.ANION and _carved_acid_anion_sites(mol):
                 output_form = OutputForm.ANION
+                _record_plan_search_route("carved_anion", mol)
 
     # --- Additive check (pre-interpretation, v13 B3) ---
     # NOT in substituent form.  Additive nomenclature produces a two-word name
@@ -11801,6 +11803,19 @@ _CARVED_ANION_FG_META: dict[str, dict] = {
     "Te": {"aromatic": "tellurol", "aliphatic": "tellurol", "seniority": 1703,
            "prefix": "tellanyl", "suffix": "-tellurol"},
 }
+
+
+def _record_plan_search_route(route: str, mol) -> None:
+    """Tell the diagnostics recorder that the plan search took ownership of a
+    charged site (naming round 7). A no-op unless a ``diagnostics.capture()``
+    scope or ``OPENCHEM_NAMER_DEBUG`` is active, so it costs nothing in the
+    hot path and changes no name."""
+    from openchem.vendor.iupac_namer import diagnostics as _d
+
+    if _d.enabled():
+        from rdkit import Chem as _Chem
+
+        _d.record_route(route, smiles=_Chem.MolToSmiles(mol))
 
 
 def _carved_acid_anion_sites(mol) -> frozenset[int]:

@@ -234,12 +234,21 @@ class ChargeClassification:
 # ---------------------------------------------------------------------------
 
 
-def classify_charges(mol) -> tuple[ChargeClassification, ...]:
+def classify_charges(
+    mol, *, claims_out: list | None = None
+) -> tuple[ChargeClassification, ...]:
     """Walk ``mol`` and return every charge motif this module recognises.
 
     The classifier is *non-mutating*: it never neutralises atoms or
     edits bond orders on the input mol.  Each returned classification
     records the atom indices it claims (relative to ``mol``).
+
+    ``claims_out``, when given, receives ``(classifier_name, classification)``
+    for EVERY classification any classifier yields, BEFORE the first-claimer-wins
+    de-duplication below. It exists for ``charge_ownership.charged_owners``: which
+    classifier wins an atom is decided by the ORDER of the tuple, so "who else
+    would have claimed it" is invisible in the result and only visible here. It
+    changes nothing about what is returned.
 
     Empty tuple return value means "no recognised motif" and is the
     standard signal to fall through to the existing engine dispatch.
@@ -355,6 +364,8 @@ def classify_charges(mol) -> tuple[ChargeClassification, ...]:
         _classify_acidic_anion,
     ):
         for cls in fn(mol):
+            if claims_out is not None:
+                claims_out.append((fn.__name__, cls))
             if any(idx in claimed for idx in cls.site_atom_indices):
                 continue
             out.append(cls)

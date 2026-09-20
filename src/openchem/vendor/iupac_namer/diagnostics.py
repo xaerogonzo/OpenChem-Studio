@@ -121,6 +121,13 @@ class Recorder:
 
     gaps: list[NamingGap] = field(default_factory=list)
     stats: dict[str, dict[str, int]] = field(default_factory=dict)
+    #: (route, smiles) for every point where the PLAN SEARCH takes ownership of a
+    #: charged site: the two promotions in ``_name_bound`` (a carved acid-anion
+    #: site, an FG-detected anion). The classifier route is already in `stats` and
+    #: the hand-back to the plan search is already in `gaps`; these two were the
+    #: unrecorded half, which is why "which route named this ion" could not be
+    #: measured for a mixed anion (naming round 7).
+    routes: list[tuple[str, str]] = field(default_factory=list)
 
     def record(
         self,
@@ -154,6 +161,9 @@ class Recorder:
                 reason=reason, smiles=smiles, stage=stage, suffix_hint=suffix_hint
             )
         )
+
+    def record_route(self, route: str, *, smiles: str) -> None:
+        self.routes.append((route, smiles))
 
     def by_reason(self) -> dict[str, list[NamingGap]]:
         out: dict[str, list[NamingGap]] = {}
@@ -227,10 +237,18 @@ def record_gap(
     )
 
 
+def record_route(route: str, *, smiles: str) -> None:
+    """Record that the plan search took ownership of a charged site.
+
+    Callers gate on :func:`enabled`, for the reason :func:`record` gives."""
+    current().record_route(route, smiles=smiles)
+
+
 def reset() -> None:
     """Clear the ambient recorder."""
     _ambient.gaps.clear()
     _ambient.stats.clear()
+    _ambient.routes.clear()
 
 
 @contextmanager
