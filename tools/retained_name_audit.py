@@ -63,9 +63,9 @@ both tables, by calling that function rather than restating it.
     python tools/retained_name_audit.py --gate        # the gate's partitions
     python tools/retained_name_audit.py --reachable   # engine consulted
 
-`--reachable` runs the three TUNING populations (regression, v1, v2). The
-fresh held-out population is excluded by design: nothing about it may inform
-a gate or an audit decision.
+`--reachable` runs every TUNING population in `benchmarks/naming/populations.toml`
+(regression, v1, v2 and, from naming round 7, v3). The frozen held-out population
+is excluded by design: nothing about it may inform a gate or an audit decision.
 """
 
 from __future__ import annotations
@@ -141,11 +141,15 @@ def partitions(entries: dict) -> dict[str, Counter]:
     }
 
 
-TUNING_POPULATIONS = (
-    ("regression", "corpus.json"),
-    ("v1", "heldout.json"),
-    ("v2", "heldout2.json"),
-)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import naming_populations as _registry  # noqa: E402
+
+#: (label prefix, file) for every TUNING population in
+#: benchmarks/naming/populations.toml. It used to be a hard-coded tuple, which is
+#: how "which populations may inform an audit decision" had one answer here and
+#: another in the stage tool. A frozen population cannot appear in it: `tuning()`
+#: never yields one.
+TUNING_POPULATIONS = tuple((p.short, p.file) for p in _registry.tuning())
 
 
 def gate_partitions() -> dict[str, Counter]:

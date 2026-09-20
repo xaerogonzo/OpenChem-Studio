@@ -129,6 +129,15 @@ VARIANTS = {
     "v3": {"offset": 250, "out": "heldout3.json", "meta": "heldout3.meta.json",
            "exclude": ("corpus.json", "heldout.json", "heldout2.json"), "quiet": True,
            "label": "h3cid", "round": "naming round 5"},
+    # Round 7 spends v3 (it was scored once at round 5's final evaluation, and
+    # round 7's panel work may fix any of its rows), so it needs the fresh
+    # population v3 was for round 5. The stride moves to +750: 0, 500 and 250
+    # are taken, and a different offset makes the CID sets disjoint; the
+    # canonical-SMILES exclusion below covers the case where two CIDs are one
+    # structure.
+    "v4": {"offset": 750, "out": "heldout4.json", "meta": "heldout4.meta.json",
+           "exclude": ("corpus.json", "heldout.json", "heldout2.json", "heldout3.json"),
+           "quiet": True, "label": "h4cid", "round": "naming round 7"},
 }
 
 MIN_HEAVY_ATOMS = 6
@@ -316,7 +325,7 @@ def main() -> None:
         "--variant",
         choices=sorted(VARIANTS),
         default="v1",
-        help="which draw: v1 is the committed heldout.json, v2 is naming round 4's, v3 round 5's",
+        help="which draw: v1 is the committed heldout.json, v2 is naming round 4's, v3 round 5's, v4 round 7's",
     )
     parser.add_argument(
         "--freeze",

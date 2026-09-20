@@ -40,12 +40,15 @@ quotes.
     regression    corpus.json     187  tuning, adjudication, per-stage invariant
     heldout       heldout.json     40  USED for tuning since naming round 4
     heldout_v2    heldout2.json    40  USED for tuning since naming round 5
-    heldout_v3    heldout3.json    40  evaluation only -- `--final-evaluation`
+    heldout_v3    heldout3.json    40  USED for tuning since naming round 7
+    heldout_v4                     40  evaluation only -- `--final-evaluation`
 
-`heldout_v3` was drawn and frozen before any round-5 diagnosis, taking the
-place `heldout_v2` held in round 4; v2 was scored once, at round 4's final
-evaluation, and is a tuning population from round 5 on. A per-stage
-run cannot load it: `load_population` raises, and
+Which is which lives in `benchmarks/naming/populations.toml`, read through
+`tools/naming_populations.py`; this tool no longer carries its own list.
+`heldout_v4` was drawn and frozen before any round-7 diagnosis, taking the
+place `heldout_v3` held in round 5; v3 was scored once, at round 5's final
+evaluation, and is a tuning population from round 7 on. A per-stage run cannot
+load the frozen one: `load_population` raises before the file is opened, and
 `tests/test_naming_heldout_lock.py` fails if any other tracked script so much
 as names the file. The final evaluation reports it as AGGREGATES only -- no
 per-row diff is printed for it even then, because a row read during the round
@@ -81,17 +84,18 @@ sys.path.insert(0, str(BENCH))
 
 SCHEMA_VERSION = 2
 
-#: (key, file, final_evaluation_only). Order is report order.
-POPULATIONS: tuple[tuple[str, str, bool], ...] = (
-    ("regression", "corpus.json", False),
-    ("heldout", "heldout.json", False),
-    ("heldout_v2", "heldout2.json", False),
-    ("heldout_v3", "heldout3.json", True),
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import naming_populations as registry  # noqa: E402
+
+#: (key, file, final_evaluation_only), from benchmarks/naming/populations.toml,
+#: which is the ONLY place that says which populations exist and which are
+#: frozen. Order is report order.
+POPULATIONS: tuple[tuple[str, str, bool], ...] = tuple(
+    (p.key, p.file, p.frozen) for p in registry.registry()
 )
 
-
-class FrozenPopulation(RuntimeError):
-    """An evaluation-only population was requested outside the final evaluation."""
+#: Re-exported: the lock test and callers catch it by this name.
+FrozenPopulation = registry.FrozenPopulation
 
 
 def load_population(key: str, *, final_evaluation: bool = False) -> tuple[str, list[dict]]:
@@ -100,24 +104,12 @@ def load_population(key: str, *, final_evaluation: bool = False) -> tuple[str, l
     The refusal happens BEFORE the file is opened, so a mistaken call cannot
     even put the rows in memory.
     """
-    for name, filename, final_only in POPULATIONS:
-        if name != key:
-            continue
-        if final_only and not final_evaluation:
-            raise FrozenPopulation(
-                f"{key} ({filename}) is evaluation-only for naming round 5; "
-                "it loads only through --final-evaluation"
-            )
-        return filename, json.loads((BENCH / filename).read_text(encoding="utf-8"))
-    raise KeyError(key)
+    rows = registry.load(key, final_evaluation=final_evaluation)
+    return registry.get(key).file, rows
 
 
 def active_populations(*, final_evaluation: bool = False) -> list[str]:
-    return [
-        key
-        for key, filename, final_only in POPULATIONS
-        if (final_evaluation or not final_only) and (BENCH / filename).exists()
-    ]
+    return registry.keys(final_evaluation=final_evaluation)
 
 
 def _git(*args: str) -> str:

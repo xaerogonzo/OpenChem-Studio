@@ -58,9 +58,14 @@ IFG_SHA256 = "92b97a341b5b0ca3a774ed89d7d2ee3b1d06f23ec30055bccb849f4cfde9ba60"
 MAPPING_PATH = ROOT / "tests" / "fixtures" / "structural_features" / "ertl_mapping.toml"
 
 #: The naming corpora, which are also the functional-group population the
-#: v1 baseline was measured on. The naming round's second held-out set is
-#: deliberately NOT here: it is locked, and only its final evaluation reads it.
-CORPORA = [ROOT / "benchmarks" / "naming" / n for n in ("corpus.json", "heldout.json")]
+#: v1 baseline was measured on, named by KEY in benchmarks/naming/populations.toml
+#: and resolved through `naming_populations.path()`. Pinned to these two on
+#: purpose (the committed mapping was measured on them); a frozen population
+#: could not be added here even by a typo, because `path()` refuses it.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import naming_populations as _registry  # noqa: E402
+
+CORPORA = [_registry.path(key) for key in ("regression", "heldout")]
 
 #: Ertl 2017's Fig. 1 molecules, as ifg.py's own `main()` carries them (its
 #: comment on #10 notes a discrepancy with the paper; kept as it is).
