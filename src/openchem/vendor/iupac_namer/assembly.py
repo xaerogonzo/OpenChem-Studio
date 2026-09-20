@@ -1081,6 +1081,20 @@ def _strip_locant_1_if_omissible(
                 # N-locant prefixes do not count: triethylamine's chain is
                 # still monosubstituted, so N,N-diethylethanamine keeps none.
                 omit = True
+            elif parent_length == 1 and all(
+                len(other.locants) == 1 and str(other.locants[0]) == "1"
+                for other in suffix_groups
+            ):
+                # Rule 2b (P-14.3.4.6, pdf p. 73): "All locants are omitted
+                # for parent compounds when all substitutable hydrogen atoms
+                # have the same locant" -- on a MONONUCLEAR parent there is
+                # only one position, so several suffixes need no locants
+                # either: "dimethylsilanediol (PIN)" (p. 748), and
+                # "methanediol" rather than "methane-1,1-diol". Rule 2 above
+                # covers the single-suffix case only; a retained-name entry
+                # had been supplying "methanediol" until the N9 audit demoted
+                # it, which is how this surfaced (round 5, N9).
+                omit = True
             elif (len(suffix_groups) == 1
                     and is_monosubstituted_homogeneous_monocycle):
                 # Rule 3 (P-14.3.4.2(c)): single suffix at locant 1 on a

@@ -1974,6 +1974,19 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-092y", "C1CCC1OCC(=O)O", "(cyclobutyloxy)acetic acid", "(cyclobutyloxy)acetic acid",
      "converse to D-092s, and the one that BITES: 'cyclobutyl' ends in 'butyl', so "
      "only the attachment-atom ring test stops it contracting to 'cyclobutoxy'"),
+    # --- Round 5 (N9): exposed by the registry audit's demotions. ---------
+    ("D-093a", "C(O)O", "methanediol", "methane-1,1-diol",
+     "P-14.3.4.6 (pdf p. 73): 'all locants are omitted for parent compounds when "
+     "all substitutable hydrogen atoms have the same locant', and a mononuclear "
+     "parent has one position -- 'dimethylsilanediol (PIN)' (p. 748). A retained "
+     "registry entry supplied this name until the N9 audit demoted it as absent "
+     "from the book, which is how the systematic route's locants surfaced"),
+    ("D-093b", "C(S)S", "methanedithiol", "methane-1,1-dithiol", "as D-093a"),
+    ("D-093c", "OC(O)c1ccccc1", "phenylmethanediol", "phenylmethane-1,1-diol",
+     "as D-093a: a substituent does not create a second position on methane"),
+    ("D-093d", "CC(O)O", "ethane-1,1-diol", "ethane-1,1-diol",
+     "converse: two carbons, so 1,1 and 1,2 are different compounds"),
+    ("D-093e", "OCCO", "ethane-1,2-diol", "ethane-1,2-diol", "converse, as D-093d"),
     ("D-092z", "CC1(C)c2c(C)c(C)c(C)c(C)c2C(C)=C1C", "octamethyl-1H-indene",
      "octamethyl-1H-indene", "P-14.3.4.5 on a carbocyclic parent that carries "
      "indicated hydrogen in its NAME: every substitutable position is a methyl"),
