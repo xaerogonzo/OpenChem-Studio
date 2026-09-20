@@ -511,3 +511,15 @@ book's own majority.
 tuning populations -- which is what the N5 report predicted when it measured
 those 75 entries as unreached. It did find three entries that named the wrong
 molecule; see LESSONS.
+
+**The evaluation was run TWICE, and both runs are committed.** The audit's
+demotion of "methanediol" exposed a locant defect under it (the systematic
+route wrote "methane-1,1-diol"; P-14.3.4.6 omits locants on a mononuclear
+parent), so the engine changed AFTER the first final run. Rather than reuse
+a number measured on different code, the whole evaluation was repeated
+(`r5-N9-final-recheck`) and compared: **0 names changed in all four
+populations, heldout_v3 included**, so the fresh corpus's 13/27/0 is the same
+on both. The fresh corpus has now been scored twice, which is stated here
+rather than hidden: the second scoring was forced by a code change, it was
+compared row for row against the first, and nothing about v3 informed the
+change -- it came from the vendored suite.
