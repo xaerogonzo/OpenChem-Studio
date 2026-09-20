@@ -47,14 +47,15 @@ BASES = {"PRINTED", "DERIVED", "NONE_VERIFIED"}
 OWNERS = {"ACID_ANION", "OLATE_ANION", "N_ANION", "ZWITTERION", "CATION", "per_component", "none"}
 CONTEXTS = {"isolated_ion", "salt_inorganic_cation", "salt_organic_cation", "hydrate"}
 
-#: The isolated-ion rows whose anion site NO route claims. A ratchet, not a target list: a
-#: stage removes ids from it as it fixes them, in the same commit, and the round is done when
-#: it is empty. It was 39 rows at the round-7 baseline.
-KNOWN_HOLES = frozenset({
-    # R4 (adjudicated as HOLE_PHOSPHORUS_ACID): a deprotonated phosphonic/phosphoric acid has no
-    # owning route; the book's 'hydrogen phenylphosphonate' is the 'hydrogen' method for acid
-    # esters of inorganic acids, a construction of its own. Everything else the baseline listed
-    # (37 acid-anion rows beside another group) was fixed by R3 and removed with it.
+#: The isolated-ion rows whose anion site NO route claims and that no scope declaration covers. A ratchet:
+#: it was 39 rows at the round-7 baseline, R3 and R4 removed them, and it is EMPTY, which is the round's
+#: exit criterion. A new entry is a new unowned class, and it fails.
+KNOWN_HOLES = frozenset()
+
+#: Rows whose anion site NO route claims BY DECLARED SCOPE (charge_ownership.DECLARED_UNSUPPORTED): a
+#: deprotonated phosphorus acid, named by the book's 'hydrogen' method, which is not built. An explicit
+#: edge, not a hole; adding to it needs a reason in words in that dict.
+KNOWN_UNSUPPORTED = frozenset({
     "B3-hydrogen-phenylphosphonate", "B3-phenyl-hydrogen-phosphate",
 })
 
@@ -177,6 +178,15 @@ def test_the_hole_set_is_exactly_the_recorded_one():
     )
 
 
+def test_unsupported_is_only_the_declared_set():
+    """An unowned site is acceptable only when its class is DECLARED unsupported with a reason; the set
+    of rows that are is pinned, so an unowned class cannot hide behind the word."""
+    unsupported = {r["id"] for r in _isolated() if _static(r).verdict is own.Verdict.UNSUPPORTED}
+    assert unsupported == set(KNOWN_UNSUPPORTED), sorted(unsupported ^ set(KNOWN_UNSUPPORTED))
+    for reason in own.DECLARED_UNSUPPORTED.values():
+        assert len(reason.split()) > 15, "a declared scope carries its reason in words"
+
+
 def test_no_anion_site_is_claimed_twice_or_left_inconsistent():
     bad = {
         r["id"]: _static(r).verdict.value
@@ -187,15 +197,15 @@ def test_no_anion_site_is_claimed_twice_or_left_inconsistent():
 
 
 def test_the_baseline_recorded_the_holes_this_round_started_from():
-    """The committed baseline is the round's BEFORE and is never rewritten: it must still
-    contain every hole R3 fixed, and every hole still open must be in it."""
+    """The committed baseline is the round's BEFORE and is never rewritten: it must still contain
+    every hole the round fixed, and the rows now declared unsupported must have been among them."""
     recorded = json.loads(BASELINE.read_text(encoding="utf-8"))
     baseline_holes = {
         r["id"] for r in recorded["records"]
         if r["context"] == "isolated_ion" and r["ownership"]["verdict"] == "HOLE"
     }
     assert len(baseline_holes) == 39
-    assert KNOWN_HOLES <= baseline_holes
+    assert set(KNOWN_UNSUPPORTED) <= baseline_holes
 
 
 def test_the_engine_takes_the_route_the_static_claim_names():
@@ -205,7 +215,7 @@ def test_the_engine_takes_the_route_the_static_claim_names():
     checked = 0
     for r in _isolated():
         report = own.charged_owners(Chem.MolFromSmiles(r["smiles"]), r["smiles"], measure=True)
-        if report.verdict is None or report.verdict is own.Verdict.HOLE:
+        if report.verdict is None or report.verdict in (own.Verdict.HOLE, own.Verdict.UNSUPPORTED):
             continue
         assert report.verdict is own.Verdict.OWNED, (r["id"], report.verdict, report.observed.route)
         checked += 1

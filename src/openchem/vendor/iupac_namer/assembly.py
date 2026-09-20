@@ -3277,6 +3277,62 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
 _CHARGE_SUFFIX_RE = re.compile(r"\(\d+[+-]\)$")
 
 
+#: Inorganic oxoanions whose "di"-prefixed form is a DIFFERENT ion (disulfate and diphosphate are
+#: pyro-anions, dichromate is not two chromates). Never multiplied by the organic-anion pass below.
+_INORGANIC_OXOANION_TAILS = (
+    "sulfate", "sulfite", "phosphate", "phosphite", "nitrate", "nitrite", "carbonate", "borate",
+    "chromate", "arsenate", "silicate", "manganate", "chlorate", "perchlorate", "bromate", "iodate",
+    "selenate", "tellurate", "cyanate", "thiocyanate",
+)
+
+#: A PLAIN acid stem takes the direct multiplier ("diacetate"); anything with a prefix on it takes
+#: bis/tris ("bis(2-hydroxypropanoate)"), because "dihydroxyacetate" would read as (HO)2CH-COO-.
+_PLAIN_ACID_ANION_RE = re.compile(
+    r"^(?:acetate|formate|benzoate|oxalate|(?:meth|eth|prop|but|pent|hex|hept|oct|non|dec)anoate)$"
+)
+
+
+def _multiply_identical_organic_anions(ion_names: list[str]) -> list[str]:
+    """Give identical ORGANIC "-ate" anions of a salt a multiplying prefix.
+
+    The salt path used to list them ("calcium acetate acetate"); the book prints "calcium diacetate
+    (PIN)" and "germanium tetraacetate (PIN)" (pdf pp. 618-619), and "antimony tris(3-carboxypropanoate)"
+    for a substituted one. `_collapse_identical_salt_ions` is deliberately narrow (it multiplies only
+    charge-marked cations and simple "-ide" anions), for reasons that still hold: "disulfate" and
+    "diphosphate" are different ions and OPSIN misreads "diphenylacetylide". So this pass takes only names
+    that end in "-ate", contain no space, and do not end in an inorganic oxoanion, and it uses "di" for a
+    plain stem and "bis(...)" otherwise. Order is preserved: each group sits where its first member was.
+    """
+    counts: dict[str, int] = {}
+    for name in ion_names:
+        counts[name] = counts.get(name, 0) + 1
+    out: list[str] = []
+    emitted: set[str] = set()
+    for name in ion_names:
+        count = counts[name]
+        # `count > 1` is redundant: get_multiplier(1) is None, which falls back to the name itself, so a
+        # mutation to `count > 0` is EQUIVALENT. Kept so the intent ("more than one") reads.
+        eligible = (
+            count > 1
+            and name.endswith("ate")
+            and " " not in name
+            and not name.endswith(_INORGANIC_OXOANION_TAILS)
+        )
+        if not eligible:
+            out.append(name)
+            continue
+        if name in emitted:
+            continue
+        emitted.add(name)
+        plain = bool(_PLAIN_ACID_ANION_RE.match(name))
+        multiplier = get_multiplier(count, complex=not plain)
+        if multiplier is None:
+            out.extend([name] * count)
+            continue
+        out.append(f"{multiplier}{name}" if plain else f"{multiplier}({name})")
+    return out
+
+
 def _collapse_identical_salt_ions(ion_names: list[str]) -> list[str]:
     """Collapse runs of identical charged salt fragments with a multiplier.
 
@@ -3414,6 +3470,7 @@ def assemble(tree: "NameTree") -> str:  # type: ignore[type-arg]
 
         case SaltTree():
             ion_names = [assemble(ion) for ion in tree.ion_trees]
+            ion_names = _multiply_identical_organic_anions(ion_names)
             collapsed = _collapse_identical_salt_ions(ion_names)
             # P-77 salt PIN convention: alkali / alkaline-earth /
             # aluminium mono- and dipositive cations don't need an

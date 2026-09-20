@@ -3082,14 +3082,21 @@ def _render_amide_anion(
     session,
     depth: int,
 ) -> str | None:
-    """Render the deprotonated primary-amide PIN (``acetylamide`` etc.).
+    """Render the deprotonated primary-amide PIN (``acetylazanide`` etc.).
 
     Carve the corresponding acid (replace the N⁻ with -OH on the acyl C),
     name its acyl group via the engine's standard acid→acyl machinery, and
-    append ``amide``.  This produces the OPSIN-parseable ``{acyl}amide``
-    form (``acetylamide``, ``benzoylamide``, ``formylamide``,
-    ``propanoylamide`` …); the systematic ``-amidide`` promotion is not an
-    OPSIN-parseable name.
+    put it on the parent anion ``azanide``: P-72.2.2.2 (pdf p. 807) says
+    amides, hydrazides and imides are NOT named by the ``-aminide`` method
+    because ``-amide`` + ``ide`` would be ambiguous, and that "the use of
+    parents 'azanide' and 'azanediide' eliminates all possible ambiguity"; the
+    book prints ``acetylazanide (PIN)`` (pdf p. 810).
+
+    Until naming round 7 this emitted ``{acyl}amide`` (``acetylamide``), because
+    the systematic ``-amidide`` promotion was not OPSIN-parseable. That was a
+    valid reason to avoid ``-amidide`` and no reason to avoid ``azanide``, which
+    OPSIN reads for every acyl group tried (acetyl, benzoyl, formyl, propanoyl,
+    butanoyl, 4-methylbenzoyl, chloroacetyl).
     """
     from openchem.vendor.iupac_namer.engine import (
         name as _recursive_name,
@@ -3140,7 +3147,11 @@ def _render_amide_anion(
     acyl_name = _acid_name_to_acyl(acid_name)
     if acyl_name is None:
         return None
-    return f"{acyl_name}amide"
+    # A COMPOUND acyl name (one carrying locants or enclosing marks) is enclosed, as any compound
+    # prefix is; a plain one ("acetyl", "benzoyl") is written solid, as the book prints it.
+    if any(ch in acyl_name for ch in "-,( "):
+        return f"({acyl_name})azanide"
+    return f"{acyl_name}azanide"
 
 
 def _render_carbamate_anion(

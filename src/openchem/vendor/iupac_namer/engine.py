@@ -10561,11 +10561,16 @@ _RETAINED_ACID_STEM_TABLE: dict[str, str] = {
     # produced by the engine, so no ‐ate transform entries are needed here.
 }
 
-# Retained -ol parents whose ANION OutputForm has a retained -olate PIN
-# (P-72.2).  Keys are the retained whole-molecule names; values are the
-# spec / OPSIN-round-trippable -olate forms.
+# Retained -ol parents whose ANION OutputForm has a retained PIN
+# (P-72.2.2.2.2, pdf p. 808).  Keys are the retained whole-molecule names; values
+# are the retained anion names. The book retains 'phenoxide' as the PIN for
+# C6H5-O(-) and does not print 'phenolate' or 'benzenolate' (naming round 7, R4b;
+# this table said 'phenolate' until then, which OPSIN also parses, so it round-tripped
+# and nothing flagged it). The alkoxides (methoxide ... tert-butoxide) are not
+# retained-NAME parents (methanol and ethanol are systematic), so they live in the
+# curated whole-molecule table in data_loader, keyed by the anion's SMILES.
 _RETAINED_OL_ANION_TABLE: dict[str, str] = {
-    "phenol": "phenolate",
+    "phenol": "phenoxide",
 }
 
 

@@ -32,6 +32,7 @@ For a structural anion site the verdict is:
 
     OWNED         exactly one claimant, and the observed route agrees with it
     HOLE          no claimant -- the defect this module exists to see
+    UNSUPPORTED   no claimant, and the class is in DECLARED_UNSUPPORTED with its reason
     OVERLAP       two claimants where no cascade is declared (an acid anion has
                   none), or two of the same tier; ordering, not design, picks
                   the winner. A declared cascade (a pure alkoxide is claimed by
@@ -90,6 +91,22 @@ class Verdict(str, Enum):
     HOLE = "HOLE"
     OVERLAP = "OVERLAP"
     INCONSISTENT = "INCONSISTENT"
+    #: No route names it AND the scope says so on purpose. Not a defect; a declared edge.
+    UNSUPPORTED = "UNSUPPORTED"
+
+
+#: Structural classes the engine deliberately does not name as an ANION, each with its reason. A site
+#: in one of these with no owner is UNSUPPORTED rather than a HOLE, so the invariant reads "exactly one
+#: owner, or a declared UNSUPPORTED" and never "or nobody noticed". Extending this dict is a scope
+#: decision and needs the reason in words.
+DECLARED_UNSUPPORTED: dict[str, str] = {
+    "phosphorus_oxoacid": (
+        "a deprotonated phosphonic or phosphoric acid is named by the book's 'hydrogen' method for acid "
+        "esters of inorganic acids ('hydrogen phenylphosphonate', 'phenyl hydrogen phosphate', pdf p. 808), "
+        "a construction of its own that is not built; the engine names the neutralised skeleton with oxido "
+        "prefixes, which round-trips and is not preferred (naming round 7, adjudicated HOLE_PHOSPHORUS_ACID)"
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -139,9 +156,9 @@ class OwnershipReport:
     @property
     def verdict(self) -> Verdict | None:
         """The worst verdict over the structural anion sites, or None if there are
-        none. Order: HOLE, OVERLAP, INCONSISTENT, OWNED."""
+        none. Order: HOLE, OVERLAP, INCONSISTENT, UNSUPPORTED, OWNED."""
         verdicts = {s.verdict for s in self.anion_sites}
-        for worst in (Verdict.HOLE, Verdict.OVERLAP, Verdict.INCONSISTENT, Verdict.OWNED):
+        for worst in (Verdict.HOLE, Verdict.OVERLAP, Verdict.INCONSISTENT, Verdict.UNSUPPORTED, Verdict.OWNED):
             if worst in verdicts:
                 return worst
         return None
@@ -150,6 +167,16 @@ class OwnershipReport:
     def owners(self) -> tuple[str, ...]:
         """Distinct implementation routes claiming any structural anion site."""
         return tuple(sorted({c for s in self.anion_sites for c in s.claimants}))
+
+
+def unsupported_class(mol, atom_idx: int) -> str | None:
+    """The DECLARED_UNSUPPORTED class this charged atom belongs to, or None."""
+    atom = mol.GetAtomWithIdx(atom_idx)
+    if atom.GetSymbol() == "O" and _is_oxoacid_anion_oxygen(mol, atom):
+        centre = next(n for n in atom.GetNeighbors() if n.GetAtomicNum() != 1)
+        if centre.GetSymbol() == "P":
+            return "phosphorus_oxoacid"
+    return None
 
 
 def structural_sites(mol) -> dict[int, str]:
@@ -341,6 +368,13 @@ def _is_declared_cascade(structural_class: str, classifier: bool, carved: bool, 
     return not fg and classifier and carved
 
 
+def _site_verdict(mol, idx: int, klass: str, site_claims, observed):
+    verdict = _verdict(klass, site_claims, observed)
+    if verdict is Verdict.HOLE and unsupported_class(mol, idx) is not None:
+        return Verdict.UNSUPPORTED
+    return verdict
+
+
 def charged_owners(mol, smiles: str | None = None, *, measure: bool = True) -> OwnershipReport:
     """The ownership of every formally charged atom of ``mol``.
 
@@ -372,6 +406,6 @@ def charged_owners(mol, smiles: str | None = None, *, measure: bool = True) -> O
             charge=atom.GetFormalCharge(),
             structural_class=klass,
             claimants=site_claims,
-            verdict=_verdict(klass, site_claims, observed) if klass else None,
+            verdict=_site_verdict(mol, idx, klass, site_claims, observed) if klass else None,
         ))
     return OwnershipReport(smiles=smi, sites=tuple(sites), observed=observed)

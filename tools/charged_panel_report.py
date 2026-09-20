@@ -141,7 +141,7 @@ def ownership(smiles: str) -> dict:
             "owners": list(report.owners),
             "observed_route": report.observed.route if report.observed else None,
         })
-    order = ("HOLE", "OVERLAP", "INCONSISTENT", "OWNED")
+    order = ("HOLE", "OVERLAP", "INCONSISTENT", "UNSUPPORTED", "OWNED")
     verdicts = {r["verdict"] for r in reports if r["verdict"]}
     worst = next((v for v in order if v in verdicts), None)
     return {"verdict": worst, "components": reports}
@@ -196,6 +196,8 @@ def summarise(result: dict) -> str:
               + ", ".join(f"{k}={v}" for k, v in sorted(verdicts.items()))]
     hole = [r["id"] for r in recs if r["ownership"]["verdict"] == "HOLE"]
     lines.append(f"  HOLE rows ({len(hole)}): {', '.join(hole)}")
+    unsupported = [r["id"] for r in recs if r["ownership"]["verdict"] == "UNSUPPORTED"]
+    lines.append(f"  declared UNSUPPORTED rows ({len(unsupported)}): {', '.join(unsupported)}")
     perm_bad = [r["id"] for r in recs if r.get("permutations") and not r["order_independent"]]
     lines.append(f"component-order dependent salts (reversed order changes the name): {len(perm_bad)} {perm_bad}")
     water_odd = [r["id"] for r in recs if r.get("permutations") and not r["water_variant_is_base_plus_water"]]

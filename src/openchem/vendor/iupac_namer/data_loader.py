@@ -5195,6 +5195,22 @@ _INORGANIC_CURATED_SMILES: dict[str, dict] = {
     # Carbamate anion (P-72.2 / P-77): carbamic acid deprotonated at O-H.
     # Canonical RDKit SMILES for H2N-C(=O)-O⁻ is "NC(=O)[O-]".
     "NC(=O)[O-]":  {"name": "carbamate"},
+    # Retained alkoxide PINs (P-72.2.2.2.2, pdf p. 808, verbatim: "The traditional names methoxide,
+    # ethoxide, propoxide, butoxide, tert-butoxide, phenoxide (but not isopropoxide) ... are retained as
+    # preferred IUPAC names"). Whole-molecule names for the anion, keyed by its canonical SMILES; a
+    # SUBSTITUTED alkoxide is named systematically because the book prints no substituted form here, and
+    # 'propan-2-olate' stays the PIN for (CH3)2CH-O(-) (isopropoxide is retained for general use only).
+    # phenoxide is produced by _RETAINED_OL_ANION_TABLE in engine.py, since phenol is a retained parent.
+    "C[O-]":          {"name": "methoxide"},
+    "CC[O-]":         {"name": "ethoxide"},
+    "CCC[O-]":        {"name": "propoxide"},
+    "CCCC[O-]":       {"name": "butoxide"},
+    "CC(C)(C)[O-]":   {"name": "tert-butoxide"},
+    # The amino-acid anion the book prints (P-103.2.4.2, pdf p. 1047: "H2N-CH2-COO-  glycinate").
+    # Glycine is achiral, so the retained name asserts no configuration. The chiral amino acids
+    # (alaninate, ...) are NOT entered: OPSIN reads a bare 'alaninate' as the L-isomer while P-103.1.3.1
+    # designates configuration by D/L, so they need a stereo policy before a whole-molecule name.
+    "NCC(=O)[O-]":    {"name": "glycinate"},
     # Cyanic acid (P-42.2 / P-65.2 retained PIN): canonical "N#CO"
     "N#CO":        {"name": "cyanic acid"},
     # Thiocyanic acid (P-65.2 retained PIN): canonical "N#CS"

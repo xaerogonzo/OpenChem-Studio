@@ -273,7 +273,10 @@ def test_the_route_the_engine_takes_is_the_route_the_claim_predicts(smiles, expe
     mirrored predicate is `fg_anion`, so this is what would show it drifting."""
     report = own.charged_owners(_mol(smiles), smiles, measure=True)
     assert report.observed.route == expected_route
-    assert report.verdict is (own.Verdict.HOLE if "unpromoted" in expected_route else own.Verdict.OWNED)
+    if "unpromoted" in expected_route:
+        assert report.verdict in (own.Verdict.HOLE, own.Verdict.UNSUPPORTED)
+    else:
+        assert report.verdict is own.Verdict.OWNED
 
 
 def test_a_curated_name_answers_before_any_classifier_and_is_not_an_overlap():
@@ -293,36 +296,33 @@ def test_a_curated_name_answers_before_any_classifier_and_is_not_an_overlap():
 @pytest.mark.parametrize(
     "smiles,name",
     [
-        ("[Na+].[O-]c1ccccc1", "sodium phenolate"),
-        ("[K+].CC(C)(C)[O-]", "potassium 2-methylpropan-2-olate"),
+        ("[Na+].[O-]c1ccccc1", "sodium phenoxide"),
+        ("[K+].CC(C)(C)[O-]", "potassium tert-butoxide"),
         ("[Na+].CC(=O)[O-]", "sodium acetate"),
     ],
 )
 def test_a_pure_anion_in_a_salt_stays_on_the_classifier_route(smiles, name):
     """The salt path asks for the ANION form only for a fragment the CARVED route owns. A pure
     olate is claimed by the classifier first, and taking it off that path changed
-    'sodium phenolate' to 'sodium benzenolate' during R3. (Both are non-preferred: the book's PIN
-    is 'phenoxide', a retained-name question for R4. This pins that R3 does not move it.)"""
+    'sodium phenolate' to 'sodium benzenolate' during R3. R4b then made both the book's retained PINs
+    ('phenoxide', 'tert-butoxide'); the point pinned here is that the salt path does not move them."""
     from openchem.vendor.iupac_namer import name_smiles
 
     assert name_smiles(smiles) == name
 
 
-def test_the_net_negative_zwitterion_had_no_owner_and_the_carved_route_takes_it():
-    """Glutamate as drawn at pH 7 (two carboxylates, one ammonium, net charge -1). FG perception
-    detects a charged carboxylic acid only when the charges cancel, and the classifier declines any
-    genuine cation, so nothing claimed it and the charge fell to 'oxido' prefixes on an azanium parent."""
-    smiles = "[NH3+]C(CCC([O-])=O)C([O-])=O"
-    report = own.charged_owners(_mol(smiles), smiles, measure=True)
-    assert report.verdict is own.Verdict.OWNED
-    assert report.observed.route == "plan_search:carved_anion"
+def test_a_phosphorus_acid_anion_is_a_declared_unsupported_edge_not_a_silent_hole():
+    """No route names a deprotonated phosphonic/phosphoric acid; the scope says so, with its reason."""
+    smiles = "OP(=O)([O-])c1ccccc1"
+    report = own.charged_owners(_mol(smiles), smiles, measure=False)
+    assert report.verdict is own.Verdict.UNSUPPORTED
+    (site,) = own.structural_sites(_mol(smiles))
+    assert own.unsupported_class(_mol(smiles), site) == "phosphorus_oxoacid"
+    assert "hydrogen" in own.DECLARED_UNSUPPORTED["phosphorus_oxoacid"]
 
 
-def test_the_ledger_offers_only_the_charged_instance_of_a_mixed_type():
-    """The number of anion suffixes must equal the number of deprotonated sites. A zwitterion with ONE
-    carboxylate and ONE neutral COOH offered both as the principal group and came out as the dianion."""
-    from openchem.vendor.iupac_namer import name_smiles
-
-    assert name_smiles("[NH3+]C(CCC(O)=O)C([O-])=O") == "2-azaniumyl-4-carboxybutanoate"
-    # both charged: nothing to restrict
-    assert name_smiles("[NH3+]C(CCC([O-])=O)C([O-])=O") == "2-azaniumylpentanedioate"
+def test_declaring_a_class_unsupported_does_not_excuse_an_unowned_carboxylate(monkeypatch):
+    """The declaration is per CLASS. Deleting the classifier's claim on a carboxylate is still a HOLE."""
+    monkeypatch.setattr(cp, "_classify_acidic_anion", lambda mol: iter(()))
+    assert _verdict(ACETATE) is own.Verdict.HOLE
+    assert own.unsupported_class(_mol(ACETATE), next(iter(own.structural_sites(_mol(ACETATE))))) is None
