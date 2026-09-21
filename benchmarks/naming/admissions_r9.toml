@@ -1,0 +1,44 @@
+# Naming round 9: the fix ledger. The cap is enforced HERE, by tests/test_admissions_r9.py, not in prose.
+#
+# WHY IT EXISTS. Round 8 planned four workstreams and then ran a second day of unplanned fixes, because nothing stopped it. Round 9 has
+# exactly EIGHT slots. Items reach the ledger in ONE step at the end of the instruments stage (B1, B2, B3), from the seed list plus what the
+# battery found, and that step is committed as "admissions frozen". After it the SET does not move: no replacement, no late additions.
+# (Progress fields -- status, measured layer, dependencies -- may change; the guard pins the admitted set by hash.)
+#
+# The admission rule, which the guard applies mechanically:
+#   * an item needs a TARGET SOURCE: a printed Blue Book page ("book:p.619"), a rule-derived name with the rule recorded
+#     ("derived:P-16.5.1.3.1"), or "none" -- and "none" is allowed ONLY for an item that is a wrong molecule, whose fix is that the name
+#     denotes the right structure and needs no preferred form;
+#   * an item is a WRONG MOLECULE only if it was diagnosed as one against the INTENDED fixture structure (`diagnosed_against_fixture`),
+#     never because PubChem's string differs;
+#   * any other item needs its NATURAL_FREQUENCY (hits / sample size, from the B3 census) to clear `natural_frequency_min`;
+#   * a wrong molecule outranks frequency for a slot. It does not escape the cap.
+# A wrong molecule or structural regression introduced by THIS round's own commit is fixed or the commit reverted; that is a defect in the
+# round's work and takes no slot, so it never appears here.
+#
+# `natural_frequency_min` is committed in R0, BEFORE the census exists, so no count can move it: 10 hits in a 2,000-structure sample. At n = 2000
+# ten hits has a 95% interval of about 0.2 to 0.9%, so the number is a floor for "worth a slot", not a ranking.
+
+[cap]
+slots = 8
+natural_frequency_min = 0.005
+frozen = false
+# Filled in by the commit that freezes the admissions: sha256 over the sorted (item_id, slot_number, admission_reason, target_source,
+# discovery_source) tuples. The guard recomputes it and fails if the admitted set changed.
+frozen_sha256 = ""
+
+# One [[item]] per admitted fix. The vocabulary is fixed in tests/test_admissions_r9.py.
+#
+# [[item]]
+# item_id = "F1"
+# slot_number = 1
+# discovery_source = ["existing_open_list"]          # any of B1, B2, B3, existing_open_list; an item may have several
+# admission_reason = "..."
+# wrong_molecule = false
+# diagnosed_against_fixture = false                  # true only for a wrong molecule, after the structural diagnosis
+# frequency = 0.0123                                 # hits / sample size; required unless wrong_molecule
+# target_source = "book:p.619"                       # book:p.N | derived:<rule> | none (wrong molecules only)
+# seed_layer = "serialization"                       # the plan's initial hypothesis
+# measured_primary_layer = "serialization"           # from the B-stage trace, never assumed; REQUIRED for every item at the freeze
+# dependencies = []
+# status = "admitted"                                # admitted | in_progress | done | abandoned
