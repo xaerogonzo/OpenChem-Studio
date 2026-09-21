@@ -11,8 +11,10 @@
 #   status = "frozen"   evaluation only. `naming_populations.path()` raises
 #                       BEFORE the file is touched, unless the caller is the
 #                       final evaluation. tests/test_naming_heldout_lock.py
-#                       requires exactly one frozen population and that no
-#                       tracked script names its file.
+#                       requires every frozen population to have a meta record
+#                       and ONE named drawing script, and that no other tracked
+#                       script names its file. (One frozen population until
+#                       naming round 9; two from the Blue Book half on.)
 #
 # A population changes status by editing THIS file, in a commit whose message
 # says why. The order is report order.
