@@ -41,18 +41,32 @@ quotes.
     heldout       heldout.json     40  USED for tuning since naming round 4
     heldout_v2    heldout2.json    40  USED for tuning since naming round 5
     heldout_v3    heldout3.json    40  USED for tuning since naming round 7
-    heldout_v4                     40  evaluation only -- `--final-evaluation`
+    heldout_v4    heldout4.json    40  USED for tuning since naming round 8
+    heldout_v5                     40  evaluation only -- `--final-evaluation`
 
 Which is which lives in `benchmarks/naming/populations.toml`, read through
 `tools/naming_populations.py`; this tool no longer carries its own list.
-`heldout_v4` was drawn and frozen before any round-7 diagnosis, taking the
-place `heldout_v3` held in round 5; v3 was scored once, at round 5's final
-evaluation, and is a tuning population from round 7 on. A per-stage run cannot
+`heldout_v5` was drawn and frozen before any round-8 diagnosis, taking the
+place `heldout_v4` held in round 7; v4 was scored once, at round 7's final
+evaluation, and is a tuning population from round 8 on. A per-stage run cannot
 load the frozen one: `load_population` raises before the file is opened, and
 `tests/test_naming_heldout_lock.py` fails if any other tracked script so much
 as names the file. The final evaluation reports it as AGGREGATES only -- no
 per-row diff is printed for it even then, because a row read during the round
 becomes a row fixed during the round.
+
+**AGGREGATES ONLY MUST HOLD FOR WHAT IS COMMITTED, NOT JUST WHAT IS PRINTED.**
+Through round 7 the final artifact carried a `records` list for the frozen
+population, so `stages/r7-final.json` held every row's name and outcome while
+the console showed counts. From round 8 the committed artifact stores a frozen
+population's counts, its source hash and a reference to a SEALED sidecar
+(`stages/sealed/<stage>.<key>.records.json`, hash-referenced); `seal_frozen_records`
+does the split. The seal is a convention with a guard, not a lock: a file in a
+repository can always be opened. What the guard does is make opening it a
+deliberate act -- no tracked script may name the sealed directory but this one.
+Every artifact also records the registry state (each population's status, and
+for a frozen one its hash and row count as its META file states them, so the
+frozen file itself is never touched).
 
 Every count is printed with its denominator, so three populations can never
 collapse into one percentage.
@@ -146,6 +160,52 @@ def _java_version() -> str:
         return "unknown"
 
 
+SEALED = STAGES / "sealed"
+
+
+def registry_state() -> dict[str, dict]:
+    """Each population's status, and for a frozen one only what its META file says.
+
+    Never opens the frozen file: the hash and the row count come from the freeze
+    record, which is exactly the "locked hash/metadata object" the round-8 plan
+    allows an artifact to carry.
+    """
+    state: dict[str, dict] = {}
+    for population in registry.registry():
+        entry: dict = {"status": population.status, "file": population.file}
+        if population.frozen:
+            meta_path = BENCH / population.file.replace(".json", ".meta.json")
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            entry["sha256"] = meta["heldout_sha256"]
+            entry["rows"] = meta["rows"]
+        state[population.key] = entry
+    return state
+
+
+def seal_frozen_records(artifact: dict, frozen_keys: set[str]) -> tuple[dict, dict[str, list]]:
+    """Split an artifact into what may be committed and what is sealed.
+
+    Returns `(public, sealed)`: `public` is a copy in which every population in
+    `frozen_keys` has NO `records` -- only a `records_sealed` reference carrying
+    the sidecar's relative path and the sha256 of its bytes -- and `sealed` maps
+    each such population key to its records. The input is not modified, because
+    the in-memory artifact is still what `--compare` reads.
+    """
+    import copy
+
+    public = copy.deepcopy(artifact)
+    sealed: dict[str, list] = {}
+    for key in frozen_keys & set(public["populations"]):
+        records = public["populations"][key].pop("records")
+        sealed[key] = records
+        body = json.dumps(records, indent=1).encode("utf-8")
+        public["populations"][key]["records_sealed"] = {
+            "file": f"sealed/{public['stage']}.{key}.records.json",
+            "sha256": hashlib.sha256(body).hexdigest(),
+        }
+    return public, sealed
+
+
 def _provenance(stage: str) -> dict:
     import rdkit
 
@@ -161,6 +221,7 @@ def _provenance(stage: str) -> dict:
         "rdkit": rdkit.__version__,
         "opsin_jar": _opsin_version(),
         "java": _java_version(),
+        "registry": registry_state(),
         # Filled in by the stages that introduce them; declared here from the
         # start so an early artifact and a late one have the same field
         # semantics rather than differing by absence.
@@ -363,6 +424,9 @@ def compare(previous: dict, current: dict) -> list[str]:
         if before is None:
             lines.append(f"[{key}] not present in the previous artifact")
             continue
+        if "records" not in before:
+            lines.append(f"[{key}] the previous artifact sealed its records; not compared row by row")
+            continue
         was = {r["label"]: r for r in before["records"]}
         moved = 0
         winners_moved = 0
@@ -440,7 +504,14 @@ def main() -> None:
     )
     STAGES.mkdir(parents=True, exist_ok=True)
     out = STAGES / f"{args.stage}.json"
-    out.write_text(json.dumps(artifact, indent=1), encoding="utf-8")
+    frozen = {key for key, _f, is_frozen in POPULATIONS if is_frozen}
+    public, sealed = seal_frozen_records(artifact, frozen)
+    out.write_text(json.dumps(public, indent=1), encoding="utf-8")
+    for key, records in sealed.items():
+        SEALED.mkdir(parents=True, exist_ok=True)
+        (SEALED / f"{args.stage}.{key}.records.json").write_text(
+            json.dumps(records, indent=1), encoding="utf-8"
+        )
 
     print(f"stage {args.stage}  sha {artifact['git_sha'][:7]}"
           f"{' DIRTY' if artifact['git_dirty'] else ''}"

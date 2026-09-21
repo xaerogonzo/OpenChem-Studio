@@ -23,5 +23,9 @@
  "heldout_sha256": "e43339828f8b86a1399813e15bb7c5574f758d8b897f5c57c89198562755069a",
  "pubchem_property": "SMILES,IUPACName",
  "rdkit_version": "2025.09.6",
- "inspection_policy": "evaluation only: selected before any naming round 7 diagnosis, never inspected row by row, loaded only by naming_stage_artifact.py --final-evaluation"
+ "inspection_policy": "evaluation only: selected before any naming round 7 diagnosis, never inspected row by row, loaded only by naming_stage_artifact.py --final-evaluation",
+ "status": "USED_FOR_TUNING",
+ "status_since": "naming round 8, 2026-09-20",
+ "status_note": "Scored once, at naming round 7's final evaluation (r7-final.json: 19/40 verbatim, 20 more equivalent, ONE wrong structure that was deliberately not read during round 7). From round 8 on its rows may be read, adjudicated and fixed, so it measures fitting, not generalisation, and is reported as a tuning population beside v1, v2 and v3. The population registry (populations.toml) records the same status; the fresh population for round 8 is v5.",
+ "inspection_policy_ended": "naming round 8, 2026-09-20 (see status_note)"
 }
