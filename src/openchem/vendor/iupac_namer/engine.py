@@ -12300,10 +12300,12 @@ def _carved_acid_anion_sites(mol) -> frozenset[int]:
     )
 
     if acid_anion_route(mol) == "carved":
+        # The acid-anion sites, and an alkoxide / phenoxide O- beside them (acid_anion_route claims it with them, P-72.7 e).
         return frozenset(
             a.GetIdx() for a in mol.GetAtoms()
             if a.GetFormalCharge() == -1
-            and _acidic_anion_site_kind(mol, a) in _ACID_ANION_KINDS
+            and (_acidic_anion_site_kind(mol, a) in _ACID_ANION_KINDS
+                 or (a.GetSymbol() == "O" and _acidic_anion_site_kind(mol, a) == "olate"))
         )
     sites: set[int] = set()
     for a in mol.GetAtoms():
@@ -12352,6 +12354,14 @@ def _carved_acid_anion_sites(mol) -> frozenset[int]:
     return frozenset(sites)
 
 
+#: The book's prefix for an ACID ANION group (P-72.6.1, pdf p. 814), by the kind of the deprotonated site.
+#: TWO MUTANTS ARE NOT CAUGHT (measured; nine others are) and are stated so nobody rediscovers them as gaps: 'carboxylate' keeping 'carboxy', and the
+#: non-terminal prefix keeping the neutral word. A carboxylate is the most senior acid anion, so on this route it is never the demoted one; a charged
+#: carboxylate inside a carved SUBSTITUENT ('2-oxido-2-oxoethyl' where the book prints 'carboxylatomethyl') is named by the recursive substituent
+#: path and is a recorded open item, not this table's.
+_ANIONIC_ACID_PREFIX = {"carboxylate": "carboxylato", "sulfonate": "sulfonato"}
+
+
 def _carved_acid_group_fgs(mol, sites) -> tuple:
     """The acid-group FGs of the deprotonated sites, taken from PERCEPTION.
 
@@ -12365,7 +12375,7 @@ def _carved_acid_group_fgs(mol, sites) -> tuple:
     import dataclasses as _dc
 
     from openchem.vendor.iupac_namer.perception import Perception
-    from openchem.vendor.iupac_namer.perception.charge_perception import neutral_view
+    from openchem.vendor.iupac_namer.perception.charge_perception import _acidic_anion_site_kind, neutral_view
 
     view = neutral_view(mol, sites)
     if view is None:
@@ -12380,7 +12390,18 @@ def _carved_acid_group_fgs(mol, sites) -> tuple:
             continue
         if not (set(fg.atoms) & set(sites)):
             continue
-        out.append(_dc.replace(fg, properties=fg.properties + (("carved_acid_anion", True),)))
+        kind = next(
+            (_acidic_anion_site_kind(mol, mol.GetAtomWithIdx(i)) for i in sorted(set(fg.atoms) & set(sites))), None
+        )
+        anionic = _ANIONIC_ACID_PREFIX.get(kind)
+        out.append(_dc.replace(
+            fg,
+            properties=fg.properties + (("carved_acid_anion", True),),
+            # A deprotonated site that ends up a PREFIX (a junior class beside a senior anion) is `sulfonato`, not `sulfo`:
+            # the neutral word would drop the charge (P-65.6.2.3.1, pdf p. 619).
+            prefix_form=anionic or fg.prefix_form,
+            prefix_form_nonterminal=(anionic or fg.prefix_form_nonterminal) if fg.prefix_form_nonterminal else None,
+        ))
     return tuple(out)
 
 
@@ -12413,8 +12434,13 @@ def _synthesise_carved_acid_anion_fgs(interpretation, mol):
         _acidic_anion_site_kind,
     )
 
-    if any(_acidic_anion_site_kind(mol, mol.GetAtomWithIdx(i)) in _ACID_ANION_KINDS for i in sites):
-        return _carved_acid_group_fgs(mol, sites)
+    acid_sites = frozenset(
+        i for i in sites if _acidic_anion_site_kind(mol, mol.GetAtomWithIdx(i)) in _ACID_ANION_KINDS
+    )
+    if acid_sites:
+        # An olate beside an acid anion needs NO group of its own: the acid anion is the principal group (P-72.7 e), and the olate is the plain
+        # 'oxido' prefix the ordinary substituent path already writes (measured: a synthetic olate group here changed no name).
+        return _carved_acid_group_fgs(mol, acid_sites)
     # Atoms already owned by a perception-detected FG: never synthesise a
     # competing FG over them (defensive; carved anion atoms are never in a
     # detected FG because perception gates on neutral charge).

@@ -149,7 +149,8 @@ def test_the_mono_anion_of_a_diacid_is_owned_by_the_carved_route_and_not_the_cla
         ("[NH3+]C(CCC([O-])=O)C([O-])=O", "carved"),   # net NEGATIVE with a cation: glutamate at pH 7
         ("[NH3+]C(CC(=O)[O-])C([O-])=O", "carved"),    # aspartate at pH 7
         ("C[N+](C)(C)CCC(=O)[O-]", None),              # a quaternary cation with ONE carboxylate: net 0
-        ("[O-]c1ccccc1C([O-])=O", None),               # two acid CLASSES of anion: not decided here
+        ("[O-]c1ccccc1C([O-])=O", "carved"),           # an olate beside an acid anion: the carved route since naming round 8 (D-121)
+        ("[O-]C(=O)c1ccc(cc1)S([O-])(=O)=O", "carved"),  # two acid CLASSES of anion (a carboxylate and a sulfonate), likewise
         (PHENOLATE, None),                             # an olate keeps its own cascade
         ("C[N+](C)(C)C", None),
         ("CC", None),

@@ -1865,10 +1865,15 @@ def acid_anion_route(mol) -> str | None:
       neutral parent would make the OTHER acid principal and put the charge on the wrong
       group, so the plan search must force the deprotonated site to be the principal
       group and demote the rest to ``carboxy`` / ``sulfo`` / ``nitro`` prefixes.
+    * ``carved`` also takes TWO ACID CLASSES (a carboxylate and a sulfonate) and an alkoxide/phenoxide
+      O- beside an acid anion (naming round 8): the senior acid anion is the principal group
+      (P-72.7 e, pdf p. 815: "3-oxidonaphthalene-2-carboxylate (PIN)", carboxylate senior to olate),
+      and the junior anion is its ANIONIC prefix, ``sulfonato`` / ``oxido``, never ``sulfo`` or
+      ``hydroxy``, which would drop the charge (P-65.6.2.3.1, p. 619; P-72.6, p. 814).
 
-    None: no acid-anion site, a mix of acid classes, an olate, or a genuine ion that leaves the
-    net charge non-negative (a zwitterion, owned by the FG route; a cation with an internal
-    acid anion). Those keep their existing routes.
+    None: no acid-anion site, an olate alone, a thiolate beside an acid anion, or a genuine ion that
+    leaves the net charge non-negative (a zwitterion, owned by the FG route; a cation with an
+    internal acid anion). Those keep their existing routes.
     """
     if mol is None:
         return None
@@ -1880,10 +1885,12 @@ def acid_anion_route(mol) -> str | None:
         kind = _acidic_anion_site_kind(mol, a)
         if kind in _ACID_ANION_KINDS:
             kinds[a.GetIdx()] = kind
-    if not kinds or len(set(kinds.values())) != 1:
+    if not kinds:
         return None
     separated = _charge_separated_neutral_atoms(mol)
-    others = [a for a in charged if a.GetIdx() not in kinds and a.GetIdx() not in separated]
+    # An alkoxide / phenoxide O- beside an acid anion is claimed with it. A thiolate is not: its anionic prefix ('sulfanido') is not built.
+    olates = {a.GetIdx() for a in charged if a.GetSymbol() == "O" and _acidic_anion_site_kind(mol, a) == "olate"}
+    others = [a for a in charged if a.GetIdx() not in kinds and a.GetIdx() not in separated and a.GetIdx() not in olates]
     if others:
         # A genuine ion beside the acid anion. With the net charge ZERO the molecule is a
         # zwitterion, which perception already detects (it sees a charged carboxylic acid only
@@ -1896,7 +1903,7 @@ def acid_anion_route(mol) -> str | None:
         if net < 0 and all(a.GetFormalCharge() > 0 for a in others):
             return "carved"
         return None
-    if separated or _has_neutral_acid(mol):
+    if separated or olates or _has_neutral_acid(mol) or len(set(kinds.values())) != 1:
         return "carved"
     return "classifier"
 

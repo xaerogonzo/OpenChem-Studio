@@ -1,0 +1,19 @@
+# Limitations sweep (naming round 8): a MIXED-CLASS ACID POLYANION (a carboxylate beside a sulfonate, or an olate beside an acid anion) is owned by the carved route, the senior acid anion
+# the principal group and the junior anion its anionic prefix, 'sulfonato' / 'oxido' (P-72.7 e, pdf p. 815; P-65.6.2.3.1, p. 619). Measured against 353596f. TWO rows of the r8 addendum panel
+# move, the two the panel's MIXED_CLASS_POLYANION_HOLE family recorded as open. Names are the ones the rule produces, each OPSIN-verified.
+
+stage = "L-mixed-polyanions"
+
+[[expect]]
+id = "r8:Q3-salicylate-dianion"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-72.7"
+expected_layer = "IMPLEMENTATION_GAP"
+expected_name = "2-oxidobenzoate"
+
+[[expect]]
+id = "r8:Q3-serinate-as-drawn"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-72.7"
+expected_layer = "IMPLEMENTATION_GAP"
+expected_name = "2-azaniumyl-3-oxidopropanoate"

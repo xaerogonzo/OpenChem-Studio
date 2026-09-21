@@ -2981,6 +2981,44 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "converse: an anion centre is named on its anion by its own route"),
     ("D-122t", "C[Si](C)(C)C[P+](C)(C)C", "trimethyl[(trimethylsilyl)methyl]phosphanium", "(unchanged)",
      "converse: the cation's centre is the parent, not another heteroatom centre"),
+    # ---- naming round 8, limitations sweep: MIXED-CLASS ACID POLYANIONS. acid_anion_route returned None for a molecule whose anions are of two classes (a carboxylate and a
+    # sulfonate) or an olate beside an acid anion, so no route owned it and the plan search named it '1-[oxido(oxo)methyl]-4-(oxidosulfonyl)benzene', which round-trips and is
+    # not a name. The carved route now owns it: the senior acid anion is the principal group (P-72.7 e, pdf p. 815: '3-oxidonaphthalene-2-carboxylate (PIN)', carboxylate senior
+    # to olate) and the junior anion is its anionic PREFIX, 'sulfonato' / 'oxido' (P-65.6.2.3.1, p. 619, and P-72.6, p. 814), never the neutral 'sulfo' / 'hydroxy', which would
+    # drop the charge. 'sulfonato' and 'carboxylato' are ONE group each and are printed bare (p. 1020: '2-O-sulfonato-alpha-D-glucopyranose').
+    ("D-121a", "[O-]C(=O)c1ccc(cc1)S(=O)(=O)[O-]", "4-sulfonatobenzoate", "1-[oxido(oxo)methyl]-4-(oxidosulfonyl)benzene",
+     "derived from p. 619 (the prefix 'sulfonato') and P-72.7 (e): the carboxylate outranks the sulfonate"),
+    ("D-121b", "[O-]C(=O)c1cc2ccccc2cc1[O-]", "3-oxidonaphthalene-2-carboxylate", "3-[oxido(oxo)methyl]naphthalen-2-olate",
+     "p. 815 VERBATIM '3-oxidonaphthalene-2-carboxylate (PIN)'"),
+    ("D-121c", "[O-]C(=O)c1ccccc1[O-]", "2-oxidobenzoate", "2-[oxido(oxo)methyl]benzen-1-olate",
+     "the salicylate dianion, derived from D-121b's rule"),
+    ("D-121d", "[NH3+]C(C[O-])C([O-])=O", "2-azaniumyl-3-oxidopropanoate", "2-azaniumyl-3-oxido-3-oxopropan-1-olate",
+     "the serinate zwitterion as drawn: the cation is the 'azaniumyl' prefix as in aspartate"),
+    ("D-121e", "O=C([O-])CS(=O)(=O)[O-]", "sulfonatoacetate", "1-oxido-2-(oxidosulfonyl)-1-oxoethane",
+     "derived: a retained acetic acid takes the prefix bare, as 'sulfoacetic acid' does"),
+    ("D-121f", "[O-]C(=O)c1cc(cc(c1)S(=O)(=O)[O-])S(=O)(=O)[O-]", "3,5-disulfonatobenzoate", "1-[oxido(oxo)methyl]-3,5-bis(oxidosulfonyl)benzene",
+     "derived: the class decides the parent (carboxylate), not the count of sulfonates"),
+    ("D-121g", "[O-]C(=O)CC(C(=O)[O-])S(=O)(=O)[O-]", "2-sulfonatobutanedioate", "1,4-dioxido-2-(oxidosulfonyl)-1,4-dioxobutane",
+     "derived: two carboxylates and a sulfonate; the carboxylates are the suffix"),
+    ("D-121h", "[O-]C(=O)c1ccc(cc1)S(=O)(=O)[O-].[Na+].[Na+]", "disodium 4-sulfonatobenzoate", "disodium 1-[oxido(oxo)methyl]-4-(oxidosulfonyl)benzene",
+     "the salt: the cations do not change the anion's name"),
+    ("D-121x", "OC(=O)c1ccc(cc1)S(=O)(=O)[O-]", "4-carboxybenzene-1-sulfonate", "(unchanged)",
+     "converse: ONE anion beside a neutral acid is the D-095 family, an anion outranks an acid"),
+    ("D-121y", "[O-]C(=O)c1ccc(cc1)S(=O)(=O)O", "4-sulfobenzoate", "(unchanged)",
+     "converse: the neutral sulfonic acid keeps 'sulfo'"),
+    ("D-121z", "[O-]C(=O)c1ccc(cc1)C(=O)[O-]", "benzene-1,4-dicarboxylate", "(unchanged)",
+     "converse: one class, the classifier route"),
+    ("D-121w", "[O-]S(=O)(=O)c1ccc(cc1)S(=O)(=O)[O-]", "benzene-1,4-disulfonate", "(unchanged)",
+     "converse: one class"),
+    ("D-121v", "O=C([O-])c1ccccc1O", "2-hydroxybenzoate", "(unchanged)",
+     "converse: an anion and a neutral OH"),
+    # (D-121, continued: two more shapes the route now owns, and what it must leave alone.)
+    ("D-121i", "[O-]CCC(=O)[O-]", "3-oxidopropanoate", "3-oxido-3-oxopropan-1-olate",
+     "derived: a chain olate beside a carboxylate, the same rule as D-121b"),
+    ("D-121j", "C[N+](C)(C)CC([O-])C(=O)[O-]", "2-oxido-3-(trimethylazaniumyl)propanoate", "1-oxido-1-oxo-3-(trimethylazaniumyl)propan-2-olate",
+     "derived: an olate and a carboxylate beside a cation, net negative"),
+    ("D-121u", "[S-]c1ccccc1C(=O)[O-]", "2-[oxido(oxo)methyl]benzene-1-thiolate", "(unchanged)",
+     "converse and OPEN: a THIOLATE beside an acid anion is not claimed, its anionic prefix ('sulfanido') is not built; the name reads back and is not preferred"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this

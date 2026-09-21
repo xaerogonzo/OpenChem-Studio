@@ -86,8 +86,8 @@ NC(N)=NC(=N)NC(N)=N	N1-(diaminomethylidene)imidodicarbonimidic diamide
 N=C(N)NC(=N)NC(N)=N	diimidotricarbonimidic diamide
 NC(=N)NC(N)=NC(N)=N	N1-carbamimidoylimidodicarbonimidic diamide
 Cn1nnc[n+]1C	1,2-dimethyl-2H-tetrazol-1-ium
-[O-]C(=O)c1ccc(cc1)S([O-])(=O)=O	1-[oxido(oxo)methyl]-4-(oxidosulfonyl)benzene
-[O-]C(=O)c1ccccc1[O-]	2-[oxido(oxo)methyl]benzen-1-olate
+[O-]C(=O)c1ccc(cc1)S([O-])(=O)=O	4-sulfonatobenzoate
+[O-]C(=O)c1ccccc1[O-]	2-oxidobenzoate
 NC(=O)NC(=O)NC(=O)NC(=O)NC(N)=O	3,5,7-trioxo-2,4,6,8-tetraazanonane-1,9-diamide
 CN=C(S)NC	{[(methylamino)(sulfanyl)methylidene]amino}methane
 CCN=C(S)Nc1ccccc1	{[anilino(sulfanyl)methylidene]amino}ethane

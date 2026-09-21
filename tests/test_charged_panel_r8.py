@@ -54,7 +54,9 @@ STRUCTURAL_CONTEXTS = {"acyclic", "aromatic", "heterocyclic", "fused", "salt", "
 #: The isolated-ion rows whose anion site NO route claims and that no scope declaration covers. A RATCHET:
 #: both are mixed-class polyanions (an olate and a carboxylate; `acid_anion_route` returns None for two anion
 #: classes). A new entry is a new unowned class and fails; a fixed one must be removed in the commit that fixes it.
-KNOWN_HOLES = frozenset({"Q3-serinate-as-drawn", "Q3-salicylate-dianion"})
+# EMPTY since the limitations sweep (naming round 8): the two rows that had no owner, the serinate zwitterion and the salicylate dianion, are owned by the carved route
+# now that acid_anion_route claims a mixed-class polyanion (D-121). The BASELINE test below keeps the two ids it started from, and is never rewritten.
+KNOWN_HOLES: frozenset[str] = frozenset()
 
 
 def _isolated():

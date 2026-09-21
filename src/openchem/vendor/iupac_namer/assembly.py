@@ -453,6 +453,10 @@ def _is_simple_by_form(name: str) -> bool:
         # pdf p. 604) and "S-ethyl 3-(thiocyanato)propanethioate (PIN)" (p. 629).
         # An EXACT match: "isothiocyanato" contains the word and is printed bare.
         return False
+    if name in ("carboxylato", "sulfonato"):
+        # The anionic acid prefixes (P-72.6.1, pdf p. 814) are ONE group each, like 'carboxy' and 'sulfo', which are bare ("4-sulfobenzoic acid");
+        # the book prints "2-O-sulfonato-alpha-D-glucopyranose" (p. 1020). Only a prefix built ON a stem is enclosed ("2-(carboxylatomethyl)benzoate").
+        return True
     m_ylidene = _SIMPLE_YLIDENE.fullmatch(name)
     if m_ylidene is not None and "yl" not in m_ylidene.group(1):
         # "sulfanylidene", "propylidene" -- one stem (see above). NOT "diaminomethylidene" or "chloromethylidene": a detachable prefix LEADING a
