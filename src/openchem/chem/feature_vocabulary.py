@@ -936,6 +936,9 @@ ENGINE_DISAGREEMENTS: dict[tuple[str, str | None], str] = {
     ("ketone", "fg:imide"): "a ring C=O between two acyl N bonds is an imide (p. 710); FG-002",
     ("ketone", "fg:urea"): "caffeine's C2=O bears two N: a urea, not a ketone; FG-002",
     ("ketone", "fg:lactone"): "a coumarin's C=O beside the ring O is a lactone (p. 817); FG-002",
+    ("ketone", "fg:carboxamide"): (
+        "a carbonyl on a ring or azo NITROGEN (indometacin's N-acylindole): the engine names it a PSEUDOKETONE, suffix 'one' "
+        "(P-64.3.2, p. 567, naming round 8), where the Gold Book class of the same atoms is an amide"),
     ("amine", "fg:guanidine"): "an NH2 of a guanidine is part of the guanidine, not an amine",
     ("secondary_amine", "fg:guanidine"): "as amine: an N of a guanidine",
     ("tertiary_amine", "fg:guanidine"): "as amine: an N of a guanidine (metformin)",
