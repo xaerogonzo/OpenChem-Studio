@@ -344,6 +344,7 @@ def test_the_preferred_score_counts_only_rows_with_a_settled_target():
         {"smiles": "CC", "name": "ethane", "pubchem_name": "ethane"},
     ]
     assert tool._preferred_scores(named, targets) == {
-        "adjudicated_rows": 2, "engine": 2, "pubchem": 1,
+        # `known_deviation` (naming round 8): rows whose engine name carries a DECLARED legacy locant, never counted as a preferred match; none here.
+        "adjudicated_rows": 2, "engine": 2, "pubchem": 1, "known_deviation": 0,
     }
     assert tool._preferred_scores(named, {})["adjudicated_rows"] == 0

@@ -205,3 +205,9 @@ file = "tests/test_namer_exo_skeleton.py"
 why = "the exo-skeleton parent candidate of P-65.1.2.2.1: its finder and its engine wrapper"
 scope = "core"
 owner = "namer"
+
+[[consumer]]
+file = "tests/test_known_deviations.py"
+why = "the declared deviations from the Blue Book (the curated ring table's legacy interior locants): the registry, the table, and the scorer's refusal to count one as a preferred match"
+scope = "benchmark"
+owner = "benchmarks"

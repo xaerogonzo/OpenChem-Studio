@@ -365,16 +365,23 @@ def _preferred_scores(named: list[dict], targets: dict[str, str]) -> dict:
     denominator; an evaluation-only population has none by construction."""
     from rdkit import Chem
 
-    rows = engine = pubchem = 0
+    import known_deviations
+
+    rows = engine = pubchem = deviating = 0
     for record in named:
         mol = Chem.MolFromSmiles(record["smiles"])
         target = targets.get(Chem.MolToSmiles(mol)) if mol is not None else None
         if target is None:
             continue
         rows += 1
-        engine += record["name"] == target
+        # A name that carries a DECLARED legacy locant (known_deviations.toml) is reported as a known deviation and is NEVER an exact preferred match, however
+        # it round-trips: OPSIN accepting a name does not make it preferred (naming round 8).
+        if known_deviations.deviation_in(record["name"]):
+            deviating += 1
+        else:
+            engine += record["name"] == target
         pubchem += record["pubchem_name"] == target
-    return {"adjudicated_rows": rows, "engine": engine, "pubchem": pubchem}
+    return {"adjudicated_rows": rows, "engine": engine, "pubchem": pubchem, "known_deviation": deviating}
 
 
 def build(stage: str, *, allow_no_java: bool, final_evaluation: bool = False) -> dict:

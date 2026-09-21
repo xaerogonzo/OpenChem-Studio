@@ -1,0 +1,47 @@
+# KNOWN DEVIATIONS: the ONLY places the engine writes a name the Blue Book says not to, on purpose (naming round 8).
+#
+# A deviation is not a defect to be fixed by the next stage and not a preference the engine happens to have: it is a DECLARED, reasoned exception, listed here with
+# its normative target, the engine's output and the reason, so that (1) it is reported as a declared deviation and never counted as an exact PREFERRED match because it
+# round-trips, and (2) a legacy numbering is never introduced again on the argument "OPSIN parses it". tests/test_known_deviations.py fails on any curated ring whose
+# interior locant is not the book's form and is not listed here, and on a listed deviation that no longer occurs.
+#
+# THE OPSIN ORACLE IS THE REASON, AND IT IS NOT A REASON TO ADD ONE. The engine checks its names by parsing them with OPSIN, and OPSIN reads the CAS letters
+# (10b, 10c) and not the book's superscripts (3a1, 5a1). A table that used the book's form would emit names the oracle cannot verify, so the table keeps the CAS form.
+# OPSIN accepting a name does not make it preferred.
+#
+# Fields: ring (the curated ring name), engine (the legacy locants, atom -> label as a list), normative (the book's locants in the same order), rule and page (the pdf page,
+# 1-based), target_basis PRINTED (the book prints the ring's numbering) or DERIVED (P-25.3.3.3.1 applied by the engine's own generic rule to the ring), reason and
+# oracle_statement in words.
+
+[[deviation]]
+id = "KD-pyrene"
+ring = "pyrene"
+engine = ["10b", "10c"]
+normative = ["3a1", "5a1"]
+rule = "P-25.3.3.3.1"
+page = 224
+target_basis = "PRINTED"
+reason = "The curated ring table numbers the two interior carbons with the former CAS letters. The book prints pyrene under 'recommended numbering' and marks the CAS numbering 'no longer recommended but still used in CAS index nomenclature'."
+oracle_statement = "OPSIN accepts 10b/10c in an indicated-hydrogen form and does not read 3a1/5a1, so a name in the book's form could not be verified by the round trip."
+
+[[deviation]]
+id = "KD-perylene"
+ring = "perylene"
+engine = ["12c", "12d"]
+normative = ["3a1", "6b1"]
+rule = "P-25.3.3.3.1"
+page = 224
+target_basis = "DERIVED"
+reason = "The same table gives perylene's two interior carbons CAS letters. The book prints no perylene example of the interior rule; the target is the engine's own generic fusion rule (fusion_orientation._interior_carbon_locant) applied to the ring's peripheral locants."
+oracle_statement = "As for pyrene: the oracle reads the CAS letters and not the superscript form."
+
+[[deviation]]
+id = "KD-benz-de-isoquinoline"
+ring = "2,3,3a,4,5,6-hexahydro-1H-benz[de]isoquinoline"
+engine = ["9b"]
+normative = ["3a1"]
+rule = "P-25.3.3.3.1"
+page = 224
+target_basis = "DERIVED"
+reason = "A phenalene-type ring system (the book prints 'not 1H-phenalene ... former numbering' and '3a1H-phenalene', pp. 224, 496). The curated hydro form keeps the CAS letter 9b for its interior carbon."
+oracle_statement = "As for pyrene: the oracle reads 9b and not 3a1."
