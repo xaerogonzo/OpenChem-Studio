@@ -559,6 +559,20 @@ def test_a_name_that_fails_the_round_trip_is_withheld(monkeypatch):
         naming_providers.derived_name_for_structure(Chem.MolFromSmiles("CCO"))
 
 
+def test_an_engine_error_is_not_shown_as_a_name(monkeypatch):
+    """The engine returns '[NAMING ERROR: ...]' as its 'name' for a structure it cannot name, and embeds one inside a real-looking name when only a substituent
+    failed. Both reached the report as the IUPAC name with a 'not verified' note. Neither is a name."""
+    import openchem.vendor.iupac_namer as namer
+
+    for text in (
+        "[NAMING ERROR: No valid naming plan found for c1ccccc1]",
+        "({[(diaminomethylidene)amino](imino)methyl}amino){[NAMING ERROR: No valid naming plan found for N=C(N)NC(=N)N]}methanimine",
+    ):
+        monkeypatch.setattr(namer, "name_smiles", lambda smiles, _t=text: _t)
+        with pytest.raises(naming_providers.NamingError, match="error instead of a name"):
+            naming_providers.derived_name_for_structure(Chem.MolFromSmiles("CCO"))
+
+
 def test_a_name_the_parser_cannot_read_is_shown_with_a_note(monkeypatch):
     """The CHECKER failing is not the name being wrong: shown, and saying it
     could not be checked. The withheld case above is a real mismatch."""

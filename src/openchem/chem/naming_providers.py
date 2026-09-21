@@ -427,6 +427,14 @@ def derived_name_for_structure(mol: Chem.Mol) -> NameResult:
         raise NamingError(f"Could not derive a name for this structure: {exc}") from exc
     if not name:
         raise NamingError("The nomenclature engine produced no name for this structure.")
+    if "NAMING ERROR" in str(name):
+        # The engine reports a structure it cannot name AS the name ('[NAMING ERROR: No valid naming plan found for ...]'), and a
+        # substituent it cannot name is embedded in the middle of a real-looking one. Either reached the reader as the IUPAC name with a
+        # "not verified" note, because OPSIN's failure to read it was taken for the checker failing. It is not a name.
+        raise NamingError(
+            "The nomenclature engine could not derive a name for this structure "
+            "(it reported an error instead of a name), so none is shown."
+        )
 
     verified = verify_name_round_trip(str(name), mol)
     if verified is RoundTrip.MISMATCH:

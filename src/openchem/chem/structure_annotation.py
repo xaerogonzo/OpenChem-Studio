@@ -1659,7 +1659,10 @@ def _name_ring_skeleton(ring_smiles: str) -> str | None:
         named = name_smiles(ring_smiles)
     except Exception:  # noqa: BLE001 - an unnameable skeleton is not fatal
         return None
-    return str(named) if named else None
+    # The engine reports a skeleton it cannot name AS the name ('[NAMING ERROR: ...]'); that is not a ring name (naming round 8).
+    if not named or "NAMING ERROR" in str(named):
+        return None
+    return str(named)
 
 
 def _ring_system_name(ring_system, mol: Chem.Mol) -> str | None:
