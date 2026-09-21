@@ -1599,6 +1599,13 @@ def elide(name: str) -> str:
     return name
 
 
+#: A part that is ONLY the unsaturation infix ("ene", "-2-ene", "-1,3-diene", "-2-yne"), never a retained stem that happens to end in it ("benzene").
+#: A mutant that treats EVERY part ending in 'e' as an infix is EQUIVALENT today (measured, six other mutants are caught): no junction has a
+#: non-infix part ending in 'e' directly before 'amine', 'amide' or 'amino', because a stem drops its 'e' upstream. The narrow pattern is kept so
+#: one cannot start eliding a retained stem's 'e' without a row saying so.
+_UNSATURATION_INFIX = re.compile(r"(?:-[0-9a-z,]+-)?(?:di|tri|tetra|penta|hexa)?(?:en|yn)e")
+
+
 def elide_at_boundaries(parts: list[str]) -> str:
     """Apply IUPAC P-16.3.3 elision only at explicit part-boundary junctions.
 
@@ -1632,6 +1639,10 @@ def elide_at_boundaries(parts: list[str]) -> str:
         if idx + 1 < len(parts):
             right = parts[idx + 1]
             should_elide = False
+            # The 'e' of an 'ene'/'yne' infix goes before EVERY vowel-initial suffix, 'amine' and 'amide' included: "prop-2-enamide (PIN)" (pdf p. 646),
+            # "prop-2-en-1-amine (PIN)" (p. 525), "cyclohex-2-en-1-amine (PIN)" (p. 76). The no-elision list exists for the "amino" PREFIX and for a
+            # stem whose 'e' is not an unsaturation infix.
+            unsaturation_infix = _UNSATURATION_INFIX.fullmatch(left) is not None
             if left.endswith(("ylidene", "ylidyne")):
                 # Elision belongs at a stem/suffix junction, not between a
                 # SUBSTITUTENT prefix and the parent it sits on: the book
@@ -1644,7 +1655,7 @@ def elide_at_boundaries(parts: list[str]) -> str:
                 left.endswith("e")
                 and right
                 and right[0] in "aeiouy"
-                and not any(right.startswith(p) for p in no_elision_patterns)
+                and (unsaturation_infix or not any(right.startswith(p) for p in no_elision_patterns))
             ):
                 should_elide = True
             elif left.endswith("e") and right and _LOCANT_PREFIX_RE.match(right):
@@ -1652,7 +1663,8 @@ def elide_at_boundaries(parts: list[str]) -> str:
                 suffix_after_locant = _LOCANT_PREFIX_RE.sub("", right)
                 if (suffix_after_locant
                         and suffix_after_locant[0] in "aeiouy"
-                        and not any(suffix_after_locant.startswith(p) for p in no_elision_patterns)):
+                        and (unsaturation_infix
+                             or not any(suffix_after_locant.startswith(p) for p in no_elision_patterns))):
                     should_elide = True
             if should_elide:
                 left = left[:-1]

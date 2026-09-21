@@ -2789,6 +2789,34 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "carbonyldiimidazole, a common reagent, CRASHED the engine: the multiplicative route carved a half-molecule whose aromatic n had lost its H and did not catch the sanitise failure. It now "
      "declines and the generic route names it. OPSIN-verified; NOT claimed preferred (the pseudoketone name, di(1H-imidazol-1-yl)methanone, is not built for two ring nitrogens)"),
     ("D-119b", "O=C(n1cccc1)n1cccc1", "1-[(oxo)(1H-pyrrol-1-yl)methyl]-1H-pyrrole", "(the same crash)", "the pyrrole analogue"),
+    # ---- naming round 8, limitations sweep: THE 'e' OF 'ene'/'yne' IS ELIDED BEFORE AN 'amide' OR 'amine' (P-16.7; pdf pp. 646, 525, 76). The assembler's elision skipped
+    # every suffix that begins 'amine'/'amide'/'amino', a list meant for the 'amino' PREFIX, so an unsaturated parent kept its 'e' before the two commonest vowel suffixes:
+    # acrylamide was 'prop-2-eneamide' and allylamine 'prop-2-ene-1-amine', both of which OPSIN reads and neither of which is a name. Found by probing common compounds, not by
+    # a corpus (no corpus row is an enamide). The junctions before a consonant suffix ('but-2-enethioamide', 'but-2-enediamide', 'but-2-enehydrazide') keep their 'e'.
+    ("D-120a", "C=CC(N)=O", "prop-2-enamide", "prop-2-eneamide",
+     "p. 646 VERBATIM 'prop-2-enamide (PIN)': acrylamide"),
+    ("D-120b", "C=CCN", "prop-2-en-1-amine", "prop-2-ene-1-amine",
+     "p. 525 VERBATIM 'prop-2-en-1-amine (PIN)': allylamine"),
+    ("D-120c", "C=CC(=O)NC", "N-methylprop-2-enamide", "N-methylprop-2-eneamide",
+     "p. 646 VERBATIM 'N-methylprop-2-enamide'"),
+    ("D-120d", "C=CN", "ethenamine", "etheneamine",
+     "derived: the same rule with no locant"),
+    ("D-120e", "CC=C(N)C=C", "penta-1,3-dien-3-amine", "penta-1,3-diene-3-amine",
+     "derived: a diene ('e' of 'diene')"),
+    ("D-120f", "C#CC(N)=O", "prop-2-ynamide", "prop-2-yneamide",
+     "derived: the 'yne' infix"),
+    ("D-120g", "CC=CC(=O)N1CCCC1", "1-(pyrrolidin-1-yl)but-2-en-1-one", "(unchanged)",
+     "converse: a pseudoketone, no amide suffix"),
+    ("D-120h", "CC=CC(N)=S", "but-2-enethioamide", "(unchanged)",
+     "converse: 'thioamide' begins with a consonant, so the 'e' stays"),
+    ("D-120i", "NC(=O)C=CC(N)=O", "but-2-enediamide", "(unchanged)",
+     "converse: 'diamide' begins with a consonant"),
+    ("D-120j", "CC=CC(=N)N", "but-2-enimidamide", "(unchanged)",
+     "converse: 'imidamide' was already elided"),
+    ("D-120k", "NC1CCCC=C1", "cyclohex-2-en-1-amine", "(unchanged)",
+     "converse: p. 76 VERBATIM 'cyclohex-2-en-1-amine (PIN)', the ring form had it right"),
+    ("D-120l", "Nc1ccccc1", "aniline", "(unchanged)",
+     "converse: a retained ring amine"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
