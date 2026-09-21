@@ -1,0 +1,744 @@
+[
+ {
+  "label": "h5cid1125",
+  "category": "heldout",
+  "smiles": "CC(O)C(O)C1CNc2[nH]c(N)nc(=O)c2N1",
+  "pubchem_name": "2-amino-6-(1,2-dihydroxypropyl)-5,6,7,8-tetrahydro-1H-pteridin-4-one",
+  "name": "2-amino-6-(1,2-dihydroxypropyl)-5,6,7,8-tetrahydropteridin-4(1H)-one",
+  "error": null,
+  "seconds": 0.085,
+  "top_level_plans": 13,
+  "top_level_hypotheses": [
+   "chain/len=3/elem=-/pcg=-/n_pcg=0",
+   "chain/len=3/elem=-/pcg=alcohol/n_pcg=1",
+   "chain/len=3/elem=-/pcg=alcohol/n_pcg=2",
+   "fused/len=10/elem=-/pcg=-/n_pcg=0",
+   "fused/len=10/elem=-/pcg=alcohol/n_pcg=1",
+   "fused/len=10/elem=-/pcg=alcohol/n_pcg=2",
+   "fused/len=10/elem=-/pcg=amine/n_pcg=1",
+   "fused/len=10/elem=-/pcg=ketone/n_pcg=1"
+  ],
+  "winning_hypothesis": "fused/len=10/elem=-/pcg=ketone/n_pcg=1",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid2125",
+  "category": "heldout",
+  "smiles": "Cc1c(C(=O)NN2CCCCC2)nn(-c2ccc(Cl)cc2Cl)c1-c1ccc(I)cc1",
+  "pubchem_name": "1-(2,4-dichlorophenyl)-5-(4-iodophenyl)-4-methyl-N-piperidin-1-ylpyrazole-3-carboxamide",
+  "name": "1-[1-(2,4-dichlorophenyl)-5-(4-iodophenyl)-4-methyl-1H-pyrazole-3-carboxamido]piperidine",
+  "error": null,
+  "seconds": 0.129,
+  "top_level_plans": 84,
+  "top_level_hypotheses": [
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=5/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid3125",
+  "category": "heldout",
+  "smiles": "CC(N)(Cc1ccc(O)cc1)C(=O)O",
+  "pubchem_name": "2-amino-3-(4-hydroxyphenyl)-2-methylpropanoic acid",
+  "name": "2-amino-3-(4-hydroxyphenyl)-2-methylpropanoic acid",
+  "error": null,
+  "seconds": 0.069,
+  "top_level_plans": 66,
+  "top_level_hypotheses": [
+   "chain/len=2/elem=-/pcg=-/n_pcg=0",
+   "chain/len=2/elem=-/pcg=amine/n_pcg=1",
+   "chain/len=3/elem=-/pcg=-/n_pcg=0",
+   "chain/len=3/elem=-/pcg=amine/n_pcg=1",
+   "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=phenol/n_pcg=1"
+  ],
+  "winning_hypothesis": "chain/len=3/elem=-/pcg=carboxylic_acid/n_pcg=1",
+  "outcome": "exact"
+ },
+ {
+  "label": "h5cid4125",
+  "category": "heldout",
+  "smiles": "CCCCCC=CCC=CCC=CCC=CCCCCP(=O)(F)OC",
+  "pubchem_name": "1-[fluoro(methoxy)phosphoryl]icosa-5,8,11,14-tetraene",
+  "name": "fluoro(icosa-5,8,11,14-tetraen-1-yl)(methoxy)(oxo)phosphane",
+  "error": null,
+  "seconds": 0.051,
+  "top_level_plans": 5,
+  "top_level_hypotheses": [
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=20/elem=-/pcg=-/n_pcg=0",
+   "heteroatom_center/len=1/elem=P/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "heteroatom_center/len=1/elem=P/pcg=-/n_pcg=0",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid5125",
+  "category": "heldout",
+  "smiles": "CCCCSP(=O)(SCCCC)SCCCC",
+  "pubchem_name": "1-bis(butylsulfanyl)phosphorylsulfanylbutane",
+  "name": "tris(butylsulfanyl)(oxo)phosphane",
+  "error": null,
+  "seconds": 0.234,
+  "top_level_plans": 7,
+  "top_level_hypotheses": [
+   "chain/len=4/elem=-/pcg=-/n_pcg=0",
+   "heteroatom_center/len=1/elem=P/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "heteroatom_center/len=1/elem=P/pcg=-/n_pcg=0",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid7125",
+  "category": "heldout",
+  "smiles": "O=S(=O)(Cl)c1ccc2ccccc2c1",
+  "pubchem_name": "naphthalene-2-sulfonyl chloride",
+  "name": "naphthalene-2-sulfonyl chloride",
+  "error": null,
+  "seconds": 0.037,
+  "top_level_plans": 8,
+  "top_level_hypotheses": [
+   "fused/len=10/elem=-/pcg=-/n_pcg=0",
+   "fused/len=10/elem=-/pcg=sulfonic_acid/n_pcg=1"
+  ],
+  "winning_hypothesis": "fused/len=10/elem=-/pcg=sulfonic_acid/n_pcg=1",
+  "outcome": "exact"
+ },
+ {
+  "label": "h5cid8125",
+  "category": "heldout",
+  "smiles": "C=CCCCCCC",
+  "pubchem_name": "oct-1-ene",
+  "name": "oct-1-ene",
+  "error": null,
+  "seconds": 0.009,
+  "top_level_plans": 2,
+  "top_level_hypotheses": [
+   "chain/len=8/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "chain/len=8/elem=-/pcg=-/n_pcg=0",
+  "outcome": "exact"
+ },
+ {
+  "label": "h5cid9125",
+  "category": "heldout",
+  "smiles": "c1ccc2cc3cc4c(cc3cc2c1)c1cccc2c3ccccc3c3cccc4c3c21",
+  "pubchem_name": "octacyclo[14.14.2.02,15.04,13.06,11.020,32.021,26.027,31]dotriaconta-1(30),2,4,6,8,10,12,14,16,18,20(32),21,23,25,27(31),28-hexadecaene",
+  "name": "tribenzo[b,de,uv]pentacene",
+  "error": null,
+  "seconds": 33.496,
+  "top_level_plans": 3,
+  "top_level_hypotheses": [
+   "bridged/len=32/elem=-/pcg=-/n_pcg=0",
+   "fused/len=32/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "fused/len=32/elem=-/pcg=-/n_pcg=0",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid12125",
+  "category": "heldout",
+  "smiles": "N#CCc1cccc([N+](=O)[O-])c1",
+  "pubchem_name": "2-(3-nitrophenyl)acetonitrile",
+  "name": "2-(3-nitrophenyl)ethanenitrile",
+  "error": null,
+  "seconds": 0.023,
+  "top_level_plans": 28,
+  "top_level_hypotheses": [
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=2/elem=-/pcg=nitrile/n_pcg=1",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "chain/len=2/elem=-/pcg=nitrile/n_pcg=1",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid13125",
+  "category": "heldout",
+  "smiles": "CC(=O)O[C@H]1CC[C@]2(C)C3CC[C@]4(C)[C@@H](C5=CC(=O)OC5)CC[C@]4(O)C3CC[C@@H]2C1",
+  "pubchem_name": "[(3S,5R,10S,13R,14S,17R)-14-hydroxy-10,13-dimethyl-17-(5-oxo-2H-furan-3-yl)-1,2,3,4,5,6,7,8,9,11,12,15,16,17-tetradecahydrocyclopenta[a]phenanthren-3-yl] acetate",
+  "name": "(3S,5R,10S,13R,14S,17R)-14-hydroxy-10,13-dimethyl-17-(5-oxo-2,5-dihydrofuran-3-yl)hexadecahydro-1H-cyclopenta[a]phenanthren-3-yl acetate",
+  "error": null,
+  "seconds": 0.403,
+  "top_level_plans": 19,
+  "top_level_hypotheses": [
+   "FunctionalClassPlan",
+   "bridged/len=17/elem=-/pcg=-/n_pcg=0",
+   "bridged/len=17/elem=-/pcg=alcohol/n_pcg=1",
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=2/elem=-/pcg=-/n_pcg=0",
+   "fused/len=17/elem=-/pcg=-/n_pcg=0",
+   "fused/len=17/elem=-/pcg=alcohol/n_pcg=1",
+   "monocyclic/len=5/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=5/elem=-/pcg=ketone/n_pcg=1"
+  ],
+  "winning_hypothesis": "FunctionalClassPlan",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid14125",
+  "category": "heldout",
+  "smiles": "c1ccc(CCCc2ccccc2)cc1",
+  "pubchem_name": "3-phenylpropylbenzene",
+  "name": "1,1'-(propane-1,3-diyl)dibenzene",
+  "error": null,
+  "seconds": 0.116,
+  "top_level_plans": 50,
+  "top_level_hypotheses": [
+   "chain/len=3/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid16125",
+  "category": "heldout",
+  "smiles": "COc1cc(Cl)ccc1Cl",
+  "pubchem_name": "1,4-dichloro-2-methoxybenzene",
+  "name": "1,4-dichloro-2-methoxybenzene",
+  "error": null,
+  "seconds": 0.021,
+  "top_level_plans": 26,
+  "top_level_hypotheses": [
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+  "outcome": "exact"
+ },
+ {
+  "label": "h5cid17125",
+  "category": "heldout",
+  "smiles": "C=Cc1c2ccccc2cc2ccccc12",
+  "pubchem_name": "9-ethenylanthracene",
+  "name": "9-ethenylanthracene",
+  "error": null,
+  "seconds": 0.035,
+  "top_level_plans": 6,
+  "top_level_hypotheses": [
+   "chain/len=2/elem=-/pcg=-/n_pcg=0",
+   "fused/len=14/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "fused/len=14/elem=-/pcg=-/n_pcg=0",
+  "outcome": "exact"
+ },
+ {
+  "label": "h5cid18125",
+  "category": "heldout",
+  "smiles": "ClC=CC=CCl",
+  "pubchem_name": "1,4-dichlorobuta-1,3-diene",
+  "name": "1,4-dichlorobuta-1,3-diene",
+  "error": null,
+  "seconds": 0.039,
+  "top_level_plans": 2,
+  "top_level_hypotheses": [
+   "chain/len=4/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "chain/len=4/elem=-/pcg=-/n_pcg=0",
+  "outcome": "exact"
+ },
+ {
+  "label": "h5cid19125",
+  "category": "heldout",
+  "smiles": "O=C(OCCN1CCCC1)C1(c2ccccc2)CC2CCC1C2",
+  "pubchem_name": "2-pyrrolidin-1-ylethyl 2-phenylbicyclo[2.2.1]heptane-2-carboxylate",
+  "name": "2-(pyrrolidin-1-yl)ethyl 2-phenylbicyclo[2.2.1]heptane-2-carboxylate",
+  "error": null,
+  "seconds": 0.075,
+  "top_level_plans": 45,
+  "top_level_hypotheses": [
+   "FunctionalClassPlan",
+   "bridged/len=7/elem=-/pcg=-/n_pcg=0",
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=2/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=5/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "FunctionalClassPlan",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid20125",
+  "category": "heldout",
+  "smiles": "CCCCC(CC)C(N)=O",
+  "pubchem_name": "2-ethylhexanamide",
+  "name": "2-ethylhexanamide",
+  "error": null,
+  "seconds": 0.021,
+  "top_level_plans": 6,
+  "top_level_hypotheses": [
+   "chain/len=6/elem=-/pcg=amide/n_pcg=1",
+   "chain/len=7/elem=-/pcg=-/n_pcg=0",
+   "chain/len=7/elem=-/pcg=amide/n_pcg=1"
+  ],
+  "winning_hypothesis": "chain/len=6/elem=-/pcg=amide/n_pcg=1",
+  "outcome": "exact"
+ },
+ {
+  "label": "h5cid21125",
+  "category": "heldout",
+  "smiles": "OC(c1ccc(Cl)cc1)c1nc2ccccc2[nH]1",
+  "pubchem_name": "1H-benzimidazol-2-yl-(4-chlorophenyl)methanol",
+  "name": "(1H-benzimidazol-2-yl)(4-chlorophenyl)methanol",
+  "error": null,
+  "seconds": 0.066,
+  "top_level_plans": 56,
+  "top_level_hypotheses": [
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=1/elem=-/pcg=alcohol/n_pcg=1",
+   "fused/len=9/elem=-/pcg=-/n_pcg=0",
+   "fused/len=9/elem=-/pcg=alcohol/n_pcg=1",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=alcohol/n_pcg=1"
+  ],
+  "winning_hypothesis": "chain/len=1/elem=-/pcg=alcohol/n_pcg=1",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid22125",
+  "category": "heldout",
+  "smiles": "C[N+]1(C)CC2CC(C1)c1cccc(=O)n1C2",
+  "pubchem_name": "11,11-dimethyl-7-aza-11-azoniatricyclo[7.3.1.02,7]trideca-2,4-dien-6-one",
+  "name": "11,11-dimethyl-4-oxo-3,11-diazatricyclo[7.3.1.0^{3,8}]trideca-5,7-dien-11-ium",
+  "error": null,
+  "seconds": 0.038,
+  "top_level_plans": null,
+  "top_level_hypotheses": null,
+  "winning_hypothesis": null,
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid24125",
+  "category": "heldout",
+  "smiles": "CCOC(=O)C(C(C)=O)C(NO)C(Cl)(Cl)Cl",
+  "pubchem_name": "ethyl 2-acetyl-4,4,4-trichloro-3-(hydroxyamino)butanoate",
+  "name": "ethyl 2-acetyl-4,4,4-trichloro-3-(hydroxyamino)butanoate",
+  "error": null,
+  "seconds": 0.046,
+  "top_level_plans": 7,
+  "top_level_hypotheses": [
+   "FunctionalClassPlan",
+   "chain/len=2/elem=-/pcg=-/n_pcg=0",
+   "chain/len=5/elem=-/pcg=-/n_pcg=0",
+   "chain/len=5/elem=-/pcg=ketone/n_pcg=1"
+  ],
+  "winning_hypothesis": "FunctionalClassPlan",
+  "outcome": "exact"
+ },
+ {
+  "label": "h5cid25125",
+  "category": "heldout",
+  "smiles": "CN(C)CCc1ccccc1",
+  "pubchem_name": "N,N-dimethyl-2-phenylethanamine",
+  "name": "N,N-dimethyl-2-phenylethan-1-amine",
+  "error": null,
+  "seconds": 0.034,
+  "top_level_plans": 36,
+  "top_level_hypotheses": [
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=1/elem=-/pcg=tertiary_amine/n_pcg=1",
+   "chain/len=2/elem=-/pcg=-/n_pcg=0",
+   "chain/len=2/elem=-/pcg=tertiary_amine/n_pcg=1",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "chain/len=2/elem=-/pcg=tertiary_amine/n_pcg=1",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid27125",
+  "category": "heldout",
+  "smiles": "C[C@]12CC[C@@H]3c4ccc(O)cc4CC[C@H]3[C@@H]1[C@@H](O)[C@@H](O)[C@@H]2O",
+  "pubchem_name": "(8R,9S,13S,14S,15R,16R,17R)-13-methyl-6,7,8,9,11,12,14,15,16,17-decahydrocyclopenta[a]phenanthrene-3,15,16,17-tetrol",
+  "name": "(8R,9S,13S,14S,15R,16R,17R)-13-methyl-7,8,9,11,12,13,14,15,16,17-decahydro-6H-cyclopenta[a]phenanthrene-3,15,16,17-tetrol",
+  "error": null,
+  "seconds": 0.772,
+  "top_level_plans": 23,
+  "top_level_hypotheses": [
+   "bridged/len=17/elem=-/pcg=-/n_pcg=0",
+   "bridged/len=17/elem=-/pcg=alcohol/n_pcg=1",
+   "bridged/len=17/elem=-/pcg=alcohol/n_pcg=3",
+   "bridged/len=17/elem=-/pcg=alcohol/n_pcg=4",
+   "bridged/len=17/elem=-/pcg=phenol/n_pcg=1",
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "fused/len=17/elem=-/pcg=-/n_pcg=0",
+   "fused/len=17/elem=-/pcg=alcohol/n_pcg=1",
+   "fused/len=17/elem=-/pcg=alcohol/n_pcg=3",
+   "fused/len=17/elem=-/pcg=alcohol/n_pcg=4",
+   "fused/len=17/elem=-/pcg=phenol/n_pcg=1"
+  ],
+  "winning_hypothesis": "fused/len=17/elem=-/pcg=alcohol/n_pcg=4",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid30125",
+  "category": "heldout",
+  "smiles": "CCN(C(=O)c1cc(Cl)nc(Cl)c1)C1CC1",
+  "pubchem_name": "2,6-dichloro-N-cyclopropyl-N-ethylpyridine-4-carboxamide",
+  "name": "2,6-dichloro-N-cyclopropyl-N-ethylpyridine-4-carboxamide",
+  "error": null,
+  "seconds": 0.04,
+  "top_level_plans": 40,
+  "top_level_hypotheses": [
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=1/elem=-/pcg=tertiary_amide/n_pcg=1",
+   "chain/len=2/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=3/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=tertiary_amide/n_pcg=1"
+  ],
+  "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=tertiary_amide/n_pcg=1",
+  "outcome": "exact"
+ },
+ {
+  "label": "h5cid31125",
+  "category": "heldout",
+  "smiles": "CC(=O)O[C@]1(C(C)=O)CCC2C3C=C(Cl)C4=CC(=O)CCC4C3CCC21C",
+  "pubchem_name": "[(17R)-17-acetyl-6-chloro-13-methyl-3-oxo-1,2,8,9,10,11,12,14,15,16-decahydrocyclopenta[a]phenanthren-17-yl] acetate",
+  "name": "(17R)-17-acetyl-6-chloro-13-methyl-3-oxo-2,3,8,9,10,11,12,13,14,15,16,17-dodecahydro-1H-cyclopenta[a]phenanthren-17-yl acetate",
+  "error": null,
+  "seconds": 0.61,
+  "top_level_plans": 23,
+  "top_level_hypotheses": [
+   "FunctionalClassPlan",
+   "bridged/len=17/elem=-/pcg=-/n_pcg=0",
+   "bridged/len=17/elem=-/pcg=ketone/n_pcg=1",
+   "bridged/len=17/elem=-/pcg=ketone/n_pcg=2",
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=2/elem=-/pcg=-/n_pcg=0",
+   "chain/len=2/elem=-/pcg=ketone/n_pcg=1",
+   "chain/len=2/elem=-/pcg=ketone/n_pcg=2",
+   "fused/len=17/elem=-/pcg=-/n_pcg=0",
+   "fused/len=17/elem=-/pcg=ketone/n_pcg=1",
+   "fused/len=17/elem=-/pcg=ketone/n_pcg=2"
+  ],
+  "winning_hypothesis": "FunctionalClassPlan",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid33125",
+  "category": "heldout",
+  "smiles": "O=C(O)c1c(Cl)cccc1Br",
+  "pubchem_name": "2-bromo-6-chlorobenzoic acid",
+  "name": "2-bromo-6-chlorobenzoic acid",
+  "error": null,
+  "seconds": 0.02,
+  "top_level_plans": 52,
+  "top_level_hypotheses": [
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=1/elem=-/pcg=carboxylic_acid/n_pcg=1",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=carboxylic_acid/n_pcg=1"
+  ],
+  "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=carboxylic_acid/n_pcg=1",
+  "outcome": "exact"
+ },
+ {
+  "label": "h5cid34125",
+  "category": "heldout",
+  "smiles": "C=CCOc1cc(Cl)ccc1C(=O)NCCN1CCN(C)CC1",
+  "pubchem_name": "4-chloro-N-[2-(4-methylpiperazin-1-yl)ethyl]-2-prop-2-enoxybenzamide",
+  "name": "4-chloro-N-[2-(4-methylpiperazin-1-yl)ethyl]-2-[(prop-2-en-1-yl)oxy]benzamide",
+  "error": null,
+  "seconds": 0.059,
+  "top_level_plans": 74,
+  "top_level_hypotheses": [
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=1/elem=-/pcg=secondary_amide/n_pcg=1",
+   "chain/len=2/elem=-/pcg=-/n_pcg=0",
+   "chain/len=3/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=secondary_amide/n_pcg=1"
+  ],
+  "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=secondary_amide/n_pcg=1",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid35125",
+  "category": "heldout",
+  "smiles": "CCSc1nc(N)nc(N)n1",
+  "pubchem_name": "6-ethylsulfanyl-1,3,5-triazine-2,4-diamine",
+  "name": "6-(ethylsulfanyl)-1,3,5-triazine-2,4-diamine",
+  "error": null,
+  "seconds": 0.058,
+  "top_level_plans": 50,
+  "top_level_hypotheses": [
+   "chain/len=2/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=amine/n_pcg=1",
+   "monocyclic/len=6/elem=-/pcg=amine/n_pcg=2"
+  ],
+  "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=amine/n_pcg=2",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid36125",
+  "category": "heldout",
+  "smiles": "ClCCN(CCOc1ccccc1)Cc1ccccc1",
+  "pubchem_name": "N-benzyl-N-(2-chloroethyl)-2-phenoxyethanamine",
+  "name": "N-benzyl-N-(2-chloroethyl)-2-phenoxyethan-1-amine",
+  "error": null,
+  "seconds": 0.06,
+  "top_level_plans": 60,
+  "top_level_hypotheses": [
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=1/elem=-/pcg=tertiary_amine/n_pcg=1",
+   "chain/len=2/elem=-/pcg=-/n_pcg=0",
+   "chain/len=2/elem=-/pcg=tertiary_amine/n_pcg=1",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "chain/len=2/elem=-/pcg=tertiary_amine/n_pcg=1",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid37125",
+  "category": "heldout",
+  "smiles": "CCCSP(=S)(OCC)Oc1ccc(SC)cc1",
+  "pubchem_name": "ethoxy-(4-methylsulfanylphenoxy)-propylsulfanyl-sulfanylidene-lambda5-phosphane",
+  "name": "(ethoxy)[4-(methylsulfanyl)phenoxy](propylsulfanyl)(thioxo)phosphane",
+  "error": null,
+  "seconds": 0.058,
+  "top_level_plans": 31,
+  "top_level_hypotheses": [
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=2/elem=-/pcg=-/n_pcg=0",
+   "chain/len=3/elem=-/pcg=-/n_pcg=0",
+   "heteroatom_center/len=1/elem=P/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "heteroatom_center/len=1/elem=P/pcg=-/n_pcg=0",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid38125",
+  "category": "heldout",
+  "smiles": "NNC(=O)CSc1nnc(CCc2nc3ccccc3[nH]2)n1-c1ccccc1",
+  "pubchem_name": "2-[[5-[2-(1H-benzimidazol-2-yl)ethyl]-4-phenyl-1,2,4-triazol-3-yl]sulfanyl]acetohydrazide",
+  "name": "2-({5-[2-(1H-benzimidazol-2-yl)ethyl]-4-phenyl-4H-1,2,4-triazol-3-yl}sulfanyl)acetohydrazide",
+  "error": null,
+  "seconds": 0.072,
+  "top_level_plans": 48,
+  "top_level_hypotheses": [
+   "chain/len=2/elem=-/pcg=-/n_pcg=0",
+   "chain/len=2/elem=-/pcg=hydrazide/n_pcg=1",
+   "fused/len=9/elem=-/pcg=-/n_pcg=0",
+   "heteroatom_chain/len=2/elem=N/pcg=-/n_pcg=0",
+   "heteroatom_chain/len=2/elem=N/pcg=hydrazide/n_pcg=1",
+   "monocyclic/len=5/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "chain/len=2/elem=-/pcg=hydrazide/n_pcg=1",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid39125",
+  "category": "heldout",
+  "smiles": "COc1ccc(C=NNC(=O)COc2ccc(Br)cc2CN2CCCCC2)cc1",
+  "pubchem_name": "2-[4-bromo-2-(piperidin-1-ylmethyl)phenoxy]-N-[(4-methoxyphenyl)methylideneamino]acetamide",
+  "name": "1-{[5-bromo-2-(2-{2-[(4-methoxyphenyl)methylidene]hydrazinyl}-2-oxoethoxy)phenyl]methyl}piperidine",
+  "error": null,
+  "seconds": 0.109,
+  "top_level_plans": 72,
+  "top_level_hypotheses": [
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=2/elem=-/pcg=-/n_pcg=0",
+   "heteroatom_chain/len=2/elem=N/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid40125",
+  "category": "heldout",
+  "smiles": "CCN(CCCl)CC1COc2ccccc2O1",
+  "pubchem_name": "2-chloro-N-(2,3-dihydro-1,4-benzodioxin-3-ylmethyl)-N-ethylethanamine",
+  "name": "2-chloro-N-[(2,3-dihydro-1,4-benzodioxin-2-yl)methyl]-N-ethylethan-1-amine",
+  "error": null,
+  "seconds": 0.042,
+  "top_level_plans": 14,
+  "top_level_hypotheses": [
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=1/elem=-/pcg=tertiary_amine/n_pcg=1",
+   "chain/len=2/elem=-/pcg=-/n_pcg=0",
+   "chain/len=2/elem=-/pcg=tertiary_amine/n_pcg=1",
+   "fused/len=10/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "chain/len=2/elem=-/pcg=tertiary_amine/n_pcg=1",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid42125",
+  "category": "heldout",
+  "smiles": "O=C(COc1ccc(Cc2ccc(Cl)cc2)cc1)OCc1cccnc1",
+  "pubchem_name": "pyridin-3-ylmethyl 2-[4-[(4-chlorophenyl)methyl]phenoxy]acetate",
+  "name": "(pyridin-3-yl)methyl {4-[(4-chlorophenyl)methyl]phenoxy}acetate",
+  "error": null,
+  "seconds": 0.09,
+  "top_level_plans": 69,
+  "top_level_hypotheses": [
+   "FunctionalClassPlan",
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=2/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "FunctionalClassPlan",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid44125",
+  "category": "heldout",
+  "smiles": "CN(C)CCCC1C(=O)c2cc(Cl)ccc2Sc2ccccc21",
+  "pubchem_name": "3-chloro-6-[3-(dimethylamino)propyl]-6H-benzo[b][1]benzothiepin-5-one",
+  "name": "8-chloro-11-[3-(dimethylamino)propyl]dibenzo[b,f]thiepin-10(11H)-one",
+  "error": null,
+  "seconds": 0.13,
+  "top_level_plans": 18,
+  "top_level_hypotheses": [
+   "bridged/len=15/elem=-/pcg=-/n_pcg=0",
+   "bridged/len=15/elem=-/pcg=ketone/n_pcg=1",
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=1/elem=-/pcg=tertiary_amine/n_pcg=1",
+   "chain/len=3/elem=-/pcg=-/n_pcg=0",
+   "chain/len=3/elem=-/pcg=tertiary_amine/n_pcg=1",
+   "fused/len=15/elem=-/pcg=-/n_pcg=0",
+   "fused/len=15/elem=-/pcg=ketone/n_pcg=1"
+  ],
+  "winning_hypothesis": "fused/len=15/elem=-/pcg=ketone/n_pcg=1",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid46125",
+  "category": "heldout",
+  "smiles": "CNC(=O)Oc1cc(C(C)C)c(OC(=O)NC)cc1C",
+  "pubchem_name": "[2-methyl-4-(methylcarbamoyloxy)-5-propan-2-ylphenyl] N-methylcarbamate",
+  "name": "5-methyl-4-[(methylamino)(oxo)methoxy]-2-(propan-2-yl)phenyl methylcarbamate",
+  "error": null,
+  "seconds": 0.085,
+  "top_level_plans": 110,
+  "top_level_hypotheses": [
+   "FunctionalClassPlan",
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=3/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=carbamate/n_pcg=1",
+   "monocyclic/len=6/elem=-/pcg=carbamate/n_pcg=2"
+  ],
+  "winning_hypothesis": "FunctionalClassPlan",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid47125",
+  "category": "heldout",
+  "smiles": "C[N+]1(CCCC[N+]2(C)CC3CCCC(C3)C2)CCCC1",
+  "pubchem_name": "3-methyl-3-[4-(1-methylpyrrolidin-1-ium-1-yl)butyl]-3-azoniabicyclo[3.3.1]nonane",
+  "name": "3-methyl-3-[4-(1-methylpyrrolidin-1-ium-1-yl)butyl]-3-azabicyclo[3.3.1]nonan-3-ium",
+  "error": null,
+  "seconds": 0.036,
+  "top_level_plans": null,
+  "top_level_hypotheses": null,
+  "winning_hypothesis": null,
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid48125",
+  "category": "heldout",
+  "smiles": "CN(C)P1(=O)OC(C)(C)CC1(C)O",
+  "pubchem_name": "2-(dimethylamino)-3,5,5-trimethyl-2-oxo-1,2lambda5-oxaphospholan-3-ol",
+  "name": "2-(dimethylamino)-3,5,5-trimethyl-2-oxo-2lambda5-1,2-oxaphospholan-3-ol",
+  "error": null,
+  "seconds": 0.039,
+  "top_level_plans": 14,
+  "top_level_hypotheses": [
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=1/elem=-/pcg=alcohol/n_pcg=1",
+   "monocyclic/len=5/elem=-/pcg=-/n_pcg=0",
+   "monocyclic/len=5/elem=-/pcg=alcohol/n_pcg=1"
+  ],
+  "winning_hypothesis": "monocyclic/len=5/elem=-/pcg=alcohol/n_pcg=1",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid50125",
+  "category": "heldout",
+  "smiles": "CN(C)CCC=C1c2cc(Cl)ccc2CSc2ccc(Cl)cc21",
+  "pubchem_name": "3-(2,9-dichloro-6H-benzo[c][1]benzothiepin-11-ylidene)-N,N-dimethylpropan-1-amine",
+  "name": "3-(2,9-dichloro-6,11-dihydrodibenzo[b,e]thiepin-11-ylidene)-N,N-dimethylpropan-1-amine",
+  "error": null,
+  "seconds": 0.142,
+  "top_level_plans": 14,
+  "top_level_hypotheses": [
+   "bridged/len=15/elem=-/pcg=-/n_pcg=0",
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=1/elem=-/pcg=tertiary_amine/n_pcg=1",
+   "chain/len=3/elem=-/pcg=-/n_pcg=0",
+   "chain/len=3/elem=-/pcg=tertiary_amine/n_pcg=1",
+   "fused/len=15/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "chain/len=3/elem=-/pcg=tertiary_amine/n_pcg=1",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid51125",
+  "category": "heldout",
+  "smiles": "Clc1cc(Cl)c2c(c1)oc1c(Cl)c(Cl)cc(Cl)c12",
+  "pubchem_name": "1,3,4,7,9-pentachlorodibenzofuran",
+  "name": "1,3,4,7,9-pentachlorodibenzofuran",
+  "error": null,
+  "seconds": 0.024,
+  "top_level_plans": 4,
+  "top_level_hypotheses": [
+   "fused/len=13/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "fused/len=13/elem=-/pcg=-/n_pcg=0",
+  "outcome": "exact"
+ },
+ {
+  "label": "h5cid52125",
+  "category": "heldout",
+  "smiles": "CCCCCCCOC(=O)C[N+](C)(C)CC=C(C)Cc1ccccc1",
+  "pubchem_name": "(2-heptoxy-2-oxoethyl)-dimethyl-(3-methyl-4-phenylbut-2-enyl)azanium",
+  "name": "N-[2-(heptyloxy)-2-oxoethyl]-N,N,3-trimethyl-4-phenylbut-2-en-1-aminium",
+  "error": null,
+  "seconds": 0.055,
+  "top_level_plans": 47,
+  "top_level_hypotheses": [
+   "chain/len=1/elem=-/pcg=-/n_pcg=0",
+   "chain/len=1/elem=-/pcg=aminium/n_pcg=1",
+   "chain/len=2/elem=-/pcg=-/n_pcg=0",
+   "chain/len=2/elem=-/pcg=aminium/n_pcg=1",
+   "chain/len=4/elem=-/pcg=-/n_pcg=0",
+   "chain/len=4/elem=-/pcg=aminium/n_pcg=1",
+   "chain/len=7/elem=-/pcg=-/n_pcg=0",
+   "heteroatom_center/len=1/elem=N+/pcg=-/n_pcg=0",
+   "monocyclic/len=6/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "chain/len=4/elem=-/pcg=aminium/n_pcg=1",
+  "outcome": "equivalent"
+ },
+ {
+  "label": "h5cid54125",
+  "category": "heldout",
+  "smiles": "CC(CN1CCCC1)C1(O)c2ccccc2-c2ccccc21",
+  "pubchem_name": "9-(1-pyrrolidin-1-ylpropan-2-yl)fluoren-9-ol",
+  "name": "9-[1-(pyrrolidin-1-yl)propan-2-yl]-9H-fluoren-9-ol",
+  "error": null,
+  "seconds": 0.099,
+  "top_level_plans": 26,
+  "top_level_hypotheses": [
+   "bridged/len=13/elem=-/pcg=-/n_pcg=0",
+   "bridged/len=13/elem=-/pcg=alcohol/n_pcg=1",
+   "chain/len=3/elem=-/pcg=-/n_pcg=0",
+   "chain/len=3/elem=-/pcg=alcohol/n_pcg=1",
+   "fused/len=13/elem=-/pcg=-/n_pcg=0",
+   "fused/len=13/elem=-/pcg=alcohol/n_pcg=1",
+   "monocyclic/len=5/elem=-/pcg=-/n_pcg=0"
+  ],
+  "winning_hypothesis": "fused/len=13/elem=-/pcg=alcohol/n_pcg=1",
+  "outcome": "equivalent"
+ }
+]
