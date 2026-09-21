@@ -508,6 +508,89 @@ _HET_SUBSTITUENT_SUFFIX_SINGLE: dict[int, str] = {
 # and append "amino": "(propan-2-ylidene)amino", "(methylidene)amino", ...
 # Per P-66.4.1.2.
 
+def _name_ring_nitrogen_acyl_substituent(
+    mol,
+    output_form: OutputForm,
+    free_valence: FreeValenceInfo | None,
+    decision_ctx: DecisionContext | None,
+    strategy,
+    session: NamingSession,
+    depth: int,
+) -> LeafTree | None:
+    """The acyl prefix of a RING-NITROGEN amide: ``piperidine-1-carbonyl``, ``morpholine-4-carbonyl`` (naming round 8).
+
+    The book prints the prefix as the acyl group of the ring's N-carboxylic acid: "piperidine-1-carbohydrazide (PIN) [not
+    (piperidine-1-carbonyl)hydrazine]" (pdf p. 667), and the carbon-attached ring acyl ("pyridine-3-carbonyl", p. 622) was already right. A formyl
+    on a ring NITROGEN was named on the methane parent, '(oxo)(piperidin-1-yl)methyl', which reads back and is not the prefix. The fragment must be
+    exactly the carbonyl carbon, its oxygen and ONE ring system joined to it through a neutral ring nitrogen; the ring's own substituent name
+    (which carries its locant) is renamed by the acid rule: "-yl" becomes "e-<locant>-carbonyl".
+
+    SIX MUTANTS OF THE CONDITIONS BELOW ARE NOT CAUGHT (measured; the one that removes the helper is) and are stated so nobody rediscovers them as
+    gaps: each condition is implied by another. A carbon with a free valence, a double-bonded oxygen and a ring nitrogen has no fourth neighbour (so
+    the ring test on the carbon and the 'other neighbour' branch are unreachable); an acyclic nitrogen and a non-oxo oxygen fail the regex or the
+    missing-nitrogen test later; the output form is SUBSTITUENT whenever a free valence is given here; no ring name ends in 'e' before '-yl'.
+    They state the contract and are kept.
+    """
+    import re as _re_ra
+
+    if output_form != OutputForm.SUBSTITUENT or free_valence is None:
+        return None
+    if len(free_valence.attachment_atoms_in_fragment) != 1 or tuple(free_valence.bond_orders) != (1,):
+        return None
+    c_idx = free_valence.attachment_atoms_in_fragment[0]
+    carbonyl = mol.GetAtomWithIdx(c_idx)
+    if carbonyl.GetAtomicNum() != 6 or carbonyl.GetFormalCharge() != 0:
+        return None
+    oxygen = ring_n = None
+    for bond in carbonyl.GetBonds():
+        other = bond.GetOtherAtom(carbonyl)
+        if other.GetAtomicNum() == 8 and bond.GetBondTypeAsDouble() == 2.0 and other.GetDegree() == 1:
+            oxygen = other
+        elif other.GetAtomicNum() == 7 and bond.GetBondTypeAsDouble() == 1.0 and other.IsInRing() and other.GetFormalCharge() == 0:
+            ring_n = other
+        else:
+            return None
+    if oxygen is None or ring_n is None:
+        return None
+    rest = frozenset(a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() > 1 and a.GetIdx() not in (c_idx, oxygen.GetIdx()))
+    if not rest:
+        return None
+    from openchem.vendor.iupac_namer.assembly import assemble as _assemble
+    from openchem.vendor.iupac_namer.perception.extraction import carve_substituent
+
+    try:
+        ring_mol, ring_att, bond_order = carve_substituent(mol, rest, (c_idx, ring_n.GetIdx()))
+        ring_tree = name(
+            ring_mol, strategy, OutputForm.SUBSTITUENT,
+            free_valence=FreeValenceInfo(
+                bond_orders=(bond_order,),
+                method=_select_substituent_method(ring_mol, ring_att),
+                attachment_atoms_in_fragment=(ring_att,),
+                elide_locant_one=_fvi_elide_locant_one(ring_mol, ring_att),
+            ),
+            decision_ctx=DecisionContext(role="ring_nitrogen_acyl_ring", parent_plan=None, depth=depth + 1),
+            _session=session, _depth=depth + 1,
+        )
+        ring_name = _assemble(ring_tree)
+    except Exception as e:  # noqa: BLE001 - decline, the generic route names it
+        logger.debug("ring-nitrogen acyl carve/name failed: %s", e)
+        return None
+    if not ring_name or "NAMING ERROR" in ring_name:
+        return None
+    m = _re_ra.fullmatch(r"(.+?)([a-z]*[a-z])-(\d+)-yl", ring_name)
+    if m is None or m.group(2).endswith("e"):
+        return None
+    text = f"{m.group(1)}{m.group(2)}e-{m.group(3)}-carbonyl"
+    return LeafTree(
+        output_form=output_form,
+        free_valence=free_valence,
+        choices_made=(Choice(type="ring_nitrogen_acyl", detail=f"ring={ring_name}, prefix={text}"),),
+        decision_ctx=decision_ctx,
+        validity_warnings=None,
+        text=text,
+    )
+
+
 def _name_heteroatom_fv_substituent(
     mol,
     output_form: OutputForm,
@@ -9771,6 +9854,15 @@ def _name_bound(
     if het_fv_tree is not None:
         _session.cache_store(smiles, output_form, fv_bond_orders, het_fv_tree, attachment_indices)
         return het_fv_tree
+
+    # --- Acyl group of a ring-nitrogen amide: 'piperidine-1-carbonyl' (naming round 8, P-65.1.7.3, pdf p. 667). ---
+    ring_acyl_tree = _name_ring_nitrogen_acyl_substituent(
+        mol, output_form, free_valence, decision_ctx,
+        strategy=strategy, session=_session, depth=_depth,
+    )
+    if ring_acyl_tree is not None:
+        _session.cache_store(smiles, output_form, fv_bond_orders, ring_acyl_tree, attachment_indices)
+        return ring_acyl_tree
 
     # --- Condensed ureas (n = 2..4) and guanidines from n = 3 (naming round 8, W2): P-66.1.6.1.4, P-66.4.1.2. ---
     # BEFORE the urea route: `_name_urea_functional_parent` claims biuret as 'N-carbamoylurea', and the biguanide route

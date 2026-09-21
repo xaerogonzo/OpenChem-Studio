@@ -3083,6 +3083,36 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # (D-128, continued: two carbonate groups are not named by this generator.)
     ("D-128u", "COC(=O)OCCOC(=O)OC", "1,2-bis[methoxy(oxo)methoxy]ethane", "(unchanged)",
      "converse: TWO carbonate groups; the first one's remainder holds the second, which is another ester, so it declines"),
+    # ---- naming round 8, limitations sweep: THE ACYL PREFIX OF A RING-NITROGEN AMIDE IS 'piperidine-1-carbonyl'. The book prints it as the acyl group of the ring's
+    # N-carboxylic acid: 'piperidine-1-carbohydrazide (PIN) [not (piperidine-1-carbonyl)hydrazine]' (P-65.1.7.3, pdf p. 667), beside 'pyridine-3-carbonyl' for the carbon-
+    # attached ring (p. 622), which the engine already wrote. A formyl on a ring NITROGEN was named on the methane parent, '(oxo)(piperidin-1-yl)methyl', which reads back and
+    # is not the prefix; amides of piperidine, morpholine, pyrrolidine and piperazine on a benzoic acid are the commonest drug-like instance, and no corpus row has one. A pre-
+    # plan helper takes a fragment that is exactly a carbonyl carbon, its oxygen and ONE ring system joined through a neutral ring nitrogen, names the ring as a substituent and
+    # renames its '-yl' by the acid rule ('-yl' becomes 'e-<locant>-carbonyl').
+    ("D-129a", "OC(=O)c1ccc(cc1)C(=O)N1CCCCC1", "4-(piperidine-1-carbonyl)benzoic acid", "4-[(oxo)(piperidin-1-yl)methyl]benzoic acid",
+     "p. 667 prints the prefix '(piperidine-1-carbonyl)'"),
+    ("D-129b", "OC(=O)c1ccc(cc1)C(=O)N1CCOCC1", "4-(morpholine-4-carbonyl)benzoic acid", "4-[(morpholin-4-yl)(oxo)methyl]benzoic acid",
+     "derived: the same, a heteroatom in the ring, locant 4"),
+    ("D-129c", "OC(=O)c1ccc(cc1)C(=O)N1CCCC1", "4-(pyrrolidine-1-carbonyl)benzoic acid", "4-[(oxo)(pyrrolidin-1-yl)methyl]benzoic acid",
+     "derived"),
+    ("D-129d", "OC(=O)c1ccc(cc1)C(=O)n1ccnc1", "4-(1H-imidazole-1-carbonyl)benzoic acid", "4-[(1H-imidazol-1-yl)(oxo)methyl]benzoic acid",
+     "derived: an AROMATIC ring nitrogen"),
+    ("D-129e", "OC(=O)c1ccc(cc1)C(=O)N1CCN(C)CC1", "4-(4-methylpiperazine-1-carbonyl)benzoic acid", "4-[(4-methylpiperazin-1-yl)(oxo)methyl]benzoic acid",
+     "derived: a substituted ring keeps its prefix"),
+    ("D-129f", "OC(=O)c1ccc(cc1)C(=O)N1C(=O)CCC1", "4-(2-oxopyrrolidine-1-carbonyl)benzoic acid", "4-[(oxo)(2-oxopyrrolidin-1-yl)methyl]benzoic acid",
+     "derived: an N-acyl lactam"),
+    ("D-129g", "NC(=O)c1ccc(cc1)C(=O)N1CCCCC1", "4-(piperidine-1-carbonyl)benzamide", "4-[(oxo)(piperidin-1-yl)methyl]benzamide",
+     "derived: beside an amide parent"),
+    ("D-129h", "OC(=O)C1CCCCC1C(=O)N1CCCCC1", "2-(piperidine-1-carbonyl)cyclohexane-1-carboxylic acid", "2-[(oxo)(piperidin-1-yl)methyl]cyclohexane-1-carboxylic acid",
+     "derived: on a saturated ring"),
+    ("D-129x", "OC(=O)CCC(=O)N1CCCC1", "4-oxo-4-(pyrrolidin-1-yl)butanoic acid", "(unchanged)",
+     "converse: on a CHAIN acid the amide carbon is in the parent, so 'oxo' plus the ring prefix is right"),
+    ("D-129y", "OC(=O)c1ccc(cc1)C(=O)C(C)C", "4-(2-methylpropanoyl)benzoic acid", "(unchanged)",
+     "converse: an ordinary acyl group is not a ring nitrogen's"),
+    ("D-129z", "OC(=O)c1ccc(cc1)C(=O)c1ccncc1", "4-(pyridine-4-carbonyl)benzoic acid", "(unchanged)",
+     "converse: the carbon-attached ring acyl was already right (p. 622)"),
+    ("D-129w", "OC(=O)c1ccc(cc1)C(=O)N(C)C", "4-(dimethylcarbamoyl)benzoic acid", "(unchanged)",
+     "converse: an acyclic amide is 'carbamoyl'"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
