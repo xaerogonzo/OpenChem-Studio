@@ -2425,12 +2425,19 @@ def _retag_indicated_h(
         # (this branch is only meaningful for aromatic-tautomer indicated-H).
         if ih_atom.GetAtomicNum() != 7 or not ih_atom.GetIsAromatic():
             return name
-        # Has exocyclic substituent? -> case (a), keep the name.
+        # Has exocyclic substituent? -> case (a), keep the name -- UNLESS that atom is the cationic centre. An N-alkyl
+        # [n+] takes the '-ium', and an atom cannot be both the ium and the indicated-hydrogen site: the curated
+        # '1H-benzotriazole' kept on the [n+](C) at 1 gave '1,2-dimethyl-1H-benzotriazol-1-ium', which OPSIN reads with
+        # one hydrogen too many (a wrong molecule; 1,4-dimethyl-1,2,4-triazolium and 1,2-dimethylindazolium the same).
+        # Case (b) below already knows how to move the indicated hydrogen to a NEUTRAL substituted nitrogen (naming
+        # round 8, W3), and returns the name unchanged when there is none. For a NEUTRAL substituted atom that same search
+        # lands on the same nitrogen (six purine and xanthine inputs name identically with this branch removed), so the
+        # charge test is what carries the change and this early return is what keeps the curated prefix elsewhere.
         has_exo_sub = any(
             nbr.GetIdx() not in ring_system.atom_indices
             for nbr in ih_atom.GetNeighbors()
         )
-        if has_exo_sub:
+        if has_exo_sub and ih_atom.GetFormalCharge() == 0:
             return name
         # Case (b): bare pyridine-type =N- at the indicated-H slot.
         # Find a substituted ring N to retag the indicated-H to.  Prefer the
@@ -3833,7 +3840,12 @@ def _build_numbering_from_atom_locants(
         # counts, leading to wrong locant assignments for benzimidazole, indole, etc.
         try:
             ring_smi = Chem.MolToSmiles(ring_mol)
-            ring_query = Chem.MolFromSmarts(ring_smi)
+            # The scaffold is the NEUTRAL parent, and SMARTS '[nH]' means "aromatic N with one H, ANY charge". Matched
+            # against a protonated molecule it also accepts the [nH+], so the protonation H was read as the tautomeric
+            # one: the numbering was pinned to [nH+] = N1 and the mirror orientation, which the tautomer-tolerant
+            # fallback below would have offered, was never tried (1-methylbenzimidazolium came out '3-methyl-3H-...-1-ium'
+            # with no '1H' candidate at all; naming round 8, W3). The anchor is a neutral N-H.
+            ring_query = Chem.MolFromSmarts(ring_smi.replace("[nH]", "[nH+0]"))
         except Exception:
             ring_query = None
 

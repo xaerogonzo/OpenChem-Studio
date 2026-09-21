@@ -1054,6 +1054,125 @@ def _render_ester_words(organyl_names: list[str]) -> str:
     return " ".join(words)
 
 
+#: The groups a nitric or nitrous ester must NOT sit beside: each is senior to an ester or is another ester, so the molecule would be named on
+#: THAT group and the nitrate would be the 'nitrooxy' prefix (Table 4.1, pdf p. 360). A carboxylic ester, an anhydride and an acid halide are
+#: carbon acid derivatives; an acid is senior to every ester.
+_NITRIC_ESTER_BLOCKERS = (
+    "[CX3](=[O,S,N])[OX2H1,OX1-]",          # carboxylic (and carbamic, imidic) acid and its anion
+    "[CX3](=O)[OX2][#6,#7,#16,#15]",        # another ester, an anhydride, a carbamate
+    "[CX3](=O)[F,Cl,Br,I]",                 # acid halide
+    "[SX4](=O)(=O)[OX2H1,OX1-]",            # sulfonic acid
+    "[PX4](=O)[OX2H1,OX1-]",                # phosphorus acids
+)
+
+
+def compute_nitric_ester_name(mol) -> str | None:
+    """Name a nitrate or nitrite ester by its functional class: ``pentyl nitrite (PIN)`` (P-67.1.3.2, pdf p. 710), by extension ``pentyl nitrate``.
+
+    ``_compute_oxoacid_ester`` declines every nitrogen centre (the charge-separated ``[N+](=O)[O-]`` of a nitrate, and a nitrogen is in most
+    molecules), so ``CCCCCO[N+](=O)[O-]`` was ``1-(nitrooxy)pentane``, which round-trips and is not the PIN. Deliberately narrow: ONE such
+    ester group, on a carbon, in a neutral single-fragment molecule with no group senior to it or of its class. Several nitrate groups
+    (nitroglycerin) need a multivalent organyl, and stay as they were.
+    """
+    if mol is None:
+        return None
+    try:
+        return _compute_nitric_ester(mol)
+    except Exception:  # pragma: no cover -- never break the engine
+        return None
+
+
+def _compute_nitric_ester(mol) -> str | None:
+    from rdkit import Chem
+
+    # The single-fragment condition is DEFENSIVE: a mutant without it is not caught (measured), because the salt path names each component on its
+    # own and this hook only ever sees one. It states the contract of the function; it is not claimed as covered.
+    if mol.GetNumAtoms() == 0 or len(Chem.GetMolFrags(mol)) != 1 or Chem.GetFormalCharge(mol) != 0:
+        return None
+    matches = []
+    for word, smarts in (("nitrate", "[#6]-[OX2]-[NX3+](=[OX1])-[OX1-]"), ("nitrite", "[#6]-[OX2]-[NX2]=[OX1]")):
+        for m in mol.GetSubstructMatches(Chem.MolFromSmarts(smarts)):
+            matches.append((word, m))
+    if len(matches) != 1:
+        return None
+    word, (r_idx, o_idx, n_idx, *_rest) = matches[0]
+    if mol.GetAtomWithIdx(n_idx).IsInRing() or mol.GetAtomWithIdx(o_idx).IsInRing():
+        return None
+    if any(mol.HasSubstructMatch(Chem.MolFromSmarts(s)) for s in _NITRIC_ESTER_BLOCKERS):
+        return None
+    organyl = _carve_and_name_organyl(mol, o_idx, r_idx)
+    if organyl is None:
+        return None
+    return f"{organyl} {word}"
+
+
+#: An acyclic carbonic ester: two organyl groups that are NOT acyl (a mixed anhydride is another class), or one and a hydrogen.
+_CARBONIC_ESTER_SMARTS = (
+    ("diester", "[#6;!$([#6]=[O,S,N])]-[OX2]-[CX3;!R](=[OX1])-[OX2]-[#6;!$([#6]=[O,S,N])]"),
+    ("hydrogen", "[#6;!$([#6]=[O,S,N])]-[OX2]-[CX3;!R](=[OX1])-[OX2H1]"),
+)
+
+
+def compute_carbonic_ester_name(mol) -> str | None:
+    """Name an acyclic ester of carbonic acid by its functional class: ``dimethyl carbonate``, ``ethyl methyl carbonate``, ``methyl hydrogen carbonate``.
+
+    Carbonic acid is a functional parent whose esters are esters of its anion ("sodium hydrogen carbonate (PIN)", P-65.6.2.3, pdf p. 620; the printed ester
+    words of p. 862, "O-ethyl O-methyl (18O1)carbonate"). The engine had no carbonate ester: dimethyl carbonate was ``dimethoxyoxomethane``. Deliberately narrow,
+    like :func:`compute_nitric_ester_name`: ONE such group in a neutral single-fragment molecule, its two organyl groups apart from each other, and nothing
+    beside it that is senior to an ester or another ester (checked on the molecule WITHOUT the carbonate group, which would match its own blockers).
+    A cyclic carbonate keeps its ring name, and a chloroformate is not built.
+    """
+    if mol is None:
+        return None
+    try:
+        return _compute_carbonic_ester(mol)
+    except Exception:  # pragma: no cover -- never break the engine
+        return None
+
+
+def _compute_carbonic_ester(mol) -> str | None:
+    from rdkit import Chem
+
+    # The neutral and single-fragment conditions are DEFENSIVE (a mutant without them is not caught, measured: the salt path names each component
+    # alone, and a charged carbonate is another route's). A SECOND carbonate group needs no test of its own either: the first one's remainder holds
+    # the other, and 'another ester' is a blocker.
+    if mol.GetNumAtoms() == 0 or Chem.GetFormalCharge(mol) != 0 or len(Chem.GetMolFrags(mol)) != 1:
+        return None
+    found = []
+    for kind, smarts in _CARBONIC_ESTER_SMARTS:
+        for m in mol.GetSubstructMatches(Chem.MolFromSmarts(smarts), uniquify=True):
+            found.append((kind, m))
+    if not found:
+        return None
+    kind, m = found[0]
+    if kind == "diester":
+        r1, o1, c_idx, o_dbl, o2, r2 = m
+        organyl_bonds = [(o1, r1), (o2, r2)]
+        group = {o1, c_idx, o_dbl, o2}
+    else:
+        r1, o1, c_idx, o_dbl, o_h = m
+        organyl_bonds = [(o1, r1)]
+        group = {o1, c_idx, o_dbl, o_h}
+    rw = Chem.RWMol(mol)
+    for idx in sorted(group, reverse=True):
+        rw.RemoveAtom(idx)
+    remainder = rw.GetMol()
+    remainder.UpdatePropertyCache(strict=False)
+    Chem.FastFindRings(remainder)
+    if any(remainder.HasSubstructMatch(Chem.MolFromSmarts(s)) for s in _NITRIC_ESTER_BLOCKERS):
+        return None
+    # (A ring joining the two organyl groups would put the carbonyl carbon in that ring, which the pattern's non-ring condition already excludes.)
+    names = []
+    for o_idx, r_idx in organyl_bonds:
+        nm = _carve_and_name_organyl(mol, o_idx, r_idx)
+        if nm is None:
+            return None
+        names.append(nm)
+    if kind == "hydrogen":
+        return f"{names[0]} hydrogen carbonate"
+    return f"{_render_ester_words(names)} carbonate"
+
+
 def compute_oxoacid_ester_name(mol) -> str | None:
     """Name an ester of a mononuclear main-group oxoacid (P-67.1.3.2).
 
@@ -1168,6 +1287,11 @@ def _compute_oxoacid_ester(mol) -> str | None:
     if rs is None:
         return None
     root, suffix, scheme = rs
+    if element == "N" and suffix == "ous":
+        # A nitrogen with an O-organyl and NO oxo group is a hydroxylamine ether, never an "ester of azinous acid": "azorous acid, azinous acid
+        # and azonous acid ... are names of polyazanes" (P-67.1.2.6.1, pdf p. 707), and the book names these "O-methylhydroxylamine (PIN)",
+        # "N-methoxymethanamine (PIN)" (pp. 96, 753). This produced "methyl acetylmethylazinite" for a Weinreb amide.
+        return None
 
     # Substitutable-position bookkeeping: on the standard tier acid the centre
     # carries (max_valence_positions - tier) substitutable H, each of which a

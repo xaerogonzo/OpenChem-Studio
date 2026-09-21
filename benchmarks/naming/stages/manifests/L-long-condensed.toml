@@ -1,0 +1,11 @@
+# Limitations sweep (naming round 8): condensed guanidines and ureas of five or more units. Measured against 309f353. The ONE expected change is the addendum panel's
+# own n = 5 row, whose target is the book's printed PIN (P-66.4.1.2, pdf p. 677), never the engine's output.
+
+stage = "L-long-condensed"
+
+[[expect]]
+id = "r8:R0-polyguanide-n5"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-66.4.1.2"
+expected_layer = "CANDIDATE_ABSENT"
+expected_name = "3,5,7-triimino-2,4,6,8-tetraazanonane-1,9-diimidamide"

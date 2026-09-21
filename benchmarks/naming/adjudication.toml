@@ -2308,3 +2308,48 @@ note = """
 Settled in round 5 (N5). Si-O-Si is the a(ba)n parent disiloxane (P-21.2.3.1), substitutable as 'chlorodisiloxane' (p. 71) and 'tetramethyldiboroxane (PIN)' (p. 731); PubChem's name, which the engine used to match, splits it into two silanes. The engine now has the parent; P-14.3.4.5 drops all six locants when every substitutable position is substituted alike, which it does not build yet (D-089q). This row's regression verbatim match was lost on purpose.
 Round 5 (N8): FIXED -- P-14.3.4.5 is built for an all-carbon or a(ba)n parent, and all six locants go.
 """
+
+# ---------------------------------------------------------------------------
+# Naming round 8 (W5): the one wrong structure of heldout_v4's final evaluation, read after v4 turned tuning.
+# ---------------------------------------------------------------------------
+
+[[rule]]
+rule_id = "P-16.5.1.3.1"
+paragraph = "P-16.5.1.3.1"
+pdf_page = 130
+evidence_basis = "explicit"
+quote = "For mononuclear parent hydrides with two or more substituents the first cited substituent never has enclosing marks unless it includes a locant. The second and further substituents are each enclosed with parentheses even for simple substituents."
+
+[[rule]]
+rule_id = "P-66.1.6.1.3-isothiourea"
+paragraph = "P-66.1.6.1.3.3"
+pdf_page = 663
+evidence_basis = "explicit"
+quote = "H2N-C(SH)=N- [amino(sulfanyl)methylidene]amino (preferred prefix); carbamimidothioic acid (PIN) (not isothiourea)"
+
+[[row]]
+corpus_row_id = "h4cid4750"
+smiles = "CCOc1ccnc(CCN=C(S)Nc2ccc(Cl)cn2)c1F"
+engine_name = "2-{2-[([(5-chloropyridin-2-yl)amino]sulfanylmethylidene)amino]ethyl}-4-ethoxy-3-fluoropyridine"
+pubchem_name = "N-(5-chloro-2-pyridinyl)-N'-[2-(4-ethoxy-3-fluoro-2-pyridinyl)ethyl]carbamimidothioic acid"
+verdict = "ENGINE_WRONG"
+fix_status = "PARTLY_FIXED"
+layer = "candidate_absent"
+target_stage = "later"
+preferred_name = "N-(5-chloropyridin-2-yl)-N'-[2-(4-ethoxy-3-fluoropyridin-2-yl)ethyl]carbamimidothioic acid"
+preferred_name_source = "BLUEBOOK_2013_CORRECTED_2022"
+rule_ref = ["P-16.5.1.3.1", "P-66.1.6.1.3-isothiourea"]
+evidence_basis = "derived"
+note = """
+The only WRONG STRUCTURE of naming round 7's final evaluation (19/40 verbatim, one wrong structure), left unread until v4
+became a tuning population. Two layers, traced with tools/naming_plan_trace.py and probes on smaller isothioureas. (1) The
+imidothioic acid is demoted to a PREFIX as soon as either nitrogen carries a substituent (`CN=C(S)N`, `CN=C(S)NC`); the
+book's parent is `carbamimidothioic acid (PIN)` with N and N' locants (p. 663). That layer is OPEN. (2) The demoted prefix
+was written 'aminosulfanylmethylidene', which OPSIN reads as amino-SULFANYL (S-NH2): another molecule. The book prints
+`[amino(sulfanyl)methylidene]amino` (p. 663) by P-16.5.1.3.1 (p. 130): the second and further prefixes are enclosed. The
+assembler enclosed them for a named parent but not for a substituent group's own parent, and the ylidene-amino wrapper
+hard-coded parentheses so the marks did not nest. Both are fixed (D-101a-d); the name now round-trips MATCH and is not the
+PIN. The target above is DERIVED: the PIN is what the rule and p. 663 give for the neutral molecule, and OPSIN parses it
+to this structure. The book contradicts itself once on this rule (p. 873, `bromo(chloro)fluoromethane`, a third
+substituent bare), so no row pins a three-prefix case.
+"""

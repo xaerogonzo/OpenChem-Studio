@@ -1,0 +1,11 @@
+# Limitations sweep (naming round 8): the 'e' of an 'ene'/'yne' infix is elided before 'amide' and 'amine' (P-16.7; pdf pp. 646, 525, 76). Measured against 096645b. ONE tuning-population row changes:
+# phosphamidon, whose butenamide was spelled 'eneamide'. No corpus row was an enamide or an enamine, which is why nothing had shown it; it was found by probing common compounds.
+
+stage = "L-elision"
+
+[[expect]]
+id = "pop:heldout_v4:h4cid25750"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-16.7"
+expected_layer = "SERIALIZATION"
+expected_name = "2-chloro-3-{[di(methoxy)(oxo)phosphanyl]oxy}-N,N-diethylbut-2-enamide"

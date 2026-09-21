@@ -788,7 +788,7 @@
         },
         {
             "name": "hydrazide",
-            "smarts": "[CX3;!R;!$([CX3](=O)([!#6;!#1;!R])[!#6;!#1;!R;!$([NX3][NX3])])](=O)[NX3;!R][NX3;!R;!$([NX3][CX3]=[O,S,N])]",
+            "smarts": "[CX3;!R;!$([CX3](=O)([!#6;!#1;!R])[!#6;!#1;!R;!$([NX3][NX3])])](=O)[NX3;!R][NX3;!R]",
             "seniority": 1200,
             "bluebook_class": "12",
             "suffix_terminal": "-ohydrazide",
@@ -848,6 +848,78 @@
             "bluebook_class": "16",
             "suffix": "-one",
             "prefix": "oxo",
+            "elision": true
+        },
+        {
+            "_comment": "P-64.3.2 (pdf p. 567): a carbonyl between TWO ring nitrogens (carbonyldiimidazole, 1,1'-carbonyldipiperidine) is a pseudoketone too: bis(1H-imidazol-1-yl)methanone. context_indices declares both nitrogens as the ROOTS of their substituents. Naming round 8. TWO MUTANTS OF THIS PATTERN ARE EQUIVALENT (measured, three others are caught): dropping the non-ring condition on the carbon (a cyclic urea is taken by the ring-carbonyl handling first) and dropping the ring condition on the nitrogens (an acyclic urea is taken by the urea group, which outranks a ketone). Both conditions state the intent and are not claimed as covered.",
+            "name": "ketone",
+            "smarts": "[$([nX3]),$([NX3;R;!$(N[#7])])][CX3;!R](=O)[$([nX3]),$([NX3;R;!$(N[#7])])]",
+            "anchor_index": 1,
+            "seniority": 1600,
+            "bluebook_class": "16",
+            "suffix": "-one",
+            "prefix": "oxo",
+            "context_indices": [0, 3],
+            "elision": true
+        },
+        {
+            "_comment": "P-64.3.2 (pdf p. 567): a PSEUDOKETONE, a carbonyl bonded to a heteroatom that is not an amide, ester or acid, is named with the suffix one, the heteroatom's group being a substituent: 1-(piperidin-1-yl)propan-1-one (PIN), 1-(3,4-dihydroquinolin-1(2H)-yl)ethan-1-one (PIN), 1-(trimethylsilyl)ethan-1-one (PIN); bis(phenyldiazenyl)methanone (PIN, p. 110). context_indices declares the heteroatom (SMARTS position) as the ROOT of that substituent, not part of the group. Naming round 8.",
+            "name": "ketone",
+            "smarts": "[#6][CX3](=O)[NX3;R;!$(N[#7])]",
+            "anchor_index": 1,
+            "seniority": 1600,
+            "bluebook_class": "16",
+            "suffix": "-one",
+            "prefix": "oxo",
+            "context_indices": [3],
+            "elision": true
+        },
+        {
+            "_comment": "P-64.3.2 (pdf p. 567): a PSEUDOKETONE, a carbonyl bonded to a heteroatom that is not an amide, ester or acid, is named with the suffix one, the heteroatom's group being a substituent: 1-(piperidin-1-yl)propan-1-one (PIN), 1-(3,4-dihydroquinolin-1(2H)-yl)ethan-1-one (PIN), 1-(trimethylsilyl)ethan-1-one (PIN); bis(phenyldiazenyl)methanone (PIN, p. 110). context_indices declares the heteroatom (SMARTS position) as the ROOT of that substituent, not part of the group. Naming round 8.",
+            "name": "ketone",
+            "smarts": "[#6][CX3](=O)[nX3]",
+            "anchor_index": 1,
+            "seniority": 1600,
+            "bluebook_class": "16",
+            "suffix": "-one",
+            "prefix": "oxo",
+            "context_indices": [3],
+            "elision": true
+        },
+        {
+            "_comment": "P-64.3.2 (pdf p. 567): a PSEUDOKETONE, a carbonyl bonded to a heteroatom that is not an amide, ester or acid, is named with the suffix one, the heteroatom's group being a substituent: 1-(piperidin-1-yl)propan-1-one (PIN), 1-(3,4-dihydroquinolin-1(2H)-yl)ethan-1-one (PIN), 1-(trimethylsilyl)ethan-1-one (PIN); bis(phenyldiazenyl)methanone (PIN, p. 110). context_indices declares the heteroatom (SMARTS position) as the ROOT of that substituent, not part of the group. Naming round 8.",
+            "name": "ketone",
+            "smarts": "[#6][CX3](=O)[NX2]=[NX2]",
+            "anchor_index": 1,
+            "seniority": 1600,
+            "bluebook_class": "16",
+            "suffix": "-one",
+            "prefix": "oxo",
+            "context_indices": [3, 4],
+            "elision": true
+        },
+        {
+            "_comment": "P-64.3.2 (pdf p. 567): a PSEUDOKETONE, a carbonyl bonded to a heteroatom that is not an amide, ester or acid, is named with the suffix one, the heteroatom's group being a substituent: 1-(piperidin-1-yl)propan-1-one (PIN), 1-(3,4-dihydroquinolin-1(2H)-yl)ethan-1-one (PIN), 1-(trimethylsilyl)ethan-1-one (PIN); bis(phenyldiazenyl)methanone (PIN, p. 110). context_indices declares the heteroatom (SMARTS position) as the ROOT of that substituent, not part of the group. Naming round 8.",
+            "name": "ketone",
+            "smarts": "[NX2;$(N=N)][CX3](=O)[NX2;$(N=N)]",
+            "anchor_index": 1,
+            "seniority": 1600,
+            "bluebook_class": "16",
+            "suffix": "-one",
+            "prefix": "oxo",
+            "context_indices": [0, 3],
+            "elision": true
+        },
+        {
+            "_comment": "P-64.3.2 (pdf p. 567): a PSEUDOKETONE, a carbonyl bonded to a heteroatom that is not an amide, ester or acid, is named with the suffix one, the heteroatom's group being a substituent: 1-(piperidin-1-yl)propan-1-one (PIN), 1-(3,4-dihydroquinolin-1(2H)-yl)ethan-1-one (PIN), 1-(trimethylsilyl)ethan-1-one (PIN); bis(phenyldiazenyl)methanone (PIN, p. 110). context_indices declares the heteroatom (SMARTS position) as the ROOT of that substituent, not part of the group. Naming round 8.",
+            "name": "ketone",
+            "smarts": "[#6][CX3](=O)[SiX4]",
+            "anchor_index": 1,
+            "seniority": 1600,
+            "bluebook_class": "16",
+            "suffix": "-one",
+            "prefix": "oxo",
+            "context_indices": [3],
             "elision": true
         },
         {
@@ -1027,6 +1099,30 @@
             "elision": true
         },
         {
+            "_comment": "P-62.2.1.1 / p. 528, 753: an amine whose nitrogen carries an ALKOXY group, 'N-methoxyethanamine (PIN)', 'N-methoxymethanamine (PIN)'. context_indices declares the oxygen as the ROOT of the N-substituent, not part of the amine. Naming round 8.",
+            "name": "secondary_amine",
+            "smarts": "[NX3H1;!R]([#6])[OX2;$(O[#6])]",
+            "anchor_index": 0,
+            "seniority": 1900,
+            "bluebook_class": "19",
+            "suffix": "-amine",
+            "prefix": "amino",
+            "context_indices": [2],
+            "elision": true
+        },
+        {
+            "_comment": "P-62.2.1.1 / p. 528, 753: an amine whose nitrogen carries an ALKOXY group, 'N-methoxyethanamine (PIN)', 'N-methoxymethanamine (PIN)'. context_indices declares the oxygen as the ROOT of the N-substituent, not part of the amine. Naming round 8.",
+            "name": "tertiary_amine",
+            "smarts": "[NX3;H0;!R]([#6])([#6])[OX2;$(O[#6])]",
+            "anchor_index": 0,
+            "seniority": 1900,
+            "bluebook_class": "19",
+            "suffix": "-amine",
+            "prefix": "amino",
+            "context_indices": [3],
+            "elision": true
+        },
+        {
             "name": "imine",
             "smarts": "[#6]=[NX2H1]",
             "seniority": 2000,
@@ -1065,6 +1161,32 @@
             "suffix_terminal": "-amide",
             "suffix_nonterminal": "-carboxamide",
             "prefix": "carbamoyl",
+            "elision": true
+        },
+        {
+            "_comment": "P-66.1.1 / P-62.3.1: an amide whose nitrogen carries an ALKOXY group, N-methoxyacetamide, the Weinreb amide N-methoxy-N-methylacetamide. context_indices declares the oxygen as the ROOT of the N-substituent (an alkoxy group), not part of the amide. Naming round 8.",
+            "name": "secondary_amide",
+            "smarts": "[CX3;!$([CX3](=O)[OX2]);!$([CX3](=O)([NX3;!R;!$(N[#7])])[NX3;!R;!$(N[#7])])](=O)[NX3H1][OX2;$(O[#6])]",
+            "anchor_index": 0,
+            "seniority": 1100,
+            "bluebook_class": "11",
+            "suffix_terminal": "-amide",
+            "suffix_nonterminal": "-carboxamide",
+            "prefix": "carbamoyl",
+            "context_indices": [3],
+            "elision": true
+        },
+        {
+            "_comment": "P-66.1.1 / P-62.3.1: an amide whose nitrogen carries an ALKOXY group, N-methoxyacetamide, the Weinreb amide N-methoxy-N-methylacetamide. context_indices declares the oxygen as the ROOT of the N-substituent (an alkoxy group), not part of the amide. Naming round 8.",
+            "name": "tertiary_amide",
+            "smarts": "[CX3;!$([CX3](=O)[OX2]);!$([CX3](=O)([NX3;!R;!$(N[#7])])[NX3;!R;!$(N[#7])])](=O)[NX3H0;!R]([#6])[OX2;$(O[#6])]",
+            "anchor_index": 0,
+            "seniority": 1100,
+            "bluebook_class": "11",
+            "suffix_terminal": "-amide",
+            "suffix_nonterminal": "-carboxamide",
+            "prefix": "carbamoyl",
+            "context_indices": [4],
             "elision": true
         },
         {

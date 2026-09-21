@@ -1865,10 +1865,15 @@ def acid_anion_route(mol) -> str | None:
       neutral parent would make the OTHER acid principal and put the charge on the wrong
       group, so the plan search must force the deprotonated site to be the principal
       group and demote the rest to ``carboxy`` / ``sulfo`` / ``nitro`` prefixes.
+    * ``carved`` also takes TWO ACID CLASSES (a carboxylate and a sulfonate) and an alkoxide/phenoxide
+      O- beside an acid anion (naming round 8): the senior acid anion is the principal group
+      (P-72.7 e, pdf p. 815: "3-oxidonaphthalene-2-carboxylate (PIN)", carboxylate senior to olate),
+      and the junior anion is its ANIONIC prefix, ``sulfonato`` / ``oxido``, never ``sulfo`` or
+      ``hydroxy``, which would drop the charge (P-65.6.2.3.1, p. 619; P-72.6, p. 814).
 
-    None: no acid-anion site, a mix of acid classes, an olate, or a genuine ion that leaves the
-    net charge non-negative (a zwitterion, owned by the FG route; a cation with an internal
-    acid anion). Those keep their existing routes.
+    None: no acid-anion site, an olate alone, a thiolate beside an acid anion, or a genuine ion that
+    leaves the net charge non-negative (a zwitterion, owned by the FG route; a cation with an
+    internal acid anion). Those keep their existing routes.
     """
     if mol is None:
         return None
@@ -1880,10 +1885,12 @@ def acid_anion_route(mol) -> str | None:
         kind = _acidic_anion_site_kind(mol, a)
         if kind in _ACID_ANION_KINDS:
             kinds[a.GetIdx()] = kind
-    if not kinds or len(set(kinds.values())) != 1:
+    if not kinds:
         return None
     separated = _charge_separated_neutral_atoms(mol)
-    others = [a for a in charged if a.GetIdx() not in kinds and a.GetIdx() not in separated]
+    # An alkoxide / phenoxide O- beside an acid anion is claimed with it. A thiolate is not: its anionic prefix ('sulfanido') is not built.
+    olates = {a.GetIdx() for a in charged if a.GetSymbol() == "O" and _acidic_anion_site_kind(mol, a) == "olate"}
+    others = [a for a in charged if a.GetIdx() not in kinds and a.GetIdx() not in separated and a.GetIdx() not in olates]
     if others:
         # A genuine ion beside the acid anion. With the net charge ZERO the molecule is a
         # zwitterion, which perception already detects (it sees a charged carboxylic acid only
@@ -1896,7 +1903,7 @@ def acid_anion_route(mol) -> str | None:
         if net < 0 and all(a.GetFormalCharge() > 0 for a in others):
             return "carved"
         return None
-    if separated or _has_neutral_acid(mol):
+    if separated or olates or _has_neutral_acid(mol) or len(set(kinds.values())) != 1:
         return "carved"
     return "classifier"
 
@@ -2971,6 +2978,49 @@ def _render(
     return None
 
 
+#: A neutral acid group that survives the re-protonation as a PREFIX word, and the book's prefix for the same group
+#: as an ANION (P-65.6.2, pdf p. 619: ``2-(carboxylatomethyl)benzoate (PIN)``).
+_NEUTRAL_ACID_PREFIX = {
+    "acidic_anion_carboxylate": ("carboxy", "carboxylato"),
+}
+_MULTIPLIER_VALUE = {"": 1, "di": 2, "tri": 3, "tetra": 4, "penta": 5, "hexa": 6}
+
+
+def _balance_the_charge_ledger(name: str, tree, sites: int, suffix_hint: str) -> str | None:
+    """The site-level charge ledger of the classifier route (naming round 8, W1).
+
+    The classifier re-protonates EVERY deprotonated site, names the neutral parent, and lets the suffix machinery turn
+    the parent's suffix groups into the anion form. A site the parent expresses as a PREFIX, not a suffix, comes out as
+    a NEUTRAL group (``carboxy``), so the name carries fewer charges than the molecule: citrate's trianion was
+    ``3-carboxy-3-hydroxypentanedioate`` (two charges for three sites), and the round-trip gate withheld it.
+
+    On this route every acid group IS a deprotonated site (``acid_anion_route`` sends a molecule with a NEUTRAL acid
+    group to the carved route instead), so a neutral acid prefix here can only be a deprotonated site, and the book's
+    name for it is the anionic prefix: ``carboxylato``. The ledger is the count: sites = suffix positions the parent
+    expresses + prefixes written for the rest. If that does not balance the route DECLINES (None) rather than emit a
+    name whose charge is unchecked.
+
+    Site-level, not total charge: the count is per site, so a mono-anion cannot become a dianion or the reverse.
+    """
+    words = _NEUTRAL_ACID_PREFIX.get(suffix_hint)
+    if words is None:
+        return name
+    import re
+
+    neutral, anionic = words
+    # `carboxy` only as a WORD: not inside 'carboxylic', and not after a letter that would make it part of another word.
+    pattern = re.compile(rf"(?<![a-z])((?:di|tri|tetra|penta|hexa)?){neutral}(?!l)")
+    found = sum(_MULTIPLIER_VALUE[m.group(1)] for m in pattern.finditer(name))
+    if found == 0:
+        # No neutral acid prefix to convert. A RETAINED parent (acetic acid, benzoic acid) has no suffix groups to
+        # count, so silence here is not a claim that the ledger balances, only that this repair has nothing to do.
+        return name
+    suffixes = getattr(tree, "suffix_groups", ())
+    if suffixes and sites - sum(len(sg.locants) for sg in suffixes) != found:
+        return None
+    return pattern.sub(lambda m: f"{m.group(1)}{anionic}", name)
+
+
 def _render_acidic_anion(
     cls: ChargeClassification,
     mol,
@@ -3020,7 +3070,7 @@ def _render_acidic_anion(
     name = assemble(tree)
     if name is None or "NAMING ERROR" in name:
         return None
-    return name
+    return _balance_the_charge_ledger(name, tree, len(cls.site_atom_indices), cls.suffix_hint)
 
 
 def _render_amine_anion(
@@ -3572,10 +3622,21 @@ def _render_guanidinium(
     if not prefixed:
         return "guanidinium"
 
+    from openchem.vendor.iupac_namer.assembly import _choose_brackets, _is_compound_prefix
+
+    def cite(name: str) -> str:
+        """A COMPOUND prefix is enclosed (P-16.5.1.3, pdf p. 130), one mark out from what it already holds. Until naming round
+        8 it was written bare: '(dimethylamino)(imino)methylguanidinium' was read by OPSIN as an N-N bonded molecule (metformin's
+        cation, a wrong molecule) and '1,3-di2-chloroethylguanidinium' did not parse at all."""
+        if not _is_compound_prefix(name):
+            return name
+        opener, closer = _choose_brackets(name)
+        return f"{opener}{name}{closer}"
+
     # A lone substituent needs no locant: 1 and 3 are equivalent when only
     # one of them is substituted, so "methylguanidinium" is unambiguous.
     if len(prefixed) == 1:
-        return f"{prefixed[0][1]}guanidinium"
+        return f"{cite(prefixed[0][1])}guanidinium"
 
     grouped: dict[str, list[int]] = {}
     for locant, name in prefixed:
@@ -3583,8 +3644,10 @@ def _render_guanidinium(
     parts = []
     for name in sorted(grouped):
         locants = sorted(grouped[name])
-        mult = get_multiplier(len(locants), complex=False) or "" if len(locants) > 1 else ""
-        parts.append(f"{','.join(str(x) for x in locants)}-{mult}{name}")
+        # A multiplied COMPOUND prefix takes 'bis'/'tris' and its marks; a simple one takes 'di'/'tri' bare.
+        compound = _is_compound_prefix(name)
+        mult = (get_multiplier(len(locants), complex=compound) or "") if len(locants) > 1 else ""
+        parts.append(f"{','.join(str(x) for x in locants)}-{mult}{cite(name)}")
     return f"{'-'.join(parts)}guanidinium"
 
 

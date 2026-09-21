@@ -453,9 +453,19 @@ def _is_simple_by_form(name: str) -> bool:
         # pdf p. 604) and "S-ethyl 3-(thiocyanato)propanethioate (PIN)" (p. 629).
         # An EXACT match: "isothiocyanato" contains the word and is printed bare.
         return False
+    if name in ("carboxylato", "sulfonato"):
+        # The anionic acid prefixes (P-72.6.1, pdf p. 814) are ONE group each, like 'carboxy' and 'sulfo', which are bare ("4-sulfobenzoic acid");
+        # the book prints "2-O-sulfonato-alpha-D-glucopyranose" (p. 1020). Only a prefix built ON a stem is enclosed ("2-(carboxylatomethyl)benzoate").
+        return True
     m_ylidene = _SIMPLE_YLIDENE.fullmatch(name)
     if m_ylidene is not None and "yl" not in m_ylidene.group(1):
-        return True  # "sulfanylidene", "propylidene" -- one stem (see above)
+        # "sulfanylidene", "propylidene" -- one stem (see above). NOT "diaminomethylidene" or "chloromethylidene": a detachable prefix LEADING a
+        # further stem makes it a substituted ylidene, which is compound and enclosed ("N-(diaminomethylidene)...", naming round 8).
+        stem = re.sub(r"^(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)", "", m_ylidene.group(1))
+        if any(len(stem) > len(w) and stem.startswith(w) or len(m_ylidene.group(1)) > len(w) and m_ylidene.group(1).startswith(w)
+               for w in _LEADING_PREFIX_WORDS):
+            return False
+        return True
     bare = re.sub(r"^(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)", "", name)
     if any(w != candidate and candidate.startswith(w)
            for w in _LEADING_PREFIX_WORDS for candidate in (name, bare)):
@@ -573,6 +583,11 @@ def merge_identical_prefixes(
         # prefix whose name begins a numeral stem keeps its marks, or the
         # multiplier and the stem read as one longer numeral.
         if not compound and count > 1 and re.match(r"(?:dec|icos|cos|triacont)", name):
+            compound = True
+        # The same for 'aza...' (naming round 8, W3): 'diazaniumyl' reads as two skeletal-replacement 'aza' prefixes, or as the
+        # 'diazane' of hydrazine, and OPSIN does not parse it, so a doubly protonated amino acid was unverifiable. 'bis(azaniumyl)'
+        # says what it is. The book prints no multiplied 'azaniumyl', so the form is derived from the rule above, not quoted.
+        if not compound and count > 1 and name.startswith("aza"):
             compound = True
         sort_name = derive_sort_name(name)
 
@@ -728,7 +743,15 @@ def render_merged_prefixes(merged_list: list[MergedPrefix]) -> str:
     parts: list[str] = []
     for mp in merged_list:
         locant_str = _render_locants(mp.locants)
-        if mp.needs_brackets:
+        # A LONE 'hydrazinyl' with ONE numeric locant is printed bare ('3-hydrazinyl-3-oxopropanoic acid (PIN)', pdf p. 670). The enclosing marks
+        # are load-bearing only where 'hydrazinyl' would merge with an adjacent UNLOCANTED stem for OPSIN ('cyclohexylhydrazinylmethanimine', see
+        # _ENCLOSE_ANYWAY), and a locant and hyphen are the boundary here (naming round 8). Every other 'hydrazinyl' keeps its brackets. Widening the
+        # test to a heteroatom locant (N) changes no name on any input tried and is not covered by a row.
+        bracket = mp.needs_brackets
+        if (bracket and mp.name == "hydrazinyl" and not mp.multiplier
+                and len(mp.locants) == 1 and locant_str.rstrip("-").isdigit()):
+            bracket = False
+        if bracket:
             # Compound: locants go OUTSIDE the brackets (P-14.5.2).
             # The bracket type depends on what is already inside mp.name (P-16.3.3).
             open_b, close_b = _choose_brackets(mp.name)
@@ -1580,6 +1603,13 @@ def elide(name: str) -> str:
     return name
 
 
+#: A part that is ONLY the unsaturation infix ("ene", "-2-ene", "-1,3-diene", "-2-yne"), never a retained stem that happens to end in it ("benzene").
+#: A mutant that treats EVERY part ending in 'e' as an infix is EQUIVALENT today (measured, six other mutants are caught): no junction has a
+#: non-infix part ending in 'e' directly before 'amine', 'amide' or 'amino', because a stem drops its 'e' upstream. The narrow pattern is kept so
+#: one cannot start eliding a retained stem's 'e' without a row saying so.
+_UNSATURATION_INFIX = re.compile(r"(?:-[0-9a-z,]+-)?(?:di|tri|tetra|penta|hexa)?(?:en|yn)e")
+
+
 def elide_at_boundaries(parts: list[str]) -> str:
     """Apply IUPAC P-16.3.3 elision only at explicit part-boundary junctions.
 
@@ -1613,6 +1643,10 @@ def elide_at_boundaries(parts: list[str]) -> str:
         if idx + 1 < len(parts):
             right = parts[idx + 1]
             should_elide = False
+            # The 'e' of an 'ene'/'yne' infix goes before EVERY vowel-initial suffix, 'amine' and 'amide' included: "prop-2-enamide (PIN)" (pdf p. 646),
+            # "prop-2-en-1-amine (PIN)" (p. 525), "cyclohex-2-en-1-amine (PIN)" (p. 76). The no-elision list exists for the "amino" PREFIX and for a
+            # stem whose 'e' is not an unsaturation infix.
+            unsaturation_infix = _UNSATURATION_INFIX.fullmatch(left) is not None
             if left.endswith(("ylidene", "ylidyne")):
                 # Elision belongs at a stem/suffix junction, not between a
                 # SUBSTITUTENT prefix and the parent it sits on: the book
@@ -1625,7 +1659,7 @@ def elide_at_boundaries(parts: list[str]) -> str:
                 left.endswith("e")
                 and right
                 and right[0] in "aeiouy"
-                and not any(right.startswith(p) for p in no_elision_patterns)
+                and (unsaturation_infix or not any(right.startswith(p) for p in no_elision_patterns))
             ):
                 should_elide = True
             elif left.endswith("e") and right and _LOCANT_PREFIX_RE.match(right):
@@ -1633,7 +1667,8 @@ def elide_at_boundaries(parts: list[str]) -> str:
                 suffix_after_locant = _LOCANT_PREFIX_RE.sub("", right)
                 if (suffix_after_locant
                         and suffix_after_locant[0] in "aeiouy"
-                        and not any(suffix_after_locant.startswith(p) for p in no_elision_patterns)):
+                        and (unsaturation_infix
+                             or not any(suffix_after_locant.startswith(p) for p in no_elision_patterns))):
                     should_elide = True
             if should_elide:
                 left = left[:-1]
@@ -2793,6 +2828,31 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
             )
             merged = (
                 [lead if lead_bare else _dc.replace(lead, needs_brackets=True)]
+                + [_dc.replace(mp, needs_brackets=True) for mp in merged[1:]]
+            )
+
+        # P-16.5.1.3.1 (pdf p. 130): "For mononuclear parent hydrides with two or more substituents the first cited
+        # substituent never has enclosing marks unless it includes a locant. The second and further substituents are each
+        # enclosed with parentheses even for simple substituents." A SUBSTITUENT group whose own parent is one carbon
+        # (methyl, methylidene, methylidyne) is that case, and the book prints it: "[amino(sulfanylidene)methyl]amino" and
+        # "[imino(sulfanyl)methyl]amino" (pdf p. 663). Until naming round 8 only a few OPSIN-specific pairs were enclosed
+        # (the block below), so "amino" + "sulfanyl" ran together as 'aminosulfanylmethylidene', which OPSIN reads as
+        # amino-SULFANYL (S-NH2): the one wrong structure of heldout_v4's final evaluation.
+        # The rule is scoped to what the printed prefixes support: TWO OR MORE distinct prefixes on a one-carbon substituent.
+        # A multiplied single prefix ("dichloromethyl") is one merged prefix and is untouched. The book contradicts itself
+        # once for a three-prefix PARENT hydride (p. 873, "bromo(chloro)fluoromethane" against this rule's text), so no row
+        # pins the three-prefix case and it is recorded as open rather than guessed.
+        # EQUIVALENT MUTANT, noted so it is not rediscovered: dropping the `_is_compound_prefix` test on the FIRST prefix
+        # changes no name, because a compound prefix is already flagged for brackets earlier in the merge; the test says
+        # the rule's own exception (a first prefix that includes a locant keeps its marks) in the place it is applied.
+        if (tree.output_form == OutputForm.SUBSTITUENT
+                and tree.named_parent.candidate.type == "chain"
+                and tree.named_parent.candidate.length == 1
+                and len(merged) >= 2):
+            import dataclasses as _dc
+            merged = (
+                [merged[0] if not _is_compound_prefix(merged[0].name)
+                 else _dc.replace(merged[0], needs_brackets=True)]
                 + [_dc.replace(mp, needs_brackets=True) for mp in merged[1:]]
             )
 

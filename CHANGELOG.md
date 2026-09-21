@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming round 8 (branch `naming-round-8`)
+
+- **Wrong molecules fixed, each found by a test that could not have passed before:** the trianion of a tricarboxylic
+  acid (citrate) was named with one carboxylate as a neutral prefix, two charges for three sites; the biguanidium
+  cation was named as a dication; every protonated or alkylated aminopyridine, dialkyl triazolium and
+  benzotriazolium was another molecule; a lysine or histidine zwitterion beside a salt was named for the wrong
+  ionisation state; an isothiourea's demoted prefix `(aminosulfanylmethylidene)amino` was read by OPSIN as another
+  molecule (the one wrong structure `heldout_v4` had held). All are correct now, and a name that reads back as a
+  different TAUTOMER (PubChem's own metformin drawing, proguanil) is shown with a note instead of being withheld.
+- **Names that were right and not the book's** now match it: `2-hydroxypropane-1,2,3-tricarboxylic acid`, `1H-imidazol-3-ium`
+  (and protonated benzimidazole, which was a refusal), condensed guanidines and ureas including `diimidotricarbonimidic
+  diamide` and the skeletal-replacement names for n >= 5, `N-acetylbenzamide` for the imide parent, the pseudoketones
+  (`1-(piperidin-1-yl)propan-1-one`, `bis(phenyldiazenyl)methanone`), acid hydrazides ranked below acids, ring cations
+  above every junior group, `4-sulfonatobenzoate` and `2-oxidobenzoate` for mixed-class polyanions.
+- **Found by naming ordinary compounds, and in no benchmark row:** acrylamide was `prop-2-eneamide` and allylamine
+  `prop-2-ene-1-amine` (now `prop-2-enamide`, `prop-2-en-1-amine`); an oxime ether was `(methyloxyimino)` (now
+  `methoxyimino`); the Weinreb amide was `methyl acetylmethylazinite` (now `N-methoxy-N-methylacetamide`), and
+  `N-methoxymethanamine`, `N-ethoxyaniline` are named as the book prints them; biacetyl was `3-oxobutan-2-one` (now
+  `butane-2,3-dione`); dimethyl carbonate was `dimethoxyoxomethane`; amyl nitrate was `1-(nitrooxy)pentane` (now `pentyl
+  nitrate`); phosphonium and sulfonium cations are named on the cation, not on an amide or alcohol beside them; a ring-nitrogen
+  amide on a ring is `4-(piperidine-1-carbonyl)benzoic acid`; carbonyldiimidazole no longer crashes the engine and is
+  `bis(1H-imidazol-1-yl)methanone`; an embedded engine error is never shown as a name.
+- **Measured:** the new 60-row addendum panel goes from 8 wrong molecules, 2 oracle errors and 2 ownership holes to none of
+  them (exact 20 to 44); the round-7 panel's exact rows 79 to 91; against the engine the round began with, 37 of 543
+  structures changed, none structurally regressed, 13 went from unreadable to reading back. The fresh `heldout_v5` (40 rows,
+  scored once, aggregates only) has ZERO wrong structures; the tuning populations moved only where the round meant them to.
+- **Instruments added:** `tools/naming_ref_compare.py` (two engines, one manifest of expected changes), `tools/naming_probe.py`
+  (the ordinary-compound battery, with the plans that failed to execute), `tools/naming_app_check.py` (the driven check),
+  a pinned-name snapshot of 200 shapes no corpus contains, the KNOWN_DEVIATION registry, and the naming-consumer manifest.
+- **Not done, recorded with their targets** in `src/openchem/vendor/KNOWN_LIMITATIONS.md` ("Open after naming round 8"):
+  peptide acyl prefixes, a charged acid group inside a substituent, carbazate esters, chloroformates and polynitrates,
+  the P-15.3 multiplicative constructions, the silicon rows, fusion, and a thiolate beside an acid anion.
+
 ### Naming round 7 (branch `naming-round-7`)
 
 - **Anions that carry another group are named as anions.** A carboxylate or sulfonate beside a

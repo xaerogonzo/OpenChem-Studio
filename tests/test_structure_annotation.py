@@ -97,6 +97,17 @@ def test_a_bridged_ring_is_reported_as_bridged():
     assert result.rings[0].kind == "bridged"
 
 
+def test_a_skeleton_the_engine_cannot_name_gets_no_name_not_the_error(monkeypatch):
+    """The engine returns '[NAMING ERROR: ...]' as its name for a structure it cannot name; as a ring label that is text the reader would take for a name."""
+    import openchem.vendor.iupac_namer as namer
+    from openchem.chem import structure_annotation as sa
+
+    sa._name_ring_skeleton.cache_clear()
+    monkeypatch.setattr(namer, "name_smiles", lambda smiles: "[NAMING ERROR: No valid naming plan found for C1CC1]")
+    monkeypatch.setattr(sa, "_name_ring_skeleton", sa._name_ring_skeleton.__wrapped__)
+    assert sa._name_ring_skeleton("C1CCC1C2CC2C3CCC3") is None
+
+
 def test_a_ring_system_is_one_annotation_not_one_per_ring():
     """Naphthalene is a single fused 10-atom system, not two benzenes.
     That matches how the engine names it and how a chemist talks about it."""

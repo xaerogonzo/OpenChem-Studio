@@ -1,0 +1,23 @@
+# W2 (naming round 8), part 1: the cation charge count and the guanidinium enclosure. Measured against the W5 engine (0ff2bc2).
+# Every row not listed must NOT change. All three were WRONG MOLECULES before and round-trip now; none has a printed target
+# (NONE_VERIFIED), so no expected_name is claimed: what is checked is that each moved, for a stated rule and layer.
+
+stage = "W2-cations"
+
+[[expect]]
+id = "r8:S0-2-aminopyridinium"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-41"
+expected_layer = "RANKED_OR_ASSIGNED_WRONG"
+
+[[expect]]
+id = "r8:R1-metforminium"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-16.5.1.3"
+expected_layer = "SERIALIZATION"
+
+[[expect]]
+id = "mc:metformin_pamoate"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-16.5.1.3"
+expected_layer = "SERIALIZATION"

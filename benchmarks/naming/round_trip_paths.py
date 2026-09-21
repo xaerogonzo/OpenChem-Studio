@@ -25,6 +25,12 @@ The single `MISMATCH` is metformin, which ROADMAP.md already carries as a
 known `gate_disagreement` -- canonical SMILES and InChIKey disagreeing over
 a tautomer. That is exactly the case withholding exists for.
 
+(Amended in naming round 8: a disagreement that is ONLY a tautomer, equal
+standard InChI, is now `RoundTrip.TAUTOMER` and shown with a note; see
+docs/ARCHITECTURE.md. The corpus's own metformin row is `CN(C)C(=N)N=C(N)N`,
+the PubChem drawing, and is now `TAUTOMER`: measured 2026-09-21, so the
+distribution above is 180 match, 1 tautomer, 0 mismatch.)
+
 **AND ON 2026-09-19 AN INPUT REACHED IT.** Naming round 5 taught the engine
 the book's "N1,N2-bis(cyanomethyl)oxamide (PIN)" (p. 653), which OPSIN cannot
 parse, and the app withheld it as wrong. The two checker-failed paths now

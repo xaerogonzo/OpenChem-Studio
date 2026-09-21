@@ -1,0 +1,6 @@
+# W4(a) (naming round 8): which of two acyl groups on one nitrogen is the parent. Measured against d66b7ad, the last pushed commit.
+# NOTHING on the panels or in the five tuning populations is expected to change: the fix reaches only an imide with a ring on one acyl and a chain
+# on the other, and none of the 543 structures is one (0 names changed). The manifest exists so that "nothing else moves" is a checked claim and a
+# future change to the amide reconciler that does move a row cannot pass as this one.
+
+stage = "W4a-imide-parent"

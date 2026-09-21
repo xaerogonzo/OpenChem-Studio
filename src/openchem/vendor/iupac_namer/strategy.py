@@ -660,7 +660,7 @@ class IUPACCanonical(NamingStrategy):
             case _:
                 return NomenclaturePreferenceKey(blank)
 
-        kind = 4 if self._cation_band_applies(plan) else 0
+        kind = 4 if (self._cation_band_applies(plan) or self._onium_centre_band(plan, mol)) else 0
         numbering = self._numbering_components(plan)
         from openchem.vendor.iupac_namer.ring_naming.indicated_hydrogen_p58 import (
             added_hydrogen_tier,
@@ -673,7 +673,10 @@ class IUPACCanonical(NamingStrategy):
             hetero, suffix, unsat, prefix, primes = 0.0, empty, empty, empty, 0
         else:
             hetero = float(numbering["heteroatom_score"])
-            suffix = locant_set_tier(numbering["suffix_locants"])
+            # A ring heteroatom cation's '-ium' is a suffix (P-31.1.4.3), so its locant is compared with the suffix locants (naming round 8). It was
+            # not compared at all: the assembler read it off whichever numbering had won, so the atom order of the SMILES decided it ('C1C[NH2+]CCN1'
+            # was 'piperazin-4-ium', its twin 'C1CNCC[NH2+]1' 'piperazin-1-ium').
+            suffix = locant_set_tier(sorted(list(numbering["suffix_locants"]) + self._ring_cation_locants(plan, mol)))
             unsat = locant_set_tier(numbering["unsat_locants"])
             prefix = locant_set_tier(numbering["prefix_locants"])
             primes = -int(numbering["prefix_prime_count"])
@@ -696,6 +699,31 @@ class IUPACCanonical(NamingStrategy):
             prefix,
             primes,
         ))
+
+    @staticmethod
+    def _onium_centre_band(plan: SubstitutivePlan, mol) -> bool:
+        """The cation band for an ACYCLIC onium centre (phosphonium, sulfonium, arsonium, ...) as the whole parent (naming round 8).
+
+        Table 4.1 (pdf p. 360) ranks a cation above every acid, amide, nitrile and alcohol, so a molecule whose ONLY charge is one onium centre is
+        named ON that centre, the junior groups as prefixes: '(2-amino-2-oxoethyl)tri(methyl)phosphanium', not '2-(trimethylphosphaniumyl)acetamide'.
+        A nitrogen is EXCLUDED: its cation is the suffix 'aminium' on a carbon parent (P-73.1.2, choline is '2-hydroxy-N,N,N-trimethylethan-1-aminium'),
+        a different plan that already wins, and the 'ammonium' parent plan must not overtake it. Three conditions keep it narrow: the parent is the
+        one-atom heteroatom_center parent, the molecule has no other genuine charge (an anion outranks a cation, so a betaine is named on its anion;
+        a second cation would be a multiplicative name, a different plan kind), and the centre is the atom that carries the charge.
+
+        THREE MUTANTS OF THIS ARE NOT CAUGHT (measured; four others are) and are stated so nobody rediscovers them as gaps: counting an anion
+        centre (a boranuide is named on its anion by its own route, so the name is the same), dropping the requirement that the charge is on the
+        parent's centre, and dropping the parent-kind test. No input separates them today; each states the contract.
+        """
+        if mol is None or plan.named_parent.candidate.type != "heteroatom_center":
+            return False
+        from openchem.vendor.iupac_namer.perception.charge_perception import _charge_separated_neutral_atoms
+
+        separated = _charge_separated_neutral_atoms(mol)
+        charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0 and a.GetIdx() not in separated]
+        centre = plan.named_parent.candidate.atom_indices
+        return (len(charged) == 1 and charged[0].GetFormalCharge() > 0 and charged[0].GetIdx() in centre
+                and charged[0].GetSymbol() != "N")
 
     def _cation_band_applies(self, plan: SubstitutivePlan) -> bool:
         """The +500,000 band of `score_plan`, as a yes/no. See its comment."""
@@ -1008,6 +1036,33 @@ class IUPACCanonical(NamingStrategy):
                 - sum(c["prefix_locants"]) * 0.01
                 - c["prefix_prime_count"] * 0.00001
                 + c["alpha_first_score"])
+
+    @staticmethod
+    def _ring_cation_locants(plan: SubstitutivePlan, mol) -> list[int]:
+        """Numeric locants of the ring heteroatom cations of the parent that the assembler will write as '-ium'.
+
+        A parent whose own name already ends in 'ium' (pyridinium, pyrylium) carries the cation in its stem and takes no suffix locant, exactly as
+        the assembler skips it. Read from the plan's numbering, so each candidate numbering is compared on its own.
+
+        THREE MUTANTS OF THIS ARE NOT COVERED BY A ROW and are stated so nobody rediscovers them as gaps: dropping the 'ends in ium' skip
+        (a pyrylium always numbers its oxygen 1, so no competing numbering exists), counting an anion (no input pairs a ring anion with a
+        ring cation in one parent), and sorting the locants descending (differs only for a ring DICATION whose two numberings are {1,4} and
+        {2,3}; none was found among the 122 cation shapes probed).
+        """
+        from openchem.vendor.iupac_namer.engine import _RING_CATION_IUM_ELEMENTS
+
+        parent = plan.named_parent
+        if parent.name.endswith("ium"):
+            return []
+        a2l = plan.numbering.atom_to_locant
+        out = []
+        for idx in parent.candidate.atom_indices:
+            atom = mol.GetAtomWithIdx(idx)
+            if atom.GetSymbol() in _RING_CATION_IUM_ELEMENTS and atom.GetFormalCharge() == 1 and atom.IsInRing():
+                loc = a2l.get(idx)
+                if loc is not None:
+                    out.append(loc._numeric_value or 0)
+        return sorted(out)
 
     def _numbering_components(self, plan: SubstitutivePlan) -> dict | None:
         """Reward numberings that give lower locants (P-14.5, P-14.4).

@@ -1,0 +1,11 @@
+# Limitations sweep (naming round 8): nitrate and nitrite esters are named as esters, 'pentyl nitrite (PIN)' (P-67.1.3.2, pdf p. 710). Measured against 8d7349b. ONE tuning-population row
+# changes, heldout_v3 h3cid61250, amyl nitrate, from '1-(nitrooxy)pentane' to 'pentyl nitrate', which is also the reference (PubChem) name, so a verbatim match is gained.
+
+stage = "L-nitric-esters"
+
+[[expect]]
+id = "pop:heldout_v3:h3cid61250"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-67.1.3.2"
+expected_layer = "CANDIDATE_ABSENT"
+expected_name = "pentyl nitrate"

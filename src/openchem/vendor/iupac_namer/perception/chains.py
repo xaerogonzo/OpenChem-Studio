@@ -534,6 +534,50 @@ class ChainFinding:
                 unique.append(path)
         return unique
 
+    def find_exo_skeleton_chains(self, pcg_anchors: tuple[int, ...]) -> list[CandidateParent]:
+        """The skeleton chain that carries THREE OR MORE anchors as EXO groups (P-65.1.2.2.1, pdf p. 579).
+
+        "If an unbranched chain is linked to more than two carboxy groups, all carboxy groups are named from the
+        parent hydride by substitutive use of the suffix 'carboxylic acid', preceded by the appropriate numerical
+        prefix 'tri', 'tetra' etc." -- ``pentane-1,3,5-tricarboxylic acid (PIN)``, ``ethane-1,1,2,2-tetracarboxylic
+        acid (PIN)``, ``2-hydroxypropane-1,2,3-tricarboxylic acid (PIN)`` (citric acid).  The same construction is
+        printed for amides (``propane-1,2,3-tricarboxamide``, p. 645), nitriles (``butane-1,1,1-tricarbonitrile``,
+        p. 686) and aldehydes (``butane-1,2,4-tricarbaldehyde``, p. 691).
+
+        Until naming round 8 no such candidate existed: chains are the longest paths over a graph that INCLUDES the
+        anchor carbons, so the parent that excludes every one of them was never offered, the ``pcg_count`` tier
+        (P-44.1.1) never saw a parent with three suffix groups, and citric acid came out as a pentanedioic acid with a
+        ``carboxy`` prefix.  This method only OFFERS the candidate; ranking is the comparator's job.
+
+        The candidate exists only when every anchor is bonded to exactly one carbon outside the anchor set (an exo
+        group, not a chain end and not a ring substituent) and a single simple path through the skeleton reaches all of
+        those attachment carbons.  Anchors on a ring, or spread over the arms of a branched skeleton, give no
+        candidate, and the chain-with-a-``carboxy``-prefix reading stands there.
+        """
+        anchors = set(pcg_anchors)
+        graph = self._build_acyclic_graph()
+        if len(anchors) < 3 or not anchors <= set(graph):
+            return []
+        skeleton = {
+            node: {nb for nb in nbrs if nb not in anchors}
+            for node, nbrs in graph.items()
+            if node not in anchors
+        }
+        attachments: set[int] = set()
+        for anchor in anchors:
+            outside = graph[anchor] - anchors
+            # EQUIVALENT MUTANT, noted so it is not rediscovered: `== 0` instead of `!= 1` changes no result, because
+            # this carbon graph is a forest, so an anchor with two outside carbon neighbours splits the skeleton and
+            # the path search below finds nothing through both. The guard says the reason out loud; it is not the
+            # only thing standing in the way.
+            if len(outside) != 1:
+                return []
+            attachments |= outside
+        if not attachments <= set(skeleton):
+            return []
+        return [self._make_candidate(path)
+                for path in self._find_longest_path_through_anchors(skeleton, attachments)]
+
     def _find_longest_path_through_anchors(
         self,
         graph: dict[int, set[int]],

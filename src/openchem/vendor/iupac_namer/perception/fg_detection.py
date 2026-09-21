@@ -617,8 +617,12 @@ class FGDetection:
         _sulfonate_anion_pattern = Chem.MolFromSmarts("[#16X4](=O)(=O)[OX1H0-]")
         _n_frags = len(Chem.GetMolFrags(self._mol))
         _net_charge = sum(a.GetFormalCharge() for a in self._mol.GetAtoms())  # type: ignore[attr-defined]
-        _augment_carboxylate_anion = _n_frags == 1 and _net_charge == 0
-        _augment_sulfonate_anion = _n_frags == 1 and _net_charge == 0
+        # Net charge >= 0, not == 0 (naming round 8, W3). The reason for the restriction is the NET-NEGATIVE anion fragment of a
+        # salt, which _name_salt already handles; a single fragment with a positive net charge that holds a carboxylate is a
+        # zwitterion-cation (lysine with both amines protonated, histidine with the ring protonated) and needs the group as much
+        # as a neutral one does. Without it perception saw no acid at all, and the carboxylate was written as a neutral 'carboxy'.
+        _augment_carboxylate_anion = _n_frags == 1 and _net_charge >= 0
+        _augment_sulfonate_anion = _n_frags == 1 and _net_charge >= 0
 
         # --- Suffix-eligible groups ---
         for fg_def in fg_data.get("suffix_groups", []):
@@ -639,6 +643,9 @@ class FGDetection:
                 i for i in range(pattern.GetNumAtoms())
                 if pattern.GetAtomWithIdx(i).GetSmarts() == "[#6]"
             ]
+            # A group may declare HETEROATOM attachment context explicitly (naming round 8): the pseudoketones of P-64.3.2, a carbonyl bonded to a ring
+            # nitrogen or an azo nitrogen, whose N is the root of the substituent ('piperidin-1-yl'), not part of the '-one'.
+            _context_indices += [i for i in fg_def.get("context_indices", ()) if i not in _context_indices]
             # A hydroxamic acid is named as an N-hydroxy AMIDE (round 5, N6;
             # "N-hydroxycyclohexanecarboxamide (PIN)", p. 587): its -amide
             # suffix names C, =O and N, and the N-hydroxy prefix owns the O.
@@ -926,6 +933,34 @@ class FGDetection:
                     if fg.atoms == conflicting.atoms:
                         # True duplicate — silent drop.
                         continue
+                    # Two acyl groups on ONE nitrogen (an imide, R-CO-N(R')-CO-R'') match the amide pattern twice, and each
+                    # match's anchor is only the OTHER's context atom (the R of its N-R). They are two amides that share the
+                    # nitrogen, and only one is kept, so WHICH is kept decides the parent: it used to be an accident of atom
+                    # order, and 'N-benzoylacetamide' came out for the book's 'N-acetylbenzamide' (P-66.1.4.2, pdf p. 654).
+                    # Keep the one whose acyl group sits on a RING, the seniority the strategy applies to parents (P-44.1.2.2);
+                    # when both or neither do, the terminality tie-break below decides, as before. Offering BOTH matches to
+                    # plan search is the principled fix and was tried: the prefix generator then writes the imide unit twice
+                    # ('4,4-bis(acetylcarbamoyl)benzoic acid') and a triacylamine cannot be owned at all (naming round 8, W4).
+                    if (
+                        fg.anchor in (conflicting.get_property("context_atoms") or ())
+                        and conflicting.anchor in (fg.get_property("context_atoms") or ())
+                    ):
+                        def _acyl_on_ring(match: "DetectedFG") -> bool:
+                            anchor_atom = self._mol.GetAtomWithIdx(match.anchor)  # type: ignore[attr-defined]
+                            return any(
+                                nb.GetIdx() not in match.atoms and nb.IsInRing()
+                                for nb in anchor_atom.GetNeighbors()
+                            )
+                        if _acyl_on_ring(fg) and not _acyl_on_ring(conflicting):
+                            final_fgs.remove(conflicting)
+                            claimed_atoms -= (conflicting.atoms - (fg.atoms & conflicting.atoms))
+                            claimed_atoms.update(fg.atoms)
+                            final_fgs.append(fg)
+                            continue
+                        # (Not covered by a row: when the ring match arrives FIRST the terminality tie-break below already keeps
+                        # it on every input tried, so removing this guard changes no name; it makes the rule independent of that.)
+                        if _acyl_on_ring(conflicting) and not _acyl_on_ring(fg):
+                            continue
                     shared = fg.atoms & conflicting.atoms
                     # Legit geminal iff the only shared atom is the anchor.
                     if shared <= {fg.anchor}:

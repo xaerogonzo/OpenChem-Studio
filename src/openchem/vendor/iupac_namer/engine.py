@@ -508,6 +508,89 @@ _HET_SUBSTITUENT_SUFFIX_SINGLE: dict[int, str] = {
 # and append "amino": "(propan-2-ylidene)amino", "(methylidene)amino", ...
 # Per P-66.4.1.2.
 
+def _name_ring_nitrogen_acyl_substituent(
+    mol,
+    output_form: OutputForm,
+    free_valence: FreeValenceInfo | None,
+    decision_ctx: DecisionContext | None,
+    strategy,
+    session: NamingSession,
+    depth: int,
+) -> LeafTree | None:
+    """The acyl prefix of a RING-NITROGEN amide: ``piperidine-1-carbonyl``, ``morpholine-4-carbonyl`` (naming round 8).
+
+    The book prints the prefix as the acyl group of the ring's N-carboxylic acid: "piperidine-1-carbohydrazide (PIN) [not
+    (piperidine-1-carbonyl)hydrazine]" (pdf p. 667), and the carbon-attached ring acyl ("pyridine-3-carbonyl", p. 622) was already right. A formyl
+    on a ring NITROGEN was named on the methane parent, '(oxo)(piperidin-1-yl)methyl', which reads back and is not the prefix. The fragment must be
+    exactly the carbonyl carbon, its oxygen and ONE ring system joined to it through a neutral ring nitrogen; the ring's own substituent name
+    (which carries its locant) is renamed by the acid rule: "-yl" becomes "e-<locant>-carbonyl".
+
+    SIX MUTANTS OF THE CONDITIONS BELOW ARE NOT CAUGHT (measured; the one that removes the helper is) and are stated so nobody rediscovers them as
+    gaps: each condition is implied by another. A carbon with a free valence, a double-bonded oxygen and a ring nitrogen has no fourth neighbour (so
+    the ring test on the carbon and the 'other neighbour' branch are unreachable); an acyclic nitrogen and a non-oxo oxygen fail the regex or the
+    missing-nitrogen test later; the output form is SUBSTITUENT whenever a free valence is given here; no ring name ends in 'e' before '-yl'.
+    They state the contract and are kept.
+    """
+    import re as _re_ra
+
+    if output_form != OutputForm.SUBSTITUENT or free_valence is None:
+        return None
+    if len(free_valence.attachment_atoms_in_fragment) != 1 or tuple(free_valence.bond_orders) != (1,):
+        return None
+    c_idx = free_valence.attachment_atoms_in_fragment[0]
+    carbonyl = mol.GetAtomWithIdx(c_idx)
+    if carbonyl.GetAtomicNum() != 6 or carbonyl.GetFormalCharge() != 0:
+        return None
+    oxygen = ring_n = None
+    for bond in carbonyl.GetBonds():
+        other = bond.GetOtherAtom(carbonyl)
+        if other.GetAtomicNum() == 8 and bond.GetBondTypeAsDouble() == 2.0 and other.GetDegree() == 1:
+            oxygen = other
+        elif other.GetAtomicNum() == 7 and bond.GetBondTypeAsDouble() == 1.0 and other.IsInRing() and other.GetFormalCharge() == 0:
+            ring_n = other
+        else:
+            return None
+    if oxygen is None or ring_n is None:
+        return None
+    rest = frozenset(a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() > 1 and a.GetIdx() not in (c_idx, oxygen.GetIdx()))
+    if not rest:
+        return None
+    from openchem.vendor.iupac_namer.assembly import assemble as _assemble
+    from openchem.vendor.iupac_namer.perception.extraction import carve_substituent
+
+    try:
+        ring_mol, ring_att, bond_order = carve_substituent(mol, rest, (c_idx, ring_n.GetIdx()))
+        ring_tree = name(
+            ring_mol, strategy, OutputForm.SUBSTITUENT,
+            free_valence=FreeValenceInfo(
+                bond_orders=(bond_order,),
+                method=_select_substituent_method(ring_mol, ring_att),
+                attachment_atoms_in_fragment=(ring_att,),
+                elide_locant_one=_fvi_elide_locant_one(ring_mol, ring_att),
+            ),
+            decision_ctx=DecisionContext(role="ring_nitrogen_acyl_ring", parent_plan=None, depth=depth + 1),
+            _session=session, _depth=depth + 1,
+        )
+        ring_name = _assemble(ring_tree)
+    except Exception as e:  # noqa: BLE001 - decline, the generic route names it
+        logger.debug("ring-nitrogen acyl carve/name failed: %s", e)
+        return None
+    if not ring_name or "NAMING ERROR" in ring_name:
+        return None
+    m = _re_ra.fullmatch(r"(.+?)([a-z]*[a-z])-(\d+)-yl", ring_name)
+    if m is None or m.group(2).endswith("e"):
+        return None
+    text = f"{m.group(1)}{m.group(2)}e-{m.group(3)}-carbonyl"
+    return LeafTree(
+        output_form=output_form,
+        free_valence=free_valence,
+        choices_made=(Choice(type="ring_nitrogen_acyl", detail=f"ring={ring_name}, prefix={text}"),),
+        decision_ctx=decision_ctx,
+        validity_warnings=None,
+        text=text,
+    )
+
+
 def _name_heteroatom_fv_substituent(
     mol,
     output_form: OutputForm,
@@ -688,7 +771,11 @@ def _name_heteroatom_fv_substituent(
             except Exception as e:
                 logger.debug("ylidene-amino carve/name failed: %s", e)
                 return None
-            compound_prefix = f"({sub_name})amino"
+            # The enclosing mark is one level OUT from whatever the ylidene name already holds (P-16.5.4: parentheses, then
+            # square brackets, then braces). A fixed '(' put parentheses inside parentheses once a second prefix was
+            # enclosed inside the group (naming round 8, W5): '(amino(sulfanyl)methylidene)amino'.
+            _ob, _cb = _choose_brackets_for_ylidene(sub_name)
+            compound_prefix = f"{_ob}{sub_name}{_cb}amino"
             return LeafTree(
                 output_form=output_form,
                 free_valence=free_valence,
@@ -722,7 +809,11 @@ def _name_heteroatom_fv_substituent(
                     frag_mol, strategy, OutputForm.SUBSTITUENT,
                     free_valence=sub_fv,
                     decision_ctx=DecisionContext(
-                        role=f"{suffix}_substituent",
+                        # An O bonded to another O is a PEROXY group, whose inner alkoxy must stay '<alkyl>oxy' for the peroxy spelling
+                        # ("(methylperoxy)ethane", P-63.3.1); the contraction below is for an O bonded to carbon only.
+                        role=("peroxy_substituent"
+                              if element == 8 and mol.GetAtomWithIdx(nb_idx).GetAtomicNum() == 8
+                              else f"{suffix}_substituent"),
                         parent_plan=None,
                         depth=depth + 1,
                     ),
@@ -732,6 +823,7 @@ def _name_heteroatom_fv_substituent(
                 if not sub_name or "[NAMING ERROR" in sub_name:
                     return None
                 sub_names.append(sub_name)
+                _sub_att_in_ring = frag_mol.GetAtomWithIdx(att_idx_sub).IsInRing()
             except Exception as e:
                 logger.debug("heteroatom-FV substituent carve/name failed: %s", e)
                 return None
@@ -825,6 +917,23 @@ def _name_heteroatom_fv_substituent(
                     decision_ctx=decision_ctx,
                     validity_warnings=None,
                     text=compound_prefix,
+                )
+
+        # An O free valence is an ALKOXY group, and the ether_prefix path's contraction applies here too: "methoxy", not "methyloxy" (P-63.2.2.2).
+        # An oxime ether, a hydroxylamine ether and an N-alkoxy amide reach this function, and named "N-(methyloxy)...", "(methyloxyimino)...".
+        if element == 8 and len(sub_names) == 1 and not (decision_ctx is not None and decision_ctx.role == "peroxy_substituent"):
+            _alkoxy = _contracted_alkoxy(sub_names[0], _sub_att_in_ring)
+            if _alkoxy is not None:
+                return LeafTree(
+                    output_form=output_form,
+                    free_valence=free_valence,
+                    choices_made=(Choice(
+                        type="heteroatom_fv_substituent",
+                        detail=f"element=O, suffix=oxy, prefix={_alkoxy}",
+                    ),),
+                    decision_ctx=decision_ctx,
+                    validity_warnings=None,
+                    text=_alkoxy,
                 )
 
         # Combine: alphabetical sort, multiplier-merge identical names.
@@ -1004,7 +1113,11 @@ def _name_heteroatom_fv_substituent(
             logger.debug("imine-FV ylidene name failed: %s", e)
             return None
 
-        compound_prefix = f"({sub_name})amino"
+        # The enclosing mark is one level OUT from whatever the ylidene name already holds (P-16.5.4: parentheses, then
+        # square brackets, then braces). A fixed '(' put parentheses inside parentheses once a second prefix was
+        # enclosed inside the group (naming round 8, W5): '(amino(sulfanyl)methylidene)amino'.
+        _ob, _cb = _choose_brackets_for_ylidene(sub_name)
+        compound_prefix = f"{_ob}{sub_name}{_cb}amino"
 
         return LeafTree(
             output_form=output_form,
@@ -4109,8 +4222,11 @@ def _name_biguanide_functional_parent(
         if comp_att is None:
             raise RuntimeError("biguanide substituent has no bond to core N")
         sub_mol, sub_att, _bo = carve_substituent(mol, comp, comp_att)
+        # The REAL attachment bond order (naming round 8): it was hard-coded to 1, so a substituent joined to the core by a DOUBLE bond (the
+        # tautomer drawn with =C(N)N on a terminal nitrogen) was named 'diaminomethyl', an sp3 carbon with the wrong hydrogens, instead of
+        # 'diaminomethylidene'. OPSIN reads 'N-(diaminomethylidene)imidodicarbonimidic diamide' back as that tautomer.
         sub_fv = FreeValenceInfo(
-            bond_orders=(1,),
+            bond_orders=(int(_bo),),
             method=_select_substituent_method(sub_mol, sub_att),
             attachment_atoms_in_fragment=(sub_att,),
             elide_locant_one=_fvi_elide_locant_one(sub_mol, sub_att),
@@ -4195,6 +4311,306 @@ def _name_biguanide_functional_parent(
         choices_made=(Choice(
             type="biguanide_functional_parent",
             detail=f"prefixes={prefix_str}",
+        ),),
+        decision_ctx=decision_ctx,
+        validity_warnings=None,
+        text=final_name,
+    )
+
+
+def _hydrazide_attaches_through_its_carbonyl(fg, parent_atoms, mol) -> bool:
+    """True when the hydrazide group hangs off the parent by its carbonyl carbon and that carbon is not itself in the parent.
+
+    A remote group (no bond to the parent at all) counts as attaching normally, so nothing changes for it. A group whose carbonyl carbon IS in the
+    parent has its nitrogen bonded to the parent, so it falls out of the rule below without a separate test.
+
+    A mutant that also excludes the REMOTE case changes no name on any input tried (a remote hydrazide is carved structurally either way), so
+    that branch is not covered by a row and is kept only to leave the pre-round-8 flow for it exactly as it was.
+    """
+    bonded_to_parent = [
+        atom_idx for atom_idx in fg.atoms
+        if atom_idx not in parent_atoms
+        and any(nb.GetIdx() in parent_atoms for nb in mol.GetAtomWithIdx(atom_idx).GetNeighbors())
+    ]
+    return not bonded_to_parent or fg.anchor in bonded_to_parent
+
+
+def _name_long_condensed_diamide(mol, path, kind, output_form, decision_ctx):
+    """n >= 5 condensed guanidines and ureas, H2N-[C(=X)-NH]n-H, as skeletal-replacement names (naming round 8).
+
+    P-66.4.1.2 (pdf p. 677): "For polyguanides, where n = 5 and higher, skeletal replacement ('a') nomenclature leads to preferred IUPAC
+    names. Example: 3,5,7-triimino-2,4,6,8-tetraazanonane-1,9-diimidamide (PIN)". The chain is the 2n-1 atoms C, N, C, ..., C; the nitrogens
+    at the even positions are the 'aza' atoms, the interior carbons (3 .. 2n-3) carry the imino groups, and the two end carbons are the
+    imidamide suffix. A urea is the same with 'oxo' and '-diamide' (derived: the book prints the guanidine only, and OPSIN reads both back).
+
+    UNSUBSTITUTED only: every heavy atom must be in the chain, and every interior carbon must carry its own =X, so a substituent (which
+    would need locants on a skeletal-replacement name) or a tautomer with a double bond into a bridge returns None.
+    """
+    from openchem.vendor.iupac_namer.data_loader import get_chain_stem, get_multiplier
+
+    n_units = len(path)
+    heavy = sum(1 for a in mol.GetAtoms() if a.GetAtomicNum() > 1)
+    # 2n-1 chain atoms plus the n exocyclic X (=O or =NH) plus the two end amino nitrogens: n C + (n-1) bridge N + 2 amino + n X - 0 = 3n + 1
+    if heavy != 3 * n_units + 1:
+        return None
+    length = 2 * n_units - 1
+    stem = get_chain_stem(length)
+    aza = get_multiplier(n_units - 1)
+    interior = get_multiplier(n_units - 2)
+    if not stem or not aza or not interior:
+        return None
+    aza_locants = ",".join(str(i) for i in range(2, length, 2))
+    x_locants = ",".join(str(i) for i in range(3, length - 1, 2))
+    if kind == "N":
+        name_text = f"{x_locants}-{interior}imino-{aza_locants}-{aza}aza{stem}ane-1,{length}-diimidamide"
+    else:
+        name_text = f"{x_locants}-{interior}oxo-{aza_locants}-{aza}aza{stem}ane-1,{length}-diamide"
+    return LeafTree(
+        output_form=output_form,
+        free_valence=None,
+        choices_made=(Choice(type="condensed_diamide", detail=f"n={n_units}, skeletal replacement, {'guanidine' if kind == 'N' else 'urea'}"),),
+        decision_ctx=decision_ctx,
+        validity_warnings=None,
+        text=name_text,
+    )
+
+
+def _name_condensed_carbonic_diamide_functional_parent(
+    mol,
+    output_form: OutputForm,
+    decision_ctx: DecisionContext | None,
+    strategy,
+    session: NamingSession,
+    depth: int,
+) -> LeafTree | None:
+    """Condensed ureas and guanidines, H2N-[C(=X)-NH]n-H (naming round 8, W2).
+
+    P-66.1.6.1.4 (pdf p. 663): "Condensed ureas ... where n = 2, 3, or 4, are named systematically as diamides of
+    imidodicarbonic acid, diimidotricarbonic acid, and triimidotetracarbonic acid ... The names biuret, triuret, etc., are no
+    longer recommended as preferred IUPAC names", printed as '2-imidodicarbonic diamide (PIN)' and '2,4-diimidotricarbonic
+    diamide (PIN)'. P-66.4.1.2 (p. 677) gives the guanidines the same way, X = NH: 'imidodicarbonimidic diamide (PIN)',
+    'diimidotricarbonimidic diamide (PIN)'. Round 4 built n = 2 for guanidines only (`_name_biguanide_functional_parent`, which
+    this leaves alone); the ureas, and guanidines from n = 3, were named as a chain of 'carbamoyl' and 'carbamimidoyl' prefixes.
+
+    Numbering follows the figures on those pages: positions run along the chain, carbons at the odd positions and the bridging
+    nitrogens at the even ones. The terminal amino nitrogen of an end carbon at position k is N<k>; its imino nitrogen is N'<k>;
+    the imino nitrogen of an interior carbon is N<k>; a bridging nitrogen takes its numeric position. Lowest locants go to the
+    substituents together, and the chain is numbered from whichever end gives them.
+
+    Deliberately narrow: the chain must be linear, every carbon of one family (all C=O or all C=NH), each guanidine's double bond to
+    its own non-bridging nitrogen, at most four carbons (n >= 5 guanidines are skeletal-replacement names, a different
+    construction), and every other heavy atom must hang off a chain nitrogen. Anything else returns None and the generic path
+    stands. An acid or another group senior to an amide in a substituent also returns None, since that group is then the parent.
+    """
+    if output_form != OutputForm.STANDALONE:
+        return None
+
+    def core_carbon(atom):
+        if atom.GetAtomicNum() != 6 or atom.GetFormalCharge() != 0 or atom.IsInRing():
+            return None
+        heavy = [nb for nb in atom.GetNeighbors() if nb.GetAtomicNum() > 1]
+        if len(heavy) != 3:
+            return None
+        x = None
+        kind = None
+        singles = []
+        for nb in heavy:
+            order = mol.GetBondBetweenAtoms(atom.GetIdx(), nb.GetIdx()).GetBondTypeAsDouble()
+            if nb.GetFormalCharge() != 0 or nb.IsInRing():
+                return None
+            if order == 2.0 and nb.GetAtomicNum() == 8 and nb.GetDegree() == 1 and x is None:
+                x, kind = nb, "O"
+            elif order == 2.0 and nb.GetAtomicNum() == 7 and x is None:
+                x, kind = nb, "N"
+            elif order == 1.0 and nb.GetAtomicNum() == 7 and not nb.GetIsAromatic():
+                singles.append(nb)
+            else:
+                return None
+        if x is None or len(singles) != 2:
+            return None
+        return kind, x.GetIdx(), tuple(n.GetIdx() for n in singles)
+
+    carbons = {}
+    for atom in mol.GetAtoms():
+        found = core_carbon(atom)
+        if found is not None:
+            carbons[atom.GetIdx()] = found
+    if len(carbons) < 2:
+        return None
+    if len({kind for kind, _x, _ns in carbons.values()}) != 1:
+        return None
+    kind = next(iter(carbons.values()))[0]
+
+    # A bridging nitrogen is single-bonded to exactly two core carbons; the double-bonded nitrogen of a guanidine carbon may not
+    # also be a bridge (a tautomer this name cannot draw).
+    bridge_of: dict[int, list[int]] = {}
+    for c_idx, (_k, _x, ns) in carbons.items():
+        for n in ns:
+            bridge_of.setdefault(n, []).append(c_idx)
+    imines = {x for _k, x, _ns in carbons.values() if kind == "N"}
+    # EQUIVALENT MUTANT: without this the tautomer drawn with a double bond into a bridging nitrogen leaves a carbon with no
+    # bridge, and the chain check below refuses it anyway. It says the reason out loud.
+    if any(x in bridge_of for x in imines):
+        return None
+    bridges = {n: cs for n, cs in bridge_of.items() if len(cs) == 2}
+    if any(len(cs) > 2 for cs in bridge_of.values()):
+        return None
+
+    adjacency: dict[int, list[int]] = {c: [] for c in carbons}
+    for n, (c1, c2) in bridges.items():
+        adjacency[c1].append(c2)
+        adjacency[c2].append(c1)
+    ends = [c for c, nbrs in adjacency.items() if len(nbrs) == 1]
+    if len(ends) != 2 or any(len(v) not in (1, 2) for v in adjacency.values()):
+        return None
+    path = [ends[0]]
+    while True:
+        nxt = [c for c in adjacency[path[-1]] if c not in path]
+        if not nxt:
+            break
+        path.append(nxt[0])
+    n_units = len(path)
+    if n_units != len(carbons):
+        return None
+    if n_units > 4:
+        # n >= 5 is a skeletal-replacement ('a') name, a different construction: built for the UNSUBSTITUTED chain only, the case the book prints.
+        return _name_long_condensed_diamide(mol, path, kind, output_form, decision_ctx)
+    # EQUIVALENT MUTANT, noted so it is not rediscovered: dropping this changes no name, because this constructor's n = 2
+    # guanidine names are identical to the biguanide route's. The guard keeps ONE route for a molecule that already has one.
+    if kind == "N" and n_units == 2:
+        return None  # n = 2 guanidine is `_name_biguanide_functional_parent`'s
+
+    bridge_between = {}
+    for n, (c1, c2) in bridges.items():
+        bridge_between[frozenset((c1, c2))] = n
+    ordered_bridges = [bridge_between[frozenset((path[i], path[i + 1]))] for i in range(n_units - 1)]
+
+    core_atoms: set[int] = set()
+    for c_idx, (_k, x, ns) in carbons.items():
+        core_atoms |= {c_idx, x, *ns}
+    heavy_all = {a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() > 1}
+    non_core = heavy_all - core_atoms
+
+    # Substituent components per chain nitrogen (the imino nitrogen of a guanidine, the amino ends, the bridges).
+    chain_ns = [n for c in carbons for n in carbons[c][2]] + ([x for _k, x, _ns in carbons.values()] if kind == "N" else [])
+    chain_ns = list(dict.fromkeys(chain_ns))
+    pool = set(non_core)
+    components: dict[int, list[frozenset[int]]] = {}
+    for n in chain_ns:
+        components[n] = []
+        for nb in mol.GetAtomWithIdx(n).GetNeighbors():
+            if nb.GetIdx() in pool:
+                comp = frozenset(_reach_from(nb.GetIdx(), pool, mol))
+                components[n].append(comp)
+                pool -= comp
+    if pool:
+        return None  # an atom not reached through a chain nitrogen
+
+    # A group senior to an amide in a substituent is the parent instead ("N-(carboxymethyl)biuret" is an acid).
+    from rdkit import Chem as _Chem
+
+    senior = [_Chem.MolFromSmarts(s) for s in (
+        "[CX3](=O)[OX2H1,OX1-]", "[SX4](=O)(=O)[OX2H1,OX1-]", "[PX4](=O)[OX2H1,OX1-]",
+    )]
+    for query in senior:
+        for match in mol.GetSubstructMatches(query):
+            if any(a in non_core for a in match):
+                return None
+
+    from openchem.vendor.iupac_namer.assembly import assemble as _assemble_cd
+
+    def _name_component(n_idx: int, comp: frozenset[int]) -> str:
+        att = next((n_idx, nb.GetIdx()) for nb in mol.GetAtomWithIdx(n_idx).GetNeighbors() if nb.GetIdx() in comp)
+        if mol.GetBondBetweenAtoms(*att).GetBondTypeAsDouble() != 1.0:
+            raise RuntimeError("a condensed-diamide substituent is not single-bonded")
+        sub_mol, sub_att, _bo = carve_substituent(mol, comp, att)
+        sub_fv = FreeValenceInfo(
+            bond_orders=(1,),
+            method=_select_substituent_method(sub_mol, sub_att),
+            attachment_atoms_in_fragment=(sub_att,),
+            elide_locant_one=_fvi_elide_locant_one(sub_mol, sub_att),
+        )
+        sub_tree = name(
+            sub_mol, strategy, OutputForm.SUBSTITUENT, free_valence=sub_fv,
+            decision_ctx=DecisionContext(role="condensed_diamide_n_substituent", parent_plan=None, depth=depth + 1),
+            _session=session, _depth=depth + 1,
+        )
+        sub_name = _assemble_cd(sub_tree)
+        if not sub_name or "[NAMING ERROR" in sub_name:
+            raise RuntimeError(f"condensed-diamide substituent naming failed: {sub_name!r}")
+        return sub_name
+
+    try:
+        named = {n: [(_name_component(n, c)) for c in comps] for n, comps in components.items()}
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("condensed diamide substituent naming failed: %s", exc)
+        return None
+
+    def labels_for(sequence: list[int]) -> dict[int, str]:
+        """N-labels for one direction along the chain (positions 1, 3, ... are carbons; 2, 4, ... bridging nitrogens)."""
+        labels: dict[int, str] = {}
+        for i, c_idx in enumerate(sequence):
+            position = 2 * i + 1
+            _k, x, ns = carbons[c_idx]
+            is_end = i in (0, len(sequence) - 1)
+            bridge_here = {ordered_bridge_of(sequence, j) for j in (i - 1, i) if 0 <= j < len(sequence) - 1}
+            terminals = [n for n in ns if n not in bridge_here]
+            for n in terminals:
+                labels[n] = f"N{position}"
+            if kind == "N":
+                labels[x] = f"N'{position}" if is_end else f"N{position}"
+        for i in range(len(sequence) - 1):
+            labels[ordered_bridge_of(sequence, i)] = str(2 * (i + 1))
+        return labels
+
+    def ordered_bridge_of(sequence: list[int], i: int) -> int:
+        return bridge_between[frozenset((sequence[i], sequence[i + 1]))]
+
+    def locant_key(label: str) -> tuple[int, int]:
+        digits = "".join(ch for ch in label if ch.isdigit())
+        return (int(digits), label.count("'"))
+
+    best = None
+    for sequence in (path, list(reversed(path))):
+        labels = labels_for(sequence)
+        if any(n not in labels for n in chain_ns):
+            return None  # a chain nitrogen this numbering cannot label: not a clean chain
+        cited = sorted((locant_key(labels[n]), derive_sort_name(nm)) for n, nms in named.items() for nm in nms)
+        key = ([loc for loc, _ in cited], [nm for _, nm in cited])
+        if best is None or key < best[0]:
+            best = (key, labels)
+    labels = best[1]
+
+    from openchem.vendor.iupac_namer.assembly import merge_identical_prefixes, render_merged_prefixes
+
+    entries: list[tuple[str, tuple[Locant, ...]]] = []
+    for n, nms in named.items():
+        for nm in nms:
+            label = labels[n]
+            entries.append((nm, (Locant.numeric(int(label)) if label.isdigit() else Locant.hetero(label),)))
+    prefix_str = ""
+    if entries:
+        merged = merge_identical_prefixes(entries)
+        merged.sort(key=lambda mp: mp.sort_name)
+        prefix_str = render_merged_prefixes(merged)
+
+    multiplier = {1: "", 2: "di", 3: "tri", 4: "tetra"}
+    carbonic = {2: "dicarbonic", 3: "tricarbonic", 4: "tetracarbonic"}[n_units]
+    imido_mult = multiplier[n_units - 1]
+    if kind == "O":
+        locants = ",".join(str(2 * i) for i in range(1, n_units))
+        parent = f"{locants}-{imido_mult}imido{carbonic} diamide"
+    else:
+        parent = f"{imido_mult}imido{carbonic[:-2]}imidic diamide"
+    joiner = "-" if prefix_str and parent[0].isdigit() else ""
+    final_name = f"{prefix_str}{joiner}{parent}"
+
+    return LeafTree(
+        output_form=output_form,
+        free_valence=None,
+        choices_made=(Choice(
+            type="condensed_carbonic_diamide_functional_parent",
+            detail=f"units={n_units} family={kind} prefixes={prefix_str}",
         ),),
         decision_ctx=decision_ctx,
         validity_warnings=None,
@@ -8760,6 +9176,18 @@ def _name_smiles_bound(smiles: str, strategy) -> str:
     oxoacid_ester_name = _compute_oxoacid_ester_name(mol)
     if oxoacid_ester_name is not None:
         return oxoacid_ester_name
+    # Nitric and nitrous esters (P-67.1.3.2, pdf p. 710: "pentyl nitrite (PIN)"): the nitrogen centre is not one the generator above takes.
+    from openchem.vendor.iupac_namer.perception.fg.maingroup_oxoacids import compute_nitric_ester_name as _compute_nitric_ester_name
+
+    nitric_ester_name = _compute_nitric_ester_name(mol)
+    if nitric_ester_name is not None:
+        return nitric_ester_name
+    # Carbonic acid diesters and hydrogen esters (P-65.6.2.3, pdf p. 620): "dimethyl carbonate", not "dimethoxyoxomethane".
+    from openchem.vendor.iupac_namer.perception.fg.maingroup_oxoacids import compute_carbonic_ester_name as _compute_carbonic_ester_name
+
+    carbonic_ester_name = _compute_carbonic_ester_name(mol)
+    if carbonic_ester_name is not None:
+        return carbonic_ester_name
     # Carbon-substituted nitrogen oxoacids (azonic / azinic), P-67.1.1.2.
     # The organyl-on-N(+)/[O-] skeleton would otherwise be mis-named by the
     # additive-nomenclature N-oxide path inside plan search (e.g.
@@ -9203,7 +9631,12 @@ def _name_bound(
             )
             if has_ring_hetero_plus:
                 output_form = OutputForm.CATION
-        elif net_charge <= 0:
+        # An ANION outranks a CATION (P-41, Table 4.1, pdf p. 360), so a species with a deprotonated acid site is named as the
+        # anion whatever its NET charge is (naming round 8, W3). This used to run only for a net charge <= 0 ('elif'), and a net
+        # POSITIVE zwitterion never reached it: lysine with both amines protonated and histidine with the ring protonated
+        # are net +1, stayed STANDALONE or CATION, and their carboxylate was written as a neutral 'carboxy' -- a name for a
+        # different charge. When no anionic site can be an anion suffix the species stays as the branch above left it.
+        if net_charge <= 0 or any(a.GetFormalCharge() < 0 for a in mol.GetAtoms()):
             # --- Zwitterion / naked-anion STANDALONE → ANION promotion ---
             # Two cases:
             #
@@ -9279,8 +9712,18 @@ def _name_bound(
     # "pyridine 1-oxide" and "pyridine-4-carboxylate 1-oxide" keep the additive
     # form that is correct for them.
     additive_groups = perception.fgs.additive_groups
+    # ...and not when ANOTHER positive centre exists (naming round 8). '<parent> N-oxide' is the name of a NEUTRAL parent with an oxide on
+    # one nitrogen; with a second cationic centre it does not say which nitrogen carries the oxide, OPSIN cannot read it
+    # ('2-(dimethylamino)ethan-1-aminium N-oxide', '(pyridin-2-yl)methanaminium N-oxide'), and once it named a pyridinium's pyridine
+    # N-oxide as '1-[(pyridin-3-yl)methyl]pyridine N-oxide', which is another molecule. The substitutive path writes the oxide inline
+    # ('2-[dimethyl(oxido)azaniumyl]ethan-1-aminium'). An oxide beside only NEGATIVE centres ('pyridine-4-carboxylate 1-oxide') keeps the form.
+    _oxide_centres = {ag.get("center_atom") for ag in (additive_groups or ())}
+    _other_cation = any(
+        a.GetFormalCharge() > 0 and a.GetIdx() not in _oxide_centres for a in mol.GetAtoms()
+    )
     if (
         additive_groups
+        and not _other_cation
         and output_form != OutputForm.SUBSTITUENT
         and strategy.accept_additive(additive_groups)
     ):
@@ -9411,6 +9854,30 @@ def _name_bound(
     if het_fv_tree is not None:
         _session.cache_store(smiles, output_form, fv_bond_orders, het_fv_tree, attachment_indices)
         return het_fv_tree
+
+    # --- Acyl group of a ring-nitrogen amide: 'piperidine-1-carbonyl' (naming round 8, P-65.1.7.3, pdf p. 667). ---
+    ring_acyl_tree = _name_ring_nitrogen_acyl_substituent(
+        mol, output_form, free_valence, decision_ctx,
+        strategy=strategy, session=_session, depth=_depth,
+    )
+    if ring_acyl_tree is not None:
+        _session.cache_store(smiles, output_form, fv_bond_orders, ring_acyl_tree, attachment_indices)
+        return ring_acyl_tree
+
+    # --- Condensed ureas (n = 2..4) and guanidines from n = 3 (naming round 8, W2): P-66.1.6.1.4, P-66.4.1.2. ---
+    # BEFORE the urea route: `_name_urea_functional_parent` claims biuret as 'N-carbamoylurea', and the biguanide route
+    # below absorbs a third guanidine unit as a 'carbamimidoyl' substituent, so a later position is never reached. The
+    # constructor is narrow (a linear chain of two or more urea or guanidine carbons, and nothing else) and returns None
+    # for anything it cannot fully account for, so running first costs nothing for every other molecule.
+    if (output_form == OutputForm.STANDALONE
+            and free_valence is None):
+        cd_tree = _name_condensed_carbonic_diamide_functional_parent(
+            mol, output_form, decision_ctx,
+            strategy=strategy, session=_session, depth=_depth,
+        )
+        if cd_tree is not None:
+            _session.cache_store(smiles, output_form, fv_bond_orders, cd_tree, attachment_indices)
+            return cd_tree
 
     # --- Urea functional parent (P-66.6.3) ---
     # Detect (R)2N-C(=O)-N(R)2 cores at the molecule level and emit the retained
@@ -10440,6 +10907,23 @@ def _compose_n_substituents(n_sub_names: list[str]) -> str:
     return "".join(pieces)
 
 
+def _contracted_alkoxy(alkyl_name: str, attachment_in_ring: bool) -> str | None:
+    """The contracted ether prefix of a bare alkyl/aryl name, or None when it keeps its "yl": "methoxy", "2-chloroethoxy", "phenoxy".
+
+    The rule the ether_prefix branch of ``SubstitutivePath.execute`` applies inline (P-63.2.2.2, pdf p. 541), for the callers that reach an
+    O-attached group by another road. NOT contracted: an acyl ("benzoyloxy", not "benzoxy"), a sulfonyl/carbonyl, a ring attachment
+    ("pyridin-4-yloxy", "cyclobutyloxy") and a group the book does not contract ("heptyloxy", "(propan-2-yl)oxy"). The ether branch's own
+    "cyanato" is not reproduced: no input reaches it through a nitrogen.
+    """
+    if alkyl_name.endswith("phenyl"):
+        return alkyl_name[:-2] + "oxy"
+    # `_contracts_to_alkoxy` already requires the name to END in meth/eth/prop/butyl, so an acyl ("propanoyl"), a sulfonyl and a carbonyl are out
+    # by construction; the ether branch's separate 'nyl'/'xyl'/'oyl' exclusions are redundant with it (their mutants are not caught, measured).
+    if _contracts_to_alkoxy(alkyl_name) and not attachment_in_ring:
+        return alkyl_name[:-2] + "oxy"
+    return None
+
+
 def _contracts_to_alkoxy(alkyl_name: str) -> bool:
     """Whether "<alkyl>yl" + "oxy" contracts to "<alkyl>oxy" (P-63.2.2.2).
 
@@ -11257,6 +11741,28 @@ def _name_binary_nitride_salt(frags) -> str | None:
     return f"{metal_name} nitride"
 
 
+def _has_anion_suffix_site(frag_mol) -> bool:
+    """True when a suffix-eligible group of an anion-variant type claims a negatively charged atom of ``frag_mol``.
+
+    The gate the salt path applies before asking for the ANION form: only an anion that can be written as an anion SUFFIX
+    ('-oate', '-carboxylate') is worth the form, and anything else stays as its fragment's charge would have it.
+    """
+    from openchem.vendor.iupac_namer.perception import Perception as _Perception
+    try:
+        perception = _Perception(frag_mol)
+    except Exception:
+        return False
+    neg_indices = {a.GetIdx() for a in frag_mol.GetAtoms() if a.GetFormalCharge() < 0}
+    for fg in perception.fgs.detected_fgs:
+        if not fg.suffix_eligible:
+            continue
+        if fg.type not in _FG_TYPES_WITH_ANION_VARIANT:
+            continue
+        if fg.anchor in neg_indices or any(idx in neg_indices for idx in fg.atoms):
+            return True
+    return False
+
+
 def _choose_salt_fragment_form(frag) -> "OutputForm":
     """Pick the OutputForm for a salt fragment based on its formal charge.
 
@@ -11287,25 +11793,15 @@ def _choose_salt_fragment_form(frag) -> "OutputForm":
         # Apply the same anion-FG gate used for net-anion fragments below:
         # only request ANION when a suffix-eligible FG of an anion-variant
         # type claims a negatively-charged atom.
-        from openchem.vendor.iupac_namer.perception import Perception as _Perception
-        try:
-            zfrag_perception = _Perception(frag_mol)
-        except Exception:
-            return OutputForm.STANDALONE
-        neg_indices = {
-            a.GetIdx() for a in frag_mol.GetAtoms()
-            if a.GetFormalCharge() < 0
-        }
-        for fg in zfrag_perception.fgs.detected_fgs:
-            if not fg.suffix_eligible:
-                continue
-            if fg.type not in _FG_TYPES_WITH_ANION_VARIANT:
-                continue
-            if fg.anchor in neg_indices or any(
-                idx in neg_indices for idx in fg.atoms
-            ):
-                return OutputForm.ANION
-        return OutputForm.STANDALONE
+        return OutputForm.ANION if _has_anion_suffix_site(frag_mol) else OutputForm.STANDALONE
+    # A NET-POSITIVE fragment that also holds a deprotonated acid site (lysine with both amines protonated, histidinium) is a
+    # zwitterion-cation, and an anion outranks a cation (P-41, Table 4.1, pdf p. 360): it takes the ANION form, or its
+    # carboxylate is written as a neutral 'carboxy' / '-oic acid' and the name has one charge too many (naming round 8, W3).
+    # Only when an anion suffix can carry the site; otherwise it stays a cation, as before. That gate is DEFENSIVE: a nitro salt
+    # ('[2-(4-nitrophenyl)ethyl]azanium chloride', D-109u) names identically when it is removed, because an ANION form with no
+    # anion-suffix group falls back to the same plan, so no test can tell the two apart and none is claimed to.
+    if charge > 0 and any(a.GetFormalCharge() < 0 for a in frag_mol.GetAtoms()) and _has_anion_suffix_site(frag_mol):
+        return OutputForm.ANION
     # Single-heavy-atom monatomic ions: trust the retained-name leaf path.
     # Exception: single-heavy-atom *carbon* anions (e.g. [CH3-], [CH2-]C)
     # are NOT in retained-name tables — they are named by the charge_perception
@@ -11670,6 +12166,43 @@ _CARBON_FREE_TERMINAL_PREFIXES: frozenset[str] = frozenset({
 })
 
 
+def _with_exo_skeleton_candidates(candidates, perception, pcg_instances):
+    """The parent candidates, plus the exo-skeleton chain of P-65.1.2.2.1 where it applies.
+
+    It applies to THREE OR MORE instances of one principal-group class whose suffix has a DISTINCT nonterminal form
+    (`carboxylic acid` against `oic acid`, `carbonitrile` against `nitrile`, `carboxamide`, `carbaldehyde`): those are
+    exactly the groups whose exo carbon the suffix itself consumes, as a ring parent already does.  Two groups never
+    reach this (a dioic chain, P-65.1.2.1), and a class whose nonterminal form is the same word (`-ol`) has no exo
+    reading.  A candidate already offered is not offered twice.
+    """
+    candidates = list(candidates)
+    # EQUIVALENT MUTANT, noted so it is not rediscovered: lowering `3` to `2` here changes no result, because the
+    # finder refuses fewer than three anchors itself. The duplicate is defence in depth, and the reason is stated in
+    # both places so a reader of either sees that two groups never reach the rule (P-65.1.2.1: a dioic chain).
+    if len(pcg_instances) < 3 or not all(_has_distinct_nonterminal_form(fg) for fg in pcg_instances):
+        return candidates
+    seen = {c.atom_indices for c in candidates}
+    for extra in perception.chains.find_exo_skeleton_chains(tuple(fg.anchor for fg in pcg_instances)):
+        if extra.atom_indices not in seen:
+            candidates.append(extra)
+            seen.add(extra.atom_indices)
+    return candidates
+
+
+def _has_distinct_nonterminal_form(fg) -> bool:
+    """True iff this group's suffix differs between a chain end and a non-terminal position."""
+    forms = fg.suffix_forms_dict()
+    nonterminal, terminal = forms.get("nonterminal"), forms.get("terminal")
+    return nonterminal is not None and nonterminal != terminal
+
+
+def _choose_brackets_for_ylidene(sub_name: str) -> tuple[str, str]:
+    """The enclosing marks for a ylidene group written before `amino` (`(R-ylidene)amino`), one level out from its content."""
+    from openchem.vendor.iupac_namer.assembly import _choose_brackets
+
+    return _choose_brackets(sub_name)
+
+
 def _carbon_supplying_acyl_acid_fg(fg, mol) -> bool:
     """True iff *fg* is a carbon-anchor acid-class FG whose terminal
     ``prefix_form`` already encodes the FG's own carbon (P-65.3 acyl
@@ -11865,10 +12398,12 @@ def _carved_acid_anion_sites(mol) -> frozenset[int]:
     )
 
     if acid_anion_route(mol) == "carved":
+        # The acid-anion sites, and an alkoxide / phenoxide O- beside them (acid_anion_route claims it with them, P-72.7 e).
         return frozenset(
             a.GetIdx() for a in mol.GetAtoms()
             if a.GetFormalCharge() == -1
-            and _acidic_anion_site_kind(mol, a) in _ACID_ANION_KINDS
+            and (_acidic_anion_site_kind(mol, a) in _ACID_ANION_KINDS
+                 or (a.GetSymbol() == "O" and _acidic_anion_site_kind(mol, a) == "olate"))
         )
     sites: set[int] = set()
     for a in mol.GetAtoms():
@@ -11917,6 +12452,14 @@ def _carved_acid_anion_sites(mol) -> frozenset[int]:
     return frozenset(sites)
 
 
+#: The book's prefix for an ACID ANION group (P-72.6.1, pdf p. 814), by the kind of the deprotonated site.
+#: TWO MUTANTS ARE NOT CAUGHT (measured; nine others are) and are stated so nobody rediscovers them as gaps: 'carboxylate' keeping 'carboxy', and the
+#: non-terminal prefix keeping the neutral word. A carboxylate is the most senior acid anion, so on this route it is never the demoted one; a charged
+#: carboxylate inside a carved SUBSTITUENT ('2-oxido-2-oxoethyl' where the book prints 'carboxylatomethyl') is named by the recursive substituent
+#: path and is a recorded open item, not this table's.
+_ANIONIC_ACID_PREFIX = {"carboxylate": "carboxylato", "sulfonate": "sulfonato"}
+
+
 def _carved_acid_group_fgs(mol, sites) -> tuple:
     """The acid-group FGs of the deprotonated sites, taken from PERCEPTION.
 
@@ -11930,7 +12473,7 @@ def _carved_acid_group_fgs(mol, sites) -> tuple:
     import dataclasses as _dc
 
     from openchem.vendor.iupac_namer.perception import Perception
-    from openchem.vendor.iupac_namer.perception.charge_perception import neutral_view
+    from openchem.vendor.iupac_namer.perception.charge_perception import _acidic_anion_site_kind, neutral_view
 
     view = neutral_view(mol, sites)
     if view is None:
@@ -11945,7 +12488,18 @@ def _carved_acid_group_fgs(mol, sites) -> tuple:
             continue
         if not (set(fg.atoms) & set(sites)):
             continue
-        out.append(_dc.replace(fg, properties=fg.properties + (("carved_acid_anion", True),)))
+        kind = next(
+            (_acidic_anion_site_kind(mol, mol.GetAtomWithIdx(i)) for i in sorted(set(fg.atoms) & set(sites))), None
+        )
+        anionic = _ANIONIC_ACID_PREFIX.get(kind)
+        out.append(_dc.replace(
+            fg,
+            properties=fg.properties + (("carved_acid_anion", True),),
+            # A deprotonated site that ends up a PREFIX (a junior class beside a senior anion) is `sulfonato`, not `sulfo`:
+            # the neutral word would drop the charge (P-65.6.2.3.1, pdf p. 619).
+            prefix_form=anionic or fg.prefix_form,
+            prefix_form_nonterminal=(anionic or fg.prefix_form_nonterminal) if fg.prefix_form_nonterminal else None,
+        ))
     return tuple(out)
 
 
@@ -11978,8 +12532,13 @@ def _synthesise_carved_acid_anion_fgs(interpretation, mol):
         _acidic_anion_site_kind,
     )
 
-    if any(_acidic_anion_site_kind(mol, mol.GetAtomWithIdx(i)) in _ACID_ANION_KINDS for i in sites):
-        return _carved_acid_group_fgs(mol, sites)
+    acid_sites = frozenset(
+        i for i in sites if _acidic_anion_site_kind(mol, mol.GetAtomWithIdx(i)) in _ACID_ANION_KINDS
+    )
+    if acid_sites:
+        # An olate beside an acid anion needs NO group of its own: the acid anion is the principal group (P-72.7 e), and the olate is the plain
+        # 'oxido' prefix the ordinary substituent path already writes (measured: a synthetic olate group here changed no name).
+        return _carved_acid_group_fgs(mol, acid_sites)
     # Atoms already owned by a perception-detected FG: never synthesise a
     # competing FG over them (defensive; carved anion atoms are never in a
     # detected FG because perception gates on neutral charge).
@@ -12022,6 +12581,19 @@ def _synthesise_carved_acid_anion_fgs(interpretation, mol):
             prefix_form=meta["prefix"],
         ))
     return tuple(synthetic)
+
+
+def _is_acyclic_ketone_carbon(atom) -> bool:
+    """A carbon with exactly two single-bonded CARBON neighbours: the shape of a ketone's carbonyl once the caller has found its double-bonded chalcogen.
+
+    (A three-neighbour condition was dropped: a mutant without it was not caught, because the chalcogen test that follows already implies it.)
+    """
+    carbons = 0
+    for bond in atom.GetBonds():
+        nb = bond.GetOtherAtom(atom)
+        if bond.GetBondTypeAsDouble() == 1.0 and nb.GetAtomicNum() == 6:
+            carbons += 1
+    return carbons == 2
 
 
 def _synthesise_ring_carbonyl_fgs(interpretation, mol):
@@ -12108,7 +12680,9 @@ def _synthesise_ring_carbonyl_fgs(interpretation, mol):
     for atom in mol.GetAtoms():
         if atom.GetAtomicNum() != 6:
             continue
-        if not atom.IsInRing():
+        if not atom.IsInRing() and not _is_acyclic_ketone_carbon(atom):
+            # An acyclic carbon is promoted ONLY when it is a ketone's: exactly two carbon neighbours and the chalcogen (naming round 8). The
+            # second carbonyl of biacetyl is the case; amides, aldehydes and acids are perception's and stay so (see the docstring).
             continue
         if atom.GetIsAromatic():
             continue
@@ -12150,7 +12724,8 @@ def _synthesise_ring_carbonyl_fgs(interpretation, mol):
             properties=(
                 ("seniority", meta["seniority"]),
                 ("terminal", False),
-                ("in_ring", True),
+                # (A mutant that leaves this True for an acyclic carbon is NOT caught, measured: nothing downstream reads it for a ketone.)
+                ("in_ring", atom.IsInRing()),
                 ("elision", meta["elision"]),
                 ("attachment_context", None),
             ),
@@ -12500,6 +13075,57 @@ class SubstitutivePath:
             ):
                 continue
 
+            # A NEUTRAL amine is not the '-aminium' of a cation elsewhere (naming round 8, W2). In CATION mode the
+            # suffix variant of an amine is 'aminium', which names a CHARGED nitrogen; on a molecule whose charge sits on
+            # a ring nitrogen (protonated 2-aminopyridine, DMAP-H+) the amine N is neutral, and the name
+            # 'pyridin-1-ium-2-aminium' denotes a DICATION, another molecule. Cations outrank amines (P-41, Table 4.1,
+            # pdf p. 360), so the cation is the parent and the neutral amino group is a prefix, as P-73.1.1.2 and the
+            # printed '4-carboxy-1-methylpyridin-1-ium' (pdf pp. 818, 580) write it. Skipped only when EVERY nitrogen of
+            # the instances is neutral and a positive charge exists elsewhere: a charged amine (anilinium) keeps its suffix,
+            # and so does a true dication.
+            if (
+                output_form == OutputForm.CATION
+                and pcg_type in ("amine", "secondary_amine", "tertiary_amine")
+                and any(a.GetFormalCharge() > 0 for a in mol.GetAtoms())
+                and all(
+                    mol.GetAtomWithIdx(atom).GetFormalCharge() == 0
+                    for fg in pcg_instances
+                    for atom in fg.atoms
+                    if mol.GetAtomWithIdx(atom).GetAtomicNum() == 7
+                )
+            ):
+                continue
+
+            # A ring cation outranks EVERY uncharged suffix group (naming round 8, W3). P-41 Table 4.1 (pdf p. 360) lists cations
+            # (class 6) above acids, anhydrides, esters, acid halides, amides, nitriles, aldehydes, ketones and alcohols, so the
+            # ring cation is the parent and each of those is a prefix, as the printed '4-carboxy-1-methylpyridin-1-ium chloride
+            # (PIN)' writes its acid (pdf p. 580). The engine did it for the chloride's acid and for a neutral amine (W2 above)
+            # and for nothing else: '1-methylpyridin-1-ium-4-carboxamide', '-4-ol', '-4-carbonitrile', '-4-carbaldehyde', and
+            # the ISOLATED cation's '-4-carboxylic acid'. Skipped only when the group holds no positive charge itself, so an
+            # amidinium or iminium (the cationic centre IS the group) keeps its suffix, and only for a RING cation: an acyclic
+            # ammonium takes the azanium parent-hydride route, which already writes the junior group as a prefix.
+            # Two mutants of this guard change no name on any input tried and are not covered by a row: extending it to an ACYCLIC
+            # cation (eight acyclic ammonium, phosphonium and sulfonium inputs name identically, because they take the azanium
+            # parent-hydride route and never reach this loop) and testing '> 0' for '== 1' (no ring atom carries +2).
+            # A NON-EMPTY group is required: the plain no-suffix option has none, and "no atom of an empty group is charged"
+            # is vacuously true, which skipped the very plan the demoted groups fall back to ("No valid naming plan").
+            if (
+                output_form == OutputForm.CATION
+                and pcg_instances
+                and any(
+                    a.GetSymbol() in _RING_CATION_IUM_ELEMENTS
+                    and a.GetFormalCharge() == 1
+                    and a.IsInRing()
+                    for a in mol.GetAtoms()
+                )
+                and not any(
+                    mol.GetAtomWithIdx(atom).GetFormalCharge() > 0
+                    for fg in pcg_instances
+                    for atom in fg.atoms
+                )
+            ):
+                continue
+
             # Guard: sulfonamide with ring-embedded N (cyclic sulfonamide,
             # e.g. CS(=O)(=O)-N<pyrrolidine>) cannot be expressed as a
             # standard "-sulfonamide" suffix.  Generating plans for every
@@ -12555,8 +13181,11 @@ class SubstitutivePath:
                 and _carbon_supplying_acyl_acid_fg(fg, mol)
             )
 
-            for candidate in perception.candidate_parents(
-                interpretation, pcg_anchors, required_atom=_required_chain_atom
+            for candidate in _with_exo_skeleton_candidates(
+                perception.candidate_parents(
+                    interpretation, pcg_anchors, required_atom=_required_chain_atom
+                ),
+                perception, pcg_instances,
             ):
                 _truncated = _truncate_chain_candidate_for_acyl_acid(
                     candidate, mol, _demoted_acyl_anchors, perception,
@@ -13809,10 +14438,15 @@ class SubstitutivePath:
                     )
                     if is_bonded_to_n:
                         _hydroxamic_oh_skip.add(atom_idx)
+            _declared_context = frozenset(fg.get_property("context_atoms") or ())
             for atom_idx in fg.atoms - parent_atoms:
                 if atom_idx in _hydroxamic_oh_skip:
                     continue  # leave OH in remaining for N-hydroxy carving
                 atom = mol.GetAtomWithIdx(atom_idx)
+                if atom.GetAtomicNum() != 6 and atom_idx in _declared_context:
+                    # A HETEROATOM the group declares as attachment context (a pseudoketone's ring or azo nitrogen, naming round 8) is the root of a
+                    # substituent, like a context carbon: claimed as a suffix atom it would make the ring behind it unreachable ('heavy atoms unclaimed').
+                    continue
                 if atom.GetAtomicNum() == 6:
                     # Carbon: only claim it as a suffix atom if ALL of its
                     # heavy-atom neighbours are within (parent_atoms ∪ all_fg_atoms).
@@ -13862,6 +14496,12 @@ class SubstitutivePath:
                 "thionocarbamate", "dithiocarbamate",
                 "substituted_imine", "sulfonate_ester", "aminium",
             )
+            # A hydrazide is a PREFIX ('hydrazinecarbonyl') only when it attaches to the parent through its CARBONYL carbon and that carbon is outside the
+            # parent. With the carbonyl inside the parent chain its =O is an 'oxo' and its N-N a 'hydrazinyl' (as an amide on an acid chain is
+            # '4-amino-4-oxobutanoic acid'), and attached through a nitrogen it is an N-acyl hydrazine ('2-benzoylhydrazinyl'). In both the group has no
+            # prefix form, it claimed atoms nothing could name, the acid plan died with 'heavy atoms unclaimed', and the engine fell back to a hydrazide
+            # parent ('3-carboxypropanehydrazide' for '4-hydrazinyl-4-oxobutanoic acid': the hydrazide ABOVE a carboxylic acid, against Table 4.1).
+            and not (fg.type == "hydrazide" and not _hydrazide_attaches_through_its_carbonyl(fg, parent_atoms, mol))
         ]
 
         # Atoms claimed by non-PCG FGs (but not the parent backbone).
@@ -13941,8 +14581,13 @@ class SubstitutivePath:
                     # Only the true intrinsic FG atoms (heteroatoms and the
                     # anchor carbonyl/sulfonyl C) are claimed as
                     # fg_prefix_atoms.
+                    _n_bearing_ctx = frozenset(fg.get_property("context_atoms") or ())
                     for atom_idx in off_parent:
                         atom = mol.GetAtomWithIdx(atom_idx)
+                        if atom.GetAtomicNum() != 6 and atom_idx in _n_bearing_ctx:
+                            # A declared heteroatom context (the oxygen of an N-alkoxy amide, naming round 8) is the ROOT of an N-substituent,
+                            # not part of the amide: left in `remaining`, so Pass 2.5 carves it as 'methoxy' on the nitrogen.
+                            continue
                         if atom.GetAtomicNum() != 6:
                             # Heteroatom (N, O, S) — intrinsic FG atom
                             fg_prefix_atoms.add(atom_idx)
@@ -14017,8 +14662,13 @@ class SubstitutivePath:
                             and id(fg) not in _demoted_fg_ids):
                         pass  # leave in remaining — structural flood-fill handles
                     else:
+                        _declared_ctx = frozenset(fg.get_property("context_atoms") or ())
                         for atom_idx in off_parent:
                             atom = mol.GetAtomWithIdx(atom_idx)
+                            if atom.GetAtomicNum() != 6 and atom_idx in _declared_ctx:
+                                # A declared heteroatom context (a pseudoketone's ring or azo nitrogen, naming round 8) is the ROOT of a
+                                # substituent, not part of the group: left in `remaining` so the structural carve reaches the ring behind it.
+                                continue
                             if atom.GetAtomicNum() != 6 or atom_idx == fg.anchor:
                                 fg_prefix_atoms.add(atom_idx)
 
@@ -14173,7 +14823,12 @@ class SubstitutivePath:
                     continue
                 # Include any extra atoms found by Pass 1.3 (e.g., ethyl group
                 # on a secondary_amine FG where only α-CH2 is in fg.atoms).
-                tp_substituent_atoms = frozenset(fg_atoms_offparent) | _fg_extra.get(id(fg), frozenset())
+                # A declared HETEROATOM context (a pseudoketone's ring or azo nitrogen) is not the group's: the carved substituent owns it.
+                _pass1_ctx = frozenset(fg.get_property("context_atoms") or ())
+                tp_substituent_atoms = frozenset(
+                    a for a in fg_atoms_offparent
+                    if not (mol.GetAtomWithIdx(a).GetAtomicNum() != 6 and a in _pass1_ctx)
+                ) | _fg_extra.get(id(fg), frozenset())
 
             # Find the atom in tp_substituent_atoms that is bonded to parent
             # (the outermost heteroatom, e.g. Cl for chloro, O for hydroxy).

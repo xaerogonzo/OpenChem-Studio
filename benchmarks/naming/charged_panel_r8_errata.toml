@@ -1,0 +1,247 @@
+# Errata overlay for charged_panel_r8.toml (naming round 8).
+#
+# THE PANEL FILE IS IMMUTABLE (its hash is pinned), so a correction to what it says goes here, keyed by row id, and the
+# panel is never edited. Found while checking the panel's citations, after it was frozen and before any fix was measured:
+# every row's PDF PAGE and PRINTED NAME were verified (each printed name was found on its page), but the PARAGRAPH
+# NUMBER in a row's `source` was, for most rows, inferred from neighbouring text and never checked. A paragraph
+# number is the one field nothing else verifies, which is why it is where citation errors hide.
+#
+#   [[verified_paragraph]]   the paragraph number was checked against the book text or the rendered page
+#   [[unverified_paragraph]] the paragraph number in the panel's `source` is NOT evidence; cite the page and the printed
+#                            name only. `cited` is exactly what the panel says, so this overlay stays tied to it
+
+[[verified_paragraph]]
+id = "P0-citric-acid"
+checked = "P-65.1.1.2.3 (pdf p. 578: the heading precedes the citric acid entry)"
+
+[[verified_paragraph]]
+id = "P0-pentane-1,3,5-tricarboxylic"
+checked = "P-65.1.2.2.1 (pdf p. 579)"
+
+[[verified_paragraph]]
+id = "P0-ethane-1,1,2,2-tetracarboxylic"
+checked = "P-65.1.2.2.1 (pdf p. 579)"
+
+[[unverified_paragraph]]
+id = "P0-methanetricarboxylic"
+cited = ["P-65.1.2.2.1"]
+
+[[unverified_paragraph]]
+id = "P0-propane-1,2,3-tricarboxylic"
+cited = ["P-65.1.2.2.1"]
+
+[[unverified_paragraph]]
+id = "P0-1-hydroxy-3-oxopropane-1,2,3-tricarboxylic"
+cited = ["P-65.1.2.4"]
+
+[[unverified_paragraph]]
+id = "P0-benzene-1,2,4-tricarboxylic"
+cited = ["P-15.6"]
+
+[[unverified_paragraph]]
+id = "P0-pyromellitic"
+cited = ["P-65.1.2.2.2"]
+
+[[unverified_paragraph]]
+id = "P0-succinic"
+cited = ["P-65.1.1.2.1"]
+
+[[verified_paragraph]]
+id = "P0-tartaric"
+checked = "P-65.1.1.2.3 (pdf p. 578)"
+
+[[verified_paragraph]]
+id = "P0-propane-1,2,3-tricarboxamide"
+checked = "P-66.1.1.1.1.2 (pdf p. 645)"
+
+[[verified_paragraph]]
+id = "P0-butane-1,1,1-tricarbonitrile"
+checked = "P-66.5.1.1.2 (pdf p. 686)"
+
+[[verified_paragraph]]
+id = "P0-butane-1,2,4-tricarbaldehyde"
+checked = "P-66.6.1.1.2 (pdf p. 691)"
+
+[[unverified_paragraph]]
+id = "P0-trimethyl-butane-1,1,3-tricarboxylate"
+cited = ["P-65.6.3.2"]
+
+[[unverified_paragraph]]
+id = "Q1-citrate-trianion"
+cited = ["P-65.6.2"]
+
+[[unverified_paragraph]]
+id = "Q1-citrate-dianion-ends"
+cited = ["P-65.6.2"]
+
+[[unverified_paragraph]]
+id = "Q1-citrate-dianion-end-centre"
+cited = ["P-65.6.2"]
+
+[[unverified_paragraph]]
+id = "Q1-citrate-monoanion-centre"
+cited = ["P-65.6.2"]
+
+[[unverified_paragraph]]
+id = "Q1-citrate-monoanion-end"
+cited = ["P-65.6.2"]
+
+[[unverified_paragraph]]
+id = "Q1-tricarballylate-trianion"
+cited = ["P-65.6.2"]
+
+[[unverified_paragraph]]
+id = "Q1-methanetricarboxylate"
+cited = ["P-65.6.2"]
+
+[[unverified_paragraph]]
+id = "Q1-benzene-1,2,4-tricarboxylate"
+cited = ["P-65.6.2"]
+
+[[unverified_paragraph]]
+id = "Q1-pyromellitate"
+cited = ["P-65.6.2"]
+
+[[unverified_paragraph]]
+id = "Q1-succinate-dianion"
+cited = ["P-65.6.2"]
+
+[[unverified_paragraph]]
+id = "Q2-trisodium-citrate"
+cited = ["P-65.6.2"]
+
+[[unverified_paragraph]]
+id = "Q2-tricalcium-dicitrate"
+cited = ["P-65.6.2"]
+
+[[unverified_paragraph]]
+id = "Q2-potassium-sodium-hydrogen-tricarballylate"
+cited = ["P-65.6.2.2"]
+
+[[unverified_paragraph]]
+id = "Q3-salicylate-dianion"
+cited = ["P-72.2"]
+
+[[unverified_paragraph]]
+id = "Q4-benzene-1,4-disulfonate"
+cited = ["P-65.3.1.1"]
+
+[[unverified_paragraph]]
+id = "Q4-benzene-1,4-disulfonate-monoanion"
+cited = ["P-65.3.1.1"]
+
+[[verified_paragraph]]
+id = "R0-biuret"
+checked = "P-66.1.6.1.4 (pdf p. 663, read from the rendered page)"
+
+[[verified_paragraph]]
+id = "R0-triuret"
+checked = "P-66.1.6.1.4 (pdf p. 663, read from the rendered page)"
+
+[[unverified_paragraph]]
+id = "R0-biguanide"
+cited = ["P-66.4.1.2"]
+
+[[unverified_paragraph]]
+id = "R0-triguanide"
+cited = ["P-66.4.1.2"]
+
+[[unverified_paragraph]]
+id = "R0-ethyl-diphenyl-biguanide"
+cited = ["P-66.4.1.2.2"]
+
+[[unverified_paragraph]]
+id = "R0-metformin"
+cited = ["P-66.4.1.2"]
+
+[[unverified_paragraph]]
+id = "R0-polyguanide-n5"
+cited = ["P-66.4.1.2.3"]
+
+[[unverified_paragraph]]
+id = "R1-metforminium"
+cited = ["P-73.1.2"]
+
+[[unverified_paragraph]]
+id = "R1-biguanidium"
+cited = ["P-73.1.2"]
+
+[[unverified_paragraph]]
+id = "R1-biguanidium-dication"
+cited = ["P-73.1.2"]
+
+[[unverified_paragraph]]
+id = "S0-imidazolium"
+cited = ["P-73.1.1.2"]
+
+[[unverified_paragraph]]
+id = "S0-benzimidazolium"
+cited = ["P-73.1.1.2"]
+
+[[unverified_paragraph]]
+id = "S0-pyrazolium"
+cited = ["P-73.1.1.2"]
+
+[[verified_paragraph]]
+id = "S0-pyridinium-NH"
+checked = "P-13.3.2 (pdf p. 60)"
+
+[[unverified_paragraph]]
+id = "S0-2-aminopyridinium"
+cited = ["P-73.1.1"]
+
+[[unverified_paragraph]]
+id = "S1-1-methylpyridinium"
+cited = ["P-73.1.1.2"]
+
+[[unverified_paragraph]]
+id = "S1-1,3-dimethylimidazolium"
+cited = ["P-73.1.1.2"]
+
+[[unverified_paragraph]]
+id = "S2-4-carboxy-1-methylpyridinium-chloride"
+cited = ["P-65.1.2.4"]
+
+[[unverified_paragraph]]
+id = "S2-trimethylanilinium"
+cited = ["P-73.1.2.1"]
+
+[[unverified_paragraph]]
+id = "S2-tetramethylammonium"
+cited = ["P-73.1.2.1"]
+
+[[unverified_paragraph]]
+id = "S2-dimethylguanidinium"
+cited = ["P-73.1.2.2"]
+
+[[unverified_paragraph]]
+id = "S2-guanidinium"
+cited = ["P-73.1.2.2"]
+
+[[unverified_paragraph]]
+id = "S2-trimethylbenzamidium"
+cited = ["P-73.1.2.1"]
+
+[[unverified_paragraph]]
+id = "S2-benzonitrilium"
+cited = ["P-73.1.2.1"]
+
+[[unverified_paragraph]]
+id = "S2-tetramethyldiazenediium"
+cited = ["P-73.1.1.2"]
+
+[[unverified_paragraph]]
+id = "S2-dioxanediium"
+cited = ["P-73.1.1.2"]
+
+[[unverified_paragraph]]
+id = "S3-glycine-cation"
+cited = ["P-73.1.2"]
+
+[[unverified_paragraph]]
+id = "S4-imidazolium-chloride"
+cited = ["P-73.1.1.2"]
+
+[[unverified_paragraph]]
+id = "S4-imidazolium-acetate"
+cited = ["P-73.1.1.2"]

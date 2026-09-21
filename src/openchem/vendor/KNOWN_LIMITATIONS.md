@@ -343,7 +343,68 @@ Found while checking D-029; predates it.
   non-minimal lambda numbering and three general-nomenclature-only acylium
   names; the engine's output is correct in every case. See `CHANGELOG.md`.
 
+## Open after naming round 8 (2026-09-21)
+
+Round 8 fixed the polyacid parent choice (citrate and its class), the isothiourea wrong molecule and the enclosure rule behind it, condensed guanidines and ureas
+(n = 2, 3 and >= 5), protonated azoles and the cation classes around them, imide and acyl hydrazide parents, pseudoketones, and then, in a limitations pass, the defects
+below that its own probing found. Its evidence is `tests/test_namer_known_defects.py` (D-100 to D-128), the stage artifacts `benchmarks/naming/stages/r8-*.json`, and the
+expected-change manifests beside them. What is left, by layer.
+
+**Found by probing common compounds, not by any corpus.** Six of the pass's fixes had NO corpus row containing them: `prop-2-eneamide` for acrylamide (D-120), `methyl acetylmethylazinite`
+for the Weinreb amide (D-125), `3-oxobutan-2-one` for biacetyl (D-127), `dimethoxyoxomethane` for dimethyl carbonate (D-128), and the nitrate and mixed-polyanion names. The corpora
+measure the engine on what they contain; a battery of ordinary molecules whose names one knows is a different instrument, and each round should run one.
+
+| layer | case | emits | target | note |
+|---|---|---|---|---|
+| candidate generation | a THIOLATE beside an acid anion: `[S-]c1ccccc1C(=O)[O-]` | `2-[oxido(oxo)methyl]benzene-1-thiolate` | `2-sulfanidobenzoate`-style (derived) | the carved route now takes an olate beside an acid anion (D-121); a thiolate's anionic prefix is not built. Round-trips |
+| serialization | a charged acid group INSIDE a substituent | `4-[(oxidosulfonyl)methyl]benzoate`, `3-carboxy-4-(2-oxido-2-oxoethyl)benzoate` | `4-(sulfonatomethyl)benzoate`, `...(carboxylatomethyl)...` (pdf p. 619) | the recursive substituent path names a charged group with 'oxido'; the ledger's 'carboxylato' repair covers the classifier route only. Round-trips |
+| candidate generation | an N-alkoxy THIOAMIDE, an N,N-dialkoxy amide, O-alkylhydroxylamines | `N-methoxy-N-methyl-1-thioxoethan-1-amine`, `1-(dimethoxyamino)-1-oxoethane`, `(aminooxy)methane` | `N-methoxy-N-methylethanethioamide`, ..., `O-methylhydroxylamine (PIN)` (pdf pp. 96, 753) | D-125 built the amide and amine; hydroxylamine is a retained parent the engine does not construct |
+| candidate generation | several nitrate groups | `1,2,3-tris(nitrooxy)propane` | `propane-1,2,3-triyl trinitrate` | D-123 names ONE nitrate or nitrite ester; a polynitrate needs a multivalent organyl |
+| candidate generation | carbonic acid halides and anhydrides: chloroformates, di-tert-butyl dicarbonate, mixed anhydrides | `methoxymethanoyl chloride`, a nine-part prefix name | `methyl carbonochloridate`, `bis(2-methylpropan-2-yl) dicarbonate` | D-128 names the acyclic diester and the hydrogen ester only |
+| candidate generation | carbazate esters `CCOC(=O)NN` (D-088b) | `(ethoxycarbonyl)hydrazine` | `ethyl hydrazinecarboxylate` | the stale comment in `types.py` says the anion cannot be named; it can (`hydrazinecarboxylate`). The functional-class carbamate plan assembles `ethyl aminocarbamate`, so the fix is a carbazate assembly, not removing the refusal |
+| serialization | peptide-like acyl prefixes | `acetamidoacetamidoacetic acid` (no enclosure), `[(2-amino-1-oxoethyl)amino]acetic acid` (glycyl) | enclosed amido prefixes; a glycyl form | both read back. The book's form for a retained amino acid's acyl is not settled in the pages read, so no target is claimed |
+| serialization | the acyl prefix of a RING-nitrogen amide on a ring or a chain parent that is not itself the acid: `OC(=O)c1ccc(cc1)C(=O)N1CCCCC1` | `4-[(oxo)(piperidin-1-yl)methyl]benzoic acid` | `4-(piperidine-1-carbonyl)benzoic acid` (the prefix is printed, p. 667: `(piperidine-1-carbonyl)`) | the carbon-attached ring acyl works (`pyridine-4-carbonyl`); a formyl on a ring NITROGEN is named on the methane parent. A string rewrite cannot tell a ring `-1-yl` from `propan-2-yl` (isobutyryl), so it needs the tree. Round-trips; drug-like amides of piperidine, morpholine and pyrrolidine are this shape |
+| serialization | a second prefix on a one-carbon ketone parent: `O=C(c1ccccc1)N1CCOCC1` | `(morpholin-4-yl)phenylmethanone` | `(morpholin-4-yl)(phenyl)methanone` | the book encloses the second and further substituents of a mononuclear parent (P-16.5.1.3.1); the ketone-parent assembly does not. Presentation only, reads back |
+| candidate generation | condensed guanidines and ureas with n >= 5 AND substituents | not the bare-chain name (a guard, D-113) but no substituted name either | the skeletal-replacement name with substituent prefixes (P-66.4.1.2, p. 677) | W2 built the unsubstituted chain only; a substituted or tautomeric long chain is refused with an error the provider never shows |
+| candidate generation | the imidazo[4,5-d]imidazole cation and other cations of a fused ring with no curated entry | named by the generic route or refused | a retained/fusion cation name | W3's ring carve finds the retained name where a curated ring exists; a fused cation with none has no name to find |
+| numbering | curated HYDRO or BRIDGED ring entries with letter labels on atoms in three rings (`12a`/`12b`, `6a`, `13a` in three entries) | the labels as tabled | unknown | `tests/test_known_deviations.py` scans only the fully aromatic entries; in a cage an atom in three rings is a bridgehead, not an interior carbon, and the three were not classified |
+| candidate generation | the r8 addendum panel's four remaining NON_PREFERRED rows and its one ENGINE_ERROR (`benchmarks/naming/charged_panel_r8.toml`) | `potassium sodium 2-(carboxymethyl)butanedioate`, `1,1-dimethylguanidinium`, `N,N,N-trimethyl-1-oxo-1-phenylmethanaminium`, `(phenylmethylidyne)azanium`; the biguanide DICATION `NC(=[NH2+])NC(N)=[NH2+]` is REFUSED (no name) | `potassium sodium hydrogen propane-1,2,3-tricarboxylate` (p. 619), `N,N-dimethylguanidinium` (p. 819), `N,N,N-trimethylbenzamidium`, `benzonitrilium` | all four round-trip. The hydrogen-salt method is a construction of its own; the guanidinium locant style `N,N-` and the retained amidinium/nitrilium cation names are not built. The dication is the W2 negative control (a dication name for a MONOcation was the wrong molecule; a true dication has no name yet, and the app withholds it) |
+| serialization | benzil | `1,2-diphenylethane-1,2-dione` | `diphenylethanedione (PIN)` (p. 559) | the book omits the locants of a symmetrical ethane; the rule is not built |
+| serialization | substituted carbamimidoyl (D-091v) | `4-[(dimethylamino)(ethylimino)methyl]benzoic acid` | `4-(N'-ethyl-N,N-dimethylcarbamimidoyl)benzoic acid` (p. 676) | a string-level rewrite like the carbamoyl one would need to split the N-substituents; not attempted |
+| candidate generation | peroxide, sulfur, phosphorus and boron pseudoketones | oxo prefixes on the heteroatom | 'one' names | D-118 built the ring nitrogen, azo and silicon cases |
+| candidate generation | diacyl peroxides, xanthate esters | `1-(acetylperoxy)-1-oxoethane`, `O-ethyl (methylsulfanyl)methanethioate` | `diacetyl peroxide`, `O-ethyl S-methyl carbonodithioate` | found by probing; not investigated |
+
+**Not attempted, unchanged from round 5/6** (each keeps its row in "Open after naming round 5"): the remaining P-15.3 multiplicative constructions (D-088f, h, i, j), the silicon
+rows (D-089s, u, v; D-090b), the hydrazide prefix spelling (D-088d, partly fixed), and fusion (D-086a to c).
+
+**Carried over UNCHANGED from earlier sections and still open** (each keeps its row and its page there): chiral amino-acid anions (`alaninate`, ... need a stereo policy; "Open after naming round 7"), deprotonated phosphonic
+and phosphoric acids (a DECLARED unsupported class), a betaine's cationic prefix (source unresolved), a compound acyl name on `azanide`, and, from round 5: second-order attached components, multiparent systems, interior
+heteroatoms (P-25.3.3.2), 7/8-membered rings fused on three or more sides, rings of more than eight members and helicenes, hydro forms of a traditionally numbered retained parent, the P-44.1.2 senior-atom tier between two
+rings, and OPSIN's unaudited ring vocabulary. **The one deliberate deviation from the book is now a registry:** `benchmarks/naming/known_deviations.toml` (pyrene 10b/10c, perylene 12c/12d, benz[de]isoquinoline 9b, against
+the book's 3a1, 5a1, 6b1), reported as KNOWN_DEVIATION and never counted as a preferred match, guarded by `tests/test_known_deviations.py`.
+
+**Decisions this round that a reader should not have to rediscover.** (1) A new round-trip verdict, `RoundTrip.TAUTOMER` (standard-InChI equal), is shown WITH a note and no longer withheld: PubChem's own metformin drawing was
+getting the right PIN and no name, because the PIN reads back as the other tautomer. This amends a recorded decision (`docs/ARCHITECTURE.md`, dated 2026-09-21); it is one commit (`ee20f0a`) if it is to be reverted.
+(2) The pseudoketone groups make the engine call a carbonyl on a ring or azo nitrogen a ketone (P-64.3.2) while the v2 vocabulary calls it an amide; declared in `ENGINE_DISAGREEMENTS`. (3) An acid, amide or aldehyde
+beside such a group still outranks it (Table 4.1).
+
+**Where round 9 should start.** (a) Run `python tools/naming_probe.py --file <battery>` on a battery of ordinary compounds BEFORE reading any corpus: it found six of this round's fixes and names each plan that failed to execute
+(`--failures`), the silent fall-back that hid most of them. The 200-shape snapshot `tests/fixtures/naming_cation_shapes.txt` is the seed (it pins the neighbours of every class fixed here, and the open ones under their own comment).
+(b) By likely frequency in drug-like molecules, the open rows above rank roughly: peptide acyl prefixes, a charged acid group inside a substituent, carbazates and chloroformates, then the P-15.3 multiplicative constructions.
+(c) Every fix in this round followed one routine, and the routine is what made the numbers trustworthy: D-rows red first, converses that differ by reason, a mutation check with the equivalent mutants written into the code,
+`tools/naming_ref_compare.py --base <sha> --manifest ...` BEFORE the commit and never chained to it, and the naming-consumer set (`tools/naming_consumers.py`) before the full gate.
+
+**Checked and NOT a defect:** a carbonyl on a ring nitrogen is a 'ketone' to the naming engine (P-64.3.2) and an amide to the v2 vocabulary. The disagreement is declared in
+`ENGINE_DISAGREEMENTS` beside the lactam, imide and urea ones, and the cross-check test found it (indometacin).
+
+**Process notes worth keeping.** (1) A gate can crash for a reason that is not the change: the Windows shard crash (exit 139 in `conftest.dispose`) follows process lifetime, so the
+app suite is run in chunks of 25 files with a retry, in a detached worktree. (2) A fix that only re-routes can name a DIANION as a monoanion: check the charge of every name a
+new route produces (D-121's first version named `4-sulfobenzoate`). (3) A converse row is the cheapest regression test there is: three of this pass's own regressions
+(`(3-amino-3-oxopropyl)tri(methyl)ammonium`, `(methoxyoxy)ethane`, `2-carboxy-N-methoxyacetamide`) were caught by a converse before they were committed.
+
 ## Open after naming round 7 (2026-09-20)
+
+**Status after naming round 8 (2026-09-21):** the rows below for the citrate trianion, the biguanidium cation, protonated imidazole and benzimidazole, and the serinate zwitterion are FIXED (the rows of `tests/test_namer_known_defects.py` commented 'naming round 8, W1', 'W2' and 'W3', and D-121); the isothiourea wrong molecule found by the fresh set is fixed with the enclosure rule behind it (W5). What remains of this table is still true as written.
 
 Round 7 fixed the acid-anion class (one decision function, `charge_perception.acid_anion_route`, both
 routes ask it), a charge-conservation defect in the zwitterion route, and the retained names, salt
@@ -398,6 +459,8 @@ the panel header.
   thiocyanate` by the acyl route) are not attempted by the ester route.
 
 ## Open after naming round 5 (2026-09-20)
+
+**Status after naming round 8 (2026-09-21):** N'-acyl hydrazides (D-088a), two acyl groups on one N (D-091u), carbon with two double-bonded suffix groups and C=O between two N= (D-088c) and the condensed ureas (D-091t) are FIXED; the hydrazide prefix spelling (D-088d) is partly fixed (the acid is the parent, the prefix is still `[(2-methylhydrazinyl)(oxo)methyl]`). Still open here: carbazate esters (D-088b, with the diagnosis in 'Open after naming round 8'), D-088f, h, i, j, D-089s, u, v, D-090b, D-091v, and fusion (D-086a to c). The table below is otherwise unchanged.
 
 Kept by layer, as round 4's list is. Filled in stage by stage; the round's
 adjudicated open rows are in `benchmarks/naming/adjudication.toml`, each with
