@@ -1,0 +1,25 @@
+# W2 (naming round 8), part 2: the condensed urea and guanidine constructor. Measured against the part-1 engine (0a36ed5).
+# Expected names are the PANEL's printed targets (pdf pp. 663 and 677), never the engine's own output.
+
+stage = "W2-condensed"
+
+[[expect]]
+id = "r8:R0-biuret"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-66.1.6.1.4"
+expected_layer = "CANDIDATE_ABSENT"
+expected_name = "2-imidodicarbonic diamide"
+
+[[expect]]
+id = "r8:R0-triuret"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-66.1.6.1.4"
+expected_layer = "CANDIDATE_ABSENT"
+expected_name = "2,4-diimidotricarbonic diamide"
+
+[[expect]]
+id = "r8:R0-triguanide"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-66.4.1.2"
+expected_layer = "CANDIDATE_ABSENT"
+expected_name = "diimidotricarbonimidic diamide"

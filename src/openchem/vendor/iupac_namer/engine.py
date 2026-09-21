@@ -4210,6 +4210,246 @@ def _name_biguanide_functional_parent(
     )
 
 
+def _name_condensed_carbonic_diamide_functional_parent(
+    mol,
+    output_form: OutputForm,
+    decision_ctx: DecisionContext | None,
+    strategy,
+    session: NamingSession,
+    depth: int,
+) -> LeafTree | None:
+    """Condensed ureas and guanidines, H2N-[C(=X)-NH]n-H (naming round 8, W2).
+
+    P-66.1.6.1.4 (pdf p. 663): "Condensed ureas ... where n = 2, 3, or 4, are named systematically as diamides of
+    imidodicarbonic acid, diimidotricarbonic acid, and triimidotetracarbonic acid ... The names biuret, triuret, etc., are no
+    longer recommended as preferred IUPAC names", printed as '2-imidodicarbonic diamide (PIN)' and '2,4-diimidotricarbonic
+    diamide (PIN)'. P-66.4.1.2 (p. 677) gives the guanidines the same way, X = NH: 'imidodicarbonimidic diamide (PIN)',
+    'diimidotricarbonimidic diamide (PIN)'. Round 4 built n = 2 for guanidines only (`_name_biguanide_functional_parent`, which
+    this leaves alone); the ureas, and guanidines from n = 3, were named as a chain of 'carbamoyl' and 'carbamimidoyl' prefixes.
+
+    Numbering follows the figures on those pages: positions run along the chain, carbons at the odd positions and the bridging
+    nitrogens at the even ones. The terminal amino nitrogen of an end carbon at position k is N<k>; its imino nitrogen is N'<k>;
+    the imino nitrogen of an interior carbon is N<k>; a bridging nitrogen takes its numeric position. Lowest locants go to the
+    substituents together, and the chain is numbered from whichever end gives them.
+
+    Deliberately narrow: the chain must be linear, every carbon of one family (all C=O or all C=NH), each guanidine's double bond to
+    its own non-bridging nitrogen, at most four carbons (n >= 5 guanidines are skeletal-replacement names, a different
+    construction), and every other heavy atom must hang off a chain nitrogen. Anything else returns None and the generic path
+    stands. An acid or another group senior to an amide in a substituent also returns None, since that group is then the parent.
+    """
+    if output_form != OutputForm.STANDALONE:
+        return None
+
+    def core_carbon(atom):
+        if atom.GetAtomicNum() != 6 or atom.GetFormalCharge() != 0 or atom.IsInRing():
+            return None
+        heavy = [nb for nb in atom.GetNeighbors() if nb.GetAtomicNum() > 1]
+        if len(heavy) != 3:
+            return None
+        x = None
+        kind = None
+        singles = []
+        for nb in heavy:
+            order = mol.GetBondBetweenAtoms(atom.GetIdx(), nb.GetIdx()).GetBondTypeAsDouble()
+            if nb.GetFormalCharge() != 0 or nb.IsInRing():
+                return None
+            if order == 2.0 and nb.GetAtomicNum() == 8 and nb.GetDegree() == 1 and x is None:
+                x, kind = nb, "O"
+            elif order == 2.0 and nb.GetAtomicNum() == 7 and x is None:
+                x, kind = nb, "N"
+            elif order == 1.0 and nb.GetAtomicNum() == 7 and not nb.GetIsAromatic():
+                singles.append(nb)
+            else:
+                return None
+        if x is None or len(singles) != 2:
+            return None
+        return kind, x.GetIdx(), tuple(n.GetIdx() for n in singles)
+
+    carbons = {}
+    for atom in mol.GetAtoms():
+        found = core_carbon(atom)
+        if found is not None:
+            carbons[atom.GetIdx()] = found
+    if len(carbons) < 2:
+        return None
+    if len({kind for kind, _x, _ns in carbons.values()}) != 1:
+        return None
+    kind = next(iter(carbons.values()))[0]
+
+    # A bridging nitrogen is single-bonded to exactly two core carbons; the double-bonded nitrogen of a guanidine carbon may not
+    # also be a bridge (a tautomer this name cannot draw).
+    bridge_of: dict[int, list[int]] = {}
+    for c_idx, (_k, _x, ns) in carbons.items():
+        for n in ns:
+            bridge_of.setdefault(n, []).append(c_idx)
+    imines = {x for _k, x, _ns in carbons.values() if kind == "N"}
+    # EQUIVALENT MUTANT: without this the tautomer drawn with a double bond into a bridging nitrogen leaves a carbon with no
+    # bridge, and the chain check below refuses it anyway. It says the reason out loud.
+    if any(x in bridge_of for x in imines):
+        return None
+    bridges = {n: cs for n, cs in bridge_of.items() if len(cs) == 2}
+    if any(len(cs) > 2 for cs in bridge_of.values()):
+        return None
+
+    adjacency: dict[int, list[int]] = {c: [] for c in carbons}
+    for n, (c1, c2) in bridges.items():
+        adjacency[c1].append(c2)
+        adjacency[c2].append(c1)
+    ends = [c for c, nbrs in adjacency.items() if len(nbrs) == 1]
+    if len(ends) != 2 or any(len(v) not in (1, 2) for v in adjacency.values()):
+        return None
+    path = [ends[0]]
+    while True:
+        nxt = [c for c in adjacency[path[-1]] if c not in path]
+        if not nxt:
+            break
+        path.append(nxt[0])
+    n_units = len(path)
+    if n_units != len(carbons) or n_units > 4:
+        return None
+    # EQUIVALENT MUTANT, noted so it is not rediscovered: dropping this changes no name, because this constructor's n = 2
+    # guanidine names are identical to the biguanide route's. The guard keeps ONE route for a molecule that already has one.
+    if kind == "N" and n_units == 2:
+        return None  # n = 2 guanidine is `_name_biguanide_functional_parent`'s
+
+    bridge_between = {}
+    for n, (c1, c2) in bridges.items():
+        bridge_between[frozenset((c1, c2))] = n
+    ordered_bridges = [bridge_between[frozenset((path[i], path[i + 1]))] for i in range(n_units - 1)]
+
+    core_atoms: set[int] = set()
+    for c_idx, (_k, x, ns) in carbons.items():
+        core_atoms |= {c_idx, x, *ns}
+    heavy_all = {a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() > 1}
+    non_core = heavy_all - core_atoms
+
+    # Substituent components per chain nitrogen (the imino nitrogen of a guanidine, the amino ends, the bridges).
+    chain_ns = [n for c in carbons for n in carbons[c][2]] + ([x for _k, x, _ns in carbons.values()] if kind == "N" else [])
+    chain_ns = list(dict.fromkeys(chain_ns))
+    pool = set(non_core)
+    components: dict[int, list[frozenset[int]]] = {}
+    for n in chain_ns:
+        components[n] = []
+        for nb in mol.GetAtomWithIdx(n).GetNeighbors():
+            if nb.GetIdx() in pool:
+                comp = frozenset(_reach_from(nb.GetIdx(), pool, mol))
+                components[n].append(comp)
+                pool -= comp
+    if pool:
+        return None  # an atom not reached through a chain nitrogen
+
+    # A group senior to an amide in a substituent is the parent instead ("N-(carboxymethyl)biuret" is an acid).
+    from rdkit import Chem as _Chem
+
+    senior = [_Chem.MolFromSmarts(s) for s in (
+        "[CX3](=O)[OX2H1,OX1-]", "[SX4](=O)(=O)[OX2H1,OX1-]", "[PX4](=O)[OX2H1,OX1-]",
+    )]
+    for query in senior:
+        for match in mol.GetSubstructMatches(query):
+            if any(a in non_core for a in match):
+                return None
+
+    from openchem.vendor.iupac_namer.assembly import assemble as _assemble_cd
+
+    def _name_component(n_idx: int, comp: frozenset[int]) -> str:
+        att = next((n_idx, nb.GetIdx()) for nb in mol.GetAtomWithIdx(n_idx).GetNeighbors() if nb.GetIdx() in comp)
+        if mol.GetBondBetweenAtoms(*att).GetBondTypeAsDouble() != 1.0:
+            raise RuntimeError("a condensed-diamide substituent is not single-bonded")
+        sub_mol, sub_att, _bo = carve_substituent(mol, comp, att)
+        sub_fv = FreeValenceInfo(
+            bond_orders=(1,),
+            method=_select_substituent_method(sub_mol, sub_att),
+            attachment_atoms_in_fragment=(sub_att,),
+            elide_locant_one=_fvi_elide_locant_one(sub_mol, sub_att),
+        )
+        sub_tree = name(
+            sub_mol, strategy, OutputForm.SUBSTITUENT, free_valence=sub_fv,
+            decision_ctx=DecisionContext(role="condensed_diamide_n_substituent", parent_plan=None, depth=depth + 1),
+            _session=session, _depth=depth + 1,
+        )
+        sub_name = _assemble_cd(sub_tree)
+        if not sub_name or "[NAMING ERROR" in sub_name:
+            raise RuntimeError(f"condensed-diamide substituent naming failed: {sub_name!r}")
+        return sub_name
+
+    try:
+        named = {n: [(_name_component(n, c)) for c in comps] for n, comps in components.items()}
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("condensed diamide substituent naming failed: %s", exc)
+        return None
+
+    def labels_for(sequence: list[int]) -> dict[int, str]:
+        """N-labels for one direction along the chain (positions 1, 3, ... are carbons; 2, 4, ... bridging nitrogens)."""
+        labels: dict[int, str] = {}
+        for i, c_idx in enumerate(sequence):
+            position = 2 * i + 1
+            _k, x, ns = carbons[c_idx]
+            is_end = i in (0, len(sequence) - 1)
+            bridge_here = {ordered_bridge_of(sequence, j) for j in (i - 1, i) if 0 <= j < len(sequence) - 1}
+            terminals = [n for n in ns if n not in bridge_here]
+            for n in terminals:
+                labels[n] = f"N{position}"
+            if kind == "N":
+                labels[x] = f"N'{position}" if is_end else f"N{position}"
+        for i in range(len(sequence) - 1):
+            labels[ordered_bridge_of(sequence, i)] = str(2 * (i + 1))
+        return labels
+
+    def ordered_bridge_of(sequence: list[int], i: int) -> int:
+        return bridge_between[frozenset((sequence[i], sequence[i + 1]))]
+
+    def locant_key(label: str) -> tuple[int, int]:
+        digits = "".join(ch for ch in label if ch.isdigit())
+        return (int(digits), label.count("'"))
+
+    best = None
+    for sequence in (path, list(reversed(path))):
+        labels = labels_for(sequence)
+        if any(n not in labels for n in chain_ns):
+            return None  # a chain nitrogen this numbering cannot label: not a clean chain
+        cited = sorted((locant_key(labels[n]), derive_sort_name(nm)) for n, nms in named.items() for nm in nms)
+        key = ([loc for loc, _ in cited], [nm for _, nm in cited])
+        if best is None or key < best[0]:
+            best = (key, labels)
+    labels = best[1]
+
+    from openchem.vendor.iupac_namer.assembly import merge_identical_prefixes, render_merged_prefixes
+
+    entries: list[tuple[str, tuple[Locant, ...]]] = []
+    for n, nms in named.items():
+        for nm in nms:
+            label = labels[n]
+            entries.append((nm, (Locant.numeric(int(label)) if label.isdigit() else Locant.hetero(label),)))
+    prefix_str = ""
+    if entries:
+        merged = merge_identical_prefixes(entries)
+        merged.sort(key=lambda mp: mp.sort_name)
+        prefix_str = render_merged_prefixes(merged)
+
+    multiplier = {1: "", 2: "di", 3: "tri", 4: "tetra"}
+    carbonic = {2: "dicarbonic", 3: "tricarbonic", 4: "tetracarbonic"}[n_units]
+    imido_mult = multiplier[n_units - 1]
+    if kind == "O":
+        locants = ",".join(str(2 * i) for i in range(1, n_units))
+        parent = f"{locants}-{imido_mult}imido{carbonic} diamide"
+    else:
+        parent = f"{imido_mult}imido{carbonic[:-2]}imidic diamide"
+    joiner = "-" if prefix_str and parent[0].isdigit() else ""
+    final_name = f"{prefix_str}{joiner}{parent}"
+
+    return LeafTree(
+        output_form=output_form,
+        free_valence=None,
+        choices_made=(Choice(
+            type="condensed_carbonic_diamide_functional_parent",
+            detail=f"units={n_units} family={kind} prefixes={prefix_str}",
+        ),),
+        decision_ctx=decision_ctx,
+        validity_warnings=None,
+        text=final_name,
+    )
+
+
 def _handcraft_alpha_substituted_acetamido(
     mol,
     attachment_idx: int,
@@ -9419,6 +9659,21 @@ def _name_bound(
     if het_fv_tree is not None:
         _session.cache_store(smiles, output_form, fv_bond_orders, het_fv_tree, attachment_indices)
         return het_fv_tree
+
+    # --- Condensed ureas (n = 2..4) and guanidines from n = 3 (naming round 8, W2): P-66.1.6.1.4, P-66.4.1.2. ---
+    # BEFORE the urea route: `_name_urea_functional_parent` claims biuret as 'N-carbamoylurea', and the biguanide route
+    # below absorbs a third guanidine unit as a 'carbamimidoyl' substituent, so a later position is never reached. The
+    # constructor is narrow (a linear chain of two or more urea or guanidine carbons, and nothing else) and returns None
+    # for anything it cannot fully account for, so running first costs nothing for every other molecule.
+    if (output_form == OutputForm.STANDALONE
+            and free_valence is None):
+        cd_tree = _name_condensed_carbonic_diamide_functional_parent(
+            mol, output_form, decision_ctx,
+            strategy=strategy, session=_session, depth=_depth,
+        )
+        if cd_tree is not None:
+            _session.cache_store(smiles, output_form, fv_bond_orders, cd_tree, attachment_indices)
+            return cd_tree
 
     # --- Urea functional parent (P-66.6.3) ---
     # Detect (R)2N-C(=O)-N(R)2 cores at the molecule level and emit the retained

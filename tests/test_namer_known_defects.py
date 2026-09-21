@@ -2234,10 +2234,10 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "as its substituent (limit 1100, amides are 1100)"),
     ("D-091d", "NC(=O)NCCCNC=O", "N-[3-(carbamoylamino)propyl]formamide",
      "N-(3-formamidopropyl)urea", "p. 660, verbatim '[not N-(3-formamidopropyl)urea]'"),
-    ("D-091e", "NC(=O)NC(=O)NC(N)=O", "N-(carbamoylcarbamoyl)urea",
-     "N-(carbamoylcarbamoyl)urea", "control, NOT the PIN (2,4-diimidotricarbonic diamide, "
-     "OPEN D-091t): the new urea group and an amide both claimed the shared N until the "
-     "amide was made to subsume it"),
+    ("D-091e", "NC(=O)NC(=O)NC(N)=O", "2,4-diimidotricarbonic diamide",
+     "N-(carbamoylcarbamoyl)urea", "was a control for the NON-PIN name while D-091t was open (the new urea group and an "
+     "amide both claimed the shared N until the amide was made to subsume it); naming round 8 built the printed PIN "
+     "(p. 663), so the control now pins the PIN and the ownership point stands: one route owns the shared nitrogen"),
     ("D-091f", "NC(=N)CCC(=O)O", "4-amino-4-iminobutanoic acid",
      "4-carbamimidoylbutanoic acid", "a WRONG MOLECULE before: 'carbamimidoyl' carries its "
      "carbon and the chain named it too. P-66.4.1.3.2 (p. 676): a chain-terminal amidine "
@@ -2464,6 +2464,47 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-103d", "NC(=[NH2+])NCCCl", "(2-chloroethyl)guanidinium",
      "2-chloroethylguanidinium", "derived (P-16.5.1.3: a prefix that carries a locant is enclosed): structurally right "
      "before, non-preferred"),
+    # ---- naming round 8, W2 part 2: condensed ureas and guanidines (P-66.1.6.1.4 pdf p. 663, P-66.4.1.2 pdf p. 677). Converses
+    # first: they pass today and must not move.
+    ("D-104x", "NC(N)=O", "urea", "(unchanged)", "converse: n = 1 is urea itself, a retained name, not a condensed chain"),
+    ("D-104y", "NC(=N)NC(N)=N", "imidodicarbonimidic diamide", "(unchanged)",
+     "converse, p. 677 verbatim: n = 2 guanidine has its own constructor since round 4 and this constructor must not touch it"),
+    ("D-104z", "CN(C)C(=N)NC(N)=N", "N1,N1-dimethylimidodicarbonimidic diamide", "(unchanged)",
+     "converse: metformin, the regression-corpus row, already the book's form (the round's plan assumed it would change)"),
+    ("D-104w", "CC(=O)NC(N)=O", "N-carbamoylacetamide", "(unchanged)",
+     "converse: an acetylurea has ONE urea carbon; a chain needs at least two urea/guanidine carbons"),
+    # (moved from OPEN when the condensed-diamide constructor landed; each was red before, with the names in the 'former' column)
+    # The Blue Book prints these with the imido locants for ureas ('2-imidodicarbonic diamide') and without for guanidines.
+    ("D-104a", "NC(=O)NC(N)=O", "2-imidodicarbonic diamide", "N-carbamoylurea",
+     "p. 663 verbatim (biuret is 'no longer recommended as a preferred IUPAC name')"),
+    ("D-104b", "NC(=O)NC(=O)NC(N)=O", "2,4-diimidotricarbonic diamide", "N-(carbamoylcarbamoyl)urea",
+     "p. 663 verbatim (triuret)"),
+    ("D-104c", "NC(=N)NC(=N)NC(N)=N", "diimidotricarbonimidic diamide", "N1-carbamimidoylimidodicarbonimidic diamide",
+     "p. 677 verbatim (triguanide); structurally right before, and not the PIN"),
+    ("D-104d", "NC(=O)NC(=O)NC(=O)NC(N)=O", "2,4,6-triimidotetracarbonic diamide", "N-[(carbamoylcarbamoyl)carbamoyl]urea",
+     "derived (p. 663: 'n = 2, 3, or 4'): the next member of the printed series"),
+    ("D-104e", "CNC(=O)NC(N)=O", "N1-methyl-2-imidodicarbonic diamide", "N-carbamoyl-N'-methylurea",
+     "derived (p. 663: 'locants ... are used to indicate the positions of substituents'); OPSIN reads it back to the row"),
+    ("D-104f", "CNC(=O)NC(=O)NC", "N1,N3-dimethyl-2-imidodicarbonic diamide", "N-methyl-N'-(methylcarbamoyl)urea",
+     "derived: one substituent on each end, so the locant set is decided by lowest locants, not by atom order"),
+    ("D-104g", "CN(C(N)=O)C(N)=O", "2-methyl-2-imidodicarbonic diamide", "N-carbamoyl-N-methylurea",
+     "derived: a substituent on the BRIDGING nitrogen takes the numeric locant 2, as the figure on p. 663 shows"),
+    ("D-104v", "NC(=O)NC(=O)NCC(O)=O", "[(carbamoylcarbamoyl)amino]acetic acid", "(unchanged)",
+     "converse, an EARLIER rule: a carboxylic acid on a chain nitrogen is senior to the amide, so it is the parent and the "
+     "condensed urea is a prefix; the constructor must return None"),
+    ("D-104u", "NC(=O)NC(=O)NC", "N1-methyl-2-imidodicarbonic diamide", "N-carbamoyl-N'-methylurea",
+     "derived: D-104e written from the OTHER end, so the chain is walked from the other side and the numbering direction, "
+     "not the atom order, must put the substituent on N1"),
+    ("D-104t", "CN=C(N)NC(=N)NC(N)=N", "N'1-methyldiimidotricarbonimidic diamide", "N1-carbamimidoyl-N'3-methylimidodicarbonimidic diamide",
+     "derived (p. 677: the imino nitrogen of an END carbon is N'1, primed): a substituent there is not on the amino nitrogen"),
+    ("D-104r", "NC(=N)NC(=NC)NC(N)=N", "N3-methyldiimidotricarbonimidic diamide", "N1-carbamimidoyl-N3-methylimidodicarbonimidic diamide",
+     "derived (p. 677: an INTERIOR carbon's imino nitrogen is N3, unprimed): the same atom kind as D-104t at a different position"),
+    ("D-104s", "NC(=O)NC(=O)NC(=O)NC(=O)NC(N)=O", "N-{[(carbamoylcarbamoyl)carbamoyl]carbamoyl}urea", "(unchanged)",
+     "converse, RECORDED OPEN: n = 5 ureas. The book prints n = 2, 3 or 4 'etc.' and no n = 5 name, so none is built and the "
+     "constructor stops at four units"),
+    ("D-091t", "NC(=O)NC(=O)NC(N)=O", "2,4-diimidotricarbonic diamide",
+     "N-(carbamoylcarbamoyl)urea", "pdf p. 663 (recorded here as p. 662, the zero-based index): condensed ureas are "
+     "imidopolycarbonic diamides. FIXED in naming round 8 (W2): _name_condensed_carbonic_diamide_functional_parent"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -2536,9 +2577,6 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "p. 110: an unsymmetrical central group (P-15.3.3.1) is not built"),
     # Round 5 (N5): each round-trips today.
     # Round 5 (N6), still open:
-    ("D-091t", "NC(=O)NC(=O)NC(N)=O", "2,4-diimidotricarbonic diamide",
-     "N-(carbamoylcarbamoyl)urea", "p. 662: condensed ureas are imidopolycarbonic diamides; "
-     "not built"),
     ("D-091u", "CC(=O)NC(=O)c1ccccc1", "N-acetylbenzamide", "N-benzoylacetamide",
      "p. 654, verbatim: of two acyls on one N only one amide is perceived, so the "
      "senior one (ring before chain) is never offered as the parent"),
