@@ -3019,6 +3019,36 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "derived: an olate and a carboxylate beside a cation, net negative"),
     ("D-121u", "[S-]c1ccccc1C(=O)[O-]", "2-[oxido(oxo)methyl]benzene-1-thiolate", "(unchanged)",
      "converse and OPEN: a THIOLATE beside an acid anion is not claimed, its anionic prefix ('sulfanido') is not built; the name reads back and is not preferred"),
+    # ---- naming round 8, limitations sweep: TWO ADJACENT ACYCLIC KETONES ARE A DIONE. Perception's ketone pattern, [#6][CX3](=O)[#6], matches biacetyl twice and the two
+    # matches share their middle carbons, so deconfliction kept ONE and the second carbonyl fell to an 'oxo' prefix: 'CC(=O)C(=O)C' was '3-oxobutan-2-one' and benzil
+    # '2-oxo-1,2-diphenylethan-1-one', where the book prints 'butane-2,3-dione (PIN) (not biacetyl)' and 'diphenylethanedione (PIN) (not benzil)' (p. 559). The ring case had
+    # its own repair (_synthesise_ring_carbonyl_fgs, for 1,2-cyclohexanedione); it now also promotes the unclaimed carbonyl of an acyclic carbon with two carbon neighbours.
+    # Found by probing common compounds.
+    ("D-127a", "CC(=O)C(=O)C", "butane-2,3-dione", "3-oxobutan-2-one",
+     "p. 559 VERBATIM 'butane-2,3-dione (PIN)': biacetyl"),
+    ("D-127b", "CCC(=O)C(=O)CC", "hexane-3,4-dione", "4-oxohexan-3-one",
+     "derived: the same, two ethyl flanks"),
+    ("D-127c", "CC(=O)C(=O)C(C)=O", "pentane-2,3,4-trione", "3-oxopentane-2,4-dione",
+     "derived: three adjacent carbonyls"),
+    ("D-127d", "CC(=O)C(=O)c1ccccc1", "1-phenylpropane-1,2-dione", "1-oxo-1-phenylpropan-2-one",
+     "derived: an aryl flank"),
+    ("D-127e", "CC(C)C(=O)C(=O)C(C)C", "2,5-dimethylhexane-3,4-dione", "2,5-dimethyl-4-oxohexan-3-one",
+     "derived: branched flanks"),
+    ("D-127f", "CC(=O)C(=O)CC(C)=O", "hexane-2,3,5-trione", "3-oxohexane-2,5-dione",
+     "derived: an adjacent pair beside a separate ketone"),
+    ("D-127x", "CC(=O)CC(C)=O", "pentane-2,4-dione", "(unchanged)",
+     "converse: separated ketones were always a dione"),
+    ("D-127y", "CC(=O)C(=O)O", "2-oxopropanoic acid", "(unchanged)",
+     "converse: an acid outranks the ketone, so the oxo stays a prefix"),
+    ("D-127z", "O=CC(=O)C", "2-oxopropanal", "(unchanged)",
+     "converse: an aldehyde outranks the ketone"),
+    ("D-127w", "O=C1C(=O)CCCC1", "cyclohexane-1,2-dione", "(unchanged)",
+     "converse: the ring case, repaired before"),
+    # (D-127, continued: benzil, whose printed name omits the locants, and an enone.)
+    ("D-127g", "O=C(c1ccccc1)C(=O)c1ccccc1", "1,2-diphenylethane-1,2-dione", "2-oxo-1,2-diphenylethan-1-one",
+     "p. 559 prints 'diphenylethanedione (PIN) (not benzil)' WITHOUT the locants (a locant-omission rule for a symmetrical ethane, not built); the structure and the dione are the book's"),
+    ("D-127v", "C=CC(=O)C(=O)C", "pent-4-ene-2,3-dione", "3-oxopent-4-en-2-one",
+     "derived: an adjacent pair beside a double bond"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this

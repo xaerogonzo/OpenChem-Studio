@@ -12485,6 +12485,19 @@ def _synthesise_carved_acid_anion_fgs(interpretation, mol):
     return tuple(synthetic)
 
 
+def _is_acyclic_ketone_carbon(atom) -> bool:
+    """A carbon with exactly two single-bonded CARBON neighbours: the shape of a ketone's carbonyl once the caller has found its double-bonded chalcogen.
+
+    (A three-neighbour condition was dropped: a mutant without it was not caught, because the chalcogen test that follows already implies it.)
+    """
+    carbons = 0
+    for bond in atom.GetBonds():
+        nb = bond.GetOtherAtom(atom)
+        if bond.GetBondTypeAsDouble() == 1.0 and nb.GetAtomicNum() == 6:
+            carbons += 1
+    return carbons == 2
+
+
 def _synthesise_ring_carbonyl_fgs(interpretation, mol):
     """Return synthetic ketone-class :class:`DetectedFG` instances for ring
     carbons bearing an unclaimed terminal ``=O`` / ``=S`` / ``=Se`` / ``=Te``.
@@ -12569,7 +12582,9 @@ def _synthesise_ring_carbonyl_fgs(interpretation, mol):
     for atom in mol.GetAtoms():
         if atom.GetAtomicNum() != 6:
             continue
-        if not atom.IsInRing():
+        if not atom.IsInRing() and not _is_acyclic_ketone_carbon(atom):
+            # An acyclic carbon is promoted ONLY when it is a ketone's: exactly two carbon neighbours and the chalcogen (naming round 8). The
+            # second carbonyl of biacetyl is the case; amides, aldehydes and acids are perception's and stay so (see the docstring).
             continue
         if atom.GetIsAromatic():
             continue
@@ -12611,7 +12626,8 @@ def _synthesise_ring_carbonyl_fgs(interpretation, mol):
             properties=(
                 ("seniority", meta["seniority"]),
                 ("terminal", False),
-                ("in_ring", True),
+                # (A mutant that leaves this True for an acyclic carbon is NOT caught, measured: nothing downstream reads it for a ketone.)
+                ("in_ring", atom.IsInRing()),
                 ("elision", meta["elision"]),
                 ("attachment_context", None),
             ),
