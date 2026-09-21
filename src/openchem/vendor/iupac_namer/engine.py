@@ -4117,8 +4117,11 @@ def _name_biguanide_functional_parent(
         if comp_att is None:
             raise RuntimeError("biguanide substituent has no bond to core N")
         sub_mol, sub_att, _bo = carve_substituent(mol, comp, comp_att)
+        # The REAL attachment bond order (naming round 8): it was hard-coded to 1, so a substituent joined to the core by a DOUBLE bond (the
+        # tautomer drawn with =C(N)N on a terminal nitrogen) was named 'diaminomethyl', an sp3 carbon with the wrong hydrogens, instead of
+        # 'diaminomethylidene'. OPSIN reads 'N-(diaminomethylidene)imidodicarbonimidic diamide' back as that tautomer.
         sub_fv = FreeValenceInfo(
-            bond_orders=(1,),
+            bond_orders=(int(_bo),),
             method=_select_substituent_method(sub_mol, sub_att),
             attachment_atoms_in_fragment=(sub_att,),
             elide_locant_one=_fvi_elide_locant_one(sub_mol, sub_att),

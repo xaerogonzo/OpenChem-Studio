@@ -2721,6 +2721,15 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-115x", "C1CNCC[NH2+]1", "piperazin-1-ium", "(unchanged)", "converse: the atom-order twin of D-115a, which already read 1; both must now agree"),
     ("D-115y", "CN1CC[NH+](C)CC1", "1,4-dimethylpiperazin-1-ium", "(unchanged)", "converse: the twin of D-115b written the other way round"),
     ("D-115z", "C[N+]1(C)CCN(C)CC1", "1,1,4-trimethylpiperazin-1-ium", "(unchanged)", "converse: the ium locant and a substituent locant both 1: the tie must not move a case that was already lowest"),
+    # ---- naming round 8, limitations sweep: a biguanide-route substituent joined by a DOUBLE bond. The route hard-coded the attachment bond order to 1, so the tautomer drawn with
+    # =C(N)N on a terminal nitrogen was named 'diaminomethyl' (an sp3 carbon, the wrong hydrogens: a WRONG molecule in the app's canonical spelling). The real bond order gives
+    # 'diaminomethylidene', which OPSIN reads back as exactly that tautomer. Red at f092917, measured; the app names the RDKit CANONICAL spelling, which is what these use.
+    ("D-116a", "N=C(N)NC(=N)N=C(N)N", "N1-(diaminomethylidene)imidodicarbonimidic diamide", "N1-(diaminomethyl)imidodicarbonimidic diamide",
+     "derived (P-66.4.1.2's parent with an ylidene substituent; the book prints no such tautomer); enclosed as a substituted ylidene"),
+    ("D-116x", "ClC(Cl)=C1CCCC1", "(dichloromethylidene)cyclopentane", "(unchanged)", "converse: a substituted ylidene that was ALREADY enclosed and must stay so"),
+    ("D-116y", "S=C1CCCCC1", "cyclohexanethione", "(unchanged)", "converse: a thione, not a substituent prefix"),
+    ("D-116z", "S=C1C=CC=CC1=O", "6-sulfanylidenecyclohexa-2,4-dien-1-one", "(unchanged)",
+     "converse, the reason the ylidene shortcut exists: 'sulfanylidene' is ONE stem and the book prints it bare ('3-sulfanylidene-2-benzothiophen-1-one', pdf p. 642)"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this

@@ -455,7 +455,13 @@ def _is_simple_by_form(name: str) -> bool:
         return False
     m_ylidene = _SIMPLE_YLIDENE.fullmatch(name)
     if m_ylidene is not None and "yl" not in m_ylidene.group(1):
-        return True  # "sulfanylidene", "propylidene" -- one stem (see above)
+        # "sulfanylidene", "propylidene" -- one stem (see above). NOT "diaminomethylidene" or "chloromethylidene": a detachable prefix LEADING a
+        # further stem makes it a substituted ylidene, which is compound and enclosed ("N-(diaminomethylidene)...", naming round 8).
+        stem = re.sub(r"^(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)", "", m_ylidene.group(1))
+        if any(len(stem) > len(w) and stem.startswith(w) or len(m_ylidene.group(1)) > len(w) and m_ylidene.group(1).startswith(w)
+               for w in _LEADING_PREFIX_WORDS):
+            return False
+        return True
     bare = re.sub(r"^(?:di|tri|tetra|penta|hexa|hepta|octa|nona|deca)", "", name)
     if any(w != candidate and candidate.startswith(w)
            for w in _LEADING_PREFIX_WORDS for candidate in (name, bare)):
