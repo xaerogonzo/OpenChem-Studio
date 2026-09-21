@@ -9099,6 +9099,12 @@ def _name_smiles_bound(smiles: str, strategy) -> str:
     nitric_ester_name = _compute_nitric_ester_name(mol)
     if nitric_ester_name is not None:
         return nitric_ester_name
+    # Carbonic acid diesters and hydrogen esters (P-65.6.2.3, pdf p. 620): "dimethyl carbonate", not "dimethoxyoxomethane".
+    from openchem.vendor.iupac_namer.perception.fg.maingroup_oxoacids import compute_carbonic_ester_name as _compute_carbonic_ester_name
+
+    carbonic_ester_name = _compute_carbonic_ester_name(mol)
+    if carbonic_ester_name is not None:
+        return carbonic_ester_name
     # Carbon-substituted nitrogen oxoacids (azonic / azinic), P-67.1.1.2.
     # The organyl-on-N(+)/[O-] skeleton would otherwise be mis-named by the
     # additive-nomenclature N-oxide path inside plan search (e.g.

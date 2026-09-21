@@ -3049,6 +3049,40 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "p. 559 prints 'diphenylethanedione (PIN) (not benzil)' WITHOUT the locants (a locant-omission rule for a symmetrical ethane, not built); the structure and the dione are the book's"),
     ("D-127v", "C=CC(=O)C(=O)C", "pent-4-ene-2,3-dione", "3-oxopent-4-en-2-one",
      "derived: an adjacent pair beside a double bond"),
+    # ---- naming round 8, limitations sweep: A CARBONIC ACID DIESTER IS 'dimethyl carbonate'. Carbonic acid is a functional parent whose esters are named as esters of the
+    # anion, 'sodium hydrogen carbonate (PIN)' (P-65.6.2.3, pdf p. 620) and the book's printed ester words 'O-ethyl O-methyl (18O1)carbonate' (p. 862), 'bis(oxomethyl)
+    # carbonate' (p. 693). The engine had no carbonate ester at all: dimethyl carbonate, a common solvent and reagent, was 'dimethoxyoxomethane', diphenyl carbonate
+    # '[(oxo)(phenoxy)methoxy]benzene', di-tert-butyl carbonate a nine-part prefix name. Deliberately narrow: ONE acyclic carbonic ester group on organyl groups that are not
+    # acyl (a mixed anhydride is another class), in a neutral molecule with no acid, acid halide, other ester, sulfonic or phosphorus acid beside it; a cyclic carbonate
+    # ('1,3-dioxolan-2-one') keeps its ring name. The hydrogen ester ('methyl hydrogen carbonate') is the same generator. Chloroformates ('methyl carbonochloridate') are NOT
+    # built.
+    ("D-128a", "COC(=O)OC", "dimethyl carbonate", "dimethoxyoxomethane",
+     "derived from 'sodium hydrogen carbonate (PIN)' (p. 620) and the ester-word style of P-65.6.3"),
+    ("D-128b", "CCOC(=O)OC", "ethyl methyl carbonate", "[methoxy(oxo)methoxy]ethane",
+     "derived: two different organyl words, alphabetical"),
+    ("D-128c", "O=C(Oc1ccccc1)OC", "methyl phenyl carbonate", "[methoxy(oxo)methoxy]benzene",
+     "derived: an aryl word"),
+    ("D-128d", "CC(C)(C)OC(=O)OC(C)(C)C", "bis(2-methylpropan-2-yl) carbonate", "2-methyl-2-{[(2-methylpropan-2-yl)oxy](oxo)methoxy}propane",
+     "derived: a compound word takes 'bis'"),
+    ("D-128e", "O=C(OCC=C)OCC=C", "di(prop-2-en-1-yl) carbonate", "3-{(oxo)[(prop-2-en-1-yl)oxy]methoxy}prop-1-ene",
+     "derived: diallyl carbonate"),
+    ("D-128f", "OC(=O)OC", "methyl hydrogen carbonate", "methoxymethanoic acid",
+     "derived from 'sodium hydrogen carbonate (PIN)': the acid ester keeps its hydrogen as a word"),
+    ("D-128g", "COC(=O)OCCC#N", "(2-cyanoethyl) methyl carbonate", "3-[methoxy(oxo)methoxy]propanenitrile",
+     "derived: a nitrile is junior to an ester; a compound word is enclosed beside a second word, as in the engine's '(2-chloroethyl) methyl sulfate'"),
+    ("D-128x", "O=C1OCCO1", "1,3-dioxolan-2-one", "(unchanged)",
+     "converse: a CYCLIC carbonate keeps its ring name"),
+    ("D-128y", "COC(=O)OCC(=O)O", "[methoxy(oxo)methoxy]acetic acid", "(unchanged)",
+     "converse: an acid outranks the ester"),
+    ("D-128z", "COC(=O)OCC(=O)OC", "methyl [methoxy(oxo)methoxy]acetate", "(unchanged)",
+     "converse: another carboxylic ester is the parent"),
+    ("D-128w", "CC(=O)OC(=O)OC", "1-[methoxy(oxo)methoxy]-1-oxoethane", "(unchanged)",
+     "converse: a mixed anhydride (an acyl on the oxygen) is another class; not built"),
+    ("D-128v", "O=C(OC)N(C)C", "methyl dimethylcarbamate", "(unchanged)",
+     "converse: a carbamate is its own group"),
+    # (D-128, continued: two carbonate groups are not named by this generator.)
+    ("D-128u", "COC(=O)OCCOC(=O)OC", "1,2-bis[methoxy(oxo)methoxy]ethane", "(unchanged)",
+     "converse: TWO carbonate groups; the first one's remainder holds the second, which is another ester, so it declines"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
