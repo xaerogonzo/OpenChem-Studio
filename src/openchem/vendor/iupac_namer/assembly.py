@@ -2796,6 +2796,31 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                 + [_dc.replace(mp, needs_brackets=True) for mp in merged[1:]]
             )
 
+        # P-16.5.1.3.1 (pdf p. 130): "For mononuclear parent hydrides with two or more substituents the first cited
+        # substituent never has enclosing marks unless it includes a locant. The second and further substituents are each
+        # enclosed with parentheses even for simple substituents." A SUBSTITUENT group whose own parent is one carbon
+        # (methyl, methylidene, methylidyne) is that case, and the book prints it: "[amino(sulfanylidene)methyl]amino" and
+        # "[imino(sulfanyl)methyl]amino" (pdf p. 663). Until naming round 8 only a few OPSIN-specific pairs were enclosed
+        # (the block below), so "amino" + "sulfanyl" ran together as 'aminosulfanylmethylidene', which OPSIN reads as
+        # amino-SULFANYL (S-NH2): the one wrong structure of heldout_v4's final evaluation.
+        # The rule is scoped to what the printed prefixes support: TWO OR MORE distinct prefixes on a one-carbon substituent.
+        # A multiplied single prefix ("dichloromethyl") is one merged prefix and is untouched. The book contradicts itself
+        # once for a three-prefix PARENT hydride (p. 873, "bromo(chloro)fluoromethane" against this rule's text), so no row
+        # pins the three-prefix case and it is recorded as open rather than guessed.
+        # EQUIVALENT MUTANT, noted so it is not rediscovered: dropping the `_is_compound_prefix` test on the FIRST prefix
+        # changes no name, because a compound prefix is already flagged for brackets earlier in the merge; the test says
+        # the rule's own exception (a first prefix that includes a locant keeps its marks) in the place it is applied.
+        if (tree.output_form == OutputForm.SUBSTITUENT
+                and tree.named_parent.candidate.type == "chain"
+                and tree.named_parent.candidate.length == 1
+                and len(merged) >= 2):
+            import dataclasses as _dc
+            merged = (
+                [merged[0] if not _is_compound_prefix(merged[0].name)
+                 else _dc.replace(merged[0], needs_brackets=True)]
+                + [_dc.replace(mp, needs_brackets=True) for mp in merged[1:]]
+            )
+
         # P-29 / P-66.6.3: for a 1-carbon SUBSTITUENT (methyl) with multiple
         # substituents — typically a "C(=NH)(NHNH2)-" / "C(=NH)(NH2)-" /
         # "C(=O)(NHR)-" type fragment — OPSIN reads "(hydrazinyl)iminomethyl"

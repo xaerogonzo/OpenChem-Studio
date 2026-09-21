@@ -33,7 +33,15 @@ EXPECTED_SHA = "6b607a40430b95b4370c474d7b7afc5c9906b68c683192fb0c07f9aed3fb563f
 #: The populations whose rows may be adjudicated. heldout_v2 joined in round 5,
 #: when it stopped being the fresh population; the current fresh one is never
 #: listed here (tests/test_naming_heldout_lock.py).
-LABELLED_POPULATIONS = ("corpus.json", "heldout.json", "heldout2.json")
+# The TUNING populations, from the registry (never a private list: this one stopped at heldout2.json when heldout3.json
+# and heldout4.json turned tuning, and an adjudicated row of the newest population read as pointing at nothing). A frozen
+# population is not in `tuning()`, so this can never open it.
+import sys  # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+import naming_populations as _registry  # noqa: E402
+
+LABELLED_POPULATIONS = tuple(p.file for p in _registry.tuning())
 
 VERDICTS = {
     "ENGINE_WRONG",

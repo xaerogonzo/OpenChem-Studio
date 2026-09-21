@@ -688,7 +688,11 @@ def _name_heteroatom_fv_substituent(
             except Exception as e:
                 logger.debug("ylidene-amino carve/name failed: %s", e)
                 return None
-            compound_prefix = f"({sub_name})amino"
+            # The enclosing mark is one level OUT from whatever the ylidene name already holds (P-16.5.4: parentheses, then
+            # square brackets, then braces). A fixed '(' put parentheses inside parentheses once a second prefix was
+            # enclosed inside the group (naming round 8, W5): '(amino(sulfanyl)methylidene)amino'.
+            _ob, _cb = _choose_brackets_for_ylidene(sub_name)
+            compound_prefix = f"{_ob}{sub_name}{_cb}amino"
             return LeafTree(
                 output_form=output_form,
                 free_valence=free_valence,
@@ -1004,7 +1008,11 @@ def _name_heteroatom_fv_substituent(
             logger.debug("imine-FV ylidene name failed: %s", e)
             return None
 
-        compound_prefix = f"({sub_name})amino"
+        # The enclosing mark is one level OUT from whatever the ylidene name already holds (P-16.5.4: parentheses, then
+        # square brackets, then braces). A fixed '(' put parentheses inside parentheses once a second prefix was
+        # enclosed inside the group (naming round 8, W5): '(amino(sulfanyl)methylidene)amino'.
+        _ob, _cb = _choose_brackets_for_ylidene(sub_name)
+        compound_prefix = f"{_ob}{sub_name}{_cb}amino"
 
         return LeafTree(
             output_form=output_form,
@@ -11698,6 +11706,13 @@ def _has_distinct_nonterminal_form(fg) -> bool:
     forms = fg.suffix_forms_dict()
     nonterminal, terminal = forms.get("nonterminal"), forms.get("terminal")
     return nonterminal is not None and nonterminal != terminal
+
+
+def _choose_brackets_for_ylidene(sub_name: str) -> tuple[str, str]:
+    """The enclosing marks for a ylidene group written before `amino` (`(R-ylidene)amino`), one level out from its content."""
+    from openchem.vendor.iupac_namer.assembly import _choose_brackets
+
+    return _choose_brackets(sub_name)
 
 
 def _carbon_supplying_acyl_acid_fg(fg, mol) -> bool:

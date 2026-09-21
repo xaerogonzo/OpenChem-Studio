@@ -2388,6 +2388,41 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "the name that used to serve the dianion too is now only the mono-anion's"),
     ("D-100ac", "CC(=O)[O-]", "acetate", "(unchanged)",
      "converse: a retained parent has no suffix groups to count and no carboxy word to convert"),
+    # ---- naming round 8, W5 (P-16.5.1.3.1, pdf p. 130): for a one-carbon parent the second and further simple prefixes are
+    # each enclosed. CONVERSES first: they pass today and must not move.
+    ("D-101x", "ClC(Cl)c1ccccc1", "(dichloromethyl)benzene", "(unchanged)",
+     "converse: ONE prefix, multiplied, so there is no second prefix to enclose (the multiplier stays outside marks)"),
+    ("D-101y", "OC(=O)C(Br)Cl", "bromo(chloro)acetic acid", "(unchanged)",
+     "converse, p. 131 verbatim: a NAMED parent already encloses its second prefix"),
+    ("D-101z", "N=C(S)Nc1ccccc1", "anilinomethanimidothioic acid", "(unchanged)",
+     "converse: an isothiourea whose parent DOES survive as a suffix has no demoted prefix to write"),
+    ("D-101w", "CCSC(=N)N(C)C", "1-(ethylsulfanyl)-N,N-dimethylmethanimidamide", "(unchanged)",
+     "converse: p. 663's S-alkyl isothiourea, round-tripping today"),
+    ("D-101v", "CC(Cl)c1ccccc1", "(1-chloroethyl)benzene", "(unchanged)",
+     "converse: a TWO-carbon substituent group is not a mononuclear parent, and one prefix carries a locant"),
+    # (moved from OPEN when the enclosure rule landed; each was red before, with the names in the 'former' column)
+    # ---- naming round 8, W5: the one wrong structure of heldout_v4's final evaluation was an isothiourea whose demoted
+    # prefix was written 'aminosulfanylmethylidene', which OPSIN reads as amino-SULFANYL (S-NH2): another molecule. The book
+    # prints the prefix as '[amino(sulfanyl)methylidene]amino' (p. 663) by P-16.5.1.3.1 (p. 130). Measured layer: SERIALIZATION.
+    ("D-101a", "CCN=C(N)S", "{[amino(sulfanyl)methylidene]amino}ethane",
+     "[(aminosulfanylmethylidene)amino]ethane", "p. 663: the prefix H2N-C(SH)=N- is printed '[amino(sulfanyl)methylidene]amino'; "
+     "the unenclosed form was a WRONG MOLECULE"),
+    ("D-101b", "CN=C(S)NC", "{[(methylamino)(sulfanyl)methylidene]amino}methane",
+     "[((methylamino)sulfanylmethylidene)amino]methane", "derived (p. 130): a compound first prefix keeps its own marks, "
+     "the second is enclosed; the old name was a wrong molecule"),
+    ("D-101d", "FC(Cl)c1ccccc1", "[chloro(fluoro)methyl]benzene",
+     "(chlorofluoromethyl)benzene", "derived (p. 130, and the printed 'amino(sulfanylidene)methyl' of p. 663): the same rule on a "
+     "substituent group; structurally right before, non-preferred"),
+    ("D-101c", "CCOc1ccnc(CCN=C(S)Nc2ccc(Cl)cn2)c1F",
+     "2-[2-({[(5-chloropyridin-2-yl)amino](sulfanyl)methylidene}amino)ethyl]-4-ethoxy-3-fluoropyridine",
+     "2-{2-[([(5-chloropyridin-2-yl)amino]sulfanylmethylidene)amino]ethyl}-4-ethoxy-3-fluoropyridine",
+     "THE heldout_v4 row (h4cid4750), red at r8-base as wrong_structure: the enclosure rule (p. 130) applied to the "
+     "prefix, and the ylidene-amino wrapper now asks _choose_brackets so the marks nest ( [ { ( [ as P-16.5.4 says; the "
+     "name round-trips MATCH. Not the PIN (that is a carbamimidothioic acid, p. 663): the parent construction is open"),
+    ("D-101u", "FC(Cl)Br", "bromochlorofluoromethane", "(unchanged)",
+     "converse, RECORDED OPEN and not a PIN: a three-prefix PARENT hydride. The rule text (p. 130) says the second and "
+     "further prefixes are enclosed, and the book's own example on p. 873 prints 'bromo(chloro)fluoromethane' with the "
+     "third bare; the book contradicts itself, so W5 is scoped to the SUBSTITUENT groups p. 663 prints and this stays put"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this

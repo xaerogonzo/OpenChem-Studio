@@ -1,0 +1,19 @@
+# W5 (naming round 8): P-16.5.1.3.1 for a one-carbon SUBSTITUENT group, and the ylidene-amino wrapper's bracket nesting.
+# Measured against the W1 engine (dff888e). Every row not listed must NOT change.
+
+stage = "W5-enclosure"
+
+[[expect]]
+id = "pop:heldout_v4:h4cid4750"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-16.5.1.3.1"
+expected_layer = "SERIALIZATION"
+expected_name = "2-[2-({[(5-chloropyridin-2-yl)amino](sulfanyl)methylidene}amino)ethyl]-4-ethoxy-3-fluoropyridine"
+
+# The mixed-class salicylate dianion was a WRONG MOLECULE ('2-oxidooxomethylbenzen-1-olate', OPSIN misreads 'oxidooxo') and is
+# structurally right now; it is still not the preferred name and its owner is still a hole (a NONE_VERIFIED row, so no name).
+[[expect]]
+id = "r8:Q3-salicylate-dianion"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-16.5.1.3.1"
+expected_layer = "SERIALIZATION"
