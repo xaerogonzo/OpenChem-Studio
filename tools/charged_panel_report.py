@@ -2,9 +2,15 @@
 
     python tools/charged_panel_report.py --out benchmarks/naming/charged_panel_baseline.json
     python tools/charged_panel_report.py --out ...r7-r3.json --compare ...baseline.json
+    python tools/charged_panel_report.py --panel benchmarks/naming/charged_panel_r8.toml --out ...r8_baseline.json
 
 `benchmarks/naming/charged_panel.toml` is built by class and frozen. This tool measures
 what the engine does with each row and writes it to JSON; it never edits the panel.
+
+`--panel` names another panel with the same row schema: naming round 8's addendum
+(`charged_panel_r8.toml`) is measured by this same tool, so the two panels cannot drift into
+two definitions of "structurally correct". Its extra columns (`site_vector`,
+`structural_context`, `coverage_reason`) are carried into the records.
 
 **Two dimensions, never one score.** A name that parses back to the right molecule and a
 name that is the PREFERRED one are different claims, and a single "exact" number lets a
@@ -58,13 +64,13 @@ REPORT_ORDER = (
 )
 
 
-def panel_sha256() -> str:
+def panel_sha256(panel: Path = PANEL) -> str:
     """Over LF text: the Windows working copy is CRLF under autocrlf, and git stores LF."""
-    return hashlib.sha256(PANEL.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+    return hashlib.sha256(panel.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
-def load_panel() -> list[dict]:
-    return tomllib.loads(PANEL.read_text(encoding="utf-8"))["row"]
+def load_panel(panel: Path = PANEL) -> list[dict]:
+    return tomllib.loads(panel.read_text(encoding="utf-8"))["row"]
 
 
 def _norm(text: str | None) -> str:
@@ -147,8 +153,12 @@ def ownership(smiles: str) -> dict:
     return {"verdict": worst, "components": reports}
 
 
-def run(*, only: str | None = None) -> dict:
-    rows = load_panel()
+#: Columns a panel MAY carry beyond the round-7 schema; copied into the record when present.
+EXTRA_COLUMNS = ("site_vector", "structural_context", "coverage_reason")
+
+
+def run(*, only: str | None = None, panel: Path = PANEL) -> dict:
+    rows = load_panel(panel)
     out = []
     for r in rows:
         if only and only not in r["id"]:
@@ -161,6 +171,9 @@ def run(*, only: str | None = None) -> dict:
             "target_basis": r["target_basis"], "target": target, "smiles": r["smiles"],
             **m, "status": None,
         }
+        for column in EXTRA_COLUMNS:
+            if column in r:
+                rec[column] = r[column]
         rec["status"] = status_of(rec)
         rec["ownership"] = ownership(r["smiles"])
         if r.get("permute"):
@@ -178,13 +191,25 @@ def run(*, only: str | None = None) -> dict:
             rec["water_variant_is_base_plus_water"] = (
                 perms["with_water"]["name"] == f"{m['name']} water")
         out.append(rec)
-    return {"panel_sha256": panel_sha256(), "rows": len(out), "records": out}
+    return {"panel": panel.name, "panel_sha256": panel_sha256(panel), "rows": len(out), "records": out}
 
 
 def summarise(result: dict) -> str:
     recs = result["records"]
     lines = [f"panel {result['panel_sha256'][:12]}  rows={len(recs)}", ""]
     counts = Counter(r["status"] for r in recs)
+    # The two dimensions, side by side and orthogonal. A row whose structure is wrong has NO preference
+    # to report; it is EXCLUDED from the preference table (shown, never folded into "unknown" or
+    # "non-preferred"), so the preference denominator is the same kind of number in every round.
+    structure = Counter(r["structural"] for r in recs)
+    ok = [r for r in recs if r["structural"] == "STRUCTURALLY_CORRECT"]
+    preference = Counter(r["preference"] for r in ok)
+    lines.append("structure  : " + ", ".join(f"{k}={structure.get(k, 0)}" for k in
+                 ("STRUCTURALLY_CORRECT", "WRONG_MOLECULE", "ENGINE_ERROR", "ORACLE_ERROR")))
+    lines.append("preference : " + ", ".join(f"{k}={preference.get(k, 0)}" for k in
+                 ("EXACT_PREFERRED", "NON_PREFERRED", "PREFERENCE_UNKNOWN"))
+                 + f"   (over {len(ok)} structurally correct rows; EXCLUDED, structure not correct: {len(recs) - len(ok)})")
+    lines.append("")
     lines.append("outcome (worst first):")
     for status in REPORT_ORDER:
         lines.append(f"  {counts.get(status, 0):4d}  {status}")
@@ -233,6 +258,7 @@ def main() -> int:
     ap.add_argument("--out", type=Path, help="write the JSON here")
     ap.add_argument("--compare", type=Path, help="print every row that differs from this file")
     ap.add_argument("--only", help="only rows whose id contains this")
+    ap.add_argument("--panel", type=Path, default=PANEL, help="which panel (default: the round-7 panel)")
     args = ap.parse_args()
 
     import shutil
@@ -240,7 +266,7 @@ def main() -> int:
     if shutil.which("java") is None:
         print("java is not on PATH: py2opsin needs it, and every row would read ORACLE_ERROR. Refusing.")
         return 2
-    result = run(only=args.only)
+    result = run(only=args.only, panel=args.panel)
     print(summarise(result))
     if args.compare:
         print("\nversus", args.compare.name)

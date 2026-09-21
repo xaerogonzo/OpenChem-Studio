@@ -1,0 +1,131 @@
+# Adjudication of the addendum panel's non-correct rows at its baseline (naming round 8).
+#
+# Written from the BASELINE measurement (charged_panel_r8_baseline.json, engine at master fbebdb3) and the Blue
+# Book, before any fix. A row is listed here when the baseline recorded it as WRONG_MOLECULE, ENGINE_ERROR,
+# ORACLE_ERROR, NON_PREFERRED, or an ownership HOLE. Rows that are structurally correct with an unknown preference
+# need no adjudication and are not listed.
+#
+# `primary_layer` and `dependencies` replace round 7's single `layer`: a defect can be primarily candidate
+# generation with a dependent serialization fix, and one field could not say that.
+#
+#   primary_layer   CANDIDATE_ABSENT | RANKED_OR_ASSIGNED_WRONG | IMPLEMENTATION_GAP | SCOPE_UNSUPPORTED |
+#                   SOURCE_UNRESOLVED | SERIALIZATION | UNTRACED
+#   UNTRACED        the mechanism below is a HYPOTHESIS: no layer trace has been run yet. Round 8's plan says a
+#                   defect is not called a ranking defect (or any other layer) before a trace shows it, because the
+#                   round's first W1 claim (a legacy scoring band) was wrong for exactly that reason.
+#   dependencies    other families whose fix this one waits on or shares infrastructure with
+#
+# CORRECTION found while measuring this baseline (recorded so it is not re-derived): the engine ALREADY emits the
+# book's imidodicarbonimidic diamide names for n = 2 (R0-biguanide, R0-ethyl-diphenyl-biguanide, R0-metformin are
+# all EXACT_PREFERRED), since round 4's nitrogen-core parents, and the regression-corpus metformin row is already
+# `N1,N1-dimethylimidodicarbonimidic diamide`. The plan's premise that metformin's name would change, and
+# KNOWN_LIMITATIONS' line that the engine emits `1,1-dimethylbiguanide`, were both wrong. What is missing is n = 3
+# (triguanide), n >= 5, and the condensed UREAS.
+
+[[family]]
+id = "POLYSUFFIX_CHAIN_CHOICE"
+primary_layer = "UNTRACED"
+dependencies = []
+target_stage = "W1"
+fix_status = "OPEN"
+rows = [
+  "P0-citric-acid", "P0-pentane-1,3,5-tricarboxylic", "P0-ethane-1,1,2,2-tetracarboxylic", "P0-methanetricarboxylic",
+  "P0-propane-1,2,3-tricarboxylic", "P0-1-hydroxy-3-oxopropane-1,2,3-tricarboxylic", "P0-propane-1,2,3-tricarboxamide",
+  "P0-butane-1,1,1-tricarbonitrile", "P0-butane-1,2,4-tricarbaldehyde", "P0-trimethyl-butane-1,1,3-tricarboxylate",
+]
+mechanism = """HYPOTHESIS, untraced. Every suffix class fails the same way: a chain that expresses fewer suffix groups (a dioic
+acid, a dial, a nitrile with two cyano prefixes) wins over the parent that expresses the printed count. That the
+amide, nitrile, aldehyde and ester analogues fail identically as the acids do says the cause is not acid-specific.
+NomenclaturePreferenceKey already has a `pcg_count` tier (P-44.1.1) that counts suffix groups with a locant and has no
+terminal weighting, and it ranks above the legacy `parent_selection` tier, so a ranking cause is not the first
+reading: `methanetricarboxylic acid` comes out `carboxypropanedioic acid`, which suggests the exo `-carboxylic acid`
+parent on an acyclic chain is not offered at all (CANDIDATE_ABSENT). The trace decides, and decides which of two
+acceptance modes applies."""
+sources = "P-44.1.1; P-65.1.2.2.1 (pdf p. 579: pentane-1,3,5-tricarboxylic acid, ethane-1,1,2,2-tetracarboxylic acid); pdf p. 578, 582, 623, 645, 686, 691"
+
+[[family]]
+id = "POLYACID_ANION_CHARGE_LEDGER"
+primary_layer = "RANKED_OR_ASSIGNED_WRONG"
+dependencies = ["POLYSUFFIX_CHAIN_CHOICE"]
+target_stage = "W1"
+fix_status = "OPEN"
+rows = [
+  "Q1-citrate-trianion", "Q1-tricarballylate-trianion", "Q1-methanetricarboxylate",
+  "Q2-trisodium-citrate", "Q2-tricalcium-dicitrate", "Q2-potassium-sodium-hydrogen-tricarballylate",
+]
+mechanism = """The five WRONG_MOLECULE rows are one shape: the classifier route re-protonates every site, names the neutral
+parent (which the family above names as a dioic chain plus a `carboxy` prefix), and converts only the SUFFIX groups to
+the anion form, so the third carboxylate reads as a neutral acid: two charges for three sites. This is what the
+round-7 driven check found. It was a wrong name before round 7 too. The mechanism for the charge half is stated, not
+hypothesised (it was traced in round 7); the neutral-parent half is the family above. The potassium sodium hydrogen row
+is STRUCTURALLY CORRECT and non-preferred: the 'hydrogen' method for a partial salt is a separate construction."""
+sources = "P-65.6.2 (pdf pp. 618-619, 628); the round-7 finding in KNOWN_LIMITATIONS 'Open after naming round 7'"
+
+[[family]]
+id = "MIXED_CLASS_POLYANION_HOLE"
+primary_layer = "IMPLEMENTATION_GAP"
+dependencies = []
+target_stage = "W1"
+fix_status = "OPEN"
+rows = ["Q3-serinate-as-drawn", "Q3-salicylate-dianion"]
+mechanism = """Two anion classes on one molecule (an olate and a carboxylate): `acid_anion_route` returns None for it, the carved
+route does not take the carboxylate, and the ownership diagnostic reports HOLE. Round 7's exit criterion was an EMPTY
+hole set on ITS panel; this one has two rows the first panel did not contain. The salicylate dianion is a
+WRONG_MOLECULE (`2-oxidooxomethylbenzen-1-olate`), the serinate zwitterion is structurally correct and not preferred."""
+sources = "P-72.2 (pdfs pp. 804-815); no printed example carries an olate and a carboxylate (both rows NONE_VERIFIED)"
+
+[[family]]
+id = "CONDENSED_UREAS_AND_LONGER_GUANIDINES"
+primary_layer = "UNTRACED"
+dependencies = []
+target_stage = "W2"
+fix_status = "OPEN"
+rows = ["R0-biuret", "R0-triuret", "R0-triguanide", "R0-polyguanide-n5"]
+mechanism = """HYPOTHESIS, untraced. The n = 2 condensed guanidines are already named by the book's rule (round 4), so a
+constructor exists; the gaps are the C=O analogue (biuret `2-imidodicarbonic diamide`, triuret), n = 3 (the engine gives
+`N1-carbamimidoylimidodicarbonimidic diamide`, structurally right and not the PIN), and n >= 5 by skeletal replacement
+(a NAMING ERROR string embedded in a name). Whether these share one constructor is decided by a trace of each. Note
+p. 663 prints `2-imidodicarbonic diamide` with a locant and states that numerical locants for condensed ureas are no
+longer used in PINs; the page image was read to confirm the printed form."""
+sources = "P-66.1.6.1.4 (pdf p. 663); P-66.4.1.2 (pdf p. 677)"
+
+[[family]]
+id = "CATION_CHARGE_COUNT"
+primary_layer = "UNTRACED"
+dependencies = ["POLYACID_ANION_CHARGE_LEDGER"]
+target_stage = "W2"
+fix_status = "OPEN"
+rows = ["R1-metforminium", "S0-2-aminopyridinium", "R1-biguanidium-dication"]
+mechanism = """HYPOTHESIS, untraced: the cation-side analogue of the anion charge ledger. A cation beside an amine or an
+imine is named as if the neutral group were also cationic (`pyridin-1-ium-2-aminium`, `...guanidinium` on a
+substituted guanidine), i.e. a dication name for a monocation; and a TRUE dication of a condensed guanidine gets no
+name at all (ENGINE_ERROR). The two directions need one check: name charge == structure charge, at the site level."""
+sources = "P-73.1.2 (pdfs pp. 816-820); no printed cation of a condensed guanidine (NONE_VERIFIED rows)"
+
+[[family]]
+id = "PROTONATED_AZOLE_RING_NAME"
+primary_layer = "UNTRACED"
+dependencies = []
+target_stage = "W3"
+fix_status = "OPEN"
+rows = ["S0-imidazolium", "S0-pyrazolium", "S4-imidazolium-chloride", "S4-imidazolium-acetate", "S0-benzimidazolium"]
+mechanism = """HYPOTHESIS, untraced. Round 7 recorded `1,3-diazol-1-ium` for imidazolium and a NAMING ERROR for benzimidazolium and
+abandoned the trace. The pyrazolium and the two salts follow the same shape (the salts show the failure is in the
+cation, not in salt-fragment selection). `1,3-diazole` is the Hantzsch-Widman name of the same ring, so the imidazolium,
+pyrazolium and salt names are structurally right and non-preferred, while benzimidazolium has no name at all. A
+substituted imidazolium (S1-1,3-dimethylimidazolium) is EXACT, so the trigger is a protonated [nH+] beside [nH]."""
+sources = "P-73.1.1.2 (pdf p. 818: 1H-imidazol-3-ium (PIN))"
+
+[[family]]
+id = "CATIONIC_SUFFIX_FORMS"
+primary_layer = "CANDIDATE_ABSENT"
+dependencies = []
+target_stage = "W3"
+fix_status = "OPEN"
+rows = ["S2-trimethylbenzamidium", "S2-benzonitrilium", "S2-dimethylguanidinium"]
+mechanism = """Table 7.4 of P-73.1.2 gives the cationic suffixes amidium, carboxamidium and nitrilium, and the retained
+names with 'ium'. The engine names an acylated quaternary nitrogen as a methanaminium and a protonated nitrile as an
+azanium, so the suffix forms are not offered; the guanidinium row is a locant-style difference (`1,1-` for the
+book's `N,N-`, printed with a note on resonance forms). Two layers in one family, listed together because each is one
+row; they are separated at trace time."""
+sources = "P-73.1.2, Table 7.4 (pdf p. 818); pdf p. 819"

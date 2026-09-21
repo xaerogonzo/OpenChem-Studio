@@ -1,0 +1,1807 @@
+{
+ "panel": "charged_panel_r8.toml",
+ "panel_sha256": "3bbeb5546f4c73a1ade97f2c3ef4f3c1d2aa2280d3f4f31feadec8de32e6da6d",
+ "rows": 60,
+ "records": [
+  {
+   "id": "P0-citric-acid",
+   "class": "polyacid_neutral",
+   "context": "neutral",
+   "secondary_group": "hydroxy",
+   "expected_owner": "none",
+   "target_basis": "PRINTED",
+   "target": "2-hydroxypropane-1,2,3-tricarboxylic acid",
+   "smiles": "OC(=O)CC(O)(CC(O)=O)C(O)=O",
+   "name": "3-carboxy-3-hydroxypentanedioic acid",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "A:COOH B:COOH C:COOH",
+   "structural_context": "acyclic",
+   "coverage_reason": "three suffix groups on a chain: the chain with the most suffix groups, not the longest",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "P0-pentane-1,3,5-tricarboxylic",
+   "class": "polyacid_neutral",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "PRINTED",
+   "target": "pentane-1,3,5-tricarboxylic acid",
+   "smiles": "OC(=O)CCC(C(O)=O)CCC(O)=O",
+   "name": "4-carboxyheptanedioic acid",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "A:COOH B:COOH C:COOH",
+   "structural_context": "acyclic",
+   "coverage_reason": "three suffix groups, two of them on chain ends that a longer diacid chain could absorb",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "P0-ethane-1,1,2,2-tetracarboxylic",
+   "class": "polyacid_neutral",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "PRINTED",
+   "target": "ethane-1,1,2,2-tetracarboxylic acid",
+   "smiles": "OC(=O)C(C(O)=O)C(C(O)=O)C(O)=O",
+   "name": "2,3-dicarboxybutanedioic acid",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "A:COOH B:COOH C:COOH D:COOH",
+   "structural_context": "acyclic",
+   "coverage_reason": "four suffix groups on a two-carbon parent",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "P0-methanetricarboxylic",
+   "class": "polyacid_neutral",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "DERIVED",
+   "target": "methanetricarboxylic acid",
+   "smiles": "OC(=O)C(C(O)=O)C(O)=O",
+   "name": "carboxypropanedioic acid",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "A:COOH B:COOH C:COOH",
+   "structural_context": "acyclic",
+   "coverage_reason": "the one-carbon parent of the same rule",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "P0-propane-1,2,3-tricarboxylic",
+   "class": "polyacid_neutral",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "DERIVED",
+   "target": "propane-1,2,3-tricarboxylic acid",
+   "smiles": "OC(=O)CC(CC(O)=O)C(O)=O",
+   "name": "3-carboxypentanedioic acid",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "A:COOH B:COOH C:COOH",
+   "structural_context": "acyclic",
+   "coverage_reason": "the three-acid parent of citric acid without the hydroxy group",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "P0-1-hydroxy-3-oxopropane-1,2,3-tricarboxylic",
+   "class": "polyacid_neutral",
+   "context": "neutral",
+   "secondary_group": "hydroxy+oxo",
+   "expected_owner": "none",
+   "target_basis": "PRINTED",
+   "target": "1-hydroxy-3-oxopropane-1,2,3-tricarboxylic acid",
+   "smiles": "OC(C(O)=O)C(C(O)=O)C(=O)C(O)=O",
+   "name": "3-carboxy-2-hydroxy-4-oxopentanedioic acid",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "A:COOH B:COOH C:COOH",
+   "structural_context": "acyclic",
+   "coverage_reason": "three suffix groups with two different prefixes: locants go to the prefix cited first",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "P0-benzene-1,2,4-tricarboxylic",
+   "class": "polyacid_neutral",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "PRINTED",
+   "target": "benzene-1,2,4-tricarboxylic acid",
+   "smiles": "OC(=O)c1ccc(C(O)=O)c(C(O)=O)c1",
+   "name": "benzene-1,2,4-tricarboxylic acid",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "A:COOH B:COOH C:COOH",
+   "structural_context": "aromatic",
+   "coverage_reason": "the control: the ring parent already gets this right",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "P0-pyromellitic",
+   "class": "polyacid_neutral",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "DERIVED",
+   "target": "benzene-1,2,4,5-tetracarboxylic acid",
+   "smiles": "OC(=O)c1cc(C(O)=O)c(cc1C(O)=O)C(O)=O",
+   "name": "benzene-1,2,4,5-tetracarboxylic acid",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "A:COOH B:COOH C:COOH D:COOH",
+   "structural_context": "aromatic",
+   "coverage_reason": "four exocyclic acids on a ring",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "P0-succinic",
+   "class": "polyacid_neutral",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "DERIVED",
+   "target": "butanedioic acid",
+   "smiles": "OC(=O)CCC(O)=O",
+   "name": "butanedioic acid",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "A:COOH B:COOH",
+   "structural_context": "acyclic",
+   "coverage_reason": "the converse: two terminal groups must still be one dioic chain",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "P0-tartaric",
+   "class": "polyacid_neutral",
+   "context": "neutral",
+   "secondary_group": "dihydroxy",
+   "expected_owner": "none",
+   "target_basis": "PRINTED",
+   "target": "2,3-dihydroxybutanedioic acid",
+   "smiles": "OC(=O)C(O)C(O)C(O)=O",
+   "name": "2,3-dihydroxybutanedioic acid",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "A:COOH B:COOH",
+   "structural_context": "acyclic",
+   "coverage_reason": "the converse with substituents",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "P0-propane-1,2,3-tricarboxamide",
+   "class": "polysuffix_analogue",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "PRINTED",
+   "target": "propane-1,2,3-tricarboxamide",
+   "smiles": "NC(=O)CC(CC(N)=O)C(N)=O",
+   "name": "3-carbamoylpentanediamide",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "A:CONH2 B:CONH2 C:CONH2",
+   "structural_context": "acyclic",
+   "coverage_reason": "the same count question for amides",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "P0-butane-1,1,1-tricarbonitrile",
+   "class": "polysuffix_analogue",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "PRINTED",
+   "target": "butane-1,1,1-tricarbonitrile",
+   "smiles": "CCCC(C#N)(C#N)C#N",
+   "name": "2,2-dicyanopentanenitrile",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "A:CN B:CN C:CN",
+   "structural_context": "acyclic",
+   "coverage_reason": "the same count question for nitriles",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "P0-butane-1,2,4-tricarbaldehyde",
+   "class": "polysuffix_analogue",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "PRINTED",
+   "target": "butane-1,2,4-tricarbaldehyde",
+   "smiles": "O=CCC(C=O)CCC=O",
+   "name": "3-formylhexanedial",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "A:CHO B:CHO C:CHO",
+   "structural_context": "acyclic",
+   "coverage_reason": "the same count question for aldehydes",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "P0-trimethyl-butane-1,1,3-tricarboxylate",
+   "class": "polysuffix_analogue",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "PRINTED",
+   "target": "trimethyl butane-1,1,3-tricarboxylate",
+   "smiles": "COC(=O)C(C(=O)OC)CC(C)C(=O)OC",
+   "name": "methyl 5-methoxy-4-(methoxycarbonyl)-2-methyl-5-oxopentanoate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "A:COOMe B:COOMe C:COOMe",
+   "structural_context": "acyclic",
+   "coverage_reason": "the same count question for esters",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "Q1-citrate-trianion",
+   "class": "polyacid_anion",
+   "context": "isolated_ion",
+   "secondary_group": "hydroxy",
+   "expected_owner": "ACID_ANION",
+   "target_basis": "DERIVED",
+   "target": "2-hydroxypropane-1,2,3-tricarboxylate",
+   "smiles": "[O-]C(=O)CC(O)(CC([O-])=O)C([O-])=O",
+   "name": "3-carboxy-3-hydroxypentanedioate",
+   "roundtrip": "MISMATCH",
+   "structural": "WRONG_MOLECULE",
+   "preference": "n/a",
+   "status": "WRONG_MOLECULE",
+   "site_vector": "A:- B:- C:-",
+   "structural_context": "acyclic",
+   "coverage_reason": "every site deprotonated: three anion suffixes, no neutral acid left for a carboxy prefix",
+   "ownership": {
+    "verdict": "OWNED",
+    "components": [
+     {
+      "component": "O=C([O-])CC(O)(CC(=O)[O-])C(=O)[O-]",
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q1-citrate-dianion-ends",
+   "class": "polyacid_anion",
+   "context": "isolated_ion",
+   "secondary_group": "hydroxy",
+   "expected_owner": "ACID_ANION",
+   "target_basis": "NONE_VERIFIED",
+   "target": null,
+   "smiles": "[O-]C(=O)CC(O)(CC([O-])=O)C(O)=O",
+   "name": "3-carboxy-3-hydroxypentanedioate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "PREFERENCE_UNKNOWN",
+   "status": "STRUCTURALLY_CORRECT/PREFERENCE_UNKNOWN",
+   "site_vector": "A:- B:COOH C:-",
+   "structural_context": "acyclic",
+   "coverage_reason": "the neutral site is the central one: a dioate chain with a carboxy prefix denotes exactly this",
+   "ownership": {
+    "verdict": "OWNED",
+    "components": [
+     {
+      "component": "O=C([O-])CC(O)(CC(=O)[O-])C(=O)O",
+      "verdict": "OWNED",
+      "owners": [
+       "carved_anion"
+      ],
+      "observed_route": "plan_search:carved_anion"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q1-citrate-dianion-end-centre",
+   "class": "polyacid_anion",
+   "context": "isolated_ion",
+   "secondary_group": "hydroxy",
+   "expected_owner": "ACID_ANION",
+   "target_basis": "NONE_VERIFIED",
+   "target": null,
+   "smiles": "[O-]C(=O)CC(O)(CC(O)=O)C([O-])=O",
+   "name": "2-(carboxymethyl)-2-hydroxybutanedioate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "PREFERENCE_UNKNOWN",
+   "status": "STRUCTURALLY_CORRECT/PREFERENCE_UNKNOWN",
+   "site_vector": "A:- B:- C:COOH",
+   "structural_context": "acyclic",
+   "coverage_reason": "the neutral site is an end: a different parent must carry the two anion suffixes",
+   "ownership": {
+    "verdict": "OWNED",
+    "components": [
+     {
+      "component": "O=C([O-])CC(O)(CC(=O)O)C(=O)[O-]",
+      "verdict": "OWNED",
+      "owners": [
+       "carved_anion"
+      ],
+      "observed_route": "plan_search:carved_anion"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q1-citrate-monoanion-centre",
+   "class": "polyacid_anion",
+   "context": "isolated_ion",
+   "secondary_group": "hydroxy",
+   "expected_owner": "ACID_ANION",
+   "target_basis": "NONE_VERIFIED",
+   "target": null,
+   "smiles": "OC(=O)CC(O)(CC(O)=O)C([O-])=O",
+   "name": "3-carboxy-2-(carboxymethyl)-2-hydroxypropanoate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "PREFERENCE_UNKNOWN",
+   "status": "STRUCTURALLY_CORRECT/PREFERENCE_UNKNOWN",
+   "site_vector": "A:COOH B:- C:COOH",
+   "structural_context": "acyclic",
+   "coverage_reason": "one anion beside two neutral acids: the carboxy prefix twice",
+   "ownership": {
+    "verdict": "OWNED",
+    "components": [
+     {
+      "component": "O=C(O)CC(O)(CC(=O)O)C(=O)[O-]",
+      "verdict": "OWNED",
+      "owners": [
+       "carved_anion"
+      ],
+      "observed_route": "plan_search:carved_anion"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q1-citrate-monoanion-end",
+   "class": "polyacid_anion",
+   "context": "isolated_ion",
+   "secondary_group": "hydroxy",
+   "expected_owner": "ACID_ANION",
+   "target_basis": "NONE_VERIFIED",
+   "target": null,
+   "smiles": "[O-]C(=O)CC(O)(CC(O)=O)C(O)=O",
+   "name": "3,4-dicarboxy-3-hydroxybutanoate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "PREFERENCE_UNKNOWN",
+   "status": "STRUCTURALLY_CORRECT/PREFERENCE_UNKNOWN",
+   "site_vector": "A:- B:COOH C:COOH",
+   "structural_context": "acyclic",
+   "coverage_reason": "the charged site is an end while the neutral ones are an end and the centre",
+   "ownership": {
+    "verdict": "OWNED",
+    "components": [
+     {
+      "component": "O=C([O-])CC(O)(CC(=O)O)C(=O)O",
+      "verdict": "OWNED",
+      "owners": [
+       "carved_anion"
+      ],
+      "observed_route": "plan_search:carved_anion"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q1-tricarballylate-trianion",
+   "class": "polyacid_anion",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "ACID_ANION",
+   "target_basis": "DERIVED",
+   "target": "propane-1,2,3-tricarboxylate",
+   "smiles": "[O-]C(=O)CC(CC([O-])=O)C([O-])=O",
+   "name": "3-carboxypentanedioate",
+   "roundtrip": "MISMATCH",
+   "structural": "WRONG_MOLECULE",
+   "preference": "n/a",
+   "status": "WRONG_MOLECULE",
+   "site_vector": "A:- B:- C:-",
+   "structural_context": "acyclic",
+   "coverage_reason": "the trianion without a hydroxy group",
+   "ownership": {
+    "verdict": "OWNED",
+    "components": [
+     {
+      "component": "O=C([O-])CC(CC(=O)[O-])C(=O)[O-]",
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q1-methanetricarboxylate",
+   "class": "polyacid_anion",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "ACID_ANION",
+   "target_basis": "DERIVED",
+   "target": "methanetricarboxylate",
+   "smiles": "[O-]C(=O)C(C([O-])=O)C([O-])=O",
+   "name": "2-carboxypropanedioate",
+   "roundtrip": "MISMATCH",
+   "structural": "WRONG_MOLECULE",
+   "preference": "n/a",
+   "status": "WRONG_MOLECULE",
+   "site_vector": "A:- B:- C:-",
+   "structural_context": "acyclic",
+   "coverage_reason": "three anion suffixes on one carbon",
+   "ownership": {
+    "verdict": "OWNED",
+    "components": [
+     {
+      "component": "O=C([O-])C(C(=O)[O-])C(=O)[O-]",
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q1-benzene-1,2,4-tricarboxylate",
+   "class": "polyacid_anion",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "ACID_ANION",
+   "target_basis": "DERIVED",
+   "target": "benzene-1,2,4-tricarboxylate",
+   "smiles": "[O-]C(=O)c1ccc(C([O-])=O)c(C([O-])=O)c1",
+   "name": "benzene-1,2,4-tricarboxylate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "A:- B:- C:-",
+   "structural_context": "aromatic",
+   "coverage_reason": "the ring analogue, which the acid gets right",
+   "ownership": {
+    "verdict": "OWNED",
+    "components": [
+     {
+      "component": "O=C([O-])c1ccc(C(=O)[O-])c(C(=O)[O-])c1",
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q1-pyromellitate",
+   "class": "polyacid_anion",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "ACID_ANION",
+   "target_basis": "DERIVED",
+   "target": "benzene-1,2,4,5-tetracarboxylate",
+   "smiles": "[O-]C(=O)c1cc(C([O-])=O)c(cc1C([O-])=O)C([O-])=O",
+   "name": "benzene-1,2,4,5-tetracarboxylate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "A:- B:- C:- D:-",
+   "structural_context": "aromatic",
+   "coverage_reason": "four sites",
+   "ownership": {
+    "verdict": "OWNED",
+    "components": [
+     {
+      "component": "O=C([O-])c1cc(C(=O)[O-])c(C(=O)[O-])cc1C(=O)[O-]",
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q1-succinate-dianion",
+   "class": "polyacid_anion",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "ACID_ANION",
+   "target_basis": "DERIVED",
+   "target": "butanedioate",
+   "smiles": "[O-]C(=O)CCC([O-])=O",
+   "name": "butanedioate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "A:- B:-",
+   "structural_context": "acyclic",
+   "coverage_reason": "the converse: two terminal anion suffixes on one dioate chain",
+   "ownership": {
+    "verdict": "OWNED",
+    "components": [
+     {
+      "component": "O=C([O-])CCC(=O)[O-]",
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q2-trisodium-citrate",
+   "class": "polyacid_salt",
+   "context": "salt_inorganic_cation",
+   "secondary_group": "hydroxy",
+   "expected_owner": "ACID_ANION",
+   "target_basis": "DERIVED",
+   "target": "trisodium 2-hydroxypropane-1,2,3-tricarboxylate",
+   "smiles": "[Na+].[Na+].[Na+].[O-]C(=O)CC(O)(CC([O-])=O)C([O-])=O",
+   "name": "trisodium 3-carboxy-3-hydroxypentanedioate",
+   "roundtrip": "MISMATCH",
+   "structural": "WRONG_MOLECULE",
+   "preference": "n/a",
+   "status": "WRONG_MOLECULE",
+   "site_vector": "A:- B:- C:-",
+   "structural_context": "salt",
+   "coverage_reason": "the trianion as a salt, and the reversed component order must give the same name",
+   "ownership": {
+    "verdict": "OWNED",
+    "components": [
+     {
+      "component": "[Na+]",
+      "verdict": null,
+      "owners": [],
+      "observed_route": null
+     },
+     {
+      "component": "[Na+]",
+      "verdict": null,
+      "owners": [],
+      "observed_route": null
+     },
+     {
+      "component": "[Na+]",
+      "verdict": null,
+      "owners": [],
+      "observed_route": null
+     },
+     {
+      "component": "O=C([O-])CC(O)(CC(=O)[O-])C(=O)[O-]",
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": null
+     }
+    ]
+   },
+   "permutations": {
+    "reversed": {
+     "smiles": "[O-]C(=O)CC(O)(CC([O-])=O)C([O-])=O.[Na+].[Na+].[Na+]",
+     "name": "trisodium 3-carboxy-3-hydroxypentanedioate",
+     "structural": "WRONG_MOLECULE",
+     "same_name_as_base": true
+    },
+    "with_water": {
+     "smiles": "[Na+].O.[Na+].[Na+].[O-]C(=O)CC(O)(CC([O-])=O)C([O-])=O",
+     "name": "trisodium 3-carboxy-3-hydroxypentanedioate water",
+     "structural": "WRONG_MOLECULE",
+     "same_name_as_base": false
+    }
+   },
+   "order_independent": true,
+   "water_variant_is_base_plus_water": true
+  },
+  {
+   "id": "Q2-tricalcium-dicitrate",
+   "class": "polyacid_salt",
+   "context": "salt_inorganic_cation",
+   "secondary_group": "hydroxy",
+   "expected_owner": "ACID_ANION",
+   "target_basis": "DERIVED",
+   "target": "tricalcium bis(2-hydroxypropane-1,2,3-tricarboxylate)",
+   "smiles": "[Ca+2].[Ca+2].[Ca+2].[O-]C(=O)CC(O)(CC([O-])=O)C([O-])=O.[O-]C(=O)CC(O)(CC([O-])=O)C([O-])=O",
+   "name": "tricalcium bis(3-carboxy-3-hydroxypentanedioate)",
+   "roundtrip": "MISMATCH",
+   "structural": "WRONG_MOLECULE",
+   "preference": "n/a",
+   "status": "WRONG_MOLECULE",
+   "site_vector": "A:- B:- C:-",
+   "structural_context": "salt",
+   "coverage_reason": "the multiplier applied to a name that itself carries a multiplying prefix",
+   "ownership": {
+    "verdict": "OWNED",
+    "components": [
+     {
+      "component": "[Ca+2]",
+      "verdict": null,
+      "owners": [],
+      "observed_route": null
+     },
+     {
+      "component": "[Ca+2]",
+      "verdict": null,
+      "owners": [],
+      "observed_route": null
+     },
+     {
+      "component": "[Ca+2]",
+      "verdict": null,
+      "owners": [],
+      "observed_route": null
+     },
+     {
+      "component": "O=C([O-])CC(O)(CC(=O)[O-])C(=O)[O-]",
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": null
+     },
+     {
+      "component": "O=C([O-])CC(O)(CC(=O)[O-])C(=O)[O-]",
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": null
+     }
+    ]
+   },
+   "permutations": {
+    "reversed": {
+     "smiles": "[O-]C(=O)CC(O)(CC([O-])=O)C([O-])=O.[O-]C(=O)CC(O)(CC([O-])=O)C([O-])=O.[Ca+2].[Ca+2].[Ca+2]",
+     "name": "tricalcium bis(3-carboxy-3-hydroxypentanedioate)",
+     "structural": "WRONG_MOLECULE",
+     "same_name_as_base": true
+    },
+    "with_water": {
+     "smiles": "[Ca+2].O.[Ca+2].[Ca+2].[O-]C(=O)CC(O)(CC([O-])=O)C([O-])=O.[O-]C(=O)CC(O)(CC([O-])=O)C([O-])=O",
+     "name": "tricalcium bis(3-carboxy-3-hydroxypentanedioate) water",
+     "structural": "WRONG_MOLECULE",
+     "same_name_as_base": false
+    }
+   },
+   "order_independent": true,
+   "water_variant_is_base_plus_water": true
+  },
+  {
+   "id": "Q2-potassium-sodium-hydrogen-tricarballylate",
+   "class": "polyacid_salt",
+   "context": "salt_inorganic_cation",
+   "secondary_group": "none",
+   "expected_owner": "ACID_ANION",
+   "target_basis": "PRINTED",
+   "target": "potassium sodium hydrogen propane-1,2,3-tricarboxylate",
+   "smiles": "[K+].[Na+].OC(=O)CC(CC([O-])=O)C([O-])=O",
+   "name": "potassium sodium 2-(carboxymethyl)butanedioate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "A:- B:- C:COOH",
+   "structural_context": "salt",
+   "coverage_reason": "the partial salt of a triacid: the 'hydrogen' method for an acid site that stays protonated",
+   "ownership": {
+    "verdict": "OWNED",
+    "components": [
+     {
+      "component": "[K+]",
+      "verdict": null,
+      "owners": [],
+      "observed_route": null
+     },
+     {
+      "component": "[Na+]",
+      "verdict": null,
+      "owners": [],
+      "observed_route": null
+     },
+     {
+      "component": "O=C([O-])CC(CC(=O)O)C(=O)[O-]",
+      "verdict": "OWNED",
+      "owners": [
+       "carved_anion"
+      ],
+      "observed_route": null
+     }
+    ]
+   },
+   "permutations": {
+    "reversed": {
+     "smiles": "OC(=O)CC(CC([O-])=O)C([O-])=O.[Na+].[K+]",
+     "name": "potassium sodium 2-(carboxymethyl)butanedioate",
+     "structural": "STRUCTURALLY_CORRECT",
+     "same_name_as_base": true
+    },
+    "with_water": {
+     "smiles": "[K+].O.[Na+].OC(=O)CC(CC([O-])=O)C([O-])=O",
+     "name": "potassium sodium 2-(carboxymethyl)butanedioate water",
+     "structural": "STRUCTURALLY_CORRECT",
+     "same_name_as_base": false
+    }
+   },
+   "order_independent": true,
+   "water_variant_is_base_plus_water": true
+  },
+  {
+   "id": "Q3-serinate-as-drawn",
+   "class": "mixed_class_polyanion",
+   "context": "zwitterion",
+   "secondary_group": "ammonium",
+   "expected_owner": "ZWITTERION",
+   "target_basis": "NONE_VERIFIED",
+   "target": null,
+   "smiles": "[NH3+]C(C[O-])C([O-])=O",
+   "name": "2-azaniumyl-3-oxido-3-oxopropan-1-olate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "PREFERENCE_UNKNOWN",
+   "status": "STRUCTURALLY_CORRECT/PREFERENCE_UNKNOWN",
+   "site_vector": "A:- B:O- C:NH3+",
+   "structural_context": "zwitterion",
+   "coverage_reason": "two anion classes on one molecule: acid_anion_route returns None, so the carboxylate is not carved",
+   "ownership": {
+    "verdict": "HOLE",
+    "components": [
+     {
+      "component": "[NH3+]C(C[O-])C(=O)[O-]",
+      "verdict": "HOLE",
+      "owners": [
+       "carved_anion"
+      ],
+      "observed_route": "plan_search:carved_anion"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q3-salicylate-dianion",
+   "class": "mixed_class_polyanion",
+   "context": "isolated_ion",
+   "secondary_group": "phenolate",
+   "expected_owner": "ACID_ANION",
+   "target_basis": "NONE_VERIFIED",
+   "target": null,
+   "smiles": "[O-]c1ccccc1C([O-])=O",
+   "name": "2-oxidooxomethylbenzen-1-olate",
+   "roundtrip": "MISMATCH",
+   "structural": "WRONG_MOLECULE",
+   "preference": "n/a",
+   "status": "WRONG_MOLECULE",
+   "site_vector": "A:- B:O-",
+   "structural_context": "aromatic",
+   "coverage_reason": "an olate and a carboxylate on one ring: two anion classes, no neutral group",
+   "ownership": {
+    "verdict": "HOLE",
+    "components": [
+     {
+      "component": "O=C([O-])c1ccccc1[O-]",
+      "verdict": "HOLE",
+      "owners": [
+       "carved_anion"
+      ],
+      "observed_route": "plan_search:carved_anion"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q4-benzene-1,4-disulfonate",
+   "class": "sulfonate_polyacid",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "ACID_ANION",
+   "target_basis": "DERIVED",
+   "target": "benzene-1,4-disulfonate",
+   "smiles": "[O-]S(=O)(=O)c1ccc(cc1)S([O-])(=O)=O",
+   "name": "benzene-1,4-disulfonate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "A:- B:-",
+   "structural_context": "aromatic",
+   "coverage_reason": "the sulfonate analogue of a polyacid anion",
+   "ownership": {
+    "verdict": "OWNED",
+    "components": [
+     {
+      "component": "O=S(=O)([O-])c1ccc(S(=O)(=O)[O-])cc1",
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": "classifier:acidic_anion_carboxylate"
+     }
+    ]
+   }
+  },
+  {
+   "id": "Q4-benzene-1,4-disulfonate-monoanion",
+   "class": "sulfonate_polyacid",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "ACID_ANION",
+   "target_basis": "NONE_VERIFIED",
+   "target": null,
+   "smiles": "OS(=O)(=O)c1ccc(cc1)S([O-])(=O)=O",
+   "name": "4-sulfobenzene-1-sulfonate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "PREFERENCE_UNKNOWN",
+   "status": "STRUCTURALLY_CORRECT/PREFERENCE_UNKNOWN",
+   "site_vector": "A:- B:SO3H",
+   "structural_context": "aromatic",
+   "coverage_reason": "a sulfonate beside a neutral sulfonic acid: the sulfo prefix",
+   "ownership": {
+    "verdict": "OWNED",
+    "components": [
+     {
+      "component": "O=S(=O)([O-])c1ccc(S(=O)(=O)O)cc1",
+      "verdict": "OWNED",
+      "owners": [
+       "carved_anion"
+      ],
+      "observed_route": "plan_search:carved_anion"
+     }
+    ]
+   }
+  },
+  {
+   "id": "R0-biuret",
+   "class": "condensed_urea",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "PRINTED",
+   "target": "2-imidodicarbonic diamide",
+   "smiles": "NC(=O)NC(N)=O",
+   "name": "N-carbamoylurea",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "n=2",
+   "structural_context": "acyclic",
+   "coverage_reason": "the smallest condensed urea, named as a diamide of imidodicarbonic acid",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "R0-triuret",
+   "class": "condensed_urea",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "PRINTED",
+   "target": "2,4-diimidotricarbonic diamide",
+   "smiles": "NC(=O)NC(=O)NC(N)=O",
+   "name": "N-(carbamoylcarbamoyl)urea",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "n=3",
+   "structural_context": "acyclic",
+   "coverage_reason": "n = 3: two imido groups and two locants",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "R0-biguanide",
+   "class": "condensed_guanidine",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "PRINTED",
+   "target": "imidodicarbonimidic diamide",
+   "smiles": "NC(=N)NC(=N)N",
+   "name": "imidodicarbonimidic diamide",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "n=2",
+   "structural_context": "acyclic",
+   "coverage_reason": "the smallest condensed guanidine, named as a diamide of imidodicarbonimidic acid",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "R0-triguanide",
+   "class": "condensed_guanidine",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "PRINTED",
+   "target": "diimidotricarbonimidic diamide",
+   "smiles": "NC(=N)NC(=N)NC(N)=N",
+   "name": "N1-carbamimidoylimidodicarbonimidic diamide",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "n=3",
+   "structural_context": "acyclic",
+   "coverage_reason": "n = 3",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "R0-ethyl-diphenyl-biguanide",
+   "class": "condensed_guanidine",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "PRINTED",
+   "target": "N'1-ethyl-N1,N1-diphenylimidodicarbonimidic diamide",
+   "smiles": "CCN=C(N(c1ccccc1)c1ccccc1)NC(N)=N",
+   "name": "N'1-ethyl-N1,N1-diphenylimidodicarbonimidic diamide",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "n=2 substituted",
+   "structural_context": "acyclic",
+   "coverage_reason": "substituted, with the primed locant style the page prints",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "R0-metformin",
+   "class": "condensed_guanidine",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "DERIVED",
+   "target": "N1,N1-dimethylimidodicarbonimidic diamide",
+   "smiles": "CN(C)C(=N)NC(N)=N",
+   "name": "N1,N1-dimethylimidodicarbonimidic diamide",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "n=2 substituted",
+   "structural_context": "acyclic",
+   "coverage_reason": "the regression-corpus row whose outcome is 'tautomer'",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "R0-polyguanide-n5",
+   "class": "condensed_guanidine",
+   "context": "neutral",
+   "secondary_group": "none",
+   "expected_owner": "none",
+   "target_basis": "PRINTED",
+   "target": "3,5,7-triimino-2,4,6,8-tetraazanonane-1,9-diimidamide",
+   "smiles": "N=C(NC(N)=N)NC(NC(NC(N)=N)=N)=N",
+   "name": "bis{[NAMING ERROR: No valid naming plan found for N=C(N)NC(=N)N]}methanimine",
+   "roundtrip": "PARSER_FAILED",
+   "structural": "ORACLE_ERROR",
+   "preference": "n/a",
+   "status": "ORACLE_ERROR",
+   "site_vector": "n=5",
+   "structural_context": "acyclic",
+   "coverage_reason": "n >= 5 is named by skeletal replacement, a different construction",
+   "ownership": {
+    "verdict": null,
+    "components": []
+   }
+  },
+  {
+   "id": "R1-metforminium",
+   "class": "biguanidium_cation",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "CATION",
+   "target_basis": "NONE_VERIFIED",
+   "target": null,
+   "smiles": "CN(C)C(=N)NC(N)=[NH2+]",
+   "name": "(dimethylamino)(imino)methylguanidinium",
+   "roundtrip": "MISMATCH",
+   "structural": "WRONG_MOLECULE",
+   "preference": "n/a",
+   "status": "WRONG_MOLECULE",
+   "site_vector": "one protonation",
+   "structural_context": "acyclic",
+   "coverage_reason": "the round-7 wrong molecule: a dication name for a monocation",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "CN(C)C(=N)NC(N)=[NH2+]",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "classifier:guanidinium"
+     }
+    ]
+   }
+  },
+  {
+   "id": "R1-biguanidium",
+   "class": "biguanidium_cation",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "CATION",
+   "target_basis": "NONE_VERIFIED",
+   "target": null,
+   "smiles": "NC(=N)NC(N)=[NH2+]",
+   "name": "carbamimidoylguanidinium",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "PREFERENCE_UNKNOWN",
+   "status": "STRUCTURALLY_CORRECT/PREFERENCE_UNKNOWN",
+   "site_vector": "one protonation",
+   "structural_context": "acyclic",
+   "coverage_reason": "the unsubstituted monocation",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "N=C(N)NC(N)=[NH2+]",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "classifier:guanidinium"
+     }
+    ]
+   }
+  },
+  {
+   "id": "R1-biguanidium-dication",
+   "class": "biguanidium_cation",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "CATION",
+   "target_basis": "NONE_VERIFIED",
+   "target": null,
+   "smiles": "NC(=[NH2+])NC(N)=[NH2+]",
+   "name": null,
+   "roundtrip": "ENGINE_ERROR",
+   "structural": "ENGINE_ERROR",
+   "preference": "n/a",
+   "error": "ValueError: charge perception claimed a 'guanidinium' motif but could not complete it (partial_claim); refusing to fall through to t",
+   "status": "ENGINE_ERROR",
+   "site_vector": "two protonations",
+   "structural_context": "acyclic",
+   "coverage_reason": "the negative control: a true dication, which a dication name MAY denote",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "NC(=[NH2+])NC(N)=[NH2+]",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "plan_search:unpromoted(partial_claim)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "S0-imidazolium",
+   "class": "protonated_azole",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "CATION",
+   "target_basis": "PRINTED",
+   "target": "1H-imidazol-3-ium",
+   "smiles": "c1c[nH]c[nH+]1",
+   "name": "1,3-diazol-1-ium",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "N3-H+",
+   "structural_context": "heterocyclic",
+   "coverage_reason": "[nH+] beside [nH]: the trigger of the round-7 finding",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "c1c[nH+]c[nH]1",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "plan_search:unpromoted(unclaimed)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "S0-benzimidazolium",
+   "class": "protonated_azole",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "CATION",
+   "target_basis": "DERIVED",
+   "target": "1H-benzimidazol-3-ium",
+   "smiles": "c1ccc2[nH]c[nH+]c2c1",
+   "name": "[NAMING ERROR: No valid naming plan found for c1ccc2[nH+]c[nH]c2c1]",
+   "roundtrip": "PARSER_FAILED",
+   "structural": "ORACLE_ERROR",
+   "preference": "n/a",
+   "status": "ORACLE_ERROR",
+   "site_vector": "N3-H+",
+   "structural_context": "fused",
+   "coverage_reason": "the fused analogue of the printed cation",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "c1ccc2[nH+]c[nH]c2c1",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "plan_search:unpromoted(unclaimed)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "S0-pyrazolium",
+   "class": "protonated_azole",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "CATION",
+   "target_basis": "DERIVED",
+   "target": "1H-pyrazol-2-ium",
+   "smiles": "c1c[nH+][nH]c1",
+   "name": "1,2-diazol-2-ium",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "N2-H+",
+   "structural_context": "heterocyclic",
+   "coverage_reason": "a second azole with two adjacent nitrogens",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "c1c[nH][nH+]c1",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "plan_search:unpromoted(unclaimed)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "S0-pyridinium-NH",
+   "class": "protonated_azole",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "CATION",
+   "target_basis": "PRINTED",
+   "target": "pyridin-1-ium",
+   "smiles": "c1cc[nH+]cc1",
+   "name": "pyridin-1-ium",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "N1-H+",
+   "structural_context": "heterocyclic",
+   "coverage_reason": "the six-membered ring analogue",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "c1cc[nH+]cc1",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "plan_search:unpromoted(unclaimed)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "S0-2-aminopyridinium",
+   "class": "protonated_azole",
+   "context": "isolated_ion",
+   "secondary_group": "amino",
+   "expected_owner": "CATION",
+   "target_basis": "NONE_VERIFIED",
+   "target": null,
+   "smiles": "Nc1cccc[nH+]1",
+   "name": "pyridin-1-ium-2-aminium",
+   "roundtrip": "MISMATCH",
+   "structural": "WRONG_MOLECULE",
+   "preference": "n/a",
+   "status": "WRONG_MOLECULE",
+   "site_vector": "N1-H+",
+   "structural_context": "heterocyclic",
+   "coverage_reason": "a cation beside a neutral amine: which one is the parent",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "Nc1cccc[nH+]1",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "plan_search:unpromoted(unclaimed)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "S1-1-methylpyridinium",
+   "class": "azolium_substituted",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "CATION",
+   "target_basis": "PRINTED",
+   "target": "1-methylpyridin-1-ium",
+   "smiles": "C[n+]1ccccc1",
+   "name": "1-methylpyridin-1-ium",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "N1-Me",
+   "structural_context": "heterocyclic",
+   "coverage_reason": "the substituted control",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "C[n+]1ccccc1",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "plan_search:unpromoted(unclaimed)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "S1-1,3-dimethylimidazolium",
+   "class": "azolium_substituted",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "CATION",
+   "target_basis": "DERIVED",
+   "target": "1,3-dimethyl-1H-imidazol-3-ium",
+   "smiles": "C[n+]1ccn(C)c1",
+   "name": "1,3-dimethyl-1H-imidazol-3-ium",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "N1-Me N3-Me",
+   "structural_context": "heterocyclic",
+   "coverage_reason": "the fully substituted imidazolium: the round-7 note says it is named correctly",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "Cn1cc[n+](C)c1",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "plan_search:unpromoted(unclaimed)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "S2-4-carboxy-1-methylpyridinium-chloride",
+   "class": "cation_second_group",
+   "context": "salt_inorganic_anion",
+   "secondary_group": "carboxylic acid",
+   "expected_owner": "CATION",
+   "target_basis": "PRINTED",
+   "target": "4-carboxy-1-methylpyridin-1-ium chloride",
+   "smiles": "C[n+]1ccc(cc1)C(O)=O.[Cl-]",
+   "name": "4-carboxy-1-methylpyridin-1-ium chloride",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "N1-Me",
+   "structural_context": "salt",
+   "coverage_reason": "a cation beside a neutral acid, in a salt: the cation is the parent",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "C[n+]1ccc(C(=O)O)cc1",
+      "verdict": null,
+      "owners": [],
+      "observed_route": null
+     },
+     {
+      "component": "[Cl-]",
+      "verdict": null,
+      "owners": [],
+      "observed_route": null
+     }
+    ]
+   },
+   "permutations": {
+    "reversed": {
+     "smiles": "[Cl-].C[n+]1ccc(cc1)C(O)=O",
+     "name": "4-carboxy-1-methylpyridin-1-ium chloride",
+     "structural": "STRUCTURALLY_CORRECT",
+     "same_name_as_base": true
+    },
+    "with_water": {
+     "smiles": "C[n+]1ccc(cc1)C(O)=O.O.[Cl-]",
+     "name": "4-carboxy-1-methylpyridin-1-ium chloride water",
+     "structural": "STRUCTURALLY_CORRECT",
+     "same_name_as_base": false
+    }
+   },
+   "order_independent": true,
+   "water_variant_is_base_plus_water": true
+  },
+  {
+   "id": "S2-trimethylanilinium",
+   "class": "cation_second_group",
+   "context": "isolated_ion",
+   "secondary_group": "aryl",
+   "expected_owner": "CATION",
+   "target_basis": "PRINTED",
+   "target": "N,N,N-trimethylanilinium",
+   "smiles": "C[N+](C)(C)c1ccccc1",
+   "name": "N,N,N-trimethylanilinium",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "N-Me3",
+   "structural_context": "aromatic",
+   "coverage_reason": "a quaternary ammonium on a ring",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "C[N+](C)(C)c1ccccc1",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "plan_search:unpromoted(unclaimed)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "S2-tetramethylammonium",
+   "class": "cation_second_group",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "CATION",
+   "target_basis": "PRINTED",
+   "target": "N,N,N-trimethylmethanaminium",
+   "smiles": "C[N+](C)(C)C",
+   "name": "N,N,N-trimethylmethanaminium",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "N-Me4",
+   "structural_context": "acyclic",
+   "coverage_reason": "the simplest quaternary ammonium",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "C[N+](C)(C)C",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "plan_search:unpromoted(unclaimed)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "S2-dimethylguanidinium",
+   "class": "guanidinium",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "CATION",
+   "target_basis": "PRINTED",
+   "target": "N,N-dimethylguanidinium",
+   "smiles": "CN(C)C(N)=[NH2+]",
+   "name": "1,1-dimethylguanidinium",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "one protonation",
+   "structural_context": "acyclic",
+   "coverage_reason": "a substituted guanidinium",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "CN(C)C(N)=[NH2+]",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "classifier:guanidinium"
+     }
+    ]
+   }
+  },
+  {
+   "id": "S2-guanidinium",
+   "class": "guanidinium",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "CATION",
+   "target_basis": "DERIVED",
+   "target": "guanidinium",
+   "smiles": "NC(N)=[NH2+]",
+   "name": "guanidinium",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "one protonation",
+   "structural_context": "acyclic",
+   "coverage_reason": "the parent guanidinium",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "NC(N)=[NH2+]",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "classifier:guanidinium"
+     }
+    ]
+   }
+  },
+  {
+   "id": "S2-trimethylbenzamidium",
+   "class": "cation_second_group",
+   "context": "isolated_ion",
+   "secondary_group": "acyl",
+   "expected_owner": "CATION",
+   "target_basis": "PRINTED",
+   "target": "N,N,N-trimethylbenzamidium",
+   "smiles": "O=C(c1ccccc1)[N+](C)(C)C",
+   "name": "N,N,N-trimethyl-1-oxo-1-phenylmethanaminium",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "N-Me3",
+   "structural_context": "aromatic",
+   "coverage_reason": "an acyl group on a quaternary nitrogen",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "C[N+](C)(C)C(=O)c1ccccc1",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "plan_search:unpromoted(unclaimed)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "S2-benzonitrilium",
+   "class": "cation_second_group",
+   "context": "isolated_ion",
+   "secondary_group": "nitrile",
+   "expected_owner": "CATION",
+   "target_basis": "PRINTED",
+   "target": "benzonitrilium",
+   "smiles": "[NH+]#Cc1ccccc1",
+   "name": "(phenylmethylidyne)azanium",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "N-H+",
+   "structural_context": "aromatic",
+   "coverage_reason": "a protonated nitrile",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "[NH+]#Cc1ccccc1",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "plan_search:unpromoted(unclaimed)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "S2-tetramethyldiazenediium",
+   "class": "polycation",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "CATION",
+   "target_basis": "PRINTED",
+   "target": "tetramethyldiazene-1,2-diium",
+   "smiles": "C[N+](C)=[N+](C)C",
+   "name": "tetramethyldiazene-1,2-diium",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "N1 N2",
+   "structural_context": "acyclic",
+   "coverage_reason": "a dication",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "C[N+](C)=[N+](C)C",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "classifier:diazene_diium"
+     }
+    ]
+   }
+  },
+  {
+   "id": "S2-dioxanediium",
+   "class": "polycation",
+   "context": "isolated_ion",
+   "secondary_group": "none",
+   "expected_owner": "CATION",
+   "target_basis": "PRINTED",
+   "target": "1,4-dioxane-1,4-diium",
+   "smiles": "C1C[OH+]CC[OH+]1",
+   "name": "1,4-dioxane-1,4-diium",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "EXACT_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/EXACT_PREFERRED",
+   "site_vector": "O1 O4",
+   "structural_context": "heterocyclic",
+   "coverage_reason": "a heterocyclic dication",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "C1C[OH+]CC[OH+]1",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "plan_search:unpromoted(unclaimed)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "S3-glycine-cation",
+   "class": "cation_second_group",
+   "context": "isolated_ion",
+   "secondary_group": "carboxylic acid",
+   "expected_owner": "CATION",
+   "target_basis": "NONE_VERIFIED",
+   "target": null,
+   "smiles": "[NH3+]CC(O)=O",
+   "name": "carboxymethanaminium",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "PREFERENCE_UNKNOWN",
+   "status": "STRUCTURALLY_CORRECT/PREFERENCE_UNKNOWN",
+   "site_vector": "N-H3+",
+   "structural_context": "acyclic",
+   "coverage_reason": "a protonated amino acid with the acid still neutral: cations outrank acids",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "[NH3+]CC(=O)O",
+      "verdict": null,
+      "owners": [],
+      "observed_route": "plan_search:unpromoted(unclaimed)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "S4-imidazolium-chloride",
+   "class": "azolium_salt",
+   "context": "salt_inorganic_anion",
+   "secondary_group": "none",
+   "expected_owner": "CATION",
+   "target_basis": "DERIVED",
+   "target": "1H-imidazol-3-ium chloride",
+   "smiles": "c1c[nH]c[nH+]1.[Cl-]",
+   "name": "1,3-diazol-1-ium chloride",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "N3-H+",
+   "structural_context": "salt",
+   "coverage_reason": "the salt of the trigger cation",
+   "ownership": {
+    "verdict": null,
+    "components": [
+     {
+      "component": "c1c[nH+]c[nH]1",
+      "verdict": null,
+      "owners": [],
+      "observed_route": null
+     },
+     {
+      "component": "[Cl-]",
+      "verdict": null,
+      "owners": [],
+      "observed_route": null
+     }
+    ]
+   },
+   "permutations": {
+    "reversed": {
+     "smiles": "[Cl-].c1c[nH]c[nH+]1",
+     "name": "1,3-diazol-1-ium chloride",
+     "structural": "STRUCTURALLY_CORRECT",
+     "same_name_as_base": true
+    },
+    "with_water": {
+     "smiles": "c1c[nH]c[nH+]1.O.[Cl-]",
+     "name": "1,3-diazol-1-ium chloride water",
+     "structural": "STRUCTURALLY_CORRECT",
+     "same_name_as_base": false
+    }
+   },
+   "order_independent": true,
+   "water_variant_is_base_plus_water": true
+  },
+  {
+   "id": "S4-imidazolium-acetate",
+   "class": "azolium_salt",
+   "context": "salt_organic_anion",
+   "secondary_group": "none",
+   "expected_owner": "CATION",
+   "target_basis": "DERIVED",
+   "target": "1H-imidazol-3-ium acetate",
+   "smiles": "c1c[nH]c[nH+]1.CC(=O)[O-]",
+   "name": "1,3-diazol-1-ium acetate",
+   "roundtrip": "MATCH",
+   "structural": "STRUCTURALLY_CORRECT",
+   "preference": "NON_PREFERRED",
+   "status": "STRUCTURALLY_CORRECT/NON_PREFERRED",
+   "site_vector": "N3-H+",
+   "structural_context": "salt",
+   "coverage_reason": "the same cation with an organic anion",
+   "ownership": {
+    "verdict": "OWNED",
+    "components": [
+     {
+      "component": "c1c[nH+]c[nH]1",
+      "verdict": null,
+      "owners": [],
+      "observed_route": null
+     },
+     {
+      "component": "CC(=O)[O-]",
+      "verdict": "OWNED",
+      "owners": [
+       "classifier:_classify_acidic_anion:acidic_anion_carboxylate"
+      ],
+      "observed_route": null
+     }
+    ]
+   },
+   "permutations": {
+    "reversed": {
+     "smiles": "CC(=O)[O-].c1c[nH]c[nH+]1",
+     "name": "1,3-diazol-1-ium acetate",
+     "structural": "STRUCTURALLY_CORRECT",
+     "same_name_as_base": true
+    },
+    "with_water": {
+     "smiles": "c1c[nH]c[nH+]1.O.CC(=O)[O-]",
+     "name": "1,3-diazol-1-ium acetate water",
+     "structural": "STRUCTURALLY_CORRECT",
+     "same_name_as_base": false
+    }
+   },
+   "order_independent": true,
+   "water_variant_is_base_plus_water": true
+  }
+ ]
+}
