@@ -2762,6 +2762,33 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "a REMOTE hydrazide (no bond to the ring): the acid outranks it (Table 4.1); the hydrazide was the parent"),
     ("D-117s", "O=C(NNc1ccccc1)c1ccc(cc1)C(=O)O", "4-[(oxo)(2-phenylhydrazinyl)methyl]benzoic acid", "4-carboxy-N'-phenylbenzohydrazide",
      "OPSIN-verified, the ACID is the parent; the spelling of the prefix is not claimed (D-088d)"),
+    ("D-088c", "O=C(N=Nc1ccccc1)N=Nc1ccccc1", "bis(phenyldiazenyl)methanone",
+     "1-[(oxo)(phenyldiazenyl)methyl]-2-phenyldiazene",
+     "p. 110: a C=O between two N= is not perceived as a ketone"),
+    # ---- naming round 8, limitations sweep (W4b): PSEUDOKETONES, P-64.3.2 (pdf p. 567). "Acyclic pseudoketones, including those in which the carbonyl group is linked to a heteroatom of a
+    # heterocycle (hidden amides, for instance), are named substitutively by using the suffix 'one'. This method is preferred to that using acyl groups". The engine had no such group at all, so
+    # every carbonyl on a ring nitrogen, an azo nitrogen or silicon was named with an acyl prefix ('1-propanoylpiperidine'). The fix is four ketone definitions in the group data with a new key,
+    # context_indices, declaring the heteroatom as the ROOT of the substituent, plus three places that had claimed every heteroatom of a group as the group's own.
+    ("D-118a", "CCC(=O)N1CCCCC1", "1-(piperidin-1-yl)propan-1-one", "1-propanoylpiperidine", "p. 567 VERBATIM '1-(piperidin-1-yl)propan-1-one (PIN)'"),
+    ("D-118b", "CC(=O)N1c2ccccc2CCC1", "1-(3,4-dihydroquinolin-1(2H)-yl)ethan-1-one", "1-acetyl-1,2,3,4-tetrahydroquinoline", "p. 567 VERBATIM '1-(3,4-dihydroquinolin-1(2H)-yl)ethan-1-one (PIN)'"),
+    ("D-118c", "CC(=O)[Si](C)(C)C", "1-(trimethylsilyl)ethan-1-one", "acetyltri(methyl)silane", "p. 567 VERBATIM '1-(trimethylsilyl)ethan-1-one (PIN)'"),
+    ("D-118d", "CC(=O)n1ccnc1", "1-(1H-imidazol-1-yl)ethan-1-one", "1-acetyl-1H-imidazole", "derived (the same rule on an AROMATIC nitrogen, also a hidden amide); OPSIN reads it back"),
+    ("D-118e", "O=C(c1ccccc1)N1CCCC1", "phenyl(pyrrolidin-1-yl)methanone", "1-benzoylpyrrolidine", "derived: a one-carbon ketone parent with two different substituents, cited alphabetically"),
+    ("D-118f", "CC(=O)N=NC", "1-(methyldiazenyl)ethan-1-one", "acetyl(methyl)diazene", "derived (the azo nitrogen, the case of D-088c with one carbon side)"),
+    ("D-118g", "O=C(CCCCCCCCC(=O)N1CC1)N1CC1", "1,10-di(aziridin-1-yl)decane-1,10-dione", "1-[10-(aziridin-1-yl)-10-oxodecanoyl]aziridine",
+     "a heldout_v4 corpus row (its PubChem name is the same ketone form); 'di' not 'bis' for a prefix that is compound only because it carries a locant, the rule of round 4"),
+    ("D-118x", "O=C(O)CC(=O)N1CCCCC1", "3-oxo-3-(piperidin-1-yl)propanoic acid", "(unchanged)",
+     "converse, the one a first draft got wrong: an ACID on the same chain is senior to a pseudoketone (Table 4.1). The ketone plan won because the acid plan died with 'atom 6 owned by two prefixes'"),
+    ("D-118y", "NC(=O)CC(=O)N1CCCCC1", "3-oxo-3-(piperidin-1-yl)propanamide", "(unchanged)", "converse: an AMIDE on the same chain is senior to a pseudoketone"),
+    ("D-118z", "CC(=O)N1CCC(CC1)C(=O)O", "1-acetylpiperidine-4-carboxylic acid", "(unchanged)", "converse: an acid on the RING keeps the ring as the parent and the N-acetyl as a prefix"),
+    ("D-118w", "CC(=O)N1CCCC1=O", "1-acetylpyrrolidin-2-one", "(unchanged)", "converse: a lactam's ring carbonyl is the ketone, and the exocyclic acetyl is a prefix"),
+    ("D-118v", "CC(=O)N1CCC(=O)CC1", "1-acetylpiperidin-4-one", "(unchanged)", "converse: a ring ketone is senior to the acyclic pseudoketone"),
+    ("D-118u", "CC(=O)NC", "N-methylacetamide", "(unchanged)", "converse: an ACYCLIC amide is an amide, not a pseudoketone"),
+    ("D-118t", "CC(=O)OC", "methyl acetate", "(unchanged)", "converse: an ester"),
+    ("D-119a", "O=C(n1ccnc1)n1ccnc1", "1-[(1H-imidazol-1-yl)(oxo)methyl]-1H-imidazole", "(a KekulizeException out of the whole naming call)",
+     "carbonyldiimidazole, a common reagent, CRASHED the engine: the multiplicative route carved a half-molecule whose aromatic n had lost its H and did not catch the sanitise failure. It now "
+     "declines and the generic route names it. OPSIN-verified; NOT claimed preferred (the pseudoketone name, di(1H-imidazol-1-yl)methanone, is not built for two ring nitrogens)"),
+    ("D-119b", "O=C(n1cccc1)n1cccc1", "1-[(oxo)(1H-pyrrol-1-yl)methyl]-1H-pyrrole", "(the same crash)", "the pyrrole analogue"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -2806,9 +2833,6 @@ OPEN: list[tuple[str, str, str, str, str]] = [
     ("D-088b", "CCOC(=O)NN", "ethyl hydrazinecarboxylate", "(ethoxycarbonyl)hydrazine",
      "the ester of hydrazinecarboxylic acid; its anion is not nameable yet "
      "('oxidooxomethylhydrazine'), so no ester plan is offered"),
-    ("D-088c", "O=C(N=Nc1ccccc1)N=Nc1ccccc1", "bis(phenyldiazenyl)methanone",
-     "1-[(oxo)(phenyldiazenyl)methyl]-2-phenyldiazene",
-     "p. 110: a C=O between two N= is not perceived as a ketone"),
     ("D-088d", "O=C(NNC)c1ccc(C(=O)O)cc1", "4-(2-methylhydrazine-1-carbonyl)benzoic acid",
      "4-[(2-methylhydrazinyl)(oxo)methyl]benzoic acid",
      "derived from 'hydrazinecarbonyl (preferred prefix)' (p. 668). PARTLY FIXED in round 8 (D-117f): the acid is now the parent, as Table 4.1 requires (it was "

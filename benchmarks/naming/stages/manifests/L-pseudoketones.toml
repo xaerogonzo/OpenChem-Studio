@@ -1,0 +1,17 @@
+# Limitations sweep (naming round 8): pseudoketones, P-64.3.2 (pdf p. 567), the abandoned W4(b). Measured against 380cda2. Two tuning-population rows change; both are carbonyls on a ring
+# nitrogen and both move to the ketone form the reference name (PubChem) also uses. Expected names are the ones the rule produces, each OPSIN-verified, never the engine's own output alone.
+
+stage = "L-pseudoketones"
+
+[[expect]]
+id = "pop:heldout_v4:h4cid17750"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-64.3.2"
+expected_layer = "CANDIDATE_ABSENT"
+expected_name = "1,10-di(aziridin-1-yl)decane-1,10-dione"
+
+[[expect]]
+id = "pop:heldout_v4:h4cid54750"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-64.3.2"
+expected_layer = "CANDIDATE_ABSENT"

@@ -643,6 +643,9 @@ class FGDetection:
                 i for i in range(pattern.GetNumAtoms())
                 if pattern.GetAtomWithIdx(i).GetSmarts() == "[#6]"
             ]
+            # A group may declare HETEROATOM attachment context explicitly (naming round 8): the pseudoketones of P-64.3.2, a carbonyl bonded to a ring
+            # nitrogen or an azo nitrogen, whose N is the root of the substituent ('piperidin-1-yl'), not part of the '-one'.
+            _context_indices += [i for i in fg_def.get("context_indices", ()) if i not in _context_indices]
             # A hydroxamic acid is named as an N-hydroxy AMIDE (round 5, N6;
             # "N-hydroxycyclohexanecarboxamide (PIN)", p. 587): its -amide
             # suffix names C, =O and N, and the N-hydroxy prefix owns the O.

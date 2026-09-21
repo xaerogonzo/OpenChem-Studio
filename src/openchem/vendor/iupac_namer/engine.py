@@ -14253,10 +14253,15 @@ class SubstitutivePath:
                     )
                     if is_bonded_to_n:
                         _hydroxamic_oh_skip.add(atom_idx)
+            _declared_context = frozenset(fg.get_property("context_atoms") or ())
             for atom_idx in fg.atoms - parent_atoms:
                 if atom_idx in _hydroxamic_oh_skip:
                     continue  # leave OH in remaining for N-hydroxy carving
                 atom = mol.GetAtomWithIdx(atom_idx)
+                if atom.GetAtomicNum() != 6 and atom_idx in _declared_context:
+                    # A HETEROATOM the group declares as attachment context (a pseudoketone's ring or azo nitrogen, naming round 8) is the root of a
+                    # substituent, like a context carbon: claimed as a suffix atom it would make the ring behind it unreachable ('heavy atoms unclaimed').
+                    continue
                 if atom.GetAtomicNum() == 6:
                     # Carbon: only claim it as a suffix atom if ALL of its
                     # heavy-atom neighbours are within (parent_atoms ∪ all_fg_atoms).
@@ -14467,8 +14472,13 @@ class SubstitutivePath:
                             and id(fg) not in _demoted_fg_ids):
                         pass  # leave in remaining — structural flood-fill handles
                     else:
+                        _declared_ctx = frozenset(fg.get_property("context_atoms") or ())
                         for atom_idx in off_parent:
                             atom = mol.GetAtomWithIdx(atom_idx)
+                            if atom.GetAtomicNum() != 6 and atom_idx in _declared_ctx:
+                                # A declared heteroatom context (a pseudoketone's ring or azo nitrogen, naming round 8) is the ROOT of a
+                                # substituent, not part of the group: left in `remaining` so the structural carve reaches the ring behind it.
+                                continue
                             if atom.GetAtomicNum() != 6 or atom_idx == fg.anchor:
                                 fg_prefix_atoms.add(atom_idx)
 
@@ -14623,7 +14633,12 @@ class SubstitutivePath:
                     continue
                 # Include any extra atoms found by Pass 1.3 (e.g., ethyl group
                 # on a secondary_amine FG where only α-CH2 is in fg.atoms).
-                tp_substituent_atoms = frozenset(fg_atoms_offparent) | _fg_extra.get(id(fg), frozenset())
+                # A declared HETEROATOM context (a pseudoketone's ring or azo nitrogen) is not the group's: the carved substituent owns it.
+                _pass1_ctx = frozenset(fg.get_property("context_atoms") or ())
+                tp_substituent_atoms = frozenset(
+                    a for a in fg_atoms_offparent
+                    if not (mol.GetAtomWithIdx(a).GetAtomicNum() != 6 and a in _pass1_ctx)
+                ) | _fg_extra.get(id(fg), frozenset())
 
             # Find the atom in tp_substituent_atoms that is bonded to parent
             # (the outermost heteroatom, e.g. Cl for chloro, O for hydroxy).

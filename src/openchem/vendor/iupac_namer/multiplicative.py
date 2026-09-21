@@ -300,7 +300,12 @@ def _build_unit(mol, atoms, attach, marker: str | None):
     for atom in out.GetAtoms():
         atom.SetNoImplicit(False)
         atom.SetNumExplicitHs(0)
-    Chem.SanitizeMol(out)
+    try:
+        Chem.SanitizeMol(out)
+    except Exception as exc:  # noqa: BLE001 - a half that will not sanitise is a decline, not a crash (naming round 8)
+        # An aromatic ring nitrogen that lost its H in the carve (carbonyldiimidazole's two imidazol-1-yl halves) raised a KekulizeException out of
+        # the whole naming call. The module declines everywhere else it cannot take a molecule; the generic route then names it.
+        raise Declined(f"the carved half does not sanitise: {exc}") from exc
     return out, frozenset(range(first, out.GetNumAtoms()))
 
 
