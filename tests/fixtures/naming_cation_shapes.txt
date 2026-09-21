@@ -1,4 +1,4 @@
-# A SNAPSHOT of the engine's names for shapes no corpus row contains (naming round 8): SMILES <TAB> name, the name being what the engine writes for the RDKit CANONICAL spelling.
+# A SNAPSHOT of the engine's names for shapes no corpus row contains (naming round 8), extended at the round end: SMILES <TAB> name, the name being what the engine writes for the RDKit CANONICAL spelling.
 # tests/test_namer_probe_shapes.py fails on ANY change of a name here, and on any name OPSIN cannot read back. A round-trip alone cannot see a PREFERENCE regression
 # ('1,1-dimethylazinan-1-ium' still reads back as the right molecule), so the names are pinned: a change is reviewed and this file updated in the same commit.
 #
@@ -158,3 +158,55 @@ COc1ccc(cc1)C(=O)N1CCCCC1	(4-methoxyphenyl)(piperidin-1-yl)methanone
 CC(=O)[Si](C)(C)C	1-(trimethylsilyl)ethan-1-one
 O=C(c1ccccc1)[Si](C)(C)C	phenyl(trimethylsilyl)methanone
 O=C(O)CC(=O)[Si](C)(C)C	3-oxo-3-(trimethylsilyl)propanoic acid
+# ---- the ROUND-END extension (naming round 8): the classes the limitations pass fixed (D-120 to D-129), none of which any corpus contains. The fixes are protected by their own
+# D-rows; these shapes are the NEIGHBOURS, so that a change to one class that moves another shows here. The file's name says 'cation' because that is what it began as.
+COC(=O)OC	dimethyl carbonate
+CCOC(=O)OC	ethyl methyl carbonate
+O=C(Oc1ccccc1)OC	methyl phenyl carbonate
+OC(=O)OC	methyl hydrogen carbonate
+O=C1OCCO1	1,3-dioxolan-2-one
+CC(C)(C)OC(=O)OC(C)(C)C	bis(2-methylpropan-2-yl) carbonate
+CCCCCO[N+](=O)[O-]	pentyl nitrate
+CCCCCON=O	pentyl nitrite
+OCCO[N+](=O)[O-]	2-hydroxyethyl nitrate
+O=[N+]([O-])OCC(CO[N+](=O)[O-])O[N+](=O)[O-]	1,2,3-tris(nitrooxy)propane
+CON(C)C(C)=O	N-methoxy-N-methylacetamide
+CONC(=O)c1ccc(N)cc1	4-amino-N-methoxybenzamide
+CNOC	N-methoxymethanamine
+CCNOC	N-methoxyethanamine
+c1ccccc1NOCC	N-ethoxyaniline
+CON(C)C(=O)CC(=O)O	3-[methoxy(methyl)amino]-3-oxopropanoic acid
+CON=Cc1ccccc1	N-methoxy-1-phenylmethanimine
+COC(=O)C(=NOC)c1ccccc1	methyl (methoxyimino)(phenyl)acetate
+CON	(aminooxy)methane
+C[P+](C)(C)CC(N)=O	(2-amino-2-oxoethyl)tri(methyl)phosphanium
+C[S+](C)CCO	(2-hydroxyethyl)di(methyl)sulfanium
+C[P+](C)(C)CC(=O)O	(carboxymethyl)tri(methyl)phosphanium
+C[P+](C)(C)CC(=O)[O-]	(trimethylphosphaniumyl)acetate
+C[N+](C)(C)CCC(N)=O	3-amino-N,N,N-trimethyl-3-oxopropan-1-aminium
+CC(=O)C(=O)C	butane-2,3-dione
+O=C(c1ccccc1)C(=O)c1ccccc1	1,2-diphenylethane-1,2-dione
+CC(=O)C(=O)C(C)=O	pentane-2,3,4-trione
+CC(=O)C(=O)O	2-oxopropanoic acid
+C=CC(N)=O	prop-2-enamide
+C=CCN	prop-2-en-1-amine
+C#CC(N)=O	prop-2-ynamide
+CC=CC(=O)N1CCCC1	1-(pyrrolidin-1-yl)but-2-en-1-one
+OC(=O)c1ccc(cc1)C(=O)N1CCCCC1	4-(piperidine-1-carbonyl)benzoic acid
+OC(=O)c1ccc(cc1)C(=O)N1CCOCC1	4-(morpholine-4-carbonyl)benzoic acid
+OC(=O)c1ccc(cc1)C(=O)n1ccnc1	4-(1H-imidazole-1-carbonyl)benzoic acid
+OC(=O)CCC(=O)N1CCCC1	4-oxo-4-(pyrrolidin-1-yl)butanoic acid
+[O-]C(=O)c1cc2ccccc2cc1[O-]	3-oxidonaphthalene-2-carboxylate
+[NH3+]C(C[O-])C([O-])=O	2-azaniumyl-3-oxidopropanoate
+# ---- OPEN, pinned so that a FIX is noticed as well as a regression (each is a KNOWN_LIMITATIONS row, 'Open after naming round 8'; each reads back and is not preferred):
+[S-]c1ccccc1C(=O)[O-]	2-[oxido(oxo)methyl]benzene-1-thiolate
+O=C([O-])c1ccc(CS(=O)(=O)[O-])cc1	4-[(oxidosulfonyl)methyl]benzoate
+NCC(=O)NCC(=O)O	[(2-amino-1-oxoethyl)amino]acetic acid
+CC(=O)NCC(=O)NCC(=O)O	acetamidoacetamidoacetic acid
+COC(=O)Cl	methoxymethanoyl chloride
+CC(=O)OOC(C)=O	1-(acetylperoxy)-1-oxoethane
+CCOC(=S)SC	O-ethyl (methylsulfanyl)methanethioate
+CCOC(=O)NN	(ethoxycarbonyl)hydrazine
+OC(=O)c1ccc(cc1)C(=O)NNC	4-[(2-methylhydrazinyl)(oxo)methyl]benzoic acid
+O=C(c1ccccc1)N1CCOCC1	(morpholin-4-yl)phenylmethanone
+CON(C)C(=S)C	N-methoxy-N-methyl-1-thioxoethan-1-amine
