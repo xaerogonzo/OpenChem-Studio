@@ -1350,3 +1350,44 @@ Two instrumentation hooks, neither of which changes a result: `classify_charges(
 `diagnostics.record_route`, which is what let `perception/charge_ownership.py` compare the routes that would claim a
 site with the route the engine actually took. That comparison found a fourth owner the static model had not heard of
 (the curated inorganic table answers first, so `carbamate` was never a hole).
+
+## 2026-09-21 - naming round 8: polyacids, guanidines, azoles, and what ordinary compounds showed
+
+The plan was four workstreams and one carried-over wrong structure; a limitations pass then fixed the defects its own
+probing found. Every fix has D-rows (D-100 to D-129, 337 rows, each red before its fix, with converses that differ by reason),
+a mutation check with the equivalent mutants written into the code, and its own commit; every stage ran
+`tools/naming_ref_compare.py` against its predecessor with a manifest of the changes it expected.
+
+**Planned work.**
+
+* **W1, polyacids.** The chain choice for three or more C-anchored suffix groups (P-65.1.2.2.1, pdf p. 579) is an exo-skeleton parent
+  candidate (`_with_exo_skeleton_candidates`) that the generator never offered, so `2-hydroxypropane-1,2,3-tricarboxylic acid`,
+  `pentane-1,3,5-tricarboxylic acid` and `ethane-1,1,2,2-tetracarboxylic acid` are named as the book prints them. The classifier route
+  gained a SITE-LEVEL charge ledger (`_balance_the_charge_ledger`): every acid group on that route is a deprotonated site, so a neutral
+  `carboxy` word there is `carboxylato`, and the citrate trianion is `2-hydroxypropane-1,2,3-tricarboxylate` (a wrong molecule before).
+* **W5, the one wrong structure of round 7's fresh set:** an isothiourea whose demoted prefix was serialized without the enclosure
+  P-16.5.1.3.1 requires (`[amino(sulfanyl)methylidene]amino`); the enclosure rule applies to a substituent's own prefixes too.
+* **W2, condensed guanidines and ureas** (P-66.1.6.1.4, P-66.4.1.2): `diimidotricarbonimidic diamide`, `2-imidodicarbonic diamide`,
+  the n >= 5 skeletal-replacement names (`3,5,7-triimino-2,4,6,8-tetraazanonane-1,9-diimidamide`, unsubstituted chains only, guarded),
+  and the metforminium and biguanidium cations (a wrong molecule and a dication name for a monocation).
+* **W3, protonated azoles and cations:** the ring carve keeps a protonated nitrogen a target (`1H-imidazol-3-ium`, `1H-benzimidazol-3-ium`,
+  `1H-pyrazol-2-ium`, saturated protonated rings get their retained names), a ring cation outranks every uncharged suffix
+  (`_ring_cation_locants` joins the suffix tier), tetrazolium and N-oxide cations, and the salt route for a net-positive component that
+  holds a carboxylate (lysinium, histidinium).
+* **W4, the round-5 open list:** the imide parent (`N-acetylbenzamide`), N'-acyl hydrazides and a hydrazide never ranked above an acid
+  (`3-hydrazinyl-3-oxopropanoic acid`), and pseudoketones (P-64.3.2): a carbonyl on a ring, azo or silicon heteroatom is 'one' (the
+  group definitions gained `context_indices`, a declared heteroatom root of a substituent that the group does not claim).
+
+**Limitations pass, each a class no corpus contained.** The `e` of `ene`/`yne` elides before `amide` and `amine` (`prop-2-enamide`); an
+alkoxy on a nitrogen is `methoxy` (`_contracted_alkoxy`); an amide or amine whose nitrogen carries an alkoxy is an amide or an amine
+(four group definitions; the azinite generator declines a nitrogen with no oxo); a carbonyl between two ring nitrogens is a pseudoketone;
+nitrate and nitrite esters and acyclic carbonic diesters are esters (`compute_nitric_ester_name`, `compute_carbonic_ester_name`); an acyclic
+onium cation outranks the groups beside it (`_onium_centre_band`); a mixed-class polyanion is owned by the carved route with `sulfonato` and
+`oxido` prefixes; two adjacent acyclic ketones are a dione; the acyl prefix of a ring-nitrogen amide is `piperidine-1-carbonyl`.
+
+**Other.** `RoundTrip.TAUTOMER` (a name that reads back as another tautomer is shown, not withheld: `docs/ARCHITECTURE.md`, dated 2026-09-21);
+`derived_name_for_structure` raises on an embedded `NAMING ERROR`; the multiplicative route declines instead of crashing on a half-molecule that
+will not sanitise (carbonyldiimidazole); a pyrene/perylene/phenalene-type interior locant in the former CAS form is a DECLARED deviation
+(`benchmarks/naming/known_deviations.toml`, guarded). The engine's own tests: vendored suite 5,195 passed; the default naming set and the D-table
+1,057 passed with 14 expected failures (the open rows). See `KNOWN_LIMITATIONS.md` ("Open after naming round 8") for every open row and
+`BENCHMARK_HISTORY.md` for the measurements.

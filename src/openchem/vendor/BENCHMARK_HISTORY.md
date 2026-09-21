@@ -586,3 +586,80 @@ habits; nothing should be inferred from the difference.
 Vendored suite 4,515 passed (0 skipped, JRE and JAVA_HOME both set); the default app
 suite as CI's two shards 5,505 and 5,902 passed, every skip an environment one (offscreen
 WebGL, no PDF library, no pkasolver, the network test).
+
+
+## 2026-09-21 -- naming round 8: the fresh set found no wrong structure, and the fixes were mostly in no corpus
+
+Round 8 took the four workstreams of its plan (polyacids, condensed guanidines and ureas, protonated azoles and cations,
+the round-5 open list, plus the one wrong structure `heldout_v4` had held), then ran a limitations pass whose defects
+were, for the most part, in NO corpus row. So, as in round 7, the principal measurements are panels and a whole-round
+comparison, not a corpus score. All are reported here, each with its own denominator and never pooled.
+
+### The whole round, against the engine it began with (`tools/naming_ref_compare.py --base fbebdb3`)
+
+543 structures (the round-7 panel, the round-8 addendum panel, the salt panel and the five tuning populations):
+**37 names changed, 0 structurally regressed, 13 went from a name that did not read back to one that does**, and 24 changed
+without changing their round-trip verdict (a preferred spelling, `enamide` for `eneamide`, `methoxy` for `methyloxy`).
+The 506 others are byte-identical. Every stage also ran the same comparison against its own predecessor with a manifest of
+the changes it expected; an unlisted change was a failure.
+
+### The panels, before and after
+
+| panel | | baseline | round end |
+|---|---|---|---|
+| round 7 (108 rows) | exact preferred | 79 (its own end) | 91 |
+| | non-preferred | 20 | 8 |
+| | wrong molecule | 0 | 0 |
+| **round 8 addendum (60 rows, frozen in R0)** | wrong molecule | 8 | **0** |
+| | oracle error (a name OPSIN read as another molecule) | 2 | 0 |
+| | engine error (a refusal) | 1 | 1 |
+| | non-preferred | 21 | 4 |
+| | exact preferred | 20 | 44 |
+| | preference unknown | 8 | 11 |
+| | ownership holes | 2 | 0 |
+
+The addendum panel was built from the round's class space and the round-7 findings, NOT from `heldout_v4`'s wrong row, so it
+stayed independent of the observed failure. The one remaining engine error is the negative control of the biguanide work: a
+true DICATION has no name yet (a dication name for a MONOcation was the wrong molecule; the control shows the engine no longer
+confuses them). The four remaining non-preferred rows and the target of each are in `KNOWN_LIMITATIONS.md`.
+
+### The final evaluation (`r8-final`, `--final-evaluation`, `heldout_v5` scored once, aggregates only)
+
+| population | rows | PubChem string | equivalent | wrong structure |
+|---|---|---|---|---|
+| regression | 187 | 101 | 85 | 0 (1 tautomer) |
+| heldout v1 (tuning) | 40 | 16 | 24 | 0 |
+| heldout v2 (tuning) | 40 | 15 | 25 | 0 |
+| heldout v3 (tuning) | 40 | 14 (was 13) | 26 | 0 |
+| heldout v4 (tuning since R0) | 40 | 19 | 21 (was 20) | 0 (was 1) |
+| **heldout v5 (fresh, drawn and hashed in R0)** | **40** | **11** | **29** | **0** |
+
+**The fresh set found no wrong structure.** Round 7's did (one), round 5's did not. `heldout_v5` was drawn from a new offset
+(125) before any diagnosis, excluded by CID, canonical SMILES and row identity from the corpus and every earlier held-out set,
+and no row of it was read: its per-row records are in a sealed sidecar (`stages/sealed/r8-final.heldout_v5.records.json`,
+referenced by hash, read by no tracked script; a convention with a guard, since repository visibility cannot enforce it). The
+PubChem-verbatim figure (11/40) is lower than v4's (19/40) and nothing should be inferred from the difference: a different draw of
+PubChem records is a different draw of its naming habits, and "equivalent" is a success class (it round-trips), so the wrong-structure
+count is the figure that measures the engine. Anything found in v5 from here is round 9's, not this round's.
+
+**The four tuning populations moved as expected and no further:** `heldout_v3` gained one verbatim match (amyl nitrate, `pentyl nitrate`),
+and `heldout_v4` turned its one wrong structure (the isothiourea `h4cid4750`, its demoted prefix written `(aminosulfanylmethylidene)amino`,
+which OPSIN reads as another molecule) into a correct one. The regression corpus, v1 and v2 did not move at all over the round (0 of their rows in the whole-round comparison above). The
+agreement with the adjudicated preferred name is unchanged: regression 30/31, v1 17/18, v2 20/23.
+
+### Why the corpora barely moved, and what measured the round
+
+Six of the limitations pass's fixes (`prop-2-enamide`, the Weinreb amide, `butane-2,3-dione`, `dimethyl carbonate`, nitrate esters,
+mixed-class polyanions) had no corpus row: 0 of the 543 structures moved for most of them. They were found by naming a battery of
+ordinary compounds and reading the names (`tools/naming_probe.py`), and are protected by 337 D-rows (D-100 to D-129, each red before
+its fix with converses that differ by reason, each mutation-checked with the equivalent mutants written into the code) and by a
+200-shape pinned-name snapshot (`tests/fixtures/naming_cation_shapes.txt`) that also pins the neighbours of every class fixed and the
+open non-preferred names. The release-candidate driven check runs 18 rows through the application's own provider and asserts the
+exact name, the source tag, the round-trip verdict and the structure's charge and component count (`tools/naming_app_check.py`).
+
+### Suites at the round's end
+
+Vendored suite 5,195 passed (JRE and JAVA_HOME both set); the default app suite 11,843 passed in 16 chunks of at most 25 files
+each (the Windows access violation in `conftest.dispose` ended two chunks, which passed on a retry: see `docs/LESSONS.md`); the
+D-table 1,057 passed with 14 expected failures (the open rows). One deliberate deviation from the book is now a registry with a
+guard, `benchmarks/naming/known_deviations.toml` (pyrene 10b/10c, perylene 12c/12d, a phenalene-type hydro ring 9b).
