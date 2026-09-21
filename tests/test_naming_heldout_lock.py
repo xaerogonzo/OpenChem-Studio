@@ -288,6 +288,17 @@ def test_a_frozen_meta_carries_one_membership_hash_per_row():
         assert meta["membership_salt"], key
 
 
+def test_the_membership_hashes_in_a_frozen_meta_are_the_hashes_of_its_rows():
+    """The probe refuses a frozen structure by these hashes, so a meta whose hashes do not match the file would refuse the wrong things (or
+    nothing). Reads the frozen rows in memory, as the overlap check below does; the message carries COUNTS only."""
+    for key in frozen_keys():
+        meta = json.loads(meta_path(key).read_text(encoding="utf-8"))
+        rows = json.loads((ROOT / "benchmarks/naming" / frozen_file(key)).read_text(encoding="utf-8"))
+        expected = registry.membership_hashes(rows)
+        assert meta["membership_salt"] == registry.MEMBERSHIP_SALT, key
+        assert meta["membership_sha256"] == expected, (key, len(meta["membership_sha256"]), len(expected))
+
+
 def test_no_structure_is_in_two_populations():
     """A held-out set is independent only if it shares no STRUCTURE with the
     populations that were tuned on, and two PubChem CIDs can be one structure.

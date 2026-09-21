@@ -114,6 +114,9 @@ sys.path.insert(0, str(ROOT / "src"))
 # `derived_name_for_structure`, which is never called here.
 from openchem.chem import naming_providers as n  # noqa: E402
 
+sys.path.insert(0, str(ROOT / "tools"))
+from naming_populations import MEMBERSHIP_SALT, membership_hashes  # noqa: E402
+
 # CIDs 1000, 2000, ... 120000.  See the module docstring: a stride over CID
 # space, fixed before any naming.
 CID_STRIDE = 1000
@@ -170,8 +173,6 @@ VARIANTS = {
            "quiet": True, "label": "h6cid", "round": "naming round 9"},
 }
 
-#: Salt for the membership hashes a frozen population's meta carries (see `_membership_hashes`).
-MEMBERSHIP_SALT = "openchem-naming-frozen-membership-v1"
 
 MIN_HEAVY_ATOMS = 6
 MAX_HEAVY_ATOMS = 40
@@ -352,21 +353,6 @@ def build(variant: dict) -> list[dict]:
     return rows
 
 
-def _membership_hashes(rows: list[dict]) -> list[str]:
-    """Salted SHA-256 of every row's canonical SMILES, sorted, for the meta file.
-
-    **Why the meta carries hashes of the rows.** A frozen population's rows may not be
-    read, but `tools/naming_probe.py` names any SMILES it is handed, so a frozen row
-    could be typed in by hand while debugging something else. A hash lets the probe
-    ask "is this structure in a frozen population" without opening the file and
-    without the meta holding a row. It is a guard against an accident, not a secret:
-    the salt is public and a known compound is trivially re-hashed.
-    """
-    return sorted(
-        hashlib.sha256((MEMBERSHIP_SALT + row["smiles"]).encode("utf-8")).hexdigest() for row in rows
-    )
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build the held-out naming corpus.")
     parser.add_argument(
@@ -432,7 +418,7 @@ def main() -> None:
             "rows": len(rows),
             "heldout_sha256": digest,
             "membership_salt": MEMBERSHIP_SALT,
-            "membership_sha256": _membership_hashes(rows),
+            "membership_sha256": membership_hashes(rows),
             "pubchem_property": _PROPS,
             "rdkit_version": rdkit.__version__,
         }

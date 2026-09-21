@@ -95,3 +95,61 @@ def keys(*, final_evaluation: bool = False) -> list[str]:
 
 def tuning() -> tuple[Population, ...]:
     return tuple(p for p in registry() if not p.frozen)
+
+
+def meta_path(key: str) -> Path:
+    """`<stem>.json` -> `<stem>.meta.json`: the convention every population's meta file follows."""
+    return BENCH / (Path(get(key).file).stem + ".meta.json")
+
+
+#: Salt for the membership hashes a frozen population's meta carries. The drawing scripts (`build_heldout.py`, and the Blue Book harvest) hash with
+#: THIS constant and this function, so the meta can never carry a hash the probe cannot reproduce.
+MEMBERSHIP_SALT = "openchem-naming-frozen-membership-v1"
+
+
+def membership_hash(canonical_smiles: str, salt: str = MEMBERSHIP_SALT) -> str:
+    import hashlib
+
+    return hashlib.sha256((salt + canonical_smiles).encode("utf-8")).hexdigest()
+
+
+def membership_hashes(rows: list[dict]) -> list[str]:
+    """Sorted salted SHA-256 of every row's canonical SMILES, for a frozen population's meta file.
+
+    **Why the meta carries hashes of the rows.** A frozen population's rows may not be read, but `tools/naming_probe.py` names any SMILES it is
+    handed, so a frozen row could be typed in by hand while debugging something else. A hash lets the probe ask "is this structure in a frozen
+    population" without opening the file and without the meta holding a row. It guards an accident, not a secret: the salt is public and a known
+    compound is trivially re-hashed.
+    """
+    return sorted(membership_hash(row["smiles"]) for row in rows)
+
+
+def frozen_membership() -> dict[str, tuple[str, frozenset[str]]]:
+    """For every frozen population: the salt and the set of salted SHA-256 hashes of its rows' canonical SMILES, read from the META
+    file only. The frozen file itself is never touched, and the meta holds hashes, not rows.
+
+    A frozen population registered without membership hashes is an ERROR, not an empty set: an empty set would read as "nothing is
+    frozen" to the one tool (the probe) that uses this to refuse a structure, which is the unsafe default.
+    """
+    membership: dict[str, tuple[str, frozenset[str]]] = {}
+    for population in registry():
+        if not population.frozen:
+            continue
+        meta = json.loads(meta_path(population.key).read_text(encoding="utf-8"))
+        salt, hashes = meta.get("membership_salt"), meta.get("membership_sha256")
+        if not salt or not hashes:
+            raise ValueError(f"{population.key} is frozen but its meta carries no membership hashes")
+        membership[population.key] = (salt, frozenset(hashes))
+    return membership
+
+
+def frozen_key_of(canonical_smiles: str) -> str | None:
+    """The key of the frozen population that holds this canonical SMILES, or None.
+
+    A guard against an ACCIDENT (typing a frozen row into the probe while debugging something else), not a secret: the salt is public and
+    a known compound is trivially re-hashed. The argument must already be canonical (`Chem.MolToSmiles`), as the rows were when hashed.
+    """
+    for key, (salt, hashes) in frozen_membership().items():
+        if membership_hash(canonical_smiles, salt) in hashes:
+            return key
+    return None
