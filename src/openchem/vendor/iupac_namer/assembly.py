@@ -574,6 +574,11 @@ def merge_identical_prefixes(
         # multiplier and the stem read as one longer numeral.
         if not compound and count > 1 and re.match(r"(?:dec|icos|cos|triacont)", name):
             compound = True
+        # The same for 'aza...' (naming round 8, W3): 'diazaniumyl' reads as two skeletal-replacement 'aza' prefixes, or as the
+        # 'diazane' of hydrazine, and OPSIN does not parse it, so a doubly protonated amino acid was unverifiable. 'bis(azaniumyl)'
+        # says what it is. The book prints no multiplied 'azaniumyl', so the form is derived from the rule above, not quoted.
+        if not compound and count > 1 and name.startswith("aza"):
+            compound = True
         sort_name = derive_sort_name(name)
 
         if not compound:

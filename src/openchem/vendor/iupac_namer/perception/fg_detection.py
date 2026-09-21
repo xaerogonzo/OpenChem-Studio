@@ -617,8 +617,12 @@ class FGDetection:
         _sulfonate_anion_pattern = Chem.MolFromSmarts("[#16X4](=O)(=O)[OX1H0-]")
         _n_frags = len(Chem.GetMolFrags(self._mol))
         _net_charge = sum(a.GetFormalCharge() for a in self._mol.GetAtoms())  # type: ignore[attr-defined]
-        _augment_carboxylate_anion = _n_frags == 1 and _net_charge == 0
-        _augment_sulfonate_anion = _n_frags == 1 and _net_charge == 0
+        # Net charge >= 0, not == 0 (naming round 8, W3). The reason for the restriction is the NET-NEGATIVE anion fragment of a
+        # salt, which _name_salt already handles; a single fragment with a positive net charge that holds a carboxylate is a
+        # zwitterion-cation (lysine with both amines protonated, histidine with the ring protonated) and needs the group as much
+        # as a neutral one does. Without it perception saw no acid at all, and the carboxylate was written as a neutral 'carboxy'.
+        _augment_carboxylate_anion = _n_frags == 1 and _net_charge >= 0
+        _augment_sulfonate_anion = _n_frags == 1 and _net_charge >= 0
 
         # --- Suffix-eligible groups ---
         for fg_def in fg_data.get("suffix_groups", []):

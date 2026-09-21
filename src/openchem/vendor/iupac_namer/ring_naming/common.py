@@ -442,6 +442,21 @@ def _build_ring_mol_preserving_tautomer(mol, atom_indices: list[int]) -> Chem.Mo
         atom.SetNoImplicit(True)
         if atom.GetFormalCharge() != 0:
             atom.SetFormalCharge(0)
+    # A PROTONATED aromatic ring N ([nH+], no exocyclic substituent) is not a target above: its H is the protonation
+    # H, tracked as the -ium at assembly time, and the parent scaffold keeps ONE indicated-H per ring, which a
+    # neighbouring [nH] already supplies (imidazolium c1c[nH]c[nH+]1, benzimidazolium, pyrazolium, a triazolium with
+    # one N-alkyl). Left as it was it stayed [nH+] in the carved ring, so the curated key of the neutral parent
+    # never matched and the ring fell to a Hantzsch-Widman name or to no plan at all (naming round 8, W3). It
+    # becomes the bare pyridine-type n of the neutral parent. With NO other target this function has already
+    # returned None, which is why pyridinium (and every one-nitrogen azine) never reached this loop.
+    for old in atom_indices:
+        if old in nh_targets:
+            continue
+        source = mol.GetAtomWithIdx(old)
+        if (source.GetAtomicNum() == 7 and source.GetIsAromatic()
+                and source.GetFormalCharge() == 1):
+            # (The strip loop above already left every ring atom with no explicit H and implicit Hs allowed.)
+            rw.GetAtomWithIdx(old_to_new[old]).SetFormalCharge(0)
     result = rw.GetMol()
     try:
         Chem.SanitizeMol(result)

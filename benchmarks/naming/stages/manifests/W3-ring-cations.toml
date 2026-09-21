@@ -1,0 +1,49 @@
+# W3 (naming round 8), part 1: a protonated ring nitrogen beside a second ring nitrogen. Measured against 742a54f, the last pushed
+# commit. Expected names are the PANEL's targets (P-73.1.1.2; '1H-imidazol-3-ium (PIN)' is printed on pdf p. 818), never the engine's own
+# output. Two defects sit behind these six rows and both are named here so a row that moves for a THIRD reason cannot satisfy an entry:
+#   1. the ring carved for the retained-ring lookup kept the [nH+] charge, so the 'imidazole' / 'benzimidazole' key never matched;
+#   2. the strict SMARTS anchor '[nH]' matched the protonated [nH+], pinning the numbering and hiding the mirror orientation.
+
+stage = "W3-ring-cations"
+
+[[expect]]
+id = "r7:F2-imidazolium"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-73.1.1.2"
+expected_layer = "CANDIDATE_ABSENT"
+expected_name = "1H-imidazol-3-ium"
+
+[[expect]]
+id = "r8:S0-imidazolium"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-73.1.1.2"
+expected_layer = "CANDIDATE_ABSENT"
+expected_name = "1H-imidazol-3-ium"
+
+[[expect]]
+id = "r8:S0-benzimidazolium"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-73.1.1.2"
+expected_layer = "CANDIDATE_ABSENT"
+expected_name = "1H-benzimidazol-3-ium"
+
+[[expect]]
+id = "r8:S0-pyrazolium"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-73.1.1.2"
+expected_layer = "CANDIDATE_ABSENT"
+expected_name = "1H-pyrazol-2-ium"
+
+[[expect]]
+id = "r8:S4-imidazolium-chloride"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-73.1.1.2"
+expected_layer = "CANDIDATE_ABSENT"
+expected_name = "1H-imidazol-3-ium chloride"
+
+[[expect]]
+id = "r8:S4-imidazolium-acetate"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-73.1.1.2"
+expected_layer = "CANDIDATE_ABSENT"
+expected_name = "1H-imidazol-3-ium acetate"

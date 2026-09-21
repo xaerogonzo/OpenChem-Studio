@@ -9451,7 +9451,12 @@ def _name_bound(
             )
             if has_ring_hetero_plus:
                 output_form = OutputForm.CATION
-        elif net_charge <= 0:
+        # An ANION outranks a CATION (P-41, Table 4.1, pdf p. 360), so a species with a deprotonated acid site is named as the
+        # anion whatever its NET charge is (naming round 8, W3). This used to run only for a net charge <= 0 ('elif'), and a net
+        # POSITIVE zwitterion never reached it: lysine with both amines protonated and histidine with the ring protonated
+        # are net +1, stayed STANDALONE or CATION, and their carboxylate was written as a neutral 'carboxy' -- a name for a
+        # different charge. When no anionic site can be an anion suffix the species stays as the branch above left it.
+        if net_charge <= 0 or any(a.GetFormalCharge() < 0 for a in mol.GetAtoms()):
             # --- Zwitterion / naked-anion STANDALONE → ANION promotion ---
             # Two cases:
             #
@@ -11520,6 +11525,28 @@ def _name_binary_nitride_salt(frags) -> str | None:
     return f"{metal_name} nitride"
 
 
+def _has_anion_suffix_site(frag_mol) -> bool:
+    """True when a suffix-eligible group of an anion-variant type claims a negatively charged atom of ``frag_mol``.
+
+    The gate the salt path applies before asking for the ANION form: only an anion that can be written as an anion SUFFIX
+    ('-oate', '-carboxylate') is worth the form, and anything else stays as its fragment's charge would have it.
+    """
+    from openchem.vendor.iupac_namer.perception import Perception as _Perception
+    try:
+        perception = _Perception(frag_mol)
+    except Exception:
+        return False
+    neg_indices = {a.GetIdx() for a in frag_mol.GetAtoms() if a.GetFormalCharge() < 0}
+    for fg in perception.fgs.detected_fgs:
+        if not fg.suffix_eligible:
+            continue
+        if fg.type not in _FG_TYPES_WITH_ANION_VARIANT:
+            continue
+        if fg.anchor in neg_indices or any(idx in neg_indices for idx in fg.atoms):
+            return True
+    return False
+
+
 def _choose_salt_fragment_form(frag) -> "OutputForm":
     """Pick the OutputForm for a salt fragment based on its formal charge.
 
@@ -11550,25 +11577,15 @@ def _choose_salt_fragment_form(frag) -> "OutputForm":
         # Apply the same anion-FG gate used for net-anion fragments below:
         # only request ANION when a suffix-eligible FG of an anion-variant
         # type claims a negatively-charged atom.
-        from openchem.vendor.iupac_namer.perception import Perception as _Perception
-        try:
-            zfrag_perception = _Perception(frag_mol)
-        except Exception:
-            return OutputForm.STANDALONE
-        neg_indices = {
-            a.GetIdx() for a in frag_mol.GetAtoms()
-            if a.GetFormalCharge() < 0
-        }
-        for fg in zfrag_perception.fgs.detected_fgs:
-            if not fg.suffix_eligible:
-                continue
-            if fg.type not in _FG_TYPES_WITH_ANION_VARIANT:
-                continue
-            if fg.anchor in neg_indices or any(
-                idx in neg_indices for idx in fg.atoms
-            ):
-                return OutputForm.ANION
-        return OutputForm.STANDALONE
+        return OutputForm.ANION if _has_anion_suffix_site(frag_mol) else OutputForm.STANDALONE
+    # A NET-POSITIVE fragment that also holds a deprotonated acid site (lysine with both amines protonated, histidinium) is a
+    # zwitterion-cation, and an anion outranks a cation (P-41, Table 4.1, pdf p. 360): it takes the ANION form, or its
+    # carboxylate is written as a neutral 'carboxy' / '-oic acid' and the name has one charge too many (naming round 8, W3).
+    # Only when an anion suffix can carry the site; otherwise it stays a cation, as before. That gate is DEFENSIVE: a nitro salt
+    # ('[2-(4-nitrophenyl)ethyl]azanium chloride', D-109u) names identically when it is removed, because an ANION form with no
+    # anion-suffix group falls back to the same plan, so no test can tell the two apart and none is claimed to.
+    if charge > 0 and any(a.GetFormalCharge() < 0 for a in frag_mol.GetAtoms()) and _has_anion_suffix_site(frag_mol):
+        return OutputForm.ANION
     # Single-heavy-atom monatomic ions: trust the retained-name leaf path.
     # Exception: single-heavy-atom *carbon* anions (e.g. [CH3-], [CH2-]C)
     # are NOT in retained-name tables — they are named by the charge_perception
@@ -12817,6 +12834,36 @@ class SubstitutivePath:
                     for fg in pcg_instances
                     for atom in fg.atoms
                     if mol.GetAtomWithIdx(atom).GetAtomicNum() == 7
+                )
+            ):
+                continue
+
+            # A ring cation outranks EVERY uncharged suffix group (naming round 8, W3). P-41 Table 4.1 (pdf p. 360) lists cations
+            # (class 6) above acids, anhydrides, esters, acid halides, amides, nitriles, aldehydes, ketones and alcohols, so the
+            # ring cation is the parent and each of those is a prefix, as the printed '4-carboxy-1-methylpyridin-1-ium chloride
+            # (PIN)' writes its acid (pdf p. 580). The engine did it for the chloride's acid and for a neutral amine (W2 above)
+            # and for nothing else: '1-methylpyridin-1-ium-4-carboxamide', '-4-ol', '-4-carbonitrile', '-4-carbaldehyde', and
+            # the ISOLATED cation's '-4-carboxylic acid'. Skipped only when the group holds no positive charge itself, so an
+            # amidinium or iminium (the cationic centre IS the group) keeps its suffix, and only for a RING cation: an acyclic
+            # ammonium takes the azanium parent-hydride route, which already writes the junior group as a prefix.
+            # Two mutants of this guard change no name on any input tried and are not covered by a row: extending it to an ACYCLIC
+            # cation (eight acyclic ammonium, phosphonium and sulfonium inputs name identically, because they take the azanium
+            # parent-hydride route and never reach this loop) and testing '> 0' for '== 1' (no ring atom carries +2).
+            # A NON-EMPTY group is required: the plain no-suffix option has none, and "no atom of an empty group is charged"
+            # is vacuously true, which skipped the very plan the demoted groups fall back to ("No valid naming plan").
+            if (
+                output_form == OutputForm.CATION
+                and pcg_instances
+                and any(
+                    a.GetSymbol() in _RING_CATION_IUM_ELEMENTS
+                    and a.GetFormalCharge() == 1
+                    and a.IsInRing()
+                    for a in mol.GetAtoms()
+                )
+                and not any(
+                    mol.GetAtomWithIdx(atom).GetFormalCharge() > 0
+                    for fg in pcg_instances
+                    for atom in fg.atoms
                 )
             ):
                 continue
