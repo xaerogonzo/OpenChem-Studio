@@ -42,7 +42,7 @@ def trace(smiles: str) -> None:
 
     def spy(perception, mol, output_form, free_valence, query, strategy_, session):
         ranked = original(perception, mol, output_form, free_valence, query, strategy_, session)
-        if output_form == OutputForm.STANDALONE and not captured:
+        if output_form in (OutputForm.STANDALONE, OutputForm.CATION) and not captured:
             captured.append((mol, ranked))
         return ranked
 

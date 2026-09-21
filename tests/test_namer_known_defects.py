@@ -2423,6 +2423,47 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "converse, RECORDED OPEN and not a PIN: a three-prefix PARENT hydride. The rule text (p. 130) says the second and "
      "further prefixes are enclosed, and the book's own example on p. 873 prints 'bromo(chloro)fluoromethane' with the "
      "third bare; the book contradicts itself, so W5 is scoped to the SUBSTITUENT groups p. 663 prints and this stays put"),
+    # ---- naming round 8, W2 (cation charge count): a NEUTRAL amine beside a ring cation is a PREFIX ('amino'), never the
+    # '-aminium' suffix, which names a CHARGED nitrogen. CONVERSES first: they pass today and must not move.
+    ("D-102v", "[NH3+]c1cccc[nH+]1", "pyridin-1-ium-2-aminium", "(unchanged)",
+     "converse: the TRUE dication (ring N-H+ AND NH3+) keeps the aminium suffix; the guard is about a NEUTRAL amine N, not "
+     "about amines"),
+    ("D-102w", "[NH3+]c1ccccc1", "anilinium", "(unchanged)", "converse: the cation IS the amine, so aminium is right"),
+    ("D-102x", "[NH3+]c1ccc(N)cc1", "4-aminoanilinium", "(unchanged)",
+     "converse: a charged amine with a NEUTRAL amine beside it; the neutral one is the prefix, as it must be"),
+    ("D-102y", "Cc1cccc[nH+]1", "2-methylpyridin-1-ium", "(unchanged)", "converse: a hydrocarbon prefix on a ring cation"),
+    ("D-102z", "NCc1cccc[nH+]1", "2-(aminomethyl)pyridin-1-ium", "(unchanged)",
+     "converse: an amine on a CARBON substituent was already a prefix"),
+    # (moved from OPEN when the neutral-amine guard landed; each was red before, with the names in the 'former' column)
+    # ---- naming round 8, W2: every protonated or alkylated aminopyridine was a WRONG MOLECULE. Cations outrank amines
+    # (P-41, Table 4.1, pdf p. 360), so the ring cation is the parent and a NEUTRAL amino group is a prefix (P-73.1.1.2, pdf
+    # p. 818: 1-methylpyridin-1-ium, with the printed 4-carboxy-1-methylpyridin-1-ium as the same construction on p. 580).
+    # OPSIN reads 'pyridin-1-ium-2-aminium' as [NH+]1=C(C=CC=C1)[NH3+], a dication. Measured on master.
+    ("D-102a", "Nc1cccc[nH+]1", "2-aminopyridin-1-ium", "pyridin-1-ium-2-aminium",
+     "derived (p. 818 + P-41): the monocation of 2-aminopyridine; the old name was a dication"),
+    ("D-102b", "Nc1ccc[nH+]c1", "3-aminopyridin-1-ium", "pyridin-1-ium-3-aminium", "derived: the 3-isomer"),
+    ("D-102c", "Nc1cc[nH+]cc1", "4-aminopyridin-1-ium", "pyridin-1-ium-4-aminium", "derived: the 4-isomer"),
+    ("D-102d", "CN(C)c1cc[nH+]cc1", "4-(dimethylamino)pyridin-1-ium", "N,N-dimethylpyridin-1-ium-4-aminium",
+     "derived: protonated DMAP, a very common molecule; a compound prefix on the cation"),
+    ("D-102e", "Nc1ccc[n+](C)c1", "3-amino-1-methylpyridin-1-ium", "1-methylpyridin-1-ium-3-aminium",
+     "derived: an N-alkylated cation with a neutral amine, so the charge is not a protonation at all"),
+    # ---- naming round 8, W2: the guanidinium renderer never enclosed a COMPOUND prefix. Converses first.
+    ("D-103y", "CNC(N)=[NH2+]", "methylguanidinium", "(unchanged)", "converse: a simple prefix stays bare"),
+    ("D-103z", "CN(C)C(N)=[NH2+]", "1,1-dimethylguanidinium", "(unchanged)",
+     "converse: p. 819 prints N,N-dimethylguanidinium; the numeric form the renderer uses is the same compound"),
+    # (moved from OPEN when the guanidinium enclosure fix landed; each was red before, with the names in the 'former' column)
+    # ---- naming round 8, W2: metforminium was a WRONG MOLECULE. OPSIN reads '(dimethylamino)(imino)methylguanidinium' as
+    # CN(C)N(C(=[NH2+])N)C=N, with an N-N bond: the compound prefix was neither enclosed nor located. P-16.5.1.3 (pdf p. 130)
+    # encloses a compound prefix; a multiplied compound prefix takes 'bis' (the multiplier stays outside the marks).
+    ("D-103a", "CN(C)C(=N)NC(N)=[NH2+]", "[(dimethylamino)(imino)methyl]guanidinium",
+     "(dimethylamino)(imino)methylguanidinium", "derived: metformin's cation; the old name denoted another molecule"),
+    ("D-103b", "ClCCNC(=[NH2+])NCCCl", "1,3-bis(2-chloroethyl)guanidinium",
+     "1,3-di2-chloroethylguanidinium", "derived: a multiplied compound prefix; the old name did not parse at all"),
+    ("D-103c", "CNC(=N)NC(N)=[NH2+]", "[(imino)(methylamino)methyl]guanidinium",
+     "(imino)(methylamino)methylguanidinium", "derived: N-methylbiguanidium, the same defect"),
+    ("D-103d", "NC(=[NH2+])NCCCl", "(2-chloroethyl)guanidinium",
+     "2-chloroethylguanidinium", "derived (P-16.5.1.3: a prefix that carries a locant is enclosed): structurally right "
+     "before, non-preferred"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this

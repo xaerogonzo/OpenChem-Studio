@@ -12545,6 +12545,27 @@ class SubstitutivePath:
             ):
                 continue
 
+            # A NEUTRAL amine is not the '-aminium' of a cation elsewhere (naming round 8, W2). In CATION mode the
+            # suffix variant of an amine is 'aminium', which names a CHARGED nitrogen; on a molecule whose charge sits on
+            # a ring nitrogen (protonated 2-aminopyridine, DMAP-H+) the amine N is neutral, and the name
+            # 'pyridin-1-ium-2-aminium' denotes a DICATION, another molecule. Cations outrank amines (P-41, Table 4.1,
+            # pdf p. 360), so the cation is the parent and the neutral amino group is a prefix, as P-73.1.1.2 and the
+            # printed '4-carboxy-1-methylpyridin-1-ium' (pdf pp. 818, 580) write it. Skipped only when EVERY nitrogen of
+            # the instances is neutral and a positive charge exists elsewhere: a charged amine (anilinium) keeps its suffix,
+            # and so does a true dication.
+            if (
+                output_form == OutputForm.CATION
+                and pcg_type in ("amine", "secondary_amine", "tertiary_amine")
+                and any(a.GetFormalCharge() > 0 for a in mol.GetAtoms())
+                and all(
+                    mol.GetAtomWithIdx(atom).GetFormalCharge() == 0
+                    for fg in pcg_instances
+                    for atom in fg.atoms
+                    if mol.GetAtomWithIdx(atom).GetAtomicNum() == 7
+                )
+            ):
+                continue
+
             # Guard: sulfonamide with ring-embedded N (cyclic sulfonamide,
             # e.g. CS(=O)(=O)-N<pyrrolidine>) cannot be expressed as a
             # standard "-sulfonamide" suffix.  Generating plans for every

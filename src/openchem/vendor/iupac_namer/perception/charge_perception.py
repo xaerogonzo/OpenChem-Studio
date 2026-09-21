@@ -3615,10 +3615,21 @@ def _render_guanidinium(
     if not prefixed:
         return "guanidinium"
 
+    from openchem.vendor.iupac_namer.assembly import _choose_brackets, _is_compound_prefix
+
+    def cite(name: str) -> str:
+        """A COMPOUND prefix is enclosed (P-16.5.1.3, pdf p. 130), one mark out from what it already holds. Until naming round
+        8 it was written bare: '(dimethylamino)(imino)methylguanidinium' was read by OPSIN as an N-N bonded molecule (metformin's
+        cation, a wrong molecule) and '1,3-di2-chloroethylguanidinium' did not parse at all."""
+        if not _is_compound_prefix(name):
+            return name
+        opener, closer = _choose_brackets(name)
+        return f"{opener}{name}{closer}"
+
     # A lone substituent needs no locant: 1 and 3 are equivalent when only
     # one of them is substituted, so "methylguanidinium" is unambiguous.
     if len(prefixed) == 1:
-        return f"{prefixed[0][1]}guanidinium"
+        return f"{cite(prefixed[0][1])}guanidinium"
 
     grouped: dict[str, list[int]] = {}
     for locant, name in prefixed:
@@ -3626,8 +3637,10 @@ def _render_guanidinium(
     parts = []
     for name in sorted(grouped):
         locants = sorted(grouped[name])
-        mult = get_multiplier(len(locants), complex=False) or "" if len(locants) > 1 else ""
-        parts.append(f"{','.join(str(x) for x in locants)}-{mult}{name}")
+        # A multiplied COMPOUND prefix takes 'bis'/'tris' and its marks; a simple one takes 'di'/'tri' bare.
+        compound = _is_compound_prefix(name)
+        mult = (get_multiplier(len(locants), complex=compound) or "") if len(locants) > 1 else ""
+        parts.append(f"{','.join(str(x) for x in locants)}-{mult}{cite(name)}")
     return f"{'-'.join(parts)}guanidinium"
 
 
