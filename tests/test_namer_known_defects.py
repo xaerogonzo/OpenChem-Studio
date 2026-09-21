@@ -2660,6 +2660,24 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "converse: ONE ring nitrogen, so the bare [n+] IS the only slot for the indicated hydrogen and stays a target"),
     ("D-111z", "Cn1cc[n+](C)c1", "1,3-dimethyl-1H-imidazol-3-ium", "(unchanged)",
      "converse: the imidazolium, where a neutral N-methyl and a [n+](C) were both targets before and the result must not move"),
+    # ---- naming round 8, limitations sweep: an N-oxide beside ANOTHER cationic centre. '<parent> N-oxide' names a NEUTRAL parent with an oxide on one nitrogen; with a second
+    # positive centre it did not say which nitrogen carried the oxide and OPSIN could not read it (five inputs), and once it named a pyridinium's pyridine N-oxide as another
+    # molecule (D-112e). Red at ee20f0a, measured. WHAT THESE ROWS CLAIM: the name is OPSIN-verified, not that it is the preferred one; the book's own form for an amine oxide beside a
+    # cation is unresolved ('azanium' versus 'methanaminium' as the parent), so the expected names are the engine's, pinned so the unreadable form cannot return.
+    ("D-112a", "[NH3+]CC[N+](C)(C)[O-]", "(2-azaniumylethyl)di(methyl)(oxido)ammonium", "2-(dimethylamino)ethan-1-aminium N-oxide",
+     "OPSIN-verified, preference not claimed; the additive name is declined when another positive centre exists"),
+    ("D-112b", "[O-][n+]1ccccc1C[NH3+]", "[(1-oxidopyridin-1-ium-2-yl)methyl]azanium", "(pyridin-2-yl)methanaminium N-oxide",
+     "OPSIN-verified, preference not claimed; the oxide goes inline as '1-oxidopyridin-1-ium' (the substitutive path already wrote it)"),
+    ("D-112c", "[O-][n+]1ccc(cc1)C[NH3+]", "[(1-oxidopyridin-1-ium-4-yl)methyl]azanium", "(pyridin-4-yl)methanaminium N-oxide", "the 4-isomer of D-112b"),
+    ("D-112d", "[O-][n+]1ccccc1C[N+](C)(C)C", "trimethyl[(1-oxidopyridin-1-ium-2-yl)methyl]ammonium",
+     "N,N,N-trimethyl-1-(pyridin-2-yl)methanaminium N-oxide", "a quaternary ammonium as the other cationic centre"),
+    ("D-112e", "c1cc[n+]([O-])cc1C[n+]1ccccc1", "1-oxido-3-[(pyridinium-1-yl)methyl]pyridin-1-ium", "1-[(pyridin-3-yl)methyl]pyridine N-oxide",
+     "a WRONG MOLECULE before: the pyridinium was named as a pyridine and the oxide attached to the other ring's name; it read back as another compound"),
+    ("D-112x", "C[N+](C)(C)[O-]", "N,N-dimethylmethanamine N-oxide", "(unchanged)", "converse, p. 108 style: a NEUTRAL amine oxide keeps the additive form"),
+    ("D-112y", "[O-][n+]1ccccc1", "pyridine 1-oxide", "(unchanged)", "converse: a neutral heteroaromatic N-oxide"),
+    ("D-112z", "[O-]C(=O)c1cc[n+]([O-])cc1", "pyridine-4-carboxylate 1-oxide", "(unchanged)",
+     "converse: an oxide beside only a NEGATIVE centre keeps the additive form, which is the case the source comment reserves it for"),
+    ("D-112w", "[O-][n+]1ccc(N)cc1", "pyridin-4-amine 1-oxide", "(unchanged)", "converse: a neutral amine beside the oxide is not a cationic centre"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this

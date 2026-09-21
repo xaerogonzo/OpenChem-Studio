@@ -9532,8 +9532,18 @@ def _name_bound(
     # "pyridine 1-oxide" and "pyridine-4-carboxylate 1-oxide" keep the additive
     # form that is correct for them.
     additive_groups = perception.fgs.additive_groups
+    # ...and not when ANOTHER positive centre exists (naming round 8). '<parent> N-oxide' is the name of a NEUTRAL parent with an oxide on
+    # one nitrogen; with a second cationic centre it does not say which nitrogen carries the oxide, OPSIN cannot read it
+    # ('2-(dimethylamino)ethan-1-aminium N-oxide', '(pyridin-2-yl)methanaminium N-oxide'), and once it named a pyridinium's pyridine
+    # N-oxide as '1-[(pyridin-3-yl)methyl]pyridine N-oxide', which is another molecule. The substitutive path writes the oxide inline
+    # ('2-[dimethyl(oxido)azaniumyl]ethan-1-aminium'). An oxide beside only NEGATIVE centres ('pyridine-4-carboxylate 1-oxide') keeps the form.
+    _oxide_centres = {ag.get("center_atom") for ag in (additive_groups or ())}
+    _other_cation = any(
+        a.GetFormalCharge() > 0 and a.GetIdx() not in _oxide_centres for a in mol.GetAtoms()
+    )
     if (
         additive_groups
+        and not _other_cation
         and output_form != OutputForm.SUBSTITUENT
         and strategy.accept_additive(additive_groups)
     ):
