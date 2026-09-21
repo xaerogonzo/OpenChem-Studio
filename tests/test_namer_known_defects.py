@@ -2644,6 +2644,22 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "the SAME molecule written ring-first: the ring match is now the one already kept, and a chain match must not replace it"),
     ("D-110q", "O=C(NC(C)=O)C1CCCCC1", "N-acetylcyclohexanecarboxamide", "(unchanged)",
      "the saturated ring written first, the same guard"),
+    # ---- naming round 8, limitations sweep: a tetrazolium whose two substituted nitrogens are ADJACENT. The retained '1H-tetrazole' came back with no
+    # numbering, the strategy rotated the ring freely, and the winner put '5' on a nitrogen ('1,5-dimethyl-1H-tetrazol-5-ium': locant 5 is the carbon; OPSIN cannot
+    # read it). Red at 742a54f and at d66b7ad, measured from archived trees. The carve now leaves a bare [n+] out of the indicated-H targets when a NEUTRAL
+    # substituted nitrogen exists, so the 2H-tautomer key is the one matched.
+    ("D-111a", "Cn1nnc[n+]1C", "1,2-dimethyl-2H-tetrazol-1-ium", "1,5-dimethyl-1H-tetrazol-5-ium",
+     "derived (the -ium and the indicated hydrogen on different nitrogens, as the printed 1H-imidazol-3-ium, p. 818); OPSIN reads it back to the input"),
+    ("D-111b", "Cn1nnc(C)[n+]1C", "1,2,5-trimethyl-2H-tetrazol-1-ium", "1,4,5-trimethyl-1H-tetrazol-5-ium",
+     "the same ring with a carbon substituent; the old name put a 4 and a 5 on nitrogens"),
+    ("D-111c", "CCn1nnc[n+]1C", "2-ethyl-1-methyl-2H-tetrazol-1-ium", "1-ethyl-5-methyl-1H-tetrazol-5-ium",
+     "two different N-alkyls: which of them is at the -ium is decided by lowest locants, not by atom order"),
+    ("D-111x", "Cn1ncn[n+]1C", "2,3-dimethyl-2H-tetrazol-3-ium", "(unchanged)",
+     "converse: the other adjacent-nitrogen tetrazolium, whose carve already reached the 2H key"),
+    ("D-111y", "C[n+]1ccccc1", "1-methylpyridin-1-ium", "(unchanged)",
+     "converse: ONE ring nitrogen, so the bare [n+] IS the only slot for the indicated hydrogen and stays a target"),
+    ("D-111z", "Cn1cc[n+](C)c1", "1,3-dimethyl-1H-imidazol-3-ium", "(unchanged)",
+     "converse: the imidazolium, where a neutral N-methyl and a [n+](C) were both targets before and the result must not move"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this

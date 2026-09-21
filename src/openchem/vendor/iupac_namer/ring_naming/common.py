@@ -373,6 +373,13 @@ def _build_ring_mol_preserving_tautomer(mol, atom_indices: list[int]) -> Chem.Mo
         if a.GetAtomicNum() != 7:
             continue
         if a.GetFormalCharge() in (-1, 1) and a.GetTotalNumHs() == 0:
+            if a.GetFormalCharge() == 1:
+                # A bare [n+] is NOT a target (naming round 8): the cationic N takes the '-ium', and a NEUTRAL substituted N takes the
+                # indicated hydrogen. Two targets could not be sanitised as two [nH], the direct build gave up, and the string path
+                # picked the first kekulizable position ('1H'), so the 2H tautomer of an adjacent-nitrogen tetrazolium was never
+                # matched. It becomes the bare n of the neutral parent in the loop below. A lone [n+] (pyridinium, thiazolium) never
+                # built directly either and still goes to the string path, so nothing there changes.
+                continue
             nh_targets.add(i)
             continue
         # [NH+]/[NH-] with one or more H's AND an external substituent:
