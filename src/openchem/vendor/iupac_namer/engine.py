@@ -4213,6 +4213,23 @@ def _name_biguanide_functional_parent(
     )
 
 
+def _hydrazide_attaches_through_its_carbonyl(fg, parent_atoms, mol) -> bool:
+    """True when the hydrazide group hangs off the parent by its carbonyl carbon and that carbon is not itself in the parent.
+
+    A remote group (no bond to the parent at all) counts as attaching normally, so nothing changes for it. A group whose carbonyl carbon IS in the
+    parent has its nitrogen bonded to the parent, so it falls out of the rule below without a separate test.
+
+    A mutant that also excludes the REMOTE case changes no name on any input tried (a remote hydrazide is carved structurally either way), so
+    that branch is not covered by a row and is kept only to leave the pre-round-8 flow for it exactly as it was.
+    """
+    bonded_to_parent = [
+        atom_idx for atom_idx in fg.atoms
+        if atom_idx not in parent_atoms
+        and any(nb.GetIdx() in parent_atoms for nb in mol.GetAtomWithIdx(atom_idx).GetNeighbors())
+    ]
+    return not bonded_to_parent or fg.anchor in bonded_to_parent
+
+
 def _name_long_condensed_diamide(mol, path, kind, output_form, decision_ctx):
     """n >= 5 condensed guanidines and ureas, H2N-[C(=X)-NH]n-H, as skeletal-replacement names (naming round 8).
 
@@ -14289,6 +14306,12 @@ class SubstitutivePath:
                 "thionocarbamate", "dithiocarbamate",
                 "substituted_imine", "sulfonate_ester", "aminium",
             )
+            # A hydrazide is a PREFIX ('hydrazinecarbonyl') only when it attaches to the parent through its CARBONYL carbon and that carbon is outside the
+            # parent. With the carbonyl inside the parent chain its =O is an 'oxo' and its N-N a 'hydrazinyl' (as an amide on an acid chain is
+            # '4-amino-4-oxobutanoic acid'), and attached through a nitrogen it is an N-acyl hydrazine ('2-benzoylhydrazinyl'). In both the group has no
+            # prefix form, it claimed atoms nothing could name, the acid plan died with 'heavy atoms unclaimed', and the engine fell back to a hydrazide
+            # parent ('3-carboxypropanehydrazide' for '4-hydrazinyl-4-oxobutanoic acid': the hydrazide ABOVE a carboxylic acid, against Table 4.1).
+            and not (fg.type == "hydrazide" and not _hydrazide_attaches_through_its_carbonyl(fg, parent_atoms, mol))
         ]
 
         # Atoms claimed by non-PCG FGs (but not the parent backbone).

@@ -91,14 +91,14 @@ Cn1nnc[n+]1C	1,2-dimethyl-2H-tetrazol-1-ium
 NC(=O)NC(=O)NC(=O)NC(=O)NC(N)=O	3,5,7-trioxo-2,4,6,8-tetraazanonane-1,9-diamide
 CN=C(S)NC	{[(methylamino)(sulfanyl)methylidene]amino}methane
 CCN=C(S)Nc1ccccc1	{[anilino(sulfanyl)methylidene]amino}ethane
-O=C(NNC(=O)c1ccccc1)c1ccccc1	1,2-dibenzoylhydrazine
-CC(=O)NNC(C)=O	1,2-diacetylhydrazine
-CC(=O)NNC(=O)c1ccccc1	1-acetyl-2-benzoylhydrazine
+O=C(NNC(=O)c1ccccc1)c1ccccc1	N'-benzoylbenzohydrazide
+CC(=O)NNC(C)=O	N'-acetylacetohydrazide
+CC(=O)NNC(=O)c1ccccc1	N'-acetylbenzohydrazide
 O=C(NN)c1ccccc1	benzohydrazide
 O=C(NNC)c1ccccc1	N'-methylbenzohydrazide
 O=C(NNc1ccccc1)c1ccccc1	N'-phenylbenzohydrazide
 O=C(O)CCC(=O)NNC(=O)c1ccccc1	4-(2-benzoylhydrazinyl)-4-oxobutanoic acid
-O=C(NNC)c1ccc(C(=O)O)cc1	4-carboxy-N'-methylbenzohydrazide
+O=C(NNC)c1ccc(C(=O)O)cc1	4-[(2-methylhydrazinyl)(oxo)methyl]benzoic acid
 O=C(NN)c1ccc(C(=O)O)cc1	4-(hydrazinecarbonyl)benzoic acid
 CC(=O)NN(C)C	N',N'-dimethylacetohydrazide
 O=C(NNC(=O)C)c1ccc(cc1)C(N)=O	4-[(2-acetylhydrazinyl)(oxo)methyl]benzamide
@@ -106,7 +106,7 @@ O=C(NNS(=O)(=O)c1ccccc1)c1ccccc1	N-benzamidobenzenesulfonamide
 CC(=O)NNC(=S)N	2-acetylhydrazine-1-carbothioamide
 O=C(NN=Cc1ccccc1)c1ccccc1	1-benzoyl-2-(phenylmethylidene)hydrazine
 O=C(NN(C)C)c1ccccc1	N',N'-dimethylbenzohydrazide
-CCOC(=O)NNC(C)=O	1-acetyl-2-(ethoxycarbonyl)hydrazine
+CCOC(=O)NNC(C)=O	N'-[ethoxy(oxo)methyl]acetohydrazide
 C[N+]1(C)CCCCC1	1,1-dimethylpiperidin-1-ium
 C[N+]1(C)CCOCC1	4,4-dimethylmorpholin-4-ium
 C[N+]1(C)CCc2ccccc2C1	2,2-dimethyl-1,2,3,4-tetrahydroisoquinolin-2-ium
@@ -123,3 +123,11 @@ C1C[NH2+]CC[NH2+]1	piperazine-1,4-diium
 C[n+]1ccc(cc1)C(N)=O	4-carbamoyl-1-methylpyridin-1-ium
 OC(=O)c1cc[o+]cc1	4-carboxypyrylium
 OC1CC[S+](C)CC1	4-hydroxy-1-methylthian-1-ium
+NNC(=O)CC(=O)O	3-hydrazinyl-3-oxopropanoic acid
+NNC(=O)CCC(=O)O	4-hydrazinyl-4-oxobutanoic acid
+NNC(=O)CCC(=O)N	4-hydrazinyl-4-oxobutanamide
+NNC(=O)CCc1ccc(cc1)C(=O)O	4-(3-hydrazinyl-3-oxopropyl)benzoic acid
+CC(=O)NNc1ccc(cc1)C(=O)O	4-(2-acetylhydrazinyl)benzoic acid
+O=C(NNc1ccccc1)c1ccc(cc1)C(=O)O	4-[(oxo)(2-phenylhydrazinyl)methyl]benzoic acid
+CNNC(=O)CCc1ccc(cc1)C(=O)O	4-[3-(2-methylhydrazinyl)-3-oxopropyl]benzoic acid
+NNCC(=O)O	(hydrazinyl)acetic acid

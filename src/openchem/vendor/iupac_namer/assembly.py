@@ -739,7 +739,15 @@ def render_merged_prefixes(merged_list: list[MergedPrefix]) -> str:
     parts: list[str] = []
     for mp in merged_list:
         locant_str = _render_locants(mp.locants)
-        if mp.needs_brackets:
+        # A LONE 'hydrazinyl' with ONE numeric locant is printed bare ('3-hydrazinyl-3-oxopropanoic acid (PIN)', pdf p. 670). The enclosing marks
+        # are load-bearing only where 'hydrazinyl' would merge with an adjacent UNLOCANTED stem for OPSIN ('cyclohexylhydrazinylmethanimine', see
+        # _ENCLOSE_ANYWAY), and a locant and hyphen are the boundary here (naming round 8). Every other 'hydrazinyl' keeps its brackets. Widening the
+        # test to a heteroatom locant (N) changes no name on any input tried and is not covered by a row.
+        bracket = mp.needs_brackets
+        if (bracket and mp.name == "hydrazinyl" and not mp.multiplier
+                and len(mp.locants) == 1 and locant_str.rstrip("-").isdigit()):
+            bracket = False
+        if bracket:
             # Compound: locants go OUTSIDE the brackets (P-14.5.2).
             # The bracket type depends on what is already inside mp.name (P-16.3.3).
             open_b, close_b = _choose_brackets(mp.name)

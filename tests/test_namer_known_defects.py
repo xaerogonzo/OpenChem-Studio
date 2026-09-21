@@ -1593,8 +1593,11 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "N-methylbenzohydrazide", "converse: the acyl-side N stays unprimed"),
     ("D-075e", "NNC(=O)N1CCCCC1", "piperidine-1-carbohydrazide",
      "1-[(hydrazinyl)(oxo)methyl]piperidine", "p. 667, 'piperidine-1-carbohydrazide (PIN)'"),
-    ("D-075f", "O=C(NNC(=O)c1ccccc1)c1ccccc1", "1,2-dibenzoylhydrazine",
-     "[(2-benzoylhydrazinyl)(oxo)methyl]benzene", "control, NOT a target: an acylated N' is kept out of the hydrazide pattern; letting it in named '1,2-dibenzoylhydrazine-1,2-dicarbohydrazide', a different molecule. Round 5 (N4): the hydrazine parent now outranks benzene (P-44.1.2) -- the right molecule, and still not the PIN, which is 'N'-benzoylbenzohydrazide (PIN) (not 1,2-dibenzoylhydrazine)' (p. 670); see OPEN D-088a"),
+    ("D-075f", "O=C(NNC(=O)c1ccccc1)c1ccccc1", "N'-benzoylbenzohydrazide",
+     "1,2-dibenzoylhydrazine",
+     "p. 670 verbatim, and the CONTROL of round 5 REVERSED in round 8: 'letting an acylated N' into the hydrazide pattern named 1,2-dibenzoylhydrazine-1,2-dicarbohydrazide, a different "
+     "molecule' was true of the pattern alone. It needs two more things, and they are D-117: the hydrazide is a prefix only when it attaches through its carbonyl carbon, and a lone "
+     "locanted 'hydrazinyl' is printed bare. Same molecule as D-088a."),
     # --- D-076: amidine nitrogens take N and N' by role (A6) ---------------
     # P-66.4.1.4.1 (p. 678): 'the locant N refers to the amino group and N'
     # refers to the imino group'. The pattern needed =NH and NH2.
@@ -2730,6 +2733,35 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-116y", "S=C1CCCCC1", "cyclohexanethione", "(unchanged)", "converse: a thione, not a substituent prefix"),
     ("D-116z", "S=C1C=CC=CC1=O", "6-sulfanylidenecyclohexa-2,4-dien-1-one", "(unchanged)",
      "converse, the reason the ylidene shortcut exists: 'sulfanylidene' is ONE stem and the book prints it bare ('3-sulfanylidene-2-benzothiophen-1-one', pdf p. 642)"),
+    ("D-088a", "O=C(NNC(=O)c1ccccc1)c1ccccc1", "N'-benzoylbenzohydrazide",
+     "1,2-dibenzoylhydrazine", "'N'-benzoylbenzohydrazide (PIN) (not "
+     "1,2-dibenzoylhydrazine)' (p. 670). Admitting an acylated N' to the hydrazide "
+     "pattern reaches it, but turned 4-(2-benzoylhydrazinyl)-4-oxobutanoic acid into "
+     "a butanedioyl name: the demoted, prefix form is not built"),
+    # ---- naming round 8, limitations sweep (W4c): the hydrazide as a PREFIX. A hydrazide is a prefix ('hydrazinecarbonyl') only when it attaches through its CARBONYL carbon and
+    # that carbon is outside the parent. With the carbonyl INSIDE an acid chain its =O is 'oxo' and its N-N a 'hydrazinyl', which p. 670 prints as a PIN ('3-hydrazinyl-3-oxopropanoic acid');
+    # attached through a nitrogen it is an N-acyl hydrazine. In both the group had no prefix form, the top-ranked acid plan died with 'heavy atoms unclaimed', and the engine fell back to a
+    # hydrazide parent: the hydrazide ABOVE a carboxylic acid, against Table 4.1. Round 4 found the coupling and stopped; the pattern change (an acylated N') needs this to be safe.
+    ("D-117a", "NNC(=O)CC(=O)O", "3-hydrazinyl-3-oxopropanoic acid", "2-carboxyacetohydrazide",
+     "p. 670 VERBATIM '3-hydrazinyl-3-oxopropanoic acid (PIN)'; a lone locanted 'hydrazinyl' is printed bare"),
+    ("D-117b", "NNC(=O)CCC(=O)O", "4-hydrazinyl-4-oxobutanoic acid", "3-carboxypropanehydrazide", "derived: the next member; the acid is the parent, as an amide on the same chain is ('4-amino-4-oxobutanoic acid')"),
+    ("D-117c", "NNC(=O)CCC(=O)N", "4-hydrazinyl-4-oxobutanamide", "4-amino-4-oxobutanehydrazide", "derived: an AMIDE is senior to a hydrazide (Table 4.1), so it is the parent"),
+    ("D-117d", "CC(=O)NNC(=O)c1ccccc1", "N'-acetylbenzohydrazide", "1-acetyl-2-benzoylhydrazine", "derived from the printed N'-benzoylbenzohydrazide: the ring acyl is the hydrazide, the other an N'-substituent"),
+    ("D-117e", "CC(=O)NNC(C)=O", "N'-acetylacetohydrazide", "1,2-diacetylhydrazine", "derived: the symmetric analogue of the printed dibenzoyl case"),
+    ("D-117f", "O=C(NNC)c1ccc(C(=O)O)cc1", "4-[(2-methylhydrazinyl)(oxo)methyl]benzoic acid", "4-carboxy-N'-methylbenzohydrazide",
+     "OPSIN-verified, the ACID is the parent (Table 4.1); the PIN spelling of the prefix, '2-methylhydrazine-1-carbonyl', is D-088d and still open"),
+    ("D-117x", "O=C(O)CCC(=O)NNC(=O)c1ccccc1", "4-(2-benzoylhydrazinyl)-4-oxobutanoic acid", "(unchanged)",
+     "converse, THE ROUND-4 BLOCKER: widening the pattern alone turned this into an unreadable 'N'-butanedioylbenzohydrazide'; it must not"),
+    ("D-117y", "NNC(=O)c1ccc(cc1)C(=O)O", "4-(hydrazinecarbonyl)benzoic acid", "(unchanged)", "converse: a hydrazide that attaches through its CARBONYL carbon keeps the prefix form"),
+    ("D-117z", "NNCC(=O)O", "(hydrazinyl)acetic acid", "(unchanged)", "converse: an UNLOCANTED hydrazinyl keeps its brackets, which are load-bearing for OPSIN there"),
+    ("D-117w", "CNNC(=O)c1ccccc1", "N'-methylbenzohydrazide", "(unchanged)", "converse: the substituted hydrazide as the parent"),
+    ("D-117v", "O=C(NNS(=O)(=O)c1ccccc1)c1ccccc1", "N-benzamidobenzenesulfonamide", "(unchanged)", "converse: a sulfonamide, not an acylated N'"),
+    ("D-117u", "CC(=O)NNc1ccc(cc1)C(=O)O", "4-(2-acetylhydrazinyl)benzoic acid", "(unchanged)",
+     "converse, the ONLY row where a hydrazide attaches through NITROGEN alone: giving it the carbonyl-carbon prefix 'hydrazinecarbonyl' would name another molecule"),
+    ("D-117t", "NNC(=O)CCc1ccc(cc1)C(=O)O", "4-(3-hydrazinyl-3-oxopropyl)benzoic acid", "3-(4-carboxyphenyl)propanehydrazide",
+     "a REMOTE hydrazide (no bond to the ring): the acid outranks it (Table 4.1); the hydrazide was the parent"),
+    ("D-117s", "O=C(NNc1ccccc1)c1ccc(cc1)C(=O)O", "4-[(oxo)(2-phenylhydrazinyl)methyl]benzoic acid", "4-carboxy-N'-phenylbenzohydrazide",
+     "OPSIN-verified, the ACID is the parent; the spelling of the prefix is not claimed (D-088d)"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -2771,11 +2803,6 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "an interior heteroatom, P-25.3.3.2 (p. 223)"),
     # Round 5 (N4): NOT wrong molecules either -- each round-trips today; the
     # book prints the target (or it is derived, as marked).
-    ("D-088a", "O=C(NNC(=O)c1ccccc1)c1ccccc1", "N'-benzoylbenzohydrazide",
-     "1,2-dibenzoylhydrazine", "'N'-benzoylbenzohydrazide (PIN) (not "
-     "1,2-dibenzoylhydrazine)' (p. 670). Admitting an acylated N' to the hydrazide "
-     "pattern reaches it, but turned 4-(2-benzoylhydrazinyl)-4-oxobutanoic acid into "
-     "a butanedioyl name: the demoted, prefix form is not built"),
     ("D-088b", "CCOC(=O)NN", "ethyl hydrazinecarboxylate", "(ethoxycarbonyl)hydrazine",
      "the ester of hydrazinecarboxylic acid; its anion is not nameable yet "
      "('oxidooxomethylhydrazine'), so no ester plan is offered"),
@@ -2783,9 +2810,10 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "1-[(oxo)(phenyldiazenyl)methyl]-2-phenyldiazene",
      "p. 110: a C=O between two N= is not perceived as a ketone"),
     ("D-088d", "O=C(NNC)c1ccc(C(=O)O)cc1", "4-(2-methylhydrazine-1-carbonyl)benzoic acid",
-     "4-carboxy-N'-methylbenzohydrazide",
-     "derived from 'hydrazinecarbonyl (preferred prefix)' (p. 668): the acid is the "
-     "principal group, but a substituted hydrazide has no prefix form (before N4 too)"),
+     "4-[(2-methylhydrazinyl)(oxo)methyl]benzoic acid",
+     "derived from 'hydrazinecarbonyl (preferred prefix)' (p. 668). PARTLY FIXED in round 8 (D-117f): the acid is now the parent, as Table 4.1 requires (it was "
+     "'4-carboxy-N'-methylbenzohydrazide', the hydrazide ABOVE the acid); what remains is the SPELLING of the prefix, an acyl-style '(2-methylhydrazinyl)(oxo)methyl' where the book's is "
+     "'2-methylhydrazine-1-carbonyl'"),
     ("D-088f", "CN(C)ON(C)C", "N,N'-oxybis(N-methylmethanamine)",
      "{[(dimethylamino)oxy](methyl)amino}methane", "p. 108: no marker reads this "
      "unit's attachment N -- methyl and ethyl take over the parent, chloro and bromo "
