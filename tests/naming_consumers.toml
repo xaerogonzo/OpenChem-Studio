@@ -211,3 +211,9 @@ file = "tests/test_known_deviations.py"
 why = "the declared deviations from the Blue Book (the curated ring table's legacy interior locants): the registry, the table, and the scorer's refusal to count one as a preferred match"
 scope = "benchmark"
 owner = "benchmarks"
+
+[[consumer]]
+file = "tests/test_naming_probe_tool.py"
+why = "the ordinary-molecule probe (tools/naming_probe.py): names a molecule and shows a plan that failed to execute"
+scope = "core"
+owner = "namer"
