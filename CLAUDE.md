@@ -290,6 +290,7 @@ message — this index is. **If a title below names what you are
 about to touch, read that section before you start.** Headings there
 are verbatim, so grep the file for the line.
 
+- THE ORACLE READ EVERY MISSPELLING, AND SIX DEFECTS WERE IN NO CORPUS ROW
 - A ZERO-OWNER HOLE BETWEEN TWO GUARDS, AND AN INVARIANT THAT COULD NOT SEE THE WRONG MOLECULE
 - NO CALCULATOR HAD BEEN ASKED WHICH COMPONENT OF A SALT IT DESCRIBED
 - A CATEGORY ID PRINTED AS A VALUE IN TWO VIEWS, AND A LABEL OVER THE WRONG COLOUR

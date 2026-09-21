@@ -21188,3 +21188,60 @@ carboxylic acid only when the charges cancel.
   repeated, and the stage cycle (panel row, D-rows, mutation, corpus stage) it needs was not
   affordable. The lesson is the order, not the miss: run the independent panel of a different
   shape BEFORE the final evaluation, not after it.
+
+
+## THE ORACLE READ EVERY MISSPELLING, AND SIX DEFECTS WERE IN NO CORPUS ROW
+
+Naming round 8 fixed its planned work (polyacids, condensed guanidines and ureas, protonated azoles, the round-5 list)
+with the routine the project has settled on: D-rows red first, converses that differ by reason, a mutation check,
+`tools/naming_ref_compare.py` with a manifest before the commit, the naming-consumer set, then the full gate. The
+LIMITATIONS pass that followed found more defects than the plan contained, and the way it found them is the lesson.
+
+**The corpora measure what they contain, and the round-trip gate cannot see a misspelling.** Acrylamide was
+`prop-2-eneamide` and allylamine `prop-2-ene-1-amine`; an oxime ether was `(methyloxyimino)`; the Weinreb amide was
+`methyl acetylmethylazinite` (an ester of an acid the book reserves for polyazanes); biacetyl was `3-oxobutan-2-one`;
+dimethyl carbonate was `dimethoxyoxomethane`. OPSIN read every one of them back as the right molecule, and no corpus row
+had any of these shapes (0 of 543 structures moved for most of the fixes). All were found by NAMING A BATTERY OF ORDINARY
+COMPOUNDS whose names one knows, in a few minutes each, and reading the names. A name that parses back is not thereby right
+(round 6's lesson), and a benchmark that does not contain the shape cannot fail on it (this round's). `tools/naming_probe.py`
+is the battery as a one-line command; the 200-shape snapshot `tests/fixtures/naming_cation_shapes.txt` pins the
+neighbours of every class fixed. Round 9 should start there, before reading a corpus.
+
+**What kept the fixes honest when nothing else could:**
+
+* **A converse row is the cheapest regression test there is.** Three of the pass's own regressions were caught by a
+  converse before they were committed: an `ammonium` parent plan overtaking the `aminium` suffix
+  (`3-amino-N,N,N-trimethyl-3-oxopropan-1-aminium` became `(3-amino-3-oxopropyl)tri(methyl)ammonium`), `(methylperoxy)ethane`
+  becoming `(methoxyoxy)ethane` when the alkoxy contraction reached a peroxide, and an amide ranked ABOVE an acid
+  (`2-carboxy-N-methoxyacetamide`) because the acid plan failed to execute.
+* **A plan that fails to execute is silent.** The engine tries the top-ranked plan, and when it returns an error tree it takes
+  the next one without a word (`atoms [0] unclaimed`, `owned by no node`). Most of the wrong-shaped names of this round were a
+  correct plan that died in the prefix builder. `tools/naming_probe.py --failures` shows them; a spy on
+  `SubstitutivePath.execute` was the instrument for nine defects.
+* **A fix that only re-routes can change the CHARGE.** Sending a carboxylate beside a sulfonate to the carved route named
+  `4-sulfobenzoate` for a DIANION, a wrong molecule; the demoted prefix had to become `sulfonato`. Check the charge of every
+  name a new route produces, not only that it reads back as something.
+* **Develop against a scratch copy while a gate reads the tree.** `git archive HEAD src` into the scratchpad and a probe runner
+  with `PYTHONPATH` at it let six fixes be designed and measured while the full gate ran, and let a mistake die there instead of
+  in the repository. Then re-apply each change to the repo one commit at a time, because the scratch copy mixes items.
+* **Removing a path is a valid mutation outcome.** The synthetic olate group added for D-121 changed no name; the mutant that
+  removed it was not caught, and the honest response was to delete it, not to claim it.
+* **Equivalent mutants are written into the code, not claimed.** Eleven of this pass's mutation runs left survivors; each is stated
+  beside the code as implied by another condition (a carbon with a free valence, an oxo and a ring nitrogen has no fourth neighbour).
+
+**The Windows shard crash is deterministic per chunk composition.** An access violation in `conftest.dispose` ended app shard 2
+at a different test each time it was run whole (2%, 35%), and the same chunk of 25 files crashed identically on attempts one and
+two and passed on the third. Running each shard in chunks of 25 files, each its own process, with up to three attempts on exit 139
+and any other non-zero exit treated as real, costs one chunk instead of a shard; and a DETACHED WORKTREE
+(`git worktree add --detach D:\_scratch\...` with `PYTHONPATH` at its `src`) keeps the main tree editable during the hour it takes.
+The full app suite also found what the naming-consumer set did not (`ENGINE_DISAGREEMENTS`: the engine's new pseudoketone and v2's
+carboxamide disagreed about indometacin), so the consumer set is a fast loop and not a substitute for the gate.
+
+**Smaller things measured:**
+
+* A guard whose scan is heuristic reports its own false positives: the KNOWN_DEVIATION scan first flagged three curated hydro
+  or bridged rings whose atoms in three rings are bridgeheads, not interior carbons. Its domain was narrowed to the fully
+  aromatic entries and the three are recorded as unclassified, not excused.
+* A pinned score dict (`{"engine": .., "pubchem": ..}`) is a contract: adding `known_deviation` to it failed one existing test,
+  which is the right place to be told.
+* `python3` in a heredoc can hang on this machine (a Store alias); run scripts with `.venv/Scripts/python.exe`.
