@@ -223,3 +223,9 @@ file = "tests/test_naming_app_check.py"
 why = "the release-candidate driven check's table (tools/naming_app_check.py): its structures, charges and bases"
 scope = "app"
 owner = "app"
+
+[[consumer]]
+file = "tests/test_fork_port.py"
+why = "the fork port tool (tools/fork_port.py): the vendoring import rewrite, which tests are portable, and the three-way merge"
+scope = "core"
+owner = "namer"
