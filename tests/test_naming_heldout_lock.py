@@ -2,9 +2,9 @@
 
 Each naming round spends the previous fresh set as fix targets, which spends
 it as evidence of generalisation: round 4 spent `heldout.json`, round 5 spent
-the v2 draw, round 7 spent the v3 draw, round 8 spends the v4 draw. The v5 draw
-(`heldout5.json`) was drawn and frozen before any round-8 diagnosis to replace
-it, and it is only worth anything if nothing during the round looks at it: a row
+the v2 draw, round 7 spent the v3 draw, round 8 spent the v4 draw, round 9 spends the v5 draw.
+The v6 draw (`heldout6.json`) was drawn and frozen before any round-9 diagnosis to
+replace it, and it is only worth anything if nothing during the round looks at it: a row
 read while debugging another stage is a row that ends up fixed, and then the
 "fresh" number is the regression number again.
 
@@ -38,9 +38,9 @@ sys.path.insert(0, str(ROOT / "tools"))
 import naming_populations as registry  # noqa: E402
 import naming_stage_artifact as stage  # noqa: E402
 
-FROZEN_FILE = "heldout5.json"
-FROZEN_KEY = "heldout_v5"
-FROZEN_META = "benchmarks/naming/heldout5.meta.json"
+FROZEN_FILE = "heldout6.json"
+FROZEN_KEY = "heldout_v6"
+FROZEN_META = "benchmarks/naming/heldout6.meta.json"
 
 #: The only tracked scripts allowed to name the frozen file: the one that drew
 #: it and this test. The stage tool used to be here; it reads the registry now.
@@ -100,6 +100,7 @@ def test_the_final_evaluation_is_the_one_door_in():
     [
         ("heldout_v3", "heldout3.meta.json", "naming round 7"),
         ("heldout_v4", "heldout4.meta.json", "naming round 8"),
+        ("heldout_v5", "heldout5.meta.json", "naming round 9"),
     ],
 )
 def test_a_spent_fresh_population_is_a_tuning_population_now(key, meta_file, since):
@@ -182,7 +183,7 @@ def test_the_freeze_record_says_what_the_policy_is():
     assert meta["engine_consulted"] is False
     assert meta["rows"] == 40
     assert "evaluation only" in meta["inspection_policy"]
-    assert meta["variant"] == "v5"
+    assert meta["variant"] == "v6"
 
 
 def test_no_structure_is_in_two_populations():

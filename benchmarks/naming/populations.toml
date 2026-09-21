@@ -53,4 +53,10 @@ status = "tuning"
 key = "heldout_v5"
 short = "v5"
 file = "heldout5.json"
+status = "tuning"
+
+[[population]]
+key = "heldout_v6"
+short = "v6"
+file = "heldout6.json"
 status = "frozen"
