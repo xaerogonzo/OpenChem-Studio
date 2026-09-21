@@ -26,3 +26,7 @@ benchmarks/charges/models/schindler_sqe_results/*.json -text
 
 # Clean-room QTPIE result files, whose hashes the pre-registration records.
 benchmarks/charges/models/qtpie_cleanroom_results*.json -text
+
+# A shell script run by bash must be checked out with LF: under core.autocrlf=true a Windows checkout gives it CRLF, and a
+# carriage return after `set -o pipefail` makes it an invalid option name -- the script still runs, with its safety option off.
+*.sh text eol=lf
