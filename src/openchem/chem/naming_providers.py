@@ -386,6 +386,8 @@ def retained_name_for_structure(mol: Chem.Mol, preferred: str) -> NameResult | N
     )
     if verdict is RoundTrip.STEREO_OMITTED:
         note += " It does not express stereochemistry present in the structure."
+    elif verdict is RoundTrip.TAUTOMER:
+        note += " It reads back as a different tautomer than the one drawn."
     return NameResult(
         name=name,
         source="Nomenclature engine",
@@ -440,7 +442,11 @@ def derived_name_for_structure(mol: Chem.Mol) -> NameResult:
             "A name was derived but its stereodescriptors contradict this structure "
             "(it describes a different stereoisomer), so it is being withheld."
         )
-    if verified is RoundTrip.STEREO_OMITTED:
+    if verified is RoundTrip.TAUTOMER:
+        # SHOWN, like STEREO_OMITTED: right about the compound, silent about which tautomer was drawn.
+        note = ("This name is for the same compound but reads back as a different tautomer "
+                "than the one drawn (the hydrogens sit on other atoms).")
+    elif verified is RoundTrip.STEREO_OMITTED:
         # SHOWN, with what it leaves out. The name is right about the
         # skeleton and silent about stereochemistry the structure carries
         # -- which is a fact worth having, and withholding it reads as
@@ -626,6 +632,15 @@ class RoundTrip(str, Enum):
     #: Parsed, same skeleton, and a feature defined on BOTH sides has the
     #: opposite descriptor: the name is for a different stereoisomer.
     STEREO_CONTRADICTED = "stereo_contradicted"
+    #: Parsed to the SAME COMPOUND (standard InChI, whose mobile-hydrogen layer is what
+    #: defines "same compound" across tautomers, is equal) but a different tautomer than
+    #: the one drawn. IUPAC names do not fix amidine, guanidine or amide/imidic-acid
+    #: hydrogens, so the name is right about the compound and silent about which tautomer
+    #: was drawn -- the way `STEREO_OMITTED` is silent about stereochemistry. Carved out
+    #: of `MISMATCH` in naming round 8: a biguanide drawn the way PubChem draws metformin
+    #: (`CN(C)C(=N)N=C(N)N`) got the right PIN and no name at all, because the PIN reads
+    #: back as the other tautomer.
+    TAUTOMER = "tautomer"
     MISMATCH = "mismatch"
     #: No offline parser available. Honestly different from a failure.
     UNVERIFIED = "unverified"
@@ -665,7 +680,9 @@ def verify_name_round_trip(name: str, original: Chem.Mol) -> RoundTrip:
     checker-failure showed the name with a caveat was designed and then
     NOT built, because measuring first killed it: over the 181-molecule
     naming corpus, 180 are `MATCH` and the single `MISMATCH` is metformin,
-    a real skeleton disagreement over a tautomer. **Zero inputs reach
+    a real skeleton disagreement over a tautomer. (Since naming round 8 a
+    disagreement that is ONLY a tautomer is `TAUTOMER`, shown with a note;
+    see that member.) **Zero inputs reach
     either checker-failed path**, so the split would have been a branch
     shipped, documented, and never once run.
 
@@ -694,7 +711,24 @@ def verify_name_round_trip(name: str, original: Chem.Mol) -> RoundTrip:
         return RoundTrip.MATCH
     if _skeleton(candidate) == _skeleton(original):
         return _stereo_verdict(candidate, original)
+    if _same_compound(candidate, original):
+        return RoundTrip.TAUTOMER
     return RoundTrip.MISMATCH
+
+
+def _same_compound(candidate: Chem.Mol, original: Chem.Mol) -> bool:
+    """Equal standard InChI: the same connectivity, charge and stereo, hydrogens possibly on different atoms.
+
+    Standard InChI's mobile-H layer is what the field means by "the same compound" across tautomers, and it
+    is not loose about anything else: a different skeleton, a different charge or protonation state, or a
+    different stereo layer gives a different string. A structure InChI cannot write (empty string) is never
+    called the same, so a failure here can only leave a verdict at MISMATCH, never soften one.
+    """
+    try:
+        a, b = Chem.MolToInchi(candidate), Chem.MolToInchi(original)
+    except Exception:  # noqa: BLE001 - InChI raises widely on odd input; that is "cannot say"
+        return False
+    return bool(a) and a == b
 
 
 def _skeleton(mol: Chem.Mol) -> str:
@@ -880,6 +914,8 @@ def compute_iupac_name(
             verified = verify_name_round_trip(result.name, mol)
             if verified is RoundTrip.MATCH:
                 line += "  -- round-trips back to this structure"
+            elif verified is RoundTrip.TAUTOMER:
+                line += "  -- same compound, read back as a different tautomer than the one drawn"
             elif verified is RoundTrip.STEREO_OMITTED:
                 line += "  -- does not express stereochemistry present in the structure"
             elif verified is RoundTrip.STEREO_ADDED:

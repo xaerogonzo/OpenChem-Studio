@@ -2073,6 +2073,23 @@ document may cite a file or a test that does not exist.
   `RoundTrip.PARSER_FAILED`, shown with an "unverified" note; only a real
   skeleton disagreement is `MISMATCH` and withheld.
 
+  **AMENDED 2026-09-21 (naming round 8): a disagreement that is ONLY a
+  tautomer is no longer `MISMATCH`.** The paragraph above called metformin
+  "exactly the case withholding exists for". That was measured on the one
+  corpus row, and it undercounted what a tautomer disagreement costs: every
+  biguanide drawn with the double bond into the bridging nitrogen (PubChem's
+  own metformin, `CN(C)C(=N)N=C(N)N`, and proguanil) got the RIGHT PIN and no
+  name at all, because the PIN reads back as the other tautomer. IUPAC names do
+  not fix amidine, guanidine or amide/imidic-acid hydrogens, and standard
+  InChI, whose mobile-hydrogen layer is what "the same compound" means across
+  tautomers, calls the pair equal. `RoundTrip.TAUTOMER` is that case, SHOWN
+  with a note, the way `STEREO_OMITTED` is. Everything else is unchanged:
+  a different skeleton, charge or protonation state, or stereo layer gives a
+  different InChI and stays `MISMATCH` (four controls in
+  `tests/test_naming_providers.py`), and a structure InChI cannot write is
+  never called the same. The decision that a real mismatch stays withheld
+  stands, and the source-text guard for it is untouched.
+
   IUPAC Locants on the same molecule DOES work (18 of 23 atoms numbered,
   rendered in the Calculator Inspector with both depictions).
 - **DECISION** -- a calculation cannot be ADDRESSED to a crystal.

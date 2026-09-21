@@ -109,6 +109,8 @@ def measure(smiles: str, target: str | None, basis: str) -> dict:
         structural = "STRUCTURALLY_CORRECT"
     elif trip in (providers.RoundTrip.STEREO_OMITTED, providers.RoundTrip.STEREO_ADDED):
         structural = "STRUCTURALLY_CORRECT"  # same skeleton; the stereo note is kept below
+    elif trip is providers.RoundTrip.TAUTOMER:
+        structural = "STRUCTURALLY_CORRECT"  # the same compound (equal standard InChI); the tautomer note is kept below
     elif trip in (providers.RoundTrip.MISMATCH, providers.RoundTrip.STEREO_CONTRADICTED):
         structural = "WRONG_MOLECULE"
     else:

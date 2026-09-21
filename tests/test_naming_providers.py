@@ -217,6 +217,65 @@ def _verdict_for(monkeypatch, candidate_smiles: str, original_smiles: str):
     return verify_name_round_trip("a-name", Chem.MolFromSmiles(original_smiles))
 
 
+# --- The TAUTOMER verdict (naming round 8) -----------------------------------
+#
+# A biguanide drawn the way PubChem draws metformin, `CN(C)C(=N)N=C(N)N`, got the right PIN and no name at all: the PIN reads back as the OTHER
+# tautomer, `CN(C)C(=N)NC(N)=N`, and that was `MISMATCH`, withheld. IUPAC names do not fix amidine hydrogens, and standard InChI (whose mobile-H
+# layer defines "same compound") calls the pair equal, so it is a verdict of its own, shown with a note. What must NOT move is every difference
+# that is more than hydrogen position, which is why the controls below are the tests that matter.
+
+
+def test_a_name_for_the_other_tautomer_is_TAUTOMER_not_mismatch(monkeypatch):
+    verdict = _verdict_for(monkeypatch, "CN(C)C(=N)NC(N)=N", "CN(C)C(=N)N=C(N)N")
+    assert verdict is naming_providers.RoundTrip.TAUTOMER
+
+
+def test_a_different_skeleton_is_still_MISMATCH(monkeypatch):
+    """The control: a methyl the structure does not have is not a tautomer."""
+    assert _verdict_for(monkeypatch, "CN=C(N)NC(=N)N", "N=C(N)NC(=N)N") is naming_providers.RoundTrip.MISMATCH
+
+
+def test_a_different_charge_state_is_still_MISMATCH(monkeypatch):
+    """The control that InChI's mobile-H layer must not soften: a protonated amine is another species."""
+    assert _verdict_for(monkeypatch, "C[NH3+]", "CN") is naming_providers.RoundTrip.MISMATCH
+
+
+def test_a_different_stereoisomer_is_never_called_a_tautomer(monkeypatch):
+    """The stereo layer is part of the InChI, so a tautomer pair that ALSO differs in stereo does not qualify."""
+    assert _verdict_for(monkeypatch, "C[C@H](N)C(=O)O", "C[C@@H](N)C(=O)O") is naming_providers.RoundTrip.STEREO_CONTRADICTED
+
+
+def test_two_structures_inchi_cannot_write_are_not_called_the_same_compound(monkeypatch):
+    """`bool(a) and a == b`: an empty string equals an empty string, and "cannot say" must never soften a verdict."""
+    monkeypatch.setattr(naming_providers.Chem, "MolToInchi", lambda mol, *a, **k: "")
+    assert not naming_providers._same_compound(Chem.MolFromSmiles("CN"), Chem.MolFromSmiles("CO"))
+
+    def boom(mol, *a, **k):
+        raise RuntimeError("InChI failed")
+
+    monkeypatch.setattr(naming_providers.Chem, "MolToInchi", boom)
+    assert not naming_providers._same_compound(Chem.MolFromSmiles("CN"), Chem.MolFromSmiles("CN"))
+
+
+def test_a_tautomer_name_is_SHOWN_with_a_note_that_says_so(monkeypatch):
+    monkeypatch.setattr(
+        naming_providers, "verify_name_round_trip", lambda name, mol: naming_providers.RoundTrip.TAUTOMER
+    )
+
+    result = naming_providers.derived_name_for_structure(Chem.MolFromSmiles("CN(C)C(=N)N=C(N)N"))
+
+    assert result.name
+    assert "different tautomer" in result.note
+
+
+def test_metformin_as_pubchem_draws_it_is_named_and_says_which_tautomer_it_is_not():
+    """The real chain: the engine, OPSIN, and the verdict, on the input that was withheld."""
+    result = naming_providers.derived_name_for_structure(Chem.MolFromSmiles("CN(C)C(=N)N=C(N)N"))
+
+    assert result.name == "N1,N1-dimethylimidodicarbonimidic diamide"
+    assert "different tautomer" in result.note
+
+
 def test_a_name_for_the_other_stereoisomer_is_CONTRADICTED_not_omitted(monkeypatch):
     """THE DEFECT THE SPLIT EXISTS FOR, with the real data.
 
