@@ -2690,6 +2690,30 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "derived: n = 6"),
     ("D-113x", "N=C(N)NC(=N)NC(=N)NC(=N)N", "triimidotetracarbonimidic diamide", "(unchanged)", "converse: n = 4 is still the condensed-diamide name (p. 677 prints n = 2, 3, 4)"),
     ("D-113y", "NC(=O)NC(=O)NC(=O)NC(=O)N", "2,4,6-triimidotetracarbonic diamide", "(unchanged)", "converse: the n = 4 urea"),
+    # Added when a first draft of the tetrazolium rule (a bare [n+] is not an indicated-hydrogen target) was found to have LOST the retained names of every SATURATED quaternary
+    # ring cation: no corpus row exercised one, so the firewall stayed silent and only a probe found it. These pin what the pre-round-8 engine wrote and the rule must keep.
+    ("D-111v", "C[N+]1(C)CCCCC1", "1,1-dimethylpiperidin-1-ium", "(unchanged)", "converse: a saturated quaternary ring cation keeps its retained ring name"),
+    ("D-111u", "C[N+]1(C)CCOCC1", "4,4-dimethylmorpholin-4-ium", "(unchanged)", "converse: morpholinium"),
+    ("D-111t", "C[N+]1(C)CCc2ccccc2C1", "2,2-dimethyl-1,2,3,4-tetrahydroisoquinolin-2-ium", "(unchanged)",
+     "converse: a fused saturated ring, which the first draft named '(2-methyl-...-2-yl)methane'"),
+    ("D-111s", "c1cc[n-]c1", "1H-pyrrol-1-ide", "(unchanged)",
+     "converse: an aromatic ANION [n-] is an indicated-hydrogen target and must stay one, which the aromatic-cation rule above must not touch"),
+    # ---- naming round 8, limitations sweep: a PROTONATED saturated ring nitrogen ([NH2+], no exocyclic substituent). The carve left it charged, so the retained ring key (piperidine,
+    # pyrrolidine, morpholine, tetrahydroisoquinoline) never matched: the Hantzsch-Widman 'azinan-1-ium' for the retained 'piperidin-1-ium' (printed as a ring name on pdf p. 833),
+    # and for a FUSED ring no plan at all (an embedded NAMING ERROR). Red at 7f2ca01, measured. Targets are the cation of the printed retained ring; each reads back under OPSIN.
+    ("D-114a", "C1CC[NH2+]CC1", "piperidin-1-ium", "azinan-1-ium", "the ring name printed on p. 833 ('2-(piperidin-1-ium-3-yl)propane-1,2-bis(aminium) (PIN)')"),
+    ("D-114b", "C1CC[NH2+]C1", "pyrrolidin-1-ium", "azolidin-1-ium", "derived: pyrrolidine is the retained PIN; the cation follows P-73.1.1.2"),
+    ("D-114c", "C1COCC[NH2+]1", "morpholin-4-ium", "1,4-oxazinan-4-ium", "derived: morpholine is the retained PIN"),
+    ("D-114d", "Cc1ccc(cc1)C1CC[NH2+]CC1", "4-(4-methylphenyl)piperidin-1-ium", "4-(4-methylphenyl)azinan-1-ium", "a substituted piperidinium, the drug-like case"),
+    ("D-114e", "C1Cc2ccccc2C[NH2+]1", "1,2,3,4-tetrahydroisoquinolin-2-ium", "[NAMING ERROR: No valid naming plan found for c1ccc2c(c1)CC[NH2+]C2]",
+     "a FUSED ring: no name at all before (the neutral 1,2,3,4-tetrahydroisoquinoline was always named)"),
+    ("D-114f", "C1CC2CC[NH2+]C2C1", "octahydrocyclopenta[b]pyrrol-1-ium", "[NAMING ERROR: No valid naming plan found for C1CC2CC[NH2+]C2C1]",
+     "a saturated fused ring with a bridgehead-adjacent nitrogen"),
+    ("D-114g", "C1CC[NH2+]CC1.[Cl-]", "piperidin-1-ium chloride", "azinan-1-ium chloride", "the salt: the cation is named apart from its anion"),
+    ("D-114h", "[NH2+]1CCOCC1C(=O)O", "3-carboxymorpholin-4-ium", "3-carboxy-1,4-oxazinan-4-ium", "a substituent on the ring"),
+    ("D-114x", "C1CCNCC1", "piperidine", "(unchanged)", "converse: the NEUTRAL ring, which goes through the same carve"),
+    ("D-114y", "C[NH+]1CCCCC1", "1-methylpiperidin-1-ium", "(unchanged)", "converse: an N-alkyl protonated ring, already a target through its exocyclic substituent"),
+    ("D-114z", "C1CCC(CC1)[NH3+]", "cyclohexanaminium", "(unchanged)", "converse: an EXOCYCLIC ammonium is not a ring nitrogen"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
