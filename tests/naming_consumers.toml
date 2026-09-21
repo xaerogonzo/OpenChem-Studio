@@ -217,3 +217,9 @@ file = "tests/test_naming_probe_tool.py"
 why = "the ordinary-molecule probe (tools/naming_probe.py): names a molecule and shows a plan that failed to execute"
 scope = "core"
 owner = "namer"
+
+[[consumer]]
+file = "tests/test_naming_app_check.py"
+why = "the release-candidate driven check's table (tools/naming_app_check.py): its structures, charges and bases"
+scope = "app"
+owner = "app"
