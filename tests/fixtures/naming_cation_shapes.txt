@@ -1,0 +1,125 @@
+# A SNAPSHOT of the engine's names for shapes no corpus row contains (naming round 8): SMILES <TAB> name, the name being what the engine writes for the RDKit CANONICAL spelling.
+# tests/test_namer_probe_shapes.py fails on ANY change of a name here, and on any name OPSIN cannot read back. A round-trip alone cannot see a PREFERENCE regression
+# ('1,1-dimethylazinan-1-ium' still reads back as the right molecule), so the names are pinned: a change is reviewed and this file updated in the same commit.
+#
+# KNOWN NOT READING BACK, kept out of the list so they are not forgotten (probe artifacts and open items):
+#   ERRORNAME  Cn1cnc2c1[n+](C)cn2C   (an embedded engine error)
+#   ERRORNAME  NC(N)=NC(=N)NC(=N)NC(=N)NC(N)=N   (an embedded engine error)
+#   MISMATCH   C1CC[NH2+]CC1.[Cl-].[Cl-]   (the salt input is unbalanced, a probe artifact)
+
+c1c[nH]c[nH+]1	1H-imidazol-3-ium
+Cn1cc[nH+]c1	1-methyl-1H-imidazol-3-ium
+Cn1cc[n+](C)c1	1,3-dimethyl-1H-imidazol-3-ium
+CCn1cc[n+](C)c1	1-ethyl-3-methyl-1H-imidazol-3-ium
+c1ccc2[nH]c[nH+]c2c1	1H-benzimidazol-3-ium
+Cn1c[nH+]c2ccccc21	1-methyl-1H-benzimidazol-3-ium
+Cn1c[n+](C)c2ccccc21	1,3-dimethyl-1H-benzimidazol-3-ium
+c1c[nH+][nH]c1	1H-pyrazol-2-ium
+Cn1cc[cH][n+]1C	1,2-dimethyl-1H-pyrazol-2-ium
+c1nc[nH][nH+]1	1H-1,2,4-triazol-2-ium
+Cn1cn[nH+]c1	4-methyl-4H-1,2,4-triazol-1-ium
+c1csc[nH+]1	1,3-thiazol-3-ium
+C[n+]1ccsc1	3-methyl-1,3-thiazol-3-ium
+c1coc[nH+]1	1,3-oxazol-3-ium
+C[n+]1ccoc1	3-methyl-1,3-oxazol-3-ium
+c1nn[nH][nH+]1	2H-tetrazol-1-ium
+c1ccc2[nH][nH+]cc2c1	1H-indazol-2-ium
+c1cc[nH+]cc1	pyridin-1-ium
+C[n+]1ccccc1	1-methylpyridin-1-ium
+Cc1cc[nH+]cc1	4-methylpyridin-1-ium
+Nc1cc[nH+]cc1	4-aminopyridin-1-ium
+Nc1cccc[nH+]1	2-aminopyridin-1-ium
+c1ccc2[nH+]cccc2c1	quinolin-1-ium
+C[n+]1cccc2ccccc21	1-methylquinolin-1-ium
+c1ccc2c[nH+]ccc2c1	isoquinolin-2-ium
+c1cc[nH+]cn1	pyrimidin-1-ium
+c1c[nH+]ccn1	pyrazin-1-ium
+c1ccc2[nH+]c3ccccc3cc2c1	acridin-10-ium
+Nc1[nH+]cnc2[nH]cnc12	6-amino-9H-purin-1-ium
+C1CC[NH2+]CC1	piperidin-1-ium
+C[NH+]1CCCCC1	1-methylpiperidin-1-ium
+C1CC[NH2+]C1	pyrrolidin-1-ium
+C1COCC[NH2+]1	morpholin-4-ium
+C1C[NH2+]CCN1	piperazin-1-ium
+C[NH3+]	methanaminium
+C[NH2+]C	N-methylmethanaminium
+C[N+](C)(C)C	N,N,N-trimethylmethanaminium
+[NH3+]c1ccccc1	anilinium
+[NH3+]Cc1ccccc1	phenylmethanaminium
+C[N+](C)(C)CCO	2-hydroxy-N,N,N-trimethylethan-1-aminium
+NC(=[NH2+])C	acetamidinium
+C[P+](C)(C)C	tetramethylphosphanium
+C[S+](C)C	trimethylsulfanium
+C[OH+]C	dimethyloxidanium
+c1c[nH]c[nH+]1.[Cl-]	1H-imidazol-3-ium chloride
+CCn1cc[n+](C)c1.[Br-]	1-ethyl-3-methyl-1H-imidazol-3-ium bromide
+c1cc[nH+]cc1.[Cl-]	pyridin-1-ium chloride
+c1ccc2[nH]c[nH+]c2c1.[Cl-]	1H-benzimidazol-3-ium chloride
+[NH3+]CC([O-])=O	azaniumylacetate
+[NH3+]C(Cc1c[nH]c[nH+]1)C(=O)[O-]	2-azaniumyl-3-(1H-imidazol-3-ium-4-yl)propanoate
+C[N+](C)(C)CC([O-])=O	(trimethylazaniumyl)acetate
+C[n+]1ccc(cc1)C(O)=O	4-carboxy-1-methylpyridin-1-ium
+NC(=O)c1ccc[nH+]c1	3-carbamoylpyridin-1-ium
+[NH3+]CC[N+](C)(C)[O-]	(2-azaniumylethyl)di(methyl)(oxido)ammonium
+[O-][n+]1ccccc1C[NH3+]	[(1-oxidopyridin-1-ium-2-yl)methyl]azanium
+C[N+](C)(C)[O-]	N,N-dimethylmethanamine N-oxide
+[O-][n+]1ccccc1	pyridine 1-oxide
+[O-]C(=O)c1cc[n+]([O-])cc1	pyridine-4-carboxylate 1-oxide
+[O-][n+]1ccc(cc1)C[NH3+]	[(1-oxidopyridin-1-ium-4-yl)methyl]azanium
+[O-][n+]1ccccc1C[N+](C)(C)C	trimethyl[(1-oxidopyridin-1-ium-2-yl)methyl]ammonium
+C[N+](C)([O-])CC[N+](C)(C)C	dimethyl(oxido)[2-(trimethylazaniumyl)ethyl]ammonium
+[O-][n+]1ccc(N)cc1	pyridin-4-amine 1-oxide
+C[n+]1ccccc1.[O-][n+]1ccccc1	1-methylpyridin-1-ium pyridine 1-oxide
+c1cc[n+]([O-])cc1C[n+]1ccccc1	1-oxido-3-[(pyridinium-1-yl)methyl]pyridin-1-ium
+C1CC[NH2+]CC1.[Cl-]	piperidin-1-ium chloride
+Cc1ccc(cc1)C1CC[NH2+]CC1	4-(4-methylphenyl)piperidin-1-ium
+C1CCC(CC1)[NH3+]	cyclohexanaminium
+C1CC[NH2+]CC1C	3-methylpiperidin-1-ium
+OC1CC[NH2+]CC1	4-hydroxypiperidin-1-ium
+C1CNCC[NH2+]1	piperazin-1-ium
+C1CC2CC[NH2+]C2C1	octahydrocyclopenta[b]pyrrol-1-ium
+C1Cc2ccccc2C[NH2+]1	1,2,3,4-tetrahydroisoquinolin-2-ium
+C1CCC[NH2+]C1.[Br-]	piperidin-1-ium bromide
+[NH2+]1CCOCC1C(=O)O	3-carboxymorpholin-4-ium
+c1ccc2c(c1)CC[NH2+]C2	1,2,3,4-tetrahydroisoquinolin-2-ium
+NC(N)=NC(=N)NC(N)=N	N1-(diaminomethylidene)imidodicarbonimidic diamide
+N=C(N)NC(=N)NC(N)=N	diimidotricarbonimidic diamide
+NC(=N)NC(N)=NC(N)=N	N1-carbamimidoylimidodicarbonimidic diamide
+Cn1nnc[n+]1C	1,2-dimethyl-2H-tetrazol-1-ium
+[O-]C(=O)c1ccc(cc1)S([O-])(=O)=O	1-[oxido(oxo)methyl]-4-(oxidosulfonyl)benzene
+[O-]C(=O)c1ccccc1[O-]	2-[oxido(oxo)methyl]benzen-1-olate
+NC(=O)NC(=O)NC(=O)NC(=O)NC(N)=O	3,5,7-trioxo-2,4,6,8-tetraazanonane-1,9-diamide
+CN=C(S)NC	{[(methylamino)(sulfanyl)methylidene]amino}methane
+CCN=C(S)Nc1ccccc1	{[anilino(sulfanyl)methylidene]amino}ethane
+O=C(NNC(=O)c1ccccc1)c1ccccc1	1,2-dibenzoylhydrazine
+CC(=O)NNC(C)=O	1,2-diacetylhydrazine
+CC(=O)NNC(=O)c1ccccc1	1-acetyl-2-benzoylhydrazine
+O=C(NN)c1ccccc1	benzohydrazide
+O=C(NNC)c1ccccc1	N'-methylbenzohydrazide
+O=C(NNc1ccccc1)c1ccccc1	N'-phenylbenzohydrazide
+O=C(O)CCC(=O)NNC(=O)c1ccccc1	4-(2-benzoylhydrazinyl)-4-oxobutanoic acid
+O=C(NNC)c1ccc(C(=O)O)cc1	4-carboxy-N'-methylbenzohydrazide
+O=C(NN)c1ccc(C(=O)O)cc1	4-(hydrazinecarbonyl)benzoic acid
+CC(=O)NN(C)C	N',N'-dimethylacetohydrazide
+O=C(NNC(=O)C)c1ccc(cc1)C(N)=O	4-[(2-acetylhydrazinyl)(oxo)methyl]benzamide
+O=C(NNS(=O)(=O)c1ccccc1)c1ccccc1	N-benzamidobenzenesulfonamide
+CC(=O)NNC(=S)N	2-acetylhydrazine-1-carbothioamide
+O=C(NN=Cc1ccccc1)c1ccccc1	1-benzoyl-2-(phenylmethylidene)hydrazine
+O=C(NN(C)C)c1ccccc1	N',N'-dimethylbenzohydrazide
+CCOC(=O)NNC(C)=O	1-acetyl-2-(ethoxycarbonyl)hydrazine
+C[N+]1(C)CCCCC1	1,1-dimethylpiperidin-1-ium
+C[N+]1(C)CCOCC1	4,4-dimethylmorpholin-4-ium
+C[N+]1(C)CCc2ccccc2C1	2,2-dimethyl-1,2,3,4-tetrahydroisoquinolin-2-ium
+Cn1nnc(C)[n+]1C	1,2,5-trimethyl-2H-tetrazol-1-ium
+C[NH+]1CCNCC1	1-methylpiperazin-1-ium
+C[NH+]1CCN(C)CC1	1,4-dimethylpiperazin-1-ium
+C1CC[NH2+]C1C(=O)O	2-carboxypyrrolidin-1-ium
+[NH2+]1CCCC1C(=O)[O-]	pyrrolidin-1-ium-2-carboxylate
+C1CC2CC[NH2+]C2CC1	octahydro-1H-indol-1-ium
+C1CCC2[NH2+]CCC2C1	octahydro-1H-indol-1-ium
+C[NH+]1CCc2ccccc2C1	2-methyl-1,2,3,4-tetrahydroisoquinolin-2-ium
+OCC[NH2+]CCO	2-hydroxy-N-(2-hydroxyethyl)ethan-1-aminium
+C1C[NH2+]CC[NH2+]1	piperazine-1,4-diium
+C[n+]1ccc(cc1)C(N)=O	4-carbamoyl-1-methylpyridin-1-ium
+OC(=O)c1cc[o+]cc1	4-carboxypyrylium
+OC1CC[S+](C)CC1	4-hydroxy-1-methylthian-1-ium

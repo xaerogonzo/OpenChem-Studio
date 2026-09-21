@@ -27,6 +27,12 @@ scope = "core"
 owner = "namer"
 
 [[consumer]]
+file = "tests/test_namer_probe_shapes.py"
+why = "a snapshot of the names of ~116 shapes no corpus row contains, and their OPSIN read-back; the only net for a NON-PREFERRED regression in a shape the corpora lack"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
 file = "tests/test_namer_preference_key.py"
 why = "the typed preference key and its tiers; a comparator change lands here first"
 scope = "core"
