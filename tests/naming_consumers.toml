@@ -1,0 +1,189 @@
+# The naming-consumer manifest: every test file that consumes the namer, with why, scope and owner.
+#
+# WHY IT EXISTS. Naming round 3 left a test file red for six stages because each stage ran only the naming tests,
+# and the file that consumed names was not one of them. "The whole naming-consuming test set" was a phrase in a
+# routine, not a list, so it drifted. This is the list. `tests/test_naming_consumers_manifest.py` fails on a test that
+# imports the namer and is not registered here, so it cannot silently go stale again, and
+# `tools/naming_consumers.py --scope ...` prints the pytest arguments a stage should run.
+#
+#   scope   core       the engine's own contract tests (preference key, ownership, known defects, enclosure, ...)
+#           benchmark  a frozen population, panel, adjudication or registry guard
+#           app        the application layer reading names (providers, annotation, reports, docs guards)
+#           vendor     the vendored suite, run as ONE unit (tests/vendor/iupac_namer)
+#   owner   the area that must be re-run when it changes: "namer", "benchmarks" or "app"
+#
+# Support files (tests/conftest.py, helpers under tests/vendor/) are not consumers and are not listed.
+
+[[consumer]]
+file = "tests/vendor/iupac_namer"
+why = "the vendored engine's own suite (about 4,500 tests); a directory, run wholesale with the JRE on PATH and JAVA_HOME set"
+scope = "vendor"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_known_defects.py"
+why = "every D-row: a defect that was fixed, pinned with its converse"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_preference_key.py"
+why = "the typed preference key and its tiers; a comparator change lands here first"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_ownership.py"
+why = "round 5's atom-ownership invariant on the substitutive tree"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_charge_ownership.py"
+why = "round 7's charged-atom ownership: the decision function, both failure shapes as mutations, the declared edges"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_enclosing_marks.py"
+why = "enclosing marks and the serialization rules of P-16.5"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_fusion.py"
+why = "general fusion nomenclature (round 5)"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_multiplicative.py"
+why = "multiplicative names: the built class and what it declines"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_numbering.py"
+why = "numbering rules and the lowest-locant tie-breaks"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_plan_budget.py"
+why = "the plan-search budget and what it may prune"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_salt_multiplier.py"
+why = "the salt multiplier (calcium diacetate), unit-tested because the D-rows go through whole salts"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_stereo_validation_cache.py"
+why = "stereo validation and its cache"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_strategy_propagation.py"
+why = "the strategy object reaching every recursive call"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_charged_panel.py"
+why = "round 7's frozen 108-row charged panel, its baseline, ownership ratchet and adjudication"
+scope = "benchmark"
+owner = "benchmarks"
+
+[[consumer]]
+file = "tests/test_charged_panel_r8.py"
+why = "round 8's frozen 60-row addendum panel, its baseline, ownership ratchet and adjudication"
+scope = "benchmark"
+owner = "benchmarks"
+
+[[consumer]]
+file = "tests/test_naming_heldout_lock.py"
+why = "the population registry, the frozen held-out set's lock, the seal on its records"
+scope = "benchmark"
+owner = "benchmarks"
+
+[[consumer]]
+file = "tests/test_naming_adjudication.py"
+why = "the corpus adjudication table: every row quoted, located and layered"
+scope = "benchmark"
+owner = "benchmarks"
+
+[[consumer]]
+file = "tests/test_retained_registry_contract.py"
+why = "every registry name denotes its own structure (the OPSIN-vocabulary gate)"
+scope = "benchmark"
+owner = "benchmarks"
+
+[[consumer]]
+file = "tests/test_naming_providers.py"
+why = "the application's naming providers and the OPSIN round-trip gate"
+scope = "app"
+owner = "app"
+
+[[consumer]]
+file = "tests/test_naming_retained_alternative.py"
+why = "the retained alternative shown beside a preferred name"
+scope = "app"
+owner = "app"
+
+[[consumer]]
+file = "tests/test_opsin_isolation.py"
+why = "two OPSIN callers must not share a working directory"
+scope = "app"
+owner = "app"
+
+[[consumer]]
+file = "tests/test_structure_annotation.py"
+why = "the structure annotation reading names and functional groups"
+scope = "app"
+owner = "app"
+
+[[consumer]]
+file = "tests/test_report_adapter.py"
+why = "the report adapter that presents a name and its provenance"
+scope = "app"
+owner = "app"
+
+[[consumer]]
+file = "tests/test_regulatory_rulesets.py"
+why = "regulatory rulesets that match on structure and read names"
+scope = "app"
+owner = "app"
+
+[[consumer]]
+file = "tests/test_docs_are_current.py"
+why = "doc guards that count the namer's D-rows, corpora and limitations"
+scope = "app"
+owner = "app"
+
+[[consumer]]
+file = "tests/test_sources_are_current.py"
+why = "the sources registry, which cites the namer's corpora and the Blue Book"
+scope = "app"
+owner = "app"
+
+[[consumer]]
+file = "tests/test_ci_deselections.py"
+why = "the CI deselection list names namer tests and must keep matching them"
+scope = "app"
+owner = "app"
+
+[[consumer]]
+file = "tests/test_naming_consumers_manifest.py"
+why = "this manifest's own guard"
+scope = "benchmark"
+owner = "benchmarks"
+
+[[consumer]]
+file = "tests/test_naming_ref_compare.py"
+why = "the ref-compare firewall: its comparison rules, manifest rules and one real two-engine run"
+scope = "benchmark"
+owner = "benchmarks"
