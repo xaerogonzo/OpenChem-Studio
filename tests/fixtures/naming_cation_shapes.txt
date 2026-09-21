@@ -142,8 +142,8 @@ CC(=O)N1CCN(C)CC1	1-(4-methylpiperazin-1-yl)ethan-1-one
 O=C(O)CC(=O)N1CCCCC1	3-oxo-3-(piperidin-1-yl)propanoic acid
 NC(=O)CC(=O)N1CCCCC1	3-oxo-3-(piperidin-1-yl)propanamide
 CC(=O)N1CCC(CC1)C(=O)O	1-acetylpiperidine-4-carboxylic acid
-O=C(N1CCCCC1)N1CCCCC1	1-[(oxo)(piperidin-1-yl)methyl]piperidine
-O=C(n1ccnc1)n1ccnc1	1-[(1H-imidazol-1-yl)(oxo)methyl]-1H-imidazole
+O=C(N1CCCCC1)N1CCCCC1	di(piperidin-1-yl)methanone
+O=C(n1ccnc1)n1ccnc1	bis(1H-imidazol-1-yl)methanone
 O=C(N=Nc1ccccc1)N=Nc1ccccc1	bis(phenyldiazenyl)methanone
 O=C(N=Nc1ccccc1)c1ccccc1	phenyl(phenyldiazenyl)methanone
 CC(=O)N=NC	1-(methyldiazenyl)ethan-1-one

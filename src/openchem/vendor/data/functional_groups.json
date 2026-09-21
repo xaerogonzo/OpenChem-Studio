@@ -851,6 +851,18 @@
             "elision": true
         },
         {
+            "_comment": "P-64.3.2 (pdf p. 567): a carbonyl between TWO ring nitrogens (carbonyldiimidazole, 1,1'-carbonyldipiperidine) is a pseudoketone too: bis(1H-imidazol-1-yl)methanone. context_indices declares both nitrogens as the ROOTS of their substituents. Naming round 8. TWO MUTANTS OF THIS PATTERN ARE EQUIVALENT (measured, three others are caught): dropping the non-ring condition on the carbon (a cyclic urea is taken by the ring-carbonyl handling first) and dropping the ring condition on the nitrogens (an acyclic urea is taken by the urea group, which outranks a ketone). Both conditions state the intent and are not claimed as covered.",
+            "name": "ketone",
+            "smarts": "[$([nX3]),$([NX3;R;!$(N[#7])])][CX3;!R](=O)[$([nX3]),$([NX3;R;!$(N[#7])])]",
+            "anchor_index": 1,
+            "seniority": 1600,
+            "bluebook_class": "16",
+            "suffix": "-one",
+            "prefix": "oxo",
+            "context_indices": [0, 3],
+            "elision": true
+        },
+        {
             "_comment": "P-64.3.2 (pdf p. 567): a PSEUDOKETONE, a carbonyl bonded to a heteroatom that is not an amide, ester or acid, is named with the suffix one, the heteroatom's group being a substituent: 1-(piperidin-1-yl)propan-1-one (PIN), 1-(3,4-dihydroquinolin-1(2H)-yl)ethan-1-one (PIN), 1-(trimethylsilyl)ethan-1-one (PIN); bis(phenyldiazenyl)methanone (PIN, p. 110). context_indices declares the heteroatom (SMARTS position) as the ROOT of that substituent, not part of the group. Naming round 8.",
             "name": "ketone",
             "smarts": "[#6][CX3](=O)[NX3;R;!$(N[#7])]",

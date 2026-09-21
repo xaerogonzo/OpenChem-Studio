@@ -2785,10 +2785,11 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-118v", "CC(=O)N1CCC(=O)CC1", "1-acetylpiperidin-4-one", "(unchanged)", "converse: a ring ketone is senior to the acyclic pseudoketone"),
     ("D-118u", "CC(=O)NC", "N-methylacetamide", "(unchanged)", "converse: an ACYCLIC amide is an amide, not a pseudoketone"),
     ("D-118t", "CC(=O)OC", "methyl acetate", "(unchanged)", "converse: an ester"),
-    ("D-119a", "O=C(n1ccnc1)n1ccnc1", "1-[(1H-imidazol-1-yl)(oxo)methyl]-1H-imidazole", "(a KekulizeException out of the whole naming call)",
-     "carbonyldiimidazole, a common reagent, CRASHED the engine: the multiplicative route carved a half-molecule whose aromatic n had lost its H and did not catch the sanitise failure. It now "
-     "declines and the generic route names it. OPSIN-verified; NOT claimed preferred (the pseudoketone name, di(1H-imidazol-1-yl)methanone, is not built for two ring nitrogens)"),
-    ("D-119b", "O=C(n1cccc1)n1cccc1", "1-[(oxo)(1H-pyrrol-1-yl)methyl]-1H-pyrrole", "(the same crash)", "the pyrrole analogue"),
+    ("D-119a", "O=C(n1ccnc1)n1ccnc1", "bis(1H-imidazol-1-yl)methanone", "(a KekulizeException out of the whole naming call)",
+     "carbonyldiimidazole, a common reagent, CRASHED the engine: the multiplicative route carved a half-molecule whose aromatic n had lost its H and did not catch the sanitise failure. It then "
+     "declined and the generic route named it '1-[(1H-imidazol-1-yl)(oxo)methyl]-1H-imidazole'; the pseudoketone group for TWO ring nitrogens (D-126) makes it the ketone the book prints for the "
+     "one-nitrogen case, with 'bis' because the prefix begins with a locant"),
+    ("D-119b", "O=C(n1cccc1)n1cccc1", "bis(1H-pyrrol-1-yl)methanone", "(the same crash)", "the pyrrole analogue"),
     # ---- naming round 8, limitations sweep: THE 'e' OF 'ene'/'yne' IS ELIDED BEFORE AN 'amide' OR 'amine' (P-16.7; pdf pp. 646, 525, 76). The assembler's elision skipped
     # every suffix that begins 'amine'/'amide'/'amino', a list meant for the 'amino' PREFIX, so an unsaturated parent kept its 'e' before the two commonest vowel suffixes:
     # acrylamide was 'prop-2-eneamide' and allylamine 'prop-2-ene-1-amine', both of which OPSIN reads and neither of which is a name. Found by probing common compounds, not by
@@ -2890,6 +2891,22 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "derived from p. 753 'N-methoxymethanamine (PIN)': the tertiary amine with an alkoxy"),
     ("D-125m", "CON(C)Cc1ccccc1", "N-methoxy-N-methyl-1-phenylmethanamine", "methyl benzylmethylazinite",
      "derived: a tertiary amine with a benzyl"),
+    # ---- naming round 8, limitations sweep: A CARBONYL BETWEEN TWO RING NITROGENS IS A PSEUDOKETONE TOO (P-64.3.2, pdf p. 567, the one-nitrogen case of D-118):
+    # 'bis(1H-imidazol-1-yl)methanone' for carbonyldiimidazole, 'di(piperidin-1-yl)methanone' for 1,1'-carbonyldipiperidine. One more ketone group for a NON-RING carbonyl
+    # carbon between two ring nitrogens, both declared as the roots of their substituents. A carbonyl IN a ring (a cyclic urea, hydantoin) is not matched, and an acyclic urea
+    # keeps its name.
+    ("D-126a", "O=C(N1CCCCC1)N1CCCCC1", "di(piperidin-1-yl)methanone", "1-[(oxo)(piperidin-1-yl)methyl]piperidine",
+     "derived from p. 567: the two-nitrogen case of '1-(piperidin-1-yl)propan-1-one (PIN)'; 'di' because 'piperidin-1-yl' begins with a letter"),
+    ("D-126b", "O=C(N1CCOCC1)N1CCOCC1", "di(morpholin-4-yl)methanone", "4-[(morpholin-4-yl)(oxo)methyl]morpholine",
+     "derived: the morpholine analogue"),
+    ("D-126c", "O=C(n1ccnc1)N1CCCCC1", "(1H-imidazol-1-yl)(piperidin-1-yl)methanone", "1-[(1H-imidazol-1-yl)(oxo)methyl]piperidine",
+     "derived: two DIFFERENT ring nitrogens, cited alphabetically"),
+    ("D-126x", "O=C1NC(=O)CN1", "imidazolidine-2,4-dione", "(unchanged)",
+     "converse: hydantoin, the carbonyl is IN the ring"),
+    ("D-126y", "O=C1N(C)CCN1C", "1,3-dimethylimidazolidin-2-one", "(unchanged)",
+     "converse: a cyclic urea"),
+    ("D-126z", "CN(C)C(=O)N(C)C", "N,N,N',N'-tetramethylurea", "(unchanged)",
+     "converse: an acyclic urea keeps its name"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
