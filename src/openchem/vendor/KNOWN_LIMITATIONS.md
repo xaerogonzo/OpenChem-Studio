@@ -343,6 +343,46 @@ Found while checking D-029; predates it.
   non-minimal lambda numbering and three general-nomenclature-only acylium
   names; the engine's output is correct in every case. See `CHANGELOG.md`.
 
+## Open after naming round 7 (2026-09-20)
+
+Round 7 fixed the acid-anion class (one decision function, `charge_perception.acid_anion_route`, both
+routes ask it), a charge-conservation defect in the zwitterion route, and the retained names, salt
+multiplier and amide-anion form the book prints. The panel that measures it is
+`benchmarks/naming/charged_panel.toml` (108 rows, built by class, frozen), its baseline and adjudication
+beside it. What is left, by layer, with what is known about each.
+
+**The hole this round began with is closed, and its neighbours are declared, not silent:** a charged atom
+is now either owned by exactly one route or carries a declared UNSUPPORTED with its reason
+(`perception/charge_ownership.py`, `DECLARED_UNSUPPORTED`); `tests/test_charged_panel.py` pins the set of
+unowned classes at empty.
+
+| layer | case | emits | preferred / target | note |
+|---|---|---|---|---|
+| scope unsupported | deprotonated phosphonic and phosphoric acids | `hydroxy(oxido)(oxo)(phenyl)phosphane` | `hydrogen phenylphosphonate`, `phenyl hydrogen phosphate` (pdf p. 808) | the 'hydrogen' method for acid esters of inorganic acids is a construction of its own; structurally correct, not preferred; nothing in the corpora needs it |
+| candidate generation | chiral amino-acid anions (`alaninate`, `prolinate`, `tyrosinate`, `cysteinate`, `glutamate`) | `2-aminopropanoate`, `pyrrolidine-2-carboxylate`, ... | `alaninate`, ... (P-103.2.4.2, pdf p. 1047) | OPSIN reads a bare `alaninate` as the L-isomer while P-103.1.3.1 designates configuration by D/L; a whole-molecule retained name needs a stereo policy first. Glycine (achiral) is done |
+| retained parents | protonated imidazole: `c1c[nH]c[nH+]1` | `1,3-diazol-1-ium` | `1H-imidazol-3-ium` | the retained ring is found for a fully N-substituted cation and not when `[nH+]` sits beside `[nH]`; `_neutralize_ring_charged_n` reads correct on paper, so the fault is elsewhere in the ring-lookup chain. Abandoned under the round's stop rule after a short look |
+| candidate generation, unplanned | protonated benzimidazole: `c1ccc2[nH]c[nH+]c2c1` | `NAMING ERROR: No valid naming plan found` | `1H-benzimidazol-3-ium` (derived) | a refusal rather than a wrong name; same family as the row above; found after the panel was frozen |
+| source unresolved | a betaine's cationic prefix | `(trimethylazaniumyl)acetate` | `(N,N-dimethylmethanaminiumyl)acetate` (pdf pp. 362, 837) | both denote the same structure; the pages read do not say whether the azaniumyl form is also permitted |
+| candidate generation, unplanned | a zwitterion with an anion of ANOTHER class: `[NH3+]C(C[O-])C([O-])=O` (serinate as drawn) | `2-azaniumyl-3-oxido-3-oxopropan-1-olate` | `2-azaniumyl-3-oxidopropanoate`-style (derived) | `acid_anion_route` returns None for two anion classes, so the carboxylate is not carved; round-trips, not preferred |
+| serialization | compound acyl names on `azanide` | `chloroacetylazanide` | `(chloroacetyl)azanide` (derived enclosure) | the enclosure test looks for locant characters and misses a substituent without one; round-trips |
+| numbering | pyrene and phenalene interior carbons | `10b`, `10c` | `3a1`, `5a1` (P-25.3.3.3.1, pdf p. 224) | DELIBERATE: the table uses the CAS locants because the round-trip oracle reads those and not the book's; switching would make correct names unverifiable and withheld or annotated in the app |
+| candidate generation, unplanned, WRONG MOLECULE | the trianion of a tricarboxylic acid: citrate `[O-]C(=O)CC(O)(CC([O-])=O)C([O-])=O`, and its salts | `3-carboxy-3-hydroxypentanedioate` (`trisodium 3-carboxy-3-hydroxypentanedioate`) | `2-hydroxypropane-1,2,3-tricarboxylate` (from the printed PIN of the acid, P-65.1.1.2.3, pdf p. 578) | found by the driven salt-panel check AFTER the final evaluation, so no fix was made. Two layers: the NEUTRAL acid is named `3-carboxy-3-hydroxypentanedioic acid` (structurally right, not the printed PIN: the chain with two suffix groups beats propane with three), and the classifier route then converts only the suffix groups, leaving the `carboxy` prefix to read as a neutral COOH: two charges for three sites. The same shape gave a wrong name BEFORE the round (`1,5-dioxido-3-oxidooxomethyl-...`). The app's round-trip gate withholds it (`MISMATCH`), so the user sees PubChem's name. A sound fix is a charge ledger on the classifier route (every acid group there IS a deprotonated site, so an acid prefix in the name is a wrong charge) plus the neutral chain choice; the class panel had no three-acid row, which is why it was not found there |
+| candidate generation, unplanned, WRONG MOLECULE | the biguanidium cation `CN(C)C(=N)NC(N)=[NH2+]` (metformin's cation, in `metformin pamoate`) | `N-[(dimethylamino)(imino)methyl]-1-iminomethanebis(aminium)` | not searched | a dication name for a monocation; `MISMATCH` before and after round 7 (not an anion, so out of the round's class); found by the same check and withheld by the same gate |
+
+**The rest of the round-5/6 open list was NOT attempted this round**, and none of it was investigated beyond
+reading its row, so no diagnosis is recorded for it. Each keeps its row above in "Open after naming round 5"
+and its target and page there. In the order the plan named them: N'-acyl hydrazides and the substituted-hydrazide
+prefix (D-088a, D-088d; round 4's attempt made a wrong molecule, so it needs its own layer trace), two acyl groups
+on one N (D-091u), carbon with two double-bonded suffix groups and C=O between two N= (D-088c), Si-NH-Si (D-089u),
+and condensed ureas (D-091t). The reason is budget, not evidence: the charged-species work found three defects the
+plan did not contain and each stage carries its own corpus, suite and mutation evidence.
+
+**Two checks on the panel's own targets, kept here so they are not re-derived:** a derived anion name is the
+printed rule applied to the neutral acid's PIN; searching the whole book found that neutral name for 22 of 44
+rows, so an EXACT_PREFERRED result on a derived row means agreement with a rule-derived target, never that the
+book printed it; and one target was corrected after the fix was measured (erratum 2, pdf p. 593), disclosed in
+the panel header.
+
 ## Naming round 6: open after the cyanic acid work (2026-09-20)
 
 * **Cyanamide as a PREFIX** (`3-(cyanoamino)propanoic acid`): the Blue Book

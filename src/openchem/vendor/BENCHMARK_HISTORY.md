@@ -523,3 +523,66 @@ on both. The fresh corpus has now been scored twice, which is stated here
 rather than hidden: the second scoring was forced by a code change, it was
 compared row for row against the first, and nothing about v3 informed the
 change -- it came from the vendored suite.
+
+## 2026-09-20 -- naming round 7: the charged-species panel, and the fresh set found one wrong structure
+
+Round 7's target was a class NO corpus contained (a carboxylate or sulfonate beside
+another group), so the round's principal measurement is a panel built by class,
+`benchmarks/naming/charged_panel.toml`, not a corpus score. Both are reported here.
+
+### The panel, before and after (108 rows, frozen before any fix)
+
+| | baseline | round end |
+|---|---|---|
+| wrong molecule | 13 | 0 |
+| non-preferred | 42 | 9 |
+| exact preferred | 45 | 90 |
+| ownership holes (a charged site no route owns) | 47 | 0 (2 rows are a declared UNSUPPORTED edge) |
+
+No row got worse. `PREFERENCE_UNKNOWN` rows are reported apart from both. The nine
+not-exact rows are the four chiral amino-acid anions and glutamate (a stereo policy
+comes first), the two phosphorus acids (declared unsupported), the betaine prefix
+form (source unresolved) and imidazolium (abandoned under the stop rule). An
+EXACT_PREFERRED result on a DERIVED row means agreement with a rule-derived target,
+not that the book printed the name; 22 of 44 derived neutral-acid PINs were located in
+the book text, and one target (erratum 2, pdf p. 593) was corrected after the fix was
+measured. Both are disclosed in the panel header.
+
+### The final evaluation (`r7-final`, `--final-evaluation`)
+
+Five populations, each with its own denominator, never pooled. `heldout_v4` was drawn
+and frozen in R0, before any round-7 diagnosis, and is scored HERE AND ONCE, as
+aggregates only.
+
+| population | rows | PubChem string | equivalent | wrong structure |
+|---|---|---|---|---|
+| regression | 187 | 101 | 85 | 0 (1 tautomer) |
+| heldout v1 (tuning) | 40 | 16 | 24 | 0 |
+| heldout v2 (tuning) | 40 | 15 | 25 | 0 |
+| heldout v3 (tuning since round 7) | 40 | 13 | 27 | 0 |
+| **heldout v4 (fresh)** | **40** | **19** | **20** | **1** |
+
+**The fresh set found ONE wrong structure.** Round 5's fresh set found none; this one
+is the same instrument doing what it is for. It has NOT been diagnosed: the row was
+not read, because a row read during a round becomes a row fixed during it, and a set
+is fresh once. It is recorded as open, unattributed (nothing here says whether it is
+a charged species, and the panel's zero says nothing about it either way). `heldout_v4`
+becomes a tuning population for round 8, where the row is the first thing to read.
+
+**Nothing moved in the four tuning populations against the last stage** (0 names changed
+in each, no structural regression), and the agreement with the adjudicated preferred
+name is unchanged from round 5's end: regression 30/31, heldout v1 17/18, heldout v2
+20/23. That is the expected shape: the round's changes are anion names, and the
+tuning corpora hold almost none. The panel, not the corpora, is where the round's
+improvement is measured, and the corpora's job here was to show nothing else moved.
+
+**v4 has no adjudicated preferred-name figure**: its targets were deliberately not
+read. Its 19/40 against PubChem's string is comparable to v1-v3's 13-16 only loosely,
+since a different draw of PubChem records is a different draw of PubChem's naming
+habits; nothing should be inferred from the difference.
+
+### Suites at the round's end
+
+Vendored suite 4,515 passed (0 skipped, JRE and JAVA_HOME both set); the default app
+suite as CI's two shards 5,505 and 5,902 passed, every skip an environment one (offscreen
+WebGL, no PDF library, no pkasolver, the network test).

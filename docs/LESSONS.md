@@ -21095,3 +21095,96 @@ it would assert a detection nobody ran.
   What is solid is the relative cost: +0.2 ms median (4%), no change at p95 or
   worst. A `process_time` measurement is useless on Windows here (15.6 ms
   granularity).
+
+
+## A ZERO-OWNER HOLE BETWEEN TWO GUARDS, AND AN INVARIANT THAT COULD NOT SEE THE WRONG MOLECULE
+
+Naming round 7 began with an accident: putting choline salicylate through the app
+returned "withheld". Tracing it found a defect in NO corpus. A carboxylate or
+sulfonate anion that also carried a neutral OH, NH2 or SH was named as if that group
+were principal: salicylate came out `2-oxidooxomethylphenol`, which OPSIN reads as a
+different molecule, and lactate came out `1-oxido-1-oxopropan-2-ol`, which round-
+trips and is wrong anyway. Across the class it was 13 wrong molecules and 42
+non-preferred names in a 108-row panel.
+
+**THE CAUSE WAS A MISSING OWNER, NOT A WRONG RULE.** `_classify_acidic_anion` deferred
+"mixed charged + neutral cases" to plan search ("which already handles them", and
+called that form "OPSIN-safe"). Plan search's `_carved_acid_anion_sites` excluded
+carboxylate because "the dedicated `_classify_acidic_anion` path handles it". Each
+comment was true of its own half and false of the seam. A round-trip gate cannot
+find that, because half the affected names round-trip; a PubChem-drawn corpus cannot,
+because it holds what PubChem holds. Only a panel built BY CLASS (charged group x
+neighbouring group x context) makes an unowned cell visible as an empty row.
+
+**OWNERSHIP IS NOW A MEASURED PROPERTY** (`perception/charge_ownership.py`), from three
+independent sources that are compared: the site's STRUCTURAL class (never derived from
+what a route accepts, or a phosphonate would have been "not an anion site"); every
+route that would CLAIM it, taken from the real predicates before the first-claimer-wins
+de-duplication; and the route the engine ACTUALLY took, recorded under
+`diagnostics.capture()`. Verdicts: OWNED, HOLE, OVERLAP, INCONSISTENT, and a declared
+UNSUPPORTED that carries its reason in words. The fix was one decision function
+(`acid_anion_route`) both routes ask, following P-41 (anions class 4 outrank acids
+class 7), so the split is exclusive by construction rather than by two comments.
+
+**THE DYNAMIC HALF EARNED ITS KEEP.** The static claims said 'carbamate' was owned by
+the classifier; the engine's recorded route was "none". A curated whole-molecule table
+answers before any classifier, a fourth owner the static model had never heard of, so
+the first baseline's HOLE for it was the diagnostic's own false positive. A static
+model of routing needs a check against the routing it models.
+
+**AN OWNED SITE CAN STILL BE WRONG, SO OWNERSHIP IS NOT THE WHOLE INVARIANT.** Three
+checks are different and each has its own failure:
+
+    atom conservation      every atom is named          (round 5's ownership invariant)
+    role / attachment      each group keeps its role    (the salicylate name kept every atom)
+    charge conservation    anion suffixes == deprotonated sites
+
+The glutamate mono-anion zwitterion was owned by the FG route and named as the DIANION:
+one charged and one neutral carboxyl, both offered as principal group, both given the
+anion suffix. Only a check on the charge itself sees that. And one class the panel did
+not contain fell out of the same seam: a zwitterion with a NEGATIVE net charge
+(aspartate and glutamate at pH 7) had no owner, because perception detects a charged
+carboxylic acid only when the charges cancel.
+
+**THE PANEL'S OWN TARGETS WERE THE WEAKEST PART, AND TWICE THE PANEL WAS WRONG.**
+
+* Parsing every target with OPSIN and requiring it to denote its own row found one that
+  named a four-carbon acid for a three-carbon structure. That check is a standing test.
+* Page 593 prints `4-amino-4-oxobutanoic acid (PIN)` and lists `3-carbamoylpropanoic
+  acid` as a NON-PIN alternative; my derived target was the alternative. I found it
+  AFTER the fix was measured, and the corrected target happens to equal what the
+  engine emits, so it is disclosed in the panel header as an erratum with its page.
+* A derived name is a printed RULE applied to a neutral acid's PIN, and that PIN is a
+  separate claim per row. Searching the whole book found the neutral acid for 22 of 44;
+  and "found" is not "is the PIN", which is exactly how the second error hid.
+  EXACT_PREFERRED on a derived row means "agrees with a rule-derived target", never
+  "IUPAC printed it".
+* Two of my D-row expectations were wrong and the engine was right (prefixes are
+  alphabetical: `azaniumyl` precedes `carboxy`). A pinned expectation is a claim to
+  check, not a fact.
+
+**Smaller things measured, so they are not re-derived:**
+
+* A pure olate in a salt took the ANION route after the salt path was taught to ask for
+  it, and `sodium phenolate` became `sodium benzenolate`: 10 of 11 name changes that did
+  not improve a status were the intended change, and one was a side effect. Count the
+  names that moved, not only the ones that improved.
+* Two mutation "misses" were not gaps: one hit a comment (`status = "frozen"` in the file
+  header), one was EQUIVALENT (reassigning a list to itself). Read what a mutation
+  changes before believing it.
+* A gate that says "OPSIN cannot read it" is a reason to avoid one suffix, not every
+  suffix: `acetylamide` was emitted because `-amidide` failed, and `acetylazanide`, the
+  book's form, was always parseable.
+* The retained name for a chiral amino acid asserts no configuration in the book while
+  OPSIN reads it as L. The flat names are structurally right; a whole-molecule retained
+  name needs a stereo policy first, so `alaninate` was deliberately not built.
+* **A PANEL BUILT BY CLASS STILL HAS THE CLASSES ITS AUTHOR THOUGHT OF.** The driven check that
+  closed the round (the app's salt panel, before and after) found what the 108-row panel did not:
+  the trianion of a tricarboxylic acid is named with one carboxylate as a neutral `carboxy`
+  prefix, two charges for three sites, and no row had three acid groups. It was a wrong name
+  before the round and is a different wrong name after; the app's round-trip gate withholds it, so
+  it never reached a user. It came AFTER the final evaluation, so it was recorded rather than
+  fixed: a change to the engine after the fresh set was scored would have needed the scoring
+  repeated, and the stage cycle (panel row, D-rows, mutation, corpus stage) it needs was not
+  affordable. The lesson is the order, not the miss: run the independent panel of a different
+  shape BEFORE the final evaluation, not after it.

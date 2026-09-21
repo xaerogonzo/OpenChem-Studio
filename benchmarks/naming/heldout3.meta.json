@@ -24,5 +24,8 @@
  "pubchem_property": "SMILES,IUPACName",
  "rdkit_version": "2025.09.6",
  "inspection_policy": "evaluation only: selected before any naming round 5 diagnosis, never inspected row by row, loaded only by naming_stage_artifact.py --final-evaluation",
- "history": "Drawn once, 2026-09-19, with no retries needed. ONE LEAK, recorded rather than hidden: the quiet run suppresses the script's own row output, but py2opsin's RuntimeWarning for the one UNTRUSTED row reached the log as 'Cannot find in scope fragment with atom with locant 8b' -- i.e. one PubChem string names a fused system with an 8b locant that OPSIN cannot parse. No CID, structure or engine name was printed. Future draws should run with warnings suppressed."
+ "history": "Drawn once, 2026-09-19, with no retries needed. ONE LEAK, recorded rather than hidden: the quiet run suppresses the script's own row output, but py2opsin's RuntimeWarning for the one UNTRUSTED row reached the log as 'Cannot find in scope fragment with atom with locant 8b' -- i.e. one PubChem string names a fused system with an 8b locant that OPSIN cannot parse. No CID, structure or engine name was printed. Future draws should run with warnings suppressed.",
+ "status": "USED_FOR_TUNING",
+ "status_since": "naming round 7, 2026-09-20",
+ "status_note": "Scored once, at naming round 5's final evaluation (r5-N9-final.json: 13/40 verbatim, 27 more equivalent, 0 wrong molecules, 40/40 round trip). From round 7 on its rows may be read, adjudicated and fixed, so it measures fitting, not generalisation, and is reported as a tuning population beside v1 and v2. The population registry (populations.toml) records the same status; the fresh population for round 7 is v4."
 }

@@ -1,0 +1,50 @@
+# The naming populations, and which of them a tool may read.
+#
+# ONE registry, read by every tool that enumerates populations
+# (tools/naming_stage_artifact.py, tools/retained_name_audit.py,
+# tools/ertl_crosscheck.py) through tools/naming_populations.py. Before naming
+# round 7 each of them carried its own list, and the list that decided whether
+# the fresh held-out set could be reached was a hard-coded tuple in whichever
+# tool happened to be written last.
+#
+#   status = "tuning"   any tool may read it
+#   status = "frozen"   evaluation only. `naming_populations.path()` raises
+#                       BEFORE the file is touched, unless the caller is the
+#                       final evaluation. tests/test_naming_heldout_lock.py
+#                       requires exactly one frozen population and that no
+#                       tracked script names its file.
+#
+# A population changes status by editing THIS file, in a commit whose message
+# says why. The order is report order.
+#
+# `short` is the label prefix the registry audit prints for a row.
+
+[[population]]
+key = "regression"
+short = "regression"
+file = "corpus.json"
+status = "tuning"
+
+[[population]]
+key = "heldout"
+short = "v1"
+file = "heldout.json"
+status = "tuning"
+
+[[population]]
+key = "heldout_v2"
+short = "v2"
+file = "heldout2.json"
+status = "tuning"
+
+[[population]]
+key = "heldout_v3"
+short = "v3"
+file = "heldout3.json"
+status = "tuning"
+
+[[population]]
+key = "heldout_v4"
+short = "v4"
+file = "heldout4.json"
+status = "frozen"

@@ -1,0 +1,194 @@
+# Adjudication of the charged-species panel's non-correct rows (naming round 7).
+#
+# A separate file from adjudication.toml on purpose: that file is keyed to corpus rows (a
+# corpus_row_id and a PubChem string per entry, and tests/test_naming_adjudication.py checks
+# every entry against them), and a panel row has neither. The VOCABULARY is the same.
+#
+# A row is listed here when it is a WRONG_MOLECULE, a NON_PREFERRED name, or an anion site no
+# route owns (a HOLE), whatever its name does. Rows are grouped into MECHANISM FAMILIES: what a
+# fix would have to change. Two families are not assumed to share code; that is decided when
+# their stage is diagnosed.
+#
+# LAYER, kept apart from the outcome:
+#   CANDIDATE_ABSENT          the correct name is never generated
+#   RANKED_OR_ASSIGNED_WRONG  it is generated and loses, or the group is mis-assigned
+#   IMPLEMENTATION_GAP        in declared scope, not built
+#   SCOPE_UNSUPPORTED         deliberately not supported (must then be an explicit UNSUPPORTED owner)
+#   SOURCE_UNRESOLVED         the pages read do not settle the target (NOT the same as a panel row's
+#                             NONE_VERIFIED, which says searched-and-not-printed for one string)
+#
+# fix_status follows adjudication.toml: OPEN | PARTLY_FIXED | FIXED | NOT_APPLICABLE.
+
+[[family]]
+id = "HOLE_ACID_MIXED"
+summary = "A carboxylate or sulfonate (or carbamate) beside another neutral group has no owning route"
+layer = "CANDIDATE_ABSENT"
+target_stage = "R3"
+mechanism = "_classify_acidic_anion defers any anion whose molecule has a neutral O/S/N-H group or another charged atom to plan search; _carved_acid_anion_sites excludes carboxylate because the classifier 'handles it'. Neither claims it, so the charge falls to an 'oxido' prefix on the wrong parent. The candidate name (the -ate anion with the neutral group as a prefix) is never generated."
+sources = "P-72.2.2.2.1.1 and .1.2 (pdf pp. 807-808); P-41 Table 4.1 (pdf p. 360)"
+fix_status = "PARTLY_FIXED"
+fix_note = "R3 (D-095): one decision function, charge_perception.acid_anion_route, now says which route owns an acid anion, so the classifier owns it beside groups junior to an acid and the carved route owns it beside another neutral acid or a nitro group. Of the 37 rows, 28 now match their target exactly and 3 more are structurally correct with no verified target; none is an ownership hole. The other 6 (five amino acids and glutamate) remain NON_PREFERRED for want of a retained anion name (ANION_RETAINED_NAMES, R4). D2-carbamate was never a hole: the curated inorganic table names it 'carbamate' (a whole-molecule route the first diagnostic did not know, found by the dynamic cross-check). Kept listed because the frozen baseline recorded it."
+rows = [
+  "A0-4-nitrobenzoate",
+  "A1-lactate",
+  "A1-glycolate",
+  "A1-mandelate",
+  "A1-salicylate",
+  "A1-3-hydroxybenzoate",
+  "A1-4-hydroxybenzoate",
+  "A1-3-hydroxybutanoate",
+  "A1-4-hydroxybutanoate",
+  "A1-gluconate",
+  "A2-glycinate",
+  "A2-alaninate",
+  "A2-prolinate",
+  "A2-tyrosinate",
+  "A2-cysteinate",
+  "A2-4-aminobenzoate",
+  "A2-anthranilate",
+  "A2-3-aminopropanoate",
+  "A2-N-methylglycinate",
+  "A3-3-sulfanylpropanoate",
+  "A3-sulfanylacetate",
+  "A4-5-carboxypentanoate",
+  "A4-3-carboxypropanoate",
+  "A4-3-carboxy-2-hydroxypropanoate",
+  "A4-2-carboxybenzoate",
+  "A4-oxalate-mono",
+  "A5-3-carbamoylpropanoate",
+  "A5-citrate-diester-anion",
+  "A6-2-hydroxybutanedioate-dianion",
+  "B1-2-hydroxybenzenesulfonate",
+  "B1-sulfanilate",
+  "B1-taurinate",
+  "B1-isethionate",
+  "B4-4-sulfobenzoate",
+  "B4-4-carboxybenzenesulfonate",
+  "D2-carbamate",
+  "E2-glutamate-dianion",
+]
+
+[[family]]
+id = "HOLE_ACID_MIXED_IN_SALT"
+summary = "The same hole, met through the salt path (each component is named with an explicit ANION form)"
+layer = "CANDIDATE_ABSENT"
+target_stage = "R3"
+mechanism = "A salt fragment reaches plan search with OutputForm.ANION already chosen by _choose_salt_fragment_form, so the classifier is skipped, but the FG-anion promotion does not see a charged carboxylate beside a neutral group either; the names show the same 'oxido' prefixes. To be confirmed by the R3 diagnosis: whether the salt path needs its own fix or inherits the isolated-ion one."
+sources = "as HOLE_ACID_MIXED, plus P-65.6.2 (pdf pp. 618-619) for the salt form"
+fix_status = "FIXED"
+fix_note = "R3: the classifier now owns a junior-group anion, so the salt path (which asks for STANDALONE) inherits the fix, and _choose_salt_fragment_form asks for the ANION form for a fragment the CARVED route owns (the promotion in name() is gated on _depth == 0). Six of the eight matched their target after R3; sodium glycinate (R4b, retained name) and calcium gluconate (R4c, salt multiplier) followed. All eight are EXACT_PREFERRED."
+rows = [
+  "G0-sodium-salicylate",
+  "G0-sodium-lactate",
+  "G0-sodium-glycinate",
+  "G0-potassium-3-carboxypropanoate",
+  "G0-calcium-bis-gluconate",
+  "G0-sodium-4-aminobenzene-sulfonate",
+  "G1-choline-salicylate",
+  "G1-choline-lactate",
+]
+
+[[family]]
+id = "HOLE_PHOSPHORUS_ACID"
+summary = "A deprotonated phosphonic or phosphoric acid has no owning route"
+layer = "SCOPE_UNSUPPORTED"
+target_stage = "DEFERRED"
+mechanism = "Neither the classifier gate nor FG perception sees a charged P(=O)O-; the engine names the neutralised skeleton with oxido prefixes. The book's 'hydrogen phenylphosphonate' and 'phenyl hydrogen phosphate' are the 'hydrogen' method for acid esters of inorganic acids, a construction of its own."
+sources = "P-72.2.2.2.1.2 (pdf p. 808); P-65.6.2.3"
+fix_status = "OPEN"
+fix_note = "Declared UNSUPPORTED in charge_ownership.DECLARED_UNSUPPORTED with its reason, so the round's invariant reads 'owned, or a declared edge' and this is no longer a silent hole. The names are structurally correct and not preferred. Building the 'hydrogen' method for acid esters of inorganic acids is a construction of its own; nothing in the corpora needs it."
+rows = [
+  "B3-hydrogen-phenylphosphonate",
+  "B3-phenyl-hydrogen-phosphate",
+]
+
+[[family]]
+id = "ANION_RETAINED_NAMES"
+summary = "The book retains methoxide, ethoxide, tert-butoxide and phenoxide, and the amino-acid anions (glycinate, alaninate, glutamate, ...), as PINs; the engine emits systematic names"
+layer = "CANDIDATE_ABSENT"
+target_stage = "R4"
+mechanism = "The route OWNS these sites (classifier, OWNED) and produces a correct but non-preferred name: the retained anion names are not a candidate. A retained-registry question (typed PIN entries with the page), not an ownership one."
+sources = "P-72.2.2.2.2 (pdf p. 808); P-103.2.4.2 (pdf p. 1047: 'glycinate')"
+fix_status = "PARTLY_FIXED"
+fix_note = "R4b: methoxide, ethoxide, propoxide, butoxide, tert-butoxide (curated whole-molecule table, data_loader), phenoxide (_RETAINED_OL_ANION_TABLE) and glycinate, plus their salts: 8 of the 13 rows now match. NOT built: the chiral amino-acid anions (alaninate, prolinate, tyrosinate, cysteinate, glutamate). OPSIN reads a bare 'alaninate' as the L-isomer while P-103.1.3.1 designates configuration by D/L, so a whole-molecule name needs a stereo policy first; the flat systematic names they get now are structurally correct."
+rows = [
+  "A2-glycinate",
+  "A2-alaninate",
+  "A2-prolinate",
+  "A2-tyrosinate",
+  "A2-cysteinate",
+  "C0-methoxide",
+  "C0-ethoxide",
+  "C0-tert-butoxide",
+  "C0-phenoxide",
+  "E2-glutamate-dianion",
+  "G0-sodium-glycinate",
+  "G0-sodium-phenoxide",
+  "G0-potassium-tert-butoxide",
+]
+
+[[family]]
+id = "SALT_MULTIPLIER"
+summary = "A salt with two identical anions is named 'calcium acetate acetate', not 'calcium diacetate'"
+layer = "CANDIDATE_ABSENT"
+target_stage = "R4"
+mechanism = "The salt path repeats an identical component name instead of applying a multiplying prefix (di, or bis for a substituted name). A salt-layer defect independent of the anion class; the printed 'calcium diacetate (PIN)' is the target."
+sources = "P-65.6.2 (pdf p. 618: 'calcium diacetate (PIN)')"
+fix_status = "FIXED"
+fix_note = "R4c: identical organic '-ate' anions (no space, not an inorganic oxoanion) take a multiplying prefix, 'di' for a plain stem and 'bis(...)' for a prefixed one (assembly._multiply_identical_organic_anions). The older collapse stays narrow on purpose: 'disulfate' is a different ion."
+rows = [
+  "G0-calcium-diacetate",
+  "G0-calcium-bis-gluconate",
+]
+
+[[family]]
+id = "AMIDE_ANION_NAME"
+summary = "An amide anion is named 'acetylamide'; the book prints 'acetylazanide' and explains why 'amide' is avoided"
+layer = "RANKED_OR_ASSIGNED_WRONG"
+target_stage = "R4"
+mechanism = "provisional: diagnose whether the azanide-based candidate exists and is out-ranked, or is absent"
+sources = "P-72.2.2.2.4 and pdf p. 810 ('acetylazanide (PIN)')"
+fix_status = "FIXED"
+fix_note = "R4d: the acyl group goes on the parent anion 'azanide' (the renderer had avoided '-amidide', which OPSIN could not read, and stopped at 'amide'). A compound acyl name is enclosed; a substituent without a locant (chloroacetyl) is written solid, an unverified enclosure that round-trips."
+rows = [
+  "D1-acetylazanide",
+]
+
+[[family]]
+id = "ZWITTERION_PREFIX_FORM"
+summary = "A betaine is named '(trimethylazaniumyl)acetate'; the book prints '(N,N-dimethylmethanaminiumyl)acetate'"
+layer = "SOURCE_UNRESOLVED"
+target_stage = "DEFERRED"
+mechanism = "Both name the same structure. Whether the book also permits the azaniumyl form for a fully methylated nitrogen, and which it prefers, is not settled by the pages read (pdf pp. 362, 837): the printed PIN is the target, the question is whether the engine's form is a permitted alternative or simply not the PIN."
+sources = "pdf pp. 362, 837"
+fix_status = "OPEN"
+fix_note = "DEFERRED, not attempted: both names denote the same structure, and the pages read do not say whether the book also permits the azaniumyl form for a fully methylated nitrogen."
+rows = [
+  "E1-betaine",
+]
+
+[[family]]
+id = "RETAINED_RING_CATION"
+summary = "An imidazolium is named '1,3-diazol-1-ium'; imidazole is a retained ring name"
+layer = "CANDIDATE_ABSENT"
+target_stage = "DEFERRED"
+mechanism = "the retained ring name is not a candidate in the cation form; a retained-ring-table question"
+sources = "P-73.1.1.2; P-22 (imidazole retained)"
+fix_status = "OPEN"
+fix_note = "ABANDONED under the round's stop rule after a short look, and re-recorded with the diagnosis so far. The retained ring 'imidazole' is found for a fully N-substituted cation ('1,3-dimethyl-1H-imidazol-3-ium') but not when a protonated [nH+] sits beside an [nH]; _neutralize_ring_charged_n reads correct on paper, so the fault is elsewhere in the ring-lookup chain. R7-UNPLANNED, same family: protonated benzimidazole (c1ccc2[nH]c[nH+]c2c1) gives 'NAMING ERROR: No valid naming plan found', a refusal, not a wrong name."
+rows = [
+  "F2-imidazolium",
+]
+
+[[family]]
+id = "CHARGE_LEDGER_FG_ROUTE"
+summary = "A zwitterion with one carboxylate and one neutral COOH is named as if both were carboxylates"
+layer = "RANKED_OR_ASSIGNED_WRONG"
+target_stage = "R3"
+mechanism = "The route OWNS the site (fg_anion) and still returns a WRONG MOLECULE: '2-azaniumylpentanedioate' renders two anion suffixes for one deprotonated site. This is the case the charge ledger (claimed sites == rendered anion multiplicity) exists to catch, and ownership alone cannot."
+sources = "P-72.2.2.2.1.2 (pdf p. 808); P-74 (pdf pp. 835-848)"
+fix_status = "FIXED"
+fix_note = "R4a: in ANION mode the anion suffix sits only on the CHARGED instance(s) of a type that has both charged and neutral instances, so the number of anion suffixes equals the number of deprotonated sites. The panel now has ZERO wrong molecules. The same stage found and fixed a second class the frozen panel did not contain (R7-UNPLANNED): a NET-NEGATIVE zwitterion (glutamate and aspartate as drawn at pH 7) had no owner, and is now taken by the carved route."
+rows = [
+  "E2-glutamate-monoanion",
+]

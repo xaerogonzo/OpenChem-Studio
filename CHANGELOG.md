@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming round 7 (branch `naming-round-7`)
+
+- **Anions that carry another group are named as anions.** A carboxylate or sulfonate beside a
+  hydroxy, amino or sulfanyl group, a second acid or a nitro group used to come out with `oxido`
+  prefixes on the wrong parent: salicylate as `2-oxidooxomethylphenol` (a different molecule),
+  lactate as `1-oxido-1-oxopropan-2-ol`. They are now `2-hydroxybenzoate`, `2-hydroxypropanoate`,
+  `3-carboxypropanoate` (the mono-anion of a diacid, as the book prints it) and so on, and
+  choline salicylate's engine name is no longer withheld. Aspartate and glutamate drawn as they
+  are at pH 7 (two carboxylates, one ammonium) are named too.
+- **Retained names the Blue Book prints for anions:** `methoxide`, `ethoxide`, `propoxide`,
+  `butoxide`, `tert-butoxide`, `phenoxide` and `glycinate` (and their salts); an amide anion is
+  `acetylazanide`, not `acetylamide`; a salt with two identical organic anions is
+  `calcium diacetate` / `calcium bis(2,3,4,5,6-pentahydroxyhexanoate)`, not `calcium acetate acetate`.
+- **A wrong molecule fixed:** the glutamate mono-anion zwitterion was named as the dianion.
+- **Measured on a new 108-row panel of charged species built by class** (charged group x
+  neighbouring group x context), against the Blue Book: wrong molecules 13 to 0, non-preferred
+  names 42 to 9, exact 45 to 90. No name changed in the 307 tuning rows at any stage.
+- **Ownership is a checked property.** `perception/charge_ownership.py` reports, for every charged
+  atom, which route claims it and which the engine took; a site no route owns is a test failure
+  unless its class is declared unsupported with a reason (deprotonated phosphorus acids are).
+- **Not done, recorded:** chiral amino-acid anions (`alaninate`; need a stereo policy), the
+  `hydrogen phenylphosphonate` construction, `imidazolium` (and protonated benzimidazole, which is a
+  NAMING ERROR), and the betaine prefix form. Found AFTER the final evaluation and not fixed: the trianion of a
+  tricarboxylic acid (citrate) is named as if one carboxylate were a neutral `carboxy` group, a wrong charge that the
+  app's round-trip gate withholds; and the biguanidium cation is named as a dication. See `KNOWN_LIMITATIONS.md`.
+- **The held-out boundary is executable.** One registry (`benchmarks/naming/populations.toml`)
+  decides which populations any tool may read; a frozen one is refused before its file is opened. The
+  fresh set for this round (`heldout_v4`) was drawn and hashed before any diagnosis and was scored
+  once, at the end: 19/40 verbatim, 20/40 equivalent and ONE wrong structure, which was not read (it is
+  the first row to read in round 8, when v4 becomes a tuning population).
+
 ### Functional groups v3 (branch `functional-groups-v3`)
 
 - **Fifteen more features, each defined from a source before it was matched.**
