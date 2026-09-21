@@ -214,6 +214,10 @@ def _provenance(stage: str) -> dict:
         "stage": stage,
         "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "git_sha": _git("rev-parse", "HEAD"),
+        # The engine's identity, independent of the commit: two artifacts with the same `src_tree` were
+        # produced by byte-identical source, whatever else (benchmarks, tools, docs) differs between the
+        # commits. It is what makes "R0 changed no src file, so the baseline is master" a checkable claim.
+        "src_tree": _git("rev-parse", "HEAD:src"),
         "git_branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
         "git_dirty": bool(_git("status", "--porcelain")),
         "python": sys.version.split()[0],

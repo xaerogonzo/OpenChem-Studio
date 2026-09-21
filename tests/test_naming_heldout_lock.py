@@ -292,6 +292,15 @@ def test_the_registry_state_is_read_from_the_meta_file_and_never_opens_the_froze
     assert spy_on_the_frozen_file == [], spy_on_the_frozen_file
 
 
+def test_an_artifact_records_the_identity_of_the_source_it_ran():
+    """`src_tree` is the tree hash of src/ at HEAD: two artifacts with the same value were produced by
+    byte-identical source, whatever else differs between their commits, which is what makes 'this stage
+    changed no src file, so its baseline is the previous commit's engine' a checkable claim."""
+    provenance = stage._provenance("r8-test")
+    expected = subprocess.run(["git", "rev-parse", "HEAD:src"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    assert provenance["src_tree"] == expected and len(expected) == 40
+
+
 def test_no_other_tracked_script_names_the_sealed_directory():
     """The seal is a convention, so the guard is what makes opening it a deliberate act."""
     listed = subprocess.run(
