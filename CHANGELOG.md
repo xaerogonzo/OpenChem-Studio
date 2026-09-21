@@ -29,11 +29,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unless its class is declared unsupported with a reason (deprotonated phosphorus acids are).
 - **Not done, recorded:** chiral amino-acid anions (`alaninate`; need a stereo policy), the
   `hydrogen phenylphosphonate` construction, `imidazolium` (and protonated benzimidazole, which is a
-  NAMING ERROR), and the betaine prefix form. See `KNOWN_LIMITATIONS.md`.
+  NAMING ERROR), and the betaine prefix form. Found AFTER the final evaluation and not fixed: the trianion of a
+  tricarboxylic acid (citrate) is named as if one carboxylate were a neutral `carboxy` group, a wrong charge that the
+  app's round-trip gate withholds; and the biguanidium cation is named as a dication. See `KNOWN_LIMITATIONS.md`.
 - **The held-out boundary is executable.** One registry (`benchmarks/naming/populations.toml`)
   decides which populations any tool may read; a frozen one is refused before its file is opened. The
-  fresh set for this round (`heldout_v4`) was drawn and hashed before any diagnosis and has NOT been
-  scored yet.
+  fresh set for this round (`heldout_v4`) was drawn and hashed before any diagnosis and was scored
+  once, at the end: 19/40 verbatim, 20/40 equivalent and ONE wrong structure, which was not read (it is
+  the first row to read in round 8, when v4 becomes a tuning population).
 
 ### Functional groups v3 (branch `functional-groups-v3`)
 

@@ -21178,3 +21178,13 @@ carboxylic acid only when the charges cancel.
 * The retained name for a chiral amino acid asserts no configuration in the book while
   OPSIN reads it as L. The flat names are structurally right; a whole-molecule retained
   name needs a stereo policy first, so `alaninate` was deliberately not built.
+* **A PANEL BUILT BY CLASS STILL HAS THE CLASSES ITS AUTHOR THOUGHT OF.** The driven check that
+  closed the round (the app's salt panel, before and after) found what the 108-row panel did not:
+  the trianion of a tricarboxylic acid is named with one carboxylate as a neutral `carboxy`
+  prefix, two charges for three sites, and no row had three acid groups. It was a wrong name
+  before the round and is a different wrong name after; the app's round-trip gate withholds it, so
+  it never reached a user. It came AFTER the final evaluation, so it was recorded rather than
+  fixed: a change to the engine after the fresh set was scored would have needed the scoring
+  repeated, and the stage cycle (panel row, D-rows, mutation, corpus stage) it needs was not
+  affordable. The lesson is the order, not the miss: run the independent panel of a different
+  shape BEFORE the final evaluation, not after it.
