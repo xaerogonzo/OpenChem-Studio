@@ -2308,6 +2308,86 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "(hydroxy){[(hydroxy)(methyl)(oxo)phosphanyl]oxy}(methyl)(oxo)phosphane",
      "converse, NOT a PIN: a P(V) is not a standard-valence a-term atom, so no "
      "'dioxodiphosphoxane' -- measured on a nucleotide diphosphate before the guard"),
+    # ---- naming round 8, W1: three or more C-anchored suffix groups on one chain (P-65.1.2.2.1). The fixes are in OPEN
+    # below until the engine offers the skeleton chain; these are the CONVERSES, which pass today and must not move
+    # (each differs from a fix by a REASON, not by another molecule of the same shape).
+    ("D-100r", "OC(=O)CCC(O)=O", "butanedioic acid", "(unchanged)",
+     "converse: TWO terminal acid groups are one dioic chain (P-65.1.2.1); the new rule needs MORE than two"),
+    ("D-100s", "OC(=O)CCCC(O)=O", "pentanedioic acid", "(unchanged)", "converse: two groups, longer chain"),
+    ("D-100t", "OC(=O)C(O)C(O)C(O)=O", "2,3-dihydroxybutanedioic acid", "(unchanged)",
+     "converse, p. 578 verbatim: two groups with substituents"),
+    ("D-100u", "OC(=O)c1ccc(C(O)=O)c(C(O)=O)c1", "benzene-1,2,4-tricarboxylic acid", "(unchanged)",
+     "converse, p. 95 verbatim: a RING already counts its exocyclic acids"),
+    ("D-100v", "OC(=O)C1CC(C(O)=O)CC(C1)C(O)=O", "cyclohexane-1,3,5-tricarboxylic acid", "(unchanged)",
+     "converse: the saturated ring analogue, a ring parent throughout"),
+    ("D-100w", "OC(=O)CCC(C(O)=O)c1ccc(cc1)C(O)=O", "2-(4-carboxyphenyl)pentanedioic acid", "(unchanged)",
+     "converse, an EARLIER rule: three acids, but only two on the chain; the third is on a ring, so no one chain "
+     "carries all three and the skeleton candidate must not exist"),
+    ("D-100x", "OC(=O)CCC(O)(CCC(O)=O)CCC(O)=O", "4-(2-carboxyethyl)-4-hydroxyheptanedioic acid", "(unchanged)",
+     "converse: three acids on THREE arms of a branched skeleton; no single path reaches all three attachment carbons"),
+    ("D-100y", "N#CCC(C#N)(CC#N)CCC(O)=O", "4,5-dicyano-4-(cyanomethyl)pentanoic acid", "(unchanged)",
+     "converse, an EARLIER rule (P-41): three nitriles beside a carboxylic acid; the acid is the senior class, so a "
+     "tricarbonitrile parent must LOSE however many suffix groups it would carry"),
+    ("D-100z", "N#CCC(CC#N)C(N)=O", "3-cyano-2-(cyanomethyl)propanamide", "(unchanged)",
+     "converse, an EARLIER rule: two nitriles and one amide; the amide is senior, so the count of nitriles never "
+     "decides"),
+    # (moved from OPEN when the exo-skeleton candidate landed: each was red before, with the names in the 'former' column)
+    # ---- naming round 8, W1 (P-65.1.2.2.1, pdf p. 579: an unbranched chain linked to MORE THAN TWO carboxy groups names
+    # ALL of them 'carboxylic acid', and P-44.1.1, p. 374: the parent with the maximum number of principal groups).
+    # Traced: the skeleton chain that excludes every acid carbon is never a CANDIDATE, so the pcg_count tier never sees
+    # a parent with three suffix groups. Each row is red before and green after the candidate is offered.
+    ("D-100a", "OC(=O)CC(O)(CC(O)=O)C(O)=O", "2-hydroxypropane-1,2,3-tricarboxylic acid",
+     "3-carboxy-3-hydroxypentanedioic acid", "p. 578 verbatim, the PIN of citric acid"),
+    ("D-100b", "OC(=O)CCC(C(O)=O)CCC(O)=O", "pentane-1,3,5-tricarboxylic acid",
+     "4-carboxyheptanedioic acid", "p. 579 verbatim: three groups, two of them on chain ends a longer diacid could absorb"),
+    ("D-100c", "OC(=O)C(C(O)=O)C(C(O)=O)C(O)=O", "ethane-1,1,2,2-tetracarboxylic acid",
+     "2,3-dicarboxybutanedioic acid", "p. 579 verbatim: four groups on a two-carbon parent"),
+    ("D-100d", "OC(=O)CC(CC(O)=O)C(O)=O", "propane-1,2,3-tricarboxylic acid",
+     "3-carboxypentanedioic acid", "derived from p. 579 (its anion is printed in a salt name on p. 619)"),
+    ("D-100e", "OC(=O)C(C(O)=O)C(O)=O", "methanetricarboxylic acid",
+     "carboxypropanedioic acid", "derived from p. 579: the one-carbon parent of the same rule"),
+    ("D-100f", "OC(C(O)=O)C(C(O)=O)C(=O)C(O)=O", "1-hydroxy-3-oxopropane-1,2,3-tricarboxylic acid",
+     "3-carboxy-2-hydroxy-4-oxopentanedioic acid", "p. 582 verbatim: three groups AND two prefixes, so the parent and "
+     "its numbering are separate failures"),
+    ("D-100g", "NC(=O)CC(CC(N)=O)C(N)=O", "propane-1,2,3-tricarboxamide",
+     "3-carbamoylpentanediamide", "p. 645 verbatim: the same count rule for amides"),
+    ("D-100h", "CCCC(C#N)(C#N)C#N", "butane-1,1,1-tricarbonitrile",
+     "2,2-dicyanopentanenitrile", "p. 686 verbatim: the same count rule for nitriles"),
+    ("D-100i", "O=CCC(C=O)CCC=O", "butane-1,2,4-tricarbaldehyde",
+     "3-formylhexanedial", "p. 691 verbatim: the same count rule for aldehydes, where a longer dial chain exists"),
+    ("D-100j", "COC(=O)C(C(=O)OC)CC(C)C(=O)OC", "trimethyl butane-1,1,3-tricarboxylate",
+     "methyl 5-methoxy-4-(methoxycarbonyl)-2-methyl-5-oxopentanoate", "p. 623 verbatim: the same rule through the "
+     "functional-class ester, which reads the parent acid's name"),
+    ("D-100k", "OC(=O)CC(C)(CC(O)=O)C(O)=O", "2-methylpropane-1,2,3-tricarboxylic acid",
+     "3-carboxy-3-methylpentanedioic acid", "derived: a substituent on the unbranched skeleton does not stop it being "
+     "an unbranched chain linked to three carboxy groups (P-65.1.2.2.1)"),
+    ("D-100l", "N#CCC(CC#N)C#N", "propane-1,2,3-tricarbonitrile",
+     "3-cyanopentane-1,5-dinitrile", "derived from p. 686: the tricarbonitrile of a three-carbon skeleton"),
+    # ---- naming round 8, W1: the site-level charge ledger of the classifier route. On that route every acid group IS a
+    # deprotonated site, so a NEUTRAL `carboxy` prefix in the name is a wrong charge; the book writes such a site as the
+    # anionic prefix `carboxylato` (pdf p. 619: `2-(carboxylatomethyl)benzoate`). Former names measured on master.
+    ("D-100m", "[O-]C(=O)CCC(C([O-])=O)c1ccc(cc1)C([O-])=O", "2-(4-carboxylatophenyl)pentanedioate",
+     "2-(4-carboxyphenyl)pentanedioate", "derived (p. 619): three sites, two on the chain and one on a ring, so no "
+     "chain candidate can carry all three; the name had two charges for three sites"),
+    ("D-100n", "[O-]C(=O)Cc1ccccc1C([O-])=O", "2-(carboxylatomethyl)benzoate",
+     "2-(carboxymethyl)benzoate", "p. 619 verbatim as an anion part: the dianion had the SAME name as its mono-anion "
+     "(D-100ab), one charge for two"),
+    ("D-100o", "[O-]C(=O)CCC(O)(CCC([O-])=O)CCC([O-])=O", "4-(2-carboxylatoethyl)-4-hydroxyheptanedioate",
+     "4-(2-carboxyethyl)-4-hydroxyheptanedioate", "derived (p. 619): three acids on THREE arms, where no exo-skeleton "
+     "chain exists (D-100x); the ledger, not the candidate, is what balances it"),
+    ("D-100p", "[Na+].[Na+].[Na+].[O-]C(=O)CCC(C([O-])=O)c1ccc(cc1)C([O-])=O",
+     "trisodium 2-(4-carboxylatophenyl)pentanedioate", "trisodium 2-(4-carboxyphenyl)pentanedioate",
+     "derived: the same trianion as a salt, so the ledger is exercised through the salt path too"),
+    ("D-100q", "[O-]C(=O)CC(O)(CC([O-])=O)C([O-])=O", "2-hydroxypropane-1,2,3-tricarboxylate",
+     "3-carboxy-3-hydroxypentanedioate", "derived (p. 578 + P-65.1.2.2.1): citrate's trianion, the round-7 finding; "
+     "fixed by the exo-skeleton candidate, not by the ledger"),
+    ("D-100aa", "[O-]C(=O)c1ccc(cc1)C([O-])=O", "benzene-1,4-dicarboxylate", "(unchanged)",
+     "converse: two sites, both suffix positions of a ring parent; the ledger has nothing to convert"),
+    ("D-100ab", "OC(=O)Cc1ccccc1C([O-])=O", "2-(carboxymethyl)benzoate", "(unchanged)",
+     "converse, p. 619 verbatim: a mono-anion beside a NEUTRAL acid keeps `carboxy`; the carved route owns it, and "
+     "the name that used to serve the dianion too is now only the mono-anion's"),
+    ("D-100ac", "CC(=O)[O-]", "acetate", "(unchanged)",
+     "converse: a retained parent has no suffix groups to count and no carboxy word to convert"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this

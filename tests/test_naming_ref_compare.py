@@ -2,7 +2,7 @@
 
 `tools/naming_ref_compare.py` names the same structures with a base engine and the working tree and checks the
 difference against a manifest. The comparison is a pure function, so its rules are tested without an engine; the last
-test runs the real tool with the base equal to HEAD, where the correct answer is "nothing changed".
+test runs the real tool against HEAD and the working tree, and checks what must hold whether or not the tree is dirty.
 """
 
 from __future__ import annotations
@@ -109,19 +109,24 @@ def test_the_structure_sets_never_reach_the_frozen_population():
     assert any(i.startswith("pop:heldout_v4:") for i in ids), "v4 is a tuning population from round 8"
 
 
-def test_two_real_engines_with_the_base_equal_to_head_report_no_change(tmp_path):
-    """The one end-to-end run: extract HEAD's src, name a small set with both, compare. It must say nothing changed,
-    and the tool must have used two DIFFERENT engine trees to say so (a vacuous comparison is refused)."""
+def test_two_real_engines_are_compared_and_every_unlisted_change_is_a_violation(tmp_path):
+    """The one end-to-end run: extract HEAD's src, name a small set with it and with the WORKING TREE, compare.
+
+    Whether anything differs depends on whether the tree is dirty (mid-stage it is, and the tool must then say so), so the
+    test asserts what holds either way: two DIFFERENT engine trees were used (a vacuous comparison is refused), every
+    change is a violation because no manifest was given, and the exit code follows the violations.
+    """
+    import json
+
     out = tmp_path / "report.json"
     done = subprocess.run(
         [sys.executable, str(ROOT / "tools/naming_ref_compare.py"), "--base", "HEAD", "--sets", "mc", "--out", str(out)],
         capture_output=True, text=True, cwd=ROOT,
     )
-    assert done.returncode == 0, done.stdout[-800:] + done.stderr[-800:]
-    import json
-
     report = json.loads(out.read_text(encoding="utf-8"))
-    assert report["changed"] == [] and report["violations"] == []
     assert report["engines"]["base"] != report["engines"]["head"]
-    assert report["toolchain"]["base_src_tree"] == report["toolchain"]["head_src_tree"] or report["toolchain"]["working_tree_dirty"]
+    assert len(report["violations"]) >= len(report["changed"]), "an unlisted change is a violation"
+    assert (done.returncode == 0) == (not report["violations"])
+    if not report["toolchain"]["working_tree_dirty"]:
+        assert report["changed"] == [], "a clean tree compared with its own HEAD changes nothing"
     assert report["toolchain"]["rdkit"] and report["toolchain"]["python"]

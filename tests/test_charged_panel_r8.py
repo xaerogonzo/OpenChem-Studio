@@ -270,3 +270,23 @@ def test_a_row_is_in_at_most_one_family():
         for row in fam["rows"]:
             assert row not in seen, f"{row} is in {seen[row]} and {fam['id']}"
             seen[row] = fam["id"]
+
+
+# ------------------------------------------------------------ the errata overlay
+ERRATA = ROOT / "benchmarks" / "naming" / "charged_panel_r8_errata.toml"
+_PARA = __import__("re").compile(r"\bP-\d+(?:\.\d+)+")
+
+
+def test_every_paragraph_number_is_either_verified_or_marked_unverified():
+    """The panel's page numbers and printed names were checked; its PARAGRAPH numbers mostly were not, and a paragraph
+    number is the field nothing else verifies. The overlay (the panel itself is immutable) partitions every row that
+    carries one, so an unverified paragraph number cannot be read as evidence."""
+    errata = tomllib.loads(ERRATA.read_text(encoding="utf-8"))
+    verified = {e["id"] for e in errata.get("verified_paragraph", [])}
+    unverified = {e["id"]: e["cited"] for e in errata.get("unverified_paragraph", [])}
+    assert not (verified & set(unverified)), verified & set(unverified)
+    with_paragraph = {r["id"] for r in ROWS if _PARA.search(r["source"])}
+    assert with_paragraph == verified | set(unverified), sorted(with_paragraph ^ (verified | set(unverified)))
+    for row_id, cited in unverified.items():
+        assert cited == _PARA.findall(BY_ID[row_id]["source"]), f"{row_id}: the overlay's `cited` must be what the panel says"
+    assert verified <= set(BY_ID)

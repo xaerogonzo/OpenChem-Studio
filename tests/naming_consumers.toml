@@ -187,3 +187,15 @@ file = "tests/test_naming_ref_compare.py"
 why = "the ref-compare firewall: its comparison rules, manifest rules and one real two-engine run"
 scope = "benchmark"
 owner = "benchmarks"
+
+[[consumer]]
+file = "tests/test_namer_charge_ledger.py"
+why = "the classifier route's site-level charge ledger: what it converts, leaves alone and declines"
+scope = "core"
+owner = "namer"
+
+[[consumer]]
+file = "tests/test_namer_exo_skeleton.py"
+why = "the exo-skeleton parent candidate of P-65.1.2.2.1: its finder and its engine wrapper"
+scope = "core"
+owner = "namer"

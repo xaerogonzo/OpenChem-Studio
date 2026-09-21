@@ -11670,6 +11670,36 @@ _CARBON_FREE_TERMINAL_PREFIXES: frozenset[str] = frozenset({
 })
 
 
+def _with_exo_skeleton_candidates(candidates, perception, pcg_instances):
+    """The parent candidates, plus the exo-skeleton chain of P-65.1.2.2.1 where it applies.
+
+    It applies to THREE OR MORE instances of one principal-group class whose suffix has a DISTINCT nonterminal form
+    (`carboxylic acid` against `oic acid`, `carbonitrile` against `nitrile`, `carboxamide`, `carbaldehyde`): those are
+    exactly the groups whose exo carbon the suffix itself consumes, as a ring parent already does.  Two groups never
+    reach this (a dioic chain, P-65.1.2.1), and a class whose nonterminal form is the same word (`-ol`) has no exo
+    reading.  A candidate already offered is not offered twice.
+    """
+    candidates = list(candidates)
+    # EQUIVALENT MUTANT, noted so it is not rediscovered: lowering `3` to `2` here changes no result, because the
+    # finder refuses fewer than three anchors itself. The duplicate is defence in depth, and the reason is stated in
+    # both places so a reader of either sees that two groups never reach the rule (P-65.1.2.1: a dioic chain).
+    if len(pcg_instances) < 3 or not all(_has_distinct_nonterminal_form(fg) for fg in pcg_instances):
+        return candidates
+    seen = {c.atom_indices for c in candidates}
+    for extra in perception.chains.find_exo_skeleton_chains(tuple(fg.anchor for fg in pcg_instances)):
+        if extra.atom_indices not in seen:
+            candidates.append(extra)
+            seen.add(extra.atom_indices)
+    return candidates
+
+
+def _has_distinct_nonterminal_form(fg) -> bool:
+    """True iff this group's suffix differs between a chain end and a non-terminal position."""
+    forms = fg.suffix_forms_dict()
+    nonterminal, terminal = forms.get("nonterminal"), forms.get("terminal")
+    return nonterminal is not None and nonterminal != terminal
+
+
 def _carbon_supplying_acyl_acid_fg(fg, mol) -> bool:
     """True iff *fg* is a carbon-anchor acid-class FG whose terminal
     ``prefix_form`` already encodes the FG's own carbon (P-65.3 acyl
@@ -12555,8 +12585,11 @@ class SubstitutivePath:
                 and _carbon_supplying_acyl_acid_fg(fg, mol)
             )
 
-            for candidate in perception.candidate_parents(
-                interpretation, pcg_anchors, required_atom=_required_chain_atom
+            for candidate in _with_exo_skeleton_candidates(
+                perception.candidate_parents(
+                    interpretation, pcg_anchors, required_atom=_required_chain_atom
+                ),
+                perception, pcg_instances,
             ):
                 _truncated = _truncate_chain_candidate_for_acyl_acid(
                     candidate, mol, _demoted_acyl_anchors, perception,

@@ -2971,6 +2971,49 @@ def _render(
     return None
 
 
+#: A neutral acid group that survives the re-protonation as a PREFIX word, and the book's prefix for the same group
+#: as an ANION (P-65.6.2, pdf p. 619: ``2-(carboxylatomethyl)benzoate (PIN)``).
+_NEUTRAL_ACID_PREFIX = {
+    "acidic_anion_carboxylate": ("carboxy", "carboxylato"),
+}
+_MULTIPLIER_VALUE = {"": 1, "di": 2, "tri": 3, "tetra": 4, "penta": 5, "hexa": 6}
+
+
+def _balance_the_charge_ledger(name: str, tree, sites: int, suffix_hint: str) -> str | None:
+    """The site-level charge ledger of the classifier route (naming round 8, W1).
+
+    The classifier re-protonates EVERY deprotonated site, names the neutral parent, and lets the suffix machinery turn
+    the parent's suffix groups into the anion form. A site the parent expresses as a PREFIX, not a suffix, comes out as
+    a NEUTRAL group (``carboxy``), so the name carries fewer charges than the molecule: citrate's trianion was
+    ``3-carboxy-3-hydroxypentanedioate`` (two charges for three sites), and the round-trip gate withheld it.
+
+    On this route every acid group IS a deprotonated site (``acid_anion_route`` sends a molecule with a NEUTRAL acid
+    group to the carved route instead), so a neutral acid prefix here can only be a deprotonated site, and the book's
+    name for it is the anionic prefix: ``carboxylato``. The ledger is the count: sites = suffix positions the parent
+    expresses + prefixes written for the rest. If that does not balance the route DECLINES (None) rather than emit a
+    name whose charge is unchecked.
+
+    Site-level, not total charge: the count is per site, so a mono-anion cannot become a dianion or the reverse.
+    """
+    words = _NEUTRAL_ACID_PREFIX.get(suffix_hint)
+    if words is None:
+        return name
+    import re
+
+    neutral, anionic = words
+    # `carboxy` only as a WORD: not inside 'carboxylic', and not after a letter that would make it part of another word.
+    pattern = re.compile(rf"(?<![a-z])((?:di|tri|tetra|penta|hexa)?){neutral}(?!l)")
+    found = sum(_MULTIPLIER_VALUE[m.group(1)] for m in pattern.finditer(name))
+    if found == 0:
+        # No neutral acid prefix to convert. A RETAINED parent (acetic acid, benzoic acid) has no suffix groups to
+        # count, so silence here is not a claim that the ledger balances, only that this repair has nothing to do.
+        return name
+    suffixes = getattr(tree, "suffix_groups", ())
+    if suffixes and sites - sum(len(sg.locants) for sg in suffixes) != found:
+        return None
+    return pattern.sub(lambda m: f"{m.group(1)}{anionic}", name)
+
+
 def _render_acidic_anion(
     cls: ChargeClassification,
     mol,
@@ -3020,7 +3063,7 @@ def _render_acidic_anion(
     name = assemble(tree)
     if name is None or "NAMING ERROR" in name:
         return None
-    return name
+    return _balance_the_charge_ledger(name, tree, len(cls.site_atom_indices), cls.suffix_hint)
 
 
 def _render_amine_anion(
