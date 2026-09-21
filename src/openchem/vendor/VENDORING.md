@@ -9,7 +9,7 @@
 | licence | MIT — see `LICENSE.open-iupac-namer` (copyright retained) |
 | vendored | 2026-08-01 |
 | fork | https://github.com/xaerogonzo/open-iupac-namer (this project's fixes, standalone) |
-| fork commit | `7a82eb0` — synced 2026-09-20, corresponding to this repository's `naming-cyano` (PR #136, master `4a9dfec`): naming round 6 on top of round 5's `9967a62` and its follow-up `dedf2e8`. Standalone suite 5,086 passed / 18 xfailed / 2 failed, the two known RDKit-2026 trindene cases, unchanged from round 5's 5,012 / 2 |
+| fork commit | `85f7793` — synced 2026-09-20, corresponding to this repository's `naming-round-7` (branch head `881cd8d`): naming round 7 (acid anions, the charge ledger, the retained anion names, the salt multiplier, and `perception/charge_ownership.py`) on top of round 6's `7a82eb0`. Standalone suite 5,407 passed / 18 xfailed / 2 failed, the two known RDKit-2026 trindene cases, unchanged. The fork's `tests/test_charge_ownership.py` differs deliberately: it reads `tests/charged_panel_smiles.json` (the panel's 108 ids and SMILES) where this repository's copy reads `benchmarks/naming/charged_panel.toml`, since the fork has no benchmarks tree; the panel test itself (`tests/test_charged_panel.py`) stays here |
 | offered upstream | https://github.com/leehiufung911/open-iupac-namer/pull/1 |
 
 ### Why vendored rather than depended on
