@@ -2851,6 +2851,45 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "p. 541 VERBATIM '2-methylpropoxy (PIN)' as a prefix: a substituted butyl contracts"),
     ("D-124n", "CCOON=CC", "N-(ethylperoxy)ethanimine", "(unchanged)",
      "converse: an O bonded to O is 'peroxy', whose alkyl is not contracted (the D-065d rule, reached through a nitrogen)"),
+    # ---- naming round 8, limitations sweep: AN AMIDE OR AN AMINE WHOSE NITROGEN CARRIES AN ALKOXY GROUP. The amide and amine group definitions require carbon on the nitrogen,
+    # so N-methoxy-N-methylacetamide (the Weinreb amide) and N-methoxymethanamine were not an amide and an amine to the engine: a molecule with one nitrogen was named an ESTER
+    # OF AZINOUS ACID ('methyl acetylmethylazinite', a name the book reserves for polyazanes, P-67.1.2.6.1, p. 707), and one with two, an amide named as 'carbamoyl' on an
+    # aniline: '4-[(methyloxy)carbamoyl]aniline' for 4-amino-N-methoxybenzamide. The book prints the amines: 'N-methoxymethanamine (PIN)' (p. 753), 'N-methoxyethanamine (PIN)'
+    # (p. 528), 'N-ethoxyaniline (PIN)' (p. 753). Four group definitions declare the oxygen as the ROOT of the N-substituent (context_indices, the mechanism of the W4b
+    # pseudoketones), the demoted N-bearing branch honours that declaration, and the azinite generator declines a nitrogen with no oxo.
+    ("D-125a", "CNOC", "N-methoxymethanamine", "methyl methylazinite",
+     "p. 753 VERBATIM 'N-methoxymethanamine (PIN)'"),
+    ("D-125b", "CCNOC", "N-methoxyethanamine", "methyl ethylazinite",
+     "p. 528 VERBATIM 'N-methoxyethanamine (PIN)'"),
+    ("D-125c", "c1ccccc1NOCC", "N-ethoxyaniline", "ethyl phenylazinite",
+     "p. 753 VERBATIM 'N-ethoxyaniline (PIN)'"),
+    ("D-125d", "CON(C)C(C)=O", "N-methoxy-N-methylacetamide", "methyl acetylmethylazinite",
+     "derived: the Weinreb amide, the tertiary amide with an alkoxy on the nitrogen"),
+    ("D-125e", "CC(=O)NOC", "N-methoxyacetamide", "methyl acetylazinite",
+     "derived: the secondary amide"),
+    ("D-125f", "CONC(=O)c1ccc(N)cc1", "4-amino-N-methoxybenzamide", "4-[(methyloxy)carbamoyl]aniline",
+     "derived: an amide outranks an amine (Table 4.1), so the amide is the parent"),
+    ("D-125g", "CON(C)C(=O)CC(=O)O", "3-[methoxy(methyl)amino]-3-oxopropanoic acid", "methyl methylpropanedioylazinite",
+     "derived: an ACID outranks the amide; the first draft named this '2-carboxy-N-methoxyacetamide'"),
+    ("D-125h", "CON(C)C(=O)c1ccc(C(=O)O)cc1", "4-[methoxy(methyl)carbamoyl]benzoic acid", "methyl (benzene-1,4-dicarbonyl)methylazinite",
+     "derived: the same beside a ring acid, as '4-(dimethylcarbamoyl)benzoic acid'"),
+    ("D-125i", "CON(C)Cc1ccc(O)cc1", "4-{[methoxy(methyl)amino]methyl}phenol", "methyl [(4-hydroxyphenyl)methyl]methylazinite",
+     "derived: an alcohol outranks an amine"),
+    ("D-125j", "CCON(CC)C(=O)C1CC1", "N-ethoxy-N-ethylcyclopropanecarboxamide", "ethyl (cyclopropanecarbonyl)ethylazinite",
+     "derived: the same amide with a longer alkoxy, an 'azinite' before"),
+    ("D-125k", "CON(C)C(=O)N(C)C", "N-methoxy-N,N',N'-trimethylurea", "(unchanged)",
+     "converse: a urea carbonyl with an N-alkoxy was already named as a urea"),
+    ("D-125x", "CON1CCCC1", "1-methoxypyrrolidine", "(unchanged)",
+     "converse: a ring nitrogen with an alkoxy was never affected"),
+    ("D-125y", "CN(C)C(C)=O", "N,N-dimethylacetamide", "(unchanged)",
+     "converse: an ordinary tertiary amide"),
+    ("D-125z", "CC(=O)NO", "N-hydroxyacetamide", "(unchanged)",
+     "converse: a hydroxamic acid is its own group"),
+    # (D-125, continued: the tertiary amine, which the amide rows do not exercise.)
+    ("D-125l", "CN(C)OC", "N-methoxy-N-methylmethanamine", "methyl dimethylazinite",
+     "derived from p. 753 'N-methoxymethanamine (PIN)': the tertiary amine with an alkoxy"),
+    ("D-125m", "CON(C)Cc1ccccc1", "N-methoxy-N-methyl-1-phenylmethanamine", "methyl benzylmethylazinite",
+     "derived: a tertiary amine with a benzyl"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this

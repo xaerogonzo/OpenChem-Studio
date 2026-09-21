@@ -14435,8 +14435,13 @@ class SubstitutivePath:
                     # Only the true intrinsic FG atoms (heteroatoms and the
                     # anchor carbonyl/sulfonyl C) are claimed as
                     # fg_prefix_atoms.
+                    _n_bearing_ctx = frozenset(fg.get_property("context_atoms") or ())
                     for atom_idx in off_parent:
                         atom = mol.GetAtomWithIdx(atom_idx)
+                        if atom.GetAtomicNum() != 6 and atom_idx in _n_bearing_ctx:
+                            # A declared heteroatom context (the oxygen of an N-alkoxy amide, naming round 8) is the ROOT of an N-substituent,
+                            # not part of the amide: left in `remaining`, so Pass 2.5 carves it as 'methoxy' on the nitrogen.
+                            continue
                         if atom.GetAtomicNum() != 6:
                             # Heteroatom (N, O, S) — intrinsic FG atom
                             fg_prefix_atoms.add(atom_idx)

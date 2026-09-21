@@ -1087,6 +1087,30 @@
             "elision": true
         },
         {
+            "_comment": "P-62.2.1.1 / p. 528, 753: an amine whose nitrogen carries an ALKOXY group, 'N-methoxyethanamine (PIN)', 'N-methoxymethanamine (PIN)'. context_indices declares the oxygen as the ROOT of the N-substituent, not part of the amine. Naming round 8.",
+            "name": "secondary_amine",
+            "smarts": "[NX3H1;!R]([#6])[OX2;$(O[#6])]",
+            "anchor_index": 0,
+            "seniority": 1900,
+            "bluebook_class": "19",
+            "suffix": "-amine",
+            "prefix": "amino",
+            "context_indices": [2],
+            "elision": true
+        },
+        {
+            "_comment": "P-62.2.1.1 / p. 528, 753: an amine whose nitrogen carries an ALKOXY group, 'N-methoxyethanamine (PIN)', 'N-methoxymethanamine (PIN)'. context_indices declares the oxygen as the ROOT of the N-substituent, not part of the amine. Naming round 8.",
+            "name": "tertiary_amine",
+            "smarts": "[NX3;H0;!R]([#6])([#6])[OX2;$(O[#6])]",
+            "anchor_index": 0,
+            "seniority": 1900,
+            "bluebook_class": "19",
+            "suffix": "-amine",
+            "prefix": "amino",
+            "context_indices": [3],
+            "elision": true
+        },
+        {
             "name": "imine",
             "smarts": "[#6]=[NX2H1]",
             "seniority": 2000,
@@ -1125,6 +1149,32 @@
             "suffix_terminal": "-amide",
             "suffix_nonterminal": "-carboxamide",
             "prefix": "carbamoyl",
+            "elision": true
+        },
+        {
+            "_comment": "P-66.1.1 / P-62.3.1: an amide whose nitrogen carries an ALKOXY group, N-methoxyacetamide, the Weinreb amide N-methoxy-N-methylacetamide. context_indices declares the oxygen as the ROOT of the N-substituent (an alkoxy group), not part of the amide. Naming round 8.",
+            "name": "secondary_amide",
+            "smarts": "[CX3;!$([CX3](=O)[OX2]);!$([CX3](=O)([NX3;!R;!$(N[#7])])[NX3;!R;!$(N[#7])])](=O)[NX3H1][OX2;$(O[#6])]",
+            "anchor_index": 0,
+            "seniority": 1100,
+            "bluebook_class": "11",
+            "suffix_terminal": "-amide",
+            "suffix_nonterminal": "-carboxamide",
+            "prefix": "carbamoyl",
+            "context_indices": [3],
+            "elision": true
+        },
+        {
+            "_comment": "P-66.1.1 / P-62.3.1: an amide whose nitrogen carries an ALKOXY group, N-methoxyacetamide, the Weinreb amide N-methoxy-N-methylacetamide. context_indices declares the oxygen as the ROOT of the N-substituent (an alkoxy group), not part of the amide. Naming round 8.",
+            "name": "tertiary_amide",
+            "smarts": "[CX3;!$([CX3](=O)[OX2]);!$([CX3](=O)([NX3;!R;!$(N[#7])])[NX3;!R;!$(N[#7])])](=O)[NX3H0;!R]([#6])[OX2;$(O[#6])]",
+            "anchor_index": 0,
+            "seniority": 1100,
+            "bluebook_class": "11",
+            "suffix_terminal": "-amide",
+            "suffix_nonterminal": "-carboxamide",
+            "prefix": "carbamoyl",
+            "context_indices": [4],
             "elision": true
         },
         {

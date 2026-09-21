@@ -1168,6 +1168,11 @@ def _compute_oxoacid_ester(mol) -> str | None:
     if rs is None:
         return None
     root, suffix, scheme = rs
+    if element == "N" and suffix == "ous":
+        # A nitrogen with an O-organyl and NO oxo group is a hydroxylamine ether, never an "ester of azinous acid": "azorous acid, azinous acid
+        # and azonous acid ... are names of polyazanes" (P-67.1.2.6.1, pdf p. 707), and the book names these "O-methylhydroxylamine (PIN)",
+        # "N-methoxymethanamine (PIN)" (pp. 96, 753). This produced "methyl acetylmethylazinite" for a Weinreb amide.
+        return None
 
     # Substitutable-position bookkeeping: on the standard tier acid the centre
     # carries (max_valence_positions - tier) substitutable H, each of which a
