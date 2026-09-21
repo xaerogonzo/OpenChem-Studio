@@ -726,7 +726,11 @@ def _name_heteroatom_fv_substituent(
                     frag_mol, strategy, OutputForm.SUBSTITUENT,
                     free_valence=sub_fv,
                     decision_ctx=DecisionContext(
-                        role=f"{suffix}_substituent",
+                        # An O bonded to another O is a PEROXY group, whose inner alkoxy must stay '<alkyl>oxy' for the peroxy spelling
+                        # ("(methylperoxy)ethane", P-63.3.1); the contraction below is for an O bonded to carbon only.
+                        role=("peroxy_substituent"
+                              if element == 8 and mol.GetAtomWithIdx(nb_idx).GetAtomicNum() == 8
+                              else f"{suffix}_substituent"),
                         parent_plan=None,
                         depth=depth + 1,
                     ),
@@ -736,6 +740,7 @@ def _name_heteroatom_fv_substituent(
                 if not sub_name or "[NAMING ERROR" in sub_name:
                     return None
                 sub_names.append(sub_name)
+                _sub_att_in_ring = frag_mol.GetAtomWithIdx(att_idx_sub).IsInRing()
             except Exception as e:
                 logger.debug("heteroatom-FV substituent carve/name failed: %s", e)
                 return None
@@ -829,6 +834,23 @@ def _name_heteroatom_fv_substituent(
                     decision_ctx=decision_ctx,
                     validity_warnings=None,
                     text=compound_prefix,
+                )
+
+        # An O free valence is an ALKOXY group, and the ether_prefix path's contraction applies here too: "methoxy", not "methyloxy" (P-63.2.2.2).
+        # An oxime ether, a hydroxylamine ether and an N-alkoxy amide reach this function, and named "N-(methyloxy)...", "(methyloxyimino)...".
+        if element == 8 and len(sub_names) == 1 and not (decision_ctx is not None and decision_ctx.role == "peroxy_substituent"):
+            _alkoxy = _contracted_alkoxy(sub_names[0], _sub_att_in_ring)
+            if _alkoxy is not None:
+                return LeafTree(
+                    output_form=output_form,
+                    free_valence=free_valence,
+                    choices_made=(Choice(
+                        type="heteroatom_fv_substituent",
+                        detail=f"element=O, suffix=oxy, prefix={_alkoxy}",
+                    ),),
+                    decision_ctx=decision_ctx,
+                    validity_warnings=None,
+                    text=_alkoxy,
                 )
 
         # Combine: alphabetical sort, multiplier-merge identical names.
@@ -10779,6 +10801,23 @@ def _compose_n_substituents(n_sub_names: list[str]) -> str:
             core = f"{ob}{core}{cb}"
         pieces.append(f"{entry.multiplier or ''}{core}")
     return "".join(pieces)
+
+
+def _contracted_alkoxy(alkyl_name: str, attachment_in_ring: bool) -> str | None:
+    """The contracted ether prefix of a bare alkyl/aryl name, or None when it keeps its "yl": "methoxy", "2-chloroethoxy", "phenoxy".
+
+    The rule the ether_prefix branch of ``SubstitutivePath.execute`` applies inline (P-63.2.2.2, pdf p. 541), for the callers that reach an
+    O-attached group by another road. NOT contracted: an acyl ("benzoyloxy", not "benzoxy"), a sulfonyl/carbonyl, a ring attachment
+    ("pyridin-4-yloxy", "cyclobutyloxy") and a group the book does not contract ("heptyloxy", "(propan-2-yl)oxy"). The ether branch's own
+    "cyanato" is not reproduced: no input reaches it through a nitrogen.
+    """
+    if alkyl_name.endswith("phenyl"):
+        return alkyl_name[:-2] + "oxy"
+    # `_contracts_to_alkoxy` already requires the name to END in meth/eth/prop/butyl, so an acyl ("propanoyl"), a sulfonyl and a carbonyl are out
+    # by construction; the ether branch's separate 'nyl'/'xyl'/'oyl' exclusions are redundant with it (their mutants are not caught, measured).
+    if _contracts_to_alkoxy(alkyl_name) and not attachment_in_ring:
+        return alkyl_name[:-2] + "oxy"
+    return None
 
 
 def _contracts_to_alkoxy(alkyl_name: str) -> bool:

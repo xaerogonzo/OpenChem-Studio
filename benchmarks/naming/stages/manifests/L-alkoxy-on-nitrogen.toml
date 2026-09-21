@@ -1,0 +1,12 @@
+# Limitations sweep (naming round 8): an alkoxy group on a nitrogen (oxime ether, hydroxylamine ether, sulfinyl-oxy) is 'methoxy', 'propoxy', not 'methyloxy' (P-63.2.2.2, pdf p. 541).
+# Measured against b5f82d8. ONE tuning-population row changes: the sulfinyl carbamate h3cid55250, whose 3-(pyridin-3-yl)propyl group contracts to propoxy like any other
+# 'fully substitutable' propyl. The expected name is the one the rule produces, OPSIN-verified.
+
+stage = "L-alkoxy-on-nitrogen"
+
+[[expect]]
+id = "pop:heldout_v3:h3cid55250"
+expect = "MUST_CHANGE"
+reason_rule_id = "P-63.2.2.2"
+expected_layer = "SERIALIZATION"
+expected_name = "3-(propan-2-yl)phenyl methyl[3-(pyridin-3-yl)propoxysulfinyl]carbamate"

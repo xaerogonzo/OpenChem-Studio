@@ -1161,8 +1161,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     # cyclohexanecarboxamide (PIN)" (p. 587).
     ("D-051c", "ON=C1CCCCC1", "N-hydroxycyclohexanimine",
      "(hydroxyimino)cyclohexane", "P-14.3.4.2(c); an N-prefix is not a ring substituent"),
-    ("D-051d", "CC(C)=NOC", "N-(methyloxy)propan-2-imine", "2-(methyloxyimino)propane",
-     "an O-alkyl oxime; 'methyloxy' itself is A9's"),
+    ("D-051d", "CC(C)=NOC", "N-methoxypropan-2-imine", "2-(methyloxyimino)propane",
+     "an O-alkyl oxime. Round 8 (D-124): the 'methyloxy' spelling this row first pinned, A9's, is the contracted 'methoxy' (P-63.2.2.2)"),
     ("D-051e", "OC(=O)CCC(C)=NO", "4-(hydroxyimino)pentanoic acid",
      "4-(hydroxyimino)pentanoic acid",
      "converse: not the principal group, so the compound prefix stays"),
@@ -1217,9 +1217,9 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "an alkanesulfonate"),
     ("D-054c", "CS(=O)(=O)Oc1ccccc1", "phenyl methanesulfonate",
      "(methylsulfonyloxy)benzene", "an aryl ester"),
-    ("D-054d", "COC(=O)c1ccc(cc1)S(=O)(=O)OC", "methyl 4-(methyloxysulfonyl)benzoate",
+    ("D-054d", "COC(=O)c1ccc(cc1)S(=O)(=O)OC", "methyl 4-(methoxysulfonyl)benzoate",
      "methyl 4-(methyloxysulfonyl)benzoate",
-     "converse: a carboxylic ester outranks a sulfonic one, as its acid does"),
+     "converse: a carboxylic ester outranks a sulfonic one, as its acid does. Round 8 (D-124): 'methoxysulfonyl', where this row first pinned 'methyloxysulfonyl'"),
     ("D-054e", "COS(=O)(=O)OC", "dimethyl sulfate", "dimethyl sulfate",
      "negative: a sulfate diester is not a C-sulfonate"),
     # --- D-055: an ammonium cation is named by the aminium suffix ----------
@@ -2817,6 +2817,40 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "converse: p. 76 VERBATIM 'cyclohex-2-en-1-amine (PIN)', the ring form had it right"),
     ("D-120l", "Nc1ccccc1", "aniline", "(unchanged)",
      "converse: a retained ring amine"),
+    # ---- naming round 8, limitations sweep: AN ALKOXY GROUP ON A NITROGEN IS 'methoxy', NOT 'methyloxy'. The ether_prefix branch of plan execution contracts 'methyl'+'oxy' to
+    # 'methoxy' (P-63.2.2.2, pdf p. 541: methoxy, ethoxy, propoxy, butoxy and phenoxy are retained, 'fully substitutable'), but an O-attached group whose parent atom is a
+    # NITROGEN (an oxime ether, a hydroxylamine ether) reaches the heteroatom-substituent path instead, which only appended 'oxy': '(methyloxyimino)', 'N-(ethyloxy)ethanimine'.
+    # Strobilurin and cephalosporin oxime ethers are this shape. The contraction is now one helper used by the heteroatom path; an acyl ('acetyloxy'), a ring attachment
+    # ('pyridin-3-yloxy'), and an uncontracted group ('hexyloxy', '(propan-2-yl)oxy') keep their forms.
+    ("D-124a", "COC(=O)C(=NOC)c1ccccc1", "methyl (methoxyimino)(phenyl)acetate", "methyl (methyloxyimino)(phenyl)acetate",
+     "derived: the oxime ether of a phenylglyoxylate (the strobilurin shape)"),
+    ("D-124b", "CON=Cc1ccccc1", "N-methoxy-1-phenylmethanimine", "N-(methyloxy)-1-phenylmethanimine",
+     "derived: an oxime ether"),
+    ("D-124c", "ClCCON=CC", "N-(2-chloroethoxy)ethanimine", "N-[(2-chloroethyl)oxy]ethanimine",
+     "derived: a substituted ethyl contracts too (P-63.2.2.2 'fully substitutable')"),
+    ("D-124d", "c1ccccc1ON=CC", "N-phenoxyethanimine", "N-(phenyloxy)ethanimine",
+     "derived: phenoxy is retained"),
+    ("D-124e", "CC(C)ON=CC", "N-[(propan-2-yl)oxy]ethanimine", "(unchanged)",
+     "converse: the book does not contract a locanted group"),
+    ("D-124f", "CCCCCCON=CC", "N-(hexyloxy)ethanimine", "(unchanged)",
+     "converse: only methoxy to butoxy, phenoxy, are contracted"),
+    ("D-124g", "c1ccncc1ON=CC", "N-[(pyridin-3-yl)oxy]ethanimine", "(unchanged)",
+     "converse: a ring attachment keeps 'yloxy'"),
+    ("D-124h", "CC(=O)ON=CC", "N-(acetyloxy)ethanimine", "(unchanged)",
+     "converse: an acyl is 'acetyloxy', never 'acetoxy' here"),
+    ("D-124i", "CON1CCCC1", "1-methoxypyrrolidine", "(unchanged)",
+     "converse: a ring nitrogen already took the ether_prefix branch"),
+    ("D-124j", "CCON=CC", "N-ethoxyethanimine", "N-(ethyloxy)ethanimine",
+     "derived: ethoxy"),
+    # (D-124, continued: the groups the contraction must and must not reach.)
+    ("D-124k", "C1CCC1ON=CC", "N-(cyclobutyloxy)ethanimine", "(unchanged)",
+     "converse: 'cyclobutyl' ends in 'butyl' and is a RING attachment, so it keeps 'yloxy' (P-63.2.2.2 contracts acyclic groups)"),
+    ("D-124l", "C1CC1ON=CC", "N-(cyclopropyloxy)ethanimine", "(unchanged)",
+     "converse: the same for a cyclopropyl"),
+    ("D-124m", "CC(C)CON=CC", "N-(2-methylpropoxy)ethanimine", "N-[(2-methylpropyl)oxy]ethanimine",
+     "p. 541 VERBATIM '2-methylpropoxy (PIN)' as a prefix: a substituted butyl contracts"),
+    ("D-124n", "CCOON=CC", "N-(ethylperoxy)ethanimine", "(unchanged)",
+     "converse: an O bonded to O is 'peroxy', whose alkyl is not contracted (the D-065d rule, reached through a nitrogen)"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
