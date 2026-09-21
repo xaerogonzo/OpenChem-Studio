@@ -2907,6 +2907,45 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "converse: a cyclic urea"),
     ("D-126z", "CN(C)C(=O)N(C)C", "N,N,N',N'-tetramethylurea", "(unchanged)",
      "converse: an acyclic urea keeps its name"),
+    # ---- naming round 8, limitations sweep: NITRIC AND NITROUS ESTERS ARE NAMED AS ESTERS. The book prints 'pentyl nitrite (PIN)' (P-67.1.3.2, pdf p. 710), and treats
+    # nitrates and nitrites as the esters of nitric and nitrous acid (p. 717). The engine's oxoacid ester generator declines every nitrogen centre (the charge-separated
+    # [N+](=O)[O-] of a nitrate, and a nitrogen is in most molecules), so a nitrate was '1-(nitrooxy)pentane' and a nitrite '(nitrosooxy)pentane', both of which read back and
+    # neither of which is the PIN. Deliberately narrow: ONE such group, on a carbon, in a neutral single-fragment molecule with nothing senior to an ester and no other ester or
+    # acid halide; a polynitrate (nitroglycerin needs 'propane-1,2,3-triyl trinitrate') and a nitrate beside an acid or another ester keep their names.
+    ("D-123a", "CCCCCON=O", "pentyl nitrite", "1-(nitrosooxy)pentane",
+     "p. 710 VERBATIM 'pentyl nitrite (PIN)'"),
+    ("D-123b", "CCCCCO[N+](=O)[O-]", "pentyl nitrate", "1-(nitrooxy)pentane",
+     "derived from the nitrite: the ester of nitric acid (p. 717)"),
+    ("D-123c", "OCCO[N+](=O)[O-]", "2-hydroxyethyl nitrate", "2-(nitrooxy)ethan-1-ol",
+     "derived: an alcohol is junior to an ester"),
+    ("D-123d", "NCCO[N+](=O)[O-]", "2-aminoethyl nitrate", "2-(nitrooxy)ethan-1-amine",
+     "derived: an amine is junior to an ester"),
+    ("D-123e", "N#CCCO[N+](=O)[O-]", "2-cyanoethyl nitrate", "3-(nitrooxy)propanenitrile", "derived: a nitrile is junior to an ester (nicorandil's amide is too; its prefix spelling is not this row's business)"),
+    ("D-123f", "O=[N+]([O-])OCc1ccccc1", "phenylmethyl nitrate", "[(nitrooxy)methyl]benzene",
+     "derived: benzyl nitrate"),
+    ("D-123g", "ClCCON=O", "2-chloroethyl nitrite", "1-chloro-2-(nitrosooxy)ethane",
+     "derived: a halogen is only a prefix"),
+    ("D-123h", "CO[N+](=O)[O-]", "methyl nitrate", "(nitrooxy)methane",
+     "derived: the simplest nitrate; the oxoacid ester generator's own docstring names 'methyl nitrate' as the target it declines"),
+    ("D-123x", "O=[N+]([O-])OCC(CO[N+](=O)[O-])O[N+](=O)[O-]", "1,2,3-tris(nitrooxy)propane", "(unchanged)",
+     "converse: nitroglycerin, three nitrate groups, is not built (it needs a multivalent organyl)"),
+    ("D-123y", "OC(=O)CCO[N+](=O)[O-]", "3-(nitrooxy)propanoic acid", "(unchanged)",
+     "converse: an acid outranks an ester, so the nitrate is the 'nitrooxy' prefix"),
+    ("D-123z", "CC(=O)OCCO[N+](=O)[O-]", "2-(nitrooxy)ethyl acetate", "(unchanged)",
+     "converse: another ester of the same class; the carboxylic ester is the parent here"),
+    # (D-123, continued: what a nitrate must NOT swallow, one row per blocker, and a ring alkyl.)
+    ("D-123i", "O=[N+]([O-])OC1CCCC1", "cyclopentyl nitrate", "(nitrooxy)cyclopentane",
+     "derived: a ring alkyl is an ordinary organyl"),
+    ("D-123v", "ClC(=O)CCO[N+](=O)[O-]", "3-(nitrooxy)propanoyl chloride", "(unchanged)",
+     "converse: an acid halide is senior to an ester"),
+    ("D-123u", "OS(=O)(=O)CCO[N+](=O)[O-]", "2-(nitrooxy)ethane-1-sulfonic acid", "(unchanged)",
+     "converse: a sulfonic acid is senior to an ester"),
+    ("D-123t", "OP(=O)(O)CCO[N+](=O)[O-]", "[2-(nitrooxy)ethyl]phosphonic acid", "(unchanged)",
+     "converse: a phosphonic acid is senior to an ester"),
+    ("D-123s", "C[N+](C)(C)CCO[N+](=O)[O-]", "trimethyl[2-(nitrooxy)ethyl]ammonium", "(unchanged)",
+     "converse: a cation is senior to an ester, and a charged molecule is not this route's"),
+    ("D-123r", "O=C(OC)CCO[N+](=O)[O-]", "methyl 3-(nitrooxy)propanoate", "(unchanged)",
+     "converse: a carboxylic ester of the same class is the parent"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this

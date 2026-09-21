@@ -1054,6 +1054,58 @@ def _render_ester_words(organyl_names: list[str]) -> str:
     return " ".join(words)
 
 
+#: The groups a nitric or nitrous ester must NOT sit beside: each is senior to an ester or is another ester, so the molecule would be named on
+#: THAT group and the nitrate would be the 'nitrooxy' prefix (Table 4.1, pdf p. 360). A carboxylic ester, an anhydride and an acid halide are
+#: carbon acid derivatives; an acid is senior to every ester.
+_NITRIC_ESTER_BLOCKERS = (
+    "[CX3](=[O,S,N])[OX2H1,OX1-]",          # carboxylic (and carbamic, imidic) acid and its anion
+    "[CX3](=O)[OX2][#6,#7,#16,#15]",        # another ester, an anhydride, a carbamate
+    "[CX3](=O)[F,Cl,Br,I]",                 # acid halide
+    "[SX4](=O)(=O)[OX2H1,OX1-]",            # sulfonic acid
+    "[PX4](=O)[OX2H1,OX1-]",                # phosphorus acids
+)
+
+
+def compute_nitric_ester_name(mol) -> str | None:
+    """Name a nitrate or nitrite ester by its functional class: ``pentyl nitrite (PIN)`` (P-67.1.3.2, pdf p. 710), by extension ``pentyl nitrate``.
+
+    ``_compute_oxoacid_ester`` declines every nitrogen centre (the charge-separated ``[N+](=O)[O-]`` of a nitrate, and a nitrogen is in most
+    molecules), so ``CCCCCO[N+](=O)[O-]`` was ``1-(nitrooxy)pentane``, which round-trips and is not the PIN. Deliberately narrow: ONE such
+    ester group, on a carbon, in a neutral single-fragment molecule with no group senior to it or of its class. Several nitrate groups
+    (nitroglycerin) need a multivalent organyl, and stay as they were.
+    """
+    if mol is None:
+        return None
+    try:
+        return _compute_nitric_ester(mol)
+    except Exception:  # pragma: no cover -- never break the engine
+        return None
+
+
+def _compute_nitric_ester(mol) -> str | None:
+    from rdkit import Chem
+
+    # The single-fragment condition is DEFENSIVE: a mutant without it is not caught (measured), because the salt path names each component on its
+    # own and this hook only ever sees one. It states the contract of the function; it is not claimed as covered.
+    if mol.GetNumAtoms() == 0 or len(Chem.GetMolFrags(mol)) != 1 or Chem.GetFormalCharge(mol) != 0:
+        return None
+    matches = []
+    for word, smarts in (("nitrate", "[#6]-[OX2]-[NX3+](=[OX1])-[OX1-]"), ("nitrite", "[#6]-[OX2]-[NX2]=[OX1]")):
+        for m in mol.GetSubstructMatches(Chem.MolFromSmarts(smarts)):
+            matches.append((word, m))
+    if len(matches) != 1:
+        return None
+    word, (r_idx, o_idx, n_idx, *_rest) = matches[0]
+    if mol.GetAtomWithIdx(n_idx).IsInRing() or mol.GetAtomWithIdx(o_idx).IsInRing():
+        return None
+    if any(mol.HasSubstructMatch(Chem.MolFromSmarts(s)) for s in _NITRIC_ESTER_BLOCKERS):
+        return None
+    organyl = _carve_and_name_organyl(mol, o_idx, r_idx)
+    if organyl is None:
+        return None
+    return f"{organyl} {word}"
+
+
 def compute_oxoacid_ester_name(mol) -> str | None:
     """Name an ester of a mononuclear main-group oxoacid (P-67.1.3.2).
 

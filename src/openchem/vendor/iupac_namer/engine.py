@@ -9093,6 +9093,12 @@ def _name_smiles_bound(smiles: str, strategy) -> str:
     oxoacid_ester_name = _compute_oxoacid_ester_name(mol)
     if oxoacid_ester_name is not None:
         return oxoacid_ester_name
+    # Nitric and nitrous esters (P-67.1.3.2, pdf p. 710: "pentyl nitrite (PIN)"): the nitrogen centre is not one the generator above takes.
+    from openchem.vendor.iupac_namer.perception.fg.maingroup_oxoacids import compute_nitric_ester_name as _compute_nitric_ester_name
+
+    nitric_ester_name = _compute_nitric_ester_name(mol)
+    if nitric_ester_name is not None:
+        return nitric_ester_name
     # Carbon-substituted nitrogen oxoacids (azonic / azinic), P-67.1.1.2.
     # The organyl-on-N(+)/[O-] skeleton would otherwise be mis-named by the
     # additive-nomenclature N-oxide path inside plan search (e.g.
