@@ -4210,6 +4210,46 @@ def _name_biguanide_functional_parent(
     )
 
 
+def _name_long_condensed_diamide(mol, path, kind, output_form, decision_ctx):
+    """n >= 5 condensed guanidines and ureas, H2N-[C(=X)-NH]n-H, as skeletal-replacement names (naming round 8).
+
+    P-66.4.1.2 (pdf p. 677): "For polyguanides, where n = 5 and higher, skeletal replacement ('a') nomenclature leads to preferred IUPAC
+    names. Example: 3,5,7-triimino-2,4,6,8-tetraazanonane-1,9-diimidamide (PIN)". The chain is the 2n-1 atoms C, N, C, ..., C; the nitrogens
+    at the even positions are the 'aza' atoms, the interior carbons (3 .. 2n-3) carry the imino groups, and the two end carbons are the
+    imidamide suffix. A urea is the same with 'oxo' and '-diamide' (derived: the book prints the guanidine only, and OPSIN reads both back).
+
+    UNSUBSTITUTED only: every heavy atom must be in the chain, and every interior carbon must carry its own =X, so a substituent (which
+    would need locants on a skeletal-replacement name) or a tautomer with a double bond into a bridge returns None.
+    """
+    from openchem.vendor.iupac_namer.data_loader import get_chain_stem, get_multiplier
+
+    n_units = len(path)
+    heavy = sum(1 for a in mol.GetAtoms() if a.GetAtomicNum() > 1)
+    # 2n-1 chain atoms plus the n exocyclic X (=O or =NH) plus the two end amino nitrogens: n C + (n-1) bridge N + 2 amino + n X - 0 = 3n + 1
+    if heavy != 3 * n_units + 1:
+        return None
+    length = 2 * n_units - 1
+    stem = get_chain_stem(length)
+    aza = get_multiplier(n_units - 1)
+    interior = get_multiplier(n_units - 2)
+    if not stem or not aza or not interior:
+        return None
+    aza_locants = ",".join(str(i) for i in range(2, length, 2))
+    x_locants = ",".join(str(i) for i in range(3, length - 1, 2))
+    if kind == "N":
+        name_text = f"{x_locants}-{interior}imino-{aza_locants}-{aza}aza{stem}ane-1,{length}-diimidamide"
+    else:
+        name_text = f"{x_locants}-{interior}oxo-{aza_locants}-{aza}aza{stem}ane-1,{length}-diamide"
+    return LeafTree(
+        output_form=output_form,
+        free_valence=None,
+        choices_made=(Choice(type="condensed_diamide", detail=f"n={n_units}, skeletal replacement, {'guanidine' if kind == 'N' else 'urea'}"),),
+        decision_ctx=decision_ctx,
+        validity_warnings=None,
+        text=name_text,
+    )
+
+
 def _name_condensed_carbonic_diamide_functional_parent(
     mol,
     output_form: OutputForm,
@@ -4305,8 +4345,11 @@ def _name_condensed_carbonic_diamide_functional_parent(
             break
         path.append(nxt[0])
     n_units = len(path)
-    if n_units != len(carbons) or n_units > 4:
+    if n_units != len(carbons):
         return None
+    if n_units > 4:
+        # n >= 5 is a skeletal-replacement ('a') name, a different construction: built for the UNSUBSTITUTED chain only, the case the book prints.
+        return _name_long_condensed_diamide(mol, path, kind, output_form, decision_ctx)
     # EQUIVALENT MUTANT, noted so it is not rediscovered: dropping this changes no name, because this constructor's n = 2
     # guanidine names are identical to the biguanide route's. The guard keeps ONE route for a molecule that already has one.
     if kind == "N" and n_units == 2:

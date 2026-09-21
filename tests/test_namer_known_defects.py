@@ -2499,9 +2499,8 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "derived (p. 677: the imino nitrogen of an END carbon is N'1, primed): a substituent there is not on the amino nitrogen"),
     ("D-104r", "NC(=N)NC(=NC)NC(N)=N", "N3-methyldiimidotricarbonimidic diamide", "N1-carbamimidoyl-N3-methylimidodicarbonimidic diamide",
      "derived (p. 677: an INTERIOR carbon's imino nitrogen is N3, unprimed): the same atom kind as D-104t at a different position"),
-    ("D-104s", "NC(=O)NC(=O)NC(=O)NC(=O)NC(N)=O", "N-{[(carbamoylcarbamoyl)carbamoyl]carbamoyl}urea", "(unchanged)",
-     "converse, RECORDED OPEN: n = 5 ureas. The book prints n = 2, 3 or 4 'etc.' and no n = 5 name, so none is built and the "
-     "constructor stops at four units"),
+    # D-104s pinned "n = 5 ureas are not built, the book prints none". RETIRED in the limitations sweep: D-113c builds it, marked DERIVED (the skeletal-replacement
+    # form of the printed n = 5 guanidine, p. 677, with oxo and diamide; OPSIN reads it back), which is the convention for a target the book does not print.
     ("D-091t", "NC(=O)NC(=O)NC(N)=O", "2,4-diimidotricarbonic diamide",
      "N-(carbamoylcarbamoyl)urea", "pdf p. 663 (recorded here as p. 662, the zero-based index): condensed ureas are "
      "imidopolycarbonic diamides. FIXED in naming round 8 (W2): _name_condensed_carbonic_diamide_functional_parent"),
@@ -2678,6 +2677,19 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-112z", "[O-]C(=O)c1cc[n+]([O-])cc1", "pyridine-4-carboxylate 1-oxide", "(unchanged)",
      "converse: an oxide beside only a NEGATIVE centre keeps the additive form, which is the case the source comment reserves it for"),
     ("D-112w", "[O-][n+]1ccc(N)cc1", "pyridin-4-amine 1-oxide", "(unchanged)", "converse: a neutral amine beside the oxide is not a cationic centre"),
+    # ---- naming round 8, limitations sweep: n >= 5 condensed guanidines and ureas are skeletal-replacement names (P-66.4.1.2, pdf p. 677). Before, plan search failed inside a
+    # substituent and the NAMING ERROR was EMBEDDED in a real-looking name. Unsubstituted chains only; a substituted one still has no name (and the provider now says so).
+    ("D-113a", "N=C(N)NC(=N)NC(=N)NC(=N)NC(=N)N", "3,5,7-triimino-2,4,6,8-tetraazanonane-1,9-diimidamide",
+     "bis{[NAMING ERROR: No valid naming plan found for N=C(N)NC(=N)N]}methanimine",
+     "p. 677 verbatim '3,5,7-triimino-2,4,6,8-tetraazanonane-1,9-diimidamide (PIN)'"),
+    ("D-113b", "N=C(N)NC(=N)NC(=N)NC(=N)NC(=N)NC(=N)N", "3,5,7,9-tetraimino-2,4,6,8,10-pentaazaundecane-1,11-diimidamide", "(a NAMING ERROR embedded in a name)",
+     "derived: the next member of the printed series; OPSIN reads it back"),
+    ("D-113c", "NC(=O)NC(=O)NC(=O)NC(=O)NC(N)=O", "3,5,7-trioxo-2,4,6,8-tetraazanonane-1,9-diamide", "N-{[(carbamoylcarbamoyl)carbamoyl]carbamoyl}urea",
+     "derived: the urea analogue of the printed guanidine, the same construction with oxo and diamide"),
+    ("D-113d", "NC(=O)NC(=O)NC(=O)NC(=O)NC(=O)NC(N)=O", "3,5,7,9-tetraoxo-2,4,6,8,10-pentaazaundecane-1,11-diamide", "(an acyl-prefix chain)",
+     "derived: n = 6"),
+    ("D-113x", "N=C(N)NC(=N)NC(=N)NC(=N)N", "triimidotetracarbonimidic diamide", "(unchanged)", "converse: n = 4 is still the condensed-diamide name (p. 677 prints n = 2, 3, 4)"),
+    ("D-113y", "NC(=O)NC(=O)NC(=O)NC(=O)N", "2,4,6-triimidotetracarbonic diamide", "(unchanged)", "converse: the n = 4 urea"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -2812,3 +2824,21 @@ def test_open_defect_still_open(defect, smiles, expected, former, note):
     is now lying about it. Move the row from OPEN to FIXED.
     """
     assert name_smiles(smiles) == expected
+
+
+@pytest.mark.parametrize(
+    "smiles",
+    [
+        "CN=C(N)NC(=N)NC(=N)NC(=N)NC(=N)N",     # a methyl on an end imino nitrogen
+        "CNC(=N)NC(=N)NC(=N)NC(=N)NC(=N)N",     # a methyl on an end amino nitrogen
+        "N=C(N)NC(=N)N(C)C(=N)NC(=N)NC(=N)N",   # a methyl on a bridging nitrogen
+        "NC(N)=NC(=N)NC(=N)NC(=N)NC(=N)N",      # a tautomer with a double bond into a bridge
+    ],
+)
+def test_a_substituted_or_tautomeric_long_condensed_chain_is_never_named_as_the_bare_one(smiles):
+    """Naming round 8: the n >= 5 skeletal-replacement name is for the UNSUBSTITUTED chain only. Without the atom-count guard a methylated
+    chain would be given the bare chain's name, which OPSIN reads as a different molecule. What it gets instead is unspecified (today an error
+    the provider refuses to show); that it is NOT the bare name is the whole claim."""
+    bare = name_smiles("N=C(N)NC(=N)NC(=N)NC(=N)NC(=N)N")
+    assert bare == "3,5,7-triimino-2,4,6,8-tetraazanonane-1,9-diimidamide"
+    assert name_smiles(smiles) != bare
