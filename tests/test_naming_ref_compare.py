@@ -105,7 +105,8 @@ def test_the_structure_sets_never_reach_the_frozen_population():
     """`pop:` rows come through the registry's `tuning()`, so the frozen file is not even opened."""
     ids = [i for i, _ in rc.collect({"pop"})]
     assert ids and all(i.startswith("pop:") for i in ids)
-    assert not any(i.startswith("pop:heldout_v5:") for i in ids)
+    assert not any(i.startswith("pop:heldout_v6:") for i in ids)
+    assert any(i.startswith("pop:heldout_v5:") for i in ids), "v5 is a tuning population from round 9"
     assert any(i.startswith("pop:heldout_v4:") for i in ids), "v4 is a tuning population from round 8"
 
 

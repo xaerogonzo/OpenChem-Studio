@@ -42,13 +42,16 @@ quotes.
     heldout_v2    heldout2.json    40  USED for tuning since naming round 5
     heldout_v3    heldout3.json    40  USED for tuning since naming round 7
     heldout_v4    heldout4.json    40  USED for tuning since naming round 8
-    heldout_v5                     40  evaluation only -- `--final-evaluation`
+    heldout_v5    heldout5.json    40  USED for tuning since naming round 9
+    heldout_v6                     40  evaluation only -- `--final-evaluation`
 
 Which is which lives in `benchmarks/naming/populations.toml`, read through
 `tools/naming_populations.py`; this tool no longer carries its own list.
-`heldout_v5` was drawn and frozen before any round-8 diagnosis, taking the
-place `heldout_v4` held in round 7; v4 was scored once, at round 7's final
-evaluation, and is a tuning population from round 8 on. A per-stage run cannot
+`heldout_v6` was drawn and frozen before any round-9 diagnosis, taking the
+place `heldout_v5` held in round 8; v5 was scored once, at round 8's final
+evaluation, and is a tuning population from round 9 on. (More than one
+population may be frozen at once from round 9: the Blue Book's held-out half
+joins `heldout_v6`, and every guard below is per frozen population.) A per-stage run cannot
 load the frozen one: `load_population` raises before the file is opened, and
 `tests/test_naming_heldout_lock.py` fails if any other tracked script so much
 as names the file. The final evaluation reports it as AGGREGATES only -- no
