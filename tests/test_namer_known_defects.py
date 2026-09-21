@@ -2946,6 +2946,41 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "converse: a cation is senior to an ester, and a charged molecule is not this route's"),
     ("D-123r", "O=C(OC)CCO[N+](=O)[O-]", "methyl 3-(nitrooxy)propanoate", "(unchanged)",
      "converse: a carboxylic ester of the same class is the parent"),
+    # ---- naming round 8, limitations sweep: AN ACYCLIC ONIUM CATION IS NAMED ON ITS ONIUM CENTRE. Table 4.1 (pdf p. 360) ranks a cation above every acid, amide, nitrile and
+    # alcohol, and the book prints the result: 'benzoyldi(methyl)sulfanium (PIN)' (p. 820), '[6-(dimethylsulfaniumyl)hexyl]tri(methyl)phosphanium (PIN)' (p. 834). The engine
+    # did it for a nitrogen (its 'aminium' is a suffix, priority 650) and for a ring, but a phosphonium, sulfonium or arsonium beside an acid, amide or alcohol was named on the
+    # junior group with the onium as a prefix, '2-(trimethylphosphaniumyl)acetamide', which reads back and is not preferred. The onium parent plan existed and lost at the first
+    # ranking tier; it now takes the cation band when the onium centre is the ONLY genuine charge in the molecule (an anion outranks a cation, so a betaine is named on its
+    # anion, and two cations are a different plan kind).
+    ("D-122a", "C[P+](C)(C)CC(N)=O", "(2-amino-2-oxoethyl)tri(methyl)phosphanium", "2-(trimethylphosphaniumyl)acetamide",
+     "derived from Table 4.1 and the printed 'benzoyldi(methyl)sulfanium (PIN)' style"),
+    ("D-122b", "C[S+](C)CCO", "(2-hydroxyethyl)di(methyl)sulfanium", "2-(dimethylsulfaniumyl)ethan-1-ol",
+     "derived: an alcohol is junior to a cation"),
+    ("D-122c", "C[P+](C)(C)CC(=O)O", "(carboxymethyl)tri(methyl)phosphanium", "(trimethylphosphaniumyl)acetic acid",
+     "derived: an acid is junior to a cation (the ring form '4-carboxy-1-methylpyridin-1-ium chloride (PIN)' is printed, p. 580)"),
+    ("D-122d", "C[As+](C)(C)CC(=O)O", "(carboxymethyl)tri(methyl)arsanium", "(trimethylarsaniumyl)acetic acid",
+     "derived: the same for an arsonium"),
+    ("D-122e", "C[P+](C)(C)CC(=O)O.[Cl-]", "(carboxymethyl)tri(methyl)phosphanium chloride", "(trimethylphosphaniumyl)acetic acid chloride",
+     "the salt of D-122c"),
+    ("D-122x", "C[P+](C)(C)CC(=O)[O-]", "(trimethylphosphaniumyl)acetate", "(unchanged)",
+     "converse: an anion outranks a cation, so the betaine is named on its anion"),
+    ("D-122y", "C[P+](C)(C)CCC[P+](C)(C)C", "trimethyl[3-(trimethylphosphaniumyl)propyl]phosphanium", "(unchanged)",
+     "converse: two cations are not this band"),
+    ("D-122z", "C[S+](C)C(=O)c1ccccc1", "benzoyldi(methyl)sulfanium", "(unchanged)",
+     "converse: p. 820 VERBATIM 'benzoyldi(methyl)sulfanium (PIN)'"),
+    ("D-122w", "C[N+](C)(C)CCC(N)=O", "3-amino-N,N,N-trimethyl-3-oxopropan-1-aminium", "(unchanged)",
+     "converse: a nitrogen's cation is a suffix and was already senior"),
+    ("D-122v", "CCC[P+](C)(C)C", "trimethyl(propyl)phosphanium", "(unchanged)",
+     "converse: no junior group, the same plan won before"),
+    # (D-122, continued: a nitro group is not a second charge, and what the band must leave alone. THREE MUTANTS OF THE BAND ARE EQUIVALENT (measured, four others are caught):
+    # counting an ANION centre (a boranuide is named on its anion by its own route, so the same name results), dropping the condition that the charge is on the parent centre,
+    # and dropping the parent-kind condition; no input separates them today, and they are kept because each states the contract.)
+    ("D-122f", "C[P+](C)(C)Cc1cc(ccc1C(N)=O)[N+](=O)[O-]", "[(2-carbamoyl-5-nitrophenyl)methyl]tri(methyl)phosphanium", "4-nitro-2-[(trimethylphosphaniumyl)methyl]benzamide",
+     "derived: a nitro group is a charge-separated NEUTRAL group, so the phosphonium is still the only genuine charge"),
+    ("D-122u", "C[B-](C)(C)CC(N)=O", "(2-amino-2-oxoethyl)trimethylboranuide", "(unchanged)",
+     "converse: an anion centre is named on its anion by its own route"),
+    ("D-122t", "C[Si](C)(C)C[P+](C)(C)C", "trimethyl[(trimethylsilyl)methyl]phosphanium", "(unchanged)",
+     "converse: the cation's centre is the parent, not another heteroatom centre"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this

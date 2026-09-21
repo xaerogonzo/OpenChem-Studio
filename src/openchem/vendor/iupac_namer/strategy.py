@@ -660,7 +660,7 @@ class IUPACCanonical(NamingStrategy):
             case _:
                 return NomenclaturePreferenceKey(blank)
 
-        kind = 4 if self._cation_band_applies(plan) else 0
+        kind = 4 if (self._cation_band_applies(plan) or self._onium_centre_band(plan, mol)) else 0
         numbering = self._numbering_components(plan)
         from openchem.vendor.iupac_namer.ring_naming.indicated_hydrogen_p58 import (
             added_hydrogen_tier,
@@ -699,6 +699,31 @@ class IUPACCanonical(NamingStrategy):
             prefix,
             primes,
         ))
+
+    @staticmethod
+    def _onium_centre_band(plan: SubstitutivePlan, mol) -> bool:
+        """The cation band for an ACYCLIC onium centre (phosphonium, sulfonium, arsonium, ...) as the whole parent (naming round 8).
+
+        Table 4.1 (pdf p. 360) ranks a cation above every acid, amide, nitrile and alcohol, so a molecule whose ONLY charge is one onium centre is
+        named ON that centre, the junior groups as prefixes: '(2-amino-2-oxoethyl)tri(methyl)phosphanium', not '2-(trimethylphosphaniumyl)acetamide'.
+        A nitrogen is EXCLUDED: its cation is the suffix 'aminium' on a carbon parent (P-73.1.2, choline is '2-hydroxy-N,N,N-trimethylethan-1-aminium'),
+        a different plan that already wins, and the 'ammonium' parent plan must not overtake it. Three conditions keep it narrow: the parent is the
+        one-atom heteroatom_center parent, the molecule has no other genuine charge (an anion outranks a cation, so a betaine is named on its anion;
+        a second cation would be a multiplicative name, a different plan kind), and the centre is the atom that carries the charge.
+
+        THREE MUTANTS OF THIS ARE NOT CAUGHT (measured; four others are) and are stated so nobody rediscovers them as gaps: counting an anion
+        centre (a boranuide is named on its anion by its own route, so the name is the same), dropping the requirement that the charge is on the
+        parent's centre, and dropping the parent-kind test. No input separates them today; each states the contract.
+        """
+        if mol is None or plan.named_parent.candidate.type != "heteroatom_center":
+            return False
+        from openchem.vendor.iupac_namer.perception.charge_perception import _charge_separated_neutral_atoms
+
+        separated = _charge_separated_neutral_atoms(mol)
+        charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0 and a.GetIdx() not in separated]
+        centre = plan.named_parent.candidate.atom_indices
+        return (len(charged) == 1 and charged[0].GetFormalCharge() > 0 and charged[0].GetIdx() in centre
+                and charged[0].GetSymbol() != "N")
 
     def _cation_band_applies(self, plan: SubstitutivePlan) -> bool:
         """The +500,000 band of `score_plan`, as a yes/no. See its comment."""
