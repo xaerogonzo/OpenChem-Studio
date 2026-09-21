@@ -2621,6 +2621,29 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "converse: a net-positive cation whose negative atom is a NITRO group's, not an acid site; only an anion suffix earns the ANION form"),
     ("D-109v", "C[N+](C)(C)CC(=O)[O-].O", "(trimethylazaniumyl)acetate water", "(unchanged)",
      "converse: a NET-ZERO zwitterion beside another component keeps the ANION form the net-zero branch gives it"),
+    ("D-091u", "CC(=O)NC(=O)c1ccccc1", "N-acetylbenzamide", "N-benzoylacetamide",
+     "p. 654, verbatim: of two acyls on one N only one amide is perceived, so the "
+     "senior one (ring before chain) is never offered as the parent"),
+    # ---- naming round 8, W4(a): which of two acyl groups on one nitrogen is the parent (P-66.1.4.2, pdf p. 654). Converses first: each keeps the
+    # name it had, and the two that a first attempt broke (offering BOTH amide matches to plan search) are here so it cannot be tried again unseen.
+    ("D-110x", "CC(=O)NC(C)=O", "N-acetylacetamide", "(unchanged)", "converse: the symmetric imide, no ring on either side"),
+    ("D-110y", "CCC(=O)NC(C)=O", "N-acetylpropanamide", "(unchanged)",
+     "converse: two chains: the ring test does not apply and the existing tie-break decides"),
+    ("D-110z", "CC(=O)N(C(C)=O)C(C)=O", "N,N-diacetylacetamide", "(unchanged)",
+     "converse: a triacylamine. Offering every amide match gave an atom-ownership error for it"),
+    ("D-110w", "CC(=O)NC(=O)c1ccc(cc1)C(O)=O", "4-(acetylcarbamoyl)benzoic acid", "(unchanged)",
+     "converse: the ACID is the parent (Table 4.1); offering both amide matches wrote the imide unit twice, '4,4-bis(acetylcarbamoyl)benzoic acid'"),
+    ("D-110v", "O=C(NC(=O)c1ccccc1)c1ccccc1", "N-benzoylbenzamide", "(unchanged)", "converse: a ring on BOTH sides, so neither is preferred by it"),
+    ("D-110u", "CC(=O)N(C)C(C)=O", "N-acetyl-N-methylacetamide", "(unchanged)", "converse: the tertiary imide with no ring"),
+    ("D-110t", "O=C1CCC(=O)N1", "pyrrolidine-2,5-dione", "(unchanged)", "converse: a ring imide has no second acyclic amide to choose"),
+    ("D-110a", "CC(=O)NC(=O)C1CCCCC1", "N-acetylcyclohexanecarboxamide", "N-(cyclohexanecarbonyl)acetamide",
+     "derived (ring before chain, P-44.1.2.2, as the printed N-acetylbenzamide): the saturated ring is a ring too"),
+    ("D-110b", "CC(=O)N(C)C(=O)c1ccccc1", "N-acetyl-N-methylbenzamide", "N-benzoyl-N-methylacetamide",
+     "derived: the tertiary imide, the same choice of representative"),
+    ("D-110r", "c1ccccc1C(=O)NC(C)=O", "N-acetylbenzamide", "(unchanged)",
+     "the SAME molecule written ring-first: the ring match is now the one already kept, and a chain match must not replace it"),
+    ("D-110q", "O=C(NC(C)=O)C1CCCCC1", "N-acetylcyclohexanecarboxamide", "(unchanged)",
+     "the saturated ring written first, the same guard"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -2693,9 +2716,6 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "p. 110: an unsymmetrical central group (P-15.3.3.1) is not built"),
     # Round 5 (N5): each round-trips today.
     # Round 5 (N6), still open:
-    ("D-091u", "CC(=O)NC(=O)c1ccccc1", "N-acetylbenzamide", "N-benzoylacetamide",
-     "p. 654, verbatim: of two acyls on one N only one amide is perceived, so the "
-     "senior one (ring before chain) is never offered as the parent"),
     ("D-091v", "CCN=C(N(C)C)c1ccc(C(=O)O)cc1",
      "4-(N'-ethyl-N,N-dimethylcarbamimidoyl)benzoic acid",
      "4-[(dimethylamino)(ethylimino)methyl]benzoic acid", "p. 676, verbatim; today's "
