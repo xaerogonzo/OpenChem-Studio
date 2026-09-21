@@ -2714,6 +2714,13 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-114x", "C1CCNCC1", "piperidine", "(unchanged)", "converse: the NEUTRAL ring, which goes through the same carve"),
     ("D-114y", "C[NH+]1CCCCC1", "1-methylpiperidin-1-ium", "(unchanged)", "converse: an N-alkyl protonated ring, already a target through its exocyclic substituent"),
     ("D-114z", "C1CCC(CC1)[NH3+]", "cyclohexanaminium", "(unchanged)", "converse: an EXOCYCLIC ammonium is not a ring nitrogen"),
+    # ---- naming round 8, limitations sweep: the '-ium' locant is compared with the suffix locants. It was not compared at all, so the atom order of the SMILES decided it: the same
+    # molecule was 'piperazin-4-ium' or 'piperazin-1-ium'. P-31.1.4.3 (suffixes, after indicated hydrogen) puts a ring cation's locant in the suffix tier. Red at 2d70678, measured.
+    ("D-115a", "C1C[NH2+]CCN1", "piperazin-1-ium", "piperazin-4-ium", "derived (lowest locant to the cationic centre): one of two atom-order twins of the same molecule"),
+    ("D-115b", "C[NH+]1CCN(C)CC1", "1,4-dimethylpiperazin-1-ium", "1,4-dimethylpiperazin-4-ium", "the same tie with two methyls, where the ium locant is what decides"),
+    ("D-115x", "C1CNCC[NH2+]1", "piperazin-1-ium", "(unchanged)", "converse: the atom-order twin of D-115a, which already read 1; both must now agree"),
+    ("D-115y", "CN1CC[NH+](C)CC1", "1,4-dimethylpiperazin-1-ium", "(unchanged)", "converse: the twin of D-115b written the other way round"),
+    ("D-115z", "C[N+]1(C)CCN(C)CC1", "1,1,4-trimethylpiperazin-1-ium", "(unchanged)", "converse: the ium locant and a substituent locant both 1: the tie must not move a case that was already lowest"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this

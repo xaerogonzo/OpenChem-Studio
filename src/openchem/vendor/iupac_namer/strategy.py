@@ -673,7 +673,10 @@ class IUPACCanonical(NamingStrategy):
             hetero, suffix, unsat, prefix, primes = 0.0, empty, empty, empty, 0
         else:
             hetero = float(numbering["heteroatom_score"])
-            suffix = locant_set_tier(numbering["suffix_locants"])
+            # A ring heteroatom cation's '-ium' is a suffix (P-31.1.4.3), so its locant is compared with the suffix locants (naming round 8). It was
+            # not compared at all: the assembler read it off whichever numbering had won, so the atom order of the SMILES decided it ('C1C[NH2+]CCN1'
+            # was 'piperazin-4-ium', its twin 'C1CNCC[NH2+]1' 'piperazin-1-ium').
+            suffix = locant_set_tier(sorted(list(numbering["suffix_locants"]) + self._ring_cation_locants(plan, mol)))
             unsat = locant_set_tier(numbering["unsat_locants"])
             prefix = locant_set_tier(numbering["prefix_locants"])
             primes = -int(numbering["prefix_prime_count"])
@@ -1008,6 +1011,33 @@ class IUPACCanonical(NamingStrategy):
                 - sum(c["prefix_locants"]) * 0.01
                 - c["prefix_prime_count"] * 0.00001
                 + c["alpha_first_score"])
+
+    @staticmethod
+    def _ring_cation_locants(plan: SubstitutivePlan, mol) -> list[int]:
+        """Numeric locants of the ring heteroatom cations of the parent that the assembler will write as '-ium'.
+
+        A parent whose own name already ends in 'ium' (pyridinium, pyrylium) carries the cation in its stem and takes no suffix locant, exactly as
+        the assembler skips it. Read from the plan's numbering, so each candidate numbering is compared on its own.
+
+        THREE MUTANTS OF THIS ARE NOT COVERED BY A ROW and are stated so nobody rediscovers them as gaps: dropping the 'ends in ium' skip
+        (a pyrylium always numbers its oxygen 1, so no competing numbering exists), counting an anion (no input pairs a ring anion with a
+        ring cation in one parent), and sorting the locants descending (differs only for a ring DICATION whose two numberings are {1,4} and
+        {2,3}; none was found among the 122 cation shapes probed).
+        """
+        from openchem.vendor.iupac_namer.engine import _RING_CATION_IUM_ELEMENTS
+
+        parent = plan.named_parent
+        if parent.name.endswith("ium"):
+            return []
+        a2l = plan.numbering.atom_to_locant
+        out = []
+        for idx in parent.candidate.atom_indices:
+            atom = mol.GetAtomWithIdx(idx)
+            if atom.GetSymbol() in _RING_CATION_IUM_ELEMENTS and atom.GetFormalCharge() == 1 and atom.IsInRing():
+                loc = a2l.get(idx)
+                if loc is not None:
+                    out.append(loc._numeric_value or 0)
+        return sorted(out)
 
     def _numbering_components(self, plan: SubstitutivePlan) -> dict | None:
         """Reward numberings that give lower locants (P-14.5, P-14.4).
