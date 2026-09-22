@@ -64,13 +64,23 @@ admissions ledger: high severity (wrong molecule, not just non-preferred), high 
 vocabulary across synthesis), narrow and well-defined (one functional group, carbodiimide, entirely
 missing from perception).
 
-## No naming plan at all: main-group tetrahydride anions
+## No naming plan at all: main-group tetrahydride anions -- DEFERRED to round 10 (Alex's decision, 2026-09-22)
 
 Both `[BH4-]` (sodium borohydride) and `[AlH4-]` (lithium aluminium hydride) get `attempted=0` -- the
-engine has no naming path whatsoever for these common reducing-agent anions. This may be squarely inorganic
-nomenclature (IUPAC P-7, additive/compositional naming) that this engine has never implemented, in the same
-excluded category as "silicon rows" and "fusion" this round -- flagged rather than scoped in, pending a
-frequency read from B3 and Alex's call on whether inorganic anion naming belongs in round 9's cap at all.
+engine produces no name at all for either. 0/2000 in B3's census. A follow-up check found the general
+salt/anion-naming MECHANISM is not missing: `disodium sulfate` and `trisodium phosphate` both name
+correctly and cleanly (`clean` status, `MATCH`), so this is not "inorganic anion naming was never built" --
+it is specifically that no rule covers hydride-count anions (a chemically distinct class from oxoanions),
+narrower than first read but still genuinely undiagnosed: nobody has traced *why* the existing anion path
+doesn't extend to this class, which every other F-item got before a slot was ever considered.
+
+**Decision: not admitted this round.** It fits neither admission route as written (no name was produced at
+all, so there is nothing to diagnose as a wrong molecule against a fixture; frequency is 0/2000, same as
+DCC's carbodiimide) -- admitting it would mean a third, ad-hoc justification outside the ledger's own
+mechanical rule. The cap is also genuinely competitive this round (charge loss at 14.6%, F5 at 8.4%, F1 at
+7.1%, F7 at 4.05%, DCC on the wrong-molecule route), so a zero-frequency, undiagnosed, off-seed-list item
+found incidentally is a weaker use of a scarce slot than what's already measured. Recorded here, with the
+sulfate/phosphate contrast, so round 10 starts partly scoped rather than from nothing.
 
 ## Two PARSER_FAILED dyes: locant or serialization defects, not yet individually verified
 
@@ -92,7 +102,7 @@ either is treated as confirmed.
 | finding | rows | severity | reach (this battery) | in scope for round 9? |
 |---|---:|---|---|---|
 | DCC / carbodiimide not recognised | 1 | high (wrong molecule) | 1 seen; DCC is common vocabulary; 0/2000 in B3's census (see r9_b3_findings.md) | strong candidate on wrong-molecule grounds, not frequency |
-| BH4-/AlH4- have no naming plan | 2 | high (no name at all) | 2 seen; 0/2000 in B3's census | undecided -- neither wrong-molecule nor frequency cleanly covers "no name at all"; Alex's call |
+| BH4-/AlH4- have no naming plan | 2 | high (no name at all) | 2 seen; 0/2000 in B3's census | **deferred to round 10** (2026-09-22) -- fits neither admission route, undiagnosed, weaker than the competing candidates |
 | phenothiazine dye locant (methylene blue) | 1 | unconfirmed | 1 seen | needs individual verification first |
 | fluorescein spiro serialization | 1 | unconfirmed | 1 seen | needs individual verification first |
 | large cyclic lipopeptide MISMATCH | 1 | unconfirmed, too complex to isolate cheaply | 1 seen | not pursued this round |
