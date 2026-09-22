@@ -3462,18 +3462,14 @@ def test_a_peri_fused_linker_also_keeps_every_ring_atom():
 def test_a_hypervalent_sulfinyl_no_longer_drops_atoms():
     """D-133's admission reason (sulfinyl-bromide): a sulfinyl bromide with
     an additional imine substituent lost both its bromine and its S=N double
-    bond -- verified via OPSIN as a DIFFERENT, smaller molecule. That wrong
-    string must never come back; the honest failure it is replaced with is
-    checked structurally too (PARSER_FAILED, never a false MATCH)."""
-    from rdkit import Chem
-
-    from openchem.chem.naming_providers import verify_name_round_trip, RoundTrip
-
+    bond -- verified via OPSIN as a DIFFERENT, smaller molecule (the vendored
+    suite's test_known_defects.py checks the round trip itself, including
+    that D-133's own replacement is declared in OPSIN_CANNOT_PARSE rather
+    than a false MATCH; this file needs nothing but RDKit, so only the
+    string pin lives here)."""
     wrong_former_output = "[(methylaminosulfinyl)amino]methane"
-    smiles = "CN=S(=O)(Br)NC"
-    got = name_smiles(smiles)
+    got = name_smiles("CN=S(=O)(Br)NC")
     assert got != wrong_former_output
-    assert verify_name_round_trip(got, Chem.MolFromSmiles(smiles)) == RoundTrip.PARSER_FAILED
 
 
 def test_a_plain_sulfinyl_halide_still_uses_the_shortcut():
@@ -3512,17 +3508,11 @@ def test_a_plain_trivalent_phosphanetriyl_linker_still_works():
 
 def test_glycylalanine_is_the_book_own_worked_example():
     """D-135, P-103.3.2's own worked example verbatim (pdf p. 1048):
-    'glycine + alanine -> glycylalanine (PIN)'. Verified via OPSIN round-trip
-    that the retained form denotes the SAME structure the systematic form
-    it replaces did."""
-    from rdkit import Chem
-
-    from openchem.chem.naming_providers import verify_name_round_trip, RoundTrip
-
-    smiles = "NCC(=O)N[C@@H](C)C(=O)O"
-    got = name_smiles(smiles)
-    assert got == "glycylalanine"
-    assert verify_name_round_trip(got, Chem.MolFromSmiles(smiles)) == RoundTrip.MATCH
+    'glycine + alanine -> glycylalanine (PIN)' (the vendored suite's
+    test_known_defects.py verifies the OPSIN round trip for every FIXED
+    row, D-135 included; this file needs nothing but RDKit, so only the
+    string pin lives here)."""
+    assert name_smiles("NCC(=O)N[C@@H](C)C(=O)O") == "glycylalanine"
 
 
 @pytest.mark.parametrize(
