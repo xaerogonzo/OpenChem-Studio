@@ -5,9 +5,9 @@
 [meta]
 protocol_sha256 = "c5d761fe7f3f502cfed869893de98bf0fa48f61b2242465d1cb32548a189ca6d"
 schema_version = 1
-total_rows = 268
-categories_present = ["functional_group_pairs", "salts", "dipeptides", "amino_acids_and_peptides", "solvents", "reagents_and_protecting_groups", "sugars", "vitamins", "dyes"]
-categories_not_yet_built = ["approved_drugs_chembl"]
+total_rows = 306
+categories_present = ["functional_group_pairs", "salts", "dipeptides", "amino_acids_and_peptides", "solvents", "reagents_and_protecting_groups", "sugars", "vitamins", "dyes", "approved_drugs_chembl"]
+categories_not_yet_built = []
 
 [[row]]
 label = "fgp-hydroxyl+primary_amine"
@@ -2998,4 +2998,460 @@ target_source = "none"
 [row.provenance]
 resolver_checked = true
 note = "OPSIN could not parse 'bromothymol blue' directly; confirmed via PubChem's name '2-bromo-4-[3-(3-bromo-4-hydroxy-2-methyl-5-propan-2-ylphenyl)-1,1-dioxo-2,1lambda6-benzoxathiol-3-yl]-3-methyl-6-propan-2-ylphenol'"
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1082607"
+category = "approved_drugs_chembl"
+smiles = "O=C(O)c1ccc2ccccc2c1O.OCc1cc(C(O)CNCCCCCCOCCCCc2ccccc2)ccc1O"
+common_name = "SALMETEROL XINAFOATE"
+source = "ChEMBL CHEMBL1082607 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1082607"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1141"
+category = "approved_drugs_chembl"
+smiles = "[I-].[K+]"
+common_name = "POTASSIUM IODIDE"
+source = "ChEMBL CHEMBL1141 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1141"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL117287"
+category = "approved_drugs_chembl"
+smiles = "COCCCN1CCC(NC(=O)c2cc(Cl)c(N)c3c2OCC3)CC1"
+common_name = "PRUCALOPRIDE"
+source = "ChEMBL CHEMBL117287 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL117287"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1186579"
+category = "approved_drugs_chembl"
+smiles = "C[N+]1(CC2CC2)CC[C@]23c4c5ccc(O)c4O[C@H]2C(=O)CC[C@@]3(O)[C@H]1C5"
+common_name = "METHYLNALTREXONE"
+source = "ChEMBL CHEMBL1186579 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1186579"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1200472"
+category = "approved_drugs_chembl"
+smiles = "Fc1ccccc1C1=NCC(=S)N(CC(F)(F)F)c2ccc(Cl)cc21"
+common_name = "QUAZEPAM"
+source = "ChEMBL CHEMBL1200472 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1200472"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1200735"
+category = "approved_drugs_chembl"
+smiles = "COc1c(N2C[C@@H]3CCCN[C@@H]3C2)c(F)cc2c(=O)c(C(=O)O)cn(C3CC3)c12.Cl"
+common_name = "MOXIFLOXACIN HYDROCHLORIDE"
+source = "ChEMBL CHEMBL1200735 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1200735"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1200737"
+category = "approved_drugs_chembl"
+smiles = "CCCCCCCCCCCCCCCC(=O)OC[C@H](COP(=O)([O-])OCC[N+](C)(C)C)OC(=O)CCCCCCCCCCCCCCC"
+common_name = "COLFOSCERIL PALMITATE"
+source = "ChEMBL CHEMBL1200737 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1200737"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1200776"
+category = "approved_drugs_chembl"
+smiles = "C[C@@H](NCCCc1cccc(C(F)(F)F)c1)c1cccc2ccccc12.Cl"
+common_name = "CINACALCET HYDROCHLORIDE"
+source = "ChEMBL CHEMBL1200776 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1200776"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1200795"
+category = "approved_drugs_chembl"
+smiles = "CN1CCC[C@@H]1CCO[C@](C)(c1ccccc1)c1ccc(Cl)cc1.O=C(O)/C=C/C(=O)O"
+common_name = "CLEMASTINE FUMARATE"
+source = "ChEMBL CHEMBL1200795 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1200795"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1200843"
+category = "approved_drugs_chembl"
+smiles = "CC[C@@H](CO)NC(=O)[C@@H]1C=C2c3cccc4[nH]cc(c34)C[C@H]2N(C)C1.O=C(O)/C=C\\C(=O)O"
+common_name = "METHYLERGONOVINE MALEATE"
+source = "ChEMBL CHEMBL1200843 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1200843"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1200925"
+category = "approved_drugs_chembl"
+smiles = "O=P([O-])(O)O.[K+]"
+common_name = "POTASSIUM PHOSPHATE, MONOBASIC"
+source = "ChEMBL CHEMBL1200925 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1200925"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1201185"
+category = "approved_drugs_chembl"
+smiles = "CC(C)[C@@H]1NC(=O)[C@H](CCCCN)NC(=O)[C@@H](Cc2c[nH]c3ccccc23)NC(=O)[C@H](Cc2ccc(O)cc2)NC(=O)[C@@H](NC(=O)[C@H](N)Cc2ccc3ccccc3c2)CSSC[C@@H](C(=O)N[C@H](C(N)=O)[C@@H](C)O)NC1=O"
+common_name = "LANREOTIDE"
+source = "ChEMBL CHEMBL1201185 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1201185"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1201224"
+category = "approved_drugs_chembl"
+smiles = "CO/N=C(\\C(=O)N[C@@H]1C(=O)N2C(C(=O)O)=C(CSc3nnnn3C)CS[C@H]12)c1csc(N)n1"
+common_name = "CEFMENOXIME"
+source = "ChEMBL CHEMBL1201224 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1201224"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1201237"
+category = "approved_drugs_chembl"
+smiles = "CC(C)(C)NC[C@H](O)COc1cccc2c1CCCC2=O"
+common_name = "LEVOBUNOLOL"
+source = "ChEMBL CHEMBL1201237 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1201237"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1201761"
+category = "approved_drugs_chembl"
+smiles = "Cl.N[C@@H]1CCCCN(c2c(F)cc3c(=O)c(C(=O)O)cn(C4CC4)c3c2Cl)C1"
+common_name = "BESIFLOXACIN HYDROCHLORIDE"
+source = "ChEMBL CHEMBL1201761 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1201761"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1229211"
+category = "approved_drugs_chembl"
+smiles = "C[C@@H]1CCO[C@H]2Cn3cc(C(=O)NCc4ccc(F)cc4F)c(=O)c(O)c3C(=O)N12"
+common_name = "DOLUTEGRAVIR"
+source = "ChEMBL CHEMBL1229211 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1229211"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1256786"
+category = "approved_drugs_chembl"
+smiles = "COc1ccc(CC(C)NCC(O)c2ccc(O)c(NC=O)c2)cc1"
+common_name = "FORMOTEROL"
+source = "ChEMBL CHEMBL1256786 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1256786"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1261"
+category = "approved_drugs_chembl"
+smiles = "O=C(O)CC(O)(CC(=O)O)C(=O)O"
+common_name = "CITRIC ACID"
+source = "ChEMBL CHEMBL1261 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1261"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL128"
+category = "approved_drugs_chembl"
+smiles = "CNS(=O)(=O)Cc1ccc2[nH]cc(CCN(C)C)c2c1"
+common_name = "SUMATRIPTAN"
+source = "ChEMBL CHEMBL128 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL128"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1480"
+category = "approved_drugs_chembl"
+smiles = "CCOC(=O)C1=C(C)NC(C)=C(C(=O)OC)C1c1cccc(Cl)c1Cl"
+common_name = "FELODIPINE"
+source = "ChEMBL CHEMBL1480 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1480"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1500276"
+category = "approved_drugs_chembl"
+smiles = "CCN(CC)CCOCCOC(=O)C(CC)(CC)c1ccccc1"
+common_name = "OXELADIN"
+source = "ChEMBL CHEMBL1500276 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1500276"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1654"
+category = "approved_drugs_chembl"
+smiles = "O=P([O-])(O)C(O)(Cc1cccnc1)P(=O)(O)O.[Na+]"
+common_name = "RISEDRONATE SODIUM"
+source = "ChEMBL CHEMBL1654 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1654"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1663"
+category = "approved_drugs_chembl"
+smiles = "FC(F)(F)C(F)(F)C(F)(F)F"
+common_name = "PERFLUTREN"
+source = "ChEMBL CHEMBL1663 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1663"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL1735"
+category = "approved_drugs_chembl"
+smiles = "CC(C)(C)NC(=O)[C@@H]1CN(Cc2cccnc2)CCN1C[C@@H](O)C[C@@H](Cc1ccccc1)C(=O)N[C@H]1c2ccccc2C[C@H]1O.O=S(=O)(O)O"
+common_name = "INDINAVIR SULFATE"
+source = "ChEMBL CHEMBL1735 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL1735"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL206253"
+category = "approved_drugs_chembl"
+smiles = "Cc1ccccc1-c1cc(N2CCN(C)CC2)ncc1N(C)C(=O)C(C)(C)c1cc(C(F)(F)F)cc(C(F)(F)F)c1"
+common_name = "NETUPITANT"
+source = "ChEMBL CHEMBL206253 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL206253"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL2105638"
+category = "approved_drugs_chembl"
+smiles = "CNC[C@H](O)[C@@H](O)[C@H](O)[C@H](O)CO.Nc1nc(-n2cc(C(=O)O)c(=O)c3cc(F)c(N4CC(O)C4)c(Cl)c32)c(F)cc1F"
+common_name = "DELAFLOXACIN MEGLUMINE"
+source = "ChEMBL CHEMBL2105638 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL2105638"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL256105"
+category = "approved_drugs_chembl"
+smiles = "CC[C@@]1([C@@H]2O[C@@H]([C@H]3O[C@@](O)(CO)[C@H](C)C[C@@H]3C)C[C@@H]2C)CC[C@H]([C@]2(C)CC[C@]3(C[C@H](O)[C@@H](C)[C@@H]([C@@H](C)[C@@H](OC)[C@H](C)C(=O)O)O3)O2)O1"
+common_name = "MONENSIN"
+source = "ChEMBL CHEMBL256105 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL256105"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL260538"
+category = "approved_drugs_chembl"
+smiles = "CC(=O)O[C@]1(C(C)=O)CC[C@H]2[C@@H]3CCC4=CC(=O)CCC4=C3[C@@H](c3ccc(N(C)C)cc3)C[C@@]21C"
+common_name = "ULIPRISTAL ACETATE"
+source = "ChEMBL CHEMBL260538 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL260538"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL267894"
+category = "approved_drugs_chembl"
+smiles = "CCC1(CCC(C)C)C(=O)NC(=O)NC1=O"
+common_name = "AMOBARBITAL"
+source = "ChEMBL CHEMBL267894 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL267894"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL3989478"
+category = "approved_drugs_chembl"
+smiles = "CCSc1ccc2c(c1)N(CCCN1CCN(C)CC1)c1ccccc1S2.O=C(O)/C=C\\C(=O)O.O=C(O)/C=C\\C(=O)O"
+common_name = "THIETHYLPERAZINE MALEATE"
+source = "ChEMBL CHEMBL3989478 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL3989478"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL4297403"
+category = "approved_drugs_chembl"
+smiles = "CCOC(=O)[C@H](Cc1ccc(F)cc1)NC(=O)[C@@H](N)Cc1ccc(N(CCCl)CCCl)cc1.Cl"
+common_name = "MELPHALAN FLUFENAMIDE HYDROCHLORIDE"
+source = "ChEMBL CHEMBL4297403 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL4297403"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL4594248"
+category = "approved_drugs_chembl"
+smiles = "CC[C@H](C)[C@H](NC(=O)[C@H](C)NC(=O)[C@@H](NC(=O)[C@H](CCC(N)=O)NC(=O)[C@@H]1CCCN1C(=O)[C@H](Cc1ccccc1)NC(=O)[C@@H](NC(=O)[C@H](Cc1c[nH]cn1)NC(=O)[C@H](Cc1ccccc1)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CC(N)=O)NC(=O)[C@H](Cc1ccccc1)NC(=O)[C@H](CC(=O)O)NC(=O)[C@H](CCC(N)=O)NC(=O)[C@@H](NC(=O)[C@H](Cc1ccc(O)cc1)NC(=O)[C@@H](NC(=O)CNC(=O)[C@H](CC(C)C)NC(=O)[C@H](CCSC)NC(=O)[C@@H]1CSSC[C@H](N)C(=O)NCC(=O)N[C@@H](CC(N)=O)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](CO)C(=O)N[C@@H]([C@@H](C)O)C(=O)N1)[C@@H](C)O)[C@@H](C)O)[C@@H](C)O)[C@@H](C)O)C(=O)NCC(=O)N[C@H](C(=O)NCC(=O)N[C@@H](C)C(=O)N1CCC[C@H]1C(N)=O)C(C)C"
+common_name = "CALCITONIN HUMAN"
+source = "ChEMBL CHEMBL4594248 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL4594248"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL590"
+category = "approved_drugs_chembl"
+smiles = "CC1=CC(=O)c2ccccc2C1=O"
+common_name = "MENADIONE"
+source = "ChEMBL CHEMBL590 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL590"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL607710"
+category = "approved_drugs_chembl"
+smiles = "NC(=O)OCC(O)COc1ccc(Cl)cc1"
+common_name = "CHLORPHENESIN CARBAMATE"
+source = "ChEMBL CHEMBL607710 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL607710"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL826"
+category = "approved_drugs_chembl"
+smiles = "CCn1cc(C(=O)O)c(=O)c2cc(F)c(N3CCNCC3)nc21"
+common_name = "ENOXACIN"
+source = "ChEMBL CHEMBL826 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL826"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL914"
+category = "approved_drugs_chembl"
+smiles = "CC(C)(C(=O)O)c1ccc(C(O)CCCN2CCC(C(O)(c3ccccc3)c3ccccc3)CC2)cc1"
+common_name = "FEXOFENADINE"
+source = "ChEMBL CHEMBL914 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL914"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL959"
+category = "approved_drugs_chembl"
+smiles = "CC(N)C12CC3CC(CC(C3)C1)C2"
+common_name = "RIMANTADINE"
+source = "ChEMBL CHEMBL959 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL959"
+resolver_checked = true
+
+[[row]]
+label = "approved_drugs_chembl-CHEMBL996"
+category = "approved_drugs_chembl"
+smiles = "CO[C@@]1(NC(=O)Cc2cccs2)C(=O)N2C(C(=O)O)=C(COC(N)=O)CS[C@@H]21"
+common_name = "CEFOXITIN"
+source = "ChEMBL CHEMBL996 (max_phase=4), cross-checked against PubChem by name"
+target_source = "none"
+
+[row.provenance]
+chembl_id = "CHEMBL996"
+resolver_checked = true
 
