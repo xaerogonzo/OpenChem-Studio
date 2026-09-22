@@ -1,7 +1,17 @@
 """The round-9 fix ledger is a machine-checked cap, not a promise.
 
-`benchmarks/naming/admissions_r9.toml` holds at most EIGHT admitted fixes. Round 8's lesson was that a scope stated in prose is a scope that
-grows: a four-workstream plan became a second day of unplanned fixes because nothing failed when it did. These tests are the thing that fails.
+`benchmarks/naming/admissions_r9.toml` holds at most `cap.slots` admitted fixes -- whatever that is
+declared to be. Round 8's lesson was that a scope stated in prose is a scope that grows: a four-workstream
+plan became a second day of unplanned fixes because nothing failed when it did. These tests are the thing
+that fails, for the properties that actually bite scope creep: item count never exceeds the DECLARED cap,
+and once frozen, the admitted set (which items, why, their target) cannot move.
+
+**What this file deliberately does NOT do: pin the cap to one specific number in code.** An earlier version
+hard-coded `if slots != 8`, which meant changing the round's own considered scope decision required editing
+a test file, not just the ledger -- a guard that checks "is this literally 8" rather than "is this
+internally consistent" (Alex, 2026-09-22: "never do those hardcoded guards again, they don't serve that
+much of a function"). The cap can be whatever the ledger declares; what stays enforced is that nothing
+admitted ever exceeds it, and that the frozen set cannot be edited quietly.
 
 The ledger is EMPTY until the end of the instruments stage, then filled once and frozen by a hash. Every rule here is applied to the entries
 that exist, and to a synthetic ledger in `_ledger()` so that the rules are proven to bite before there is anything for them to bite on.
@@ -46,12 +56,12 @@ def problems(ledger: dict) -> list[str]:
     cap = ledger.get("cap", {})
     slots = cap.get("slots")
     minimum = cap.get("natural_frequency_min")
-    if slots != 8:
-        out.append(f"the cap is 8 slots, not {slots!r}")
+    if not isinstance(slots, int) or slots < 1:
+        out.append(f"cap.slots must be a positive integer, got {slots!r}")
     if not isinstance(minimum, float) or not 0 < minimum < 1:
         out.append(f"natural_frequency_min must be a fraction in (0, 1), got {minimum!r}")
     items = ledger.get("item", [])
-    if len(items) > (slots or 0):
+    if isinstance(slots, int) and len(items) > slots:
         out.append(f"{len(items)} items admitted against a cap of {slots}")
     seen_ids: set[str] = set()
     seen_slots: set[int] = set()
@@ -102,6 +112,11 @@ def problems(ledger: dict) -> list[str]:
     return out
 
 
+#: A deliberately small, deliberately NOT-the-real-project-number cap for the synthetic-ledger tests below,
+#: so nothing here is coupled to whatever admissions_r9.toml actually declares.
+_TEST_SLOTS = 3
+
+
 def _item(n: int, **overrides) -> dict:
     item = {
         "item_id": f"F{n}", "slot_number": n, "discovery_source": ["existing_open_list"], "admission_reason": f"reason {n}",
@@ -112,8 +127,8 @@ def _item(n: int, **overrides) -> dict:
     return item
 
 
-def _ledger(*items: dict, frozen: bool = False) -> dict:
-    ledger = {"cap": {"slots": 8, "natural_frequency_min": 0.005, "frozen": frozen, "frozen_sha256": ""}, "item": list(items)}
+def _ledger(*items: dict, frozen: bool = False, slots: int = _TEST_SLOTS) -> dict:
+    ledger = {"cap": {"slots": slots, "natural_frequency_min": 0.005, "frozen": frozen, "frozen_sha256": ""}, "item": list(items)}
     if frozen:
         ledger["cap"]["frozen_sha256"] = frozen_hash(list(items))
     return ledger
@@ -132,26 +147,28 @@ def test_the_frequency_floor_was_committed_before_any_census_exists():
 
 # --- the rules, on ledgers that do not exist -----------------------------------------------------------------------------------------
 
-def test_eight_items_fit_and_nine_do_not():
-    assert problems(_ledger(*[_item(n) for n in range(1, 9)])) == []
-    nine = _ledger(*[_item(n) for n in range(1, 10)])
-    assert any("9 items admitted against a cap of 8" in m for m in problems(nine))
+def test_items_fit_the_declared_cap_and_no_more():
+    """The cap is whatever the ledger declares (_TEST_SLOTS here, something else in the real file) -- what
+    matters is that the count is checked AGAINST that declared number, not against a number baked into this test."""
+    assert problems(_ledger(*[_item(n) for n in range(1, _TEST_SLOTS + 1)])) == []
+    one_over = _ledger(*[_item(n) for n in range(1, _TEST_SLOTS + 2)])
+    assert any(f"{_TEST_SLOTS + 1} items admitted against a cap of {_TEST_SLOTS}" in m for m in problems(one_over))
 
 
 def test_a_wrong_molecule_takes_a_slot_like_any_other_item():
-    """The first draft of the plan let wrong molecules escape the cap, which is not a cap. Eight items INCLUDING wrong molecules still fit;
-    a ninth of either kind does not."""
-    wrong = [_item(n, wrong_molecule=True, diagnosed_against_fixture=True, target_source="none", frequency=0.0) for n in range(1, 5)]
-    ordinary = [_item(n) for n in range(5, 9)]
+    """The first draft of the plan let wrong molecules escape the cap, which is not a cap. A full cap
+    INCLUDING wrong molecules still fits; one more of either kind does not."""
+    wrong = [_item(n, wrong_molecule=True, diagnosed_against_fixture=True, target_source="none", frequency=0.0) for n in range(1, _TEST_SLOTS)]
+    ordinary = [_item(_TEST_SLOTS)]
     assert problems(_ledger(*wrong, *ordinary)) == []
-    ninth_wrong = _item(9, wrong_molecule=True, diagnosed_against_fixture=True, target_source="none")
-    assert any("cap of 8" in m for m in problems(_ledger(*wrong, *ordinary, ninth_wrong)))
+    one_more_wrong = _item(_TEST_SLOTS + 1, wrong_molecule=True, diagnosed_against_fixture=True, target_source="none")
+    assert any(f"cap of {_TEST_SLOTS}" in m for m in problems(_ledger(*wrong, *ordinary, one_more_wrong)))
 
 
 def test_a_slot_is_used_once_and_lies_in_range():
     assert any("taken twice" in m for m in problems(_ledger(_item(1), _item(2, slot_number=1))))
-    assert any("not in 1..8" in m for m in problems(_ledger(_item(1, slot_number=9))))
-    assert any("not in 1..8" in m for m in problems(_ledger(_item(1, slot_number=0))))
+    assert any(f"not in 1..{_TEST_SLOTS}" in m for m in problems(_ledger(_item(1, slot_number=_TEST_SLOTS + 1))))
+    assert any(f"not in 1..{_TEST_SLOTS}" in m for m in problems(_ledger(_item(1, slot_number=0))))
 
 
 def test_an_item_needs_a_target_source_of_the_declared_kinds():
@@ -191,14 +208,18 @@ def test_a_discovery_source_is_recorded_and_from_the_declared_set():
     assert problems(_ledger(_item(1, discovery_source=["B1", "B3"]))) == []
 
 
-def test_the_cap_and_the_floor_themselves_cannot_be_edited_quietly():
-    raised = _ledger()
-    raised["cap"]["slots"] = 9
-    assert any("cap is 8" in m for m in problems(raised))
+def test_the_frequency_floor_cannot_be_loosened_to_an_invalid_value():
     for bad in (0, 1, -0.1, "0.005", None):
         loosened = _ledger()
         loosened["cap"]["natural_frequency_min"] = bad
         assert any("natural_frequency_min" in m for m in problems(loosened)), bad
+
+
+def test_the_slot_cap_itself_must_be_a_sane_positive_integer():
+    for bad in (0, -1, "8", None, 3.5):
+        broken = _ledger()
+        broken["cap"]["slots"] = bad
+        assert any("cap.slots" in m for m in problems(broken)), bad
 
 
 def test_after_the_freeze_the_admitted_set_does_not_move():
