@@ -483,13 +483,34 @@ def cmd_resolve(_args: argparse.Namespace) -> None:
 
 _CHEMBL_BASE = "https://www.ebi.ac.uk/chembl/api/data"
 _CHEMBL_SEED = 20260922
+_CHEMBL_MAX_RETRIES = 5
+_CHEMBL_RETRY_BASE_SECONDS = 10.0
 
 
 def _chembl_get(path: str) -> dict:
+    """`open_url`, retried with backoff. ChEMBL's public API has proven flaky this session (a broad
+    HTTP 500 outage on every filtered query, then, once that cleared, a plain socket read timeout on the
+    very next call) -- unlike the PubChem path, this had no retry at all until a transient timeout killed
+    a run that had already fetched the id pool. Retries on any exception, not just a specific status code:
+    a read timeout never reaches the HTTPError branch PubChem's retry checks for the string "503" in."""
+    import time
+    import urllib.error
+
     from openchem.net import open_url
 
-    with open_url(f"{_CHEMBL_BASE}/{path}", timeout=30) as response:
-        return json.loads(response.read())
+    last_exc: Exception | None = None
+    for attempt in range(_CHEMBL_MAX_RETRIES + 1):
+        try:
+            with open_url(f"{_CHEMBL_BASE}/{path}", timeout=30) as response:
+                return json.loads(response.read())
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            last_exc = exc
+            if attempt == _CHEMBL_MAX_RETRIES:
+                raise
+            delay = _CHEMBL_RETRY_BASE_SECONDS * (2**attempt)
+            print(f"    (ChEMBL request failed ({type(exc).__name__}: {exc}), retry {attempt + 1}/{_CHEMBL_MAX_RETRIES} after {delay:.0f}s)", file=sys.stderr)
+            time.sleep(delay)
+    raise last_exc  # pragma: no cover - unreachable, loop always returns or raises
 
 
 def chembl_release_version() -> str:
