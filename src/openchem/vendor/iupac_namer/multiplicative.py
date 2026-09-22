@@ -350,6 +350,15 @@ def _name_decomposition(mol, dec: Decomposition, whole_tree, fgs) -> str:
         # phenyldiazene) ... ketone is senior to 'diazene']" (pdf p. 110).
         # The engine does not perceive that C=O between two N as a ketone.
         best_link = min(best_link if best_link is not None else _KETONE, _KETONE)
+    if _linker_has_imine(mol, dec.linker):
+        # A C=N (or N=C=N, a carbodiimide) in the linker is senior to two
+        # identical hydrocarbon units, perceived or not: DCC's own PIN is
+        # "dicyclohexylmethanediimine" (P-62.3.1.4, pdf p. 528), never a
+        # multiplicative "1,1'-[methylenebis(azanediyl)]dicyclohexane".
+        # Measured: Perception(mol).fgs.detected_fgs is EMPTY for DCC --
+        # the imine FG does not fire in this decomposition context at all,
+        # the same gap _linker_has_carbonyl already patches for ketones.
+        best_link = min(best_link if best_link is not None else _IMINE, _IMINE)
     if best_link is not None and (best_unit is None or best_link <= best_unit):
         raise Declined("the linker holds a group as senior as the units' (P-15.3.3.2.2)")
     if best_unit is not None:
@@ -379,6 +388,7 @@ def _name_decomposition(mol, dec: Decomposition, whole_tree, fgs) -> str:
 
 
 _KETONE = 1600  # functional_groups.json's ketone seniority
+_IMINE = 2000  # functional_groups.json's imine seniority (measured: Perception(mol).fgs on CC=N)
 
 
 def _heterogeneous_chain(mol, dec) -> bool:
@@ -402,6 +412,24 @@ def _linker_has_carbonyl(mol, linker) -> bool:
             continue
         for nb in atom.GetNeighbors():
             if (nb.GetIdx() in linker and nb.GetSymbol() == "O" and nb.GetDegree() == 1
+                    and mol.GetBondBetweenAtoms(i, nb.GetIdx()).GetBondType()
+                    == Chem.BondType.DOUBLE):
+                return True
+    return False
+
+
+def _linker_has_imine(mol, linker) -> bool:
+    """A carbon in the linker double-bonded to a nitrogen also in the linker: a
+    C=N (imine) or, when the carbon has two such neighbours, N=C=N (a
+    carbodiimide). Unlike the carbonyl's terminal =O, the nitrogen here is not
+    required to be degree 1 -- it goes on to bond a unit (DCC's own ring), which
+    is exactly the shape the whole decomposition exists to cut."""
+    for i in linker:
+        atom = mol.GetAtomWithIdx(i)
+        if atom.GetSymbol() != "C":
+            continue
+        for nb in atom.GetNeighbors():
+            if (nb.GetIdx() in linker and nb.GetSymbol() == "N"
                     and mol.GetBondBetweenAtoms(i, nb.GetIdx()).GetBondType()
                     == Chem.BondType.DOUBLE):
                 return True
@@ -569,9 +597,28 @@ def _linker_name(mol, dec: Decomposition) -> str:
         atom = mol.GetAtomWithIdx(i)
         if atom.IsInRing() and not _in_benzene(mol, i, skeleton):
             raise Declined("a ring other than benzene in the linker")
+    if _fused_ring_count(mol, skeleton) > 1:
+        # Every atom of a fused bicyclic (naphthalene etc.) individually belongs to
+        # SOME lone 6-membered benzo ring, so _in_benzene's per-atom check above passes
+        # for all of them -- and _divalent_linker's shortest-path walk then takes the
+        # single-bond ortho shortcut across the OTHER ring's fusion atoms, silently
+        # dropping that whole second ring: measured, "naphthalene-2,3-diyldiacetic
+        # acid" (2,3-CH2COOH-substituted naphthalene) named as "2,2'-(1,2-phenylene)
+        # diacetic acid" -- 4 of the linker's 10 ring atoms simply never appear.
+        # Fused polycyclic linkers are not yet named here (P-15.3.1.2.1.2 assumes a
+        # single ring or an unfused set); decline rather than drop the ring, same as
+        # the "a ring other than benzene" case just above.
+        raise Declined("a fused polycyclic ring system in the linker (not yet named)")
     if n == 2:
         return _divalent_linker(mol, dec, skeleton)
     return _polyvalent_linker(mol, dec, skeleton)
+
+
+def _fused_ring_count(mol, skeleton) -> int:
+    """How many distinct SSSR rings lie entirely within *skeleton*. A lone benzo
+    linker has exactly one; a fused system (naphthalene, indane's carbocycle, ...)
+    has two or more, and _in_benzene cannot tell those apart per atom."""
+    return sum(1 for ring in mol.GetRingInfo().AtomRings() if set(ring) <= skeleton)
 
 
 def _in_benzene(mol, idx, skeleton) -> bool:

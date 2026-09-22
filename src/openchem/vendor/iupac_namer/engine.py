@@ -18143,21 +18143,44 @@ def _role_primes(pcg_instances, parent_atoms, mol) -> dict[int, str]:
     Hydrazide (P-66.3.1): the N bonded to the acyl carbon is N, the terminal
     one N'. Amidine (P-66.4.1.4.1): the amino N is N, the imino N is N'. Only groups with a named role scheme appear here; every other
     group keeps the index-order primes of its caller.
+
+    TWO OR MORE instances of the SAME role-primed group at the SAME parent
+    position (a 1,1-dicarboximidamide) need a further layer of primes, or
+    both instances' role primes collide onto the same N/N' -- measured
+    (D-131): a cyclohexane-1,1-dicarboximidamide with different substituents
+    on each group's amino and imino N put BOTH substituents on the SAME
+    group, because this function assigned "" to every amino N and "'" to
+    every imino N regardless of which of the two instances it belonged to,
+    silently overwriting the index-order primes its caller had already
+    computed to tell the two apart. Instances sharing a parent position are
+    now ordered by anchor atom index and each later instance's role primes
+    are shifted by two more prime marks: the first keeps N/N', the second
+    gets N''/N''', and so on -- the same "index order once role order is
+    exhausted" the caller already uses for groups with no role scheme.
     """
-    primes: dict[int, str] = {}
+    by_parent_pos: dict[int | None, list] = {}
     for fg in pcg_instances:
         if fg.type not in ("hydrazide", "imidamide"):
             continue
-        for a in fg.atoms - set(parent_atoms):
-            if mol.GetAtomWithIdx(a).GetAtomicNum() != 7:
-                continue
-            bond = mol.GetBondBetweenAtoms(a, fg.anchor)
-            if fg.type == "hydrazide":
-                primes[a] = "" if bond is not None else "'"
-            elif bond is not None:
-                # P-66.4.1.4.1: "the locant N refers to the amino group and
-                # N' refers to the imino group" (p. 678).
-                primes[a] = "'" if bond.GetBondTypeAsDouble() == 2 else ""
+        parent_pos = _find_parent_neighbor(fg.anchor, parent_atoms, mol)
+        by_parent_pos.setdefault(parent_pos, []).append(fg)
+
+    primes: dict[int, str] = {}
+    for group in by_parent_pos.values():
+        group.sort(key=lambda fg: fg.anchor)
+        for instance_index, fg in enumerate(group):
+            shift = "'" * (2 * instance_index)
+            for a in fg.atoms - set(parent_atoms):
+                if mol.GetAtomWithIdx(a).GetAtomicNum() != 7:
+                    continue
+                bond = mol.GetBondBetweenAtoms(a, fg.anchor)
+                if fg.type == "hydrazide":
+                    primes[a] = shift if bond is not None else shift + "'"
+                elif bond is not None:
+                    # P-66.4.1.4.1: "the locant N refers to the amino group and
+                    # N' refers to the imino group" (p. 678), shifted by `shift`
+                    # when a second identical group shares this parent position.
+                    primes[a] = (shift + "'") if bond.GetBondTypeAsDouble() == 2 else shift
     return primes
 
 

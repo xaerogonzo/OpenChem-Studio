@@ -3113,6 +3113,42 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "converse: the carbon-attached ring acyl was already right (p. 622)"),
     ("D-129w", "OC(=O)c1ccc(cc1)C(=O)N(C)C", "4-(dimethylcarbamoyl)benzoic acid", "(unchanged)",
      "converse: an acyclic amide is 'carbamoyl'"),
+    # Round 9 (admissions ledger, item "carbamimidoyl-locant"):
+    ("D-131", "CCN=C(N)C1(C(=N)N(C)C)CCCCC1",
+     "N'-ethyl-N'',N''-dimethylcyclohexane-1,1-dicarboximidamide",
+     "N'-ethyl-N,N-dimethylcyclohexane-1,1-dicarboximidamide",
+     "engine.py's _role_primes assigned amino=N/imino=N' by ROLE alone, "
+     "ignoring which of the two identical carboximidamide instances at the "
+     "same parent position (1,1-) an atom belonged to, so both instances' "
+     "primes collided and OPSIN put both substituents on the same group; "
+     "instances sharing a parent position are now ordered by anchor atom "
+     "index and each later instance's role primes are shifted by two more "
+     "prime marks (N/N' -> N''/N'''), verified via OPSIN round-trip"),
+    # Round 9 (admissions ledger, item "naphthalene-ring-drop", target_source
+    # = "none" -- wrong molecule only, no PIN claimed or sourced). The
+    # multiplicative linker builder's _divalent_linker walked the SHORTEST
+    # path between the two attachment atoms; on a naphthalene-2,3-diyl
+    # linker that path is the single ortho bond across ONE ring, so the
+    # entire OTHER fused ring (4 of naphthalene's 10 ring atoms) was
+    # silently treated as "off the path, and merely aromatic" and dropped --
+    # "2,2'-(1,2-phenylene)diacetic acid" names plain benzene-1,2-
+    # diylbis(acetic acid), a different, smaller molecule (verified via
+    # OPSIN: different structure). multiplicative.py's new
+    # _fused_ring_count check declines whenever the linker's skeleton spans
+    # more than one SSSR ring, the same declining style the existing "a
+    # ring other than benzene in the linker" check already uses. The engine
+    # falls back to substitutive naming (one arm as parent, the ring plus
+    # the other arm as one substituent), which keeps every ring atom;
+    # verified via OPSIN round-trip. The preferred multiplicative form
+    # ('naphthalene-2,3-diyldiacetic acid') needs fused-ring-system linker
+    # naming, which P-15.3 multiplicative constructions on a fused ring
+    # were explicitly out of round 9's scope (the plan's seed-list note) --
+    # not tracked here without a sourced target to check it against.
+    ("D-132", "O=C(O)Cc1cc2ccccc2cc1CC(=O)O", "[3-(carboxymethyl)naphthalen-2-yl]acetic acid",
+     "2,2'-(1,2-phenylene)diacetic acid",
+     "no printed or derived target (target_source: none); this row exists "
+     "to catch a regression back to the wrong molecule, not to claim IUPAC "
+     "preference"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -3196,6 +3232,27 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "(dimethylamino)(ethoxy)(oxo)phosphanecarbonitrile", "derived from functional "
      "replacement (P-67.1.2.4, 'methylphosphonocyanatidic acid (PIN)', p. 704); was "
      "'tabun', which the book never prints (gated, N5)"),
+    # Round 9 (admissions ledger, item "carbodiimide"): PARTLY FIXED. The
+    # admission's own defect -- the multiplicative-linker route silently
+    # treating N=C=N as a neutral bridge between two identical rings, giving
+    # the WRONG STRUCTURE "1,1'-[methylenebis(azanediyl)]dicyclohexane" -- is
+    # resolved (see test_a_symmetric_carbodiimide_is_no_longer_a_wrong_molecule
+    # below): multiplicative.py's _linker_has_imine now declines that route
+    # the same way _linker_has_carbonyl already declines it for a ketone
+    # linker. What remains open is reaching the PIN itself: the engine falls
+    # back to a substitutive name, "{[(cyclohexylimino)methylidene]amino}
+    # cyclohexane" -- structurally correct, not preferred. Measured:
+    # Perception(mol).fgs.detected_fgs is EMPTY for DCC in every context
+    # tried, not only the multiplicative-decomposition one, so the imine FG
+    # never becomes a suffix candidate at all -- a narrower, separate
+    # candidate-generation question than this item's admission reason.
+    ("D-130", "C(=NC1CCCCC1)=NC1CCCCC1", "dicyclohexylmethanediimine",
+     "1,1'-[methylenebis(azanediyl)]dicyclohexane",
+     "P-62.3.1.4 (pdf p. 528), verbatim 'dicyclohexylmethanediimine (PIN)'; "
+     "today's output is '{[(cyclohexylimino)methylidene]amino}cyclohexane' "
+     "-- the WRONG MOLECULE this item was admitted for is fixed, the PIN is "
+     "a separate, still-open gap (imine FG perception is empty for this "
+     "structure in every context, not only the multiplicative one)"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified
@@ -3240,6 +3297,53 @@ def test_open_defect_still_open(defect, smiles, expected, former, note):
     is now lying about it. Move the row from OPEN to FIXED.
     """
     assert name_smiles(smiles) == expected
+
+
+def test_a_symmetric_carbodiimide_is_no_longer_a_wrong_molecule():
+    """D-130's admission reason (carbodiimide): DCC named as a saturated
+    bis-amine via the multiplicative-linker route, "1,1'-[methylenebis
+    (azanediyl)]dicyclohexane" -- verified via OPSIN as a DIFFERENT molecule
+    from the input (a CH2 bridge, no N=C=N). That specific wrong string must
+    never come back, regardless of whether the engine later reaches the PIN
+    (D-130, still open in OPEN above)."""
+    wrong_former_output = "1,1'-[methylenebis(azanediyl)]dicyclohexane"
+    got = name_smiles("C(=NC1CCCCC1)=NC1CCCCC1")
+    assert got != wrong_former_output
+    # The specific structurally-correct fallback measured 2026-09-22, pinned
+    # so a further improvement toward the PIN is a deliberate D-130 update,
+    # not a silent drift this test stays blind to either way.
+    assert got == "{[(cyclohexylimino)methylidene]amino}cyclohexane"
+
+
+def test_a_fused_ring_linker_no_longer_drops_a_ring():
+    """D-132's admission reason (naphthalene-ring-drop): the multiplicative
+    linker builder's shortest-path walk crossed a fused ring's ortho bond and
+    silently dropped the OTHER ring entirely -- verified via OPSIN as a
+    DIFFERENT, smaller molecule (plain benzene, not naphthalene). That wrong
+    string must never come back."""
+    wrong_former_output = "2,2'-(1,2-phenylene)diacetic acid"
+    got = name_smiles("O=C(O)Cc1cc2ccccc2cc1CC(=O)O")
+    assert got != wrong_former_output
+    assert got == "[3-(carboxymethyl)naphthalen-2-yl]acetic acid"
+
+
+def test_a_single_benzo_ring_linker_still_uses_phenylene():
+    """Converse of D-132: the new fused-ring check (multiplicative.py's
+    _fused_ring_count) must decline ONLY when the linker's skeleton spans
+    more than one SSSR ring. A single, non-fused ortho-substituted benzene
+    ring linker -- structurally identical to the wrong output above, minus
+    the second ring -- is the legitimate case '2,2'-(1,2-phenylene)diacetic
+    acid' was built for, and must still reach it."""
+    assert name_smiles("O=C(O)Cc1ccccc1CC(=O)O") == "2,2'-(1,2-phenylene)diacetic acid"
+
+
+def test_a_peri_fused_linker_also_keeps_every_ring_atom():
+    """A second fused-ring converse of D-132, with the two arms attached
+    across the ring-fusion peri positions (naphthalene-1,8-diyl) rather than
+    D-132's 2,3-diyl -- a different attachment geometry on the same fused
+    system, to check the decline is not narrowly tuned to one case."""
+    got = name_smiles("O=C(O)Cc1cccc2cccc(CC(O)=O)c12")
+    assert got == "[8-(carboxymethyl)naphthalen-1-yl]acetic acid"
 
 
 @pytest.mark.parametrize(
