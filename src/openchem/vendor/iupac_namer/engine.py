@@ -4803,6 +4803,33 @@ def _handcraft_alpha_substituted_acetamido(
     return f"{prefix}acetamido"
 
 
+def _sulfonyl_sulfinyl_has_single_substituent(mol, attachment_idx, att_atom_s) -> bool:
+    """True when S (already known to carry a suffix-eligible oxo_count of 1 or
+    2) has exactly one OTHER substituent besides its terminal =O oxygens --
+    the shape the {R}sulfonyl/{R}sulfinyl prefix shortcut below assumes.
+
+    A hypervalent centre with MORE substituents (a sulfinimidoyl/sulfonimidoyl
+    halide, S(=O)(=N-)(Hal)(N<)) does not fit that shape: the "R fragment" the
+    shortcut builds is mol minus S minus its oxo oxygens, which for such a
+    centre is TWO OR MORE disconnected pieces once S itself is removed, and
+    carve_substituent only reaches whichever one the attachment atom
+    (the first neighbour GetNeighbors() happens to return) belongs to -- the
+    rest are silently dropped from the name. Measured: CN=S(=O)(Br)NC (a
+    sulfinyl bromide with an additional imine substituent) named
+    "[(methylaminosulfinyl)amino]methane", losing both the bromine and the
+    S=N double bond -- two defects from one un-guarded assumption. Declining
+    here falls through to general substituent naming, which does not drop
+    atoms; a dedicated sulfinimidoyl/sulfonimidoyl halide name is a separate,
+    unbuilt gap."""
+    non_oxo = 0
+    for nb in att_atom_s.GetNeighbors():
+        bond = mol.GetBondBetweenAtoms(attachment_idx, nb.GetIdx())
+        if nb.GetAtomicNum() == 8 and bond is not None and bond.GetBondTypeAsDouble() >= 2.0:
+            continue
+        non_oxo += 1
+    return non_oxo == 1
+
+
 def _name_single_fg_substituent(
     perception: Perception,
     mol,
@@ -5096,7 +5123,7 @@ def _name_single_fg_substituent(
             and mol.GetBondBetweenAtoms(attachment_idx, nb.GetIdx()) is not None
             and mol.GetBondBetweenAtoms(attachment_idx, nb.GetIdx()).GetBondTypeAsDouble() >= 2.0
         )
-        if oxo_count in (1, 2):
+        if oxo_count in (1, 2) and _sulfonyl_sulfinyl_has_single_substituent(mol, attachment_idx, att_atom_s):
             # Build the R fragment: all atoms except S and its =O oxygens
             s_and_oxo = frozenset(
                 [attachment_idx] + [

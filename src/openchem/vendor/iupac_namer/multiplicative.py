@@ -359,6 +359,18 @@ def _name_decomposition(mol, dec: Decomposition, whole_tree, fgs) -> str:
         # the imine FG does not fire in this decomposition context at all,
         # the same gap _linker_has_carbonyl already patches for ketones.
         best_link = min(best_link if best_link is not None else _IMINE, _IMINE)
+    if _linker_has_phosphine_oxide(mol, dec.linker):
+        # A P=O in the linker is a real oxidation-state fact, perceived or
+        # not: dropping it names a P(V) phosphine oxide as a P(III)
+        # phosphane, a wrong molecule, not merely a non-preferred name.
+        # Measured: Perception(mol).fgs.detected_fgs has no phosphine-oxide
+        # entry at all (not even a dormant one in functional_groups.json),
+        # the same "empty in this context" shape _linker_has_carbonyl and
+        # _linker_has_imine already patch for C=O and C=N. No functional
+        # group is registered here to borrow a real seniority number from,
+        # so _PHOSPHINE_OXIDE is a local constant, chosen senior to a plain
+        # amine/hydrazine unit the same way _KETONE and _IMINE are.
+        best_link = min(best_link if best_link is not None else _PHOSPHINE_OXIDE, _PHOSPHINE_OXIDE)
     if best_link is not None and (best_unit is None or best_link <= best_unit):
         raise Declined("the linker holds a group as senior as the units' (P-15.3.3.2.2)")
     if best_unit is not None:
@@ -389,6 +401,9 @@ def _name_decomposition(mol, dec: Decomposition, whole_tree, fgs) -> str:
 
 _KETONE = 1600  # functional_groups.json's ketone seniority
 _IMINE = 2000  # functional_groups.json's imine seniority (measured: Perception(mol).fgs on CC=N)
+_PHOSPHINE_OXIDE = 1000  # no FG entry to measure at all (Perception(mol).fgs is empty even for
+# an isolated trimethylphosphine oxide, CP(C)(C)=O); chosen senior to _KETONE and to hydrazide's
+# own 1200 (functional_groups.json), since a P=O oxidation-state fact outranks a plain amine unit.
 
 
 def _heterogeneous_chain(mol, dec) -> bool:
@@ -430,6 +445,23 @@ def _linker_has_imine(mol, linker) -> bool:
             continue
         for nb in atom.GetNeighbors():
             if (nb.GetIdx() in linker and nb.GetSymbol() == "N"
+                    and mol.GetBondBetweenAtoms(i, nb.GetIdx()).GetBondType()
+                    == Chem.BondType.DOUBLE):
+                return True
+    return False
+
+
+def _linker_has_phosphine_oxide(mol, linker) -> bool:
+    """A phosphorus in the linker double-bonded to a terminal oxygen: a P=O
+    (phosphine/phosphane oxide). Mirrors _linker_has_carbonyl's shape for P
+    instead of C -- the terminal =O IS required to be degree 1 here (unlike
+    the imine check), since a P=O is always terminal, never a bridge."""
+    for i in linker:
+        atom = mol.GetAtomWithIdx(i)
+        if atom.GetSymbol() != "P":
+            continue
+        for nb in atom.GetNeighbors():
+            if (nb.GetIdx() in linker and nb.GetSymbol() == "O" and nb.GetDegree() == 1
                     and mol.GetBondBetweenAtoms(i, nb.GetIdx()).GetBondType()
                     == Chem.BondType.DOUBLE):
                 return True

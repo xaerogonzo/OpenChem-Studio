@@ -3149,6 +3149,49 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "no printed or derived target (target_source: none); this row exists "
      "to catch a regression back to the wrong molecule, not to claim IUPAC "
      "preference"),
+    # Round 9 (admissions ledger, item "sulfinyl-bromide", target_source =
+    # "none" -- wrong molecule only). engine.py's {R}sulfonyl/{R}sulfinyl
+    # substituent shortcut assumed S has exactly one substituent beside its
+    # oxo oxygens; on a hypervalent centre with MORE substituents (here:
+    # =N-CH3, Br, and -NH-CH3 beside =O) it silently kept whichever one
+    # GetNeighbors() happened to reach first and dropped the rest -- the
+    # bromine AND the S=N double bond both vanished, "[(methylaminosulfinyl)
+    # amino]methane" (verified via OPSIN: a different, smaller molecule).
+    # The new _sulfonyl_sulfinyl_has_single_substituent guard declines the
+    # shortcut whenever S carries more than one non-oxo substituent, the
+    # same declining style D-130's _linker_has_imine and D-132's
+    # _fused_ring_count use. There is no OTHER substituent-naming route in
+    # this engine for a sulfinimidoyl/sulfonimidoyl-halide shape (S(=O)(=N-)
+    # (Hal)(N<)) -- building one is a separate, unbuilt gap -- so declining
+    # here surfaces an honest naming failure instead of a wrong molecule.
+    # Verified: RoundTrip classifies the result PARSER_FAILED, never a false
+    # MATCH; the wrong molecule this item was admitted for cannot recur.
+    ("D-133", "CN=S(=O)(Br)NC", "{[NAMING ERROR: No valid naming plan found for CN=S(N)(=O)Br]}methane",
+     "[(methylaminosulfinyl)amino]methane",
+     "no printed or derived target (target_source: none); an honest naming "
+     "failure (RoundTrip.PARSER_FAILED) replaces the wrong molecule, which "
+     "is what this item was admitted to fix -- a real sulfinimidoyl/"
+     "sulfonimidoyl-halide name is a separate, unbuilt gap"),
+    # Round 9 (admissions ledger, item "phosphine-oxide-trihydrazide",
+    # target_source = "none" -- wrong molecule only). A P(V) phosphine oxide
+    # bearing three hydrazino substituents named as a trivalent P(III)
+    # phosphane via multiplicative.py's _polyvalent_linker: the P=O oxygen is
+    # stripped from the linker's "skeleton" before the linker is named
+    # (_linker_name strips oxo atoms for every case, including the plain
+    # trivalent one where there IS no oxo to strip), and nothing checked
+    # whether that stripped =O should have blocked the construction --
+    # "1,1',1''-phosphanetriyltris(1-methylhydrazine)" (verified via OPSIN: a
+    # different molecule, no P=O at all). The new _linker_has_phosphine_oxide
+    # check declines whenever the linker carries a P=O, the same declining
+    # style _linker_has_carbonyl and _linker_has_imine already use. The
+    # engine falls back to substitutive naming that keeps the P=O; verified
+    # via OPSIN round-trip.
+    ("D-134", "CN(N)P(=O)(N(C)N)N(C)N",
+     "1-methyl-1-[bis(1-methylhydrazinyl)(oxo)phosphanyl]hydrazine",
+     "1,1',1''-phosphanetriyltris(1-methylhydrazine)",
+     "no printed or derived target (target_source: none); this row exists "
+     "to catch a regression back to the wrong molecule, not to claim IUPAC "
+     "preference"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -3344,6 +3387,55 @@ def test_a_peri_fused_linker_also_keeps_every_ring_atom():
     system, to check the decline is not narrowly tuned to one case."""
     got = name_smiles("O=C(O)Cc1cccc2cccc(CC(O)=O)c12")
     assert got == "[8-(carboxymethyl)naphthalen-1-yl]acetic acid"
+
+
+def test_a_hypervalent_sulfinyl_no_longer_drops_atoms():
+    """D-133's admission reason (sulfinyl-bromide): a sulfinyl bromide with
+    an additional imine substituent lost both its bromine and its S=N double
+    bond -- verified via OPSIN as a DIFFERENT, smaller molecule. That wrong
+    string must never come back; the honest failure it is replaced with is
+    checked structurally too (PARSER_FAILED, never a false MATCH)."""
+    from openchem.chem.naming_providers import verify_name_round_trip, RoundTrip
+
+    wrong_former_output = "[(methylaminosulfinyl)amino]methane"
+    smiles = "CN=S(=O)(Br)NC"
+    got = name_smiles(smiles)
+    assert got != wrong_former_output
+    assert verify_name_round_trip(smiles, got) == RoundTrip.PARSER_FAILED
+
+
+def test_a_plain_sulfinyl_halide_still_uses_the_shortcut():
+    """Converse of D-133: the new _sulfonyl_sulfinyl_has_single_substituent
+    guard must decline ONLY when S carries more than one non-oxo
+    substituent. A plain sulfinyl bromide with no third substituent --
+    D-133's molecule minus the extra N-methylamino branch -- is exactly the
+    shape the {R}sulfinyl shortcut was built for, and must still reach it."""
+    assert name_smiles("CN=S(=O)Br") == "[(bromosulfinyl)amino]methane"
+
+
+def test_a_plain_sulfonyl_substituent_still_uses_the_shortcut():
+    """A second converse of D-133, on the sulfonyl (oxo_count=2) side of the
+    same shortcut rather than the sulfinyl side."""
+    assert name_smiles("CS(=O)(=O)c1ccccc1") == "(methanesulfonyl)benzene"
+
+
+def test_a_phosphine_oxide_no_longer_loses_its_oxidation_state():
+    """D-134's admission reason (phosphine-oxide-trihydrazide): a P(V)
+    phosphine oxide named as a trivalent P(III) phosphane, dropping the P=O
+    entirely -- verified via OPSIN as a DIFFERENT molecule. That wrong
+    string must never come back."""
+    wrong_former_output = "1,1',1''-phosphanetriyltris(1-methylhydrazine)"
+    got = name_smiles("CN(N)P(=O)(N(C)N)N(C)N")
+    assert got != wrong_former_output
+    assert got == "1-methyl-1-[bis(1-methylhydrazinyl)(oxo)phosphanyl]hydrazine"
+
+
+def test_a_plain_trivalent_phosphanetriyl_linker_still_works():
+    """Converse of D-134: the new _linker_has_phosphine_oxide check must
+    decline ONLY when the linker carries a real P=O. A plain trivalent P
+    linker -- D-134's molecule minus the oxide -- is exactly the shape
+    "phosphanetriyl" was built for, and must still reach it."""
+    assert name_smiles("CN(N)P(N(C)N)N(C)N") == "1,1',1''-phosphanetriyltris(1-methylhydrazine)"
 
 
 @pytest.mark.parametrize(
