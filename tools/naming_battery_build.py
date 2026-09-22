@@ -34,6 +34,11 @@ SCRATCH = BENCH / "battery_scratch"
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+# Reused rather than redefined: the SAME per-row timeout budget naming_stage_artifact.py's B1 incident
+# established (the coronene ring-decomposition hang) -- one constant, one rationale, not two copies that
+# could drift apart.
+from naming_stage_artifact import ROW_TIMEOUT_SECONDS, WORKER_STARTUP_TIMEOUT_SECONDS  # noqa: E402
+
 
 def protocol_sha256() -> str:
     return hashlib.sha256(PROTOCOL.read_bytes()).hexdigest()
@@ -725,6 +730,135 @@ def cmd_assemble(_args: argparse.Namespace) -> None:
         print(f"  {category:32s} {counts.get(category, 0):4d}{flag}")
 
 
+# =====================================================================================================
+# Probe: run the engine over every battery row. Reuses the SAME per-row worker-process timeout as
+# naming_stage_artifact.py's _row_worker -- naming_probe.probe_structure calls name_smiles in-process
+# with no timeout of its own, and the coronene incident (tools/naming_stage_artifact.py's own history)
+# already proved that this exact code path can hang for hours on one pathological structure. A 332-row
+# battery drawn from ChEMBL and generated functional-group scaffolds is exactly the kind of population
+# that could contain another one.
+# =====================================================================================================
+
+
+def _probe_worker(in_queue, out_queue, ready) -> None:
+    """One structure at a time: the probe's own plan/failure counters, plus the RoundTrip verdict --
+    the same TWO separate dimensions (silent-fallback status, structural correctness) B1 and the rest of
+    this project already use, rather than a parallel B2-specific taxonomy."""
+    sys.path.insert(0, str(ROOT / "tools"))
+    import naming_probe
+    from openchem.chem import naming_providers as np
+    from rdkit import Chem, RDLogger
+
+    RDLogger.DisableLog("rdApp.*")
+    ready.set()
+    while True:
+        smiles = in_queue.get()
+        if smiles is None:
+            return
+        try:
+            mol = Chem.MolFromSmiles(smiles)
+            record = naming_probe.probe_structure(smiles)
+            verdict = np.verify_name_round_trip(record["name"], mol).name
+            record["verdict"] = verdict
+            out_queue.put((record, None))
+        except Exception as exc:  # noqa: BLE001
+            out_queue.put((None, f"{type(exc).__name__}: {exc}"))
+
+
+def probe_battery(rows: list[dict]) -> list[dict]:
+    import multiprocessing as mp
+    import queue as queue_mod
+    import time
+
+    ctx = mp.get_context("spawn")
+
+    def spawn_worker():
+        in_q, out_q = ctx.Queue(), ctx.Queue()
+        ready = ctx.Event()
+        proc = ctx.Process(target=_probe_worker, args=(in_q, out_q, ready), daemon=True)
+        proc.start()
+        if not ready.wait(timeout=WORKER_STARTUP_TIMEOUT_SECONDS):
+            proc.terminate()
+            raise RuntimeError(f"probe worker did not start within {WORKER_STARTUP_TIMEOUT_SECONDS}s")
+        return proc, in_q, out_q
+
+    def kill(proc) -> None:
+        proc.terminate()
+        proc.join(timeout=10)
+        if proc.is_alive():
+            proc.kill()
+            proc.join(timeout=10)
+
+    proc, in_q, out_q = spawn_worker()
+    results: list[dict] = []
+    try:
+        for index, row in enumerate(rows, start=1):
+            started = time.perf_counter()
+            in_q.put(row["smiles"])
+            result = None
+            while result is None and time.perf_counter() - started < ROW_TIMEOUT_SECONDS:
+                remaining = ROW_TIMEOUT_SECONDS - (time.perf_counter() - started)
+                try:
+                    result = out_q.get(timeout=min(1.0, max(0.05, remaining)))
+                except queue_mod.Empty:
+                    if not proc.is_alive():
+                        break
+            if result is not None:
+                record, error = result
+            else:
+                elapsed = time.perf_counter() - started
+                still_alive = proc.is_alive()
+                error = f"TIMEOUT after {elapsed:.0f}s" if still_alive else f"worker died after {elapsed:.0f}s"
+                record = None
+                if still_alive:
+                    kill(proc)
+                proc, in_q, out_q = spawn_worker()
+            results.append(
+                {
+                    "label": row["label"],
+                    "category": row["category"],
+                    "smiles": row["smiles"],
+                    "error": error,
+                    **(record or {}),
+                }
+            )
+            if index % 25 == 0 or index == len(rows):
+                print(f"    ...{index}/{len(rows)} probed", file=sys.stderr, flush=True)
+    finally:
+        try:
+            in_q.put(None)
+        except Exception:  # noqa: BLE001
+            pass
+        if proc.is_alive():
+            proc.join(timeout=5)
+            if proc.is_alive():
+                kill(proc)
+    return results
+
+
+def cmd_probe(_args: argparse.Namespace) -> None:
+    import tomllib
+
+    battery_path = BENCH / "battery_r9.toml"
+    battery = tomllib.loads(battery_path.read_text(encoding="utf-8"))
+    rows = battery["row"]
+    print(f"probing {len(rows)} rows from {battery_path}...", file=sys.stderr)
+    results = probe_battery(rows)
+
+    by_status: dict[str, int] = {}
+    by_verdict: dict[str, int] = {}
+    for r in results:
+        by_status[r.get("status", "TIMEOUT_OR_CRASH")] = by_status.get(r.get("status", "TIMEOUT_OR_CRASH"), 0) + 1
+        by_verdict[r.get("verdict", "TIMEOUT_OR_CRASH")] = by_verdict.get(r.get("verdict", "TIMEOUT_OR_CRASH"), 0) + 1
+
+    SCRATCH.mkdir(parents=True, exist_ok=True)
+    out_path = SCRATCH / "battery_r9_probe.json"
+    out_path.write_text(json.dumps(results, indent=1), encoding="utf-8")
+    print(f"probed {len(results)} rows -> {out_path}")
+    print("  by silent-fallback status:", by_status)
+    print("  by RoundTrip verdict:", by_verdict)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -733,6 +867,7 @@ def main() -> None:
     sub.add_parser("resolve", help="name-based categories through PubChem + OPSIN, needs network")
     sub.add_parser("chembl", help="the ChEMBL max_phase=4 sample, needs network")
     sub.add_parser("assemble", help="merge every scratch category into the committed battery_r9.toml")
+    sub.add_parser("probe", help="run the engine over every battery row (naming_probe.py, timeout-protected)")
     args = parser.parse_args()
     {
         "generate": cmd_generate,
@@ -740,6 +875,7 @@ def main() -> None:
         "resolve": cmd_resolve,
         "chembl": cmd_chembl,
         "assemble": cmd_assemble,
+        "probe": cmd_probe,
     }[args.command](args)
 
 
