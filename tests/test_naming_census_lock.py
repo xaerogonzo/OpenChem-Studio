@@ -118,6 +118,9 @@ def test_the_census_has_no_duplicate_structure_within_itself():
 
 
 def test_the_meta_hash_matches_the_file_it_describes():
+    """Over LF text, because that is what the draw hashed and what git stores: the Windows working copy
+    is CRLF under this repo's `core.autocrlf=true`, and hashing it raw reads as tampering when it is only
+    a checkout setting -- the same normalisation test_naming_heldout_lock.py's own hash check applies."""
     if not CENSUS_META.exists():
         import pytest
 
@@ -125,8 +128,8 @@ def test_the_meta_hash_matches_the_file_it_describes():
     import hashlib
 
     meta = json.loads(CENSUS_META.read_text(encoding="utf-8"))
-    actual = hashlib.sha256(CENSUS.read_bytes()).hexdigest()
-    assert meta["census_sha256"] == actual
+    raw = CENSUS.read_bytes().replace(b"\r\n", b"\n")
+    assert meta["census_sha256"] == hashlib.sha256(raw).hexdigest()
 
 
 def test_the_meta_says_no_engine_and_no_opsin_were_consulted():

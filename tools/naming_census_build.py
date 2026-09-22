@@ -185,8 +185,13 @@ def main() -> None:
 
     rows = build()
     payload = json.dumps(rows, indent=1)
-    OUT.write_text(payload, encoding="utf-8")
-    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    payload_bytes = payload.encode("utf-8")
+    # write_bytes, not write_text: Path.write_text() translates '\n' to the platform line separator
+    # (CRLF on Windows), so the file on disk would no longer be the same bytes the digest below is taken
+    # over. Measured 2026-09-22: the first real draw wrote CRLF and its own meta's census_sha256 did not
+    # match the file it described -- caught by test_naming_census_lock.py's own hash check.
+    OUT.write_bytes(payload_bytes)
+    digest = hashlib.sha256(payload_bytes).hexdigest()
 
     print(f"\n{len(rows)} census structures")
     print(f"sha256 {digest}")
@@ -214,7 +219,7 @@ def main() -> None:
             "census_sha256": digest,
             "cid_list": [row["pubchem_cid"] for row in rows],
         }
-        META.write_text(json.dumps(meta, indent=1), encoding="utf-8")
+        META.write_bytes(json.dumps(meta, indent=1).encode("utf-8"))
         print(f"-> {META} (frozen)")
 
 
