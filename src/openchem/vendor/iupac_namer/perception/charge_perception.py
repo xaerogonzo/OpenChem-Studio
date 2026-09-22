@@ -358,6 +358,15 @@ def classify_charges(
         # Runs BEFORE the amine classifier so the acyl-bearing N is claimed as
         # an amide anion ({acyl}amide) rather than mis-read as an amine anion.
         _classify_amide_anion,
+        # ---- Naming round 9: phosphorus-centred anion R3[P-] ----
+        # Runs before the amine classifier (distinct element, no overlap
+        # risk) and after the carbon-only ones (which correctly reject P).
+        _classify_phosphide_anion,
+        # ---- Naming round 9: deprotonated imine N(-): R2C=[N-] ----
+        # Runs before the amine classifier: mutually exclusive on the bond
+        # check (double vs. single), but explicit ordering keeps the claim
+        # visible rather than incidental.
+        _classify_imine_anion,
         # ---- P-72.2 / P-73 deprotonated amine N(-): R-[NH-] / R2-[N-] ----
         _classify_amine_anion,
         # ---- Phase 3 R4 acidic-anion (O⁻ / S⁻ on neutral parent) ----
@@ -1279,18 +1288,26 @@ def _classify_aromatic_ring_cation(mol) -> Iterable[ChargeClassification]:
 
 
 def _classify_alkynyl_anion(mol) -> Iterable[ChargeClassification]:
-    """Detect ``[C-]#C`` — ethyn-1-ide (acetylide).
+    """Detect ``[C-]#C`` — ethyn-1-ide (acetylide) — and ``[C-]#[C-]`` —
+    ethynediide, the DIanion (naming round 9, item "charge-alkynyl-dianion").
 
-    Pattern:
+    Pattern (mono-anion, the original R2-B motif):
     * exactly two heavy atoms, both carbon;
     * exactly one has formal charge -1 and zero H (sp carbanion);
     * the other is neutral with one H;
     * one triple bond between them;
     * no radical electrons.
 
-    Emits a pre-cooked ``surface_name="ethyn-1-ide"`` so the renderer
-    short-circuits without needing a recursive engine call.
-    OPSIN round-trip: ``ethyn-1-ide`` -> ``[C-]#C`` ✓
+    Pattern (di-anion, round 9): identical except BOTH carbons carry
+    charge -1 and zero H -- measured: [C-]#[C-] was named plain "ethyne",
+    both charges silently dropped, because the mono-anion branch's
+    ``len(neutral) != 1`` gate correctly declines (there is no neutral
+    carbon at all) and nothing else in this module claimed the shape.
+
+    Both emit a pre-cooked ``surface_name`` so the renderer short-circuits
+    without needing a recursive engine call.
+    OPSIN round-trip: ``ethyn-1-ide`` -> ``[C-]#C`` ✓, ``ethynediide`` ->
+    ``[C-]#[C-]`` ✓ (verified 2026-09-22).
     """
     if mol.GetNumHeavyAtoms() != 2:
         return
@@ -1301,18 +1318,32 @@ def _classify_alkynyl_anion(mol) -> Iterable[ChargeClassification]:
         return
     if any(a.GetNumRadicalElectrons() != 0 for a in atoms):
         return
+    bond = mol.GetBondBetweenAtoms(atoms[0].GetIdx(), atoms[1].GetIdx())
+    if bond is None or bond.GetBondTypeAsDouble() != 3.0:
+        return
     charged = [a for a in atoms if a.GetFormalCharge() == -1]
     neutral = [a for a in atoms if a.GetFormalCharge() == 0]
+    if len(charged) == 2 and not neutral:
+        # The di-anion: both carbons charged -1, both with zero H (sp
+        # dicarbanion) -- symmetric, so locant order does not matter.
+        if any(a.GetTotalNumHs() != 0 for a in charged):
+            return
+        yield ChargeClassification(
+            site_atom_indices=(atoms[0].GetIdx(), atoms[1].GetIdx()),
+            charge_sign="-",
+            suffix_hint="ide",
+            locant=None,
+            parent_smiles=None,
+            surface_name="ethynediide",
+            site_charges=(-1, -1),
+        )
+        return
     if len(charged) != 1 or len(neutral) != 1:
         return
     # The charged C must have no H (sp anion) and the neutral C must have 1 H.
     if charged[0].GetTotalNumHs() != 0:
         return
     if neutral[0].GetTotalNumHs() != 1:
-        return
-    # Must be connected by a triple bond.
-    bond = mol.GetBondBetweenAtoms(charged[0].GetIdx(), neutral[0].GetIdx())
-    if bond is None or bond.GetBondTypeAsDouble() != 3.0:
         return
     yield ChargeClassification(
         site_atom_indices=(charged[0].GetIdx(),),
@@ -1567,6 +1598,116 @@ def _classify_amide_anion(mol) -> Iterable[ChargeClassification]:
         site_atom_indices=(n.GetIdx(),),
         charge_sign="-",
         suffix_hint="amide_anion",
+        locant=None,
+        parent_smiles=None,
+        surface_name=None,
+    )
+
+
+def _classify_phosphide_anion(mol) -> Iterable[ChargeClassification]:
+    """Detect a RING phosphorus-centred anion (naming round 9, item
+    "charge-phosphide-anion"): no classifier existed for phosphorus-centred
+    anions at all, unlike the carbon- and nitrogen-centred ones already
+    present. Measured: a bicyclic phosphide (1-phosphabicyclo[2.2.2]octan-
+    1-uide, ``C1C[PH-]2CCC1CC2``) named as the neutral phosphane, the
+    charge silently dropped.
+
+    Pattern, deliberately narrow (mirrors _classify_amine_anion's shape,
+    not the more general _classify_simple_carbon_charge):
+
+    * exactly one formally-charged atom in the molecule, charge -1, P, no
+      radical electrons;
+    * P is a RING atom. Measured regression (stage r9-items-10-12-13,
+      bb-fe3343956898): an acyclic phosphide, ``C[P-]C`` (dimethylphosphide),
+      was ALREADY named correctly as "dimethylphosphanide" through a
+      different, existing route (the simple heteroatom-chain-parent one --
+      P itself as the "phosphane" parent, contracted with its substituents).
+      Without this gate the classifier claimed that case too and rendered
+      it through the skeletal-replacement "uide" path built for the
+      bridgehead case, which is the WRONG route for a plain chain and
+      produced a different, wrong structure. The two shapes need different
+      renderers; this classifier owns only the ring one.
+    * every heavy neighbour of P is carbon (keeps clear of phosphine
+      oxides, phosphonium ylides and other P-heteroatom motifs this is not
+      built to name);
+    * P is not aromatic.
+
+    The renderer strips the anion's own H (see _neutralized_site_changes'
+    phosphorus case) and drives the engine in substituent mode anchored at
+    P, mirroring _render_simple_carbon's "name as substituent, strip yl,
+    append suffix" technique -- but the suffix is "uide", not "ide": a
+    skeletal-replacement parent name ("phospha...") takes the linking
+    "u" (P-73), a plain hydrocarbon parent does not.
+    """
+    charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0]
+    if len(charged) != 1:
+        return
+    p = charged[0]
+    if p.GetAtomicNum() != 15 or p.GetFormalCharge() != -1:
+        return
+    if p.GetNumRadicalElectrons() != 0:
+        return
+    if not p.IsInRing():
+        return
+    if p.GetIsAromatic():
+        return
+    for nb in p.GetNeighbors():
+        if nb.GetAtomicNum() != 6:
+            return
+    yield ChargeClassification(
+        site_atom_indices=(p.GetIdx(),),
+        charge_sign="-",
+        suffix_hint="phosphide_anion",
+        locant=None,
+        parent_smiles=None,
+        surface_name=None,
+    )
+
+
+def _classify_imine_anion(mol) -> Iterable[ChargeClassification]:
+    """Detect the deprotonated imine nitrogen anion ``R2C=[N-]`` (naming
+    round 9, item "charge-imine-anion"). Measured: butaniminide
+    (``CCCC=[N-]``) named as neutral ``1-iminobutane``, the charge dropped
+    -- the amine-anion classifier below correctly declines it (its bond
+    check requires a SINGLE bond, and this N's only bond is a double one),
+    and nothing else claimed the shape.
+
+    Per P-72.2 / P-73 the deprotonated imine N is the principal anionic
+    characteristic group the same way the deprotonated amine N is: the
+    parent's ``-imine`` suffix is promoted to ``-iminide``
+    (butan-1-imine -> butan-1-iminide). The renderer re-protonates the N
+    to a neutral imine and drives the engine with ``OutputForm.ANION``;
+    the new ``("imine", OutputForm.ANION) -> "iminide"``
+    SUFFIX_VARIANT_TABLE entry produces the PIN, mirroring
+    _render_amine_anion exactly.
+
+    Gates: exactly one formally-charged atom, charge -1, N, no radical
+    electrons, no H (an sp2 lone-pair anion, not a protonated one),
+    exactly one neighbour, that neighbour carbon, bonded by a DOUBLE bond
+    (the amine anion's own gate requires single -- the two are mutually
+    exclusive on this check, not merely ordered).
+    """
+    charged = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0]
+    if len(charged) != 1:
+        return
+    n = charged[0]
+    if n.GetAtomicNum() != 7 or n.GetFormalCharge() != -1:
+        return
+    if n.GetNumRadicalElectrons() != 0 or n.GetTotalNumHs() != 0:
+        return
+    heavy_nbs = [nb for nb in n.GetNeighbors() if nb.GetAtomicNum() != 1]
+    if len(heavy_nbs) != 1:
+        return
+    nb = heavy_nbs[0]
+    if nb.GetAtomicNum() != 6:
+        return
+    bond = mol.GetBondBetweenAtoms(n.GetIdx(), nb.GetIdx())
+    if bond is None or bond.GetBondTypeAsDouble() != 2.0:
+        return
+    yield ChargeClassification(
+        site_atom_indices=(n.GetIdx(),),
+        charge_sign="-",
+        suffix_hint="imine_anion",
         locant=None,
         parent_smiles=None,
         surface_name=None,
@@ -2971,6 +3112,10 @@ def _render(
         return _render_acidic_anion(cls, mol, strategy, session, depth)
     if cls.suffix_hint == "carbamate_anion":
         return _render_carbamate_anion(cls, mol, strategy, session, depth)
+    if cls.suffix_hint == "phosphide_anion":
+        return _render_phosphide_anion(cls, mol, strategy, session, depth)
+    if cls.suffix_hint == "imine_anion":
+        return _render_imine_anion(cls, mol, strategy, session, depth)
     if cls.suffix_hint == "amine_anion":
         return _render_amine_anion(cls, mol, strategy, session, depth)
     if cls.suffix_hint == "amide_anion":
@@ -3121,6 +3266,57 @@ def _render_amine_anion(
     # Guard: only accept the result if the suffix transform actually fired
     # (the name must end in the anion form, not a stray neutral amine).
     if not name.endswith("aminide"):
+        return None
+    return name
+
+
+def _render_imine_anion(
+    cls: ChargeClassification,
+    mol,
+    strategy,
+    session,
+    depth: int,
+) -> str | None:
+    """Render the deprotonated-imine PIN (``butan-1-iminide`` etc.) --
+    naming round 9, item "charge-imine-anion". Identical structure to
+    _render_amine_anion: re-protonate the N to a neutral imine (charge -1,
+    0 H -> charge 0, RDKit fills the H the double bond leaves room for)
+    and drive the engine with ``OutputForm.ANION``; the new
+    ``("imine", OutputForm.ANION) -> "iminide"`` SUFFIX_VARIANT_TABLE
+    entry produces the PIN."""
+    from openchem.vendor.iupac_namer.engine import name as _recursive_name
+    from openchem.vendor.iupac_namer.assembly import assemble
+    from openchem.vendor.iupac_namer.types import OutputForm
+    from rdkit import Chem
+
+    n_idx = cls.site_atom_indices[0]
+    parent_smiles = _neutral_skeleton_smiles(
+        mol,
+        {n_idx: {"charge": 0, "no_implicit": False}},
+    )
+    if parent_smiles is None:
+        return None
+    parent_mol = Chem.MolFromSmiles(parent_smiles)
+    if parent_mol is None:
+        return None
+    try:
+        tree = _recursive_name(
+            parent_mol,
+            strategy,
+            OutputForm.ANION,
+            free_valence=None,
+            decision_ctx=None,
+            _session=session,
+            _depth=depth + 1,
+        )
+    except Exception:
+        return None
+    name = assemble(tree)
+    if name is None or "NAMING ERROR" in name:
+        return None
+    # Guard: only accept the result if the suffix transform actually fired
+    # (the name must end in the anion form, not a stray neutral imine).
+    if not name.endswith("iminide"):
         return None
     return name
 
@@ -3434,6 +3630,24 @@ def _neutralized_site_changes(atom) -> dict:
             "explicit_h": atom.GetTotalNumHs() + 1,
             "no_implicit": True,
         }
+    # A bridgehead-style phosphide anion (naming round 9, item
+    # "charge-phosphide-anion"): P at charge -1 with an explicit H
+    # (measured: C1C[PH-]2CCC1CC2, P degree=3 ring bonds + 1 H + charge -1).
+    # Zeroing only the charge and leaving RDKit to infer implicit H (the
+    # default below) KEEPS that H -- giving a tetracoordinate neutral P,
+    # not the trivalent parent hydride "1-phosphabicyclo[2.2.2]octane" the
+    # skeletal-replacement name actually denotes (measured: P naturally
+    # saturates at 3 bonds with a lone pair, no H needed, the same shape
+    # already emitted -- wrongly, with the charge dropped -- for this exact
+    # structure before this classifier existed). The H the anion carries is
+    # the "extra" one the -uide suffix accounts for, so it is removed here,
+    # not kept.
+    if atom.GetAtomicNum() == 15 and atom.GetFormalCharge() == -1 and atom.GetTotalNumHs() >= 1:
+        return {
+            "charge": 0,
+            "explicit_h": atom.GetTotalNumHs() - 1,
+            "no_implicit": True,
+        }
     return {"charge": 0, "no_implicit": False}
 
 
@@ -3574,6 +3788,40 @@ def _render_simple_carbon(
     # parent-hydride splice gives the systematic PIN the engine has always
     # emitted for this shape ("cyclohexan-1-ylium").
     return _splice_alkane_suffix(parent_name, 1, suffix)
+
+
+def _render_phosphide_anion(
+    cls: ChargeClassification,
+    mol,
+    strategy,
+    session,
+    depth: int,
+) -> str | None:
+    """Render a phosphorus-centred anion PIN (``1-phosphabicyclo[2.2.2]
+    octanuide`` etc.) -- naming round 9, item "charge-phosphide-anion".
+
+    Same "name as substituent anchored at the charged atom, strip the
+    trailing 'yl', append the anion suffix" technique as
+    _render_simple_carbon, kept as its own function rather than folded into
+    it: the suffix is "uide" (a skeletal-replacement parent -- "phospha...
+    " -- takes the P-73 linking "u"), not "ide", and neutralizing the site
+    has to REMOVE the anion's own H (see _neutralized_site_changes), the
+    opposite of the default "let RDKit infer" behaviour _name_as_substituent
+    otherwise relies on -- both of those are P-specific, not shared with
+    the carbon case.
+    """
+    p_idx = cls.site_atom_indices[0]
+    group = _name_as_substituent(mol, p_idx, strategy, session, depth)
+    if group is None:
+        return None
+    locant, group_stem = _split_substituent_locant(group)
+    if group_stem is None or locant is None:
+        # A multi-word or fully-contracted parent is not the shape this
+        # motif's own admitted structure has (a von-Baeyer bicyclic
+        # skeletal-replacement name always states its own locants) --
+        # refuse rather than guess.
+        return None
+    return f"{group_stem}uide"
 
 
 def _render_guanidinium(

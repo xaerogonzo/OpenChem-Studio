@@ -174,6 +174,11 @@ SUFFIX_VARIANT_TABLE: dict[tuple[str, OutputForm], str] = {
 
     # Imine
     ("imine",             OutputForm.STANDALONE):   "imine",
+    # Deprotonated imine N(-) is the principal anionic characteristic group
+    # (naming round 9, item "charge-imine-anion"), the same P-72.2 / P-73
+    # promotion "amine" -> "aminide" already gets: butan-1-imine ->
+    # butan-1-iminide (verified via OPSIN; also parses as "butaniminide").
+    ("imine",             OutputForm.ANION):        "iminide",
 
     # Epoxide (as substituent → prefix only, but cover it)
     ("oxide",             OutputForm.STANDALONE):   "oxide",

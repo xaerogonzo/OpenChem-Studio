@@ -3216,6 +3216,49 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "2-[(2-amino-1-oxoethyl)amino]propanoic acid",
      "P-103.3.2 (pdf p. 1048), verbatim 'glycine + alanine -> glycylalanine "
      "(PIN)'; verified via OPSIN round-trip"),
+    # Round 9 (admissions ledger, item "charge-alkynyl-dianion", target_source
+    # = "none"). Ethynediide ([C-]#[C-], a simple dianion) named as neutral
+    # ethyne, both charges silently dropped: the existing alkynyl-anion
+    # classifier's mono-anion gate (exactly one charged carbon, one neutral)
+    # correctly declined (there is no neutral carbon at all here), and
+    # nothing else in charge_perception.py claimed the shape.
+    # _classify_alkynyl_anion now also detects the symmetric di-anion and
+    # emits the pre-cooked surface name directly; verified via OPSIN
+    # round-trip.
+    ("D-136", "[C-]#[C-]", "ethynediide", "ethyne",
+     "no printed or derived target (target_source: none); this row exists "
+     "to catch a regression back to the wrong molecule"),
+    # Round 9 (admissions ledger, item "charge-phosphide-anion", target_source
+    # = "none"). A bicyclic phosphide anion (1-phosphabicyclo[2.2.2]octan-1-
+    # uide) named as the neutral phosphane, the charge dropped: no classifier
+    # existed for phosphorus-centred anions at all, unlike the carbon- and
+    # nitrogen-centred ones. A new _classify_phosphide_anion (mirroring
+    # _classify_amine_anion's shape) plus _render_phosphide_anion (mirroring
+    # _render_simple_carbon's "name as substituent, strip yl, append suffix"
+    # technique, but suffix "uide" -- a skeletal-replacement parent takes the
+    # P-73 linking "u" -- and a phosphorus-specific neutralization that
+    # REMOVES the anion's own H rather than keeping it, see
+    # _neutralized_site_changes) reaches the exact printed PIN; verified via
+    # OPSIN round-trip.
+    ("D-137", "C1C[PH-]2CCC1CC2", "1-phosphabicyclo[2.2.2]octan-1-uide",
+     "1-phosphabicyclo[2.2.2]octane",
+     "P-73 (skeletal-replacement anion, verified via OPSIN); the same "
+     "structure and name appear in the Blue Book harvest (bb-4ec6c6c83b27)"),
+    # Round 9 (admissions ledger, item "charge-imine-anion", target_source =
+    # "none"). Butaniminide (CCCC=[N-], an imine-nitrogen anion) named as
+    # neutral 1-iminobutane, the charge dropped: the amine-anion classifier
+    # requires a SINGLE N-C bond and correctly declined (this N's only bond
+    # is a double one), and nothing else claimed the shape -- a gap between
+    # the amine-anion and amide-anion classifiers, neither of which covers
+    # an imine-type nitrogen anion. A new _classify_imine_anion /
+    # _render_imine_anion pair mirrors _classify_amine_anion /
+    # _render_amine_anion exactly, plus a new
+    # ("imine", OutputForm.ANION): "iminide" SUFFIX_VARIANT_TABLE entry
+    # (assembly.py) mirroring the existing "amine"/"aminide" one; verified
+    # via OPSIN round-trip.
+    ("D-138", "CCCC=[N-]", "butan-1-iminide", "1-iminobutane",
+     "no printed or derived target (target_source: none); this row exists "
+     "to catch a regression back to the wrong molecule"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -3537,6 +3580,84 @@ def test_an_unnatural_amino_acid_dipeptide_is_declined():
     not a general alpha-amino-acid rule."""
     got = name_smiles("CC(C)(N)C(=O)N[C@@H](C)C(=O)O")
     assert got == "(2S)-2-(2-amino-2-methylpropanamido)propanoic acid"
+
+
+def test_the_alkynyl_dianion_no_longer_loses_both_charges():
+    """D-136's admission reason (charge-alkynyl-dianion): ethynediide named
+    as plain neutral ethyne, both charges dropped -- verified via OPSIN as a
+    DIFFERENT molecule. That wrong string must never come back."""
+    wrong_former_output = "ethyne"
+    got = name_smiles("[C-]#[C-]")
+    assert got != wrong_former_output
+    assert got == "ethynediide"
+
+
+def test_the_alkynyl_monoanion_still_works():
+    """Converse of D-136: the mono-anion branch this extends must still
+    reach its own pre-existing correct name."""
+    assert name_smiles("[C-]#C") == "ethyn-1-ide"
+
+
+def test_the_phosphide_anion_no_longer_loses_its_charge():
+    """D-137's admission reason (charge-phosphide-anion): a bicyclic
+    phosphide named as the neutral phosphane, the charge dropped --
+    verified via OPSIN as a DIFFERENT molecule. That wrong string must
+    never come back."""
+    wrong_former_output = "1-phosphabicyclo[2.2.2]octane"
+    got = name_smiles("C1C[PH-]2CCC1CC2")
+    assert got != wrong_former_output
+    assert got == "1-phosphabicyclo[2.2.2]octan-1-uide"
+
+
+@pytest.mark.parametrize(
+    "smiles",
+    [
+        "C1CP2CCC1CC2",       # the plain neutral phosphine (no anion at all)
+        "C[PH3+]",            # a phosphonium cation, a different classifier
+        "CP(C)(C)=O",         # a phosphine oxide, D-134's own item
+    ],
+)
+def test_the_phosphide_classifier_does_not_over_fire(smiles):
+    """Converse of D-137: the new phosphide-anion classifier requires
+    EXACTLY one charge -1 on P with every neighbour carbon. A neutral
+    phosphine, a phosphonium cation, and a phosphine oxide (P=O counts as
+    a non-carbon neighbour) must all reach their own, unrelated, unaffected
+    names -- none of them is a phosphide anion."""
+    got = name_smiles(smiles)
+    assert "uide" not in got
+
+
+def test_an_acyclic_phosphide_keeps_its_pre_existing_correct_name():
+    """A second, load-bearing converse of D-137, found by the stage
+    comparison itself (r9-items-10-12-13, bb-fe3343956898): an ACYCLIC
+    phosphide (dimethylphosphide, C[P-]C) was ALREADY named correctly
+    ("dimethylphosphanide") through a different, pre-existing route -- P
+    itself as the "phosphane" parent, contracted with its substituents.
+    Without the classifier's ring-membership gate, this case was claimed
+    too and rendered through the skeletal-replacement "uide" path built for
+    the bridgehead case, producing "dimethylphosphan-1-uide" -- verified via
+    OPSIN as a DIFFERENT, wrong structure. That regression must never come
+    back; this is why the classifier requires P to be a ring atom."""
+    assert name_smiles("C[P-]C") == "dimethylphosphanide"
+
+
+def test_the_imine_anion_no_longer_loses_its_charge():
+    """D-138's admission reason (charge-imine-anion): butaniminide named as
+    neutral 1-iminobutane, the charge dropped -- verified via OPSIN as a
+    DIFFERENT molecule. That wrong string must never come back."""
+    wrong_former_output = "1-iminobutane"
+    got = name_smiles("CCCC=[N-]")
+    assert got != wrong_former_output
+    assert got == "butan-1-iminide"
+
+
+def test_the_amine_anion_is_unaffected_by_the_imine_anion_addition():
+    """Converse of D-138: the amine-anion classifier's own single-bond gate
+    (which the imine-anion classifier mirrors with a double-bond gate
+    instead) must still claim ordinary primary and secondary amine anions,
+    unaffected by the new classifier running immediately before it."""
+    assert name_smiles("CC[NH-]") == "ethanaminide"
+    assert name_smiles("CCC[N-]CCC") == "N-propylpropan-1-aminide"
 
 
 @pytest.mark.parametrize(
