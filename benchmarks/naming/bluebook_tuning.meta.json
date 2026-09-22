@@ -1,0 +1,14 @@
+{
+ "artifact_schema_version": 1,
+ "variant": "bluebook",
+ "selection_rule": "every '(PIN)' name in BlueBookV2.pdf that passes the protocol's scope filters, is read by OPSIN without an ambiguity warning, and whose structure the project has not already looked at; assigned to a half by a hash of the InChIKey within its chapter (tools/naming_bluebook_harvest.py)",
+ "engine_consulted": false,
+ "selection_time": "2026-09-21T20:37:46-0400",
+ "rows": 1129,
+ "heldout_sha256": "6e0e326c4f96d4930bd13ba0961d07ffc9de75cbdf9b4e0ee2c3f73c138dc7b5",
+ "protocol_sha256": "e170ab771b2caaef008431b588de60f281664714bfa8582ebb3c4ab24b42cbb5",
+ "pdf_sha256": "6b607a40430b95b4370c474d7b7afc5c9906b68c683192fb0c07f9aed3fb563f",
+ "rdkit_version": "2025.09.6",
+ "stage": "the harvest is scored by tools/naming_stage_artifact.py like any population; `pubchem_name` holds the book's printed PIN",
+ "status": "TUNING"
+}

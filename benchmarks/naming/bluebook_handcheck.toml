@@ -1,0 +1,168 @@
+# The Blue Book hand check: for each sampled TUNING row, is OPSIN's structure the structure the book draws?
+# Frozen rows' verdicts are in the sealed sidecar (stages/sealed/), never here. Written by tools/naming_bluebook_handcheck.py record.
+
+[[check]]
+label = "bb-0e39958d0cc8"
+page = 111
+chapter = 1
+class = "SAME"
+join_ok = true
+
+[[check]]
+label = "bb-1e66da056a26"
+page = 54
+chapter = 1
+class = "UNREADABLE_DRAWING"
+join_ok = true
+note = "a table row: the name is printed with no drawing beside it, so there is nothing to compare"
+
+[[check]]
+label = "bb-28933c0338da"
+page = 381
+chapter = 4
+class = "SAME"
+join_ok = true
+
+[[check]]
+label = "bb-3c04d7043b65"
+page = 624
+chapter = 6
+class = "SAME"
+join_ok = true
+
+[[check]]
+label = "bb-45cfc953b0f4"
+page = 229
+chapter = 2
+class = "SAME"
+join_ok = true
+note = "large fused system: compared by ring count and fusion pattern only"
+
+[[check]]
+label = "bb-4803c0f3b9aa"
+page = 938
+chapter = 9
+class = "SAME"
+join_ok = true
+
+[[check]]
+label = "bb-4e24c0ee9f22"
+page = 335
+chapter = 3
+class = "SAME"
+join_ok = true
+note = "the drawing is the O analogue and the text says 'Se instead of O'; OPSIN's Se structure follows that statement"
+
+[[check]]
+label = "bb-5d0584c6102c"
+page = 942
+chapter = 9
+class = "SAME"
+join_ok = true
+
+[[check]]
+label = "bb-5da19c569b15"
+page = 261
+chapter = 2
+class = "SAME"
+join_ok = true
+
+[[check]]
+label = "bb-632b963cfb1a"
+page = 666
+chapter = 6
+class = "SAME"
+join_ok = true
+
+[[check]]
+label = "bb-69f00611fb43"
+page = 748
+chapter = 6
+class = "SAME"
+join_ok = true
+
+[[check]]
+label = "bb-6b96bfdc8bef"
+page = 398
+chapter = 4
+class = "SAME"
+join_ok = true
+
+[[check]]
+label = "bb-728c3fc1f8cb"
+page = 229
+chapter = 2
+class = "SAME"
+join_ok = true
+note = "fused heterocycle: the drawing and the depiction are mirror images of one arrangement"
+
+[[check]]
+label = "bb-93d78aa7feb3"
+page = 247
+chapter = 2
+class = "SAME"
+join_ok = true
+note = "bridged fused system: compared by ring sizes and the position of both methano bridges"
+
+[[check]]
+label = "bb-ad79067d1388"
+page = 553
+chapter = 6
+class = "SAME"
+join_ok = true
+
+[[check]]
+label = "bb-b18af5d9dd94"
+page = 618
+chapter = 6
+class = "SAME"
+join_ok = true
+
+[[check]]
+label = "bb-bffac0d50945"
+page = 119
+chapter = 1
+class = "SAME"
+join_ok = true
+
+[[check]]
+label = "bb-d1a3d836f449"
+page = 259
+chapter = 2
+class = "SAME"
+join_ok = true
+
+[[check]]
+label = "bb-d7464357c3a1"
+page = 409
+chapter = 4
+class = "SAME"
+join_ok = true
+
+[[check]]
+label = "bb-ea970e08cfe1"
+page = 551
+chapter = 6
+class = "SAME"
+join_ok = true
+
+[[check]]
+label = "bb-efa11447cb07"
+page = 603
+chapter = 6
+class = "SAME"
+join_ok = true
+
+[[check]]
+label = "bb-f5dab2c5c924"
+page = 707
+chapter = 6
+class = "SAME"
+join_ok = true
+
+[[check]]
+label = "bb-fcf8f4842a5c"
+page = 486
+chapter = 5
+class = "SAME"
+join_ok = true

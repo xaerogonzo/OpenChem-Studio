@@ -62,3 +62,18 @@ key = "heldout_v6"
 short = "v6"
 file = "heldout6.json"
 status = "frozen"
+
+# The Blue Book printed-PIN harvest (naming round 9, B1): every '(PIN)' name in the book that passes the protocol's scope filters and is read by
+# OPSIN, split by a hash of its structure WITHIN its chapter, so both halves cover every chapter. The frozen half is evaluation-only exactly like
+# heldout_v6 and is drawn by tools/naming_bluebook_harvest.py. Its `pubchem_name` field holds the BOOK'S printed PIN, not a PubChem name.
+[[population]]
+key = "bluebook_tuning"
+short = "bb-t"
+file = "bluebook_tuning.json"
+status = "tuning"
+
+[[population]]
+key = "bluebook_frozen"
+short = "bb-f"
+file = "bluebook_frozen.json"
+status = "frozen"

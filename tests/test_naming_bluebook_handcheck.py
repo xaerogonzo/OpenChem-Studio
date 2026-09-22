@@ -122,3 +122,21 @@ def test_failed_strata_holding_most_of_the_rows_abandon_b1():
 def test_rates_are_none_not_zero_when_nothing_was_checked():
     summary = hc.evaluate([row("a")], {}, RULES)["summary"]
     assert summary["join_error_rate"] is None and summary["disagreement_rate"] is None
+
+
+def test_one_disagreement_in_four_is_a_quarter_and_still_not_a_failed_stratum():
+    """The rate alone (0.25) would fail it; the count rule (two disagreements) is what protects a small stratum from one bad row."""
+    rows = [row(f"r{i}", 6) for i in range(20)]
+    result = hc.evaluate(rows, {f"r{i}": verdict("DIFFERENT_STRUCTURE" if i == 0 else "SAME") for i in range(4)}, RULES)
+    cell = result["strata"]["chapter:6"]
+    assert cell["checked"] == 4 and cell["disagreements"] == 1
+    assert not cell["failed"] and cell["accepted"]
+
+
+def test_a_misjoined_name_counts_against_its_strata_like_a_structure_disagreement():
+    """Two extraction errors in a stratum of five make it fail, so the unchecked rows that share its extraction shape are rejected."""
+    rows = [row(f"r{i}", 6, wrapped=True) for i in range(20)]
+    verdicts = {f"r{i}": verdict(join_ok=(i >= 2)) for i in range(5)}
+    result = hc.evaluate(rows, verdicts, RULES)
+    assert result["strata"]["feature:wrapped"]["failed"]
+    assert result["statuses"]["r10"] == hc.REJECTED

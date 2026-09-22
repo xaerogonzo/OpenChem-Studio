@@ -44,12 +44,14 @@ import naming_stage_artifact as stage  # noqa: E402
 #: happen by editing the registry alone. A new entry is added in the same commit as the registry line and the drawing script.
 DRAWING_SCRIPTS = {
     "heldout_v6": "benchmarks/naming/build_heldout.py",
+    "bluebook_frozen": "tools/naming_bluebook_harvest.py",
 }
 
 #: What each frozen population's meta file must say about itself. `rows` and `variant` are properties of one draw; a second
 #: frozen population states its own.
 EXPECTED_META = {
     "heldout_v6": {"rows": 40, "variant": "v6"},
+    "bluebook_frozen": {"rows": 1126, "variant": "bluebook"},
 }
 
 THIS_TEST = "tests/test_naming_heldout_lock.py"
@@ -422,7 +424,8 @@ def test_no_other_tracked_script_names_the_sealed_directory():
         ["git", "grep", "-l", "sealed", "--", "*.py"],
         cwd=ROOT, capture_output=True, text=True,
     ).stdout.split()
-    allowed = {"tools/naming_stage_artifact.py", "tests/test_naming_heldout_lock.py"}
+    # The hand check (naming round 9) writes the sealed sidecar of the FROZEN Blue Book rows' oracle verdicts; it is the second deliberate opener.
+    allowed = {"tools/naming_stage_artifact.py", "tools/naming_bluebook_handcheck.py", "tests/test_naming_heldout_lock.py"}
     # `sealed` is an ordinary word; only a script that names the DIRECTORY matters.
     offenders = [
         f for f in listed
