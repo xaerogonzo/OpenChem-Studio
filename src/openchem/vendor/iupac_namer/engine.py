@@ -10263,6 +10263,22 @@ def _name_bound(
             _session.cache_store(smiles, output_form, fv_bond_orders, cyclic_tree, attachment_indices)
             return cyclic_tree
 
+    # --- Peptide-acyl dispatcher (naming round 9, item "peptide-acyl-naming") ---
+    # A dipeptide between two of the 20 proteinogenic amino acids gets the
+    # Blue Book's retained "-yl" acyl form (P-103.2.5/P-103.3.2: "glycine +
+    # alanine -> glycylalanine (PIN)") instead of fully systematic
+    # substitutive nomenclature. A closed table of 20, stereo-matched exactly
+    # -- see peptide_acyl.py's module docstring for why a rule cannot do this.
+    if (output_form == OutputForm.STANDALONE
+            and free_valence is None):
+        from openchem.vendor.iupac_namer.perception.fg.peptide_acyl import (
+            try_peptide_acyl_name,
+        )
+        peptide_tree = try_peptide_acyl_name(mol, output_form, free_valence, decision_ctx)
+        if peptide_tree is not None:
+            _session.cache_store(smiles, output_form, fv_bond_orders, peptide_tree, attachment_indices)
+            return peptide_tree
+
     # --- Normal plan search ---
     query = strategy.interpretation_query(mol)
     if output_form in (OutputForm.SUBSTITUENT, OutputForm.ACYL):

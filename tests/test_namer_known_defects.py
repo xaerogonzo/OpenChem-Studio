@@ -492,10 +492,18 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-027y", "OC(=O)c1ccc(cc1)[C@H](C)CC", "4-[(2R)-butan-2-yl]benzoic acid",
      "4-[(2R)-butan-2-yl]benzoic acid", "unchanged"),
     # Expected moved in round 4 (A9): the amido prefix, P-66.1.1.4.3 method (1)
-    # (pdf p. 652); both descriptors unchanged, which is what this row guards.
+    # (pdf p. 652). Expected moved AGAIN in round 9 (item "peptide-acyl-
+    # naming", D-135): Ala-Phe is a plain dipeptide between two of the 20
+    # proteinogenic amino acids, so P-103.2.5/P-103.3.2's retained "-yl"
+    # acyl form now fires and supersedes the systematic substitutive form
+    # entirely -- round 4's fix picked the best available STYLE within
+    # substitutive naming, before the retained convention existed in this
+    # engine at all; "alanylphenylalanine" outranks it, not merely differs
+    # from it (P-103.2.5 is prescriptive, not a style preference).
     ("D-027z", "N[C@@H](C)C(=O)N[C@@H](Cc1ccccc1)C(=O)O",
-     "(2S)-2-[(2S)-2-aminopropanamido]-3-phenylpropanoic acid",
-     "(2S)-2-[(2S)-2-aminopropanoylamino]-3-phenylpropanoic acid", "descriptors unchanged"),
+     "alanylphenylalanine",
+     "(2S)-2-[(2S)-2-aminopropanoylamino]-3-phenylpropanoic acid",
+     "superseded by the peptide-acyl retained form, round 9"),
 
     # --- D-028: prefixes cited out of alphanumerical order ---------------
     # SEVERITY B, not A: the right molecule, cited in the wrong order, so it
@@ -3192,6 +3200,22 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "no printed or derived target (target_source: none); this row exists "
      "to catch a regression back to the wrong molecule, not to claim IUPAC "
      "preference"),
+    # Round 9 (admissions ledger, item "peptide-acyl-naming", target_source =
+    # "book:p.1048"). Every one of B2's 20 rule-built dipeptides (20/20) named
+    # with fully systematic substitutive nomenclature instead of the Blue
+    # Book's retained "-yl" acyl convention for peptide bonds (P-103.2.5's
+    # rule; P-103.3.2's own worked example, verbatim, is THIS exact row:
+    # "glycine + alanine -> glycylalanine (PIN)", pdf p. 1048). A new module
+    # (perception/fg/peptide_acyl.py) matches a dipeptide's two residues
+    # against a closed table of the 20 proteinogenic amino acids (exact
+    # canonical structure, stereo included) and, on a match, emits the
+    # retained acyl-plus-parent form directly -- a preference gap, not a
+    # wrong-molecule one (the systematic name was always structurally
+    # correct), but total within the round's own worked example.
+    ("D-135", "NCC(=O)N[C@@H](C)C(=O)O", "glycylalanine",
+     "2-[(2-amino-1-oxoethyl)amino]propanoic acid",
+     "P-103.3.2 (pdf p. 1048), verbatim 'glycine + alanine -> glycylalanine "
+     "(PIN)'; verified via OPSIN round-trip"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -3395,13 +3419,15 @@ def test_a_hypervalent_sulfinyl_no_longer_drops_atoms():
     bond -- verified via OPSIN as a DIFFERENT, smaller molecule. That wrong
     string must never come back; the honest failure it is replaced with is
     checked structurally too (PARSER_FAILED, never a false MATCH)."""
+    from rdkit import Chem
+
     from openchem.chem.naming_providers import verify_name_round_trip, RoundTrip
 
     wrong_former_output = "[(methylaminosulfinyl)amino]methane"
     smiles = "CN=S(=O)(Br)NC"
     got = name_smiles(smiles)
     assert got != wrong_former_output
-    assert verify_name_round_trip(smiles, got) == RoundTrip.PARSER_FAILED
+    assert verify_name_round_trip(got, Chem.MolFromSmiles(smiles)) == RoundTrip.PARSER_FAILED
 
 
 def test_a_plain_sulfinyl_halide_still_uses_the_shortcut():
@@ -3436,6 +3462,81 @@ def test_a_plain_trivalent_phosphanetriyl_linker_still_works():
     linker -- D-134's molecule minus the oxide -- is exactly the shape
     "phosphanetriyl" was built for, and must still reach it."""
     assert name_smiles("CN(N)P(N(C)N)N(C)N") == "1,1',1''-phosphanetriyltris(1-methylhydrazine)"
+
+
+def test_glycylalanine_is_the_book_own_worked_example():
+    """D-135, P-103.3.2's own worked example verbatim (pdf p. 1048):
+    'glycine + alanine -> glycylalanine (PIN)'. Verified via OPSIN round-trip
+    that the retained form denotes the SAME structure the systematic form
+    it replaces did."""
+    from rdkit import Chem
+
+    from openchem.chem.naming_providers import verify_name_round_trip, RoundTrip
+
+    smiles = "NCC(=O)N[C@@H](C)C(=O)O"
+    got = name_smiles(smiles)
+    assert got == "glycylalanine"
+    assert verify_name_round_trip(got, Chem.MolFromSmiles(smiles)) == RoundTrip.MATCH
+
+
+@pytest.mark.parametrize(
+    "smiles,expected",
+    [
+        # Both directions (which residue is acyl vs. base), several side
+        # chains, and the two shapes _match_dipeptide has to tell apart:
+        # an open-chain base (most residues) and a ring base (proline).
+        ("N[C@@H](Cc1ccccc1)C(=O)N[C@@H](Cc1c[nH]c2ccccc12)C(=O)O", "phenylalanyltryptophan"),
+        ("N[C@@H](CC(=O)O)C(=O)N[C@@H](CCC(=O)O)C(=O)O", "aspartylglutamic acid"),
+        ("N[C@@H](Cc1c[nH]cn1)C(=O)N1CCC[C@H]1C(=O)O", "histidylproline"),
+        ("NC(=O)CC[C@H](N)C(=O)N1CCC[C@H]1C(=O)O", "glutaminylproline"),
+        ("O=C(O)[C@@H]1CCCN1C(=O)[C@@H](N)CO", "serylproline"),
+    ],
+)
+def test_other_dipeptides_also_reach_the_retained_form(smiles, expected):
+    """The B2 battery's own 20 dipeptides: 14/20 reach the retained form
+    (measured 2026-09-22); the other 6 all involve threonine or isoleucine,
+    whose battery-generated SMILES specify stereo on the alpha carbon only,
+    not the side-chain stereocentre -- see test_under_specified_stereo_
+    correctly_declines below for why that is the matcher declining
+    correctly, not a bug."""
+    assert name_smiles(smiles) == expected
+
+
+def test_under_specified_stereo_correctly_declines_not_guesses():
+    """A residue with a SECOND stereocentre (threonine, isoleucine) whose
+    SMILES specifies only the alpha carbon's configuration must NOT match
+    the retained-name table: "threonyl" denotes ONE specific diastereomer
+    (2S,3R), and an input that does not say which diastereomer this is
+    cannot honestly be called that. Measured: this is the exact shape of
+    6 of the B2 battery's 20 dipeptide rows (threonine or isoleucine on
+    either side), all of which correctly still name systematically."""
+    # threonine's own alpha carbon specified, side-chain carbon left
+    # unspecified -- matches battery row "dipeptide-threonine+valine".
+    under_specified = "CC(O)[C@H](N)C(=O)N[C@@H](C(C)C)C(=O)O"
+    got = name_smiles(under_specified)
+    assert "threonyl" not in got and "valyl" not in got
+    # the fully stereo-specified version of the SAME dipeptide DOES match.
+    fully_specified = "C[C@@H](O)[C@H](N)C(=O)N[C@@H](C(C)C)C(=O)O"
+    assert name_smiles(fully_specified) == "threonylvaline"
+
+
+def test_a_tripeptide_is_declined_not_partially_named():
+    """Scope converse: this module handles a single peptide bond only
+    (matches every B2 battery row). A tripeptide (two peptide bonds) must
+    fall through to the general engine untouched, not produce a partial or
+    malformed retained-form name."""
+    tripeptide = "NCC(=O)N[C@@H](C)C(=O)N[C@@H](Cc1ccccc1)C(=O)O"  # Gly-Ala-Phe
+    got = name_smiles(tripeptide)
+    assert "glycylalanyl" not in got and "alanylphenylalanine" not in got
+
+
+def test_an_unnatural_amino_acid_dipeptide_is_declined():
+    """Scope converse: a residue outside the 20 proteinogenic amino acids
+    (here, 2-methylalanine / alpha-aminoisobutyric acid, achiral and with no
+    retained acyl prefix) must not match by accident -- the table is closed,
+    not a general alpha-amino-acid rule."""
+    got = name_smiles("CC(C)(N)C(=O)N[C@@H](C)C(=O)O")
+    assert got == "(2S)-2-(2-amino-2-methylpropanamido)propanoic acid"
 
 
 @pytest.mark.parametrize(
