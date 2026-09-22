@@ -343,6 +343,48 @@ Found while checking D-029; predates it.
   non-minimal lambda numbering and three general-nomenclature-only acylium
   names; the engine's output is correct in every case. See `CHANGELOG.md`.
 
+## Open after naming round 9 (2026-09-22)
+
+Round 9 ran a source-backed battery first (a Blue Book PDF harvest, `bluebook_tuning.json`/`bluebook_frozen.json`, plus an
+ordinary-compound battery, `battery_r9.toml`, 306 rows) and a frequency census, then admitted 13 findings from that instrument
+stage into a hash-frozen ledger (`benchmarks/naming/admissions_r9.toml`), enforced by `tests/test_admissions_r9.py` on item
+count and set-immutability, never on a fixed slot number ("never do those hardcoded guards again" -- Alex, 2026-09-22; the
+guard checks structure, not a literal). **9 of the 13 admitted items are fixed this round; 4 are deferred, each with the
+mechanism already diagnosed.** Evidence: D-130 to D-138 in `tests/test_namer_known_defects.py`, the stage artifacts
+`benchmarks/naming/stages/r9-*.json`, and per-commit ref-compares against the whole Blue Book tuning population (1129 rows)
+-- every fixed item's stage comparison showed 0 structural regressions and changed only its own admitted rows.
+
+**Fixed this round** (each own commit; see the commit messages for the full diagnosis):
+
+| item | D-row | mechanism | note |
+|---|---|---|---|
+| carbodiimide | D-130 (PARTLY: wrong molecule fixed, PIN open) | `_linker_has_imine` (multiplicative.py) declines a C=N linker the same way `_linker_has_carbonyl` already declines a ketone one | DCC no longer names as a saturated bis-amine; reaching "dicyclohexylmethanediimine" (P-62.3.1.4) needs imine FG perception, empty in every context tried |
+| carbamimidoyl-locant | D-131 (FIXED) | `_role_primes` (engine.py) orders same-position PCG instances by anchor atom index instead of role alone | two carboximidamide groups at one ring position no longer collide onto the same N/N' pair |
+| naphthalene-ring-drop | D-132 (FIXED, no PIN claimed) | `_fused_ring_count` (multiplicative.py) declines a linker whose skeleton spans more than one SSSR ring | `_divalent_linker`'s shortest-path walk crossed a fused ring's ortho bond and silently dropped the OTHER ring; falls back to substitutive naming that keeps every atom |
+| sulfinyl-bromide | D-133 (FIXED: wrong molecule -> honest PARSER_FAILED) | `_sulfonyl_sulfinyl_has_single_substituent` (engine.py) declines the `{R}sulfonyl` shortcut when S carries more than one non-oxo substituent | no route exists yet to NAME a sulfinimidoyl/sulfonimidoyl halide; declining beats silently dropping the bromine and the S=N bond |
+| phosphine-oxide-trihydrazide | D-134 (FIXED, no PIN claimed) | `_linker_has_phosphine_oxide` (multiplicative.py) mirrors the carbonyl/imine checks for P=O | a P(V) phosphine oxide no longer loses its oxidation state to "phosphanetriyl" |
+| peptide-acyl-naming | D-135 (FIXED, target P-103.3.2) | new module `perception/fg/peptide_acyl.py`: a closed, stereo-matched table of the 20 proteinogenic amino acids | reaches the book's own worked example ("glycine + alanine -> glycylalanine"); 14/20 of B2's dipeptide battery now use the retained form, the other 6 all involve threonine or isoleucine whose battery SMILES under-specify a second stereocentre (correctly declined, not a bug) |
+| charge-alkynyl-dianion | D-136 (FIXED, no PIN claimed) | `_classify_alkynyl_anion` (charge_perception.py) extended for the symmetric `[C-]#[C-]` case | ethynediide no longer drops both charges to plain ethyne |
+| charge-phosphide-anion | D-137 (FIXED, target P-73) | new `_classify_phosphide_anion` / `_render_phosphide_anion`, gated to RING phosphorus only | reaches the printed PIN; the ring gate exists because an acyclic phosphide (`C[P-]C`, "dimethylphosphanide") was already named correctly through a different route, and a first version of this classifier regressed it -- caught by the stage comparison before the commit, see D-137's test for the pinned converse |
+| charge-imine-anion | D-138 (FIXED, no PIN claimed) | new `_classify_imine_anion` / `_render_imine_anion` mirror the amine-anion pair exactly, plus a new `("imine", ANION): "iminide"` suffix-variant entry | butaniminide no longer drops its charge to neutral 1-iminobutane |
+
+**Deferred to round 10, each already diagnosed** (no slot escapes the frozen ledger; these are recorded, not re-opened as new
+findings):
+
+| item | seed layer | what is known |
+|---|---|---|
+| carbamimidate-oxime-swap | candidate generation | root cause fully understood -- a prefix-bracketing ambiguity in how "(hydrazinyl)" and "methoxy" concatenate without a locant, reproduced in the minimal case `COC(=N)NN` -- but the fix touches widely-used prefix-assembly logic with real regression risk across every substituent name in the engine. Deliberately not rushed |
+| phenothiazine-dye-locant | serialization | methylene blue's phenothiazine core numbers to locant 12, which OPSIN rejects outright ("Cannot find in scope fragment with atom with locant 12") -- phenothiazine's standard numbering (S at 5, N at 10) is registered in `ring_naming/fusion_general.py`'s `POLYCYCLES` for automorphism matching but has NO entry in `_TRADITIONAL` (the atom-mapped-SMILES override table that anthracene, acridine, carbazole, xanthene and their analogues already have), so the general fusion-rule numbering algorithm computes the wrong labels. The fix is an entry in `_TRADITIONAL` with a verified atom-mapped SMILES (S at label "5", N at label "10", matching the anthracene-analogue pattern already used for xanthene/acridine/thioxanthene); not yet built or verified against OPSIN |
+| spiro-xanthene-dye-locant | serialization | fluorescein's own xanthene component IS correctly registered in `_TRADITIONAL` (unlike phenothiazine), so this is a DIFFERENT defect: locant 13 (out of xanthene's own valid 1-9 range) appears when the ring is combined with its spiro partner (`1,3-dihydro-2-benzofuran`) in `spiro.py`'s numbering, not a missing table entry. Root cause not yet isolated |
+| charge-polycarbocation | charge_ledger | a benzene ring bearing two independent tertiary-carbocation substituents (`c1cc(cc(c1)[C+](C)C)[C+](C)C`, target "2,2'-(1,3-phenylene)di(propan-2-ylium)") needs the multiplicative machinery and the charge-perception machinery to work TOGETHER -- neither alone reaches it. `_classify_simple_carbon_charge`'s `len(charged_carbons) != 1` gate is the immediate block, but simply relaxing it does not compose a correct dual-cation name (two independently-rendered substituent fragments, not one multiplicative construction); the correct architecture is not yet designed |
+
+**Admission rule note, for the next round that reads this ledger.** A wrong molecule outranks frequency for a slot but does
+NOT escape the cap, and Alex chose (2026-09-22) to admit all 13 confirmed findings rather than defer 5 to round 10 for the
+sake of the plan's original 8-slot estimate -- "I don't think 10 is too much of a creep... whatever is the most comprehensive
+and complete." The instruments stage also RULED OUT three of the original eight seed hypotheses by live testing (F1 charged
+acid substituent, F5 ketone-parent enclosure, F6 N,N-guanidinium all name correctly already) -- a hypothesis written before
+measurement is not thereby true, and that is what the instruments stage is for.
+
 ## Open after naming round 8 (2026-09-21)
 
 Round 8 fixed the polyacid parent choice (citrate and its class), the isothiourea wrong molecule and the enclosure rule behind it, condensed guanidines and ureas
