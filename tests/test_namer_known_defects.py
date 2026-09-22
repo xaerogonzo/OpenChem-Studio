@@ -3269,6 +3269,9 @@ FIXED: list[tuple[str, str, str, str, str]] = [
 OPSIN_CANNOT_PARSE: dict[str, str] = {
     "D-089e": "OPSIN reads no numbered N locant on oxamide; the book prints "
               "'N1,N2-bis(cyanomethyl)oxamide (PIN)' (p. 653)",
+    "D-133": "the target IS an embedded '[NAMING ERROR: ...]' string, deliberately: no route exists to NAME a "
+             "sulfinimidoyl/sulfonimidoyl-halide shape, and declining to guess is the fix (RoundTrip.PARSER_FAILED, "
+             "never a false MATCH) -- unlike D-089e this is not a gap in OPSIN's grammar, it is the engine refusing",
 }
 
 # Measured, reproduced, not yet fixed. Every one of these currently names
