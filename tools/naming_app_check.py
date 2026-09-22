@@ -46,6 +46,16 @@ ROWS = [
     ("a phosphonium beside an amide", "C[P+](C)(C)CC(N)=O", "(2-amino-2-oxoethyl)tri(methyl)phosphanium", "DERIVED (Table 4.1)", "MATCH", 1, 1),
     ("a piperidine amide on a benzoic acid", "OC(=O)c1ccc(cc1)C(=O)N1CCCCC1", "4-(piperidine-1-carbonyl)benzoic acid", "DERIVED (p. 667)", "MATCH", 0, 1),
     ("carbonyldiimidazole", "O=C(n1ccnc1)n1ccnc1", "bis(1H-imidazol-1-yl)methanone", "DERIVED (P-64.3.2)", "MATCH", 0, 1),
+    # -- naming round 9's admissions ledger (D-130 to D-138; D-133 not driven here -- its fix IS a NamingError, --
+    # -- an honest refusal this table's loop always treats as a failure, not a row shape it can represent) -----
+    ("DCC (carbodiimide)", "C(=NC1CCCCC1)=NC1CCCCC1", "{[(cyclohexylimino)methylidene]amino}cyclohexane", "DERIVED (D-130: wrong molecule fixed, PIN open)", "MATCH", 0, 1),
+    ("carbamimidoyl-locant", "CCN=C(N)C1(C(=N)N(C)C)CCCCC1", "N'-ethyl-N'',N''-dimethylcyclohexane-1,1-dicarboximidamide", "DERIVED (D-131)", "MATCH", 0, 1),
+    ("naphthalene-ring-drop", "O=C(O)Cc1cc2ccccc2cc1CC(=O)O", "[3-(carboxymethyl)naphthalen-2-yl]acetic acid", "DERIVED (D-132, no PIN claimed)", "MATCH", 0, 1),
+    ("phosphine-oxide-trihydrazide", "CN(N)P(=O)(N(C)N)N(C)N", "1-methyl-1-[bis(1-methylhydrazinyl)(oxo)phosphanyl]hydrazine", "DERIVED (D-134, no PIN claimed)", "MATCH", 0, 1),
+    ("glycylalanine", "NCC(=O)N[C@@H](C)C(=O)O", "glycylalanine", "PRINTED (D-135, P-103.3.2, pdf p. 1048)", "MATCH", 0, 1),
+    ("ethynediide", "[C-]#[C-]", "ethynediide", "DERIVED (D-136, no PIN claimed)", "MATCH", -2, 1),
+    ("phosphide-anion", "C1C[PH-]2CCC1CC2", "1-phosphabicyclo[2.2.2]octan-1-uide", "DERIVED (D-137, P-73)", "MATCH", -1, 1),
+    ("imine-anion", "CCCC=[N-]", "butan-1-iminide", "DERIVED (D-138, no PIN claimed)", "MATCH", -1, 1),
 ]
 
 
