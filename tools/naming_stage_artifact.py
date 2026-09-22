@@ -78,6 +78,14 @@ collapse into one percentage.
 py2opsin fails and every row would classify as unparsable. The tool refuses
 to write an artifact in that state rather than recording a corpus-wide
 regression that is really a missing JRE.
+
+**EVERY ROW IS NAMED IN A WORKER PROCESS, NOT IN-PROCESS.** A coronene-class
+fused ring system in the Blue Book harvest ran `decompose_ring_system` for
+over 2.5 hours with no output before it was found stuck there by a `py-spy`
+dump (round 9, `bb-ad1954622ac3`, measured 2026-09-21). Fusion is out of
+scope for round 9's fixes, but the tool that MEASURES has to survive a row
+like it regardless, because every later stage and the RC checkpoint's frozen
+scoring would hang the same silent way. `ROW_TIMEOUT_SECONDS` bounds it.
 """
 
 from __future__ import annotations
@@ -248,8 +256,35 @@ def _digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _name_rows(rows: list[dict]) -> list[dict]:
-    """Name every row, and record the search shape alongside the name.
+#: `bb-ad1954622ac3` (SMILES `c1cc2ccc3cc4ccc5ccc6ccc7cc8ccc1c1c2c3c2c4c5c6c7c2c81`, a
+#: coronene-class fused ring system, 32 ring atoms) sent `decompose_ring_system`
+#: into a combinatorial search that ran over 2.5 hours with zero output before
+#: it was found stuck there by `py-spy dump` (measured 2026-09-21). Fusion is
+#: already out of scope for round 9's fixes, but the MEASUREMENT tool still has
+#: to survive a row like this one: every later stage, B2, B3 and the RC
+#: checkpoint's frozen scoring would otherwise silently hang the same way, and
+#: nothing about a hang looks different from "still working" from outside.
+#: 120s is generous against every population that has ever run through this
+#: tool in seconds; it exists to bound the rare pathological row, not to
+#: pressure a legitimately slow one.
+ROW_TIMEOUT_SECONDS = 120
+
+#: A fresh worker pays for importing RDKit and the vendored engine before it
+#: can pull its first row off the queue. That cost belongs to STARTUP, never
+#: to a row's own budget -- charging it to the first row (or the row right
+#: after a restart) would make a perfectly ordinary structure look like a
+#: timeout. `ready` (below) is what keeps the two separate.
+WORKER_STARTUP_TIMEOUT_SECONDS = 60
+
+
+def _row_worker(in_queue, out_queue, ready) -> None:
+    """Name one SMILES at a time, in a process of its own.
+
+    A process boundary -- not a thread -- is what makes `ROW_TIMEOUT_SECONDS`
+    enforceable: CPython cannot forcibly stop a runaway thread, but the
+    parent CAN terminate this process outright and start a fresh one. The
+    monkeypatch below installs once per worker lifetime, not once per row, so
+    a restart costs one process spawn, not a per-row tax.
 
     `_search_plans` is instrumented rather than `score_plan`: it carries
     `output_form`, so a top-level parent hypothesis can be told apart from
@@ -297,18 +332,86 @@ def _name_rows(rows: list[dict]) -> list[dict]:
             )
         return ranked
 
-    out: list[dict] = []
     eng._search_plans = spy
+    ready.set()  # imports are done; the parent's per-row clock may start now
     try:
-        for row in rows:
+        while True:
+            smiles = in_queue.get()
+            if smiles is None:
+                return
             captured.clear()
-            started = time.perf_counter()
-            error = None
             try:
-                name = name_smiles(row["smiles"])
+                name = name_smiles(smiles)
+                out_queue.put((name, None, dict(captured[0]) if captured else {}))
             except Exception as exc:  # noqa: BLE001
-                name, error = None, f"{type(exc).__name__}: {exc}"
-            trace = captured[0] if captured else {}
+                out_queue.put((None, f"{type(exc).__name__}: {exc}", {}))
+    finally:
+        eng._search_plans = original
+
+
+def _name_rows(rows: list[dict]) -> list[dict]:
+    """Name every row, and record the search shape alongside the name.
+
+    Each row is named in a persistent worker process (`_row_worker`) rather
+    than in-process, so a row that runs past `ROW_TIMEOUT_SECONDS` can be
+    killed outright and the rest of the population still completes. The
+    worker is reused across rows -- restarted only after a timeout or a
+    crash -- so the per-row cost of the process boundary is one queue round
+    trip, not one process spawn.
+    """
+    import multiprocessing as mp
+    import queue as queue_mod
+
+    ctx = mp.get_context("spawn")
+
+    def spawn_worker():
+        in_q, out_q = ctx.Queue(), ctx.Queue()
+        ready = ctx.Event()
+        proc = ctx.Process(target=_row_worker, args=(in_q, out_q, ready), daemon=True)
+        proc.start()
+        if not ready.wait(timeout=WORKER_STARTUP_TIMEOUT_SECONDS):
+            kill(proc)
+            raise RuntimeError(
+                f"naming worker did not finish starting within "
+                f"{WORKER_STARTUP_TIMEOUT_SECONDS}s (import failure?)"
+            )
+        return proc, in_q, out_q
+
+    def kill(proc) -> None:
+        proc.terminate()
+        proc.join(timeout=10)
+        if proc.is_alive():
+            proc.kill()
+            proc.join(timeout=10)
+
+    proc, in_q, out_q = spawn_worker()
+    out: list[dict] = []
+    try:
+        for index, row in enumerate(rows, start=1):
+            started = time.perf_counter()
+            in_q.put(row["smiles"])
+            result = None
+            while result is None and time.perf_counter() - started < ROW_TIMEOUT_SECONDS:
+                remaining = ROW_TIMEOUT_SECONDS - (time.perf_counter() - started)
+                try:
+                    result = out_q.get(timeout=min(1.0, max(0.05, remaining)))
+                except queue_mod.Empty:
+                    if not proc.is_alive():
+                        break  # crashed rather than hung -- don't wait out the rest of the budget
+            if result is not None:
+                name, error, trace = result
+            else:
+                elapsed = time.perf_counter() - started
+                still_alive = proc.is_alive()
+                error = (
+                    f"TIMEOUT after {elapsed:.0f}s (row killed)"
+                    if still_alive
+                    else f"worker process died after {elapsed:.0f}s"
+                )
+                name, trace = None, {}
+                if still_alive:
+                    kill(proc)
+                proc, in_q, out_q = spawn_worker()
             out.append(
                 {
                     "label": row["label"],
@@ -323,8 +426,17 @@ def _name_rows(rows: list[dict]) -> list[dict]:
                     "winning_hypothesis": trace.get("winner"),
                 }
             )
+            if index % 100 == 0 or index == len(rows):
+                print(f"    ...{index}/{len(rows)} named", file=sys.stderr, flush=True)
     finally:
-        eng._search_plans = original
+        try:
+            in_q.put(None)
+        except Exception:  # noqa: BLE001
+            pass
+        if proc.is_alive():
+            proc.join(timeout=5)
+            if proc.is_alive():
+                kill(proc)
     return out
 
 
