@@ -1,4 +1,4 @@
-# The vendored nomenclature engine's own ~3,200 tests.
+# The vendored nomenclature engine's own ~5,200 tests.
 #
 # A SEPARATE WORKFLOW WITH A PATH FILTER rather than a job inside tests.yml,
 # because they take roughly 10 minutes against that suite's 2 and they cover
@@ -30,7 +30,7 @@ jobs:
   vendor:
     name: vendored IUPAC namer suite
     runs-on: windows-latest
-    timeout-minutes: 40
+    timeout-minutes: 90
 
     steps:
       - uses: actions/checkout@v5
@@ -52,7 +52,14 @@ jobs:
       - name: Sync dependencies
         run: uv sync --extra ai --extra network --extra openbabel
 
-      # MEASURED ON THIS RUNNER: 3209 passed, 0 skipped, about 15 minutes.
+      # STALE AS OF ROUND 9 (2026-09-22): this comment said 3209 passed in
+      # about 15 minutes; the suite has since grown to 5212 (+62.5%,
+      # organic growth across rounds 7-8, not this PR) with NO change to
+      # this timeout. Locally measured: 5196 passed, 16 skipped, ~26
+      # minutes on a dev machine -- this runner has consistently run
+      # ~2.2x slower for this workload (JVM-subprocess-heavy on Windows),
+      # which is what the 90-minute budget below accounts for; that ratio
+      # is an extrapolation, not a second direct timing on this runner.
       # `norecursedirs` in pyproject.toml excludes this directory from the
       # default run, so it is named explicitly here.
       #
