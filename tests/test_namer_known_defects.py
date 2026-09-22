@@ -3301,6 +3301,35 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "no printed or derived target (a constructed converse, not a named "
      "dye); this row exists to catch a regression back to the wrong "
      "molecule and to pin that the fix is not phenothiazine-specific"),
+
+    # --- Round 10 (admissions ledger, item "spiro-xanthene-dye-locant") ----
+    # Fluorescein: engine used locant 13 on the xanthene half of its spiro
+    # system, out of xanthene's valid 1-9 (+4a/8a/9a/10a) range; OPSIN
+    # rejected it ("Cannot find in scope fragment with atom with locant
+    # 13"). Root cause: data_loader.py's xanthene/thioxanthene curated
+    # atom_locants covered only 9 of 14 ring positions (the four
+    # ring-fusion carbons and the bridge heteroatom were simply absent --
+    # fine for a bare/substituted parent, since a fusion carbon rarely
+    # bears a substituent there). In a SPIRO system, spiro.py's
+    # _try_articulation_split_spiro combines both partners' numbering into
+    # one, gated on every atom having a locant (`len(atom_to_loc) ==
+    # total_atoms`); the missing 5 entries meant that gate never passed, so
+    # the combined numbering silently came back empty and substituent
+    # locants fell through to a generic, UNPRIMED, out-of-range walk --
+    # explaining both the wrong value (13) and the complete absence of any
+    # prime mark on either hydroxyl (the wrong name has none at all, not
+    # even on the correct one). Fixed by completing the atom_locants table
+    # with the four fusion positions (4a, 8a, 9a, 10a) and the bridge
+    # heteroatom's own locant (10), derived by tracing this key's actual
+    # bond topology against fusion_general.py's already-verified real
+    # xanthene numbering.
+    ("D-141", "O=C1OC2(c3ccc(O)cc3Oc3cc(O)ccc32)c2ccccc21",
+     "3',6'-dihydroxyspiro[1,3-dihydro-2-benzofuran-1,9'-xanthene]-3-one",
+     "7,13-dihydroxyspiro[1,3-dihydro-2-benzofuran-1,9'-xanthene]-1-one",
+     "matches fluorescein's real IUPAC name (3',6'-dihydroxy, both primed, "
+     "on the xanthene side); the -3-one vs -1-one difference from the "
+     "wrong former name is an unrelated lactone-numbering side effect of "
+     "the same fix landing correctly"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
