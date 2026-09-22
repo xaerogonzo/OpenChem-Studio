@@ -1,21 +1,39 @@
 # B2: the ordinary-compound battery's first probe
 
-Source: `benchmarks/naming/battery_r9.toml` (268 rows; `approved_drugs_chembl` pending, see below),
+Source: `benchmarks/naming/battery_r9.toml` (306 rows, all 9 categories including `approved_drugs_chembl`),
 probed via `tools/naming_battery_build.py probe` (`naming_probe.probe_structure` + the app's own
 `RoundTrip` verdict, timeout-protected per row). No row here carries a preferred-name target -- B2 is
 discovery and regression, never a preference oracle, per the protocol's own header.
 
 ## Headline
 
-- **268/268 rows completed with no timeout and no worker crash.**
-- Silent-fallback status: 268 `clean` (0 `fallback`, 0 `no_plan`, 0 `all_plans_failed`) -- **but see the
+- **306/306 rows completed with no timeout and no worker crash**, across two probe runs (268 rows before
+  ChEMBL's API recovered, 306 after).
+- Silent-fallback status: 306 `clean` (0 `fallback`, 0 `no_plan`, 0 `all_plans_failed`) -- **but see the
   instrument finding below: this undercounts by at least 2.**
-- RoundTrip verdict: **263 MATCH, 1 MISMATCH, 4 PARSER_FAILED.**
+- RoundTrip verdict: **298 MATCH, 2 MISMATCH, 4 PARSER_FAILED, 2 STEREO_OMITTED.**
 
 This is a far cleaner hit rate than B1's Blue Book tuning half (23/1129 wrong-structure, ~2%), which is
 expected: B2 deliberately covers ordinary, common chemistry the engine has already been tuned against
 across rounds, where B1 deliberately covers the Blue Book's own (often obscure or retained-name-heavy)
 worked examples.
+
+## approved_drugs_chembl, once ChEMBL's API recovered
+
+38/50 sampled approved drugs resolved (12 dropped for legitimate reasons -- see the B2 protocol commit).
+Two of the 38 add new verdicts, both consistent with what a genuinely complex real-world structure should
+produce rather than looking like new defect classes:
+
+- **Two STEREO_OMITTED** (moxifloxacin hydrochloride; a complex macrolide-class natural product with a
+  spiroketal and many stereocenters) -- the engine's name round-trips to the right CONNECTIVITY but does
+  not fully specify every stereocenter. An existing, already-understood RoundTrip class, not a new one;
+  recorded as a rate (2/306) rather than investigated row by row.
+- **One additional MISMATCH**: a large cyclic lipopeptide (CHEMBL4594248, a daptomycin-class antibiotic --
+  a macrocyclic ring closed by a Cys-Cys-like bridge, well over a dozen amino-acid-style residues). Genuinely
+  wrong per the RoundTrip verdict, but at this size and complexity, diagnosing exactly which of its many
+  stereocenters or ring-closure locants the engine's name gets wrong would take effort disproportionate to
+  the admission rule's "one dominant defect mechanism" requirement -- flagged, not pursued as a ledger
+  candidate this round.
 
 ## Instrument finding: a multi-component name can hide a `no_plan` failure as `clean`
 
@@ -69,19 +87,13 @@ frequency read from B3 and Alex's call on whether inorganic anion naming belongs
 Both are recorded as candidates needing the same individual-row verification B1's triage applied before
 either is treated as confirmed.
 
-## approved_drugs_chembl: still pending
-
-ChEMBL's public REST API was down for every filtered query as of this probe run (confirmed broad, not
-query-specific: even an exact `molecule_chembl_id=CHEMBL25` lookup failed the same way). Alex chose to
-proceed with the other 268 rows now; `assemble` and `probe` both re-run cleanly once the ChEMBL sample is
-fetchable, and this file will be updated with that category's results when it is.
-
 ## Summary for the eventual admissions ledger
 
 | finding | rows | severity | reach (this battery) | in scope for round 9? |
 |---|---:|---|---|---|
-| DCC / carbodiimide not recognised | 1 | high (wrong molecule) | 1 seen; DCC is common vocabulary | strong candidate |
-| BH4-/AlH4- have no naming plan | 2 | high (no name at all) | 2 seen; possibly inorganic-nomenclature scope | undecided, needs B3 |
+| DCC / carbodiimide not recognised | 1 | high (wrong molecule) | 1 seen; DCC is common vocabulary; 0/2000 in B3's census (see r9_b3_findings.md) | strong candidate on wrong-molecule grounds, not frequency |
+| BH4-/AlH4- have no naming plan | 2 | high (no name at all) | 2 seen; 0/2000 in B3's census | undecided -- neither wrong-molecule nor frequency cleanly covers "no name at all"; Alex's call |
 | phenothiazine dye locant (methylene blue) | 1 | unconfirmed | 1 seen | needs individual verification first |
 | fluorescein spiro serialization | 1 | unconfirmed | 1 seen | needs individual verification first |
+| large cyclic lipopeptide MISMATCH | 1 | unconfirmed, too complex to isolate cheaply | 1 seen | not pursued this round |
 | probe status classifier misses embedded failures | instrument, not structure | -- | -- | round 10 instrument backlog |
