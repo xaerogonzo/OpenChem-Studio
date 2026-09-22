@@ -1,0 +1,84 @@
+# Naming round 9 (B3): the versioned SMARTS registry for the frequency census, committed before any count
+# is viewed. A count changes ONLY if a query's `version` changes -- see tools/naming_census_build.py and
+# admissions_r9.toml's `natural_frequency_min` (already committed in R0, before this file existed).
+#
+# Each query gives NATURAL_FREQUENCY for one open shape: hits / sample size in the B3 census (an
+# unenriched PubChem stride draw), never REGRESSION_COVERAGE (which comes from the tuning populations and
+# says whether a class matters to the existing workload -- the two are never combined, per the plan).
+#
+# `smarts` is the primary rule. A query whose shape cannot be expressed in SMARTS alone (ring-system size,
+# fused-ring counting) instead names its `python_predicate` -- a function in naming_census_build.py, whose
+# own docstring is that query's definition instead of a SMARTS string. Every query still gets `source`
+# (which seed item, or which B1/B2 finding, motivated it) and `version`.
+
+[query.charged_acid_substituent]
+version = 1
+smarts = "[CX3](=O)[O-,OH1]"
+definition = "A carboxylate or carboxylic acid group anywhere in the structure (not distinguishing principal-group vs substituent position, which is a naming-layer fact SMARTS cannot see -- an upper bound on F1's shape, not an exact count)."
+source = "seed item F1 (a charged acid group inside a substituent)"
+
+[query.carbazate_ester]
+version = 1
+smarts = "[NX3][NX3]C(=O)[OX2]"
+definition = "A hydrazinecarboxylate linkage (N-N-C(=O)-O), the carbazate ester functional group."
+source = "seed item F3 (carbazate esters, D-088b)"
+
+[query.chloroformate_or_carbonate_anhydride]
+version = 1
+smarts = ["[Cl][CX3](=O)[OX2]", "[OX2][CX3](=O)[OX2][CX3](=O)[OX2]"]
+definition = "A chloroformate (Cl-C(=O)-O-) or a dicarbonate/carbonic anhydride (-O-C(=O)-O-C(=O)-O-). A structure matches if EITHER pattern matches -- a comma inside one SMARTS string is an atom-level OR, not an OR between two full patterns, so alternatives are separate list entries, not one comma-joined string."
+source = "seed item F4 (carbonic acid halides and anhydrides)"
+
+[query.diaryl_or_dialkyl_enclosed_ketone]
+version = 1
+smarts = "[c,C;R][CX3](=O)[c,C;R]"
+definition = "A ketone whose carbonyl carbon bears a ring substituent on BOTH sides -- the shape that needs the W5 second-prefix enclosure family (P-16.5.1.3.1)."
+source = "seed item F5 (one-carbon ketone parent with two prefixes)"
+
+[query.guanidinium_cation]
+version = 1
+smarts = "[NX3][CX3](=[NX3+])[NX3]"
+definition = "A protonated guanidine (a cationic C bonded to three nitrogens, one via a formal double bond)."
+source = "seed item F6 (N,N-substituted guanidinium); B1 bucket A (bb-153b7bd9e351 and related charge-loss rows)"
+
+[query.substituted_carbamimidoyl]
+version = 1
+smarts = "[CX3](=[NX2])[NX3]"
+definition = "A carbamimidoyl group (-C(=N-)-N<) with a substituent on the imino nitrogen -- the shape D-091v and B1's bb-a53d359b46f8 and bb-ee1e7cac0062 both sit in."
+source = "seed item F7 (substituted carbamimidoyl); B1 bucket C/F"
+
+[query.any_formal_charge]
+version = 1
+smarts = "[+,-]"
+definition = "Any atom carrying a formal charge -- the broadest possible baseline for B1's dominant finding (11 of 23 wrong-structure rows lost their charge state entirely). A high natural frequency here would say charged species are common enough that the charge-loss defect, wherever its root cause turns out to be, has wide reach."
+source = "B1 bucket A (charge lost entirely, 11/23 rows)"
+
+[query.isocyanide_or_nitrilium_carbanion]
+version = 1
+smarts = "[C-]#[N+]"
+definition = "An isocyanide-type carbanion/nitrilium pair (a negatively charged carbon triple-bonded to a positively charged nitrogen) -- the exact shape of B1's bb-153b7bd9e351."
+source = "B1 bucket A (bb-153b7bd9e351)"
+
+[query.naphthalene_2_3_disubstituted]
+version = 1
+smarts = "[!#1]c1cc2ccccc2cc1[!#1]"
+definition = "A naphthalene ring substituted at the 2- and 3-positions (across the ring fusion) -- the exact shape of B1's bb-3e0b412fafed, where the engine dropped an entire fused ring."
+source = "B1 bucket D (bb-3e0b412fafed, an entire fused ring dropped)"
+
+[query.carbodiimide]
+version = 1
+smarts = "[NX2]=[CX2]=[NX2]"
+definition = "A carbodiimide (N=C=N, a cumulated diene) -- the exact functional group B2's DCC row (reagents_and_protecting_groups-007) found the engine does not recognise at all."
+source = "B2 (DCC / N,N'-dicyclohexylcarbodiimide, the round's clearest wrong-molecule finding)"
+
+[query.tetrahydroborate_or_aluminate_anion]
+version = 1
+smarts = ["[BH4-]", "[AlH4-]"]
+definition = "A tetrahydroborate or tetrahydroaluminate anion (BH4- or AlH4-) -- sodium borohydride and lithium aluminium hydride's anions, for which B2 found no naming plan exists at all. A structure matches if EITHER pattern matches."
+source = "B2 (reagents_and_protecting_groups-010, -011: attempted=0, no naming plan for either anion)"
+
+[query.large_fused_polycyclic_aromatic]
+version = 1
+python_predicate = "large_fused_polycyclic_aromatic"
+definition = "RDKit ring perception: an aromatic ring system (all bonds in the fused set aromatic) spanning 5 or more fused SSSR rings -- coronene-class systems, the shape that both hung the engine (bb-ad1954622ac3, before the per-row timeout fix) and, separately, made the von Baeyer fallback drop all ring unsaturation (B1 bucket B). Not expressible as a fixed-size SMARTS because the ring count is the variable being measured."
+source = "B1 bucket B, and the coronene ring-decomposition hang naming_stage_artifact.py's timeout fix was built for"
