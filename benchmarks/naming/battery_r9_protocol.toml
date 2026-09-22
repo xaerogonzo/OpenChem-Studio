@@ -34,6 +34,19 @@ secondary = "opsin_by_name"     # through naming_providers.opsin_structures_for_
 on_ambiguous = "RESOLVER_AMBIGUOUS"   # dropped and logged, never an engine failure
 on_disagree = "RESOLVER_DISAGREE"     # dropped and logged, never an engine failure
 
+# Two things a strict string comparison gets wrong, found by actually running the resolvers rather than
+# assumed beforehand -- both are RECONCILIATION rules applied uniformly to every category, not a patch
+# for one category that failed:
+#  1. Same molecular FORMULA, different canonical SMILES = a tautomer or ring-form choice (D-glucose:
+#     OPSIN gives the open-chain aldehyde, PubChem the cyclic pyranose; arginine/histidine: PubChem and
+#     OPSIN pick different but equally valid guanidinium/imidazole tautomers). Kept as a MATCH, noted.
+#  2. OPSIN cannot parse the INPUT name at all for trivial/trade names (indigo, thiamine, DMAP) -- it is a
+#     grammar for systematic names, not a dictionary of trade or lab jargon, however standard those are.
+#     Falls back to PubChem's OWN computed IUPAC name for the structure it found, re-verified by OPSIN:
+#     genuine independent confirmation without asking OPSIN to know a name it structurally cannot.
+formula_only_difference = "MATCH, PubChem's structure kept, noted"
+opsin_cannot_parse_input_name = "fall back to OPSIN confirming PubChem's own IUPAC name for the same structure"
+
 # --- outcome classes (plan B2.3) -------------------------------------------------------------------------------
 [outcomes]
 classes = [
@@ -123,13 +136,21 @@ structure_agreement_rule = "PubChem structure for the table's common name must m
 count = 14
 inclusion_rule = """
 A fixed, hand-listed set of 14 protecting-group and coupling reagents that are standard organic-chemistry
-vocabulary (Boc2O, Cbz-Cl, Fmoc-Cl, TBSCl, TBDPSCl, TrCl, PMB-Cl, DCC, DIC, DMAP, NaBH4, LiAlH4, TFA, TMSCl)
--- judged low citation-risk in the way an "essential medicines list" is not: these names and structures are
-textbook-level, not sourced from a list that could itself be wrong or contested. Listed by name here so the
-choice is auditable, not asserted without a trace.
+vocabulary -- judged low citation-risk in the way an "essential medicines list" is not: these names and
+structures are textbook-level, not sourced from a list that could itself be wrong or contested. Listed by
+FULL chemical name, not lab shorthand: a first attempt used abbreviations (Boc2O, TBSCl, DCC, ...) and every
+one of them failed to resolve, because OPSIN is a grammar for systematic names, not a dictionary of
+laboratory jargon -- it does not know abbreviations at all, however standard they are among chemists. The
+full names below are the same 14 reagents, resolvable by both PubChem and OPSIN.
 """
-reagents = ["Boc2O", "Cbz-Cl", "Fmoc-Cl", "TBSCl", "TBDPSCl", "TrCl", "PMB-Cl", "DCC", "DIC", "DMAP", "NaBH4", "LiAlH4", "TFA", "TMSCl"]
-source = "hand-listed, standard organic-chemistry reagents; not an external citation"
+reagents = [
+  "di-tert-butyl dicarbonate", "benzyl chloroformate", "9-fluorenylmethyl chloroformate",
+  "tert-butyldimethylsilyl chloride", "tert-butyldiphenylsilyl chloride", "triphenylmethyl chloride",
+  "4-methoxybenzyl chloride", "N,N'-dicyclohexylcarbodiimide", "N,N'-diisopropylcarbodiimide",
+  "4-dimethylaminopyridine", "sodium borohydride", "lithium aluminium hydride",
+  "trifluoroacetic acid", "trimethylsilyl chloride",
+]
+source = "hand-listed, standard organic-chemistry reagents, by full chemical name; not an external citation"
 resolver_checked = true
 structure_agreement_rule = "PubChem structure for the common name must match OPSIN's structure for the same name; a mismatch is RESOLVER_DISAGREE, dropped and logged"
 
