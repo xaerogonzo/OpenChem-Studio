@@ -93,11 +93,14 @@ resolver_checked = true                 # the 20 amino acids only, against PubCh
 structure_agreement_rule = "PubChem structure for each amino acid's common name must match the standard structure; dipeptides are N/A (generated)"
 
 [category.salts]
-count = 24
+count = 26                              # measured: tools/naming_battery_build.py generate, 10 of 36 combinations dropped
 inclusion_rule = """
 A fixed list of 6 common cations x 6 common anions (below), every charge-balanced combination built
-directly as a multi-component SMILES by rule (never looked up by name), capped at 24 by dropping
-combinations whose charge cannot balance with a 1:1 or 1:2 or 2:1 stoichiometry (recorded, not silent).
+directly as a multi-component SMILES by rule (never looked up by name), restricted to combinations whose
+charge balances with a 1:1, 1:2 or 2:1 stoichiometry -- a combination needing a different ratio (e.g.
+Fe3+/Cl- needs 1:3) is dropped and recorded, not silently included with a different rule applied after
+the fact. 26 of the 36 cation x anion combinations clear this; the other 10 are recorded in
+`salts_dropped.json`.
 """
 cations = ["Na+", "K+", "NH4+", "Ca2+", "Mg2+", "Fe3+"]
 anions = ["Cl-", "Br-", "NO3-", "SO4_2-", "CO3_2-", "PO4_3-"]
