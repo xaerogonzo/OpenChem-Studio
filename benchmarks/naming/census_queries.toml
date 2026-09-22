@@ -11,6 +11,12 @@
 # own docstring is that query's definition instead of a SMARTS string. Every query still gets `source`
 # (which seed item, or which B1/B2 finding, motivated it) and `version`.
 
+[query.peptide_amide_bond]
+version = 1
+smarts = "[NX3][CX4][CX3](=O)[NX3][CX4][CX3](=O)"
+definition = "An interior peptide-bond backbone fragment: R-NH-CHR'-C(=O)-NH-CHR''-C(=O)-R''' (an alpha-amino-acid residue acylating another). Verified against a Gly-Ala dipeptide backbone (match) and against plain amides including acetaminophen (no match)."
+source = "seed item F2 (peptide acyl prefixes), confirmed live 2026-09-22: all 20/20 of B2's rule-built dipeptides name with fully systematic substitutive nomenclature instead of the Blue Book's retained -yl acyl convention (P-103.2.5, P-103.3.2) -- added to the registry and run against the ALREADY-DRAWN, unenriched census_sample.json after this finding, never re-drawn or cherry-picked; the query is committed here before its count is viewed, the same discipline every other query in this file already followed."
+
 [query.charged_acid_substituent]
 version = 1
 smarts = "[CX3](=O)[O-,OH1]"
