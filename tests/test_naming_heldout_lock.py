@@ -56,6 +56,14 @@ EXPECTED_META = {
 
 THIS_TEST = "tests/test_naming_heldout_lock.py"
 
+#: Naming round 9's B3 census is not a population (its own lock lives in test_naming_census_lock.py), but its whole
+#: reason to exist requires it to know EVERY frozen population's filename: the census must share no CID or structure
+#: with any of them, or a "fresh, unenriched" draw would secretly be enriched by whatever the engine already handles.
+#: That non-overlap check is read-only and asserts COUNTS, never reads a row for naming -- the same shape THIS_TEST
+#: itself is allowed for. Naming a frozen file here is not "using it as a population"; not naming it here would mean
+#: the census could silently start overlapping one.
+CENSUS_ALLOWED_NAMERS = {"tests/test_naming_census_lock.py", "tools/naming_census_build.py"}
+
 
 def frozen_keys() -> list[str]:
     return [p.key for p in registry.registry() if p.frozen]
@@ -71,8 +79,10 @@ def meta_path(key: str) -> Path:
 
 
 def allowed_namers(key: str) -> set[str]:
-    """The only tracked scripts allowed to name a frozen file: the one that drew it and this test."""
-    return {DRAWING_SCRIPTS[key], THIS_TEST}
+    """The only tracked scripts allowed to name a frozen file: the one that drew it, this test, and the
+    census's own non-overlap check (CENSUS_ALLOWED_NAMERS -- read-only, asserts counts, never a population
+    read)."""
+    return {DRAWING_SCRIPTS[key], THIS_TEST} | CENSUS_ALLOWED_NAMERS
 
 
 def scripts_naming(filename: str, cwd: Path = ROOT, *, no_index: bool = False) -> list[str]:
