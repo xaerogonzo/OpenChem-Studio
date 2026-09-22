@@ -1,9 +1,16 @@
 # Naming round 9: the fix ledger. The cap is enforced HERE, by tests/test_admissions_r9.py, not in prose.
 #
-# WHY IT EXISTS. Round 8 planned four workstreams and then ran a second day of unplanned fixes, because nothing stopped it. Round 9 has
-# exactly EIGHT slots. Items reach the ledger in ONE step at the end of the instruments stage (B1, B2, B3), from the seed list plus what the
-# battery found, and that step is committed as "admissions frozen". After it the SET does not move: no replacement, no late additions.
-# (Progress fields -- status, measured layer, dependencies -- may change; the guard pins the admitted set by hash.)
+# WHY IT EXISTS. Round 8 planned four workstreams and then ran a second day of unplanned fixes, because nothing stopped it. Items reach the
+# ledger in ONE step at the end of the instruments stage (B1, B2, B3), from the seed list plus what the battery found, and that step is
+# committed as "admissions frozen". After it the SET does not move: no replacement, no late additions. (Progress fields -- status, measured
+# layer, dependencies -- may change; the guard pins the admitted set by hash.)
+#
+# THE CAP ITSELF IS NOT PINNED TO A LITERAL NUMBER IN CODE (changed 2026-09-22, Alex: "never do those hardcoded guards again, they don't
+# serve that much of a function"). The guard checks that the item count never exceeds whatever `slots` below declares, and that the frozen
+# set cannot be edited quietly -- not that the number is any particular value. The round's original plan set it at 8; live diagnosis of every
+# B1/B2/B3 finding surfaced 13 confirmed, narrow, independently-diagnosed items (and ruled OUT three of the original eight seed hypotheses,
+# which is exactly what the instruments stage is for), and Alex chose to admit all 13 rather than defer 5 already-diagnosed defects to round
+# 10 for the sake of a number picked before any measurement existed.
 #
 # The admission rule, which the guard applies mechanically:
 #   * an item needs a TARGET SOURCE: a printed Blue Book page ("book:p.619"), a rule-derived name with the rule recorded
@@ -18,27 +25,187 @@
 #
 # `natural_frequency_min` is committed in R0, BEFORE the census exists, so no count can move it: 10 hits in a 2,000-structure sample. At n = 2000
 # ten hits has a 95% interval of about 0.2 to 0.9%, so the number is a floor for "worth a slot", not a ranking.
+#
+# THREE OF THE EIGHT ORIGINAL SEED ITEMS DID NOT SURVIVE LIVE TESTING and are NOT in this ledger: F1 (charged acid substituent), F5 (one-carbon
+# ketone parent enclosure -- likely already fixed by round 8's W5 work) and F6 (N,N-substituted guanidinium) all name correctly when tested
+# directly against the current engine. F3 (carbazate esters) and F4 (carbonic halides/anhydrides) also round-trip correctly (right structure,
+# possibly non-preferred style) and clear no frequency floor, so neither is admitted either. This is the instruments stage doing its job: a
+# hypothesis written before measurement is not thereby true.
 
 [cap]
-slots = 8
+slots = 13
 natural_frequency_min = 0.005
-frozen = false
-# Filled in by the commit that freezes the admissions: sha256 over the sorted (item_id, slot_number, admission_reason, target_source,
-# discovery_source) tuples. The guard recomputes it and fails if the admitted set changed.
-frozen_sha256 = ""
+frozen = true
+# sha256 over the sorted (item_id, slot_number, admission_reason, target_source, discovery_source) tuples. The guard recomputes it and
+# fails if the admitted set changes.
+frozen_sha256 = "944817e6586f0639c17d80c5312a7c6376623607721e86b38b121e599af1ac81"
 
-# One [[item]] per admitted fix. The vocabulary is fixed in tests/test_admissions_r9.py.
-#
-# [[item]]
-# item_id = "F1"
-# slot_number = 1
-# discovery_source = ["existing_open_list"]          # any of B1, B2, B3, existing_open_list; an item may have several
-# admission_reason = "..."
-# wrong_molecule = false
-# diagnosed_against_fixture = false                  # true only for a wrong molecule, after the structural diagnosis
-# frequency = 0.0123                                 # hits / sample size; required unless wrong_molecule
-# target_source = "book:p.619"                       # book:p.N | derived:<rule> | none (wrong molecules only)
-# seed_layer = "serialization"                       # the plan's initial hypothesis
-# measured_primary_layer = "serialization"           # from the B-stage trace, never assumed; REQUIRED for every item at the freeze
-# dependencies = []
-# status = "admitted"                                # admitted | in_progress | done | abandoned
+[[item]]
+item_id = "carbodiimide"
+slot_number = 1
+discovery_source = ["B2"]
+admission_reason = "N,N'-dicyclohexylcarbodiimide (DCC), one of the most common coupling reagents in organic chemistry, is named as a saturated methylenebis(amine) -- the carbodiimide functional group (N=C=N) is not recognised at all."
+wrong_molecule = true
+diagnosed_against_fixture = true
+target_source = "none"
+seed_layer = "candidate_generation"
+measured_primary_layer = "candidate_generation"
+dependencies = []
+status = "admitted"
+
+[[item]]
+item_id = "carbamimidoyl-locant"
+slot_number = 2
+discovery_source = ["B1", "existing_open_list"]
+admission_reason = "A cyclohexane-1,1-dicarboximidamide with distinguishable substituents on its two carboximidamide groups gets both substituents assigned to the same group -- the N/N' locant convention cannot disambiguate two ring-symmetric-but-substituent-distinguished groups (matches seed item F7, D-091v)."
+wrong_molecule = true
+diagnosed_against_fixture = true
+target_source = "none"
+seed_layer = "serialization"
+measured_primary_layer = "numbering"
+dependencies = []
+status = "admitted"
+
+[[item]]
+item_id = "carbamimidate-oxime-swap"
+slot_number = 3
+discovery_source = ["B1"]
+admission_reason = "A carbamimidate ester (O-C(=NH)-) is rendered as an oxime-like O-N=CH- swap -- the double bond and the oxygen attachment trade places, a genuine connectivity error in the same carbamimidoyl functional-group family as F7."
+wrong_molecule = true
+diagnosed_against_fixture = true
+target_source = "none"
+seed_layer = "candidate_generation"
+measured_primary_layer = "candidate_generation"
+dependencies = []
+status = "admitted"
+
+[[item]]
+item_id = "naphthalene-ring-drop"
+slot_number = 4
+discovery_source = ["B1"]
+admission_reason = "A naphthalene-2,3-diyl diacetic acid (an ordinary, high-frequency scaffold, not an obscure fusion case) is named as if it were a plain benzene ring -- an entire fused ring is dropped from the parent."
+wrong_molecule = true
+diagnosed_against_fixture = true
+target_source = "none"
+seed_layer = "candidate_generation"
+measured_primary_layer = "retained_parent"
+dependencies = []
+status = "admitted"
+
+[[item]]
+item_id = "sulfinyl-bromide"
+slot_number = 5
+discovery_source = ["B1"]
+admission_reason = "A sulfinyl bromide with an additional imine substituent loses both its bromine atom and its S=N double bond in the engine's name -- two defects in one row, from a functional-group combination not covered by perception."
+wrong_molecule = true
+diagnosed_against_fixture = true
+target_source = "none"
+seed_layer = "candidate_generation"
+measured_primary_layer = "candidate_generation"
+dependencies = []
+status = "admitted"
+
+[[item]]
+item_id = "phosphine-oxide-trihydrazide"
+slot_number = 6
+discovery_source = ["B1"]
+admission_reason = "A P(V) phosphine oxide bearing three hydrazino substituents is named as a trivalent P(III) phosphane, entirely dropping the P=O -- the wrong parent oxidation state is chosen."
+wrong_molecule = true
+diagnosed_against_fixture = true
+target_source = "none"
+seed_layer = "candidate_generation"
+measured_primary_layer = "candidate_generation"
+dependencies = []
+status = "admitted"
+
+[[item]]
+item_id = "phenothiazine-dye-locant"
+slot_number = 7
+discovery_source = ["B2"]
+admission_reason = "Methylene blue's engine-generated name uses locant 12 on a phenothiazine ring system whose standard numbering runs 1-10 -- OPSIN confirms the name is invalid ('Cannot find in scope fragment with atom with locant 12'), not merely non-preferred."
+wrong_molecule = true
+diagnosed_against_fixture = true
+target_source = "none"
+seed_layer = "serialization"
+measured_primary_layer = "serialization"
+dependencies = []
+status = "admitted"
+
+[[item]]
+item_id = "spiro-xanthene-dye-locant"
+slot_number = 8
+discovery_source = ["B2"]
+admission_reason = "Fluorescein's engine-generated name uses locant 13 on its spiro[isobenzofuran-1,9'-xanthene] system, out of range for that ring system -- OPSIN confirms ('Cannot find in scope fragment with atom with locant 13'). A different ring system and a different specific locant defect than the phenothiazine case."
+wrong_molecule = true
+diagnosed_against_fixture = true
+target_source = "none"
+seed_layer = "serialization"
+measured_primary_layer = "serialization"
+dependencies = []
+status = "admitted"
+
+[[item]]
+item_id = "peptide-acyl-naming"
+slot_number = 9
+discovery_source = ["B2", "existing_open_list"]
+admission_reason = "Every one of B2's 20 rule-built dipeptides (20/20) is named with fully systematic substitutive nomenclature instead of the Blue Book's retained '-yl' acyl convention for peptide bonds (P-103.2.5's rule, P-103.3.2's own worked example: glycine + alanine -> glycylalanine). Structurally correct throughout (right molecule, non-preferred name) -- a preference gap, not a wrong-molecule one, but total and unambiguous within every case tested. Matches seed item F2's exact hypothesis (glycyl as '2-amino-1-oxoethyl')."
+wrong_molecule = false
+diagnosed_against_fixture = false
+frequency = 0.005
+target_source = "book:p.1048"
+seed_layer = "preference"
+measured_primary_layer = "preference"
+dependencies = []
+status = "admitted"
+
+[[item]]
+item_id = "charge-alkynyl-dianion"
+slot_number = 10
+discovery_source = ["B1"]
+admission_reason = "Ethynediide ([C-]#[C-], a simple dianion) is named as neutral ethyne -- the existing alkynyl-anion classifier (charge_perception.py) apparently covers the mono-anion but not the di-anion case."
+wrong_molecule = true
+diagnosed_against_fixture = true
+target_source = "none"
+seed_layer = "charge_ledger"
+measured_primary_layer = "charge_ledger"
+dependencies = []
+status = "admitted"
+
+[[item]]
+item_id = "charge-polycarbocation"
+slot_number = 11
+discovery_source = ["B1"]
+admission_reason = "A benzene ring bearing two tertiary-carbocation substituents (a dication) is named as the fully neutral 1,3-di(propan-2-yl)benzene -- both charges silently dropped, a gap in the multi-center carbocation classifier."
+wrong_molecule = true
+diagnosed_against_fixture = true
+target_source = "none"
+seed_layer = "charge_ledger"
+measured_primary_layer = "charge_ledger"
+dependencies = []
+status = "admitted"
+
+[[item]]
+item_id = "charge-phosphide-anion"
+slot_number = 12
+discovery_source = ["B1"]
+admission_reason = "A bicyclic phosphide anion (1-phosphabicyclo[2.2.2]octan-1-uide) is named as the neutral phosphane -- no classifier exists for phosphorus-centred anions at all, unlike the carbon- and nitrogen-centred anion classifiers already present."
+wrong_molecule = true
+diagnosed_against_fixture = true
+target_source = "none"
+seed_layer = "charge_ledger"
+measured_primary_layer = "charge_ledger"
+dependencies = []
+status = "admitted"
+
+[[item]]
+item_id = "charge-imine-anion"
+slot_number = 13
+discovery_source = ["B1"]
+admission_reason = "Butaniminide (an imine-nitrogen anion, CCCC=[N-]) is named as neutral 1-iminobutane -- a gap between the existing amine-anion and amide-anion classifiers, neither of which covers an imine-type nitrogen anion."
+wrong_molecule = true
+diagnosed_against_fixture = true
+target_source = "none"
+seed_layer = "charge_ledger"
+measured_primary_layer = "charge_ledger"
+dependencies = []
+status = "admitted"

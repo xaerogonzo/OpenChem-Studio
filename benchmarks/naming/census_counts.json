@@ -1,4 +1,21 @@
 {
+ "peptide_amide_bond": {
+  "hits": 10,
+  "sample_size": 2000,
+  "frequency": 0.005,
+  "hit_labels": [
+   "census37625",
+   "census131625",
+   "census159625",
+   "census433625",
+   "census1452625",
+   "census1752625",
+   "census1784625",
+   "census1807625",
+   "census2095625",
+   "census2099625"
+  ]
+ },
  "charged_acid_substituent": {
   "hits": 142,
   "sample_size": 2000,
