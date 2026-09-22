@@ -154,9 +154,29 @@ POLYCYCLES: dict[str, str] = {
     "purine": "[N:1]1[C:2][N:3][C:4]2[C:5]([C:6]1)[N:7][C:8][N:9]2",
     "acridarsine": "[C:1]1[C:2][C:3][C:4][C:5]2[As:6][C:7]3[C:8][C:9][C:10][C:11][C:12]3[C:13][C:14]12",
     "acridophosphine": "[C:1]1[C:2][C:3][C:4][C:5]2[P:6][C:7]3[C:8][C:9][C:10][C:11][C:12]3[C:13][C:14]12",
+    # The two-heteroatom dibenzo family (phenazine/phenoxazine/phenothiazine/
+    # phenoxathiine/thianthrene/oxanthrene) is NOT the anthracene/xanthene
+    # shape: real-world usage (chlorpromazine, promethazine -- both N-10
+    # substituted) fixes BOTH bridge positions as their own locants 5 and
+    # 10, with FOUR ring-fusion labels (4a, 5a, 9a, 10a) instead of
+    # anthracene's two (4a, 10a). Verified against OPSIN's own dictionary
+    # as a structure oracle, not just parse success: "10-methyl-10H-
+    # phenothiazine" places the methyl on N (confirms N=10), and
+    # "phenothiazin-5-ium" protonates S (confirms S=5); the analogous pair
+    # for phenoxazine confirms O=5/N=10. Only the two members proven to
+    # regress under a real substitution pattern (see naming round 10's
+    # D-139/D-140) are pinned here; the symmetric members (thianthrene,
+    # oxanthrene, phenazine) and phenoxathiine were tested and did NOT
+    # reproduce the defect, so they are left on the automorphism route.
+    "phenoxazine": "[C:1]1[C:2][C:3][C:4][C:5]2[O:6][C:7]3[C:8][C:9][C:10][C:11][C:12]3[N:13][C:14]12",
+    "phenothiazine": "[C:1]1[C:2][C:3][C:4][C:5]2[S:6][C:7]3[C:8][C:9][C:10][C:11][C:12]3[N:13][C:14]12",
 }
 
 _ANTHRACENE_LABELS = ("1", "2", "3", "4", "4a", "10", "10a", "5", "6", "7", "8", "8a", "9", "9a")
+#: the two-heteroatom dibenzo family's own numbering (P-25.3.3-style traditional
+#: numbering, distinct from _ANTHRACENE_LABELS): both bridge positions are their
+#: own locants (5, 10), with four ring-fusion labels instead of anthracene's two.
+_THIAZINE_LABELS = ("1", "2", "3", "4", "4a", "5", "5a", "6", "7", "8", "9", "9a", "10", "10a")
 _TRADITIONAL: dict[str, tuple[str, ...]] = {
     "anthracene": _ANTHRACENE_LABELS,
     "phenanthrene": ("1", "2", "3", "4", "4a", "4b", "5", "6", "7", "8", "8a", "9", "10", "10a"),
@@ -169,6 +189,8 @@ _TRADITIONAL: dict[str, tuple[str, ...]] = {
     "purine": ("1", "2", "3", "4", "5", "6", "7", "8", "9"),
     "acridarsine": _ANTHRACENE_LABELS,
     "acridophosphine": _ANTHRACENE_LABELS,
+    "phenoxazine": _THIAZINE_LABELS,
+    "phenothiazine": _THIAZINE_LABELS,
 }
 #: A retained polycycle whose name cites heteroatom locants inside a fusion
 #: name (Table 2.8: "1,8-naphthyridine" -> "[1,8]naphthyridine").

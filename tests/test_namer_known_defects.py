@@ -3259,6 +3259,48 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-138", "CCCC=[N-]", "butan-1-iminide", "1-iminobutane",
      "no printed or derived target (target_source: none); this row exists "
      "to catch a regression back to the wrong molecule"),
+
+    # --- Round 10 (admissions ledger, item "phenothiazine-dye-locant") -----
+    # Methylene blue: engine used locant 12 on a phenothiazine ring whose
+    # standard numbering runs 1-10 (plus 4a/5a/9a/10a); OPSIN rejected it
+    # outright ("Cannot find in scope fragment with atom with locant 12").
+    # Root cause traced past two correct, unrelated curated-locant tables
+    # (fusion_general.py's _TRADITIONAL, data_loader.py's _RING_CURATED_SMILES
+    # -- both already had, or now have, the right S=5/N=10 numbering) into a
+    # THIRD function, ring_naming/retained_lookup.py's
+    # _build_numbering_from_atom_locants: its bond-generic substructure-match
+    # fallback (which exists precisely to recover a curated ring's numbering
+    # when a substituent shifts its Kekule pattern) was gated to require
+    # EVERY ring atom aromatic, including the N/S bridge. RDKit's sanitizer
+    # keeps that bridge non-aromatic on the isolated curated-key SMILES, but
+    # DOES perceive it as aromatic in methylene blue's actual extended-
+    # conjugation (push-pull ylidene) form -- so the strict match silently
+    # returned zero results, and the numbering fell through to a locant-free
+    # generic walk with no awareness of the lettered fusion positions at all
+    # (hence "12", which is not even a valid label in either scheme). Fixed
+    # by relaxing the gate to "every CARBON aromatic" rather than "every
+    # atom aromatic" -- heteroatom aromaticity is genuinely context-
+    # dependent for this ring family; a ring carbon's is structural (indene's
+    # sp3 CH2, an sp3 dihydronaphthalene carbon, both stay correctly
+    # excluded, since the failing atom there IS carbon).
+    ("D-139", "CN(C)c1ccc2nc3ccc(=[N+](C)C)cc-3sc2c1.[Cl-]",
+     "[7-(dimethylamino)phenothiazin-3-ylidene]di(methyl)azanium chloride",
+     "[12-(dimethylamino)phenothiazin-4-ylidene]di(methyl)azanium chloride",
+     "matches PubChem's own preferred name for methylene blue verbatim "
+     "('[7-(dimethylamino)phenothiazin-3-ylidene]-dimethylazanium chloride', "
+     "battery_r9.toml row dyes-002) except for PubChem's own di/dimethyl "
+     "prefix spelling, which is a separate, non-admitted preference gap"),
+    # Phenoxazine shares phenothiazine's exact defect mechanism (same
+    # missing bond-generic fallback, same push-pull ylidene shape) -- proven
+    # by direct testing during this item's diagnosis, not merely assumed
+    # from the family resemblance. Confirms the fix is the shared function,
+    # not a phenothiazine-specific patch.
+    ("D-140", "CN(C)c1ccc2nc3ccc(=[N+](C)C)cc-3oc2c1.[Cl-]",
+     "[7-(dimethylamino)phenoxazin-3-ylidene]di(methyl)azanium chloride",
+     "[12-(dimethylamino)phenoxazin-4-ylidene]di(methyl)azanium chloride",
+     "no printed or derived target (a constructed converse, not a named "
+     "dye); this row exists to catch a regression back to the wrong "
+     "molecule and to pin that the fix is not phenothiazine-specific"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this

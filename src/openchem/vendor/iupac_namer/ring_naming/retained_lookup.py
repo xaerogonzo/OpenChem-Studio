@@ -3926,9 +3926,28 @@ def _build_numbering_from_atom_locants(
         # 1- and 3-positions inequivalent — bond-generic matching would conflate
         # them and mis-place substituents.  The all-aromatic gate excludes every
         # such case (any sp3 ring atom makes the ring non-aromatic).
-        ring_all_aromatic = all(
-            a.GetIsAromatic() for a in ring_mol.GetAtoms()
-        ) and ring_mol.GetNumAtoms() > 0
+        #
+        # CARBONS aromatic is the real test, not EVERY atom (naming round 10,
+        # phenothiazine-dye-locant): the curated key for a two-heteroatom
+        # dibenzo ring (phenothiazine, phenoxazine, ...) writes its N/S bridge
+        # atoms uppercase, and RDKit's own sanitizer keeps them non-aromatic
+        # on that isolated SMILES even though every ring carbon is aromatic --
+        # so the strict SMARTS this gate protects, and the mol-object fallback
+        # below it, both silently return zero matches against an input where
+        # the SAME bridge heteroatoms ARE perceived aromatic (measured on
+        # methylene blue: extended conjugation from the exocyclic push-pull
+        # ylidene makes RDKit's sanitizer aromatize the ring N and S that the
+        # bare/neutral ring does not). The caller then falls through to a
+        # locant-free numbering with no lettered (4a/5a/9a/10a) positions,
+        # which is where the out-of-range "locant 12" defect came from.
+        # A non-aromatic CARBON is still excluded (indene's sp3 CH2, a
+        # dihydronaphthalene's sp3 ring carbons): only heteroatoms get the
+        # benefit of the doubt, since their aromaticity is genuinely
+        # context-dependent while a ring carbon's is structural.
+        ring_all_aromatic = ring_mol.GetNumAtoms() > 0 and all(
+            a.GetIsAromatic() or a.GetAtomicNum() != 6
+            for a in ring_mol.GetAtoms()
+        )
         ring_query_generic = None
         if ring_all_aromatic:
             try:
