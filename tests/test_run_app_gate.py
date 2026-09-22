@@ -10,6 +10,7 @@ Needs a POSIX `bash`; on Windows that is Git Bash, never the WSL launcher in Sys
 from __future__ import annotations
 
 import math
+import os
 import re
 import shutil
 import subprocess
@@ -34,7 +35,10 @@ pytestmark = pytest.mark.skipif(BASH is None, reason="needs a POSIX bash (Git Ba
 
 
 def _run(*argv: str) -> subprocess.CompletedProcess:
-    return subprocess.run([BASH, str(SCRIPT), *argv], capture_output=True, text=True, cwd=ROOT)
+    # The script looks for `<checkout>/.venv` and a detached worktree (where the gate itself runs) has none: the interpreter comes from the main
+    # checkout. So the test hands it the one that is running it, which is what `PY` is for. (Its first run in a worktree failed four tests for exactly this.)
+    env = {**os.environ, "PY": sys.executable.replace("\\", "/")}
+    return subprocess.run([BASH, str(SCRIPT), *argv], capture_output=True, text=True, cwd=ROOT, env=env)
 
 
 def _shard_size(group: int) -> int:
