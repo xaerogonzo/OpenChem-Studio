@@ -1,0 +1,56 @@
+# Round 9's full ref-compare manifest, against master's pre-round-9 tip (5d910751). Covers every commit's fixed
+# item; the 7 rows below are the ONLY ones any commit this round intended to move, across r7, r8, mc and pop
+# (1712 structures). Every row not listed here must NOT change -- verified once with this manifest at the RC
+# checkpoint (benchmarks/naming/stages/r9_refcompare.json), after each fix had already been individually
+# ref-compared against its own immediate predecessor commit.
+
+stage = "r9-release-candidate"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-3914bf067e98"
+expect = "MUST_CHANGE"
+reason_rule_id = "charge-alkynyl-dianion (D-136)"
+expected_layer = "candidate_generation"
+expected_name = "ethynediide"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-3e0b412fafed"
+expect = "MUST_CHANGE"
+reason_rule_id = "naphthalene-ring-drop (D-132)"
+expected_layer = "candidate_generation"
+expected_name = "[3-(carboxymethyl)naphthalen-2-yl]acetic acid"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-4ec6c6c83b27"
+expect = "MUST_CHANGE"
+reason_rule_id = "charge-phosphide-anion (D-137, P-73)"
+expected_layer = "candidate_generation"
+expected_name = "1-phosphabicyclo[2.2.2]octan-1-uide"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-972f4e41e5a4"
+expect = "MUST_CHANGE"
+reason_rule_id = "charge-imine-anion (D-138)"
+expected_layer = "candidate_generation"
+expected_name = "butan-1-iminide"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-9952c721a5d5"
+expect = "MUST_CHANGE"
+reason_rule_id = "phosphine-oxide-trihydrazide (D-134)"
+expected_layer = "candidate_generation"
+expected_name = "1-methyl-1-[bis(1-methylhydrazinyl)(oxo)phosphanyl]hydrazine"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-9f8eab45027d"
+expect = "MUST_CHANGE"
+reason_rule_id = "sulfinyl-bromide (D-133): wrong molecule -> honest naming failure"
+expected_layer = "candidate_generation"
+expected_name = "{[NAMING ERROR: No valid naming plan found for CN=S(N)(=O)Br]}methane"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-ee1e7cac0062"
+expect = "MUST_CHANGE"
+reason_rule_id = "carbamimidoyl-locant (D-131)"
+expected_layer = "numbering"
+expected_name = "N'-ethyl-N'',N''-dimethylcyclohexane-1,1-dicarboximidamide"

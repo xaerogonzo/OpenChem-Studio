@@ -4803,6 +4803,33 @@ def _handcraft_alpha_substituted_acetamido(
     return f"{prefix}acetamido"
 
 
+def _sulfonyl_sulfinyl_has_single_substituent(mol, attachment_idx, att_atom_s) -> bool:
+    """True when S (already known to carry a suffix-eligible oxo_count of 1 or
+    2) has exactly one OTHER substituent besides its terminal =O oxygens --
+    the shape the {R}sulfonyl/{R}sulfinyl prefix shortcut below assumes.
+
+    A hypervalent centre with MORE substituents (a sulfinimidoyl/sulfonimidoyl
+    halide, S(=O)(=N-)(Hal)(N<)) does not fit that shape: the "R fragment" the
+    shortcut builds is mol minus S minus its oxo oxygens, which for such a
+    centre is TWO OR MORE disconnected pieces once S itself is removed, and
+    carve_substituent only reaches whichever one the attachment atom
+    (the first neighbour GetNeighbors() happens to return) belongs to -- the
+    rest are silently dropped from the name. Measured: CN=S(=O)(Br)NC (a
+    sulfinyl bromide with an additional imine substituent) named
+    "[(methylaminosulfinyl)amino]methane", losing both the bromine and the
+    S=N double bond -- two defects from one un-guarded assumption. Declining
+    here falls through to general substituent naming, which does not drop
+    atoms; a dedicated sulfinimidoyl/sulfonimidoyl halide name is a separate,
+    unbuilt gap."""
+    non_oxo = 0
+    for nb in att_atom_s.GetNeighbors():
+        bond = mol.GetBondBetweenAtoms(attachment_idx, nb.GetIdx())
+        if nb.GetAtomicNum() == 8 and bond is not None and bond.GetBondTypeAsDouble() >= 2.0:
+            continue
+        non_oxo += 1
+    return non_oxo == 1
+
+
 def _name_single_fg_substituent(
     perception: Perception,
     mol,
@@ -5096,7 +5123,7 @@ def _name_single_fg_substituent(
             and mol.GetBondBetweenAtoms(attachment_idx, nb.GetIdx()) is not None
             and mol.GetBondBetweenAtoms(attachment_idx, nb.GetIdx()).GetBondTypeAsDouble() >= 2.0
         )
-        if oxo_count in (1, 2):
+        if oxo_count in (1, 2) and _sulfonyl_sulfinyl_has_single_substituent(mol, attachment_idx, att_atom_s):
             # Build the R fragment: all atoms except S and its =O oxygens
             s_and_oxo = frozenset(
                 [attachment_idx] + [
@@ -10235,6 +10262,22 @@ def _name_bound(
         if cyclic_tree is not None:
             _session.cache_store(smiles, output_form, fv_bond_orders, cyclic_tree, attachment_indices)
             return cyclic_tree
+
+    # --- Peptide-acyl dispatcher (naming round 9, item "peptide-acyl-naming") ---
+    # A dipeptide between two of the 20 proteinogenic amino acids gets the
+    # Blue Book's retained "-yl" acyl form (P-103.2.5/P-103.3.2: "glycine +
+    # alanine -> glycylalanine (PIN)") instead of fully systematic
+    # substitutive nomenclature. A closed table of 20, stereo-matched exactly
+    # -- see peptide_acyl.py's module docstring for why a rule cannot do this.
+    if (output_form == OutputForm.STANDALONE
+            and free_valence is None):
+        from openchem.vendor.iupac_namer.perception.fg.peptide_acyl import (
+            try_peptide_acyl_name,
+        )
+        peptide_tree = try_peptide_acyl_name(mol, output_form, free_valence, decision_ctx)
+        if peptide_tree is not None:
+            _session.cache_store(smiles, output_form, fv_bond_orders, peptide_tree, attachment_indices)
+            return peptide_tree
 
     # --- Normal plan search ---
     query = strategy.interpretation_query(mol)
@@ -18143,21 +18186,44 @@ def _role_primes(pcg_instances, parent_atoms, mol) -> dict[int, str]:
     Hydrazide (P-66.3.1): the N bonded to the acyl carbon is N, the terminal
     one N'. Amidine (P-66.4.1.4.1): the amino N is N, the imino N is N'. Only groups with a named role scheme appear here; every other
     group keeps the index-order primes of its caller.
+
+    TWO OR MORE instances of the SAME role-primed group at the SAME parent
+    position (a 1,1-dicarboximidamide) need a further layer of primes, or
+    both instances' role primes collide onto the same N/N' -- measured
+    (D-131): a cyclohexane-1,1-dicarboximidamide with different substituents
+    on each group's amino and imino N put BOTH substituents on the SAME
+    group, because this function assigned "" to every amino N and "'" to
+    every imino N regardless of which of the two instances it belonged to,
+    silently overwriting the index-order primes its caller had already
+    computed to tell the two apart. Instances sharing a parent position are
+    now ordered by anchor atom index and each later instance's role primes
+    are shifted by two more prime marks: the first keeps N/N', the second
+    gets N''/N''', and so on -- the same "index order once role order is
+    exhausted" the caller already uses for groups with no role scheme.
     """
-    primes: dict[int, str] = {}
+    by_parent_pos: dict[int | None, list] = {}
     for fg in pcg_instances:
         if fg.type not in ("hydrazide", "imidamide"):
             continue
-        for a in fg.atoms - set(parent_atoms):
-            if mol.GetAtomWithIdx(a).GetAtomicNum() != 7:
-                continue
-            bond = mol.GetBondBetweenAtoms(a, fg.anchor)
-            if fg.type == "hydrazide":
-                primes[a] = "" if bond is not None else "'"
-            elif bond is not None:
-                # P-66.4.1.4.1: "the locant N refers to the amino group and
-                # N' refers to the imino group" (p. 678).
-                primes[a] = "'" if bond.GetBondTypeAsDouble() == 2 else ""
+        parent_pos = _find_parent_neighbor(fg.anchor, parent_atoms, mol)
+        by_parent_pos.setdefault(parent_pos, []).append(fg)
+
+    primes: dict[int, str] = {}
+    for group in by_parent_pos.values():
+        group.sort(key=lambda fg: fg.anchor)
+        for instance_index, fg in enumerate(group):
+            shift = "'" * (2 * instance_index)
+            for a in fg.atoms - set(parent_atoms):
+                if mol.GetAtomWithIdx(a).GetAtomicNum() != 7:
+                    continue
+                bond = mol.GetBondBetweenAtoms(a, fg.anchor)
+                if fg.type == "hydrazide":
+                    primes[a] = shift if bond is not None else shift + "'"
+                elif bond is not None:
+                    # P-66.4.1.4.1: "the locant N refers to the amino group and
+                    # N' refers to the imino group" (p. 678), shifted by `shift`
+                    # when a second identical group shares this parent position.
+                    primes[a] = (shift + "'") if bond.GetBondTypeAsDouble() == 2 else shift
     return primes
 
 

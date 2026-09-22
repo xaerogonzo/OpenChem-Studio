@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming round 9 (branch `naming-round-9`)
+
+- **A source-backed battery first, then a fixed, ledger-enforced set of fixes:** a Blue Book PDF harvest
+  (`bluebook_tuning.json`/`bluebook_frozen.json`, 1129 tuning rows), an ordinary-compound battery (`battery_r9.toml`, 306
+  rows across dipeptides, salts, dyes, reagents, drugs and more), and a 2000-row frequency census, run BEFORE any fix; 13
+  findings admitted into a hash-frozen ledger (`benchmarks/naming/admissions_r9.toml`), guarded by a check on item count
+  and set-immutability that is never pinned to a literal cap number.
+- **Wrong molecules fixed, each verified via OPSIN round-trip and a 1129-row stage comparison showing 0 structural
+  regressions:** DCC (a carbodiimide) no longer names as a saturated bis-amine; two carboximidamide groups at the same
+  ring position no longer collide onto one N/N' pair; a naphthalene-2,3-diyl diacetic acid no longer drops an entire
+  fused ring to plain benzene; a sulfinyl bromide with an extra imine substituent no longer silently drops its bromine
+  and its S=N bond (now an honest naming failure instead); a P(V) phosphine oxide no longer loses its oxidation state
+  to a P(III) phosphanetriyl; an ethynediide dianion, a bicyclic phosphide anion, and an imine-nitrogen anion (butaniminide)
+  no longer drop their charges to a neutral structure.
+- **A preference gap closed to the book's own worked example:** the retained "-yl" acyl convention for peptide bonds
+  (P-103.2.5/P-103.3.2) is now built — a closed, stereo-matched table of the 20 proteinogenic amino acids reaches
+  "glycylalanine" for the book's own worked example; 14 of the ordinary-compound battery's 20 dipeptides now use the
+  retained form (the other 6 all involve threonine or isoleucine, whose stereo is under-specified in that battery's own
+  data, so declining is correct, not a miss).
+- **A regression caught and fixed before it ever reached a commit:** a first version of the phosphide-anion classifier
+  claimed an acyclic phosphide (`dimethylphosphide`) that already had a correct name through a different route, and
+  rendered it wrong; the stage-comparison discipline this round follows caught it immediately, and the classifier is now
+  gated to ring phosphorus only, with the regression pinned as a converse test.
+- **Not done, recorded with their diagnosis** in `src/openchem/vendor/KNOWN_LIMITATIONS.md` ("Open after naming round 9"):
+  a carbamimidate/oxime prefix-bracketing ambiguity (fix identified, deferred for its regression risk across all
+  substituent naming), two dye-molecule ring-numbering defects (methylene blue's phenothiazine core, fluorescein's spiro
+  xanthene — different root causes, neither yet isolated to a fix), and a polycarbocation needing multiplicative and
+  charge-perception machinery to work together (no existing pattern to build from).
+- **Instruments added:** `tools/naming_bluebook_harvest.py` (PDF extraction with a stratified hand-check),
+  `tools/naming_battery_build.py` (the ordinary-compound battery, dipeptides through ChEMBL drugs), `tools/naming_census_build.py`
+  / `naming_census_count.py` (the frequency census), `tools/naming_plan_trace.py` (every ranked candidate plan for a
+  structure, the candidate-set proof), a per-row worker-process timeout in `naming_stage_artifact.py` (the coronene hang
+  this round's own B1 measurement hit).
+
 ### Naming round 8 (branch `naming-round-8`)
 
 - **Wrong molecules fixed, each found by a test that could not have passed before:** the trianion of a tricarboxylic

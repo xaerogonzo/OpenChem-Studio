@@ -2,9 +2,9 @@
 
 Each naming round spends the previous fresh set as fix targets, which spends
 it as evidence of generalisation: round 4 spent `heldout.json`, round 5 spent
-the v2 draw, round 7 spent the v3 draw, round 8 spends the v4 draw. The v5 draw
-(`heldout5.json`) was drawn and frozen before any round-8 diagnosis to replace
-it, and it is only worth anything if nothing during the round looks at it: a row
+the v2 draw, round 7 spent the v3 draw, round 8 spent the v4 draw, round 9 spends the v5 draw.
+The v6 draw (`heldout6.json`) was drawn and frozen before any round-9 diagnosis to
+replace it, and it is only worth anything if nothing during the round looks at it: a row
 read while debugging another stage is a row that ends up fixed, and then the
 "fresh" number is the regression number again.
 
@@ -38,27 +38,78 @@ sys.path.insert(0, str(ROOT / "tools"))
 import naming_populations as registry  # noqa: E402
 import naming_stage_artifact as stage  # noqa: E402
 
-FROZEN_FILE = "heldout5.json"
-FROZEN_KEY = "heldout_v5"
-FROZEN_META = "benchmarks/naming/heldout5.meta.json"
-
-#: The only tracked scripts allowed to name the frozen file: the one that drew
-#: it and this test. The stage tool used to be here; it reads the registry now.
-ALLOWED = {
-    "benchmarks/naming/build_heldout.py",
-    "tests/test_naming_heldout_lock.py",
+#: Every population the registry may freeze, with the ONE tracked script that draws it. Since naming round 9 there can be
+#: two at once (`heldout_v6` and the Blue Book's frozen half), so nothing below assumes one: a frozen population that is not
+#: listed here fails `test_the_frozen_populations_are_exactly_the_ones_this_file_knows`, which means a second freeze cannot
+#: happen by editing the registry alone. A new entry is added in the same commit as the registry line and the drawing script.
+DRAWING_SCRIPTS = {
+    "heldout_v6": "benchmarks/naming/build_heldout.py",
+    "bluebook_frozen": "tools/naming_bluebook_harvest.py",
 }
+
+#: What each frozen population's meta file must say about itself. `rows` and `variant` are properties of one draw; a second
+#: frozen population states its own.
+EXPECTED_META = {
+    "heldout_v6": {"rows": 40, "variant": "v6"},
+    "bluebook_frozen": {"rows": 1126, "variant": "bluebook"},
+}
+
+THIS_TEST = "tests/test_naming_heldout_lock.py"
+
+#: Naming round 9's B3 census is not a population (its own lock lives in test_naming_census_lock.py), but its whole
+#: reason to exist requires it to know EVERY frozen population's filename: the census must share no CID or structure
+#: with any of them, or a "fresh, unenriched" draw would secretly be enriched by whatever the engine already handles.
+#: That non-overlap check is read-only and asserts COUNTS, never reads a row for naming -- the same shape THIS_TEST
+#: itself is allowed for. Naming a frozen file here is not "using it as a population"; not naming it here would mean
+#: the census could silently start overlapping one.
+CENSUS_ALLOWED_NAMERS = {"tests/test_naming_census_lock.py", "tools/naming_census_build.py"}
+
+
+def frozen_keys() -> list[str]:
+    return [p.key for p in registry.registry() if p.frozen]
+
+
+def frozen_file(key: str) -> str:
+    return registry.get(key).file
+
+
+def meta_path(key: str) -> Path:
+    """`heldout6.json` -> `heldout6.meta.json`: the convention every population's meta file follows."""
+    return ROOT / "benchmarks/naming" / (Path(frozen_file(key)).stem + ".meta.json")
+
+
+def allowed_namers(key: str) -> set[str]:
+    """The only tracked scripts allowed to name a frozen file: the one that drew it, this test, and the
+    census's own non-overlap check (CENSUS_ALLOWED_NAMERS -- read-only, asserts counts, never a population
+    read)."""
+    return {DRAWING_SCRIPTS[key], THIS_TEST} | CENSUS_ALLOWED_NAMERS
+
+
+def scripts_naming(filename: str, cwd: Path = ROOT, *, no_index: bool = False) -> list[str]:
+    """Tracked `.py` files that mention `filename` (`no_index` lets a test point this at a scratch directory)."""
+    command = ["git", "grep", "-l", *(["--no-index"] if no_index else []), filename, "--", "*.py"]
+    return subprocess.run(command, cwd=cwd, capture_output=True, text=True).stdout.split()
+
+
+def stray_namers(key: str, listed: list[str]) -> set[str]:
+    return set(listed) - allowed_namers(key)
+
+
+def meta_hash(meta: dict) -> str:
+    """`heldout_sha256` is the original key; a population that is not a PubChem draw may say `population_sha256`."""
+    return meta.get("heldout_sha256") or meta["population_sha256"]
 
 
 @pytest.fixture
-def spy_on_the_frozen_file(monkeypatch):
-    """Record every way a Path can be used to look at the frozen file."""
+def spy_on_the_frozen_files(monkeypatch):
+    """Record every way a Path can be used to look at ANY frozen file."""
     touched: list[str] = []
+    names = {frozen_file(key) for key in frozen_keys()}
     for name in ("read_text", "read_bytes", "open", "exists", "stat", "is_file"):
         original = getattr(Path, name)
 
         def spy(self, *args, _original=original, _name=name, **kwargs):
-            if self.name == FROZEN_FILE:
+            if self.name in names:
                 touched.append(_name)
             return _original(self, *args, **kwargs)
 
@@ -66,33 +117,85 @@ def spy_on_the_frozen_file(monkeypatch):
     return touched
 
 
-def test_exactly_one_population_is_frozen_and_it_is_the_current_draw():
-    frozen = [p.key for p in registry.registry() if p.frozen]
-    assert frozen == [FROZEN_KEY], frozen
+def test_the_frozen_populations_are_exactly_the_ones_this_file_knows():
+    """A freeze is a decision with a drawing script and a meta record, so it cannot come from editing one file."""
+    assert sorted(frozen_keys()) == sorted(DRAWING_SCRIPTS), (frozen_keys(), sorted(DRAWING_SCRIPTS))
+    assert sorted(EXPECTED_META) == sorted(DRAWING_SCRIPTS)
+    for key in frozen_keys():
+        assert (ROOT / DRAWING_SCRIPTS[key]).is_file(), f"{key}: no drawing script at {DRAWING_SCRIPTS[key]}"
+        assert meta_path(key).is_file(), f"{key}: no meta record at {meta_path(key).name}"
 
 
-def test_a_stage_run_does_not_include_the_frozen_population():
-    assert FROZEN_KEY not in stage.active_populations()
+def test_a_stage_run_does_not_include_a_frozen_population():
+    active = stage.active_populations()
+    assert not [key for key in frozen_keys() if key in active]
 
 
-def test_loading_the_frozen_population_is_refused_before_the_file_is_touched(
-    spy_on_the_frozen_file,
+def test_loading_a_frozen_population_is_refused_before_the_file_is_touched(
+    spy_on_the_frozen_files,
 ):
-    """Every door: the registry's `path` and `load`, and the stage tool's."""
-    with pytest.raises(registry.FrozenPopulation):
-        registry.path(FROZEN_KEY)
-    with pytest.raises(registry.FrozenPopulation):
-        registry.load(FROZEN_KEY)
-    with pytest.raises(stage.FrozenPopulation):
-        stage.load_population(FROZEN_KEY)
+    """Every door, for every frozen population: the registry's `path` and `load`, and the stage tool's."""
+    for key in frozen_keys():
+        with pytest.raises(registry.FrozenPopulation):
+            registry.path(key)
+        with pytest.raises(registry.FrozenPopulation):
+            registry.load(key)
+        with pytest.raises(stage.FrozenPopulation):
+            stage.load_population(key)
     # `keys()` enumerates without opening, and must not so much as stat it.
-    assert FROZEN_KEY not in registry.keys()
-    assert spy_on_the_frozen_file == [], spy_on_the_frozen_file
+    assert not [key for key in frozen_keys() if key in registry.keys()]
+    assert spy_on_the_frozen_files == [], spy_on_the_frozen_files
 
 
 def test_the_final_evaluation_is_the_one_door_in():
-    assert FROZEN_KEY in stage.active_populations(final_evaluation=True)
-    assert registry.path(FROZEN_KEY, final_evaluation=True).name == FROZEN_FILE
+    for key in frozen_keys():
+        assert key in stage.active_populations(final_evaluation=True)
+        assert registry.path(key, final_evaluation=True).name == frozen_file(key)
+
+
+def test_the_registry_refuses_every_frozen_population_not_just_the_first(tmp_path, monkeypatch):
+    """The generalisation is asserted, not assumed: a registry with TWO frozen populations refuses both, and enumerating
+    it touches neither file. (Mutation: make `path()` return early after the first frozen key and this fails.)"""
+    registry_file = tmp_path / "populations.toml"
+    registry_file.write_text(
+        "".join(
+            f'[[population]]\nkey="{k}"\nshort="{k}"\nfile="{k}.json"\nstatus="{s}"\n\n'
+            for k, s in (("a", "tuning"), ("b", "frozen"), ("c", "frozen"))
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(registry, "REGISTRY", registry_file)
+    touched: list[str] = []
+    for name in ("read_text", "read_bytes", "open", "exists", "stat", "is_file"):
+        original = getattr(Path, name)
+
+        def spy(self, *args, _original=original, _name=name, **kwargs):
+            if self.name in ("b.json", "c.json"):
+                touched.append(_name)
+            return _original(self, *args, **kwargs)
+
+        monkeypatch.setattr(Path, name, spy)
+    for key in ("b", "c"):
+        with pytest.raises(registry.FrozenPopulation):
+            registry.path(key)
+        with pytest.raises(registry.FrozenPopulation):
+            registry.load(key)
+    assert registry.keys() == []  # `a.json` does not exist, and neither frozen file is even looked for
+    assert touched == [], touched
+
+
+def test_a_stray_script_naming_a_second_frozen_file_is_caught(tmp_path):
+    """The name scan is one function used for every frozen file, so this proves it for a file this repository does not have
+    yet: a scratch directory with a script that names it is reported, and the drawing script is the only thing allowed."""
+    (tmp_path / "stray.py").write_text('SET = "bluebook_frozen.json"\n', encoding="utf-8")
+    (tmp_path / "harvest.py").write_text('DRAWN = "bluebook_frozen.json"\n', encoding="utf-8")
+    listed = scripts_naming("bluebook_frozen.json", tmp_path, no_index=True)
+    assert sorted(listed) == ["harvest.py", "stray.py"]
+    DRAWING_SCRIPTS["__scratch__"] = "harvest.py"
+    try:
+        assert stray_namers("__scratch__", listed) == {"stray.py"}
+    finally:
+        del DRAWING_SCRIPTS["__scratch__"]
 
 
 @pytest.mark.parametrize(
@@ -100,6 +203,7 @@ def test_the_final_evaluation_is_the_one_door_in():
     [
         ("heldout_v3", "heldout3.meta.json", "naming round 7"),
         ("heldout_v4", "heldout4.meta.json", "naming round 8"),
+        ("heldout_v5", "heldout5.meta.json", "naming round 9"),
     ],
 )
 def test_a_spent_fresh_population_is_a_tuning_population_now(key, meta_file, since):
@@ -121,29 +225,28 @@ def test_every_enumerating_tool_takes_its_populations_from_the_registry():
     import retained_name_audit
 
     tuning_files = [p.file for p in registry.tuning()]
+    frozen_files = {frozen_file(key) for key in frozen_keys()}
     audit_files = [f for _short, f in retained_name_audit.TUNING_POPULATIONS]
     assert audit_files == tuning_files
-    assert FROZEN_FILE not in audit_files
+    assert not frozen_files & set(audit_files)
 
     ertl_files = [c.name for c in ertl_crosscheck.CORPORA]
     assert set(ertl_files) <= set(tuning_files), ertl_files
-    assert FROZEN_FILE not in ertl_files
+    assert not frozen_files & set(ertl_files)
 
     stage_files = [f for _k, f, frozen in stage.POPULATIONS if not frozen]
     assert stage_files == tuning_files
 
 
-def test_no_other_tracked_file_names_the_frozen_population():
-    """The structural guard. Breaking it: add `heldout2.json` to any script.
+def test_no_other_tracked_file_names_a_frozen_population():
+    """The structural guard, for every frozen file. Breaking it: add `heldout2.json` to any script.
 
-    Mutation-tested 2026-09-18: dropping `build_heldout.py` from ALLOWED
-    fails this test.
+    Mutation-tested 2026-09-18: dropping `build_heldout.py` from the allowed set fails this test. Generalised in naming
+    round 9 (`scripts_naming` and `stray_namers` are shared with the scratch-directory test above).
     """
-    listed = subprocess.run(
-        ["git", "grep", "-l", FROZEN_FILE, "--", "*.py"],
-        cwd=ROOT, capture_output=True, text=True,
-    ).stdout.split()
-    assert set(listed) <= ALLOWED, set(listed) - ALLOWED
+    for key in frozen_keys():
+        stray = stray_namers(key, scripts_naming(frozen_file(key)))
+        assert not stray, (key, stray)
 
 
 def test_no_tracked_script_builds_a_population_path_with_a_glob():
@@ -160,7 +263,7 @@ def test_no_tracked_script_builds_a_population_path_with_a_glob():
     assert not hits, hits
 
 
-def test_the_frozen_file_still_matches_its_recorded_hash():
+def test_a_frozen_file_still_matches_its_recorded_hash():
     """Integrity without inspection: bytes are hashed, never parsed.
 
     Over LF text, because that is what the freeze hashed and what git stores
@@ -169,20 +272,43 @@ def test_the_frozen_file_still_matches_its_recorded_hash():
     """
     import hashlib
 
-    meta = json.loads(
-        (ROOT / FROZEN_META).read_text(encoding="utf-8")
-    )
-    raw = (ROOT / "benchmarks/naming" / FROZEN_FILE).read_bytes().replace(b"\r\n", b"\n")
-    assert hashlib.sha256(raw).hexdigest() == meta["heldout_sha256"]
+    for key in frozen_keys():
+        meta = json.loads(meta_path(key).read_text(encoding="utf-8"))
+        raw = (ROOT / "benchmarks/naming" / frozen_file(key)).read_bytes().replace(b"\r\n", b"\n")
+        assert hashlib.sha256(raw).hexdigest() == meta_hash(meta), key
 
 
 def test_the_freeze_record_says_what_the_policy_is():
     """Reads the META file only -- counts, rule and hash, never rows."""
-    meta = json.loads((ROOT / FROZEN_META).read_text(encoding="utf-8"))
-    assert meta["engine_consulted"] is False
-    assert meta["rows"] == 40
-    assert "evaluation only" in meta["inspection_policy"]
-    assert meta["variant"] == "v5"
+    for key in frozen_keys():
+        meta = json.loads(meta_path(key).read_text(encoding="utf-8"))
+        assert meta["engine_consulted"] is False, key
+        assert "evaluation only" in meta["inspection_policy"], key
+        for field, expected in EXPECTED_META[key].items():
+            assert meta[field] == expected, (key, field)
+
+
+def test_a_frozen_meta_carries_one_membership_hash_per_row():
+    """The probe refuses a frozen structure by hash (`tools/naming_probe.py`), so the meta must carry one per row. Reads
+    the meta only. The salt is public: this guards an accident, not a secret."""
+    for key in frozen_keys():
+        meta = json.loads(meta_path(key).read_text(encoding="utf-8"))
+        hashes = meta["membership_sha256"]
+        assert len(hashes) == meta["rows"], key
+        assert len(set(hashes)) == len(hashes), key
+        assert all(len(h) == 64 for h in hashes), key
+        assert meta["membership_salt"], key
+
+
+def test_the_membership_hashes_in_a_frozen_meta_are_the_hashes_of_its_rows():
+    """The probe refuses a frozen structure by these hashes, so a meta whose hashes do not match the file would refuse the wrong things (or
+    nothing). Reads the frozen rows in memory, as the overlap check below does; the message carries COUNTS only."""
+    for key in frozen_keys():
+        meta = json.loads(meta_path(key).read_text(encoding="utf-8"))
+        rows = json.loads((ROOT / "benchmarks/naming" / frozen_file(key)).read_text(encoding="utf-8"))
+        expected = registry.membership_hashes(rows)
+        assert meta["membership_salt"] == registry.MEMBERSHIP_SALT, key
+        assert meta["membership_sha256"] == expected, (key, len(meta["membership_sha256"]), len(expected))
 
 
 def test_no_structure_is_in_two_populations():
@@ -280,16 +406,17 @@ def test_a_committed_artifact_carries_no_row_of_a_frozen_population():
     assert public["populations"]["heldout_v4"]["records"] == rows, "a tuning population keeps its rows"
 
 
-def test_the_registry_state_is_read_from_the_meta_file_and_never_opens_the_frozen_one(
-    spy_on_the_frozen_file,
+def test_the_registry_state_is_read_from_the_meta_file_and_never_opens_a_frozen_one(
+    spy_on_the_frozen_files,
 ):
     state = stage.registry_state()
-    meta = json.loads((ROOT / FROZEN_META).read_text(encoding="utf-8"))
-    assert state[FROZEN_KEY]["status"] == registry.FROZEN
-    assert state[FROZEN_KEY]["sha256"] == meta["heldout_sha256"]
-    assert state[FROZEN_KEY]["rows"] == meta["rows"]
-    assert all(v["status"] == registry.TUNING for k, v in state.items() if k != FROZEN_KEY)
-    assert spy_on_the_frozen_file == [], spy_on_the_frozen_file
+    for key in frozen_keys():
+        meta = json.loads(meta_path(key).read_text(encoding="utf-8"))
+        assert state[key]["status"] == registry.FROZEN
+        assert state[key]["sha256"] == meta_hash(meta)
+        assert state[key]["rows"] == meta["rows"]
+    assert all(v["status"] == registry.TUNING for k, v in state.items() if k not in frozen_keys())
+    assert spy_on_the_frozen_files == [], spy_on_the_frozen_files
 
 
 def test_an_artifact_records_the_identity_of_the_source_it_ran():
@@ -307,7 +434,8 @@ def test_no_other_tracked_script_names_the_sealed_directory():
         ["git", "grep", "-l", "sealed", "--", "*.py"],
         cwd=ROOT, capture_output=True, text=True,
     ).stdout.split()
-    allowed = {"tools/naming_stage_artifact.py", "tests/test_naming_heldout_lock.py"}
+    # The hand check (naming round 9) writes the sealed sidecar of the FROZEN Blue Book rows' oracle verdicts; it is the second deliberate opener.
+    allowed = {"tools/naming_stage_artifact.py", "tools/naming_bluebook_handcheck.py", "tests/test_naming_heldout_lock.py"}
     # `sealed` is an ordinary word; only a script that names the DIRECTORY matters.
     offenders = [
         f for f in listed

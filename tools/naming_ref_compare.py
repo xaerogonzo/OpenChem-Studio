@@ -147,20 +147,84 @@ def _worker(src: Path, items: list[tuple[str, str]], out_file: Path) -> None:
         raise SystemExit(f"the worker for {src} failed ({done.returncode}):\n{done.stderr[-1500:]}")
 
 
-def _run_worker(out_file: str) -> None:
+# A row-timeout ceiling, mirroring naming_stage_artifact.py's ROW_TIMEOUT_SECONDS exactly (this tool had NO
+# such protection until it hung on a large fused polycyclic aromatic during round 9's RC checkpoint -- the
+# same coronene-shaped decompose_ring_system hang naming_stage_artifact.py's own timeout was built for,
+# measured via py-spy: stuck in vb_decompose.py's decompose_ring_system with no way out). A thread cannot be
+# forcibly stopped in CPython, but a child PROCESS can be killed outright, so each row is named in a process
+# of its own and the parent restarts a hung one rather than waiting on it.
+ROW_TIMEOUT_SECONDS = 120
+WORKER_STARTUP_TIMEOUT_SECONDS = 60
+
+
+def _row_namer(in_queue, out_queue, ready) -> None:
+    """Name one SMILES at a time, in a process of its own (see ROW_TIMEOUT_SECONDS above)."""
     from rdkit import RDLogger
 
     RDLogger.DisableLog("rdApp.*")
-    import openchem  # noqa: F401  (which one is decided by PYTHONPATH; recorded below)
     from openchem.vendor.iupac_namer.engine import name_smiles
+
+    ready.set()  # imports are done; the parent's per-row clock may start now
+    while True:
+        smiles = in_queue.get()
+        if smiles is None:
+            return
+        try:
+            out_queue.put((str(name_smiles(smiles)), None))
+        except Exception as exc:  # noqa: BLE001
+            out_queue.put((None, f"{type(exc).__name__}: {exc}"))
+
+
+def _name_all_rows(items: list[tuple[str, str]]) -> dict[str, str]:
+    """Name every (row_id, smiles) pair with a fresh worker process, restarting it on a per-row timeout or
+    an unexpected exit -- the same persistent-worker-with-restart shape as naming_stage_artifact.py's
+    _name_rows, kept separate here because this tool's own worker needs no hypothesis-tracking."""
+    import multiprocessing as mp
+
+    ctx = mp.get_context("spawn")
+    in_queue: mp.Queue = ctx.Queue()
+    out_queue: mp.Queue = ctx.Queue()
+    ready = ctx.Event()
+
+    def spawn():
+        ready.clear()
+        proc = ctx.Process(target=_row_namer, args=(in_queue, out_queue, ready), daemon=True)
+        proc.start()
+        if not ready.wait(WORKER_STARTUP_TIMEOUT_SECONDS):
+            proc.terminate()
+            proc.join()
+            raise SystemExit("a naming_ref_compare row-worker never finished importing within "
+                              f"{WORKER_STARTUP_TIMEOUT_SECONDS}s")
+        return proc
+
+    names: dict[str, str] = {}
+    proc = spawn()
+    try:
+        for row_id, smiles in items:
+            in_queue.put(smiles)
+            try:
+                name, error = out_queue.get(timeout=ROW_TIMEOUT_SECONDS)
+            except Exception:  # noqa: BLE001 - queue.Empty on timeout, or a broken pipe if the worker died
+                proc.terminate()
+                proc.join()
+                names[row_id] = f"ERROR TimeoutError: exceeded {ROW_TIMEOUT_SECONDS}s"
+                proc = spawn()
+                continue
+            names[row_id] = name if error is None else f"ERROR {error[:100]}"
+    finally:
+        in_queue.put(None)
+        proc.join(timeout=5)
+        if proc.is_alive():
+            proc.terminate()
+    return names
+
+
+def _run_worker(out_file: str) -> None:
+    import openchem  # noqa: F401  (which one is decided by PYTHONPATH; recorded below)
 
     items = json.loads(sys.stdin.read())
     names: dict[str, str] = {"__openchem__": str(Path(openchem.__file__).resolve())}
-    for row_id, smiles in items:
-        try:
-            names[row_id] = str(name_smiles(smiles))
-        except Exception as exc:  # noqa: BLE001 - a refusal is a name to compare
-            names[row_id] = f"ERROR {type(exc).__name__}: {str(exc)[:100]}"
+    names.update(_name_all_rows(items))
     Path(out_file).write_text(json.dumps(names), encoding="utf-8")
 
 

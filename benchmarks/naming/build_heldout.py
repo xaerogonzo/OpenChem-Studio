@@ -75,8 +75,11 @@ file outside `--final-evaluation`.
 2250, ...), all three earlier files excluded, quiet, and locked in v2's place.
 v2 is marked used in its meta file, as v1 was before it.
 
-`--variant v4` (round 7) and `--variant v5` (round 8) repeat it again: strides
-+750 and +125, every earlier file excluded, quiet. **Run them with output sent
+`--variant v4` (round 7), `--variant v5` (round 8) and `--variant v6` (round 9)
+repeat it again: strides +750, +125 and +375, every earlier file excluded, quiet.
+From v6 the meta also carries `membership_sha256`, a salted hash of each row's
+canonical SMILES, so a tool that names arbitrary structures can refuse a frozen
+one without the meta holding a row. **Run them with output sent
 to a file and read only the two summary lines** (`admitted N; rejected by
 clause: ...` and the `sha256`): v3's log leaked one OPSIN warning fragment, and
 the quiet flag now filters that warning, but "quiet" is a property of this
@@ -110,6 +113,9 @@ sys.path.insert(0, str(ROOT / "src"))
 # namer exclusively through a function-local import inside
 # `derived_name_for_structure`, which is never called here.
 from openchem.chem import naming_providers as n  # noqa: E402
+
+sys.path.insert(0, str(ROOT / "tools"))
+from naming_populations import MEMBERSHIP_SALT, membership_hashes  # noqa: E402
 
 # CIDs 1000, 2000, ... 120000.  See the module docstring: a stride over CID
 # space, fixed before any naming.
@@ -155,7 +161,18 @@ VARIANTS = {
            "exclude": ("corpus.json", "heldout.json", "heldout2.json", "heldout3.json",
                        "heldout4.json"),
            "quiet": True, "label": "h5cid", "round": "naming round 8"},
+    # Round 9 spends v5 (scored once, at round 8's final evaluation), so it needs
+    # the fresh population v5 was for round 8. The stride moves to +375: 0, 500,
+    # 250, 750 and 125 are taken, and a different offset below 1000 makes the CID
+    # sets disjoint by construction (375 is the next midpoint in the sequence the
+    # earlier draws followed). The lock test measures CID, canonical-SMILES and
+    # row-identity overlap regardless.
+    "v6": {"offset": 375, "out": "heldout6.json", "meta": "heldout6.meta.json",
+           "exclude": ("corpus.json", "heldout.json", "heldout2.json", "heldout3.json",
+                       "heldout4.json", "heldout5.json"),
+           "quiet": True, "label": "h6cid", "round": "naming round 9"},
 }
+
 
 MIN_HEAVY_ATOMS = 6
 MAX_HEAVY_ATOMS = 40
@@ -342,7 +359,7 @@ def main() -> None:
         "--variant",
         choices=sorted(VARIANTS),
         default="v1",
-        help="which draw: v1 is the committed heldout.json, v2 is naming round 4's, v3 round 5's, v4 round 7's, v5 round 8's",
+        help="which draw: v1 is the committed heldout.json, v2 is naming round 4's, v3 round 5's, v4 round 7's, v5 round 8's, v6 round 9's",
     )
     parser.add_argument(
         "--freeze",
@@ -400,6 +417,8 @@ def main() -> None:
             "selection_time": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
             "rows": len(rows),
             "heldout_sha256": digest,
+            "membership_salt": MEMBERSHIP_SALT,
+            "membership_sha256": membership_hashes(rows),
             "pubchem_property": _PROPS,
             "rdkit_version": rdkit.__version__,
         }

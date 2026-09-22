@@ -1,0 +1,85 @@
+{
+ "extracted": 4260,
+ "dropped": {
+  "isotope": 114,
+  "not_a_structure_name": 41,
+  "opsin_ambiguous": 7,
+  "opsin_unparsable": 758,
+  "organometallic": 4,
+  "page_or_column_split": 8,
+  "radical_or_ion_wildcard": 3,
+  "stereodescriptor": 246
+ },
+ "opsin_unparsable_by_class": {
+  "anhydride": 26,
+  "chalcogen_replaced": 20,
+  "fullerene": 39,
+  "fusion": 58,
+  "heteroatom_parent": 15,
+  "not_ascii_for_opsin": 207,
+  "other": 132,
+  "phane": 124,
+  "smiles_unreadable": 8,
+  "substituent_group": 111,
+  "von_baeyer_or_spiro": 18
+ },
+ "protocol_sha256": "e170ab771b2caaef008431b588de60f281664714bfa8582ebb3c4ab24b42cbb5",
+ "eligible": 3637,
+ "opsin_parsed_structures": 2720,
+ "seen": 465,
+ "unseen": 2255,
+ "tuning": 1129,
+ "frozen": 1126,
+ "chapters": {
+  "1": {
+   "tuning": 99,
+   "frozen": 99,
+   "seen": 82
+  },
+  "2": {
+   "tuning": 154,
+   "frozen": 153,
+   "seen": 57
+  },
+  "3": {
+   "tuning": 39,
+   "frozen": 39,
+   "seen": 19
+  },
+  "4": {
+   "tuning": 87,
+   "frozen": 87,
+   "seen": 14
+  },
+  "5": {
+   "tuning": 45,
+   "frozen": 44,
+   "seen": 7
+  },
+  "6": {
+   "tuning": 631,
+   "frozen": 631,
+   "seen": 234
+  },
+  "7": {
+   "tuning": 72,
+   "frozen": 71,
+   "seen": 51
+  },
+  "8": {
+   "tuning": 0,
+   "frozen": 0,
+   "seen": 0
+  },
+  "9": {
+   "tuning": 2,
+   "frozen": 2,
+   "seen": 1
+  },
+  "10": {
+   "tuning": 0,
+   "frozen": 0,
+   "seen": 0
+  }
+ }
+}

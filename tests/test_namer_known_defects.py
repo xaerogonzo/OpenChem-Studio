@@ -492,10 +492,18 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-027y", "OC(=O)c1ccc(cc1)[C@H](C)CC", "4-[(2R)-butan-2-yl]benzoic acid",
      "4-[(2R)-butan-2-yl]benzoic acid", "unchanged"),
     # Expected moved in round 4 (A9): the amido prefix, P-66.1.1.4.3 method (1)
-    # (pdf p. 652); both descriptors unchanged, which is what this row guards.
+    # (pdf p. 652). Expected moved AGAIN in round 9 (item "peptide-acyl-
+    # naming", D-135): Ala-Phe is a plain dipeptide between two of the 20
+    # proteinogenic amino acids, so P-103.2.5/P-103.3.2's retained "-yl"
+    # acyl form now fires and supersedes the systematic substitutive form
+    # entirely -- round 4's fix picked the best available STYLE within
+    # substitutive naming, before the retained convention existed in this
+    # engine at all; "alanylphenylalanine" outranks it, not merely differs
+    # from it (P-103.2.5 is prescriptive, not a style preference).
     ("D-027z", "N[C@@H](C)C(=O)N[C@@H](Cc1ccccc1)C(=O)O",
-     "(2S)-2-[(2S)-2-aminopropanamido]-3-phenylpropanoic acid",
-     "(2S)-2-[(2S)-2-aminopropanoylamino]-3-phenylpropanoic acid", "descriptors unchanged"),
+     "alanylphenylalanine",
+     "(2S)-2-[(2S)-2-aminopropanoylamino]-3-phenylpropanoic acid",
+     "superseded by the peptide-acyl retained form, round 9"),
 
     # --- D-028: prefixes cited out of alphanumerical order ---------------
     # SEVERITY B, not A: the right molecule, cited in the wrong order, so it
@@ -3113,6 +3121,144 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "converse: the carbon-attached ring acyl was already right (p. 622)"),
     ("D-129w", "OC(=O)c1ccc(cc1)C(=O)N(C)C", "4-(dimethylcarbamoyl)benzoic acid", "(unchanged)",
      "converse: an acyclic amide is 'carbamoyl'"),
+    # Round 9 (admissions ledger, item "carbamimidoyl-locant"):
+    ("D-131", "CCN=C(N)C1(C(=N)N(C)C)CCCCC1",
+     "N'-ethyl-N'',N''-dimethylcyclohexane-1,1-dicarboximidamide",
+     "N'-ethyl-N,N-dimethylcyclohexane-1,1-dicarboximidamide",
+     "engine.py's _role_primes assigned amino=N/imino=N' by ROLE alone, "
+     "ignoring which of the two identical carboximidamide instances at the "
+     "same parent position (1,1-) an atom belonged to, so both instances' "
+     "primes collided and OPSIN put both substituents on the same group; "
+     "instances sharing a parent position are now ordered by anchor atom "
+     "index and each later instance's role primes are shifted by two more "
+     "prime marks (N/N' -> N''/N'''), verified via OPSIN round-trip"),
+    # Round 9 (admissions ledger, item "naphthalene-ring-drop", target_source
+    # = "none" -- wrong molecule only, no PIN claimed or sourced). The
+    # multiplicative linker builder's _divalent_linker walked the SHORTEST
+    # path between the two attachment atoms; on a naphthalene-2,3-diyl
+    # linker that path is the single ortho bond across ONE ring, so the
+    # entire OTHER fused ring (4 of naphthalene's 10 ring atoms) was
+    # silently treated as "off the path, and merely aromatic" and dropped --
+    # "2,2'-(1,2-phenylene)diacetic acid" names plain benzene-1,2-
+    # diylbis(acetic acid), a different, smaller molecule (verified via
+    # OPSIN: different structure). multiplicative.py's new
+    # _fused_ring_count check declines whenever the linker's skeleton spans
+    # more than one SSSR ring, the same declining style the existing "a
+    # ring other than benzene in the linker" check already uses. The engine
+    # falls back to substitutive naming (one arm as parent, the ring plus
+    # the other arm as one substituent), which keeps every ring atom;
+    # verified via OPSIN round-trip. The preferred multiplicative form
+    # ('naphthalene-2,3-diyldiacetic acid') needs fused-ring-system linker
+    # naming, which P-15.3 multiplicative constructions on a fused ring
+    # were explicitly out of round 9's scope (the plan's seed-list note) --
+    # not tracked here without a sourced target to check it against.
+    ("D-132", "O=C(O)Cc1cc2ccccc2cc1CC(=O)O", "[3-(carboxymethyl)naphthalen-2-yl]acetic acid",
+     "2,2'-(1,2-phenylene)diacetic acid",
+     "no printed or derived target (target_source: none); this row exists "
+     "to catch a regression back to the wrong molecule, not to claim IUPAC "
+     "preference"),
+    # Round 9 (admissions ledger, item "sulfinyl-bromide", target_source =
+    # "none" -- wrong molecule only). engine.py's {R}sulfonyl/{R}sulfinyl
+    # substituent shortcut assumed S has exactly one substituent beside its
+    # oxo oxygens; on a hypervalent centre with MORE substituents (here:
+    # =N-CH3, Br, and -NH-CH3 beside =O) it silently kept whichever one
+    # GetNeighbors() happened to reach first and dropped the rest -- the
+    # bromine AND the S=N double bond both vanished, "[(methylaminosulfinyl)
+    # amino]methane" (verified via OPSIN: a different, smaller molecule).
+    # The new _sulfonyl_sulfinyl_has_single_substituent guard declines the
+    # shortcut whenever S carries more than one non-oxo substituent, the
+    # same declining style D-130's _linker_has_imine and D-132's
+    # _fused_ring_count use. There is no OTHER substituent-naming route in
+    # this engine for a sulfinimidoyl/sulfonimidoyl-halide shape (S(=O)(=N-)
+    # (Hal)(N<)) -- building one is a separate, unbuilt gap -- so declining
+    # here surfaces an honest naming failure instead of a wrong molecule.
+    # Verified: RoundTrip classifies the result PARSER_FAILED, never a false
+    # MATCH; the wrong molecule this item was admitted for cannot recur.
+    ("D-133", "CN=S(=O)(Br)NC", "{[NAMING ERROR: No valid naming plan found for CN=S(N)(=O)Br]}methane",
+     "[(methylaminosulfinyl)amino]methane",
+     "no printed or derived target (target_source: none); an honest naming "
+     "failure (RoundTrip.PARSER_FAILED) replaces the wrong molecule, which "
+     "is what this item was admitted to fix -- a real sulfinimidoyl/"
+     "sulfonimidoyl-halide name is a separate, unbuilt gap"),
+    # Round 9 (admissions ledger, item "phosphine-oxide-trihydrazide",
+    # target_source = "none" -- wrong molecule only). A P(V) phosphine oxide
+    # bearing three hydrazino substituents named as a trivalent P(III)
+    # phosphane via multiplicative.py's _polyvalent_linker: the P=O oxygen is
+    # stripped from the linker's "skeleton" before the linker is named
+    # (_linker_name strips oxo atoms for every case, including the plain
+    # trivalent one where there IS no oxo to strip), and nothing checked
+    # whether that stripped =O should have blocked the construction --
+    # "1,1',1''-phosphanetriyltris(1-methylhydrazine)" (verified via OPSIN: a
+    # different molecule, no P=O at all). The new _linker_has_phosphine_oxide
+    # check declines whenever the linker carries a P=O, the same declining
+    # style _linker_has_carbonyl and _linker_has_imine already use. The
+    # engine falls back to substitutive naming that keeps the P=O; verified
+    # via OPSIN round-trip.
+    ("D-134", "CN(N)P(=O)(N(C)N)N(C)N",
+     "1-methyl-1-[bis(1-methylhydrazinyl)(oxo)phosphanyl]hydrazine",
+     "1,1',1''-phosphanetriyltris(1-methylhydrazine)",
+     "no printed or derived target (target_source: none); this row exists "
+     "to catch a regression back to the wrong molecule, not to claim IUPAC "
+     "preference"),
+    # Round 9 (admissions ledger, item "peptide-acyl-naming", target_source =
+    # "book:p.1048"). Every one of B2's 20 rule-built dipeptides (20/20) named
+    # with fully systematic substitutive nomenclature instead of the Blue
+    # Book's retained "-yl" acyl convention for peptide bonds (P-103.2.5's
+    # rule; P-103.3.2's own worked example, verbatim, is THIS exact row:
+    # "glycine + alanine -> glycylalanine (PIN)", pdf p. 1048). A new module
+    # (perception/fg/peptide_acyl.py) matches a dipeptide's two residues
+    # against a closed table of the 20 proteinogenic amino acids (exact
+    # canonical structure, stereo included) and, on a match, emits the
+    # retained acyl-plus-parent form directly -- a preference gap, not a
+    # wrong-molecule one (the systematic name was always structurally
+    # correct), but total within the round's own worked example.
+    ("D-135", "NCC(=O)N[C@@H](C)C(=O)O", "glycylalanine",
+     "2-[(2-amino-1-oxoethyl)amino]propanoic acid",
+     "P-103.3.2 (pdf p. 1048), verbatim 'glycine + alanine -> glycylalanine "
+     "(PIN)'; verified via OPSIN round-trip"),
+    # Round 9 (admissions ledger, item "charge-alkynyl-dianion", target_source
+    # = "none"). Ethynediide ([C-]#[C-], a simple dianion) named as neutral
+    # ethyne, both charges silently dropped: the existing alkynyl-anion
+    # classifier's mono-anion gate (exactly one charged carbon, one neutral)
+    # correctly declined (there is no neutral carbon at all here), and
+    # nothing else in charge_perception.py claimed the shape.
+    # _classify_alkynyl_anion now also detects the symmetric di-anion and
+    # emits the pre-cooked surface name directly; verified via OPSIN
+    # round-trip.
+    ("D-136", "[C-]#[C-]", "ethynediide", "ethyne",
+     "no printed or derived target (target_source: none); this row exists "
+     "to catch a regression back to the wrong molecule"),
+    # Round 9 (admissions ledger, item "charge-phosphide-anion", target_source
+    # = "none"). A bicyclic phosphide anion (1-phosphabicyclo[2.2.2]octan-1-
+    # uide) named as the neutral phosphane, the charge dropped: no classifier
+    # existed for phosphorus-centred anions at all, unlike the carbon- and
+    # nitrogen-centred ones. A new _classify_phosphide_anion (mirroring
+    # _classify_amine_anion's shape) plus _render_phosphide_anion (mirroring
+    # _render_simple_carbon's "name as substituent, strip yl, append suffix"
+    # technique, but suffix "uide" -- a skeletal-replacement parent takes the
+    # P-73 linking "u" -- and a phosphorus-specific neutralization that
+    # REMOVES the anion's own H rather than keeping it, see
+    # _neutralized_site_changes) reaches the exact printed PIN; verified via
+    # OPSIN round-trip.
+    ("D-137", "C1C[PH-]2CCC1CC2", "1-phosphabicyclo[2.2.2]octan-1-uide",
+     "1-phosphabicyclo[2.2.2]octane",
+     "P-73 (skeletal-replacement anion, verified via OPSIN); the same "
+     "structure and name appear in the Blue Book harvest (bb-4ec6c6c83b27)"),
+    # Round 9 (admissions ledger, item "charge-imine-anion", target_source =
+    # "none"). Butaniminide (CCCC=[N-], an imine-nitrogen anion) named as
+    # neutral 1-iminobutane, the charge dropped: the amine-anion classifier
+    # requires a SINGLE N-C bond and correctly declined (this N's only bond
+    # is a double one), and nothing else claimed the shape -- a gap between
+    # the amine-anion and amide-anion classifiers, neither of which covers
+    # an imine-type nitrogen anion. A new _classify_imine_anion /
+    # _render_imine_anion pair mirrors _classify_amine_anion /
+    # _render_amine_anion exactly, plus a new
+    # ("imine", OutputForm.ANION): "iminide" SUFFIX_VARIANT_TABLE entry
+    # (assembly.py) mirroring the existing "amine"/"aminide" one; verified
+    # via OPSIN round-trip.
+    ("D-138", "CCCC=[N-]", "butan-1-iminide", "1-iminobutane",
+     "no printed or derived target (target_source: none); this row exists "
+     "to catch a regression back to the wrong molecule"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -3123,6 +3269,9 @@ FIXED: list[tuple[str, str, str, str, str]] = [
 OPSIN_CANNOT_PARSE: dict[str, str] = {
     "D-089e": "OPSIN reads no numbered N locant on oxamide; the book prints "
               "'N1,N2-bis(cyanomethyl)oxamide (PIN)' (p. 653)",
+    "D-133": "the target IS an embedded '[NAMING ERROR: ...]' string, deliberately: no route exists to NAME a "
+             "sulfinimidoyl/sulfonimidoyl-halide shape, and declining to guess is the fix (RoundTrip.PARSER_FAILED, "
+             "never a false MATCH) -- unlike D-089e this is not a gap in OPSIN's grammar, it is the engine refusing",
 }
 
 # Measured, reproduced, not yet fixed. Every one of these currently names
@@ -3196,6 +3345,27 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "(dimethylamino)(ethoxy)(oxo)phosphanecarbonitrile", "derived from functional "
      "replacement (P-67.1.2.4, 'methylphosphonocyanatidic acid (PIN)', p. 704); was "
      "'tabun', which the book never prints (gated, N5)"),
+    # Round 9 (admissions ledger, item "carbodiimide"): PARTLY FIXED. The
+    # admission's own defect -- the multiplicative-linker route silently
+    # treating N=C=N as a neutral bridge between two identical rings, giving
+    # the WRONG STRUCTURE "1,1'-[methylenebis(azanediyl)]dicyclohexane" -- is
+    # resolved (see test_a_symmetric_carbodiimide_is_no_longer_a_wrong_molecule
+    # below): multiplicative.py's _linker_has_imine now declines that route
+    # the same way _linker_has_carbonyl already declines it for a ketone
+    # linker. What remains open is reaching the PIN itself: the engine falls
+    # back to a substitutive name, "{[(cyclohexylimino)methylidene]amino}
+    # cyclohexane" -- structurally correct, not preferred. Measured:
+    # Perception(mol).fgs.detected_fgs is EMPTY for DCC in every context
+    # tried, not only the multiplicative-decomposition one, so the imine FG
+    # never becomes a suffix candidate at all -- a narrower, separate
+    # candidate-generation question than this item's admission reason.
+    ("D-130", "C(=NC1CCCCC1)=NC1CCCCC1", "dicyclohexylmethanediimine",
+     "1,1'-[methylenebis(azanediyl)]dicyclohexane",
+     "P-62.3.1.4 (pdf p. 528), verbatim 'dicyclohexylmethanediimine (PIN)'; "
+     "today's output is '{[(cyclohexylimino)methylidene]amino}cyclohexane' "
+     "-- the WRONG MOLECULE this item was admitted for is fixed, the PIN is "
+     "a separate, still-open gap (imine FG perception is empty for this "
+     "structure in every context, not only the multiplicative one)"),
 ]
 
 # Observed but NOT tracked here, because this table requires a verified
@@ -3240,6 +3410,247 @@ def test_open_defect_still_open(defect, smiles, expected, former, note):
     is now lying about it. Move the row from OPEN to FIXED.
     """
     assert name_smiles(smiles) == expected
+
+
+def test_a_symmetric_carbodiimide_is_no_longer_a_wrong_molecule():
+    """D-130's admission reason (carbodiimide): DCC named as a saturated
+    bis-amine via the multiplicative-linker route, "1,1'-[methylenebis
+    (azanediyl)]dicyclohexane" -- verified via OPSIN as a DIFFERENT molecule
+    from the input (a CH2 bridge, no N=C=N). That specific wrong string must
+    never come back, regardless of whether the engine later reaches the PIN
+    (D-130, still open in OPEN above)."""
+    wrong_former_output = "1,1'-[methylenebis(azanediyl)]dicyclohexane"
+    got = name_smiles("C(=NC1CCCCC1)=NC1CCCCC1")
+    assert got != wrong_former_output
+    # The specific structurally-correct fallback measured 2026-09-22, pinned
+    # so a further improvement toward the PIN is a deliberate D-130 update,
+    # not a silent drift this test stays blind to either way.
+    assert got == "{[(cyclohexylimino)methylidene]amino}cyclohexane"
+
+
+def test_a_fused_ring_linker_no_longer_drops_a_ring():
+    """D-132's admission reason (naphthalene-ring-drop): the multiplicative
+    linker builder's shortest-path walk crossed a fused ring's ortho bond and
+    silently dropped the OTHER ring entirely -- verified via OPSIN as a
+    DIFFERENT, smaller molecule (plain benzene, not naphthalene). That wrong
+    string must never come back."""
+    wrong_former_output = "2,2'-(1,2-phenylene)diacetic acid"
+    got = name_smiles("O=C(O)Cc1cc2ccccc2cc1CC(=O)O")
+    assert got != wrong_former_output
+    assert got == "[3-(carboxymethyl)naphthalen-2-yl]acetic acid"
+
+
+def test_a_single_benzo_ring_linker_still_uses_phenylene():
+    """Converse of D-132: the new fused-ring check (multiplicative.py's
+    _fused_ring_count) must decline ONLY when the linker's skeleton spans
+    more than one SSSR ring. A single, non-fused ortho-substituted benzene
+    ring linker -- structurally identical to the wrong output above, minus
+    the second ring -- is the legitimate case '2,2'-(1,2-phenylene)diacetic
+    acid' was built for, and must still reach it."""
+    assert name_smiles("O=C(O)Cc1ccccc1CC(=O)O") == "2,2'-(1,2-phenylene)diacetic acid"
+
+
+def test_a_peri_fused_linker_also_keeps_every_ring_atom():
+    """A second fused-ring converse of D-132, with the two arms attached
+    across the ring-fusion peri positions (naphthalene-1,8-diyl) rather than
+    D-132's 2,3-diyl -- a different attachment geometry on the same fused
+    system, to check the decline is not narrowly tuned to one case."""
+    got = name_smiles("O=C(O)Cc1cccc2cccc(CC(O)=O)c12")
+    assert got == "[8-(carboxymethyl)naphthalen-1-yl]acetic acid"
+
+
+def test_a_hypervalent_sulfinyl_no_longer_drops_atoms():
+    """D-133's admission reason (sulfinyl-bromide): a sulfinyl bromide with
+    an additional imine substituent lost both its bromine and its S=N double
+    bond -- verified via OPSIN as a DIFFERENT, smaller molecule (the vendored
+    suite's test_known_defects.py checks the round trip itself, including
+    that D-133's own replacement is declared in OPSIN_CANNOT_PARSE rather
+    than a false MATCH; this file needs nothing but RDKit, so only the
+    string pin lives here)."""
+    wrong_former_output = "[(methylaminosulfinyl)amino]methane"
+    got = name_smiles("CN=S(=O)(Br)NC")
+    assert got != wrong_former_output
+
+
+def test_a_plain_sulfinyl_halide_still_uses_the_shortcut():
+    """Converse of D-133: the new _sulfonyl_sulfinyl_has_single_substituent
+    guard must decline ONLY when S carries more than one non-oxo
+    substituent. A plain sulfinyl bromide with no third substituent --
+    D-133's molecule minus the extra N-methylamino branch -- is exactly the
+    shape the {R}sulfinyl shortcut was built for, and must still reach it."""
+    assert name_smiles("CN=S(=O)Br") == "[(bromosulfinyl)amino]methane"
+
+
+def test_a_plain_sulfonyl_substituent_still_uses_the_shortcut():
+    """A second converse of D-133, on the sulfonyl (oxo_count=2) side of the
+    same shortcut rather than the sulfinyl side."""
+    assert name_smiles("CS(=O)(=O)c1ccccc1") == "(methanesulfonyl)benzene"
+
+
+def test_a_phosphine_oxide_no_longer_loses_its_oxidation_state():
+    """D-134's admission reason (phosphine-oxide-trihydrazide): a P(V)
+    phosphine oxide named as a trivalent P(III) phosphane, dropping the P=O
+    entirely -- verified via OPSIN as a DIFFERENT molecule. That wrong
+    string must never come back."""
+    wrong_former_output = "1,1',1''-phosphanetriyltris(1-methylhydrazine)"
+    got = name_smiles("CN(N)P(=O)(N(C)N)N(C)N")
+    assert got != wrong_former_output
+    assert got == "1-methyl-1-[bis(1-methylhydrazinyl)(oxo)phosphanyl]hydrazine"
+
+
+def test_a_plain_trivalent_phosphanetriyl_linker_still_works():
+    """Converse of D-134: the new _linker_has_phosphine_oxide check must
+    decline ONLY when the linker carries a real P=O. A plain trivalent P
+    linker -- D-134's molecule minus the oxide -- is exactly the shape
+    "phosphanetriyl" was built for, and must still reach it."""
+    assert name_smiles("CN(N)P(N(C)N)N(C)N") == "1,1',1''-phosphanetriyltris(1-methylhydrazine)"
+
+
+def test_glycylalanine_is_the_book_own_worked_example():
+    """D-135, P-103.3.2's own worked example verbatim (pdf p. 1048):
+    'glycine + alanine -> glycylalanine (PIN)' (the vendored suite's
+    test_known_defects.py verifies the OPSIN round trip for every FIXED
+    row, D-135 included; this file needs nothing but RDKit, so only the
+    string pin lives here)."""
+    assert name_smiles("NCC(=O)N[C@@H](C)C(=O)O") == "glycylalanine"
+
+
+@pytest.mark.parametrize(
+    "smiles,expected",
+    [
+        # Both directions (which residue is acyl vs. base), several side
+        # chains, and the two shapes _match_dipeptide has to tell apart:
+        # an open-chain base (most residues) and a ring base (proline).
+        ("N[C@@H](Cc1ccccc1)C(=O)N[C@@H](Cc1c[nH]c2ccccc12)C(=O)O", "phenylalanyltryptophan"),
+        ("N[C@@H](CC(=O)O)C(=O)N[C@@H](CCC(=O)O)C(=O)O", "aspartylglutamic acid"),
+        ("N[C@@H](Cc1c[nH]cn1)C(=O)N1CCC[C@H]1C(=O)O", "histidylproline"),
+        ("NC(=O)CC[C@H](N)C(=O)N1CCC[C@H]1C(=O)O", "glutaminylproline"),
+        ("O=C(O)[C@@H]1CCCN1C(=O)[C@@H](N)CO", "serylproline"),
+    ],
+)
+def test_other_dipeptides_also_reach_the_retained_form(smiles, expected):
+    """The B2 battery's own 20 dipeptides: 14/20 reach the retained form
+    (measured 2026-09-22); the other 6 all involve threonine or isoleucine,
+    whose battery-generated SMILES specify stereo on the alpha carbon only,
+    not the side-chain stereocentre -- see test_under_specified_stereo_
+    correctly_declines below for why that is the matcher declining
+    correctly, not a bug."""
+    assert name_smiles(smiles) == expected
+
+
+def test_under_specified_stereo_correctly_declines_not_guesses():
+    """A residue with a SECOND stereocentre (threonine, isoleucine) whose
+    SMILES specifies only the alpha carbon's configuration must NOT match
+    the retained-name table: "threonyl" denotes ONE specific diastereomer
+    (2S,3R), and an input that does not say which diastereomer this is
+    cannot honestly be called that. Measured: this is the exact shape of
+    6 of the B2 battery's 20 dipeptide rows (threonine or isoleucine on
+    either side), all of which correctly still name systematically."""
+    # threonine's own alpha carbon specified, side-chain carbon left
+    # unspecified -- matches battery row "dipeptide-threonine+valine".
+    under_specified = "CC(O)[C@H](N)C(=O)N[C@@H](C(C)C)C(=O)O"
+    got = name_smiles(under_specified)
+    assert "threonyl" not in got and "valyl" not in got
+    # the fully stereo-specified version of the SAME dipeptide DOES match.
+    fully_specified = "C[C@@H](O)[C@H](N)C(=O)N[C@@H](C(C)C)C(=O)O"
+    assert name_smiles(fully_specified) == "threonylvaline"
+
+
+def test_a_tripeptide_is_declined_not_partially_named():
+    """Scope converse: this module handles a single peptide bond only
+    (matches every B2 battery row). A tripeptide (two peptide bonds) must
+    fall through to the general engine untouched, not produce a partial or
+    malformed retained-form name."""
+    tripeptide = "NCC(=O)N[C@@H](C)C(=O)N[C@@H](Cc1ccccc1)C(=O)O"  # Gly-Ala-Phe
+    got = name_smiles(tripeptide)
+    assert "glycylalanyl" not in got and "alanylphenylalanine" not in got
+
+
+def test_an_unnatural_amino_acid_dipeptide_is_declined():
+    """Scope converse: a residue outside the 20 proteinogenic amino acids
+    (here, 2-methylalanine / alpha-aminoisobutyric acid, achiral and with no
+    retained acyl prefix) must not match by accident -- the table is closed,
+    not a general alpha-amino-acid rule."""
+    got = name_smiles("CC(C)(N)C(=O)N[C@@H](C)C(=O)O")
+    assert got == "(2S)-2-(2-amino-2-methylpropanamido)propanoic acid"
+
+
+def test_the_alkynyl_dianion_no_longer_loses_both_charges():
+    """D-136's admission reason (charge-alkynyl-dianion): ethynediide named
+    as plain neutral ethyne, both charges dropped -- verified via OPSIN as a
+    DIFFERENT molecule. That wrong string must never come back."""
+    wrong_former_output = "ethyne"
+    got = name_smiles("[C-]#[C-]")
+    assert got != wrong_former_output
+    assert got == "ethynediide"
+
+
+def test_the_alkynyl_monoanion_still_works():
+    """Converse of D-136: the mono-anion branch this extends must still
+    reach its own pre-existing correct name."""
+    assert name_smiles("[C-]#C") == "ethyn-1-ide"
+
+
+def test_the_phosphide_anion_no_longer_loses_its_charge():
+    """D-137's admission reason (charge-phosphide-anion): a bicyclic
+    phosphide named as the neutral phosphane, the charge dropped --
+    verified via OPSIN as a DIFFERENT molecule. That wrong string must
+    never come back."""
+    wrong_former_output = "1-phosphabicyclo[2.2.2]octane"
+    got = name_smiles("C1C[PH-]2CCC1CC2")
+    assert got != wrong_former_output
+    assert got == "1-phosphabicyclo[2.2.2]octan-1-uide"
+
+
+@pytest.mark.parametrize(
+    "smiles",
+    [
+        "C1CP2CCC1CC2",       # the plain neutral phosphine (no anion at all)
+        "C[PH3+]",            # a phosphonium cation, a different classifier
+        "CP(C)(C)=O",         # a phosphine oxide, D-134's own item
+    ],
+)
+def test_the_phosphide_classifier_does_not_over_fire(smiles):
+    """Converse of D-137: the new phosphide-anion classifier requires
+    EXACTLY one charge -1 on P with every neighbour carbon. A neutral
+    phosphine, a phosphonium cation, and a phosphine oxide (P=O counts as
+    a non-carbon neighbour) must all reach their own, unrelated, unaffected
+    names -- none of them is a phosphide anion."""
+    got = name_smiles(smiles)
+    assert "uide" not in got
+
+
+def test_an_acyclic_phosphide_keeps_its_pre_existing_correct_name():
+    """A second, load-bearing converse of D-137, found by the stage
+    comparison itself (r9-items-10-12-13, bb-fe3343956898): an ACYCLIC
+    phosphide (dimethylphosphide, C[P-]C) was ALREADY named correctly
+    ("dimethylphosphanide") through a different, pre-existing route -- P
+    itself as the "phosphane" parent, contracted with its substituents.
+    Without the classifier's ring-membership gate, this case was claimed
+    too and rendered through the skeletal-replacement "uide" path built for
+    the bridgehead case, producing "dimethylphosphan-1-uide" -- verified via
+    OPSIN as a DIFFERENT, wrong structure. That regression must never come
+    back; this is why the classifier requires P to be a ring atom."""
+    assert name_smiles("C[P-]C") == "dimethylphosphanide"
+
+
+def test_the_imine_anion_no_longer_loses_its_charge():
+    """D-138's admission reason (charge-imine-anion): butaniminide named as
+    neutral 1-iminobutane, the charge dropped -- verified via OPSIN as a
+    DIFFERENT molecule. That wrong string must never come back."""
+    wrong_former_output = "1-iminobutane"
+    got = name_smiles("CCCC=[N-]")
+    assert got != wrong_former_output
+    assert got == "butan-1-iminide"
+
+
+def test_the_amine_anion_is_unaffected_by_the_imine_anion_addition():
+    """Converse of D-138: the amine-anion classifier's own single-bond gate
+    (which the imine-anion classifier mirrors with a double-bond gate
+    instead) must still claim ordinary primary and secondary amine anions,
+    unaffected by the new classifier running immediately before it."""
+    assert name_smiles("CC[NH-]") == "ethanaminide"
+    assert name_smiles("CCC[N-]CCC") == "N-propylpropan-1-aminide"
 
 
 @pytest.mark.parametrize(

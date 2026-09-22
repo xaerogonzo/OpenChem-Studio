@@ -120,3 +120,6 @@ suite-timings*.xml
 # runs from a separate cwd. Measured 2026-09-17: the same four-file test
 # combination passed, passed, then failed on an unchanged tree.
 py2opsin_temp_input.txt
+
+# naming round 9 (B2): slow network resolution scratch, never committed -- battery_r9.toml is the committed result
+benchmarks/naming/battery_scratch/

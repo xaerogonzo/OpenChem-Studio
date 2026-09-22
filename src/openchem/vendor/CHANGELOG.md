@@ -1391,3 +1391,83 @@ will not sanitise (carbonyldiimidazole); a pyrene/perylene/phenalene-type interi
 (`benchmarks/naming/known_deviations.toml`, guarded). The engine's own tests: vendored suite 5,195 passed; the default naming set and the D-table
 1,057 passed with 14 expected failures (the open rows). See `KNOWN_LIMITATIONS.md` ("Open after naming round 8") for every open row and
 `BENCHMARK_HISTORY.md` for the measurements.
+
+## 2026-09-22 - naming round 9: a source-backed battery first, then a ledger of 13, 9 fixed
+
+Round 9 ran an instruments stage BEFORE any fix: a Blue Book PDF harvest (1129-row tuning population, `bluebook_tuning.json`),
+an ordinary-compound battery (`battery_r9.toml`, 306 rows: dipeptides, salts, dyes, reagents, sugars, vitamins, ChEMBL drugs),
+and a 2000-row frequency census. 13 findings were admitted into a hash-frozen ledger (`admissions_r9.toml`) in one step at the
+end of that stage; the guard (`tests/test_admissions_r9.py`) checks item count against a declared cap and set-immutability,
+never a hardcoded number -- "never do those hardcoded guards again, they don't serve that much of a function" (Alex,
+2026-09-22), after which the check was rewritten from `if slots != 8` to a structural validation. Three of the plan's eight
+seed hypotheses (a charged acid substituent, a ketone-parent enclosure, N,N-guanidinium) were RULED OUT by live testing and
+are not in the ledger -- the instruments stage doing its job.
+
+**9 of 13 admitted items fixed, each own commit, each verified via OPSIN round-trip and a stage comparison against the whole
+1129-row Blue Book tuning population showing 0 structural regressions and only its own admitted rows changed:**
+
+* **carbodiimide** (D-130, PARTLY): `multiplicative.py`'s `_name_decomposition` checks `_linker_has_carbonyl` for a C=O in a
+  multiplicative linker (P-15.3.3.2.2) but had nothing for a C=N; DCC named as a saturated `1,1'-[methylenebis(azanediyl)]
+  dicyclohexane` instead of the carbodiimide. New `_linker_has_imine` declines the same way; the engine falls back to a
+  structurally correct substitutive name. Reaching the printed PIN ("dicyclohexylmethanediimine", P-62.3.1.4) needs imine FG
+  perception, which is empty (`Perception(mol).fgs.detected_fgs`) for this structure in every context tried, not only the
+  multiplicative one -- stays open.
+* **carbamimidoyl-locant** (D-131): `engine.py`'s `_role_primes` assigned N/N' primes by chemical role alone, so two
+  carboximidamide instances at the SAME parent position collided onto one prime pair; OPSIN read both substituents as the
+  same group. Instances sharing a position are now ordered by anchor atom index, each later one shifted two more prime marks.
+* **naphthalene-ring-drop** (D-132, no PIN claimed): `_divalent_linker`'s shortest-path walk between two multiplicative
+  attachment atoms took the direct one-bond ortho route across a fused ring, letting the WHOLE other ring pass the existing
+  `_in_benzene` check (which only asks "is this atom part of SOME lone benzo ring", true for every atom of a fused system) as
+  merely "off the path, and aromatic" -- silently dropping 4 of naphthalene's 10 ring atoms. New `_fused_ring_count` declines
+  whenever the linker's skeleton spans more than one SSSR ring; verified with converses that a SINGLE non-fused ring and a
+  peri-fused attachment geometry both still work correctly.
+* **sulfinyl-bromide** (D-133, wrong molecule -> honest failure): the `{R}sulfonyl`/`{R}sulfinyl` substituent shortcut in
+  `engine.py` assumed S carries exactly one substituent beside its oxo oxygens; a hypervalent S (=O)(=N-)(Br)(N<) let the
+  shortcut silently keep whichever neighbour `GetNeighbors()` reached first and drop the rest -- both the bromine and the S=N
+  double bond vanished. New `_sulfonyl_sulfinyl_has_single_substituent` declines when S has more than one non-oxo substituent;
+  no route exists yet to NAME a sulfinimidoyl/sulfonimidoyl halide, so the result is `RoundTrip.PARSER_FAILED`, an honest
+  failure instead of a plausible-looking wrong structure.
+* **phosphine-oxide-trihydrazide** (D-134, no PIN claimed): `_linker_name` strips a terminal oxo atom from a multiplicative
+  linker's "skeleton" before naming it (needed so the oxo belongs to its own ketone/carbonyl component), but nothing checked
+  whether a P=O being stripped should have blocked the construction the way a C=O or C=N already can -- a P(V) phosphine
+  oxide named as a trivalent P(III) "phosphanetriyl". New `_linker_has_phosphine_oxide` mirrors the carbonyl/imine checks;
+  `_PHOSPHINE_OXIDE` is a documented local constant since no functional-group entry exists to measure a real seniority from.
+* **peptide-acyl-naming** (D-135, target P-103.3.2): new module `perception/fg/peptide_acyl.py`, a closed table of the 20
+  proteinogenic amino acids (exact canonical structure, stereo included, built from OPSIN-verified retained names) matched
+  against a dipeptide's cut amide bond; on a match, emits the retained acyl-plus-parent form ("glycylalanine", the book's own
+  worked example, verbatim) instead of fully systematic substitutive nomenclature. Also handles proline as the C-terminal
+  residue (a tertiary amide, H=0, since proline's ring N is already secondary before acylation) as a second base shape beyond
+  the open-chain one. 14/20 of the battery's dipeptide rows now reach the retained form; the other 6 all involve threonine or
+  isoleucine, whose battery-generated SMILES specify only the alpha-carbon stereocentre, and the module correctly declines
+  rather than guesses the unspecified diastereomer. D-027z (round 4's fix) is documented as SUPERSEDED, not regressed: a
+  plain natural-amino-acid dipeptide's retained form now correctly outranks the systematic style round 4 picked before this
+  convention existed in the engine.
+* **charge-alkynyl-dianion** (D-136, no PIN claimed): `_classify_alkynyl_anion` (charge_perception.py) covered the mono-anion
+  `[C-]#C` only; the symmetric dianion `[C-]#[C-]` has no neutral carbon at all, so the mono-anion gate correctly declined
+  and nothing claimed the shape, dropping both charges to plain "ethyne". Extended to detect and pre-cook `"ethynediide"`.
+* **charge-phosphide-anion** (D-137, target P-73): no classifier existed for phosphorus-centred anions at all, unlike carbon
+  and nitrogen. New `_classify_phosphide_anion` / `_render_phosphide_anion` reach the printed PIN
+  ("1-phosphabicyclo[2.2.2]octan-1-uide") using the same "name as substituent, strip 'yl', append suffix" technique as
+  `_render_simple_carbon`, with a phosphorus-specific neutralization (`_neutralized_site_changes`) that REMOVES the anion's
+  own H rather than keeping it, and suffix "uide" (a skeletal-replacement parent takes the P-73 linking "u"). **Gated to RING
+  phosphorus only**: a first version also claimed an ACYCLIC phosphide (`C[P-]C`, "dimethylphosphanide") that was already
+  named correctly through a different, pre-existing route, and rendered it wrong (`dimethylphosphan-1-uide`) -- caught by the
+  stage comparison against the tuning population before the commit, fixed with the ring gate, pinned as a converse test.
+* **charge-imine-anion** (D-138, no PIN claimed): a gap between the amine-anion and amide-anion classifiers, neither of
+  which covers an imine-type nitrogen anion (the amine-anion classifier's own gate requires a SINGLE N-C bond and correctly
+  declines an imine's double bond). New `_classify_imine_anion` / `_render_imine_anion` mirror the amine-anion pair exactly,
+  plus a new `("imine", OutputForm.ANION): "iminide"` SUFFIX_VARIANT_TABLE entry (assembly.py) mirroring `"amine"`/`"aminide"`.
+
+**4 items deferred to round 10, each already diagnosed** (recorded in `KNOWN_LIMITATIONS.md`, "Open after naming round 9",
+not re-opened as new findings): the carbamimidate-oxime-swap prefix-bracketing ambiguity (fix identified, deferred for its
+regression risk across all substituent naming); methylene blue's phenothiazine numbering (phenothiazine is registered in
+`ring_naming/fusion_general.py`'s `POLYCYCLES` for automorphism matching but has no `_TRADITIONAL` atom-mapped override,
+unlike its anthracene/acridine/xanthene analogues); fluorescein's spiro-xanthene numbering (a DIFFERENT defect from
+phenothiazine's -- xanthene itself IS correctly in `_TRADITIONAL`, so the bug is in how `spiro.py` numbers it combined with
+its spiro partner, not yet isolated); and a polycarbocation needing the multiplicative and charge-perception machinery to
+work together, which no existing pattern in the codebase does yet.
+
+**Process note.** Every fix in this round followed the same routine: D-rows red first, converses that differ by reason, a
+mutation check with the equivalent mutants written into the code, a stage-comparison run against the whole 1129-row Blue
+Book tuning population BEFORE the commit and never chained to it, one commit per item. That discipline caught the
+phosphide-anion regression above BEFORE it ever reached a commit -- the stage comparison is not a formality.

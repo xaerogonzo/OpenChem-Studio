@@ -1,0 +1,139 @@
+{
+ "bb-0d95e16d6283": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-0f250583f221": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-1108c8ece92f": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-11385c654bd0": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-29de26590022": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-2eb62947af5a": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-31a229f32d6e": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-4e9fe86734bd": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-59637ae946f4": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-5d65807bbdd9": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-66817cc9fb16": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-693e83e2c618": {
+  "class": "SAME",
+  "join_ok": true,
+  "note": "a 29-membered macrocycle: compared by ring sizes [6,6,29], the two ketone runs, the ester and the three alkenes"
+ },
+ "bb-79b5d540e9f5": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-7dccf33db090": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-8a389efc5b64": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-8c642808cd23": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-8c757907aa4b": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-a05030eeea22": {
+  "class": "SAME",
+  "join_ok": true,
+  "note": "checked by flipping OPSIN's depiction: Se and S sit on opposite fusion carbons in both"
+ },
+ "bb-ad1d5335450f": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-b052afed96e9": {
+  "class": "SAME",
+  "join_ok": true,
+  "note": "spiro of two fused systems: compared by which ring bears NH and which CH2, and the spiro atom"
+ },
+ "bb-bd49be72aac9": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-c88175196725": {
+  "class": "SAME",
+  "join_ok": true,
+  "note": "the drawing is the O analogue and the text says 'Se instead of O'; OPSIN's Se structure follows that statement"
+ },
+ "bb-d259990ca96a": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-d3501c3cd840": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-e2c3fde021db": {
+  "class": "SAME",
+  "join_ok": true,
+  "note": "bridged: bridgehead paths [2,3,3] and the two O positions were counted from the SMILES"
+ },
+ "bb-e47dc15b1b1d": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-e77d15a4c69b": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-efa7cf80ef43": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-efb21dae0ed1": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-f431acfc0a2d": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-f7cc03c271f0": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-f8f459eba4e3": {
+  "class": "SAME",
+  "join_ok": true
+ },
+ "bb-fe3345f9959e": {
+  "class": "SAME",
+  "join_ok": true
+ }
+}

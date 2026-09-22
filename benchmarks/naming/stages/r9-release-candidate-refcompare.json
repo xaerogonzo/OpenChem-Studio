@@ -1,0 +1,85 @@
+{
+ "toolchain": {
+  "python": "3.13.7",
+  "rdkit": "2025.09.6",
+  "opsin": "opsin-cli-2.9.0-jar-with-dependencies.jar",
+  "java": "openjdk version \"21.0.12\" 2026-07-21 LTS",
+  "base_ref": "5d910751",
+  "base_sha": "5d910751c837dc47632ed20fe37a7639de951afc",
+  "base_src_tree": "9d10f9e06039dd24f1ed4eb6e3b209379336e582",
+  "head_sha": "ad9a807e3ed1778c6206c26be4fe45a0ab63a6f6",
+  "head_src_tree": "bac01d005b51b03b52516093d315552ff9740a0e",
+  "working_tree_dirty": false,
+  "working_tree_src_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "engines": {
+  "base": "C:\\Users\\pmpd\\AppData\\Local\\Temp\\tmpmlmqyvie\\src\\openchem\\__init__.py",
+  "head": "D:\\Random Projects\\OpenChem Studio\\src\\openchem\\__init__.py"
+ },
+ "sets": [
+  "mc",
+  "pop",
+  "r7",
+  "r8"
+ ],
+ "rows": 1712,
+ "changed": [
+  {
+   "id": "pop:bluebook_tuning:bb-3914bf067e98",
+   "base": "ethyne",
+   "head": "ethynediide",
+   "base_roundtrips": false,
+   "head_roundtrips": true,
+   "expectation": "MUST_CHANGE"
+  },
+  {
+   "id": "pop:bluebook_tuning:bb-3e0b412fafed",
+   "base": "2,2'-(1,2-phenylene)diacetic acid",
+   "head": "[3-(carboxymethyl)naphthalen-2-yl]acetic acid",
+   "base_roundtrips": false,
+   "head_roundtrips": true,
+   "expectation": "MUST_CHANGE"
+  },
+  {
+   "id": "pop:bluebook_tuning:bb-4ec6c6c83b27",
+   "base": "1-phosphabicyclo[2.2.2]octane",
+   "head": "1-phosphabicyclo[2.2.2]octan-1-uide",
+   "base_roundtrips": false,
+   "head_roundtrips": true,
+   "expectation": "MUST_CHANGE"
+  },
+  {
+   "id": "pop:bluebook_tuning:bb-972f4e41e5a4",
+   "base": "1-iminobutane",
+   "head": "butan-1-iminide",
+   "base_roundtrips": false,
+   "head_roundtrips": true,
+   "expectation": "MUST_CHANGE"
+  },
+  {
+   "id": "pop:bluebook_tuning:bb-9952c721a5d5",
+   "base": "1,1',1''-phosphanetriyltris(1-methylhydrazine)",
+   "head": "1-methyl-1-[bis(1-methylhydrazinyl)(oxo)phosphanyl]hydrazine",
+   "base_roundtrips": false,
+   "head_roundtrips": true,
+   "expectation": "MUST_CHANGE"
+  },
+  {
+   "id": "pop:bluebook_tuning:bb-9f8eab45027d",
+   "base": "[(methylaminosulfinyl)amino]methane",
+   "head": "{[NAMING ERROR: No valid naming plan found for CN=S(N)(=O)Br]}methane",
+   "base_roundtrips": false,
+   "head_roundtrips": false,
+   "expectation": "MUST_CHANGE"
+  },
+  {
+   "id": "pop:bluebook_tuning:bb-ee1e7cac0062",
+   "base": "N'-ethyl-N,N-dimethylcyclohexane-1,1-dicarboximidamide",
+   "head": "N'-ethyl-N'',N''-dimethylcyclohexane-1,1-dicarboximidamide",
+   "base_roundtrips": false,
+   "head_roundtrips": true,
+   "expectation": "MUST_CHANGE"
+  }
+ ],
+ "violations": []
+}

@@ -15,6 +15,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
@@ -81,3 +83,43 @@ def test_the_scope_selector_returns_files_in_manifest_order():
         pass
     else:  # pragma: no cover - the failure is the assertion
         raise AssertionError("an unknown scope must be refused, not read as empty")
+
+
+def test_the_two_sessions_partition_the_manifest():
+    """Every consumer runs in exactly one pytest process. A file in neither would never be run by a gate built from
+    sessions; a file in both would run twice and, if it is the vendored directory, in the wrong process."""
+    app = set(manifest.session_files("app"))
+    vendor = set(manifest.session_files("vendor"))
+    assert not app & vendor
+    assert app | vendor == _registered()
+    assert vendor == {"tests/vendor/iupac_namer"}
+
+
+def test_one_runnable_line_never_mixes_the_vendored_suite_with_the_app_tests():
+    """Naming round 8: the default list ended in the vendored directory as its first token, a sed meant to strip it did not
+    match, and `tests/vendor/iupac_namer/conftest.py` (which replaces `py2opsin.py2opsin` for the whole process) failed
+    `test_opsin_isolation.py`'s signature check on a 28-minute run. A tool that cannot print the wrong line is the fix."""
+    with pytest.raises(SystemExit, match="mixes the vendored suite"):
+        manifest.refuse_mixed({"core", "vendor"})
+    with pytest.raises(SystemExit, match="mixes the vendored suite"):
+        manifest.refuse_mixed(set(manifest.SCOPES))
+    manifest.refuse_mixed({"core", "benchmark", "app"})  # an app session is fine
+    manifest.refuse_mixed({"vendor"})  # and so is the vendored one, alone
+
+
+def _run(*argv: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, str(ROOT / "tools" / "naming_consumers.py"), *argv], capture_output=True, text=True, cwd=ROOT
+    )
+
+
+def test_the_command_line_refuses_a_mixed_args_line_and_prints_each_session_alone():
+    assert _run("--args").returncode != 0, "the default scope holds the vendored suite, so --args must refuse it"
+    assert _run("--scope", "core,vendor", "--args").returncode != 0
+    assert _run("--scope", "core,vendor", "--args", "--allow-mixed").returncode == 0
+    app = _run("--session", "app", "--args")
+    vendor = _run("--session", "vendor", "--args")
+    assert app.returncode == 0 and vendor.returncode == 0
+    assert "tests/vendor" not in app.stdout
+    assert vendor.stdout.split() == ["tests/vendor/iupac_namer"]
+    assert _run("--session", "app", "--scope", "core").returncode != 0, "--session and --scope are alternatives"

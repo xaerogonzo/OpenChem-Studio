@@ -1,0 +1,69 @@
+# The Blue Book printed-PIN harvest (naming round 9, B1): its rules, written and committed BEFORE any harvested row is inspected.
+#
+# WHAT B1 IS. `BlueBookV2.pdf` prints the name of a structure and tags the preferred IUPAC name "(PIN)". The harvest turns each printed name
+# into a structure with OPSIN and asks whether OUR engine, given that structure, prints the book's name. Normative authority = the Blue Book;
+# structure extraction = OPSIN, an INTERPRETER of the book's names and not an authority on them; engine under test = OpenChem; validation = the
+# DRAWN structure on the page. OPSIN reading a printed name is a claim about that name (in round 8 it read every misspelling), so a row counts
+# only once its oracle status says it may.
+#
+# This file holds every number that decides whether B1 is trusted, abandoned, or reported with a caveat. It is committed before the first
+# harvested row is looked at, and `tools/naming_bluebook_harvest.py` records its sha256 in the output's meta; tests/test_bluebook_protocol.py
+# fails if either the file or the recorded hash moves afterwards without the other.
+
+[protocol]
+version = 1
+source_file = "BlueBookV2.pdf"          # in the maintainer's Sci Downloads folder; never committed
+tag = "(PIN)"                           # only names the book itself tags as preferred are harvested
+
+# --- stop rules: B1 is ABANDONED and recorded (B2 carries the round) if any of these holds -----------------------------------------------------
+[stop]
+min_usable_rows = 300                   # rows that survive the scope filters AND parse in OPSIN, before any split
+max_name_join_error = 0.05              # hand-checked share of sampled rows whose extracted name is not the printed name
+max_overall_structure_disagreement = 0.10   # hand-checked share of sampled rows whose OPSIN structure differs from the DRAWN structure
+max_rejected_stratum_share = 0.50       # share of eligible rows that sit in strata declared failed below; above it B1 is abandoned
+
+# --- what makes a stratum FAILED (its rows become ORACLE_REJECTED) ----------------------------------------------------------------------------
+[stratum_failure]
+min_checked = 4                         # a stratum with fewer hand-checked rows than this cannot fail, and cannot be called accepted either
+min_disagreements = 2
+min_rate = 0.25                         # BOTH the count and the rate, so one bad row in a small stratum does not condemn it
+
+# --- the hand sample ----------------------------------------------------------------------------------------------------------------------------
+# Chosen by a seeded shuffle, never by eye. About 60 rows: every chapter is sampled, and every geometric or textual FEATURE below is sampled, so
+# that "one-line examples work and column-boundary names are broken" can be discovered. Sixty rows in about ten strata cannot certify a low
+# error rate in one stratum (five clean rows are consistent with a rate near 45%); they can detect a SYSTEMATIC failure and bound the overall
+# rate (0 of 60 gives a 95% upper bound near 5%). STRATUM_ACCEPTED therefore means "no systematic failure seen", never "verified".
+[sample]
+seed = 20260921
+per_chapter = 3
+per_feature = 6
+features = ["wrapped", "long_name", "nested_brackets", "near_page_edge", "retained_name_only", "has_locants"]
+# wrapped            the name was joined from two or more text lines
+# long_name          more than 60 characters
+# nested_brackets    contains a square bracket, or two or more opening parentheses
+# near_page_edge     the name's bounding box lies within 45 pt of a page edge
+# retained_name_only no digits and no hyphen: a retained or one-word name
+# has_locants        contains a digit-comma or digit-hyphen locant
+
+# --- oracle statuses (see the plan) ------------------------------------------------------------------------------------------------------------
+# ORACLE_VALIDATED        hand-checked: the OPSIN structure equals the drawing
+# ORACLE_STRATUM_ACCEPTED not checked, but its stratum had at least `min_checked` checked rows and no systematic failure
+# ORACLE_UNCERTAIN        carries a risk flag (OPSIN warning, retained-name-only, multiple printed alternatives)
+# ORACLE_REJECTED         a hand-found mismatch, or its stratum failed
+# Hand-comparison classes: SAME, DIFFERENT_TAUTOMER, DIFFERENT_CHARGE_OR_H, DIFFERENT_STRUCTURE, UNREADABLE_DRAWING.
+[statuses]
+counts_toward_engine_scores = ["ORACLE_VALIDATED", "ORACLE_STRATUM_ACCEPTED"]
+
+# --- scope filters: each row is dropped for exactly one reason, counted, and REPORTED ---------------------------------------------------------
+[filters]
+reasons = [
+  "stereodescriptor",       # (2R), (E), rel-, cis/trans, alpha/beta, D-/L- : the engine's stereo naming is not what B1 measures
+  "isotope",                # bracketed isotope symbols and deuterio/tritio names
+  "radical_or_ion_wildcard",# radical names and free-valence wildcards
+  "polymer",
+  "organometallic",         # names of coordination or organometallic compounds
+  "page_or_column_split",   # a name that could not be joined with confidence across a page or column break
+  "opsin_unparsable",       # OPSIN returned nothing: reported by chemistry class, because it is data about the oracle's boundary
+  "opsin_ambiguous",        # OPSIN parsed it with an APPEARS_AMBIGUOUS warning
+  "not_a_structure_name",   # the tagged text is a class name or a fragment, not a name of one structure
+]

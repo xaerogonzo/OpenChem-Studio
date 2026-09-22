@@ -657,6 +657,56 @@ its fix with converses that differ by reason, each mutation-checked with the equ
 open non-preferred names. The release-candidate driven check runs 18 rows through the application's own provider and asserts the
 exact name, the source tag, the round-trip verdict and the structure's charge and component count (`tools/naming_app_check.py`).
 
+## 2026-09-22 -- naming round 9: a source-backed battery first, 9 of 13 admitted findings fixed
+
+Round 9 ran an instruments stage BEFORE any fix (a Blue Book PDF harvest, an ordinary-compound battery, a frequency census), admitted
+13 findings from it into a hash-frozen ledger (`admissions_r9.toml`), and fixed 9 of them; the other 4 are recorded, not fixed
+(`KNOWN_LIMITATIONS.md`, "Open after naming round 9"). Every fix has its own D-row (D-130 to D-138) and its own stage-comparison
+against its immediate predecessor, in addition to the whole-round measurements below.
+
+### The whole round, against the engine it began with (`tools/naming_ref_compare.py --base 5d910751`)
+
+1712 structures (the round-7 panel, the round-8 addendum panel, the multicomponent/salt panel, and every tuning population):
+**7 names changed, 0 structurally regressed**, every one matching a manifest entry's stated reason, layer and expected name
+(`violations: 0`, `benchmarks/naming/stages/r9-release-candidate-refcompare.json`). Two of the round's 9 fixed items (the
+carbodiimide and the peptide-acyl-naming worked example) touch structures that live only in the B2 battery, a population this
+comparison does not cover, so they do not appear as changed rows here despite being fixed and separately verified.
+
+### The driven check (`tools/naming_app_check.py`, the application's own provider, not the bare engine)
+
+26/26 rows pass: the 18 pre-existing rows unaffected, plus 8 of round 9's 9 fixed items (D-133 excluded -- its fix IS an honest
+`NamingError`, a refusal this table's row shape cannot represent, not a name to assert).
+
+### Gates
+
+Naming-consumer set (`--exclude-vendor`): 2231 passed. Vendored suite (own pytest session): 5212 passed. App gate, both shards, in a
+detached worktree: `RESULT: PASS` (every chunk exit 0). One infrastructure gap found and fixed along the way:
+`tools/naming_ref_compare.py` had no per-row timeout at all and hung on the same coronene-class fused-ring structure that hung
+`naming_stage_artifact.py` earlier this round; ported the same persistent-worker-with-restart pattern (verified: the known-hanging
+row times out at ~121s and the worker restarts cleanly).
+
+### The final evaluation (`r9-final-evaluation`, `--final-evaluation`, `heldout_v6` and `bluebook_frozen` scored once, aggregates only)
+
+| population | rows | PubChem string (verbatim) | equivalent | wrong structure |
+|---|---|---|---|---|
+| regression | 187 | 101 | 85 | 0 (1 tautomer) |
+| heldout v1 (tuning) | 40 | 16 | 24 | 0 |
+| heldout v2 (tuning) | 40 | 15 | 25 | 0 |
+| heldout v3 (tuning) | 40 | 14 | 26 | 0 |
+| heldout v4 (tuning) | 40 | 19 | 21 | 0 |
+| heldout v5 (tuning since R0) | 40 | 11 | 29 | 0 |
+| **heldout v6 (fresh, drawn before any round-9 diagnosis)** | **40** | **13** | **25** | **2** |
+| bluebook tuning | 1129 | 507 | 532 | 16 (58 unparsable, 16 no-prediction) |
+| **bluebook frozen (the Blue Book harvest's held-out half, never read before this run)** | **1126** | **505** | **540** | **22** (46 unparsable, 13 no-prediction) |
+
+Both frozen rows are FIRST-EVER scores; per-row records are sealed (`records_sealed: true` in the artifact, aggregate counts only,
+no name or SMILES persisted). **Anything the two wrong-structure and the two unparsable/no-prediction columns found is round 10's
+starting material, not this round's**: chasing them down now would un-freeze the very control the freeze exists to be. `heldout v3`
+and `v4`'s own tuning numbers are unchanged from round 8's end (0 wrong structures each), and `bluebook_tuning`'s two rows this
+round's own fixes touched (the alkynyl dianion, the phosphide anion, the imine anion, the phosphine oxide, and the carbamimidoyl
+locant fix) moved from `wrong_structure` to `equivalent` or `exact`, accounting for the population's own small improvement over its
+pre-round-9 state.
+
 ### Suites at the round's end
 
 Vendored suite 5,195 passed (JRE and JAVA_HOME both set); the default app suite 11,843 passed in 16 chunks of at most 25 files
