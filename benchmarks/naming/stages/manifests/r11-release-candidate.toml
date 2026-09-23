@@ -1,0 +1,12 @@
+# Round 11's cumulative ref-compare manifest, against master's pre-round-11 tip (575b5037). Same
+# convention as rounds 9/10: one fixed --base for the whole round, this file accumulates as items land,
+# checked against the 'pop' set (1516 structures across every non-frozen population) before each commit.
+#
+# Item 1 (ketone-parent enclosure, D-143) touched ZERO rows in this population: verified directly
+# (naming_ref_compare.py --base 575b5037 --sets pop -> "1516 structures over ['pop']: 0 names changed"),
+# same outcome class round 10 recorded for its items 1/2 (their fixture molecules aren't themselves rows
+# in this population either). This is a real, if unexciting, regression-safety result -- 0 changes is
+# trivially 0 STRUCTURALLY REGRESSED -- not a sign the fix didn't fire; D-143 and its OPSIN round-trip
+# verification (independent of this population) are the direct evidence the fix works.
+
+stage = "r11-release-candidate"

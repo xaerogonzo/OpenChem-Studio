@@ -3368,6 +3368,32 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "(hydrazinyl)methoxymethanimine",
      "no printed or derived target (target_source: none); this row exists "
      "to catch a regression back to the wrong molecule"),
+
+    # --- D-143: a second, DISTINCT prefix on a one-carbon ketone parent
+    # was not enclosed -------------------------------------------------
+    # Round 8's F5 seed hypothesis was ruled out by round 9 because its own
+    # test used a SINGLE ring substituent ("1-phenylethan-1-one"), which
+    # needs no enclosure at all. The actual gap (round-8's own open row,
+    # measured 8.4% of the census -- the most common open shape in the
+    # whole backlog) needs TWO ring substituents that are not identical:
+    # "(morpholin-4-yl)phenylmethanone" left its second, simple "phenyl"
+    # prefix bare, against P-16.5.1.3.1 ("the second and further
+    # substituents are each enclosed ... even for simple substituents").
+    # Severity C, not A: OPSIN is lenient enough to parse the unbracketed
+    # form back to the right molecule (verified), so this is presentation
+    # only -- both forms round-trip, and the fix is about matching the
+    # printed PIN's own punctuation, not correctness. Fixed by mirroring
+    # the existing heteroatom-center P-16.5.1.3.1 block for a one-carbon
+    # KETONE parent (suffix_groups base_form "one"), scoped independently
+    # of output_form the same way round 10's oxy-bracket fix was -- a
+    # ketone's own suffix entry doesn't depend on whether the tree is
+    # STANDALONE or nested. TWO IDENTICAL prefixes (benzophenone,
+    # "diphenylmethanone") collapse into one merged entry with a
+    # multiplier before this rule runs and are correctly left untouched.
+    ("D-143", "O=C(c1ccccc1)N1CCOCC1", "(morpholin-4-yl)(phenyl)methanone",
+     "(morpholin-4-yl)phenylmethanone",
+     "P-16.5.1.3.1; the second, simple prefix on a one-carbon ketone "
+     "parent was not enclosed"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -3876,4 +3902,29 @@ def test_the_oxy_bracket_rule_does_not_reach_longer_chains():
     any longer chain -- the overwhelmingly common case for this prefix in
     real molecules -- must be entirely unaffected."""
     assert name_smiles("COCC(N)CC") == "1-methoxybutan-2-amine"
+
+
+def test_two_identical_ring_substituents_on_a_ketone_stay_unbracketed():
+    """Negative control for D-143: benzophenone's two IDENTICAL phenyl
+    prefixes merge into one multiplied entry before the P-16.5.1.3.1 rule
+    runs and must stay unbracketed -- the defect is about DISTINCT
+    prefixes running together, not about a ketone bearing two
+    substituents at all."""
+    assert name_smiles("O=C(c1ccccc1)c1ccccc1") == "diphenylmethanone"
+    assert name_smiles("O=C(C1CCCCC1)C1CCCCC1") == "dicyclohexylmethanone"
+
+
+def test_a_single_ring_substituent_on_a_ketone_needs_no_enclosure():
+    """Negative control for D-143, and the exact case round 9's F1/F5
+    re-test ran (which is why the general shape was ruled out then): a
+    ketone with only ONE prefix at all has nothing to enclose against."""
+    assert name_smiles("O=C(C)c1ccccc1") == "1-phenylethan-1-one"
+
+
+def test_the_ketone_bracket_rule_does_not_reach_a_longer_chain_ketone():
+    """Negative control for D-143: the fix is gated to a one-carbon CHAIN
+    parent (candidate.length == 1, suffix base_form "one"). A ketone whose
+    parent is a longer chain renders its ring substituent as an ordinary,
+    already-correctly-unbracketed prefix."""
+    assert name_smiles("O=C(c1ccccc1)CC") == "1-phenylpropan-1-one"
     assert name_smiles("CCOCCN") == "2-ethoxyethan-1-amine"

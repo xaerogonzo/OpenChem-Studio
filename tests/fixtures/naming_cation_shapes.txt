@@ -210,5 +210,5 @@ CC(=O)OOC(C)=O	1-(acetylperoxy)-1-oxoethane
 CCOC(=S)SC	O-ethyl (methylsulfanyl)methanethioate
 CCOC(=O)NN	(ethoxycarbonyl)hydrazine
 OC(=O)c1ccc(cc1)C(=O)NNC	4-[(2-methylhydrazinyl)(oxo)methyl]benzoic acid
-O=C(c1ccccc1)N1CCOCC1	(morpholin-4-yl)phenylmethanone
+O=C(c1ccccc1)N1CCOCC1	(morpholin-4-yl)(phenyl)methanone
 CON(C)C(=S)C	N-methoxy-N-methyl-1-thioxoethan-1-amine
