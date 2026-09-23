@@ -96,9 +96,56 @@ def multiparent_fusion_hub(mol: Chem.Mol) -> bool:
     return False
 
 
+_NITRATE_ESTER_SMARTS = Chem.MolFromSmarts("[CX4][OX2][N+X3](=O)[O-]")
+
+
+def polynitrate_ester(mol: Chem.Mol) -> bool:
+    """True if 2+ DISTINCT nitrate-ester groups (R-O-[N+](=O)[O-]) sit on one skeleton.
+
+    Counts distinct nitrogen atom indices across all substructure matches, rather than
+    just the match count, so two matches that happen to describe the same nitrate group
+    from different starting atoms can't double-count a single-nitrate molecule as two.
+    See census_queries.toml's own definition for this query (D-123 names one nitrate only;
+    a polyol's polynitrate, e.g. nitroglycerin, needs a multivalent organyl -- round 8's
+    open list).
+    """
+    matches = mol.GetSubstructMatches(_NITRATE_ESTER_SMARTS)
+    n_atoms = {m[2] for m in matches}
+    return len(n_atoms) >= 2
+
+
+def fused_aromatic_ring_cation(mol: Chem.Mol) -> bool:
+    """True if an aromatic, formally-charged-positive atom sits in a ring edge-fused to another ring.
+
+    A coarse structural proxy for round 8's "a fused ring cation with no curated entry" --
+    does not check whether the specific ring actually lacks a curated/retained name, so a
+    hit needs manual triage against the ring table before it says anything about that
+    defect specifically. See census_queries.toml's own definition for this query.
+    """
+    ring_info = mol.GetRingInfo()
+    rings = [set(r) for r in ring_info.AtomRings()]
+    if len(rings) < 2:
+        return False
+    charged = {
+        a.GetIdx() for a in mol.GetAtoms()
+        if a.GetFormalCharge() > 0 and a.GetIsAromatic()
+    }
+    if not charged:
+        return False
+    for i, ri in enumerate(rings):
+        if not (ri & charged):
+            continue
+        for j, rj in enumerate(rings):
+            if j != i and len(ri & rj) >= 2:
+                return True
+    return False
+
+
 PYTHON_PREDICATES = {
     "large_fused_polycyclic_aromatic": large_fused_polycyclic_aromatic,
     "multiparent_fusion_hub": multiparent_fusion_hub,
+    "polynitrate_ester": polynitrate_ester,
+    "fused_aromatic_ring_cation": fused_aromatic_ring_cation,
 }
 
 

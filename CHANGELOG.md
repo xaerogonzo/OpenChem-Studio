@@ -62,6 +62,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   future round; four are genuinely rare. Nothing here was fixed — see
   `src/openchem/vendor/KNOWN_LIMITATIONS.md`, "Open after naming round 10".
 
+### Naming round 11 (branch `naming-round-11`)
+
+- **Two fixes, each re-verified against the current engine before being admitted:** a one-carbon ketone
+  parent with two distinct ring substituents now encloses the second one
+  (`(morpholin-4-yl)(phenyl)methanone`, matching P-16.5.1.3.1 — the single most common open shape in the
+  backlog, 8.4% of a 2000-structure frequency census); a carbamimidoyl prefix with BOTH nitrogens substituted
+  now splits into the book's own printed N'/N,N form (`4-(N'-ethyl-N,N-dimethylcarbamimidoyl)benzoic acid`,
+  p. 676 verbatim) instead of the generic, OPSIN-misreadable decomposed form — gated so it does not fire when
+  doing so would collide with an adjacent guanidinium group, catching a regression on the metformin-cation
+  fixture before it ever reached a commit.
+- **Two backlog rows re-tested and found already fixed** by other rounds' own general work, never reflected
+  back into the documentation until now: a ring-nitrogen acyl prefix on a chain parent (e.g.
+  "piperidine-1-carbonyl"), and the citrate-trianion / biguanidium-dication charge-ledger pair from round 7.
+- **One row re-diagnosed to its actual root cause and re-deferred:** a charged acid group inside a carved
+  substituent still names wrong (e.g. `sulfonato` emitted as the generic `oxidosulfonyl`), traced to a
+  computed-but-never-threaded prefix value between two naming layers — broader than previously documented
+  (affects a demoted carboxylate the same way, not only sulfonate) but not rushed given the shared code path.
+- **A second census extension:** 6 more still-unmeasured backlog shapes. One (a fused aromatic ring cation)
+  clears the frequency floor but needs ring-table triage before it names an actual defect; the other five are
+  genuinely rare. See `src/openchem/vendor/KNOWN_LIMITATIONS.md`, "Open after naming round 11".
+
 ### Naming round 8 (branch `naming-round-8`)
 
 - **Wrong molecules fixed, each found by a test that could not have passed before:** the trianion of a tricarboxylic

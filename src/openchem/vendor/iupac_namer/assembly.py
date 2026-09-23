@@ -2836,6 +2836,33 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                 + [_dc.replace(mp, needs_brackets=True) for mp in merged[1:]]
             )
 
+        # P-16.5.1.3.1, the SAME rule as the heteroatom-center block above, for a one-carbon
+        # KETONE parent (methanone): "(morpholin-4-yl)phenylmethanone" needs to read
+        # "(morpholin-4-yl)(phenyl)methanone", the second-and-further prefixes each enclosed
+        # even though "phenyl" is simple. The two existing one-carbon-parent rules don't reach
+        # this: the heteroatom-center block above is keyed to a HETEROATOM mononuclear parent
+        # (phosphane/silane/borane), and the round-8 rule below is scoped to SUBSTITUENT output
+        # form only (a one-carbon prefix, not the whole molecule's own ketone parent). A ketone's
+        # own suffix_groups entry always carries base_form "one" regardless of output form, so this
+        # is scoped by that rather than by output_form -- the ambiguity is the same string-adjacency
+        # concern round 10's oxy-bracket fix already treated output-form-independently. Two IDENTICAL
+        # substituents (benzophenone, "diphenylmethanone") collapse into ONE merged entry with a
+        # multiplier during prefix merging and never reach this len(merged) > 1 branch, so they are
+        # correctly left untouched -- only genuinely distinct prefixes trigger it.
+        is_ketone_one_carbon_parent = (
+            tree.named_parent.candidate.type == "chain"
+            and tree.named_parent.candidate.length == 1
+            and any(sg.base_form == "one" for sg in tree.suffix_groups)
+        )
+        if is_ketone_one_carbon_parent and len(merged) > 1:
+            import dataclasses as _dc
+            lead = merged[0]
+            lead_bare = not _is_compound_prefix(lead.name)
+            merged = (
+                [lead if lead_bare else _dc.replace(lead, needs_brackets=True)]
+                + [_dc.replace(mp, needs_brackets=True) for mp in merged[1:]]
+            )
+
         # P-16.5.1.3.1 (pdf p. 130): "For mononuclear parent hydrides with two or more substituents the first cited
         # substituent never has enclosing marks unless it includes a locant. The second and further substituents are each
         # enclosed with parentheses even for simple substituents." A SUBSTITUENT group whose own parent is one carbon

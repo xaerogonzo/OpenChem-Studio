@@ -1,0 +1,46 @@
+# Round 11's cumulative ref-compare manifest, against master's pre-round-11 tip (575b5037). Same
+# convention as rounds 9/10: one fixed --base for the whole round, this file accumulates as items land,
+# checked against the 'pop' set (1516 structures across every non-frozen population) before each commit.
+#
+# Item 1 (ketone-parent enclosure, D-143) touched ZERO rows in this population: verified directly
+# (naming_ref_compare.py --base 575b5037 --sets pop -> "1516 structures over ['pop']: 0 names changed"),
+# same outcome class round 10 recorded for its items 1/2 (their fixture molecules aren't themselves rows
+# in this population either). This is a real, if unexciting, regression-safety result -- 0 changes is
+# trivially 0 STRUCTURALLY REGRESSED -- not a sign the fix didn't fire; D-143 and its OPSIN round-trip
+# verification (independent of this population) are the direct evidence the fix works.
+
+stage = "r11-release-candidate"
+
+# Item 2 (carbamimidoyl N'/N,N split, D-091v) touched 4 rows in bluebook_tuning, all amidrazone/
+# carbohydrazonamide shapes where BOTH the carbamimidoyl's imino and amino nitrogens carry their own
+# further nitrogen substituents. The engine used to name the whole "N-NH2"/"N-NHR" extension on each
+# nitrogen as ONE compound prefix glued onto the carbamimidoyl carbon directly (e.g. "(hydrazinyl)" or
+# "(aminoimino)"); the fix's N'/N,N decomposition instead cites the same extension AS a substituent ON
+# the already-cited N/N' locant (e.g. "N-amino", meaning an amino group ON the N position) -- a
+# different but equally valid decomposition of the identical connectivity. Verified structurally
+# identical via OPSIN round-trip on all 4 rows' canonical SMILES before adding these entries (never the
+# reverse -- the manifest records what was already checked, it does not stand in for the check).
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-595288fe6ff8"
+expect = "MUST_CHANGE"
+reason_rule_id = "carbamimidoyl N'/N,N split (D-091v, item 2)"
+expected_layer = "serialization"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-9685db9e449d"
+expect = "MUST_CHANGE"
+reason_rule_id = "carbamimidoyl N'/N,N split (D-091v, item 2)"
+expected_layer = "serialization"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-c2904d59015c"
+expect = "MUST_CHANGE"
+reason_rule_id = "carbamimidoyl N'/N,N split (D-091v, item 2)"
+expected_layer = "serialization"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-fae9bd0c12d6"
+expect = "MUST_CHANGE"
+reason_rule_id = "carbamimidoyl N'/N,N split (D-091v, item 2)"
+expected_layer = "serialization"

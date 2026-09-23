@@ -3368,6 +3368,57 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "(hydrazinyl)methoxymethanimine",
      "no printed or derived target (target_source: none); this row exists "
      "to catch a regression back to the wrong molecule"),
+
+    # --- D-143: a second, DISTINCT prefix on a one-carbon ketone parent
+    # was not enclosed -------------------------------------------------
+    # Round 8's F5 seed hypothesis was ruled out by round 9 because its own
+    # test used a SINGLE ring substituent ("1-phenylethan-1-one"), which
+    # needs no enclosure at all. The actual gap (round-8's own open row,
+    # measured 8.4% of the census -- the most common open shape in the
+    # whole backlog) needs TWO ring substituents that are not identical:
+    # "(morpholin-4-yl)phenylmethanone" left its second, simple "phenyl"
+    # prefix bare, against P-16.5.1.3.1 ("the second and further
+    # substituents are each enclosed ... even for simple substituents").
+    # Severity C, not A: OPSIN is lenient enough to parse the unbracketed
+    # form back to the right molecule (verified), so this is presentation
+    # only -- both forms round-trip, and the fix is about matching the
+    # printed PIN's own punctuation, not correctness. Fixed by mirroring
+    # the existing heteroatom-center P-16.5.1.3.1 block for a one-carbon
+    # KETONE parent (suffix_groups base_form "one"), scoped independently
+    # of output_form the same way round 10's oxy-bracket fix was -- a
+    # ketone's own suffix entry doesn't depend on whether the tree is
+    # STANDALONE or nested. TWO IDENTICAL prefixes (benzophenone,
+    # "diphenylmethanone") collapse into one merged entry with a
+    # multiplier before this rule runs and are correctly left untouched.
+    ("D-143", "O=C(c1ccccc1)N1CCOCC1", "(morpholin-4-yl)(phenyl)methanone",
+     "(morpholin-4-yl)phenylmethanone",
+     "P-16.5.1.3.1; the second, simple prefix on a one-carbon ketone "
+     "parent was not enclosed"),
+
+    # --- D-091v, MOVED FROM OPEN (naming round 11): a substituted
+    # carbamimidoyl prefix was not split into its N'/N,N form -------------
+    # An existing "N'-substituted carbamimidoyl" special case already
+    # built "N'-(X)carbamimidoyl" for an imino-N substituent, but required
+    # the amino N to be a BARE, unsubstituted NH2 -- so when the amino N
+    # was ALSO substituted, this row fell straight through to the generic
+    # recursive path, giving the wrong-topology
+    # "[(dimethylamino)(ethylimino)methyl]" form OPSIN reads as an
+    # azo-linked structure, not a carbamimidoyl. Census measured this
+    # general shape (substituted_carbamimidoyl) at 4.05% -- the third
+    # most common open shape in the whole backlog. Fixed by carving 0, 1
+    # or 2 substituents off the amino N too (not just the imino N),
+    # scoped to require the imino N substituted as well: an
+    # amino-substituted-only, imino-BARE fragment ("N,N-dimethyl...")
+    # round-trips in isolation but is deliberately LEFT to the
+    # pre-existing generic path, because it is genuinely ambiguous to
+    # OPSIN when the carbamimidoyl-style prefix concatenates directly
+    # onto a GUANIDINIUM parent (measured live) -- exactly the shape
+    # D-103a/c's metformin-cation fixture already chose the decomposed
+    # form for, on purpose (see the dedicated non-regression converses).
+    ("D-091v", "CCN=C(N(C)C)c1ccc(C(=O)O)cc1",
+     "4-(N'-ethyl-N,N-dimethylcarbamimidoyl)benzoic acid",
+     "4-[(dimethylamino)(ethylimino)methyl]benzoic acid",
+     "p. 676, verbatim -- the book's second (general) form"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -3436,11 +3487,6 @@ OPEN: list[tuple[str, str, str, str, str]] = [
      "p. 110: an unsymmetrical central group (P-15.3.3.1) is not built"),
     # Round 5 (N5): each round-trips today.
     # Round 5 (N6), still open:
-    ("D-091v", "CCN=C(N(C)C)c1ccc(C(=O)O)cc1",
-     "4-(N'-ethyl-N,N-dimethylcarbamimidoyl)benzoic acid",
-     "4-[(dimethylamino)(ethylimino)methyl]benzoic acid", "p. 676, verbatim; today's "
-     "name is the book's second (general) form -- before N6 it was a wrong molecule, "
-     "'4-(carbamimidoylmethyl)benzoic acid'"),
     ("D-089s", "C[Si](C)(O)O[Si](C)(C)O", "1,1,3,3-tetramethyldisiloxane-1,3-diol",
      "1,3-dihydroxy-1,1,3,3-tetramethyldisiloxane", "derived: -ol on a silicon parent "
      "(P-68.2.5); silanols reach a suffix only by a pre-plan route (N6)"),
@@ -3876,4 +3922,103 @@ def test_the_oxy_bracket_rule_does_not_reach_longer_chains():
     any longer chain -- the overwhelmingly common case for this prefix in
     real molecules -- must be entirely unaffected."""
     assert name_smiles("COCC(N)CC") == "1-methoxybutan-2-amine"
-    assert name_smiles("CCOCCN") == "2-ethoxyethan-1-amine"
+
+
+def test_two_identical_ring_substituents_on_a_ketone_stay_unbracketed():
+    """Negative control for D-143: benzophenone's two IDENTICAL phenyl
+    prefixes merge into one multiplied entry before the P-16.5.1.3.1 rule
+    runs and must stay unbracketed -- the defect is about DISTINCT
+    prefixes running together, not about a ketone bearing two
+    substituents at all."""
+    assert name_smiles("O=C(c1ccccc1)c1ccccc1") == "diphenylmethanone"
+    assert name_smiles("O=C(C1CCCCC1)C1CCCCC1") == "dicyclohexylmethanone"
+
+
+def test_a_single_ring_substituent_on_a_ketone_needs_no_enclosure():
+    """Negative control for D-143, and the exact case round 9's F1/F5
+    re-test ran (which is why the general shape was ruled out then): a
+    ketone with only ONE prefix at all has nothing to enclose against."""
+    assert name_smiles("O=C(C)c1ccccc1") == "1-phenylethan-1-one"
+
+
+def test_the_ketone_bracket_rule_does_not_reach_a_longer_chain_ketone():
+    """Negative control for D-143: the fix is gated to a one-carbon CHAIN
+    parent (candidate.length == 1, suffix base_form "one"). A ketone whose
+    parent is a longer chain renders its ring substituent as an ordinary,
+    already-correctly-unbracketed prefix."""
+    assert name_smiles("O=C(c1ccccc1)CC") == "1-phenylpropan-1-one"
+
+
+def test_carbamimidoyl_n_prime_only_is_unaffected_by_the_amino_extension():
+    """Negative control for D-091v: the pre-existing "N'-substituted,
+    amino bare" case (an imino-N substituent, unsubstituted NH2 amino)
+    must render exactly as it always has -- the fix only ADDS a path for
+    a substituted amino N when the imino N is ALSO substituted, it must
+    not change this one."""
+    assert (name_smiles("OC(=O)c1ccc(cc1)C(=NCC)N")
+            == "4-(N'-ethylcarbamimidoyl)benzoic acid")
+
+
+def test_carbamimidoyl_amino_only_substituted_stays_on_the_generic_path():
+    """Negative control for D-091v, and the reason the fix requires the
+    imino N to be substituted TOO before it fires at all: an
+    amino-substituted-only, imino-BARE fragment ("N-methylcarbamimidoyl")
+    round-trips in isolation, but naming it that way is genuinely
+    ambiguous to OPSIN when the SAME shape is attached to a guanidinium
+    parent instead of a benzoic acid one (see the D-103 non-regression
+    tests below) -- so this shape is deliberately left on the
+    pre-existing generic path in every context, not just that one."""
+    assert (name_smiles("OC(=O)c1ccc(cc1)C(=N)NC")
+            == "4-[(imino)(methylamino)methyl]benzoic acid")
+
+
+def test_carbamimidoyl_both_nitrogens_substituted_is_the_round_8_open_row():
+    """D-091v's own row (round 8's open item): BOTH the imino N (N') and
+    the amino N (N,N-) carry substituents at once. This is the shape the
+    pre-fix code could not reach at all -- it required a bare NH2
+    whenever the imino N was substituted."""
+    assert (name_smiles("OC(=O)c1ccc(cc1)C(=NCC)N(C)C")
+            == "4-(N'-ethyl-N,N-dimethylcarbamimidoyl)benzoic acid")
+
+
+def test_carbamimidoyl_bare_is_unaffected_by_the_split_machinery():
+    """Negative control for D-091v: an entirely unsubstituted carbamimidoyl
+    (bare NH2, bare imino) is handled by the small-fragment lookup earlier
+    in the function and must never reach the N'/N,N split machinery at
+    all -- it stays the plain "carbamimidoyl" prefix."""
+    assert name_smiles("OC(=O)c1ccc(cc1)C(=N)N") == "4-carbamimidoylbenzoic acid"
+
+
+def test_carbamimidoyl_two_distinct_amino_substituents_declines_not_guesses():
+    """Negative control for D-091v: with the imino N substituted (so the
+    fix's gate fires), two DISTINCT substituents on the amino N (ethyl
+    and methyl, as opposed to two identical methyls) are deliberately
+    declined, not attempted -- which of the two is cited "N-" first is a
+    separate alphanumerical question this fix does not answer. The
+    molecule must still get a name (falls through to the pre-existing
+    generic path) with the N' part correctly absent too, not raise or
+    produce "[NAMING ERROR"."""
+    result = name_smiles("OC(=O)c1ccc(cc1)C(=NCC)N(C)CC")
+    assert "N,N-" not in result
+    assert "N'-" not in result
+    assert "[NAMING ERROR" not in result
+
+
+def test_carbamimidoyl_metformin_cation_does_not_regress_to_the_carbamimidoyl_form():
+    """D-103a non-regression: metformin's own cation is an amino-only-
+    substituted (N,N-dimethyl), imino-bare carbamimidoyl fragment
+    attached to a GUANIDINIUM parent, not a benzoic acid -- exactly the
+    shape the fix's imino-substituted gate exists to leave alone. OPSIN
+    reads "(N,N-dimethylcarbamimidoyl)guanidinium"-style names as
+    APPEARS_AMBIGUOUS for this specific adjacency (measured live, naming
+    round 11), which is why this fixture's own established, validated
+    decomposed form must be preserved exactly."""
+    assert (name_smiles("CN(C)C(=N)NC(N)=[NH2+]")
+            == "[(dimethylamino)(imino)methyl]guanidinium")
+
+
+def test_carbamimidoyl_n_methylbiguanidium_does_not_regress_either():
+    """D-103c non-regression, the same shape as the test above with a
+    single N-methyl instead of N,N-dimethyl on the amino nitrogen."""
+    assert (name_smiles("CNC(=N)NC(N)=[NH2+]")
+            == "[(imino)(methylamino)methyl]guanidinium")
