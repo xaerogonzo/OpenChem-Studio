@@ -62,6 +62,9 @@ ROWS = [
     ("phenoxazine dye analogue (converse of D-139)", "CN(C)c1ccc2nc3ccc(=[N+](C)C)cc-3oc2c1.[Cl-]", "[7-(dimethylamino)phenoxazin-3-ylidene]di(methyl)azanium chloride", "DERIVED (D-140)", "MATCH", 0, 2),
     ("fluorescein (spiro-xanthene locant)", "O=C1OC2(c3ccc(O)cc3Oc3cc(O)ccc32)c2ccccc21", "3',6'-dihydroxyspiro[1,3-dihydro-2-benzofuran-1,9'-xanthene]-3-one", "DERIVED (D-141)", "MATCH", 0, 1),
     ("carbamimidate (oxime-swap bracketing)", "COC(=N)NN", "(hydrazinyl)(methoxy)methanimine", "DERIVED (D-142)", "MATCH", 0, 1),
+    # -- naming round 11: 2 fixes (a re-verification/re-diagnosis round; no other item was fixed) -------------
+    ("ketone-parent enclosure (two distinct ring substituents)", "O=C(c1ccccc1)N1CCOCC1", "(morpholin-4-yl)(phenyl)methanone", "DERIVED (D-143, P-16.5.1.3.1)", "MATCH", 0, 1),
+    ("carbamimidoyl N'/N,N split (both nitrogens substituted)", "CCN=C(N(C)C)c1ccc(C(=O)O)cc1", "4-(N'-ethyl-N,N-dimethylcarbamimidoyl)benzoic acid", "PRINTED (D-091v, p. 676)", "MATCH", 0, 1),
 ]
 
 
