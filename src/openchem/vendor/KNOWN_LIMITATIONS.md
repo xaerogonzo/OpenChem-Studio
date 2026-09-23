@@ -343,6 +343,92 @@ Found while checking D-029; predates it.
   non-minimal lambda numbering and three general-nomenclature-only acylium
   names; the engine's output is correct in every case. See `CHANGELOG.md`.
 
+## Open after naming round 12 (2026-09-23)
+
+Round 12 was deliberately small: one fully diagnosed item (W1) and one census signal that had never been
+triaged (W2). Round 11's deferred item is fixed; the fused-cation signal was measured and **not admitted**,
+because no single mechanism reaches the admission floor.
+
+**Fixed this round:**
+
+| item | D-row | mechanism | note |
+|---|---|---|---|
+| charged acid group inside a substituent | D-144 (FIXED, moved from OPEN) | on the carved acid-anion route the OUTER plan already held the right typed fact (a `DetectedFG` with `prefix_form` `carboxylato`/`sulfonato`, from `_carved_acid_group_fgs`), but a group inside a substituent is named by a RECURSIVE call on the carved fragment, whose fresh `Perception()` cannot see a charged chalcogen as an FG, so it composed `oxido` + `oxo` atom by atom | `generate_plans` now adds the same typed FGs for a SUBSTITUENT-form fragment, from the fragment's own atoms (`_substituent_acid_anion_fgs`), for exactly the classes in `_ANIONIC_ACID_PREFIX`. `3-carboxy-4-(2-oxido-2-oxoethyl)benzoate` -> `3-carboxy-4-(carboxylatomethyl)benzoate`; `4-[(oxidosulfonyl)methyl]benzoate` -> `4-(sulfonatomethyl)benzoate` (P-65.6.2.3.1, pdf p. 619) |
+
+**The seam, because it is more reusable than the fix.** The outer path computed the correct typed fact; the
+recursive path discarded it by re-perceiving a fragment; each guard was correct in isolation and the
+information was lost at the recursion boundary. The rule this suggests: *a recursive naming call inherits
+explicit semantic context, and creates fresh perception only for genuinely new local facts.* Here no
+context had to be threaded, because everything the fact depends on (the acid group and its attachment
+carbon) is inside the fragment, so it is re-derived from the fragment with the SAME helper the outer path
+uses rather than passed as a string. A future recursive path whose fact is NOT local to its fragment (a
+parent's numbering, a charge balance across components) must inherit instead, and would need the outer
+atoms mapped into the fragment's own indices.
+
+**Early-return audit for the new path** (every exit, and what pins it):
+
+| exit | condition | reachable on the carved path | owner after the exit | pinned by |
+|---|---|---|---|---|
+| `_substituent_acid_anion_fgs` | `mol is None` | no (callers pass a mol) | unchanged path | n/a |
+| same | no charged site of a class in `_ANIONIC_ACID_PREFIX` | yes: a phosphonate/other class | the existing `oxido` composition (`DECLARED_UNSUPPORTED["phosphorus_oxoacid"]`) | `test_an_acid_class_with_no_anionic_prefix_is_left_alone` |
+| same | the synthesised FG contains an attachment atom (the group IS the substituent) | yes: `[S-]c1ccccc1C(=O)[O-]` | the single-FG path; adding a second FG double-owned the atom | D-121u and `test_a_group_that_is_the_whole_substituent_is_not_touched` |
+| `_carved_acid_group_fgs` | `neutral_view` is None / Perception raises | rare | the fragment declines visibly, as on the outer path | (pre-existing) |
+| `generate_plans` hook | `output_form != SUBSTITUENT` | yes: STANDALONE / ANION | the ANION-mode synthesis, unchanged | the whole known-defects table |
+
+**Measured impact** (each number is a command in `BENCHMARK_HISTORY.md`): ref-compare over 1712 rows
+(r7, r8, mc and the tuning populations) **0 changed, 0 violations**, meaning no corpus row has this shape,
+which is why the fix has its own tests; of the 292 charged rows in the census sample **exactly 1 changes**, an
+aminophosphonate zwitterion (`{(2R,4E)-6-[dioxido(oxo)phosphanyl]-1-oxido-1-oxohex-4-en-2-yl}azanium` ->
+`{(1R,3E)-1-carboxylato-5-[dioxido(oxo)phosphanyl]pent-3-en-1-yl}azanium`, reads back MATCH). That row is
+on a route OTHER than the carved one, so the fix is broader than its gate wording: it is a property of the
+fragment, which keeps it cache-safe. The blind frozen-impact check (new this round, below) found **1 of 1126
+`bluebook_frozen` rows and 0 of 40 `heldout_v6` rows changed**; with the base engine swapped in it reports 0, so
+the one row is W1's.
+
+**A tie-break this exposed and did not fix.** `[5-carboxy-2-(carboxylatomethyl)phenyl]acetate` and its
+`4-carboxy` twin are the same molecule; which one the engine emits depends on the SMILES atom order (the app names
+the RDKit canonical spelling, and the D-144 multi-site test pins that spelling). Both read back; neither is
+the book's, since the book prints no row for this exact structure. Not a D-144 defect.
+
+**W2: the fused-aromatic-ring-cation signal, triaged** (36 hits, 36 unique row identities, 36 unique canonical
+structures; the query is a coarse ring-fusion PROXY, so 36/2000 = 1.8% is never quoted as a defect frequency).
+Every hit was named with the engine and read back; the engine was then run over ALL 292 charged rows of the
+sample, because the proxy can miss a shape. 28 of the 36 name and read back MATCH; 8 embed a
+`[NAMING ERROR ...]` marker (three of those eight report `clean` from `naming_probe.py`'s plan counters, because
+the error is emitted as a NAME, not as a dead plan, so a status counter under-reports it and the name itself
+has to be read). The failures are all
+visible (an embedded `[NAMING ERROR: No valid naming plan found for <fragment>]`, shown by the app as an
+unverified name), none is a wrong molecule, and they fall into several ring systems, not one:
+
+| ring system of the failing fragment | unique structures | fails standalone too | neutral parent names |
+|---|---|---|---|
+| imidazo[1,2-a]pyridin-4-ium (bridgehead `[n+]`, ring `[nH]`) | 4 | yes | yes (`imidazo[1,2-a]pyridine`) |
+| imidazo[2,1-b][1,3]thiazol-4-ium | 1 | yes | yes |
+| imidazo[2,1-f]purinium | 2 | yes | not measured |
+| purin-7-ium named as a SUBSTITUENT | 1 | **no** (standalone is fine) | yes |
+| saturated/bridged ring N cations (quinolizidinium, thieno[2,3-c]pyridinium, an imidazo-azepine amidinium, a triazolo-triazinium, a pyrano-pyridinium, a spiro-oxindole pyrrolidine) | 6 (each its own ring system) | yes | yes (`quinolizidine` measured) |
+
+The layer is the same for the first three rows (the neutral parent names, the cation of it does not, one plan
+executes and none is valid: a fused CATION with no curated entry, exactly round 8's open row), but the rings are
+different, each would need its own curated numbering, and the largest single system is **4/2000 = 0.2%**, under
+the 10-structure floor (0.5%). Outside the proxy, the charged-row scan also found two rows that are NOT this
+mechanism: a 3'-azido nucleoside phosphate triester (`atom ownership under parent 'ethane'`, no cation) and a
+steroid carboxylate that the refusal guard correctly RAISES on (`render_failed`). **Decision: recorded, not
+admitted.** Nothing here becomes round 12 work; the bridgehead-`[n+]` cation family is the round-13 candidate
+if a population ever shows it above the floor.
+
+**A tooling gap closed.** `naming_stage_artifact.py --frozen-impact <sealed stage>` names the frozen
+populations with the working tree and compares against a sealed final evaluation, printing ONLY
+`unchanged` or `changed_count=N of M` (no label, no name, exit status 3 if anything moved). Ref-compare reaches
+the tuning populations only, so it could never say whether a shared-path change moved a frozen row; rounds 10 and
+11 decided by hand. If the check reports unchanged, the previous evaluation's score stands and the frozen set is
+NOT re-scored.
+
+**Not attempted, carried forward unchanged:** see "Open after naming round 11" (multiparent fusion, second-order
+attached components, interior heteroatoms, 7/8-membered rings fused on three or more sides, helicenes, hydro
+forms of a traditionally numbered retained parent, chiral amino-acid anion names, deprotonated phosphonic/
+phosphoric esters).
+
 ## Open after naming round 11 (2026-09-23)
 
 Round 11 re-verified every round-10 census winner and round 7-8 backlog row it touched directly against
@@ -369,7 +455,7 @@ improvements, never reflected back into this document until now.
 
 | item | seed layer | what is known now |
 |---|---|---|
-| charged acid group inside a substituent | serialization | round 8's own row is about a charged acid group *inside a carved substituent tree*, not "any charged acid substituent present" (the general shape round 9's F1 ruled out) -- and it is STILL broken, confirmed on the exact repro. Traced to root cause: `_carved_acid_group_fgs` (`engine.py`) already computes the CORRECT anionic prefix form (`"carboxylato"`, `"sulfonato"`) for a demoted acid-anion site on the "carved" route (`acid_anion_route(mol) == "carved"`), but that `prefix_form` is never threaded into the RECURSIVE substituent-naming call that renders a nested acid-anion group -- the carved fragment's own fresh `Perception()` call does not detect a charged chalcogen as an FG at all (by design, elsewhere), so it falls back to generic atom-by-atom composition (`oxido` + `oxo`/`sulfonyl`), regardless of what the outer call already knew. **This is broader than round 8's row documented**: measured live, it affects a demoted CARBOXYLATE the same way as a demoted SULFONATE (`3-carboxy-4-(carboxylatomethyl)benzoate` reproduces the exact `"3-carboxy-4-(2-oxido-2-oxoethyl)benzoate"` wrong form round 8 recorded only for sulfonate) -- the earlier "already correct" carboxylate spot-check this round ran first (`4-(carboxylatomethyl)benzoate`) turned out to go through a DIFFERENT mechanism entirely (the homogeneous classifier route's blunt string-level `_balance_the_charge_ledger` regex, which only fires when every deprotonated site is the SAME acid class), not the carved route this row is actually about. A real fix needs either threading the outer FG's `prefix_form` into the recursive call, or a second, gated regex-style repair mirroring `_balance_the_charge_ledger` but keyed to the "carved" route's own known FG list -- deliberately not rushed this round given the architectural reach (touches the same recursive substituent-naming path several other special cases, including this round's own carbamimidoyl fix, already sit beside) |
+| charged acid group inside a substituent | serialization | **FIXED in naming round 12 (D-144); see "Open after naming round 12". The diagnosis below stands, and its second proposed repair (thread the FG in) was replaced by re-deriving the fact from the fragment's own atoms.** Round 8's own row is about a charged acid group *inside a carved substituent tree*, not "any charged acid substituent present" (the general shape round 9's F1 ruled out) -- and it is STILL broken, confirmed on the exact repro. Traced to root cause: `_carved_acid_group_fgs` (`engine.py`) already computes the CORRECT anionic prefix form (`"carboxylato"`, `"sulfonato"`) for a demoted acid-anion site on the "carved" route (`acid_anion_route(mol) == "carved"`), but that `prefix_form` is never threaded into the RECURSIVE substituent-naming call that renders a nested acid-anion group -- the carved fragment's own fresh `Perception()` call does not detect a charged chalcogen as an FG at all (by design, elsewhere), so it falls back to generic atom-by-atom composition (`oxido` + `oxo`/`sulfonyl`), regardless of what the outer call already knew. **This is broader than round 8's row documented**: measured live, it affects a demoted CARBOXYLATE the same way as a demoted SULFONATE (`3-carboxy-4-(carboxylatomethyl)benzoate` reproduces the exact `"3-carboxy-4-(2-oxido-2-oxoethyl)benzoate"` wrong form round 8 recorded only for sulfonate) -- the earlier "already correct" carboxylate spot-check this round ran first (`4-(carboxylatomethyl)benzoate`) turned out to go through a DIFFERENT mechanism entirely (the homogeneous classifier route's blunt string-level `_balance_the_charge_ledger` regex, which only fires when every deprotonated site is the SAME acid class), not the carved route this row is actually about. A real fix needs either threading the outer FG's `prefix_form` into the recursive call, or a second, gated regex-style repair mirroring `_balance_the_charge_ledger` but keyed to the "carved" route's own known FG list -- deliberately not rushed this round given the architectural reach (touches the same recursive substituent-naming path several other special cases, including this round's own carbamimidoyl fix, already sit beside) |
 
 **Census extension B (discovery only, B3 reused; no fix attempted for anything below):**
 
@@ -483,7 +569,7 @@ measure the engine on what they contain; a battery of ordinary molecules whose n
 | layer | case | emits | target | note |
 |---|---|---|---|---|
 | candidate generation | a THIOLATE beside an acid anion: `[S-]c1ccccc1C(=O)[O-]` | `2-[oxido(oxo)methyl]benzene-1-thiolate` | `2-sulfanidobenzoate`-style (derived) | the carved route now takes an olate beside an acid anion (D-121); a thiolate's anionic prefix is not built. Round-trips |
-| serialization | a charged acid group INSIDE a substituent | `4-[(oxidosulfonyl)methyl]benzoate`, `3-carboxy-4-(2-oxido-2-oxoethyl)benzoate` | `4-(sulfonatomethyl)benzoate`, `...(carboxylatomethyl)...` (pdf p. 619) | the recursive substituent path names a charged group with 'oxido'; the ledger's 'carboxylato' repair covers the classifier route only. Round-trips |
+| serialization | a charged acid group INSIDE a substituent (FIXED in round 12, D-144) | `4-[(oxidosulfonyl)methyl]benzoate`, `3-carboxy-4-(2-oxido-2-oxoethyl)benzoate` | `4-(sulfonatomethyl)benzoate`, `...(carboxylatomethyl)...` (pdf p. 619) | the recursive substituent path names a charged group with 'oxido'; the ledger's 'carboxylato' repair covers the classifier route only. Round-trips |
 | candidate generation | an N-alkoxy THIOAMIDE, an N,N-dialkoxy amide, O-alkylhydroxylamines | `N-methoxy-N-methyl-1-thioxoethan-1-amine`, `1-(dimethoxyamino)-1-oxoethane`, `(aminooxy)methane` | `N-methoxy-N-methylethanethioamide`, ..., `O-methylhydroxylamine (PIN)` (pdf pp. 96, 753) | D-125 built the amide and amine; hydroxylamine is a retained parent the engine does not construct |
 | candidate generation | several nitrate groups | `1,2,3-tris(nitrooxy)propane` | `propane-1,2,3-triyl trinitrate` | D-123 names ONE nitrate or nitrite ester; a polynitrate needs a multivalent organyl |
 | candidate generation | carbonic acid halides and anhydrides: chloroformates, di-tert-butyl dicarbonate, mixed anhydrides | `methoxymethanoyl chloride`, a nine-part prefix name | `methyl carbonochloridate`, `bis(2-methylpropan-2-yl) dicarbonate` | D-128 names the acyclic diester and the hydrogen ester only |

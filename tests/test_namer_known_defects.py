@@ -3419,6 +3419,33 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "4-(N'-ethyl-N,N-dimethylcarbamimidoyl)benzoic acid",
      "4-[(dimethylamino)(ethylimino)methyl]benzoic acid",
      "p. 676, verbatim -- the book's second (general) form"),
+
+    # --- D-144, MOVED FROM OPEN (naming round 12): a charged acid group INSIDE
+    # a carved substituent was named 'oxido'/'oxo', not 'carboxylato'/'sulfonato'
+    # Round 8 recorded it for a sulfonate; round 11 traced it to the seam and
+    # found it was just as true of a carboxylate. On the "carved" acid-anion
+    # route the OUTER plan already holds the right typed fact (a DetectedFG
+    # with prefix_form 'carboxylato'/'sulfonato'), but a group that sits
+    # inside a substituent is named by a RECURSIVE call on the carved
+    # fragment, whose fresh Perception cannot see a charged chalcogen as a
+    # functional group -- so it fell back to atom-by-atom composition. Fixed
+    # in generate_plans for a SUBSTITUENT-form fragment, from the fragment's
+    # own atoms (no index map needed: the acid group and its attachment
+    # carbon are both inside the fragment), for exactly the acid classes that
+    # HAVE an anionic prefix (_ANIONIC_ACID_PREFIX). Targets are the book's
+    # own prefix forms (P-65.6.2.3.1, pdf p. 619).
+    ("D-144a", "[O-]C(=O)c1ccc(CS(=O)(=O)[O-])cc1", "4-(sulfonatomethyl)benzoate",
+     "4-[(oxidosulfonyl)methyl]benzoate",
+     "P-65.6.2.3.1, p. 619; a sulfonate inside a substituent"),
+    ("D-144b", "O=C([O-])Cc1ccc(C(=O)[O-])c(C(=O)O)c1",
+     "2-carboxy-4-(carboxylatomethyl)benzoate",
+     "2-carboxy-4-(2-oxido-2-oxoethyl)benzoate",
+     "P-65.6.2.3.1, p. 619; a carboxylate inside a substituent, beside a "
+     "neutral acid (the carved route)"),
+    ("D-144c", "O=C([O-])Cc1ccc(C(=O)[O-])cc1C(=O)O",
+     "3-carboxy-4-(carboxylatomethyl)benzoate",
+     "3-carboxy-4-(2-oxido-2-oxoethyl)benzoate",
+     "round 8's exact recorded repro, which round 11 confirmed still broken"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -4022,3 +4049,93 @@ def test_carbamimidoyl_n_methylbiguanidium_does_not_regress_either():
     single N-methyl instead of N,N-dimethyl on the amino nitrogen."""
     assert (name_smiles("CNC(=N)NC(N)=[NH2+]")
             == "[(imino)(methylamino)methyl]guanidinium")
+
+
+# ---- D-144 (naming round 12): a charged acid group inside a substituent ------
+# The fix lives in `_substituent_acid_anion_fgs` and is deliberately narrow, so each
+# converse below pins one edge of it. `name_smiles` output is compared exactly; the
+# OPSIN half of D-144a-c is in tests/vendor/iupac_namer/test_known_defects.py.
+
+_D144_HOMOGENEOUS = "O=C([O-])Cc1ccc(C(=O)[O-])cc1"
+
+
+def test_a_carboxylate_inside_a_substituent_is_named_carboxylato_with_no_oxido():
+    """The class-generic half: both acid classes come out as their anionic prefix, and neither
+    leaves the atom-by-atom 'oxido' composition behind."""
+    for smiles, needle in (
+        ("O=C([O-])Cc1ccc(C(=O)[O-])c(C(=O)O)c1", "carboxylatomethyl"),
+        ("[O-]C(=O)c1ccc(CS(=O)(=O)[O-])cc1", "sulfonatomethyl"),
+    ):
+        got = name_smiles(smiles)
+        assert needle in got and "oxido" not in got, (smiles, got)
+
+
+def test_two_carved_acid_sites_in_two_substituents_each_keep_their_own_prefix():
+    """The multi-site case: two separately carved fragments each hold one charged acid. A single
+    threaded string could not tell them apart; each fragment derives its own fact. The name is not a
+    printed target (no book row for this exact structure), so it is pinned as what the engine emits
+    and as reading back, which the vendored OPSIN suite checks for every FIXED row."""
+    # The RDKit canonical spelling, which is what the app names: the two acetates are near-equivalent, so the
+    # choice of which is principal follows atom order, and another spelling can give the '4-carboxy' twin
+    # (the same molecule; a tie-break outside this fix).
+    got = name_smiles("O=C([O-])Cc1ccc(C(=O)O)cc1CC(=O)[O-]")
+    assert got == "[5-carboxy-2-(carboxylatomethyl)phenyl]acetate"
+    assert "oxido" not in got
+
+
+def test_the_homogeneous_classifier_route_is_untouched():
+    """Converse for D-144: `4-(carboxylatomethyl)benzoate` was already correct through the
+    classifier route (a re-protonated neutral parent plus `_balance_the_charge_ledger`), where the
+    fragments are NEUTRAL and the new path never runs. Same name, and still the classifier route."""
+    from rdkit import Chem
+
+    from openchem.vendor.iupac_namer.perception.charge_perception import acid_anion_route
+
+    assert name_smiles(_D144_HOMOGENEOUS) == "4-(carboxylatomethyl)benzoate"
+    assert acid_anion_route(Chem.MolFromSmiles(_D144_HOMOGENEOUS)) == "classifier"
+
+
+def test_a_group_that_is_the_whole_substituent_is_not_touched():
+    """Converse for D-144 and the reason the fix skips a group containing the attachment atom: a
+    carboxylate that IS the substituent (attached through its own carbon) is named by the single-FG
+    path, and adding a second FG over it double-owned the atom ('atom 0 owned by prefix[0] and
+    prefix[1]', a failed plan and a NAMING ERROR fall-back -- D-121u was the first to show it). D-121u's
+    own row pins the unchanged name; this pins that no plan died on the way."""
+    got = name_smiles("[S-]c1ccccc1C(=O)[O-]")
+    assert got == "2-[oxido(oxo)methyl]benzene-1-thiolate"
+    assert "NAMING ERROR" not in got
+
+
+def test_an_acid_class_with_no_anionic_prefix_is_left_alone():
+    """A phosphonate has no entry in `_ANIONIC_ACID_PREFIX`, and using its NEUTRAL prefix ('phosphono')
+    would drop the charge -- a different molecule. It stays on the declared-unsupported path
+    (`charge_ownership.DECLARED_UNSUPPORTED`), the same name as before this round."""
+    assert (name_smiles("OC(=O)c1ccc(cc1)CP(=O)([O-])O")
+            == "4-{[hydroxy(oxido)(oxo)phosphanyl]methyl}benzoic acid")
+
+
+def test_the_fix_is_table_driven_not_a_branch_per_class(monkeypatch):
+    """Drop sulfonate from the table and the sulfonate case must revert while the carboxylate case
+    holds: the behaviour comes from `_ANIONIC_ACID_PREFIX`, so a new class is one row, not new code."""
+    from openchem.vendor.iupac_namer import engine
+
+    only_carboxylate = {k: v for k, v in engine._ANIONIC_ACID_PREFIX.items() if k == "carboxylate"}
+    monkeypatch.setattr(engine, "_ANIONIC_ACID_PREFIX", only_carboxylate)
+    assert name_smiles("[O-]C(=O)c1ccc(CS(=O)(=O)[O-])cc1") == "4-[(oxidosulfonyl)methyl]benzoate"
+    assert "carboxylatomethyl" in name_smiles("O=C([O-])Cc1ccc(C(=O)[O-])c(C(=O)O)c1")
+
+
+@pytest.mark.parametrize("smiles", [
+    "O=C([O-])Cc1ccc(C(=O)[O-])c(C(=O)O)c1",
+    "[O-]C(=O)c1ccc(CS(=O)(=O)[O-])cc1",
+    "O=C([O-])Cc1ccc(C(=O)O)cc1CC(=O)[O-]",
+])
+def test_every_charged_acid_site_still_has_exactly_one_owner(smiles):
+    """The new path adds no second claimant: charge_ownership still reports every anion site OWNED
+    (exactly one route), so the recursive fix did not create an overlap or hole."""
+    from rdkit import Chem
+
+    from openchem.vendor.iupac_namer.perception.charge_ownership import Verdict, charged_owners
+
+    report = charged_owners(Chem.MolFromSmiles(smiles), smiles, measure=False)
+    assert report.verdict == Verdict.OWNED, report

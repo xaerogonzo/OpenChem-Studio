@@ -65,6 +65,11 @@ ROWS = [
     # -- naming round 11: 2 fixes (a re-verification/re-diagnosis round; no other item was fixed) -------------
     ("ketone-parent enclosure (two distinct ring substituents)", "O=C(c1ccccc1)N1CCOCC1", "(morpholin-4-yl)(phenyl)methanone", "DERIVED (D-143, P-16.5.1.3.1)", "MATCH", 0, 1),
     ("carbamimidoyl N'/N,N split (both nitrogens substituted)", "CCN=C(N(C)C)c1ccc(C(=O)O)cc1", "4-(N'-ethyl-N,N-dimethylcarbamimidoyl)benzoic acid", "PRINTED (D-091v, p. 676)", "MATCH", 0, 1),
+    # -- naming round 12: a charged acid group INSIDE a substituent (D-144), and its converse ------------------
+    ("sulfonate inside a substituent", "[O-]C(=O)c1ccc(CS(=O)(=O)[O-])cc1", "4-(sulfonatomethyl)benzoate", "DERIVED (D-144a, P-65.6.2.3.1)", "MATCH", -2, 1),
+    ("carboxylate inside a substituent, beside a neutral acid", "O=C([O-])Cc1ccc(C(=O)[O-])c(C(=O)O)c1", "2-carboxy-4-(carboxylatomethyl)benzoate", "DERIVED (D-144b, P-65.6.2.3.1)", "MATCH", -2, 1),
+    ("round 8's recorded repro", "O=C([O-])Cc1ccc(C(=O)[O-])cc1C(=O)O", "3-carboxy-4-(carboxylatomethyl)benzoate", "DERIVED (D-144c, P-65.6.2.3.1)", "MATCH", -2, 1),
+    ("homogeneous classifier route (converse of D-144)", "O=C([O-])Cc1ccc(C(=O)[O-])cc1", "4-(carboxylatomethyl)benzoate", "DERIVED (classifier route, unchanged)", "MATCH", -2, 1),
 ]
 
 

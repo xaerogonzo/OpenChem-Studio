@@ -200,7 +200,9 @@ OC(=O)CCC(=O)N1CCCC1	4-oxo-4-(pyrrolidin-1-yl)butanoic acid
 [NH3+]C(C[O-])C([O-])=O	2-azaniumyl-3-oxidopropanoate
 # ---- OPEN, pinned so that a FIX is noticed as well as a regression (each is a KNOWN_LIMITATIONS row, 'Open after naming round 8'; each reads back and is not preferred):
 [S-]c1ccccc1C(=O)[O-]	2-[oxido(oxo)methyl]benzene-1-thiolate
-O=C([O-])c1ccc(CS(=O)(=O)[O-])cc1	4-[(oxidosulfonyl)methyl]benzoate
+# Naming round 12 (D-144): a charged acid group inside a substituent is named by its anionic prefix -- an intended improvement,
+# not a drift. It was pinned as OPEN above; the carboxylate twin is pinned by tests/test_namer_known_defects.py.
+O=C([O-])c1ccc(CS(=O)(=O)[O-])cc1	4-(sulfonatomethyl)benzoate
 # Naming round 9, item "peptide-acyl-naming" (D-135): glycylglycine now reaches the Blue Book's retained acyl form
 # instead of the systematic prefix -- an intended improvement, not a drift.
 NCC(=O)NCC(=O)O	glycylglycine
