@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Naming census scan (branch `naming-census-scan`, before round 13)
+
+- **`tools/naming_census_scan.py` names every row of the 2000-structure census sample and reads each name back through
+  OPSIN**, classifying each row (exact, same connectivity, a wrong molecule of different or same formula, unparsable, an
+  embedded naming error, a refusal) and clustering the embedded-error messages. Run once over the merged round-12 engine
+  it found the largest wrong-molecule cluster in the census (a 1,3,4-oxadiazol/thiadiazol-3-yl locant, 21 structures,
+  1.05%, present since round 6) that no backlog row had recorded: 93.5% of the sample reads back exactly, 2.4% are
+  candidate wrong structures, 1.9% are visible failures. `--compare` shows what moved since a previous scan;
+  `--names-only` needs no JRE. Refuses a sample that does not match `census_sample.meta.json`'s hash.
+
 ### Naming round 9 (branch `naming-round-9`)
 
 - **A source-backed battery first, then a fixed, ledger-enforced set of fixes:** a Blue Book PDF harvest
