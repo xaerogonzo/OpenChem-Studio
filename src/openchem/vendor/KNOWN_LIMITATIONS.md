@@ -343,6 +343,39 @@ Found while checking D-029; predates it.
   non-minimal lambda numbering and three general-nomenclature-only acylium
   names; the engine's output is correct in every case. See `CHANGELOG.md`.
 
+## Open after naming round 10 (2026-09-22)
+
+Round 10 closed all 4 items round 9 deferred (each already diagnosed at round 9's end), then ran a cheap,
+discovery-only extension of round 9's B3 frequency census against 6 of the still-open round 5-8 backlog
+shapes -- reusing the frozen `census_sample.json` unchanged, no new battery. All 4 fixes are genuinely
+verified (OPSIN round-trip as a structure oracle, mutation-checked, ref-compared against the whole
+`bluebook_tuning` population with 0 unexpected changes).
+
+**Fixed this round** (each own commit; see the commit messages for the full diagnosis):
+
+| item | D-row | mechanism | note |
+|---|---|---|---|
+| phenothiazine-dye-locant | D-139/D-140 (FIXED) | `ring_naming/retained_lookup.py`'s `_build_numbering_from_atom_locants` gated its bond-generic substructure-match fallback to "every ring atom aromatic", excluding phenothiazine's N/S bridge (non-aromatic on the isolated curated-key SMILES, but aromatic in methylene blue's actual extended-conjugation form) | round 9's own diagnosis was incomplete: two OTHER curated numbering tables (`fusion_general.py`'s `_TRADITIONAL`, `data_loader.py`'s `_RING_CURATED_SMILES`) were already correct and NOT the bug; the real defect was a third function's aromaticity gate. Fixed by narrowing the gate to "every CARBON aromatic" (heteroatom aromaticity is context-dependent; a ring carbon's is structural). Phenoxazine shares the identical defect and fix, proven by direct testing, not assumed |
+| spiro-xanthene-dye-locant | D-141 (FIXED) | xanthene/thioxanthene's curated `atom_locants` covered only 9 of 14 real ring positions (missing the four fusion carbons and the bridge heteroatom's own locant), which is harmless for a bare/substituted parent but broke `spiro.py`'s combined-numbering completeness gate for fluorescein | fixed by completing the table with the four fusion positions (4a, 8a, 9a, 10a) and the bridge heteroatom's locant (10), derived from this table's own bond topology against `fusion_general.py`'s already-verified real xanthene numbering. Reaches fluorescein's real IUPAC name exactly, including a second latent defect (wrong lactone locant) fixed as a side effect |
+| charge-polycarbocation | none (no PIN attempted) | `_classify_polycarbon_charge`'s guard checked the WHOLE MOLECULE for any aromatic atom / non-single bond, rather than the charged atoms' own scope, silently excluding a saturated cation substituent attached to an aromatic ring | narrowed the gate to the charged atoms specifically; the classifier now engages and claims both charges, but no renderer exists yet to compose a name for two independently-attached cationic substituents on a shared aromatic parent. Per the project's own "refusal guard" (below), a classifier that engages and cannot finish now RAISES instead of falling through to the wrong neutral name -- the WRONG-MOLECULE defect is fixed (same outcome class as D-133); reaching the PIN itself (PubChem's own name is on file: "2,2'-(1,3-phenylene)di(propan-2-ylium)", `bb-db0d904b9c97`) is separate, still-open render-side work |
+| carbamimidate-oxime-swap | D-142 (FIXED) | no existing enclosure rule covered a carbon-centered one-carbon STANDALONE parent with a non-leading "-oxy" prefix; the engine's internal structure was correct, but the unbracketed output string let OPSIN misparse "(hydrazinyl)methoxy" as one nested substituent | fixed by bracketing a non-leading "-oxy" simple prefix on any one-carbon chain parent, any output form. Round 8's own ketone-parent check missed this shape (tested with "phenyl", no adjacency ambiguity; a ketone+oxy case sidesteps it via an ester/carbamate route an imine lacks). A second, independent instance of the same bug (methanamine, not methanimine) was found and fixed as a side effect |
+
+**Census extension (discovery only, B3 reused; no fix attempted for anything below):**
+
+| shape | frequency | clears 0.5%? | source |
+|---|---|---|---|
+| ring-nitrogen acyl on a chain parent | 53/2000 = 2.65% | YES, 5.3x | round 8 open list |
+| multiparent fusion hub | 23/2000 = 1.15% | YES, 2.3x | round 5 open list |
+| a(ba)n Si-NH-Si chain | 0/2000 | no | round 5/6 open list, D-089u |
+| symmetric 1,2-diketone (benzil) | 0/2000 | no | round 8 open list |
+| diacyl peroxide | 0/2000 | no | round 8 open list |
+| xanthate ester | 0/2000 | no | round 8 open list |
+
+The two that clear the threshold are strong candidates for a future round's admissions ledger; they are
+recorded here, not fixed. This measured only 6 of the many still-open shapes below (round 6-8's own carried-
+forward lists) -- a low count on the 4 that didn't clear says those specific shapes are rare, not that the
+overall backlog is short.
+
 ## Open after naming round 9 (2026-09-22)
 
 Round 9 ran a source-backed battery first (a Blue Book PDF harvest, `bluebook_tuning.json`/`bluebook_frozen.json`, plus an

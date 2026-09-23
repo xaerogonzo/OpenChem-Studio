@@ -41,6 +41,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   structure, the candidate-set proof), a per-row worker-process timeout in `naming_stage_artifact.py` (the coronene hang
   this round's own B1 measurement hit).
 
+### Naming round 10 (branch `naming-round-10`)
+
+- **All 4 items round 9 deferred, closed — each turned out deeper than round 9's own diagnosis:** methylene
+  blue's phenothiazine ring now names correctly (`[7-(dimethylamino)phenothiazin-3-ylidene]di(methyl)azanium
+  chloride`, matching PubChem's own name verbatim) — the actual bug was a third, unrelated numbering function
+  whose aromaticity gate silently dropped the correct locants for charged/conjugated dye structures, not a
+  missing table entry. Fluorescein's spiro-xanthene locant is fixed the same way
+  (`3',6'-dihydroxyspiro[1,3-dihydro-2-benzofuran-1,9'-xanthene]-3-one`, matching its real IUPAC name) — the
+  xanthene ring's own table was structurally incomplete (missing 5 of 14 real positions), which broke the
+  spiro-combined numbering entirely. The carbamimidate/oxime bracketing ambiguity is fixed — the engine's
+  internal structure was correct the whole time; a narrowly-scoped bracket rule now protects a non-leading
+  "-oxy" prefix on a one-carbon parent, closing both the original case and a second, independent instance of
+  the same bug found during diagnosis. The polycarbocation classifier now correctly engages instead of
+  silently dropping both charges; composing an actual preferred name is still open, so it now raises an
+  honest, precedented refusal rather than emitting a wrong molecule.
+- **A discovery-only frequency check on the older backlog:** reusing round 9's frozen census sample, 6 more
+  shapes from rounds 5-8's open list were measured. Two are genuinely common (a ring-nitrogen acyl on a chain
+  parent, over 5x the admission threshold; a multiparent fusion hub, over 2x) and are strong candidates for a
+  future round; four are genuinely rare. Nothing here was fixed — see
+  `src/openchem/vendor/KNOWN_LIMITATIONS.md`, "Open after naming round 10".
+
 ### Naming round 8 (branch `naming-round-8`)
 
 - **Wrong molecules fixed, each found by a test that could not have passed before:** the trianion of a tricarboxylic
