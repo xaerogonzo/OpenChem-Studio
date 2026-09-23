@@ -1533,3 +1533,57 @@ xanthate ester.
 mutation check with the equivalent mutants written into the code, a stage-comparison run against the whole 1129-row Blue
 Book tuning population BEFORE the commit and never chained to it, one commit per item. That discipline caught the
 phosphide-anion regression above BEFORE it ever reached a commit -- the stage comparison is not a formality.
+
+## 2026-09-23 - naming round 11: two fixes, two backlog rows already resolved, one re-diagnosed deeper
+
+Re-verified every candidate directly against the current engine before admitting or dropping it -- the same
+discipline round 9 applied to its own seed hypotheses. Two of five candidates this round looked at were
+already fixed by other rounds' general work, never reflected back into `KNOWN_LIMITATIONS.md` until now.
+
+* **ketone-parent enclosure** (D-143): `assembly.py`'s `_assemble_substitutive` had two existing one-carbon-
+  parent P-16.5.1.3.1 enclosure rules, but neither reached a one-carbon KETONE parent in STANDALONE form --
+  round 9's own re-test of this shape (F5) used a single ring substituent, which needs no enclosure at all,
+  so it was ruled out without finding the actual gap (two DISTINCT ring substituents).
+  `(morpholin-4-yl)phenylmethanone` left its second, simple "phenyl" prefix unbracketed. Fixed by mirroring
+  the existing heteroatom-center block, scoped to a ketone's own `suffix_groups` base_form ("one"). Severity
+  C -- OPSIN parses the unbracketed form too -- but the single most common open shape in the whole backlog,
+  measured at 8.4% of the census.
+* **carbamimidoyl N'/N,N split** (D-091v, moved from OPEN): the existing "N'-substituted carbamimidoyl"
+  special case required the amino N to be a bare, unsubstituted NH2, so a substituted amino N
+  (`4-[(dimethylamino)(ethylimino)methyl]benzoic acid`) fell through to the generic recursive path instead
+  of the book's own printed form (p. 676, verbatim: `4-(N'-ethyl-N,N-dimethylcarbamimidoyl)benzoic acid`).
+  Generalized to carve 0/1/2 substituents off the amino N too, but gated to require the imino N ALSO
+  substituted before firing: an amino-only-substituted, imino-bare fragment round-trips via OPSIN in
+  isolation, but is genuinely APPEARS_AMBIGUOUS when the same shape attaches directly to a GUANIDINIUM
+  parent instead -- exactly the shape D-103a/c's metformin-cation fixture already chose the decomposed form
+  for, on purpose. A first version without this gate regressed both D-103 rows; caught by the known-defects
+  suite before commit, kept as permanent non-regression tests.
+
+**Two backlog rows re-tested and found already resolved**, fixed as side effects of other rounds' own work
+and never reflected back into this document:
+
+* **ring-nitrogen acyl prefix on a ring/chain parent** (round 8's open row, round 10's own census measured
+  it at 2.65%): the documented repro (`OC(=O)c1ccc(cc1)C(=O)N1CCCCC1`) now emits the correct
+  `4-(piperidine-1-carbonyl)benzoic acid` directly, verified for piperidine, morpholine and pyrrolidine.
+* **the polyacid-anion charge ledger** (round 7's own two findings): citrate's trianion now emits the
+  printed PIN (`2-hydroxypropane-1,2,3-tricarboxylate`), bare and as the trisodium salt; the biguanidium
+  dication now correctly RAISES instead of silently naming the wrong molecule -- the same refusal-guard
+  class as D-133.
+
+**One row re-diagnosed deeper and re-deferred**: a charged acid group inside a carved SUBSTITUENT tree is
+still broken (round 8's row, confirmed live), traced this round to its actual root cause --
+`_carved_acid_group_fgs` (`engine.py`) already computes the correct anionic prefix form for a demoted
+acid-anion site on the "carved" route, but that value is never threaded into the recursive substituent-
+naming call that renders a nested acid-anion group, whose own fresh `Perception()` does not detect a
+charged chalcogen as an FG at all. Measured broader than round 8 documented: it affects a demoted
+CARBOXYLATE the same way as a demoted SULFONATE -- the round's own first spot-check of the carboxylate case
+looked "already correct" but turned out to be going through an entirely different mechanism (the homogeneous
+classifier route's blunt string-level regex repair, which only fires when every deprotonated site shares one
+acid class). Not rushed: the fix touches the same recursive substituent-naming path several existing special
+cases (including this round's own carbamimidoyl fix) already sit beside.
+
+**Census extension B** (discovery only, `KNOWN_LIMITATIONS.md` "Open after naming round 11"): 6 more
+still-unmeasured round 7-8 backlog shapes, same frozen 2000-structure sample. One clears the frequency floor
+(a fused aromatic ring cation, 1.8%, but a coarse proxy needing manual triage before it names an actual
+defect); the other five are rare (<=0.25%, several 0/2000) -- real evidence most of what remains in the
+round 7-8 backlog is genuinely uncommon.
