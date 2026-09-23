@@ -1,0 +1,19 @@
+# Round 10's full ref-compare manifest, against master's pre-round-10 tip (92782b0). Covers every commit's
+# fixed item across the 'pop' set (1516 structures, all populations naming_ref_compare.py's registry exposes
+# short of the frozen ones). Only ONE bluebook_tuning row moved across all four items combined -- items 1
+# (phenothiazine) and 2 (spiro-xanthene) touched zero rows in this population (their fixture molecules,
+# methylene blue and fluorescein, are not themselves bluebook_tuning rows); item 3 (charge-polycarbocation)
+# is the row below; item 4 (carbamimidate-oxime-swap) introduced ZERO further changes on top of item 3's,
+# verified directly (naming round 10, item 4's own commit message).
+#
+# expected_name is deliberately omitted: the row's new value is a raised, truncated ValueError string (the
+# refusal guard), not a stable name to exact-match -- MUST_CHANGE with a reason is the assertion; the full
+# detail is documented in item 3's commit message and D-row.
+
+stage = "r10-release-candidate"
+
+[[expect]]
+id = "pop:bluebook_tuning:bb-db0d904b9c97"
+expect = "MUST_CHANGE"
+reason_rule_id = "charge-polycarbocation (item 3, round 9 admissions ledger)"
+expected_layer = "charge_ledger"
