@@ -3446,6 +3446,50 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "3-carboxy-4-(carboxylatomethyl)benzoate",
      "3-carboxy-4-(2-oxido-2-oxoethyl)benzoate",
      "round 8's exact recorded repro, which round 11 confirmed still broken"),
+
+    # --- D-145..D-148 (naming round 13): a wrong ring locant on a heterocyclic SUBSTITUENT --------------------------------------------
+    # Found by naming every row of the census sample and reading it back (tools/naming_census_scan.py: 27 of 2000 structures, 1.35%,
+    # each read back as a DIFFERENT structure) and measured on every curated ring by tools/naming_ring_locant_sweep.py. The app
+    # already WITHHELD every one of these names (the read-back mismatch), so the fix turns "no name" into a right one. Three mechanisms:
+    #
+    # D-145: `_lowest_free_valence_numberings` ranked the lowest COMBINED heteroatom locant set ahead of the senior heteroatom at 1. A
+    # monocyclic hetero ring is numbered by Hantzsch-Widman, which puts the most senior heteroatom at 1 first. 1,3,4-thiadiazole (S1,N3,N4)
+    # has the alternative N1,N2,S4 whose set {1,2,4} is lower, so the substituent was numbered as another heterocycle and its attachment
+    # carbon came out `-3-yl`. Only a ring that carried a second substituent reached this path (the bare ring goes through
+    # `_heteroaryl_substituent_with_locant`, which weights seniority), which is why 21 of the 25 such census names were wrong and the four
+    # right ones were the unsubstituted ring. 1,2,5-oxadiazole and 1,2,5-thiadiazole had the same shape.
+    ("D-145a", "CC(=O)Nc1nnc(C)s1", "N-(5-methyl-1,3,4-thiadiazol-2-yl)acetamide",
+     "N-(5-methyl-1,3,4-thiadiazol-3-yl)acetamide", "Hantzsch-Widman: the senior heteroatom is locant 1; a monocyclic ring"),
+    ("D-145b", "CC(=O)Nc1nnc(C)o1", "N-(5-methyl-1,3,4-oxadiazol-2-yl)acetamide",
+     "N-(5-methyl-1,3,4-oxadiazol-3-yl)acetamide", "the oxygen twin of D-145a"),
+    ("D-145c", "Cc1nnc(CO)o1", "(5-methyl-1,3,4-oxadiazol-2-yl)methanol",
+     "(5-methyl-1,3,4-oxadiazol-3-yl)methanol", "a C-substituent, not an amide: the mechanism is the ring's numbering"),
+    ("D-145d", "CC(=O)Nc1nsnc1C", "N-(4-methyl-1,2,5-thiadiazol-3-yl)acetamide",
+     "N-(5-methyl-1,2,5-thiadiazol-4-yl)acetamide", "1,2,5-thiadiazole: a lower combined heteroatom set outranked the senior atom"),
+    #
+    # D-146 / D-147: a ring with NO `atom_locants` and a curated substituent form ending in a hard-coded locant returned that form verbatim for
+    # EVERY attachment. `2,3-dihydro-1,4-benzodioxin-2-yl` was the answer for any benzo carbon; `azepan-1-yl` for any carbon of azepane. The
+    # numbering computed just above the early return already knew the real locant and was discarded; it is used now when it differs from the
+    # curated digit. Benzodioxine is FUSED, where the generic numbering mislabels the two positions next to the ring fusion, so it also gets an
+    # `atom_locants` table, derived from its bond topology as 1,3-benzodioxole's is.
+    ("D-146a", "CC(=O)Nc1ccc2c(c1)OCCO2", "N-(2,3-dihydro-1,4-benzodioxin-6-yl)acetamide",
+     "N-(2,3-dihydro-1,4-benzodioxin-2-yl)acetamide", "a benzo carbon; the census had 6 such rows"),
+    ("D-146b", "CC(=O)Nc1cccc2c1OCCO2", "N-(2,3-dihydro-1,4-benzodioxin-5-yl)acetamide",
+     "N-(2,3-dihydro-1,4-benzodioxin-2-yl)acetamide", "next to the ring fusion, where the generic numbering was also wrong"),
+    ("D-147a", "CC(=O)NC1CCCCCN1", "N-(azepan-2-yl)acetamide",
+     "N-(azepan-1-yl)acetamide", "a carbon of azepane named as its nitrogen"),
+    ("D-147b", "CC(=O)NC1CNCCOC1", "N-(1,4-oxazepan-6-yl)acetamide",
+     "N-(1,4-oxazepan-4-yl)acetamide", "the same hard-coded locant on 1,4-oxazepane"),
+    #
+    # D-148: a DATA defect, not a numbering one. The curated row for 1,2,5-oxadiazole had the SMILES key `c1conn1`, which is 1,2,3-oxadiazole,
+    # so 1,2,3-oxadiazole was named "1,2,5-oxadiazole" and every attachment on the ring read back wrong; real furazan (`c1cnon1`) was reaching
+    # a different route and came out `furazan`. The key is corrected, and the parent and substituent are the systematic 1,2,5-oxadiazole:
+    # BlueBookV2.pdf p. 263 (the ring-seniority list) says "1,2,5-oxadiazole (formerly called furazan)". The vendored suite had pinned the
+    # wrong pair (`c1conn1`, `1,2,5-oxadiazole`) as a retained-ring row; it is corrected with the data.
+    ("D-148a", "c1cnno1", "1,2,3-oxadiazole",
+     "1,2,5-oxadiazole", "the curated 1,2,5-oxadiazole row was keyed on 1,2,3-oxadiazole's SMILES"),
+    ("D-148b", "CC(=O)Nc1cnon1", "N-(1,2,5-oxadiazol-3-yl)acetamide",
+     "N-(furazan-3-yl)acetamide", "p. 263: 1,2,5-oxadiazole, formerly called furazan"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -4139,3 +4183,48 @@ def test_every_charged_acid_site_still_has_exactly_one_owner(smiles):
 
     report = charged_owners(Chem.MolFromSmiles(smiles), smiles, measure=False)
     assert report.verdict == Verdict.OWNED, report
+
+
+# ---- D-145 to D-148 (naming round 13): converses, and the fallback exercised on the five kinds of ring -----------------------------------
+# Each test pins one edge of the three changes (a monocyclic-only Hantzsch-Widman rule, the computed locant replacing a hard-coded one,
+# the corrected furazan key), so a change that widens any of them is caught here and not by a census.
+
+@pytest.mark.parametrize("smiles, expected", [
+    ("Cc1noc(NC(C)=O)n1", "N-(3-methyl-1,2,4-oxadiazol-5-yl)acetamide"),          # senior-first must not disturb a ring it already numbered right
+    ("Cc1nc(NC(C)=O)sc1C", "N-(4,5-dimethyl-1,3-thiazol-2-yl)acetamide"),         # thiazole: S1 by both rules
+    ("CC(=O)Nc1nncs1", "N-(1,3,4-thiadiazol-2-yl)acetamide"),                     # the unsubstituted ring, which was always right
+    ("CC(=O)NC1COc2ccccc2O1", "N-(2,3-dihydro-1,4-benzodioxin-2-yl)acetamide"),   # the TRUE 2-position keeps `-2-yl`
+    ("O=C(C)N1CCCCCC1", "1-(azepan-1-yl)ethan-1-one"),                             # the NITROGEN of azepane keeps `-1-yl`
+    ("O=C(c1ccccc1)N1CCCNCC1", "(1,4-diazepan-1-yl)(phenyl)methanone"),           # and so does 1,4-diazepane's
+    ("CC(=O)Nc1nc2ccccc2s1", "N-(benzothiazol-2-yl)acetamide"),                   # a FUSED ring keeps its own heteroatom rule
+    ("CC(=O)Nc1ccc2nonc2c1", "N-(2,1,3-benzoxadiazol-5-yl)acetamide"),
+])
+def test_the_ring_locant_changes_do_not_move_a_right_name(smiles, expected):
+    assert name_smiles(smiles) == expected
+
+
+@pytest.mark.parametrize("kind, smiles, expected", [
+    ("table-backed ring", "CC(=O)Nc1ccc2OCOc2c1", "N-(2H-1,3-benzodioxol-5-yl)acetamide"),
+    ("partial table, fusion atoms legitimately omitted", "CC(=O)Nc1ccc2[nH]ccc2c1", "N-(1H-indol-5-yl)acetamide"),
+    ("complete table-less ring, two equivalent substituents", "Cc1nnc(NC(C)=O)s1", "N-(5-methyl-1,3,4-thiadiazol-2-yl)acetamide"),
+    ("formerly failing table-less ring", "CC(=O)Nc1cccc2c1OCCO2", "N-(2,3-dihydro-1,4-benzodioxin-5-yl)acetamide"),
+    ("symmetric ring, attachment lowest of two equivalent", "CC(=O)NC1CCNCCN1", "N-(1,4-diazepan-5-yl)acetamide"),
+])
+def test_the_locant_source_works_for_each_kind_of_curated_ring(kind, smiles, expected):
+    """The five kinds of ring the locant can come from: a full table, a partial one, the fallback for a ring with none, a ring that used to
+    fail, and a symmetric ring. Each is an exact name; the structure of every one is checked by read-back in the sweep tool."""
+    assert name_smiles(smiles) == expected, kind
+
+
+def test_the_curated_furazan_row_is_keyed_on_furazan_not_on_1_2_3_oxadiazole():
+    """D-148's data half: the SMILES key and the name have to describe the same ring."""
+    from rdkit import Chem
+
+    from openchem.vendor.iupac_namer.data_loader import _RING_CURATED_SMILES
+
+    keys = [k for k, v in _RING_CURATED_SMILES.items() if v.get("name") == "1,2,5-oxadiazole"]
+    assert keys == ["c1cnon1"]
+    # furazan: the two nitrogens are separated from each other by the oxygen (N-O-N), not adjacent (N-N)
+    mol = Chem.MolFromSmiles(keys[0])
+    assert not mol.HasSubstructMatch(Chem.MolFromSmarts("[#7]~[#7]"))
+    assert mol.HasSubstructMatch(Chem.MolFromSmarts("[#7]~[#8]~[#7]"))

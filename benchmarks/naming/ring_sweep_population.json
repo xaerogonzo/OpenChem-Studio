@@ -1,6 +1,6 @@
 {
  "n_rings": 371,
- "population_sha256": "5f6e40881b413b7e95926883d4878d074d053adcc07aca9801e8be73eddd84e9",
+ "population_sha256": "69cd6f983fb5209da6b4f1765928bde8bfd5cd9e6715c8127ebd8fe59cef8698",
  "purpose": "the frozen ring denominator for tools/naming_ring_locant_sweep.py (naming round 13)",
  "rings": [
   {
@@ -8296,8 +8296,19 @@
   },
   {
    "atoms": 10,
-   "has_atom_locants": false,
-   "locant_atoms": [],
+   "has_atom_locants": true,
+   "locant_atoms": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
    "name": "2,3-dihydro-1,4-benzodioxine",
    "sites": [
     0,
@@ -12050,6 +12061,24 @@
    "atoms": 5,
    "has_atom_locants": false,
    "locant_atoms": [],
+   "name": "1,2,5-oxadiazole",
+   "sites": [
+    0,
+    1
+   ],
+   "skipped": {
+    "heteroatom": [
+     2,
+     3,
+     4
+    ]
+   },
+   "smiles": "c1cnon1"
+  },
+  {
+   "atoms": 5,
+   "has_atom_locants": false,
+   "locant_atoms": [],
    "name": "1,2-thiazole",
    "sites": [
     0,
@@ -12105,24 +12134,6 @@
     ]
    },
    "smiles": "c1cocn1"
-  },
-  {
-   "atoms": 5,
-   "has_atom_locants": false,
-   "locant_atoms": [],
-   "name": "1,2,5-oxadiazole",
-   "sites": [
-    0,
-    1
-   ],
-   "skipped": {
-    "heteroatom": [
-     2,
-     3,
-     4
-    ]
-   },
-   "smiles": "c1conn1"
   },
   {
    "atoms": 5,

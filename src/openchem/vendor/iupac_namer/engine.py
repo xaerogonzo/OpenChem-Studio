@@ -11635,6 +11635,14 @@ def _heteroaryl_substituent_with_locant(
     # "10,11-dihydro-5H-dibenzo[a,d]cyclohepten-5-ylidene".
     import re as _re
     if _re.search(r"\d+-yl$", substituent_form):
+        # A CURATED locant names ONE position, the one its author had in mind (azepan-1-yl, 1,4-oxazepan-4-yl), and this ring has no
+        # atom_locants table (the curated-table branch above returned for every ring that has one). Returned verbatim it is wrong for
+        # every other attachment: `2,3-dihydro-1,4-benzodioxin-2-yl` for a benzo carbon, `azepan-1-yl` for a carbon (naming round 13,
+        # found by the ring-locant sweep). The numbering computed above already knows the real attachment atom, so use its locant
+        # when it differs from the curated digit; when it agrees, the curated form stands unchanged.
+        _fixed = _re.search(r"-(\d+[a-z]?)-yl$", substituent_form)
+        if _fixed and loc_str != _fixed.group(1):
+            return f"{substituent_form[:_fixed.start()]}-{loc_str}-{fv_suffix}"
         if fv_suffix != "yl":
             return substituent_form[:-2] + fv_suffix
         return substituent_form
@@ -18063,9 +18071,28 @@ def _lowest_free_valence_numberings(
     ]
     missing = Locant.numeric(9999)
 
+    # A MONOCYCLIC hetero ring is numbered by Hantzsch-Widman, which gives locant 1 to the MOST SENIOR heteroatom and only then
+    # lowers the rest. `together` alone is wrong for it: 1,3,4-thiadiazole (S1,N3,N4) has an alternative numbering N1,N2,S4
+    # whose combined set {1,2,4} is lower, so the substituent was numbered as if the ring were another heterocycle and its
+    # attachment carbon came out `-3-yl` (naming round 13; the parent-hydride path and `_heteroaryl_substituent_with_locant`
+    # both weight seniority and were right, which is why only a ring carrying its own substituent was wrong). Measured by the
+    # ring-locant sweep: the same shape put 1,2,5-oxadiazole and 1,2,5-thiadiazole wrong too. A FUSED ring keeps `together`
+    # first: its heteroatom rule (P-25.3.1.3) ranks the combined set ahead of seniority.
+    monocyclic = (named_parent.candidate.ring_system is not None
+                  and len(named_parent.candidate.ring_system.rings) == 1)
+    senior_priority = min(
+        (_HETERO_ELEMENT_PRIORITY.get(mol.GetAtomWithIdx(idx).GetSymbol(), 99) for idx in heteroatoms), default=99,
+    )
+
     def hetero_key(nb):
         a2l = nb.atom_to_locant
         together = tuple(sorted(a2l.get(idx, missing) for idx in heteroatoms))
+        if monocyclic and heteroatoms:
+            senior_locant = min(
+                a2l.get(idx, missing) for idx in heteroatoms
+                if _HETERO_ELEMENT_PRIORITY.get(mol.GetAtomWithIdx(idx).GetSymbol(), 99) == senior_priority
+            )
+            together = (senior_locant,) + together
         by_priority = tuple(
             tuple(sorted(
                 a2l.get(idx, missing) for idx in heteroatoms
