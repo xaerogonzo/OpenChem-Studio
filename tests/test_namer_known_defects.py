@@ -3740,3 +3740,52 @@ def test_a_substituted_or_tautomeric_long_condensed_chain_is_never_named_as_the_
     bare = name_smiles("N=C(N)NC(=N)NC(=N)NC(=N)NC(=N)N")
     assert bare == "3,5,7-triimino-2,4,6,8-tetraazanonane-1,9-diimidamide"
     assert name_smiles(smiles) != bare
+
+
+def test_the_polycarbocation_no_longer_silently_drops_both_charges():
+    """Round 9 admission "charge-polycarbocation": a benzene ring bearing two
+    independent tertiary-carbocation substituents named as the fully neutral
+    1,3-di(propan-2-yl)benzene -- both formal charges silently dropped.
+
+    Root cause: ``_classify_polycarbon_charge`` gated on "no aromatic atom
+    ANYWHERE in the molecule, every bond in the molecule single" -- checking
+    the whole molecule's scope rather than the charged atoms' own. The two
+    isopropyl cations here are genuinely saturated and non-aromatic; it is
+    only the BENZENE RING THEY ATTACH TO that is aromatic, which the old gate
+    could not distinguish from the charge itself being conjugated into a
+    ring (a different, correctly-declined shape owned by
+    ``_classify_aromatic_ring_cation``). Narrowed the gate to the charged
+    atoms specifically: non-aromatic, single-bonded, exactly as the rest of
+    this classifier's docstring already intended.
+
+    The classifier now correctly ENGAGES and claims both charges -- but no
+    renderer exists yet to COMPOSE a name for two independently-attached
+    cationic substituents on a shared aromatic parent (a genuinely different,
+    harder shape than the linear-chain/single-ring cases
+    ``_render_polycarbon`` was built for: 'propane-1,3-diylium' has the
+    charges AS the parent chain; here they are two branches off a ring that
+    is itself not a numbered chain position). Per the project's own
+    documented "refusal guard" (KNOWN_LIMITATIONS.md, resolved 2026-08-01,
+    the SAME mechanism that already converts other render_failed cases from
+    a wrong molecule into a raised, visible failure -- e.g.
+    ``name_smiles("[CH2-][N+]#N")`` -- rather than falling through to the
+    neutralizer): a classifier that engages and cannot finish RAISES, it does
+    not fall through. That is the fix for the WRONG-MOLECULE defect this item
+    was admitted for, the same class of outcome as D-133 (sulfinyl-bromide,
+    round 9): honest refusal beats a silently wrong answer. Composing the
+    actual preferred name (illustratively "2,2'-(1,3-phenylene)
+    di(propan-2-ylium)" in KNOWN_LIMITATIONS.md, never a sourced/verified
+    target) is separate, still-open render-side work."""
+    smiles = "c1cc(cc(c1)[C+](C)C)[C+](C)C"
+    with pytest.raises(ValueError, match="render_failed"):
+        name_smiles(smiles)
+
+
+def test_the_polycarbocation_widening_does_not_over_fire_on_aromatic_ring_cations():
+    """The classifier's own charged-atom-scoped gate must still decline when
+    the charge sits ON the aromatic ring itself -- that belongs to
+    _classify_aromatic_ring_cation, which already names it correctly (a
+    retained name, "phenylium"); the round-10 widening only concerns a
+    charge on a saturated substituent ATTACHED to (not part of) an aromatic
+    ring, never the ring's own atoms."""
+    assert name_smiles("[c+]1ccccc1") == "phenylium"

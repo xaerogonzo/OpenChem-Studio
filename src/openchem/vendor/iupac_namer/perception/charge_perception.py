@@ -2691,28 +2691,39 @@ def _classify_polycarbon_charge(mol) -> Iterable[ChargeClassification]:
     Constraints (kept tight to avoid stealing motifs the rest of the
     engine handles):
 
-    * pure-carbon parent (no heteroatoms, no aromatic atoms);
-    * all bonds are single (so we never collide with conjugated
-      cations / iminylium / acylium variants);
+    * pure-carbon parent (no heteroatoms);
+    * every CHARGED atom is non-aromatic with only single bonds (so we
+      never collide with conjugated cations / iminylium / acylium
+      variants, or with the aromatic-ring cation classifiers);
     * single-charged-atom |q| == 1 cases stay with R2-B's
       ``_classify_simple_carbon_charge``.
+
+    An AROMATIC ring elsewhere in the molecule is fine (naming round 10,
+    charge-polycarbocation): ``c1cc(cc(c1)[C+](C)C)[C+](C)C`` is two
+    saturated isopropyl cations attached TO a benzene ring, not part of
+    it -- that used to be excluded by a whole-molecule "no aromatic atom,
+    all bonds single" gate that was checking the wrong scope (the ring's
+    own bonds, not the charged atoms'), silently dropping both charges to
+    the neutral skeleton. The charged atom itself being aromatic, or
+    conjugated via a non-single bond, still declines -- that shape
+    belongs to ``_classify_aromatic_ring_cation`` and neighbors.
     """
     if any(atom.GetAtomicNum() != 6 for atom in mol.GetAtoms()):
         return
-    if any(atom.GetIsAromatic() for atom in mol.GetAtoms()):
-        return
-    for bond in mol.GetBonds():
-        if bond.GetBondTypeAsDouble() != 1.0:
-            return
     charged_atoms = [a for a in mol.GetAtoms() if a.GetFormalCharge() != 0]
     if not charged_atoms:
         return
     # |q|==1 single-charged-atom case belongs to the simple classifier.
     if len(charged_atoms) == 1 and abs(charged_atoms[0].GetFormalCharge()) == 1:
         return
+    if any(a.GetIsAromatic() for a in charged_atoms):
+        return
     for a in charged_atoms:
         if a.GetNumRadicalElectrons() != 0:
             return
+        for bond in a.GetBonds():
+            if bond.GetBondTypeAsDouble() != 1.0:
+                return
     site_indices = tuple(a.GetIdx() for a in charged_atoms)
     site_charges = tuple(a.GetFormalCharge() for a in charged_atoms)
     has_pos = any(c > 0 for c in site_charges)
