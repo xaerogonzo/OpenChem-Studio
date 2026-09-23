@@ -3330,6 +3330,44 @@ FIXED: list[tuple[str, str, str, str, str]] = [
      "on the xanthene side); the -3-one vs -1-one difference from the "
      "wrong former name is an unrelated lactone-numbering side effect of "
      "the same fix landing correctly"),
+
+    # --- Round 10 (admissions ledger, item "carbamimidate-oxime-swap") -----
+    # A carbamimidate ester (O-C(=NH)-) rendered as an oxime-like O-N=CH-
+    # swap: the connectivity trade-off was actually a STRING-adjacency
+    # misparse, not a connectivity swap inside the engine itself. The
+    # engine's own construction (methoxy + hydrazinyl, both on the
+    # methanimine carbon) was structurally correct all along; the wrong
+    # OUTPUT STRING "(hydrazinyl)methoxymethanimine" left the trailing
+    # "methoxy" unbracketed after the closing paren of "(hydrazinyl)", and
+    # OPSIN's grammar read "(hydrazinyl)methoxy" as ONE nested substituent
+    # (a hydrazinylmethyl ether) rather than two siblings on the imine
+    # carbon -- a real, different, wrong molecule once parsed back, even
+    # though the ENGINE's internal tree was right the whole time.
+    #
+    # Root cause: no existing enclosure rule covered a CARBON-centered
+    # one-carbon STANDALONE parent (methanone/methanimine/methanamine/...)
+    # with 2+ simple prefixes where an "-oxy" (alkoxy/aryloxy) prefix
+    # trails a non-"-oxy" one. The closest existing rules were both out of
+    # scope: the P-29/P-66.6.3 chalcogen-bracket rule only fires for
+    # imino/oxo-class prefixes in SUBSTITUENT output form, and the
+    # P-68.3/P-71.1 "bracket every prefix" rule only applies to
+    # heteroatom-CENTER parents (phosphane/silane), not carbon ones.
+    # Round 8's own ketone-parent check (item F5) tested with "phenyl",
+    # which creates no adjacency ambiguity, and a ketone WITH an "-oxy"
+    # second substituent sidesteps the whole shape by choosing an
+    # ester/carbamate parent instead (verified: "O=C(OC)N1CCOCC1" ->
+    # "4-(methoxycarbonyl)morpholine") -- an imine has no such alternate
+    # route, so it hits the raw, unguarded construction. Fixed by
+    # bracketing a non-leading "-oxy" simple prefix on a one-carbon chain
+    # parent, with NO output_form restriction (the ambiguity is about
+    # string adjacency, not substituent-vs-standalone context) -- a
+    # narrowly new rule, not a widening of either existing one, since
+    # neither existing rule's own trigger condition (chalcogen prefix
+    # class; heteroatom-center parent) matches this shape.
+    ("D-142", "COC(=N)NN", "(hydrazinyl)(methoxy)methanimine",
+     "(hydrazinyl)methoxymethanimine",
+     "no printed or derived target (target_source: none); this row exists "
+     "to catch a regression back to the wrong molecule"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -3789,3 +3827,53 @@ def test_the_polycarbocation_widening_does_not_over_fire_on_aromatic_ring_cation
     charge on a saturated substituent ATTACHED to (not part of) an aromatic
     ring, never the ring's own atoms."""
     assert name_smiles("[c+]1ccccc1") == "phenylium"
+
+
+def test_a_second_oxy_adjacency_bug_the_same_fix_resolved():
+    """D-142's fix bracketed a non-leading "-oxy" prefix on any one-carbon
+    chain parent, not just methanimine specifically -- found during this
+    item's diagnosis as a second, independent instance of the exact same
+    ambiguity: "COC(=N)N" (methoxy + imino, both on a methanamine carbon)
+    was "iminomethoxymethanamine" before this fix, OPSIN-unparseable for
+    the same reason (imino's own trailing token boundary against methoxy).
+    This is a converse of D-142's mechanism, not a duplicate of it: the
+    prefix pair, the parent (methanAMINE, not methanimine) and which
+    prefix leads are all different, so this pins that the fix is the
+    general rule it claims to be rather than a methanimine-specific patch."""
+    got = name_smiles("COC(=N)N")
+    assert got != "iminomethoxymethanamine"
+    from py2opsin import py2opsin
+    from rdkit import Chem
+    parsed = py2opsin(got, output_format="SMILES")
+    assert parsed, f"{got!r} did not round-trip through OPSIN at all"
+    assert Chem.MolToSmiles(Chem.MolFromSmiles(parsed)) == Chem.MolToSmiles(
+        Chem.MolFromSmiles("COC(=N)N")
+    )
+
+
+def test_a_leading_oxy_prefix_still_omits_its_own_brackets():
+    """Negative control for D-142: an "-oxy" prefix that sorts FIRST
+    (alphabetically before the other prefix) must keep the existing,
+    already-correct "leading simple prefix has no brackets" behavior --
+    the round-10 fix only adds brackets to a NON-leading "-oxy" prefix,
+    it must not start bracketing every "-oxy" prefix regardless of
+    position."""
+    assert name_smiles("CCOC(=N)NN") == "ethoxy(hydrazinyl)methanimine"
+
+
+def test_a_multiplied_oxy_prefix_is_not_individually_bracketed():
+    """Negative control for D-142: two IDENTICAL "-oxy" prefixes merge into
+    one multiplied entry ("dimethoxy") before the bracket rule runs, and a
+    multiplied prefix has no adjacency ambiguity with itself -- it must
+    stay unbracketed, matching every other "di-/tri-" prefix in the
+    engine."""
+    assert name_smiles("COC(OC)=N") == "dimethoxymethanimine"
+
+
+def test_the_oxy_bracket_rule_does_not_reach_longer_chains():
+    """Negative control for D-142: the fix is gated to a one-carbon CHAIN
+    parent specifically (candidate.length == 1). An "-oxy" substituent on
+    any longer chain -- the overwhelmingly common case for this prefix in
+    real molecules -- must be entirely unaffected."""
+    assert name_smiles("COCC(N)CC") == "1-methoxybutan-2-amine"
+    assert name_smiles("CCOCCN") == "2-ethoxyethan-1-amine"
