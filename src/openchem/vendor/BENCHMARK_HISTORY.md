@@ -713,3 +713,67 @@ Vendored suite 5,195 passed (JRE and JAVA_HOME both set); the default app suite 
 each (the Windows access violation in `conftest.dispose` ended two chunks, which passed on a retry: see `docs/LESSONS.md`); the
 D-table 1,057 passed with 14 expected failures (the open rows). One deliberate deviation from the book is now a registry with a
 guard, `benchmarks/naming/known_deviations.toml` (pyrene 10b/10c, perylene 12c/12d, a phenalene-type hydro ring 9b).
+
+## 2026-09-23 -- naming round 10: all 4 of round 9's deferred items closed, each deeper than diagnosed, plus a real regression caught by the vendored suite
+
+Round 10 closed all 4 items round 9 deferred, then ran a discovery-only extension of round 9's B3 frequency census against
+6 of the round 5-8 backlog's still-open shapes (`KNOWN_LIMITATIONS.md`, "Open after naming round 10"; two clear the
+admission threshold, four are genuinely rare). Three of the four fixes traced deeper than round 9's own diagnosis before
+landing; the fourth (item 1's phenothiazine fix) also caused a real regression the vendored suite caught, fixed before
+this checkpoint.
+
+### The whole round, against the engine it began with (`tools/naming_ref_compare.py --base 92782b0`)
+
+1516 structures (every tuning population `naming_ref_compare.py`'s registry exposes): **1 name changed, 0 violations**,
+matching the manifest's single expected row (`benchmarks/naming/stages/manifests/r10-release-candidate.toml`,
+`bb-db0d904b9c97`, item 3's polycarbocation). Items 1 and 2 (phenothiazine, spiro-xanthene) touch zero rows in this
+population -- their fixture molecules (methylene blue, fluorescein) are not themselves `bluebook_tuning` rows. Item 4
+introduces zero further changes on top of item 3's, verified directly.
+
+### A regression caught before the RC checkpoint closed, not after
+
+The full vendored suite (run once for this checkpoint, its own pytest session) found one real failure:
+`test_arsanthrene_atom_locants_assign_peri_to_locant_1`. Item 1's fix had widened a numbering-matching gate too far --
+"every heteroatom gets the benefit of the doubt" also covered arsanthrene's As atoms, which (unlike phenothiazine's
+plain-bonded N/S) carry a genuinely structural explicit double bond in their curated key. Confirmed as caused by item
+1's commit via a controlled single-file swap against the pre-round-10 version; narrowed further (a heteroatom only gets
+the relaxation when it carries no explicit double bond); re-verified against both the regression test and item 1's own
+D-rows before re-running the full suite. A first attempt at the narrower fix had its own bug (a flipped carbon check)
+caught before committing, by re-running the same test file rather than just the one failing test.
+
+### The driven check (`tools/naming_app_check.py`, the application's own provider, not the bare engine)
+
+30/30 rows pass: the 26 pre-existing rows unaffected, plus 4 new rows for round 10's fixes (item 3, charge-
+polycarbocation, excluded -- same precedent as D-133 and round 9's carbodiimide item: its fix IS a raised refusal, a
+row shape this table cannot represent).
+
+### Gates
+
+Naming-consumer app session (36 files): 2241 passed, 1 skipped, 15 xfailed, checked after every one of the round's 6
+commits that touched `src/`. Vendored suite (own pytest session, after the arsanthrene fix): **5,204 passed, 0
+failed**, 16 skipped (JAVA_HOME not literally exported as an env var in this run, only `java` on PATH -- a documented,
+benign skip class, not a failure). App gate, both shards, in a detached worktree (`--no-vendor`, since the vendored
+suite was already run separately): one chunk (s1c8) failed on its first pass with a `py2opsin` `FileInputStream` error
+reading its own relative temp file -- the documented CWD/temp-file collision class (`reference_py2opsin_cwd_collision.md`),
+not a code issue. Re-ran the failing test standalone (passed clean) and the whole shard through the gate a second time
+(s1c8: 1295 passed, 0 failed, confirming the extra pass over the original 1294): `RESULT: PASS`.
+
+### The final evaluation (`r10-final-evaluation`, `--final-evaluation`, `heldout_v6` scored once, aggregates only)
+
+| population | rows | PubChem string (verbatim) | equivalent | wrong structure |
+|---|---|---|---|---|
+| regression | 187 | 101 | 85 | 0 (1 tautomer) |
+| heldout v1-v5 (tuning) | 40 each | 16/15/14/19/11 | 24/25/26/21/29 | 0 each |
+| **heldout v6 (fresh, drawn round 9, scored for the first time this round)** | **40** | **13** | **25** | **2** |
+| bluebook tuning | 1129 | 507 | 532 | 15 (58 unparsable, 17 no-prediction) |
+
+`bluebook_frozen` came bundled with `--final-evaluation` (the tool has no way to score `heldout_v6` alone) and was
+recomputed, but verified byte-identical to round 9's own sealed per-row content -- every name, every verdict, only
+per-row timing differed. Rather than commit a redundant seal for an already-frozen, already-scored-once population,
+the artifact points back at round 9's original sealed file (same content, same hash) and the newly-written duplicate
+was discarded, not committed -- keeping "scored once, ever" literal, not just in spirit. `bluebook_tuning`'s own two
+moved rows (`wrong_structure` 16->15, `no_prediction` 16->17) are exactly item 3's shift, wrong molecule to honest
+refusal, and nothing else.
+
+**heldout_v6's 2 wrong-structure rows are round 11's starting material, not this round's**: per the same discipline
+round 9 established, chasing them down now would un-freeze the very control the freeze exists to be.

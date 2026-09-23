@@ -3259,6 +3259,115 @@ FIXED: list[tuple[str, str, str, str, str]] = [
     ("D-138", "CCCC=[N-]", "butan-1-iminide", "1-iminobutane",
      "no printed or derived target (target_source: none); this row exists "
      "to catch a regression back to the wrong molecule"),
+
+    # --- Round 10 (admissions ledger, item "phenothiazine-dye-locant") -----
+    # Methylene blue: engine used locant 12 on a phenothiazine ring whose
+    # standard numbering runs 1-10 (plus 4a/5a/9a/10a); OPSIN rejected it
+    # outright ("Cannot find in scope fragment with atom with locant 12").
+    # Root cause traced past two correct, unrelated curated-locant tables
+    # (fusion_general.py's _TRADITIONAL, data_loader.py's _RING_CURATED_SMILES
+    # -- both already had, or now have, the right S=5/N=10 numbering) into a
+    # THIRD function, ring_naming/retained_lookup.py's
+    # _build_numbering_from_atom_locants: its bond-generic substructure-match
+    # fallback (which exists precisely to recover a curated ring's numbering
+    # when a substituent shifts its Kekule pattern) was gated to require
+    # EVERY ring atom aromatic, including the N/S bridge. RDKit's sanitizer
+    # keeps that bridge non-aromatic on the isolated curated-key SMILES, but
+    # DOES perceive it as aromatic in methylene blue's actual extended-
+    # conjugation (push-pull ylidene) form -- so the strict match silently
+    # returned zero results, and the numbering fell through to a locant-free
+    # generic walk with no awareness of the lettered fusion positions at all
+    # (hence "12", which is not even a valid label in either scheme). Fixed
+    # by relaxing the gate to "every CARBON aromatic" rather than "every
+    # atom aromatic" -- heteroatom aromaticity is genuinely context-
+    # dependent for this ring family; a ring carbon's is structural (indene's
+    # sp3 CH2, an sp3 dihydronaphthalene carbon, both stay correctly
+    # excluded, since the failing atom there IS carbon).
+    ("D-139", "CN(C)c1ccc2nc3ccc(=[N+](C)C)cc-3sc2c1.[Cl-]",
+     "[7-(dimethylamino)phenothiazin-3-ylidene]di(methyl)azanium chloride",
+     "[12-(dimethylamino)phenothiazin-4-ylidene]di(methyl)azanium chloride",
+     "matches PubChem's own preferred name for methylene blue verbatim "
+     "('[7-(dimethylamino)phenothiazin-3-ylidene]-dimethylazanium chloride', "
+     "battery_r9.toml row dyes-002) except for PubChem's own di/dimethyl "
+     "prefix spelling, which is a separate, non-admitted preference gap"),
+    # Phenoxazine shares phenothiazine's exact defect mechanism (same
+    # missing bond-generic fallback, same push-pull ylidene shape) -- proven
+    # by direct testing during this item's diagnosis, not merely assumed
+    # from the family resemblance. Confirms the fix is the shared function,
+    # not a phenothiazine-specific patch.
+    ("D-140", "CN(C)c1ccc2nc3ccc(=[N+](C)C)cc-3oc2c1.[Cl-]",
+     "[7-(dimethylamino)phenoxazin-3-ylidene]di(methyl)azanium chloride",
+     "[12-(dimethylamino)phenoxazin-4-ylidene]di(methyl)azanium chloride",
+     "no printed or derived target (a constructed converse, not a named "
+     "dye); this row exists to catch a regression back to the wrong "
+     "molecule and to pin that the fix is not phenothiazine-specific"),
+
+    # --- Round 10 (admissions ledger, item "spiro-xanthene-dye-locant") ----
+    # Fluorescein: engine used locant 13 on the xanthene half of its spiro
+    # system, out of xanthene's valid 1-9 (+4a/8a/9a/10a) range; OPSIN
+    # rejected it ("Cannot find in scope fragment with atom with locant
+    # 13"). Root cause: data_loader.py's xanthene/thioxanthene curated
+    # atom_locants covered only 9 of 14 ring positions (the four
+    # ring-fusion carbons and the bridge heteroatom were simply absent --
+    # fine for a bare/substituted parent, since a fusion carbon rarely
+    # bears a substituent there). In a SPIRO system, spiro.py's
+    # _try_articulation_split_spiro combines both partners' numbering into
+    # one, gated on every atom having a locant (`len(atom_to_loc) ==
+    # total_atoms`); the missing 5 entries meant that gate never passed, so
+    # the combined numbering silently came back empty and substituent
+    # locants fell through to a generic, UNPRIMED, out-of-range walk --
+    # explaining both the wrong value (13) and the complete absence of any
+    # prime mark on either hydroxyl (the wrong name has none at all, not
+    # even on the correct one). Fixed by completing the atom_locants table
+    # with the four fusion positions (4a, 8a, 9a, 10a) and the bridge
+    # heteroatom's own locant (10), derived by tracing this key's actual
+    # bond topology against fusion_general.py's already-verified real
+    # xanthene numbering.
+    ("D-141", "O=C1OC2(c3ccc(O)cc3Oc3cc(O)ccc32)c2ccccc21",
+     "3',6'-dihydroxyspiro[1,3-dihydro-2-benzofuran-1,9'-xanthene]-3-one",
+     "7,13-dihydroxyspiro[1,3-dihydro-2-benzofuran-1,9'-xanthene]-1-one",
+     "matches fluorescein's real IUPAC name (3',6'-dihydroxy, both primed, "
+     "on the xanthene side); the -3-one vs -1-one difference from the "
+     "wrong former name is an unrelated lactone-numbering side effect of "
+     "the same fix landing correctly"),
+
+    # --- Round 10 (admissions ledger, item "carbamimidate-oxime-swap") -----
+    # A carbamimidate ester (O-C(=NH)-) rendered as an oxime-like O-N=CH-
+    # swap: the connectivity trade-off was actually a STRING-adjacency
+    # misparse, not a connectivity swap inside the engine itself. The
+    # engine's own construction (methoxy + hydrazinyl, both on the
+    # methanimine carbon) was structurally correct all along; the wrong
+    # OUTPUT STRING "(hydrazinyl)methoxymethanimine" left the trailing
+    # "methoxy" unbracketed after the closing paren of "(hydrazinyl)", and
+    # OPSIN's grammar read "(hydrazinyl)methoxy" as ONE nested substituent
+    # (a hydrazinylmethyl ether) rather than two siblings on the imine
+    # carbon -- a real, different, wrong molecule once parsed back, even
+    # though the ENGINE's internal tree was right the whole time.
+    #
+    # Root cause: no existing enclosure rule covered a CARBON-centered
+    # one-carbon STANDALONE parent (methanone/methanimine/methanamine/...)
+    # with 2+ simple prefixes where an "-oxy" (alkoxy/aryloxy) prefix
+    # trails a non-"-oxy" one. The closest existing rules were both out of
+    # scope: the P-29/P-66.6.3 chalcogen-bracket rule only fires for
+    # imino/oxo-class prefixes in SUBSTITUENT output form, and the
+    # P-68.3/P-71.1 "bracket every prefix" rule only applies to
+    # heteroatom-CENTER parents (phosphane/silane), not carbon ones.
+    # Round 8's own ketone-parent check (item F5) tested with "phenyl",
+    # which creates no adjacency ambiguity, and a ketone WITH an "-oxy"
+    # second substituent sidesteps the whole shape by choosing an
+    # ester/carbamate parent instead (verified: "O=C(OC)N1CCOCC1" ->
+    # "4-(methoxycarbonyl)morpholine") -- an imine has no such alternate
+    # route, so it hits the raw, unguarded construction. Fixed by
+    # bracketing a non-leading "-oxy" simple prefix on a one-carbon chain
+    # parent, with NO output_form restriction (the ambiguity is about
+    # string adjacency, not substituent-vs-standalone context) -- a
+    # narrowly new rule, not a widening of either existing one, since
+    # neither existing rule's own trigger condition (chalcogen prefix
+    # class; heteroatom-center parent) matches this shape.
+    ("D-142", "COC(=N)NN", "(hydrazinyl)(methoxy)methanimine",
+     "(hydrazinyl)methoxymethanimine",
+     "no printed or derived target (target_source: none); this row exists "
+     "to catch a regression back to the wrong molecule"),
 ]
 
 # Targets the book prints that OPSIN cannot parse, so the OPSIN half of this
@@ -3669,3 +3778,102 @@ def test_a_substituted_or_tautomeric_long_condensed_chain_is_never_named_as_the_
     bare = name_smiles("N=C(N)NC(=N)NC(=N)NC(=N)NC(=N)N")
     assert bare == "3,5,7-triimino-2,4,6,8-tetraazanonane-1,9-diimidamide"
     assert name_smiles(smiles) != bare
+
+
+def test_the_polycarbocation_no_longer_silently_drops_both_charges():
+    """Round 9 admission "charge-polycarbocation": a benzene ring bearing two
+    independent tertiary-carbocation substituents named as the fully neutral
+    1,3-di(propan-2-yl)benzene -- both formal charges silently dropped.
+
+    Root cause: ``_classify_polycarbon_charge`` gated on "no aromatic atom
+    ANYWHERE in the molecule, every bond in the molecule single" -- checking
+    the whole molecule's scope rather than the charged atoms' own. The two
+    isopropyl cations here are genuinely saturated and non-aromatic; it is
+    only the BENZENE RING THEY ATTACH TO that is aromatic, which the old gate
+    could not distinguish from the charge itself being conjugated into a
+    ring (a different, correctly-declined shape owned by
+    ``_classify_aromatic_ring_cation``). Narrowed the gate to the charged
+    atoms specifically: non-aromatic, single-bonded, exactly as the rest of
+    this classifier's docstring already intended.
+
+    The classifier now correctly ENGAGES and claims both charges -- but no
+    renderer exists yet to COMPOSE a name for two independently-attached
+    cationic substituents on a shared aromatic parent (a genuinely different,
+    harder shape than the linear-chain/single-ring cases
+    ``_render_polycarbon`` was built for: 'propane-1,3-diylium' has the
+    charges AS the parent chain; here they are two branches off a ring that
+    is itself not a numbered chain position). Per the project's own
+    documented "refusal guard" (KNOWN_LIMITATIONS.md, resolved 2026-08-01,
+    the SAME mechanism that already converts other render_failed cases from
+    a wrong molecule into a raised, visible failure -- e.g.
+    ``name_smiles("[CH2-][N+]#N")`` -- rather than falling through to the
+    neutralizer): a classifier that engages and cannot finish RAISES, it does
+    not fall through. That is the fix for the WRONG-MOLECULE defect this item
+    was admitted for, the same class of outcome as D-133 (sulfinyl-bromide,
+    round 9): honest refusal beats a silently wrong answer. Composing the
+    actual preferred name (illustratively "2,2'-(1,3-phenylene)
+    di(propan-2-ylium)" in KNOWN_LIMITATIONS.md, never a sourced/verified
+    target) is separate, still-open render-side work."""
+    smiles = "c1cc(cc(c1)[C+](C)C)[C+](C)C"
+    with pytest.raises(ValueError, match="render_failed"):
+        name_smiles(smiles)
+
+
+def test_the_polycarbocation_widening_does_not_over_fire_on_aromatic_ring_cations():
+    """The classifier's own charged-atom-scoped gate must still decline when
+    the charge sits ON the aromatic ring itself -- that belongs to
+    _classify_aromatic_ring_cation, which already names it correctly (a
+    retained name, "phenylium"); the round-10 widening only concerns a
+    charge on a saturated substituent ATTACHED to (not part of) an aromatic
+    ring, never the ring's own atoms."""
+    assert name_smiles("[c+]1ccccc1") == "phenylium"
+
+
+def test_a_second_oxy_adjacency_bug_the_same_fix_resolved():
+    """D-142's fix bracketed a non-leading "-oxy" prefix on any one-carbon
+    chain parent, not just methanimine specifically -- found during this
+    item's diagnosis as a second, independent instance of the exact same
+    ambiguity: "COC(=N)N" (methoxy + imino, both on a methanamine carbon)
+    was "iminomethoxymethanamine" before this fix, OPSIN-unparseable for
+    the same reason (imino's own trailing token boundary against methoxy).
+    This is a converse of D-142's mechanism, not a duplicate of it: the
+    prefix pair, the parent (methanAMINE, not methanimine) and which
+    prefix leads are all different, so this pins that the fix is the
+    general rule it claims to be rather than a methanimine-specific patch."""
+    got = name_smiles("COC(=N)N")
+    assert got != "iminomethoxymethanamine"
+    from py2opsin import py2opsin
+    from rdkit import Chem
+    parsed = py2opsin(got, output_format="SMILES")
+    assert parsed, f"{got!r} did not round-trip through OPSIN at all"
+    assert Chem.MolToSmiles(Chem.MolFromSmiles(parsed)) == Chem.MolToSmiles(
+        Chem.MolFromSmiles("COC(=N)N")
+    )
+
+
+def test_a_leading_oxy_prefix_still_omits_its_own_brackets():
+    """Negative control for D-142: an "-oxy" prefix that sorts FIRST
+    (alphabetically before the other prefix) must keep the existing,
+    already-correct "leading simple prefix has no brackets" behavior --
+    the round-10 fix only adds brackets to a NON-leading "-oxy" prefix,
+    it must not start bracketing every "-oxy" prefix regardless of
+    position."""
+    assert name_smiles("CCOC(=N)NN") == "ethoxy(hydrazinyl)methanimine"
+
+
+def test_a_multiplied_oxy_prefix_is_not_individually_bracketed():
+    """Negative control for D-142: two IDENTICAL "-oxy" prefixes merge into
+    one multiplied entry ("dimethoxy") before the bracket rule runs, and a
+    multiplied prefix has no adjacency ambiguity with itself -- it must
+    stay unbracketed, matching every other "di-/tri-" prefix in the
+    engine."""
+    assert name_smiles("COC(OC)=N") == "dimethoxymethanimine"
+
+
+def test_the_oxy_bracket_rule_does_not_reach_longer_chains():
+    """Negative control for D-142: the fix is gated to a one-carbon CHAIN
+    parent specifically (candidate.length == 1). An "-oxy" substituent on
+    any longer chain -- the overwhelmingly common case for this prefix in
+    real molecules -- must be entirely unaffected."""
+    assert name_smiles("COCC(N)CC") == "1-methoxybutan-2-amine"
+    assert name_smiles("CCOCCN") == "2-ethoxyethan-1-amine"

@@ -1467,6 +1467,68 @@ phenothiazine's -- xanthene itself IS correctly in `_TRADITIONAL`, so the bug is
 its spiro partner, not yet isolated); and a polycarbocation needing the multiplicative and charge-perception machinery to
 work together, which no existing pattern in the codebase does yet.
 
+## 2026-09-22 - naming round 10: closing all 4 deferred items, and each one deeper than round 9's own diagnosis
+
+Round 9's own diagnoses turned out to be starting points, not final answers, for three of the four items --
+each traced further before any fix was written, and each landed somewhere more precise than what round 9
+recorded.
+
+* **phenothiazine-dye-locant** (D-139, D-140): round 9 diagnosed this as a missing `_TRADITIONAL` entry for
+  phenothiazine in `fusion_general.py`. That diagnosis was incomplete -- adding the entry (verified correct
+  against OPSIN as a structure oracle: `10-methyl-10H-phenothiazine` places the methyl on N,
+  `phenothiazin-5-ium` protonates S) had ZERO effect on methylene blue's actual output. The real bug is a
+  THIRD function, `ring_naming/retained_lookup.py`'s `_build_numbering_from_atom_locants`: its bond-generic
+  substructure-match fallback (built to recover a curated ring's numbering when a substituent shifts the
+  Kekule pattern) was gated to require every ring atom aromatic, including the N/S bridge -- non-aromatic on
+  the isolated curated-key SMILES, but aromatic in methylene blue's actual extended-conjugation form. Fixed by
+  relaxing the gate to "every CARBON aromatic". Engine now emits
+  `[7-(dimethylamino)phenothiazin-3-ylidene]di(methyl)azanium chloride` for methylene blue, matching PubChem's
+  own name verbatim. Phenoxazine shares the identical defect and fix, proven by direct testing.
+* **spiro-xanthene-dye-locant** (D-141): round 9 correctly noted xanthene's own `_TRADITIONAL` entry is
+  right, unlike phenothiazine's gap. What it hadn't isolated: `data_loader.py`'s `_RING_CURATED_SMILES` entry
+  for xanthene covered only 9 of its 14 real ring positions -- harmless for a bare or substituted xanthene,
+  but `spiro.py`'s numbering-combination gate (`len(atom_to_loc) == total_atoms`) never passed for
+  fluorescein with 5 positions missing, so the combined numbering came back empty and substituent locants
+  fell through to a generic, UNPRIMED, out-of-range walk. Fixed by completing the table with the four fusion
+  positions and the bridge oxygen's own locant, derived from this table's own bond topology against
+  `fusion_general.py`'s already-verified numbering. Engine now emits
+  `3',6'-dihydroxyspiro[1,3-dihydro-2-benzofuran-1,9'-xanthene]-3-one` for fluorescein, matching its real
+  IUPAC name exactly -- including a second latent defect (the lactone's own locant) fixed as a side effect.
+* **charge-polycarbocation**: `_classify_polycarbon_charge` already existed and already covered this exact
+  multi-charged-carbon shape, but its guard checked the WHOLE MOLECULE for any aromatic atom and any
+  non-single bond rather than the charged atoms' own -- two saturated isopropyl cations attached to (not part
+  of) a benzene ring tripped the guard on the ring's aromatic bonds. Narrowed to the charged atoms' scope; the
+  classifier now engages and claims both charges, but no renderer composes a name for two independently-
+  attached substituent cations on a shared aromatic parent yet -- a genuinely different shape from the
+  linear-chain cases the renderer was built for. Per this project's own "refusal guard", the engine now RAISES
+  instead of falling through to the wrong neutral name, converting the admitted wrong-molecule defect into a
+  visible, honest failure (the same outcome class as D-133). PubChem's own name for the exact structure is on
+  file (`bb-db0d904b9c97`, "2,2'-(1,3-phenylene)di(propan-2-ylium)") for whichever future round builds the
+  render-side machinery.
+* **carbamimidate-oxime-swap** (D-142): round 9 diagnosed "a prefix-bracketing ambiguity" and correctly
+  deferred it for its regression risk. Diagnosis confirms the description exactly, and more: the engine's
+  internal tree was right the whole time (methoxy and hydrazinyl, both correctly on the methanimine carbon)
+  -- the wrong OUTPUT STRING left the trailing "methoxy" unbracketed after "(hydrazinyl)"'s closing paren, and
+  OPSIN's grammar read the adjacency as one nested substituent instead of two siblings, a real wrong molecule
+  once parsed back despite the engine's own tree never being wrong. No existing enclosure rule covered a
+  carbon-centered one-carbon STANDALONE parent with a non-leading "-oxy" prefix (the closest two rules are
+  each out of scope for a different reason: one fires only in SUBSTITUENT form for a different prefix class,
+  the other only for heteroatom-CENTER parents). Round 8's own ketone-parent check missed this shape entirely
+  because it tested with "phenyl" (no adjacency ambiguity) and because a ketone+"-oxy" case sidesteps the
+  whole construction via an ester/carbamate route an imine lacks. Fixed by bracketing a non-leading "-oxy"
+  simple prefix on any one-carbon chain parent, any output form -- a narrowly new rule. A second, independent
+  instance of the exact same bug (methanamine, not methanimine; a different prefix pair) was found during
+  diagnosis and fixed as the same side effect, pinning that the rule is general rather than a methanimine
+  patch.
+
+**Discovery-only extension of round 9's B3 frequency census** (no fix attempted; recorded in
+`KNOWN_LIMITATIONS.md`, "Open after naming round 10"): 6 of the round 5-8 backlog's still-open shapes measured
+against the same frozen 2000-structure sample. Two clear the admission threshold by a wide margin (a
+ring-nitrogen acyl on a chain parent at 5.3x threshold, a multiparent fusion hub at 2.3x) -- real,
+reproducible evidence where round 8's own notes said only "found by probing, not investigated". Four are
+genuinely rare (0/2000): an a(ba)n Si-NH-Si chain, a symmetric 1,2-diketone (benzil), a diacyl peroxide, a
+xanthate ester.
+
 **Process note.** Every fix in this round followed the same routine: D-rows red first, converses that differ by reason, a
 mutation check with the equivalent mutants written into the code, a stage-comparison run against the whole 1129-row Blue
 Book tuning population BEFORE the commit and never chained to it, one commit per item. That discipline caught the

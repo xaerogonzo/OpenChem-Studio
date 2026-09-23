@@ -2912,6 +2912,45 @@ def _assemble_substitutive(tree: SubstitutiveTree) -> str:
                     for mp in merged
                 ]
 
+        # naming round 10 (carbamimidate-oxime-swap): an alkoxy/aryloxy
+        # ("-oxy") SIMPLE prefix on a one-carbon CHAIN parent with 2+
+        # prefixes needs brackets whenever it is not the leading one, the
+        # same "-oxy ether prefixes stay bracketed for legibility" concern
+        # already applied above to a LEADING "-oxy" prefix (P-16.3.3's own
+        # exception) and to heteroatom-center parents (P-68.3/P-71.1) --
+        # neither of those two paths covers a CARBON-centered one-carbon
+        # parent (methanone/methanimine/methanamine/...) in STANDALONE
+        # form, which is exactly the gap: "COC(=N)NN" assembled as
+        # "(hydrazinyl)methoxymethanimine", where the un-bracketed trailing
+        # "methoxy" concatenates onto the preceding close-paren and OPSIN
+        # reads "(hydrazinyl)methoxy" as ONE nested substituent
+        # (hydrazinylmethoxy = a hydrazinylmethyl ether) rather than two
+        # siblings on the methanimine carbon -- a different, wrong
+        # molecule. The round-8 ketone-parent case (F5) happened to test
+        # with "phenyl", which creates no such boundary ambiguity, and a
+        # ketone WITH an "-oxy" second substituent sidesteps the whole
+        # shape by choosing an ester/carbamate parent instead (measured:
+        # "O=C(OC)N1CCOCC1" -> "4-(methoxycarbonyl)morpholine"); an imine
+        # has no such alternate route, so it hits the raw, unguarded
+        # construction. Scoped to the SAME candidate shape as the P-29
+        # rule above (one-carbon chain, 2+ prefixes), with NO output_form
+        # restriction: the ambiguity is about string adjacency, not
+        # whether the one-carbon group is a substituent or the whole
+        # molecule's own parent.
+        if (tree.named_parent.candidate.type == "chain"
+                and tree.named_parent.candidate.length == 1
+                and len(merged) >= 2):
+            import dataclasses as _dc
+            merged = [
+                mp if i == 0 or not (
+                    mp.multiplier is None
+                    and mp.name.endswith("oxy")
+                    and mp.name != "hydroxy"
+                )
+                else _dc.replace(mp, needs_brackets=True)
+                for i, mp in enumerate(merged)
+            ]
+
         parts.append(render_merged_prefixes(merged))
     else:
         anion_suffix_form = None

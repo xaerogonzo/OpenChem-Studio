@@ -56,6 +56,12 @@ ROWS = [
     ("ethynediide", "[C-]#[C-]", "ethynediide", "DERIVED (D-136, no PIN claimed)", "MATCH", -2, 1),
     ("phosphide-anion", "C1C[PH-]2CCC1CC2", "1-phosphabicyclo[2.2.2]octan-1-uide", "DERIVED (D-137, P-73)", "MATCH", -1, 1),
     ("imine-anion", "CCCC=[N-]", "butan-1-iminide", "DERIVED (D-138, no PIN claimed)", "MATCH", -1, 1),
+    # -- naming round 10: all 4 of round 9's deferred items (item 3, charge-polycarbocation, not driven here --
+    # -- like D-133 its fix IS a raised refusal, not a name this table's row shape can represent) -------------
+    ("methylene blue (phenothiazine locant)", "CN(C)c1ccc2nc3ccc(=[N+](C)C)cc-3sc2c1.[Cl-]", "[7-(dimethylamino)phenothiazin-3-ylidene]di(methyl)azanium chloride", "DERIVED (D-139)", "MATCH", 0, 2),
+    ("phenoxazine dye analogue (converse of D-139)", "CN(C)c1ccc2nc3ccc(=[N+](C)C)cc-3oc2c1.[Cl-]", "[7-(dimethylamino)phenoxazin-3-ylidene]di(methyl)azanium chloride", "DERIVED (D-140)", "MATCH", 0, 2),
+    ("fluorescein (spiro-xanthene locant)", "O=C1OC2(c3ccc(O)cc3Oc3cc(O)ccc32)c2ccccc21", "3',6'-dihydroxyspiro[1,3-dihydro-2-benzofuran-1,9'-xanthene]-3-one", "DERIVED (D-141)", "MATCH", 0, 1),
+    ("carbamimidate (oxime-swap bracketing)", "COC(=N)NN", "(hydrazinyl)(methoxy)methanimine", "DERIVED (D-142)", "MATCH", 0, 1),
 ]
 
 

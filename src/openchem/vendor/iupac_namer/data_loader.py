@@ -2593,10 +2593,25 @@ _RING_CURATED_SMILES: dict[str, dict] = {
     # atom_locants derived from OPSIN locant-SMILES: canonical 'c1ccc2c(c1)Nc1ccccc1S2'
     "c1ccc2c(c1)Nc1ccccc1S2":   {"name": "phenothiazine",   "substituent_form": "phenothiazinyl", "alkyl_stem_ok": False,
                                   "atom_locants": {5: 1, 0: 2, 1: 3, 2: 4, 13: 5, 11: 6, 10: 7, 9: 8, 8: 9, 6: 10}},
+    # naming round 10 (spiro-xanthene-dye-locant): thioxanthene/xanthene's
+    # atom_locants used to omit the four ring-fusion carbons AND the bridge
+    # heteroatom (locant 10) entirely -- fine for a bare/substituted parent
+    # (fusion carbons rarely bear a substituent there), but in
+    # fluorescein's spiro-combined system the missing entries made
+    # spiro.py's combined numbering incomplete
+    # (len(atom_to_loc) != total_atoms), so it silently fell back to a
+    # generic, unprimed, out-of-range locant walk ("13") instead of using
+    # this table at all. Fusion labels (4a, 8a, 9a, 10a) derived by tracing
+    # this key's own bond topology against fusion_general.py's already-
+    # verified real xanthene numbering (4a adjacent to 4 and to 10; 9a
+    # adjacent to 9 and 1; 8a adjacent to 8 and 9; 10a adjacent to 10 and
+    # 5) -- verified end-to-end against OPSIN on fluorescein itself.
     "c1ccc2c(c1)Cc1ccccc1S2":   {"name": "thioxanthene",    "substituent_form": "thioxanthenyl",  "alkyl_stem_ok": False,
-                                  "atom_locants": {5: 1, 0: 2, 1: 3, 2: 4, 11: 5, 10: 6, 9: 7, 8: 8, 6: 9}},
+                                  "atom_locants": {5: 1, 0: 2, 1: 3, 2: 4, 3: "4a", 13: 10, 4: "9a",
+                                                   11: 5, 10: 6, 9: 7, 8: 8, 7: "8a", 6: 9, 12: "10a"}},
     "c1ccc2c(c1)Cc1ccccc1O2":   {"name": "xanthene",        "substituent_form": "xanthenyl",      "alkyl_stem_ok": False,
-                                  "atom_locants": {5: 1, 0: 2, 1: 3, 2: 4, 11: 5, 10: 6, 9: 7, 8: 8, 6: 9}},
+                                  "atom_locants": {5: 1, 0: 2, 1: 3, 2: 4, 3: "4a", 13: 10, 4: "9a",
+                                                   11: 5, 10: 6, 9: 7, 8: 8, 7: "8a", 6: 9, 12: "10a"}},
     # 9H-xanthen-9-one (xanthone) and 9H-thioxanthen-9-one (thioxanthone):
     # the 9-oxo tautomers of xanthene / thioxanthene.  The plain-ring extraction
     # (strip exocyclic =O) yields a ring with aromatic o/s at position 10, which
