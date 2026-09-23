@@ -397,8 +397,11 @@ sample, because the proxy can miss a shape. 28 of the 36 name and read back MATC
 `[NAMING ERROR ...]` marker (three of those eight report `clean` from `naming_probe.py`'s plan counters, because
 the error is emitted as a NAME, not as a dead plan, so a status counter under-reports it and the name itself
 has to be read). The failures are all
-visible (an embedded `[NAMING ERROR: No valid naming plan found for <fragment>]`, shown by the app as an
-unverified name), none is a wrong molecule, and they fall into several ring systems, not one:
+visible in the ENGINE's output (an embedded `[NAMING ERROR: No valid naming plan found for <fragment>]`), and the
+application does not show such a name: `naming_providers.derived_name_for_structure` withholds any name containing
+`NAMING ERROR`, and any name whose OPSIN read-back is a different structure, with a stated reason (corrected in naming
+round 13; this paragraph used to say the app shows the name as unverified, which was wrong -- only a name OPSIN
+cannot READ is shown unverified). None is a wrong molecule, and they fall into several ring systems, not one:
 
 | ring system of the failing fragment | unique structures | fails standalone too | neutral parent names |
 |---|---|---|---|
