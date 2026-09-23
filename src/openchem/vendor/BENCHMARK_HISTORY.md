@@ -828,3 +828,76 @@ population and changing its printed string is the expected, correct outcome of s
 "scored once, ever" governs re-TUNING against the frozen set, not freezing its strings forever. The newly
 sealed file is committed under this round's own name
 (`sealed/r11-final-evaluation.bluebook_frozen.records.json`), not pointed back at round 9's.
+
+## 2026-09-23 -- naming round 12: a charged acid inside a substituent (D-144), and a triaged census signal
+
+A deliberately small round: one fully diagnosed item and one census signal that had never been triaged. Full findings:
+`KNOWN_LIMITATIONS.md`, "Open after naming round 12".
+
+### The whole round, against the engine it began with (`tools/naming_ref_compare.py --base fcb35a19`)
+
+1712 structures (the r7, r8 and multicomponent panels and every tuning population the registry exposes): **0 changed, 0
+violations**. That is not a sign the fix did not fire: no corpus row has the shape (a charged acid group inside a carved substituent),
+which is why D-144 has its own FIXED rows and tests. The check that DID see the change was a different shape than the corpora: the
+engine over every charged row of the frozen 2000-structure census sample (292), base against working tree, by a per-row runner that
+records a refusal (`ValueError`) and an embedded `NAMING ERROR` rather than stopping at the first: **1 of 292 changed**, an
+aminophosphonate zwitterion, `{(2R,4E)-6-[dioxido(oxo)phosphanyl]-1-oxido-1-oxohex-4-en-2-yl}azanium` ->
+`{(1R,3E)-1-carboxylato-5-[dioxido(oxo)phosphanyl]pent-3-en-1-yl}azanium`, which reads back MATCH. It sits on a route other than the
+carved one: the fix is a property of the fragment, which is what keeps it cache-safe.
+
+### A first version regressed a documented converse, and the known-defects suite caught it
+
+The first version added the synthesised FG to every SUBSTITUENT fragment whose acid group was charged. `D-121u`
+(`[S-]c1ccccc1C(=O)[O-]`, pinned OPEN as `2-[oxido(oxo)methyl]benzene-1-thiolate`) then failed a plan ("atom 0 owned by prefix[0] and
+prefix[1]") and fell back to a `NAMING ERROR` name: a fragment that IS the whole acid group, attached through its own carbon, is named by the
+single-FG path and a second FG double-owned the atom. The fix skips a group containing the attachment atom. Before the guard: 1 failed,
+1015 passed; after: 1114 passed, 14 xfailed (now 1126 passed with the round's own tests).
+
+### The frozen impact, checked blind (`tools/naming_stage_artifact.py --frozen-impact r11-final-evaluation`)
+
+A tool built this round because the ref-compare cannot reach frozen rows and rounds 10 and 11 decided by hand whether to rescore. It
+prints only `unchanged` or `changed_count=N of M`. Result: **`heldout_v6` unchanged (40); `bluebook_frozen` changed_count=1 of 1126**.
+The same run with the base engine's `engine.py` swapped in reported 0 for both, which attributes the one row to this round's change
+without ever printing a label or a name.
+
+### The driven check (`tools/naming_app_check.py`, the application's own provider)
+
+36/36 rows pass: the 32 pre-existing rows unaffected, plus 4 new rows (D-144a, b, c and the classifier-route converse).
+
+### Gates
+
+Known-defects suite: 1126 passed, 14 xfailed; six of the twelve new cases fail with the engine change removed, and the other six (the
+converses and the one-owner check) pass either way, as intended. Vendored suite (own pytest session, on the gated commit): **5,229
+passed, 0 failed**. App gate, both shards, in a detached worktree at the gated commit (17 chunks, no retries): 16 chunks exit 0; the one
+failure was `test_namer_probe_shapes.py::test_no_pinned_name_has_moved`, which pinned D-144a's structure as OPEN with the old name and was
+updated in the next commit, together with its manifest row; that file, the manifest and the doc guards were re-run on the final tree (all
+pass). The engine is byte-identical between the gated commit and the final tree (`git diff` of the engine directory: 0 lines).
+(Two self-inflicted false starts, recorded so they are not repeated: `export PATH="C:/Users/.../bin:$PATH"` puts a `C` and a `/Users/...`
+into a colon-separated PATH, so the gate refused to start with "no `java` on PATH" -- the `/c/Users/...` form is the one that works; and
+`naming_plan_trace.py` on a molecule that never reaches plan search at top level raises `IndexError`, which is how the carved fragment was
+first found to be named by a RECURSIVE call, by spying on `_name_bound` instead.)
+
+### The final evaluation (`r12-final-evaluation`, `--final-evaluation`, `heldout_v6` + `bluebook_frozen`)
+
+| population | rows | PubChem string (verbatim) | equivalent | wrong structure |
+|---|---|---|---|---|
+| regression | 187 | 101 | 85 | 0 (1 tautomer) |
+| heldout v1-v5 (tuning) | 40 each | 16/15/14/19/11 | 24/25/26/21/29 | 0 each |
+| heldout v6 (frozen, round 9) | 40 | 13 | 25 | 2 (unchanged) |
+| bluebook tuning | 1129 | 507 | 532 | 15 (58 unparsable, 17 no-prediction) |
+| **bluebook frozen** | **1126** | **505** | **540** | **22 (46 unparsable, 13 no-prediction)** |
+
+Every total is identical to round 11's. Diffed against round 11's sealed records in aggregate (a count, never a row): **`bluebook_frozen`:
+1 name changed, 0 outcome classes changed; `heldout_v6`: 0 names changed**, which agrees with the blind check above. All tuning populations:
+0 names changed, none structurally regressed. Scored once, after the gate passed on the final engine. The newly sealed files are committed
+under this round's own name (`sealed/r12-final-evaluation.*.records.json`).
+
+### The W2 measurement (the fused-aromatic-ring-cation census signal, round 11)
+
+The 36 hits of `fused_aromatic_ring_cation` were named and read back (36 unique row identities, 36 unique canonical structures): 28
+MATCH, 8 `PARSER_FAILED` with an embedded `[NAMING ERROR ...]` name. `naming_probe.py`'s own status counters reported 31 `clean` and 5
+`fallback` for the same 36, because three of the eight emit the error as a NAME and no plan dies; the counter under-reports and the name
+has to be read. Neutral parents were named for the layer (`imidazo[1,2-a]pyridine`, `imidazo[2,1-b][1,3]thiazole`, `quinolizidine`);
+their cations fail with one plan executed and none valid. The failing fragments were named standalone and by ring system; the per-system
+counts (4 / 2 / 1 / 1 / six singletons) are in `KNOWN_LIMITATIONS.md`, and the largest, 4/2000 = 0.2%, is under the 10-structure floor,
+so nothing was admitted.
