@@ -30,7 +30,11 @@ CENSUS = BENCH / "census_sample.json"
 CENSUS_META = BENCH / "census_sample.meta.json"
 
 THIS_TEST = "tests/test_naming_census_lock.py"
-ALLOWED_NAMERS = {"tools/naming_census_build.py", "tools/naming_census_count.py", THIS_TEST}
+#: The census scan (naming round 13's prelude) reads every row to MEASURE the engine's remaining failure rate, never to tune
+#: against it: it writes a class per row, and the census is still not a registered population (test above).
+ALLOWED_NAMERS = {
+    "tools/naming_census_build.py", "tools/naming_census_count.py", "tools/naming_census_scan.py", THIS_TEST,
+}
 
 EXCLUDE_JSON = (
     "corpus.json", "heldout.json", "heldout2.json", "heldout3.json", "heldout4.json",
