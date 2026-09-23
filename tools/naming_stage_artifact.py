@@ -601,6 +601,34 @@ def compare(previous: dict, current: dict) -> list[str]:
     return lines
 
 
+def frozen_impact(against_stage: str) -> dict[str, tuple[int, int]]:
+    """How many FROZEN rows the working tree names differently from a sealed final evaluation.
+
+    Returns `{population key: (rows, changed)}` and nothing else -- no label, no name, no outcome
+    leaves this function, so asking the question does not un-blind the set. It exists because
+    `naming_ref_compare.py` reaches the TUNING populations only: a change to a shared path can move a
+    frozen row that no tuning row exposes, and "the fix is narrow" is not a measurement. If every count
+    is 0 the previous evaluation's score stands and the frozen set is NOT re-scored (the rule is
+    scored ONCE per round only when something moved); if any count is above 0, the round scores it
+    once, at the end, the ordinary way.
+
+    Names only -- no OPSIN, so no JRE is needed. A row absent from the sidecar counts as changed.
+    """
+    frozen = {key for key, _f, is_frozen in POPULATIONS if is_frozen}
+    impact: dict[str, tuple[int, int]] = {}
+    for key in active_populations(final_evaluation=True):
+        if key not in frozen:
+            continue
+        sidecar = SEALED / f"{against_stage}.{key}.records.json"
+        if not sidecar.exists():
+            raise SystemExit(f"no sealed final evaluation of {key} at stage {against_stage!r}")
+        was = {r["label"]: r["name"] for r in json.loads(sidecar.read_text(encoding="utf-8"))}
+        _filename, rows = load_population(key, final_evaluation=True)
+        changed = sum(1 for r in _name_rows(rows) if was.get(r["label"]) != r["name"])
+        impact[key] = (len(rows), changed)
+    return impact
+
+
 def score_success() -> set[str]:
     import score
 
@@ -609,7 +637,14 @@ def score_success() -> set[str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Record a naming stage artifact.")
-    parser.add_argument("--stage", required=True, help="stage name, e.g. baseline")
+    parser.add_argument("--stage", help="stage name, e.g. baseline (required unless --frozen-impact)")
+    parser.add_argument(
+        "--frozen-impact",
+        metavar="SEALED_STAGE",
+        help="BLIND check: compare the working tree's names for the frozen populations against this "
+             "sealed final-evaluation stage and print only unchanged / changed_count per population. "
+             "Writes nothing. Exit status 3 if anything moved.",
+    )
     parser.add_argument("--compare", help="a previous artifact to diff against")
     parser.add_argument(
         "--final-evaluation",
@@ -622,6 +657,17 @@ def main() -> None:
         help="record names without round-trip classes (diagnostics only)",
     )
     args = parser.parse_args()
+
+    if args.frozen_impact:
+        impact = frozen_impact(args.frozen_impact)
+        for key, (n, changed) in impact.items():
+            print(f"[{key}] " + (f"unchanged ({n} rows)" if not changed else f"changed_count={changed} of {n}"))
+        moved = any(changed for _n, changed in impact.values())
+        print("FROZEN IMPACT: " + ("changed -- score the frozen set once at the end of the round" if moved
+                                   else "unchanged -- the previous evaluation's score stands"))
+        raise SystemExit(3 if moved else 0)
+    if not args.stage:
+        parser.error("--stage is required unless --frozen-impact is given")
 
     artifact = build(
         args.stage,
