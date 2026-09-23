@@ -777,3 +777,54 @@ refusal, and nothing else.
 
 **heldout_v6's 2 wrong-structure rows are round 11's starting material, not this round's**: per the same discipline
 round 9 established, chasing them down now would un-freeze the very control the freeze exists to be.
+
+## 2026-09-23 -- naming round 11: two fixes, two backlog rows already resolved, one re-diagnosed deeper
+
+Round 11 re-verified every candidate directly against the current engine before admitting or dropping it --
+round 9's own lesson (three of its eight seed hypotheses were ruled out by live testing) held again: two of
+five candidates this round looked at were already fixed by other rounds' general work, never reflected back
+into `KNOWN_LIMITATIONS.md` until now. Full findings: `KNOWN_LIMITATIONS.md`, "Open after naming round 11".
+
+### The whole round, against the engine it began with (`tools/naming_ref_compare.py --base 575b5037`)
+
+1516 structures (every tuning population the tool's registry exposes): item 1 (ketone-parent enclosure)
+touched **0 rows** (its shape is not itself present in the tuning populations -- a real, if unexciting,
+regression-safety result, not a sign the fix didn't fire). Item 2 (carbamimidoyl N'/N,N split) touched **4
+rows, 0 violations**, matching the manifest's declared set exactly
+(`benchmarks/naming/stages/manifests/r11-release-candidate.toml`) -- each verified structurally identical
+via OPSIN round-trip before being added to the manifest, never the reverse.
+
+### The driven check (`tools/naming_app_check.py`, the application's own provider, not the bare engine)
+
+32/32 rows pass: the 30 pre-existing rows unaffected, plus 2 new rows for this round's 2 fixes.
+
+### Gates
+
+Naming-consumer app session (37 files): 2253 passed, 1 skipped, 14 xfailed -- checked after both of the
+round's `src/`-touching commits. Vendored suite (own pytest session): **5,207 passed, 0 failed**, 16 skipped
+(the same documented, benign skip class every prior round recorded). App gate, both shards, in a detached
+worktree (`--no-vendor`): **RESULT: PASS**, every chunk on its first attempt, no retries needed. (One
+self-inflicted false start: the gate's `--out` flag was passed pointing at the SAME path the script
+auto-derives for the worktree itself from `--sha`, so the script's own `rm -rf "$OUT"` step deleted the
+freshly-checked-out worktree before any tests ran -- `git worktree prune` and a clean re-run without `--out`
+recovered it; no committed work was at risk, since the deleted worktree held only a disposable checkout.)
+
+### The final evaluation (`r11-final-evaluation`, `--final-evaluation`, `heldout_v6` + `bluebook_frozen`)
+
+| population | rows | PubChem string (verbatim) | equivalent | wrong structure |
+|---|---|---|---|---|
+| regression | 187 | 101 | 85 | 0 (1 tautomer) |
+| heldout v1-v5 (tuning) | 40 each | 16/15/14/19/11 | 24/25/26/21/29 | 0 each |
+| heldout v6 (frozen, round 9) | 40 | 13 | 25 | 2 (round 11's starting material, not this round's -- see round 10's own note) |
+| bluebook tuning | 1129 | 507 | 532 | 15 (58 unparsable, 17 no-prediction) |
+| **bluebook frozen** | **1126** | **505** | **540** | **22 (46 unparsable, 13 no-prediction)** |
+
+**`bluebook_frozen` genuinely changed this round**, unlike round 10 where the re-score was byte-identical to
+round 9's own seal and the duplicate was discarded. Diffed directly against round 9's original sealed
+content (never assumed): exactly 2 rows differ, both item 2's own already-verified carbamimidoyl N'/N,N fix
+reaching this frozen population, both scoring `equivalent` before and after (re-verified via OPSIN
+independently, same standard as every other row this round touched). A genuine fix reaching the frozen
+population and changing its printed string is the expected, correct outcome of shipping a real fix --
+"scored once, ever" governs re-TUNING against the frozen set, not freezing its strings forever. The newly
+sealed file is committed under this round's own name
+(`sealed/r11-final-evaluation.bluebook_frozen.records.json`), not pointed back at round 9's.
